@@ -576,6 +576,14 @@ do idims= idim^LIM
    call getv(wLC,xi,ixG^LL,ixC^L,idims,vLC)
    call getv(wRC,xi,ixG^LL,ixC^L,idims,vRC)
 
+
+{#IFDEF GLM
+! Solve the Riemann problem for the linear 2x2 system for normal
+! B-field and GLM_Psi according to Dedner 2002:
+call glmSolve(wLC,wRC,ixG^LL,ixC^L,idims)
+}
+
+
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
       call getflux(wLC,xi,ixG^LL,ixC^L,iw,idims,fLC,transport)
@@ -1421,6 +1429,13 @@ do idims= idim^LIM
    ! Calculate velocities for transport fluxes
    call getv(wLC,xi,ixG^LL,ixC^L,idims,vLC)
    call getv(wRC,xi,ixG^LL,ixC^L,idims,vRC)
+
+
+{#IFDEF GLM
+! Solve the Riemann problem for the linear 2x2 system for normal
+! B-field and GLM_Psi according to Dedner 2002:
+call glmSolve(wLC,wRC,ixG^LL,ixC^L,idims)
+}
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux

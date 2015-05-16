@@ -7,8 +7,9 @@
         saveprim      = T
         nwauxio       = 2
         convert_type  = 'vtuBCCmpi'
-	filenameout   = 'rk54_fd_mp5_4levels_'
-	filenameini   = 'rk54_fd_mp5_4levels_'
+	filenameout   = 'output/data'
+	filenameini   = 'output/data'
+        filenamelog   = 'output/amrvac'
  /
 
  &savelist

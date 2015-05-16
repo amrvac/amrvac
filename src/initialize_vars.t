@@ -1,7 +1,6 @@
 !=============================================================================
 subroutine initialize_vars
   use mod_forest
-  use mod_metric, only: init_metric
 include 'amrvacdef.f'
 
 integer :: igrid, level, ipe, ig^D
