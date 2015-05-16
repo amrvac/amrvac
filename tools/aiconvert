@@ -1,0 +1,195 @@
+#!/bin/csh -f
+
+# script to convert a series of frames for amrvac convert stage at once
+# 1: all data according to amrvac.par
+# 2: one selected data according to amrvac.par
+# 3: from startnumber to stopnumber according to amrvac.par
+# 4: one selected data according to parfilename
+# 5: from startnumber to stopnumber according to parfilename
+# All lines between &filelist and &savelist in parfile will be validated automaticly.
+
+echo "Usage:(1, 2, 3, 4, or 5)"
+echo "1 $0"
+echo "2 $0 onenumber"
+echo "3 $0 startnumber stopnumber"
+echo "4 $0 parfilename onenumber"
+echo "5 $0 parfilename startnumber stopnumber"
+
+if($#argv == 0) then
+ echo "Convert data in case"
+ echo "1: all data according to amrvac.par"
+ echo "2: one selected data according to amrvac.par"
+ echo "3: from startnumber to stopnumber according to amrvac.par"
+ echo "4: one selected data according to parfilename"
+ echo "5: from startnumber to stopnumber according to parfilename"
+ echo "All lines between &filelist and &savelist in parfile will be validated automatically."
+endif
+
+if($#argv > 3) then
+  echo "Wrong number of arguments! See Usage"
+  goto done
+endif
+
+if(-e amrvac) then
+else
+  echo "amrvac executable is missing"
+  goto done
+endif
+if($#argv == 3) then
+  set fname=$argv[1]
+  if(-e $fname) then
+    echo "parfilename given is" $fname
+  else
+    echo "$fname is not found! Check parfilename!"
+    goto done
+  endif
+endif
+if($#argv == 0) then
+  if(-e amrvac.par) then
+    set ful=`ls -l amrvac.par`
+    set fname=$ful[$#ful]
+    echo "parfilename given is" $fname
+  else
+    echo "amrvac.par or parfilename is needed!"
+    goto done
+  endif
+endif
+if($#argv == 1 || $#argv == 2) then
+  if(-e $argv[1]) then
+    set fname=$argv[1]
+  else if(-e amrvac.par) then
+    # get the default name of parfile
+    set ful=`ls -l amrvac.par`
+    set fname=$ful[$#ful]
+  
+  else
+    echo "amrvac.par or parfilename is needed!"
+    goto done
+  endif
+  echo "parfilename given is" $fname
+endif
+# count the number of data to be converted
+set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^filenameout/=}'`
+set linedata=`echo $linedata | awk '{print $1}'`
+set dataname=`sed -n "$linedata p;$linedata q" $fname | awk -F\' '{print $2}'`
+set datacount=`ls $dataname????.dat | grep -c '.dat'`
+if($datacount < 1 ) then
+ echo "Data "$dataname"*.dat are not found!"
+ goto done
+endif
+#  determine convert number range of data files
+if($#argv == 0)then
+  set startind=`ls $dataname????.dat | sed -n '1p' | awk '{v=length($0)-7;print substr($0,v,4)}' | sed 's/^0*\+//'`
+  set stopind=`ls $dataname????.dat | sed -n '$p' | awk '{v=length($0)-7;print substr($0,v,4)}' | sed 's/^0\+//'`
+  if($startind == '') @ startind=0
+ else if($#argv == 1)then
+  @ startind=$argv[1]
+  @ stopind=$argv[1]
+else if($#argv == 2)then
+  if(-e $argv[1]) then
+   @ startind=$argv[2]
+   @ stopind=$argv[2]
+  else
+   @ startind=$argv[1]
+   @ stopind=$argv[2]
+  endif
+else
+  set startind=$argv[2]
+  set stopind=$argv[3]
+endif
+
+echo "startindex given is" $startind
+echo "stopindex  given is" $stopind
+if ("$startind">"$stopind") then
+ echo "startindex $startind is larger than stopindex $stopind"
+ goto done
+endif
+@ cnum=$stopind - $startind
+@ cnum++
+# for mpi convert type, get the number of processors
+if ( `grep -c 'convert_type.*mpi' $fname` > 0 ) then
+ echo -n "How many processors do you want to use? (default=1) "
+ set spe=$<
+ if ($spe == "") then
+  set npe=1
+ else if ($spe > 0) then 
+  set npe=$spe
+ else if( $spe <= 0) then
+  echo "You don't want to convert data."
+  goto done
+ else
+  set npe=1
+ endif
+else
+ set npe=1
+endif
+# store initial value of snapshotini
+set snapinil=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^snapshotini/=}'`
+set snapini=`echo $snapinil | awk '{print $1}'`
+set ini=`sed -n "$snapini p;$snapini q" $fname | awk -F\= '{print $2}'`
+# change &end into / in the parfile
+sed -i "s/&[eE][nN][dD]/\//g" $fname
+#  find the line numbers of the line including "/" 
+set line_num_list1=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^\//=}'`
+#  find the line number of first "/" below "&filelist"
+set line_num1=`echo $line_num_list1 | awk '{print $1}'`
+#  delete the line of "/"
+sed -i "${line_num1} d" $fname
+#  find the line number of first "&" below "&filelist"
+set line_num_list2=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^\&/=}'`
+set line_num2=`echo $line_num_list2 | awk '{print $2}'`
+#  add a line of "/" before the "&" line
+sed -i "${line_num2} i\ \/" $fname
+
+if($#argv > 0) then
+ set indx="$startind"
+ set ii=1
+ while ($indx <= "$stopind")
+   echo "################ Converting "$ii"/"$cnum" ################"
+   if (-e $fname ) then
+    sed -i "/snapshotini/ c\        snapshotini=$indx" $fname
+    mpirun -np $npe amrvac -i $fname -restart -convert
+   endif
+   @ indx++
+   @ ii++
+ end
+else
+ set ii=1
+ while ($ii <= "$datacount")
+   echo "################ Converting "$ii"/"$datacount" ################"
+   set indx=`ls $dataname????.dat | sed -n "$ii p" | awk '{v=length($0)-7;print substr($0,v,4)}' | sed 's/^0*\+//'`
+   if($indx == '') @ indx=0
+   if (-e $fname ) then
+    sed -i "/snapshotini/ c\        snapshotini=$indx" $fname
+    mpirun -np $npe amrvac -i $fname -restart -convert
+   endif
+   @ ii++
+ end
+endif
+
+# recover snapshotini to its initial value
+sed -i "/snapshotini/ c\        snapshotini=$ini" $fname
+
+# delete the added line of "/" at the end of filelist 
+sed -i "${line_num2} d" $fname
+# add the first deleted line of "/" back
+sed -i "${line_num1} i\ \/" $fname
+# output the number of data tried to convert
+if($#argv > 0) then
+ if($cnum > 1) then
+  echo $cnum $dataname"*.dat files tried to convert"
+ else
+  echo $cnum $dataname"*.dat file tried to convert"
+ endif
+else
+ @ ii--
+ if($ii > 1) then
+  echo $ii $dataname"*.dat files tried to convert"
+ else
+  echo $ii $dataname"*.dat file tried to convert"
+ endif
+endif
+done:
+ exit 0
+error:
+ exit 1

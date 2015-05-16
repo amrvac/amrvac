@@ -1,0 +1,51 @@
+!=====================================================
+! Project : Advection test
+!
+!=====================================================
+ &testlist
+        teststr=' '
+/
+
+ &filelist
+        primnames    = 'rho'
+    	convert_type = 'vtiCCmpi'
+        autoconvert  = T
+	filenameout  = 'rk54_cfl08_mp5_128_'
+	filenamelog  = 'rk54_cfl08_mp5_128'
+/
+ &savelist
+        itsave(1,1)  = 0
+        itsave(1,2)  = 0
+        ditsave(1)   = 1
+ /
+
+ &stoplist
+        tmax         = 10.0d0
+ /
+
+ &methodlist
+        wnames=       'rho'
+        typeadvance=  'ssprk54'
+        typefull1 =    13*'fd'
+        typepred1 =    13*'fd'
+        typelow1  =    13*'fd'
+        typelimiter1= 13*'mp5'
+        typelimited='predictor'
+ /
+
+ &boundlist
+        dixB=   3
+        typeB=  'periodic','periodic'
+ /
+
+ &amrlist
+        mxnest=1
+        nxlone1=128
+        iprob=1
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+ /
+
+ &paramlist
+       courantpar=0.6
+ /

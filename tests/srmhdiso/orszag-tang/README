@@ -1,0 +1,1 @@
+$AMRVAC_DIR/setup.pl -d=22 -phi=3 -z=2 -g=20,20 -p=srmhdiso -eos=default -nf=0 -ndust=0 -u=nul -arch=default

@@ -1,0 +1,64 @@
+ &testlist
+        teststr=''
+ &end
+
+ &filelist
+        autoconvert=.true.
+        saveprim=.true.
+        primnames=  'rho v1 v2 p b1 b2'
+ &end
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)=1
+        dtsave(2)=0.1
+ &end
+
+ &stoplist
+        tmax=0.50
+        tmaxexact=.true.
+        dtmin=1.D-6
+ &end
+
+ &methodlist
+        wnames=       'rho m1 m2 e b1 b2'
+        fileheadout=  'rot_mhd22'
+        typeadvance=  'threestep'
+        typefull1=    13*'hllc'
+        typelimiter1= 13*'cada3'
+        useprimitive=.true.
+ &end
+
+ &boundlist
+        dixB=    2
+        typeB=   6*'periodic',6*'periodic',
+                 6*'periodic',6*'periodic'
+ &end
+
+ &amrlist
+        errorestimate=3
+        flags(7)=3
+        flags(1)=1
+        flags(2)=5
+        flags(3)=6
+        wflags(1)=0.8
+        wflags(2)=0.1
+        wflags(3)=0.1
+        mxnest=5
+        nbufferx1=0
+        nbufferx2=0
+        tol=13*0.1d0
+        nxlone1=32
+        nxlone2=32
+        iprob=20
+        xprobmin1=0.0
+        xprobmax1=1.0
+        xprobmin2=0.0
+        xprobmax2=1.0
+ &end
+
+ &paramlist
+        courantpar=  0.6D0
+        slowsteps=10
+ &end

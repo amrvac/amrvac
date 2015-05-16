@@ -1,0 +1,4 @@
+F90=mpif90
+FFLAGS = -c
+F90FLAGS = -O0 -DB -debug all -g -traceback -FR -implicitnone
+LINK= $(F90)  $(F90FLAGS)

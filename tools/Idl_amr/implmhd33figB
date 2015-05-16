@@ -1,0 +1,29 @@
+.r Idl_amr/procedures
+
+filename='datamr/implmhd33.y0.t0.4.out'
+npict=1
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+device,/encapsulated,bits=8,/color
+device,xsize=17,ysize=16,xoffset=0,yoffset=0
+device,filename='implmhd33.B.eps'
+
+plotmode='contfill'
+func='schlier2'
+noautodomain=0
+plottitle=' '
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17z'
+
+.r Idl_amr/plotfunc
+
+Xyouts,-0.43,0.4,'!17y=0',charsize=1.3
+device,/close

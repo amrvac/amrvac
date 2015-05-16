@@ -1,0 +1,3 @@
+$AMRVAC_DIR/setup.pl -d=22 -phi=3 -z=2 -g=14,14 -p=srmhd -nf=0 -u=srmhdOT -arch=macbook
+
+to use GLM, set the definitions.h accordingly and add the psi to variables and boundary conditions in amrvac.par

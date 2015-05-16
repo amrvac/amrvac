@@ -1,0 +1,4 @@
+F90=mpif90
+FFLAGS = -c
+F90FLAGS = -ffree-form -O3 -fimplicit-none
+LINK= $(F90)  $(F90FLAGS)

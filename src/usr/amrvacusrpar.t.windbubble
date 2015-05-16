@@ -1,0 +1,9 @@
+!##############################################################################
+! include amrvacusrpar - windbubble
+
+INTEGER,PARAMETER:: vrinf_=neqpar+1, vrel_=vrinf_+1, mdot_=vrel_+1, &
+                    pism_=mdot_+1, rw_=pism_+1, nspecialpar=5
+CHARACTER*23,PARAMETER:: specialparname='vrinf vrel mdot pism rw'
+
+! end include amrvacusrpar - windbubble
+!##############################################################################

@@ -1,0 +1,499 @@
+AMRVAC HANDS ON
+===============
+
+Handout for the BHCam Mini-Workshop in Frankfurt am Main, 20.-21. Januar 2015.
+AMRVAC is a code of many authors, please checkout doc/Credits.html for credits.  
+
+Please clone the public git repository:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+git clone https://gitorious.org/amrvac/amrvac.git
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This downloads the code into the new subfolder amrvac.  
+You can also use the website https://gitorious.org/amrvac to browse the source online.  
+
+
+
+
+
+
+OVERVIEW
+========
+
+Lets first have a look at the directory structure.  
+In the main directory, there are the following subfolders:
+
+arch  : Holding machine specific definitions for compilation in *.defs files.  
+doc   : The html-documentaion.  Start at Contents.html for a manual and check out the 
+      	Credits.html if you want to know who contributed what to the code.  
+	Apart from giving credit to Bart van der Holst as one of the initiators of 
+	the code,  you will see that the relativistic modules that we are using today 
+	were developed by Zakaria Meliani.  
+src   : The source with various sub-folders for differnt physics modules.  
+tests : Numerous tests with sub-folders again mirroring the physics modules. 
+tools : Command-line, idl and python tools for convenience and post-processing.  
+
+Most interesting is perhaps the src folder.  
+
+Here you find a number of *.t source files floating around.  These contain Fortran90 
+code plus precompiler makros (we have our own perl preprocessor due to Gabor Toth).  
+Apart from that, most source files have been sorted into subfolders.  
+These are:
+
+src/amrvacio/       : Containing IO related routines
+src/amrvacnul/      : Containing dummy routines
+src/amrvacmodules/  : Containing optional routines to be included for cooling, 
+                      point-gravity, viscosity, tracer-particles...
+src/amrvacphys/     : Some code shared by different physics modules
+
+src/modules/        : Optional modules, e.g. physical constants, odeint
+
+src/rho/            : Physics module 'Advection'
+src/nonlinear/      : Physics module 'Burgers and similar equations'
+src/nonlinear+rho/  : Physics module 'Coupled advection and Burgers'
+src/hd/             : Physics module 'Hydrodynamics' 
+src/mhd/            : Physics module 'Magnetohydrodynamics'
+src/srhd/           : Physics module 'Special relativistic hydrodynamics' due to 
+		      Zakaria Meliani 
+src/srhdeos/  	    : Physics module 'Special relativistic hydrodynamics with 
+		      Synge-type EOS' due to Zakaria Meliani 
+src/srmhd/          : Physics module 'Special relativistic magneto-hydrodynamics' 
+		      due to Zakaria Meliani 
+
+src/deprecated/     : Physics modules that have become deprecated
+src/usr/            : _deprecated_ test setups (these are now in the tests folder)
+
+The code is easily extensible by adding a new physics module folder.  
+
+
+
+
+
+
+INSTALLATION
+============
+
+After downloading, we have to provide the $AMRVAC_DIR environment variable holding 
+the path to the code. To do so using bash, you should add the following entry to the 
+~/.bash_profile (or ~/.bashrc) file:
+
+# AMRVAC:
+export AMRVAC_DIR=$HOME/amrvac
+
+Where it is assumed that you downloaded the code in your home-folder.  
+To use scripts more conveniently, the following line in ~/.bash_profile is recommended 
+although it is not essential:
+
+PATH="$AMRVAC_DIR:$AMRVAC_DIR/tools:./:$PATH"
+
+Don’t forget to source the .bash_profile:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+source ~/.bash_profile
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+On LOEWE, you should load modules for compilers and mpi:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+module load openmpi/intel-14.0.3/1.8.1
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+RUNNING THE CODE
+================
+
+To run the shock-tube test, please cd into the test folder:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+cd $AMRVAC_DIR/tests/srmhd/shockTube
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This is a relativistic shock-tube described in van Putten 1993, J. Comput. Phys., 105, 339 
+and also in Balsara 2001, ApJS, 132,83-101; his table 1, problem 1.  
+
+To get an idea how the code works, we can run a quick 1D simulation.  
+
+
+1D:
+!====================================================================
+
+Please type 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+$AMRVAC_DIR/setup.pl -d=13 -g=12 -p=srmhd -eos=default -nf=0 -arch=default
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+which sets up a 1D, three vector components (-d=13), special relativistic mhd (-p=srmhd) 
+problem for an AMR-grid with a block size of 12 (-g=12), counting also ghost cells.  
+Here we will run with uniform grid however.  
+
+For completeness, the other parameters mean: 
+-arch=default  : loads the default (intel) compiler options.
+-eos=default   : which equation of state to use (default is in this case ideal gas 
+                 with adiabatic index to be specified by the user) other options 
+                 are currently synge (=approximate Synge gas due Zakaria Meliani) 
+                 and iso (=isentropic contributed by Serguei Komissarov)
+-nf=0          : number of additional tracer variables to be advected
+
+You can see in which state the code is by typing
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+$AMRVAC_DIR/setup.pl -s
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+definitions.h:
+We have an extra header-file called definitions.h for more switches.  
+For this 1D test, you should have all the options either absent or set to #undefine.  
+
+
+You will notice some *.t files in your directory. These are:
+amrvacsettings.t
+mod_indices.t
+amrvacusr.t
+amrvacusrpar.t
+
+Normally, you only have to care about the last two. 
+amrvacusrpar.t can be used to provide additional global parameters for your setup 
+which we don't need here.  
+In amrvacusr.t, the whole problem, for example initial conditions and boudary conditions 
+can be set up. 
+Lets have a quick look at the two essential routines:
+
+
+
+amrvacusr.t:
+!=============================================================================
+subroutine initglobaldata_usr
+
+include 'amrvacdef.f'
+!-----------------------------------------------------------------------------
+
+eqpar(gamma_) = 2.0d0
+
+end subroutine initglobaldata_usr
+!=============================================================================
+
+initglobaldata_usr simply sets the global variable containing the adiabatic constant to 2.  
+
+
+
+
+amrvacusr.t:
+!=============================================================================
+subroutine initonegrid_usr(ixG^L,ix^L,w,x)
+
+! initialize one grid within ix^L
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixG^L, ix^L
+double precision, intent(in) :: x(ixG^S,1:ndim)
+double precision, intent(inout) :: w(ixG^S,1:nw)
+logical patchw(ixG^T)
+patchw(ix^S) = .false.
+!-----------------------------------------------------------------------------
+
+{#IFDEF PSI
+   w(ix^S,psi_) = 0.0d0
+}
+
+where(x(ix^S,1) .lt. 0.0d0) 
+   w(ix^S,rho_) = 1.0d0
+   w(ix^S,pp_)  = 1.0d0
+
+   w(ix^S,u1_)  = 0.0d0
+   w(ix^S,u2_)  = 0.0d0
+   w(ix^S,u3_)  = 0.0d0 
+
+   w(ix^S,b1_)  = 0.5d0
+   w(ix^S,b2_)  = 1.0d0
+   w(ix^S,b3_)  = 0.0d0
+elsewhere
+   w(ix^S,rho_) = 0.125d0
+   w(ix^S,pp_)  = 0.1d0
+
+   w(ix^S,u1_)  = 0.0d0
+   w(ix^S,u2_)  = 0.0d0
+   w(ix^S,u3_)  = 0.0d0 
+
+   w(ix^S,b1_)  = 0.5d0
+   w(ix^S,b2_)  =-1.0d0
+   w(ix^S,b3_)  = 0.0d0
+   
+end where
+
+
+call conserve(ixG^L,ix^L,w,x,patchw)
+end subroutine initonegrid_usr
+!=============================================================================
+
+Here we setup the initial configuration in primitive variables as a Riemann problem 
+at x1=0.  
+At the end of the routine, these are converted into their conserved counterpart.  
+The strange looking indices ix^S or ix^L will be transformed by the pre-processor into 
+the proper ranges, given the dimensionality of the problem.  
+But you could also write normal Fortran90 here if you like.  
+
+
+
+Then its finaly time to
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+make
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This calls the pre-processor, thus generating *.f files and then the compiler, 
+generating *.o objects.  
+They are all in this folder, so that you have the entire source for future reference 
+(its also easy to grep here).  
+
+Upon successful compilation, run the code:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+./amrvac -i amrvac1D.par </dev/null >output/out1D &
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+or just submit the ready-made job script:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+sbatch job1D.sh
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Here, the option '-i amrvac1D.par' signals to use the corresponding parameter file 
+(see below), instead of the default 'amrvac.par'.
+
+
+You can check the job-status using 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+squeue
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+and the progress of this run would be monitored with 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+tail -f output/amrvac1D.log
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+here, the last entry in each line is the projected time to finish in WCT hours.
+
+Last time i checked, this took 6 seconds for a grid with 1024 cells.
+Snapshots, log-file and data for visualization can now be found in the output folder 
+(see below). 
+
+
+
+1D with AMR:
+!====================================================================
+To run a high-resolution AMR simulation, use the parameter-file 'amrvac1DAMR.par'.
+
+
+
+To run in 3D, please use one of the following configurations.  
+
+
+
+3D with GLM:
+!====================================================================
+This sets up a 3D simulation using Dedner et al. JCoP 175, 645-673 (2002) divergence 
+cleaning omitting all source terms on the rhs.  
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+$AMRVAC_DIR/setup.pl -d=33 -phi=0 -z=0 -g=12,12,12 -p=srmhd -eos=default -nf=0 -arch=default
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+definitions.h:
+#define GLM
+#undefine FCT
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+make clean && make
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+and run with:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+./amrvac -i amrvac3D.par </dev/null >output/out3D &
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+or just submit the ready-made job script:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+sbatch job3D.sh
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+3D with GLM and AMR:
+!====================================================================
+This setup is the same as '3D with GLM', only that we now use 3 AMR levels.  
+The base-resolution is thus 64x8x8 cells.  
+The difference is only in the parameter file 'amrvac3DAMR.par'.  
+
+
+So run with:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+./amrvac -i amrvac3DAMR.par </dev/null >output/out3DAMR &
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+or just submit the ready-made job script:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+sbatch job3DAMR.sh
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+3D with FCT:
+!====================================================================
+This sets up a 3D simulation using Gabor Toth's Journal of Computational Physics 161, 
+605-652 (2000) flux-interpolated constrained transport which conserves divB 
+on the corners to machine precision.  
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+$AMRVAC_DIR/setup.pl -d=33 -phi=0 -z=0 -g=14,14,14 -p=srmhd -eos=default -nf=0 -arch=default
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+definitions.h:
+#undefine GLM
+#define FCT
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+make clean && make
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+and run with:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+./amrvac -i amrvac3DFCT.par </dev/null >output/out3DFCT &
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+or just submit the ready-made job script:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+sbatch job3DFCT.sh
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+THE PARAMETER FILE
+==================
+
+We have so far overlooked the parameter-file *.par used for the simulations.  
+An extensive description of all possible parameters is given in 
+$AMRVAC_DIR/doc/par.html.
+Below is the parameter file for the 3D FCT configuration.  
+In general, the purpose of the different lists is as follows:
+
+testlist  : deprecated
+filelist  : IO related issues, e.g. for visualization.  
+savelist  : Specify log, snapshot, slice, collapse and analysis output intervals.
+stoplist  : When to stop the code
+methodlist: Which numerical methods to use (e.g. hllc, Koren-limiter, RK3)
+boundlist : Boundary conditions for each variable and side ('cont' - continuous 
+            outflow, 'periodic' - periodic) 
+            also sets how many ghost cells to use: dixB=3 for FCT
+amrlist   : grid- and AMR-related matters
+paramlist : Here, we set the CFL parameter and slowsteps to ramp-up the timestep.  
+
+
+amrvac3DFCT.par:
+!=============================================================================
+ &testlist
+        teststr=''
+ &end
+
+ &filelist
+        primnames       = 'rho u1 u2 u3 p b1 b2 b3 lfac xi'
+	autoconvert     = .true.
+	saveprim        = .true.
+        convert_type    = 'vtiCCmpi'
+	filenameini     = 'output/data3DFCT'
+	filenameout     = 'output/data3DFCT'
+	filenamelog     = 'output/amrvac3DFCT'
+ &end
+
+ &savelist
+        itsave(1,1)     = 0
+        itsave(1,2)     = 0
+        ditsave(1)      = 10
+ &end
+
+ &stoplist
+        tmax            = 0.4
+        dtmin           = 1.d-6
+ &end
+
+ &methodlist
+        wnames          = 'd s1 s2 s3 tau b1 b2 b3 lfac xi'
+        typeadvance     = 'threestep'
+        typefull1       =  13*'hllc'
+        typelimiter1    = 13*'koren'
+        typetvdlf       = 'default'
+        useprimitive    = .true.
+        useprimitiveRel = .true.
+	typepoly        = 'gammie'
+	strictgetaux    = T
+        typedivbfix     = 'none'
+	strictzero      = F
+ &end
+
+ &boundlist
+        dixB            = 3
+        typeB           = 10*'cont'
+                          10*'cont'
+			  10*'periodic'
+			  10*'periodic'
+			  10*'periodic'
+			  10*'periodic'
+ &end
+
+ &amrlist
+        mxnest          = 1
+        nxlone1         = 256
+        nxlone2         = 32
+        nxlone3         = 32
+        xprobmin1       =-0.5d0
+        xprobmax1       =+0.5d0
+	xprobmin2       =-0.0625
+	xprobmax2       =+0.0625
+	xprobmin3       =-0.0625
+	xprobmax3       =+0.0625
+ &end
+
+ &paramlist
+       slowsteps        = 20
+       courantpar       = 0.4d0
+ &end
+!=============================================================================
+
+
+
+
+
+
+
+CHECKING OUTPUT
+===============
+
+In the output-folder, the simulations will produce:
+
+*.log file
+*.dat snapshot-files
+*.vti ascii VTK-image files or *.vtu binary unstructured VTK files.
+
+The latter can be opened with Paraview or Visit or any other software that 
+understands VTK.  
+
+If you have VTK-bindings for Python and $AMRVAC_DIR/tools/python is in your 
+Python-path, you can use the interactive Python 
+environment.  A session could look like this:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ipython --pylab
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+In [1]: import read, amrplot
+In [2]: d=read.loadvti(1,file='output/data3D')
+In [3]: imshow(d.p[:,4,:],transpose(),origin='lower',interpolation='nearest')
+
+to look at a xz-slice of pressure (variable d.p).  
+
+For the pre-defined setups, you will also find refernce *.csv output that were prepared 
+using the extract1D.py script.  You can look at those using e.g. Gnuplot.

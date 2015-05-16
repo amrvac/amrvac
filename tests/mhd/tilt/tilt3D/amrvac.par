@@ -1,0 +1,94 @@
+ &testlist
+ /
+
+ &filelist
+        primnames     =  'rho v1 v2 v3 p b1 b2 b3'
+        autoconvert   = F
+        saveprim      = T
+        filenameout='tiltresmhd3d'
+        filenamelog='tiltresmhd3d'
+        typeparIO=0
+/
+        nwauxio       = 2
+        typefilelog='special'
+        convert   = T
+        saveprim      = T
+        writew(1)=F
+        writew(2)=F
+        writew(3)=F
+        writew(4)=F
+        writew(5)=T
+        writew(6)=F
+        writew(7)=F
+        writew(8)=F
+
+ &savelist
+        ditsave(1)    = 200
+        ditsave(2)    = 200
+        ditsave(3)    = 200
+        nslices=3
+        slicedir(1)=3
+        slicecoord(1)=-0.5d0
+        slicedir(2)=3
+        slicecoord(2)=0.0d0
+        slicedir(3)=3
+        slicecoord(3)=0.5d0
+ /
+
+ &stoplist
+        itmax          = 100
+ /
+
+ &methodlist
+        wnames        = 'rho m1 m2 m3 e b1 b2 b3'
+        fileheadout   = 'tilt_mhd33'
+        typeadvance   = 'threestep'
+        typefull1     = 1*'tvdlf'
+        typelimiter1  = 1*'cada3'
+        typelimited= 'predictor'
+        dimsplit=.false.
+        sourcesplit=.true.
+        sourceunsplit=.false.
+        divbdiff=1.0d0
+        typedivbfix='linde'
+        typedivbdiff='ind'
+ /
+
+ &boundlist
+        dixB          = 2
+        typeB         = 8*'special',8*'special',
+                        8*'special',8*'special',
+                        8*'periodic',8*'periodic'
+ /
+
+ &amrlist
+        errorestimate = 3
+        flags(9)=3
+        flags(1)=1
+        flags(2)=6
+        flags(3)=7
+        wflags(1)=0.4d0
+        wflags(2)=0.3d0
+        wflags(3)=0.3d0
+        mxnest=1
+        nbufferx1=0
+        nbufferx2=0
+        nbufferx3=0
+        tol=1*0.2d0
+        tolratio=1*0.1d0
+        nxlone1       = 150
+        nxlone2       = 150
+        nxlone3       = 50
+        xprobmin1     = -3.0d0
+        xprobmax1     = 3.0d0
+        xprobmin2     = -3.0d0
+        xprobmax2     = 3.0d0
+        xprobmin3     = -1.0d0
+        xprobmax3     = 1.0d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.9d0
+        slowsteps=50
+ /

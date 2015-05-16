@@ -1,0 +1,165 @@
+<HTML>
+<HEAD>
+<TITLE> MPI-AMRVAC EXAMPLES </TITLE>
+</HEAD>
+<BODY>
+<h1>EXAMPLE SIMULATIONS</h1>
+<p>
+This document describes a few relatively simple example simulations which
+can be done based on some readily available <b>src/usr/amrvacusr.t.*</b> files, along with their <b>par/*</b> files, which are part of the subversion MPI-AMRVAC release. 
+See AMRVAC_Man/<A HREF="USAGE.html">USAGE</A> for a more complete description on how to use the code.
+<p>
+<em>The commands on this page are still for the old svn version.  See the $AMRVAC_DIR/tests folder for a plethora of tests with the git version.</em>
+<hr>
+This page:<br>
+ [<A HREF="#advection">Advection tests</A>]
+ [<A HREF="#hdadiab">Isothermal HD test</A>]
+ [<A HREF="#HD">HD tests</A>]
+ [<A HREF="#MHD">MHD tests</A>]
+ [<A HREF="#RHDandRMHD">Relativistic tests</A>]
+<hr>
+<H2><A NAME="advection">Advection tests</A></h2>
+
+   Configure MPI-AMRVAC to the standard 2D <A HREF="equations.html#RHO">advection equation</A> test
+   as follows:
+<pre>
+cd src
+setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=rho -u=testrho -s
+make clean amrvac
+cd ..
+ln -s par/testrho/testrho_vac22 amrvac.par
+mpirun -np 1 amrvac
+</pre>
+   This test uses the <em>src/usr/amrvacusr.t.testrho</em> amrvacusr-module, which contains several tests, distinguished by <b>iprob</b>. In the above setting, it will use <b>iprob=3</b> as specified in the <A HREF="par.html#Amrlist">&amrlist</a> and do a 2D advection of the VAC-logo on a double periodic domain, on the unit square. After <A HREF="convert.html">converting</A> the 21 data files created to the VTK format suited for paraview visualization, you will be able to make the following movie in a few simple steps:
+<p>
+<IMG SRC="figmovdir/vaclogo.gif" ALT="2D VAC logo advection">
+<p>
+Its default settings is to perform one advection over the full diagonal, use 3 AMR levels, and have a base level 1 resolution of 24 by 24 (split in four 12 by 12 grid blocks). A somewhat more advanced paraview user can make the following movie, combining the 2D view with a cut along the middle of the box:
+<p>
+<A HREF="figmovdir/vaclogo2.avi"><IMG SRC="figmovdir/vaclogo.png" ALT="Vac logo Movie"></A>
+<hr>
+A 3D variant is to do the advection of a sphere along the diagonal of a cube. This is selected by (<b>iprob=6</b> in the <em>par/testrho/testrho_ball33</em> file)
+<pre>
+cd src
+setamrvac -d=33 -phi=0 -z=0 -g=16,16,16 -p=rho -u=testrho -s
+make clean amrvac
+cd ..
+ln -s par/testrho/testrho_ball33 amrvac.par
+mpirun -np 1 amrvac
+</pre>
+Use now the data conversion and paraview to make the following movie:
+<p>
+<A HREF="figmovdir/sphereadvection.avi"><IMG SRC="figmovdir/sphereadvection.png" ALT="Sphere advection Movie"></A>
+<p>
+<b>We note that the <em>src/usr/amrvacusr.t.testrho</em> actually codes up 6 different tests, some of them realizable in any dimensionality. You are encouraged to make the corresponding par-files for these tests, and use these tests to investigate different discretization methods, different settings for the AMR strategy, etc,  on problems for which you know the exact solution.</b>
+   
+<hr>
+<H2><A NAME="hdadiab">Isothermal HD test</A></h2>
+
+The first test shown here is a 1D test case recovering the analytic solution for the collision of two pressureless dust clouds, as described in the paper by Leveque, R.J., Journal of Hyperbolic Differential equations, Vol.1, No.2 (2004), 315-327. The test is ideally suited for AMR simulations, since the correct analytic solution is known to contain delta-type waves (shocks/rarefactions). 
+This test uses the <A HREF="equations.html#HDADIAB">adiabatic hydro module</A>.
+
+<pre>
+cd src
+setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab -s
+make clean amrvac
+cd ..
+ln -s par/testhdadiab/testleveque amrvac.par
+mpirun -np 1 amrvac
+</pre>
+This will run problem <b>iprob=19</b> out of the 19 precoded tests, and after converting and visualizing (with Idl this time), you should be able to recover the behaviour below (note the vertical scale on the axis, clipping the delta-wave peaks away).
+<p>
+<A HREF="figmovdir/LevequeDUST.avi"><IMG SRC="figmovdir/LevequeIC.gif" ALT="1D Dust clouds collision Movie"></A>
+<p>
+<hr>
+A second, 2D test runs <b>iprob=1</b> by doing
+<pre>
+cd src
+setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=hdadiab -u=testhdadiab -s
+make clean amrvac
+cd ..
+ln -s par/testhdadiab/khadiabA amrvac.par
+mpirun -np 1 amrvac
+</pre>
+It sets up a sheared horizontal velocity field (a <em>tanh</em> profile), augmented with a small sinusoidal vertical displacement centered on the velocity shear region. This situation is Kelvin-Helmholtz unstable, and a vortical flow pattern develops. After converting and using paraview, you can create frames as shown below (or make a <A HREF="figmovdir/khadiabA.avi">movie</A>).
+<p>
+<IMG SRC="figmovdir/khadiabAfigt0.gif" ALT="2D adiabatic HD Kelvin-Helmholtz development t=0">
+<IMG SRC="figmovdir/khadiabAfigfinal.gif" ALT="2D adiabatic HD Kelvin-Helmholtz development">
+<p>
+
+<hr>
+<H2><A NAME="HD">HD tests</A></h2>
+
+The distributed MPI-AMRVAC contains various example <em>amrvacusr.t.*</em> and corresponding <em>par/testhd/*</em> files realizing relatively standard test cases for <A HREF="equations.html#HD">hydrodynamics</A>.
+They include
+<pre>
+src/usr/amrvacusr.t.wchd22
+src/usr/amrvacusr.t.bowhd22
+src/usr/amrvacusr.t.testhdrt
+src/usr/amrvacusr.t.rimhd22
+src/usr/amrvacusr.t.poletest
+src/usr/amrvacusr.t.liska
+</pre>
+and the corresponding par-files
+<pre>
+par/testhd/wchd22
+par/testhd/bowhd22
+par/testhd/testhdrt22  and  par/testhd/testhdrt33
+par/testhd/rimhd22
+par/testhd/poletest_lohner
+par/testhd/liska_tvdlf
+</pre>
+Some are meant to be run in 2D only, some can be set up in 2D and 3D, sometimes requiring suitable adaptations in the par-files provided. The first one listed is the Woodward and Collela shock reflection problem, on a 2D cartesian grid. It is a nice illustration on how to code up some non-trivial special boundary conditions (spatio-temporally varying). The second is a supersonic flow hitting a cylinder, and demonstrates the use of a cylindrical grid. The third can be run in 2D and 3D, and uses an external constant gravitational field to simulate the development of a Rayleigh-Taylor instability when a heavy density gas rests on top of a light one. The fourth test concentrates on the Richtmyer-Meshkov variant of the Rayleigh-Taylor instability, by letting a shock impinge on an inclined density discontinuity. The fifth test does a standard 1D Riemann problem (the Sod problem) on a 2D polar grid, to show how the boundary conditions need to be set for a symmetry axis. The final test could be run in 2D and 3D, and studies the multiple reflection of shocks in a box, where one can vary the schemes at will, to see how the small-scale structure (combinations of Richtmeyer-Meshkov and Kelvin-Helmholtz behaviour) are influenced by resolution, discretization etc. It is also useful to see which schemes maintain the symmetry about the diagonal.
+
+<p>
+Impressions for some of these tests are shown below:
+<p>
+<IMG SRC="figmovdir/bowshock.gif" ALT="2D HD steady bow shock">
+<A HREF="figmovdir/rthd2d.avi"><IMG SRC="figmovdir/rthd2dnew.gif" ALT="rayleigh-taylor 2D case"></A>
+<p>
+This Rayleigh Taylor test (july 2011) can be repeated with 7 refinement levels, it then takes 
+11375 seconds (on a 4 CPU macBook pro, a bit over 3 hours, all IO included). The movie and figure for that run is
+<A HREF="figmovdir/rthd2dnew.avi"><IMG SRC="figmovdir/rthdtwodfinal.gif" ALT="rayleigh-taylor 2D case 7 levels"></A>
+<p>
+<A HREF="figmovdir/liskatvdlf.avi"><IMG SRC="figmovdir/liska.png" ALT="Shocks in box 2D case"></A>
+<p>
+The latter `liska' test is a nice one to test symmetry-preserving properties for schemes, and to compare effects of resolution (by raising the number of AMR levels). On my MacBook Pro (june 2011), a quadcore CPU with 8GB memory, I can run a 6 level version (base resolution 24 x 24) up to time t=2.5 in less than 12000 seconds (slightly over 3 hours).  The movie for that run is 
+<A HREF="figmovdir/liska.avi">shown here</a>.
+
+<hr>
+<H2><A NAME="MHD">MHD tests</A></h2>
+The <em>src/usr/amrvacusr.t.testmhd</em> codes up a large variety of standard test cases for 
+<A HREF="equations.html#MHD">MHD</A>, going from 1D Riemann problems to tests doable in 2D and 3D. For some, you will find appropriate par-files in the <em>par/testmhd</em> subdirectory. You are encouraged to study the files and make testruns for MHD problems.
+<p> One of the tests is the Orszag-Tang test, in the compressible regime, for which an animation is shown below.<p>
+<A HREF="figmovdir/orszag.avi"><IMG SRC="figmovdir/otmovie.gif" ALT="Orszag Tang"></A>
+<p>The Orsaz-Tang test is again nice to test symmetry-preserving properties for schemes, and to compare effects of resolution (by raising the number of AMR levels). On my MacBook Pro (june 2011), a quadcore CPU with 8GB memory, I can run a 6 level version (base resolution 48 x 48) up to time t=6.28 in less than 24000 seconds (slightly under 7 hours).  The movie for that run is 
+<A HREF="figmovdir/ot_VHR.avi">shown here</a>.
+<p> Another representative MHD problem is the GEM challenge, realizing reconnection in resistive MHD. The problem is described e.g. in the book `Advanced Magnetohydrodynamics. With applications to laboratory and astrophysical plasmas.',
+  J.P. (Hans) Goedbloed, Rony Keppens, &amp Stefaan Poedts, 2010,
+  Cambridge University Press, 634 pages,
+<A HREF="http://www.cambridge.org/uk/catalogue/catalogue.asp?isbn=9780521705240">ISBN 9780521705240 (Paperback)</A>. We show here the case with resistivity parameter set to 0.001.
+<p>
+<A HREF="figmovdir/reccase_001.avi"><IMG SRC="figmovdir/recmhd.gif" ALT="Orszag Tang"></A>
+<hr>
+<H2><A NAME="RHDandRMHD">Relativistic tests</A></h2>
+Several of the tests for relativistic hydro and MHD have been run with the present version of the code. Especially all tests described in `Parallel, grid-adaptive approaches for relativistic hydro and magnetohydrodynamics',
+  R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A. Vlasis, &amp B. van der Holst, 2011,
+  JCP. <A HREF="http://dx.doi.org/10.1016/j.jcp.2011.01.020">doi:10.1016/j.jcp.2011.01.020</A>. You can contact the developers in case you want to get some specific userfile, par-file combination for future work, which we then hope will lead to collaboration. Some figures and impressions are collected below. For full descriptions, we hope you consult the above paper.
+<p>
+Shock reflection on polar grid, relativistic hydro<p>
+<A HREF="figmovdir/srhdmartiCyl.avi"><IMG SRC="figmovdir/marticyl.gif" ALT="Shock reflection on polar grid"></A>
+<p>Two component jet evolution on cylindrical grid, relativistic hydro<p>
+<A HREF="figmovdir/srhdeosTClong.avi"><IMG SRC="figmovdir/twocomp.gif" ALT="Two component jet evolution"></A>
+<p>2D Richtmyer Meshkov, relativistic hydro<p>
+<A HREF="figmovdir/srhdschliersmall.avi"><IMG SRC="figmovdir/srhdrmi.gif" ALT="Richtmyer Meshkov"></A>
+<p>2D Rotor, relativistic MHD<p>
+<IMG SRC="figmovdir/rotorsrmhd.gif" ALT="Rotor test"></A>
+<p>2D Friedrichs diagram, relativistic MHD<p>
+<A HREF="figmovdir/srmhdeosFRcontinued.avi"><IMG SRC="figmovdir/srmhdFR.gif" ALT="Friedrichs diagram"></A>
+<p>2D Orszag Tang, relativistic MHD<p>
+<A HREF="figmovdir/srmhdeosOT.avi"><IMG SRC="figmovdir/srmhdOT.gif" ALT="Orszag Tang relativistic"></A>
+<p> A test not found in the above paper, but relevant for much of the work we do on relativistic jet modeling, is the jet model from the original Marti et al. (ApJ 479, 151, 1997) work. The case there indicated as C2, has been modeled and visualized in this
+<A HREF="figmovdir/martiC2BW.avi">movie</a>.
+<hr>
+</BODY>
+</HTML>

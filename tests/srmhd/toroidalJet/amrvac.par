@@ -1,0 +1,87 @@
+!=====================================================
+! Project : Dummy init file
+! Aim     : N.C.
+! Results : 
+! Update  : 
+! configuration :
+! -d.. -g.. ...
+!=====================================================
+&testlist
+/
+
+&filelist
+  primnames               = 'rho u1 u2 u3 p b1 b2 b3 psi lfac xi'
+  convert_type            = 'vtuBCCmpi'
+  autoconvert             = T
+  saveprim                = T
+  typeparIO               = 0
+  nwauxio                 = 0
+/
+
+
+ &savelist
+        itsave(1,1)       = 0
+        itsave(1,2)       = 0
+        ditsave(1)        = 10
+        dtsave(2)         = 1
+/
+
+ &stoplist
+        tmax              = 100
+        dtmin             = 1.0D-9
+/
+
+ &methodlist
+        wnames            = 'd s1 s2 s3 e b1 b2 b3 psi lfac xi'
+        typeadvance       = 'threestep'
+        typefull1         = 12*'hllc'
+        typelimiter1      = 12*'cada3'
+        typetvdlf         = 'default'
+	loglimit(1)       = T
+        useprimitive      = T
+        useprimitiveRel   = T
+        strictnr          = T
+        fixsmall          = F
+        strictsmall       = T
+        strictzero        = F
+        strictgetaux      = F
+        nflatgetaux       = 1
+        typepoly          = 'gammie'
+    	typeaxial         = 'cylindrical'
+/
+&boundlist
+        dixB              = 2
+        typeB             = 
+        'symm','asymm','symm','asymm','symm','asymm','symm','asymm',3*'symm'
+	11*'noinflow'
+	11*'special'
+	11*'noinflow'
+/
+
+
+&amrlist
+        errorestimate     = 4
+        flags(12)         = 2
+        flags(1)          = 1
+        flags(2)          = 10
+        wflags(1)         = 0.6
+        wflags(2)         = 0.4
+        mxnest            = 5
+        tol               = 12*0.2d0
+        tolratio          = 12*0.1d0
+        amr_wavefilter    = 12*1.0d-2
+        nxlone1           = 30
+        nxlone2           = 120
+        xprobmin1         =   0.
+        xprobmax1         =  12.
+        xprobmin2         =   0.
+        xprobmax2         =  48.
+        prolongprimitive  = T
+        coarsenprimitive  = T
+/
+
+ &paramlist
+       slowsteps          = 10
+       courantpar         = 0.6d0
+       typecourant        = 'maxsum'
+/

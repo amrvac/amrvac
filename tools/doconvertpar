@@ -1,0 +1,52 @@
+#!/bin/csh -f
+
+# script to convert a series of frames for amrvac convert stage at once
+# four arguments: filename begin end nproc
+
+if($#argv != 4) then
+ echo "Usage: $0 filename startindex stopindex nproc"
+ goto done
+endif
+
+echo "filename given is" $argv[1]
+if (-e $argv[1] ) then
+   goto step1
+else
+   echo "$1 is not an existing filename"
+   goto done
+endif
+
+step1:
+
+echo "startindex given is" $argv[2]
+echo "stopindex  given is" $argv[3]
+
+if ("$argv[2]">"$argv[3]") then
+ echo "startindex $2 is larger than stopindex $3"
+ goto done
+endif
+
+set ii="$argv[2]"
+
+if (-e amrvac) then
+goto step2
+else
+ echo "amrvac executable is missing"
+ goto done
+endif
+
+step2:
+#/opt/mpich/bin/mpiexec -n $argv[4] ./amrvac -restart $ii -convert -i $argv[1] </dev/null
+mpiexec -n $argv[4] ./amrvac -restart $ii -convert -i $argv[1] </dev/null
+while ($ii<"$argv[3]")
+  @ ii++
+  if (-e $argv[1] ) then
+#   /opt/mpich/bin/mpiexec -n $argv[4] ./amrvac  -restart $ii -convert -i $argv[1] </dev/null
+   mpiexec -n $argv[4] ./amrvac  -restart $ii -convert -i $argv[1] </dev/null
+  endif
+end
+
+done:
+ exit 0
+error:
+ exit 1

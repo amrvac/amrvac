@@ -1,0 +1,89 @@
+!=====================================================
+! Project : 3D KH
+! Aim     : Kelvin-Helmholtz MHD evolution, 3D setup
+! Results :
+! Update  : 11/07/2013
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=33 -phi=0 -z=0 -g=14,14,14 -p=mhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+!=====================================================
+ &testlist
+ /
+
+ &filelist
+        primnames     =  'rho v1 v2 v3 pth b1 b2 b3'
+        autoconvert   = T
+        filenameout   = 'khmhd3D'
+        filenamelog   = 'khmhd3D'
+        writew(1)=.true.
+        writew(2)=.false.
+        writew(3)=.false.
+        writew(4)=.false.
+        writew(5)=.false.
+        writew(6)=.false.
+        writew(7)=.false.
+        writew(8)=.false.
+ /
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave(1)    = 10
+        dtsave(2)     = 0.5
+ /
+
+ &stoplist
+        tmax          = 6.0d0
+ /
+
+ &methodlist
+        wnames        = 'rho m1 m2 m3 e b1 b2 b3'
+        fileheadout   = 'kh_mhd33'
+        typeadvance   = 'onestep'
+        typefull1     = 13*'tvd'
+        typelimiter1  = 13*'woodward'
+        dimsplit      =.true.
+        useprimitive  = .true.
+        typedivbfix   = 'linde'
+        divbdiff=1.0d0
+ /
+
+ &boundlist
+        dixB=    2
+        typeB=   8*'periodic',8*'periodic',
+                 8*'cont',8*'cont',
+                 8*'cont',8*'cont'
+
+ /
+
+ &amrlist
+        errorestimate=3
+        flags(9)=4
+        flags(1)=1
+        flags(2)=2
+        flags(3)=3
+        flags(4)=4
+        wflags(1)=0.4d0
+        wflags(2)=0.2d0
+        wflags(3)=0.2d0
+        wflags(4)=0.2d0
+        mxnest=3
+        nbufferx1=0
+        nbufferx2=0
+        nbufferx3=0
+        tol=13*0.2d0
+        nxlone1=30
+        nxlone2=60
+        nxlone3=60
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=-1.0d0
+        xprobmax2=1.0d0
+        xprobmin3=-1.0d0
+        xprobmax3=1.0d0
+ /
+
+ &paramlist
+       typecourant='maxsum'
+        courantpar=0.9d0
+        slowsteps=10
+ /

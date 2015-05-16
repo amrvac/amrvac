@@ -1,0 +1,1405 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 7.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[     66776,       1396]
+NotebookOptionsPosition[     65505,       1354]
+NotebookOutlinePosition[     65872,       1370]
+CellTagsIndexPosition[     65829,       1367]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["MHD phase and group diagram", "Title",
+ CellChangeTimes->{{3.558071649823958*^9, 3.5580716614528103`*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"sigma", "[", 
+    RowBox[{"va_", ",", "c0_"}], "]"}], ":=", 
+   SuperscriptBox[
+    RowBox[{"(", 
+     RowBox[{
+      FractionBox["1", "2"], 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"va", "/", "c0"}], "+", 
+        RowBox[{"c0", "/", "va"}]}], ")"}]}], ")"}], 
+    RowBox[{"-", "2"}]]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"vs", "[", 
+   RowBox[{"Psi_", ",", "va_", ",", "c0_"}], "]"}], ":=", 
+  RowBox[{
+   SqrtBox[
+    RowBox[{
+     FractionBox["1", "2"], 
+     RowBox[{"(", 
+      RowBox[{
+       SuperscriptBox["va", "2"], "+", 
+       SuperscriptBox["c0", "2"]}], ")"}]}]], 
+   SqrtBox[
+    RowBox[{"1", "-", 
+     SqrtBox[
+      RowBox[{"1", "-", 
+       RowBox[{
+        RowBox[{"sigma", "[", 
+         RowBox[{"va", ",", "c0"}], "]"}], " ", 
+        SuperscriptBox[
+         RowBox[{"Cos", "[", "Psi", "]"}], 
+         "2"]}]}]]}]]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"vgst", "[", 
+    RowBox[{"Psi_", ",", "va_", ",", "c0_"}], "]"}], "=", 
+   RowBox[{
+    RowBox[{"D", "[", 
+     RowBox[{
+      RowBox[{"vs", "[", 
+       RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], ",", "Psi"}], "]"}], "//",
+     "FullSimplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"vf", "[", 
+   RowBox[{"Psi_", ",", "va_", ",", "c0_"}], "]"}], ":=", 
+  RowBox[{
+   SqrtBox[
+    RowBox[{
+     FractionBox["1", "2"], 
+     RowBox[{"(", 
+      RowBox[{
+       SuperscriptBox["va", "2"], "+", 
+       SuperscriptBox["c0", "2"]}], ")"}]}]], 
+   SqrtBox[
+    RowBox[{"1", "+", 
+     SqrtBox[
+      RowBox[{"1", "-", 
+       RowBox[{
+        RowBox[{"sigma", "[", 
+         RowBox[{"va", ",", "c0"}], "]"}], " ", 
+        SuperscriptBox[
+         RowBox[{"Cos", "[", "Psi", "]"}], 
+         "2"]}]}]]}]]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"vgft", "[", 
+    RowBox[{"Psi_", ",", "va_", ",", "c0_"}], "]"}], "=", 
+   RowBox[{
+    RowBox[{"D", "[", 
+     RowBox[{
+      RowBox[{"vf", "[", 
+       RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], ",", "Psi"}], "]"}], "//",
+     "FullSimplify"}]}], ";"}]}], "Input",
+ CellChangeTimes->{{3.5579921643743467`*^9, 3.55799217154078*^9}, {
+   3.557992201602366*^9, 3.557992213433784*^9}, {3.55799224927746*^9, 
+   3.557992252936964*^9}, {3.5579923323949738`*^9, 3.557992333028756*^9}, {
+   3.5579924775090513`*^9, 3.55799252792339*^9}, {3.5579925584368687`*^9, 
+   3.557992558811335*^9}, {3.557999510988052*^9, 3.5579995130908413`*^9}, 
+   3.557999618982799*^9, {3.557999817134074*^9, 3.557999833177959*^9}, {
+   3.5580001849324083`*^9, 3.558000197171762*^9}, {3.558002203761127*^9, 
+   3.558002208742958*^9}, {3.5580022472953053`*^9, 3.5580022751351223`*^9}, {
+   3.558004913746557*^9, 3.558004917486827*^9}, {3.5580049599422007`*^9, 
+   3.55800496887899*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"ParametricPlot", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"Cos", "[", "psi", "]"}], 
+        RowBox[{"vs", "[", 
+         RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}], "-", 
+       RowBox[{
+        RowBox[{"Sin", "[", "psi", "]"}], 
+        RowBox[{"vgst", "[", 
+         RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}]}], ",", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"Sin", "[", "psi", "]"}], 
+        RowBox[{"vs", "[", 
+         RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}], "+", 
+       RowBox[{
+        RowBox[{"Cos", "[", "psi", "]"}], 
+        RowBox[{"vgst", "[", 
+         RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}]}]}], "}"}], "/.", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"va", "->", "1"}], ",", 
+      RowBox[{"c0", "\[Rule]", "1.2"}]}], "}"}]}], ",", 
+   RowBox[{"{", 
+    RowBox[{"psi", ",", 
+     RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.558000610187994*^9, 3.5580006335784273`*^9}, {
+  3.558001127227613*^9, 3.558001191426607*^9}, {3.558001281810328*^9, 
+  3.55800134831529*^9}, {3.558002291466156*^9, 3.558002300954357*^9}, {
+  3.558002342995226*^9, 3.558002363652048*^9}}],
+
+Cell[BoxData[
+ GraphicsBox[{{}, {}, 
+   {Hue[0.67, 0.6, 0.6], LineBox[CompressedData["
+1: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
+0aHz0Vd2PsclUd/s3Rx9efLIFDfbZeGfInJm6AWXl1XeZed/zP/7GfHlO/3H
+z0/fNrDtMcsXZvKVLlDaXnqanS+iNk/993Sc3nwzXpmT7T3r1Y90jNC9wH5v
+JjvfNHyjIR8+01fLawVwsD0zqHNEdoh+5xGzu4idr3Kpc1Ff9Zoed+5JtD3b
+HJLrGWG99IJ1oy3r2JbmntX1f07Xaa52Hf6XP8sxaf3TTlfdeyH0EdspDAP9
+L430Zi95Cfd/+ba6KeeiGvrB2N0Sav/z2kcplfSKqgeh4v/itb+7G5fQt4tm
+nf+Xr1O2N9bryaNzfbNsb/7n04ePWD+gf8icjn/4L99nI2IBCXS3a75vbv5z
+lHWYUwR9856ldy/9s66Fefx1uploJ5755zViFxUv0F2EKswM/jmduVnGjJ4Q
+8dn18D83GV5Po9HLxk7Mqv2ztLiHIRc97uWS76r/8pkcyput6VWN1RutNP6Z
+ijtmv56ezfTX1P3nmbpvVnp0NcvV90/987WMA79t6fbjP50c/5cPHRQa86a3
+Vfx+fO2fV2cv2hJKHzi61CrhX3526fl976Lpf6u33yr/Z8mp7O5UescVuU2D
+bFeXpSTRsunTv2b3/svvpggn93oV0sUqrKu3/cv3nvf1l35KVzl2vOw028rX
+b8zcq6a/s7+7Oupf+fjDEw71dAVZY/2F7PyyeXPV6lcMuspj9xottqsNPCzC
+u+lPTUbcb/9zYf3Slj76dcXeYll2/jp/+pT8hXd0T1bXXne2Z/p6Pjp8pPc3
+SfO2s22Teiq87Avd+We4cwA7P+7SY3LPkEWv6hBbOMx20N/g7L5JuntF8bAO
+O7/utzD37O5vdOfvb102sPPx4cneWhGzdMeLXveF2Pn89Yes8zzmoTa3h340
+28bLZJec58aZRGe1lezfA3A0ZXmELcDzAh6j+9m/FxA1SotYz48a2nqb8lKJ
+b0lEXr8pgvtex/cev0+c5640/p8YVuf20f+y7Xc1hPvZUhy8PnTQkv17BY51
+coaaknjhgeUSk0x2/43KfrtWoQ8tMkImi/j57lO7DGXwrUD9YRbb/Krz9f1X
+I0PJw+puNvG1R6w+nrWY7LZWUjSP2Eyu62DuJjR9EKcxx/bE1JbgPVtw2b59
+D5mP2b93kJqn9WIrbtTr+9NTQHxS7ON9STl07z892F9CbBpzZ/OrXbh4vWrg
+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
+
+     "]]}},
+  Axes->True,
+  AxesOrigin->{0, 0},
+  PlotRange->{{-1.0189800645600322`, 
+   1.018980408483444}, {-0.26308073534231347`, 0.26308132409678037`}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{
+    Scaled[0.02], 
+    Scaled[0.02]}]], "Output",
+ CellChangeTimes->{{3.558000606472025*^9, 3.558000634332992*^9}, 
+   3.558001350408224*^9, 3.55800221561961*^9, 3.558002365981179*^9, {
+   3.5580049195630198`*^9, 3.558004971208757*^9}, 3.558006447327948*^9, 
+   3.558007935904109*^9, 3.558031650139419*^9, 3.5580334838744802`*^9, 
+   3.558071669489526*^9, 3.558074084828002*^9, 3.558082939845072*^9, 
+   3.558085192876438*^9, 3.558085271695272*^9}]
+}, Open  ]],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"vgs", "[", 
+   RowBox[{"psi_", ",", "va_", ",", "c0_"}], "]"}], ":=", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+      RowBox[{"Cos", "[", "psi", "]"}], 
+      RowBox[{"vs", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}], "-", 
+     RowBox[{
+      RowBox[{"Sin", "[", "psi", "]"}], 
+      RowBox[{"vgst", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}]}], ",", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Sin", "[", "psi", "]"}], 
+      RowBox[{"vs", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}], "+", 
+     RowBox[{
+      RowBox[{"Cos", "[", "psi", "]"}], 
+      RowBox[{"vgst", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}]}]}], 
+   "}"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"vgf", "[", 
+   RowBox[{"psi_", ",", "va_", ",", "c0_"}], "]"}], ":=", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+      RowBox[{"Cos", "[", "psi", "]"}], 
+      RowBox[{"vf", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}], "-", 
+     RowBox[{
+      RowBox[{"Sin", "[", "psi", "]"}], 
+      RowBox[{"vgft", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}]}], ",", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Sin", "[", "psi", "]"}], 
+      RowBox[{"vf", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}], "+", 
+     RowBox[{
+      RowBox[{"Cos", "[", "psi", "]"}], 
+      RowBox[{"vgft", "[", 
+       RowBox[{"psi", ",", "va", ",", "c0"}], "]"}]}]}]}], 
+   "}"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"vga", "[", "va_", "]"}], ":=", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"-", "va"}], ",", "0"}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"va", ",", "0"}], "}"}]}], "}"}]}]}], "Input",
+ CellChangeTimes->{{3.558001382622725*^9, 3.55800141923592*^9}, {
+  3.5580015373788013`*^9, 3.5580015825721283`*^9}, {3.5580018064768057`*^9, 
+  3.558001833868651*^9}, {3.558001871525825*^9, 3.558001872497238*^9}, {
+  3.558002121956176*^9, 3.558002184637713*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Manipulate", "[", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"range", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", 
+          SqrtBox["8"]}], ",", 
+         SqrtBox["8"]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", 
+          SqrtBox["8"]}], ",", 
+         SqrtBox["8"]}], "}"}]}], "}"}]}], ";", "\[IndentingNewLine]", 
+    "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"Show", "[", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"PolarPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"vs", "[", 
+             RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Red", "}"}], "}"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"PolarPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"-", "va"}], " ", 
+               RowBox[{"Cos", "[", "psi", "]"}]}], ",", 
+              RowBox[{"va", " ", 
+               RowBox[{"Cos", "[", "psi", "]"}]}]}], "}"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Blue", "}"}], "}"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"PolarPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"vf", "[", 
+             RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotStyle", "\[IndentingNewLine]", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Green", "}"}], "}"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}]}], 
+        "\[IndentingNewLine]", "}"}], ",", 
+       RowBox[{"AspectRatio", "\[Rule]", "1"}], ",", 
+       RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+       RowBox[{"FrameLabel", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{
+          SubscriptBox["v", "z"], ",", 
+          SubscriptBox["v", "x"]}], "}"}]}], ",", "\[IndentingNewLine]", 
+       RowBox[{"PlotLabel", "\[Rule]", "\"\<MHD Phase velocities\>\""}], ",", 
+       "\[IndentingNewLine]", 
+       RowBox[{"ImageSize", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{"{", "320", "}"}], "}"}]}], ",", 
+       RowBox[{"PlotRangePadding", "\[Rule]", "None"}]}], "]"}], 
+     "\[IndentingNewLine]", "\[IndentingNewLine]", 
+     RowBox[{"Show", "[", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"ListPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"vga", "[", "va", "]"}], "/.", 
+            RowBox[{"va", "\[Rule]", "b"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"ParametricPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{"vgs", "[", 
+              RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "}"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Red", "}"}], "}"}]}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"ParametricPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{"vgf", "[", 
+              RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "}"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Green", "}"}], "}"}]}]}], "]"}]}], 
+        "\[IndentingNewLine]", "}"}], ",", 
+       RowBox[{"AspectRatio", "\[Rule]", "1"}], ",", 
+       RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+       RowBox[{"FrameLabel", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{
+          SubscriptBox["v", "z"], ",", 
+          SubscriptBox["v", "x"]}], "}"}]}], ",", "\[IndentingNewLine]", 
+       RowBox[{"PlotLabel", "\[Rule]", "\"\<MHD Group velocities\>\""}], ",", 
+       "\[IndentingNewLine]", 
+       RowBox[{"ImageSize", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{"{", "320", "}"}], "}"}]}], ",", 
+       RowBox[{"PlotRangePadding", "\[Rule]", "None"}]}], "]"}]}]}], 
+   "\[IndentingNewLine]", ",", "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"{", 
+    RowBox[{"b", ",", "0.10000001", ",", "2"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"c", ",", "0.01", ",", "2"}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.558001675826673*^9, 3.5580017212108927`*^9}, {
+   3.5580019040024223`*^9, 3.558001953146934*^9}, {3.558002009667317*^9, 
+   3.558002073979458*^9}, {3.558002402835126*^9, 3.558002435865633*^9}, {
+   3.558002493363813*^9, 3.558002556966304*^9}, {3.558002587141383*^9, 
+   3.558002769561569*^9}, {3.5580027998863163`*^9, 3.558002884844112*^9}, {
+   3.55800291621427*^9, 3.558002916316008*^9}, {3.5580029654449797`*^9, 
+   3.558002966436816*^9}, {3.558002998324369*^9, 3.558003003196162*^9}, {
+   3.5580031474310083`*^9, 3.558003150470109*^9}, {3.5580032862064323`*^9, 
+   3.558003387996817*^9}, {3.5580034749506817`*^9, 3.558003519687687*^9}, {
+   3.558003640029091*^9, 3.558003675573658*^9}, {3.558005031914341*^9, 
+   3.558005060190363*^9}, {3.558005149760092*^9, 3.558005203939468*^9}, {
+   3.558005237265547*^9, 3.558005254284615*^9}, {3.558005355712922*^9, 
+   3.55800535814395*^9}, {3.558005433045722*^9, 3.558005517552647*^9}, {
+   3.558005561225679*^9, 3.55800557831056*^9}, {3.558005655301489*^9, 
+   3.558005713527213*^9}, {3.5580057440312967`*^9, 3.558005767754277*^9}, {
+   3.5580057988771267`*^9, 3.558005816834659*^9}, 3.558006175991583*^9, {
+   3.558006411158134*^9, 3.55800641249892*^9}, {3.558007594610743*^9, 
+   3.5580076059617977`*^9}, {3.558031785574442*^9, 3.558031791284782*^9}, {
+   3.5580320067756023`*^9, 3.558032090971232*^9}, {3.558032127210238*^9, 
+   3.558032133423558*^9}, {3.558032165952301*^9, 3.558032236938306*^9}, {
+   3.558032278227078*^9, 3.5580322805657043`*^9}, {3.558032325533409*^9, 
+   3.5580324378783693`*^9}, {3.558032588460569*^9, 3.558032591826387*^9}, {
+   3.558032633406942*^9, 3.558032635322897*^9}, {3.558032685542102*^9, 
+   3.558032787180192*^9}, {3.55803287708255*^9, 3.558032936631324*^9}, 
+   3.558082996476988*^9}],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`b$$ = 0.96824, $CellContext`c$$ = 1.29099, 
+    Typeset`show$$ = True, Typeset`bookmarkList$$ = {}, 
+    Typeset`bookmarkMode$$ = "Menu", Typeset`animator$$, Typeset`animvar$$ = 
+    1, Typeset`name$$ = "\"untitled\"", Typeset`specs$$ = {{
+      Hold[$CellContext`b$$], 0.10000001, 2}, {
+      Hold[$CellContext`c$$], 0.01, 2}}, Typeset`size$$ = {
+    619., {158., 162.}}, Typeset`update$$ = 0, Typeset`initDone$$, 
+    Typeset`skipInitDone$$ = True, $CellContext`b$1279$$ = 
+    0, $CellContext`c$1284$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     1, StandardForm, 
+      "Variables" :> {$CellContext`b$$ = 0.10000001, $CellContext`c$$ = 0.01},
+       "ControllerVariables" :> {
+        Hold[$CellContext`b$$, $CellContext`b$1279$$, 0], 
+        Hold[$CellContext`c$$, $CellContext`c$1284$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, 
+      "Body" :> ($CellContext`range = {{-8^Rational[1, 2], 8^
+           Rational[1, 2]}, {-8^Rational[1, 2], 8^Rational[1, 2]}}; Show[{
+           PolarPlot[
+            ReplaceAll[
+             $CellContext`vs[$CellContext`psi, $CellContext`va, \
+$CellContext`c0], {$CellContext`va -> $CellContext`b$$, $CellContext`c0 -> \
+$CellContext`c$$}], {$CellContext`psi, -Pi, Pi}, PlotStyle -> {{Red}}, 
+            PlotRange -> $CellContext`range], 
+           PolarPlot[
+            
+            ReplaceAll[{(-$CellContext`va) 
+              Cos[$CellContext`psi], $CellContext`va 
+              Cos[$CellContext`psi]}, {$CellContext`va -> $CellContext`b$$, \
+$CellContext`c0 -> $CellContext`c$$}], {$CellContext`psi, -Pi, Pi}, 
+            PlotStyle -> {{Blue}}, PlotRange -> $CellContext`range], 
+           PolarPlot[
+            ReplaceAll[
+             $CellContext`vf[$CellContext`psi, $CellContext`va, \
+$CellContext`c0], {$CellContext`va -> $CellContext`b$$, $CellContext`c0 -> \
+$CellContext`c$$}], {$CellContext`psi, -Pi, Pi}, PlotStyle -> {{Green}}, 
+            PlotRange -> $CellContext`range]}, AspectRatio -> 1, Frame -> 
+          True, FrameLabel -> {
+            Subscript[$CellContext`v, $CellContext`z], 
+            Subscript[$CellContext`v, $CellContext`x]}, PlotLabel -> 
+          "MHD Phase velocities", ImageSize -> {{320}}, PlotRangePadding -> 
+          None] Show[{
+           ListPlot[
+            ReplaceAll[
+             $CellContext`vga[$CellContext`va], $CellContext`va -> \
+$CellContext`b$$], PlotRange -> $CellContext`range], 
+           ParametricPlot[
+            ReplaceAll[{
+              $CellContext`vgs[$CellContext`psi, $CellContext`va, \
+$CellContext`c0]}, {$CellContext`va -> $CellContext`b$$, $CellContext`c0 -> \
+$CellContext`c$$}], {$CellContext`psi, -Pi, Pi}, 
+            PlotRange -> $CellContext`range, PlotStyle -> {{Red}}], 
+           ParametricPlot[
+            ReplaceAll[{
+              $CellContext`vgf[$CellContext`psi, $CellContext`va, \
+$CellContext`c0]}, {$CellContext`va -> $CellContext`b$$, $CellContext`c0 -> \
+$CellContext`c$$}], {$CellContext`psi, -Pi, Pi}, 
+            PlotRange -> $CellContext`range, PlotStyle -> {{Green}}]}, 
+          AspectRatio -> 1, Frame -> True, FrameLabel -> {
+            Subscript[$CellContext`v, $CellContext`z], 
+            Subscript[$CellContext`v, $CellContext`x]}, PlotLabel -> 
+          "MHD Group velocities", ImageSize -> {{320}}, PlotRangePadding -> 
+          None]), "Specifications" :> {{$CellContext`b$$, 0.10000001, 
+         2}, {$CellContext`c$$, 0.01, 2}}, "Options" :> {}, 
+      "DefaultOptions" :> {}],
+     ImageSizeCache->{662., {243.34375, 248.65625}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellChangeTimes->{
+  3.558006455481895*^9, {3.558006536755999*^9, 3.558006541565785*^9}, {
+   3.558006594853587*^9, 3.558006597275029*^9}, 3.5580074250249557`*^9, {
+   3.558007540667295*^9, 3.558007606783505*^9}, {3.558007673350786*^9, 
+   3.558007701297594*^9}, {3.558007928365931*^9, 3.558007937663747*^9}, 
+   3.5580080589819393`*^9, 3.558008320389357*^9, {3.55803164033224*^9, 
+   3.558031650442215*^9}, {3.558031749571642*^9, 3.5580318345701427`*^9}, {
+   3.5580320102497797`*^9, 3.55803209143077*^9}, {3.558032127801981*^9, 
+   3.558032134003942*^9}, 3.558032178709922*^9, {3.5580322106623983`*^9, 
+   3.558032281062801*^9}, {3.558032356513227*^9, 3.558032444934815*^9}, {
+   3.558032477707488*^9, 3.558032486958275*^9}, {3.558032592436504*^9, 
+   3.558032665185678*^9}, {3.558032741253232*^9, 3.558032842882799*^9}, {
+   3.558032901135741*^9, 3.558032945735299*^9}, {3.558033468518984*^9, 
+   3.558033484382229*^9}, 3.558071670238718*^9, 3.558074085207202*^9, 
+   3.558082939942214*^9, 3.558082999669343*^9, 3.558085193020052*^9, 
+   3.558085271839037*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Manipulate", "[", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"b", "=", "0.96824"}], ";", "\[IndentingNewLine]", 
+    RowBox[{"c", "=", "1.29099"}], ";", "\[IndentingNewLine]", 
+    RowBox[{"range", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "1"}], ",", "1"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "1"}], ",", "1"}], "}"}]}], "}"}]}], ";", 
+    "\[IndentingNewLine]", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"Show", "[", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"PolarPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{"vs", "[", 
+              RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "*", "t"}], "/.", 
+            
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Red", "}"}], "}"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"PolarPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"-", "va"}], " ", 
+               RowBox[{"Cos", "[", "psi", "]"}], "*", "t"}], ",", 
+              RowBox[{"va", " ", 
+               RowBox[{"Cos", "[", "psi", "]"}], "*", "t"}]}], "}"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Blue", "}"}], "}"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"PolarPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{"vf", "[", 
+              RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "*", "t"}], "/.", 
+            
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotStyle", "\[IndentingNewLine]", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Green", "}"}], "}"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}]}], 
+        "\[IndentingNewLine]", "}"}], ",", 
+       RowBox[{"AspectRatio", "\[Rule]", "1"}], ",", 
+       RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+       RowBox[{"FrameLabel", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{"z", ",", "x"}], "}"}]}], ",", "\[IndentingNewLine]", 
+       RowBox[{"PlotLabel", "\[Rule]", "\"\<MHD Phase position\>\""}], ",", 
+       "\[IndentingNewLine]", 
+       RowBox[{"ImageSize", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{"{", "320", "}"}], "}"}]}], ",", 
+       RowBox[{"PlotRangePadding", "\[Rule]", "None"}]}], "]"}], 
+     "\[IndentingNewLine]", "\[IndentingNewLine]", 
+     RowBox[{"Show", "[", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"ListPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{"vga", "[", "va", "]"}], "*", "t"}], "/.", 
+            RowBox[{"va", "\[Rule]", "b"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"ParametricPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"vgs", "[", 
+               RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "*", "t"}], 
+             "}"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Red", "}"}], "}"}]}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"ParametricPlot", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"vgf", "[", 
+               RowBox[{"psi", ",", "va", ",", "c0"}], "]"}], "*", "t"}], 
+             "}"}], "/.", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"va", "\[Rule]", "b"}], ",", 
+              RowBox[{"c0", "\[Rule]", "c"}]}], "}"}]}], ",", 
+           RowBox[{"{", 
+            RowBox[{"psi", ",", 
+             RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", "range"}], ",", 
+           RowBox[{"PlotStyle", "\[Rule]", 
+            RowBox[{"{", 
+             RowBox[{"{", "Green", "}"}], "}"}]}]}], "]"}]}], 
+        "\[IndentingNewLine]", "}"}], ",", 
+       RowBox[{"AspectRatio", "\[Rule]", "1"}], ",", 
+       RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+       RowBox[{"FrameLabel", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{"z", ",", "x"}], "}"}]}], ",", "\[IndentingNewLine]", 
+       RowBox[{"PlotLabel", "\[Rule]", "\"\<MHD Group position\>\""}], ",", 
+       "\[IndentingNewLine]", 
+       RowBox[{"ImageSize", "\[Rule]", 
+        RowBox[{"{", 
+         RowBox[{"{", "320", "}"}], "}"}]}], ",", 
+       RowBox[{"PlotRangePadding", "\[Rule]", "None"}]}], "]"}]}]}], 
+   "\[IndentingNewLine]", ",", "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"{", 
+    RowBox[{"t", ",", "0.001", ",", "1"}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.5580334955793343`*^9, 3.5580335733784246`*^9}, {
+  3.5580336141792192`*^9, 3.558033685275764*^9}, {3.5580338017317*^9, 
+  3.558033838665028*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`t$$ = 0.001, Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{
+      Hold[$CellContext`t$$], 0.001, 1}}, Typeset`size$$ = {
+    988., {193.0625, 162.}}, Typeset`update$$ = 0, Typeset`initDone$$, 
+    Typeset`skipInitDone$$ = True, $CellContext`t$1426$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     1, StandardForm, "Variables" :> {$CellContext`t$$ = 0.001}, 
+      "ControllerVariables" :> {
+        Hold[$CellContext`t$$, $CellContext`t$1426$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, 
+      "Body" :> ($CellContext`b = 0.96824; $CellContext`c = 
+        1.29099; $CellContext`range = {{-1, 1}, {-1, 1}}; Show[{
+           PolarPlot[
+            
+            ReplaceAll[$CellContext`vs[$CellContext`psi, $CellContext`va, \
+$CellContext`c0] $CellContext`t$$, {$CellContext`va -> $CellContext`b, \
+$CellContext`c0 -> $CellContext`c}], {$CellContext`psi, -Pi, Pi}, 
+            PlotStyle -> {{Red}}, PlotRange -> $CellContext`range], 
+           PolarPlot[
+            
+            ReplaceAll[{(-$CellContext`va) 
+              Cos[$CellContext`psi] $CellContext`t$$, $CellContext`va 
+              Cos[$CellContext`psi] $CellContext`t$$}, {$CellContext`va -> \
+$CellContext`b, $CellContext`c0 -> $CellContext`c}], {$CellContext`psi, -Pi, 
+             Pi}, PlotStyle -> {{Blue}}, PlotRange -> $CellContext`range], 
+           PolarPlot[
+            
+            ReplaceAll[$CellContext`vf[$CellContext`psi, $CellContext`va, \
+$CellContext`c0] $CellContext`t$$, {$CellContext`va -> $CellContext`b, \
+$CellContext`c0 -> $CellContext`c}], {$CellContext`psi, -Pi, Pi}, 
+            PlotStyle -> {{Green}}, PlotRange -> $CellContext`range]}, 
+          AspectRatio -> 1, Frame -> True, 
+          FrameLabel -> {$CellContext`z, $CellContext`x}, PlotLabel -> 
+          "MHD Phase position", ImageSize -> {{320}}, PlotRangePadding -> 
+          None] Show[{
+           ListPlot[
+            
+            ReplaceAll[$CellContext`vga[$CellContext`va] $CellContext`t$$, \
+$CellContext`va -> $CellContext`b], PlotRange -> $CellContext`range], 
+           ParametricPlot[
+            
+            ReplaceAll[{$CellContext`vgs[$CellContext`psi, $CellContext`va, \
+$CellContext`c0] $CellContext`t$$}, {$CellContext`va -> $CellContext`b, \
+$CellContext`c0 -> $CellContext`c}], {$CellContext`psi, -Pi, Pi}, 
+            PlotRange -> $CellContext`range, PlotStyle -> {{Red}}], 
+           ParametricPlot[
+            
+            ReplaceAll[{$CellContext`vgf[$CellContext`psi, $CellContext`va, \
+$CellContext`c0] $CellContext`t$$}, {$CellContext`va -> $CellContext`b, \
+$CellContext`c0 -> $CellContext`c}], {$CellContext`psi, -Pi, Pi}, 
+            PlotRange -> $CellContext`range, PlotStyle -> {{Green}}]}, 
+          AspectRatio -> 1, Frame -> True, 
+          FrameLabel -> {$CellContext`z, $CellContext`x}, PlotLabel -> 
+          "MHD Group position", ImageSize -> {{320}}, PlotRangePadding -> 
+          None]), "Specifications" :> {{$CellContext`t$$, 0.001, 1}}, 
+      "Options" :> {}, "DefaultOptions" :> {}],
+     ImageSizeCache->{1031., {220.34375, 225.65625}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellChangeTimes->{{3.5580335753162127`*^9, 3.558033687062397*^9}, {
+   3.5580337462126503`*^9, 3.5580338453156548`*^9}, 3.5580339278793287`*^9, 
+   3.558034088887786*^9, 3.5580341283173313`*^9, {3.5580716707666597`*^9, 
+   3.55807168202008*^9}, 3.558072399982643*^9, {3.55807408525949*^9, 
+   3.558074107005374*^9}, {3.5580743825413523`*^9, 3.558074398350383*^9}, {
+   3.558074429801271*^9, 3.5580744609811697`*^9}, 3.558082940336725*^9, 
+   3.558085193520485*^9, 3.558085272511374*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ListPlot", "::", "\<\"lpn\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\[NoBreak]\\!\\(\\*StyleBox[\\!\\(0.001`\\\\ \
+\\(\\(vga[0.96824`]\\)\\)\\), \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\" is not a list of \
+numbers or pairs of numbers.\\\\\\\"\\\", \\\"MT\\\"]\\) \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/ListPlot\\\", ButtonNote -> \
+\\\"ListPlot::lpn\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.558089855861484*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Show", "::", "\<\"gcomb\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\\!\\(\\*StyleBox[\\\"\\\\\\\"Could not combine the \
+graphics objects in \\\\\\\"\\\", \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\!\\(Show[\\(\\(\\(\\({\\(\\(\
+ListPlot[\\(\\(\\(\\(0.001`\\\\ \\(\\(vga[0.96824`]\\)\\)\\)\\), \
+\\(\\(PlotRange \[Rule] \\(\\({\\(\\({\\(\\(-1\\)\\), 1}\\)\\), \
+\\(\\({\\(\\(-1\\)\\), 1}\\)\\)}\\)\\)\\)\\)\\)\\)]\\)\\), \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]], \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]]}\\)\\), \
+\\(\\(AspectRatio \[Rule] 1\\)\\), \\(\\(Frame \[Rule] True\\)\\), \
+\\(\\(\\(\\(\[LeftSkeleton] 10 \[RightSkeleton]\\)\\) \[Rule] \\(\\(\
+\[LeftSkeleton] 1 \[RightSkeleton]\\)\\)\\)\\), \\(\\(\[LeftSkeleton] 1 \
+\[RightSkeleton]\\)\\), \\(\\(ImageSize \[Rule] \
+\\(\\({\\({320}\\)}\\)\\)\\)\\), \\(\\(PlotRangePadding \[Rule] None\\)\\)\\)\
+\\)]\\), \\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\".\\\\\\\"\\\", \
+\\\"MT\\\"]\\) \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/Show/gcomb\\\", ButtonNote -> \
+\\\"Show::gcomb\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.55808985615769*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ListPlot", "::", "\<\"lpn\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\[NoBreak]\\!\\(\\*StyleBox[\\!\\(0.001`\\\\ \
+\\(\\(vga[0.96824`]\\)\\)\\), \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\" is not a list of \
+numbers or pairs of numbers.\\\\\\\"\\\", \\\"MT\\\"]\\) \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/ListPlot\\\", ButtonNote -> \
+\\\"ListPlot::lpn\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.5580898562199593`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Show", "::", "\<\"gcomb\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\\!\\(\\*StyleBox[\\\"\\\\\\\"Could not combine the \
+graphics objects in \\\\\\\"\\\", \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\!\\(Show[\\(\\(\\(\\({\\(\\(\
+ListPlot[\\(\\(\\(\\(0.001`\\\\ \\(\\(vga[0.96824`]\\)\\)\\)\\), \
+\\(\\(PlotRange \[Rule] \\(\\({\\(\\({\\(\\(-1\\)\\), 1}\\)\\), \
+\\(\\({\\(\\(-1\\)\\), 1}\\)\\)}\\)\\)\\)\\)\\)\\)]\\)\\), \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]], \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]]}\\)\\), \
+\\(\\(AspectRatio \[Rule] 1\\)\\), \\(\\(Frame \[Rule] True\\)\\), \
+\\(\\(\\(\\(\[LeftSkeleton] 10 \[RightSkeleton]\\)\\) \[Rule] \\(\\(\
+\[LeftSkeleton] 1 \[RightSkeleton]\\)\\)\\)\\), \\(\\(\[LeftSkeleton] 1 \
+\[RightSkeleton]\\)\\), \\(\\(ImageSize \[Rule] \
+\\(\\({\\({320}\\)}\\)\\)\\)\\), \\(\\(PlotRangePadding \[Rule] None\\)\\)\\)\
+\\)]\\), \\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\".\\\\\\\"\\\", \
+\\\"MT\\\"]\\) \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/Show/gcomb\\\", ButtonNote -> \
+\\\"Show::gcomb\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.558089856252418*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ListPlot", "::", "\<\"lpn\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\[NoBreak]\\!\\(\\*StyleBox[\\!\\(0.001`\\\\ \
+\\(\\(vga[0.96824`]\\)\\)\\), \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\" is not a list of \
+numbers or pairs of numbers.\\\\\\\"\\\", \\\"MT\\\"]\\) \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/ListPlot\\\", ButtonNote -> \
+\\\"ListPlot::lpn\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.558089887033597*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Show", "::", "\<\"gcomb\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\\!\\(\\*StyleBox[\\\"\\\\\\\"Could not combine the \
+graphics objects in \\\\\\\"\\\", \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\!\\(Show[\\(\\(\\(\\({\\(\\(\
+ListPlot[\\(\\(\\(\\(0.001`\\\\ \\(\\(vga[0.96824`]\\)\\)\\)\\), \
+\\(\\(PlotRange \[Rule] \\(\\({\\(\\({\\(\\(-1\\)\\), 1}\\)\\), \
+\\(\\({\\(\\(-1\\)\\), 1}\\)\\)}\\)\\)\\)\\)\\)\\)]\\)\\), \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]], \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]]}\\)\\), \
+\\(\\(AspectRatio \[Rule] 1\\)\\), \\(\\(Frame \[Rule] True\\)\\), \
+\\(\\(\\(\\(\[LeftSkeleton] 10 \[RightSkeleton]\\)\\) \[Rule] \\(\\(\
+\[LeftSkeleton] 1 \[RightSkeleton]\\)\\)\\)\\), \\(\\(\[LeftSkeleton] 1 \
+\[RightSkeleton]\\)\\), \\(\\(ImageSize \[Rule] \
+\\(\\({\\({320}\\)}\\)\\)\\)\\), \\(\\(PlotRangePadding \[Rule] None\\)\\)\\)\
+\\)]\\), \\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\".\\\\\\\"\\\", \
+\\\"MT\\\"]\\) \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/Show/gcomb\\\", ButtonNote -> \
+\\\"Show::gcomb\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.558089887066766*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ListPlot", "::", "\<\"lpn\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\[NoBreak]\\!\\(\\*StyleBox[\\!\\(0.001`\\\\ \
+\\(\\(vga[0.96824`]\\)\\)\\), \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\" is not a list of \
+numbers or pairs of numbers.\\\\\\\"\\\", \\\"MT\\\"]\\) \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/ListPlot\\\", ButtonNote -> \
+\\\"ListPlot::lpn\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.558089887125741*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Show", "::", "\<\"gcomb\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\\!\\(\\*StyleBox[\\\"\\\\\\\"Could not combine the \
+graphics objects in \\\\\\\"\\\", \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\!\\(Show[\\(\\(\\(\\({\\(\\(\
+ListPlot[\\(\\(\\(\\(0.001`\\\\ \\(\\(vga[0.96824`]\\)\\)\\)\\), \
+\\(\\(PlotRange \[Rule] \\(\\({\\(\\({\\(\\(-1\\)\\), 1}\\)\\), \
+\\(\\({\\(\\(-1\\)\\), 1}\\)\\)}\\)\\)\\)\\)\\)\\)]\\)\\), \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]], \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]]}\\)\\), \
+\\(\\(AspectRatio \[Rule] 1\\)\\), \\(\\(Frame \[Rule] True\\)\\), \
+\\(\\(\\(\\(\[LeftSkeleton] 10 \[RightSkeleton]\\)\\) \[Rule] \\(\\(\
+\[LeftSkeleton] 1 \[RightSkeleton]\\)\\)\\)\\), \\(\\(\[LeftSkeleton] 1 \
+\[RightSkeleton]\\)\\), \\(\\(ImageSize \[Rule] \
+\\(\\({\\({320}\\)}\\)\\)\\)\\), \\(\\(PlotRangePadding \[Rule] None\\)\\)\\)\
+\\)]\\), \\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\".\\\\\\\"\\\", \
+\\\"MT\\\"]\\) \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/Show/gcomb\\\", ButtonNote -> \
+\\\"Show::gcomb\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.558089887127523*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ListPlot", "::", "\<\"lpn\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\[NoBreak]\\!\\(\\*StyleBox[\\!\\(0.001`\\\\ \
+\\(\\(vga[0.96824`]\\)\\)\\), \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\" is not a list of \
+numbers or pairs of numbers.\\\\\\\"\\\", \\\"MT\\\"]\\) \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/ListPlot\\\", ButtonNote -> \
+\\\"ListPlot::lpn\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.5580914675868883`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Show", "::", "\<\"gcomb\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\\!\\(\\*StyleBox[\\\"\\\\\\\"Could not combine the \
+graphics objects in \\\\\\\"\\\", \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\!\\(Show[\\(\\(\\(\\({\\(\\(\
+ListPlot[\\(\\(\\(\\(0.001`\\\\ \\(\\(vga[0.96824`]\\)\\)\\)\\), \
+\\(\\(PlotRange \[Rule] \\(\\({\\(\\({\\(\\(-1\\)\\), 1}\\)\\), \
+\\(\\({\\(\\(-1\\)\\), 1}\\)\\)}\\)\\)\\)\\)\\)\\)]\\)\\), \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]], \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]]}\\)\\), \
+\\(\\(AspectRatio \[Rule] 1\\)\\), \\(\\(Frame \[Rule] True\\)\\), \
+\\(\\(\\(\\(\[LeftSkeleton] 10 \[RightSkeleton]\\)\\) \[Rule] \\(\\(\
+\[LeftSkeleton] 1 \[RightSkeleton]\\)\\)\\)\\), \\(\\(\[LeftSkeleton] 1 \
+\[RightSkeleton]\\)\\), \\(\\(ImageSize \[Rule] \
+\\(\\({\\({320}\\)}\\)\\)\\)\\), \\(\\(PlotRangePadding \[Rule] None\\)\\)\\)\
+\\)]\\), \\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\".\\\\\\\"\\\", \
+\\\"MT\\\"]\\) \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/Show/gcomb\\\", ButtonNote -> \
+\\\"Show::gcomb\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.558091467667609*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ListPlot", "::", "\<\"lpn\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\[NoBreak]\\!\\(\\*StyleBox[\\!\\(0.001`\\\\ \
+\\(\\(vga[0.96824`]\\)\\)\\), \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\" is not a list of \
+numbers or pairs of numbers.\\\\\\\"\\\", \\\"MT\\\"]\\) \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/ListPlot\\\", ButtonNote -> \
+\\\"ListPlot::lpn\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.5580914677613*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Show", "::", "\<\"gcomb\"\>"}], 
+  RowBox[{
+  ":", " "}], "\<\"\\!\\(\\*StyleBox[\\\"\\\\\\\"Could not combine the \
+graphics objects in \\\\\\\"\\\", \
+\\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\!\\(Show[\\(\\(\\(\\({\\(\\(\
+ListPlot[\\(\\(\\(\\(0.001`\\\\ \\(\\(vga[0.96824`]\\)\\)\\)\\), \
+\\(\\(PlotRange \[Rule] \\(\\({\\(\\({\\(\\(-1\\)\\), 1}\\)\\), \
+\\(\\({\\(\\(-1\\)\\), 1}\\)\\)}\\)\\)\\)\\)\\)\\)]\\)\\), \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]], \
+\\*GraphicsBox[GraphicsComplexBox[List[List[0.`, 0.`], List[0.`, 0.`], \
+List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, \
+0.`], List[0.`, 0.`], List[0.`, 0.`], List[0.`, 0.`], Skeleton[40]], List[]], \
+List[Rule[Axes, True], Rule[AxesOrigin, List[0, 0]], Rule[PlotRange, \
+List[List[-1, 1], List[-1, 1]]], Rule[PlotRangeClipping, True], \
+Rule[PlotRangePadding, List[Automatic, Automatic]]]]}\\)\\), \
+\\(\\(AspectRatio \[Rule] 1\\)\\), \\(\\(Frame \[Rule] True\\)\\), \
+\\(\\(\\(\\(\[LeftSkeleton] 10 \[RightSkeleton]\\)\\) \[Rule] \\(\\(\
+\[LeftSkeleton] 1 \[RightSkeleton]\\)\\)\\)\\), \\(\\(\[LeftSkeleton] 1 \
+\[RightSkeleton]\\)\\), \\(\\(ImageSize \[Rule] \
+\\(\\({\\({320}\\)}\\)\\)\\)\\), \\(\\(PlotRangePadding \[Rule] None\\)\\)\\)\
+\\)]\\), \\\"MT\\\"]\\)\[NoBreak]\\!\\(\\*StyleBox[\\\"\\\\\\\".\\\\\\\"\\\", \
+\\\"MT\\\"]\\) \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/Show/gcomb\\\", ButtonNote -> \
+\\\"Show::gcomb\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.5580914677629766`*^9}]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{1280, 1002},
+WindowMargins->{{-1280, Automatic}, {Automatic, -22}},
+ShowSelection->True,
+FrontEndVersion->"7.0 for Mac OS X x86 (32-bit) (November 10, 2008)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[567, 22, 112, 1, 76, "Title"],
+Cell[682, 25, 2819, 85, 177, "Input"],
+Cell[CellGroupData[{
+Cell[3526, 114, 1250, 34, 43, "Input"],
+Cell[4779, 150, 19166, 320, 109, "Output"]
+}, Open  ]],
+Cell[23960, 473, 2031, 61, 58, "Input"],
+Cell[CellGroupData[{
+Cell[26016, 538, 8018, 182, 405, "Input"],
+Cell[34037, 722, 5213, 97, 509, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[39287, 824, 6494, 161, 403, "Input"],
+Cell[45784, 987, 4330, 81, 463, "Output"],
+Cell[50117, 1070, 556, 11, 23, "Message"],
+Cell[50676, 1083, 1997, 32, 172, "Message"],
+Cell[52676, 1117, 558, 11, 23, "Message"],
+Cell[53237, 1130, 1998, 32, 172, "Message"],
+Cell[55238, 1164, 556, 11, 23, "Message"],
+Cell[55797, 1177, 1998, 32, 172, "Message"],
+Cell[57798, 1211, 556, 11, 23, "Message"],
+Cell[58357, 1224, 1998, 32, 172, "Message"],
+Cell[60358, 1258, 558, 11, 23, "Message"],
+Cell[60919, 1271, 1998, 32, 172, "Message"],
+Cell[62920, 1305, 554, 11, 23, "Message"],
+Cell[63477, 1318, 2000, 32, 172, "Message"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

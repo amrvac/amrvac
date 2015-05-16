@@ -1,0 +1,21 @@
+#!/bin/csh -f
+# usage: tailvac
+# aim: to monitor .log file
+set ful=`ls -l amrvac.par`
+set fname=$ful[$#ful]
+if (-e $fname ) then
+   goto step1
+else
+   echo "$1 is not an existing parfilename"
+   goto done
+endif
+step1:
+set datadir=`grep "filenamelog" $fname`
+set dataname=`echo $datadir | awk -F\' '{print $2}'`
+set datalog=$dataname".log"
+tail $1 $datalog
+echo
+done:
+exit 0
+error:
+exit 1

@@ -1,0 +1,33 @@
+filename='datamr1.0/bubhd22.l3.out'
+npict=1
+;npict=7
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+;loadct,8
+device,/encapsulated,bits=8,/color
+device,xsize=24,ysize=13.5,xoffset=0,yoffset=0
+device,filename='bubhd22.t0.eps'
+;device,filename='bubhd22.t0.3.eps'
+
+;plotmode='contfill_amr'
+plotmode='contour_amr'
+;func='-schlier'
+func='schlier2'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17y'
+
+.r Idl_amr/plotfunc
+
+Xyouts,/normal,0.2,0.8,'!17t=0'
+;Xyouts,/normal,0.2,0.8,'!17t=0.3'
+device,/close

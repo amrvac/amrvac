@@ -1,0 +1,12 @@
+!##############################################################################
+! include amrvacusrpar - binaryhd
+
+INTEGER,PARAMETER:: MassA_=neqpar+1,MassB_=MassA_+1,MdotA_=MassB_+1,MdotB_=MdotA_+1, &
+                    vinfA_=MdotB_+1,vinfB_=vinfA_+1,rinfA_=vinfB_+1,rinfB_=rinfA_+1, &
+                    rhoinfA_=rinfB_+1,rhoinfB_=rhoinfA_+1,Porb_=rhoinfB_+1,ecc_=Porb_+1, &
+                    semimajor_=ecc_+1,rhoism_=semimajor_+1,pism_=rhoism_+1, &
+                    xi_=pism_+1,phiAB_=xi_+1,nspecialpar=17
+CHARACTER*57,PARAMETER:: specialparname='mA mB mdA mdB vA vB rA rB rhA rhB P e a rhoism pism xi ph'
+
+! end include amrvacusrpar - binaryhd 
+!##############################################################################

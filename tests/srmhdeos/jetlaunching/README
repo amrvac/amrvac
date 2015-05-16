@@ -1,0 +1,5 @@
+Special relativistic jet launching from disk boundary.
+
+Mystery problems when optimization O3 and gfortran.
+
+$AMRVAC_DIR/setup.pl -d=23 -phi=3 -z=2 -g=16,16 -p=srmhdeos -nf=1 -u=jetlaunching -arch=macbook

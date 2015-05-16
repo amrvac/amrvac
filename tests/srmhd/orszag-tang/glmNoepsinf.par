@@ -1,0 +1,71 @@
+ &testlist
+        teststr=''
+ &end
+
+ &filelist
+    primnames=  'rho v1 v2 p b1 b2 psi lfac xi'
+	autoconvert=.true.
+	saveprim=.true.
+        nwauxio=2
+        filenameout='output/data'
+        filenameini='output/data'
+        filenamelog='output/amrvac'
+ &end
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+!	itsave(2,2)=176
+        ditsave(1)=1
+        dtsave(2)=1.
+ &end
+
+ &stoplist
+        tmax=10
+        dtmin=1.d-6
+ &end
+
+ &methodlist
+        wnames=       'd s1 s2 tau b1 b2 psi lfac xi'
+        fileheadout=  'srmhd22ot_rmhd22'
+        typeadvance=  'threestep'
+        typefull1=    13*'hll'
+        typelimiter1= 13*'albada'
+        typetvdlf    = 'default'
+        useprimitive=.true.
+        useprimitiveRel=.true.
+	typepoly  = 'gammie'
+	strictgetaux = T
+	BnormLF  = T
+ &end
+
+ &boundlist
+        dixB  =   3
+        typeB =9*'periodic',
+               9*'periodic',
+               9*'periodic',
+               9*'periodic'
+ &end
+
+ &amrlist
+        flags(10)=3
+        flags(1)=1
+        flags(2)=5
+        flags(3)=6
+        wflags(1)=0.6
+        wflags(2)=0.2
+        wflags(3)=0.2
+        errorestimate=3
+        mxnest=1
+        nxlone1=256
+        nxlone2=256
+        xprobmin1=0.0d0
+        xprobmax1=6.2831853072d0
+        xprobmin2=0.0d0
+        xprobmax2=6.2831853072d0
+ &end
+
+ &paramlist
+       slowsteps=20
+       courantpar=0.4d0
+ &end

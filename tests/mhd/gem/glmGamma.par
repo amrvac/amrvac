@@ -1,0 +1,53 @@
+ &testlist
+ /
+
+ &filelist
+        primnames     =  'rho v1 v2 v3 p b1 b2 b3 psi'
+        autoconvert   = T
+        saveprim      = T
+        nwauxio       = 4
+ /
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave(1)    = 1
+        dtsave(2)     = 0.1
+ /
+
+ &stoplist
+        tmax          = 2.0
+ /
+
+ &methodlist
+        wnames        = 'rho m1 m2 m3 e b1 b2 b3 psi'
+        typeadvance   = 'ssprk54'
+        typefull1     = 13*'fd'
+        typelimiter1  = 13*'mp5'
+	typedivbfix   = 'glm3'
+	compactres    = T
+ /
+
+ &boundlist
+        dixB          = 4
+        typeB         = 9*'periodic' 9*'periodic'
+                        9*'special' 9*'special'
+ /
+
+ &amrlist
+        mxnest        = 3
+        errorestimate = 3
+    	tol           = 13*0.1d0
+        nxlone1       = 512
+        nxlone2       = 256
+        xprobmin1     = 0
+        xprobmax1     = 2
+        xprobmin2     =-0.5
+        xprobmax2     = 0.5
+	iprob         = 0
+ /
+
+ &paramlist
+	slowsteps     = 10
+        courantpar    = 0.5
+ /

@@ -1,0 +1,4 @@
+This is a 2D Pulsar wind setup according to Porth, Komissarov and Keppens 2013
+
+$AMRVAC_DIR/setup.pl -d=23 -phi=3 -z=2 -g=12,12 -p=srmhd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
+

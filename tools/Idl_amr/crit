@@ -1,0 +1,23 @@
+.r Idl_amr/procedures
+
+filename=dialog_pickfile(filter='*all.out',/read)
+npict=1
+iextrapol=0
+
+!psym=3
+plotmode='plotn_amr'
+func='criteria'
+noautodomain=1
+plottitle='Criterion'
+xtitle1d='s (10 Mm)'
+timeunit='s'
+autorange='n'
+noautorange=1
+headerline=0
+bottomline=1
+savemovie='y'
+window,xsize=800,ysize=600
+;.r Idl_amr/getpict
+;.r Idl_amr/plotfunc
+doanimate=0
+.r animate

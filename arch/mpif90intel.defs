@@ -1,0 +1,4 @@
+F90=mpif90 -f90=ifort
+FFLAGS = -c
+F90FLAGS = -FR -implicitnone -O3 -xHost
+LINK= $(F90)  $(F90FLAGS)

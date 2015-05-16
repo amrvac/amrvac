@@ -1,0 +1,4 @@
+F90=mpiifort
+FFLAGS = -c
+F90FLAGS = -FR -implicitnone -O3
+LINK= $(F90)  $(F90FLAGS)

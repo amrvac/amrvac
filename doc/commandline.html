@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> <head>
+<title>COMMAND LINE</title>
+</head>
+
+<body>
+<h1>COMMAND LINE PARAMETERS</h1>
+
+<hr>
+AMRVAC can be invoked with command line parameters, for example:
+<pre>
+amrvac --help
+</pre>
+will print a welcome message:
+<pre>
+ -----------------------------------------------------------------------------
+ -----------------------------------------------------------------------------
+ |         __  __ ____ ___        _    __  __ ______     ___    ____         |
+ |        |  \/  |  _ \_ _|      / \  |  \/  |  _ \ \   / / \  / ___|        |
+ |        | |\/| | |_) | |_____ / _ \ | |\/| | |_) \ \ / / _ \| |            |
+ |        | |  | |  __/| |_____/ ___ \| |  | |  _ < \ V / ___ \ |___         |
+ |        |_|  |_|_|  |___|   /_/   \_\_|  |_|_| \_\ \_/_/   \_\____|        |
+ -----------------------------------------------------------------------------
+ -----------------------------------------------------------------------------
+ calling example:                                         
+ ./amrvac -i inifile -restart 100 -convert -if datamr/data
+ default inifile is amrvac.par                            
+ Note that inifile parameters overwrite the commandline   
+ -----------------------------------------------------------------------------
+</pre>
+
+With the command line, it is possible to initiate a restart or
+convert.  This has the advantage that the par file does not need to
+be modified.  
+To restart a run, type
+<pre>
+amrvac -restart 10 -if datamr/data
+</pre>
+This will restart from the 10 output of the datamr/data file.  The
+next output number is automatically set to 11.
+Note that the values assigned in the par-file will overwrite the
+command line parameters.  
+<p>
+In order to initiate a convert, consider the following example
+<pre>
+amrvac -restart 10 -if datamr/data -convert
+</pre>
+<p>
+With the option <em>-i inifile</em> it is also possible to prescribe an
+alternative par-file, instead of the default <em>amrvac.par</em>.
+This comes in handy at the convert stage.  
+<p>
+An overview of the current command line parameters is given in the
+following table.  
+<p>
+<table>
+  <TH>Command line parameters
+</TH>
+<TR>
+  <TD>Command</TD>
+  <TD>Sets variable</TD>
+  <TD>default</TD>
+</TR>
+<TR>
+  <TD>-i parfile</TD>
+  <TD>inifile</TD>
+  <TD>amrvac.par</TD>
+</TR>
+<TR>
+  <TD>-if filename</TD>
+  <TD>filenameini</TD>
+  <TD>'unavailable'</TD>
+</TR>
+<TR>
+  <TD>-restart snapshot</TD>
+  <TD>snapshotini</TD>
+  <TD>-1</TD>
+</TR>
+<TR>
+  <TD>-convert</TD>
+  <TD>convert</TD>
+  <TD>F</TD>
+</TR>
+<TR>
+  <TD>-slice</TD>
+  <TD>slicenext</TD>
+  <TD>0</TD>
+</TR>
+<TR>
+  <TD>-collapse</TD>
+  <TD>collapsenext</TD>
+  <TD>0</TD>
+</TR>
+<TR>
+  <TD>--help</TD>
+  <TD>Prints the help message</TD>
+  <TD>F</TD>
+</TR>
+</table>
+
+<hr>
+</body> </html>

@@ -1,0 +1,94 @@
+!setup.pl -d=22 -phi=0 -z=2 -g=24,24 -p=hd
+ &testlist
+        teststr=''
+ /
+ &filelist
+        filenamelog='movstar'
+        filenameout='movstar'
+        primnames='rho v1 v2 p'
+        typeparIO=0
+	autoconvert = .true.
+	convert_type='vtuBCCmpi'
+	saveprim=.true.
+        filenameini='movstar'
+        nwauxio=0
+/
+
+
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)= 100
+        dtsave(2)= 1.0D-1
+	
+/
+ &stoplist
+       tmax = 1.02D1
+       dtmin= 1.0d-10
+ /
+
+ &methodlist
+        wnames      = 'rho m1 m2 e'
+        fileheadout = 'movstar'
+        typeadvance = 'twostep'
+        typefull1   = 6*'tvdlf'
+        typepred1   = 6*'tvdlf'
+        typetvdlf   = 'other'
+        typelimiter1= 6*'minmod'
+        typelimited = 'previous'
+	typeaxial   = 'cylindrical'
+	useprimitive= .true.
+	strictzero  = .true.
+        strictsmall = .false.
+        strictgetaux= .false.
+        nflatgetaux = 2
+	fixsmall    = T
+        dimsplit    = .false.
+	smallp      = 1.0d-12
+	smallrho    = 1.0d-12
+	ncool       = 10000
+	coolmethod  = 'exact'
+	coolcurve   = 'MLsolar1'
+	Tfix        = .true.
+
+ /
+
+ &boundlist
+        dixB=    2	
+        typeB=   'symm','asymm','symm','symm',
+                 4*'cont',
+		 4*'cont',
+		 4*'special'
+		 
+	
+ /
+
+ &amrlist
+        iprob=1
+        mxnest=4
+	nxlone1=160
+        nxlone2=160
+	xprobmin1=0.0d0  ! 0.0D0
+	xprobmax1=1.0d1  ! 1.0D0
+	xprobmin2=-0.5d1 ! -5.0D-1
+	xprobmax2=0.5d1  ! 5.0D-1
+	errorestimate=3
+	flags(5)=1
+	flags(1)=1
+	wflags(1)=1.0D0
+	tol = 13*0.1d0
+	tolratio = 13*0.125D0
+	prolongprimitive=.true.
+	coarsenprimitive=.true.
+ /
+
+ &paramlist
+        dtpar=-1
+        typecourant='maxsum'
+	time_accurate=.true.
+        courantpar=0.5d0
+	cfrac = 0.1d0
+        slowsteps=10
+/
+

@@ -1,0 +1,38 @@
+filename='datamr/1frame.rthd22.l5.out'
+npict=1
+
+.r Idl_amr/getpict
+
+!P.BACKGROUND=100
+!P.BACKGROUND=256
+window,xsize=480,ysize=400
+
+;set_plot,'ps'
+;device,/encapsulated,bits=2
+;device,xoffset=0,yoffset=0
+;device,filename='rthd22.t1.75.eps'
+
+plotmode='contfilln3_amr'
+func='-logrho'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17z'
+!x.charsize=0.9
+!y.charsize=0.9
+
+.r Idl_amr/plotfunc
+axis,0,0,/data,color=0,xaxis=0,xcharsize=0.00000001
+;axis,0,0,/data,color=0,xaxis=0,xtitle='!17x',xcharsize=1.
+axis,0,1,/data,color=0,xaxis=1,xcharsize=0.00000001
+;axis,0,0,/data,color=0,yaxis=0,ytitle='!17y',ycharsize=1.
+axis,0,0,/data,color=0,yaxis=0,ycharsize=0.00000001
+axis,1,0,/data,color=0,yaxis=1,ycharsize=0.00000001
+;device,/close
+WRITE_GIF,'test.gif',TVRD()

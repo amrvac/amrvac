@@ -1,0 +1,4115 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 7.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[    173860,       4106]
+NotebookOptionsPosition[    172786,       4065]
+NotebookOutlinePosition[    173132,       4080]
+CellTagsIndexPosition[    173089,       4077]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Hall MHD phase and group diagram", "Title",
+ CellChangeTimes->{{3.5580783165667*^9, 3.5580783227484407`*^9}}],
+
+Cell["\<\
+Analytic expression from Vocks, Motschmann and Glassmeier 1999\
+\>", "Subtitle",
+ CellChangeTimes->{{3.558080893415021*^9, 3.558080916260571*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"\[Omega]", "[", 
+   RowBox[{"Psi_", ",", "va_", ",", "c0_"}], "]"}], ":=", 
+  RowBox[{"Table", "[", 
+   RowBox[{
+    RowBox[{
+     FractionBox[
+      RowBox[{"k", " ", "d"}], "va"], 
+     SqrtBox[
+      RowBox[{
+       FractionBox["X1", "3"], "+", 
+       RowBox[{
+        FractionBox["2", "3"], 
+        SqrtBox[
+         RowBox[{"-", "a"}]], 
+        RowBox[{"Cos", "[", 
+         RowBox[{
+          RowBox[{
+           FractionBox["1", "3"], 
+           RowBox[{"ArcTan", "[", 
+            SqrtBox[
+             RowBox[{
+              RowBox[{"-", "1"}], "-", 
+              FractionBox[
+               RowBox[{"4", 
+                SuperscriptBox["a", "3"]}], 
+               SuperscriptBox["b", "2"]]}]], "]"}]}], "+", 
+          RowBox[{
+           FractionBox[
+            RowBox[{"2", "m"}], "3"], "\[Pi]"}]}], "]"}]}]}]]}], ",", 
+    RowBox[{"{", 
+     RowBox[{"m", ",", "0", ",", "2", ",", "1"}], "}"}]}], "]"}]}]], "Input",
+ CellChangeTimes->{{3.558078403212969*^9, 3.558078431096004*^9}, {
+   3.558078483294153*^9, 3.5580786154561768`*^9}, {3.558078653778676*^9, 
+   3.558078653903553*^9}, {3.558078685939205*^9, 3.5580786876321487`*^9}, 
+   3.558079895103559*^9}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"X1", "=", 
+   RowBox[{
+    SuperscriptBox["c0", "2"], "+", 
+    SuperscriptBox["va", "2"], "+", 
+    RowBox[{
+     SuperscriptBox[
+      RowBox[{"Cos", "[", "Psi", "]"}], "2"], 
+     SuperscriptBox["va", "2"]}], "+", 
+    RowBox[{
+     SuperscriptBox[
+      RowBox[{"Cos", "[", "Psi", "]"}], "2"], 
+     SuperscriptBox["d", "2"], 
+     SuperscriptBox["k", "2"], 
+     SuperscriptBox["va", "2"]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"X2", "=", 
+   RowBox[{
+    RowBox[{"2", 
+     SuperscriptBox["c0", "2"]}], "+", 
+    RowBox[{
+     SuperscriptBox["c0", "2"], 
+     SuperscriptBox["d", "2"], 
+     SuperscriptBox["k", "2"]}], "+", 
+    SuperscriptBox["va", "2"]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"a", "=", 
+   RowBox[{
+    RowBox[{"-", 
+     SuperscriptBox["X1", "2"]}], "+", 
+    RowBox[{"3", 
+     SuperscriptBox[
+      RowBox[{"Cos", "[", "Psi", "]"}], "2"], 
+     SuperscriptBox["va", "2"], "X2"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"b", "=", 
+   RowBox[{
+    RowBox[{"27", 
+     SuperscriptBox[
+      RowBox[{"Cos", "[", "Psi", "]"}], "4"], 
+     SuperscriptBox["c0", "2"], 
+     SuperscriptBox["va", "4"]}], "+", 
+    RowBox[{"2", 
+     SuperscriptBox["X1", "3"]}], "-", 
+    RowBox[{"9", 
+     SuperscriptBox[
+      RowBox[{"Cos", "[", "Psi", "]"}], "2"], 
+     SuperscriptBox["va", "2"], "X1", " ", "X2"}]}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"d", "=", 
+   RowBox[{"va", "/", 
+    SubscriptBox["\[CapitalOmega]", "i"]}]}], ";"}]}], "Input",
+ CellChangeTimes->{{3.5580787679220047`*^9, 3.558078835022678*^9}, {
+  3.558078915558399*^9, 3.5580790258330717`*^9}, {3.558079196079288*^9, 
+  3.558079213238065*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Plot", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"\[Omega]", "[", 
+     RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], "/.", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"va", "\[Rule]", "1"}], ",", 
+      RowBox[{"c0", "\[Rule]", "0.1"}], ",", 
+      RowBox[{
+       SubscriptBox["\[CapitalOmega]", "i"], "\[Rule]", "1"}], ",", 
+      RowBox[{"Psi", "\[Rule]", 
+       RowBox[{"20", 
+        RowBox[{"\[Pi]", "/", "180"}]}]}]}], "}"}]}], ",", 
+   RowBox[{"{", 
+    RowBox[{"k", ",", "0", ",", "20"}], "}"}], ",", "\[IndentingNewLine]", 
+   RowBox[{"PlotRange", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"0", ",", "20"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", "2.5"}], "}"}]}], "}"}]}], ",", 
+   "\[IndentingNewLine]", 
+   RowBox[{"ImageSize", "\[Rule]", "500"}], ",", 
+   RowBox[{"GridLines", "\[Rule]", "Automatic"}], ",", "\[IndentingNewLine]", 
+   
+   RowBox[{"GridLinesStyle", "\[Rule]", 
+    RowBox[{"Directive", "[", 
+     RowBox[{"Gray", ",", "Dashed"}], "]"}]}], ",", "\[IndentingNewLine]", 
+   RowBox[{"Frame", "\[Rule]", "True"}], ",", 
+   RowBox[{"FrameLabel", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"k", " ", "d"}], ",", 
+      RowBox[{"\[Omega]", "/", 
+       SubscriptBox["\[CapitalOmega]", "i"]}]}], "}"}]}], ",", 
+   RowBox[{"PlotLabel", "\[Rule]", "\"\<Hall MHD dispersion relation\>\""}]}],
+   "]"}]], "Input",
+ CellChangeTimes->{
+  3.558079927944306*^9, {3.558079962676628*^9, 3.558079974461911*^9}, {
+   3.55808004065724*^9, 3.55808006479111*^9}, {3.5580803402987957`*^9, 
+   3.55808043846314*^9}, {3.558080491562009*^9, 3.558080859583919*^9}, {
+   3.558081913786516*^9, 3.5580819263074293`*^9}, 3.558081967955147*^9, {
+   3.5580820095780773`*^9, 3.558082036303985*^9}, {3.558085989073154*^9, 
+   3.558085990000595*^9}}],
+
+Cell[BoxData[
+ GraphicsBox[{{}, {}, 
+   {Hue[0.67, 0.6, 0.6], LineBox[CompressedData["
+1:eJwBwQI+/SFib1JlAgAAACsAAAACAAAAnX5iBjFkmz5VaE6j4amePsTTIExX
+IHk/+lKPEdMgfD//xr6DICCJP5Q8vZzGIIw/ncCNHwUgmT/WKKVpayGcP2w9
+dW33H6k/BoB+t2kkrD/T+2iU8B+5P46l8EKVMLw/B9viJ+0fyT+T/AnGKWHM
+P9jAvXXs6Mk/y0N+0WxIzT+qppjD67HKP1uh0RETMM4/TnJOX+pDzD/ntkxo
+SgDQP5YJupbnZ88/Mz/UEl/T0T8SnMgC8dfSP3SvkJ0ThdU/ocqfcesf2T/d
+C3GId4HdP/SYtSrfjNk/+0y232wZ3j9GZ8vj0vnZP9gvIHJBst4/7AP3VbrT
+2j/DQ9hci+bfPzg9TjqJh9w/EFMz2tss4T/Qr/wCJ+/fP4ImyMiNteM/f8os
+SjFf4z/gV6R7mh/pP6ixtyarleM/wd7WZEF66T/SmEIDJczjP4L9HpVj1ek/
+JGdYvBg55D/61I8nG43qP8oDhC4AE+U/UpSChmAC7D8WPdsSz8bmP83uBnaO
+BO8/rq+J22wu6j9M888o2rTyP+oS6oxKYeo/Wih2rKfm8j8ndko+KJTqPzJZ
+DFavGPM/oDwLoeP56j+ilemTbX3zP5LJjGZaxes/EwW9/6hJ9D9244/xR1zt
+P3ejSD417fU/nwvLgxFF8D+Vhz5QaGH5Pz49e1yAXvA//7PVJ7Ka+T/cbis1
+73fwPyGe/Z851Pk/GNKL5syq8D+RS/jWAUj6P5GYTEmIEPE/udbuGXoy+z+D
+Jc4O/9vxP0y9qEgfE/0/Zz/Rmexy8z+8jp2a74EAQACi9rrbi/M/Ma5RquGh
+AECYBBzcyqTzPwbGWbnywQBAyMlmHqnW8z/kBkT8cQIBQChU/KJlOvQ/HyQS
+IuaEAUDoaCes3gH1P9ISOx6tjwJAOhNi54sJ9j8AAAAAAAAEQA5OWOs=
+     "]], 
+    LineBox[CompressedData["
+1:eJwV0Xk81PkfB3AhSjpUKtQYJXbGEb62VqX3J4OkiM2xq2ubMFn3lRztdtko
+CnlINGlckXNmsF1yzDjCYByxKIQwM185NzNsfvP74/V4PZ5/vf54aVH9f/aQ
+lZGRiZTm/03/g6pg7J5+ZOeOKo87kntHuJ3Ek67EcAhiFyT8l+sFK/XvbhGJ
+sbCok7dWlR4O9Op4zdXEx1C6Pv5vu7BY8DEP9f2mmQ+Kw27xZ6dSgd01lD1P
+KYTbookjWF86SLxPDszQSqDhcgr9Y8VTsOQl7v23hwW/cg/q9WlmQufS5eRp
+zVeACbp5XvAcrjQQjL4yX4NeH+Yy5p8H6g+7mnHKW3h7PmlrfEo+UMlITkir
+gmPX1pqF1RWA7FJE23xUNXygzDpa8Aqha8h517xVDSR+c+k43lQEVwvXvZrt
+qQWdwX38NVklYJv0RWH2GQeauWhRHUph59UapxkvLnDom/u5uaUwde5J5rRJ
+HQxRyAFua5hQTQmb/rpUB36jHUnMS0xIIv185Cu3Hkoq2MfpL5ngvtEgbiq+
+ASSHJD64Agv2Lyj24S6NoO5ketTPngWK/Z91cc33oKqnJz9xnwW91ZWhoon3
+YLcSc5nQyIIXuakcIbMJsuH8cpuYBVFxwSrCiGaQ5OWFlu9hg32Q/QUBpQWU
+i99+um7FBuIvpKJJZR6ktNWkDZxnw6y5/NJENw+E9Xo//e7PBu6eQZuJp61A
+dF+Rq7nChpS1r1PGaW1g20476RPChrIw26DgHe0Q4ko4NEljwxPBAbW5qHZw
+L03VzXZgQ/S5vdVBw+2gRogzXTBgg1/7ZtqsFR8ku1ZJNFZY4EqR2RD0gg9l
+sreGzTgsQBV42cyGDvDdplJiG84CEqn/TGBwB5h7q/uqE1mw+Umj7ExPB+S4
+2904UMGEpQ0V+QGHO8F++8jXT2ZMGL2R5TD9rBPIB69EDeaVAm8+4Zv/6i4w
+r0nu8pUphQraH0+/enXBKi+D/srwYsjo87byb+0CsT152oNVCDF2v4qmTLrh
+3lZS6q0nLyCw2vqh36NuePNXVCV5dx64YaYHp5a6Ycvx/TdtCTlAydUa9v3t
+Axze+yCAcowB+mobY3DuB3jZ5Twto8EA1bhlQ19SD2xwgslrngz4/n2yWxTf
+A21Nfq8lTAaMB/ZE+cz2wNn0/ZfC/mNA+yh3j8ilF1R3TH6es8kERlNGoFDz
+H+hUcnUXDWZCcUlsv4+hAI6136pLzGcDDfiPRUFz4BBn7ffSpBL8xkgjZcVi
+WKi2aeihcEBJ67bu4E8yaJlQ6mrh0Aj3NzWTGb/JIbp1t7m7LA+o/U5Vci0K
+6JSFtl3LWj4E1t2m+usqIdqQxb7NtzqBGaB8esfx9ShZaTh4jtcNjEhvgZHr
+JvRyU6reUateuJmx7DgvUkGztfSNvXF9INM5hN5GbEEVGmrCgNoB0AnxvOpE
+VkXU+gKKi+YgjC48cllXuQ1dE5gyhNlDYDv2+7WkwB2oAnOpnmwaBvvRBD0C
+QR3ZyPNH7458BgGHer2xSAN92R78pXRoBAxVPuyiXNiF1sKZdRoTo6AECxcH
+5gjI+sDI/hf8MTiGu33b7UxEuzmGsQZVX6C31n2Vm74WOlzIrb6bMg7lMdzz
+xAUtNM8NaVixmwDP1aFDra27UWB/UH6bzCRcCoosV07bgx441FbmJk/CPppe
+68mL2qjvgnURaasA2jbrrws124u+eETrHooTwJvim+n6cjpIp6DWtkokgMhV
+ZIeWjzroEdVFNdJaCEoDETZ+ZbpIr7Xp3bNEIYzlaiVnRP2A6OHtHhM8IST/
+oCb/ypmEtt7bzrdUEEFCmmfDRSIZUdT4SRxMBG7J51qVx8lIESLsa9xEsGiZ
+I854p4fueoWk1v0pgpExi6u1d/SRo367/s6nIsg0N9bgXTRAzygjQq03IiiK
+DlWhGRii5aeD5dqdIrjjfOmE3IIhomV5jptOiODHAUb+Hd4+FLo86VSwLIJU
+UnoR74QRqv3Rf6ZrPQ5/VsennnhlhEwfnpOkEXCw03DOadI2RifC0hrDDHA4
+6tdwRiXWGJX3cghbD+KQsZOq3bJgjB6s3uscb42DNud5iv0ZE3RqmuCOOeKQ
+YFBL7nhnguz9W1htbjh4zsnz35MxdCqBQ/Byx4HKnCXGPsAQFq1NKfTBwefm
+6WXbRAy9tVBmtEkderqsR/khhgLupa+bkzpmIfR+QgqGJOGqfDNfHIrNxEuP
+6BhKEZc+r5daXLPyIbcAQwmWJtaf/KT7Hcrx3AYMBWZdbJMPxCEty/fyX+8x
+pHj+VL2O1FkhrRSbZgyd2JTzxkbqim0JkuZWDImQwu04qQfctlzu7MbQxm/i
+8i1BOOiOqFE+j2DSP6z4msE4GJVFELLHMHSWqWt8VOqD0f1ij3EMuc6wwqlS
+n9Sll04KMCSu6mvPljrIm0iYmcHQhK2uJSkEh6jDN8SsOQz9XfXRyFbq6PWf
+u0IWMKT5i+xhb6lTS7LuLS5iKNE7UrlI6szr8rTXEgyl8dRreVIXOHpYRC1j
+KNnoSvKU1GW763cd+Y6hxSlFz42hOLyb0xGvrGDo0eM1+D6p/weGycn9
+     "]], 
+    LineBox[CompressedData["
+1:eJwVlWs4FAgfxWeMW6Jcdr0ojEruoilU+P8LheStkJZWZZNuiCcbIVkVFpmQ
+xCKUkhRK5ZJyK3dyDbMhBs3NjPsYzNv74Tznw/nye86HczQ8/Y56iRAIhLKf
++r9nXPcUNz6Tbrn9dpf6EI1qWddFdnAlB0PaDZOszGlfEH6qiiSTY0DE5Pa1
+sqXrkPExXl2M/ADUZmt4CyoJcMki0GdBPR+8w5/Kh9zJgi7BuWSuehm4ulqH
+cgOK4M/PakZTxeXAjn45U5BUDCpJ3c1sq0ooPlv/rfptCXjqIonp/QG2kapm
+BGtKIej52rLpvho4kUPsDOstA4nB71ps9UbQfSE5WCleA18/vg9kTTZC2IEt
+SkHFNfAsL7WWWdwEDvIRd1t/rwXHAMeTDKsW6BKJat9bUQcpa8pTJrzbYU3O
+nWC9mM8g/0+DCK+vE37dLbhFvNwKgnVv8i+bd4E17+jLDkobjEXkHuY+7IIa
+kcQb2vw2eON9PXPqfDcs3r97xdS6A7IGLtr4tXXDynDzikF+B0Qf+o3F2d4D
+otY8l4l1X8CNsmM3R9ADGa47lLJpX8AqT2PE51QvfMuQ/fbQuhP0lddHs+t6
+weLR5u+xcT854pYNfXT6wMFsTdnfHZ2wuvqjhxXfBxMKELrhly7IbsryZ6r3
+g5LYfo6qWjfMppbqDsX1A93gDlfGqxv2ezePdvL74dOmpYkbBd3AIi24lHcN
+QDHTtn7apAfMLBx3x0TRwC5kLHKDbS90vFwW0ZoagviLbH8d568Q3qRvb3xy
+FHqTYu2PK9HgafHbrQX3RiGH9CpF8QgNOlP3kTRbRsHszXVlvxgabPE+Xqm0
+awz8TZ+H8BZp0ES6aUhQoENp579Jjl3/gqLFoHz7p3EoOOOXsBo4BC9exgxe
+MmRARIJ3X9+eEWDIM+LsTzMgtkSRtnx4BLT+tLfUTmZAytnKI6teI/DQfG32
+KJ8BV188i7ifMAKJjXFn3eqZ4CVXel1nZAT+HE3gHTjBBjW/qt3CsO+QtbY5
+Us6GC18WK0oFWaNgaRFy4oYHF6brboqrFY8CzVdv59RVLhw5X/R+c80oKHXG
+jrc840KEuYHOwOgo3E11sIuW5YF2W9X5Rc0xiNRsWycc5IFKYZmF5uMx8IYv
+D1gBM7Cu1WTzbSodCDnz5YOxM3CbVNeml0mHVNGNtKZHM2CgdTuyooAODY1n
+1fJ7Z8AkmvLowSc6aDsv53jtnoUsyvyss4AOk+e0nn8jzkFC/6e0yVPjcCEx
+rKqDOg/tvwZRw1QnQGQuZ+hD/jw4+saTC7QnIM21gfCyZh7OPR4gf6ZMQNNG
+Bav42Z+52YupJrsJ0Hvy9LPd8QXoLjHSEQucAFZFV0eN+iKkzOwJ8GiYAF+6
+zujrF3zYvyo3fOmPSRj26JesbuRD4mJL4DmfSXD6Gm3YOsaHQt3WOKerk2DW
+PBFMV1mCD85hVYt/TwKp+LGsYtQSjHP52X8VT0JqqIbl1ZMCyH1+VPelYBKq
+FZQf7JJdgfs274123voBO+Ibqmz0ViDJys7XLf4H5IkHjR3ZvwL/XAqpCLj3
+A+L4vdsuhK5ArcXBydDHP+DYUPLPIlZAZYZvtlT3AxjPZGcFH1dhOPZeRCGR
+AVIaN7WGzAh4kPefsKQABjSY39123YaAtsFvdXqCGHD7eKap6lEC3g8fWpAJ
+Z4AI9d0B94sEFHGNMvWKZcDSKsu7L4OAp9fzZgtyGcCkuTxtFyFiZ6tRwpNO
+BrSkaul8bCGi5auujnJdJvz9eofxyX4i1noFryxvY4Jtx95dq3QiSkzRpM12
+MqFO4oSduZCIHPIxsQfAhMo/qeffGYugKN22RMKZCYXO/PyiFBFUCE1xzwlh
+wh3ZZt3sUyQ8P5YRtOETE8pMVUsdfUko2B+XONXEhDEPP1gOIeFehdrpynYm
+7ClUcHa9T8K3XRVvrfqZMGl3IkymjYRl4lbPRFhMsIpktwfvEcUmzwP3Dsuy
+YHFufeBRRTHcddlw/JozCzaregqFm8Wwo/75xjvHWeBo/Tqm0FgMKSe4S+kn
+WPA48Xim5CExtLjn1/PkDAuObsv+XBUphum6H6UjrrCg8Nx2FT2eGGqY30zf
+m8QCz0HnD6QWcfTdGXbMrJUFUukjPv794ugt51mR3cGCEjffjUPj4lhFUyBJ
+dLOANBAVXE6UQHAKd60fYMGjr+UUf1MJjNNi9stNsmC8h/z0W44EegdX2HCJ
+bLjQwaKWBUvi7kE9I+52NshTg0ErShLPn3YY/L6TDeX/FeckJ0vi1UEfk04z
+NqxtVz94+aUk3jVzV3hiyYbnrUfFtOiSWOGxXVTXng2cpnfByYfXIJnqGfng
+FBv86296+mlJ4aWTPBmr2J+7MbZffJ4ihWXn0uvz49nQLLLmWShK4bVDXO11
+VDZoYjwv5jcpvLD/ALEjmQ395fduPIqVwvqJ9R5mmWzYW5SX2T8lhZqWnKHM
+IjbIpTcMWL1bi+LW4hkDXWwoviztpGQng5uq5ljvfuFAS5pCcOExGbycy/Nq
+VeTAeJ1K1r4zMviKIi8+rMQBFWUd5qVwGZwUHmwQbuTAzWqbyOpSGWwVP1ig
+o8mBY/Lhry5sWofqiQeoOjs5sPSKp/BesA5Vvrwlcpw4kB1ykWHkKovVFY0P
+N8Zz4K+s5SOzLDlstskRKWRygNA1jJXXFLB8Jl+YYzEFW6+cDXLW/RXdTfoo
+5xOmYGzu/rG17xWx+/yS/52vU2BPvxCW6K+E9Bs//AYVuOA4RtVTU1PBVnXi
+L2RzLjBqPW80FG7AzakKWoZnuGAo16tqdVIVn8k4FD1P4oIUzJ2mzahhnn4b
+R7SeCwfYbgubXMiousc9yZbIg681Z4hu+ho42OqSlmDNg9LoOg/ynAa6UDs9
+gmN5cFYscLitbRNO5wydGhvhwR8BIaXSaZsxwoLzsHLPNGzz1mtzOL0F0+at
+T+/6Zxra5fXXBu7SRJ9vx3/9IDMDFS/+StcnbUVTfXyzO3wGQoi6h1v+3YrD
+0m+aA4mzIEW7Zuv7WgtVNx4qyYyaBXqeRnJWqDZ+0jbgRK+Zg2RtZdEyFx28
+ukfZoiNtDqhpZz+fJuui6EkR8rjmPLgl/94mPaGL17yZE0tF87Bo/ZifVaWH
+mvIn067ZL8AofV9QTZQ+Bg0+La4aXIAcC+MNracNsMY9QrAhZBEKbwXKeRsY
+4kXjO3M+cnyIcvnjIGnOEM01XXpIeXzYScvOj2rdhr30+WQ32yVI1UkvbD1o
+hGZmzW0dw0sQ/jE+9WCZEaYIVEw5twVwaIPL46YtxugQqUtu112Gvb6f3eVi
+jFHWtKnBoW4ZsjZ6bmmZM8YnPRUmThdXYEvtkxRH9+34j7hAvVpiFagGNbqd
+VdtR0v7f9FvZq3B2RvRLoy4Ftza1SNTZCsGzeJock0BBp1qF9/p0IVz6y2nZ
+/i4FayMHhiYmhBDo9LpPOomC7tIrIrkMIUTPBd6hplDQg/XimDJXCC928QX3
+Myj4/luVo7hACPxqYW9eAQU5b6vzL0sSkNopHV/3mYLPXaaHD6kRMC3X59zt
+RgoWMb60FagTMPdKm5VtMwVVFP2r1mgQ8I0idam5jYJ/fLPLq99MQJqbwrmu
+Hgrm+YUnWegQUGtU2er7KAVtWjqWDHYQ0Oj1NbVHdAq+yymRj9tJwN23Bvle
+ExR8nVhryDAhoINWRtEPBgVLr6wPyNtFwICLZDUej4LMsVw5dSBgqHkEv2SG
+grnUxn1hSMBbMt+7r8xRUPkLIWBwLwFTX+bGLi5ScP+W77T71gTMuSHqXb5E
+wZSvh1Xmf/5UwRGvfaHLFNRcIBxzPkDA15s+qVquUlCt0i6pxJaAVTNb+UIh
+BQX2EQOy9gT8H/dhqNI=
+     "]]}},
+  AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+  Axes->True,
+  AxesOrigin->{0, 0},
+  Frame->True,
+  FrameLabel->{
+    FormBox[
+     FractionBox[
+      RowBox[{"k", " ", "va"}], 
+      SubscriptBox["\[CapitalOmega]", "i"]], TraditionalForm], 
+    FormBox[
+     FractionBox["\[Omega]", 
+      SubscriptBox["\[CapitalOmega]", "i"]], TraditionalForm]},
+  GridLines->Automatic,
+  GridLinesStyle->Directive[
+    GrayLevel[0.5], 
+    Dashing[{Small, Small}]],
+  ImageSize->500,
+  PlotLabel->FormBox["\"Hall MHD dispersion relation\"", TraditionalForm],
+  PlotRange->{{0, 20}, {0, 2.5}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{Automatic, Automatic}]], "Output",
+ CellChangeTimes->{{3.5580808096565*^9, 3.558080816086802*^9}, 
+   3.558080860489346*^9, {3.5580819217413588`*^9, 3.558081930622861*^9}, {
+   3.558082003096814*^9, 3.558082037257736*^9}, 3.558083096283704*^9, 
+   3.55808361846856*^9, {3.5580849045766497`*^9, 3.5580849084365*^9}, 
+   3.558084947301338*^9, 3.558085008083744*^9, 3.558085322242393*^9, 
+   3.558085998595233*^9, 3.5580901246395903`*^9, 3.558164953974929*^9, 
+   3.558329906395536*^9, 3.558329947190908*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Phase velocities", "Subsubtitle",
+ CellChangeTimes->{{3.558165799519809*^9, 3.558165803090205*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Manipulate", "[", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"PolarPlot", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"\[Omega]", "[", 
+        RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], "/", "k"}], "/.", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"va", "\[Rule]", "0.96824"}], ",", 
+        RowBox[{"c0", "\[Rule]", "1.29099"}], ",", 
+        RowBox[{"k", "\[Rule]", "K"}], ",", 
+        RowBox[{
+         SubscriptBox["\[CapitalOmega]", "i"], "\[Rule]", "1"}]}], "}"}]}], 
+     ",", 
+     RowBox[{"{", 
+      RowBox[{"Psi", ",", 
+       RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+     "\[IndentingNewLine]", 
+     RowBox[{"AspectRatio", "\[Rule]", "1"}], ",", 
+     RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+     RowBox[{"FrameLabel", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         SubscriptBox["v", "z"], "/", 
+         SubscriptBox["\[CapitalOmega]", "i"]}], ",", 
+        RowBox[{
+         SubscriptBox["v", "x"], "/", 
+         SubscriptBox["\[CapitalOmega]", "i"]}]}], "}"}]}], ",", 
+     "\[IndentingNewLine]", 
+     RowBox[{"PlotLabel", "\[Rule]", 
+      RowBox[{"\"\<Hall MHD Phase velocities, k*d=\>\"", "<>", 
+       RowBox[{"ToString", "[", "K", "]"}]}]}], ",", "\[IndentingNewLine]", 
+     RowBox[{"ImageSize", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{"{", "400", "}"}], "}"}]}], ",", 
+     RowBox[{"PlotRangePadding", "\[Rule]", "None"}], ",", 
+     RowBox[{"PlotRange", "\[Rule]", "All"}]}], "]"}], ",", 
+   "\[IndentingNewLine]", 
+   RowBox[{"{", 
+    RowBox[{"K", ",", "0.0", ",", "20"}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.558080941116177*^9, 3.558081001151132*^9}, {
+  3.558081126201722*^9, 3.558081151638616*^9}, {3.55808119807193*^9, 
+  3.558081208384198*^9}, {3.558081256200317*^9, 3.558081295656691*^9}, {
+  3.55808132652038*^9, 3.558081353298047*^9}, {3.558081435560349*^9, 
+  3.558081435854601*^9}, {3.558081526057912*^9, 3.558081560793104*^9}, {
+  3.558081602747159*^9, 3.558081721280974*^9}, {3.558081770939311*^9, 
+  3.558081809329256*^9}, {3.558085674262498*^9, 3.5580856758078213`*^9}, {
+  3.5580857325862837`*^9, 3.558085740914558*^9}, {3.558086710202989*^9, 
+  3.558086734832677*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{K$$ = 0., Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{
+      Hold[K$$], 0., 20}}, Typeset`size$$ = {388., {198., 202.}}, 
+    Typeset`update$$ = 0, Typeset`initDone$$, Typeset`skipInitDone$$ = True, 
+    K$1010$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     1, StandardForm, "Variables" :> {K$$ = 0.}, "ControllerVariables" :> {
+        Hold[K$$, K$1010$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> PolarPlot[
+        ReplaceAll[$CellContext`\[Omega][$CellContext`Psi, $CellContext`va, \
+$CellContext`c0]/$CellContext`k, {$CellContext`va -> 0.96824, $CellContext`c0 -> 
+          1.29099, $CellContext`k -> K$$, 
+          Subscript[$CellContext`\[CapitalOmega], $CellContext`i] -> 
+          1}], {$CellContext`Psi, -Pi, Pi}, AspectRatio -> 1, Frame -> True, 
+        FrameLabel -> {
+         Subscript[$CellContext`v, $CellContext`z]/
+          Subscript[$CellContext`\[CapitalOmega], $CellContext`i], 
+          Subscript[$CellContext`v, $CellContext`x]/
+          Subscript[$CellContext`\[CapitalOmega], $CellContext`i]}, PlotLabel -> 
+        StringJoin["Hall MHD Phase velocities, k*d=", 
+          ToString[K$$]], ImageSize -> {{400}}, PlotRangePadding -> None, 
+        PlotRange -> All], "Specifications" :> {{K$$, 0., 20}}, 
+      "Options" :> {}, "DefaultOptions" :> {}],
+     ImageSizeCache->{431., {242.34375, 247.65625}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellChangeTimes->{{3.558080976138913*^9, 3.558081001782995*^9}, {
+   3.558081128275127*^9, 3.5580811557851887`*^9}, 3.558081212564721*^9, {
+   3.558081260412702*^9, 3.558081377886457*^9}, {3.558081428661914*^9, 
+   3.558081439574255*^9}, {3.5580815319054937`*^9, 3.558081562161468*^9}, {
+   3.558081607038601*^9, 3.558081721828479*^9}, {3.558081801627508*^9, 
+   3.558081810425243*^9}, {3.558082092989574*^9, 3.5580821013594093`*^9}, {
+   3.558083099209009*^9, 3.558083104559538*^9}, {3.558083760052644*^9, 
+   3.5580837668266706`*^9}, 3.55808380110771*^9, 3.5580849474505997`*^9, 
+   3.558085012556259*^9, 3.558085322305685*^9, {3.558085741969326*^9, 
+   3.55808578281551*^9}, {3.558086720363879*^9, 3.558086735939714*^9}, {
+   3.558090119671085*^9, 3.558090128090907*^9}, 3.558164954575305*^9, 
+   3.558329907916071*^9, 3.558329947246056*^9}]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Group velocities", "Subsubtitle",
+ CellChangeTimes->{{3.558083821279109*^9, 3.558083824148993*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"vgt", "[", 
+    RowBox[{"Psi_", ",", "va_", ",", "c0_"}], "]"}], "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"D", "[", 
+      RowBox[{
+       RowBox[{"\[Omega]", "[", 
+        RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], ",", "Psi"}], "]"}], 
+     "/", "k"}], "*", 
+    SubscriptBox["\[CapitalOmega]", "i"]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"vgk", "[", 
+    RowBox[{"Psi_", ",", "va_", ",", "c0_"}], "]"}], "=", 
+   RowBox[{
+    RowBox[{"D", "[", 
+     RowBox[{
+      RowBox[{"\[Omega]", "[", 
+       RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], ",", "k"}], "]"}], "*", 
+    SubscriptBox["\[CapitalOmega]", "i"]}]}], ";"}]}], "Input",
+ CellChangeTimes->{{3.558083830152761*^9, 3.558083861816278*^9}, {
+  3.558083899745995*^9, 3.558083924815104*^9}, {3.558084376569145*^9, 
+  3.5580843828231897`*^9}, {3.55834076989721*^9, 3.558340784760618*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Manipulate", "[", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"myva", "=", "0.96824"}], ";", "\[IndentingNewLine]", 
+    RowBox[{"myc0", "=", "1.29099"}], ";", "\[IndentingNewLine]", 
+    RowBox[{"my\[CapitalOmega]i", "=", 
+     RowBox[{"100", "*", "myva"}]}], ";", "\[IndentingNewLine]", 
+    RowBox[{"range", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "4"}], ",", "4"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "4"}], ",", "4"}], "}"}]}], "}"}]}], ";", 
+    "\[IndentingNewLine]", 
+    RowBox[{"Show", "[", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"ParametricPlot", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{"Cos", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgk", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "1", "\[RightDoubleBracket]"}]}], "-", 
+            RowBox[{
+             RowBox[{"Sin", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgt", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "1", "\[RightDoubleBracket]"}]}]}], ",", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"Sin", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgk", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "1", "\[RightDoubleBracket]"}]}], "+", 
+            RowBox[{
+             RowBox[{"Cos", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgt", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "1", "\[RightDoubleBracket]"}]}]}]}], 
+          "}"}], "/.", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"va", "\[Rule]", "myva"}], ",", 
+           RowBox[{"c0", "\[Rule]", "myc0"}], ",", 
+           RowBox[{
+            SubscriptBox["\[CapitalOmega]", "i"], "\[Rule]", 
+            "my\[CapitalOmega]i"}], ",", 
+           RowBox[{"k", "\[Rule]", "K"}]}], " ", "}"}]}], ",", 
+        RowBox[{"{", 
+         RowBox[{"Psi", ",", 
+          RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+        "\[IndentingNewLine]", 
+        RowBox[{"AspectRatio", "\[Rule]", "Automatic"}], ",", 
+        "\[IndentingNewLine]", 
+        RowBox[{"PlotRange", "\[Rule]", "All"}], ",", "\[IndentingNewLine]", 
+        RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+        RowBox[{"PlotStyle", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{"{", "Green", "}"}], "}"}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"FrameLabel", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{
+           SubscriptBox["v", "z"], ",", 
+           SubscriptBox["v", "x"]}], "}"}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"PlotLabel", "\[Rule]", 
+         RowBox[{"\"\<Hall MHD Group velocities, k=\>\"", "<>", 
+          RowBox[{"ToString", "[", "K", "]"}]}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"ImageSize", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{"{", "400", "}"}], "}"}]}], ",", 
+        RowBox[{"PlotRangePadding", "\[Rule]", "None"}], ",", 
+        RowBox[{"PlotRange", "\[Rule]", "All"}]}], "]"}], ",", 
+      "\[IndentingNewLine]", "\[IndentingNewLine]", 
+      RowBox[{"ParametricPlot", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{"Cos", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgk", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "2", "\[RightDoubleBracket]"}]}], "-", 
+            RowBox[{
+             RowBox[{"Sin", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgt", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "2", "\[RightDoubleBracket]"}]}]}], ",", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"Sin", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgk", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "2", "\[RightDoubleBracket]"}]}], "+", 
+            RowBox[{
+             RowBox[{"Cos", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgt", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "2", "\[RightDoubleBracket]"}]}]}]}], 
+          "}"}], "/.", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"va", "\[Rule]", "myva"}], ",", 
+           RowBox[{"c0", "\[Rule]", "myc0"}], ",", 
+           RowBox[{
+            SubscriptBox["\[CapitalOmega]", "i"], "\[Rule]", 
+            "my\[CapitalOmega]i"}], ",", 
+           RowBox[{"k", "\[Rule]", "K"}]}], " ", "}"}]}], ",", 
+        RowBox[{"{", 
+         RowBox[{"Psi", ",", 
+          RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+        "\[IndentingNewLine]", 
+        RowBox[{"AspectRatio", "\[Rule]", "Automatic"}], ",", 
+        RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+        RowBox[{"PlotStyle", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{"{", "Red", "}"}], "}"}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"FrameLabel", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{
+           SubscriptBox["v", "z"], ",", 
+           SubscriptBox["v", "x"]}], "}"}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"PlotLabel", "\[Rule]", 
+         RowBox[{"\"\<Hall MHD Group velocities, k=\>\"", "<>", 
+          RowBox[{"ToString", "[", "K", "]"}]}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"ImageSize", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{"{", "400", "}"}], "}"}]}], ",", 
+        RowBox[{"PlotRangePadding", "\[Rule]", "None"}], ",", 
+        RowBox[{"PlotRange", "\[Rule]", "All"}]}], "]"}], ",", 
+      "\[IndentingNewLine]", "\[IndentingNewLine]", 
+      RowBox[{"ParametricPlot", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{"Cos", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgk", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "3", "\[RightDoubleBracket]"}]}], "-", 
+            RowBox[{
+             RowBox[{"Sin", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgt", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "3", "\[RightDoubleBracket]"}]}]}], ",", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"Sin", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgk", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "3", "\[RightDoubleBracket]"}]}], "+", 
+            RowBox[{
+             RowBox[{"Cos", "[", "Psi", "]"}], 
+             RowBox[{
+              RowBox[{"vgt", "[", 
+               RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}], 
+              "\[LeftDoubleBracket]", "3", "\[RightDoubleBracket]"}]}]}]}], 
+          "}"}], "/.", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"va", "\[Rule]", "myva"}], ",", 
+           RowBox[{"c0", "\[Rule]", "myc0"}], ",", 
+           RowBox[{
+            SubscriptBox["\[CapitalOmega]", "i"], "\[Rule]", 
+            "my\[CapitalOmega]i"}], ",", 
+           RowBox[{"k", "\[Rule]", "K"}]}], " ", "}"}]}], ",", 
+        RowBox[{"{", 
+         RowBox[{"Psi", ",", 
+          RowBox[{"-", "\[Pi]"}], ",", "\[Pi]"}], "}"}], ",", 
+        "\[IndentingNewLine]", 
+        RowBox[{"AspectRatio", "\[Rule]", "Automatic"}], ",", 
+        RowBox[{"Frame", "\[Rule]", "True"}], ",", "\[IndentingNewLine]", 
+        RowBox[{"PlotStyle", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{"{", "Blue", "}"}], "}"}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"FrameLabel", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{
+           SubscriptBox["v", "z"], ",", 
+           SubscriptBox["v", "x"]}], "}"}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"PlotLabel", "\[Rule]", 
+         RowBox[{"\"\<Hall MHD Group velocities, k=\>\"", "<>", 
+          RowBox[{"ToString", "[", "K", "]"}]}]}], ",", "\[IndentingNewLine]", 
+        RowBox[{"ImageSize", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{"{", "400", "}"}], "}"}]}], ",", 
+        RowBox[{"PlotRangePadding", "\[Rule]", "None"}], ",", 
+        RowBox[{"PlotRange", "\[Rule]", "All"}]}], "]"}]}], 
+     "\[IndentingNewLine]", "]"}]}], "\[IndentingNewLine]", ",", 
+   RowBox[{"{", 
+    RowBox[{"K", ",", "0", ",", "3000"}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->CompressedData["
+1:eJwdy08ogwEABfBZwiIyFzNiDptWS9bWLpNm0eZfxmyt7TBrioSM1IxiWzts
+aoWLgyUHF5TVQjNkB207TDEXIxyGVqb8mfqmzd53eP16vR7LMDUwQqVQKPX5
+QLVWtrdsTUoOxK4TyL4QB+FOzXEYjvtfotC5uXEFNQ/dMTjZ6yMtZj89wq7+
+HGlQ70zALXPxGyz0qj6g4+j9B8qI4Qx8W9P8wXWHh2bNy10VVcLUzSkLLuoi
+jVBNxJugfaiPB1eUBQKo45qE8JVBk8CQPSSF/NadMltez/YvHRYx09WwoW6D
+BRmJuxYYDszwYTDAUENfr18H9W2HRijkUCfg6ELSBEMOjgV2CpS8DH6HKtIz
+m1kMrXIXKU1xaSS7sWwMlnSnp2GAl5iFtd5yC6zIMknTbuVuFru9fR9q5/23
+cEkUjUP6pDsFR6ZKv+EysUXP5e3pPK+CmZ9PKYw9GzrgUmRODoP3FtLmzJcC
+XhOWQfgPVcwPlA==
+  "]],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{K$$ = 1000, Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{
+      Hold[K$$], 0, 3000}}, Typeset`size$$ = {811., {136., 140.}}, 
+    Typeset`update$$ = 0, Typeset`initDone$$, Typeset`skipInitDone$$ = True, 
+    K$4698$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     1, StandardForm, "Variables" :> {K$$ = 0}, "ControllerVariables" :> {
+        Hold[K$$, K$4698$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, 
+      "Body" :> ($CellContext`myva = 0.96824; $CellContext`myc0 = 
+        1.29099; $CellContext`my\[CapitalOmega]i = 
+        100 $CellContext`myva; $CellContext`range = {{-4, 4}, {-4, 4}}; Show[
+         ParametricPlot[
+          ReplaceAll[{Cos[$CellContext`Psi] Part[
+               $CellContext`vgk[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 1] - Sin[$CellContext`Psi] Part[
+              $CellContext`vgt[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 1], Sin[$CellContext`Psi] Part[
+               $CellContext`vgk[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 1] + Cos[$CellContext`Psi] Part[
+               $CellContext`vgt[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 
+               1]}, {$CellContext`va -> $CellContext`myva, $CellContext`c0 -> \
+$CellContext`myc0, 
+            Subscript[$CellContext`\[CapitalOmega], $CellContext`i] -> \
+$CellContext`my\[CapitalOmega]i, $CellContext`k -> K$$}], {$CellContext`Psi, -
+           Pi, Pi}, AspectRatio -> Automatic, PlotRange -> All, Frame -> True,
+           PlotStyle -> {{Green}}, FrameLabel -> {
+            Subscript[$CellContext`v, $CellContext`z], 
+            Subscript[$CellContext`v, $CellContext`x]}, PlotLabel -> 
+          StringJoin["Hall MHD Group velocities, k=", 
+            ToString[K$$]], ImageSize -> {{400}}, PlotRangePadding -> None, 
+          PlotRange -> All], 
+         ParametricPlot[
+          ReplaceAll[{Cos[$CellContext`Psi] Part[
+               $CellContext`vgk[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 2] - Sin[$CellContext`Psi] Part[
+              $CellContext`vgt[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 2], Sin[$CellContext`Psi] Part[
+               $CellContext`vgk[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 2] + Cos[$CellContext`Psi] Part[
+               $CellContext`vgt[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 
+               2]}, {$CellContext`va -> $CellContext`myva, $CellContext`c0 -> \
+$CellContext`myc0, 
+            Subscript[$CellContext`\[CapitalOmega], $CellContext`i] -> \
+$CellContext`my\[CapitalOmega]i, $CellContext`k -> K$$}], {$CellContext`Psi, -
+           Pi, Pi}, AspectRatio -> Automatic, Frame -> True, 
+          PlotStyle -> {{Red}}, FrameLabel -> {
+            Subscript[$CellContext`v, $CellContext`z], 
+            Subscript[$CellContext`v, $CellContext`x]}, PlotLabel -> 
+          StringJoin["Hall MHD Group velocities, k=", 
+            ToString[K$$]], ImageSize -> {{400}}, PlotRangePadding -> None, 
+          PlotRange -> All], 
+         ParametricPlot[
+          ReplaceAll[{Cos[$CellContext`Psi] Part[
+               $CellContext`vgk[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 3] - Sin[$CellContext`Psi] Part[
+              $CellContext`vgt[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 3], Sin[$CellContext`Psi] Part[
+               $CellContext`vgk[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 3] + Cos[$CellContext`Psi] Part[
+               $CellContext`vgt[$CellContext`Psi, $CellContext`va, \
+$CellContext`c0], 
+               3]}, {$CellContext`va -> $CellContext`myva, $CellContext`c0 -> \
+$CellContext`myc0, 
+            Subscript[$CellContext`\[CapitalOmega], $CellContext`i] -> \
+$CellContext`my\[CapitalOmega]i, $CellContext`k -> K$$}], {$CellContext`Psi, -
+           Pi, Pi}, AspectRatio -> Automatic, Frame -> True, 
+          PlotStyle -> {{Blue}}, FrameLabel -> {
+            Subscript[$CellContext`v, $CellContext`z], 
+            Subscript[$CellContext`v, $CellContext`x]}, PlotLabel -> 
+          StringJoin["Hall MHD Group velocities, k=", 
+            ToString[K$$]], ImageSize -> {{400}}, PlotRangePadding -> None, 
+          PlotRange -> All]]), "Specifications" :> {{K$$, 0, 3000}}, 
+      "Options" :> {}, "DefaultOptions" :> {}],
+     ImageSizeCache->{854., {193.34375, 198.65625}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellChangeTimes->{
+  3.558084063804339*^9, {3.55808413355506*^9, 3.558084156660633*^9}, {
+   3.5580842064546423`*^9, 3.558084228954514*^9}, {3.55808434822264*^9, 
+   3.558084360796616*^9}, {3.558084391977888*^9, 3.5580844426393223`*^9}, {
+   3.558084475828519*^9, 3.558084492128517*^9}, 3.558084528032192*^9, 
+   3.55808458300138*^9, {3.558084613472002*^9, 3.558084620821788*^9}, 
+   3.5580846627236834`*^9, 3.558084748165524*^9, 3.558084789405548*^9, 
+   3.5580848344246197`*^9, 3.558084980084317*^9, 3.558085037524355*^9, 
+   3.55808515351932*^9, 3.558085323646201*^9, {3.55808536711423*^9, 
+   3.558085385619618*^9}, 3.55808547052803*^9, 3.558086090043522*^9, 
+   3.558086765500251*^9, 3.558086808968252*^9, {3.558086857112853*^9, 
+   3.558086927514983*^9}, 3.558087061346293*^9, {3.558087371297449*^9, 
+   3.5580874000681763`*^9}, 3.55808743351969*^9, {3.558087531897151*^9, 
+   3.558087539765579*^9}, 3.5580876088088923`*^9, 3.558087643516656*^9, {
+   3.558087716233347*^9, 3.55808774631901*^9}, 3.558087838863694*^9, 
+   3.558090184634356*^9, {3.5581649557358713`*^9, 3.558164970694625*^9}, 
+   3.558329908169833*^9, 3.5583299481146727`*^9, 3.558332783631638*^9, 
+   3.55833326634802*^9, {3.558333340140645*^9, 3.5583333612843437`*^9}, 
+   3.558333430126683*^9, 3.558339946561583*^9, 3.558340281426704*^9, 
+   3.558340319024825*^9, 3.55834047432241*^9, 3.558340512744169*^9, 
+   3.558341164806736*^9, 3.558341196733732*^9, 3.558341276917861*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"vgt", "[", 
+  RowBox[{"Psi", ",", "va", ",", "c0"}], "]"}]], "Input",
+ CellChangeTimes->{{3.558347368070024*^9, 3.558347370030898*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"Sin", "[", 
+          RowBox[{
+           FractionBox["1", "3"], " ", 
+           RowBox[{"ArcTan", "[", 
+            SqrtBox[
+             RowBox[{
+              RowBox[{"-", "1"}], "-", 
+              FractionBox[
+               RowBox[{"4", " ", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                   SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+               SuperscriptBox[
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"27", " ", 
+                   SuperscriptBox["c0", "2"], " ", 
+                   SuperscriptBox["va", "4"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                  RowBox[{"9", " ", 
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                  RowBox[{"2", " ", 
+                   SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}], "]"}], " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", 
+            RowBox[{
+             RowBox[{"(", 
+              RowBox[{"12", " ", 
+               SuperscriptBox[
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"3", " ", 
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   "2"]}], ")"}], "2"], " ", 
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{
+                  RowBox[{"-", "6"}], " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                  RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "-", 
+                 RowBox[{"2", " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                    FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}]}], ")"}]}], ")"}], "/", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"27", " ", 
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                RowBox[{"9", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "+", 
+                RowBox[{"2", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "3"]}]}], ")"}], "2"]}]}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{"8", " ", 
+              SuperscriptBox[
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{"3", " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "-", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "2"]}], ")"}], "3"], " ", 
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{
+                 RowBox[{"-", "108"}], " ", 
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "3"], " ", 
+                 RowBox[{"Sin", "[", "Psi", "]"}]}], "+", 
+                RowBox[{"18", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                 RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "-", 
+                RowBox[{"9", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                   FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "+", 
+                RowBox[{"6", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                   FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}]}], ")"}]}], ")"}], "/", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"27", " ", 
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+               RowBox[{"9", " ", 
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"2", " ", 
+                   SuperscriptBox["c0", "2"]}], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  SuperscriptBox["c0", "2"], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  RowBox[{
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}],
+                "+", 
+               RowBox[{"2", " ", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 "3"]}]}], ")"}], "3"]}]}], ")"}], " ", 
+         SqrtBox[
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", 
+            SuperscriptBox["va", "2"], " ", 
+            SuperscriptBox[
+             RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           SuperscriptBox[
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+            "2"]}]], " ", 
+         SuperscriptBox[
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"27", " ", 
+             SuperscriptBox["c0", "2"], " ", 
+             SuperscriptBox["va", "4"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+            RowBox[{"9", " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "+", 
+            RowBox[{"2", " ", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                SuperscriptBox["c0", "2"], "+", 
+                SuperscriptBox["va", "2"], "+", 
+                RowBox[{
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                FractionBox[
+                 RowBox[{
+                  SuperscriptBox["k", "2"], " ", 
+                  SuperscriptBox["va", "4"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                 SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+              "3"]}]}], ")"}], "2"]}], ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{"36", " ", 
+         SqrtBox[
+          RowBox[{
+           RowBox[{"-", "1"}], "-", 
+           FractionBox[
+            RowBox[{"4", " ", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"3", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "-", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 "2"]}], ")"}], "3"]}], 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"27", " ", 
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+               RowBox[{"9", " ", 
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"2", " ", 
+                   SuperscriptBox["c0", "2"]}], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  SuperscriptBox["c0", "2"], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  RowBox[{
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}],
+                "+", 
+               RowBox[{"2", " ", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 "3"]}]}], ")"}], "2"]]}]], " ", 
+         SuperscriptBox[
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"3", " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "-", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+             "2"]}], ")"}], "3"]}], ")"}]}], "+", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"Cos", "[", 
+          RowBox[{
+           FractionBox["1", "3"], " ", 
+           RowBox[{"ArcTan", "[", 
+            SqrtBox[
+             RowBox[{
+              RowBox[{"-", "1"}], "-", 
+              FractionBox[
+               RowBox[{"4", " ", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                   SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+               SuperscriptBox[
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"27", " ", 
+                   SuperscriptBox["c0", "2"], " ", 
+                   SuperscriptBox["va", "4"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                  RowBox[{"9", " ", 
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                  RowBox[{"2", " ", 
+                   SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}], "]"}], " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"6", " ", 
+            SuperscriptBox["va", "2"], " ", 
+            RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+            RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           RowBox[{"2", " ", 
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], " ", 
+            
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"-", "2"}], " ", 
+               SuperscriptBox["va", "2"], " ", 
+               RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+               RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+              FractionBox[
+               RowBox[{"2", " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                RowBox[{"Sin", "[", "Psi", "]"}]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], 
+          ")"}]}], ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{"3", " ", 
+         SqrtBox[
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", 
+            SuperscriptBox["va", "2"], " ", 
+            SuperscriptBox[
+             RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           SuperscriptBox[
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+            "2"]}]]}], ")"}]}], "+", 
+      RowBox[{
+       FractionBox["1", "3"], " ", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"-", "2"}], " ", 
+          SuperscriptBox["va", "2"], " ", 
+          RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+          RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+         FractionBox[
+          RowBox[{"2", " ", 
+           SuperscriptBox["k", "2"], " ", 
+           SuperscriptBox["va", "4"], " ", 
+           RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+           RowBox[{"Sin", "[", "Psi", "]"}]}], 
+          SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], ")"}],
+     "/", 
+    RowBox[{"(", 
+     RowBox[{"2", " ", 
+      RowBox[{"\[Sqrt]", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          FractionBox["2", "3"], " ", 
+          RowBox[{"Cos", "[", 
+           RowBox[{
+            FractionBox["1", "3"], " ", 
+            RowBox[{"ArcTan", "[", 
+             SqrtBox[
+              RowBox[{
+               RowBox[{"-", "1"}], "-", 
+               FractionBox[
+                RowBox[{"4", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"27", " ", 
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                   RowBox[{"9", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                   RowBox[{"2", " ", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}], "]"}], " ", 
+          SqrtBox[
+           RowBox[{
+            RowBox[{
+             RowBox[{"-", "3"}], " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "+", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+             "2"]}]]}], "+", 
+         RowBox[{
+          FractionBox["1", "3"], " ", 
+          RowBox[{"(", 
+           RowBox[{
+            SuperscriptBox["c0", "2"], "+", 
+            SuperscriptBox["va", "2"], "+", 
+            RowBox[{
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+            FractionBox[
+             RowBox[{
+              SuperscriptBox["k", "2"], " ", 
+              SuperscriptBox["va", "4"], " ", 
+              SuperscriptBox[
+               RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+             SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], 
+        ")"}]}]}], ")"}]}], ",", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"Cos", "[", 
+          RowBox[{
+           FractionBox["\[Pi]", "6"], "+", 
+           RowBox[{
+            FractionBox["1", "3"], " ", 
+            RowBox[{"ArcTan", "[", 
+             SqrtBox[
+              RowBox[{
+               RowBox[{"-", "1"}], "-", 
+               FractionBox[
+                RowBox[{"4", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"27", " ", 
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                   RowBox[{"9", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                   RowBox[{"2", " ", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}]}], "]"}], " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", 
+            RowBox[{
+             RowBox[{"(", 
+              RowBox[{"12", " ", 
+               SuperscriptBox[
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"3", " ", 
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   "2"]}], ")"}], "2"], " ", 
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{
+                  RowBox[{"-", "6"}], " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                  RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "-", 
+                 RowBox[{"2", " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                    FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}]}], ")"}]}], ")"}], "/", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"27", " ", 
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                RowBox[{"9", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "+", 
+                RowBox[{"2", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "3"]}]}], ")"}], "2"]}]}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{"8", " ", 
+              SuperscriptBox[
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{"3", " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "-", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "2"]}], ")"}], "3"], " ", 
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{
+                 RowBox[{"-", "108"}], " ", 
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "3"], " ", 
+                 RowBox[{"Sin", "[", "Psi", "]"}]}], "+", 
+                RowBox[{"18", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                 RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "-", 
+                RowBox[{"9", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                   FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "+", 
+                RowBox[{"6", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                   FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}]}], ")"}]}], ")"}], "/", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"27", " ", 
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+               RowBox[{"9", " ", 
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"2", " ", 
+                   SuperscriptBox["c0", "2"]}], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  SuperscriptBox["c0", "2"], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  RowBox[{
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}],
+                "+", 
+               RowBox[{"2", " ", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 "3"]}]}], ")"}], "3"]}]}], ")"}], " ", 
+         SqrtBox[
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", 
+            SuperscriptBox["va", "2"], " ", 
+            SuperscriptBox[
+             RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           SuperscriptBox[
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+            "2"]}]], " ", 
+         SuperscriptBox[
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"27", " ", 
+             SuperscriptBox["c0", "2"], " ", 
+             SuperscriptBox["va", "4"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+            RowBox[{"9", " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "+", 
+            RowBox[{"2", " ", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                SuperscriptBox["c0", "2"], "+", 
+                SuperscriptBox["va", "2"], "+", 
+                RowBox[{
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                FractionBox[
+                 RowBox[{
+                  SuperscriptBox["k", "2"], " ", 
+                  SuperscriptBox["va", "4"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                 SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+              "3"]}]}], ")"}], "2"]}], ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{"36", " ", 
+         SqrtBox[
+          RowBox[{
+           RowBox[{"-", "1"}], "-", 
+           FractionBox[
+            RowBox[{"4", " ", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"3", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "-", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 "2"]}], ")"}], "3"]}], 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"27", " ", 
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+               RowBox[{"9", " ", 
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"2", " ", 
+                   SuperscriptBox["c0", "2"]}], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  SuperscriptBox["c0", "2"], "+", 
+                  SuperscriptBox["va", "2"], "+", 
+                  RowBox[{
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                  FractionBox[
+                   RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                   SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}],
+                "+", 
+               RowBox[{"2", " ", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 "3"]}]}], ")"}], "2"]]}]], " ", 
+         SuperscriptBox[
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"3", " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "-", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+             "2"]}], ")"}], "3"]}], ")"}]}], "-", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"Sin", "[", 
+          RowBox[{
+           FractionBox["\[Pi]", "6"], "+", 
+           RowBox[{
+            FractionBox["1", "3"], " ", 
+            RowBox[{"ArcTan", "[", 
+             SqrtBox[
+              RowBox[{
+               RowBox[{"-", "1"}], "-", 
+               FractionBox[
+                RowBox[{"4", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"27", " ", 
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                   RowBox[{"9", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                   RowBox[{"2", " ", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}]}], "]"}], " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"6", " ", 
+            SuperscriptBox["va", "2"], " ", 
+            RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+            RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           RowBox[{"2", " ", 
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], " ", 
+            
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"-", "2"}], " ", 
+               SuperscriptBox["va", "2"], " ", 
+               RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+               RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+              FractionBox[
+               RowBox[{"2", " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                RowBox[{"Sin", "[", "Psi", "]"}]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], 
+          ")"}]}], ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{"3", " ", 
+         SqrtBox[
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", 
+            SuperscriptBox["va", "2"], " ", 
+            SuperscriptBox[
+             RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           SuperscriptBox[
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+            "2"]}]]}], ")"}]}], "+", 
+      RowBox[{
+       FractionBox["1", "3"], " ", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"-", "2"}], " ", 
+          SuperscriptBox["va", "2"], " ", 
+          RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+          RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+         FractionBox[
+          RowBox[{"2", " ", 
+           SuperscriptBox["k", "2"], " ", 
+           SuperscriptBox["va", "4"], " ", 
+           RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+           RowBox[{"Sin", "[", "Psi", "]"}]}], 
+          SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], ")"}],
+     "/", 
+    RowBox[{"(", 
+     RowBox[{"2", " ", 
+      RowBox[{"\[Sqrt]", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"-", 
+           FractionBox["2", "3"]}], " ", 
+          RowBox[{"Sin", "[", 
+           RowBox[{
+            FractionBox["\[Pi]", "6"], "+", 
+            RowBox[{
+             FractionBox["1", "3"], " ", 
+             RowBox[{"ArcTan", "[", 
+              SqrtBox[
+               RowBox[{
+                RowBox[{"-", "1"}], "-", 
+                FractionBox[
+                 RowBox[{"4", " ", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"27", " ", 
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                    RowBox[{"9", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                    RowBox[{"2", " ", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}]}], "]"}], " ", 
+          SqrtBox[
+           RowBox[{
+            RowBox[{
+             RowBox[{"-", "3"}], " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "+", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+             "2"]}]]}], "+", 
+         RowBox[{
+          FractionBox["1", "3"], " ", 
+          RowBox[{"(", 
+           RowBox[{
+            SuperscriptBox["c0", "2"], "+", 
+            SuperscriptBox["va", "2"], "+", 
+            RowBox[{
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+            FractionBox[
+             RowBox[{
+              SuperscriptBox["k", "2"], " ", 
+              SuperscriptBox["va", "4"], " ", 
+              SuperscriptBox[
+               RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+             SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], 
+        ")"}]}]}], ")"}]}], ",", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"-", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"Cos", "[", 
+           RowBox[{
+            FractionBox["\[Pi]", "6"], "-", 
+            RowBox[{
+             FractionBox["1", "3"], " ", 
+             RowBox[{"ArcTan", "[", 
+              SqrtBox[
+               RowBox[{
+                RowBox[{"-", "1"}], "-", 
+                FractionBox[
+                 RowBox[{"4", " ", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"27", " ", 
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                    RowBox[{"9", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                    RowBox[{"2", " ", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}]}], "]"}], " ", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"-", 
+             RowBox[{
+              RowBox[{"(", 
+               RowBox[{"12", " ", 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                   SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "2"], " ", 
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{
+                   RowBox[{"-", "6"}], " ", 
+                   SuperscriptBox["va", "2"], " ", 
+                   RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                   RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                  RowBox[{"2", " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                    FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}]}], ")"}]}], ")"}], "/", 
+              SuperscriptBox[
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{"27", " ", 
+                  SuperscriptBox["c0", "2"], " ", 
+                  SuperscriptBox["va", "4"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                 RowBox[{"9", " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "+", 
+                 RowBox[{"2", " ", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   "3"]}]}], ")"}], "2"]}]}], "+", 
+            RowBox[{
+             RowBox[{"(", 
+              RowBox[{"8", " ", 
+               SuperscriptBox[
+                RowBox[{"(", 
+                 RowBox[{
+                  RowBox[{"3", " ", 
+                   SuperscriptBox["va", "2"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   "2"]}], ")"}], "3"], " ", 
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{
+                  RowBox[{"-", "108"}], " ", 
+                  SuperscriptBox["c0", "2"], " ", 
+                  SuperscriptBox["va", "4"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "3"], " ", 
+                  RowBox[{"Sin", "[", "Psi", "]"}]}], "+", 
+                 RowBox[{"18", " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                  RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "-", 
+                 RowBox[{"9", " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                    FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "+", 
+                 RowBox[{"6", " ", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                   "2"], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{
+                    RowBox[{"-", "2"}], " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+                    FractionBox[
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                    RowBox[{"Sin", "[", "Psi", "]"}]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}]}], ")"}]}], ")"}], "/", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"27", " ", 
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                RowBox[{"9", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "+", 
+                RowBox[{"2", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "3"]}]}], ")"}], "3"]}]}], ")"}], " ", 
+          SqrtBox[
+           RowBox[{
+            RowBox[{
+             RowBox[{"-", "3"}], " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "+", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+             "2"]}]], " ", 
+          SuperscriptBox[
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{"27", " ", 
+              SuperscriptBox["c0", "2"], " ", 
+              SuperscriptBox["va", "4"], " ", 
+              SuperscriptBox[
+               RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+             RowBox[{"9", " ", 
+              SuperscriptBox["va", "2"], " ", 
+              SuperscriptBox[
+               RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"2", " ", 
+                 SuperscriptBox["c0", "2"]}], "+", 
+                SuperscriptBox["va", "2"], "+", 
+                FractionBox[
+                 RowBox[{
+                  SuperscriptBox["c0", "2"], " ", 
+                  SuperscriptBox["k", "2"], " ", 
+                  SuperscriptBox["va", "2"]}], 
+                 SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+              " ", 
+              RowBox[{"(", 
+               RowBox[{
+                SuperscriptBox["c0", "2"], "+", 
+                SuperscriptBox["va", "2"], "+", 
+                RowBox[{
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                FractionBox[
+                 RowBox[{
+                  SuperscriptBox["k", "2"], " ", 
+                  SuperscriptBox["va", "4"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                 SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+             "+", 
+             RowBox[{"2", " ", 
+              SuperscriptBox[
+               RowBox[{"(", 
+                RowBox[{
+                 SuperscriptBox["c0", "2"], "+", 
+                 SuperscriptBox["va", "2"], "+", 
+                 RowBox[{
+                  SuperscriptBox["va", "2"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                 FractionBox[
+                  RowBox[{
+                   SuperscriptBox["k", "2"], " ", 
+                   SuperscriptBox["va", "4"], " ", 
+                   SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                  SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+               "3"]}]}], ")"}], "2"]}], ")"}], "/", 
+        RowBox[{"(", 
+         RowBox[{"36", " ", 
+          SqrtBox[
+           RowBox[{
+            RowBox[{"-", "1"}], "-", 
+            FractionBox[
+             RowBox[{"4", " ", 
+              SuperscriptBox[
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{"3", " ", 
+                  SuperscriptBox["va", "2"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                   ")"}]}], "-", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "2"]}], ")"}], "3"]}], 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"27", " ", 
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                RowBox[{"9", " ", 
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                 " ", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   SuperscriptBox["c0", "2"], "+", 
+                   SuperscriptBox["va", "2"], "+", 
+                   RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                   FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                  ")"}]}], "+", 
+                RowBox[{"2", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                  "3"]}]}], ")"}], "2"]]}]], " ", 
+          SuperscriptBox[
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{"3", " ", 
+              SuperscriptBox["va", "2"], " ", 
+              SuperscriptBox[
+               RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"2", " ", 
+                 SuperscriptBox["c0", "2"]}], "+", 
+                SuperscriptBox["va", "2"], "+", 
+                FractionBox[
+                 RowBox[{
+                  SuperscriptBox["c0", "2"], " ", 
+                  SuperscriptBox["k", "2"], " ", 
+                  SuperscriptBox["va", "2"]}], 
+                 SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+             "-", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{
+                SuperscriptBox["c0", "2"], "+", 
+                SuperscriptBox["va", "2"], "+", 
+                RowBox[{
+                 SuperscriptBox["va", "2"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                FractionBox[
+                 RowBox[{
+                  SuperscriptBox["k", "2"], " ", 
+                  SuperscriptBox["va", "4"], " ", 
+                  SuperscriptBox[
+                   RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                 SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+              "2"]}], ")"}], "3"]}], ")"}]}]}], "-", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"Sin", "[", 
+          RowBox[{
+           FractionBox["\[Pi]", "6"], "-", 
+           RowBox[{
+            FractionBox["1", "3"], " ", 
+            RowBox[{"ArcTan", "[", 
+             SqrtBox[
+              RowBox[{
+               RowBox[{"-", "1"}], "-", 
+               FractionBox[
+                RowBox[{"4", " ", 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+                SuperscriptBox[
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{"27", " ", 
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                   RowBox[{"9", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                   RowBox[{"2", " ", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}]}], "]"}], " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"6", " ", 
+            SuperscriptBox["va", "2"], " ", 
+            RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+            RowBox[{"Sin", "[", "Psi", "]"}], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           RowBox[{"2", " ", 
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], " ", 
+            
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"-", "2"}], " ", 
+               SuperscriptBox["va", "2"], " ", 
+               RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+               RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+              FractionBox[
+               RowBox[{"2", " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+                RowBox[{"Sin", "[", "Psi", "]"}]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], 
+          ")"}]}], ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{"3", " ", 
+         SqrtBox[
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", 
+            SuperscriptBox["va", "2"], " ", 
+            SuperscriptBox[
+             RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"2", " ", 
+               SuperscriptBox["c0", "2"]}], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["c0", "2"], " ", 
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+           "+", 
+           SuperscriptBox[
+            RowBox[{"(", 
+             RowBox[{
+              SuperscriptBox["c0", "2"], "+", 
+              SuperscriptBox["va", "2"], "+", 
+              RowBox[{
+               SuperscriptBox["va", "2"], " ", 
+               SuperscriptBox[
+                RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+              FractionBox[
+               RowBox[{
+                SuperscriptBox["k", "2"], " ", 
+                SuperscriptBox["va", "4"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+               SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+            "2"]}]]}], ")"}]}], "+", 
+      RowBox[{
+       FractionBox["1", "3"], " ", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"-", "2"}], " ", 
+          SuperscriptBox["va", "2"], " ", 
+          RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+          RowBox[{"Sin", "[", "Psi", "]"}]}], "-", 
+         FractionBox[
+          RowBox[{"2", " ", 
+           SuperscriptBox["k", "2"], " ", 
+           SuperscriptBox["va", "4"], " ", 
+           RowBox[{"Cos", "[", "Psi", "]"}], " ", 
+           RowBox[{"Sin", "[", "Psi", "]"}]}], 
+          SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], ")"}],
+     "/", 
+    RowBox[{"(", 
+     RowBox[{"2", " ", 
+      RowBox[{"\[Sqrt]", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"-", 
+           FractionBox["2", "3"]}], " ", 
+          RowBox[{"Sin", "[", 
+           RowBox[{
+            FractionBox["\[Pi]", "6"], "-", 
+            RowBox[{
+             FractionBox["1", "3"], " ", 
+             RowBox[{"ArcTan", "[", 
+              SqrtBox[
+               RowBox[{
+                RowBox[{"-", "1"}], "-", 
+                FractionBox[
+                 RowBox[{"4", " ", 
+                  SuperscriptBox[
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"3", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "-", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "2"]}], ")"}], "3"]}], 
+                 SuperscriptBox[
+                  RowBox[{"(", 
+                   RowBox[{
+                    RowBox[{"27", " ", 
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "4"]}], "-", 
+                    RowBox[{"9", " ", 
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"2", " ", 
+                    SuperscriptBox["c0", "2"]}], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], " ", 
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    " ", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], 
+                    ")"}]}], "+", 
+                    RowBox[{"2", " ", 
+                    SuperscriptBox[
+                    RowBox[{"(", 
+                    RowBox[{
+                    SuperscriptBox["c0", "2"], "+", 
+                    SuperscriptBox["va", "2"], "+", 
+                    RowBox[{
+                    SuperscriptBox["va", "2"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+                    FractionBox[
+                    RowBox[{
+                    SuperscriptBox["k", "2"], " ", 
+                    SuperscriptBox["va", "4"], " ", 
+                    SuperscriptBox[
+                    RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                    SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+                    "3"]}]}], ")"}], "2"]]}]], "]"}]}]}], "]"}], " ", 
+          SqrtBox[
+           RowBox[{
+            RowBox[{
+             RowBox[{"-", "3"}], " ", 
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"], " ", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{"2", " ", 
+                SuperscriptBox["c0", "2"]}], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["c0", "2"], " ", 
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}], 
+            "+", 
+            SuperscriptBox[
+             RowBox[{"(", 
+              RowBox[{
+               SuperscriptBox["c0", "2"], "+", 
+               SuperscriptBox["va", "2"], "+", 
+               RowBox[{
+                SuperscriptBox["va", "2"], " ", 
+                SuperscriptBox[
+                 RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+               FractionBox[
+                RowBox[{
+                 SuperscriptBox["k", "2"], " ", 
+                 SuperscriptBox["va", "4"], " ", 
+                 SuperscriptBox[
+                  RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+                SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}], 
+             "2"]}]]}], "+", 
+         RowBox[{
+          FractionBox["1", "3"], " ", 
+          RowBox[{"(", 
+           RowBox[{
+            SuperscriptBox["c0", "2"], "+", 
+            SuperscriptBox["va", "2"], "+", 
+            RowBox[{
+             SuperscriptBox["va", "2"], " ", 
+             SuperscriptBox[
+              RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], "+", 
+            FractionBox[
+             RowBox[{
+              SuperscriptBox["k", "2"], " ", 
+              SuperscriptBox["va", "4"], " ", 
+              SuperscriptBox[
+               RowBox[{"Cos", "[", "Psi", "]"}], "2"]}], 
+             SubsuperscriptBox["\[CapitalOmega]", "i", "2"]]}], ")"}]}]}], 
+        ")"}]}]}], ")"}]}]}], "}"}]], "Output",
+ CellChangeTimes->{3.558347371967669*^9}]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{1280, 1002},
+WindowMargins->{{-1280, Automatic}, {Automatic, -22}},
+FrontEndVersion->"7.0 for Mac OS X x86 (32-bit) (November 10, 2008)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[567, 22, 115, 1, 76, "Title"],
+Cell[685, 25, 156, 3, 46, "Subtitle"],
+Cell[844, 30, 1211, 36, 76, "Input"],
+Cell[2058, 68, 1736, 56, 101, "Input"],
+Cell[CellGroupData[{
+Cell[3819, 128, 1841, 46, 88, "Input"],
+Cell[5663, 176, 8848, 159, 359, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[14548, 340, 105, 1, 26, "Subsubtitle"],
+Cell[CellGroupData[{
+Cell[14678, 345, 2257, 52, 118, "Input"],
+Cell[16938, 399, 2968, 53, 507, "Output"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[19955, 458, 105, 1, 26, "Subsubtitle"],
+Cell[20063, 461, 929, 25, 43, "Input"],
+Cell[CellGroupData[{
+Cell[21017, 490, 9477, 223, 508, "Input"],
+Cell[30497, 715, 6503, 115, 409, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[37037, 835, 159, 3, 27, "Input"],
+Cell[37199, 840, 135547, 3220, 4398, "Output"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

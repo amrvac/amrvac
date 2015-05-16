@@ -1,0 +1,100 @@
+<HTML>
+<HEAD>
+<TITLE> Notes on using non-cartesian settings </TITLE>
+</HEAD>
+<BODY>
+<h1>USING AXIAL AND TRANSLATIONAL SYMMETRY</h1>
+
+This document describes how to use properly axial symmetry and polar grids.
+It is relevant when doing simulations with <b>typeaxial</b> different from 'slab' in the <b>methodlist</b> of 
+your <b>par/PROBLEM</b> parameter file.
+
+<hr>
+This page:
+ [<A HREF="#What">Symmetry</A>]
+ [<A HREF="#Polargrid">Polar grid</A>]
+ [<A HREF="#Implementation">Implementation</A>]
+ [<A HREF="#Boundary">Boundary</A>]
+<hr>
+
+<H2><A NAME="What">What</A> does Axial Symmetry Mean?</H2>
+
+In 1 and 2D simulations, there is an inherent assumption about the behavior
+of quantities in the ignored direction(s). The most usual assumption is
+'slab' symmetry, i.e. all the quantities are invariant to a translation in the 
+ignored direction. 
+<p>
+In 2D, one may assume a rotational invariance around some axis instead, which
+gives a cylindrical symmetry, thus <b>typeaxial='cylindrical'</b> should be 
+selected. MPI-AMRVAC always assumes that the radial distance from the symmetry axis 
+is in the first coordinate, which can therefore be referred to as <b>r_</b>, 
+where <b>r_=1</b> is an integer parameter set in <b>src/amrvacdef.t</b>. 
+When setting
+<pre>
+setamrvac -d=23 -z=2 -phi=3
+</pre>
+the second coordinate is interpreted as the one parallel to the axis, 
+<b>z_=2</b>, while the ignored direction is <b>phi_=3</b> in 2.5D.
+The PHI components of vector variables are then
+stored in the third component in 2.5D simulations.
+<p>
+Actually, for 2D and 'cylindrical' (which can be 2D or 2.5D) the grid and the symmetry depend on the settings for the -phi and -z flags. When -d=22 -z=2, a cartesian grid is used in a poloidal plane, with axial symmetry for the r- and z- vector components. The same is true for -d=23 -z=2 -phi=3, when all three vector components are then depending on (r,z) coordinates only. The vector components then appear in the r,z,phi order.
+One can use 2.5D on a circular grid also with translational symmetry in the third, i.e. axial, direction by the use of <em>setamrvac -d=23 -phi=2 -z=3</em>. The vector components then appear in the r,phi,z order.
+<p>
+In spherical symmetry, <b>typeaxial='spherical'</b>, the invariant transformation 
+is a rotation around the origin. Again, the first coordinate is <b>r_=1</b>. 
+For 2D and 'spherical', the coordinates denote radial and polar angle in a poloidal plane, and similarly for 2.5D in combination with spherical where the third vector component is then the phi-component, depending on (r,theta) alone. This means that 2D and 'spherical' implies the use of a polar grid in a poloidal cross-section (i.e. one containing the symmetry axis) and axial symmetry for 2.5D runs. Note that the <em>-phi -z</em> flags for <em>setamrvac</em> have no influence when selecting <b>typeaxial='spherical'</b>.
+
+<H2><A NAME="Polargrid">What</A> does Polar Grid Mean?</H2>
+
+In case of a polar grid (<b>typeaxial='cylindrical'</b>) the PHI direction is not ignored.
+<p>
+In 2D, the data in the <b>x</b> coordinates is interpreted as radial distance
+<b>r</b> and the angular coordinate <b>phi</b> is measured in radians.
+The <b>dx</b> array contains <b>dr</b> and <b>r*dphi</b> and MPI-AMRVAC treats
+everything the same way as in a Cartesian grid. Meaningfull 2D settings are
+<pre>
+setamrvac -d=22 -phi=2 -z=0
+setamrvac -d=23 -phi=2 -z=3
+</pre>
+The main difference is that the geometric source terms are added
+due to <b>typeaxial='cylindrical'</b>. The former setting is purely 2D, the latter setting is 2.5D, and assumes translational invariance with the z direction.
+<p>
+In 3D, there are two possibilities: the coordinates can be ordered as 
+<b>r, z, phi</b> or <b>r, phi, z</b>, where <b>z</b> is the vertical position.
+<pre>
+setamrvac -d=33 -phi=2 -z=3
+setamrvac -d=33 -phi=3 -z=2
+</pre>
+<p>
+The vector variables also have their components in the <b>r, phi</b>, and 
+<b>z</b> directions. These facts should be kept in mind when the initial 
+conditions are defined, when source terms are applied, or when the results are 
+visualized.
+<p>
+
+<H2><A NAME="Implementation">Implementation</A></H2>
+
+In slab symmetry all fluxes entering the cells from the ignored direction 
+cancel exactly. In cylindrical or spherical symmetry, however, there are
+non-vanishing contributions. These extra fluxes are always functions of 
+the quantities in the local cell and of the geometry only, since due to 
+the symmetry assumption, the quantities in the virtual neighbouring cells 
+in the ignored direction(s) are the same as in the local cell except for the 
+geometrical transformation, e.g. rotation of vector quantities around 
+the symmetry axis. Consequently the contributions are added like source 
+terms in the <b>addgeometry</b> subroutine in <b>src/amrvacphys</b>. 
+To maintain equilibrium better, the 'geometrical sources' 
+are added at the same time as fluxes in the radial direction.
+<p>
+On a polar grid the extra terms are exactly the same as for cylindrical 
+symmetry.
+<p>
+<H2><A NAME="Boundary">Boundary</A> at the Symmetry Axis</H2>
+
+The symmetry axis is actually a special case of periodicity.
+For 3D cylindrical and spherical grid computations, the singular polar axis is trivially handled using a so-called pi-periodic boundary treatment, where periodicity across the pole comes from the grid cell diagonally across the pole, i.e. displaced over pi instead of 2 pi. These are automatically recognized from the typeaxial setting, if the radial range starts at zero. The corresponding range in angle phi must span 2 pi for cylindrical, and theta must then start at zero (to include the north pole) and/or end at pi (for the south pole) for spherical grids. The user just needs to set the typeB as if the singular axis is a symmetry boundary (using symm and asymm combinations). <b>There is one important restriction: the number of grid blocks must be even around the pole.</b>
+
+<hr>
+</BODY>
+</HTML>

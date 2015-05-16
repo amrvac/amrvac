@@ -1,0 +1,32 @@
+
+.r Idl_amr/procedures
+
+;filename='datamr_final/briowu.tvdmu.l6.out'
+filename='datamr_final/briowu.tvdmuW.l6.out'
+npict=3
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+device,/encapsulated
+device,xsize=24,ysize=14,xoffset=0,yoffset=0
+;device,filename='briowu.l6.eps'
+device,filename='briowu.W.l6.eps'
+
+plotmode='plotf_amr'
+func='rho'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!7q!17'
+
+!psym=4
+
+.r Idl_amr/plotfunc
+device,/close

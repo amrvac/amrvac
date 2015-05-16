@@ -1,0 +1,31 @@
+#!/bin/csh -f
+#usage: rmdata
+#aim: to remove data related to the current amrvac.par
+set ful=`ls -l amrvac.par`
+set fname=$ful[$#ful]
+if (-e $fname ) then
+   goto step1
+else
+   echo "$1 is not an existing parfilename"
+   goto done
+endif
+step1:
+set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^filenameout/=}'`
+set linedata=`echo $linedata | awk '{print $1}'`
+set dataname=`sed -n "$linedata p;$linedata q" $fname | awk -F\' '{print $2}'`
+set datacount=`ls $dataname*.dat | grep -c '.dat'`
+if($datacount < 1 ) then
+ echo "Data "$dataname"*.dat are not found!"
+ goto done
+endif
+
+ls $dataname*
+echo -n "Are you sure to delete data above? (y to delete)"
+set yn=$<
+if ($yn == "y") then
+ rm -f $dataname*
+endif
+done:
+exit 0
+error:
+exit 1

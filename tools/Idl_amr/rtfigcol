@@ -1,0 +1,29 @@
+
+.r Idl_amr/procedures
+
+filename='datamr_final/rthd22.l5.out'
+npict=11
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+loadct,8
+device,/encapsulated,bits=8,/color
+device,xsize=16,ysize=16,xoffset=0,yoffset=0
+device,filename='rthd22.t1.9.eps'
+
+plotmode='contfillf_amr'
+func='-logrho'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17z'
+
+.r Idl_amr/plotfunc
+device,/close

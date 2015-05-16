@@ -1,0 +1,4 @@
+Jet with toroidal magnetic field as in Komissarov (1999) MNRAS 308, 1069.
+Implemented is the highly magnetised model A.
+$AMVAC_DIR/setup.pl -d=23 -phi=3 -z=2 -g=14,14 -p=srmhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+GLM is activated but actually not necessary.  

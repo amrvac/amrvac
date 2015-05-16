@@ -1,0 +1,10 @@
+!##############################################################################
+! include amrvacusrpar - swifftestKHmhd23
+
+INTEGER,PARAMETER:: nymodes_=neqpar+1,nspecialpar=1
+CHARACTER*7,PARAMETER:: specialparname='nymodes'
+
+COMMON, DOUBLE PRECISION:: randphase(1000)
+
+! end include amrvacusrpar - swifftestKHmhd23
+!##############################################################################

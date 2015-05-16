@@ -1,0 +1,25 @@
+filename='datamr/wcpictl5.out'
+npict=1
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+device,/encapsulated,bits=8,/color
+device,xsize=24,ysize=14,xoffset=0,yoffset=0
+device,filename='wcl5.t0.1.eps'
+
+plotmode='contour2_amr'
+func='-schlier'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17y'
+
+.r Idl_amr/plotfunc
+device,/close

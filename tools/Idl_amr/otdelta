@@ -1,0 +1,106 @@
+
+;filename='datamr/otmhd22.4l.powel.tvd4.out'
+;filename='datamr/otmhd22.4l.powel.tvd.out'
+;filename='datamr/otmhd22.4l.powel.out'
+;filename='datamr/otmhd22.4l.janh.tvd4.out'
+;filename='datamr/otmhd22.4l.janh.tvd.out'
+;filename='datamr/otmhd22.4l.janh.out'
+filename='datamr/otmhd22.4lC.diff.tvd4.out'
+;filename='datamr/otmhd22.4lB.diff.tvd4.out'
+;filename='datamr/otmhd22.4l.diff.tvd4.out'
+;filename='datamr/otmhd22.4l.diff.tvd.out'
+;filename='datamr/otmhd22.4l.diff.out'
+npict=8
+;filename='datamr/orszag400ect.out5'
+.r Idl_amr/getpict
+
+func='T'
+.r Idl_amr/plotfunc
+set_plot,'ps'
+device,filename='amr.ps'
+.r Idl_amr/plotfunc
+device,/close
+set_plot,'x'
+
+help,x
+help,w
+
+wsingle=w
+;wsingle=dblarr(400,400,nw)
+;wsingle(0:399,0:399,*)=w(2:401,2:401,*)
+
+help,wsingle
+
+filename='datamr/orszag400pro.out5'
+;filename='datamr/orszag400ect.out5'
+.r Idl_amr/getpict
+.r Idl_amr/plotfunc
+set_plot,'ps'
+device,filename='ref.ps'
+.r Idl_amr/plotfunc
+device,/close
+set_plot,'x'
+help,w
+w400=dblarr(400,400,nw)
+w400(0:399,0:399,*)=w(2:401,2:401,*)
+
+help,w400
+
+gamma=eqpar(0)
+print,gamma
+p400=dblarr(400,400)
+psingle=dblarr(400,400)
+p400(*,*)=(gamma-1.0)*(w400(*,*,3) $
+                       -0.5*(w400(*,*,1)^2+w400(*,*,2)^2)/w400(*,*,0) $
+                       -0.5*(w400(*,*,4)^2+w400(*,*,5)^2)) 
+psingle(*,*)=(gamma-1.0)*(wsingle(*,*,3) $
+                       -0.5*(wsingle(*,*,1)^2+wsingle(*,*,2)^2)/wsingle(*,*,0) $
+                       -0.5*(wsingle(*,*,4)^2+wsingle(*,*,5)^2)) 
+
+iw=0
+wdif1=total(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+wsum1=total(abs(w400(*,*,iw)))
+drho=wdif1/wsum1
+print,'drho=',drho
+iw=1
+wdif1=total(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+wsum1=total(abs(w400(*,*,iw)))
+dm1=wdif1/wsum1
+print,'dm1=',dm1
+wdif1=total(abs(w400(*,*,1)/w400(*,*,0)-wsingle(*,*,1)/wsingle(*,*,0)))
+wsum1=total(abs(w400(*,*,1)/w400(*,*,0)))
+dv1=wdif1/wsum1
+print,'dv1=',dv1
+iw=2
+wdif1=total(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+wsum1=total(abs(w400(*,*,iw)))
+dm2=wdif1/wsum1
+print,'dm2=',dm2
+wdif1=total(abs(w400(*,*,2)/w400(*,*,0)-wsingle(*,*,2)/wsingle(*,*,0)))
+wsum1=total(abs(w400(*,*,2)/w400(*,*,0)))
+dv2=wdif1/wsum1
+print,'dv2=',dv2
+iw=3
+wdif1=total(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+wsum1=total(abs(w400(*,*,iw)))
+de=wdif1/wsum1
+print,'de=',de
+wdif1=total(abs(p400(*,*)-psingle(*,*)))
+wsum1=total(abs(p400(*,*)))
+dp=wdif1/wsum1
+print,'dp=',dp
+iw=4
+wdif1=total(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+wsum1=total(abs(w400(*,*,iw)))
+db1=wdif1/wsum1
+print,'db1=',db1
+iw=5
+wdif1=total(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+wsum1=total(abs(w400(*,*,iw)))
+db2=wdif1/wsum1
+print,'db2=',db2
+
+delbar=(drho+dm1+dm2+de+db1+db2)/nw
+print,'=====>delta(cons)=',delbar
+delbar=(drho+dv1+dv2+dp+db1+db2)/nw
+print,'=====>delta(prim)=',delbar

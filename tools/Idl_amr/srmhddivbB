@@ -1,0 +1,24 @@
+logfilename='datamr/testsrmhd/srmhdotvic.log'
+
+.r getlog
+
+set_plot,'ps'
+device,/encapsulated
+device,xsize=16,ysize=16,xoffset=0,yoffset=0
+device,filename='srmhdotdivb.eps'
+
+Xyouts,0.1,0.1,'!17 '
+
+!p.title=''
+!x.title='!17t'
+!y.title='!17Error monitors'
+
+lth=4
+
+plot,t,wlog(*,12),yrange=[0,0.05],ystyle=1,thick=lth,xrange=[0,9.0],xstyle=1
+
+oplot,t,wlog(*,13),line=1,thick=lth
+oplot,t,wlog(*,14),line=2,thick=lth
+
+
+device,/close

@@ -1,0 +1,92 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>FAQ</title><style></style></head><body>
+<h1>FAQ</h1>
+
+<hr>
+
+<h3>How does the <em>git</em>-version differ from the
+  previous <em>svn</em>-version?</h3>
+<p>
+  We have compiled a <a href="gitversion.html">list of changes</a>.  Other than that, we
+  try to keep the <a href="Contents.html">documentation</a> up to
+  date.  
+</p>
+
+<h3>I just did a "git pull" and now my setup won't compile anymore,
+  what to do?</h3>
+<p>
+  It is possible that we needed to change the makefile.  Since the
+  makefile is in your working folder (see below), it does not match
+  the new requirements and compilation might fail because of
+  that.  <br>
+  In your working folder do 
+  <pre>$AMRVAC_DIR/setup.pl -s</pre>
+  and copy the output.  Now remove the old makefile 
+<pre>rm makefile</pre>
+  paste and execute the setup line.  This gets the new makefile from
+  the repository and configures it accordingly.  Now try to 
+<pre>make clean && make</pre>
+</p>
+
+<h3>Corrupt snapshot files?</h3>
+<p>
+<b>Q:</b> In some cases, the .dat file is screwed up, why is this happening?
+like, ndim is a horribly big number, or the other variables at the end of the .dat file
+so I cannot use them for restart or convert them post-simulation
+this happens apparently random, I mean, with the same compiler,  nr. of processors, etc.
+(due to Norbert Magyar via Skype...)
+</p>
+<p>
+<b>A:</b> Most likely, you are using typeparIO=1 which uses parallel MPI-IO for snapshot read/write.  Unfortunately this can fail sporadically on some clusters.  Try using the other options typeparIO=0 (serial MPI-IO) or typeparIO=-1 (serial FortranIO).
+</p>
+
+
+<h3 id="how-should-i-setup-a-new-simulation-folder-">How should I setup a new simulation folder?</h3>
+<p>The philosophy is now to keep all the files needed for the
+  simulation together in one <em>working folder</em>.  These files are typically the following:
+  <strong>amrvacusr.t, amrvacusrpar.t, amrvac.par, definitions.h,
+    makefile</strong>.  It is good style to also inclue a README
+  file with some explanations as well as the options
+  for <code>$AMRVAC_DIR/setup.pl</code>.  These options are now
+  saved in the <strong>makefile</strong> however.</p>
+<p>You can create this folder anywhere on your machine and
+  type <code>make</code> there since <code>$AMRVAC_DIR</code> points
+  to the remaining source files.  Note also that all the *.t in your
+  working folder will get precedence over the ones in the src/* .  So
+  if you need to make a modification to any of those, you can copy
+  them in, modify and not contaminate your repository in the process.  </p>
+
+<h3>What is the localmakefile for?</h3>
+<p>You can add additional source files to your working folder.  These
+  are found by make through the <strong>localmakefile</strong>.  For example, mine looks currently
+  like this:
+<br>
+<pre>
+#########################################################################
+# Here we have some auxilary modules
+#########################################################################
+FOBJECTS += init_particles$F  rand3$F
+OBJECTS += init_particles.o   rand3.o
+
+#########################################################################
+# Dependencies:
+#########################################################################
+init_particles.o : mod_particles.o rand3.o
+advance.o        : mod_particles.o
+amrvacusr.o      : mod_odeint.o mod_constants.o
+</pre>
+This migth be useful as the <strong>amrvacusr.t</strong> can become
+quite unwieldy.
+</p>
+
+<h3 id="what-is-then-the-purpose-of-the-src-usr-folder-">What is then the purpose of the src/usr folder?</h3>
+<p>The src/usr folder is deprecated.  It is still there for historical
+  reasons as some users still like to put their amrvacusr.t and
+  amrvacusrpar.t there.</p>
+
+<h3 id="compilation-of-file-is-_very_-slow-why-">Compilation of file ... is <em>very</em> slow, why?</h3>
+<p>It seems that since some version of intel 13… it takes much longer to compile several files.  We have observed that for example for the advance.f.  The 12… branch is much faster in compilation time and you could switch to that if you have it.<br>Other than that, you could lower the optimization, e.g. setup with <code>-arch=debug</code> or <code>-arch=gfortrandebug</code> until you make a production setup with <code>-arch=default</code>.</p>
+
+
+<hr>
+
+</body></html>

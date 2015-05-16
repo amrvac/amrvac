@@ -1,0 +1,77 @@
+!=====================================================
+! Project : Wake
+! Aim     : shock-dominated MHD evolution, 2.5D setup
+! Results :
+! Update  : 11/07/2013
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=16,16 -p=mhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+!=====================================================
+ &testlist
+ /
+
+ &filelist
+        primnames     =  'rho v1 v2 v3 pth b1 b2 b3'
+        autoconvert   = T
+        saveprim      = T
+        nwauxio       = 2
+        filenameout   = 'wakemhd'
+        filenamelog   = 'wakemhd'
+	convert_type  = 'vtuBCCmpi'
+ /
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave(1)    = 10
+        dtsave(2)     = 10.d0
+ /
+
+ &stoplist
+        tmax          = 300.0d0
+ /
+
+ &methodlist
+        wnames        = 'rho m1 m2 m3 e b1 b2 b3'
+        fileheadout   = 'wake_mhd23'
+        typeadvance   = 'threestep'
+        typefull1     = 13*'hll'
+        typelimiter1  = 13*'cada3'
+        dimsplit      = .false.
+        useprimitive  = .true.
+        typedivbfix   = 'linde'
+        ssplitdivb   = .true.
+        compactres    = .true.
+ /
+
+ &boundlist
+        dixB          = 2
+        typeB         = 8*'periodic',8*'periodic',
+                        8*'cont',8*'cont'
+ /
+
+ &amrlist
+        errorestimate=3
+        flags(9)=3
+        flags(1)=1
+        flags(2)=2
+        flags(3)=3
+        wflags(1)=0.1
+        wflags(2)=0.8
+        wflags(3)=0.1
+        mxnest=4
+        nbufferx1=2
+        nbufferx2=2
+        tol=13*0.05d0
+        nxlone1=48
+        nxlone2=96
+        xprobmin1=0.0
+        xprobmax1=17.951958
+        xprobmin2=-15.0
+        xprobmax2=15.0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=     0.9D0
+        slowsteps=10
+ /

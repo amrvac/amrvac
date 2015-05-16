@@ -1,0 +1,44 @@
+
+;;.r Idl_amr/procedures
+
+filename='datamr/gemmhdall.out'
+npict=1
+
+.r Idl_amr/getpict
+
+set_plot,'x'
+window,xsize=1600,ysize=800
+;loadct,0
+;device,/encapsulated,bits=8
+;,/color
+;device,xsize=16,ysize=12
+;;,xoffset=0,yoffset=0
+;device,filename='gem001.jz.t100.eps'
+
+!p.background=255
+!p.color=0
+plotmode='contfillN_amr'
+func='jz'
+noautodomain=0
+plottitle=''
+print,'time and resistivity'
+print,time
+print,eqpar(1)
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17y'
+!p.color=0
+
+.r Idl_amr/plotfunc
+
+Xyouts,/normal,0.25,0.8,'!17t=100',color=0
+Xyouts,/normal,0.25,0.85,'!7g!17=0.001',color=0
+;device,/close
+write_gif,'test2.gif',tvrd()
+
+;;.r Idl_amr/procedures

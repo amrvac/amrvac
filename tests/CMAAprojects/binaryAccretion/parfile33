@@ -1,0 +1,97 @@
+ &testlist
+        teststr=''
+ /
+
+ &filelist
+        filenamelog='logfile'
+        primnames='rho v1 v2 v3 p tr1'
+        saveprim=.true.
+        autoconvert=.true.
+	convert_type='vtuBCCmpi'
+	typeparIO=0
+	filenameout= './output/bin3D'
+	filenameini= './output/bin3D'
+	nwauxio=3
+ /
+	snapshotini=10
+	snapshotnext=11
+	slicenext=51
+ /
+	writew=.T.,3*.F.,2*.T.,4*.F.
+ /
+	convert=.true.
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+	itsave(1,3)=0
+        ditsave(1)=10
+	!ditsave(2)=1
+        dtsave(2)=0.1
+	dtsave(3)=0.02
+	nslices=1
+        slicedir(1)=3
+        slicecoord(1)=0.0d0
+ /
+
+ &stoplist
+	!itmax = 5
+        tmax=3.0
+        dtmin=1.0d-25
+ /
+
+ &methodlist
+        wnames='rho m1 m2 m3 e Dtr1'
+        typeadvance=  'twostep'
+        typefull1=13*'tvdlf'
+        typelimiter1=2*'minmod',11*'woodward'
+	dustmethod = 'sticking'
+
+	useprimitive=T
+	loglimit(1)=.true.
+	loglimit(5)=.true.
+
+	fixsmall=.true.
+ 	strictsmall=.false.
+	!smallrho=1.0d-7
+	!smallp=1.0d-7
+	!smallrhod=1.0d-7
+ 	strictgetaux=.false.
+ 	nflatgetaux=3
+
+	tfix=.true.
+	! started cooling values below at it=412
+	ncool=10000
+	coolmethod='exact'
+	coolcurve='DM'
+ /
+
+ &boundlist
+        dixB=2
+	internalboundary=.true.
+        typeB=36*'noinflow'
+ /
+
+ &amrlist
+        errorestimate=0
+        mxnest = 7
+	tol=13*0.2d0
+        tolratio=13*0.75d0
+        nxlone1=30
+        nxlone2=30
+	nxlone3=30
+        xprobmin1=-4.00
+        xprobmax1=4.0
+        xprobmin2=-4.0
+        xprobmax2=4.0
+	xprobmin3=-4.0
+        xprobmax3=4.0
+ /
+
+ &paramlist
+        courantpar = 0.5d0
+	dtdiffpar  = 0.7d0
+        slowsteps=100
+	!dtpar = 1e-7
+ /

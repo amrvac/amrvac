@@ -1,0 +1,23 @@
+filename='datamr/rtmhd33.z0.2.out'
+npict=1
+
+.r getpict
+
+set_plot,'ps'
+device,/encapsulated
+device,xsize=16,ysize=15.5,xoffset=0,yoffset=0
+device,filename='rtmhd33.t1.z0.2.eps'
+
+plotmode='contour_amr'
+func='rho'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+
+.r plotfunc
+device,/close

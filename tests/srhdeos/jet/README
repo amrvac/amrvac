@@ -1,0 +1,4 @@
+$AMVAC_DIR/setup.pl -d=22 -phi=0 -z=0 -g=14,14 -p=srhdeos -eos=default -nf=1 -ndust=0 -u=nul -arch=default
+
+Be sure to have in your definitions.h:
+#define EPSINF

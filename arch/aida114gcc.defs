@@ -1,0 +1,5 @@
+F90=/usr/lib64/mpi/gcc/openmpi/bin/mpif90
+FFLAGS = -c
+F90FLAGS = -ffree-form -g -pg -fimplicit-none
+LINK= $(F90)  $(F90FLAGS) -L/usr/lib64/mpi/gcc/openmpi/lib64
+INCLUDE_DIRS = -I/usr/lib64/mpi/gcc/openmpi/include

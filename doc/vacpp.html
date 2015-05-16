@@ -1,0 +1,61 @@
+<HTML>
+<HEAD>
+<TITLE> Manual on the VAC PreProcessor, as used for MPI-AMRVAC </TITLE>
+</HEAD>
+<BODY>
+<h1>VAC PREPROCESSOR, as used for MPI-AMRVAC</h1>
+
+This document briefly describes the use of the VAC PreProcessor (VACPP)
+which converts dimension independent notation into Fortran 90.
+VACPP is a specialized implementation of the general 
+<A HREF="http://www-personal.umich.edu/~gtoth/Papers/lasy.html"
+>LASY Preprocessor</A>.
+<hr>
+   VACPP is implemented in Perl in the <b>src/vacpp.pl</b> script. 
+   The main variables of VACPP, such as the number of dimensions 
+   <b>$ndim</b> and vector components <b>$ndir</b>, are normally modified 
+   by another Perl script <b>src/setamrvac</b>. Based on these variables 
+   and the LASY patterns in the <b>*.t</b> source files VACPP generates the 
+   Fortran 90 source code of the output <b>*.f</b> files.
+<p>
+   The maximum length of the lines is determined by the <i>final</i> 
+   translation step and it can be set by the <b>-maxlen=...</b> flag.
+   By default the output lines are at most 78 character long. Most compilers have flags 
+   to accept such line length, but if this is not the case, you may 
+   set '-maxlen=72' for the preprocessor step in <b>src/makefile</b>.
+<p>
+   The preprocessor is mainly used via the makefile, but one can translate
+   a single file directly, or even use the preprocessor interactively, when
+   the dimension independent notation is typed in line by line from the 
+   keyboard and the expanded code appears on the screen. The interactive 
+   use is a very efficient way of checking the syntax of complex dimension 
+   independent notation. For interactive usage the
+   number of dimensions and vector components can be overdefined temporarily 
+   with the <b>-d</b> flag. For example type (<em>note the last dash!</em>)
+<pre>
+vacpp.pl -d=23 -
+^D
+1,2
+^C
+1,2,3
+x(ixI^S,1)
+x(ixImin1:ixImax1,ixImin2:ixImax2,1)
+...
+Ctrl-D
+</pre>
+   You may use <b>vacpp.pl</b> for translation directly
+<pre>
+vacpp.pl FILENAME.t &gt; FILENAME.f
+</pre>
+   or indirectly via the makefile with
+<pre>
+make FILENAME.f
+</pre>
+   You may change the maximum line length to e.g. 72 directly on the command line
+<pre>
+vacpp.pl -maxlen=72 FILENAME.t &gt; FILENAME.f
+</pre>
+   or edit the <b>src/makefile</b> accordingly. 
+<hr>
+</BODY>
+</HTML>

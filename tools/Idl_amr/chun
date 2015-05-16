@@ -1,0 +1,24 @@
+.r Idl_amr/procedures
+
+filename=dialog_pickfile(filter='*all.out',/read)
+npict=1
+iextrapol=0
+
+!psym=3
+plotmode='plotn_amr'
+;func='logn logT v logpth'
+func='logn logT v mach1'
+noautodomain=0
+;plottitle='log n!dH!n (cm!e-3!n);log T (K);v (km s!e-1!n);log p (dyn cm!e-2!n)'
+plottitle='log n!dH!n (cm!e-3!n);log T (K);v (km s!e-1!n); Mach number'
+xtitle1d='s (10 Mm)'
+timeunit='s'
+
+headerline=0
+bottomline=1
+savemovie='y'
+window,xsize=1200,ysize=768
+;.r Idl_amr/getpict
+;.r Idl_amr/plotfunc
+doanimate=0
+.r animate

@@ -1,0 +1,156 @@
+;===========================================================================
+;    Written by G. Toth for the Versatile Advection Code
+;
+;    Use the x and w in the memory read by "animate".
+;    plot one or more functions of w using different plotting routines. 
+;    The functions are defined in the "Idl/animfunc.pro" file.
+;
+;    For generalized coordinates the variables are interpolated from the 
+;    irregular grid onto a regular one.
+;
+;    A subset can be cut from the grid by using the "cut" index array, e.g.:
+;    cut=grid(10:30,*), where "grid" contains the full index array.
+;    for the regular grid. The grid array is only defined after animate ran.
+;
+;    Usage:
+;
+; .r plotfunc
+;
+;    Output can be directed to a color PostScript file like this:
+;
+; set_plot,'PS'
+; device,filename='myfile.ps',xsize=24,ysize=18,/landscape,/color,bits=8
+; loadct
+; .r plotfunc
+; device,/close
+; set_plot,'X'
+;
+;    On a non-color printer omit the '/color,bits=8' parameters and the
+;    'loadct' command.
+;
+;    For a non-color PORTRAIT style printout use
+;
+; device,filename='myfile.ps',xsize=18,ysize=24,yoffset=3
+;
+;===========================================================================
+
+   if not keyword_set(nfile) then begin
+      print,'No file has been read yet, run getpict or animate!'
+      return
+   endif
+
+   if nfile gt 1 then begin
+      print,'More than one files were read...'
+      print,'Probably w is from file ',filenames(nfile-1)
+      physics=physicss(nfile-1)
+      nfile=1
+   endif
+
+   askstr,'physics (e.g. mhd12)      ',physics,doask
+
+   physics=strtrim(physics,2)
+
+   print,'======= CURRENT PLOTTING PARAMETERS ================'
+   print,'ax,az=',ax,',',az,', contourlevel=',contourlevel,$
+         ', velvector=',velvector,', velspeed (0..5)=',velspeed,$
+        FORMAT='(a,i4,a,i3,a,i3,a,i4,a,i2)'
+   if keyword_set(multiplot) then begin
+        siz=size(multiplot)
+        if siz(0) eq 0 then multiplot=[multiplot,1,1]
+        print,'multiplot= ',multiplot,', axistype (coord/cells)=',axistype,$
+        FORMAT='(a,"[",i2,",",i2,",",i2,"]",a,a)'
+   endif else $
+        print,'multiplot= 0 (default), axistype (coord/cells)=',axistype,$
+              FORMAT='(a,a)'
+   print,'bottomline=',bottomline,', headerline=',headerline,$
+        FORMAT='(a,i1,a,i1)'
+
+   if keyword_set(cut) then help,cut
+   if keyword_set(velpos) then help,velpos
+   velpos0=velpos
+
+   ; Read plotting and transforming parameters
+
+   print,'======= PLOTTING PARAMETERS ========================='
+   print,'wnames                     =',wnames
+   readplotpar,ndim,cut,cut0,plotdim,nfunc,func,funcs,funcs1,funcs2,$
+      plotmode,plotmodes,plottitle,plottitles,autorange,autoranges,doask
+
+   readtransform,ndim,nx,gencoord,transform,nxreg,wregpad,$
+		physics,nvector,vectors,grid,doask
+
+   usereg=(not gencoord and transform eq 'unpolar') or $
+          (gencoord and (transform eq 'polar' or transform eq 'regular' $
+                         or transform eq 'sphere'))
+
+   ; Redo triangulization if required
+   if usereg then begin
+      askstr,'dotransform (y/n)         ',dotransform,doask
+      if dotransform eq 'y' then case transform of
+      'regular': regulargrid,x_old,nxreg_old,x,xreg,nxreg,dxreg,w,wreg,nw, $
+                 wregpad,triangles
+      'polar':   begin
+                    polargrid,nvector,vectors,x,w,xreg,wreg
+                    variables(0:1)=['r','phi']
+                 end
+      'sphere':  begin
+		    spheregrid  ,nvector,vectors,x,w,xreg,wreg
+		    variables(0:2)=['r','theta','phi']
+		 end
+      'unpolar': begin
+                    unpolargrid,nvector,vectors,x,w,xreg,wreg
+                    variables(0:1)=['x','y']
+                 end
+      endcase
+   endif
+
+   print,'======= DETERMINE PLOTTING RANGES ==================='
+
+   readlimits,nfunc,funcs,autoranges,noautorange,fmax,fmin,doask
+
+   if noautorange eq 0 then begin
+      getlimits,1,nfunc,funcs,funcs1,funcs2,autoranges,fmax,fmin,doask,$
+                x,w,xreg,wreg,usereg,physics,eqpar,wnames,cut0
+
+      print
+      for ifunc=0,nfunc-1 do $
+      print,'Min and max value for ',funcs(ifunc),':',fmin(ifunc),fmax(ifunc)
+   endif
+
+   ;===== DO PLOTTING IN MULTIX * MULTIY MULTIPLE WINDOWS
+
+   if keyword_set(multiplot) then begin
+      multix=multiplot(0)
+      multiy=multiplot(1)
+      !p.multi=[0,multix,multiy,0,multiplot(2)]
+   endif else begin
+      multix=long(sqrt(nfunc-1)+1)
+      multiy=long((nfunc-1)/multix+1)
+      !p.multi=[0,multix,multiy,0,0]
+   endelse
+
+   if not noerase then erase
+
+   if velrandom then velpos=0
+
+   if !d.name eq 'X' and !d.window ge 0 then wshow
+
+   plotfunc,x,w,xreg,wreg,usereg,ndim,physics,eqpar,$
+    variables,wnames,axistype,plotmodes,plottitles,$
+    ax,az,contourlevel,0,$
+    velvector,0,velseed,velpos,velx,vely,veltri,$
+    cut,cut0,plotdim,$
+    nfunc,multix,multiy,plotix,plotiy,funcs,funcs1,funcs2,fmin,fmax,f
+
+   putbottom,1,1,0,0,bottomline,nx,it,time
+   putheader,1,1,0,0,headerline,headline,nx
+
+   print
+   !p.multi=0
+   !p.title=''
+   !x.title=''
+   !y.title=''
+   !z.title=''
+   ; Restore velpos array
+   velpos=velpos0 & velpos0=0
+end

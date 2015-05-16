@@ -1,0 +1,15 @@
+!##############################################################################
+! include amrvacusrpar - KHDust
+
+INTEGER,PARAMETER:: fracdust_=neqpar+1, layer_=fracdust_+1, &
+                    rho1_=layer_+1, rho2_=rho1_+1, vel1_=rho2_+1, vel2_=vel1_+1,  &
+                    T1_=vel2_+1, T2_= T1_+1,min_ar_=T2_+1,max_ar_=min_ar_+1,      &
+                    nspecialpar=10
+CHARACTER*99,PARAMETER:: specialparname='fracdust layer rho1 rho2 &
+                    vel1 vel2 T1 T2 min_ar max_ar'
+
+DOUBLE PRECISION, PARAMETER :: mhydro = 1.67e-24
+DOUBLE PRECISION, PARAMETER :: kboltz = 1.38e-16
+
+! end include amrvacusrpar - KHDust
+!##############################################################################

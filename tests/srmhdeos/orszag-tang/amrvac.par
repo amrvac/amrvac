@@ -1,0 +1,59 @@
+ &testlist
+        teststr=''
+ &end
+
+ &filelist
+    primnames=  'rho v1 v2 p b1 b2 lfac xi'
+	autoconvert=.true.
+	saveprim=.true.
+    nwauxio=2
+ &end
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)=1
+        dtsave(2)=0.1
+ &end
+
+ &stoplist
+        tmax=1
+        dtmin=1.d-6
+ &end
+
+ &methodlist
+        wnames=       'd s1 s2 tau b1 b2 lfac xi'
+        fileheadout=  'srmhd22ot_rmhd22'
+        typeadvance=  'threestep'
+        typefull1=    13*'hllc'
+        typelimiter1= 13*'cada3'
+        typelimited= 'predictor'
+        useprimitive=.true.
+        useprimitiveRel=.true.
+        divbfix=T
+ &end
+
+ &boundlist
+        dixB  =   2
+        typeB =8*'periodic',
+	           8*'periodic',
+               8*'periodic',
+               8*'periodic'
+ &end
+
+ &amrlist
+        wflags(1)=1.0d0
+        mxnest=1
+        errorestimate=0
+        nxlone1=256
+        nxlone2=256
+        xprobmin1=0.0d0
+        xprobmax1=6.2831853072d0
+        xprobmin2=0.0d0
+        xprobmax2=6.2831853072d0
+ &end
+
+ &paramlist
+       slowsteps=20
+       courantpar=0.5d0
+ &end

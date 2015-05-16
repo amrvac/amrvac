@@ -1,0 +1,58 @@
+A Python loader class for cell centered vtu data is implemented in read.py.  
+Its best to get the EPD python distribution (Enthought python distribution) 
+which brings all the needed dependencies.
+These are mainly vtk and matplotlib. 
+
+You should append this dir to your python search path.  
+For example by placing a file 'userpath.pth' in the site-packages folder.  On a mac that is typically here:
+/Library/Frameworks/Python.framework/Versions/Current/lib/python2.7/site-packages
+The userpath.pth simply contains:
+youramrvacdir/tools/python
+where obviously youramrvacdir is replaced by the path to your amrvac installation ($AMRVAC_DIR).  
+
+Afterwards, you will have an interactive plotting environment.  Fire up ipython: 
+> ipython --pylab
+
+import the reader and plotter classes:
+
+> import read,amrplot
+
+load the data:
+
+> d=read.load(offset,file='data',type='vtu')
+
+which loads data'offset'.vtu
+
+Plot using 
+> p=amrplot.polyplot(d.rho,d)
+
+Plot something else:
+
+> p.show(d.v1,d)
+
+directly show temperature using: 
+
+> p.show(d.p/d.rho,d)
+
+amrplot.polyplot() is a plotting class that creates polygons for each cell thus respecting the amr.  
+amrplot.rgplot() is a derived class that instead uses bicubic interpolation to a regular mesh.  
+
+Check out the source files for all the plotting functionality you might need.  
+The main ones are read.py and amrplot.py
+A neat feature for example is that you can middle-click on the plotting window and get back the data for that particular cell.  
+There are routines for contours, fieldlines, velovects and 'plot over line' (AMR aware).  
+
+
+There is a reference implementation in python to read AMRVAC's native .dat files (due to Tom Hendrix).  Check out datReader.py.  It converts a .dat into ASCII.  This is written in vanilla python, so it should run on any system without dependency trouble.  
+
+
+If you are intereseted in turbulent spectra, classes sed.py and sed3d.py implement fft of your .vtu data with everything you might need for reading, shell averaging and time-averaging.  
+
+
+Also there is a synchrotron raytracing code in synchro.py.  
+It takes 2D or 3D vtu data as input.  Its easy to adopt the emissivity to other physical processes.  
+The 2D (axisymmetric) version has been updated to be actually quite efficient and can handle high resolution simulations.  
+
+Enjoy!
+
+Oliver

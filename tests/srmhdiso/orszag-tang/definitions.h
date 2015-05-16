@@ -1,0 +1,2 @@
+#undefine EPSINF
+#undefine GLM

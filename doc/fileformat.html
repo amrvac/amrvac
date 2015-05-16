@@ -1,0 +1,31 @@
+<HTML>
+<HEAD>
+<TITLE>MPI-AMRVAC DATA FILE FORMAT</TITLE>
+</HEAD>
+<BODY>
+<H1>MPI-AMRVAC DATA FILE FORMAT</H1>
+
+All data files consist of a single snapshot, and they can be used for restart and/or further conversion to other data formats directly usable for visualization.
+Note that restart is possible on a differing number of CPUs, and may suddenly allow more refinement levels. Also, note that the individual snapshots will typically have different lengths, as the number of grid blocks will vary dynamically. The data is saved in binary format (double precision). You can find the exact implementation in <em>amrio.t</em>, in the subroutine <em>saveamrfile</em>. In fact, there are three options to write out the data files, differing in their means to use parallel I/O from MPI-2. They are selected through <b>typeparIO</b> which is an integer taking values <b>1,0,-1</b>.
+<b>Each snapshot is in a single <em>*.dat</em> file, and contains the following:</b>
+<p>
+The first part of each <em>*.dat</em> file stores all the conservative variables <em>w</em> for all grids which happen to be present at that time in the tree hierarchy. The Morton-ordered space filling curve through the grid hierarchy, together with the fixed block size, allows us to perform fully parallel I/O read and write operations. Each processor writes all grids stored in its local memory in the order defined by the Morton number of the grid. All processors write simultaneously to a single file when <b>typeparIO=1</b>. Each grid block writes the <em>nw</em> variables out over the full mesh (without the ghost cell layers).
+<p>
+This part is then followed by all extra info needed to reconstruct/restart the simulation, which is written at the end <em>*.dat</em> file by the master CPU.
+The extra info consists of 
+<pre>
+(1)  the boolean representation of the grid structure; 
+(2)  info on grid block size per dimension, actually the mesh size <em>nx^D</em> 
+(3)  equation-specific variable values (i.e. the <em>eqpar</em> array) 
+(4)  number of active tree leafs <em>nleafs</em>, 
+(5)  maximal refinement level present <em>levmax</em>, 
+(6)  dimensionality NDIM, 
+(7)  number of vector components NDIR, 
+(8)  number of variables <em>nw</em>, 
+(9)  number of equation-specific variables <em>neqpar+nspecialpar</em>, 
+(10) integer time counter <em>it</em>, 
+(11) global time <em>t</em>. 
+</pre>
+<p>
+</BODY>
+</HTML>

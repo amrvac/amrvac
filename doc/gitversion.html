@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> <head>
+<title>GIT version</title>
+</head>
+
+<body>
+<h1>How to migrate to the git version</h1>
+
+<hr>
+<ol>
+  <li>
+  Go through the website
+  <a href="GettingStarted.html"> GettingStarted</a>
+  </li>
+  <li>
+  New switches for setup.pl (former setamrvac): <br>
+For MHD and HD, the equation of state is controlled via:
+  <br>
+-eos=gamma/iso where gamma is the ideal gas with adiabatic index
+eqpar(gamma_)
+  <br>
+iso inherits the functionality from the hdadiab or mhdiso modules.
+Currently -eos=default will result in -eos=gamma (but this could
+change in the relativistic modules).  
+This is still to be implemented for the relativistic modules sr(m)hd
+and sr(m)hdeos
+  <br>
+ -nf=0(default)  :: number of tracers which move with fluid element
+ adds variables tr1_ to trn_.Select regions that you want to trace and let
+ w(ix^D,tr1_)=one (primitive variable) or w(ix^D,Dtr1_)=w(ix^D,rho_) (conservative
+ variable) there. In .par file, add names for tr1_ in primnames and  wnames and a
+ suitable boundary type for tr1_ in parameter typeB.
+  <br>
+ -arch=default/macbook/debug/...:: select a compiling mode defined in arch/*.defs.
+ you can easily add more machine specific definition files here.
+  <br>
+  -ndust=0(default) :: number of dust species to use in hd physics
+  module
+
+  <p>
+
+   Make a folder for your own problem anywhere you want, for example, 
+  ~/simulations/CME/. In this folder type 
+ <pre>$AMRVAC_DIR/setup -d=33 -z=0 -phi=0 -g=16,16,16 -p=hd -u=CME -s</pre>
+ to set up the compiling environment.
+ <br>
+  Your original usr files 
+ <em>$AMRVAC_DIR/src/usr/amrvacusr.t.CME</em> and <em>amrvacusrpar.t.CME</em> will be copied into 
+ this folder ~/simulation/CME/ as amrvacusr.t and amrvacusrpar.t.
+  <br>
+  From then on you just need to modify these two files to change your code. Besides, you need
+ to create a parameter file named as amrvac.par (or a symbolic link file linked 
+ to your parameter file with another name) in the folder. 
+ <p>
+ Then compile your code:
+ <pre>make</pre>
+ and run on 2 processors:
+ <pre>mpirun -np 2 amrvac </pre>
+ If you changed the compiling environment, you should make clean before compile.
+ You may also create a folder datamr/ in ~/simulations/CME/ to output data in
+ it. By default, the output will be stored in dataxxxx.dat in the
+ simulation directory and since we recommend to run each simulation in
+ is own folder (~/simulations/CME1/, ~/simulations/CME2/ ...) creating
+ a datamr is not longer required.
+  
+  </li>
+  <li>
+  Modify your amrvacusr.t <br>
+ The way to include modules at the beginning of amrvacusr.t is changed a little:
+ <pre>INCLUDE:amrvacusr.gravity.t => INCLUDE:amrvacmodules/gravity.t </pre>
+ <pre>INCLUDE:amrvacnul.specialbound.t => INCLUDE:amrvacnul/specialbound.t </pre>
+ et al. 
+ A new module must be included:
+ <pre>INCLUDE:amrvacnul/usrflags.t</pre>
+ Variable iw can not be used in subroutine specialbound_usr anymore. Just delete 
+ "select case(iw) .. case(rho_) .. end select". And an new subroutine bc_int must be included.
+ See an example in <br> <pre>amrvacnul/specialbound.t</pre>
+ Add x argument in these subroutines:
+ <pre>
+call conserve(ixG^L,ix^L,w,patchw) => call conserve(ixG^L,ix^L,w,x,patchw)
+call primitive(ixI^L,ixI^L,w) => call primitive(ixI^L,ixI^L,w,x)
+call getpthermal(w,ixG^L,ixO^L,pth) => call getpthermal(w,x,ixG^L,ixO^L,pth)
+call smallvalues(w,ixI^L,ixO^L,"aa") => call smallvalues(w,x,ixI^L,ixO^L,"aa")</pre>
+
+  </li>
+  <li>
+ Modify your amrvac.par <br>
+ The way adding split and unsplit source terms is improved. Parameters "sourcesplit" and "sourceunsplit" are removed.
+ The sources, if any, can be added in a split or unsplit way according to the logical parameters "ssplitdivb", "ssplitdust", "ssplitresis", and "ssplituser"
+ which correspond to divb source to maintain divergence free of magnetic field, dust effect, resistivity, and other sources added by user, respectively.
+ The way of cleaning the divergence of magnetic field divB is improved and rearranged. 
+ The parameter "divfix" is removed.  
+ <em>typedivbfix='powel'(default)/'janhunen'/'linde'/'none'/'glm1'(default)/'glm2'/'glm3'</em>
+ If choose 'linde',  two extra parameters will work: <br>
+ <em>divbdiff=0.5d0(default)</em> :: coefficient to control diffusion
+ speed <br>
+ <em>typedivbdiff='all'(default)/'ind'</em> :: add/exclude divB diffusive term in 
+ energy equation.<br>
+ If you choose <em>'glm1'/'glm2'/'glm3'</em>, a line, <pre>#define GLM</pre> must exits in definitions.h, a 
+ new variable <em>psi</em> must exist in <em>amrvac.par</em> after magnetic field <em>b2</em> (if 2 
+ directions) or <em>b3</em> (if 3 directions), and its corresponding boundary type <em>typeB</em> 
+ must be set up (as <em>'cont'</em> or <em>'periodic'</em>).
+ If choose other than glm, <em>#define GLM</em> in definitions.h must be changed, e.g, 
+ into <em>#undefine GLM</em> or deleted.
+  </li>
+  <li>
+Check definitions.h <br>
+This is used to define additional switches.  Currently there are the
+following switches:  <br>
+switch on Hall MHD (<em>#define HALL</em>), <br>
+switch on the GLM treatment (<em>#define GLM</em>), <br>
+add synchrotron cooling to srmhd and srhdeos physics
+modules (<em>#define EPSINF</em>) <br>
+or switch the binary vtu output to big endian (#define BIGENDIAN).  <br>
+This list will grow.  An empty definitions.h should behave as it used
+to. If definitions.h is changed, you need to recompile the code to make it effective. 
+  </li>
+  <li>
+  A new parameter <em>ditregrid</em> is introduced to reconstruct the whole AMR grids
+ once every ditregrid iteration(s) instead of regridding every iteration.
+  </li>
+  <li>
+subroutine specialbound_usr for special boundaries in amrvacusr.t should be modified, as the select case(iw) has been removed.
+A correct example is given as follows: 
+  <pre>
+subroutine specialbound_usr(qt,ixI^L,ixO^L,iw,iB,w,x)
+
+! special boundary types, user defined
+! user must assign conservative variables in bounderies
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixI^L, ixO^L, iw, iB
+double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+double precision, intent(inout) :: w(ixI^S,1:nw)
+!----------------------------------------------------------------------------
+
+! just to give an example for 3D MHD :
+select case(iB)
+ case(1)
+   ! min boundary in the 1st dimension 
+   w(ixO^S,rho_)=1.d0
+   w(ixO^S,v1_)=0.d0
+   w(ixO^S,v2_)=0.d0
+   w(ixO^S,v3_)=0.d0
+   w(ixO^S,p_)=2.d0
+   w(ixO^S,b1_)=1.d0
+   w(ixO^S,b2_)=0.d0
+   w(ixO^S,b3_)=0.d0
+   call conserve(ixI^L,ixO^L,w,x,patchfalse)
+ case(2)
+   ! max boundary in the 1st dimension
+   w(ixO^S,rho_)=1.d0
+   w(ixO^S,v1_)=0.d0
+   w(ixO^S,v2_)=0.d0
+   w(ixO^S,v3_)=0.d0
+   w(ixO^S,p_)=2.d0
+   w(ixO^S,b1_)=1.d0
+   w(ixO^S,b2_)=0.d0
+   w(ixO^S,b3_)=0.d0
+   call conserve(ixI^L,ixO^L,w,x,patchfalse)
+ ...
+end select
+end subroutine specialbound_usr
+   </pre>
+  </li>
+</ol>
+
+<hr>
+<address></address>
+<!-- hhmts start -->Last modified: Fri Oct 30 10:50:00 CEST 2012 <!-- hhmts end -->
+</body> </html>

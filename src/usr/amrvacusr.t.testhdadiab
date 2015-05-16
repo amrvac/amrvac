@@ -1,0 +1,567 @@
+!=============================================================================
+! amrvacusr.t.testhdadiab
+
+! INCLUDE:amrvacnul/specialini.t
+INCLUDE:amrvacnul/speciallog.t
+INCLUDE:amrvacnul/specialimpl.t
+!INCLUDE:amrvacnul/specialbound.t
+!INCLUDE:amrvacnul/specialsource.t
+!=============================================================================
+subroutine initglobaldata_usr
+
+include 'amrvacdef.f'
+!-----------------------------------------------------------------------------
+eqpar(vampl_)=0.0d0
+eqpar(vper_)=0.0d0
+eqpar(rdriv_)=0.0d0
+
+select case(iprob)
+ case(1,7,11,15,16,17)
+   ! isothermal
+   eqpar(adiab_)=1.0d0
+   eqpar(gamma_)=1.0d0
+ case(2,12)
+   ! polytropic
+   eqpar(adiab_)=1.0d0
+   eqpar(gamma_)=1.5d0
+ case(3,13,18,19,20,21)
+   ! zero pressure, temperature
+   eqpar(adiab_)=0.0d0
+   eqpar(gamma_)=1.0d0
+ case(4,14)
+   ! polytropic, lower isothermal sound speed
+   eqpar(adiab_)=0.1d0
+   eqpar(gamma_)=1.2d0
+ case(5,9)
+   ! isothermal
+   eqpar(adiab_)=1.0d0
+   eqpar(gamma_)=1.0d0
+   eqpar(vampl_)=0.02d0
+   eqpar(vper_)=1.0d0
+   eqpar(rdriv_)=0.1d0
+ case(6,10)
+   ! isothermal
+   eqpar(adiab_)=1.0d0
+   eqpar(gamma_)=1.0d0
+   eqpar(vampl_)=0.5d0
+   eqpar(vper_)=1.0d0
+   eqpar(rdriv_)=0.1d0
+ case(8)
+   ! isothermal
+   eqpar(adiab_)=1.0d0
+   eqpar(gamma_)=1.0d0
+   eqpar(vampl_)=0.1d0
+   eqpar(rdriv_)=0.1d0
+endselect 
+
+end subroutine initglobaldata_usr
+!=============================================================================
+subroutine initonegrid_usr(ixG^L,ix^L,w,x)
+
+! initialize one grid 
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixG^L,ix^L
+double precision, intent(in) :: x(ixG^S,1:ndim)
+double precision, intent(inout) :: w(ixG^S,1:nw)
+
+logical::          first
+double precision:: qv,width,dv,k1,sigma
+double precision:: slocx^D,m1right,m1left,rhoright,rholeft
+double precision:: m2right,m2left
+double precision:: m3right,m3left,vleft,vright,uhat
+
+data first/.true./
+!----------------------------------------------------------------------------
+oktest = index(teststr,'initonegrid_usr')>=1
+if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
+                'ixG^L : ',ixG^L
+
+if (typephys/='hdadiab') then
+   call mpistop("test problems are all HDADIAB problems: set typephys!")
+end if
+
+{^C& m^Cleft=zero \}
+{^C& m^Cright=zero \}
+
+select case(iprob)
+ case(1,2,3,4)
+   ! setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=hdadiab -u=testhdadiab
+   {^IFONED   call mpistop("prob is 2D") }
+   {^IFTHREED call mpistop("prob is 2D") }
+   qv=0.645d0
+   width=0.05d0
+   dv=0.01d0
+   k1=two*dpi
+   sigma=0.20d0
+   {^IFTWOD
+   w(ixG^S,rho_)=one
+   w(ixG^S,m1_)=qv*tanh(x(ixG^S,2)/width)
+   w(ixG^S,m2_)=dv*sin(k1*x(ixG^S,1))*exp(-(x(ixG^S,2)/sigma)**2)
+   if(first .and. mype==0)then
+      write(*,*)'Doing 2D HDADIAB, Kelvin-Helmholtz problem'
+      write(*,*)'qv, width, dv, k1, sigma:'
+      write(*,*)qv,width,dv,k1,sigma
+      first=.false.
+   endif
+   \}
+ case(11,12,13,14)
+   ! setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=hdadiab -u=testhdadiab
+   {^IFONED   call mpistop("prob is 2D") }
+   {^IFTHREED call mpistop("prob is 2D") }
+   qv=0.645d0
+   width=0.05d0
+   dv=0.01d0
+   k1=two*dpi
+   sigma=0.20d0
+   {^IFTWOD
+   w(ixG^S,rho_)=one
+   where(x(ixG^S,2)<=zero)
+     w(ixG^S,m1_)=-qv
+   elsewhere
+     w(ixG^S,m1_)=qv
+   endwhere
+   w(ixG^S,m2_)=dv*sin(k1*x(ixG^S,1))*exp(-(x(ixG^S,2)/sigma)**2)
+   if(first .and. mype==0)then
+      write(*,*)'Doing 2D HDADIAB, Kelvin-Helmholtz problem'
+      write(*,*)'qv, dv, k1, sigma:'
+      write(*,*)qv,dv,k1,sigma
+      first=.false.
+   endif
+   \}
+ case(5,6,9,10)
+   ! 9,10: setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   ! 5,6:  setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=hdadiab -u=testhdadiab
+   w(ixG^S,rho_)=one
+   {^C&w(ixG^S,m^C_) = zero \}
+   if(first .and. mype==0)then
+      write(*,*)'Doing HDADIAB, sound wave problem'
+      write(*,*)' amplitude, period, region=', &
+               eqpar(vampl_),eqpar(vper_),eqpar(rdriv_)
+      first=.false.
+   endif
+ case(7)
+   ! setamrvac -d=12 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   rholeft=1.0d0
+   rhoright=0.2d0
+   m1left=rholeft*0.3d0
+   m1right=rhoright*0.0d0
+   m2left=rholeft*(-0.5d0)
+   m2right=rhoright*(0.5d0)
+   {^D&slocx^D=zero \}
+   where({^D&x(ixG^S,^D)<=slocx^D|.or.})
+      w(ixG^S,rho_)     = rholeft
+      {^C&w(ixG^S,m^C_) = m^Cleft \}
+   elsewhere
+      w(ixG^S,rho_)     = rhoright
+      {^C&w(ixG^S,m^C_) = m^Cright \}
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing 1.5D HDADIAB, Riemann problem'
+      write(*,*)' rhoright, rholeft, m1right, m1left, m2right, m2left='
+      write(*,*) rhoright, rholeft, m1right, m1left, m2right, m2left
+      first=.false.
+   endif
+ case(8)
+   ! both in 1D and 2D, 3D
+   ! setamrvac -phi=0 -z=0 -p=hdadiab -u=testhdadiab
+   {^C&w(ixG^S,m^C_)=zero \}
+   where({^D&x(ixG^S,^D)**2|+}<=eqpar(rdriv_)**2)
+      w(ixG^S,rho_)     = one+eqpar(vampl_) 
+   elsewhere
+      w(ixG^S,rho_)     = one
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing HDADIAB, sound wave problem'
+      write(*,*)' amplitude, region=',eqpar(vampl_),eqpar(rdriv_)
+      first=.false.
+   endif
+ case(15)
+   ! setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   {^IFTWOD call mpistop("prob is 1D") }
+   {^IFTHREED call mpistop("prob is 1D") }
+   rholeft=1.0d0
+   rhoright=0.125d0
+   m1left=rholeft*0.0d0
+   m1right=rhoright*0.0d0
+   {^D&slocx^D=0.5d0 \}
+   where({^D&x(ixG^S,^D)<=slocx^D|.or.})
+      w(ixG^S,rho_)     = rholeft
+      {^C&w(ixG^S,m^C_) = m^Cleft \}
+   elsewhere
+      w(ixG^S,rho_)     = rhoright
+      {^C&w(ixG^S,m^C_) = m^Cright \}
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing 1D HDADIAB, Riemann problem'
+      write(*,*)' rhoright, rholeft, m1right, m1left='
+      write(*,*) rhoright, rholeft, m1right, m1left
+      first=.false.
+   endif
+ case(16)
+   ! setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   {^IFTWOD call mpistop("prob is 1D") }
+   {^IFTHREED call mpistop("prob is 1D") }
+   rholeft=0.455d0
+   rhoright=0.5d0
+   m1left=0.31061d0
+   m1right=0.0d0
+   {^D&slocx^D=0.5d0 \}
+   where({^D&x(ixG^S,^D)<=slocx^D|.or.})
+      w(ixG^S,rho_)     = rholeft
+      {^C&w(ixG^S,m^C_) = m^Cleft \}
+   elsewhere
+      w(ixG^S,rho_)     = rhoright
+      {^C&w(ixG^S,m^C_) = m^Cright \}
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing 1D HDADIAB, Riemann problem'
+      write(*,*)' rhoright, rholeft, m1right, m1left='
+      write(*,*) rhoright, rholeft, m1right, m1left
+      first=.false.
+   endif
+ case(17)
+   ! setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   {^IFTWOD call mpistop("prob is 1D") }
+   {^IFTHREED call mpistop("prob is 1D") }
+   rholeft=0.5d0
+   rhoright=0.445d0
+   m1left=0.0d0
+   m1right=0.31061d0
+   {^D&slocx^D=0.5d0 \}
+   where({^D&x(ixG^S,^D)<=slocx^D|.or.})
+      w(ixG^S,rho_)     = rholeft
+      {^C&w(ixG^S,m^C_) = m^Cleft \}
+   elsewhere
+      w(ixG^S,rho_)     = rhoright
+      {^C&w(ixG^S,m^C_) = m^Cright \}
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing 1D HDADIAB, Riemann problem'
+      write(*,*)' rhoright, rholeft, m1right, m1left='
+      write(*,*) rhoright, rholeft, m1right, m1left
+      first=.false.
+   endif
+ case(18,19)
+   ! setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   {^IFTHREED call mpistop("prob is 1D") }
+   rholeft=2.0d0
+   rhoright=1.0d0
+   m1left=rholeft*1.0d0
+   m1right=rhoright*(-1.0d0)
+   if(iprob==18) w(ixG^S,rho_) = 1.0d-10
+   if(iprob==19) w(ixG^S,rho_) = zero
+   {^C&w(ixG^S,m^C_) = zero \}
+   where(x(ixG^S,1)<-one.and.x(ixG^S,1)>-two)
+      w(ixG^S,rho_)     = rholeft
+      {^C&w(ixG^S,m^C_) = m^Cleft \}
+   endwhere
+   where(x(ixG^S,1)>one.and.x(ixG^S,1)<5.0d0)
+      w(ixG^S,rho_)     = rhoright
+      {^C&w(ixG^S,m^C_) = m^Cright \}
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing HDADIAB, Leveque problem'
+      write(*,*)' rhoright, rholeft, m1right, m1left='
+      write(*,*) rhoright, rholeft, m1right, m1left
+      if(iprob==18)write(*,*)'  with minimal density 1.0d-10'
+      if(iprob==19)write(*,*)'  with minimal density 0'
+      first=.false.
+   endif
+ case(20)
+   ! setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   {^IFTHREED call mpistop("prob is 1D") }
+   rholeft=2.0d0
+   rhoright=1.0d0
+   vleft=1.0d0
+   vright=-1.0d0
+   m1left=rholeft*vleft
+   m1right=rhoright*vright
+   where(x(ixG^S,1)<zero)
+      w(ixG^S,rho_)     = rholeft
+      {^C&w(ixG^S,m^C_) = m^Cleft \}
+   elsewhere
+      w(ixG^S,rho_)     = rhoright
+      {^C&w(ixG^S,m^C_) = m^Cright \}
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing HDADIAB, Leveque Riemann problem'
+      write(*,*)' rhoright, rholeft, m1right, m1left='
+      write(*,*) rhoright, rholeft, m1right, m1left
+      first=.false.
+      uhat=(dsqrt(rholeft)*vleft+dsqrt(rhoright)*vright) &
+            /(dsqrt(rholeft)+dsqrt(rhoright))
+      write(*,*) 'should generate a delta wave with speed',uhat
+   endif
+ case(21)
+   ! setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab
+   {^IFTHREED call mpistop("prob is 1D") }
+   rholeft=2.0d0
+   rhoright=1.0d0
+   vleft=-1.0d0
+   vright=1.0d0
+   m1left=rholeft*vleft
+   m1right=rhoright*vright
+   where(x(ixG^S,1)<zero)
+      w(ixG^S,rho_)     = rholeft
+      {^C&w(ixG^S,m^C_) = m^Cleft \}
+   elsewhere
+      w(ixG^S,rho_)     = rhoright
+      {^C&w(ixG^S,m^C_) = m^Cright \}
+   endwhere
+   if(first .and. mype==0)then
+      write(*,*)'Doing HDADIAB, Leveque Riemann problem'
+      write(*,*)' rhoright, rholeft, m1right, m1left='
+      write(*,*) rhoright, rholeft, m1right, m1left
+      first=.false.
+      write(*,*) 'should create a vacuum in between'
+   endif
+case default
+   write(unitterm,*)'Undefined Iprob in Userfile ',iprob
+   call mpistop(' --- initonegrid_usr ---')
+end  select 
+
+end subroutine initonegrid_usr
+!=============================================================================
+subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+
+! Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
+! iw=iwmin...iwmax.  wCT is at time qCT
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixI^L, ixO^L, iw^LIM
+double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
+double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+
+integer :: iw
+!-----------------------------------------------------------------------------
+
+select case(iprob)
+ case(5,6)
+  do iw= iw^LIM
+   select case(iw)
+    case(rho_)
+       ! The driving source is located in circular region
+       where({^D&x(ixO^S,^D)**2|+}<=eqpar(rdriv_)**2)
+         w(ixO^S,rho_)=one
+       endwhere
+    {^IFTWOD
+    case(m1_)
+       ! The driving source is located in circular region
+       where(x(ixO^S,1)**2+x(ixO^S,2)**2<=eqpar(rdriv_)**2)
+         w(ixO^S,m1_)=eqpar(vampl_)*dsin(two*dpi*(qt+qdt)/eqpar(vper_)) &
+            *dcos(datan2(x(ixO^S,2),x(ixO^S,1)))
+       endwhere
+    case(m2_)
+       ! The driving source is located in circular region
+       where(x(ixO^S,1)**2+x(ixO^S,2)**2<=eqpar(rdriv_)**2)
+         w(ixO^S,m2_)=eqpar(vampl_)*dsin(two*dpi*(qt+qdt)/eqpar(vper_)) &
+            *dsin(datan2(x(ixO^S,2),x(ixO^S,1)))
+       endwhere
+    \}
+    end select
+  end do
+end  select 
+
+end subroutine specialsource
+!=============================================================================
+subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
+
+! Limit "dt" further if necessary, e.g. due to the special source terms.
+! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
+! module have already been called.
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixG^L, ix^L
+double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
+double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
+!-----------------------------------------------------------------------------
+
+dtnew=bigdouble
+select case(iprob)
+ case(5,6,9,10)
+   dtnew=eqpar(vper_)/100.0d0
+end  select 
+
+end subroutine getdt_special
+!=============================================================================
+subroutine specialeta(w,ixI^L,ix^L,idirmin,x,current,eta)
+
+! Set the "eta" array for resistive MHD based on w or the
+! "current" variable which has components between idirmin and 3.
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixI^L, ix^L, idirmin
+double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
+
+double precision :: current(ixG^T,7-2*ndir:3), eta(ixG^T)
+!-----------------------------------------------------------------------------
+
+!  eta(ix^S)=...
+
+call mpistop("specialeta is not defined")
+
+end subroutine specialeta
+!=============================================================================
+subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
+
+! Enforce additional refinement or coarsening
+! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
+
+! you must set consistent values for integers refine/coarsen:
+
+! refine = -1 enforce to not refine
+! refine =  0 doesn't enforce anything
+! refine =  1 enforce refinement
+
+! coarsen = -1 enforce to not coarsen
+! coarsen =  0 doesn't enforce anything
+! coarsen =  1 enforce coarsen
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: igrid, level, ixG^L, ix^L
+double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
+integer, intent(inout) :: refine, coarsen
+!-----------------------------------------------------------------------------
+
+select case(iprob)
+ case(5,6)
+  if(any({^D&x(ix^S,^D)**2|+}<eqpar(rdriv_)**2)) then
+   refine=1
+   coarsen=-1
+  endif
+ case(1,2,3,4,11,12,13,14)
+ {^IFTWOD
+  if(any(dabs(x(ix^S,2))<0.05d0)) then
+   refine=1
+   coarsen=-1
+  endif
+ \}
+end select
+
+end subroutine specialrefine_grid
+!=============================================================================
+subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
+
+! this is the place to compute a local auxiliary variable to be used
+! as refinement criterion for the Lohner error estimator only
+!  -->it is then requiring and iflag>nw
+! note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
+
+include 'amrvacdef.f'
+
+integer, intent(in)          :: ixI^L,ixO^L,iflag
+double precision, intent(in) :: w(ixI^S,1:nw)
+double precision, intent(out):: var(ixG^T)
+!-----------------------------------------------------------------------------
+
+if (iflag >nw)call mpistop(' iflag> nw, make change in parfile or in user file')
+
+var(ixI^S) = zero 
+
+end subroutine specialvarforerrest
+!=============================================================================
+subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
+
+! Here one can add a steady (time-independent) potential background field
+
+include 'amrvacdef.f'
+
+integer, intent(in)           :: ixI^L,ixO^L
+double precision, intent(in)  :: x(ixI^S,1:ndim)
+double precision, intent(inout) :: wB0(ixI^S,1:ndir)
+!-----------------------------------------------------------------------------
+call mpistop(' abs(Busr)> 0, make change in parfile or in user file')
+
+wB0(ixO^S,1:ndir)=wB0(ixO^S,1:ndir)
+!!wB0(ixO^S,1:ndir)=wB0(ixO^S,1:ndir)+user defined steady potential field
+
+end subroutine specialset_B0
+!=============================================================================
+subroutine specialbound_usr(qt,ixG^L,ixO^L,iw,iB,w,x)
+
+! special boundary types, user defined
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixG^L, ixO^L, iw, iB
+double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+double precision, intent(inout) :: w(ixG^S,1:nw)
+!----------------------------------------------------------------------------
+
+select case(iprob)
+ case(9,10)
+   select case(iB)
+    ! impose a periodic driver at left
+    case(1)
+      select case(iw)
+       case(m1_)
+        w(ixO^S,m1_)=w(ixO^S,rho_)*eqpar(vampl_)*dsin(two*dpi*qt/eqpar(vper_))
+       case default
+        call mpistop("Special boundary 1 is not defined for this variable")
+      end select
+    case default
+      call mpistop("Special boundary not defined")
+   end select
+end select
+
+end subroutine specialbound_usr
+
+
+!=============================================================================
+subroutine bc_int(qt,ixG^L,ixO^L,w,x)
+
+! internal boundary, user defined
+!
+! This subroutine can be used to artificially overwrite ALL conservative 
+! variables in a user-selected region of the mesh, and thereby act as
+! an internal boundary region. It is called just before external (ghost cell)
+! boundary regions will be set by the BC selection. Here, you could e.g. 
+! want to introduce an extra variable (nwextra, to be distinguished from nwaux)
+! which can be used to identify the internal boundary region location.
+! Its effect should always be local as it acts on the mesh.
+!
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixG^L,ixO^L
+double precision, intent(in) :: qt
+double precision, intent(inout) :: w(ixG^S,1:nw)
+double precision, intent(in) :: x(ixG^S,1:ndim)
+
+! .. local ..
+!logical :: patchw(ixG^T)
+!----------------------------------------------------------------------------
+
+call mpistop("bc_int not defined")
+
+! just to give an example for relativistic MHD
+!  -----------------------------------------
+!patchw(ixO^S)=.true.
+!where (({^D&x(ixO^S,^D)**2+})<half**2.0d0) 
+!    patchw(ixO^S) = .false.
+!  ^C&w(ixO^S,v^C_)=zero;
+!  ^C&w(ixO^S,b^C_)=zero;
+!    w(ixO^S,b3_) = one
+!    w(ixO^S,v1_) = 0.99
+!    w(ixO^S,rho_) = 1.d0
+!    w(ixO^S,pp_)  = 2.0d0
+!    w(ixO^S,lfac_)=one/dsqrt(one-({^C&w(ixO^S,v^C_)**2.0d0+}))
+!end where
+!!if (useprimitiveRel) then
+!!  where (({^D&x(ixO^S,^D)**2+})<half**2.0d0) 
+!!  {^C&w(ixO^S,u^C_)=w(ixO^S,lfac_)*w(ixO^S,v^C_);\}
+!!  end where
+!!endif
+!call conserve(ixG^L,ixO^L,w,patchw)
+
+end subroutine bc_int
+!=============================================================================
+!=============================================================================
+! amrvacusr.t.testhdadiab
+!=============================================================================

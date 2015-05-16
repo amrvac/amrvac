@@ -1,0 +1,11 @@
+filename='datamr/implmhd33.3l.out'
+.r Idl_amr/getpict
+func='rho'
+func=strtrim(func)
+print,func
+ff=animfunc(x,w,func,physics,eqpar,wnames)
+fslice=ff
+hdata=ptr_new(fslice,/no_copy)
+fslice=ff
+slicer3,[hdata,hdata]
+

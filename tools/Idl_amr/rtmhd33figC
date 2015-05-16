@@ -1,0 +1,29 @@
+
+.r Idl_amr/procedures
+
+;filename='/home/greta/AMRVAC/newversion/datamr/rtmhd33.out'
+filename='datamr_final/rtmhd33.l3.out'
+npict=6
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+device,/encapsulated,bits=8,/color
+device,xsize=16,ysize=16,xoffset=0,yoffset=0
+device,filename='rtmhd33.t1.y6.eps'
+
+plotmode='contfillT_amr'
+func='rho'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17z'
+
+.r Idl_amr/plotfunc
+device,/close

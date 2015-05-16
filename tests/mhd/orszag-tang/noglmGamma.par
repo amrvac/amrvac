@@ -1,0 +1,52 @@
+ &testlist
+ /
+
+ &filelist
+        primnames     =  'rho v1 v2 p b1 b2'
+        autoconvert   = T
+        saveprim      = T
+        nwauxio       = 2
+        filenameout   = 'linde'
+ /
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave(1)    = 1
+        dtsave(2)     = 0.1
+ /
+
+ &stoplist
+        tmax          = 0.5
+ /
+
+ &methodlist
+        wnames        = 'rho m1 m2 e b1 b2'
+        fileheadout   = 'ot_mhd22'
+        typeadvance   = 'threestep'
+        typefull1     = 13*'tvdlf'
+        typelimiter1  = 13*'minmod'
+        typedivbfix   = 'linde'
+ /
+
+ &boundlist
+        dixB          = 3
+        typeB         = 6*'periodic',6*'periodic',
+                        6*'periodic',6*'periodic'
+ /
+
+ &amrlist
+        mxnest        = 2
+        errorestimate = 3
+    	tol           = 13*0.4d0
+        nxlone1       = 256
+        nxlone2       = 256
+        xprobmin1     = 0.0d0
+        xprobmax1     = 1.0d0
+        xprobmin2     = 0.0d0
+        xprobmax2     = 1.0d0
+ /
+
+ &paramlist
+        courantpar    = 0.5d0
+ /

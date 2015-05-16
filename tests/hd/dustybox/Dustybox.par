@@ -1,0 +1,84 @@
+ &testlist
+        teststr=''
+ /
+
+ &filelist
+        filenamelog='./dustyB'
+        filenameout='./output/DustyB'
+        primnames='rho v1 p rhod1 rhod2 rhod3 rhod4 v1d1 v1d2 v1d3 v1d4'
+	autoconvert=.true.
+	saveprim=.true.
+ /
+        filenameini='datamr/DUSTYSEDOV/D2000'
+        snapshotini=10
+        snapshotnext=11
+        convert=.true.
+        convert_type='vtu'
+ /
+        nwauxio=2
+ 
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)=1
+        !dtsave(1)=0.00001
+	dtsave(2)=10.0d0
+ /
+
+ &stoplist
+        dtmin=1.d-30
+        tmax=1.0d0
+ /
+        itmax=1000
+
+ &methodlist
+        wnames=       'rho m1 e rhod1 rhod2 rhod3 rhod4 m1d1 m1d2 m1d3 m1d4'
+        fileheadout=  'RiemannHD'
+        typeadvance=  'twostep'
+        typefull1=    13*'tvdlf'
+        typelimiter1= 13*'woodward'
+        typelimited=  'previous'
+        useprimitive=.true.
+        typeaxial='slab'
+        dimsplit=.false.
+	dustmethod = 'sticking'
+	smallrho  = 1.0d-12
+        smallp    = 1.0d-12
+	dustzero=.true.
+        smallrhod=1.0d-12
+	strictsmall = .F.
+        strictgetaux = .T.
+ /
+
+ &boundlist
+        dixB=    2
+        typeB=	 11*'periodic',
+                 11*'periodic'
+ /
+
+ &amrlist
+        errorestimate=3
+        !flags(6)=1
+        !flags(1)=4
+        !flags(2)=2
+        !flags(3)=3
+        !wflags(1)=1.0d0
+        !wflags(2)=0.1d0
+        !wflags(3)=0.1d0
+        mxnest=1
+        nbufferx1=0
+        tol=13*0.2d0
+        tolratio=13*0.1d0
+        nxlone1=2000
+        xprobmin1=-1.0d0
+        xprobmax1=1.0d0
+        !iprob=4
+ /
+
+ &paramlist
+        !dtpar=5.0d-5
+	typecourant='maxsum'
+        courantpar=0.2d0
+        slowsteps=0
+ /

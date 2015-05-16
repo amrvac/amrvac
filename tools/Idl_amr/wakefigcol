@@ -1,0 +1,47 @@
+filename='datamr/wakemhd23B.out'
+npict=1
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+loadct,8
+device,/encapsulated,bits=8,/color
+device,xsize=24,ysize=16,xoffset=0,yoffset=0
+device,filename='wakeAMR.eps'
+
+
+!P.POSITION=[0.05,0.52,0.352,0.95]
+plotmode='contfillN_amr'
+func='rho'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title=''
+!y.title=''
+
+.r Idl_amr/plotfunc
+!P.POSITION=[0.348,0.52,0.652,0.95]
+plotmode='contfillN_amr'
+.r Idl_amr/plotfunc
+!P.POSITION=[0.648,0.52,0.95,0.95]
+plotmode='contfillN_amr'
+.r Idl_amr/plotfunc
+npict=5
+
+.r Idl_amr/getpict
+
+!P.POSITION=[0.05,0.05,0.352,0.48]
+plotmode='contfillN_amr'
+.r Idl_amr/plotfunc
+!P.POSITION=[0.348,0.05,0.652,0.48]
+plotmode='contfillN_amr'
+.r Idl_amr/plotfunc
+!P.POSITION=[0.648,0.05,0.95,0.48]
+plotmode='contfillN_amr'
+.r Idl_amr/plotfunc
+device,/close

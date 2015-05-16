@@ -1,0 +1,88 @@
+ &testlist
+        teststr=''
+ /
+
+ &filelist
+        filenamelog='logfile'
+        primnames='rho v1 v2 v3 p tr1'
+        saveprim=.true.
+        autoconvert=.true.
+	convert_type='vtuBCCmpi'
+	typeparIO=1
+	filenameout= './output/accretion'
+	filenameini= './output/accretion'
+	nwauxio=3
+ /
+	snapshotini=40
+	snapshotnext=41
+ /
+	writew=.T.,3*.F.,2*.T.,4*.F.
+ /
+	convert=.true.
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)=200
+	!ditsave(2)=1
+        dtsave(2)=0.05
+ /
+
+ &stoplist
+	!itmax = 5
+        tmax=2.0
+        dtmin=1.0d-25
+ /
+
+ &methodlist
+        wnames='rho m1 m2 m3 e Dtr1'
+        typeadvance=  'twostep'
+        typefull1=13*'tvdlf'
+        typelimiter1=2*'minmod',5*'woodward',6*'minmod'
+	dustmethod = 'sticking'
+
+	useprimitive=T
+	loglimit(1)=.true.
+	loglimit(5)=.true.
+
+	fixsmall=.true.
+ 	strictsmall=.false.
+	smallrho=1.0d-3
+	smallp=1.0d-3
+	!smallrhod=1.0d-7
+ 	strictgetaux=.true.
+ 	nflatgetaux=3
+
+	tfix=.true.
+	! started cooling values below at it=412
+	ncool=10000
+	coolmethod='exact'
+	coolcurve='DM'
+ /
+
+ &boundlist
+        dixB=2
+	internalboundary=.true.
+        typeB=24*'noinflow'
+ /
+
+ &amrlist
+        errorestimate=0
+        mxnest = 8
+	tol=13*0.2d0
+        tolratio=13*0.5d0
+        nxlone1=30
+        nxlone2=30
+        xprobmin1=-4.00
+        xprobmax1=4.0
+        xprobmin2=-4.0
+        xprobmax2=4.0
+ /
+
+ &paramlist
+        courantpar = 0.3d0
+	dtdiffpar  = 0.3d0
+        slowsteps=100
+	!dtpar = 1e-7
+ /

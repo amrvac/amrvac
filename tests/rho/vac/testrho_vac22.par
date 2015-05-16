@@ -1,0 +1,62 @@
+!=====================================================
+! Project : Advection test
+!
+!=====================================================
+ &testlist
+        teststr=' '
+/
+
+ &filelist
+        primnames='rho'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+!	writespshift(1,1)=0.0
+!	writespshift(1,2)=0.5
+!	writespshift(2,1)=0.0
+!	writespshift(2,2)=0.5
+/
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)=1
+        dtsave(4)=0.1
+        collapse(1) = T
+        collapse(2) = T
+        ditsave(5)=1
+        dtsave(2)=0.05d0
+ /
+
+ &stoplist
+        tmax=1.0d0
+ /
+
+ &methodlist
+        wnames=       'rho'
+        fileheadout=  'test_rho22'
+        typeadvance=  'ssprk54'
+        typefull1 =    13*'fd'
+        typepred1 =    13*'fd'
+        typelow1  =    13*'fd'
+        typelimiter1= 13*'mp5'
+ /
+
+ &boundlist
+        dixB=   3
+        typeB=  'periodic','periodic','periodic','periodic'
+ /
+
+ &amrlist
+        mxnest=3
+        tol=13*0.1d0
+        nxlone1=50
+        nxlone2=50
+        iprob=3
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /
+
+ &paramlist
+       courantpar=0.60
+ /

@@ -1,0 +1,55 @@
+ &testlist
+ /
+
+ &filelist
+        primnames     =  'rho v1 v2 v3 p b1 b2 b3'
+        autoconvert   = T
+        saveprim      = T
+        nwauxio       = 3
+ /
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave(1)    = 1
+        dtsave(2)     = 0.1
+ /
+
+ &stoplist
+        tmax          = 1
+ /
+
+ &methodlist
+        wnames        = 'rho m1 m2 m3 e b1 b2 b3'
+        fileheadout   = 'ot_mhd22'
+        typeadvance   = 'threestep'
+        typefull1     = 13*'hllc'
+        typelimiter1  = 13*'cada3'
+	typedivbfix   = 'linde'
+	compactres    = F
+	typegrad      = 'limited'
+	typediv       = 'limited'
+ /
+
+ &boundlist
+        dixB          = 3
+        typeB         = 8*'periodic' 8*'periodic'
+                        8*'special' 8*'special'
+ /
+
+ &amrlist
+        mxnest        = 4
+        errorestimate = 3
+    	tol           = 13*0.1
+        nxlone1       = 256
+        nxlone2       = 128
+        xprobmin1     = 0
+        xprobmax1     = 2
+        xprobmin2     =-0.5
+        xprobmax2     = 0.5
+	iprob         = 1
+ /
+
+ &paramlist
+        courantpar    = 0.5
+ /

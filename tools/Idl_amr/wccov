@@ -1,0 +1,31 @@
+logfilename='datamr/wcpictl5.log'
+
+.r getlog
+
+set_plot,'ps'
+device,/encapsulated
+device,xsize=16,ysize=16,xoffset=0,yoffset=0
+device,filename='wchd22.cov.eps'
+
+Xyouts,0.1,0.1,'!17 '
+
+!p.title=''
+!x.title='!17t'
+!y.title='!17domain coverage (%)'
+
+wlog(*,4:8)=wlog(*,4:8)*100.0
+
+lth=4
+
+plot,t,wlog(*,5),yrange=[0,40],ystyle=1,thick=lth,xrange=[0,0.2],xstyle=1
+
+oplot,t,wlog(*,6),line=1,thick=lth
+oplot,t,wlog(*,7),line=2,thick=lth
+oplot,t,wlog(*,8),line=3,thick=lth
+
+Xyouts,0.15,26,'!17l=2'
+Xyouts,0.15,15,'!17l=3'
+Xyouts,0.15,9,'!17l=4'
+Xyouts,0.15,5,'!17l=5'
+
+device,/close

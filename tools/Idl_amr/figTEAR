@@ -1,0 +1,111 @@
+nxx=1400
+axth=3.0
+nyy=800
+cch=3.0
+ccxh=1.1
+ccyh=1.1
+csh=3.0
+yv1=0.8
+yv2=0.85
+
+filename='datamr/tearmhd0070.out'
+npict=1
+
+.r Idl_amr/getpict
+print,'time is = ',time
+print,'resistivity'
+print,eqpar(1)
+
+window,xsize=nxx,ysize=nyy
+set_plot,'x'
+loadct,0
+
+!p.background=255
+!p.color=0
+!x.thick=axth
+!y.thick=axth
+
+plotmode='contfillN_amr'
+func='-jz'
+noautodomain=0
+plottitle='!17-J!lz!n'
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17y'
+!p.charsize=cch
+!x.charsize=ccxh
+!y.charsize=ccyh
+
+.r Idl_amr/plotfunc
+
+;Xyouts,/normal,0.15,yv1,'!17t=100',color=0,charsize=csh
+;Xyouts,/normal,0.15,yv2,'!7g!17=0.001',color=0,charsize=csh
+loadct,1
+write_gif,'tear.jz.gif',tvrd(0,0,nxx,nyy)
+
+
+loadct,0
+
+func='schlier2'
+noautodomain=0
+plottitle='!17Schlieren'
+
+Xyouts,0.1,0.1,'!17 '
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17y'
+!p.color=0
+
+.r Idl_amr/plotfunc
+
+;Xyouts,/normal,0.15,yv1,'!17t=100',color=0,charsize=csh
+;Xyouts,/normal,0.15,yv2,'!7g!17=0.001',color=0,charsize=csh
+loadct,1
+write_gif,'tear.schlier.gif',tvrd(0,0,nxx,nyy)
+
+
+loadct,0
+
+func='rho T'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17y'
+!p.color=0
+
+.r Idl_amr/plotfunc
+
+loadct,1
+write_gif,'tear.rhoT.gif',tvrd(0,0,nxx,nyy)
+
+
+loadct,0
+
+func='v1 v2 v3 pth'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!17y'
+!p.color=0
+
+.r Idl_amr/plotfunc
+
+loadct,1
+write_gif,'tear.velp.gif',tvrd(0,0,nxx,nyy)

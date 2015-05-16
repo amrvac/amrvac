@@ -1,0 +1,60 @@
+
+;filename='datamr/belrho22.100.out'
+filename='datamr/belrho22.100l2.out'
+filename='datamr/belrho22.200.out'
+;filename='datamr/belrho22.200l3.out'
+;filename='datamr/belrho22.400.out'
+;filename='datamr/belrho22.400l4.out'
+filename='datamr/belrho22.800.out'
+;filename='datamr/belrho22.800l5.out'
+npict=11
+.r Idl_amr/getpict
+
+func='rho'
+.r Idl_amr/plotfunc
+
+help,xamr
+help,wamr
+help,x
+help,w
+
+xsingle=x
+wsingle=w
+
+
+npict=1
+filename='datamr/belrho22.100.out'
+filename='datamr/belrho22.200.out'
+;filename='datamr/belrho22.400.out'
+filename='datamr/belrho22.800.out'
+.r Idl_amr/getpict
+window,1
+.r Idl_amr/plotfunc
+help,x
+help,w
+x400=x
+w400=w
+
+help,x400
+help,w400
+
+print,'min and max : (exact)'
+print,min(w400),max(w400)
+print,'min and max : (100 t=2)'
+;print,'min and max : (200 t=2)'
+;print,'min and max : (400 t=2)'
+print,min(wsingle),max(wsingle)
+
+print,'coordinate differences:',max(abs(xsingle(*,*,*)-x400(*,*,*)))
+iw=0
+wdif1=total(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+wdifmax=max(abs(w400(*,*,iw)-wsingle(*,*,iw)))
+print,'max local difference is:',wdifmax
+wsum1=total(abs(w400(*,*,iw)))
+wsum2=total(abs(wsingle(*,*,iw)))
+drho=wdif1/wsum1
+print,'drho=',drho
+print,'total density for ref/AMR:'
+print,wsum1,wsum2
+
+print,'=====>delta(rho)=',drho

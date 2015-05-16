@@ -1,0 +1,4 @@
+F90=mpixlf2003
+FFLAGS = -c
+F90FLAGS = -O3 -qstrict -qarch=qp -qtune=qp
+LINK= $(F90)  $(F90FLAGS)

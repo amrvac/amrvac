@@ -1,0 +1,31 @@
+
+.r Idl_amr/procedures
+
+filename='datamr_final/vacrho22.tvdlf.l3.out'
+npict=11
+
+.r Idl_amr/getpict
+
+set_plot,'ps'
+device,/encapsulated,bits=8,/color
+device,xsize=14,ysize=8,xoffset=0,yoffset=0
+device,filename='vaccut.t2.eps'
+
+plotmode='plotf_amr'
+func='rho'
+noautodomain=0
+plottitle=''
+
+Xyouts,0.1,0.1,'!17 '
+
+headerline=0
+bottomline=0
+!p.title=''
+!x.title='!17x'
+!y.title='!7q!17'
+
+!psym=4
+
+.r Idl_amr/plotfunc
+
+device,/close

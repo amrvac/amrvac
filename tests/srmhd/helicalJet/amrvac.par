@@ -1,0 +1,82 @@
+&testlist
+/
+
+&filelist
+  primnames='rho u1 u2 u3 p  b1 b2 b3 psi lfac xi'
+  saveprim=.true.
+  convert_type='pvtuBCCmpi'
+  autoconvert=.true.
+  nwauxio = 1
+  typepario=0
+  filenameout = 'glmLim03'
+/
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)=1
+        dtsave(2)=1.0d0
+/
+ &stoplist
+        tmax=100.0d0
+        itmax=100000
+        dtmin=1.D-9
+/
+
+ &methodlist
+        wnames=       'd s1 s2 s3 e b1 b2 b3 psi lfac xi'
+        fileheadout=  'srmhdJet_rmhd23'
+        typeadvance=  'threestep'
+        typefull1=    13*'hllc'
+!        typelimited=  'predictor'
+        typelimiter1= 13*'cada3'
+!        dimsplit=.false.
+        useprimitive=.true.
+        useprimitiveRel=.true.
+	typeaxial='cylindrical'
+!        divbdiff=1.0d0
+!        typedivbfix='powel'
+!        typedivbdiff='ind'
+        maxitnr=500
+        smallp=1.0d-12
+        smallrho=1.0d-13
+        dmaxvel = 1.0d-8
+        typepoly='bergmans'
+/
+
+ &boundlist
+        dixB  =   3
+        typeB ='symm','asymm','symm','asymm','symm','asymm','symm','asymm',3*'symm'
+	       11*'cont',
+               11*'special',
+               11*'cont'
+/
+
+ &amrlist
+        errorestimate=3
+        flags(12)=3
+        flags(1)=1
+        flags(2)=5
+        flags(3)=8
+        wflags(1)=0.5d0
+        wflags(2)=0.25d0
+        wflags(3)=0.25d0
+        mxnest=4
+	nbufferx1=2
+        nbufferx2=2
+        tol=13*0.2d0
+        tolratio=13*0.1d0
+        nxlone1=96
+        nxlone2=252
+        xprobmin1=0.0d0
+        xprobmax1=40.0d0
+        xprobmin2=0.0d0
+        xprobmax2=200.0d0
+        iprob =1
+/
+
+ &paramlist
+       slowsteps=50
+       courantpar=0.4d0
+       typecourant='maxsum'
+/

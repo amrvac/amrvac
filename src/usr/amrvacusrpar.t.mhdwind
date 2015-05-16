@@ -1,0 +1,15 @@
+!##############################################################################
+! include amrvacusrpar - mhdwind
+
+INTEGER,PARAMETER:: vescape_=neqpar+1,zeta_=vescape_+1,adip_=zeta_+1,&
+                    tbase_=adip_+1,h0_=tbase_+1,sigma0_=h0_+1,&
+                    T0_equator_=sigma0_+1,T0_pole_=T0_equator_+1,&
+                    thetach_=T0_pole_+1,oct1_=thetach_+1,oct2_=oct1_+1, &
+                    t0_=oct2_+1,delt_=t0_+1,ce_=delt_+1, &
+                    deltheta_=ce_+1, &
+                    nspecialpar=15
+CHARACTER*50,PARAMETER:: specialparname= &
+     'p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15'
+
+! end include amrvacusrpar - mhdwind
+!##############################################################################

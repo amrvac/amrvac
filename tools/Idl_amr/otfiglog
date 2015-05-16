@@ -1,0 +1,32 @@
+
+logfilename='datamr_final/otmhd22.l4.log'
+
+.r getlog
+
+set_plot,'ps'
+device,/encapsulated
+device,xsize=16,ysize=16,xoffset=0,yoffset=0
+device,filename='otmhd22.cov.eps'
+
+Xyouts,0.1,0.1,'!17 '
+
+!p.title=''
+!x.title='!17t'
+!y.title='!17domain coverage (%)'
+
+wlog(*,6:9)=wlog(*,6:9)*100.0
+
+lth=4
+
+plot,t,wlog(*,6),yrange=[0,105],ystyle=1,thick=lth,xrange=[0,3.1],xstyle=1
+
+oplot,t,wlog(*,7),line=1,thick=lth
+oplot,t,wlog(*,8),line=2,thick=lth
+oplot,t,wlog(*,9),line=3,thick=lth
+
+Xyouts,0.1,95,'!17l=1'
+Xyouts,0.7,85,'!17l=2'
+Xyouts,1.4,72,'!17l=3'
+Xyouts,2.5,40,'!17l=4'
+
+device,/close

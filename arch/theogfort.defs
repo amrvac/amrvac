@@ -1,0 +1,4 @@
+F90=mpifc -fc=gfortran
+FFLAGS = -c
+F90FLAGS = -ffree-form -ftree-vectorize -fimplicit-none
+LINK= $(F90)  $(F90FLAGS)
