@@ -81,6 +81,28 @@ def get_bcyl(pointdata):
 
     return np.array([br,bphi,bz])
 
+def get_bsphere(pointdata):
+
+    bx=read.extract(pointdata,'b1',attribute_mode='point')
+    by=read.extract(pointdata,'b2',attribute_mode='point')
+    bz=read.extract(pointdata,'b3',attribute_mode='point')
+    
+    points=ah.vtk2array(pointdata.GetPoints().GetData())
+
+    x=points[:,0]
+    y=points[:,1]
+    z=points[:,2]
+
+    rcyl = np.sqrt(np.square(points[:,0])+np.square(points[:,1]))
+    r    = np.sqrt(np.square(points[:,0])+np.square(points[:,1])+np.square(points[:,2]))
+
+    br     = 1./r * (x*bx+y*by+z*bz)
+    bphi   = 1./rcyl * (-y*bx+x*by)
+    btheta = 1./r * (1./rcyl*z*x *bx + 1./rcyl*z*y*by - rcyl*bz)
+
+    return {'br':br, 'bphi':bphi, 'btheta':btheta}
+
+
 def load(offset,filenameout='data',type='pvtu'):
     if type == 'vtu':
         filename=''.join([filenameout,repr(offset).zfill(4),'.vtu'])
@@ -208,7 +230,7 @@ def averageNumba(aniso,points,nregrid,rrange=[0.,1.5e18],phirange=[0.,6.28318530
     (xijk,yijk,zijk) = cylKernel(ri,phij,zk,np.array(nregrid,dtype=np.int32))
 # griddata to points:
     data = griddata((points[:,0],points[:,1],points[:,2]), 
-                    np.array(aniso[0].filled(float('nan')), dtype=np.float64),
+                    np.array(aniso, dtype=np.float64),
                     (xijk,yijk,zijk), method='nearest')
 
     aniso_av = avKernel(data,np.array(nregrid,dtype=np.int32))
@@ -227,13 +249,51 @@ def stddevNumba(aniso,points,nregrid,rrange=[0.,1.5e18],phirange=[0.,6.283185307
     (xijk,yijk,zijk) = cylKernel(ri,phij,zk,np.array(nregrid,dtype=np.int32))
 # griddata to points:
     data = griddata((points[:,0],points[:,1],points[:,2]), 
-                    np.array(aniso[0].filled(float('nan')), dtype=np.float64),
+                    np.array(aniso, dtype=np.float64),
                     (xijk,yijk,zijk), method='nearest')
 
     aniso_std = stdKernel(data,np.array(nregrid,dtype=np.int32))
 
     print '=== Done with standard deviation of anisotropy ==='
     return np.ma.masked_array(aniso_std,np.isnan(aniso_std))
+
+
+def autocorr(A,B,pointsA,pointsB,nregrid,rrange=[0.,1.5e18],phirange=[0.,6.283185307179586],zrange=[-1.5e18,1.5e18]):
+    '''Calculates the angular average of <a(t)b(t+s)>'''
+
+    print '=== Obtaining correlation ==='
+    # create r_i, phi_j and z_k arrays:
+    ri   = np.linspace(rrange[0],rrange[1],nregrid[0])
+    phij = np.linspace(phirange[0],phirange[1],nregrid[1])
+    zk   = np.linspace(zrange[0],zrange[1],nregrid[2])
+
+    (xijk,yijk,zijk) = cylKernel(ri,phij,zk,np.array(nregrid,dtype=np.int32))
+# griddata to points:
+    dataA = griddata((pointsA[:,0],pointsA[:,1],pointsA[:,2]), 
+                    np.array(A, dtype=np.float64),
+                    (xijk,yijk,zijk), method='nearest')
+    dataB = griddata((pointsB[:,0],pointsB[:,1],pointsB[:,2]), 
+                    np.array(B, dtype=np.float64),
+                    (xijk,yijk,zijk), method='nearest')
+    
+    correlation = autocorrKernel(dataA,dataB,np.array(nregrid,dtype=np.int32))
+
+
+    print '=== Done with correlation ==='
+    return np.ma.masked_array(correlation,np.isnan(correlation))
+
+@autojit
+def autocorrKernel(dataA,dataB,nregrid):
+    correlation = np.zeros((nregrid[2],nregrid[0]))
+    for i in np.arange(nregrid[0]):
+        for j in np.arange(nregrid[1]):
+            for k in np.arange(nregrid[2]):
+                correlation[k,i] = correlation[k,i] + (
+                    (dataA[i+k*nregrid[0]+j*nregrid[0]*nregrid[2]]) *
+                    (dataB[i+k*nregrid[0]+j*nregrid[0]*nregrid[2]])
+                )
+
+    return correlation/np.double(nregrid[1])
 
 def correlationNumba(a,b,meanA,meanB,stddevA,stddevB,points,nregrid,rrange=[0.,1.5e18],phirange=[0.,6.283185307179586],zrange=[-1.5e18,1.5e18]):
 
@@ -272,7 +332,6 @@ def correlationKernel(dataA,dataB,meanA,meanB,stddevA,stddevB,nregrid):
 
     return correlation
 
-#@jit(argtypes=[double[:],double[:],double[:],int32numba[:]])
 @autojit
 def cylKernel(ri,phij,zk,nregrid):
     # allocate xijk arrays:
@@ -291,7 +350,6 @@ def cylKernel(ri,phij,zk,nregrid):
 
     return (xijk,yijk,zijk)
 
-#@jit(argtypes=[double[:],int32numba[:]])
 @autojit
 def avKernel(data,nregrid):
 # Now create the phi average:
@@ -304,8 +362,6 @@ def avKernel(data,nregrid):
 
     return aniso_av
 
-
-#@jit(argtypes=[double[:],int32numba[:]])
 @autojit
 def stdKernel(data,nregrid):
 
