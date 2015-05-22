@@ -26,25 +26,15 @@ pressure equivalent. During each timestep the dragforce between dust
 and gas is calculated as a local value and applied to the momentum
 equations of both dust and gas. It is also taken into account when
 calculating the size fo teh next timestep in order to guarantee
-numerical stability.<br><hr style="width: 100%; height: 2px;"><span
-style="font-weight: bold;">Practical use:<br></span>In order to add dust to a
-simulation, the user has to do the following:<span style="font-weight:
-bold;"><br></span><ol><li>In <span style="text-decoration:
-underline;">definitions.h</span> remove the line #undefine
-DUST</li><li>recompile with <span style="color: rgb(51, 51,
-255);">$AMRVACDIR/setup.pl -p=hd -ndust=#</span>, with # the number of
-dustspecies</li><li>In the subroutine <span style="font-style:
-italic;">initglobaldata_usr</span> define the size&nbsp;of each dust species
+numerical stability.<br><hr style="width: 100%; height: 2px;"><span style="font-weight: bold;">Practical use:<br></span>In order to add dust to a
+simulation, the user has to do the following:<span style="font-weight: bold;"><br></span><ol><li>In <span style="text-decoration: underline;">definitions.h</span> remove the line #undefine
+DUST</li><li>recompile with <span style="color: rgb(51, 51, 255);">$AMRVACDIR/setup.pl -p=hd -ndust=#</span>, with # the number of
+dustspecies</li><li>In the subroutine <span style="font-style: italic;">initglobaldata_usr</span> define the size&nbsp;of each dust species
 (<span style="color: red;">sdust(1:^NDS)</span>) and the internal density of
 each dust species (<span style="color: red;">rhodust(1:^NDS</span>) as well as
-the scaling factors <span style="color: red;">normvar(rho^DS)</span> and <span
-style="color: red;">normvar(v^Cd^DS)</span>. Note that both size and density of
-each species have to be scaled. The user may also need to set the values<span
-style="color: red;"> Lstar</span> and/or <span style="color:
-red;">Tdust</span></li><li>In the subroutine <span style="font-style:
-italic;">initonegrid_usr</span> set the initial values for the dust densities
-(<span style="color: red;">w(ix^S,rho^DS)</span>) and velocities (<span
-style="color: red;">w(is^S,v^Cd^DS)</span>). This may also need to be done in a
+the scaling factors <span style="color: red;">normvar(rho^DS)</span> and <span style="color: red;">normvar(v^Cd^DS)</span>. Note that both size and density of
+each species have to be scaled. The user may also need to set the values<span style="color: red;"> Lstar</span> and/or <span style="color: red;">Tdust</span></li><li>In the subroutine <span style="font-style: italic;">initonegrid_usr</span> set the initial values for the dust densities
+(<span style="color: red;">w(ix^S,rho^DS)</span>) and velocities (<span style="color: red;">w(is^S,v^Cd^DS)</span>). This may also need to be done in a
 special boundary, depending on the nature of the simulation.</li><li>Adjust the <span style="text-decoration: underline;">amrvac.par</span> file to determine how the dust is treated. This involves the following parameters, which have to be included in <span style="color: red;">methodlist<span style="color: black;">.</span></span></li><ol><li><span style="color: red;"><span style="color: black;"><span style="color: red;">dustmethod<span style="color: black;">,
 which can be set to 'Kwok','sticking', 'linear',or 'none'. In case of
 'Kwok', the dragforce will be calculated according to&nbsp; </span></span></span></span>Kwok
@@ -61,6 +51,6 @@ Note that it is up to the user to make sure that the dustspecies and
 internal density are compatible.</span></span></li><li><span style="color: red;"><span style="color: black;"><span style="color: red;">dusttemp</span>, is either 'constant', 'ism', or 'stellar'. Determines the dust temperature. If 'constant', it will be set to teh values of <span style="color: red;">Tdust</span>
 (in Kelvin). If 'ism', it will be calculated accoridng to Tielens
 (2005) eqn. 5.41 and 5.42. If 'stellar', it will be calculated
-according to Tielens (2005), eqn. 5.44 using a stellar luminosity of <span style="color: red;">Lstar</span> in solar luminosities.</span></span></li><li><span style="color: red;"><span style="color: black;"><span style="color: red;">smallrhod</span> is the cutoff below which the dust density will be set to zero, if <span style="color: red;">dustzero</span> == T<br></span></span></li></ol></ol><span style="font-weight: bold;"></span><hr>
+according to Tielens (2005), eqn. 5.44 using a stellar luminosity of <span style="color: red;">Lstar</span> in solar luminosities.</span></span></li><li><span style="color: red;"><span style="color: black;"><span style="color: red;">smallrhod</span> is the cutoff below which the dust density will be set to zero, if <span style="color: red;">dustzero</span> == T</span></span></li><li><span style="color: red;"><span style="color: black;">In addition, the suer has to account for the additional variable. For example:&nbsp;</span></span></li><ol><li><span style="color: red;"><span style="color: black;">primnames='rho v1 v2 p rhod1 rhod2 v1d1 v1d2&nbsp; v2d1 v2d2&nbsp;'&nbsp;&nbsp;&nbsp;&nbsp;</span></span></li><li><span style="color: red;"><span style="color: black;">wnames&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 'rho m1 m2 e rhod1 rhod2 m1d1 m1d2 m2d1 m2d2'</span></span></li><li><span style="color: red;"><span style="color: black;">typeB=&nbsp;&nbsp; 10*'special',<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10*'cont',<br>&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp;'symm','symm', 'asymm','symm',2*'symm',2*'symm',2*'asymm',<br>&nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; 'symm','symm', 'asymm','symm',2*'symm',2*'symm',2*'asymm'</span></span></li><li><span style="color: red;"><span style="color: black;">&nbsp;&nbsp;&nbsp; flags(11)=1<br>&nbsp;&nbsp;&nbsp; flags(1)=1<br></span></span></li></ol></ol></ol><span style="font-weight: bold;"></span><hr>
 
 </body></html>
