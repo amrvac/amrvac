@@ -1062,9 +1062,6 @@ case( 'stellar' )
 case default
     call mpistop( "===Dust temperature undetermined===" )
 end select    
-
-write(*,*) Td(ixO^S,1)
-
    
 return
 end subroutine get_tdust
