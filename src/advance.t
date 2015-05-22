@@ -607,7 +607,10 @@ double precision, intent(in):: qt
 integer:: iigrid, igrid,level
 !-----------------------------------------------------------------------------
 
+{#IFDEF PROCESSGLOBAL
 call process_global_usr(iit,qt)
+}
+
 
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    level=node(plevel_,igrid)
