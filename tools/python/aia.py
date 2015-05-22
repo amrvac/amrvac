@@ -19,7 +19,6 @@ def euv(filenameout,nstart,nend,ion,theta,phiy,phi,xra,yra,los,xn,yn,losn,Teunit
         nend=nstart
     nend=nend+1
     for i in range(nstart,nend):
-        filen='synAIA'+str(ion)+'n'+str(i)
         # import data
         data=synchroSun.get_pointdata(i,filenameout=filenameout,type='vtu')
         # get emissivity
@@ -34,4 +33,5 @@ def euv(filenameout,nstart,nend,ion,theta,phiy,phi,xra,yra,los,xn,yn,losn,Teunit
             synchroSun.show_map(map,function=function,vmax=vmax,cmap=my_cmap,xlabel=xlabel,ylabel=ylabel,xcenter=xcenter,ycenter=ycenter)
         else:
         # write png and pdf image files
+            filen='synAIA'+str(ion)+'n'+str(i)
             synchroSun.show_map(map,filename=filen,function=function,vmax=vmax,cmap=my_cmap,xlabel=xlabel,ylabel=ylabel,xcenter=xcenter,ycenter=ycenter)
