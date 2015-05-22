@@ -23,6 +23,26 @@ double precision, intent(inout):: w(ixI^S,1:nw)
 !-----------------------------------------------------------------------------
 
 end subroutine process_grid_usr
+!==============================================================================
+
+subroutine process_global_usr(iit,qt)
+!
+! This subroutine is called at the beginning of each time step 
+! by each processor. No communication is specified, so the user
+! has to implement MPI routines if information has to be shared
+!
+
+include 'amrvacdef.f'
+
+integer, intent(in)          :: iit
+double precision, intent(in) :: qt
+
+!-----------------------------------------------
+ 
+
+
+return
+end subroutine process_global_usr
 !=============================================================================
 subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 
