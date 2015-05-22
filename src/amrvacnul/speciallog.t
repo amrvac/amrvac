@@ -23,6 +23,7 @@ double precision, intent(inout):: w(ixI^S,1:nw)
 !-----------------------------------------------------------------------------
 
 end subroutine process_grid_usr
+{#IFDEF PROCESSGLOBAL
 !==============================================================================
 
 subroutine process_global_usr(iit,qt)
@@ -43,6 +44,7 @@ double precision, intent(in) :: qt
 
 return
 end subroutine process_global_usr
+}
 !=============================================================================
 subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 
