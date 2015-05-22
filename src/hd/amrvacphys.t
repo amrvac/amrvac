@@ -920,8 +920,9 @@ double precision, intent(in)    :: x(ixI^S,1:ndim)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 
 ! local
-double precision, dimension(ixG^T) :: vt2,deltav,fd,ptherm,vdust,vgas
+double precision, dimension(ixG^T) :: vt2,deltav,fd,ptherm,vdust,vgas,Tgas
 double precision, dimension(ixG^T,1:^NC,1:^NDS) :: fdrag
+double precision, dimension(ixG^T,1:^NDS) :: alpha_T 
 
 integer :: idir
 double precision :: K
@@ -952,26 +953,29 @@ select case( TRIM(dustmethod) )
     \}
   enddo
 {#IFDEF ENERGY
- case( 'sticking' ) ! Calculate sticking coefficient based on the gas temperature
-
-  ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar) !Tgas, mu=mean molecular weight
-  ptherm(ixO^S) = max(0.35d0*dexp(-dsqrt(ptherm(ixO^S)*2.d-3))+0.1d0,smalldouble)
-
+ case( 'sticking' ) ! Calculate sticking coefficient based on the gas and dust temperatures
+!
+!  Equation from Decin et al. 2006
+!
+  Tgas(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar)/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
+  call get_tdust(w,x,ixI^L,ixO^L,alpha_T)
+  
   do idir=1,^NC
     call getv(w,x,ixI^L,ixO^L,idir,vgas)
 
     {^DS&where(w(ixO^S,rhod^DS_)>minrhod)
+       alpha_T(ixO^S,^DS) = max(0.35d0*dexp(-dsqrt((Tgas(ixO^S)+alpha_T(ixO^S,^DS))/5.0d2))+0.1d0,smalldouble)
        vdust(ixO^S)  = w(ixO^S,(rhod^DS_)+idir*^NDS)/w(ixO^S,rhod^DS_)
        deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
-       fd(ixO^S)     = (one-ptherm(ixO^S))*w(ixO^S,rhod^DS_)*w(ixO^S,rho_)* &
+       fd(ixO^S)     = (one-alpha_T(ixO^S,^DS))*w(ixO^S,rhod^DS_)*w(ixO^S,rho_)* &
                         deltav(ixO^S) / (rhodust(^DS)*sdust(^DS))
-       fd(ixO^S)     = -fd(ixO^S)*0.75d0*dsqrt(vt2(ixO^S) + deltav(ixO^S)**2)
+       fd(ixO^S)     = -fd(ixO^S)*0.75d0*dsqrt(vt2(ixO^S) + deltav(ixO^S)**2)       
     else where
        fd(ixO^S) = zero
     end where
     fdrag(ixO^S,idir,^DS) = fd(ixO^S)
     \}
-  enddo
+  enddo 
 }
  case('linear') !linear with Deltav, for testing (see Laibe & Price 2011)   
   K = 3.4d5/^NDS
@@ -999,6 +1003,73 @@ end select
 return
 end subroutine get_3d_dragforce
 !=============================================================================
+
+subroutine get_tdust(w,x,ixI^L,ixO^L,Td)
+!
+! Returns dust temperature (in K), either as constant or based 
+! on equ. 5.41,5.42 and 5.44 from Tielens (2005)
+!
+!
+
+include 'amrvacdef.f'
+
+integer, intent(in)             :: ixI^L, ixO^L
+double precision, intent(in)    :: x(ixI^S,1:ndim)
+double precision, intent(inout) :: w(ixI^S,1:nw)
+double precision, intent(out)   :: Td(ixG^T,1:^NDS)
+
+double precision :: G0(ixO^S)
+
+!---------------------------------------------------------------------------
+
+select case( TRIM(dusttemp) )
+case( 'constant' )
+  Td(ixO^S,1:^NDS) = Tdust
+case( 'ism' )
+{^DS&select case( TRIM(dustspecies) )
+  case( 'graphite' )
+    Td(ixO^S,^DS) = 15.8d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0)
+  case( 'silicate' )
+    Td(ixO^S,^DS) = 13.6d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0)
+  case default
+      call mpistop( "===Dust species undetermined===" )
+  end select
+  \}  
+case( 'stellar' )
+  select case( TRIM(typeaxial) )
+  case( 'spherical' )
+    G0(ixO^S) = max(x(ixO^S,1)*normvar(0),smalldouble)
+  case( 'cylindrical' )
+    G0(ixO^S) = max(dsqrt(x(ixO^S,1)**2 + x(ixO^S,2)**2)*normvar(0),smalldouble)
+  case( 'slab' )
+{^IFTHREED
+    G0(ixO^S) = max(dsqrt((x(ixO^S,1)-xptmass1)**2 + (x(ixO^S,2)-xptmass2)**2  & 
+                + (x(ixO^S,3)-xptmass3)**2)*normvar(0),smalldouble)
+}
+  end select
+  G0(ixO^S)= 2.1d4*(Lstar/1.0d8)*((3.0857d17/G0(ixO^S))**2)
+{^DS&select case( TRIM(dustspecies) )
+  case( 'graphite' )
+    Td(ixO^S,^DS) = 61.0d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0) &
+              *(G0(ixO^S)**(one/5.8d0))
+  case( 'silicate' )
+    Td(ixO^S,^DS) = 50.0d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0) &
+              *(G0(ixO^S)**(one/6.0d0))
+  case default
+      call mpistop( "===Dust species undetermined===" )
+  end select
+  \}
+case default
+    call mpistop( "===Dust temperature undetermined===" )
+end select    
+
+write(*,*) Td(ixO^S,1)
+
+   
+return
+end subroutine get_tdust
+!=============================================================================
+
 subroutine getdt(w,ixI^L,ixO^L,dtnew,dx^D,x)
 
 include 'amrvacdef.f'
@@ -1023,11 +1094,9 @@ dtgas=bigdouble
 dtdust=bigdouble
 
 
-
 !-----------------------------
 !get dt related to dust and gas stopping time (Laibe 2011)
 !-----------------------------
-
 
 
 select case( TRIM(dustmethod) )
