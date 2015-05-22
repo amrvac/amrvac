@@ -118,7 +118,7 @@ COMMON, LOGICAL :: Tfix
 ! dust related paramters
 COMMON, LOGICAL  :: dustzero
 COMMON, DOUBLE PRECISION :: smallrhod
-COMMON, CHARACTER*131 :: dustmethod
+COMMON, CHARACTER*131 :: dustmethod,dustspecies,dusttemp
 
 ! local and global fastest wave speed (computed in setdt):
 COMMON, DOUBLE PRECISION :: cmax_mype, cmax_global
