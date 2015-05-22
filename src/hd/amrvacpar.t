@@ -124,7 +124,8 @@ COMMON, DOUBLE PRECISION:: xprob^L
 COMMON, DOUBLE PRECISION::{#IFDEF ENERGY smalle, } minrho, minp 
 {#IFDEF DUST 
 DOUBLE PRECISION:: minrhod, sdust(1:^NDS),dsdust(1:^NDS),rhodust(1:^NDS),mhcgspar,kbcgspar
-COMMON /DPDUST/ minrhod,sdust,dsdust,rhodust,mhcgspar,kbcgspar
+DOUBLE PRECISION :: Lstar, Tdust
+COMMON /DPDUST/ minrhod,sdust,dsdust,rhodust,mhcgspar,kbcgspar,Tdust,Lstar
 }
 
 ! end include file amrvacpar.t.hd
