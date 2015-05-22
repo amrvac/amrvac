@@ -14,3 +14,4 @@
 #undefine MAGNETOFRICTION
 #undefine PARTICLES
 #undefine BOUNDARYDRIVER
+#undefine PROCESSGLOBAL
