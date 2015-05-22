@@ -607,6 +607,8 @@ double precision, intent(in):: qt
 integer:: iigrid, igrid,level
 !-----------------------------------------------------------------------------
 
+call process_global_usr(iit,qt)
+
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    level=node(plevel_,igrid)
    ! next few lines ensure correct usage of routines like divvector etc
