@@ -86,7 +86,7 @@ namelist /methodlist/ wnames,fileheadout,typeadvance, &
                       strictzero,nxdiffusehllc,typespherical,&
                       fixprocess,flathllc, &
                       ncool,cmulti,coolmethod,coolcurve,Tfix, &
-                      smallrhod, dustzero, dustmethod, &
+                      smallrhod, dustzero, dustmethod,dustspecies,dusttemp, &
                       x1ptms,x2ptms,x3ptms,ptmass,tlow,nwtf,neqpartf
 namelist /boundlist/  dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
                       internalboundary
@@ -127,6 +127,8 @@ Tfix       = .false.
 ! defaults for dust
 dustzero = .false.
 dustmethod = 'Kwok'
+dustspecies = 'graphite'
+dusttemp = 'constant'
 
 ! defaults for parameters for optional pointgrav module (van Marle)
 ! --> set here mass to zero, coordinates to zero
