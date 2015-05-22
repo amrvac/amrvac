@@ -1,15 +1,8 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
-<head>
-  <title>FEATURES OF MPI-AMRVAC</title>
-</head>
+<html><head>
+<title>FEATURES OF MPI-AMRVAC</title></head>
 <body>
-<h1>MPI-AMRVAC DUST IMPLEMENTATION</h1>
-This is an overview of the option that allows users to model dust+gas
-flows in mpi-amrvac.<br>
-<hr style="width: 100%; height: 2px;"><span
- style="font-weight: bold;">Physics:</span><br>
-Dust
+<h1>MPI-AMRVAC DUST IMPLEMENTATION</h1>This is an overview of the option that allows users to model dust+gas flows in mpi-amrvac.<br><hr style="width: 100%; height: 2px;"><span style="font-weight: bold;">Physics:</span><br>Dust
 in mpi-amrvac is treated as a pressureless gas that coexists with the
 actual gas. Dust and gas are linked through a dragforce that is
 calculated based on the phsyical characteristics of the gas and the
@@ -24,10 +17,7 @@ does it take into account the ability of grains of a single species to
 interpenetrate. A collision between two dust flows of the same dust
 species will therefore result in a sharp feature that is not physical
 as the dust is brought to a stop by the collision. For these reasons
-dust+gas simulations should be treated with caution.<br>
-<hr style="width: 100%; height: 2px;"><span
- style="font-weight: bold;">Numerics:<br>
-</span>Currently
+dust+gas simulations should be treated with caution.<br><hr style="width: 100%; height: 2px;"><span style="font-weight: bold;">Numerics:<br></span>Currently
 the only physics module that allows for the presence of dust is HD, due
 to the lack of a clear formulation of the coupling between dust and
 magnetic fields. Each dust species has its own continuity and momentum
@@ -36,74 +26,41 @@ pressure equivalent. During each timestep the dragforce between dust
 and gas is calculated as a local value and applied to the momentum
 equations of both dust and gas. It is also taken into account when
 calculating the size fo teh next timestep in order to guarantee
-numerical stability.<br>
-<hr style="width: 100%; height: 2px;"><span
- style="font-weight: bold;">Practical use:<br>
-</span>In order to add dust to a simulation, the user has to do
-the following:<span style="font-weight: bold;"><br>
-</span>
-<ol>
-  <li>In <span style="text-decoration: underline;">definitions.h</span>
-remove the line #undefine DUST</li>
-  <li>recompile with <span style="color: rgb(51, 51, 255);">$AMRVACDIR/setup.pl
--p=hd -ndust=#</span>, with # the number of dustspecies</li>
-  <li>In the subroutine <span style="font-style: italic;">initglobaldata_usr</span>
-define the size&nbsp;of each dust species (<span
- style="color: red;">sdust(1:^NDS)</span>) and the
-internal density of each dust species (<span style="color: red;">rhodust(1:^NDS</span>)
-as well as the scaling factors <span style="color: red;">normvar(rho^DS)</span>
-and <span style="color: red;">normvar(v^Cd^DS)</span>.
-Note that both size and density of each species have to be scaled. The
-user may also need to set the values<span style="color: red;">
-Lstar</span> and/or <span style="color: red;">Tdust</span></li>
-  <li>In the subroutine <span style="font-style: italic;">initonegrid_usr</span>
-set the initial values for the dust densities (<span
- style="color: red;">w(ix^S,rho^DS)</span>) and
-velocities (<span style="color: red;">w(is^S,v^Cd^DS)</span>).
-This may also need to be done in a special boundary, depending on the
-nature of he simulation.</li>
-  <li>Adjust the <span style="text-decoration: underline;">amrvac.par</span>
-file to determine how the dust is treated. This involves the following
-parameters, which have to be included in <span style="color: red;">methodlist<span
- style="color: black;">.</span></span></li>
-  <ol>
-    <li><span style="color: red;"><span
- style="color: black;"><span style="color: red;">dustmethod<span
- style="color: black;">,
-which can be set to 'Kwok','sticking', 'linear',or 'none'. In case fo
+numerical stability.<br><hr style="width: 100%; height: 2px;"><span
+style="font-weight: bold;">Practical use:<br></span>In order to add dust to a
+simulation, the user has to do the following:<span style="font-weight:
+bold;"><br></span><ol><li>In <span style="text-decoration:
+underline;">definitions.h</span> remove the line #undefine
+DUST</li><li>recompile with <span style="color: rgb(51, 51,
+255);">$AMRVACDIR/setup.pl -p=hd -ndust=#</span>, with # the number of
+dustspecies</li><li>In the subroutine <span style="font-style:
+italic;">initglobaldata_usr</span> define the size&nbsp;of each dust species
+(<span style="color: red;">sdust(1:^NDS)</span>) and the internal density of
+each dust species (<span style="color: red;">rhodust(1:^NDS</span>) as well as
+the scaling factors <span style="color: red;">normvar(rho^DS)</span> and <span
+style="color: red;">normvar(v^Cd^DS)</span>. Note that both size and density of
+each species have to be scaled. The user may also need to set the values<span
+style="color: red;"> Lstar</span> and/or <span style="color:
+red;">Tdust</span></li><li>In the subroutine <span style="font-style:
+italic;">initonegrid_usr</span> set the initial values for the dust densities
+(<span style="color: red;">w(ix^S,rho^DS)</span>) and velocities (<span
+style="color: red;">w(is^S,v^Cd^DS)</span>). This may also need to be done in a
+special boundary, depending on the nature of the simulation.</li><li>Adjust the <span style="text-decoration: underline;">amrvac.par</span> file to determine how the dust is treated. This involves the following parameters, which have to be included in <span style="color: red;">methodlist<span style="color: black;">.</span></span></li><ol><li><span style="color: red;"><span style="color: black;"><span style="color: red;">dustmethod<span style="color: black;">,
+which can be set to 'Kwok','sticking', 'linear',or 'none'. In case of
 'Kwok', the dragforce will be calculated according to&nbsp; </span></span></span></span>Kwok
 1975,page 584 (between eqn
 8 and 9). In case of 'sticking', the same equations apply, but the
 sticking coefficient will be calculated according to Decin et al. 2006.
 In case of 'linear', the dragforce will simply scale with the velocity
-difference and in case of 'none', no drag force will exist at all.</li>
-    <li><span style="color: red;">dustzero<span
- style="color: black;">,
-if set to true will reduce the dust density tio zero if it drops below
+difference and in case of 'none', no drag force will exist at all.</li><li><span style="color: red;">dustzero<span style="color: black;">,
+if set to .true. will reduce the dust density to zero if it drops below
 the level of smallrhod in order to avoid numerical problems at
-extremely low densities</span></span></li>
-    <li><span style="color: red;"><span
- style="color: black;"><span style="color: red;">dustspecies</span>,
+extremely low densities</span></span></li><li><span style="color: red;"><span style="color: black;"><span style="color: red;">dustspecies</span>,
 which can be 'graphite' or 'silicate' affects the dust temperature.
 Note that it is up to the user to make sure that the dustspecies and
-internal density are compatible.</span></span></li>
-    <li><span style="color: red;"><span
- style="color: black;"><span style="color: red;">dusttemp</span>,
-is either 'constant', 'ism', or 'stellar'. Determines the dust
-temperature. If 'constant', it will be set to teh values of <span
- style="color: red;">Tdust</span>
+internal density are compatible.</span></span></li><li><span style="color: red;"><span style="color: black;"><span style="color: red;">dusttemp</span>, is either 'constant', 'ism', or 'stellar'. Determines the dust temperature. If 'constant', it will be set to teh values of <span style="color: red;">Tdust</span>
 (in Kelvin). If 'ism', it will be calculated accoridng to Tielens
 (2005) eqn. 5.41 and 5.42. If 'stellar', it will be calculated
-according to Tielens (2005), eqn. 5.44 using a stellar luminosity of <span
- style="color: red;">Lstar</span> in solar luminosities.</span></span></li>
-    <li><span style="color: red;"><span
- style="color: black;"><span style="color: red;">smallrhod</span>
-is the cutoff below which the dust density will be set to zero, if <span
- style="color: red;">dustzero</span> == T<br>
-      </span></span></li>
-  </ol>
-</ol>
-<span style="font-weight: bold;"></span>
-<hr>
-</body>
-</html>
+according to Tielens (2005), eqn. 5.44 using a stellar luminosity of <span style="color: red;">Lstar</span> in solar luminosities.</span></span></li><li><span style="color: red;"><span style="color: black;"><span style="color: red;">smallrhod</span> is the cutoff below which the dust density will be set to zero, if <span style="color: red;">dustzero</span> == T<br></span></span></li></ol></ol><span style="font-weight: bold;"></span><hr>
+
+</body></html>
