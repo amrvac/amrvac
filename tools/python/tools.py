@@ -1,15 +1,132 @@
 import numpy as np
 from scipy import interpolate
-from scipy.integrate import odeint
+
 
 # Euclidian norm:
 norm = lambda x: np.sqrt(
 np.square(x[:,0]) + np.square(x[:,1]) + np.square(x[:,2])
 )
 
+# Scalar product:
+scalar = lambda x,y: x[:,0]*y[:,0] + x[:,1]*y[:,1] + x[:,2]*y[:,2]
+
+def powerorzero(x,y):
+    m = np.logical_or(x<=0., np.isnan(x))
+    masked = np.ma.masked_array(np.power(x,y),m)
+    return np.ma.filled(masked,0.)
+
+
+
 c  = 2.99792458e10 # cm s^-1
 fopi=4.*np.pi
 
+
+def swapDirections(d):
+    
+    ''' Swaps directions 2 and 3 '''
+
+    tmp=np.empty(d.u2.shape)
+    np.copyto(tmp,d.u2)
+    d.u2 = d.u3
+    d.u3 = tmp
+
+    tmp=np.empty(d.b2.shape)
+    np.copyto(tmp,d.b2)
+    d.b2 = d.b3
+    d.b3 = tmp
+
+
+def emOnSlice(d,theta,nu,alpha,recipe=1):
+
+    ''' Assuming a y=0 slice '''
+
+
+# Synchrotron constants:
+    c1 = 6.27e18 # cm^-7/2 g^-5/2 s^4
+    c2 = 2.368e-3 # g^-2 cm^-1 s^3
+    me = 9.1093897e-28 # g
+
+# Gamma from alpha:
+    Gamma = 2.*alpha + 1.
+
+    nelem = len(d.rho)
+
+    n = np.empty((nelem,3))
+    sintheta = np.sin(np.pi/180.*theta)
+    costheta = np.cos(np.pi/180.*theta)
+    sinphi_n   = 0.
+    cosphi_n   = 1.
+    n[:,0] = sintheta*cosphi_n
+    n[:,1] = sintheta*sinphi_n
+    n[:,2] = costheta
+
+
+    beta = np.empty((nelem,3))
+    beta[:,0] = d.u1/d.lfac/c
+    beta[:,1] = d.u2/d.lfac/c
+    beta[:,2] = d.u3/d.lfac/c
+
+    # Doppler factor:
+    D = np.empty(nelem)
+    D = 1./(
+    d.lfac*(1.-(scalar(n,beta)))
+    )
+
+    print '=== Minimum and maximum Doppler factor: ', D.min(), D.max(), ' ==='
+
+# get ndash:
+    ndash = np.empty((nelem,3))
+    ndash[:,0] = D*n[:,0] - (D+1.) * d.lfac/(d.lfac+1) * beta[:,0]
+    ndash[:,1] = D*n[:,1] - (D+1.) * d.lfac/(d.lfac+1) * beta[:,1]
+    ndash[:,2] = D*n[:,2] - (D+1.) * d.lfac/(d.lfac+1) * beta[:,2]
+
+    print 'got ndash min and max:', ndash[:,0].min(), ndash[:,0].max(), ndash[:,1].min(), ndash[:,1].max(), ndash[:,2].min(), ndash[:,2].max()
+
+
+    get_bdash(d)
+
+    bdash = np.empty((nelem,3))
+    bdash[:,0] = d.bdash1
+    bdash[:,1] = d.bdash2
+    bdash[:,2] = d.bdash3
+
+# bdash perp:
+    bdashp = np.empty(nelem)
+    tmp    = np.empty((nelem,3))
+    tmp    = np.cross(ndash,bdash)
+    bdashp = norm(tmp)
+
+    print 'got bdashp min and max: ', bdashp.min(), bdashp.max()
+
+
+    eps_inf = d.eps_inf
+
+    if recipe ==1:
+        rhoe = d.rhoe
+        rhoe_0 = d.rhoe_0
+    elif recipe == 2: 
+        rhoe = d.n
+        rhoe_0 = d.n0
+    else:
+        print 'Unknown recipe'
+        return
+
+
+
+    emiss = (c2*rhoe_0/me*c2*powerorzero(c1,(Gamma-3.)/2.)/(8.*np.pi) *
+             powerorzero(D,2.+(Gamma-1)/2.) *
+             powerorzero(bdashp,(Gamma+1.)/2.)*
+             powerorzero(rhoe_0/rhoe,-((Gamma+2.)/3.)) *
+             powerorzero(nu,(1.-Gamma)/2.) *
+             powerorzero((1. - np.sqrt(nu)/(np.sqrt(c1*bdashp)*eps_inf)),Gamma-2.)
+    )
+
+# mask out the wind zone:
+    m = d.lfac >9.
+    emiss = np.ma.filled(np.ma.masked_array(emiss,m),0.)
+
+
+    return emiss
 
 def sigma(d):
 
