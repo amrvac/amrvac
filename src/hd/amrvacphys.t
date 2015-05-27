@@ -1043,8 +1043,8 @@ case( 'stellar' )
     G0(ixO^S) = max(dsqrt(x(ixO^S,1)**2 + x(ixO^S,2)**2)*normvar(0),smalldouble)
   case( 'slab' )
 {^IFTHREED
-    G0(ixO^S) = max(dsqrt((x(ixO^S,1)-xptmass1)**2 + (x(ixO^S,2)-xptmass2)**2  & 
-                + (x(ixO^S,3)-xptmass3)**2)*normvar(0),smalldouble)
+    G0(ixO^S) = max(dsqrt((x(ixO^S,1)-x1ptms)**2 + (x(ixO^S,2)-x2ptms)**2  & 
+                + (x(ixO^S,3)-x3ptms)**2)*normvar(0),smalldouble)
 }
   end select
   G0(ixO^S)= 2.1d4*(Lstar/1.0d8)*((3.0857d17/G0(ixO^S))**2)
