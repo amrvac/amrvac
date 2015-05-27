@@ -27,7 +27,7 @@ class polyplot():
     def __init__(self,value,data,nlevels=256, grid=None, blocks=None,cmap='jet', min=None, max=None,
              xrange=None, yrange=None, orientation='vertical', fixzoom=None, fixrange=None,
              filenameout=None, 
-             edgecolor='k',**kwargs):
+             edgecolor='k',smooth=0,**kwargs):
         
         self.nlevels=nlevels
         self.grid = grid
@@ -48,6 +48,7 @@ class polyplot():
         self.maxYticks=None
         self.cbarticks=None
         self.edgecolor=edgecolor
+        self.smooth=smooth
             
         self.xrange=xrange
         self.yrange=yrange
@@ -198,6 +199,9 @@ xrange = [%e,%e]     yrange = [%e,%e]''' % (
         if self.filenameout == None:
             plt.draw()
 
+# Make the main axis active:
+        plt.sca(self.ax)
+
     def colorbar(self):
         '''Draw the colorbar.
         '''
@@ -233,7 +237,7 @@ xrange = [%e,%e]     yrange = [%e,%e]''' % (
             self.filenameout=filenameout
         print 'saving plot to file %s' % (self.filenameout)
         self.figure.set_size_inches( (self.fig_w,self.fig_h) )
-        self.figure.savefig(self.filenameout, transparent=False,aa=True,dpi=self.dpi,interpolation='bicubic')#,bbox_inches='tight')
+        self.figure.savefig(self.filenameout, transparent=False,aa=True,dpi=self.dpi,interpolation='bicubic',bbox_inches='tight')
         self.filenameout=None
 
         
@@ -321,8 +325,11 @@ class rgplot(polyplot):
 
 # regrid with linear interpolation and fall back to nearest neighbor at NaN, which should just be the borders.
         gridvar = griddata(CC, self.value, (grid_x, grid_y), method='linear',fill_value=float(np.NaN))
-#        isnan=np.isnan(gridvar)
-#        gridvar[isnan] = griddata(CC, self.value, (grid_x[isnan], grid_y[isnan]), method='nearest',fill_value=float(np.NaN))
+        isnan=np.isnan(gridvar)
+        gridvar[isnan] = griddata(CC, self.value, (grid_x[isnan], grid_y[isnan]), method='nearest',fill_value=float(np.NaN))
+
+# smooth the data slightly:
+        gridvar = ndimage.gaussian_filter(gridvar, sigma=self.smooth)
 
         extent = xrange[0], xrange[1], yrange[0], yrange[1]
         gridvarClip = np.clip(gridvar,self.min,self.max)
@@ -368,6 +375,8 @@ class rgplot(polyplot):
         if self.filenameout == None:
             plt.draw()
 
+# Make the main axis active:
+        plt.sca(self.ax)
 
 
 class polyanim():
@@ -519,7 +528,7 @@ def velovect(u1,u2,d,nvect=None,scalevar=None,scale=100,color='k',fig=None):
     plt.draw()
     return Q     
 
-def contour(var,d,levels=None,nmax=600,colors='k',linestyles='solid',fig=None,linewidths=1):
+def contour(var,d,levels=None,nmax=600,colors='k',linestyles='solid',fig=None,linewidths=1,smooth=1.):
     if fig==None:
         ax=plt.gca()
     else:
@@ -544,15 +553,13 @@ def contour(var,d,levels=None,nmax=600,colors='k',linestyles='solid',fig=None,li
     CC=d.getCenterPoints()
     tmp0=np.complex(0,nregrid[0])
     tmp1=np.complex(0,nregrid[1])
-    x=np.linspace(xrange[0],xrange[1],nregrid[0])
-    y=np.linspace(yrange[0],yrange[1],nregrid[1])
     grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0, yrange[0]:yrange[1]:tmp1]
     gridvar = griddata(CC, var, (grid_x, grid_y), method='linear')
     isnan=np.isnan(gridvar)
     gridvar[isnan] = griddata(CC, var, (grid_x[isnan], grid_y[isnan]), method='nearest')
 
 # smooth the data slightly:
-    blurred_gridvar = ndimage.gaussian_filter(gridvar, sigma=1)
+    blurred_gridvar = ndimage.gaussian_filter(gridvar, sigma=smooth)
 
 
     if levels == None:
@@ -568,7 +575,7 @@ def streamlines(u1,u2,d,x0=None,y0=None,nmax=600,density=1,fig=None,color='b',li
     if fig==None:
         ax=plt.gca()
     else:
-        ax=fig.figure.gca()
+        ax=fig.ax
 
     xrange=[ax.get_xlim()[0],ax.get_xlim()[1]]
     yrange=[ax.get_ylim()[0],ax.get_ylim()[1]]

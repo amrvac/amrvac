@@ -1026,7 +1026,6 @@ end subroutine getcmax
 subroutine getflux(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
-use mod_metric
 include 'amrvacdef.f'
 
 integer, intent(in)                :: ixI^L,ixO^L,iw,idims
