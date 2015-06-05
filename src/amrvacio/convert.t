@@ -393,6 +393,7 @@ character(len=1024) :: outfilehead
 integer           :: igrid_recv,ipe
 double precision  :: w_recv(ixG^T,1:nw),x_recv(ixG^T,1:ndim)
 integer, allocatable :: intstatus(:,:)
+
 !-----------------------------------------------------------------------------
 
 if(nwauxio>0)then
@@ -432,7 +433,10 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
       call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
   else
    {do ix^DB=ixMlo^DB,ixMhi^DB\}
-      write(qunit,fmt="(100(e14.6))") px(igrid)%x(ix^D,1:ndim)&
+      do iw=1,nw
+        if( dabs(pw(igrid)%w(ix^D,iw)) < smalldouble ) pw(igrid)%w(ix^D,iw) = zero
+      enddo
+       write(qunit,fmt="(100(e14.6))") px(igrid)%x(ix^D,1:ndim)&
                                      ,pw(igrid)%w(ix^D,1:nw)
    {end do\}
   end if
@@ -450,6 +454,9 @@ Manycpu : if (npe>1) then
          itag=igrid_recv
          call MPI_RECV(w_recv,1,type_block_io, ipe,itag,icomm,intstatus(:,1),ierrmpi)
          {do ix^DB=ixMlo^DB,ixMhi^DB\}
+	    do iw=1,nw
+              if( dabs(pw(igrid)%w(ix^D,iw)) < smalldouble ) pw(igrid)%w(ix^D,iw) = zero
+            enddo
             write(qunit,fmt="(100(e14.6))") x_recv(ix^D,1:ndim)&
                                             ,w_recv(ix^D,1:nw)
          {end do\}
@@ -465,6 +472,8 @@ endif
 
 if(mype==0) close(qunit)
 end subroutine onegrid 
+
+
 !============================================================================
 subroutine valout_idl(qunit)
 
