@@ -434,7 +434,7 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
   else
    {do ix^DB=ixMlo^DB,ixMhi^DB\}
       do iw=1,nw
-        if( dabs(pw(igrid)%w(ix^D,iw)) < smalldouble ) pw(igrid)%w(ix^D,iw) = zero
+        if( dabs(pw(igrid)%w(ix^D,iw)) < 1.0d-32 ) pw(igrid)%w(ix^D,iw) = zero
       enddo
        write(qunit,fmt="(100(e14.6))") px(igrid)%x(ix^D,1:ndim)&
                                      ,pw(igrid)%w(ix^D,1:nw)
