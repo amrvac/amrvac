@@ -636,7 +636,7 @@ def railgun(inputdata,npixel,L,x0=[0,0,0],coordinate='cartesian'):
     data     = ontoGrid(inputdata.get('emiss'),theta,npixel,L,points,phi=phi,delta=delta,
                         x0=x0,coordinate=coordinate)
 
-    cutEmiss(data,grid,npixel,points,coordinate)
+    cutEmiss(data,rhor,grid,npixel,points,coordinate)
 
     map    = np.zeros((npixel[0],npixel[1]))
     for i in range(npixel[0]):
@@ -650,7 +650,7 @@ def railgun(inputdata,npixel,L,x0=[0,0,0],coordinate='cartesian'):
      'npixel': npixel, 'L': L}
 
 
-def cutEmiss(data,grid,npixel,points,coord):
+def cutEmiss(data,rhor,grid,npixel,points,coord):
     
     if coord == 'cartesian':
         xrange=[points[:,0].min(),points[:,0].max()]
@@ -660,6 +660,7 @@ def cutEmiss(data,grid,npixel,points,coord):
         data[grid[0]>xrange[1]] = 0.
         data[grid[1]<yrange[0]] = 0.
         data[grid[1]>yrange[1]] = 0.
+        data=np.where(rhor>2.e10,0.,data)
         # not when coming from 2D:
         if zrange[1] - zrange[0] > 0. :
             data[grid[2]<zrange[0]] = 0.
@@ -725,6 +726,7 @@ def shotgun(inputdata,npixel,L,x0=None,coordinate='cartesian',interp='nearest'):
     print '=== Calculating radiation map... ==='
     points   = inputdata.get('points')
     emiss    = inputdata.get('emiss')
+    rho      = inputdata.get('rho')
     if 'emisspol' in inputdata:
         emisspol = inputdata.get('emisspol')
     phi      = inputdata.get('phi')
@@ -739,9 +741,10 @@ def shotgun(inputdata,npixel,L,x0=None,coordinate='cartesian',interp='nearest'):
     grid = make_grid(theta,phiy,phi,npixel,L,delta=delta,x0=x0)
 
     data    = griddata((x,y,z),emiss, (grid[0],grid[1],grid[2]),method=interp)
+    rhor    = griddata((x,y,z),rho, (grid[0],grid[1],grid[2]),method=interp)
     
 # remove emissivity outside of original data:
-    data = cutEmiss(data,grid,npixel,points,coordinate)
+    data = cutEmiss(data,rhor,grid,npixel,points,coordinate)
 
     if 'emisspol' in inputdata:
         datap_r = griddata((x,y,z),emisspol.real, (grid[0],grid[1],grid[2]),method=interp)

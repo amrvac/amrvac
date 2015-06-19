@@ -429,30 +429,30 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
    ! since then you can use the convenient subroutine get_vec() for this.  
    
    
-   if (.not.time_advance) then
-      
-      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-      call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
-      
-      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho)
+   !if (.not.time_advance) then
+   !   
+   !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+   !   call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+   !   
+   !   call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho)
 
-   else
+   !else
 
-      w(ixG^T,1:nw) = pwold(igrid)%w(ixG^T,1:nw)
-      call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
-      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho1)
+   !   w(ixG^T,1:nw) = pwold(igrid)%w(ixG^T,1:nw)
+   !   call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+   !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho1)
 
-      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-      call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
-      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho2)
-      
-      td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - t) / dt
-      
-      rho = rho1 * (1.0d0 - td) + rho2 * td
-      
-   end if
+   !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+   !   call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+   !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho2)
+   !   
+   !   td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - t) / dt
+   !   
+   !   rho = rho1 * (1.0d0 - td) + rho2 * td
+   !   
+   !end if
 
-   particle(ipart)%self%payload(1) = rho * UNIT_DENSITY
+   !particle(ipart)%self%payload(1) = rho * UNIT_DENSITY
 
 
    ! **************************************************

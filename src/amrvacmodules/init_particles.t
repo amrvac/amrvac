@@ -121,7 +121,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 
    ! fill with magnetic field:
    gridvars(igrid)%w(ixG^T,bp1_:bp^NC_) = w(ixG^T,b1_:b^NC_) &
-        * sqrt(4.0d0*dpi*UNIT_VELOCITY**2.0d0 * UNIT_DENSITY)
+        * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY)
 
    ! get the electric field
    beta(ixG^T,1:ndir) = w(ixG^T,u1_:u^NC_)

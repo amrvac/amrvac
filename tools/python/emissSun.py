@@ -23,7 +23,7 @@ def emiss(data,ion,Teunit,nunit,Lunit):
     emiss = rho**2 * ce * Lunit
 # mask out the wind zone:
     print '=== Done with emission! ==='
-    return {'emiss': emiss, 'points': data.get('points')}
+    return {'emiss': emiss, 'rho':rho, 'points': data.get('points')}
 #============================================================================
 def loadGtable(ion,w0=None,filename=None,filenm=None,abund='co'):
     '''reads response function (n_e, T_e) 2D tables, requires ion'''
