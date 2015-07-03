@@ -350,11 +350,7 @@ def emiss(data,phi,theta,nu,alpha,recipe=1,polarized=1,delta=0,noswing=None,epsb
         n1 = sintheta*cosphi
         n2 = sintheta*sinphi
         n3 = costheta
-        
-        xiddd = np.empty(nelem)
-        yiddd = np.empty(nelem)
-        ziddd = np.empty(nelem)
-        
+
         omca  = 1.-cosa
         lhatd1 = (n1**2*omca+cosa)*lhat1 + (n1*n2*omca-n3*sina)*lhat2 + (n1*n3*omca+n2*sina)*lhat3
         lhatd2 = (n2*n1*omca+n3*sina)*lhat1 + (n2**2*omca+cosa)*lhat2 + (n2*n3*omca-n1*sina)*lhat3
@@ -494,7 +490,9 @@ def get_ray(data,nregrid,beg,end):
 
     return data
 
-def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=1,alpha=0.6,delta=0,recipe=2):
+
+
+def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=1,alpha=0.6,delta=0,recipe=2,polarized=0,dog=None):
 
 # Synchrotron constants:
     c  = 2.99792458e10 # cm s^-1
@@ -526,19 +524,19 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
 
     # get velocities for Doppler factor:
     ur = ontoGrid(extract_masked(data,'u1',m)
-                  ,theta,npixel,L,points,delta=delta,x0=x0)
+                  ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
     uz = ontoGrid(extract_masked(data,'u2',m)
-                  ,theta,npixel,L,points,delta=delta,x0=x0)
+                  ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
     uphi = ontoGrid(extract_masked(data,'u3',m)
-                  ,theta,npixel,L,points,delta=delta,x0=x0)
+                  ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
 
     # get magnetic field:
     br = ontoGrid(extract_masked(data,'b1',m)
-                  ,theta,npixel,L,points,delta=delta,x0=x0)
+                  ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
     bz = ontoGrid(extract_masked(data,'b2',m)
-                  ,theta,npixel,L,points,delta=delta,x0=x0)
+                  ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
     bphi = ontoGrid(extract_masked(data,'b3',m)
-                  ,theta,npixel,L,points,delta=delta,x0=x0)
+                  ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
 
 
 
@@ -582,9 +580,10 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
     print '=== Minimum and maximum Doppler factor: ', D.min(), D.max(), ' ==='
 # get ndash:
     ndash = np.empty((nelem,3))
-    ndash[:,0] = D*n[:,0] - (D+1.) * lfac/(lfac+1) * beta[:,0]
-    ndash[:,1] = D*n[:,1] - (D+1.) * lfac/(lfac+1) * beta[:,1]
-    ndash[:,2] = D*n[:,2] - (D+1.) * lfac/(lfac+1) * beta[:,2]
+    ndash[:,0] = D*n[:,0] - (D+1.) * lfac/(lfac+1.) * beta[:,0]
+    ndash[:,1] = D*n[:,1] - (D+1.) * lfac/(lfac+1.) * beta[:,1]
+    ndash[:,2] = D*n[:,2] - (D+1.) * lfac/(lfac+1.) * beta[:,2]
+
 
     print 'got ndash min and max:', ndash[:,0].min(), ndash[:,0].max(), ndash[:,1].min(), ndash[:,1].max(), ndash[:,2].min(), ndash[:,2].max()
 
@@ -592,30 +591,31 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
     bx = (br*cosphi - bphi*sinphi)
     by = (br*sinphi + bphi*cosphi)
 
-    bdash = np.empty((nelem,3))
-    bdash[:,0] = bx/lfac + 1./(lfac+1.)*ux*(bx*ux+by*uy+bz*uz)/c/c/lfac
-    bdash[:,1] = by/lfac + 1./(lfac+1.)*uy*(bx*ux+by*uy+bz*uz)/c/c/lfac
-    bdash[:,2] = bz/lfac + 1./(lfac+1.)*uz*(bx*ux+by*uy+bz*uz)/c/c/lfac
+#    bdash = np.empty((nelem,3))
+#    bdash[:,0] = bx/lfac + 1./(lfac+1.)*ux*(bx*ux+by*uy+bz*uz)/c/c/lfac
+#    bdash[:,1] = by/lfac + 1./(lfac+1.)*uy*(bx*ux+by*uy+bz*uz)/c/c/lfac
+#    bdash[:,2] = bz/lfac + 1./(lfac+1.)*uz*(bx*ux+by*uy+bz*uz)/c/c/lfac
 
 
 # bdash perp:
-    bdashp = np.empty(nelem)
-    tmp    = np.empty((nelem,3))
-    tmp    = np.cross(ndash,bdash)
-    bdashp = norm(tmp)
+#    bdashp = np.empty(nelem)
+#    tmp    = np.empty((nelem,3))
+#    tmp    = np.cross(ndash,bdash)
+#    bdashp = norm(tmp)
+
+    b       = np.empty((nelem,3))
+    b[:,0] = bx
+    b[:,1] = by
+    b[:,2] = bz
+    bdashp = 1./lfac* np.sqrt((bx**2+by**2+bz**2)-D**2*scalar(b,n)**2+2.*lfac*D*scalar(b,n)*scalar(beta,b))
 
     print 'got bdashp min and max: ', bdashp.min(), bdashp.max()
-
-    # Clear memory:
-    del ur, uphi, br, bphi, cosphi, sinphi, rcyl
-    # Clear memory:
-    del n, beta
 
 # electron densities and cutoff:
     eps_inf = read.extract(data.get('pointdata'),'eps_inf',attribute_mode='point')
     eps_inf = np.ma.filled(np.ma.masked_array(eps_inf,m),0.)
     eps_inf = ontoGrid(
-        eps_inf,theta,npixel,L,points,delta=delta,x0=x0)
+        eps_inf,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
 
 # emissivity:
     if recipe ==1:
@@ -624,13 +624,13 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
                 np.ma.masked_array(
                     read.extract(data.get('pointdata'),'rhoe',attribute_mode='point'),m),
                 0.)
-            ,theta,npixel,L,points,delta=delta,x0=x0)
+            ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
         rhoe_0=ontoGrid(
             np.ma.filled(
                 np.ma.masked_array(
             read.extract(data.get('pointdata'),'rhoe_0',attribute_mode='point'),m),
                 0.)
-            ,theta,npixel,L,points,delta=delta,x0=x0)
+            ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
 
     elif recipe ==2:
         rhoe = ontoGrid(
@@ -638,13 +638,13 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
                 np.ma.masked_array(
                     read.extract(data.get('pointdata'),'n',attribute_mode='point'),m),
                 0.)
-            ,theta,npixel,L,points,delta=delta,x0=x0)
+            ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
         rhoe_0=ontoGrid(
             np.ma.filled(
                 np.ma.masked_array(
                     read.extract(data.get('pointdata'),'n0',attribute_mode='point'),m),
                 0.)
-            ,theta,npixel,L,points,delta=delta,x0=x0)
+            ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
 
     if recipe == 1 or recipe ==2:
         emiss = (c2*rhoe_0/me*c2*powerorzero(c1,(Gamma-3.)/2.)/(8.*np.pi) *
@@ -654,11 +654,79 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
                  powerorzero(nu,(1.-Gamma)/2.) *
                  powerorzero((1. - np.sqrt(nu)/(np.sqrt(c1*bdashp)*eps_inf)),Gamma-2.)
              )
+    if recipe == 3:
+        emiss = powerorzero(D,2.+(Gamma-1)/2.)*powerorzero(bdashp,(Gamma+1.)/2.)
+
+    if polarized !=1:
+        return {'emiss':emiss,'points':points,
+                'phi': phi, 'theta': theta, 'delta': delta, 'nu': nu, 'alpha': alpha, 'recipe': recipe,
+                'L':L,'npixel':npixel,'x0':x0}
+
+# direction of emission:
+    q       = np.empty((nelem,3))
+    absb    = np.empty(nelem)
+    ehat    = np.empty((nelem,3))
+    absehat = np.empty((nelem))
+    lhat    = np.empty((nelem,3))
+    coschie = np.empty(nelem)
+    sinchie = np.empty(nelem)
+    cos2chie= np.empty(nelem)
+    sin2chie= np.empty(nelem)
+     
+
+    q = b + np.cross(n,np.cross(beta,b))
+
+    absb = norm(b)
+
+    ehat      = np.cross(n,q) 
+    absehat   = norm(ehat)
+    ehat[:,0] = ehat[:,0]/absehat
+    ehat[:,1] = ehat[:,1]/absehat
+    ehat[:,2] = ehat[:,2]/absehat
+
+    lhat1 = -costheta*cosphi_n
+    lhat2 = -costheta*sinphi_n
+    lhat3 = sintheta
+
+    if delta!=0:
+        cosa = np.cos(delta*np.pi/180.)
+        sina = np.sin(delta*np.pi/180.)
+
+        n1 = sintheta*cosphi_n
+        n2 = sintheta*sinphi_n
+        n3 = costheta
+
+        omca  = 1.-cosa
+        lhatd1 = (n1**2*omca+cosa)*lhat1 + (n1*n2*omca-n3*sina)*lhat2 + (n1*n3*omca+n2*sina)*lhat3
+        lhatd2 = (n2*n1*omca+n3*sina)*lhat1 + (n2**2*omca+cosa)*lhat2 + (n2*n3*omca-n1*sina)*lhat3
+        lhatd3 = (n3*n1*omca-n2*sina)*lhat1 + (n3*n2*omca+n1*sina)*lhat2 + (n3**2*omca+cosa)*lhat3
+
+        lhat1=lhatd1
+        lhat2=lhatd2
+        lhat3=lhatd3
+        
+    lhat[:,0] = lhat1
+    lhat[:,1] = lhat2
+    lhat[:,2] = lhat3
 
 
-    return {'emiss':emiss,'points':points,
+    coschie = scalar(lhat,ehat)
+    sinchie = scalar(n,np.cross(lhat,ehat))
+
+# complex phase with Doppelwinkelsatz:
+    sin2chie = 2.*sinchie*coschie
+    cos2chie = np.square(coschie)-np.square(sinchie)
+
+# assemble complex polarized emissivity:
+    piem = (Gamma+1)/(Gamma+7./3.)
+    emisspol = np.ma.filled(np.ma.masked_array(piem * emiss * (cos2chie + 1j* sin2chie),absb==0),0.)
+
+    print '=== Done with emissivities! ==='
+    return {'emiss': emiss, 'emisspol': emisspol, 'points': data.get('points'),
             'phi': phi, 'theta': theta, 'delta': delta, 'nu': nu, 'alpha': alpha, 'recipe': recipe,
-            'L':L,'npixel':npixel,'x0':x0}
+                'L':L,'npixel':npixel,'x0':x0}
+
+
 
 def extract_masked(data,var,mask,maskval=0.,attribute_mode='point'):
 
@@ -672,7 +740,7 @@ def extract_masked(data,var,mask,maskval=0.,attribute_mode='point'):
     return mydata
 
 
-def ontoGrid(var,theta,npixel,L,points,delta=0,x0=[0,0,0]):
+def ontoGrid(var,theta,npixel,L,points,delta=0,x0=[0,0,0],dog=None):
 
     print '=== Obtaining variable on raygrid ==='
 
@@ -685,28 +753,34 @@ def ontoGrid(var,theta,npixel,L,points,delta=0,x0=[0,0,0]):
     drg = np.min((L[0]/np.double(npixel[0]), L[1]/np.double(npixel[1]), L[2]/np.double(npixel[2])))
 
     # Resolution of original grid:
-    nelem = len(var)
     Lx = x.max() - x.min()
     Ly = y.max() - y.min()
-    ny = np.int(np.sqrt(nelem * Ly/Lx))
-    nx = np.int(nelem/ny)
-    dog = np.min((Ly/ny,Lx/nx))
+    if dog==None:
+        nelem = len(var)
+        Lx = x.max() - x.min()
+        Ly = y.max() - y.min()
+        ny = np.int(np.sqrt(nelem * Ly/Lx))
+        nx = np.int(nelem/ny)
+        dog = np.min((Ly/ny,Lx/nx))
+    else:
+        nx = Lx/dog
+        ny = Ly/dog
 
     xi,yi = np.mgrid[0:x.max():nx*1j, 
                      y.min():y.max():ny*1j]
 
-    varGrid = griddata((x,y),var,(xi,yi),method='nearest')
-    varGridSmooth = gaussian_filter(varGrid,drg/dog,mode='nearest')
+#    varGrid = griddata((x,y),var,(xi,yi),method='nearest')
+#    varGridSmooth = gaussian_filter(varGrid,drg/dog,mode='nearest')
 
     # Regrid the smoothed version onto grid with resolution drg (might not be necessary):
-    nx = np.int(Lx / drg)
-    ny = np.int(Ly / drg)
-    xiC,yiC = np.mgrid[0:x.max():nx*1j, 
-                     y.min():y.max():ny*1j]
-    varCoarseGrid = griddata((xi.ravel(),yi.ravel()),varGridSmooth.ravel(),(xiC,yiC),method='nearest')
+#    nx = np.int(Lx / drg)
+#    ny = np.int(Ly / drg)
+#    xiC,yiC = np.mgrid[0:x.max():nx*1j, 
+#                     y.min():y.max():ny*1j]
+#    varCoarseGrid = griddata((xi.ravel(),yi.ravel()),varGridSmooth.ravel(),(xiC,yiC),method='nearest')
     
-    data = griddata((xiC.ravel(),yiC.ravel()),varCoarseGrid.ravel(),(np.sqrt(grid[0]**2+grid[1]**2),grid[2]),method='nearest')
-#    data = griddata((x,y),var,(np.sqrt(grid[0]**2+grid[1]**2),grid[2]),method='nearest')
+#    data = griddata((xi.ravel(),yi.ravel()),varGridSmooth.ravel(),(np.sqrt(grid[0]**2+grid[1]**2),grid[2]),method='nearest')
+    data = griddata((x,y),var,(np.sqrt(grid[0]**2+grid[1]**2),grid[2]),method='nearest')
 
     return data
 
@@ -722,15 +796,32 @@ def raygun(inputdata):
     delta    = inputdata.get('delta')
 
     map    = np.zeros((npixel[0],npixel[1]))
-    for i in range(npixel[0]):
-        for j in range(npixel[1]):
-            map[i,j] = map[i,j] + data[np.arange(npixel[2])+j*npixel[2]+i*npixel[2]*npixel[1]].sum()
+    if 'emisspol' in inputdata:
+        mapp_r = np.zeros((npixel[0],npixel[1]))
+        mapp_i = np.zeros((npixel[0],npixel[1]))
+        datap_r = inputdata.get('emisspol').real
+        datap_i = inputdata.get('emisspol').imag
+        for i in range(npixel[0]):
+            for j in range(npixel[1]):
+                map[i,j] = map[i,j] + data[np.arange(npixel[2])+j*npixel[2]+i*npixel[2]*npixel[1]].sum()
+                mapp_r[i,j] = mapp_r[i,j] + datap_r[np.arange(npixel[2])+j*npixel[2]+i*npixel[2]*npixel[1]].sum()
+                mapp_i[i,j] = mapp_i[i,j] + datap_i[np.arange(npixel[2])+j*npixel[2]+i*npixel[2]*npixel[1]].sum()
+    else:
+        for i in range(npixel[0]):
+            for j in range(npixel[1]):
+                map[i,j] = map[i,j] + data[np.arange(npixel[2])+j*npixel[2]+i*npixel[2]*npixel[1]].sum()
 
-
-    return {'Inu': map*L[2]/npixel[2],
-     'phi': phi, 'theta': theta, 'delta': delta, 
-     'nu': inputdata.get('nu'), 'alpha': inputdata.get('alpha'), 'recipe': inputdata.get('recipe'), 
-     'npixel': npixel, 'L': L}
+    if 'emisspol' in inputdata:
+        return {'Inu': map*L[2]/npixel[2],
+                'Inupol': (mapp_r + 1j * mapp_i) * L[2]/npixel[2],
+                'phi': phi, 'theta': theta, 'delta': delta, 
+                'nu': inputdata.get('nu'), 'alpha': inputdata.get('alpha'), 'recipe': inputdata.get('recipe'), 
+                'npixel': npixel, 'L': L}
+    else:
+        return {'Inu': map*L[2]/npixel[2],
+                'phi': phi, 'theta': theta, 'delta': delta, 
+                'nu': inputdata.get('nu'), 'alpha': inputdata.get('alpha'), 'recipe': inputdata.get('recipe'), 
+                'npixel': npixel, 'L': L}
 
 def cutEmiss(data,grid,npixel,points,coord):
     
@@ -782,7 +873,7 @@ def cutEmiss(data,grid,npixel,points,coord):
 
     return data
 
-def shotgun(inputdata,npixel,L,x0=None,coordinate='cartesian'):
+def shotgun(inputdata,npixel,L,x0=None,coordinate='cartesian',nocut=True):
 
     print '=== Calculating radiation map... ==='
     points   = inputdata.get('points')
@@ -803,7 +894,8 @@ def shotgun(inputdata,npixel,L,x0=None,coordinate='cartesian'):
     data    = griddata((x,y,z),emiss, (grid[0],grid[1],grid[2]),method='nearest')
     
 # remove emissivity outside of original data:
-    data = cutEmiss(data,grid,npixel,points,coordinate)
+    if nocut==False:
+        data = cutEmiss(data,grid,npixel,points,coordinate)
 
     if 'emisspol' in inputdata:
         datap_r = griddata((x,y,z),emisspol.real, (grid[0],grid[1],grid[2]),method='nearest')
@@ -843,8 +935,6 @@ def shoot(inputdata,phi,theta,npixel,xgrid,ygrid):
 
     points = inputdata.get('points')
     emiss  = inputdata.get('emiss')
-    x = np.linspace(xgrid[0],xgrid[1],npixel[0])
-    y = np.linspace(ygrid[0],ygrid[1],npixel[1])
 
 
     dy = (xgrid[1]-xgrid[0])/npixel[0]

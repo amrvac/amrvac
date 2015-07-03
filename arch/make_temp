@@ -14,9 +14,14 @@
 
 # The Makefile should always use the sh shell.
 SHELL         = /bin/sh
+
 # The preprocessed *.f files will be put into a separate subfolder
 FOBJECT_DIR   = F90sources
 OBJ_DIR       = Build
+
+ifndef $(WORK_DIR)
+WORK_DIR      = $(CURDIR)
+endif
 
 ARCH          = default.defs
 SRC           = $(AMRVAC_DIR)/src

@@ -99,27 +99,30 @@ def emOnSlice(d,theta,nu,alpha,recipe=1):
     print 'got bdashp min and max: ', bdashp.min(), bdashp.max()
 
 
-    eps_inf = d.eps_inf
+    if recipe == 1 or recipe ==2:
+        eps_inf = d.eps_inf
+        if recipe ==1:
+            rhoe = d.rhoe
+            rhoe_0 = d.rhoe_0
+        elif recipe == 2: 
+            rhoe = d.n
+            rhoe_0 = d.n0
 
-    if recipe ==1:
-        rhoe = d.rhoe
-        rhoe_0 = d.rhoe_0
-    elif recipe == 2: 
-        rhoe = d.n
-        rhoe_0 = d.n0
+        emiss = (c2*rhoe_0/me*c2*powerorzero(c1,(Gamma-3.)/2.)/(8.*np.pi) *
+                 powerorzero(D,2.+(Gamma-1)/2.) *
+                 powerorzero(bdashp,(Gamma+1.)/2.)*
+                 powerorzero(rhoe_0/rhoe,-((Gamma+2.)/3.)) *
+                 powerorzero(nu,(1.-Gamma)/2.) *
+                 powerorzero((1. - np.sqrt(nu)/(np.sqrt(c1*bdashp)*eps_inf)),Gamma-2.)
+             )
+    elif recipe == 3:
+        emiss = powerorzero(D,2.+(Gamma-1)/2.)*powerorzero(bdashp,(Gamma+1.)/2.)
+    elif recipe == 4:
+        emiss = powerorzero(D,2.+(Gamma-1)/2.)
     else:
         print 'Unknown recipe'
         return
-
-
-
-    emiss = (c2*rhoe_0/me*c2*powerorzero(c1,(Gamma-3.)/2.)/(8.*np.pi) *
-             powerorzero(D,2.+(Gamma-1)/2.) *
-             powerorzero(bdashp,(Gamma+1.)/2.)*
-             powerorzero(rhoe_0/rhoe,-((Gamma+2.)/3.)) *
-             powerorzero(nu,(1.-Gamma)/2.) *
-             powerorzero((1. - np.sqrt(nu)/(np.sqrt(c1*bdashp)*eps_inf)),Gamma-2.)
-    )
+        
 
 # mask out the wind zone:
     m = d.lfac >9.
@@ -206,8 +209,9 @@ def beta(d):
     '''
     returns the plasma beta assuming input data is in cgs units
     '''
-    m=(d.b1**2+d.b2**2+d.b3**2)<=0.
-    beta=np.ma.masked_array(8.*np.pi*d.p/(d.b1**2+d.b2**2+d.b3**2),m)
+    get_bdash(d)
+    m=(d.bdash1**2+d.bdash2**2+d.bdash3**2)<=0.
+    beta=np.ma.masked_array(8.*np.pi*d.p/(d.bdash1**2+d.bdash2**2+d.bdash3**2),m)
     return np.ma.filled(beta,beta.max())
 
 
