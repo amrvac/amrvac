@@ -1,5 +1,5 @@
 #undefine EPSINF
-#define GLM
+#undefine GLM
 #undefine FCT
 #undefine HALL
 #undefine UCONVERT
