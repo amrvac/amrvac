@@ -40,7 +40,7 @@ def extract(data,varname,attribute_mode='cell'):
     else:
         print "attribute_mode is either 'cell' or 'point'"
     
-    return ah.vtk2array(vtk_values)
+    return (ah.vtk2array(vtk_values)).astype(np.float64)
 
 #=============================================================================
 class load:

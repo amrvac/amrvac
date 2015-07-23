@@ -36,7 +36,7 @@ def swapDirections(d):
     d.b3 = tmp
 
 
-def emOnSlice(d,theta,nu,alpha,recipe=1):
+def emOnSlice(d,theta,nu,alpha,recipe=1,lcut=1.5):
 
     ''' Assuming a y=0 slice '''
 
@@ -119,13 +119,17 @@ def emOnSlice(d,theta,nu,alpha,recipe=1):
         emiss = powerorzero(D,2.+(Gamma-1)/2.)*powerorzero(bdashp,(Gamma+1.)/2.)
     elif recipe == 4:
         emiss = powerorzero(D,2.+(Gamma-1)/2.)
+    elif recipe == 5:
+        emiss = d.rho*powerorzero(D,2.+(Gamma-1)/2.)*powerorzero(bdashp,(Gamma+1.)/2.)
+    elif recipe == 6:
+        emiss = (d.bdash1**2+d.bdash2**2+d.bdash3**2)*powerorzero(D,2.+(Gamma-1)/2.)*powerorzero(bdashp,(Gamma+1.)/2.)
     else:
         print 'Unknown recipe'
         return
         
 
 # mask out the wind zone:
-    m = d.lfac >9.
+    m = d.lfac < lcut
     emiss = np.ma.filled(np.ma.masked_array(emiss,m),0.)
 
 
@@ -205,15 +209,40 @@ def aniso(d,dir=1):
     return np.ma.filled(np.ma.masked_array(bp2/btot,m),0.)
 
 
+def omega(d):
+    r=d.getCenterPoints()[:,0]
+    return 1./r * (d.u3/d.lfac - d.b3*np.sqrt((d.u1**2+d.u2**2)/(d.b1**2+d.b2**2))/d.lfac)
+
 def beta(d):
     '''
     returns the plasma beta assuming input data is in cgs units
     '''
     get_bdash(d)
     m=(d.bdash1**2+d.bdash2**2+d.bdash3**2)<=0.
-    beta=np.ma.masked_array(8.*np.pi*d.p/(d.bdash1**2+d.bdash2**2+d.bdash3**2),m)
+    beta=np.ma.masked_array(2.*fopi*d.p/(d.bdash1**2+d.bdash2**2+d.bdash3**2),m)
     return np.ma.filled(beta,beta.max())
 
+def alfven(d):
+    '''
+    returns the Alfven velocity, data is in code-units
+    '''
+    get_bdash(d)
+    return np.sqrt((d.bdash1**2+d.bdash2**2+d.bdash3**2)/(d.xi/d.lfac**2+d.bdash1**2+d.bdash2**2+d.bdash3**2))
+
+def mfast(d,gamma=4./3.):
+    '''
+    returns the fast Mach number perpendicular propagation
+    '''
+    get_bdash(d)
+    rhoh = d.rho * c**2 + gamma/(gamma-1.)*d.p
+    w = rhoh + (d.bdash1**2+d.bdash2**2+d.bdash3**2)/fopi
+    cg2 = c**2 * gamma*d.p/rhoh
+    va2 = (d.bdash1**2+d.bdash2**2+d.bdash3**2)/fopi * c**2 / w
+    vf = np.sqrt(rhoh*cg2/(w)+va2)
+    lf = 1./np.sqrt(1-(vf/c)**2)
+
+    mf = np.sqrt(d.u1**2+d.u2**2+d.u3**2)/(lf*vf)
+    return mf
 
 def thetam(d,dir=1):
     '''

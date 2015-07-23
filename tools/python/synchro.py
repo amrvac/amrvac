@@ -50,8 +50,8 @@ def get_pointdata(offset,filenameout='data',type='pvtu',attribute_mode='cell',mi
         vr.Update()
         pointdata.Update()
 
-    vtk_points=data.GetPoints().GetData()
-    points=ah.vtk2array(vtk_points)
+    vtk_points=pointdata.GetPoints().GetData()
+    points=ah.vtk2array(vtk_points).astype(np.float64)
  
     print '=== Done with reading data! ==='
     return {'pointdata': pointdata, 'points': points}
@@ -492,10 +492,12 @@ def get_ray(data,nregrid,beg,end):
 
 
 
-def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=1,alpha=0.6,delta=0,recipe=2,polarized=0,dog=None):
+def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=1,alpha=0.6,delta=0,recipe=2,polarized=0,dog=None,mirror=None):
 
 # Synchrotron constants:
-    c  = 2.99792458e10 # cm s^-1
+#    c  = 2.99792458e10 # cm s^-1
+    c  = 1.
+
     c1 = 6.27e18 # cm^-7/2 g^-5/2 s^4
     c2 = 2.368e-3 # g^-2 cm^-1 s^3
     me = 9.1093897e-28 # g
@@ -520,7 +522,7 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
 
 # mask out the wind zone:
     lfac = read.extract(data.get('pointdata'),'lfac',attribute_mode='point')
-    m = lfac >9.
+    m = lfac > 10000.
 
     # get velocities for Doppler factor:
     ur = ontoGrid(extract_masked(data,'u1',m)
@@ -537,6 +539,12 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
                   ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
     bphi = ontoGrid(extract_masked(data,'b3',m)
                   ,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
+
+# mirror the variables if needed:
+    if (mirror == 1):
+        uz[grid[2]<0]   = - uz[grid[2]<0]
+        br[grid[2]<0]   = - br[grid[2]<0]
+        bphi[grid[2]<0] = - bphi[grid[2]<0]        
 
 
 
@@ -611,11 +619,13 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
 
     print 'got bdashp min and max: ', bdashp.min(), bdashp.max()
 
+
+    if (recipe == 1 or recipe == 2):
 # electron densities and cutoff:
-    eps_inf = read.extract(data.get('pointdata'),'eps_inf',attribute_mode='point')
-    eps_inf = np.ma.filled(np.ma.masked_array(eps_inf,m),0.)
-    eps_inf = ontoGrid(
-        eps_inf,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
+        eps_inf = read.extract(data.get('pointdata'),'eps_inf',attribute_mode='point')
+        eps_inf = np.ma.filled(np.ma.masked_array(eps_inf,m),0.)
+        eps_inf = ontoGrid(
+            eps_inf,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
 
 # emissivity:
     if recipe ==1:
@@ -656,6 +666,14 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
              )
     if recipe == 3:
         emiss = powerorzero(D,2.+(Gamma-1)/2.)*powerorzero(bdashp,(Gamma+1.)/2.)
+
+    if recipe == 4:
+        rho = read.extract(data.get('pointdata'),'rho',attribute_mode='point')
+        rho = np.ma.filled(np.ma.masked_array(rho,m),0.)
+        rho = ontoGrid(
+            rho,theta,npixel,L,points,delta=delta,x0=x0,dog=dog)
+        emiss = rho * powerorzero(D,2.+(Gamma-1)/2.) * powerorzero(bdashp,(Gamma+1.)/2.)
+
 
     if polarized !=1:
         return {'emiss':emiss,'points':points,
@@ -986,10 +1004,10 @@ def phase(map):
 def beam(input,sigma):
     
     nsig = input.get('npixel')[0]*sigma/(input.get('L')[0])
-    map = input.get('Inu')
+    map = mapshow = np.copy(input.get('Inu'))
     mapSmooth = gaussian_filter(map,nsig,mode='nearest')
 
-    output = input
+    output = np.copy(input)
     output['Inu'] = mapSmooth
 
     return output
@@ -1066,11 +1084,11 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
 
     L   = inputdata.get('L')
 # square root filter:
-#    map = np.sqrt(inputdata.get('Inu'))
+    map = inputdata.get('Inu')
     if function == None:
-        map = inputdata.get('Inu')
+        mapshow = np.copy(inputdata.get('Inu'))
     else:
-        map = function(inputdata.get('Inu'))
+        mapshow = function(np.copy(inputdata.get('Inu')))
 
 
     if 'Inupol' in inputdata:
@@ -1090,14 +1108,14 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
         palette.set_bad(background, 1.0)
 
     if vmin==None:
-        vmin=map.min()
+        vmin=mapshow.min()
     if vmax==None:
-        vmax=map.max()
+        vmax=mapshow.max()
     if background == None:
-        map_clip = np.clip(map,vmin,vmax)
+        map_clip = np.clip(mapshow,vmin,vmax)
     else:
-        map_clip = np.ma.masked_where(map<vmin, map)
-        map_clip = np.ma.masked_where(map>vmax, map_clip)
+        map_clip = np.ma.masked_where(mapshow<vmin, mapshow)
+        map_clip = np.ma.masked_where(mapshow>vmax, map_clip)
 
     normColors=mpl.colors.Normalize(vmin=vmin,vmax=vmax,clip = False)
 
@@ -1153,25 +1171,25 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
 
 
 # Now for the colorbar (plotted separately):
-    figcb = pyplot.figure(figsize=(4,0.25))
-    axcb = figcb.add_subplot(1,1,1)
-    cbarticks = np.linspace(vmin, vmax, ncbarticks, endpoint=True)
-    if vmax == map.max():
-        cb = mpl.colorbar.ColorbarBase(axcb, cmap=palette,
-                                       norm=normColors,
-                                       ticks=cbarticks,
-                                    orientation='horizontal')
-    else:
-        cb = mpl.colorbar.ColorbarBase(axcb, cmap=palette,
-                                       norm=normColors,extend='max',
-                                       ticks=cbarticks,
-                                    orientation='horizontal')
-        
-    for tick in cb.ax.get_yticklabels():
-        tick.set_fontsize(fontsize)
-    cb.ax.xaxis.get_offset_text().set_fontsize(fontsize-2)
-    cb.ax.yaxis.get_offset_text().set_fontsize(fontsize-2)
-    cb.solids.set_rasterized(True) 
+#    figcb = pyplot.figure(figsize=(4,0.25))
+#    axcb = figcb.add_subplot(1,1,1)
+#    cbarticks = np.linspace(vmin, vmax, ncbarticks, endpoint=True)
+#    if vmax == mapshow.max():
+#        cb = mpl.colorbar.ColorbarBase(axcb, cmap=palette,
+#                                       norm=normColors,
+#                                       ticks=cbarticks,
+#                                    orientation='horizontal')
+#    else:
+#        cb = mpl.colorbar.ColorbarBase(axcb, cmap=palette,
+#                                       norm=normColors,extend='max',
+#                                       ticks=cbarticks,
+#                                    orientation='horizontal')
+#        
+#    for tick in cb.ax.get_yticklabels():
+#        tick.set_fontsize(fontsize)
+#    cb.ax.xaxis.get_offset_text().set_fontsize(fontsize-2)
+#    cb.ax.yaxis.get_offset_text().set_fontsize(fontsize-2)
+#    cb.solids.set_rasterized(True) 
 
 
     if filename == 'none':
