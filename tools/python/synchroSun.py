@@ -911,7 +911,7 @@ def make_grid(theta,phiy,phi,npixel,L,delta=0,x0=[0,0,0]):
 
 
 
-def show_map(inputdata,npol='none',filename='none',function=None,background=None,vmin=None,vmax=None,cmap=cm.gist_heat_r,orientation='vertical',xlabel='x',ylabel='y',xcenter=0.,ycenter=0.):
+def show_map(inputdata,npol='none',filename='none',function=None,background=None,vmin=None,vmax=None,cmap=cm.gist_heat_r,orientation='horizontal',xlabel='x',ylabel='y',title='none',xcenter=0.,ycenter=0.):
 
     dpi=300
     fontsize=14
@@ -959,7 +959,7 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
     normColors=mpl.colors.Normalize(vmin=vmin,vmax=vmax,clip = False)
 
     cs = ax.imshow(map_clip.transpose(),origin='lower',cmap=palette,extent=extent,norm=normColors)
-    cb=plt.colorbar(cs,orientation=orientation,shrink=0.6,format='%.1e')
+    cb=plt.colorbar(cs,orientation=orientation,shrink=1.0,pad=0.08,format='%.1e',aspect=30)
 #    ax.patch.set_facecolor(background)
     for tick in ax.xaxis.get_major_ticks():
         tick.label1.set_fontsize(fontsize)
@@ -972,12 +972,14 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
 
     ax.set_xlabel(xlabel,fontsize=fontsize)
     ax.set_ylabel(ylabel,fontsize=fontsize)
+    if(title != 'none'):
+        tt=plt.title(title,fontsize=24)
 
     if filename == 'none':
         plt.show()
     else: 
-        fig1.savefig(''.join([filename,'.pdf']), format="pdf", transparent=True,dpi=dpi,bbox_inches='tight')
-        fig1.savefig(''.join([filename,'.png']), format="png", orientation='portrait',dpi=dpi)
+#        fig1.savefig(''.join([filename,'.pdf']), format="pdf", transparent=True,dpi=dpi,bbox_inches='tight')
+        fig1.savefig(''.join([filename,'.png']), format="png", orientation='portrait',dpi=dpi,bbox_inches='tight')
         plt.close()
 
 

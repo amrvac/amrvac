@@ -495,15 +495,33 @@ else
    mysnapshot = 0
 end if
 
-select case(type)
-case ('ensemble')
-   nout = nint(tout / dtsave_ensemble)
-   write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_ensemble',nout,'.csv'
-case ('destroy')
-   write(make_particle_filename,"(a,i4.4,a)") trim(filenameout),mysnapshot,'_destroyed.csv'
-case ('individual')
-   write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_particle',index,'.csv'
-end select
+if (.not. time_advance) then
+  select case(type)
+  case ('ensemble')
+     nout = nint(tout / dtsave_ensemble)
+     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_ensemble',nout,'.csv'
+  case ('destroy')
+     write(make_particle_filename,"(a,i4.4,a)") trim(filenameout),mysnapshot,'_destroyed.csv'
+  case ('individual')
+     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_particle',index,'.csv'
+  case ('followed')
+     nout = nint(tout / dtsave_ensemble)
+     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_followed',nout,'.csv'
+  end select
+else
+  select case(type)
+  case ('ensemble')
+     nout = nint(tout / dtsave_ensemble)
+     write(make_particle_filename,"(a,a,i6.6,a)") trim(filenameout),'_ensemble',nout,'.csv'
+  case ('destroy')
+     write(make_particle_filename,"(a,a)") trim(filenameout),'_destroyed.csv'
+  case ('individual')
+     write(make_particle_filename,"(a,a,i6.6,a)") trim(filenameout),'_particle',index,'.csv'
+  case ('followed')
+     nout = nint(tout / dtsave_ensemble)
+     write(make_particle_filename,"(a,a,i6.6,a)") trim(filenameout),'_followed',nout,'.csv'
+  end select
+end if
 
 end function make_particle_filename
 !=============================================================================
@@ -514,11 +532,12 @@ include 'amrvacdef.f'
 integer, intent(in)             :: send_n_particles_for_output
 type(particle_node), dimension(0:send_n_particles_for_output-1), intent(in)  :: send_particles
 character(len=*), intent(in)    :: type
-character(len=128)              :: filename
+character(len=128)              :: filename, filename2
 type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
 integer                         :: status(MPI_STATUS_SIZE)
 integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
 integer                         :: ipe, ipart
+logical :: all_followed_particles=.true.
 !-----------------------------------------------------------------------------
 receive_n_particles_for_output_from_ipe(:) = 0
 
@@ -526,6 +545,10 @@ if (npe==1) then
    do ipart=1,send_n_particles_for_output
       filename = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,type)
       call output_particle(send_particles(ipart-1),mype,filename)
+      if(all_followed_particles .and. send_particles(ipart-1)%follow) then
+        filename2 = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,'followed')
+        call output_particle(send_particles(ipart-1),mype,filename2)
+      end if
    end do
    return
 end if
@@ -554,6 +577,10 @@ if (mype==0) then
    do ipart=1,receive_n_particles_for_output_from_ipe(0)
       filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,type)
       call output_particle(receive_particles(ipart-1),0,filename)
+      if(all_followed_particles .and. receive_particles(ipart-1)%follow) then
+        filename2 = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'followed')
+        call output_particle(receive_particles(ipart-1),0,filename2)
+      end if
    end do
 
    do ipe=1,npe-1
@@ -561,6 +588,10 @@ if (mype==0) then
       do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
          filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,type)
          call output_particle(receive_particles(ipart-1),ipe,filename)
+         if(all_followed_particles .and. receive_particles(ipart-1)%follow) then
+           filename2 = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'followed')
+           call output_particle(receive_particles(ipart-1),ipe,filename2)
+         end if
       end do ! ipart
    end do ! ipe
 end if ! mype == 0
