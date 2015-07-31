@@ -82,21 +82,12 @@ if(vsqr > (one-dmaxvel)**2.0d0 )then
 endif 
  !=============================================!
 
-if(niiter==maxitnr)then
- ! could not find consistent value of lower bound for xi compliant with maxvel
- print *,' could not find value of lower bound for xi compliant with maxvel'
- print *,'xi1=',xi1,'dplus=',dplus,' tau+d=',tau+d
- ierror=2
- return
-endif
-
 ! we now compute f(xi1) and lfac(xi1)
-
 call funcd(xi1,fl,df,lfacl,d,tau,ssqr,bsqr,esqr,ecrossb2,sdotecrossb,ierror)
 if(ierror /=0)return
 testsl=(xi1>=dplus*lfacl.and.lfacl<=lfacmax)
  
-vsqr = (ssqr+ecrossb2-two*sdotecrossb)/xi1**2
+vsqr = tmp/xi1**2
 if(fl>zero)then
   print *,'warning: lower bound non-negative f(xi) value!'
   print*,'iteration  = ',it
