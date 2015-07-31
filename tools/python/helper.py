@@ -23,6 +23,8 @@ def tickLabelFontSize(ax,fontsize):
 
 
 def tickLabelFontSizeCb(cb,fontsize,rasterized=True):
+    for tick in cb.ax.get_xticklabels():
+        tick.set_fontsize(fontsize)
     for tick in cb.ax.get_yticklabels():
         tick.set_fontsize(fontsize)
     cb.ax.xaxis.get_offset_text().set_fontsize(fontsize-2)

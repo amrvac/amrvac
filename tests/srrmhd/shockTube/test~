@@ -1,0 +1,11 @@
+{if (iw==s^C_) then
+   transport=.false. 
+   call getv(w,x,ixI^L,ixO^L,idims,vidims)
+   call getv(w,x,ixI^L,ixO^L,^C,vc)
+   f(ixO^S) = - w(ixO^S,e^C_)*w(ixO^S,e0_+idims) - w(ixO^S,b^C_)*w(ixO^S,b0_+idims) &
+        + w(ixO^S,xi_)*vidims(ixO^S)*vc(ixO^S)
+   if (idims==^C) then !!! add (1/2(E**2+B**2)+p)
+      call Pressure(w,ixI^L,ixO^L,.true.,p)
+      f(ixO^S)    = f(ixO^S) + half*(sqrE(ixO^S) + sqrB(ixO^S)) + p(ixO^S)
+   end if
+end if\}
