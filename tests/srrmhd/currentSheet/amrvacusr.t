@@ -14,7 +14,7 @@ include 'amrvacdef.f'
 !-----------------------------------------------------------------------------
 
 eqpar(gamma_) = 4.0d0/3.0d0
-eqpar(eta_)   = 8.0d-2
+eqpar(eta_)   = 1.0d-2
 
 end subroutine initglobaldata_usr
 !=============================================================================
@@ -34,57 +34,18 @@ w(ix^S,psi_)  = 0.0d0
 w(ix^S,phib_) = 0.0d0
 w(ix^S,q_)    = 0.0d0
 
-select case(iprob)
-case(1) ! Fast shock
-   where(x(ix^S,1) .lt. 0.0d0) 
-      w(ix^S,rho_) = 1.0d0
-      w(ix^S,pp_)  = 10.0d0
+w(ix^S,rho_) = 1.0d0
+w(ix^S,pp_)  = 50.0d0
 
-      w(ix^S,u1_)  = 4.925d0
-      w(ix^S,u2_)  = 0.0d0
-      w(ix^S,u3_)  = 0.0d0 
+w(ix^S,u1_)  = 0.0d0
+w(ix^S,u2_)  = 0.0d0
+w(ix^S,u3_)  = 0.0d0 
 
-      w(ix^S,b1_)  = 5.0d0
-      w(ix^S,b2_)  = 15.08d0
-      w(ix^S,b3_)  = 0.0d0
-   elsewhere
-      w(ix^S,rho_) = 7.930d0
-      w(ix^S,pp_)  = 274.1d0
+w(ix^S,b1_)  = 0.0d0
+w(ix^S,b2_)  = erf(x(ix^S,1)/(2.0d0*sqrt(eqpar(eta_))))
+w(ix^S,b3_)  = 0.0d0
 
-      w(ix^S,u1_)  = 0.6209d0
-      w(ix^S,u2_)  = 0.1009d0
-      w(ix^S,u3_)  = 0.0d0 
 
-      w(ix^S,b1_)  = 5.0d0
-      w(ix^S,b2_)  = 28.92d0
-      w(ix^S,b3_)  = 0.0d0
-   end where
-case(2) ! Slow shock
-   where(x(ix^S,1) .lt. 0.0d0) 
-      w(ix^S,rho_) = 1.0d0
-      w(ix^S,pp_)  = 10.0d0
-
-      w(ix^S,u1_)  = 0.6082d0
-      w(ix^S,u2_)  = 0.0d0
-      w(ix^S,u3_)  = 0.0d0 
-
-      w(ix^S,b1_)  = 5.0d0
-      w(ix^S,b2_)  = 3.511d0
-      w(ix^S,b3_)  = 0.0d0
-   elsewhere
-      w(ix^S,rho_) = 1.485d0
-      w(ix^S,pp_)  = 17.03d0
-
-      w(ix^S,u1_)  = 0.4096d0
-      w(ix^S,u2_)  =-0.2147d0
-      w(ix^S,u3_)  = 0.0d0 
-
-      w(ix^S,b1_)  = 5.0d0
-      w(ix^S,b2_)  = 2.287d0
-      w(ix^S,b3_)  = 0.0d0
-   end where
-end select
-      
 w(ix^S,lfac_)= sqrt(one + {^C& w(ix^S,u^C_)**2|+})
 w(ix^S,e1_)  = w(ix^S,b2_)*w(ix^S,u3_) - w(ix^S,b3_)*w(ix^S,u2_)
 w(ix^S,e2_)  = w(ix^S,b3_)*w(ix^S,u1_) - w(ix^S,b1_)*w(ix^S,u3_)

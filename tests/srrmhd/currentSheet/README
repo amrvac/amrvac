@@ -1,0 +1,6 @@
+This is a 1D test for a self-similarly decaying current sheet.
+Setup as in Komissarov (2007): http://adsabs.harvard.edu/abs/2007MNRAS.382..995K.
+
+$AMRVAC_DIR/setup.pl -d=13 -phi=0 -z=0 -g=14 -p=srrmhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+
+erf.pdf shows the expected result.  Red is the analytical solution at t=9. It is almost indistinguishable from the numerical solution (solid black).

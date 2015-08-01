@@ -1,0 +1,9 @@
+This is a 1D test for a fast and a slow stationary shock.  
+Setup as in Komissarov (2007): http://adsabs.harvard.edu/abs/2007MNRAS.382..995K.
+
+$AMRVAC_DIR/setup.pl -d=13 -phi=0 -z=0 -g=14 -p=srrmhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+
+iprob=1 implements the fast shock
+iprob=2 implements the slow shock
+
+etas.pdf compares the solution for different resisitvities at t=4 (slow shock case). Resistivities are eta=0.01, 0.02, 0.04, 0.08.  The feature next to the boundary is still a transient which should go away after longer simulation time.  This is to be compared with the right panel of figure 3 of Komissarov (2007).
