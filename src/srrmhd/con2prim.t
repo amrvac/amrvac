@@ -619,8 +619,9 @@ if (vsqr<one) then
 
 else 
   ! print *,'Warning: erroneous input to funcd since vsrq=',vsqr,' >=1'
-  ! print *,'input values d, ssqr, tau, bsqr, sdotb:',d,ssqr,tau,bsqr,sdotb
-   print*,'ierror ==6 ',it,mype,t,saveigrid 
+   print *,'input values d, ssqr, tau, bsqr, esqr:',d,ssqr,tau,bsqr,esqr
+   print *,'input values ecrossb2, sdotecrossb:',ecrossb2,sdotecrossb
+   print*,'ierror ==6 ',it,mype,t,vsqr,xi
    ierror =6
    return
 end if
