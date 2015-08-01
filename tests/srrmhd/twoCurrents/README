@@ -1,0 +1,4 @@
+Reconnecting flux tubes.  
+Implemented initial equilibrium from Gourgouliatos et al. (2012) http://adsabs.harvard.edu/abs/2012MNRAS.419.3048G
+
+$AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=12,12 -p=srrmhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
