@@ -23,7 +23,7 @@ ifndef $(WORK_DIR)
 WORK_DIR      = $(CURDIR)
 endif
 
-ARCH          = debugHuey.defs
+ARCH          = oliver.defs
 SRC           = $(AMRVAC_DIR)/src
 
 include $(AMRVAC_DIR)/arch/$(ARCH)

@@ -101,7 +101,7 @@ if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,patchw,subname)
     { ^C&bold^C_=w(ix^D,b^C_);}
 {#IFDEF ENERGY
     call con2prim(w(ix^D,lfac_),w(ix^D,xi_), &
-             w(ix^D,d_),{^C&w(ix^D,s^C_)},w(ix^D,tau_),{^C&w(ix^D,b^C_)},{^C&w(ix^D,b^C_)},err)
+             w(ix^D,d_),{^C&w(ix^D,s^C_)},w(ix^D,tau_),{^C&w(ix^D,b^C_)},{^C&w(ix^D,e^C_)},err)
 }
 {#IFNDEF ENERGY
 call mpistop('Isentropic eso not implemented yet')

@@ -1,6 +1,0 @@
-{^C&if (iw==s^C_) then
-   if (idims==^C) then !!! add (1/2(E**2+B**2)+p)
-      sqrE(ixO^S) = {w(ixO^S,e0_+^CC)**2|+}
-      sqrB(ixO^S) = {w(ixO^S,b0_+^CC)**2|+}
-   end if
-end if\}

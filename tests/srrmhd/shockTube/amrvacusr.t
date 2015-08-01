@@ -13,8 +13,8 @@ subroutine initglobaldata_usr
 include 'amrvacdef.f'
 !-----------------------------------------------------------------------------
 
-eqpar(gamma_) = 2.0d0
-eqpar(eta_)   = 1.0d-3
+eqpar(gamma_) = 4.0d0/3.0d0
+eqpar(eta_)   = 1.0d-2
 
 end subroutine initglobaldata_usr
 !=============================================================================
@@ -28,7 +28,7 @@ integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw)
 ! .. loacl ..
-!double precision,dimension(ixG^T)       :: ec
+!double precision                :: wtmp(ixG^S,1:nw)
 !-----------------------------------------------------------------------------
 
 w(ix^S,psi_)  = 0.0d0
@@ -60,11 +60,17 @@ elsewhere
    w(ix^S,b3_)  = 0.0d0
 end where
 
+w(ix^S,lfac_)= sqrt(one + {^C& w(ix^S,u^C_)**2|+})
+w(ix^S,e1_)  = w(ix^S,b2_)*w(ix^S,u3_) - w(ix^S,b3_)*w(ix^S,u2_)
+w(ix^S,e2_)  = w(ix^S,b3_)*w(ix^S,u1_) - w(ix^S,b1_)*w(ix^S,u3_)
+w(ix^S,e3_)  = w(ix^S,b1_)*w(ix^S,u2_) - w(ix^S,b2_)*w(ix^S,u1_)
+{^C& w(ix^S,e^C_)  = w(ix^S,e^C_)/w(ix^S,lfac_)\}
+
 call conserve(ixG^L,ix^L,w,x,patchfalse)
-{^C& 
-call vcrossb(ixG^L,ix^L,^C,w,x,patchfalse,w(ixG^T,e^C_))
-w(ix^S,e^C_) = - w(ix^S,e^C_)
-\}
+!call primitive(ixG^L,ix^L,w,x)
+!print*, maxval(wtmp(ix^S,q_) - w(ix^S,q_))
+!call conserve(ixG^L,ix^L,w,x,patchfalse)
+
 end subroutine initonegrid_usr
 !=============================================================================
 {#IFDEF FCT

@@ -94,7 +94,7 @@ if(fl>zero)then
   print *,'xi1=',xi1,' vs dplus=',dplus,'dplus*lfacl=',dplus*lfacl&
          ,'lfacl=',lfacl,'lfacmax=',lfacmax
   print *,'fl=',fl,' niiter=',niiter,' vsqr(dplus)=',vsqr
-  print*,' ierror = 5',it,mype,saveigrid,t,fl,df,xi1,lfacl,vsqr,ierror
+  print*,' ierror = 5',d,tau,ssqr,bsqr,esqr,ecrossb2,sdotecrossb
   ierror=5
   return
 endif
@@ -103,7 +103,7 @@ endif
 ! xi2 is meant to be the maximal bound for the bracket to be used in NR
 ! for this we take the value of E=tau+d, increased by smallp
 
-xi2= max(tau+d+minp - half *bsqr,10.0d0*xi1)
+xi2= max(tau+d+minp - half *bsqr - half *esqr,10.0d0*xi1)
 niiter=-1
 
 LoopxiMax : do ni=1,maxitnr
@@ -613,7 +613,6 @@ if (vsqr<one) then
    !===== Pressure, calculate using EOS =====!
    call FuncPressure(xi,lfac,d,ssqr,tau,dlfac,p,dpdxi)
    !=========================================!
-   print*,p,dpdxi
 
    F  = xi-tau-d + half*(esqr+bsqr)-p
    dF = one - dpdxi

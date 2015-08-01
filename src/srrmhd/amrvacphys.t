@@ -25,9 +25,9 @@ smalltau = minp/(eqpar(gamma_)-one)
 call smallvaluesEOS
 }
 
-! Check if ssplitdivb = .true.
-if (ssplitdivb .ne. .true.) &
-     call mpistop('Please run with ssplitdivb = .true.')
+! Check if ssplitresis = .true.
+if (ssplitresis .neqv. .true.) &
+     call mpistop('Please run with ssplitresis = .true.')
 
 ! We require three vector components
 if (^NC .ne. 3) &
@@ -136,7 +136,7 @@ double precision, intent(in)      :: x(ixI^S,1:ndim)
 
 !-----------------------------------------------------------------------------
 
-call conserven(ixI^L,ixO^L,w,x,patchw)
+call conserven(ixI^L,ixO^L,w,patchw)
 
 if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,patchw(ixO^S),'conserve')
 
@@ -509,7 +509,7 @@ else
 !f^i[B_c] = lvc(c,i,k) Ek + phi delta(i,c)
 {if (iw==b^C_) then
    transport=.false. 
-   if (idims .ne. ^C) then 
+   if (idims .ne. ^C) then
       do k=1,^NC
          if (idims .eq. k .or. ^C .eq. k) cycle
          f(ixO^S) = lvc(^C,idims,k) * w(ixO^S,e0_+k)
@@ -614,19 +614,20 @@ double precision, intent(in)    :: x(ixI^S,1:ndim)
 double precision, intent(in)    :: wCT(ixI^S,1:nw)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 logical, intent(in)             :: qsourcesplit
-
-double precision :: dx^D
+! .. local ..
+!double precision                :: wtmp(ixI^S,1:nw)
+double precision                :: dx^D
 !-----------------------------------------------------------------------------
-
 dx^D=dxlevel(^D);
 
 ! Two sources: Sb is added via Strang-splitting, Sa is unsplit.
-! Using ssplitdivb to distinguish (needs to be set true!!!)
-if(qsourcesplit .eqv. ssplitdivb) then
+! Using ssplitresis to distinguish (needs to be set true!!!)
+if(qsourcesplit .eqv. ssplitresis) then
    call addsource_b(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 else
    call addsource_a(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 end if
+
 
 ! now update the auxiliaries to the new state
 call getaux(.true.,w,x,ixI^L,ixO^L,'addsource')
@@ -689,7 +690,6 @@ Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
 call vcrossb(ixI^L,ixO^L,^C,wCT,x,patchfalse,Eperpstar(ixG^T,^C))
 Eperpstar(ixO^S,^C) = - Eperpstar(ixO^S,^C)
 \}
-
 
 ! Handle zero velocity separate:
 where (vabs(ixO^S) .lt. smalldouble)

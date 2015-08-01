@@ -552,7 +552,7 @@ typegradlimiter=typegradlimiter1(node(plevel_,igrid))
 
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
-w1(ixG^T,1:nwflux)=w(ixG^T,1:nwflux)
+w1(ixG^T,1:nw)=w(ixG^T,1:nw)
 
 select case (typesourcesplit)
 case ('sf')
