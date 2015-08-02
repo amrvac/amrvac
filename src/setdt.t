@@ -83,6 +83,7 @@ if (dtpar<=zero) then
       if (.not.slab) mygeo => pgeo(igrid)
       if (B0field) myB0 => pB0_cell(igrid)
       if (B0field) myB0_cell => pB0_cell(igrid)
+      if (nwaux>0) call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,'setdt')
       call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
       if(oktest.and.mype==0)then 
@@ -240,8 +241,6 @@ new_cmax=.true.
 ^D&dxinv(^D)=one/dx^D;
 
 cmaxtot(ix^S)=zero
-
-if (nwaux>0) call getaux(.true.,w,x,ixG^L,ix^L,'getdt_courant')
 
 do idims=1,ndim
    call getcmax(new_cmax,w,x,ixG^L,ix^L,idims,cmax,tmp,.false.)

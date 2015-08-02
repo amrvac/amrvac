@@ -3,7 +3,6 @@
 ! Special relativistic resistive MHD as in Komissarov 2007
 ! 2015-30-07 by Oliver Porth
 
-INCLUDE:amrvacnul/getdt.t
 INCLUDE:amrvacnul/roe.t
 INCLUDE:amrvacnul/hllc.t
 !=============================================================================
@@ -707,6 +706,21 @@ endwhere
 
 
 end subroutine addsource_b
+!=============================================================================
+subroutine getdt(w,ixG^L,ix^L,dtnew,dx^D,x)
+
+! Limit the timestp due to the resistive source addition
+  
+include 'amrvacdef.f'
+
+integer, intent(in)              :: ixG^L, ix^L
+double precision, intent(in)     :: dx^D, x(ixG^S,1:ndim)
+double precision, intent(inout)  :: w(ixG^S,1:nw), dtnew
+!-----------------------------------------------------------------------------
+
+dtnew = dtdiffpar * eqpar(eta_)/maxval(w(ix^S,lfac_))
+
+end subroutine getdt
 !=============================================================================
 subroutine getcurrent(w,ixI^L,ix^L,idirmin,current)
 
