@@ -2,6 +2,8 @@
 !=============================================================================
 subroutine fill_gridvars(mygridvars,mypw)
 
+! Not jet adjusted for SRRMHD case!!!
+
 use mod_gridvars
 use constants
 include 'amrvacdef.f'
