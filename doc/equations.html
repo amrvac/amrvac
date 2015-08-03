@@ -23,6 +23,7 @@ This page:<br>
  [<A HREF="#MHD">MHD</A>]
  [<A HREF="#SRHD">SRHD and SRHDEOS</A>]
  [<A HREF="#SRMHD">SRMHD and SRMHDEOS</A>]
+ [<A HREF="#SRRMHD">SRRMHD</A>]
  [<A HREF="#DIVB">Div B sources</A>]
  [<A HREF="#Positive">Positivity fixes</A>]
  [<A HREF="#New">New</A>]
@@ -191,9 +192,6 @@ We also have implemented the splitting strategy, where a static, potential backg
 <hr>
 
 
-
-
-
 <H2><A NAME="SRHD">Special Relativistic Hydro</A>: srhd(eos)</h2>
 <pre>$AMRVAC_DIR/setup.pl -p=srhd</pre>
 <pre>or</pre>
@@ -210,9 +208,6 @@ It is straightforward to generalize the EOS used, by suitably modifying only sub
 <hr>
 
 
-
-
-
 <H2><A NAME="SRMHD">Special relativistic ideal MHD</A>: srmhd</h2>
 <pre>$AMRVAC_DIR/setup.pl -p=srmhd -eos=gamma/synge/iso</pre>
 <p>
@@ -224,6 +219,29 @@ also depends on the actual equation of state assumed. Several equations of state
 <p>
 It is straightforward to generalize the EOS used, by suitably modifying only the <em>srmhd/eos.t</em> module.
 <hr>
+
+<H2><A NAME="SRRMHD">Special relativistic resistive MHD</A>: srrmhd</h2>
+<pre>$AMRVAC_DIR/setup.pl -p=srrmhd -eos=gamma/synge</pre>
+The implemented algorithm is adopted from <a href="http://adsabs.harvard.edu/abs/2007MNRAS.382..995K">Komissarov (2007)</a> and evolves both magnetic and electric fields.  A GLM treatment to constrain the divergences of B and E is used.  
+<p>
+  <IMG SRC="figmovdir/srrmhd.png" HEIGHT=350>
+<p>
+  Two constraint equations are evolved, for variables psib_ and phi_.  As in the SRMHD case, two axiliary variables lfac_ and xi_ are used for the conversion between conserved and primitive variables.
+  Current is given by the Ohm's law:
+<p>
+  <img src="figmovdir/srrmhd-current.png" HEIGHT=50>
+<br>
+  which is simply J=1/eta E in the fluid frame.  
+  The quantities in the fluxes read
+<p>
+<IMG SRC="figmovdir/srrmhd-quantities.png" HEIGHT=250>
+<p>
+  Resistivity is controlled with the parameter eqpar(eta_).  
+  The SRRMHD module can be combined with the Synge EOS and the gamma-law.  So far the implementation is only for cartesian grids.  Generalisation to spherical and cylindrical grids is straight-forward though and should just implement the subroutine <emph>addgeometry</emph>.  
+  As the equation for the electric field becomes stiff for small resistivities, the time-step can become prohibitively small for eta_<1e-3.  This is typically tackled with a mixed implicit-explicit timestepping scheme as for example by <a href="http://adsabs.harvard.edu/abs/2009MNRAS.394.1727P">Palenzuela et al. (2009)</a>.  Implementing the IMEX scheme would be the next step allowing to simulate high Lundquist-numbers and resolve the tearing instability.  
+<hr>
+
+
 <H2><A NAME="DIVB">Divergence B source treatments</A></h2>
 
 Both the classical and the special relativistic MHD module can deal with solneoidal magnetic field corrections through source term treatments. Traditionally, these can be written as

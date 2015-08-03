@@ -17,9 +17,9 @@ eqpar(gamma_) = 4.0d0/3.0d0
 eqpar(eta_)   = 0.01d0
 eqpar(kappa_) = one/0.18d0
 
-eqpar(beta0_) = 0.005d0
-eqpar(rho0_)  = 0.005d0
-eqpar(vcoll_) = 0.01d0
+eqpar(beta0_) = 0.01d0
+eqpar(rho0_)  = 0.01d0
+eqpar(vcoll_) = 0.1d0
 
 end subroutine initglobaldata_usr
 !=============================================================================
