@@ -141,6 +141,7 @@ if (mype==0) then
 end if
 
 {#IFDEF PARTICLES
+time_advance=.false.
 call finish_tracerparticles
 }
 call comm_finalize
