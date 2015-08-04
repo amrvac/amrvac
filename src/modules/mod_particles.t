@@ -537,7 +537,6 @@ type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
 integer                         :: status(MPI_STATUS_SIZE)
 integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
 integer                         :: ipe, ipart
-logical :: all_followed_particles=.true.
 !-----------------------------------------------------------------------------
 receive_n_particles_for_output_from_ipe(:) = 0
 
@@ -545,7 +544,7 @@ if (npe==1) then
    do ipart=1,send_n_particles_for_output
       filename = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,type)
       call output_particle(send_particles(ipart-1),mype,filename)
-      if(all_followed_particles .and. send_particles(ipart-1)%follow) then
+      if(type=='ensemble' .and. send_particles(ipart-1)%follow) then
         filename2 = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,'followed')
         call output_particle(send_particles(ipart-1),mype,filename2)
       end if
@@ -577,7 +576,7 @@ if (mype==0) then
    do ipart=1,receive_n_particles_for_output_from_ipe(0)
       filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,type)
       call output_particle(receive_particles(ipart-1),0,filename)
-      if(all_followed_particles .and. receive_particles(ipart-1)%follow) then
+      if(type=='ensemble' .and. receive_particles(ipart-1)%follow) then
         filename2 = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'followed')
         call output_particle(receive_particles(ipart-1),0,filename2)
       end if
@@ -588,7 +587,7 @@ if (mype==0) then
       do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
          filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,type)
          call output_particle(receive_particles(ipart-1),ipe,filename)
-         if(all_followed_particles .and. receive_particles(ipart-1)%follow) then
+         if(type=='ensemble' .and. receive_particles(ipart-1)%follow) then
            filename2 = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'followed')
            call output_particle(receive_particles(ipart-1),ipe,filename2)
          end if
@@ -1093,10 +1092,10 @@ do iipart=1,destroy_n_particles_mype;ipart=particle_index_to_be_destroyed(iipart
 
    particle(ipart)%igrid = -1
    particle(ipart)%ipe   = -1
-
-   write(*,*), particle(ipart)%self%t, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
-   write(*,*), particle(ipart)%self%t, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
-
+   if(time_advance) then
+     write(*,*), particle(ipart)%self%t, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
+     write(*,*), particle(ipart)%self%t, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
+   endif
    deallocate(particle(ipart)%self)
    call pull_particle_from_particles_on_mype(ipart)
 end do
