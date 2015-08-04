@@ -722,22 +722,58 @@ dtnew = dtdiffpar * eqpar(eta_)/maxval(w(ix^S,lfac_))
 
 end subroutine getdt
 !=============================================================================
-subroutine getcurrent(w,ixI^L,ix^L,idirmin,current)
+subroutine getcurrent(ixI^L,ixO^L,w,x,primvar,current)
 
-! Calculate idirmin and the idirmin:3 components of the common current array
-
+! \bm{J} = \frac{\Gamma}{\eta} [\bm{E+v\times B-(E\cdot v)v}] + q \bm{v}
+! Can be used with both primitive and conserved variables.
 include 'amrvacdef.f'
 
-integer, parameter:: idirmin0=7-2*ndir
-integer :: ix^L, idirmin, ixI^L
-double precision :: w(ixI^S,1:nw)
-
-! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-double precision :: current(ixG^T,7-2*ndir:3),bvec(ixG^T,1:ndir)
+integer, intent(in)                       :: ixO^L, ixI^L
+double precision, intent(in)              :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+logical,intent(in)                        :: primvar
+double precision, intent(out)             :: current(ixG^T,1:ndir)
+! .. local ..
+double precision, dimension(ixG^T)        :: Eperpstar, vi, EdotV
+logical                                   :: primvar_sub
+integer                                   :: j,k
 !-----------------------------------------------------------------------------
 
-bvec(ixI^S,1:ndir)=w(ixI^S,b0_+1:b0_+ndir)
-call curlvector(bvec,ixI^L,ix^L,current,idirmin,idirmin0,ndir)
+if (primvar) then
+   EdotV(ixO^S) = ({^C& w(ixO^S,u^C_)*w(ixO^S,e^C_)|+}) / w(ixO^S,lfac_)
+
+   {^C&
+   Eperpstar(ixO^S) = zero
+   do j=1,ndir
+      do k=1,ndir
+         if (^C .eq. j .or. ^C .eq. k .or. j .eq. k) cycle
+         Eperpstar(ixO^S) = Eperpstar(ixO^S) &
+              + lvc(^C,j,k) * w(ixO^S,u0_+j)*w(ixO^S,b0_+k)
+      end do
+   end do
+   Eperpstar(ixO^S) = Eperpstar(ixO^S)/w(ixO^S,lfac_)
+   
+   vi(ixO^S) = w(ixO^S,u^C_)/w(ixO^S,lfac_)
+   
+   current(ixO^S,^C) = w(ixO^S,e^C_) + Eperpstar(ixO^S) &
+        - EdotV(ixO^S)*vi(ixO^S)
+   current(ixO^S,^C) = w(ixO^S,lfac_)/eqpar(eta_) * current(ixO^S,^C) &
+         + w(ixO^S,q_)*vi(ixO^S)
+   \}
+
+else
+   EdotV(ixO^S) = ({^C& w(ixO^S,s^C_)*w(ixO^S,e^C_)|+}) / w(ixO^S,xi_)
+
+   {^C&
+   call vcrossb(ixI^L,ixO^L,^C,w,x,patchfalse,Eperpstar)
+   call getv(w,x,ixI^L,ixO^L,^C,vi)
+
+   current(ixO^S,^C) = w(ixO^S,e^C_) + Eperpstar(ixO^S) &
+        - EdotV(ixO^S)*vi(ixO^S)
+   current(ixO^S,^C) = w(ixO^S,lfac_)/eqpar(eta_) * current(ixO^S,^C) &
+         + w(ixO^S,q_)*vi(ixO^S)
+   \}
+end if
+
 
 end subroutine getcurrent
 !=============================================================================

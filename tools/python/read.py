@@ -447,7 +447,7 @@ class loadcsv():
         if self.coord < 0. and abs(self.coord) <=1.:
             self.filename = self.filenameout+'_d'+str(self.dir)+'_x-'+'0.'+number[1]+number[3]+'D'+str(int(np.log10(abs(self.coord)))+1).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
         if self.coord == 0.:
-            self.filename = self.filenameout+'_d'+str(self.dir)+'_x+'+'0.'+number[1]+number[3]+'D'+str(0).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
+            self.filename = self.filenameout+'_d'+str(self.dir)+'_x+'+'0.'+number[1]+number[3]+'D+'+str(0).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
 
 
     def getHeader(self):
