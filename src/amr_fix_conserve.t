@@ -95,8 +95,10 @@ integer :: iigrid, igrid, iside
 !-----------------------------------------------------------------------------
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    {do iside=1,2
-      if (associated(pflux(iside,^D,igrid)%flux)) &
+      if (associated(pflux(iside,^D,igrid)%flux)) then
          deallocate(pflux(iside,^D,igrid)%flux)
+         nullify(pflux(iside,^D,igrid)%flux)
+      end if
    end do\}
 end do
 

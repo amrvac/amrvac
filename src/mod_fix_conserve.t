@@ -3,7 +3,7 @@ module mod_fix_conserve
    implicit none
 
    type fluxalloc
-      double precision, dimension(:^D&,:), pointer:: flux
+      double precision, dimension(:^D&,:), pointer:: flux => null()
    end type fluxalloc
    type(fluxalloc), dimension(2,^ND,ngridshi), save :: pflux
 
