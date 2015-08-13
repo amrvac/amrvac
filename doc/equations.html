@@ -24,6 +24,7 @@ This page:<br>
  [<A HREF="#SRHD">SRHD and SRHDEOS</A>]
  [<A HREF="#SRMHD">SRMHD and SRMHDEOS</A>]
  [<A HREF="#SRRMHD">SRRMHD</A>]
+ [<A HREF="#FF">FF</A>]
  [<A HREF="#DIVB">Div B sources</A>]
  [<A HREF="#Positive">Positivity fixes</A>]
  [<A HREF="#New">New</A>]
@@ -243,6 +244,24 @@ The implemented algorithm is adopted from <a href="http://adsabs.harvard.edu/abs
   As the equation for the electric field becomes stiff for small resistivities, the time-step can become prohibitively small for eta_<1e-3.  This is typically tackled with a mixed implicit-explicit timestepping scheme as for example by <a href="http://adsabs.harvard.edu/abs/2009MNRAS.394.1727P">Palenzuela et al. (2009)</a>.  Implementing the IMEX scheme would be the next step allowing to simulate high Lundquist-numbers and resolve the tearing instability in a more economic way.  
 <hr>
 
+<H2><A NAME="FF">"Force Free", Maxwells equations with Ohm's law</A>: ff</h2>
+<pre>$AMRVAC_DIR/setup.pl -p=ff -eos=iso</pre>
+The implemented equations are discussed in <a href="http://adsabs.harvard.edu/abs/2007MNRAS.374..415K">Komissarov, Barkov and Lyutikov (2007)</a>. This can be understood as a simplification of the SRRMHD physics module.  
+Again, a GLM treatment to constrain the divergences of B and E is used.  
+  <p>
+    <IMG SRC="figmovdir/ff.png" HEIGHT=180>
+  <p>
+    The current is composed of drift-current and conductivity current:
+  <p>
+    <IMG SRC="figmovdir/ff-current.png" HEIGHT=90>
+  <p>
+    where vd is the drift-velocity, and the conductivity is split in components parallel and perpendicular to the magnetic field via <em>eqpar(kpar_)</em> and <em>eqpar(kperp_)</em>.  Dampening of the divergence errors is controlled via <em>eqpar(kappa_)</em>.  
+    So far this is implemented only for cartesian grids.  Generalisation to spherical and cylindrical grids is straight-forward though and should just implement the subroutine <em>addgeometry</em>.
+    The implementation requires three vector components, e.g. <em>-d=13, -d=23 or -d=33</em>.
+    For convenience, the subroutine <em>getcurrent()</em> will return the current according to the previous definition.
+  <p>
+    Note that the timestep for the stiff source addition requires <em>dt &lt; dtdiffpar / max(eqpar(kpar_),eqpar(kperp_))</em> which can become costly for conductivities larger than 1000.
+<hr>
 
 <H2><A NAME="DIVB">Divergence B source treatments</A></h2>
 
