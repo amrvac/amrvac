@@ -12,10 +12,12 @@ integer,parameter:: b0_=0
 integer,parameter:: b^C_=b0_+^C
 integer,parameter:: e0_=b^NC_
 integer,parameter:: e^C_=e0_+^C
-integer,parameter:: phib_=e^NC_+1
+integer,parameter:: q_=e^NC_+1
+integer,parameter:: phib_=q_+1
+integer,parameter:: psi_=phib_+1
 
 ! Number of variables
-integer,parameter:: nwflux=phib_
+integer,parameter:: nwflux=psi_
 
 integer,parameter:: nwaux=0
 integer,parameter:: nwextra=0

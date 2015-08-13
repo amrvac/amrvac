@@ -496,11 +496,7 @@ else if(iw==psi_) then
 else if (iw==q_) then
    transport = .true.
    call vcrossb(ixI^L,ixO^L,idims,w,x,patchfalse,ecrossbi) ! storing vxB in tmpvar for ecrossb
-   sqrE(ixO^S) =  zero
-   do k = 1, ^NC
-      call getv(w,x,ixI^L,ixO^L,k,vidims)
-      sqrE(ixO^S) = sqrE(ixO^S) + w(ixO^S,e0_+k)*vidims(ixO^S) ! storing EdotV in tmpvar for sqrE
-   end do
+   sqrE(ixO^S) = ({^C& w(ixO^S,s^C_)*w(ixO^S,e^C_)|+}) / w(ixO^S,xi_)  ! storing EdotV in tmpvar for sqrE
    call getv(w,x,ixI^L,ixO^L,idims,vidims)
    f(ixO^S) = w(ixO^S,lfac_)/eqpar(eta_) * (w(ixO^S,e0_+idims) + ecrossbi(ixO^S) - sqrE(ixO^S) * vidims(ixO^S))
 else
@@ -614,7 +610,6 @@ double precision, intent(in)    :: wCT(ixI^S,1:nw)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 logical, intent(in)             :: qsourcesplit
 ! .. local ..
-!double precision                :: wtmp(ixI^S,1:nw)
 double precision                :: dx^D
 !-----------------------------------------------------------------------------
 dx^D=dxlevel(^D);
@@ -664,7 +659,7 @@ double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 ! .. local ..
 double precision, dimension(ixG^T,1:ndir)  :: Epar, Eperp, Eperpstar, v
-double precision, dimension(ixG^T)         :: vabs
+double precision, dimension(ixG^T)         :: v2, EdotV
 !-----------------------------------------------------------------------------
 
 ! S[phib_] = -kappa phib
@@ -681,17 +676,18 @@ w(ixO^S,psi_) = w(ixO^S,psi_)*exp(-qdt*eqpar(kappa_))
 {^C& 
 call getv(wCT,x,ixI^L,ixO^L,^C,v(ixG^T,^C))
 \}
-vabs(ixO^S) = sqrt({^C& v(ixO^S,^C)**2|+})
+v2(ixO^S) = ({^C& v(ixO^S,^C)**2|+})
+EdotV(ixO^S) = {^C& w(ixO^S,e^C_)*v(ixO^S,^C) |+}
 
 {^C&
-Epar(ixO^S,^C)  = w(ixO^S,e^C_)*v(ixO^S,^C)/vabs(ixO^S)
+Epar(ixO^S,^C)  = EdotV(ixO^S)*v(ixO^S,^C)/v2(ixO^S)
 Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
 call vcrossb(ixI^L,ixO^L,^C,wCT,x,patchfalse,Eperpstar(ixG^T,^C))
 Eperpstar(ixO^S,^C) = - Eperpstar(ixO^S,^C)
 \}
 
 ! Handle zero velocity separate:
-where (vabs(ixO^S) .lt. smalldouble)
+where (v2(ixO^S) .lt. smalldouble**2)
 {^C&
      w(ixO^S,e^C_) = w(ixO^S,e^C_) * exp(-qdt/eqpar(eta_))
 \}

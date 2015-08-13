@@ -5,6 +5,7 @@
 
 INCLUDE:amrvacnul/roe.t
 INCLUDE:amrvacnul/hllc.t
+INCLUDE:amrvacnul/getaux.t
 !=============================================================================
 subroutine checkglobaldata
 include 'amrvacdef.f'
@@ -31,20 +32,6 @@ eqpar(kperp_)  = 1.0d-6
 eqpar(kappa_)  = 0.5d0
 
 end subroutine initglobaldata
-!=============================================================================
-subroutine checkw(checkprimitive,ixI^L,ixO^L,w,flag)
-
-include 'amrvacdef.f'
-  
-logical, intent(in)          :: checkprimitive
-integer, intent(in)          :: ixI^L,ixO^L
-double precision, intent(in) :: w(ixI^S,1:nw)
-logical, intent(out)         :: flag(ixG^T)
-!-----------------------------------------------------------------------------
-
-flag(ixG^T)=.true.
-
-end subroutine checkw
 !=============================================================================
 subroutine conserve(ixI^L,ixO^L,w,x,patchw)
 
@@ -120,38 +107,6 @@ call mpistop("e to rhos for FF unavailable")
 
 end subroutine rhos_to_e
 !=============================================================================
-subroutine ppmflatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
-
-include 'amrvacdef.f'
-
-integer, intent(in)           :: ixI^L,ixO^L,ixL^L,ixR^L
-double precision, intent(in)  :: w(ixI^S,nw),d2w(ixG^T,1:nwflux)
-
-double precision, intent(inout) :: drho(ixG^T),dp(ixG^T)
-
-!-----------------------------------------------------------------------------
-
-call mpistop("PPM with flatsh=.true. can not be used with FF !")
-
-
-end subroutine ppmflatcd
-!=============================================================================
-subroutine ppmflatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
-
-include 'amrvacdef.f'
-
-integer, intent(in)           :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
-integer, intent(in)           :: idims
-double precision, intent(in)  :: w(ixI^S,nw)
-
-double precision, intent(inout) :: drho(ixG^T),dp(ixG^T),dv(ixG^T)
-
-!-----------------------------------------------------------------------------
-
-call mpistop("PPM with flatsh=.true. can not be used with FF !")
-
-end subroutine ppmflatsh
-!=============================================================================
 subroutine getv(w,x,ixI^L,ixO^L,idims,v)
 
 ! Drift velocity
@@ -210,7 +165,7 @@ double precision, intent(out)      :: f(ixG^T)
 logical, intent(out)               :: transport
 ! .. local ..
 integer                            :: k
-double precision, dimension(ixG^T) :: vidims, vc, p, sqrE, sqrB, ecrossbi
+double precision, dimension(ixG^T) :: b2, Epari, Eperpi, EdotB
 !-----------------------------------------------------------------------------
 transport=.false.
 
@@ -220,10 +175,20 @@ if(iw==phib_) then
 }{#IFDEF FCT
        f(ixO^S)=zero
 }
-else
+else if(iw==psi_) then
+   f(ixO^S)=w(ixO^S,e0_+idims)       
 
+!f^i[q] = q E x B /B^2 (transport term) + kappa_par Epar_i + kappa_perp Eperp_i
+else if(iw==q_) then
+   transport=.true.
+   b2(ixO^S)   = ({^C& w(ixO^S,b^C_)**2|+})
+   EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
+   Epari(ixO^S)  = EdotB(ixO^S)*w(ixO^S,b0_+idims)/b2(ixO^S)
+   Eperpi(ixO^S) = w(ixO^S,e0_+idims) - Epari(ixO^S)
+   f(ixO^S)=eqpar(kpar_)*Epari(ixO^S) + eqpar(kperp_)*Eperpi(ixO^S)
+   
 !f^i[B_c] = lvc(c,i,k) Ek + phi delta(i,c)
-{if (iw==b^C_) then
+{else if (iw==b^C_) then
    if (idims .ne. ^C) then
       do k=1,^NC
          if (idims .eq. k .or. ^C .eq. k) cycle
@@ -232,18 +197,18 @@ else
    else
       f(ixO^S)=w(ixO^S,phib_)
    end if
-end if\}
-
-!f^i[E_c] = - lvc(c,i,k) Bk
-{if (iw==e^C_) then
+\}
+!f^i[E_c] = - lvc(c,i,k) Bk + psi delta(i,c)
+{else if (iw==e^C_) then
    if (idims .ne. ^C) then 
       do k=1,^NC
          if (idims .eq. k .or. ^C .eq. k) cycle
          f(ixO^S) = - lvc(^C,idims,k) * w(ixO^S,b0_+k)
       end do
+   else
+      f(ixO^S)=w(ixO^S,psi_)
    end if
-end if\}
-
+\}
 end if
 
 end subroutine getflux
@@ -301,7 +266,6 @@ double precision, intent(in)    :: wCT(ixI^S,1:nw)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 logical, intent(in)             :: qsourcesplit
 ! .. local ..
-!double precision                :: wtmp(ixI^S,1:nw)
 double precision                :: dx^D
 !-----------------------------------------------------------------------------
 dx^D=dxlevel(^D);
@@ -314,10 +278,6 @@ else
    call addsource_a(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 end if
 
-
-! now update the auxiliaries to the new state
-call getaux(.true.,w,x,ixI^L,ixO^L,'addsource')
-
 end subroutine addsource
 !=============================================================================
 subroutine addsource_a(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
@@ -328,23 +288,15 @@ double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
 double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 ! .. local ..
-double precision, dimension(ixG^T)   :: vidir, divE
-double precision                     :: evec(ixG^T,1:ndir)
+double precision, dimension(ixG^T)   :: vidir
 !-----------------------------------------------------------------------------
+! S[psi_] = q
+w(ixO^S,psi_) = w(ixO^S,psi_) + qdt * wCT(ixO^S,q_)
 
-! S[Ei_] = - divE (E x B)/B^2
-evec(ixI^S,1:ndir)=w(ixI^S,e0_+1:e0_+ndir)
-select case(typediv)
-case("central")
-   call divvector(evec,ixI^L,ixO^L,divE)
-case("limited")
-   call divvectorS(evec,ixI^L,ixO^L,divE)
-end select
-
-
+! S[Ei_] = - q (E x B)/B^2
 {^C&
 call getv(wCT,x,ixI^L,ixO^L,^C,vidir)
-w(ixO^S,e^C_) = w(ixO^S,e^C_) - qdt * divE(ixO^S) * vidir(ixO^S)
+w(ixO^S,e^C_) = w(ixO^S,e^C_) - qdt * wCT(ixO^S,q_) * vidir(ixO^S)
 \}
 
 end subroutine addsource_a
@@ -358,28 +310,31 @@ double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 ! .. local ..
 double precision, dimension(ixG^T,1:ndir)  :: Epar, Eperp
-double precision, dimension(ixG^T)         :: babs
+double precision, dimension(ixG^T)         :: b2, EdotB
 !-----------------------------------------------------------------------------
 
 ! S[phib_] = -kappa phib
 w(ixO^S,phib_) = w(ixO^S,phib_)*exp(-qdt*eqpar(kappa_))
+
+! S[psi_] = -kappa psi
+w(ixO^S,psi_) = w(ixO^S,psi_)*exp(-qdt*eqpar(kappa_))
 
 ! S[E] = - kappa_par Epar - kappa_perp Eperp
 ! Split the source in parallel and perpendicular components
 ! Then solve the linear evolution equation (assuming constant background state)
 ! Then add again both components.
 
+b2(ixO^S) = ({^C& w(ixO^S,b^C_)**2|+})
 
-babs(ixO^S) = sqrt({^C& w(ixO^S,b^C_)**2|+})
-
+EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
 {^C&
-Epar(ixO^S,^C)  = w(ixO^S,e^C_)*w(ixO^S,b^C_)/babs(ixO^S)
+Epar(ixO^S,^C)  = EdotB(ixO^S)*w(ixO^S,b^C_)/b2(ixO^S)
 Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
 \}
 
 ! Handle zero magnetic field separate:
 ! Use perpendicular conductivity for all directions
-where (babs(ixO^S) .lt. smalldouble)
+where (b2(ixO^S) .lt. smalldouble**2)
 {^C&
      w(ixO^S,e^C_) = w(ixO^S,e^C_) * exp(-eqpar(kperp_)*qdt)
 \}
@@ -396,7 +351,7 @@ end subroutine addsource_b
 !=============================================================================
 subroutine getdt(w,ixG^L,ix^L,dtnew,dx^D,x)
 
-! Limit the timestp due to the resistive source addition
+! Limit the timestep due to the resistive source addition
   
 include 'amrvacdef.f'
 
@@ -411,7 +366,7 @@ end subroutine getdt
 !=============================================================================
 subroutine getcurrent(ixI^L,ixO^L,w,x,primvar,current)
 
-! j = divE (E x B)/B^2 + kappa_par Epar + kappa_perp Eperp
+! j = q (E x B)/B^2 + kappa_par Epar + kappa_perp Eperp
 include 'amrvacdef.f'
 
 integer, intent(in)                       :: ixO^L, ixI^L
@@ -419,32 +374,23 @@ double precision, intent(in)              :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
 logical,intent(in)                        :: primvar
 double precision, intent(out)             :: current(ixG^T,1:ndir)
 ! .. local ..
-double precision, dimension(ixG^T)        :: vi, babs
-double precision, dimension(ixG^T)        :: divE
-double precision                          :: evec(ixG^T,1:ndir)
+double precision, dimension(ixG^T)        :: vi, b2, EdotB
 double precision, dimension(ixG^T,1:ndir) :: Epar, Eperp
 !-----------------------------------------------------------------------------
 
-babs(ixO^S) = sqrt({^C& w(ixO^S,b^C_)**2|+})
-
-evec(ixI^S,1:ndir)=w(ixI^S,e0_+1:e0_+ndir)
-select case(typediv)
-case("central")
-   call divvector(evec,ixI^L,ixO^L,divE)
-case("limited")
-   call divvectorS(evec,ixI^L,ixO^L,divE)
-end select
+b2(ixO^S) = ({^C& w(ixO^S,b^C_)**2|+})
+EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
 
 {^C&
 call getv(w,x,ixI^L,ixO^L,^C,vi) ! drift velocity
-where (babs(ixO^S) .lt. smalldouble)
-     current(ixO^S,^C) = eqpar(kperp_) * w(ixO^S,e^C_)
+where (b2(ixO^S) .lt. smalldouble**2)
+   current(ixO^S,^C) = eqpar(kperp_) * w(ixO^S,e^C_)
 elsewhere
-     Epar(ixO^S,^C)  = w(ixO^S,e^C_)*w(ixO^S,b^C_)/babs(ixO^S)
-     Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
-     current(ixO^S,^C)  = divE(ixO^S) * vi(ixO^S) &
-          + eqpar(kpar_) * Epar(ixO^S,^C) &
-          + eqpar(kperp_) * Eperp(ixO^S,^C)
+   Epar(ixO^S,^C)  = EdotB(ixO^S)*w(ixO^S,b^C_)/b2(ixO^S)
+   Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
+   current(ixO^S,^C)  = w(ixO^S,q_) * vi(ixO^S) &
+        + eqpar(kpar_) * Epar(ixO^S,^C) &
+        + eqpar(kperp_) * Eperp(ixO^S,^C)
 end where
 \}
 
