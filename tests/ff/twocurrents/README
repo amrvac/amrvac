@@ -1,0 +1,2 @@
+Collision of two force-free modified Lundquist current tubes.
+$AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=12,12 -p=ff -eos=iso -nf=0 -ndust=0 -u=nul -arch=default`

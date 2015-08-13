@@ -13,7 +13,7 @@ subroutine initglobaldata_usr
 include 'amrvacdef.f'
 !-----------------------------------------------------------------------------
 
-eqpar(kappa_)  = 0.5d0
+eqpar(kappa_)  = 100.0d0
 eqpar(kpar_)   = 100.0d0
 eqpar(kperp_)  = 0.0d0
 
@@ -54,6 +54,7 @@ cosphi2(ixG^S) = (x(ixG^S,1)-one)/r2(ixG^S)
 w(ixG^S,1:nw) = zero
 
 w(ixG^S,phib_) = 0.0d0
+w(ixG^S,psi_)  = 0.0d0
 
 ! Toroidal magnetic field:
 {^D& do ix^D=ixGmin^D,ixGmax^D\}
@@ -72,19 +73,26 @@ where(r1(ixG^S) .lt. one)
    w(ixG^S,b1_) = - sinphi1(ixG^S) * bphi1(ixG^S)
    w(ixG^S,b2_) = + cosphi1(ixG^S) * bphi1(ixG^S)
    w(ixG^S,b3_) = bz1(ixG^S)
+   w(ixG^S,e1_)  =   zero
+   w(ixG^S,e2_)  =   w(ixG^S,b3_)*eqpar(vcoll_)
+   w(ixG^S,e3_)  = - w(ixG^S,b2_)*eqpar(vcoll_)
 elsewhere(r2(ixG^S) .lt. one)
    w(ixG^S,b1_) = - sinphi2(ixG^S) * bphi2(ixG^S)
    w(ixG^S,b2_) = + cosphi2(ixG^S) * bphi2(ixG^S)
    w(ixG^S,b3_) = bz2(ixG^S)
+   w(ixG^S,e1_)  =   zero
+   w(ixG^S,e2_)  = -  w(ixG^S,b3_)*eqpar(vcoll_)
+   w(ixG^S,e3_)  = + w(ixG^S,b2_)*eqpar(vcoll_)
 elsewhere
    w(ixG^S,b1_) = zero
    w(ixG^S,b2_) = zero
    w(ixG^S,b3_) = sqrt(bessel_j0(alphat)**2 + eqpar(C_))
+   w(ixG^S,e1_)  =   zero
+   w(ixG^S,e2_)  =   zero
+   w(ixG^S,e3_)  =   zero
 end where
 
-w(ixG^S,e1_)  =   zero
-w(ixG^S,e2_)  =   w(ixG^S,b3_)*eqpar(vcoll_)
-w(ixG^S,e3_)  = - w(ixG^S,b2_)*eqpar(vcoll_)
+call divvector(w(ixG^T,e1_:e3_),ixG^LL,ix^L,w(ixG^T,q_))
 
 end subroutine initonegrid_usr
 !=============================================================================
@@ -106,6 +114,8 @@ double precision                   :: normconv(0:nw+nwauxio)
 ! .. local ..
 double precision,dimension(ixG^T,1:ndir) :: current
 double precision,dimension(ixG^T,1:ndir) :: curlb
+double precision,dimension(ixG^T)        :: vidir, divE
+double precision                         :: evec(ixG^T,1:ndir)
 integer                                  :: idirmin
 integer, parameter                       :: idirmin0=1
 !-----------------------------------------------------------------------------
@@ -117,6 +127,17 @@ w(ixO^S,nw+1) = current(ixO^S,3)
 call curlvector(w(ixG^T,b1_:b3_),ixI^L,ixO^L,curlb,idirmin,idirmin0,ndir)
 w(ixO^S,nw+2) = curlb(ixO^S,3)
 
+! Get drift velocity:
+{^C&
+call getv(w,x,ixI^L,ixO^L,^C,vidir)
+w(ixO^S,nw+2+^C) = vidir(ixO^S)
+\}
+
+! S[Ei_] = - divE (E x B)/B^2
+evec(ixI^S,1:ndir)=w(ixI^S,e0_+1:e0_+ndir)
+call divvector(evec,ixI^L,ixO^L,divE)
+w(ixO^S,nw+2+ndir+1) = divE(ixO^S)
+
 end subroutine specialvar_output
 !=============================================================================
 subroutine specialvarnames_output
@@ -126,27 +147,11 @@ subroutine specialvarnames_output
 include 'amrvacdef.f'
 !-----------------------------------------------------------------------------
 
-primnames= TRIM(primnames)//' '//'jz'//' '//'curlbz'
-wnames=TRIM(wnames)//' '//'jz'//' '//'curlbz'
+primnames= TRIM(primnames)//' '//'jz'//' '//'curlbz'//' '//'v1'//' '//'v2'//' '//'v3'//' '//'divE'
+wnames=TRIM(wnames)//' '//'jz'//' '//'curlbz'//' '//'v1'//' '//'v2'//' '//'v3'//' '//'divE'
 
 end subroutine specialvarnames_output
 !=============================================================================
-subroutine fixp_usr(ixI^L,ixO^L,w,x)
-include 'amrvacdef.f'
-
-integer, intent(in)                :: ixI^L,ixO^L
-double precision, intent(inout)    :: w(ixI^S,1:nw)
-double precision, intent(in)       :: x(ixI^S,1:ndim)
-!----------------------------------------------------------------------------
-
-where ( w(ixO^S,pp_) .lt. half*tlow*({^C& w(ixO^S,b^C_)**2|+}) ) 
-   w(ixO^S,pp_) = half * tlow * ({^C& w(ixO^S,b^C_)**2|+})
-   w(ixO^S,xi_) = w(ixO^S,lfac_)**2 *(w(ixO^S,rho_) + govergminone*w(ixO^S,pp_))
-end where
-
-end subroutine fixp_usr
-!=============================================================================
-
 
 
 
