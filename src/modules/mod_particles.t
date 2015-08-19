@@ -715,7 +715,12 @@ INQUIRE(FILE=filename, EXIST=file_exists)
 
 if (.not. file_exists) then
    open(unit=unitparticles,file=filename,status='unknown',access='append')
-   write(unitparticles,"(a)") trim('# t, dt, x^C, u^C, payload(1:npayload), ipe, iteration, index')
+   line=''
+   do icomp=1, npayload
+      write(data,"(a,i2.2,a)") 'payload',icomp,','
+      line = trim(line)//trim(data)
+   end do
+   write(unitparticles,"(a,a,a)") 't,dt,x^C,u^C,',line,'ipe,iteration,index'
 else
    open(unit=unitparticles,file=filename,status='unknown',access='append')
 end if
@@ -727,27 +732,27 @@ end if
 !           myparticle%u, myparticle%payload(1:npayload), ipe, it_particles, myparticle%index
 
 line = ''
-write(data,"(es14.6, 3a)")roundoff(myparticle%t,minvalue), ',  '
+write(data,"(es13.6, a)")roundoff(myparticle%t,minvalue), ','
 line = trim(line)//trim(data)
-write(data,"(es14.6, 3a)")roundoff(myparticle%dt,minvalue), ',  '
+write(data,"(es13.6, a)")roundoff(myparticle%dt,minvalue), ','
 line = trim(line)//trim(data)
 do icomp = 1, ^NC
-   write(data,"(es14.6, 3a)")roundoff(x(icomp),minvalue), ',  '
+   write(data,"(es13.6, a)")roundoff(x(icomp),minvalue), ','
    line = trim(line)//trim(data)
 end do
 do icomp = 1, ^NC
-   write(data,"(es14.6, 3a)")roundoff(myparticle%u(icomp),minvalue), ',  '
+   write(data,"(es13.6, a)")roundoff(myparticle%u(icomp),minvalue), ','
    line = trim(line)//trim(data)
 end do
 do icomp = 1, npayload
-   write(data,"(es14.6, 3a)")roundoff(myparticle%payload(icomp),minvalue), ',  '
+   write(data,"(es13.6, a)")roundoff(myparticle%payload(icomp),minvalue), ','
    line = trim(line)//trim(data)
 end do
-write(data,"(i9.7, 3a)")ipe, ',  '
+write(data,"(i8.7, a)")ipe, ','
 line = trim(line)//trim(data)
-write(data,"(i12.10, 3a)")it_particles, ',  '
+write(data,"(i11.10, a)")it_particles, ','
 line = trim(line)//trim(data)
-write(data,"(i9.7)")myparticle%index
+write(data,"(i8.7)")myparticle%index
 line = trim(line)//trim(data)
 
 write(unitparticles,"(a)") trim(line)
