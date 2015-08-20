@@ -113,13 +113,6 @@ else
 
 end if
 
-{#IFDEF MAGNETOFRICTION
-if(mfitmax>0) then
-   time_in=MPI_WTIME()
-   call magnetofriction
-   if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
-endif
-}
 ! set up boundary flux conservation arrays
 if (levmax>levmin) call allocateBflux
 
@@ -128,6 +121,14 @@ if (mype==0) then
    write(*,'(a,f17.3,a)')' Startup phase took : ',MPI_WTIME()-time0,' sec'
    print*,'-------------------------------------------------------------------------------'
 end if
+
+{#IFDEF MAGNETOFRICTION
+if(mfitmax>0) then
+   time_in=MPI_WTIME()
+   call magnetofriction
+   if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
+endif
+}
 
 time_advance=.true.
 
