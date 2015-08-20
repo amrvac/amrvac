@@ -720,7 +720,7 @@ if (.not. file_exists) then
       write(data,"(a,i2.2,a)") 'payload',icomp,','
       line = trim(line)//trim(data)
    end do
-   write(unitparticles,"(a,a,a)") 't,dt,x^C,u^C,',line,'ipe,iteration,index'
+   write(unitparticles,"(a,a,a)") 't,dt,x^C,u^C,',trim(line),'ipe,iteration,index'
 else
    open(unit=unitparticles,file=filename,status='unknown',access='append')
 end if
