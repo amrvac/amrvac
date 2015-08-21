@@ -23,7 +23,7 @@ ifndef $(WORK_DIR)
 WORK_DIR      = $(CURDIR)
 endif
 
-ARCH          = huey.defs
+ARCH          = default.defs
 SRC           = $(AMRVAC_DIR)/src
 
 include $(AMRVAC_DIR)/arch/$(ARCH)
@@ -43,7 +43,7 @@ phi=-9
 z=-8
 nf=0
 ndust=0
-eos=default
+eos=iso
 USER=nul
 # SETVAC READS UP TO THIS POINT
 

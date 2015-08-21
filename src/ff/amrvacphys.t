@@ -1,7 +1,12 @@
 !#############################################################################
 ! Module amrvacphys/- ff
 ! Maxwells equations plus Ohm's law according to Komissarov, Barkov and Lyutikov 2007
+! Also evolving charge density and GLM for divE
 ! 2015-08-12 by Oliver Porth
+
+! TODO: 
+! Check treatment for B<smalldouble
+! Adopt perpendicular conductivity depending on E2/B2 to drive E<B.
 
 INCLUDE:amrvacnul/roe.t
 INCLUDE:amrvacnul/hllc.t
@@ -11,9 +16,9 @@ subroutine checkglobaldata
 include 'amrvacdef.f'
 !-----------------------------------------------------------------------------
 
-! Check if ssplitresis = .true.
-if (ssplitresis .neqv. .true.) &
+if (ssplitresis .neqv. .true.) then
      call mpistop('Please run with ssplitresis = .true.')
+end if 
 
 ! We require three vector components
 if (^NC .ne. 3) &
@@ -27,9 +32,15 @@ subroutine initglobaldata
 
 include 'amrvacdef.f'
 !-----------------------------------------------------------------------------
-eqpar(kpar_)   = 1.0d-2
-eqpar(kperp_)  = 1.0d-6
-eqpar(kappa_)  = 0.5d0
+eqpar(kpar_)   = 100.0d0
+eqpar(kperp_)  = zero
+eqpar(kappa_)  = eqpar(kpar_)/2.0d0
+
+if (ssplitresis .neqv. .true.) then
+   ssplitresis = .true.
+   if (mype .eq. 0) write(*,*) 'Overwriting ssplitresis = .true. as required'
+end if 
+
 
 end subroutine initglobaldata
 !=============================================================================
@@ -271,8 +282,7 @@ double precision                :: dx^D
 dx^D=dxlevel(^D);
 
 ! Two sources: Sb is added via Strang-splitting, Sa is unsplit.
-! Using ssplitresis to distinguish (needs to be set true!!!)
-if(qsourcesplit .eqv. ssplitresis) then
+if(qsourcesplit) then
    call addsource_b(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 else
    call addsource_a(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)

@@ -10,12 +10,12 @@
 /
 
 &filelist
-  primnames               = 'rho u1 u2 u3 p b1 b2 b3 e1 e2 e3 q phi psi lfac xi'
+  primnames               = 'b1 b2 b3 e1 e2 e3 q phi psi'
   convert_type            = 'vtuBCCmpi'
   autoconvert             = T
   saveprim                = T
   typeparIO               = 0
-  nwauxio                 = 2
+  nwauxio                 = 6
   filenameout             = 'output/data'
   filenameini             = 'output/data'
   filenamelog             = 'output/amrvac'
@@ -29,7 +29,7 @@
         itsave(1,3)       = 0
         itsave(1,5)       = 0
         ditsave(1)        = 10
-        dtsave(2)         = 1
+        dtsave(2)         = 1.
         dtsave(3)         = 1
         dtsave(5)         = 0.01
         nslices           = 2
@@ -45,46 +45,36 @@
 /
 
  &methodlist
-        wnames            = 'd s1 s2 s3 e b1 b2 b3 e1 e2 e3 q phi psi lfac xi'
+        wnames            = 'b1 b2 b3 e1 e2 e3 q phi psi'
         typeadvance       = 'threestep'
         typefull1         = 12*'hll'
         typelimiter1      = 12*'cada3'
         typelimited       = 'previous'
         typetvdlf         = 'default'
-        useprimitive      = T
-        strictnr          = T
-        fixsmall          = F
-        strictsmall       = F
-        strictzero        = F
-        strictgetaux      = F
-        nflatgetaux       = 1
     	typeaxial         = 'slab'
-        typedivbfix       = 'none'
         ssplitresis       = T
-        dmaxvel           = 1.d-8
-        absaccnr          = 1.0d-14
-	tlow              = 1.0d-3
 /
 &boundlist
         dixB              = 2
-	internalboundary  = F
         typeB             = 
-                           16*'periodic'
-                           16*'periodic'
+                           9*'periodic'
+                           9*'periodic'
+                           9*'periodic'
+                           9*'periodic'
 /
 
 
 &amrlist
         mxnest            = 7
         errorestimate     = 3
-        flags(17)         = 3
-        flags(1)          = 6
-        flags(2)          = 7
-        flags(3)          = 8
+        flags(10)         = 3
+        flags(1)          = 1
+        flags(2)          = 2
+        flags(3)          = 3
         wflags(1)         = 0.3
         wflags(2)         = 0.3
         wflags(3)         = 0.4
-        tol               = 0.4,0.4,0.3,0.3,0.2,0.3,0.3,0.3,0.3,0.3,0.3,0.3
+        tol               = 12*0.3
         nxlone1           = 128
         xprobmin1         = -6
         xprobmax1         = 6

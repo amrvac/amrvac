@@ -648,8 +648,8 @@ case ('slab')
       tmp = tmp / sqrt({b(^C)**2|+})
       particle(ipart)%self%payload(1) = sqrt({tmp(^C)**2|+}) / sqrt({b(^C)**2|+}) * m / abs(q) * 8.9875d+20
 
-      ! e.b:
-      particle(ipart)%self%payload(2) = ({e(^C)*b(^C)|+})/ (sqrt({b(^C)**2|+})* sqrt({e(^C)**2|+}))
+      ! e.b (set npayload=2 first):
+!      particle(ipart)%self%payload(2) = ({e(^C)*b(^C)|+})/ (sqrt({b(^C)**2|+})* sqrt({e(^C)**2|+}))
 
 ! **************************************************
 ! CYLINDRICAL COORDINATES
@@ -912,9 +912,9 @@ integer,intent(in)                                 :: igrid
 double precision,dimension(^NC), intent(in)        :: x
 double precision, intent(in)                       :: tloc
 double precision,dimension(^NC), intent(out)       :: e
-{^IFMHD
+
 double precision,dimension(^NC)                    :: e1, e2
-}
+
 {^IFSRMHD
 double precision,dimension(^NC)                    :: u, u1, u2, beta, b
 double precision                                   :: lfac
@@ -951,11 +951,9 @@ call get_lfac(u,lfac)
 ! do the cross-product e = b x beta:
 
 call cross(b,beta,e)
+return
 }
 
-
-
-{^IFMHD
 
 if (.not.time_advance) then
 
@@ -971,8 +969,6 @@ td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - t) / dt
 {^C& e(^C) = e1(^C) * (1.0d0 - td) + e2(^C) * td\}
 
 end if
-
-}
 
 end subroutine get_e
 !=============================================================================

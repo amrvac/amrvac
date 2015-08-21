@@ -14,7 +14,8 @@ integer                                :: igrid_working, ipart_working
 
 {#IFDEF PARTICLES_LORENTZ
 integer,parameter                      :: ngridvars=2*^NC
-integer,parameter                      :: {bp^C_=^C},{^IFSRMHD {up^C_=bp^NC_+^C} } {^IFMHD {ep^C_=bp^NC_+^C} }
+integer,parameter                      :: {bp^C_=^C} {^IFSRMHD , {up^C_=bp^NC_+^C} }
+integer,parameter                      :: {ep^C_=bp^NC_+^C}
 }
 {#IFDEF PARTICLES_ADVECT
 integer,parameter                      :: ngridvars=^NC
