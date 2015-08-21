@@ -3,13 +3,18 @@ subroutine magnetofriction
 
 include 'amrvacdef.f'
 
-integer :: i,iigrid, igrid
-double precision :: tmf,dtfff,dtfff_pe,dtnew,vhatmax,vhatmax_pe,vhatmaxgrid,dx^D
-logical :: patchw(ixG^T)
+integer :: i,iigrid, igrid, count_reject,ix^D
+double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
+!double precision :: Eb_new,Eb_old,Eb_ipe,dvolume(ixG^T)
+double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),volume_ipe,volume1,dxhm
+double precision :: cwsin_theta_new,cwsin_theta_old
+double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
+double precision :: f_i_ipe,f_i
+double precision, external :: integral_grid
+logical :: patchwi(ixG^T)
 !-----------------------------------------------------------------------------
 
-if(mype==0) write(*,*) 'Evolving to force-free field using &
-                     magnetofricitonal method...'
+if(mype==0) write(*,*) 'Evolving to force-free field using magnetofricitonal method...'
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)
 end do
@@ -18,23 +23,19 @@ tmf=0.d0
 dtfff=1.d-2
 ! magnetofrictional cycling
 i=0
+count_reject=0
+cmf_y0=cmf_y
+cmf_divb0=cmf_divb
+! update B in ghost cells
+call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+call mf_velocity_update(pw,dtfff)
+! update velocity in ghost cells
+call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
 do
-  call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
-  vhatmax_pe=smalldouble
-  do iigrid=1,igridstail; igrid=igrids(iigrid);
-    if (.not.slab) mygeo => pgeo(igrid)
-    if (B0field) then
-       myB0_cell => pB0_cell(igrid)
-       {^D&myB0_face^D => pB0_face^D(igrid)\}
-    end if
-    !typelimiter=typelimiter1(node(plevel_,igrid))
-    !typegradlimiter=typegradlimiter1(node(plevel_,igrid))
-    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    call vhat(pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,vhatmaxgrid)
-    vhatmax_pe=max(vhatmax_pe,vhatmaxgrid)
-  end do
-  call MPI_ALLREDUCE(vhatmax_pe,vhatmax,1,MPI_DOUBLE_PRECISION,MPI_MAX, &
-                         icomm,ierrmpi)
+  if (count_reject>0) then
+    call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+  end if
+  ! calculate time step based on Cmax= Alfven speed + abs(frictional speed)
   dtfff_pe=bigdouble
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (.not.slab) mygeo => pgeo(igrid)
@@ -45,34 +46,173 @@ do
     typelimiter=typelimiter1(node(plevel_,igrid))
     typegradlimiter=typegradlimiter1(node(plevel_,igrid))
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    ! calculate frictional velocity
-    call frictional_velocity(pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,vhatmax,dtfff)
-    ! calculate time step based on Cmax=alfven speed + frictional speed
     call getdtfff_courant(pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,dtnew)
     dtfff_pe=min(dtfff_pe,dtnew)
   end do
   call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                      icomm,ierrmpi)
+
+  !Eb_ipe=0.d0
+  !Eb_old=0.d0
+  sum_jbb_ipe = 0.d0
+  sum_j_ipe = 0.d0
+  do iigrid=1,igridstail; igrid=igrids(iigrid);
+    pwold(igrid)%w(ixG^T,b0_+1:b0_+ndir)=pw(igrid)%w(ixG^T,b0_+1:b0_+ndir)
+    if(slab) then
+      dvolume(ixM^T)={rnode(rpdx^D_,igrid)|*}
+    else
+      dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
+    end if
+    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+    call mask_inner(ixG^LL,ixM^LL,pwold(igrid)%w,px(igrid)%x,patchwi)
+    patchwi = .true.
+    !Eb_ipe=Eb_ipe+integral_grid(ixG^LL,ixM^LL,pwold(igrid)%w,px(igrid)%x,&
+    !  dvolume,m3_,patchwi)
+    sum_jbb_ipe = sum_jbb_ipe+integral_grid(ixG^LL,ixM^LL,pwold(igrid)%w,&
+      px(igrid)%x,dvolume,b1_,patchwi)
+    sum_j_ipe   = sum_j_ipe+integral_grid(ixG^LL,ixM^LL,pwold(igrid)%w,&
+      px(igrid)%x,dvolume,b2_,patchwi)
+  end do
+  !call MPI_ALLREDUCE(Eb_ipe,Eb_old,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+  !   icomm,ierrmpi)
+  call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+     icomm,ierrmpi)
+  call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+     icomm,ierrmpi)
+  cwsin_theta_old = sum_jbb/sum_j
+
+  ! clean divergence of magnetic field 
+  do iigrid=1,igridstail; igrid=igrids(iigrid);
+    if (.not.slab) mygeo => pgeo(igrid)
+    if (B0field) then
+       myB0_cell => pB0_cell(igrid)
+       {^D&myB0_face^D => pB0_face^D(igrid)\}
+    end if
+    typelimiter=typelimiter1(node(plevel_,igrid))
+    typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+    !dx^D=rnode(rpdx^D_,igrid);
+    call divbclean_linde(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+  end do
+  ! update B in ghost cells
+  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+  call mf_velocity_update(pw,dtfff)
+  ! update velocity in ghost cells
+  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+  ! =======
+  ! evolve
+  ! =======
   call advectmf(1,ndim,tmf,dtfff)
-  !do iigrid=1,igridstail; igrid=igrids(iigrid);
-  !  if (.not.slab) mygeo => pgeo(igrid)
-  !  if (B0field) then
-  !     myB0_cell => pB0_cell(igrid)
-  !     {^D&myB0_face^D => pB0_face^D(igrid)\}
-  !  end if
-  !  typelimiter=typelimiter1(node(plevel_,igrid))
-  !  typegradlimiter=typegradlimiter1(node(plevel_,igrid))
-  !  ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  !  dx^D=rnode(rpdx^D_,igrid);
-  !  call divbclean_linde(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
-  !!  call evolve_centdiff4(dtfff,ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%w,&
-  !!       fC,dx^D,px(igrid)%x)
-  !end do
+
+  !Eb_ipe=0.d0
+  !Eb_new=0.d0
+  sum_jbb_ipe = 0.d0
+  sum_j_ipe = 0.d0
+  f_i_ipe = 0.d0
+  volume_ipe = 0.d0
+  do iigrid=1,igridstail; igrid=igrids(iigrid);
+    if(slab) then
+      dvolume(ixM^T)={rnode(rpdx^D_,igrid)|*}
+    else
+      dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
+    end if
+    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+    call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchwi)
+    patchwi = .true.
+    !Eb_ipe=Eb_ipe+integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,&
+    !  dvolume,m3_,patchwi)
+    sum_jbb_ipe = sum_jbb_ipe+integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
+      px(igrid)%x,dvolume,b1_,patchwi)
+    sum_j_ipe   = sum_j_ipe+integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
+      px(igrid)%x,dvolume,b2_,patchwi)
+
+    dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+    f_i_ipe=f_i_ipe+dxhm*integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
+      px(igrid)%x,dvolume,10,patchwi)
+    volume_ipe = volume_ipe + integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
+      px(igrid)%x,dvolume,m1_,patchwi)
+  end do
+  !call MPI_ALLREDUCE(Eb_ipe,Eb_new,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+  !   icomm,ierrmpi)
+  call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+     icomm,ierrmpi)
+  call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+     icomm,ierrmpi)
+  cwsin_theta_new = sum_jbb/sum_j
+  call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+     icomm,ierrmpi)
+  call MPI_ALLREDUCE(volume_ipe,volume1,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+     icomm,ierrmpi)
+  f_i = f_i/volume1
+
+  if(i>60000) then
+  if (cwsin_theta_new >= cwsin_theta_old) then
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      pw(igrid)%w(ixG^T,b0_+1:b0_+ndir)=pwold(igrid)%w(ixG^T,b0_+1:b0_+ndir)
+    end do
+    cmf_y=cmf_y/1.3d0
+    cmf_divb=cmf_divb/1.3d0
+    count_reject=count_reject+1
+    if (modulo(count_reject,100) == 0 .and. mype == 0) then
+      if (count_reject == 1) write(*,*) "mfit=",i
+      write (*,*) 'rejection count:',count_reject
+      write (*,*) 'The update of the magnetic field has been rejected because <CW sin theta> &
+                   does not decrease.'
+      !write (*,*) 'cmf_y, cmf_divb:',cmf_y,cmf_divb
+      write (*,*) '<CW sin theta> old:',cwsin_theta_old
+      write (*,*) '<CW sin theta> new:',cwsin_theta_new
+      !write (*,*) '<f_i>:',f_i
+    end if
+    if (count_reject == 100 .or. cmf_y <= smalldouble) then
+      if (mype==0) then
+        write (*,*) 'The magnetofrictional iteration has been terminated because cmf_y has been &
+                     decreased for 100 consecutive times or cmf_y is too small!'
+        write (*,*) 'The total iteration step is:', i
+      end if
+      exit
+    endif
+    cycle
+  else
+    if (.false. .and. count_reject > 0 .and. mype == 0) then
+      write(*,*) "mfit=",i
+      write (*,*) 'Successfully update the magnetic field after decreasing cmf_y and cmf_divb!'
+      !write (*,*) 'cmf_y, cmf_divb:',cmf_y,cmf_divb
+      write (*,*) '<CW sin theta> old:',cwsin_theta_old
+      write (*,*) '<CW sin theta> new:',cwsin_theta_new
+      !write (*,*) '<f_i>:',f_i 
+    end if
+    count_reject=0
+    cmf_y=1.1d0*cmf_y
+    cmf_divb=1.1d0*cmf_divb
+    !We take a strategy to increase the magnetofrictional velocity as iteration step grows
+    !because the magnetic field between the bottom boundary and the physical domain has large 
+    !difference initially. But it dereases gradually, hence a larger velocity is allowed.
+    if (i>1 .and. mod(i,1000)==0) then
+      cmf_y0=min(1.0d0,cmf_y0*2.0)
+      cmf_divb0=min(1.0d0,cmf_divb0*2.0)
+    end if
+    cmf_y = min(cmf_y0,cmf_y)
+    cmf_divb = min(cmf_divb0,cmf_divb)
+  end if
+  end if
+
   i=i+1
   tmf=tmf+dtfff
-  if(mod(dble(i),dble(mfitmax/10))==0.d0 .and. mype==0) &
-    write(*,*) "mfit=", i 
-  if (i>=mfitmax) exit
+  if (mfstep==0) mfstep = mfitmax/10
+  if(mod(i,mfstep)==0 .and. mype==0) then
+    write(*,*) "mfit=",i
+    write(*,*) '<CW sin theta>:',cwsin_theta_new
+    write(*,*) '<f_i>:',f_i
+    write(*,*) '----------------------------------------------------------'
+  end if
+  if (i>=mfitmax) then
+    if (mype==0) then
+      write (*,*) 'The magnetofrictional iteration has been terminated because &
+                   it reaches the maximum iteration step!'
+      write (*,*) 'The total iteration step is:', i   
+    end if
+    exit
+  end if
 enddo
 
 !! restore initial velocity
@@ -81,6 +221,73 @@ enddo
 !end do
 
 end subroutine magnetofriction
+!=============================================================================
+subroutine mask_inner(ixI^L,ixO^L,w,x,patchwi)
+
+include 'amrvacdef.f'
+
+integer, intent(in)                :: ixI^L,ixO^L
+double precision, intent(in)       :: w(ixI^S,nw),x(ixI^S,1:ndim)
+double precision                   :: x0min1,x0max1,x0min2,x0max2,x0min3,x0max3
+logical, intent(inout)             :: patchwi(ixG^T)
+integer                            :: ix^D
+!-----------------------------------------------------------------------------
+x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
+x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
+x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
+x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
+x0min3 = xprobmin3
+x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
+{do ix^DB=ixOmin^DB,ixOmax^DB\}
+    if(x(ix^D,1) > x0min1 .and. x(ix^D,1) < x0max1 .and. &
+       x(ix^D,2) > x0min2 .and. x(ix^D,2) < x0max2 .and. &
+       x(ix^D,3) > x0min3 .and. x(ix^D,3) < x0max3) then
+      patchwi(ix^D)=.true.
+    else
+      patchwi(ix^D)=.false.
+    endif
+{end do\}
+return
+end subroutine mask_inner
+!============================================================================= 
+subroutine mf_velocity_update(pwa,dtfff)
+
+include 'amrvacdef.f'
+
+double precision, intent(in) :: dtfff 
+integer :: i,iigrid, igrid
+type(walloc) :: pwa(ngridshi)
+double precision :: vhatmax,vhatmax_pe,vhatmaxgrid
+!-----------------------------------------------------------------------------
+vhatmax_pe=smalldouble
+do iigrid=1,igridstail; igrid=igrids(iigrid);
+  if (.not.slab) mygeo => pgeo(igrid)
+  if (B0field) then
+     myB0_cell => pB0_cell(igrid)
+     {^D&myB0_face^D => pB0_face^D(igrid)\}
+  end if
+  !typelimiter=typelimiter1(node(plevel_,igrid))
+  !typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+  ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  call vhat(pwa(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,vhatmaxgrid)
+  vhatmax_pe=max(vhatmax_pe,vhatmaxgrid)
+end do
+call MPI_ALLREDUCE(vhatmax_pe,vhatmax,1,MPI_DOUBLE_PRECISION,MPI_MAX, &
+                       icomm,ierrmpi)
+do iigrid=1,igridstail; igrid=igrids(iigrid);
+  if (.not.slab) mygeo => pgeo(igrid)
+  if (B0field) then
+     myB0_cell => pB0_cell(igrid)
+     {^D&myB0_face^D => pB0_face^D(igrid)\}
+  end if
+  typelimiter=typelimiter1(node(plevel_,igrid))
+  typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+  ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  ! calculate frictional velocity
+  call frictional_velocity(pwa(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,vhatmax,dtfff)
+end do
+
+end subroutine mf_velocity_update
 !=============================================================================
 subroutine advectmf(idim^LIM,qt,qdt)
 
@@ -103,16 +310,16 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    pw1(igrid)%w=pw(igrid)%w
 end do
 istep=0
-typeadvancemf='threestep'
+typeadvancemf='onestep'
 select case (typeadvancemf)
-case ("onestep")
+ case ("onestep")
    call advect1mf(qdt,one,    idim^LIM,qt,          pw1,qt,pw, pwold)
-case ("twostep")
+ case ("twostep")
    ! predictor step
    call advect1mf(qdt,half,   idim^LIM,qt,          pw,qt,pw1,pwold)
    ! corrector step
    call advect1mf(qdt,one,    idim^LIM,qt+half*qdt, pw1,qt,pw, pwold)
-case ("threestep")
+ case ("threestep")
    ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
    call advect1mf(qdt,one,    idim^LIM,qt,          pw ,qt,pw1,pwold)
 
@@ -130,7 +337,7 @@ case ("threestep")
    end do   
    call advect1mf(qdt,2.0d0/3.0d0, idim^LIM,qt+qdt/2.0d0,pw2,&
           qt+qdt/3.0d0,pw,pwold)
-case default
+ case default
    write(unitterm,*) "typeadvancemf=",typeadvancemf
    write(unitterm,*) "Error in advect: Unknown time integration method"
    call mpistop("Correct typeadvancemf")
@@ -148,8 +355,7 @@ end subroutine advectmf
 !=============================================================================
 subroutine advect1mf(dtin,dtfactor,idim^LIM,qtC,pwa,qt,pwb,pwc)
 
-!  integrate all grids by one partial step
-
+! Integrate all grids by one partial step
 ! This subroutine is equivalent to VAC's `advect1', but does
 ! the advection for all grids
 include 'amrvacdef.f'
@@ -157,10 +363,8 @@ include 'amrvacdef.f'
 integer, intent(in) :: idim^LIM
 double precision, intent(in) :: dtin,dtfactor, qtC, qt
 type(walloc) :: pwa(ngridshi), pwb(ngridshi), pwc(ngridshi)
-
 double precision :: qdt
 integer :: iigrid, igrid, level
-
 logical :: setigrid
 
 !-----------------------------------------------------------------------------
@@ -195,8 +399,11 @@ if (time_advance.and.levmax>levmin) then
    end if
 end if
    
-! for all grids: fill ghost cells
-qdt=dtfactor*dt
+! update B in ghost cells
+call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.)
+! calculate magnetofrictional velocity
+call mf_velocity_update(pwb,qdt)
+! update magnetofrictional velocity in ghost cells
 call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.)
 
 end subroutine advect1mf
@@ -204,13 +411,11 @@ end subroutine advect1mf
 subroutine process1_gridmf(igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
 
 ! This subroutine is equivalent to VAC's `advect1' for one grid
-
 include 'amrvacdef.f'
 
 integer, intent(in) :: igrid, ixG^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt
 double precision :: wCT(ixG^S,1:nw), w(ixG^S,1:nw), wold(ixG^S,1:nw)
-
 double precision :: dx^D
 double precision :: fC(ixG^S,1:nwflux,1:ndim)
 integer :: ixO^L
@@ -228,7 +433,14 @@ typelimiter=typelimiter1(node(plevel_,igrid))
 typegradlimiter=typegradlimiter1(node(plevel_,igrid))
 
 ixO^L=ixG^L^LSUBdixB;
-call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+!================================
+! 4th order FD
+!================================ 
+call evolve_centdiff4(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+!================================
+! TVDLF
+!================================ 
+!call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
 
 if (levmax>levmin) then
    if (istep==nstep.or.nstep>2) &
@@ -282,35 +494,40 @@ double precision, intent(inout) :: w(ixI^S,1:nw)
 
 double precision :: dxhm,disbd(5),bfzone^D
 integer :: ix^D
+logical :: buffer
 !-----------------------------------------------------------------------------
 dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
 dxhm=cmf_c*cmf_y/qvmax*dxhm/qdt
 ^C&w(ixO^S,v0_+^C)=w(ixO^S,v0_+^C)*dxhm;
-bfzone1=0.05d0*(xprobmax1-xprobmin1)
-bfzone2=0.05d0*(xprobmax2-xprobmin2)
-bfzone3=0.05d0*(xprobmax3-xprobmin3)
-{do ix^DB=ixOmin^DB,ixOmax^DB\}
-   disbd(1)=x(ix^D,1)-xprobmin1
-   disbd(2)=xprobmax1-x(ix^D,1)
-   disbd(3)=x(ix^D,2)-xprobmin2
-   disbd(4)=xprobmax2-x(ix^D,2)
-   disbd(5)=xprobmax3-x(ix^D,3)
-   if(disbd(1)<bfzone1) then
-     w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,v1_:v3_)
-   endif
-   if(disbd(2)<bfzone1) then
-     w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
-   endif
-   if(disbd(3)<bfzone2) then
-     w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,v1_:v3_)
-   endif
-   if(disbd(4)<bfzone2) then
-     w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,v1_:v3_)
-   endif
-   if(disbd(5)<bfzone3) then
-     w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,v1_:v3_)
-   endif
-{end do\}
+buffer=.true.
+if (buffer) then
+  bfzone1=0.05d0*(xprobmax1-xprobmin1)
+  bfzone2=0.05d0*(xprobmax2-xprobmin2)
+  bfzone3=0.05d0*(xprobmax3-xprobmin3)
+  {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     disbd(1)=x(ix^D,1)-xprobmin1
+     disbd(2)=xprobmax1-x(ix^D,1)
+     disbd(3)=x(ix^D,2)-xprobmin2
+     disbd(4)=xprobmax2-x(ix^D,2)
+     disbd(5)=xprobmax3-x(ix^D,3)
+
+     if(disbd(1)<bfzone1) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(2)<bfzone1) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(3)<bfzone2) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(4)<bfzone2) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(5)<bfzone3) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,v1_:v3_)
+     endif
+  {end do\}
+end if
 end subroutine frictional_velocity
 !============================================================================= 
 subroutine vhat(w,x,ixI^L,ixO^L,vhatmaxgrid)
@@ -347,11 +564,9 @@ do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
 enddo; enddo; enddo
 
 if(B0field) then
-  !tmp(ixO^S)=( ^C&(w(ixO^S,b^C_)+myB0%w(ixO^S,^C))**2+ )
-  tmp(ixO^S)=dsqrt( ^C&(w(ixO^S,b^C_)+myB0%w(ixO^S,^C))**2+ )
+  tmp(ixO^S)=( ^C&(w(ixO^S,b^C_)+myB0%w(ixO^S,^C))**2+ )         ! |B|**2
 else
-  !tmp(ixO^S)=( ^C&w(ixO^S,b^C_)**2+ )
-  tmp(ixO^S)=dsqrt( ^C&w(ixO^S,b^C_)**2+ )
+  tmp(ixO^S)=( ^C&w(ixO^S,b^C_)**2+ )         ! |B|**2
 endif
 
 dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
@@ -523,24 +738,29 @@ do idims= idim^LIM
 end do ! Next idims
 
 if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
-! clean up divb
-call divbclean_linde(ixI^L,ixO^L,wnew,x)
 
 end subroutine tvdlfmf
 !=============================================================================
-subroutine evolve_centdiff4(qdt,ixI^L,ixO^L,wCT,w,fC,dx^D,x)
+subroutine evolve_centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
+
+! Advance the flow variables from t to t+qdt within ixO^L by
+! fourth order centered differencing in space 
+! for the dw/dt+dF_i(w)/dx_i=S type equation.
+! wCT contains the time centered variables at time qtC for flux and source.
+! w is the old value at qt on input and the new value at qt+qdt on output.
 
 include 'amrvacdef.f'
 
-integer, intent(in) :: ixI^L, ixO^L
-double precision, intent(in) :: qdt, dx^D
-double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+integer, intent(in) :: ixI^L, ixO^L, idim^LIM
+double precision, intent(in) :: qdt, qtC, qt, dx^D
+double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw), wold(ixI^S,1:nw)
 double precision, intent(in) :: x(ixI^S,1:ndim)
 double precision, dimension(ixI^S,1:ndim) ::  xi
 double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
+double precision :: v(ixG^T,ndim), f(ixG^T)
 double precision, dimension(ixG^T,1:nw) :: wLC, wRC
-double precision, dimension(ixG^T)      :: vLC, vRC,cmaxLC,cmaxRC,f
+double precision, dimension(ixG^T)      :: vLC, vRC,cmaxLC,cmaxRC
 double precision :: dxinv(1:ndim), dxdim(1:ndim)
 integer :: idims, iw, idirmin,ix^D
 integer :: ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
@@ -548,18 +768,18 @@ logical :: transport,patchw(ixG^T)
 !-----------------------------------------------------------------------------
 ! two extra layers are needed in each direction for which fluxes are added.
 ix^L=ixO^L;
-do idims=1,ndim
+do idims= idim^LIM
    ix^L=ix^L^LADD2*kr(idims,^D);
 end do
 
 if (ixI^L^LTix^L|.or.|.or.) then
-   call mpistop("Error in CentDiff4: Non-conforming input limits")
+   call mpistop("Error in evolve_CentDiff4: Non-conforming input limits")
 end if
 ^D&dxinv(^D)=-qdt/dx^D;
 ^D&dxdim(^D)=dx^D;
 
 ! Add fluxes to w
-do idims=1,ndim
+do idims= idim^LIM
    if (B0field) then
       select case (idims)
       {case (^D)
@@ -601,6 +821,7 @@ do idims=1,ndim
       ! f_i+1/2= (-f_(i+2) +7 f_(i+1) + 7 f_i - f_(i-1))/12
       fC(ixC^S,iw,idims)=(-f(kxC^S)+7.0d0*(f(jxC^S)+f(ixC^S))-f(hxC^S))/12.0d0
       ! add rempel dissipative flux, only second order version for now
+      ! one could gradually reduce the dissipative flux to improve solutions for computing steady states (Keppens et al. 2003, JCP)
       fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-half*vLC(ixC^S) &
                                      *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
 
@@ -617,10 +838,8 @@ do idims=1,ndim
          end select
       end if
    end do    !next iw
-end do
+end do       !next idims
 if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
-! clean up divb
-call divbclean_linde(ixI^L,ixO^L,w,x)
 
 end subroutine evolve_centdiff4
 !!=============================================================================
@@ -651,7 +870,6 @@ endif
 
 do idims=1,ndim
    cmax(ixO^S)=dabs(w(ixO^S,v0_+idims))+alfven(ixO^S)
-   !cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
    if (.not.slab) then
       tmp(ixO^S)=cmax(ixO^S)/mygeo%dx(ixO^S,idims)
       courantmax=max(courantmax,maxval(tmp(ixO^S)))
@@ -680,7 +898,7 @@ if(B0field) then
 else
   cmax(ixO^S)=dsqrt((^C&w(ixO^S,b^C_)**2+ )/w(ixO^S,rho_))
 endif
-cmax(ixO^S)=cmax(ixO^S)+dabs(w(ixO^S,v0_+idims))
+ cmax(ixO^S)=cmax(ixO^S)+dabs(w(ixO^S,v0_+idims))
 
 end subroutine getcmaxfff
 !=============================================================================
