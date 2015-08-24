@@ -27,14 +27,13 @@ count_reject=0
 cmf_y0=cmf_y
 cmf_divb0=cmf_divb
 ! update B in ghost cells
-call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
-call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+bcphys=.false.
+call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+! magnetofrictional loops
 do
-  if (count_reject>0) then
-    call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
-  end if
   ! calculate time step based on Cmax= Alfven speed + abs(frictional speed)
   dtfff_pe=bigdouble
   do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -95,10 +94,10 @@ do
     call divbclean_linde(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
   end do
   ! update B in ghost cells
-  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
   call mf_velocity_update(pw,dtfff)
   ! update velocity in ghost cells
-  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
   ! =======
   ! evolve
   ! =======
@@ -198,9 +197,9 @@ do
 
   i=i+1
   tmf=tmf+dtfff
-  if (mfstep==0) mfstep = mfitmax/10
-  if(mod(i,mfstep)==0 .and. mype==0) then
-    write(*,*) "mfit=",i
+  if(mod(i,10)==0 .and. mype==0) call printlog_mf
+  if(mod(i,100)==0 .and. mype==0) then
+    write(*,*) "itmf=",i
     write(*,*) '<CW sin theta>:',cwsin_theta_new
     write(*,*) '<f_i>:',f_i
     write(*,*) '----------------------------------------------------------'
@@ -214,12 +213,51 @@ do
     exit
   end if
 enddo
-
+bcphys=.true.
 !! restore initial velocity
 !do iigrid=1,igridstail; igrid=igrids(iigrid);
 !   pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
 !end do
+contains
+!=============================================================================
+! internal procedures start
+!=============================================================================
+subroutine printlog_mf
+integer :: amode, status(MPI_STATUS_SIZE)
+integer, save :: fhmf
+character(len=800) :: filename,filehead
+character(len=2048) :: line,datastr
+logical, save :: logmfopened=.false.
+!-----------------------------------------------------------------------------
+if(mype==0) then
+  if(.not.logmfopened) then
+    ! generate filename
+    write(filename,"(a,a)") TRIM(filenamelog),"_mf.log"
 
+    amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+    amode=ior(amode,MPI_MODE_APPEND)
+    call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode, &
+                       MPI_INFO_NULL,log_fh,ierrmpi)
+    logmfopened=.true.
+    filehead="itmf,f_i,CW sine theta"
+    call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
+                        MPI_CHARACTER,status,ierrmpi)
+    call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,status,ierrmpi)
+  end if
+  line=''
+  write(datastr,'(i6,a)') i,','
+  line=trim(line)//trim(datastr)
+  write(datastr,'(es13.6,a)') f_i,','
+  line=trim(line)//trim(datastr)
+  write(datastr,'(es13.6)') cwsin_theta_new
+  line=trim(line)//trim(datastr)
+  call MPI_FILE_WRITE(fhmf,line,len_trim(line),MPI_CHARACTER,status,ierrmpi)
+end if
+
+end subroutine printlog_mf
+!=============================================================================
+! internal procedures end
+!=============================================================================
 end subroutine magnetofriction
 !=============================================================================
 subroutine mask_inner(ixI^L,ixO^L,w,x,patchwi)
@@ -400,11 +438,11 @@ if (time_advance.and.levmax>levmin) then
 end if
    
 ! update B in ghost cells
-call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.)
+call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pwb,qdt)
 ! update magnetofrictional velocity in ghost cells
-call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.)
+call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
 
 end subroutine advect1mf
 !=============================================================================

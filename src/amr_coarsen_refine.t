@@ -100,9 +100,9 @@ call selectgrids
 ! since we only filled mesh values, and advance assumes filled
 ! ghost cells, do boundary filling for the new levels
 if (time_advance) then
-   call getbc(t+dt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+   call getbc(t+dt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 else
-   call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+   call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 end if
 
 

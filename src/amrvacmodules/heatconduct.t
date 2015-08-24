@@ -56,7 +56,7 @@ integer:: iigrid, igrid,j
 logical :: evenstep
 !-----------------------------------------------------------------------------
 if(e_<1) call mpistop("Thermal conduction requires by e_>0!")
-energyonly=.true.
+bcphys=.false.
 
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    allocate(pw1(igrid)%w(ixG^T,1:nw))
@@ -90,7 +90,7 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
   call evolve_step1(cmut,qdt,ixG^LL,ixM^LL,pw1(igrid)%w,pw(igrid)%w,&
                     px(igrid)%x,pw3(igrid)%w)
 end do
-call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.)
+call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
 if(s==1) then
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
@@ -98,7 +98,7 @@ if(s==1) then
     deallocate(pw2(igrid)%w)
     deallocate(pw3(igrid)%w)
   end do
-  energyonly=.false.
+  bcphys=.true.
   return
 endif
 evenstep=.true.
@@ -121,7 +121,7 @@ do j=2,s
       call evolve_stepj(cmu,cmut,cnu,cnut,qdt,ixG^LL,ixM^LL,pw1(igrid)%w,&
                         pw2(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
     end do
-    call getbc(qt,ixG^LL,pw2,pwCoarse,pgeo,pgeoCoarse,.false.)
+    call getbc(qt,ixG^LL,pw2,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
     evenstep=.false.
   else
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -136,7 +136,7 @@ do j=2,s
       call evolve_stepj(cmu,cmut,cnu,cnut,qdt,ixG^LL,ixM^LL,pw2(igrid)%w,&
                         pw1(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
     end do
-    call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.)
+    call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
     evenstep=.true.
   end if 
 end do
@@ -157,7 +157,7 @@ else
 end if
 deallocate(bj)
 
-energyonly=.false.
+bcphys=.true.
 end subroutine thermalconduct_RKL2
 !=============================================================================
 subroutine evolve_stepj(qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,wold)

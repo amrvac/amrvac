@@ -275,7 +275,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 }
   pw(igrid)%w(:^D&,b1_:b3_)=pw(igrid)%w(:^D&,b1_:b3_)/Bzmax
 end do
-call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
 dtfff=1.d-5
 dtminfff=1.d-16
 abs_frac_diff=1.d-5
@@ -322,7 +322,7 @@ do
        call fff_grid(dtfff,ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,&
                      l_grid,ld_grid,.true.)
     end do
-    call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+    call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
   else ! Reset b
     dtfff=0.5d0*dtfff ! Reset dtfff
     !if(mype==0) print*,'redo i=',i,'dtfff=',dtfff
@@ -330,13 +330,13 @@ do
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       pw(igrid)%w=pwold(igrid)%w
     end do
-    call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+    call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        call fff_grid(dtfff,ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,&
                      l_grid,ld_grid,.true.)
     end do
-    call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+    call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
   endif
   i=i+1
 enddo

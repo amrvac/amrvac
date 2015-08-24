@@ -1,10 +1,10 @@
 !=============================================================================
-subroutine getbc(time,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson)
+subroutine getbc(time,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
 
 include 'amrvacdef.f'
 
 double precision, intent(in)               :: time
-integer, intent(in)                        :: ixG^L
+integer, intent(in)                        :: ixG^L,nwstart,nwbc
 type(walloc), dimension(ngridshi)          :: pwuse, pwuseCo
 type(geoalloc), target,dimension(ngridshi) :: pgeoFi, pgeoCo
 logical, intent(in)                        :: richardson
@@ -198,7 +198,7 @@ if (.not.richardson) then
    end if
 end if
 
-if(.not.energyonly) then
+if(bcphys) then
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
    do idims=1,ndim
@@ -935,15 +935,11 @@ size(ndim+1)=nw
 ^D&subsize(^D)=ixmax^D-ixmin^D+1;
 !subsize(ndim+1)=nwflux
 !sorry i need to communicate auxilary lfac for initial guess in inversion:
-subsize(ndim+1)=nwflux+nwaux
+subsize(ndim+1)=nwbc
+!nwflux+nwaux
 ^D&start(^D)=ixmin^D-1;
-start(ndim+1)=0
-{#IFDEF ENERGY
-if(energyonly) then
-  subsize(ndim+1)=1
-  start(ndim+1)=e_-1
-end if
-}
+start(ndim+1)=nwstart
+
 call MPI_TYPE_CREATE_SUBARRAY(ndim+1,size,subsize,start,MPI_ORDER_FORTRAN, &
                               MPI_DOUBLE_PRECISION,comm_type,ierrmpi)
 call MPI_TYPE_COMMIT(comm_type,ierrmpi)
