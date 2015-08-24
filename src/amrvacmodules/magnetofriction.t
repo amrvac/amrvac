@@ -3,10 +3,10 @@ subroutine magnetofriction
 
 include 'amrvacdef.f'
 
-integer :: i,iigrid, igrid, count_reject,ix^D
+integer :: i,iigrid, igrid, count_reject,ix^D,ncellpe,ncell
 double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
 !double precision :: Eb_new,Eb_old,Eb_ipe,dvolume(ixG^T)
-double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),volume_ipe,volume1,dxhm
+double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
 double precision :: f_i_ipe,f_i
@@ -27,7 +27,7 @@ count_reject=0
 cmf_y0=cmf_y
 cmf_divb0=cmf_divb
 ! update B in ghost cells
-call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
+call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
 bcphys=.false.
@@ -51,35 +51,6 @@ do
   call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                      icomm,ierrmpi)
 
-  !Eb_ipe=0.d0
-  !Eb_old=0.d0
-  sum_jbb_ipe = 0.d0
-  sum_j_ipe = 0.d0
-  do iigrid=1,igridstail; igrid=igrids(iigrid);
-    pwold(igrid)%w(ixG^T,b0_+1:b0_+ndir)=pw(igrid)%w(ixG^T,b0_+1:b0_+ndir)
-    if(slab) then
-      dvolume(ixM^T)={rnode(rpdx^D_,igrid)|*}
-    else
-      dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
-    end if
-    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    call mask_inner(ixG^LL,ixM^LL,pwold(igrid)%w,px(igrid)%x,patchwi)
-    patchwi = .true.
-    !Eb_ipe=Eb_ipe+integral_grid(ixG^LL,ixM^LL,pwold(igrid)%w,px(igrid)%x,&
-    !  dvolume,m3_,patchwi)
-    sum_jbb_ipe = sum_jbb_ipe+integral_grid(ixG^LL,ixM^LL,pwold(igrid)%w,&
-      px(igrid)%x,dvolume,b1_,patchwi)
-    sum_j_ipe   = sum_j_ipe+integral_grid(ixG^LL,ixM^LL,pwold(igrid)%w,&
-      px(igrid)%x,dvolume,b2_,patchwi)
-  end do
-  !call MPI_ALLREDUCE(Eb_ipe,Eb_old,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-  !   icomm,ierrmpi)
-  call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-     icomm,ierrmpi)
-  call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-     icomm,ierrmpi)
-  cwsin_theta_old = sum_jbb/sum_j
-
   ! clean divergence of magnetic field 
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (.not.slab) mygeo => pgeo(igrid)
@@ -90,7 +61,6 @@ do
     typelimiter=typelimiter1(node(plevel_,igrid))
     typegradlimiter=typegradlimiter1(node(plevel_,igrid))
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    !dx^D=rnode(rpdx^D_,igrid);
     call divbclean_linde(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
   end do
   ! update B in ghost cells
@@ -108,28 +78,31 @@ do
   sum_jbb_ipe = 0.d0
   sum_j_ipe = 0.d0
   f_i_ipe = 0.d0
-  volume_ipe = 0.d0
+  ncellpe=0
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     if(slab) then
-      dvolume(ixM^T)={rnode(rpdx^D_,igrid)|*}
+      dvone={rnode(rpdx^D_,igrid)|*}
+      dvolume(ixM^T)=dvone
+      dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
     else
       dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
+      dsurface(ixM^T)=pgeo(igrid)%surfaceC1(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
+                      pgeo(igrid)%surfaceC1(ixMlo1-1:ixMhi1-1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
+                      pgeo(igrid)%surfaceC2(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
+                      pgeo(igrid)%surfaceC2(ixMlo1:ixMhi1,ixMlo2-1:ixMhi2-1,ixMlo3:ixMhi3)+&
+                      pgeo(igrid)%surfaceC3(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
+                      pgeo(igrid)%surfaceC3(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3-1:ixMhi3-1)
     end if
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchwi)
-    patchwi = .true.
-    !Eb_ipe=Eb_ipe+integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,&
+    call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchwi,ncellpe)
+    !Eb_ipe=Eb_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,&
     !  dvolume,m3_,patchwi)
-    sum_jbb_ipe = sum_jbb_ipe+integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
-      px(igrid)%x,dvolume,b1_,patchwi)
-    sum_j_ipe   = sum_j_ipe+integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
-      px(igrid)%x,dvolume,b2_,patchwi)
-
-    dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-    f_i_ipe=f_i_ipe+dxhm*integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
-      px(igrid)%x,dvolume,10,patchwi)
-    volume_ipe = volume_ipe + integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,&
-      px(igrid)%x,dvolume,m1_,patchwi)
+    sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
+      px(igrid)%x,1,patchwi)
+    sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
+      px(igrid)%x,2,patchwi)
+    f_i_ipe=f_i_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
+      px(igrid)%x,3,patchwi)
   end do
   !call MPI_ALLREDUCE(Eb_ipe,Eb_new,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
   !   icomm,ierrmpi)
@@ -140,9 +113,8 @@ do
   cwsin_theta_new = sum_jbb/sum_j
   call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
      icomm,ierrmpi)
-  call MPI_ALLREDUCE(volume_ipe,volume1,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-     icomm,ierrmpi)
-  f_i = f_i/volume1
+  call MPI_ALLREDUCE(ncellpe,ncell,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
+  f_i = f_i/dble(ncell)
 
   if(i>60000) then
   if (cwsin_theta_new >= cwsin_theta_old) then
@@ -198,7 +170,7 @@ do
   i=i+1
   tmf=tmf+dtfff
   if(mod(i,10)==0 .and. mype==0) call printlog_mf
-  if(mod(i,100)==0 .and. mype==0) then
+  if(mod(i,1000)==0 .and. mype==0) then
     write(*,*) "itmf=",i
     write(*,*) '<CW sin theta>:',cwsin_theta_new
     write(*,*) '<f_i>:',f_i
@@ -212,6 +184,7 @@ do
     end if
     exit
   end if
+  cwsin_theta_old = cwsin_theta_new
 enddo
 bcphys=.true.
 !! restore initial velocity
@@ -256,11 +229,77 @@ end if
 
 end subroutine printlog_mf
 !=============================================================================
+function integral_grid_mf(ixI^L,ixO^L,w,x,iw,patchwi)
+
+integer, intent(in)                :: ixI^L,ixO^L,iw
+double precision, intent(in)       :: x(ixI^S,1:ndim)
+double precision                   :: w(ixI^S,nw+nwauxio)
+logical, intent(in) :: patchwi(ixG^T)
+
+double precision, dimension(ixG^T,1:ndir) :: bvec,qvec,current
+double precision :: integral_grid_mf,tmp(ixG^T),b_mag(ixG^T)
+integer :: ix^D,i,idirmin,idir,jdir,kdir
+!-----------------------------------------------------------------------------
+integral_grid_mf=0.d0
+select case(iw)
+ case(1)
+  ! Sum(|JxB|/|B|)
+  if(B0field) then
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_)+myB0_cell%w(ixI^S,^C);
+  else
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_);
+  endif
+  call curlvector(bvec,ixI^L,ixO^L,current,idirmin,1,ndir)
+  ! calculate Lorentz force
+  qvec(ixO^S,1:ndir)=zero
+  do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+     if(lvc(idir,jdir,kdir)/=0)then
+        tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
+        if(lvc(idir,jdir,kdir)==1)then
+           qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
+        else
+           qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
+        endif
+     endif
+  enddo; enddo; enddo
+  
+  {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+dsqrt((^C&qvec(ix^D,^C)**2+)/&
+                       (^C&bvec(ix^D,^C)**2+))*dvolume(ix^D)
+  {end do\}
+ case(2)
+  ! Sum(|J|)
+  if(B0field) then
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_)+myB0_cell%w(ixI^S,^C);
+  else
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_);
+  endif
+  call curlvector(bvec,ixI^L,ixO^L,current,idirmin,1,ndir)
+  {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+dsqrt(^C&current(ix^D,^C)**2+)*&
+                       dvolume(ix^D)
+  {end do\}
+ case(3)
+  ! f_i solenoidal property of B: (dvolume |div B|)/(dsurface |B|)
+  if(B0field) then
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_)+myB0_cell%w(ixI^S,^C);
+  else
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_);
+  endif
+  call divvector(bvec,ixI^L,ixO^L,tmp)
+  {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+dabs(tmp(ix^D))*&
+           dvolume(ix^D)/dsqrt(^C&bvec(ix^D,^C)**2+)/dsurface(ix^D)
+  {end do\}
+end select
+return
+end function integral_grid_mf
+!=============================================================================
 ! internal procedures end
 !=============================================================================
 end subroutine magnetofriction
 !=============================================================================
-subroutine mask_inner(ixI^L,ixO^L,w,x,patchwi)
+subroutine mask_inner(ixI^L,ixO^L,w,x,patchwi,cellcount)
 
 include 'amrvacdef.f'
 
@@ -268,7 +307,7 @@ integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: w(ixI^S,nw),x(ixI^S,1:ndim)
 double precision                   :: x0min1,x0max1,x0min2,x0max2,x0min3,x0max3
 logical, intent(inout)             :: patchwi(ixG^T)
-integer                            :: ix^D
+integer                            :: ix^D, cellcount
 !-----------------------------------------------------------------------------
 x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
 x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
@@ -281,6 +320,7 @@ x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
        x(ix^D,2) > x0min2 .and. x(ix^D,2) < x0max2 .and. &
        x(ix^D,3) > x0min3 .and. x(ix^D,3) < x0max3) then
       patchwi(ix^D)=.true.
+      cellcount=cellcount+1
     else
       patchwi(ix^D)=.false.
     endif
