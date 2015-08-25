@@ -3,7 +3,7 @@ subroutine magnetofriction
 
 include 'amrvacdef.f'
 
-integer :: i,iigrid, igrid, count_reject,ix^D,ncellpe,ncell
+integer :: i,iigrid, igrid, idims,count_reject,ix^D,ncellpe,ncell,hxM^LL
 double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
 !double precision :: Eb_new,Eb_old,Eb_ipe,dvolume(ixG^T)
 double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),dsurface(ixG^T),dvone
@@ -30,7 +30,6 @@ cmf_divb0=cmf_divb
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
-bcphys=.false.
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
 ! magnetofrictional loops
 do
@@ -86,12 +85,14 @@ do
       dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
     else
       dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
-      dsurface(ixM^T)=pgeo(igrid)%surfaceC1(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
-                      pgeo(igrid)%surfaceC1(ixMlo1-1:ixMhi1-1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
-                      pgeo(igrid)%surfaceC2(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
-                      pgeo(igrid)%surfaceC2(ixMlo1:ixMhi1,ixMlo2-1:ixMhi2-1,ixMlo3:ixMhi3)+&
-                      pgeo(igrid)%surfaceC3(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)+&
-                      pgeo(igrid)%surfaceC3(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3-1:ixMhi3-1)
+      dsurface(ixM^T)= ^D&pgeo(igrid)%surfaceC^D(ixM^T)+
+      do idims=1,ndim
+        hxM^LL=ixM^LL-kr(idims,^D);
+        select case(idims)
+        {case(^D)
+           dsurface(ixM^T)=dsurface(ixM^T)+pgeo(igrid)%surfaceC^D(hxM^T) \}
+        end select
+      end do
     end if
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchwi,ncellpe)
@@ -186,11 +187,10 @@ do
   end if
   cwsin_theta_old = cwsin_theta_new
 enddo
-bcphys=.true.
-!! restore initial velocity
-!do iigrid=1,igridstail; igrid=igrids(iigrid);
-!   pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
-!end do
+! restore initial velocity
+do iigrid=1,igridstail; igrid=igrids(iigrid);
+   pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
+end do
 contains
 !=============================================================================
 ! internal procedures start
@@ -205,12 +205,11 @@ logical, save :: logmfopened=.false.
 if(mype==0) then
   if(.not.logmfopened) then
     ! generate filename
-    write(filename,"(a,a)") TRIM(filenamelog),"_mf.log"
+    write(filename,"(a,a)") TRIM(filenamelog),"_mflog.csv"
 
     amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
     amode=ior(amode,MPI_MODE_APPEND)
-    call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode, &
-                       MPI_INFO_NULL,log_fh,ierrmpi)
+    call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
     logmfopened=.true.
     filehead="itmf,f_i,CW sine theta"
     call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
