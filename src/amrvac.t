@@ -54,19 +54,19 @@ if (snapshotini/=-1) then
      call read_snapshotnopar
    end if
 
-   ! modify globals
-   if (changeglobals) call initglobal
-
-{#IFDEF BOUNDARYDRIVER
-   call read_boundary
-}
-
 {#IFDEF PARTICLES
    call init_tracerparticles
    call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
    call init_gridvars
    call read_particles_snapshot
    call finish_gridvars
+}
+
+   ! modify globals
+   if (changeglobals) call initglobal
+
+{#IFDEF BOUNDARYDRIVER
+   call read_boundary
 }
 
    if (convert) then

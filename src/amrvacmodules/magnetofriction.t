@@ -21,7 +21,6 @@ end do
 
 tmf=0.d0
 dtfff=1.d-2
-! magnetofrictional cycling
 i=0
 count_reject=0
 cmf_y0=cmf_y
@@ -36,6 +35,7 @@ do
   ! calculate time step based on Cmax= Alfven speed + abs(frictional speed)
   dtfff_pe=bigdouble
   do iigrid=1,igridstail; igrid=igrids(iigrid);
+    pwold(igrid)%w(ixG^T,b0_+1:b0_+ndir)=pw(igrid)%w(ixG^T,b0_+1:b0_+ndir)
     if (.not.slab) mygeo => pgeo(igrid)
     if (B0field) then
        myB0_cell => pB0_cell(igrid)
@@ -125,8 +125,8 @@ do
     cmf_y=cmf_y/1.3d0
     cmf_divb=cmf_divb/1.3d0
     count_reject=count_reject+1
-    if (modulo(count_reject,100) == 0 .and. mype == 0) then
-      if (count_reject == 1) write(*,*) "mfit=",i
+    if (.false. .and.  modulo(count_reject,10) == 0 .and. mype == 0) then
+      if (count_reject == 1) write(*,*) "itmf=",i
       write (*,*) 'rejection count:',count_reject
       write (*,*) 'The update of the magnetic field has been rejected because <CW sin theta> &
                    does not decrease.'
@@ -146,7 +146,7 @@ do
     cycle
   else
     if (.false. .and. count_reject > 0 .and. mype == 0) then
-      write(*,*) "mfit=",i
+      write(*,*) "itmf=",i
       write (*,*) 'Successfully update the magnetic field after decreasing cmf_y and cmf_divb!'
       !write (*,*) 'cmf_y, cmf_divb:',cmf_y,cmf_divb
       write (*,*) '<CW sin theta> old:',cwsin_theta_old
@@ -211,7 +211,7 @@ if(mype==0) then
     amode=ior(amode,MPI_MODE_APPEND)
     call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
     logmfopened=.true.
-    filehead="itmf,f_i,CW sine theta"
+    filehead="itmf,<f_i>,<CW sin theta>"
     call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                         MPI_CHARACTER,status,ierrmpi)
     call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,status,ierrmpi)
@@ -222,7 +222,7 @@ if(mype==0) then
   write(datastr,'(es13.6,a)') f_i,','
   line=trim(line)//trim(datastr)
   write(datastr,'(es13.6)') cwsin_theta_new
-  line=trim(line)//trim(datastr)
+  line=trim(line)//trim(datastr)//new_line('A')
   call MPI_FILE_WRITE(fhmf,line,len_trim(line),MPI_CHARACTER,status,ierrmpi)
 end if
 
