@@ -10,7 +10,76 @@
 
 \begin{document}
 \section*{CSAM 2015, FZ Julich (CHARM school 14-18 september2015)}
+\section*{Preliminaries}
+\begin{verbatim}
+After login to JUDGE, download MPI-AMRVAC in your home directory
+git clone https://gitlab.com/mpi-amrvac/amrvac.git
 
+# modify (using vi) ~/.bashrc to setup environment variables
+# in ~/.bashrc add
+
+export AMRVAC_DIR=$HOME/amrvac
+PATH="$AMRVAC_DIR:$AMRVAC_DIR/tools:./:$PATH"
+
+# copy hands-on tests to your work folder
+cp -r ~/amrvac/tests/CSAM2015/* $WORK/
+cd $WORK
+
+# select a project, e.g., jetCloudInteractions
+
+cd jetCloudInteractions
+
+# look at the first line(s) of a par-file, e.g., amrvac2D.par and find a command 
+# "$AMRVAC_DIR/setup.pl ..." to setup basic parameters
+
+$AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=0 -g=16,16 -p=hd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
+
+# compile the code and get the executable file amrvac
+make
+
+# make a job script, e.g., use 1 node (12 CPUs) to run for at most 10 hours
+vi job.mb
+
+  #!/bin/bash -x
+
+  #MSUB -l nodes=1:ppn=12
+
+  #MSUB -l walltime=10:00:00
+
+  cd /work/hpclab/youruserid/jetCloudInteractions
+
+  mpiexec -np 12 ./amrvac -i amrvac2D.par
+
+# submit the job to JUDGE to run
+
+msub job.mb
+
+# more useful commands:
+# get detailed information about a job
+
+checkjob -v <jobid>
+
+# show status of your (running) jobs
+
+showq -u <youruserid>
+
+# show status of all (running) jobs
+
+showq [-r]
+
+# cancel a job
+
+canceljob <jobid>
+
+\end{verbatim}
+
+\newpage
+The subdirectory 
+
+{\tt \$AMRVAC\_DIR/tests/CSAM2015}
+
+has a large number of tests for you to explore:
+Note that we would appreciate to be informed when you would start from any of these setups to do your own work, maybe we can collaborate. We certainly like to be acknowledged for our efforts.
 
 \section*{jetCloudInteractions}
 In this Euler (gas dynamical) test, we simulate the impact of a Mach 12 jet flow as it passes through lighter external medium (density contrast 3), and finally impacts on a spherical (density stratified) cloud which is denser than the jet. It is inspired from a 3D SPH study done by De Gouveia del Pino, E., ApJ 526, 862-873 (1999).
@@ -44,6 +113,16 @@ Note: the {\tt normvar(*)} array is used only in the conversion to vtu files, an
 
 Related research is in `Effect of dust on Kelvin-Helmholtz instabilities', T. Hendrix \& R. Keppens, 2014, Astron. \& Astrophys. 526, A114, {\tt doi:10.1051/0004-6361/201322322}
 
+\section*{windbubble}
+
+This is also a 2D hydro evolution, but in an axisymmetric setup, where there is a user-defined source term, as well as (local) radiative loss effects incorporated. The setup models a stellar wind bubble, as it moves through the ISM (the simulation is performed in the frame fixed on the star, the ISM blows past the star from above). 
+
+The {\tt amrvacusr.t} and {\tt amrvacusrpar.t} shows how to incorporate the radiative loss module \hfill \\
+(see e.g. {\tt INCLUDE:amrvacmodules/cooling.t} and other statements accessing its functionality), \hfill \\
+where we have several means to handle the energy loss term, and many of the frequently used cooling tables pre-coded.
+
+Check out how we enforce AMR in the wind bubble region, using the {\tt specialrefine\_grid} subroutine.
+
 \section*{orszagtang}
 
 This directory contains a setup for the Orszag-Tang problem, a typical MHD testcase. The code is set up to handle both 2D and 3D variants, under either an isothermal closure (no energy equation) or in fully adiabatic ideal MHD (with energy evolution). This example serves to show the use of the {\tt -eos=} flag at compile time. The test lets a Mach 1 vortical flow distort a series of magnetic islands. 
@@ -76,6 +155,23 @@ We set up the problems to use fourth order finite differences here (using MP5 li
 The test is done in 2.5D (invariance in the ignored $z$-direction), note that the resistive run keeps $B_z$ and $v_z$ zero at all times, while Hall physics causes the generation of out-of-plane vector components.
 
 A visco-resistive variant of this test was discussed in `MPI-AMRVAC for solar and astrophysics', O. Porth, C. Xia, T. Hendrix, S.P. Moschou, \& R. Keppens, 2014, ApJS 214, 4 (26pp) {\tt doi:10.1088/0067-0049/214/1/4 }.
+
+\section*{promRT}
+
+This directory allows you to explore (recent) research into Rayleigh-Taylor dynamics in macroscopic prominence segments, using the ideal MHD assumption. In a stratified atmosphere, connecting chromosphere to corona, we have a prominence which is unstable to Rayleigh-Taylor instabilities. The {\tt amrvacusr.t} contains many aspects for you to explore, namely: how we setup a stratified atmosphere for a given temperature distribution, and how we use the initial stratification also in the boundary conditions (top and bottom boundaries are treated special here, where the $y$-direction has gravity). The code is ok for both 2.5D or 3D runs,
+but obviously the 3D run, for simulations over long timescale, will need to be done overnight.
+
+Check out how we activate a tracer to identify different parts (chromosphere, corona, prominence), and how in post-processing, we can use the user convert option to collect integrals over domain parts, to quantify information like the average temperature in some region, the volume and mass, etc.
+
+The initial condition uses velocity pertubations with random phases, check out how this is to be done when running the parallel, block-adaptive code.
+
+The boundary conditions ate top and bottom are instructive to see how extrapolations can be easily done on primitive variables. We have external gravity as a main physical ingedient here. Also, the log file is coded up very generally to store integrals over the domain.
+
+The 3D setup also shows you how to generate on-the-fly collapsed views, along the three coordinate axes.
+
+Related work is described in:
+`Solar prominences: "double, double ... boil and bubble"', R. Keppens, X. Cia, \& O. Porth, 2015, ApJ Letters 806, L13 (7pp). {\tt doi:10.1088/2041-8205/806/1/L13}
+
 
 \section*{lfff}
 

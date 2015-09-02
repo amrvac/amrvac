@@ -1,0 +1,95 @@
+!=====================================================
+! Project : Prominence RT dynamics, 3D case
+! Aim     : MHD evolution in stratified atmosphere
+! Results :
+! Update  : 1/09/2015
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=33 -phi=0 -z=0 -g=14,14,14 -p=mhd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
+!=====================================================
+
+ &testlist
+ /
+
+ &filelist
+        filenamelog='promRTthreed'
+        filenameout='promRTthreed'
+        primnames= 'rho v1 v2 v3 p b1 b2 b3 psi tr'
+        typefilelog='special'
+        autoconvert=.true.
+        saveprim=.true.
+        convert_type='user'
+        typeparIO=-1
+ /
+        convert_type='vtuBmpi'
+        nwauxio=2
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        itsave(1,4)=0
+        dtsave(1)     = 0.01
+        dtsave(2)     = 0.10
+        dtsave(4)     = 0.02
+        collapse(1)   = T
+        collapse(2)   = T
+        collapse(3)   = T
+        collapseLevel = 2
+ /
+
+ &stoplist
+        dtmin=1.D-6
+        itmax=10
+ /
+        tmax=4.0d0
+
+ &methodlist
+        wnames=       'rho m1 m2 m3 e b1 b2 b3 psi tr'
+        fileheadout=  'promRT_mhd33'
+        typeadvance=  'threestep'
+        typefull1=    13*'hll'
+        typepred1=    13*'hll'
+        typelimiter1= 13*'koren'
+        typelimited='predictor'
+        dimsplit=.false.
+        ssplitdivb=.true.
+        typedivbfix='glm2'
+        ssplituser=.false.
+        fixsmall=.true.
+        strictsmall=.false.
+        strictgetaux=.false.
+        nflatgetaux=4
+        smallp=1.0d-14
+        smallrho=1.0d-14
+ /
+
+ &boundlist
+        dixB=    2
+        typeB=   10*'periodic',10*'periodic',
+                 10*'special',10*'special',
+                 10*'periodic',10*'periodic'
+ /
+
+ &amrlist
+        errorestimate=3
+        mxnest=2
+        nbufferx1=0
+        nbufferx2=0
+        nbufferx3=0
+        tol=13*0.2d0
+        tolratio=13*0.1d0
+        nxlone1=150
+        nxlone2=150
+        nxlone3=70
+        xprobmin1=0.0d0
+        xprobmax1=3.0d0
+        xprobmin2=0.0d0
+        xprobmax2=3.0d0
+        xprobmin3=-0.7d0
+        xprobmax3=+0.7d0
+ /
+
+ &paramlist
+        slowsteps=10
+        typecourant='maxsum'
+        courantpar=0.8d0
+ /

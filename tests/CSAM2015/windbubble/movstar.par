@@ -1,0 +1,89 @@
+!=====================================================
+! Project : 2D wind-blown bubble
+! Aim     : Axisymmetric, hydro, with cooling
+! Results :
+! Update  : 31/08/2015
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=2 -g=14,14 -p=hd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+!=====================================================
+
+ &testlist
+        teststr=''
+ /
+ &filelist
+        filenamelog='movstarO'
+        filenameout='movstarO'
+        primnames='rho v1 v2 p'
+	autoconvert = .true.
+	saveprim=.true.
+	convert_type='vtuBCCmpi'
+        typeparIO=-1
+        nwauxio=2
+/
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave(1)= 100
+        dtsave(2)= 1.0D-1
+	
+/
+ &stoplist
+       tmax = 5.0D0
+       dtmin= 1.0d-10
+ /
+
+ &methodlist
+        wnames      = 'rho m1 m2 e'
+        fileheadout = 'movstar_hd22'
+        typeadvance = 'ssprk54'
+        typefull1   = 13*'tvdlf'
+        typelimiter1= 13*'minmod'
+	typeaxial   = 'cylindrical'
+        loglimit(1) = .true.
+        loglimit(4) = .true.
+	useprimitive= .true.
+        dimsplit    = .false.
+	ncool       = 10000
+	coolmethod  = 'exact'
+	coolcurve   = 'SPEX_DM'
+	Tfix        = .true.
+        ssplituser=.false.
+        fixsmall=.true.
+        strictsmall=.false.
+        strictgetaux=.false.
+        nflatgetaux=2
+        smallp=1.0d-16
+        smallrho=1.0d-14
+ /
+
+ &boundlist
+        dixB=    2
+        typeB=   'symm','asymm','symm','symm',4*'cont',
+		 4*'limitinflow',4*'special'
+        ratebdflux=0.01d0
+ /
+
+ &amrlist
+	errorestimate=3
+        mxnest=4
+	flags(5)=1
+	flags(1)=5
+	wflags(1)=1.0d0
+	tol = 13*0.1d0
+	tolratio = 13*0.125D0
+	nxlone1=100
+        nxlone2=100
+	xprobmin1=0.0D0
+	xprobmax1=5.0d0
+	xprobmin2=-2.5D0
+	xprobmax2=2.5D0
+        iprob=1
+ /
+
+ &paramlist
+        slowsteps=100
+        typecourant='maxsum'
+        courantpar=0.8d0
+	cfrac = 0.1d0
+/
