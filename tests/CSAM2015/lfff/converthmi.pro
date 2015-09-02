@@ -75,11 +75,11 @@ print,'xc,yc (cm)',xc,yc
 print,'dx,dy (cm)',dx,dy
 x1=xc-nx1*dx/2
 x2=xc+nx1*dx/2
-y1=yc-nx1*dx/2
-y2=yc+nx1*dx/2
+y1=yc-nx2*dx/2
+y2=yc+nx2*dx/2
 ; output 
 print,'x range (10 Mm):',' xprobmin1:',x1*1.e-9,'  xprobmax1:',x2*1.e-9
-print,'y range (10 Mm):',' xprobmin1:',y1*1.e-9,'  xprobmax2:',y2*1.e-9
+print,'y range (10 Mm):',' xprobmin2:',y1*1.e-9,'  xprobmax2:',y2*1.e-9
 ;sub_map,mapbz,smapbz,xrange=[0,779],yrange=[0,571],/pixel    ;,xrange=[500,700.0],yrange=[-300,-160.0]
 ;print,'Flux balance coefficient:',total(smapbz.data)/total(abs(smapbz.data))
 ;sub_map,mapbx,smapbx,ref_map=smapbz                                 

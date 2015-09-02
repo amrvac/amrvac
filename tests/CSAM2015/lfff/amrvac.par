@@ -3,7 +3,6 @@
         teststr=''
  /
 
-        autoconvert=.true.
  &filelist
         filenamelog='lfffa'
         filenameout='lfffa'
@@ -15,6 +14,7 @@
         typefilelog='special'
  /
         filenameini='lfffa'
+        convert=.true.
         snapshotini=0
         snapshotnext=1
 
@@ -61,7 +61,6 @@
                  7*'special',7*'special',
                  7*'special',7*'special',
  /
-                 8*'special',8*'special'
 
  &amrlist
         errorestimate=3
@@ -81,13 +80,13 @@
         tol=13*0.2d0
         tolratio=13*0.1d0
         nxlone1=48
-        nxlone2=48
+        nxlone2=36
         nxlone3=24
         iprob=1
         xprobmin1=5.3d0
         xprobmax1=28.6d0
-        xprobmin2=5.d0
-        xprobmax2=28.3d0
+        xprobmin2=7.5d0
+        xprobmax2=25.8d0
         xprobmin3=0.d0
         xprobmax3=12.d0
  /
@@ -99,4 +98,3 @@
         courantpar=0.8d0
         slowsteps=10
  /
-        dtdiffpar=0.4d0
