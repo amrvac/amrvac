@@ -137,7 +137,7 @@ logical, dimension(ixG^T)                        :: patchw
 patchw(ixO^S) = .false.
 call ecrossb(ixI^L,ixO^L,idims,w,patchw,ecrossbi)
 b2(ixO^S) = ({^C& w(ixO^S,b^C_)**2|+})
-where( b2(ixO^S) <= smalldouble**2)
+where( b2(ixO^S) <= smalldouble)
    v(ixO^S) = zero
 elsewhere
    v(ixO^S) = ecrossbi(ixO^S) / b2(ixO^S)
@@ -176,7 +176,7 @@ double precision, intent(out)      :: f(ixG^T)
 logical, intent(out)               :: transport
 ! .. local ..
 integer                            :: k
-double precision, dimension(ixG^T) :: b2, Epari, Eperpi, EdotB
+double precision, dimension(ixG^T) :: b2, e2, Epari, Eperpi, EdotB
 !-----------------------------------------------------------------------------
 transport=.false.
 
@@ -193,11 +193,15 @@ else if(iw==psi_) then
 else if(iw==q_) then
    transport=.true.
    b2(ixO^S)   = ({^C& w(ixO^S,b^C_)**2|+})
-   EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
-   Epari(ixO^S)  = EdotB(ixO^S)*w(ixO^S,b0_+idims)/b2(ixO^S)
-   Eperpi(ixO^S) = w(ixO^S,e0_+idims) - Epari(ixO^S)
-   f(ixO^S)=eqpar(kpar_)*Epari(ixO^S) + eqpar(kperp_)*Eperpi(ixO^S)
-   
+   e2(ixO^S) = ({^C& w(ixO^S,e^C_)**2|+})
+   where (b2(ixO^S) .lt. smalldouble .or. e2(ixO^S) .gt. b2(ixO^S))
+      f(ixO^S) = eqpar(kpar_) * w(ixO^S,e0_+idims)
+   elsewhere
+      EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
+      Epari(ixO^S)  = EdotB(ixO^S)*w(ixO^S,b0_+idims)/b2(ixO^S)
+      Eperpi(ixO^S) = w(ixO^S,e0_+idims) - Epari(ixO^S)
+      f(ixO^S) = eqpar(kpar_)*Epari(ixO^S) + eqpar(kperp_)*Eperpi(ixO^S)
+   end where
 !f^i[B_c] = lvc(c,i,k) Ek + phi delta(i,c)
 {else if (iw==b^C_) then
    if (idims .ne. ^C) then
@@ -320,7 +324,7 @@ double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 ! .. local ..
 double precision, dimension(ixG^T,1:ndir)  :: Epar, Eperp
-double precision, dimension(ixG^T)         :: b2, EdotB
+double precision, dimension(ixG^T)         :: b2, e2, EdotB
 !-----------------------------------------------------------------------------
 
 ! S[phib_] = -kappa phib
@@ -335,6 +339,7 @@ w(ixO^S,psi_) = w(ixO^S,psi_)*exp(-qdt*eqpar(kappa_))
 ! Then add again both components.
 
 b2(ixO^S) = ({^C& w(ixO^S,b^C_)**2|+})
+e2(ixO^S) = ({^C& w(ixO^S,e^C_)**2|+})
 
 EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
 {^C&
@@ -342,11 +347,11 @@ Epar(ixO^S,^C)  = EdotB(ixO^S)*w(ixO^S,b^C_)/b2(ixO^S)
 Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
 \}
 
-! Handle zero magnetic field separate:
-! Use perpendicular conductivity for all directions
-where (b2(ixO^S) .lt. smalldouble**2)
+! Handle zero magnetic field and E>B separate:
+! Use parallel conductivity for all directions (kpar assumed larger than kperp)
+where (b2(ixO^S) .lt. smalldouble .or. e2(ixO^S) .gt. b2(ixO^S))
 {^C&
-     w(ixO^S,e^C_) = w(ixO^S,e^C_) * exp(-eqpar(kperp_)*qdt)
+     w(ixO^S,e^C_) = w(ixO^S,e^C_) * exp(-eqpar(kpar_)*qdt)
 \}
 elsewhere
 {^C&
@@ -384,17 +389,18 @@ double precision, intent(in)              :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
 logical,intent(in)                        :: primvar
 double precision, intent(out)             :: current(ixG^T,1:ndir)
 ! .. local ..
-double precision, dimension(ixG^T)        :: vi, b2, EdotB
+double precision, dimension(ixG^T)        :: vi, b2, e2, EdotB
 double precision, dimension(ixG^T,1:ndir) :: Epar, Eperp
 !-----------------------------------------------------------------------------
 
 b2(ixO^S) = ({^C& w(ixO^S,b^C_)**2|+})
+e2(ixO^S) = ({^C& w(ixO^S,e^C_)**2|+})
 EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
 
 {^C&
 call getv(w,x,ixI^L,ixO^L,^C,vi) ! drift velocity
-where (b2(ixO^S) .lt. smalldouble**2)
-   current(ixO^S,^C) = eqpar(kperp_) * w(ixO^S,e^C_)
+where (b2(ixO^S) .lt. smalldouble .or. e2(ixO^S) .gt. b2(ixO^S))
+   current(ixO^S,^C) = eqpar(kpar_) * w(ixO^S,e^C_)
 elsewhere
    Epar(ixO^S,^C)  = EdotB(ixO^S)*w(ixO^S,b^C_)/b2(ixO^S)
    Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
