@@ -1,0 +1,94 @@
+!=====================================================
+! Project : Twocurrents problem
+! Aim     : N.C.
+! Results : 
+! Update  : 
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=12,12 -p=ff -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+!=====================================================
+&testlist
+/
+
+&filelist
+  primnames               = 'b1 b2 b3 e1 e2 e3 q phi psi'
+  convert_type            = 'vtuBCCmpi'
+  autoconvert             = T
+  saveprim                = T
+  typeparIO               = 0
+  nwauxio                 = 6
+  filenameout             = 'output/data'
+  filenameini             = 'output/data'
+  filenamelog             = 'output/amrvac'
+  sliceascii              = T
+/
+
+
+ &savelist
+        itsave(1,1)       = 0
+        itsave(1,2)       = 0
+        itsave(1,3)       = 0
+        itsave(1,5)       = 0
+        ditsave(1)        = 10
+        dtsave(2)         = 1.
+        dtsave(3)         = 1
+        dtsave(5)         = 0.01
+        nslices           = 2
+        slicedir(1)       = 1
+        slicecoord(1)     = 0.
+        slicedir(2)       = 2
+        slicecoord(2)     = 0.
+/
+
+ &stoplist
+        tmax              = 12
+        dtmin             = 1.0D-9
+/
+
+ &methodlist
+        wnames            = 'b1 b2 b3 e1 e2 e3 q phi psi'
+        typeadvance       = 'threestep'
+        typefull1         = 12*'hll'
+        typelimiter1      = 12*'cada3'
+        typelimited       = 'previous'
+        typetvdlf         = 'default'
+    	typeaxial         = 'slab'
+        ssplitresis       = T
+/
+&boundlist
+        dixB              = 2
+        typeB             = 
+                           9*'periodic'
+                           9*'periodic'
+                           9*'periodic'
+                           9*'periodic'
+/
+
+
+&amrlist
+        mxnest            = 6
+        errorestimate     = 3
+        flags(10)         = 3
+        flags(1)          = 1
+        flags(2)          = 2
+        flags(3)          = 3
+        wflags(1)         = 0.3
+        wflags(2)         = 0.3
+        wflags(3)         = 0.4
+        tol               = 12*0.2
+        amr_wavefilter    = 12*0.03
+        nxlone1           = 128
+        xprobmin1         = -6
+        xprobmax1         = 6
+        nxlone2           = 64
+        xprobmin2         = -3
+        xprobmax2         = 3
+        prolongprimitive  = T
+        coarsenprimitive  = T
+/
+
+ &paramlist
+       slowsteps          = 10
+       courantpar         = 0.3d0
+       dtdiffpar          = 0.1d0
+       typecourant        = 'maxsum'
+/
