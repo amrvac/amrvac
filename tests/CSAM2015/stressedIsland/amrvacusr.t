@@ -28,9 +28,10 @@ eqpar(vcoll_) = 0.0d0
 scaleb = 5.0d-3 ! Gauss
 UNIT_LENGTH   = 1.0d10 ! cm
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-UNIT_DENSITY  = (scaleb)**2/(4.0d0*dpi*CONST_c**2)
-UNIT_VELOCITY = CONST_c ! cm/c
+UNIT_DENSITY  = (scaleb)**2/(4.0d0*dpi*CONST_c**2) ! g cm**-3
+UNIT_VELOCITY = CONST_c ! cm/s
 
+! Scaling for output:
 normvar(0) = UNIT_LENGTH
 {^C&normvar(b^C_)   = sqrt(4.0d0*dpi*UNIT_DENSITY)*UNIT_VELOCITY \}
 {^C&normvar(e^C_)   = sqrt(4.0d0*dpi*UNIT_DENSITY)*UNIT_VELOCITY \}
@@ -141,16 +142,16 @@ call rand(s^C,Npart)
 ! flags to follow particles
 follow(1:10) = .true.
 
-follow(8400) = .true.
-follow(70098) = .true.
-follow(9082) = .true.
-follow(36948) = .true.
-follow(46794) = .true.
-follow(89461) = .true.
-follow(37702) = .true.
-follow(64511) = .true.
-follow(33305) = .true.
-follow(44695) = .true.
+!follow(8400) =  .true.
+!follow(70098) = .true.
+!follow(9082) =  .true.
+!follow(36948) = .true.
+!follow(46794) = .true.
+!follow(89461) = .true.
+!follow(37702) = .true.
+!follow(64511) = .true.
+!follow(33305) = .true.
+!follow(44695) = .true.
 
 
 ! first find ipe and igrid responsible for particle
