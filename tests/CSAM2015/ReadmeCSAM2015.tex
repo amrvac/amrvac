@@ -193,5 +193,33 @@ Check the user file to see how we use the PFSS module (see the {\tt INCLUDE::amr
 A description of this functionality and how the PFSS extrapolations compares to local cartesian extrapolations, can be found in
 `MPI-AMRVAC for solar and astrophysics', O. Porth, C. Xia, T. Hendrix, S.P. Moschou, \& R. Keppens, 2014, ApJS 214, 4 (26pp) {\tt doi:10.1088/0067-0049/214/1/4 }.
 
+\section*{stressedIsland}
+
+This setup explores the explosive formation of a current sheet from an X-point configuration.  We solve the equations of force-free magnetodynamics, valid for highly magnetised plasma.  The overall evolution takes around one lightcrossing time.  
+You can explore the impact of resistivity {\tt (eqpar(kpar\_))} on the reconnection rate and the width of the current sheet.  
+There is quite a bit of run-time analysis coded up in {\tt analysis.t}, e.g. it measures the reconnection rate and gives maximal values for the current and $E^2/B^2$.  
+
+Along with Maxwells equations, we push test-particles, each advanced due to the Lorentz force given by the electric and magnetic fields of the simulation.  
+This particle-treatment is activated by defining in definitions.h:\\
+\begin{verbatim}
+#define PARTICLES
+#define PARTICLES_LORENTZ
+\end{verbatim}
+
+and by including the corresponding subroutines:
+\begin{verbatim}
+INCLUDE:amrvacmodules/handle_particles.t
+INCLUDE:amrvacmodules/integrate_particles.t
+\end{verbatim}
+
+In Paraview, you can load particle *.csv data and visualize them on top of the fluid data.  Use the filter {\tt TableToPoints} to convert the data first.  
+Try to identify particles that show interesting evolution and follow them in the simulation.  This is done by setting {\tt follow(index) = .true.} in subroutine {\tt init\_particles} and re-running the simulation.  
+
+\section*{coalescenceInstability}
+
+Similarly to stressedIsland, this setup explores the formation of a current-sheet.  Two flux tubes are slightly pushed together, starting the reconnection process at their interface.  Since the current in the tubes are parallel, the tubes begin to attract each other which speeds up the formation of the current-sheet, and the tubes merge into a single one.  This setup again uses force-free magnetodynamics, simulating infinitely magnetised plasma.  Tearing instability sets in at Lundquist numbers of $\sim2000$ and you can see the formation of plasmoids and saturation of the reconnection rate.  
+
+You can explore how the evolution depends on the perturbation {\tt (eqpar(vcoll\_))} and on the resistivity {\tt (eqpar(kpar\_))}.  
+As in stressedIsland, $100\,000$ test-particles are advanced with the simulation and meaningful quantifications are done during runtime in {\tt analysis.t}.  
 
 \end{document}
