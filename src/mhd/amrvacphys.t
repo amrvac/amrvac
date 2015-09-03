@@ -32,7 +32,7 @@ eqpar(adiab_)=1.d0
 }
 
 {#IFDEF GLM
-eqpar(Cr_)=-0.18d0
+eqpar(Cr_)=0.18d0
 }
 
 eqpar(eta_)=0.d0

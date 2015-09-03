@@ -402,7 +402,7 @@ end if
 {#IFDEF BOUNDARYDRIVER
       call boundarydriver(qt,qdt,pwa,pwb)
 }
-      call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.)
+      call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 
 end subroutine advect1
 !=============================================================================
@@ -529,7 +529,7 @@ end if
          call addsource1_grid(igrid,qdt,qt,pw(igrid)%w)
       end do
       
-      call getbc(qt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+      call getbc(qt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 
 end subroutine addsource_all
 !=============================================================================
@@ -636,7 +636,7 @@ integer :: iigrid, igrid, icycle, ncycle
 double precision :: qdt, qt, sumqdt
 !-----------------------------------------------------------------------------
 
-energyonly=.true.
+bcphys=.false.
 if(sourceimplcycle)then
    ncycle=ceiling(dt/dtimpl)
    if(ncycle<1) then
@@ -672,7 +672,7 @@ do icycle=1,ncycle
 
   sumqdt=sumqdt+qdt
   qt=qt+qdt
-  call getbc(qt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+  call getbc(qt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 enddo
 
 if(mype==0.and..false.) then
@@ -684,7 +684,7 @@ if(mype==0.and..false.) then
        ' and sumqdt=',sumqdt
   endif
 endif
-energyonly=.false.
+bcphys=.true.
 
 end subroutine addsource_impl
 !=============================================================================

@@ -89,7 +89,7 @@ COMMON, CHARACTER*131 :: typedimsplit,typeaxial,typecoord,typepoly
 COMMON, INTEGER:: errorestimate,nxdiffusehllc,typespherical,ncyclemax
 COMMON, DOUBLE PRECISION:: entropycoef(nw)
 COMMON, DOUBLE PRECISION:: tvdlfeps, mcbeta, parastsnu, TCphi
-COMMON, LOGICAL:: sourceparasts,sourceimpl,sourceimplcycle,conduction,TCsaturate,energyonly
+COMMON, LOGICAL:: sourceparasts,sourceimpl,sourceimplcycle,conduction,TCsaturate,bcphys
 COMMON, LOGICAL:: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
 COMMON, LOGICAL:: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
 COMMON, LOGICAL:: restrictprimitive,prolongprimitive, &

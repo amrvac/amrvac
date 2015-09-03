@@ -54,19 +54,19 @@ if (snapshotini/=-1) then
      call read_snapshotnopar
    end if
 
+{#IFDEF PARTICLES
+   call init_tracerparticles
+   call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
+   call init_gridvars
+   call read_particles_snapshot
+   call finish_gridvars
+}
+
    ! modify globals
    if (changeglobals) call initglobal
 
 {#IFDEF BOUNDARYDRIVER
    call read_boundary
-}
-
-{#IFDEF PARTICLES
-   call init_tracerparticles
-   call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
-   call init_gridvars
-   call read_particles_snapshot
-   call finish_gridvars
 }
 
    if (convert) then
@@ -105,7 +105,7 @@ else
 
 {#IFDEF PARTICLES
    call init_tracerparticles
-   call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+   call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
    call init_gridvars
    call init_particles
    call finish_gridvars
@@ -176,7 +176,7 @@ itmin=it
 itTimeLast=it
 timeLast=MPI_WTIME()
 
-call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.)
+call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 
 !  ------ start of integration loop. ------------------
 timeloop0=MPI_WTIME()

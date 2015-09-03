@@ -4,7 +4,7 @@ subroutine addsource_glm1(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add divB related sources to w within ixO
 ! corresponding to Dedner JCP 2002, 175, 645 _equation 24_
-! giving the EGLM scheme
+! giving the EGLM-MHD scheme
 include 'amrvacdef.f'
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
@@ -67,7 +67,7 @@ subroutine addsource_glm2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add divB related sources to w within ixO
 ! corresponding to Dedner JCP 2002, 175, 645 _equation 38_
-! giving the non conservative GLM-MHD scheme.
+! giving the non conservative EGLM-MHD scheme.
 include 'amrvacdef.f'
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
@@ -146,8 +146,8 @@ end subroutine addsource_glm2
 subroutine addsource_glm3(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add divB related sources to w within ixO
-! corresponding to Dedner JCP 2002, 175, 645
-! with no additional source terms.
+! corresponding to Dedner JCP 2002, 175, 645 _equation (1a), (1b), (4), (1d), 19
+! conservative hyperbolic mixed GLM-MHD with no additional source terms.
 include 'amrvacdef.f'
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
