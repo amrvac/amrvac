@@ -217,9 +217,16 @@ Try to identify particles that show interesting evolution and follow them in the
 
 \section*{coalescenceInstability}
 
-Similarly to stressedIsland, this setup explores the formation of a current-sheet.  Two flux tubes are slightly pushed together, starting the reconnection process at their interface.  Since the current in the tubes are parallel, the tubes begin to attract each other which speeds up the formation of the current-sheet, and the tubes merge into a single one.  This setup again uses force-free magnetodynamics, simulating infinitely magnetised plasma.  Tearing instability sets in at Lundquist numbers of $\sim2000$ and you can see the formation of plasmoids and saturation of the reconnection rate.  
+Similarly to stressedIsland, this setup explores the formation of a current-sheet.  Two flux tubes are slightly pushed together, starting the reconnection process at their interface.  Since the currents in the tubes are parallel, the tubes begin to attract each other which speeds up the formation of the current-sheet, and the tubes merge into a single one.  This setup again uses force-free magnetodynamics, simulating infinitely magnetised plasma.  Tearing instability sets in at Lundquist numbers of $\sim2000$ and you can see the formation of plasmoids and saturation of the reconnection rate.  
 
 You can explore how the evolution depends on the perturbation {\tt (eqpar(vcoll\_))} and on the resistivity {\tt (eqpar(kpar\_))}.  
 As in stressedIsland, $100\,000$ test-particles are advanced with the simulation and meaningful quantifications are done during runtime in {\tt analysis.t}.  
+
+\section*{particleSnapshot}
+
+This example illustrates how to push particles through a static snapshot from an MHD simulation.  The snapshot is taken from the coalescenceInstability with parameter {\tt eqpar(kpar\_)=4000} and 10000 particle-orbits are integrated with the Lorentz-force.  
+Paraview lets you follow the particle orbits and do histograms of the particle energy.  Note how particles accumulate in the central plasmoid where they reach high Lorentz factors.  
+Following this example, you can adjust the setup to take output from any other MHD simulation.  
+
 
 \end{document}
