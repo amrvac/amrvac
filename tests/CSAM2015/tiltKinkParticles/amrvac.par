@@ -1,0 +1,97 @@
+!=======================================================================
+! Project : Tilt Kink evolution with Test Particles
+! Aim 	  : resistive MHD with guiding center particles, 2.5D setup
+! Results :
+! Update  : 5/09/2015
+! configuration : 
+! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=o -g=16,16 -p=mhd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
+!=======================================================================
+
+
+&testlist
+ /
+
+ &filelist
+        primnames     = 'rho v1 v2 v3 p b1 b2 b3 tr'
+        autoconvert   = T
+        convert_type = 'vtuBCCmpi'
+        saveprim      = T
+        nwauxio       = 1
+        filenameout='output/data'
+        filenamelog='output/data'
+        filenameini='output/data'
+!        typefilelog='special'
+/
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave(1)    = 1
+        dtsave(2)     = 0.1
+/ 
+
+&stoplist
+        tmax          = 10.0d0
+        
+ /
+ 
+&methodlist
+        wnames        = 'rho m1 m2 m3 e b1 b2 b3 tr'
+        fileheadout   = 'tilt_mhd33'
+        typeadvance   = 'threestep'
+        typefull1     = 13*'hll'
+        typelimiter1  = 13*'cada3'
+        typelimited= 'predictor'
+        dimsplit=.false.
+        ssplitdivb=.true.
+        ssplitresis=.false.
+        ssplituser=.false.
+        divbdiff=1.0d0
+        typedivbfix='linde'
+        typedivbdiff='ind'
+        compactres=.true.
+ /
+
+ &boundlist
+        dixB          = 2
+        typeB         = 
+                        9*'periodic',9*'periodic'
+                        9*'periodic',9*'periodic'
+/
+
+
+ &amrlist
+        errorestimate = 3
+        flags(10)=3
+        flags(1)=1
+        flags(2)=6
+        flags(3)=7
+        wflags(1)=0.0d0
+        wflags(2)=0.5d0
+        wflags(3)=0.5d0
+        mxnest=4
+        nbufferx1=0
+        nbufferx2=0
+        tol=1*0.1d0
+        tolratio=13*0.1d0
+        nxlone1       = 120
+        nxlone2       = 120
+        xprobmin1     = -3.0d0
+        xprobmax1     = 3.0d0
+        xprobmin2     = -3.0d0
+        xprobmax2     = 3.0d0
+        iprob=5
+ /
+
+        xprobmin3     = -3.0d0
+        xprobmax3     = 3.0d0
+        nxlone3       = 300
+        nbufferx3=0
+
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.6d0
+        dtdiffpar=0.4d0
+        slowsteps=50
+ /

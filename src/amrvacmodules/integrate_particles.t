@@ -60,7 +60,7 @@ integer                             :: nok, nbad
 double precision                    :: h1, hmin
 
 !!!!! Precision of time-integration: !!!!!!!!!!!!!
-double precision,parameter          :: eps=1.0d-3
+double precision,parameter          :: eps=1.0d-5
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 integer, parameter                  :: nvar = ^NC+2
@@ -218,7 +218,7 @@ double precision                :: dxmin, vp, a, gammap
 double precision                :: v(1:ndir), y(1:^NC+2), dydt(1:^NC+2), v0(1:ndir), v1(1:ndir)
 double precision                :: ap0, ap1, dt_cfl_ap0, dt_cfl_ap1, dt_cfl_ap
 double precision                :: dt_max_output, dt_max_time, dt_euler, dt_tmp
-double precision, parameter     :: cfl=0.01d0, uparcfl=0.04d0
+double precision, parameter     :: cfl=0.8d0, uparcfl=0.8d0
 double precision, parameter     :: uparmin=1.0d-6*CONST_C
 !-----------------------------------------------------------------------------
 dt_particles      = bigdouble
@@ -264,6 +264,7 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 
    dt_cfl0    = dxmin/vp
    dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap0)
+   dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(UNIT_LENGTH*dxmin/(ap0+smalldouble))) )
 
 ! make an Euler step with the proposed timestep:
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -280,8 +281,9 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 
    dt_cfl1    = dxmin/vp
    dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap1)
+   dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(UNIT_LENGTH*dxmin/(ap1+smalldouble))) )
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap0, dt_cfl_ap1)
+   dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap1)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -294,14 +296,15 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 !     ap = CONST_c**2/vp*gammap**(-3)*dydt(ndir+3)
 !     dt_ap = sqrt(dxmin*UNIT_LENGTH/ap)
 
-   dt_a = bigdouble
-   if (dt_euler .gt. smalldouble) then 
-      a = sqrt({^C& (v1(^C)-v0(^C))**2 |+})/dt_euler
-      dt_a = min(sqrt(dxmin/a),bigdouble)
-   end if
+!   dt_a = bigdouble
+!   if (dt_euler .gt. smalldouble) then 
+!      a = sqrt({^C& (v1(^C)-v0(^C))**2 |+})/dt_euler
+!      dt_a = min(sqrt(dxmin/a),bigdouble)
+!   end if
   
 
-   particle(ipart)%self%dt = min(dt_tmp , dt_a)
+!   particle(ipart)%self%dt = min(dt_tmp , dt_a)
+   particle(ipart)%self%dt = dt_tmp
 
 
 !**************************************************
