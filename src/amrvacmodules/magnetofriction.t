@@ -386,7 +386,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    allocate (pw1(igrid)%w(ixG^T,1:nw))
    pw1(igrid)%w=pw(igrid)%w
 end do
-istep=0
+
 typeadvancemf='onestep'
 select case (typeadvancemf)
  case ("onestep")
@@ -440,16 +440,14 @@ include 'amrvacdef.f'
 integer, intent(in) :: idim^LIM
 double precision, intent(in) :: dtin,dtfactor, qtC, qt
 type(walloc) :: pwa(ngridshi), pwb(ngridshi), pwc(ngridshi)
-double precision :: qdt
-integer :: iigrid, igrid, level
-logical :: setigrid
 
+double precision :: qdt
+integer :: iigrid, igrid
+logical :: setigrid
 !-----------------------------------------------------------------------------
-istep=istep+1
 
 if (levmax>levmin) then
-   if (istep==nstep.or.nstep>2) &
-        call init_comm_fix_conserve(idim^LIM)
+   call init_comm_fix_conserve(idim^LIM)
 end if
 
 ! loop over all grids to arrive at equivalent
@@ -457,23 +455,18 @@ end if
 ! opedit: Just advance the active grids: 
 qdt=dtfactor*dtin
 do iigrid=1,igridstail; igrid=igrids(iigrid);
-   level=node(plevel_,igrid)
-   
    call process1_gridmf(igrid,qdt,ixG^LL,idim^LIM,qtC,&
                    pwa(igrid)%w,qt,pwb(igrid)%w,pwc(igrid)%w)
-                   
 end do
 
 ! opedit: Send flux for all grids, expects sends for all 
 ! nsend_fc(^D), set in connectivity.t.
 
-if (time_advance.and.levmax>levmin) then
-   if (istep==nstep.or.nstep>2) then
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-         call sendflux(igrid,idim^LIM)
-      end do
-      call fix_conserve(pwb,idim^LIM)
-   end if
+if (levmax>levmin) then
+   do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call sendflux(igrid,idim^LIM)
+   end do
+   call fix_conserve(pwb,idim^LIM)
 end if
    
 ! update B in ghost cells
@@ -493,8 +486,7 @@ include 'amrvacdef.f'
 integer, intent(in) :: igrid, ixG^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt
 double precision :: wCT(ixG^S,1:nw), w(ixG^S,1:nw), wold(ixG^S,1:nw)
-double precision :: dx^D
-double precision :: fC(ixG^S,1:nwflux,1:ndim)
+double precision :: dx^D, fC(ixG^S,1:nwflux,1:ndim)
 integer :: ixO^L
 !-----------------------------------------------------------------------------
 dx^D=rnode(rpdx^D_,igrid);
