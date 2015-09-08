@@ -492,6 +492,7 @@ integer :: ixO^L
 dx^D=rnode(rpdx^D_,igrid);
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 saveigrid=igrid
+fC=0.d0
 
 if (.not.slab) mygeo => pgeo(igrid)
 if (B0field) then
@@ -512,8 +513,7 @@ call evolve_centdiff4(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igri
 !call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
 
 if (levmax>levmin) then
-   if (istep==nstep.or.nstep>2) &
-        call storeflux(igrid,fC,idim^LIM)
+   call storeflux(igrid,fC,idim^LIM)
 end if
 
 end subroutine process1_gridmf
