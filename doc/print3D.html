@@ -1,0 +1,23 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head><title>3D printing of MPI-AMRVAC outputC</title></head>
+<body>
+<br>
+<div style="text-align: center;"><big style="font-weight: bold; color: red;"><big><big>3D Printing</big><br></big></big><div style="text-align: center;"><hr style="width: 100%; height: 2px;"><br><div style="text-align: left;"><span style="color: black;">This is a short tutorial that shows how to prepare MPI-AMRVAC output for 3D printing. <br>The advice in this tutorial is of a general nature. Please contact your printing service for specifics.</span><hr style="width: 100%; height: 2px;"><span style="font-weight: bold;">Requirements: </span>A 3D printer needs a description of a surface area in three dimensions in the form of an .stl file.<br><br><span style="font-weight: bold;">Procedure:<br></span><ol><li>Write
+your output in .vtu format and load it into the VisIt visualization
+program. This software package is free and can be obtained from:&nbsp;<a href="https://wci.llnl.gov/simulation/computer-codes/visit/">https://wci.llnl.gov/simulation/computer-codes/visit/</a></li><li>In visit, create a surface area that represents the result of your simulation. This can be done through:</li><ul><li>Add --&gt; Pseudocolor</li><li>OpAtts --&gt; Slicing --&gt; isosurface &nbsp; &nbsp;</li><li>Make sure to draw only one isosurface. The default is ten, which will not yield a printable result.</li><li>Scale
+the result to a size that fits in the printer. This can be done through
+OpAtts --&gt; Transforms --&gt; Transform --&gt; Scale &nbsp; Keep in
+mind that the cost of a 3D print scales with the volume.</li></ul><li>Once you are satisfied with the result, export your surface through</li><ul><li>File --&gt; Export database</li><li>Choose STL as the file format and use the option to write binary</li><li>Keep
+in mind that each plot will generate its own database. If you have
+multiple plots in one window, VisIt will write a separate file for each.</li></ul><li>The STL file produced by VisIt will not be directly printable. It will contain flaws that need to be repaired.&nbsp;</li><ul><li>This can be done online at either: &nbsp;<a href="http://www.netfabb.com/netfabbcloud.php">http://www.netfabb.com/netfabbcloud.php</a> or <a href="https://cloud.materialise.com/">https://cloud.materialise.com/</a>.&nbsp;</li><li>Alternatively, you can use a program such as Meshlab, available for free at<a href="http://meshlab.sourceforge.net/"> http://meshlab.sourceforge.net/</a>.
+This will also let you&nbsp; manipulate the STL file by hand, allowing
+you to merge multiple STL files or insert additional objects. Once you
+are done, it would be wise to apply one of the online servuices to your
+end result in order to fix andy errors that you may have missed.</li></ul><li>The
+process demonstrated in the previous steps will yield a printable file.
+However, it may still cause problems, for example, if part of your
+surface is not connected to the rest. If that happens, the printer will
+creates to separate objects, which may not be desirable. It is up to
+the user to make sure to check this in advance.</li></ol><span style="color: black;"></span></div></div></div>
+
+</body></html>
