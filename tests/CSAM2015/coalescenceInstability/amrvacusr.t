@@ -80,6 +80,7 @@ integer                                  :: idirmin
 integer, parameter                       :: idirmin0=1
 logical patchw(ixG^T)
 double precision, parameter     :: alphat = 3.8317d0
+double precision                :: BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1
 !
 patchw(ixG^S) = .false.
 !-----------------------------------------------------------------------------
@@ -102,17 +103,22 @@ w(ixG^S,psi_)  = 0.0d0
 
 ! Toroidal magnetic field:
 {^D& do ix^D=ixGmin^D,ixGmax^D\}
-    bphi1(ix^D) = bessel_j1(alphat*r1(ix^D))
-    bphi2(ix^D) = bessel_j1(alphat*r2(ix^D))
+    call JY01A(alphat*r1(ix^D),BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1)
+    bphi1(ix^D) = BJ1
+    call JY01A(alphat*r2(ix^D),BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1)
+    bphi2(ix^D) = BJ1
 {^D& end do\}
 
 ! Poloidal (z) magnetic field:
 {^D& do ix^D=ixGmin^D,ixGmax^D\}
-    bz1(ix^D) = sqrt(bessel_j0(alphat*r1(ix^D))**2 + eqpar(C_))
-    bz2(ix^D) = sqrt(bessel_j0(alphat*r2(ix^D))**2 + eqpar(C_))
+    call JY01A(alphat*r1(ix^D),BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1)
+    bz1(ix^D) = sqrt(BJ0**2 + eqpar(C_))
+    call JY01A(alphat*r2(ix^D),BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1)
+    bz2(ix^D) = sqrt(BJ0**2 + eqpar(C_))
 {^D& end do\}
 
 ! Fill magnetic field:
+call JY01A(alphat,BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1)
 where(r1(ixG^S) .lt. one)
    w(ixG^S,b1_) = - sinphi1(ixG^S) * bphi1(ixG^S)
    w(ixG^S,b2_) = + cosphi1(ixG^S) * bphi1(ixG^S)
@@ -124,7 +130,7 @@ elsewhere(r2(ixG^S) .lt. one)
 elsewhere
    w(ixG^S,b1_) = zero
    w(ixG^S,b2_) = zero
-   w(ixG^S,b3_) = sqrt(bessel_j0(alphat)**2 + eqpar(C_))
+   w(ixG^S,b3_) = sqrt(BJ0**2 + eqpar(C_))
 end where
 
 ! Calculate Epar:
@@ -163,7 +169,7 @@ include 'amrvacdef.f'
 
 double precision, dimension(ndir)    :: x
 integer                              :: igrid_particle, ipe_particle
-integer, parameter                   :: Npart=200000
+integer, parameter                   :: Npart=50000
 double precision, parameter          :: gamma0 = 10.0d0
 integer                              :: seed
 double precision                     :: r^C(1:Npart), s^C(1:Npart)
@@ -476,7 +482,175 @@ tolerance=tolerance+tol_add
 end subroutine special_tolerance
 !=============================================================================
 }
+SUBROUTINE JY01A(X,BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1)
 
+!       =======================================================
+!       Purpose: Compute Bessel functions J0(x), J1(x), Y0(x),
+!                Y1(x), and their derivatives
+!       Input :  x   --- Argument of Jn(x) & Yn(x) ( x ò 0 )
+!       Output:  BJ0 --- J0(x)
+!                DJ0 --- J0'(x)
+!                BJ1 --- J1(x)
+!                DJ1 --- J1'(x)
+!                BY0 --- Y0(x)
+!                DY0 --- Y0'(x)
+!                BY1 --- Y1(x)
+!                DY1 --- Y1'(x)
+!       =======================================================
+!
+IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+
+double precision:: X,BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1
+double precision:: PI,RP2,X2,R,EC,CS0,W0,R0,CS1,W1,R1
+double precision:: T1,P0,Q0,T2,P1,Q1,CU
+double precision:: A(12),B(12),A1(12),B1(12)
+
+integer:: K,K0
+
+        PI=3.141592653589793D0
+        RP2=0.63661977236758D0
+        X2=X*X
+        IF (X==0.0D0) THEN
+           BJ0=1.0D0
+           BJ1=0.0D0
+           DJ0=0.0D0
+           DJ1=0.5D0
+           BY0=-1.0D+300
+           BY1=-1.0D+300
+           DY0=1.0D+300
+           DY1=1.0D+300
+           RETURN
+        ENDIF
+        IF (X<=12.0D0) THEN
+           BJ0=1.0D0
+           R=1.0D0
+           DO K=1,30
+              R=-0.25D0*R*X2/(K*K)
+              BJ0=BJ0+R
+              IF (DABS(R)<DABS(BJ0)*1.0D-15) EXIT
+           ENDDO
+           BJ1=1.0D0
+           R=1.0D0
+           DO K=1,30
+              R=-0.25D0*R*X2/(K*(K+1.0D0))
+              BJ1=BJ1+R
+              IF (DABS(R)<DABS(BJ1)*1.0D-15) EXIT
+           ENDDO
+           BJ1=0.5D0*X*BJ1
+           EC=DLOG(X/2.0D0)+0.5772156649015329D0
+           CS0=0.0D0
+           W0=0.0D0
+           R0=1.0D0
+           DO K=1,30
+              W0=W0+1.0D0/K
+              R0=-0.25D0*R0/(K*K)*X2
+              R=R0*W0
+              CS0=CS0+R
+              IF (DABS(R)<DABS(CS0)*1.0D-15) EXIT
+           ENDDO
+           BY0=RP2*(EC*BJ0-CS0)
+           CS1=1.0D0
+           W1=0.0D0
+           R1=1.0D0
+           DO K=1,30
+              W1=W1+1.0D0/K
+              R1=-0.25D0*R1/(K*(K+1))*X2
+              R=R1*(2.0D0*W1+1.0D0/(K+1.0D0))
+              CS1=CS1+R
+              IF (DABS(R)<DABS(CS1)*1.0D-15) EXIT
+           ENDDO
+           BY1=RP2*(EC*BJ1-1.0D0/X-0.25D0*X*CS1)
+        ELSE
+         A(1)=-.7031250000000000D-01
+         A(2)=.1121520996093750D+00
+         A(3)=-.5725014209747314D+00
+         A(4)=.6074042001273483D+01
+         A(5)=-.1100171402692467D+03
+         A(6)=.3038090510922384D+04
+         A(7)=-.1188384262567832D+06
+         A(8)=.6252951493434797D+07
+         A(9)=-.4259392165047669D+09
+         A(10)=.3646840080706556D+11
+         A(11)=-.3833534661393944D+13
+         A(12)=.4854014686852901D+15
+!DATA A/-.7031250000000000D-01,.1121520996093750D+00,-.5725014209747314D+00,.6074042001273483D+01, &
+!       -.1100171402692467D+03,.3038090510922384D+04,-.1188384262567832D+06,.6252951493434797D+07, &
+!       -.4259392165047669D+09,.3646840080706556D+11,-.3833534661393944D+13,.4854014686852901D+15/
+         B(1)=.7324218750000000D-01
+         B(2)=-.2271080017089844D+00
+         B(3)=.1727727502584457D+01
+         B(4)=-.2438052969955606D+02
+         B(5)=.5513358961220206D+03
+         B(6)=-.1825775547429318D+05
+         B(7)=.8328593040162893D+06
+         B(8)=-.5006958953198893D+08
+         B(9)=.3836255180230433D+10
+         B(10)=-.3649010818849833D+12
+         B(11)=.4218971570284096D+14
+         B(12)=-.5827244631566907D+16
+!DATA B/ .7324218750000000D-01,-.2271080017089844D+00,.1727727502584457D+01,-.2438052969955606D+02, &
+!        .5513358961220206D+03,-.1825775547429318D+05,.8328593040162893D+06,-.5006958953198893D+08, &
+!        .3836255180230433D+10,-.3649010818849833D+12,.4218971570284096D+14,-.5827244631566907D+16/
+         A1(1)=.1171875000000000D+00
+         A1(2)=-.1441955566406250D+00
+         A1(3)=.6765925884246826D+00
+         A1(4)=-.6883914268109947D+01
+         A1(5)=.1215978918765359D+03
+         A1(6)=-.3302272294480852D+04
+         A1(7)=.1276412726461746D+06
+         A1(8)=-.6656367718817688D+07
+         A1(9)=.4502786003050393D+09
+         A1(10)=-.3833857520742790D+11
+         A1(11)=.4011838599133198D+13
+         A1(12)=-.5060568503314727D+15
+!DATA A1/.1171875000000000D+00,-.1441955566406250D+00,.6765925884246826D+00,-.6883914268109947D+01, &
+!        .1215978918765359D+03,-.3302272294480852D+04,.1276412726461746D+06,-.6656367718817688D+07, &
+!        .4502786003050393D+09,-.3833857520742790D+11,.4011838599133198D+13,-.5060568503314727D+15/
+         B1(1)=-.1025390625000000D+00
+         B1(2)=.2775764465332031D+00
+         B1(3)=-.1993531733751297D+01
+         B1(4)=.2724882731126854D+02
+         B1(5)=-.6038440767050702D+03
+         B1(6)=.1971837591223663D+05
+         B1(7)=-.8902978767070678D+06
+         B1(8)=.5310411010968522D+08
+         B1(9)=-.4043620325107754D+10
+         B1(10)=.3827011346598605D+12
+         B1(11)=-.4406481417852278D+14
+         B1(12)=.6065091351222699D+16
+!DATA B1/-.1025390625000000D+00,.2775764465332031D+00,-.1993531733751297D+01,.2724882731126854D+02, &
+!        -.6038440767050702D+03,.1971837591223663D+05,-.8902978767070678D+06,.5310411010968522D+08, &
+!        -.4043620325107754D+10,.3827011346598605D+12,-.4406481417852278D+14,.6065091351222699D+16/
+           K0=12
+           IF (X>=35.0) K0=10
+           IF (X>=50.0) K0=8
+           T1=X-0.25D0*PI
+           P0=1.0D0
+           Q0=-0.125D0/X
+           DO K=1,K0
+              P0=P0+A(K)*X**(-2*K)
+              Q0=Q0+B(K)*X**(-2*K-1)
+           ENDDO
+           CU=DSQRT(RP2/X)
+           BJ0=CU*(P0*DCOS(T1)-Q0*DSIN(T1))
+           BY0=CU*(P0*DSIN(T1)+Q0*DCOS(T1))
+           T2=X-0.75D0*PI
+           P1=1.0D0
+           Q1=0.375D0/X
+           DO K=1,K0
+              P1=P1+A1(K)*X**(-2*K)
+              Q1=Q1+B1(K)*X**(-2*K-1)
+           ENDDO
+           CU=DSQRT(RP2/X)
+           BJ1=CU*(P1*DCOS(T2)-Q1*DSIN(T2))
+           BY1=CU*(P1*DSIN(T2)+Q1*DCOS(T2))
+        ENDIF
+        DJ0=-BJ1
+        DJ1=BJ0-BJ1/X
+        DY0=-BY1
+        DY1=BY0-BY1/X
+        RETURN
+        END
 !=============================================================================
 ! amrvacusr.t.nul
 !=============================================================================
