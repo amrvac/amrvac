@@ -261,7 +261,7 @@ if (ipole==0) then
    if (ipe_neighbor==mype) then
       ixS^L=ixS_srl_^L(i^D);
       ixR^L=ixR_srl_^L(n_i^D);
-      pwuse(ineighbor)%w(ixR^S,1:nwflux+nwaux)=pwuse(igrid)%w(ixS^S,1:nwflux+nwaux)
+      pwuse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc)=pwuse(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
    else
       isend=isend+1
       itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
@@ -283,12 +283,12 @@ else
                        sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
          deallocate(pwbuf(ipwbuf)%w)
       end if
-      allocate(pwbuf(ipwbuf)%w(ixS^S,1:nwflux+nwaux))
+      allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
       call pole_copy(pwbuf(ipwbuf),ixS^L,pwuse(igrid),ixS^L)
       isend=isend+1
       isend_buf(ipwbuf)=isend
       itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
-      isizes={(ixSmax^D-ixSmin^D+1)*}*(nwflux+nwaux)
+      isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
       call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
                      ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
       ipwbuf=1+modulo(ipwbuf,npwbuf)
@@ -310,7 +310,7 @@ if (ipole==0) then
    if (ipe_neighbor==mype) then
       ixS^L=ixS_r_^L(i^D);
       ixR^L=ixR_r_^L(n_inc^D);
-      pwuse(ineighbor)%w(ixR^S,1:nwflux+nwaux)=pwuseCo(igrid)%w(ixS^S,1:nwflux+nwaux)
+      pwuse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc)=pwuseCo(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
    else
       isend=isend+1
       itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -332,12 +332,12 @@ else
                        sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
          deallocate(pwbuf(ipwbuf)%w)
       end if
-      allocate(pwbuf(ipwbuf)%w(ixS^S,1:nwflux+nwaux))
+      allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
       call pole_copy(pwbuf(ipwbuf),ixS^L,pwuseCo(igrid),ixS^L)
       isend=isend+1
       isend_buf(ipwbuf)=isend
       itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
-      isizes={(ixSmax^D-ixSmin^D+1)*}*(nwflux+nwaux)
+      isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
       call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
                      ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
       ipwbuf=1+modulo(ipwbuf,npwbuf)
@@ -411,8 +411,8 @@ integer :: ii^D
       n_inc^D=ic^D+n_i^D;
       if (ipe_neighbor==mype) then
          ixR^L=ixR_p_^L(n_inc^D);
-         pwuseCo(ineighbor)%w(ixR^S,1:nwflux+nwaux) &
-            =pwuse(igrid)%w(ixS^S,1:nwflux+nwaux)
+         pwuseCo(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc) &
+            =pwuse(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
       else
          isend=isend+1
          itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -433,12 +433,12 @@ integer :: ii^D
                           sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
             deallocate(pwbuf(ipwbuf)%w)
          end if
-         allocate(pwbuf(ipwbuf)%w(ixS^S,1:nwflux+nwaux))
+         allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
          call pole_copy(pwbuf(ipwbuf),ixS^L,pwuse(igrid),ixS^L)
          isend=isend+1
          isend_buf(ipwbuf)=isend
          itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
-         isizes={(ixSmax^D-ixSmin^D+1)*}*(nwflux+nwaux)
+         isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
          call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
                         ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
          ipwbuf=1+modulo(ipwbuf,npwbuf)
@@ -462,8 +462,8 @@ subroutine bc_send_old
       if (ipe_neighbor==mype) then
          ixS^L=ixS_old_^L(inc^D);
          ixR^L=ixR_old_^L(n_inc^D);
-         pwuse(ineighbor)%w(ixR^S,1:nwflux+nwaux) &
-            =pwold(igrid)%w(ixS^S,1:nwflux+nwaux)
+         pwuse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc) &
+            =pwold(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
       else
          isend=isend+1
          itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -485,12 +485,12 @@ subroutine bc_send_old
                           sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
             deallocate(pwbuf(ipwbuf)%w)
          end if
-         allocate(pwbuf(ipwbuf)%w(ixS^S,1:nwflux+nwaux))
+         allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
          call pole_copy(pwbuf(ipwbuf),ixS^L,pwold(igrid),ixS^L)
          isend=isend+1
          isend_buf(ipwbuf)=isend
          itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
-         isizes={(ixSmax^D-ixSmin^D+1)*}*(nwflux+nwaux)
+         isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
          call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
                         ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
          ipwbuf=1+modulo(ipwbuf,npwbuf)
@@ -636,7 +636,7 @@ type(walloc) :: pwCo, pwFi
 
 integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, iw, idims
 double precision :: xCo^D, xFi^D, eta^D
-double precision :: slopeL, slopeR, slopeC, signC, signR, slope(nwflux+nwaux,ndim)
+double precision :: slopeL, slopeR, slopeC, signC, signR, slope(nwbc,ndim)
 !-----------------------------------------------------------------------------
 {do ixFi^DB = ixFi^LIM^DB
    ! cell-centered coordinates of fine grid point
@@ -664,7 +664,7 @@ double precision :: slopeL, slopeR, slopeC, signC, signR, slope(nwflux+nwaux,ndi
       hxCo^D=ixCo^D-kr(^D,idims)\
       jxCo^D=ixCo^D+kr(^D,idims)\
 
-      do iw=1,nwflux+nwaux
+      do iw=nwstart+1,nwstart+nwbc
          slopeL=pwCo%w(ixCo^D,iw)-pwCo%w(hxCo^D,iw)
          slopeR=pwCo%w(jxCo^D,iw)-pwCo%w(ixCo^D,iw)
          slopeC=half*(slopeR+slopeL)
@@ -693,7 +693,7 @@ double precision :: slopeL, slopeR, slopeC, signC, signR, slope(nwflux+nwaux,ndi
    end do
 
    ! Interpolate from coarse cell using limited slopes
-   pwFi%w(ixFi^D,1:nwflux+nwaux)=pwCo%w(ixCo^D,1:nwflux+nwaux)+{(slope(1:nwflux+nwaux,^D)*eta^D)+}
+   pwFi%w(ixFi^D,nwstart+1:nwstart+nwbc)=pwCo%w(ixCo^D,nwstart+1:nwstart+nwbc)+{(slope(nwstart+1:nwstart+nwbc,^D)*eta^D)+}
 
 {end do\}
 
@@ -723,7 +723,7 @@ double precision :: xFi^D
    ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
 
    ! Copy from coarse cell
-   pwFi%w(ixFi^D,1:nwflux+nwaux)=pwCo%w(ixCo^D,1:nwflux+nwaux)
+   pwFi%w(ixFi^D,nwstart+1:nwstart+nwbc)=pwCo%w(ixCo^D,nwstart+1:nwstart+nwbc)
 
 {end do\}
 
@@ -744,7 +744,7 @@ type(walloc) :: pwCo, pwFi
 
 integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idims
 double precision :: xCo^D, xFi^D, eta^D
-double precision :: slope(nwflux+nwaux,ndim)
+double precision :: slope(nwbc,ndim)
 !-----------------------------------------------------------------------------
 {do ixFi^DB = ixFi^LIM^DB
    ! cell-centered coordinates of fine grid point
@@ -773,11 +773,11 @@ double precision :: slope(nwflux+nwaux,ndim)
       jxCo^D=ixCo^D+kr(^D,idims)\
 
       ! get centered slope
-      slope(1:nwflux+nwaux,idims)=half*(pwCo%w(jxCo^D,1:nwflux+nwaux)-pwCo%w(hxCo^D,1:nwflux+nwaux))
+      slope(nwstart+1:nwstart+nwbc,idims)=half*(pwCo%w(jxCo^D,nwstart+1:nwstart+nwbc)-pwCo%w(hxCo^D,nwstart+1:nwstart+nwbc))
    end do
 
    ! Interpolate from coarse cell using centered slopes
-   pwFi%w(ixFi^D,1:nwflux+nwaux)=pwCo%w(ixCo^D,1:nwflux+nwaux)+{(slope(1:nwflux+nwaux,^D)*eta^D)+}
+   pwFi%w(ixFi^D,nwstart+1:nwstart+nwbc)=pwCo%w(ixCo^D,nwstart+1:nwstart+nwbc)+{(slope(nwstart+1:nwstart+nwbc,^D)*eta^D)+}
 {end do\}
 
 if (amrentropy) then
@@ -933,10 +933,7 @@ integer, dimension(ndim+1) :: size, subsize, start
 ^D&size(^D)=ixGmax^D;
 size(ndim+1)=nw
 ^D&subsize(^D)=ixmax^D-ixmin^D+1;
-!subsize(ndim+1)=nwflux
-!sorry i need to communicate auxilary lfac for initial guess in inversion:
 subsize(ndim+1)=nwbc
-!nwflux+nwaux
 ^D&start(^D)=ixmin^D-1;
 start(ndim+1)=nwstart
 
@@ -983,7 +980,7 @@ select case (ipole)
 {case (^D)
    iside=int((i^D+3)/2)
    iB=2*(^D-1)+iside
-   do iw=1,nwflux+nwaux
+   do iw=nwstart+1,nwstart+nwbc
       select case (typeB(iw,iB))
       case ("symm")
          pwrecv%w(ixR^S,iw) = pwsend%w(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)

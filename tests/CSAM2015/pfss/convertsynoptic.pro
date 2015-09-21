@@ -32,9 +32,9 @@ magout=interpolate(data,dloninterp,dlatinterp,/grid)
 openw,lun,'hmisynopticmap2111.dat',/get_lun
 writeu,lun,nloni
 writeu,lun,nlati
-writeu,lun,theta
-writeu,lun,phi
-writeu,lun,magout
+writeu,lun,double(theta)
+writeu,lun,double(phi)
+writeu,lun,double(magout)
 free_lun,lun
 
 

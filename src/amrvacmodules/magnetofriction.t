@@ -11,6 +11,7 @@ double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
 double precision :: f_i_ipe,f_i
 double precision, external :: integral_grid
+integer, save :: fhmf
 logical :: patchwi(ixG^T)
 !-----------------------------------------------------------------------------
 
@@ -191,13 +192,13 @@ enddo
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
 end do
+if (mype==0) call MPI_FILE_CLOSE(fhmf,ierrmpi)
 contains
 !=============================================================================
 ! internal procedures start
 !=============================================================================
 subroutine printlog_mf
 integer :: amode, status(MPI_STATUS_SIZE)
-integer, save :: fhmf
 character(len=800) :: filename,filehead
 character(len=2048) :: line,datastr
 logical, save :: logmfopened=.false.
