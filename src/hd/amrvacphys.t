@@ -918,10 +918,11 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: x(ixI^S,1:ndim)
 double precision, intent(inout) :: w(ixI^S,1:nw)
+double precision, intent(out), dimension(ixG^T,1:^NC,1:^NDS) :: fdrag
+
 
 ! local
 double precision, dimension(ixG^T) :: vt2,deltav,fd,ptherm,vdust,vgas,Tgas
-double precision, dimension(ixG^T,1:^NC,1:^NDS) :: fdrag
 double precision, dimension(ixG^T,1:^NDS) :: alpha_T 
 
 integer :: idir
@@ -958,13 +959,12 @@ select case( TRIM(dustmethod) )
 !  Equation from Decin et al. 2006
 !
   Tgas(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar)/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
-  call get_tdust(w,x,ixI^L,ixO^L,alpha_T)
+  call get_sticking(w,x,ixI^L,ixO^L,alpha_T)
   
   do idir=1,^NC
     call getv(w,x,ixI^L,ixO^L,idir,vgas)
 
     {^DS&where(w(ixO^S,rhod^DS_)>minrhod)
-       alpha_T(ixO^S,^DS) = max(0.35d0*dexp(-dsqrt((Tgas(ixO^S)+alpha_T(ixO^S,^DS))/5.0d2))+0.1d0,smalldouble)
        vdust(ixO^S)  = w(ixO^S,(rhod^DS_)+idir*^NDS)/w(ixO^S,rhod^DS_)
        deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
        fd(ixO^S)     = (one-alpha_T(ixO^S,^DS))*w(ixO^S,rhod^DS_)*w(ixO^S,rho_)* &
@@ -1002,6 +1002,40 @@ end select
 
 return
 end subroutine get_3d_dragforce
+
+!=============================================================================
+subroutine get_sticking(w,x,ixI^L,ixO^L,alpha_T)
+!
+!  get sticking coefficient
+!
+!  Assume cgs units, and use of normvar(0:nw) array for conversion
+!
+!
+!  Equation from Decin et al. 2006
+!
+include 'amrvacdef.f'
+
+integer, intent(in)             :: ixI^L, ixO^L
+double precision, intent(in)    :: x(ixI^S,1:ndim)
+double precision, intent(inout) :: w(ixI^S,1:nw)
+
+
+double precision, intent(out)   :: alpha_T(ixG^T,1:^NDS)
+
+double precision                :: Tgas(ixG^T)
+!-----------------------------------------------------------------------------
+
+  call getpthermal(w,x,ixI^L,ixO^L,Tgas)
+  call get_tdust(w,x,ixI^L,ixO^L,alpha_T)
+
+  Tgas(ixO^S) = (Tgas(ixO^S)*normvar(p_)*mhcgspar)/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
+
+  {^DS&alpha_T(ixO^S,^DS) = max(0.35d0*dexp(-dsqrt((Tgas(ixO^S)+alpha_T(ixO^S,^DS))/5.0d2))+0.1d0,smalldouble)\}
+
+   return
+end subroutine get_sticking
+
+
 !=============================================================================
 
 subroutine get_tdust(w,x,ixI^L,ixO^L,Td)
@@ -1081,19 +1115,13 @@ double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
 double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
 ! .. local ..
 integer                                             :: idims,idust,idir
-double precision                                    :: dxinv(^ND)
-double precision, dimension(ixG^T,1:^ND)            :: agas
-double precision, dimension(ixG^T,1:^ND,1:^NDS)     :: adust
-double precision                                    :: dtgas
 double precision, dimension(1:^NDS)                 :: dtdust
-double precision, dimension(ixG^T,1:^NC,1:^NDS)     :: fdrag
 double precision, dimension(ixG^T) :: vt2,deltav,tstop,ptherm,vdust,vgas
 double precision, dimension(ixG^T,1:^NDS)           :: alpha_T
 double precision :: K
 !-----------------------------------------------------------------------------
 
 dtnew=bigdouble
-dtgas=bigdouble
 dtdust=bigdouble
 
 
@@ -1105,25 +1133,47 @@ dtdust=bigdouble
 select case( TRIM(dustmethod) )
   
   case( 'Kwok' ) ! assume sticking coefficient equals 0.25
-    call mpistop( "===This dust method getdt has not been implemented===" )
-    
+    dtdust(1:^NDS) = bigdouble
+
+    call getpthermal(w,x,ixI^L,ixO^L,ptherm)
+    vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S,rho_)
+
+    ! Tgas, mu=mean molecular weight
+    ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
+
+    do idir=1,^NC
+    call getv(w,x,ixI^L,ixO^L,idir,vgas)
+
+    {^DS&where(w(ixO^S,rhod^DS_)>minrhod)
+       vdust(ixO^S)  = w(ixO^S,(rhod^DS_)+idir*^NDS)/w(ixO^S,rhod^DS_)
+       deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
+       tstop(ixO^S)  = 4.0d0*(rhodust(^DS)*sdust(^DS))/ &
+                     (3.0d0*(0.75d0)*dsqrt(vt2(ixO^S) + &
+                     deltav(ixO^S)**2)*(w(ixO^S,rhod^DS_) + &
+                     w(ixO^S,rho_)))
+    else where
+       tstop(ixO^S) = bigdouble
+    end where
+
+
+    dtdust(^DS) = min(minval(tstop(ixO^S)),dtdust(^DS))
+    \}    
+    enddo
+
+    dtnew = min(minval(dtdiffpar*dtdust(1:^NDS)),dtnew)
   
   case( 'sticking' ) ! Calculate sticking coefficient based on the gas temperature
-    call get_3d_dragforce(ixI^L,ixO^L,w,x,fdrag)
     dtdust(1:^NDS) = bigdouble
 
     call getpthermal(w,x,ixI^L,ixO^L,ptherm)
     vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S,rho_)
 
 
-    ! Dust temperature )
-     call get_tdust(w,x,ixI^L,ixO^L,alpha_T )
+    ! Sticking coefficient
+    call get_sticking(w,x,ixI^L,ixO^L,alpha_T )
 
     ! Tgas, mu=mean molecular weight
-      ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
-      
-      {^DS&alpha_T(ixO^S,^DS) = max(0.35d0*dexp(-dsqrt((ptherm(ixO^S)+alpha_T(ixO^S,^DS))*2.0d-3))+0.1d0,smalldouble)
-      \}
+    ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
 
 
 
@@ -1178,7 +1228,7 @@ if(dtnew<dtmin)then
    write(unitterm,*)"Warning: found DUST related time step too small! dtnew=",dtnew
    write(unitterm,*)"on grid with index:", saveigrid," grid level=",node(plevel_,saveigrid)
    write(unitterm,*)"grid corners are=",{^D&rnode(rpxmin^D_,saveigrid), rnode(rpxmax^D_,saveigrid)}
-   write(unitterm,*)"dtgas=",dtgas, " dtdust =",dtdust(1:^NDS)
+   write(unitterm,*)" dtdust =",dtdust(1:^NDS)
    write(unitterm,*)"on processor:", mype
    write(unitterm,*)"-------------------------------------"
 endif
