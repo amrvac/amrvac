@@ -1009,7 +1009,12 @@ subroutine get_tdust(w,x,ixI^L,ixO^L,Td)
 ! Returns dust temperature (in K), either as constant or based 
 ! on equ. 5.41,5.42 and 5.44 from Tielens (2005)
 !
+!  Note that this calculation assumes cgs!!!! with conversion between 
+!  physical and scaled quantities done through the normvar(0:nw) array!!!!
 !
+!  It takes as input the stellar luminosoity in solar units
+!  and/or a fixed dust temperature in Kelvin
+
 
 include 'amrvacdef.f'
 
@@ -1028,9 +1033,9 @@ case( 'constant' )
 case( 'ism' )
 {^DS&select case( TRIM(dustspecies) )
   case( 'graphite' )
-    Td(ixO^S,^DS) = 15.8d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0)
+    Td(ixO^S,^DS) = 15.8d0*((0.0001d0/(sdust(^DS)*normvar(0)))**0.06d0)
   case( 'silicate' )
-    Td(ixO^S,^DS) = 13.6d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0)
+    Td(ixO^S,^DS) = 13.6d0*((0.0001d0/(sdust(^DS)*normvar(0)))**0.06d0)
   case default
       call mpistop( "===Dust species undetermined===" )
   end select
@@ -1050,10 +1055,10 @@ case( 'stellar' )
   G0(ixO^S)= 2.1d4*(Lstar/1.0d8)*((3.0857d17/G0(ixO^S))**2)
 {^DS&select case( TRIM(dustspecies) )
   case( 'graphite' )
-    Td(ixO^S,^DS) = 61.0d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0) &
+    Td(ixO^S,^DS) = 61.0d0*((0.0001d0/(sdust(^DS)*normvar(0)))**0.06d0) &
               *(G0(ixO^S)**(one/5.8d0))
   case( 'silicate' )
-    Td(ixO^S,^DS) = 50.0d0*((1.0d0/(sdust(^DS)*normvar(0)))**0.06d0) &
+    Td(ixO^S,^DS) = 50.0d0*((0.0001d0/(sdust(^DS)*normvar(0)))**0.06d0) &
               *(G0(ixO^S)**(one/6.0d0))
   case default
       call mpistop( "===Dust species undetermined===" )
@@ -1110,9 +1115,14 @@ select case( TRIM(dustmethod) )
     vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S,rho_)
 
 
-    !Tgas, mu=mean molecular weight
+    ! Dust temperature )
+      call get_tdust(w,x,ixI^L,ixO^L,Td )
+
+    ! Tgas, mu=mean molecular weight
       ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
-      ptherm(ixO^S) = max(0.35d0*dexp(-dsqrt(ptherm(ixO^S)*2.d-3))+0.1d0,smalldouble)
+      ptherm(ixO^S) = max(0.35d0*dexp(-dsqrt((ptherm(ixO^S) + Td(ixO^S))*2.d-3))+0.1d0,smalldouble)
+
+
 
     do idir=1,^NC
     call getv(w,x,ixI^L,ixO^L,idir,vgas)
