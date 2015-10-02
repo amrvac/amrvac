@@ -1088,6 +1088,7 @@ double precision                                    :: dtgas
 double precision, dimension(1:^NDS)                 :: dtdust
 double precision, dimension(ixG^T,1:^NC,1:^NDS)     :: fdrag
 double precision, dimension(ixG^T) :: vt2,deltav,tstop,ptherm,vdust,vgas
+double precision, dimension(ixG^T,1:^NDS)           :: alpha_T
 double precision :: K
 !-----------------------------------------------------------------------------
 
@@ -1116,11 +1117,13 @@ select case( TRIM(dustmethod) )
 
 
     ! Dust temperature )
-      call get_tdust(w,x,ixI^L,ixO^L,Td )
+     call get_tdust(w,x,ixI^L,ixO^L,alpha_T )
 
     ! Tgas, mu=mean molecular weight
       ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
-      ptherm(ixO^S) = max(0.35d0*dexp(-dsqrt((ptherm(ixO^S) + Td(ixO^S))*2.d-3))+0.1d0,smalldouble)
+      
+      {^DS&alpha_T(ixO^S,^DS) = max(0.35d0*dexp(-dsqrt((ptherm(ixO^S)+alpha_T(ixO^S,^DS))*2.0d-3))+0.1d0,smalldouble)
+      \}
 
 
 
@@ -1131,7 +1134,7 @@ select case( TRIM(dustmethod) )
        vdust(ixO^S)  = w(ixO^S,(rhod^DS_)+idir*^NDS)/w(ixO^S,rhod^DS_)
        deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
        tstop(ixO^S)  = 4.0d0*(rhodust(^DS)*sdust(^DS))/ &
-                     (3.0d0*(one-ptherm(ixO^S))*dsqrt(vt2(ixO^S) + &
+                     (3.0d0*(one-alpha_T(ixO^S,^DS))*dsqrt(vt2(ixO^S) + &
                      deltav(ixO^S)**2)*(w(ixO^S,rhod^DS_) + &
                      w(ixO^S,rho_)))
     else where
