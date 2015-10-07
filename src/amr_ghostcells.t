@@ -636,7 +636,8 @@ type(walloc) :: pwCo, pwFi
 
 integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, iw, idims
 double precision :: xCo^D, xFi^D, eta^D
-double precision :: slopeL, slopeR, slopeC, signC, signR, slope(nwbc,ndim)
+double precision :: slopeL, slopeR, slopeC, signC, signR
+double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
 !-----------------------------------------------------------------------------
 {do ixFi^DB = ixFi^LIM^DB
    ! cell-centered coordinates of fine grid point
