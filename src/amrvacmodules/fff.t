@@ -416,7 +416,7 @@ if(evolve) then
   ix^L=ixI^L^LSUB4;
   ! j = grad (omega dot b)
   do idir=1,ndir
-    call gradientS(b2,ix^L,idir,tmp)
+    call gradientS(b2,ixI^L,ix^L,idir,tmp)
     j(ixO^S,idir)=tmp(ixO^S)
   enddo
   ! fun = - omega x j - grad (omega dot b)

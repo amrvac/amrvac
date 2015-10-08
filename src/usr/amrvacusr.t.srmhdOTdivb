@@ -117,7 +117,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    call getdivb(pw(igrid)%w,ixG^LL,ixM^LL,divbgrid)
    gradBnorm(ixM^T)=zero
    do idim=1,ndim
-     call gradient(.false.,Bnorm,ixM^LL,idim,tmp)
+     call gradient(.false.,Bnorm,ixG^LL,ixM^LL,idim,tmp)
      gradBnorm(ixM^T)=gradBnorm(ixM^T)+tmp(ixM^T)**2
    end do
    gradBnorm(ixM^T)=dsqrt(gradBnorm(ixM^T))

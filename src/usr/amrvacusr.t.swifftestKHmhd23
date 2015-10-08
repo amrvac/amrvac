@@ -337,9 +337,9 @@ gradrho(ixO^S)=zero
 do idims=1,ndim
    select case(typegrad)
    case("central")
-     call gradient(rho,ixO^L,idims,drho)
+     call gradient(rho,ixI^L,ixO^L,idims,drho)
    case("limited")
-     call gradientS(rho,ixO^L,idims,drho)
+     call gradientS(rho,ixI^L,ixO^L,idims,drho)
    end select
    gradrho(ixO^S)=gradrho(ixO^S)+drho(ixO^S)**2.0d0
 enddo

@@ -55,7 +55,8 @@ do idim = 1, ndim ! idim is the direction of the flux interface
          ! These rely on the normal field flux component (e.g. as in GLM).
          ! Thus when more than one level is used, we dont set this zero 
          ! to allow additional divb-control to work.
-         if (mxnest .eq. 1) fC(ixI^S,iwdir,idim) = zero
+         !if (mxnest .eq. 1) fC(ixI^S,iwdir,idim) = zero
+         fC(ixI^S,iwdir,idim) = zero
          cycle
       end if
 

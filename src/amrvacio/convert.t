@@ -1108,7 +1108,7 @@ if(typeaxial=='slab')then
            do idims =1,ndim
               jxC^L=ixC^L+kr(idims,^D);
               dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-              call dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxlevel(idims))
+              call dwlimiter2(dwC,ixG^LL,ixC^L,iw,idims,ldw,dxlevel(idims))
               wC(ixC^S,iw)=w(ixC^S,iw)+half*ldw(ixC^S)
            end do
         else

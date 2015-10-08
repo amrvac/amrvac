@@ -12,9 +12,9 @@ double precision, dimension(ixI^S,1:ndim), intent(in)            :: x
 double precision, dimension(ixI^S,1:nw), intent(inout)           :: wCT, wnew, wold
 double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
 
-double precision, dimension(ixG^T,1:nwflux)                      :: fCT
-double precision, dimension(ixG^T,1:nw)                          :: fm, fp, fmR, fpL
-double precision, dimension(ixG^T)                               :: v
+double precision, dimension(ixI^S,1:nwflux)                      :: fCT
+double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL
+double precision, dimension(ixI^S)                               :: v
 double precision                                                 :: dxinv(1:ndim), dxdims
 logical                                                          :: transport
 integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L, ixCR^L
@@ -103,9 +103,9 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
 
-double precision, intent(out)   :: wLC(ixG^T,1:nw) 
+double precision, intent(out)   :: wLC(ixI^S,1:nw) 
 
-double precision                :: ldw(ixG^T), dwC(ixG^T)
+double precision                :: ldw(ixI^S), dwC(ixI^S)
 integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
 character*79                    :: savetypelimiter
 !-----------------------------------------------------------------------------
@@ -130,7 +130,7 @@ case default
       if(savetypelimiter=='koren') typelimiter='korenL'
       if(savetypelimiter=='cada')  typelimiter='cadaL'
       if(savetypelimiter=='cada3') typelimiter='cada3L'
-      call dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxdims)
+      call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdims)
       typelimiter=savetypelimiter
 
       wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
@@ -145,9 +145,9 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
 
-double precision, intent(out)   :: wRC(ixG^T,1:nw) 
+double precision, intent(out)   :: wRC(ixI^S,1:nw) 
 
-double precision                :: ldw(ixG^T), dwC(ixG^T)
+double precision                :: ldw(ixI^S), dwC(ixI^S)
 integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
 character*79                    :: savetypelimiter
 !-----------------------------------------------------------------------------
@@ -172,7 +172,7 @@ case default
       if(savetypelimiter=='koren') typelimiter='korenR'
       if(savetypelimiter=='cada')  typelimiter='cadaR'
       if(savetypelimiter=='cada3') typelimiter='cada3R'
-      call dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxdims)
+      call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdims)
       typelimiter=savetypelimiter
 
       wRC(iL^S,iw)=wRC(iL^S,iw)-half*ldw(jxR^S)

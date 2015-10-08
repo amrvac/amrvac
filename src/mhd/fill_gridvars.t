@@ -109,7 +109,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    kappa_B(ixG^T) = kappa(ixG^T) * absB(ixG^T)
 
    do idir=1,ndim
-      call gradient(kappa_B,ixG^LL^LSUB1,idir,tmp)
+      call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idir,tmp)
       mygridvars(igrid)%w(ixG^T,grad_kappa_B1_-1+idir) = tmp(ixG^T)/UNIT_LENGTH
    end do
 
@@ -120,13 +120,13 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    {^C&
    do idir=1,ndim
 
-      call gradient(bhat(ixG^T,^C),ixG^LL^LSUB1,idir,tmp)
+      call gradient(bhat(ixG^T,^C),ixG^LL,ixG^LL^LSUB1,idir,tmp)
       mygridvars(igrid)%w(ixG^T,b_dot_grad_b^C_) = mygridvars(igrid)%w(ixG^T,b_dot_grad_b^C_) &
            + bhat(ixG^T,idir) * tmp(ixG^T)/UNIT_LENGTH
       mygridvars(igrid)%w(ixG^T,ue_dot_grad_b^C_) = mygridvars(igrid)%w(ixG^T,ue_dot_grad_b^C_) &
            + ue(ixG^T,idir) * tmp(ixG^T)/UNIT_LENGTH
 
-      call gradient(ue(ixG^T,^C),ixG^LL^LSUB1,idir,tmp)
+      call gradient(ue(ixG^T,^C),ixG^LL,ixG^LL^LSUB1,idir,tmp)
       mygridvars(igrid)%w(ixG^T,b_dot_grad_ue^C_) = mygridvars(igrid)%w(ixG^T,b_dot_grad_ue^C_) &
            + bhat(ixG^T,idir) * tmp(ixG^T)/UNIT_LENGTH
       mygridvars(igrid)%w(ixG^T,ue_dot_grad_ue^C_) = mygridvars(igrid)%w(ixG^T,ue_dot_grad_b^C_) &

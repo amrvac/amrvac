@@ -396,7 +396,7 @@ if(useprimitive)then
    else
      v(ixI^S)  = w(ixI^S,v0_+idims)
    end if
-   call gradient(v,ixO^L,idims,dv)
+   call gradient(v,ixI^L,ixO^L,idims,dv)
 end if
 
 end subroutine ppmflatsh

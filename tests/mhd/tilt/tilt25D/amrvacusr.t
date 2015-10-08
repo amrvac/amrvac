@@ -446,18 +446,18 @@ phi0(ixG^T)=epsilon*dexp(-rval(ixG^T)**2)
 idims=2
 select case(typegrad)
     case("central")
-     call gradient(phi0,ix^L,idims,tmp)
+     call gradient(phi0,ixG^L,ix^L,idims,tmp)
     case("limited")
-     call gradientS(phi0,ix^L,idims,tmp)
+     call gradientS(phi0,ixG^L,ix^L,idims,tmp)
 end select
 w(ix^S,v1_)=tmp(ix^S)
 ! compute dphi0/dx
 idims=1
 select case(typegrad)
      case("central")
-      call gradient(phi0,ix^L,idims,tmp)
+      call gradient(phi0,ixG^L,ix^L,idims,tmp)
      case("limited")
-      call gradientS(phi0,ix^L,idims,tmp)
+      call gradientS(phi0,ixG^L,ix^L,idims,tmp)
 end select
 w(ix^S,v2_)=-tmp(ix^S)
 w(ix^S,v3_)=zero
@@ -472,9 +472,9 @@ endwhere
 idims=2
 select case(typegrad)
     case("central")
-     call gradient(psi0,ix^L,idims,tmp)
+     call gradient(psi0,ixG^L,ix^L,idims,tmp)
     case("limited")
-     call gradientS(psi0,ix^L,idims,tmp)
+     call gradientS(psi0,ixG^L,ix^L,idims,tmp)
 end select
 w(ix^S,b1_)=tmp(ix^S)
 !where(rval(ix^S)<one) 
@@ -486,9 +486,9 @@ w(ix^S,b1_)=tmp(ix^S)
 idims=1
 select case(typegrad)
      case("central")
-      call gradient(psi0,ix^L,idims,tmp)
+      call gradient(psi0,ixG^L,ix^L,idims,tmp)
      case("limited")
-      call gradientS(psi0,ix^L,idims,tmp)
+      call gradientS(psi0,ixG^L,ix^L,idims,tmp)
 end select
 w(ix^S,b2_)=-tmp(ix^S)
 !where(rval(ix^S)<one) 

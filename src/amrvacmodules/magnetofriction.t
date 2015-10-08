@@ -234,10 +234,10 @@ function integral_grid_mf(ixI^L,ixO^L,w,x,iw,patchwi)
 integer, intent(in)                :: ixI^L,ixO^L,iw
 double precision, intent(in)       :: x(ixI^S,1:ndim)
 double precision                   :: w(ixI^S,nw+nwauxio)
-logical, intent(in) :: patchwi(ixG^T)
+logical, intent(in) :: patchwi(ixI^S)
 
-double precision, dimension(ixG^T,1:ndir) :: bvec,qvec,current
-double precision :: integral_grid_mf,tmp(ixG^T),b_mag(ixG^T)
+double precision, dimension(ixI^S,1:ndir) :: bvec,qvec,current
+double precision :: integral_grid_mf,tmp(ixI^S),b_mag(ixI^S)
 integer :: ix^D,i,idirmin,idir,jdir,kdir
 !-----------------------------------------------------------------------------
 integral_grid_mf=0.d0
@@ -306,7 +306,7 @@ include 'amrvacdef.f'
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: w(ixI^S,nw),x(ixI^S,1:ndim)
 double precision                   :: x0min1,x0max1,x0min2,x0max2,x0min3,x0max3
-logical, intent(inout)             :: patchwi(ixG^T)
+logical, intent(inout)             :: patchwi(ixI^S)
 integer                            :: ix^D, cellcount
 !-----------------------------------------------------------------------------
 x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
@@ -528,7 +528,7 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, ixO^L, iw, idims
 double precision, intent(in)    :: w(ixI^S,nw)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
-double precision,intent(out)    :: f(ixG^T)
+double precision,intent(out)    :: f(ixI^S)
 !.. local ..
 logical :: transport
 integer :: idirmin, idir
@@ -611,7 +611,7 @@ double precision, intent(inout)  :: w(ixI^S,nw)
 double precision, intent(in)  :: x(ixI^S,1:ndim)
 double precision, intent(out) :: vhatmaxgrid
 
-double precision              :: current(ixG^T,7-2*ndir:3),dxhm,tmp(ixG^T)
+double precision              :: current(ixI^S,7-2*ndir:3),dxhm,tmp(ixI^S)
 integer :: idirmin,idir,jdir,kdir
 !-----------------------------------------------------------------------------
 
@@ -655,12 +655,12 @@ include 'amrvacdef.f'
 integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
 double precision, intent(in) :: dxdim
 double precision, dimension(ixI^S,1:nw) :: w, wCT
-double precision, dimension(ixG^T,1:nw) :: wLC, wRC
-double precision, dimension(ixG^T,1:ndim) :: x
+double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+double precision, dimension(ixI^S,1:ndim) :: x
 
 integer :: jxR^L, ixC^L, jxC^L, iw
-double precision :: wLtmp(ixG^T,1:nw), wRtmp(ixG^T,1:nw)
-double precision :: ldw(ixG^T), dwC(ixG^T)
+double precision :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
+double precision :: ldw(ixI^S), dwC(ixI^S)
 
 character*79 :: savetypelimiter
 !-----------------------------------------------------------------------------
@@ -676,20 +676,20 @@ do iw=b0_+1,b0_+ndir
   if(savetypelimiter=='koren') typelimiter='korenL'
   if(savetypelimiter=='cada')  typelimiter='cadaL'
   if(savetypelimiter=='cada3') typelimiter='cada3L'
-  call dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxdim)
+  call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
 
   wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
   if(savetypelimiter=='koren')then
     typelimiter='korenR'
-    call dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxdim)
+    call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
   endif
   if(savetypelimiter=='cada')then
     typelimiter='cadaR'
-    call dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxdim)
+    call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
   endif
   if(savetypelimiter=='cada3')then
     typelimiter='cada3R'
-    call dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxdim)
+    call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
   endif
   wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*ldw(jxR^S)
   typelimiter=savetypelimiter
@@ -715,13 +715,13 @@ double precision, dimension(ixI^S,1:ndim)             ::  xi
 double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
 double precision, dimension(ixI^S,1:nwflux,1:ndim)        :: fC
 
-double precision, dimension(ixG^T,1:nw) :: wLC, wRC
-double precision, dimension(ixG^T)      :: fLC, fRC
-double precision, dimension(ixG^T)      :: cmaxC
+double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+double precision, dimension(ixI^S)      :: fLC, fRC
+double precision, dimension(ixI^S)      :: cmaxC
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
 logical :: transport
-logical, dimension(ixG^T) :: patchw
+logical, dimension(ixI^S) :: patchw
 !-----------------------------------------------------------------------------
 
 ! The flux calculation contracts by one in the idim direction it is applied.
@@ -828,13 +828,13 @@ double precision, intent(in) :: x(ixI^S,1:ndim)
 double precision, dimension(ixI^S,1:ndim) ::  xi
 double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
-double precision :: v(ixG^T,ndim), f(ixG^T)
-double precision, dimension(ixG^T,1:nw) :: wLC, wRC
-double precision, dimension(ixG^T)      :: vLC, vRC,cmaxLC,cmaxRC
+double precision :: v(ixI^S,ndim), f(ixI^S)
+double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+double precision, dimension(ixI^S)      :: vLC, vRC,cmaxLC,cmaxRC
 double precision :: dxinv(1:ndim), dxdim(1:ndim)
 integer :: idims, iw, idirmin,ix^D
 integer :: ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
-logical :: transport,patchw(ixG^T)
+logical :: transport,patchw(ixI^S)
 !-----------------------------------------------------------------------------
 ! two extra layers are needed in each direction for which fluxes are added.
 ix^L=ixO^L;
@@ -924,7 +924,7 @@ double precision, intent(in) :: x(ixI^S,1:ndim)
 double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
 
 double precision :: courantmax, dxinv(1:ndim)
-double precision :: cmax(ixG^T),tmp(ixG^T),alfven(ixG^T)
+double precision :: cmax(ixI^S),tmp(ixI^S),alfven(ixI^S)
 integer :: idims
 !-----------------------------------------------------------------------------
 dtnew=bigdouble
@@ -959,7 +959,7 @@ include 'amrvacdef.f'
 logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idims
 double precision, intent(in)    :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
-double precision, intent(out) :: cmax(ixG^T)
+double precision, intent(out) :: cmax(ixI^S)
 !-----------------------------------------------------------------------------
 
 ! calculate alfven speed
@@ -981,7 +981,7 @@ integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: x(ixI^S,1:ndim)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 integer :: idims, ix^L
-double precision :: divb(ixG^T),graddivb(ixG^T),bdivb(ixG^T,1:ndir)
+double precision :: divb(ixI^S),graddivb(ixI^S),bdivb(ixI^S,1:ndir)
 !-----------------------------------------------------------------------------
 
 ! Calculate div B
@@ -993,9 +993,9 @@ do idims=1,ndim
    ! Calculate grad_idim(divb)
    select case(typegrad)
    case("central")
-     call gradient(divb,ixO^L,idims,graddivb)
+     call gradient(divb,ixI^L,ixO^L,idims,graddivb)
    case("limited")
-     call gradientS(divb,ixO^L,idims,graddivb)
+     call gradientS(divb,ixI^L,ixO^L,idims,graddivb)
    end select
 
    ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
@@ -1021,7 +1021,7 @@ integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
 double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 !.. local ..
-double precision :: tmp(ixG^T)
+double precision :: tmp(ixI^S)
 integer          :: iw
 !-----------------------------------------------------------------------------
 

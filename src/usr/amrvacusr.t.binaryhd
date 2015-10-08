@@ -448,7 +448,7 @@ grhomax=50.0d0
 gradrho(ixO^S)=zero
 do idims=1,ndim
   drho(ixO^S)=zero
-  call gradient(w(ixI^S,rho_),ixO^L,idims,drho)
+  call gradient(w(ixI^S,rho_),ixI^L,ixO^L,idims,drho)
   gradrho(ixO^S)=gradrho(ixO^S)+drho(ixO^S)**2.0d0
 enddo
 

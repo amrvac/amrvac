@@ -495,7 +495,7 @@ w(ixO^S,nw+5)=divb(ixO^S)
 w(ixO^S,nw+6)=curlvec(ixO^S,2)*qvec(ixO^S,3)-curlvec(ixO^S,3)*qvec(ixO^S,2)
 w(ixO^S,nw+7)=curlvec(ixO^S,3)*qvec(ixO^S,1)-curlvec(ixO^S,1)*qvec(ixO^S,3)
 w(ixO^S,nw+8)=curlvec(ixO^S,1)*qvec(ixO^S,2)-curlvec(ixO^S,2)*qvec(ixO^S,1)
-call gradient(tmp,ixO^L,2,gradp)
+call gradient(tmp,ixI^L,ixO^L,2,gradp)
 w(ixO^S,nw+9)=gradp(ixO^S)
 
 end subroutine specialvar_output

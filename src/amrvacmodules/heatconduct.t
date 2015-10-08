@@ -380,10 +380,10 @@ do idims=1,ndim
   select case(typegrad)
   case("central")
     ix^L=ixI^L^LSUB1;
-    call gradient(tmp,ix^L,idims,B2inv)
+    call gradient(tmp,ixI^L,ix^L,idims,B2inv)
   case("limited")
     ix^L=ixI^L^LSUB2;
-    call gradientS(tmp,ix^L,idims,B2inv)
+    call gradientS(tmp,ixI^L,ix^L,idims,B2inv)
   end select
   ! get grad T in all directions
   gradT(ix^S,idims)=B2inv(ix^S)
@@ -485,9 +485,9 @@ qflux(ix^S)= ^D&qvec_per(ix^S,^D)**2+
 
 select case(typediv)
    case("central")
-      call divvector(qvec,ix^L,ixO^L,tmp)
+      call divvector(qvec,ixI^L,ixO^L,tmp)
    case("limited")
-      call divvectorS(qvec,ix^L,ixO^L,tmp)
+      call divvectorS(qvec,ixI^L,ixO^L,tmp)
 end select
 
 end subroutine heatconduct_mhd
@@ -683,10 +683,10 @@ do idims=1,ndim
    select case(typegrad)
    case("central")
      ix^L=ixI^L^LSUB1;
-     call gradient(Te,ix^L,idims,tmp)
+     call gradient(Te,ixI^L,ix^L,idims,tmp)
    case("limited")
      ix^L=ixI^L^LSUB2;
-     call gradientS(Te,ix^L,idims,tmp)
+     call gradientS(Te,ixI^L,ix^L,idims,tmp)
    end select
    qvec(ix^S,idims)=tmp(ix^S)*eqpar(kappa_)*dsqrt(Te(ix^S)**5)
 end do
@@ -706,9 +706,9 @@ if(TCsaturate) then
 end if
 select case(typediv)
    case("central")
-      call divvector(qvec,ix^L,ixO^L,tmp)
+      call divvector(qvec,ixI^L,ixO^L,tmp)
    case("limited")
-      call divvectorS(qvec,ix^L,ixO^L,tmp)
+      call divvectorS(qvec,ixI^L,ixO^L,tmp)
 end select
 end subroutine heatconduct_hd
 !=============================================================================

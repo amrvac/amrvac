@@ -911,9 +911,8 @@ def make_grid(theta,phiy,phi,npixel,L,delta=0,x0=[0,0,0]):
 
 
 
-def show_map(inputdata,npol='none',filename='none',function=None,background=None,vmin=None,vmax=None,cmap=cm.gist_heat_r,orientation='horizontal',xlabel='x',ylabel='y',title='none',xcenter=0.,ycenter=0.):
+def show_map(inputdata,npol='none',filename='none',function=None,background=None,vmin=None,vmax=None,cmap=cm.gist_heat_r,orientation='horizontal',xlabel='x',ylabel='y',title='none',xcenter=0.,ycenter=0.,dpi=300):
 
-    dpi=300
     fontsize=14
     plt.rcParams['xtick.direction'] = 'out'
     plt.rcParams['ytick.direction'] = 'out'
@@ -980,6 +979,7 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
     else: 
 #        fig1.savefig(''.join([filename,'.pdf']), format="pdf", transparent=True,dpi=dpi,bbox_inches='tight')
         fig1.savefig(''.join([filename,'.png']), format="png", orientation='portrait',dpi=dpi,bbox_inches='tight')
+        fig1.savefig(''.join([filename,'.eps']), format="eps", orientation='portrait',dpi=dpi,bbox_inches='tight')
         plt.close()
 
 

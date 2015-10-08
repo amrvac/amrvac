@@ -249,18 +249,18 @@ enddo
 idims=2
 select case(typegrad)
     case("central")
-     call gradient(psi,ix^L,idims,tmp)
+     call gradient(psi,ixG^L,ix^L,idims,tmp)
     case("limited")
-     call gradientS(psi,ix^L,idims,tmp)
+     call gradientS(psi,ixG^L,ix^L,idims,tmp)
 end select
 w(ix^S,v1_)=w(ix^S,v1_)-tmp(ix^S){^IFTHREED *dexp(-(x(ixG^T,3)/sigma3)**2)}
 ! compute dpsi/dx
 idims=1
 select case(typegrad)
      case("central")
-      call gradient(psi,ix^L,idims,tmp)
+      call gradient(psi,ixG^L,ix^L,idims,tmp)
      case("limited")
-      call gradientS(psi,ix^L,idims,tmp)
+      call gradientS(psi,ixG^L,ix^L,idims,tmp)
 end select
 w(ix^S,v2_)=w(ix^S,v2_)+tmp(ix^S){^IFTHREED *dexp(-(x(ixG^T,3)/sigma3)**2)}
 

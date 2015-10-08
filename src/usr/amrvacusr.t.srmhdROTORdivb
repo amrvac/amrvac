@@ -153,7 +153,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    call getdivb(pw(igrid)%w,ixG^LL,ixM^LL,divbgrid)
    gradBnorm(ixM^T)=zero
    do idim=1,ndim
-     call gradient(Bnorm,ixM^LL,idim,tmp)
+     call gradient(Bnorm,ixG^LL,ixM^LL,idim,tmp)
      gradBnorm(ixM^T)=gradBnorm(ixM^T)+tmp(ixM^T)**2
    end do
    gradBnorm(ixM^T)=dsqrt(gradBnorm(ixM^T))
@@ -330,9 +330,9 @@ gradrho(ixO^S)=zero
 do idims=1,ndim
    select case(typegrad)
    case("central")
-     call gradient(rho,ixO^L,idims,drho)
+     call gradient(rho,ixI^L,ixO^L,idims,drho)
    case("limited")
-     call gradientS(rho,ixO^L,idims,drho)
+     call gradientS(rho,ixI^L,ixO^L,idims,drho)
    end select
    gradrho(ixO^S)=gradrho(ixO^S)+drho(ixO^S)**2.0d0
 enddo

@@ -37,9 +37,9 @@ end if
 do idims=1,ndim
    select case(typegrad)
    case("central")
-      call gradient(wCT(ixI^S,psi_),ixO^L,idims,gradPsi)
+      call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idims,gradPsi)
    case("limited")
-      call gradientS(wCT(ixI^S,psi_),ixO^L,idims,gradPsi)
+      call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idims,gradPsi)
    end select
 {#IFDEF ENERGY
 ! e  = e  -qdt (b . grad(Psi))
@@ -101,9 +101,9 @@ end if
 do idims=1,ndim
    select case(typegrad)
    case("central")
-      call gradient(wCT(ixI^S,psi_),ixO^L,idims,gradPsi)
+      call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idims,gradPsi)
    case("limited")
-      call gradientS(wCT(ixI^S,psi_),ixO^L,idims,gradPsi)
+      call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idims,gradPsi)
    end select
 
 
@@ -260,9 +260,9 @@ do idims=1,ndim
    ! Calculate grad_idim(divb)
    select case(typegrad)
    case("central")
-     call gradient(divb,ixO^L,idims,graddivb)
+     call gradient(divb,ixI^L,ixO^L,idims,graddivb)
    case("limited")
-     call gradientS(divb,ixO^L,idims,graddivb)
+     call gradientS(divb,ixI^L,ixO^L,idims,graddivb)
    end select
 
    ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2

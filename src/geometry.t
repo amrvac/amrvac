@@ -286,16 +286,16 @@ end select
 
 end subroutine fillgeo
 !=============================================================================
-subroutine gradient(q,ix^L,idir,gradq)
+subroutine gradient(q,ixI^L,ix^L,idir,gradq)
 
 ! Calculate gradient of a scalar q within ixL in direction idir
 
 include 'amrvacdef.f'
 
-integer :: ix^L, idir
-double precision :: q(ixG^T), gradq(ixG^T)
+integer :: ixI^L, ix^L, idir
+double precision :: q(ixI^S), gradq(ixI^S)
 
-double precision :: qC(ixG^T),invdx
+double precision :: qC(ixI^S),invdx
 integer :: jx^L, hx^L, ixC^L, jxC^L {#IFDEF FOURTHORDER , lx^L, kx^L}
 
 !-----------------------------------------------------------------------------
@@ -331,19 +331,19 @@ end if
 
 end subroutine gradient
 !=============================================================================
-subroutine gradientS(q,ix^L,idir,gradq)
+subroutine gradientS(q,ixI^L,ix^L,idir,gradq)
 
 ! Calculate gradient of a scalar q within ixL in direction idir
 ! first use limiter to go from cell center to edge
 
 include 'amrvacdef.f'
 
-integer :: ix^L, idir
-double precision :: q(ixG^T), gradq(ixG^T)
+integer :: ixI^L, ix^L, idir
+double precision :: q(ixI^S), gradq(ixI^S)
 double precision :: dxdim
 
-double precision :: qC(ixG^T)
-double precision,dimension(ixG^T):: qL,qR,dqC,ldq,invdx
+double precision :: qC(ixI^S)
+double precision,dimension(ixI^S):: qL,qR,dqC,ldq,invdx
 integer                          :: hx^L,ixC^L,jxC^L,gxC^L,hxC^L,idummy
 character*79 :: savetypelimiter,savetypegradlimiter,save2typelimiter
 !-----------------------------------------------------------------------------
@@ -369,19 +369,19 @@ if (typelimiter/='ppm') then
    if(save2typelimiter=='cada')  typelimiter='cadaL'
    if(save2typelimiter=='cada3') typelimiter='cada3L'
    dxdim=dxlevel(idir)
-   call dwlimiter2(dqC,gxC^L,idummy,idir,ldq,dxdim)
+   call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
    qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
    if(save2typelimiter=='koren')then
      typelimiter='korenR'
-     call dwlimiter2(dqC,gxC^L,idummy,idir,ldq,dxdim)
+     call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
    endif
    if(save2typelimiter=='cada')then
      typelimiter='cadaR'
-     call dwlimiter2(dqC,gxC^L,idummy,idir,ldq,dxdim)
+     call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
    endif
    if(save2typelimiter=='cada3')then
      typelimiter='cada3R'
-     call dwlimiter2(dqC,gxC^L,idummy,idir,ldq,dxdim)
+     call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
    endif
    typelimiter=save2typelimiter
    qR(ixC^S) = qR(ixC^S) - half*ldq(jxC^S)
@@ -577,19 +577,19 @@ do idims=1,ndim
       if(save2typelimiter=='cada')  typelimiter='cadaL'
       if(save2typelimiter=='cada3') typelimiter='cada3L'
       dxdim=dxlevel(idims)
-      call dwlimiter2(dqC,gxC^L,idummy,idims,ldq,dxdim)
+      call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
       if(save2typelimiter=='koren')then
          typelimiter='korenR'
-         call dwlimiter2(dqC,gxC^L,idummy,idims,ldq,dxdim)
+         call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
        endif
       if(save2typelimiter=='cada')then
          typelimiter='cadaR'
-         call dwlimiter2(dqC,gxC^L,idummy,idims,ldq,dxdim)
+         call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
        endif
       if(save2typelimiter=='cada3')then
          typelimiter='cada3R'
-         call dwlimiter2(dqC,gxC^L,idummy,idims,ldq,dxdim)
+         call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
        endif
        typelimiter=save2typelimiter
       qR(ixC^S) = qR(ixC^S) - half*ldq(jxC^S)
@@ -626,7 +626,7 @@ integer,intent(in)           :: ixI^L,ixO^L
 double precision, intent(in) :: q(ixI^S)
 integer,intent(in)           :: nshift
 
-double precision, intent(out) :: qMax(ixG^T),qMin(ixG^T)
+double precision, intent(out) :: qMax(ixI^S),qMin(ixI^S)
 
 integer           :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j 
 !-------------------------------------------------------------------------
@@ -679,7 +679,7 @@ integer,intent(in)            :: ixI^L,ixO^L
 double precision, intent(in)  :: w(ixI^S,1:nw)
 integer,intent(in)            :: nshift
 
-double precision, intent(out) :: wMax(ixG^T,1:nwflux),wMin(ixG^T,1:nwflux)
+double precision, intent(out) :: wMax(ixI^S,1:nwflux),wMin(ixI^S,1:nwflux)
 
 integer          :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
 !-------------------------------------------------------------------------
@@ -737,10 +737,10 @@ subroutine extremaa(ixI^L,ixO^L,a,nshift,aMin)
 include 'amrvacdef.f'
 
 integer,intent(in)           :: ixI^L,ixO^L
-double precision, intent(in) :: a(ixG^T)
+double precision, intent(in) :: a(ixI^S)
 integer,intent(in)           :: nshift
 
-double precision, intent(out) :: aMin(ixG^T)
+double precision, intent(out) :: aMin(ixI^S)
 
 integer          :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
 !-------------------------------------------------------------------------

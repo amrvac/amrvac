@@ -395,7 +395,7 @@ if(useprimitive)then
    dp(ixO^S) = dabs(w(ixR^S,p_)-w(ixL^S,p_))&
                 /(w(ixO^S,rho_)*dp(ixO^S))
    v(ixI^S)  = w(ixI^S,v0_+idims)
-   call gradient(v,ixO^L,idims,dv)
+   call gradient(v,ixI^L,ixO^L,idims,dv)
 end if
 }
 {#IFDEF ISO

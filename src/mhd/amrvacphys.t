@@ -171,7 +171,7 @@ double precision, intent(inout) :: w(ixI^S,nw)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
 ! .. local ..
 {#IFDEF GAMMA
-integer, dimension(ixG^T)       :: patchierror
+integer, dimension(ixI^S)       :: patchierror
 }
 integer, dimension(ndim)       :: lowpindex
 !-----------------------------------------------------------------------------
@@ -331,12 +331,12 @@ include 'amrvacdef.f'
 
 logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idims
-double precision :: w(ixI^S,nw), cmax(ixG^T), cmin(ixG^T)
+double precision :: w(ixI^S,nw), cmax(ixI^S), cmin(ixI^S)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-double precision :: csound2(ixG^T), cfast2(ixG^T), AvMinCs2(ixG^T), tmp(ixG^T)
-{#IFDEF HALL double precision ::  bmag2(ixG^T), kmax}
-!, vh(ixG^T), va2(ixG^T), Omegai(ixG^T)
+double precision :: csound2(ixI^S), cfast2(ixI^S), AvMinCs2(ixI^S), tmp(ixI^S)
+{#IFDEF HALL double precision ::  bmag2(ixI^S), kmax}
+!, vh(ixI^S), va2(ixI^S), Omegai(ixI^S)
 !-----------------------------------------------------------------------------
 
 !Direction independent part of getcmax:
@@ -407,9 +407,9 @@ subroutine getpthermal(w,x,ixI^L,ixO^L,p)
 include 'amrvacdef.f'
 
 integer, intent(in) :: ixI^L, ixO^L
-double precision :: w(ixI^S,nw), p(ixG^T)
+double precision :: w(ixI^S,nw), p(ixI^S)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
-integer, dimension(ixG^T)       :: patchierror
+integer, dimension(ixI^S)       :: patchierror
 integer, dimension(ndim)       :: lowpindex
 !-----------------------------------------------------------------------------
 {#IFDEF GAMMA
@@ -512,12 +512,12 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: w(ixI^S,nw)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
-double precision, intent(out)   :: p(ixG^T)
+double precision, intent(out)   :: p(ixI^S)
 !.. local ..
 {#IFDEF GAMMA
 double precision :: gamma
 }
-integer, dimension(ixG^T)       :: patchierror
+integer, dimension(ixI^S)       :: patchierror
 integer, dimension(ndim)       :: lowpindex
 !-----------------------------------------------------------------------------
 if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,'getptotal')
@@ -575,11 +575,11 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, ixO^L, iw, idims
 double precision, intent(in)    :: w(ixI^S,nw)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
-double precision, intent(out)   :: f(ixG^T,1:nwflux)
+double precision, intent(out)   :: f(ixI^S,1:nwflux)
 !.. local ..
 logical :: transport
 integer          :: idir
-double precision :: tmp(ixG^T),tmp2(ixG^T){#IFDEF HALL , vh(ixG^T,1:3)}
+double precision :: tmp(ixI^S),tmp2(ixI^S){#IFDEF HALL , vh(ixI^S,1:3)}
 !-----------------------------------------------------------------------------
 transport=.true.
 
@@ -691,10 +691,10 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, ixO^L, iw, idims
 double precision, intent(in)    :: w(ixI^S,nw)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
-double precision,intent(out)    :: f(ixG^T)
+double precision,intent(out)    :: f(ixI^S)
 !.. local ..
 logical :: transport
-double precision :: tmp(ixG^T){#IFDEF HALL , vh(ixG^T,1:3)}
+double precision :: tmp(ixI^S){#IFDEF HALL , vh(ixI^S,1:3)}
 integer          :: idirmin, idir
 !-----------------------------------------------------------------------------
 transport=.true.
@@ -868,11 +868,11 @@ double precision, intent(inout) :: w(ixI^S,1:nw)
 integer :: ix^L,idir,jdir,kdir,idirmin,iw,idims,jxO^L,hxO^L,ix
 {#IFDEF FOURTHORDER  integer :: lxO^L, kxO^L}
 
-double precision :: tmp(ixG^T),tmp2(ixG^T)
+double precision :: tmp(ixI^S),tmp2(ixI^S)
 
 ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-double precision :: current(ixG^T,7-2*ndir:3),eta(ixG^T)
-double precision :: gradeta(ixG^T,1:ndim)
+double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
+double precision :: gradeta(ixI^S,1:ndim)
 !-----------------------------------------------------------------------------
 
 {#IFNDEF FOURTHORDER
@@ -895,7 +895,7 @@ else
    call specialeta(wCT,ixI^L,ix^L,idirmin,x,current,eta)
    ! assumes that eta is not function of current?
    do idims=1,ndim
-      call gradient(eta,ixO^L,idims,tmp)
+      call gradient(eta,ixI^L,ixO^L,idims,tmp)
       gradeta(ixO^S,idims)=tmp(ixO^S)
    enddo
 endif
@@ -985,11 +985,11 @@ double precision, intent(inout) :: w(ixI^S,1:nw)
 !.. local ..
 integer :: ix^L,idir,jdir,kdir,idirmin,iw,idims,idirmin1
 
-double precision :: tmp(ixG^T),tmp2(ixG^T)
+double precision :: tmp(ixI^S),tmp2(ixI^S)
 
 ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-double precision :: current(ixG^T,7-2*ndir:3),eta(ixG^T),curlj(ixG^T,1:3)
-double precision :: tmpvec(ixG^T,1:3),tmpvec2(ixG^T,1:ndir)
+double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S),curlj(ixI^S,1:3)
+double precision :: tmpvec(ixI^S,1:3),tmpvec2(ixI^S,1:ndir)
 !-----------------------------------------------------------------------------
 
 ix^L=ixO^L^LADD2;
@@ -1031,9 +1031,9 @@ do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
 enddo; enddo; enddo
 !select case(typediv)
 !case("central")
-   call divvector(tmpvec2,ix^L,ixO^L,tmp)
+   call divvector(tmpvec2,ixI^L,ixO^L,tmp)
 !case("limited")
-!   call divvectorS(tmpvec2,ix^L,ixO^L,tmp)
+!   call divvectorS(tmpvec2,ixI^L,ixO^L,tmp)
 !end select
 w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
 
@@ -1054,8 +1054,8 @@ double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
 double precision, intent(in)    :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 !.. local ..
-double precision                :: current(ixG^T,7-2*ndir:3)
-double precision                :: tmpvec(ixG^T,1:3),tmpvec2(ixG^T,1:3),tmp(ixG^T),ehyper(ixG^T,1:3)
+double precision                :: current(ixI^S,7-2*ndir:3)
+double precision                :: tmpvec(ixI^S,1:3),tmpvec2(ixI^S,1:3),tmp(ixI^S),ehyper(ixI^S,1:3)
 integer                         :: ix^L,idir,jdir,kdir,idirmin,idirmin1
 !-----------------------------------------------------------------------------
 ix^L=ixO^L^LADD3;
@@ -1092,7 +1092,7 @@ do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
         + lvc(idir,jdir,kdir)*wCT(ix^S,b0_+jdir)*ehyper(ix^S,kdir)
 enddo; enddo; enddo
 tmp(ixO^S)=zero
-call divvector(tmpvec2,ix^L,ixO^L,tmp)
+call divvector(tmpvec2,ixI^L,ixO^L,tmp)
 w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
 
 if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"addsource_hyperres")
@@ -1110,7 +1110,7 @@ integer :: ix^L, idirmin, ixI^L
 double precision :: w(ixI^S,1:nw)
 
 ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-double precision :: current(ixG^T,7-2*ndir:3),bvec(ixG^T,1:ndir)
+double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
 !-----------------------------------------------------------------------------
 
 if(B0field) then
@@ -1123,21 +1123,21 @@ call curlvector(bvec,ixI^L,ix^L,current,idirmin,idirmin0,ndir)
 
 end subroutine getcurrent
 !=============================================================================
-subroutine getdt(w,ixG^L,ix^L,dtnew,dx^D,x)
+subroutine getdt(w,ixI^L,ix^L,dtnew,dx^D,x)
 
 ! If resistivity is not zero, check diffusion time limit for dt
 
 include 'amrvacdef.f'
 
-integer, intent(in) :: ixG^L, ix^L
+integer, intent(in) :: ixI^L, ix^L
 double precision, intent(out)   :: dtnew
 double precision, intent(in)    :: dx^D
-double precision, intent(in)    :: w(ixG^S,1:nw)
-double precision, intent(in)    :: x(ixG^S,1:ndim)
+double precision, intent(in)    :: w(ixI^S,1:nw)
+double precision, intent(in)    :: x(ixI^S,1:ndim)
 !.. local ..
 integer :: idirmin,idims
 double precision :: dxarr(ndim)
-double precision :: current(ixG^T,7-2*ndir:3),eta(ixG^T) 
+double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S) 
 !double precision :: {#IFDEF HALL , dthall }
 !-----------------------------------------------------------------------------
 dtnew=bigdouble
@@ -1147,8 +1147,8 @@ dtnew=bigdouble
 if(eqpar(eta_)>zero)then
    dtnew=dtdiffpar*minval(dxarr(1:ndim))**2/eqpar(eta_)
 else if(eqpar(eta_)<zero)then
-   call getcurrent(w,ixG^L,ix^L,idirmin,current)
-   call specialeta(w,ixG^L,ix^L,idirmin,x,current,eta)
+   call getcurrent(w,ixI^L,ix^L,idirmin,current)
+   call specialeta(w,ixI^L,ix^L,idirmin,x,current,eta)
    dtnew=bigdouble
    do idims=1,ndim
       dtnew=min(dtnew,&
@@ -1163,7 +1163,7 @@ end if
 !{#IFDEF HALL
 ! This is now covered in cmax, so no need.
 !if(eqpar(etah_)>zero)then
-!   call getdthall(w,x,ixG^L,ix^L,dx^D,dthall)
+!   call getdthall(w,x,ixI^L,ix^L,dx^D,dthall)
 !   dtnew=min(dtnew,dthall)
 !end if
 !}
@@ -1174,8 +1174,8 @@ subroutine ppmflatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
 include 'amrvacdef.f'
 
 integer, intent(in)           :: ixI^L,ixO^L,ixL^L,ixR^L
-double precision, intent(in)  :: w(ixI^S,nw),d2w(ixG^T,1:nwflux)
-double precision, intent(inout) :: drho(ixG^T),dp(ixG^T)
+double precision, intent(in)  :: w(ixI^S,nw),d2w(ixI^S,1:nwflux)
+double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
 !-----------------------------------------------------------------------------
 {#IFDEF GAMMA
 if(useprimitive)then
@@ -1200,8 +1200,8 @@ integer, intent(in)           :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
 integer, intent(in)           :: idims
 double precision, intent(in)  :: w(ixI^S,nw)
 
-double precision, intent(inout) :: drho(ixG^T),dp(ixG^T),dv(ixG^T)
-double precision :: ptot(ixG^T)
+double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
+double precision :: ptot(ixI^S)
 !-----------------------------------------------------------------------------
 
 {#IFDEF GAMMA
@@ -1223,7 +1223,7 @@ if(useprimitive)then
                 /(w(ixO^S,rho_)*dp(ixO^S))
    ! recycle ptot to store v
    ptot(ixI^S)= w(ixI^S,v0_+idims)
-   call gradient(ptot,ixO^L,idims,dv)
+   call gradient(ptot,ixI^L,ixO^L,idims,dv)
 end if
 }
 {#IFDEF ISO
@@ -1243,7 +1243,7 @@ double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
 double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 !.. local ..
 integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
-double precision :: tmp(ixG^T)
+double precision :: tmp(ixI^S)
 logical          :: angmomfix=.false.
 !-----------------------------------------------------------------------------
 

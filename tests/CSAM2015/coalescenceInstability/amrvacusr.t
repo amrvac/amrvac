@@ -155,7 +155,7 @@ end where
 
 
 ! Calculate the charge density:
-call divvector(w(ixG^T,e1_:e3_),ix^L^LADD1,ix^L,w(ixG^T,q_))
+call divvector(w(ixG^T,e1_:e3_),ixG^L,ix^L,w(ixG^T,q_))
 
 end subroutine initonegrid_usr
 !=============================================================================

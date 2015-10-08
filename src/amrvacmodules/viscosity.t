@@ -46,7 +46,7 @@ double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
 double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
 integer:: ix^L,idims,idirs,jdirs,iw
-double precision:: lambda(ixG^T,ndir,ndir),tmp(ixG^T),tmp2(ixG^T)
+double precision:: lambda(ixI^S,ndir,ndir),tmp(ixI^S),tmp2(ixI^S)
 !-----------------------------------------------------------------------------
 ! standard case, textbook viscosity
 if(eqpar(mu_)>zero)then
@@ -80,9 +80,9 @@ do idims=1,ndim; do idirs=1,ndir
   tmp(ixI^S)=wCT(ixI^S,m0_+idirs)/wCT(ixI^S,rho_)
   select case(typegrad)
   case("central")
-    call gradient(tmp,ix^L,idims,tmp2)
+    call gradient(tmp,ixI^L,ix^L,idims,tmp2)
   case("limited")
-    call gradientS(tmp,ix^L,idims,tmp2)
+    call gradientS(tmp,ixI^L,ix^L,idims,tmp2)
   end select
   lambda(ix^S,idims,idirs)= lambda(ix^S,idims,idirs)+ tmp2(ix^S)
   lambda(ix^S,idirs,idims)= lambda(ix^S,idirs,idims)+ tmp2(ix^S)
@@ -113,9 +113,9 @@ do iw= iw^LIM
             tmp(ix^S)=lambda(ix^S,idirs,idims)
             select case(typegrad)
             case("central")
-              call gradient(tmp,ixO^L,idims,tmp2)
+              call gradient(tmp,ixI^L,ixO^L,idims,tmp2)
             case("limited")
-              call gradientS(tmp,ixO^L,idims,tmp2)
+              call gradientS(tmp,ixI^L,ixO^L,idims,tmp2)
             end select
             w(ixO^S,iw)=w(ixO^S,iw)+tmp2(ixO^S)
       enddo
@@ -125,7 +125,7 @@ do iw= iw^LIM
       ! thus e=e+d_i v_j tensor_ji
       do idims=1,ndim
          tmp(ix^S)=(^C&wCT(ix^S,m^C_)*lambda(ix^S,^C,idims)+)/wCT(ix^S,rho_)
-         call gradient(tmp,ixO^L,idims,tmp2)
+         call gradient(tmp,ixI^L,ixO^L,idims,tmp2)
          w(ixO^S,ee_)=w(ixO^S,ee_)+tmp2(ixO^S)
      enddo
 }
@@ -146,7 +146,7 @@ integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 
-double precision :: tmp(ixG^T)
+double precision :: tmp(ixG^S)
 double precision:: dtdiff_visc, dxinv2(1:ndim)
 integer:: idims
 

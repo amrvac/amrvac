@@ -98,9 +98,9 @@ call getaux(.true.,wCT,x,ixI^L,ixO^L,'adddsource_glm2')
  do idims=1,ndim
    select case(typegrad)
     case("central")
-     call gradient(Psi,ixO^L,idims,gradPsi)
+     call gradient(Psi,ixI^L,ixO^L,idims,gradPsi)
     case("limited")
-     call gradientS(Psi,ixO^L,idims,gradPsi)
+     call gradientS(Psi,ixI^L,ixO^L,idims,gradPsi)
    end select
    ! S_new=S_old+qdt*(grad(Psi) x E)
    do idir=1,ndir; do kdir=idirmin0,3
@@ -236,9 +236,9 @@ do idims=1,ndim
    ! Calculate grad_idim(divb)
    select case(typegrad)
    case("central")
-     call gradient(divb,ixO^L,idims,graddivb)
+     call gradient(divb,ixI^L,ixO^L,idims,graddivb)
    case("limited")
-     call gradientS(divb,ixO^L,idims,graddivb)
+     call gradientS(divb,ixI^L,ixO^L,idims,graddivb)
    end select
 
    ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
