@@ -7,7 +7,7 @@ subroutine correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
 include 'amrvacdef.f'
 
 integer, intent(in)         :: ixI^L, ixO^L
-integer, intent(in)         :: patchierror(ixG^T)
+integer, intent(in)         :: patchierror(ixI^S)
 character(len=*), intent(in)   :: subname
 double precision, intent(inout):: w(ixI^S,1:nw)
 double precision, intent(in)      :: x(ixI^S,1:ndim)
@@ -85,8 +85,8 @@ double precision, intent(in)    :: x(ixI^S,1:ndim)
 character(len=*), intent(in)    ::subname
 !.. local ..
 integer                         :: posvec(ndim)
-integer, dimension(ixG^T)       :: patchierror
-double precision                :: pth(ixG^T), Te(ixG^T)
+integer, dimension(ixI^S)       :: patchierror
+double precision                :: pth(ixI^S), Te(ixI^S)
 !-----------------------------------------------------------------------------
 
 {#IFDEF ENERGY

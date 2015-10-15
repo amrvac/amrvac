@@ -957,7 +957,7 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
 
     normColors=mpl.colors.Normalize(vmin=vmin,vmax=vmax,clip = False)
 
-    cs = ax.imshow(map_clip.transpose(),origin='lower',cmap=palette,extent=extent,norm=normColors)
+    cs = ax.imshow(map_clip.transpose(),origin='lower',cmap=palette,extent=extent,norm=normColors,interpolation='bicubic')
     cb=plt.colorbar(cs,orientation=orientation,shrink=1.0,pad=0.08,format='%.1e',aspect=30)
 #    ax.patch.set_facecolor(background)
     for tick in ax.xaxis.get_major_ticks():
@@ -977,9 +977,9 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
     if filename == 'none':
         plt.show()
     else: 
-#        fig1.savefig(''.join([filename,'.pdf']), format="pdf", transparent=True,dpi=dpi,bbox_inches='tight')
+        fig1.savefig(''.join([filename,'.pdf']), format="pdf", transparent=True,dpi=dpi,bbox_inches='tight')
         fig1.savefig(''.join([filename,'.png']), format="png", orientation='portrait',dpi=dpi,bbox_inches='tight')
-        fig1.savefig(''.join([filename,'.eps']), format="eps", orientation='portrait',dpi=dpi,bbox_inches='tight')
+#        fig1.savefig(''.join([filename,'.eps']), format="eps", orientation='portrait',dpi=dpi,bbox_inches='tight')
         plt.close()
 
 

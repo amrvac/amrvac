@@ -6,14 +6,14 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: w(ixI^S,nw)
 double precision, intent(in)    :: x(ixI^S,1:ndim)
-double precision, intent(inout) :: vh(ixG^T,1:3)
+double precision, intent(inout) :: vh(ixI^S,1:3)
 !.. local ..
 integer          :: idir, idirmin
-double precision :: current(ixG^T,7-2*ndir:3)
+double precision :: current(ixI^S,7-2*ndir:3)
 
 ! Calculate current density and idirmin
 call getcurrent(w,ixI^L,ixO^L,idirmin,current)
-vh(ixG^T,1:3) = zero
+vh(ixI^S,1:3) = zero
 vh(ixO^S,idirmin:3) = - eqpar(etah_)*current(ixO^S,idirmin:3)
 do idir = idirmin, 3
    vh(ixO^S,idir) = vh(ixO^S,idir)/w(ixO^S,rho_)
@@ -31,7 +31,7 @@ double precision, intent(in)    :: x(ixI^S,1:ndim)
 double precision, intent(out)   :: dthall
 !.. local ..
 double precision :: dxarr(ndim)
-double precision :: bmag(ixG^T)
+double precision :: bmag(ixI^S)
 
 dthall=bigdouble
 

@@ -16,22 +16,22 @@ double precision, dimension(ixI^S,1:ndim)             ::  xi
 double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
 double precision, dimension(ixI^S,1:nwflux,1:ndim)  :: fC
 
-double precision, dimension(ixG^T,1:nw)            :: wLC, wRC
-double precision, dimension(ixG^T)                 :: vLC, vRC
-double precision, dimension(ixG^T)                 :: cmaxC,cminC
+double precision, dimension(ixI^S,1:nw)            :: wLC, wRC
+double precision, dimension(ixI^S)                 :: vLC, vRC
+double precision, dimension(ixI^S)                 :: cmaxC,cminC
 
 double precision, dimension(1:ndim)                :: dxinv
 double precision                                   :: dxdim
 
-integer, dimension(ixG^T)                          :: patchf
+integer, dimension(ixI^S)                          :: patchf
 integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, kxC^L, kxR^L
 logical :: transport, new_cmax, CmaxMeanState, logiB
-logical, dimension(ixG^T) :: patchw
+logical, dimension(ixI^S) :: patchw
 
 !=== specific to HLLD and HLLDD ===!
-double precision, dimension(ixG^T,1:nwflux)     :: fLC, fRC
-double precision, dimension(ixG^T,1:nwflux)     :: whll, Fhll, fD
-double precision, dimension(ixG^T,-1:1)         :: lambdaD 
+double precision, dimension(ixI^S,1:nwflux)     :: fLC, fRC
+double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fD
+double precision, dimension(ixI^S,-1:1)         :: lambdaD 
 !-----------------------------------------------------------------------------
 
 call mpistop('hlld is still just a dummy, not implemented...')

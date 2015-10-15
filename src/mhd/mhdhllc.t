@@ -13,10 +13,10 @@ subroutine diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
 include 'amrvacdef.f'
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
-double precision, dimension(ixG^T,1:nw), intent(in)      :: wRC,wLC
-double precision, dimension(ixG^T,1:nwflux),intent(in) :: fLC, fRC
+double precision, dimension(ixI^S,1:nw), intent(in)      :: wRC,wLC
+double precision, dimension(ixI^S,1:nwflux),intent(in) :: fLC, fRC
 
-integer         , dimension(ixG^T), intent(inout)        :: patchf
+integer         , dimension(ixI^S), intent(inout)        :: patchf
 
 integer                                           :: ixOO^D,TxOO^L
 !-----------------------------------
@@ -49,17 +49,17 @@ subroutine getlCD(wLC,wRC,fLC,fRC,cmin,cmax,idims,ixI^L,ixO^L, &
 include 'amrvacdef.f'
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
-double precision, dimension(ixG^T,1:nw), intent(in)      :: wLC,wRC
-double precision, dimension(ixG^T,1:nwflux), intent(in):: fLC,fRC
-double precision, dimension(ixG^T), intent(in)           :: cmax,cmin
+double precision, dimension(ixI^S,1:nw), intent(in)      :: wLC,wRC
+double precision, dimension(ixI^S,1:nwflux), intent(in):: fLC,fRC
+double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
 
-integer         , dimension(ixG^T), intent(inout)        :: patchf
+integer         , dimension(ixI^S), intent(inout)        :: patchf
 
-double precision, dimension(ixG^T,1:nwflux), intent(out) :: Fhll,whll
-double precision, dimension(ixG^T), intent(out)            :: lambdaCD
+double precision, dimension(ixI^S,1:nwflux), intent(out) :: Fhll,whll
+double precision, dimension(ixI^S), intent(out)            :: lambdaCD
 
 
-logical         , dimension(ixG^T)     :: Cond_patchf
+logical         , dimension(ixI^S)     :: Cond_patchf
 double precision                       :: Epsilon
 integer                                :: iw
 !--------------------------------------------
@@ -152,18 +152,18 @@ subroutine getwCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
 include 'amrvacdef.f'
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
-double precision, dimension(ixG^T,1:nw), intent(in)      :: wRC,wLC
-double precision, dimension(ixG^T,1:nwflux), intent(in):: whll, Fhll
-double precision, dimension(ixG^T), intent(in)           :: vRC, vLC,lambdaCD
-double precision, dimension(ixG^T), intent(in)           :: cmax,cmin
-double precision, dimension(ixG^T,1:nwflux), intent(in):: fRC,fLC
-double precision, dimension(ixG^T,1:nwflux),intent(out):: f
+double precision, dimension(ixI^S,1:nw), intent(in)      :: wRC,wLC
+double precision, dimension(ixI^S,1:nwflux), intent(in):: whll, Fhll
+double precision, dimension(ixI^S), intent(in)           :: vRC, vLC,lambdaCD
+double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
+double precision, dimension(ixI^S,1:nwflux), intent(in):: fRC,fLC
+double precision, dimension(ixI^S,1:nwflux),intent(out):: f
 
-integer         , dimension(ixG^T), intent(in)           :: patchf
+integer         , dimension(ixI^S), intent(in)           :: patchf
 
-double precision, dimension(ixG^T,1:nw)        :: wCD,wSub
-double precision, dimension(ixG^T,1:nwflux)    :: fSub
-double precision, dimension(ixG^T)             :: vSub,cspeed,pCD,VdotBCD
+double precision, dimension(ixI^S,1:nw)        :: wCD,wSub
+double precision, dimension(ixI^S,1:nwflux)    :: fSub
+double precision, dimension(ixI^S)             :: vSub,cspeed,pCD,VdotBCD
 integer                                        :: iw
 !--------------------------------------------
 

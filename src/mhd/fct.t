@@ -78,8 +78,8 @@ double precision, intent(inout)    :: w(ixI^S,1:nw)
 double precision, intent(in)       :: x(ixI^S,1:ndim)
 
 integer                            :: ixC^L, ixCp^L, ixCm^L, ixOm^L, idim, idir, j, k
-double precision                   :: xC(ixG^T,1:ndim), A(ixG^T,1:ndir), dxC(ixG^T,1:ndim)
-double precision                   :: B(ixG^T,idirmin:idirmax)
+double precision                   :: xC(ixI^S,1:ndim), A(ixI^S,1:ndir), dxC(ixI^S,1:ndim)
+double precision                   :: B(ixI^S,idirmin:idirmax)
 !-----------------------------------------------------------------------------
 
 ! get the corner-coordinates:

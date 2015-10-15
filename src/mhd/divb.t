@@ -12,9 +12,9 @@ double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
 double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 integer :: iw
-double precision:: divb(ixG^T)
+double precision:: divb(ixI^S)
 integer          :: idims
-double precision :: gradPsi(ixG^T)
+double precision :: gradPsi(ixI^S)
 !-----------------------------------------------------------------------------
 ! We calculate now div B
 call getdivb(wCT,ixI^L,ixO^L,divb)
@@ -75,9 +75,9 @@ double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
 double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 integer :: iw
-double precision:: divb(ixG^T)
+double precision:: divb(ixI^S)
 integer          :: idims
-double precision :: gradPsi(ixG^T)
+double precision :: gradPsi(ixI^S)
 !-----------------------------------------------------------------------------
 ! We calculate now div B
 call getdivb(wCT,ixI^L,ixO^L,divb)
@@ -155,7 +155,7 @@ double precision, intent(in)    :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim
 double precision, intent(in)    :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 {#IFDEF FCT
-double precision                :: divb(ixG^T)
+double precision                :: divb(ixI^S)
 }
 !-----------------------------------------------------------------------------
 
@@ -189,7 +189,7 @@ double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
 double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 integer :: iw
-double precision:: divb(ixG^T)
+double precision:: divb(ixI^S)
 !-----------------------------------------------------------------------------
 ! We calculate now div B
 call getdivb(wCT,ixI^L,ixO^L,divb)
@@ -228,7 +228,7 @@ double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
 double precision, intent(in) :: dx^D
 double precision, intent(inout) :: w(ixI^S,1:nw)
 !.. local ..
-double precision:: divb(ixG^T)
+double precision:: divb(ixI^S)
 !-----------------------------------------------------------------------------
 ! We calculate now div B
 call getdivb(wCT,ixI^L,ixO^L,divb)
@@ -247,7 +247,7 @@ double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim)
 double precision, intent(in)    :: dx^D
 double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 integer :: iw, idims, ix^L
-double precision :: divb(ixG^T),graddivb(ixG^T),bdivb(ixG^T,1:ndir)
+double precision :: divb(ixI^S),graddivb(ixI^S),bdivb(ixI^S,1:ndir)
 !-----------------------------------------------------------------------------
 
 ! Calculate div B
@@ -297,14 +297,14 @@ include 'amrvacdef.f'
 
 integer, intent(in)                :: ixI^L, ixO^L
 double precision, intent(in)       :: w(ixI^S,1:nw)
-double precision                   :: divb(ixG^T)
+double precision                   :: divb(ixI^S)
 
-double precision                   :: bvec(ixG^T,1:ndir)
+double precision                   :: bvec(ixI^S,1:ndir)
 
 {#IFDEF FCT
 integer                            :: ixC^L, idir, idim, ixJp^L, ic^D, ix^L
 integer                            :: ixKp^L, ixJpKp^L, ixJm^L, ixJmKm^L
-double precision                   :: divb_corner(ixG^T), sign
+double precision                   :: divb_corner(ixI^S), sign
 }
 !-----------------------------------------------------------------------------
 
