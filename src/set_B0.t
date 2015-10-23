@@ -6,18 +6,18 @@ include 'amrvacdef.f'
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
 
-call set_B0_cell(pB0_cell(igrid)%w,px(igrid)%x,ixG^LL)
-call set_B0_face(igrid,px(igrid)%x)
+call set_B0_cell(pB0_cell(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL)
+call set_B0_face(igrid,px(igrid)%x,ixG^LL,ixM^LL)
 
 end subroutine set_B0_grid
 !=============================================================================
-subroutine set_B0_cell(wB0,x,ix^L)
+subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
 
 include 'amrvacdef.f'
 
-double precision, intent(inout) :: wB0(ix^S,1:ndir)
-double precision, intent(in) :: x(ixG^T,1:ndim)
-integer, intent(in):: ix^L
+integer, intent(in):: ixI^L,ix^L
+double precision, intent(inout) :: wB0(ixI^S,1:ndir)
+double precision, intent(in) :: x(ixI^S,1:ndim)
 !-----------------------------------------------------------------------------
 wB0(ix^S,1:ndir)=zero
 
@@ -47,26 +47,26 @@ case ("spherical")
 end select
 
 if(dabs(Busr)/=zero) then
-   call specialset_B0(ix^L,ix^L,x,wB0)
+   call specialset_B0(ixI^L,ix^L,x,wB0)
 end if
 
 end subroutine set_B0_cell
 !=============================================================================
-subroutine set_B0_face(igrid,x)
+subroutine set_B0_face(igrid,x,ixI^L,ix^L)
 
 include 'amrvacdef.f'
 
-integer, intent(in) :: igrid
-double precision, intent(in) :: x(ixG^T,1:ndim)
+integer, intent(in) :: igrid, ixI^L, ix^L
+double precision, intent(in) :: x(ixI^S,1:ndim)
 
-double precision :: xC(ixG^T,1:ndim),dx^D,xmin^D,xshift^D
+double precision :: xC(ixI^S,1:ndim),dx^D,xmin^D,xshift^D
 integer :: idims, ixC^L, ix, idims2
 !-----------------------------------------------------------------------------
 dx^D=rnode(rpdx^D_,igrid);
 xmin^D=rnode(rpxmin^D_,igrid);
 
 do idims=1,ndim
-   ixCmin^D=ixMlo^D-kr(^D,idims); ixCmax^D=ixMhi^D;
+   ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
    xshift^D=half*(one-kr(^D,idims));
    do idims2=1,ndim
       select case(idims2)
@@ -79,7 +79,7 @@ do idims=1,ndim
 
    select case(idims)
    {case (^D)
-      call set_B0_cell(pB0_face^D(igrid)%w,xC,ixC^L) \}
+      call set_B0_cell(pB0_face^D(igrid)%w,xC,ixI^L,ixC^L) \}
    end select
 end do
 
@@ -90,13 +90,10 @@ subroutine alloc_B0_grid(igrid)
 include 'amrvacdef.f'
 
 integer, intent(in) :: igrid
-
-integer :: ixC^L
 !-----------------------------------------------------------------------------
 
 allocate(pB0_cell(igrid)%w(ixG^T,1:ndir))
-{ixCmin^DD=ixMlo^DD-kr(^DD,^D); ixCmax^DD=ixMhi^DD;
-allocate(pB0_face^D(igrid)%w(ixC^S,1:ndir))\}
+{allocate(pB0_face^D(igrid)%w(ixG^T,1:ndir))\}
 
 end subroutine alloc_B0_grid
 !=============================================================================
