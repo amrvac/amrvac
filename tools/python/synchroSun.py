@@ -1,4 +1,4 @@
-import read as read
+import read,amrplot,emissSun 
 import numpy as np
 import scipy as scipy
 import matplotlib.pyplot as plt
@@ -16,6 +16,7 @@ from scipy.ndimage.filters import gaussian_filter
 from matplotlib import pyplot
 import matplotlib as mpl
 import pickle, os
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def get_pointdata(offset,filenameout='data',type='pvtu',attribute_mode='cell'):
 
@@ -982,6 +983,100 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
 #        fig1.savefig(''.join([filename,'.eps']), format="eps", orientation='portrait',dpi=dpi,bbox_inches='tight')
         plt.close()
 
+def show_composed_map(filenameout,nstart,nend,theta,phiy,phi,xra,yra,los,xn,yn,losn,Teunit=1.e6,nunit=1.e9,Lunit=1.e9,\
+    function=None,vmin=None,vmax=None,xlabel='x',ylabel='y',xcenter=0,ycenter=0):
+    '''Synthetic view along z-axis of ion wavelength from snapshots nstart to nend 
+    after clock-wisely rotating data cube theta degree around x-axis, phiy degree 
+    around y-axis, and then phi around z-axis. Note that x, y, and z axes are 
+    corotating with the data cube. The output image has a size of xra by yra with
+    the resolution of xn by yn, the line-of-sight depth is los and its resolution
+    is losn. Function can be 'log' or 'sqrt', vmin/vmax set the lower/upper value
+    limit of the image.'''
+    if nend < nstart:
+        nend=nstart
+    nend=nend+1
+    for i in xrange(nstart,nend):
+        # import data
+        data=get_pointdata(i,filenameout=filenameout,type='vtu')
+        time=i*85.87461/60.
+        # SDO/AIA waveband channels
+        channels=[211,193,171,304]
+        vmaxarr=[6.e2,4.e3,4.e3,2.e2]
+        labels=['a','b','c','d']
+        plt.rcParams['xtick.direction'] = 'out'
+        plt.rcParams['ytick.direction'] = 'out'
+        # create a multipanel figure
+        fig, axes = plt.subplots(nrows=2,ncols=2, figsize=(15,10))
+        ionid=0
+        for ax in axes.flat:
+            ion=channels[ionid]
+            vmax=vmaxarr[ionid]
+            # get emissivity
+            ed=emissSun.emiss(data,ion,Teunit,nunit,Lunit)
+            # set viewing angle
+            j=emissSun.viewangle(ed,theta,phiy,phi)
+            # get a ray-tracing image data
+            amap=shotgun(j,[xn,yn,losn],[xra,yra,los])
+            # create color table for the waveband
+            cdict=emissSun.aiact(ion)
+            my_cmap=colors.LinearSegmentedColormap('my_colormap',cdict,256)
+            fontsize=16
+            if function == None:
+                image = amap.get('Inu')
+            elif function == 'log':
+                image = np.log10(amap.get('Inu')+1.e-33)
+            elif function == 'sqrt':
+                image = np.sqrt(amap.get('Inu'))
+    
+            L   = amap.get('L')
+            x0  = amap.get('x0')
+            xmin=xcenter-L[0]/2.
+            xmax=xcenter+L[0]/2.
+            ymin=ycenter-L[1]/2.
+            ymax=ycenter+L[1]/2.
+            extent=(xmin,xmax,ymin,ymax)
+
+            if vmin==None:
+                vmin=image.min()
+            if vmax==None:
+                vmax=image.max()
+            image_clip = np.ma.masked_where(image<vmin, image)
+            image_clip = np.ma.masked_where(image>vmax, image)
+    
+            normColors=colors.Normalize(vmin=vmin,vmax=vmax,clip = False)
+            # only show axis's labels at left and bottom sides
+            if ionid==0 or ionid==2:
+                ax.set_ylabel(ylabel,fontsize=fontsize)
+            if ionid==2 or ionid==3:
+                ax.set_xlabel(xlabel,fontsize=fontsize)
+            # do not show ticklabels between subpanels
+            if ionid==0 or ionid==1:
+                ax.xaxis.set_ticklabels([])
+            if ionid==1 or ionid==3:
+                ax.yaxis.set_ticklabels([])
+            # plot an image 
+            im = ax.imshow(image_clip.transpose(),origin='lower',cmap=my_cmap,extent=extent,norm=normColors)
+            # create a color bar
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="3%", pad=0.06)
+            cbar = plt.colorbar(im,cax=cax)
+            cbar.ax.tick_params(labelsize=7)
+            # plot label
+            ax.text(-5.7,7.5,labels[ionid],color='white',fontsize=16)
+            # plot AIA waveband name
+            wbname='SDO/AIA '+str(ion)+' $\AA$'
+            ax.text(-4.8,7.4,wbname,color='white',fontsize=14)
+            # plot time info
+            timestr='Time = '+"{0:.1f}".format(time)+' min'
+            ax.text(2.4,7.4, timestr,color='white',fontsize=14)
+            ionid=ionid+1
+
+        fig.tight_layout(pad=0.5,h_pad=0.04,w_pad=0.08)
+        filen='axsynAIA4ch'+str(i).zfill(4)
+        # save the image as a png file
+        fig.savefig(''.join([filen,'.png']), format="png",dpi=150)
+        # save the image as an eps file
+        fig.savefig(''.join([filen,'.eps']), format="eps",dpi=150)
 
 def show_polmap(inputdata,npol='none',filename='none',background='w',vmin=None,vmax=None,colpol='w',cmap=cm.gist_heat_r):
 

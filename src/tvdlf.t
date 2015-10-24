@@ -438,7 +438,7 @@ double precision, dimension(ixI^S)      :: fLC, fRC, vLC, vRC
 double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC,ie,ieL,ieR,ieCT
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ixtest^L
-logical :: transport, new_cmax, CmaxMeanState
+logical :: transport, new_cmax, CmaxMeanState, logiB
 logical, dimension(ixI^S) :: patchw
 logical, save :: evolvepressure=.false.
 !-----------------------------------------------------------------------------
@@ -453,6 +453,7 @@ if(oktest.and.mype==0) then
    print *,'reporting in ranges:',ixtest^L
 endif
 
+logiB=(BnormLF.and.b0_>0)
 !!call mpistop("tijdelijke stop")
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
@@ -590,8 +591,12 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
       fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
 
       ! Add TVDLF dissipation to the flux
-      ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
-      fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+      if (.not.logiB .and. (iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
+         fRC(ixC^S)=0.d0
+      else
+         ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
+         fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+      end if
       ! fLC contains physical+dissipative fluxes
       fLC(ixC^S)=fLC(ixC^S)+fRC(ixC^S)
 
@@ -821,11 +826,16 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
      end if
 
 
-     if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
-         ! flat B norm using tvdlf
-         fLC(ixC^S)= half*((fLC(ixC^S)+fRC(ixC^S)) &
-                       -tvdlfeps*max(cmaxC(ixC^S)&
-                       ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+     !if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
+     if (iw==b0_+idims{#IFDEF GLM .or.iw==psi_}) then
+        if (logiB) then
+           ! flat B norm using tvdlf
+           fLC(ixC^S)= half*((fLC(ixC^S)+fRC(ixC^S)) &
+                         -tvdlfeps*max(cmaxC(ixC^S)&
+                         ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+         else
+           fLC(ixC^S)=zero
+         endif
      else
        where(patchf(ixC^S)==1)
          ! Add hll dissipation to the flux

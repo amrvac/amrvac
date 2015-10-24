@@ -268,7 +268,12 @@ filenamelog='amrvac'
 ! Defaults for discretization methods
 typeaverage='default'
 tvdlfeps=one
+{#IFDEF FCT
+BnormLF=.false.
+}
+{#IFNDEF FCT
 BnormLF=.true.
+}
 nxdiffusehllc=0
 flathllc=.false.
 typeaxial='slab'
