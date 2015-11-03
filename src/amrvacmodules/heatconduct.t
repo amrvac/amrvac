@@ -18,11 +18,11 @@
 ! 1. in amrvacusr.t add: 
 !   a. INCLUDE:amrvacmodules/heatconduct.t
 !   b. in subroutine initglobaldata_usr, add conductivity:
-!      eqpar(kappa_)=1.d-6*Teunit**3.5d0/Lunit/runit/vunit**3 
-!    (1.d-6 cgs units is Spitzer conductivity for corona
-!     Teunit, Lunit, runit, and vunit are the unit of temperature, length, 
-!     density, and velocity. Teunit and vunit are dependent, e.g., 
-!     vunit=sqrt(R Teunit).)
+!      eqpar(kappa_)=kappa0*Teunit**3.5d0/Lunit/runit/vunit**3 
+!     kappa0=1.d-6 erg/cm/s/K**3.5 or 1.d-11 J/m/s/K**3.5  is Spitzer 
+!     conductivity for solar corona. Teunit, Lunit, runit, and vunit are the 
+!     unit of temperature, length, density, and velocity. Teunit and vunit are 
+!     dependent, e.g., vunit=sqrt(R Teunit).
 ! 2. in amrvacusrpar.t add kappa_ 
 ! 3. in definitions.h :
 !    #define TCRKL2
@@ -33,15 +33,15 @@
 !    TCsaturate=.true.
 !    phi coefficient of saturated flux
 !    TCphi=1.d0
-! Addition thermal conduction perpendicular to magnetic field
+! Addition thermal conduction perpendicular to magnetic field (Orlando 2008 ApJ
+! 678 247)
 !    in definition.h :
 !    #define TCPERPENDICULAR
 !    in subroutine initglobaldata_usr, add perpendicular conductivity:
-!eqpar(kappe_)=3.3d-16*nHunit**2/dsqrt(Teunit)/Bunit**2*Teunit/Lunit**2/punit*tunit
-!    (Lunit, nHunit, Bunit, tunit, and Teunit are the unit of length, number 
-!     density, magnetic field, time, and temperature.)
+!eqpar(kappe_)=kappa1*nHunit**2/dsqrt(Teunit)/Bunit**2*Teunit/Lunit/runit/vunit**3
+!    kappa1=3.3d-16 erg Gauss**2 cm**5 /s/K**0.5
+!    (nHunit and Bunit are the unit of number density and magnetic field.)
 !    in amrvacusrpar.t add kappe_ 
-! All quantities are in cgs unit.
 !=============================================================================
 subroutine thermalconduct_RKL2(s,qdt,qt)
 ! Meyer 2012 MNRAS 422,2102
