@@ -39,7 +39,8 @@
 !    #define TCPERPENDICULAR
 !    in subroutine initglobaldata_usr, add perpendicular conductivity:
 !eqpar(kappe_)=kappa1*nHunit**2/dsqrt(Teunit)/Bunit**2*Teunit/Lunit/runit/vunit**3
-!    kappa1=3.3d-16 erg Gauss**2 cm**5 /s/K**0.5
+!    kappa1=3.3d-16 erg Gauss**2 cm**5 /s/K**0.5 or 
+!           3.3d-41 J T**2 m**5 /s/K**0.5
 !    (nHunit and Bunit are the unit of number density and magnetic field.)
 !    in amrvacusrpar.t add kappe_ 
 !=============================================================================
