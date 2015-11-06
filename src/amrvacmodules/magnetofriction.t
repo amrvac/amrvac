@@ -31,6 +31,9 @@ call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+! calculate initial values of metrics
+call metrics
+call printlog_mf 
 ! magnetofrictional loops
 do
   ! calculate time step based on Cmax= Alfven speed + abs(frictional speed)
@@ -73,51 +76,8 @@ do
   ! =======
   call advectmf(1,ndim,tmf,dtfff)
 
-  !Eb_ipe=0.d0
-  !Eb_new=0.d0
-  sum_jbb_ipe = 0.d0
-  sum_j_ipe = 0.d0
-  f_i_ipe = 0.d0
-  ncellpe=0
-  do iigrid=1,igridstail; igrid=igrids(iigrid);
-    if(slab) then
-      dvone={rnode(rpdx^D_,igrid)|*}
-      dvolume(ixM^T)=dvone
-      dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
-    else
-      dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
-      dsurface(ixM^T)= ^D&pgeo(igrid)%surfaceC^D(ixM^T)+
-      do idims=1,ndim
-        hxM^LL=ixM^LL-kr(idims,^D);
-        select case(idims)
-        {case(^D)
-           dsurface(ixM^T)=dsurface(ixM^T)+pgeo(igrid)%surfaceC^D(hxM^T) \}
-        end select
-      end do
-    end if
-    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchwi,ncellpe)
-    !Eb_ipe=Eb_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,&
-    !  dvolume,m3_,patchwi)
-    sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
-      px(igrid)%x,1,patchwi)
-    sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
-      px(igrid)%x,2,patchwi)
-    f_i_ipe=f_i_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
-      px(igrid)%x,3,patchwi)
-  end do
-  !call MPI_ALLREDUCE(Eb_ipe,Eb_new,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-  !   icomm,ierrmpi)
-  call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-     icomm,ierrmpi)
-  call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-     icomm,ierrmpi)
-  cwsin_theta_new = sum_jbb/sum_j
-  call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-     icomm,ierrmpi)
-  call MPI_ALLREDUCE(ncellpe,ncell,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
-  f_i = f_i/dble(ncell)
-
+  ! calculate metrics
+  call metrics
   if(i>60000) then
   if (cwsin_theta_new >= cwsin_theta_old) then
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -196,6 +156,51 @@ if (mype==0) call MPI_FILE_CLOSE(fhmf,ierrmpi)
 contains
 !=============================================================================
 ! internal procedures start
+!=============================================================================
+subroutine metrics
+
+sum_jbb_ipe = 0.d0
+sum_j_ipe = 0.d0
+f_i_ipe = 0.d0
+ncellpe=0
+do iigrid=1,igridstail; igrid=igrids(iigrid);
+  if(slab) then
+    dvone={rnode(rpdx^D_,igrid)|*}
+    dvolume(ixM^T)=dvone
+    dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
+  else
+    dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
+    dsurface(ixM^T)= ^D&pgeo(igrid)%surfaceC^D(ixM^T)+
+    do idims=1,ndim
+      hxM^LL=ixM^LL-kr(idims,^D);
+      select case(idims)
+      {case(^D)
+         dsurface(ixM^T)=dsurface(ixM^T)+pgeo(igrid)%surfaceC^D(hxM^T) \}
+      end select
+    end do
+  end if
+  ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchwi,ncellpe)
+  sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
+    px(igrid)%x,1,patchwi)
+  sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
+    px(igrid)%x,2,patchwi)
+  f_i_ipe=f_i_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
+    px(igrid)%x,3,patchwi)
+end do
+call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+   icomm,ierrmpi)
+call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+   icomm,ierrmpi)
+call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+   icomm,ierrmpi)
+call MPI_ALLREDUCE(ncellpe,ncell,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
+! sin of the j weighted mean angle between current and magnetic field
+cwsin_theta_new = sum_jbb/sum_j
+! mean normalized divergence of magnetic field
+f_i = f_i/dble(ncell)
+
+end subroutine metrics
 !=============================================================================
 subroutine printlog_mf
 integer :: amode, status(MPI_STATUS_SIZE)

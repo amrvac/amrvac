@@ -148,7 +148,7 @@ if($#argv > 0) then
    echo "################ Converting "$ii"/"$cnum" ################"
    if (-e $fname ) then
     sed -i "/snapshotini/ c\        snapshotini=$indx" $fname
-    mpirun -np $npe amrvac -i $fname -restart -convert
+    mpirun -np $npe amrvac -i $fname -restart $indx -convert
    endif
    @ indx++
    @ ii++
@@ -161,7 +161,7 @@ else
    if($indx == '') @ indx=0
    if (-e $fname ) then
     sed -i "/snapshotini/ c\        snapshotini=$indx" $fname
-    mpirun -np $npe amrvac -i $fname -restart -convert
+    mpirun -np $npe amrvac -i $fname -restart $indx -convert
    endif
    @ ii++
  end
