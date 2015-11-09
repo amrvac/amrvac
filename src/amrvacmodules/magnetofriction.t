@@ -53,7 +53,7 @@ do
   end do
   call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                      icomm,ierrmpi)
-
+{#IFNDEF FCT
   ! clean divergence of magnetic field 
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (.not.slab) mygeo => pgeo(igrid)
@@ -71,6 +71,7 @@ do
   call mf_velocity_update(pw,dtfff)
   ! update velocity in ghost cells
   call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+}
   ! =======
   ! evolve
   ! =======
@@ -512,11 +513,11 @@ ixO^L=ixG^L^LSUBdixB;
 !================================
 ! 4th order FD
 !================================ 
-call evolve_centdiff4(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+!call evolve_centdiff4(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
 !================================
 ! TVDLF
 !================================ 
-!call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
 
 if (levmax>levmin) then
    call storeflux(igrid,fC,idim^LIM)
@@ -725,10 +726,11 @@ double precision, dimension(ixI^S)      :: fLC, fRC
 double precision, dimension(ixI^S)      :: cmaxC
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
-logical :: transport
+logical :: transport, logiB
 logical, dimension(ixI^S) :: patchw
 !-----------------------------------------------------------------------------
 
+logiB=(BnormLF.and.b0_>0)
 ! The flux calculation contracts by one in the idim direction it is applied.
 ! The limiter contracts the same directions by one more, so expand ixO by 2.
 ix^L=ixO^L;
@@ -751,7 +753,15 @@ do idims= idim^LIM
 
    hxO^L=ixO^L-kr(idims,^D);
    ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
+!   ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
+
+{#IFDEF FCT
+! Flux-interpolated constrained transport needs one more layer:
+   ixCmax^D=ixOmax^D+1; ixCmin^D=hxOmin^D-1;
+}{#IFNDEF FCT
    ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
+}
+
 
    ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2 
    jxC^L=ixC^L+kr(idims,^D);
@@ -792,24 +802,51 @@ do idims= idim^LIM
 
       ! Add TVDLF dissipation to the flux
       ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
-      fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+      if (.not.logiB .and. iw==b0_+idims) then
+        fRC(ixC^S)=0.d0
+      else
+        fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+      end if
       ! fLC contains physical+dissipative fluxes
       fLC(ixC^S)=fLC(ixC^S)+fRC(ixC^S)
 
       if (slab) then
-         fC(ixC^S,iw,idims)=dxinv(idims)*fLC(ixC^S)
-         wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-              (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+         fC(ixC^S,iw,idims)=fLC(ixC^S)
       else
          select case (idims)
          {case (^D)
-            fC(ixC^S,iw,^D)=-qdt*mygeo%surfaceC^D(ixC^S)*fLC(ixC^S)
-            wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-              (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+            fC(ixC^S,iw,^D)=mygeo%surfaceC^D(ixC^S)*fLC(ixC^S)\}
          end select
       end if
 
    end do ! Next iw
+end do ! Next idims
+
+{#IFDEF FCT
+call fct_average(ixI^L,ixO^L,fC)
+}
+
+!Now update the state:
+do idims= idim^LIM
+   hxO^L=ixO^L-kr(idims,^D);
+   do iw=b0_+1,b0_+ndir
+
+      ! Multiply the fluxes by -dt/dx since Flux fixing expects this
+      if (slab) then
+         fC(ixI^S,iw,idims)=dxinv(idims)*fC(ixI^S,iw,idims)
+         wnew(ixO^S,iw)=wnew(ixO^S,iw) &
+              + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+      else
+         select case (idims)
+         {case (^D)
+            fC(ixI^S,iw,^D)=-qdt*fC(ixI^S,iw,idims)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw) &
+              + (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+         end select
+      end if
+
+   end do ! Next iw
+
 end do ! Next idims
 
 if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
