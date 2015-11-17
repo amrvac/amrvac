@@ -93,7 +93,11 @@ double precision                :: pth(ixI^S), Te(ixI^S)
 pth(ixO^S)=(eqpar(gamma_)-one)*(w(ixO^S,e_)- &
        half*(({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)&
        +{ ^C&w(ixO^S,b^C_)**2+}))
-if(smallT>0.d0) Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
+if(smallT>0.d0) then
+  Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
+else
+  Te(ixO^S)=zero
+end if
 if(strictsmall) then
   if(smallT>0.d0 .and. any(Te(ixO^S) <=smallT)) then
     print *,'SMALLVALUES of temperature under strictsmall problem From:  ', &
