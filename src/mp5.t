@@ -8,15 +8,15 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)
 
-double precision, intent(inout) :: wRC(ixG^T,1:nw),wLC(ixG^T,1:nw) 
+double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
 ! .. local ..
 integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
 integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
 integer                         :: iw
-double precision, dimension(ixG^T,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
-double precision, dimension(ixG^T,1:nw)  :: wRCtmp, wLCtmp
-double precision, dimension(ixG^T) :: tmp, tmp2, tmp3, a, b, c
-logical, dimension(ixG^T)       :: flagL, flagR
+double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
+double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
+double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
+logical, dimension(ixI^S)       :: flagL, flagR
 double precision, parameter     :: eps=1.0d-12, alpha=4.0d0
 !double precision                :: alpha
 !----------------------------------------------------------------------------
@@ -213,13 +213,13 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw)
 
-double precision, intent(inout) :: wLC(ixG^T,1:nw) 
+double precision, intent(inout) :: wLC(ixI^S,1:nw) 
 ! .. local ..
 integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L
 integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
 integer                         :: iw
-double precision, dimension(ixG^T,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
-double precision, dimension(ixG^T) :: tmp, tmp2, tmp3, a, b, c
+double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
+double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
 double precision, parameter     :: eps=1.0d-12, alpha=4.0d0
 !double precision                :: alpha
 !----------------------------------------------------------------------------
@@ -315,13 +315,13 @@ include 'amrvacdef.f'
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw)
 
-double precision, intent(inout) :: wRC(ixG^T,1:nw)
+double precision, intent(inout) :: wRC(ixI^S,1:nw)
 ! .. local ..
 integer                         :: iLm^L, iLp^L, iLpp^L, iLppp^L
 integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
 integer                         :: iw
-double precision, dimension(ixG^T,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
-double precision, dimension(ixG^T) :: tmp, tmp2, tmp3, a, b, c
+double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
+double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
 double precision, parameter     :: eps=1.0d-12, alpha=4.0d0
 !double precision                :: alpha
 !----------------------------------------------------------------------------
@@ -415,7 +415,7 @@ include 'amrvacdef.f'
 
 integer, intent(in)          :: ixI^L, ixO^L
 double precision, intent(in) :: a(ixI^S), b(ixI^S)
-double precision, intent(out):: minm(ixG^T)
+double precision, intent(out):: minm(ixI^S)
 
 minm(ixO^S) = (sign(one,a(ixO^S))+sign(one,b(ixO^S)))/2.0d0 * &
      min(abs(a(ixO^S)),abs(b(ixO^S)))
@@ -428,7 +428,7 @@ include 'amrvacdef.f'
 
 integer, intent(in)          :: ixI^L, ixO^L
 double precision, intent(in) :: a(ixI^S), b(ixI^S), c(ixI^S)
-double precision, intent(out):: med(ixG^T)
+double precision, intent(out):: med(ixI^S)
 ! .. local ..
 double precision             :: tmp1(ixI^S),tmp2(ixI^S)
 
@@ -438,3 +438,4 @@ med(ixO^S) = a(ixO^S) + (sign(one,tmp1(ixO^S))+sign(one,tmp2(ixO^S)))/2.0d0 * &
      min(abs(tmp1(ixO^S)),abs(tmp2(ixO^S)))
 
 end subroutine median
+!============================================================================

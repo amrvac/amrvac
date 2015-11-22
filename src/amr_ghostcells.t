@@ -199,45 +199,45 @@ if (.not.richardson) then
 end if
 
 if(bcphys) then
-do iigrid=1,igridstail; igrid=igrids(iigrid);
-   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-   do idims=1,ndim
-      ! to avoid using as yet unknown corner info in more than 1D, we
-      ! fill only interior mesh ranges of the ghost cell ranges at first,
-      ! and progressively enlarge the ranges to include corners later
-      kmin1=0; kmax1=0;
-      {^IFTWOD
-       kmin2=merge(1, 0,  idims .lt. 2 .and. neighbor_type(0,-1,igrid)==1)
-       kmax2=merge(1, 0,  idims .lt. 2 .and. neighbor_type(0, 1,igrid)==1)}
-      {^IFTHREED
-       kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,0,igrid)==1)
-       kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,0,igrid)==1)
-       kmin3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0,-1,igrid)==1)
-       kmax3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0, 1,igrid)==1)}
-      ixBmin^D=ixGmin^D+kmin^D*dixB;
-      ixBmax^D=ixGmax^D-kmax^D*dixB;
-      do iside=1,2
-         i^D=kr(^D,idims)*(2*iside-3);
-         if (aperiodB(idims)) then 
-            call physbound(i^D,igrid,isphysbound)
-            if (neighbor_type(i^D,igrid)/=1 .and. .not. isphysbound) cycle
-         else 
-            if (neighbor_type(i^D,igrid)/=1) cycle
-         end if
-         if (richardson) then
-            if(.not.slab)mygeo=>pgeoCo(igrid)
-            call bc_phys(iside,idims,time,pwuse(igrid)%w,pxCoarse(igrid)%x,ixG^L,ixB^L)
-         else
-            if(.not.slab)mygeo=>pgeoFi(igrid)
-            if (B0field) then
-               myB0_cell => pB0_cell(igrid)
-               {^D&myB0_face^D => pB0_face^D(igrid)\}
-            end if
-            call bc_phys(iside,idims,time,pwuse(igrid)%w,px(igrid)%x,ixG^L,ixB^L)
-         end if
-      end do
-   end do
-end do
+  do iigrid=1,igridstail; igrid=igrids(iigrid);
+     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+     do idims=1,ndim
+        ! to avoid using as yet unknown corner info in more than 1D, we
+        ! fill only interior mesh ranges of the ghost cell ranges at first,
+        ! and progressively enlarge the ranges to include corners later
+        kmin1=0; kmax1=0;
+        {^IFTWOD
+         kmin2=merge(1, 0,  idims .lt. 2 .and. neighbor_type(0,-1,igrid)==1)
+         kmax2=merge(1, 0,  idims .lt. 2 .and. neighbor_type(0, 1,igrid)==1)}
+        {^IFTHREED
+         kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,0,igrid)==1)
+         kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,0,igrid)==1)
+         kmin3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0,-1,igrid)==1)
+         kmax3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0, 1,igrid)==1)}
+        ixBmin^D=ixGmin^D+kmin^D*dixB;
+        ixBmax^D=ixGmax^D-kmax^D*dixB;
+        do iside=1,2
+           i^D=kr(^D,idims)*(2*iside-3);
+           if (aperiodB(idims)) then 
+              call physbound(i^D,igrid,isphysbound)
+              if (neighbor_type(i^D,igrid)/=1 .and. .not. isphysbound) cycle
+           else 
+              if (neighbor_type(i^D,igrid)/=1) cycle
+           end if
+           if (richardson) then
+              if(.not.slab)mygeo=>pgeoCo(igrid)
+              call bc_phys(iside,idims,time,pwuse(igrid)%w,pxCoarse(igrid)%x,ixG^L,ixB^L)
+           else
+              if(.not.slab)mygeo=>pgeoFi(igrid)
+              if (B0field) then
+                 myB0_cell => pB0_cell(igrid)
+                 {^D&myB0_face^D => pB0_face^D(igrid)\}
+              end if
+              call bc_phys(iside,idims,time,pwuse(igrid)%w,px(igrid)%x,ixG^L,ixB^L)
+           end if
+        end do
+     end do
+  end do
 end if
 
 if (npe>1) call put_bc_comm_types
@@ -354,54 +354,56 @@ integer :: ii^D
 
    ixS^L=ixS_p_^L(inc^D);
 
-   do idims=1,ndim
-      do iside=1,2
-         ii^D=kr(^D,idims)*(2*iside-3);
+   if(bcphys) then
+     do idims=1,ndim
+        do iside=1,2
+           ii^D=kr(^D,idims)*(2*iside-3);
 
-         if (neighbor_type(ii^D,igrid)/=1) cycle
+           if (neighbor_type(ii^D,igrid)/=1) cycle
 
-         if ((  {(iside==1.and.idims==^D.and.ixSmin^D<ixMlo^D)|.or. }) &
-          .or.( {(iside==2.and.idims==^D.and.ixSmax^D>ixMhi^D)|.or. }))then
-          {ixBmin^D=merge(ixGmin^D,ixSmin^D,idims==^D);}
-          {ixBmax^D=merge(ixGmax^D,ixSmax^D,idims==^D);}
-         ! to avoid using as yet unknown corner info in more than 1D, we
-         ! fill only interior mesh ranges of the ghost cell ranges at first,
-         ! and progressively enlarge the ranges to include corners later
-          kmin1=0; kmax1=0;
-         {^IFTWOD
-          kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,  igrid)==1)
-          kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,  igrid)==1)
-          if(neighbor_type(0,-1,igrid)==1.and.(neighbor_type(1,0,igrid)==1&
-             .or. neighbor_type(-1,0,igrid)==1) .and. i2== 1) kmin2=0
-          if(neighbor_type(0, 1,igrid)==1.and.(neighbor_type(1,0,igrid)==1&
-             .or. neighbor_type(-1,0,igrid)==1) .and. i2==-1) kmax2=0}
-         {^IFTHREED
-          kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,0,igrid)==1)
-          kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,0,igrid)==1)
-          kmin3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0,-1,igrid)==1)
-          kmax3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0, 1,igrid)==1)
-          if(neighbor_type(0,-1,0,igrid)==1.and.(neighbor_type(1,0,0,igrid)==1&
-             .or. neighbor_type(-1,0,0,igrid)==1) .and. i2== 1) kmin2=0
-          if(neighbor_type(0, 1,0,igrid)==1.and.(neighbor_type(1,0,0,igrid)==1&
-             .or. neighbor_type(-1,0,0,igrid)==1) .and. i2==-1) kmax2=0
-          if(neighbor_type(0,0,-1,igrid)==1.and.(neighbor_type(0,1,0,igrid)==1&
-             .or. neighbor_type(0,-1,0,igrid)==1) .and. i3== 1) kmin3=0
-          if(neighbor_type(0,0, 1,igrid)==1.and.(neighbor_type(0,1,0,igrid)==1&
-             .or. neighbor_type(0,-1,0,igrid)==1) .and. i3==-1) kmax3=0}
-          ixBmin^D=ixBmin^D+kmin^D;
-          ixBmax^D=ixBmax^D-kmax^D;
+           if ((  {(iside==1.and.idims==^D.and.ixSmin^D<ixMlo^D)|.or. }) &
+            .or.( {(iside==2.and.idims==^D.and.ixSmax^D>ixMhi^D)|.or. }))then
+            {ixBmin^D=merge(ixGmin^D,ixSmin^D,idims==^D);}
+            {ixBmax^D=merge(ixGmax^D,ixSmax^D,idims==^D);}
+           ! to avoid using as yet unknown corner info in more than 1D, we
+           ! fill only interior mesh ranges of the ghost cell ranges at first,
+           ! and progressively enlarge the ranges to include corners later
+            kmin1=0; kmax1=0;
+           {^IFTWOD
+            kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,  igrid)==1)
+            kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,  igrid)==1)
+            if(neighbor_type(0,-1,igrid)==1.and.(neighbor_type(1,0,igrid)==1&
+               .or. neighbor_type(-1,0,igrid)==1) .and. i2== 1) kmin2=0
+            if(neighbor_type(0, 1,igrid)==1.and.(neighbor_type(1,0,igrid)==1&
+               .or. neighbor_type(-1,0,igrid)==1) .and. i2==-1) kmax2=0}
+           {^IFTHREED
+            kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,0,igrid)==1)
+            kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,0,igrid)==1)
+            kmin3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0,-1,igrid)==1)
+            kmax3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0, 1,igrid)==1)
+            if(neighbor_type(0,-1,0,igrid)==1.and.(neighbor_type(1,0,0,igrid)==1&
+               .or. neighbor_type(-1,0,0,igrid)==1) .and. i2== 1) kmin2=0
+            if(neighbor_type(0, 1,0,igrid)==1.and.(neighbor_type(1,0,0,igrid)==1&
+               .or. neighbor_type(-1,0,0,igrid)==1) .and. i2==-1) kmax2=0
+            if(neighbor_type(0,0,-1,igrid)==1.and.(neighbor_type(0,1,0,igrid)==1&
+               .or. neighbor_type(0,-1,0,igrid)==1) .and. i3== 1) kmin3=0
+            if(neighbor_type(0,0, 1,igrid)==1.and.(neighbor_type(0,1,0,igrid)==1&
+               .or. neighbor_type(0,-1,0,igrid)==1) .and. i3==-1) kmax3=0}
+            ixBmin^D=ixBmin^D+kmin^D;
+            ixBmax^D=ixBmax^D-kmax^D;
 
-          if(.not.slab)mygeo=>pgeoFi(igrid)
-          if (B0field) then
-            myB0_cell => pB0_cell(igrid)
-            {^D&myB0_face^D => pB0_face^D(igrid)\}
-          end if
+            if(.not.slab)mygeo=>pgeoFi(igrid)
+            if (B0field) then
+              myB0_cell => pB0_cell(igrid)
+              {^D&myB0_face^D => pB0_face^D(igrid)\}
+            end if
 
-          call bc_phys(iside,idims,time,pwuse(igrid)%w, &
-                            px(igrid)%x,ixG^L,ixB^L)
-         end if
-      end do
-   end do
+            call bc_phys(iside,idims,time,pwuse(igrid)%w, &
+                              px(igrid)%x,ixG^L,ixB^L)
+           end if
+        end do
+     end do
+   end if
 
    ineighbor=neighbor_child(1,inc^D,igrid)
    ipe_neighbor=neighbor_child(2,inc^D,igrid)
@@ -580,23 +582,25 @@ xComin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxCo^D;
 ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
 ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
 
-do idims=1,ndim
-   do iside=1,2
-      ii^D=kr(^D,idims)*(2*iside-3);
-
-      if (neighbor_type(ii^D,igrid)/=1) cycle
-
-      if  (( {(iside==1.and.idims==^D.and.ixComin^D<ixCoGmin^D+dixB)|.or.} ) &
-       .or.( {(iside==2.and.idims==^D.and.ixComax^D>ixCoGmax^D-dixB)|.or. }))then
-        {ixBmin^D=merge(ixCoGmin^D,ixComin^D,idims==^D);}
-        {ixBmax^D=merge(ixCoGmax^D,ixComax^D,idims==^D);}
-        if(.not.slab)mygeo=>pgeoCo(igrid)
-
-        call bc_phys(iside,idims,time,pwuseCo(igrid)%w, &
-                            pxCoarse(igrid)%x,ixCoG^L,ixB^L)
-      end if
-   end do
-end do
+if(bcphys) then
+  do idims=1,ndim
+     do iside=1,2
+        ii^D=kr(^D,idims)*(2*iside-3);
+  
+        if (neighbor_type(ii^D,igrid)/=1) cycle
+  
+        if  (( {(iside==1.and.idims==^D.and.ixComin^D<ixCoGmin^D+dixB)|.or.} ) &
+         .or.( {(iside==2.and.idims==^D.and.ixComax^D>ixCoGmax^D-dixB)|.or. }))then
+          {ixBmin^D=merge(ixCoGmin^D,ixComin^D,idims==^D);}
+          {ixBmax^D=merge(ixCoGmax^D,ixComax^D,idims==^D);}
+          if(.not.slab)mygeo=>pgeoCo(igrid)
+  
+          call bc_phys(iside,idims,time,pwuseCo(igrid)%w, &
+                              pxCoarse(igrid)%x,ixCoG^L,ixB^L)
+        end if
+     end do
+  end do
+end if
 
 if (amrentropy) then
    call e_to_rhos(ixCoG^L,ixCo^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x)

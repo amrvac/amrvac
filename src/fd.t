@@ -29,10 +29,7 @@ do idims= idim^LIM
       dxdims = dx^D\}
    end select
    if (B0field) then
-      select case (idims)
-         {case (^D)
-         myB0 => myB0_face^D\}
-      end select
+      myB0 => myB0_cell
    end if
 
    ! Get fluxes for the whole grid (mesh+dixB)
