@@ -322,6 +322,11 @@ do ig3=1,ng3(level_io)
          do ix1=ixMlo1,ixMhi1
            igrid=ig_to_igrid(ig^D,mype)
            Master_write : if(mype==0) then
+           {^IFMHD
+             if(B0field) then
+               ^C&pwio(igrid)%w(ix^D,b^C_)=pwio(igrid)%w(ix^D,b^C_)+myB0_cell%w(ix^D,^C);\
+             end if
+           }
              select case(convert_type)
                case("oneblock")
                  write(qunit,fmt="(100(e14.6))") &
