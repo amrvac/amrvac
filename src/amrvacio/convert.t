@@ -321,6 +321,9 @@ do ig3=1,ng3(level_io)
        do ig1=1,ng1(level_io)
          do ix1=ixMlo1,ixMhi1
            igrid=ig_to_igrid(ig^D,mype)
+           if (B0field) then
+             myB0_cell => pB0_cell(igrid)
+           end if
            Master_write : if(mype==0) then
            {^IFMHD
              if(B0field) then
