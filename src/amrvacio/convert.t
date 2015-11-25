@@ -301,6 +301,12 @@ do ig3=1,ng3(level_io)}
          if(nwauxio>=1)then
             call specialvar_output(ixG^LL,ixM^LL^LADD1,pwio(igrid)%w,px(igrid)%x,normconv)
          endif
+         {^IFMHD
+         ! add B0 component to B
+         if(B0field) then
+           ^C&pwio(igrid)%w(ixG^T,b^C_)=pwio(igrid)%w(ixG^T,b^C_)+myB0_cell%w(ixG^T,^C);\
+         end if
+         }
          where(dabs(pwio(igrid)%w(ixG^T,1:nw+nwauxio))<smalldouble**2)
             pwio(igrid)%w(ixG^T,1:nw+nwauxio)=zero
          endwhere
@@ -321,15 +327,7 @@ do ig3=1,ng3(level_io)
        do ig1=1,ng1(level_io)
          do ix1=ixMlo1,ixMhi1
            igrid=ig_to_igrid(ig^D,mype)
-           if (B0field) then
-             myB0_cell => pB0_cell(igrid)
-           end if
            Master_write : if(mype==0) then
-           {^IFMHD
-             if(B0field) then
-               ^C&pwio(igrid)%w(ix^D,b^C_)=pwio(igrid)%w(ix^D,b^C_)+myB0_cell%w(ix^D,^C);\
-             end if
-           }
              select case(convert_type)
                case("oneblock")
                  write(qunit,fmt="(100(e14.6))") &
