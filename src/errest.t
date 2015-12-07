@@ -183,7 +183,7 @@ coarsenflag=.false.
 tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 {#IFDEF SPECIALTOLERANCE
-   call special_tolerance(pw(igrid)%w(ix^D,nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
 }
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
