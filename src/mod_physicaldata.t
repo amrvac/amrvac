@@ -21,6 +21,9 @@ module mod_physicaldata
    type(walloc), dimension(ngridshi) :: pwCoarse, pwCoCo
    type(walloc), dimension(ngridshi) :: pwio
    type(walloc), dimension(ngridshi), target :: pB0_cell,  pB0_face^D
+{#IFDEF BOUNDARYDRIVER
+   type(walloc), dimension(2*^ND), target :: pB0bc_cell,  pB0bc_face^D
+}
    type(walloc), pointer :: myB0_cell, myB0_face^D, myB0
    type(walloc_sub), dimension(ngridshi) :: pw_sub
 {^IFONED
