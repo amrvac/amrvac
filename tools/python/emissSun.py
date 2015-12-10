@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 #============================================================================
-def emiss(data,ion,Teunit,nunit,Lunit):
+def emiss(data,ion,Teunit,nunit,Lunit,othick=None):
     '''get optically thin emission in specific wave length'''
     print '=== Getting emission ==='
 # peel data:
@@ -21,9 +21,22 @@ def emiss(data,ion,Teunit,nunit,Lunit):
     ce=findintable(ion,Te,rho,logT,logn,gmat)
 # emission flux in unit of DN s^-1 per unit length
     emiss = rho**2 * ce * Lunit
+    if othick != None:
+        emiss = np.where(rho>2.e10,0.,emiss)
 # mask out the wind zone:
     print '=== Done with emission! ==='
     return {'emiss': emiss, 'rho':rho, 'points': data.get('points')}
+#============================================================================
+def viewangle(emissdic,theta,phiy,phi,delta=0,nu=1):
+    '''set view angle for line of sight'''
+    emissdic['phi']=phi
+    emissdic['phiy']=phiy
+    emissdic['theta']=theta
+    emissdic['delta']=delta
+    emissdic['nu']=nu
+    emissdic['alpha']=0
+    emissdic['recipe']=0
+    return emissdic
 #============================================================================
 def loadGtable(ion,w0=None,filename=None,filenm=None,abund='co'):
     '''reads response function (n_e, T_e) 2D tables, requires ion'''
@@ -122,17 +135,6 @@ def findL(parr,aseq):
     jl[jh>lenseq-1]=lenseq-1
     jh[jh>lenseq-1]=lenseq-1
     return [jl,jh]
-#============================================================================
-def viewangle(emissdic,theta,phiy,phi,delta=0,nu=1):
-    '''set view angle for line of sight'''
-    emissdic['phi']=phi
-    emissdic['phiy']=phiy
-    emissdic['theta']=theta
-    emissdic['delta']=delta
-    emissdic['nu']=nu
-    emissdic['alpha']=0
-    emissdic['recipe']=0
-    return emissdic
 #============================================================================
 def aiact(ion):
     '''reads AIA RGB color tables, requires ion'''
