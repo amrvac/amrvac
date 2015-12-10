@@ -551,8 +551,8 @@ integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 
-double precision :: etherm(ixG^T)
-double precision :: L1,Tlocal1, ptherm(ixG^T), lum(ixG^T)
+double precision :: etherm(ixG^S)
+double precision :: L1,Tlocal1, ptherm(ixG^S), lum(ixG^S)
 double precision :: plocal, mue, rholocal
 double precision :: emin, Lmax
 
@@ -610,10 +610,10 @@ integer, intent(in)          :: ixI^L,ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim)
 double precision             :: w(ixI^S,nw+nwauxio)
 double precision             :: normconv(0:nw+nwauxio)
-double precision, intent(out):: coolrate(ixG^T)
+double precision, intent(out):: coolrate(ixI^S)
 
-double precision :: etherm(ixG^T)
-double precision :: L1,Tlocal1, ptherm(ixG^T)
+double precision :: etherm(ixI^S)
+double precision :: L1,Tlocal1, ptherm(ixI^S)
 double precision :: plocal, mue, rholocal
 double precision :: emin
 
@@ -1009,7 +1009,7 @@ integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 
-double precision :: etherm(ixG^T), emin, tfloor
+double precision :: etherm(ixI^S), emin, tfloor
 integer :: ix^D
 !-----------------------------------------------------------------------------
 tfloor = tlow
@@ -1036,7 +1036,7 @@ integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 
-double precision :: L1,Tlocal1, ptherm(ixG^T),pnew(ixG^T)
+double precision :: L1,Tlocal1, ptherm(ixI^S),pnew(ixI^S)
 double precision :: plocal, mue, rholocal
 double precision :: emin, Lmax
 
@@ -1104,7 +1104,7 @@ double precision :: dtmax, dtstep
 
 integer :: idt,ndtstep
 
-double precision :: L1,Tlocal1,ptherm(ixG^T),pnew(ixG^T)
+double precision :: L1,Tlocal1,ptherm(ixI^S),pnew(ixI^S)
 double precision :: plocal, mue, rholocal
 double precision :: emin, Lmax
 
@@ -1208,7 +1208,7 @@ double precision :: etemp
 double precision :: plocal, mue, rholocal
 double precision :: emin, Lmax
 
-double precision :: ptherm(ixG^T),pnew(ixG^T)
+double precision :: ptherm(ixI^S),pnew(ixI^S)
 integer :: ix^D
 !-----------------------------------------------------------------------------
 ! 'mue' is a dummy variable, which can be used to set a metallicity
@@ -1274,7 +1274,7 @@ integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 
-double precision :: Ltemp,Tlocal1,Tnew,f1,f2,ptherm(ixG^T), pnew(ixG^T)
+double precision :: Ltemp,Tlocal1,Tnew,f1,f2,ptherm(ixI^S), pnew(ixI^S)
 
 double precision :: plocal, mue, rholocal, elocal
 double precision :: emin, Lmax, eold, enew, estep
@@ -1353,7 +1353,7 @@ double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
 double precision, intent(inout) :: w(ixI^S,1:nw)
 
 double precision :: Y1, tc, Y2
-double precision :: L1,Tlocal1, ptherm(ixG^T), Tlocal2, pnew(ixG^T)
+double precision :: L1,Tlocal1, ptherm(ixI^S), Tlocal2, pnew(ixI^S)
 double precision :: plocal, mue, rholocal, invgam
 double precision :: emin, Lmax, fact
 
