@@ -67,10 +67,10 @@ pro gettype,filenames,filetypes,npictinfiles
       openr,10,filenames(ifile)
       len=long(1)
       readu,10,len
-      if len ne 79 then ftype='ascii' else begin
+      if len ne 131 then ftype='ascii' else begin
          ; The length of the 2nd line decides between real4 and binary
          ; since it contains the time, which is real*8 or real*4
-         head=bytarr(79+4)
+         head=bytarr(131+4)
          readu,10,head,len
          case len of
             20: ftype='real4'
