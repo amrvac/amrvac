@@ -661,7 +661,6 @@ def cutEmiss(data,grid,npixel,points,coord):
         data[grid[0]>xrange[1]] = 0.
         data[grid[1]<yrange[0]] = 0.
         data[grid[1]>yrange[1]] = 0.
-        #data=np.where(rhor>2.e10,0.,data)
         # not when coming from 2D:
         if zrange[1] - zrange[0] > 0. :
             data[grid[2]<zrange[0]] = 0.

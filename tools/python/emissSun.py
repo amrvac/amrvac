@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 #============================================================================
-def emiss(data,ion,Teunit,nunit,Lunit,othick=None):
+def emiss(data,ion,Teunit,nunit,Lunit,othick=0):
     '''get optically thin emission in specific wave length'''
     print '=== Getting emission ==='
 # peel data:
@@ -21,7 +21,7 @@ def emiss(data,ion,Teunit,nunit,Lunit,othick=None):
     ce=findintable(ion,Te,rho,logT,logn,gmat)
 # emission flux in unit of DN s^-1 per unit length
     emiss = rho**2 * ce * Lunit
-    if othick != None:
+    if othick != 0:
         emiss = np.where(rho>2.e10,0.,emiss)
 # mask out the wind zone:
     print '=== Done with emission! ==='
