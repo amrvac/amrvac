@@ -5,7 +5,6 @@ include 'amrvacdef.f'
 
 integer :: i,iigrid, igrid, idims,count_reject,ix^D,ncellpe,ncell,hxM^LL
 double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
-!double precision :: Eb_new,Eb_old,Eb_ipe,dvolume(ixG^T)
 double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
@@ -16,18 +15,28 @@ logical :: patchwi(ixG^T)
 !-----------------------------------------------------------------------------
 
 if(mype==0) write(*,*) 'Evolving to force-free field using magnetofricitonal method...'
+! update ghost cells
+call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
+! do not update physical boundaries from now on
+!bcphys=.false.
 do iigrid=1,igridstail; igrid=igrids(iigrid);
+{#IFDEF ISO
+   pwold(igrid)%w(ixG^T,m0_+1:m0_+ndir)=pw(igrid)%w(ixG^T,m0_+1:m0_+ndir)
+}
+{#IFDEF ENERGY
+   call primitive(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
    pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)
+   pwold(igrid)%w(ixG^T,p_)=pw(igrid)%w(ixG^T,p_)
+   call conserve(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchfalse)
+}  
 end do
-
 tmf=0.d0
 dtfff=1.d-2
 i=0
 count_reject=0
 cmf_y0=cmf_y
 cmf_divb0=cmf_divb
-! update B in ghost cells
-call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
+! calculate magnetofrictional velocity
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
@@ -53,7 +62,6 @@ do
   end do
   call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                      icomm,ierrmpi)
-{#IFNDEF FCT
   ! clean divergence of magnetic field 
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (.not.slab) mygeo => pgeo(igrid)
@@ -68,10 +76,10 @@ do
   end do
   ! update B in ghost cells
   call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
+  ! calculate magnetofrictional velocity
   call mf_velocity_update(pw,dtfff)
   ! update velocity in ghost cells
   call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
-}
   ! =======
   ! evolve
   ! =======
@@ -140,9 +148,9 @@ do
     write(*,*) '----------------------------------------------------------'
   end if
   if (i>=mfitmax) then
-    if (mype==0) then
+    if(mype==0) then
       write (*,*) 'The magnetofrictional iteration has been terminated because &
-                   it reaches the maximum iteration step!'
+                     it reaches the maximum iteration step!'
       write (*,*) 'The total iteration step is:', i   
     end if
     exit
@@ -151,8 +159,17 @@ do
 enddo
 ! restore initial velocity
 do iigrid=1,igridstail; igrid=igrids(iigrid);
+{#IFDEF ISO
    pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
+}
+{#IFDEF ENERGY
+   pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
+   pw(igrid)%w(ixG^T,p_)=pwold(igrid)%w(ixG^T,p_)
+   call conserve(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchfalse)
+}  
 end do
+! update physical boundaries from now on
+!bcphys=.true.
 if (mype==0) call MPI_FILE_CLOSE(fhmf,ierrmpi)
 contains
 !=============================================================================
@@ -165,6 +182,11 @@ sum_j_ipe = 0.d0
 f_i_ipe = 0.d0
 ncellpe=0
 do iigrid=1,igridstail; igrid=igrids(iigrid);
+  if (.not.slab) mygeo => pgeo(igrid)
+  if (B0field) then
+     myB0_cell => pB0_cell(igrid)
+     {^D&myB0_face^D => pB0_face^D(igrid)\}
+  end if
   if(slab) then
     dvone={rnode(rpdx^D_,igrid)|*}
     dvolume(ixM^T)=dvone
@@ -350,8 +372,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
      myB0_cell => pB0_cell(igrid)
      {^D&myB0_face^D => pB0_face^D(igrid)\}
   end if
-  !typelimiter=typelimiter1(node(plevel_,igrid))
-  !typegradlimiter=typegradlimiter1(node(plevel_,igrid))
   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
   call vhat(pwa(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,vhatmaxgrid)
   vhatmax_pe=max(vhatmax_pe,vhatmaxgrid)
@@ -372,6 +392,99 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 end do
 
 end subroutine mf_velocity_update
+!============================================================================= 
+subroutine vhat(w,x,ixI^L,ixO^L,vhatmaxgrid)
+
+! Calculate v_hat 
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixI^L, ixO^L
+double precision, intent(inout)  :: w(ixI^S,nw)
+double precision, intent(in)  :: x(ixI^S,1:ndim)
+double precision, intent(out) :: vhatmaxgrid
+
+double precision              :: current(ixI^S,7-2*ndir:3),tmp(ixI^S),dxhm
+integer :: idirmin,idir,jdir,kdir
+!-----------------------------------------------------------------------------
+
+call getcurrent(w,ixI^L,ixO^L,idirmin,current)
+w(ixI^S,v0_+1:v0_+ndir)=0.d0
+! calculate Lorentz force
+do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+   if(lvc(idir,jdir,kdir)/=0)then
+      if(B0field) then
+        tmp(ixO^S)=current(ixO^S,jdir)*(w(ixO^S,b0_+kdir)+myB0_cell%w(ixO^S,kdir))
+      else
+        tmp(ixO^S)=current(ixO^S,jdir)*w(ixO^S,b0_+kdir)
+      endif
+      if(lvc(idir,jdir,kdir)==1)then
+         w(ixO^S,v0_+idir)=w(ixO^S,v0_+idir)+tmp(ixO^S)
+      else
+         w(ixO^S,v0_+idir)=w(ixO^S,v0_+idir)-tmp(ixO^S)
+      endif
+   endif
+enddo; enddo; enddo
+
+if(B0field) then
+  tmp(ixO^S)=( ^C&(w(ixO^S,b^C_)+myB0_cell%w(ixO^S,^C))**2+ )         ! |B|**2
+else
+  tmp(ixO^S)=( ^C&w(ixO^S,b^C_)**2+ )         ! |B|**2
+endif
+
+dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+^C&w(ixO^S,v^C_)=dxhm*w(ixO^S,v^C_)/tmp(ixO^S);
+! ^C&w(ixO^S,v^C_)=w(ixO^S,v^C_)/tmp(ixO^S);
+vhatmaxgrid=maxval(dsqrt( ^C&w(ixO^S,v^C_)**2+ ))
+
+end subroutine vhat
+!============================================================================= 
+subroutine frictional_velocity(w,x,ixI^L,ixO^L,qvmax,qdt)
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixI^L, ixO^L
+double precision, intent(in) :: x(ixI^S,1:ndim),qdt,qvmax
+double precision, intent(inout) :: w(ixI^S,1:nw)
+
+double precision :: dxhm,disbd(5),bfzone^D
+integer :: ix^D
+logical :: buffer
+!-----------------------------------------------------------------------------
+dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+dxhm=cmf_c*cmf_y/qvmax*dxhm/qdt
+! dxhm=cmf_c*cmf_y/qvmax
+^C&w(ixO^S,v0_+^C)=w(ixO^S,v0_+^C)*dxhm;
+buffer=.false.
+if (buffer) then
+  bfzone1=0.05d0*(xprobmax1-xprobmin1)
+  bfzone2=0.05d0*(xprobmax2-xprobmin2)
+  bfzone3=0.05d0*(xprobmax3-xprobmin3)
+  {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     disbd(1)=x(ix^D,1)-xprobmin1
+     disbd(2)=xprobmax1-x(ix^D,1)
+     disbd(3)=x(ix^D,2)-xprobmin2
+     disbd(4)=xprobmax2-x(ix^D,2)
+     disbd(5)=xprobmax3-x(ix^D,3)
+
+     if(disbd(1)<bfzone1) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(2)<bfzone1) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(3)<bfzone2) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(4)<bfzone2) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,v1_:v3_)
+     endif
+     if(disbd(5)<bfzone3) then
+       w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,v1_:v3_)
+     endif
+  {end do\}
+end if
+end subroutine frictional_velocity
 !=============================================================================
 subroutine advectmf(idim^LIM,qt,qdt)
 
@@ -495,6 +608,7 @@ double precision, intent(in) :: qdt, qtC, qt
 double precision :: wCT(ixG^S,1:nw), w(ixG^S,1:nw), wold(ixG^S,1:nw)
 double precision :: dx^D, fC(ixG^S,1:nwflux,1:ndim)
 integer :: ixO^L
+character*79 :: method
 !-----------------------------------------------------------------------------
 dx^D=rnode(rpdx^D_,igrid);
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -510,146 +624,30 @@ typelimiter=typelimiter1(node(plevel_,igrid))
 typegradlimiter=typegradlimiter1(node(plevel_,igrid))
 
 ixO^L=ixG^L^LSUBdixB;
-!================================
-! 4th order FD
-!================================ 
-!call evolve_centdiff4(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
-!================================
-! TVDLF
-!================================ 
-call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+method="cd"
+select case (method)
+ case ("cd")
+   !================================
+   ! 4th order central difference
+   !================================ 
+   call centdiff4mf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+ case ("tvdlf")
+   !================================
+   ! TVDLF
+   !================================ 
+   call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+ case ("fd")
+   !================================
+   ! finite difference
+   !================================ 
+   call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+end select
 
 if (levmax>levmin) then
    call storeflux(igrid,fC,idim^LIM)
 end if
 
 end subroutine process1_gridmf
-!=============================================================================
-subroutine getfluxmf(w,x,ixI^L,ixO^L,iw,idims,f,transport)
-
-! Calculate non-transport flux f_idim[iw] within ixO^L.
-
-include 'amrvacdef.f'
-
-integer, intent(in)             :: ixI^L, ixO^L, iw, idims
-double precision, intent(in)    :: w(ixI^S,nw)
-double precision, intent(in)    :: x(ixI^S,1:ndim)
-double precision,intent(out)    :: f(ixI^S)
-!.. local ..
-logical :: transport
-integer :: idirmin, idir
-!-----------------------------------------------------------------------------
-transport=.true.
-
-select case (iw)
-   ! f_i[b_k]=v_i*b_k-m_k/rho*b_i
-   {case (b^C_)
-      if (idims==^C) then
-         ! f_i[b_i] should be exactly 0, so we do not use the transport flux
-         f(ixO^S)=zero
-         transport=.false.
-      else
-         f(ixO^S)= -w(ixO^S,b0_+idims)*w(ixO^S,v0_+^C)
-         if (B0field) then
-            f(ixO^S)=f(ixO^S) &
-                     +w(ixO^S,v0_+idims)*myB0%w(ixO^S,^C) &
-                     -myB0%w(ixO^S,idims)*w(ixO^S,v0_+^C)
-         end if
-      end if\}
-end select
-
-end subroutine getfluxmf
-!============================================================================= 
-subroutine frictional_velocity(w,x,ixI^L,ixO^L,qvmax,qdt)
-
-include 'amrvacdef.f'
-
-integer, intent(in) :: ixI^L, ixO^L
-double precision, intent(in) :: x(ixI^S,1:ndim),qdt,qvmax
-double precision, intent(inout) :: w(ixI^S,1:nw)
-
-double precision :: dxhm,disbd(5),bfzone^D
-integer :: ix^D
-logical :: buffer
-!-----------------------------------------------------------------------------
-dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-dxhm=cmf_c*cmf_y/qvmax*dxhm/qdt
-^C&w(ixO^S,v0_+^C)=w(ixO^S,v0_+^C)*dxhm;
-buffer=.true.
-if (buffer) then
-  bfzone1=0.05d0*(xprobmax1-xprobmin1)
-  bfzone2=0.05d0*(xprobmax2-xprobmin2)
-  bfzone3=0.05d0*(xprobmax3-xprobmin3)
-  {do ix^DB=ixOmin^DB,ixOmax^DB\}
-     disbd(1)=x(ix^D,1)-xprobmin1
-     disbd(2)=xprobmax1-x(ix^D,1)
-     disbd(3)=x(ix^D,2)-xprobmin2
-     disbd(4)=xprobmax2-x(ix^D,2)
-     disbd(5)=xprobmax3-x(ix^D,3)
-
-     if(disbd(1)<bfzone1) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(2)<bfzone1) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(3)<bfzone2) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(4)<bfzone2) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(5)<bfzone3) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,v1_:v3_)
-     endif
-  {end do\}
-end if
-end subroutine frictional_velocity
-!============================================================================= 
-subroutine vhat(w,x,ixI^L,ixO^L,vhatmaxgrid)
-
-! Calculate v_hat 
-
-include 'amrvacdef.f'
-
-integer, intent(in) :: ixI^L, ixO^L
-double precision, intent(inout)  :: w(ixI^S,nw)
-double precision, intent(in)  :: x(ixI^S,1:ndim)
-double precision, intent(out) :: vhatmaxgrid
-
-double precision              :: current(ixI^S,7-2*ndir:3),dxhm,tmp(ixI^S)
-integer :: idirmin,idir,jdir,kdir
-!-----------------------------------------------------------------------------
-
-call getcurrent(w,ixI^L,ixO^L,idirmin,current)
-w(ixI^S,v0_+1:v0_+ndir)=0.d0
-! calculate Lorentz force
-do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
-   if(lvc(idir,jdir,kdir)/=0)then
-      if(B0field) then
-        tmp(ixO^S)=current(ixO^S,jdir)*w(ixO^S,b0_+kdir)+myB0_cell%w(ixO^S,kdir)
-      else
-        tmp(ixO^S)=current(ixO^S,jdir)*w(ixO^S,b0_+kdir)
-      endif
-      if(lvc(idir,jdir,kdir)==1)then
-         w(ixO^S,v0_+idir)=w(ixO^S,v0_+idir)+tmp(ixO^S)
-      else
-         w(ixO^S,v0_+idir)=w(ixO^S,v0_+idir)-tmp(ixO^S)
-      endif
-   endif
-enddo; enddo; enddo
-
-if(B0field) then
-  tmp(ixO^S)=( ^C&(w(ixO^S,b^C_)+myB0%w(ixO^S,^C))**2+ )         ! |B|**2
-else
-  tmp(ixO^S)=( ^C&w(ixO^S,b^C_)**2+ )         ! |B|**2
-endif
-
-dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-^C&w(ixO^S,v^C_)=dxhm*w(ixO^S,v^C_)/tmp(ixO^S);
-vhatmaxgrid=maxval(dsqrt( ^C&w(ixO^S,v^C_)**2+ ))
-
-end subroutine vhat
 !============================================================================
 subroutine upwindLRmf(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,x,dxdim)
 
@@ -705,6 +703,41 @@ wLC(ixL^S,b1_:b3_)=wLtmp(ixL^S,b1_:b3_)
 wRC(ixR^S,b1_:b3_)=wRtmp(ixR^S,b1_:b3_)
 
 end subroutine upwindLRmf
+!=============================================================================
+subroutine getfluxmf(w,x,ixI^L,ixO^L,iw,idims,f,transport)
+
+! Calculate non-transport flux f_idim[iw] within ixO^L.
+
+include 'amrvacdef.f'
+
+integer, intent(in)             :: ixI^L, ixO^L, iw, idims
+double precision, intent(in)    :: w(ixI^S,nw)
+double precision, intent(in)    :: x(ixI^S,1:ndim)
+double precision,intent(out)    :: f(ixI^S)
+!.. local ..
+logical :: transport
+integer :: idirmin, idir
+!-----------------------------------------------------------------------------
+transport=.true.
+
+select case (iw)
+   ! f_i[b_k]=v_i*b_k-m_k/rho*b_i
+   {case (b^C_)
+      if (idims==^C) then
+         ! f_i[b_i] should be exactly 0, so we do not use the transport flux
+         f(ixO^S)=zero
+         transport=.false.
+      else
+         f(ixO^S)= -w(ixO^S,b0_+idims)*w(ixO^S,v0_+^C)
+         if (B0field) then
+            f(ixO^S)=f(ixO^S) &
+                     +w(ixO^S,v0_+idims)*myB0%w(ixO^S,^C) &
+                     -myB0%w(ixO^S,idims)*w(ixO^S,v0_+^C)
+         end if
+      end if\}
+end select
+
+end subroutine getfluxmf
 !=============================================================================
 subroutine tvdlfmf(qdt,ixI^L,ixO^L,idim^LIM, &
                      qtC,wCT,qt,wnew,wold,fC,dx^D,x)
@@ -853,7 +886,82 @@ if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
 end subroutine tvdlfmf
 !=============================================================================
-subroutine evolve_centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
+subroutine fdmf(qdt,ixI^L,ixO^L,idim^LIM, &
+                     qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+
+include 'amrvacdef.f'
+
+double precision, intent(in)                                     :: qdt, qtC, qt, dx^D
+integer, intent(in)                                              :: ixI^L, ixO^L, idim^LIM
+double precision, dimension(ixI^S,1:ndim), intent(in)            :: x
+
+double precision, dimension(ixI^S,1:nw), intent(inout)           :: wCT, wnew, wold
+double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
+
+double precision, dimension(ixI^S)                               :: fCT
+double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL
+double precision, dimension(ixI^S)                               :: v
+double precision                                                 :: dxinv(1:ndim), dxdims
+logical                                                          :: transport
+integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L, ixCR^L
+!-----------------------------------------------------------------------------
+
+
+^D&dxinv(^D)=-qdt/dx^D;
+do idims= idim^LIM
+
+   select case (idims)
+      {case (^D) 
+      dxdims = dx^D\}
+   end select
+   if (B0field) then
+      myB0 => myB0_cell
+   end if
+
+   ! Get fluxes for the whole grid (mesh+dixB)
+   {^D& ixCmin^D = ixOmin^D - dixB * kr(idims,^D)\}
+   {^D& ixCmax^D = ixOmax^D + dixB * kr(idims,^D)\}
+
+   hxO^L=ixO^L-kr(idims,^D);
+   ! ix is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
+   ixmax^D=ixOmax^D; ixmin^D=hxOmin^D;
+
+   ixCR^L=ixC^L;
+
+   do iw=b0_+1,b0_+ndir
+      call getfluxmf(wCT,x,ixG^LL,ixCR^L,iw,idims,fCT,transport)
+      if (transport) fCT(ixCR^S) = fCT(ixCR^S) + wCT(ixCR^S,v0_+idims) * wCT(ixCR^S,iw)
+      ! Lax-Friedrich splitting:
+      fp(ixCR^S,iw) = half * (fCT(ixCR^S) + tvdlfeps * cmax_global * wCT(ixCR^S,iw))
+      fm(ixCR^S,iw) = half * (fCT(ixCR^S) - tvdlfeps * cmax_global * wCT(ixCR^S,iw))
+   end do ! iw loop
+  
+   ! now do the reconstruction of fp and fm:
+   call reconstructL(ixI^L,ix^L,idims,fp,fpL,dxdims)
+   call reconstructR(ixI^L,ix^L,idims,fm,fmR,dxdims)
+
+   do iw=1,nwflux
+      if (slab) then
+         fC(ix^S,iw,idims) = dxinv(idims) * (fpL(ix^S,iw) + fmR(ix^S,iw))
+         wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+              (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+      else
+         select case (idims)
+         {case (^D)
+            fC(ix^S,iw,^D)=-qdt*mygeo%surfaceC^D(ix^S) * (fpL(ix^S,iw) + fmR(ix^S,iw))
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+              (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+         end select
+      end if
+   end do ! iw loop
+
+end do !idims loop
+
+if (.not.slab) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+
+end subroutine fdmf
+!=============================================================================
+subroutine centdiff4mf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
 
 ! Advance the flow variables from t to t+qdt within ixO^L by
 ! fourth order centered differencing in space 
@@ -933,8 +1041,9 @@ do idims= idim^LIM
       ! f_i+1/2= (-f_(i+2) +7 f_(i+1) + 7 f_i - f_(i-1))/12
       fC(ixC^S,iw,idims)=(-f(kxC^S)+7.0d0*(f(jxC^S)+f(ixC^S))-f(hxC^S))/12.0d0
       ! add rempel dissipative flux, only second order version for now
-      ! one could gradually reduce the dissipative flux to improve solutions for computing steady states (Keppens et al. 2003, JCP)
-      fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-half*vLC(ixC^S) &
+      ! one could gradually reduce the dissipative flux to improve solutions 
+      ! for computing steady states (Keppens et al. 2003, JCP)
+      fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-tvdlfeps*half*vLC(ixC^S) &
                                      *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
 
       if (slab) then
@@ -953,7 +1062,7 @@ do idims= idim^LIM
 end do       !next idims
 if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
 
-end subroutine evolve_centdiff4
+end subroutine centdiff4mf
 !!=============================================================================
 subroutine getdtfff_courant(w,x,ixI^L,ixO^L,dtnew)
 
@@ -1010,7 +1119,7 @@ if(B0field) then
 else
   cmax(ixO^S)=dsqrt((^C&w(ixO^S,b^C_)**2+ )/w(ixO^S,rho_))
 endif
- cmax(ixO^S)=cmax(ixO^S)+dabs(w(ixO^S,v0_+idims))
+cmax(ixO^S)=cmax(ixO^S)+dabs(w(ixO^S,v0_+idims))
 
 end subroutine getcmaxfff
 !=============================================================================
@@ -1027,7 +1136,7 @@ double precision :: divb(ixI^S),graddivb(ixI^S),bdivb(ixI^S,1:ndir)
 !-----------------------------------------------------------------------------
 
 ! Calculate div B
-ix^L=ixO^L^LADD1;
+ix^L=ixI^L^LSUB1;
 call getdivb(w,ixI^L,ix^L,divb)
 
 ! Add Linde's diffusive terms
