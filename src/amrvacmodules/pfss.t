@@ -8,6 +8,9 @@
 !  1. 3D spherical coordinates: "setup.pl -d=33 -phi=3", typeaxial='spherical'
 !  2. A synoptic magnetogram in a binary file contains nphi, ntheta, 
 !     theta(ntheta), phi(nphi), B_r(nphi,ntheta) succesively.
+!  3. nphi, ntheta are long integers and other arrays are double precision.
+!     theta contains  decreasing radians with increasing indice (Pi to 0) 
+!     phi contains increasing radians with increasing indice (0 to 2*Pi)
 ! USAGE:
 !   example for a magnetogram with name 'mdicr2020.dat':
 !  !==========================================================================
