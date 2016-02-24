@@ -3,12 +3,12 @@ subroutine magnetofriction
 
 include 'amrvacdef.f'
 
-integer :: i,iigrid, igrid, idims,count_reject,ix^D,ncellpe,ncell,hxM^LL
+integer :: i,iigrid, igrid, idims,count_reject,ix^D,,hxM^LL
 double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
 double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
-double precision :: f_i_ipe,f_i
+double precision :: f_i_ipe,f_i,volumepe,volume
 double precision, external :: integral_grid
 integer, save :: fhmf
 logical :: patchwi(ixG^T)
@@ -180,7 +180,7 @@ subroutine metrics
 sum_jbb_ipe = 0.d0
 sum_j_ipe = 0.d0
 f_i_ipe = 0.d0
-ncellpe=0
+volumepe=0.d0
 do iigrid=1,igridstail; igrid=igrids(iigrid);
   if (.not.slab) mygeo => pgeo(igrid)
   if (B0field) then
@@ -203,7 +203,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
     end do
   end if
   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchwi,ncellpe)
+  call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
   sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
     px(igrid)%x,1,patchwi)
   sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
@@ -217,14 +217,41 @@ call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
    icomm,ierrmpi)
 call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
    icomm,ierrmpi)
-call MPI_ALLREDUCE(ncellpe,ncell,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
+call MPI_ALLREDUCE(volumepe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+   icomm,ierrmpi)
 ! sin of the j weighted mean angle between current and magnetic field
 cwsin_theta_new = sum_jbb/sum_j
 ! mean normalized divergence of magnetic field
-f_i = f_i/dble(ncell)
+f_i = f_i/volume
 
 end subroutine metrics
 !=============================================================================
+subroutine mask_inner(ixI^L,ixO^L,w,x)
+
+integer, intent(in)         :: ixI^L,ixO^L
+double precision, intent(in):: w(ixI^S,nw),x(ixI^S,1:ndim)
+double precision            :: x0min1,x0max1,x0min2,x0max2,x0min3,x0max3
+integer                     :: ix^D
+!-----------------------------------------------------------------------------
+x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
+x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
+x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
+x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
+x0min3 = xprobmin3
+x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
+{do ix^DB=ixOmin^DB,ixOmax^DB\}
+    if(x(ix^D,1) > x0min1 .and. x(ix^D,1) < x0max1 .and. &
+       x(ix^D,2) > x0min2 .and. x(ix^D,2) < x0max2 .and. &
+       x(ix^D,3) > x0min3 .and. x(ix^D,3) < x0max3) then
+      patchwi(ix^D)=.true.
+      volumepe=volumepe+dvolume(ix^D)
+    else
+      patchwi(ix^D)=.false.
+    endif
+{end do\}
+return
+end subroutine mask_inner
+!============================================================================= 
 subroutine printlog_mf
 integer :: amode, status(MPI_STATUS_SIZE)
 character(len=800) :: filename,filehead
@@ -317,7 +344,7 @@ select case(iw)
   call divvector(bvec,ixI^L,ixO^L,tmp)
   {do ix^DB=ixOmin^DB,ixOmax^DB\}
      if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+dabs(tmp(ix^D))*&
-           dvolume(ix^D)/dsqrt(^C&bvec(ix^D,^C)**2+)/dsurface(ix^D)
+           dvolume(ix^D)**2/dsqrt(^C&bvec(ix^D,^C)**2+)/dsurface(ix^D)
   {end do\}
 end select
 return
@@ -327,35 +354,6 @@ end function integral_grid_mf
 !=============================================================================
 end subroutine magnetofriction
 !=============================================================================
-subroutine mask_inner(ixI^L,ixO^L,w,x,patchwi,cellcount)
-
-include 'amrvacdef.f'
-
-integer, intent(in)                :: ixI^L,ixO^L
-double precision, intent(in)       :: w(ixI^S,nw),x(ixI^S,1:ndim)
-double precision                   :: x0min1,x0max1,x0min2,x0max2,x0min3,x0max3
-logical, intent(inout)             :: patchwi(ixI^S)
-integer                            :: ix^D, cellcount
-!-----------------------------------------------------------------------------
-x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
-x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
-x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
-x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
-x0min3 = xprobmin3
-x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
-{do ix^DB=ixOmin^DB,ixOmax^DB\}
-    if(x(ix^D,1) > x0min1 .and. x(ix^D,1) < x0max1 .and. &
-       x(ix^D,2) > x0min2 .and. x(ix^D,2) < x0max2 .and. &
-       x(ix^D,3) > x0min3 .and. x(ix^D,3) < x0max3) then
-      patchwi(ix^D)=.true.
-      cellcount=cellcount+1
-    else
-      patchwi(ix^D)=.false.
-    endif
-{end do\}
-return
-end subroutine mask_inner
-!============================================================================= 
 subroutine mf_velocity_update(pwa,dtfff)
 
 include 'amrvacdef.f'

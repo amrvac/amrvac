@@ -54,7 +54,7 @@ module mod_physicaldata
    type geoalloc
       double precision, dimension(:^D&), pointer :: dvolume
       double precision, dimension(:^D&), pointer :: surfaceC^D,surface^D
-      double precision, dimension(:^D&,:), pointer :: dx
+      double precision, dimension(:^D&,:), pointer :: dx,x
    end type geoalloc
 
    type(geoalloc), dimension(ngridshi), target :: pgeo, pgeoCoarse, pgeoCoCo

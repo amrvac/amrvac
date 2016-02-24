@@ -7,7 +7,7 @@ select case (typeaxial)
 case ("spherical") {^IFTHREED
   ! For spherical grid, check whether phi-direction is periodic
   if(periodB(ndim)) then
-    if(^PHI/=3) call mpistop("set setamrvac -phi=3 and recompile")
+    if(^PHI/=3) call mpistop("do setup.pl -phi=3 and recompile")
     if(mod(ng3(1),2)/=0) &
       call mpistop("Number of meshes in phi-direction should be even!")
     if(abs(xprobmin2)<smalldouble) then
@@ -61,6 +61,7 @@ end if
 allocate(pgeo(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
          pgeo(igrid)%surface^D(ixmin^D-1:ixmax^D^D%ix^S), &
          pgeo(igrid)%dvolume(ixGext^S), &
+         pgeo(igrid)%x(ixGext^S,1:ndim),&
          pgeo(igrid)%dx(ixGext^S,1:ndim))
 
 dx^D=rnode(rpdx^D_,igrid);
@@ -81,6 +82,7 @@ if (errorestimate==1) then
    allocate(pgeoCoarse(igrid)%surfaceC^D(ixComin^D-1:ixComax^D^D%ixCo^S), &
         pgeoCoarse(igrid)%surface^D(ixComin^D-1:ixComax^D^D%ixCo^S), &
         pgeoCoarse(igrid)%dvolume(ixGext^S), &
+        pgeoCoarse(igrid)%x(ixGext^S,1:ndim),&
         pgeoCoarse(igrid)%dx(ixGext^S,1:ndim))
 
    dx^D=two*rnode(rpdx^D_,igrid);
@@ -123,14 +125,14 @@ integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
 if (errorestimate==1) then
    deallocate(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D,&
-        pgeo(igrid)%dvolume,pgeo(igrid)%dx, &
+        pgeo(igrid)%dvolume,pgeo(igrid)%dx,pgeo(igrid)%x, &
         pgeoCoarse(igrid)%surfaceC^D,pgeoCoarse(igrid)%surface^D,&
         pgeoCoarse(igrid)%dvolume,pgeoCoarse(igrid)%dx,&
         pgeoCoCo(igrid)%dvolume)
    
 else
    deallocate(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D,&
-              pgeo(igrid)%dvolume,pgeo(igrid)%dx,pgeoCoarse(igrid)%dvolume)
+              pgeo(igrid)%dvolume,pgeo(igrid)%dx,pgeo(igrid)%x,pgeoCoarse(igrid)%dvolume)
 end if
 
 end subroutine putgridgeo
@@ -185,7 +187,6 @@ case ("spherical")
          end do\}
       end select
    end do
-
    if(typespherical==0) then
      pgeogrid%dvolume(ixGext^S)=(x(ixGext^S,1)**2+dx1**2/12.0d0)*dx1 {^NOONED &
               *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
@@ -196,6 +197,7 @@ case ("spherical")
 
    if (need_only_volume) return
 
+   pgeogrid%x(ixGext^S,1:ndim)=x(ixGext^S,1:ndim)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    if(typespherical==0) then
@@ -248,6 +250,7 @@ case ("cylindrical")
 
    if (need_only_volume) return
 
+   pgeogrid%x(ixGext^S,1)=x(ixGext^S,1)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    !!pgeogrid%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
@@ -323,9 +326,9 @@ else
       qC(ixC^S)=mygeo%surfaceC^D(ixC^S)*half*(q(ixC^S)+q(jxC^S))
       gradq(ix^S)=(qC(ix^S)-qC(hx^S))/mygeo%dvolume(ix^S)
       ! Substract difference divergence and gradient
-      gradq(ix^S)=gradq(ix^S)-q(ix^S) &
-                     *(mygeo%surfaceC^D(ix^S)-mygeo%surfaceC^D(hx^S)) &
-                    /mygeo%dvolume(ix^S) \}
+      !gradq(ix^S)=gradq(ix^S)-q(ix^S) &
+      !               *(mygeo%surfaceC^D(ix^S)-mygeo%surfaceC^D(hx^S)) &
+      !              /mygeo%dvolume(ix^S) \}
    end select
 end if
 
@@ -487,34 +490,64 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
       tmp(ix^S)=qvec(ix^S,kdir)
       hxO^L=ixO^L-kr(jdir,^D);
       jxO^L=ixO^L+kr(jdir,^D);
-      if(slab)then
+      select case(typeaxial)
+        case('slab')
 {#IFDEF FOURTHORDER
-      kxO^L=ixO^L+2*kr(jdir,^D);
-      gxO^L=ixO^L-2*kr(jdir,^D);
-      tmp2(ixO^S)=(-tmp(kxO^S) + 8.0d0 * tmp(jxO^S) - 8.0d0 * tmp(hxO^S) + tmp(gxO^S)) &
+         kxO^L=ixO^L+2*kr(jdir,^D);
+         gxO^L=ixO^L-2*kr(jdir,^D);
+         tmp2(ixO^S)=(-tmp(kxO^S) + 8.0d0 * tmp(jxO^S) - 8.0d0 * tmp(hxO^S) + tmp(gxO^S)) &
            / (12.0d0 * dxlevel(jdir))
 }
 {#IFNDEF FOURTHORDER
          tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
 }
-      else
-         ! approximate formula, reduces to slab case
-         ! and avoids staggering
-
-         if (kdir .le. ndim) then 
-            mydx(ix^S)=mygeo%dx(ix^S,kdir)
-         else 
-            mydx(ix^S)=one
+        case('spherical')
+         select case(jdir)
+            case(1)
+             tmp(ixI^S)=tmp(ixI^S)*mygeo%x(ixI^S,1)
+             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/(mygeo%x(ixO^S,1)*mygeo%dx(ixO^S,1))
+   {^NOONED case(2)
+             mydx(ixO^S)=mygeo%dx(ixO^S,2)
+             if(idir==1) then
+                tmp(ixI^S)=tmp(ixI^S)*dsin(mygeo%x(ixI^S,2))
+                mydx(ixO^S)=dsin(mygeo%x(ixO^S,2))*mydx(ixO^S)
+             endif
+             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)}
+ {^IFTHREED case(3)
+             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
+         end select
+        case('cylindrical')
+         if(^Z==3) then
+           select case(jdir)
+              case(1)
+               mydx(ixO^S)=mygeo%dx(ixO^S,1)
+               if(idir==3) then
+                  tmp(ixI^S)=tmp(ixI^S)*mygeo%x(ixI^S,1)
+                  mydx(ixO^S)=mygeo%x(ixO^S,1)*mydx(ixO^S)
+               endif
+               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)
+     {^NOONED case(2)
+               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,2)}
+   {^IFTHREED case(3)
+               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
+           end select
          end if
-
-         select case(idir)
-           {case(^D)
-             surface(ixO^S)=mygeo%surface^D(ixO^S)
-             tmp2(ixO^S)=half*(mydx(jxO^S)*tmp(jxO^S) &
-                              -mydx(hxO^S)*tmp(hxO^S)) &
-                     /surface(ixO^S) \}
-          end select
-      endif
+         if(^PHI==3) then
+           select case(jdir)
+              case(1)
+               mydx(ixO^S)=mygeo%dx(ixO^S,1)
+               if(idir==2) then
+                  tmp(ixI^S)=tmp(ixI^S)*mygeo%x(ixI^S,1)
+                  mydx(ixO^S)=mygeo%x(ixO^S,1)*mydx(ixO^S)
+               endif
+               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)
+     {^NOONED case(2)
+               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,2)}
+   {^IFTHREED case(3)
+               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
+           end select
+         end if
+      end select
       if(lvc(idir,jdir,kdir)==1)then
          curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp2(ixO^S)
       else
