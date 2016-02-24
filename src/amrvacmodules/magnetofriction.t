@@ -3,7 +3,7 @@ subroutine magnetofriction
 
 include 'amrvacdef.f'
 
-integer :: i,iigrid, igrid, idims,count_reject,ix^D,,hxM^LL
+integer :: i,iigrid, igrid, idims,count_reject,ix^D,hxM^LL
 double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
 double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: cwsin_theta_new,cwsin_theta_old
