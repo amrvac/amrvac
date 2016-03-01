@@ -200,6 +200,7 @@ end if
 
 if(bcphys) then
   do iigrid=1,igridstail; igrid=igrids(iigrid);
+     saveigrid=igrid
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      do idims=1,ndim
         ! to avoid using as yet unknown corner info in more than 1D, we
