@@ -3,14 +3,13 @@ subroutine magnetofriction
 
 include 'amrvacdef.f'
 
-integer :: i,iigrid, igrid, idims,count_reject,ix^D,hxM^LL
+integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf
 double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
-double precision :: cmf_y0,cmf_divb0,dvolume(ixG^T),dsurface(ixG^T),dvone
+double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
 double precision :: f_i_ipe,f_i,volumepe,volume
 double precision, external :: integral_grid
-integer, save :: fhmf
 logical :: patchwi(ixG^T)
 !-----------------------------------------------------------------------------
 
@@ -33,9 +32,6 @@ end do
 tmf=0.d0
 dtfff=1.d-2
 i=0
-count_reject=0
-cmf_y0=cmf_y
-cmf_divb0=cmf_divb
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
@@ -87,57 +83,8 @@ do
 
   ! calculate metrics
   call metrics
-  if(i>60000) then
-  if (cwsin_theta_new >= cwsin_theta_old) then
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      pw(igrid)%w(ixG^T,b0_+1:b0_+ndir)=pwold(igrid)%w(ixG^T,b0_+1:b0_+ndir)
-    end do
-    cmf_y=cmf_y/1.3d0
-    cmf_divb=cmf_divb/1.3d0
-    count_reject=count_reject+1
-    if (.false. .and.  modulo(count_reject,10) == 0 .and. mype == 0) then
-      if (count_reject == 1) write(*,*) "itmf=",i
-      write (*,*) 'rejection count:',count_reject
-      write (*,*) 'The update of the magnetic field has been rejected because <CW sin theta> &
-                   does not decrease.'
-      !write (*,*) 'cmf_y, cmf_divb:',cmf_y,cmf_divb
-      write (*,*) '<CW sin theta> old:',cwsin_theta_old
-      write (*,*) '<CW sin theta> new:',cwsin_theta_new
-      !write (*,*) '<f_i>:',f_i
-    end if
-    if (count_reject == 100 .or. cmf_y <= smalldouble) then
-      if (mype==0) then
-        write (*,*) 'The magnetofrictional iteration has been terminated because cmf_y has been &
-                     decreased for 100 consecutive times or cmf_y is too small!'
-        write (*,*) 'The total iteration step is:', i
-      end if
-      exit
-    endif
-    cycle
-  else
-    if (.false. .and. count_reject > 0 .and. mype == 0) then
-      write(*,*) "itmf=",i
-      write (*,*) 'Successfully update the magnetic field after decreasing cmf_y and cmf_divb!'
-      !write (*,*) 'cmf_y, cmf_divb:',cmf_y,cmf_divb
-      write (*,*) '<CW sin theta> old:',cwsin_theta_old
-      write (*,*) '<CW sin theta> new:',cwsin_theta_new
-      !write (*,*) '<f_i>:',f_i 
-    end if
-    count_reject=0
-    cmf_y=1.1d0*cmf_y
-    cmf_divb=1.1d0*cmf_divb
-    !We take a strategy to increase the magnetofrictional velocity as iteration step grows
-    !because the magnetic field between the bottom boundary and the physical domain has large 
-    !difference initially. But it dereases gradually, hence a larger velocity is allowed.
-    if (i>1 .and. mod(i,1000)==0) then
-      cmf_y0=min(1.0d0,cmf_y0*2.0)
-      cmf_divb0=min(1.0d0,cmf_divb0*2.0)
-    end if
-    cmf_y = min(cmf_y0,cmf_y)
-    cmf_divb = min(cmf_divb0,cmf_divb)
-  end if
-  end if
-
+  ! reconstruct AMR grid every 10 step
+  if(mod(i,10)==0) call resettree
   i=i+1
   tmf=tmf+dtfff
   if(mod(i,10)==0 .and. mype==0) call printlog_mf
@@ -233,12 +180,22 @@ double precision, intent(in):: w(ixI^S,nw),x(ixI^S,1:ndim)
 double precision            :: x0min1,x0max1,x0min2,x0max2,x0min3,x0max3
 integer                     :: ix^D
 !-----------------------------------------------------------------------------
-x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
-x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
-x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
-x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
-x0min3 = xprobmin3
-x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
+if(slab) then
+  x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
+  x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
+  x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
+  x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
+  x0min3 = xprobmin3
+  x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
+else
+  x0min1 = xprobmin1
+  x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
+  x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
+  x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
+  x0min3 = xprobmin3 + 0.05d0*(xprobmax3-xprobmin3)
+  x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
+end if
+
 {do ix^DB=ixOmin^DB,ixOmax^DB\}
     if(x(ix^D,1) > x0min1 .and. x(ix^D,1) < x0max1 .and. &
        x(ix^D,2) > x0min2 .and. x(ix^D,2) < x0max2 .and. &
@@ -249,7 +206,7 @@ x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
       patchwi(ix^D)=.false.
     endif
 {end do\}
-return
+
 end subroutine mask_inner
 !============================================================================= 
 subroutine printlog_mf
@@ -453,34 +410,60 @@ dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
 dxhm=cmf_c*cmf_y/qvmax*dxhm/qdt
 ! dxhm=cmf_c*cmf_y/qvmax
 ^C&w(ixO^S,v0_+^C)=w(ixO^S,v0_+^C)*dxhm;
-buffer=.false.
+buffer=.true.
 if (buffer) then
   bfzone1=0.05d0*(xprobmax1-xprobmin1)
   bfzone2=0.05d0*(xprobmax2-xprobmin2)
   bfzone3=0.05d0*(xprobmax3-xprobmin3)
-  {do ix^DB=ixOmin^DB,ixOmax^DB\}
-     disbd(1)=x(ix^D,1)-xprobmin1
-     disbd(2)=xprobmax1-x(ix^D,1)
-     disbd(3)=x(ix^D,2)-xprobmin2
-     disbd(4)=xprobmax2-x(ix^D,2)
-     disbd(5)=xprobmax3-x(ix^D,3)
+  if(slab) then
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       disbd(1)=x(ix^D,1)-xprobmin1
+       disbd(2)=xprobmax1-x(ix^D,1)
+       disbd(3)=x(ix^D,2)-xprobmin2
+       disbd(4)=xprobmax2-x(ix^D,2)
+       disbd(5)=xprobmax3-x(ix^D,3)
 
-     if(disbd(1)<bfzone1) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(2)<bfzone1) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(3)<bfzone2) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(4)<bfzone2) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,v1_:v3_)
-     endif
-     if(disbd(5)<bfzone3) then
-       w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,v1_:v3_)
-     endif
-  {end do\}
+       if(disbd(1)<bfzone1) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(2)<bfzone1) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(3)<bfzone2) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(4)<bfzone2) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(5)<bfzone3) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,v1_:v3_)
+       endif
+    {end do\}
+  else
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       disbd(2)=xprobmax1-x(ix^D,1)
+       disbd(3)=x(ix^D,2)-xprobmin2
+       disbd(4)=xprobmax2-x(ix^D,2)
+       disbd(5)=xprobmax3-x(ix^D,3)
+       disbd(1)=x(ix^D,3)-xprobmin3
+
+       if(disbd(2)<bfzone1) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(3)<bfzone2) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(4)<bfzone2) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(5)<bfzone3) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,v1_:v3_)
+       endif
+       if(disbd(1)<bfzone3) then
+         w(ix^D,v1_:v3_)=(1.d0-((bfzone3-disbd(1))/bfzone3)**2)*w(ix^D,v1_:v3_)
+       endif
+    {end do\}
+  end if
 end if
 end subroutine frictional_velocity
 !=============================================================================
