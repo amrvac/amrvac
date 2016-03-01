@@ -788,7 +788,7 @@ case default
 end select
 
 ! opedit: Flush stdout and stderr from time to time.
-call flush(unitterm)
+flush(unit=unitterm)
 
 end subroutine saveamrfile
 !=============================================================================
