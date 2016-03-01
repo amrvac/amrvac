@@ -64,7 +64,7 @@ double precision, intent(in) :: qLunit,qBunit
 double precision :: xc1,xc2,dxm1,dxm2
 integer, dimension(MPI_STATUS_SIZE) :: statuss
 integer :: file_handle,i
-character(len=80), intent(in) :: magnetogramname
+character(len=*), intent(in) :: magnetogramname
 logical :: aexist
 !-----------------------------------------------------------------------------
 ! nx1,nx2 are numbers of cells for each direction
