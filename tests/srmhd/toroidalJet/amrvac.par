@@ -60,7 +60,7 @@
 
 
 &amrlist
-        errorestimate     = 4
+        errorestimate     = 3
         flags(12)         = 2
         flags(1)          = 1
         flags(2)          = 10

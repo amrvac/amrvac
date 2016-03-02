@@ -65,46 +65,34 @@ if (checkprimitive) then
   if(useprimitiveRel)then
      ! check   rho>=0, p>=smallp
      flag(ixO^S) = (w(ixO^S,rho_) > minrho).and. &
-                   (w(ixO^S,pp_)  >=minp &
-{#IFDEF EPSINF         .and. w(ixO^S,rho1_) > minrho&
-                    .and. w(ixO^S,n_) > minrho})
+                   (w(ixO^S,pp_)  >=minp)
   else
     ! check  v^2 < 1, rho>=0, p>=minp
      ! v^2 < 1, rho>0, p>0
      flag(ixO^S) = (({^C&w(ixO^S,v^C_)**2.0d0+})< one).and. &
                    (w(ixO^S,rho_) > minrho).and. &
-                   (w(ixO^S,pp_) >=minp&
-{#IFDEF EPSINF         .and. w(ixO^S,rho1_) > minrho&
-                    .and. w(ixO^S,n_) > minrho})
+                   (w(ixO^S,pp_) >=minp)
   endif
 else
   ! checks on the conservative variables
   flag(ixO^S)= (w(ixO^S,d_)   > minrho).and. &
-               (w(ixO^S,tau_) > smalltau&
-{#IFDEF EPSINF         .and. w(ixO^S,Drho1_) > minrho&
-                    .and. w(ixO^S,Dn_) > minrho})
+               (w(ixO^S,tau_) > smalltau)
 end if
 }
 {#IFNDEF ENERGY
 if (checkprimitive) then
   if(useprimitiveRel)then
      ! check   rho>=0
-     flag(ixO^S) = (w(ixO^S,rho_) > minrho &
-{#IFDEF EPSINF         ).and. w(ixO^S,rho1_) > minrho&
-                    .and. w(ixO^S,n_) > minrho})
+     flag(ixO^S) = (w(ixO^S,rho_) > minrho)
   else
     ! check  v^2 < 1, rho>=0
      ! v^2 < 1, rho>0, p>0
      flag(ixO^S) = (({^C&w(ixO^S,v^C_)**2.0d0+})< one).and. &
-                   (w(ixO^S,rho_) > minrho &
-{#IFDEF EPSINF          .and. w(ixO^S,rho1_) > minrho&
-                    .and. w(ixO^S,n_) > minrho})
+                   (w(ixO^S,rho_) > minrho)
   endif
 else
   ! checks on the conservative variables
-  flag(ixO^S)= (w(ixO^S,d_)   > minrho &
-{#IFDEF EPSINF         .and. w(ixO^S,Drho1_) > minrho&
-                    .and. w(ixO^S,Dn_) > minrho})
+  flag(ixO^S)= (w(ixO^S,d_)   > minrho)
 end if
 }
 
@@ -180,11 +168,11 @@ endwhere
 
 {#IFDEF EPSINF
 where(.not.patchw(ixO^S))
-   w(ixO^S,Drho1_) =w(ixO^S,rho1_)*w(ixO^S,lfac_)
-   w(ixO^S,Drho0_) =w(ixO^S,Drho1_)*w(ixO^S,rho0_)
    w(ixO^S,Dn_) =w(ixO^S,n_)*w(ixO^S,lfac_)
    w(ixO^S,Dn0_) =w(ixO^S,Dn_)*w(ixO^S,n0_)
-   w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Drho1_)**(2.0d0/3.0d0) &
+   w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
+        *w(ixO^S,lfac_)**(1.0d0/3.0d0)
+   w(ixO^S,Depslow_) = w(ixO^S,epslow_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
         *w(ixO^S,lfac_)**(1.0d0/3.0d0)
 endwhere
 }
@@ -283,15 +271,14 @@ where(.not.patchw(ixO^S))
 endwhere
 }{#IFDEF EPSINF
 where(.not.patchw(ixO^S))
-   w(ixO^S,Drho1_) =w(ixO^S,rho1_)*w(ixO^S,lfac_)
-   w(ixO^S,Drho0_) =w(ixO^S,Drho1_)*w(ixO^S,rho0_)
    w(ixO^S,Dn_) =w(ixO^S,n_)*w(ixO^S,lfac_)
    w(ixO^S,Dn0_) =w(ixO^S,Dn_)*w(ixO^S,n0_)
-   w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Drho1_)**(2.0d0/3.0d0) &
+   w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
+        *w(ixO^S,lfac_)**(1.0d0/3.0d0)
+   w(ixO^S,Depslow_) = w(ixO^S,epslow_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
         *w(ixO^S,lfac_)**(1.0d0/3.0d0)
 endwhere
 }
-
 ! fill the vector S
 ! s= (xi + B^2) * v - (v.B) * B
 if(useprimitiveRel)then
@@ -366,12 +353,12 @@ endif
 }
 
 {#IFDEF EPSINF
-w(ixO^S,rho1_)   = w(ixO^S,Drho1_)/w(ixO^S,lfac_)
-w(ixO^S,rho0_)   = w(ixO^S,Drho0_)/w(ixO^S,lfac_)/w(ixO^S,rho1_)
 w(ixO^S,n_)   = w(ixO^S,Dn_)/w(ixO^S,lfac_)
 w(ixO^S,n0_)   = w(ixO^S,Dn0_)/w(ixO^S,lfac_)/w(ixO^S,n_)
 w(ixO^S,epsinf_) = w(ixO^S,Depsinf_)/(w(ixO^S,lfac_) &
-     *w(ixO^S,rho1_)**(2.0d0/3.0d0))
+     *w(ixO^S,n_)**(2.0d0/3.0d0))
+w(ixO^S,epslow_) = w(ixO^S,Depslow_)/(w(ixO^S,lfac_) &
+     *w(ixO^S,n_)**(2.0d0/3.0d0))
 }
 
 {#IFDEF ENERGY
@@ -431,12 +418,12 @@ endwhere
 }
 {#IFDEF EPSINF
 where(.not.patchw(ixO^S))
-w(ixO^S,rho1_)   = w(ixO^S,Drho1_)/w(ixO^S,lfac_)
-w(ixO^S,rho0_)   = w(ixO^S,Drho0_)/w(ixO^S,lfac_)/w(ixO^S,rho1_)
-w(ixO^S,n_)      = w(ixO^S,Dn_)/w(ixO^S,lfac_)
-w(ixO^S,n0_)     = w(ixO^S,Dn0_)/w(ixO^S,lfac_)/w(ixO^S,n_)
+w(ixO^S,n_)   = w(ixO^S,Dn_)/w(ixO^S,lfac_)
+w(ixO^S,n0_)   = w(ixO^S,Dn0_)/w(ixO^S,lfac_)/w(ixO^S,n_)
 w(ixO^S,epsinf_) = w(ixO^S,Depsinf_)/(w(ixO^S,lfac_) &
-     *w(ixO^S,rho1_)**(2.0d0/3.0d0))
+     *w(ixO^S,n_)**(2.0d0/3.0d0))
+w(ixO^S,epslow_) = w(ixO^S,Depslow_)/(w(ixO^S,lfac_) &
+     *w(ixO^S,n_)**(2.0d0/3.0d0))
 end where
 }
 end subroutine primitiven
@@ -1047,9 +1034,7 @@ if (iw==d_) then
 {#IFDEF EPSINF
 else if (iw==epsinf_) then 
       f(ixO^S)=zero
-else if (iw==rho0_) then 
-      f(ixO^S)=zero
-else if (iw==rho1_) then 
+else if (iw==epslow_) then 
       f(ixO^S)=zero
 else if (iw==n0_) then 
       f(ixO^S)=zero
@@ -1141,9 +1126,7 @@ if (iw==d_) then
 {#IFDEF EPSINF
 else if (iw==epsinf_) then 
       f(ixO^S,iw)=zero
-else if (iw==rho0_) then 
-      f(ixO^S,iw)=zero
-else if (iw==rho1_) then 
+else if (iw==epslow_) then 
       f(ixO^S,iw)=zero
 else if (iw==n0_) then 
       f(ixO^S,iw)=zero

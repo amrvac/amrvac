@@ -13,10 +13,17 @@
 ############################################################################
 
 # The Makefile should always use the sh shell.
-SHELL = /bin/sh
-amrvac:
+SHELL         = /bin/sh
 
-ARCH          = mpif90intel.defs
+# The preprocessed *.f files will be put into a separate subfolder
+FOBJECT_DIR   = F90sources
+OBJ_DIR       = Build
+
+ifndef $(WORK_DIR)
+WORK_DIR      = $(CURDIR)
+endif
+
+ARCH          = gfortran.defs
 SRC           = $(AMRVAC_DIR)/src
 
 include $(AMRVAC_DIR)/arch/$(ARCH)
@@ -24,7 +31,7 @@ include $(AMRVAC_DIR)/arch/$(ARCH)
 ############## setup.pl: #######################
 PHYSICS       = srmhd
 
-VPATH         =  $(SRC)/$(PHYSICS):$(SRC):$(SRC)/modules
+VPATH         =  $(WORK_DIR):$(SRC)/$(PHYSICS):$(SRC)
 INCLUDE_DIRS  += -I.
 ################################################
 
@@ -45,8 +52,7 @@ PPFLAGS += -z=$(z) -p=$(PHYSICS) -nf=$(nf)
 PPFLAGS += -ndust=$(ndust)
 PPFLAGS += -eos=$(eos)
 
-# ... For the compilation rules:
-#
+# For the compilation rules:
 VACPP =$(AMRVAC_DIR)/src/vacpp.pl #
 
 ############################################################################
@@ -65,87 +71,108 @@ I=.i
 ######                                                                 #######
 ##############################################################################
 
-################# Definitions for source files #############################
-
-INCLUDES += amrvacpar$F amrvacusrpar$F mod_indices$F mod_physicaldata$F \
-mod_fix_conserve$F mod_connectivity$F \
-amrvacdef$F amrvacsettings$F $(MAKE_)
-
-FOBJECTS =	\
-mod_physicaldata$F	mod_indices$F		initialize_vars$F	\
-amrvac$F		advance$F		setdt$F			            \
-amrini$F		amrio$F			                        \
-amr_solution_node$F	                                        \
-errest$F		amrgrid$F		amr_fix_conserve$F	        \
-amr_ghostcells$F	amrvacphys$F		amrvacusr$F		    \
-tvdlf$F			tvd$F			cd$F			            \
-fd$F                                                                     \
-load_balance$F		connectivity$F		mod_fix_conserve$F	\
-mod_connectivity$F	boundary_conditions$F   comm_lib$F		\
-forest$F		mod_forest$F		amr_neighbors$F		    \
-amr_coarsen_refine$F	geometry$F		refine$F		    \
-coarsen$F		convert$F		set_B0$F                    \
-kracken$F               selectgrids$F                       \
-
-OBJECTS =	\
-mod_physicaldata.o	mod_indices.o		initialize_vars.o	\
-amrvac.o		advance.o		setdt.o			            \
-amrini.o                amrio.o      		    \
-amr_solution_node.o                                                    \
-errest.o		amrgrid.o		amr_fix_conserve.o	        \
-amr_ghostcells.o	amrvacphys.o		                    \
-amrvacusr.o		                                            \
-tvdlf.o			tvd.o			cd.o			            \
-fd.o                                                                     \
-load_balance.o		connectivity.o		mod_fix_conserve.o	\
-mod_connectivity.o      boundary_conditions.o	comm_lib.o	\
-forest.o		mod_forest.o		amr_neighbors.o		    \
-amr_coarsen_refine.o	geometry.o		refine.o		    \
-coarsen.o		convert.o		set_B0.o                    \
-kracken.o               selectgrids.o                       \
+# Default target
+amrvac:
 
 
-################### Include additional objects in physics dir #############
+################### Include the files in the src-dir #######################
+-include $(SRC)/makefile
+
+################### Include the geometry sources in the geometry dir #######
+VPATH += :$(SRC)/geometry
+-include $(SRC)/geometry/makefile
+
+################### Include the IO-related objects in amrvacio dir #########
+VPATH += :$(SRC)/amrvacio
+-include $(SRC)/amrvacio/makefile
+
+################### Include additional objects in physics dir ##############
 -include $(SRC)/$(PHYSICS)/makefile
+
 ################### Include additional modules in modules dir ##############
+VPATH += :$(SRC)/modules
 -include $(SRC)/modules/makefile
+
 ################### Include additional files in local dir     ##############
--include localmakefile
+-include $(WORK_DIR)/localmakefile
+
+
+################### Rules in Build directory ####### #######################
+ifeq (1,$(RECURSED))
 ############################################################################
 
-################### Translation and dependency rules #######################
+FOBJECT_DIR := $(WORK_DIR)/$(FOBJECT_DIR)
+
+FOBJECTS_IN_FOLDER = $(addprefix $(FOBJECT_DIR)/, $(FOBJECTS))
+INCLUDES_IN_FOLDER = $(addprefix $(FOBJECT_DIR)/, $(INCLUDES))
+
 
 PREFOR= #
 PREPROC= $(VACPP_)
 
-.SUFFIXES:
 .SUFFIXES: .t $F $O
 
-$(FOBJECTS)	: $(PREPROC)
-$(OBJECTS)	: $(INCLUDES)
+$(FOBJECTS_IN_FOLDER)	: $(PREPROC)
+$(OBJECTS)	        : $(INCLUDES_IN_FOLDER)
+
 
 # General precompilation rule
-.t$(F):
+$(FOBJECT_DIR)/%$(F) :%.t
+	@mkdir -p $(@D)	
 	$(VACPP) $(PPFLAGS) $< $(PREFOR) > $@
 
+
 # General Fortran compilation rule
-$(F)$(O): ; $(F90) $(FFLAGS) $(F90FLAGS) $(INCLUDE_DIRS) $<
+%$(O) :$(FOBJECT_DIR)/%$(F)
+	$(F90) $(FFLAGS) $(F90FLAGS) $(INCLUDE_DIRS) $<
 
+
+# Will be called to update dependent objects
+objects: $(OBJECTS)
+
+# Link the code
 amrvac: $(OBJECTS)
-	$(LINK) $(OBJECTS) $(LIBS) -o amrvac
-#########################################################################
-#  Dependencies:
-#########################################################################
+	$(LINK) $(OBJECTS) $(LIBS) -o $(WORK_DIR)/$@
 
-mod_physicaldata.o : mod_indices.o
-amr_fix_conserve.o : mod_fix_conserve.o
-forest.o amrio.o initialize_vars.o : mod_forest.o
-amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o
-amrio.o : kracken.o
+
+############################################################################
+else
+############################################################################
+OBJECTS_IN_FOLDER  = $(addprefix $(OBJ_DIR)/, $(OBJECTS))
+
+amrvac: $(OBJECTS_IN_FOLDER)
+	+$(MAKE) -C $(OBJ_DIR) -f $(CURDIR)/makefile WORK_DIR=$(CURDIR) \
+	RECURSED=1 amrvac
+
+# This is needed to re-make when the source changes
+$(OBJECTS_IN_FOLDER): $(OBJ_DIR)
+	@+$(MAKE) -C $(OBJ_DIR) -f $(CURDIR)/makefile WORK_DIR=$(CURDIR) \
+	RECURSED=1 objects
+
+# Build folder
+$(OBJ_DIR):
+	@mkdir -p $(OBJ_DIR)
+
+
+#########################################################################
+#  Archive the setup
+#########################################################################
+ARCHIVE = $(shell date "+Setup-%Y-%m-%d")
+archive: 
+	@echo === Archiving into $(ARCHIVE).tgz   ===
+	@tar -czvf $(ARCHIVE).tgz *.t *.par *makefile definitions.h
+	@echo === Created $(ARCHIVE).tgz ===
+
+
 #########################################################################
 #  Make clean
 #########################################################################
+clean:
+	/bin/rm -rf $(OBJ_DIR) $(FOBJECT_DIR) amrvac
 
-clean: ;	\
-	/bin/rm -f *.o  *.f *.mod \
-	amrvac
+oldclean:
+	/bin/rm -f amrvac *.f *.o *.mod
+
+
+
+endif

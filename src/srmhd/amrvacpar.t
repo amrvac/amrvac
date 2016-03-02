@@ -48,14 +48,11 @@ integer,parameter:: nwfluxtr=nwmhd
 {#IFDEF EPSINF
 !======Cutoff energy ========!
 integer,parameter:: Depsinf_=nwfluxtr+1
-!======Advected electron density ========!
-integer,parameter:: Drho0_=nwfluxtr+2
-!======Conserved electron density ========!
-integer,parameter:: Drho1_=nwfluxtr+3
-!======Advected electron density v2======!
-integer,parameter::Dn0_ = nwfluxtr+4
-!======Conserved electron density v2=====!
-integer,parameter::Dn_  = nwfluxtr+5
+integer,parameter:: Depslow_=nwfluxtr+2
+!======Advected electron density ======!
+integer,parameter::Dn0_ = nwfluxtr+3
+!======Conserved electron density =====!
+integer,parameter::Dn_  = nwfluxtr+4
 ! Number of variables
 integer,parameter:: nwflux=Dn_
 !=============================!
@@ -85,8 +82,7 @@ integer,parameter:: tr^FL_=Dtr^FL_
 }
 {#IFDEF EPSINF
 integer,parameter:: epsinf_=Depsinf_
-integer,parameter:: rho0_=Drho0_
-integer,parameter:: rho1_=Drho1_
+integer,parameter:: epslow_=Depslow_
 integer,parameter:: n0_=Dn0_
 integer,parameter:: n_=Dn_
 }
@@ -119,13 +115,13 @@ integer,parameter:: nworkroe=15
 {#IFNDEF EPSINF
 INTEGER,PARAMETER:: gamma_=1, adiab_=2, neqpar=2     ! equation params
 }{#IFDEF EPSINF
-INTEGER,PARAMETER:: gamma_=1, adiab_=2, epsfloor_=3, rho0floor_=4, rho1e_=5, neqpar=5     ! equation params
+INTEGER,PARAMETER:: gamma_=1, adiab_=2, epsfloor_=3, n0floor_=4, neqpar=4     ! equation params
 }}
 {#IFDEF GLM
 {#IFNDEF EPSINF
 INTEGER,PARAMETER:: gamma_=1, adiab_=2, Cr_=3, neqpar=3     ! equation params
 }{#IFDEF EPSINF
-INTEGER,PARAMETER:: gamma_=1, adiab_=2, Cr_=3, epsfloor_=4, rho0floor_=5, rho1e_=6, neqpar=6     ! equation params
+INTEGER,PARAMETER:: gamma_=1, adiab_=2, Cr_=3, epsfloor_=4, n0floor_=5, neqpar=5     ! equation params
 }}
 
 INTEGER,PARAMETER:: nflag_=nw+1
