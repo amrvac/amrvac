@@ -50,19 +50,6 @@ if(any((w(ixO^S,d_) < minrho .or. w(ixO^S,tau_) < smalltau))) then
      end if
   end if ! strict
 end if
-{#IFDEF EPSINF 
-if(any(w(ixO^S,Drho1_)<eqpar(rho1e_) &
-     .or. w(ixO^S,Dn_)<eqpar(rho1e_))) then 
-   where(w(ixO^S,Drho1_)<eqpar(rho1e_) .and. .not.patchw(ixO^S))
-      w(ixO^S,Drho1_)=eqpar(rho1e_)
-      w(ixO^S,Drho0_)=w(ixO^S,Drho1_)*eqpar(rho0floor_)
-      w(ixO^S,Depsinf_) = eqpar(epsfloor_)*w(ixO^S,Drho1_)**(2.0d0/3.0d0)
-   end where
-   where(w(ixO^S,Dn_)<eqpar(rho1e_) .and. .not.patchw(ixO^S))
-      w(ixO^S,Dn_)=eqpar(rho1e_)
-      w(ixO^S,Dn0_)=w(ixO^S,Dn_)*eqpar(rho0floor_)
-   end where
-end if\}
 
 end subroutine smallvalues
 !=============================================================================
