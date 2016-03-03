@@ -417,11 +417,11 @@ if (buffer) then
   bfzone3=0.05d0*(xprobmax3-xprobmin3)
   if(slab) then
     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-       disbd(1)=x(ix^D,1)-xprobmin1
-       disbd(2)=xprobmax1-x(ix^D,1)
-       disbd(3)=x(ix^D,2)-xprobmin2
-       disbd(4)=xprobmax2-x(ix^D,2)
-       disbd(5)=xprobmax3-x(ix^D,3)
+       disbd(1)=x(ix^D,1)-(xprobmin1+0.5d0*dxlevel(1))
+       disbd(2)=(xprobmax1-0.5d0*dxlevel(1))-x(ix^D,1)
+       disbd(3)=x(ix^D,2)-(xprobmin2+0.5d0*dxlevel(2))
+       disbd(4)=(xprobmax2-0.5d0*dxlevel(2))-x(ix^D,2)
+       disbd(5)=(xprobmax3-0.5d0*dxlevel(3))-x(ix^D,3)
 
        if(disbd(1)<bfzone1) then
          w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,v1_:v3_)
@@ -441,11 +441,11 @@ if (buffer) then
     {end do\}
   else
     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-       disbd(2)=xprobmax1-x(ix^D,1)
-       disbd(3)=x(ix^D,2)-xprobmin2
-       disbd(4)=xprobmax2-x(ix^D,2)
-       disbd(5)=xprobmax3-x(ix^D,3)
-       disbd(1)=x(ix^D,3)-xprobmin3
+       disbd(2)=(xprobmax1-0.5d0*dxlevel(1))-x(ix^D,1)
+       disbd(3)=x(ix^D,2)-(xprobmin2+0.5d0*dxlevel(2))
+       disbd(4)=(xprobmax2-0.5d0*dxlevel(2))-x(ix^D,2)
+       disbd(5)=(xprobmax3-0.5d0*dxlevel(3))-x(ix^D,3)
+       disbd(1)=x(ix^D,3)-(xprobmin3+0.5d0*dxlevel(3))
 
        if(disbd(2)<bfzone1) then
          w(ix^D,v1_:v3_)=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,v1_:v3_)
