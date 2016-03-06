@@ -4,7 +4,7 @@ subroutine magnetofriction
 include 'amrvacdef.f'
 
 integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf
-double precision :: tmf,dtfff,dtfff_pe,dtnew,dx^D
+double precision :: dtfff,dtfff_pe,dtnew,dx^D
 double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
@@ -16,26 +16,21 @@ logical :: patchwi(ixG^T)
 if(mype==0) write(*,*) 'Evolving to force-free field using magnetofricitonal method...'
 ! update ghost cells
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
-! do not update physical boundaries from now on
-!bcphys=.false.
-do iigrid=1,igridstail; igrid=igrids(iigrid);
-{#IFDEF ISO
-   pwold(igrid)%w(ixG^T,m0_+1:m0_+ndir)=pw(igrid)%w(ixG^T,m0_+1:m0_+ndir)
-}
 {#IFDEF ENERGY
+if(prolongprimitive) call mpistop('use prolongprimitive=.false. in MF module')
+do iigrid=1,igridstail; igrid=igrids(iigrid);
    call primitive(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
-   pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)
-   pwold(igrid)%w(ixG^T,p_)=pw(igrid)%w(ixG^T,p_)
-   call conserve(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchfalse)
-}  
 end do
+}  
 tmf=0.d0
 dtfff=1.d-2
 i=0
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
+bcphys=.false.
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+bcphys=.true.
 ! calculate initial values of metrics
 call metrics
 call printlog_mf 
@@ -58,6 +53,11 @@ do
   end do
   call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                      icomm,ierrmpi)
+  ! =======
+  ! evolve
+  ! =======
+  call advectmf(1,ndim,tmf,dtfff)
+
   ! clean divergence of magnetic field 
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (.not.slab) mygeo => pgeo(igrid)
@@ -71,23 +71,21 @@ do
     call divbclean_linde(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
   end do
   ! update B in ghost cells
-  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
+  call getbc(tmf+dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
   ! calculate magnetofrictional velocity
   call mf_velocity_update(pw,dtfff)
   ! update velocity in ghost cells
-  call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
-  ! =======
-  ! evolve
-  ! =======
-  call advectmf(1,ndim,tmf,dtfff)
+  bcphys=.false.
+  call getbc(tmf+dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+  bcphys=.true.
 
   ! calculate metrics
   call metrics
-  ! reconstruct AMR grid every 10 step
-  if(mod(i,10)==0) call resettree
   i=i+1
   tmf=tmf+dtfff
-  if(mod(i,10)==0 .and. mype==0) call printlog_mf
+  if(mod(i,10)==0) call printlog_mf
+  ! reconstruct AMR grid every 10 step
+  if(mod(i,10)==0 .and. mxnest>1) call resettree
   if(mod(i,1000)==0 .and. mype==0) then
     write(*,*) "itmf=",i
     write(*,*) '<CW sin theta>:',cwsin_theta_new
@@ -104,19 +102,14 @@ do
   end if
   cwsin_theta_old = cwsin_theta_new
 enddo
-! restore initial velocity
+! set velocity back to zero
 do iigrid=1,igridstail; igrid=igrids(iigrid);
-{#IFDEF ISO
-   pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
-}
+   pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=zero
 {#IFDEF ENERGY
-   pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=pwold(igrid)%w(ixG^T,v0_+1:v0_+ndir)
-   pw(igrid)%w(ixG^T,p_)=pwold(igrid)%w(ixG^T,p_)
    call conserve(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchfalse)
-}  
+}
 end do
-! update physical boundaries from now on
-!bcphys=.true.
+tmf=0.d0
 if (mype==0) call MPI_FILE_CLOSE(fhmf,ierrmpi)
 contains
 !=============================================================================
@@ -177,29 +170,29 @@ subroutine mask_inner(ixI^L,ixO^L,w,x)
 
 integer, intent(in)         :: ixI^L,ixO^L
 double precision, intent(in):: w(ixI^S,nw),x(ixI^S,1:ndim)
-double precision            :: x0min1,x0max1,x0min2,x0max2,x0min3,x0max3
+double precision            :: xO^L
 integer                     :: ix^D
 !-----------------------------------------------------------------------------
 if(slab) then
-  x0min1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
-  x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
-  x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
-  x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
-  x0min3 = xprobmin3
-  x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
+  xOmin1 = xprobmin1 + 0.05d0*(xprobmax1-xprobmin1)
+  xOmax1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
+  xOmin2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
+  xOmax2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
+  xOmin3 = xprobmin3
+  xOmax3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
 else
-  x0min1 = xprobmin1
-  x0max1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
-  x0min2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
-  x0max2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
-  x0min3 = xprobmin3 + 0.05d0*(xprobmax3-xprobmin3)
-  x0max3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
+  xOmin1 = xprobmin1
+  xOmax1 = xprobmax1 - 0.05d0*(xprobmax1-xprobmin1)
+  xOmin2 = xprobmin2 + 0.05d0*(xprobmax2-xprobmin2)
+  xOmax2 = xprobmax2 - 0.05d0*(xprobmax2-xprobmin2)
+  xOmin3 = xprobmin3 + 0.05d0*(xprobmax3-xprobmin3)
+  xOmax3 = xprobmax3 - 0.05d0*(xprobmax3-xprobmin3)
 end if
 
 {do ix^DB=ixOmin^DB,ixOmax^DB\}
-    if(x(ix^D,1) > x0min1 .and. x(ix^D,1) < x0max1 .and. &
-       x(ix^D,2) > x0min2 .and. x(ix^D,2) < x0max2 .and. &
-       x(ix^D,3) > x0min3 .and. x(ix^D,3) < x0max3) then
+    if(x(ix^D,1) > xOmin1 .and. x(ix^D,1) < xOmax1 .and. &
+       x(ix^D,2) > xOmin2 .and. x(ix^D,2) < xOmax2 .and. &
+       x(ix^D,3) > xOmin3 .and. x(ix^D,3) < xOmax3) then
       patchwi(ix^D)=.true.
       volumepe=volumepe+dvolume(ix^D)
     else
@@ -509,7 +502,7 @@ select case (typeadvancemf)
 
    call advect1mf(qdt,0.25d0, idim^LIM,qt+qdt,pw1,qt+dt*0.25d0,pw2,pwold)
 
-   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+   do iigrid=1,igridstail; igrid=igrids(iigrid);
       pw(igrid)%w(ixG^T,1:nwflux)=1.0d0/3.0d0*pw(igrid)%w(ixG^T,1:nwflux)+&
         2.0d0/3.0d0*pw2(igrid)%w(ixG^T,1:nwflux)
    end do   
@@ -575,7 +568,9 @@ call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pwb,qdt)
 ! update magnetofrictional velocity in ghost cells
+bcphys=.false.
 call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+bcphys=.true.
 
 end subroutine advect1mf
 !=============================================================================
@@ -720,8 +715,7 @@ end select
 
 end subroutine getfluxmf
 !=============================================================================
-subroutine tvdlfmf(qdt,ixI^L,ixO^L,idim^LIM, &
-                     qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+subroutine tvdlfmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
 ! method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
 ! method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
@@ -867,8 +861,7 @@ if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
 end subroutine tvdlfmf
 !=============================================================================
-subroutine fdmf(qdt,ixI^L,ixO^L,idim^LIM, &
-                     qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+subroutine fdmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
 include 'amrvacdef.f'
 
@@ -921,7 +914,7 @@ do idims= idim^LIM
    call reconstructL(ixI^L,ix^L,idims,fp,fpL,dxdims)
    call reconstructR(ixI^L,ix^L,idims,fm,fmR,dxdims)
 
-   do iw=1,nwflux
+   do iw=b0_+1,b0_+ndir
       if (slab) then
          fC(ix^S,iw,idims) = dxinv(idims) * (fpL(ix^S,iw) + fmR(ix^S,iw))
          wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &

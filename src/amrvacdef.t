@@ -65,7 +65,7 @@ COMMON, LOGICAL :: time_accurate, addmpibarrier
 !Time parameters
 INTEGER,PARAMETER:: nsavehi=100       ! maximum No. saves into outputfiles
                                       ! defined by arrays of tsave or itsave
-COMMON, DOUBLE PRECISION:: t,tmax,dtmin,residmin,residmax,residual
+COMMON, DOUBLE PRECISION:: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNETOFRICTION ,tmf}
 COMMON, DOUBLE PRECISION:: tfixgrid
 COMMON, DOUBLE PRECISION:: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
 COMMON, LOGICAL:: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
