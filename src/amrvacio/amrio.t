@@ -830,8 +830,9 @@ write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
 
 if(mype==0) then
    open(unit=unitsnapshot,file=filename,status='replace')
-   close(unit=unitsnapshot)
+   close(unit=unitsnapshot, status='delete')
 end if
+call MPI_BARRIER(icomm,ierrmpi)
 
 amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
 call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
@@ -1020,7 +1021,7 @@ else
  write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
 
  open(unit=unitsnapshot,file=filename,status='replace')
- close(unitsnapshot)
+ close(unitsnapshot, status='delete')
 
  amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
  call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
