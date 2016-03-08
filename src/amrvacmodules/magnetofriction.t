@@ -79,20 +79,29 @@ do
   call getbc(tmf+dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
   bcphys=.true.
 
-  ! calculate metrics
-  call metrics
   i=i+1
   tmf=tmf+dtfff
-  if(mod(i,10)==0) call printlog_mf
+  if(mod(i,10)==0) then
+    ! calculate metrics
+    call metrics
+    call printlog_mf
+  end if
+  if(mod(i,1000)==0) then
+    call saveamrfile(1)
+    call saveamrfile(2)
+    if(mype==0) then
+      write(*,*) "itmf=",i
+      write(*,*) '<CW sin theta>:',cwsin_theta_new
+      write(*,*) '<f_i>:',f_i
+      write(*,*) '----------------------------------------------------------'
+    end if
+  end if
   ! reconstruct AMR grid every 10 step
   if(mod(i,10)==0 .and. mxnest>1) call resettree
-  if(mod(i,1000)==0 .and. mype==0) then
-    write(*,*) "itmf=",i
-    write(*,*) '<CW sin theta>:',cwsin_theta_new
-    write(*,*) '<f_i>:',f_i
-    write(*,*) '----------------------------------------------------------'
-  end if
   if (i>=mfitmax) then
+    ! calculate metrics
+    call metrics
+    call printlog_mf
     if(mype==0) then
       write (*,*) 'The magnetofrictional iteration has been terminated because &
                      it reaches the maximum iteration step!'
@@ -1017,7 +1026,7 @@ do idims= idim^LIM
       ! add rempel dissipative flux, only second order version for now
       ! one could gradually reduce the dissipative flux to improve solutions 
       ! for computing steady states (Keppens et al. 2003, JCP)
-      fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-tvdlfeps*half*vLC(ixC^S) &
+      if(iw/=b0_+idims) fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-tvdlfeps*half*vLC(ixC^S) &
                                      *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
 
       if (slab) then
