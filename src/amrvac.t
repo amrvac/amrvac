@@ -196,7 +196,9 @@ time_evol : do
    do ifile=nfile,1,-1
       if(timetosave(ifile)) call saveamrfile(ifile)
    end do
-{#IFDEF SAVENOW   inquire(file='savenow',exist=alive)
+{#IFDEF SAVENOW   
+   if(mype==0) inquire(file='savenow',exist=alive)
+   if(npe>1) call MPI_BCAST(alive,1,MPI_LOGICAL,0,icomm,ierrmpi)
    if(alive) then
      if(mype==0) write(*,'(a,i7,a,i7,a,es12.4)') ' save a snapshot No.',&
                       snapshot,' at it=',it,' t=',t
