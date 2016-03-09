@@ -24,7 +24,7 @@ end do
 }  
 tmf=0.d0
 dtfff=1.d-2
-i=0
+i=it
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
@@ -32,8 +32,10 @@ bcphys=.false.
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
 bcphys=.true.
 ! calculate initial values of metrics
-call metrics
-call printlog_mf 
+if(i==0) then
+  call metrics
+  call printlog_mf 
+end if
 ! magnetofrictional loops
 do
   ! calculate time step based on Cmax= Alfven speed + abs(frictional speed)
@@ -87,6 +89,8 @@ do
     call printlog_mf
   end if
   if(mod(i,1000)==0) then
+    it=i
+    t=tmf
     call saveamrfile(1)
     call saveamrfile(2)
     if(mype==0) then
@@ -99,9 +103,11 @@ do
   ! reconstruct AMR grid every 10 step
   if(mod(i,10)==0 .and. mxnest>1) call resettree
   if (i>=mfitmax) then
-    ! calculate metrics
-    call metrics
-    call printlog_mf
+    if(mod(i,10)/=0) then
+      ! calculate metrics
+      call metrics
+      call printlog_mf
+    end if
     if(mype==0) then
       write (*,*) 'The magnetofrictional iteration has been terminated because &
                      it reaches the maximum iteration step!'
@@ -109,7 +115,6 @@ do
     end if
     exit
   end if
-  cwsin_theta_old = cwsin_theta_new
 enddo
 ! set velocity back to zero
 do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -647,45 +652,87 @@ double precision, dimension(ixI^S,1:nw) :: w, wCT
 double precision, dimension(ixI^S,1:nw) :: wLC, wRC
 double precision, dimension(ixI^S,1:ndim) :: x
 
-integer :: jxR^L, ixC^L, jxC^L, iw
+integer :: jxR^L, ixC^L, jxC^L, iw, ixtest^L
 double precision :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
 double precision :: ldw(ixI^S), dwC(ixI^S)
+logical, dimension(ixI^S) :: flagL, flagR
+logical, dimension(ixI^S) :: patchw, patchwLC, patchwRC
 
 character*79 :: savetypelimiter
 !-----------------------------------------------------------------------------
 
-jxR^L=ixR^L+kr(idims,^D);
-ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
-jxC^L=ixC^L+kr(idims,^D);
+oktest=.false.
+if(oktest.and.mype==0) then
+   print *,'======in upwindLR'
+   ixtest^L=ixI^L;
+!   ixtestmin1=400;ixtestmax1=400+2*dixB;
+   print *,'reporting in ranges:',ixtest^L
+endif
 
-do iw=b0_+1,b0_+ndir
-  dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
+if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
+ jxR^L=ixR^L+kr(idims,^D);
+ ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
+ jxC^L=ixC^L+kr(idims,^D);
 
-  savetypelimiter=typelimiter
-  if(savetypelimiter=='koren') typelimiter='korenL'
-  if(savetypelimiter=='cada')  typelimiter='cadaL'
-  if(savetypelimiter=='cada3') typelimiter='cada3L'
-  call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+ do iw=1,nwflux
+   if (loglimit(iw)) then
+      w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))
+      wLC(ixL^S,iw)=dlog10(wLC(ixL^S,iw))
+      wRC(ixR^S,iw)=dlog10(wRC(ixR^S,iw))
+   end if
 
-  wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
-  if(savetypelimiter=='koren')then
-    typelimiter='korenR'
-    call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
-  endif
-  if(savetypelimiter=='cada')then
-    typelimiter='cadaR'
-    call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
-  endif
-  if(savetypelimiter=='cada3')then
-    typelimiter='cada3R'
-    call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
-  endif
-  wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*ldw(jxR^S)
-  typelimiter=savetypelimiter
+   dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-end do
-wLC(ixL^S,b1_:b3_)=wLtmp(ixL^S,b1_:b3_)
-wRC(ixR^S,b1_:b3_)=wRtmp(ixR^S,b1_:b3_)
+   savetypelimiter=typelimiter
+   if(savetypelimiter=='koren') typelimiter='korenL'
+   if(savetypelimiter=='cada')  typelimiter='cadaL'
+   if(savetypelimiter=='cada3') typelimiter='cada3L'
+   call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+
+   wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
+   if(savetypelimiter=='koren')then
+     typelimiter='korenR'
+     call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+   endif
+   if(savetypelimiter=='cada')then
+     typelimiter='cadaR'
+     call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+   endif
+   if(savetypelimiter=='cada3')then
+     typelimiter='cada3R'
+     call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+   endif
+   wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*ldw(jxR^S)
+   typelimiter=savetypelimiter
+
+   if (loglimit(iw)) then
+      w(ixCmin^D:jxCmax^D,iw)=10.0d0**w(ixCmin^D:jxCmax^D,iw)
+      wLtmp(ixL^S,iw)=10.0d0**wLtmp(ixL^S,iw)
+      wRtmp(ixR^S,iw)=10.0d0**wRtmp(ixR^S,iw)
+   end if
+ end do
+
+ call checkw(.true.,ixI^L,ixL^L,wLtmp,flagL)
+ call checkw(.true.,ixI^L,ixR^L,wRtmp,flagR)
+
+ do iw=1,nwflux
+   where (flagL(ixL^S).and.flagR(ixR^S))
+      wLC(ixL^S,iw)=wLtmp(ixL^S,iw)
+      wRC(ixR^S,iw)=wRtmp(ixR^S,iw)
+   end where
+
+   if (loglimit(iw)) then
+      where (.not.(flagL(ixL^S).and.flagR(ixR^S)))
+         wLC(ixL^S,iw)=10.0d0**wLC(ixL^S,iw)
+         wRC(ixR^S,iw)=10.0d0**wRC(ixR^S,iw)
+      end where
+   end if
+ enddo
+else if (typelimiter .eq. 'ppm') then
+ call PPMlimiter(ixI^L,ixM^LL,idims,w,wCT,wLC,wRC)
+else
+ call MP5limiter(ixI^L,ixL^L,idims,w,wCT,wLC,wRC)
+endif
 
 end subroutine upwindLRmf
 !=============================================================================
@@ -799,12 +846,12 @@ do idims= idim^LIM
    ! For the high order Lax-Friedrich TVDLF scheme the limiter is based on
    ! the maximum eigenvalue, it is calculated in advance.
    ! determine mean state and store in wLC
-   wLC(ixC^S,b1_:b3_)= &
-         half*(wLC(ixC^S,b1_:b3_)+wRC(ixC^S,b1_:b3_))
+   wLC(ixC^S,1:nwflux)= &
+         half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
    call getcmaxfff(wLC,xi,ixG^LL,ixC^L,idims,cmaxC)
 
    ! We regain wLC for further use
-   wLC(ixC^S,b1_:b3_)=two*wLC(ixC^S,b1_:b3_)-wRC(ixC^S,b1_:b3_)
+   wLC(ixC^S,1:nwflux)=two*wLC(ixC^S,1:nwflux)-wRC(ixC^S,1:nwflux)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=b0_+1,b0_+ndir
@@ -1007,7 +1054,7 @@ do idims= idim^LIM
    xi(kkxC^S,1:ndim) = x(kkxC^S,1:ndim)
    xi(kkxC^S,idims) = half* ( x(kkxR^S,idims)+x(kkxC^S,idims) )
 
-   call upwindLR(ixI^L,ixC^L,ixC^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim(idims))
+   call upwindLRmf(ixI^L,ixC^L,ixC^L,idims,wCT,wCT,wLC,wRC,x,dxdim(idims))
 
    ! Calculate velocities from upwinded values
    call getcmaxfff(wLC,xi,ixG^LL,ixC^L,idims,cmaxLC)
@@ -1025,7 +1072,7 @@ do idims= idim^LIM
       fC(ixC^S,iw,idims)=(-f(kxC^S)+7.0d0*(f(jxC^S)+f(ixC^S))-f(hxC^S))/12.0d0
       ! add rempel dissipative flux, only second order version for now
       ! one could gradually reduce the dissipative flux to improve solutions 
-      ! for computing steady states (Keppens et al. 2003, JCP)
+      ! for computing steady states (Keppens et al. 2012, JCP)
       if(iw/=b0_+idims) fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-tvdlfeps*half*vLC(ixC^S) &
                                      *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
 
