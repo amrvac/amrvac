@@ -1228,12 +1228,6 @@ if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in TVDMUSCLF: Nonconforming input limits")
 
 
-{#IFDEF ENERGY
-{#IFDEF FIXLOWP
-call internalenergy(ixI^L,ixO^L,wnew,x,ie)
-call internalenergy(ixI^L,ixI^L,wCT,x,ieCT)
-}
-}
 if ((method=='tvdmu').and.useprimitive) then  
    ! second order methods with primitive limiting: 
    ! this call ensures wCT is primitive with updated auxiliaries
@@ -1340,101 +1334,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
       call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dx^D)
 
 end do ! Next idims
-{#IFDEF ENERGY
-{#IFDEF FIXLOWP
-call internalenergy(ixI^L,ixO^L,wnew,x,ieL)
-if(any(ieL(ixO^S)<smalle)) then
-print*,'repair small energy regions ...'
-do idims= idim^LIM
 
-   hxO^L=ixO^L-kr(idims,^D);
-   ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
-   ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
-
-   kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
-   kxR^L=kxC^L+kr(idims,^D);
-{#IFDEF HALL
-   ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
-   ! assuming one additional ghost layer (two for FOURTHORDER) was added in dixB.
-{#IFNDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD1;}
-}
-{#IFDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD2;}
-}
-}{#IFNDEF HALL
-   {ixCR^L=ixC^L;}
-}
-   wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
-   wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
-
-   ! Get interface positions:
-   xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
-   xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
-
-   ! for tvdlf and tvdmu (second order schemes): apply limiting
-   if (method=='tvdmu') then
-      select case (typelimited)
-      case ('previous')
-         call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wCT,wLC,wRC,x,.true.,dxdim(idims))
-      case ('predictor')
-         call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim(idims))
-      case ('original')
-         call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wCT,wLC,wRC,x,.true.,dxdim(idims))
-      case default
-         call mpistop("Error in TVDMUSCLF: no such base for limiter")
-      end select
-   end if
-
-      ! handle all other methods than tvdlf, namely tvdmu and tvdmu1 here
-      if (nwaux>0.and.(.not.(useprimitive).or.method=='tvdmu1')) then
-      !!if (nwaux>0) then
-         call getaux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_B')
-         call getaux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_B')
-      end if
-
-   ! Calculate velocities for transport fluxes
-   call getv(wLC,xi,ixI^L,ixC^L,idims,vLC)
-   call getv(wRC,xi,ixI^L,ixC^L,idims,vRC)
-
-   ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for energy
-   iw=e_
-   call internalenergy(ixI^L,ixC^L,wLC,xi,ieL)
-   fLC(ixC^S)=vLC(ixC^S)*ieL(ixC^S)
-   call internalenergy(ixI^L,ixC^L,wRC,xi,ieR)
-   fRC(ixC^S)=vRC(ixC^S)*ieR(ixC^S)
-   ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
-   fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
-   ! average velocity at cell faces
-   vLC(ixC^S)=half*(vLC(ixC^S)+vRC(ixC^S))
-   !if (method=='tvdlf'.or.method=='tvdlf1') then
-   !   ! Add TVDLF dissipation to the flux
-   !   ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
-   !   fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(ieR(ixC^S)-ieL(ixC^S))
-   !   ! fLC contains physical+dissipative fluxes
-   !   fLC(ixC^S)=fLC(ixC^S)+fRC(ixC^S)
-   !end if
-
-   if (slab) then
-      fLC(ixC^S)=dxinv(idims)*fLC(ixC^S)
-      vLC(ixC^S)=dxinv(idims)*ieCT(ixC^S)*(eqpar(gamma_)-1.d0)*vLC(ixC^S)
-      ie(ixO^S)=ie(ixO^S)+(fLC(ixO^S)-fLC(hxO^S))+(vLC(ixO^S)-vLC(hxO^S))
-   else
-      select case (idims)
-      {case (^D)
-         fC(ixC^S,iw,^D)=-qdt*mygeo%surfaceC^D(ixC^S)*fLC(ixC^S)
-         wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-           (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
-      end select
-   end if
-
-end do ! Next idims
-if(any(ie(ixO^S)<smalle)) print*,'too small ie!!!!!'
-wnew(ixO^S,e_)=({^C&wnew(ixO^S,m^C_)**2+})/wnew(ixO^S,rho_)+{^C&wnew(ixO^S,b^C_)**2+}
-wnew(ixO^S,e_)=ie(ixO^S)+half*wnew(ixO^S,e_)
-endif
-}
-}
 if ((method=='tvdmu').and.useprimitive) then  
     patchw(ixI^S)=.false.
     call conserve(ixI^L,ixI^L,wCT,x,patchw)

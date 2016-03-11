@@ -16,7 +16,7 @@ integer :: ic^D
 {end do\}
 
 if ((time_advance .and. active).or.convert.or.firstprocess&
-   {#IFDEF MAGNETOFRICTION .or. mfitmax>0}) then
+   {#IFDEF MAGNETOFRICTION .or. mf_advance}) then
    ! prolong igrid to new children
    call prolong_grid(child_igrid,child_ipe,igrid,ipe)
 else

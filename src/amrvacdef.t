@@ -194,13 +194,13 @@ double precision :: tol, tolratio
 double precision :: rnode, rnode_sub, dx, dt, dtimpl, dt_grid, dxlevel
 integer          :: mxnest, dixB, nbufferx^D
 integer          :: node, node_sub, levmin, levmax, levmax_sub
-logical          :: skipfinestep, time_advance
+logical          :: skipfinestep, time_advance{#IFDEF MAGNETOFRICTION , mf_advance}
 
 common /nodalr/     rnode(rnodehi,ngridshi), rnode_sub(rnodehi,ngridshi), tol(nlevelshi), tolratio(nlevelshi), &
                     dx(ndim,nlevelshi), dt, dtimpl, dt_grid(ngridshi), dxlevel(ndim)
 common /nodali/     node(nodehi,ngridshi), node_sub(nodehi,ngridshi), &
                     nbufferx^D, mxnest, dixB, levmin, levmax, levmax_sub
-common /nodall/     skipfinestep, time_advance
+common /nodall/     skipfinestep, time_advance{#IFDEF MAGNETOFRICTION , mf_advance}
 
 ! end include file amrvacdef.t
 !============================================================================

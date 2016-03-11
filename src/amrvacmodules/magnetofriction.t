@@ -3,28 +3,35 @@ subroutine magnetofriction
 
 include 'amrvacdef.f'
 
-integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf
-double precision :: dtfff,dtfff_pe,dtnew,dx^D
 double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
+double precision :: dtfff,dtfff_pe,dtnew,dx^D
 double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
-double precision :: f_i_ipe,f_i,volumepe,volume
+double precision :: f_i_ipe,f_i,volumepe,volume,tmpt
 double precision, external :: integral_grid
+integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf,tmpit
 logical :: patchwi(ixG^T)
 !-----------------------------------------------------------------------------
 
 if(mype==0) write(*,*) 'Evolving to force-free field using magnetofricitonal method...'
+if(prolongprimitive) call mpistop('use prolongprimitive=.false. in MF module')
+mf_advance=.false.
+dtfff=1.d-2
+tmpt=t
+tmpit=it
+tmf=t
+i=it
 ! update ghost cells
 call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
-{#IFDEF ENERGY
-if(prolongprimitive) call mpistop('use prolongprimitive=.false. in MF module')
+if(snapshotini==-1 .and. i==0) then
+  call saveamrfile(1)
+  call saveamrfile(2)
+end if
+mf_advance=.true.
+! convert conservative variables to primitive ones which are used during MF
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    call primitive(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
 end do
-}  
-tmf=0.d0
-dtfff=1.d-2
-i=it
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
@@ -40,6 +47,7 @@ end if
 do
   ! calculate time step based on Cmax= Alfven speed + abs(frictional speed)
   dtfff_pe=bigdouble
+  cmax_mype=zero
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pwold(igrid)%w(ixG^T,b0_+1:b0_+ndir)=pw(igrid)%w(ixG^T,b0_+1:b0_+ndir)
     if (.not.slab) mygeo => pgeo(igrid)
@@ -55,6 +63,9 @@ do
   end do
   call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                      icomm,ierrmpi)
+  call MPI_ALLREDUCE(cmax_mype,cmax_global,1,MPI_DOUBLE_PRECISION,MPI_MAX,&
+                     icomm,ierrmpi)
+
   ! =======
   ! evolve
   ! =======
@@ -88,11 +99,19 @@ do
     call metrics
     call printlog_mf
   end if
-  if(mod(i,1000)==0) then
+  if(mod(i,2000)==0) then
     it=i
     t=tmf
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call conserve(ixG^LL,ixG^LL,pw(igrid)%w,px(igrid)%x,patchfalse)
+    end do
+    mf_advance=.false.
     call saveamrfile(1)
     call saveamrfile(2)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       call primitive(ixG^LL,ixG^LL,pw(igrid)%w,px(igrid)%x)
+    end do
+    mf_advance=.true.
     if(mype==0) then
       write(*,*) "itmf=",i
       write(*,*) '<CW sin theta>:',cwsin_theta_new
@@ -116,15 +135,15 @@ do
     exit
   end if
 enddo
-! set velocity back to zero
+! set velocity back to zero and convert primitive variables back to conservative ones
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    pw(igrid)%w(ixG^T,v0_+1:v0_+ndir)=zero
-{#IFDEF ENERGY
    call conserve(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,patchfalse)
-}
 end do
-tmf=0.d0
+t=tmpt
+it=tmpit
 if (mype==0) call MPI_FILE_CLOSE(fhmf,ierrmpi)
+mf_advance=.false.
 contains
 !=============================================================================
 ! internal procedures start
@@ -487,7 +506,6 @@ integer, intent(in) :: idim^LIM
 double precision, intent(in) :: qt, qdt
 
 integer :: iigrid, igrid
-character*79 :: typeadvancemf
 !-----------------------------------------------------------------------------
 ! copy w instead of wold because of potential use of dimsplit or sourcesplit
 do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -495,18 +513,19 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    pw1(igrid)%w=pw(igrid)%w
 end do
 
-typeadvancemf='onestep'
-select case (typeadvancemf)
+istep=0
+
+select case (typeadvance)
  case ("onestep")
-   call advect1mf(qdt,one,    idim^LIM,qt,          pw1,qt,pw, pwold)
+   call advect1mf(typefull1,qdt,one,    idim^LIM,qt,          pw1,qt,pw, pwold)
  case ("twostep")
    ! predictor step
-   call advect1mf(qdt,half,   idim^LIM,qt,          pw,qt,pw1,pwold)
+   call advect1mf(typepred1,qdt,half,   idim^LIM,qt,          pw,qt,pw1,pwold)
    ! corrector step
-   call advect1mf(qdt,one,    idim^LIM,qt+half*qdt, pw1,qt,pw, pwold)
+   call advect1mf(typefull1,qdt,one,    idim^LIM,qt+half*qdt, pw1,qt,pw, pwold)
  case ("threestep")
    ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
-   call advect1mf(qdt,one,    idim^LIM,qt,          pw ,qt,pw1,pwold)
+   call advect1mf(typefull1,qdt,one,    idim^LIM,qt,          pw ,qt,pw1,pwold)
 
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw2(igrid)%w(ixG^T,1:nw))
@@ -514,23 +533,23 @@ select case (typeadvancemf)
         pw1(igrid)%w(ixG^T,1:nwflux)
    end do
 
-   call advect1mf(qdt,0.25d0, idim^LIM,qt+qdt,pw1,qt+dt*0.25d0,pw2,pwold)
+   call advect1mf(typefull1,qdt,0.25d0, idim^LIM,qt+qdt,pw1,qt+dt*0.25d0,pw2,pwold)
 
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       pw(igrid)%w(ixG^T,1:nwflux)=1.0d0/3.0d0*pw(igrid)%w(ixG^T,1:nwflux)+&
         2.0d0/3.0d0*pw2(igrid)%w(ixG^T,1:nwflux)
    end do   
-   call advect1mf(qdt,2.0d0/3.0d0, idim^LIM,qt+qdt/2.0d0,pw2,&
+   call advect1mf(typefull1,qdt,2.0d0/3.0d0, idim^LIM,qt+qdt/2.0d0,pw2,&
           qt+qdt/3.0d0,pw,pwold)
  case default
-   write(unitterm,*) "typeadvancemf=",typeadvancemf
-   write(unitterm,*) "Error in advect: Unknown time integration method"
-   call mpistop("Correct typeadvancemf")
+   write(unitterm,*) "typeadvance=",typeadvance
+   write(unitterm,*) "Error in advectmf: Unknown time integration method"
+   call mpistop("Correct typeadvance")
 end select
 
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    deallocate (pw1(igrid)%w)
-   select case (typeadvancemf)
+   select case (typeadvance)
      case ("threestep")
        deallocate (pw2(igrid)%w)
    end select
@@ -538,7 +557,7 @@ end do
 
 end subroutine advectmf
 !=============================================================================
-subroutine advect1mf(dtin,dtfactor,idim^LIM,qtC,pwa,qt,pwb,pwc)
+subroutine advect1mf(method,dtin,dtfactor,idim^LIM,qtC,pwa,qt,pwb,pwc)
 
 ! Integrate all grids by one partial step
 ! This subroutine is equivalent to VAC's `advect1', but does
@@ -547,14 +566,17 @@ include 'amrvacdef.f'
 
 integer, intent(in) :: idim^LIM
 double precision, intent(in) :: dtin,dtfactor, qtC, qt
+character(len=*), intent(in) :: method(nlevelshi)
 type(walloc) :: pwa(ngridshi), pwb(ngridshi), pwc(ngridshi)
 
 double precision :: qdt
-integer :: iigrid, igrid
+integer :: iigrid, igrid, level
 logical :: setigrid
 !-----------------------------------------------------------------------------
+istep=istep+1
 
 if (levmax>levmin) then
+   if (istep==nstep.or.nstep>2) &
    call init_comm_fix_conserve(idim^LIM)
 end if
 
@@ -563,7 +585,8 @@ end if
 ! opedit: Just advance the active grids: 
 qdt=dtfactor*dtin
 do iigrid=1,igridstail; igrid=igrids(iigrid);
-   call process1_gridmf(igrid,qdt,ixG^LL,idim^LIM,qtC,&
+   level=node(plevel_,igrid)
+   call process1_gridmf(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
                    pwa(igrid)%w,qt,pwb(igrid)%w,pwc(igrid)%w)
 end do
 
@@ -571,10 +594,12 @@ end do
 ! nsend_fc(^D), set in connectivity.t.
 
 if (levmax>levmin) then
-   do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call sendflux(igrid,idim^LIM)
-   end do
-   call fix_conserve(pwb,idim^LIM)
+  if (istep==nstep.or.nstep>2) then
+     do iigrid=1,igridstail; igrid=igrids(iigrid);
+        call sendflux(igrid,idim^LIM)
+     end do
+     call fix_conserve(pwb,idim^LIM)
+  end if
 end if
    
 ! update B in ghost cells
@@ -588,17 +613,17 @@ bcphys=.true.
 
 end subroutine advect1mf
 !=============================================================================
-subroutine process1_gridmf(igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
+subroutine process1_gridmf(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
 
 ! This subroutine is equivalent to VAC's `advect1' for one grid
 include 'amrvacdef.f'
 
+character(len=*), intent(in) :: method
 integer, intent(in) :: igrid, ixG^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt
 double precision :: wCT(ixG^S,1:nw), w(ixG^S,1:nw), wold(ixG^S,1:nw)
 double precision :: dx^D, fC(ixG^S,1:nwflux,1:ndim)
 integer :: ixO^L
-character*79 :: method
 !-----------------------------------------------------------------------------
 dx^D=rnode(rpdx^D_,igrid);
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -614,9 +639,8 @@ typelimiter=typelimiter1(node(plevel_,igrid))
 typegradlimiter=typegradlimiter1(node(plevel_,igrid))
 
 ixO^L=ixG^L^LSUBdixB;
-method="cd"
 select case (method)
- case ("cd")
+ case ("cd4")
    !================================
    ! 4th order central difference
    !================================ 
@@ -626,15 +650,22 @@ select case (method)
    ! TVDLF
    !================================ 
    call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+ case ('hancock')
+   ! hancock predict (first) step for twostep tvdlf and tvdmu scheme
+   call hancockmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,dx^D,px(igrid)%x)
  case ("fd")
    !================================
    ! finite difference
    !================================ 
    call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,px(igrid)%x)
+case default
+   if(mype==0) write(unitterm,*)'Error in advect1_gridmf:',method,' is not there!'
+   call mpistop("The scheme is not implemented.")
 end select
 
 if (levmax>levmin) then
-   call storeflux(igrid,fC,idim^LIM)
+  if (istep==nstep.or.nstep>2) &
+    call storeflux(igrid,fC,idim^LIM)
 end if
 
 end subroutine process1_gridmf
@@ -858,8 +889,8 @@ do idims= idim^LIM
       call getfluxmf(wLC,xi,ixG^LL,ixC^L,iw,idims,fLC,transport)
       call getfluxmf(wRC,xi,ixG^LL,ixC^L,iw,idims,fRC,transport)
       if (transport) then
-         fLC(ixC^S)=fLC(ixC^S)+wCT(ixC^S,v0_+idims)*wLC(ixC^S,iw)
-         fRC(ixC^S)=fRC(ixC^S)+wCT(ixC^S,v0_+idims)*wRC(ixC^S,iw)
+         fLC(ixC^S)=fLC(ixC^S)+wLC(ixC^S,v0_+idims)*wLC(ixC^S,iw)
+         fRC(ixC^S)=fRC(ixC^S)+wRC(ixC^S,v0_+idims)*wRC(ixC^S,iw)
       end if
       ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
       fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
@@ -916,6 +947,98 @@ end do ! Next idims
 if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
 end subroutine tvdlfmf
+!=============================================================================
+subroutine hancockmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
+
+! The non-conservative Hancock predictor for TVDLFmf
+
+! on entry:
+! input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBdixB
+
+! one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
+
+! on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
+
+
+! FCT not implemented here
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixI^L, ixO^L, idim^LIM
+double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
+double precision, intent(inout) :: wCT(ixI^S,1:nw), wnew(ixI^S,1:nw)
+
+double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+double precision, dimension(ixI^S) :: fLC, fRC
+double precision :: dxinv(1:ndim),dxdim(1:ndim)
+integer :: idims, iw, ix^L, hxO^L, ixtest^L
+logical :: transport
+logical, dimension(ixI^S) :: patchw
+!-----------------------------------------------------------------------------
+
+oktest=.false.
+if(oktest.and.mype==0) then
+   print *,'======Hancock predictor: qdt, qtC, qt:',qdt,qtC,qt
+   ixtest^L=ixI^L;
+   print *,'reporting in ranges:',ixtest^L
+endif
+
+! Expand limits in each idims direction in which fluxes are added
+ix^L=ixO^L;
+do idims= idim^LIM
+   ix^L=ix^L^LADDkr(idims,^D);
+end do
+if (ixI^L^LTix^L|.or.|.or.) &
+   call mpistop("Error in Hancockmf: Nonconforming input limits")
+
+^D&dxinv(^D)=-qdt/dx^D;
+^D&dxdim(^D)=dx^D;
+do idims= idim^LIM
+   if (B0field) then
+      select case (idims)
+      {case (^D)
+         myB0 => myB0_face^D\}
+      end select
+   end if
+
+   ! Calculate w_j+g_j/2 and w_j-g_j/2
+   ! First copy all variables, then upwind wLC and wRC.
+   ! wLC is to the left of ixO, wRC is to the right of wCT.
+   hxO^L=ixO^L-kr(idims,^D);
+
+   wRC(hxO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
+   wLC(ixO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
+
+   call upwindLRmf(ixI^L,ixO^L,hxO^L,idims,wCT,wCT,wLC,wRC,x,dxdim(idims))
+
+   ! Advect w(iw)
+   do iw=1,nwflux
+      ! Calculate the fLC and fRC fluxes
+      call getflux(wRC,x,ixI^L,hxO^L,iw,idims,fRC,transport)
+      call getflux(wLC,x,ixI^L,ixO^L,iw,idims,fLC,transport)
+      if (transport) then
+         fRC(hxO^S)=fRC(hxO^S)+wRC(hxO^S,v0_+idims)*wRC(hxO^S,iw)
+         fLC(ixO^S)=fLC(ixO^S)+wLC(ixO^S,v0_+idims)*wLC(ixO^S,iw)
+      end if
+
+      ! Advect w(iw)
+      if (slab) then
+         wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
+                          (fLC(ixO^S)-fRC(hxO^S))
+      else
+         select case (idims)
+         {case (^D)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/mygeo%dvolume(ixO^S) &
+                  *(mygeo%surfaceC^D(ixO^S)*fLC(ixO^S) &
+                   -mygeo%surfaceC^D(hxO^S)*fRC(hxO^S))\}
+         end select
+      end if
+   end do
+end do ! next idims
+
+if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+
+end subroutine hancockmf
 !=============================================================================
 subroutine fdmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
@@ -1073,7 +1196,7 @@ do idims= idim^LIM
       ! add rempel dissipative flux, only second order version for now
       ! one could gradually reduce the dissipative flux to improve solutions 
       ! for computing steady states (Keppens et al. 2012, JCP)
-      if(iw/=b0_+idims) fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-tvdlfeps*half*vLC(ixC^S) &
+      fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-tvdlfeps*half*vLC(ixC^S) &
                                      *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
 
       if (slab) then
@@ -1112,15 +1235,9 @@ dtnew=bigdouble
 courantmax=zero
 ^D&dxinv(^D)=one/dxlevel(^D);
 
-! calculate alfven speed assuming rho=1.d0
-if(B0field) then
-  alfven(ixO^S)=dsqrt((^C&(w(ixO^S,b^C_)+myB0%w(ixO^S,^C))**2+ )/w(ixO^S,rho_))
-else
-  alfven(ixO^S)=dsqrt((^C&w(ixO^S,b^C_)**2+ )/w(ixO^S,rho_))
-endif
-
 do idims=1,ndim
-   cmax(ixO^S)=dabs(w(ixO^S,v0_+idims))+alfven(ixO^S)
+   call getcmaxfff(w,x,ixI^L,ixO^L,idims,cmax)
+   cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
    if (.not.slab) then
       tmp(ixO^S)=cmax(ixO^S)/mygeo%dx(ixO^S,idims)
       courantmax=max(courantmax,maxval(tmp(ixO^S)))
