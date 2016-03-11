@@ -1012,10 +1012,10 @@ do idims= idim^LIM
    call upwindLRmf(ixI^L,ixO^L,hxO^L,idims,wCT,wCT,wLC,wRC,x,dxdim(idims))
 
    ! Advect w(iw)
-   do iw=1,nwflux
+   do iw=b0_+1,b0_+ndir
       ! Calculate the fLC and fRC fluxes
-      call getflux(wRC,x,ixI^L,hxO^L,iw,idims,fRC,transport)
-      call getflux(wLC,x,ixI^L,ixO^L,iw,idims,fLC,transport)
+      call getfluxmf(wRC,x,ixI^L,hxO^L,iw,idims,fRC,transport)
+      call getfluxmf(wLC,x,ixI^L,ixO^L,iw,idims,fLC,transport)
       if (transport) then
          fRC(hxO^S)=fRC(hxO^S)+wRC(hxO^S,v0_+idims)*wRC(hxO^S,iw)
          fLC(ixO^S)=fLC(ixO^S)+wLC(ixO^S,v0_+idims)*wLC(ixO^S,iw)
@@ -1036,7 +1036,7 @@ do idims= idim^LIM
    end do
 end do ! next idims
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
 end subroutine hancockmf
 !=============================================================================
