@@ -9,7 +9,7 @@ double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
 double precision :: f_i_ipe,f_i,volumepe,volume,tmpt
 double precision, external :: integral_grid
-integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf,tmpit
+integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf,tmpit,i^D
 logical :: patchwi(ixG^T)
 !-----------------------------------------------------------------------------
 
@@ -81,7 +81,15 @@ do
     typelimiter=typelimiter1(node(plevel_,igrid))
     typegradlimiter=typegradlimiter1(node(plevel_,igrid))
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    call divbclean_linde(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+    {do i^DB=-1,1\}
+       if (i^D==0|.and.) cycle
+       if (neighbor_type(i^D,igrid)==2 .or. neighbor_type(i^D,igrid)==4) then
+          leveljump(i^D)=.true.
+       else
+          leveljump(i^D)=.false.
+       end if
+    {end do\}
+    call divbclean(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,dtfff)
   end do
   ! update B in ghost cells
   call getbc(tmf+dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
@@ -1270,44 +1278,58 @@ cmax(ixO^S)=cmax(ixO^S)+dabs(w(ixO^S,v0_+idims))
 
 end subroutine getcmaxfff
 !=============================================================================
-subroutine divbclean_linde(ixI^L,ixO^L,w,x)
+subroutine divbclean(ixI^L,ixO^L,w,x,qdt)
 
-! Add Linde's divB related sources to wnew within ixO
+! Add Janhunen's and Linde's divB related sources to w
 include 'amrvacdef.f'
 
 integer, intent(in)             :: ixI^L, ixO^L
-double precision, intent(in)    :: x(ixI^S,1:ndim)
+double precision, intent(in)    :: x(ixI^S,1:ndim),qdt
 double precision, intent(inout) :: w(ixI^S,1:nw)
-integer :: idims, ix^L
+integer :: idims, ix^L, ixp^L, i^D, iside
 double precision :: divb(ixI^S),graddivb(ixI^S),bdivb(ixI^S,1:ndir)
 !-----------------------------------------------------------------------------
 
 ! Calculate div B
-ix^L=ixI^L^LSUB1;
+ix^L=ixO^L^LADD1;
 call getdivb(w,ixI^L,ix^L,divb)
+! for AMR stability, retreat one cell layer from the boarders of level jump
+ixp^L=ixO^L;
+do idims=1,ndim
+  select case(idims)
+   {case(^D)
+      do iside=1,2
+        i^DD=kr(^DD,^D)*(2*iside-3);
+        if(leveljump(i^DD)) then
+          if(iside==1) then
+            ixpmin^D=ixOmin^D-i^D
+          else
+            ixpmax^D=ixOmax^D-i^D
+          end if
+        end if
+      end do
+   \}
+  end select
+end do
 
 ! Add Linde's diffusive terms
 do idims=1,ndim
    ! Calculate grad_idim(divb)
-   select case(typegrad)
-   case("central")
-     call gradient(divb,ixI^L,ixO^L,idims,graddivb)
-   case("limited")
-     call gradientS(divb,ixI^L,ixO^L,idims,graddivb)
-   end select
+   call gradient(divb,ixI^L,ixp^L,idims,graddivb)
 
    ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
    if (slab) then
-      graddivb(ixO^S)=graddivb(ixO^S)*cmf_divb/(^D&1.0d0/dxlevel(^D)**2+)
+      graddivb(ixp^S)=graddivb(ixp^S)*cmf_divb/(^D&1.0d0/dxlevel(^D)**2+)
    else
-      graddivb(ixO^S)=graddivb(ixO^S)*cmf_divb &
-                      /(^D&1.0d0/mygeo%dx(ixO^S,^D)**2+)
+      graddivb(ixp^S)=graddivb(ixp^S)*cmf_divb &
+                      /(^D&1.0d0/mygeo%dx(ixp^S,^D)**2+)
    end if
    ! B_idim += eta*grad_idim(divb)
-   w(ixO^S,b0_+idims)=w(ixO^S,b0_+idims)+graddivb(ixO^S)
+   w(ixp^S,b0_+idims)=w(ixp^S,b0_+idims)+&
+         graddivb(ixp^S)-qdt*w(ixp^S,v0_+idims)*divb(ixp^S)
 end do
 
-end subroutine divbclean_linde
+end subroutine divbclean
 !============================================================================= 
 subroutine addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
 
