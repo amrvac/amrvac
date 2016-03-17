@@ -508,7 +508,7 @@ include 'amrvacdef.f'
 
 logical, intent(in) :: prior
 
-integer :: iigrid, igrid
+integer :: iigrid, igrid, i^D
 double precision :: qdt, qt
 !-----------------------------------------------------------------------------
 
@@ -521,16 +521,24 @@ else
    qt=t+dt
 end if
 
-      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-         qdt=dt_grid(igrid)
-         if (B0field) then
-            myB0_cell => pB0_cell(igrid)
-            {^D&myB0_face^D => pB0_face^D(igrid)\}
-         end if
-         call addsource1_grid(igrid,qdt,qt,pw(igrid)%w)
-      end do
-      
-      call getbc(qt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
+do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+   qdt=dt_grid(igrid)
+   if (B0field) then
+      myB0_cell => pB0_cell(igrid)
+      {^D&myB0_face^D => pB0_face^D(igrid)\}
+   end if
+   {do i^DB=-1,1\}
+      if (i^D==0|.and.) cycle
+      if (neighbor_type(i^D,igrid)==2 .or. neighbor_type(i^D,igrid)==4) then
+         leveljump(i^D)=.true. 
+      else
+         leveljump(i^D)=.false. 
+      end if
+   {end do\}
+   call addsource1_grid(igrid,qdt,qt,pw(igrid)%w)
+end do
+
+call getbc(qt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 
 end subroutine addsource_all
 !=============================================================================

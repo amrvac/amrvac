@@ -6,6 +6,7 @@ module mod_connectivity
    integer, dimension(2,0:3^D&,ngridshi), save :: neighbor_child
    integer, dimension(-1:1^D&,ngridshi), save :: neighbor_type
    logical, dimension(-1:1^D&,ngridshi), save :: neighbor_active
+   logical, dimension(-1:1^D&), save :: leveljump
    {^IFPHI integer, dimension(-1:1^D&,ngridshi), save :: neighbor_pole}
 
    integer, dimension(ngridshi), save :: igrids
