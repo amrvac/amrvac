@@ -207,51 +207,73 @@ end subroutine addsource_janhunen
 subroutine addsource_linde(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add Linde's divB related sources to wnew within ixO
-
 include 'amrvacdef.f'
 
-integer, intent(in) :: ixI^L, ixO^L, iw^LIM
-double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
-double precision, intent(in) :: wCT(ixI^S,1:nw)
-double precision, intent(in) :: dx^D
-double precision, intent(inout) :: w(ixI^S,1:nw)
-
-integer :: iw, idims, ix^L
-double precision :: divb(ixG^T),graddivb(ixG^T)
+integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
+double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim)
+double precision, intent(in)    :: dx^D
+double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+integer :: iw, idims, ix^L, ixp^L, i^D, iside
+double precision :: divb(ixI^S),graddivb(ixI^S)
 !-----------------------------------------------------------------------------
 
 ! Calculate div B
-select case(typegrad)
-case("central")
-   ix^L=ixO^L^LADD1;
-case("limited")
-   ix^L=ixO^L^LADD2;
-end select
-
+ix^L=ixO^L^LADD1;
 call getdivb(wCT,ixI^L,ix^L,divb)
+! for AMR stability, retreat one cell layer from the boarders of level jump
+ixp^L=ixO^L;
+do idims=1,ndim
+  select case(idims)
+   {case(^D)
+      do iside=1,2
+        i^DD=kr(^DD,^D)*(2*iside-3);
+        if(leveljump(i^DD)) then
+          if(iside==1) then
+            ixpmin^D=ixOmin^D-i^D
+          else
+            ixpmax^D=ixOmax^D-i^D
+          end if 
+        end if
+      end do
+   \}
+  end select
+end do
 
-! Add Linde's diffusive terms, but only to the induction equation
-!
+! Add Linde's diffusive terms
 do idims=1,ndim
    ! Calculate grad_idim(divb)
    select case(typegrad)
    case("central")
-     call gradient(divb,ixI^L,ixO^L,idims,graddivb)
+     call gradient(divb,ixI^L,ixp^L,idims,graddivb)
    case("limited")
-     call gradientS(divb,ixI^L,ixO^L,idims,graddivb)
+     call gradientS(divb,ixI^L,ixp^L,idims,graddivb)
    end select
+   !ixmin^D=ixpmin^D;
+   !ixmax^D=merge(ixmin^D,ixmax^D,kr(idims,^D)==1);
+   !call gradient(divb,ixI^L,ix^L,idims,graddivb)
+   !ixmin^D=merge(ixmax^D,ixmin^D,kr(idims,^D)==1);
+   !ixmax^D=ixpmax^D;
+   !call gradient(divb,ixI^L,ix^L,idims,graddivb)
+   !ixmin^D=ixpmin^D+kr(idims,^D);
+   !ixmax^D=ixpmax^D-kr(idims,^D);
+   !call gradientS(divb,ixI^L,ix^L,idims,graddivb)
 
    ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
    if (slab) then
-      graddivb(ixO^S)=graddivb(ixO^S)*divbdiff/(^D&1.0d0/dxlevel(^D)**2+)
+      graddivb(ixp^S)=graddivb(ixp^S)*divbdiff/(^D&1.0d0/dxlevel(^D)**2+)
    else
-      graddivb(ixO^S)=graddivb(ixO^S)*divbdiff &
-                      /(^D&1.0d0/mygeo%dx(ixO^S,^D)**2+)
+      graddivb(ixp^S)=graddivb(ixp^S)*divbdiff &
+                      /(^D&1.0d0/mygeo%dx(ixp^S,^D)**2+)
    end if
    do iw= iw^LIM
       if (iw==b0_+idims) then
          ! B_idim += eta*grad_idim(divb)
-         w(ixO^S,iw)=w(ixO^S,iw)+graddivb(ixO^S)
+         w(ixp^S,iw)=w(ixp^S,iw)+graddivb(ixp^S)
+{#IFDEF ENERGY
+      else if (iw==e_ .and. typedivbdiff=='all') then
+         ! e += B_idim*eta*grad_idim(divb)
+         w(ixp^S,iw)=w(ixp^S,iw)+wCT(ixp^S,b0_+idims)*graddivb(ixp^S)
+}
       end if
    end do
 end do
