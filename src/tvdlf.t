@@ -791,7 +791,8 @@ do idims= idim^LIM
          new_cmax=.true.
          call getcmax(new_cmax,wLC,xi,ixI^L,ixC^L,idims,cmaxLC,cminLC,.true.)
          call getcmax(new_cmax,wRC,xi,ixI^L,ixC^L,idims,cmaxRC,cminRC,.true.)
-         ! now take the maximum of left and right states
+         ! now take the maximum of left and right states 
+         ! S.F. Davis, SIAM J. Sci. Statist. Comput. 1988, 9, 445
          cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
          cminC(ixC^S)=min(cminRC(ixC^S),cminLC(ixC^S))
    end if 

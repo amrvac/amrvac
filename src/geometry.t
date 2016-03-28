@@ -413,9 +413,9 @@ subroutine divvector(qvec,ixI^L,ixO^L,divq)
 include 'amrvacdef.f'
 
 integer :: ixI^L,ixO^L
-double precision :: qvec(ixG^T,1:ndir), divq(ixG^T)
+double precision :: qvec(ixI^S,1:ndir), divq(ixI^S)
 
-double precision :: qC(ixG^T), invdx(1:ndim)
+double precision :: qC(ixI^S), invdx(1:ndim)
 integer :: jxO^L, hxO^L, ixC^L, jxC^L, idims, ix^L {#IFDEF FOURTHORDER , gxO^L, kxO^L}
 !-----------------------------------------------------------------------------
 {#IFNDEF FOURTHORDER
@@ -466,8 +466,8 @@ subroutine curlvector(qvec,ixI^L,ixO^L,curlvec,idirmin,idirmin0,ndir0)
 include 'amrvacdef.f'
 
 integer :: ixI^L,ixO^L,idirmin,ix^L,idir,jdir,kdir,hxO^L,jxO^L,ndir0,idirmin0
-double precision :: qvec(ixG^T,1:ndir0),curlvec(ixG^T,idirmin0:3), invdx(1:ndim)
-double precision :: tmp(ixG^T),tmp2(ixG^T),surface(ixG^T),mydx(ixG^T){#IFDEF FOURTHORDER , gxO^L, kxO^L}
+double precision :: qvec(ixI^S,1:ndir0),curlvec(ixI^S,idirmin0:3), invdx(1:ndim)
+double precision :: tmp(ixI^S),tmp2(ixI^S),surface(ixI^S),mydx(ixI^S){#IFDEF FOURTHORDER , gxO^L, kxO^L}
 !-----------------------------------------------------------------------------
 {#IFNDEF FOURTHORDER
 ix^L=ixO^L^LADD1;

@@ -1019,7 +1019,7 @@ tmpvec(ix^S,1:ndir)=zero
 do jdir=idirmin,3
    tmpvec(ix^S,jdir)=current(ix^S,jdir)*eta(ix^S)*qdt
 enddo
-call curlvector(tmpvec,ix^L,ixO^L,curlj,idirmin1,1,3)
+call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
 {^C& w(ixO^S,b^C_) = w(ixO^S,b^C_)-curlj(ixO^S,b^C_-b0_)\}
 
 {#IFDEF ENERGY
@@ -1075,16 +1075,16 @@ do jdir=idirmin,3
 enddo
 
 ix^L=ixO^L^LADD2;
-call curlvector(tmpvec,ix^L^LADD1,ix^L,tmpvec2,idirmin1,1,3)
+call curlvector(tmpvec,ixI^L,ix^L,tmpvec2,idirmin1,1,3)
 
 ix^L=ixO^L^LADD1;
 tmpvec(ix^S,1:ndir)=zero
-call curlvector(tmpvec2,ix^L^LADD1,ix^L,tmpvec,idirmin1,1,3)
+call curlvector(tmpvec2,ixI^L,ix^L,tmpvec,idirmin1,1,3)
 ehyper(ix^S,1:ndir) = - tmpvec(ix^S,1:ndir)*eqpar(etahyper_)
 
 ix^L=ixO^L;
 tmpvec2(ix^S,1:ndir)=zero
-call curlvector(ehyper,ix^L^LADD1,ix^L,tmpvec2,idirmin1,1,3)
+call curlvector(ehyper,ixI^L,ix^L,tmpvec2,idirmin1,1,3)
 
 {^C& w(ixO^S,b^C_) = w(ixO^S,b^C_)-tmpvec2(ixO^S,^C)*qdt\}
 
