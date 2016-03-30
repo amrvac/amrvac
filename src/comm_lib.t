@@ -26,11 +26,14 @@ include 'amrvacdef.f'
 
 integer, dimension(ndim+1) :: sizes, subsizes, start
 !integer :: i^D, ic^D, nx^D, nxCo^D, size_double
-integer :: i^D, ic^D, nx^D, nxCo^D
+integer :: i^D, ic^D, nx^D, nxCo^D{#IFDEF SAVEGHOSTCELL , nxG^D}
 {^IFMPT integer :: size_double, lb}
 {^IFNOMPT integer(kind=MPI_ADDRESS_KIND):: size_double, lb}
 !-----------------------------------------------------------------------------
 nx^D=ixMhi^D-ixMlo^D+1;
+{#IFDEF SAVEGHOSTCELL
+nxG^D=ixGhi^D-ixGlo^D+1;
+}
 nxCo^D=nx^D/2;
 
 ^D&sizes(^D)=ixGhi^D;
@@ -70,9 +73,17 @@ sizes(ndim+1)=nw
 
 ^D&sizes(^D)=ixGhi^D;
 sizes(ndim+1)=nw
+{#IFNDEF SAVEGHOSTCELL
 ^D&subsizes(^D)=nx^D;
+}{#IFDEF SAVEGHOSTCELL
+^D&subsizes(^D)=nxG^D;
+}
 subsizes(ndim+1)=nw
+{#IFNDEF SAVEGHOSTCELL
 ^D&start(^D)=ixMlo^D-1;
+}{#IFDEF SAVEGHOSTCELL
+^D&start(^D)=ixGlo^D-1;
+}
 start(ndim+1)=0
 call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
                               MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
@@ -81,7 +92,11 @@ call MPI_TYPE_COMMIT(type_block_io,ierrmpi)
 
 !call MPI_TYPE_EXTENT(MPI_DOUBLE_PRECISION,size_double,ierrmpi)
 call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
+{#IFNDEF SAVEGHOSTCELL
 size_block_io={nx^D*}*nw*size_double
+}{#IFDEF SAVEGHOSTCELL
+size_block_io={nxG^D*}*nw*size_double
+}
 
 {#IFDEF TRANSFORMW
 if(nwtf>0) then

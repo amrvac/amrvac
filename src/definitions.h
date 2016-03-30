@@ -19,3 +19,4 @@
 #undefine PARTICLES_USER
 #undefine BOUNDARYDRIVER
 #undefine PROCESSGLOBAL
+#undefine SAVEGHOSTCELL

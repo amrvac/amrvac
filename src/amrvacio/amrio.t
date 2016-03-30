@@ -1272,7 +1272,11 @@ else
       end if
       call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
    endif
+{#IFNDEF SAVEGHOSTCELL
    write(unitsnapshot) pw(igrid)%w(ixM^T,1:nw)
+}{#IFDEF SAVEGHOSTCELL
+   write(unitsnapshot) pw(igrid)%w(ixG^T,1:nw)
+}
  end do
  ! write data communicated from other processors
  if(npe>1)then
@@ -1293,7 +1297,11 @@ else
      call MPI_RECV(pwio(igrid_recv(inrecv))%w,1,type_block_io,ipe,itag,icomm,&
                    iorecvstatus(:,inrecv),ierrmpi)
 
+{#IFNDEF SAVEGHOSTCELL
      write(unitsnapshot) pwio(igrid_recv(inrecv))%w(ixM^T,1:nw)
+}{#IFDEF SAVEGHOSTCELL
+     write(unitsnapshot) pwio(igrid_recv(inrecv))%w(ixG^T,1:nw)
+}
      deallocate(pwio(igrid_recv(inrecv))%w)
    end do
   end do
