@@ -123,7 +123,7 @@ if (mype==0) then
 end if
 
 {#IFDEF MAGNETOFRICTION
-if(mfitmax>0) then
+if(itmaxmf>0) then
    time_in=MPI_WTIME()
    call magnetofriction
    if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'

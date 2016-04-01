@@ -1,3 +1,26 @@
+!##############################################################################
+! module magnetofriction.t
+! Purpose: use magnetofrictional method to relax 3D magnetic field to 
+!          force-free field
+! 01.04.2016 developed by Chun Xia and Yang Guo
+! Usage:
+! 1. in definitions.h:
+!    #define MAGNETOFRICTION
+! 2. in amrvac.par:
+!    &stoplist
+!     itmaxmf=60000 ! set the maximum iteration number
+!    &savelist
+!     ditsavemf=20000 ! set iteration interval for data output
+!    &methodlist
+!     typeadvance='onestep' ! time marching scheme, or 'twostep','threestep'
+!     typefull1=13*'cd4' ! or 'tvdlf', 'fd'
+!     typelimiter1= 13*'koren' ! or 'vanleer','cada3','mp5' so on
+!    &amrlist
+!     ditregrid=20 ! set iteration interval for adjusting AMR 
+!    &paramlist
+!     cmf_c=0.3    ! stability coefficient controls numerical stability
+!     cmf_y=0.2    ! frictional velocity coefficient
+!     cmf_divb=0.1 ! divb cleaning coefficient controls diffusion speed of divb
 !============================================================================= 
 subroutine magnetofriction
 
@@ -107,7 +130,7 @@ do
     call metrics
     call printlog_mf
   end if
-  if(mod(i,2000)==0) then
+  if(mod(i,ditsavemf)==0) then
     it=i
     t=tmf
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -128,8 +151,8 @@ do
     end if
   end if
   ! reconstruct AMR grid every 10 step
-  if(mod(i,10)==0 .and. mxnest>1) call resettree
-  if (i>=mfitmax) then
+  if(mod(i,ditregrid)==0 .and. mxnest>1) call resettree
+  if (i>=itmaxmf) then
     if(mod(i,10)/=0) then
       ! calculate metrics
       call metrics
@@ -1295,22 +1318,22 @@ ix^L=ixO^L^LADD1;
 call getdivb(w,ixI^L,ix^L,divb)
 ! for AMR stability, retreat one cell layer from the boarders of level jump
 ixp^L=ixO^L;
-do idims=1,ndim
-  select case(idims)
-   {case(^D)
-      do iside=1,2
-        i^DD=kr(^DD,^D)*(2*iside-3);
-        if(leveljump(i^DD)) then
-          if(iside==1) then
-            ixpmin^D=ixOmin^D-i^D
-          else
-            ixpmax^D=ixOmax^D-i^D
-          end if
-        end if
-      end do
-   \}
-  end select
-end do
+!do idims=1,ndim
+!  select case(idims)
+!   {case(^D)
+!      do iside=1,2
+!        i^DD=kr(^DD,^D)*(2*iside-3);
+!        if(leveljump(i^DD)) then
+!          if(iside==1) then
+!            ixpmin^D=ixOmin^D-i^D
+!          else
+!            ixpmax^D=ixOmax^D-i^D
+!          end if
+!        end if
+!      end do
+!   \}
+!  end select
+!end do
 
 ! Add Linde's diffusive terms
 do idims=1,ndim

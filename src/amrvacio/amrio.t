@@ -66,8 +66,8 @@ namelist /filelist/   filenameout,filenameini,filenamelog, &
                       writew,writelevel,writespshift,endian_swap, &
                       normvar,normt,level_io,level_io_min,level_io_max, &
                       autoconvert,sliceascii,slicenext,collapseNext,collapse_type
-namelist /savelist/   tsave,itsave,dtsave,ditsave,nslices,slicedir,slicecoord,collapse,collapseLevel
-namelist /stoplist/   itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,residmax,typeresid{#IFDEF MAGNETOFRICTION , mfitmax}
+namelist /savelist/   tsave,itsave,dtsave,ditsave,nslices,slicedir,slicecoord,collapse,collapseLevel{#IFDEF MAGNETOFRICTION , ditsavemf}
+namelist /stoplist/   itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,residmax,typeresid{#IFDEF MAGNETOFRICTION , itmaxmf}
 namelist /methodlist/ wnames,fileheadout,typeadvance, &
                       ssplitdust,ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
                       sourceimpl,sourceimplcycle,conduction,TCsaturate,TCphi,ncyclemax,sourceparasts,parastsnu,&
@@ -231,7 +231,8 @@ divbwave=.true.
 ! IO defaults
 itmax=biginteger
 {#IFDEF MAGNETOFRICTION
-mfitmax=0
+itmaxmf=0
+ditsavemf=20000
 }
 tmax=bigdouble
 tmaxexact=.true.

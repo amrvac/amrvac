@@ -69,7 +69,7 @@ COMMON, DOUBLE PRECISION:: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNET
 COMMON, DOUBLE PRECISION:: tfixgrid
 COMMON, DOUBLE PRECISION:: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
 COMMON, LOGICAL:: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
-COMMON, INTEGER:: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , mfitmax}
+COMMON, INTEGER:: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
 COMMON, INTEGER:: itsave(nsavehi,nfile),itsavelast(nfile),ditsave(nfile)
 COMMON, INTEGER:: isavet(nfile),isaveit(nfile), nslices, slicedir(nslicemax), collapseLevel
 COMMON, INTEGER:: n_saves(1:nfile)
