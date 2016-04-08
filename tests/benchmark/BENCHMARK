@@ -52,9 +52,6 @@ Change directory to the 'rundir' (where we will compile the code) and make a fol
 On the machine Loewe of CSC Frankfurt, make sure the following module files are loaded:
   1) slurm/2.6.3                  2) intel/compiler/64/14.0.3     3)  openmpi/intel-14.0.3/1.8.1
 
-Compile the code in 'rundir'
-> make
-
 The compilation options are specifield by providing a file in
 $AMRVAC_DIR/arch.  Which options to use can be changed in the 'rundir' by typing e.g.
 
@@ -85,6 +82,9 @@ F90FLAGS = -ffree-form -O3 -fimplicit-none
 LINK= $(F90)  $(F90FLAGS)
 ++++++++++++++++ File $AMRVAC_DIR/arch/gfortran.defs +++++++++++++
 
+
+After making the appropriate selections, compile the code in 'rundir'
+> make
 
 
 
