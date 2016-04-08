@@ -1,0 +1,169 @@
+MPI-AMRVAC-Benchmark-20160408
+================================
+
+MPI-AMRVAC, a special relativistic MHD code by Keppens et al.
+See the papers in JcP [http://dx.doi.org/10.1016/j.jcp.2011.01.020] and ApJS [http://dx.doi.org/10.1088/0067-0049/214/1/4].
+To get the development version: git clone https://gitlab.com/mpi-amrvac/amrvac.git
+MPI-AMRVAC is a code of many authors, please checkout doc/Credits.html for credits.  
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Requirements:
+++++++++++++++++++++++++++++++++++++++++++++
+
+1.) MPI, e.g. openMPI or MPICH
+2.) F90 compiler, e.g. ifort
+3.) Perl for the preprocessor
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Installing:
+++++++++++++++++++++++++++++++++++++++++++++
+Untar the source your directory of choice, here we will assume the
+code ends up in "~/code/amrvac".  
+
+Export an environment variable pointing to the root directory of the code, e.g.
+edit your ~/.bash_profile (assuming bash is used):
+
+++++++++++++++++ File ~/.bash_profile +++++++++++++
+export AMRVAC_DIR=$HOME/code/amrvac
+++++++++++++++++ File ~/.bash_profile +++++++++++++
+and
+> source ~/.bash_profile
+
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Compiling the benchmark:
+++++++++++++++++++++++++++++++++++++++++++++
+Copy the contents of the folder $AMRVAC_DIR/tests/benchmark to the appropriate scratch
+folder which we call 'rundir' for now.
+
+> cp $AMRVAC_DIR/tests/benchmark/* 'rundir'/.
+
+Change directory to the 'rundir' (where we will compile the code) and make a folder for the output:
+
+> cd 'rundir'
+> mkdir output
+
+On the machine Loewe of CSC Frankfurt, make sure the following module files are loaded:
+  1) slurm/2.6.3                  2) intel/compiler/64/14.0.3     3)  openmpi/intel-14.0.3/1.8.1
+
+Compile the code in 'rundir'
+> make
+
+The compilation options are specifield by providing a file in
+$AMRVAC_DIR/arch.  Which options to use can be changed in the 'rundir' by typing e.g.
+
+> $AMRVAC_DIR/setup.pl -arch=default
+
+where the flag 'default' specifies the file $AMRVAC_DIR/arch/default.defs:
+
+++++++++++++++++ File $AMRVAC_DIR/arch/default.defs +++++++++++++
+F90=mpif90
+FFLAGS = -c
+F90FLAGS = -O3 -FR -implicitnone
+LINK= $(F90)  $(F90FLAGS)
+++++++++++++++++ File $AMRVAC_DIR/arch/default.defs +++++++++++++
+
+With the current Intel compilers, higher optimizations take a very long
+time to compile, so please be patient at compile-time.  
+
+
+For an exemplary compiler setup with gfortran: 
+
+> $AMRVAC_DIR/setup.pl -arch=gfortran
+
+will use: 
+++++++++++++++++ File $AMRVAC_DIR/arch/gfortran.defs +++++++++++++
+F90=mpif90
+FFLAGS = -c
+F90FLAGS = -ffree-form -O3 -fimplicit-none
+LINK= $(F90)  $(F90FLAGS)
+++++++++++++++++ File $AMRVAC_DIR/arch/gfortran.defs +++++++++++++
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Running the benchmark:
+++++++++++++++++++++++++++++++++++++++++++++
+The setup is a relativistic shock-tube, described in van Putten 1993, J. Comput. Phys., 105, 339 
+and also in Balsara 2001, ApJS, 132,83-101; his table 1, problem 1.  
+We run it for the first 20 steps which should be done in
+around 15 minutes on one node (24 cores).  The total memory usage is less than 
+~30 GB.  The evolution is not particularly exciting but that is not important here.  
+
+Go to the rundir: 
+> cd 'rundir'
+
+We provide several job files for one node (job1N.sh), two, four eight and 16 nodes.  E.g.:
+
+++++++++++++++++ File job1N.sh +++++++++++++
+#!/bin/bash
+#SBATCH --ntasks=24
+#SBATCH --mem 64000
+#SBATCH --constraint=dual
+#SBATCH --cpus-per-task=1
+#SBATCH --job-name=bench1N
+#SBATCH --mail-type=ALL
+#SBATCH --partition=test
+#SBATCH --time=00-01:00:00
+#SBATCH -o output/out1N # STDOUT
+#SBATCH -e output/err1N # STDERR
+#
+module load openmpi/intel-14.0.3/1.8.1
+#
+mpiexec -n 24 ./amrvac
+++++++++++++++++ File job1N.sh +++++++++++++
+
+After compilation, submit the job, e.g.:
+
+> sbatch job1N.sh
+
+The code produces some timing info gathered via MPI_WTIME().  At the
+end of the run, in stdout, you should have information like this:
+ -------------------------------------------------------------------------------
+ Startup phase took :            32.728 sec
+ -------------------------------------------------------------------------------
+ BCs before Advance took :        3.594 sec
+ Total timeloop took        :      913.661 sec
+ Time spent on Regrid+Update:       93.998 sec
+                  Percentage:        10.29 %
+ Time spent on IO in loop   :       42.203 sec
+                  Percentage:         4.62 %
+ Time spent on BC           :      489.086 sec
+                  Percentage:        53.53 %
+ Time spent on run          :      871.458 sec
+ Total time spent on IO     :      101.714 sec
+ Total timeintegration took :      976.767 sec
+ -------------------------------------------------------------------------------
+ Finished AMRVAC in :          1009.495 sec
+ -------------------------------------------------------------------------------
+
+We will exclude IO in this benchmark (though we should take note
+when there are extreme differences in IO).  So we will use the line
+
+ Time spent on run          :      871.458 sec
+
+as benchmark result.  This number can be re-normalized to the node-number
+and averaged as discussed elsewhere.  
+
+When reporting Benchmark results, please specify compiler and MPI
+versions, along with optimization flags.
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Validation:
+++++++++++++++++++++++++++++++++++++++++++++
+
+We also ask for the *.log files to cross-check with our reference data.  
+
+Our reference data is determined by the the 20th iteration: 
+     20  5.2105E-04  3.7470E-05  5.6250E-01  4.6894E-04 -5.2105E-04 -9.6394E-21  1.1750E+00  5.0000E-01 -1.3878E-17  6.8668E-32 -1.0121E-31  1.0001E+00  1.6626E+00  9.8438E-01  7.8125E-03  3.9062E-03  3.9062E-03    8064     512    2048   16384 |   1.00E+00  1.00E+00  3.76E+04  1.13E+03  1.23E+06  3.40+101
+
+In particular, we ask for conservation of mass (line 4, 0.5625), energy (line 8, 1.175) and x-component of the magnetic field (line 9, 0.5).  

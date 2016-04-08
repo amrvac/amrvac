@@ -1,0 +1,135 @@
+BHAC-Benchmark-20151126
+================================
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Requirements:
+++++++++++++++++++++++++++++++++++++++++++++
+
+1.) MPI, e.g. openMPI or MPICH
+2.) F90 compiler, e.g. ifort
+3.) Perl for the preprocessor
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Installing:
+++++++++++++++++++++++++++++++++++++++++++++
+Untar the source your directory of choice, here we will assume the
+code ends up in "~/code/bhac"
+
+Export an environment variable pointing to the root directory of the code, e.g.
+edit your ~/.bash_profile (assuming bash is used):
+
+> export BHAC_DIR=$HOME/code/bhac
+> source ~/.bash_profile
+
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Compiling the benchmark:
+++++++++++++++++++++++++++++++++++++++++++++
+Copy the folder $BHAC_DIR/tests/benchmark to the appropriate scratch
+folder which we call 'rundir' for now.  
+
+> cd 'rundir'
+
+On Loewe, make sure the following module files are loaded:
+  1) slurm/2.6.3                  2) intel/compiler/64/14.0.3     3)  openmpi/intel-14.0.3/1.8.1
+
+Compile the code in 'rundir'
+> make
+
+The compilation options are specifield by providing a file in
+$BHAC_DIR/arch.  Which options to use can be changed in the 'rundir' by typing e.g.
+> $BHAC_DIR/setup.pl -arch=loeweO1
+
+where the flag 'loeweO1' specifies the file $BHAC_DIR/arch/loeweO1.defs:
+
+++++++++++++++++ File loeweO1.defs +++++++++++++
+###### ifort compiler (Intel Fortran on Linux)
+F90=mpif90
+FFLAGS = -c
+F90FLAGS = -O1 -FR -implicitnone
+LINK= $(F90)  $(F90FLAGS)
+++++++++++++++++ File loeweO1.defs +++++++++++++
+
+With the current Intel compilers, higher optimizations take a very long
+time to compile, but we are open to suggestions which options are best.  
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+Running the benchmark:
+++++++++++++++++++++++++++++++++++++++++++++
+The initial condition for the benchmark is a perturbed (kicked) Torus around a Kerr
+black hole.  We run it for the first 200 steps which should be done in
+around 40 minutes on one node (24 cores).  The total memory usage is
+~40 GB.  The evolution is not particularly exciting at this early
+stage, but that is besides the point.  
+
+Go to the rundir: 
+> cd 'rundir'
+
+We provide several job files for one core (job1C.sh), one node
+(job1N.sh) two and four nodes.  E.g.:
+
+++++++++++++++++ File job1N.sh +++++++++++++
+#!/bin/bash
+#SBATCH --ntasks=24
+#SBATCH --mem 64000
+#SBATCH --constraint=dual
+#SBATCH --cpus-per-task=1
+#SBATCH --job-name=bench-n1
+#SBATCH --mail-type=ALL
+#SBATCH --partition=parallel
+#SBATCH --time=00-01:00:00
+#
+module load openmpi/intel-14.0.3/1.8.1
+#
+mpiexec -n 24 ./bhac
+++++++++++++++++ File job1N.sh +++++++++++++
+
+After compilation, submit the job, e.g.:
+
+> sbatch job1N.sh
+
+The code produces some timing info gathered via MPI_WTIME().  At the
+end of the run, in stdout, you should have information like this:
+ ---------------------------------------------------------
+Startup phase took :       87.335 sec
+ ---------------------------------------------------------
+BCs before Advance took    :       14.141 sec
+Total timeloop took        :      178.300 sec
+Time spent on Regrid+Update:       15.979 sec
+                 Percentage:      8.96
+Time spent on IO in loop   :       17.465 sec
+                 Percentage:      9.80
+Time spent on BC           :       47.392 sec
+Time spent on run          :      160.836 sec
+Total time spent on IO     :       27.147 sec
+added O1 arch for loewe
+Total timeintegration took :      202.123 sec
+Total number of cell updates :     11993088
+Average cell updates per second per core (loop) :    67263.456
+Average cell updates per second per core (loop, noIO) :    74567.345
+Average cell updates per second per core (advance) :   100767.295
+ ---------------------------------------------------------
+Finished AMRVAC in :      289.458 sec
+ ---------------------------------------------------------
+ 
+
+We suggest to exclude IO in this benchmark (though we should take note
+when there are extreme differences in IO).  So we will use the line
+
+Time spent on run          :      160.836 sec
+
+as benchmark result.  This number can be re-normalized to the node-number
+and averaged as discussed elsewhere.  
+
+When reporting Benchmark results, please specify compiler and MPI
+versions, along with optimization flags.  
+

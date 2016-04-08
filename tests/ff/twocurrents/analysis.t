@@ -17,15 +17,13 @@ subroutine write_analysis
   double precision, dimension(1:4) :: dsum_send, dsum_recv
   double precision, dimension(1:8) :: dmax_send, dmax_recv
   character(len=80) :: filename
-  logical, save :: opened=.false.
-  logical, save :: file_exists=.false.
+  logical       :: file_exists
   integer :: amode, status(MPI_STATUS_SIZE), Njgrid, jgrid, ix2
   double precision,dimension(0:nw+nwauxio)       :: normconv 
   double precision, parameter                    :: xslicea=0.05, xsliceb=0.1, slicewidth=0.1
   logical                                        :: sliceascii_save, saveprim_save
   double precision                               :: roundoff
   !-----------------------------------------------------------------------------
-
 
   volume(1:mxnest)=zero
 
@@ -39,7 +37,7 @@ subroutine write_analysis
   e2max = -bigdouble
   b2max = -bigdouble
   e2overb2min = +bigdouble
-  e2overb2max = +bigdouble
+  e2overb2max = -bigdouble
   val    = zero
   vbl    = zero
   costhetaa = zero
@@ -70,7 +68,7 @@ subroutine write_analysis
      e2max       = max(e2max, maxval({^C& pw(igrid)%w(ixM^T,e^C_)**2|+}))
      b2max       = max(e2max, maxval({^C& pw(igrid)%w(ixM^T,b^C_)**2|+}))
      e2overb2min = min(e2overb2min, minval(({^C& pw(igrid)%w(ixM^T,e^C_)**2|+})/({^C& pw(igrid)%w(ixM^T,b^C_)**2|+})))
-     e2overb2max = min(e2overb2max, maxval(({^C& pw(igrid)%w(ixM^T,e^C_)**2|+})/({^C& pw(igrid)%w(ixM^T,b^C_)**2|+})))
+     e2overb2max = max(e2overb2max, maxval(({^C& pw(igrid)%w(ixM^T,e^C_)**2|+})/({^C& pw(igrid)%w(ixM^T,b^C_)**2|+})))
   end do
 
   voltotal=sum(volume(levmin:levmax))
@@ -247,23 +245,21 @@ call mpistop('write_analysis: Only implemented for 2D problem!')
      vbl = roundoff(vbl,smalldouble)
      costhetaa = roundoff(costhetaa,smalldouble)
      costhetab = roundoff(costhetab,smalldouble)
-
-     if (.not.opened) then
-        ! generate filename
-        write(filename,"(a,a,a)") trim(filenameout),TRIM("_analysis"),".csv"
-        INQUIRE(FILE=filename, EXIST=file_exists)
-        if (.not. file_exists) then
-           open(unit=unitanalysis,file=filename,status='unknown',access='append')
-           write(unitanalysis,"(a,a)",advance='no') trim('# t e2 b2 jbar jmin jmax e2min'),' '
-           write(unitanalysis,"(a)") trim('e2max b2min b2max e2overb2min e2overb2max vra vrb costhetaa costhetab')
-        else
-           open(unit=unitanalysis,file=filename,status='unknown',access='append')
-        end if
-        opened=.true.
+     
+     ! generate filename
+     write(filename,"(a,a,a)") trim(filenameout),TRIM("_analysis"),".csv"
+     INQUIRE(FILE=filename, EXIST=file_exists)
+     if (.not. file_exists) then
+        open(unit=unitanalysis,file=filename,status='unknown',position='append')
+        write(unitanalysis,"(a,a)",advance='no') trim('# t e2 b2 jbar jmin jmax e2min'),' '
+        write(unitanalysis,"(a)") trim('e2max b2min b2max e2overb2min e2overb2max vra vrb costhetaa costhetab')
+     else
+        open(unit=unitanalysis,file=filename,status='unknown',position='append')
      end if
      write(unitanalysis,'(16(ES14.6))')t, e2, b2, jbar, jmin, jmax, &
           e2min, e2max, b2min, b2max, e2overb2min, e2overb2max, val, vbl, costhetaa, costhetab
-     
+     close(unitanalysis)
+
   end if
 
 

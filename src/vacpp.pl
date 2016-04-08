@@ -474,7 +474,7 @@ sub format90 {
 
    # opedit: I don't want you to break print symbols
    return($line) if ($line =~ /print*/);
-
+   
    # BREAK LONG LINES INTO CONTINUATION LINES AND/OR REDUCE INDENTATION
    local($bestlen,$goodlen,$len,$maxindent,$indent,$indentnow,$c,$answer);
 

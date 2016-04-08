@@ -325,6 +325,7 @@ double precision, intent(inout) :: w(ixI^S,1:nw)
 ! .. local ..
 double precision, dimension(ixG^T,1:ndir)  :: Epar, Eperp
 double precision, dimension(ixG^T)         :: b2, e2, EdotB
+double precision, parameter                :: dampfac = 100.0d0
 !-----------------------------------------------------------------------------
 
 ! S[phib_] = -kappa phib
@@ -343,15 +344,28 @@ e2(ixO^S) = ({^C& w(ixO^S,e^C_)**2|+})
 
 EdotB(ixO^S) = {^C& w(ixO^S,e^C_)*w(ixO^S,b^C_) |+}
 {^C&
-Epar(ixO^S,^C)  = EdotB(ixO^S)*w(ixO^S,b^C_)/b2(ixO^S)
+where (b2(ixO^S) .ge. smalldouble) 
+    Epar(ixO^S,^C)  = EdotB(ixO^S)*w(ixO^S,b^C_)/b2(ixO^S)
+ elsewhere
+    Epar(ixO^S,^C)  = zero
+endwhere
 Eperp(ixO^S,^C) = w(ixO^S,e^C_) - Epar(ixO^S,^C)
 \}
 
+
+
 ! Handle zero magnetic field and E>B separate:
-! Use parallel conductivity for all directions (kpar assumed larger than kperp)
-where (b2(ixO^S) .lt. smalldouble .or. e2(ixO^S) .gt. b2(ixO^S))
+! Use increased parallel conductivity for all directions
+! (kpar assumed larger than kperp)
+where (b2(ixO^S) .lt. smalldouble)
 {^C&
-     w(ixO^S,e^C_) = w(ixO^S,e^C_) * exp(-eqpar(kpar_)*qdt)
+     w(ixO^S,e^C_) = w(ixO^S,e^C_) * exp(-dampfac*eqpar(kpar_)*qdt)
+\}
+elsewhere (e2(ixO^S) .gt. b2(ixO^S))
+{^C&
+     Epar(ixO^S,^C)  = Epar(ixO^S,^C) * exp(-dampfac*max(eqpar(kpar_),eqpar(kperp_))*qdt)
+     Eperp(ixO^S,^C) = Eperp(ixO^S,^C) * exp(-dampfac*max(eqpar(kpar_),eqpar(kperp_))*qdt)
+     w(ixO^S,e^C_)   = Epar(ixO^S,^C) + Eperp(ixO^S,^C)
 \}
 elsewhere
 {^C&

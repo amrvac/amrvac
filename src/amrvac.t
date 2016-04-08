@@ -255,6 +255,7 @@ if (mype==0) then
    write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timeio_tot/timeloop,' %'
    write(*,'(a,f12.3,a)')' Time spent on BC           : ',time_bc,' sec'
    write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
+   write(*,'(a,f12.3,a)')' Time spent on run          : ',timeloop-timeio_tot,' sec'
 end if
 
 timeio0=MPI_WTIME()
