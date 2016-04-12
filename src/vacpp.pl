@@ -73,13 +73,13 @@ sub processfile {
    open($input, $filename) || die"Can't open $filename: $!\n";
    while (<$input>) {
       # PRINT EMPTY AND COMMENT LINES AS THEY ARE
-      if(/^$/ || /^ *![^S]/){print; next}
+      if(/^$/ || /^ *![^S]/ && not /^ *!\$[^S]/){print; next}
       # HIDE QUOTED TEXT FROM TRANSLATION
       $_=&quotation($_);
       # PRINT TRAILING COMMENTS (commented out to protect !F77_ etc....)
       #if(s/ *(!.*)//){$comment=&unquote($1); /^ */; print "$&$comment\n"}
-      # COLLECT CONTINUATION LINES
-      next if &contline;
+      # COLLECT CONTINUATION LINES, except for !$OMP comments
+      if(not /^ *!\$[^S]/){ next if &contline }
       # REPLACE TABS BY SPACES
       if(/\t/){
 	  print STDERR "Warning: TABs are replaced by SPACEs\n" unless 
@@ -474,7 +474,7 @@ sub format90 {
 
    # opedit: I don't want you to break print symbols
    return($line) if ($line =~ /print*/);
-   
+
    # BREAK LONG LINES INTO CONTINUATION LINES AND/OR REDUCE INDENTATION
    local($bestlen,$goodlen,$len,$maxindent,$indent,$indentnow,$c,$answer);
 

@@ -43,120 +43,120 @@ DOUBLE PRECISION,PARAMETER:: zero=0D0,one=1D0,two=2D0,half=0.5D0,quarter=0.25D0,
 DOUBLE PRECISION,PARAMETER:: dpi=3.141592653589793238462643383279502884197169399375105d0
 
 ! Physical scaling parameters:
-COMMON, DOUBLE PRECISION:: UNIT_LENGTH, UNIT_DENSITY, UNIT_VELOCITY
+DOUBLE PRECISION:: UNIT_LENGTH, UNIT_DENSITY, UNIT_VELOCITY
 
 include 'amrvacusrpar.f'
 
 ! For transform variables and save selected data
-COMMON, INTEGER :: nwtf
-COMMON, INTEGER :: neqpartf
+INTEGER :: nwtf
+INTEGER :: neqpartf
 
 !Kronecker delta and Levi-Civita tensors
-COMMON, INTEGER:: kr(3,3),lvc(3,3,3)
+INTEGER:: kr(3,3),lvc(3,3,3)
 
 !Equation and method parameters
-COMMON, DOUBLE PRECISION:: eqpar(neqpar+nspecialpar)
+DOUBLE PRECISION:: eqpar(neqpar+nspecialpar)
 
 ! Time step control parameters
-COMMON, DOUBLE PRECISION :: courantpar, dtpar, dtdiffpar, dtTCpar{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb}
-COMMON, CHARACTER*131 :: typecourant,typeresid
-COMMON, LOGICAL :: time_accurate, addmpibarrier
+DOUBLE PRECISION :: courantpar, dtpar, dtdiffpar, dtTCpar{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb}
+CHARACTER*131 :: typecourant,typeresid
+LOGICAL :: time_accurate, addmpibarrier
 
 !Time parameters
 INTEGER,PARAMETER:: nsavehi=100       ! maximum No. saves into outputfiles
                                       ! defined by arrays of tsave or itsave
-COMMON, DOUBLE PRECISION:: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNETOFRICTION ,tmf}
-COMMON, DOUBLE PRECISION:: tfixgrid
-COMMON, DOUBLE PRECISION:: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
-COMMON, LOGICAL:: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
-COMMON, INTEGER:: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
-COMMON, INTEGER:: itsave(nsavehi,nfile),itsavelast(nfile),ditsave(nfile)
-COMMON, INTEGER:: isavet(nfile),isaveit(nfile), nslices, slicedir(nslicemax), collapseLevel
-COMMON, INTEGER:: n_saves(1:nfile)
-COMMON, INTEGER:: typeparIO
-COMMON, INTEGER:: itfixgrid,ditregrid
-COMMON, INTEGER:: nwauxio
-COMMON, INTEGER:: istep, nstep
+DOUBLE PRECISION:: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNETOFRICTION ,tmf}
+DOUBLE PRECISION:: tfixgrid
+DOUBLE PRECISION:: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
+LOGICAL:: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
+INTEGER:: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
+INTEGER:: itsave(nsavehi,nfile),itsavelast(nfile),ditsave(nfile)
+INTEGER:: isavet(nfile),isaveit(nfile), nslices, slicedir(nslicemax), collapseLevel
+INTEGER:: n_saves(1:nfile)
+INTEGER:: typeparIO
+INTEGER:: itfixgrid,ditregrid
+INTEGER:: nwauxio
+INTEGER:: istep, nstep
 
 !Method switches
-COMMON, CHARACTER*131 :: typeadvance
-COMMON, CHARACTER*131 :: typelow1(nlevelshi),typelimited,typesourcesplit
-COMMON, CHARACTER*131 :: typefull1(nlevelshi), typepred1(nlevelshi)
-COMMON, CHARACTER*131 :: typelimiter1(nlevelshi),typegradlimiter1(nlevelshi)
-COMMON, CHARACTER*131 :: typelimiter,typegradlimiter,typeprolonglimit
-COMMON, CHARACTER*131 :: typeentropy(nw),typetvd,typetvdlf,typeaverage
-COMMON, CHARACTER*131 :: typedimsplit,typeaxial,typecoord,typepoly
-COMMON, INTEGER:: errorestimate,nxdiffusehllc,typespherical,ncyclemax
-COMMON, DOUBLE PRECISION:: entropycoef(nw)
-COMMON, DOUBLE PRECISION:: tvdlfeps, mcbeta, parastsnu, TCphi
-COMMON, LOGICAL:: sourceparasts,sourceimpl,sourceimplcycle,conduction,TCsaturate,bcphys
-COMMON, LOGICAL:: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
-COMMON, LOGICAL:: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
-COMMON, LOGICAL:: restrictprimitive,prolongprimitive, &
+CHARACTER*131 :: typeadvance
+CHARACTER*131 :: typelow1(nlevelshi),typelimited,typesourcesplit
+CHARACTER*131 :: typefull1(nlevelshi), typepred1(nlevelshi)
+CHARACTER*131 :: typelimiter1(nlevelshi),typegradlimiter1(nlevelshi)
+CHARACTER*131 :: typelimiter,typegradlimiter,typeprolonglimit
+CHARACTER*131 :: typeentropy(nw),typetvd,typetvdlf,typeaverage
+CHARACTER*131 :: typedimsplit,typeaxial,typecoord,typepoly
+INTEGER:: errorestimate,nxdiffusehllc,typespherical,ncyclemax
+DOUBLE PRECISION:: entropycoef(nw)
+DOUBLE PRECISION:: tvdlfeps, mcbeta, parastsnu, TCphi
+LOGICAL:: sourceparasts,sourceimpl,sourceimplcycle,conduction,TCsaturate,bcphys
+LOGICAL:: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
+LOGICAL:: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
+LOGICAL:: restrictprimitive,prolongprimitive, &
                   coarsenprimitive,useprimitiveRel, &
                   amrentropy
 
-COMMON, LOGICAL:: divbwave,compactres,BnormLF
-COMMON, DOUBLE PRECISION:: divbdiff,smallT,smallp,smallrho,amr_wavefilter(nlevelshi)
-COMMON, CHARACTER*131 :: typedivbdiff,typedivbfix,typediv,typegrad
+LOGICAL:: divbwave,compactres,BnormLF
+DOUBLE PRECISION:: divbdiff,smallT,smallp,smallrho,amr_wavefilter(nlevelshi)
+CHARACTER*131 :: typedivbdiff,typedivbfix,typediv,typegrad
 
-COMMON, LOGICAL:: fixsmall,strictnr,strictsmall,strictzero,strictgetaux
-COMMON, DOUBLE PRECISION::dmaxvel,tolernr,absaccnr,tlow
-COMMON, INTEGER:: maxitnr,nflatgetaux
+LOGICAL:: fixsmall,strictnr,strictsmall,strictzero,strictgetaux
+DOUBLE PRECISION::dmaxvel,tolernr,absaccnr,tlow
+INTEGER:: maxitnr,nflatgetaux
 
-COMMON, LOGICAL:: nocartesian
-COMMON, LOGICAL:: writew(nw),writelevel(nlevelshi)
-COMMON, DOUBLE PRECISION:: writespshift(ndim,2)
-COMMON, INTEGER:: level_io, level_io_min, level_io_max
+LOGICAL:: nocartesian
+LOGICAL:: writew(nw),writelevel(nlevelshi)
+DOUBLE PRECISION:: writespshift(ndim,2)
+INTEGER:: level_io, level_io_min, level_io_max
 
 ! cooling related parameters
-COMMON, INTEGER:: ncool, cmulti
-COMMON, CHARACTER*131 :: coolcurve,coolmethod
-COMMON, DOUBLE PRECISION :: cfrac
-COMMON, LOGICAL :: Tfix
+INTEGER:: ncool, cmulti
+CHARACTER*131 :: coolcurve,coolmethod
+DOUBLE PRECISION :: cfrac
+LOGICAL :: Tfix
 
 ! dust related paramters
-COMMON, LOGICAL  :: dustzero
-COMMON, DOUBLE PRECISION :: smallrhod
-COMMON, CHARACTER*131 :: dustmethod,dustspecies,dusttemp
+LOGICAL  :: dustzero
+DOUBLE PRECISION :: smallrhod
+CHARACTER*131 :: dustmethod,dustspecies,dusttemp
 
 ! local and global fastest wave speed (computed in setdt):
-COMMON, DOUBLE PRECISION :: cmax_mype, cmax_global
+DOUBLE PRECISION :: cmax_mype, cmax_global
 
 !Gravity related parameters
-COMMON, DOUBLE PRECISION ::  x1ptms,x2ptms,x3ptms,ptmass
+DOUBLE PRECISION ::  x1ptms,x2ptms,x3ptms,ptmass
 
 !Boundary region parameters
 INTEGER,PARAMETER:: nhiB=2*ndim         ! maximum No. boundary sections
-COMMON, LOGICAL:: periodB(ndim), poleB(2,ndim), aperiodB(ndim)
-COMMON, CHARACTER*131 :: typeB(nw,nhiB)
-COMMON, CHARACTER*131 :: typeghostfill,typegridfill
-COMMON, DOUBLE PRECISION::ratebdflux
-COMMON, LOGICAL:: internalboundary
+LOGICAL:: periodB(ndim), poleB(2,ndim), aperiodB(ndim)
+CHARACTER*131 :: typeB(nw,nhiB)
+CHARACTER*131 :: typeghostfill,typegridfill
+DOUBLE PRECISION::ratebdflux
+LOGICAL:: internalboundary
 
 !File parameters
-COMMON, CHARACTER*131 :: inifile,filenameout,filenameini,filenamelog
-COMMON, CHARACTER*131 :: fileheadout
-COMMON, CHARACTER*1024 :: wnames,primnames,wnameslog
-COMMON, CHARACTER*131 :: typefilelog
-COMMON, INTEGER :: snapshotini
-COMMON, LOGICAL :: sliceascii
+CHARACTER*131 :: inifile,filenameout,filenameini,filenamelog
+CHARACTER*131 :: fileheadout
+CHARACTER*1024 :: wnames,primnames,wnameslog
+CHARACTER*131 :: typefilelog
+INTEGER :: snapshotini
+LOGICAL :: sliceascii
 
 !Convert parameters
-COMMON, LOGICAL :: convert,autoconvert,saveprim,uselimiter,endian_swap
-COMMON, CHARACTER*131 :: convert_type, dxfiletype, collapse_type
-COMMON, DOUBLE PRECISION :: normvar(0:nw),normt
+LOGICAL :: convert,autoconvert,saveprim,uselimiter,endian_swap
+CHARACTER*131 :: convert_type, dxfiletype, collapse_type
+DOUBLE PRECISION :: normvar(0:nw),normt
 ! --------------------------------------------
 !Test parameters
-COMMON, CHARACTER*131 :: teststr
-COMMON, INTEGER :: ixtest1,ixtest2,ixtest3,iwtest,idimtest
-COMMON, INTEGER:: saveigrid
+CHARACTER*131 :: teststr
+INTEGER :: ixtest1,ixtest2,ixtest3,iwtest,idimtest
+INTEGER:: saveigrid
 ! Stores the memory and load imbalance, to be used in printlog:
-COMMON, DOUBLE PRECISION :: Xload, Xmemory
+DOUBLE PRECISION :: Xload, Xmemory
 
 LOGICAL:: oktest    !This is a local variable for all subroutines and functions
 
-COMMON, DOUBLE PRECISION:: time_bc
+DOUBLE PRECISION:: time_bc
 
 integer,parameter:: nodehi=^ND+1
 integer,parameter:: plevel_=1
@@ -197,10 +197,44 @@ integer          :: node, node_sub, levmin, levmax, levmax_sub
 logical          :: skipfinestep, time_advance{#IFDEF MAGNETOFRICTION , mf_advance}
 
 common /nodalr/     rnode(rnodehi,ngridshi), rnode_sub(rnodehi,ngridshi), tol(nlevelshi), tolratio(nlevelshi), &
-                    dx(ndim,nlevelshi), dt, dtimpl, dt_grid(ngridshi), dxlevel(ndim)
+                    dx(ndim,nlevelshi), dt, dtimpl, dt_grid(ngridshi)
 common /nodali/     node(nodehi,ngridshi), node_sub(nodehi,ngridshi), &
                     nbufferx^D, mxnest, dixB, levmin, levmax, levmax_sub
 common /nodall/     skipfinestep, time_advance{#IFDEF MAGNETOFRICTION , mf_advance}
 
+common /INTE/ nwtf,neqpartf,kr,lvc,it,itmax,itmin,slowsteps,itsave,itsavelast,&
+   ditsave,isavet,isaveit, nslices, slicedir, collapseLevel,n_saves,typeparIO,&
+   itfixgrid,ditregrid,nwauxio,istep, nstep,errorestimate,nxdiffusehllc,&
+   typespherical,ncyclemax,maxitnr,nflatgetaux,level_io, level_io_min,&
+    level_io_max,ncool, cmulti,snapshotini,ixtest1,ixtest2,ixtest3,iwtest,&
+   idimtest
+common /DOUB/ UNIT_LENGTH, UNIT_DENSITY, UNIT_VELOCITY,eqpar,courantpar,&
+    dtpar, dtdiffpar, dtTCpar,t,tmax,dtmin,residmin,residmax,residual,&
+   tfixgrid,tsave,tsavelast,dtsave,slicecoord,entropycoef,tvdlfeps, mcbeta,&
+    parastsnu, TCphi,divbdiff,smallT,smallp,smallrho,amr_wavefilter,dmaxvel,&
+   tolernr,absaccnr,tlow,writespshift,cfrac,smallrhod,cmax_mype, cmax_global,&
+   x1ptms,x2ptms,x3ptms,ptmass,ratebdflux,normvar,normt,Xload, Xmemory,time_bc
+common /CHAR/ typecourant,typeresid,typeadvance,typelow1,typelimited,&
+   typesourcesplit,typefull1, typepred1,typelimiter1,typegradlimiter1,&
+   typeprolonglimit,typeentropy,typetvd,typetvdlf,&
+   typeaverage,typedimsplit,typeaxial,typecoord,typepoly,typedivbdiff,&
+   typedivbfix,typediv,typegrad,coolcurve,coolmethod,dustmethod,dustspecies,&
+   dusttemp,typeB,typeghostfill,typegridfill,inifile,filenameout,filenameini,&
+   filenamelog,fileheadout,wnames,primnames,wnameslog,typefilelog,&
+   convert_type, dxfiletype, collapse_type,teststr
+common /LOGI/ time_accurate, addmpibarrier,tmaxexact,treset,itreset,&
+   firstprocess,resetgrid,fixprocess,changeglobals,collapse,sourceparasts,&
+   sourceimpl,sourceimplcycle,conduction,TCsaturate,bcphys,loglimit,logflag,&
+   flathllc,flatcd,flatsh,flatppm,ssplitdust,ssplitdivb,ssplitresis,&
+   ssplituser,useprimitive,dimsplit,restrictprimitive,prolongprimitive,&
+    coarsenprimitive,useprimitiveRel, amrentropy,divbwave,compactres,BnormLF,&
+   fixsmall,strictnr,strictsmall,strictzero,strictgetaux,nocartesian,writew,&
+   writelevel,Tfix,dustzero,periodB, poleB, aperiodB,internalboundary,&
+   sliceascii,convert,autoconvert,saveprim,uselimiter,endian_swap
+common /ompdoub/ dxlevel(ndim) 
+common /ompinte/ saveigrid
+common /ompchar/ typelimiter,typegradlimiter
+
+!$OMP THREADPRIVATE(/ompdoub/,/ompinte/,/ompchar/)
 ! end include file amrvacdef.t
 !============================================================================

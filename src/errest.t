@@ -45,28 +45,36 @@ case (1)
 
    ! Now advance full grid and obtain relative error
    ! between coarse and full grid sln at time t_n+1
+!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       call errest1_grid(igrid,pw(igrid)%w)
    end do
+!$OMP END PARALLEL DO
 
 case (2) 
    ! simply compare w_n-1 with w_n and trigger refinement on relative
    ! differences
+!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       call compare1_grid(igrid,pwold(igrid)%w,pw(igrid)%w)
    end do
+!$OMP END PARALLEL DO
 
 case (3)
    ! Error estimation is based on Lohner's scheme
+!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       call lohner_grid(igrid)
    end do
+!$OMP END PARALLEL DO
 
 case (4)
    ! Error estimation is based on Lohner's original scheme
+!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       call lohner_orig_grid(igrid)
    end do
+!$OMP END PARALLEL DO
 
 
 case default
@@ -77,9 +85,11 @@ end select
 if (nbufferx^D/=0|.or.) &
    call MPI_ALLREDUCE(MPI_IN_PLACE,refine,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
                       icomm,ierrmpi)
+!$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    call forcedrefine_grid(igrid,pw(igrid)%w)
 end do
+!$OMP END PARALLEL DO
 
 if (nbufferx^D/=0|.or.) &
 buffer=.false.
@@ -338,9 +348,11 @@ integer :: iigrid, igrid
 integer :: ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3
 !-----------------------------------------------------------------------------
 ixG^L=ixCoG^L;
+!$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    call createCoarse_grid(igrid,pwCoarse(igrid),pxCoarse(igrid),ixG^L,pwold(igrid)%w,px(igrid)%x)
 end do
+!$OMP END PARALLEL DO
 
 end subroutine createCoarse
 !=============================================================================
@@ -373,9 +385,11 @@ double precision, intent(in) :: factor
 
 integer :: iigrid, igrid
 !-----------------------------------------------------------------------------
+!$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    call advectCoarse_grid(igrid,pwCoarse(igrid),ixCoG^L,factor)
 end do
+!$OMP END PARALLEL DO
 
 end subroutine advectCoarse
 !=============================================================================

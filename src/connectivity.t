@@ -59,6 +59,8 @@ nrecv_bc_r=0; nsend_bc_r=0
 nrecv_bc_p=0; nsend_bc_p=0
 nrecv_fc=0; nsend_fc=0
 
+!$OMP PARALLEL DO PRIVATE(igrid,my_neighbor_type,iside,idim,icdim,tree,&
+!$OMP& my_neighbor,child,pole,nopole,i^D,ic^D,inc^D,ih^D)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    tree%node => igrid_to_node(igrid,mype)%node
 
@@ -162,6 +164,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
       end if
    {end do\}
 end do
+!$OMP END PARALLEL DO
 
 end subroutine build_connectivity
 !=============================================================================

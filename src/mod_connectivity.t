@@ -22,5 +22,7 @@ module mod_connectivity
    integer, save :: nrecv_bc_srl, nsend_bc_srl, &
                     nrecv_bc_r, nsend_bc_r, &
                     nrecv_bc_p, nsend_bc_p
+!$OMP THREADPRIVATE(leveljump,nrecv_bc_srl,nsend_bc_srl,nrecv_bc_r,&
+!$OMP& nsend_bc_r,nrecv_bc_p,nsend_bc_p,nrecv_fc,nsend_fc)
 
 end module mod_connectivity

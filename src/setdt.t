@@ -22,6 +22,8 @@ if(it==0) stepflag = 0
 {#IFDEF TCRKL2
 if(conduction) then
    dtimpl_mype=bigdouble
+!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,qdtimpl,&
+!$OMP& dx^D) REDUCTION(min:dtimpl_mype)
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       qdtimpl=bigdouble
       dx^D=rnode(rpdx^D_,igrid);
@@ -42,6 +44,7 @@ if(conduction) then
           print *,'final dt =',dtimpl_mype
       endif
    end do
+!$OMP END PARALLEL DO
    call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
    if(oktest.and.mype==0)then 
@@ -51,6 +54,8 @@ endif
 }
 if(sourceimpl) then
    dtimpl_mype=bigdouble
+!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,qdtimpl,&
+!$OMP& dx^D) REDUCTION(min:dtimpl_mype)
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       qdtimpl=bigdouble
       dx^D=rnode(rpdx^D_,igrid);
@@ -65,6 +70,7 @@ if(sourceimpl) then
           print *,'final dt =',dtimpl_mype
       endif
    end do
+!$OMP END PARALLEL DO
    call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
    if(oktest.and.mype==0)then 
@@ -75,6 +81,7 @@ endif
 if (dtpar<=zero) then
    dtmin_mype=bigdouble
    cmax_mype = zero
+!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,qdtimpl,dx^D) REDUCTION(min:dtimpl_mype)
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       dtnew=bigdouble
       dx^D=rnode(rpdx^D_,igrid);
@@ -104,6 +111,7 @@ if (dtpar<=zero) then
       endif
       dt_grid(igrid)=dtnew
    end do
+!$OMP END PARALLEL DO
 else
    dtmin_mype=dtpar
 end if
@@ -120,9 +128,11 @@ if (slowsteps>it-itmin+1) then
    if (time_accurate) then
       dtmin_mype=dtmin_mype*factor
    else
+!$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          dt_grid(igrid)=dt_grid(igrid)*factor
       end do
+!$OMP END PARALLEL DO
    end if
 end if
 
@@ -197,9 +207,11 @@ if (time_accurate) then
    endif
 }
 
+!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       dt_grid(igrid)=dt
    end do
+!$OMP END PARALLEL DO
      
 
 ! global Lax-Friedrich finite difference flux splitting needs fastest wave-speed
@@ -292,11 +304,13 @@ double precision :: resid_send(1:nwflux),resid_recv(1:nwflux)
 select case(typeresid)
   case('relative')
     wnrm2localgrids(1:nwflux)=zero
+!$OMP PARALLEL DO PRIVATE(igrid,iw) REDUCTION(+:wnrm2localgrids)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       do iw=1,nwflux
         wnrm2localgrids(iw)=wnrm2localgrids(iw)+sum(pw(igrid)%w(ixM^T,iw)**2)
       enddo
     end do 
+!$OMP END PARALLEL DO
 
     wnrm2_send(1:nwflux)=wnrm2localgrids(1:nwflux)
 
@@ -313,12 +327,14 @@ select case(typeresid)
 end select
 
 residlocalgrids(1:nwflux)=zero
+!$OMP PARALLEL DO PRIVATE(igrid,iw) REDUCTION(+:residlocalgrids)
 do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
     do iw=1,nwflux
       residlocalgrids(iw)=residlocalgrids(iw) &
            +sum(pwres(igrid)%w(ixM^T,iw)**2)/wnrm2_recv(iw)
     enddo
 end do 
+!$OMP END PARALLEL DO
 
 resid_send(1:nwflux)=residlocalgrids(1:nwflux)
 

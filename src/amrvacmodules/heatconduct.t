@@ -59,6 +59,7 @@ logical :: evenstep
 if(e_<1) call mpistop("Thermal conduction requires by e_>0!")
 bcphys=.false.
 
+!$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    allocate(pw1(igrid)%w(ixG^T,1:nw))
    allocate(pw2(igrid)%w(ixG^T,1:nw))
@@ -67,6 +68,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    pw2(igrid)%w=pw(igrid)%w
    pw3(igrid)%w=pwold(igrid)%w
 end do
+!$OMP END PARALLEL DO
 
 allocate(bj(0:s))
 bj(0)=1.d0/3.d0
@@ -78,7 +80,7 @@ else
   cmut=1.d0
 endif
 
-
+!$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
   if (.not.slab) mygeo => pgeo(igrid)
   if (B0field) then
@@ -91,14 +93,17 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
   call evolve_step1(cmut,qdt,ixG^LL,ixM^LL,pw1(igrid)%w,pw(igrid)%w,&
                     px(igrid)%x,pw3(igrid)%w)
 end do
+!$OMP END PARALLEL DO
 call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
 if(s==1) then
+!$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
     deallocate(pw1(igrid)%w)
     deallocate(pw2(igrid)%w)
     deallocate(pw3(igrid)%w)
   end do
+!$OMP END PARALLEL DO
   bcphys=.true.
   return
 endif
@@ -110,6 +115,7 @@ do j=2,s
   cnu=dble(1-j)/dble(j)*bj(j)/bj(j-2)
   cnut=(bj(j-1)-1.d0)*cmut
   if(evenstep) then
+!$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       if(.not.slab) mygeo => pgeo(igrid)
       if(B0field) then
@@ -122,9 +128,11 @@ do j=2,s
       call evolve_stepj(cmu,cmut,cnu,cnut,qdt,ixG^LL,ixM^LL,pw1(igrid)%w,&
                         pw2(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
     end do
+!$OMP END PARALLEL DO
     call getbc(qt,ixG^LL,pw2,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
     evenstep=.false.
   else
+!$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       if(.not.slab) mygeo => pgeo(igrid)
       if(B0field) then
@@ -137,24 +145,29 @@ do j=2,s
       call evolve_stepj(cmu,cmut,cnu,cnut,qdt,ixG^LL,ixM^LL,pw2(igrid)%w,&
                         pw1(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
     end do
+!$OMP END PARALLEL DO
     call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
     evenstep=.true.
   end if 
 end do
 if(evenstep) then
+!$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
     deallocate(pw1(igrid)%w)
     deallocate(pw2(igrid)%w)
     deallocate(pw3(igrid)%w)
   end do 
+!$OMP END PARALLEL DO
 else
+!$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw2(igrid)%w(ixG^T,e_)
     deallocate(pw1(igrid)%w)
     deallocate(pw2(igrid)%w)
     deallocate(pw3(igrid)%w)
   end do 
+!$OMP END PARALLEL DO
 end if
 deallocate(bj)
 
@@ -323,7 +336,8 @@ double precision, dimension(ixG^T,1:ndim) :: qvec_per, qvec_max
 }
 double precision, dimension(ixG^T) :: B2inv, BgradT,cs3,qflux,qsatflux
 integer, dimension(ndim) :: lowindex
-integer:: ix^L,idims,ix^D
+integer :: ix^L,idims,ix^D
+logical :: Bnull(ixI^S)
 !-----------------------------------------------------------------------------
 ix^L=ixO^L^LADD2;
 if (ixI^L^LTix^L|.or.|.or.) &
@@ -397,17 +411,20 @@ else
 end if
 ! B^-2
 B2inv(ix^S)= ^C&mf(ix^S,^C)**2+
+Bnull(ixI^S)=.false.
 where(B2inv(ix^S)/=0.d0)
   B2inv(ix^S)=1.d0/B2inv(ix^S)
+elsewhere
+  Bnull(ix^S)=.true.
 end where
 
-BgradT=zero
+BgradT(ix^S)=(^D&mf(ix^S,^D)*gradT(ix^S,^D)+)*B2inv(ix^S)
+cs3(ix^S)=eqpar(kappa_)*dsqrt(tmp(ix^S))*tmp(ix^S)**2*BgradT(ix^S)
+
 do idims=1,ndim
-  BgradT(ix^S)=BgradT(ix^S)+mf(ix^S,idims)*B2inv(ix^S)*gradT(ix^S,idims)
+  qvec(ix^S,idims)=mf(ix^S,idims)*cs3(ix^S)
 end do
-do idims=1,ndim
-  qvec(ix^S,idims)=eqpar(kappa_)*mf(ix^S,idims)*dsqrt(tmp(ix^S)**5)*BgradT(ix^S)
-end do
+
 if(TCsaturate) then
   ! Cowie and Mckee 1977 ApJ, 211, 135
   cs3(ix^S)=dsqrt(tmp(ix^S)**3)
@@ -468,7 +485,7 @@ qflux(ix^S)= ^D&qvec_per(ix^S,^D)**2+
 {end do\}
 }
 {do ix^DB=ixmin^DB,ixmax^DB\}
-  if(sum(mf(ix^D,1:ndir)**2)==0.d0) then
+  if(Bnull(ix^D)) then
     qvec(ix^D,1:ndim)=eqpar(kappa_)*dsqrt(tmp(ix^D)**5)*gradT(ix^D,1:ndim)
     if(TCsaturate) then
       ! unsigned saturated TC flux = 5 phi rho c**3

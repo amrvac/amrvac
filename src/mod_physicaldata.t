@@ -59,5 +59,5 @@ module mod_physicaldata
 
    type(geoalloc), dimension(ngridshi), target :: pgeo, pgeoCoarse, pgeoCoCo
    type(geoalloc), pointer                     :: mygeo
-   
+!$OMP THREADPRIVATE(myB0_cell,myB0_face^D,myB0,mygeo)   
 end module mod_physicaldata
