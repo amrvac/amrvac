@@ -438,11 +438,9 @@ end if
 
       if (time_advance.and.levmax>levmin) then
          if (istep==nstep.or.nstep>2) then
-!$OMP PARALLEL DO PRIVATE(igrid)
             do iigrid=1,igridstail; igrid=igrids(iigrid);
                call sendflux(igrid,idim^LIM)
             end do
-!$OMP END PARALLEL DO
             call fix_conserve(pwb,idim^LIM)
          end if
       end if
