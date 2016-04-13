@@ -97,7 +97,7 @@ double precision :: slopeL, slopeR, slopeC, signC, signR
 double precision :: slope(nw,ndim)
 double precision :: xCo^D, xFi^D, eta^D, invdxCo^D
 !-----------------------------------------------------------------------------
-invdxCo^D=dxCo^D;
+invdxCo^D=1.d0/dxCo^D;
 {do ixCo^DB = ixCo^LIM^DB
    ! cell-centered coordinates of coarse grid point
    xCo^DB=xComin^DB+(dble(ixCo^DB-dixB)-half)*dxCo^DB
