@@ -95,7 +95,7 @@ namelist /amrlist/    mxnest,nbufferx^D,tol,tolratio,errorestimate, &
                       skipfinestep,wflags,flags,&
                       restrictprimitive,prolongprimitive,coarsenprimitive, &
                       typeprolonglimit, &
-                      amrentropy,logflag,tfixgrid,itfixgrid,ditregrid
+                      amrentropy,logflag,tfixgrid,itfixgrid,ditregrid,loggrid,logG
 namelist /paramlist/  time_accurate, courantpar, dtpar, dtdiffpar, dtTCpar,&
                       typecourant, slowsteps, cfrac{#IFDEF MAGNETOFRICTION , cmf_c, cmf_y, cmf_divb}
 !----------------------------------------------------------------------------
@@ -211,6 +211,8 @@ skipfinestep=.false.
 tfixgrid=bigdouble
 itfixgrid=biginteger
 ditregrid=1
+loggrid=.false.
+logG=bigdouble
 
 ! MHD specific defaults
 B0field=.false.
@@ -378,6 +380,7 @@ if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
 
 if(firstprocess .and. snapshotini<0) &
   call mpistop("Please restart from a snapshot when firstprocess=T")
+if(convert) autoconvert=.false.
 
 read(unitpar,savelist)
 do ifile=1,nfile
@@ -639,6 +642,52 @@ case ("cylindrical")
       xprob^LIM^D=xprob^LIM^D*two*dpi;
    end if\}
 end select
+
+{#IFDEF STRETCHGRID
+if (mxnest>1) call mpistop("No refinement possible with a loggrid")
+if (typeaxial=='slab') &
+     call mpistop("Cartesian log grid not implemented")
+if (typeaxial=='cylindrical' .and. (^Z/=-8 {^IFTHREED .or. .true.})) &
+     call mpistop("Loggrid in (r,theta) only in cylindrical, no 3D nor z")
+
+{^IFONED
+! In 1D          , the value of xprobmax1 sets the value of logG
+if (logG/=bigdouble .or. xprobmax1==bigdouble) &
+     call mpistop("Do not specify logG in 1D since it is computed from xprobmax1")
+logG = two * &
+     ( (xprobmax1**(one/dble(nxlone1))-xprobmin1**(one/dble(nxlone1))) / &
+       (xprobmax1**(one/dble(nxlone1))+xprobmin1**(one/dble(nxlone1))) )
+if(mype==0) write(*,*) 'logG computed from xprobmax1 and Cie: ', logG
+}
+{^IFTWOD
+! In 2D ((r,theta) or spherical), the value of logG sets the value of
+! xprobmax1
+if (logG==bigdouble) then
+   print*, 'xprobmax1 : ', xprobmin1*&
+        ((one+half*logG*(xprobmax2-xprobmin2)/dble(nxlone2))/&
+         (one-half*logG*(xprobmax2-xprobmin2)/dble(nxlone2)))**dble(nxlone1)
+   call mpistop("Please specify logG!")
+endif
+if(^Z/=2) logG=logG*(xprobmax2-xprobmin2)/dble(nxlone2)
+xprobmax1=xprobmin1*((one+half*logG)/(one-half*logG))**dble(nxlone1)
+if(mype==0) write(*,*) 'xprobmax1 computed from the aspect ratio logG and Cie : ', xprobmax1
+}
+{^IFTHREED
+! In 2D ((r,theta) or spherical), the value of logG      sets the value of
+! xprobmax1
+if (logG==bigdouble) then
+   print*, 'xprobmax1 : ', xprobmin1*&
+        ((one+half*logG*(xprobmax3-xprobmin3)/dble(nxlone3))/&
+         (one-half*logG*(xprobmax3-xprobmin3)/dble(nxlone3)))**dble(nxlone1)
+   call mpistop("Please specify logG!")
+endif
+if(^PHI==2) logG=logG*(xprobmax2-xprobmin2)/dble(nxlone2)
+if(^PHI==3) logG=logG*(xprobmax3-xprobmin3)/dble(nxlone3)
+xprobmax1=xprobmin1*((one+half*logG)/(one-half*logG))**dble(nxlone1)
+if(mype==0) write(*,*) 'xprobmax1 computed from the aspect ratio logG and Cie : ', xprobmax1
+}
+}
+
 {
 if(nxlone^D>1 .and. mod(nxlone^D,2)==0)then
    dxlone^D=(xprobmax^D-xprobmin^D)/dble(nxlone^D)

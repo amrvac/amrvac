@@ -20,3 +20,4 @@
 #undefine BOUNDARYDRIVER
 #undefine PROCESSGLOBAL
 #undefine SAVEGHOSTCELL
+#undefine STRETCHGRID

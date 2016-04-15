@@ -53,7 +53,7 @@ include 'amrvacdef.f'
 integer, intent(in) :: igrid
 
 integer :: level, ig^D, ixCoG^L, ixCoCoG^L, ix
-double precision :: rXmin^D, dx^D
+double precision :: rXmin^D, dx^D, qs
 !-----------------------------------------------------------------------------
 ixCoGmin^D=1;
 ixCoGmax^D=ixGhi^D/2+dixB;
@@ -83,6 +83,7 @@ node(plevel_,igrid)=level
 ^D&rnode(rpxmin^D_,igrid)=xprobmin^D+dble(ig^D-1)*dg^D(level)\
 ^D&rnode(rpxmax^D_,igrid)=xprobmax^D-dble(ng^D(level)-ig^D)*dg^D(level)\
 
+
 allocate(px(igrid)%x(ixG^T,1:ndim),pxCoarse(igrid)%x(ixCoG^S,1:ndim))
 ^D&dx^D=rnode(rpdx^D_,igrid)\
 ^D&rXmin^D=rnode(rpxmin^D_,igrid)-dixB*dx^D\
@@ -94,6 +95,17 @@ end do\}
 {do ix=ixCoGmin^D,ixCoGmax^D
    pxCoarse(igrid)%x(ix^D%ixCoG^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
 end do\}
+
+{#IFDEF STRETCHGRID
+!------ Log grid without any AMR-----------
+qs=(one+half*logG)/(one-half*logG)
+rnode(rpxmin1_,igrid)=xprobmin1*qs**((ixMhi1-ixMlo1+1)*(ig1-1))
+rnode(rpxmax1_,igrid)=xprobmin1*qs**((ixMhi1-ixMlo1+1)*ig1)
+rXmin1=rnode(rpxmin1_,igrid)*qs**(-dixB)
+do ix=ixGlo1,ixGhi1
+  px(igrid)%x(ix^%1ixG^T,1)=(rXmin1/(one-half*logG))*qs**(ix-1)
+end do
+}
 
 if (.not.slab) call getgridgeo(igrid)
 

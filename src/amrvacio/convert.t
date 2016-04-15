@@ -261,7 +261,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (.not.convert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".blk"
    select case(convert_type)
     case("oneblock")
@@ -420,7 +420,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (.not.convert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".blk"
    open(qunit,file=filename,status='unknown')
  end if
@@ -460,7 +460,7 @@ Manycpu : if (npe>1) then
          itag=igrid_recv
          call MPI_RECV(w_recv,1,type_block_io, ipe,itag,icomm,intstatus(:,1),ierrmpi)
          {do ix^DB=ixMlo^DB,ixMhi^DB\}
-	    do iw=1,nw
+            do iw=1,nw
               if( dabs(pw(igrid)%w(ix^D,iw)) < smalldouble ) pw(igrid)%w(ix^D,iw) = zero
             enddo
             write(qunit,fmt="(100(e14.6))") x_recv(ix^D,1:ndim)&
@@ -528,7 +528,7 @@ inquire(qunit,opened=fileopen)
 if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (.not.convert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".out"
    open(qunit,file=filename,status='unknown',form='unformatted')
 end if
@@ -725,7 +725,7 @@ inquire(qunit,opened=fileopen)
 if (.not.fileopen) then
    ! generate filename    
    filenr=snapshotini
-   if (.not.convert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".plt"
    open(qunit,file=filename,status='unknown')
 end if
@@ -953,30 +953,24 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 include 'amrvacdef.f'
 
 integer, intent(in) :: qunit, igrid
+integer :: ixC^L,ixCC^L
 logical, intent(in) :: first
-
-integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
-integer :: ixC^L,ixCC^L,nxCC^D
-double precision :: dx^D
-
-integer :: idims,jxC^L
-double precision :: ldw(ixG^T), dwC(ixG^T)
-
-double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
-double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
-
-double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
-double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
-
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
-double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
-
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
-integer ::iwe,iwb^C
+
+double precision :: ldw(ixG^T), dwC(ixG^T)
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
+double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
+double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC
+double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
+double precision :: dx^D{#IFDEF STRETCHGRID ,qs}
+integer :: nxCC^D,idims,jxC^L,iwe,iwb^C
+integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
 logical, save :: subfirst=.true.
 !-----------------------------------------------------------------------------
 ! following only for allowing compiler to go through with debug on
@@ -1017,6 +1011,12 @@ ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
 {do ix=ixCCmin^D,ixCCmax^D
     xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
 end do\}
+{#IFDEF STRETCHGRID
+qs=(one+half*logG)/(one-half*logG)
+do ix=ixCCmin1,ixCCmax1
+   xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qs**(ix-ixCCmin1)
+enddo
+}
 
 ! coordinates of cell corners
 nxC^D=nx^D+1;
@@ -1024,6 +1024,11 @@ ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
 {do ix=ixCmin^D,ixCmax^D
     xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
 end do\}
+{#IFDEF STRETCHGRID
+do ix=ixCmin1,ixCmax1
+   xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qs**(ix-ixCmin1)
+enddo
+}
 
 ! In case primitives to be saved: use primitive subroutine
 !  extra layer around mesh only needed when storing corner values and averaging
@@ -1367,7 +1372,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
    filenr=snapshotini
-   if (.not.convert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshot-1
   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown')
@@ -1594,7 +1599,7 @@ else
  if(.not.fileopen)then
    ! generate filename 
     filenr=snapshotini
-    if (.not.convert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='replace')
@@ -2032,7 +2037,7 @@ nx^D=ixGhi^D-2*dixB;
 byteorder = ' '//TRIM(dxfiletype)//' '
    ! generate filename    
    filenr=snapshotini
-   if (.not.convert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".plt"
 
 call date_and_time(dummy_date,dummy_time,dummy_zone,DateAndTime)
@@ -2319,7 +2324,7 @@ else
  if(.not.fileopen)then
     ! generate filename 
     filenr=snapshotini
-    if (.not.convert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshot-1
     write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vti"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2431,7 +2436,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (.not.convert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshot-1
    ! Open the file for the header part
    write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(filenameout),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')
@@ -2534,7 +2539,7 @@ if (mype==0) then
  if(.not.fileopen)then
     ! generate filename 
     filenr=snapshotini
-    if (.not.convert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshot-1
     write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2866,7 +2871,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (.not.convert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".pvtu"
    ! Open the file
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2979,7 +2984,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (.not.convert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshot-1
    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".plt"
    open(qunit,file=filename,status='unknown')
  end if
@@ -3444,7 +3449,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (.not.convert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshot-1
    ! Open the file for the header part
    write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(filenameout),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')

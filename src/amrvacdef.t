@@ -68,7 +68,7 @@ INTEGER,PARAMETER:: nsavehi=100       ! maximum No. saves into outputfiles
 DOUBLE PRECISION:: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNETOFRICTION ,tmf}
 DOUBLE PRECISION:: tfixgrid
 DOUBLE PRECISION:: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
-LOGICAL:: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
+LOGICAL:: tmaxexact,treset,itreset,firstprocess,resetgrid,loggrid,fixprocess,changeglobals,collapse(ndim)
 INTEGER:: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
 INTEGER:: itsave(nsavehi,nfile),itsavelast(nfile),ditsave(nfile)
 INTEGER:: isavet(nfile),isaveit(nfile), nslices, slicedir(nslicemax), collapseLevel
@@ -157,6 +157,8 @@ DOUBLE PRECISION :: Xload, Xmemory
 LOGICAL:: oktest    !This is a local variable for all subroutines and functions
 
 DOUBLE PRECISION:: time_bc
+! stretching factor for log stretch grid
+DOUBLE PRECISION:: logG
 
 integer,parameter:: nodehi=^ND+1
 integer,parameter:: plevel_=1
@@ -213,7 +215,8 @@ common /DOUB/ UNIT_LENGTH, UNIT_DENSITY, UNIT_VELOCITY,eqpar,courantpar,&
    tfixgrid,tsave,tsavelast,dtsave,slicecoord,entropycoef,tvdlfeps, mcbeta,&
     parastsnu, TCphi,divbdiff,smallT,smallp,smallrho,amr_wavefilter,dmaxvel,&
    tolernr,absaccnr,tlow,writespshift,cfrac,smallrhod,cmax_mype, cmax_global,&
-   x1ptms,x2ptms,x3ptms,ptmass,ratebdflux,normvar,normt,Xload, Xmemory,time_bc
+   x1ptms,x2ptms,x3ptms,ptmass,ratebdflux,normvar,normt,Xload,Xmemory,time_bc,&
+   logG
 common /CHAR/ typecourant,typeresid,typeadvance,typelow1,typelimited,&
    typesourcesplit,typefull1, typepred1,typelimiter1,typegradlimiter1,&
    typeprolonglimit,typeentropy,typetvd,typetvdlf,&
@@ -223,7 +226,7 @@ common /CHAR/ typecourant,typeresid,typeadvance,typelow1,typelimited,&
    filenamelog,fileheadout,wnames,primnames,wnameslog,typefilelog,&
    convert_type, dxfiletype, collapse_type,teststr
 common /LOGI/ time_accurate, addmpibarrier,tmaxexact,treset,itreset,&
-   firstprocess,resetgrid,fixprocess,changeglobals,collapse,sourceparasts,&
+   firstprocess,resetgrid,loggrid,fixprocess,changeglobals,collapse,sourceparasts,&
    sourceimpl,sourceimplcycle,conduction,TCsaturate,bcphys,loglimit,logflag,&
    flathllc,flatcd,flatsh,flatppm,ssplitdust,ssplitdivb,ssplitresis,&
    ssplituser,useprimitive,dimsplit,restrictprimitive,prolongprimitive,&

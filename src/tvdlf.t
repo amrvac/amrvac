@@ -517,6 +517,9 @@ do idims= idim^LIM
 
    ! Get interface positions:
    xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
+{#IFDEF STRETCHGRID
+   if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
+}
 
    ! for tvdlf (second order scheme): apply limiting
    if (method=='tvdlf') then
