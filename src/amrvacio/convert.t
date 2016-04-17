@@ -968,7 +968,7 @@ double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC
 double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
-double precision :: dx^D{#IFDEF STRETCHGRID ,qs}
+double precision :: dx^D
 integer :: nxCC^D,idims,jxC^L,iwe,iwb^C
 integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
 logical, save :: subfirst=.true.
@@ -1012,9 +1012,8 @@ ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
     xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
 end do\}
 {#IFDEF STRETCHGRID
-qs=(one+half*logG)/(one-half*logG)
 do ix=ixCCmin1,ixCCmax1
-   xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qs**(ix-ixCCmin1)
+   xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
 enddo
 }
 
@@ -1026,7 +1025,7 @@ ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
 end do\}
 {#IFDEF STRETCHGRID
 do ix=ixCmin1,ixCmax1
-   xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qs**(ix-ixCmin1)
+   xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
 enddo
 }
 

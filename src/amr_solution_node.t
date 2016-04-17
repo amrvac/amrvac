@@ -53,7 +53,7 @@ include 'amrvacdef.f'
 integer, intent(in) :: igrid
 
 integer :: level, ig^D, ixCoG^L, ixCoCoG^L, ix
-double precision :: rXmin^D, dx^D, qs
+double precision :: rXmin^D, dx^D
 !-----------------------------------------------------------------------------
 ixCoGmin^D=1;
 ixCoGmax^D=ixGhi^D/2+dixB;
@@ -97,13 +97,19 @@ end do\}
 end do\}
 
 {#IFDEF STRETCHGRID
-!------ Log grid without any AMR-----------
-qs=(one+half*logG)/(one-half*logG)
-rnode(rpxmin1_,igrid)=xprobmin1*qs**((ixMhi1-ixMlo1+1)*(ig1-1))
-rnode(rpxmax1_,igrid)=xprobmin1*qs**((ixMhi1-ixMlo1+1)*ig1)
-rXmin1=rnode(rpxmin1_,igrid)*qs**(-dixB)
+logG=logGs(level)
+qst=qsts(level)
+rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
+rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
+rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
 do ix=ixGlo1,ixGhi1
-  px(igrid)%x(ix^%1ixG^T,1)=(rXmin1/(one-half*logG))*qs**(ix-1)
+  px(igrid)%x(ix^%1ixG^T,1)=rXmin1/(one-half*logG)*qst**(ix-1)
+end do
+logG=logGs(level-1)
+qst=qsts(level-1)
+rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
+do ix=ixCoGmin1,ixCoGmax1
+  pxCoarse(igrid)%x(ix^%1ixCoG^S,1)=rXmin1/(one-half*logG)*qst**(ix-1)
 end do
 }
 

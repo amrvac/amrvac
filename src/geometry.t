@@ -66,6 +66,10 @@ allocate(pgeo(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
 
 dx^D=rnode(rpdx^D_,igrid);
 xmin^D=rnode(rpxmin^D_,igrid);
+{#IFDEF STRETCHGRID
+logG=logGs(node(plevel_,igrid))
+qst=qsts(node(plevel_,igrid))
+}
 call fillgeo(pgeo(igrid),ixG^LL,ixGext^L,xmin^D,dx^D,.false.)
 
 if (errorestimate==1) then
@@ -86,6 +90,10 @@ if (errorestimate==1) then
         pgeoCoarse(igrid)%dx(ixGext^S,1:ndim))
 
    dx^D=two*rnode(rpdx^D_,igrid);
+{#IFDEF STRETCHGRID
+   logG=logGs(node(plevel_,igrid)-1)
+   qst=qsts(node(plevel_,igrid)-1)
+}
    call fillgeo(pgeoCoarse(igrid),ixCoG^L,ixGext^L,xmin^D,dx^D,.false.)
 
    ixCoCoGmin^D=1; ixCoCoGmax^D=ixCoGmax^D/2+dixB;
@@ -99,6 +107,12 @@ if (errorestimate==1) then
    allocate(pgeoCoCo(igrid)%dvolume(ixGext^S))
 
    dx^D=4.0d0*rnode(rpdx^D_,igrid);
+{#IFDEF STRETCHGRID
+   logG=logGs(node(plevel_,igrid)-1)
+   qst=qsts(node(plevel_,igrid)-1)
+   qst=qst**2
+   logG=2.d0*(qst-1.d0)/(qst+1.d0)
+}
    call fillgeo(pgeoCoCo(igrid),ixCoCoG^L,ixGext^L,xmin^D,dx^D,.true.)
 else
    ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+dixB;
@@ -112,6 +126,10 @@ else
    allocate(pgeoCoarse(igrid)%dvolume(ixGext^S))
 
    dx^D=two*rnode(rpdx^D_,igrid);
+{#IFDEF STRETCHGRID
+logG=logGs(node(plevel_,igrid)-1)
+qst=qsts(node(plevel_,igrid)-1)
+}
    call fillgeo(pgeoCoarse(igrid),ixCoG^L,ixGext^L,xmin^D,dx^D,.true.)
 end if
 
@@ -147,7 +165,7 @@ double precision, intent(in) :: xmin^D, dx^D
 logical, intent(in) :: need_only_volume
 
 integer :: idims, ix, ixM^L, ix^L, ixC^L
-double precision :: x(ixGext^S,ndim) {#IFDEF STRETCHGRID ,qs,drs(ixGext^S)}
+double precision :: x(ixGext^S,ndim) {#IFDEF STRETCHGRID ,drs(ixGext^S)}
 !-----------------------------------------------------------------------------
 ixM^L=ixG^L^LSUBdixB;
 !ix^L=ixM^L^LADD1;
@@ -188,9 +206,8 @@ case ("spherical")
       end select
    end do
 {#IFDEF STRETCHGRID
-   qs=(one+half*logG)/(one-half*logG)
    do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qs**(ix-dixB-1)
+      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-dixB-1)
    end do
    drs(ixGext^S)=x(ixGext^S,1)*logG
 }
@@ -302,9 +319,8 @@ case ("cylindrical")
    pgeogrid%dvolume(ixGext^S)=dabs(half*((x(ixGext^S,1)+half*dx1)**2-(x(ixGext^S,1)-half*dx1)**2)){^DE&*dx^DE }
 }
 {#IFDEF STRETCHGRID
-   qs=(one+half*logG)/(one-half*logG)
    do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qs**(ix-dixB-1)
+      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-dixB-1)
    end do
    drs(ixGext^S)=x(ixGext^S,1)*logG
    pgeogrid%dvolume(ixGext^S)=dabs(half*&
@@ -360,7 +376,7 @@ case ("cylindrical")
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
    if (^Z==2) pgeogrid%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (^PHI==2) pgeogrid%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
+   if (^PHI==2) pgeogrid%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
    if (^Z==3) pgeogrid%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2

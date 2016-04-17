@@ -28,6 +28,9 @@ type(walloc) :: pwbuf(npwbuf)
 logical  :: isphysbound
 
 double precision :: time_bcin
+{#IFDEF STRETCHGRID
+double precision :: logGl,qstl
+}
 !-----------------------------------------------------------------------------
 time_bcin=MPI_WTIME()
 
@@ -576,6 +579,14 @@ invdxCo^D=1.d0/dxCo^D;
 
 xFimin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxFi^D;
 xComin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxCo^D;
+{#IFDEF STRETCHGRID
+qst=qsts(node(plevel_,igrid))
+logG=logGs(node(plevel_,igrid))
+qstl=qsts(node(plevel_,igrid)-1)
+logGl=logGs(node(plevel_,igrid)-1)
+xFimin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
+xComin1=rnode(rpxmin1_,igrid)*qstl**(-dixB)
+}
 
 ! moved the physical boundary filling here, to only fill the
 ! part needed
@@ -653,7 +664,13 @@ double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
 
    ! cell-centered coordinate for coarse cell
    xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB\}
-
+{#IFDEF STRETCHGRID
+   xFi1=xFimin1/(one-half*logG)*qst**(ixFi1-1)
+   do ixCo1=1,ixCoGmax1
+     xCo1=xComin1/(one-half*logGl)*qstl**(ixCo1-1)
+     if(dabs(xFi1-xCo1)<half*logGl*xCo1) exit
+   end do
+}
    ! normalized distance between fine/coarse cell center
    ! in coarse cell: ranges from -0.5 to 0.5 in each direction
    ! (origin is coarse cell center)
@@ -664,6 +681,10 @@ double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
       {eta^D=(xFi^D-xCo^D)*invdxCo^D &
             *two*(one-pgeoFi(igrid)%dvolume(ixFi^DD) &
             /sum(pgeoFi(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
+{#IFDEF STRETCHGRID
+      eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-pgeoFi(igrid)%dvolume(ixFi^D) &
+            /sum(pgeoFi(igrid)%dvolume(ix1:ix1+1^%1ixFi^D))) 
+}
    end if
 
    do idims=1,ndim

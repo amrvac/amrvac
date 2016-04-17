@@ -135,6 +135,18 @@ allocate(tree_root(1:ng^D(1)))
    nullify(tree_root(ig^D)%node)
 {end do\}
 
+{#IFDEF STRETCHGRID
+logGs(1)=logG
+qsts(1)=qst
+qsts(0)=qst**2
+logGs(0)=2.d0*(qsts(0)-1.d0)/(qsts(0)+1.d0)
+if(mxnest>1) then
+  do level=2,mxnest
+    qsts(level)=dsqrt(qsts(level-1))
+    logGs(level)=2.d0*(qsts(level)-1.d0)/(qsts(level)+1.d0) 
+  end do
+end if
+}
 
 ! default the physical scaling parameters:
 UNIT_LENGTH   = ONE

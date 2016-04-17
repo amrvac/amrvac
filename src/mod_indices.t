@@ -39,5 +39,4 @@ module mod_indices
 
    logical, save :: B0field
    double precision, save :: Bdip, Bquad, Boct, Busr
-!$OMP THREADPRIVATE(itag,ierrmpi,irecv,isend)
 end module mod_indices

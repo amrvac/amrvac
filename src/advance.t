@@ -472,6 +472,10 @@ double precision :: fC(ixG^S,1:nwflux,1:ndim)
 dx^D=rnode(rpdx^D_,igrid);
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 saveigrid=igrid
+{#IFDEF STRETCHGRID
+logG=logGs(node(plevel_,igrid))
+qst=qsts(node(plevel_,igrid))
+}
 
 if (.not.slab) mygeo => pgeo(igrid)
 if (B0field) then

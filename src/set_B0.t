@@ -29,23 +29,23 @@ wB0(ix^S,1:ndir)=zero
 select case (typeaxial)
 case ("spherical")
    {^NOONED
-   if (abs(Bdip)>smalldouble) then
-      wB0(ix^S,1)=2.0d0*Bdip*cos(x(ix^S,2))/x(ix^S,1)**3.0d0
-      wB0(ix^S,2)=Bdip*sin(x(ix^S,2))/x(ix^S,1)**3.0d0
+   if (dabs(Bdip)>smalldouble) then
+      wB0(ix^S,1)=2.0d0*Bdip*dcos(x(ix^S,2))/x(ix^S,1)**3
+      wB0(ix^S,2)=Bdip*dsin(x(ix^S,2))/x(ix^S,1)**3
    end if
 
    if (abs(Bquad)>smalldouble) then
       wB0(ix^S,1)=wB0(ix^S,1) &
-           +Bquad*0.5d0*(1.0d0+3.0d0*cos(2.0d0*x(ix^S,2)))/x(ix^S,1)**4
-      wB0(ix^S,2)=wB0(ix^S,2)+Bquad*sin(2.0d0*x(ix^S,2))/x(ix^S,1)**4
+           +Bquad*0.5d0*(1.0d0+3.0d0*dcos(2.0d0*x(ix^S,2)))/x(ix^S,1)**4
+      wB0(ix^S,2)=wB0(ix^S,2)+Bquad*dsin(2.0d0*x(ix^S,2))/x(ix^S,1)**4
    end if
    if (abs(Boct)>smalldouble) then
       wB0(ix^S,1)=wB0(ix^S,1) &
-                   +Boct*(10.0d0*cos(2.0d0*x(ix^S,2))-2.0d0) &
-                        *cos(x(ix^S,2))/x(ix^S,1)**5
+                   +Boct*(10.0d0*dcos(2.0d0*x(ix^S,2))-2.0d0) &
+                        *dcos(x(ix^S,2))/x(ix^S,1)**5
       wB0(ix^S,2)=wB0(ix^S,2) &
-                   +Boct*1.5d0*(3.0d0+5.0d0*cos(2.0d0*x(ix^S,2))) &
-                        *sin(x(ix^S,2))/x(ix^S,1)**5
+                   +Boct*1.5d0*(3.0d0+5.0d0*dcos(2.0d0*x(ix^S,2))) &
+                        *dsin(x(ix^S,2))/x(ix^S,1)**5
    end if
    }
 end select
@@ -68,6 +68,10 @@ integer :: idims, ixC^L, ix, idims2
 !-----------------------------------------------------------------------------
 dx^D=rnode(rpdx^D_,igrid);
 xmin^D=rnode(rpxmin^D_,igrid);
+{#IFDEF STRETCHGRID
+logG=logGs(node(plevel_,igrid))
+qst=qsts(node(plevel_,igrid))
+}
 
 do idims=1,ndim
    ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
@@ -80,6 +84,15 @@ do idims=1,ndim
         end do\}
       end select
    end do
+{#IFDEF STRETCHGRID
+   do ix = ixCmin1,ixCmax1
+     if(xshift1==0.d0) then
+       xC(ix^%1ixC^S,1)=xmin1*qst**(ix-dixB)
+     else
+       xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-dixB-1)
+     end if
+   end do
+}
 
    select case(idims)
    {case (^D)
