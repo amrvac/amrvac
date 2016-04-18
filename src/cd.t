@@ -139,6 +139,9 @@ do idims= idim^LIM
    ! Get interface positions:
    xi(kkxC^S,1:ndim) = x(kkxC^S,1:ndim)
    xi(kkxC^S,idims) = half* ( x(kkxR^S,idims)+x(kkxC^S,idims) )
+{#IFDEF STRETCHGRID
+   if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
+}
 
    dxdim=-qdt/dxinv(idims)
    call upwindLR(ixI^L,ixC^L,ixC^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim)

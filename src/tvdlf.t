@@ -516,6 +516,7 @@ do idims= idim^LIM
    wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
 
    ! Get interface positions:
+   xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
    xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
 {#IFDEF STRETCHGRID
    if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
@@ -748,6 +749,9 @@ do idims= idim^LIM
    ! Get interface positions:
    xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
    xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
+{#IFDEF STRETCHGRID
+   if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
+}
 
    ! for hll (second order scheme): apply limiting
    if (method=='hll') then
@@ -1005,6 +1009,9 @@ do idims= idim^LIM
    ! Get interface positions:
    xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
    xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
+{#IFDEF STRETCHGRID
+   if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
+}
 
    ! for hllc and hllcd (second order schemes): apply limiting
    if (method=='hllc'.or.method=='hllcd') then
@@ -1273,6 +1280,9 @@ do idims= idim^LIM
    ! Get interface positions:
    xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
    xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
+{#IFDEF STRETCHGRID
+   if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
+}
 
    ! for tvdlf and tvdmu (second order schemes): apply limiting
    if (method=='tvdmu') then
