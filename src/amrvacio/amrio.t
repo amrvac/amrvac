@@ -652,10 +652,8 @@ if (qst/=bigdouble) then
    xprobmax1=xprobmin1*qst**nxlone1
    if(mype==0) write(*,*) 'xprobmax1 is computed for given nxlone1 and qst:', xprobmax1
 else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
-   logG = two * &
-      ( (xprobmax1**(one/dble(nxlone1))-xprobmin1**(one/dble(nxlone1))) / &
-        (xprobmax1**(one/dble(nxlone1))+xprobmin1**(one/dble(nxlone1))) )
-   qst=(one+half*logG)/(one-half*logG)
+   qst=(xprobmax1/xprobmin1)**(1.d0/dble(nxlone1))
+   logG=2.d0*(qst-1.d0)/(qst+1.d0)
    if(mype==0) write(*,*) 'logG and qst computed from xprobmax1: ', logG, qst
 end if
 }

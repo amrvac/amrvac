@@ -1029,10 +1029,7 @@ do ix=ixCmin1,ixCmax1
 enddo
 }
 
-! In case primitives to be saved: use primitive subroutine
-!  extra layer around mesh only needed when storing corner values and averaging
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
-if(saveprim.and.first) call primitive(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x)
 
 if (nwextra>0) then
  ! here we actually fill the ghost layers for the nwextra variables using 
@@ -1075,6 +1072,10 @@ if(nwauxio>0)then
   !call specialvar_output(ixG^LL,ixG^LL^LSUB1,w,px(igrid)%x,normconv)
   call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
 endif
+
+! In case primitives to be saved: use primitive subroutine
+!  extra layer around mesh only needed when storing corner values and averaging
+if(saveprim.and.first) call primitive(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x)
 
 ! compute the cell-center values for w first
 !===========================================
