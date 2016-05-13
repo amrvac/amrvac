@@ -25,7 +25,18 @@ def emiss(data,ion,Teunit,nunit,Lunit,othick=0):
         emiss = np.where(rho>2.e10,0.,emiss)
 # mask out the wind zone:
     print '=== Done with emission! ==='
-    return {'emiss': emiss, 'rho':rho, 'points': data.get('points')}
+    return {'emiss': emiss, 'points': data.get('points')}
+#============================================================================
+def integral(data,val,unit,los):
+    '''get optically thin emission in specific wave length'''
+    print '=== Getting emission ==='
+# peel data:
+    pointdata=data.get('pointdata')
+# points:
+    emiss=read.extract(pointdata,val,attribute_mode='point')*unit/los
+# mask out the wind zone:
+    print '=== Done with integral value ==='
+    return {'emiss': emiss, 'points': data.get('points')}
 #============================================================================
 def viewangle(emissdic,theta,phiy,phi,delta=0,nu=1):
     '''set view angle for line of sight'''

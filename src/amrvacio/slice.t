@@ -179,6 +179,8 @@ if (mype==0) then
       xxlabel=trim(xlabel)
       if(xslice>=zero)then
          write(xxlabel(1:1),"(a)") "+"
+      else
+         write(xxlabel(1:1),"(a)") "_"
       endif
       write(filename,"(a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.csv'
       open(slice_fh,file=filename,status='unknown',form='formatted')
@@ -305,6 +307,8 @@ write(xlabel,"(D9.2)")xslice
 xxlabel=trim(xlabel)
 if(xslice>=zero)then
    write(xxlabel(1:1),"(a)") "+"
+else
+   write(xxlabel(1:1),"(a)") "_"
 endif
 write(filename,"(a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.dat'
 

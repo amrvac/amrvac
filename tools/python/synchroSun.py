@@ -726,7 +726,6 @@ def shotgun(inputdata,npixel,L,x0=None,coordinate='cartesian',interp='nearest'):
     print '=== Calculating radiation map... ==='
     points   = inputdata.get('points')
     emiss    = inputdata.get('emiss')
-    rho      = inputdata.get('rho')
     if 'emisspol' in inputdata:
         emisspol = inputdata.get('emisspol')
     phi      = inputdata.get('phi')
@@ -741,10 +740,8 @@ def shotgun(inputdata,npixel,L,x0=None,coordinate='cartesian',interp='nearest'):
     grid = make_grid(theta,phiy,phi,npixel,L,delta=delta,x0=x0)
 
     data    = griddata((x,y,z),emiss, (grid[0],grid[1],grid[2]),method=interp)
-    #rhor    = griddata((x,y,z),rho, (grid[0],grid[1],grid[2]),method=interp)
     
 # remove emissivity outside of original data:
-    #data = cutEmiss(data,rhor,grid,npixel,points,coordinate)
     data = cutEmiss(data,grid,npixel,points,coordinate)
 
     if 'emisspol' in inputdata:
