@@ -178,9 +178,9 @@ if (mype==0) then
       write(xlabel,"(D9.2)")xslice
       xxlabel=trim(xlabel)
       if(xslice>=zero)then
-         write(xxlabel(1:1),"(a)") "+"
+         write(xxlabel(1:1),"(a)") "p"
       else
-         write(xxlabel(1:1),"(a)") "_"
+         write(xxlabel(1:1),"(a)") "n"
       endif
       write(filename,"(a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.csv'
       open(slice_fh,file=filename,status='unknown',form='formatted')
@@ -306,9 +306,9 @@ nsubleafs=Morton_sub_stop(npe-1)
 write(xlabel,"(D9.2)")xslice
 xxlabel=trim(xlabel)
 if(xslice>=zero)then
-   write(xxlabel(1:1),"(a)") "+"
+   write(xxlabel(1:1),"(a)") "p"
 else
-   write(xxlabel(1:1),"(a)") "_"
+   write(xxlabel(1:1),"(a)") "n"
 endif
 write(filename,"(a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.dat'
 

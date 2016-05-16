@@ -1503,6 +1503,7 @@ if (mype==0) then
  call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
  call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,status,ierrmpi)
+ nleafs_active = nleafs
  call MPI_FILE_READ(file_handle,levmaxini,1,MPI_INTEGER,status,ierrmpi)
  call MPI_FILE_READ(file_handle,ndimini,1,MPI_INTEGER,status,ierrmpi)
  call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,status,ierrmpi)
