@@ -15,7 +15,8 @@ module mod_forest
    type(tree_node_ptr), dimension(:,:), allocatable, save :: igrid_to_node
    type(tree_node_ptr), dimension(:), allocatable, save :: level_head, &
                                                            level_tail
-   integer, dimension(:,:), allocatable, save :: sfc
+   integer, dimension(:,:), allocatable, save :: sfc, sfc_iglevel1
+   integer, dimension(:^D&), allocatable, save :: iglevel1_sfc
    integer, dimension(:), allocatable, save :: sfc_to_igrid
    integer, dimension(:), allocatable, save :: igrid_to_sfc
    integer, dimension(:), allocatable, save :: Morton_start, Morton_stop
