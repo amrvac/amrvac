@@ -4,7 +4,7 @@ use mod_forest
 include 'amrvacdef.f'
 
 integer :: ig^D, level, igrid, ipe
-integer :: iside, i^D, Morton_no
+integer :: iside, i^D, Morton_no, isfc, nglev1
 
 integer, external :: getnode
 !-----------------------------------------------------------------------------
@@ -16,13 +16,16 @@ nleafs_active=nleafs
 nleafs_level(1)={ng^D(1)*}
 nleafs_level(2:nlevelshi)=0
 call get_Morton_range
-{do ig^DB=1,ng^DB(1)\}
+call level1_Morton_order
+nglev1={ng^D(1)*}
+do isfc=1,nglev1
+   ig^D=sfc_iglevel1(^D,isfc)\
    Morton_no=Morton_no+1
    if (Morton_no>Morton_stop(ipe)) ipe=ipe+1
    igrid=getnode(ipe)
    if (ipe==mype) sfc_to_igrid(Morton_no)=igrid
    call init_tree_leaf(tree_root(ig^D),ig^D,level,igrid,ipe,.true.)
-{end do\}
+end do
 
 ! update root neighbor
 {do ig^DB=1,ng^DB(1)\}

@@ -1075,7 +1075,7 @@ endif
 
 ! In case primitives to be saved: use primitive subroutine
 !  extra layer around mesh only needed when storing corner values and averaging
-if(saveprim.and.first) call primitive(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x)
+if(saveprim.and.first) call primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),px(igrid)%x)
 
 ! compute the cell-center values for w first
 !===========================================
