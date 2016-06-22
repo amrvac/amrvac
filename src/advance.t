@@ -154,7 +154,6 @@ case ("threestep")
    ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
    call advect1(typefull1,one, idim^LIM,t,          pw ,t,pw1,pwold)
 
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw2(igrid)%w(ixG^T,1:nw))
       pw2(igrid)%w(ixG^T,1:nwflux)=0.75d0*pw(igrid)%w(ixG^T,1:nwflux)+0.25d0*&
@@ -162,7 +161,6 @@ case ("threestep")
       if (nw>nwflux) pw2(igrid)%w(ixG^T,nwflux+1:nw) = &
                        pw(igrid)%w(ixG^T,nwflux+1:nw)
    end do
-!$OMP END PARALLEL DO
 
    call advect1(typefull1,0.25d0, idim^LIM,t+dt,pw1,t+dt*0.25d0,pw2,pwold)
 
@@ -189,18 +187,15 @@ case ("ssprk43")
    call advect1(typefull1,0.5d0, idim^LIM,t,          pw ,t,pw1,pwold)
 
 ! === Second step ===
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw2(igrid)%w(ixG^T,1:nw))
       pw2(igrid)%w(ixG^T,1:nwflux)=pw1(igrid)%w(ixG^T,1:nwflux)
       if (nw>nwflux) pw2(igrid)%w(ixG^T,nwflux+1:nw) = &
                        pw(igrid)%w(ixG^T,nwflux+1:nw)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,0.5d0, idim^LIM,t,pw1,t+dt,pw2,pwold)
 
 ! === Third step ===
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw3(igrid)%w(ixG^T,1:nw))
       pw3(igrid)%w(ixG^T,1:nwflux)=2.0d0/3.0d0 * pw(igrid)%w(ixG^T,1:nwflux) &
@@ -208,7 +203,6 @@ case ("ssprk43")
       if (nw>nwflux) pw3(igrid)%w(ixG^T,nwflux+1:nw) = &
                        pw(igrid)%w(ixG^T,nwflux+1:nw)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,1.0d0/6.0d0, idim^LIM,t,pw2,t+dt,pw3,pwold)
 
 ! === Fourth step ===
@@ -244,7 +238,6 @@ case ("ssprk54")
    call advect1(typefull1,0.391752226571890d0, idim^LIM, t,pw ,t,pw1, pwold)
 
 ! === Second step ===
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw2(igrid)%w(ixG^T,1:nw))
       pw2(igrid)%w(ixG^T,1:nwflux)=0.444370493651235d0 * pw(igrid)%w(ixG^T,1:nwflux) &
@@ -252,11 +245,9 @@ case ("ssprk54")
       if (nw>nwflux) pw2(igrid)%w(ixG^T,nwflux+1:nw) = &
                        pw(igrid)%w(ixG^T,nwflux+1:nw)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,0.368410593050371d0, idim^LIM, t+0.391752226571890d0*dt,pw1, t+0.2176690962611688d0*dt,pw2, pwold)
 
 ! === Third step ===
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw3(igrid)%w(ixG^T,1:nw))
       pw3(igrid)%w(ixG^T,1:nwflux)=0.620101851488403d0 * pw(igrid)%w(ixG^T,1:nwflux) &
@@ -264,11 +255,9 @@ case ("ssprk54")
       if (nw>nwflux) pw3(igrid)%w(ixG^T,nwflux+1:nw) = &
                        pw(igrid)%w(ixG^T,nwflux+1:nw)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,0.251891774271694d0, idim^LIM, t+0.5860796893115398d0*dt,pw2, t+0.222650588849706d0*dt,pw3, pwold)
 
 ! === Fourth step ===
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw4(igrid)%w(ixG^T,1:nw))
       pw4(igrid)%w(ixG^T,1:nwflux)=0.178079954393132d0 * pw(igrid)%w(ixG^T,1:nwflux) &
@@ -276,7 +265,6 @@ case ("ssprk54")
       if (nw>nwflux) pw4(igrid)%w(ixG^T,nwflux+1:nw) = &
                        pw(igrid)%w(ixG^T,nwflux+1:nw)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,0.544974750228521d0, idim^LIM, t+0.4745423631214d0*dt,pw3, t+0.390035880739132d0*dt,pw4, pwold)
 ! Now recover back the dt*L(u3), store in pw1:
 !$OMP PARALLEL DO PRIVATE(igrid)
@@ -302,19 +290,15 @@ case ("ssprk54")
 case ("rk4")
    ! classical RK4 four step scheme
    call advect1(typefull1,0.5d0, idim^LIM,t,          pw ,t,pw1,pwold)
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw2(igrid)%w(ixG^T,1:nw))
       pw2(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,0.5d0, idim^LIM,t+dt/2d0,   pw1,t,pw2,pwold)
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw3(igrid)%w(ixG^T,1:nw))
       pw3(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,one,   idim^LIM,t+dt/2d0,   pw2,t,pw3,pwold)
 !$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -334,12 +318,10 @@ case ("rk4")
 case ("fourstep")
    ! four step scheme, variant Hans De Sterck
    call advect1(typefull1,0.12d0, idim^LIM,t,          pw ,t,pw1,pwold)
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw2(igrid)%w(ixG^T,1:nw))
       pw2(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,0.25d0, idim^LIM,t+dt*0.12d0,pw1,t,pw2,pwold)
 !$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -351,12 +333,10 @@ case ("fourstep")
 case ("jameson")
    ! four step scheme, variant jameson
    call advect1(typefull1,0.25d0, idim^LIM,t,          pw ,t,pw1,pwold)
-!$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate (pw2(igrid)%w(ixG^T,1:nw))
       pw2(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
    end do
-!$OMP END PARALLEL DO
    call advect1(typefull1,(1.0d0/3.0d0), idim^LIM,t+dt*0.25d0,pw1,t,pw2,pwold)
 !$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -371,7 +351,6 @@ case default
    call mpistop("Correct typeadvance")
 end select
 
-!$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    deallocate (pw1(igrid)%w)
    select case (typeadvance)
@@ -386,7 +365,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
        deallocate (pw4(igrid)%w)
    end select
 end do
-!$OMP END PARALLEL DO
 
 
 firstsweep=.false.
@@ -494,10 +472,10 @@ call advect1_grid(method,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D, &
 ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
 ! This violates strict conservation when the active/passive interface 
 ! coincides with a coarse/fine interface.  
-      if (time_advance.and.levmax>levmin) then
-         if (istep==nstep.or.nstep>2) &
-              call storeflux(igrid,fC,idim^LIM)
-      end if
+if (time_advance.and.levmax>levmin) then
+   if (istep==nstep.or.nstep>2) &
+        call storeflux(igrid,fC,idim^LIM)
+end if
 
 end subroutine process1_grid
 !=============================================================================

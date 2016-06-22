@@ -59,7 +59,6 @@ logical :: evenstep
 if(e_<1) call mpistop("Thermal conduction requires by e_>0!")
 bcphys=.false.
 
-!$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    allocate(pw1(igrid)%w(ixG^T,1:nw))
    allocate(pw2(igrid)%w(ixG^T,1:nw))
@@ -68,7 +67,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    pw2(igrid)%w=pw(igrid)%w
    pw3(igrid)%w=pwold(igrid)%w
 end do
-!$OMP END PARALLEL DO
 
 allocate(bj(0:s))
 bj(0)=1.d0/3.d0
@@ -96,14 +94,12 @@ end do
 !$OMP END PARALLEL DO
 call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
 if(s==1) then
-!$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
     deallocate(pw1(igrid)%w)
     deallocate(pw2(igrid)%w)
     deallocate(pw3(igrid)%w)
   end do
-!$OMP END PARALLEL DO
   bcphys=.true.
   return
 endif
@@ -151,23 +147,19 @@ do j=2,s
   end if 
 end do
 if(evenstep) then
-!$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
     deallocate(pw1(igrid)%w)
     deallocate(pw2(igrid)%w)
     deallocate(pw3(igrid)%w)
   end do 
-!$OMP END PARALLEL DO
 else
-!$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw2(igrid)%w(ixG^T,e_)
     deallocate(pw1(igrid)%w)
     deallocate(pw2(igrid)%w)
     deallocate(pw3(igrid)%w)
   end do 
-!$OMP END PARALLEL DO
 end if
 deallocate(bj)
 
@@ -184,7 +176,7 @@ double precision, intent(in) :: w1(ixI^S,1:nw),w(ixI^S,1:nw),wold(ixI^S,1:nw)
 double precision, intent(in) :: x(ixI^S,1:ndim)
 double precision, intent(inout) :: w2(ixI^S,1:nw)
 
-double precision :: tmp(ixG^T),tmp1(ixG^T),tmp2(ixG^T)
+double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
 !-----------------------------------------------------------------------------
 {^IFMHDPHYS
 call heatconduct_mhd(tmp,tmp1,tmp2,ixI^L,ixO^L,w1,x)
@@ -206,7 +198,7 @@ integer, intent(in) :: ixI^L,ixO^L
 double precision, intent(in) :: qcmut, qdt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
 double precision, intent(out) ::w1(ixI^S,1:nw),wold(ixI^S,1:nw)
 
-double precision :: tmp(ixG^T),tmp1(ixG^T),tmp2(ixG^T),Te(ixG^T)
+double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S),Te(ixI^S)
 integer :: lowindex(ndim), ix^D
 !-----------------------------------------------------------------------------
 {^IFMHDPHYS
@@ -282,7 +274,7 @@ include 'amrvacdef.f'
 integer, intent(in) :: ixI^L,ixO^L,iw^LIM
 double precision, intent(in) :: qdt,qtC,qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
 double precision, intent(inout) ::w(ixI^S,1:nw)
-double precision :: tmp(ixG^T),tmp1(ixG^T),tmp2(ixG^T)
+double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
 integer :: ix^D
 integer, dimension(ndim)       :: lowindex
 !------------------------------------------------------------------------------
@@ -327,14 +319,14 @@ include 'amrvacdef.f'
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
 !! tmp store the heat conduction energy changing rate
-double precision, intent(out) :: tmp(ixG^T),tmp1(ixG^T),tmp2(ixG^T)
+double precision, intent(out) :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
 
-double precision, dimension(ixG^T,1:ndir) :: mf,qvec
-double precision, dimension(ixG^T,1:ndim) :: gradT,qvecsat
+double precision, dimension(ixI^S,1:ndir) :: mf,qvec
+double precision, dimension(ixI^S,1:ndim) :: gradT,qvecsat
 {#IFDEF TCPERPENDICULAR
-double precision, dimension(ixG^T,1:ndim) :: qvec_per, qvec_max
+double precision, dimension(ixI^S,1:ndim) :: qvec_per, qvec_max
 }
-double precision, dimension(ixG^T) :: B2inv, BgradT,cs3,qflux,qsatflux
+double precision, dimension(ixI^S) :: B2inv, BgradT,cs3,qflux,qsatflux
 integer, dimension(ndim) :: lowindex
 integer :: ix^L,idims,ix^D
 logical :: Bnull(ixI^S)
@@ -524,8 +516,8 @@ double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
 ! through call to getpthermal
 double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 
-double precision :: dxinv(1:ndim),mf(ixG^T,1:ndir)
-double precision :: tmp2(ixG^T),tmp(ixG^T),Te(ixG^T),B2inv(ixG^T)
+double precision :: dxinv(1:ndim),mf(ixG^S,1:ndir)
+double precision :: tmp2(ixG^S),tmp(ixG^S),Te(ixG^S),B2inv(ixG^S)
 double precision :: dtdiff_tcond, dtdiff_tsat
 integer          :: idim,ix^D
 integer, dimension(ndim)       :: lowindex
@@ -601,7 +593,7 @@ integer, intent(in) :: ixI^L,ixO^L,iw^LIM
 double precision, intent(in) :: qdt,qtC,qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
 double precision, intent(inout) ::w(ixI^S,1:nw)
 
-double precision :: tmp(ixG^T),tmp1(ixG^T),tmp2(ixG^T)
+double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
 integer:: ix^L,idim,ix^D
 integer, dimension(ndim)       :: lowindex
 !------------------------------------------------------------------------------
@@ -642,8 +634,8 @@ include 'amrvacdef.f'
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
 !! tmp store the heat conduction energy changing rate
-double precision, intent(out) :: tmp(ixG^T),tmp1(ixG^T),tmp2(ixG^T)
-double precision :: qvec(ixG^T,1:ndir),Te(ixG^T),qflux(ixG^T),qsatflux(ixG^T)
+double precision, intent(out) :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+double precision :: qvec(ixI^S,1:ndir),Te(ixI^S),qflux(ixI^S),qsatflux(ixI^S)
 integer:: ix^L,idims,ix^D
 integer, dimension(ndim)       :: lowindex
 !-----------------------------------------------------------------------------
@@ -742,7 +734,7 @@ double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
 ! through call to getpthermal
 double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 
-double precision :: dxinv(1:ndim), tmp(ixG^T), Te(ixG^T)
+double precision :: dxinv(1:ndim), tmp(ixG^S), Te(ixG^S)
 double precision :: dtdiff_tcond,dtdiff_tsat
 integer          :: idim,ix^D
 integer, dimension(ndim)       :: lowindex
