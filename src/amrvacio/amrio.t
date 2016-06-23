@@ -326,7 +326,7 @@ do iw=1,nw
    typeentropy(iw)='nul'      ! Entropy fix type
 end do
 dtdiffpar=0.5d0
-dtTCpar=0.5d0
+dtTCpar=0.9d0
 dtpar=-1.d0
 time_accurate=.true.
 {#IFDEF MAGNETOFRICTION

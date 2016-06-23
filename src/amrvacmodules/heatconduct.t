@@ -571,7 +571,7 @@ do idim=1,ndim
      tmp2(ix^S)=1.d0
    end where
    ! dt< dtTCpar * dx_idim**2/((gamma-1)*kappa_i/rho*B_i**2/B**2)
-   dtdiff_tcond=dtTCpar/maxval(tmp(ix^S)*tmp2(ix^S)*dxinv(idim)**2)
+   dtdiff_tcond=dtTcpar/maxval(tmp(ix^S)*tmp2(ix^S)*dxinv(idim)**2)
    if(TCsaturate) then
      ! dt< dtTCpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
      ! with an empirical coefficient dx_idim
@@ -583,6 +583,8 @@ do idim=1,ndim
    ! limit the time step
    dtnew=min(dtnew,dtdiff_tcond)
 end do
+dtnew=dtnew/dble(ndim)
+
 end subroutine getdt_heatconduct_mhd
 !=============================================================================
 subroutine addsource_heatconduct_hd(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
@@ -777,6 +779,7 @@ do idim=1,ndim
    ! limit the time step
    dtnew=min(dtnew,dtdiff_tcond)
 enddo
+dtnew=dtnew/dble(ndim)
 
 end subroutine getdt_heatconduct_hd
 !=============================================================================
