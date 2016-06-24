@@ -1433,7 +1433,7 @@ call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 {call MPI_FILE_READ_ALL(file_handle,nxini^D,1,MPI_INTEGER,status,ierrmpi)\}
 if (ixGhi^D/=nxini^D+2*dixB|.or.) then
    if (mype==0) write(*,*) "Error: reset resolution to ",nxini^D+2*dixB
-   call mpistop("change with setamrvac")
+   call mpistop("change with setup.pl")
 end if
 neqparini=min(neqparini,neqpar+nspecialpar)
 call MPI_FILE_READ_ALL(file_handle,eqpar,neqparini, &

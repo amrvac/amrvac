@@ -1,6 +1,6 @@
 !=============================================================================
 subroutine initialize_vars
-  use mod_forest
+use mod_forest
 include 'amrvacdef.f'
 
 integer :: igrid, level, ipe, ig^D
@@ -48,6 +48,8 @@ end do
 ^D&dg^D(1)=dx(^D,1)*dble(ixGhi^D-2*dixB)\
 ! number of grid blocks at level 1 in simulation domain, per dimension
 ^D&ng^D(1)=nint((xprobmax^D-xprobmin^D)/dg^D(1))\
+! total number of grid blocks at level 1
+nglev1={ng^D(1)*}
 
 do level=2,mxnest
    dg^D(level)=half*dg^D(level-1);

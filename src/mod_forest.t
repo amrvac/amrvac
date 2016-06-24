@@ -25,7 +25,7 @@ module mod_forest
 
    logical, dimension(:,:), allocatable, save :: coarsen, refine, buffer, igrid_inuse
 
-   integer, save :: nleafs, nleafs_active
+   integer, save :: nleafs, nleafs_active, nglev1
    integer, dimension(:), allocatable, save :: nleafs_level
 
 end module mod_forest

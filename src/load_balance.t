@@ -100,7 +100,7 @@ use mod_forest
 include 'amrvacdef.f'
 
 integer, allocatable :: gsq_sfc(:^D&)
-integer :: ig^D, ngsq^D, nglev1, Morton_no
+integer :: ig^D, ngsq^D, Morton_no
 integer(kind=8), external :: mortonEncode
 !-----------------------------------------------------------------------------
 ! use the smallest square/cube to cover the full domain 
@@ -121,17 +121,11 @@ allocate(gsq_sfc(ngsq^D))
 {end do\}
 ! copy the modified Morton numbers to the blocks in the domain
 allocate(iglevel1_sfc(ng^D(1)))
-nglev1={ng^D(1)*}
 allocate(sfc_iglevel1(ndim,nglev1))
 {do ig^DB=1,ng^DB(1)\}
    iglevel1_sfc(ig^D)=gsq_sfc(ig^D)
    {sfc_iglevel1(^D,iglevel1_sfc(ig^DD))=ig^D \}
 {end do\}
-!do Morton_no=1,nglev1
-!   ig^D=sfc_iglevel1(^D,Morton_no)\ 
-!   print*,'Morton',Morton_no,'ig',ig^D
-!end do
-!stop
 
 end subroutine level1_Morton_order
 !=============================================================================
@@ -162,13 +156,9 @@ subroutine amr_Morton_order
 use mod_forest
 include 'amrvacdef.f'
 
-integer :: ig^D, Morton_no, isfc, nglev1
+integer :: ig^D, Morton_no, isfc
 !-----------------------------------------------------------------------------
 Morton_no=0
-!{do ig^DB=1,ng^DB(1)\}
-!   call get_Morton_number(tree_root(ig^D))
-!{end do\}
-nglev1={ng^D(1)*}
 do isfc=1,nglev1
    ig^D=sfc_iglevel1(^D,isfc)\ 
    call get_Morton_number(tree_root(ig^D))
