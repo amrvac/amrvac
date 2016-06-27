@@ -105,7 +105,9 @@ integer(kind=8), external :: mortonEncode
 !-----------------------------------------------------------------------------
 ! use the smallest square/cube to cover the full domain 
 ngsq^D=2**ceiling(log(real(ng^D(1)))/log(2.0));
+{^NOONED
 {ngsq^D=max(ngsq^DD) \}
+}
 allocate(gsq_sfc(ngsq^D))
 ! get Morton-order numbers in the square/cube
 {do ig^DB=1,ngsq^DB\}
