@@ -101,6 +101,8 @@ logG=logGs(level)
 qst=qsts(level)
 rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
 rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
+! fix possible out of bound due to precision
+if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
 rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
 do ix=ixGlo1,ixGhi1
   px(igrid)%x(ix^%1ixG^T,1)=rXmin1/(one-half*logG)*qst**(ix-1)
