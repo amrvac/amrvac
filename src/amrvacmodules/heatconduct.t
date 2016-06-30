@@ -92,7 +92,7 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
                     px(igrid)%x,pw3(igrid)%w)
 end do
 !$OMP END PARALLEL DO
-call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
+call getbc(qt,0d0,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
 if(s==1) then
   do iigrid=1,igridstail; igrid=igrids(iigrid);
     pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
@@ -125,7 +125,7 @@ do j=2,s
                         pw2(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
     end do
 !$OMP END PARALLEL DO
-    call getbc(qt,ixG^LL,pw2,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
+    call getbc(qt,0d0,ixG^LL,pw2,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
     evenstep=.false.
   else
 !$OMP PARALLEL DO PRIVATE(igrid)
@@ -142,7 +142,7 @@ do j=2,s
                         pw1(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
     end do
 !$OMP END PARALLEL DO
-    call getbc(qt,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
+    call getbc(qt,0d0,ixG^LL,pw1,pwCoarse,pgeo,pgeoCoarse,.false.,e_-1,1)
     evenstep=.true.
   end if 
 end do

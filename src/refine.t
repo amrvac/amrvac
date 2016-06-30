@@ -44,10 +44,26 @@ double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
 if (typegridfill=="linear") then
    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
    if (amrentropy) then
+{#IFDEF EVOLVINGBOUNDARY
+      if (phyboundblock(igrid)) then
+         ix^L=ixG^LL;
+      else
+         ix^L=ixM^LL^LADD1;
+      end if
+}{#IFNDEF EVOLVINGBOUNDARY
       ix^L=ixM^LL^LADD1;
+}
       call e_to_rhos(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
    else if (prolongprimitive) then
+{#IFDEF EVOLVINGBOUNDARY
+      if (phyboundblock(igrid)) then
+         ix^L=ixG^LL;
+      else
+         ix^L=ixM^LL^LADD1;
+      end if
+}{#IFNDEF EVOLVINGBOUNDARY
       ix^L=ixM^LL^LADD1;
+}
       call primitive(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
    end if
 
@@ -68,9 +84,18 @@ end if
    if (typegridfill=="linear") then
       xFimin^D=rnode(rpxmin^D_,ichild)\
       dxFi^D=rnode(rpdx^D_,ichild)\
-
+{#IFDEF EVOLVINGBOUNDARY
+      if (phyboundblock(ichild)) then
+         call prolong_2ab(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+                      dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
+      else
+         call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+                      dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
+      end if
+}{#IFNDEF EVOLVINGBOUNDARY
       call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
                    dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
+}
    else
       call prolong_1st(pw(igrid)%w,ixCo^L,pw(ichild)%w,px(ichild)%x)
    end if
@@ -85,6 +110,110 @@ if (typegridfill=="linear") then
 end if
 
 end subroutine prolong_grid
+!=============================================================================
+subroutine prolong_2ab(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
+! interpolate children blocks including ghost cells
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ixCo^L, igridFi
+double precision, intent(in) :: dxCo^D, xComin^D, dxFi^D, xFimin^D
+double precision, intent(in) :: wCo(ixG^T,nw), xCo(ixG^T,1:ndim), xFi(ixG^T,1:ndim)
+double precision, intent(inout) :: wFi(ixG^T,nw)
+
+integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idim, iw
+integer :: ixFi^L, ixCg^L, el
+double precision :: slopeL, slopeR, slopeC, signC, signR
+double precision :: slope(nw,ndim)
+double precision :: xCo^D, xFi^D, eta^D, invdxCo^D
+{#IFDEF STRETCHGRID
+double precision :: logGh,qsth
+}
+!-----------------------------------------------------------------------------
+{#IFDEF STRETCHGRID
+qsth=dsqrt(qst)
+logGh=2.d0*(qsth-1.d0)/(qsth+1.d0)
+}
+invdxCo^D=1.d0/dxCo^D;
+el=ceiling(real(dixB)/2.)
+ixCgmin^D=ixComin^D-el\
+ixCgmax^D=ixComax^D+el\
+{do ixCo^DB = ixCg^LIM^DB
+   ! cell-centered coordinates of coarse grid point
+   xCo^DB=xComin^DB+(dble(ixCo^DB-dixB)-half)*dxCo^DB
+
+   ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
+{#IFDEF STRETCHGRID
+   xCo1=xComin1/(one-half*logG)*qst**(ixCo1-dixB-1)
+}
+
+   do idim=1,ndim
+      hxCo^D=ixCo^D-kr(^D,idim)\
+      jxCo^D=ixCo^D+kr(^D,idim)\
+
+      do iw=1,nw
+         slopeL=wCo(ixCo^D,iw)-wCo(hxCo^D,iw)
+         slopeR=wCo(jxCo^D,iw)-wCo(ixCo^D,iw)
+         slopeC=half*(slopeR+slopeL)
+
+         ! get limited slope
+         signR=sign(one,slopeR)
+         signC=sign(one,slopeC)
+         select case(typeprolonglimit)
+         case('minmod')
+           slope(iw,idim)=signR*max(zero,min(dabs(slopeR), &
+                                             signR*slopeL))
+         case('woodward')
+           slope(iw,idim)=two*signR*max(zero,min(dabs(slopeR), &
+                              signR*slopeL,signR*half*slopeC))
+         case('mcbeta')
+           slope(iw,idim)=signR*max(zero,min(mcbeta*dabs(slopeR), &
+                              mcbeta*signR*slopeL,signR*slopeC))
+         case('koren')
+           slope(iw,idim)=signR*max(zero,min(two*signR*slopeL, &
+            (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
+         case default
+           slope(iw,idim)=signC*max(zero,min(dabs(slopeC), &
+                             signC*slopeL,signC*slopeR))
+         end select
+      end do
+   end do
+   {do ix^DB=ixFi^DB,ixFi^DB+1
+      if (ixFi^DB==0) cycle
+      ! cell-centered coordinates of fine grid point
+      xFi^DB=xFimin^DB+(dble(ix^DB-dixB)-half)*dxFi^DB\}
+{#IFDEF STRETCHGRID
+      xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-dixB-1)
+}
+
+      ! normalized distance between fine/coarse cell center
+      ! in coarse cell: ranges from -0.5 to 0.5 in each direction
+      ! (origin is coarse cell center)
+      if (slab) then
+         eta^D=(xFi^D-xCo^D)*invdxCo^D;
+      else
+         {eta^D=(xFi^D-xCo^D)*invdxCo^D &
+               *two*(one-pgeo(igridFi)%dvolume(ix^DD) &
+               /sum(pgeo(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
+{#IFDEF STRETCHGRID
+         eta1=(xFi1-xCo1)/(logG*xCo1) &
+               *two*(one-pgeo(igridFi)%dvolume(ix^D) &
+               /sum(pgeo(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
+}
+      end if
+
+      wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
+                            + {(slope(1:nw,^D)*eta^D)+}
+   {end do\}
+{end do\}
+
+if (amrentropy) then
+   call rhos_to_e(ixG^LL,ixM^LL,wFi,xFi)
+else if (prolongprimitive) then
+   call conserve(ixG^LL,ixM^LL,wFi,xFi,patchfalse)
+end if
+
+end subroutine prolong_2ab
 !=============================================================================
 subroutine prolong_2nd(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
 

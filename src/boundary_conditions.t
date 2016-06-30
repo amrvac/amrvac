@@ -1,14 +1,15 @@
 !=============================================================================
-subroutine bc_phys(iside,idims,time,w,x,ixG^L,ixB^L)
+subroutine bc_phys(iside,idims,time,qdt,w,x,ixG^L,ixB^L)
 
 include 'amrvacdef.f'
 
 integer, intent(in) :: iside, idims, ixG^L,ixB^L
-double precision, intent(in) :: time
+double precision, intent(in) :: time,qdt
 double precision, intent(inout) :: w(ixG^S,1:nw)
 double precision, intent(in) :: x(ixG^S,1:ndim)
+double precision :: wtmp(ixG^S,1:nwflux)
 
-integer :: iw, iB, ix^D, ixI^L
+integer :: iw, iB, ix^D, ixI^L, ixM^L
 !-----------------------------------------------------------------------------
 select case (idims)
 {case (^D)
@@ -50,6 +51,8 @@ select case (idims)
               end do
             end if
          case ("special")
+            ! skip it here, do AFTER all normal type boundaries are set
+         case ("character")
             ! skip it here, do AFTER all normal type boundaries are set
          case ("aperiodic")
             !this just multiplies the variables with (-), they have been set from neighbors just like periodic.
@@ -100,6 +103,8 @@ select case (idims)
             end if
          case ("special")
             ! skip it here, do AFTER all normal type boundaries are set
+         case ("character")
+            ! skip it here, do AFTER all normal type boundaries are set
          case ("aperiodic")
             !this just multiplies the variables with (-), they have been set from neighbors just like periodic.
             w(ixI^S,iw) = - w(ixI^S,iw)
@@ -116,9 +121,47 @@ end select
 ! do special case AFTER all normal cases are set
 !do iw=1,nwflux+nwaux
 ! opedit: iw==0 since this breaks fewest of setups.
-   if (any(typeB(1:nwflux+nwaux,iB)=="special")) then
-      call specialbound_usr(time,ixG^L,ixI^L,0,iB,w,x)
-   end if
+if (any(typeB(1:nwflux+nwaux,iB)=="special")) then
+  call specialbound_usr(time,ixG^L,ixI^L,0,iB,w,x)
+else if (any(typeB(1:nwflux,iB)=="character")) then
+  ixM^L=ixG^L^LSUB1;
+  select case (idims)
+  {case (^D)
+     if (iside==2) then
+        ! maximal boundary
+        ixImin^DD=ixGmax^D+1-dixB^D%ixImin^DD=ixGmin^DD;
+        ixImax^DD=ixGmax^DD;
+        if(all(w(ixI^S,1:nwflux)==0.d0)) then
+          do ix^D=ixImin^D,ixImax^D
+             w(ix^D^D%ixI^S,1:nwflux) = w(ixImin^D-1^D%ixI^S,1:nwflux)
+          end do
+        end if
+        if(qdt>0.d0) then
+          ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
+          ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
+          wtmp(ixG^S,1:nw)=pwold(saveigrid)%w(ixG^S,1:nw)
+          call characteristic_project(idims,iside,ixG^L,ixI^L,wtmp,x,dxlevel,qdt)
+          w(ixI^S,1:nwflux)=wtmp(ixI^S,1:nwflux)
+        end if
+     else
+        ! minimal boundary
+        ixImin^DD=ixGmin^DD;
+        ixImax^DD=ixGmin^D-1+dixB^D%ixImax^DD=ixGmax^DD;
+        if(all(w(ixI^S,1:nwflux)==0.d0)) then
+          do ix^D=ixImin^D,ixImax^D
+             w(ix^D^D%ixI^S,1:nwflux) = w(ixImax^D+1^D%ixI^S,1:nwflux)
+          end do
+        end if
+        if(qdt>0.d0) then
+          ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
+          ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
+          wtmp(ixG^S,1:nw)=pwold(saveigrid)%w(ixG^S,1:nw)
+          call characteristic_project(idims,iside,ixG^L,ixI^L,wtmp,x,dxlevel,qdt)
+          w(ixI^S,1:nwflux)=wtmp(ixI^S,1:nwflux)
+        end if
+     end if \}
+  end select
+end if
 !end do
 
 end subroutine bc_phys

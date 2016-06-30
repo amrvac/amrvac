@@ -40,7 +40,7 @@ case (1)
    ixCoGmax^D=ixGhi^D/2+dixB;
 
    call createCoarse(ixCoG^L)
-   call getbc(t,ixCoG^L,pwCoarse,pwCoCo,pgeoCoarse,pgeoCoCo,.true.,0,nwflux)
+   call getbc(t,0.d0,ixCoG^L,pwCoarse,pwCoCo,pgeoCoarse,pgeoCoCo,.true.,0,nwflux)
    call advectCoarse(ixCoG^L,factor)
 
    ! Now advance full grid and obtain relative error

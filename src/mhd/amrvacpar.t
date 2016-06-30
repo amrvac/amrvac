@@ -22,9 +22,11 @@ INTEGER,PARAMETER:: rho_=1,m0_=rho_,m^C_=m0_+^C
 INTEGER,PARAMETER:: e_=m^NC_+1
 INTEGER,PARAMETER:: b0_=e_,b^C_=b0_+^C,psi_=b^NC_+1  ! flow variables
 INTEGER,PARAMETER:: nwflux=3+2*^NC+^NFL
+INTEGER,PARAMETER:: nwprim=2+2*^NC
 }{#IFNDEF ENERGY
 INTEGER,PARAMETER:: b0_=m^NC_,b^C_=b0_+^C,psi_=b^NC_+1  ! flow variables
 INTEGER,PARAMETER:: nwflux=2+2*^NC+^NFL
+INTEGER,PARAMETER:: nwprim=1+2*^NC
 }
 {#IFDEF TRACER
 INTEGER,PARAMETER:: Dtr^FL_=psi_+^FL
@@ -34,13 +36,20 @@ INTEGER,PARAMETER:: Dtr^FL_=psi_+^FL
 INTEGER,PARAMETER:: e_=m^NC_+1
 INTEGER,PARAMETER:: b0_=e_,b^C_=b0_+^C  ! flow variables
 INTEGER,PARAMETER:: nwflux=2+2*^NC+^NFL
+INTEGER,PARAMETER:: nwprim=2+2*^NC
 }{#IFNDEF ENERGY
 INTEGER,PARAMETER:: b0_=m^NC_,b^C_=b0_+^C  ! flow variables
 INTEGER,PARAMETER:: nwflux=1+2*^NC+^NFL
+INTEGER,PARAMETER:: nwprim=1+2*^NC
 }
 {#IFDEF TRACER
 INTEGER,PARAMETER:: Dtr^FL_=b^NC_+^FL
 }}
+{#IFDEF ENERGY
+INTEGER,PARAMETER:: nwwave=8
+}{#IFNDEF ENERGY
+INTEGER,PARAMETER:: nwwave=7
+}
 
 integer,parameter:: nwaux=0
 integer,parameter:: nwextra=0
@@ -61,8 +70,8 @@ INTEGER,PARAMETER:: br_=b0_+r_,bphi_=b0_+phi_,bz_=b0_+z_
 integer, parameter :: nvector=2                             ! No. vector vars
 integer, dimension(nvector), parameter :: iw_vector=(/ m0_, b0_ /)
 
-INTEGER,PARAMETER:: fastRW_=1,fastLW_=2,slowRW_=3,slowLW_=4 ! Characteristic
-INTEGER,PARAMETER:: entroW_=5,diverW_=6,alfvRW_=7,alfvLW_=8 ! waves
+INTEGER,PARAMETER:: fastRW_=3,fastLW_=4,slowRW_=5,slowLW_=6 ! Characteristic
+INTEGER,PARAMETER:: entroW_=8,diverW_=7,alfvRW_=1,alfvLW_=2 ! waves
 INTEGER,PARAMETER:: nworkroe=15
 
 

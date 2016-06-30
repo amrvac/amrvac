@@ -76,8 +76,18 @@ call alloc_node(recv_igrid)
 
 itag=recv_igrid
 irecv=irecv+1
+{#IFDEF EVOLVINGBOUNDARY
+if (phyboundblock(recv_igrid)) then
+   call MPI_IRECV(pw(recv_igrid)%w,1,type_block,send_ipe,itag, &
+                  icomm,recvrequest(irecv),ierrmpi)
+else
+   call MPI_IRECV(pw(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
+                  icomm,recvrequest(irecv),ierrmpi)
+end if
+}{#IFNDEF EVOLVINGBOUNDARY
 call MPI_IRECV(pw(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
                icomm,recvrequest(irecv),ierrmpi)
+}
 
 end subroutine lb_recv
 !=============================================================================
@@ -85,8 +95,18 @@ subroutine lb_send
 !-----------------------------------------------------------------------------
 itag=recv_igrid
 isend=isend+1
+{#IFDEF EVOLVINGBOUNDARY
+if (phyboundblock(send_igrid)) then
+   call MPI_ISEND(pw(send_igrid)%w,1,type_block,recv_ipe,itag, &
+                  icomm,sendrequest(isend),ierrmpi)
+else
+   call MPI_ISEND(pw(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
+                  icomm,sendrequest(isend),ierrmpi)
+end if
+}{#IFNDEF EVOLVINGBOUNDARY
 call MPI_ISEND(pw(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
                icomm,sendrequest(isend),ierrmpi)
+}
 
 end subroutine lb_send
 !=============================================================================
@@ -128,6 +148,11 @@ allocate(sfc_iglevel1(ndim,nglev1))
    iglevel1_sfc(ig^D)=gsq_sfc(ig^D)
    {sfc_iglevel1(^D,iglevel1_sfc(ig^DD))=ig^D \}
 {end do\}
+!do Morton_no=1,nglev1
+!   ig^D=sfc_iglevel1(^D,Morton_no)\ 
+!   print*,'Morton',Morton_no,'ig',ig^D
+!end do
+!stop
 
 end subroutine level1_Morton_order
 !=============================================================================
@@ -161,6 +186,7 @@ include 'amrvacdef.f'
 integer :: ig^D, Morton_no, isfc
 !-----------------------------------------------------------------------------
 Morton_no=0
+nglev1={ng^D(1)*}
 do isfc=1,nglev1
    ig^D=sfc_iglevel1(^D,isfc)\ 
    call get_Morton_number(tree_root(ig^D))

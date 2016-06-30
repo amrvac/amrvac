@@ -21,3 +21,4 @@
 #undefine PROCESSGLOBAL
 #undefine SAVEGHOSTCELL
 #undefine STRETCHGRID
+#undefine EVOLVINGBOUNDARY

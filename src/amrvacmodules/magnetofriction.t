@@ -45,7 +45,7 @@ tmpit=it
 tmf=t
 i=it
 ! update ghost cells
-call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
+call getbc(tmf,0.d0,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux)
 if(snapshotini==-1 .and. i==0) then
   call saveamrfile(1)
   call saveamrfile(2)
@@ -59,7 +59,7 @@ end do
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
 bcphys=.false.
-call getbc(tmf,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+call getbc(tmf,0.d0,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
 bcphys=.true.
 ! calculate initial values of metrics
 if(i==0) then
@@ -115,12 +115,12 @@ do
     call divbclean(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,dtfff)
   end do
   ! update B in ghost cells
-  call getbc(tmf+dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
+  call getbc(tmf+dtfff,dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
   ! calculate magnetofrictional velocity
   call mf_velocity_update(pw,dtfff)
   ! update velocity in ghost cells
   bcphys=.false.
-  call getbc(tmf+dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+  call getbc(tmf+dtfff,dtfff,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
   bcphys=.true.
 
   i=i+1
@@ -634,12 +634,12 @@ if (levmax>levmin) then
 end if
    
 ! update B in ghost cells
-call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
+call getbc(qt+qdt,qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,b0_,ndir)
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pwb,qdt)
 ! update magnetofrictional velocity in ghost cells
 bcphys=.false.
-call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
+call getbc(qt+qdt,qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,v0_,ndir)
 bcphys=.true.
 
 end subroutine advect1mf
