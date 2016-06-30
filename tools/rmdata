@@ -10,9 +10,11 @@ else
    goto done
 endif
 step1:
-set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^filenameout/=}'`
+#set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^filenameout/=}'`
+set linedata=`sed 's/[[:space:]]//g' $fname | sed -n -e '/\&filelist/,$ {' -e '/^filenameout/=' -e '}'`
 set linedata=`echo $linedata | awk '{print $1}'`
-set dataname=`sed -n "$linedata p;$linedata q" $fname | awk -F\' '{print $2}'`
+#set dataname=`sed -n "$linedata p;$linedata q" $fname | awk -F\' '{print $2}'`
+set dataname=`sed -n -e "$linedata p" -e "$linedata q" $fname | awk -F\' '{print $2}'`
 set datacount=`ls $dataname*.dat | grep -c '.dat'`
 if($datacount < 1 ) then
  echo "Data "$dataname"*.dat are not found!"
