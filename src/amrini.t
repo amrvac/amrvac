@@ -1,9 +1,12 @@
 !=============================================================================
 subroutine initlevelone
+{#IFDEF EVOLVINGBOUNDARY
+use mod_forest
+}
 
 include 'amrvacdef.f'
 
-integer :: iigrid, igrid
+integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
 !-----------------------------------------------------------------------------
 levmin=1
 levmax=1
@@ -28,6 +31,15 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    typegradlimiter=typegradlimiter1(node(plevel_,igrid))
    call initial_condition(igrid)
 end do
+{#IFDEF EVOLVINGBOUNDARY
+! mark physical-boundary blocks on space-filling curve
+do Morton_no=Morton_start(mype),Morton_stop(mype)
+   igrid=sfc_to_igrid(Morton_no)
+   if (phyboundblock(igrid)) sfc_phybound(Morton_no)=1
+end do
+call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
+                   MPI_SUM,icomm,ierrmpi)
+}
 
 call selectgrids
 

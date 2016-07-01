@@ -22,7 +22,10 @@ do isfc=1,nglev1
    Morton_no=Morton_no+1
    if (Morton_no>Morton_stop(ipe)) ipe=ipe+1
    igrid=getnode(ipe)
-   if (ipe==mype) sfc_to_igrid(Morton_no)=igrid
+   if (ipe==mype) then
+      sfc_to_igrid(Morton_no)=igrid
+      igrid_to_sfc(igrid)=Morton_no
+   end if
    call init_tree_leaf(tree_root(ig^D),ig^D,level,igrid,ipe,.true.)
 end do
 
@@ -327,9 +330,15 @@ integer :: ig^D, level, Morton_no, igrid, ipe, isfc
 
 integer, external :: getnode
 !-----------------------------------------------------------------------------
-!call MPI_TYPE_EXTENT(MPI_LOGICAL,size_logical,ierrmpi)
 call MPI_TYPE_GET_EXTENT(MPI_LOGICAL,lb,size_logical,ierrmpi)
+{#IFDEF EVOLVINGBOUNDARY
+offset=int(size_block_io,kind=MPI_OFFSET_KIND)*&
+       int(nleafs-nphyboundblock,kind=MPI_OFFSET_KIND)+&
+       int(size_block,kind=MPI_OFFSET_KIND)*&
+       int(nphyboundblock,kind=MPI_OFFSET_KIND)
+}{#IFNDEF EVOLVINGBOUNDARY
 offset=int(size_block_io,kind=MPI_OFFSET_KIND)*int(nleafs,kind=MPI_OFFSET_KIND)
+}
 
 Morton_no=0
 ipe=0
