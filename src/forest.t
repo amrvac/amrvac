@@ -275,11 +275,12 @@ include 'amrvacdef.f'
 integer, intent(in) :: file_handle
 
 integer, dimension(MPI_STATUS_SIZE) :: status
-integer :: ig^D
+integer :: ig^D,isfc
 !-----------------------------------------------------------------------------
-{do ig^DB=1,ng^DB(1)\}
+do isfc=1,nglev1
+   ig^D=sfc_iglevel1(^D,isfc)\
    call write_node(tree_root(ig^D))
-{end do\}
+end do
 
 contains
 !=============================================================================
@@ -320,7 +321,7 @@ integer, intent(in) :: file_handle
 integer(kind=MPI_OFFSET_KIND) :: offset
 integer, dimension(MPI_STATUS_SIZE) :: status
 !integer :: ig^D, level, size_logical, Morton_no, igrid, ipe
-integer :: ig^D, level, Morton_no, igrid, ipe
+integer :: ig^D, level, Morton_no, igrid, ipe, isfc
 {^IFMPT integer :: size_logical, lb}
 {^IFNOMPT integer(kind=MPI_ADDRESS_KIND) :: size_logical, lb}
 
@@ -336,11 +337,13 @@ level=1
 nleafs_level(1:nlevelshi) = 0
 
 call get_Morton_range
-{do ig^DB=1,ng^DB(1)\}
+call level1_Morton_order
+do isfc=1,nglev1
+   ig^D=sfc_iglevel1(^D,isfc)\
    allocate(tree_root(ig^D)%node)
    nullify(tree_root(ig^D)%node%parent%node)
    call read_node(tree_root(ig^D),ig^D,level)
-{end do\}
+end do
 
 call get_level_range
 

@@ -392,8 +392,7 @@ logical :: setigrid
 istep=istep+1
 
 if (time_advance.and.levmax>levmin) then
-   if (istep==nstep.or.nstep>2) &
-        call init_comm_fix_conserve(idim^LIM)
+   if (istep==nstep.or.nstep>2) call init_comm_fix_conserve(idim^LIM)
 end if
 
 ! loop over all grids to arrive at equivalent
@@ -401,35 +400,34 @@ end if
 
 ! opedit: Just advance the active grids: 
 !$OMP PARALLEL DO PRIVATE(igrid,level,qdt)
-     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      level=node(plevel_,igrid)
-      qdt=dtfactor*dt_grid(igrid)
-      
-      call process1_grid(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
-                      pwa(igrid)%w,qt,pwb(igrid)%w,pwc(igrid)%w)
-                      
-      end do
+do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+   level=node(plevel_,igrid)
+   qdt=dtfactor*dt_grid(igrid)
+   
+   call process1_grid(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
+                   pwa(igrid)%w,qt,pwb(igrid)%w,pwc(igrid)%w)
+                   
+end do
 !$OMP END PARALLEL DO
 
 ! opedit: Send flux for all grids, expects sends for all 
 ! nsend_fc(^D), set in connectivity.t.
 
-      if (time_advance.and.levmax>levmin) then
-         if (istep==nstep.or.nstep>2) then
-            do iigrid=1,igridstail; igrid=igrids(iigrid);
-               call sendflux(igrid,idim^LIM)
-            end do
-            call fix_conserve(pwb,idim^LIM)
-         end if
-      end if
+if (time_advance.and.levmax>levmin) then
+   if (istep==nstep.or.nstep>2) then
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+         call sendflux(igrid,idim^LIM)
+      end do
+      call fix_conserve(pwb,idim^LIM)
+   end if
+end if
    
 ! for all grids: fill ghost cells
-      qdt=dtfactor*dt
+qdt=dtfactor*dt
 {#IFDEF BOUNDARYDRIVER
-      call boundarydriver(method(mxnest),qdt,idim^LIM,qtC,pwa,qt,pwb)
-      !call boundarydriver(qt,qdt,pwa,pwb)
+call boundarydriver(method(mxnest),qdt,idim^LIM,qtC,pwa,qt,pwb)
 }
-      call getbc(qt+qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
+call getbc(qt+qdt,qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 
 end subroutine advect1
 !=============================================================================
@@ -715,7 +713,7 @@ do icycle=1,ncycle
 
   sumqdt=sumqdt+qdt
   qt=qt+qdt
-  call getbc(qt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
+  call getbc(qt,qdt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 enddo
 
 if(mype==0.and..false.) then
