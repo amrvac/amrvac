@@ -123,7 +123,9 @@ end select
 ! opedit: iw==0 since this breaks fewest of setups.
 if (any(typeB(1:nwflux+nwaux,iB)=="special")) then
   call specialbound_usr(time,ixG^L,ixI^L,0,iB,w,x)
-else if (any(typeB(1:nwflux,iB)=="character")) then
+end if
+{#IFDEF EVOLVINGBOUNDARY
+if (any(typeB(1:nwflux,iB)=="character")) then
   ixM^L=ixG^L^LSUB1;
   select case (idims)
   {case (^D)
@@ -162,6 +164,7 @@ else if (any(typeB(1:nwflux,iB)=="character")) then
      end if \}
   end select
 end if
+}
 !end do
 
 end subroutine bc_phys

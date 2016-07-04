@@ -177,7 +177,8 @@ double precision :: righm(ixI^S,1:nwwave,1:nwprim)
 double precision :: ritmp(ixI^S,1:nwwave,1:nwprim)
 double precision, dimension(ixI^S,1:nwprim) :: Sx, dw
 double precision, dimension(ixI^S,1:nwwave) :: lamda, RHS
-double precision :: invdx(ndir), dxall(ndir), sqrthalf, gradp(ixI^S,1:ndim)
+double precision :: invdx(ndir), dxall(ndir), sqrthalf
+double precision :: gradp(ixI^S,1:ndim),divb(ixI^S)
 integer :: idirs, ix^D, ixR^L,iwave,iprim,ii,is(ndir-1)
 logical :: patchw(ixI^S)
 !----------------------------------------------------------------------------
@@ -232,15 +233,36 @@ do ii=1,ndir-1
   call gradient(w(ixI^S,p_),ixI^L,ixO^L,idirs,gradp(ixI^S,idirs))
 end do
 if(iside==1) then
-  ixR^L=ixO^L+kr(idims,^D);
-  gradp(ixO^S,idims)=(w(ixR^S,p_)-w(ixO^S,p_))*invdx(idims)
+  ixR^L=ixO^L;
+  ixRmin^D=ixOmin^D+kr(idims,^D)\
   call gradient(w(ixI^S,p_),ixI^L,ixR^L,idims,gradp(ixI^S,idims))
+  select case (idims)
+  {case (^D)
+     gradp(ixOmin^D^D%ixO^S,idims)=(w(ixOmin^D+1^D%ixO^S,p_)-w(ixOmin^D^D%ixO^S,p_))*invdx(idims)\}
+  end select
+  call getdivb(w,ixI^L,ixR^L,divb)
+  select case (idims)
+  {case (^D)
+     divb(ixOmin^D^D%ixO^S) = divb(ixOmin^D+1^D%ixO^S) \}
+  end select
 else
-  ixR^L=ixO^L-kr(idims,^D);
-  gradp(ixO^S,idims)=(w(ixO^S,p_)-w(ixR^S,p_))*invdx(idims)
+  ixR^L=ixO^L;
+  ixRmax^D=ixOmax^D-kr(idims,^D)\
   call gradient(w(ixI^S,p_),ixI^L,ixR^L,idims,gradp(ixI^S,idims))
+  select case (idims)
+  {case (^D)
+     gradp(ixOmax^D^D%ixO^S,idims)=(w(ixOmax^D^D%ixO^S,p_)-w(ixOmax^D-1^D%ixO^S,p_))*invdx(idims)\}
+  end select
+  call getdivb(w,ixI^L,ixR^L,divb)
+  select case (idims)
+  {case (^D)
+     divb(ixOmax^D^D%ixO^S) = divb(ixOmax^D-1^D%ixO^S)\}
+  end select
 end if
 Sx(ixO^S,p_)=Sx(ixO^S,p_)+(eqpar(gamma_)-1.d0)*sum(w(ixO^S,v0_+1:v0_+ndim)*gradp(ixO^S,1:ndim),^ND+1)
+do idirs=1,ndir
+   Sx(ixO^S,b0_+idirs)=Sx(ixO^S,b0_+idirs)-w(ixO^S,v0_+idirs)*divb(ixO^S)
+end do
 
 call eigenvectors(idims,ixI^L,ixO^L,w,leftm,righm,lamda)
 if(iside==1) then
