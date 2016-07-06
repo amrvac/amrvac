@@ -898,10 +898,25 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
                              iorequest_tf(iwrite),ierrmpi)     
    endif
 }
+{#IFDEF EVOLVINGBOUNDARY
+   nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
+   offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+          *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
+          int(size_block,kind=MPI_OFFSET_KIND) &
+          *int(nphyboundblock,kind=MPI_OFFSET_KIND)
+   if (sfc_phybound(Morton_no)==1) then
+      call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
+                              iorequest(iwrite),ierrmpi)
+   else
+      call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+                              type_block_io,iorequest(iwrite),ierrmpi)
+   end if
+}{#IFNDEF EVOLVINGBOUNDARY
    offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
    call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
                            iorequest(iwrite),ierrmpi)
+}
 end do
 
 if (iwrite>0) call MPI_WAITALL(iwrite,iorequest,iostatus,ierrmpi)
@@ -932,7 +947,10 @@ if (mype==0) then
    call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
-
+{#IFDEF EVOLVINGBOUNDARY
+   nphyboundblock=sum(sfc_phybound)
+   call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,status,ierrmpi)
+}
    call MPI_FILE_CLOSE(file_handle,ierrmpi)
 end if
 {#IFDEF TRANSFORMW
@@ -1292,11 +1310,7 @@ else
       end if
       call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
    endif
-{#IFNDEF SAVEGHOSTCELL
    write(unitsnapshot) pw(igrid)%w(ixM^T,1:nw)
-}{#IFDEF SAVEGHOSTCELL
-   write(unitsnapshot) pw(igrid)%w(ixG^T,1:nw)
-}
  end do
  ! write data communicated from other processors
  if(npe>1)then
@@ -1317,11 +1331,7 @@ else
      call MPI_RECV(pwio(igrid_recv(inrecv))%w,1,type_block_io,ipe,itag,icomm,&
                    iorecvstatus(:,inrecv),ierrmpi)
 
-{#IFNDEF SAVEGHOSTCELL
      write(unitsnapshot) pwio(igrid_recv(inrecv))%w(ixM^T,1:nw)
-}{#IFDEF SAVEGHOSTCELL
-     write(unitsnapshot) pwio(igrid_recv(inrecv))%w(ixG^T,1:nw)
-}
      deallocate(pwio(igrid_recv(inrecv))%w)
    end do
   end do
@@ -1391,7 +1401,11 @@ call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
 call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
 call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
+{#IFDEF EVOLVINGBOUNDARY
+offset=-int(8*size_int+size_double,kind=MPI_OFFSET_KIND)
+}{#IFNDEF EVOLVINGBOUNDARY
 offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
+}
 !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
 call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
@@ -1404,6 +1418,9 @@ call MPI_FILE_READ_ALL(file_handle,nwini,1,MPI_INTEGER,status,ierrmpi)
 call MPI_FILE_READ_ALL(file_handle,neqparini,1,MPI_INTEGER,status,ierrmpi)
 call MPI_FILE_READ_ALL(file_handle,it,1,MPI_INTEGER,status,ierrmpi)
 call MPI_FILE_READ_ALL(file_handle,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+{#IFDEF EVOLVINGBOUNDARY
+call MPI_FILE_READ_ALL(file_handle,nphyboundblock,1,MPI_INTEGER,status,ierrmpi)
+}
 
 ! check if settings are suitable for restart
 if (levmaxini>mxnest) then
@@ -1445,6 +1462,33 @@ call read_forest(file_handle)
 
 iorequest=MPI_REQUEST_NULL
 iread=0
+{#IFDEF EVOLVINGBOUNDARY
+! mark physical-boundary blocks on space-filling curve
+do Morton_no=Morton_start(mype),Morton_stop(mype)
+   igrid=sfc_to_igrid(Morton_no)
+   call alloc_node(igrid)
+   if (phyboundblock(igrid)) sfc_phybound(Morton_no)=1
+end do
+call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
+                   MPI_SUM,icomm,ierrmpi)
+
+do Morton_no=Morton_start(mype),Morton_stop(mype)
+   igrid=sfc_to_igrid(Morton_no)
+   iread=iread+1
+   nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
+   offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+          *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
+          int(size_block,kind=MPI_OFFSET_KIND) &
+          *int(nphyboundblock,kind=MPI_OFFSET_KIND)
+   if (sfc_phybound(Morton_no)==1) then
+      call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
+                             iorequest(iread),ierrmpi)
+   else
+      call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
+                             iorequest(iread),ierrmpi)
+   end if
+end do
+}{#IFNDEF EVOLVINGBOUNDARY
 do Morton_no=Morton_start(mype),Morton_stop(mype)
    igrid=sfc_to_igrid(Morton_no)
    call alloc_node(igrid)
@@ -1454,6 +1498,7 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
    call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
                           iorequest(iread),ierrmpi)
 end do
+}
 
 if (iread>0) call MPI_WAITALL(iread,iorequest,iostatus,ierrmpi)
 

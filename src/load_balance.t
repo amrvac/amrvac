@@ -55,6 +55,15 @@ do ipe=0,npe-1; do Morton_no=Morton_start(ipe),Morton_stop(ipe)
       call putnode(send_igrid,send_ipe)
    end if
 end do; end do
+{#IFDEF EVOLVINGBOUNDARY
+! mark physical-boundary blocks on space-filling curve
+do Morton_no=Morton_start(mype),Morton_stop(mype)
+   igrid=sfc_to_igrid(Morton_no)
+   if (phyboundblock(igrid)) sfc_phybound(Morton_no)=1
+end do
+call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
+                   MPI_SUM,icomm,ierrmpi)
+}
 
 !!$if (nwaux>0) then
 !!$   do Morton_no=Morton_start(mype),Morton_stop(mype)
@@ -76,8 +85,18 @@ call alloc_node(recv_igrid)
 
 itag=recv_igrid
 irecv=irecv+1
+{#IFDEF EVOLVINGBOUNDARY
+if (phyboundblock(recv_igrid)) then
+   call MPI_IRECV(pw(recv_igrid)%w,1,type_block,send_ipe,itag, &
+                  icomm,recvrequest(irecv),ierrmpi)
+else
+   call MPI_IRECV(pw(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
+                  icomm,recvrequest(irecv),ierrmpi)
+end if
+}{#IFNDEF EVOLVINGBOUNDARY
 call MPI_IRECV(pw(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
                icomm,recvrequest(irecv),ierrmpi)
+}
 
 end subroutine lb_recv
 !=============================================================================
@@ -85,8 +104,18 @@ subroutine lb_send
 !-----------------------------------------------------------------------------
 itag=recv_igrid
 isend=isend+1
+{#IFDEF EVOLVINGBOUNDARY
+if (phyboundblock(send_igrid)) then
+   call MPI_ISEND(pw(send_igrid)%w,1,type_block,recv_ipe,itag, &
+                  icomm,sendrequest(isend),ierrmpi)
+else
+   call MPI_ISEND(pw(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
+                  icomm,sendrequest(isend),ierrmpi)
+end if
+}{#IFNDEF EVOLVINGBOUNDARY
 call MPI_ISEND(pw(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
                icomm,sendrequest(isend),ierrmpi)
+}
 
 end subroutine lb_send
 !=============================================================================
@@ -128,6 +157,11 @@ allocate(sfc_iglevel1(ndim,nglev1))
    iglevel1_sfc(ig^D)=gsq_sfc(ig^D)
    {sfc_iglevel1(^D,iglevel1_sfc(ig^DD))=ig^D \}
 {end do\}
+!do Morton_no=1,nglev1
+!   ig^D=sfc_iglevel1(^D,Morton_no)\ 
+!   print*,'Morton',Morton_no,'ig',ig^D
+!end do
+!stop
 
 end subroutine level1_Morton_order
 !=============================================================================
@@ -161,6 +195,7 @@ include 'amrvacdef.f'
 integer :: ig^D, Morton_no, isfc
 !-----------------------------------------------------------------------------
 Morton_no=0
+nglev1={ng^D(1)*}
 do isfc=1,nglev1
    ig^D=sfc_iglevel1(^D,isfc)\ 
    call get_Morton_number(tree_root(ig^D))
@@ -209,12 +244,19 @@ include 'amrvacdef.f'
 integer :: ipe
 !-----------------------------------------------------------------------------
 if (allocated(sfc_to_igrid)) deallocate(sfc_to_igrid)
+{#IFDEF EVOLVINGBOUNDARY
+if (allocated(sfc_phybound)) deallocate(sfc_phybound)
+}
 do ipe=0,npe-1
    Morton_start(ipe)=1+ipe*int(nleafs/npe)+min(ipe,mod(nleafs,npe))
    Morton_stop(ipe)=(ipe+1)*int(nleafs/npe)+min(ipe+1,mod(nleafs,npe))
 end do
 if (Morton_stop(mype)>=Morton_start(mype)) then
    allocate(sfc_to_igrid(Morton_start(mype):Morton_stop(mype)))
+{#IFDEF EVOLVINGBOUNDARY
+   allocate(sfc_phybound(nleafs))
+   sfc_phybound=0
+}
 end if
 
 end subroutine get_Morton_range
@@ -253,6 +295,9 @@ integer :: nactive(0:npe-1),npassive(0:npe-1)
 !double precision, save :: ptasum=0
 !-----------------------------------------------------------------------------
 if (allocated(sfc_to_igrid)) deallocate(sfc_to_igrid)
+{#IFDEF EVOLVINGBOUNDARY
+if (allocated(sfc_phybound)) deallocate(sfc_phybound)
+}
 
 Mtot  = nleafs_active*wa+(nleafs-nleafs_active)*wp
 ipe = 0 
@@ -295,6 +340,10 @@ Xload=dble(maxval(nactive))/&
 
 if (Morton_stop(mype)>=Morton_start(mype)) then
    allocate(sfc_to_igrid(Morton_start(mype):Morton_stop(mype)))
+{#IFDEF EVOLVINGBOUNDARY
+   allocate(sfc_phybound(nleafs))
+   sfc_phybound=0
+}
 end if
 
 end subroutine get_Morton_range_active

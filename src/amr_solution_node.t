@@ -62,6 +62,10 @@ ixCoGmax^D=ixGhi^D/2+dixB;
 allocate(pwold(igrid)%w(ixG^T,1:nw), &
          pw(igrid)%w(ixG^T,1:nw), &
          pwCoarse(igrid)%w(ixCoG^S,1:nw))
+pwold(igrid)%w(ixG^T,1:nw)=0.d0
+pw(igrid)%w(ixG^T,1:nw)=0.d0
+pwCoarse(igrid)%w(ixCoG^S,1:nw)=0.d0
+
 if(residmin>smalldouble) allocate(pwres(igrid)%w(ixG^T,1:nwflux))
 if (errorestimate==1) then
    ixCoCoGmin^D=1;
@@ -101,6 +105,8 @@ logG=logGs(level)
 qst=qsts(level)
 rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
 rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
+! fix possible out of bound due to precision
+if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
 rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
 do ix=ixGlo1,ixGhi1
   px(igrid)%x(ix^%1ixG^T,1)=rXmin1/(one-half*logG)*qst**(ix-1)
@@ -112,6 +118,14 @@ do ix=ixCoGmin1,ixCoGmax1
   pxCoarse(igrid)%x(ix^%1ixCoG^S,1)=rXmin1/(one-half*logG)*qst**(ix-1)
 end do
 }
+
+! find the blocks on the boundaries
+if ({rnode(rpxmin^D_,igrid)-dx(^D,level)<xprobmin^D|.or.}.or.&
+    {rnode(rpxmax^D_,igrid)+dx(^D,level)>xprobmax^D|.or.}) then
+   phyboundblock(igrid)=.true.
+else
+   phyboundblock(igrid)=.false.
+end if
 
 if (.not.slab) call getgridgeo(igrid)
 

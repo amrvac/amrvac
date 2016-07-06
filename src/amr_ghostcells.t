@@ -1,9 +1,9 @@
 !=============================================================================
-subroutine getbc(time,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
+subroutine getbc(time,qdt,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
 
 include 'amrvacdef.f'
 
-double precision, intent(in)               :: time
+double precision, intent(in)               :: time, qdt
 integer, intent(in)                        :: ixG^L,nwstart,nwbc
 type(walloc), dimension(ngridshi)          :: pwuse, pwuseCo
 type(geoalloc), target,dimension(ngridshi) :: pgeoFi, pgeoCo
@@ -230,14 +230,14 @@ if(bcphys) then
            end if
            if (richardson) then
               if(.not.slab)mygeo=>pgeoCo(igrid)
-              call bc_phys(iside,idims,time,pwuse(igrid)%w,pxCoarse(igrid)%x,ixG^L,ixB^L)
+              call bc_phys(iside,idims,time,qdt,pwuse(igrid)%w,pxCoarse(igrid)%x,ixG^L,ixB^L)
            else
               if(.not.slab)mygeo=>pgeoFi(igrid)
               if (B0field) then
                  myB0_cell => pB0_cell(igrid)
                  {^D&myB0_face^D => pB0_face^D(igrid)\}
               end if
-              call bc_phys(iside,idims,time,pwuse(igrid)%w,px(igrid)%x,ixG^L,ixB^L)
+              call bc_phys(iside,idims,time,qdt,pwuse(igrid)%w,px(igrid)%x,ixG^L,ixB^L)
            end if
         end do
      end do
@@ -402,7 +402,7 @@ integer :: ii^D
               {^D&myB0_face^D => pB0_face^D(igrid)\}
             end if
 
-            call bc_phys(iside,idims,time,pwuse(igrid)%w, &
+            call bc_phys(iside,idims,time,qdt,pwuse(igrid)%w, &
                               px(igrid)%x,ixG^L,ixB^L)
            end if
         end do
@@ -607,7 +607,7 @@ if(bcphys) then
           {ixBmax^D=merge(ixCoGmax^D,ixComax^D,idims==^D);}
           if(.not.slab)mygeo=>pgeoCo(igrid)
   
-          call bc_phys(iside,idims,time,pwuseCo(igrid)%w, &
+          call bc_phys(iside,idims,time,0.d0,pwuseCo(igrid)%w, &
                               pxCoarse(igrid)%x,ixCoG^L,ixB^L)
         end if
      end do

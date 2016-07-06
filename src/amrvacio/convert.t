@@ -12,7 +12,7 @@ if(level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) then
    call resettree_convert
 end if
 
-call getbc(t,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
+call getbc(t,0.d0,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 
 !!!call Global_useroutput !compute at user level any global variable over all grids
 
