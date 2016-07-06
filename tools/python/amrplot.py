@@ -26,9 +26,10 @@ class polyplot():
     
     def __init__(self,value,data,nlevels=256, grid=None, blocks=None,cmap='jet', min=None, max=None,
              xrange=None, yrange=None, orientation='vertical', fixzoom=None, fixrange=None,
-             filenameout=None, 
+             filenameout=None,swap=None, 
              edgecolor='k',smooth=0,**kwargs):
         
+        self.swap=swap
         self.nlevels=nlevels
         self.grid = grid
         self.blocks = blocks
@@ -147,7 +148,16 @@ xrange = [%e,%e]     yrange = [%e,%e]''' % (
         self.valueClip = np.clip(self.value,self.min,self.max)
 
         tdata0= default_timer()
-        [myxlist,myylist]=self.data.getPointList()
+
+        if self.swap != None:
+            [myylist,myxlist]=self.data.getPointList()
+            CC=data.getCenterPoints()
+            tmp = copy.deepcopy(CC[:,0])
+            CC[:,0] = CC[:,1]
+            CC[:,1] = tmp[:]
+        else:
+            [myxlist,myylist]=self.data.getPointList()
+
         self.xlist = [[] for i in range(self.nlevels)]
         self.ylist = [[] for i in range(self.nlevels)]
         ilevel = ((self.nlevels-1)*(self.valueClip-self.min)/valueRange).astype(int)
@@ -493,10 +503,9 @@ def plotoverline(var,data,alice,bob):
     return l
 
 
-def velovect(u1,u2,d,nvect=None,scalevar=None,scale=100,color='k',fig=None):
+def velovect(u1,u2,d,minvel=1e-40,nvect=None,scalevar=None,scale=100,color='k',fig=None):
     '''Plots normalized velocity vectors'''
 
-    minvel=1e-40
 
     if fig==None:
         ax=plt.gca()
@@ -528,7 +537,7 @@ def velovect(u1,u2,d,nvect=None,scalevar=None,scale=100,color='k',fig=None):
     plt.draw()
     return Q     
 
-def contour(var,d,levels=None,nmax=600,colors='k',linestyles='solid',fig=None,linewidths=1,smooth=1.):
+def contour(var,d,levels=None,nmax=600,colors='k',linestyles='solid',fig=None,linewidths=1,smooth=1.,swap=None):
     if fig==None:
         ax=plt.gca()
     else:

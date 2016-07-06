@@ -266,7 +266,7 @@ where(abs(patchf(ixO^S))==1)
 {^IFMLTFLUID
   {^FL& wCD(ixO^S,Dtr^FL_)   = wSub(ixO^S,Dtr^FL_)*Ratio_CD(ixO^S) \}
 }
-{^IFEPSINF
+{#IFDEF EPSINF
   wCD(ixO^S,epsinf_)   = wSub(ixO^S,epsinf_)*Ratio_CD(ixO^S)
   wCD(ixO^S,rho1_)     = wSub(ixO^S,rho1_)*Ratio_CD(ixO^S)
   wCD(ixO^S,rho0_)     = wSub(ixO^S,rho0_)*Ratio_CD(ixO^S)

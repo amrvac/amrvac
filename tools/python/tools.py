@@ -129,7 +129,7 @@ def emOnSlice(d,theta,nu,alpha,recipe=1,lcut=1.5):
         
 
 # mask out the wind zone:
-    m = d.lfac < lcut
+    m = d.lfac > lcut
     emiss = np.ma.filled(np.ma.masked_array(emiss,m),0.)
 
 
