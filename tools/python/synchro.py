@@ -495,8 +495,8 @@ def get_ray(data,nregrid,beg,end):
 def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=1,alpha=0.6,delta=0,recipe=2,polarized=0,dog=None,mirror=None):
 
 # Synchrotron constants:
-#    c  = 2.99792458e10 # cm s^-1
-    c  = 1.
+    c  = 2.99792458e10 # cm s^-1
+#    c  = 1.
 
     c1 = 6.27e18 # cm^-7/2 g^-5/2 s^4
     c2 = 2.368e-3 # g^-2 cm^-1 s^3
@@ -522,7 +522,7 @@ def emissFrom2D(data,theta=0,npixel=[200,200,200],L=[100,100,100],x0=[0,0,0],nu=
 
 # mask out the wind zone:
     lfac = read.extract(data.get('pointdata'),'lfac',attribute_mode='point')
-    m = lfac > 10000.
+    m = lfac > 9.
 
     # get velocities for Doppler factor:
     ur = ontoGrid(extract_masked(data,'u1',m)
@@ -1156,9 +1156,9 @@ def show_map(inputdata,npol='none',filename='none',function=None,background=None
         ex=ex/norm * pi
         ey=ey/norm * pi
 # evectors:
-#        plt.quiver(x2D,y2D,ex,ey,width=0.002,headlength=0,headwidth=0,headaxislength=0,pivot='middle',color=colpol)
+#        plt.quiver(x2D,y2D,ex,ey,width=0.002,headlength=0,headwidth=0,headaxislength=0,pivot='middle',color=colpol, edgecolors=(colpol))
 # bvectors:
-        plt.quiver(x2D,y2D,-ey,ex,width=0.002,headlength=0,headwidth=0,headaxislength=0,pivot='middle',color=colpol,scale=npol[0]/4.,scale_units='inches')
+        plt.quiver(x2D,y2D,-ey,ex,width=0.002,headlength=0,headwidth=0,headaxislength=0,pivot='middle',color=colpol,scale=npol[0]/4.,scale_units='inches', edgecolors=(colpol))
         
 # make a little inset showing the scaling of the polarization
         alpha = inputdata.get('alpha')
