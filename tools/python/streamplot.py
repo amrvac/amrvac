@@ -130,13 +130,19 @@ def streamplot(x, y, u, v, x_0=None, y_0=None, density=1, linewidth=1,
         ## termination conditions. TODO tidy the integration loops.
         
         def f(xi, yi):
-            dt_ds = 1./value_at(speed, xi, yi)
+            if (value_at(speed, xi, yi) != 0.):
+                dt_ds = 1./value_at(speed, xi, yi)
+            else:
+                dt_ds = 0.
             ui = value_at(u, xi, yi)
             vi = value_at(v, xi, yi)
             return ui*dt_ds, vi*dt_ds
 
         def g(xi, yi):
-            dt_ds = 1./value_at(speed, xi, yi)
+            if (value_at(speed, xi, yi) != 0.):
+                dt_ds = 1./value_at(speed, xi, yi)
+            else:
+                dt_ds = 0.
             ui = value_at(u, xi, yi)
             vi = value_at(v, xi, yi)
             return -ui*dt_ds, -vi*dt_ds
