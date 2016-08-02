@@ -5,9 +5,26 @@ does not reflect their importance, but only how much work is involved.
 
 # Major improvements
 
-## Documentation
+## Documentation (Jannis)
 
-## Automated tests
+The source code currently has very little documentation. My plan is to use
+Doxygen (as was already used for the python tools) to document the source code
+extensively. For example:
+
+* Document what a subroutine/function does (if it is non-trivial)
+* Document non-trivial parts of code / algorithms
+* Document the important variables and parameters
+* Document the contents and purpose of modules
+
+Doxygen can currently not parse the files that were only intended to be included
+(because they are not valid Fortran by themselves). We should probably convert
+these files to modules.
+
+## Automated tests (Jannis)
+
+We should have some basic tests in place to reduce the number of regressions
+(bugs) that we introduce when changing the code. After a change, these tests
+should compile and run, and their output should match previously checked *correct* values.
 
 ## Modern code standards
 
@@ -15,7 +32,7 @@ indentation, namelists
 
 ## Limit the usage of the preprocessor (Jannis)
 
-The advantages of the **VACPP**preprocessor are outlined in
+The advantages of the **VACPP** preprocessor are outlined in
 [this paper](http://www-personal.umich.edu/~gtoth/Papers/lasy.html):
 
 * Compact code
@@ -64,8 +81,6 @@ Take for example the following lines and their expansion in 3D:
 
 For me, such expressions are quite difficult to understand. Note also the lack
 of spacing and indentation in the expanded versions.
-
-### Suggested improvement
 
 I would like to try to minimize the usage of *complicated preprocessor
 patterns*, although *complicated* is of course very subjective here. My belief
