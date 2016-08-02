@@ -1,4 +1,6 @@
 !=============================================================================
+!> Initialize (and allocate) simulation and grid variables
+!> @todo Explain which ones are not initialized here
 subroutine initialize_vars
 use mod_forest
 include 'amrvacdef.f'
