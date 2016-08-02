@@ -1,25 +1,40 @@
-!=============================================================================
+!> \file
+!> @todo Convert this file to a module
+
+!> Initialize the MPI environment
+!> @todo Check for errors in return code
 subroutine comm_start
 
-include 'amrvacdef.f'
-!-----------------------------------------------------------------------------
-call MPI_INIT(ierrmpi)
-call MPI_COMM_RANK(MPI_COMM_WORLD,mype,ierrmpi)
-call MPI_COMM_SIZE(MPI_COMM_WORLD,npe,ierrmpi)
+  include 'amrvacdef.f'
 
-icomm=MPI_COMM_WORLD
+  ! Initialize MPI
+  call MPI_INIT(ierrmpi)
+
+  ! Each process stores its rank, which ranges from 0 to N-1, where N is the
+  ! number of processes.
+  call MPI_COMM_RANK(MPI_COMM_WORLD,mype,ierrmpi)
+
+  ! Store the number of processes
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,npe,ierrmpi)
+
+  ! Use the default communicator, which contains all the processes
+  icomm = MPI_COMM_WORLD
 
 end subroutine comm_start
-!=============================================================================
+
+
+!> Finalize (or shutdown) the MPI environment
 subroutine comm_finalize
 
-include 'amrvacdef.f'
-!-----------------------------------------------------------------------------
-call MPI_BARRIER(MPI_COMM_WORLD,ierrmpi)
-call MPI_FINALIZE(ierrmpi)
+  include 'amrvacdef.f'
+
+  call MPI_BARRIER(MPI_COMM_WORLD,ierrmpi)
+  call MPI_FINALIZE(ierrmpi)
 
 end subroutine comm_finalize
-!=============================================================================
+
+
+!> Create and store the MPI types that will be used for parallel communication
 subroutine init_comm_types
 
 include 'amrvacdef.f'
@@ -146,18 +161,20 @@ call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
 call MPI_TYPE_COMMIT(type_block_wc_io,ierrmpi)
 
 end subroutine init_comm_types
-!=============================================================================
+
+
+!> Exit MPI-AMRVAC with an error message
 subroutine mpistop(message)
 
-include 'amrvacdef.f'
+  include 'amrvacdef.f'
 
-character(len=*), intent(in) :: message
+  character(len=*), intent(in) :: message !< The error message
+  integer                      :: ierrcode
 
-integer :: ierrcode
-!------------------------------------------------------------------------------
-write(*,*) "ERROR for processor",mype,":"
-write(*,*) message
-call MPI_ABORT(icomm,ierrcode,ierrmpi)
+  write(*, *) "ERROR for processor", mype, ":"
+  write(*, *) message
+
+  call MPI_ABORT(icomm, ierrcode, ierrmpi)
 
 end subroutine mpistop
-!==============================================================================
+
