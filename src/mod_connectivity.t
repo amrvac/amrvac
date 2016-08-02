@@ -1,4 +1,7 @@
+!> This module contains variables that describe the connectivity of the mesh and
+!> also data structures for connectivity-related communication.
 module mod_connectivity
+
    use mod_indices, only: ngridshi
    implicit none
 
