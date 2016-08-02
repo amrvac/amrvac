@@ -1,4 +1,5 @@
 !=============================================================================
+!> Read the command line arguments passed to amrvac
 subroutine readcommandline
 
 use M_kracken
@@ -49,6 +50,7 @@ endif
 
 end subroutine readcommandline
 !=============================================================================
+!> Read in the user-supplied parameter-file
 subroutine readparameters
 
 include 'amrvacdef.f'
