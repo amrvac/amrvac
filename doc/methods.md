@@ -22,13 +22,9 @@ variant including a treatment for the Contact discontinuity, as e.g. described
 for Euler gas dynamics in _E.F. Toro, Riemann solvers and numerical methods
 for fluid dynamics (Berlin, Springer-Verlag, 1997)_.
 
-
-
 Not all methods are available or meaningfull for all physics modules. In fact,
 we have the following combinations typically:
 
-    
-    
     ______________________________________________________________________________________________
     PHYSICS module		Schemes
     ______________________________________________________________________________________________
@@ -40,7 +36,6 @@ we have the following combinations typically:
     srhd(eos)		TVDLF, HLL, HLLC,  FD
     srmhd(eos)		TVDLF, HLL, HLLC,  FD
     ______________________________________________________________________________________________
-    
 
 Also, the method can be selected per AMR grid level, but one can not combine
 different stepsize methods (hence, TVD is the only second order onestep
@@ -119,7 +114,7 @@ TVD-MUSCL can be dimensionally split **dimsplit=T** or unsplit **F**. The
 multistep Runge-Kutta schemes can be applied, such as
 "typeadvance='fourstep'".
 
-**typelimiter** has the same meaning as for TVDLF. The slope limiting is performed on the conservative variables by default. Numerical problems (e.g. negative temperature) can often be avoided by limiting the slopes of the primitive variables setting **useprimitive=T** in the method list of the parameter file. 
+**typelimiter** has the same meaning as for TVDLF. The slope limiting is performed on the conservative variables by default. Numerical problems (e.g. negative temperature) can often be avoided by limiting the slopes of the primitive variables setting **useprimitive=T** in the method list of the parameter file.
 
 Linear Riemann solvers can produce non-physical solutions. This can be
 eliminated by the use of an entropy fix, controlled by **typeentropy** and the
@@ -222,8 +217,6 @@ Dedner et al. in _Journal of Computational Physics 175, 645-673 (2002)
 doi:10.1006/jcph.2001.6961_. To setup AMRVAC for this method, add to
 _definitions.h_ the line
 
-    
-    
     #define GLM
 
 and choose _typedivbfix='glm1/glm2/glm3'_ in your methodlist. The three
@@ -231,35 +224,26 @@ versions differ in the source terms taken along. Thus in non-relativistic
 _mhd_, 'glm1' corresponds to _Equation (24)_ of Dedner et al and 'glm2'
 corresponds to _Equation (38)_ of this paper. The option 'glm3' adds no
 additional sources to the MHD system. In _srmhd_, we recommend the option
-'glm1' which is the one without source terms in this case. For example:  
+'glm1' which is the one without source terms in this case. For example:
 in your par-file,
 
-    
-    
     primnames='rho v1 v2 v3 p b1 b2 b3 psi'
-    
+
     wnames='rho m1 m2 m3 e b1 b2 b3 psi'
-    
+
     typedivbfix='glm3'
-    
+
     typeB= 8*'special','cont',8*'speical','cont', ...
-    
 
 in your _definitions.h_,
 
-    
-    
     #define GLM
-    
 
 in your _amrvacusr.t_, add
 
-    
-    
     {#IFDEF GLM
     w(ixG^S,psi_)=0.d0
     }
-    
 
 in subroutine initonegrid_usr.
 
@@ -271,8 +255,6 @@ tested for 2D and 3D Cartesian grids without AMR. It conserves the the divB
 _on the corners_ to machine precision. To set it up, add to _definitions.h_
 the line
 
-    
-    
     #define FCT
 
 and allow for one additional ghost layer (in ` $AMRVAC_DIR/setup.pl -g=... `
@@ -280,9 +262,7 @@ and ` dixB=... ` in your par-file). The subroutine ` getdivb() ` returns the
 divB conserved by the scheme. To setup magnetic fields, you should provide the
 **vectorpotential** in the subroutine` initvecpot_usr() ` and you can call `
 b_from_vectorpotential() ` in your ` initgrid_usr() ` to initialize the
-solution vector with the consistent fields.  
+solution vector with the consistent fields.
 Note that non-trivial boundary conditions can introduce divB to this scheme,
 so be wary when you are using anything other than _symm, asmm_ or _periodic_!
-
-
 

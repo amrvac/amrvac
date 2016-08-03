@@ -14,15 +14,12 @@ $AMRVAC_DIR/tests folder for a plethora of tests with the git version._
 Configure MPI-AMRVAC to the standard 2D [advection
 equation](equations.html#RHO) test as follows:
 
-    
-    
     cd src
     setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=rho -u=testrho -s
     make clean amrvac
     cd ..
     ln -s par/testrho/testrho_vac22 amrvac.par
     mpirun -np 1 amrvac
-    
 
 This test uses the _src/usr/amrvacusr.t.testrho_ amrvacusr-module, which
 contains several tests, distinguished by **iprob**. In the above setting, it
@@ -41,20 +38,15 @@ following movie, combining the 2D view with a cut along the middle of the box:
 
 [![Vac logo Movie](figmovdir/vaclogo.png)](figmovdir/vaclogo2.avi)
 
-
-
 A 3D variant is to do the advection of a sphere along the diagonal of a cube.
 This is selected by (**iprob=6** in the _par/testrho/testrho_ball33_ file)
 
-    
-    
     cd src
     setamrvac -d=33 -phi=0 -z=0 -g=16,16,16 -p=rho -u=testrho -s
     make clean amrvac
     cd ..
     ln -s par/testrho/testrho_ball33 amrvac.par
     mpirun -np 1 amrvac
-    
 
 Use now the data conversion and paraview to make the following movie:
 
@@ -62,8 +54,6 @@ Use now the data conversion and paraview to make the following movie:
 Movie](figmovdir/sphereadvection.png)](figmovdir/sphereadvection.avi)
 
 **We note that the _src/usr/amrvacusr.t.testrho_ actually codes up 6 different tests, some of them realizable in any dimensionality. You are encouraged to make the corresponding par-files for these tests, and use these tests to investigate different discretization methods, different settings for the AMR strategy, etc, on problems for which you know the exact solution.**
-
-
 
 ## Isothermal HD test
 
@@ -75,15 +65,12 @@ correct analytic solution is known to contain delta-type waves
 (shocks/rarefactions). This test uses the [adiabatic hydro
 module](equations.html#HDADIAB).
 
-    
-    
     cd src
     setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab -s
     make clean amrvac
     cd ..
     ln -s par/testhdadiab/testleveque amrvac.par
     mpirun -np 1 amrvac
-    
 
 This will run problem **iprob=19** out of the 19 precoded tests, and after
 converting and visualizing (with Idl this time), you should be able to recover
@@ -93,19 +80,14 @@ wave peaks away).
 [![1D Dust clouds collision
 Movie](figmovdir/LevequeIC.gif)](figmovdir/LevequeDUST.avi)
 
-
-
 A second, 2D test runs **iprob=1** by doing
 
-    
-    
     cd src
     setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=hdadiab -u=testhdadiab -s
     make clean amrvac
     cd ..
     ln -s par/testhdadiab/khadiabA amrvac.par
     mpirun -np 1 amrvac
-    
 
 It sets up a sheared horizontal velocity field (a _tanh_ profile), augmented
 with a small sinusoidal vertical displacement centered on the velocity shear
@@ -117,35 +99,27 @@ as shown below (or make a [movie](figmovdir/khadiabA.avi)).
 t=0](figmovdir/khadiabAfigt0.gif) ![2D adiabatic HD Kelvin-Helmholtz
 development](figmovdir/khadiabAfigfinal.gif)
 
-
-
 ## HD tests
 
 The distributed MPI-AMRVAC contains various example _amrvacusr.t.*_ and
 corresponding _par/testhd/*_ files realizing relatively standard test cases
 for [hydrodynamics](equations.html#HD). They include
 
-    
-    
     src/usr/amrvacusr.t.wchd22
     src/usr/amrvacusr.t.bowhd22
     src/usr/amrvacusr.t.testhdrt
     src/usr/amrvacusr.t.rimhd22
     src/usr/amrvacusr.t.poletest
     src/usr/amrvacusr.t.liska
-    
 
 and the corresponding par-files
 
-    
-    
     par/testhd/wchd22
     par/testhd/bowhd22
     par/testhd/testhdrt22  and  par/testhd/testhdrt33
     par/testhd/rimhd22
     par/testhd/poletest_lohner
     par/testhd/liska_tvdlf
-    
 
 Some are meant to be run in 2D only, some can be set up in 2D and 3D,
 sometimes requiring suitable adaptations in the par-files provided. The first
@@ -186,8 +160,6 @@ can run a 6 level version (base resolution 24 x 24) up to time t=2.5 in less
 than 12000 seconds (slightly over 3 hours). The movie for that run is [shown
 here](figmovdir/liska.avi).
 
-
-
 ## MHD tests
 
 The _src/usr/amrvacusr.t.testmhd_ codes up a large variety of standard test
@@ -217,8 +189,6 @@ Poedts, 2010, Cambridge University Press, 634 pages, [ISBN 9780521705240
 We show here the case with resistivity parameter set to 0.001.
 
 [![Orszag Tang](figmovdir/recmhd.gif)](figmovdir/reccase_001.avi)
-
-
 
 ## Relativistic tests
 
@@ -264,6 +234,4 @@ A test not found in the above paper, but relevant for much of the work we do
 on relativistic jet modeling, is the jet model from the original Marti et al.
 (ApJ 479, 151, 1997) work. The case there indicated as C2, has been modeled
 and visualized in this [movie](figmovdir/martiC2BW.avi).
-
-
 

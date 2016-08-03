@@ -1,4 +1,11 @@
-# SOURCE LANGUAGE
+# Source language
+
+[TOC]
+
+\todo Fix source code rendering on this page (I have already submitted a Doxygen
+bug report). For now I've added a space between `\` and `}`.
+
+# Introduction {#source_intro}
 
 This document describes the structure and the syntax of the **src/FILENAME.t**
 source files, and also provides explanation to the most common expressions. A
@@ -8,16 +15,7 @@ A more general and possibly more enlightening description of the source
 language can be found in a paper on the [ LASY Preprocessor](http://www-
 personal.umich.edu/~gtoth/Papers/lasy.html).
 
-
-
-This page:  
-[STRUCTURE]  
-[SYNTAX]: [Dimensions] [Limits] [Asymmetry] [Special]  
-[SUMMARY]: [Modules] [Patterns] [Expressions]
-
-
-
-## Structure
+# Structure {#structure}
 
 MPI-AMRVAC does both the initialization as well as the advancing of the
 variables in the governing PDEs. The program consists of several modules.
@@ -78,9 +76,7 @@ subroutine, and allows to use the same subroutine to modify initial conditions
 read in from a pre-existing _*.dat_ file. The info on the grid related
 quantities is all in the **geometry.t** module.
 
-## Syntax
-
-####
+# Syntax {#syntax}
 
   1. Dimensions and vector components
 
@@ -91,9 +87,7 @@ This is achieved by the extensive use of the preprocessor VACPP.
 The basic idea of the Loop Annotation Syntax (LASY) is defining loops in the
 source text. A first example may be an array with 3 indices:
 
-    
-        a({ix^D|,})   --->     a(ix1,ix2,ix3)
-    
+        a({ix^D|,})   -->     a(ix1,ix2,ix3)
 
 The string **ix^D** between the **{** and **|** characters is repeated NDIM=3
 times with the pattern string **^D** replaced by **1**, **2** and **3**, and
@@ -105,9 +99,7 @@ character followed by uppercase letters (or **%**, or **&amp;**), and the
 separator string is preceded by the **|** character. Thus the full syntax of
 the loop is
 
-    
         { text ^PATTERN text ^PATTERN ... | separator }
-    
 
 Fortunately some default values can be introduced to simplify the notation.
 The default separator is the comma, thus the above example can be written as
@@ -117,9 +109,7 @@ characters_ on both sides. These are one of _comma, space, newline, semicolon_
 and _enclosing parentheses_. Since our **^D** pattern is enclosed by a left
 and a right parenthesis, we may simply type
 
-    
         a(ix^D)
-    
 
 which will expand to **a(ix1)**, **a(ix1,ix2)**, and **a(ix1,ix2,ix3)** for
 the choices NDIM=1, 2, and 3, respectively.
@@ -128,9 +118,7 @@ The curly brackets are used only when the repetition should expand over some
 bounding characters. The required separator is very often a single character,
 such as in the calculation of sums or products:
 
-    
-        ix^D*    --->   ix1*ix2*ix3
-    
+        ix^D*    -->   ix1*ix2*ix3
 
 Here the **^D** pattern is enclosed by a new line and a space character, and
 the preprocessor checks the last character of the repeated string. If it is
@@ -138,25 +126,27 @@ one of comma, space, **+**, **-**, *****, **/**, **:**, **;**, or **\**, it is
 taken to be a separator character. The **\** is replaced by a new line. A
 simple use may be nested DO loops:
 
-    
-        {do ix^D=1,100\}                    do ix1=1,100
-       a(ix^D)= ix^D*       --->        do ix2=1,100
-    {enddo\}                            a(ix1,ix2)= ix1*ix2
-                                        enddo
-                                        enddo
-    
+    {do ix^D=1,100 \ }
+        a(ix^D)= ix^D*
+    {enddo\ }
+
+which translates to:
+
+    do ix1=1,100
+    do ix2=1,100
+        a(ix1,ix2)= ix1*ix2
+    enddo
+    enddo
 
 Here NDIM=2 was assumed. Note the need for curly brackets in the first line to
 override the space and the comma, and also note the space in **a(ix^D)=
 ix^D*** which is needed to bound the **ix^D*** loop. In the final
-**{enddo\\}** line the number of repetitions was assumed to be NDIM, as we
+**{enddo\\ }** line the number of repetitions was assumed to be NDIM, as we
 shall see this may not always be the case.
 
 Suppose we want to assign the same value to NDIM variables:
 
-    
-        ix^D=1;     --->     ix1=1;ix2=1;
-    
+        ix^D=1;     -->     ix1=1;ix2=1;
 
 The semicolon is a bounding character, thus strictly speaking it does not
 belong to the **ix^D=1** loop. The preprocessor, however, checks wether the
@@ -176,23 +166,22 @@ same first letter are replaced by their substitutes.
 
 Look at the following typical case construct for NDIM=2 and NDIR=2:
 
-    
-        select case(iw)
+    select case(iw)
       {case(m^C_)
-         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,m^C_) \}
+         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,m^C_) \ }
     end select
-    
-    --->
-    
+
+    -->
+
     select case(iw)
       case(m1_)
          mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,m1_)
       case(m2_)
          mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,m2_)
     end select
-    
-    --->
-    
+
+    -->
+
     select case(iw)
       case(m1_)
          mom(ixmin1:ixmax1,ixmin2:ixmax2)=&
@@ -201,7 +190,6 @@ Look at the following typical case construct for NDIM=2 and NDIR=2:
          mom(ixmin1:ixmax1,ixmin2:ixmax2)=&
             w(ixmin1:ixmax1,ixmin2:ixmax2,m2_)
     end select
-    
 
 Notice that the preprocessor first expanded the loop for the first **^C**
 pattern and substituted **^C** in the third index of the **w** array but the
@@ -219,23 +207,19 @@ were interpreted as a loop of the **^L** pattern (mnemonic: Limits). Yes, a
 pattern may expand into other pattern(s) thus producing another loop. To
 declare the limits of the array sections one may say
 
-    
-        integer:: ix^L  --->  integer:: ixmin^D,ixmax^D  --->
-    
+        integer:: ix^L  -->  integer:: ixmin^D,ixmax^D  -->
+
     integer:: ixmin1,ixmin2,ixmax1,ixmax2
-    
 
 The intermediate **^D** pattern becomes very important in the following
 typical example:
 
-    
-        jx^L=ix^L+kr(idim,^D);                                       --->
-    
-    jxmin^D=ixmin^D+kr(idim,^D);jxmax^D=ixmax^D+kr(idim,^D);     --->
-    
+        jx^L=ix^L+kr(idim,^D);                                       -->
+
+    jxmin^D=ixmin^D+kr(idim,^D);jxmax^D=ixmax^D+kr(idim,^D);     -->
+
     jxmin1=ixmin1+kr(idim,1);jxmin2=ixmin2+kr(idim,2);
     jxmax1=ixmax1+kr(idim,1);jxmax2=ixmax2+kr(idim,2);
-    
 
 The purpose is to shift the limits by 1 in the idim direction. The **kr**
 array is a Kronecker delta, it is 1 for the diagonal elements where the two
@@ -255,23 +239,19 @@ has substitutes **&gt;** and **&lt;** ensuring that the limits on the left are
 within the limits on the right. Thus we may extend the **ix^L** limits by 1
 with
 
-    
-        ix^L=ix^L^LADD1;  --->  ixmin^D=ixmin^D-1;ixmax^D=ixmax^D+1;
-    
+        ix^L=ix^L^LADD1;  -->  ixmin^D=ixmin^D-1;ixmax^D=ixmax^D+1;
+
     ixmin1=ixmin1-1;ixmin2=ixmin2-1;ixmax1=ixmax1+1;ixmax2=ixmax2+1;
-    
 
 To check if the **ixI^L** input limits are not narrower than the **ix^L**
 limits
 
-    
-        if(ixI^L^LTix^L|.or.|.or.)stop --->
-    
-    if(ixImin^D>ixmin^D|.or. .or. ixImax^D<ixmax^D|.or.)stop  --->
-    
+        if(ixI^L^LTix^L|.or.|.or.)stop -->
+
+    if(ixImin^D>ixmin^D|.or. .or. ixImax^D<ixmax^D|.or.)stop  -->
+
     if(ixImin1>ixmin1.or.ixImin2>ixmin2 .or. ixImax1<ixmax1.or.&
        ixImax2<ixmax2)stop
-    
 
 where note the repeated use of the **.or.** separator string.
 
@@ -282,9 +262,7 @@ Sections) is a better solution. The typically internally used **^LIM** pattern
 expands to **min** and **max**, while **^S** expands to **^LIM1:..^LIMndim:**,
 and therefore
 
-    
-        a(ix^S)  --->  a(ix^LIM1:,ix^LIM2:)  --->  a(ixmin1:ixmax1,ixmin2:ixmax2)
-    
+        a(ix^S)  -->  a(ix^LIM1:,ix^LIM2:)  -->  a(ixmin1:ixmax1,ixmin2:ixmax2)
 
 As you may suspect the whole exercise of introducing **^LIM** and **^S**
 served the purpose of achieving this extremely compact notation for array
@@ -294,9 +272,7 @@ instead of the **min** and **max** actual limits. The **^LL** pattern
 similarly to **^L**, while **^LLIM** gives simply **lo** and **hi**, and
 **^T** (mnemonic: total segment) is used in most array declarations:
 
-    
-        a(ix^T)  --->  a(ix^LLIM1:,ix^LLIM2:)  --->  a(ixlo1:ixhi1,ixlo2:ixhi2)
-    
+        a(ix^T)  -->  a(ix^LLIM1:,ix^LLIM2:)  -->  a(ixlo1:ixhi1,ixlo2:ixhi2)
 
 Now that we have many different patterns with different number of substitutes
 it becomes useful and necessary to introduce patterns which are replaced by
@@ -307,9 +283,7 @@ avoid syntax problems at the end of a line, where the &amp; means continuation
 according to FORTRAN 90.) A trivial application is the enddo-s at the end of
 NDIM nested do loops:
 
-    
-        enddo^D&;     --->    enddo;enddo;
-    
+        enddo^D&;     -->    enddo;enddo;
 
 Obviously the **^D** pattern would not work here: **enddo^D; --&gt;
 enddo1;enddo2;**. For scalar products of vector variables the **^C&amp;** is
@@ -317,11 +291,9 @@ used at the head of the loops to tell VACPP that first the **^C** patterns
 should be expanded. For example calculate the magnetic pressure from the
 **pb=0.5*B.B** formula:
 
-    
-        pb(ix^S)=0.5*(^C&w(ix^S,b^C_)**2+)   --->
-    
+        pb(ix^S)=0.5*(^C&w(ix^S,b^C_)**2+)   -->
+
     pb(ixmin1:ixmax1)=0.5*(w(ixmin1:ixmax1,b1_)**2+w(ixmin1:ixmax1,b2_)**2)
-    
 
 for NDIM=1, NDIR=2. The interpretation of the original code is easiest by
 thinking of **^C&amp;** as the index for the loop and of the **+** at the end
@@ -337,19 +309,15 @@ special. The rest of the dimensions and sections are expanded from the **^DE**
 (mnemonic: Dimensions Extra) and **^SE** (Sections Extra) patterns. The radial
 distance may be related to the **x** coordinate array by
 
-    
-        r(ix^LIM1:)=x(ix^LIM1:,ixmin^DE,1)   --->
-    
+        r(ix^LIM1:)=x(ix^LIM1:,ixmin^DE,1)   -->
+
     r(ixmin1:ixmax1)=x(ixmin1:ixmax1,ixmin2,ixmin3,1)
-    
 
 then **r** may be a weight function for an array
 
-    
-        forall(ix= ix^LIM1:) a(ix,ix^SE)=r(ix)*a(ix,ix^SE)      --->
-    
+        forall(ix= ix^LIM1:) a(ix,ix^SE)=r(ix)*a(ix,ix^SE)      -->
+
     forall(ix= ixmin1:ixmax1) a(ix,ixmin2:ixmax2)=r(ix)*a(ix,ixmin2:ixmax2)
-    
 
 If NDIM=1 the preprocessor removes the separator, in this case a comma in the
 **ix,ix^SE** string, and the **ix^SE** loop is repeated 0 times, thus we get
@@ -360,20 +328,19 @@ indices separately, e.g. the boundary elements of an NDIM dimensional array
 are filled up for each boundary separately. The **^D%** pattern is replaced by
 **^%1..^%NDIM** patterns. The **^%N** pattern substitutes the text in front of
 it in the N-th repetition, and the text behind in the other substitutions. In
-general **head^%Ntail ---&gt; tail,..,tail,head,tail,..,tail** with **head**
+general **head^%Ntail --&gt; tail,..,tail,head,tail,..,tail** with **head**
 being at the N-th position. The number of repetitions is determined by the
 first pattern in **head** and **tail**. Here is an application for boundary
 conditions with **ixB^L** enclosing the boundary region and **ixMmin^D** being
 the edge of the mesh:
 
-    
         {case(^D)
        do ix= ixBmin^D,ixBmax^D
           a(ix^D%ixB^S)=a(ixMmin^D^D%ixB^S)
-       end do \}
-    
-    ---> /loop for ^D/
-    
+       end do \ }
+
+    --> /loop for ^D/
+
     case(1)
        do ix= ixBmin1,ixBmax1
           a(ix^%1ixB^S)=a(ixMmin1^%1ixB^S)
@@ -382,9 +349,9 @@ the edge of the mesh:
        do ix= ixBmin2,ixBmax2
           a(ix^%2ixB^S)=a(ixMmin2^%2ixB^S)
        end do
-    
-    ---> /loops for ^S taking ^%1 and ^%2 into account/
-    
+
+    --> /loops for ^S taking ^%1 and ^%2 into account/
+
     case(1)
        do ix= ixBmin1,ixBmax1
           a(ix,ixB^LIM2:)=a(ixMmin1,ixB^LIM2:)
@@ -393,9 +360,9 @@ the edge of the mesh:
        do ix= ixBmin2,ixBmax2
           a(ixB^LIM1:,ix)=a(ixB^LIM1:,ixMmin2)
        end do
-    
-    ---> /loops for ^LIM/
-    
+
+    --> /loops for ^LIM/
+
     case(1)
        do ix= ixBmin1,ixBmax1
           a(ix,ixBmin2:ixBmax2)=a(ixMmin1,ixBmin2:ixBmax2)
@@ -404,7 +371,6 @@ the edge of the mesh:
        do ix= ixBmin2,ixBmax2
           a(ixBmin1:ixBmax1,ix)=a(ixBmin1:ixBmax1,ixMmin2)
        end do
-    
 
 ####
 
@@ -414,9 +380,7 @@ Depending on the actual use of MPI-AMRVAC some subroutines may or may not be
 present, so something where you really need to use a 1D construct is best
 embedded as
 
-    
         {^IFONED   (something where x(ix1) occurs e.g.) }
-    
 
 This should be done with care, as the idea of the code is to use it for any
 dimensionality. Still, certain subroutines are not used at all in 1D, or they
@@ -428,9 +392,7 @@ Another way of switching between different versions of some part of the code
 is including a file **filename.t** which can be a link to the particular
 realization. The following expression, placed to the beginning of the line,
 
-    
         INCLUDE:filename
-    
 
 will be replaced by the content of the file. Include files can be nested. The
 INCLUDE: statement is often combined with conditional pattern(s). There is a
@@ -444,19 +406,17 @@ in the common blocks. It would be very convenient to give them a **COMMON**
 attribute in the type declaration and that's exactly what VACPP lets you do if
 you insert 'COMMON,' to the beginning of the line:
 
-    
         COMMON, INTEGER:: a(10),b
     COMMON, LOGICAL:: l
     COMMON, INTEGER:: c(20)
-    
-    --->
-    
+
+    -->
+
     INTEGER:: a,b
     LOGICAL:: l
     INTEGER:: c
     COMMON /INTE/  a(10),b, c(20)
     COMMON /LOGI/  l
-    
 
 The dimensions are stripped from the array declarations, and they are declared
 in the **COMMON /NAME/** blocks collected at the end of the file. The
@@ -469,27 +429,25 @@ problems.
 ####
 
   1. Modules
-    
-         Program name: amrvac  
-    
-    
+
+         Program name: amrvac
+
     * * *
-    
-    
+
      Modules:      AMRVAC            |               AMRINI
-    
+
                                    AMRIO and CONVERT
-    
+
                                    AMRVACUSR.PROBLEM
-    
+
                                    AMRVACUSRPAR.PROBLEM
-    
+
                                    AMRVACDEF
-    
+
                                    AMRVACPAR.EQUATION
-    
+
                                    AMRVACPHYS.EQUATION
-    
+
                    AMRVACPHYS.EQUATION   |
                                          |
                    CD                    |
@@ -500,12 +458,8 @@ problems.
                                          |
                    AMRGRID               |		GEOMETRY
                                          |
-    
-    
+
     * * *
-    
-    
-    
 
 ####
 
@@ -515,13 +469,10 @@ We assume NDIM=2 and NDIR=3, so you may try this interactively with **vacpp.pl
 -d=23 -**. For a full list of defined patterns read the **&amp;patdef**
 definitions in **vacpp.pl**.
 
-    
         Pattern   Substitutes                              Mnemonic
-    
-    
+
     * * *
-    
-    
+
     ^D    --> 1,2                                      Dimensions
     ^DE   --> 2                                        Dimensions Extra
     ^D&   --> ,                                        NDIM repetitions
@@ -541,45 +492,39 @@ definitions in **vacpp.pl**.
     ^S    --> ^LIM1:,^LIM2:   --> min1:max1,min2:max2  Segments
     ^SE   --> ^LIM2:          --> min2:max2            Segments Extra
     ^T    --> ^LLIM1:,^LLIM2: --> lo1:hi1,lo2:hi2      Total segments
-    
-    
+
     * * *
-    
-    
-    
 
 ####
 
   3. VACPP Expressions
-    
+
         Source VACPP notation     Expanded Fortran 90 code
-    
-    
+
     * * *
-    
-    
+
     integer:: ix^D        --> integer:: ix1,ix2
-    
+
     integer:: ix^L        --> integer:: ixmin1,ixmin2,ixmax1,ixmax2
-    
+
     real:: w(ixG^T,nw)    --> real:: w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,nw)
-    
+
     call subr(w,ix^L)     --> call subr(w,ixmin1,ixmin2,ixmax1,ixmax2)
-    
+
     pb(ix^S)=half*&       --> pb(ixmin1:ixmax1,ixmin2:ixmax2)=half*&
     (^C&w(ix^S,b^C_)**2+)     (w(ixmin1:ixmax1,ixmin2:ixmax2,b1_)**2+&
                                w(ixmin1:ixmax1,ixmin2:ixmax2,b2_)**2+&
                                w(ixmin1:ixmax1,ixmin2:ixmax2,b3_)**2)
-    
+
     ixI^L=ix^L^LADD1;     --> ixImin1=ixmin1-1;ixImin2=ixmin2-1;
                               ixImax1=ixmax1+1;ixImax2=ixmax2+1;
-    
+
     jx^L=ix^L+kr(2,^D);   --> jxmin1=ixmin1+kr(2,1);jxmin2=ixmin2+kr(2,2);
                               jxmax1=ixmax1+kr(2,1);jxmax2=ixmax2+kr(2,2);
-    
+
     select case(iw)       --> select case(iw)
     {case(m^C_)               case(m1_)
-      a(ix^S)=w(ix^S,m^C_)\}    a(ixmin1:ixmax1,ixmin2:ixmax2)=&
+      a(ix^S)=w(ix^S,m^C_)\ }    a(ixmin1:ixmax1,ixmin2:ixmax2)=&
     end select                     w(ixmin1:ixmax1,ixmin2:ixmax2,m1_)
                               case(m2_)
                                 a(ixmin1:ixmax1,ixmin2:ixmax2)=&
@@ -588,25 +533,17 @@ definitions in **vacpp.pl**.
                                 a(ixmin1:ixmax1,ixmin2:ixmax2)=&
                                    w(ixmin1:ixmax1,ixmin2:ixmax2,m3_)
                               end select
-    
+
     {^IFTVD text}         --> text or '' (depending on the TVD module being on)
-    
+
     {^IFTWOD text}        --> text or '' (depending on ndim being equal to 2)
-    
+
     {^NOONED text}        --> '' or text (depending on ndim being equal to 1}
-    
+
     INCLUDE:filename      --> content_of_file
-    
+
     COMMON, REAL:: c(20)  --> REAL:: c
     text                      text
                               COMMON /REAL/ c(20)
-    
-    
-    
+
     * * *
-    
-    
-    
-
-
-

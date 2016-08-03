@@ -1,4 +1,4 @@
-# A list of suggestions and improvements for MPI-AMRVAC
+# Suggestions and improvements
 
 The suggestions and/or improvements below have been divided in major and minor
 ones. This division does not reflect their importance, but only how much work is
@@ -71,7 +71,6 @@ its own grid and its connection to other processors? Then you have to implement
 some sort of parallel sort algorithm for the load balancing, I believe reading
 about this in a paper on the Dendro code.
 
-
 ### Hybrid OpenMP/MPI
 
 Scattered throughout the code there are OpenMP statements. Is the potential
@@ -96,7 +95,6 @@ performance may be worth the significant coding effort.*
 *The paper indicated that there can be significant improvements with a hybrid
 approach but found that the older memory model used in OpenMP reduces
 performance and they have devised extensions to OpenMP to add “locality”.*
-
 
 [link](https://computation.llnl.gov/casc/people/chow/pubs/hpaper.pdf)
 *My summary: hybrid not advantageous now, may change in future*

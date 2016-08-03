@@ -1,33 +1,24 @@
-# Auxiliary variables in MPI-AMRVAC: **nwflux, nwaux, nwextra, nwauxio, nw**
+# Auxiliary variables (nw...)
+
+[TOC]
+
+# List of auxiliary variables {#list}
 
 This document describes the differences and the intended use of the **nwaux,
 nwextra** parameters for MPIAMRVAC. These global parameters are dependent on
 the physics module, and defined in the corresponding
 
-    
-    
       amrvacpar.t.physics
-    
 
 file, where _physics_ is currently one of _rho, hdadiab, hd, mhd, srhd,
 srhdeos, srmhd, srmhdeos_.
 
-
-
-This page:  
-[nw] [nwflux] [nwaux] [nwextra] [nwauxio]
-
-
-
-## nw
+## nw {#nw}
 
 This global parameter sets the total number of variables, determining the
 (last dimension-independent) size of the _w(ixG^T,1:nw)_ array, and is always
 
-    
-    
      nw = nwflux+nwaux+nwextra
-    
 
 The idea is that there are _nwflux_ conservative variables for which
 corresponding fluxes are defined in the _amrvacphys.t.physics_ module, and
@@ -36,9 +27,7 @@ some extra _nwextra_ variables. For these latter two types of variables, one
 does not have a corresponding flux definition in _getflux, gefluxforhllc_
 subroutines, and they also have no boundary conditions imposed on them.
 
-
-
-## nwflux
+## nwflux {#nwflux}
 
 The first _1:nwflux_ variables should be the conservative variables of the
 physics module at hand, and these are the ones that are updated by means of
@@ -57,17 +46,17 @@ conditions are to be imposed and existing boundary types have to be provided
 steady-state computations, the residual is based on only the temporal
 variation of these _1:nwflux_ variables.
 
-
-
-## nwaux
+## nwaux {#nwaux}
 
 When for the physics module at hand, one has _nwaux>0_, the slots in the _w_-
 array corresponding to _nwflux+1:nwflux+nwaux_ contain so-called auxiliary
 variables. One should distinguish between two types of such auxiliary
 variables, namely those that are **local** and those that are **nonlocal**.
 
-### For **local** auxiliaries, which can be computed directly from
-instantaneous local values of the first _1:nwflux_ variables.
+## Local auxiliaries {#local}
+
+Local auxiliaries can be computed directly from instantaneous local values of
+the first _1:nwflux_ variables.
 
 In the physics modules for _srhd, srhdeos, srmhd, srmhdeos_ (special
 relativistic modules), these local auxiliaries are useful to store pressure or
@@ -89,7 +78,9 @@ per side, just enter e.g. the string _'dummy'_ for the auxiliaries. The local
 auxiliaries can in fact also be used to trigger refinement or coarsening, so
 that the corresponding _flags_ integer array may use them.
 
-### For **nonlocal** auxiliaries, which contain gradients of the first
+## Nonlocal auxiliaries {#nonlocal}
+
+Nonlocal auxiliaries contain gradients of the first
 _1:nwflux_ variables.
 
 We added the possibility to compute, in every timestep, and immediately prior
@@ -112,9 +103,7 @@ particle acceleration treatments that do not react back on the flow dynamics,
 which involves the seperate evolution of particle distributions according to
 the velocity field and local compression.
 
-
-
-## nwextra
+## nwextra {#nwextra}
 
 Finally, an extra set of _nwextra_ variables can be defined in addition to the
 presently available ones in physics modules like _hd, mhd_ by setting
@@ -128,9 +117,7 @@ temperature values, the accumulated luminosity (internal energy change) during
 a timestep, etc. They were added specifically for facilitating the post-
 processing of simulations involving (optically thin) radiative losses.
 
-
-
-## nwauxio
+## nwauxio {#nwauxio}
 
 Only for post-processing purposes on saved snapshots from the code, one may
 want to compute additional auxiliary variables for visualization. Hence, only
@@ -143,6 +130,3 @@ given in the _specialvarnames_output_ as strings to be concatenated with the
 _wnames/primnames_ strings. This means that normally _nwauxio=0_, but it can
 be at convert stage set to a nonzero value in the _filelist_ part of the par-
 file.
-
-
-

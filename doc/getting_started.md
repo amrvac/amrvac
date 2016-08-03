@@ -2,12 +2,14 @@
 
 [TOC]
 
+# Introduction {#started_intro}
+
 Here we will get you started with MPI-AMRVAC. Fortunately, the code has very
 little dependencies: the only thing you will really need is an implementation of
 MPI, e.g. [open-mpi](http://www.open-mpi.org/) or
 [mpich](http://www.mpich.org/).
 
-## Get the code
+# Get the code {#get_code}
 
 We will install the code to the `~/codes/amrvac` directory. The following
 commands should do the trick:
@@ -25,7 +27,7 @@ Alternatively, you can also download a zip file of the most recent version from
 [Gitlab](https://gitlab.com/mpi-amrvac/amrvac/tree/master), by clicking the
 "Download zip" button.
 
-## Installation
+# Installation {#install}
 
 The only thing that should be done after unpacking is to set the `$AMRVAC_DIR`
 environment variable holding the path to the code. To do so using bash, you
@@ -42,7 +44,7 @@ Don't forget to source the `.bash_profile`:
 
     source ~/.bash_profile
 
-## Running a test problem
+# Running a test problem {#running_test}
 
 Traditionally, the first test problem is the VAC advection located in
 `$AMRVAC_DIR/tests/rho/vac`.

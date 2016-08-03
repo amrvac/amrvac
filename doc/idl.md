@@ -1,4 +1,6 @@
-# IDL VISUALIZATION MACROS
+# IDL visualization macros
+
+# Introduction
 
 This document describes the use of IDL for plotting results from VAC/MPI-
 AMRVAC. IDL is not a free software, it is distributed by Research Systems Inc.
@@ -11,58 +13,36 @@ The IDL macros provided are all in the **Idl_amr** and **Idl** directories
 except the **.idlrc** startup file, which is supposed to be in the main
 directory.
 
-
-
-This page: [Startup] [Running] [getpict] [plotfunc] [Plot more] [animate]
-[animfunc] [slice] [getlog] [Postscript]
-
-
-
-## Startup file
+# Startup file
 
 It is useful to let IDL know about the existence of the startup file
 **.idlrc** in the main MPI-AMRVAC/ directory. Under UNIX put
 
-    
-    
     setenv IDL_STARTUP .idlrc
-    
 
 into your ~/.login or ~/.cshrc file if you use the csh or tcsh shell. For
 other UNIX shells, use
 
-    
-    
     IDL_STARTUP=.idlrc
     export IDL_STARTUP
-    
 
 in the **.profile** file. Read the IDL manual if your operating system is not
 UNIX. If you start IDL in a directory where there is no .idlrc, IDL will give
 a warning message.
 
-## Running IDL
+# Running IDL
 
 Assuming that the IDL_STARTUP variable is properly set, simply start IDL as
 
-    
-    
     idl
-    
 
 in the main MPI-AMRVAC directory. If IDL_STARTUP is not set, type
 
-    
-    
     @.idlrc
-    
 
 at the IDL&gt; prompt or start IDL like this
 
-    
-    
     idl .idlrc
-    
 
 In either case, the commands in the **.idlrc** file are executed: some global
 variables like !path are set, and some procedures in
@@ -74,26 +54,17 @@ subroutines.
 
 If you get trapped by an error inside some IDL routine,
 
-    
-    
     retall
-    
 
 will return to the main level. To exit IDL type
 
-    
-    
     exit
-    
 
-## Reading a Snapshot with getpict
+# Reading a Snapshot with getpict
 
 To read a single frame from a file type at the "IDL&gt;" prompt of IDL
 
-    
-    
     IDL> .r getpict
-    
 
 The procedure will prompt you for the **filename**, and it determines the
 **filetype** and **npictinfiles** (the number of snapshots in the file)
@@ -103,20 +74,15 @@ filelength). Then it asks for the frame-number **npict** (1, 2,...
 npictinfiles) of the snapshot to be read from the file. When
 **npictinfiles=1**, the frame number is set to 1 automatically:
 
-    
-    
     filename(s)   ? data/exampleA22.ini
     filetype(s)   = ascii
     npictinfile(s)=      1
     npict=       1
-    
 
 The header of the file is read and echoed on the screen, and the type of
 equation **physics** is asked, unless it is read from the headline of the file
 given as e.g. **ExampleA_hdadiab22**:
 
-    
-    
     headline  =ExampleA
     ndim      = 2, neqpar= 3, nw= 3
     nx        =    50   50
@@ -126,7 +92,6 @@ given as e.g. **ExampleA_hdadiab22**:
     it      =           0, time=       0.0000000
     Read x and w
     GRID            INT       = Array(50, 50)
-    
 
 At the end, the **x** and **w** variables (containing the coordinates and the
 conservative variables respectively) are read from the file.
@@ -139,8 +104,6 @@ variables** defined by the header.
 You can use the **plotfunc** script to get some sophisticated plots or you can
 use any of the IDL procedures directly, e.g.
 
-    
-    
     print,time,it
     print,nx
     print,variables
@@ -148,20 +111,16 @@ use any of the IDL procedures directly, e.g.
     surface,w_1(*,*,2)-w_0(*,*,2)
     contour,w(*,*,1)
     vel,w(*,*,1),w(*,*,2)
-    
 
 The functions **diff2, diff3**, and **diff4** are provided for taking spatial
 derivatives of variables represented on 2D Cartesian mesh. To calculate the
 curl of the velocity field you could type
 
-    
-    
     vx=w(*,*,1)/w(*,*,0)
     vy=w(*,*,2)/w(*,*,0)
     xx=x(*,*,0)
     yy=x(*,*,1)
     curl_v=diff2(1,vy,xx)-diff2(2,vx,yy)
-    
 
 The difference between diff2 and diff3 is minor: diff2 uses centered
 differences, while diff3 relies on IDL built-in procedures. **diff4** is a
@@ -178,27 +137,21 @@ can be found in **Idl/animfunc.pro**. For example, 'curlv' is defined with the
 **curl** function. **Note that the above may not work properly for AMR data,
 it does work with single grid VAC files**
 
-## Plotting the Data
+# Plotting the Data
 
 Once the data is read by getpict or animate you can plot functions of **w**
 with
 
-    
-    
     .r plotfunc
-    
 
 You will see the value of **physics** for the last file read and some
 parameters with standard default values for different plotting routines:
 
-    
-    
     physics (e.g. mhd12)      =hdadiab22
     ======= CURRENT PLOTTING PARAMETERS ================
     ax,az=  30, 30, contourlevel= 30, velvector= 200, velspeed (0..5)= 5
     multiplot= 0 (default), axistype (coord/cells)=coord
     bottomline=2, headerline=2
-    
 
 The viewing angle is given by **ax** and **az** for the plotting modes
 **plotmode=** 'surface', 'shade', and 'shadeirr'. The **contourlevel**
@@ -219,8 +172,6 @@ can change these values explicitly (e.g. **az=50**), or change their default
 values in **Idl/defaults**. Now, you will be prompted for the name of
 function(s) and the corresponding plotting mode(s):
 
-    
-    
     ======= PLOTTING PARAMETERS =========================
     wnames                     =  h m1 m2
     func(s) (e.g. rho p m1;m2) ? h m1
@@ -230,7 +181,6 @@ function(s) and the corresponding plotting mode(s):
     plottitle(s) (e.g. B [G];J)=default
     autorange(s) (y/n)         =y
     GRID            INT       = Array(50, 50)
-    
 
 The function(s) to be plotted are determined by the **func** string parameter,
 which is a list of function names separated by spaces. The number of functions
@@ -242,10 +192,7 @@ function in **Idl/animfunc.pro**, or any expressions using the standard
 variable, coordinate and equation parameter names valid for the particular
 geometry and physics. These variable names are a subset of
 
-    
-    
     xx yy zz r phi z   rho m1 m2 m3 mm e b1 b2 b3 bb  gamma eta adiab csound2
-    
 
 where "mm" and "bb" are the momentum and magnetic field squared, respectively.
 Note that "xx ... bb" are arrays, while "gamma ... csound2" are scalars. For
@@ -282,11 +229,8 @@ calculate the minimum and maximum by itself. This is defined by the
 each referring to the respective function. If you set 'n' for any of the
 variables, the **fmin** and **fmax** arrays have to be set, e.g.
 
-    
-    
     fmin=[1. ,-1.]
     fmax=[1.1, 1.]
-    
 
 Make sure that the values are floating point and not integer. IDL remembers
 the previous setting and uses it, unless the number of functions are changed.
@@ -303,62 +247,44 @@ the default titles 'h' and 'v1;v2' overlap on top of the plot. The
 second plot 'ovelovect' is used (instead of 'velovect') for the velocity to
 get good alignment with the 'contfill' plot.
 
-## Plotting another Snapshot
+# Plotting another Snapshot
 
 If you type
 
-    
-    
     .r getpict
     .r plotfunc
-    
 
 again, the data will be read and plotted again without any questions asked,
 since IDL remembers the previous settings.
 
 If you want to read another frame, say the second, from the same file, type
 
-    
-    
     npict=2
     .r getpict
-    
 
 You can change the **func** and **plotmode** variables the same way:
 
-    
-    
     func='rho p'
     plotmode='contour surface'
     .r plotfunc
-    
 
 Note that we did not need to reread the data. Other variables, all listed in
 **Idl/defaults**, can be set similarly. If you set
 
-    
-    
     doask=1
-    
 
 the macros will ask for all the parameters to be confirmed by a simple RETURN,
 or to be changed by typing a new value. Set **doask=0** to get the default
 behaviour, which is no confirmation asked. To overplot previous plots without
 erasing the screen, set
 
-    
-    
     noerase=1
-    
 
 You can return to the default settings for all parameters by typing
 
-    
-    
     .r defaults
-    
 
-## Plotting and Animation with animate
+# Plotting and Animation with animate
 
 This general procedure can plot, save into file(s), or animate (using IDL's
 Xinteranimate) different functions of data read from one or more files. If a
@@ -366,10 +292,7 @@ single snapshot is read, the plot is drawn without animation. In essence
 **animate** combines **getpict** and **plotfunc** for any number of files and
 any number of snapshots.
 
-    
-    
     .r animate
-    
 
 will first prompt you for **filename(s)** unless already given. Animating more
 than one input files in parallel is most useful for comparing simulations with
@@ -388,10 +311,7 @@ file(s) also determines **npict**, which is the number of snapshots to be
 animated. It is limited by the end of file(s) and/or by the **npictmax**
 parameter. With a formula
 
-    
-    
     npict=min( npictmax, (min(npictinfiles)-firstpict)/dpict + 1 )
-    
 
 If **autorange='n'** for all the functions the file is only read once.
 
@@ -410,14 +330,11 @@ The **multiplot** array can be used to get some really interesting effects in
 comparison purposes. Probably it is a good idea to compare 1D slices rather
 than full 2D plots, e.g.
 
-    
-    
     filename='data/exampleA22.ini data/exampleB22.ini'
     func='h v1'
     cut=grid(*,25)
     multiplot=2
     .r animate
-    
 
 will overplot height and velocity read from the two files. The lines belonging
 to the two data files are distinguished by the different line styles.
@@ -426,8 +343,6 @@ supposed to be identical.
 
 Timeseries can also be produced easily with **multiplot**.
 
-    
-    
     filename='data/example22.out'
     func='h'
     plotmode='surface'
@@ -436,7 +351,6 @@ Timeseries can also be produced easily with **multiplot**.
     headerline=2
     bottomline=1
     .r animate
-    
 
 will show the first 6 snapshots of height in a single plot. Now the time is
 shown for each plot individually, and setting **bottomline=1** limits the time
@@ -446,22 +360,16 @@ done. This can be combined with **printmovie='y'** to produce PostScript
 figures containing 6 subplots each, which is convenient for printing an
 animation. Type
 
-    
-    
     multiplot=0
-    
 
 to return to default behavior, which is one snapshot per plot.
 
 Even after exiting from Xinteranimate, the animation can be repeated again
 without rereading the data file(s) by typing
 
-    
-    
     xinteranimate,/keep_pixmaps
-    
 
-## Function Definitions in animfunc
+# Function Definitions in animfunc
 
 Any function of the conservative variables **w**, the coordinates **x**, and
 the equation parameters **eqpar** can be defined in the **Idl/animfunc.pro**
@@ -471,29 +379,21 @@ user can easily define new functions for a specific application by adding a
 new **case** statement, for example the accretion rate in cylindrical symmetry
 can be defined as
 
-    
-    
           f eq 'rmr':  result=w(*,*,1)*r
-    
 
 Make sure that the function is in the right branch of the **ndim** switch.
 Note the use of the **r** array, which is extracted from **x(*,*,0)** for
 convenience. The modified file should be recompiled and can be used as
 
-    
-    
     .r animfunc
     func='rmr'
     .r plotfunc
-    
 
 A few frequently used functions are defined in a rather general way, they work
 for all the appropriate equations and number of dimensions. ** Note: the list
 below is for VAC, you should check yourself whether all below still works
 properly in AMR runs!**
 
-    
-    
     Function name	Physics	NDIM	Meaning
     ------------------------------------------------------------
     v		any 1D		velocity in 1st direction
@@ -539,7 +439,7 @@ properly in AMR runs!**
     j_rz		mhd, mhdiso 2D  current for cylindrical symmetry
     j_rp		mhd, mhdiso 2D	current for polar coordinates
     divb		mhd, mhdiso 2D	div B for slab symmetry
-    divb4		mhd, mhdiso 2D	div B fourth order for slab symmetric 
+    divb4		mhd, mhdiso 2D	div B fourth order for slab symmetric
                                     uniform Cartesian grid
     divb_CT         mhd, mhdiso 2D  div B for CT schemes on Cartesian grid
     divb_CD         mhd, mhdiso 2D  div B for CD schemes on generalized grid
@@ -547,7 +447,6 @@ properly in AMR runs!**
     divb_rp		mhd, mhdiso 2D	div B for for polar coordinates
     A, AA, B	mhd, mhdiso 2D	vector potential for slab symmetry
     A_r, AA_r	mhd, mhdiso 2D	vector potential*r for cylindrical symmetry
-    
 
 Here _any_ physics means any of _hdadiab, hd, mhdiso, mhd_.
 
@@ -566,14 +465,11 @@ of the integration paths. Finally 'B' differs from 'AA' in that the resulting
 vector potential is smoothed a bit after the integration, which makes the
 field lines look nicer.
 
-## Reading the Logfile with getlog
+# Reading the Logfile with getlog
 
 One or more (at most three) logfiles can be read by
 
-    
-    
     .r getlog
-    
 
 which reads data from the file(s) determined by the **logfilename** parameter.
 An initial guess for the name is made if the **filename** parameter has
@@ -584,8 +480,6 @@ already been given. The data in the logfile(s) is put into the
 the logfile, the **resid** is also generated. The **wlog(nt,nwlog)** array
 contains the rest of the columns in the logfile. A simple example is
 
-    
-    
     .r getlog
     logfilename(s) ? data/example22.log
     headline       =ExampleA_hdadiab22
@@ -595,24 +489,20 @@ contains the rest of the columns in the logfile. A simple example is
       wlog(*, 2)= m2
     Number of recorded timesteps: nt=      20
     plot,t,wlog(*,0),xtitle='t',ytitle='h_mean'
-    
 
 which checks the global mass conservation for exampleA.
 
-## Saving Plots into Postscript Files
+# Saving Plots into Postscript Files
 
 In IDL printing a plot is possible through Postscript files. After the plot
 looks fine on the screen, use for example
 
-    
-    
     set_plot,'PS'
     device,filename='myfile.ps',xsize=24,ysize=18,/landscape,/color,bits=8
     loadct,3
     .r plotfunc
     device,/close
     set_plot,'X'
-    
 
 For a non-color plot omit the **/color,bits=8** parameters and the loading of
 the color table by the **loadct** command. For a _portrait_ picture use
@@ -627,13 +517,7 @@ snapshots can also be saved in a single plot using **multiplot**.
 All these commands can be collected into a single file, like
 **Idl/myfig.pro**, which can be run from IDL by
 
-    
-    
     @myfig
-    
 
 This is a convenient way to store the commands for producing complicated
 figures.
-
-
-

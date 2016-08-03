@@ -24,10 +24,7 @@ templates in **src/usr/amrvacusr.t.PROBLEM** and
 **tests/EQUATION/PROBLEM/**. The first approach is automatized by running
 **setup.pl**:
 
-    
-    
     $AMRVAC_DIR/setup.pl -u=PROBLEM
-    
 
 The **src/usr/amrvacusr.t.PROBLEM** file has to exist, but the
 **src/usr/amrvacusrpar.t.PROBLEM** file is optional. If it does not exist, the
@@ -36,8 +33,6 @@ The **src/usr/amrvacusr.t.PROBLEM** file has to exist, but the
 _We however recommend adapting a suitable setup from the tests folder where
 also the parameter file (default amrvac.par) and anything else to go with the
 setup is present. _
-
-
 
 ## Creating a New Setup
 
@@ -56,8 +51,6 @@ end of the module for clarity.
 Your start file should look something like this, where we already included the
 **amrvacnul/specialini.t** file which is always needed:
 
-    
-    
     !=============================================================================
     ! amrvacusr.t.MYPROBLEM
     !=============================================================================
@@ -68,30 +61,29 @@ Your start file should look something like this, where we already included the
     INCLUDE:amrvacnul/usrflags.t
     !=============================================================================
     subroutine initglobaldata_usr
-    
+
     include 'amrvacdef.f'
     !-----------------------------------------------------------------------------
-    
+
     end subroutine initglobaldata_usr
     !=============================================================================
     subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-    
+
     ! initialize one grid within ix^L
-    
+
     include 'amrvacdef.f'
-    
+
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
     !-----------------------------------------------------------------------------
-    
+
     w(ix^S,1:nw)=zero
-    
+
     end subroutine initonegrid_usr
     !=============================================================================
     ! amrvacusr.t.MYPROBLEM
     !=============================================================================
-    
 
 Now you should edit both subroutines according to your needs: the idea is that
 in _initglobaldata_usr_ you must set the global equation parameter values
@@ -111,11 +103,9 @@ Below some help is provided for writing new subroutines.
 An example taken from the available _tests/rho/vac/amrvacusr.t_ user module is
 given below
 
-    
-    
     !=============================================================================
     ! amrvacusr.t.testrho
-    
+
     ! INCLUDE:amrvacnul/specialini.t
     INCLUDE:amrvacnul/speciallog.t
     INCLUDE:amrvacnul/specialbound.t
@@ -123,30 +113,30 @@ given below
     INCLUDE:amrvacnul/usrflags.t
     !=============================================================================
     subroutine initglobaldata_usr
-    
+
     include 'amrvacdef.f'
     !----------------------------------------------------------------------------
-    
+
     {^IFONED   eqpar(v1_)=one }
     {^IFTWOD   eqpar(v1_)=one; eqpar(v2_)=one }
     {^IFTHREED eqpar(v1_)=one; eqpar(v2_)=one; eqpar(v3_)=one }
-    
+
     end subroutine initglobaldata_usr
     !=============================================================================
     subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-    
+
     ! initialize one grid
-    
+
     include 'amrvacdef.f'
-    
+
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
-    
+
     double precision:: rhoflat,rhosquare,slocx^D
     double precision :: radius, xcircle^D
     !----------------------------------------------------------------------------
-    
+
     rhoflat  = 0.5d0
     rhosquare= 2.0d0
     ! iprob=1 is a pure 1D Riemann problem, solvable in 1D, 2D, 3D
@@ -157,9 +147,9 @@ given below
         elsewhere
            w(ix^S,rho_)     = rhoflat
        endwhere
-    
+
     ! **** many more cases in the actual file are omitted here ***
-    
+
     else if (iprob==6) then
        radius = 0.2d0
        xcircle^D=zero;
@@ -171,12 +161,11 @@ given below
     else
         call mpistop("iprob not available!")
     end if
-    
+
     end subroutine initonegrid_usr
     !=============================================================================
     ! amrvacusr.t.testrho
     !=============================================================================
-    
 
 Note the use of the rho_ index name. It is clear that the **x** coordinates
 are known on entry. The subroutine above works in 1, 2 or 3D.
@@ -257,8 +246,6 @@ for computing a curl, and then visualize those with any of the visualization
 tools applicable. You then also need to specify a label for this variable, in
 _specialvarnames_output_.
 
-
-
 ## AMRVACUSR Library
 
 Various source terms are available as library subroutines, in particular for a
@@ -267,10 +254,7 @@ mass, and for optically thin radiative losses. They will always need to be
 combined with user written subroutines. To include a library into the
 **amrvacusr.t** file, just add a line
 
-    
-    
     INCLUDE:amrvacmodules/LIBRARY.t
-    
 
 and call the appropriate library routines from the subroutines
 **specialsource** and **getdt_special** according to the description of the
@@ -294,8 +278,6 @@ function of the temperature. The two libraries differ in the details of this
 function, the more general _amrvacmodules/cooling.t_ has many frequently used
 cooling tables implemented, and various ways to add this local source term.
 
-
-
 ## Special Equation Parameters
 
 The user-defined source terms or boundary conditions may contain parameters
@@ -317,19 +299,14 @@ A simple example is the following file, taken from
 _src/usr/amrvacusrpar.t.testhdrt_ which just says the code that it has
 equation parameters for the constant gravitational field.
 
-    
-    
     !##############################################################################
     ! include amrvacusrpar - gravity
-    
+
     INTEGER,PARAMETER:: grav0_=neqpar, grav^D_=neqpar+^D, nspecialpar=^ND
     {^IFONED   CHARACTER*5 ,PARAMETER:: specialparname='grav1'}
     {^IFTWOD   CHARACTER*11,PARAMETER:: specialparname='grav1 grav2'}
     {^IFTHREED CHARACTER*17,PARAMETER:: specialparname='grav1 grav2 grav3'}
-    
+
     ! end include amrvacusrpar - gravity
     !##############################################################################
-    
-
-
 

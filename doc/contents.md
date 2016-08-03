@@ -1,6 +1,8 @@
-# Contents of the MPI-AMRVAC documentation
+# Contents
 
-## Introduction for New Users
+[TOC]
+
+# Introduction for new users {#intro_new_users}
 
 * [Features](features.md) An overview of the main features of the Message
 Passing Interface - Adaptive Mesh Refinement - Versatile Advection Code.
@@ -13,7 +15,7 @@ financial support.
 code to the new git version.
 * [FAQ](faq.md) Frequently asked questions.
 
-## General
+# General {#general}
 
 * [Command line](commandline.md)      Help on command-line parameters.
 * [Examples](examples.md) Description of various example simulations for which
@@ -24,7 +26,7 @@ AMRVACPHYS modules. How to create a new AMRVACPHYS module.
 "amrvacusrpar.t" files for special initial conditions, boundary types, and
 source terms, etc.
 
-## Discretization and AMR related matter
+# Discretization and AMR related matter {#discretization}
 
 * [Discretization](discretization.md) The equation and its discretization, the
 basic variables, the structure of the grid, boundaries, ghost cells.
@@ -36,14 +38,14 @@ TVDMU, TVD, HLL, ...
 * [AMR aspects](amrstructure.md) Some essential info on global parameters and
 the data structures for the block-tree AMR.
 
-## Parameters
+# Parameters {#parameters}
 
 * [Parameters for AMRVAC](par.md) Description of the "amrvac.par" parameter file
 for MPI-AMRVAC.
 * [Auxiliary variables for MPI-AMRVAC](mpiamrvac_nw.md) Description of the
 intended use for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
 
-## Source Code
+# Source Code {#source_code}
 
 * [Source](source.md) Description of the dimension independent source language,
 which is translated to F90 by the VACPP preprocessor.
@@ -51,7 +53,7 @@ which is translated to F90 by the VACPP preprocessor.
 files.
 * [VACPP](vacpp.md) Making and running the VACPP preprocessor itself.
 
-## IO and postprocessing
+# IO and postprocessing {#io}
 
 * [File format](fileformat.md) Description of the MPI-AMRVAC data file format
 ***.dat**.

@@ -1,4 +1,4 @@
-# Parameters for MPI-AMRVAC
+# Parameters
 
 This document describes how the **amrvac.par** parameter file for MPI-AMRVAC
 should be used. **Note that default values for parameters are actually set in
@@ -43,14 +43,12 @@ words in strings. After each namelist a discussion follows.
 
 ### Testlist
 
-
          &testlist
     	teststr='SUBROUTINE1 SUBROUTINE2 ... '
     	ixtest1=INTEGER ixtest2=INTEGER ixtest3=INTEGER
     	iwtest=INTEGER
     	idimtest=INTEGER
     /
-
 
 Setting **teststr** causes some information printed to the standard output
 from the subroutines listed in **teststr**. The output refers to the location
@@ -66,7 +64,6 @@ VAC, and it is not advisable to use it when running the code on multiple
 processors. It is a rather obsolete feature.**
 
 ### Filelist
-
 
          &filelist
     	filenameini='unavailable' | 'datamr/FILEINIBASE'
@@ -103,7 +100,6 @@ processors. It is a rather obsolete feature.**
      writespshift: an array of dimension (1:ndim,1:2),
      to be filled with DOUBLES (all 0 by default)
     /
-
 
 The filenameout, and filenamelog correspond to the basename of the output and
 log-file, respectively, and since they have no default values, they have to be
@@ -304,7 +300,6 @@ large datasets.
 
 ### Savelist
 
-
          &savelist
     	ditsave(FILEINDEX)=INTEGER
     	dtsave(FILEINDEX)=DOUBLE
@@ -316,7 +311,6 @@ large datasets.
      collapse(INTEGER) = F | T
      collapseLevel = INTEGER
     /
-
 
 You can specify the frequency or the actual times of saving results into the
 log, (consecutive) output, slice files, collapsed views and calls to the
@@ -350,7 +344,6 @@ output is always saved_ after the stop condition has been fulfilled. If
 
 ### Stoplist
 
-
          &stoplist
     	itmax =INTEGER
     	tmax =DOUBLE
@@ -364,7 +357,6 @@ output is always saved_ after the stop condition has been fulfilled. If
     	residmax =DOUBLE
      typeresid = 'relative' | 'absolute'
     /
-
 
 You may use an upper limit **itmax** for the number of timesteps and/or the
 physical time, **tmax**. If **tmaxexact=T** is set, the last time step will be
@@ -402,7 +394,6 @@ residmax is specified here, the value of the residual will be added to the
 logfile.
 
 ### Methodlist
-
 
         &methodlist
 
@@ -497,7 +488,6 @@ logfile.
     smallrhod = DOUBLE'
 
     /
-
 
 #### wnames, fileheadout
 
@@ -869,7 +859,6 @@ These are only used when one or more dustspecies is used for HD.
 
 ### Boundlist
 
-
          &boundlist
      dixB= INTEGER
     	typeB= 'cont','symm','asymm','periodic','special','noinflow','limitinflow'
@@ -878,7 +867,6 @@ These are only used when one or more dustspecies is used for HD.
     	typeghostfill= 'linear' | 'copy' | 'unlimit'
     	typegridfill= 'linear' | 'other'
     /
-
 
 The boundary types have to be defined for each conserved variable at each
 physical edge of the grid, i.e. for 2D hydrodynamics they are in the order:
@@ -960,7 +948,6 @@ second order is desired).
 
 ### Amrlist
 
-
          &amrlist
     	mxnest= INTEGER
     	nxlone1= INTEGER
@@ -996,7 +983,6 @@ second order is desired).
      itfixgrid= INTEGER
      ditregrid= INTEGER
     /
-
 
 #### mxnest, nxlone^D, dxlone^D, xprob^L
 
@@ -1136,7 +1122,6 @@ once in every iteration by default.
 
 ### Paramlist
 
-
          &paramlist
     	dtpar= DOUBLE
     	courantpar= DOUBLE
@@ -1148,7 +1133,6 @@ once in every iteration by default.
      cfrac= DOUBLE
 
     /
-
 
 #### dtpar, courantpar, typecourant, dtdiffpar, dtTCpar, slowsteps
 
@@ -1168,10 +1152,8 @@ If the **slowsteps** parameter is set to a positive integer value greater than
 1, then in the first **slowsteps-1** time steps **dt** is further reduced
 according to the
 
-
                  2
         dt'= dt * [ 1 - (1-step/slowsteps) ]
-
 
 formula, where **step=1..slowsteps-1**. This reduction can help to avoid
 problems resulting from numerically unfavourable initial conditions, e.g. very

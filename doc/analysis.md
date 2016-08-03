@@ -24,5 +24,3 @@ perform integrals over the grid-functions, similar to the _printlog_special_.
 A special file-unit is reserved for the IO: _unitanalysis_. This should be
 used for any IO performed by this routine.
 
-
-

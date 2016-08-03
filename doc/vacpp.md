@@ -1,4 +1,4 @@
-# The VAC preprocessor, as used for MPI-AMRVAC
+# The VAC preprocessor
 
 This document briefly describes the use of the VAC PreProcessor (VACPP) which
 converts dimension independent notation into Fortran 90. VACPP is a
@@ -49,6 +49,4 @@ You may change the maximum line length to e.g. 72 directly on the command line
     vacpp.pl -maxlen=72 FILENAME.t > FILENAME.f
 
 or edit the **src/makefile** accordingly.
-
-
 

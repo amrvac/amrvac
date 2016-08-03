@@ -2,17 +2,11 @@
 
 Radiative cooling for AMRVAC  
 
-
-
 This webpage describes the radiative cooling module currently implemented in
 AMRVAC.  
   
 
-
-
 Structure  
-
-
 
 The cooling routine is based on two subroutines: coolinit and radcool, which
 interact with the rest of the AMRVAC code and a separate series of
@@ -28,11 +22,7 @@ addsource_cooling it selects which scheme you wish to use to calculate the
 cooling and calls the relevant subroutine.  
   
 
-
-
 Coolinit  
-
-
 
 The subroutine coolinit uses the paramete 'coolcurve' from the par file to
 select a cooling curve (log(Lambda(T)) and log(T)). This curve is read into
@@ -88,8 +78,6 @@ are already scaled for ionization an metallicity. It is generally safe to have
 eqpar(Mue_) = 1.0.  
   
 
-
-
   
 At this stage, it is possible to choose from several different cooling tables,
 set in the variable 'cooltable'  
@@ -119,11 +107,7 @@ temperatures (Lambda ~ sqrt(T)). This has been done to allow the different
 numerical cooling methods to extend to higher temperatures.  
   
 
-
-
 Radcool
-
-
 
 Radcool as a subroutine consists only of a single 'select case' statement.  
 It uses the input variable 'coolmethod' to select which subroutine to call for
@@ -180,11 +164,7 @@ usually correct. In any case, areas with such a high temperature tend to have
 low density, rendering the radiative cooling negligeable.  
   
 
-
-
 Secondary routines  
-
-
 
 There are several additional subroutines that have been added to fascilitate
 the radiative cooling routine:  
@@ -221,11 +201,7 @@ eexact integration method has been used.
 
   
 
-
-
 In practice  
-
-
 
 In order to use radiative cooling in a simulation, the user has to do the
 following:  
@@ -249,11 +225,7 @@ INTEGER,PARAMETER :: Mue_ = Lscale + 1, nspecialpar = 3
   
 CHARACTER*11,PARAMETER :: specialparname = 'Tsc Lsc Mue'  
 
-
-
 Variables
-
-
 
   
 This is a list of the new variables I have created in order to implement the
@@ -355,11 +327,7 @@ Lcmulti(1:3, 1:10,000) (Double precision) decared in amrvacusrpar.cooling.t
   
   
 
-
-
 Issues  
-
-
 
   
 The high metallicity cooling curve from Mellema &amp; Lundqvist causes
@@ -370,6 +338,4 @@ This is a general problem with radiative cooling, but the high metallicity
 cooling curve takes it to extremes.  
 
   
-
-
 

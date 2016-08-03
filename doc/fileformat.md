@@ -1,4 +1,4 @@
-# MPI-AMRVAC DATA FILE FORMAT
+# MPI-AMRVAC's data file format
 
 All data files consist of a single snapshot, and they can be used for restart
 and/or further conversion to other data formats directly usable for
@@ -25,18 +25,15 @@ This part is then followed by all extra info needed to reconstruct/restart the
 simulation, which is written at the end _*.dat_ file by the master CPU. The
 extra info consists of
 
-    
-    
-    (1)  the boolean representation of the grid structure; 
-    (2)  info on grid block size per dimension, actually the mesh size _nx^D_ 
-    (3)  equation-specific variable values (i.e. the _eqpar_ array) 
-    (4)  number of active tree leafs _nleafs_, 
-    (5)  maximal refinement level present _levmax_, 
-    (6)  dimensionality NDIM, 
-    (7)  number of vector components NDIR, 
-    (8)  number of variables _nw_, 
-    (9)  number of equation-specific variables _neqpar+nspecialpar_, 
-    (10) integer time counter _it_, 
-    (11) global time _t_. 
-    
+    (1)  the boolean representation of the grid structure;
+    (2)  info on grid block size per dimension, actually the mesh size _nx^D_
+    (3)  equation-specific variable values (i.e. the _eqpar_ array)
+    (4)  number of active tree leafs _nleafs_,
+    (5)  maximal refinement level present _levmax_,
+    (6)  dimensionality NDIM,
+    (7)  number of vector components NDIR,
+    (8)  number of variables _nw_,
+    (9)  number of equation-specific variables _neqpar+nspecialpar_,
+    (10) integer time counter _it_,
+    (11) global time _t_.
 

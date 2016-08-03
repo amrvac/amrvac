@@ -18,10 +18,7 @@ axis is in the first coordinate, which can therefore be referred to as **r_**,
 where **r_=1** is an integer parameter set in **src/amrvacdef.t**. When
 setting
 
-    
-    
     setamrvac -d=23 -z=2 -phi=3
-    
 
 the second coordinate is interpreted as the one parallel to the axis,
 **z_=2**, while the ignored direction is **phi_=3** in 2.5D. The PHI
@@ -58,11 +55,8 @@ In 2D, the data in the **x** coordinates is interpreted as radial distance
 array contains **dr** and **r*dphi** and MPI-AMRVAC treats everything the same
 way as in a Cartesian grid. Meaningfull 2D settings are
 
-    
-    
     setamrvac -d=22 -phi=2 -z=0
     setamrvac -d=23 -phi=2 -z=3
-    
 
 The main difference is that the geometric source terms are added due to
 **typeaxial='cylindrical'**. The former setting is purely 2D, the latter
@@ -71,11 +65,8 @@ setting is 2.5D, and assumes translational invariance with the z direction.
 In 3D, there are two possibilities: the coordinates can be ordered as **r, z,
 phi** or **r, phi, z**, where **z** is the vertical position.
 
-    
-    
     setamrvac -d=33 -phi=2 -z=3
     setamrvac -d=33 -phi=3 -z=2
-    
 
 The vector variables also have their components in the **r, phi**, and **z**
 directions. These facts should be kept in mind when the initial conditions are
@@ -112,6 +103,4 @@ south pole) for spherical grids. The user just needs to set the typeB as if
 the singular axis is a symmetry boundary (using symm and asymm combinations).
 **There is one important restriction: the number of grid blocks must be even
 around the pole.**
-
-
 

@@ -1,4 +1,4 @@
-# Overview of MPI-AMRVAC features
+# Features overview
 
 This is a brief overview of the main features of the MPI-AMRVAC software
 package.
@@ -30,7 +30,7 @@ single file.
     comm_lib			MPI communication routines
     connectivity		subroutines for neighbor determinations in the tree hierarchy
     errest			    the error estimator used for AMR regridding
-    forest			    the AMR octree 
+    forest			    the AMR octree
     initialize_vars		basic global variable/parameter initializations
     load_balance		the load balance strategy
     refine			    refining
@@ -98,8 +98,6 @@ srmhd | special relativistic magnetohydrodynamics, ideal gas _-eos=gamma (defaul
 The resistivity for mhd can be a function of the flow variables as well as
 position. Some typical source terms have been implemented as a AMRVACUSR
 LIBRARY, collected in the **src/amrvacmodules/** folder:
-
-
 
 Library | Equation(s)  Source terms
 ---|---

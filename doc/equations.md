@@ -1,4 +1,8 @@
-# AMRVACPHYS MODULES
+# Physics modules
+
+[TOC]
+
+# List of physics modules {#list_physics}
 
 This document describes the equations implemented in the
 **src/EQUATION/amrvacphys.t** and **src/EQUATION/amrvacpar.t** files, and
@@ -10,25 +14,13 @@ principle, the code handles anything of generic form
 
 The code is configured to use the specified equation with the setting
 
-    
-    
     $AMRVAC_DIR/setup.pl -p=EQUATION
 
 where EQUATION is one of the implemented physics modules (hd,mhd,srmhd,...),
 see below.
 
+## Transport Equation: rho {#rho}
 
-
-This page:  
-[RHO] [NONLINEAR] [HDADIAB] [HD] [MHDISO] [MHD] [SRHD and SRHDEOS] [SRMHD and
-SRMHDEOS] [SRRMHD] [FF] [Div B sources] [Positivity fixes] [New]
-
-
-
-## Transport Equation: rho
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=rho
 
 ![](figmovdir/eq.rho.gif)
@@ -44,12 +36,8 @@ field.
 For a linear scalar equation the Riemann solver is trivial, thus all TVD type
 methods give identical results.
 
+## Nonlinear scalar Equation: nonlinear {#nonlinear}
 
-
-## Nonlinear scalar Equation: nonlinear
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=nonlinear
 
 ![](figmovdir/eq.nonlinear.gif)
@@ -61,12 +49,8 @@ non-convex equation, depending on the **eqpar(fluxtype_)** equation parameter
 There is also a version coupling the nonlinear set with the advection
 equation: **nonlinear+rho**. This was used to study basic coupling strategies.
 
+## Adiabatic Hydrodynamics: hd {#hd_iso}
 
-
-## Adiabatic Hydrodynamics: hd
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=hd -eos=iso
 
 Includes the equations for pressureless dust and the Shallow Water equations
@@ -89,12 +73,8 @@ acceleration **eqpar(adiab_)=g/2**.
 There is a Roe-type Riemann solver implemented, in _hd/roe.t_. Several
 routines specific to HLLC are in _hd/hdhllc.t_.
 
+## Hydrodynamics: hd {#hd}
 
-
-## Hydrodynamics: hd
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=hd -eos=gamma
 
 ![](figmovdir/eq.hd.gif)
@@ -131,12 +111,8 @@ and for point gravity
 Note how the gravitational constant and the non-dimensionalization is taken
 into the parameters _M_point_ and its location _x_point_.
 
+## Isothermal Magnetohydrodynamics: mhd {#md_iso}
 
-
-## Isothermal Magnetohydrodynamics: mhd
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=mhd -eos=iso_
 
 ![](figmovdir/eq.mhdiso.gif)
@@ -159,12 +135,8 @@ module](amrvacusr.html#Specialsource) to determine the resistivity as a
 function of the coordinates, of the conservative variables, and/or of the
 current density. This subroutine is to be completed by the user.
 
+## Magnetohydrodynamics: mhd {#mhd}
 
-
-## Magnetohydrodynamics: mhd
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=mhd -eos=gamma
 
 ![](figmovdir/eq.mhd.gif)
@@ -200,18 +172,12 @@ We also have implemented the splitting strategy, where a static, potential
 background field is assumed. This modifies the equations and brings in extra
 sources and flux terms.
 
+## Special Relativistic Hydro: srhd(eos) {#srhd}
 
-
-## Special Relativistic Hydro: srhd(eos)
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=srhd
-    
-    
+
     or
-    
-    
+
     $AMRVAC_DIR/setup.pl -p=srhdeos
 
 ![](figmovdir/eq.srhd.gif)
@@ -228,12 +194,8 @@ constant adiabatic index, the _srhdeos_ builds in the Mathews EOS. These are
 It is straightforward to generalize the EOS used, by suitably modifying only
 subroutines in the _srhdeos/srhdeos.t_ module.
 
+## Special relativistic ideal MHD: srmhd {#srmhd}
 
-
-## Special relativistic ideal MHD: srmhd
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=srmhd -eos=gamma/synge/iso
 
 ![](figmovdir/eq.srmhd.gif)
@@ -250,12 +212,8 @@ gas (_$AMRVAC_DIR/setup.pl -eos=synge_) and isentropic flow
 It is straightforward to generalize the EOS used, by suitably modifying only
 the _srmhd/eos.t_ module.
 
+## Special relativistic resistive MHD: srrmhd {#srrmhd}
 
-
-## Special relativistic resistive MHD: srrmhd
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=srrmhd -eos=gamma/synge
 
 The implemented algorithm is adopted from [Komissarov
@@ -269,7 +227,7 @@ Two constraint equations are evolved, for variables psi_ and phib_. As in the
 SRMHD case, two axiliary variables lfac_ and xi_ are used for the conversion
 between conserved and primitive variables. Current is given by the Ohm's law:
 
-![](figmovdir/srrmhd-current.png)  
+![](figmovdir/srrmhd-current.png)
 which is simply J=1/eta E in the fluid frame. The quantities in the fluxes
 read
 
@@ -294,12 +252,8 @@ tackled with a mixed implicit-explicit timestepping scheme as for example by
 Implementing the IMEX scheme would be the next step allowing to simulate high
 Lundquist-numbers and resolve the tearing instability in a more economic way.
 
+## "Force Free", Maxwells equations with Ohm's law: ff {#ff}
 
-
-## "Force Free", Maxwells equations with Ohm's law: ff
-
-    
-    
     $AMRVAC_DIR/setup.pl -p=ff -eos=iso
 
 The implemented equations are discussed in [Komissarov, Barkov and Lyutikov
@@ -327,9 +281,7 @@ Note that the timestep for the stiff source addition requires _dt &lt;
 dtdiffpar / max(eqpar(kpar_),eqpar(kperp_))_ which can become costly for
 conductivities larger than 1000.
 
-
-
-## Divergence B source treatments
+# Divergence B source treatments {#divB_treatment}
 
 Both the classical and the special relativistic MHD module can deal with
 solneoidal magnetic field corrections through source term treatments.
@@ -346,9 +298,7 @@ the parameter _C_d_ of order unity (up to 2). Alternatively, there are several
 versions of [Dedner's](methods.html#Dedner's) generalised Lagrange multiplier
 (GLM).
 
-
-
-## Positivity fixes
+# Positivity fixes {#positivity_fixes}
 
 Another, similarly corrective, action is referred to as positivity fixing.
 This is merely an additional means to handle the supposedly rare instances
@@ -366,9 +316,7 @@ They are by default inactive, and can be controlled by the parameters
 **strictgetaux**, **strictsmall** and other related parameters described in
 [par/PROBLEM](par.html#Methodlist).
 
-
-
-## Creating a New VACPHYS Module
+# Creating a New VACPHYS Module {#new_module}
 
 A new physics module should be created when the equations to be solved differ
 significantly from the equations already implemented. If the difference can be
@@ -385,8 +333,6 @@ requires more info than a maximal physical propagation speed, i.e. anything
 beyond TVDLF) should only be added at a later stage. In principle, the needed
 subroutines are at the minimum
 
-    
-    
     subroutine conserve          (define the primitive to conservative transformation)
     subroutine primitive         (define the conservative to primitive transformation)
     subroutine getv              (define the advection speed, to be seen in combination with getflux)
@@ -394,7 +340,6 @@ subroutines are at the minimum
     subroutine getflux           (define the physical fluxes for all variables)
     subroutine getfluxforhllc    (idem as above, with slightly different call interface)
     subroutine addgeometry       (in case other than cartesian cases are needed: geometrical source additions)
-    
 
 If your equations contain more restrictions on the time step than the CFL
 condition, the **getdt** subroutine could be written (it is otherwise included
@@ -410,6 +355,3 @@ to study the existing Riemann solvers to get an idea what is required.
 If you think that your new AMRVACPHYS module is of general interest, please
 send it to the developers, so we may actually make it part of the future
 release.
-
-
-

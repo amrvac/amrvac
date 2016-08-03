@@ -27,22 +27,16 @@ All these strategies are handled in the _advance.t_ module.
 For a forward Euler time integration scheme the above equation can be
 discretised in time as
 
-    
-    
      n+1                        n
     w    = [I+dt*(Fx+Fy+Fz+S)] w
-    
 
 where Fx, Fy, and Fz are short notations for the dF_i/dx_i terms for 3D.
 
 Dimensional splitting means the following approximations:
 
-    
-    
     I+dt*(Fx+Fy+S)    --> [I+dt*(Fx+S/2)] [I+dt*(Fy+S/2)]                   (2D)
-    
+
     I+dt*(Fx+Fy+Fz+S) --> [I+dt*(Fx+S/3)] [I+dt*(Fy+S/3)] [I+dt*(Fz+S/3)]   (3D)
-    
 
 In case **dimsplit=T**, the default splitting strategy is according to
 **typedimsplit='xyyx'**, which ensures alternation in the order of the sweeps
@@ -60,19 +54,13 @@ fluxes is achieved by **sourcesplit=T**. How sources are then added depends on
 
 Setting **typesourcesplit='sfs'** results in
 
-    
-    
     I+dt*(Fx+Fy+Fz+S) --> [I+dt/2*S] [I+dt*(Fx+Fy+Fz)] [I+dt/2*S]
-    
 
 for the dimensionally unsplit case, and
 
-    
-    
     I+dt*(Fx+Fy+S)    --> [I+dt/2*S] [I+dt*Fx] [I+dt*Fy] [I+dt/2*S]            (2D)
-    
+
     I+dt*(Fx+Fy+Fz+S) --> [I+dt/2*S] [I+dt*Fx] [I+dt*Fy] [I+dt*Fz] [I+dt/2*S]  (3D)
-    
 
 for the dimensionally split case. To achieve second order time accuracy, the
 numerical representation of the source term **S** should be second order
@@ -84,11 +72,8 @@ However a simple second order Runge-Kutta evaluation is already built in.
 Setting **typesourcesplit='ssfss'** gives the following evaluation for **w_S =
 [I+dt/2*S] w**:
 
-    
-    
     w_1 = w + dt/4 S(w)
     w_S = w + dt/2 S(w_1)
-    
 
 both at the beginning and at the end of the time step, otherwise the default
 **w_S = w + dt/2 S(w)** is used. Other choices for **typesourcesplit** are
@@ -109,19 +94,16 @@ dimensional and source splitting parameters.
 There are many options to evaluate **w_R=[I+dt*R] w**, it is determined by the
 value of the **typeadvance** parameter with the following options:
 
-    
-    
     w_R = w + dt*R(w)                     'onestep'
-    
+
     w_1 = w + dt/2*R'(w)                  'twostep'  (predictor step)
     w_R = w + dt  *R (w_1)                           (corrector step)
-    
+
     w_1 = w + dt/2*R(w)	              'fourstep' (classical RK4)
     w_2 = w + dt/2*R(w_1)
     w_3 = w + dt  *R(w_2)
     w_4 = w + dt/6*R(w_3)
     w   = w + dt/6*[R(w_1)+2*R(w_2)+2*R(w_3)+R(w_4)]
-    
 
 RK4 is fourth order accurate. Not all schemes can be combined with all
 options, infact the TVD scheme should use **typeadvance='onestep'**, while the
@@ -160,32 +142,20 @@ centered, or cell surface quantities). Remember that the _setamrvac -g=_ sets
 the grid plus ghost cell extent, whose width is set by _dixB_. This defines
 the total grid extent
 
-    
-    
     ixGlo^D:ixGhi^D = ixG^T
-    
 
 In many places, the same range, including ghost cells describing the
 boundaries, is denoted as
 
-    
-    
     ixGmin^D:ixGmax^D = ixG^S
-    
 
 The mesh is defined as the grid without boundary layers:
 
-    
-    
     ixMmin^D,ixMmax^D = ixGmin^D+dixB,ixGmax^D-dixB
-    
 
 or in a shorter notation
 
-    
-    
     ixM^L = ixG^L^LSUBdixB^L
-    
 
 The ghost cells are updated by the subroutine **getbc**. When a file is read
 or saved by MPI-AMRVAC, the ghost cells are not included.
@@ -225,12 +195,7 @@ conditions on the conserved variables depending on location or time in the
 subroutine _bc_int_ which is defaulted in _amrvacnul.specialbound.t_. To
 activate internal boundaries, the switch
 
-    
-    
     internalboundary=.true.
-    
 
 has to be set in the _boundlist_ section of the par file.
-
-
 
