@@ -7,10 +7,11 @@
 This is the documentation for the development version of MPI-AMRVAC,
 which is now hosted on [Gitlab](https://gitlab.com/mpi-amrvac/amrvac).
 
-# Some quick links {#quick_links}
+# Quick links {#quick_links}
 
 * [Contents of the documentation](contents.md)
 * [Getting started](getting_started.md)
+* [List of tests](@ref test)
 * [TODO list](@ref todo)
 * [Change log](changelog.md)
 * [Acknowledgements](acknowledgments.md)
