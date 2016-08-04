@@ -227,6 +227,46 @@ at 2D and 3D code, which could simplify matters. Some further minor points:
   penalty? (However, without other changes, this could lead to undefined
   routines)
 
+### Current usage of preprocessor
+
+    cd src
+
+    # grep options: -E extended regex, -o only matching, -h no file names
+    # sort & uniq -c create a histogram
+    grep -E -o -h "\^[A-Z]+" *.t -R | sort | uniq -c | sort -nr
+
+    2504 ^D
+    2065 ^S
+    1456 ^L
+     220 ^T
+     218 ^DB
+     136 ^DD
+     127 ^LL
+     121 ^LIM
+      58 ^ND
+      47 ^IFTHREED
+      38 ^NOONED
+      36 ^LADD
+      26 ^DE
+      18 ^LSUB
+      16 ^DDB
+      14 ^PHI
+      13 ^IFPHI
+      11 ^Z
+       7 ^LT
+       7 ^IFONED
+       3 ^SE
+       3 ^IFTWOD
+       2 ^IFNOMPT
+       2 ^IFMPT
+       2 ^IFMHDPHYS
+       1 ^ZZ
+       1 ^PPHI
+       1 ^NC
+       1 ^IFZ
+       1 ^IFHDPHYS
+
+
 ## Output file formats
 
 **Jannis**: In my experience, the VTK unstructured file format does not scale
