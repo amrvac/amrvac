@@ -268,8 +268,9 @@ where(abs(patchf(ixO^S))==1)
 }
 {#IFDEF EPSINF
   wCD(ixO^S,epsinf_)   = wSub(ixO^S,epsinf_)*Ratio_CD(ixO^S)
-  wCD(ixO^S,rho1_)     = wSub(ixO^S,rho1_)*Ratio_CD(ixO^S)
-  wCD(ixO^S,rho0_)     = wSub(ixO^S,rho0_)*Ratio_CD(ixO^S)
+  wCD(ixO^S,epslow_)   = wSub(ixO^S,epslow_)*Ratio_CD(ixO^S)
+  !wCD(ixO^S,rho1_)     = wSub(ixO^S,rho1_)*Ratio_CD(ixO^S)
+  !wCD(ixO^S,rho0_)     = wSub(ixO^S,rho0_)*Ratio_CD(ixO^S)
   wCD(ixO^S,n0_)       = wSub(ixO^S,n0_)*Ratio_CD(ixO^S)
   wCD(ixO^S,n_)        = wSub(ixO^S,n_)*Ratio_CD(ixO^S)
 }
