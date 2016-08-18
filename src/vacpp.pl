@@ -1,7 +1,7 @@
 #!/usr/bin/perl -s
 #############################################################################
 #
-# AMRVAC PreProcessor (Based on vacpp.pl by Gabor Toth) 
+# AMRVAC PreProcessor (Based on vacpp.pl by Gabor Toth)
 #
 # Translates the dimension independent notation to Fortran 90 by expanding
 # the Loop Annotation SYntax (LASY). Also translates COMMON, INCLUDE:
@@ -13,49 +13,97 @@
 #############################################################################
 use Cwd;
 
-if (!($d && $p)){
-    print STDERR <<HELPMSG ;
+my $help_message =
+"Usage: vacpp.pl [options] file
 
-vacpp.pl -d=NdimNdir -p=PHYSICS [-phi=Idirphi] [-z=Idirz] [-eos=typeeos] [-nf=Nfluids] [-ndust=Ndust] [-cp=mpienv]\
-    file.t > file.f
+Required options:
+
+    -d=NM                       N is the the problem dimension (1 to 3)
+                                M is the vector dimension (1 to 3)
+    -p=<physics module>         Which physics module to use (rho, mhd, ...)
+
+Optional options:
+
+    -phi={1,2,3}                Index of vector phi-component (default: 3)
+    -z={1,2,3}                  Index of vector z-component (default: 2)
+    -eos=<equation of state>    The equation of state
+    -nf=<number>                The number of fluid tracers (default: 0)
+    -ndust=<number>             The number of dust species (default: 0)
+    -cp=<compiler>              Use a specific compiler (default: openmpi)
+    -maxlen=<number>            Maximum line length (default: 78)
 
 Examples:
 
-vacpp.pl -d=22 -phi=3 -z=2 -p=mhd file.t > file.f
-HELPMSG
-exit}
+    # Interactive usage
+    vacpp.pl -d=23 -p=rho -
+
+    # File translation
+    vacpp.pl -d=22 -phi=3 -z=2 -p=mhd file.t > file.f
+";
+
+# Check presence of required arguments
+if (! ($d && $p)) {
+    print STDERR "Error: not all required arguments are present\n\n";
+    print STDERR $help_message;
+    exit
+}
 
 $AMRVAC_DIR=$ENV{AMRVAC_DIR};
 
+# Store current working directory
 my $cwd = getcwd();
-# Include dirs for header files:
-@INC={"$CWD","$AMRVAC_DIR/$p"};
+
+# Include these directories for header files
+# TODO: check whether $p has a valid value
+@INC = {"$CWD","$AMRVAC_DIR/$p"};
 
 # Default maximum length for lines unless set by eg. "vacpp.pl -maxlen=72 ..."
 $maxlen=78 unless $maxlen;
 
-# For interactive use accept -d=12 flag
-$d=~/([123])([123])/ || die "Incorrect -d flag value\n";
-$ndim=$1; $ndir=$2;
-if ($phi){
+# Check whether the problem and vector dimension lie between 1 and 3, by
+# matching with a regexp.
+# TODO: check input, allow more when in interactive mode
+$d =~ /([123])([123])/ || die "Incorrect -d flag value\n";
+
+# Store the problem and vector dimension ($1 and $2 refer to the matching groups
+# of the regexp)
+$ndim = $1;
+$ndir = $2;
+
+if ($phi) {
+    # Check if $phi matches a single-digit number
+    # TODO: improve validity check
     $phi=~/\d/ || die "Incorrect -phi flag value\n";
-}else{ $phi=3;}
-if ($z){
-    $z=~/(\d)/ || die "Incorrect -z flag value\n";
-}else{ $z=2;}
+} else {
+    # If not defined, set $phi to 3
+    $phi = 3;
+}
 
-$nf=0 unless $nf;
-$nd=0 unless $nd;
-$cp=openmpi unless $cp;
-$eos=default unless $eos;
+if ($z) {
+    # Check if $z matches a single-digit number
+    # TODO: improve validity check
+    $z =~ /(\d)/ || die "Incorrect -z flag value\n";
+} else {
+    # If not defined, set $z to 2
+    $z = 2;
+}
 
+# Set default options unless given
+$nf  = 0 unless $nf;
+$nd  = 0 unless $nd;
+$cp  = openmpi unless $cp;
+$eos = default unless $eos;
+
+# Call these routines
 &definepatterns;
 &includeheader;
 &definevars;
 
+# Process the files given as arguments
 foreach $file (@ARGV) {
    &processfile($file, 'fh00');
 }
+
 #============================================================================
 sub includeheader{
    # Define special characters for the PreProcessor
