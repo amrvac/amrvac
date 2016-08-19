@@ -1,6 +1,11 @@
 # Test dustyRM
 
 \test dustyRM
+\todo The test crashed (using gfortran compiler):
+
+    too small pressure =  -0.11018446360550127       with limit=   0.0000000000000000 ...
+    ERROR for processor           0 :
+    === primitive pressure problem===
 
 # Setup instructions
 
