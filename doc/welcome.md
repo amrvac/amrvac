@@ -20,7 +20,7 @@ which is now hosted on [Gitlab](https://gitlab.com/mpi-amrvac/amrvac).
 
 This version of the MPI-AMRVAC software was initiated in the course of 2006-2007
 by **Bart van der Holst** (meanwhile at University of Michigan) in a close
-collaboration with [Rony Keppens ](http://perswww.kuleuven.be/~u0016541) at the
+collaboration with [Rony Keppens](http://perswww.kuleuven.be/~u0016541) at the
 [Centre for Plasma-Astrophysics (CPA)](http://wis.kuleuven.be/cpa) at
 K.U.Leuven. The code has witnessed continuous improvements and additions, with
 **Zakaria Meliani** as the main core developer since 2005-2006 (for the
