@@ -17,3 +17,20 @@ the code.
 
 \todo Include the IDL documentation
 
+\todo Replace magic numbers with symbolic constants for clarity:
+
+* neighbor_type
+* errorestimate
+
+\todo Replace strings with symbolic constants, which increases performance:
+
+* typelimiter
+* typeaxial
+* typeB
+* typefull1
+* typeprolonglimit
+* typeghostfill
+* etc.
+
+See [this benchmark](https://github.com/jannisteunissen/fortran_benchmarks) for
+the performance difference.
