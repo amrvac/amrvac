@@ -47,7 +47,7 @@ This should be kept in mind for visualization.
 
 To collapse existing _*.dat_ files, the simulation can be restarted from a
 given output time and the code can be brought to a halt after zero iterations.
-This is entirely analoguous to the method for [slicing](slices.html) _*.dat_
+This is entirely analoguous to the method for [slicing](slices.md) _*.dat_
 files and done in the following way: its best to create a new _*.par_ file
 (e.g. collapse.par) and clear the savelist from any output to filetypes other
 than _4_. We use itsave to demand a collapse output for the zero-iteration.

@@ -2,7 +2,7 @@
 
 This document briefly describes the features of the spatial discretizations
 available in MPI-AMRVAC. The different options can be set in the
-[&amp;methodlist](par.html#Methodlist) of the **par/PROBLEM** file. For a more
+[methodlist](@ref par_methodlist) of the **par/PROBLEM** file. For a more
 extensive description, you can read the article [Comparison of some FCT and
 TVD Schemes](http://www-personal.umich.edu/~gtoth/Papers/vac.html). Also, the
 paper using MPI-AMRVAC has info on the various methods, see _`Parallel, grid-
@@ -185,7 +185,7 @@ edges.
 #### Powell's fix: typedivbfix='powel'
 
 For multidimensional MHD calculations the non-conservative form of the [MHD
-equations](equations.html#MHD) seems to produce better results than the usual
+equations](@ref eq_mhd) seems to produce better results than the usual
 conservative form. The idea is to include source terms proportional to div B
 into the momentum, energy and induction equations and to add a divergence wave
 for the Riemann solver.
@@ -203,9 +203,9 @@ is usable for both classical and relativistic MHD.
 #### Diffusive fix: typedivbfix='linde'
 
 You can also use the diffusive (parabolic) approach, see the
-[equations](equations.html#DIVB). It uses a C_d coefficient quantified by
-_divbdiff_, which can be up to 2. This method is by default inactive,
-identified by _divbdiff=-1_, but it is recommended for many multi-D MHD
+[equations](@ref eq_divb_fix). It uses a `C_d` coefficient quantified by
+`divbdiff`, which can be up to 2. This method is by default inactive,
+identified by `divbdiff=1`, but it is recommended for many multi-D MHD
 applications.
 
 #### Dedner's fix: typedivbfix='glm1/glm2/glm3'

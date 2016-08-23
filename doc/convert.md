@@ -4,7 +4,7 @@
 
 # Introduction {#convert_intro}
 
-The standard [MPI-AMRVAC dataformat](fileformat.html), i.e. the _*.dat_ files
+The standard [MPI-AMRVAC dataformat](fileformat.md), i.e. the _*.dat_ files
 usable for restart, contain all the conservative variables in all gridblocks,
 and hence suffice for visualization, in principle. However, in many instances,
 one would like to use data formats that are directly readable by some of the
@@ -56,7 +56,7 @@ as usual by a backslash)
 
 If all went well, you then have created as many _*.dat_ files as requested
 through the settings you provided in the combined _&amp;savelist;_ and
-_&amp;stoplist;_ namelists from the [par-file](par.html). For the example,
+_&amp;stoplist;_ namelists from the [par-file](par.md). For the example,
 they normally default to asking a full data dump at time zero, as well as
 every time the time has increased by 0.05, and this till _tmax=1.0d0_, such
 that we actually have 21 snapshots in total. You should thus have files like
@@ -179,7 +179,7 @@ visualization software, only the _*.pvtu_ files need to be imported and also
 the reading process is sped up in case of parallel visualization.
 
 Also, you can then use the same strategy as explained above for converting on
-a single CPU: you will always need to edit the [par-file](par.html#Filelist)
+a single CPU: you will always need to edit the [par-file](par.md)
 once to specify how to do the conversion, and then you may run interactively
 on e.g. 4 CPU like
 
@@ -333,7 +333,7 @@ VAC files, are downloadable [here as a single gzipped tar
 file](allidlmacros.tar.gz). It contains the hidden, to be adjusted file
 _.idlrc_, and the directories _Idl_ and _Idl_amr_, with macro's inside.
 However, they only allow a very limited visualization, with some (possibly
-incomplete and inaccurate) [description here](idl.html), fine for 1D and
+incomplete and inaccurate) [description here](idl.md), fine for 1D and
 little for 2D runs, but with no support for 3D data analysis. This would mean
 you need to write your own Idl macro's, after you fully understand what
 dataformat is actually stored in a _*.out_ file. For that, just study the

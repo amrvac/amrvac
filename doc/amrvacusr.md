@@ -1,14 +1,18 @@
 # Setting up an amrvacusr module
 
-This document describes how the **src/usr/amrvacusr.t.PROBLEM** and the
-optional **src/usr/amrvacusrpar.t.PROBLEM** files should be written for user
+[TOC]
+
+# Introduction {#amrvacusr_intro}
+
+This document describes how the **amrvacusr.t** and the
+optional **amrvacusrpar.t** files should be written for user
 defined initial and boundary conditions, input and output file formats, and
 source terms. It also shows how the library source term routines
 **src/amrvacmodules/*.t** can be included into the AMRVACUSR module. These
 libraries (gravity, pointgrav, cooling, radloss, etc) are in principle self-
 documented.
 
-## Purpose and Use
+# Purpose and Use {#amrvacusr_purpose}
 
 The AMRVACUSR modules contain the problem dependent user written subroutines.
 Usually a single AMRVACUSR module can be designed to contain several different
@@ -26,15 +30,15 @@ templates in **src/usr/amrvacusr.t.PROBLEM** and
 
     $AMRVAC_DIR/setup.pl -u=PROBLEM
 
-The **src/usr/amrvacusr.t.PROBLEM** file has to exist, but the
-**src/usr/amrvacusrpar.t.PROBLEM** file is optional. If it does not exist, the
+The **amrvacusr.t.PROBLEM** file has to exist, but the
+**amrvacusrpar.t.PROBLEM** file is optional. If it does not exist, the
 **amrvacusrpar.t** will be defaulted from **src/usr/amrvacusrpar.t.nul**.
 
-_We however recommend adapting a suitable setup from the tests folder where
+*We however recommend adapting a suitable setup from the tests folder where
 also the parameter file (default amrvac.par) and anything else to go with the
-setup is present. _
+setup is present.*
 
-## Creating a New Setup
+# Creating a New Setup {#amrvacusr_setup}
 
 In your designated simulation directory, start by copying the
 **src/usr/amrvacusr.t.nul** file (or another similar file) into the new
@@ -46,7 +50,7 @@ purpose of the subroutines is described below. Comment out the
 that you intend to write, and modify the comments at the beginning and at the
 end of the module for clarity.
 
-### Specialini part
+## Specialini part {#amrvacusr_specialini}
 
 Your start file should look something like this, where we already included the
 **amrvacnul/specialini.t** file which is always needed:
@@ -95,7 +99,7 @@ physically meaningfull _w_ entries. You have the grid info available in the
 _x_ variable.
 
 You can write the subroutine(s) either in the dimension independent notation,
-described in **AMRVAC_Man/[source](source.html)**, or in Fortran 90 if the
+described in [source](source.md), or in Fortran 90 if the
 number of dimensions is fixed for your PROBLEM.
 
 Below some help is provided for writing new subroutines.
@@ -170,7 +174,7 @@ given below
 Note the use of the rho_ index name. It is clear that the **x** coordinates
 are known on entry. The subroutine above works in 1, 2 or 3D.
 
-### Specialbound part
+## Specialbound part {#amrvacusr_specialbound}
 
 When the predefined boundary types provided by MPI-AMRVAC are not sufficient
 the **specialbound** subroutine can solve the problem. It is called for each
@@ -186,7 +190,7 @@ An example for the use of this _specialbound_usr_ subroutine is found in the
 example user file **usr/amrvacusr.t.wchd22**, which realizes the standard 2D
 hydro Woodward and Collela shock reflection problem.
 
-### Specialsource part
+## Specialsource part {#amrvacusr_specialsource}
 
 There are lots of possible physical source terms for the same basic equation.
 Rather than writing a new physics module for each, it is simpler to define a
@@ -223,7 +227,7 @@ allows to compute a (local) new variable, to be stored in _var_, on which you
 can then base refinement as well. This is true for the lohner error estimator
 only.
 
-### Speciallog part
+## Speciallog part {#amrvacusr_speciallog}
 
 The _amrvacnul/speciallog.t_ file contains additional subroutines more related
 to special I/O requests. The default log-file may be altered, for which you
@@ -246,7 +250,7 @@ for computing a curl, and then visualize those with any of the visualization
 tools applicable. You then also need to specify a label for this variable, in
 _specialvarnames_output_.
 
-## AMRVACUSR Library
+# AMRVACUSR Library {#amrvacusr_library}
 
 Various source terms are available as library subroutines, in particular for a
 uniform external gravitational field, for an external gravitational point
@@ -263,10 +267,10 @@ problem file **src/usr/amrvacusr.t.testhdrt**, which includes the gravity
 library. It is also possible to copy the libraries into **amrvacusr.t**
 directly and modify them as necessary. The parameters of the library should be
 defined in the **amrvacusrpar.t** file according to the description given in
-the library file. See the [equations](equations.html#HD) description as well,
+the library file. See the [equations](@ref eq_hd) description as well,
 below we just list radiative loss treatments.
 
-### Radiative losses: amrvacmodules/radloss.t and amrvacmodules/cooling.t
+## Radiative losses: radloss.t and cooling.t {#amrvacusr_radloss}
 
 An optically thin gas cools due to radiative losses. This involves the energy
 equation only:
@@ -278,7 +282,7 @@ function of the temperature. The two libraries differ in the details of this
 function, the more general _amrvacmodules/cooling.t_ has many frequently used
 cooling tables implemented, and various ways to add this local source term.
 
-## Special Equation Parameters
+# Special Equation Parameters {#amrvacusr_specialp}
 
 The user-defined source terms or boundary conditions may contain parameters
 which are often changed and have similar meaning to the equation parameters
@@ -309,4 +313,3 @@ equation parameters for the constant gravitational field.
 
     ! end include amrvacusrpar - gravity
     !##############################################################################
-

@@ -1,13 +1,13 @@
-# Physics modules
+# Physics modules and equations
 
 [TOC]
 
-# List of physics modules {#list_physics}
+# List of physics modules {#eq_list_physics}
 
 This document describes the equations implemented in the
 **src/EQUATION/amrvacphys.t** and **src/EQUATION/amrvacpar.t** files, and
 gives tips on how a new module can be created. Information about LIBRARY and
-USER defined source terms are in AMRVAC_Man/[amrvacusr](amrvacusr.html). In
+USER defined source terms are in [amrvacusr](amrvacusr.md). In
 principle, the code handles anything of generic form
 
 ![](figmovdir/eq.general.gif)
@@ -19,7 +19,7 @@ The code is configured to use the specified equation with the setting
 where EQUATION is one of the implemented physics modules (hd,mhd,srmhd,...),
 see below.
 
-## Transport Equation: rho {#rho}
+## Transport Equation: rho {#eq_rho}
 
     $AMRVAC_DIR/setup.pl -p=rho
 
@@ -36,7 +36,7 @@ field.
 For a linear scalar equation the Riemann solver is trivial, thus all TVD type
 methods give identical results.
 
-## Nonlinear scalar Equation: nonlinear {#nonlinear}
+## Nonlinear scalar Equation: nonlinear {#eq_nonlinear}
 
     $AMRVAC_DIR/setup.pl -p=nonlinear
 
@@ -49,7 +49,7 @@ non-convex equation, depending on the **eqpar(fluxtype_)** equation parameter
 There is also a version coupling the nonlinear set with the advection
 equation: **nonlinear+rho**. This was used to study basic coupling strategies.
 
-## Adiabatic Hydrodynamics: hd {#hd_iso}
+## Adiabatic Hydrodynamics: hd {#eq_hd_iso}
 
     $AMRVAC_DIR/setup.pl -p=hd -eos=iso
 
@@ -73,7 +73,7 @@ acceleration **eqpar(adiab_)=g/2**.
 There is a Roe-type Riemann solver implemented, in _hd/roe.t_. Several
 routines specific to HLLC are in _hd/hdhllc.t_.
 
-## Hydrodynamics: hd {#hd}
+## Hydrodynamics: hd {#eq_hd}
 
     $AMRVAC_DIR/setup.pl -p=hd -eos=gamma
 
@@ -90,7 +90,7 @@ _hd/hdhllc.t_.
 
 This equation module can be combined with the LIBRARY source definitions for
 (local) optically thin radiative losses, see
-AMRVAC_Man/[mpiamrvac_radcool.html](mpiamrvac_radcool.html). Schematically, it
+the [radiative cooling](mpiamrvac_radcool.md) page. Schematically, it
 introduces terms as
 
 ![](figmovdir/eq.radloss.gif)
@@ -99,8 +99,7 @@ In this case two scaling parameters relate to temperature and the radiative
 loss function, namely _eqpar(Tscale_)_ and _eqpar(Lscale_)_.
 
 The HD module can also be combined with the external gravity modules, either
-for uniform gravity (_amrvacusr.gravity.t_) or for point gravity, see
-AMRVAC_Man/[mpiamrvac_pointgrav.html](mpiamrvac_pointgrav.html). These are
+for uniform gravity (_amrvacusr.gravity.t_) or for [point gravity](mpiamrvac_pointgrav.md). These are
 
 ![](figmovdir/eq.gravity.gif)
 
@@ -111,7 +110,7 @@ and for point gravity
 Note how the gravitational constant and the non-dimensionalization is taken
 into the parameters _M_point_ and its location _x_point_.
 
-## Isothermal Magnetohydrodynamics: mhd {#md_iso}
+## Isothermal Magnetohydrodynamics: mhd {#eq_md_iso}
 
     $AMRVAC_DIR/setup.pl -p=mhd -eos=iso_
 
@@ -130,12 +129,11 @@ There are three equation parameters: the polytropic index **eqpar(gamma_)**
 (which must be larger or equal to 1), and the resistivity **eqpar(eta_)**, and
 the entropy **eqpar(adiab_)**. Ideal MHD corresponds to **eqpar(eta_)=0**,
 positive values give a uniform resistivity, while a negative value calls the
-**specialeta** procedure in the [ AMRVACUSR
-module](amrvacusr.html#Specialsource) to determine the resistivity as a
+[specialeta](@ref amrvacusr_specialsource) procedure to determine the resistivity as a
 function of the coordinates, of the conservative variables, and/or of the
 current density. This subroutine is to be completed by the user.
 
-## Magnetohydrodynamics: mhd {#mhd}
+## Magnetohydrodynamics: mhd {#eq_mhd}
 
     $AMRVAC_DIR/setup.pl -p=mhd -eos=gamma
 
@@ -152,8 +150,8 @@ terms.
 There are two equation parameters: the adiabatic index **eqpar(gamma_)**
 (which must be strictly positive and different from 1), and the resistivity
 **eqpar(eta_)**. Ideal MHD corresponds to **eqpar(eta_)=0**, positive values
-give a uniform resistivity, while a negative value calls the **specialeta**
-procedure in the [ AMRVACUSR module](amrvacusr.html#Specialsource) to
+give a uniform resistivity, while a negative value calls the [specialeta](@ref amrvacusr_specialsource)
+procedure to
 determine the resistivity as a function of the coordinates, of the
 conservative variables, and/or of the current density. This subroutine is to
 be completed by the user.
@@ -162,17 +160,15 @@ There is a Roe-type Riemann solver implemented using arithmetic averaging, in
 _mhd/roe.t_, while several routines specific to HLLC are in _mhd/mhdhllc.t_.
 
 This equation module can be combined with the LIBRARY source definitions for
-(local) optically thin radiative losses, see
-AMRVAC_Man/[mpiamrvac_radcool.html](mpiamrvac_radcool.html). It can also be
+(local) optically thin [radiative losses](mpiamrvac_radcool.md). It can also be
 combined with the external gravity modules, either for uniform gravity
-(_amrvacusr.gravity.t_) or for point gravity, see
-AMRVAC_Man/[mpiamrvac_pointgrav.html](mpiamrvac_pointgrav.html).
+(_amrvacusr.gravity.t_) or for [point gravity](mpiamrvac_pointgrav.md).
 
 We also have implemented the splitting strategy, where a static, potential
 background field is assumed. This modifies the equations and brings in extra
 sources and flux terms.
 
-## Special Relativistic Hydro: srhd(eos) {#srhd}
+## Special Relativistic Hydro: srhd(eos) {#eq_srhd}
 
     $AMRVAC_DIR/setup.pl -p=srhd
 
@@ -194,7 +190,7 @@ constant adiabatic index, the _srhdeos_ builds in the Mathews EOS. These are
 It is straightforward to generalize the EOS used, by suitably modifying only
 subroutines in the _srhdeos/srhdeos.t_ module.
 
-## Special relativistic ideal MHD: srmhd {#srmhd}
+## Special relativistic ideal MHD: srmhd {#eq_srmhd}
 
     $AMRVAC_DIR/setup.pl -p=srmhd -eos=gamma/synge/iso
 
@@ -212,7 +208,7 @@ gas (_$AMRVAC_DIR/setup.pl -eos=synge_) and isentropic flow
 It is straightforward to generalize the EOS used, by suitably modifying only
 the _srmhd/eos.t_ module.
 
-## Special relativistic resistive MHD: srrmhd {#srrmhd}
+## Special relativistic resistive MHD: srrmhd {#eq_srrmhd}
 
     $AMRVAC_DIR/setup.pl -p=srrmhd -eos=gamma/synge
 
@@ -252,7 +248,7 @@ tackled with a mixed implicit-explicit timestepping scheme as for example by
 Implementing the IMEX scheme would be the next step allowing to simulate high
 Lundquist-numbers and resolve the tearing instability in a more economic way.
 
-## "Force Free", Maxwells equations with Ohm's law: ff {#ff}
+## "Force Free", Maxwells equations with Ohm's law: ff {#eq_ff}
 
     $AMRVAC_DIR/setup.pl -p=ff -eos=iso
 
@@ -281,7 +277,7 @@ Note that the timestep for the stiff source addition requires _dt &lt;
 dtdiffpar / max(eqpar(kpar_),eqpar(kperp_))_ which can become costly for
 conductivities larger than 1000.
 
-# Divergence B source treatments {#divB_treatment}
+# Divergence B source treatments {#eq_divB_fix}
 
 Both the classical and the special relativistic MHD module can deal with
 solneoidal magnetic field corrections through source term treatments.
@@ -289,16 +285,16 @@ Traditionally, these can be written as
 
 ![](figmovdir/eq.divb.gif)
 
-Terms proportional to **div B** are [Powell's fix](methods.html#Powell's) for
+Terms proportional to **div B** are [Powell's fix](methods.md) for
 the numerical problems related to the divergence of the magnetic field. They
 are used only in more than 1D. For relativistic MHD (and/or for classical), we
 just take the term along in the induction equation, known as Janhunen's
 approach. Another option is to use the diffusive (parabolic) approach, with
 the parameter _C_d_ of order unity (up to 2). Alternatively, there are several
-versions of [Dedner's](methods.html#Dedner's) generalised Lagrange multiplier
+versions of [Dedner's](methods.md) generalised Lagrange multiplier
 (GLM).
 
-# Positivity fixes {#positivity_fixes}
+# Positivity fixes {#eq_positivity_fixes}
 
 Another, similarly corrective, action is referred to as positivity fixing.
 This is merely an additional means to handle the supposedly rare instances
@@ -314,15 +310,15 @@ where needed. Obviously, in this form, strict conservation may be violated.
 These fix strategies are seperated off in the _EQUATION/correctaux.t_ modules.
 They are by default inactive, and can be controlled by the parameters
 **strictgetaux**, **strictsmall** and other related parameters described in
-[par/PROBLEM](par.html#Methodlist).
+[par/PROBLEM](par.md).
 
-# Creating a New VACPHYS Module {#new_module}
+# Creating a New VACPHYS Module {#eq_new_module}
 
 A new physics module should be created when the equations to be solved differ
 significantly from the equations already implemented. If the difference can be
 described by source terms (e.g. heat conduction, viscosity, radiative cooling,
 external gravitational field etc.), the
-[specialsource](amrvacusr.html#Specialsource) subroutine of the AMRVACUSR
+[specialsource](@ref amrvacusr_specialsource) subroutine of the AMRVACUSR
 module should be used instead of writing a new AMRVACPHYS module.
 
 A new AMRVACPHYS module may be created gradually. The first step is to create

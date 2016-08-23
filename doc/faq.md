@@ -12,8 +12,8 @@ Then you will be able to send and receive mails from
 
 ### How does the _git_-version differ from the previous _svn_-version?
 
-We have compiled a [list of changes](gitversion.html). Other than that, we try
-to keep the [documentation](Contents.html) up to date.
+We have compiled a [list of changes](gitversion.md). Other than that, we try
+to keep the [documentation](contents.md) up to date.
 
 ### I just did a "git pull" and now my setup won't compile anymore, what to
 do?

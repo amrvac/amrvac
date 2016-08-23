@@ -121,7 +121,7 @@ processing of simulations involving (optically thin) radiative losses.
 
 Only for post-processing purposes on saved snapshots from the code, one may
 want to compute additional auxiliary variables for visualization. Hence, only
-at the [convert-stage](convert.html) (from amrvac **.dat** data file to any of
+at the [convert-stage](convert.md) (from amrvac **.dat** data file to any of
 the available formats in the _convert_ subroutine) do we need to enlarge the
 data size from _nw_ to _nw+nwauxio_, and their calculation is to be done in
 the _specialvar_output_ subroutine, for which the default interface is given

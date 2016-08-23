@@ -51,7 +51,7 @@ single file.
 
 The AMRVACPHYS and AMRVACUSR modules have several versions, but only the
 actual module, selected by the Perl script **setup.pl** is compiled at a time.
-See AMRVAC_Man/[USAGE](USAGE.html) about the configuration procedure.
+See [usage](usage.md) about the configuration procedure.
 
 Once the configuration and compilation are done, **amrvac** can advance the
 solution in time, or can be used to convert previously produced data files to
@@ -61,13 +61,12 @@ their unknowns in time, which can be used for eventual restarts. Hence, a
 simulation can be continued from any saved time step. Once a snapshot is
 available in _*.dat_ format, the result can be converted for further
 visualization, e.g. to _*.vtu_ format to be visualized with Paraview, see
-further info on [conversion](convert.html).
+further info on [conversion](convert.md).
 
 ## Source Language and Compilation
 
-The `*.t` source files of AMRVAC are written in [dimension independent
-notation](source.html), known as the _LASY_ syntax. A suitably modified (and
-also simplified) version of the VAC Pre-Processor, [VACPP](vacpp.html)
+The `*.t` source files of AMRVAC are written in [dimension independent notation](source.md), known as the _LASY_ syntax. A suitably modified (and
+also simplified) version of the VAC Pre-Processor, [VACPP](vacpp.md)
 translates the source code files to Fortran 90. The code is to be run on
 **parallel machines** using MPI, so even on a single processor laptop or
 desktop, we still require compilation for MPI.
@@ -113,7 +112,7 @@ pfss | mhd      potential field spherical surface extrapolation
 
 These can be modified and included into the AMRVACUSR module.
 
-See AMRVAC_Man/[equations](equations.html) for more detail.
+See [equations](equations.md) for more detail.
 
 ## Grid and Boundary
 
@@ -140,8 +139,8 @@ asymm | Reflected from closeby cells and multiplied by -1
 cont | Copied from mesh cell next to the ghost cell
 special | Defined by the specialbound subroutine in AMRVACUSR module
 
-See AMRVAC_Man/[discretization](discretization.html#Grid) and
-AMRVAC_Man/[axial](axial.html) for further information.
+The pages on [discretization](discretization.md) and
+[axial coordinates](axial.md) provide further information.
 
 ## Spatial Discretization
 
@@ -166,7 +165,7 @@ proportional to **div B**, can be used to stabilize, and to improve the
 accuracy for any of the methods. We have also provide several variants of
 **Dedner's** GLM scheme.
 
-See AMRVAC_Man/[methods](methods.html) for a more detailed description.
+See [methods](methods.md) for a more detailed description.
 
 ## Temporal Discretization
 

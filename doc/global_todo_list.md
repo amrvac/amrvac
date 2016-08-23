@@ -7,6 +7,8 @@ the code.
 
 \todo **Important** Convert the physics modules to actual modules
 
+\todo Allow runs with more CPUs than coarse grid blocks
+
 \todo Implement the hlld solver
 
 \todo Individual time step scheme

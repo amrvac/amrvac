@@ -3,7 +3,7 @@
 ## Introduction
 
 This document briefly describes the AMR-related features in MPI-AMRVAC. The
-different options can be set in the [amrlist](par.html#Amrlist) of the
+different options can be set in the [amrlist](#par_amrlist) of the
 **amrvac.par** file. For a more extensive description, you can read the article
 *Parallel, grid-adaptive approaches for relativistic hydro and
 magnetohydrodynamics', R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A.

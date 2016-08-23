@@ -11,9 +11,8 @@ This document describes the structure and the syntax of the **src/FILENAME.t**
 source files, and also provides explanation to the most common expressions. A
 brief summary at the end is provided as a quick reference guide.
 
-A more general and possibly more enlightening description of the source
-language can be found in a paper on the [ LASY Preprocessor](http://www-
-personal.umich.edu/~gtoth/Papers/lasy.html).
+A more general and possibly more enlightening description of the source language
+can be found in a paper on the [LASY Preprocessor](http://www- personal.umich.edu/~gtoth/Papers/lasy.html).
 
 # Structure {#structure}
 

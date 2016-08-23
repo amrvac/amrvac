@@ -1,8 +1,12 @@
 # Discretization
 
+[TOC]
+
+# Introduction {#disc-intro}
+
 This document briefly describes how the equations are discretized.
 
-## Equation
+# Equations {#disc-eq}
 
 MPI-AMRVAC aims to solve a system of partial differential equations of the
 form
@@ -17,7 +21,7 @@ character string parameter **typephys** in **src/EQUATION/amrvacpar.t**). The
 discretization is of a finite volume kind, where cell-centered quantities
 represent cell-averaged densities for conservative variables.
 
-## Dimensional and Source Splitting
+# Dimensional and Source Splitting {#disc-splitting}
 
 Some methods were originally designed to handle 1D problems, they may be best
 applied to multidimensional problems by splitting the equation for the
@@ -79,9 +83,9 @@ both at the beginning and at the end of the time step, otherwise the default
 **w_S = w + dt/2 S(w)** is used. Other choices for **typesourcesplit** are
 **'sf', 'ssf'**. Note that the default is **sourcesplit=F**.
 
-## Time Discretization
+# Time Discretization {#disc-time}
 
-The code can use a variety of [methods](methods.html) for spatial
+The code can use a variety of [methods](methods.md) for spatial
 discretization of fluxes. A method is applied to all variables on a specific
 AMR level, but the method may differ from grid level to grid level. As we saw
 in the previous section, the contribution of the fluxes (dimensionally split
@@ -121,7 +125,7 @@ For the multistep RK4 integration scheme, the same **typefull1** method is
 used in each substep for **istep=1..nstep**. Full timesteps are counted by
 **itmin &lt;= it &lt;= itmax**, while the physical time is **t &lt;= tmax**.
 
-## Grid and Mesh
+# Grid and Mesh {#disc-grid}
 
 The grid is a 1, 2 or 3D grid, either Cartesian, cylindrical (to which polar
 belongs), or spherical. The coordinates of the grid points are represented by
@@ -137,7 +141,7 @@ _pgeo(igrid)%surfaceC^D_, _pgeo(igrid)%surface^D_, _pgeo(igrid)%dvolume_ and
 _pgeo(igrid)%dx_.
 
 The spatial indices of these arrays, denoted by the dimension independent
-[syntax](source.html), have varying ranges, depending on their use (as cell
+[syntax](source.md), have varying ranges, depending on their use (as cell
 centered, or cell surface quantities). Remember that the _setamrvac -g=_ sets
 the grid plus ghost cell extent, whose width is set by _dixB_. This defines
 the total grid extent
@@ -160,10 +164,10 @@ or in a shorter notation
 The ghost cells are updated by the subroutine **getbc**. When a file is read
 or saved by MPI-AMRVAC, the ghost cells are not included.
 
-You may run the [VACPP](vacpp.html) preprocessor interactively to see how the
+You may run the [VACPP](vacpp.md) preprocessor interactively to see how the
 above expressions are translated for a given number of dimensions.
 
-## Boundary Regions
+# Boundary Regions {#disc-boundaries}
 
 The boundary cells of the grid are grouped into boundary regions indexed by
 **iB=1..nB**. In 1D, there are 2 regions, at left and right of the mesh; in 2D
@@ -186,7 +190,7 @@ should be used for the scalar quantities and the tangential velocity
 components. For the normal vector components the anti-symmetric **'asymm'**
 boundary type should be used.
 
-### Internal boundaries
+## Internal boundaries {#disc-internal}
 
 Internal boundaries can be used to overwrite the domain variables with
 specified values. Internally, these are assigned before the ghost-cells and

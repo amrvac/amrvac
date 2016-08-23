@@ -3,7 +3,7 @@
 This document describes a few relatively simple example simulations which can
 be done based on some readily available **src/usr/amrvacusr.t.*** files, along
 with their **par/*** files, which are part of the subversion MPI-AMRVAC
-release. See AMRVAC_Man/[USAGE](USAGE.html) for a more complete description on
+release. See [usage](usage.md) for a more complete description on
 how to use the code.
 
 _The commands on this page are still for the old svn version. See the
@@ -11,8 +11,8 @@ $AMRVAC_DIR/tests folder for a plethora of tests with the git version._
 
 ## Advection tests
 
-Configure MPI-AMRVAC to the standard 2D [advection
-equation](equations.html#RHO) test as follows:
+Configure MPI-AMRVAC to the standard 2D [advection equation](@ref eq_rho) test
+as follows:
 
     cd src
     setamrvac -d=22 -phi=0 -z=0 -g=16,16 -p=rho -u=testrho -s
@@ -23,9 +23,9 @@ equation](equations.html#RHO) test as follows:
 
 This test uses the _src/usr/amrvacusr.t.testrho_ amrvacusr-module, which
 contains several tests, distinguished by **iprob**. In the above setting, it
-will use **iprob=3** as specified in the [&amp;amrlist;](par.html#Amrlist) and
+will use **iprob=3** as specified in the [amrlist](@ref par_amrlist) and
 do a 2D advection of the VAC-logo on a double periodic domain, on the unit
-square. After [converting](convert.html) the 21 data files created to the VTK
+square. After [converting](convert.md) the 21 data files created to the VTK
 format suited for paraview visualization, you will be able to make the
 following movie in a few simple steps:
 
@@ -57,13 +57,12 @@ Movie](figmovdir/sphereadvection.png)](figmovdir/sphereadvection.avi)
 
 ## Isothermal HD test
 
-The first test shown here is a 1D test case recovering the analytic solution
-for the collision of two pressureless dust clouds, as described in the paper
-by Leveque, R.J., Journal of Hyperbolic Differential equations, Vol.1, No.2
-(2004), 315-327. The test is ideally suited for AMR simulations, since the
-correct analytic solution is known to contain delta-type waves
-(shocks/rarefactions). This test uses the [adiabatic hydro
-module](equations.html#HDADIAB).
+The first test shown here is a 1D test case recovering the analytic solution for
+the collision of two pressureless dust clouds, as described in the paper by
+Leveque, R.J., Journal of Hyperbolic Differential equations, Vol.1, No.2 (2004),
+315-327. The test is ideally suited for AMR simulations, since the correct
+analytic solution is known to contain delta-type waves (shocks/rarefactions).
+This test uses the [adiabatic hydro module](@ref eq_hd_iso).
 
     cd src
     setamrvac -d=11 -phi=0 -z=0 -g=16 -p=hdadiab -u=testhdadiab -s
@@ -103,7 +102,7 @@ development](figmovdir/khadiabAfigfinal.gif)
 
 The distributed MPI-AMRVAC contains various example _amrvacusr.t.*_ and
 corresponding _par/testhd/*_ files realizing relatively standard test cases
-for [hydrodynamics](equations.html#HD). They include
+for [hydrodynamics](@ref eq_hd). They include
 
     src/usr/amrvacusr.t.wchd22
     src/usr/amrvacusr.t.bowhd22
@@ -163,7 +162,7 @@ here](figmovdir/liska.avi).
 ## MHD tests
 
 The _src/usr/amrvacusr.t.testmhd_ codes up a large variety of standard test
-cases for [MHD](equations.html#MHD), going from 1D Riemann problems to tests
+cases for [MHD](@ref eq_mhd), going from 1D Riemann problems to tests
 doable in 2D and 3D. For some, you will find appropriate par-files in the
 _par/testmhd_ subdirectory. You are encouraged to study the files and make
 testruns for MHD problems.

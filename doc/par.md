@@ -1,11 +1,15 @@
-# Parameters
+# Setting parameters
+
+[TOC]
+
+# Introduction {#par_intro}
 
 This document describes how the **amrvac.par** parameter file for MPI-AMRVAC
 should be used. **Note that default values for parameters are actually set in
 the module _amrvacio/amrio.t_, you should look at subroutine _readparameters_
 for details.**
 
-## NAMELISTS
+# Namelists {#par_namelists}
 
 The parameter file consists of a sequence of namelists. A namelist consists of
 an opening line, variable definitions and a closing line:
@@ -41,7 +45,7 @@ Constant names that should be replaced by the actual values are in capital
 letters. The **...** indicates optional extra elements for arrays, or extra
 words in strings. After each namelist a discussion follows.
 
-### Testlist
+## Testlist {#par_testlist}
 
          &testlist
     	teststr='SUBROUTINE1 SUBROUTINE2 ... '
@@ -63,7 +67,7 @@ AMRVACUSR subroutines. **This Testlist namelist is a heritage namelist from
 VAC, and it is not advisable to use it when running the code on multiple
 processors. It is a rather obsolete feature.**
 
-### Filelist
+## Filelist {#par_filelist}
 
          &filelist
     	filenameini='unavailable' | 'datamr/FILEINIBASE'
@@ -239,7 +243,7 @@ It is even possible to temporarily add additionally computed auxiliary
 variables that are instantaneously computable from the data in the
 **datamr/FILEOUTBASE****.dat** file to the converted snapshot. You should then
 provide the number of such extra variables in **nwauxio** (see also
-AMRVAC_Man/[mpiamrvac_nw.html](mpiamrvac_nw.html)), and a corresponding
+[this page](mpiamrvac_nw.md)), and a corresponding
 definition for how to compute them from the available _nw_ variables in the
 subroutine _specialvar_output_ whose default interface is provided in the
 _amrvacnul.speciallog.t_ module. You can there compute variables that are not
@@ -273,7 +277,7 @@ left and right edge values _w_LC, w_RC_ are computed by limited reconstruction
 first.
 
 Note that different formats for postprocess data conversion can be added in
-the **convert.t** subroutine. See AMRVAC_Man/[convert](convert.html) for
+the **convert.t** subroutine. See [convert](convert.md) for
 details.
 
 The _VTK_-based formats allow for saving only a part of the _nw_ variables, by
@@ -298,7 +302,7 @@ level_io_min until level_io_min is reached. Correspondingly, _level_io_max_
 limits the maximum level of the output file. This can be useful to visualize
 large datasets.
 
-### Savelist
+## Savelist {#par_savelist}
 
          &savelist
     	ditsave(FILEINDEX)=INTEGER
@@ -317,9 +321,9 @@ log, (consecutive) output, slice files, collapsed views and calls to the
 analysis subroutine which are identified by their FILEINDEX 1, 2, 3, 4 and 5
 respectively. The slices are parametrized by values of **nslices**,
 **slicedir** and **slicecoord**, more information on slice output can be found
-in [slice output](slices.html). The collapse feature is described in detail in
-[collapsed output](collapsed.html) and some info on the analysis feature is
-given in [analysis](analysis.html).
+in [slice output](slices.md). The collapse feature is described in detail in
+[collapsed output](collapsed.md) and some info on the analysis feature is
+given in [analysis](analysis.md).
 
 The times can be given in timesteps or physical time. Typical examples:
 **ditsave=1,10** saves results into the log file at every timestep, and will
@@ -342,7 +346,7 @@ If no save condition is given for a file you get a warning, but _the final
 output is always saved_ after the stop condition has been fulfilled. If
 **itsave(1,2)=0** is set, the initial state is saved before advancing.
 
-### Stoplist
+## Stoplist {#par_stoplist}
 
          &stoplist
     	itmax =INTEGER
@@ -379,7 +383,7 @@ logicals **treset=T**, or **itreset=T**.
 In case the code is used for computing towards a steady-state, it is useful to
 quantify the evolution of the residual as a function of time. The residual
 will be computed taking account of all _nwflux_ variables (see also
-AMRVAC_Man/[mpiamrvac_nw.html](mpiamrvac_nw.html)), over all grids. You can
+[this page](mpiamrvac_nw.md)), over all grids. You can
 tell the code to stop computing when a preset minimal value for this residual
 is reached, by specifying **residmin=1.0d-6** (for example, a rather stringent
 value when all variables are taken into account). Similarly, setting
@@ -393,7 +397,7 @@ _typeresid='relative'_ or _typeresid='absolute'_. When either residmin or
 residmax is specified here, the value of the residual will be added to the
 logfile.
 
-### Methodlist
+## Methodlist {#par_methodlist}
 
         &methodlist
 
@@ -489,13 +493,13 @@ logfile.
 
     /
 
-#### wnames, fileheadout
+### wnames, fileheadout {#par_wnames}
 
 **wnames** is a string of (conserved) variable names, which is only stored for use in the input and output data files. The **wnames** string of variable names is used in the default log file header, and should be e.g. 'rho m1 m2 e b1 b2' for MHD with 2 vector components. These labels are the ones passed on when doing the conversion step for tecplot, vtu formats.
 
 **fileheadout** is the header line in the output file, and is an identifyer used in the (converted) data files. Both wnames and fileheadout are thus only relevant within amrio.t and convert.t, and only have effect for the later data visualization (e.g. when fileheadout='test_mhd22' is specified, the Idl macros will deduce from the name that it is for a 2D MHD run).
 
-#### typeadvance, typefull1, typepred1, typelow1
+### typeadvance, typefull1, typepred1, typelow1 {#par_typeadvance}
 
 The **typeadvance** variable determines the time integration procedure. The
 default procedure is a second order predictor-corrector type 'twostep' scheme
@@ -513,10 +517,10 @@ There is also a fourth order Runge-Kutta type method, when
 _typelimited='original'_. These higher order time integration methods can be
 most useful in conjunction with higher order spatial discretizations like a
 fourth order central difference scheme (currently not implemented). See also
-AMRVAC_Man/[discretization](discretization.html#Methods).
+[discretization](discretization.md).
 
 The array **typefull1** defines a spatial discretization
-[method](methods.html) used for the time integration per activated grid level
+[method](methods.md) used for the time integration per activated grid level
 (and on each level, all variables use the same discretization). In total,
 _nlevelshi_ methods must be specified, by default _nlevelshi=8_ and these are
 then all set by _typefull1=8*'tvdlf'_. Different discretizations can be mixed
@@ -545,8 +549,7 @@ is the same low order scheme that is then used in the Richardson process
 across the entire grid hierarchy, and is decided on the basis of the
 typefull1(l) for level l in amrio.t.
 
-#### typelimiter1, typegradlimiter1, typelimited, useprimitive, loglimit,
-flatcd, flatsh, flatppm
+### Limiter type {#par_typelimiter}
 
 For the TVDLF and TVD-MUSCL methods different limiter functions can be defined
 for the limited linear reconstructions from cell-center to cell-edge
@@ -596,7 +599,7 @@ setting typelimiter1) or in the gradientS/divvectorS routines (when typegrad
 or typediv is limited, and typegradlimiter1 is ppm). The latter is encoded in
 geometry.t.
 
-#### typeentropy, entropycoef
+### Typeentropy, entropycoef {#par_typeentropy}
 
 For Riemann solver based methods, such as TVD and TVD-MUSCL (but not TVDLF),
 an entropyfix may be applied to avoid unphysical solutions. The fix is applied
@@ -611,8 +614,7 @@ more robust. For Yee's entropyfix the minimum characteristic speed (normalized
 by dt/dx) can be set for each characteristic wave using the **entropycoef**
 array.
 
-#### typetvd, typetvdlf, tvdlfeps, typeaverage, BnormLF, flathllc,
-nxdiffusehllc
+### Different TVD varians {#par_tvdvariants}
 
 Both **tvd** and **tvdlf** have a few variants, these can be set in the
 strings **typetvd** and **typetvdlf**, with defaults 'roe' and 'cmaxmean',
@@ -648,7 +650,7 @@ TVDLF is then used in a user-controlled region around a point where there is a
 sign change in flux, whose width is set by **nxdiffusehllc** (an integer which
 is 0 by default).
 
-#### typeaxial, typespherical, usecovariant
+### Typeaxial, typespherical, usecovariant {#par_typeaxial}
 
 **typeaxial** defines the type of curvilinear grid. For cylindrical coordinate systems, the _-phi=_ and _-z=_ flags have a meaning and should be used at _$AMRVAC_DIR/setup.pl_, to denote the order of the second and third coordinate. Together, they control the addition of the geometrical source terms as implemented in the various physics modules in the subroutine _addgeometry_. By default, **typeaxial='slab'** and Cartesian coordinates are used (with translational symmetry for ignorable directions).
 
@@ -687,7 +689,7 @@ Cylindrical and Spherical coordinate systems when setting one of those latter
 values. Note that vector components are to be interpreted in the corresponding
 coordinate system!
 
-Please read **AMRVAC_Man/[axial](axial.html)** before you try to do
+Please read [axial](axial.md) before you try to do
 simulations in non-slab symmetry.
 
 In case you select **typeaxial='spherical'**, the geometrical info is filled
@@ -698,8 +700,7 @@ The _usecovariant_ option is as yet inactive, but is meant to prepare for
 general relativistic modules, and/or an alternative means to handle non-
 cartesian geometries.
 
-#### ssplitdivb, ssplitdust,ssplitresis,ssplituser, typesourcesplit, dimsplit,
-typedimsplit
+### Dimensional splitting {#par_dimsplit}
 
 The sources, if any, can be added in a split or unsplit way according to the
 logical variables **ssplitdivb**, **ssplitdust**, **ssplitresis**, and
@@ -709,7 +710,7 @@ respectively. Their default values are false meaning these sources are added
 in a unplit way by default. The split sources are added according to
 **typesourcesplit**. The meaning of the different options for
 **typesourcesplit** is described in
-AMRVAC_Man/[discretization](discretization.html#Splitting). Under default
+[discretization](@ref disc-splitting). Under default
 settings, we use unsplit sources only, and if one reverts to split sources,
 **typesourcesplit='sfs'**.
 
@@ -718,10 +719,9 @@ In multidimensional calculations dimensional splitting can be used by setting
 **typedimsplit='xyyx'** by default. For AMRVAC simulations, it is best to use
 **dimsplit=F**, the default value, but the TVD method needs a dimensionally
 split strategy. The limitations on using dimensionally unsplit methods are
-described in AMRVAC_Man/[methods](methods.html).
+described in [methods](methods.md).
 
-#### smallrho, smallp, fixprocess, fixsmall, strictsmall, strictgetaux,
-nflatgetaux
+### Positivity fixes {#par_positivityfix}
 
 Negative pressure or density caused by the numerical approximations can make
 the code crash. For HD, MHD and all SRHD and SRMHD variants, this can be
@@ -764,8 +764,7 @@ non-local auxiliary variables (like the divergence of some vector fields,
 etc), then using these in turn to do particle acceleration treatments (the
 latter to be implemented in the process subroutine, using MPI!), etc.
 
-#### typedivbfix, divbwave, divbdiff, typedivbdiff, B0field, Bdip, Bquad,
-Boct, Busr, compactres, typegrad, typediv
+### Magnetic field divergence fixes {#par_divbfix}
 
 Depending on **typedivbfix**, sources proportionate to the numerical monopole
 errors are added to momemtum, energy, and induction equation (the 'powel'
@@ -816,8 +815,7 @@ _geometry.t_ module. Similarly, a switch for the divergene of a vector is the
 and relativistic). When the 'limited' variant is used, one must set the
 corresponding typegradlimiter1 array to select a limiter (per level).
 
-#### useprimitiveRel, maxitnr, tolernr, absaccnr, dmaxvel, typepoly, strictnr,
-strictzero
+### Using primite variables for reconstruction {#par_useprim}
 
 For the SRHD and SRMHD modules only. The **useprimitiveRel=T** will ensure
 that in combination with useprimitive, limited linear reconstruction is done
@@ -841,23 +839,23 @@ SRMHD, the **typepoly** determines which formulation is used for the quartic
 polynomial whose zeros determine the forward and backward slow and fast signal
 speeds.
 
-#### ncool, cmulti, coolmethod, coolcurve, Tfix
+### ncool, cmulti, coolmethod, coolcurve, Tfix
 
 These are only used in combination with a cooling module for HD and MHD, as
 developed by AJ van Marle, described in
-AMRVAC_Man/[mpiamrvac_radcool.html](mpiamrvac_radcool.html).
+[mpiamrvac_radcool.md](mpiamrvac_radcool.md).
 
-#### ptmass, x1ptms,x2ptms,x3ptms
+### ptmass, x1ptms,x2ptms,x3ptms
 
 These are only used in combination with an optional point gravity module for
 HD and MHD, as developed by AJ van Marle, described in
-AMRVAC_Man/[mpiamrvac_pointgrav.html](mpiamrvac_pointgrav.html).
+[mpiamrvac_pointgrav.md](mpiamrvac_pointgrav.md).
 
-#### dustmethod, dustzero,dustspecies,dusttemp,smallrhod
+### dustmethod, dustzero,dustspecies,dusttemp,smallrhod
 
 These are only used when one or more dustspecies is used for HD.
 
-### Boundlist
+## Boundlist {#par_boundlist}
 
          &boundlist
      dixB= INTEGER
@@ -919,7 +917,7 @@ by default, and should be set to a value between zero and 1 accordingly.
 The **special** type is to be used for setting fixed values, or any time
 dependent or other more complicated boundary conditions, and results in a call
 to the **specialbound_usr** subroutine which has to be provided by the user in
-the [AMRVACUSR module](amrvacusr.html#Specialbound). The variables with
+the [AMRVACUSR module](@ref #amrvacusr_specialbound). The variables with
 **special** boundary type are updated last within a given boundary region,
 thus the subroutine may use the updated values of the other variables. The
 order of the variables is fixed by the equation module chosen, i.e. _rho m1 m2
@@ -946,7 +944,7 @@ coarser grid values. Setting it different from this default string will imply
 mere first order copying for finer level grids (and is thus not advised when
 second order is desired).
 
-### Amrlist
+## Amrlist {#par_amrlist}
 
          &amrlist
     	mxnest= INTEGER
@@ -984,7 +982,7 @@ second order is desired).
      ditregrid= INTEGER
     /
 
-#### mxnest, nxlone^D, dxlone^D, xprob^L
+### mxnest, nxlone^D, dxlone^D, xprob^L {#par_mxnest}
 
 **mxnest** indicates the maximum number of grid levels that can be used during the simulation, including the base grid level. It is an integer value which is maximally equal to the parameter _nlevelshi_ and minimally equal to 1 (which is the default value implying no refinement at all, but possibly a domain decomposition when the domain resolution is a multiple of the maximal grid resolution controlled by the -g= flag of $AMRVAC_DIR/setup.pl). The parameter _nlevelshi=8_ by default, a value set in _mod_indices.t_, so that if more than 8 levels are to be used, one must change this value and recompile. Note that when _mxnest&gt;1_, it is possible that during runtime, the highest grid level is temporarily lower than mxnest, and/or that the coarsest grid is at a higher level than the base level.
 
@@ -1010,7 +1008,7 @@ size properly divides the domain size (from the _xprob^L_ pairs). It is
 advocated to always use the integer setting through _nxlone^D_, from which the
 code automatically computes the corresponding _dxlone^D_.
 
-#### errorestimate, nbufferx^D, skipfinestep, amr_wavefilter
+### errorestimate, nbufferx^D, skipfinestep, amr_wavefilter {#par_errest}
 
 The code offers various choices for the error estimator used in automatically
 detecting regions that need refinement.
@@ -1051,7 +1049,7 @@ It can never be greater than the grid size specified with the -g setting of
 _$AMRVAC_DIR/setup.pl_. For Lohner's scheme, the buffer can actually be turned
 off completely by setting **nbufferx^D=0** which is default value.
 
-#### flags, wflags, logflag, tol, tolratio
+### flags, wflags, logflag, tol, tolratio {#par_flags}
 
 In all errorestimators mentioned above (except the errorestimate=0 case), the
 comparison or evaluation is done only with a user-selected (sub)set of the
@@ -1082,14 +1080,14 @@ while the default value for tolratio=1.0d0/8.0d0 has shown to be a rather
 generally useful value. You can set tolerance values that differ per
 refinement level. **
 
-#### iprob
+### iprob {#par_iprob}
 
 As a possible integer switch for selecting multiple problem setups in the same
 executable code, the integer switch **iprob** is provided. It is meant to be
 used only in the user-written subroutines, for switching between e.g. multiple
 initial conditions for the same executable.
 
-#### prolongprimitive, coarsenprimitive, restrictprimitive, amrentropy
+### prolongprimitive, coarsenprimitive, restrictprimitive, amrentropy {#par_prolongprim}
 
 It is possible to enforce the code to use primitive variables when coarsening
 grid information (restriction), or filling new finer level grids
@@ -1120,7 +1118,7 @@ optimal for all times.The parameter **ditregrid** is introduced to reconstruct
 the whole AMR grids once every ditregrid iteration(s) instead of regridding
 once in every iteration by default.
 
-### Paramlist
+## Paramlist {#par_paramlist}
 
          &paramlist
     	dtpar= DOUBLE
@@ -1134,19 +1132,22 @@ once in every iteration by default.
 
     /
 
-#### dtpar, courantpar, typecourant, dtdiffpar, dtTCpar, slowsteps
+### dtpar, courantpar, typecourant, dtdiffpar, dtTCpar, slowsteps {#par_dt}
 
 If **dtpar** is positive, it sets the timestep **dt**, otherwise
 **courantpar** is used to limit the time step based on the Courant condition.
 The default is **dtpar=-1.** and **courantpar=0.8**.
 
-For resistive MHD, the time step is also limited by the diffusion time:
-**dt &lt; dtdiffpar*dx^2/eta**. The default is **dtdiffpar=0.5**. Further restrictions on the time step can be put in the **getdt_special** subroutine in the [AMRVACUSR module](amrvacusr.html#Specialsource). The library routines for viscosity and div B diffusive cleaning, all use the coefficient **dtdiffpar** in their stability conditions. **dtTCpar** with default value of 0.5 limits the time step of thermal conduction.
-
-The **typecourant='maxsum'** means that the time step limit for the CFL
-conditions takes the maximum over a summed contribution to the maximum
-physical propagation speed for all dimensions. The detailed formulae are found
-in setdt.t.
+For resistive MHD, the time step is also limited by the diffusion time: **dt
+&lt; dtdiffpar*dx^2/eta**. The default is **dtdiffpar=0.5**. Further
+restrictions on the time step can be put in the **getdt_special** subroutine in
+the [AMRVACUSR module](@ref amrvacusr_specialsource). The library routines for
+viscosity and div B diffusive cleaning, all use the coefficient **dtdiffpar** in
+their stability conditions. **dtTCpar** with default value of 0.5 limits the
+time step of thermal conduction. The **typecourant='maxsum'** means that the
+time step limit for the CFL conditions takes the maximum over a summed
+contribution to the maximum physical propagation speed for all dimensions. The
+detailed formulae are found in setdt.t.
 
 If the **slowsteps** parameter is set to a positive integer value greater than
 1, then in the first **slowsteps-1** time steps **dt** is further reduced
@@ -1159,15 +1160,14 @@ formula, where **step=1..slowsteps-1**. This reduction can help to avoid
 problems resulting from numerically unfavourable initial conditions, e.g. very
 sharp discontinuities. It is normally inactive with a default value -1.
 
-#### time_accurate
+### time_accurate {#par_timeacc}
 
 For steady state calculations, a grid-dependent value for the time step can be
 used if the temporal evolution is not interesting. This local time stepping
 strategy is presently under construction, and hence we always have
 **time_accurate=T**.
 
-#### cfrac
+### cfrac {#par_cfrac}
 
 This is again specific for a cooling module for HD and MHD, as developed by AJ
-van Marle, described in
-AMRVAC_Man/[mpiamrvac_radcool.html](mpiamrvac_radcool.html).
+van Marle, described in [mpiamrvac_radcool.md](mpiamrvac_radcool.md).

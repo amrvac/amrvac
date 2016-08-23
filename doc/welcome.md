@@ -73,7 +73,7 @@ with the corresponding software. We (June 2010) mostly use the freely
 available [Paraview](http://www.paraview.org/) application for data
 visualization.
 
-The [VACPP](vacpp.html) preprocessor translates the dimensional independent
+The [VACPP](vacpp.md) preprocessor translates the dimensional independent
 notation (based on the Loop Annotation Syntax, or LASY) to Fortran 90. It uses
 Perl, and the Perl interpreter is installed on any UNIX-like platform at most
 places, and it is freely available from the net.

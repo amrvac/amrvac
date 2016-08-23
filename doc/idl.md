@@ -476,7 +476,7 @@ An initial guess for the name is made if the **filename** parameter has
 already been given. The data in the logfile(s) is put into the
 **step,t,dt,wlog** arrays in case of a single file, and into
 **step0,t0,dt0,wlog0, step1,t1,dt1,wlog1** in case of two files. If the
-[residual](par.html#Stoplist) is calculated and stored in the last column of
+[residual](@ref par_stoplist) is calculated and stored in the last column of
 the logfile, the **resid** is also generated. The **wlog(nt,nwlog)** array
 contains the rest of the columns in the logfile. A simple example is
 
