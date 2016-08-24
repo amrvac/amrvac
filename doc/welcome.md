@@ -14,6 +14,7 @@ which is now hosted on [Gitlab](https://gitlab.com/mpi-amrvac/amrvac).
 * [List of tests](@ref test)
 * [TODO list](@ref todo)
 * [Change log](changelog.md)
+* [Contributing](contributing.md)
 * [Acknowledgements](acknowledgments.md)
 
 # Project {#project}
