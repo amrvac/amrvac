@@ -1,4 +1,5 @@
 !=============================================================================
+!> Generate and initialize all grids at the coarsest level (level one)
 subroutine initlevelone
 {#IFDEF EVOLVINGBOUNDARY
 use mod_forest

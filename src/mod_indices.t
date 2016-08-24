@@ -1,42 +1,58 @@
+!> This module contains global integers and indices
+!> @todo Why are there logicals/reals here?
+!> @todo Clean this list up
 module mod_indices
-   implicit none
 
-   !AMR specific parameters
-   !
-   ! ngridshi:  maximum number of grids
-   ! nlevelshi: maximum number of levels in grid refinement
+  implicit none
 
-   integer, parameter :: ngridshi  = 4000
-   integer, parameter :: nlevelshi = 13
+  !> The maximum number of grid blocks
+  !> @todo Don't use a fixed upper bound
+  integer, parameter :: ngridshi  = 4000
 
-   ! number of interleaving sending buffers for ghostcells
-   integer, parameter :: npwbuf=2
+  !> The maximum number of levels in the grid refinement
+  !> @todo Don't use a fixed upper bound
+  integer, parameter :: nlevelshi = 13
 
-   integer, save :: ixM^LL
+  !> The number of interleaving sending buffers for ghost cells
+  integer, parameter :: npwbuf=2
 
-   integer, dimension(nlevelshi), save :: ng^D
-   double precision, dimension(nlevelshi), save :: dg^D
+  integer, save :: ixM^LL
 
-   logical, save :: slab
+  integer, dimension(nlevelshi), save :: ng^D
+  double precision, dimension(nlevelshi), save :: dg^D
 
-   integer, save :: npe, mype, icomm
-   integer, save :: log_fh
-   integer, save :: type_block, type_coarse_block, type_sub_block(2^D&)
-   integer, save :: type_block_io, size_block_io, size_block
-{#IFDEF TRANSFORMW
-   integer, save :: type_block_io_tf, size_block_io_tf}
-   integer, save :: type_subblock_io, type_subblock_x_io
-   integer, save :: type_block_xc_io,type_block_xcc_io
-   integer, save :: type_block_wc_io,type_block_wcc_io
-   integer, save :: itag, ierrmpi
-   integer, save :: irecv, isend
-   integer, dimension(:), allocatable, save :: recvrequest, sendrequest
-   integer, dimension(:,:), allocatable, save :: recvstatus, sendstatus
+  logical, save :: slab
 
-   integer, save :: snapshot, snapshotnext, slice, slicenext, collapseNext, icollapse
+  !> The number of MPI tasks
+  integer, save :: npe
 
-   logical, allocatable, dimension(:^D&), save :: patchfalse
+  !> The rank of the current MPI task
+  integer, save :: mype
 
-   logical, save :: B0field
-   double precision, save :: Bdip, Bquad, Boct, Busr
+  !> The MPI communicator
+  integer, save :: icomm
+
+  !> A global MPI error return code
+  !> @todo Make local
+  integer, save :: ierrmpi
+
+  integer, save :: log_fh
+  integer, save :: type_block, type_coarse_block, type_sub_block(2^D&)
+  integer, save :: type_block_io, size_block_io, size_block
+  {#IFDEF TRANSFORMW
+  integer, save :: type_block_io_tf, size_block_io_tf}
+  integer, save :: type_subblock_io, type_subblock_x_io
+  integer, save :: type_block_xc_io,type_block_xcc_io
+  integer, save :: type_block_wc_io,type_block_wcc_io
+  integer, save :: itag
+  integer, save :: irecv, isend
+  integer, dimension(:), allocatable, save :: recvrequest, sendrequest
+  integer, dimension(:,:), allocatable, save :: recvstatus, sendstatus
+
+  integer, save :: snapshot, snapshotnext, slice, slicenext, collapseNext, icollapse
+
+  logical, allocatable, dimension(:^D&), save :: patchfalse
+
+  logical, save :: B0field
+  double precision, save :: Bdip, Bquad, Boct, Busr
 end module mod_indices

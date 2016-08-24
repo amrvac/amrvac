@@ -1,10 +1,8 @@
-!=============================================================================
+!> AMRVAC solves a set of hyperbolic equations
+!> \f$\vec{u}_t + \nabla_x \cdot \vec{f}(\vec{u}) = \vec{s}\f$
+!> using adaptive mesh refinement.
 program amrvac
 
-! AMRVAC solves a set of hyperbolic equations:
-!              u  +  Div [f(u)]    =  s
-!               t       x    
-!  using adaptive mesh refinement.
 
 ! following line may avoid mystery problems in the combination
 !  where we use ifort compiler and MPT (SGIs MPI implementation)
@@ -314,31 +312,29 @@ timetosave=oksave
 
 return
 end function timetosave
-!=============================================================================
+
+!> Return true if the AMR grid should not be adapted any more. This is
+!> controlled by tfixgrid or itfixgrid. Other conditions may be included.
+!> @todo Fix dummy argument?
 logical function fixgrid(dummy)
 
-! fixing the grid at given times or given iteration is defined by either 
-! tfixgrid or itfixgrid
-! Other conditions may be included (dummy input integer unused).
+  include 'amrvacdef.f'
+  integer :: dummy              !< Unused dummy argument
 
-include 'amrvacdef.f'
+  fixgrid= (t>=tfixgrid .or. it>=itfixgrid)
 
-integer:: dummy
-!-----------------------------------------------------------------------------
-
-fixgrid= (t>=tfixgrid .or. it>=itfixgrid)
-
-return
 end function fixgrid
-!=============================================================================
+
+!> Perform global initialization, in three steps:
+!> * Call initglobaldata from the selected physics module
+!> * Call initglobaldata_usr which is supplied by the user
+!> * Call checkglobaldata from the selected physics module
 subroutine initglobal
 
-include 'amrvacdef.f'
-!-----------------------------------------------------------------------------
+  include 'amrvacdef.f'
 
-call initglobaldata
-call initglobaldata_usr
-call checkglobaldata
+  call initglobaldata
+  call initglobaldata_usr
+  call checkglobaldata
 
 end subroutine initglobal
-!=============================================================================
