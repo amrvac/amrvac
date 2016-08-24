@@ -19,11 +19,10 @@ NOCOLOR := \033[0m
 SETUP_FILES := amrvacusr.t amrvacusrpar.t amrvacsettings.t definitions.h	\
 mod_indices.t makefile
 
-# The default targets are the $(TESTS)
-all: $(TESTS)
-
-# Declare amrvac phony so that it is always recompiled
 .PHONY: all $(TESTS)
+
+# The default targets are the TESTS
+all: $(TESTS)
 
 $(SETUP_FILES):
 	$(SETUP_SCRIPT) $(SETUP_FLAGS) > setup.log
