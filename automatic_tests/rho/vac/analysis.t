@@ -34,7 +34,7 @@ subroutine volume_average(power, mode, volume)
   integer, intent(in)           :: power     !< Which mode to compute
   double precision, intent(out) :: mode(nw)  !< The computed mode
   double precision, intent(out) :: volume    !< The total grid volume
-  integer                       :: iigrid, igrid, level, iw
+  integer                       :: iigrid, igrid, iw
   double precision              :: wsum(nw+1)
   double precision              :: dvolume(ixG^T)
   double precision              :: dsum_recv(1:nw+1)
@@ -44,7 +44,6 @@ subroutine volume_average(power, mode, volume)
   ! Loop over all the grids
   do iigrid = 1, igridstail
      igrid = igrids(iigrid)
-     level = node(plevel_,igrid)
 
      ! Determine the volume of the grid cells
      if (slab) then
@@ -68,7 +67,7 @@ subroutine volume_average(power, mode, volume)
        MPI_SUM, 0, icomm, ierrmpi)
 
   ! Set the volume and the average
-  volume = wsum(nw+1)
-  mode   = wsum(1:nw) / volume
+  volume = dsum_recv(nw+1)
+  mode   = dsum_recv(1:nw) / volume
 
 end subroutine volume_average

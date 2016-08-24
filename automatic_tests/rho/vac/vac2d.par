@@ -12,6 +12,7 @@
         autoconvert=T
 /
  &savelist
+        ditsave(1)=1
         ditsave(5)=1
  /
 
@@ -37,8 +38,8 @@
  &amrlist
         mxnest=3
         tol=13*0.1d0
-        nxlone1=50
-        nxlone2=50
+        nxlone1=20
+        nxlone2=20
         iprob=3
         xprobmin1=0.0d0
         xprobmax1=1.0d0
