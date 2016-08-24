@@ -1,4 +1,4 @@
-TEST_DIRS := rho/vac rho/ball
+TEST_DIRS := rho/vac hd/jetCloudInteractions mhd/doubleGEM
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
