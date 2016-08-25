@@ -1,282 +1,222 @@
 #!/usr/bin/perl -si
-if(!($d||$g||$s||$p||$eos||length($phi)||$u||length($z)||$arch||length($nf)||length($ndust))){
-   print STDERR <<HELPMSG ;
 
-$0 [-d=NdimNdir] [-g=n1,n2,n3] [-p=PHYSICS] [-eos=EOS] [-phi=Idirphi] [-z=Idirz] \\
-       [-u=USERFILE] [-nf=nf] [-ndust=nd] [-arch=arch] [-s]
+my $help_message =
+"Usage: setup.pl [options]      To generate a new MPI-AMRVAC setup
+        setup.pl -s             To show the current options
 
-Ndim and Ndir are number of spatial DIMENSIONS and vector components,
-respectively, the GRID size is defined by Ndim integers n1,n2...
-PHYSICS is the extension name for amrvacphys.t, and amrvacpar.t.
-Idirphi and Idirz define the indexnames for cylindrical coordinates (2,3 or 0).
-USERFILE is the extension for amrvacusr.t and the optional amrvacusrpar.t file.
-To see the SETTINGS use the -s flag. Dont forget the "=" signs and commas!
+Options:
+
+    -d=NM                       N is the the problem dimension (1 to 3)
+                                M is the vector dimension (1 to 3)
+    -g=<n_1, ..., n_N>          The size of a grid block (including ghostcells),
+                                separated by commas, e.g.: -g=14,14 in 2D
+    -p=<physics module>         Which physics module to use (rho, mhd, ...)
+    -phi={1,2,3}                Index of vector phi-component (default: 3)
+    -z={1,2,3}                  Index of vector z-component (default: 2)
+    -eos=<equation of state>    The equation of state
+    -nf=<number>                The number of fluid tracers (default: 0)
+    -ndust=<number>             The number of dust species (default: 0)
+    -arch=<name>                Use compilation flags from arch/<name>.defs
+
+    -s                          Show current options
 
 Examples:
 
 setup.pl -d=22 -g=100,70 -phi=0 -z=2 -p=mhd -u=nul -arch=default
-setup.pl -s
-HELPMSG
-exit}
+setup.pl -s\n";
 
-if(!$ENV{AMRVAC_DIR}){
-    print STDERR <<ENVMSG ;
-
-Set the environment variable $AMRVAC_DIR to the code main directory, e.g. \
-
-export $AMRVAC_DIR=youramrvacdir
-
-ENVMSG
-exit}
-
-$showonly= $s && !($d||$g||$p||$u||$eos||$arch||length($nf)||length($ndust)||length($phi)||length($z));
-
-# Get the makefile:
-    $filename="makefile";
-    unless (-e($filename)){                                                                        
-	print "Getting makefile from source directory\n";
-	`cp $ENV{AMRVAC_DIR}/arch/make_temp $filename`;
-    }
-
-# Get the definitions.h:
-    $filename="definitions.h";
-    unless (-e($filename)){                                                                        
-	print "Getting definitions.h from source directory\n";
-	`cp $ENV{AMRVAC_DIR}/src/$filename $filename`;
-    }
-
-if($d){
-    # Calculate ndim=$d and ndir=$c from the $d=10*ndim+ndir flag.
-    $c=$d-10*int($d/10); $d=int($d/10);
-    1<=$d  && $d<=3 || exit(print "1 <= ndim <= 3 should hold!\n");
-    $d<=$c && $c<=3 || exit(print "ndim <= ndir <= 3 should hold!\n");
+# Check if at least one argument was defined
+if (!($d || $g || $s || $p || $eos || length($phi)) &&
+    !(length($z) || $arch || length($nf) || length($ndust))) {
+    print STDERR "Error: no arguments have been specified\n\n";
+    print STDERR $help_message;
+    exit;
 }
 
-if($g){
-    # Edit the line in amrvacsettings.t specifying ixGhi according to the $g flag.
-    @g=split(',',$g);
-    $filename="amrvacsettings.t";
-    @ARGV=($filename);
-    unless (-e($filename)){
-	print "Getting ".$filename." from source directory\n";
-	`cp $ENV{AMRVAC_DIR}/src/$filename .`;
+# Check if the environment variable AMRVAC_DIR is defined
+if (!$ENV{AMRVAC_DIR}) {
+    print STDERR "Error: AMRVAC_DIR environment variable undefined\n";
+    print STDERR "You set the variable with:\n";
+    print STDERR "export $AMRVAC_DIR=your/amrvac/dir";
+    exit;
+}
+
+# Show parameters and quit when -s was given
+if ($s) {
+    show_current_parameters();
+    exit;
+}
+
+# Get these files if they do not exist already
+copy_if_not_present("makefile", "arch", "make_temp");
+copy_if_not_present("definitions.h", "src");
+copy_if_not_present('mod_indices.t', "src");
+copy_if_not_present("definitions.h", "src");
+copy_if_not_present("amrvacsettings.t", "src");
+
+if ($d) {
+    # Separate the -d=NM argument into ndim (N) and ndir (M)
+    $c = $d - 10 * int($d/10);    # ndir is d mod 10
+    $d = int($d/10);              # ndim is d/10
+
+    replace_regexp_file("makefile", qr/ndim\s*=.*/, "ndim = $d");
+    replace_regexp_file("makefile", qr/ndir\s*=.*/, "ndir = $c");
+}
+
+if ($g) {
+    # Edit amrvacsettings.t specifying ixGhi[1,2,3] according to the $g flag
+    # TODO: place these statements on separate lines
+    @g = split(',', $g);        # Split $g into an array
+    my $new_size = sprintf("ixGhi1 = %d", $g[0]);
+
+    for ($i = 1; $i <= $#g; $i++) {
+        # Concatenate other dimensions
+        $new_size .= sprintf(", ixGhi%d = %d", $i+1, $g[i]);
     }
-    while(<>){
-        if(/ixGhi1=/){
-            $_=$`;for($i=0;$i<=$#g;$i++){$_ .= "ixGhi".($i+1)."=".$g[$i].",";};
-            s/,$/\n/;
+    replace_regexp_file("amrvacsettings.t", qr/ixGhi1\s*=.*/, $new_size);
+}
+
+if (length($nf)) {
+    replace_regexp_file("makefile", qr/nf\s*=.*/, "nf = $nf");
+}
+
+if (length($ndust)) {
+    replace_regexp_file("makefile", qr/ndust\s*=.*/, "ndust = $ndust");
+}
+
+if ($p) {
+    replace_regexp_file("makefile", qr/PHYSICS\s*=.*/, "PHYSICS = $p");
+}
+
+if ($eos) {
+    replace_regexp_file("makefile", qr/eos\s*=.*/, "eos = $eos");
+}
+
+if ($arch) {
+    replace_regexp_file("makefile", qr/ARCH\s*=.*/, "ARCH = $arch.defs");
+}
+
+if (length($phi)) {
+    replace_regexp_file("makefile", qr/phi\s*=.*/, "phi = $phi");
+}
+
+if (length($z)) {
+    replace_regexp_file("makefile", qr/z\s*=.*/, "z = $z");
+}
+
+# Perform validity checks
+check_validity();
+
+# Check the validity of the current settings
+sub check_validity {
+    my %params = get_current_parameters();
+
+    if ($params{"ndim"} < 1 || $params{"ndim"} > 3) {
+        show_current_parameters();
+        exit(print "Error: 1 <= ndim <= 3 does not hold\n");
+    }
+
+    if ($params{"ndim"} > $params{"ndir"} || $params{"ndir"} > 3) {
+        show_current_parameters();
+        exit(print "Error: ndim <= ndir <= 3 does not hold\n");
+    }
+
+    if ($params{"phi"} == $params{"z"} && $params{"phi"} != 0) {
+        show_current_parameters();
+        exit(print "Error: phi and z have to differ unless both are 0\n");
+    }
+
+    if ($params{"phi"} > 0 && $params{"phi"} !=2 && $params{"phi"} !=3) {
+        show_current_parameters();
+        exit(print "phi can only be 2, 3, or <= 0\n");
+    }
+
+    if ($params{"z"} > 0 && $params{"z"} !=2 && $params{"z"} !=3) {
+        show_current_parameters();
+        exit(print "z can only be 2, 3, or <= 0\n");
+    }
+}
+
+# Copy a file if it doesn't exist yet
+# Usage: copy_if_not_present(filename, source directory)
+# Optionally, a local filename can be specified as third argument
+sub copy_if_not_present {
+    my ( $filename, $location, $local_name ) = @_;
+
+    if (!defined($local_name)) {
+        $local_name = $filename;
+    }
+
+    # If the file does not exist, copy it
+    unless (-e($filename)) {
+        print "Getting $filename from $location/$local_name\n";
+        `cp $ENV{AMRVAC_DIR}/$location/$local_name $filename`;
+    }
+}
+
+# Replace lines in a file
+# Usage: replace_regexp_file(filename, regexp, replacement_string)
+# Note that the third argument is a **string**
+sub replace_regexp_file {
+    my ( $filename, $regexp, $replacement) = @_;
+    my $do_replace = 1;
+
+    @ARGV = ($filename);
+    while(<>) {
+
+        if ($do_replace) {
+            s /$regexp/$replacement/; # Replace the regexp
+            if (/SETVAC READS UP TO THIS POINT/) {
+                $do_replace = 0; # Stop replacing
+            }
         }
         print;
     }
 }
 
-if($d){
-    # Set switches in makefile according to $c, $d
-    $filename="makefile";                                                                                                                                             
-    @ARGV=($filename);                                                                                                                                                       
-    $doit=1;
-    while(<>){
-      if($doit){
-         s/ndim=.*/ndim=$d/ if($d);
-         s/ndir=.*/ndir=$c/ if($c);
-      }
-      $doit=0 if /SETVAC READS UP TO THIS POINT/;
-      print;
+# Print the current parameters
+sub show_current_parameters {
+    # Get a hash with the parameters
+    my %params = get_current_parameters();
+    my @param_names = sort keys %params;
+
+    for my $name (@param_names) {
+        printf " %-15s = $params{$name}\n", $name;
     }
 }
 
-if(length($nf)){
-    # Set switches in makefile according $nf
-    $filename="makefile";                                                                                                                                             
-    @ARGV=($filename);                                                                                                                                                       
-    $doit=1;
-    while(<>){
-      if($doit){
-         s/nf=.*/nf=$nf/ ;
-      }
-      $doit=0 if /SETVAC READS UP TO THIS POINT/;
-      print;
-    }
-}
+# Return a hash object with the current parameters
+sub get_current_parameters {
+    my %params;
 
-if(length($ndust)){
-    # Set switches in makefile according $nd
-    $filename="makefile";                                                                                                                                             
-    @ARGV=($filename);                                                                                                                                                       
-    $doit=1;
-    while(<>){
-      if($doit){
-         s/ndust=.*/ndust=$ndust/ ;
-      }
-      $doit=0 if /SETVAC READS UP TO THIS POINT/;
-      print;
-    }
-}
+    open(makefile, "makefile");
+    while ($_ = <makefile>) {
+        chop;
 
-if($p){
-    $filename="makefile";                                                                                                                                             
-    @ARGV=($filename);   
-    $doit=1;
-    while(<>){
-        if(/PHYSICS\s*=.*/ && $doit){
-            $_="PHYSICS       = $p\n"
+        # Note that $' returns the text after the match
+        $params{"ndim"}  = $1 if /^ndim\s*=\s*(\d+)/ ;
+        $params{"ndir"}  = $1 if /^ndir\s*=\s*(\d+)/;
+        $params{"phys"}  = $1 if /^PHYSICS\s*=\s*(\w+)/ ;
+        $params{"arch"}  = $1 if /^ARCH\s*=\s*(\w+)/ ;
+        $params{"phi"}   = $' if /^phi\s*=\s*/ ;
+        $params{"z"}     = $' if /^z\s*=\s*/ ;
+        $params{"nf"}    = $1 if /^nf\s*=\s*(\d+)/ ;
+        $params{"ndust"} = $1 if /^ndust\s*=\s(\d+)*/ ;
+        $params{"eos"}   = $1 if /^eos\s*=\s*(\w+)/ ;
+        last if /SETVAC READS UP TO THIS POINT/;
+    }
+    close(makefile);
+
+    # Read the grid size from amrvacsettings.t
+    if (-e("amrvacsettings.t")) {
+        open(vacdef, "amrvacsettings.t");
+        while ($_ = <vacdef>) {
+            if (/ixGhi1/) {
+                my @block_size = ($_ =~ /ixGhi[123]\s*=\s*(\d+)/g);
+                $params{"block_size"} = join(", ", @block_size);
+            }
         }
-      $doit=0 if /SETVAC READS UP TO THIS POINT/;
-        print;    	
+        close(VACDEF);
     }
-}
-
-if($u){
-    # Set switches in makefile according $u
-    $filename="makefile";                                                                                                                                             
-    @ARGV=($filename);                                                                                                                                                       
-    $doit=1;
-    while(<>){
-      if($doit){
-         s/USER=.*/USER=$u/ ;
-      }
-      $doit=0 if /SETVAC READS UP TO THIS POINT/;
-      print;
-    }
-}
-
-if($eos){
-    # Set switches in makefile according $eos
-    $filename="makefile";                                                                                                                                             
-    @ARGV=($filename);                                                                                                                                                       
-    $doit=1;
-    while(<>){
-      if($doit){
-         s/eos=.*/eos=$eos/ ;
-      }
-      $doit=0 if /SETVAC READS UP TO THIS POINT/;
-      print;
-    }
-}
-
-if($arch){
-# Put the arch into makefile:
-    $filename="makefile";
-    unless (-e($filename)){                                                                        
-	print "Getting $filename from source directory\n";
-	`cp $ENV{AMRVAC_DIR}/arch/make_temp $filename`;
-    }
-    @ARGV=($filename);                                                                                                                 
-    $doit=1;
-    while(<>){
-        if(/ARCH\s*=.*/ && $doit){
-            $_="ARCH          = $arch.defs\n"
-        }
-      $doit=0 if /SETVAC READS UP TO THIS POINT/;
-        print;    	
-    }
-}
-
-if(length($phi) || length($z)){
-    # Set phi_ and z_ in vacpp.pl
-    # Read current values
-# Read the parameters set in the makefile
- open(makefile,"makefile");
-while($_=<makefile>){
-   chop;
-   $phi0="$'" if /phi\s*=\s*/ ;
-   $z0="$'" if /z\s*=\s*/ ;
-   last if /SETVAC READS UP TO THIS POINT/;
-}
-close(makefile);
-    $phi0=0 if $phi0<0; $z0=0 if $z0<0;
-
-    # Use current values if not defined by the switches
-    $phi=$phi0 unless length($phi);
-    $z=$z0 unless length($z);
-    if($phi != $phi0 || $z != $z0){
-        # Check for validity
-        exit(print "-phi=$phi and -z=$z have to differ unless both are 0\n") 
-           if $phi==$z && $phi!=0;
-        exit(print "-phi can only be 0, 2, or 3\n") 
-           if $phi!=0 && $phi!=2 && $phi!=3;
-        exit(print "-z can only be 0, 2, or 3\n") 
-           if $z!=0 && $z!=2 && $z!=3;
-        # Change settings in amrvacdef.t. Big negative integers are used for 
-        # the switched off directions so that mphi_ and bphi_ remain negative.
-        $phi=-9 if $phi==0; $z=-8 if $z==0;
-        @ARGV=("makefile");
-	$doit=1;
-        while(<>){
-	    if ($doit){
-		s/phi=.*/phi=$phi/;
-		s/z=.*/z=$z/;
-	    }
-	    $doit=0 if /SETVAC READS UP TO THIS POINT/;
-	    print;
-        }
-    }
-}
- unless ($showonly){
-   $u = "nul" unless $u;
-    foreach $filename ('amrvacusr.t','amrvacusrpar.t'){
-      unless (-e($filename)){
-	print "Getting $filename.$u from user directory\n";
-	`cp $ENV{AMRVAC_DIR}/src/usr/$filename.$u $filename`;
-      }else{
-	print STDERR "$filename is already there, doing nothing!\n";
-      } 
-      unless (-e($filename)){
-	print "$filename.$u not found, getting $filename.nul instead\n";	  
-	`cp $ENV{AMRVAC_DIR}/src/usr/$filename.nul $filename`;
-      } 
-}
-   foreach $filename ('mod_indices.t'){
-     unless (-e($filename)){                                                
-       print "Getting $filename from source directory\n";
-       `cp $ENV{AMRVAC_DIR}/src/$filename $filename`;
-     } else{
-       print STDERR "$filename is already there, doing nothing!\n";
-     }
-   }
- }
-# Read the parameters set in the makefile
- open(makefile,"makefile");
-# Find ndim and ndir and switches
-while($_=<makefile>){
-   chop;
-   $ndim="$'" if /ndim\s*=\s*/ ;
-   $ndir="$'" if /ndir\s*=\s*/;
-   $phys="$'" if /PHYSICS\s*=\s*/ ;
-   $arch="$'" if /ARCH\s*=\s*/ ;
-   $arch =~ s/.defs$//;
-   $phi="$'" if /phi\s*=\s*/ ;
-   $z="$'" if /z\s*=\s*/ ;
-   $nf="$'" if /nf\s*=\s*/ ;
-   $ndust="$'" if /ndust\s*=\s*/ ;
-   $eos="$'" if /eos\s*=\s*/ ;
-   $u="$'" if /USER\s*=\s*/ ;
-   last if /SETVAC READS UP TO THIS POINT/;
-}
-close(makefile);
-$d=10*$ndim+$ndir;
-$phi=0 if $phi<0; $z=0 if $z<0;
-
-$switch=~s/;? *\$if_/,/g; $switch=~s/^,//; $switch=~s/;$//;
-
-# Read the grid size from amrvacsettings.t
-   $filename="amrvacsettings.t";
-    unless (-e($filename)){                                                                        
-	print "Getting ".$filename." from source directory\n";
-	`cp $ENV{AMRVAC_DIR}/src/$filename .`;
-    }  
- open(VACDEF,$filename);
-while(($_=<VACDEF>)!~/ixGhi/){}; 
-close(VACDEF);
-/(ixGhi.*)/;$_=$1;s/ixGhi[123]=//g;$g=$_;
-@g=split(',',$g);
-exit(print"ndim=$ndim is greater than the number of defined sizes g=$g!\n")
-        if $ndim > 1+$#g;
-
-$settings="-d=$d -phi=$phi -z=$z -g=$g -p=$phys -eos=$eos -nf=$nf -ndust=$ndust -u=$u -arch=$arch";
-
-if($s){
-    # Show the current settings
-    print "$0 $settings\n";
-    exit if $showonly;
+    return %params;
 }
