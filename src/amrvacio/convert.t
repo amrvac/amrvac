@@ -242,15 +242,22 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
 end do
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
+do iigrid=1,igridstail; igrid=igrids(iigrid)
+   allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
+   pwio(igrid)%w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+   if(nwauxio>=1)then
+     call specialvar_output(ixG^LL,ixM^LL^LADD1,pwio(igrid)%w,px(igrid)%x,normconv)
+   endif
+end do
 
 if (saveprim) then
  do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call primitive(ixG^LL,ixG^LL^LSUB1,pw(igrid)%w,px(igrid)%x)
+  call primitive(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x)
  end do
 else
  if (nwaux>0) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
-   call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
+   call getaux(.true.,pwio(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
   end do
  end if
 end if
@@ -296,11 +303,6 @@ do ig3=1,ng3(level_io)}
            {^D&myB0_face^D => pB0_face^D(igrid)\}
          end if
          ! default (no) normalization for auxiliary variables
-         allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
-         pwio(igrid)%w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
-         if(nwauxio>=1)then
-            call specialvar_output(ixG^LL,ixM^LL^LADD1,pwio(igrid)%w,px(igrid)%x,normconv)
-         endif
          {^IFMHD
          ! add B0 component to B
          if(B0field) then
@@ -347,27 +349,11 @@ do ig3=1,ng3(level_io)
  end do
 end do}
 
-{^IFTHREED 
-do ig3=1,ng3(level_io)}
-   {^NOONED
-   do ig2=1,ng2(level_io)}
-       do ig1=1,ng1(level_io)
-         igrid=ig_to_igrid(ig^D,mype)
-         deallocate(pwio(igrid)%w)
-       end do
-   {^NOONED
-   end do}
-{^IFTHREED
-end do}
+do iigrid=1,igridstail; igrid=igrids(iigrid)
+   deallocate(pwio(igrid)%w)
+end do
 
 close(qunit)
-
-if (saveprim) then
- patchw(ixG^T)=.false.
- do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call conserve(ixG^LL,ixG^LL^LSUB1,pw(igrid)%w,px(igrid)%x,patchw)
- end do
-endif
 
 end subroutine oneblock
 !=============================================================================
