@@ -1,8 +1,12 @@
-#!/usr/bin/perl -si
+#!/usr/bin/perl -i
+
+use strict;
+use warnings;
+use Getopt::Long;
 
 my $help_message =
 "Usage: setup.pl [options]      To generate a new MPI-AMRVAC setup
-        setup.pl -s             To show the current options
+       setup.pl -show          To show the current options
 
 Options:
 
@@ -18,31 +22,83 @@ Options:
     -ndust=<number>             The number of dust species (default: 0)
     -arch=<name>                Use compilation flags from arch/<name>.defs
 
-    -s                          Show current options
+    -show                       Show current options
+    -help                       Show this help message
 
 Examples:
 
-setup.pl -d=22 -g=100,70 -phi=0 -z=2 -p=mhd -u=nul -arch=default
-setup.pl -s\n";
+setup.pl -d=22 -g=16,16 -p=mhd -arch=default
+setup.pl -show\n";
 
-# Check if at least one argument was defined
-if (!($d || $g || $s || $p || $eos || length($phi)) &&
-    !(length($z) || $arch || length($nf) || length($ndust))) {
-    print STDERR "Error: no arguments have been specified\n\n";
+# Locally define the variables that will hold the options
+my $ndim;
+my $ndir;
+my @block_size;
+my $physics;
+my $eos;
+my $phi_dir;
+my $z_dir;
+my $arch;
+my $ntracers;
+my $ndust;
+my $show;
+my $help;
+
+# Parse the options. Some are handled with a subroutine, which can do immediate
+# error checking.
+GetOptions(
+    "d=i"     =>
+    sub {
+        my ($opt_name, $opt_value) = @_;
+        $opt_value =~ /([123])([123])/ || die "-$opt_name flag incorrect\n";
+        $ndim = $1;
+        $ndir = $2;
+
+        $ndim >= 1 && $ndim <= 3 ||
+            die("1 <= ndim <= 3 does not hold\n");
+        $ndim <= $ndir && $ndir <= 3 ||
+            die("ndim <= ndir <= 3 does not hold\n");
+    },
+
+    "g=s"     =>
+    sub {
+        my ($opt_name, $opt_value) = @_;
+        @block_size = split(',', $opt_value); # Split option into an array
+        foreach (@block_size) {
+            $_ % 2 == 0 || die("-$opt_name args have to be even");
+            $_ > 0 || die("-$opt_name args have to be positive");
+        }
+    },
+
+    "p=s"     => \$physics,
+    "eos=s"   => \$eos,
+    "phi=i"   => \$phi_dir,
+    "z=i"     => \$z_dir,
+    "arch=s"  => \$arch,
+    "nf=i"    => \$ntracers,
+    "ndust=i" => \$ndust,
+    "show"    => \$show,
+    "help"    => \$help)
+    or die("Error in command line arguments\n");
+
+
+# Show help if -help is given or if there are no other arguments
+if ($help || !($ndim || $ndir || @block_size || $show || $physics || $eos ||
+               length($phi_dir) || length($z_dir) || $arch ||
+               length($ntracers) || length($ndust))) {
     print STDERR $help_message;
     exit;
 }
 
 # Check if the environment variable AMRVAC_DIR is defined
 if (!$ENV{AMRVAC_DIR}) {
-    print STDERR "Error: AMRVAC_DIR environment variable undefined\n";
-    print STDERR "You set the variable with:\n";
-    print STDERR "export $AMRVAC_DIR=your/amrvac/dir";
+    print STDERR "Error: \$AMRVAC_DIR variable undefined, set it with:\n";
+    print STDERR "export \$AMRVAC_DIR=your/amrvac/dir\n";
     exit;
 }
 
 # Show parameters and quit when -s was given
-if ($s) {
+if ($show) {
     show_current_parameters();
     exit;
 }
@@ -54,38 +110,36 @@ copy_if_not_present('mod_indices.t', "src");
 copy_if_not_present("definitions.h", "src");
 copy_if_not_present("amrvacsettings.t", "src");
 
-if ($d) {
-    # Separate the -d=NM argument into ndim (N) and ndir (M)
-    $c = $d - 10 * int($d/10);    # ndir is d mod 10
-    $d = int($d/10);              # ndim is d/10
-
-    replace_regexp_file("makefile", qr/ndim\s*=.*/, "ndim = $d");
-    replace_regexp_file("makefile", qr/ndir\s*=.*/, "ndir = $c");
+if ($ndim) {
+    replace_regexp_file("makefile", qr/ndim\s*=.*/, "ndim = $ndim");
 }
 
-if ($g) {
+if ($ndir) {
+    replace_regexp_file("makefile", qr/ndir\s*=.*/, "ndir = $ndir");
+}
+
+if (@block_size) {
     # Edit amrvacsettings.t specifying ixGhi[1,2,3] according to the $g flag
     # TODO: place these statements on separate lines
-    @g = split(',', $g);        # Split $g into an array
-    my $new_size = sprintf("ixGhi1 = %d", $g[0]);
+    my $new_size = sprintf("ixGhi1 = %d", $block_size[0]);
 
-    for ($i = 1; $i <= $#g; $i++) {
+    for (my $i = 1; $i <= $#block_size; $i++) {
         # Concatenate other dimensions
-        $new_size .= sprintf(", ixGhi%d = %d", $i+1, $g[i]);
+        $new_size .= sprintf(", ixGhi%d = %d", $i+1, $block_size[$i]);
     }
     replace_regexp_file("amrvacsettings.t", qr/ixGhi1\s*=.*/, $new_size);
 }
 
-if (length($nf)) {
-    replace_regexp_file("makefile", qr/nf\s*=.*/, "nf = $nf");
+if (length($ntracers)) {
+    replace_regexp_file("makefile", qr/nf\s*=.*/, "nf = $ntracers");
 }
 
 if (length($ndust)) {
     replace_regexp_file("makefile", qr/ndust\s*=.*/, "ndust = $ndust");
 }
 
-if ($p) {
-    replace_regexp_file("makefile", qr/PHYSICS\s*=.*/, "PHYSICS = $p");
+if ($physics) {
+    replace_regexp_file("makefile", qr/PHYSICS\s*=.*/, "PHYSICS = $physics");
 }
 
 if ($eos) {
@@ -96,45 +150,12 @@ if ($arch) {
     replace_regexp_file("makefile", qr/ARCH\s*=.*/, "ARCH = $arch.defs");
 }
 
-if (length($phi)) {
-    replace_regexp_file("makefile", qr/phi\s*=.*/, "phi = $phi");
+if (length($phi_dir)) {
+    replace_regexp_file("makefile", qr/phi\s*=.*/, "phi = $phi_dir");
 }
 
-if (length($z)) {
-    replace_regexp_file("makefile", qr/z\s*=.*/, "z = $z");
-}
-
-# Perform validity checks
-check_validity();
-
-# Check the validity of the current settings
-sub check_validity {
-    my %params = get_current_parameters();
-
-    if ($params{"ndim"} < 1 || $params{"ndim"} > 3) {
-        show_current_parameters();
-        exit(print "Error: 1 <= ndim <= 3 does not hold\n");
-    }
-
-    if ($params{"ndim"} > $params{"ndir"} || $params{"ndir"} > 3) {
-        show_current_parameters();
-        exit(print "Error: ndim <= ndir <= 3 does not hold\n");
-    }
-
-    if ($params{"phi"} == $params{"z"} && $params{"phi"} != 0) {
-        show_current_parameters();
-        exit(print "Error: phi and z have to differ unless both are 0\n");
-    }
-
-    if ($params{"phi"} > 0 && $params{"phi"} !=2 && $params{"phi"} !=3) {
-        show_current_parameters();
-        exit(print "phi can only be 2, 3, or <= 0\n");
-    }
-
-    if ($params{"z"} > 0 && $params{"z"} !=2 && $params{"z"} !=3) {
-        show_current_parameters();
-        exit(print "z can only be 2, 3, or <= 0\n");
-    }
+if (length($z_dir)) {
+    replace_regexp_file("makefile", qr/z\s*=.*/, "z = $z_dir");
 }
 
 # Copy a file if it doesn't exist yet
@@ -189,34 +210,38 @@ sub show_current_parameters {
 sub get_current_parameters {
     my %params;
 
-    open(makefile, "makefile");
-    while ($_ = <makefile>) {
+    if (!-e("makefile")) {
+        die("Error: cannot read options; makefile is missing");
+    }
+
+    open(my $fh_makefile, "<", "makefile");
+    while ($_ = <$fh_makefile>) {
         chop;
 
         # Note that $' returns the text after the match
-        $params{"ndim"}  = $1 if /^ndim\s*=\s*(\d+)/ ;
-        $params{"ndir"}  = $1 if /^ndir\s*=\s*(\d+)/;
-        $params{"phys"}  = $1 if /^PHYSICS\s*=\s*(\w+)/ ;
-        $params{"arch"}  = $1 if /^ARCH\s*=\s*(\w+)/ ;
-        $params{"phi"}   = $' if /^phi\s*=\s*/ ;
-        $params{"z"}     = $' if /^z\s*=\s*/ ;
-        $params{"nf"}    = $1 if /^nf\s*=\s*(\d+)/ ;
-        $params{"ndust"} = $1 if /^ndust\s*=\s(\d+)*/ ;
-        $params{"eos"}   = $1 if /^eos\s*=\s*(\w+)/ ;
+        $params{"ndim"}    = $1 if /^ndim\s*=\s*(\d+)/ ;
+        $params{"ndir"}    = $1 if /^ndir\s*=\s*(\d+)/;
+        $params{"physics"} = $1 if /^PHYSICS\s*=\s*(\w+)/ ;
+        $params{"arch"}    = $1 if /^ARCH\s*=\s*(\w+)/ ;
+        $params{"phi"}     = $' if /^phi\s*=\s*/ ;
+        $params{"z"}       = $' if /^z\s*=\s*/ ;
+        $params{"nf"}      = $1 if /^nf\s*=\s*(\d+)/ ;
+        $params{"ndust"}   = $1 if /^ndust\s*=\s(\d+)*/ ;
+        $params{"eos"}     = $1 if /^eos\s*=\s*(\w+)/ ;
         last if /SETVAC READS UP TO THIS POINT/;
     }
-    close(makefile);
+    close($fh_makefile);
 
     # Read the grid size from amrvacsettings.t
     if (-e("amrvacsettings.t")) {
-        open(vacdef, "amrvacsettings.t");
-        while ($_ = <vacdef>) {
+        open(my $fh_settings, "<", "amrvacsettings.t");
+        while ($_ = <$fh_settings>) {
             if (/ixGhi1/) {
                 my @block_size = ($_ =~ /ixGhi[123]\s*=\s*(\d+)/g);
                 $params{"block_size"} = join(", ", @block_size);
             }
         }
-        close(VACDEF);
+        close($fh_settings);
     }
     return %params;
 }
