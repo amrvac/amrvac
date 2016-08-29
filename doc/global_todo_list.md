@@ -7,6 +7,9 @@ the code.
 
 \todo **Important** Convert the physics modules to actual modules
 
+\todo **Important** Simplify the geometry description, by naming the supported
+geometries instead of defining phi, z, ndim, ndir and typeaxial.
+
 \todo Allow runs with more CPUs than coarse grid blocks
 
 \todo Implement the hlld solver
