@@ -165,7 +165,7 @@ logical        :: patchw(ixG^T)
            write(*,*),'lfac=',w(ix^D,lfac_),'xi=',w(ix^D,xi_)
 {#IFDEF GLM write(*,*),'psi=',w(ix^D,psi_) }
 {#IFDEF TRACER
-{^FL&      write(*,*),'tr^FL=',w(ix^D,Dtr^FL_)/w(ix^D,d_)}
+{^FL&      write(*,*),'tr^FL=',w(ix^D,Dtr^FL_)/w(ix^D,d_)\}
 }
            write(*,*),'position  ', x(ix^D, 1:ndim)
            if (patchierror(ix^D)<0) then
