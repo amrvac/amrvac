@@ -621,13 +621,7 @@ integer :: ixO^D
 !-----------------------------------------------------------------------------
 
 mue = eqpar(Mue_)
-
-if (saveprim) then 
-   ptherm(ixO^S) = w(ixO^S,e_)
-else
-   call getpthermal(w,x,ixI^L,ixO^L,ptherm) 
-endif  
-
+call getpthermal(w,x,ixI^L,ixO^L,ptherm) 
 
 {do ixO^DB = ixI^LIM^DB\}
    plocal   = ptherm(ixO^D)
