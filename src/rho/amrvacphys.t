@@ -102,11 +102,11 @@ logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idim
 double precision :: w(ixI^S,nw), x(ixI^S,1:ndim), cmax(ixG^T),cmin(ixG^T)
 !-----------------------------------------------------------------------------
-  call getv(w,x,ixI^L,ixO^L,idim,cmax)
+call getv(w,x,ixI^L,ixO^L,idim,cmax)
 
 if(needcmin)then
-  cmin(ixO^S)=min(cmax,zero)
-  cmax(ixO^S)=max(cmax,zero)
+  cmin(ixO^S)=min(cmax(ixO^S),zero)
+  cmax(ixO^S)=max(cmax(ixO^S),zero)
 else
   cmax(ixO^S)=abs(cmax(ixO^S))
 endif 

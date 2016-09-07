@@ -18,7 +18,7 @@ axis is in the first coordinate, which can therefore be referred to as **r_**,
 where **r_=1** is an integer parameter set in **src/amrvacdef.t**. When
 setting
 
-    setamrvac -d=23 -z=2 -phi=3
+    setup.pl -d=23 -z=2 -phi=3
 
 the second coordinate is interpreted as the one parallel to the axis,
 **z_=2**, while the ignored direction is **phi_=3** in 2.5D. The PHI
@@ -32,18 +32,18 @@ z- vector components. The same is true for -d=23 -z=2 -phi=3, when all three
 vector components are then depending on (r,z) coordinates only. The vector
 components then appear in the r,z,phi order. One can use 2.5D on a circular
 grid also with translational symmetry in the third, i.e. axial, direction by
-the use of _setamrvac -d=23 -phi=2 -z=3_. The vector components then appear in
-the r,phi,z order.
+the use of _setup.pl -d=23 -phi=2 -z=3_. The vector components then appear in
+the r,phi,z order and they are depending on (r,phi) coordinates.
 
 In spherical symmetry, **typeaxial='spherical'**, the invariant transformation
 is a rotation around the origin. Again, the first coordinate is **r_=1**. For
 2D and 'spherical', the coordinates denote radial and polar angle in a
 poloidal plane, and similarly for 2.5D in combination with spherical where the
 third vector component is then the phi-component, depending on (r,theta)
-alone. This means that 2D and 'spherical' implies the use of a polar grid in a
-poloidal cross-section (i.e. one containing the symmetry axis) and axial
-symmetry for 2.5D runs. Note that the _-phi -z_ flags for _setamrvac_ have no
-influence when selecting **typeaxial='spherical'**.
+alone. This means that 2D and 'spherical' implies the use of a 2D spherical 
+grid in a poloidal cross-section (i.e. one containing the symmetry axis) of a 
+3D sphercial coordinate and axial symmetry. Note that the _-phi -z_ flags  
+have no influence on the 2D spherical grid.
 
 ## What does Polar Grid Mean?
 
@@ -55,8 +55,8 @@ In 2D, the data in the **x** coordinates is interpreted as radial distance
 array contains **dr** and **r*dphi** and MPI-AMRVAC treats everything the same
 way as in a Cartesian grid. Meaningfull 2D settings are
 
-    setamrvac -d=22 -phi=2 -z=0
-    setamrvac -d=23 -phi=2 -z=3
+    setup.pl -d=22 -phi=2 -z=0
+    setup.pl -d=23 -phi=2 -z=3
 
 The main difference is that the geometric source terms are added due to
 **typeaxial='cylindrical'**. The former setting is purely 2D, the latter
@@ -65,8 +65,8 @@ setting is 2.5D, and assumes translational invariance with the z direction.
 In 3D, there are two possibilities: the coordinates can be ordered as **r, z,
 phi** or **r, phi, z**, where **z** is the vertical position.
 
-    setamrvac -d=33 -phi=2 -z=3
-    setamrvac -d=33 -phi=3 -z=2
+    setup.pl -d=33 -phi=2 -z=3
+    setup.pl -d=33 -phi=3 -z=2
 
 The vector variables also have their components in the **r, phi**, and **z**
 directions. These facts should be kept in mind when the initial conditions are
