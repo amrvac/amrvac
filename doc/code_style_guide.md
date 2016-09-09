@@ -342,3 +342,21 @@ Flag | meaning
 -pg | Enable support for profiling with a tool like `gprof`
 -O0 | Disable optimizations (when debugging)
 -fimplicit-none | Do not allow implicit types
+-std=... | Set the Fortran standard to use (f95, f2003, etc.)
+
+
+**Useful ifort flags**
+
+Flag                 | meaning
+---                  | ---
+-traceback           | Generate a backtrace after a run-time error
+-ftrapuv             | Initialize stack variables to unlikely values
+-warn all            | Enable all standard warnings
+-check all           | Enable all run-time checks
+-check ...           | Useful are: bounds, uninit
+-fpe[0,1,3]          | Lower values enable more floating point exceptions
+-g                   | Include debugging info into the executable
+-pg                  | Enable support for profiling with a tool like `gprof`
+-O0                  | Disable optimizations (when debugging)
+-implicitnone        | Do not allow implicit types
+-stand ...           | Set the Fortran standard to use (f95, f2003, etc.)
