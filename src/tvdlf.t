@@ -418,10 +418,8 @@ end subroutine dwlimiter2
 subroutine tvdlf(method,qdt,ixI^L,ixO^L,idim^LIM, &
                      qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
-! method=='tvdmu'  --> 2nd order (may be 3rd order in 1D) TVD-MUSCL scheme.
-! method=='tvdmu1' --> 1st order TVD-MUSCL scheme (upwind per charact. var.)
-! method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
-! method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
+!> method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
+!> method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
 
 include 'amrvacdef.f'
 
@@ -435,12 +433,11 @@ double precision, dimension(ixI^S,1:nwflux,1:ndim)        :: fC
 
 double precision, dimension(ixI^S,1:nw) :: wLC, wRC
 double precision, dimension(ixI^S)      :: fLC, fRC, vLC, vRC
-double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC,ie,ieL,ieR,ieCT
+double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ixtest^L
-logical :: transport, new_cmax, CmaxMeanState, logiB
+logical :: transport, new_cmax, CmaxMeanState
 logical, dimension(ixI^S) :: patchw
-logical, save :: evolvepressure=.false.
 !-----------------------------------------------------------------------------
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
@@ -453,7 +450,6 @@ if(oktest.and.mype==0) then
    print *,'reporting in ranges:',ixtest^L
 endif
 
-logiB=(BnormLF.and.b0_>0)
 !!call mpistop("tijdelijke stop")
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
@@ -595,7 +591,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
       fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
 
       ! Add TVDLF dissipation to the flux
-      if (.not.logiB .and. (iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
+      if ((.not.BnormLF) .and. (iw==b0_+idims{#IFDEF GLM .or.iw==psi_}) .and. b0_>0) then
          fRC(ixC^S)=0.d0
       else
          ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
@@ -660,8 +656,8 @@ end subroutine tvdlf
 subroutine hll(method,qdt,ixI^L,ixO^L,idim^LIM, &
                      qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
-! method=='hll'  --> 2nd order HLL scheme.
-! method=='hll1' --> 1st order HLL scheme.
+!> method=='hll'  --> 2nd order HLL scheme.
+!> method=='hll1' --> 1st order HLL scheme.
 
 include 'amrvacdef.f'
 
@@ -824,19 +820,18 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-     if(any(patchf(ixC^S)/= 2).or.logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then 
+     if(any(patchf(ixC^S)/= 2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
         call getflux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
         if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
      end if
-     if(any(patchf(ixC^S)/=-2).or.logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then 
+     if(any(patchf(ixC^S)/=-2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
         call getflux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
         if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
      end if
 
 
-     !if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
-     if (iw==b0_+idims{#IFDEF GLM .or.iw==psi_}) then
-        if (logiB) then
+     if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
+        if (BnormLF) then
            ! flat B norm using tvdlf
            fLC(ixC^S)= half*((fLC(ixC^S)+fRC(ixC^S)) &
                          -tvdlfeps*max(cmaxC(ixC^S)&
@@ -945,6 +940,7 @@ double precision, dimension(ixI^S)              :: lambdaCD
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
 logiB=(BnormLF.and.b0_>0)
+logiB=.false.
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
    method/='hllc1' .and. method/='hllcd1')&
@@ -1112,9 +1108,14 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    do iw=1,nwflux
      if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
-       fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
-                       -tvdlfeps*max(cmaxC(ixC^S)&
-                       ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+        if (BnormLF) then
+           ! flat B norm using tvdlf
+           fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
+                           -tvdlfeps*max(cmaxC(ixC^S)&
+                           ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+        else
+           fLC(ixC^S,iw)=zero
+        end if
      else
        where(patchf(ixC^S)==-2)
         fLC(ixC^S,iw)=fLC(ixC^S,iw)
@@ -1205,12 +1206,11 @@ double precision, dimension(ixI^S,1:nwflux,1:ndim)        :: fC
 
 double precision, dimension(ixI^S,1:nw) :: wLC, wRC
 double precision, dimension(ixI^S)      :: fLC, fRC, vLC, vRC
-double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC,ie,ieL,ieR,ieCT
+double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ixtest^L
 logical :: transport, new_cmax, CmaxMeanState
 logical, dimension(ixI^S) :: patchw
-logical, save :: evolvepressure=.false.
 !-----------------------------------------------------------------------------
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
