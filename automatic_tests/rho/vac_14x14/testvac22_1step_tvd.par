@@ -1,0 +1,53 @@
+!=====================================================
+!> Project : Advection test
+!>   Doing discontinuous 2D VAC logo on periodic square
+!>      exploit dynamic AMR, onestep TVD scheme, 
+!>              (hence 2 ghost cell layers)
+!> $AMRVAC_DIR/setup.pl -d=22 -g=14,14 -p=rho
+!=====================================================
+ &testlist
+        teststr=' '
+/
+
+ &filelist
+        filenameout='vactvd'
+        filenamelog='vactvd'
+        primnames='rho'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+/
+ &savelist
+        dtsave(5)=1.0d-2
+ /
+
+ &stoplist
+        tmax=0.1d0
+ /
+
+ &methodlist
+        wnames=       'rho'
+        fileheadout=  'test_rho22'
+        typeadvance=  'onestep'
+        typefull1 =    13*'tvd'
+ /
+
+ &boundlist
+        dixB=   2
+        typeB=  'periodic','periodic','periodic','periodic'
+ /
+
+ &amrlist
+        mxnest=4
+        tol=13*0.1d0
+        nxlone1=50
+        nxlone2=50
+        iprob=3
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /
+
+ &paramlist
+       courantpar=0.90
+ /
