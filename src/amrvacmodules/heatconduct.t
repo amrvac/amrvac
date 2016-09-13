@@ -1,48 +1,48 @@
 !##############################################################################
-! module heatconduct.t -- heat conduction for HD and MHD
-! 10.07.2011 developed by Chun Xia and Rony Keppens
-! 01.09.2012 moved to modules folder by Oliver Porth
-! 13.10.2013 optimized further by Chun Xia
-! 12.03.2014 implemented RKL2 super timestepping scheme to reduce iterations 
-! and improve stability and accuracy up to second order in time by Chun Xia.
-! 23.08.2014 implemented saturation and perpendicular TC by Chun Xia
-! 
-! PURPOSE: 
-! IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
-! S=DIV(KAPPA_i,j . GRAD_j T)
-! where KAPPA_i,j = kappa b_i b_j + kappe (I - b_i b_j)
-! b_i b_j = B_i B_j / B**2, I is the unit matrix, and i, j= 1, 2, 3 for 3D
-! IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
-! S=DIV(kappa . GRAD T)
-! USAGE:
-! 1. in amrvacusr.t add: 
-!   a. INCLUDE:amrvacmodules/heatconduct.t
-!   b. in subroutine initglobaldata_usr, add conductivity:
-!      eqpar(kappa_)=kappa0*Teunit**3.5d0/Lunit/runit/vunit**3 
-!     kappa0=1.d-6 erg/cm/s/K**3.5 or 1.d-11 J/m/s/K**3.5  is Spitzer 
-!     conductivity for solar corona. Teunit, Lunit, runit, and vunit are the 
-!     unit of temperature, length, density, and velocity. Teunit and vunit are 
-!     dependent, e.g., vunit=sqrt(R Teunit).
-! 2. in amrvacusrpar.t add kappa_ 
-! 3. in definitions.h :
-!    #define TCRKL2
-! 4. in the methodlist of amrvac.par add:
-!    conduction=.true.
-! Saturation: (default off)
-!    in the methodlist of amrvac.par add:
-!    TCsaturate=.true.
-!    phi coefficient of saturated flux
-!    TCphi=1.d0
-! Addition thermal conduction perpendicular to magnetic field (Orlando 2008 ApJ
-! 678 247)
-!    in definition.h :
-!    #define TCPERPENDICULAR
-!    in subroutine initglobaldata_usr, add perpendicular conductivity:
-!eqpar(kappe_)=kappa1*nHunit**2/dsqrt(Teunit)/Bunit**2*Teunit/Lunit/runit/vunit**3
-!    kappa1=3.3d-16 erg Gauss**2 cm**5 /s/K**0.5 or 
-!           3.3d-41 J T**2 m**5 /s/K**0.5
-!    (nHunit and Bunit are the unit of number density and magnetic field.)
-!    in amrvacusrpar.t add kappe_ 
+!> module heatconduct.t -- heat conduction for HD and MHD
+!! 10.07.2011 developed by Chun Xia and Rony Keppens
+!! 01.09.2012 moved to modules folder by Oliver Porth
+!! 13.10.2013 optimized further by Chun Xia
+!! 12.03.2014 implemented RKL2 super timestepping scheme to reduce iterations 
+!! and improve stability and accuracy up to second order in time by Chun Xia.
+!! 23.08.2014 implemented saturation and perpendicular TC by Chun Xia
+!! 
+!! PURPOSE: 
+!! IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
+!! S=DIV(KAPPA_i,j . GRAD_j T)
+!! where KAPPA_i,j = kappa b_i b_j + kappe (I - b_i b_j)
+!! b_i b_j = B_i B_j / B**2, I is the unit matrix, and i, j= 1, 2, 3 for 3D
+!! IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
+!! S=DIV(kappa . GRAD T)
+!! USAGE:
+!! 1. in amrvacusr.t add: 
+!!   a. INCLUDE:amrvacmodules/heatconduct.t
+!!   b. in subroutine initglobaldata_usr, add conductivity:
+!!      eqpar(kappa_)=kappa0*Teunit**3.5d0/Lunit/runit/vunit**3 
+!!     kappa0=1.d-6 erg/cm/s/K**3.5 or 1.d-11 J/m/s/K**3.5  is Spitzer 
+!!     conductivity for solar corona. Teunit, Lunit, runit, and vunit are the 
+!!     unit of temperature, length, density, and velocity. Teunit and vunit are 
+!!     dependent, e.g., vunit=sqrt(R Teunit).
+!! 2. in amrvacusrpar.t add kappa_ 
+!! 3. in definitions.h :
+!!    #define TCRKL2
+!! 4. in the methodlist of amrvac.par add:
+!!    conduction=.true.
+!! Saturation: (default off)
+!!    in the methodlist of amrvac.par add:
+!!    TCsaturate=.true.
+!!    phi coefficient of saturated flux
+!!    TCphi=1.d0
+!! Addition thermal conduction perpendicular to magnetic field (Orlando 2008 ApJ
+!! 678 247)
+!!    in definition.h :
+!!    #define TCPERPENDICULAR
+!!    in subroutine initglobaldata_usr, add perpendicular conductivity:
+!!eqpar(kappe_)=kappa1*nHunit**2/dsqrt(Teunit)/Bunit**2*Teunit/Lunit/runit/vunit**3
+!!    kappa1=3.3d-16 erg Gauss**2 cm**5 /s/K**0.5 or 
+!!           3.3d-41 J T**2 m**5 /s/K**0.5
+!!    (nHunit and Bunit are the unit of number density and magnetic field.)
+!!    in amrvacusrpar.t add kappe_ 
 !=============================================================================
 subroutine thermalconduct_RKL2(s,qdt,qt)
 ! Meyer 2012 MNRAS 422,2102

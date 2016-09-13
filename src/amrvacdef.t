@@ -212,13 +212,13 @@ common /INTE/ nwtf,neqpartf,kr,lvc,it,itmax,itmin,slowsteps,itsave,itsavelast,&
    itfixgrid,ditregrid,nwauxio,istep, nstep,errorestimate,nxdiffusehllc,&
    typespherical,ncyclemax,maxitnr,nflatgetaux,level_io, level_io_min,&
     level_io_max,ncool, cmulti,snapshotini,ixtest1,ixtest2,ixtest3,iwtest,&
-   idimtest
+   idimtest{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
 common /DOUB/ UNIT_LENGTH, UNIT_DENSITY, UNIT_VELOCITY,eqpar,courantpar,&
     dtpar, dtdiffpar, dtTCpar,t,tmax,dtmin,residmin,residmax,residual,&
    tfixgrid,tsave,tsavelast,dtsave,slicecoord,entropycoef,tvdlfeps, mcbeta,&
     parastsnu, TCphi,divbdiff,smallT,smallp,smallrho,amr_wavefilter,dmaxvel,&
    tolernr,absaccnr,tlow,writespshift,cfrac,smallrhod,cmax_mype, cmax_global,&
-   x1ptms,x2ptms,x3ptms,ptmass,ratebdflux,normvar,normt,Xload,Xmemory,time_bc{#IFDEF STRETCHGRID ,logGs,qsts}
+   x1ptms,x2ptms,x3ptms,ptmass,ratebdflux,normvar,normt,Xload,Xmemory,time_bc{#IFDEF STRETCHGRID ,logGs,qsts}{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb,tmf}
 common /CHAR/ typecourant,typeresid,typeadvance,typelow1,typelimited,&
    typesourcesplit,typefull1, typepred1,typelimiter1,typegradlimiter1,&
    typeprolonglimit,typeentropy,typetvd,typetvdlf,&

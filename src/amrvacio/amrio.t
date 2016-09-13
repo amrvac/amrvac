@@ -1721,12 +1721,9 @@ timeLast   = now
 cellupdatesPerSecond = dble(ncells) * dble(nstep) * dble(dit) / (dtTimeLast * dble(npe))
 ! blocks per core:
 activeBlocksPerCore = dble(nleafs_active) / dble(npe)
+
 ! Wall clock time per code time unit in seconds:
-if (dt .gt. zero) then 
-   wctPerCodeTime = dtTimeLast / (dble(dit) * dt)
-else
-   wctPerCodeTime = zero
-end if
+wctPerCodeTime = dtTimeLast / max(dit * dt, epsilon(1.0d0))
 
 ! Wall clock time to finish in hours:
 timeToFinish = (tmax - t) * wctPerCodeTime / 3600.0d0
