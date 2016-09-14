@@ -149,15 +149,15 @@ def read_node(dat,forest,igrid,refine,ndimini,level,block_info,ix):
         forest.append(0)
         refine += 1
         for i in range(2):
-            child_index = new_index(ndimini,i,ix)
+            child_index = new_index(ndimini, i, ix)
             (igrid,refine) = read_node(dat,forest,igrid,refine,ndimini,level+1,block_info,child_index)
     return igrid,refine
 
 
-def new_index(dims,i,ig):
+def new_index(dims, i, ig):
     # Calculate new grid indices for child nodes if node is refined.
     # See Keppens (2012) section 3.3
-    return [2*(ig[0]-1) + 1 + i,1,1]
+    return 2 * (ig-1) + 1 + i
 
 
 def calc_coord(c,n_cell,lb,dxc_block):
