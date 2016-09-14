@@ -1,5 +1,5 @@
-TEST_DIRS := rho/vac hd/jetCloudInteractions hd/RM2D hd/RT3D mhd/doubleGEM	\
-mhd/promRT
+TEST_DIRS := rho/vac_16 rho/vac_14x14 rho/vac_16x16 rho/vac_16x16x16	\
+hd/jetCloudInteractions hd/RM2D hd/RT3D mhd/doubleGEM mhd/promRT
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
