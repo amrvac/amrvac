@@ -32,5 +32,5 @@ mod_global_parameters.o: mod_indices.o mod_physicaldata.o mod_connectivity.o
 mod_physicaldata.o : mod_indices.o
 amr_fix_conserve.o : mod_fix_conserve.o
 forest.o initialize_vars.o : mod_forest.o mod_global_parameters.o
-amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o
+amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o
 ############################################################################

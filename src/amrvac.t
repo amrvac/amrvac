@@ -11,6 +11,7 @@ program amrvac
 use mod_gridvars, only: init_gridvars, finish_gridvars
 }
 use mod_global_parameters
+use mod_input_output
 
 integer :: itin
 double precision :: time0, time_in, tin
@@ -22,10 +23,7 @@ time_advance=.false.
 time0=MPI_WTIME()
 time_bc=zero
 
-
-! get input parameters
-call readcommandline
-call readparameters
+call read_arguments_and_parameters()
 call initialize_vars
 call init_comm_types
 
@@ -150,6 +148,7 @@ subroutine timeintegration
 
 use mod_timing
 use mod_global_parameters
+use mod_input_output, only: saveamrfile
 
 integer :: level, ifile, fixcount
 
