@@ -1,6 +1,6 @@
 !> Write the first and second mode to a special log file
 subroutine write_analysis
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer, parameter :: n_modes   = 2
   character(len=40)  :: fmt_string
@@ -29,7 +29,7 @@ end subroutine write_analysis
 !> corresponds to to the mean, the second to the mean squared values etc.
 subroutine volume_average(power, mode, volume)
   use constants
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer, intent(in)           :: power     !< Which mode to compute
   double precision, intent(out) :: mode(nw)  !< The computed mode
