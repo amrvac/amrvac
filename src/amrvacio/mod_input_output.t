@@ -4,6 +4,11 @@ module mod_input_output
   implicit none
   public
 
+  ! Formats used in output
+  character(len=*), parameter :: fmt_r  = 'es14.6' ! Default precision
+  character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
+  character(len=*), parameter :: fmt_i  = 'i8'     ! Integer format
+
 contains
 
   !> Read the command line arguments passed to amrvac
@@ -406,7 +411,6 @@ contains
     ! Set default variable names
     primnames = 'default'
     wnames    = 'default'
-    wnameslog = wnames
 
     ! These are used to construct file and log names from multiple par files
     filenameout_full = ''
@@ -907,6 +911,8 @@ contains
        select case (typefilelog)
        case ('default')
           call printlog_default
+       case ('regression_test')
+          call printlog_regression_test()
        case ('special')
           call printlog_special
        case default
@@ -1766,62 +1772,39 @@ contains
 
   end subroutine read_snapshotnopar
 
+  !> Write volume-averaged values and other information to the log file
   subroutine printlog_default
 
-    ! printlog: calculates volume averaged mean values 
     use mod_timing
-    use mod_forest,only:nleafs,nleafs_active,nleafs_level
+    use mod_forest, only: nleafs, nleafs_active, nleafs_level
     use mod_global_parameters
 
-    logical          :: fileopen
-    integer          :: iigrid, igrid, level, iw, i
-    double precision :: wmean(1:nw), volume(1:nlevelshi), volprob, voltotal
-    double precision :: dvolume(ixG^T), volumeflat(1:nlevelshi)
-    integer          :: numlevels, nx^D, nc, ncells, dit
-    double precision :: dtTimeLast, now, cellupdatesPerSecond, activeBlocksPerCore, wctPerCodeTime, timeToFinish
-    integer, dimension(1:nlevelshi) :: isum_send, isum_recv
-    double precision, dimension(1:nw+1+nlevelshi) :: dsum_send, dsum_recv
-    character(len=80) :: filename
-    character(len=2048) :: line
-    logical, save :: opened=.false.
-    integer :: amode, status(MPI_STATUS_SIZE)
-    !-----------------------------------------------------------------------------
+    logical              :: fileopen
+    integer              :: i, iw, level
+    double precision     :: wmean(1:nw), total_volume
+    double precision     :: volume_coverage(mxnest)
+    integer              :: nx^D, nc, ncells, dit
+    double precision     :: dtTimeLast, now, cellupdatesPerSecond
+    double precision     :: activeBlocksPerCore, wctPerCodeTime, timeToFinish
+    character(len=40)    :: fmt_string
+    character(len=80)    :: filename
+    character(len=2048)  :: line
+    logical, save        :: opened  = .false.
+    integer              :: amode, status(MPI_STATUS_SIZE)
 
-    volume(1:mxnest)=zero
-    volumeflat(1:mxnest)=zero
-    wmean(1:nw)= zero
+    ! Compute the volume-average of w**1 = w
+    call get_volume_average(1, wmean, total_volume)
 
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       level=node(plevel_,igrid)
-       volumeflat(level)=volumeflat(level)+ &
-            {(rnode(rpxmax^D_,igrid)-rnode(rpxmin^D_,igrid))|*}
-       if (slab) then
-          dvolume(ixM^T)={rnode(rpdx^D_,igrid)|*}
-       else
-          dvolume(ixM^T)=pgeo(igrid)%dvolume(ixM^T)
-          volume(level)=volume(level)+sum(dvolume(ixM^T))
-       end if
-       do iw=1,nw
-          wmean(iw)=wmean(iw)+sum(dvolume(ixM^T)*pw(igrid)%w(ixM^T,iw))
-       end do
-    end do
-    if (slab) volume(levmin:levmax)=volumeflat(levmin:levmax)
+    ! Compute the volume coverage
+    call get_volume_coverage(volume_coverage)
 
-    voltotal=sum(volume(levmin:levmax))
-
-    numlevels=levmax-levmin+1
-    dsum_send(1:nw)=wmean(1:nw)
-    dsum_send(nw+1)=voltotal
-    dsum_send(nw+2:nw+1+numlevels)=volumeflat(levmin:levmax)
-    call MPI_REDUCE(dsum_send,dsum_recv,nw+1+numlevels,MPI_DOUBLE_PRECISION, &
-         MPI_SUM,0,icomm,ierrmpi)
-
-    if (mype==0) then
+    if (mype == 0) then
 
        ! To compute cell updates per second, we do the following:
        nx^D=ixMhi^D-ixMlo^D+1;
        nc={nx^D*}
        ncells = nc * nleafs_active
+
        ! assumes the number of active leafs haven't changed since last compute.
        now        = MPI_WTIME()
        dit        = it - itTimeLast
@@ -1829,6 +1812,7 @@ contains
        itTimeLast = it
        timeLast   = now
        cellupdatesPerSecond = dble(ncells) * dble(nstep) * dble(dit) / (dtTimeLast * dble(npe))
+
        ! blocks per core:
        activeBlocksPerCore = dble(nleafs_active) / dble(npe)
 
@@ -1838,112 +1822,174 @@ contains
        ! Wall clock time to finish in hours:
        timeToFinish = (tmax - t) * wctPerCodeTime / 3600.0d0
 
-       wmean(1:nw)=dsum_recv(1:nw)
-       voltotal=dsum_recv(nw+1)
-       volumeflat(levmin:levmax)=dsum_recv(nw+2:nw+1+numlevels)
+       ! On first entry, open the file and generate the header
+       if (.not. opened) then
 
-       wmean=wmean/voltotal
+          filename = trim(filenamelog) // ".log"
+          amode    = ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+          amode    = ior(amode,MPI_MODE_APPEND)
 
-       ! determine coverage in coordinate space
-       volprob={(xprobmax^D-xprobmin^D)|*}
-       volumeflat(levmin:levmax)=volumeflat(levmin:levmax)/volprob
+          call MPI_FILE_OPEN(MPI_COMM_SELF, filename, amode, &
+               MPI_INFO_NULL, log_fh, ierrmpi)
 
-       if (.not.opened) then
-          ! generate filename
-          write(filename,"(a,a)") TRIM(filenamelog),".log"
+          opened = .true.
 
-          amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
-          amode=ior(amode,MPI_MODE_APPEND)
-          call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode, &
-               MPI_INFO_NULL,log_fh,ierrmpi)
-          opened=.true.
+          call MPI_FILE_WRITE(log_fh, trim(fileheadout) // new_line('a'), &
+               len_trim(fileheadout)+1, MPI_CHARACTER, status, ierrmpi)
 
-          call MPI_FILE_WRITE(log_fh,fileheadout,len_trim(fileheadout), &
-               MPI_CHARACTER,status,ierrmpi)
-          !!call MPI_FILE_WRITE(log_fh,new_line('a'),1,MPI_CHARACTER,status,ierrmpi)
-          call MPI_FILE_WRITE(log_fh,achar(10),1,MPI_CHARACTER,status,ierrmpi)
+          ! Start of file headern
+          line = "it t dt res " // trim(wnames)
 
-          i=len_trim(wnameslog)-1
-          do level=1,mxnest
-             i=i+3
-             if(level<10) then
-                if (i+1<1024) write(wnameslog(i:i+1),"(a,i1)") "c",level
-             else
-                if (i+2<1024) write(wnameslog(i:i+2),"(a,i2)") "c",level
-             endif
+          ! Volume coverage per level
+          do level = 1, mxnest
+             i = len_trim(line) + 2
+             write(line(i:), "(a,i0)") "c", level
           end do
 
+          ! Cell counts per level
           do level=1,mxnest
-             i=i+3
-             if(level<10) then
-                if (i+1<1024) write(wnameslog(i:i+1),"(a,i1)") "n",level
-             else
-                if (i+2<1024) write(wnameslog(i:i+2),"(a,i2)") "n",level
-             endif
+             i = len_trim(line) + 2
+             write(line(i:), "(a,i0)") "n", level
           end do
-          if (time_accurate) then
-             if(residmin>smalldouble) then
-                write(line,'(a15,a1024)')"it   t  dt res ",wnameslog
-             else
-                write(line,'(a15,a1024)')"it   t   dt    ",wnameslog
-             endif
-          else
-             if(residmin>smalldouble) then
-                write(line,'(a7,a1024)')"it res ",wnameslog
-             else
-                write(line,'(a7,a1024)')"it     ",wnameslog
-             endif
-          end if
 
-          line=trim(line)//"| Xload Xmemory 'Cell_Updates /second/core'"
-          line=trim(line)//" 'Active_Blocks/Core' 'Wct Per Code Time [s]' 'TimeToFinish [hrs]'"
+          ! Rest of file header
+          line = trim(line) // " | Xload Xmemory 'Cell_Updates /second/core'"
+          line = trim(line) // " 'Active_Blocks/Core' 'Wct Per Code Time [s]'"
+          line = trim(line) // " 'TimeToFinish [hrs]'"
 
-
-          call MPI_FILE_WRITE(log_fh,line,len_trim(line),MPI_CHARACTER, &
-               status,ierrmpi)
+          call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
+               len_trim(line)+1, MPI_CHARACTER, status, ierrmpi)
        end if
-       !!call MPI_FILE_WRITE(log_fh,new_line('a'),1,MPI_CHARACTER,status,ierrmpi)
-       call MPI_FILE_WRITE(log_fh,achar(10),1,MPI_CHARACTER,status,ierrmpi)
 
-       if (time_accurate) then
-          if(residmin>smalldouble) then
-             write(line,'(i7,3(es12.4))')it,t,dt,residual
-          else
-             write(line,'(i7,2(es12.4))')it,t,dt
-          endif
-       else
-          if(residmin>smalldouble) then
-             write(line,'(i7,1(es12.4))')it,residual
-          else
-             write(line,'(i7)')it
-          endif
-       end if
-       call MPI_FILE_WRITE(log_fh,line,len_trim(line), &
-            MPI_CHARACTER,status,ierrmpi)
-       do iw=1,nw
-          write(line,'(es12.4)')wmean(iw)
-          call MPI_FILE_WRITE(log_fh,line,len_trim(line), &
-               MPI_CHARACTER,status,ierrmpi)
-       end do
-       do level=1,mxnest
-          write(line,'(es12.4)')volumeflat(level)
-          call MPI_FILE_WRITE(log_fh,line,len_trim(line), &
-               MPI_CHARACTER,status,ierrmpi)
-       end do
+       ! Construct the line to be added to the log
 
-       do level=1,mxnest
-          write(line,'(i8)') nleafs_level(level)
-          call MPI_FILE_WRITE(log_fh,line,len_trim(line), &
-               MPI_CHARACTER,status,ierrmpi)
-       end do
+       fmt_string = '(' // fmt_i // ',3' // fmt_r // ')'
+       write(line, fmt_string) it, t, dt, residual
+       i = len_trim(line) + 2
 
-       write(line,'(a3,6(es10.2))') ' | ', Xload, Xmemory, cellupdatesPerSecond, &
+       write(fmt_string, '(a,i0,a)') '(', nw, fmt_r // ')'
+       write(line(i:), fmt_string) wmean(1:nw)
+       i = len_trim(line) + 2
+
+       write(fmt_string, '(a,i0,a)') '(', mxnest, fmt_r // ')'
+       write(line(i:), fmt_string) volume_coverage(1:mxnest)
+       i = len_trim(line) + 2
+
+       write(fmt_string, '(a,i0,a)') '(', mxnest, fmt_i // ')'
+       write(line(i:), fmt_string) nleafs_level(1:mxnest)
+       i = len_trim(line) + 2
+
+       fmt_string = '(a,6' // fmt_r2 // ')'
+       write(line(i:), fmt_string) '| ', Xload, Xmemory, cellupdatesPerSecond, &
             activeBlocksPerCore, wctPerCodeTime, timeToFinish
-       call MPI_FILE_WRITE(log_fh,line,len_trim(line), &
-            MPI_CHARACTER,status,ierrmpi)
 
+       call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a') , &
+            len_trim(line)+1, MPI_CHARACTER, status, ierrmpi)
     end if
 
   end subroutine printlog_default
+
+  !> Print a log that can be used to check whether the code still produces the
+  !> same output (regression test)
+  subroutine printlog_regression_test()
+    use mod_global_parameters
+
+    integer, parameter :: n_modes = 2
+    integer, parameter :: my_unit = 123
+    character(len=40)  :: fmt_string
+    logical, save      :: file_open = .false.
+    integer            :: power
+    double precision   :: modes(nw, n_modes), volume
+
+    do power = 1, n_modes
+       call get_volume_average(power, modes(:, power), volume)
+    end do
+
+    if (mype == 0) then
+       if (.not. file_open) then
+          open(my_unit, file=trim(filenamelog)//".log")
+          file_open = .true.
+
+          write(my_unit, *) "# time mean(w) mean(w**2)"
+       end if
+
+       write(fmt_string, "(a,i0,a)") "(", nw * n_modes + 1, fmt_r // ")"
+       write(my_unit, fmt_string) t, modes
+    end if
+  end subroutine printlog_regression_test
+
+  !> Compute mean(w**power) over the leaves of the grid. The first mode
+  !> (power=1) corresponds to to the mean, the second to the mean squared values
+  !> and so on.
+  subroutine get_volume_average(power, mode, volume)
+    use mod_global_parameters
+
+    integer, intent(in)           :: power     !< Which mode to compute
+    double precision, intent(out) :: mode(nw)  !< The computed mode
+    double precision, intent(out) :: volume    !< The total grid volume
+    integer                       :: iigrid, igrid, iw
+    double precision              :: wsum(nw+1)
+    double precision              :: dvolume(ixG^T)
+    double precision              :: dsum_recv(1:nw+1)
+
+    wsum(:) = 0
+
+    ! Loop over all the grids
+    do iigrid = 1, igridstail
+       igrid = igrids(iigrid)
+
+       ! Determine the volume of the grid cells
+       if (slab) then
+          dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
+       else
+          dvolume(ixM^T) = pgeo(igrid)%dvolume(ixM^T)
+       end if
+
+       ! Store total volume in last element
+       wsum(nw+1) = wsum(nw+1) + sum(dvolume(ixM^T))
+
+       ! Compute the modes of the cell-centered variables, weighted by volume
+       do iw = 1, nw
+          wsum(iw) = wsum(iw) + &
+               sum(dvolume(ixM^T)*pw(igrid)%w(ixM^T,iw)**power)
+       end do
+    end do
+
+    ! Make the information available on all tasks
+    call MPI_ALLREDUCE(wsum, dsum_recv, nw+1, MPI_DOUBLE_PRECISION, &
+         MPI_SUM, 0, icomm, ierrmpi)
+
+    ! Set the volume and the average
+    volume = dsum_recv(nw+1)
+    mode   = dsum_recv(1:nw) / volume
+
+  end subroutine get_volume_average
+
+  !> Compute how much of the domain is covered by each grid level. This routine
+  !> does not take a non-Cartesian geometry into account.
+  subroutine get_volume_coverage(vol_cov)
+    use mod_global_parameters
+
+    double precision, intent(out) :: vol_cov(1:mxnest)
+    double precision              :: dsum_recv(1:mxnest)
+    integer                       :: iigrid, igrid, iw, level
+
+    ! First determine the total 'flat' volume in each level
+    vol_cov(1:mxnest)=zero
+
+    do iigrid = 1, igridstail
+       igrid          = igrids(iigrid);
+       level          = node(plevel_,igrid)
+       vol_cov(level) = vol_cov(level)+ &
+            {(rnode(rpxmax^D_,igrid)-rnode(rpxmin^D_,igrid))|*}
+    end do
+
+    ! Make the information available on all tasks
+    call MPI_ALLREDUCE(vol_cov, dsum_recv, mxnest, MPI_DOUBLE_PRECISION, &
+         MPI_SUM, 0, icomm, ierrmpi)
+
+    ! Normalize
+    vol_cov = dsum_recv / sum(dsum_recv)
+  end subroutine get_volume_coverage
 
 end module mod_input_output

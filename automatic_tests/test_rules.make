@@ -34,7 +34,7 @@ amrvac: $(SETUP_FILES)
 # How to run the tests
 $(TESTS): amrvac
 	mpirun -np $(NUM_PROCS) ./amrvac -i $(@:%=%.par) > run.log
-	@if $(LOG_CMP) ${@:%=%.par.log} correct_output/${@:%=%.par.log} ; \
+	@if $(LOG_CMP) ${@}.log correct_output/${@}.log ; \
 	then echo -e "$(GREEN)PASSED $@ $(NOCOLOR)" ; \
 	else echo -e "$(RED)FAILED $@ $(NOCOLOR)" ; \
 	fi

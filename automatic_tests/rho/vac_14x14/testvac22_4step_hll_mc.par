@@ -12,13 +12,14 @@
  &filelist
         filenameout='vachllmc'
         filenamelog='vachllmc'
+        typefilelog='regression_test'
         primnames='rho'
     	convert_type='vtuBCCmpi'
         autoconvert=T
 /
 
  &savelist
-        dtsave(5)=1.0d-2
+        dtsave(1)=1.0d-2
  /
 
  &stoplist

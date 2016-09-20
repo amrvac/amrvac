@@ -5,13 +5,14 @@
 
 &filelist
   primnames        = 'rho v1 v2 v3 p'
+  typefilelog      = 'regression_test'
   autoconvert      = .true.
   convert_type     = 'vtuBCCmpi'
   saveprim         = .true.
 /
 
  &savelist
-   dtsave(5)       = 1.d-3
+   dtsave(1)       = 1.d-3
 /
 
  &stoplist

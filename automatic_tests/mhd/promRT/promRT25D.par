@@ -14,7 +14,7 @@
         filenamelog='promRTtwod'
         filenameout='promRTtwod'
         primnames= 'rho v1 v2 v3 p b1 b2 b3 psi tr'
-        typefilelog='special'
+        typefilelog='regression_test'
         autoconvert=.true.
         saveprim=.true.
         convert_type='vtuBmpi'
@@ -24,7 +24,7 @@
         convert_type='user'
 
  &savelist
-        dtsave(5)     = 1.0d-3
+        dtsave(1)     = 1.0d-3
  /
 
  &stoplist

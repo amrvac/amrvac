@@ -16,9 +16,11 @@ dt=zero
 dtimpl=zero
 itmin=0
 
-if(.not.time_accurate.or.residmin>smalldouble) then
-  residual=one
-endif 
+if (.not. time_accurate .or. residmin > smalldouble) then
+   residual = one
+else
+   residual = zero
+endif
 
 ! set all dt to zero
 dt_grid(1:ngridshi)=zero

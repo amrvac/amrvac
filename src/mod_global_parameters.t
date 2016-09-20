@@ -150,7 +150,7 @@ module mod_global_parameters
   !File parameters
   character*131 :: inifile,filenameout,filenameini,filenamelog
   CHARACTER*131 :: fileheadout
-  CHARACTER*1024 :: wnames,primnames,wnameslog
+  CHARACTER*1024 :: wnames,primnames
   CHARACTER*131 :: typefilelog
   INTEGER :: snapshotini
   LOGICAL :: sliceascii
