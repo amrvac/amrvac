@@ -6,7 +6,7 @@ subroutine smallvalues(w,x,ixI^L,ixO^L,patchw,subname)
 
 ! difference with srhd case only in padding array patchw
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L
 double precision             :: w(ixI^S,1:nw)
@@ -58,7 +58,7 @@ subroutine getaux(clipping,w,x,ixI^L,ixO^L,subname)
 ! Calculate the auxiliary variables lfac and xi within ixO^L
 ! clipping is not used (yet) 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical, intent(in)            :: clipping
 integer, intent(in)            :: ixI^L, ixO^L
@@ -122,7 +122,7 @@ end subroutine getaux
 !=============================================================================
 subroutine correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)            :: ixI^L, ixO^L
 integer, intent(in)            :: patchierror(ixG^T)

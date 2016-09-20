@@ -3,7 +3,7 @@ subroutine addsource_grav(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
 ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -36,7 +36,7 @@ end subroutine addsource_grav
 !=============================================================================
 subroutine getdt_grav(w,ixG^L,ix^L,dtnew,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim), w(ixG^S,1:nw)

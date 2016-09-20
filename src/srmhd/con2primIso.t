@@ -13,7 +13,7 @@
 !     momentum density , and magnetic field B.
 !    ( isentropic equation of state ) 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! ----------------------------------------------------------------
 !  Input:

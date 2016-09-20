@@ -44,7 +44,7 @@ subroutine addsource_rloss(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! 01.09.2012: moved to amrvacmodules folder and added x in calling interfaces.
 ! Oliver Porth
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -104,7 +104,7 @@ subroutine getQ(w,x,ixG^L,ix^L,Q)
 !    with steps of delta log10(T)=0.1
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,ixG^L,i,ix^D
 double precision :: w(ixG^T,nw),Q(ixG^T)
@@ -585,7 +585,7 @@ subroutine getdt_rloss(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! Check diffusion time limit for dt
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixG^L, ix^L
 double precision, intent(in)    :: dx^D, x(ixG^S,1:ndim)

@@ -2,7 +2,7 @@
 subroutine selectgrids
 
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 integer :: iigrid, igrid, jgrid, kgrid, isave, my_isafety
 integer, allocatable,  dimension(:,:)  :: isafety
 
@@ -237,7 +237,7 @@ end function isafety_cf_max
 end subroutine selectgrids
 !=============================================================================
       integer function igrid_active(igrid)
-      include 'amrvacdef.f'
+      use mod_global_parameters
       
       integer, intent(in) :: igrid
       integer             :: ixO^L, flag

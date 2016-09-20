@@ -5,7 +5,7 @@ subroutine addsource_glm1(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add divB related sources to w within ixO
 ! corresponding to Dedner JCP 2002, 175, 645 _equation 24_
 ! giving the EGLM-MHD scheme
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -68,7 +68,7 @@ subroutine addsource_glm2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add divB related sources to w within ixO
 ! corresponding to Dedner JCP 2002, 175, 645 _equation 38_
 ! giving the non conservative EGLM-MHD scheme.
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -148,7 +148,7 @@ subroutine addsource_glm3(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add divB related sources to w within ixO
 ! corresponding to Dedner JCP 2002, 175, 645 _equation (1a), (1b), (4), (1d), 19
 ! conservative hyperbolic mixed GLM-MHD with no additional source terms.
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -182,7 +182,7 @@ subroutine addsource_powel(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add divB related sources to w within ixO
 ! corresponding to Powel
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -221,7 +221,7 @@ subroutine addsource_janhunen(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add divB related sources to w within ixO
 ! corresponding to Janhunen, just the term in the induction equation.
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -240,7 +240,7 @@ end subroutine addsource_janhunen
 subroutine addsource_linde(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add Linde's divB related sources to wnew within ixO
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -319,7 +319,7 @@ subroutine getdivb(w,ixI^L,ixO^L,divb)
 
 ! Calculate div B within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixO^L
 double precision, intent(in)       :: w(ixI^S,1:nw)

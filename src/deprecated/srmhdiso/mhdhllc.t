@@ -10,7 +10,7 @@ subroutine diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
 ! certain regions. An additional input parameter is nxdiffusehllc
 ! which sets the size of the fallback region.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
 double precision, dimension(ixI^S,1:nw), intent(in)      :: wRC,wLC
@@ -34,7 +34,7 @@ subroutine getlCD(wLC,wRC,fLC,fRC,cmin,cmax,idims,ixI^L,ixO^L,&
 ! of the riemann fan and decide on the flux choice
 ! We also compute here the HLL flux and w value, for fallback strategy
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 integer, intent(in)                                        :: ixI^L,ixO^L,idims
 double precision, dimension(ixI^S,1:nw), intent(in)        :: wLC,wRC
@@ -69,7 +69,7 @@ subroutine getwCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,&
 
 ! For SRMHD compute D*, S*, tau* in wCD and v* in vCD  and p* in PCD
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
 double precision, dimension(ixI^S,1:nw), intent(in)      :: wLC,wRC

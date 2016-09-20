@@ -12,7 +12,7 @@ INCLUDE:amrvacnul/specialimpl.t
 
 subroutine initglobaldata_usr
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision    :: Me, Ee, L, Ldash
 !----------------------------------------------------------------------------
@@ -116,7 +116,7 @@ end subroutine initglobaldata_usr
 !=============================================================================
 subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -281,7 +281,7 @@ call conserve(ixG^L,ix^L,w,x,patchw)
 end subroutine initonegrid_usr
 !=============================================================================
 subroutine flag_grid_usr(qt,ixI^L,ixO^L,w,x,flag)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 integer, intent(inout)          :: flag
@@ -307,7 +307,7 @@ if ({^D& minval(x(ixI^S,^D))*maxval(x(ixI^S,^D)) < zero |.and.}) &
 end subroutine flag_grid_usr
 !=============================================================================
 subroutine fixp_usr(ixI^L,ixO^L,w,x)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(inout)    :: w(ixI^S,1:nw)
@@ -333,7 +333,7 @@ end subroutine fixp_usr
 !=============================================================================
 subroutine correctaux_usr(ixI^L,ixO^L,w,x,patchierror,subname)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! This is for TM eos:
 ! E_Th = p/(eqpar(gamma_)-one) 
@@ -454,7 +454,7 @@ subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
 ! coarsen =  0 doesn't enforce anything
 ! coarsen =  1 enforce coarsen
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, level, ixG^L, ix^L
 double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
@@ -511,7 +511,7 @@ subroutine process_grid_usr(igrid,level,ixI^L,ixO^L,qt,w,x)
 ! which happen to be non-local (like div v), and are in no way used for
 ! flux computations. As auxiliaries, they are also not advanced
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in):: igrid,level,ixI^L,ixO^L
 double precision, intent(in):: qt,x(ixI^S,1:ndim)
@@ -706,7 +706,7 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
 ! iw=iwmin...iwmax.  wCT is at time qCT
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -769,7 +769,7 @@ subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
 ! module have already been called.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -823,7 +823,7 @@ subroutine specialbound_usr(qt,ixI^L,ixO^L,iw,iB,w,x)
 
 ! special boundary types, user defined
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, iB
 double precision, intent(in) :: qt, x(ixI^S,1:ndim)
@@ -902,7 +902,7 @@ subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with 
 ! corresponding normalization values (default value 1)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -923,7 +923,7 @@ subroutine specialvarnames_output
 
 ! newly added variables need to be concatenated with the varnames/primnames string
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 !call mpistop("special varnames and primnames undefined")
@@ -938,7 +938,7 @@ subroutine printlog_special
 ! printlog: calculates volume averaged mean values 
 use mod_forest,only:nleafs,nleafs_active,nleafs_level
 use mod_timing
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: fileopen
 integer :: iigrid, igrid, level, iw, i
@@ -1130,7 +1130,7 @@ subroutine userspecialconvert(qunitconvert)
 ! Allow user to use their own data-converting proceures
 
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunitconvert
 character(len=20):: userconvert_type
 !-----------------------------------------------------------------------------
@@ -1252,7 +1252,7 @@ end subroutine userspecialconvert
 !=============================================================================
 subroutine get_lfac(ixI^L,ixO^L,w,x,lfac_pw)
 
-      include 'amrvacdef.f'
+      use mod_global_parameters
 
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -1265,7 +1265,7 @@ end subroutine get_lfac
 !=============================================================================
 subroutine get_delta(ixI^L,ixO^L,w,x,delta)
 
-      include 'amrvacdef.f'
+      use mod_global_parameters
 
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -1300,7 +1300,7 @@ end subroutine get_delta
 !=============================================================================
 subroutine get_sigma(ixI^L,ixO^L,w,x,sigma)
 
-      include 'amrvacdef.f'
+      use mod_global_parameters
 
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -1385,7 +1385,7 @@ end subroutine get_sigma
 !=============================================================================
 subroutine bc_int(level,qt,ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, level
 double precision, intent(in) :: qt
@@ -1404,7 +1404,7 @@ subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
 !  -->it is then requiring and iflag>nw
 ! note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L,iflag
 double precision, intent(in) :: w(ixI^S,1:nw)
@@ -1422,7 +1422,7 @@ subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
 
 ! Here one can add a steady (time-independent) potential background field
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L
 double precision, intent(in)  :: x(ixG^T,1:ndim)

@@ -5,7 +5,7 @@ subroutine addsource_glm1(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add divB related sources to w within ixO
 ! corresponding to Dedner JCP 2002, 175, 645 _equation 24_
 ! giving the EGLM scheme
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -38,7 +38,7 @@ subroutine addsource_glm2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: dx^D
@@ -122,7 +122,7 @@ subroutine addsource_powel(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add Powell's divB related sources to w within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt
@@ -161,7 +161,7 @@ subroutine addsource_janhunen(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add divB related sources to w within ixO
 ! corresponding to Janhunen, just the term in the induction equation.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt
@@ -197,7 +197,7 @@ subroutine addsource_linde(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 
 ! Add Linde's divB related sources to wnew within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -245,7 +245,7 @@ subroutine getdivb(w,ixI^L,ixO^L,divb)
 
 ! Calculate div B within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: w(ixI^S,1:nw)

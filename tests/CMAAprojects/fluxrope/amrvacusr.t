@@ -14,7 +14,7 @@ end module usr_bc
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical, save :: firstusrglobaldata=.true.
 !-----------------------------------------------------------------------------
@@ -67,7 +67,7 @@ end subroutine initglobaldata_usr
 subroutine inithdstatic
 !! initialize the table in a vertical line through the global domain
 use usr_bc
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: Ttr,Fc,kx,ly,v0,post
 double precision, allocatable :: xbc(:,:,:)
@@ -114,7 +114,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L,ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -161,7 +161,7 @@ subroutine specialbound_usr(qt,ixG^L,ixO^L,iw,iB,w,x)
 ! special boundary types, user defined
 
 use usr_bc
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixO^L, iw, iB, ixG^L
 double precision, intent(in) :: qt, x(ixG^S,1:ndim)
@@ -298,7 +298,7 @@ end subroutine specialbound_usr
 !=============================================================================
 subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -318,7 +318,7 @@ subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
 ! module have already been called.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L,ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -333,7 +333,7 @@ end subroutine getdt_special
 !=============================================================================
 subroutine specialsource_impl(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -344,7 +344,7 @@ end subroutine specialsource_impl
 !=============================================================================
 subroutine getdt_impl(w,ixG^L,ix^L,dtnew,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L,ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -360,7 +360,7 @@ subroutine specialeta(w,ixI^L,ix^L,idirmin,x,current,eta)
 ! Set the common "eta" array for resistive MHD based on w or the
 ! "current" variable which has components between idirmin and 3.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ix^L, idirmin
 double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
@@ -389,7 +389,7 @@ subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
 ! Enforce additional refinement or coarsening
 ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, level, ix^L, ixG^L
 double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
@@ -410,7 +410,7 @@ subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
 !  -->it is then requiring and iflag>nw
 ! note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L,iflag
 double precision, intent(in) :: w(ixI^S,1:nw)
@@ -425,7 +425,7 @@ end subroutine specialvarforerrest
 !=============================================================================
 subroutine printlog_special
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
 
@@ -439,7 +439,7 @@ subroutine process_grid_usr(igrid,level,ixI^L,ixO^L,qt,w,x)
 ! which happen to be non-local (like div v), and are in no way used for
 ! flux computations. As auxiliaries, they are also not advanced
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in):: igrid,level,ixI^L,ixO^L
 double precision, intent(in):: qt,x(ixI^S,1:ndim)
@@ -461,7 +461,7 @@ subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
 ! corresponding normalization values (default value 1)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -504,7 +504,7 @@ subroutine specialvarnames_output
 
 ! newly added variables need to be concatenated with the wnames/primnames string
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
 
@@ -517,7 +517,7 @@ subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
 
 ! Here one can add a steady (time-independent) potential background field
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L
 double precision, intent(in)  :: x(ixG^T,1:ndim)
@@ -539,7 +539,7 @@ subroutine bc_int(level,qt,ixG^L,ixO^L,w,x)
 ! Its effect should always be local as it acts on the mesh.
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L,ixO^L,level
 double precision, intent(in) :: qt
@@ -556,7 +556,7 @@ end subroutine bc_int
 !=============================================================================
 subroutine mask_gridfluxrope(ixI^L,ixO^L,w,x,patchwi)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -577,7 +577,7 @@ end subroutine mask_gridfluxrope
 !=============================================================================
 function integral_grid(ixI^L,ixO^L,w,x,dvolume,iw,patchwi)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L,iw
 double precision, intent(in)       :: x(ixI^S,1:ndim),dvolume(ixG^T)
@@ -619,7 +619,7 @@ end function integral_grid
 !=============================================================================
 subroutine spacial_integral_w
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: dvolume(ixG^T), timephy
 double precision, allocatable :: integral_ipe(:), integral_w(:)
@@ -686,7 +686,7 @@ end subroutine spacial_integral_w
 !=============================================================================
 subroutine userspecialconvert(qunitconvert)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunitconvert
 character(len=20):: userconvert_type
 !-----------------------------------------------------------------------------
@@ -696,7 +696,7 @@ end subroutine userspecialconvert
 subroutine boundarydriver(qt,qdt,pwa,pwb)
 ! prepare bottom boundary condition at highest resolution
 use usr_bc
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)       :: qt,qdt
 type(walloc), dimension(ngridshi)  :: pwa,pwb
@@ -863,7 +863,7 @@ end subroutine boundarydriver
 subroutine clean_divb(bfield,ixI^L,ixO^L,level)
 
 ! Add Linde's divB related sources to wnew within ixO
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L,level
 double precision, intent(inout) :: bfield(ixI^S,1:ndir)
@@ -899,7 +899,7 @@ subroutine grad(q,ixI^L,ix^L,idir,gradq,level)
 
 ! Calculate gradient of a scalar q within ixL in direction idir
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L,ix^L, idir,level
 double precision :: q(ixI^S), gradq(ixI^S)
@@ -935,7 +935,7 @@ subroutine div(qvec,ixI^L,ixO^L,divq,level)
 
 ! Calculate divergence of a vector qvec within ixL
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L,ixO^L,level
 double precision :: qvec(ixI^S,1:ndir), divq(ixI^S)
@@ -972,7 +972,7 @@ subroutine curl(qvec,ixI^L,ixO^L,curlvec,idirmin,idirmin0,ndir0,level)
 
 ! Calculate curl of a vector qvec within ixL
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L,ixO^L,idirmin,ix^L,idir,jdir,kdir,hxO^L,jxO^L,ndir0,idirmin0,level
 double precision :: qvec(ixI^S,1:ndir0),curlvec(ixI^S,idirmin0:3), invdx(1:ndim)
@@ -1029,7 +1029,7 @@ end subroutine curl
 subroutine write_boundary
 ! output boundary data for a restart
 use usr_bc
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: file_handle,amode
 integer, dimension(MPI_STATUS_SIZE) :: statuss
@@ -1052,7 +1052,7 @@ end subroutine write_boundary
 subroutine read_boundary
 ! read boundary data for a restart
 use usr_bc
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: file_handle,amode
 integer, dimension(MPI_STATUS_SIZE) :: statuss
@@ -1085,7 +1085,7 @@ subroutine initvecpot_usr(ixI^L, ixC^L, xC, A)
 ! used by b_from_vectorpotential()
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixC^L
 double precision, intent(in)       :: xC(ixI^S,1:ndim)

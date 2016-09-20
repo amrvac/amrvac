@@ -49,7 +49,7 @@ use mod_odeint
 use mod_particles
 use constants
 use mod_gridvars, only: get_vec, igrid_working, ipart_working, ep^C_, bp^C_
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer                             :: ipart, iipart
 double precision                    :: dt_p, tloc
@@ -139,7 +139,7 @@ subroutine derivs_gca(t_s,y,dydt)
 use mod_gridvars
 use mod_particles, only: particle
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision                :: t_s, y(*)
 double precision                :: dydt(*)
@@ -210,7 +210,7 @@ subroutine set_particles_dt_gca()
 use mod_particles
 use constants
 use mod_gridvars, only: igrid_working, ipart_working
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer                         :: ipart, iipart, nout
 double precision                :: t_min_mype, tout, dt_particles_mype, dt_cfl0, dt_cfl1, dt_a
@@ -361,7 +361,7 @@ subroutine integrate_particles_advect()
 use mod_odeint
 use mod_particles
 use mod_gridvars, only: get_vec, vp^C_, igrid_working, interpolate_var
-include 'amrvacdef.f'
+use mod_global_parameters
 integer                             :: ipart, iipart
 double precision                    :: dt_p
 double precision, dimension(1:ndir) :: v, x
@@ -472,7 +472,7 @@ end subroutine integrate_particles_advect
 subroutine derivs_advect(t_s,x,dxdt)
 
 use mod_gridvars, only: get_vec, vp^C_, igrid_working
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision                :: t_s, x(*)
 double precision                :: dxdt(*)
@@ -488,7 +488,7 @@ end subroutine derivs_advect
 subroutine set_particles_dt_advect()
 
 use mod_particles
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer                         :: ipart, iipart, nout
 double precision                :: t_min_mype, tout, dt_particles_mype, dt_cfl
@@ -570,7 +570,7 @@ subroutine integrate_particles_lorentz()
 ! this is the relativistic Boris scheme, a leapfrog integrator
 use constants
 use mod_particles
-include 'amrvacdef.f'
+use mod_global_parameters
 integer                             :: ipart, iipart
 double precision                    :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
 double precision, dimension(1:ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
@@ -803,7 +803,7 @@ subroutine set_particles_dt_lorentz()
 
 use constants
 use mod_particles
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer                         :: ipart, iipart, nout
 double precision,dimension(^NC) :: b
@@ -909,7 +909,7 @@ subroutine get_e(igrid,x,tloc,e)
 
 use mod_particles
 use mod_gridvars
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)                                 :: igrid
 double precision,dimension(^NC), intent(in)        :: x
@@ -979,7 +979,7 @@ subroutine get_b(igrid,x,tloc,b)
 
 use mod_particles
 use mod_gridvars
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)                                 :: igrid
 double precision,dimension(^NC), intent(in)        :: x
@@ -1027,7 +1027,7 @@ end subroutine get_lfac
 !=============================================================================
 subroutine cross(a,b,c)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 double precision, dimension(^NC), intent(in)   :: a,b
 double precision, dimension(^NC), intent(out)  :: c
 !-----------------------------------------------------------------------------

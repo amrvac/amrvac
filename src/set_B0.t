@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine set_B0_grid(igrid)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
@@ -17,7 +17,7 @@ end subroutine set_B0_grid
 !=============================================================================
 subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in):: ixI^L,ix^L
 double precision, intent(inout) :: wB0(ixI^S,1:ndir)
@@ -58,7 +58,7 @@ end subroutine set_B0_cell
 !=============================================================================
 subroutine set_B0_face(igrid,x,ixI^L,ix^L)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, ixI^L, ix^L
 double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -104,7 +104,7 @@ end subroutine set_B0_face
 !=============================================================================
 subroutine alloc_B0_grid(igrid)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
@@ -116,7 +116,7 @@ end subroutine alloc_B0_grid
 !=============================================================================
 subroutine dealloc_B0_grid(igrid)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------

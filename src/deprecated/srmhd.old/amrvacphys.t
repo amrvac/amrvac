@@ -5,7 +5,7 @@ INCLUDE:amrvacnul/getdt.t
 INCLUDE:amrvacnul/roe.t
 !=============================================================================
 subroutine checkglobaldata
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 govergminone =eqpar(gamma_)/(eqpar(gamma_)-one)
 minp   = max(zero,smallp)
@@ -19,7 +19,7 @@ subroutine initglobaldata
 
 ! place to set entropy fixes etc, absent for now
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 eqpar(gamma_)=4./3.
 
@@ -34,7 +34,7 @@ end subroutine initglobaldata
 !=============================================================================
 subroutine checkw(checkprimitive,ixI^L,ixO^L,w,flag)
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 logical, intent(in)          :: checkprimitive
 integer, intent(in)          :: ixI^L,ixO^L
@@ -85,7 +85,7 @@ subroutine conserve(ixI^L,ixO^L,w,x,patchw)
 ! <=>   d_t (tr) + \vec{v} div (tr)= 0
 ! since d_t (D) + div (D \vec{v})= 0.  
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)               :: ixI^L,ixO^L
 double precision, intent(inout)   :: w(ixI^S,nw)
@@ -189,7 +189,7 @@ subroutine conserven(ixI^L,ixO^L,w,patchw)
 ! --> latter only used for correcting procedure in correctaux
 ! --> input array patchw for spatially selective transformation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)               :: ixI^L,ixO^L
 double precision, intent(inout)   :: w(ixI^S,nw)
@@ -286,7 +286,7 @@ subroutine primitive(ixI^L,ixO^L,w,x)
 ! Transform conservative variables into primitive ones
 ! (D,S,tau,B)-->(rho,v,p,B,lfac,xi)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(inout)    :: w(ixI^S,1:nw)
@@ -344,7 +344,7 @@ subroutine primitiven(ixI^L,ixO^L,w,patchw)
 ! Transform conservative variables into primitive ones
 ! (D,S,tau,B)-->(rho,v,p,B,lfac,xi)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                    :: ixI^L,ixO^L
 double precision, intent(inout)        :: w(ixI^S,1:nw)
@@ -394,7 +394,7 @@ end subroutine primitiven
 !=============================================================================
 subroutine e_to_rhos(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer:: ixI^L,ixO^L
 double precision:: w(ixI^S,nw)
 double precision, intent(in)      :: x(ixI^S,1:ndim)
@@ -406,7 +406,7 @@ end subroutine e_to_rhos
 !=============================================================================
 subroutine rhos_to_e(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ixI^L,ixO^L
 double precision:: w(ixI^S,nw)
@@ -419,7 +419,7 @@ end subroutine rhos_to_e
 !=============================================================================
 subroutine ppmflatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixL^L,ixR^L
 double precision, intent(in)  :: w(ixI^S,nw),d2w(ixG^T,1:nwflux)
@@ -448,7 +448,7 @@ end subroutine ppmflatcd
 !=============================================================================
 subroutine ppmflatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
 integer, intent(in)           :: idims
@@ -496,7 +496,7 @@ subroutine getv(w,x,ixI^L,ixO^L,idims,v)
 
 ! Calculate v_idim=m_idim/rho within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 integer, intent(in)                              :: ixI^L,ixO^L,idims
 double precision, intent(in)                     :: w(ixI^S,1:nw)
@@ -522,7 +522,7 @@ subroutine getcmax(new_cmax,w,x,ixI^L,ixO^L,idims,cmax,cmin,needcmin)
 ! Calculate cmax_idim within ixO^L
 ! new_cmax is not used
   
-include 'amrvacdef.f'
+use mod_global_parameters
   
 logical, intent(in)           :: new_cmax,needcmin
 integer, intent(in)           :: ixI^L,ixO^L,idims
@@ -979,7 +979,7 @@ subroutine getflux(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L,iw,idims
 double precision, intent(in)       :: w(ixI^S,nw)
@@ -1069,7 +1069,7 @@ subroutine getfluxforhllc(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)::          ixI^L,ixO^L,iw,idims
 double precision, intent(in)  :: w(ixI^S,nw)
@@ -1158,7 +1158,7 @@ subroutine con2prim(lfac,xi,d,s^C,tau,b^C,ierror)
 
 ! (D,S,tau,B) --> compute auxiliaries lfac and xi
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision:: lfac,xi
 double precision:: d,s^C,tau,b^C
@@ -1474,7 +1474,7 @@ contains
 !DEC$ ATTRIBUTES INLINE :: funcd
 subroutine funcd(xi,F,dF,lfac,d,ssqr,tau,bsqr,sdotb,ierror)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)  :: xi,d,ssqr,tau,bsqr,sdotb
 double precision, intent(out) :: F,dF,lfac
@@ -1515,7 +1515,7 @@ subroutine addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
 
 ! Add geometrical source terms to w
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixO^L
 double precision, intent(in)       :: qdt
@@ -1760,7 +1760,7 @@ end subroutine laguer
 !=============================================================================
 subroutine zroots4(a,roots)
 ! adapted version from Num. recipes (no sorting)
-include 'amrvacdef.f'
+use mod_global_parameters
 
   
 double precision,parameter :: eps=1.0d-14
@@ -1849,7 +1849,7 @@ subroutine addsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
 ! w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt
@@ -1892,7 +1892,7 @@ subroutine getcurrent(w,ixI^L,ix^L,idirmin,current)
 
 ! Calculate idirmin and the idirmin:3 components of the common current array
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, parameter:: idirmin0=7-2*ndir
 integer :: ix^L, idirmin, ixI^L
@@ -1911,7 +1911,7 @@ end subroutine getcurrent
 !=============================================================================
 subroutine con2primHydro(lfac,xi,d,s^C,tau,ierror)
 !use ieee_arithmetic
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! this is a copy of the HD iteration, where we solve for p via NR, and modified
 ! to give xi on output

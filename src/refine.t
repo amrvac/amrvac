@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine refine_grid(child_igrid,child_ipe,igrid,ipe,active)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
 integer, intent(in) :: igrid, ipe
@@ -33,7 +33,7 @@ end subroutine refine_grid
 !=============================================================================
 subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
 integer, intent(in) :: igrid, ipe
@@ -114,7 +114,7 @@ end subroutine prolong_grid
 subroutine prolong_2ab(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
 ! interpolate children blocks including ghost cells
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixCo^L, igridFi
 double precision, intent(in) :: dxCo^D, xComin^D, dxFi^D, xFimin^D
@@ -217,7 +217,7 @@ end subroutine prolong_2ab
 !=============================================================================
 subroutine prolong_2nd(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixCo^L, igridFi
 double precision, intent(in) :: dxCo^D, xComin^D, dxFi^D, xFimin^D
@@ -316,7 +316,7 @@ end subroutine prolong_2nd
 !=============================================================================
 subroutine prolong_1st(wCo,ixCo^L,wFi,xFi)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixCo^L
 double precision, intent(in) :: wCo(ixG^T,nw), xFi(ixG^T,1:ndim)

@@ -6,7 +6,7 @@ subroutine hlld(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='hlldd' --> 2nd order HLLD+tvdlf scheme.
 ! method=='hlldd1'--> 1st order HLLD+tvdlf scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D

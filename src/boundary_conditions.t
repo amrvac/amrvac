@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine bc_phys(iside,idims,time,qdt,w,x,ixG^L,ixB^L)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: iside, idims, ixG^L,ixB^L
 double precision, intent(in) :: time,qdt
@@ -171,7 +171,7 @@ end subroutine bc_phys
 !=============================================================================
 subroutine getintbc(time,ixG^L,pwuse)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)   :: time
 integer, intent(in)            :: ixG^L

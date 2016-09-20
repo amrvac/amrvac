@@ -3,7 +3,7 @@ subroutine MP5limiter(ixI^L,iL^L,idims,w,wCT,wLC,wRC)
 ! Following the convention of Mignone et al. 2010.
 ! Needs at least three ghost cells.  Set dixB=3.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)
@@ -208,7 +208,7 @@ subroutine MP5limiterL(ixI^L,iL^L,idims,w,wLC)
 ! Following the convention of Mignone et al. 2010.
 ! Needs at least three ghost cells.  Set dixB=3.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -310,7 +310,7 @@ subroutine MP5limiterR(ixI^L,iL^L,idims,w,wRC)
 ! Following the convention of Mignone et al. 2010.
 ! Needs at least three ghost cells.  Set dixB=3.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -411,7 +411,7 @@ end subroutine Mp5limiterR
 !============================================================================
 subroutine minmod(ixI^L,ixO^L,a,b,minm)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L, ixO^L
 double precision, intent(in) :: a(ixI^S), b(ixI^S)
@@ -424,7 +424,7 @@ end subroutine minmod
 !============================================================================
 subroutine median(ixI^L,ixO^L,a,b,c,med)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L, ixO^L
 double precision, intent(in) :: a(ixI^S), b(ixI^S), c(ixI^S)

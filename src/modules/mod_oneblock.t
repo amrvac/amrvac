@@ -19,7 +19,7 @@ contains
 !=============================================================================
 subroutine read_oneblock(filename)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)             :: filename
 ! .. local ..

@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine get_level_range
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: level
 !-----------------------------------------------------------------------------
@@ -46,7 +46,7 @@ end subroutine getigrids
 !=============================================================================
 subroutine build_connectivity
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid, i^D, my_neighbor_type
 integer :: iside, idim, ic^D, inc^D, ih^D, icdim

@@ -3,7 +3,7 @@ subroutine init_particle_integrator()
 
 use mod_particles
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 itmax_particles = 10000000
@@ -23,7 +23,7 @@ use constants
 use mod_particles
 use mod_gridvars
 use Knuth_random
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, dimension(ndir)    :: x
 integer                              :: igrid_particle, ipe_particle

@@ -10,7 +10,7 @@ subroutine average(wL,wR,x,ix^L,idim,wroe,workroe)
 !
 ! wL,wR,wroe are all interface centered quantities
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,idim,iw
 double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -33,7 +33,7 @@ subroutine average2(wL,wR,x,ix^L,idim,wroe,cfast,cslow,afast,aslow,csound2,dp, &
 !
 ! wL,wR,wroe are all interface centered quantities
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,idim,idir,jdir,iw
 double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -164,7 +164,7 @@ subroutine geteigenjump(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump,workroe)
 ! All the variables are centered on the cell interface, thus the 
 ! "*C" notation is omitted for sake of brevity.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,il,idim
 double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -197,7 +197,7 @@ subroutine geteigenjump2(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump, &
 ! All the variables are centered on the cell interface, thus the 
 ! "*C" notation is omitted for sake of brevity.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,il,idim,idir,jdir
 double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -349,7 +349,7 @@ subroutine rtimes(q,wroe,ix^L,iw,il,idim,rq,workroe)
 
 ! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer::          ix^L,iw,il,idim
 double precision:: wroe(ixG^T,nw)
@@ -370,7 +370,7 @@ subroutine rtimes2(q,wroe,ix^L,iw,il,idim,rq, &
 
 ! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer::          ix^L,iw,il,idim,idir,jdir
 double precision:: wroe(ixG^T,nw)

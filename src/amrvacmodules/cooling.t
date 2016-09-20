@@ -544,7 +544,7 @@ end module coolingcurves
 !=============================================================================
 subroutine getdt_cooling(w,ixG^L,ix^L,dtnew,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -603,7 +603,7 @@ subroutine getvar_cooling(ixI^L,ixO^L,w,x,coolrate,normconv)
 ! N.B. Since there is no knowledge of the timestep size, 
 ! there is no upper limit for the cooling rate.
 !
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -649,7 +649,7 @@ subroutine addsource_cooling(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
 ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -671,7 +671,7 @@ subroutine coolinit
 
 use coolingcurves
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, dimension(:,:), allocatable :: t_table
 double precision, dimension(:,:), allocatable :: L_table
@@ -957,7 +957,7 @@ subroutine radcool(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 !
 !  selects cooling method
 !
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -996,7 +996,7 @@ subroutine floortemperature(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 !  Force minimum temperature to a fixed temperature
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -1023,7 +1023,7 @@ subroutine cool_explicit1(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! adjust the timestep. Accurate but incredibly slow
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -1086,7 +1086,7 @@ subroutine cool_explicit2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! Not as accurate as 'explicit1', but a lot faster
 ! tends to overestimate cooling
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -1189,7 +1189,7 @@ subroutine cool_semiimplicit(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 !
 ! Fast, but tends to underestimate cooling
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -1261,7 +1261,7 @@ subroutine cool_implicit(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! Implicit cooling method based on a half-step
 ! refinement algorithm
 !
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -1339,7 +1339,7 @@ subroutine cool_exact(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 !
 !  Cooling routine using exact integration method from Townsend 2009
 !
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -1415,7 +1415,7 @@ subroutine findL (tpoint,Lpoint)
 !  Fast search option to find correct point 
 !  in cooling curve
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision,intent(IN)   :: tpoint
 double precision, intent(OUT) :: Lpoint
@@ -1450,7 +1450,7 @@ subroutine findY (tpoint,Ypoint)
 
 !  Fast search option to find correct point in cooling time
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision,intent(IN)   :: tpoint
 double precision, intent(OUT) :: Ypoint
@@ -1490,7 +1490,7 @@ subroutine findT (tpoint,Ypoint)
 !  from cooling time. Only possible this way because T is a monotonously 
 !  decreasing function
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision,intent(OUT)   :: tpoint
 double precision, intent(IN) :: Ypoint
@@ -1528,7 +1528,7 @@ subroutine finddLdt (tpoint,dLpoint)
 !  Fast search option to find correct point 
 !  in derivative of cooling curve
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision,intent(IN)   :: tpoint
 double precision, intent(OUT) :: dLpoint

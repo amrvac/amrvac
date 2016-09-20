@@ -8,7 +8,7 @@ INCLUDE:amrvacnul/usrflags.t
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 eqpar(gamma_)=1.4d0
 
@@ -18,7 +18,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)

@@ -1,6 +1,6 @@
 !=============================================================================
 subroutine write_slice
-include 'amrvacdef.f'
+use mod_global_parameters
 ! Writes a D-1 slice .dat-file with proper Morton order 
 ! by Oliver Porth
 ! 22.Nov 2011
@@ -21,7 +21,7 @@ end subroutine write_slice
 !=============================================================================
 subroutine put_slice(dir,xslice)
 use mod_forest, only: Morton_sub_start, Morton_sub_stop
-include 'amrvacdef.f'
+use mod_global_parameters
 ! Writes a D-1 slice .dat-file with proper Morton order 
 ! Can also write csv files by setting sliceascii=.true.
 ! For ONED simulations, the output will be appended to one csv-file per slice
@@ -439,7 +439,7 @@ end function roundoff
 !=============================================================================
 subroutine select_slice(dir,xslice,writeonly,file_handle,normconv)
 use mod_forest, only: tree_node_ptr, tree_root, Morton_sub_start, Morton_sub_stop
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: dir
 double precision, intent(in) :: xslice
 integer, intent(in) :: file_handle
@@ -604,7 +604,7 @@ end subroutine traverse_slice
 end subroutine select_slice
 !=============================================================================
 subroutine fill_subnode(igrid,active,jgrid,dir,xslice,normconv)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: igrid, dir
 integer, intent(inout) :: jgrid
 logical, intent(in)  :: active
@@ -734,7 +734,7 @@ end select
 end subroutine fill_subnode
 !=============================================================================
 subroutine alloc_subnode(jgrid,dir,nwexpand)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: jgrid, dir, nwexpand
 !-----------------------------------------------------------------------------
 ! take care, what comes out is not necessarily a right handed system!
@@ -771,7 +771,7 @@ end select
 end subroutine alloc_subnode
 !=============================================================================
 subroutine dealloc_subnode(jgrid)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: jgrid
 !-----------------------------------------------------------------------------
 if (jgrid==0) then
@@ -787,7 +787,7 @@ rnode_sub(:,jgrid)=zero
 end subroutine dealloc_subnode
 !=============================================================================
 subroutine fill_subnode_info(igrid,jgrid,dir)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: igrid,jgrid,dir
 !-----------------------------------------------------------------------------
 
@@ -840,7 +840,7 @@ end subroutine fill_subnode_info
 !=============================================================================
 
 subroutine get_igslice(dir,x,igslice)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: dir
 double precision, intent(in) :: x
 integer, dimension(nlevelshi), intent(out) :: igslice

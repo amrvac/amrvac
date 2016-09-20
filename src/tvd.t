@@ -4,7 +4,7 @@
 !=============================================================================
 subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,w,qt,wnew,fC,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in) :: method
 double precision, intent(in) :: qdt, qt, dx^D
@@ -34,7 +34,7 @@ subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dx^D)
 ! If method=='tvd' an extra adtdx**2*jumpC is added to phiC for 2nd order
 ! accuracy in time.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in) :: method
 double precision, intent(in) :: qdt, dx^D
@@ -97,7 +97,7 @@ subroutine getphi(method,jumpC,adtdxC,smallaC,ixI^L,ixIC^L,ixC^L,il,idims,phiC,d
 ! Add Lax-Wendroff type correction if method=='tvd'.
 ! Limit according to method and typetvd.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in) :: method
 integer, intent(in) :: ixI^L, ixIC^L, ixC^L, il, idims
@@ -241,7 +241,7 @@ subroutine entropyfix(ix^L,il,aL,aR,a,smalla)
 ! Apply entropyfix based on typeentropy(il),aL,aR, and a
 ! Calculate "smalla" (Harten,Powell) or modify "a" (ratio)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ix^L, il
 double precision, dimension(ixG^T) :: aL, aR, a, smalla

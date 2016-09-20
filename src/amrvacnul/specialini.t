@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 end subroutine initglobaldata_usr
@@ -10,7 +10,7 @@ subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
 
 ! initialize one grid within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -37,7 +37,7 @@ subroutine initvecpot_usr(ixI^L, ixC^L, xC, A)
 ! used by b_from_vectorpotential()
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixC^L
 double precision, intent(in)       :: xC(ixI^S,1:ndim)

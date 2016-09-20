@@ -3,7 +3,7 @@
 !> @todo Explain which ones are not initialized here
 subroutine initialize_vars
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: igrid, level, ipe, ig^D
 logical :: ok

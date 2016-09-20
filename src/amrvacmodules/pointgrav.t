@@ -19,7 +19,7 @@ subroutine pointgrav(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 !
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
@@ -71,7 +71,7 @@ subroutine getdt_pointgrav(w,ixG^L,ix^L,dtnew,dx^D,x)
 !
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixG^L, ix^L
 double precision, intent(in)    :: dx^D, x(ixG^S,1:ndim)
@@ -117,7 +117,7 @@ subroutine getgvector(ixI^L,ixO^L,x,r2i)
 !
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixO^L,ixI^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)

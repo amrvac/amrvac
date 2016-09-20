@@ -23,7 +23,7 @@ end module usr_initial
 !==================================
 subroutine initglobaldata_usr
 use usr_initial
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,dimension(:),allocatable:: seed
 integer::  seed_size,ix
@@ -65,7 +65,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 use usr_initial
 ! initialize one grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L,ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)

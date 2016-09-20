@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine load_balance
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: Morton_no, recv_igrid, recv_ipe, send_igrid, send_ipe, igrid, ipe
 
@@ -126,7 +126,7 @@ end subroutine load_balance
 subroutine level1_Morton_order
 ! use Morton curve to connect level-1 grid blocks
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, allocatable :: gsq_sfc(:^D&)
 integer :: ig^D, ngsq^D, Morton_no
@@ -190,7 +190,7 @@ subroutine amr_Morton_order
 ! Construct Morton-order as a global recursive lexicographic ordering.
 
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ig^D, Morton_no, isfc
 !-----------------------------------------------------------------------------
@@ -239,7 +239,7 @@ end subroutine amr_Morton_order
 !=============================================================================
 subroutine get_Morton_range
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ipe
 !-----------------------------------------------------------------------------
@@ -265,7 +265,7 @@ end subroutine get_Morton_range
 !=============================================================================
 subroutine get_Morton_range_active
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! Cut the sfc based on weighted decision.  
 ! Oliver Porth, 02.02.2012

@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine coarsen_grid_siblings(igrid,ipe,child_igrid,child_ipe,active)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, ipe
 integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
@@ -79,7 +79,7 @@ end subroutine coarsen_grid_siblings
 subroutine coarsen_grid(wFi,xFi,ixFiG^L,ixFi^L,wCo,xCo,ixCoG^L,ixCo^L,&
                         pgeogrid,pgeoCoarsegrid,coarsenprim,keepFi)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixFiG^L, ixFi^L, ixCoG^L, ixCo^L
 double precision, intent(inout) :: wFi(ixFiG^S,1:nw), xFi(ixFiG^S,1:ndim)

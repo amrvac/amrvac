@@ -9,7 +9,7 @@ INCLUDE:amrvacnul/roe.t
 !=============================================================================
 subroutine checkglobaldata
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 ! nothing to check
@@ -18,7 +18,7 @@ end subroutine checkglobaldata
 !=============================================================================
 subroutine initglobaldata
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 ! For burgers/nonconvex nothing to do in terms of entropy fixes for Roe solver
@@ -29,7 +29,7 @@ subroutine conserve(ixI^L,ixO^L,w,x,patchw)
 
 ! Transform primitive variables into conservative ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -45,7 +45,7 @@ subroutine primitive(ixI^L,ixO^L,w,x)
 
 ! Transform conservative variables into primitive ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -58,7 +58,7 @@ end subroutine primitive
 !=============================================================================
 subroutine e_to_rhos(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -71,7 +71,7 @@ end subroutine e_to_rhos
 !=============================================================================
 subroutine rhos_to_e(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -84,7 +84,7 @@ end subroutine rhos_to_e
 !=============================================================================
 subroutine getv(w,x,ixI^L,ixO^L,idim,v)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim
 double precision :: w(ixI^S,nw), v(ixG^T)
@@ -104,7 +104,7 @@ end subroutine getv
 !=============================================================================
 subroutine getcmax(new_cmax,w,x,ixI^L,ixO^L,idim,cmax,cmin,needcmin)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idim
@@ -126,7 +126,7 @@ subroutine getfluxforhllc(w,x,ixI^L,ixO^L,iw,idim,f,transport)
 
 ! There is nothing to add to the transport flux in the transport equation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, idim
 double precision :: w(ixI^S,1:nw), f(ixG^T,1:nwflux)
@@ -151,7 +151,7 @@ subroutine getflux(w,x,ixI^L,ixO^L,iw,idim,f,transport)
 
 ! There is nothing to add to the transport flux in the transport equation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, idim
 double precision :: w(ixI^S,1:nw), f(ixG^T)
@@ -176,7 +176,7 @@ subroutine addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
 ! Add geometrical source terms to w
 ! There are no geometrical source terms in the transport equation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: qdt, x(ixI^S,1:ndim)

@@ -77,7 +77,7 @@ end function exit_condition
 subroutine init_particles_output()
 ! overwrite the output files
 
-include 'amrvacdef.f'
+use mod_global_parameters
 character(128)                    :: filename
 integer                           :: iipart, ipart
 !-----------------------------------------------------------------------------
@@ -96,7 +96,7 @@ end subroutine init_particles_output
 subroutine init_particles_vars()
 ! allocate some dynamic arrays
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 allocate(particle(1:nparticleshi))
@@ -129,7 +129,7 @@ end subroutine init_particles_vars
 subroutine finish_particles_vars()
 ! de-allocate some dynamic arrays
 
-include 'amrvacdef.f'
+use mod_global_parameters
 deallocate(particle)
 deallocate(ipe_neighbor)
 
@@ -138,7 +138,7 @@ end subroutine finish_particles_vars
 !=============================================================================
 subroutine select_active_particles
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer                                         :: ipart, iipart
 logical                                         :: activate
 !-----------------------------------------------------------------------------
@@ -165,7 +165,7 @@ end subroutine select_active_particles
 subroutine locate_particle(index,igrid_particle,ipe_particle)
 ! given the particles unique index, tell me on which cpu and igrid it is
 ! returns -1,-1 if particle was not found
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                            :: index
 integer, intent(out)                           :: igrid_particle, ipe_particle
 integer                                        :: iipart,ipart,ipe_has_particle,ipe
@@ -210,7 +210,7 @@ end subroutine locate_particle
 subroutine find_particle_ipe(x,igrid_particle,ipe_particle)
 
 use mod_forest, only: tree_node_ptr, tree_root
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, dimension(ndir), intent(in)   :: x
 integer, intent(out)                            :: igrid_particle, ipe_particle
@@ -246,7 +246,7 @@ end subroutine find_particle_ipe
 !=============================================================================
 logical function particle_in_domain(x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 double precision, dimension(ndim), intent(in)  :: x
 integer                                        :: idim
 !-----------------------------------------------------------------------------
@@ -273,7 +273,7 @@ end function particle_in_domain
 logical function particle_in_igrid(ipart,igrid)
 ! quick check if particle is still in igrid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                            :: igrid,ipart
 integer                                        :: idim
 !-----------------------------------------------------------------------------
@@ -306,7 +306,7 @@ end function particle_in_igrid
 !=============================================================================
 subroutine init_particles_com()
 ! initialise communicators for particles
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer(kind=MPI_ADDRESS_KIND)         :: size_int, size_double, size_logical, lb
 integer                                :: oldtypes(0:8), offsets(0:8), &
@@ -342,7 +342,7 @@ end subroutine init_particles_com
 !=============================================================================
 subroutine finish_particles_com()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 call MPI_TYPE_FREE(type_particle,ierrmpi)
 
@@ -359,7 +359,7 @@ end subroutine finish_particles
 !=============================================================================
 subroutine set_neighbor_ipe()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer              :: igrid, iigrid,ipe
 logical              :: ipe_is_neighbor(0:npe-1)
 integer              :: my_neighbor_type, i^D
@@ -405,7 +405,7 @@ end subroutine set_neighbor_ipe
 !=============================================================================
 subroutine ipe_fc(i^D,igrid,ipe_is_neighbor)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: i^D, igrid
 logical, intent(inout) :: ipe_is_neighbor(0:npe-1)
 !-----------------------------------------------------------------------------
@@ -416,7 +416,7 @@ end subroutine ipe_fc
 !=============================================================================
 subroutine ipe_srl(i^D,igrid,ipe_is_neighbor)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: i^D, igrid
 logical, intent(inout) :: ipe_is_neighbor(0:npe-1)
 !-----------------------------------------------------------------------------
@@ -427,7 +427,7 @@ end subroutine ipe_srl
 !=============================================================================
 subroutine ipe_cf(i^D,igrid,ipe_is_neighbor)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)    :: i^D, igrid
 logical, intent(inout) :: ipe_is_neighbor(0:npe-1)
 integer                :: ic^D, inc^D
@@ -444,7 +444,7 @@ end subroutine ipe_cf
 !=============================================================================
 subroutine check_particles_output()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer                         :: ipart,iipart
 type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
@@ -481,7 +481,7 @@ end subroutine check_particles_output
 !=============================================================================
 character(len=128) function make_particle_filename(tout,index,type)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)    :: type
 double precision, intent(in)    :: tout
@@ -527,7 +527,7 @@ end function make_particle_filename
 !=============================================================================
 subroutine output_ensemble(send_n_particles_for_output,send_particles,type)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: send_n_particles_for_output
 type(particle_node), dimension(0:send_n_particles_for_output-1), intent(in)  :: send_particles
@@ -599,7 +599,7 @@ end subroutine output_ensemble
 !=============================================================================
 subroutine output_individual()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 logical,parameter               :: output_from_root=.false.
 
 character(len=128)              :: filename
@@ -684,7 +684,7 @@ end subroutine output_individual
 !=============================================================================
 subroutine output_particle(myparticle,ipe,filename)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 type(particle_node),intent(in)                 :: myparticle
 integer, intent(in)                            :: ipe
 character(len=128),intent(in)                  :: filename
@@ -810,7 +810,7 @@ end subroutine read_from_snapshot
 !=============================================================================
 subroutine comm_particles()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer                         :: ipart, iipart, igrid_particle, ipe_particle, ipe, iipe
 integer                         :: index
@@ -934,7 +934,7 @@ end subroutine comm_particles
 !=============================================================================
 subroutine comm_particles_global()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer                         :: ipart, iipart, igrid_particle, ipe_particle, ipe, iipe
 integer                         :: index
@@ -1031,7 +1031,7 @@ end subroutine comm_particles_global
 !=============================================================================
 subroutine apply_periodB(particle,igrid_particle,ipe_particle,BC_applied)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 type(particle_node), intent(inout)        :: particle
 integer, intent(inout)                    :: igrid_particle, ipe_particle
 logical,intent(out)                       :: BC_applied
@@ -1068,7 +1068,7 @@ end subroutine apply_periodB
 subroutine destroy_particles(destroy_n_particles_mype,particle_index_to_be_destroyed)
 ! clean up destroyed particles on all cores
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                                   :: destroy_n_particles_mype
 integer, dimension(1:destroy_n_particles_mype), intent(in) :: particle_index_to_be_destroyed

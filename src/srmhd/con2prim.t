@@ -2,7 +2,7 @@ subroutine con2prim(lfac,xi,d,s^C,tau,b^C,ierror)
 
 ! (D,S,tau,B) --> compute auxiliaries lfac and xi
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision:: lfac,xi
 double precision:: d,s^C,tau,b^C
@@ -354,7 +354,7 @@ end subroutine con2prim
 !=============================================================================
 subroutine con2primHydro(lfac,xi,d,s^C,tau,ierror)
 !use ieee_arithmetic
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! this is a copy of the HD iteration, where we solve for p via NR, and modified
 ! to give xi on output
@@ -646,7 +646,7 @@ end subroutine con2primHydro
 !=============================================================================
 subroutine funcd(xi,F,dF,lfac,d,ssqr,tau,bsqr,sdotb,ierror)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)  :: xi,d,ssqr,tau,bsqr,sdotb
 double precision, intent(out) :: F,dF,lfac

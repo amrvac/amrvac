@@ -8,7 +8,7 @@ INCLUDE:amrvacnul/getaux.t
 !=============================================================================
 subroutine checkglobaldata
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 ! nothing to check
@@ -17,7 +17,7 @@ end subroutine checkglobaldata
 !=============================================================================
 subroutine initglobaldata
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 ! For transport nothing to do in terms of entropy fixes for Roe solver
@@ -28,7 +28,7 @@ subroutine conserve(ixI^L,ixO^L,w,x,patchw)
 
 ! Transform primitive variables into conservative ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)
@@ -44,7 +44,7 @@ subroutine primitive(ixI^L,ixO^L,w,x)
 
 ! Transform conservative variables into primitive ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)
@@ -57,7 +57,7 @@ end subroutine primitive
 !=============================================================================
 subroutine e_to_rhos(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)
@@ -70,7 +70,7 @@ end subroutine e_to_rhos
 !=============================================================================
 subroutine rhos_to_e(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)
@@ -83,7 +83,7 @@ end subroutine rhos_to_e
 !=============================================================================
 subroutine getv(w,x,ixI^L,ixO^L,idim,v)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L, idim
 double precision, intent(in)  ::  w(ixI^S,nw), x(ixI^S,1:ndim)
@@ -96,7 +96,7 @@ end subroutine getv
 !=============================================================================
 subroutine getcmax(new_cmax,w,x,ixI^L,ixO^L,idim,cmax,cmin,needcmin)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idim
@@ -117,7 +117,7 @@ subroutine getfluxforhllc(w,x,ixI^L,ixO^L,iw,idim,f,transport)
 
 ! There is nothing to add to the transport flux in the transport equation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, idim
 double precision :: w(ixI^S,1:nw), x(ixI^S,1:ndim), f(ixG^T,1:nwflux)
@@ -133,7 +133,7 @@ subroutine getflux(w,x,ixI^L,ixO^L,iw,idim,f,transport)
 
 ! There is nothing to add to the transport flux in the transport equation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, idim
 double precision :: w(ixI^S,1:nw), x(ixI^S,1:ndim), f(ixG^T)
@@ -151,7 +151,7 @@ subroutine average(wL,wR,x,ix^L,idim,wroe,workroe)
 ! Calculate the algebraic mean of primitive variables, assignment:
 ! rho -> rho
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ix^L, idim
 double precision, dimension(ixG^T,nw) :: wL, wR, wroe
@@ -171,7 +171,7 @@ subroutine geteigenjump(wL,wR,wC,x,ix^L,il,idim,smalla,a,jump,workroe)
 ! The characteristic speed is just the velocity, but it should be averaged
 ! for the cell interfaces
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,jx^L,ixC^L,il,idim
 double precision, dimension(ixG^T,nw):: wL,wR,wC
@@ -200,7 +200,7 @@ subroutine rtimes(q,w,ix^L,iw,il,idim,rq,workroe)
 ! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wC.
 ! For a scalar equation the R matrix is unity
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer::          ix^L,iw,il,idim
 double precision:: w(ixG^T,nw),q(ixG^T),rq(ixG^T)
@@ -216,7 +216,7 @@ subroutine addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
 ! Add geometrical source terms to w
 ! There are no geometrical source terms in the transport equation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: qdt, x(ixI^S,1:ndim)
