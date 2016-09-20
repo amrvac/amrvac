@@ -4,7 +4,7 @@ subroutine fill_gridvars(mygridvars,mypw)
 
 use mod_gridvars
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 
 type(walloc), dimension(ngridshi), intent(in)   :: mypw
 type(walloc), dimension(ngridshi), intent(out)  :: mygridvars

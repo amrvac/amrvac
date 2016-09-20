@@ -15,7 +15,7 @@
 
 subroutine initglobaldata_usr
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 !----------------------------------------------------------------------------
 {^IFGLM
 eqpar(Ch_)= .5d0
@@ -44,7 +44,7 @@ end subroutine initglobaldata_usr
 subroutine initonegrid_usr(ixG^L,ixO^L,w,x)
   ! initialize one grid 
 
-  include 'amrvacdef.f' ! standard definitions, always needed
+  use mod_global_parameters ! standard definitions, always needed
 
   ! .. scalars ..
   integer         :: ixG^L,ixO^L
@@ -101,7 +101,7 @@ subroutine specialbound_usr(qt,ixI^L,ixO^L,iw,iB,w,x)
 
 ! special boundary types, user defined
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, iB
 double precision, intent(in) :: qt, x(ixI^S,1:ndim)
@@ -224,7 +224,7 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
 ! use ieee_arithmetic ! DEBUG FEATURE
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)       :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -249,7 +249,7 @@ subroutine getdt_special(w,ixI^L,ixO^L,dtnew,dx^D,x)
   ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
   ! module have already been called.
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer, intent(in) :: ixI^L, ixO^L
   double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
@@ -273,7 +273,7 @@ subroutine specialeta(w,ixI^L,ix^L,idirmin,x,current,eta)
   ! Set the "eta" array for resistive MHD based on w or the
   ! "current" variable which has components between idirmin and 3.
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer, intent(in) :: ixI^L, ix^L, idirmin
   double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
@@ -296,7 +296,7 @@ subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,my_refine,my_coarsen
   ! special refinement is necessary because the entire BM shock width tends
   ! to be initially smaller than a single grid cell. If we don't force extra
   ! refinement then the shock simply won't be seen
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer, intent(in) :: igrid, level, ixG^L, ix^L
   double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
@@ -312,7 +312,7 @@ end subroutine specialrefine_grid
 !=============================================================================
 subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
 ! DUMMY SUBROUTINE
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer, intent(in)          :: ixI^L,ixO^L,iflag
   double precision, intent(in) :: w(ixI^S,1:nw)
@@ -328,7 +328,7 @@ subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
 end subroutine specialvarforerrest
 !=============================================================================
 subroutine process_allgrid_usr(iit,qt)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! .. scalars ..
 integer,intent(in)          :: iit
@@ -345,7 +345,7 @@ end subroutine process_allgrid_usr
 !=============================================================================
 subroutine printlog_special
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
 
@@ -359,7 +359,7 @@ subroutine process_grid_usr(igrid,level,ixI^L,ixO^L,qt,w,x)
 ! which happen to be non-local (like div v), and are in no way used for
 ! flux computations. As auxiliaries, they are also not advanced
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in):: igrid,level,ixI^L,ixO^L
 double precision, intent(in):: qt,x(ixI^S,1:ndim)
@@ -378,7 +378,7 @@ subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
 ! corresponding normalization values (default value 1)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -398,7 +398,7 @@ subroutine specialvarnames_output(wnameio)
 
 ! newly added variables need to be concatenated with the varnames/primnames string
 
-include 'amrvacdef.f'
+use mod_global_parameters
 character(len=10) ::  wnameio(1:nw+nwauxio)
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
@@ -410,7 +410,7 @@ call mpistop("special varnames and primnames undefined")
 end subroutine specialvarnames_output
 !=============================================================================
 subroutine Global_useroutput
-include 'amrvacdef.f'
+use mod_global_parameters
   ! .. local scalars ..
   integer                    :: i,unituser
   ! .. local character
@@ -425,7 +425,7 @@ end subroutine Global_useroutput
 !=============================================================================
 
 Subroutine write_setting
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   ! .. local scalars ..
   integer                    :: i,unituser

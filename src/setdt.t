@@ -6,7 +6,7 @@ subroutine setdt
 !          dtpar<=0 --> determine CFL limited timestep 
 !        - set dtimpl
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
@@ -230,7 +230,7 @@ subroutine getdt_courant(w,ixG^L,ix^L,dtnew,dx^D,x)
 
 ! compute CFL limited dt (for variable time stepping)
 
-include 'amrvacdef.f'
+use mod_global_parameters
  
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -291,7 +291,7 @@ subroutine getresidual(iit)
 
 ! compute residual for steady state calculations
 
-include 'amrvacdef.f'
+use mod_global_parameters
  
 integer, intent(in) :: iit
 

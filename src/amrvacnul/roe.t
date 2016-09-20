@@ -3,7 +3,7 @@
 !=============================================================================
 subroutine average(wL,wR,x,ix^L,idims,wroe,workroe)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,idims,idir
 double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -17,7 +17,7 @@ end subroutine average
 !=============================================================================
 subroutine geteigenjump(wL,wR,wroe,x,ix^L,il,idims,smalla,a,jump,workroe)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ix^L,il,idims
 double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -32,7 +32,7 @@ end subroutine geteigenjump
 !=============================================================================
 subroutine rtimes(q,wroe,ix^L,iw,il,idims,rq,workroe)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer::          ix^L,iw,il,idims
 double precision:: wroe(ixG^T,nw)

@@ -8,7 +8,7 @@ subroutine Enthalpy(w,ixI^L,ixO^L,patchw,rhoh)
 !This subroutine is used only with primitive variables on input w
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                                    :: ixI^L,ixO^L
 double precision, dimension(ixI^S,1:nw), intent(in)    :: w
@@ -49,7 +49,7 @@ subroutine Pressuren(w,ixI^L,ixO^L,varconserve,p,patchw)
 !   both cases assume updated auxiliary variables xi_ en lfac_
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)                                :: ixI^L,ixO^L
 double precision, intent(in),dimension(ixI^S,1:nw):: w
@@ -113,7 +113,7 @@ subroutine Pressure(w,ixI^L,ixO^L,varconserve,p)
 !   both cases assume updated auxiliary variables xi_ en lfac_
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)                                :: ixI^L,ixO^L
 double precision, intent(in),dimension(ixI^S,1:nw):: w
@@ -163,7 +163,7 @@ subroutine getinvcsound2(w,ixI^L,ixO^L,invcsound2)
 !This subroutine is used with conserved variables in w
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)                                    :: ixI^L,ixO^L
 double precision, dimension(ixI^S,1:nw), intent(in)   :: w
@@ -204,7 +204,7 @@ subroutine getcsound2(w,ixI^L,ixO^L,varconserve,csound2)
 !This subroutine is used with primitive variables in w when varconserve=F
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)                                   :: ixI^L,ixO^L
 double precision, dimension(ixI^S,1:nw), intent(in)  :: w
@@ -255,7 +255,7 @@ subroutine FuncPressure(xicurrent,lfac,d,ssqr,tau,dlfacdxi,p,dpdxi)
 
 ! compute pointwise value for pressure p and dpdxi
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 double precision, intent(in)         :: xicurrent,lfac,d,ssqr,tau,dlfacdxi
 double precision, intent(out)        :: p,dpdxi
@@ -318,7 +318,7 @@ end subroutine FuncPressure
 !=============================================================================!
 subroutine smallvaluesEOS
 ! This is the smallvalues for Synge gas to be precise.  
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision::Lsmallrho,Lsmallp,LsmallE
 !--------------------------------------------------
@@ -338,7 +338,7 @@ end Subroutine smallvaluesEOS
 !=============================================================================!
 subroutine xinoFlow(xi,tau,d,bb)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision:: xi,tau,d,bb
 !_______________________________________________________________!
@@ -357,7 +357,7 @@ end subroutine xinoFlow
 !=============================================================================
 subroutine FuncEnthalpy(pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent,dv2d2p,h,dhdp,ierror)
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 double precision, intent(in)             :: pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent,dv2d2p
 double precision, intent(out)            :: h,dhdp
@@ -402,7 +402,7 @@ end subroutine FuncEnthalpy
 !=========================================================================
 subroutine Bisection_Enthalpy(pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent,h,ierror)
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 integer:: ixI^L,ixO^L
 double precision:: pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent
@@ -437,7 +437,7 @@ subroutine Calcule_Geffect(w,ixI^L,ixO^L,varconserve,Geffect)
 !   both cases assume updated auxiliary variables xi_ en lfac_
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ixI^L,ixO^L
 double precision,intent(in):: w(ixI^S,1:nw)

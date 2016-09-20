@@ -5,7 +5,7 @@ subroutine advance(iit)
 use mod_particles, only: tmax_particles
 use mod_timing, only: tpartc, tpartc0
 }
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: iit
 
@@ -124,7 +124,7 @@ subroutine advect(idim^LIM)
 ! This subroutine is in VAC terminology equivalent to
 ! `advect' (with the difference that it will `advect' all grids)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: idim^LIM
 
@@ -376,7 +376,7 @@ subroutine advect1(method,dtfactor,idim^LIM,qtC,pwa,qt,pwb,pwc)
 
 ! This subroutine is equivalent to VAC's `advect1', but does
 ! the advection for all grids
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: idim^LIM
 double precision, intent(in) :: dtfactor, qtC, qt
@@ -435,7 +435,7 @@ subroutine process1_grid(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
 
 ! This subroutine is equivalent to VAC's`advect1' for one grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in) :: method
 integer, intent(in) :: igrid, ixG^L, idim^LIM
@@ -481,7 +481,7 @@ subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
 
 !  integrate one grid by one partial step 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in) :: method
 integer, intent(in) :: ixI^L, idim^LIM
@@ -532,7 +532,7 @@ end subroutine advect1_grid
 !=============================================================================
 subroutine addsource_all(prior)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical, intent(in) :: prior
 
@@ -573,7 +573,7 @@ end subroutine addsource_all
 !=============================================================================
 subroutine addsource1_grid(igrid,qdt,qt,w)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 double precision, intent(in) :: qdt, qt
@@ -614,7 +614,7 @@ subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
 ! Add source within ixO for iws: w=w+qdt*S[wCT]
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
@@ -636,7 +636,7 @@ end subroutine addsource2
 !=============================================================================
 subroutine process(iit,qt)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! .. scalars ..
 integer,intent(in)          :: iit
@@ -669,7 +669,7 @@ end subroutine process
 !=============================================================================
 subroutine addsource_impl
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid, icycle, ncycle
 double precision :: qdt, qt, sumqdt
@@ -731,7 +731,7 @@ end subroutine addsource_impl
 !=============================================================================
 subroutine addsourceimpl1_grid(igrid,qdt,qt,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 double precision, intent(in) :: qdt, qt, x(ixG^T,1:ndim)

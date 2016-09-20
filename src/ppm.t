@@ -9,7 +9,7 @@ subroutine PPMlimitervar(ixI^L,ix^L,idims,q,qCT,qLC,qRC)
 ! version : april 2009
 ! author: zakaria.meliani@wis.kuleuven.be
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ix^L, idims
 double precision, intent(in)    :: q(ixI^S),qCT(ixI^S)
@@ -106,7 +106,7 @@ subroutine PPMlimiter(ixI^L,ix^L,idims,w,wCT,wLC,wRC)
 ! version : april 2009
 ! author: zakaria.meliani@wis.kuleuven.be
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ix^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)

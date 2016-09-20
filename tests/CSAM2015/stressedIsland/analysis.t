@@ -5,7 +5,7 @@ subroutine write_analysis
   ! To use, just copy this file to your working directory and make your modifications.
   use constants
   use mod_forest, only: Morton_sub_start, Morton_sub_stop
-  include 'amrvacdef.f'
+  use mod_global_parameters
   character(len=20):: userconvert_type
   !-----------------------------------------------------------------------------
   logical :: fileopen

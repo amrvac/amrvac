@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine amr_coarsen_refine
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid, ipe, igridCo, ipeCo, level, ic^D
 integer, dimension(2^D&) :: igridFi, ipeFi
@@ -112,7 +112,7 @@ end subroutine amr_coarsen_refine
 !=============================================================================
 subroutine proper_nesting
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 !! following alternative
 !!logical, dimension(1:ngridshi,0:npe-1):: coarsen2

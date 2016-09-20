@@ -7,7 +7,7 @@ subroutine unstructuredvtk23(qunit,userconvert_type)
 ! not parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normvar-array
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -250,7 +250,7 @@ subroutine unstructuredvtksym23(qunit,userconvert_type)
 ! use this subroutine  when the physical domain is symmetric/asymmetric about (0,y,z) 
 ! plane, xprobmin1=0 and the computational domain is a half of the physical domain
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -621,7 +621,7 @@ subroutine unstructuredvtkB23(qunit,userconvert_type)
 ! not parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normvar-array
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -958,7 +958,7 @@ subroutine unstructuredvtkBsym23(qunit,userconvert_type)
 ! use this subroutine  when the physical domain is symmetric/asymmetric about (0,y,z) 
 ! plane, xprobmin1=0 and the computational domain is a half of the physical domain
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -1471,7 +1471,7 @@ ixCmin1,ixCmin2,ixCmin3,ixCmax1,ixCmax2,ixCmax3,ixCCmin1,ixCCmin2,ixCCmin3,&
 ! the normconv is passed on to specialvar_output for extending with
 ! possible normalization values for the nw+1:nw+nwauxio entries
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunit, igrid,i3grid
 logical, intent(in) :: first
 
@@ -1761,7 +1761,7 @@ subroutine save_connvtk23(qunit,igrid)
 ! this saves the basic line, pixel and voxel connectivity,
 ! as used by VTK file outputs for unstructured grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit, igrid
 
@@ -1801,7 +1801,7 @@ subroutine specialvar_output23(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
 ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
 ! corresponding normalization values (default value 1)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
    ixImax3,ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3
@@ -1844,7 +1844,7 @@ subroutine unstructuredvtkBsym(qunit,userconvert_type)
 ! not parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normvar-array
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -2357,7 +2357,7 @@ subroutine oneblocksym(qunit,userconvert_type)
 ! ASCII or binary output
 
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix^D,ig^D,level
@@ -2635,7 +2635,7 @@ subroutine oneblocksym23(qunit,userconvert_type)
 ! ASCII or binary output
 
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix1,ix2,ix3,ig1,ig2,ig3,level

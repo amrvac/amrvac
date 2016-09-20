@@ -15,7 +15,7 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
 ! iw=iwmin...iwmax.  wCT is at time qCT
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -81,7 +81,7 @@ subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
 ! module have already been called.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)

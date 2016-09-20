@@ -1,6 +1,6 @@
 !=============================================================================
 subroutine write_collapsed
-include 'amrvacdef.f'
+use mod_global_parameters
 ! Writes a collapsed view of the data integrated over one grid-direction.  
 ! E.g. column density maps.  
 ! Uses flat interpolation throughout.
@@ -23,7 +23,7 @@ end subroutine write_collapsed
 !=============================================================================
 subroutine put_collapse(dir)
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                               :: dir
 ! .. local ..
 integer                                           :: jgrid, igrid, Morton_no
@@ -71,7 +71,7 @@ deallocate(collapsedData)
 end subroutine put_collapse
 !=============================================================================
 subroutine output_collapsed_csv(dir,normconv)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                               :: dir
 double precision,dimension(0:nw+nwauxio),intent(in):: normconv 
 character(len=1024) :: filename, outfilehead, line
@@ -150,7 +150,7 @@ end if
 end subroutine output_collapsed_csv
 !=============================================================================
 subroutine output_collapsed_vti(dir,normconv)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                               :: dir
 double precision,dimension(0:nw+nwauxio),intent(in):: normconv 
 character(len=1024) :: filename, outfilehead, line
@@ -285,7 +285,7 @@ end if
 end subroutine output_collapsed_vti
 !=============================================================================
 subroutine allocate_collapsed(dir)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                               :: dir
 integer                                           :: dim^D
 integer                                           :: nx^D
@@ -330,7 +330,7 @@ end subroutine allocate_collapsed
 !=============================================================================
 subroutine integrate_subnode(igrid,jgrid,dir)
 use mod_forest, only: tree_node_ptr, igrid_to_node
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                        :: igrid, jgrid, dir
 ! .. local ..
 type(tree_node_ptr)                        :: tree
@@ -441,7 +441,7 @@ collapsedData(1:nw+nwauxio) = collapsedData(1:nw+nwauxio) + pw_sub(jgrid)%w(1:nw
 end subroutine integrate_subnode
 !=============================================================================
 subroutine collapse_subnode(igrid,jgrid,dir,normconv)
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: igrid, jgrid, dir
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
 ! .. local ..

@@ -3,7 +3,7 @@
 subroutine readcommandline
 
 use M_kracken
-include 'amrvacdef.f'
+use mod_global_parameters
 integer           :: len, ier
 logical           :: help
 
@@ -53,7 +53,7 @@ end subroutine readcommandline
 !> Read in the user-supplied parameter-file
 subroutine readparameters
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: fileopen
 integer :: i, j, k, ifile, iB, isave, iw, level, idim, islice
@@ -768,7 +768,7 @@ subroutine saveamrfile(ifile)
 ! following specific for Intel compiler and use on VIC3 with MPT
 !DEC$ ATTRIBUTES NOINLINE :: write_snapshot
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer:: ifile
 !-----------------------------------------------------------------------------
 select case (ifile)
@@ -816,7 +816,7 @@ end subroutine saveamrfile
 !=============================================================================
 subroutine write_snapshot
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 {#IFDEF TRANSFORMW
 double precision, allocatable :: wtf(:^D&,:)
@@ -985,7 +985,7 @@ end subroutine write_snapshot
 !=============================================================================
 subroutine write_snapshot_nopar
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 {#IFDEF TRANSFORMW
 double precision, allocatable :: wtf(:^D&,:)
@@ -1221,7 +1221,7 @@ end subroutine write_snapshot_nopar
 !=============================================================================
 subroutine write_snapshot_noparf
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: igrid, Morton_no
 integer :: nx^D
@@ -1370,7 +1370,7 @@ end subroutine write_snapshot_noparf
 !=============================================================================
 subroutine read_snapshot
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: file_handle, amode, igrid, Morton_no, iread
 integer :: levmaxini, ndimini, ndirini, nwini, neqparini, nxini^D
@@ -1511,7 +1511,7 @@ end subroutine read_snapshot
 !=============================================================================
 subroutine read_snapshotnopar
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: wio(ixG^T,1:nw)
 integer :: file_handle, amode, igrid, Morton_no, iread
@@ -1661,7 +1661,7 @@ subroutine printlog_default
 ! printlog: calculates volume averaged mean values 
 use mod_timing
 use mod_forest,only:nleafs,nleafs_active,nleafs_level
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical          :: fileopen
 integer          :: iigrid, igrid, level, iw, i

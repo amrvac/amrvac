@@ -5,7 +5,7 @@ subroutine init_particles()
 use constants
 use mod_particles
 use Knuth_random
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, dimension(ndir)    :: x
 integer                              :: igrid_particle, ipe_particle
@@ -95,7 +95,7 @@ end function user_destroy
 subroutine init_gridvars()
 
 use mod_gridvars
-include 'amrvacdef.f'
+use mod_global_parameters
 integer                                   :: igrid, iigrid, idir
 double precision, dimension(ixG^T,1:ndir) :: beta
 double precision, dimension(ixG^T,1:nw)   :: w

@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine init_comm_fix_conserve(idim^LIM)
 use mod_fix_conserve
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: idim^LIM
 
@@ -65,7 +65,7 @@ end subroutine init_comm_fix_conserve
 !=============================================================================
 subroutine allocateBflux
 use mod_fix_conserve
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid, iside, i^D, nx^D, nxCo^D
 !-----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ end subroutine allocateBflux
 !=============================================================================
 subroutine deallocateBflux
 use mod_fix_conserve
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid, iside
 !-----------------------------------------------------------------------------
@@ -106,7 +106,7 @@ end subroutine deallocateBflux
 !=============================================================================
 subroutine fix_conserve(pwuse,idim^LIM)
 use mod_fix_conserve
-include 'amrvacdef.f'
+use mod_global_parameters
 
 type(walloc) :: pwuse(ngridshi)
 integer, intent(in) :: idim^LIM
@@ -236,7 +236,7 @@ end subroutine fix_conserve
 !=============================================================================
 subroutine storeflux(igrid,fC,idim^LIM)
 use mod_fix_conserve
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: igrid, idim^LIM
 double precision, intent(in) :: fC(ixG^T,1:nwflux,1:ndim)
@@ -302,7 +302,7 @@ end subroutine storeflux
 !=============================================================================
 subroutine sendflux(igrid,idim^LIM)
 use mod_fix_conserve
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: igrid, idim^LIM
 

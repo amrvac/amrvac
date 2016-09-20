@@ -11,7 +11,7 @@ INCLUDE:amrvacphys/correctauxsrhd.t
 !=============================================================================
 subroutine checkglobaldata
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 !-----------------------------------------------------------------------------
 minp   = max(zero,smallp)
@@ -24,7 +24,7 @@ subroutine initglobaldata
 
 ! set default values 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 !-----------------------------------------------------------------------------
 eqpar(gamma_)=5./3.
@@ -33,7 +33,7 @@ end subroutine initglobaldata
 !=============================================================================
 subroutine checkw(checkprimitive,ixI^L,ixO^L,w,flag)
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 logical, intent(in)          :: checkprimitive
 integer, intent(in)          :: ixI^L, ixO^L
@@ -73,7 +73,7 @@ subroutine conserve(ixI^L,ixO^L,w,x,patchw)
 ! --> latter only used for correcting procedure in correctaux
 ! --> input array patchw for spatially selective transformation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)               :: ixI^L, ixO^L
 double precision, intent(inout)   :: w(ixI^S,nw)
@@ -156,7 +156,7 @@ subroutine conserven(ixI^L,ixO^L,w,patchw)
 ! --> latter only used for correcting procedure in correctaux
 ! --> input array patchw for spatially selective transformation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)               :: ixI^L, ixO^L
 double precision, intent(inout)   :: w(ixI^S,nw)
@@ -232,7 +232,7 @@ subroutine primitive(ixI^L,ixO^L,w,x)
 ! Transform conservative variables into primitive ones
 ! (D,S,tau) ---> (rho,v,p)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(inout) :: w(ixI^S,nw)
@@ -279,7 +279,7 @@ subroutine primitiven(ixI^L,ixO^L,w,patchw)
 ! --> only used for correcting procedure in correctaux
 ! --> input array patchw for spatially selective transformation
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(inout) :: w(ixI^S,nw)
@@ -320,7 +320,7 @@ end subroutine primitiven
 !=============================================================================
 subroutine e_to_rhos(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -333,7 +333,7 @@ end subroutine e_to_rhos
 !=============================================================================
 subroutine rhos_to_e(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -346,7 +346,7 @@ end subroutine rhos_to_e
 !=============================================================================
 subroutine ppmflatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixL^L,ixR^L
 double precision, intent(in)  :: w(ixI^S,nw),d2w(ixG^T,1:nwflux)
@@ -365,7 +365,7 @@ end subroutine ppmflatcd
 !=============================================================================
 subroutine ppmflatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
 integer, intent(in)           :: idims
@@ -405,7 +405,7 @@ subroutine getv(w,x,ixI^L,ixO^L,idim,v)
 
 ! Calculate v_idim=m_idim/rho within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L, idim
 double precision, intent(in)  :: w(ixI^S,nw)
@@ -431,7 +431,7 @@ subroutine getcmax(new_cmax,w,x,ixI^L,ixO^L,idims,cmax,cmin,needcmin)
 
 ! Calculate cmax_idim=csound+abs(v_idim) within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical, intent(in)                               :: new_cmax,needcmin
 integer, intent(in)                               :: ixI^L, ixO^L, idims
@@ -493,7 +493,7 @@ subroutine getflux(w,x,ixI^L,ixO^L,iw,idim,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L, iw, idim
 double precision, intent(in)  :: w(ixI^S,nw)
@@ -539,7 +539,7 @@ subroutine getfluxforhllc(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,iw,idims
 double precision, intent(in)  :: w(ixI^S,1:nw)
@@ -587,7 +587,7 @@ end subroutine getfluxforhllc
 !=============================================================================
 subroutine con2prim(pressure,lfac,d,s^C,tau,ierror)
 !use ieee_arithmetic
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision:: pressure,lfac
 double precision:: d,s^C,tau
@@ -891,7 +891,7 @@ subroutine addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
 
 ! Add geometrical source terms to w
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: qdt

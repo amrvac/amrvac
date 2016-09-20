@@ -12,7 +12,7 @@ INCLUDE:amrvacnul.specialimpl.t
 
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 eqpar(gamma_)=5.0d0/3.0d0
 {^IFGLM eqpar(Cr_) = 0.18d0}
 
@@ -26,7 +26,7 @@ end subroutine initglobaldata_usr
 
 subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -69,7 +69,7 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
 ! iw=iwmin...iwmax.  wCT is at time qCT
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -99,7 +99,7 @@ subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
 ! module have already been called.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -115,7 +115,7 @@ subroutine specialeta(w,ixI^L,ix^L,idirmin,x,current,eta)
 ! Set the "eta" array for resistive MHD based on w or the
 ! "current" variable which has components between idirmin and 3.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ix^L, idirmin
 double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
@@ -144,7 +144,7 @@ subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
 ! coarsen =  0 doesn't enforce anything
 ! coarsen =  1 enforce coarsen
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, level, ixG^L, ix^L
 double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
@@ -168,7 +168,7 @@ subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
 !  -->it is then requiring and iflag>nw
 ! note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L,iflag
 double precision, intent(in) :: w(ixI^S,1:nw)
@@ -185,7 +185,7 @@ subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
 
 ! Here one can add a steady (time-independent) potential background field
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L
 double precision, intent(in)  :: x(ixG^T,1:ndim)

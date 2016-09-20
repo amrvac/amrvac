@@ -12,7 +12,7 @@ subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
 
 ! on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
@@ -165,7 +165,7 @@ subroutine upwindLR(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,x,needprim,dxdim)
 ! Determine the upwinded wLC(ixL) and wRC(ixR) from w. 
 ! the wCT is only used when PPM is exploited.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
 logical, intent(in) :: needprim
@@ -288,7 +288,7 @@ subroutine dwlimiter2(dwC,ixC^L,iw,idims,ldw,dxdim)
 
 ! note: there is no iw dependence here...
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixC^L, iw, idims
 double precision, intent(in) :: dxdim
@@ -420,7 +420,7 @@ subroutine tvdmusclf(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
 ! method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -678,7 +678,7 @@ subroutine hll(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='hll'  --> 2nd order HLL scheme.
 ! method=='hll1' --> 1st order HLL scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -887,7 +887,7 @@ subroutine hllc(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='hllcd' --> 2nd order HLLC+tvdlf scheme.
 ! method=='hllcd1'--> 1st order HLLC+tvdlf scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D

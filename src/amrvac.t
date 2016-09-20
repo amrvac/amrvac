@@ -3,7 +3,6 @@
 !> using adaptive mesh refinement.
 program amrvac
 
-
 ! following line may avoid mystery problems in the combination
 !  where we use ifort compiler and MPT (SGIs MPI implementation)
 !DEC$ ATTRIBUTES NOINLINE :: read_snapshot
@@ -11,7 +10,7 @@ program amrvac
 {#IFDEF PARTICLES
 use mod_gridvars, only: init_gridvars, finish_gridvars
 }
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: itin
 double precision :: time0, time_in, tin
@@ -150,7 +149,7 @@ end program amrvac
 subroutine timeintegration
 
 use mod_timing
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: level, ifile, fixcount
 
@@ -283,7 +282,7 @@ logical function timetosave(ifile)
 ! itsave(isaveit(ifile),ifile) or dtsave(ifile) or ditsave(ifile)
 ! Other conditions may be included.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ifile
 logical:: oksave
@@ -318,7 +317,7 @@ end function timetosave
 !> @todo Fix dummy argument?
 logical function fixgrid(dummy)
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
   integer :: dummy              !< Unused dummy argument
 
   fixgrid= (t>=tfixgrid .or. it>=itfixgrid)
@@ -331,7 +330,7 @@ end function fixgrid
 !> * Call checkglobaldata from the selected physics module
 subroutine initglobal
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   call initglobaldata
   call initglobaldata_usr

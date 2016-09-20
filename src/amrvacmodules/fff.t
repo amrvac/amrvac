@@ -59,7 +59,7 @@ end module fff_global
 subroutine init_b_fff_data(magnetogramname,qLunit,qBunit)
 use fff_global
 
-include 'amrvacdef.f'
+use mod_global_parameters
 double precision, intent(in) :: qLunit,qBunit
 double precision :: xc1,xc2,dxm1,dxm2
 integer, dimension(MPI_STATUS_SIZE) :: statuss
@@ -131,7 +131,7 @@ end subroutine init_b_fff_data
 subroutine init_b_fff(qnx1,qnx2)
 use fff_global
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: dxm1,dxm2,delx1,delx2,xo1,xo2,yo1,yo2,coB,B0
 integer :: i1,i2,qnx1,qnx2
@@ -188,7 +188,7 @@ subroutine calc_lin_fff(ixI^L,ixO^L,Bf,x,alpha,zshift)
 ! OUTPUT: updated b in w 
 use fff_global
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim),alpha,zshift

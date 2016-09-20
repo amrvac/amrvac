@@ -1,7 +1,7 @@
 {#IFDEF HALL
 !=============================================================================
 subroutine getvh(w,x,ixI^L,ixO^L,vh)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: w(ixI^S,nw)
@@ -22,7 +22,7 @@ end do
 end subroutine getvh
 !=============================================================================
 subroutine getdthall(w,x,ixI^L,ixO^L,dx^D,dthall)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in)    :: dx^D

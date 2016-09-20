@@ -10,7 +10,7 @@ INCLUDE:amrvacnul/correctaux_usr.t
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 {#IFDEF DUST
 double precision:: qrhodust, qmin_ar, qmax_ar, r(0:^NDS)
 integer:: i
@@ -49,7 +49,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)

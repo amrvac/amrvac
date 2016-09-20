@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine find_root_neighbor(tree_neighbor,tree,i^D)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 type(tree_node_ptr) :: tree_neighbor, tree
 integer, intent(in) :: i^D
@@ -40,7 +40,7 @@ end subroutine find_root_neighbor
 !=============================================================================
 subroutine find_neighbor(my_neighbor,my_neighbor_type,tree,i^D,pole)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 type(tree_node_ptr) :: tree, my_neighbor
 integer, intent(in) :: i^D
@@ -107,7 +107,7 @@ end subroutine find_neighbor
 !=============================================================================
 subroutine asign_tree_neighbor(tree)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 type(tree_node_ptr) :: tree
 

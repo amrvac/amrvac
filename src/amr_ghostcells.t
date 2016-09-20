@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine getbc(time,qdt,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)               :: time, qdt
 integer, intent(in)                        :: ixG^L,nwstart,nwbc
@@ -1045,7 +1045,7 @@ end subroutine getbc
 !=============================================================================
 subroutine physbound(i^D,igrid,isphysbound)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)  :: i^D, igrid
 logical, intent(out) :: isphysbound

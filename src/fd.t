@@ -2,7 +2,7 @@
 subroutine fd(method,qdt,ixI^L,ixO^L,idim^LIM, &
                      qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                                     :: method
 double precision, intent(in)                                     :: qdt, qtC, qt, dx^D
@@ -95,7 +95,7 @@ call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
 end subroutine fd
 !=============================================================================
 subroutine reconstructL(ixI^L,iL^L,idims,w,wLC,dxdims)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
@@ -137,7 +137,7 @@ end select
 end subroutine reconstructL
 !=============================================================================
 subroutine reconstructR(ixI^L,iL^L,idims,w,wRC,dxdims)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw), dxdims

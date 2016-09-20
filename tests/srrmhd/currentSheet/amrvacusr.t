@@ -10,7 +10,7 @@ INCLUDE:amrvacnul/correctaux_usr.t
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 eqpar(gamma_) = 4.0d0/3.0d0
@@ -22,7 +22,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid within ix^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -63,7 +63,7 @@ subroutine initvecpot_usr(ixI^L, ixC^L, xC, A)
 ! used by b_from_vectorpotential()
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixC^L
 double precision, intent(in)       :: xC(ixI^S,1:ndim)

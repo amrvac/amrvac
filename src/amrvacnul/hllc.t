@@ -12,7 +12,7 @@ subroutine diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
 
 ! This nul version enforces TVDLF everywhere!!!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
 double precision, dimension(ixG^T,1:nw), intent(in)      :: wRC,wLC
@@ -35,7 +35,7 @@ subroutine getlCD(wLC,wRC,fLC,fRC,cmin,cmax,idims,ixI^L,ixO^L, &
 
 ! In this nul version, we simply compute nothing and ensure TVDLF fallback
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
 double precision, dimension(ixG^T,1:nw), intent(in)      :: wLC,wRC
@@ -67,7 +67,7 @@ subroutine getwCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
 
 ! This nul version simply nullifies all values
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                                      :: ixI^L,ixO^L,idims
 double precision, dimension(ixG^T,1:nw), intent(in)      :: wRC,wLC

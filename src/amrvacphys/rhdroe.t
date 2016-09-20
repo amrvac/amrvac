@@ -9,7 +9,7 @@ subroutine average(wL,wR,x,ix^L,idim,wroe,workroe)
 ! rho -> v0, m -> v, e -> v4
 ! check thesis Eulderink pg.18
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer:: ix^L,idim,idir
   double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -26,7 +26,7 @@ subroutine average2(wL,wR,x,ix^L,idim,wroe,tmp,tmp2)
 ! rho -> v0, m -> v, e -> v4
 ! check thesis Eulderink pg.18
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
   
   integer:: ixG^L,ix^L,idim,idir
   double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -77,7 +77,7 @@ subroutine geteigenjump(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump,workroe)
 ! The eigenvalues and the L=R**(-1) matrix is calculated from wroe. 
 ! jump(il)=Sum_il L(il,iw)*(wR(iw)-wL(iw))
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
   
   integer:: ix^L,il,idim
   double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -98,7 +98,7 @@ subroutine geteigenjump2(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump, &
 ! The eigenvalues and the L=R**(-1) matrix is calculated from wroe. 
 ! jump(il)=Sum_il L(il,iw)*(wR(iw)-wL(iw))
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
   
   integer:: ix^L,il,idim,idir
   double precision, dimension(ixG^T,nw):: wL,wR,wroe
@@ -224,7 +224,7 @@ subroutine rtimes(q,wroe,ix^L,iw,il,idim,rq,workroe)
 
 ! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
   
   integer::          ix^L,iw,il,idim
   double precision:: wroe(ixG^T,nw)
@@ -240,7 +240,7 @@ subroutine rtimes2(q,wroe,ix^L,iw,il,idim,rq,csound)
 
 ! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   integer::          ix^L,iw,il,idim,idir
   double precision:: wroe(ixG^T,nw)

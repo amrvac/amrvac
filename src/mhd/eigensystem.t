@@ -4,7 +4,7 @@ subroutine eigenvectors(idims,ixI^L,ixO^L,w,leftm,righm,lamda)
 ! (Jiang, Chaowei et al. 2011, ApJ, 727, 101)
 ! Chun Xia 
 ! 13 May 2016
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: idims,ixI^L,ixO^L
 double precision, intent(in) :: w(ixI^S,1:nw)
@@ -167,7 +167,7 @@ subroutine characteristic_project(idims,iside,ixI^L,ixO^L,w,x,dxndim,qdt)
 ! method (Jiang, Chaowei et al. 2011, ApJ, 727, 101)
 ! Chun Xia
 ! 13 May 2016
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: idims, iside, ixI^L, ixO^L
 double precision :: w(ixI^S,1:nw),x(ixI^S,1:ndim),dxndim(1:ndim),qdt

@@ -90,7 +90,7 @@ end subroutine finish_tracerparticles
 subroutine time_spent_on_particles()
 
 use mod_timing
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision         :: tpartc_avg, tpartc_int_avg, tpartc_io_avg, tpartc_com_avg, tpartc_grid_avg
 
@@ -125,7 +125,7 @@ end subroutine time_spent_on_particles
 subroutine read_particles_snapshot()
 
 use mod_particles
-include 'amrvacdef.f'
+use mod_global_parameters
 logical,save                    :: file_exists=.false.
 character(len=128)              :: filename
 integer                         :: mynpayload, mynparticles
@@ -199,7 +199,7 @@ end subroutine read_particles_snapshot
 subroutine write_particles_snapshot()
 
 use mod_particles
-include 'amrvacdef.f'
+use mod_global_parameters
 character(len=128)              :: filename
 type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
 type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles

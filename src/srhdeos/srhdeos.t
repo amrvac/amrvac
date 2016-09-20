@@ -8,7 +8,7 @@ subroutine Enthalpy(w,ixI^L,ixO^L,patchw,rhoh)
 !This subroutine is used only with primitive variables on input w
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ixI^L,ixO^L
 double precision, dimension(ixI^S,1:nw):: w
@@ -38,7 +38,7 @@ subroutine Einternal(w,ixI^L,ixO^L,patchw,varconserve,E)
 !The subroutine is used only with primitive variables on input w
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ixI^L,ixO^L
 double precision, dimension(ixI^S,1:nw):: w
@@ -74,7 +74,7 @@ subroutine getcsound2(w,ixI^L,ixO^L,vacconserve,rhoh,csound2)
 !This subroutine is used with primitive variables in w when varconserve=F
 !===============================================!
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ixI^L,ixO^L
 double precision                      :: w(ixI^S,1:nw)
@@ -111,7 +111,7 @@ end subroutine getcsound2
 !=============================================================================
 subroutine FuncEnthalpy(pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent,dv2d2p,h,dhdp,ierror)
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 integer:: ixI^L,ixO^L
 double precision:: pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent
@@ -145,7 +145,7 @@ end subroutine FuncEnthalpy
 !=============================================================================!
 subroutine smallvaluesEOS
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision::Lsmallrho,Lsmallp,LsmallE
 !_______________________________________________________________!
@@ -165,7 +165,7 @@ end subroutine smallvaluesEOS
 !=============================================================================!
 subroutine Bisection_Enthalpy(pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent,h,ierror)
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 integer:: ixI^L,ixO^L
 double precision:: pcurrent,lfac2inv,d,s^C,tau,sqrs,xicurrent
@@ -186,7 +186,7 @@ end subroutine Bisection_Enthalpy
 !=============================================================================
 subroutine pressureNoFlow(pressure,tau,d)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision:: pressure,tau,d
 !_______________________________________________________________!
@@ -202,7 +202,7 @@ subroutine Calcule_Geffect(w,ixI^L,ixO^L,varconserve,Geff)
 !This subroutine is used with primitive variables in w when varconserve=F
 !   both cases assume updated auxiliary variables p_ en lfac_
 !===============================================!
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer:: ixI^L,ixO^L
 double precision:: w(ixI^S,1:nw)

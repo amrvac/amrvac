@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine getdt(w,ixG^L,ix^L,dtnew,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)

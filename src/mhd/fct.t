@@ -5,7 +5,7 @@ subroutine fct_average(ixI^L, ixO^L, fC)
 ! Performs the average for the flux constrained transport from Toth 2000. 
 ! His equation (25)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixO^L
 double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim)
@@ -71,7 +71,7 @@ subroutine b_from_vectorpotential(ixI^L, ixO^L, idirmin, idirmax, w, x)
 
 ! Implemented for Cartesian coordinates
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixO^L, idirmin, idirmax
 double precision, intent(inout)    :: w(ixI^S,1:nw)

@@ -5,7 +5,7 @@ subroutine getaux(clipping,w,x,ixI^L,ixO^L,subname)
 ! clipping can be set to .true. to e.g. correct unphysical pressures, 
 ! densities, v>c,  etc.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: x(ixI^S,1:ndim)
@@ -25,7 +25,7 @@ subroutine checkw(checkprimitive,ixI^L,ixO^L,w,flag)
 ! Because this routine is meant to check state before calculating 
 ! the auxiliaries, they might not be up to date.
 !
-include 'amrvacdef.f'
+use mod_global_parameters
   
 logical:: checkprimitive
 integer, intent(in) :: ixI^L, ixO^L
@@ -41,7 +41,7 @@ subroutine ppmflatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
 
 ! This nul version simply nullifies all values
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixL^L,ixR^L
 double precision, intent(in)  :: w(ixI^S,1:nw),d2w(ixG^T,1:nwflux)
@@ -57,7 +57,7 @@ subroutine ppmflatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
 
 ! This nul version simply nullifies all values
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
 integer, intent(in)           :: idims

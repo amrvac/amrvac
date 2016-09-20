@@ -24,7 +24,7 @@
 !============================================================================= 
 subroutine magnetofriction
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: dtfff,dtfff_pe,dtnew,dx^D
@@ -370,7 +370,7 @@ end subroutine magnetofriction
 !=============================================================================
 subroutine mf_velocity_update(pwa,dtfff)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in) :: dtfff 
 integer :: i,iigrid, igrid
@@ -409,7 +409,7 @@ subroutine vhat(w,x,ixI^L,ixO^L,vhatmaxgrid)
 
 ! Calculate v_hat 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(inout)  :: w(ixI^S,nw)
@@ -453,7 +453,7 @@ end subroutine vhat
 !============================================================================= 
 subroutine frictional_velocity(w,x,ixI^L,ixO^L,qvmax,qdt)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim),qdt,qvmax
@@ -531,7 +531,7 @@ subroutine advectmf(idim^LIM,qt,qdt)
 ! This subroutine is in VAC terminology equivalent to
 ! `advect' (with the difference that it will `advect' all grids)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: idim^LIM
 double precision, intent(in) :: qt, qdt
@@ -593,7 +593,7 @@ subroutine advect1mf(method,dtin,dtfactor,idim^LIM,qtC,pwa,qt,pwb,pwc)
 ! Integrate all grids by one partial step
 ! This subroutine is equivalent to VAC's `advect1', but does
 ! the advection for all grids
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: idim^LIM
 double precision, intent(in) :: dtin,dtfactor, qtC, qt
@@ -647,7 +647,7 @@ end subroutine advect1mf
 subroutine process1_gridmf(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
 
 ! This subroutine is equivalent to VAC's `advect1' for one grid
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in) :: method
 integer, intent(in) :: igrid, ixG^L, idim^LIM
@@ -706,7 +706,7 @@ subroutine upwindLRmf(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,x,dxdim)
 ! Determine the upwinded wLC(ixL) and wRC(ixR) from w. 
 ! the wCT is only used when PPM is exploited.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
 double precision, intent(in) :: dxdim
@@ -802,7 +802,7 @@ subroutine getfluxmf(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw, idims
 double precision, intent(in)    :: w(ixI^S,nw)
@@ -838,7 +838,7 @@ subroutine tvdlfmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 ! method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
 ! method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D
 integer, intent(in)                                  :: ixI^L, ixO^L, idim^LIM
@@ -993,7 +993,7 @@ subroutine hancockmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
 
 ! FCT not implemented here
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
@@ -1073,7 +1073,7 @@ end subroutine hancockmf
 !=============================================================================
 subroutine fdmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)                                     :: qdt, qtC, qt, dx^D
 integer, intent(in)                                              :: ixI^L, ixO^L, idim^LIM
@@ -1153,7 +1153,7 @@ subroutine centdiff4mf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
 ! wCT contains the time centered variables at time qtC for flux and source.
 ! w is the old value at qt on input and the new value at qt+qdt on output.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt, dx^D
@@ -1252,7 +1252,7 @@ subroutine getdtfff_courant(w,x,ixI^L,ixO^L,dtnew)
 
 ! compute CFL limited dt (for variable time stepping)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -1283,7 +1283,7 @@ if (courantmax>smalldouble)  dtnew=min(dtnew,cmf_c/courantmax)
 end subroutine getdtfff_courant
 !=============================================================================
 subroutine getcmaxfff(w,x,ixI^L,ixO^L,idims,cmax)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idims
@@ -1304,7 +1304,7 @@ end subroutine getcmaxfff
 subroutine divbclean(ixI^L,ixO^L,w,x,qdt)
 
 ! Add Janhunen's and Linde's divB related sources to w
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: x(ixI^S,1:ndim),qdt
@@ -1358,7 +1358,7 @@ subroutine addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
 
 ! Add geometrical source terms to w
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
