@@ -328,7 +328,7 @@ contains
     typespherical   = 1
     slowsteps       = -1
     courantpar      = 0.8d0
-    typecourant     = 'minimum'
+    typecourant     = 'maxsum'
     dimsplit        = .false.
     typedimsplit    = 'default'
     typelimited     = 'predictor'
