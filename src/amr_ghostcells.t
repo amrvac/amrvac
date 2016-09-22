@@ -284,7 +284,7 @@ else
    else
       if (isend_buf(ipwbuf)/=0) then
          call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                       sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
+                       sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
          deallocate(pwbuf(ipwbuf)%w)
       end if
       allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
@@ -333,7 +333,7 @@ else
    else
       if (isend_buf(ipwbuf)/=0) then
          call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                       sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
+                       sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
          deallocate(pwbuf(ipwbuf)%w)
       end if
       allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
@@ -436,7 +436,7 @@ integer :: ii^D
       else
          if (isend_buf(ipwbuf)/=0) then
             call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                          sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
+                          sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
             deallocate(pwbuf(ipwbuf)%w)
          end if
          allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
@@ -488,7 +488,7 @@ subroutine bc_send_old
       else
          if (isend_buf(ipwbuf)/=0) then
             call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                          sendstatus(1,isend_buf(ipwbuf)),ierrmpi)
+                          sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
             deallocate(pwbuf(ipwbuf)%w)
          end if
          allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
