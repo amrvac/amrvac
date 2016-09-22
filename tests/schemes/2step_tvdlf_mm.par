@@ -1,0 +1,15 @@
+ &filelist
+        filenamelog  = '_2step_tvdlf_mm'
+        filenameout  = '_2step_tvdlf_mm'
+ /
+
+ &methodlist
+        typeadvance  = 'twostep'
+        typefull1    = 13*'tvdlf'
+        typepred1    = 13*'hancock'
+        typelimiter1 = 13*'minmod'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

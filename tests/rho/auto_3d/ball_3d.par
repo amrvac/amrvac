@@ -1,0 +1,55 @@
+!=====================================================
+!> Project : Advection test
+!>   Doing discontinuous 3D ball on periodic cube
+!>      exploit dynamic AMR, multi-step ssprk43 scheme, 
+!>              conservative finite difference scheme,
+!>              mp5 limiter (hence 3 ghost cell layers)
+!>              CFL 0.6 ok (CFL 0.9 unstable!)
+!> $AMRVAC_DIR/setup.pl -d=33 -g=16,16,16 -p=rho
+!=====================================================
+ &testlist
+        teststr=' '
+/
+
+ &filelist
+        filenameout='ball_3d'
+        filenamelog='ball_3d'
+        typefilelog='regression_test'
+        primnames='rho'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+/
+
+ &savelist
+        dtsave(1)=1.0d-2
+        dtsave(2)=1.0d-2
+ /
+
+ &stoplist
+        tmax=0.1d0
+ /
+
+ &methodlist
+        wnames=       'rho'
+        fileheadout=  'ball_3d'
+ /
+
+ &boundlist
+        dixB=   3
+        typeB=  'periodic','periodic','periodic','periodic','periodic','periodic'
+ /
+
+ &amrlist
+        mxnest=3
+        tol=13*0.1d0
+        nxlone1=20
+        nxlone2=20
+        nxlone3=20
+        iprob=6
+        xprobmin1=-0.5d0
+        xprobmax1=0.5d0
+        xprobmin2=-0.5d0
+        xprobmax2=0.5d0
+        xprobmin3=-0.5d0
+        xprobmax3=0.5d0
+ /

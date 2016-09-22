@@ -1,0 +1,48 @@
+!=====================================================
+!> Project : Advection test
+!>   Doing discontinuous 1D ball on periodic domain
+!> $AMRVAC_DIR/setup.pl -d=11 -g=16 -p=rho
+!=====================================================
+ &testlist
+        teststr=' '
+/
+
+ &filelist
+        filenameout='ball_1d'
+        filenamelog='ball_1d'
+        typefilelog='regression_test'
+        primnames='rho'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+/
+
+ &savelist
+        dtsave(1)=1.0d-2
+ /
+
+ &stoplist
+        tmax=0.1d0
+ /
+
+ &methodlist
+        wnames=       'rho'
+        fileheadout=  'ball_1d'
+ /
+
+ &boundlist
+        dixB=   3
+        typeB=  'periodic','periodic'
+ /
+
+ &amrlist
+        mxnest=4
+        tol=13*0.1d0
+        nxlone1=50
+        iprob=6
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+ /
+
+ &paramlist
+       courantpar=0.60
+ /
