@@ -16,13 +16,13 @@ contains
     use M_kracken
     use mod_global_parameters
 
-    integer, parameter                     :: max_par_files = 20
-    integer                                :: len, ier, n
-    integer                                :: n_par_files
-    integer                                :: ibegin(max_par_files)
-    integer                                :: iterm(max_par_files)
-    character(len=max_par_files*fname_len) :: all_par_files
-    character(len=fname_len)               :: par_files(max_par_files)
+    integer, parameter                   :: max_par_files = 20
+    integer                              :: len, ier, n
+    integer                              :: n_par_files
+    integer                              :: ibegin(max_par_files)
+    integer                              :: iterm(max_par_files)
+    character(len=max_par_files*std_len) :: all_par_files
+    character(len=std_len)               :: par_files(max_par_files)
 
     if (mype == 0) then
        print *, '-----------------------------------------------------------------------------'
@@ -89,11 +89,11 @@ contains
     integer          :: nxlone^D, nx_vec(^ND)
     double precision :: dx_vec(^ND)
 
-    character                :: c_ndim
-    character(len=80)        :: fmt_string
-    character(len=fname_len) :: err_msg
-    character(len=fname_len) :: filenameout_full, filenameout_prev
-    character(len=fname_len) :: filenamelog_full, filenamelog_prev
+    character              :: c_ndim
+    character(len=80)      :: fmt_string
+    character(len=std_len) :: err_msg
+    character(len=std_len) :: filenameout_full, filenameout_prev
+    character(len=std_len) :: filenamelog_full, filenamelog_prev
 
     namelist /testlist/   teststr,ixtest1,ixtest2,ixtest3,iwtest,idimtest
     namelist /filelist/   filenameout,filenameini,filenamelog, &

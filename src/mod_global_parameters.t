@@ -10,18 +10,18 @@ module mod_global_parameters
 
   ! Parameters
 
-  !> Length of strings used for file names
-  integer, parameter :: fname_len = 131
+  !> Default length for strings
+  integer, parameter :: std_len = 131
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
-  INTEGER,PARAMETER:: r_=1, phi_=^PHI, z_=^Z
+  integer, parameter :: r_=1, phi_=^PHI, z_=^Z
 
   !> Indices for cylindrical coordinates FOR INDEXING, always positive
-  INTEGER,PARAMETER:: pphi_=^PPHI, zz_=^ZZ
+  integer, parameter :: pphi_=^PPHI, zz_=^ZZ
 
   include 'amrvacpar.f'
 
-  INTEGER,PARAMETER:: ndim=^ND, ndir=^NC
+  integer, parameter :: ndim=^ND, ndir=^NC
 
   include 'amrvacsettings.f'
 
@@ -36,120 +36,166 @@ module mod_global_parameters
   character(len=40), parameter  :: output_names(nfile) = &
        ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
 
-  INTEGER,PARAMETER:: nslicemax=1000
+  !> Maximum number of slices
+  integer, parameter :: nslicemax=1000
 
-  INTEGER,PARAMETER:: unitstdin=5,unitterm=6,uniterr=6 ! Unit names.
+  !> Unit for standard input
+  integer, parameter :: unitstdin=5
+
+  !> Unit for standard output
+  integer, parameter :: unitterm=6
+
+  !> Unit for error messages
+  integer, parameter :: uniterr=6
 
   ! Units reserved for files:
-  INTEGER,PARAMETER:: unitpar=9
-  INTEGER,PARAMETER:: unitconvert=10
-  INTEGER,PARAMETER:: unitslice=11
-  INTEGER,PARAMETER:: unitsnapshot=12
-  INTEGER,PARAMETER:: unitcollapse=13
-  INTEGER,PARAMETER:: unitanalysis=14
+  integer, parameter :: unitpar=9
+  integer, parameter :: unitconvert=10
+  integer, parameter :: unitslice=11
+  integer, parameter :: unitsnapshot=12
+  integer, parameter :: unitcollapse=13
+  integer, parameter :: unitanalysis=14
 
-  INTEGER,PARAMETER:: biginteger=10000000
+  !> A very large integer
+  integer, parameter :: biginteger=10000000
 
-  ! Note: smalldouble must be above machine precision 
-  DOUBLE PRECISION,PARAMETER:: smalldouble=1.D-12, bigdouble=1.D+99
-  DOUBLE PRECISION,PARAMETER:: zero=0D0,one=1D0,two=2D0,half=0.5D0,quarter=0.25D0,third=0.33333333333333333333d0
-  DOUBLE PRECISION,PARAMETER:: dpi=3.141592653589793238462643383279502884197169399375105d0
+  ! A very small real number (but above machine precision)
+  double precision, parameter :: smalldouble=1.D-12
 
-  ! Physical scaling parameters:
-  DOUBLE PRECISION:: UNIT_LENGTH, UNIT_DENSITY, UNIT_VELOCITY
+  !> A very large real number
+  double precision, parameter :: bigdouble=1.D+99
+
+  !> \todo Remove these
+  double precision, parameter :: zero    = 0.0d0
+  double precision, parameter :: one     = 1.0d0
+  double precision, parameter :: two     = 2.0d0
+  double precision, parameter :: half    = 0.5d0
+  double precision, parameter :: quarter = 0.25d0
+  double precision, parameter :: third   = 1/3.0d0
+
+  !> Pi
+  double precision, parameter :: dpi=3.141592653589793238462643383279502884197169399375105d0
+
+  !> Physical scaling factor for lengths
+  double precision :: UNIT_LENGTH
+
+  !> Physical scaling factor for densities
+  double precision :: UNIT_DENSITY
+
+  !> Physical scaling factor for velocities
+  double precision :: UNIT_VELOCITY
 
   include 'amrvacusrpar.f'
 
   ! For transform variables and save selected data
-  INTEGER :: nwtf
-  INTEGER :: neqpartf
+  integer :: nwtf
+  integer :: neqpartf
 
-  !Kronecker delta and Levi-Civita tensors
-  INTEGER:: kr(3,3),lvc(3,3,3)
+  !> Kronecker delta tensor
+  integer :: kr(3,3)
 
-  !Equation and method parameters
-  DOUBLE PRECISION:: eqpar(neqpar+nspecialpar)
+  !> Levi-Civita tensor
+  integer :: lvc(3,3,3)
+
+  !> Equation and method parameters
+  double precision :: eqpar(neqpar+nspecialpar)
 
   ! Time step control parameters
-  DOUBLE PRECISION :: courantpar, dtpar, dtdiffpar, dtTCpar{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb}
-  CHARACTER*131 :: typecourant,typeresid
-  LOGICAL :: time_accurate, addmpibarrier
+  double precision :: courantpar, dtpar, dtdiffpar, dtTCpar{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb}
+  character(len=std_len) :: typecourant,typeresid
+  logical :: time_accurate, addmpibarrier
 
   !Time parameters
-  INTEGER,PARAMETER:: nsavehi=100       ! maximum No. saves into outputfiles
-  ! defined by arrays of tsave or itsave
-  DOUBLE PRECISION:: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNETOFRICTION ,tmf}
-  DOUBLE PRECISION:: tfixgrid
-  DOUBLE PRECISION:: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
-  LOGICAL:: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
-  INTEGER:: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
-  INTEGER:: itsave(nsavehi,nfile),itsavelast(nfile),ditsave(nfile)
-  INTEGER:: isavet(nfile),isaveit(nfile), nslices, slicedir(nslicemax), collapseLevel
-  INTEGER:: n_saves(1:nfile)
-  INTEGER:: typeparIO
-  INTEGER:: itfixgrid,ditregrid
-  INTEGER:: nwauxio
-  INTEGER:: istep, nstep
+
+  !> Maximum number of saves that can be defined by tsave or itsave
+  integer, parameter :: nsavehi=100
+
+  double precision :: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNETOFRICTION ,tmf}
+  double precision :: tfixgrid
+  double precision :: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
+  logical :: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
+  integer :: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
+  integer :: itsave(nsavehi,nfile),itsavelast(nfile),ditsave(nfile)
+  integer :: isavet(nfile),isaveit(nfile), nslices, slicedir(nslicemax), collapseLevel
+  integer :: n_saves(1:nfile)
+  integer :: typeparIO
+  integer :: itfixgrid,ditregrid
+  integer :: nwauxio
+  integer :: istep, nstep
 
   !Method switches
-  CHARACTER*131 :: typeadvance
-  CHARACTER*131 :: typelow1(nlevelshi),typelimited,typesourcesplit
-  CHARACTER*131 :: typefull1(nlevelshi), typepred1(nlevelshi)
-  CHARACTER*131 :: typelimiter1(nlevelshi),typegradlimiter1(nlevelshi)
-  CHARACTER*131 :: typelimiter,typegradlimiter,typeprolonglimit
-  CHARACTER*131 :: typeentropy(nw),typetvd,typetvdlf,typeaverage
-  CHARACTER*131 :: typedimsplit,typeaxial,typecoord,typepoly
-  INTEGER:: errorestimate,nxdiffusehllc,typespherical,ncyclemax
-  DOUBLE PRECISION:: entropycoef(nw)
-  DOUBLE PRECISION:: tvdlfeps, mcbeta, parastsnu, TCphi
-  LOGICAL:: sourceparasts,sourceimpl,sourceimplcycle,conduction,TCsaturate,bcphys
-  LOGICAL:: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
-  LOGICAL:: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
-  LOGICAL:: restrictprimitive,prolongprimitive, &
-       coarsenprimitive,useprimitiveRel, &
-       amrentropy
+  character(len=std_len) :: typeadvance
+  character(len=std_len) :: typelow1(nlevelshi),typelimited,typesourcesplit
+  character(len=std_len) :: typefull1(nlevelshi), typepred1(nlevelshi)
+  character(len=std_len) :: typelimiter1(nlevelshi),typegradlimiter1(nlevelshi)
+  character(len=std_len) :: typelimiter,typegradlimiter,typeprolonglimit
+  character(len=std_len) :: typeentropy(nw),typetvd,typetvdlf,typeaverage
+  character(len=std_len) :: typedimsplit,typeaxial,typecoord,typepoly
+  integer                :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
+  double precision       :: entropycoef(nw)
+  double precision       :: tvdlfeps, mcbeta, parastsnu, TCphi
+  logical                :: sourceparasts,sourceimpl
+  logical                :: sourceimplcycle,conduction,TCsaturate,bcphys
+  logical                :: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
+  logical                :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
+  logical                :: restrictprimitive,prolongprimitive
+  logical                :: coarsenprimitive,useprimitiveRel, amrentropy
 
-  LOGICAL:: divbwave,compactres,BnormLF
-  DOUBLE PRECISION:: divbdiff,smallT,smallp,smallrho,amr_wavefilter(nlevelshi)
-  CHARACTER*131 :: typedivbdiff,typedivbfix,typediv,typegrad
+  logical                :: divbwave,compactres,BnormLF
+  double precision       :: divbdiff,smallT,smallp,smallrho,amr_wavefilter(nlevelshi)
+  character(len=std_len) :: typedivbdiff,typedivbfix,typediv,typegrad
 
-  LOGICAL:: fixsmall,strictnr,strictsmall,strictzero,strictgetaux
-  DOUBLE PRECISION::dmaxvel,tolernr,absaccnr,tlow
-  INTEGER:: maxitnr,nflatgetaux
+  logical          :: fixsmall,strictnr,strictsmall,strictzero,strictgetaux
+  double precision :: dmaxvel,tolernr,absaccnr,tlow
+  integer          :: maxitnr,nflatgetaux
 
-  LOGICAL:: nocartesian
-  LOGICAL:: writew(nw),writelevel(nlevelshi)
-  DOUBLE PRECISION:: writespshift(ndim,2)
-  INTEGER:: level_io, level_io_min, level_io_max
+  logical          :: nocartesian
+  logical          :: writew(nw),writelevel(nlevelshi)
+  double precision :: writespshift(ndim,2)
+  integer          :: level_io, level_io_min, level_io_max
 
   ! cooling related parameters
-  INTEGER:: ncool, cmulti
-  CHARACTER*131 :: coolcurve,coolmethod
-  DOUBLE PRECISION :: cfrac
-  LOGICAL :: Tfix
+  integer                :: ncool, cmulti
+  character(len=std_len) :: coolcurve,coolmethod
+  double precision       :: cfrac
+  logical                :: Tfix
 
   ! dust related paramters
-  LOGICAL  :: dustzero
-  DOUBLE PRECISION :: smallrhod
-  CHARACTER*131 :: dustmethod,dustspecies,dusttemp
+  logical                :: dustzero
+  double precision       :: smallrhod
+  character(len=std_len) :: dustmethod,dustspecies,dusttemp
 
   ! local and global fastest wave speed (computed in setdt):
-  DOUBLE PRECISION :: cmax_mype, cmax_global
+  double precision :: cmax_mype, cmax_global
 
   !Gravity related parameters
-  DOUBLE PRECISION ::  x1ptms,x2ptms,x3ptms,ptmass
+  double precision ::  x1ptms,x2ptms,x3ptms,ptmass
 
   !Boundary region parameters
-  INTEGER,PARAMETER:: nhiB=2*ndim         ! maximum No. boundary sections
-  LOGICAL:: periodB(ndim), poleB(2,ndim), aperiodB(ndim)
-  CHARACTER*131 :: typeB(nw,nhiB)
-  CHARACTER*131 :: typeghostfill,typegridfill
-  DOUBLE PRECISION::ratebdflux
-  LOGICAL:: internalboundary
 
-  !File parameters
-  character*131 :: inifile,filenameout,filenameini,filenamelog
-  character*131 :: fileheadout
+  ! Number of boundaries for grid blocks
+  integer, parameter :: nhiB=2*ndim
+  logical :: periodB(ndim), poleB(2,ndim), aperiodB(ndim)
+  character(len=std_len) :: typeB(nw,nhiB)
+  character(len=std_len) :: typeghostfill,typegridfill
+  double precision ::ratebdflux
+  logical :: internalboundary
+
+  !> Name of input file
+  !> \todo Remove this
+  character(len=std_len) :: inifile
+
+  !> Base file name for simulation output, which will be followed by a number
+  character(len=std_len) :: filenameout
+
+  !> If not 'unavailable', resume from snapshot with this base file name
+  character(len=std_len) :: filenameini
+
+  !> Log file name (without the .log extension)
+  character(len=std_len) :: filenamelog
+
+  !> The header line in the output file
+  character(len=std_len) :: fileheadout
 
   !> Names of the conservative variables
   character(len=1024) :: wnames
@@ -161,45 +207,81 @@ module mod_global_parameters
   !> \todo remove this variable when printlog_special has been updated in all projects
   character(len=1024) :: wnameslog
 
-  CHARACTER*131 :: typefilelog
-  INTEGER :: snapshotini
-  LOGICAL :: sliceascii
+  !> Which type of log to write: 'normal', 'special', 'regression_test'
+  character(len=std_len) :: typefilelog
 
-  !Convert parameters
-  LOGICAL :: convert,autoconvert,saveprim,uselimiter,endian_swap
-  CHARACTER*131 :: convert_type, dxfiletype, collapse_type
-  DOUBLE PRECISION :: normvar(0:nw),normt
-  ! --------------------------------------------
+  !> Resume from the snapshot with this index
+  integer :: snapshotini
+
+  !> If true, enable ASCII output of slices
+  logical :: sliceascii
+
+  !> If true and filenameini and snapshotini are given, convert snapshots to
+  !> other file formats
+  logical                :: convert
+
+  !> If true, already convert to output format during the run
+  logical                :: autoconvert
+
+  !> If true, convert from conservative to primitive variables in output
+  logical                :: saveprim
+
+  !> If true and doing a 1D run, use a limiter to determine corner values
+  logical                :: uselimiter
+
+  logical                :: endian_swap
+
+  !> Which format to use when converting
+  !>
+  !> Options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,
+  !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, pvtumpi, pvtuCCmpi, tecline,
+  !> teclinempi, onegrid
+  character(len=std_len) :: convert_type
+
+  !> Data Explorer file endianness ('msb' or 'lsb' for last or most significant
+  !> bit order)
+  character(len=std_len) :: dxfiletype
+
+  character(len=std_len) :: collapse_type
+
+  !> Conversion factors for length (normvar(0)) and the primitive variables
+  !> (normvar(1:nw))
+  double precision       :: normvar(0:nw)
+
+  !> Conversion factor for time unit
+  double precision       :: normt
+
   !Test parameters
-  CHARACTER*131 :: teststr
-  INTEGER :: ixtest1,ixtest2,ixtest3,iwtest,idimtest
-  INTEGER:: saveigrid
+  character(len=std_len) :: teststr
+  integer                :: ixtest1,ixtest2,ixtest3,iwtest,idimtest
+  integer                :: saveigrid
+
   ! Stores the memory and load imbalance, to be used in printlog:
-  DOUBLE PRECISION :: Xload, Xmemory
+  double precision       :: Xload, Xmemory
 
-  LOGICAL:: oktest    !This is a local variable for all subroutines and functions
+  logical :: oktest    !This is a local variable for all subroutines and functions
 
-  DOUBLE PRECISION:: time_bc
+  double precision :: time_bc
   {#IFDEF STRETCHGRID
   ! stretching factor qst for log stretch grid
-  DOUBLE PRECISION:: logG, qst
-  DOUBLE PRECISION:: logGs(0:nlevelshi), qsts(0:nlevelshi)
+  double precision :: logG, qst
+  double precision :: logGs(0:nlevelshi), qsts(0:nlevelshi)
   }
 
-  integer,parameter:: nodehi=^ND+1
-  integer,parameter:: plevel_=1
-  integer,parameter:: pig^D_=plevel_+^D
+  integer, parameter :: nodehi=^ND+1
+  integer, parameter :: plevel_=1
+  integer, parameter :: pig^D_=plevel_+^D
 
-  integer,parameter:: rnodehi=3*^ND
-  integer,parameter:: rpxmin0_=0
-  integer,parameter:: rpxmin^D_=rpxmin0_+^D 
-  integer,parameter:: rpxmax0_=^ND
-  integer,parameter:: rpxmax^D_=rpxmax0_+^D 
-  integer,parameter:: rpdx^D_=2*^ND+^D
+  integer, parameter :: rnodehi=3*^ND
+  integer, parameter :: rpxmin0_=0
+  integer, parameter :: rpxmin^D_=rpxmin0_+^D
+  integer, parameter :: rpxmax0_=^ND
+  integer, parameter :: rpxmax^D_=rpxmax0_+^D
+  integer, parameter :: rpdx^D_=2*^ND+^D
 
   ! parameters for bc_phys
-  integer,parameter:: ismin^D=-1+2*^D
-  integer,parameter:: ismax^D=2*^D
+  integer, parameter :: ismin^D=-1+2*^D
+  integer, parameter :: ismax^D=2*^D
 
   include 'mpif.h'
 
