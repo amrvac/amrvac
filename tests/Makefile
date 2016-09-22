@@ -1,4 +1,4 @@
-TEST_DIRS := rho/auto_1d rho/auto_2d rho/auto_3d
+TEST_DIRS := rho/auto_1d rho/auto_2d rho/auto_3d hd/RM2D
 # hd/jetCloudInteractions hd/RM2D hd/RT3D mhd/doubleGEM mhd/promRT
 
 # Directories with altered names (useful for cleaning)
