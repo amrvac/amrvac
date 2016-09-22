@@ -1,8 +1,0 @@
-!##############################################################################
-! include amrvacusrpar - bowhd22
-
-INTEGER,PARAMETER:: vel_=neqpar+1,nspecialpar=1
-CHARACTER*3,PARAMETER:: specialparname='vel'
-
-! end include amrvacusrpar - bowhd22
-!##############################################################################
