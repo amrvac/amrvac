@@ -4,6 +4,7 @@ module mod_global_parameters
   use mod_indices
   use mod_physicaldata
   use mod_connectivity
+  use mpi
 
   implicit none
   public
@@ -282,8 +283,6 @@ module mod_global_parameters
   ! parameters for bc_phys
   integer, parameter :: ismin^D=-1+2*^D
   integer, parameter :: ismax^D=2*^D
-
-  include 'mpif.h'
 
   !> Corner coordinates
   double precision :: rnode(rnodehi,ngridshi)
