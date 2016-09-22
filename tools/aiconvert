@@ -69,7 +69,7 @@ if($#argv == 1 || $#argv == 2) then
   echo "parfilename given is" $fname
 endif
 # count the number of data to be converted
-set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^filenameout/=}'`
+set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^filenameini/=}'`
 set linedata=`echo $linedata | awk '{print $1}'`
 set dataname=`sed -n "$linedata p;$linedata q" $fname | awk -F\' '{print $2}'`
 set datacount=`ls $dataname????.dat | grep -c '.dat'`
