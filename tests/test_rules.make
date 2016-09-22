@@ -35,6 +35,6 @@ $(SETUP_FILES):
 
 # How to compile amrvac
 amrvac: $(SETUP_FILES) $(AMRVAC_DIR)/src/*
-	$(MAKE) &> compilation.log
+	$(MAKE) > compilation.log
 
 
