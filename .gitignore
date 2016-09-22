@@ -1,3 +1,7 @@
 doc/html/*
 *.dat
 *.vtu
+*.vti
+*.out
+*amrvac
+F90sources
