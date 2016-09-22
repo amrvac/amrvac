@@ -1,4 +1,6 @@
-F90=mpif90
-FFLAGS = -c
-F90FLAGS = -ffree-form -O3 -fimplicit-none -g -fbacktrace
-LINK= $(F90)  $(F90FLAGS)
+F90 := mpif90
+FFLAGS := -c
+F90FLAGS := -ffree-form -O0 -fcheck=all -ffpe-trap=invalid,zero,overflow	\
+-finit-real=nan -finit-integer=-2147483648 -fimplicit-none -g	\
+-fbacktrace
+LINK := $(F90) $(F90FLAGS)
