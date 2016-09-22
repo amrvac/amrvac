@@ -41,7 +41,7 @@
    nxlone1         = 8
    nxlone2         = 8
    nxlone3         = 8
-   xprobmin1       = 0.0d
+   xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0
    xprobmax2       = 1.0d0
