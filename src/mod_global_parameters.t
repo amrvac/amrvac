@@ -149,8 +149,18 @@ module mod_global_parameters
 
   !File parameters
   character*131 :: inifile,filenameout,filenameini,filenamelog
-  CHARACTER*131 :: fileheadout
-  CHARACTER*1024 :: wnames,primnames
+  character*131 :: fileheadout
+
+  !> Names of the conservative variables
+  character(len=1024) :: wnames
+
+  !> Names of the primitive variables
+  character(len=1024) :: primnames
+
+  !> This variable was used to store names for the log file
+  !> \todo remove this variable when printlog_special has been updated in all projects
+  character(len=1024) :: wnameslog
+
   CHARACTER*131 :: typefilelog
   INTEGER :: snapshotini
   LOGICAL :: sliceascii
