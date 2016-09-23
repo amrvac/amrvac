@@ -11,50 +11,47 @@ INCLUDE:amrvacnul/usrflags.t
 subroutine initglobaldata_usr
 
 use mod_global_parameters
-!----------------------------------------------------------------------------
 
-{^IFONED   eqpar(v1_)=one }
-{^IFTWOD   call mpistop("just a 1D test") }
-{^IFTHREED call mpistop("just a 1D test") }
+! Set velocity to one
+eqpar(v1_:v1_+ndim-1) = 1.0d0
 
 end subroutine initglobaldata_usr
-!=============================================================================
-subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid
+subroutine initonegrid_usr(ixG^L,ix^L,w,x)
+  use mod_global_parameters
 
-use mod_global_parameters
+  integer, intent(in)             :: ixG^L, ix^L
+  double precision, intent(in)    :: x(ixG^S,1:ndim)
+  double precision, intent(inout) :: w(ixG^S,1:nw)
+  double precision                :: x_vec(ndim)
+  integer                         :: i^D
 
-integer, intent(in) :: ixG^L, ix^L
-double precision, intent(in) :: x(ixG^S,1:ndim)
-double precision, intent(inout) :: w(ixG^S,1:nw)
-!----------------------------------------------------------------------------
-select case (iprob)
-case (1)
-   call test_solution_1(ix^L, x(ix^S, :), 0.0d0, w(ix^S,rho_))
-case default
-   call mpistop("iprob not available!")
-end select
+   {do i^D = ixmin^D, ixmax^D\}
+   x_vec = x(i^D, :)
+   call test_solution(x_vec, 0.0d0, w(i^D, rho_))
+   {end do\}
 
 end subroutine initonegrid_usr
 
-subroutine test_solution_1(ix^L, x, time, val)
+subroutine test_solution(x_vec, time, val)
   use mod_global_parameters
-  integer, intent(in)          :: ix^L
-  double precision, intent(in) :: x(ix^S, ndim), time
-  double precision             :: xrel(ix^S, ndim), val(ix^S)
-  double precision             :: vel(ndim)
-  integer                      :: idim
 
-  vel = eqpar(v1_:v1_+ndim-1)
-  val = 1
+  double precision, intent(in)  :: x_vec(ndim), time
+  double precision, intent(out) :: val
+  double precision              :: xrel(ndim)
+  double precision              :: vel(ndim)
 
-  do idim = 1, ndim
-     xrel(ix^S, idim) = x(ix^S, idim) - vel(idim) * time
-     val = val * sin(dpi * xrel(ix^S, idim))**4
-  end do
+  vel  = eqpar(v1_:v1_+ndim-1)
+  xrel = x_vec - vel * time
 
-end subroutine test_solution_1
+  select case (iprob)
+  case (1)
+     val = product(sin(dpi * xrel))**4
+  case default
+     call mpistop("iprob not available!")
+  end select
+end subroutine test_solution
 
 !=============================================================================
 ! amrvacusr.t.testrho

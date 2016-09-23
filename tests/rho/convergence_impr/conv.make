@@ -5,7 +5,7 @@ SETUP_SCRIPT := $(AMRVAC_DIR)/setup.pl
 SETUP_FILES := amrvacusr.t amrvacusrpar.t amrvacsettings.t definitions.h	\
 mod_indices.t makefile
 
-SETUP_FLAGS := -d=11 -g=22 -p=rho
+SETUP_FLAGS := -d=22 -g=22,22 -p=rho -arch=gfortrandebug
 
 .PHONY: all
 

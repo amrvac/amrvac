@@ -36,7 +36,7 @@ def get_args():
     p.add_argument('-scheme_dir', type=str,
                    default='../../schemes',
                    help='Directory for the schemes')
-    p.add_argument('-norm', type=str, default='2',
+    p.add_argument('-norm', type=str, default='inf',
                    help='Which norm to use (1, 2, inf)')
     p.add_argument('-schemes', type=str, nargs='+',
                    default=['1step_tvd', '2step_tvdlf_mm',
@@ -83,8 +83,6 @@ def getDifference(file_a, file_b, norm_type):
         norm = np.linalg.norm(rho_a-rho_b, np.inf)
     elif norm_type == '1':
         norm = np.linalg.norm(rho_a-rho_b, 1) / rho_a.size
-    else:
-        norm = np.linalg.norm(rho_a-rho_b, 2) / rho_a.size
 
     return norm
 
