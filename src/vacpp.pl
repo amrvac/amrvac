@@ -489,15 +489,10 @@ sub printline{
            # If line is longer than $maxlen, try reducing length of comment
            if(length("$line$comment")>$maxlen){$comment=~s/ *! */ !/}
        }else{$comment=""};
+
        # Print full line
-       $line=&unquote(&format90($line));
-       # CORRECT REFERENCES TO INCLUDE FILES
-       if($line=~/^ *include 'vac/){
-          $line=~s/include 'vacdef\.\w+'/include 'vacdef.f'/;
-          $line=~s/include 'vacpar\.\w+'/include 'vacpar.f'/;
-          $line=~s/include 'vacusrpar\.\w+'/include 'vacusrpar.f'/;
-       }
-       print $line,"$comment\n";
+       $line = &unquote(&format90($line));
+       print $line, "$comment\n";
     }
 }
 #===========================================================================
