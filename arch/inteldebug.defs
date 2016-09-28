@@ -1,4 +1,4 @@
 F90=mpiifort
 FFLAGS = -c
-F90FLAGS = -free -implicitnone -O2 -traceback -g -xHost
+F90FLAGS = -free -implicitnone -O2 -traceback -check all -warn all -fstack-protector -g -xHost
 LINK= $(F90)  $(F90FLAGS) 

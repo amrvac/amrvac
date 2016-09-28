@@ -1,4 +1,4 @@
 F90=mpif90
 FFLAGS = -c
-F90FLAGS = -ffree-form -O3 -fimplicit-none -g -fbacktrace
+F90FLAGS = -ffree-form -O2 -fimplicit-none -g -fbacktrace -fcheck=all
 LINK= $(F90)  $(F90FLAGS)

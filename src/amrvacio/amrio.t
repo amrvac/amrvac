@@ -649,7 +649,7 @@ end select
 {#IFDEF STRETCHGRID
 !if (mxnest>1) call mpistop("No refinement possible with a loggrid")
 if (typeaxial=='slab') call mpistop("Cartesian log grid not implemented")
-
+if (xprobmin1<=0) call mpistop("xprobmin1 must be positive in a stretched grid")
 if (qst/=bigdouble) then
    xprobmax1=xprobmin1*qst**nxlone1
    if(mype==0) write(*,*) 'xprobmax1 is computed for given nxlone1 and qst:', xprobmax1

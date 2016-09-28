@@ -111,6 +111,7 @@ rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
 do ix=ixGlo1,ixGhi1
   px(igrid)%x(ix^%1ixG^T,1)=rXmin1/(one-half*logG)*qst**(ix-1)
 end do
+rnode(rpdx1_,igrid)=minval(px(igrid)%x(ixG^T,1)*logG)
 logG=logGs(level-1)
 qst=qsts(level-1)
 rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)

@@ -1210,7 +1210,7 @@ endif
 
 {do ix^DB=ixmin^DB,ixmax^DB\}
    select case (typeaxial)
-   case ("slab","slabtest")
+   case ("slab","slabtest","slabstretch")
       x_TEC(1:ndim)=xC(ix^D,1:ndim)
       w_TEC(1:nw+nwauxio)=wC(ix^D,1:nw+nwauxio)
    case ("cylindrical")

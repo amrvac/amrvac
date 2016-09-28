@@ -193,8 +193,30 @@ case ("slabtest")
    pgeogrid%surface3(ixC^S)=dx1*dx2}
 
    ^D&pgeogrid%dx(ixGext^S,^D)=dx^D;
-
-
+{#IFDEF STRETCHGRID
+case ("slabstretch")
+   do ix = ixGext^LIM1
+      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-dixB-1)
+   end do
+   drs(ixGext^S)=x(ixGext^S,1)*logG
+   pgeogrid%dvolume(ixGext^S)=drs(ixGext^S){^DE&*dx^DE }
+   if (need_only_volume) return
+   ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
+   pgeogrid%surfaceC1(ixC^S)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   pgeogrid%surface1(ixC^S) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   {^NOONED
+   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+   pgeogrid%surfaceC2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
+   {^NOONED
+   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+   pgeogrid%surface2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
+   {^IFTHREED
+   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+   pgeogrid%surfaceC3(ixC^S)=drs(ixC^S)*dx2
+   pgeogrid%surface3(ixC^S)=drs(ixC^S)*dx2}
+   pgeogrid%dx(ixGext^S,1)=drs(ixGext^S)
+   ^DE&pgeogrid%dx(ixGext^S,^DE)=dx^DE;
+}
 case ("spherical")
 
    do idims=1,min(ndim,2)
@@ -608,6 +630,14 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
 }
 {#IFNDEF FOURTHORDER
          tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
+}
+{#IFDEF STRETCHGRID
+        case('slabstretch')
+         if(jdir==1) then
+           call gradient(tmp,ixI^L,ixO^L,jdir,tmp2)
+         else
+           tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
+         end if
 }
         case('spherical')
          select case(jdir)
