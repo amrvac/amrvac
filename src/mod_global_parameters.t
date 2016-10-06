@@ -232,7 +232,7 @@ module mod_global_parameters
   integer :: itmin
 
   !> If > 1, then in the first slowsteps-1 time steps dt is reduced
-  !> by a factor \f$ (1 - (1-step/slowsteps))^2 \f$
+  !> by a factor \f$ 1 - (1- step/slowsteps)^2 \f$
   integer :: slowsteps
 
   {#IFDEF MAGNETOFRICTION
