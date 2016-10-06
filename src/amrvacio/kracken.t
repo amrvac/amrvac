@@ -766,11 +766,11 @@ subroutine delim(line0,array,n,iicount,ibegin,iterm,ilen,dlim)
 !     find next non-delimiter
       icol=1
 
-      if(array(1)  ==  "#NULL#")then    ! special flag to not store into character array
-         lstore=.false.
-      else
+      ! if(array(1)  ==  "#NULL#")then    ! special flag to not store into character array
+      !    lstore=.false.
+      ! else
          lstore=.true.
-      endif
+      ! endif
 
       do iarray=1,n,1             ! store into each array element until done or too many words
          if(index(dlim(1:idlim),line(icol:icol))  ==  0)then ! if current character is not a delimiter

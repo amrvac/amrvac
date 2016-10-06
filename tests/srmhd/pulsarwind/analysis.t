@@ -4,7 +4,7 @@ subroutine write_analysis
 ! this routine using the slot 5 in itsave, dtsave and ditsave.  
 ! To use, just copy this file to your working directory and make your modifications.
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 character(len=20):: userconvert_type
 !-----------------------------------------------------------------------------
 logical :: fileopen

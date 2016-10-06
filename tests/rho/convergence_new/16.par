@@ -1,0 +1,8 @@
+ &filelist
+        filenamelog  = '_16'
+        filenameout  = '_16'
+ /
+
+ &amrlist
+        nxlone1=16
+ /

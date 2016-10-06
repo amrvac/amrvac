@@ -1,7 +1,7 @@
 !=============================================================================
 integer function getnode(ipe)
 use mod_forest, only: igrid_inuse
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! getnode = get first available igrid on processor ipe
 
@@ -48,7 +48,7 @@ end subroutine putnode
 !=============================================================================
 subroutine alloc_node(igrid)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 
@@ -139,7 +139,7 @@ end subroutine alloc_node
 !=============================================================================
 subroutine dealloc_node(igrid)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------

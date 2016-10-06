@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine set_pole
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 select case (typeaxial)
 case ("spherical") {^IFTHREED
@@ -42,7 +42,7 @@ end subroutine set_pole
 !=============================================================================
 subroutine getgridgeo(igrid)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 
@@ -137,7 +137,7 @@ end subroutine getgridgeo
 !=============================================================================
 subroutine putgridgeo(igrid)
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
@@ -157,7 +157,7 @@ end subroutine putgridgeo
 !=============================================================================
 subroutine fillgeo(pgeogrid,ixG^L,ixGext^L,xmin^D,dx^D,need_only_volume)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 type(geoalloc) :: pgeogrid
 integer, intent(in) :: ixG^L, ixGext^L
@@ -423,7 +423,7 @@ subroutine gradient(q,ixI^L,ix^L,idir,gradq)
 
 ! Calculate gradient of a scalar q within ixL in direction idir
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L, ix^L, idir
 double precision :: q(ixI^S), gradq(ixI^S)
@@ -469,7 +469,7 @@ subroutine gradientS(q,ixI^L,ix^L,idir,gradq)
 ! Calculate gradient of a scalar q within ixL in direction idir
 ! first use limiter to go from cell center to edge
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L, ix^L, idir
 double precision :: q(ixI^S), gradq(ixI^S)
@@ -540,7 +540,7 @@ subroutine divvector(qvec,ixI^L,ixO^L,divq)
 
 ! Calculate divergence of a vector qvec within ixL
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L,ixO^L
 double precision :: qvec(ixI^S,1:ndir), divq(ixI^S)
@@ -593,7 +593,7 @@ subroutine curlvector(qvec,ixI^L,ixO^L,curlvec,idirmin,idirmin0,ndir0)
 
 ! Calculate curl of a vector qvec within ixL
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L,ixO^L,idirmin,ix^L,idir,jdir,kdir,hxO^L,jxO^L,ndir0,idirmin0
 double precision :: qvec(ixI^S,1:ndir0),curlvec(ixI^S,idirmin0:3), invdx(1:ndim)
@@ -702,7 +702,7 @@ subroutine divvectorS(qvec,ixI^L,ixO^L,divq)
 ! Calculate divergence of a vector qvec within ixL
 ! using limited extrapolation to cell edges
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixI^L,ixO^L
 double precision :: qvec(ixG^T,1:ndir), divq(ixG^T)
@@ -791,7 +791,7 @@ end subroutine divvectorS
 !=============================================================================
 subroutine extremaq(ixI^L,ixO^L,q,nshift,qMax,qMin)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)           :: ixI^L,ixO^L
 double precision, intent(in) :: q(ixI^S)
@@ -844,7 +844,7 @@ end subroutine  extremaq
 !=============================================================================
 subroutine extremaw(ixI^L,ixO^L,w,nshift,wMax,wMin)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)            :: ixI^L,ixO^L
 double precision, intent(in)  :: w(ixI^S,1:nw)
@@ -905,7 +905,7 @@ end subroutine  extremaw
 !=============================================================================
 subroutine extremaa(ixI^L,ixO^L,a,nshift,aMin)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)           :: ixI^L,ixO^L
 double precision, intent(in) :: a(ixI^S)
@@ -958,7 +958,7 @@ subroutine locate_in_table(xpoint,table,nxtp,ixtp,res)
 ! OUTPUT:
 !  ixtp : closest element's index in table
 !  res : offset(distance) from the closest element in table
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: nxtp
 double precision,intent(in)   :: xpoint,table(nxtp)

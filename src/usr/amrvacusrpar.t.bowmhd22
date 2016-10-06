@@ -1,8 +1,0 @@
-!##############################################################################
-! include amrvacusrpar - bowmhd22
-
-INTEGER,PARAMETER:: beta_=neqpar+1,machA_=neqpar+2,nspecialpar=2
-CHARACTER*10,PARAMETER:: specialparname='beta machA'
-
-! end include amrvacusrpar - bowmhd22
-!##############################################################################

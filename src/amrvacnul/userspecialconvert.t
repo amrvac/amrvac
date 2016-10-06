@@ -7,7 +7,7 @@ subroutine userspecialconvert(qunitconvert)
 ! Allow user to use their own data-converting procedures
 
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunitconvert
 character(len=20):: userconvert_type
 !-----------------------------------------------------------------------------

@@ -15,7 +15,7 @@ subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
 
 ! FCT not implemented here
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
@@ -167,7 +167,7 @@ subroutine upwindLR(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,x,needprim,dxdim)
 ! Determine the upwinded wLC(ixL) and wRC(ixR) from w. 
 ! the wCT is only used when PPM is exploited.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
 logical, intent(in) :: needprim
@@ -290,7 +290,7 @@ subroutine dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
 
 ! note: there is no iw dependence here...
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixC^L, iw, idims
 double precision, intent(in) :: dxdim
@@ -421,7 +421,7 @@ subroutine tvdlf(method,qdt,ixI^L,ixO^L,idim^LIM, &
 !> method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
 !> method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -659,7 +659,7 @@ subroutine hll(method,qdt,ixI^L,ixO^L,idim^LIM, &
 !> method=='hll'  --> 2nd order HLL scheme.
 !> method=='hll1' --> 1st order HLL scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -911,7 +911,7 @@ subroutine hllc(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='hllcd' --> 2nd order HLLC+tvdlf scheme.
 ! method=='hllcd1'--> 1st order HLLC+tvdlf scheme.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -1194,7 +1194,7 @@ subroutine tvdmusclf(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='tvdmu'  --> 2nd order (may be 3rd order in 1D) TVD-MUSCL scheme.
 ! method=='tvdmu1' --> 1st order TVD-MUSCL scheme (upwind per charact. var.)
 ! FCT not implemented here.
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
 double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -1364,7 +1364,7 @@ end subroutine tvdmusclf
 !=============================================================================
 {#IFDEF GLM
 subroutine glmSolve(wLC,wRC,ixI^L,ixO^L,idir)
-include 'amrvacdef.f'
+use mod_global_parameters
 double precision, dimension(ixI^S,1:nw), intent(inout) :: wLC, wRC
 integer, intent(in)                                  :: ixI^L, ixO^L, idir
 double precision, dimension(ixI^S)                   :: dB, dPsi

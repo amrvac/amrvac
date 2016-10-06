@@ -1,0 +1,13 @@
+ &filelist
+        filenamelog = '_1step_tvd'
+        filenameout = '_1step_tvd'
+ /
+
+ &methodlist
+        typeadvance = 'onestep'
+        typefull1   = 13*'tvd'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

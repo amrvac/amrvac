@@ -1,0 +1,14 @@
+ &filelist
+        filenamelog  = '_4step_tvdlf_cada'
+        filenameout  = '_4step_tvdlf_cada'
+ /
+
+ &methodlist
+        typeadvance=  'fourstep'
+        typefull1 =    13*'tvdlf'
+        typelimiter1=  13*'cada3'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

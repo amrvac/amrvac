@@ -4,7 +4,7 @@
 !=============================================================================
 subroutine correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)         :: ixI^L, ixO^L
 integer, intent(in)         :: patchierror(ixG^T)
@@ -68,7 +68,7 @@ end subroutine correctaux
 !=============================================================================
 subroutine smallvalues(w,x,ixI^L,ixO^L,subname)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L,ixO^L
 double precision, intent(inout) :: w(ixI^S,1:nw)

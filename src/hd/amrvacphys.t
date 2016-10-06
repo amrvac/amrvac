@@ -10,7 +10,7 @@ INCLUDE:amrvacnul/getdt.t
 !=============================================================================
 subroutine checkglobaldata
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 {#IFDEF ISO
 if(eqpar(gamma_)<=zero) call mpistop ("gamma negative not ok")
@@ -35,7 +35,7 @@ subroutine initglobaldata
 
 ! set default values for entropy fixes for 'yee' type
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: il
 !-----------------------------------------------------------------------------
@@ -69,7 +69,7 @@ subroutine getaux(clipping,w,x,ixI^L,ixO^L,subname)
 ! clipping can be set to .true. to e.g. correct unphysical pressures, 
 ! densities, v>c,  etc.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical                :: clipping
 integer,intent(in)              :: ixI^L, ixO^L
@@ -82,7 +82,7 @@ end subroutine getaux
 !=============================================================================
 subroutine checkw(checkprimitive,ixI^L,ixO^L,w,flag)
 
-include 'amrvacdef.f'
+use mod_global_parameters
   
 logical :: checkprimitive
 integer, intent(in) :: ixI^L, ixO^L
@@ -114,7 +114,7 @@ subroutine conserve(ixI^L,ixO^L,w,x,patchw)
 
 ! Transform primitive variables into conservative ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)    :: ixI^L, ixO^L
 double precision       :: w(ixI^S,nw)
@@ -150,7 +150,7 @@ subroutine conserven(ixI^L,ixO^L,w,patchw)
 ! Transform primitive variables into conservative ones
 ! Idem to conserve, no smallvalues call
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)    :: ixI^L, ixO^L
 double precision       :: w(ixI^S,nw)
@@ -182,7 +182,7 @@ subroutine primitive(ixI^L,ixO^L,w,x)
 
 ! Transform conservative variables into primitive ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)    :: ixI^L, ixO^L
 double precision       :: w(ixI^S,nw)
@@ -262,7 +262,7 @@ subroutine primitiven(ixI^L,ixO^L,w,patchw)
 ! Transform conservative variables into primitive ones
 ! Idem to primitive, no smallvalues call
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -314,7 +314,7 @@ end subroutine primitiven
 !=============================================================================
 subroutine e_to_rhos(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -331,7 +331,7 @@ end subroutine e_to_rhos
 !=============================================================================
 subroutine rhos_to_e(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -348,7 +348,7 @@ end subroutine rhos_to_e
 !=============================================================================
 subroutine ppmflatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixL^L,ixR^L
 double precision, intent(in)  :: w(ixI^S,nw),d2w(ixG^T,1:nwflux)
@@ -369,7 +369,7 @@ end subroutine ppmflatcd
 !=============================================================================
 subroutine ppmflatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
 integer, intent(in)           :: idims
@@ -407,7 +407,7 @@ subroutine getv(w,x,ixI^L,ixO^L,idims,v)
 
 ! Calculate v_idim=m_idim/rho within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idims
 double precision :: w(ixI^S,nw), v(ixG^T)
@@ -434,7 +434,7 @@ subroutine getcmax(new_cmax,w,x,ixI^L,ixO^L,idims,cmax,cmin,needcmin)
 
 ! Calculate cmax_idim=csound+abs(v_idim) within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idims
@@ -509,7 +509,7 @@ subroutine getpthermal(w,x,ixI^L,ixO^L,p)
 
 ! Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision                :: w(ixI^S,nw), p(ixG^T)
@@ -576,7 +576,7 @@ subroutine getfluxforhllc(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, idims
 double precision :: w(ixI^S,nw),f(ixG^T,1:nwflux),tmp(ixG^T)
@@ -629,7 +629,7 @@ subroutine getflux(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, idims
 double precision :: w(ixI^S,nw), f(ixG^T), tmp(ixG^T)
@@ -681,7 +681,7 @@ subroutine addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
 
 ! Add geometrical source terms to w
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: qdt, x(ixI^S,1:ndim)
@@ -850,7 +850,7 @@ subroutine addsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
 ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -892,7 +892,7 @@ subroutine set_dusttozero(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 !
 !  Force dust density to zero if rho_dust <= minrhod
 !
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -913,7 +913,7 @@ subroutine get_3d_dragforce(ixI^L,ixO^L,w,x,fdrag)
 ! From Kwok 1975,page 584 (between eqn 8 and 9)
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: x(ixI^S,1:ndim)
@@ -1013,7 +1013,7 @@ subroutine get_sticking(w,x,ixI^L,ixO^L,alpha_T)
 !
 !  Equation from Decin et al. 2006
 !
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: x(ixI^S,1:ndim)
@@ -1050,7 +1050,7 @@ subroutine get_tdust(w,x,ixI^L,ixO^L,Td)
 !  and/or a fixed dust temperature in Kelvin
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: x(ixI^S,1:ndim)
@@ -1108,7 +1108,7 @@ end subroutine get_tdust
 
 subroutine getdt(w,ixI^L,ixO^L,dtnew,dx^D,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)

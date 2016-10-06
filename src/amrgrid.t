@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine settree
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! create and initialize grids on all levels > 1. On entry, all
 ! level=1 grids have been formed and initialized. This subroutine
@@ -42,7 +42,7 @@ end subroutine settree
 !=============================================================================
 subroutine resettree
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 if (levmax>levmin) call deallocateBflux
 
@@ -57,7 +57,7 @@ end subroutine resettree
 !=============================================================================
 subroutine resettree_convert
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer  :: igrid,iigrid, my_levmin, my_levmax
 !-----------------------------------------------------------------------------
 if (level_io > 0) then

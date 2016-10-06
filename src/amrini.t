@@ -5,7 +5,7 @@ subroutine initlevelone
 use mod_forest
 }
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
 !-----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ subroutine initial_condition(igrid)
 
 ! Need only to set the mesh values (can leave ghost cells untouched)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 
@@ -75,7 +75,7 @@ end subroutine initial_condition
 !=============================================================================
 subroutine modify_IC
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iigrid, igrid
 

@@ -9,7 +9,7 @@ subroutine centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
 ! wCT contains the time centered variables at time qtC for flux and source.
 ! w is the old value at qt on input and the new value at qt+qdt on output.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt, dx^D
@@ -78,7 +78,7 @@ subroutine centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
 ! wCT contains the time centered variables at time qtC for flux and source.
 ! w is the old value at qt on input and the new value at qt+qdt on output.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
 double precision, intent(in) :: qdt, qtC, qt, dx^D

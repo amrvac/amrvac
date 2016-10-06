@@ -1,0 +1,8 @@
+ &filelist
+        filenamelog  = '_1024'
+        filenameout  = '_1024'
+ /
+
+ &amrlist
+        nxlone1=1024
+ /

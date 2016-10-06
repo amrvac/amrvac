@@ -4,7 +4,7 @@ subroutine generate_plotfile
 {#IFDEF PARTICLES
 use mod_timing, only: tpartc, tpartc0
 }
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 if(mype==0.and.level_io>0)write(unitterm,*)'reset tree to fixed level=',level_io
@@ -65,7 +65,7 @@ subroutine getheadernames(wnamei,xandwnamei,outfilehead)
 ! the dimensional names, and only those names from the nw variables for output (through writew)
 ! together with the added names for nwauxio variables
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 character(len=10)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
@@ -182,7 +182,7 @@ subroutine oneblock(qunit)
 ! ASCII or binary output
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid, igrid_to_node
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix^D,ig^D,level
@@ -370,7 +370,7 @@ subroutine onegrid(qunit)
 ! ASCII output
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix^D,iw
@@ -476,7 +476,7 @@ subroutine valout_idl(qunit)
 ! binary output format
 
 use mod_forest, only: nleafs
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit
 
@@ -663,7 +663,7 @@ subroutine tecplot(qunit)
 ! not parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normt and normvar-array
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit
 
@@ -855,7 +855,7 @@ subroutine save_conntec(qunit,igrid,igonlevel)
 ! this saves the basic line, quad and brick connectivity,
 ! as used by TECPLOT file outputs for unstructured grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit, igrid, igonlevel
 
@@ -936,7 +936,7 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 ! the normconv is passed on to specialvar_output for extending with
 ! possible normalization values for the nw+1:nw+nwauxio entries
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit, igrid
 integer :: ixC^L,ixCC^L
@@ -1185,7 +1185,7 @@ subroutine cartesian(x_TMP,w_TMP,ix^L,xC,wC)
 ! to cartesian coordinates and components done here
 ! Also: nullifying values lower than smalldouble
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ix^L, ix^D, idim, iw, ivector, iw0
 integer, dimension(nw) :: vectoriw
@@ -1324,7 +1324,7 @@ subroutine unstructuredvtk(qunit)
 ! not parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normvar-array
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -1501,7 +1501,7 @@ subroutine unstructuredvtkB(qunit)
 ! not parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normvar-array
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -1930,7 +1930,7 @@ subroutine save_connvtk(qunit,igrid)
 ! this saves the basic line, pixel and voxel connectivity,
 ! as used by VTK file outputs for unstructured grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit, igrid
 
@@ -1966,7 +1966,7 @@ subroutine valout_dx(qunit)
 !  Numberings in DX start at zero.
 !  Array ordering becomes row-major (C/DX style).
 !
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit
 
@@ -2205,7 +2205,7 @@ end subroutine valout_dx
 !============================================================================
 subroutine varout_dx_condep(qunit,w,ixG^L)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit, ixG^L
 double precision, intent(in) :: w(ixG^S,1:nw)
@@ -2232,7 +2232,7 @@ subroutine ImageDataVtk_mpi(qunit)
 ! run on 1 versus multiple CPUs (however, the order of the vtu pieces can differ)
 
 use mod_forest, only: Morton_start, Morton_stop, tree_node_ptr, igrid_to_node, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -2395,7 +2395,7 @@ subroutine punstructuredvtk_mpi(qunit)
 ! Otherwise like unstructuredvtk_mpi
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 !
@@ -2491,7 +2491,7 @@ subroutine unstructuredvtk_mpi(qunit)
 ! run on 1 versus multiple CPUs (however, the order of the vtu pieces can differ)
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 
@@ -2668,7 +2668,7 @@ end subroutine unstructuredvtk_mpi
 subroutine write_vtk(qunit,ixI^L,ixC^L,ixCC^L,igrid,nc,np,nx^D,nxC^D,&
                      normconv,wnamei,xC,xCC,wC,wCC)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit
 integer, intent(in) :: ixI^L,ixC^L,ixCC^L
@@ -2776,7 +2776,7 @@ end subroutine write_vtk
 !============================================================================
 subroutine write_vti(qunit,ixI^L,ixC^L,ixCC^L,ig^D,nx^D,&
                      normconv,wnamei,wC,wCC)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit
 integer, intent(in) :: ixI^L,ixC^L,ixCC^L
@@ -2837,7 +2837,7 @@ end subroutine write_vti
 !=============================================================================
 subroutine write_pvtu(qunit)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit
 
@@ -2923,7 +2923,7 @@ subroutine tecplot_mpi(qunit)
 ! levels times the number of CPUs (can be less, when some level not on a CPU)
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: qunit
 
@@ -3396,7 +3396,7 @@ subroutine punstructuredvtkB_mpi(qunit)
 ! allows renormalizing using normvar-array
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) ::    qunit
 

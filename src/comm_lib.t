@@ -5,7 +5,7 @@
 !> @todo Check for errors in return code
 subroutine comm_start
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   ! Initialize MPI
   call MPI_INIT(ierrmpi)
@@ -26,7 +26,7 @@ end subroutine comm_start
 !> Finalize (or shutdown) the MPI environment
 subroutine comm_finalize
 
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierrmpi)
   call MPI_FINALIZE(ierrmpi)
@@ -37,7 +37,7 @@ end subroutine comm_finalize
 !> Create and store the MPI types that will be used for parallel communication
 subroutine init_comm_types
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, dimension(ndim+1) :: sizes, subsizes, start
 !integer :: i^D, ic^D, nx^D, nxCo^D, size_double
@@ -165,14 +165,13 @@ end subroutine init_comm_types
 
 !> Exit MPI-AMRVAC with an error message
 subroutine mpistop(message)
-
-  include 'amrvacdef.f'
+  use mod_global_parameters
 
   character(len=*), intent(in) :: message !< The error message
   integer                      :: ierrcode
 
   write(*, *) "ERROR for processor", mype, ":"
-  write(*, *) message
+  write(*, *) trim(message)
 
   call MPI_ABORT(icomm, ierrcode, ierrmpi)
 

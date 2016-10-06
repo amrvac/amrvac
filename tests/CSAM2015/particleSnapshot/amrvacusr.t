@@ -13,7 +13,7 @@ INCLUDE:amrvacmodules/integrate_particles.t
 subroutine initglobaldata_usr
 
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision scaleb
 !-----------------------------------------------------------------------------
@@ -47,7 +47,7 @@ subroutine init_particle_integrator()
 
 use mod_particles
 use constants
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -67,7 +67,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid within ix^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -159,7 +159,7 @@ subroutine init_particles()
 use constants
 use mod_particles
 use Knuth_random
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, dimension(ndir)    :: x
 integer                              :: igrid_particle, ipe_particle
@@ -242,7 +242,7 @@ subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with 
 ! corresponding normalization values (default value 1)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -285,7 +285,7 @@ subroutine specialvarnames_output
 
 ! newly added variables to be concatenated with the primnames/wnames string
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 primnames= TRIM(primnames)//' '//'jz'//' '//'curlbz'//' '//'v1'//' '//'v2'//' '//'v3'//' '//'divE'
@@ -315,7 +315,7 @@ end subroutine specialvarnames_output
 !=============================================================================
 subroutine flag_grid_usr(qt,ixG^L,ixO^L,w,x,flag)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixG^L, ixO^L
 integer, intent(inout)          :: flag
@@ -339,7 +339,7 @@ subroutine initvecpot_usr(ixI^L, ixC^L, xC, A)
 ! used by b_from_vectorpotential()
 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L, ixC^L
 double precision, intent(in)       :: xC(ixI^S,1:ndim)
@@ -372,7 +372,7 @@ end subroutine initvecpot_usr
 !=============================================================================
 subroutine printlog_special
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
 
@@ -386,7 +386,7 @@ subroutine process_grid_usr(igrid,level,ixI^L,ixO^L,qt,w,x)
 ! which happen to be non-local (like div v), and are in no way used for
 ! flux computations. As auxiliaries, they are also not advanced
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in):: igrid,level,ixI^L,ixO^L
 double precision, intent(in):: qt,x(ixI^S,1:ndim)
@@ -404,7 +404,7 @@ subroutine process_global_usr(iit,qt)
 ! has to implement MPI routines if information has to be shared
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: iit
 double precision, intent(in) :: qt
@@ -420,7 +420,7 @@ end subroutine process_global_usr
 subroutine userspecialconvert(qunitconvert)
 ! Allow user to use their own data-postprocessing procedures
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: qunitconvert
 character(len=20):: userconvert_type
 !-----------------------------------------------------------------------------
@@ -432,7 +432,7 @@ end subroutine userspecialconvert
 subroutine transformw_usr(w,wtf,eqpar_tf,ixI^L,ixO^L)
 ! regenerate w and eqpar arrays to output into *tf.dat, e.g., add/remove e_
 ! variable
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: w(ixI^S,1:nw)
@@ -448,7 +448,7 @@ end subroutine transformw_usr
 subroutine special_tolerance(xlocal,tolerance)
 !PURPOSE: use different tolerance in special regions for AMR to
 !reduce/increase resolution there where nothing/something interesting happens.
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in) :: xlocal(1:ndim)
 double precision, intent(inout) :: tolerance

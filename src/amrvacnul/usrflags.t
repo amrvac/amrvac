@@ -1,5 +1,5 @@
 subroutine fixp_usr(ixI^L,ixO^L,w,x)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(inout)    :: w(ixI^S,1:nw)
@@ -11,7 +11,7 @@ end subroutine fixp_usr
 !=============================================================================
 subroutine flag_grid_usr(qt,ixG^L,ixO^L,w,x,flag)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixG^L, ixO^L
 integer, intent(inout)          :: flag

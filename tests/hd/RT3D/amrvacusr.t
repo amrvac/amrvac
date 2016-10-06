@@ -1,9 +1,9 @@
 !#############################################################################
 ! module amrvacusr - testhdrt
+! setup.pl -d=33 -phi=0 -z=0 -g=16,16,16 -p=hd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+! play around with the subroutine initonegrid_usr which setups the initial value
 
 INCLUDE:amrvacmodules/gravity.t
-
-!INCLUDE:amrvacnul/specialini.t
 INCLUDE:amrvacnul/speciallog.t
 INCLUDE:amrvacnul/specialbound.t
 INCLUDE:amrvacnul/specialimpl.t
@@ -12,24 +12,19 @@ INCLUDE:amrvacnul/usrflags.t
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 eqpar(gamma_)=5.0d0/3.0d0
 eqpar(grav1_)=zero
 eqpar(grav2_)=-one
-{^IFTHREED
 eqpar(grav3_)=zero
-}
-{#IFDEF ISO
-eqpar(adiab_)=1.
-}
 end subroutine initglobaldata_usr
 !=============================================================================
 subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -42,20 +37,21 @@ logical::          first
 data first/.true./
 !----------------------------------------------------------------------------
 
+! the location of demarcation line`
 y0=0.8d0
-epsilon=0.05d0
+
+! density of two types
 rhodens=one
 rholight=0.1d0
+
+! setup the perturbation
+epsilon=0.05d0
 ! kx=2 pi
 kx=8.0d0*atan(one)
-{^IFTWOD
-kz=zero
-}
-{^IFTHREED
 ! kz=8 pi
 kz=32d0*atan(one)
-}
 
+! print out the info
 if (first) then
    if (mype==0) then
       print *,'HD Rayleigh Taylor problem'
@@ -68,18 +64,7 @@ if (first) then
    first=.false.
 end if
 
-! pressure at interface
-pint=one
-
-{^IFTWOD
-where(x(ixG^S,2)>y0+epsilon*sin(kx*x(ixG^S,1)))
-   w(ixG^S,rho_)=rhodens
-elsewhere
-   w(ixG^S,rho_)=rholight
-endwhere
-}
-
-{^IFTHREED
+! initialize the density
 if(kx*kz/=zero)then
    where(x(ixG^S,2)>y0+epsilon*sin(kx*x(ixG^S,1))*sin(kz*x(ixG^S,3)))
       w(ixG^S,rho_)=rhodens
@@ -101,38 +86,14 @@ else
       endwhere
    endif 
 endif
-}
 
+! set all velocity to zero
 {^C&w(ixG^S,m^C_)=zero \}
+
+! pressure at interface
+pint=one
 {#IFDEF ENERGY
 w(ixG^S,e_)=pint-w(ixG^S,rho_)*(x(ixG^S,2)-y0)
-
-{^IFTWOD
-if(iprob==2)then
-  dely=x(1,2,2)-x(1,1,2)
-  w(ixGmin1:ixGmax1,1,e_)=pint-rholight*(x(1,1,2)-y0)
-  w(ixGmin1:ixGmax1,2,e_)=pint-rholight*(x(1,2,2)-y0)
-  do ix2=3,ixGmax2
-    w(ixGmin1:ixGmax1,ix2,e_)= &
-        -two*dely*w(ixGmin1:ixGmax1,ix2-1,rho_) &
-                 +w(ixGmin1:ixGmax1,ix2-2,e_)
-  enddo
-endif
-}
-
-{^IFTHREED
-if(iprob==2)then
-  dely=x(1,2,1,2)-x(1,1,1,2)
-  w(ixGmin1:ixGmax1,1,ixGmin3:ixGmax3,e_)=pint-rholight*(x(1,1,1,2)-y0)
-  w(ixGmin1:ixGmax1,2,ixGmin3:ixGmax3,e_)=pint-rholight*(x(1,2,1,2)-y0)
-  do ix2=3,ixGmax2
-    w(ixGmin1:ixGmax1,ix2,ixGmin3:ixGmax3,e_)= &
-        -two*dely*w(ixGmin1:ixGmax1,ix2-1,ixGmin3:ixGmax3,rho_) &
-                 +w(ixGmin1:ixGmax1,ix2-2,ixGmin3:ixGmax3,e_)
-  enddo
-endif
-}
-
 w(ixG^S,e_)=w(ixG^S,e_)/(eqpar(gamma_)-one)
 }
 end subroutine initonegrid_usr
@@ -142,7 +103,7 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
 ! iw=iwmin...iwmax.  wCT is at time qCT
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -159,7 +120,7 @@ subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
 ! module have already been called.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -175,7 +136,7 @@ subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
 ! Enforce additional refinement or coarsening
 ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, level, ixG^L, ix^L
 double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
@@ -192,7 +153,7 @@ subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
 !  -->it is then requiring and iflag>nw
 ! note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L,iflag
 double precision, intent(in) :: w(ixI^S,1:nw)
@@ -210,7 +171,7 @@ subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
 
 ! Here one can add a steady (time-independent) potential background field
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)

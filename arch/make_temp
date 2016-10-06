@@ -44,7 +44,6 @@ z=-2
 nf=0
 ndust=0
 eos=default
-USER=nul
 # SETVAC READS UP TO THIS POINT
 
 PPFLAGS  = -d=$(ndim)$(ndir) -phi=$(phi)

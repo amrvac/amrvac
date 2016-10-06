@@ -1,6 +1,6 @@
 subroutine correctaux_usr(ixI^L,ixO^L,w,x,patchierror,subname)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)            :: ixI^L, ixO^L
 integer, intent(inout)         :: patchierror(ixG^T)

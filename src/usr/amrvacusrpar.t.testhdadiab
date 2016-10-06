@@ -1,8 +1,0 @@
-!##############################################################################
-! include amrvacusrpar - testhdadiab
-
-INTEGER,PARAMETER:: vampl_=neqpar+1,vper_=vampl_+1,rdriv_=vper_+1,nspecialpar=3
-CHARACTER*5,PARAMETER:: specialparname='A P r'
-
-! end include amrvacusrpar - testhdadiab
-!##############################################################################

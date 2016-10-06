@@ -1,0 +1,8 @@
+ &filelist
+        filenamelog  = '_256'
+        filenameout  = '_256'
+ /
+
+ &amrlist
+        nxlone1=256
+ /

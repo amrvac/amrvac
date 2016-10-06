@@ -1,0 +1,14 @@
+ &filelist
+        filenamelog  = '_ssprk54_fd_mp5'
+        filenameout  = '_ssprk54_fd_mp5'
+ /
+
+ &methodlist
+        typeadvance=  'ssprk54'
+        typefull1 =    13*'fd'
+        typelimiter1=  13*'mp5'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

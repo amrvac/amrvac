@@ -10,7 +10,7 @@ INCLUDE:amrvacnul/correctaux_usr.t
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 {#IFDEF GLM
 eqpar(Cr_)    = 0.18d0
@@ -36,7 +36,7 @@ subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
 
 ! initialize one grid within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -75,7 +75,7 @@ subroutine specialbound_usr(qt,ixI^L,ixO^L,iw,iB,w,x)
 ! special boundary types, user defined
 ! user must assign conservative variables in bounderies
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw, iB
 double precision, intent(in) :: qt, x(ixI^S,1:ndim)
@@ -174,7 +174,7 @@ subroutine bc_int(level,qt,ixI^L,ixO^L,w,x)
 ! Its effect should always be local as it acts on the mesh.
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L,ixO^L,level
 double precision, intent(in) :: qt

@@ -3,7 +3,7 @@
 
 !=============================================================================
 subroutine checkglobaldata
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 minrho= max(zero,smallrho)
 {#IFDEF ISO
@@ -19,7 +19,7 @@ subroutine initglobaldata
 
 ! set default values for entropy fixes
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: il
 !-----------------------------------------------------------------------------
@@ -58,7 +58,7 @@ subroutine getaux(clipping,w,x,ixI^L,ixO^L,subname)
 ! clipping can be set to .true. to e.g. correct unphysical pressures,
 ! densities, v>c,  etc.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical                :: clipping
 integer                :: ixI^L, ixO^L
@@ -71,7 +71,7 @@ end subroutine getaux
 !=============================================================================
 subroutine checkw(checkprimitive,ixI^L,ixO^L,w,flag)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: checkprimitive
 integer, intent(in) :: ixI^L, ixO^L
@@ -105,7 +105,7 @@ subroutine conserve(ixI^L,ixO^L,w,x,patchw)
 
 ! Transform primitive variables into conservative ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)    :: ixI^L, ixO^L
 double precision       :: w(ixI^S,nw)
@@ -136,7 +136,7 @@ subroutine conserven(ixI^L,ixO^L,w,patchw)
 
 ! Transform primitive variables into conservative ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(inout) :: w(ixI^S,nw)
@@ -164,7 +164,7 @@ subroutine primitive(ixI^L,ixO^L,w,x)
 
 ! Transform conservative variables into primitive ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(inout) :: w(ixI^S,nw)
@@ -225,7 +225,7 @@ subroutine primitiven(ixI^L,ixO^L,w,patchw)
 
 ! Transform conservative variables into primitive ones
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(inout) :: w(ixI^S,nw)
@@ -251,7 +251,7 @@ end subroutine primitiven
 !=============================================================================
 subroutine e_to_rhos(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision,intent(inout)  :: w(ixI^S,nw)
@@ -269,7 +269,7 @@ end subroutine e_to_rhos
 !=============================================================================
 subroutine rhos_to_e(ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw)
@@ -289,7 +289,7 @@ subroutine internalenergy(ixI^L,ixO^L,w,x,ie)
 
 ! get internal energy
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: w(ixI^S,nw)
@@ -311,7 +311,7 @@ subroutine getv(w,x,ixI^L,ixO^L,idims,v)
 
 ! Calculate v_idim=m_idim/rho within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idims
 double precision, intent(in)  :: w(ixI^S,nw)
@@ -327,7 +327,7 @@ subroutine getcmax(new_cmax,w,x,ixI^L,ixO^L,idims,cmax,cmin,needcmin)
 
 ! Calculate cmax_idim=csound+abs(v_idim) within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 logical :: new_cmax,needcmin
 integer, intent(in) :: ixI^L, ixO^L, idims
@@ -404,7 +404,7 @@ subroutine getpthermal(w,x,ixI^L,ixO^L,p)
 
 ! Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho-b**2/2) within ixO^L
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision :: w(ixI^S,nw), p(ixI^S)
@@ -466,7 +466,7 @@ subroutine getcsound2prim(w,x,ixI^L,ixO^L,csound2)
 ! from the primitive variables in w.
 ! csound2=gamma*p/rho
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixO^L, ixI^L
 double precision, intent(in)    :: x(ixI^S,1:ndim)
@@ -486,7 +486,7 @@ subroutine getcsound2(w,x,ixI^L,ixO^L,csound2)
 ! Calculate the square of the thermal sound speed csound2 within ixO^L.
 ! csound2=gamma*p/rho
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: w(ixI^S,nw)
@@ -507,7 +507,7 @@ subroutine getptotal(w,x,ixI^L,ixO^L,p)
 ! Calculate total pressure within ixO^L including magnetic pressure
 ! p=(g-1)*e-0.5*(g-1)*m**2/rho+(1-0.5*g)*b**2
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: w(ixI^S,nw)
@@ -570,7 +570,7 @@ subroutine getfluxforhllc(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw, idims
 double precision, intent(in)    :: w(ixI^S,nw)
@@ -686,7 +686,7 @@ subroutine getflux(w,x,ixI^L,ixO^L,iw,idims,f,transport)
 
 ! Calculate non-transport flux f_idim[iw] within ixO^L.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw, idims
 double precision, intent(in)    :: w(ixI^S,nw)
@@ -802,7 +802,7 @@ subroutine addsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
 ! w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt
@@ -863,7 +863,7 @@ subroutine addsource_res1(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add resistive source to w within ixO 
 ! Uses 3 point stencil (1 neighbour) in each direction, non-conservative
 ! If the fourthorder precompiler flag is set, uses fourth order central difference for the laplacian. Then the stencil is 5 (2 neighbours).  
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt
@@ -981,7 +981,7 @@ subroutine addsource_res2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add resistive source to w within ixO 
 ! Uses 5 point stencil (2 neighbours) in each direction, conservative
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt
@@ -1052,7 +1052,7 @@ subroutine addsource_hyperres(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
 ! Add Hyper-resistive source to w within ixO 
 ! Uses 9 point stencil (4 neighbours) in each direction.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in)    :: qdt, qtC, qt
@@ -1109,7 +1109,7 @@ subroutine getcurrent(w,ixI^L,ix^L,idirmin,current)
 
 ! Calculate idirmin and the idirmin:3 components of the common current array
 ! make sure that dxlevel(^D) is set correctly.
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, parameter:: idirmin0=7-2*ndir
 integer :: ix^L, idirmin, ixI^L
@@ -1133,7 +1133,7 @@ subroutine getdt(w,ixI^L,ix^L,dtnew,dx^D,x)
 
 ! If resistivity is not zero, check diffusion time limit for dt
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ix^L
 double precision, intent(out)   :: dtnew
@@ -1177,7 +1177,7 @@ end subroutine getdt
 !=============================================================================
 subroutine ppmflatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L,ixL^L,ixR^L
 double precision, intent(in)  :: w(ixI^S,nw),d2w(ixI^S,1:nwflux)
@@ -1197,7 +1197,7 @@ end subroutine ppmflatcd
 !=============================================================================
 subroutine ppmflatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 ! based on Mignone and Miller and Collela 2002
 ! PPM flattening at shocks: we use total pressure and not thermal pressure 
@@ -1242,7 +1242,7 @@ subroutine addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
 
 ! Add geometrical source terms to w
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)             :: ixI^L, ixO^L
 double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)

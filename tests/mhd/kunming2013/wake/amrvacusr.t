@@ -11,7 +11,7 @@ INCLUDE:amrvacnul/correctaux_usr.t
 !=============================================================================
 subroutine initglobaldata_usr
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 eqpar(gamma_)=5.0d0/3.0d0
 eqpar(eta_)=0.0001d0
@@ -22,7 +22,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
 ! initialize one grid
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -79,7 +79,7 @@ subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with 
 ! corresponding normalization values (default value 1)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -110,7 +110,7 @@ subroutine specialvarnames_output
 
 ! newly added variables need to be concatenated with the varnames/primnames string
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 
 primnames= TRIM(primnames)//' '//'T'
@@ -123,7 +123,7 @@ end subroutine specialvarnames_output
 !=============================================================================
 subroutine printlog_special
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
 
@@ -137,7 +137,7 @@ subroutine process_grid_usr(igrid,level,ixI^L,ixO^L,qt,w,x)
 ! which happen to be non-local (like div v), and are in no way used for
 ! flux computations. As auxiliaries, they are also not advanced
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in):: igrid,level,ixI^L,ixO^L
 double precision, intent(in):: qt,x(ixI^S,1:ndim)

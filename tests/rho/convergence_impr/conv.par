@@ -1,0 +1,44 @@
+!=====================================================
+! Project : Advection test
+!
+!=====================================================
+ &testlist
+        teststr=' '
+/
+
+ &filelist
+        primnames    = 'rho'
+    	convert_type = 'vtuBCCmpi'
+        autoconvert  = T
+	filenameout  = 'conv'
+	filenamelog  = 'conv'
+/
+ &savelist
+        dtsave(2) = 0.05
+        dtsave(5) = 0.05
+ /
+
+ &stoplist
+        tmax         = 1.0d0
+ /
+
+ &methodlist
+        wnames=       'rho'
+ /
+
+ &boundlist
+        dixB=   3
+        typeB=  'periodic','periodic','periodic','periodic'
+ /
+
+ &amrlist
+        mxnest=5
+        tol=13*0.1d0
+        iprob=1
+        nxlone1 = 32
+        nxlone2 = 32
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /

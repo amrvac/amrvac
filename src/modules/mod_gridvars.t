@@ -38,7 +38,7 @@ contains
 !=============================================================================
 subroutine init_gridvars()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer                                   :: igrid, iigrid
 !-----------------------------------------------------------------------------
 
@@ -60,7 +60,7 @@ end subroutine init_gridvars
 !=============================================================================
 subroutine finish_gridvars()
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer             :: iigrid, igrid
 !-----------------------------------------------------------------------------
@@ -75,7 +75,7 @@ end subroutine finish_gridvars
 !=============================================================================
 subroutine interpolate_var(igrid,ixI^L,ixO^L,gf,x,xloc,gfloc)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in)                   :: igrid,ixI^L, ixO^L
 double precision, intent(in)          :: gf(ixI^S)
 double precision, intent(in)          :: x(ixI^S,1:ndim)
@@ -150,7 +150,7 @@ end subroutine interpolate_var
 !=============================================================================
 subroutine get_vec(igrid,x,tloc,var,ibeg,iend)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in)                                   :: igrid, ibeg, iend
 double precision,dimension(^NC), intent(in)          :: x

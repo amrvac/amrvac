@@ -16,7 +16,7 @@
 !  !==========================================================================
 !   subroutine initglobaldata_usr
 !   use harm_coef_data
-!   include 'amrvacdef.f'
+!   use mod_global_parameters
 !   logical, save :: firstusrglobaldata=.true.
 !   .....
 !   R_0=1.d0 ! dimensionless Solar radius (default 1.0)
@@ -57,7 +57,7 @@ end module harm_coef_data
 !=============================================================================
 subroutine harm_coef(mapname)
 use harm_coef_data
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, allocatable :: b_r0(:,:)
 double precision, allocatable :: theta(:),phi(:),cfwm(:)
@@ -175,7 +175,7 @@ subroutine pfss(ixI^L,ixO^L,Bpf,x)
 
 use harm_coef_data
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)
@@ -272,7 +272,7 @@ subroutine inv_sph_transform(Bt,phi,miu,mius,nphi,ntheta,Bpf,qlmax)
 
 use harm_coef_data
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: nphi,ntheta,qlmax
 double complex, intent(in)  :: Bt(0:lmax,0:lmax)
@@ -368,7 +368,7 @@ end subroutine inv_sph_transform
 !=============================================================================
 subroutine cfweights(ym,miu,cfwm)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ym
 double precision, intent(in) :: miu(ym)
@@ -959,7 +959,7 @@ end subroutine fft
 subroutine coef(b_r0,xm,ym,miu,mius,cfwm)
 
 use harm_coef_data
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: xm,ym
 double precision, intent(in) :: b_r0(xm,ym),cfwm(ym),miu(ym),mius(ym)

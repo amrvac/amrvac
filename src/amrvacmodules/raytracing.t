@@ -66,7 +66,7 @@ subroutine init_rays
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 
  double precision :: drayx^D
@@ -371,7 +371,7 @@ subroutine getgriddata(ixI^L,ixO^L,x,w)
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L, ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
@@ -467,7 +467,7 @@ subroutine interpolategrid(ixI^L,ixO^L,iray,ipoint,x,w)
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
  integer, intent(in)           :: ixI^L,ixO^L, iray,ipoint
  double precision, intent(in)  :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
@@ -564,7 +564,7 @@ subroutine findnearestgridpoint(ixI^L,ixO^L,xpoint^D,x,igridpoint^D)
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L
 double precision, intent(in) :: xpoint^D,x(ixI^S,1:ndim)
@@ -666,7 +666,7 @@ subroutine ray_columndens
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: dray(1:npoints)  
 integer          :: iray,ipoint
@@ -711,7 +711,7 @@ subroutine ray_stromgren
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: rray(1:npoints),drray, F, dF, Tray
 integer          :: iray,ipoint
@@ -778,7 +778,7 @@ subroutine update_rays
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 
 double precision :: time2, time1
@@ -878,7 +878,7 @@ subroutine allgather_griddata
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iray,ipoint,ipsend,iprecv
 integer :: status(MPI_STATUS_SIZE)
@@ -935,7 +935,7 @@ subroutine allgather_griddata_fast
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iray,ipoint,ipsend,iprecv
 integer :: status(MPI_STATUS_SIZE)
@@ -1020,7 +1020,7 @@ subroutine allgather_griddata_block
 
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iray,ipoint,ipsend,iprecv
 integer :: status(MPI_STATUS_SIZE)
@@ -1123,7 +1123,7 @@ subroutine get_mygriddata
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iray,ipoint,ipsend,iprecv
 logical, allocatable :: ptfound_send(:,:)
@@ -1183,7 +1183,7 @@ subroutine get_mygriddata_block
 
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iray,ipoint
 integer :: status(MPI_STATUS_SIZE)
@@ -1275,7 +1275,7 @@ subroutine allput_raydata
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iray,ipoint,ipsend
 integer :: status(MPI_STATUS_SIZE)
@@ -1329,7 +1329,7 @@ subroutine allput_raydata_block
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: iray,ipoint,ipsend
 integer :: status(MPI_STATUS_SIZE)
@@ -1376,7 +1376,7 @@ subroutine write_ray_data( outname )
 !
  use mod_raytracing
 
- include 'amrvacdef.f'
+ use mod_global_parameters
 
  character*79, intent(in) :: outname
 
@@ -1438,7 +1438,7 @@ subroutine primitive_rays
 
  use mod_raytracing
 
- include 'amrvacdef.f' 
+ use mod_global_parameters 
  
  integer :: iray
 !-------------------------------------------------------------------------------
@@ -1468,7 +1468,7 @@ subroutine conservative_rays
 
  use mod_raytracing
 
- include 'amrvacdef.f'
+ use mod_global_parameters
   
  integer :: iray
 !-------------------------------------------------------------------------------
@@ -1498,7 +1498,7 @@ subroutine getraydata( ixI^L,ixO^L,x,u )
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L, ixO^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)
@@ -1578,7 +1578,7 @@ subroutine intersect_ray_grid( ixI^L,ixO^L,x,patchray )
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L, ixO^L
 double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -1620,7 +1620,7 @@ subroutine findnearestraypoint(  xpoint^D,patchray,irayout,ipointout )
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in) :: xpoint^D
 logical, intent(in)          :: patchray(1:nrays)
@@ -1708,7 +1708,7 @@ subroutine findnearestraypoint_regular( xpoint^D,patchray,irayout,ipointout )
 ! interpolation scheme for 'regular' ray grid
 !
 use mod_raytracing
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in) :: xpoint^D
 logical, intent(in)          :: patchray(1:nrays)
@@ -1816,7 +1816,7 @@ subroutine findnearestonray(  xpoint^D,irayin,ipointout   )
 !
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in) :: xpoint^D
 integer, intent(in)          :: irayin
@@ -1851,7 +1851,7 @@ subroutine point_to_ray(xpoint^D, patchray,rtoray )
 ! returns for a given point the shortest distance to the rays
 !
 use mod_raytracing
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision,intent(in)  :: xpoint^D
 logical,intent(in)           :: patchray(1:nrays)
@@ -1887,7 +1887,7 @@ subroutine time_spent_on_rays
 ! Output of time spent on raytracing
 !
 use mod_raytracing
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision :: trinit,trcomm,trinterpol,trphys
 

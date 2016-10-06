@@ -2,7 +2,7 @@
 subroutine errest
  
 use mod_forest, only: refine, buffer
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: igrid, iigrid, ixCoG^L
 double precision :: factor
@@ -98,7 +98,7 @@ end subroutine errest
 !=============================================================================
 subroutine lohner_grid(igrid)
 use mod_forest, only: coarsen, refine
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 
@@ -210,7 +210,7 @@ end subroutine lohner_grid
 !=============================================================================
 subroutine lohner_orig_grid(igrid)
 use mod_forest, only: coarsen, refine
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 
@@ -288,7 +288,7 @@ end subroutine lohner_orig_grid
 !=============================================================================
 subroutine compare1_grid(igrid,wold,w)
 use mod_forest, only: coarsen, refine
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
@@ -340,7 +340,7 @@ end if
 end subroutine compare1_grid
 !=============================================================================
 subroutine createCoarse(ixCoG^L)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixCoG^L
 
@@ -358,7 +358,7 @@ end subroutine createCoarse
 !=============================================================================
 subroutine createCoarse_grid(igrid,pwCo,pxCo,ixCoG^L,wold,xold)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, ixCoG^L
 double precision :: wold(ixG^T,1:nw), xold(ixG^T,1:ndim)
@@ -378,7 +378,7 @@ call coarsen_grid(wold,xold,ixG^LL,ixM^LL,pwCo%w,pxCo%x,ixCoG^L,ixCoM^L, &
 end subroutine createCoarse_grid
 !=============================================================================
 subroutine advectCoarse(ixCoG^L,factor)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ixCoG^L
 double precision, intent(in) :: factor
@@ -395,7 +395,7 @@ end subroutine advectCoarse
 !=============================================================================
 subroutine advectCoarse_grid(igrid,pwCo,ixCoG^L,factor)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, ixCoG^L
 double precision, intent(in) :: factor
@@ -431,7 +431,7 @@ end subroutine advectCoarse_grid
 !=============================================================================
 subroutine errest1_grid(igrid,w)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 double precision, intent(in) :: w(ixG^T,nw)
@@ -472,7 +472,7 @@ subroutine flagbadpoints(w,wCo,ixCoG^L,igrid,level)
 !  wCo:     time integration on coarsened grid (2*dx)
 
 use mod_forest, only: coarsen, refine
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)         :: igrid, ixCoG^L, level
 double precision,intent(in) :: w(ixG^T,nw), wCo(ixCoG^S,nw)
@@ -569,7 +569,7 @@ end subroutine flagbadpoints
 !=============================================================================
 subroutine forcedrefine_grid(igrid,w)
 use mod_forest, only: coarsen, refine, buffer
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 double precision, intent(in) :: w(ixG^T,nw)
@@ -637,7 +637,7 @@ end subroutine forcedrefine_grid
 !=============================================================================
 subroutine forcedrefine_grid_io(igrid,w)
 use mod_forest, only: coarsen, refine
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: igrid
 double precision, intent(in) :: w(ixG^T,nw)
@@ -677,7 +677,7 @@ end subroutine forcedrefine_grid_io
 !=============================================================================
 subroutine refinebuffer(igrid,refineflag)
 use mod_forest, only: refine, buffer
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 logical, dimension(ixG^T), intent(in) :: refineflag

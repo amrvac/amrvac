@@ -10,6 +10,7 @@
         primnames='rho'
     	convert_type='vtuBCCmpi'
         autoconvert=T
+        typefilelog = 'regression_test'
 !	writespshift(1,1)=0.0
 !	writespshift(1,2)=0.5
 !	writespshift(2,1)=0.0

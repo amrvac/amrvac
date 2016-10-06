@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine init_forest_root
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: ig^D, level, igrid, ipe
 integer :: iside, i^D, Morton_no, isfc
@@ -142,7 +142,7 @@ end subroutine coarsen_tree_leaf
 !=============================================================================
 subroutine refine_tree_leaf(child_igrid,child_ipe,igrid,ipe,active)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
 integer, intent(in) :: igrid, ipe
@@ -273,7 +273,7 @@ end subroutine delete_from_linked_list
 !=============================================================================
 subroutine write_forest(file_handle)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: file_handle
 
@@ -317,7 +317,7 @@ end subroutine write_forest
 !=============================================================================
 subroutine read_forest(file_handle)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: file_handle
 

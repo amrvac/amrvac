@@ -22,7 +22,7 @@ subroutine initglobaldata_usr
 
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer :: i, fileid
 double precision, allocatable :: evol(:,:)
@@ -178,7 +178,7 @@ use mod_raytracing
 
 ! initialize one grid 
 
-include 'amrvacdef.f'
+use mod_global_parameters
 integer, intent(in) :: ixG^L, ix^L
 
 double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -248,7 +248,7 @@ subroutine specialbound_usr(qt,ixG^L,ixO^L,iw,iB,w,x)
 
 ! special boundary types, user defined
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, parameter :: gam1=(5.0d0/3.0d0)-1.0d0
 
@@ -302,7 +302,7 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 ! iw=iwmin...iwmax.  wCT is at time qCT
 use mod_raytracing
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
@@ -348,7 +348,7 @@ subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
 ! module have already been called.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -367,7 +367,7 @@ subroutine specialeta(w,ixI^L,ix^L,idirmin,x,current,eta)
 ! Set the "eta" array for resistive MHD based on w or the
 ! "current" variable which has components between idirmin and 3.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ix^L, idirmin
 double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
@@ -387,7 +387,7 @@ subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 ! this subroutine can be used in convert, to add auxiliary variables to the
 ! converted output file, for further analysis using tecplot, paraview, ....
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -409,7 +409,7 @@ subroutine specialvarnames_output
 
 ! newly added variables need to be concatenated with the varnames/primnames string
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
 
@@ -426,7 +426,7 @@ subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
 ! Enforce additional refinement or coarsening
 ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: igrid, level, ixG^L, ix^L
 double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
@@ -461,7 +461,7 @@ subroutine specialvarforerrest(ixI^L,ixO^L,iflag,w,var)
 !  -->it is then requiring and iflag>nw
 ! note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L,iflag
 double precision, intent(in) :: w(ixI^S,1:nw)
@@ -480,7 +480,7 @@ end subroutine specialvarforerrest
 !=============================================================================
 subroutine printlog_special
 
-include 'amrvacdef.f'
+use mod_global_parameters
 !-----------------------------------------------------------------------------
 oktest = index(teststr,'printlog')>=1
 
@@ -494,7 +494,7 @@ subroutine process_grid_usr(igrid,level,ixI^L,ixO^L,qt,w,x)
 ! which happen to be non-local (like div v), and are in no way used for
 ! flux computations. As auxiliaries, they are also not advanced
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in):: igrid,level,ixI^L,ixO^L
 double precision, intent(in):: qt,x(ixI^S,1:ndim)
@@ -510,7 +510,7 @@ subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
 
 ! Here one can add a steady (time-independent) potential background field
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)           :: ixI^L,ixO^L
 double precision, intent(in)  :: x(ixG^T,1:ndim)
@@ -536,7 +536,7 @@ subroutine bc_int(qt,ixG^L,ixO^L,w,x)
 ! Its effect should always be local as it acts on the mesh.
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L,ixO^L
 double precision, intent(in) :: qt
@@ -577,7 +577,7 @@ subroutine random_reseed
 ! resusing random number sequence.
 !
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, dimension(:), allocatable :: seed
 integer :: kseed, clock, i
@@ -604,7 +604,7 @@ end subroutine random_reseed
 
 
 subroutine fixp_usr(ixI^L,ixO^L,w)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(inout)    :: w(ixI^S,1:nw)
@@ -617,7 +617,7 @@ end subroutine fixp_usr
 !=============================================================================
       subroutine flag_grid_usr(qt,ixG^L,ixO^L,w,x,flag)
 
-      include 'amrvacdef.f'
+      use mod_global_parameters
 
       integer, intent(in)             :: ixG^L, ixO^L
       integer, intent(inout)          :: flag

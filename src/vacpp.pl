@@ -96,7 +96,6 @@ $eos = default unless $eos;
 
 # Call these routines
 &definepatterns;
-&includeheader;
 &definevars;
 
 # Process the files given as arguments
@@ -105,16 +104,7 @@ foreach $file (@ARGV) {
 }
 
 #============================================================================
-sub includeheader{
-   # Define special characters for the PreProcessor
 
-   # include the headerfile from the build dir:
-   eval{
-       ### try block
-       require "$cwd/../definitions.h";
-   };
-}
-#============================================================================
 sub processfile {
    local($filename, $input) = @_;
    $input++;

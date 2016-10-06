@@ -46,7 +46,7 @@
 !=============================================================================
 subroutine thermalconduct_RKL2(s,qdt,qt)
 ! Meyer 2012 MNRAS 422,2102
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer,intent(in) :: s
 double precision, intent(in) :: qdt,qt
@@ -168,7 +168,7 @@ end subroutine thermalconduct_RKL2
 !=============================================================================
 subroutine evolve_stepj(qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,wold)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L,ixO^L
 double precision, intent(in) :: qcmu,qcmut,qcnu,qcnut,qdt
@@ -192,7 +192,7 @@ end subroutine evolve_stepj
 !=============================================================================
 subroutine evolve_step1(qcmut,qdt,ixI^L,ixO^L,w1,w,x,wold)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L,ixO^L
 double precision, intent(in) :: qcmut, qdt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -269,7 +269,7 @@ end subroutine evolve_step1
 !=============================================================================
 subroutine addsource_heatconduct_mhd(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L,ixO^L,iw^LIM
 double precision, intent(in) :: qdt,qtC,qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -314,7 +314,7 @@ end subroutine addsource_heatconduct_mhd
 !=============================================================================
 subroutine heatconduct_mhd(tmp,tmp1,tmp2,ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
@@ -508,7 +508,7 @@ subroutine getdt_heatconduct_mhd(w,ixG^L,ix^L,dtnew,dx^D,x)
 !where                      kappa_i=kappa*B_i**2/B**2
 !and                        T=p/rho
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -589,7 +589,7 @@ end subroutine getdt_heatconduct_mhd
 !=============================================================================
 subroutine addsource_heatconduct_hd(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L,ixO^L,iw^LIM
 double precision, intent(in) :: qdt,qtC,qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
@@ -631,7 +631,7 @@ end subroutine addsource_heatconduct_hd
 !=============================================================================
 subroutine heatconduct_hd(tmp,tmp1,tmp2,ixI^L,ixO^L,w,x)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
 double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
@@ -728,7 +728,7 @@ subroutine getdt_heatconduct_hd(w,ixG^L,ix^L,dtnew,dx^D,x)
 
 ! Check diffusion time limit dt < dtTCpar * dx_i**2 / ((gamma-1)*kappa_i/rho)
 
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
