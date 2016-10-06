@@ -30,7 +30,7 @@ integer                                  :: idim
 integer,dimension(^ND)                   :: sendbuff
 !-----------------------------------------------------------------------------
 
-if (mype == 0) write(*,*), 'mod_oneblock: reading ',nw,' variables on unit:', unit
+if (mype == 0) write(*,*) 'mod_oneblock: reading ',nw,' variables on unit:', unit
 
 !----------------------------------------
 ! Root does the reading:
