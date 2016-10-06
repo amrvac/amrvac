@@ -64,9 +64,6 @@ contains
     call delim(all_par_files, par_files, max_par_files, n_par_files, &
          ibegin, iterm, len, " ,'"""//char(9))
 
-    ! Read in the settings from the par files
-    call read_par_files(par_files(1:n_par_files))
-
     ! Read in the other command line arguments
     call retrev('cmd_if', filenameini, len, ier)
     snapshotini  = iget('cmd_restart')
@@ -75,6 +72,9 @@ contains
     slicenext    = iget('cmd_slice')
     collapseNext = iget('cmd_collapse')
     convert      = lget('cmd_convert') ! -convert present?
+
+    ! Read in the settings from the par files
+    call read_par_files(par_files(1:n_par_files))
 
   end subroutine read_arguments_and_parameters
 
