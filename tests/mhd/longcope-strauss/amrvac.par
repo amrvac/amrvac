@@ -1,6 +1,4 @@
 !$AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=14,14 -p=mhd 
- &testlist
- /
 
  &filelist
         primnames=  'rho v1 v2 v3 pth b1 b2 b3 psi'

@@ -6,8 +6,6 @@
 ! configuration :
 ! $AMVRAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=20,20 -p=mhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
 !=====================================================
-&testlist
-/
 
 &filelist
         primnames          = 'rho v1 v2 v3 p b1 b2 b3 psi'

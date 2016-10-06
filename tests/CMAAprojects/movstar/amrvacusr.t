@@ -413,11 +413,6 @@ double precision :: ndens(ixI^S)
 
 double precision :: Pg(ixI^S)
 
-!oktest = index(teststr,'printlog')>=1
-
-!call mpistop("special output file undefined")
-
-
 return
 
 end subroutine specialvar_output
@@ -429,9 +424,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-!oktest = index(teststr,'printlog')>=1
-
-!call mpistop("special varnames and primnames undefined")
 primnames= TRIM(primnames)//' '//'Td'
 wnames=TRIM(wnames)//' '//'Td'
 
@@ -465,8 +457,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 call mpistop("special log file undefined")
 
 end subroutine printlog_special

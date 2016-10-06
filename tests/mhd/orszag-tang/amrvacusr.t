@@ -38,9 +38,6 @@ double precision:: rho0,p0,b0
 logical, save :: first=.true.
 logical:: patchw(ixG^T)
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-      'ixG^L : ',ixG^L
 
 rho0=25.0d0/36.0d0/dpi
 p0=5.0d0/12.0d0/dpi
@@ -140,7 +137,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 call mpistop("special log file undefined")
 

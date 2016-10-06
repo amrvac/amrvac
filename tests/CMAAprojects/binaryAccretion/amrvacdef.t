@@ -157,8 +157,6 @@ COMMON, INTEGER:: saveigrid
 ! Stores the memory and load imbalance, to be used in printlog:
 COMMON, DOUBLE PRECISION :: Xload, Xmemory
 
-LOGICAL:: oktest    !This is a local variable for all subroutines and functions
-
 COMMON, DOUBLE PRECISION:: time_bc
 
 integer,parameter:: nodehi=^ND+1

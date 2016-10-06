@@ -6,8 +6,6 @@
 ! configuration :
 ! -d.. -g.. ...
 !=====================================================
-&testlist
-/
 
 &filelist
   filenamelog='amrvac'

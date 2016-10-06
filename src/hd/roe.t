@@ -30,7 +30,6 @@ double precision, dimension(ixG^T,nw):: wL,wR,wroe
 double precision, dimension(ixG^T,ndim), intent(in) :: x
 double precision, dimension(ixG^T):: tmp,tmp2
 !-----------------------------------------------------------------------------
-oktest=index(teststr,'average')>=1
 
 tmp(ix^S) =sqrt(wL(ix^S,rho_))
 tmp2(ix^S)=sqrt(wR(ix^S,rho_))
@@ -46,19 +45,10 @@ do idir=1,ndir
 end do
 ! Calculate enthalpyL, then enthalpyR, then Roe-average. Use tmp2 for pressure.
 call getpthermal(wL,x,ixG^LL,ix^L,tmp2)
-if(oktest)write(*,*)'pL:',tmp2(ixtest^D)
 wroe(ix^S,e_)=(tmp2(ix^S)+wL(ix^S,e_))/wL(ix^S,rho_)
-if(oktest)write(*,*)'hL:',wroe(ixtest^D,e_)
 call getpthermal(wR,x,ixG^LL,ix^L,tmp2)
-if(oktest)write(*,*)'pR:',tmp2(ixtest^D)
 tmp2(ix^S)=(tmp2(ix^S)+wR(ix^S,e_))/wR(ix^S,rho_)
-if(oktest)write(*,*)'hR:',tmp2(ixtest^D)
 wroe(ix^S,e_)=(wroe(ix^S,e_)*tmp(ix^S)+tmp2(ix^S))/(one+tmp(ix^S))
-if(oktest)write(*,*)'weight,h :',tmp(ixtest^D),wroe(ixtest^D,e_)
-
-if(oktest)write(*,*)'Roe average in direction',idim
-if(oktest)write(*,*)'rho,u,h:',&
-    wroe(ixtest^D,rho_),wroe(ixtest^D,m0_+idim),wroe(ixtest^D,e_)
 
 end subroutine average2
 !=============================================================================
@@ -101,12 +91,9 @@ double precision, dimension(ixG^T)   :: csound,dpperc2,dvperc
 !!common /roe/ csound
 !-----------------------------------------------------------------------------
 
-oktest=index(teststr,'geteigenjump')>=1
-
 if(il==1)then
    !First calculate the square of the sound speed: c**2=(gamma-1)*(h-0.5*v**2)
    csound(ix^S)=(eqpar(gamma_)-one)*(wroe(ix^S,e_)-half*(^C&wroe(ix^S,m^C_)**2+))
-   if(oktest)write(*,*)'csound**2:',csound(ixtest^D)
    ! Make sure that csound**2 is positive
    csound(ix^S)=max(eqpar(gamma_)*smalldouble/wroe(ix^S,rho_),csound(ix^S))
 
@@ -123,13 +110,6 @@ if(il==1)then
    dvperc(ix^S)=(wR(ix^S,m0_+idim)/wR(ix^S,rho_)-&
                  wL(ix^S,m0_+idim)/wL(ix^S,rho_))/csound(ix^S)
 
-   if(oktest)write(*,*)'gamma,h,u,v',&
-       eqpar(gamma_),wroe(ixtest^D,e_),^C&wroe(ixtest^D,m^C_)
-
-   if(oktest)write(*,*)'csound :',csound(ixtest^D)
-   if(oktest)write(*,*)'v_idim :',wroe(ixtest^D,m0_+idim)
-   if(oktest)write(*,*)'dpperc2:',dpperc2(ixtest^D)
-   if(oktest)write(*,*)'dvperc :',dvperc(ixtest^D)
 endif
 
 select case(il)

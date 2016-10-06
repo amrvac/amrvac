@@ -51,8 +51,6 @@ double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
 double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 double precision :: tmp(ixG^T), tmp1(ixG^T), tmp2(ixG^T), tmp3(ixG^T)
 !-----------------------------------------------------------------------------
-oktest=index(teststr,'radloss')>=1
-if(oktest)write(*,*)'AddSource_RadLoss, energy:',w(ixtest^D,ee_)
 
 if(e_<1) call mpistop("Radiative losses require energy variable indexed by e_>0!")
 if(smallp<zero) call mpistop("Radiative losses require setting of smallp to positive value")
@@ -83,8 +81,6 @@ elsewhere
  w(ixO^S,e_) =tmp3(ixO^S)+smallp/(eqpar(gamma_)-one)
 endwhere
 
-if(oktest)write(*,*)'Q, energy:',tmp2(ixtest^D),w(ixtest^D,ee_)
-
 return
 end subroutine addsource_rloss
 !=============================================================================
@@ -113,9 +109,6 @@ double precision :: tmp(ixG^T)
 double precision :: ion_fr = 1.d-4
 double precision :: cpar(110),res1(ixG^T),res2(ixG^T),logt(ixG^T),tind1(ixG^T)
 !----------------------------------------------------------------------------
-oktest=index(teststr,'getQ')>=1
-if(oktest)write(*,*)'GetQ: Q0, T0, Qhow:',&
-   eqpar(qcoef_),eqpar(tunit_),eqpar(qhow_)
 
 ! Calculate temperature in units given by eqpar(tunit_)
 ! --> back to dimensionfull temperature in Kelvin
@@ -593,15 +586,12 @@ double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 
 double precision :: tmp2(ixG^T)
 !----------------------------------------------------------------------------
-oktest=index(teststr,'getdt')>=1
 
 ! Calculate Q
 call getQ(w,x,ixG^L,ix^L,tmp2)
 
 ! dt< e/(Q*rho**2)
 dtnew = dtdiffpar/maxval(w(ix^S,rho_)**2*tmp2(ix^S)/w(ix^S,e_))
-
-if (oktest)write(*,*)'Thin radiative losses dt:',dtnew
 
 return
 end subroutine getdt_rloss

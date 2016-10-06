@@ -6,9 +6,6 @@
 ! configuration :
 ! -d=23 -phi=3 -z=2 -g=16,16 -p=srmhdeos
 !=====================================================
-&testlist
-  teststr=''
-/
 
 &filelist
   varnames= 'd s1 s2 s3 e b1 b2 b3 lfac xi'

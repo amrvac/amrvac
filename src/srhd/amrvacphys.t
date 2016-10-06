@@ -573,7 +573,6 @@ double precision:: pleft,pright,pnewi
 integer::nit,n2it,ni2,ni3
 !-----------------------------------------------------------------------------
 
-oktest=index(teststr,'con2prim')>=1
 ierror=0
 ! ierror=0 : ok
 !
@@ -919,7 +918,6 @@ double precision:: gcurrent,govergminone,gprev,er1,xksi,ff,df
 integer:: nit, ni, niiter
 !-----------------------------------------------------------------------------
 
-oktest=index(teststr,'con2prim2')>=1
 ierror=0
 ! ierror=0 : ok
 !

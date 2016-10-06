@@ -1,7 +1,4 @@
 !setup.pl -d=33 -phi=3 -z=0 -g=14,14,14 -p=mhd -eos=iso
- &testlist
-        teststr=''
- /
 
  &filelist
         filenamelog='hmicr2111b'

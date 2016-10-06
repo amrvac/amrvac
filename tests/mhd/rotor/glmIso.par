@@ -1,7 +1,3 @@
- &testlist
-        teststr=''
- &end
-
  &filelist
         autoconvert=.true.
         saveprim=.true.

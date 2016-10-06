@@ -144,7 +144,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 primnames= TRIM(primnames)//' '//'jz'
 wnames=TRIM(wnames)//' '//'jz'
@@ -214,8 +213,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 call mpistop("special log file undefined")
 
 end subroutine printlog_special

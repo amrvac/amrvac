@@ -16,8 +16,6 @@ double precision :: dtmax, dxmin
 integer,save :: stepflag
 !----------------------------------------------------------------------------
 
-oktest=.false.
-
 if(it==0) stepflag = 0
 {#IFDEF TCRKL2
 if(conduction) then
@@ -39,17 +37,10 @@ if(conduction) then
 }
       qdtimpl=min(qdtimpl,qdtnew)
       dtimpl_mype=min(dtimpl_mype,qdtimpl)
-      if(oktest.and.mype==0)then 
-          print *,'after getdt_impl=',qdtimpl
-          print *,'final dt =',dtimpl_mype
-      endif
    end do
 !$OMP END PARALLEL DO
    call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
-   if(oktest.and.mype==0)then 
-       print *,'final dtimpl =',dtimpl
-   endif
 endif
 }
 if(sourceimpl) then
@@ -65,17 +56,10 @@ if(sourceimpl) then
       call getdt_impl(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       qdtimpl=min(qdtimpl,qdtnew)
       dtimpl_mype=min(dtimpl_mype,qdtimpl)
-      if(oktest.and.mype==0)then 
-          print *,'after getdt_impl=',qdtimpl
-          print *,'final dt =',dtimpl_mype
-      endif
    end do
 !$OMP END PARALLEL DO
    call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
-   if(oktest.and.mype==0)then 
-       print *,'final dtimpl =',dtimpl
-   endif
 endif
 
 if (dtpar<=zero) then
@@ -93,22 +77,11 @@ if (dtpar<=zero) then
       if (nwaux>0) call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,'setdt')
       call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
-      if(oktest.and.mype==0)then 
-          print *,'grid=',igrid
-          print *,'after getdtcourant=',dtnew
-      endif
       call getdt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
-      if(oktest.and.mype==0)then 
-          print *,'after getdt=',dtnew
-      endif
       call getdt_special(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
       dtmin_mype=min(dtmin_mype,dtnew)
-      if(oktest.and.mype==0)then 
-          print *,'after getdt_special=',dtnew
-          print *,'final dt =',dtmin_mype
-      endif
       dt_grid(igrid)=dtnew
    end do
 !$OMP END PARALLEL DO
@@ -177,10 +150,6 @@ if (time_accurate) then
      else
        if(sourceparasts)then
          ncycle=floor(dsqrt(dble(ncycle2)))
-         if(oktest.and.mype==0)then
-             print*,'resetting dt from ',dt,' to ncycle*dtimpl=', ncycle*dtimpl
-             print*,'ncycle2=',ncycle2,' ncycle=',ncycle
-         endif
          !!if(ncycle*dtimpl>dt)call mpistop("increased timestep!")
          dt=ncycle*dtimpl 
        else

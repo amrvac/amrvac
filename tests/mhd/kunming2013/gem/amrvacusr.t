@@ -50,9 +50,6 @@ integer :: ix2,seed_size
 logical :: patchw(ixG^T)
 logical, save :: first=.true.
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
 
 if(typephys/='mhd')call mpistop("this is an MHD problem: set typephys!")
 
@@ -152,9 +149,6 @@ double precision, intent(inout) :: w(ixG^S,1:nw)
 logical :: patchw(ixG^T)
 integer :: ix2
 !----------------------------------------------------------------------------
-oktest = index(teststr,'specialbound')>=1
-if (oktest) write(unitterm,*) ' === specialbound  (in ) : ', &
-                'ixO^L : ',ixO^L
 
 end subroutine specialbound_usr
 !=============================================================================
@@ -432,9 +426,6 @@ integer :: idirmin,idir
 double precision :: curlv(ixG^T,7-2*ndir:3),vvec(ixG^T,1:ndir)
 double precision:: divb(ixG^T)
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-! .. local ..
-!-----------------------------------------------------------------------------
 
 call getcurrent(w,ixI^L,ixO^L,idirmin,current)
 w(ixO^S,nw+1)=current(ixO^S,3)
@@ -466,7 +457,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 primnames= TRIM(primnames)//' '//'jz schlier'
 wnames=TRIM(wnames)//' '//'jz schlier'

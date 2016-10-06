@@ -427,9 +427,6 @@ integer:: idims,ix^D
 logical, save :: first=.true.
 logical:: patchw(ixG^T)
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-      'ixG^L : ',ixG^L
 
 epsilon=1.0d-4
 rho0=one

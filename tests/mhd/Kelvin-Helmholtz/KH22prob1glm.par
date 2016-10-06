@@ -6,8 +6,6 @@
 ! configuration :
 ! -d=22 -g=16,16
 !=====================================================
- &testlist
- /
  
  &filelist
         filenamelog='datamr/KH1probglma'

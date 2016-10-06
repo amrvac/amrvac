@@ -338,8 +338,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 call mpistop("special log file undefined")
 
 end subroutine printlog_special
@@ -378,9 +376,6 @@ double precision                   :: normconv(0:nw+nwauxio)
 ! .. local ..
 double precision:: divb(ixI^S)
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
-!call mpistop("special output file undefined")
 
 call getdivb(w,ixI^L,ixO^L,divb)
  w(ixO^S,nw+1)=divb(ixO^S)
@@ -393,9 +388,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
-!call mpistop("special varnames and primnames undefined")
 
 ! Example : as above in specialvar_output, assuming relativistic HD here...
  primnames= TRIM(primnames)//' '//'divb'

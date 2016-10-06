@@ -6,8 +6,6 @@
 ! configuration :
 ! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=16,16 -p=mhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
 !=====================================================
-&testlist
-/
 
 &filelist
         filenameout        ='friedrichC'

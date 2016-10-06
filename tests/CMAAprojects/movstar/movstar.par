@@ -1,7 +1,5 @@
 !setup.pl -d=22 -phi=0 -z=2 -g=24,24 -p=hd
- &testlist
-        teststr=''
- /
+
  &filelist
         filenamelog='movstar'
         filenameout='movstar'

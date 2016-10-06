@@ -55,9 +55,6 @@ logical, dimension(ixG^T)           :: patchw(ixG^T)
 
 data first/.true./
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
 
 if (typephys/='mhd') then
    call mpistop("test problems are all MHD problems: set typephys!")
@@ -174,7 +171,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 call mpistop("special log file undefined")
 
@@ -213,7 +209,6 @@ double precision                   :: normconv(0:nw+nwauxio)
 
 double precision :: divb(ixG^T)
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 ! output divB1
 call getdivb(w,ixI^L,ixO^L,divb)
@@ -229,7 +224,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 ! Example : as above in specialvar_output, assuming relativistic HD here...
 primnames= TRIM(primnames)//' '//'divB'

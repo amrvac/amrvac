@@ -1,7 +1,3 @@
- &testlist
-        teststr=''
- /
-
  &filelist
         filenamelog='logfile'
         primnames='rho v1 v2 v3 p tr1'

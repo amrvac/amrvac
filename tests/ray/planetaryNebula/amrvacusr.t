@@ -411,13 +411,7 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
-!call mpistop("special varnames and primnames undefined")
-
 ! Example : as above in specialvar_output, assuming relativistic HD here...
-
-
 
 end subroutine specialvarnames_output
 !=============================================================================
@@ -482,8 +476,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 call mpistop("special log file undefined")
 
 end subroutine printlog_special

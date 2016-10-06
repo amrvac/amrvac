@@ -1,6 +1,3 @@
- &testlist
- /
-
  &filelist
         primnames     =  'rho v1 v2 v3 p b1 b2 b3'
         autoconvert   = F

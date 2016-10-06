@@ -1,6 +1,4 @@
 !setup.pl -d=23 -phi=0 -z=0 -g=16,16 -p=mhd
- &testlist
- /
 
  &filelist
         filenamelog='datamr/promRTa'

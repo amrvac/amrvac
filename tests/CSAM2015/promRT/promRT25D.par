@@ -7,9 +7,6 @@
 ! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=14,14 -p=mhd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
 !=====================================================
 
- &testlist
- /
-
  &filelist
         filenamelog='promRTtwod'
         filenameout='promRTtwod'

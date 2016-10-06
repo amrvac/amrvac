@@ -58,9 +58,6 @@ integer :: ix2,seed_size
 logical :: patchw(ixG^T)
 logical, save :: first=.true.
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
 
 if(typephys/='mhd')call mpistop("this is an MHD problem: set typephys!")
 
@@ -162,9 +159,6 @@ double precision, intent(inout) :: w(ixG^S,1:nw)
 logical :: patchw(ixG^T)
 integer :: ix2
 !----------------------------------------------------------------------------
-oktest = index(teststr,'specialbound')>=1
-if (oktest) write(unitterm,*) ' === specialbound  (in ) : ', &
-                'ixO^L : ',ixO^L
 
 select case(iB)
 case(3)
@@ -552,11 +546,7 @@ integer :: idirmin,idir
 double precision :: curlv(ixG^T,7-2*ndir:3),vvec(ixG^T,1:ndir)
 double precision:: divb(ixG^T)
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-! .. local ..
-!-----------------------------------------------------------------------------
 
-!call mpistop("special output file undefined")
 call getcurrent(w,ixI^L,ixO^L,idirmin,current)
 
 ! Example: assuming nwauxio=1 at convert stage and desire to see -w(1)
@@ -604,7 +594,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 primnames= TRIM(primnames)//' '//'jz schlier curlvz divb'
 wnames=TRIM(wnames)//' '//'jz schlier curlvz divb'

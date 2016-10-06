@@ -252,15 +252,10 @@ module mod_global_parameters
   !> Conversion factor for time unit
   double precision       :: normt
 
-  !Test parameters
-  character(len=std_len) :: teststr
-  integer                :: ixtest1,ixtest2,ixtest3,iwtest,idimtest
   integer                :: saveigrid
 
   ! Stores the memory and load imbalance, to be used in printlog:
   double precision       :: Xload, Xmemory
-
-  logical :: oktest    !This is a local variable for all subroutines and functions
 
   double precision :: time_bc
   {#IFDEF STRETCHGRID

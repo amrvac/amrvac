@@ -1,5 +1,3 @@
- &testlist
- /
 
         primnames     =  'rho v1 v2 p b1 b2'
         autoconvert   = F

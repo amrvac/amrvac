@@ -1,7 +1,3 @@
- &testlist
-        teststr=''
- /
-
  &filelist
         primnames= 'rho v1 v2 p tr1 epsinf ne ne0 lfac w'
         saveprim=.true.

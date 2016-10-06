@@ -516,8 +516,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 primnames= TRIM(primnames)//' '//'B j1 j2 j3 divb f_i L1 L2 L3 theta'
 wnames=TRIM(wnames)//' '//'B j1 j2 j3 divb f_i L1 L2 L3 theta'
 

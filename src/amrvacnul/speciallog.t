@@ -3,7 +3,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 call mpistop("special log file undefined")
 
@@ -62,7 +61,6 @@ double precision, intent(in)       :: x(ixI^S,1:ndim)
 double precision                   :: w(ixI^S,nw+nwauxio)
 double precision                   :: normconv(0:nw+nwauxio)
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 call mpistop("special output file undefined")
 
@@ -77,7 +75,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 call mpistop("special wnames and primnames undefined")
 

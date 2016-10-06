@@ -381,7 +381,6 @@ $AMRVAC_DIR/doc/par.html.
 Below is the parameter file for the 3D FCT configuration.  
 In general, the purpose of the different lists is as follows:
 
-testlist  : deprecated
 filelist  : IO related issues, e.g. for visualization.  
 savelist  : Specify log, snapshot, slice, collapse and analysis output intervals.
 stoplist  : When to stop the code
@@ -395,10 +394,6 @@ paramlist : Here, we set the CFL parameter and slowsteps to ramp-up the timestep
 
 amrvac3DFCT.par:
 !=============================================================================
- &testlist
-        teststr=''
- &end
-
  &filelist
         primnames       = 'rho u1 u2 u3 p b1 b2 b3 lfac xi'
 	autoconvert     = .true.

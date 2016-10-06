@@ -34,9 +34,6 @@ double precision, dimension(ixG^T) :: r,phi
 logical, save :: first=.true.
 logical:: patchw(ixG^T)
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-      'ixG^L : ',ixG^L
 
 ! KH in 3D, Keppens & Toth
 r(ixG^S)=dsqrt(x(ixG^S,2)**2+x(ixG^S,3)**2)
@@ -106,7 +103,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 call mpistop("special log file undefined")
 

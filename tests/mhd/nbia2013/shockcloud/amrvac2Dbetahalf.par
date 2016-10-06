@@ -7,10 +7,6 @@
 ! $AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=0 -g=16,16 -p=mhd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
 !=====================================================
 
- &testlist
-        teststr=''
- /
-
  &filelist
         filenamelog='SCmhd2Dbetahalf'
         filenameout='SCmhd2Dbetahalf'

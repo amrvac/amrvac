@@ -6,8 +6,6 @@
 ! configuration :
 ! -d.. -g.. ...
 !=====================================================
-&testlist
-/
 
 &filelist
   varnames= 'd s1 s2 s3 e b1 b2 b3 psi lfac xi'

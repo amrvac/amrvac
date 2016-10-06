@@ -6,8 +6,6 @@
 ! configuration :
 ! -d.. -g.. ...
 !=====================================================
-&testlist
-/
 
 &filelist
   primnames               = 'b1 b2 b3 e1 e2 e3 q phi psi'

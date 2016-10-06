@@ -606,7 +606,6 @@ integer::nit,n2it,ni2,ni3
 double precision:: h,dhdp
 !-----------------------------------------------------------------------------
 
-oktest=index(teststr,'con2prim')>=1
 ierror=0
 ! ierror=0 : ok
 !

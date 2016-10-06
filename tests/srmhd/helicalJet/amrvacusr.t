@@ -207,10 +207,6 @@ DOUBLE PRECISION:: R(ixG^T),Z(ixG^T),hlpR(ixG^T),hlpphi(ixG^T)
 
 logical:: patchw(ixG^T)
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
-
 
 n= eqpar(nn_)  ! Parameter for the magnetic field 
 
@@ -272,9 +268,6 @@ double precision::hlpR(ixG^T),hlpphi(ixG^T)
 logical ::patchw(ixG^T)
 integer ::ix1,ix2
 !----------------------------------------------------------------------------
-oktest = index(teststr,'specialbound')>=1
-if (oktest) write(unitterm,*) ' === specialbound  (in ) : ', &
-                'ixO^L : ',ixO^L
 
 n= eqpar(nn_)
 
@@ -441,11 +434,7 @@ integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 !-----------------------------------------------------------------------------
-oktest=index(teststr,'getdt')>=1
-
-if(oktest) write(*,*)'getdt_special'
 dtnew=bigdouble
-if(oktest) write(unitterm,*)'GetDtSpecial dt=',dtnew
 
 end subroutine getdt_special
 !=============================================================================
@@ -552,8 +541,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 call mpistop("special log file undefined")
 
 end subroutine printlog_special

@@ -27,14 +27,6 @@ logical :: transport
 logical, dimension(ixG^T) :: patchw
 !-----------------------------------------------------------------------------
 
-oktest=.false.
-if(oktest.and.mype==0) then
-   print *,'======Hancock predictor: qdt, qtC, qt:',qdt,qtC,qt
-   ixtest^L=ixI^L;
-!   ixtestmin1=400;ixtestmax1=400+2*dixB;
-   print *,'reporting in ranges:',ixtest^L
-endif
-
 ! Expand limits in each idims direction in which fluxes are added
 ix^L=ixO^L;
 do idims= idim^LIM
@@ -44,19 +36,8 @@ if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in Hancock: Nonconforming input limits")
 
 if (useprimitive) then  
-   if(oktest.and.mype==0) then
-      do iw=1,nw 
-         print *,'iw,wCT before useprimitive:',iw,wCT(ixtest^S,iw)
-      enddo
-   endif
    call primitive(ixI^L,ixI^L,wCT,x)
 endif 
-
-if(oktest.and.mype==0) then
-    do iw=1,nw 
-       print *,'iw,wCT: before dimensional loop',iw,wCT(ixtest^S,iw)
-    enddo
-endif
 
 ^D&dxinv(^D)=-qdt/dx^D;
 do idims= idim^LIM
@@ -74,26 +55,8 @@ do idims= idim^LIM
    wRC(hxO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
    wLC(ixO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
 
-   if(oktest.and.mype==0) then
-    do iw=1,nw 
-       print *,'iw,wRC: before upwindLR',iw,wRC(ixtest^S,iw)
-    enddo
-    do iw=1,nw 
-       print *,'iw,wLC: before upwindLR',iw,wLC(ixtest^S,iw)
-    enddo
-   endif
-
    dxdim=-qdt/dxinv(idims)
    call upwindLR(ixI^L,ixO^L,hxO^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim)
-
-   if(oktest.and.mype==0) then
-    do iw=1,nw 
-       print *,'iw,wRC: after upwindLR',iw,wRC(ixtest^S,iw)
-    enddo
-    do iw=1,nw 
-       print *,'iw,wLC: after upwindLR',iw,wLC(ixtest^S,iw)
-    enddo
-   endif
 
    if (nwaux>0.and.(.not.(useprimitive))) then
    !!if (nwaux>0) then
@@ -115,16 +78,6 @@ do idims= idim^LIM
          fLC(ixO^S)=fLC(ixO^S)+vLC(ixO^S)*wLC(ixO^S,iw)
       end if
 
-      if(oktest.and.mype==0) then
-           print *,'iw: updating wnew',iw,wnew(ixtest^S,iw)
-           print *,'iw: updating wnew with fluxes fLC',fLC(ixtest^S)
-           print *,'iw: updating wnew with fluxes fRC',fRC(ixtest^S)
-           if(.not.slab) then
-             print *,'volumes:',mygeo%dvolume(ixtest^S)
-             print *,'surfaceC1:',mygeo%surfaceC1(ixtest^S)
-           endif
-      endif
-
       ! Advect w(iw)
       if (slab) then
          wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
@@ -143,11 +96,6 @@ end do ! next idims
 if (useprimitive) then  
     patchw(ixI^S)=.false.
     call conserve(ixI^L,ixI^L,wCT,x,patchw)
-    if(oktest.and.mype==0) then
-      do iw=1,nw 
-         print *,'iw,wCT after conserve:',iw,wCT(ixtest^S,iw)
-      enddo
-    endif
 else
    if(nwaux>0) call getaux(.true.,wCT,x,ixI^L,ixI^L,'hancock_wCT')
 endif
@@ -182,14 +130,6 @@ logical, dimension(ixG^T) :: patchw, patchwLC, patchwRC
 
 character*79 :: savetypelimiter
 !-----------------------------------------------------------------------------
-
-oktest=.false.
-if(oktest.and.mype==0) then
-   print *,'======in upwindLR'
-   ixtest^L=ixI^L;
-!   ixtestmin1=400;ixtestmax1=400+2*dixB;
-   print *,'reporting in ranges:',ixtest^L
-endif
 
 ! Transform w,wL,wR to primitive variables
 if (needprim.and.useprimitive) then  
@@ -441,23 +381,6 @@ logical                   :: mixconserve
 !-----------------------------------------------------------------------------
 mixconserve = .true.
 CmaxMeanState = (typetvdlf=='cmaxmean')
-
-oktest=.false.
-if(oktest.and.mype==0) then
-   print *,'======tvdlf: qdt, qtC, qt:',qdt,qtC,qt
-   ixtest^L=ixI^L;
-   ixtestmin1=1;ixtestmax1=2*dixB;
-   print *,'reporting in ranges:',ixtest^L
-endif
-!print *,'TVDLF with',method
-!print *,'wCT'
-!print *,wCT(1:10,1:nw)
-!print *,'wnew'
-!print *,wnew(1:10,1:nw)
-!print *,'wold'
-!print *,wold(1:10,1:nw)
-
-!!call mpistop("tijdelijke stop")
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
    method/='tvdlf1' .and. method/='tvdmu1')&

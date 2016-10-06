@@ -6,8 +6,6 @@
 ! configuration :
 ! $AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=0 -g=14,14 -p=mhd -eos=iso -nf=0 -ndust=0 -u=nul -arch=default
 !=====================================================
- &testlist
- /
 
  &filelist
         filenameout   = 'otmhdiso2D'

@@ -1,7 +1,4 @@
 ! setup.pl -d=12 -phi=0 -z=0 -g=14 -p=mhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
- &testlist
-        teststr=''
- /
 
  &filelist
         filenamelog='datars'

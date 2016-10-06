@@ -52,9 +52,6 @@ double precision:: pright,rhoright,vright,deltax
 logical :: patchw(ixG^T)
 logical, save :: first=.true.
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
 
 if(typephys/='mhd')call mpistop("this is an MHD problem: set typephys!")
 

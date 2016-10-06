@@ -33,7 +33,6 @@ subroutine average2(wL,wR,x,ix^L,idim,wroe,tmp,tmp2)
   double precision, dimension(ixG^T,1:ndim):: x
   double precision, dimension(ixG^T):: tmp,tmp2,lfL,lfR
   !---------------------------------------------------------------------------
-  oktest=index(teststr,'average')>=1
   
   call getaux(.true.,wL,x,ixG^LL,ix^L,'average2_wL')
   call getaux(.true.,wR,x,ixG^LL,ix^L,'average2_wR')
@@ -63,10 +62,6 @@ subroutine average2(wL,wR,x,ix^L,idim,wroe,tmp,tmp2)
   ! V^4, see thesis Eulderink
   wroe(ix^S,tau_)=(wR(ix^S,p_)/tmp2(ix^S)+wL(ix^S,p_)/tmp(ix^S))/&
        (tmp2(ix^S)+tmp(ix^S))
-  
-  if(oktest)write(*,*)'Roe average in direction',idim
-  if(oktest)write(*,*)'v0,vi,v4:',&
-       wroe(ixtest^D,d_),wroe(ixtest^D,s0_+idim),wroe(ixtest^D,tau_)
   
 end subroutine average2
 !=============================================================================
@@ -109,16 +104,12 @@ subroutine geteigenjump2(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump, &
   !!common /roe/ csound
   !---------------------------------------------------------------------------
 
-  oktest=index(teststr,'geteigenjump')>=1
-  
   if(il==1)then
      !Square of sound speed: s^2=0.5*gam*v4*(1+v0^2-v^2)-0.5(gam-1)(1-v0^2+v^2)
      csound(ix^S)=half*eqpar(gamma_)*wroe(ix^S,tau_)*(one+ &
      wroe(ix^S,d_)*wroe(ix^S,d_)-(^C&wroe(ix^S,s^C_)**2+))-half* &
      (eqpar(gamma_)-one)*(one-wroe(ix^S,d_)*wroe(ix^S,d_)+(^C&wroe(ix^S,s^C_)**2+))
      
-     
-     if(oktest)write(*,*)'csound**2:',csound(ixtest^D)
      ! Make sure that csound**2 is positive
      !csound(ix^S)=max(eqpar(gamma_)*smalldouble/wroe(ix^S,d_),csound(ix^S))
      
@@ -129,15 +120,6 @@ subroutine geteigenjump2(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump, &
      
      !Now get the correct sound speed
      csound(ix^S)=sqrt(csound(ix^S))
-     
-     if(oktest)write(*,*)'gamma,h,u,v',&
-          eqpar(gamma_),wroe(ixtest^D,tau_),^C&wroe(ixtest^D,s^C_)
-     
-     if(oktest)write(*,*)'csound :',csound(ixtest^D)
-     if(oktest)write(*,*)'v_idim :',wroe(ixtest^D,s0_+idim)
-     if(oktest)write(*,*)'del:',del(ixtest^D)
-     if(oktest)write(*,*)'dv :',dv(ixtest^D)
-     if(oktest)write(*,*)'del0 :',del0(ixtest^D)
   endif
 
   !Some help variables

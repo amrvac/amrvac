@@ -7,10 +7,6 @@
 ! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=18,18 -p=mhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
 !=====================================================
 
- &testlist
-        teststr=''
- /
-
  &filelist
         filenamelog='doublegemmhdrunA'
         filenameout='doublegemmhdrunA'

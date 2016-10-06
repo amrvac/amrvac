@@ -45,10 +45,6 @@ double precision, dimension(ixG^T):: cfast,cslow,afast,aslow,csound2,dp, &
 
 if (ndir==1) call mpistop("MHD with d=11 is the same as HD")
 
-oktest=index(teststr,'average')>=1
-if(oktest)write(*,*)'Average wL,wR:',&
-   wL(ixtest^D,iwtest),wR(ixtest^D,iwtest)
-
 !Averaging primitive variables
 wroe(ix^S,rho_)=half*(wL(ix^S,rho_)+wR(ix^S,rho_))
 {^C&
@@ -62,7 +58,6 @@ call getpthermal(wR,x,ixG^LL,ix^L,aslow)
 {#IFDEF ENERGY
 wroe(ix^S,pp_)=half*(afast(ix^S)+aslow(ix^S))
 }
-if(oktest)write(*,*)'Calculate saved variables'
 
 {#IFDEF ISO
 dp(ix^S)=aslow(ix^S)-afast(ix^S)
@@ -113,11 +108,6 @@ cfast(ix^S)=dsqrt(cfast(ix^S))
 
 ! cs=dsqrt(cs**2)
 cslow(ix^S)=dsqrt(cslow(ix^S))
-
-if(oktest)write(*,*)'Average:rho,csound2,dp,rhodv',&
-   wroe(ixtest^D,rho_),csound2(ixtest^D),dp(ixtest^D),rhodv(ixtest^D)
-if(oktest)write(*,*)'Average:cf,cs,af,as',&
-   cfast(ixtest^D),cslow(ixtest^D),afast(ixtest^D),aslow(ixtest^D)
 
 !Replace the primitive variables with more useful quantities:
 ! rho -> dsqrt(rho)
@@ -211,8 +201,6 @@ double precision, dimension(ixG^T)   :: aL,aR,cs2L,cs2R,cs2ca2L,cs2ca2R
 !!!save cs2L,cs2R,cs2ca2L,cs2ca2R
 !-----------------------------------------------------------------------------
 
-oktest=index(teststr,'geteigenjump')>=1
-
 idir=idim+1-ndir*(idim/ndir)
 jdir=idir+1-ndir*(idir/ndir)
 
@@ -229,8 +217,6 @@ if(il==fastRW_)then
    if(ndir==3)bdb(ix^S)=bdb(ix^S)+&
               wroe(ix^S,b0_+jdir)*(wR(ix^S,b0_+jdir)-wL(ix^S,b0_+jdir))
    bdb(ix^S)=bdb(ix^S)*dsqrt(csound2(ix^S))*wroe(ix^S,rho_)
-   if(oktest)write(*,*)'rhobetadv,sqrhoabetadb:',&
-      bdv(ixtest^D),bdb(ixtest^D)
 endif
 
 if(il==alfvRW_)then
@@ -244,8 +230,6 @@ if(il==alfvRW_)then
                -wroe(ix^S,b0_+idir)*(wR(ix^S,b0_+jdir)-wL(ix^S,b0_+jdir))
    bdv(ix^S)=bdv(ix^S)*half*wroe(ix^S,rho_)**2
    bdb(ix^S)=bdb(ix^S)*half*sign(wroe(ix^S,rho_),wroe(ix^S,b0_+idim))
-   if(oktest)write(*,*)'rhobetaXdv/2,sqrhobetaXdb/2:',&
-      bdv(ixtest^D),bdb(ixtest^D)
 endif
 
 select case(il)
@@ -381,8 +365,6 @@ double precision, dimension(ixG^T):: bv,v2a2
 !!save:: bv,v2a2
 !-----------------------------------------------------------------------------
 
-oktest=index(teststr,'rtimes')>=1
-
 idir=idim+1-ndir*(idim/ndir)
 jdir=idir+1-ndir*(idir/ndir)
 
@@ -416,13 +398,10 @@ select case(iw)
      bv(ix^S)=wroe(ix^S,b0_+idir)*wroe(ix^S,m0_+idir)
      if(ndir==3)bv(ix^S)=bv(ix^S)+wroe(ix^S,b0_+jdir)*wroe(ix^S,m0_+jdir)
      bv(ix^S)=bv(ix^S)*sign(one,wroe(ix^S,b0_+idim))
-     if(oktest)write(*,*)'v2/2+(2-g)/(g-1)a2,betav:',&
-          v2a2(ixtest^D),bv(ixtest^D)
    else if(il==alfvRW_)then
      !Store betaz*vy-betay*vz in bv
      bv(ix^S)=(wroe(ix^S,b0_+jdir)*wroe(ix^S,m0_+idir)-&
           wroe(ix^S,b0_+idir)*wroe(ix^S,m0_+jdir))
-     if(oktest)write(*,*)'betaXv:',bv(ixtest^D)
    endif
    select case(il)
    case(fastRW_)

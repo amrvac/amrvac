@@ -57,9 +57,6 @@ logical, dimension(ixG^T)           :: patchw(ixG^T)
 
 data first/.true./
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
 
 if (typephys/='mhd') then
    call mpistop("test problems are all MHD problems: set typephys!")

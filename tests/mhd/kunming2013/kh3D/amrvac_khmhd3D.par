@@ -6,8 +6,6 @@
 ! configuration :
 ! $AMRVAC_DIR/setup.pl -d=33 -phi=0 -z=0 -g=14,14,14 -p=mhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
 !=====================================================
- &testlist
- /
 
  &filelist
         primnames     =  'rho v1 v2 v3 pth b1 b2 b3'

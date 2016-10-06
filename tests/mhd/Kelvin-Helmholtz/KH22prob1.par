@@ -6,8 +6,6 @@
 ! configuration :
 ! -d=22 -g=16,16 -p=mhd
 !=====================================================
- &testlist
- /
  
  &filelist
         filenamelog='datamr/KH1prob'

@@ -327,9 +327,6 @@ double precision :: Teb(ixG^T),pth(ixG^T),cg
 logical :: patchw(ixG^T)
 integer :: ix^D,idims,ixInt^L
 !----------------------------------------------------------------------------
-oktest = index(teststr,'specialbound')>=1
-if (oktest) write(unitterm,*) ' === specialbound  (in ) : ', &
-                'ixO^L : ',ixO^L
 
 select case(iB)
 case(3)
@@ -744,7 +741,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 if(iprob==-1)then
   primnames= TRIM(primnames)//' '//'rho T'

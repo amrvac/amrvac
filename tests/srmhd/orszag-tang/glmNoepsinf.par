@@ -1,7 +1,3 @@
- &testlist
-        teststr=''
- &end
-
  &filelist
     primnames=  'rho v1 v2 p b1 b2 psi lfac xi'
 	autoconvert=.true.

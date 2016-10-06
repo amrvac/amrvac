@@ -1,6 +1,3 @@
- &testlist
-        teststr=''
- /
 
  &filelist
         primnames= 'rho v1 v2 p'

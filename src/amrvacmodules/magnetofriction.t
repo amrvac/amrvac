@@ -723,14 +723,6 @@ logical, dimension(ixI^S) :: patchw, patchwLC, patchwRC
 character*79 :: savetypelimiter
 !-----------------------------------------------------------------------------
 
-oktest=.false.
-if(oktest.and.mype==0) then
-   print *,'======in upwindLR'
-   ixtest^L=ixI^L;
-!   ixtestmin1=400;ixtestmax1=400+2*dixB;
-   print *,'reporting in ranges:',ixtest^L
-endif
-
 if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
  jxR^L=ixR^L+kr(idims,^D);
  ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
@@ -1006,13 +998,6 @@ integer :: idims, iw, ix^L, hxO^L, ixtest^L
 logical :: transport
 logical, dimension(ixI^S) :: patchw
 !-----------------------------------------------------------------------------
-
-oktest=.false.
-if(oktest.and.mype==0) then
-   print *,'======Hancock predictor: qdt, qtC, qt:',qdt,qtC,qt
-   ixtest^L=ixI^L;
-   print *,'reporting in ranges:',ixtest^L
-endif
 
 ! Expand limits in each idims direction in which fluxes are added
 ix^L=ixO^L;

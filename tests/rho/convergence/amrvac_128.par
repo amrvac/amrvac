@@ -2,9 +2,6 @@
 ! Project : Advection test
 !
 !=====================================================
- &testlist
-        teststr=' '
-/
 
  &filelist
         primnames    = 'rho'

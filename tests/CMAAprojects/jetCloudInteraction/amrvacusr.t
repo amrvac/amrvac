@@ -49,9 +49,6 @@ DOUBLE PRECISION :: kboltz = 1.38e-16
 DOUBLE PRECISION :: Tism   = 200.0e+0
 DOUBLE PRECISION :: xc,yc,zc,rc,sigma
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
 
 {^IFTWOD
     rinlet(ix^S)=abs(x(ix^S,2))

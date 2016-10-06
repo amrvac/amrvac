@@ -1,6 +1,3 @@
- &testlist
-        teststr=''
- /
 
  &filelist
         filenameout='datamr/liskaisotr'

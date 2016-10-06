@@ -6,9 +6,6 @@
 ! configuration :
 ! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=16,16 -p=mhd
 !==============================================================
- &testlist
-        teststr=''
- /
 
  &filelist
         filenamelog='solar_atm_25D'

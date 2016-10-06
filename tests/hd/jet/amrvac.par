@@ -1,7 +1,4 @@
 ! -g=14,14 -p=hd
- &testlist
-        teststr=''
- /
 
  &filelist
         primnames= 'rho v1 v2 p'

@@ -57,9 +57,6 @@ logical, dimension(ixG^T)           :: patchw(ixG^T)
 
 data first/.true./
 !----------------------------------------------------------------------------
-oktest = index(teststr,'initonegrid_usr')>=1
-if (oktest) write(unitterm,*) ' === initonegrid_usr  (in ) : ', &
-                'ixG^L : ',ixG^L
 
 if (typephys/='mhd') then
    call mpistop("test problem is MHD problem: set typephys!")
@@ -439,7 +436,6 @@ integer:: idirmin
 
 double precision :: current(ixG^T,7-2*ndir:3)
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 call getcurrent(w,ixI^L,ixO^L,idirmin,current)
 
@@ -454,7 +450,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
 
 primnames= TRIM(primnames)//' '//'jz'
 wnames=TRIM(wnames)//' '//'jz'

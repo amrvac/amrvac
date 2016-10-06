@@ -228,9 +228,6 @@ double precision :: Teb(ixG^T),pth(ixG^T),cg
 logical :: patchw(ixG^T)
 integer :: ix^D,idims,ixInt^L
 !----------------------------------------------------------------------------
-oktest = index(teststr,'specialbound')>=1
-if (oktest) write(unitterm,*) ' === specialbound  (in ) : ', &
-                'ixO^L : ',ixO^L
 
 select case(iB)
 case(3)
@@ -417,8 +414,6 @@ subroutine printlog_special
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 call mpistop("special log file undefined")
 
 end subroutine printlog_special
@@ -482,8 +477,6 @@ subroutine specialvarnames_output
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-oktest = index(teststr,'printlog')>=1
-
 primnames= TRIM(primnames)//' '//'Te beta divb'
 wnames=TRIM(wnames)//' '//'Te beta divb'
 

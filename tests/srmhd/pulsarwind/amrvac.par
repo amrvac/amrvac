@@ -6,8 +6,6 @@
 ! configuration :
 ! -d.. -g.. ...
 !=====================================================
-&testlist
-/
 
 &filelist
   primnames='rho u1 u2 u3 p b1 b2 b3 tr2 lfac xi evolve'

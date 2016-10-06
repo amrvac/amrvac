@@ -95,7 +95,6 @@ contains
     character(len=std_len) :: filenameout_full, filenameout_prev
     character(len=std_len) :: filenamelog_full, filenamelog_prev
 
-    namelist /testlist/   teststr,ixtest1,ixtest2,ixtest3,iwtest,idimtest
     namelist /filelist/   filenameout,filenameini,filenamelog, &
          snapshotini,typefilelog,firstprocess,resetgrid,changeglobals,snapshotnext, &
          convert,convert_type,dxfiletype,saveprim,primnames, &
@@ -149,12 +148,6 @@ contains
 
     ! code behavior and testing defaults
     addmpibarrier = .false.
-    teststr       = ' '
-    ixtest1       = 1
-    ixtest2       = 1
-    ixtest3       = 1
-    iwtest        = 1
-    idimtest      = 1
 
     ! defaults for parameters for optional cooling module (van Marle)
     ncool      = 100
@@ -435,10 +428,6 @@ contains
 
        ! Try to read in the namelists. They can be absent or in a different
        ! order, since we rewind before each read.
-       read(unitpar, testlist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read filelist in ' // trim(par_files(i)))
-
        rewind(unitpar)
        read(unitpar, filelist, iostat=io_state)
        if (io_state > 0) &
@@ -489,10 +478,6 @@ contains
     filenameout = filenameout_full
     filenamelog = filenamelog_full
 
-    oktest=index(teststr,'readparameters')>=1
-    if(oktest) write(unitterm,*)'read_par_files'
-    if(oktest) write(unitterm,testlist)
-
     if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: primnames not given!'
 
@@ -522,13 +507,6 @@ contains
             write(uniterr,*)'Warning in read_par_files: ', &
             'Slice ', islice,' direction',slicedir(islice),'too small, should be [',1,ndim,']'
     end do
-
-    if(oktest)then
-       if(itmax<biginteger)       write(unitterm,*) 'ITMAX=',itmax
-       if(tmax<bigdouble)         write(unitterm,*) 'TMAX=',tmax
-       write(unitterm,*)'tmaxexact=',tmaxexact
-       if(dtmin>smalldouble)      write(unitterm,*) 'DTMIN=',dtmin
-    endif
 
     if(itmax==biginteger .and. tmax==bigdouble.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: itmax or tmax not given!'
@@ -714,9 +692,6 @@ contains
        call mpistop(" PPM with flatcd=.true. needs useprimitive=T!")
     end if
 
-    if(oktest) write(unitterm,methodlist)
-
-    if(oktest) write(unitterm,boundlist)
     do idim=1,ndim
        periodB(idim)=(any(typeB(:,2*idim-1:2*idim)=='periodic'))
        aperiodB(idim)=(any(typeB(:,2*idim-1:2*idim)=='aperiodic'))
@@ -738,8 +713,6 @@ contains
     if (any(typelimiter1(1:nlevelshi)=='mp5') .and. (dixB<3)) then
        call mpistop("mp5 needs at at least 3 ghost cells! Set dixB=3 in boundlist.")
     end if
-
-    if(oktest) write(unitterm,*)"periodB: ",periodB(1:ndim)
 
     select case (typeaxial)
        {^NOONED
@@ -785,8 +758,6 @@ contains
 
     if (any(dx_vec < smalldouble)) &
          call mpistop("Incorrect domain size (too small grid spacing)")
-
-    if(oktest) write(unitterm,amrlist)
 
     dx(:, 1) = dx_vec
 
@@ -848,7 +819,6 @@ contains
        end select
     end do
 
-    if(oktest) write(unitterm,paramlist)
     if (dtpar>zero) time_accurate=.true.
 
     if(.not.time_accurate) then
@@ -872,8 +842,6 @@ contains
        write(unitterm, '(A30,L1)') 'converting: ', convert
        write(unitterm, '(A)') ''
     endif
-
-    if(oktest) write(unitterm,*) 'End readparameters'
 
   end subroutine read_par_files
 
