@@ -329,40 +329,27 @@ if (mype==0) then
           i=i+3
           write(wnames(i:i+1),"(a,i1)") "n",level
       end do
-      if (time_accurate) then
-         if(residmin>smalldouble) then
-           write(line,'(a15,a79)')"it   t  dt res ",wnames
-         else
-           write(line,'(a15,a79)')"it   t   dt    ",wnames
-         endif
+
+      if(residmin>smalldouble) then
+        write(line,'(a15,a79)')"it   t  dt res ",wnames
       else
-         if(residmin>smalldouble) then
-           write(line,'(a7,a79)')"it res ",wnames
-         else
-           write(line,'(a7,a79)')"it     ",wnames
-         endif
-      end if
+        write(line,'(a15,a79)')"it   t   dt    ",wnames
+      endif
+
       call MPI_FILE_WRITE(log_fh,line,len_trim(line),MPI_CHARACTER, &
-                          status,ierrmpi)
+                       status,ierrmpi)
    end if
    !!call MPI_FILE_WRITE(log_fh,new_line('a'),1,MPI_CHARACTER,status,ierrmpi)
    call MPI_FILE_WRITE(log_fh,achar(10),1,MPI_CHARACTER,status,ierrmpi)
 
-   if (time_accurate) then
-      if(residmin>smalldouble) then
-         write(line,'(i7,3(e13.5))')it,t,dt,residual
-      else
-         write(line,'(i7,2(e13.5))')it,t,dt
-      endif
+   if(residmin>smalldouble) then
+      write(line,'(i7,3(e13.5))')it,t,dt,residual
    else
-      if(residmin>smalldouble) then
-         write(line,'(i7,1(e13.5))')it,residual
-      else
-         write(line,'(i7)')it
-      endif
-   end if
+      write(line,'(i7,2(e13.5))')it,t,dt
+   endif
+
    call MPI_FILE_WRITE(log_fh,line,len_trim(line), &
-                       MPI_CHARACTER,status,ierrmpi)
+                    MPI_CHARACTER,status,ierrmpi)
    do iw=1,nw
       write(line,'(e13.5)')wmean(iw)
       call MPI_FILE_WRITE(log_fh,line,len_trim(line), &

@@ -358,19 +358,13 @@ if (mype==0) then
             if (i+2<79) write(wnames(i:i+2),"(a,i2)") "n",level
           endif
       end do
-      if (time_accurate) then
-         if(residmin>smalldouble) then
-           write(line,'(a15,a79)')"it   t  dt res ",wnames
-         else
-           write(line,'(a15,a79)')"it   t  dt jz  ",wnames
-         endif
+
+      if(residmin>smalldouble) then
+        write(line,'(a15,a79)')"it   t  dt res ",wnames
       else
-         if(residmin>smalldouble) then
-           write(line,'(a7,a79)')"it res ",wnames
-         else
-           write(line,'(a7,a79)')"it     ",wnames
-         endif
-      end if
+        write(line,'(a15,a79)')"it   t  dt jz  ",wnames
+      endif
+
       call MPI_FILE_WRITE(log_fh,line,len_trim(line),MPI_CHARACTER, &
                           status,ierrmpi)
    end if

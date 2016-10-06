@@ -1076,19 +1076,12 @@ timeToFinish = (tmax - t) * wctPerCodeTime / 3600.0d0
             if (i+2<79) write(wnames(i:i+2),"(a,i2)") "n",level
           endif
       end do
-      if (time_accurate) then
-         if(residmin>smalldouble) then
-           write(line,'(a15,a79)')"it   t  dt res ",wnames
-         else
-           write(line,'(a15,a79)')"it   t   dt    ",wnames
-         endif
+
+      if(residmin>smalldouble) then
+        write(line,'(a15,a79)')"it   t  dt res ",wnames
       else
-         if(residmin>smalldouble) then
-           write(line,'(a7,a79)')"it res ",wnames
-         else
-           write(line,'(a7,a79)')"it     ",wnames
-         endif
-      end if
+        write(line,'(a15,a79)')"it   t   dt    ",wnames
+      endif
 
       line=trim(line)//"| Xload Xmemory 'Cell_Updates /second/core'"
       line=trim(line)//" 'Active_Blocks/Core' 'Wct Per Code Time [s]' 'TimeToFinish [hrs]'"
@@ -1098,19 +1091,12 @@ timeToFinish = (tmax - t) * wctPerCodeTime / 3600.0d0
    end if
    call MPI_FILE_WRITE(log_fh,achar(10),1,MPI_CHARACTER,status,ierrmpi)
 
-   if (time_accurate) then
-      if(residmin>smalldouble) then
-         write(line,'(i7,3(es12.4))')it,t,dt,residual
-      else
-         write(line,'(i7,2(es12.4))')it,t,dt
-      endif
+   if(residmin>smalldouble) then
+      write(line,'(i7,3(es12.4))')it,t,dt,residual
    else
-      if(residmin>smalldouble) then
-         write(line,'(i7,1(es12.4))')it,residual
-      else
-         write(line,'(i7)')it
-      endif
-   end if
+      write(line,'(i7,2(es12.4))')it,t,dt
+   endif
+
    call MPI_FILE_WRITE(log_fh,line,len_trim(line), &
                        MPI_CHARACTER,status,ierrmpi)
    do iw=1,nw

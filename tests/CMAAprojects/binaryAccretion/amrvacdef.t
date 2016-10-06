@@ -60,7 +60,7 @@ COMMON, DOUBLE PRECISION:: eqpar(neqpar+nspecialpar)
 ! Time step control parameters
 COMMON, DOUBLE PRECISION :: courantpar, dtpar, dtdiffpar, dtTCpar
 COMMON, CHARACTER*131 :: typecourant,typeresid
-COMMON, LOGICAL :: time_accurate, addmpibarrier
+COMMON, LOGICAL :: addmpibarrier
 
 !Time parameters
 INTEGER,PARAMETER:: nsavehi=100       ! maximum No. saves into outputfiles

@@ -449,21 +449,15 @@ if (mype==0) then
           i=i+3
           write(wnames(i:i+1),"(a,i1)") "n",level
       end do
-      if (time_accurate) then
-         if(residmin>smalldouble) then
-           write(line,'(a15,a79)')"it   t  dt res ",wnames
-         else
-           write(line,'(a15,a79)')"it   t   dt    ",wnames
-         endif
+
+      if(residmin>smalldouble) then
+        write(line,'(a15,a79)')"it   t  dt res ",wnames
       else
-         if(residmin>smalldouble) then
-           write(line,'(a7,a79)')"it res ",wnames
-         else
-           write(line,'(a7,a79)')"it     ",wnames
-         endif
-      end if
+        write(line,'(a15,a79)')"it   t   dt    ",wnames
+      endif
+
       call MPI_FILE_WRITE(log_fh,line,len_trim(line),MPI_CHARACTER, &
-                          status,ierrmpi)
+                       status,ierrmpi)
    end if
    !!call MPI_FILE_WRITE(log_fh,new_line('a'),1,MPI_CHARACTER,status,ierrmpi)
    call MPI_FILE_WRITE(log_fh,achar(10),1,MPI_CHARACTER,status,ierrmpi)

@@ -16,7 +16,7 @@ dt=zero
 dtimpl=zero
 itmin=0
 
-if (.not. time_accurate .or. residmin > smalldouble) then
+if (residmin > smalldouble) then
    residual = one
 else
    residual = zero

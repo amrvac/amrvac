@@ -163,7 +163,7 @@ fixcount=1
 n_saves(filelog_:fileout_) = snapshotini
 
 do ifile=nfile,1,-1
-   if (time_accurate) tsavelast(ifile)=t
+   tsavelast(ifile)=t
    itsavelast(ifile)=it
 end do
 
@@ -206,11 +206,11 @@ time_evol : do
 
    ! exit time loop criteria
    if (it>=itmax) exit time_evol
-   if (time_accurate .and. t>=tmax) exit time_evol
+   if (t>=tmax) exit time_evol
 
    call advance(it)
 
-   if((.not.time_accurate).or.(residmin>smalldouble)) then
+   if (residmin>smalldouble) then
       call getresidual(it)
    endif 
    if (residual<residmin .or. residual>residmax) exit time_evol
@@ -230,7 +230,7 @@ time_evol : do
    timegr_tot=timegr_tot+(MPI_WTIME()-timegr0)
 
    it = it + 1
-   if (time_accurate) t = t + dt
+   t = t + dt
    if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
    
    if(it>9000000)then
@@ -292,18 +292,18 @@ if (it==itsave(isaveit(ifile),ifile)) then
    isaveit(ifile)=isaveit(ifile)+1
 end if
 if (it==itsavelast(ifile)+ditsave(ifile)) oksave=.true.
-if (time_accurate) then
-   if (t>=tsave(isavet(ifile),ifile)) then
-      oksave=.true.
-      isavet(ifile)=isavet(ifile)+1
-   end if
-   if (t>=tsavelast(ifile)+dtsave(ifile)-smalldouble)then
-     oksave=.true.
-     n_saves(ifile) = n_saves(ifile) + 1
-   endif
+
+if (t>=tsave(isavet(ifile),ifile)) then
+   oksave=.true.
+   isavet(ifile)=isavet(ifile)+1
 end if
+if (t>=tsavelast(ifile)+dtsave(ifile)-smalldouble)then
+  oksave=.true.
+  n_saves(ifile) = n_saves(ifile) + 1
+endif
+
 if (oksave) then
-   if (time_accurate) tsavelast(ifile) =t
+   tsavelast(ifile) =t
    itsavelast(ifile)=it
 end if
 timetosave=oksave

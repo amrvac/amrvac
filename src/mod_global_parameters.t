@@ -104,7 +104,7 @@ module mod_global_parameters
   ! Time step control parameters
   double precision :: courantpar, dtpar, dtdiffpar, dtTCpar{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb}
   character(len=std_len) :: typecourant,typeresid
-  logical :: time_accurate, addmpibarrier
+  logical :: addmpibarrier
 
   !Time parameters
 

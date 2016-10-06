@@ -135,7 +135,7 @@ contains
          restrictprimitive,prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
          amrentropy,logflag,tfixgrid,itfixgrid,ditregrid{#IFDEF STRETCHGRID ,qst}
-    namelist /paramlist/  time_accurate, courantpar, dtpar, dtdiffpar, dtTCpar,&
+    namelist /paramlist/  courantpar, dtpar, dtdiffpar, dtTCpar,&
          typecourant, slowsteps, cfrac{#IFDEF MAGNETOFRICTION , cmf_c, cmf_y, cmf_divb}
     !----------------------------------------------------------------------------
 
@@ -368,7 +368,6 @@ contains
     dtdiffpar     = 0.5d0
     dtTCpar       = 0.9d0
     dtpar         = -1.d0
-    time_accurate = .true.
     {#IFDEF MAGNETOFRICTION
     cmf_c         = 0.3d0
     cmf_y         = 0.2d0
@@ -818,15 +817,6 @@ contains
           \}
        end select
     end do
-
-    if (dtpar>zero) time_accurate=.true.
-
-    if(.not.time_accurate) then
-       if(residmin<=smalldouble .or. residmax==bigdouble) then
-          if (mype==0) write(unitterm,*)"Non time_accurate SS computation needs values residmin and residmax"
-          call mpistop("Provide values for residual bounds in stoplist")
-       end if
-    end if
 
     ! Warn when too few blocks at start of simulation 
     if (mype.eq.0 .and. snapshotini.eq.-1 .and. {^D& floor(dble(nxlone^D)/(dble(ixGhi^D)-2.0d0*dble(dixB))) |*} .lt. npe) then

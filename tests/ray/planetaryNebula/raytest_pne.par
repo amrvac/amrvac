@@ -91,7 +91,6 @@
  &paramlist
         dtpar=-1
         typecourant='maxsum'
-	time_accurate=.true.
         courantpar=0.8d0
 	cfrac = 0.1d0
         slowsteps=10

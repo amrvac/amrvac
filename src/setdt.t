@@ -98,19 +98,8 @@ end if
 
 if (slowsteps>it-itmin+1) then
    factor=one-(one-dble(it-itmin+1)/dble(slowsteps))**2
-   if (time_accurate) then
-      dtmin_mype=dtmin_mype*factor
-   else
-!$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-         dt_grid(igrid)=dt_grid(igrid)*factor
-      end do
-!$OMP END PARALLEL DO
-   end if
+   dtmin_mype=dtmin_mype*factor
 end if
-
-
-if (time_accurate) then
 
    if( stepflag<1.and.mype==0) then
       if(any(dtsave(1:nfile)<dtmin_mype )) then
@@ -187,9 +176,6 @@ if (time_accurate) then
 ! so does GLM: 
 call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
      MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
-
-end if
-
 
 1001 format(' Warning: timesteps: ',1x,1pe12.5,' exceeding output intervals ',2(1x,1pe12.5))
 
