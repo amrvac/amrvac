@@ -18,6 +18,7 @@ module mod_global_parameters
   integer, parameter :: r_=1, phi_=^PHI, z_=^Z
 
   !> Indices for cylindrical coordinates FOR INDEXING, always positive
+  !> \todo Check whether these are still needed
   integer, parameter :: pphi_=^PPHI, zz_=^ZZ
 
   include 'amrvacpar.f'
@@ -88,7 +89,8 @@ module mod_global_parameters
 
   include 'amrvacusrpar.f'
 
-  ! For transform variables and save selected data
+  !> For transform variables and save selected data
+  !> \todo Chun documents here
   integer :: nwtf
   integer :: neqpartf
 
@@ -104,6 +106,7 @@ module mod_global_parameters
   ! Time step control parameters
   double precision :: courantpar, dtpar, dtdiffpar, dtTCpar{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb}
   character(len=std_len) :: typecourant,typeresid
+  !> \todo remove
   logical :: addmpibarrier
 
   !Time parameters
@@ -134,8 +137,11 @@ module mod_global_parameters
   character(len=std_len) :: typedimsplit,typeaxial,typecoord,typepoly
   integer                :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
   double precision       :: entropycoef(nw)
+  !> \todo parastsnu and sourceparasts can go
   double precision       :: tvdlfeps, mcbeta, parastsnu, TCphi
+  !> \todo possible to remove implicit source (in advance too)
   logical                :: sourceparasts,sourceimpl
+  !> \todo organize Thermal Conduction: bcphys/TCphi/TCsaturate/conduction
   logical                :: sourceimplcycle,conduction,TCsaturate,bcphys
   logical                :: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
   logical                :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
@@ -146,8 +152,9 @@ module mod_global_parameters
   double precision       :: divbdiff,smallT,smallp,smallrho,amr_wavefilter(nlevelshi)
   character(len=std_len) :: typedivbdiff,typedivbfix,typediv,typegrad
 
+  !> related to primitive-conservative switch in relativistic modules
   logical          :: fixsmall,strictnr,strictsmall,strictzero,strictgetaux
-  double precision :: dmaxvel,tolernr,absaccnr,tlow
+  double precision :: dmaxvel,tolernr,absaccnr
   integer          :: maxitnr,nflatgetaux
 
   logical          :: nocartesian
@@ -158,7 +165,7 @@ module mod_global_parameters
   ! cooling related parameters
   integer                :: ncool, cmulti
   character(len=std_len) :: coolcurve,coolmethod
-  double precision       :: cfrac
+  double precision       :: cfrac,tlow
   logical                :: Tfix
 
   ! dust related paramters
