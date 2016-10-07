@@ -782,8 +782,6 @@ contains
     select case (errorestimate)
     case (0)
        if (mype==0) write(unitterm, '(A)') "user defined"
-    case (1)
-       if (mype==0) write(unitterm, '(A)') "Richardson procedure"
     case (2)
        if (mype==0) write(unitterm, '(A)') "relative error"
     case (3)
@@ -793,9 +791,6 @@ contains
     case default
        call mpistop("Unknown error estimator, change errorestimate")
     end select
-    if (B0field.and.errorestimate==1) then
-       call mpistop("No Richardson procedure in combination with B0")
-    end if
 
     if (tfixgrid<bigdouble/2.0d0) then
        if(mype==0)print*,'Warning, at time=',tfixgrid,'the grid will be fixed'

@@ -12,45 +12,6 @@ if (igridstail==0) return
 select case (errorestimate)
 case (0) 
    ! all refinement solely based on user routine specialrefine_grid
-case (1) 
-   ! Richardson procedure: compare coarse-integrate versus integrate-coarse
-   ! done with low order, dimensionally unsplit scheme typelow1
-   ! For error estimate: compare 1st order, coarse 2*dx,2*dt step  with
-   ! 1st order dt step, since otherwise wCT can not be filled by interpolation
-
-   ! Note:when there are sources: only unsplit sources are taken into account
-
-   ! Note: the low order solutions are obtained with dimsplit=F.
-   !       When overall scheme uses dimsplit=T
-   !       and courantpar>0.5, the low order can be unstable. In
-   !       that case, simplify this scheme, set low order step of size dt
-   !       and compare coarse with available solution at t_n. Enforce this
-   !       through `skipfinestep' 
-
-
-   if (skipfinestep) then
-      factor=one
-   else
-      factor=two
-   end if
-
-   ! call the integrator on a grid twice as coarse.
-
-   ixCoGmin^D=1;
-   ixCoGmax^D=ixGhi^D/2+dixB;
-
-   call createCoarse(ixCoG^L)
-   call getbc(t,0.d0,ixCoG^L,pwCoarse,pwCoCo,pgeoCoarse,pgeoCoCo,.true.,0,nwflux)
-   call advectCoarse(ixCoG^L,factor)
-
-   ! Now advance full grid and obtain relative error
-   ! between coarse and full grid sln at time t_n+1
-!$OMP PARALLEL DO PRIVATE(igrid)
-   do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call errest1_grid(igrid,pw(igrid)%w)
-   end do
-!$OMP END PARALLEL DO
-
 case (2) 
    ! simply compare w_n-1 with w_n and trigger refinement on relative
    ! differences
@@ -588,7 +549,7 @@ my_coarsen  = 0
 if (time_advance) then
    qt=t+dt
 else
-   if (errorestimate==1.or.errorestimate==2) then
+   if (errorestimate==2) then
       qt=t+dt
    else
       qt=t

@@ -67,11 +67,6 @@ pw(igrid)%w(ixG^T,1:nw)=0.d0
 pwCoarse(igrid)%w(ixCoG^S,1:nw)=0.d0
 
 if(residmin>smalldouble) allocate(pwres(igrid)%w(ixG^T,1:nwflux))
-if (errorestimate==1) then
-   ixCoCoGmin^D=1;
-   ixCoCoGmax^D=ixCoGmax^D/2+dixB;
-   allocate(pwCoCo(igrid)%w(ixCoCoG^S,1:nw))
-end if
 
 ! set level information
 level=igrid_to_node(igrid,mype)%node%level
@@ -149,7 +144,6 @@ end if
 
 deallocate(pw(igrid)%w,pwold(igrid)%w,pwCoarse(igrid)%w)
 if(residmin>smalldouble) deallocate(pwres(igrid)%w)
-if (errorestimate==1) deallocate(pwCoCo(igrid)%w)
 deallocate(px(igrid)%x,pxCoarse(igrid)%x)
 
 if (.not.slab) call putgridgeo(igrid)

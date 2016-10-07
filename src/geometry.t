@@ -72,66 +72,22 @@ qst=qsts(node(plevel_,igrid))
 }
 call fillgeo(pgeo(igrid),ixG^LL,ixGext^L,xmin^D,dx^D,.false.)
 
-if (errorestimate==1) then
-   ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+dixB;
-   if (2*int(dixB/2)==dixB) then
-      ixGext^L=ixCoG^L;
-   else
-      ixGext^L=ixCoG^L^LADD1;
-   end if
-   ixCoM^L=ixCoG^L^LSUBdixB;
-   ixCo^L=ixCoM^L^LADD1;
-   ixCo^L=ixCoG^L^LSUB1;
-
-   allocate(pgeoCoarse(igrid)%surfaceC^D(ixComin^D-1:ixComax^D^D%ixCo^S), &
-        pgeoCoarse(igrid)%surface^D(ixComin^D-1:ixComax^D^D%ixCo^S), &
-        pgeoCoarse(igrid)%dvolume(ixGext^S), &
-        pgeoCoarse(igrid)%x(ixGext^S,1:ndim),&
-        pgeoCoarse(igrid)%dx(ixGext^S,1:ndim))
-
-   dx^D=two*rnode(rpdx^D_,igrid);
-{#IFDEF STRETCHGRID
-   logG=logGs(node(plevel_,igrid)-1)
-   qst=qsts(node(plevel_,igrid)-1)
-}
-   call fillgeo(pgeoCoarse(igrid),ixCoG^L,ixGext^L,xmin^D,dx^D,.false.)
-
-   ixCoCoGmin^D=1; ixCoCoGmax^D=ixCoGmax^D/2+dixB;
-   if (2*int(dixB/2)==dixB) then
-      ixGext^L=ixCoCoG^L;
-   else
-      ixGext^L=ixCoCoG^L^LADD1;
-   end if
-
-
-   allocate(pgeoCoCo(igrid)%dvolume(ixGext^S))
-
-   dx^D=4.0d0*rnode(rpdx^D_,igrid);
-{#IFDEF STRETCHGRID
-   logG=logGs(node(plevel_,igrid)-1)
-   qst=qsts(node(plevel_,igrid)-1)
-   qst=qst**2
-   logG=2.d0*(qst-1.d0)/(qst+1.d0)
-}
-   call fillgeo(pgeoCoCo(igrid),ixCoCoG^L,ixGext^L,xmin^D,dx^D,.true.)
+ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+dixB;
+if (2*int(dixB/2)==dixB) then
+   ixGext^L=ixCoG^L;
 else
-   ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+dixB;
-   if (2*int(dixB/2)==dixB) then
-      ixGext^L=ixCoG^L;
-   else
-      ixGext^L=ixCoG^L^LADD1;
-   end if
+   ixGext^L=ixCoG^L^LADD1;
+end if
 
 
-   allocate(pgeoCoarse(igrid)%dvolume(ixGext^S))
+allocate(pgeoCoarse(igrid)%dvolume(ixGext^S))
 
-   dx^D=two*rnode(rpdx^D_,igrid);
+dx^D=two*rnode(rpdx^D_,igrid);
 {#IFDEF STRETCHGRID
 logG=logGs(node(plevel_,igrid)-1)
 qst=qsts(node(plevel_,igrid)-1)
 }
-   call fillgeo(pgeoCoarse(igrid),ixCoG^L,ixGext^L,xmin^D,dx^D,.true.)
-end if
+call fillgeo(pgeoCoarse(igrid),ixCoG^L,ixGext^L,xmin^D,dx^D,.true.)
 
 end subroutine getgridgeo
 !=============================================================================
@@ -141,17 +97,8 @@ subroutine putgridgeo(igrid)
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
-if (errorestimate==1) then
-   deallocate(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D,&
-        pgeo(igrid)%dvolume,pgeo(igrid)%dx,pgeo(igrid)%x, &
-        pgeoCoarse(igrid)%surfaceC^D,pgeoCoarse(igrid)%surface^D,&
-        pgeoCoarse(igrid)%dvolume,pgeoCoarse(igrid)%dx,&
-        pgeoCoCo(igrid)%dvolume)
-   
-else
-   deallocate(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D,&
-              pgeo(igrid)%dvolume,pgeo(igrid)%dx,pgeo(igrid)%x,pgeoCoarse(igrid)%dvolume)
-end if
+deallocate(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D,&
+     pgeo(igrid)%dvolume,pgeo(igrid)%dx,pgeo(igrid)%x,pgeoCoarse(igrid)%dvolume)
 
 end subroutine putgridgeo
 !=============================================================================

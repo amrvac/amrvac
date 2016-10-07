@@ -48,10 +48,7 @@ isend_buf=0
 ipwbuf=1
 nrecvs=nrecv_bc_srl+nrecv_bc_r
 nsends=nsend_bc_srl+nsend_bc_r
-if (richardson) then
-   nrecvs=nrecvs+nrecv_bc_p
-   nsends=nsends+nsend_bc_p
-end if
+
 if (nrecvs>0) then
    allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
    recvrequest=MPI_REQUEST_NULL
@@ -69,8 +66,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 
       my_neighbor_type=neighbor_type(i^D,igrid)
       select case (my_neighbor_type)
-      case (2)
-         if (richardson) call bc_recv_old
       case (3)
          call bc_recv_srl
       case (4)
@@ -82,11 +77,8 @@ end do
 do iigrid=1,igridstail; igrid=igrids(iigrid);
       saveigrid=igrid
    if (any(neighbor_type(:^D&,igrid)==2)) then
-      if (richardson) then
-         ^D&dxlevel(^D)=two*rnode(rpdx^D_,igrid);
-      else
-         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      end if
+      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+
       call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x, &
                         ixCoG^L,ixCoM^L,pgeoFi(igrid),pgeoCo(igrid), &
                         coarsenprimitive,.true.)
@@ -101,8 +93,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
          call bc_send_restrict
       case (3)
          call bc_send_srl
-      case (4)
-         if (richardson) call bc_send_old
       end select
    {end do\}
 end do
@@ -127,7 +117,6 @@ if (isend>0) then
 end if
 
 
-if (.not.richardson) then
    irecv=0
    isend=0
    isend_buf=0
@@ -199,7 +188,7 @@ if (.not.richardson) then
          if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
       end do
    end if
-end if
+
 
 if(bcphys) then
   do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -228,17 +217,13 @@ if(bcphys) then
            else 
               if (neighbor_type(i^D,igrid)/=1) cycle
            end if
-           if (richardson) then
-              if(.not.slab)mygeo=>pgeoCo(igrid)
-              call bc_phys(iside,idims,time,qdt,pwuse(igrid)%w,pxCoarse(igrid)%x,ixG^L,ixB^L)
-           else
-              if(.not.slab)mygeo=>pgeoFi(igrid)
-              if (B0field) then
-                 myB0_cell => pB0_cell(igrid)
-                 {^D&myB0_face^D => pB0_face^D(igrid)\}
-              end if
-              call bc_phys(iside,idims,time,qdt,pwuse(igrid)%w,px(igrid)%x,ixG^L,ixB^L)
+
+           if(.not.slab)mygeo=>pgeoFi(igrid)
+           if (B0field) then
+              myB0_cell => pB0_cell(igrid)
+              {^D&myB0_face^D => pB0_face^D(igrid)\}
            end if
+           call bc_phys(iside,idims,time,qdt,pwuse(igrid)%w,px(igrid)%x,ixG^L,ixB^L)
         end do
      end do
   end do
@@ -825,11 +810,6 @@ ixCoGmin^D=1;
 ixCoGmax^D=ixGmax^D/2+dixB;
 ixCoM^L=ixCoG^L^LSUBdixB;
 
-if (richardson) then
-   ixoldGmin^D=1; ixoldGmax^D=2*ixMmax^D;
-   ixoldM^L=ixoldG^L^LSUBdixB;
-end if
-
 nx^D=ixMmax^D-ixMmin^D+1;
 nxCo^D=nx^D/2;
 
@@ -882,43 +862,23 @@ if (levmin/=levmax) then
    ixR_r_max^D(2)=ixMmax^D
    ixR_r_max^D(3)=ixGmax^D
 
-   if (richardson) then
-      ixS_old_min^D(0)=ixoldMmin^D
-      ixS_old_min^D(1)=ixoldMmin^D
-      ixS_old_min^D(2)=ixoldMmin^D+nx^D-dixB
-      ixS_old_min^D(3)=ixoldMmax^D+1-dixB
-      ixS_old_max^D(0)=ixoldMmin^D-1+dixB
-      ixS_old_max^D(1)=ixoldMmin^D-1+nx^D+dixB
-      ixS_old_max^D(2)=ixoldMmax^D
-      ixS_old_max^D(3)=ixoldMmax^D
+   ixS_p_min^D(0)=ixMmin^D-(interpolation_order-1)
+   ixS_p_min^D(1)=ixMmin^D-(interpolation_order-1)
+   ixS_p_min^D(2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
+   ixS_p_min^D(3)=ixMmax^D+1-dixBCo-(interpolation_order-1)
+   ixS_p_max^D(0)=ixMmin^D-1+dixBCo+(interpolation_order-1)
+   ixS_p_max^D(1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
+   ixS_p_max^D(2)=ixMmax^D+(interpolation_order-1)
+   ixS_p_max^D(3)=ixMmax^D+(interpolation_order-1)
 
-      ixR_old_min^D(0)=1
-      ixR_old_min^D(1)=ixMmin^D
-      ixR_old_min^D(2)=1
-      ixR_old_min^D(3)=ixMmax^D+1
-      ixR_old_max^D(0)=dixB
-      ixR_old_max^D(1)=ixGmax^D
-      ixR_old_max^D(2)=ixMmax^D
-      ixR_old_max^D(3)=ixGmax^D
-   else
-      ixS_p_min^D(0)=ixMmin^D-(interpolation_order-1)
-      ixS_p_min^D(1)=ixMmin^D-(interpolation_order-1)
-      ixS_p_min^D(2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
-      ixS_p_min^D(3)=ixMmax^D+1-dixBCo-(interpolation_order-1)
-      ixS_p_max^D(0)=ixMmin^D-1+dixBCo+(interpolation_order-1)
-      ixS_p_max^D(1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
-      ixS_p_max^D(2)=ixMmax^D+(interpolation_order-1)
-      ixS_p_max^D(3)=ixMmax^D+(interpolation_order-1)
-
-      ixR_p_min^D(0)=ixCoMmin^D-dixBCo-(interpolation_order-1)
-      ixR_p_min^D(1)=ixCoMmin^D-(interpolation_order-1)
-      ixR_p_min^D(2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
-      ixR_p_min^D(3)=ixCoMmax^D+1-(interpolation_order-1)
-      ixR_p_max^D(0)=dixB+(interpolation_order-1)
-      ixR_p_max^D(1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
-      ixR_p_max^D(2)=ixCoMmax^D+(interpolation_order-1)
-      ixR_p_max^D(3)=ixCoMmax^D+dixBCo+(interpolation_order-1)
-   end if
+   ixR_p_min^D(0)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+   ixR_p_min^D(1)=ixCoMmin^D-(interpolation_order-1)
+   ixR_p_min^D(2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+   ixR_p_min^D(3)=ixCoMmax^D+1-(interpolation_order-1)
+   ixR_p_max^D(0)=dixB+(interpolation_order-1)
+   ixR_p_max^D(1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
+   ixR_p_max^D(2)=ixCoMmax^D+(interpolation_order-1)
+   ixR_p_max^D(3)=ixCoMmax^D+dixBCo+(interpolation_order-1)
 \}
 end if
 
@@ -935,15 +895,8 @@ if (npe>1) then
       {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
          inc^DB=2*i^DB+ic^DB\}
          call get_bc_comm_type(type_recv_r(inc^D),ixR_r_^L(inc^D),ixG^L)
-         if (richardson) then
-            call get_bc_comm_type(type_send_old(inc^D), &
-                                  ixS_old_^L(inc^D),ixoldG^L)
-            call get_bc_comm_type(type_recv_old(inc^D), &
-                                  ixR_old_^L(inc^D),ixG^L)
-         else
-            call get_bc_comm_type(type_send_p(inc^D),ixS_p_^L(inc^D),ixG^L)
-            call get_bc_comm_type(type_recv_p(inc^D),ixR_p_^L(inc^D),ixCoG^L)
-         end if
+         call get_bc_comm_type(type_send_p(inc^D),ixS_p_^L(inc^D),ixG^L)
+         call get_bc_comm_type(type_recv_p(inc^D),ixR_p_^L(inc^D),ixCoG^L)
       {end do\}
    {end do\}
 end if
@@ -984,13 +937,8 @@ subroutine put_bc_comm_types
    {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
       inc^DB=2*i^DB+ic^DB\}
       call MPI_TYPE_FREE(type_recv_r(inc^D),ierrmpi)
-      if (richardson) then
-         call MPI_TYPE_FREE(type_send_old(inc^D),ierrmpi)
-         call MPI_TYPE_FREE(type_recv_old(inc^D),ierrmpi)
-      else
-         call MPI_TYPE_FREE(type_send_p(inc^D),ierrmpi)
-         call MPI_TYPE_FREE(type_recv_p(inc^D),ierrmpi)
-      end if
+      call MPI_TYPE_FREE(type_send_p(inc^D),ierrmpi)
+      call MPI_TYPE_FREE(type_recv_p(inc^D),ierrmpi)
    {end do\}
 {end do\}
 

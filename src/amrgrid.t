@@ -15,14 +15,14 @@ if (mxnest == 1) return
 
 call getbc(t,0.d0,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
 do levnew=2,mxnest
-   if (errorestimate==1.or.errorestimate==2) then
+   if (errorestimate==2) then
       call setdt
       call advance(0)
    end if
 
    call errest
 
-   if (errorestimate==1.or.errorestimate==2) then
+   if (errorestimate==2) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
          pwtmp%w => pwold(igrid)%w
          pwold(igrid)%w => pw(igrid)%w

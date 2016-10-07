@@ -30,11 +30,6 @@ if ({mod(ixGhi^D,2)/=0|.or.}) then
    call mpistop("mesh widths must give even number grid points")
 end if
 ixM^LL=ixG^LL^LSUBdixB;
-if (errorestimate==1) then
-   if ({mod(ixMhi^D-ixMlo^D+1,4)/=0|.or.}) then
-      call mpistop("mesh widths must be divisible by 4 for Richardson")
-   end if
-end if
 
 if (nbufferx^D>(ixMhi^D-ixMlo^D+1)|.or.) then
    write(unitterm,*) "nbufferx^D bigger than mesh size makes no sense."
