@@ -153,9 +153,7 @@ use mod_input_output, only: saveamrfile
 integer :: level, ifile, fixcount
 
 logical, external :: timetosave, fixgrid
-{#IFDEF SAVENOW
 logical :: alive
-}
 !-----------------------------------------------------------------------------
 time_in=MPI_WTIME()
 fixcount=1
@@ -192,7 +190,7 @@ time_evol : do
    do ifile=nfile,1,-1
       if(timetosave(ifile)) call saveamrfile(ifile)
    end do
-{#IFDEF SAVENOW   
+   ! save a snapshot when a file name 'savenow' is present
    if(mype==0) inquire(file='savenow',exist=alive)
    if(npe>1) call MPI_BCAST(alive,1,MPI_LOGICAL,0,icomm,ierrmpi)
    if(alive) then
@@ -201,7 +199,7 @@ time_evol : do
      call saveamrfile(1)
      call saveamrfile(2)
      call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
-   endif}
+   endif
    timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
    ! exit time loop criteria

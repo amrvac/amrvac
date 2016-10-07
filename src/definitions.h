@@ -3,7 +3,6 @@
 #undefine FCT
 #undefine HALL
 #undefine UCONVERT
-#undefine SAVENOW
 #undefine TRANSFORMW
 #undefine RAY
 #undefine BIGENDIAN
