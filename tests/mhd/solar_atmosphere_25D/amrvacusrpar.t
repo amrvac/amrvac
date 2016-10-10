@@ -1,6 +1,8 @@
 !##############################################################################
 ! include amrvacusrpar - solaratmosphere23
 
+INCLUDE:amrvacmodules/coolingpar.t
+
 INTEGER,PARAMETER:: grav0_=neqpar, grav^D_=grav0_+^D, kappa_=neqpar+^ND+1,&
     Tscale_=kappa_+1,Lscale_=Tscale_+1,Mue_=Lscale_+1,nspecialpar=^ND+4
 CHARACTER*29,PARAMETER:: specialparname='grav1 grav2 kappa Tsc Lsc Mue'

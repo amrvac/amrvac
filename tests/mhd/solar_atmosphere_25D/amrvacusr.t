@@ -1,6 +1,7 @@
 !=============================================================================
 ! amrvacusr.t.solaratmosphere23
 !=============================================================================
+INCLUDE:amrvacmodules/cooling.t
 INCLUDE:amrvacmodules/heatconduct.t
 INCLUDE:amrvacnul/usrflags.t
 !=============================================================================
@@ -10,7 +11,7 @@ double precision, allocatable, save :: pbc(:),rbc(:)
 end module usr_bc
 !=============================================================================
 subroutine initglobaldata_usr
-use mod_cooling
+
 use mod_global_parameters
 
 logical, save :: firstusrglobaldata=.true.
@@ -331,8 +332,8 @@ dtnew=dtgrav
 end subroutine getdt_grav
 !=============================================================================
 subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+
 use mod_global_parameters
-use mod_cooling, only: addsource_cooling
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
 double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -388,7 +389,6 @@ subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
 ! module have already been called.
 
 use mod_global_parameters
-use mod_cooling, only: getdt_cooling
 
 integer, intent(in) :: ixG^L,ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -534,8 +534,7 @@ subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
 ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
 ! corresponding normalization values (default value 1)
 
-  use mod_global_parameters
-  use mod_cooling, only: getvar_cooling
+use mod_global_parameters
 
 integer, intent(in)                :: ixI^L,ixO^L
 double precision, intent(in)       :: x(ixI^S,1:ndim)
