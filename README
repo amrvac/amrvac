@@ -1,25 +1,18 @@
-This is the development version of AMRVAC.  
+This is the development version of AMRVAC.
 
+** How to locally generate the documentation **
 
-Get started by running a problem from the tests folder.  
-E.g. the tests/mhd/orszag-tang is checked to work with the newest code-version.  Traditionally, you should run tests/rho/vac as your first test :-).  
-A quick start is found in doc/GettingStarted.html and changes from the old svn version are summarized in doc/gitversion.html
+    cd doc
+    doxygen
 
-TODO:
+Then open doc/html/index.html with a web browser
 
-* implement the hlld solver
-* individual time step scheme
-* Make tracers work with roe solvers
+** Getting started **
 
-RECENT CHANGES:
+Read the 'Getting Started' page of the documentation (also available via
+doc/getting_started.md)
 
-* NEW REPOSITORY
-* Merged the relativistic mhd modules
-* Whistler wave dampening (parameter halldampen) for Hall mhd
-* Added Allard-Jan's radiative transfer raytracing routine
-* double-checked the glm for srmhd
-* Added srmhdiso from Fabien Casse, tested with Orszag-Tang
-* Added MP5
-* Tracers for hd and mhd
-* Merged mhd and mhdiso
-* Re-implementation of the glm and divbfixes in mhd
+** Running tests **
+
+    cd tests
+    make
