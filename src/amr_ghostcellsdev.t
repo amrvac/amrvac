@@ -1,6 +1,6 @@
 !=============================================================================
-subroutine getbc(time,qdt,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
 !> update ghost cells of all blocks including physical boundaries 
+subroutine getbc(time,qdt,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
 include 'amrvacdef.f'
 
 double precision, intent(in)               :: time, qdt
@@ -15,18 +15,18 @@ integer :: iigrid, igrid, ineighbor, ipe_neighbor
 integer :: nrecvs, nsends, isizes
 integer :: ixR^L, ixS^L, ixB^L, k^L
 integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
-!> index ranges to send (S) to sibling blocks, receive (R) from 
-!> sibling blocks, send restricted (r) ghost cells to coarser blocks 
+! index ranges to send (S) to sibling blocks, receive (R) from 
+! sibling blocks, send restricted (r) ghost cells to coarser neighbors
 integer, dimension(-1:1,-1:1) :: ixS_srl_^L, ixR_srl_^L, ixS_r_^L
-!> index ranges to receive restriced ghost cells from finer blocks, 
-!> send prolongated (p) ghost cells to finer blocks, receive prolongated 
-!> ghost from coarser blocks
+! index ranges to receive restriced ghost cells from finer neighbors, 
+! send prolongated (p) ghost cells to finer neighbors, receive prolongated 
+! ghost from coarser neighbors 
 integer, dimension(-1:1, 0:3) :: ixR_r_^L, ixS_p_^L, ixR_p_^L
-!> MPI derived datatype to send and receive subarrays of ghost cells to 
-!> neighbor blocks in a different processor
+! MPI derived datatype to send and receive subarrays of ghost cells to 
+! neighbors in a different processor
 integer, dimension(-1:1^D&,-1:1^D&) :: type_send_srl, type_recv_srl, type_send_r
 integer, dimension(-1:1^D&,0:3^D&) :: type_recv_r, type_send_p, type_recv_p
-!> store physical boundary indicating index
+! store physical boundary indicating index
 integer :: idphyb(ngridshi,ndim),bindex(ndim)
 integer :: isend_buf(npwbuf), ipwbuf, dixBco
 type(walloc) :: pwbuf(npwbuf)
@@ -34,26 +34,26 @@ logical  :: isphysbound
 
 double precision :: time_bcin
 {#IFDEF STRETCHGRID
-!> Stretching grid parameters for coarsened block of the current block
+! Stretching grid parameters for coarsened block of the current block
 double precision :: logGl,qstl
 }
 !-----------------------------------------------------------------------------
 time_bcin=MPI_WTIME()
 
-!> define index ranges and MPI send/receive derived datatype for ghost-cell swap
+! define index ranges and MPI send/receive derived datatype for ghost-cell swap
 call init_bc
 if (internalboundary) then 
    call getintbc(time,ixG^L,pwuse)
 end if
-!> fill ghost cells in physical boundaries
+! fill ghost cells in physical boundaries
 if(bcphys) then
   do iigrid=1,igridstail; igrid=igrids(iigrid);
      saveigrid=igrid
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      do idims=1,ndim
-        !> to avoid using as yet unknown corner info in more than 1D, we
-        !> fill only interior mesh ranges of the ghost cell ranges at first,
-        !> and progressively enlarge the ranges to include corners later
+        ! to avoid using as yet unknown corner info in more than 1D, we
+        ! fill only interior mesh ranges of the ghost cell ranges at first,
+        ! and progressively enlarge the ranges to include corners later
         {
          kmin^D=merge(0, 1, idims==^D)
          kmax^D=merge(0, 1, idims==^D)
@@ -87,16 +87,16 @@ if(bcphys) then
   end do
 end if
 
-!> default : no singular axis
+! default : no singular axis
 ipole=0
 
 irecv=0
 isend=0
 isend_buf=0
 ipwbuf=1
-!> total number of times to call MPI_IRECV in each processor between sibling blocks or from finer neighbors
+! total number of times to call MPI_IRECV in each processor between sibling blocks or from finer neighbors
 nrecvs=nrecv_bc_srl+nrecv_bc_r
-!> total number of times to call MPI_ISEND in each processor between sibling blocks or to coarser neighors
+! total number of times to call MPI_ISEND in each processor between sibling blocks or to coarser neighors
 nsends=nsend_bc_srl+nsend_bc_r
 if (nrecvs>0) then
    allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
