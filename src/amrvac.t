@@ -60,10 +60,6 @@ if (snapshotini/=-1) then
    ! modify globals
    if (changeglobals) call initglobal
 
-{#IFDEF BOUNDARYDRIVER
-   call read_boundary
-}
-
    if (convert) then
        if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
             .and. convert_type .ne. 'user')  &
@@ -117,13 +113,8 @@ if (mype==0) then
    print*,'-------------------------------------------------------------------------------'
 end if
 
-{#IFDEF MAGNETOFRICTION
-if(itmaxmf>0) then
-   time_in=MPI_WTIME()
-   call magnetofriction
-   if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
-endif
-}
+! an interface to allow user do special process
+call special_process_usr
 
 time_advance=.true.
 

@@ -848,9 +848,6 @@ contains
        else if(typeparIO==-1) then
           call write_snapshot_noparf
        endif
-       {#IFDEF BOUNDARYDRIVER
-       call write_boundary
-       }
        !opedit: now we can also convert directly and will when autoconvert is set in inifile: 
        if (autoconvert) call generate_plotfile
        {#IFDEF PARTICLES
