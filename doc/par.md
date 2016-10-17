@@ -67,7 +67,7 @@ autoconvert | logical | F | If true, already convert to output format during the
 sliceascii | logical | F | If true, enable ASCII output of @ref slices.md
 saveprim | logical | F | If true, convert from conservative to primitive variables in output
 primnames | string(1:nw) | ' ' | Names of the primitive variables
-nwauxio | integer | 0 | Number of auxiliary variables
+nwauxio | integer | 0 | !> Number of auxiliary variables that are only included in the output
 normvar | real(0:nw) | 1.0 | Conversion factors for length (`normvar(0)`) and the primitive variables (`normvar(1:nw)`)
 normt | real | 1.0 | Conversion factor for time unit
 `level_io` | integer | - | When doing a convert, generate a uniform grid at this level

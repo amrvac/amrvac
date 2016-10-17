@@ -1910,7 +1910,7 @@ contains
 
     ! Make the information available on all tasks
     call MPI_ALLREDUCE(wsum, dsum_recv, nw+1, MPI_DOUBLE_PRECISION, &
-         MPI_SUM, 0, icomm, ierrmpi)
+         MPI_SUM, icomm, ierrmpi)
 
     ! Set the volume and the average
     volume = dsum_recv(nw+1)
@@ -1939,7 +1939,7 @@ contains
 
     ! Make the information available on all tasks
     call MPI_ALLREDUCE(vol_cov, dsum_recv, mxnest, MPI_DOUBLE_PRECISION, &
-         MPI_SUM, 0, icomm, ierrmpi)
+         MPI_SUM, icomm, ierrmpi)
 
     ! Normalize
     vol_cov = dsum_recv / sum(dsum_recv)

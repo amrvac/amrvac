@@ -23,18 +23,33 @@ module mod_global_parameters
 
   include 'amrvacpar.f'
 
-  integer, parameter :: ndim=^ND, ndir=^NC
+  !> Number of spatial dimensions for grid variables
+  integer, parameter :: ndim=^ND
+
+  !> Number of spatial dimensions for vector variables
+  integer, parameter :: ndir=^NC
 
   include 'amrvacsettings.f'
 
+  !> Constant indicating log output
   integer, parameter :: filelog_      = 1
+
+  !> Constant indicating regular output
   integer, parameter :: fileout_      = 2
+
+  !> Constant indicating slice output
   integer, parameter :: fileslice_    = 3
+
+  !> Constant indicating collapsed output
   integer, parameter :: filecollapse_ = 4
+
+  !> Constant indicating analysis output (see @ref analysis.md)
   integer, parameter :: fileanalysis_ = 5
+
+  !> Number of output methods
   integer, parameter :: nfile         = 5
 
-  !> Names of the various output methods
+  !> Names of the output methods
   character(len=40), parameter  :: output_names(nfile) = &
        ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
 
@@ -50,7 +65,7 @@ module mod_global_parameters
   !> Unit for error messages
   integer, parameter :: uniterr=6
 
-  ! Units reserved for files:
+  !> \todo Move to mod_input_output
   integer, parameter :: unitpar=9
   integer, parameter :: unitconvert=10
   integer, parameter :: unitslice=11
@@ -103,38 +118,237 @@ module mod_global_parameters
   !> Equation and method parameters
   double precision :: eqpar(neqpar+nspecialpar)
 
-  ! Time step control parameters
-  double precision :: courantpar, dtpar, dtdiffpar, dtTCpar{#IFDEF MAGNETOFRICTION ,cmf_c,cmf_y,cmf_divb}
-  character(len=std_len) :: typecourant,typeresid
-  !> \todo remove
+  !> The Courant (CFL) number used for the simulation
+  double precision :: courantpar
+
+  !> How to compute the CFL-limited time step.
+  !>
+  !> Options are 'maxsum': max(sum(c/dx)); 'summax': sum(max(c/dx)) and
+  !> 'minimum: max(c/dx), where the summations loop over the grid dimensions and
+  !> c is the velocity. The default 'maxsum' is the conventiontal way of
+  !> computing CFL-limited time steps.
+  character(len=std_len) :: typecourant
+
+  !> If dtpar is positive, it sets the timestep dt, otherwise courantpar is used
+  !> to limit the time step based on the Courant condition.
+  double precision :: dtpar
+
+  !> For resistive MHD, the time step is also limited by the diffusion time:
+  !> \f$ dt < dtdiffpar \times dx^2/eta \f$
+  double precision :: dtdiffpar
+
+  !> Time step restriction for thermal conduction.
+  double precision :: dtTCpar
+
+  {#IFDEF MAGNETOFRICTION
+  double precision :: cmf_c,cmf_y,cmf_divb
+  }
+
+  !> How to compute the residual
+  character(len=std_len) :: typeresid
+
+  !> Under construction
+  !> \todo Remove time_accurate?
+  logical :: time_accurate
+
+  !> Enable additional MPI_BARRIER calls, useful when debugging on new platforms
+  !> \todo Remove addmpibarrier?
   logical :: addmpibarrier
 
-  !Time parameters
+  ! Time parameters
 
   !> Maximum number of saves that can be defined by tsave or itsave
   integer, parameter :: nsavehi=100
 
-  double precision :: t,tmax,dtmin,residmin,residmax,residual{#IFDEF MAGNETOFRICTION ,tmf}
-  double precision :: tfixgrid
-  double precision :: tsave(nsavehi,nfile),tsavelast(nfile),dtsave(nfile),slicecoord(nslicemax)
-  logical :: tmaxexact,treset,itreset,firstprocess,resetgrid,fixprocess,changeglobals,collapse(ndim)
-  integer :: it,itmax,itmin,slowsteps{#IFDEF MAGNETOFRICTION , itmaxmf, ditsavemf}
-  integer :: itsave(nsavehi,nfile),itsavelast(nfile),ditsave(nfile)
-  integer :: isavet(nfile),isaveit(nfile), nslices, slicedir(nslicemax), collapseLevel
-  integer :: n_saves(1:nfile)
-  integer :: typeparIO
-  integer :: itfixgrid,ditregrid
-  integer :: nwauxio
-  integer :: istep, nstep
+  !> The global simulation time
+  !> \todo change t to a longer name
+  double precision :: t
 
-  !Method switches
+  !> End time for the simulation
+  double precision :: tmax
+
+  !> Stop the simulation when the time step becomes smaller than this value
+  double precision :: dtmin
+
+  !> \todo Remove residmin?
+  double precision :: residmin
+
+  !> \todo Remove residmax?
+  double precision :: residmax
+
+  !> \todo Remove residual?
+  double precision :: residual
+
+  {#IFDEF MAGNETOFRICTION
+  !> \todo What is tmf?
+  double precision :: tmf
+  }
+
+  !> Save output of type N on times tsave(:, N)
+  double precision :: tsave(nsavehi,nfile)
+
+  !> \todo Move tsavelast to amrvac.t
+  double precision :: tsavelast(nfile)
+
+  !> Repeatedly save output of type N when dtsave(N) simulation time has passed
+  double precision :: dtsave(nfile)
+
+  !> Slice coordinates, see @ref slices.md
+  double precision :: slicecoord(nslicemax)
+
+  !> If true, the last time step will be reduced so that the final time is the
+  !> end time of the simulation
+  logical :: tmaxexact
+
+  !> If true, do not use the tmax stored in a snapshot when restarting
+  logical :: treset
+
+  !> If true, do not use the itmax stored in a snapshot when restarting
+  logical :: itreset
+
+  !> If true, call initonegrid_usr upon restarting
+  logical :: firstprocess
+
+  !> If true, rebuild the AMR grid upon restarting
+  logical :: resetgrid
+
+  !> Call the process subroutine before the writing of a snapshot, and following
+  !> the determination of the timestep constraint by means of CFL and other
+  !> restrictions
+  logical :: fixprocess
+
+  !> If true, call initglobal to specify global parameters upon restarting
+  logical :: changeglobals
+
+  !> If collapse(DIM) is true, generate output integrated over DIM
+  logical :: collapse(ndim)
+
+  !> Number of time steps taken
+  integer :: it
+
+  !> Stop the simulation after this many time steps have been taken
+  integer :: itmax
+
+  !> \todo Why do we need itmin?
+  integer :: itmin
+
+  !> If > 1, then in the first slowsteps-1 time steps dt is reduced
+  !> by a factor \f$ 1 - (1- step/slowsteps)^2 \f$
+  integer :: slowsteps
+
+  {#IFDEF MAGNETOFRICTION
+  integer :: itmaxmf, ditsavemf
+  }
+
+  !> Save output of type N on iterations itsave(:, N)
+  integer :: itsave(nsavehi,nfile)
+
+  !> \todo remove itsavelast?
+  integer :: itsavelast(nfile)
+
+  !> Repeatedly save output of type N when ditsave(N) time steps have passed
+  integer :: ditsave(nfile)
+
+  !> \todo Move to amrvac.t
+  integer :: isavet(nfile)
+
+  !> \todo Move to amrvac.t
+  integer :: isaveit(nfile)
+
+  !> Number of slices to output
+  integer :: nslices
+
+  !> The slice direction for each slice
+  integer :: slicedir(nslicemax)
+
+  !> The level at which to produce line-integrated / collapsed output
+  integer :: collapseLevel
+
+  !> Number of saved files of each type
+  !> \todo Move to mod_input_output
+  integer :: n_saves(1:nfile)
+
+  !> Options are 1: Parallel MPI output, 0: master-slave parallel IO, -1:
+  !> master-slave IO without MPI (no MPI_FILE_WRITE, MPI_FILE_OPEN etc)
+  integer :: typeparIO
+
+  !> Fix the AMR grid after this time
+  double precision :: tfixgrid
+
+  !> Fix the AMR grid after this many time steps
+  integer :: itfixgrid
+
+  !> Reconstruct the AMR grid once every ditregrid iteration(s)
+  integer :: ditregrid
+
+  !> Number of auxiliary variables that are only included in the output
+  integer :: nwauxio
+
+  !> Index of the sub-step in a multi-step time integrator
+  integer :: istep
+
+  !> How many sub-steps the time integrator takes
+  integer :: nstep
+
+  ! Method switches
+
+  !> Which time integrator to use
   character(len=std_len) :: typeadvance
-  character(len=std_len) :: typelow1(nlevelshi),typelimited,typesourcesplit
-  character(len=std_len) :: typefull1(nlevelshi), typepred1(nlevelshi)
-  character(len=std_len) :: typelimiter1(nlevelshi),typegradlimiter1(nlevelshi)
-  character(len=std_len) :: typelimiter,typegradlimiter,typeprolonglimit
-  character(len=std_len) :: typeentropy(nw),typetvd,typetvdlf,typeaverage
-  character(len=std_len) :: typedimsplit,typeaxial,typecoord,typepoly
+
+  !> Only used for Richardson extrapolation
+  !> \todo Remove typelow1?
+  character(len=std_len) :: typelow1(nlevelshi)
+
+  !> What should be used as a basis for the limiting in TVD methods. Options are
+  !> 'original', 'previous' and 'predictor'.
+  !>
+  !> By default, the original value is used in 1D and for dimensional splitting,
+  !> while for dimensionally unsplit multidimensional case (dimsplit=F), TVDLF
+  !> and TVD-MUSCL uses the previous value from wold for limiting.
+  character(len=std_len) :: typelimited
+
+  !> How to apply dimensional splitting to the source terms, see
+  !> @ref disretization.md
+  character(len=std_len) :: typesourcesplit
+
+  !> Which spatial discretization to use (per grid level)
+  character(len=std_len) :: typefull1(nlevelshi)
+
+  !> The spatial dicretization to use for the predictor step when using a two
+  !> step method
+  character(len=std_len) :: typepred1(nlevelshi)
+
+  !> Type of slope limiter used for reconstructing variables on cell edges
+  character(len=std_len) :: typelimiter1(nlevelshi)
+
+  !> Type of slope limiter used for computing gradients or divergences, when
+  !> typegrad or typediv are set to 'limited'
+  character(len=std_len) :: typegradlimiter1(nlevelshi)
+
+  !> \todo Remove / replace with typelimiter1
+  character(len=std_len) :: typelimiter
+
+  !> \todo Remove / replace with typegradlimiter1
+  character(len=std_len) :: typegradlimiter
+
+  !> Limiter used for prolongation to refined grids and ghost cells
+  character(len=std_len) :: typeprolonglimit
+
+  !> Which type of entropy fix to use with Riemann-type solvers
+  character(len=std_len) :: typeentropy(nw)
+
+  !> Which type of TVD method to use
+  character(len=std_len) :: typetvd
+
+  !> Which type of TVDLF method to use
+  character(len=std_len) :: typetvdlf
+
+  character(len=std_len) :: typeaverage
+  character(len=std_len) :: typedimsplit
+  character(len=std_len) :: typeaxial
+  character(len=std_len) :: typecoord
+  character(len=std_len) :: typepoly
+
   integer                :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
   double precision       :: entropycoef(nw)
   !> \todo parastsnu and sourceparasts can go
