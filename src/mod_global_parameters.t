@@ -390,15 +390,27 @@ module mod_global_parameters
   ! local and global fastest wave speed (computed in setdt):
   double precision :: cmax_mype, cmax_global
 
-  !Gravity related parameters
+  ! Gravity related parameters
   double precision ::  x1ptms,x2ptms,x3ptms,ptmass
 
-  !Boundary region parameters
+  ! Boundary region parameters
 
-  ! Number of boundaries for grid blocks
-  integer, parameter :: nhiB=2*ndim
-  logical :: periodB(ndim), poleB(2,ndim), aperiodB(ndim)
+  !> Number of boundaries for grid blocks
+  integer, parameter :: nhiB = 2*ndim
+
+  !> True for dimensions with periodic boundaries
+  logical :: periodB(ndim)
+
+  !> Indicates whether there is a pole at a boundary
+  logical :: poleB(2,ndim)
+
+  !> True for dimensions with aperiodic boundaries
+  logical :: aperiodB(ndim)
+
+  !> Array indicating the type of boundary condition per variable and per
+  !> physical boundary
   character(len=std_len) :: typeB(nw,nhiB)
+
   character(len=std_len) :: typeghostfill,typegridfill
   double precision ::ratebdflux
   logical :: internalboundary
