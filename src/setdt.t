@@ -1,10 +1,8 @@
-!=============================================================================
+!>setdt  - set dt for all levels between levmin and levmax. 
+!>         dtpar>0  --> use fixed dtpar for all level
+!>         dtpar<=0 --> determine CFL limited timestep 
+!>       - set dtimpl
 subroutine setdt
-
-! setdt  - set dt for all levels between levmin and levmax. 
-!          dtpar>0  --> use fixed dtpar for all level
-!          dtpar<=0 --> determine CFL limited timestep 
-!        - set dtimpl
 
 use mod_global_parameters
 
@@ -17,55 +15,11 @@ integer,save :: stepflag
 !----------------------------------------------------------------------------
 
 if(it==0) stepflag = 0
-{#IFDEF TCRKL2
-if(conduction) then
-   dtimpl_mype=bigdouble
-!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,qdtimpl,&
-!$OMP& dx^D) REDUCTION(min:dtimpl_mype)
-   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      qdtimpl=bigdouble
-      dx^D=rnode(rpdx^D_,igrid);
-      saveigrid = igrid
-      if (.not.slab) mygeo => pgeo(igrid)
-      if (B0field) myB0_cell => pB0_cell(igrid)
-      qdtnew=bigdouble
-{^IFMHDPHYS
-      call getdt_heatconduct_mhd(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
-}
-{^IFHDPHYS
-      call getdt_heatconduct_hd(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
-}
-      qdtimpl=min(qdtimpl,qdtnew)
-      dtimpl_mype=min(dtimpl_mype,qdtimpl)
-   end do
-!$OMP END PARALLEL DO
-   call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
-                         icomm,ierrmpi)
-endif
-}
-if(sourceimpl) then
-   dtimpl_mype=bigdouble
-!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,qdtimpl,&
-!$OMP& dx^D) REDUCTION(min:dtimpl_mype)
-   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      qdtimpl=bigdouble
-      dx^D=rnode(rpdx^D_,igrid);
-      saveigrid = igrid
-      if (.not.slab) mygeo => pgeo(igrid)
-      if (B0field) myB0_cell => pB0_cell(igrid)
-      call getdt_impl(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
-      qdtimpl=min(qdtimpl,qdtnew)
-      dtimpl_mype=min(dtimpl_mype,qdtimpl)
-   end do
-!$OMP END PARALLEL DO
-   call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
-                         icomm,ierrmpi)
-endif
 
 if (dtpar<=zero) then
    dtmin_mype=bigdouble
    cmax_mype = zero
-!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,qdtimpl,dx^D) REDUCTION(min:dtimpl_mype)
+!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D)
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       dtnew=bigdouble
       dx^D=rnode(rpdx^D_,igrid);
@@ -101,74 +55,74 @@ if (slowsteps>it-itmin+1) then
    dtmin_mype=dtmin_mype*factor
 end if
 
-   if( stepflag<1.and.mype==0) then
-      if(any(dtsave(1:nfile)<dtmin_mype )) then
-         write(unitterm,1001) dtmin_mype, dtsave(1:nfile)
-         stepflag = 1     
-      endif
-   endif   
- 
-   if (tmaxexact) then
-      dtmin_mype=min(dtmin_mype,tmax-t)
-   end if
+if( stepflag<1.and.mype==0) then
+   if(any(dtsave(1:nfile)<dtmin_mype )) then
+      write(unitterm,1001) dtmin_mype, dtsave(1:nfile)
+      stepflag = 1     
+   endif
+endif   
 
-   if(any(dtsave(1:nfile)<bigdouble).or.any(tsave(isavet(1:nfile),1:nfile)<bigdouble))then
-      dtmax = minval((int(t/dtsave(1:nfile))+1)*dtsave(1:nfile))-t
-      do ifile=1,nfile
-         dtmax = min(tsave(isavet(ifile),ifile)-t,dtmax)
-      end do
-      if(dtmax<dtmin_mype .and. dtmax > smalldouble)then 
-        dtmin_mype=min(dtmin_mype,dtmax)
-      end if      
-   end if
+if (tmaxexact) then
+   dtmin_mype=min(dtmin_mype,tmax-t)
+end if
 
-   if (dtpar<=zero) then
-      call MPI_ALLREDUCE(dtmin_mype,dt,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
-                         icomm,ierrmpi)
-   else
-      dt=dtmin_mype
-   end if
+if(any(dtsave(1:nfile)<bigdouble).or.any(tsave(isavet(1:nfile),1:nfile)<bigdouble))then
+   dtmax = minval((int(t/dtsave(1:nfile))+1)*dtsave(1:nfile))-t
+   do ifile=1,nfile
+      dtmax = min(tsave(isavet(ifile),ifile)-t,dtmax)
+   end do
+   if(dtmax<dtmin_mype .and. dtmax > smalldouble)then 
+     dtmin_mype=min(dtmin_mype,dtmax)
+   end if      
+end if
+
+if (dtpar<=zero) then
+   call MPI_ALLREDUCE(dtmin_mype,dt,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
+                      icomm,ierrmpi)
+else
+   dt=dtmin_mype
+end if
    
-   if(sourceimpl)then
-   if(sourceimplcycle)then
-     ncycle2=ceiling(dt/dtimpl)
-     if(ncycle2<=1)then
-     !  write(unitterm,*)'implicit time step not smaller than CFL limit'
-     !  write(unitterm,*)'dt =',dt,' dtimpl=',dtimpl
-     !  call mpistop("no need for implicit cycling")
-     else
-       if(sourceparasts)then
-         ncycle=floor(dsqrt(dble(ncycle2)))
-         !!if(ncycle*dtimpl>dt)call mpistop("increased timestep!")
-         dt=ncycle*dtimpl 
-       else
-         ncycle=ncycle2
-       endif
-       if (ncycle>ncyclemax) then
-          if(mype==0) &
-           print *,'too many subcycles, reducing dt to',ncyclemax,'dt_impl!!'
-          dt=ncyclemax*dtimpl
-       endif
-     endif
-   endif
-   endif
 {#IFDEF TCRKL2
-   if(conduction) then
-     ncycle=ceiling(dt/dtimpl)
-     if (ncycle>ncyclemax) then
-       if(mype==0 .and. .true.) then
-         write(*,*) 'CLF time step is too many times larger than conduction time step',ncycle
-         write(*,*) 'reducing dt to',ncyclemax,'times of dt_impl!!'
-       endif
-       dt=ncyclemax*dtimpl
+! estimate time step of thermal conduction
+if(conduction) then
+   dtimpl_mype=bigdouble
+!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,qdtimpl,&
+!$OMP& dx^D) REDUCTION(min:dtimpl_mype)
+   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+      qdtimpl=bigdouble
+      dx^D=rnode(rpdx^D_,igrid);
+      saveigrid = igrid
+      if (.not.slab) mygeo => pgeo(igrid)
+      if (B0field) myB0_cell => pB0_cell(igrid)
+      qdtnew=bigdouble
+{^IFMHDPHYS
+      call getdt_heatconduct_mhd(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+}
+{^IFHDPHYS
+      call getdt_heatconduct_hd(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+}
+      qdtimpl=min(qdtimpl,qdtnew)
+      dtimpl_mype=min(dtimpl_mype,qdtimpl)
+   end do
+!$OMP END PARALLEL DO
+   call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
+                         icomm,ierrmpi)
+   ncycle=ceiling(dt/dtimpl)
+   if (ncycle>ncyclemax) then
+     if(mype==0 .and. .true.) then
+       write(*,*) 'CLF time step is too many times larger than conduction time step',ncycle
+       write(*,*) 'reducing dt to',ncyclemax,'times of dt_impl!!'
      endif
+     dt=ncyclemax*dtimpl
    endif
+endif
 }
 
 !$OMP PARALLEL DO PRIVATE(igrid)
-   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      dt_grid(igrid)=dt
-   end do
+do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+   dt_grid(igrid)=dt
+end do
 !$OMP END PARALLEL DO
      
 
@@ -181,9 +135,9 @@ call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
 
 end subroutine setdt
 !=============================================================================
+!> compute CFL limited dt (for variable time stepping)
 subroutine getdt_courant(w,ixG^L,ix^L,dtnew,dx^D,x)
 
-! compute CFL limited dt (for variable time stepping)
 
 use mod_global_parameters
  

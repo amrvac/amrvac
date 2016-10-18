@@ -108,8 +108,7 @@ contains
          residmax,typeresid{#IFDEF MAGNETOFRICTION , itmaxmf}
     namelist /methodlist/ wnames,fileheadout,typeadvance, &
          ssplitdust,ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
-         sourceimpl,sourceimplcycle,conduction,TCsaturate,TCphi,ncyclemax,&
-         sourceparasts,parastsnu,&
+         conduction,TCsaturate,TCphi,ncyclemax,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
          typefull1,typepred1,typelow1,&
          typelimiter1,mcbeta,typegradlimiter1,&
@@ -332,15 +331,11 @@ contains
     useprimitive    = .true.
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
-    sourceimpl      = .false.
-    sourceimplcycle = .false.
     conduction      = .false.
     TCsaturate      = .false.
     TCphi           = 1.d0
     bcphys          = .true.
     ncyclemax       = 1000
-    sourceparasts   = .false.
-    parastsnu       = 0.001d0
     ssplitdust      = .false.
     ssplitdivb      = .false.
     {^IFMHDPHYS
