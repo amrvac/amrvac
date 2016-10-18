@@ -8,7 +8,12 @@ use mod_global_parameters
 integer :: igrid, level, ipe, ig^D
 logical :: ok
 !-----------------------------------------------------------------------------
-
+allocate(pw(ngridshi),pwold(ngridshi),pw1(ngridshi),pw2(ngridshi),pw3(ngridshi))
+allocate(pw4(ngridshi),pwres(ngridshi),pwCoarse(ngridshi),pwio(ngridshi))
+allocate(pB0_cell(ngridshi),pB0_face^D(ngridshi))
+allocate(pw_sub(ngridshi))
+allocate(px(ngridshi),pxCoarse(ngridshi),px_sub(ngridshi))
+allocate(pgeo(ngridshi),pgeoCoarse(ngridshi))
 ! set time, time counter
 if(.not.treset)t=zero
 if(.not.itreset)it=0
@@ -68,7 +73,7 @@ if (.not.slab) call set_pole
 
 do igrid=1,ngridshi
    nullify(pwold(igrid)%w,pw(igrid)%w,pw1(igrid)%w, &
-           pwCoarse(igrid)%w,pwCoCo(igrid)%w)
+           pwCoarse(igrid)%w)
    nullify(px(igrid)%x,pxCoarse(igrid)%x)
    nullify(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D, &
            pgeo(igrid)%dvolume,pgeo(igrid)%dx)
