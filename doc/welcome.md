@@ -12,6 +12,7 @@ which is now hosted on [Gitlab](https://gitlab.com/mpi-amrvac/amrvac).
 * [Contents of the documentation](contents.md)
 * [Getting started](getting_started.md)
 * [List of tests](@ref test)
+* [FAQ](faq.md)
 * [TODO list](@ref todo)
 * [Change log](changelog.md)
 * [Contributing](contributing.md)
