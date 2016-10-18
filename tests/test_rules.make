@@ -24,6 +24,7 @@ mod_indices.t makefile
 all: $(TESTS)
 
 %.log: amrvac always_rebuild
+	@$(RM) $@		# Remove log to prevent pass when aborted
 	mpirun -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
 	@if $(LOG_CMP) $@ correct_output/$@ ; \
 	then echo -e "$(GREEN)PASSED $@ $(NOCOLOR)" ; \
