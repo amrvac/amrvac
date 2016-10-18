@@ -174,9 +174,19 @@ sub show_current_parameters {
     my %params = get_current_parameters();
     my @param_names = sort keys %params;
 
+    print " Setting         | Value\n";
+    print " ----------------|------\n";
+
     for my $name (@param_names) {
-        printf " %-15s = $params{$name}\n", $name;
+        printf " %-15s | $params{$name}\n", $name;
     }
+
+    print "\n Invocation of setup.pl:\n";
+    printf " setup.pl -d=%d%d", $params{"ndim"}, $params{"ndir"};
+    printf " -p=%s -phi=%d", $params{"physics"}, $params{"phi"};
+    printf " -z=%d -eos=%s", $params{"z"}, $params{"eos"};
+    printf " -nf=%d -ndust=%d", $params{"nf"}, $params{"ndust"};
+    printf " -arch=%s\n", $params{"arch"};
 }
 
 # Return a hash object with the current parameters
