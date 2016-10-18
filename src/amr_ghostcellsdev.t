@@ -1,7 +1,6 @@
-!=============================================================================
 !> update ghost cells of all blocks including physical boundaries 
 subroutine getbc(time,qdt,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
-include 'amrvacdef.f'
+use mod_global_parameters
 
 double precision, intent(in)               :: time, qdt
 integer, intent(in)                        :: ixG^L,nwstart,nwbc
@@ -16,14 +15,14 @@ integer :: nrecvs, nsends, isizes
 integer :: ixR^L, ixS^L, ixB^L, k^L
 integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
 ! index ranges to send (S) to sibling blocks, receive (R) from 
-! sibling blocks, send restricted (r) ghost cells to coarser neighbors
+! sibling blocks, send restricted (r) ghost cells to coarser blocks 
 integer, dimension(-1:1,-1:1) :: ixS_srl_^L, ixR_srl_^L, ixS_r_^L
-! index ranges to receive restriced ghost cells from finer neighbors, 
-! send prolongated (p) ghost cells to finer neighbors, receive prolongated 
-! ghost from coarser neighbors 
+! index ranges to receive restriced ghost cells from finer blocks, 
+! send prolongated (p) ghost cells to finer blocks, receive prolongated 
+! ghost from coarser blocks
 integer, dimension(-1:1, 0:3) :: ixR_r_^L, ixS_p_^L, ixR_p_^L
 ! MPI derived datatype to send and receive subarrays of ghost cells to 
-! neighbors in a different processor
+! neighbor blocks in a different processor
 integer, dimension(-1:1^D&,-1:1^D&) :: type_send_srl, type_recv_srl, type_send_r
 integer, dimension(-1:1^D&,0:3^D&) :: type_recv_r, type_send_p, type_recv_p
 ! store physical boundary indicating index
@@ -107,7 +106,7 @@ if (nsends>0) then
    sendrequest=MPI_REQUEST_NULL
 end if
 
-!> receiving ghost-cell values from sibling blocks and finer neighbors
+! receiving ghost-cell values from sibling blocks and finer neighbors
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
    call identifyphysbound(igrid,isphysbound,iib^D)   
@@ -124,7 +123,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    {end do\}
 end do
 
-!> sending ghost-cell values to sibling blocks and coarser neighbors
+! sending ghost-cell values to sibling blocks and coarser neighbors
 dixBco=ceiling(dixB*0.5d0)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
@@ -133,7 +132,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 {#IFDEF EVOLVINGBOUNDARY
       if(isphysbound) then
-        !> coarsen finer ghost cells at physical boundaries
+        ! coarsen finer ghost cells at physical boundaries
         {if(iib^D==-1) then
            ixCoMmin^D=ixCoGmin^D+dixBco
            ixMmin^D=ixGmin^D+(dixBco-1)
@@ -147,19 +146,18 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
         ixM^L=ixG^L^LSUBdixB;
       end if
 }
-      call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x, &
-                        ixCoG^L,ixCoM^L,pgeoFi(igrid),pgeoCo(igrid), &
-                        coarsenprimitive,.true.)
+      call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x,&
+                        ixCoG^L,ixCoM^L,pgeoFi(igrid),pgeoCo(igrid),coarsenprimitive,.true.)
       if(isphysbound) then
-        !> the block has a part of physical boundary and its coarser representative needs 
-        !> ghost-cell value at physical boundary 
+        ! the block has a part of physical boundary and its coarser representative needs 
+        ! ghost-cell value at physical boundary 
         do idims=1,ndim
            if(idphyb(igrid,idims)==0) cycle
            ^D&bindex(^D)=1-kr(^D,idims);
            if(any(neighbor_type(^D&-bindex(^D):bindex(^D),igrid)==2)) then
-             !> to avoid using as yet unknown corner info in more than 1D, we
-             !> fill only interior mesh ranges of the ghost cell ranges at first,
-             !> and progressively enlarge the ranges to include corners later
+             ! to avoid using as yet unknown corner info in more than 1D, we
+             ! fill only interior mesh ranges of the ghost cell ranges at first,
+             ! and progressively enlarge the ranges to include corners later
              {
               kmin^D=merge(0, 1, idims==^D)
               kmax^D=merge(0, 1, idims==^D)
@@ -222,9 +220,9 @@ irecv=0
 isend=0
 isend_buf=0
 ipwbuf=1
-!> total number of times to call MPI_IRECV in each processor from coarser neighbors
+! total number of times to call MPI_IRECV in each processor from coarser neighbors
 nrecvs=nrecv_bc_p
-!> total number of times to call MPI_ISEND in each processor to finer neighbors
+! total number of times to call MPI_ISEND in each processor to finer neighbors
 nsends=nsend_bc_p
 if (nrecvs>0) then
    allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
@@ -235,7 +233,7 @@ if (nsends>0) then
    sendrequest=MPI_REQUEST_NULL
 end if
 
-!> receiving ghost-cell values from coarser neighbors
+! receiving ghost-cell values from coarser neighbors
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
    ^D&iib^D=idphyb(igrid,^D);
@@ -245,7 +243,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (my_neighbor_type==2) call bc_recv_prolong
    {end do\}
 end do
-!> sending ghost-cell values to finer neighbors 
+! sending ghost-cell values to finer neighbors 
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
    ^D&iib^D=idphyb(igrid,^D);
@@ -272,7 +270,7 @@ if (irecv>0) then
    deallocate(recvstatus,recvrequest)
 end if
 
-!> do prolongation on the ghost-cell values received from coarser neighbors 
+! do prolongation on the ghost-cell values received from coarser neighbors 
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
    ^D&iib^D=idphyb(igrid,^D);
@@ -751,11 +749,11 @@ if (dixBCo+interpolation_order-1>dixB) then
    call mpistop("interpolation order for prolongation in getbc to high")
 end if
 
-!> (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
-!> iib=-1 means it is at the minimum side of a physical boundary  
-!> iib= 1 means it is at the maximum side of a physical boundary  
-!> i=-1 means subregion prepared for the neighbor at its minimum side 
-!> i= 1 means subregion prepared for the neighbor at its maximum side 
+! (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
+! iib=-1 means it is at the minimum side of a physical boundary  
+! iib= 1 means it is at the maximum side of a physical boundary  
+! i=-1 means subregion prepared for the neighbor at its minimum side 
+! i= 1 means subregion prepared for the neighbor at its maximum side 
 {
 ixS_srl_min^D(:,-1)=ixMmin^D
 ixS_srl_min^D(:, 0)=ixMmin^D
@@ -950,7 +948,7 @@ end subroutine getbc
 !=============================================================================
 subroutine physbound(i^D,igrid,isphysbound)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)  :: i^D, igrid
 logical, intent(out) :: isphysbound
@@ -970,7 +968,7 @@ end subroutine physbound
 !=============================================================================
 subroutine identifyphysbound(igrid,isphysbound,iib^D)
 use mod_forest
-include 'amrvacdef.f'
+use mod_global_parameters
 
 integer, intent(in)  :: igrid
 logical, intent(out) :: isphysbound
@@ -986,6 +984,9 @@ iib^D=0;
 {do i^DB=-1,1\}
     if (i^D==0|.and.) cycle
    {ign^D = ig^D + i^D; }
+   ! blocks at periodic boundary have neighbors in the physical domain
+   ! thus threated at internal blocks with no physical boundary 
+   {if (periodB(^D)) ign^D=1+modulo(ign^D-1,ng^D(level))\}
    {
    if (ign^D .gt. ng^D(level)) then
       iib^D=1
