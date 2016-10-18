@@ -351,12 +351,9 @@ module mod_global_parameters
 
   integer                :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
   double precision       :: entropycoef(nw)
-  !> \todo parastsnu and sourceparasts can go
-  double precision       :: tvdlfeps, mcbeta, parastsnu, TCphi
-  !> \todo possible to remove implicit source (in advance too)
-  logical                :: sourceparasts,sourceimpl
+  double precision       :: tvdlfeps, mcbeta, TCphi
   !> \todo organize Thermal Conduction: bcphys/TCphi/TCsaturate/conduction
-  logical                :: sourceimplcycle,conduction,TCsaturate,bcphys
+  logical                :: conduction,TCsaturate,bcphys
   logical                :: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
   logical                :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
   logical                :: restrictprimitive,prolongprimitive

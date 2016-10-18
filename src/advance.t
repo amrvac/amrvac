@@ -31,39 +31,15 @@ call update_rays
 }
 
 ! split source addition
-if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser) &
+if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser .or. conduction) &
   call addsource_all(.true.)
 
-{#IFDEF TCRKL2
-! split thermal conduction source addition 1/2
-if(conduction) then
-  if(dt/dtimpl < 0.5d0) then
-    s=1
-    else if(dt/dtimpl < 2.d0) then
-    s=2
-    else
-    s=ceiling((dsqrt(9.d0+8.d0*dt/dtimpl)-1.d0)/2.d0)
-    ! only use odd s number
-    s=s/2*2+1
-  endif
-  if(mype==0 .and. .false.) print*,'supertime steps:', s, &
-              ' normal subcycles:',ceiling(dt/dtimpl/2.d0), &
-              'time step ratio:',dt/dtimpl
-  call thermalconduct_RKL2(s,dt/2.d0,t) 
-endif
-}
 ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
 !$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    pwold(igrid)%w(ixG^T,1:nwflux+nwaux)=pw(igrid)%w(ixG^T,1:nwflux+nwaux)
 end do
 !$OMP END PARALLEL DO
-
-! split implicit source addition
-if (sourceimpl) then
-   if(mype==0.and..false.) print *,'implicit source addition'
-   call addsource_impl
-endif
 
 firstsweep=.true.
 if (dimsplit) then
@@ -89,15 +65,8 @@ end if
 
 
 ! split source addition
-if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser) &
+if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser .or. conduction) &
   call addsource_all(.false.)
-
-{#IFDEF TCRKL2
-! split thermal conduction source addition 2/2
-if(conduction) then
-  call thermalconduct_RKL2(s,dt/2.d0,t+dt) 
-endif
-}
 
 {#IFDEF PARTICLES
 tpartc0 = MPI_WTIME()
@@ -536,9 +505,27 @@ use mod_global_parameters
 
 logical, intent(in) :: prior
 
-integer :: iigrid, igrid, i^D
 double precision :: qdt, qt
+integer :: iigrid, igrid, i^D
+integer, save :: s
 !-----------------------------------------------------------------------------
+{#IFDEF TCRKL2
+! add thermal conduction
+if(prior) then
+  if(dt/dtimpl < 0.5d0) then
+    s=1
+  else if(dt/dtimpl < 2.d0) then
+    s=2
+  else
+    s=ceiling((dsqrt(9.d0+8.d0*dt/dtimpl)-1.d0)/2.d0)
+    ! only use odd s number
+    s=s/2*2+1
+  endif
+  if(mype==0 .and. .false.) write(*,*) 'supertime steps:',s,' normal subcycles:',&
+                              ceiling(dt/dtimpl/2.d0),'time step ratio:',dt/dtimpl
+endif
+if(conduction) call thermalconduct_RKL2(s,dt/2.d0,t) 
+}
 
 if ((.not.prior).and.&
     (typesourcesplit=='sf' .or. typesourcesplit=='ssf')) return
@@ -666,88 +653,4 @@ end do
 !$OMP END PARALLEL DO
 
 end subroutine process
-!=============================================================================
-subroutine addsource_impl
-
-use mod_global_parameters
-
-integer :: iigrid, igrid, icycle, ncycle
-double precision :: qdt, qt, sumqdt
-!-----------------------------------------------------------------------------
-
-bcphys=.false.
-if(sourceimplcycle)then
-   ncycle=ceiling(dt/dtimpl)
-   if(ncycle<1) then
-     ncycle=1
-     dtimpl=dt
-   endif
-else
-   ncycle=1
-endif
-
-if(mype==0.and..false.) then
-  print *,'implicit source addition will subcycle with ',ncycle,' subtimesteps'
-  print *,'dt and dtimpl= ',dt,dtimpl,' versus ncycle*dtimpl=',ncycle*dtimpl
-endif
-
-qt=t
-sumqdt=zero
-do icycle=1,ncycle
-  if(sourceparasts)then
-    qdt=dtimpl/(one+parastsnu+(parastsnu-one)* &
-         dcos(half*dpi*(two*dble(icycle)-one)/dble(ncycle)))
-  else
-    qdt=dt/dble(ncycle)
-  endif
-!$OMP PARALLEL DO PRIVATE(igrid)
-  do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-   if (.not.slab) mygeo => pgeo(igrid)
-   if (B0field) then
-      myB0_cell => pB0_cell(igrid)
-      {^D&myB0_face^D => pB0_face^D(igrid)\}
-   end if
-   call addsourceimpl1_grid(igrid,qdt,qt,pw(igrid)%w,px(igrid)%x)
-  end do
-!$OMP END PARALLEL DO
-
-  sumqdt=sumqdt+qdt
-  qt=qt+qdt
-  call getbc(qt,qdt,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
-enddo
-
-if(mype==0.and..false.) then
-  if(sourceparasts)then
-     print *,'qt-t=',qt-t,'versus ncycle2*dtimpl=',ncycle*ncycle*dtimpl,&
-       ' and sumqdt=',sumqdt
-  else
-     print *,'qt-t=',qt-t,'versus ncycle*dtimpl=',ncycle*dtimpl,&
-       ' and sumqdt=',sumqdt
-  endif
-endif
-bcphys=.true.
-
-end subroutine addsource_impl
-!=============================================================================
-subroutine addsourceimpl1_grid(igrid,qdt,qt,w,x)
-
-use mod_global_parameters
-
-integer, intent(in) :: igrid
-double precision, intent(in) :: qdt, qt, x(ixG^T,1:ndim)
-double precision, intent(inout) :: w(ixG^T,nw)
-
-double precision :: w1(ixG^T,nw)
-!-----------------------------------------------------------------------------
-
-typelimiter=typelimiter1(node(plevel_,igrid))
-typegradlimiter=typegradlimiter1(node(plevel_,igrid))
-
-^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-w1(ixG^T,1:nwflux)=w(ixG^T,1:nwflux)
-
-call specialsource_impl(qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,x)
-
-end subroutine addsourceimpl1_grid
 !=============================================================================
