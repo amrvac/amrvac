@@ -12,8 +12,6 @@ Options:
 
     -d=NM                       N is the the problem dimension (1 to 3)
                                 M is the vector dimension (1 to 3)
-    -g=<n_1, ..., n_N>          The size of a grid block (including ghostcells),
-                                separated by commas, e.g.: -g=14,14 in 2D
     -p=<physics module>         Which physics module to use (rho, mhd, ...)
     -phi={1,2,3}                Index of vector phi-component (default: 3)
     -z={1,2,3}                  Index of vector z-component (default: 2)
@@ -27,13 +25,12 @@ Options:
 
 Examples:
 
-setup.pl -d=22 -g=16,16 -p=mhd -arch=default
+setup.pl -d=22 -p=mhd -arch=default
 setup.pl -show\n";
 
 # Locally define the variables that will hold the options
 my $ndim;
 my $ndir;
-my @block_size;
 my $physics;
 my $eos;
 my $phi_dir;
@@ -59,17 +56,6 @@ GetOptions(
         $ndim <= $ndir && $ndir <= 3 ||
             die("ndim <= ndir <= 3 does not hold\n");
     },
-
-    "g=s"     =>
-    sub {
-        my ($opt_name, $opt_value) = @_;
-        @block_size = split(',', $opt_value); # Split option into an array
-        foreach (@block_size) {
-            $_ % 2 == 0 || die("-$opt_name args have to be even");
-            $_ > 0 || die("-$opt_name args have to be positive");
-        }
-    },
-
     "p=s"     => \$physics,
     "eos=s"   => \$eos,
     "phi=i"   => \$phi_dir,
@@ -83,7 +69,7 @@ GetOptions(
 
 
 # Show help if -help is given or if there are no other arguments
-if ($help || !($ndim || $ndir || @block_size || $show || $physics || $eos ||
+if ($help || !($ndim || $ndir || $show || $physics || $eos ||
                length($phi_dir) || length($z_dir) || $arch ||
                length($ntracers) || length($ndust))) {
     print STDERR $help_message;
@@ -108,7 +94,6 @@ copy_if_not_present("makefile", "arch", "make_temp");
 copy_if_not_present("definitions.h", "src");
 copy_if_not_present('mod_indices.t', "src");
 copy_if_not_present("definitions.h", "src");
-copy_if_not_present("amrvacsettings.t", "src");
 
 if ($ndim) {
     replace_regexp_file("makefile", qr/ndim\s*=.*/, "ndim = $ndim");
@@ -116,18 +101,6 @@ if ($ndim) {
 
 if ($ndir) {
     replace_regexp_file("makefile", qr/ndir\s*=.*/, "ndir = $ndir");
-}
-
-if (@block_size) {
-    # Edit amrvacsettings.t specifying ixGhi[1,2,3] according to the $g flag
-    # TODO: place these statements on separate lines
-    my $new_size = sprintf("ixGhi1 = %d", $block_size[0]);
-
-    for (my $i = 1; $i <= $#block_size; $i++) {
-        # Concatenate other dimensions
-        $new_size .= sprintf(", ixGhi%d = %d", $i+1, $block_size[$i]);
-    }
-    replace_regexp_file("amrvacsettings.t", qr/ixGhi1\s*=.*/, $new_size);
 }
 
 if (length($ntracers)) {
@@ -226,22 +199,11 @@ sub get_current_parameters {
         $params{"phi"}     = $' if /^phi\s*=\s*/ ;
         $params{"z"}       = $' if /^z\s*=\s*/ ;
         $params{"nf"}      = $1 if /^nf\s*=\s*(\d+)/ ;
-        $params{"ndust"}   = $1 if /^ndust\s*=\s(\d+)*/ ;
+        $params{"ndust"}   = $1 if /^ndust\s*=\s*(\d+)*/ ;
         $params{"eos"}     = $1 if /^eos\s*=\s*(\w+)/ ;
         last if /SETVAC READS UP TO THIS POINT/;
     }
     close($fh_makefile);
 
-    # Read the grid size from amrvacsettings.t
-    if (-e("amrvacsettings.t")) {
-        open(my $fh_settings, "<", "amrvacsettings.t");
-        while ($_ = <$fh_settings>) {
-            if (/ixGhi1/) {
-                my @block_size = ($_ =~ /ixGhi[123]\s*=\s*(\d+)/g);
-                $params{"block_size"} = join(", ", @block_size);
-            }
-        }
-        close($fh_settings);
-    }
     return %params;
 }

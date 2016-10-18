@@ -29,8 +29,6 @@ module mod_global_parameters
   !> Number of spatial dimensions for vector variables
   integer, parameter :: ndir=^NC
 
-  include 'amrvacsettings.f'
-
   !> Constant indicating log output
   integer, parameter :: filelog_      = 1
 
@@ -533,6 +531,12 @@ module mod_global_parameters
 
   !> Maximal number of AMR levels
   integer :: mxnest
+
+  !> Lower index of grid arrays (always 1)
+  integer, parameter :: {ixGlo^D = 1|, }
+
+  !> Upper index of grid arrays
+  integer :: ixGhi^D
 
   !> Number of ghost cells surrounding a grid
   integer :: dixB

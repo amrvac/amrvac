@@ -5,7 +5,7 @@ default:
 
 INCLUDES += amrvacpar$F amrvacusrpar$F mod_indices$F mod_physicaldata$F \
 mod_fix_conserve$F mod_connectivity$F					\
-mod_global_parameters$F amrvacsettings$F $(MAKE_)
+mod_global_parameters$F $(MAKE_)
 
 FOBJECTS =	                                                        \
 mod_physicaldata$F	mod_indices$F		initialize_vars$F	\

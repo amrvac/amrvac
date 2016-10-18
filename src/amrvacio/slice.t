@@ -612,9 +612,13 @@ double precision, intent(in) :: xslice
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
 ! .. local ..
 integer :: ixslice, i, nwexpand
-logical                :: patchw(ixG^T)=.false.,mask(ixG^T)=.false.
+logical                :: mask(ixG^T)
 double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
-!-----------------------------------------------------------------------------
+
+! Set mask to true inside the block, false for the ghost cells
+mask = .false.
+mask(ixM^T)=.true.
+
 ! increase grid-count:
 jgrid=jgrid+1
 ! Allocate subdim solution array:
@@ -625,8 +629,6 @@ else
 end if
 call alloc_subnode(jgrid,dir,nwexpand)
 call fill_subnode_info(igrid,jgrid,dir)
-
-mask(ixM^T)=.true.
 
 ! Now hunt for the index closest to the slice:
 {^IFONED
