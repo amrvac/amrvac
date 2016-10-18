@@ -848,9 +848,6 @@ contains
        else if(typeparIO==-1) then
           call write_snapshot_noparf
        endif
-       {#IFDEF BOUNDARYDRIVER
-       call write_boundary
-       }
        !opedit: now we can also convert directly and will when autoconvert is set in inifile: 
        if (autoconvert) call generate_plotfile
        {#IFDEF PARTICLES
@@ -890,16 +887,13 @@ contains
     {#IFDEF TRANSFORMW
     double precision, allocatable :: wtf(:^D&,:)
     double precision :: eqpar_tf(neqpartf)
-    integer, dimension(ngridshi) :: iorequest_tf
     integer :: file_handle_tf
     character(len=80) :: filenametf
     }
     integer :: file_handle, amode, igrid, Morton_no, iwrite
     integer :: nx^D
     integer(kind=MPI_OFFSET_KIND) :: offset
-    integer, dimension(ngridshi) :: iorequest
-    integer, dimension(MPI_STATUS_SIZE,ngridshi) :: iostatus
-    integer, dimension(MPI_STATUS_SIZE) :: status
+    integer, dimension(MPI_STATUS_SIZE) :: istatus
     character(len=80) :: filename, line
     logical, save :: firstsnapshot=.true.
     !-----------------------------------------------------------------------------
@@ -927,7 +921,6 @@ contains
 
     amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
     call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
-    iorequest=MPI_REQUEST_NULL
 
     {#IFDEF TRANSFORMW
     if(nwtf>0 .and. neqpartf>0) then
@@ -939,7 +932,6 @@ contains
        amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
        call MPI_FILE_OPEN(icomm,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
        allocate(wtf(ixG^T,1:nwtf))
-       iorequest_tf=MPI_REQUEST_NULL
     endif
     }
 
@@ -965,8 +957,8 @@ contains
           call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
           offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
                *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-          call MPI_FILE_IWRITE_AT(file_handle_tf,offset,wtf,1, &
-               type_block_io_tf, iorequest_tf(iwrite),ierrmpi)     
+          call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &
+               type_block_io_tf,istatus,ierrmpi)     
        endif
        }
        {#IFDEF EVOLVINGBOUNDARY
@@ -976,26 +968,23 @@ contains
             int(size_block,kind=MPI_OFFSET_KIND) &
             *int(nphyboundblock,kind=MPI_OFFSET_KIND)
        if (sfc_phybound(Morton_no)==1) then
-          call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
-               iorequest(iwrite),ierrmpi)
+          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
+               istatus,ierrmpi)
        else
-          call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,&
-               type_block_io,iorequest(iwrite),ierrmpi)
+          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+               type_block_io,istatus,ierrmpi)
        end if
        }{#IFNDEF EVOLVINGBOUNDARY
        offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
             *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-       call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,&
-            type_block_io, iorequest(iwrite),ierrmpi)
+       call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+            type_block_io, istatus,ierrmpi)
        }
     end do
-
-    if (iwrite>0) call MPI_WAITALL(iwrite,iorequest,iostatus,ierrmpi)
 
     call MPI_FILE_CLOSE(file_handle,ierrmpi)
     {#IFDEF TRANSFORMW
     if(nwtf>0 .and. neqpartf>0) then
-       if (iwrite>0) call MPI_WAITALL(iwrite,iorequest_tf,iostatus,ierrmpi)
        call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
     endif
     }
@@ -1007,20 +996,20 @@ contains
        call write_forest(file_handle)
 
        {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,status,ierrmpi)\}
+       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle,eqpar,neqpar+nspecialpar, &
-            MPI_DOUBLE_PRECISION,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        {#IFDEF EVOLVINGBOUNDARY
        nphyboundblock=sum(sfc_phybound)
-       call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,status,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
        }
        call MPI_FILE_CLOSE(file_handle,ierrmpi)
     end if
@@ -1033,17 +1022,17 @@ contains
        call write_forest(file_handle_tf)
 
        {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,status,ierrmpi)\}
+       call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle_tf,eqpar_tf,neqpartf, &
-            MPI_DOUBLE_PRECISION,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
 
        call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
     endif
@@ -1059,7 +1048,6 @@ contains
     {#IFDEF TRANSFORMW
     double precision, allocatable :: wtf(:^D&,:)
     double precision :: eqpar_tf(neqpartf)
-    integer, allocatable :: iorequest_tf(:),iostatus_tf(:,:)
     integer :: file_handle_tf
     character(len=80) :: filenametf
     }
@@ -1068,11 +1056,11 @@ contains
 
     integer(kind=MPI_OFFSET_KIND) :: offset
 
-    integer, allocatable :: iostatus(:,:),iorecvstatus(:,:),ioastatus(:,:)
+    integer, allocatable :: iorecvstatus(:,:),ioastatus(:,:)
     integer, allocatable :: igrecvstatus(:,:)
-    integer, allocatable :: iorequest(:),igrid_recv(:) 
+    integer, allocatable :: igrid_recv(:) 
 
-    integer, dimension(MPI_STATUS_SIZE) :: status
+    integer, dimension(MPI_STATUS_SIZE) :: istatus
 
     integer  :: ipe,insend,inrecv,nrecv,nwrite
     character(len=80) :: filename, line
@@ -1123,8 +1111,6 @@ contains
     else 
        ! mype==0
        nwrite=(Morton_stop(0)-Morton_start(0)+1)
-       allocate(iorequest(nwrite),iostatus(MPI_STATUS_SIZE,nwrite))
-       iorequest=MPI_REQUEST_NULL
 
        ! master processor writes out
        write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
@@ -1143,9 +1129,6 @@ contains
 
           open(unit=unitsnapshot,file=filenametf,status='replace')
           close(unit=unitsnapshot)
-
-          allocate(iorequest_tf(nwrite),iostatus_tf(MPI_STATUS_SIZE,nwrite))
-          iorequest_tf=MPI_REQUEST_NULL
        endif
        }
 
@@ -1171,14 +1154,29 @@ contains
              call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
              offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
                   *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-             call MPI_FILE_IWRITE_AT(file_handle_tf,offset,wtf,1,&
-                  type_block_io_tf, iorequest_tf(iwrite),ierrmpi)
+             call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1,&
+                  type_block_io_tf,istatus,ierrmpi)
           endif
           }
+          {#IFDEF EVOLVINGBOUNDARY
+          nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
+          offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+               *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
+               int(size_block,kind=MPI_OFFSET_KIND) &
+               *int(nphyboundblock,kind=MPI_OFFSET_KIND)
+          if (sfc_phybound(Morton_no)==1) then
+             call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
+                  istatus,ierrmpi)
+          else
+             call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+                  type_block_io,istatus,ierrmpi)
+          end if
+          }{#IFNDEF EVOLVINGBOUNDARY
           offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
                *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-          call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-               iorequest(iwrite),ierrmpi)
+          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
+               istatus,ierrmpi)
+          }
        end do
        ! write data communicated from other processors
        if(npe>1)then
@@ -1208,10 +1206,25 @@ contains
                         ioastatus(:,inrecv),ierrmpi)
                 endif
                 }
+                {#IFDEF EVOLVINGBOUNDARY
+                nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
+                offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+                     *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
+                     int(size_block,kind=MPI_OFFSET_KIND) &
+                     *int(nphyboundblock,kind=MPI_OFFSET_KIND)
+                if (sfc_phybound(Morton_no)==1) then
+                   call MPI_FILE_WRITE_AT(file_handle,offset,pwio(igrid_recv(inrecv))%w,1,&
+                        type_block   ,ioastatus(:,inrecv),ierrmpi)
+                else
+                   call MPI_FILE_WRITE_AT(file_handle,offset,pwio(igrid_recv(inrecv))%w,1,&
+                        type_block_io,ioastatus(:,inrecv),ierrmpi)
+                end if
+                }{#IFNDEF EVOLVINGBOUNDARY
                 offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
                      *int(Morton_no-1,kind=MPI_OFFSET_KIND)
                 call MPI_FILE_WRITE_AT(file_handle,offset,pwio(igrid_recv(inrecv))%w,1,&
                      type_block_io,ioastatus(:,inrecv),ierrmpi)
+                }
                 deallocate(pwio(igrid_recv(inrecv))%w)
              end do
           end do
@@ -1219,19 +1232,10 @@ contains
        end if
     end if
 
-    if (nwrite>0)then
-       call MPI_WAITALL(nwrite,iorequest,iostatus,ierrmpi) 
-       if(mype==0)deallocate(iorequest,iostatus)
-    end if
-
     if(mype==0) call MPI_FILE_CLOSE(file_handle,ierrmpi)
 
     {#IFDEF TRANSFORMW
     if(nwtf>0 .and. neqpartf>0) then
-       if (nwrite>0) then
-          call MPI_WAITALL(nwrite,iorequest_tf,iostatus_tf,ierrmpi)
-          if(mype==0)deallocate(iorequest_tf,iostatus_tf,wtf)
-       endif
        call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
     endif
     }
@@ -1244,17 +1248,17 @@ contains
        call write_forest(file_handle)
 
        {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,status,ierrmpi)\}
+       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle,eqpar,neqpar+nspecialpar, &
-            MPI_DOUBLE_PRECISION,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
 
        call MPI_FILE_CLOSE(file_handle,ierrmpi)
     end if
@@ -1267,17 +1271,17 @@ contains
        call write_forest(file_handle_tf)
 
        {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,status,ierrmpi)\}
+       call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle_tf,eqpar_tf,neqpartf, &
-            MPI_DOUBLE_PRECISION,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
 
        call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
     endif
@@ -1295,9 +1299,9 @@ contains
     integer :: igrid, Morton_no
     integer :: nx^D
 
-    integer, allocatable :: iostatus(:,:),iorecvstatus(:,:),ioastatus(:,:)
+    integer, allocatable :: iorecvstatus(:,:),ioastatus(:,:)
     integer, allocatable :: igrecvstatus(:,:)
-    integer, allocatable :: iorequest(:),igrid_recv(:) 
+    integer, allocatable :: igrid_recv(:) 
 
     integer  :: ipe,insend,inrecv,nrecv,nwrite
     character(len=80) :: filename, line
@@ -1347,8 +1351,6 @@ contains
     else 
        ! mype==0
        nwrite=(Morton_stop(0)-Morton_start(0)+1)
-       allocate(iorequest(nwrite),iostatus(MPI_STATUS_SIZE,nwrite))
-       iorequest=MPI_REQUEST_NULL
 
        ! master processor writes out
        write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
@@ -1410,11 +1412,6 @@ contains
        end if
     end if
 
-    if(nwrite>0)then
-       call MPI_WAITALL(nwrite,iorequest,iostatus,ierrmpi) 
-       if(mype==0)deallocate(iorequest,iostatus)
-    end if
-
     if(mype==0) then
        call write_forest(unitsnapshot)
        {nx^D=ixMhi^D-ixMlo^D+1
@@ -1450,7 +1447,7 @@ contains
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(ngridshi) :: iorequest
     integer, dimension(MPI_STATUS_SIZE,ngridshi) :: iostatus
-    integer, dimension(MPI_STATUS_SIZE) :: status
+    integer, dimension(MPI_STATUS_SIZE) :: istatus
     character(len=80) :: filename
     logical :: fexist
     !-----------------------------------------------------------------------------
@@ -1480,17 +1477,17 @@ contains
     !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
-    call MPI_FILE_READ_ALL(file_handle,nleafs,1,MPI_INTEGER,status,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
     nleafs_active = nleafs
-    call MPI_FILE_READ_ALL(file_handle,levmaxini,1,MPI_INTEGER,status,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,ndimini,1,MPI_INTEGER,status,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,ndirini,1,MPI_INTEGER,status,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,nwini,1,MPI_INTEGER,status,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,neqparini,1,MPI_INTEGER,status,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,it,1,MPI_INTEGER,status,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,neqparini,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     {#IFDEF EVOLVINGBOUNDARY
-    call MPI_FILE_READ_ALL(file_handle,nphyboundblock,1,MPI_INTEGER,status,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
     }
 
     ! check if settings are suitable for restart
@@ -1518,14 +1515,14 @@ contains
     !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
-    {call MPI_FILE_READ_ALL(file_handle,nxini^D,1,MPI_INTEGER,status,ierrmpi)\}
+    {call MPI_FILE_READ_ALL(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
     if (ixGhi^D/=nxini^D+2*dixB|.or.) then
        if (mype==0) write(*,*) "Error: reset resolution to ",nxini^D+2*dixB
        call mpistop("change with setup.pl")
     end if
     neqparini=min(neqparini,neqpar+nspecialpar)
     call MPI_FILE_READ_ALL(file_handle,eqpar,neqparini, &
-         MPI_DOUBLE_PRECISION,status,ierrmpi)
+         MPI_DOUBLE_PRECISION,istatus,ierrmpi)
 
 
 
@@ -1591,7 +1588,7 @@ contains
 
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(ngridshi) :: iorequest
-    integer, dimension(MPI_STATUS_SIZE) :: status
+    integer, dimension(MPI_STATUS_SIZE) :: istatus
     integer, dimension(MPI_STATUS_SIZE) :: iostatus
 
     integer, allocatable :: iorecvstatus(:,:)
@@ -1618,15 +1615,15 @@ contains
        !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
        call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
-       call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,status,ierrmpi)
+       call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
        nleafs_active = nleafs
-       call MPI_FILE_READ(file_handle,levmaxini,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_READ(file_handle,ndimini,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_READ(file_handle,nwini,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_READ(file_handle,neqparini,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,status,ierrmpi)
-       call MPI_FILE_READ(file_handle,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+       call MPI_FILE_READ(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_READ(file_handle,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_READ(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_READ(file_handle,neqparini,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_READ(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        ! check if settings are suitable for restart
        if (levmaxini>mxnest) then
           write(*,*) "number of levels in restart file = ",levmaxini
@@ -1653,14 +1650,14 @@ contains
        !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
        call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
-       {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,status,ierrmpi)\}
+       {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
        if (ixGhi^D/=nxini^D+2*dixB|.or.) then
           write(*,*) "Error: reset resolution to ",nxini^D+2*dixB
           call mpistop("change with setamrvac")
        end if
        neqparini=min(neqparini,neqpar+nspecialpar)
        call MPI_FILE_READ(file_handle,eqpar,neqparini, &
-            MPI_DOUBLE_PRECISION,status,ierrmpi)
+            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     end if
 
     ! broadcast the global parameters first
@@ -1743,7 +1740,7 @@ contains
     character(len=80)    :: filename
     character(len=2048)  :: line
     logical, save        :: opened  = .false.
-    integer              :: amode, status(MPI_STATUS_SIZE)
+    integer              :: amode, istatus(MPI_STATUS_SIZE)
 
     ! Compute the volume-average of w**1 = w
     call get_volume_average(1, wmean, total_volume)
@@ -1788,7 +1785,7 @@ contains
           opened = .true.
 
           call MPI_FILE_WRITE(log_fh, trim(fileheadout) // new_line('a'), &
-               len_trim(fileheadout)+1, MPI_CHARACTER, status, ierrmpi)
+               len_trim(fileheadout)+1, MPI_CHARACTER, istatus, ierrmpi)
 
           ! Start of file headern
           line = "it t dt res " // trim(wnames)
@@ -1811,7 +1808,7 @@ contains
           line = trim(line) // " 'TimeToFinish [hrs]'"
 
           call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
-               len_trim(line)+1, MPI_CHARACTER, status, ierrmpi)
+               len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
        end if
 
        ! Construct the line to be added to the log
@@ -1837,7 +1834,7 @@ contains
             activeBlocksPerCore, wctPerCodeTime, timeToFinish
 
        call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a') , &
-            len_trim(line)+1, MPI_CHARACTER, status, ierrmpi)
+            len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
     end if
 
   end subroutine printlog_default

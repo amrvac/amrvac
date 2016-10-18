@@ -974,21 +974,29 @@ dx^D=dx(^D,level);
 if(saveprim) then
   normconv(0:nw)=normvar(0:nw)
 else
-  normconv(0)=normvar(0)
+  ix=0
+  normconv(ix)=normvar(ix)
   ! assuming density
-  normconv(1)=normvar(1)
+  ix=ix+1
+  normconv(ix)=normvar(ix)
   ! assuming momentum=density*velocity
-  if (nw>=2) normconv(2:1+^NC)=normvar(1)*normvar(2:1+^NC)
+  if (nw>=2) then
+     ix=ix+1
+     normconv(ix:ix-1+ndir)=normvar(1)*normvar(ix:ix-1+ndir)
+  end if
   ! assuming energy/pressure and magnetic field
-  if (nw>=2+^NC) normconv(2+^NC:nw)=normvar(2+^NC:nw)
+  if (nw>=2+ndir) then
+     ix=ix+ndir
+     normconv(ix:nw)=normvar(ix:nw)
+  endif
   if (typephys=='hdmdust') then
   ! energy followed by dust density and momentum
-     normconv(2+^NC)=normvar(2+^NC) !energy
-     normconv(3+^NC:2+^NC+^NDS)=normvar(3+^NC:2+^NC+^NDS) !dust density
-     {^DS&{^C&normconv(2+^NC+^NDS+^C+(^DS-1)*^NC)= &
-            normvar(2+^NC+^NDS+^C+(^DS-1)*^NC)* &
-            normvar(2+^NC+^DS);}\} !dust momentum     
-  end if     
+     normconv(ix)=normvar(ix) !energy
+     normconv(ix+1:ix+^NDS)=normvar(ix+1:ix+^NDS) !dust density
+     {^DS&{^C&normconv(ix+^NDS+^C+(^DS-1)*^NC)= &
+               normvar(ix+^NDS+^C+(^DS-1)*^NC)* &
+               normvar(ix+^DS);}\} !dust momentum     
+  end if
 end if
 
 ! coordinates of cell centers

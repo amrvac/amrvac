@@ -1,27 +1,25 @@
-!##############################################################################
-! module magnetofriction.t
-! Purpose: use magnetofrictional method to relax 3D magnetic field to 
-!          force-free field
-! 01.04.2016 developed by Chun Xia and Yang Guo
-! Usage:
-! 1. in definitions.h:
-!    #define MAGNETOFRICTION
-! 2. in amrvac.par:
-!    &stoplist
-!     itmaxmf=60000 ! set the maximum iteration number
-!    &savelist
-!     ditsavemf=20000 ! set iteration interval for data output
-!    &methodlist
-!     typeadvance='onestep' ! time marching scheme, or 'twostep','threestep'
-!     typefull1=13*'cd4' ! or 'tvdlf', 'fd'
-!     typelimiter1= 13*'koren' ! or 'vanleer','cada3','mp5' so on
-!    &amrlist
-!     ditregrid=20 ! set iteration interval for adjusting AMR 
-!    &paramlist
-!     cmf_c=0.3    ! stability coefficient controls numerical stability
-!     cmf_y=0.2    ! frictional velocity coefficient
-!     cmf_divb=0.1 ! divb cleaning coefficient controls diffusion speed of divb
-!============================================================================= 
+!> module magnetofriction.t
+!> Purpose: use magnetofrictional method to relax 3D magnetic field to 
+!>          force-free field
+!> 01.04.2016 developed by Chun Xia and Yang Guo
+!> Usage:
+!> 1. in definitions.h:
+!>    #define MAGNETOFRICTION
+!> 2. in amrvac.par:
+!>    &stoplist
+!>     itmaxmf=60000 ! set the maximum iteration number
+!>    &savelist
+!>     ditsavemf=20000 ! set iteration interval for data output
+!>    &methodlist
+!>     typeadvance='onestep' ! time marching scheme, or 'twostep','threestep'
+!>     typefull1=13*'cd4' ! or 'tvdlf', 'fd'
+!>     typelimiter1= 13*'koren' ! or 'vanleer','cada3','mp5' so on
+!>    &amrlist
+!>     ditregrid=20 ! set iteration interval for adjusting AMR 
+!>    &paramlist
+!>     cmf_c=0.3    ! stability coefficient controls numerical stability
+!>     cmf_y=0.2    ! frictional velocity coefficient
+!>     cmf_divb=0.1 ! divb cleaning coefficient controls diffusion speed of divb
 subroutine magnetofriction
 
 use mod_global_parameters
