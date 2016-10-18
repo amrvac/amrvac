@@ -3,7 +3,7 @@
 !>   Doing discontinuous 2D VAC logo on periodic square
 !>      exploit dynamic AMR and different schemes
 !>
-!> $AMRVAC_DIR/setup.pl -d=22 -g=14,14 -p=rho
+!> $AMRVAC_DIR/setup.pl -d=22 -p=rho
 !=====================================================
 
  &filelist
@@ -35,6 +35,8 @@
  &amrlist
         mxnest=3
         tol=13*0.1d0
+        ixGhi1=16
+        ixGhi2=16
         nxlone1=50
         nxlone2=50
         iprob=3

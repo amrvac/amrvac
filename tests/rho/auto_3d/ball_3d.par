@@ -5,7 +5,7 @@
 !>              conservative finite difference scheme,
 !>              mp5 limiter (hence 3 ghost cell layers)
 !>              CFL 0.6 ok (CFL 0.9 unstable!)
-!> $AMRVAC_DIR/setup.pl -d=33 -g=16,16,16 -p=rho
+!> $AMRVAC_DIR/setup.pl -d=33 -p=rho
 !=====================================================
 
  &filelist
@@ -39,6 +39,9 @@
  &amrlist
         mxnest=3
         tol=13*0.1d0
+        ixGhi1=16
+        ixGhi2=16
+        ixGhi3=16
         nxlone1=20
         nxlone2=20
         nxlone3=20

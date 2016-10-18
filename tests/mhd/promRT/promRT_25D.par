@@ -62,6 +62,8 @@
         nbufferx2=0
         tol=13*0.2d0
         tolratio=13*0.1d0
+        ixGhi1=14
+        ixGhi2=14
         nxlone1=20
         nxlone2=20
         xprobmin1=0.0d0

@@ -4,7 +4,7 @@
 ! Results :
 ! Update  : 13/09/2016
 ! configuration :
-! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=16,16 -p=mhd
+! $AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -p=mhd
 !==============================================================
 
  &filelist
@@ -83,6 +83,8 @@
         wflags(2)=0.2d0
         wflags(3)=0.2d0
         wflags(4)=0.2d0
+        ixGhi1=16
+        ixGhi2=16
         nxlone1=96
         nxlone2=96
         iprob=1
