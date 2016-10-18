@@ -37,14 +37,14 @@ contains
     end if
 
     ! Specify the options and their default values
-    call kracken('cmd','-i NO_PAR_FILE_SPECIFIED -if data -restart -1 -slice 0'//&
+    call kracken('cmd','-i amrvac.par -if data -restart -1 -slice 0'//&
          ' -collapse 0 --help .false. -convert .false.')
 
     ! Get the par file(s)
     call retrev('cmd_i', all_par_files, len, ier)
 
     ! Show the usage if the help flag was given, or no par file was specified
-    if (lget('cmd_-help') .or. all_par_files == 'NO_PAR_FILE_SPECIFIED') then
+    if (lget('cmd_-help')) then
        if (mype == 0) then
           print *, 'Usage example:'
           print *, './amrvac -i file.par [file2.par ...]'
