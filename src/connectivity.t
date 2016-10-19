@@ -25,9 +25,8 @@ end do
 end subroutine get_level_range
 !=============================================================================
 subroutine getigrids
-use mod_indices
-use mod_connectivity
 use mod_forest
+use mod_global_parameters
 implicit none
 
 integer :: iigrid, igrid

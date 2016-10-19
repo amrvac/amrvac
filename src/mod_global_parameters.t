@@ -11,6 +11,51 @@ module mod_global_parameters
 
   ! Parameters
 
+  !> The number of interleaving sending buffers for ghost cells
+  integer, parameter :: npwbuf=2
+
+  integer :: ixM^LL
+
+  integer, dimension(nlevelshi) :: ng^D
+  double precision, dimension(nlevelshi) :: dg^D
+
+  logical :: slab
+
+  !> The number of MPI tasks
+  integer :: npe
+
+  !> The rank of the current MPI task
+  integer :: mype
+
+  !> The MPI communicator
+  integer :: icomm
+
+  !> A global MPI error return code
+  !> @todo Make local
+  integer :: ierrmpi
+
+  integer :: log_fh
+  integer :: type_block, type_coarse_block, type_sub_block(2^D&)
+  integer :: type_block_io, size_block_io, size_block
+  {#IFDEF TRANSFORMW
+  integer :: type_block_io_tf, size_block_io_tf}
+  integer :: type_subblock_io, type_subblock_x_io
+  integer :: type_block_xc_io,type_block_xcc_io
+  integer :: type_block_wc_io,type_block_wcc_io
+  integer :: itag
+  integer :: irecv, isend
+  integer, dimension(:), allocatable :: recvrequest, sendrequest
+  integer, dimension(:,:), allocatable :: recvstatus, sendstatus
+
+  integer :: snapshot, snapshotnext, slice, slicenext, collapseNext, icollapse
+
+  logical, allocatable, dimension(:^D&) :: patchfalse
+
+  !> split potential or linear force-free magnetic field as background B0 field
+  logical :: B0field
+  !> amplitude of background dipolar, quadrupolar, octupolar, user's field
+  double precision :: Bdip, Bquad, Boct, Busr
+
   !> Default length for strings
   integer, parameter :: std_len = 131
 
@@ -508,8 +553,8 @@ module mod_global_parameters
   integer, parameter :: ismax^D=2*^D
 
   !> Corner coordinates
-  double precision :: rnode(rnodehi,ngridshi)
-  double precision :: rnode_sub(rnodehi,ngridshi)
+  double precision, allocatable :: rnode(:,:)
+  double precision, allocatable :: rnode_sub(:,:)
 
   !> Error tolerance for refinement decision
   double precision :: tol(nlevelshi)
@@ -517,14 +562,24 @@ module mod_global_parameters
   double precision :: dx(ndim,nlevelshi)
   double precision :: dt
   double precision :: dtimpl
-  double precision :: dt_grid(ngridshi)
+  double precision, allocatable :: dt_grid(:)
   double precision :: dxlevel(ndim)
 
-  integer :: node(nodehi,ngridshi)
-  integer :: node_sub(nodehi,ngridshi)
+  integer, allocatable :: node(:,:)
+  integer, allocatable :: node_sub(:,:)
+
+  type fluxalloc
+     double precision, dimension(:^D&,:), pointer:: flux => null()
+  end type fluxalloc
+  !> store flux to fix conservation 
+  type(fluxalloc), dimension(:,:,:), allocatable :: pflux
 
   !> Number of cells as buffer zone
+  !> \todo is it necessary? 
   integer :: nbufferx^D
+ 
+  !> The maximum number of grid blocks in a processor
+  integer :: ngridshi
 
   !> Maximal number of AMR levels
   integer :: mxnest
@@ -542,7 +597,7 @@ module mod_global_parameters
   integer :: levmax_sub
 
   logical :: skipfinestep
-  logical :: phyboundblock(ngridshi)
+  logical, allocatable :: phyboundblock(:)
   logical :: time_advance{#IFDEF MAGNETOFRICTION , mf_advance}
 
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})

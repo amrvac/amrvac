@@ -1,5 +1,4 @@
 module mod_physicaldata
-  use mod_indices, only: ngridshi
    implicit none
    save
 

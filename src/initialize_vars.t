@@ -14,6 +14,13 @@ allocate(pB0_cell(ngridshi),pB0_face^D(ngridshi))
 allocate(pw_sub(ngridshi))
 allocate(px(ngridshi),pxCoarse(ngridshi),px_sub(ngridshi))
 allocate(pgeo(ngridshi),pgeoCoarse(ngridshi))
+allocate(neighbor(2,-1:1^D&,ngridshi),neighbor_child(2,0:3^D&,ngridshi))
+allocate(neighbor_type(-1:1^D&,ngridshi),neighbor_active(-1:1^D&,ngridshi))
+{^IFPHI allocate(neighbor_pole(-1:1^D&,ngridshi))}
+allocate(igrids(ngridshi),igrids_active(ngridshi),igrids_passive(ngridshi))
+allocate(rnode(rnodehi,ngridshi),rnode_sub(rnodehi,ngridshi),dt_grid(ngridshi))
+allocate(node(nodehi,ngridshi),node_sub(nodehi,ngridshi),phyboundblock(ngridshi))
+allocate(pflux(2,^ND,ngridshi))
 ! set time, time counter
 if(.not.treset)t=zero
 if(.not.itreset)it=0

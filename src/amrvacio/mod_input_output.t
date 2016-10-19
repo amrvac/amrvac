@@ -129,7 +129,7 @@ contains
     namelist /boundlist/  dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
          internalboundary
     namelist /amrlist/    mxnest,nbufferx^D,tol,tolratio,errorestimate, &
-         amr_wavefilter,ixGhi^D,nxlone^D,iprob,xprob^L, &
+         amr_wavefilter,ngridshi,ixGhi^D,nxlone^D,iprob,xprob^L, &
          skipfinestep,wflags,flags,&
          restrictprimitive,prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
@@ -137,8 +137,11 @@ contains
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, dtTCpar,&
          typecourant, slowsteps, cfrac{#IFDEF MAGNETOFRICTION , cmf_c, cmf_y, cmf_divb}
     !----------------------------------------------------------------------------
+ 
+    ! default maximum number of grid blocks in a processor
+    ngridshi=4000
 
-    ! Default block size
+    ! default block size
     {ixGhi^D = 16\}
 
     ! defaults for boundary treatments
