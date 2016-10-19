@@ -35,10 +35,12 @@ module mod_global_parameters
   integer :: ierrmpi
 
   integer :: log_fh
+  !> MPI IO type for block including ghost cells
   integer :: type_block, type_coarse_block, type_sub_block(2^D&)
+  !> MPI IO type for block excluding ghost cells
   integer :: type_block_io, size_block_io, size_block
-  {#IFDEF TRANSFORMW
-  integer :: type_block_io_tf, size_block_io_tf}
+  !> MPI IO type for transformed data excluding ghost cells
+  integer :: type_block_io_tf, size_block_io_tf
   integer :: type_subblock_io, type_subblock_x_io
   integer :: type_block_xc_io,type_block_xcc_io
   integer :: type_block_wc_io,type_block_wcc_io
@@ -148,8 +150,9 @@ module mod_global_parameters
   include 'amrvacusrpar.f'
 
   !> For transform variables and save selected data
-  !> \todo Chun documents here
+  !> number of w in the transformed data
   integer :: nwtf
+  !> number of equation parameters in the transformed data
   integer :: neqpartf
 
   !> Kronecker delta tensor
@@ -396,7 +399,7 @@ module mod_global_parameters
   double precision       :: entropycoef(nw)
   double precision       :: tvdlfeps, mcbeta, TCphi
   !> \todo organize Thermal Conduction: bcphys/TCphi/TCsaturate/conduction
-  logical                :: conduction,TCsaturate,bcphys
+  logical                :: conduction,TCsaturate,TCperpendicular,bcphys
   logical                :: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
   logical                :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
   logical                :: restrictprimitive,prolongprimitive

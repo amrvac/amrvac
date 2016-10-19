@@ -279,6 +279,8 @@ sub definepatterns{
    &patdef('IFNOMPT'    ,$cp ne mpt             );
    &patdef('IFGR'       ,$p eq grhd ||$p eq grhdeos || $p eq grmhd  || $p eq grmhdeos || $p eq grmhdglm || $p eq grmhdglmeos            );
   &patdef('IFNOGR'       ,$p ne grhd && $p ne grhdeos && $p ne grmhd  && $p ne grmhdeos && $p ne grmhdglm && $p ne grmhdglmeos            );
+   &patdef('IFTWODMHD'   ,$p eq mhd && $ndim==2 );
+   &patdef('IFTHREEDMHD' ,$p eq mhd && $ndim==3 );
 }
 #============================================================================
 sub definevars{

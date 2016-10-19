@@ -23,6 +23,7 @@
 subroutine magnetofriction
 
 use mod_global_parameters
+use mod_input_output
 
 double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: dtfff,dtfff_pe,dtnew,dx^D

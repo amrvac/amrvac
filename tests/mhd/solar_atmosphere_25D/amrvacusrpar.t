@@ -9,6 +9,6 @@ CHARACTER*29,PARAMETER:: specialparname='grav1 grav2 kappa Tsc Lsc Mue'
 INTEGER, PARAMETER:: jmax=80000
 COMMON, double precision :: pa(jmax),ra(jmax),ya(jmax),dya
 COMMON, double precision :: Lunit,Teunit,nHunit,runit,punit,mHunit,k_B,miu0,vunit,tunit,heatunit,Bunit
-COMMON, double precision :: gzone,B0,theta,SRadius,kx,ly,bQ0
+COMMON, double precision :: gzone,B0,theta,SRadius,kx,ly,bQ0,kappe
 ! end include amrvacusrpar - solaratmosphere23
 !##############################################################################

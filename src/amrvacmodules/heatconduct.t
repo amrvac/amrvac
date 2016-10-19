@@ -1,49 +1,46 @@
 !##############################################################################
 !> module heatconduct.t -- heat conduction for HD and MHD
-!! 10.07.2011 developed by Chun Xia and Rony Keppens
-!! 01.09.2012 moved to modules folder by Oliver Porth
-!! 13.10.2013 optimized further by Chun Xia
-!! 12.03.2014 implemented RKL2 super timestepping scheme to reduce iterations 
-!! and improve stability and accuracy up to second order in time by Chun Xia.
-!! 23.08.2014 implemented saturation and perpendicular TC by Chun Xia
-!! 
-!! PURPOSE: 
-!! IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
-!! S=DIV(KAPPA_i,j . GRAD_j T)
-!! where KAPPA_i,j = kappa b_i b_j + kappe (I - b_i b_j)
-!! b_i b_j = B_i B_j / B**2, I is the unit matrix, and i, j= 1, 2, 3 for 3D
-!! IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
-!! S=DIV(kappa . GRAD T)
-!! USAGE:
-!! 1. in amrvacusr.t add: 
-!!   a. INCLUDE:amrvacmodules/heatconduct.t
-!!   b. in subroutine initglobaldata_usr, add conductivity:
-!!      eqpar(kappa_)=kappa0*Teunit**3.5d0/Lunit/runit/vunit**3 
-!!     kappa0=1.d-6 erg/cm/s/K**3.5 or 1.d-11 J/m/s/K**3.5  is Spitzer 
-!!     conductivity for solar corona. Teunit, Lunit, runit, and vunit are the 
-!!     unit of temperature, length, density, and velocity. Teunit and vunit are 
-!!     dependent, e.g., vunit=sqrt(R Teunit).
-!! 2. in amrvacusrpar.t add kappa_ 
-!! 3. in definitions.h :
-!!    #define TCRKL2
-!! 4. in the methodlist of amrvac.par add:
-!!    conduction=.true.
-!! Saturation: (default off)
-!!    in the methodlist of amrvac.par add:
-!!    TCsaturate=.true.
-!!    phi coefficient of saturated flux
-!!    TCphi=1.d0
-!! Addition thermal conduction perpendicular to magnetic field (Orlando 2008 ApJ
-!! 678 247)
-!!    in definition.h :
-!!    #define TCPERPENDICULAR
-!!    in subroutine initglobaldata_usr, add perpendicular conductivity:
-!!eqpar(kappe_)=kappa1*nHunit**2/dsqrt(Teunit)/Bunit**2*Teunit/Lunit/runit/vunit**3
-!!    kappa1=3.3d-16 erg Gauss**2 cm**5 /s/K**0.5 or 
-!!           3.3d-41 J T**2 m**5 /s/K**0.5
-!!    (nHunit and Bunit are the unit of number density and magnetic field.)
-!!    in amrvacusrpar.t add kappe_ 
-!=============================================================================
+!> 10.07.2011 developed by Chun Xia and Rony Keppens
+!> 01.09.2012 moved to modules folder by Oliver Porth
+!> 13.10.2013 optimized further by Chun Xia
+!> 12.03.2014 implemented RKL2 super timestepping scheme to reduce iterations 
+!> and improve stability and accuracy up to second order in time by Chun Xia.
+!> 23.08.2014 implemented saturation and perpendicular TC by Chun Xia
+!> 
+!> PURPOSE: 
+!> IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
+!> S=DIV(KAPPA_i,j . GRAD_j T)
+!> where KAPPA_i,j = kappa b_i b_j + kappe (I - b_i b_j)
+!> b_i b_j = B_i B_j / B**2, I is the unit matrix, and i, j= 1, 2, 3 for 3D
+!> IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
+!> S=DIV(kappa . GRAD T)
+!> USAGE:
+!> 1. in amrvacusr.t add: 
+!>   a. INCLUDE:amrvacmodules/heatconduct.t
+!>   b. in subroutine initglobaldata_usr, add conductivity for solar corona. 
+!>      eqpar(kappa_)=kappa0*Teunit**3.5d0/Lunit/runit/vunit**3 
+!>     kappa0=8.d-7 erg/cm/s/K**3.5 or 8.d-12 J/m/s/K**3.5
+!>     in MHD, conduction perpendicular to magnetic field needs: 
+!>     kappe=kappe0*nHunit**2/Bunit**2/Teunit**2*eqpar(kappa_)
+!>     kappe0=4.d-26 in cgs or 4.d-30 in SI
+!>     nHunit,Bunit,Teunit, Lunit, runit, and vunit are the 
+!>     unit of number density, magnetic field, temperature, length, density, 
+!>     and velocity. Teunit and vunit are dependent, e.g., vunit=sqrt(R Teunit).
+!> 2. in amrvacusrpar.t add equation parameter index kappa_ and kappe
+!>    COMMON,double precision :: kappe
+!> 3. in definitions.h :
+!>    #define TCRKL2
+!> 4. in the methodlist of amrvac.par add:
+!>    conduction=.true.
+!> Saturation: (default off)
+!>    in the methodlist of amrvac.par add:
+!>    TCsaturate=.true.
+!>    phi coefficient of saturated flux
+!>    TCphi=1.d0
+!> Addition thermal conduction perpendicular to magnetic field (Orlando 2008 ApJ
+!> 678 247)
+!>    in the methodlist of amrvac.par add:
+!>    TCperpendicular=.true. (default .false.)
 subroutine thermalconduct_RKL2(s,qdt,qt)
 ! Meyer 2012 MNRAS 422,2102
 use mod_global_parameters
@@ -323,9 +320,7 @@ double precision, intent(out) :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
 
 double precision, dimension(ixI^S,1:ndir) :: mf,qvec
 double precision, dimension(ixI^S,1:ndim) :: gradT,qvecsat
-{#IFDEF TCPERPENDICULAR
-double precision, dimension(ixI^S,1:ndim) :: qvec_per, qvec_max
-}
+double precision, dimension(:^D&,:), allocatable :: qvec_per, qvec_max
 double precision, dimension(ixI^S) :: B2inv, BgradT,cs3,qflux,qsatflux
 integer, dimension(ndim) :: lowindex
 integer :: ix^L,idims,ix^D
@@ -438,44 +433,47 @@ if(TCsaturate) then
     end if
   {end do\}
 end if
-{#IFDEF TCPERPENDICULAR
+
+if(TCperpendicular) then
 ! van der Linden and Goossens 1991 SoPh 131, 79; Orlando et al 2008 ApJ 678, 274
-do idims=1,ndim
-  ! q_per = kappe n^2 B^-2 Te^-0.5 (Grad Te - (e_b . Grad Te )e_b) 
-  qvec_per(ix^S,idims)=eqpar(kappe_)*w(ix^S,rho_)**2*B2inv(ix^S)/dsqrt(tmp(ix^S))&
-                       *(gradT(ix^S,idims)-BgradT(ix^S)*mf(ix^S,idims))
-end do
-! maximal thermal conducting (saturated) flux
-do idims=1,ndim
-  qvec_max(ix^S,idims)=eqpar(kappa_)*dsqrt(tmp(ix^S)**5)*gradT(ix^S,idims)
-end do
-if(TCsaturate) then
-  qsatflux(ix^S)=5.d0*TCphi*w(ix^S,rho_)*cs3(ix^S)
-  qflux(ix^S)=dsqrt(^D&qvec_max(ix^S,^D)**2+)
+  allocate(qvec_per(ixI^S,1:ndim), qvec_max(ixI^S,1:ndim))
+  do idims=1,ndim
+    ! q_per = kappe n^2 B^-2 Te^-0.5 (Grad Te - (e_b . Grad Te )e_b) 
+    qvec_per(ix^S,idims)=kappe*w(ix^S,rho_)**2*B2inv(ix^S)/dsqrt(tmp(ix^S))&
+                         *(gradT(ix^S,idims)-BgradT(ix^S)*mf(ix^S,idims))
+  end do
+  ! maximal thermal conducting (saturated) flux
+  do idims=1,ndim
+    qvec_max(ix^S,idims)=eqpar(kappa_)*dsqrt(tmp(ix^S)**5)*gradT(ix^S,idims)
+  end do
+  if(TCsaturate) then
+    qsatflux(ix^S)=5.d0*TCphi*w(ix^S,rho_)*cs3(ix^S)
+    qflux(ix^S)=dsqrt(^D&qvec_max(ix^S,^D)**2+)
+    {do ix^DB=ixmin^DB,ixmax^DB\}
+      if(.false. .and. qflux(ix^D)>qsatflux(ix^D) .and. idims==1) write(*,*) & 
+        'it',it,' ratio=',qflux(ix^D)/qsatflux(ix^D),' TC_PER saturated at ',&
+        x(ix^D,:),' rho',w(ix^D,rho_),' Te',tmp(ix^D)
+      if(qflux(ix^D)>qsatflux(ix^D)) then
+        qsatflux(ix^D)=qsatflux(ix^D)/qflux(ix^D)
+        do idims=1,ndim
+          qvec_max(ix^D,idims)=qsatflux(ix^D)*qvec_max(ix^D,idims)
+        end do
+      end if
+    {end do\}
+  end if
+  ! maximal thermal conducting flux perpendicular to magnetic field
+  qvec_max(ix^S,1:ndim)=qvec_max(ix^S,1:ndim)-qvec(ix^S,1:ndim)
+  qsatflux(ix^S)= ^D&qvec_max(ix^S,^D)**2+
+  qflux(ix^S)= ^D&qvec_per(ix^S,^D)**2+
   {do ix^DB=ixmin^DB,ixmax^DB\}
-    if(.false. .and. qflux(ix^D)>qsatflux(ix^D) .and. idims==1) write(*,*) & 
-      'it',it,' ratio=',qflux(ix^D)/qsatflux(ix^D),' TC_PER saturated at ',&
-      x(ix^D,:),' rho',w(ix^D,rho_),' Te',tmp(ix^D)
-    if(qflux(ix^D)>qsatflux(ix^D)) then
-      qsatflux(ix^D)=qsatflux(ix^D)/qflux(ix^D)
-      do idims=1,ndim
-        qvec_max(ix^D,idims)=qsatflux(ix^D)*qvec_max(ix^D,idims)
-      end do
-    end if
+     if(qflux(ix^D)>qsatflux(ix^D)) then
+       qvec(ix^D,1:ndim)=qvec(ix^D,1:ndim)+qvec_max(ix^D,1:ndim)
+     else
+       qvec(ix^D,1:ndim)=qvec(ix^D,1:ndim)+qvec_per(ix^D,1:ndim)
+     end if   
   {end do\}
 end if
-! maximal thermal conducting flux perpendicular to magnetic field
-qvec_max(ix^S,1:ndim)=qvec_max(ix^S,1:ndim)-qvec(ix^S,1:ndim)
-qsatflux(ix^S)= ^D&qvec_max(ix^S,^D)**2+
-qflux(ix^S)= ^D&qvec_per(ix^S,^D)**2+
-{do ix^DB=ixmin^DB,ixmax^DB\}
-   if(qflux(ix^D)>qsatflux(ix^D)) then
-     qvec(ix^D,1:ndim)=qvec(ix^D,1:ndim)+qvec_max(ix^D,1:ndim)
-   else
-     qvec(ix^D,1:ndim)=qvec(ix^D,1:ndim)+qvec_per(ix^D,1:ndim)
-   end if   
-{end do\}
-}
+
 {do ix^DB=ixmin^DB,ixmax^DB\}
   if(Bnull(ix^D)) then
     qvec(ix^D,1:ndim)=eqpar(kappa_)*dsqrt(tmp(ix^D)**5)*gradT(ix^D,1:ndim)

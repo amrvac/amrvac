@@ -298,7 +298,9 @@ contains
 
     typefilelog = 'default'
     fileheadout = 'AMRVAC'
+    ! defaults for number of w in the transformed data
     nwtf        = 0
+    ! defaults for number of equation parameters in the transformed data
     neqpartf    = 0
 
     ! defaults for input 
@@ -336,6 +338,7 @@ contains
     typetvdlf       = 'cmaxmean'
     conduction      = .false.
     TCsaturate      = .false.
+    TCperpendicular = .false.
     TCphi           = 1.d0
     bcphys          = .true.
     ncyclemax       = 1000
@@ -885,12 +888,6 @@ contains
     use mod_forest
     use mod_global_parameters
 
-    {#IFDEF TRANSFORMW
-    double precision, allocatable :: wtf(:^D&,:)
-    double precision :: eqpar_tf(neqpartf)
-    integer :: file_handle_tf
-    character(len=80) :: filenametf
-    }
     integer :: file_handle, amode, igrid, Morton_no, iwrite
     integer :: nx^D
     integer(kind=MPI_OFFSET_KIND) :: offset
@@ -923,19 +920,6 @@ contains
     amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
     call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
 
-    {#IFDEF TRANSFORMW
-    if(nwtf>0 .and. neqpartf>0) then
-       write(filenametf,"(a,i4.4,a)") TRIM(filenameout),snapshot,"tf.dat"
-       if(mype==0) then
-          open(unit=unitsnapshot,file=filenametf,status='replace')
-          close(unit=unitsnapshot)
-       end if
-       amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
-       call MPI_FILE_OPEN(icomm,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
-       allocate(wtf(ixG^T,1:nwtf))
-    endif
-    }
-
     iwrite=0
     do Morton_no=Morton_start(mype),Morton_stop(mype)
        igrid=sfc_to_igrid(Morton_no)
@@ -953,15 +937,6 @@ contains
           call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
        endif
        iwrite=iwrite+1
-       {#IFDEF TRANSFORMW
-       if(nwtf>0 .and. neqpartf>0) then
-          call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
-          offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
-               *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-          call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &
-               type_block_io_tf,istatus,ierrmpi)     
-       endif
-       }
        {#IFDEF EVOLVINGBOUNDARY
        nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
        offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
@@ -984,11 +959,6 @@ contains
     end do
 
     call MPI_FILE_CLOSE(file_handle,ierrmpi)
-    {#IFDEF TRANSFORMW
-    if(nwtf>0 .and. neqpartf>0) then
-       call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-    endif
-    }
     if (mype==0) then
        amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
        call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL, &
@@ -1014,44 +984,101 @@ contains
        }
        call MPI_FILE_CLOSE(file_handle,ierrmpi)
     end if
-    {#IFDEF TRANSFORMW
-    if (mype==0 .and. nwtf>0 .and. neqpartf>0) then
-       amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
-       call MPI_FILE_OPEN(MPI_COMM_SELF,filenametf,amode,MPI_INFO_NULL, &
-            file_handle_tf,ierrmpi)
-
-       call write_forest(file_handle_tf)
-
-       {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
-       call MPI_FILE_WRITE(file_handle_tf,eqpar_tf,neqpartf, &
-            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-
-       call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-    endif
-    }
     snapshot=snapshot+1
 
   end subroutine write_snapshot
+
+  subroutine write_snapshot_tf
+    use mod_forest
+    use mod_global_parameters
+
+    double precision, allocatable :: wtf(:^D&,:)
+    double precision :: eqpar_tf(neqpartf)
+    integer :: file_handle_tf
+    character(len=80) :: filenametf
+    integer :: file_handle, amode, igrid, Morton_no, iwrite
+    integer :: nx^D
+    integer(kind=MPI_OFFSET_KIND) :: offset
+    integer, dimension(MPI_STATUS_SIZE) :: istatus
+    character(len=80) :: filename, line
+    logical, save :: firstsnapshot=.true.
+    !-----------------------------------------------------------------------------
+    if (firstsnapshot) then
+       snapshot=snapshotnext
+       firstsnapshot=.false.
+    end if
+
+    if (snapshot >= 10000) then
+       if (mype==0) then
+          write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
+          write(*,*) "overwriting first frames"
+       end if
+       snapshot=0
+    end if
+
+    ! generate filename
+    write(filenametf,"(a,i4.4,a)") TRIM(filenameout),snapshot,"tf.dat"
+    if(mype==0) then
+       open(unit=unitsnapshot,file=filenametf,status='replace')
+       close(unit=unitsnapshot)
+    end if
+    amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+    call MPI_FILE_OPEN(icomm,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
+    allocate(wtf(ixG^T,1:nwtf))
+
+    iwrite=0
+    do Morton_no=Morton_start(mype),Morton_stop(mype)
+       igrid=sfc_to_igrid(Morton_no)
+       if (nwaux>0) then
+          ! extra layer around mesh only for later averaging in convert
+          ! set dxlevel value for use in gradient subroutine, 
+          ! which might be used in getaux
+          saveigrid=igrid
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          if (.not.slab) mygeo => pgeo(igrid)
+          if (B0field) then
+             myB0_cell => pB0_cell(igrid)
+             {^D&myB0_face^D => pB0_face^D(igrid)\}
+          end if
+          call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+       endif
+       iwrite=iwrite+1
+       call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
+       offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
+            *int(Morton_no-1,kind=MPI_OFFSET_KIND)
+       call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &
+            type_block_io_tf,istatus,ierrmpi)     
+    end do
+
+    call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
+    amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
+    call MPI_FILE_OPEN(MPI_COMM_SELF,filenametf,amode,MPI_INFO_NULL, &
+         file_handle_tf,ierrmpi)
+
+    call write_forest(file_handle_tf)
+
+    {nx^D=ixMhi^D-ixMlo^D+1
+    call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
+    call MPI_FILE_WRITE(file_handle_tf,eqpar_tf,neqpartf, &
+         MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+
+    call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
+    snapshot=snapshot+1
+
+  end subroutine write_snapshot_tf
 
   subroutine write_snapshot_nopar
     use mod_forest
     use mod_global_parameters
 
-    {#IFDEF TRANSFORMW
-    double precision, allocatable :: wtf(:^D&,:)
-    double precision :: eqpar_tf(neqpartf)
-    integer :: file_handle_tf
-    character(len=80) :: filenametf
-    }
     integer :: file_handle, amode, igrid, Morton_no, iwrite
     integer :: nx^D
 
@@ -1122,17 +1149,6 @@ contains
        amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
        call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
 
-       {#IFDEF TRANSFORMW
-       if(nwtf>0 .and. neqpartf>0) then
-          write(filenametf,"(a,i4.4,a)") TRIM(filenameout),snapshot,"tf.dat"
-          call MPI_FILE_OPEN(MPI_COMM_SELF,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
-          allocate(wtf(ixG^T,1:nwtf))
-
-          open(unit=unitsnapshot,file=filenametf,status='replace')
-          close(unit=unitsnapshot)
-       endif
-       }
-
        ! writing his local data first
        do Morton_no=Morton_start(0),Morton_stop(0)
           igrid=sfc_to_igrid(Morton_no)
@@ -1150,15 +1166,6 @@ contains
              end if
              call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
           endif
-          {#IFDEF TRANSFORMW
-          if(nwtf>0 .and. neqpartf>0) then
-             call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
-             offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
-                  *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-             call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1,&
-                  type_block_io_tf,istatus,ierrmpi)
-          endif
-          }
           {#IFDEF EVOLVINGBOUNDARY
           nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
           offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
@@ -1198,15 +1205,6 @@ contains
                 allocate(pwio(igrid_recv(inrecv))%w(ixG^T,1:nw))
                 call MPI_RECV(pwio(igrid_recv(inrecv))%w,1,type_block_io,ipe,itag,icomm,&
                      iorecvstatus(:,inrecv),ierrmpi)
-                {#IFDEF TRANSFORMW
-                if(nwtf>0 .and. neqpartf>0) then
-                   call transformw_usr(pwio(igrid_recv(inrecv))%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
-                   offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
-                        *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-                   call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1,type_block_io_tf,&
-                        ioastatus(:,inrecv),ierrmpi)
-                endif
-                }
                 {#IFDEF EVOLVINGBOUNDARY
                 nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
                 offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
@@ -1235,12 +1233,6 @@ contains
 
     if(mype==0) call MPI_FILE_CLOSE(file_handle,ierrmpi)
 
-    {#IFDEF TRANSFORMW
-    if(nwtf>0 .and. neqpartf>0) then
-       call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-    endif
-    }
-
     if (mype==0) then
        amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
        call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL, &
@@ -1263,30 +1255,6 @@ contains
 
        call MPI_FILE_CLOSE(file_handle,ierrmpi)
     end if
-    {#IFDEF TRANSFORMW
-    if (mype==0 .and. nwtf>0 .and. neqpartf>0) then
-       amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
-       call MPI_FILE_OPEN(MPI_COMM_SELF,filenametf,amode,MPI_INFO_NULL, &
-            file_handle_tf,ierrmpi)
-
-       call write_forest(file_handle_tf)
-
-       {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
-       call MPI_FILE_WRITE(file_handle_tf,eqpar_tf,neqpartf, &
-            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-
-       call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-    endif
-    }
     snapshot=snapshot+1
 
     call MPI_BARRIER(icomm,ierrmpi)

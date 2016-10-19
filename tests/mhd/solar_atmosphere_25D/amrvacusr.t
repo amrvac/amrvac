@@ -37,6 +37,7 @@ eqpar(grav2_)=-2.74d4*Lunit/vunit**2 !< solar gravity
 eqpar(eta_)=0.d0 !< resistivity
 !> thermal conduction normalization unit
 eqpar(kappa_)=1.d-6*Teunit**3.5d0/Lunit/runit/vunit**3
+kappe=4.d-26*nHunit**2/Bunit**2/Teunit**2*eqpar(kappa_)
 !> cooling table parameters
 eqpar(Tscale_)=1.d0/Teunit
 eqpar(Lscale_)=runit*Lunit/vunit**3/mHunit**2*1.2d0/1.4d0**2
@@ -242,14 +243,6 @@ case(4)
     w(ixOmin1:ixOmax1,ix2,b1_:b3_)=(1.0d0/3.0d0)* &
                 (-w(ixOmin1:ixOmax1,ix2-2,b1_:b3_)&
            +4.0d0*w(ixOmin1:ixOmax1,ix2-1,b1_:b3_))
-  enddo
-  !>  reset normal B component to fulfil div B=0
-  delydelx=dxlevel(2)/dxlevel(1)
-  do ix2=ixOmin2,ixOmax2
-    do ix1=ixOmin1+1,ixOmax1-1
-      w(ix1,ix2,b2_)=w(ix1,ix2-2,b2_)-delydelx*(w(ix1+1,ix2-1,b1_)-&
-        w(ix1-1,ix2-1,b1_))
-    enddo
   enddo
   call conserve(ixG^L,ixO^L,w,x,patchfalse)
 case default

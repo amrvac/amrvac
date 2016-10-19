@@ -96,22 +96,6 @@ character(len=20):: userconvert_type
 end subroutine userspecialconvert
 !=============================================================================
 }
-{#IFDEF TRANSFORMW
-subroutine transformw_usr(w,wtf,eqpar_tf,ixI^L,ixO^L)
-! regenerate w and eqpar arrays to output into *tf.dat, e.g., add/remove e_
-! variable
-use mod_global_parameters
-
-integer, intent(in) :: ixI^L, ixO^L
-double precision, intent(in) :: w(ixI^S,1:nw)
-double precision, intent(out):: wtf(ixI^S,1:nwtf)
-double precision, intent(out):: eqpar_tf(neqpartf)
-
-!-----------------------------------------------------------------------------
-
-end subroutine transformw_usr
-!=============================================================================
-}
 {#IFDEF SPECIALTOLERANCE
 subroutine special_tolerance(xlocal,tolerance)
 !PURPOSE: use different tolerance in special regions for AMR to
