@@ -1,12 +1,10 @@
 !> update ghost cells of all blocks including physical boundaries 
-subroutine getbc(time,qdt,ixG^L,pwuse,pwuseCo,pgeoFi,pgeoCo,richardson,nwstart,nwbc)
+subroutine getbc(time,qdt,ixG^L,pwuse,nwstart,nwbc)
 use mod_global_parameters
 
 double precision, intent(in)               :: time, qdt
 integer, intent(in)                        :: ixG^L,nwstart,nwbc
-type(walloc), dimension(ngridshi)          :: pwuse, pwuseCo
-type(geoalloc), target,dimension(ngridshi) :: pgeoFi, pgeoCo
-logical, intent(in)                        :: richardson
+type(walloc), dimension(ngridshi)          :: pwuse
 
 integer :: ixM^L, ixCoG^L, ixCoM^L, idims, iside
 integer :: my_neighbor_type, ipole
@@ -76,7 +74,7 @@ if(bcphys) then
            else 
               if (neighbor_type(i^D,igrid)/=1) cycle
            end if
-           if(.not.slab)mygeo=>pgeoFi(igrid)
+           if(.not.slab)mygeo=>pgeo(igrid)
            if (B0field) then
               myB0_cell => pB0_cell(igrid)
               {^D&myB0_face^D => pB0_face^D(igrid)\}
@@ -147,8 +145,8 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
         ixM^L=ixG^L^LSUBdixB;
       end if
 }
-      call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x,&
-                        ixCoG^L,ixCoM^L,pgeoFi(igrid),pgeoCo(igrid),coarsenprimitive,.true.)
+      call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,&
+                        ixCoG^L,ixCoM^L,pgeo(igrid),pgeoCoarse(igrid),coarsenprimitive,.true.)
       if(isphysbound) then
         ! the block has a part of physical boundary and its coarser representative needs 
         ! ghost-cell value at physical boundary 
@@ -178,8 +176,8 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
              else 
                 iside=2
              end if
-             if(.not.slab) mygeo=>pgeoCo(igrid)
-             call bc_phys(iside,idims,time,0.d0,pwuseCo(igrid)%w,pxCoarse(igrid)%x,ixCoG^L,ixB^L)
+             if(.not.slab) mygeo=>pgeoCoarse(igrid)
+             call bc_phys(iside,idims,time,0.d0,pwCoarse(igrid)%w,pxCoarse(igrid)%x,ixCoG^L,ixB^L)
            end if
         end do
       end if
@@ -308,7 +306,7 @@ if(bcphys .and. b0_>0) then
            if (neighbor_type(i^D,igrid)/=1) cycle
            iB=(idims-1)*2+iside
            if(any(typeB(:,iB)=="special")) then
-             if(.not.slab)mygeo=>pgeoFi(igrid)
+             if(.not.slab)mygeo=>pgeo(igrid)
              select case (idims)
              {case (^D)
                 if (iside==2) then
@@ -401,11 +399,11 @@ if (ipole==0) then
    if (ipe_neighbor==mype) then
       ixS^L=ixS_r_^L(iib^D,i^D);
       ixR^L=ixR_r_^L(iib^D,n_inc^D);
-      pwuse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc)=pwuseCo(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
+      pwuse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc)=pwCoarse(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
    else
       isend=isend+1
       itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
-      call MPI_ISEND(pwuseCo(igrid)%w,1,type_send_r(iib^D,i^D), &
+      call MPI_ISEND(pwCoarse(igrid)%w,1,type_send_r(iib^D,i^D), &
                      ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
    end if
 else
@@ -416,7 +414,7 @@ else
    end select
    if (ipe_neighbor==mype) then
       ixR^L=ixR_r_^L(iib^D,n_inc^D);
-      call pole_copy(pwuse(ineighbor),ixR^L,pwuseCo(igrid),ixS^L)
+      call pole_copy(pwuse(ineighbor),ixR^L,pwCoarse(igrid),ixS^L)
    else
       if (isend_buf(ipwbuf)/=0) then
          call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
@@ -424,7 +422,7 @@ else
          deallocate(pwbuf(ipwbuf)%w)
       end if
       allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
-      call pole_copy(pwbuf(ipwbuf),ixS^L,pwuseCo(igrid),ixS^L)
+      call pole_copy(pwbuf(ipwbuf),ixS^L,pwCoarse(igrid),ixS^L)
       isend=isend+1
       isend_buf(ipwbuf)=isend
       itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -453,7 +451,7 @@ integer :: ii^D
       n_inc^D=ic^D+n_i^D;
       if (ipe_neighbor==mype) then
          ixR^L=ixR_p_^L(iib^D,n_inc^D);
-         pwuseCo(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc) &
+         pwCoarse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc) &
             =pwuse(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
       else
          isend=isend+1
@@ -468,7 +466,7 @@ integer :: ii^D
       end select
       if (ipe_neighbor==mype) then
          ixR^L=ixR_p_^L(iib^D,n_inc^D);
-         call pole_copy(pwuseCo(ineighbor),ixR^L,pwuse(igrid),ixS^L)
+         call pole_copy(pwCoarse(ineighbor),ixR^L,pwuse(igrid),ixS^L)
       else
          if (isend_buf(ipwbuf)/=0) then
             call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
@@ -527,7 +525,7 @@ if (ipe_neighbor/=mype) then
    irecv=irecv+1
    inc^D=ic^D+i^D;
    itag=(3**^ND+4**^ND)*(igrid-1)+3**^ND+{inc^D*4**(^D-1)+}
-   call MPI_IRECV(pwuseCo(igrid)%w,1,type_recv_p(iib^D,inc^D), &
+   call MPI_IRECV(pwCoarse(igrid)%w,1,type_recv_p(iib^D,inc^D), &
                   ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)  
 end if
 
@@ -559,30 +557,30 @@ ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
 ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
 
 if (amrentropy) then
-   call e_to_rhos(ixCoG^L,ixCo^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x)
+   call e_to_rhos(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
 else if (prolongprimitive) then
-   call primitive(ixCoG^L,ixCo^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x)
+   call primitive(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
 end if
 
 select case (typeghostfill)
 case ("linear")
    call interpolation_linear(pwuse(igrid),ixFi^L,dxFi^D,xFimin^D, &
-                           pwuseCo(igrid),dxCo^D,invdxCo^D,xComin^D)
+                           pwCoarse(igrid),dxCo^D,invdxCo^D,xComin^D)
 case ("copy")
    call interpolation_copy(pwuse(igrid),ixFi^L,dxFi^D,xFimin^D, &
-                           pwuseCo(igrid),dxCo^D,invdxCo^D,xComin^D)
+                           pwCoarse(igrid),dxCo^D,invdxCo^D,xComin^D)
 case ("unlimit")
    call interpolation_unlimit(pwuse(igrid),ixFi^L,dxFi^D,xFimin^D, &
-                           pwuseCo(igrid),dxCo^D,invdxCo^D,xComin^D)
+                           pwCoarse(igrid),dxCo^D,invdxCo^D,xComin^D)
 case default
    write (unitterm,*) "Undefined typeghostfill ",typeghostfill
    call mpistop("")
 end select
 
 if (amrentropy) then
-    call rhos_to_e(ixCoG^L,ixCo^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x)
+    call rhos_to_e(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
 else if (prolongprimitive) then
-    call conserve(ixCoG^L,ixCo^L,pwuseCo(igrid)%w,pxCoarse(igrid)%x,patchfalse)
+    call conserve(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,patchfalse)
 end if
 
 end subroutine bc_prolong
@@ -623,11 +621,11 @@ double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
    else
       ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
       {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-            *two*(one-pgeoFi(igrid)%dvolume(ixFi^DD) &
-            /sum(pgeoFi(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
+            *two*(one-pgeo(igrid)%dvolume(ixFi^DD) &
+            /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
 {#IFDEF STRETCHGRID
-      eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-pgeoFi(igrid)%dvolume(ixFi^D) &
-            /sum(pgeoFi(igrid)%dvolume(ix1:ix1+1^%1ixFi^D))) 
+      eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-pgeo(igrid)%dvolume(ixFi^D) &
+            /sum(pgeo(igrid)%dvolume(ix1:ix1+1^%1ixFi^D))) 
 }
    end if
 
@@ -735,8 +733,8 @@ double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
    else
       ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
       {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-            *two*(one-pgeoFi(igrid)%dvolume(ixFi^DD) &
-            /sum(pgeoFi(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
+            *two*(one-pgeo(igrid)%dvolume(ixFi^DD) &
+            /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
    end if
 
    do idims=1,ndim
@@ -973,7 +971,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (i^D==0|.and.) cycle
 
       ix^L=ixR_srl_^L(iib^D,i^D);
-      if(.not.slab)mygeo=>pgeoFi(igrid)
+      if(.not.slab)mygeo=>pgeo(igrid)
       call getaux(.true.,pwuse(igrid)%w,px(igrid)%x,ixG^L,ix^L,"bc")
    {end do\}
 end do

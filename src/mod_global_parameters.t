@@ -511,8 +511,8 @@ module mod_global_parameters
   !> Which format to use when converting
   !>
   !> Options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,
-  !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, pvtumpi, pvtuCCmpi, tecline,
-  !> teclinempi, onegrid
+  !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, vtuBmpi, vtuBCCmpi, pvtumpi, pvtuCCmpi, 
+  !> pvtuBmpi, pvtuBCCmpi, tecline, teclinempi, onegrid
   character(len=std_len) :: convert_type
 
   !> Data Explorer file endianness ('msb' or 'lsb' for last or most significant

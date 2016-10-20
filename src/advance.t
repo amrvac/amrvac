@@ -396,7 +396,7 @@ qdt=dtfactor*dt
 {#IFDEF BOUNDARYDRIVER
 call boundarydriver(method(mxnest),qdt,idim^LIM,qtC,pwa,qt,pwb)
 }
-call getbc(qt+qdt,qdt,ixG^LL,pwb,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
+call getbc(qt+qdt,qdt,ixG^LL,pwb,0,nwflux+nwaux)
 
 end subroutine advect1
 !=============================================================================
@@ -554,7 +554,7 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
 end do
 !$OMP END PARALLEL DO
 
-call getbc(qt,0.d0,ixG^LL,pw,pwCoarse,pgeo,pgeoCoarse,.false.,0,nwflux+nwaux)
+call getbc(qt,0.d0,ixG^LL,pw,0,nwflux+nwaux)
 
 end subroutine addsource_all
 !=============================================================================
