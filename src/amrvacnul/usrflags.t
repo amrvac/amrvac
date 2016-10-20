@@ -78,6 +78,16 @@ double precision :: bczone^D,addtol,tol_add
 
 end subroutine special_tolerance
 !=============================================================================
+!> Allow user to use their own data-postprocessing procedures
+subroutine userspecialconvert(qunitconvert)
+use mod_global_parameters
+
+integer, intent(in) :: qunitconvert
+character(len=20):: userconvert_type
+!-----------------------------------------------------------------------------
+
+end subroutine userspecialconvert
+!=============================================================================
 subroutine fixp_usr(ixI^L,ixO^L,w,x)
 use mod_global_parameters
 

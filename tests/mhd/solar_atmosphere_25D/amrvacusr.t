@@ -37,7 +37,7 @@ eqpar(grav2_)=-2.74d4*Lunit/vunit**2 !< solar gravity
 eqpar(eta_)=0.d0 !< resistivity
 !> thermal conduction normalization unit
 eqpar(kappa_)=1.d-6*Teunit**3.5d0/Lunit/runit/vunit**3
-kappe=4.d-26*nHunit**2/Bunit**2/Teunit**2*eqpar(kappa_)
+kappe=4.d-26*nHunit**2/Bunit**2/Teunit**3*eqpar(kappa_)
 !> cooling table parameters
 eqpar(Tscale_)=1.d0/Teunit
 eqpar(Lscale_)=runit*Lunit/vunit**3/mHunit**2*1.2d0/1.4d0**2

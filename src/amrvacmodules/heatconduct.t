@@ -21,7 +21,7 @@
 !>      eqpar(kappa_)=kappa0*Teunit**3.5d0/Lunit/runit/vunit**3 
 !>     kappa0=8.d-7 erg/cm/s/K**3.5 or 8.d-12 J/m/s/K**3.5
 !>     in MHD, conduction perpendicular to magnetic field needs: 
-!>     kappe=kappe0*nHunit**2/Bunit**2/Teunit**2*eqpar(kappa_)
+!>     kappe=kappe0*nHunit**2/Bunit**2/Teunit**3*eqpar(kappa_)
 !>     kappe0=4.d-26 in cgs or 4.d-30 in SI
 !>     nHunit,Bunit,Teunit, Lunit, runit, and vunit are the 
 !>     unit of number density, magnetic field, temperature, length, density, 

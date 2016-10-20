@@ -2,7 +2,6 @@
 #undefine GLM
 #undefine FCT
 #undefine HALL
-#undefine UCONVERT
 #undefine RAY
 #undefine BIGENDIAN
 #undefine FOURTHORDER

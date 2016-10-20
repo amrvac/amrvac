@@ -84,15 +84,3 @@ call mpistop("special wnames and primnames undefined")
 
 end subroutine specialvarnames_output
 !=============================================================================
-{#IFDEF UCONVERT
-subroutine userspecialconvert(qunitconvert)
-! Allow user to use their own data-postprocessing procedures
-
-use mod_global_parameters
-integer, intent(in) :: qunitconvert
-character(len=20):: userconvert_type
-!-----------------------------------------------------------------------------
-
-end subroutine userspecialconvert
-!=============================================================================
-}

@@ -47,10 +47,8 @@ select case(convert_type)
      call handle_particles()
      tpartc = tpartc + (MPI_WTIME() - tpartc0)
 }
-{#IFDEF UCONVERT
   case('user','usermpi')
    call userspecialconvert(unitconvert)
-}
   case default
    call mpistop("Error in generate_plotfile: Unknown convert_type")
 end select
