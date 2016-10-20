@@ -1,3 +1,4 @@
+!> to allow use defined global process before main loop evolution
 subroutine special_process_usr
 use mod_global_parameters
 use mod_input_output
@@ -9,6 +10,7 @@ if(itmaxmf>0) then
    if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
 endif
 }
+! write transformed data file
 if(nwtf>0 .and. neqpartf>0) then
   call write_snapshot_tf
 end if
@@ -27,6 +29,7 @@ double precision, intent(out):: eqpar_tf(neqpartf)
 double precision :: gamma_usr
 integer :: iwup_,diw,e_usr
 !-----------------------------------------------------------------------------
+
 {^IFMHD
 gamma_usr=5.d0/3.d0
 e_usr=m^NC_+1
@@ -43,6 +46,37 @@ eqpar_tf(1:4)=eqpar(1:4)
 }
                                                                                                                                                           
 end subroutine transformw_usr
+!=============================================================================
+!> use different tolerance in special regions for AMR to
+!> reduce/increase resolution there where nothing/something interesting happens.
+subroutine special_tolerance(wlocal,xlocal,tolerance,qt)
+use mod_global_parameters
+
+double precision, intent(in) :: wlocal(1:nw),xlocal(1:ndim),qt
+double precision, intent(inout) :: tolerance
+
+double precision :: bczone^D,addtol,tol_add
+!-----------------------------------------------------------------------------
+! an example:
+!!amplitude of additional tolerance
+!addtol=0.3d0
+!! thickness of near-boundary region
+!bczone1=0.2d0*(xprobmax1-xprobmin1)
+!! linear changing of additional tolerance
+!if(xlocal(1)-xprobmin1 < bczone1 .or. xprobmax1-xlocal(1) < bczone1) then
+!  tol_add=(1.d0-min(xlocal(1)-xprobmin1,xprobmax1-xlocal(1))/bczone1)*addtol
+!endif
+!bczone2=0.2d0*(xprobmax2-xprobmin2)
+!if(xlocal(2)-xprobmin2 < bczone2 .or. xprobmax2-xlocal(2) < bczone2) then
+!  tol_add=(1.d0-min(xlocal(2)-xprobmin2,xprobmax2-xlocal(2))/bczone2)*addtol
+!endif
+!bczone3=0.3d0*(xprobmax3-xprobmin3)
+!if(xprobmax3-xlocal(3) < bczone3) then
+!  tol_add=(1.d0-(xprobmax3-xlocal(3))/bczone3)*addtol
+!endif
+!tolerance=tolerance+tol_add
+
+end subroutine special_tolerance
 !=============================================================================
 subroutine fixp_usr(ixI^L,ixO^L,w,x)
 use mod_global_parameters

@@ -341,10 +341,6 @@ module mod_global_parameters
   !> Which time integrator to use
   character(len=std_len) :: typeadvance
 
-  !> Only used for Richardson extrapolation
-  !> \todo Remove typelow1?
-  character(len=std_len) :: typelow1(nlevelshi)
-
   !> What should be used as a basis for the limiting in TVD methods. Options are
   !> 'original', 'previous' and 'predictor'.
   !>

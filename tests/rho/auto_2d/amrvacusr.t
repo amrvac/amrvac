@@ -5,7 +5,6 @@
 INCLUDE:amrvacnul/speciallog.t
 INCLUDE:amrvacnul/specialbound.t
 INCLUDE:amrvacnul/specialsource.t
-INCLUDE:amrvacnul/specialimpl.t
 INCLUDE:amrvacnul/usrflags.t
 !=============================================================================
 subroutine initglobaldata_usr

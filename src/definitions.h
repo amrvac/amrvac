@@ -7,7 +7,6 @@
 #undefine BIGENDIAN
 #undefine FOURTHORDER
 #undefine TCRKL2
-#undefine SPECIALTOLERANCE
 #undefine MAGNETOFRICTION
 #undefine PARTICLES
 #undefine PARTICLES_ADVECT

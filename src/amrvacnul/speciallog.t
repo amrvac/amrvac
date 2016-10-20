@@ -96,35 +96,3 @@ character(len=20):: userconvert_type
 end subroutine userspecialconvert
 !=============================================================================
 }
-{#IFDEF SPECIALTOLERANCE
-subroutine special_tolerance(xlocal,tolerance)
-!PURPOSE: use different tolerance in special regions for AMR to
-!reduce/increase resolution there where nothing/something interesting happens.
-use mod_global_parameters
-
-double precision, intent(in) :: xlocal(1:ndim)
-double precision, intent(inout) :: tolerance
-
-double precision :: bczone^D,addtol,tol_add
-!-----------------------------------------------------------------------------
-!amplitude of additional tolerance
-addtol=0.3d0
-! thickness of near-boundary region
-bczone1=0.2d0*(xprobmax1-xprobmin1)
-! linear changing of additional tolerance
-if(xlocal(1)-xprobmin1 < bczone1 .or. xprobmax1-xlocal(1) < bczone1) then
-  tol_add=(1.d0-min(xlocal(1)-xprobmin1,xprobmax1-xlocal(1))/bczone1)*addtol
-endif
-bczone2=0.2d0*(xprobmax2-xprobmin2)
-if(xlocal(2)-xprobmin2 < bczone2 .or. xprobmax2-xlocal(2) < bczone2) then
-  tol_add=(1.d0-min(xlocal(2)-xprobmin2,xprobmax2-xlocal(2))/bczone2)*addtol
-endif
-bczone3=0.2d0*(xprobmax3-xprobmin3)
-if(xprobmax3-xlocal(3) < bczone3) then
-  tol_add=(1.d0-(xprobmax3-xlocal(3))/bczone3)*addtol
-endif
-tolerance=tolerance+tol_add
-
-end subroutine special_tolerance
-!=============================================================================
-}

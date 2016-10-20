@@ -110,7 +110,7 @@ contains
          ssplitdust,ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
          conduction,TCsaturate,TCphi,ncyclemax,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
-         typefull1,typepred1,typelow1,&
+         typefull1,typepred1,&
          typelimiter1,mcbeta,typegradlimiter1,&
          flatcd,flatsh,flatppm,&
          loglimit,typelimited,useprimitive,typetvdlf, &
@@ -354,7 +354,6 @@ contains
     do level=1,nlevelshi
        typefull1(level)        = 'tvdlf'
        typepred1(level)        = 'default'
-       typelow1(level)         = 'default'
        typelimiter1(level)     = 'minmod'
        typegradlimiter1(level) = 'minmod'
     end do
@@ -590,39 +589,6 @@ contains
        call mpistop("Unknown typeadvance")
     end select
 
-
-    do level=1,nlevelshi
-       if (typelow1(level)=='default') then
-          select case (typefull1(level))
-          case ('cd')
-             typelow1(level)='cd'
-          case ('cd4')
-             typelow1(level)='cd4'
-          case ('fd')
-             typelow1(level)='fd'
-          case ('hancock')
-             typelow1(level)='hancock'
-          case ('tvdlf','tvdlf1','tvdmu','tvdmu1','tvd1','tvd')
-             typelow1(level)='tvdlf1'
-          case ('hll','hll1')
-             typelow1(level)='hll1'
-          case ('hllc','hllc1')
-             typelow1(level)='hllc1'
-          case ('hllcd','hllcd1')
-             typelow1(level)='hllcd1'
-          case ('hlld','hlld1')
-             typelow1(level)='hlld1'
-          case ('hlldd','hlldd1')
-             typelow1(level)='hlldd1'
-          case ('nul')
-             typelow1(level)='nul'
-          case ('source')
-             typelow1(level)='source'
-          case default
-             call mpistop("No default typelow for this full step")
-          end select
-       end if
-    enddo
 
     ! Harmonize the parameters for dimensional splitting and source splitting
     if(typedimsplit   =='default'.and.     dimsplit)   typedimsplit='xyyx'

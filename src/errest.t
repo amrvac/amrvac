@@ -12,12 +12,19 @@ if (igridstail==0) return
 select case (errorestimate)
 case (0) 
    ! all refinement solely based on user routine specialrefine_grid
-case (2) 
+case (1) 
    ! simply compare w_n-1 with w_n and trigger refinement on relative
    ! differences
 !$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       call compare1_grid(igrid,pwold(igrid)%w,pw(igrid)%w)
+   end do
+!$OMP END PARALLEL DO
+case (2)
+   ! Error estimation is based on Lohner's original scheme
+!$OMP PARALLEL DO PRIVATE(igrid)
+   do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call lohner_orig_grid(igrid)
    end do
 !$OMP END PARALLEL DO
 
@@ -29,13 +36,6 @@ case (3)
    end do
 !$OMP END PARALLEL DO
 
-case (4)
-   ! Error estimation is based on Lohner's original scheme
-!$OMP PARALLEL DO PRIVATE(igrid)
-   do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call lohner_orig_grid(igrid)
-   end do
-!$OMP END PARALLEL DO
 
 
 case default
@@ -153,9 +153,7 @@ refineflag=.false.
 coarsenflag=.false.
 tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
-{#IFDEF SPECIALTOLERANCE
    call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
-}
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error(ix^D) <= tolratio(level)*tolerance) then
@@ -299,234 +297,6 @@ if (time_advance) then
 end if
 
 end subroutine compare1_grid
-!=============================================================================
-subroutine createCoarse(ixCoG^L)
-use mod_global_parameters
-
-integer, intent(in) :: ixCoG^L
-
-integer :: iigrid, igrid
-integer :: ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3
-!-----------------------------------------------------------------------------
-ixG^L=ixCoG^L;
-!$OMP PARALLEL DO PRIVATE(igrid)
-do iigrid=1,igridstail; igrid=igrids(iigrid);
-   call createCoarse_grid(igrid,pwCoarse(igrid),pxCoarse(igrid),ixG^L,pwold(igrid)%w,px(igrid)%x)
-end do
-!$OMP END PARALLEL DO
-
-end subroutine createCoarse
-!=============================================================================
-subroutine createCoarse_grid(igrid,pwCo,pxCo,ixCoG^L,wold,xold)
-
-use mod_global_parameters
-
-integer, intent(in) :: igrid, ixCoG^L
-double precision :: wold(ixG^T,1:nw), xold(ixG^T,1:ndim)
-type(walloc) pwCo
-type(xalloc) pxCo
-
-integer :: ixCoM^L
-!-----------------------------------------------------------------------------
-^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-! now coarsen by 2 in every direction - conservatively
-! coarse grid dimension half its size
-ixCoM^L=ixCoG^L^LSUBdixB;
-call coarsen_grid(wold,xold,ixG^LL,ixM^LL,pwCo%w,pxCo%x,ixCoG^L,ixCoM^L, &
-             pgeo(igrid),pgeoCoarse(igrid),coarsenprimitive,.true.)
-
-end subroutine createCoarse_grid
-!=============================================================================
-subroutine advectCoarse(ixCoG^L,factor)
-use mod_global_parameters
-
-integer :: ixCoG^L
-double precision, intent(in) :: factor
-
-integer :: iigrid, igrid
-!-----------------------------------------------------------------------------
-!$OMP PARALLEL DO PRIVATE(igrid)
-do iigrid=1,igridstail; igrid=igrids(iigrid);
-   call advectCoarse_grid(igrid,pwCoarse(igrid),ixCoG^L,factor)
-end do
-!$OMP END PARALLEL DO
-
-end subroutine advectCoarse
-!=============================================================================
-subroutine advectCoarse_grid(igrid,pwCo,ixCoG^L,factor)
-
-use mod_global_parameters
-
-integer, intent(in) :: igrid, ixCoG^L
-double precision, intent(in) :: factor
-type(walloc) pwCo
-
-double precision :: qdt, dx^D
-double precision, dimension(:^D&,:), allocatable :: wCo1
-double precision :: fC(ixCoG^S,1:nwflux,1:ndim)
-integer :: level
-!-----------------------------------------------------------------------------
-^D&dxlevel(^D)=two*rnode(rpdx^D_,igrid);
-dx^D=dxlevel(^D);
-
-! here we integrate on the coarse grid
-allocate(wCo1(ixCoG^S,1:nw))
-wCo1(ixCoG^S,1:nwflux)=pwCo%w(ixCoG^S,1:nwflux)
-
-! 1st order scheme: do coarse time step of
-!    size 2*dt starting from t_n-1 solution in pwCoarse
-!    to arrive at t_n+1 (n-index from normal uncoarsened grid)
-! result in pwCoarse: coarse solution at t_n+1
-
-if (.not.slab) mygeo => pgeoCoarse(igrid)
-
-qdt=factor*dt_grid(igrid)
-level=node(plevel_,igrid)
-call advect1_grid(typelow1(level),qdt,ixCoG^L,1,ndim,t,wCo1,t, &
-                  pwCo%w,wCo1,fC,dx^D,pxCoarse(igrid)%x)
-
-deallocate(wCo1)
-
-end subroutine advectCoarse_grid
-!=============================================================================
-subroutine errest1_grid(igrid,w)
-
-use mod_global_parameters
-
-integer, intent(in) :: igrid
-double precision, intent(in) :: w(ixG^T,nw)
-
-integer :: level, ixCoG^L
-double precision :: dx^D, qdt
-double precision :: fC(ixG^T,1:nwflux,1:ndim), wFi(ixG^T,1:nw)
-!-----------------------------------------------------------------------------
-level=node(plevel_,igrid)
-
-dx^D=dx(^D,level);
-^D&dxlevel(^D)=dx^D;
-
-wFi(ixG^T,1:nwflux)=w(ixG^T,1:nwflux)
-
-if (.not.skipfinestep) then
-   if (.not.slab) mygeo => pgeo(igrid)
-
-   qdt=dt_grid(igrid)
-   call advect1_grid(typelow1(level),qdt,ixG^LL,1,ndim,t+qdt,w, &
-                     t+qdt,wFi,w,fC,dx^D,px(igrid)%x)
-end if
-
-ixCoGmin^D=1;
-ixCoGmax^D=ixGhi^D/2+dixB;
-
-call flagbadpoints(wFi,pwCoarse(igrid)%w,ixCoG^L,igrid,level)
-
-end subroutine errest1_grid
-!=============================================================================
-subroutine flagbadpoints(w,wCo,ixCoG^L,igrid,level)
-
-! compare error between coarse and fine solution in wCo, w 
-! We base the comparison on the physical field selected by the index flag_ 
-!
-! on entry:
-!  w:       normal time integration 
-!  wCo:     time integration on coarsened grid (2*dx)
-
-use mod_forest, only: coarsen, refine
-use mod_global_parameters
-
-integer, intent(in)         :: igrid, ixCoG^L, level
-double precision,intent(in) :: w(ixG^T,nw), wCo(ixCoG^S,nw)
-double precision            :: specialvar(ixG^T), specialvarCo(ixCoG^S)
-
-logical :: needgetaux
-integer :: iCo^D, iFi^D, ixCoM^L, iiflag, iflag
-double precision :: average, error
-double precision :: averages(nflag_)
-logical, dimension(ixG^T) :: refineflag, coarsenflag
-!-----------------------------------------------------------------------------
-ixCoM^L=ixCoG^L^LSUBdixB;
-
-needgetaux=.false.
-do iiflag=1,flags(nflag_); iflag=flags(iiflag);
-  if (iflag>nwflux) needgetaux=.true.
-end do
-if (nwaux>0.and.needgetaux) then
-   saveigrid=igrid
-   if(.not.slab)mygeo=>pgeo(igrid)
-   call getaux(.true.,w,px(igrid)%x,ixG^LL,ixM^LL,'flagbadpoints')
-   call getaux(.true.,wCo,pxCoarse(igrid)%x,ixCoG^L,ixCoM^L,'flagbadpointsCo')
-end if
-
-! identify the points to be flagged in two steps (needed!):
-!  step I: compare coarse with fine solution, store flags in fine auxiliary
-!  step II: transfer flags from auxiliary to refine and coarsen
-
-refineflag(ixM^T) = .false.
-coarsenflag(ixM^T) = .false.
-
-
-do iiflag=1,flags(nflag_); iflag=flags(iiflag);
-   if (iflag>nw) then
-      call specialvarforerrest(ixCoG^L,ixCoG^L,iflag,wCo,specialvarCo)
-      call specialvarforerrest(ixG^LL,ixG^LL,iflag,w,specialvar)
-   end if
-end do
-
-{iFi^DB = ixMlo^DB
-do iCo^DB = ixCoMmin^DB,ixCoMmax^DB \}
-   average=zero
-   error=zero
-   do iiflag=1,flags(nflag_); iflag=flags(iiflag);
-      if (slab) then
-         if (iflag<=nw) averages(iflag)=sum(w(iFi^D:iFi^D+1,iflag))/two**ndim
-         if (iflag>nw)  averages(iflag)=sum(specialvar(iFi^D:iFi^D+1))/two**ndim
-      else
-         if (iflag<=nw) averages(iflag)=sum(pgeo(igrid)%dvolume(iFi^D:iFi^D+1) &
-                    *w(iFi^D:iFi^D+1,iflag))/pgeoCoarse(igrid)%dvolume(iCo^D)
-         if (iflag>nw)  averages(iflag)=sum(pgeo(igrid)%dvolume(iFi^D:iFi^D+1) &
-                    *specialvar(iFi^D:iFi^D+1))/pgeoCoarse(igrid)%dvolume(iCo^D)
-      end if
-      average=average+wflags(iiflag)*abs(averages(iflag))
-      if (iflag<=nw) error=error+wflags(iiflag)*abs(averages(iflag)-wCo(iCo^D,iflag))
-      if (iflag> nw) error=error+wflags(iiflag)*abs(averages(iflag)-specialvarCo(iCo^D))
-   end do
-   if (abs(average)>smalldouble) then
-      error=error/average
-   else
-      write(unitterm,*)'Warning from flagbadpoints: zero average:',average
-      write(unitterm,*)'   wCo(iCo^D,1:nw):',wCo(iCo^D,1:nw),' indices:',iCo^D
-      write(unitterm,*)'On grid:',igrid,' at level ',level
-      write(unitterm,*)'   and grid indices : ',^D&node(pig^D_,igrid)
-      write(unitterm,*)'cell indices : ',iCo^D
-      call mpistop("")
-   end if
-   if (error >= tol(level)) then
-      refineflag(iFi^D:iFi^D+1) = .true.
-   else if (error <= tolratio(level)*tol(level)) then
-      coarsenflag(iFi^D:iFi^D+1) = .true.
-   end if
-   {iFi^D = iFi^D+2
-end do\}
-
-{iFi^DB = ixMlo^DB
-do iCo^DB = ixCoMmin^DB,ixCoMmax^DB \}
-   if (error >= tol(level)) then
-      refineflag(iFi^D:iFi^D+1) = .true.
-   else if (error <= tolratio(level)*tol(level)) then
-      coarsenflag(iFi^D:iFi^D+1) = .true.
-   end if
-   {iFi^D = iFi^D+2
-end do\}
-
-if (any(refineflag(ixM^T))) then
-   if (level<mxnest) refine(igrid,mype)=.true.
-end if
-if (time_advance) then
-   if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
-end if
-
-end subroutine flagbadpoints
 !=============================================================================
 subroutine forcedrefine_grid(igrid,w)
 use mod_forest, only: coarsen, refine, buffer
