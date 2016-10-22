@@ -556,6 +556,7 @@ module mod_global_parameters
   double precision, allocatable :: rnode_sub(:,:)
 
   !> Error tolerance for refinement decision
+  logical :: specialtol
   double precision :: tol(nlevelshi)
   double precision :: tolratio(nlevelshi)
   double precision :: dx(ndim,nlevelshi)

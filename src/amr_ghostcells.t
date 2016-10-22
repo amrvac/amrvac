@@ -311,12 +311,10 @@ if(bcphys .and. b0_>0) then
              {case (^D)
                 if (iside==2) then
                    ! maximal boundary
-                   iB=ismax^D
                    ixImin^DD=ixGmax^D+1-dixB^D%ixImin^DD=ixGmin^DD;
                    ixImax^DD=ixGmax^DD;
                 else
                    ! minimal boundary
-                   iB=ismin^D
                    ixImin^DD=ixGmin^DD;
                    ixImax^DD=ixGmin^D-1+dixB^D%ixImax^DD=ixGmax^DD;
                 end if \}

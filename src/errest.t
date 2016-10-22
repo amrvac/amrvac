@@ -153,7 +153,7 @@ refineflag=.false.
 coarsenflag=.false.
 tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
-   call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error(ix^D) <= tolratio(level)*tolerance) then
@@ -175,7 +175,7 @@ integer, intent(in) :: igrid
 
 integer :: iiflag, iflag, idims, level
 integer :: ix^L, hx^L, jx^L, ix^D
-double precision :: epsilon
+double precision :: epsilon, tolerance
 double precision, dimension(ixM^T) :: numerator, denominator, error
 double precision, dimension(ixG^T) :: dp, dm, dref, tmp1
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -232,10 +232,12 @@ end do
 refineflag=.false.
 coarsenflag=.false.
 
+tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
-   if (error(ix^D) >= tol(level)) then
+   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
-   else if (error(ix^D) <= tolratio(level)*tol(level)) then
+   else if (error(ix^D) <= tolratio(level)*tolerance) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}
@@ -253,7 +255,7 @@ integer, intent(in) :: igrid
 double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
 
 integer :: ix^D, iiflag, iflag, level
-double precision :: epsilon
+double precision :: epsilon, tolerance
 double precision :: average, error
 double precision :: averages(nflag_)
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -267,7 +269,7 @@ epsilon=1.0d-6
 refineflag(ixM^T) = .false.
 coarsenflag(ixM^T) = .false.
 level=node(plevel_,igrid)
-
+tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB \}
    average=zero
    error=zero
@@ -282,9 +284,10 @@ level=node(plevel_,igrid)
             abs(averages(iflag))/(abs(wold(ix^D,iflag)))
       end if
    end do
-   if (error >= tol(level)) then
+   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   if (error >= tolerance) then
       refineflag(ix^D) = .true.
-   else if (error <= tolratio(level)*tol(level)) then
+   else if (error <= tolratio(level)*tolerance) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}

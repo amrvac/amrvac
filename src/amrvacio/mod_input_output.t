@@ -95,16 +95,16 @@ contains
     character(len=std_len) :: filenameout_full, filenameout_prev
     character(len=std_len) :: filenamelog_full, filenamelog_prev
 
-    namelist /filelist/   filenameout,filenameini,filenamelog, &
+    namelist /filelist/ filenameout,filenameini,filenamelog, &
          snapshotini,typefilelog,firstprocess,resetgrid,changeglobals,snapshotnext, &
          convert,convert_type,dxfiletype,saveprim,primnames, &
          typeparIO,uselimiter,nwauxio,nocartesian,addmpibarrier, &
          writew,writelevel,writespshift,endian_swap, &
          normvar,normt,level_io,level_io_min,level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
-    namelist /savelist/   tsave,itsave,dtsave,ditsave,nslices,slicedir, &
+    namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
          slicecoord,collapse,collapseLevel{#IFDEF MAGNETOFRICTION , ditsavemf}
-    namelist /stoplist/   itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,&
+    namelist /stoplist/ itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,&
          residmax,typeresid{#IFDEF MAGNETOFRICTION , itmaxmf}
     namelist /methodlist/ wnames,fileheadout,typeadvance, &
          ssplitdust,ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
@@ -126,9 +126,9 @@ contains
          ncool,cmulti,coolmethod,coolcurve,Tfix, &
          smallrhod, dustzero, dustmethod,dustspecies,dusttemp, &
          x1ptms,x2ptms,x3ptms,ptmass,tlow,nwtf,neqpartf
-    namelist /boundlist/  dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
+    namelist /boundlist/ dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
          internalboundary
-    namelist /amrlist/    mxnest,nbufferx^D,tol,tolratio,errorestimate, &
+    namelist /amrlist/ mxnest,nbufferx^D,specialtol,tol,tolratio,errorestimate, &
          amr_wavefilter,ngridshi,ixGhi^D,nxlone^D,iprob,xprob^L, &
          skipfinestep,wflags,flags,&
          restrictprimitive,prolongprimitive,coarsenprimitive, &
@@ -230,6 +230,7 @@ contains
     ! AMR related defaults
     mxnest                      = 1
     {nbufferx^D                 = 0\}
+    specialtol                  = .false.
     tol(1:nlevelshi)            = 0.1d0
     tolratio(1:nlevelshi)       = 1.0d0/8.0d0
     typegridfill                = 'linear'
