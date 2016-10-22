@@ -2,19 +2,16 @@
 ! module correctaux.t version September 2012
 ! SRMHD physics module
 !=============================================================================
-subroutine smallvalues(w,x,ixI^L,ixO^L,patchw,subname)
-
-! difference with srhd case only in padding array patchw
+subroutine smallvalues(w,x,ixI^L,ixO^L,subname)
 
 use mod_global_parameters
 
 integer, intent(in)          :: ixI^L,ixO^L
 double precision             :: w(ixI^S,1:nw)
 double precision, intent(in) :: x(ixI^S,1:ndim)
-logical, intent(in)          :: patchw(ixG^T)
 character(len=*), intent(in) :: subname
 
-integer                      :: patchierror(ixG^T), ixmin(ndim)
+integer                      :: patchierror(ixI^S), ixmin(ndim)
 !-----------------------------------------------------------------------------
 if(any((w(ixO^S,d_) < minrho .or. w(ixO^S,tau_) < smalltau))) then
   if(strictsmall)then
@@ -30,8 +27,7 @@ if(any((w(ixO^S,d_) < minrho .or. w(ixO^S,tau_) < smalltau))) then
        ! (optional) artificial replacement of small D and tau values
        ! above corresponding smallrho/smallp settings,
        ! together with nullifying momenta
-       where((w(ixO^S,d_) < minrho .or. w(ixO^S,tau_) < smalltau)&
-           .and. .not.patchw(ixO^S))
+       where(w(ixO^S,d_) < minrho .or. w(ixO^S,tau_) < smalltau)
          w(ixO^S,d_)   = 2.0d0*(1.0d0 + 10.0d0 * minrho)*minrho
          w(ixO^S,tau_) = 2.0d0*(1.0d0 + 10.0d0 * minp)*smalltau&
                       + ({^C&w(ixO^S,b^C_)**2.0d0+})/2.0d0
@@ -39,8 +35,7 @@ if(any((w(ixO^S,d_) < minrho .or. w(ixO^S,tau_) < smalltau))) then
          w(ixO^S,lfac_)=one
        end where
      else
-       where((w(ixO^S,d_) < minrho).or.(w(ixO^S,tau_) < smalltau)&
-           .and. .not.patchw(ixO^S))
+       where(w(ixO^S,d_) < minrho .or. w(ixO^S,tau_) < smalltau)
           patchierror(ixO^S)=-1
        elsewhere
           patchierror(ixO^S)=0
@@ -53,12 +48,12 @@ end if
 {#IFDEF EPSINF 
 if(any(w(ixO^S,Drho1_)<eqpar(rho1e_) &
      .or. w(ixO^S,Dn_)<eqpar(rho1e_))) then 
-   where(w(ixO^S,Drho1_)<eqpar(rho1e_) .and. .not.patchw(ixO^S))
+   where(w(ixO^S,Drho1_)<eqpar(rho1e_))
       w(ixO^S,Drho1_)=eqpar(rho1e_)
       w(ixO^S,Drho0_)=w(ixO^S,Drho1_)*eqpar(rho0floor_)
       w(ixO^S,Depsinf_) = eqpar(epsfloor_)*w(ixO^S,Drho1_)**(2.0d0/3.0d0)
    end where
-   where(w(ixO^S,Dn_)<eqpar(rho1e_) .and. .not.patchw(ixO^S))
+   where(w(ixO^S,Dn_)<eqpar(rho1e_))
       w(ixO^S,Dn_)=eqpar(rho1e_)
       w(ixO^S,Dn0_)=w(ixO^S,Dn_)*eqpar(rho0floor_)
    end where
@@ -83,14 +78,12 @@ double precision:: divb(ixG^T)
 integer::          err,ix^D, i^D
 double precision :: {^C&sold^C_},{^C&bold^C_}, lfacold, xiold
 integer          :: patchierror(ixG^T)=0
-logical          :: patchw(ixG^T)
 {#IFNDEF ENERGY 
 double precision :: MM, MB, BB
 }
 !-----------------------------------------------------------------------------
 
-patchw(ixO^S)=.false.
-if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,patchw,subname)
+if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,subname)
 
 ! we compute auxiliaries lfac,xi from D,S,tau,B
 ! put the lfac and xi in the auxiliary fields lfac_ and xi_

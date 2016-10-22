@@ -85,63 +85,47 @@ double precision,dimension(ixG^T) :: xi
 
 if(useprimitiveRel)then
   ! assumes four velocity computed in primitive (rho u p) with u=lfac*v
-  where(.not.patchw(ixO^S))
-     xi(ixO^S)=one+({^C&w(ixO^S,u^C_)**2.0d0+})
-     ! fill the auxiliary variable lfac_ (Lorentz Factor) and p_ (pressure)
-     w(ixO^S,lfac_)=dsqrt(xi(ixO^S))
-     w(ixO^S,p_)=w(ixO^S,pp_)
-  endwhere
+  xi(ixO^S)=one+({^C&w(ixO^S,u^C_)**2.0d0+})
+  ! fill the auxiliary variable lfac_ (Lorentz Factor) and p_ (pressure)
+  w(ixO^S,lfac_)=dsqrt(xi(ixO^S))
+  w(ixO^S,p_)=w(ixO^S,pp_)
 else
   ! assumes velocity in primitive (rho v p) 
-  where(.not.patchw(ixO^S))
-     xi(ixO^S)=one-({^C&w(ixO^S,v^C_)**2.0d0+})
-     ! fill the auxiliary variable lfac_ (Lorentz Factor) and p_ (pressure)
-     w(ixO^S,lfac_)=one/dsqrt(xi(ixO^S))
-     w(ixO^S,p_)=w(ixO^S,pp_)
-  endwhere
+  xi(ixO^S)=one-({^C&w(ixO^S,v^C_)**2.0d0+})
+  ! fill the auxiliary variable lfac_ (Lorentz Factor) and p_ (pressure)
+  w(ixO^S,lfac_)=one/dsqrt(xi(ixO^S))
+  w(ixO^S,p_)=w(ixO^S,pp_)
 endif
 
 call Enthalpy(w,ixI^L,ixO^L,patchw,xi)
 
 if(useprimitiveRel)then
-   ! compute xi=Lfac w  (enthalphy w)
-   where(.not.patchw(ixO^S))
-      xi(ixO^S)=w(ixO^S,lfac_)*xi(ixO^S)
-   endwhere
+  ! compute xi=Lfac w  (enthalphy w)
+  xi(ixO^S)=w(ixO^S,lfac_)*xi(ixO^S)
 else
-   ! compute xi=Lfac^2 w  (enthalphy w)
-   where(.not.patchw(ixO^S))
-      xi(ixO^S)=w(ixO^S,lfac_)*w(ixO^S,lfac_)*xi(ixO^S)     
-   endwhere
+  ! compute xi=Lfac^2 w  (enthalphy w)
+  xi(ixO^S)=w(ixO^S,lfac_)*w(ixO^S,lfac_)*xi(ixO^S)     
 endif
 
 if(useprimitiveRel)then
-  where(.not.patchw(ixO^S))
-    w(ixO^S,d_)=w(ixO^S,rho_)*w(ixO^S,lfac_) 
-    ^C&w(ixO^S,s^C_)=xi(ixO^S)*w(ixO^S,u^C_);
-    w(ixO^S,tau_)=xi(ixO^S)*w(ixO^S,lfac_) - w(ixO^S,p_) - w(ixO^S,d_)
-  endwhere
+  w(ixO^S,d_)=w(ixO^S,rho_)*w(ixO^S,lfac_) 
+  ^C&w(ixO^S,s^C_)=xi(ixO^S)*w(ixO^S,u^C_);
+  w(ixO^S,tau_)=xi(ixO^S)*w(ixO^S,lfac_) - w(ixO^S,p_) - w(ixO^S,d_)
 else
-  where(.not.patchw(ixO^S))
-    w(ixO^S,d_)=w(ixO^S,rho_)*w(ixO^S,lfac_) 
-    ^C&w(ixO^S,s^C_)=xi(ixO^S)*w(ixO^S,v^C_);
-    w(ixO^S,tau_)=xi(ixO^S) - w(ixO^S,p_) - w(ixO^S,d_)
-  endwhere
+  w(ixO^S,d_)=w(ixO^S,rho_)*w(ixO^S,lfac_) 
+  ^C&w(ixO^S,s^C_)=xi(ixO^S)*w(ixO^S,v^C_);
+  w(ixO^S,tau_)=xi(ixO^S) - w(ixO^S,p_) - w(ixO^S,d_)
 endif
 
 {#IFDEF TRACER
 ! We got D, now we can get the conserved tracers:
-where(.not.patchw(ixO^S))
-   {^FL&w(ixO^S,tr^FL_) = w(ixO^S,d_)*w(ixO^S,tr^FL_)\}
-endwhere
+{^FL&w(ixO^S,tr^FL_) = w(ixO^S,d_)*w(ixO^S,tr^FL_)\}
 }
 {#IFDEF EPSINF
-where(.not.patchw(ixO^S))
-   w(ixO^S,Dne_) =w(ixO^S,ne_)*w(ixO^S,lfac_)
-   w(ixO^S,Dne0_) =w(ixO^S,Dne_)*w(ixO^S,ne0_)
-   w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Dne_)**(2.0d0/3.0d0) &
-        *w(ixO^S,lfac_)**(1.0d0/3.0d0)
-endwhere
+w(ixO^S,Dne_) =w(ixO^S,ne_)*w(ixO^S,lfac_)
+w(ixO^S,Dne0_) =w(ixO^S,Dne_)*w(ixO^S,ne0_)
+w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Dne_)**(2.0d0/3.0d0) &
+     *w(ixO^S,lfac_)**(1.0d0/3.0d0)
 }
 
 if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")

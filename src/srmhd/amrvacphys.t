@@ -118,87 +118,66 @@ double precision, dimension(ixG^T):: sqrV,sqrU,sqrB,VdotB,rhoh
 
 if(useprimitiveRel)then
   ! assumes four velocity computed in primitive (rho u p B) with u=lfac*v
-  where(.not.patchw(ixO^S))
-     sqrU(ixO^S) ={^C&w(ixO^S,u^C_)**2.0d0+} 
-     sqrV(ixO^S) =sqrU(ixO^S)/(one+sqrU(ixO^S))
-     sqrB(ixO^S) ={^C&w(ixO^S,b^C_)**2.0d0+}
-  endwhere
+  sqrU(ixO^S) ={^C&w(ixO^S,u^C_)**2.0d0+} 
+  sqrV(ixO^S) =sqrU(ixO^S)/(one+sqrU(ixO^S))
+  sqrB(ixO^S) ={^C&w(ixO^S,b^C_)**2.0d0+}
 else
   ! assumes velocity in primitive (rho v p B) 
-  where(.not.patchw(ixO^S))
-     sqrV(ixO^S) ={^C&w(ixO^S,v^C_)**2.0d0+}
-     sqrB(ixO^S) ={^C&w(ixO^S,b^C_)**2.0d0+} 
-  endwhere
+  sqrV(ixO^S) ={^C&w(ixO^S,v^C_)**2.0d0+}
+  sqrB(ixO^S) ={^C&w(ixO^S,b^C_)**2.0d0+} 
 endif
 
 ! fill the auxilary variable lfac (lorentz factor)
 if(useprimitiveRel)then
-   where(.not.patchw(ixO^S))
-      w(ixO^S,lfac_)=dsqrt(one+sqrU(ixO^S)) 
-      VdotB(ixO^S)  =({^C&w(ixO^S,b^C_)*w(ixO^S,u^C_)+})/w(ixO^S,lfac_)
-   endwhere
+  w(ixO^S,lfac_)=dsqrt(one+sqrU(ixO^S)) 
+  VdotB(ixO^S)  =({^C&w(ixO^S,b^C_)*w(ixO^S,u^C_)+})/w(ixO^S,lfac_)
 else
-   where(.not.patchw(ixO^S))
-      w(ixO^S,lfac_)=one/dsqrt(one-sqrV(ixO^S))
-      VdotB(ixO^S)  ={^C&w(ixO^S,b^C_)*w(ixO^S,v^C_)+}
-   endwhere
+  w(ixO^S,lfac_)=one/dsqrt(one-sqrV(ixO^S))
+  VdotB(ixO^S)  ={^C&w(ixO^S,b^C_)*w(ixO^S,v^C_)+}
 endif
 
 ! fill the auxilary variable xi and density D
 ! with enthalpy w: xi= lfac^2 rhoh
 ! density: d = lfac * rho
 call Enthalpy(w,ixI^L,ixO^L,patchw,rhoh)
-where(.not.patchw(ixO^S))
-   w(ixO^S,xi_)=w(ixO^S,lfac_)*w(ixO^S,lfac_)* rhoh(ixO^S)
-   w(ixO^S,d_) =w(ixO^S,rho_)*w(ixO^S,lfac_)
-   ! recycle sqrU array for storing temporary positive 
-   ! array for use in energy variable
-   sqrU(ixO^S)=sqrB(ixO^S)*sqrV(ixO^S)-VdotB(ixO^S)**2.0d0
-endwhere
-where(.not.patchw(ixO^S).and.sqrU(ixO^S)<zero)
+w(ixO^S,xi_)=w(ixO^S,lfac_)*w(ixO^S,lfac_)* rhoh(ixO^S)
+w(ixO^S,d_) =w(ixO^S,rho_)*w(ixO^S,lfac_)
+! recycle sqrU array for storing temporary positive 
+! array for use in energy variable
+sqrU(ixO^S)=sqrB(ixO^S)*sqrV(ixO^S)-VdotB(ixO^S)**2.0d0
+where(sqrU(ixO^S)<zero)
    sqrU(ixO^S)=zero
 endwhere
 
 {#IFDEF TRACER
 ! We got D, now we can get the conserved tracers:
-where(.not.patchw(ixO^S))
-   {^FL&w(ixO^S,tr^FL_) = w(ixO^S,d_)*w(ixO^S,tr^FL_)\}
-endwhere
+{^FL&w(ixO^S,tr^FL_) = w(ixO^S,d_)*w(ixO^S,tr^FL_)\}
 }
 
 {#IFDEF EPSINF
-where(.not.patchw(ixO^S))
-   w(ixO^S,Dn_) =w(ixO^S,n_)*w(ixO^S,lfac_)
-   w(ixO^S,Dn0_) =w(ixO^S,Dn_)*w(ixO^S,n0_)
-   w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
-        *w(ixO^S,lfac_)**(1.0d0/3.0d0)
-   w(ixO^S,Depslow_) = w(ixO^S,epslow_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
-        *w(ixO^S,lfac_)**(1.0d0/3.0d0)
-endwhere
+w(ixO^S,Dn_) =w(ixO^S,n_)*w(ixO^S,lfac_)
+w(ixO^S,Dn0_) =w(ixO^S,Dn_)*w(ixO^S,n0_)
+w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
+     *w(ixO^S,lfac_)**(1.0d0/3.0d0)
+w(ixO^S,Depslow_) = w(ixO^S,epslow_)*w(ixO^S,Dn_)**(2.0d0/3.0d0) &
+     *w(ixO^S,lfac_)**(1.0d0/3.0d0)
 }
 ! fill the vector S
 ! s= (xi + B^2) * v - (v.B) * B
 if(useprimitiveRel)then
-   where(.not.patchw(ixO^S))
-       {^C&w(ixO^S,s^C_)=(w(ixO^S,xi_)+sqrB(ixO^S))&
-               *w(ixO^S,u^C_)/w(ixO^S,lfac_) - &
-                VdotB(ixO^S)*w(ixO^S,b^C_);}
-   endwhere
+  {^C&w(ixO^S,s^C_)=(w(ixO^S,xi_)+sqrB(ixO^S))&
+          *w(ixO^S,u^C_)/w(ixO^S,lfac_) - &
+           VdotB(ixO^S)*w(ixO^S,b^C_);}
 else
-   where(.not.patchw(ixO^S))
-       {^C&w(ixO^S,s^C_)=(w(ixO^S,xi_)+sqrB(ixO^S))*w(ixO^S,v^C_) - &
-                       VdotB(ixO^S)*w(ixO^S,b^C_);}
-   endwhere
+  {^C&w(ixO^S,s^C_)=(w(ixO^S,xi_)+sqrB(ixO^S))*w(ixO^S,v^C_) - &
+           VdotB(ixO^S)*w(ixO^S,b^C_);}
 endif
 
-!{#IFDEF ENERGY
 ! E = xi - p +B^2/2 + (v^2 B^2 - (v.B)^2)/2 
 ! instead of E use tau= E - D
-where(.not.patchw(ixO^S))
-    w(ixO^S,tau_)=w(ixO^S,xi_) - w(ixO^S,pp_) - w(ixO^S,d_) +& 
+w(ixO^S,tau_)=w(ixO^S,xi_) - w(ixO^S,pp_) - w(ixO^S,d_) +& 
          half*(sqrB(ixO^S) + sqrU(ixO^S))
-endwhere
-!}
+
 if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,patchw(ixO^S),'conserve')
 
 end subroutine conserve

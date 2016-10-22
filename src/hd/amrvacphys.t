@@ -124,22 +124,20 @@ double precision       :: invgam
 !-----------------------------------------------------------------------------
 
 invgam=1.d0/(eqpar(gamma_)-one)
-where(.not.patchw(ixO^S))
 {#IFDEF GAMMA
-   ! Calculate total energy from pressure and kinetic energy
-   w(ixO^S,e_)=w(ixO^S,p_)*invgam+ &
-           half*w(ixO^S,rho_)*(^C&w(ixO^S,v^C_)**2+)
+! Calculate total energy from pressure and kinetic energy
+w(ixO^S,e_)=w(ixO^S,p_)*invgam+ &
+        half*w(ixO^S,rho_)*(^C&w(ixO^S,v^C_)**2+)
 }
-   ! Convert velocity to momentum
-   ^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,v^C_);
+! Convert velocity to momentum
+^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,v^C_);
 {#IFDEF TRACER
-   {^FL&w(ixO^S,tr^FL_) = w(ixO^S,rho_)*w(ixO^S,tr^FL_)\}
+{^FL&w(ixO^S,tr^FL_) = w(ixO^S,rho_)*w(ixO^S,tr^FL_)\}
 }
 {#IFDEF DUST
-  ! Convert dust velocity to dust momentum
-   {^DS&{^C&w(ixO^S,m^Cd^DS_)=w(ixO^S,rhod^DS_)*w(ixO^S,v^Cd^DS_);}\}
+! Convert dust velocity to dust momentum
+{^DS&{^C&w(ixO^S,m^Cd^DS_)=w(ixO^S,rhod^DS_)*w(ixO^S,v^Cd^DS_);}\}
 }
-end where
 
 if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
 

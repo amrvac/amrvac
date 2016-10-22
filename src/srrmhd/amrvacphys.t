@@ -132,12 +132,49 @@ integer, intent(in)               :: ixI^L,ixO^L
 double precision, intent(inout)   :: w(ixI^S,nw)
 logical, intent(in)               :: patchw(ixG^T)
 double precision, intent(in)      :: x(ixI^S,1:ndim)
-
+! .. local ..
+double precision, dimension(ixG^T):: ecrossbi, sqrU, sqrE, sqrB, rhoh
 !-----------------------------------------------------------------------------
 
-call conserven(ixI^L,ixO^L,w,patchw)
+! fill the auxilary variable lfac (lorentz factor)
+sqrU(ixO^S)    = {^C&w(ixO^S,u^C_)**2|+}
+w(ixO^S,lfac_) = dsqrt(one+sqrU(ixO^S)) 
 
-if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,patchw(ixO^S),'conserve')
+! fill the auxilary variable xi and density D
+! with enthalpy w: xi= lfac^2 rhoh
+! density: d = lfac * rho
+call Enthalpy(w,ixI^L,ixO^L,patchw,rhoh)
+w(ixO^S,xi_)  = w(ixO^S,lfac_)*w(ixO^S,lfac_)* rhoh(ixO^S)
+w(ixO^S,d_)   = w(ixO^S,rho_)*w(ixO^S,lfac_)
+
+{#IFDEF TRACER
+! We got D, now we can get the conserved tracers:
+{^FL&w(ixO^S,tr^FL_) = w(ixO^S,d_)*w(ixO^S,tr^FL_)
+\}
+endwhere
+}{#IFDEF EPSINF
+w(ixO^S,Drho1_)   = w(ixO^S,rho1_)*w(ixO^S,lfac_)
+w(ixO^S,Drho0_)   = w(ixO^S,Drho1_)*w(ixO^S,rho0_)
+w(ixO^S,Dn_)      = w(ixO^S,n_)*w(ixO^S,lfac_)
+w(ixO^S,Dn0_)     = w(ixO^S,Dn_)*w(ixO^S,n0_)
+w(ixO^S,Depsinf_) = w(ixO^S,epsinf_)*w(ixO^S,Drho1_)**(2.0d0/3.0d0) &
+     *w(ixO^S,lfac_)**(1.0d0/3.0d0)
+}
+
+! fill the vector S
+! s = E x B + xi v
+{^C& 
+call ecrossb(ixI^L,ixO^L,^C,w,patchw,ecrossbi)
+w(ixO^S,s^C_) = ecrossbi(ixO^S) + w(ixO^S,xi_) * w(ixO^S,u^C_)/w(ixO^S,lfac_)
+\}
+
+! tau = 1/2 (E^2+B^2) + xi - p - d
+! instead of E use tau= E - D
+sqrB(ixO^S)    = {^C&w(ixO^S,B^C_)**2|+}
+sqrE(ixO^S)    = {^C&w(ixO^S,e^C_)**2|+}
+w(ixO^S,tau_)  = half * (sqrE(ixO^S)+sqrB(ixO^S)) + w(ixO^S,xi_) - w(ixO^S,pp_) - w(ixO^S,d_)
+
+if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,'conserve')
 
 end subroutine conserve
 !=============================================================================

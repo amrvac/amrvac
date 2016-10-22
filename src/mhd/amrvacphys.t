@@ -115,18 +115,16 @@ double precision       :: invgam
 !-----------------------------------------------------------------------------
 
 invgam=1.d0/(eqpar(gamma_)-one)
-where(.not.patchw(ixO^S))
 {#IFDEF GAMMA
-   ! Calculate total energy from pressure, kinetic and magnetic energy
-   w(ixO^S,e_)=w(ixO^S,p_)*invgam+&
-      half*(w(ixO^S,rho_)*(^C&w(ixO^S,v^C_)**2+)+(^C&w(ixO^S,b^C_)**2+))
+! Calculate total energy from pressure, kinetic and magnetic energy
+w(ixO^S,e_)=w(ixO^S,p_)*invgam+&
+  half*(w(ixO^S,rho_)*(^C&w(ixO^S,v^C_)**2+)+(^C&w(ixO^S,b^C_)**2+))
 }
-   ! Convert velocity to momentum
-   ^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,v^C_);
+! Convert velocity to momentum
+^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,v^C_);
 {#IFDEF TRACER
-   {^FL&w(ixO^S,tr^FL_) = w(ixO^S,rho_)*w(ixO^S,tr^FL_)\}
+{^FL&w(ixO^S,tr^FL_) = w(ixO^S,rho_)*w(ixO^S,tr^FL_)\}
 }
-end where
 
 if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
 
