@@ -1835,4 +1835,51 @@ timeToFinish = (tmax - t) * wctPerCodeTime / 3600.0d0
 end if
 
 end subroutine printlog_default
+
+!> Compute mean(w**power) over the leaves of the grid. The first mode
+!> (power=1) corresponds to to the mean, the second to the mean squared values
+!> and so on.
+subroutine get_volume_average(power, mode, volume)
+  include 'amrvacdef.f'
+
+  integer, intent(in)           :: power     !< Which mode to compute
+  double precision, intent(out) :: mode(nw)  !< The computed mode
+  double precision, intent(out) :: volume    !< The total grid volume
+  integer                       :: iigrid, igrid, iw
+  double precision              :: wsum(nw+1)
+  double precision              :: dvolume(ixG^T)
+  double precision              :: dsum_recv(1:nw+1)
+
+  wsum(:) = 0
+
+  ! Loop over all the grids
+  do iigrid = 1, igridstail
+     igrid = igrids(iigrid)
+
+     ! Determine the volume of the grid cells
+     if (slab) then
+        dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
+     else
+        dvolume(ixM^T) = pgeo(igrid)%dvolume(ixM^T)
+     end if
+
+     ! Store total volume in last element
+     wsum(nw+1) = wsum(nw+1) + sum(dvolume(ixM^T))
+
+     ! Compute the modes of the cell-centered variables, weighted by volume
+     do iw = 1, nw
+        wsum(iw) = wsum(iw) + &
+             sum(dvolume(ixM^T)*pw(igrid)%w(ixM^T,iw)**power)
+     end do
+  end do
+
+  ! Make the information available on all tasks
+  call MPI_ALLREDUCE(wsum, dsum_recv, nw+1, MPI_DOUBLE_PRECISION, &
+       MPI_SUM, icomm, ierrmpi)
+
+  ! Set the volume and the average
+  volume = dsum_recv(nw+1)
+  mode   = dsum_recv(1:nw) / volume
+
+end subroutine get_volume_average
 !=============================================================================
