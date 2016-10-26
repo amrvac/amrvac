@@ -38,4 +38,5 @@ amrvac.o: mod_rho.o
 mod_input_output.o: mod_physics.o
 mod_rho.o: mod_physics.o
 mod_physics.o: mod_global_parameters.o
+amr_ghostcells.o: mod_physics.o
 ############################################################################

@@ -530,6 +530,8 @@ end if
 end subroutine bc_recv_prolong
 !=============================================================================
 subroutine bc_prolong
+  use mod_physics, only: phys_convert_before_prolong, &
+       phys_convert_after_prolong
 
 integer :: ixFi^L,ixCo^L,ii^D
 double precision :: dxFi^D, dxCo^D, xFimin^D, xComin^D, invdxCo^D
@@ -554,11 +556,14 @@ xComin1=rnode(rpxmin1_,igrid)*qstl**(-dixB)
 ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
 ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
 
-if (amrentropy) then
-   call e_to_rhos(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-else if (prolongprimitive) then
-   call primitive(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-end if
+call phys_convert_before_prolong(ixCoG^L,ixCo^L,&
+     pwCoarse(igrid)%w,pxCoarse(igrid)%x)
+
+! if (amrentropy) then
+!    call e_to_rhos(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
+! else if (prolongprimitive) then
+!    call primitive(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
+! end if
 
 select case (typeghostfill)
 case ("linear")
@@ -575,17 +580,20 @@ case default
    call mpistop("")
 end select
 
-if (amrentropy) then
-    call rhos_to_e(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-else if (prolongprimitive) then
-    call conserve(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,patchfalse)
-end if
+call phys_convert_after_prolong(ixCoG^L,ixCo^L,&
+     pwCoarse(igrid)%w,pxCoarse(igrid)%x)
+
+! if (amrentropy) then
+!     call rhos_to_e(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
+! else if (prolongprimitive) then
+!     call conserve(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,patchfalse)
+! end if
 
 end subroutine bc_prolong
 !=============================================================================
 subroutine interpolation_linear(pwFi,ixFi^L,dxFi^D,xFimin^D, &
                                 pwCo,dxCo^D,invdxCo^D,xComin^D)
-
+use mod_physics, only: phys_convert_after_prolong
 integer, intent(in) :: ixFi^L
 double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 type(walloc) :: pwCo, pwFi
@@ -664,17 +672,13 @@ double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
 
 {end do\}
 
-if (amrentropy) then
-   call rhos_to_e(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
-else if (prolongprimitive) then
-   call conserve(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x,patchfalse)
-end if
+call phys_convert_after_prolong(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
 
 end subroutine interpolation_linear
 !=============================================================================
 subroutine interpolation_copy(pwFi,ixFi^L,dxFi^D,xFimin^D, &
                               pwCo,dxCo^D,invdxCo^D,xComin^D)
-
+use mod_physics, only: phys_convert_after_prolong
 integer, intent(in) :: ixFi^L
 double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 type(walloc) :: pwCo, pwFi
@@ -694,17 +698,13 @@ double precision :: xFi^D
 
 {end do\}
 
-if (amrentropy) then
-   call rhos_to_e(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
-else if (prolongprimitive) then
-   call conserve(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x,patchfalse)
-end if
+call phys_convert_after_prolong(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
 
 end subroutine interpolation_copy
 !=============================================================================
 subroutine interpolation_unlimit(pwFi,ixFi^L,dxFi^D,xFimin^D, &
                                  pwCo,dxCo^D,invdxCo^D,xComin^D)
-
+use mod_physics, only: phys_convert_after_prolong
 integer, intent(in) :: ixFi^L
 double precision, intent(in) :: dxFi^D, xFimin^D, dxCo^D,invdxCo^D, xComin^D
 type(walloc) :: pwCo, pwFi
@@ -747,11 +747,7 @@ double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
    pwFi%w(ixFi^D,nwstart+1:nwstart+nwbc)=pwCo%w(ixCo^D,nwstart+1:nwstart+nwbc)+{(slope(nwstart+1:nwstart+nwbc,^D)*eta^D)+}
 {end do\}
 
-if (amrentropy) then
-   call rhos_to_e(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
-else if (prolongprimitive) then
-   call conserve(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x,patchfalse)
-end if
+call phys_convert_after_prolong(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
 
 end subroutine interpolation_unlimit
 !=============================================================================
@@ -1034,6 +1030,7 @@ iib^D=0;
 end subroutine identifyphysbound
 !=============================================================================
 subroutine fixdivB_boundary(ixG^L,ixO^L,w,x,iB)
+  use mod_physics, only: phys_to_conserved, phys_to_primitive
 use mod_global_parameters
 
 integer, intent(in) :: ixG^L,ixO^L,iB
@@ -1046,7 +1043,7 @@ integer :: ix^D
 select case(iB)
  case(1)
    ! 2nd order CD for divB=0 to set normal B component better
-   call primitive(ixG^L,ixO^L,w,x)
+   call phys_to_primitive(ixG^L,ixO^L,w,x)
    {^IFTWODMHD
    dx1x2=dxlevel(1)/dxlevel(2)
    do ix2=ixOmin2+1,ixOmax2-1
@@ -1069,9 +1066,9 @@ select case(iB)
      enddo
    enddo
    }
-   call conserve(ixG^L,ixO^L,w,x,patchfalse)
+   call phys_to_conserved(ixG^L,ixO^L,w,x)
  case(2)
-   call primitive(ixG^L,ixO^L,w,x)
+   call phys_to_primitive(ixG^L,ixO^L,w,x)
    {^IFTWODMHD
    dx1x2=dxlevel(1)/dxlevel(2)
    do ix2=ixOmin2+1,ixOmax2-1
@@ -1094,9 +1091,9 @@ select case(iB)
      enddo
    enddo
    }
-   call conserve(ixG^L,ixO^L,w,x,patchfalse)
+   call phys_to_conserved(ixG^L,ixO^L,w,x)
  case(3)
-   call primitive(ixG^L,ixO^L,w,x)
+   call phys_to_primitive(ixG^L,ixO^L,w,x)
    {^IFTWODMHD
    dx2x1=dxlevel(2)/dxlevel(1)
    do ix2=ixOmax2,ixOmin2,-1
@@ -1119,9 +1116,9 @@ select case(iB)
      enddo
    enddo
    }
-   call conserve(ixG^L,ixO^L,w,x,patchfalse)
+   call phys_to_conserved(ixG^L,ixO^L,w,x)
  case(4)
-   call primitive(ixG^L,ixO^L,w,x)
+   call phys_to_primitive(ixG^L,ixO^L,w,x)
    {^IFTWODMHD
    dx2x1=dxlevel(2)/dxlevel(1)
    do ix2=ixOmin2,ixOmax2
@@ -1144,9 +1141,9 @@ select case(iB)
      enddo
    enddo
    }
-   call conserve(ixG^L,ixO^L,w,x,patchfalse)
+   call phys_to_conserved(ixG^L,ixO^L,w,x)
  case(5)
-   call primitive(ixG^L,ixO^L,w,x)
+   call phys_to_primitive(ixG^L,ixO^L,w,x)
    {^IFTHREEDMHD
    dx3x1=dxlevel(3)/dxlevel(1)
    dx3x2=dxlevel(3)/dxlevel(2)
@@ -1160,9 +1157,9 @@ select case(iB)
      enddo
    enddo
    }
-   call conserve(ixG^L,ixO^L,w,x,patchfalse)
+   call phys_to_conserved(ixG^L,ixO^L,w,x)
  case(6)
-   call primitive(ixG^L,ixO^L,w,x)
+   call phys_to_primitive(ixG^L,ixO^L,w,x)
    {^IFTHREEDMHD
    dx3x1=dxlevel(3)/dxlevel(1)
    dx3x2=dxlevel(3)/dxlevel(2)
@@ -1176,7 +1173,7 @@ select case(iB)
      enddo
    enddo
    }
-   call conserve(ixG^L,ixO^L,w,x,patchfalse)
+   call phys_to_conserved(ixG^L,ixO^L,w,x)
  case default
    call mpistop("Special boundary is not defined for this region")
 end select

@@ -181,6 +181,7 @@ subroutine oneblock(qunit)
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid, igrid_to_node
 use mod_global_parameters
+use mod_physics
 integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix^D,ig^D,level
@@ -250,12 +251,12 @@ end do
 
 if (saveprim) then
  do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call primitive(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x)
+  call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x)
  end do
 else
  if (nwaux>0) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
-   call getaux(.true.,pwio(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
+   call phys_get_aux(.true.,pwio(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
   end do
  end if
 end if
@@ -369,6 +370,7 @@ subroutine onegrid(qunit)
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
 use mod_global_parameters
+use mod_physics
 integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix^D,iw
@@ -414,7 +416,7 @@ end if Master_cpu_open
 
 do Morton_no=Morton_start(mype),Morton_stop(mype)
   igrid=sfc_to_igrid(Morton_no)
-  if(saveprim) call primitive(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+  if(saveprim) call phys_to_primitive(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
   if (mype/=0)then
       itag=Morton_no
       call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
@@ -935,7 +937,7 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 ! possible normalization values for the nw+1:nw+nwauxio entries
 
 use mod_global_parameters
-use mod_physics, only: physics_type
+use mod_physics, only: physics_type, phys_to_primitive
 
 integer, intent(in) :: qunit, igrid
 integer :: ixC^L,ixCC^L
@@ -1068,7 +1070,7 @@ endif
 
 ! In case primitives to be saved: use primitive subroutine
 !  extra layer around mesh only needed when storing corner values and averaging
-if(saveprim.and.first) call primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),px(igrid)%x)
+if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),px(igrid)%x)
 
 ! compute the cell-center values for w first
 !===========================================

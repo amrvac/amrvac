@@ -605,6 +605,7 @@ end subroutine select_slice
 !=============================================================================
 subroutine fill_subnode(igrid,active,jgrid,dir,xslice,normconv)
 use mod_global_parameters
+use mod_physics, only: phys_to_primitive
 integer, intent(in) :: igrid, dir
 integer, intent(inout) :: jgrid
 logical, intent(in)  :: active
@@ -660,7 +661,7 @@ end select
 ! Make a local copy of the pw(igrid)%w() array and compute nwauxio variables on this: 
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 if(saveprim.and.(sliceascii.or.ndim==1)) then 
-   call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+   call phys_to_primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
    normconv(0:nw)=normvar(0:nw)
 else
   normconv(0:nw)=one

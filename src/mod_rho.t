@@ -64,7 +64,7 @@ contains
     double precision, intent(inout)           :: cmax(ixG^T)
     double precision, optional, intent(inout) :: cmin(ixG^T)
 
-    call get_v(w, x, ixI^L, ixO^L, idim, cmax)
+    call phys_get_v(w, x, ixI^L, ixO^L, idim, cmax)
 
     if (present(cmin)) then
        cmin(ixO^S)=min(cmax(ixO^S), zero)
@@ -120,7 +120,7 @@ contains
     smalla(ix^S)= -one
     ! The velocity is independent of w in the transport equation,
     ! but it may depend on the location
-    call get_v(wL, x, ixG^LL, ixC^L, idim, v)
+    call phys_get_v(wL, x, ixG^LL, ixC^L, idim, v)
 
     a(ix^S)=(v(jx^S)+v(ix^S))/2
 

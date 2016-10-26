@@ -5,7 +5,7 @@
 subroutine setdt
 
 use mod_global_parameters
-use mod_physics, only: phys_get_dt
+use mod_physics, only: phys_get_dt, phys_get_aux
 
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
@@ -29,7 +29,12 @@ if (dtpar<=zero) then
       if (.not.slab) mygeo => pgeo(igrid)
       if (B0field) myB0 => pB0_cell(igrid)
       if (B0field) myB0_cell => pB0_cell(igrid)
-      if (nwaux>0) call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,'setdt')
+
+      if (nwaux>0) then
+         call phys_get_aux(.true.,pw(igrid)%w,&
+              px(igrid)%x,ixG^LL,ixM^LL,'setdt')
+      end if
+
       call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
       call phys_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)

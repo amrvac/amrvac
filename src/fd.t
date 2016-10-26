@@ -1,7 +1,7 @@
 !=============================================================================
 subroutine fd(method,qdt,ixI^L,ixO^L,idim^LIM, &
                      qtC,wCT,qt,wnew,wold,fC,dx^D,x)
-
+use mod_physics
 use mod_global_parameters
 
 character(len=*), intent(in)                                     :: method
@@ -56,10 +56,10 @@ do idims= idim^LIM
 }
 
    ! Calculate velocities for transport fluxes
-   call getv(wCT,x,ixG^LL,ixCR^L,idims,v)
+   call phys_get_v(wCT,x,ixG^LL,ixCR^L,idims,v)
    
    do iw=1,nwflux
-      call getfluxforhllc(wCT,x,ixG^LL,ixCR^L,iw,idims,fCT,transport)
+      call phys_get_flux(wCT,x,ixG^LL,ixCR^L,iw,idims,fCT(ixI^S,iw),transport)
       if (transport) fCT(ixCR^S,iw) = fCT(ixCR^S,iw) + v(ixCR^S) * wCT(ixCR^S,iw)
       ! Lax-Friedrich splitting:
       fp(ixCR^S,iw) = half * (fCT(ixCR^S,iw) + tvdlfeps * cmax_global * wCT(ixCR^S,iw))
@@ -87,7 +87,7 @@ do idims= idim^LIM
 
 end do !idims loop
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 

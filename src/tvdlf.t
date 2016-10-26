@@ -14,7 +14,7 @@ subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
 
 
 ! FCT not implemented here
-
+use mod_physics
 use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
@@ -27,7 +27,6 @@ double precision, dimension(ixI^S) :: vLC, vRC
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixtest^L
 logical :: transport
-logical, dimension(ixI^S) :: patchw
 !-----------------------------------------------------------------------------
 
 ! Expand limits in each idims direction in which fluxes are added
@@ -39,7 +38,7 @@ if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in Hancock: Nonconforming input limits")
 
 if (useprimitive) then  
-   call primitive(ixI^L,ixI^L,wCT,x)
+   call phys_to_primitive(ixI^L,ixI^L,wCT,x)
 endif 
 
 ^D&dxinv(^D)=-qdt/dx^D;
@@ -64,19 +63,19 @@ do idims= idim^LIM
 
    if (nwaux>0.and.(.not.(useprimitive))) then
    !!if (nwaux>0) then
-      call getaux(.true.,wLC,x,ixI^L,ixO^L,'hancock_wLC')
-      call getaux(.true.,wRC,x,ixI^L,hxO^L,'hancock_wRC')
+      call phys_get_aux(.true.,wLC,x,ixI^L,ixO^L,'hancock_wLC')
+      call phys_get_aux(.true.,wRC,x,ixI^L,hxO^L,'hancock_wRC')
    end if
 
    ! Calculate vLC and vRC velocities
-   call getv(wRC,x,ixI^L,hxO^L,idims,vRC)
-   call getv(wLC,x,ixI^L,ixO^L,idims,vLC)
+   call phys_get_v(wRC,x,ixI^L,hxO^L,idims,vRC)
+   call phys_get_v(wLC,x,ixI^L,ixO^L,idims,vLC)
 
    ! Advect w(iw)
    do iw=1,nwflux
       ! Calculate the fLC and fRC fluxes
-      call getflux(wRC,x,ixI^L,hxO^L,iw,idims,fRC,transport)
-      call getflux(wLC,x,ixI^L,ixO^L,iw,idims,fLC,transport)
+      call phys_get_flux(wRC,x,ixI^L,hxO^L,iw,idims,fRC,transport)
+      call phys_get_flux(wLC,x,ixI^L,ixO^L,iw,idims,fLC,transport)
       if (transport) then
          fRC(hxO^S)=fRC(hxO^S)+vRC(hxO^S)*wRC(hxO^S,iw)
          fLC(ixO^S)=fLC(ixO^S)+vLC(ixO^S)*wLC(ixO^S,iw)
@@ -98,13 +97,12 @@ do idims= idim^LIM
 end do ! next idims
 
 if (useprimitive) then  
-    patchw(ixI^S)=.false.
-    call conserve(ixI^L,ixI^L,wCT,x,patchw)
+    call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
-   if(nwaux>0) call getaux(.true.,wCT,x,ixI^L,ixI^L,'hancock_wCT')
+   if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hancock_wCT')
 endif
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
@@ -114,7 +112,7 @@ subroutine upwindLR(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,x,needprim,dxdim)
 
 ! Determine the upwinded wLC(ixL) and wRC(ixR) from w. 
 ! the wCT is only used when PPM is exploited.
-
+use mod_physics
 use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
@@ -128,14 +126,12 @@ integer :: jxR^L, ixC^L, jxC^L, iw, ixtest^L
 double precision :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
 double precision :: ldw(ixI^S), dwC(ixI^S)
 logical, dimension(ixI^S) :: flagL, flagR
-logical, dimension(ixI^S) :: patchw, patchwLC, patchwRC
-
 character*79 :: savetypelimiter
 !-----------------------------------------------------------------------------
 
 ! Transform w,wL,wR to primitive variables
 if (needprim.and.useprimitive) then
-   call primitive(ixI^L,ixI^L,w,x)
+   call phys_to_primitive(ixI^L,ixI^L,w,x)
 end if
 
 if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
@@ -181,8 +177,8 @@ if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
    end if
  end do
 
- call checkw(useprimitive,ixI^L,ixL^L,wLtmp,flagL)
- call checkw(useprimitive,ixI^L,ixR^L,wRtmp,flagR)
+ call phys_check_w(useprimitive,ixI^L,ixL^L,wLtmp,flagL)
+ call phys_check_w(useprimitive,ixI^L,ixR^L,wRtmp,flagR)
 
  do iw=1,nwflux
    where (flagL(ixL^S).and.flagR(ixR^S))
@@ -206,13 +202,10 @@ endif
 ! Transform w,wL,wR back to conservative variables
 if (useprimitive) then
    if(needprim)then 
-      patchw(ixI^S)=.false.
-      call conserve(ixI^L,ixI^L,w,x,patchw)
+      call phys_to_conserved(ixI^L,ixI^L,w,x)
    endif
-   patchwLC(ixI^S)=.false.
-   patchwRC(ixI^S)=.false.
-   call conserve(ixI^L,ixL^L,wLC,x,patchwLC)
-   call conserve(ixI^L,ixR^L,wRC,x,patchwRC)
+   call phys_to_conserved(ixI^L,ixL^L,wLC,x)
+   call phys_to_conserved(ixI^L,ixR^L,wRC,x)
 end if
 
 end subroutine upwindLR
@@ -361,6 +354,7 @@ subroutine tvdlf(method,qdt,ixI^L,ixO^L,idim^LIM, &
 !> method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
 !> method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
 
+use mod_physics
 use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
@@ -377,7 +371,6 @@ double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ixtest^L
 logical :: transport, new_cmax, CmaxMeanState
-logical, dimension(ixI^S) :: patchw
 !-----------------------------------------------------------------------------
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
@@ -399,7 +392,7 @@ if (ixI^L^LTix^L|.or.|.or.) &
 if ((method=='tvdlf').and.useprimitive) then  
    ! second order methods with primitive limiting: 
    ! this call ensures wCT is primitive with updated auxiliaries
-   call primitive(ixI^L,ixI^L,wCT,x)
+   call phys_to_primitive(ixI^L,ixI^L,wCT,x)
 endif 
 
 
@@ -470,36 +463,36 @@ do idims= idim^LIM
            half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
       ! get auxilaries for mean state
       if (nwaux>0) then
-         call getaux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_cmaxmeanstate')
+         call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_cmaxmeanstate')
       end if
-      new_cmax=.true.
-      call getcmax(new_cmax,wLC,xi,ixI^L,ixC^L,idims,cmaxC,cmaxLC,.false.)
-      
+
+      call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxC)
+
       ! We regain wLC for further use
       wLC(ixC^S,1:nwflux)=two*wLC(ixC^S,1:nwflux)-wRC(ixC^S,1:nwflux)
       if (nwaux>0) then
-         call getaux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_A')
+         call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_A')
       endif
       if (nwaux>0.and.(.not.(useprimitive).or.method=='tvdlf1')) then
-         call getaux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_A')
+         call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_A')
       end if
    else
       ! get auxilaries for L and R states
       if (nwaux>0.and.(.not.(useprimitive).or.method=='tvdlf1')) then
          !!if (nwaux>0) then
-         call getaux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC')
-         call getaux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC')
+         call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC')
+         call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC')
       end if
-      new_cmax=.true.
-      call getcmax(new_cmax,wLC,xi,ixI^L,ixC^L,idims,cmaxLC,cmaxC,.false.)
-      call getcmax(new_cmax,wRC,xi,ixI^L,ixC^L,idims,cmaxRC,cmaxC,.false.)
+
+      call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxLC)
+      call phys_get_cmax(wRC,xi,ixI^L,ixC^L,idims,cmaxRC)
       ! now take the maximum of left and right states
       cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
    end if
    
    ! Calculate velocities for transport fluxes
-   call getv(wLC,xi,ixI^L,ixC^L,idims,vLC)
-   call getv(wRC,xi,ixI^L,ixC^L,idims,vRC)
+   call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
+   call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
 
 {#IFDEF GLM
@@ -511,8 +504,8 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-      call getflux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
-      call getflux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
+      call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
+      call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
       if (transport) then
          fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
          fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
@@ -571,13 +564,12 @@ do idims= idim^LIM
 end do ! Next idims
 
 if ((method=='tvdlf').and.useprimitive) then  
-    patchw(ixI^S)=.false.
-    call conserve(ixI^L,ixI^L,wCT,x,patchw)
+    call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
-   if(nwaux>0) call getaux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
+   if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
 endif
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),ixI^L,ixO^L,1,nw,qtC,&
                 wCT,qt,wnew,x,.false.)
 
@@ -588,7 +580,7 @@ subroutine hll(method,qdt,ixI^L,ixO^L,idim^LIM, &
 
 !> method=='hll'  --> 2nd order HLL scheme.
 !> method=='hll1' --> 1st order HLL scheme.
-
+use mod_physics
 use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
@@ -607,7 +599,6 @@ double precision, dimension(1:ndim)     :: dxinv, dxdim
 integer, dimension(ixI^S)               :: patchf
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
 logical :: transport, new_cmax, CmaxMeanState, logiB
-logical, dimension(ixI^S) :: patchw
 !-----------------------------------------------------------------------------
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
@@ -630,7 +621,7 @@ if (ixI^L^LTix^L|.or.|.or.) &
 if (method=='hll'.and.useprimitive) then  
    ! second order methods with primitive limiting: 
    ! this call ensures wCT is primitive with updated auxiliaries
-   call primitive(ixI^L,ixI^L,wCT,x)
+   call phys_to_primitive(ixI^L,ixI^L,wCT,x)
 endif 
 
 ^D&dxinv(^D)=-qdt/dx^D;
@@ -701,29 +692,29 @@ do idims= idim^LIM
                half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
          ! get auxilaries for mean state
          if (nwaux>0) then
-            call getaux(.true.,wLC,xi,ixI^L,ixC^L,'hll_cmaxmeanstate')
+            call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hll_cmaxmeanstate')
          end if
-         new_cmax=.true.
-         call getcmax(new_cmax,wLC,xi,ixI^L,ixC^L,idims,cmaxC,cminC,.true.)
+
+         call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
 
          ! We regain wLC for further use
          wLC(ixC^S,1:nwflux)=two*wLC(ixC^S,1:nwflux)-wRC(ixC^S,1:nwflux)
          if (nwaux>0) then
-            call getaux(.true.,wLC,xi,ixI^L,ixC^L,'hll_wLC_B')
+            call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hll_wLC_B')
          endif
          if (nwaux>0.and.(.not.(useprimitive).or.method=='hll1')) then
-            call getaux(.true.,wRC,xi,ixI^L,ixC^L,'hll_wRC_B')
+            call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hll_wRC_B')
          end if
     else
          ! get auxilaries for L and R states
          if (nwaux>0.and.(.not.(useprimitive).or.method=='hll1')) then
          !!if (nwaux>0) then
-            call getaux(.true.,wLC,xi,ixI^L,ixC^L,'hll_wLC')
-            call getaux(.true.,wRC,xi,ixI^L,ixC^L,'hll_wRC')
+            call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hll_wLC')
+            call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hll_wRC')
          end if
-         new_cmax=.true.
-         call getcmax(new_cmax,wLC,xi,ixI^L,ixC^L,idims,cmaxLC,cminLC,.true.)
-         call getcmax(new_cmax,wRC,xi,ixI^L,ixC^L,idims,cmaxRC,cminRC,.true.)
+
+         call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxLC,cminLC)
+         call phys_get_cmax(wRC,xi,ixI^L,ixC^L,idims,cmaxRC,cminRC)
          ! now take the maximum of left and right states 
          ! S.F. Davis, SIAM J. Sci. Statist. Comput. 1988, 9, 445
          cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
@@ -738,8 +729,8 @@ do idims= idim^LIM
    endwhere
 
    ! Calculate velocities for transport fluxes
-   if(any(patchf(ixC^S)/= 2).or.(logiB)) call getv(wLC,xi,ixI^L,ixC^L,idims,vLC)
-   if(any(patchf(ixC^S)/=-2).or.(logiB)) call getv(wRC,xi,ixI^L,ixC^L,idims,vRC)
+   if(any(patchf(ixC^S)/= 2).or.(logiB)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
+   if(any(patchf(ixC^S)/=-2).or.(logiB)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
 {#IFDEF GLM
 ! Solve the Riemann problem for the linear 2x2 system for normal
@@ -751,11 +742,11 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
      if(any(patchf(ixC^S)/= 2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
-        call getflux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
+        call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
         if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
      end if
      if(any(patchf(ixC^S)/=-2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
-        call getflux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
+        call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
         if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
      end if
 
@@ -821,13 +812,12 @@ do idims= idim^LIM
 end do ! Next idims
 
 if (method=='hll'.and.useprimitive) then  
-   patchw(ixI^S)=.false.
-   call conserve(ixI^L,ixI^L,wCT,x,patchw)
+   call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
-   if(nwaux>0) call getaux(.true.,wCT,x,ixI^L,ixI^L,'hll_wCT')
+   if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hll_wCT')
 endif
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
@@ -841,6 +831,7 @@ subroutine hllc(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='hllcd' --> 2nd order HLLC+tvdlf scheme.
 ! method=='hllcd1'--> 1st order HLLC+tvdlf scheme.
 
+use mod_physics
 use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
@@ -860,7 +851,6 @@ double precision, dimension(1:ndim)                :: dxinv, dxdim
 integer, dimension(ixI^S)                          :: patchf
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
 logical :: transport, new_cmax, CmaxMeanState, logiB, firstordermethod
-logical, dimension(ixI^S) :: patchw
 
 !=== specific to HLLC and HLLCD ===!
 double precision, dimension(ixI^S,1:nwflux)     :: fLC, fRC
@@ -888,7 +878,7 @@ if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in hllc : Nonconforming input limits")
 
 if ((method=='hllc'.or.method=='hllcd').and.useprimitive) then
-   call primitive(ixI^L,ixI^L,wCT,x)
+   call phys_to_primitive(ixI^L,ixI^L,wCT,x)
 endif 
 firstordermethod=(method=='hllc1'.or.method=='hllcd1')
 
@@ -961,31 +951,31 @@ do idims= idim^LIM
                half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
          ! get auxilaries for mean state
          if (nwaux>0) then
-            call getaux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_cmaxmeanstate')
+            call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_cmaxmeanstate')
          end if
-         new_cmax=.true.
-         call getcmax(new_cmax,wLC,xi,ixI^L,ixC^L,idims,cmaxC,cminC,.true.)
+
+         call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
 
          ! We regain wLC for further use
          wLC(ixC^S,1:nwflux)=two*wLC(ixC^S,1:nwflux)-wRC(ixC^S,1:nwflux)
          if (nwaux>0) then
-            call getaux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_wLC_B')
+            call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_wLC_B')
          end if
          if (nwaux>0.and.(.not.(useprimitive).or.firstordermethod)) then
-            call getaux(.true.,wRC,xi,ixI^L,ixC^L,'hllc_wRC_B')
+            call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hllc_wRC_B')
          end if
    else
          ! get auxilaries for L and R states
          if (nwaux>0.and.(.not.(useprimitive).or.firstordermethod)) then
          !!if (nwaux>0) then
-            call getaux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_wLC')
-            call getaux(.true.,wRC,xi,ixI^L,ixC^L,'hllc_wRC')
+            call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_wLC')
+            call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hllc_wRC')
          end if
-         new_cmax=.true.
+
          ! to save memory, use cmaxC and lambdaCD for cmacRC and cmaxLC respectively
          ! to save memory, use vLC   and vRC      for cminRC and cminLC respectively
-         call getcmax(new_cmax,wLC,xi,ixI^L,ixC^L,idims,cmaxC,vLC,.true.)
-         call getcmax(new_cmax,wRC,xi,ixI^L,ixC^L,idims,lambdaCD,vRC,.true.)
+         call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxC,vLC)
+         call phys_get_cmax(wRC,xi,ixI^L,ixC^L,idims,lambdaCD,vRC)
          ! now take the maximum of left and right states
          cmaxC(ixC^S)=max(lambdaCD(ixC^S),cmaxC(ixC^S))
          cminC(ixC^S)=min(vRC(ixC^S),vLC(ixC^S))
@@ -999,8 +989,8 @@ do idims= idim^LIM
    endwhere
 
    ! Calculate velocities for transport fluxes
-   if(any(patchf(ixC^S)/= 2).or.(logiB)) call getv(wLC,xi,ixI^L,ixC^L,idims,vLC)
-   if(any(patchf(ixC^S)/=-2).or.(logiB)) call getv(wRC,xi,ixI^L,ixC^L,idims,vRC)
+   if(any(patchf(ixC^S)/= 2).or.(logiB)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
+   if(any(patchf(ixC^S)/=-2).or.(logiB)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
 {#IFDEF GLM
 ! Solve the Riemann problem for the linear 2x2 system for normal
@@ -1011,11 +1001,11 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
      if(any(patchf(ixC^S)/= 2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then
-        call getfluxforhllc(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
+        call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC(ixI^S,iw),transport)
         if (transport)  fLC(ixC^S,iw)=fLC(ixC^S,iw)+vLC(ixC^S)*wLC(ixC^S,iw)
      end if
      if(any(patchf(ixC^S)/=-2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then
-        call getfluxforhllc(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
+        call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC(ixI^S,iw),transport)
         if (transport)   fRC(ixC^S,iw)=fRC(ixC^S,iw)+vRC(ixC^S)*wRC(ixC^S,iw)
      end if
    end do
@@ -1106,13 +1096,12 @@ do idims= idim^LIM
 end do ! Next idims
 
 if ((method=='hllc'.or.method=='hllcd').and.useprimitive) then  
-   patchw(ixI^S)=.false.
-   call conserve(ixI^L,ixI^L,wCT,x,patchw)
+   call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
-   if(nwaux>0) call getaux(.true.,wCT,x,ixI^L,ixI^L,'hllc_wCT')
+   if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hllc_wCT')
 endif
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
@@ -1124,6 +1113,7 @@ subroutine tvdmusclf(method,qdt,ixI^L,ixO^L,idim^LIM, &
 ! method=='tvdmu'  --> 2nd order (may be 3rd order in 1D) TVD-MUSCL scheme.
 ! method=='tvdmu1' --> 1st order TVD-MUSCL scheme (upwind per charact. var.)
 ! FCT not implemented here.
+use mod_physics
 use mod_global_parameters
 
 character(len=*), intent(in)                         :: method
@@ -1140,7 +1130,6 @@ double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
 double precision :: dxinv(1:ndim),dxdim(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ixtest^L
 logical :: transport, new_cmax, CmaxMeanState
-logical, dimension(ixI^S) :: patchw
 !-----------------------------------------------------------------------------
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
@@ -1162,7 +1151,7 @@ if (ixI^L^LTix^L|.or.|.or.) &
 if ((method=='tvdmu').and.useprimitive) then  
    ! second order methods with primitive limiting: 
    ! this call ensures wCT is primitive with updated auxiliaries
-   call primitive(ixI^L,ixI^L,wCT,x)
+   call phys_to_primitive(ixI^L,ixI^L,wCT,x)
 endif 
 
 
@@ -1221,14 +1210,14 @@ do idims= idim^LIM
    ! handle all other methods than tvdlf, namely tvdmu and tvdmu1 here
    if (nwaux>0.and.(.not.(useprimitive).or.method=='tvdmu1')) then
       !!if (nwaux>0) then
-      call getaux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_B')
-      call getaux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_B')
+      call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_B')
+      call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_B')
    end if
    
 
    ! Calculate velocities for transport fluxes
-   call getv(wLC,xi,ixI^L,ixC^L,idims,vLC)
-   call getv(wRC,xi,ixI^L,ixC^L,idims,vRC)
+   call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
+   call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
 
 {#IFDEF GLM
@@ -1239,8 +1228,8 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-      call getflux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
-      call getflux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
+      call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
+      call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
       if (transport) then
          fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
          fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
@@ -1270,13 +1259,12 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 end do ! Next idims
 
 if ((method=='tvdmu').and.useprimitive) then  
-    patchw(ixI^S)=.false.
-    call conserve(ixI^L,ixI^L,wCT,x,patchw)
+    call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
-   if(nwaux>0) call getaux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
+   if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
 endif
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),ixI^L,ixO^L,1,nw,qtC,&
                 wCT,qt,wnew,x,.false.)
 

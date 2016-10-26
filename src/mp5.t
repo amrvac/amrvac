@@ -4,6 +4,7 @@ subroutine MP5limiter(ixI^L,iL^L,idims,w,wCT,wLC,wRC)
 ! Needs at least three ghost cells.  Set dixB=3.
 
 use mod_global_parameters
+use mod_physics, only: phys_check_w
 
 integer, intent(in)             :: ixI^L, iL^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)
@@ -190,8 +191,8 @@ end where
 
 ! Since limiter not TVD, negative pressures or densities could result.  
 ! Fall back to flat interpolation (minmod would also work). 
-call checkw(useprimitive,ixG^LL,iL^L,wLCtmp,flagL)
-call checkw(useprimitive,ixG^LL,iL^L,wRCtmp,flagR)
+call phys_check_w(useprimitive,ixG^LL,iL^L,wLCtmp,flagL)
+call phys_check_w(useprimitive,ixG^LL,iL^L,wRCtmp,flagR)
 
 do iw=1,nwflux
    where (flagL(iL^S).and.flagR(iL^S))

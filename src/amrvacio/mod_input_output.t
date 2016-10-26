@@ -866,6 +866,7 @@ contains
   subroutine write_snapshot
     use mod_forest
     use mod_global_parameters
+    use mod_physics
 
     integer :: file_handle, amode, igrid, Morton_no, iwrite
     integer :: nx^D
@@ -913,7 +914,7 @@ contains
              myB0_cell => pB0_cell(igrid)
              {^D&myB0_face^D => pB0_face^D(igrid)\}
           end if
-          call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+          call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
        endif
        iwrite=iwrite+1
        {#IFDEF EVOLVINGBOUNDARY
@@ -970,6 +971,7 @@ contains
   subroutine write_snapshot_tf
     use mod_forest
     use mod_global_parameters
+    use mod_physics
 
     double precision, allocatable :: wtf(:^D&,:)
     double precision :: eqpar_tf(neqpartf)
@@ -1019,7 +1021,7 @@ contains
              myB0_cell => pB0_cell(igrid)
              {^D&myB0_face^D => pB0_face^D(igrid)\}
           end if
-          call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+          call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
        endif
        iwrite=iwrite+1
        call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
@@ -1057,6 +1059,7 @@ contains
   subroutine write_snapshot_nopar
     use mod_forest
     use mod_global_parameters
+    use mod_physics
 
     integer :: file_handle, amode, igrid, Morton_no, iwrite
     integer :: nx^D
@@ -1110,7 +1113,7 @@ contains
                 myB0_cell => pB0_cell(igrid)
                 {^D&myB0_face^D => pB0_face^D(igrid)\}
              end if
-             call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
           endif
           call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
           call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
@@ -1143,7 +1146,7 @@ contains
                 myB0_cell => pB0_cell(igrid)
                 {^D&myB0_face^D => pB0_face^D(igrid)\}
              end if
-             call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
           endif
           {#IFDEF EVOLVINGBOUNDARY
           nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
@@ -1243,6 +1246,7 @@ contains
   subroutine write_snapshot_noparf
     use mod_forest
     use mod_global_parameters
+    use mod_physics
 
     integer :: igrid, Morton_no
     integer :: nx^D
@@ -1291,7 +1295,7 @@ contains
                 myB0_cell => pB0_cell(igrid)
                 {^D&myB0_face^D => pB0_face^D(igrid)\}
              end if
-             call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
           endif
           call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
           call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
@@ -1329,7 +1333,7 @@ contains
                 myB0_cell => pB0_cell(igrid)
                 {^D&myB0_face^D => pB0_face^D(igrid)\}
              end if
-             call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
           endif
           write(unitsnapshot) pw(igrid)%w(ixM^T,1:nw)
        end do

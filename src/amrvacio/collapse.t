@@ -442,6 +442,7 @@ end subroutine integrate_subnode
 !=============================================================================
 subroutine collapse_subnode(igrid,jgrid,dir,normconv)
 use mod_global_parameters
+use mod_physics, only: phys_to_primitive
 integer, intent(in) :: igrid, jgrid, dir
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
 ! .. local ..
@@ -454,7 +455,7 @@ dx^D=rnode(rpdx^D_,igrid);
 
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 if(saveprim) then 
-   call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+   call phys_to_primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
    normconv(0:nw)=normvar(0:nw)
 else
   normconv(0:nw)=one

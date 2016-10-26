@@ -10,8 +10,12 @@ module mod_physics
   procedure(sub_init_params), pointer     :: phys_init_params => null()
   procedure(sub_check_params), pointer    :: phys_check_params => null()
   procedure(sub_read_params), pointer     :: phys_read_params => null()
-  procedure(sub_to_conserved), pointer    :: phys_to_conserved => null()
-  procedure(sub_to_primitive), pointer    :: phys_to_primitive => null()
+  procedure(sub_convert), pointer         :: phys_to_conserved => null()
+  procedure(sub_convert), pointer         :: phys_to_primitive => null()
+  procedure(sub_convert), pointer         :: phys_convert_before_prolong => null()
+  procedure(sub_convert), pointer         :: phys_convert_after_prolong => null()
+  procedure(sub_convert), pointer         :: phys_convert_before_coarsen => null()
+  procedure(sub_convert), pointer         :: phys_convert_after_coarsen => null()
   procedure(sub_average), pointer         :: phys_average => null()
   procedure(sub_get_eigenjump), pointer   :: phys_get_eigenjump => null()
   procedure(sub_rtimes), pointer          :: phys_rtimes => null()
@@ -21,6 +25,8 @@ module mod_physics
   procedure(sub_get_dt), pointer          :: phys_get_dt => null()
   procedure(sub_add_source_geom), pointer :: phys_add_source_geom => null()
   procedure(sub_add_source), pointer      :: phys_add_source => null()
+  procedure(sub_get_aux), pointer         :: phys_get_aux => null()
+  procedure(sub_check_w), pointer         :: phys_check_w => null()
 
   abstract interface
 
@@ -36,19 +42,12 @@ module mod_physics
        integer, intent(out)         :: io_state
      end subroutine sub_read_params
 
-     subroutine sub_to_conserved(ixI^L, ixO^L, w, x)
+     subroutine sub_convert(ixI^L, ixO^L, w, x)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(inout) :: w(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
-     end subroutine sub_to_conserved
-
-     subroutine sub_to_primitive(ixI^L, ixO^L, w, x)
-       use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(inout) :: w(ixI^S, nw)
-       double precision, intent(in)    :: x(ixI^S, 1:^ND)
-     end subroutine sub_to_primitive
+     end subroutine sub_convert
 
      subroutine sub_average(wL, wR, x, ix^L, idim, wroe, workroe)
        use mod_global_parameters
@@ -121,6 +120,23 @@ module mod_physics
        double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
      end subroutine sub_get_dt
 
+     subroutine sub_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: x(ixI^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,nw)
+       logical, intent(in)             :: clipping
+       character(len=*)                :: subname
+     end subroutine sub_get_aux
+
+     subroutine sub_check_w(checkprimitive,ixI^L,ixO^L,w,flag)
+       use mod_global_parameters
+       logical             :: checkprimitive
+       integer, intent(in) :: ixI^L, ixO^L
+       double precision    :: w(ixI^S,nw)
+       logical             :: flag(ixG^T)
+     end subroutine sub_check_w
+
   end interface
 
 contains
@@ -138,10 +154,22 @@ contains
          phys_read_params => dummy_read_params
 
     if (.not. associated(phys_to_conserved)) &
-         phys_to_conserved => dummy_to_conserved
+         phys_to_conserved => dummy_convert
 
     if (.not. associated(phys_to_primitive)) &
-         phys_to_primitive => dummy_to_primitive
+         phys_to_primitive => dummy_convert
+
+    if (.not. associated(phys_convert_before_prolong)) &
+         phys_to_conserved => dummy_convert
+
+    if (.not. associated(phys_convert_after_prolong)) &
+         phys_to_primitive => dummy_convert
+
+    if (.not. associated(phys_convert_before_prolong)) &
+         phys_to_conserved => dummy_convert
+
+    if (.not. associated(phys_convert_after_prolong)) &
+         phys_to_primitive => dummy_convert
 
     if (.not. associated(phys_average)) &
          call mpistop("Error: no average method has been specified")
@@ -170,6 +198,12 @@ contains
     if (.not. associated(phys_add_source)) &
          phys_add_source => dummy_add_source
 
+    if (.not. associated(phys_get_aux)) &
+         phys_get_aux => dummy_get_aux
+
+    if (.not. associated(phys_check_w)) &
+         phys_check_w => dummy_check_w
+
   end subroutine phys_check_methods
 
   subroutine dummy_init_params()
@@ -184,19 +218,12 @@ contains
     integer, intent(out)         :: io_state
   end subroutine dummy_read_params
 
-  subroutine dummy_to_conserved(ixI^L, ixO^L, w, x)
+  subroutine dummy_convert(ixI^L, ixO^L, w, x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
-  end subroutine dummy_to_conserved
-
-  subroutine dummy_to_primitive(ixI^L, ixO^L, w, x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:^ND)
-  end subroutine dummy_to_primitive
+  end subroutine dummy_convert
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
@@ -221,5 +248,23 @@ contains
 
     dtnew = bigdouble
   end subroutine dummy_get_dt
+
+  subroutine dummy_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,nw)
+    logical, intent(in)             :: clipping
+    character(len=*)                :: subname
+  end subroutine dummy_get_aux
+
+  subroutine dummy_check_w(checkprimitive,ixI^L,ixO^L,w,flag)
+    use mod_global_parameters
+    logical             :: checkprimitive
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision    :: w(ixI^S,nw)
+    logical             :: flag(ixG^T)
+    flag(ixO^S)=.true.
+  end subroutine dummy_check_w
 
 end module mod_physics

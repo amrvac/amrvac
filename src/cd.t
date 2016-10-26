@@ -8,7 +8,7 @@ subroutine centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
 ! differencing in space the dw/dt+dF_i(w)/dx_i=S type equation. 
 ! wCT contains the time centered variables at time qtC for flux and source.
 ! w is the old value at qt on input and the new value at qt+qdt on output.
-
+use mod_physics
 use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
@@ -40,12 +40,12 @@ do idims= idim^LIM
    jxC^L=ixC^L+kr(idims,^D); 
    hxO^L=ixO^L-kr(idims,^D);
 
-   call getv(wCT,x,ixI^L,ix^L,idims,f)
+   call phys_get_v(wCT,x,ixI^L,ix^L,idims,f)
    v(ix^S,idims)=f(ix^S)
 
    do iw=1,nwflux
       ! Get non-transported flux
-      call getflux(wCT,x,ixI^L,ix^L,iw,idims,f,transport)
+      call phys_get_flux(wCT,x,ixI^L,ix^L,iw,idims,f,transport)
       ! Add transport flux
       if (transport) f(ix^S)=f(ix^S)+v(ix^S,idims)*wCT(ix^S,iw)
       ! Center flux to interface
@@ -64,7 +64,7 @@ do idims= idim^LIM
    end do    !next iw
 end do       !next idims
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
+if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
 
@@ -77,7 +77,7 @@ subroutine centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
 ! for the dw/dt+dF_i(w)/dx_i=S type equation.
 ! wCT contains the time centered variables at time qtC for flux and source.
 ! w is the old value at qt on input and the new value at qt+qdt on output.
-
+use mod_physics
 use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L, idim^LIM
@@ -111,7 +111,7 @@ end if
 if (useprimitive) then
    ! primitive limiting:
    ! this call ensures wCT is primitive with updated auxiliaries
-   call primitive(ixI^L,ixI^L,wCT,x)
+   call phys_to_primitive(ixI^L,ixI^L,wCT,x)
 endif
 
 ! Add fluxes to w
@@ -148,31 +148,29 @@ do idims= idim^LIM
 
    ! get auxiliaries for L and R states
    if (nwaux>0.and.(.not.(useprimitive))) then
-         call getaux(.true.,wLC,xi,ixG^LL,ixC^L,'cd4_wLC')
-         call getaux(.true.,wRC,xi,ixG^LL,ixC^L,'cd4_wRC')
+         call phys_get_aux(.true.,wLC,xi,ixG^LL,ixC^L,'cd4_wLC')
+         call phys_get_aux(.true.,wRC,xi,ixG^LL,ixC^L,'cd4_wRC')
    end if
 
    ! Calculate velocities from upwinded values
-   new_cmax=.true.
-   call getcmax(new_cmax,wLC,xi,ixG^LL,ixC^L,idims,cmaxLC,vLC,.false.)
-   call getcmax(new_cmax,wRC,xi,ixG^LL,ixC^L,idims,cmaxRC,vLC,.false.)
+   call phys_get_cmax(wLC,xi,ixG^LL,ixC^L,idims,cmaxLC)
+   call phys_get_cmax(wRC,xi,ixG^LL,ixC^L,idims,cmaxRC)
    ! now take the maximum of left and right states
    vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
 
    ! Calculate velocities for centered values
-   call getv(wCT,xi,ixI^L,ix^L,idims,f)
+   call phys_get_v(wCT,xi,ixI^L,ix^L,idims,f)
    v(ix^S,idims)=f(ix^S)
 
 if (useprimitive) then
    ! primitive limiting:
    ! this call ensures wCT is primitive with updated auxiliaries
-   patchw(ixI^S) = .false.
-   call conserve(ixI^L,ixI^L,wCT,x,patchw)
+   call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 endif
 
    do iw=1,nwflux
       ! Get non-transported flux
-      call getflux(wCT,xi,ixI^L,ix^L,iw,idims,f,transport)
+      call phys_get_flux(wCT,xi,ixI^L,ix^L,iw,idims,f,transport)
       ! Add transport flux
       if (transport) f(ix^S)=f(ix^S)+v(ix^S,idims)*wCT(ix^S,iw)
       ! Center flux to interface
@@ -197,7 +195,8 @@ endif
    end do    !next iw
 end do       !next idims
 
-if (.not.slab.and.idimmin==1) call addgeometry(qdt,ixI^L,ixO^L,wCT,w,x)
+if (.not.slab.and.idimmin==1) &
+     call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
 

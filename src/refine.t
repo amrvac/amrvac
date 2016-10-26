@@ -32,88 +32,81 @@ call dealloc_node(igrid)
 end subroutine refine_grid
 !=============================================================================
 subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
+  use mod_physics, only: phys_convert_before_prolong, &
+       phys_convert_after_prolong
+  use mod_global_parameters
 
-use mod_global_parameters
+  integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
+  integer, intent(in) :: igrid, ipe
 
-integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
-integer, intent(in) :: igrid, ipe
+  integer :: ix^L, ichild, ixCo^L, ic^D
+  double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
+  !-----------------------------------------------------------------------------
+  ! TODO: discuss/clean commented code below
+  if (typegridfill=="linear") then
+     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+     {#IFDEF EVOLVINGBOUNDARY
+     if (phyboundblock(igrid)) then
+        ix^L=ixG^LL;
+     else
+        ix^L=ixM^LL^LADD1;
+     end if
+     }{#IFNDEF EVOLVINGBOUNDARY
+     ix^L=ixM^LL^LADD1;
+     }
 
-integer :: ix^L, ichild, ixCo^L, ic^D
-double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
-!-----------------------------------------------------------------------------
-if (typegridfill=="linear") then
-   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-   if (amrentropy) then
-{#IFDEF EVOLVINGBOUNDARY
-      if (phyboundblock(igrid)) then
-         ix^L=ixG^LL;
-      else
-         ix^L=ixM^LL^LADD1;
-      end if
-}{#IFNDEF EVOLVINGBOUNDARY
-      ix^L=ixM^LL^LADD1;
-}
-      call e_to_rhos(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
-   else if (prolongprimitive) then
-{#IFDEF EVOLVINGBOUNDARY
-      if (phyboundblock(igrid)) then
-         ix^L=ixG^LL;
-      else
-         ix^L=ixM^LL^LADD1;
-      end if
-}{#IFNDEF EVOLVINGBOUNDARY
-      ix^L=ixM^LL^LADD1;
-}
-      call primitive(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
-   end if
+     call phys_convert_before_prolong(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
 
-   xComin^D=rnode(rpxmin^D_,igrid)\
-   dxCo^D=rnode(rpdx^D_,igrid)\
-{#IFDEF STRETCHGRID
-   logG=logGs(node(plevel_,igrid))
-   qst=qsts(node(plevel_,igrid))
-}
-end if
+     xComin^D=rnode(rpxmin^D_,igrid)\
+     dxCo^D=rnode(rpdx^D_,igrid)\
+     {#IFDEF STRETCHGRID
+     logG=logGs(node(plevel_,igrid))
+     qst=qsts(node(plevel_,igrid))
+     }
+  end if
 
-{do ic^DB=1,2\}
-   ichild=child_igrid(ic^D)
+  {do ic^DB=1,2\}
+  ichild=child_igrid(ic^D)
 
-   ixComin^D=ixMlo^D+(ic^D-1)*(ixMhi^D-ixMlo^D+1)/2\
-   ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2\
+  ixComin^D=ixMlo^D+(ic^D-1)*(ixMhi^D-ixMlo^D+1)/2\
+  ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2\
 
-   if (typegridfill=="linear") then
-      xFimin^D=rnode(rpxmin^D_,ichild)\
-      dxFi^D=rnode(rpdx^D_,ichild)\
-{#IFDEF EVOLVINGBOUNDARY
-      if (phyboundblock(ichild)) then
-         call prolong_2ab(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
-                      dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
-      else
-         call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
-                      dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
-      end if
-}{#IFNDEF EVOLVINGBOUNDARY
-      call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
-                   dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
-}
-   else
-      call prolong_1st(pw(igrid)%w,ixCo^L,pw(ichild)%w,px(ichild)%x)
-   end if
-{end do\}
+  if (typegridfill=="linear") then
+     xFimin^D=rnode(rpxmin^D_,ichild)\
+     dxFi^D=rnode(rpdx^D_,ichild)\
+     {#IFDEF EVOLVINGBOUNDARY
+     if (phyboundblock(ichild)) then
+        call prolong_2ab(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+             dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
+     else
+        call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+             dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
+     end if
+     }{#IFNDEF EVOLVINGBOUNDARY
+     call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+          dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
+     }
+  else
+     call prolong_1st(pw(igrid)%w,ixCo^L,pw(ichild)%w,px(ichild)%x)
+  end if
+  {end do\}
 
-if (typegridfill=="linear") then
-   if (amrentropy) then
-      call rhos_to_e(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
-   else if (prolongprimitive) then
-      call conserve(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x,patchfalse)
-   end if
-end if
+  if (typegridfill=="linear") then
+     call phys_convert_after_prolong(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
+     ! TODO: clean this up
+     !    if (amrentropy) then
+     !       call rhos_to_e(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
+     !    else if (prolongprimitive) then
+     !       call conserve(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x,patchfalse)
+     !    end if
+  end if
 
 end subroutine prolong_grid
 !=============================================================================
 subroutine prolong_2ab(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
 ! interpolate children blocks including ghost cells
 
+use mod_physics, only: phys_convert_after_prolong
 use mod_global_parameters
 
 integer, intent(in) :: ixCo^L, igridFi
@@ -207,16 +200,13 @@ ixCgmax^D=ixComax^D+el\
    {end do\}
 {end do\}
 
-if (amrentropy) then
-   call rhos_to_e(ixG^LL,ixM^LL,wFi,xFi)
-else if (prolongprimitive) then
-   call conserve(ixG^LL,ixM^LL,wFi,xFi,patchfalse)
-end if
+call phys_convert_after_prolong(ixG^LL,ixM^LL,wFi,xFi)
 
 end subroutine prolong_2ab
 !=============================================================================
 subroutine prolong_2nd(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
 
+use mod_physics, only: phys_convert_after_prolong
 use mod_global_parameters
 
 integer, intent(in) :: ixCo^L, igridFi
@@ -306,11 +296,7 @@ invdxCo^D=1.d0/dxCo^D;
    {end do\}
 {end do\}
 
-if (amrentropy) then
-   call rhos_to_e(ixG^LL,ixM^LL,wFi,xFi)
-else if (prolongprimitive) then
-   call conserve(ixG^LL,ixM^LL,wFi,xFi,patchfalse)
-end if
+call phys_convert_after_prolong(ixG^LL,ixM^LL,wFi,xFi)
 
 end subroutine prolong_2nd
 !=============================================================================
