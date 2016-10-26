@@ -13,6 +13,7 @@
         itsave(1,2)=0
         ditsave(1)=1
         dtsave(2)=0.1d0
+        dtsave(5)=0.1d0
  /
 
  &stoplist
@@ -28,7 +29,7 @@
  /
 
  &boundlist
-        dixB=    3
+        dixB=    2
         typeB=   4*'periodic',4*'periodic',
                  'symm','symm','asymm','symm',
                  'symm','symm','asymm','symm'
@@ -36,12 +37,12 @@
 
  &amrlist
         errorestimate=3
-        mxnest=6
+        mxnest=2
         nbufferx1=0
         nbufferx2=0
         tol=13*0.1d0
-        nxlone1=32
-        nxlone2=32
+        nxlone1=64
+        nxlone2=64
         xprobmin1=0.0d0
         xprobmax1=1.0d0
         xprobmin2=0.0d0
