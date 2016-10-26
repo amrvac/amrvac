@@ -29,9 +29,9 @@ SRC           = $(AMRVAC_DIR)/src
 include $(AMRVAC_DIR)/arch/$(ARCH)
 
 ############## setup.pl: #######################
-PHYSICS=
+# PHYSICS=
 
-VPATH         =  $(WORK_DIR):$(SRC)/$(PHYSICS):$(SRC)
+VPATH         =  $(WORK_DIR):$(SRC)
 INCLUDE_DIRS  += -I.
 ################################################
 
@@ -47,7 +47,7 @@ eos=default
 # SETVAC READS UP TO THIS POINT
 
 PPFLAGS  = -d=$(ndim)$(ndir) -phi=$(phi)
-PPFLAGS += -z=$(z) -p=$(PHYSICS) -nf=$(nf)
+PPFLAGS += -z=$(z) -nf=$(nf)
 PPFLAGS += -ndust=$(ndust)
 PPFLAGS += -eos=$(eos)
 
@@ -86,7 +86,7 @@ VPATH += :$(SRC)/amrvacio
 -include $(SRC)/amrvacio/makefile
 
 ################### Include additional objects in physics dir ##############
--include $(SRC)/$(PHYSICS)/makefile
+# -include $(SRC)/$(PHYSICS)/makefile
 
 ################### Include additional modules in modules dir ##############
 VPATH += :$(SRC)/modules

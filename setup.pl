@@ -12,7 +12,6 @@ Options:
 
     -d=NM                       N is the the problem dimension (1 to 3)
                                 M is the vector dimension (1 to 3)
-    -p=<physics module>         Which physics module to use (rho, mhd, ...)
     -phi={1,2,3}                Index of vector phi-component (default: 3)
     -z={1,2,3}                  Index of vector z-component (default: 2)
     -eos=<equation of state>    The equation of state
@@ -31,7 +30,6 @@ setup.pl -show\n";
 # Locally define the variables that will hold the options
 my $ndim;
 my $ndir;
-my $physics;
 my $eos;
 my $phi_dir;
 my $z_dir;
@@ -56,7 +54,6 @@ GetOptions(
         $ndim <= $ndir && $ndir <= 3 ||
             die("ndim <= ndir <= 3 does not hold\n");
     },
-    "p=s"     => \$physics,
     "eos=s"   => \$eos,
     "phi=i"   => \$phi_dir,
     "z=i"     => \$z_dir,
@@ -69,7 +66,7 @@ GetOptions(
 
 
 # Show help if -help is given or if there are no other arguments
-if ($help || !($ndim || $ndir || $show || $physics || $eos ||
+if ($help || !($ndim || $ndir || $show || $eos ||
                length($phi_dir) || length($z_dir) || $arch ||
                length($ntracers) || length($ndust))) {
     print STDERR $help_message;
@@ -109,10 +106,6 @@ if (length($ntracers)) {
 
 if (length($ndust)) {
     replace_regexp_file("makefile", qr/ndust\s*=.*/, "ndust = $ndust");
-}
-
-if ($physics) {
-    replace_regexp_file("makefile", qr/PHYSICS\s*=.*/, "PHYSICS = $physics");
 }
 
 if ($eos) {
@@ -183,7 +176,7 @@ sub show_current_parameters {
 
     print "\n Invocation of setup.pl:\n";
     printf " setup.pl -d=%d%d", $params{"ndim"}, $params{"ndir"};
-    printf " -p=%s -phi=%d", $params{"physics"}, $params{"phi"};
+    printf " -phi=%d", $params{"phi"};
     printf " -z=%d -eos=%s", $params{"z"}, $params{"eos"};
     printf " -nf=%d -ndust=%d", $params{"nf"}, $params{"ndust"};
     printf " -arch=%s\n", $params{"arch"};
@@ -204,7 +197,6 @@ sub get_current_parameters {
         # Note that $' returns the text after the match
         $params{"ndim"}    = $1 if /^ndim\s*=\s*(\d+)/ ;
         $params{"ndir"}    = $1 if /^ndir\s*=\s*(\d+)/;
-        $params{"physics"} = $1 if /^PHYSICS\s*=\s*(\w+)/ ;
         $params{"arch"}    = $1 if /^ARCH\s*=\s*(\w+)/ ;
         $params{"phi"}     = $' if /^phi\s*=\s*/ ;
         $params{"z"}       = $' if /^z\s*=\s*/ ;

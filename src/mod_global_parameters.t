@@ -68,8 +68,6 @@ module mod_global_parameters
   !> \todo Check whether these are still needed
   integer, parameter :: pphi_=^PPHI, zz_=^ZZ
 
-  include 'amrvacpar.f'
-
   !> Number of spatial dimensions for grid variables
   integer, parameter :: ndim=^ND
 
@@ -149,6 +147,32 @@ module mod_global_parameters
 
   include 'amrvacusrpar.f'
 
+  ! TODO temporary placed here (Jannis)
+  integer           :: nwflux
+  integer           :: nwaux
+  integer           :: nwextra
+  integer           :: nw
+  integer           :: nvector
+  integer           :: nworkroe
+
+  integer                       :: nflag_
+  integer, allocatable          :: flags(:)
+  double precision, allocatable :: wflags(:)
+
+  integer :: b0_  ! Magnetic field
+  integer :: b^C_ ! Magnetic field
+  integer :: e_   ! Energy (compilation of convert)
+
+  integer, dimension(:), allocatable :: iw_vector
+
+  integer           :: iprob
+  double precision  :: xprob^L
+
+  ! TODO: remove
+  integer, parameter :: neqpar=1
+  double precision :: eqpar(neqpar)
+  character(len=*), parameter :: eqparname = "DEPRECATED"
+
   !> For transform variables and save selected data
   !> number of w in the transformed data
   integer :: nwtf
@@ -162,7 +186,7 @@ module mod_global_parameters
   integer :: lvc(3,3,3)
 
   !> Equation and method parameters
-  double precision :: eqpar(neqpar+nspecialpar)
+  ! double precision :: eqpar(neqpar+nspecialpar)
 
   !> The Courant (CFL) number used for the simulation
   double precision :: courantpar
@@ -377,7 +401,7 @@ module mod_global_parameters
   character(len=std_len) :: typeprolonglimit
 
   !> Which type of entropy fix to use with Riemann-type solvers
-  character(len=std_len) :: typeentropy(nw)
+  character(len=std_len), allocatable :: typeentropy(:)
 
   !> Which type of TVD method to use
   character(len=std_len) :: typetvd
@@ -391,15 +415,16 @@ module mod_global_parameters
   character(len=std_len) :: typecoord
   character(len=std_len) :: typepoly
 
-  integer                :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
-  double precision       :: entropycoef(nw)
-  double precision       :: tvdlfeps, mcbeta, TCphi
+  integer                       :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
+  double precision, allocatable :: entropycoef(:)
+  double precision              :: tvdlfeps, mcbeta, TCphi
   !> \todo organize Thermal Conduction: bcphys/TCphi/TCsaturate/conduction
-  logical                :: conduction,TCsaturate,TCperpendicular,bcphys
-  logical                :: loglimit(nw),logflag(nw),flathllc,flatcd,flatsh,flatppm
-  logical                :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
-  logical                :: restrictprimitive,prolongprimitive
-  logical                :: coarsenprimitive,useprimitiveRel, amrentropy
+  logical                       :: conduction,TCsaturate,TCperpendicular,bcphys
+  logical, allocatable          :: loglimit(:), logflag(:)
+  logical                       :: flathllc,flatcd,flatsh,flatppm
+  logical                       :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
+  logical                       :: restrictprimitive,prolongprimitive
+  logical                       :: coarsenprimitive,useprimitiveRel, amrentropy
 
   logical                :: divbwave,compactres,BnormLF
   double precision       :: divbdiff,smallT,smallp,smallrho,amr_wavefilter(nlevelshi)
@@ -411,7 +436,8 @@ module mod_global_parameters
   integer          :: maxitnr,nflatgetaux
 
   logical          :: nocartesian
-  logical          :: writew(nw),writelevel(nlevelshi)
+  logical, allocatable :: writew(:)
+  logical :: writelevel(nlevelshi)
   double precision :: writespshift(ndim,2)
   integer          :: level_io, level_io_min, level_io_max
 
@@ -448,7 +474,7 @@ module mod_global_parameters
 
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
-  character(len=std_len) :: typeB(nw,nhiB)
+  character(len=std_len), allocatable :: typeB(:, :)
 
   character(len=std_len) :: typeghostfill,typegridfill
   double precision ::ratebdflux
@@ -519,7 +545,7 @@ module mod_global_parameters
 
   !> Conversion factors for length (normvar(0)) and the primitive variables
   !> (normvar(1:nw))
-  double precision       :: normvar(0:nw)
+  double precision, allocatable :: normvar(:)
 
   !> Conversion factor for time unit
   double precision       :: normt

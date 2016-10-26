@@ -20,8 +20,6 @@ Required options:
 
     -d=NM                       N is the the problem dimension (1 to 3)
                                 M is the vector dimension (1 to 3)
-    -p=<physics module>         Which physics module to use (rho, mhd, ...)
-
 Optional options:
 
     -phi={1,2,3}                Index of vector phi-component (default: 3)
@@ -42,7 +40,7 @@ Examples:
 ";
 
 # Check presence of required arguments
-if (! ($d && $p)) {
+if (! ($d)) {
     print STDERR "Error: not all required arguments are present\n\n";
     print STDERR $help_message;
     exit
@@ -257,30 +255,30 @@ sub definepatterns{
    &patdef('NOONEC'     ,$ndir!=1               );
    &patdef('IFPHI'      ,$phi>0			);
    &patdef('IFZ'        ,$z>0			);
-   &patdef('IFMHD'      ,$p eq mhd              );
-   &patdef('IFSRMHD'    ,$p eq srmhd		);
+   # &patdef('IFMHD'      ,$p eq mhd              );
+   # &patdef('IFSRMHD'    ,$p eq srmhd		);
 #   &patdef('IFSRMHDGLM' ,$p eq srmhdglm         );
-   &patdef('IFSRHD'     ,$p eq srhd		);
-   &patdef('IFSRHDEOS'  ,$p eq srhdeos		);
-   &patdef('IFSRMHDEOS' ,$p eq srmhdeos		);
+   # &patdef('IFSRHD'     ,$p eq srhd		);
+   # &patdef('IFSRHDEOS'  ,$p eq srhdeos		);
+   # &patdef('IFSRMHDEOS' ,$p eq srmhdeos		);
 #   &patdef('IFSRMHDGLMEOS' ,$p eq srmhdglmeos   );
 #   &patdef('IFGLM'      ,$p eq mhdglm || $p eq srmhdglm || $p eq srmhdglmeos);
-   &patdef('IFEOS'      ,$p eq srhdeos || $p eq srmhdeos || $p eq srmhdglmeos );
-   &patdef('IFNOEOS'    ,$p ne srmhdeos && $p ne srmhdglmeos && $p ne srhdeos);
-   &patdef('IFMHDPHYS'  ,$p eq mhd || $p eq mhdglm || $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
-   &patdef('IFHDPHYS'  ,$p eq hd ||  $p eq srhd ||  $p eq srhdeos || $p eq srhdeoscooling);
-   &patdef('IFRELMHDPHYS'  , $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
-   &patdef('IFRELHDPHYS'  ,  $p eq srhd ||  $p eq srhdeos || $p eq srhdeoscooling);
-   &patdef('IFREL'      ,$p eq srhd || $p eq srhdeos || $p eq srmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos || $p eq srhdeoscooling|| $p eq srhdcooling || $p eq grhd);
-   &patdef('IFREL'  , $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
-  &patdef('IFCLA'      ,$p eq hdadiab || $p eq hd || $p eq mhd || $p eq mhdglm || $p eq mhdadiab);
-   &patdef('IFRESSRMHD' ,$p eq ressrmhd         );
+   # &patdef('IFEOS'      ,$p eq srhdeos || $p eq srmhdeos || $p eq srmhdglmeos );
+   # &patdef('IFNOEOS'    ,$p ne srmhdeos && $p ne srmhdglmeos && $p ne srhdeos);
+   # &patdef('IFMHDPHYS'  ,$p eq mhd || $p eq mhdglm || $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
+   # &patdef('IFHDPHYS'  ,$p eq hd ||  $p eq srhd ||  $p eq srhdeos || $p eq srhdeoscooling);
+   # &patdef('IFRELMHDPHYS'  , $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
+   # &patdef('IFRELHDPHYS'  ,  $p eq srhd ||  $p eq srhdeos || $p eq srhdeoscooling);
+   # &patdef('IFREL'      ,$p eq srhd || $p eq srhdeos || $p eq srmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos || $p eq srhdeoscooling|| $p eq srhdcooling || $p eq grhd);
+   # &patdef('IFREL'  , $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
+  # &patdef('IFCLA'      ,$p eq hdadiab || $p eq hd || $p eq mhd || $p eq mhdglm || $p eq mhdadiab);
+   # &patdef('IFRESSRMHD' ,$p eq ressrmhd         );
    &patdef('IFMPT'      ,$cp eq mpt             );
    &patdef('IFNOMPT'    ,$cp ne mpt             );
-   &patdef('IFGR'       ,$p eq grhd ||$p eq grhdeos || $p eq grmhd  || $p eq grmhdeos || $p eq grmhdglm || $p eq grmhdglmeos            );
-  &patdef('IFNOGR'       ,$p ne grhd && $p ne grhdeos && $p ne grmhd  && $p ne grmhdeos && $p ne grmhdglm && $p ne grmhdglmeos            );
-   &patdef('IFTWODMHD'   ,$p eq mhd && $ndim==2 );
-   &patdef('IFTHREEDMHD' ,$p eq mhd && $ndim==3 );
+   # &patdef('IFGR'       ,$p eq grhd ||$p eq grhdeos || $p eq grmhd  || $p eq grmhdeos || $p eq grmhdglm || $p eq grmhdglmeos            );
+  # &patdef('IFNOGR'       ,$p ne grhd && $p ne grhdeos && $p ne grmhd  && $p ne grmhdeos && $p ne grmhdglm && $p ne grmhdglmeos            );
+   # &patdef('IFTWODMHD'   ,$p eq mhd && $ndim==2 );
+   # &patdef('IFTHREEDMHD' ,$p eq mhd && $ndim==3 );
 }
 #============================================================================
 sub definevars{

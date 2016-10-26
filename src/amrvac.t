@@ -12,21 +12,21 @@ use mod_gridvars, only: init_gridvars, finish_gridvars
 }
 use mod_global_parameters
 use mod_input_output
+use mod_physics
 
-integer :: itin
+integer          :: itin
 double precision :: time0, time_in, tin
-!-----------------------------------------------------------------------------
-call comm_start
 
-time_advance=.false.
+call comm_start()
 
-time0=MPI_WTIME()
-time_bc=zero
+time_advance = .false.
+time0        = MPI_WTIME()
+time_bc      = zero
 
+call activate_physics_module("rho")
 call read_arguments_and_parameters()
-call initialize_vars
-call init_comm_types
-
+call initialize_vars()
+call init_comm_types()
 
 ! Begin of the code
 ! -----------------
@@ -133,7 +133,26 @@ call finish_tracerparticles
 }
 call comm_finalize
 
-end program amrvac
+contains
+
+  subroutine activate_physics_module(physics_name)
+    use mod_physics, only: phys_check_methods
+    use mod_rho, only: rho_activate
+
+    character(len=*), intent(in) :: physics_name
+
+    select case (physics_name)
+    case ("rho")
+       call rho_activate()
+    case default
+       call mpistop("Invalid physics module selected")
+    end select
+
+    call phys_check_methods()
+
+  end subroutine activate_physics_module
+
+end program
 !=============================================================================
 subroutine timeintegration
 
@@ -317,11 +336,11 @@ end function fixgrid
 !> * Call initglobaldata_usr which is supplied by the user
 !> * Call checkglobaldata from the selected physics module
 subroutine initglobal
-
   use mod_global_parameters
+  use mod_physics, only: phys_init_params, phys_check_params
 
-  call initglobaldata
-  call initglobaldata_usr
-  call checkglobaldata
+  call phys_init_params()
+  call initglobaldata_usr()
+  call phys_check_params()
 
 end subroutine initglobal

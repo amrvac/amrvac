@@ -935,6 +935,7 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 ! possible normalization values for the nw+1:nw+nwauxio entries
 
 use mod_global_parameters
+use mod_physics, only: physics_type
 
 integer, intent(in) :: qunit, igrid
 integer :: ixC^L,ixCC^L
@@ -987,7 +988,7 @@ else
      ix=ix+ndir
      normconv(ix:nw)=normvar(ix:nw)
   endif
-  if (typephys=='hdmdust') then
+  if (physics_type == 'hdmdust') then
   ! energy followed by dust density and momentum
      normconv(ix)=normvar(ix) !energy
      normconv(ix+1:ix+^NDS)=normvar(ix+1:ix+^NDS) !dust density

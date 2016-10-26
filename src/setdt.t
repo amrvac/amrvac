@@ -5,6 +5,7 @@
 subroutine setdt
 
 use mod_global_parameters
+use mod_physics, only: phys_get_dt
 
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
@@ -31,7 +32,7 @@ if (dtpar<=zero) then
       if (nwaux>0) call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,'setdt')
       call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
-      call getdt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+      call phys_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
       call getdt_special(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
@@ -140,7 +141,8 @@ subroutine getdt_courant(w,ixG^L,ix^L,dtnew,dx^D,x)
 
 
 use mod_global_parameters
- 
+use mod_physics, only: phys_get_cmax
+
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
@@ -164,7 +166,7 @@ new_cmax=.true.
 cmaxtot(ix^S)=zero
 
 do idims=1,ndim
-   call getcmax(new_cmax,w,x,ixG^L,ix^L,idims,cmax,tmp,.false.)
+   call phys_get_cmax(w,x,ixG^L,ix^L,idims,cmax)
    cmax_mype = max(cmax_mype,maxval(cmax(ix^S)))
    if (.not.slab) then
       tmp(ix^S)=cmax(ix^S)/mygeo%dx(ix^S,idims)

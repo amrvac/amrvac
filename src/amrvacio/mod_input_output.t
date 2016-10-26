@@ -81,6 +81,8 @@ contains
   !> Read in the user-supplied parameter-file
   subroutine read_par_files(par_files)
     use mod_global_parameters
+    use mod_physics, only: phys_read_params, physics_type
+
     character(len=*), intent(in) :: par_files(:)
 
     logical          :: fileopen, file_exists
@@ -148,6 +150,7 @@ contains
     ratebdflux         = one
     typeghostfill      = 'linear'
     dixB               = 2
+    allocate(typeB(nw, nhiB))
     typeB(1:nw,1:nhiB) = 'cont'
     internalboundary   = .false.
 
@@ -209,6 +212,7 @@ contains
     convert_type             = 'vtuBCCmpi'
     collapse_type            = 'vti'
     dxfiletype               = 'lsb'
+    allocate(writew(nw))
     writew(1:nw)             = .true.
     writelevel(1:nlevelshi)  = .true.
     writespshift(1:ndim,1:2) = zero
@@ -219,6 +223,7 @@ contains
     ! normalization of primitive variables: only for output
     ! note that normvar(0) is for length
     ! this scaling is optional, and must be set consistently if used
+    allocate(normvar(0:nw))
     normvar(0:nw) = one
     normt         = one
 
@@ -240,11 +245,14 @@ contains
     prolongprimitive            = .false.
     typeprolonglimit            = 'default'
     errorestimate               = 3
+    allocate(flags(nflag_))
+    allocate(wflags(nflag_))
     flags(1:nflag_)             = 0
     wflags(1:nflag_)            = zero
     flags(nflag_)               = 1
     flags(1)                    = 1
     wflags(1)                   = one
+    allocate(logflag(nw))
     logflag(1:nw)               = .false.
     amr_wavefilter(1:nlevelshi) = 1.0d-2
     skipfinestep                = .false.
@@ -363,7 +371,11 @@ contains
     flatsh          = .false.
     flatppm         = .true.
     typesourcesplit = 'sfs'
+    allocate(loglimit(nw))
     loglimit(1:nw)  = .false.
+
+    allocate(typeentropy(nw))
+    allocate(entropycoef(nw))
 
     do iw=1,nw
        typeentropy(iw)='nul'      ! Entropy fix type
@@ -638,20 +650,20 @@ contains
     \}
     if (B0field) then
        if(mype==0)print *,'B0+B1 split for MHD'
-       if (.not.typephys=='mhd') call mpistop("B0+B1 split for MHD only")
+       if (.not. physics_type=='mhd') call mpistop("B0+B1 split for MHD only")
     end if
 
     if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatsh.and.typephys=='rho')) then
-       call mpistop(" PPM with flatsh=.true. can not be used with typephys='rho'!")
+         .and.(flatsh.and.physics_type=='rho')) then
+       call mpistop(" PPM with flatsh=.true. can not be used with physics_type='rho'!")
     end if
     if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatsh.and.typephys=='hdadiab')) then
-       call mpistop(" PPM with flatsh=.true. can not be used with typephys='hdadiab'!")
+         .and.(flatsh.and.physics_type=='hdadiab')) then
+       call mpistop(" PPM with flatsh=.true. can not be used with physics_type='hdadiab'!")
     end if
     if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatcd.and.typephys=='hdadiab')) then
-       call mpistop(" PPM with flatcd=.true. can not be used with typephys='hdadiab'!")
+         .and.(flatcd.and.physics_type=='hdadiab')) then
+       call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
     end if
     if (any(typelimiter1(1:nlevelshi)== 'ppm')&
          .and.(flatsh.and..not.useprimitive)) then

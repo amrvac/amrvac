@@ -44,3 +44,7 @@
  &paramlist
        courantpar=0.60
  /
+
+ &rho_list
+        rho_v = 1.0
+ /

@@ -602,7 +602,7 @@ subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 ! Add source within ixO for iws: w=w+qdt*S[wCT]
 
 use mod_global_parameters
-
+use mod_physics, only: phys_add_source
 ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
@@ -617,7 +617,7 @@ if(qsourcesplit .eqv. ssplituser) &
 
 ! physics defined sources, typically explicitly added,
 ! along with geometrical source additions
-call addsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
+call phys_add_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
 end subroutine addsource2
 !=============================================================================
