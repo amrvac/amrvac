@@ -107,6 +107,7 @@ subroutine PPMlimiter(ixI^L,ix^L,idims,w,wCT,wLC,wRC)
 ! author: zakaria.meliani@wis.kuleuven.be
 
 use mod_global_parameters
+use mod_physics, only: phys_ppm_flatcd, phys_ppm_flatsh
 
 integer, intent(in)             :: ixI^L, ix^L, idims
 double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)
@@ -205,7 +206,7 @@ endwhere
 
 ! flattening at the contact discontinuities
 if(flatcd)then
- call ppmflatcd(ixI^L,kxC^L,kxL^L,kxR^L,wCT,d2wC,aa,ab)
+ call phys_ppm_flatcd(ixI^L,kxC^L,kxL^L,kxR^L,wCT,d2wC,aa,ab)
  if(any(kappa*aa(kxC^S)>=ab(kxC^S)))then
   do iw=1,nwflux
    where(kappa*aa(kxC^S)>=ab(kxC^S).and. dabs(dwC(kxC^S,iw))>smalldouble)
@@ -247,7 +248,7 @@ if(flatsh)then
    kxLL^L=kxL^L-kr(idimss,^D);! kxLL=[ixMmin-4,ixMmax]
    kxRR^L=kxR^L+kr(idimss,^D);! kxRR=[ixMmin,ixMmax+4]
 
-   call ppmflatsh(ixI^L,kxC^L,kxLL^L,kxL^L,kxR^L,kxRR^L,idimss,wCT,aa,ab,dv)
+   call phys_ppm_flatsh(ixI^L,kxC^L,kxLL^L,kxL^L,kxR^L,kxRR^L,idimss,wCT,aa,ab,dv)
 
    ! eq. B17, page 218, Mignone et al 2005, ApJS (had(Xi1))
    ac(kxC^S) = max(zero,min(one,(betamax-aa(kxC^S))/(betamax-betamin)))

@@ -6,7 +6,7 @@ module mod_rho
 
   integer, parameter, public :: rho_ = 1
 
-  double precision :: rho_v(^ND)
+  double precision :: rho_v(^ND) = 1.0d0
 
   ! Public methods
   public :: rho_activate
@@ -18,7 +18,7 @@ contains
     physics_type = "rho"
 
     b0_  = -1 ! No magnetic field
-    b^C_ = -1 ! No magnetic field
+    {b^C_ = -1\} ! No magnetic field
     e_   = -1 ! No energy (compilation of convert)
 
     nwflux       = 1
@@ -30,6 +30,7 @@ contains
 
     nflag_ = nw+1
 
+    phys_read_params     => rho_read_params
     phys_get_v           => rho_get_v
     phys_get_cmax        => rho_get_cmax
     phys_get_flux        => rho_get_flux
@@ -39,14 +40,13 @@ contains
     phys_add_source_geom => rho_add_source_geom
   end subroutine rho_activate
 
-  subroutine rho_read_physics_params(file_unit, io_state)
+  subroutine rho_read_params(file_unit)
     integer, intent(in) :: file_unit
-    integer, intent(out) :: io_state
 
     namelist /rho_list/ rho_v
 
-    read(file_unit, rho_list, iostat=io_state)
-  end subroutine rho_read_physics_params
+    read(file_unit, rho_list)
+  end subroutine rho_read_params
 
   subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v)
     use mod_global_parameters

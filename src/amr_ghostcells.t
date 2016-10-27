@@ -954,6 +954,7 @@ end select
 end subroutine pole_copy
 !=============================================================================
 subroutine fix_auxiliary
+  use mod_physics, only: phys_get_aux
 
 integer :: ix^L
 !-----------------------------------------------------------------------------
@@ -966,7 +967,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 
       ix^L=ixR_srl_^L(iib^D,i^D);
       if(.not.slab)mygeo=>pgeo(igrid)
-      call getaux(.true.,pwuse(igrid)%w,px(igrid)%x,ixG^L,ix^L,"bc")
+      call phys_get_aux(.true.,pwuse(igrid)%w,px(igrid)%x,ixG^L,ix^L,"bc")
    {end do\}
 end do
 

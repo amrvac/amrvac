@@ -1012,17 +1012,17 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    ! Use more diffusive scheme, is actually TVDLF and selected by patchf=4 
    if(method=='hllcd' .or. method=='hllcd1') &
-     call diffuse_hllcd(ixI^L,ixC^L,idims,wLC,wRC,fLC,fRC,patchf)
+     call phys_diffuse_hllcd(ixI^L,ixC^L,idims,wLC,wRC,fLC,fRC,patchf)
 
    !---- calculate speed lambda at CD ----!
    if(any(patchf(ixC^S)==1)) &
-     call getlCD(wLC,wRC,fLC,fRC,cminC,cmaxC,idims,ixI^L,ixC^L, &
+     call phys_get_lCD(wLC,wRC,fLC,fRC,cminC,cmaxC,idims,ixI^L,ixC^L, &
             whll,Fhll,lambdaCD,patchf)
 
-   ! now patchf may be -1 or 1 due to getlCD 
+   ! now patchf may be -1 or 1 due to phys_get_lCD 
    if(any(abs(patchf(ixC^S))== 1))then
       !======== flux at intermediate state ========!
-      call getwCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,&
+      call phys_get_wCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,&
                   cminC,cmaxC,ixI^L,ixC^L,idims,fCD)
    endif ! Calculate the CD flux
 

@@ -444,39 +444,28 @@ contains
        ! Try to read in the namelists. They can be absent or in a different
        ! order, since we rewind before each read.
        rewind(unitpar)
-       read(unitpar, filelist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read filelist in ' // trim(par_files(i)))
+       read(unitpar, filelist, end=101)
 
-       rewind(unitpar)
-       read(unitpar, savelist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read savelist in ' // trim(par_files(i)))
+101    rewind(unitpar)
+       read(unitpar, savelist, end=102)
 
-       rewind(unitpar)
-       read(unitpar, stoplist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read stoplist in ' // trim(par_files(i)))
+102    rewind(unitpar)
+       read(unitpar, stoplist, end=103)
 
-       rewind(unitpar)
-       read(unitpar, methodlist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read methodlist in ' // trim(par_files(i)))
+103    rewind(unitpar)
+       read(unitpar, methodlist, end=104)
 
-       rewind(unitpar)
-       read(unitpar, boundlist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read boundlist in ' // trim(par_files(i)))
+104    rewind(unitpar)
+       read(unitpar, boundlist, end=105)
 
-       rewind(unitpar)
-       read(unitpar, amrlist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read amrlist in ' // trim(par_files(i)))
+105    rewind(unitpar)
+       read(unitpar, amrlist, end=106)
 
-       rewind(unitpar)
-       read(unitpar, paramlist, iostat=io_state)
-       if (io_state > 0) &
-            call mpistop('Cannot read paramlist in ' // trim(par_files(i)))
+106    rewind(unitpar)
+       read(unitpar, paramlist, end=107)
+
+107    rewind(unitpar)
+       call phys_read_params(unitpar)
 
        close(unitpar)
 

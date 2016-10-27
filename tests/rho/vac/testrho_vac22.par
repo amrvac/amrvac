@@ -34,7 +34,6 @@
         typeadvance=  'ssprk54'
         typefull1 =    13*'fd'
         typepred1 =    13*'fd'
-        typelow1  =    13*'fd'
         typelimiter1= 13*'mp5'
  /
 
@@ -58,3 +57,8 @@
  &paramlist
        courantpar=0.60
  /
+
+ &rho_list
+        rho_v = 1.0,1.0
+ /
+ 
