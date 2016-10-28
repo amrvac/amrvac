@@ -159,10 +159,6 @@ module mod_global_parameters
   integer, allocatable          :: flags(:)
   double precision, allocatable :: wflags(:)
 
-  integer :: b0_  ! Magnetic field
-  integer :: b^C_ ! Magnetic field
-  integer :: e_   ! Energy (compilation of convert)
-
   integer, dimension(:), allocatable :: iw_vector
 
   integer           :: iprob

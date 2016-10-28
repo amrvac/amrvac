@@ -15,11 +15,8 @@ contains
 
   subroutine rho_activate
     use mod_global_parameters
-    physics_type = "rho"
 
-    b0_  = -1 ! No magnetic field
-    {b^C_ = -1\} ! No magnetic field
-    e_   = -1 ! No energy (compilation of convert)
+    physics_type = "rho"
 
     nwflux       = 1
     nwaux        = 0

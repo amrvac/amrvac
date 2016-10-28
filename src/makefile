@@ -22,7 +22,7 @@ forest$F		mod_forest$F		amr_neighbors$F		\
 amr_coarsen_refine$F	refine$F                                        \
 coarsen$F		set_B0$F             				\
 selectgrids$F           geometry$F		mod_global_parameters$F	\
-mod_physics$F		mod_rho$F
+mod_physics$F		mod_rho$F		mod_nonlinear$F
 
 OBJECTS = $(FOBJECTS:$(F)=.o)
 
@@ -34,9 +34,9 @@ mod_physicaldata.o : mod_indices.o
 amr_fix_conserve.o : mod_fix_conserve.o
 forest.o initialize_vars.o : mod_forest.o mod_global_parameters.o
 amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o mod_physics.o
-amrvac.o: mod_rho.o
+amrvac.o: mod_rho.o mod_nonlinear.o
+mod_rho.o mod_nonlinear.o: mod_physics.o
 mod_input_output.o: mod_physics.o
-mod_rho.o: mod_physics.o
 mod_physics.o: mod_global_parameters.o
 amr_ghostcells.o: mod_physics.o
 ############################################################################

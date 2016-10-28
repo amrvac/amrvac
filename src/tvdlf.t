@@ -517,7 +517,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
       if ((.not.BnormLF) .and. (iw==b0_+idims{#IFDEF GLM .or.iw==psi_}) .and. b0_>0) then
          fRC(ixC^S)=0.d0
       else
-         ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
+      ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
          fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
       end if
       ! fLC contains physical+dissipative fluxes
