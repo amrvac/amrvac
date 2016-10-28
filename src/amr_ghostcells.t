@@ -132,14 +132,10 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 {#IFDEF EVOLVINGBOUNDARY
       if(isphysbound) then
         ! coarsen finer ghost cells at physical boundaries
-        {if(iib^D==-1) then
-           ixCoMmin^D=ixCoGmin^D+dixBco
-           ixMmin^D=ixGmin^D+(dixBco-1)
-         else if(iib^D==1) then
-           ixCoMmax^D=ixCoGmax^D-dixBco
-           ixMmin^D=ixGmin^D+(dixBco-1)
-           ixMmax^D=ixGmax^D-(dixBco-1)
-         end if \}
+        ixCoMmin^D=ixCoGmin^D+dixBco;
+        ixCoMmax^D=ixCoGmax^D-dixBco;
+        ixMmin^D=ixGmin^D+(dixBco-1);
+        ixMmax^D=ixGmax^D-(dixBco-1);
       else
         ixCoM^L=ixCoG^L^LSUBdixB;
         ixM^L=ixG^L^LSUBdixB;

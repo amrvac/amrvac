@@ -65,7 +65,7 @@ integer, intent(in) :: igrid
 
 integer :: iiflag, iflag, idims, idims2, level
 integer :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
-double precision :: epsilon, tolerance
+double precision :: epsilon, tolerance, wtol(1:nw),xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
 double precision, dimension(ixG^T) :: tmp, tmp1, tmp2
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -153,7 +153,11 @@ refineflag=.false.
 coarsenflag=.false.
 tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
-   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   if (specialtol) then
+      wtol(1:nw)=pw(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim)=px(igrid)%x(ix^D,1:ndim)
+      call special_tolerance(wtol,xtol,tolerance,t)
+   end if
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error(ix^D) <= tolratio(level)*tolerance) then
@@ -175,7 +179,7 @@ integer, intent(in) :: igrid
 
 integer :: iiflag, iflag, idims, level
 integer :: ix^L, hx^L, jx^L, ix^D
-double precision :: epsilon, tolerance
+double precision :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
 double precision, dimension(ixG^T) :: dp, dm, dref, tmp1
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -234,7 +238,11 @@ coarsenflag=.false.
 
 tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
-   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   if (specialtol) then
+      wtol(1:nw)=pw(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim)=px(igrid)%x(ix^D,1:ndim)
+      call special_tolerance(wtol,xtol,tolerance,t)
+   end if
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error(ix^D) <= tolratio(level)*tolerance) then
@@ -255,7 +263,7 @@ integer, intent(in) :: igrid
 double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
 
 integer :: ix^D, iiflag, iflag, level
-double precision :: epsilon, tolerance
+double precision :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
 double precision :: average, error
 double precision :: averages(nflag_)
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -284,7 +292,11 @@ tolerance=tol(level)
             abs(averages(iflag))/(abs(wold(ix^D,iflag)))
       end if
    end do
-   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   if (specialtol) then
+      wtol(1:nw)=pw(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim)=px(igrid)%x(ix^D,1:ndim)
+      call special_tolerance(wtol,xtol,tolerance,t)
+   end if
    if (error >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error <= tolratio(level)*tolerance) then
