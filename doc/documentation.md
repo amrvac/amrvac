@@ -95,7 +95,9 @@ generate links for names it recognizes. Here is a short example:
 
     ## A subsection {#label-2}
 
-    This is a LaTeX equation \f$ f(x) = \sin(x^2) $\f.
+    You can also place LateX equations in a file, like this:
+
+\f$ f(x) = \sin(x^2) \f$.
 
 Note that in doxygen 1.8.11 you have to define section labels for the table of
 contents to work, which appear at the location of the special `[TOC]` command.
