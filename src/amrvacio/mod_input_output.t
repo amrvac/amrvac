@@ -1660,20 +1660,20 @@ contains
                      int(size_block,kind=MPI_OFFSET_KIND) &
                      *int(nphyboundblock,kind=MPI_OFFSET_KIND)
                 if (sfc_phybound(Morton_no)==1) then
-                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block   , &
+                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block,&
                        istatus,ierrmpi)
-                  call MPI_SEND(wio,1,type_block   , ipe,itag,icomm,ierrmpi)
+                  call MPI_SEND(wio,1,type_block, ipe,itag,icomm,ierrmpi)
                 else
-                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io, &
+                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io,&
                        istatus,ierrmpi)
                   call MPI_SEND(wio,1,type_block_io, ipe,itag,icomm,ierrmpi)
                 endif
     }{#IFNDEF EVOLVINGBOUNDARY
-                offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+                offset=int(size_block_io,kind=MPI_OFFSET_KIND)&
                      *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-                call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io, &
+                call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io,&
                      istatus,ierrmpi)
-                call MPI_SEND(wio,1,type_block_io, ipe,itag,icomm,ierrmpi)
+                call MPI_SEND(wio,1,type_block_io,ipe,itag,icomm,ierrmpi)
     }
              end do
           end do

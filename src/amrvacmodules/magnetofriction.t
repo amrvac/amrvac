@@ -29,12 +29,12 @@ double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: dtfff,dtfff_pe,dtnew,dx^D
 double precision :: cwsin_theta_new,cwsin_theta_old
 double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
-double precision :: f_i_ipe,f_i,volumepe,volume,tmpt
+double precision :: f_i_ipe,f_i,volumepe,volume,tmpt,time_in
 double precision, external :: integral_grid
 integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf,tmpit,i^D
 logical :: patchwi(ixG^T)
 !-----------------------------------------------------------------------------
-
+time_in=MPI_WTIME()
 if(mype==0) write(*,*) 'Evolving to force-free field using magnetofricitonal method...'
 if(prolongprimitive) call mpistop('use prolongprimitive=.false. in MF module')
 mf_advance=.false.
@@ -44,7 +44,7 @@ tmpit=it
 tmf=t
 i=it
 ! update ghost cells
-call getbc(tmf,0.d0,ixG^LL,pw,0,nwflux)
+call getbc(tmf,0.d0,pw,0,nwflux)
 if(snapshotini==-1 .and. i==0) then
   call saveamrfile(1)
   call saveamrfile(2)
@@ -58,7 +58,7 @@ end do
 call mf_velocity_update(pw,dtfff)
 ! update velocity in ghost cells
 bcphys=.false.
-call getbc(tmf,0.d0,ixG^LL,pw,v0_,ndir)
+call getbc(tmf,0.d0,pw,v0_,ndir)
 bcphys=.true.
 ! calculate initial values of metrics
 if(i==0) then
@@ -114,12 +114,12 @@ do
     call divbclean(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,dtfff)
   end do
   ! update B in ghost cells
-  call getbc(tmf+dtfff,dtfff,ixG^LL,pw,b0_,ndir)
+  call getbc(tmf+dtfff,dtfff,pw,b0_,ndir)
   ! calculate magnetofrictional velocity
   call mf_velocity_update(pw,dtfff)
   ! update velocity in ghost cells
   bcphys=.false.
-  call getbc(tmf+dtfff,dtfff,ixG^LL,pw,v0_,ndir)
+  call getbc(tmf+dtfff,dtfff,pw,v0_,ndir)
   bcphys=.true.
 
   i=i+1
@@ -174,6 +174,7 @@ t=tmpt
 it=tmpit
 if (mype==0) call MPI_FILE_CLOSE(fhmf,ierrmpi)
 mf_advance=.false.
+if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
 contains
 !=============================================================================
 ! internal procedures start
@@ -633,12 +634,12 @@ if (levmax>levmin) then
 end if
    
 ! update B in ghost cells
-call getbc(qt+qdt,qdt,ixG^LL,pwb,b0_,ndir)
+call getbc(qt+qdt,qdt,pwb,b0_,ndir)
 ! calculate magnetofrictional velocity
 call mf_velocity_update(pwb,qdt)
 ! update magnetofrictional velocity in ghost cells
 bcphys=.false.
-call getbc(qt+qdt,qdt,ixG^LL,pwb,v0_,ndir)
+call getbc(qt+qdt,qdt,pwb,v0_,ndir)
 bcphys=.true.
 
 end subroutine advect1mf

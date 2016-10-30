@@ -2,7 +2,7 @@
 ! amrvacusr.t.solaratmosphere23
 !=============================================================================
 INCLUDE:amrvacmodules/cooling.t
-INCLUDE:amrvacmodules/heatconduct.t
+INCLUDE:amrvacmodules/thermalconduction.t
 INCLUDE:amrvacnul/usrflags.t
 !=============================================================================
 module usr_bc
@@ -11,51 +11,49 @@ double precision, allocatable, save :: pbc(:),rbc(:)
 end module usr_bc
 !=============================================================================
 subroutine initglobaldata_usr
-
+use constants
 use mod_global_parameters
 
+double precision :: miu0
 logical, save :: firstusrglobaldata=.true.
 !-----------------------------------------------------------------------------
-!> CGS Unit
-k_B=1.3806d-16     !< Boltzmann constant in erg*K^-1
-miu0=4.d0*dpi      !< permeability of free space in Gauss^2 cm^2 dyne^-1
-mHunit=1.67262d-24 !< proton mass in g
+! CGS Unit
+miu0=4.d0*dpi      ! permeability of free space in Gauss^2 cm^2 dyne^-1
 
-Lunit=1.d9         !< length in cm
-Teunit=1.d6        !< temperature in K
-nHunit=1.d9        !< number density in cm^-3
+unit_length=1.d9         ! length in cm
+unit_temperature=1.d6        ! temperature in K
+unit_numberdensity=1.d9        ! number density in cm^-3
 
-runit=1.4d0*mHunit*nHunit     ! 2.341668000000000E-015 g*cm^-3
-punit=2.3d0*nHunit*k_B*Teunit ! 0.317538000000000 erg*cm^-3
-Bunit=dsqrt(miu0*punit)       ! 1.99757357615242 Gauss
-vunit=Bunit/dsqrt(miu0*runit) ! 1.16448846777562E007 cm/s = 116.45 km/s
-tunit=Lunit/vunit             ! 85.8746159942810 s
-heatunit=punit/tunit          ! 3.697693390805347E-003 erg*cm^-3/s
+unit_density=1.4d0*const_mp*unit_numberdensity     ! 2.341668000000000E-015 g*cm^-3
+unit_pressure=2.3d0*unit_numberdensity*const_kB*unit_temperature ! 0.317538000000000 erg*cm^-3
+unit_magneticfield=dsqrt(miu0*unit_pressure)       ! 1.99757357615242 Gauss
+unit_velocity=unit_magneticfield/dsqrt(miu0*unit_density) ! 1.16448846777562E007 cm/s = 116.45 km/s
+unit_time=unit_length/unit_velocity             ! 85.8746159942810 s
+heatunit=unit_pressure/unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
 
 eqpar(grav1_)=0.d0
-eqpar(grav2_)=-2.74d4*Lunit/vunit**2 !< solar gravity
-eqpar(eta_)=0.d0 !< resistivity
-!> thermal conduction normalization unit
-eqpar(kappa_)=1.d-6*Teunit**3.5d0/Lunit/runit/vunit**3
-kappe=4.d-26*nHunit**2/Bunit**2/Teunit**3*eqpar(kappa_)
-!> cooling table parameters
-eqpar(Tscale_)=1.d0/Teunit
-eqpar(Lscale_)=runit*Lunit/vunit**3/mHunit**2*1.2d0/1.4d0**2
+eqpar(grav2_)=-2.74d4*unit_length/unit_velocity**2 ! solar gravity
+eqpar(eta_)=0.d0 ! resistivity
+! cooling table parameters
+eqpar(Tscale_)=1.d0/unit_temperature
+eqpar(Lscale_)=unit_density*unit_length/unit_velocity**3/const_mp**2*1.2d0/1.4d0**2
 eqpar(Mue_)=one
-bQ0=1.d-4/heatunit !< background heating power density
-gzone=0.2d0 !< thickness of a ghostzone below the bottom boundary
-dya=(2.d0*gzone+xprobmax2-xprobmin2)/dble(jmax) !< cells size of high-resolution 1D solar atmosphere
-B0=20.d0/Bunit !< magnetic field strength at the bottom
-theta=60.d0*dpi/180.d0 !< the angle to the plane xy, 90-theta is the angle to the polarity inversion line of the arcade 
+bQ0=1.d-4/heatunit ! background heating power density
+gzone=0.2d0 ! thickness of a ghostzone below the bottom boundary
+dya=(2.d0*gzone+xprobmax2-xprobmin2)/dble(jmax) ! cells size of high-resolution 1D solar atmosphere
+B0=20.d0/unit_magneticfield ! magnetic field strength at the bottom
+theta=60.d0*dpi/180.d0 ! the angle to the plane xy, 90-theta is the angle to the polarity inversion line of the arcade 
 kx=dpi/(xprobmax1-xprobmin1)
 ly=kx*dcos(theta)
-SRadius=69.61d0 !< Solar radius
+SRadius=69.61d0 ! Solar radius
 
 if(firstusrglobaldata) then
-  !> setup global gravity stratification in one vertical line
-  call inithdstatic
-  !> cooling module initalization
+  ! initialize thermal conduction
+  call init_thermalconduction
+  ! cooling module initalization
   call coolinit
+  ! setup global gravity stratification in one vertical line
+  call inithdstatic
   firstusrglobaldata=.false.
 endif
 
@@ -64,23 +62,24 @@ end subroutine initglobaldata_usr
 subroutine inithdstatic
 !! initialize the table in a vertical line through the global domain
 use usr_bc
+use mod_thermalconduction, only:kappa
 use mod_global_parameters
 
 integer :: j,na,nb,ibc
 double precision:: Ta(jmax),gg(jmax)
 double precision:: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,Ttr,Fc,invT
 !----------------------------------------------------------------------------
-rpho=1.151d15/nHunit !< number density at the bottom relaxla
-Tpho=8.d3/Teunit !< temperature of chromosphere
-Ttop=1.5d6/Teunit !< estimated temperature in the top
+rpho=1.151d15/unit_numberdensity ! number density at the bottom relaxla
+Tpho=8.d3/unit_temperature !< temperature of chromosphere
+Ttop=1.5d6/unit_temperature !< estimated temperature in the top
 htra=0.2d0 !< height of initial transition region
 wtra=0.02d0 !< width of initial transition region 
-Ttr=1.6d5/Teunit !< lowest temperature of upper profile
-Fc=2.d5/heatunit/Lunit !< constant thermal conduction flux
+Ttr=1.6d5/unit_temperature !< lowest temperature of upper profile
+Fc=2.d5/heatunit/unit_length !< constant thermal conduction flux
 do j=1,jmax
    ya(j)=(dble(j)-0.5d0)*dya-gzone
    if(ya(j)>htra) then
-     Ta(j)=(3.5d0*Fc/eqpar(kappa_)*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
+     Ta(j)=(3.5d0*Fc/kappa*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
    else
      Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra-0.027d0)/wtra)+1.d0)
    endif
@@ -170,7 +169,7 @@ else
   w(ixG^S,b2_)= B0*dsin(kx*x(ixG^S,1))*dexp(-ly*x(ixG^S,2))
   w(ixG^S,b3_)=-B0*dcos(kx*x(ixG^S,1))*dexp(-ly*x(ixG^S,2))*dsin(theta)
 endif
-call conserve(ixG^L,ix^L,w,x,patchfalse)
+call conserve(ixG^L,ixG^L,w,x,patchfalse)
 \}
 
 end subroutine initonegrid_usr
@@ -280,7 +279,7 @@ integer :: iw, idims
 
 call getggrav(ggrid,ixI^L,ixO^L,x)
 
-!> add sources from gravity
+! add sources from gravity
 do iw= iw^LIM
    select case (iw)
    case (m^D_)
@@ -334,15 +333,15 @@ double precision, intent(inout) :: w(ixI^S,1:nw)
 
 double precision :: lQgrid(ixI^S),bQgrid(ixI^S)
 !-----------------------------------------------------------------------------
-!> add gravity source
+! add gravity source
 call addsource_gravSA(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
-!> add radiative cooling source
+! add radiative cooling source
 call addsource_cooling(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 if(B0field) then
-!> add source terms when splitting linear force-free field
+! add source terms when splitting linear force-free field
   call addsource_lfff(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 endif 
-!> add global background heating bQ
+! add global background heating bQ
 call getbQ(bQgrid,ixI^L,ixO^L,qtC,wCT,x)
 w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
 
@@ -358,7 +357,7 @@ double precision, intent(inout) :: w(ixI^S,1:nw)
 
 double precision :: current0(ixI^S,1:ndir),v(ixI^S,1:ndir)
 !-----------------------------------------------------------------------------
-!> electric current density of the background linear force-free field
+! electric current density of the background linear force-free field
 current0(ixO^S,1)= ly*B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
 current0(ixO^S,2)=-kx*B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
 current0(ixO^S,3)= kx*B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))&
@@ -396,7 +395,7 @@ call getdt_cooling(w,ixG^L,ix^L,dtnew,dx^D,x)
 end subroutine getdt_special
 !=============================================================================
 subroutine getbQ(bQgrid,ixI^L,ixO^L,qt,w,x)
-!>calculate background heating bQ
+! calculate background heating bQ
 use mod_global_parameters
 
 integer, intent(in) :: ixI^L, ixO^L
@@ -437,7 +436,7 @@ integer, intent(in) :: igrid, level, ix^L, ixG^L
 double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
 integer, intent(inout) :: refine, coarsen
 !-----------------------------------------------------------------------------
-!> fix the bottom layer to the highest level
+! fix the bottom layer to the highest level
 if (any(x(ix^S,2)<=xprobmin2+0.05d0)) then
   refine=1
   coarsen=-1
@@ -514,10 +513,10 @@ double precision :: lQgrid(ixI^S),bQgrid(ixI^S),divb(ixI^S)
 double precision :: qvec(ixI^S,1:ndir),curlvec(ixI^S,1:ndir)
 integer :: idirmin,idims,ix^D
 !-----------------------------------------------------------------------------
-!> output temperature
+! output temperature
 call getpthermal(w,x,ixI^L,ixO^L,tmp)
 w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
-!> output Alfven wave speed
+! output Alfven wave speed
 if(B0field)then
   w(ixO^S,nw+2)=dsqrt((^C&(w(ixO^S,b^C_)+myB0_cell%w(ixO^S,^C))**2+)/w(ixO^S,rho_))
 else
@@ -530,23 +529,23 @@ else
  ^C&qvec(ixI^S,^C)=w(ixI^S,b^C_);
 endif
 
-!> output divB1
+! output divB1
 call getdivb(w,ixI^L,ixO^L,divb)
 w(ixO^S,nw+3)=0.5d0*divb(ixO^S)/dsqrt(^C&qvec(ixO^S,^C)**2+)/(^D&1.0d0/dxlevel(^D)+)
-!> output the plasma beta p*2/B**2
+! output the plasma beta p*2/B**2
 if(B0field)then
   w(ixO^S,nw+4)=tmp(ixO^S)*two/(^C&(w(ixO^S,b^C_)+myB0_cell%w(ixO^S,^C))**2+)
 else
   w(ixO^S,nw+4)=tmp(ixO^S)*two/(^C&w(ixO^S,b^C_)**2+)
 endif
-!> output heating rate
+! output heating rate
 call getbQ(bQgrid,ixI^L,ixO^L,t,w,x)
 w(ixO^S,nw+5)=bQgrid(ixO^S)
-!> store the cooling rate 
+! store the cooling rate 
 call getvar_cooling(ixI^L,ixO^L,w,x,lQgrid,normconv)
 w(ixO^S,nw+6)=lQgrid(ixO^S)
 
-!> store current
+! store current
 call curlvector(qvec,ixI^L,ixO^L,curlvec,idirmin,1,ndir)
 ^C&w(ixO^S,nw+6+^C)=curlvec(ixO^S,^C);
 
@@ -566,7 +565,7 @@ end subroutine specialvarnames_output
 !=============================================================================
 subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
 
-!> Here add a steady (time-independent) potential or linear force-free background field
+! Here add a steady (time-independent) potential or linear force-free background field
 
 use mod_global_parameters
 

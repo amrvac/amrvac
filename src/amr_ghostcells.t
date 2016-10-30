@@ -193,18 +193,18 @@ integer :: i^D, ic^D, inc^D, iib^D
 
 end subroutine put_bc_comm_types
 !=============================================================================
-subroutine getbc(time,qdt,ixG^L,pwuse,nwstart,nwbc)
+subroutine getbc(time,qdt,pwuse,nwstart,nwbc)
 use mod_getbc
 use mod_global_parameters
 
 double precision, intent(in)               :: time, qdt
-integer, intent(in)                        :: ixG^L,nwstart,nwbc
+integer, intent(in)                        :: nwstart,nwbc
 type(walloc), dimension(ngridshi)          :: pwuse
 
 integer :: my_neighbor_type, ipole, idims, iside
 integer :: iigrid, igrid, ineighbor, ipe_neighbor
 integer :: nrecvs, nsends, isizes
-integer :: ixR^L, ixS^L, ixB^L, ixI^L, k^L
+integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
 integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
 ! store physical boundary indicating index
 integer :: idphyb(ngridshi,ndim),bindex(ndim)
@@ -219,6 +219,7 @@ double precision :: logGl,qstl
 }
 !-----------------------------------------------------------------------------
 time_bcin=MPI_WTIME()
+ixG^L=ixG^LL;
 
 if (internalboundary) then 
    call getintbc(time,ixG^L,pwuse)
