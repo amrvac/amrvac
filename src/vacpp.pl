@@ -107,38 +107,63 @@ foreach $file (@ARGV) {
 
 sub processfile {
    local($filename, $input) = @_;
+   my $partial_line = "";
+
    $input++;
    open($input, $filename) || die"Can't open $filename: $!\n";
+
    while (<$input>) {
-      # PRINT EMPTY AND COMMENT LINES AS THEY ARE
-      if(/^$/ || /^ *![^S]/ && not /^ *!\$[^S]/){print; next}
-      # HIDE QUOTED TEXT FROM TRANSLATION
-      $_=&quotation($_);
-      # PRINT TRAILING COMMENTS (commented out to protect !F77_ etc....)
-      #if(s/ *(!.*)//){$comment=&unquote($1); /^ */; print "$&$comment\n"}
-      # COLLECT CONTINUATION LINES, except for !$OMP comments
-      if(not /^ *!\$[^S]/){ next if &contline }
-      # REPLACE TABS BY SPACES
-      if(/\t/){
-	  print STDERR "Warning: TABs are replaced by SPACEs\n" unless 
-                                                               $tabwarn++;
-          1 while s/\t+/' ' x (length($&)*8 - length($`)%8)/e;
+      # Print empty and comment lines as they are
+      if(/^$/ || /^ *![^S]/ && not /^ *!\$[^S]/) {
+          print;
+          next;
       }
-      # EXPAND THE LINE
+
+      # Hide quoted text from translation
+      $_=&quotation($_);
+
+      # Stop if there are tabs
+      if (/\t/) {
+          die "vacpp.pl error: $filename contains TABs";
+      }
+
+      # Collect continuation lines
+      ($_, $partial_line) = contline($_, $partial_line);
+      next if ($partial_line);
+
+      # Expand the line
       &processline($input);
-      # PROCESS FILES INCLUDED BY "INCLUDE:filename"
-      if (/INCLUDE:(.*)/) {&processfile("$AMRVAC_DIR/src/$1",$input);next}
-      # PRINT THE LINE FORMATTED ACCORDING TO MAXLEN
+
+      # Process files included by "INCLUDE:filename"
+      if (/INCLUDE:(.*)/) {
+          &processfile("$AMRVAC_DIR/src/$1",$input);
+          next;
+      }
+
+      # Print the line formatted according to maxlen
       &printline if $_;
    }
    # Print common declarations collected from "COMMON,..." lines
    for $_ (values(%common)){&printline}; undef %common;
 }
-#===========================================================================
-sub contline{
-    # Join continuation lines into a single line. Uses global $contline
-    if(/[^A-Z]\& *$/){$contline.=$_}
-    else             {$_=$contline.$_;s/([^A-Z])\& *\n */$1/g;$contline=""}
+
+# Join continuation lines into a single line
+sub contline {
+    my ($line, $partial_line) = @_;
+
+    if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
+        $line =~ /\/\/ *& *$/) {
+        # Don't break OpenMP, print and //&
+        $line = $partial_line.$line;
+        $partial_line = "";
+    } elsif ($line =~ /[^A-Z]& *$/) {
+        $partial_line .= $line;
+    } else {
+        $line = $partial_line.$line;
+        $line =~ s/([^A-Z])& *\n */$1/g;
+        $partial_line = "";
+    }
+    return ($line, $partial_line);
 }
 #============================================================================
 sub processline{
@@ -156,7 +181,7 @@ sub processline{
       #print "Expr:$_";
    }
    # REMOVE NUL-SEPARATOR CHARACTERS
-   s/$spc//g; 
+   s/$spc//g;
    # REPLACE BREAK CHARACTERS BY NEWLINES AND INDENTATION
    if(/\\/){/^ */; $indent=$&; s/\\/\n$indent/g};
    # PROCESS "COMMON, ..." DECLARATIONS
@@ -165,7 +190,7 @@ sub processline{
 #============================================================================
 sub definepatterns{
 
-   $ope='{'; $clo='}'; $bar='\|'; 
+   $ope='{'; $clo='}'; $bar='\|';
    $pre='#'; $ifdef='IFDEF'; $ifndef='IFNDEF';
    $pat='\^'; $patid='[A-Z]'; $patchr='[A-Z&%]'; $uni='%';
    $brk='\\'; $sep='[,\+\-\*/:; ]'; $spc='~';
@@ -189,7 +214,7 @@ sub definepatterns{
    &patdef('DE%',$ndim-1,'^%2'	,'^%3'		);
    &patdef('DM&',$ndim-1			);
    &patdef('DM'	,$ndim-1,1	,2		);
-   &patdef('DMB',$ndim-1,$ndim-1,$ndim-2        ); 
+   &patdef('DMB',$ndim-1,$ndim-1,$ndim-2        );
    &patdef('SE'	,$ndim-1,'^LIM2:','^LIM3:'	);
    &patdef('TE'	,$ndim-1,'^LLIM2:','^LLIM3:'	);
 
@@ -205,7 +230,7 @@ sub definepatterns{
    &patdef('TD'  ,$ndim  ,1      ,2      ,3      );
    &patdef('D'	,$ndim	,1	,2	,3	);
    &patdef('D&'	,$ndim				);
-   &patdef('DLOOP',$ndim       			); 
+   &patdef('DLOOP',$ndim       			);
    &patdef('DB'	,$ndim	,$ndim	,$ndim-1,$ndim-2);
    &patdef('DD'	,$ndim	,'^D' 	,'^D'	,'^D'	);
    &patdef('DDD'	,$ndim	,'^DD' 	,'^DD'	,'^DD'	);
@@ -240,7 +265,7 @@ sub definepatterns{
    &patdef('IFTOFLUID'	,$nf>1			);
    &patdef('IFTRFLUID'	,$nf>2			);
    &patdef('IFFRFLUID'	,$nf>3			);
-   &patdef('IFFVFLUID'	,$nf>4			); 
+   &patdef('IFFVFLUID'	,$nf>4			);
    &patdef('IFSIFLUID'	,$nf>5			);
    &patdef('IFSEFLUID'	,$nf>6			);
    &patdef('IFHEFLUID'	,$nf>7			);
@@ -292,7 +317,7 @@ sub definevars{
     if($_=~/^#define\s*(\S*)\s*(\S*)/){$var=$1;$value=$2;};
     $defvars{uc $var} = $value;
   }
-  close (definitions); 
+  close (definitions);
   # Attach the definitions from command line:
 # EOS:
   $defvars{uc $eos}=1;
@@ -326,24 +351,45 @@ sub patdef{
    for($isub=0;$isub<=$#substitute;$isub++){
        $sub{$pattern,$isub+1}="$substitute[$isub]";
    }
-   $nsub{$pattern}=$nsub;  
+   $nsub{$pattern}=$nsub;
 }
 #============================================================================
 sub block{
    # Find block opening by $ope and closed by matching $clo, and substitute
    local($input)=@_;
    local($rightpos,$leftpos,$line,$nline);
+   my $partial_line = "";
+
    $leftpos=index($_,$ope);
    $level=0;
    $rightpos=&rightmatch($leftpos,$ope,$clo,$clo);
-   #TST print "Leftpos:$leftpos,Rightpos:$rightpos\n";
+
    # If no match, ie $rightpos>=length($_), read at most 2000 more lines
-   while($rightpos>=length($_) && $nline<2000 && ($line=<$input>)){
+   while ($rightpos>=length($_) && $nline<2000 && ($line=<$input>)) {
+       # Print empty and comment lines as they are
+       if(/^$/ || /^ *![^S]/ && not /^ *!\$[^S]/) {
+           print;
+           next;
+       }
+
+       # Hide quoted text from translation
+       $line = &quotation($line);
+
+       # Stop if there are tabs
+       if ($line =~ /\t/) {
+          die "vacpp.pl error: $filename contains TABs";
+       }
+
+       # Collect continuation lines
+       ($line, $partial_line) = contline($line, $partial_line);
+       next if ($partial_line);
+
        $_.=&unquote($line); $nline++;
        $rightpos=&rightmatch($rightpos-1,$ope,$clo,$clo);
-       #TST print "Line:$_ Rightpos:$rightpos\n";
    }
-   die"$ope without matching $clo within 2000 lines" if $rightpos>=length($_);
+
+   die "$ope without matching $clo within 2000 lines" if $rightpos>=length($_);
+
    &substitute($leftpos,$rightpos);
 }
 #============================================================================
@@ -359,7 +405,7 @@ sub expression{
 sub rightmatch{
    local($p,$lparen,$rparen,$bound)=@_; local($i,$c);
    for($i=$p+1;$i<length($_);$i++){
-      $c=substr($_,$i,1); 
+      $c=substr($_,$i,1);
       last unless ($level!=0 || index($bound,$c)<0);
       $level++ if $c eq $lparen;
       $level-- if $c eq $rparen;
@@ -370,7 +416,7 @@ sub rightmatch{
 sub leftmatch{
    local($p,$lparen,$rparen,$bound)=@_; local($i,$c,$level);
    for($i=$p-1;$i>0;$i--){
-      $c=substr($_,$i,1); 
+      $c=substr($_,$i,1);
       last unless ($level!=0 || index($bound,$c)<0);
       $level++ if $c eq $rparen;
       $level-- if $c eq $lparen;
@@ -421,7 +467,6 @@ sub substitute{
 #	 $rchr=';' if $rchr eq $clo && $separator eq ";";
 	 $rchr='' if $rchr eq $clo;
 	 $_=$head.$lchr.$expr.$rchr.$tail;
-#	        print 'var is gold, expression :',$expr,'end expr', 'var :',$var;
 	 return;
        }
        else{
@@ -498,30 +543,36 @@ sub printline{
     }
 }
 #===========================================================================
+# Break long lines into continuation lines and/or reduce indentation
 sub format90 {
    local($line)=@_;
+
+   local($bestlen,$goodlen,$len,$maxindent,$indent,$indentnow,$c,$answer);
 
    # If line is not too long return
    return($line) if length($line)<=$maxlen;
 
-   # opedit: I don't want you to break concat symbols
-   return($line) if ($line =~ /\/\//);
+   if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
+        $line =~ /\/\/ *& *$/) {
+       # Don't break OpenMP, print and //&
+       return ($line);
+   }
 
-   # opedit: I don't want you to break print symbols
-   return($line) if ($line =~ /print*/);
-
-   # BREAK LONG LINES INTO CONTINUATION LINES AND/OR REDUCE INDENTATION
-   local($bestlen,$goodlen,$len,$maxindent,$indent,$indentnow,$c,$answer);
+   # Don't break lines with print statements
+   return($line) if ($line =~ /^ *(print)/);
 
    # Determine line indentation. If too much, reduce it to maximum.
    $maxindent=int(0.6*$maxlen);
    $line=~s/^( {0,$maxindent}) */$1/; $indent=$1;
 
    # We are happy if the length of the line is between $goodlen and $maxlen
-   $goodlen=$maxlen-20;
+   $goodlen=$maxlen / 2;
 
    # Start breaking line
    while(length($line)>$maxlen){
+       # Remove & followed by newlines
+       $line =~ s/& *\n *//g;
+
        # Check for semicolon
        if(($len=rindex($line,';',$maxlen-1))>=0){
           $answer.=substr($line,0,$len)."\n";
@@ -529,23 +580,40 @@ sub format90 {
           next;
        }
        # Find best breakpoint after indentation but before $maxlen-2
-       $line=~/^ */; 
+       $line=~/^ */;
        $bestlen=$indentnow=length($&);
-       foreach $c ('=>','<=','+','-','/','**','*','.or.','.and.','>','<','==','=',
-                   ',',' ','(',')'){
-          if(($len=rindex($line,$c,$maxlen-length($c)))>=0){
-             $len+=length($c) if ($c eq ',' || $c eq ' ' || $c eq ')');
-             $bestlen=$len if $len>$bestlen;
-             last if $bestlen>$goodlen;
-          }
+
+       foreach $c (',', ' ', '=>', '/=', '>=', '<=', '==',
+                   '+', '-', ' / ', '**', ' * ', '.or.',
+                   '.and.', ' > ', ' < ', '(', ')') {
+           # Get the start position of the last occurrence of $c beginning at or
+           # before $maxlen
+           $len = rindex($line, $c, $maxlen);
+
+           # If the line is long enough with the current break, exit
+           if ($len > $bestlen) {
+               $bestlen = $len;
+               if ($bestlen > $goodlen) {
+                   # Include operator on current line
+                   $bestlen += length($c);
+                   last;
+               }
+           }
        }
-       if($bestlen>$indentnow){
-          # Collect broken parts in $answer and break the continuation further
-          $answer.=substr($line,0,$bestlen)."&\n";
-          $line="$indent$sss".substr($line,$bestlen);
-       }else{
+
+       if ($bestlen>$indentnow) {
+           # Collect broken parts in $answer and break the continuation further
+           if (substr($line,$bestlen) =~ /^ *\n*$/) {
+               # If there is only whitespace on the new line, ignore it
+               $answer.=substr($line,0,$bestlen)."\n";
+               $line="";
+           } else {
+               $answer.=substr($line,0,$bestlen)."&\n";
+               $line="$indent$sss".substr($line,$bestlen);
+           }
+       } else {
           # No break was found. Remove indentation if there is any or die.
-          $line=~s/^ +// || die "Couldn't break line:".&unquote($line) 
+          $line=~s/^ +// || die "Couldn't break line:".&unquote($line)
        }
    }
    $answer.=$line;
@@ -565,7 +633,7 @@ sub quotation{
    }
    # return result
    $head.$line;
-   
+
 }
 #===========================================================================
 sub unquote{
