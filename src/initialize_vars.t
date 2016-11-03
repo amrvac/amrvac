@@ -165,6 +165,8 @@ end if
 UNIT_LENGTH   = ONE
 UNIT_DENSITY  = ONE
 UNIT_VELOCITY = ONE
+! define index ranges and MPI send/receive derived datatype for ghost-cell swap
+call init_bc
 
 end subroutine initialize_vars
 !=============================================================================

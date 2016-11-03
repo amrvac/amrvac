@@ -13,7 +13,7 @@ type(walloc) :: pwtmp
 ! when only one level allowed, there is nothing to do anymore
 if (mxnest == 1) return
 
-call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+call getbc(t,0.d0,pw,0,nwflux+nwaux)
 do levnew=2,mxnest
    if (errorestimate==2) then
       call setdt
@@ -70,7 +70,7 @@ end if
 
 
 do while(levmin<my_levmin.or.levmax>my_levmax)
- call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+ call getbc(t,0.d0,pw,0,nwflux+nwaux)
  do iigrid=1,igridstail; igrid=igrids(iigrid);
     call forcedrefine_grid_io(igrid,pw(igrid)%w)
  end do

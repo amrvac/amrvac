@@ -14,7 +14,7 @@ use mod_global_parameters
 use mod_input_output
 
 integer :: itin
-double precision :: time0, time_in, tin
+double precision :: time0, tin
 !-----------------------------------------------------------------------------
 call comm_start
 
@@ -51,7 +51,7 @@ if (snapshotini/=-1) then
 
 {#IFDEF PARTICLES
    call init_tracerparticles
-   call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+   call getbc(t,0.d0,pw,0,nwflux+nwaux)
    call init_gridvars
    call read_particles_snapshot
    call finish_gridvars
@@ -96,7 +96,7 @@ else
 
 {#IFDEF PARTICLES
    call init_tracerparticles
-   call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+   call getbc(t,0.d0,pw,0,nwflux+nwaux)
    call init_gridvars
    call init_particles
    call finish_gridvars
@@ -161,7 +161,7 @@ itmin=it
 itTimeLast=it
 timeLast=MPI_WTIME()
 
-call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+call getbc(t,0.d0,pw,0,nwflux+nwaux)
 
 !  ------ start of integration loop. ------------------
 timeloop0=MPI_WTIME()

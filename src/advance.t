@@ -396,7 +396,7 @@ qdt=dtfactor*dt
 {#IFDEF BOUNDARYDRIVER
 call boundarydriver(method(mxnest),qdt,idim^LIM,qtC,pwa,qt,pwb)
 }
-call getbc(qt+qdt,qdt,ixG^LL,pwb,0,nwflux+nwaux)
+call getbc(qt+qdt,qdt,pwb,0,nwflux+nwaux)
 
 end subroutine advect1
 !=============================================================================
@@ -507,24 +507,10 @@ logical, intent(in) :: prior
 
 double precision :: qdt, qt
 integer :: iigrid, igrid, i^D
-integer, save :: s
 !-----------------------------------------------------------------------------
 {#IFDEF TCRKL2
 ! add thermal conduction
-if(prior) then
-  if(dt/dtimpl < 0.5d0) then
-    s=1
-  else if(dt/dtimpl < 2.d0) then
-    s=2
-  else
-    s=ceiling((dsqrt(9.d0+8.d0*dt/dtimpl)-1.d0)/2.d0)
-    ! only use odd s number
-    s=s/2*2+1
-  endif
-  if(mype==0 .and. .false.) write(*,*) 'supertime steps:',s,' normal subcycles:',&
-                              ceiling(dt/dtimpl/2.d0),'time step ratio:',dt/dtimpl
-endif
-if(conduction) call thermalconduct_RKL2(s,dt/2.d0,t) 
+if(conduction) call thermalconduction
 }
 
 if ((.not.prior).and.&
@@ -554,7 +540,7 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
 end do
 !$OMP END PARALLEL DO
 
-call getbc(qt,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+call getbc(qt,0.d0,pw,0,nwflux+nwaux)
 
 end subroutine addsource_all
 !=============================================================================
