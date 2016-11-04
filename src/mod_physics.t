@@ -41,8 +41,9 @@ module mod_physics
      subroutine sub_check_params()
      end subroutine sub_check_params
 
-     subroutine sub_read_params(file_unit)
+     subroutine sub_read_params(file_unit, success)
        integer, intent(in) :: file_unit
+       logical, intent(out) :: success
      end subroutine sub_read_params
 
      subroutine sub_convert(ixI^L, ixO^L, w, x)

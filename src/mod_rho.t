@@ -37,12 +37,18 @@ contains
     phys_add_source_geom => rho_add_source_geom
   end subroutine rho_activate
 
-  subroutine rho_read_params(file_unit)
+  subroutine rho_read_params(file_unit, success)
     integer, intent(in) :: file_unit
+    logical, intent(out) :: success
 
     namelist /rho_list/ rho_v
 
-    read(file_unit, rho_list)
+    ! Success indicates if read succeeds
+    success = .false.
+    read(file_unit, rho_list, end=101)
+    success = .true.
+
+101 return
   end subroutine rho_read_params
 
   subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v)

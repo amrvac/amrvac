@@ -86,6 +86,7 @@ contains
     character(len=*), intent(in) :: par_files(:)
 
     logical          :: fileopen, file_exists
+    logical          :: success, have_read_phys_params
     integer          :: i, j, k, ifile, io_state
     integer          :: iB, isave, iw, level, idim, islice
     integer          :: nxlone^D, nx_vec(^ND)
@@ -416,6 +417,9 @@ contains
        enddo
     enddo
 
+    ! Used to check whether we have read in physics parameters
+    have_read_phys_params = .false.
+
     ! Set default variable names
     primnames = 'default'
     wnames    = 'default'
@@ -465,7 +469,8 @@ contains
        read(unitpar, paramlist, end=107)
 
 107    rewind(unitpar)
-       call phys_read_params(unitpar)
+       call phys_read_params(unitpar, success)
+       if (success) have_read_phys_params = .true.
 
        close(unitpar)
 
@@ -481,6 +486,9 @@ contains
 
     filenameout = filenameout_full
     filenamelog = filenamelog_full
+
+    if (.not. have_read_phys_params) &
+         call mpistop("No physics parameters specified in .par files")
 
     if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: primnames not given!'

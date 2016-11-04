@@ -23,6 +23,7 @@ time_advance = .false.
 time0        = MPI_WTIME()
 time_bc      = zero
 
+! In the future, include a mod_user and define the physics type there
 call activate_physics_module("rho")
 call read_arguments_and_parameters()
 call initialize_vars()
@@ -138,12 +139,15 @@ contains
   subroutine activate_physics_module(physics_name)
     use mod_physics, only: phys_check_methods
     use mod_rho, only: rho_activate
+    use mod_nonlinear, only: nonlinear_activate
 
     character(len=*), intent(in) :: physics_name
 
     select case (physics_name)
     case ("rho")
        call rho_activate()
+    case ("nonlinear")
+       call nonlinear_activate()
     case default
        call mpistop("Invalid physics module selected")
     end select

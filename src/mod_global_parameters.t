@@ -148,6 +148,9 @@ module mod_global_parameters
   include 'amrvacusrpar.f'
 
   ! TODO temporary placed here (Jannis)
+  integer, parameter :: b0_ = -1
+  {integer, parameter :: b^D_ = -1\}
+  integer, parameter :: e_ = -1
   integer           :: nwflux
   integer           :: nwaux
   integer           :: nwextra
