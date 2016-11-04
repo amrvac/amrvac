@@ -13,9 +13,9 @@ subroutine initglobaldata_usr
 use mod_global_parameters
 !----------------------------------------------------------------------------
 
-{^IFONED   eqpar(v1_)=one }
-{^IFTWOD   eqpar(v1_)=one; eqpar(v2_)=one }
-{^IFTHREED eqpar(v1_)=one; eqpar(v2_)=one; eqpar(v3_)=one }
+! {^IFONED   eqpar(v1_)=one }
+! {^IFTWOD   eqpar(v1_)=one; eqpar(v2_)=one }
+! {^IFTHREED eqpar(v1_)=one; eqpar(v2_)=one; eqpar(v3_)=one }
 
 end subroutine initglobaldata_usr
 !=============================================================================
@@ -24,6 +24,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 ! initialize one grid 
 
 use mod_global_parameters
+use mod_rho, only: rho_
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)

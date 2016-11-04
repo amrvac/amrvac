@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=22 -p=rho
+SETUP_FLAGS := -d=22
 SCHEME_DIR := ../../schemes
 TESTS := vac_2d_1step_tvd.log vac_2d_2step_tvdlf_mm.log				\
 vac_2d_2step_tvdmu_al.log vac_2d_3step_hll_cada.log vac_2d_4step_hll_mc.log	\

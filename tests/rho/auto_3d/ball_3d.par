@@ -53,3 +53,7 @@
         xprobmin3=-0.5d0
         xprobmax3=0.5d0
  /
+
+ &rho_list
+        rho_v = 1.0, 1.0, 1.0
+ /

@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=11 -p=rho
+SETUP_FLAGS := -d=11
 SCHEME_DIR := ../../schemes
 
 TESTS := ball_1d_1step_tvd.log ball_1d_2step_tvdlf_mm.log			\
