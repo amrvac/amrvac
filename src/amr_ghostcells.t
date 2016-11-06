@@ -325,40 +325,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 }
       call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,&
                         ixCoG^L,ixCoM^L,pgeo(igrid),pgeoCoarse(igrid),coarsenprimitive,.true.)
-      if(isphysbound) then
-        ! the block has a part of physical boundary and its coarser representative needs 
-        ! ghost-cell value at physical boundary 
-        do idims=1,ndim
-           if(idphyb(igrid,idims)==0) cycle
-           ^D&bindex(^D)=1-kr(^D,idims);
-           if(any(neighbor_type(^D&-bindex(^D):bindex(^D),igrid)==2)) then
-             ! to avoid using as yet unknown corner info in more than 1D, we
-             ! fill only interior mesh ranges of the ghost cell ranges at first,
-             ! and progressively enlarge the ranges to include corners later
-             {
-              kmin^D=merge(0, 1, idims==^D)
-              kmax^D=merge(0, 1, idims==^D)
-              ixBmin^D=ixCoGmin^D+kmin^D*dixB
-              ixBmax^D=ixCoGmax^D-kmax^D*dixB
-             \}
-             {^IFTWOD
-              if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixCoGmin1
-              if(idims > 1 .and. neighbor_type( 1,0,igrid)==1) ixBmax1=ixCoGmax1}
-             {^IFTHREED
-              if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==1) ixBmin1=ixCoGmin1
-              if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==1) ixBmax1=ixCoGmax1
-              if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==1) ixBmin2=ixCoGmin2
-              if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==1) ixBmax2=ixCoGmax2}
-             if (idphyb(igrid,idims)==-1) then
-                iside=1
-             else 
-                iside=2
-             end if
-             if(.not.slab) mygeo=>pgeoCoarse(igrid)
-             call bc_phys(iside,idims,time,0.d0,pwCoarse(igrid)%w,pxCoarse(igrid)%x,ixCoG^L,ixB^L)
-           end if
-        end do
-      end if
    end if
 
    {do i^DB=-1,1\}
@@ -561,9 +527,45 @@ end if
 end subroutine bc_send_srl
 !=============================================================================
 subroutine bc_send_restrict
+integer :: ii^D
 !-----------------------------------------------------------------------------
 ic^D=1+modulo(node(pig^D_,igrid)-1,2);
 if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
+if(isphysbound) then
+  ! filling physical boundary ghost cells of a coarser representative block for
+  ! sending swap region with width of dixB to its coarser neighbor
+  do idims=1,ndim
+     ! to avoid using as yet unknown corner info in more than 1D, we
+     ! fill only interior mesh ranges of the ghost cell ranges at first,
+     ! and progressively enlarge the ranges to include corners later
+     {kmin^D=merge(0, 1, idims==^D)
+     kmax^D=merge(0, 1, idims==^D)
+     ixBmin^D=ixCoGmin^D+kmin^D*dixB
+     ixBmax^D=ixCoGmax^D-kmax^D*dixB\}
+     {^IFTWOD
+     if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixCoGmin1
+     if(idims > 1 .and. neighbor_type( 1,0,igrid)==1) ixBmax1=ixCoGmax1}
+     {^IFTHREED
+     if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==1) ixBmin1=ixCoGmin1
+     if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==1) ixBmax1=ixCoGmax1
+     if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==1) ixBmin2=ixCoGmin2
+     if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==1) ixBmax2=ixCoGmax2}
+     {if(i^D==-1) then
+       ixBmin^D=ixCoGmin^D+dixB
+       ixBmax^D=ixCoGmin^D+2*dixB-1
+     else if(i^D==1) then
+       ixBmin^D=ixCoGmax^D-2*dixB+1
+       ixBmax^D=ixCoGmax^D-dixB
+     end if\}
+     do iside=1,2
+        ii^D=kr(^D,idims)*(2*iside-3);
+        if ({abs(i^D)==1.and.abs(ii^D)==1|.or.}) cycle
+        if (neighbor_type(ii^D,igrid)/=1) cycle
+        if (.not.slab) mygeo=>pgeoCoarse(igrid)
+        call bc_phys(iside,idims,time,0.d0,pwCoarse(igrid)%w,pxCoarse(igrid)%x,ixCoG^L,ixB^L)
+     end do
+  end do
+end if
 
 ineighbor=neighbor(1,i^D,igrid)
 ipe_neighbor=neighbor(2,i^D,igrid)

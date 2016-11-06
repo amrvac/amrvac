@@ -18,34 +18,50 @@ integer :: idirs, ii,is(ndir-1),si(ndir-1)
 !----------------------------------------------------------------------------
 sqrthalf=dsqrt(0.5d0)
 {#IFDEF ENERGY
+! sound speed squared
 a2(ixO^S)=eqpar(gamma_)*w(ixO^S,p_)/w(ixO^S,rho_)
 }
 {#IFDEF ISO
 a2(ixO^S)=eqpar(gamma_)*eqpar(adiab_)*w(ixO^S,rho_)**(eqpar(gamma_)-one)
 }
 betau(ixO^S)=dsqrt((^C&w(ixO^S,b^C_)**2+ )-w(ixO^S,b0_+idims)**2) 
-where(betau(ixO^S)==0)
-  betau(ixO^S)=sqrthalf
-end where
 ii=0
 do idirs=1,ndir
   if(idirs==idims) cycle 
   ii=ii+1
   is(ii)=idirs
-  betad(ixO^S,idirs)=w(ixO^S,b0_+idirs)/betau(ixO^S)
+  where(betau(ixO^S)<smalldouble)
+    betad(ixO^S,idirs)=sqrthalf
+  elsewhere
+    betad(ixO^S,idirs)=w(ixO^S,b0_+idirs)/betau(ixO^S)
+  end where
 end do
 si(1)=is(2)
 si(2)=is(1)
 signbi(ixO^S)=sign(1.d0,w(ixO^S,b0_+idims))
+! idims dimensional Alfven speed 
 va(ixO^S)=dabs(w(ixO^S,b0_+idims))/dsqrt(w(ixO^S,rho_))
 vf(ixO^S)=a2(ixO^S)+ (^C&w(ixO^S,b^C_)**2+ )/w(ixO^S,rho_)
 tmp(ixO^S)=dsqrt(vf(ixO^S)**2-4.d0*a2(ixO^S)*va(ixO^S)**2)
-vs(ixO^S)=dsqrt(0.5d0*(vf(ixO^S)-tmp(ixO^S)))
-vf(ixO^S)=dsqrt(0.5d0*(vf(ixO^S)+tmp(ixO^S)))
-af(ixO^S)=dsqrt((a2(ixO^S)-vs(ixO^S)**2)/(vf(ixO^S)**2-vs(ixO^S)**2))
-as(ixO^S)=dsqrt((vf(ixO^S)**2-a2(ixO^S))/(vf(ixO^S)**2-vs(ixO^S)**2))
-leftm=0.d0
-righm=0.d0
+vs(ixO^S)=0.5d0*(vf(ixO^S)-tmp(ixO^S))
+vf(ixO^S)=0.5d0*(vf(ixO^S)+tmp(ixO^S))
+tmp(ixO^S)=vf(ixO^S)-vs(ixO^S)
+af(ixO^S)=a2(ixO^S)-vs(ixO^S)
+where(af(ixO^S)<0.d0)
+  af(ixO^S)=0.d0
+end where
+af(ixO^S)=dsqrt(af(ixO^S)/tmp(ixO^S))
+as(ixO^S)=vf(ixO^S)-a2(ixO^S)
+where(as(ixO^S)<0.d0)
+  as(ixO^S)=0.d0
+end where
+as(ixO^S)=dsqrt(as(ixO^S)/tmp(ixO^S))
+! fast magneto-acoustic wave speed 
+vf(ixO^S)=dsqrt(vf(ixO^S))
+! slow magneto-acoustic wave speed 
+vs(ixO^S)=dsqrt(vs(ixO^S))
+leftm(ixO^S,:,:)=0.d0
+righm(ixO^S,:,:)=0.d0
 {#IFDEF ENERGY
 ! entropy wave
 lamda(ixO^S,entroW_)=w(ixO^S,v0_+idims)
@@ -177,7 +193,7 @@ double precision :: righm(ixI^S,1:nwprim,1:nwwave)
 double precision :: ritmp(ixI^S,1:nwprim,1:nwwave)
 double precision, dimension(ixI^S,1:nwprim) :: Sx, dw
 double precision, dimension(ixI^S,1:nwwave) :: lamda, RHS
-double precision :: invdx(ndir), dxall(ndir), sqrthalf
+double precision :: invdx(ndir), dxall(ndir)
 double precision :: divb(ixI^S)
 integer :: idirs, ix^D, ixR^L,iwave,iprim,ii,is(ndir-1)
 logical :: patchw(ixI^S)
@@ -230,26 +246,26 @@ do ii=1,ndir-1
     Sx(ixO^S,iprim)=Sx(ixO^S,iprim)+sum(jcobi(ixO^S,1:nwprim,iprim)*dw(ixO^S,1:nwprim),^ND+1)
   end do
 end do
-if(iside==1) then
-  ixR^L=ixO^L;
-  ixRmin^D=ixOmin^D+kr(idims,^D)\
-  call getdivb(w,ixI^L,ixR^L,divb)
-  select case (idims)
-  {case (^D)
-     divb(ixOmin^D^D%ixO^S) = divb(ixOmin^D+1^D%ixO^S) \}
-  end select
-else
-  ixR^L=ixO^L;
-  ixRmax^D=ixOmax^D-kr(idims,^D)\
-  call getdivb(w,ixI^L,ixR^L,divb)
-  select case (idims)
-  {case (^D)
-     divb(ixOmax^D^D%ixO^S) = divb(ixOmax^D-1^D%ixO^S)\}
-  end select
-end if
-do idirs=1,ndir
-   Sx(ixO^S,b0_+idirs)=Sx(ixO^S,b0_+idirs)-w(ixO^S,v0_+idirs)*divb(ixO^S)
-end do
+!if(iside==1) then
+!  ixR^L=ixO^L;
+!  ixRmin^D=ixOmin^D+kr(idims,^D)\
+!  call getdivb(w,ixI^L,ixR^L,divb)
+!  select case (idims)
+!  {case (^D)
+!     divb(ixOmin^D^D%ixO^S) = divb(ixOmin^D+1^D%ixO^S) \}
+!  end select
+!else
+!  ixR^L=ixO^L;
+!  ixRmax^D=ixOmax^D-kr(idims,^D)\
+!  call getdivb(w,ixI^L,ixR^L,divb)
+!  select case (idims)
+!  {case (^D)
+!     divb(ixOmax^D^D%ixO^S) = divb(ixOmax^D-1^D%ixO^S)\}
+!  end select
+!end if
+!do idirs=1,ndir
+!   Sx(ixO^S,b0_+idirs)=Sx(ixO^S,b0_+idirs)-w(ixO^S,v0_+idirs)*divb(ixO^S)
+!end do
 
 call eigenvectors(idims,ixI^L,ixO^L,w,leftm,righm,lamda)
 if(iside==1) then
