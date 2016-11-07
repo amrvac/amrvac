@@ -130,7 +130,7 @@ if (nbufferx^D/=0|.or.) then
    call MPI_ALLREDUCE(MPI_IN_PLACE,refine,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
                       icomm,ierrmpi)
 else
-   call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_LOGICAL,refine,ngridshi, &
+   call MPI_ALLGATHER(refine(:,mype),ngridshi,MPI_LOGICAL,refine,ngridshi, &
                       MPI_LOGICAL,icomm,ierrmpi)
 end if
 
@@ -173,7 +173,7 @@ end do
 !! if(ipe/=mype) coarsen2(1:ngridshi,ipe)=.false.
 !!enddo
 
-call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
+call MPI_ALLGATHER(coarsen(:,mype),ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
                    MPI_LOGICAL,icomm,ierrmpi)
 !!call MPI_ALLREDUCE(MPI_IN_PLACE,coarsen2,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
 !!                      icomm,ierrmpi)

@@ -46,7 +46,7 @@ neighbor_active = .true.
 !     Now, we re-activate a safety belt of radius nsafety blocks.
 
 !     First communicate the current isafety buffer:
-      call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_INTEGER,isafety,&
+      call MPI_ALLGATHER(isafety(:,mype),ngridshi,MPI_INTEGER,isafety,&
       ngridshi,MPI_INTEGER,icomm,ierrmpi)
 
 !     Now check the distance of neighbors to the active zone:
@@ -61,7 +61,7 @@ neighbor_active = .true.
          end do
          
 !     Communicate the incremented buffers:
-         call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_INTEGER,isafety,&
+         call MPI_ALLGATHER(isafety(:,mype),ngridshi,MPI_INTEGER,isafety,&
          ngridshi,MPI_INTEGER,icomm,ierrmpi)
       end do
 
