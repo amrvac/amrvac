@@ -114,9 +114,7 @@ subroutine proper_nesting
 use mod_forest
 use mod_global_parameters
 
-!! following alternative
-!!logical, dimension(1:ngridshi,0:npe-1):: coarsen2
-
+logical, dimension(:,:), allocatable :: refine2
 integer :: iigrid, igrid, level, ic^D, inp^D, i^D, my_neighbor_type,ipe
 logical :: coarsening, pole(ndim)
 type(tree_node_ptr) :: tree, p_neighbor, my_parent, sibling, my_neighbor, &
@@ -127,8 +125,10 @@ type(tree_node_ptr) :: tree, p_neighbor, my_parent, sibling, my_neighbor, &
 ! sure that neighbors will not differ more than one level of refinement.
 
 if (nbufferx^D/=0|.or.) then
-   call MPI_ALLREDUCE(MPI_IN_PLACE,refine,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
+   allocate(refine2(ngridshi,npe))
+   call MPI_ALLREDUCE(refine,refine2,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
                       icomm,ierrmpi)
+   refine=refine2
 else
    call MPI_ALLGATHER(refine(:,mype),ngridshi,MPI_LOGICAL,refine,ngridshi, &
                       MPI_LOGICAL,icomm,ierrmpi)
@@ -167,18 +167,8 @@ end do
 
 ! For all grids on all processors, do a check on coarsen flags.
 
-!!coarsen2(1:ngridshi,:)=coarsen(1:ngridshi,:)
-
-!!do ipe=0,npe-1
-!! if(ipe/=mype) coarsen2(1:ngridshi,ipe)=.false.
-!!enddo
-
 call MPI_ALLGATHER(coarsen(:,mype),ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
                    MPI_LOGICAL,icomm,ierrmpi)
-!!call MPI_ALLREDUCE(MPI_IN_PLACE,coarsen2,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
-!!                      icomm,ierrmpi)
-
-!!coarsen(1:ngridshi,:)=coarsen2(1:ngridshi,:)
 
 do level=levmax,max(2,levmin),-1
    tree%node => level_head(level)%node
