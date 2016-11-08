@@ -383,6 +383,11 @@ if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
 
 if(firstprocess .and. snapshotini<0) &
   call mpistop("Please restart from a snapshot when firstprocess=T")
+if(convert .and. snapshotini<0) then
+  convert=.false.
+  write(uniterr,*) 'Warning in ReadParameters: ',&
+        'Please change convert to .false. when start a new run!'
+end if
 if(convert) autoconvert=.false.
 
 read(unitpar,savelist)
@@ -821,15 +826,12 @@ include 'amrvacdef.f'
 {#IFDEF TRANSFORMW
 double precision, allocatable :: wtf(:^D&,:)
 double precision :: eqpar_tf(neqpartf)
-integer, dimension(ngridshi) :: iorequest_tf
 integer :: file_handle_tf
 character(len=80) :: filenametf
 }
 integer :: file_handle, amode, igrid, Morton_no, iwrite
 integer :: nx^D
 integer(kind=MPI_OFFSET_KIND) :: offset
-integer, dimension(ngridshi) :: iorequest
-integer, dimension(MPI_STATUS_SIZE,ngridshi) :: iostatus
 integer, dimension(MPI_STATUS_SIZE) :: status
 character(len=80) :: filename, line
 logical, save :: firstsnapshot=.true.
@@ -858,7 +860,6 @@ call MPI_BARRIER(icomm,ierrmpi)
 
 amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
 call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
-iorequest=MPI_REQUEST_NULL
 
 {#IFDEF TRANSFORMW
 if(nwtf>0 .and. neqpartf>0) then
@@ -870,7 +871,6 @@ if(nwtf>0 .and. neqpartf>0) then
   amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
   call MPI_FILE_OPEN(icomm,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
   allocate(wtf(ixG^T,1:nwtf))
-  iorequest_tf=MPI_REQUEST_NULL
 endif
 }
 
@@ -896,8 +896,8 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
      call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
      offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
             *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-     call MPI_FILE_IWRITE_AT(file_handle_tf,offset,wtf,1,type_block_io_tf, &
-                             iorequest_tf(iwrite),ierrmpi)     
+     call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1,type_block_io_tf, &
+                             status,ierrmpi)     
    endif
 }
 {#IFDEF EVOLVINGBOUNDARY
@@ -907,26 +907,24 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
           int(size_block,kind=MPI_OFFSET_KIND) &
           *int(nphyboundblock,kind=MPI_OFFSET_KIND)
    if (sfc_phybound(Morton_no)==1) then
-      call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
-                              iorequest(iwrite),ierrmpi)
+      call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
+                              status,ierrmpi)
    else
-      call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,&
-                              type_block_io,iorequest(iwrite),ierrmpi)
+      call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+                              type_block_io,status,ierrmpi)
    end if
 }{#IFNDEF EVOLVINGBOUNDARY
    offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-   call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-                           iorequest(iwrite),ierrmpi)
+   call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
+                           status,ierrmpi)
 }
 end do
 
-if (iwrite>0) call MPI_WAITALL(iwrite,iorequest,iostatus,ierrmpi)
 
 call MPI_FILE_CLOSE(file_handle,ierrmpi)
 {#IFDEF TRANSFORMW
 if(nwtf>0 .and. neqpartf>0) then
-  if (iwrite>0) call MPI_WAITALL(iwrite,iorequest_tf,iostatus,ierrmpi)
   call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
 endif
 }
@@ -990,7 +988,6 @@ include 'amrvacdef.f'
 {#IFDEF TRANSFORMW
 double precision, allocatable :: wtf(:^D&,:)
 double precision :: eqpar_tf(neqpartf)
-integer, allocatable :: iorequest_tf(:),iostatus_tf(:,:)
 integer :: file_handle_tf
 character(len=80) :: filenametf
 }
@@ -999,9 +996,9 @@ integer :: nx^D
 
 integer(kind=MPI_OFFSET_KIND) :: offset
 
-integer, allocatable :: iostatus(:,:),iorecvstatus(:,:),ioastatus(:,:)
+integer, allocatable :: iorecvstatus(:,:),ioastatus(:,:)
 integer, allocatable :: igrecvstatus(:,:)
-integer, allocatable :: iorequest(:),igrid_recv(:) 
+integer, allocatable :: igrid_recv(:) 
 
 integer, dimension(MPI_STATUS_SIZE) :: status
 
@@ -1054,8 +1051,6 @@ if (mype /= 0) then
 else 
  ! mype==0
  nwrite=(Morton_stop(0)-Morton_start(0)+1)
- allocate(iorequest(nwrite),iostatus(MPI_STATUS_SIZE,nwrite))
- iorequest=MPI_REQUEST_NULL
 
  ! master processor writes out
  write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
@@ -1074,9 +1069,6 @@ else
 
    open(unit=unitsnapshot,file=filenametf,status='replace')
    close(unit=unitsnapshot)
-
-   allocate(iorequest_tf(nwrite),iostatus_tf(MPI_STATUS_SIZE,nwrite))
-   iorequest_tf=MPI_REQUEST_NULL
  endif
 }
 
@@ -1102,14 +1094,14 @@ else
      call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
      offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
             *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-     call MPI_FILE_IWRITE_AT(file_handle_tf,offset,wtf,1,type_block_io_tf, &
-                             iorequest_tf(iwrite),ierrmpi)
+     call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1,type_block_io_tf, &
+                             status,ierrmpi)
    endif
 }
    offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-   call MPI_FILE_IWRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-                           iorequest(iwrite),ierrmpi)
+   call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
+                           status,ierrmpi)
  end do
  ! write data communicated from other processors
  if(npe>1)then
@@ -1150,18 +1142,12 @@ else
  end if
 end if
 
-if (nwrite>0)then
-   call MPI_WAITALL(nwrite,iorequest,iostatus,ierrmpi) 
-   if(mype==0)deallocate(iorequest,iostatus)
-end if
-
 if(mype==0) call MPI_FILE_CLOSE(file_handle,ierrmpi)
 
 {#IFDEF TRANSFORMW
 if(nwtf>0 .and. neqpartf>0) then
   if (nwrite>0) then
-    call MPI_WAITALL(nwrite,iorequest_tf,iostatus_tf,ierrmpi)
-    if(mype==0)deallocate(iorequest_tf,iostatus_tf,wtf)
+    if(mype==0)deallocate(wtf)
   endif
   call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
 endif
@@ -1379,7 +1365,6 @@ integer :: levmaxini, ndimini, ndirini, nwini, neqparini, nxini^D
 {^IFNOMPT  integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb}
 
 integer(kind=MPI_OFFSET_KIND) :: offset
-integer, dimension(ngridshi) :: iorequest
 integer, dimension(MPI_STATUS_SIZE,ngridshi) :: iostatus
 integer, dimension(MPI_STATUS_SIZE) :: status
 character(len=80) :: filename
@@ -1462,7 +1447,6 @@ call MPI_FILE_READ_ALL(file_handle,eqpar,neqparini, &
 
 call read_forest(file_handle)
 
-iorequest=MPI_REQUEST_NULL
 iread=0
 {#IFDEF EVOLVINGBOUNDARY
 ! mark physical-boundary blocks on space-filling curve
@@ -1483,11 +1467,11 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
           int(size_block,kind=MPI_OFFSET_KIND) &
           *int(nphyboundblock,kind=MPI_OFFSET_KIND)
    if (sfc_phybound(Morton_no)==1) then
-      call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
-                             iorequest(iread),ierrmpi)
+      call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
+                             status,ierrmpi)
    else
-      call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-                             iorequest(iread),ierrmpi)
+      call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
+                             status,ierrmpi)
    end if
 end do
 }{#IFNDEF EVOLVINGBOUNDARY
@@ -1497,12 +1481,10 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
    iread=iread+1
    offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-   call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-                          iorequest(iread),ierrmpi)
+   call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
+                          status,ierrmpi)
 end do
 }
-
-if (iread>0) call MPI_WAITALL(iread,iorequest,iostatus,ierrmpi)
 
 call MPI_FILE_CLOSE(file_handle,ierrmpi)
 
@@ -1521,7 +1503,6 @@ integer :: levmaxini, ndimini, ndirini, nwini, neqparini, nxini^D
 {^IFNOMPT  integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb}
 
 integer(kind=MPI_OFFSET_KIND) :: offset
-integer, dimension(ngridshi) :: iorequest
 integer, dimension(MPI_STATUS_SIZE) :: status
 integer, dimension(MPI_STATUS_SIZE) :: iostatus
 
@@ -1613,7 +1594,6 @@ call read_forest(file_handle)
 
 if (mype==0)then
    iread=0
-   iorequest=MPI_REQUEST_NULL
    do Morton_no=Morton_start(0),Morton_stop(0)
       igrid=sfc_to_igrid(Morton_no)
       call alloc_node(igrid)
