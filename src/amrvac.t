@@ -23,8 +23,12 @@ time_advance = .false.
 time0        = MPI_WTIME()
 time_bc      = zero
 
+! TODO:
+call read_physics_parameters("rho")
+
 ! In the future, include a mod_user and define the physics type there
 call activate_physics_module("rho")
+
 call read_arguments_and_parameters()
 call initialize_vars()
 call init_comm_types()
