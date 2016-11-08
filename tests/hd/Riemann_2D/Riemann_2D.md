@@ -1,4 +1,4 @@
-# Rayleigh-Taylor test problem
+# Riemannd 2D test problem
 
 # Introduction
 

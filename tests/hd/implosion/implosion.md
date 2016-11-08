@@ -1,4 +1,4 @@
-# Rayleigh-Taylor test problem
+# Implosion test problem
 
 # Introduction
 
