@@ -41,9 +41,13 @@ When switching between 2D and 3D, perform a `make clean`.
 
 ## Running the code
 
-To run with e.g. 4 processors, use
+To run with e.g. 4 processors use
 
     mpirun -np 4 ./amrvac -i implosion.par
+
+For the polytropic version, use
+
+    mpirun -np 4 ./amrvac -i implosion_iso.par
 
 # Changing the parameters
 
