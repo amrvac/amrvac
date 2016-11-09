@@ -1041,7 +1041,7 @@ integer, intent(in) :: ixG^L,ixO^L,iB
 double precision, intent(inout) :: w(ixG^S,1:nw)
 double precision, intent(in) :: x(ixG^S,1:ndim)
 
-double precision :: dx1x2,dx1x3,dx2x1,dx2dx3,dx3x1,dx3x2
+double precision :: dx1x2,dx1x3,dx2x1,dx2d3,dx3x1,dx3x2
 integer :: ix^D
 !-----------------------------------------------------------------------------
 select case(iB)
