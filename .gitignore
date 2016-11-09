@@ -1,1 +1,5 @@
 doc/html/*
+*.vtu
+*.dat
+*.vti
+*.amrvac.log.shfp.*

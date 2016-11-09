@@ -44,70 +44,71 @@ end do
 }
 
 end subroutine initglobaldata_usr
-!=============================================================================
+
+! initialize one grid
 subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-
-! initialize one grid 
-
 include 'amrvacdef.f'
 
-integer, intent(in) :: ixG^L, ix^L
-double precision, intent(in) :: x(ixG^S,1:ndim)
+integer, intent(in)             :: ixG^L, ix^L
+double precision, intent(in)    :: x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw)
 
-double precision :: front, rho0, rho1, pr0, pr1
-integer          :: iw, ix^D, kxO^L
-logical          :: patchw(ixG^S)
-!----------------------------------------------------------------------------
+double precision                :: front, rho0, rho1, pr0, pr1
+integer                         :: iw, ix^D, kxO^L
+logical                         :: patchw(ixG^S)
 
 {^IFONED call mpistop("This is a multi-D HD problem") }
-patchw=.false.
 
-front=0.15d0
-rho0=1.0d0
-rho1=0.125d0
-pr0=1.0d0
-pr1=0.14d0
-where(( ^D&x(ixG^S,^D)+ )>=front+smalldouble)
-   w(ixG^S,rho_)=rho0
-   w(ixG^S,m1_)=zero
-   w(ixG^S,m2_)=zero
-{#IFDEF ENERGY
-   w(ixG^S,e_)=pr0/(eqpar(gamma_)-one)
-}
-{#IFDEF TRACER
-{^FL& w(ixG^S,Dtr^FL_)=zero\}
-}
+patchw = .false.
+
+front  = 0.15d0
+rho0   = 1.0d0
+rho1   = 0.125d0
+pr0    = 1.0d0
+pr1    = 0.14d0
+
+where(( ^D&x(ixG^S,^D)+ ) >= front+smalldouble)
+   w(ixG^S,rho_)           = rho0
+   w(ixG^S,m1_)            = zero
+   w(ixG^S,m2_)            = zero
+   {#IFDEF ENERGY
+   w(ixG^S,e_)             = pr0/(eqpar(gamma_)-one)
+   }
+   {#IFDEF TRACER
+   {^FL& w(ixG^S,Dtr^FL_)  = zero\}
+   }
 elsewhere
-   w(ixG^S,rho_)=rho1
-   w(ixG^S,m1_)=zero
-   w(ixG^S,m2_)=zero
-{#IFDEF ENERGY
-   w(ixG^S,e_)=pr1/(eqpar(gamma_)-one)
-}
-{#IFDEF TRACER
-{^FL& w(ixG^S,Dtr^FL_)=w(ixG^S,rho_)\}
+   w(ixG^S,rho_)           = rho1
+   w(ixG^S,m1_)            = zero
+   w(ixG^S,m2_)            = zero
+   {#IFDEF ENERGY
+   w(ixG^S,e_)             = pr1/(eqpar(gamma_)-one)
+   }
+   {#IFDEF TRACER
+   {^FL& w(ixG^S,Dtr^FL_)  = w(ixG^S,rho_)\}
 }
 endwhere
 
 {#IFDEF DUST
-{^DS& w(ixG^S,rhod^DS_)=0.001d0*w(ixG^S,rho_)\}
-{^DS& w(ixG^S,m1d^DS_)=zero \}
-{^DS& w(ixG^S,m2d^DS_)=zero \}
+{^DS& w(ixG^S,rhod^DS_) = 0.001d0*w(ixG^S,rho_)\}
+{^DS& w(ixG^S,m1d^DS_)  = zero \}
+{^DS& w(ixG^S,m2d^DS_)  = zero \}
 }
 
 
 ! Smoothing of the initial condition:
-{do ix^DB= ix^LIM^D\}
-           {kxOmin^D= ix^D-1;
-            kxOmax^D= ix^D+1;\}
+{do ix^DB = ix^LIM^D\}
+           {kxOmin^D= ix^D-1\}
+           {kxOmax^D= ix^D+1\}
+
             call primitiven(ixG^L,kxO^L,w,patchw)
+
             do iw = 1,nw
-                   w(ix^D,iw)=sum(w(kxO^S,iw))&
-                           /9.
+               w(ix^D,iw) = sum(w(kxO^S,iw)) / 9.0d0
             end do
+
             call conserven(ixG^L,kxO^L,w,patchw)
-{enddo^D&\}
+{enddo\}
 
 end subroutine initonegrid_usr
 !=============================================================================
