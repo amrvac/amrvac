@@ -13,10 +13,12 @@ module mod_hd
   integer, allocatable :: mom(:)
   integer :: e_
 
+  integer, allocatable :: tracer(:)
   integer, allocatable :: rho_dust(:)
   integer, allocatable :: m_dust(:, :)
 
   double precision :: gamma
+  double precision :: hd_adiab
 
   double precision              :: smalle, minrho, minp
   double precision              :: minrhod
@@ -33,9 +35,13 @@ contains
     integer :: ix
 
     physics_type = 'hd'
-    ! Todo: document
-    nwflux       = ^NC * (1 + hd_n_dust) + 2 + hd_n_dust + hd_n_tracer
-    if (.not. hd_energy) nwflux = nwflux - 1
+
+    ! The number of flux variables
+    if (hd_energy) then
+       nwflux = 2 + hd_n_dust + hd_n_tracer + ^NC * (1 + hd_n_dust)
+    else
+       nwflux = 1 + hd_n_dust + hd_n_tracer + ^NC * (1 + hd_n_dust)
+    end if
 
     nwaux   = 0
     nwextra = 0
@@ -71,11 +77,8 @@ contains
 
     ! Set starting index of dust species
     do n = 1, hd_n_dust
-       TODO
-       dust_var(n, ) = ix + 1
-       do j = 1, ^NC
-          dust_mdens(n, j) = ix + 1 + j
-       end do
+       rho_dust(n) = ix + 1
+       m_dust(:, n) = [ix+2,]
        ix = ix + 1 + ^NC
     end do
 
@@ -86,32 +89,18 @@ contains
        dust_ = -1
     end if
 
-    mr_= m0_+r_, mphi_= m0_+phi_, mz_= m0_+z_  ! Polar var. names
-
-    if (hd_n_dust > 0) then
-       TODO
-       v1d^DS_= rhod^NDS_+^DS
-       {^NOONEC
-       v2d^DS_= m1d^NDS_+^DS }
-       {^IFTHREEC
-       v3d^DS_= m2d^NDS_+^DS }
-       mrd^DS_= m0d^DS_+(^NDS*r_)              ! Polar var. names
-       mphid^DS_= m0d^DS_+(^NDS*phi_)          ! Polar var. names
-       mzd^DS_= m0d^DS_+(^NDS*z_)              ! Polar var. names
-    end if
-
     if (hd_energy) then
        ! Characteristic waves
-       soundRW_= 1
-       soundLW_= 2
-       entropW_= 3
-       shearW0_= 3
+       soundRW_ = 1
+       soundLW_ = 2
+       entropW_ = 3
+       shearW0_ = 3
        nworkroe = 3
     else
        ! Characteristic waves
-       soundRW_= 1
-       soundLW_= 2
-       shearW0_= 2
+       soundRW_ = 1
+       soundLW_ = 2
+       shearW0_ = 2
        nworkroe = 1
     end if
 
@@ -121,20 +110,20 @@ contains
     use mod_global_parameters
 
     if (.not. hd_energy) then
-       if (hd_gamma <= zero) call mpistop ("gamma negative not ok")
-       if (hd_adiab < zero) call mpistop ("adiab strict negative not ok")
-       minrho= max(zero, smallrho)
-       minp = hd_adiab*minrho**hd_gamma
+       if (hd_gamma <= 0.0d0) call mpistop ("gamma negative not ok")
+       if (hd_adiab < 0.0d0) call mpistop ("adiab strict negative not ok")
+       minrho = max(0.0d0, smallrho)
+       minp   = hd_adiab*minrho**hd_gamma
     else
-       if (hd_gamma <= zero .or. hd_gamma== one) call mpistop ("gamma negative or 1 not ok")
-       minp  = max(zero, smallp)
-       minrho= max(zero, smallrho)
-       smalle= minp/(hd_gamma-one)
+       if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) call mpistop ("gamma negative or 1 not ok")
+       minp   = max(0.0d0, smallp)
+       minrho = max(0.0d0, smallrho)
+       smalle = minp/(hd_gamma - 1.0d0)
     end if
 
     if (hd_n_dust > 0) then
-       if (eqpar(mu_)<= zero) call mpistop ("mu (molecular weight) negative not ok")
-       minrhod= max(zero, smallrhod)
+       if (eqpar(mu_)<= 0.0d0) call mpistop ("mu (molecular weight) negative not ok")
+       minrhod = max(0.0d0, smallrhod)
     end if
 
   end subroutine checkglobaldata
@@ -153,7 +142,7 @@ contains
     end if
 
     if (hd_n_dust > 0) then
-       eqpar(mu_) = one
+       eqpar(mu_) = 1.0d0
        mhcgspar = 1.6733D-24
        kbcgspar = 1.38065D-16
     end if
@@ -163,7 +152,7 @@ contains
        case(soundRW_, soundLW_)
           entropycoef(il) = 0.2d0
        case default
-          entropycoef(il) = -one
+          entropycoef(il) = -1.0d0
        end select
     end do
 
@@ -198,13 +187,13 @@ contains
        if (checkprimitive) then
           flag(ixO^S) =(w(ixO^S, p_)>= minp .and. w(ixO^S, rho_)>= minrho)
        else
-          tmp(ixO^S) =(hd_gamma-one)*(w(ixO^S, e_)- &
+          tmp(ixO^S) =(hd_gamma - 1.0d0)*(w(ixO^S, e_)- &
                half*( ^C&w(ixO^S, mom(i_dir))**2+ )/w(ixO^S, rho_))
           flag(ixO^S) =(tmp(ixO^S)>= minp .and. w(ixO^S, rho_)>= minrho)
        endif
     else
-       if (hd_adiab /= zero) then
-          flag(ixO^S) = (w(ixO^S, rho_) >= zero)
+       if (hd_adiab > 0.0d0) then
+          flag(ixO^S) = (w(ixO^S, rho_) >= 0.0d0)
        endif
     end if
 
@@ -220,7 +209,7 @@ contains
     logical                      :: patchw(ixG^T)
     double precision             :: invgam
 
-    invgam = 1.d0/(hd_gamma-one)
+    invgam = 1.d0/(hd_gamma - 1.0d0)
 
     if (hd_energy) then
        ! Calculate total energy from pressure and kinetic energy
@@ -253,28 +242,15 @@ contains
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     integer, dimension(ixG^T)    :: patchierror
     integer, dimension(ndim)     :: lowpindex
+    double precision             :: kin_en(ix0^S)
 
     if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"primitive")
 
     if (hd_energy) then
        ! compute pressure
-       w(ixO^S, p_) =(hd_gamma-one)*(w(ixO^S, e_)- &
-            half*( ^C&w(ixO^S, mom(i_dir))**2+ )/w(ixO^S, rho_))
-    end if
+       kin_en = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=^ND+1) / w(ixO^S, rho_)
+       w(ixO^S, p_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - kin_en
 
-    ! Convert dust momentum to dust velocity
-    do i_dust = 1, hd_n_dust
-       where(w(ixO^S, rho_dust(i_dust))>minrhod)
-          do i_dir = 1, ^NC
-          w(ixO^S, m_dust(i_dir, i_dust)) = w(ixO^S, m_dust(i_dir, i_dust)) /&
-               w(ixO^S, rho_dust(i_dust))
-          end do
-       elsewhere
-          w(ixO^S, m_dust(:, i_dust)) = 0.0d0
-       end where
-    end if
-
-    if (hd_energy) then
        ! Convert momentum to velocity
        do i_dir = 1, ^NC
           w(ixO^S, mom(idir)) = w(ixO^S, mom(i_dir))/w(ixO^S, rho_);
@@ -291,26 +267,26 @@ contains
                   ' w(1:nwflux) =', w(^D&lowpindex(^D), 1:nwflux),' when t=', t,' it=', it
              call mpistop("=== primitive pressure problem===")
           end if
+       else if (strictgetaux) then
+          ! TODO: check
+          where(w(ixO^S, p_)<minp)
+             w(ixO^S, p_) = minp
+          endwhere
        else
-          if (strictgetaux) then
-             where(w(ixO^S, p_)<minp)
-                w(ixO^S, p_) = minp
-             endwhere
-          else
-             where(w(ixO^S, p_)<minp)
-                patchierror(ixO^S) = 1
-             else where
-                patchierror(ixO^S) = 0
-             end where
-             if (any(patchierror(ixO^S)/= 0)) &
-                  call correctaux(ixI^L, ixO^L, w, x, patchierror,'primitive')
-          end if
+          where(w(ixO^S, p_)<minp)
+             patchierror(ixO^S) = 1
+          else where
+             patchierror(ixO^S) = 0
+          end where
+
+          if (any(patchierror(ixO^S)/= 0)) &
+               call correctaux(ixI^L, ixO^L, w, x, patchierror,'primitive')
        end if
     end if
 
     if (.not. hd_energy) then
 
-       if (hd_adiab > zero) then
+       if (hd_adiab > 0.0d0) then
           ! Convert momentum to velocity
           ^C&w(ixO^S, v^C_) = w(ixO^S, mom(i_dir))/w(ixO^S, rho_);
        else
@@ -330,6 +306,18 @@ contains
        end do
     end if
 
+    ! Convert dust momentum to dust velocity
+    do i_dust = 1, hd_n_dust
+       where(w(ixO^S, rho_dust(i_dust))>minrhod)
+          do i_dir = 1, ^NC
+             w(ixO^S, m_dust(i_dir, i_dust)) = w(ixO^S, m_dust(i_dir, i_dust)) /&
+                  w(ixO^S, rho_dust(i_dust))
+          end do
+       elsewhere
+          w(ixO^S, m_dust(:, i_dust)) = 0.0d0
+       end where
+    end if
+
   end subroutine primitive
 
   subroutine e_to_rhos(ixI^L, ixO^L, w, x)
@@ -338,12 +326,12 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L
     double precision             :: w(ixI^S, nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
-    double precision             :: sum_m2(ix0^S)
+    double precision             :: kin_en(ix0^S)
 
     if (hd_energy) then
-       sum_m2 = sum(w(ixO^S, mom(:))**2, dim=^ND+1)
-       w(ixO^S, e_) = (hd_gamma-one) * w(ixO^S, rho_)**(one-hd_gamma) * &
-            (w(ixO^S, e_) - half * sum_m2 / w(ixO^S, rho_))
+       kin_en = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=^ND+1) / w(ixO^S, rho_)
+       w(ixO^S, e_) = (hd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - hd_gamma) * &
+            (w(ixO^S, e_) - kin_en)
     else
        call mpistop("energy from entropy can not be used with -eos = iso !")
     end if
@@ -355,12 +343,12 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L
     double precision             :: w(ixI^S, nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
-    double precision             :: sum_m2(ix0^S)
+    double precision             :: kin_en(ix0^S)
 
     if (hd_energy) then
-       sum_m2 = sum(w(ixO^S, mom(:))**2, dim=^ND+1)
-       w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma-one) * w(ixO^S, rhos_) &
-            / (hd_gamma - one) + half * sum_m2 / w(ixO^S, rho_)
+       kin_en = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=^ND+1) / w(ixO^S, rho_)
+       w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma - 1.0d0) * w(ixO^S, e_) &
+            / (hd_gamma - 1.0d0) + kin_en
     else
        call mpistop("entropy from energy can not be used with -eos = iso !")
     end if
@@ -375,9 +363,9 @@ contains
 
     if (hd_energy) then
        if (useprimitive) then
-          drho(ixO^S) = hd_gamma*dabs(d2w(ixO^S, rho_))&
+          drho(ixO^S) = hd_gamma*abs(d2w(ixO^S, rho_))&
                /min(w(ixL^S, rho_), w(ixR^S, rho_))
-          dp(ixO^S) = dabs(d2w(ixO^S, p_))/min(w(ixL^S, p_), w(ixR^S, p_))
+          dp(ixO^S) = abs(d2w(ixO^S, p_))/min(w(ixL^S, p_), w(ixR^S, p_))
        end if
     else
        call mpistop("PPM with flatcd=.true. can not be used with -eos = iso !")
@@ -396,8 +384,8 @@ contains
     if (hd_energy) then
        if (useprimitive) then
           ! eq. B15, page 218, Mignone and Bodo 2005, ApJS (beta1)
-          where (dabs(w(ixRR^S, p_)-w(ixLL^S, p_))>smalldouble)
-             drho(ixO^S) = dabs((w(ixR^S, p_)-w(ixL^S, p_))&
+          where (abs(w(ixRR^S, p_)-w(ixLL^S, p_))>smalldouble)
+             drho(ixO^S) = abs((w(ixR^S, p_)-w(ixL^S, p_))&
                   /(w(ixRR^S, p_)-w(ixLL^S, p_)))
           else where
              drho(ixO^S) = zero
@@ -407,7 +395,7 @@ contains
           !  use "dp" to save squared sound speed, assuming primitives
           dp(ixO^S) =(hd_gamma*w(ixO^S, p_)/w(ixO^S, rho_))
 
-          dp(ixO^S) = dabs(w(ixR^S, p_)-w(ixL^S, p_))&
+          dp(ixO^S) = abs(w(ixR^S, p_)-w(ixL^S, p_))&
                /(w(ixO^S, rho_)*dp(ixO^S))
           v(ixI^S)  = w(ixI^S, v0_+idims)
           call gradient(v, ixI^L, ixO^L, idims, dv)
@@ -425,24 +413,20 @@ contains
     double precision             :: w(ixI^S, nw), v(ixG^T)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
 
-    if (hd_energy) then
+    if (hd_energy .or. hd_adiab > 0.0d0) then
        v(ixO^S) = w(ixO^S, mom(idims))/w(ixO^S, rho_)
     else
-       if (hd_adiab > zero) then
+       ! case of zero temperature: allow zero density
+       where(w(ixO^S, rho_)/= zero)
           v(ixO^S) = w(ixO^S, mom(idims))/w(ixO^S, rho_)
-       else
-          ! case of zero temperature: allow zero density
-          where(w(ixO^S, rho_)/= zero)
-             v(ixO^S) = w(ixO^S, mom(idims))/w(ixO^S, rho_)
-          elsewhere
-             v(ixO^S) = zero
-          endwhere
-       endif
+       elsewhere
+          v(ixO^S) = zero
+       endwhere
     end if
   end subroutine getv
 
   ! Calculate cmax_idim = csound + abs(v_idim) within ixO^L
-  subroutine getcmax(new_cmax, w, x, ixI^L, ixO^L, idims, cmax, cmin, needcmin)
+  subroutine getcmax(w, x, ixI^L, ixO^L, idims, cmax, cmin)
     use mod_global_parameters
 
     logical                      :: new_cmax, needcmin
@@ -450,61 +434,25 @@ contains
     double precision             :: w(ixI^S, nw), cmax(ixG^T), cmin(ixG^T)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision             :: csound(ixG^T){#IFDEF DUST , speeddust(ixG^T, 1:^NDS)}
+    double precision             :: v(ixG^T)
 
-    if (hd_energy) then
+    call getv(w, x, ixI^L, ixO^L, idims, v)
+
+    if (hd_energy .or. hd_adiab > 0.0d0) then
        call getpthermal(w, x, ixI^L, ixO^L, csound)
        csound(ixO^S) = sqrt(hd_gamma*csound(ixO^S)/w(ixO^S, rho_))
-       if (needcmin) then
-          cmax(ixO^S) = max(w(ixO^S, mom(idims))/w(ixO^S, rho_)+csound(ixO^S), &
-               zero)
-          cmin(ixO^S) = min(w(ixO^S, mom(idims))/w(ixO^S, rho_)-csound(ixO^S),&
-               zero)
-       else
-          cmax(ixO^S) = max(csound(ixO^S)+dabs(w(ixO^S, mom(idims))/w(ixO^S, rho_)), &
-               zero)
-       endif
+
+       cmax(ixO^S)   = max(v(ix0^S)+csound(ixO^S), zero)
+       cmin(ixO^S)   = min(v(ix0^S)-csound(ixO^S), zero)
     else
-       if (hd_adiab > zero) then
-          call getpthermal(w, x, ixI^L, ixO^L, csound)
-          csound(ixO^S) = sqrt(hd_gamma*csound(ixO^S)/w(ixO^S, rho_))
-          if (needcmin) then
-             cmax(ixO^S) = max(w(ixO^S, mom(idims))/w(ixO^S, rho_)+csound(ixO^S),&
-                  zero)
-             cmin(ixO^S) = min(w(ixO^S, mom(idims))/w(ixO^S, rho_)-csound(ixO^S),&
-                  zero)
-          else
-             cmax(ixO^S) = max(csound(ixO^S)+abs(w(ixO^S, mom(idims))/w(ixO^S, rho_)), &
-                  zero)
-          endif
-       else
-          ! case of zero temperature: allow zero density
-          if (needcmin) then
-             where(w(ixO^S, rho_)/= zero)
-                cmax(ixO^S) = max(w(ixO^S, mom(idims))/w(ixO^S, rho_), zero)
-                cmin(ixO^S) = min(w(ixO^S, mom(idims))/w(ixO^S, rho_), zero)
-             elsewhere
-                cmax(ixO^S) = 0.0d0
-                cmin(ixO^S) = 0.0d0
-             endwhere
-          else
-             where(w(ixO^S, rho_)/= zero)
-                cmax(ixO^S) = abs(w(ixO^S, mom(idims))/w(ixO^S, rho_))
-             elsewhere
-                cmax(ixO^S) = 0.0d0
-             endwhere
-          endif
-       endif
+       ! case of zero temperature: allow zero density
+       cmax(ixO^S) = max(v(ix0^S), zero)
+       cmin(ixO^S) = min(v(ix0^S), zero)
     end if
 
-    ! TODO: update using dust speed (call subroutine)
-    do i_dust = 1, hd_n_dust
-       where(w(ixO^S, rho_dust(i_dust)) > minrhod)
-          speeddust(ixO^S, i_dust) = w(ixO^S, m_dust(i_dims, i_dust)) / &
-               w(ixO^S, rho_dust(i_dust));
-       elsewhere
-          speeddust(ixO^S, i_dust) = zero;
-       end where
-    end do
+    if (hd_n_dust > 0) then
+       call dust_get_cmax(todo)
+    end if
 
   end subroutine getcmax
 
@@ -521,8 +469,8 @@ contains
     if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"getpthermal")
 
     if (hd_energy) then
-       p(ixO^S) =(hd_gamma-one)*(w(ixO^S, e_)- &
-            half*({^C&w(ixO^S, mom(i_dir))**2+})/w(ixO^S, rho_))
+       p(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
+            half * ({^C&w(ixO^S, mom(i_dir))**2+})/w(ixO^S, rho_))
     else
        p(ixO^S) = hd_adiab*w(ixO^S, rho_)**hd_gamma
     end if
@@ -558,7 +506,7 @@ contains
                 call correctaux(ixI^L, ixO^L, w, x, patchierror,'getpthermal')
                 where(patchierror(ixO^S)/= 0)
                    if (hd_energy) then
-                      p(ixO^S) =(hd_gamma-one)*(w(ixO^S, e_)- &
+                      p(ixO^S) =(hd_gamma - 1.0d0)*(w(ixO^S, e_)- &
                            half*({^C&w(ixO^S, mom(i_dir))**2+})/w(ixO^S, rho_))
                    end if
                    if (.not. hd_energy) then
@@ -573,7 +521,7 @@ contains
   end subroutine getpthermal
 
   ! Calculate non-transport flux f_idim[iw] within ixO^L.
-  subroutine getflux(w, x, ixI^L, ixO^L, iw, idims, f, transport)
+  subroutine getflux(w, x, ixI^L, ixO^L, idims, f, transport)
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, iw, idims
@@ -590,14 +538,14 @@ contains
        ! f_i[e]= v_i*e + m_i/rho*p
        call getpthermal(w, x, ixI^L, ixO^L, f)
        f(ixO^S) = w(ixO^S, mom(idims))/w(ixO^S, rho_)*f(ixO^S)
-    else if (iw == rho_dust(i_dust)) then
+    else if (iw == rho_dust(i_dust)) then TODO
        where(w(ixO^S, rho_dust(i_dust))>minrhod)
           f(ixO^S) = w(ixO^S,(rho_dust(i_dust))+idims*^NDS);
        else where
           f(ixO^S) = zero
        end where
        transport = .false.
-    else if (iw == m_dust(i_dim, i_dust)) then
+    else if (iw == m_dust(i_dim, i_dust)) then TODO
        ! use tmp for speeddust here
        where(w(ixO^S, rho_dust(i_dust))>minrhod)
           tmp(ixO^S) = w(ixO^S,(rho_dust(i_dust))+idims*^NDS)/w(ixO^S, rho_dust(i_dust));
@@ -662,119 +610,10 @@ contains
     double precision, dimension(ixG^T, 1:^NDS) :: alpha_T
     double precision                           :: K
 
-    dtnew = bigdouble
-    dtdust = bigdouble
-
-    !-----------------------------
-    !get dt related to dust and gas stopping time (Laibe 2011)
-    !-----------------------------
-
-    select case( TRIM(dustmethod) )
-
-    case( 'Kwok' ) ! assume sticking coefficient equals 0.25
-       dtdust(1:^NDS) = bigdouble
-
-       call getpthermal(w, x, ixI^L, ixO^L, ptherm)
-       vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, rho_)
-
-       ! Tgas, mu = mean molecular weight
-       ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S, rho_)*normvar(rho_)*kbcgspar)
-
-       do idir = 1,^NC
-          call getv(w, x, ixI^L, ixO^L, idir, vgas)
-
-          TODO
-          where(w(ixO^S, rho_dust(i_dust))>minrhod)
-             vdust(ixO^S)  = w(ixO^S,(rho_dust(i_dust))+idir*^NDS)/w(ixO^S, rho_dust(i_dust))
-             deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
-             tstop(ixO^S)  = 4.0d0*(rhodust(^DS)*sdust(^DS))/ &
-                  (3.0d0*(0.75d0)*dsqrt(vt2(ixO^S) + &
-                  deltav(ixO^S)**2)*(w(ixO^S, rho_dust(i_dust)) + &
-                  w(ixO^S, rho_)))
-          else where
-             tstop(ixO^S) = bigdouble
-          end where
-
-
-          dtdust(^DS) = min(minval(tstop(ixO^S)), dtdust(^DS))
-       enddo
-
-       dtnew = min(minval(dtdiffpar*dtdust(1:^NDS)), dtnew)
-
-    case( 'sticking' ) ! Calculate sticking coefficient based on the gas temperature
-       dtdust(1:^NDS) = bigdouble
-
-       call getpthermal(w, x, ixI^L, ixO^L, ptherm)
-       vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, rho_)
-
-
-       ! Sticking coefficient
-       call get_sticking(w, x, ixI^L, ixO^L, alpha_T )
-
-       ! Tgas, mu = mean molecular weight
-       ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S, rho_)*normvar(rho_)*kbcgspar)
-
-
-
-       do idir = 1,^NC
-          call getv(w, x, ixI^L, ixO^L, idir, vgas)
-
-          TODO
-          where(w(ixO^S, rho_dust(i_dust))>minrhod)
-             vdust(ixO^S)  = w(ixO^S,(rho_dust(i_dust))+idir*^NDS)/w(ixO^S, rho_dust(i_dust))
-             deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
-             tstop(ixO^S)  = 4.0d0*(rhodust(^DS)*sdust(^DS))/ &
-                  (3.0d0*(one-alpha_T(ixO^S,^DS))*dsqrt(vt2(ixO^S) + &
-                  deltav(ixO^S)**2)*(w(ixO^S, rho_dust(i_dust)) + &
-                  w(ixO^S, rho_)))
-          else where
-             tstop(ixO^S) = bigdouble
-          end where
-
-
-          dtdust(^DS) = min(minval(tstop(ixO^S)), dtdust(^DS))
-          \}
-       enddo
-
-       dtnew = min(minval(dtdiffpar*dtdust(1:^NDS)), dtnew)
-
-
-
-    case('linear') !linear with Deltav, for testing (see Laibe & Price 2011)
-       K = 3.4d5/^NDS
-       dtdust(1:^NDS) = bigdouble
-
-       TODO
-       where(w(ixO^S, rho_dust(i_dust))>minrhod)
-          tstop(ixO^S)  = (w(ixO^S, rho_dust(i_dust))*w(ixO^S, rho_))/ &
-               (K*(w(ixO^S, rho_dust(i_dust)) + w(ixO^S, rho_)))
-       else where
-          tstop(ixO^S) = bigdouble
-       end where
-
-
-       dtdust(^DS) = min(minval(tstop(ixO^S)), dtdust(^DS))
-       \}
-
-       dtnew = min(minval(dtdiffpar*dtdust(1:^NDS)), dtnew)
-    case('none')
-       ! no dust timestep
-    case default
-       call mpistop( "=== This dust method has not been implemented===" )
-    end select
-
-
-    if (dtnew < dtmin) then
-       write(unitterm,*)"-------------------------------------"
-       write(unitterm,*)"Warning: found DUST related time step too small! dtnew=", dtnew
-       write(unitterm,*)"on grid with index:", saveigrid," grid level=", node(plevel_, saveigrid)
-       write(unitterm,*)"grid corners are=",{^D&rnode(rpxmin^D_, saveigrid), rnode(rpxmax^D_, saveigrid)}
-       write(unitterm,*)" dtdust =", dtdust(1:^NDS)
-       write(unitterm,*)"on processor:", mype
-       write(unitterm,*)"-------------------------------------"
-    endif
+    if (hd_n_dust > 0) then
+       call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
+    end if
 
   end subroutine getdt
-}
 
 end module mod_hd

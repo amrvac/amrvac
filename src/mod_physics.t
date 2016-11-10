@@ -88,10 +88,10 @@ module mod_physics
 
      subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
        use mod_global_parameters
-       integer, intent(in)                       :: ixI^L, ixO^L, idim
-       double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-       double precision, intent(inout)           :: cmax(ixG^T)
-       double precision, optional, intent(inout) :: cmin(ixG^T)
+       integer, intent(in)             :: ixI^L, ixO^L, idim
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: cmax(ixG^T)
+       double precision, intent(inout) :: cmin(ixG^T)
      end subroutine sub_get_cmax
 
      subroutine sub_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)

@@ -233,4 +233,152 @@ contains
 
   end subroutine addsource
 
+  subroutine getdt(w, ixI^L, ixO^L, dtnew, dx^D, x)
+    use mod_global_parameters
+
+    integer, intent(in)                        :: ixI^L, ixO^L
+    double precision, intent(in)               :: dx^D, x(ixI^S, 1:ndim)
+    double precision, intent(inout)            :: w(ixI^S, 1:nw), dtnew
+
+    integer                                    :: idims, idust, idir
+    double precision, dimension(1:^NDS)        :: dtdust
+    double precision, dimension(ixG^T)         :: vt2, deltav, tstop, ptherm, vdust, vgas
+    double precision, dimension(ixG^T, 1:^NDS) :: alpha_T
+    double precision                           :: K
+
+    dtnew = bigdouble
+    dtdust = bigdouble
+
+    !-----------------------------
+    !get dt related to dust and gas stopping time (Laibe 2011)
+    !-----------------------------
+
+    select case( TRIM(dustmethod) )
+
+    case( 'Kwok' ) ! assume sticking coefficient equals 0.25
+       dtdust(1:^NDS) = bigdouble
+
+       call getpthermal(w, x, ixI^L, ixO^L, ptherm)
+       vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, rho_)
+
+       ! Tgas, mu = mean molecular weight
+       ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S, rho_)*normvar(rho_)*kbcgspar)
+
+       do idir = 1,^NC
+          call getv(w, x, ixI^L, ixO^L, idir, vgas)
+
+          TODO
+          where(w(ixO^S, rho_dust(i_dust))>minrhod)
+             vdust(ixO^S)  = w(ixO^S,(rho_dust(i_dust))+idir*^NDS)/w(ixO^S, rho_dust(i_dust))
+             deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
+             tstop(ixO^S)  = 4.0d0*(rhodust(^DS)*sdust(^DS))/ &
+                  (3.0d0*(0.75d0)*dsqrt(vt2(ixO^S) + &
+                  deltav(ixO^S)**2)*(w(ixO^S, rho_dust(i_dust)) + &
+                  w(ixO^S, rho_)))
+          else where
+             tstop(ixO^S) = bigdouble
+          end where
+
+
+          dtdust(^DS) = min(minval(tstop(ixO^S)), dtdust(^DS))
+       enddo
+
+       dtnew = min(minval(dtdiffpar*dtdust(1:^NDS)), dtnew)
+
+    case( 'sticking' ) ! Calculate sticking coefficient based on the gas temperature
+       dtdust(1:^NDS) = bigdouble
+
+       call getpthermal(w, x, ixI^L, ixO^L, ptherm)
+       vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, rho_)
+
+
+       ! Sticking coefficient
+       call get_sticking(w, x, ixI^L, ixO^L, alpha_T )
+
+       ! Tgas, mu = mean molecular weight
+       ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar*eqpar(mu_))/(w(ixO^S, rho_)*normvar(rho_)*kbcgspar)
+
+
+
+       do idir = 1,^NC
+          call getv(w, x, ixI^L, ixO^L, idir, vgas)
+
+          TODO
+          where(w(ixO^S, rho_dust(i_dust))>minrhod)
+             vdust(ixO^S)  = w(ixO^S,(rho_dust(i_dust))+idir*^NDS)/w(ixO^S, rho_dust(i_dust))
+             deltav(ixO^S) = (vgas(ixO^S)-vdust(ixO^S))
+             tstop(ixO^S)  = 4.0d0*(rhodust(^DS)*sdust(^DS))/ &
+                  (3.0d0*(one-alpha_T(ixO^S,^DS))*dsqrt(vt2(ixO^S) + &
+                  deltav(ixO^S)**2)*(w(ixO^S, rho_dust(i_dust)) + &
+                  w(ixO^S, rho_)))
+          else where
+             tstop(ixO^S) = bigdouble
+          end where
+
+
+          dtdust(^DS) = min(minval(tstop(ixO^S)), dtdust(^DS))
+          \}
+       enddo
+
+       dtnew = min(minval(dtdiffpar*dtdust(1:^NDS)), dtnew)
+
+
+
+    case('linear') !linear with Deltav, for testing (see Laibe & Price 2011)
+       K = 3.4d5/^NDS
+       dtdust(1:^NDS) = bigdouble
+
+       TODO
+       where(w(ixO^S, rho_dust(i_dust))>minrhod)
+          tstop(ixO^S)  = (w(ixO^S, rho_dust(i_dust))*w(ixO^S, rho_))/ &
+               (K*(w(ixO^S, rho_dust(i_dust)) + w(ixO^S, rho_)))
+       else where
+          tstop(ixO^S) = bigdouble
+       end where
+
+
+       dtdust(^DS) = min(minval(tstop(ixO^S)), dtdust(^DS))
+       \}
+
+       dtnew = min(minval(dtdiffpar*dtdust(1:^NDS)), dtnew)
+    case('none')
+       ! no dust timestep
+    case default
+       call mpistop( "=== This dust method has not been implemented===" )
+    end select
+
+
+    if (dtnew < dtmin) then
+       write(unitterm,*)"-------------------------------------"
+       write(unitterm,*)"Warning: found DUST related time step too small! dtnew=", dtnew
+       write(unitterm,*)"on grid with index:", saveigrid," grid level=", node(plevel_, saveigrid)
+       write(unitterm,*)"grid corners are=",{^D&rnode(rpxmin^D_, saveigrid), rnode(rpxmax^D_, saveigrid)}
+       write(unitterm,*)" dtdust =", dtdust(1:^NDS)
+       write(unitterm,*)"on processor:", mype
+       write(unitterm,*)"-------------------------------------"
+    endif
+
+  end subroutine getdt
+
+  subroutine dust_get_cmax(new_cmax, w, x, ixI^L, ixO^L, idims, cmax, cmin, needcmin)
+    use mod_global_parameters
+
+    logical                      :: new_cmax, needcmin
+    integer, intent(in)          :: ixI^L, ixO^L, idims
+    double precision             :: w(ixI^S, nw), cmax(ixG^T), cmin(ixG^T)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision             :: csound(ixG^T){#IFDEF DUST , speeddust(ixG^T, 1:^NDS)}
+
+    do i_dust = 1, hd_n_dust
+       where(w(ixO^S, rho_dust(i_dust)) > minrhod)
+          speeddust(ixO^S, i_dust) = w(ixO^S, m_dust(i_dims, i_dust)) / &
+               w(ixO^S, rho_dust(i_dust));
+       elsewhere
+          speeddust(ixO^S, i_dust) = zero;
+       end where
+    end do
+
+  end subroutine dust_get_cmax
+
+
 end module mod_dust
