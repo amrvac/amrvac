@@ -56,7 +56,7 @@ double precision                    :: dt_p, tloc
 double precision, dimension(1:ndir) :: x, ue, e, b, bhat
 double precision                    :: kappa, Mr, upar, m, absb, gamma, q
 ! for odeint:
-integer                             :: nok, nbad
+integer                             :: nok, nbad, ierror
 double precision                    :: h1, hmin
 
 !!!!! Precision of time-integration: !!!!!!!!!!!!!
@@ -86,7 +86,14 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 !   y(ndir+3) = particle(ipart)%self%u(3) ! Lorentz factor of particle
 
    h1 = dt_p/2.0d0; hmin=h1/128.0d0
-   call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
+   call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,&
+        derivs_gca,rkqs,ierror)
+
+   if (ierror /= 0) then
+      print *, "odeint returned error code", ierror
+      print *, "1 means hmin too small, 2 means MAXSTP exceeded"
+      print *, "Having a problem with particle", iipart
+   end if
 
    ! final solution vector:
    particle(ipart)%self%x(1:ndir) = y(1:ndir)

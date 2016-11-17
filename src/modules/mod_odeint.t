@@ -3,79 +3,96 @@ module mod_odeint
 
   implicit none
 
-! This module packages odeint from numerical recipes.  
+! This module packages odeint from numerical recipes.
   integer                  :: MAXSTP, NMAX, KMAXX
   PARAMETER (MAXSTP=10000,NMAX=50,KMAXX=200)
   double precision         :: TINY
   PARAMETER (TINY=1.d-30)
 
 contains
-!=============================================================================
-      SUBROUTINE odeint(ystart,nvar,x1,x2,eps,h1,hmin,nok,nbad,derivs,rkqs)
 
-      INTEGER nbad,nok,nvar
-      double precision eps,h1,hmin,x1,x2,ystart(nvar)
-      INTEGER i,nstp
-      double precision h,hdid,hnext,x,xsav,dydx(NMAX),y(NMAX),yscal(NMAX)
-      integer kmax, kount
-      double precision dxsav, yp(NMAX,KMAXX), xp(KMAXX)
-      EXTERNAL derivs,rkqs
+  subroutine odeint(ystart,nvar,x1,x2,eps,h1,hmin,nok,nbad,derivs,rkqs, &
+       ierror)
 
-      COMMON /path/ kmax,kount,dxsav,xp,yp
-  
-      x=x1
-      h=sign(h1,x2-x1)
-      nok=0
-      nbad=0
-      kount=0
-      do 11 i=1,nvar
-         y(i)=ystart(i)
- 11   continue
-      if (kmax.gt.0) xsav=x-2.*dxsav
-      do 16 nstp=1,MAXSTP
-         call derivs(x,y,dydx)
-         do 12 i=1,nvar
-            yscal(i)=abs(y(i))+abs(h*dydx(i))+TINY
- 12      continue
-         if(kmax.gt.0)then
-            if(abs(x-xsav).gt.abs(dxsav)) then
-               if(kount.lt.kmax-1)then
-                  kount=kount+1
-                  xp(kount)=x
-                  do 13 i=1,nvar
-                     yp(i,kount)=y(i)
- 13               continue
-                  xsav=x
-               endif
-            endif
-         endif
-         if((x+h-x2)*(x+h-x1).gt.0.d0) h=x2-x
-         call rkqs(y,dydx,nvar,x,h,eps,yscal,hdid,hnext,derivs)
-         if(hdid.eq.h)then
-            nok=nok+1
-         else
-            nbad=nbad+1
-         endif
-         if((x-x2)*(x2-x1).ge.0.d0)then
-            do 14 i=1,nvar
-               ystart(i)=y(i)
- 14         continue
-            if(kmax.ne.0)then
-               kount=kount+1
-               xp(kount)=x
-               do 15 i=1,nvar
-                  yp(i,kount)=y(i)
- 15            continue
-            endif
-            return
-         endif
-         if(abs(hnext).lt.hmin) &
-         call stop("stepsize smaller than minimum in odeint")
-         h=hnext
- 16   continue
-      call stop( 'too many steps in odeint')
-      return
-   END subroutine odeint
+    INTEGER nbad,nok,nvar
+    double precision eps,h1,hmin,x1,x2,ystart(nvar)
+    INTEGER i,nstp
+    double precision h,hdid,hnext,x,xsav,dydx(NMAX),y(NMAX),yscal(NMAX)
+    integer kmax, kount
+    double precision dxsav, yp(NMAX,KMAXX), xp(KMAXX)
+    ! Can be 0: success, 1: hmin too small, 2: MAXSTP exceeded
+    integer, intent(out) :: ierror
+
+    EXTERNAL derivs,rkqs
+
+    COMMON /path/ kmax,kount,dxsav,xp,yp
+
+    x     = x1
+    h     = sign(h1,x2-x1)
+    nok   = 0
+    nbad  = 0
+    kount = 0
+
+    do i=1,nvar
+       y(i)=ystart(i)
+    end do
+
+    if (kmax.gt.0) xsav=x-2.*dxsav
+
+    do nstp=1,MAXSTP
+       call derivs(x,y,dydx)
+       do i=1,nvar
+          yscal(i)=abs(y(i))+abs(h*dydx(i))+TINY
+       end do
+
+       if(kmax.gt.0)then
+          if(abs(x-xsav).gt.abs(dxsav)) then
+             if(kount.lt.kmax-1)then
+                kount=kount+1
+                xp(kount)=x
+                do i=1,nvar
+                   yp(i,kount)=y(i)
+                end do
+                xsav=x
+             end if
+          end if
+       end if
+
+       if((x+h-x2)*(x+h-x1).gt.0.d0) h=x2-x
+
+       call rkqs(y,dydx,nvar,x,h,eps,yscal,hdid,hnext,derivs)
+
+       if(hdid.eq.h)then
+          nok=nok+1
+       else
+          nbad=nbad+1
+       end if
+
+       if((x-x2)*(x2-x1).ge.0.d0)then
+          do i=1,nvar
+             ystart(i)=y(i)
+          end do
+          if(kmax.ne.0)then
+             kount=kount+1
+             xp(kount)=x
+             do i=1,nvar
+                yp(i,kount)=y(i)
+             end do
+          end if
+
+          ierror = 0
+          return
+       end if
+
+       if(abs(hnext).lt.hmin) then
+          ierror = 1
+       end if
+
+       h=hnext
+    end do
+
+    ierror = 2
+  end subroutine odeint
 !=============================================================================
       SUBROUTINE rkqs(y,dydx,n,x,htry,eps,yscal,hdid,hnext,derivs)
 
@@ -99,7 +116,7 @@ contains
          h=SAFETY*h*(errmax**PSHRNK)
          if(h.lt.0.1d0*h)then
             h=.1d0*h
-         endif
+         end if
          xnew=x+h
          if(xnew.eq.x)call stop( 'stepsize underflow in rkqs')
          goto 1
@@ -108,14 +125,14 @@ contains
             hnext=SAFETY*h*(errmax**PGROW)
          else
             hnext=5.d0*h
-         endif
+         end if
          hdid=h
          x=x+h
          do 12 i=1,n
             y(i)=ytemp(i)
  12      continue
          return
-      endif
+      end if
       END subroutine rkqs
 !C (C) Copr. 1986-92 Numerical Recipes Software Vs1&v%1jw#<?4210(9p#.
 !=============================================================================
@@ -177,7 +194,7 @@ contains
 
         character(len=*), intent(in)   :: text
 !-----------------------------------------------------------------------------
-        
+
         print*, text
         STOP
       end subroutine stop
