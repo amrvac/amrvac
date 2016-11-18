@@ -5,21 +5,19 @@ module mod_hd
   private
 
   logical :: hd_energy
-  integer :: hd_n_dust
   integer :: hd_n_tracer
 
-  integer, parameter :: rho_ = 1
-  integer, parameter :: m0_  = rho_
+  integer, parameter   :: rho_ = 1
+  integer, parameter   :: m0_  = rho_
   integer, allocatable :: mom(:)
-  integer :: e_
+  integer              :: e_
 
   integer, allocatable :: tracer(:)
   integer, allocatable :: rho_dust(:)
   integer, allocatable :: m_dust(:, :)
 
-  double precision :: gamma
-  double precision :: hd_adiab
-
+  double precision              :: gamma
+  double precision              :: hd_adiab
   double precision              :: smalle, minrho, minp
   double precision              :: minrhod
   double precision, allocatable :: sdust(:), dsdust(:), rhodust(:), mhcgspar, kbcgspar
@@ -36,11 +34,11 @@ contains
 
     physics_type = 'hd'
 
-    ! The number of flux variables
+    ! The number of flux variables (dust module can later add to this)
     if (hd_energy) then
-       nwflux = 2 + hd_n_dust + hd_n_tracer + ^NC * (1 + hd_n_dust)
+       nwflux = 2 + hd_n_tracer + ndir
     else
-       nwflux = 1 + hd_n_dust + hd_n_tracer + ^NC * (1 + hd_n_dust)
+       nwflux = 1 + hd_n_tracer + ndir
     end if
 
     nwaux   = 0
@@ -54,7 +52,7 @@ contains
 
     nflag_ = nw + 1
 
-    allocate(mom(^NC))
+    allocate(mom(ndir))
     mom(:) = [{m0_+^C}]
 
     ix = m^NC_
@@ -75,20 +73,6 @@ contains
        tracer_ = -1
     end if
 
-    ! Set starting index of dust species
-    do n = 1, hd_n_dust
-       rho_dust(n) = ix + 1
-       m_dust(:, n) = [ix+2,]
-       ix = ix + 1 + ^NC
-    end do
-
-    if (hd_n_dust > 0) then
-       dust_ = ix + 1
-       ix    = ix + hd_n_dust * (1 + ^NC)
-    else
-       dust_ = -1
-    end if
-
     if (hd_energy) then
        ! Characteristic waves
        soundRW_ = 1
@@ -104,6 +88,9 @@ contains
        nworkroe = 1
     end if
 
+    TODO
+    activate dust module
+
   end subroutine hd_activate
 
   subroutine checkglobaldata
@@ -115,13 +102,14 @@ contains
        minrho = max(0.0d0, smallrho)
        minp   = hd_adiab*minrho**hd_gamma
     else
-       if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) call mpistop ("gamma negative or 1 not ok")
+       if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
+            call mpistop ("gamma negative or 1 not ok")
        minp   = max(0.0d0, smallp)
        minrho = max(0.0d0, smallrho)
        smalle = minp/(hd_gamma - 1.0d0)
     end if
 
-    if (hd_n_dust > 0) then
+    if (dust_num_species > 0) then
        if (eqpar(mu_)<= 0.0d0) call mpistop ("mu (molecular weight) negative not ok")
        minrhod = max(0.0d0, smallrhod)
     end if
@@ -141,7 +129,7 @@ contains
        hd_adiab = 1.d0
     end if
 
-    if (hd_n_dust > 0) then
+    if (dust_num_species > 0) then
        eqpar(mu_) = 1.0d0
        mhcgspar = 1.6733D-24
        kbcgspar = 1.38065D-16
@@ -218,15 +206,18 @@ contains
     end if
 
     ! Convert velocity to momentum
+    TODO: loop
     ^C&w(ixO^S, mom(i_dir)) = w(ixO^S, rho_)*w(ixO^S, v^C_);
 
     if (hd_n_tracer > 0) then
+       TODO: loop
        {^FL&w(ixO^S, tracer(i_tr)) = w(ixO^S, rho_)*w(ixO^S, tracer(i_tr))\}
     end if
 
-    if (hd_n_dust > 0) then
+    if (dust_num_species > 0) then
+       call dust_conserve(...)
        ! Convert dust velocity to dust momentum
-       {^DS&{^C&w(ixO^S, m_dust(i_dim, i_dust)) = w(ixO^S, rho_dust(i_dust))*w(ixO^S, v^Cd^DS_);}\}
+       !{^DS&{^C&w(ixO^S, m_dust(i_dim, i_dust)) = w(ixO^S, rho_dust(i_dust))*w(ixO^S, v^Cd^DS_);}\}
     end if
 
     if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"conserve")
@@ -252,7 +243,7 @@ contains
        w(ixO^S, p_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - kin_en
 
        ! Convert momentum to velocity
-       do i_dir = 1, ^NC
+       do i_dir = 1, ndir
           w(ixO^S, mom(idir)) = w(ixO^S, mom(i_dir))/w(ixO^S, rho_);
        end do
 
@@ -307,16 +298,17 @@ contains
     end if
 
     ! Convert dust momentum to dust velocity
-    do i_dust = 1, hd_n_dust
-       where(w(ixO^S, rho_dust(i_dust))>minrhod)
-          do i_dir = 1, ^NC
-             w(ixO^S, m_dust(i_dir, i_dust)) = w(ixO^S, m_dust(i_dir, i_dust)) /&
-                  w(ixO^S, rho_dust(i_dust))
-          end do
-       elsewhere
-          w(ixO^S, m_dust(:, i_dust)) = 0.0d0
-       end where
-    end if
+    call dust_primitive(...)
+    ! do i_dust = 1, dust_num_species
+    !    where(w(ixO^S, rho_dust(i_dust))>minrhod)
+    !       do i_dir = 1, ndir
+    !          w(ixO^S, m_dust(i_dir, i_dust)) = w(ixO^S, m_dust(i_dir, i_dust)) /&
+    !               w(ixO^S, rho_dust(i_dust))
+    !       end do
+    !    elsewhere
+    !       w(ixO^S, m_dust(:, i_dust)) = 0.0d0
+    !    end where
+    ! end if
 
   end subroutine primitive
 
@@ -450,7 +442,7 @@ contains
        cmin(ixO^S) = min(v(ix0^S), zero)
     end if
 
-    if (hd_n_dust > 0) then
+    if (dust_num_species > 0) then
        call dust_get_cmax(todo)
     end if
 
@@ -529,6 +521,8 @@ contains
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     logical                      :: transport
 
+    TODO: reorganize this, maybe compute all fluxes in a direction at once?
+
     transport = .true.
 
     if (iw == mom(idims)) then
@@ -538,6 +532,8 @@ contains
        ! f_i[e]= v_i*e + m_i/rho*p
        call getpthermal(w, x, ixI^L, ixO^L, f)
        f(ixO^S) = w(ixO^S, mom(idims))/w(ixO^S, rho_)*f(ixO^S)
+
+    TODO: move this to dust module, see above comment
     else if (iw == rho_dust(i_dust)) then TODO
        where(w(ixO^S, rho_dust(i_dust))>minrhod)
           f(ixO^S) = w(ixO^S,(rho_dust(i_dust))+idims*^NDS);
@@ -574,6 +570,9 @@ contains
        call mpistop("addgeometry not yet implemented")
     end select
 
+    ! Jannis: Ileyk, could you start the translation and simplification of
+    ! addgeometry?
+
     if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"addgeometry")
 
   end subroutine addgeometry
@@ -587,10 +586,10 @@ contains
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
 
-    double precision, dimension(ixG^T, 1:^NC, 1:^NDS) :: fdrag
+    double precision, dimension(ixG^T, 1:ndir, 1:^NDS) :: fdrag
     integer                                           :: idir
 
-    if (hd_n_dust > 0) then
+    if (dust_num_species > 0) then
        call dust_add_source(qdt, ixI^L, ixO^L, iw^LIM, &
             qtC, wCT, qt, w, x, qsourcesplit)
     end if
@@ -610,7 +609,7 @@ contains
     double precision, dimension(ixG^T, 1:^NDS) :: alpha_T
     double precision                           :: K
 
-    if (hd_n_dust > 0) then
+    if (dust_num_species > 0) then
        call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     end if
 

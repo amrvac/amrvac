@@ -1,6 +1,28 @@
 module mod_dust
 
+  integer :: dust_num_species
+
 contains
+
+  subroutine dust_activate()
+
+    TODO
+
+    ! Set starting index of dust species
+    do n = 1, dust_num_species
+       rho_dust(n) = ix + 1
+       m_dust(:, n) = [ix+2,]
+       ix = ix + 1 + ndir
+    end do
+
+    if (dust_num_species > 0) then
+       dust_ = ix + 1
+       ix    = ix + dust_num_species * (1 + ndir)
+    else
+       dust_ = -1
+    end if
+
+  end subroutine dust_activate
 
     !  Force dust density to zero if rho_dust <= minrhod
   subroutine set_dusttozero(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x)
