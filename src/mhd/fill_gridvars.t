@@ -32,6 +32,11 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    mygridvars(igrid)%w(ixG^T,vp1_:vp^NC_) = w(ixG^T,v1_:v^NC_) * UNIT_VELOCITY
 }
 
+{#IFDEF PARTICLES_SPACECRAFT
+   ! fill with velocity:
+   mygridvars(igrid)%w(ixG^T,vp1_:vp^NC_) = w(ixG^T,v1_:v^NC_) * UNIT_VELOCITY
+}
+
 {#IFDEF PARTICLES_LORENTZ
 
    ! fill with magnetic field:
