@@ -650,9 +650,6 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,tr1_),px(igrid)%x(ixG^T,1:ndim),x,tr1)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+1),px(igrid)%x(ixG^T,1:ndim),x,cur1)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+2),px(igrid)%x(ixG^T,1:ndim),x,tp1)
-      print *, 'v11  =',v11
-      print *, 'b11  =',b11
-      print *, 'cur1 =',cur1
       w(ixG^T,1:nw+2) = pw(igrid)%w(ixG^T,1:nw+2)
       call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v1_),px(igrid)%x(ixG^T,1:ndim),x,v12)
@@ -666,13 +663,6 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,tr1_),px(igrid)%x(ixG^T,1:ndim),x,tr2)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+1),px(igrid)%x(ixG^T,1:ndim),x,cur2)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+2),px(igrid)%x(ixG^T,1:ndim),x,tp2)
-      print *, 'v12  =',v12
-      print *, 'b12  =',b12
-      print *, 'cur2 =',cur2
-      print *, 'tloc =',tloc
-      print *, 'td   =',td
-      print *, 'leng =',UNIT_LENGTH
-      print *, 'velo =',UNIT_VELOCITY
       td  = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - t) / dt
       v1  = v12  * (1.0d0 - td) + v12  * td
       v2  = v22  * (1.0d0 - td) + v22  * td
@@ -697,9 +687,6 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
    particle(ipart)%self%payload(9) = tr 
    particle(ipart)%self%payload(10) = cur
    particle(ipart)%self%payload(11) = tp
-    print *, 'v1  payload =',particle(ipart)%self%payload(1)
-    print *, 'b1  payload =',particle(ipart)%self%payload(4)
-    print *, 'cur payload =',particle(ipart)%self%payload(10)
    ! **************************************************
    ! Time update
    ! **************************************************
