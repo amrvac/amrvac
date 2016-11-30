@@ -663,6 +663,9 @@ else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
    logG=2.d0*(qst-1.d0)/(qst+1.d0)
    if(mype==0) write(*,*) 'logG and qst computed from xprobmax1: ', logG, qst
 end if
+if(mype==0) write(unitterm,*)'Stretched grid level one minimal dx1:',xprobmin1/(one-half*logG)*logG,&
+         ' maximal dx1:',xprobmax1/qst/(one-half*logG)*logG
+if(mype==0) write(unitterm,*)'first cell center at x1:',xprobmin1*qst**(-dixB)/(one-half*logG)
 }
 
 {
