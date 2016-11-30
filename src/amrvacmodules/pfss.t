@@ -69,7 +69,7 @@ character(len=80) :: fharmcoef
 logical :: aexist
 !-----------------------------------------------------------------------------
 
-fharmcoef='coef'//mapname
+fharmcoef=mapname//'coef'
 inquire(file=fharmcoef, exist=aexist)
 if(aexist) then
   if(mype==0) then
