@@ -29,7 +29,7 @@ include 'amrvacdef.f'
 double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
 double precision :: dtfff,dtfff_pe,dtnew,dx^D
 double precision :: cwsin_theta_new,cwsin_theta_old
-double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe
+double precision :: sum_jbb,sum_jbb_ipe,sum_j,sum_j_ipe,sum_l_ipe,sum_l
 double precision :: f_i_ipe,f_i,volumepe,volume,tmpt
 double precision, external :: integral_grid
 integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf,tmpit,i^D
@@ -183,6 +183,7 @@ subroutine metrics
 
 sum_jbb_ipe = 0.d0
 sum_j_ipe = 0.d0
+sum_l_ipe = 0.d0
 f_i_ipe = 0.d0
 volumepe=0.d0
 do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -214,6 +215,8 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
     px(igrid)%x,2,patchwi)
   f_i_ipe=f_i_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
     px(igrid)%x,3,patchwi)
+  sum_l_ipe   = sum_l_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
+    px(igrid)%x,4,patchwi)
 end do
 call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
    icomm,ierrmpi)
@@ -221,12 +224,16 @@ call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
    icomm,ierrmpi)
 call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
    icomm,ierrmpi)
+call MPI_ALLREDUCE(sum_l_ipe,sum_l,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+   icomm,ierrmpi)
 call MPI_ALLREDUCE(volumepe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
    icomm,ierrmpi)
 ! sin of the j weighted mean angle between current and magnetic field
 cwsin_theta_new = sum_jbb/sum_j
 ! mean normalized divergence of magnetic field
 f_i = f_i/volume
+sum_j=sum_j/volume
+sum_l=sum_l/volume
 
 end subroutine metrics
 !=============================================================================
@@ -281,7 +288,7 @@ if(mype==0) then
     amode=ior(amode,MPI_MODE_APPEND)
     call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
     logmfopened=.true.
-    filehead="itmf,<f_i>,<CW sin theta>"
+    filehead="itmf,<f_i>,<CW sin theta>,<Current>,<Lorenz force>"
     call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                         MPI_CHARACTER,status,ierrmpi)
     call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,status,ierrmpi)
@@ -291,7 +298,11 @@ if(mype==0) then
   line=trim(line)//trim(datastr)
   write(datastr,'(es13.6,a)') f_i,','
   line=trim(line)//trim(datastr)
-  write(datastr,'(es13.6)') cwsin_theta_new
+  write(datastr,'(es13.6,a)') cwsin_theta_new,','
+  line=trim(line)//trim(datastr)
+  write(datastr,'(es13.6,a)') sum_j,','
+  line=trim(line)//trim(datastr)
+  write(datastr,'(es13.6)') sum_l
   line=trim(line)//trim(datastr)//new_line('A')
   call MPI_FILE_WRITE(fhmf,line,len_trim(line),MPI_CHARACTER,status,ierrmpi)
 end if
@@ -359,6 +370,30 @@ select case(iw)
   {do ix^DB=ixOmin^DB,ixOmax^DB\}
      if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+dabs(tmp(ix^D))*&
            dvolume(ix^D)**2/dsqrt(^C&bvec(ix^D,^C)**2+)/dsurface(ix^D)
+  {end do\}
+ case(4)
+  ! Sum(|JxB|)
+  if(B0field) then
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_)+myB0_cell%w(ixI^S,^C);
+  else
+    ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_);
+  endif
+  call curlvector(bvec,ixI^L,ixO^L,current,idirmin,1,ndir)
+  ! calculate Lorentz force
+  qvec(ixO^S,1:ndir)=zero
+  do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+     if(lvc(idir,jdir,kdir)/=0)then
+        tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
+        if(lvc(idir,jdir,kdir)==1)then
+           qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
+        else
+           qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
+        endif
+     endif
+  enddo; enddo; enddo
+  
+  {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+dsqrt(^C&qvec(ix^D,^C)**2+)*dvolume(ix^D)
   {end do\}
 end select
 return
