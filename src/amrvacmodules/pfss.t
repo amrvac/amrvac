@@ -52,350 +52,7 @@ double precision, save :: R_s=2.5d0, R_0=1.d0
 integer, save :: lmax=0
 integer, allocatable, save :: lmaxarray(:)
 logical, save :: trunc=.false.
-
-end module harm_coef_data
-!=============================================================================
-subroutine harm_coef(mapname)
-use harm_coef_data
-include 'amrvacdef.f'
-
-double precision, allocatable :: b_r0(:,:)
-double precision, allocatable :: theta(:),phi(:),cfwm(:)
-double precision :: rsl,xrl,dxr
-integer :: xm,ym,l,m,amode,file_handle,il,ir,nlarr,nsh
-integer, dimension(MPI_STATUS_SIZE) :: statuss
-character(len=*) :: mapname
-character(len=80) :: fharmcoef
-logical :: aexist
-!-----------------------------------------------------------------------------
-
-fharmcoef=mapname//'coef'
-inquire(file=fharmcoef, exist=aexist)
-if(aexist) then
-  if(mype==0) then
-    call MPI_FILE_OPEN(MPI_COMM_SELF,fharmcoef,MPI_MODE_RDONLY, &
-                         MPI_INFO_NULL,file_handle,ierrmpi)
-    call MPI_FILE_READ(file_handle,lmax,1,MPI_INTEGER,statuss,ierrmpi)
-    allocate(flm(0:lmax,0:lmax))
-    call MPI_FILE_READ(file_handle,flm,(lmax+1)*(lmax+1),&
-                         MPI_DOUBLE_COMPLEX,statuss,ierrmpi)
-    call MPI_FILE_CLOSE(file_handle,ierrmpi)
-  end if
-  call MPI_BARRIER(icomm,ierrmpi)
-  if(npe>0)  call MPI_BCAST(lmax,1,MPI_INTEGER,0,icomm,ierrmpi)
-  if(mype/=0) allocate(flm(0:lmax,0:lmax))
-  call MPI_BARRIER(icomm,ierrmpi)
-  if(npe>0) call MPI_BCAST(flm,(lmax+1)*(lmax+1),MPI_DOUBLE_COMPLEX,0,icomm,&
-     ierrmpi)
-else
-  if(mype==0) then
-    inquire(file=mapname,exist=aexist)
-    if(.not. aexist) then
-      if(mype==0) write(*,'(2a)') "can not find file:",mapname
-      call mpistop("no input magnetogram found")
-    end if
-    call MPI_FILE_OPEN(MPI_COMM_SELF,mapname,MPI_MODE_RDONLY,MPI_INFO_NULL,&
-                       file_handle,ierrmpi)
-    call MPI_FILE_READ(file_handle,xm,1,MPI_INTEGER,statuss,ierrmpi)
-    call MPI_FILE_READ(file_handle,ym,1,MPI_INTEGER,statuss,ierrmpi)
-    if(lmax==0) lmax=min(2*ym/3,xm/3)
-
-    allocate(b_r0(xm,ym))
-    allocate(theta(ym))
-    allocate(phi(xm))
-    call MPI_FILE_READ(file_handle,theta,ym,MPI_DOUBLE_PRECISION,&
-                       statuss,ierrmpi)
-    call MPI_FILE_READ(file_handle,phi,xm,MPI_DOUBLE_PRECISION,&
-                       statuss,ierrmpi)
-    call MPI_FILE_READ(file_handle,b_r0,xm*ym,MPI_DOUBLE_PRECISION,&
-                       statuss,ierrmpi)
-    call MPI_FILE_CLOSE(file_handle,ierrmpi)
-    print*,'nphi,ntheta',xm,ym
-    print*,'theta range:',minval(theta),maxval(theta)
-    print*,'phi range:',minval(phi),maxval(phi)
-    print*,'Brmax,Brmin',maxval(b_r0),minval(b_r0)
-    allocate(cfwm(ym))
-    call cfweights(ym,dcos(theta),cfwm)
-    allocate(flm(0:lmax,0:lmax))
-    call coef(b_r0,xm,ym,dcos(theta),dsin(theta),cfwm)
-    deallocate(b_r0)
-    deallocate(theta)
-    deallocate(phi)
-    amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
-    call MPI_FILE_OPEN(MPI_COMM_SELF,fharmcoef,amode, &
-                         MPI_INFO_NULL,file_handle,ierrmpi)
-    call MPI_FILE_WRITE(file_handle,lmax,1,MPI_INTEGER,statuss,ierrmpi)
-    call MPI_FILE_WRITE(file_handle,flm,(lmax+1)*(lmax+1),&
-                         MPI_DOUBLE_COMPLEX,statuss,ierrmpi)
-    call MPI_FILE_CLOSE(file_handle,ierrmpi)
-  endif
-  call MPI_BARRIER(icomm,ierrmpi)
-  if(npe>1) call MPI_BCAST(lmax,1,MPI_INTEGER,0,icomm,ierrmpi)
-  if(mype/=0) allocate(flm(0:lmax,0:lmax))
-  call MPI_BARRIER(icomm,ierrmpi)
-  if(npe>1) call MPI_BCAST(flm,(lmax+1)*(lmax+1),MPI_DOUBLE_COMPLEX,0,&
-                 icomm,ierrmpi)
-end if
-if(mype==0) print*,'lmax=',lmax,'trunc=',trunc
-nlarr=501
-allocate(lmaxarray(nlarr))
-allocate(xrg(nlarr))
-lmaxarray=lmax
-if(trunc) then
-  dxr=(R_s-R_0)/dble(nlarr-1)
-  do ir=1,nlarr
-    xrg(ir)=dxr*dble(ir-1)+R_0
-    do il=0,lmax
-      xrl=xrg(ir)**il
-      if(xrl > 1.d6) then
-        lmaxarray(ir)=il
-        exit
-      end if
-    end do
-  end do
-endif
-! calculate global Alm Blm Rlm 
-allocate(Alm(0:lmax,0:lmax))
-allocate(Blm(0:lmax,0:lmax))
-allocate(Rlm(0:lmax,0:lmax))
-Alm=(0.d0,0.d0)
-Blm=(0.d0,0.d0)
-do l=0,lmax
-  do m=0,l
-    rsl=R_s**(-(2*l+1))
-    Rlm(l,m)=dsqrt(dble(l**2-m**2)/dble(4*l**2-1))
-    Blm(l,m)=-flm(l,m)/(1.d0+dble(l)+dble(l)*rsl)
-    Alm(l,m)=-rsl*Blm(l,m)
-  end do
-end do
-
-end subroutine harm_coef
-!=============================================================================
-subroutine pfss(ixI^L,ixO^L,Bpf,x)
-
-use harm_coef_data
-
-include 'amrvacdef.f'
-
-integer, intent(in)           :: ixI^L,ixO^L
-double precision, intent(in)  :: x(ixI^S,1:ndim)
-double precision, intent(out) :: Bpf(ixI^S,1:ndir)
-
-double complex :: Bt(0:lmax,0:lmax,ixOmin1:ixOmax1)
-double precision :: phase(ixI^S,1:ndir),Bpfiv(ixOmin3:ixOmax3,ixOmin2:ixOmax2)
-double precision :: miu(ixOmin2:ixOmax2),mius(ixOmin2:ixOmax2),xr
-integer :: l,m,ix^D,j,l1,l2,ntheta,nphi,ir,qlmax
-!-----------------------------------------------------------------------------
-
-Bt=(0.d0,0.d0)
-nphi=ixOmax3-ixOmin3+1
-ntheta=ixOmax2-ixOmin2+1
-miu(ixOmin2:ixOmax2)=dcos(x(ixOmin1,ixOmax2:ixOmin2:-1,ixOmin3,2))
-mius(ixOmin2:ixOmax2)=dsin(x(ixOmin1,ixOmax2:ixOmin2:-1,ixOmin3,2))
-do ix1=ixOmin1,ixOmax1
-  xr=x(ix1,ixOmin2,ixOmin3,1)
-  if(trunc) then
-    do ir=1,size(lmaxarray)
-      if(xrg(ir)>=xr) exit
-    end do
-    qlmax=lmaxarray(ir)
-  else
-    qlmax=lmax
-  endif
-!Calculate Br
-  do l=0,lmax
-    do m=0,l
-      Bt(l,m,ix1)=Alm(l,m)*dble(l)*xr**(l-1)-Blm(l,m)*dble(l+1)*xr**(-l-2)
-    end do
-  enddo
-  call inv_sph_transform(Bt(:,:,ix1),x(ixOmin1,ixOmin2,&
-       ixOmin3:ixOmax3,3),miu,mius,nphi,ntheta,Bpfiv,qlmax)
-  do ix3=ixOmin3,ixOmax3
-    do ix2=ixOmin2,ixOmax2
-      Bpf(ix1,ix2,ix3,1)=Bpfiv(ix3,ixOmax2-ix2+ixOmin2)
-    enddo
-  enddo
-!Calculate Btheta
-  do l=0,lmax
-    do m=0,l
-      if (l==0) then
-        Bt(l,m,ix1)=-Rlm(l+1,m)*dble(l+2)*&
-         (Alm(l+1,m)*xr**l+Blm(l+1,m)*xr**(-l-3))
-      else if (l>=1 .and. l<=lmax-1) then
-        Bt(l,m,ix1)=Rlm(l,m)*&
-         dble(l-1)*(Alm(l-1,m)*xr**(l-2)+Blm(l-1,m)*&
-         xr**(-l-1))-Rlm(l+1,m)*dble(l+2)*&
-         (Alm(l+1,m)*xr**l+Blm(l+1,m)*xr**(-l-3))
-      else
-        Bt(l,m,ix1)=Rlm(l,m)*&
-          dble(l-1)*(Alm(l-1,m)*xr**(l-2)+Blm(l-1,m)*xr**(-l-1))
-      end if
-    end do
-  enddo
-  call inv_sph_transform(Bt(:,:,ix1),x(ixOmin1,ixOmin2,&
-       ixOmin3:ixOmax3,3),miu,mius,nphi,ntheta,Bpfiv,qlmax)
-  do ix3=ixOmin3,ixOmax3
-    do ix2=ixOmin2,ixOmax2
-      Bpf(ix1,ix2,ix3,2)=Bpfiv(ix3,ixOmax2-ix2+ixOmin2)/mius(&
-         ixOmax2-ix2+ixOmin2)
-    enddo
-  enddo
-
-!Calculate Bphi
-  do l=0,lmax
-    do m=0,l
-      Bt(l,m,ix1)=(0.d0,1.d0)*m*(Alm(l,m)*xr**(l-1)+Blm(l,m)*xr**(-l-2))
-    end do
-  enddo
-  call inv_sph_transform(Bt(:,:,ix1),x(ixOmin1,ixOmin2,&
-       ixOmin3:ixOmax3,3),miu,mius,nphi,ntheta,Bpfiv,qlmax)
-  do ix3=ixOmin3,ixOmax3
-    do ix2=ixOmin2,ixOmax2
-      Bpf(ix1,ix2,ix3,3)=Bpfiv(ix3,ixOmax2-ix2+ixOmin2)/mius(&
-          ixOmax2-ix2+ixOmin2)
-    enddo
-  enddo
-enddo
-!Scalar Potential
-!       Potlc(ix^D)=Alm(l,m)*x(ix^D,1)**l+Blm(l,m)*x(ix^D,1)**(-l-1)
-
-!do ix3=ixOmin3,ixOmax3
-!    do ix2=ixOmin2,ixOmax2
-!    print*,x(ix1,ixOmax2-ix2+ixOmin2,ix3,2)
-!    print*,'miu==',miu(ixOmax2-ix2+ixOmin2)
-!    enddo
-!enddo
-
-end subroutine pfss
-!=============================================================================
-subroutine inv_sph_transform(Bt,phi,miu,mius,nphi,ntheta,Bpf,qlmax)
-
-use harm_coef_data
-
-include 'amrvacdef.f'
-
-integer, intent(in) :: nphi,ntheta,qlmax
-double complex, intent(in)  :: Bt(0:lmax,0:lmax)
-double precision, intent(in) :: phi(nphi),miu(ntheta),mius(ntheta)
-double precision, intent(out) :: Bpf(nphi,ntheta)
-
-double precision,dimension(0:lmax,0:lmax) :: cp,phase,Bamp
-double precision,dimension(ntheta) :: cp_1_0,cp_l_0,cp_lm1_0,cp_lm2_0,cp_m_m
-double precision,dimension(ntheta) :: cp_1_m,cp_l_m,cp_lm1_m,cp_lm2_m,cp_mp1_m
-double precision :: angpart(nphi)
-double precision :: ld,md,c1,c2,cp_0_0
-integer :: l,m,iph,ith 
-!-----------------------------------------------------------------------------
-Bamp=abs(Bt)
-
-phase=atan2(dimag(Bt),dble(Bt))
-
-Bpf=0.d0
-!take care of modes where m=0
-cp_0_0=dsqrt(1.d0/(4.d0*dpi))
-!start with l=m=0 mode
-Bpf=Bpf+Bamp(0,0)*dcos(phase(0,0))*cp_0_0
-
-!proceed with l=1 m=0 mode
-cp_1_0=dsqrt(3.d0)*miu*cp_0_0
-do iph=1,nphi
- Bpf(iph,:)=Bpf(iph,:)+Bamp(1,0)*dcos(phase(1,0))*cp_1_0
-enddo
-
-!proceed with l modes for which m=0
-cp_lm1_0=cp_0_0
-cp_l_0=cp_1_0
-do l=2,qlmax
-  ld=dble(l)
-  cp_lm2_0=cp_lm1_0
-  cp_lm1_0=cp_l_0
-  c1=dsqrt(4.d0*ld**2-1.d0)/ld
-  c2=dsqrt((2.d0*ld+1.d0)/(2.d0*ld-3.d0))*(ld-1.d0)/ld
-  cp_l_0=c1*miu*cp_lm1_0-c2*cp_lm2_0
-  do iph=1,nphi
-   Bpf(iph,:)=Bpf(iph,:)+Bamp(l,0)*dcos(phase(l,0))*cp_l_0
-  enddo
-enddo
-
-!loop through m's for m>0 and then loop through l's for each m
-cp_m_m=cp_0_0
-do m=1,qlmax
-  md=dble(m)
-  !first do l=m modes
-  cp_m_m=-dsqrt(1.d0+1.d0/(2.d0*md))*mius*cp_m_m
-  do iph=1,nphi 
-    angpart(iph)=dcos(md*phi(iph)+phase(m,m))
-  end do
-  do ith=1,ntheta
-    do iph=1,nphi
-      Bpf(iph,ith)=Bpf(iph,ith)+Bamp(m,m)*angpart(iph)*cp_m_m(ith)
-    enddo
-  enddo
-
-  !proceed with l=m+1 modes
-  if(qlmax>=m+1) then
-    cp_mp1_m=dsqrt(2.d0*md+3.d0)*miu*cp_m_m
-    angpart=dcos(md*phi+phase(m+1,m))
-    do ith=1,ntheta
-      do iph=1,nphi
-        Bpf(iph,ith)=Bpf(iph,ith)+Bamp(m+1,m)*angpart(iph)*cp_mp1_m(ith)
-      enddo
-    enddo
-  endif
-
-  !finish with the rest l  
-  if(qlmax>=m+2) then
-    cp_lm1_m=cp_m_m
-    cp_l_m=cp_mp1_m
-    do l=m+2,qlmax
-      ld=dble(l)
-      cp_lm2_m=cp_lm1_m
-      cp_lm1_m=cp_l_m
-      c1=dsqrt((4.d0*ld**2-1.d0)/(ld**2-md**2))
-      c2=dsqrt((2.d0*ld+1.d0)*((ld-1.d0)**2-md**2)/(2.d0*ld-3.d0)/(ld**2-md**2))
-      cp_l_m=c1*miu*cp_lm1_m-c2*cp_lm2_m
-      angpart=dcos(md*phi+phase(l,m))
-      do ith=1,ntheta
-        do iph=1,nphi
-          Bpf(iph,ith)=Bpf(iph,ith)+Bamp(l,m)*angpart(iph)*cp_l_m(ith)
-        enddo
-      enddo
-    enddo
-  endif
-enddo
-
-end subroutine inv_sph_transform
-!=============================================================================
-subroutine cfweights(ym,miu,cfwm)
-
-include 'amrvacdef.f'
-
-integer, intent(in) :: ym
-double precision, intent(in) :: miu(ym)
-double precision, intent(out) :: cfwm(ym)
-
-double precision,dimension(ym) :: Pl,Pm2,Pm1,Pprime,sintheta
-double precision :: lr
-integer :: l
-!-----------------------------------------------------------------------------
-sintheta=dsqrt(1.d0-miu**2)
-
-Pm2=1.d0
-Pm1=miu
-
-do l=2,ym-1
-  lr=1.d0/dble(l)
-  Pl=(2.d0-lr)*Pm1*miu-(1.d0-lr)*Pm2
-  Pm2=Pm1
-  Pm1=Pl
-end do
-
-Pprime=(dble(ym)*Pl)/sintheta**2
-cfwm=2.d0/(sintheta*Pprime)**2
-cfwm=cfwm*(2.d0*dpi)
-
-end subroutine cfweights
-!=============================================================================
+contains
 subroutine fft(a,b,ntot,n,nspan,isn)
 !  multivariate complex fourier transform, computed in place
 !    using mixed-radix fast fourier transform algorithm.
@@ -440,7 +97,7 @@ subroutine fft(a,b,ntot,n,nspan,isn)
 !    maxp must be .gt. the number of prime factors of n.
 !    in addition, if the square-free portion k of n has two or
 !    more prime factors, then maxp must be .ge. k-1.
-      dimension a(1),b(1)
+      double precision :: a(:),b(:)
 !  array storage in nfac for a maximum of 15 prime factors of n.
 !  if n has more than one square-free factor, the product of the
 !    square-free factors must be .le. 210
@@ -449,9 +106,9 @@ subroutine fft(a,b,ntot,n,nspan,isn)
       dimension at(23),ck(23),bt(23),sk(23)
       integer :: i,ii,maxp,maxf,n,inc,isn,nt,ntot,ks,nspan,kspan,nn,jc,jf,m,&
                 k,j,jj,nfac,kt,np,kk,k1,k2,k3,k4
-      double precision :: c72,s72,s120,rad,radf,sd,cd,ak,b,bk,c1
+      double precision :: c72,s72,s120,rad,radf,sd,cd,ak,bk,c1
       double precision :: s1,aj,bj,kspnn,akp,ajp,ajm,akm,bkp,bkm,bjp,bjm,aa
-      double precision :: bb,sk,ck,at,bt,s3,c3,s2,c2,a
+      double precision :: bb,sk,ck,at,bt,s3,c3,s2,c2
       equivalence (i,ii)
 
 !  the following two constants should agree with the array dimensions.
@@ -955,6 +612,350 @@ subroutine fft(a,b,ntot,n,nspan,isn)
       stop
   999 format(44h0array bounds exceeded within subroutine fft)
 end subroutine fft
+
+end module harm_coef_data
+!=============================================================================
+subroutine harm_coef(mapname)
+use harm_coef_data
+include 'amrvacdef.f'
+
+double precision, allocatable :: b_r0(:,:)
+double precision, allocatable :: theta(:),phi(:),cfwm(:)
+double precision :: rsl,xrl,dxr
+integer :: xm,ym,l,m,amode,file_handle,il,ir,nlarr,nsh
+integer, dimension(MPI_STATUS_SIZE) :: statuss
+character(len=*) :: mapname
+character(len=80) :: fharmcoef
+logical :: aexist
+!-----------------------------------------------------------------------------
+
+fharmcoef=mapname//'coef'
+inquire(file=fharmcoef, exist=aexist)
+if(aexist) then
+  if(mype==0) then
+    call MPI_FILE_OPEN(MPI_COMM_SELF,fharmcoef,MPI_MODE_RDONLY, &
+                         MPI_INFO_NULL,file_handle,ierrmpi)
+    call MPI_FILE_READ(file_handle,lmax,1,MPI_INTEGER,statuss,ierrmpi)
+    allocate(flm(0:lmax,0:lmax))
+    call MPI_FILE_READ(file_handle,flm,(lmax+1)*(lmax+1),&
+                         MPI_DOUBLE_COMPLEX,statuss,ierrmpi)
+    call MPI_FILE_CLOSE(file_handle,ierrmpi)
+  end if
+  call MPI_BARRIER(icomm,ierrmpi)
+  if(npe>0)  call MPI_BCAST(lmax,1,MPI_INTEGER,0,icomm,ierrmpi)
+  if(mype/=0) allocate(flm(0:lmax,0:lmax))
+  call MPI_BARRIER(icomm,ierrmpi)
+  if(npe>0) call MPI_BCAST(flm,(lmax+1)*(lmax+1),MPI_DOUBLE_COMPLEX,0,icomm,&
+     ierrmpi)
+else
+  if(mype==0) then
+    inquire(file=mapname,exist=aexist)
+    if(.not. aexist) then
+      if(mype==0) write(*,'(2a)') "can not find file:",mapname
+      call mpistop("no input magnetogram found")
+    end if
+    call MPI_FILE_OPEN(MPI_COMM_SELF,mapname,MPI_MODE_RDONLY,MPI_INFO_NULL,&
+                       file_handle,ierrmpi)
+    call MPI_FILE_READ(file_handle,xm,1,MPI_INTEGER,statuss,ierrmpi)
+    call MPI_FILE_READ(file_handle,ym,1,MPI_INTEGER,statuss,ierrmpi)
+    if(lmax==0) lmax=min(2*ym/3,xm/3)
+
+    allocate(b_r0(xm,ym))
+    allocate(theta(ym))
+    allocate(phi(xm))
+    call MPI_FILE_READ(file_handle,theta,ym,MPI_DOUBLE_PRECISION,&
+                       statuss,ierrmpi)
+    call MPI_FILE_READ(file_handle,phi,xm,MPI_DOUBLE_PRECISION,&
+                       statuss,ierrmpi)
+    call MPI_FILE_READ(file_handle,b_r0,xm*ym,MPI_DOUBLE_PRECISION,&
+                       statuss,ierrmpi)
+    call MPI_FILE_CLOSE(file_handle,ierrmpi)
+    print*,'nphi,ntheta',xm,ym
+    print*,'theta range:',minval(theta),maxval(theta)
+    print*,'phi range:',minval(phi),maxval(phi)
+    print*,'Brmax,Brmin',maxval(b_r0),minval(b_r0)
+    allocate(cfwm(ym))
+    call cfweights(ym,dcos(theta),cfwm)
+    allocate(flm(0:lmax,0:lmax))
+    call coef(b_r0,xm,ym,dcos(theta),dsin(theta),cfwm)
+    deallocate(b_r0)
+    deallocate(theta)
+    deallocate(phi)
+    amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+    call MPI_FILE_OPEN(MPI_COMM_SELF,fharmcoef,amode, &
+                         MPI_INFO_NULL,file_handle,ierrmpi)
+    call MPI_FILE_WRITE(file_handle,lmax,1,MPI_INTEGER,statuss,ierrmpi)
+    call MPI_FILE_WRITE(file_handle,flm,(lmax+1)*(lmax+1),&
+                         MPI_DOUBLE_COMPLEX,statuss,ierrmpi)
+    call MPI_FILE_CLOSE(file_handle,ierrmpi)
+  endif
+  call MPI_BARRIER(icomm,ierrmpi)
+  if(npe>1) call MPI_BCAST(lmax,1,MPI_INTEGER,0,icomm,ierrmpi)
+  if(mype/=0) allocate(flm(0:lmax,0:lmax))
+  call MPI_BARRIER(icomm,ierrmpi)
+  if(npe>1) call MPI_BCAST(flm,(lmax+1)*(lmax+1),MPI_DOUBLE_COMPLEX,0,&
+                 icomm,ierrmpi)
+end if
+if(mype==0) print*,'lmax=',lmax,'trunc=',trunc
+nlarr=501
+allocate(lmaxarray(nlarr))
+allocate(xrg(nlarr))
+lmaxarray=lmax
+if(trunc) then
+  dxr=(R_s-R_0)/dble(nlarr-1)
+  do ir=1,nlarr
+    xrg(ir)=dxr*dble(ir-1)+R_0
+    do il=0,lmax
+      xrl=xrg(ir)**il
+      if(xrl > 1.d6) then
+        lmaxarray(ir)=il
+        exit
+      end if
+    end do
+  end do
+endif
+! calculate global Alm Blm Rlm 
+allocate(Alm(0:lmax,0:lmax))
+allocate(Blm(0:lmax,0:lmax))
+allocate(Rlm(0:lmax,0:lmax))
+Alm=(0.d0,0.d0)
+Blm=(0.d0,0.d0)
+do l=0,lmax
+  do m=0,l
+    rsl=R_s**(-(2*l+1))
+    Rlm(l,m)=dsqrt(dble(l**2-m**2)/dble(4*l**2-1))
+    Blm(l,m)=-flm(l,m)/(1.d0+dble(l)+dble(l)*rsl)
+    Alm(l,m)=-rsl*Blm(l,m)
+  end do
+end do
+
+end subroutine harm_coef
+!=============================================================================
+subroutine pfss(ixI^L,ixO^L,Bpf,x)
+
+use harm_coef_data
+
+include 'amrvacdef.f'
+
+integer, intent(in)           :: ixI^L,ixO^L
+double precision, intent(in)  :: x(ixI^S,1:ndim)
+double precision, intent(out) :: Bpf(ixI^S,1:ndir)
+
+double complex :: Bt(0:lmax,0:lmax,ixOmin1:ixOmax1)
+double precision :: phase(ixI^S,1:ndir),Bpfiv(ixOmin3:ixOmax3,ixOmin2:ixOmax2)
+double precision :: miu(ixOmin2:ixOmax2),mius(ixOmin2:ixOmax2),xr
+integer :: l,m,ix^D,j,l1,l2,ntheta,nphi,ir,qlmax
+!-----------------------------------------------------------------------------
+
+Bt=(0.d0,0.d0)
+nphi=ixOmax3-ixOmin3+1
+ntheta=ixOmax2-ixOmin2+1
+miu(ixOmin2:ixOmax2)=dcos(x(ixOmin1,ixOmax2:ixOmin2:-1,ixOmin3,2))
+mius(ixOmin2:ixOmax2)=dsin(x(ixOmin1,ixOmax2:ixOmin2:-1,ixOmin3,2))
+do ix1=ixOmin1,ixOmax1
+  xr=x(ix1,ixOmin2,ixOmin3,1)
+  if(trunc) then
+    do ir=1,size(lmaxarray)
+      if(xrg(ir)>=xr) exit
+    end do
+    if(ir>size(lmaxarray)) ir=size(lmaxarray)
+    qlmax=lmaxarray(ir)
+  else
+    qlmax=lmax
+  endif
+!Calculate Br
+  do l=0,lmax
+    do m=0,l
+      Bt(l,m,ix1)=Alm(l,m)*dble(l)*xr**(l-1)-Blm(l,m)*dble(l+1)*xr**(-l-2)
+    end do
+  enddo
+  call inv_sph_transform(Bt(:,:,ix1),x(ixOmin1,ixOmin2,&
+       ixOmin3:ixOmax3,3),miu,mius,nphi,ntheta,Bpfiv,qlmax)
+  do ix3=ixOmin3,ixOmax3
+    do ix2=ixOmin2,ixOmax2
+      Bpf(ix1,ix2,ix3,1)=Bpfiv(ix3,ixOmax2-ix2+ixOmin2)
+    enddo
+  enddo
+!Calculate Btheta
+  do l=0,lmax
+    do m=0,l
+      if (l==0) then
+        Bt(l,m,ix1)=-Rlm(l+1,m)*dble(l+2)*&
+         (Alm(l+1,m)*xr**l+Blm(l+1,m)*xr**(-l-3))
+      else if (l>=1 .and. l<=lmax-1) then
+        Bt(l,m,ix1)=Rlm(l,m)*&
+         dble(l-1)*(Alm(l-1,m)*xr**(l-2)+Blm(l-1,m)*&
+         xr**(-l-1))-Rlm(l+1,m)*dble(l+2)*&
+         (Alm(l+1,m)*xr**l+Blm(l+1,m)*xr**(-l-3))
+      else
+        Bt(l,m,ix1)=Rlm(l,m)*&
+          dble(l-1)*(Alm(l-1,m)*xr**(l-2)+Blm(l-1,m)*xr**(-l-1))
+      end if
+    end do
+  enddo
+  call inv_sph_transform(Bt(:,:,ix1),x(ixOmin1,ixOmin2,&
+       ixOmin3:ixOmax3,3),miu,mius,nphi,ntheta,Bpfiv,qlmax)
+  do ix3=ixOmin3,ixOmax3
+    do ix2=ixOmin2,ixOmax2
+      Bpf(ix1,ix2,ix3,2)=Bpfiv(ix3,ixOmax2-ix2+ixOmin2)/mius(&
+         ixOmax2-ix2+ixOmin2)
+    enddo
+  enddo
+
+!Calculate Bphi
+  do l=0,lmax
+    do m=0,l
+      Bt(l,m,ix1)=(0.d0,1.d0)*m*(Alm(l,m)*xr**(l-1)+Blm(l,m)*xr**(-l-2))
+    end do
+  enddo
+  call inv_sph_transform(Bt(:,:,ix1),x(ixOmin1,ixOmin2,&
+       ixOmin3:ixOmax3,3),miu,mius,nphi,ntheta,Bpfiv,qlmax)
+  do ix3=ixOmin3,ixOmax3
+    do ix2=ixOmin2,ixOmax2
+      Bpf(ix1,ix2,ix3,3)=Bpfiv(ix3,ixOmax2-ix2+ixOmin2)/mius(&
+          ixOmax2-ix2+ixOmin2)
+    enddo
+  enddo
+enddo
+!Scalar Potential
+!       Potlc(ix^D)=Alm(l,m)*x(ix^D,1)**l+Blm(l,m)*x(ix^D,1)**(-l-1)
+
+!do ix3=ixOmin3,ixOmax3
+!    do ix2=ixOmin2,ixOmax2
+!    print*,x(ix1,ixOmax2-ix2+ixOmin2,ix3,2)
+!    print*,'miu==',miu(ixOmax2-ix2+ixOmin2)
+!    enddo
+!enddo
+
+end subroutine pfss
+!=============================================================================
+subroutine inv_sph_transform(Bt,phi,miu,mius,nphi,ntheta,Bpf,qlmax)
+
+use harm_coef_data
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: nphi,ntheta,qlmax
+double complex, intent(in)  :: Bt(0:lmax,0:lmax)
+double precision, intent(in) :: phi(nphi),miu(ntheta),mius(ntheta)
+double precision, intent(out) :: Bpf(nphi,ntheta)
+
+double precision,dimension(0:lmax,0:lmax) :: cp,phase,Bamp
+double precision,dimension(ntheta) :: cp_1_0,cp_l_0,cp_lm1_0,cp_lm2_0,cp_m_m
+double precision,dimension(ntheta) :: cp_1_m,cp_l_m,cp_lm1_m,cp_lm2_m,cp_mp1_m
+double precision :: angpart(nphi)
+double precision :: ld,md,c1,c2,cp_0_0
+integer :: l,m,iph,ith 
+!-----------------------------------------------------------------------------
+Bamp=abs(Bt)
+
+phase=atan2(dimag(Bt),dble(Bt))
+
+Bpf=0.d0
+!take care of modes where m=0
+cp_0_0=dsqrt(1.d0/(4.d0*dpi))
+!start with l=m=0 mode
+Bpf=Bpf+Bamp(0,0)*dcos(phase(0,0))*cp_0_0
+
+!proceed with l=1 m=0 mode
+cp_1_0=dsqrt(3.d0)*miu*cp_0_0
+do iph=1,nphi
+ Bpf(iph,:)=Bpf(iph,:)+Bamp(1,0)*dcos(phase(1,0))*cp_1_0
+enddo
+
+!proceed with l modes for which m=0
+cp_lm1_0=cp_0_0
+cp_l_0=cp_1_0
+do l=2,qlmax
+  ld=dble(l)
+  cp_lm2_0=cp_lm1_0
+  cp_lm1_0=cp_l_0
+  c1=dsqrt(4.d0*ld**2-1.d0)/ld
+  c2=dsqrt((2.d0*ld+1.d0)/(2.d0*ld-3.d0))*(ld-1.d0)/ld
+  cp_l_0=c1*miu*cp_lm1_0-c2*cp_lm2_0
+  do iph=1,nphi
+   Bpf(iph,:)=Bpf(iph,:)+Bamp(l,0)*dcos(phase(l,0))*cp_l_0
+  enddo
+enddo
+
+!loop through m's for m>0 and then loop through l's for each m
+cp_m_m=cp_0_0
+do m=1,qlmax
+  md=dble(m)
+  !first do l=m modes
+  cp_m_m=-dsqrt(1.d0+1.d0/(2.d0*md))*mius*cp_m_m
+  do iph=1,nphi 
+    angpart(iph)=dcos(md*phi(iph)+phase(m,m))
+  end do
+  do ith=1,ntheta
+    do iph=1,nphi
+      Bpf(iph,ith)=Bpf(iph,ith)+Bamp(m,m)*angpart(iph)*cp_m_m(ith)
+    enddo
+  enddo
+
+  !proceed with l=m+1 modes
+  if(qlmax>=m+1) then
+    cp_mp1_m=dsqrt(2.d0*md+3.d0)*miu*cp_m_m
+    angpart=dcos(md*phi+phase(m+1,m))
+    do ith=1,ntheta
+      do iph=1,nphi
+        Bpf(iph,ith)=Bpf(iph,ith)+Bamp(m+1,m)*angpart(iph)*cp_mp1_m(ith)
+      enddo
+    enddo
+  endif
+
+  !finish with the rest l  
+  if(qlmax>=m+2) then
+    cp_lm1_m=cp_m_m
+    cp_l_m=cp_mp1_m
+    do l=m+2,qlmax
+      ld=dble(l)
+      cp_lm2_m=cp_lm1_m
+      cp_lm1_m=cp_l_m
+      c1=dsqrt((4.d0*ld**2-1.d0)/(ld**2-md**2))
+      c2=dsqrt((2.d0*ld+1.d0)*((ld-1.d0)**2-md**2)/(2.d0*ld-3.d0)/(ld**2-md**2))
+      cp_l_m=c1*miu*cp_lm1_m-c2*cp_lm2_m
+      angpart=dcos(md*phi+phase(l,m))
+      do ith=1,ntheta
+        do iph=1,nphi
+          Bpf(iph,ith)=Bpf(iph,ith)+Bamp(l,m)*angpart(iph)*cp_l_m(ith)
+        enddo
+      enddo
+    enddo
+  endif
+enddo
+
+end subroutine inv_sph_transform
+!=============================================================================
+subroutine cfweights(ym,miu,cfwm)
+
+include 'amrvacdef.f'
+
+integer, intent(in) :: ym
+double precision, intent(in) :: miu(ym)
+double precision, intent(out) :: cfwm(ym)
+
+double precision,dimension(ym) :: Pl,Pm2,Pm1,Pprime,sintheta
+double precision :: lr
+integer :: l
+!-----------------------------------------------------------------------------
+sintheta=dsqrt(1.d0-miu**2)
+
+Pm2=1.d0
+Pm1=miu
+
+do l=2,ym-1
+  lr=1.d0/dble(l)
+  Pl=(2.d0-lr)*Pm1*miu-(1.d0-lr)*Pm2
+  Pm2=Pm1
+  Pm1=Pl
+end do
+
+Pprime=(dble(ym)*Pl)/sintheta**2
+cfwm=2.d0/(sintheta*Pprime)**2
+cfwm=cfwm*(2.d0*dpi)
+
+end subroutine cfweights
 !=============================================================================
 subroutine coef(b_r0,xm,ym,miu,mius,cfwm)
 
