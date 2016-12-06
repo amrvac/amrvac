@@ -657,6 +657,7 @@ if (typeaxial=='slab') call mpistop("Cartesian log grid not implemented")
 if (xprobmin1<=0) call mpistop("xprobmin1 must be positive in a stretched grid")
 if (qst/=bigdouble) then
    xprobmax1=xprobmin1*qst**nxlone1
+   logG=2.d0*(qst-1.d0)/(qst+1.d0)
    if(mype==0) write(*,*) 'xprobmax1 is computed for given nxlone1 and qst:', xprobmax1
 else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
    qst=(xprobmax1/xprobmin1)**(1.d0/dble(nxlone1))
