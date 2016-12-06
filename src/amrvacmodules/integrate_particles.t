@@ -580,38 +580,26 @@ end subroutine set_particles_dt_advect
 !=============================================================================
 {#IFDEF PARTICLES_SPACECRAFT
 subroutine integrate_particles_spacecraft()
-!> extract data from chosen points -> synthetic spacecraft 
+!> extract data from chosen points -> synthetic spacecrafts 
 !> TODO : add orbit to spacecrafts
 
-use mod_odeint
 use mod_particles
-use mod_gridvars, only: get_vec, vp^C_, igrid_working, interpolate_var, bp^C_
+use mod_gridvars, only: igrid_working, interpolate_var
 include 'amrvacdef.f'
 
-integer                             :: ipart, iipart, ixI^L,ixO^L
-double precision                    :: dt_p
-double precision, dimension(1:ndir) :: v, x, b
-integer                             :: igrid
-double precision                    :: td, tloc, rho, rho1, rho2, cur, cur1, cur2
-double precision                    :: p, p1, p2, tp, tp1, tp2, tr, tr1, tr2
-double precision                    :: v1, v11, v12, v2, v21, v22, v3, v31, v32 
-double precision                    :: b1, b11, b12, b2, b21, b22, b3, b31, b32
-double precision, dimension(ixG^T,1:nw+2)   :: w
-! for odeint:
-integer                          :: nok, nbad
-double precision                 :: h1
-double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
-integer, parameter               :: nvar = ^NC
-external derivs_advect
-! .. local ..
-double precision :: current(ixG^T,7-2*ndir:3)
-integer          :: idirmin
-double precision :: bvec(ixG^T,1:ndir)
-double precision :: pth(ixG^T)
+integer                                           :: ipart, iipart, igrid
+integer                                           :: 
+double precision                                  :: dt_p, td, tloc, rho, rho1, rho2, cur, cur1, cur2
+double precision                                  :: p, p1, p2, tp, tp1, tp2, tr, tr1, tr2
+double precision                                  :: v1, v11, v12, v2, v21, v22, v3, v31, v32 
+double precision                                  :: b1, b11, b12, b2, b21, b22, b3, b31, b32
+double precision, dimension(1:ndir)               :: x
+double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
+double precision, dimension(1:nw+nwauxio)         :: normconv
 !-----------------------------------------------------------------------------
-
-do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
-   
+normconv=one
+!> get the details of the particle
+do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);   
    dt_p = particle(ipart)%self%dt
    igrid = particle(ipart)%igrid
    igrid_working = igrid
@@ -619,11 +607,17 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
    x(1:ndir) = particle(ipart)%self%x(1:ndir)
 
    ! **************************************************
-   ! Payload update
+   !> Payload update :
+   !> interpolate the different fields, including auxiliary 
+   !> outputs if included as shown for cur and tp
+   !> do not forget to update npayloads in mod_particles
    ! **************************************************
 
    if (.not.time_advance) then
-      w(ixG^T,1:nw+2) = pw(igrid)%w(ixG^T,1:nw+2)
+      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+!      if(nwauxio>=1)then
+!      call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+!      endif
       call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
       call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,v1_),px(igrid)%x(ixG^T,1:ndim),x,v1)
       call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,v2_),px(igrid)%x(ixG^T,1:ndim),x,v2)
@@ -636,8 +630,12 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
       call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,tr1_),px(igrid)%x(ixG^T,1:ndim),x,tr)
       call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,nw+1),px(igrid)%x(ixG^T,1:ndim),x,cur)
       call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,nw+2),px(igrid)%x(ixG^T,1:ndim),x,tp)
-   else
-      w(ixG^T,1:nw+2) = pwold(igrid)%w(ixG^T,1:nw+2)
+   else ! mean between the two time steps
+      ! old time step
+      w(ixG^T,1:nw) = pwold(igrid)%w(ixG^T,1:nw)
+!      if(nwauxio>=1)then
+!      call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+!      endif
       call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v1_),px(igrid)%x(ixG^T,1:ndim),x,v11)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v2_),px(igrid)%x(ixG^T,1:ndim),x,v21)
@@ -650,7 +648,11 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,tr1_),px(igrid)%x(ixG^T,1:ndim),x,tr1)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+1),px(igrid)%x(ixG^T,1:ndim),x,cur1)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+2),px(igrid)%x(ixG^T,1:ndim),x,tp1)
-      w(ixG^T,1:nw+2) = pw(igrid)%w(ixG^T,1:nw+2)
+      ! advanced time step
+      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+!      if(nwauxio>=1)then
+!      call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+!      endif
       call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v1_),px(igrid)%x(ixG^T,1:ndim),x,v12)
       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v2_),px(igrid)%x(ixG^T,1:ndim),x,v22)
@@ -698,24 +700,9 @@ end do
 !=============================================================================
 end subroutine integrate_particles_spacecraft
 !=============================================================================
-subroutine derivs_spacecraft(t_s,x,dxdt)
-
-use mod_gridvars, only: get_vec, vp^C_, igrid_working
-include 'amrvacdef.f'
-
-double precision                :: t_s, x(*)
-double precision                :: dxdt(*)
-! .. local ..
-double precision                :: v(1:^NC)
-!-----------------------------------------------------------------------------
-
-call get_vec(igrid_working,x(1:^NC),t_s,v,vp1_,vp^NC_)
-{^C& dxdt(^C) = v(^C)/ UNIT_LENGTH;}
-
-end subroutine derivs_spacecraft
-!=============================================================================
 subroutine set_particles_dt_spacecraft()
-
+!> get_dt for the spacecrafts, not useful as such (until spacecrafts moves) 
+!> but check that the rate of writing output is respected
 use mod_particles
 include 'amrvacdef.f'
 
