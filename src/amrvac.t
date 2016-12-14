@@ -14,8 +14,9 @@ use mod_global_parameters
 use mod_input_output
 use mod_physics
 
-integer          :: itin
-double precision :: time0, time_in, tin
+integer                             :: itin
+double precision                    :: time0, time_in, tin
+character(len=std_len), allocatable :: par_files(:)
 
 call comm_start()
 
@@ -23,13 +24,13 @@ time_advance = .false.
 time0        = MPI_WTIME()
 time_bc      = zero
 
-! TODO:
-call read_physics_parameters("rho")
+call read_arguments(par_files)
 
 ! In the future, include a mod_user and define the physics type there
-call activate_physics_module("rho")
+call activate_physics_module("hd", par_files)
 
-call read_arguments_and_parameters()
+call read_par_files(par_files)
+
 call initialize_vars()
 call init_comm_types()
 
@@ -140,18 +141,22 @@ call comm_finalize
 
 contains
 
-  subroutine activate_physics_module(physics_name)
+  subroutine activate_physics_module(physics_name, par_files)
     use mod_physics, only: phys_check_methods
     use mod_rho, only: rho_activate
-    use mod_nonlinear, only: nonlinear_activate
+    ! use mod_nonlinear, only: nonlinear_activate
+    use mod_hd, only: hd_activate
 
     character(len=*), intent(in) :: physics_name
+    character(len=*), intent(in) :: par_files(:)
 
     select case (physics_name)
     case ("rho")
-       call rho_activate()
-    case ("nonlinear")
-       call nonlinear_activate()
+       call rho_activate(par_files)
+    ! case ("nonlinear")
+    !    call nonlinear_activate(par_files)
+    case ("hd")
+       call hd_activate(par_files)
     case default
        call mpistop("Invalid physics module selected")
     end select

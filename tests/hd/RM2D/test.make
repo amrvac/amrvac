@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=22 -p=hd
+SETUP_FLAGS := -d=22
 SCHEME_DIR := ../../schemes
 TESTS := rm_2d_2step_tvdlf_mm.log rm_2d_2step_tvdmu_al.log		\
 rm_2d_3step_hll_cada.log rm_2d_4step_hll_mc.log rm_2d_4step_hllc_ko.log	\

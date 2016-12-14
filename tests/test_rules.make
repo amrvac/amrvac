@@ -11,9 +11,9 @@ NUM_PROCS ?= 4
 
 # Colors to highlight the test results, see
 # https://en.wikipedia.org/wiki/ANSI_escape_code
-RED := \033[0;31m
-GREEN := \033[0;32m
-NOCOLOR := \033[0m
+RED	:= \033[0;31m
+GREEN	:= \033[0;32m
+NOCOLOR	:= \033[0m
 
 # The files that define a setup
 SETUP_FILES := amrvacusr.t amrvacusrpar.t amrvacsettings.t definitions.h	\
@@ -27,8 +27,8 @@ all: $(TESTS)
 	@$(RM) $@		# Remove log to prevent pass when aborted
 	mpirun -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
 	@if $(LOG_CMP) $@ correct_output/$@ ; \
-	then echo -e "$(GREEN)PASSED $@ $(NOCOLOR)" ; \
-	else echo -e "$(RED)FAILED $@ $(NOCOLOR)" ; \
+	then echo "$(GREEN)PASSED $@ $(NOCOLOR)" ; \
+	else echo "$(RED)FAILED $@ $(NOCOLOR)" ; \
 	fi
 
 $(SETUP_FILES):

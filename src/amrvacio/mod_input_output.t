@@ -12,17 +12,19 @@ module mod_input_output
 contains
 
   !> Read the command line arguments passed to amrvac
-  subroutine read_arguments_and_parameters()
+  subroutine read_arguments(par_files)
     use M_kracken
     use mod_global_parameters
 
-    integer, parameter                   :: max_par_files = 20
-    integer                              :: len, ier, n
-    integer                              :: n_par_files
-    integer                              :: ibegin(max_par_files)
-    integer                              :: iterm(max_par_files)
-    character(len=max_par_files*std_len) :: all_par_files
-    character(len=std_len)               :: par_files(max_par_files)
+    character(len=*), allocatable, intent(inout) :: par_files(:)
+
+    integer                          :: len, ier, n
+    integer, parameter               :: max_files = 20 ! Maximum number of par files
+    integer                          :: n_par_files
+    integer                          :: ibegin(max_files)
+    integer                          :: iterm(max_files)
+    character(len=max_files*std_len) :: all_par_files
+    character(len=std_len)           :: tmp_files(max_files)
 
     if (mype == 0) then
        print *, '-----------------------------------------------------------------------------'
@@ -44,7 +46,7 @@ contains
     call retrev('cmd_i', all_par_files, len, ier)
 
     ! Show the usage if the help flag was given, or no par file was specified
-    if (lget('cmd_-help')) then
+    if (lget('cmd_-help') .or. len == 0) then
        if (mype == 0) then
           print *, 'Usage example:'
           print *, './amrvac -i file.par [file2.par ...]'
@@ -61,8 +63,10 @@ contains
     end if
 
     ! Split the par files, in case multiple were given
-    call delim(all_par_files, par_files, max_par_files, n_par_files, &
+    call delim(all_par_files, tmp_files, max_files, n_par_files, &
          ibegin, iterm, len, " ,'"""//char(9))
+    allocate(par_files(n_par_files))
+    par_files = tmp_files(1:n_par_files)
 
     ! Read in the other command line arguments
     call retrev('cmd_if', filenameini, len, ier)
@@ -73,20 +77,16 @@ contains
     collapseNext = iget('cmd_collapse')
     convert      = lget('cmd_convert') ! -convert present?
 
-    ! Read in the settings from the par files
-    call read_par_files(par_files(1:n_par_files))
-
-  end subroutine read_arguments_and_parameters
+  end subroutine read_arguments
 
   !> Read in the user-supplied parameter-file
   subroutine read_par_files(par_files)
     use mod_global_parameters
-    use mod_physics, only: phys_read_params, physics_type
+    use mod_physics, only: physics_type
 
     character(len=*), intent(in) :: par_files(:)
 
     logical          :: fileopen, file_exists
-    logical          :: success, have_read_phys_params
     integer          :: i, j, k, ifile, io_state
     integer          :: iB, isave, iw, level, idim, islice
     integer          :: nxlone^D, nx_vec(^ND)
@@ -417,9 +417,6 @@ contains
        enddo
     enddo
 
-    ! Used to check whether we have read in physics parameters
-    have_read_phys_params = .false.
-
     ! Set default variable names
     primnames = 'default'
     wnames    = 'default'
@@ -468,11 +465,7 @@ contains
 106    rewind(unitpar)
        read(unitpar, paramlist, end=107)
 
-107    rewind(unitpar)
-       call phys_read_params(unitpar, success)
-       if (success) have_read_phys_params = .true.
-
-       close(unitpar)
+107    close(unitpar)
 
        ! Append the log and file names given in the par files
        if (filenameout /= filenameout_prev) &
@@ -486,9 +479,6 @@ contains
 
     filenameout = filenameout_full
     filenamelog = filenamelog_full
-
-    if (.not. have_read_phys_params) &
-         call mpistop("No physics parameters specified in .par files")
 
     if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: primnames not given!'

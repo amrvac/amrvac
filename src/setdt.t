@@ -155,7 +155,7 @@ double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 integer :: idims
 logical :: new_cmax
 double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-double precision :: cmax(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
+double precision :: cmax(ixG^T), cmin(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
 !-----------------------------------------------------------------------------
 dtnew=bigdouble
 
@@ -171,8 +171,8 @@ new_cmax=.true.
 cmaxtot(ix^S)=zero
 
 do idims=1,ndim
-   call phys_get_cmax(w,x,ixG^L,ix^L,idims,cmax)
-   cmax_mype = max(cmax_mype,maxval(cmax(ix^S)))
+   call phys_get_cmax(w,x,ixG^L,ix^L,idims,cmax, cmin)
+   cmax_mype = max(cmax_mype,maxval(cmax(ix^S)), maxval(abs(cmin(ix^S))))
    if (.not.slab) then
       tmp(ix^S)=cmax(ix^S)/mygeo%dx(ix^S,idims)
       cmaxtot(ix^S)=cmaxtot(ix^S)+tmp(ix^S)

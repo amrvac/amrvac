@@ -935,7 +935,7 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 !
 ! the normconv is passed on to specialvar_output for extending with
 ! possible normalization values for the nw+1:nw+nwauxio entries
-
+  
 use mod_global_parameters
 use mod_physics, only: physics_type, phys_to_primitive
 
@@ -961,10 +961,11 @@ integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
 logical, save :: subfirst=.true.
 !-----------------------------------------------------------------------------
 ! following only for allowing compiler to go through with debug on
-{#IFDEF ENERGY
-iwe=e_
-}
-iwb^C=b^C_;
+! TODO: Jannis: deactivated a lot of code here
+! {#IFDEF ENERGY
+! iwe=e_
+! }
+! iwb^C=b^C_;
 
 
 nx^D=ixMhi^D-ixMlo^D+1;
@@ -1076,39 +1077,39 @@ if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),
 !===========================================
 ! cell center values obtained from mere copy, while B0+B1 split handled here
 do iw=1,nw+nwauxio
-   if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
-      idir=iw-b0_
-      {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
-         wCC(ix^D,iw)=w(ix^D,iw)+pB0_cell(igrid)%w(ix^D,idir)
-      {end do\}
-   else
+   ! if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
+   !    idir=iw-b0_
+   !    {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
+   !       wCC(ix^D,iw)=w(ix^D,iw)+pB0_cell(igrid)%w(ix^D,idir)
+   !    {end do\}
+   ! else
       {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
           wCC(ix^D,iw)=w(ix^D,iw)
       {end do\}
-   end if
+   ! end if
 end do
-{#IFDEF ENERGY
-if((.not.saveprim) .and. B0field) then
-   {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
-       wCC(ix^D,iwe)=w(ix^D,iwe) &
-           +half*( ^C&pB0_cell(igrid)%w(ix^D,iwb^C-b0_)**2+ ) &
-           + ( ^C&w(ix^D,iwb^C)*pB0_cell(igrid)%w(ix^D,iwb^C-b0_)+ )
-   {end do\}
-endif
-}
+! {#IFDEF ENERGY
+! if((.not.saveprim) .and. B0field) then
+!    {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
+!        wCC(ix^D,iwe)=w(ix^D,iwe) &
+!            +half*( ^C&pB0_cell(igrid)%w(ix^D,iwb^C-b0_)**2+ ) &
+!            + ( ^C&w(ix^D,iwb^C)*pB0_cell(igrid)%w(ix^D,iwb^C-b0_)+ )
+!    {end do\}
+! endif
+! }
 ! compute the corner values for w now by averaging
 !=================================================
 
 if(typeaxial=='slab')then
    ! for slab symmetry: no geometrical info required
    do iw=1,nw+nwauxio
-      if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
-         idir=iw-b0_
-         {do ix^DB=ixCmin^DB,ixCmax^DB\}
-           wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw) &
-                           +pB0_cell(igrid)%w(ix^D:ix^D+1,idir))/dble(2**ndim)
-         {end do\}
-      else
+      ! if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
+      !    idir=iw-b0_
+      !    {do ix^DB=ixCmin^DB,ixCmax^DB\}
+      !      wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw) &
+      !                      +pB0_cell(igrid)%w(ix^D:ix^D+1,idir))/dble(2**ndim)
+      !    {end do\}
+      ! else
         if(uselimiter)then
            if(ndim>1)call mpistop("to be corrected for multi-D")
            do idims =1,ndim
@@ -1122,45 +1123,45 @@ if(typeaxial=='slab')then
              wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw))/dble(2**ndim)
           {end do\}
        end if
-      end if
+      ! end if
    end do
-{#IFDEF ENERGY
-   if((.not.saveprim) .and. B0field) then
-      {do ix^DB=ixCmin^DB,ixCmax^DB\}
-         wC(ix^D,iwe)=sum(w(ix^D:ix^D+1,iwe) &
-           +half*( ^C&pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)**2+ ) &
-           + ( ^C&w(ix^D:ix^D+1,iwb^C)*pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)+ ) ) &
-            /dble(2**ndim)
-      {end do\}
-   endif
-}
+! {#IFDEF ENERGY
+!    if((.not.saveprim) .and. B0field) then
+!       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+!          wC(ix^D,iwe)=sum(w(ix^D:ix^D+1,iwe) &
+!            +half*( ^C&pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)**2+ ) &
+!            + ( ^C&w(ix^D:ix^D+1,iwb^C)*pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)+ ) ) &
+!             /dble(2**ndim)
+!       {end do\}
+!    endif
+! }
 else
    do iw=1,nw+nwauxio
-      if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
-         idir=iw-b0_
-         {do ix^DB=ixCmin^DB,ixCmax^DB\}
-           wC(ix^D,iw)= sum((w(ix^D:ix^D+1,iw)+pB0_cell(igrid)%w(ix^D:ix^D+1,idir)) &
-                            *pgeo(igrid)%dvolume(ix^D:ix^D+1))    &
-                    /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
-         {end do\}
-      else
+   !    if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
+   !       idir=iw-b0_
+   !       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+   !         wC(ix^D,iw)= sum((w(ix^D:ix^D+1,iw)+pB0_cell(igrid)%w(ix^D:ix^D+1,idir)) &
+   !                          *pgeo(igrid)%dvolume(ix^D:ix^D+1))    &
+   !                  /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
+   !       {end do\}
+   !    else
          {do ix^DB=ixCmin^DB,ixCmax^DB\}
            wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw)*pgeo(igrid)%dvolume(ix^D:ix^D+1)) &
                     /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
          {end do\}
-      end if
+      ! end if
    end do
-{#IFDEF ENERGY
-   if((.not.saveprim) .and. B0field) then
-      {do ix^DB=ixCmin^DB,ixCmax^DB\}
-         wC(ix^D,iwe)=sum((w(ix^D:ix^D+1,iwe) &
-           +half*( ^C&pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)**2+ ) &
-           + ( ^C&w(ix^D:ix^D+1,iwb^C)*pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)+ ) ) &
-                            *pgeo(igrid)%dvolume(ix^D:ix^D+1))    &
-                    /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
-      {end do\}
-   endif
-}
+! {#IFDEF ENERGY
+!    if((.not.saveprim) .and. B0field) then
+!       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+!          wC(ix^D,iwe)=sum((w(ix^D:ix^D+1,iwe) &
+!            +half*( ^C&pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)**2+ ) &
+!            + ( ^C&w(ix^D:ix^D+1,iwb^C)*pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)+ ) ) &
+!                             *pgeo(igrid)%dvolume(ix^D:ix^D+1))    &
+!                     /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
+!       {end do\}
+!    endif
+! }
 endif
 
 if(nocartesian) then

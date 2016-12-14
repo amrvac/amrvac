@@ -1,41 +1,40 @@
-module mod_nonlinear
+module mod_rho_phys
   use mod_physics
-  use mod_nonlinear_params
 
   implicit none
   public
 
-  integer, parameter :: rho_                = 1
-  integer            :: nonlinear_flux_type = 1
+  integer, parameter :: rho_       = 1
+  double precision   :: rho_v(^ND) = 1.0d0
 
   ! Public methods
-  ! public :: nonlinear_activate
+  ! public :: rho_phys_init
 
 contains
 
-  subroutine nonlinear_params_read(par_files)
+  subroutine rho_params_read(par_files)
     use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: par_files(:)
     integer                      :: n
 
-    namelist /nonlinear_list/ nonlinear_flux_type
+    namelist /rho_list/ rho_v
 
     do n = 1, size(par_files)
        open(unitpar, file=trim(par_files(n)), status='old')
-       read(unitpar, nonlinear_list)
-       close(unitpar)
+       read(unitpar, rho_list, end=111)
+111    close(unitpar)
     end do
 
-  end subroutine nonlinear_params_read
+  end subroutine rho_params_read
 
-  subroutine nonlinear_activate(par_files)
+  subroutine rho_phys_init(par_files)
     use mod_global_parameters
 
     character(len=*), intent(in) :: par_files(:)
 
-    call nonlinear_params_read(par_files)
+    call rho_params_read(par_files)
 
-    physics_type = "nonlinear"
+    physics_type = "rho"
 
     nwflux       = 1
     nwaux        = 0
@@ -46,30 +45,23 @@ contains
 
     nflag_ = nw+1
 
-    phys_get_v           => nonlinear_get_v
-    phys_get_cmax        => nonlinear_get_cmax
-    phys_get_flux        => nonlinear_get_flux
-    phys_add_source_geom => nonlinear_add_source_geom
-  end subroutine nonlinear_activate
+    phys_get_v           => rho_get_v
+    phys_get_cmax        => rho_get_cmax
+    phys_get_flux        => rho_get_flux
+    phys_add_source_geom => rho_add_source_geom
 
-  subroutine nonlinear_get_v(w, x, ixI^L, ixO^L, idim, v)
+  end subroutine rho_phys_init
+
+  subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v)
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(out) :: v(ixG^T)
 
-    select case(nonlinear_flux_type)
-    case(1)
-       v(ixO^S)=w(ixO^S,rho_)
-    case(2)
-       v(ixO^S)=3.0d0*w(ixO^S,rho_)**2
-    case default
-       call mpistop('Undefined fluxtype: set eqpar to 1 or 2')
-    end select
+    v(ixO^S) = rho_v(idim)
+  end subroutine rho_get_v
 
-  end subroutine nonlinear_get_v
-
-  subroutine nonlinear_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+  subroutine rho_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
     use mod_global_parameters
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
@@ -84,30 +76,21 @@ contains
     else
        cmax(ixO^S) = abs(cmax(ixO^S))
     end if
-  end subroutine nonlinear_get_cmax
+  end subroutine rho_get_cmax
 
   ! There is nothing to add to the transport flux in the transport equation
-  subroutine nonlinear_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
+  subroutine rho_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, iw, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
     double precision, intent(inout) :: f(ixG^T)
     logical, intent(out)            :: transport
 
-    select case(nonlinear_flux_type)
-    case(1)
-       f(ixO^S)=half*w(ixO^S,rho_)**2
-    case(2)
-       f(ixO^S)=w(ixO^S,rho_)**3
-    case default
-       call mpistop('Undefined fluxtype: set eqpar to 1 or 2')
-    end select
+    f(ixO^S)  = zero
+    transport = .true.
+  end subroutine rho_get_flux
 
-    transport = .false.
-
-  end subroutine nonlinear_get_flux
-
-  subroutine nonlinear_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine rho_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
 
     ! Add geometrical source terms to w
     ! There are no geometrical source terms in the transport equation
@@ -118,6 +101,6 @@ contains
     double precision, intent(in) :: qdt, x(ixI^S, 1:^ND)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
 
-  end subroutine nonlinear_add_source_geom
+  end subroutine rho_add_source_geom
 
-end module mod_nonlinear
+end module mod_rho_phys

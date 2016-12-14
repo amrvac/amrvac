@@ -514,12 +514,16 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
       fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
 
       ! Add TVDLF dissipation to the flux
-      if ((.not.BnormLF) .and. (iw==b0_+idims{#IFDEF GLM .or.iw==psi_}) .and. b0_>0) then
-         fRC(ixC^S)=0.d0
-      else
-      ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
+      ! select case (flux_type(iw, idims))
+      ! case (flux_no_dissipation)
+      !    fRC(ixC^S)=0.d0
+      ! case (flux_default)
+         ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
          fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
-      end if
+      ! case default
+      !    call mpistop("tvdlf error: unknown flux type")
+      ! end select
+
       ! fLC contains physical+dissipative fluxes
       fLC(ixC^S)=fLC(ixC^S)+fRC(ixC^S)
 
@@ -601,8 +605,8 @@ integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
 logical :: transport, new_cmax, CmaxMeanState, logiB
 !-----------------------------------------------------------------------------
 
-CmaxMeanState = (typetvdlf=='cmaxmean')
-logiB=(BnormLF.and.b0_>0)
+! CmaxMeanState = (typetvdlf=='cmaxmean')
+! logiB=(BnormLF.and.b0_>0)
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
    method/='hll1')&
@@ -741,26 +745,26 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-     if(any(patchf(ixC^S)/= 2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
+     if(any(patchf(ixC^S)/= 2)) then !.or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
         call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
         if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
      end if
-     if(any(patchf(ixC^S)/=-2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
+     if(any(patchf(ixC^S)/=-2)) then !.or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
         call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
         if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
      end if
 
 
-     if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
-        if (BnormLF) then
-           ! flat B norm using tvdlf
-           fLC(ixC^S)= half*((fLC(ixC^S)+fRC(ixC^S)) &
-                         -tvdlfeps*max(cmaxC(ixC^S)&
-                         ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-         else
-           fLC(ixC^S)=zero
-         endif
-     else
+     ! if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
+     !    if (BnormLF) then
+     !       ! flat B norm using tvdlf
+     !       fLC(ixC^S)= half*((fLC(ixC^S)+fRC(ixC^S)) &
+     !                     -tvdlfeps*max(cmaxC(ixC^S)&
+     !                     ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+     !     else
+     !       fLC(ixC^S)=zero
+     !     endif
+     ! else
        where(patchf(ixC^S)==1)
          ! Add hll dissipation to the flux
          fLC(ixC^S)=(cmaxC(ixC^S)*fLC(ixC^S)-cminC(ixC^S)*fRC(ixC^S) &
@@ -771,7 +775,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
        elsewhere(patchf(ixC^S)==-2)
          fLC(ixC^S)=fLC(ixC^S)
        endwhere
-     endif
+     ! endif
 
      if (slab) then
          fC(ixC^S,iw,idims)=fLC(ixC^S)
@@ -859,8 +863,8 @@ double precision, dimension(ixI^S)              :: lambdaCD
 !-----------------------------------------------------------------------------
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
-logiB=(BnormLF.and.b0_>0)
-logiB=.false.
+! logiB=(BnormLF.and.b0_>0)
+! logiB=.false.
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
    method/='hllc1' .and. method/='hllcd1')&
@@ -1000,11 +1004,11 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-     if(any(patchf(ixC^S)/= 2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then
+     if(any(patchf(ixC^S)/= 2)) then !.or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then
         call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC(ixI^S,iw),transport)
         if (transport)  fLC(ixC^S,iw)=fLC(ixC^S,iw)+vLC(ixC^S)*wLC(ixC^S,iw)
      end if
-     if(any(patchf(ixC^S)/=-2).or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then
+     if(any(patchf(ixC^S)/=-2)) then !.or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then
         call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC(ixI^S,iw),transport)
         if (transport)   fRC(ixC^S,iw)=fRC(ixC^S,iw)+vRC(ixC^S)*wRC(ixC^S,iw)
      end if
@@ -1027,31 +1031,33 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
    endif ! Calculate the CD flux
 
    do iw=1,nwflux
-     if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
-        if (BnormLF) then
-           ! flat B norm using tvdlf
-           fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
-                           -tvdlfeps*max(cmaxC(ixC^S)&
-                           ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-        else
-           fLC(ixC^S,iw)=zero
-        end if
-     else
-       where(patchf(ixC^S)==-2)
-        fLC(ixC^S,iw)=fLC(ixC^S,iw)
-       elsewhere(abs(patchf(ixC^S))==1)
-        fLC(ixC^S,iw)=fCD(ixC^S,iw)
-       elsewhere(patchf(ixC^S)==2)
-        fLC(ixC^S,iw)=fRC(ixC^S,iw)
-       elsewhere(patchf(ixC^S)==3)
-        ! fallback option, reducing to HLL flux
-        fLC(ixC^S,iw)=Fhll(ixC^S,iw)
-       elsewhere(patchf(ixC^S)==4)
-        ! fallback option, reducing to TVDLF flux
-        fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
-          -tvdlfeps*max(cmaxC(ixC^S),dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-       endwhere
-     endif
+      ! select case (flux_type(iw, idims))
+      ! case (flux_LF)
+      !    ! flat B norm using tvdlf
+      !    fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
+      !         -tvdlfeps*max(cmaxC(ixC^S)&
+      !         ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+      ! case (flux_zero)
+      !    fLC(ixC^S,iw)=zero
+      ! case (flux_default)
+         where(patchf(ixC^S)==-2)
+            fLC(ixC^S,iw)=fLC(ixC^S,iw)
+         elsewhere(abs(patchf(ixC^S))==1)
+            fLC(ixC^S,iw)=fCD(ixC^S,iw)
+         elsewhere(patchf(ixC^S)==2)
+            fLC(ixC^S,iw)=fRC(ixC^S,iw)
+         elsewhere(patchf(ixC^S)==3)
+            ! fallback option, reducing to HLL flux
+            fLC(ixC^S,iw)=Fhll(ixC^S,iw)
+         elsewhere(patchf(ixC^S)==4)
+            ! fallback option, reducing to TVDLF flux
+            fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
+                 -tvdlfeps * max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
+                 (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+         endwhere
+      ! case default
+      !    call mpistop("hllc error: unknown flux type")
+      ! end select
 
      if (slab) then
          fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
@@ -1158,6 +1164,7 @@ endif
 ^D&dxinv(^D)=-qdt/dx^D;
 ^D&dxdim(^D)=dx^D;
 do idims= idim^LIM
+   ! Jannis: what's up with these blocks?
    if (B0field) then
       select case (idims)
       {case (^D)

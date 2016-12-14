@@ -24,7 +24,7 @@ subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 ! initialize one grid 
 
   use mod_global_parameters
-  use mod_rho
+  use mod_rho_phys
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
