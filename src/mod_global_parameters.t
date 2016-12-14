@@ -169,7 +169,7 @@ module mod_global_parameters
 
   ! TODO: remove
   integer, parameter :: neqpar=1
-  double precision :: eqpar(neqpar)
+  double precision :: eqpar(neqpar) = -0.0d0
   character(len=*), parameter :: eqparname = "DEPRECATED"
 
   !> For transform variables and save selected data

@@ -10,20 +10,19 @@ subroutine initglobaldata_usr
 use mod_hd_phys
 use mod_global_parameters
 !-----------------------------------------------------------------------------
-hd_gamma = 1.4d0
 
 end subroutine initglobaldata_usr
 !=============================================================================
 subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
-! initialize one grid 
-use mod_hd_phys
-use mod_global_parameters
+  ! initialize one grid
+  use mod_physics
+  use mod_hd_phys
+  use mod_global_parameters
 
 integer, intent(in) :: ixG^L, ix^L
 double precision, intent(in) :: x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw)
-logical :: patchw(ixG^T)
 logical,save :: first=.true.
 !----------------------------------------------------------------------------
 if(first)then
@@ -67,8 +66,7 @@ where(dabs(x(ix^S,1))>0.5d0.and.x(ix^S,1)<1.d0.and.x(ix^S,2)<0.5d0)
    w(ix^S,mom(2))=1.206d0
 end where
 
-patchw(ixG^S)=.false.
-call conserve(ixG^L,ix^L,w,x,patchw)
+call phys_to_conserved(ixG^L,ix^L,w,x)
 
 end subroutine initonegrid_usr
 !=============================================================================

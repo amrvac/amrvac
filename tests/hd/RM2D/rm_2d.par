@@ -5,7 +5,7 @@
         typefilelog='regression_test'
         filenamelog='rm_2d'
         saveprim=.true.
-        autoconvert=.true.
+        autoconvert=.false.
 	convert_type='vtuBCCmpi'
 /
 
@@ -39,4 +39,9 @@
         xprobmax1=1.0d0
         xprobmin2=0.0d0
         xprobmax2=1.0d0
+ /
+
+ &hd_list
+        hd_n_tracer = 0
+        hd_gamma = 1.4
  /
