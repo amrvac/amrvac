@@ -5,22 +5,54 @@ module mod_hd_roe
   implicit none
   private
 
+  integer :: soundRW_
+  integer :: soundLW_
+  integer :: entropW_
+  integer :: shearW0_
+  integer :: nworkroe
+
   public :: hd_roe_init
 
 contains
 
   subroutine hd_roe_init()
     use mod_physics_roe
+    use mod_global_parameters, only: entropycoef, nw
+
+    integer :: iw
 
     if (hd_energy) then
+       ! Characteristic waves
+       soundRW_ = 1
+       soundLW_ = 2
+       entropW_ = 3
+       shearW0_ = 3
+       nworkroe = 3
+
        phys_average => hd_average
        phys_get_eigenjump => hd_get_eigenjump
        phys_rtimes => hd_rtimes
     else
+       ! Characteristic waves
+       soundRW_ = 1
+       soundLW_ = 2
+       shearW0_ = 2
+       nworkroe = 1
+
        phys_average => hd_average_iso
        phys_get_eigenjump => hd_get_eigenjump_iso
        phys_rtimes => hd_rtimes_iso
     end if
+
+    do iw = 1, nw
+       if (iw == soundRW_ .or. iw == soundLW_) then
+          ! TODO: Jannis: what's this?
+          entropycoef(iw) = 0.2d0
+       else
+          entropycoef(iw) = -1.0d0
+       end if
+    end do
+
   end subroutine hd_roe_init
 
   !> Calculate the Roe average of w, assignment of variables:

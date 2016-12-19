@@ -2,13 +2,13 @@ module mod_rho_phys
   use mod_physics
 
   implicit none
-  public
+  private
 
-  integer, parameter :: rho_       = 1
-  double precision   :: rho_v(^ND) = 1.0d0
+  integer, parameter, public          :: rho_       = 1
+  double precision, protected, public :: rho_v(^ND) = 1.0d0
 
   ! Public methods
-  ! public :: rho_phys_init
+  public :: rho_phys_init
 
 contains
 

@@ -22,11 +22,6 @@ forest$F		mod_forest$F		amr_neighbors$F		\
 amr_coarsen_refine$F	refine$F                                        \
 coarsen$F		set_B0$F             				\
 selectgrids$F           geometry$F		mod_global_parameters$F	\
-mod_physics$F mod_physics_roe$F mod_physics_hllc$F mod_physics_ppm$F \
-mod_rho_phys$F mod_rho$F mod_rho_roe$F \
-mod_hd_phys$F mod_hd$F mod_hd_roe$F mod_hd_hllc$F
-
-OBJECTS = $(FOBJECTS:$(F)=.o)
 
 ############################################################################
 #  Dependencies:
@@ -36,17 +31,9 @@ mod_physicaldata.o : mod_indices.o
 amr_fix_conserve.o : mod_fix_conserve.o
 forest.o initialize_vars.o : mod_forest.o mod_global_parameters.o
 amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o mod_physics.o
+
+# TODO
 amrvac.o: mod_rho.o mod_hd.o
-
-mod_rho.o mod_nonlinear.o mod_hd.o: mod_physics.o
-
-mod_rho.o: mod_rho_phys.o mod_rho_roe.o
-mod_rho_roe.o: mod_rho_phys.o
-
-mod_hd.o: mod_hd_phys.o mod_hd_roe.o mod_hd_hllc.o
-mod_hd_roe.o mod_hd_hllc.o: mod_hd_phys.o
-
-# mod_nonlinear.o: mod_nonlinear_phys.o
 
 mod_input_output.o: mod_physics.o
 mod_physics.o: mod_global_parameters.o mod_physics_roe.o mod_physics_hllc.o \

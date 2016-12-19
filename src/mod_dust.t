@@ -1,9 +1,11 @@
 module mod_dust
 
   integer :: dust_num_species
+  integer, allocatable :: rho_dust(:)
+  integer, allocatable :: m_dust(:, :)
+
   double precision, allocatable :: sdust(:), dsdust(:), rhodust(:), mhcgspar, kbcgspar
   double precision              :: Lstar, Tdust
-
 
 contains
 
@@ -46,24 +48,24 @@ contains
 
   subroutine getflux(w,x,ixI^L,ixO^L,iw,idims,f,transport)
     ! TODO: move this to dust module, see above comment
-    else if (iw == rho_dust(i_dust)) then TODO
-       where(w(ixO^S, rho_dust(i_dust))>minrhod)
-          f(ixO^S) = w(ixO^S,(rho_dust(i_dust))+idims*^NDS);
-       else where
-          f(ixO^S) = zero
-       end where
-       transport = .false.
-    else if (iw == m_dust(i_dim, i_dust)) then TODO
-       ! use tmp for speeddust here
-       where(w(ixO^S, rho_dust(i_dust))>minrhod)
-          tmp(ixO^S) = w(ixO^S,(rho_dust(i_dust))+idims*^NDS)/w(ixO^S, rho_dust(i_dust));
-       else where
-          tmp(ixO^S) = zero;
-       end where
-       f(ixO^S) = w(ixO^S, iw)*tmp(ixO^S)
-       transport = .false.
+ else if (iw == rho_dust(i_dust)) then TODO
+    where(w(ixO^S, rho_dust(i_dust))>minrhod)
+       f(ixO^S) = w(ixO^S,(rho_dust(i_dust))+idims*^NDS);
+    else where
+       f(ixO^S) = zero
+    end where
+    transport = .false.
+ else if (iw == m_dust(i_dim, i_dust)) then TODO
+    ! use tmp for speeddust here
+    where(w(ixO^S, rho_dust(i_dust))>minrhod)
+       tmp(ixO^S) = w(ixO^S,(rho_dust(i_dust))+idims*^NDS)/w(ixO^S, rho_dust(i_dust));
+    else where
+       tmp(ixO^S) = zero;
+    end where
+    f(ixO^S) = w(ixO^S, iw)*tmp(ixO^S)
+    transport = .false.
   end subroutine getflux
-  
+
   !  Force dust density to zero if rho_dust <= minrhod
   subroutine set_dusttozero(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x)
     use mod_global_parameters

@@ -78,8 +78,8 @@ amrvac:
 -include $(SRC)/makefile
 
 ################### Include the geometry sources in the geometry dir #######
-VPATH += :$(SRC)/geometry
--include $(SRC)/geometry/makefile
+# VPATH += :$(SRC)/geometry
+# -include $(SRC)/geometry/makefile
 
 ################### Include the IO-related objects in amrvacio dir #########
 VPATH += :$(SRC)/amrvacio
@@ -87,6 +87,8 @@ VPATH += :$(SRC)/amrvacio
 
 ################### Include additional objects in physics dir ##############
 # -include $(SRC)/$(PHYSICS)/makefile
+VPATH += :$(SRC)/physics
+-include $(SRC)/physics/makefile
 
 ################### Include additional modules in modules dir ##############
 VPATH += :$(SRC)/modules
@@ -95,6 +97,8 @@ VPATH += :$(SRC)/modules
 ################### Include additional files in local dir     ##############
 -include $(WORK_DIR)/localmakefile
 
+# Define objects
+OBJECTS = $(FOBJECTS:$(F)=.o)
 
 ################### Rules in Build directory ####### #######################
 ifeq (1,$(RECURSED))

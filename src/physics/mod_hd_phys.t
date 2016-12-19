@@ -2,32 +2,22 @@ module mod_hd_phys
   use mod_physics
 
   implicit none
-  public
+  private
 
-  logical :: hd_energy = .true.
-  integer :: hd_n_tracer = 0
-
-  integer, parameter   :: rho_ = 1
-  integer, parameter   :: m0_  = rho_
-  integer, allocatable :: mom(:)
-  integer              :: e_
-
-  integer, allocatable :: tracer(:)
-  ! integer, allocatable :: rho_dust(:)
-  ! integer, allocatable :: m_dust(:, :)
-
-  integer :: soundRW_
-  integer :: soundLW_
-  integer :: entropW_
-  integer :: shearW0_
-  integer :: nworkroe
-
-  double precision :: hd_gamma = 1.4d0
-  double precision :: hd_adiab = 1.0d0
-  double precision :: smalle, minrho, minp
+  logical, public, protected              :: hd_energy   = .true.
+  integer, public, protected              :: hd_n_tracer = 0
+  integer, public, parameter              :: rho_        = 1
+  integer, public, parameter              :: m0_         = rho_
+  integer, allocatable, public, protected :: mom(:)
+  integer, allocatable, public, protected :: tracer(:)
+  integer, public, protected              :: e_
+  double precision, public, protected     :: hd_gamma    = 1.4d0
+  double precision, public, protected     :: hd_adiab    = 1.0d0
+  double precision, protected             :: smalle, minrho, minp
 
   ! Public methods
-  ! public :: hd_phys_init
+  public :: hd_phys_init
+  public :: hd_kin_en
 
 contains
 
@@ -96,21 +86,6 @@ contains
        tracer(itr) = max(e_, mom(ndir)) + itr
     end do
 
-    if (hd_energy) then
-       ! Characteristic waves
-       soundRW_ = 1
-       soundLW_ = 2
-       entropW_ = 3
-       shearW0_ = 3
-       nworkroe = 3
-    else
-       ! Characteristic waves
-       soundRW_ = 1
-       soundLW_ = 2
-       shearW0_ = 2
-       nworkroe = 1
-    end if
-
     ! TODO
     ! call dust_activate()
 
@@ -164,9 +139,6 @@ contains
 
   ! set default values for entropy fixes for 'yee' type
   subroutine initglobaldata
-    use mod_global_parameters
-
-    integer :: il
 
     if (hd_energy) then
        hd_gamma = 5.d0/3.d0
@@ -180,14 +152,6 @@ contains
     !    mhcgspar = 1.6733D-24
     !    kbcgspar = 1.38065D-16
     ! end if
-
-    do il = 1, nw
-       if (il == soundRW_ .or. il == soundLW_) then
-          entropycoef(il) = 0.2d0
-       else
-          entropycoef(il) = -1.0d0
-       end if
-    end do
 
   end subroutine initglobaldata
 
@@ -221,7 +185,7 @@ contains
           flag(ixO^S) =(w(ixO^S, e_)>= minp .and. w(ixO^S, rho_)>= minrho)
        else
           tmp(ixO^S) =(hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
-               get_kin_en(w, ixI^L, ixO^L))
+               hd_kin_en(w, ixI^L, ixO^L))
           flag(ixO^S) =(tmp(ixO^S)>= minp .and. w(ixO^S, rho_)>= minrho)
        endif
     else
@@ -251,7 +215,7 @@ contains
 
     if (hd_energy) then
        ! Calculate total energy from pressure and kinetic energy
-       w(ixO^S, e_) = w(ixO^S, e_) * invgam + get_kin_en(w, ixI^L, ixO^L)
+       w(ixO^S, e_) = w(ixO^S, e_) * invgam + hd_kin_en(w, ixI^L, ixO^L)
     end if
 
     do itr = 1, hd_n_tracer
@@ -280,7 +244,7 @@ contains
     if (hd_energy) then
        ! Compute pressure
        w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            get_kin_en(w, ixI^L, ixO^L))
+            hd_kin_en(w, ixI^L, ixO^L))
     end if
 
     ! Convert momentum to velocity
@@ -342,7 +306,7 @@ contains
 
     if (hd_energy) then
        w(ixO^S, e_) = (hd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - hd_gamma) * &
-            (w(ixO^S, e_) - get_kin_en(w, ixI^L, ixO^L))
+            (w(ixO^S, e_) - hd_kin_en(w, ixI^L, ixO^L))
     else
        call mpistop("energy from entropy can not be used with -eos = iso !")
     end if
@@ -357,7 +321,7 @@ contains
 
     if (hd_energy) then
        w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (hd_gamma - 1.0d0) + get_kin_en(w, ixI^L, ixO^L)
+            / (hd_gamma - 1.0d0) + hd_kin_en(w, ixI^L, ixO^L)
     else
        call mpistop("entropy from energy can not be used with -eos = iso !")
     end if
@@ -484,7 +448,7 @@ contains
 
     if (hd_energy) then
        p(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            get_kin_en(w, ixI^L, ixO^L))
+            hd_kin_en(w, ixI^L, ixO^L))
     else
        p(ixO^S) = hd_adiab*w(ixO^S, rho_)**hd_gamma
     end if
@@ -530,7 +494,7 @@ contains
                 if (hd_energy) then
                    where(patchierror(ixO^S)/= 0)
                       p(ixO^S) =(hd_gamma - 1.0d0)*(w(ixO^S, e_)- &
-                           get_kin_en(w, ixI^L, ixO^L))
+                           hd_kin_en(w, ixI^L, ixO^L))
                    end where
                 else
                    where(patchierror(ixO^S)/= 0)
@@ -750,7 +714,7 @@ contains
     dtnew = bigdouble
   end subroutine getdt
 
-  function get_kin_en(w, ixI^L, ixO^L) result(ke)
+  function hd_kin_en(w, ixI^L, ixO^L) result(ke)
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S, nw)
@@ -758,7 +722,7 @@ contains
 
     ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / &
          w(ixO^S, rho_)
-  end function get_kin_en
+  end function hd_kin_en
 
   subroutine smallvalues(w,x,ixI^L,ixO^L,subname)
 
