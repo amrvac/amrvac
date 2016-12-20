@@ -9,6 +9,7 @@ module mod_rho_phys
 
   ! Public methods
   public :: rho_phys_init
+  public :: rho_get_v
 
 contains
 

@@ -18,6 +18,8 @@ module mod_hd_phys
   ! Public methods
   public :: hd_phys_init
   public :: hd_kin_en
+  public :: hd_get_pthermal
+  public :: hd_get_v
 
 contains
 
@@ -326,57 +328,6 @@ contains
        call mpistop("entropy from energy can not be used with -eos = iso !")
     end if
   end subroutine rhos_to_e
-
-  ! subroutine ppmflatcd(ixI^L, ixO^L, ixL^L, ixR^L, w, d2w, drho, dp)
-  !   use mod_global_parameters
-
-  !   integer, intent(in)             :: ixI^L, ixO^L, ixL^L, ixR^L
-  !   double precision, intent(in)    :: w(ixI^S, nw), d2w(ixG^T, 1:nwflux)
-  !   double precision, intent(inout) :: drho(ixG^T), dp(ixG^T)
-
-  !   if (hd_energy) then
-  !      if (useprimitive) then
-  !         drho(ixO^S) = hd_gamma*abs(d2w(ixO^S, rho_))&
-  !              /min(w(ixL^S, rho_), w(ixR^S, rho_))
-  !         dp(ixO^S) = abs(d2w(ixO^S, p_))/min(w(ixL^S, p_), w(ixR^S, p_))
-  !      end if
-  !   else
-  !      call mpistop("PPM with flatcd=.true. can not be used with -eos = iso !")
-  !   end if
-  ! end subroutine ppmflatcd
-
-  ! subroutine ppmflatsh(ixI^L, ixO^L, ixLL^L, ixL^L, ixR^L, ixRR^L, idims, w, drho, dp, dv)
-  !   use mod_global_parameters
-
-  !   integer, intent(in)             :: ixI^L, ixO^L, ixLL^L, ixL^L, ixR^L, ixRR^L
-  !   integer, intent(in)             :: idims
-  !   double precision, intent(in)    :: w(ixI^S, nw)
-  !   double precision, intent(inout) :: drho(ixG^T), dp(ixG^T), dv(ixG^T)
-  !   double precision                :: v(ixG^T)
-
-  !   if (hd_energy) then
-  !      if (useprimitive) then
-  !         ! eq. B15, page 218, Mignone and Bodo 2005, ApJS (beta1)
-  !         where (abs(w(ixRR^S, p_)-w(ixLL^S, p_))>smalldouble)
-  !            drho(ixO^S) = abs((w(ixR^S, p_)-w(ixL^S, p_))&
-  !                 /(w(ixRR^S, p_)-w(ixLL^S, p_)))
-  !         else where
-  !            drho(ixO^S) = zero
-  !         end where
-
-  !         !  eq. B76, page 48, Miller and Collela 2002, JCP 183, 26
-  !         !  use "dp" to save squared sound speed, assuming primitives
-  !         dp(ixO^S) =(hd_gamma*w(ixO^S, p_)/w(ixO^S, rho_))
-
-  !         dp(ixO^S) = abs(w(ixR^S, p_)-w(ixL^S, p_))&
-  !              /(w(ixO^S, rho_)*dp(ixO^S))
-  !         v(ixI^S)  = w(ixI^S, v0_+idims)
-  !         call gradient(v, ixI^L, ixO^L, idims, dv)
-  !      end if
-  !   else
-  !      call mpistop("PPM with flatsh=.true. can not be used with -eos = iso !")
-  !   end if
-  ! end subroutine ppmflatsh
 
   ! Calculate v_i = m_i/rho within ixO^L
   subroutine hd_get_v(w, x, ixI^L, ixO^L, idim, v)

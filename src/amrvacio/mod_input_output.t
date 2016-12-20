@@ -376,7 +376,6 @@ contains
     loglimit(1:nw)  = .false.
 
     allocate(typeentropy(nw))
-    allocate(entropycoef(nw))
 
     do iw=1,nw
        typeentropy(iw)='nul'      ! Entropy fix type

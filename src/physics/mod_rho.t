@@ -1,4 +1,6 @@
 module mod_rho
+  use mod_rho_phys
+  use mod_rho_roe
 
   implicit none
   public

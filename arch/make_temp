@@ -73,29 +73,20 @@ I=.i
 # Default target
 amrvac:
 
-
 ################### Include the files in the src-dir #######################
 -include $(SRC)/makefile
-
-################### Include the geometry sources in the geometry dir #######
-# VPATH += :$(SRC)/geometry
-# -include $(SRC)/geometry/makefile
 
 ################### Include the IO-related objects in amrvacio dir #########
 VPATH += :$(SRC)/amrvacio
 -include $(SRC)/amrvacio/makefile
 
 ################### Include additional objects in physics dir ##############
-# -include $(SRC)/$(PHYSICS)/makefile
 VPATH += :$(SRC)/physics
 -include $(SRC)/physics/makefile
 
 ################### Include additional modules in modules dir ##############
 VPATH += :$(SRC)/modules
 -include $(SRC)/modules/makefile
-
-################### Include additional files in local dir     ##############
--include $(WORK_DIR)/localmakefile
 
 # Define objects
 OBJECTS = $(FOBJECTS:$(F)=.o)

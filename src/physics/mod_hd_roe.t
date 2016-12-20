@@ -44,6 +44,8 @@ contains
        phys_rtimes => hd_rtimes_iso
     end if
 
+    allocate(entropycoef(nw))
+
     do iw = 1, nw
        if (iw == soundRW_ .or. iw == soundLW_) then
           ! TODO: Jannis: what's this?
