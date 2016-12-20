@@ -1039,7 +1039,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
            ! flat B norm using tvdlf
            fLC(ixC^S,iw) = half*(-tvdlfeps*max(cmaxC(ixC^S)&
                            ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-           {#IFDEF GLM if(iw==psi_) fLC(ixC^S)=fLC(ixC^S)+half*(fLC(ixC^S)+fRC(ixC^S))}
+           {#IFDEF GLM if(iw==psi_) fLC(ixC^S,iw)=fLC(ixC^S,iw)+half*(fLC(ixC^S,iw)+fRC(ixC^S,iw))}
         else
            fLC(ixC^S,iw)=zero
         end if
