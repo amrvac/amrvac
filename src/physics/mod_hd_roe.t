@@ -1,22 +1,16 @@
 !> Subroutines for Roe-type Riemann solver for HD
 module mod_hd_roe
   use mod_hd_phys
+  use mod_physics_roe
 
   implicit none
   private
-
-  integer :: soundRW_
-  integer :: soundLW_
-  integer :: entropW_
-  integer :: shearW0_
-  integer :: nworkroe
 
   public :: hd_roe_init
 
 contains
 
   subroutine hd_roe_init()
-    use mod_physics_roe
     use mod_global_parameters, only: entropycoef, nw
 
     integer :: iw
@@ -66,8 +60,33 @@ contains
     double precision, intent(inout) :: wroe(ixG^T, nw)
     double precision, intent(inout) :: workroe(ixG^T, nworkroe)
     double precision, intent(in)    :: x(ixG^T, 1:^ND)
+    integer                         :: idir
 
-    call average2(wL,wR,x,ix^L,idim,wroe,workroe(ixG^T,1),workroe(ixG^T,2))
+    ! call average2(wL,wR,x,ix^L,idim,wroe,workroe(ixG^T,1),workroe(ixG^T,2))
+    workroe(ix^S, 1) = sqrt(wL(ix^S,rho_))
+    workroe(ix^S, 2) = sqrt(wR(ix^S,rho_))
+
+    ! The averaged density is sqrt(rhoL*rhoR)
+    wroe(ix^S,rho_)  = workroe(ix^S, 1)*workroe(ix^S, 2)
+
+    ! Now the ratio sqrt(rhoL/rhoR) is put into workroe(ix^S, 1)
+    workroe(ix^S, 1) = workroe(ix^S, 1)/workroe(ix^S, 2)
+
+    ! Roe-average velocities
+    do idir = 1, ndir
+       wroe(ix^S,mom(idir)) = (wL(ix^S,mom(idir))/wL(ix^S,rho_) * workroe(ix^S, 1)+&
+            wR(ix^S,mom(idir))/wR(ix^S,rho_))/(one+workroe(ix^S, 1))
+    end do
+
+    ! Calculate enthalpyL, then enthalpyR, then Roe-average. Use tmp2 for pressure.
+    call hd_get_pthermal(wL,x,ixG^LL,ix^L, workroe(ixG^T, 2))
+
+    wroe(ix^S,e_)    = (workroe(ix^S, 2)+wL(ix^S,e_))/wL(ix^S,rho_)
+
+    call hd_get_pthermal(wR,x,ixG^LL,ix^L, workroe(ixG^T, 2))
+
+    workroe(ix^S, 2) = (workroe(ix^S, 2)+wR(ix^S,e_))/wR(ix^S,rho_)
+    wroe(ix^S,e_)    = (wroe(ix^S,e_)*workroe(ix^S, 1) + workroe(ix^S, 2))/(one+workroe(ix^S, 1))
   end subroutine hd_average
 
   subroutine average2(wL,wR,x,ix^L,idim,wroe,tmp,tmp2)
@@ -77,30 +96,12 @@ contains
 
     use mod_global_parameters
 
-    integer:: ix^L,idim,idir
-    double precision, dimension(ixG^T,nw):: wL,wR,wroe
+    integer                                             :: ix^L,idim,idir
+    double precision, dimension(ixG^T,nw)               :: wL,wR,wroe
     double precision, dimension(ixG^T,ndim), intent(in) :: x
-    double precision, dimension(ixG^T):: tmp,tmp2
+    double precision, dimension(ixG^T)                  :: tmp,tmp2
     !-----------------------------------------------------------------------------
 
-    tmp(ix^S) =sqrt(wL(ix^S,rho_))
-    tmp2(ix^S)=sqrt(wR(ix^S,rho_))
-    ! The averaged density is sqrt(rhoL*rhoR)
-    wroe(ix^S,rho_)=tmp(ix^S)*tmp2(ix^S)
-
-    ! Now the ratio sqrt(rhoL/rhoR) is put into tmp
-    tmp(ix^S)=tmp(ix^S)/tmp2(ix^S)
-    ! Roe-average velocities
-    do idir=1,ndir
-       wroe(ix^S,m0_+idir)=(wL(ix^S,m0_+idir)/wL(ix^S,rho_)*tmp(ix^S)+&
-            wR(ix^S,m0_+idir)/wR(ix^S,rho_))/(one+tmp(ix^S))
-    end do
-    ! Calculate enthalpyL, then enthalpyR, then Roe-average. Use tmp2 for pressure.
-    call hd_get_pthermal(wL,x,ixG^LL,ix^L,tmp2)
-    wroe(ix^S,e_)=(tmp2(ix^S)+wL(ix^S,e_))/wL(ix^S,rho_)
-    call hd_get_pthermal(wR,x,ixG^LL,ix^L,tmp2)
-    tmp2(ix^S)=(tmp2(ix^S)+wR(ix^S,e_))/wR(ix^S,rho_)
-    wroe(ix^S,e_)=(wroe(ix^S,e_)*tmp(ix^S)+tmp2(ix^S))/(one+tmp(ix^S))
 
   end subroutine average2
 
@@ -159,26 +160,26 @@ contains
        csound(ix^S)=sqrt(csound(ix^S))
 
        ! Calculate (vR_idim-vL_idim)/c
-       dvperc(ix^S)=(wR(ix^S,m0_+idim)/wR(ix^S,rho_)-&
-            wL(ix^S,m0_+idim)/wL(ix^S,rho_))/csound(ix^S)
+       dvperc(ix^S)=(wR(ix^S,mom(idim))/wR(ix^S,rho_)-&
+            wL(ix^S,mom(idim))/wL(ix^S,rho_))/csound(ix^S)
 
     endif
 
     if (il == soundRW_) then
-       a(ix^S)=wroe(ix^S,m0_+idim)+csound(ix^S)
+       a(ix^S)=wroe(ix^S,mom(idim))+csound(ix^S)
        jump(ix^S)=half*(dpperc2(ix^S)+wroe(ix^S,rho_)*dvperc(ix^S))
     else if (il == soundLW_) then
-       a(ix^S)=wroe(ix^S,m0_+idim)-csound(ix^S)
+       a(ix^S)=wroe(ix^S,mom(idim))-csound(ix^S)
        jump(ix^S)=half*(dpperc2(ix^S)-wroe(ix^S,rho_)*dvperc(ix^S))
     else if (il == entropW_) then
-       a(ix^S)=wroe(ix^S,m0_+idim)
+       a(ix^S)=wroe(ix^S,mom(idim))
        jump(ix^S)=-dpperc2(ix^S)+wR(ix^S,rho_)-wL(ix^S,rho_)
     else
        !Determine the direction of the shear wave
        idir=il-shearW0_; if(idir>=idim)idir=idir+1
-       a(ix^S)=wroe(ix^S,m0_+idim)
+       a(ix^S)=wroe(ix^S,mom(idim))
        jump(ix^S)=wroe(ix^S,rho_)*&
-            (wR(ix^S,m0_+idir)/wR(ix^S,rho_)-wL(ix^S,m0_+idir)/wL(ix^S,rho_))
+            (wR(ix^S,mom(idir))/wR(ix^S,rho_)-wL(ix^S,mom(idir))/wL(ix^S,rho_))
     end if
 
     ! Calculate "smalla" or modify "a" based on the "typeentropy" switch
@@ -193,21 +194,21 @@ contains
        ! Based on Harten & Hyman JCP 50, 235 and Zeeuw & Powell JCP 104,56
        if (il == soundRW_) then
           call hd_get_pthermal(wL,x,ixG^LL,ix^L,tmp)
-          tmp(ix^S)=wL(ix^S,m0_+idim)/wL(ix^S,rho_)&
+          tmp(ix^S)=wL(ix^S,mom(idim))/wL(ix^S,rho_)&
                + sqrt(hd_gamma*tmp(ix^S)/wL(ix^S,rho_))
           call hd_get_pthermal(wR,x,ixG^LL,ix^L,tmp2)
-          tmp2(ix^S)=wR(ix^S,m0_+idim)/wR(ix^S,rho_)&
+          tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)&
                + sqrt(hd_gamma*tmp2(ix^S)/wR(ix^S,rho_))
        else if (il == soundLW_) then
           call hd_get_pthermal(wL,x,ixG^LL,ix^L,tmp)
-          tmp(ix^S)=wL(ix^S,m0_+idim)/wL(ix^S,rho_)&
+          tmp(ix^S)=wL(ix^S,mom(idim))/wL(ix^S,rho_)&
                - sqrt(hd_gamma*tmp(ix^S)/wL(ix^S,rho_))
           call hd_get_pthermal(wR,x,ixG^LL,ix^L,tmp2)
-          tmp2(ix^S)=wR(ix^S,m0_+idim)/wR(ix^S,rho_)&
+          tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)&
                - sqrt(hd_gamma*tmp2(ix^S)/wR(ix^S,rho_))
        else
-          tmp(ix^S) =wL(ix^S,m0_+idim)/wL(ix^S,rho_)
-          tmp2(ix^S)=wR(ix^S,m0_+idim)/wR(ix^S,rho_)
+          tmp(ix^S) =wL(ix^S,mom(idim))/wL(ix^S,rho_)
+          tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)
        end if
     end select
 
@@ -255,28 +256,28 @@ contains
        endif
     else if (iw == e_) then
        if (il == soundRW_) then
-          rq(ix^S)=q(ix^S)*(wroe(ix^S,e_)+wroe(ix^S,m0_+idim)*csound(ix^S))
+          rq(ix^S)=q(ix^S)*(wroe(ix^S,e_)+wroe(ix^S,mom(idim))*csound(ix^S))
        else if (il == soundLW_) then
-          rq(ix^S)=q(ix^S)*(wroe(ix^S,e_)-wroe(ix^S,m0_+idim)*csound(ix^S))
+          rq(ix^S)=q(ix^S)*(wroe(ix^S,e_)-wroe(ix^S,mom(idim))*csound(ix^S))
        else if (il == entropW_) then
           rq(ix^S)=q(ix^S) * 0.5d0 * sum(wroe(ix^S, mom(:))**2, dim=^ND+1)
        else
-          rq(ix^S)=q(ix^S)*wroe(ix^S,m0_+idir)
+          rq(ix^S)=q(ix^S)*wroe(ix^S,mom(idir))
        end if
     else
-       if(iw==m0_+idim)then
+       if(iw==mom(idim))then
           if (il == soundRW_) then
-             rq(ix^S)=q(ix^S)*(wroe(ix^S,m0_+idim)+csound(ix^S))
+             rq(ix^S)=q(ix^S)*(wroe(ix^S,mom(idim))+csound(ix^S))
           else if (il == soundLW_) then
-             rq(ix^S)=q(ix^S)*(wroe(ix^S,m0_+idim)-csound(ix^S))
+             rq(ix^S)=q(ix^S)*(wroe(ix^S,mom(idim))-csound(ix^S))
           else if (il == entropW_) then
-             rq(ix^S)=q(ix^S)*wroe(ix^S,m0_+idim)
+             rq(ix^S)=q(ix^S)*wroe(ix^S,mom(idim))
           else
              rq(ix^S)=zero
           end if
        else
           if(shearwave)then
-             if(iw==m0_+idir)then
+             if(iw==mom(idir))then
                 rq(ix^S)=q(ix^S)
              else
                 rq(ix^S)=zero
@@ -332,8 +333,8 @@ contains
        ! Roe-average velocities
        tmp(ix^S)=sqrt(wL(ix^S,rho_)/wR(ix^S,rho_))
        do idir=1,ndir
-          wroe(ix^S,m0_+idir)=(wL(ix^S,m0_+idir)/wL(ix^S,rho_)*tmp(ix^S)+&
-               wR(ix^S,m0_+idir)/wR(ix^S,rho_))/(one+tmp(ix^S))
+          wroe(ix^S,mom(idir))=(wL(ix^S,mom(idir))/wL(ix^S,rho_)*tmp(ix^S)+&
+               wR(ix^S,mom(idir))/wR(ix^S,rho_))/(one+tmp(ix^S))
        end do
     end select
 
@@ -381,21 +382,21 @@ contains
             wroe(ix^S,rho_)**(hd_gamma-one))
        ! This is the original simple Roe-solver
        if (il == soundRW_) then
-          a(ix^S)=wroe(ix^S,m0_+idim)+csound(ix^S)
-          jump(ix^S)=half*((one-wroe(ix^S,m0_+idim)/csound(ix^S))*&
+          a(ix^S)=wroe(ix^S,mom(idim))+csound(ix^S)
+          jump(ix^S)=half*((one-wroe(ix^S,mom(idim))/csound(ix^S))*&
                (wR(ix^S,rho_)-wL(ix^S,rho_))&
-               +(wR(ix^S,m0_+idim)-wL(ix^S,m0_+idim))/csound(ix^S))
+               +(wR(ix^S,mom(idim))-wL(ix^S,mom(idim)))/csound(ix^S))
        else if (il == soundLW_) then
-          a(ix^S)=wroe(ix^S,m0_+idim)-csound(ix^S)
-          jump(ix^S)=half*((one+wroe(ix^S,m0_+idim)/csound(ix^S))*&
+          a(ix^S)=wroe(ix^S,mom(idim))-csound(ix^S)
+          jump(ix^S)=half*((one+wroe(ix^S,mom(idim))/csound(ix^S))*&
                (wR(ix^S,rho_)-wL(ix^S,rho_))&
-               -(wR(ix^S,m0_+idim)-wL(ix^S,m0_+idim))/csound(ix^S))
+               -(wR(ix^S,mom(idim))-wL(ix^S,mom(idim)))/csound(ix^S))
        else
           ! Determine direction of shear wave
           idir=il-shearW0_; if(idir>=idim)idir=idir+1
-          a(ix^S)=wroe(ix^S,m0_+idim)
-          jump(ix^S)=-wroe(ix^S,m0_+idir)*(wR(ix^S,rho_)-wL(ix^S,rho_))&
-               +(wR(ix^S,m0_+idir)-wL(ix^S,m0_+idir))
+          a(ix^S)=wroe(ix^S,mom(idim))
+          jump(ix^S)=-wroe(ix^S,mom(idir))*(wR(ix^S,rho_)-wL(ix^S,rho_))&
+               +(wR(ix^S,mom(idir))-wL(ix^S,mom(idir)))
        end if
     case ('roe','default')
        where(abs(wL(ix^S,rho_)-wR(ix^S,rho_))<=qsmall*(wL(ix^S,rho_)+wR(ix^S,rho_)))
@@ -408,21 +409,21 @@ contains
        ! This is the Roe solver by Glaister
        ! based on P. Glaister JCP 93, 477-480 (1991)
        if (il == soundRW_) then
-          a(ix^S)=wroe(ix^S,m0_+idim)+csound(ix^S)
+          a(ix^S)=wroe(ix^S,mom(idim))+csound(ix^S)
           jump(ix^S)=half*((wR(ix^S,rho_)-wL(ix^S,rho_))+&
-               wroe(ix^S,rho_)/csound(ix^S)*(wR(ix^S,m0_+idim)/wR(ix^S,rho_)-&
-               wL(ix^S,m0_+idim)/wL(ix^S,rho_)))
+               wroe(ix^S,rho_)/csound(ix^S)*(wR(ix^S,mom(idim))/wR(ix^S,rho_)-&
+               wL(ix^S,mom(idim))/wL(ix^S,rho_)))
        else if (il == soundLW_) then
-          a(ix^S)=wroe(ix^S,m0_+idim)-csound(ix^S)
+          a(ix^S)=wroe(ix^S,mom(idim))-csound(ix^S)
           jump(ix^S)=half*((wR(ix^S,rho_)-wL(ix^S,rho_))-&
-               wroe(ix^S,rho_)/csound(ix^S)*(wR(ix^S,m0_+idim)/wR(ix^S,rho_)-&
-               wL(ix^S,m0_+idim)/wL(ix^S,rho_)))
+               wroe(ix^S,rho_)/csound(ix^S)*(wR(ix^S,mom(idim))/wR(ix^S,rho_)-&
+               wL(ix^S,mom(idim))/wL(ix^S,rho_)))
        else
           ! Determine direction of shear wave
           idir=il-shearW0_; if(idir>=idim)idir=idir+1
-          a(ix^S)=wroe(ix^S,m0_+idim)
-          jump(ix^S)=wroe(ix^S,rho_)*(wR(ix^S,m0_+idir)/wR(ix^S,rho_)-&
-               wL(ix^S,m0_+idir)/wL(ix^S,rho_))
+          a(ix^S)=wroe(ix^S,mom(idim))
+          jump(ix^S)=wroe(ix^S,rho_)*(wR(ix^S,mom(idir))/wR(ix^S,rho_)-&
+               wL(ix^S,mom(idir))/wL(ix^S,rho_))
        end if
     end select
 
@@ -435,18 +436,18 @@ contains
     case('harten','powell')
        ! Based on Harten & Hyman JCP 50, 235 and Zeeuw & Powell JCP 104,56
        if (il == soundRW_) then
-          tmp(ix^S) =wL(ix^S,m0_+idim)/wL(ix^S,rho_)&
+          tmp(ix^S) =wL(ix^S,mom(idim))/wL(ix^S,rho_)&
                + sqrt(hd_adiab*hd_gamma*wL(ix^S,rho_)**(hd_gamma-one))
-          tmp2(ix^S)=wR(ix^S,m0_+idim)/wR(ix^S,rho_)&
+          tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)&
                + sqrt(hd_adiab*hd_gamma*wR(ix^S,rho_)**(hd_gamma-one))
        else if (il == soundLW_) then
-          tmp(ix^S) =wL(ix^S,m0_+idim)/wL(ix^S,rho_)&
+          tmp(ix^S) =wL(ix^S,mom(idim))/wL(ix^S,rho_)&
                - sqrt(hd_adiab*hd_gamma*wL(ix^S,rho_)**(hd_gamma-one))
-          tmp2(ix^S)=wR(ix^S,m0_+idim)/wR(ix^S,rho_)&
+          tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)&
                - sqrt(hd_adiab*hd_gamma*wR(ix^S,rho_)**(hd_gamma-one))
        else
-          tmp(ix^S) =wL(ix^S,m0_+idim)/wL(ix^S,rho_)
-          tmp2(ix^S)=wR(ix^S,m0_+idim)/wR(ix^S,rho_)
+          tmp(ix^S) =wL(ix^S,mom(idim))/wL(ix^S,rho_)
+          tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)
        end if
     end select
 
@@ -488,11 +489,11 @@ contains
        else
           rq(ix^S)=zero
        end if
-    else if(iw==m0_+idim)then
+    else if(iw==mom(idim))then
        if (il == soundRW_) then
-          rq(ix^S)=q(ix^S)*(wroe(ix^S,m0_+idim)+csound(ix^S))
+          rq(ix^S)=q(ix^S)*(wroe(ix^S,mom(idim))+csound(ix^S))
        else if (il == soundLW_) then
-          rq(ix^S)=q(ix^S)*(wroe(ix^S,m0_+idim)-csound(ix^S))
+          rq(ix^S)=q(ix^S)*(wroe(ix^S,mom(idim))-csound(ix^S))
        else
           rq(ix^S)=zero
        end if
@@ -502,7 +503,7 @@ contains
        else
           !Determine direction of shear wave
           idir=il-shearW0_; if(idir>=idim)idir=idir+1
-          if(iw==m0_+idir) then
+          if(iw==mom(idir)) then
              rq(ix^S)=q(ix^S)
           else
              rq(ix^S)=zero

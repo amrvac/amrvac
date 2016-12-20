@@ -14,6 +14,9 @@ use mod_global_parameters
 use mod_input_output
 use mod_physics
 
+use mod_rho
+use mod_hd
+
 integer                             :: itin
 double precision                    :: time0, time_in, tin
 character(len=std_len), allocatable :: par_files(:)

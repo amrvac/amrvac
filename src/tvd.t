@@ -35,7 +35,7 @@ subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dx^D)
 ! accuracy in time.
 
 use mod_global_parameters
-use mod_physics
+use mod_physics_roe
 
 character(len=*), intent(in) :: method
 double precision, intent(in) :: qdt, dx^D

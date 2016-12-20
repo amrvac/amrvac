@@ -7,10 +7,10 @@ module mod_hd_phys
   logical, public, protected              :: hd_energy   = .true.
   integer, public, protected              :: hd_n_tracer = 0
   integer, public, parameter              :: rho_        = 1
-  integer, public, parameter              :: m0_         = rho_
   integer, allocatable, public, protected :: mom(:)
   integer, allocatable, public, protected :: tracer(:)
   integer, public, protected              :: e_
+  integer, public, protected              :: hd_nwflux
   double precision, public, protected     :: hd_gamma    = 1.4d0
   double precision, public, protected     :: hd_adiab    = 1.0d0
   double precision, protected             :: smalle, minrho, minp
@@ -49,34 +49,19 @@ contains
 
     physics_type = 'hd'
 
-    ! The number of flux variables
-    ! TODO: add dust
-    if (hd_energy) then
-       nwflux = 2 + hd_n_tracer + ndir
-    else
-       nwflux = 1 + hd_n_tracer + ndir
-    end if
-
-    nwaux   = 0
-    nwextra = 0
-    nw      = nwflux + nwaux + nwextra
-
-    nvector      = 1 ! No. vector vars
-    allocate(iw_vector(nvector))
-    iw_vector(1) = m0_
-
-    ! TODO: dust related velocity vectors not handled here
-
-    nflag_ = nw + 1
+    ! Determine flux variables
+    nwflux = 1                  ! rho (density)
 
     allocate(mom(ndir))
     do idir = 1, ndir
-       mom(idir) = m0_ + idir
+       nwflux    = nwflux + 1
+       mom(idir) = nwflux       ! momentum density
     end do
 
     ! Set index of energy variable
     if (hd_energy) then
-       e_ = mom(ndir) + 1
+       nwflux = nwflux + 1
+       e_     = nwflux          ! energy density
     else
        e_ = -1
     end if
@@ -85,11 +70,22 @@ contains
 
     ! Set starting index of tracers
     do itr = 1, hd_n_tracer
-       tracer(itr) = max(e_, mom(ndir)) + itr
+       nwflux = nwflux + 1
+       tracer(itr) = nwflux     ! tracers
     end do
 
-    ! TODO
-    ! call dust_activate()
+    hd_nwflux = nwflux
+
+    ! call dust_init()
+
+    nwaux   = 0
+    nwextra = 0
+    nw      = nwflux + nwaux + nwextra
+    nflag_  = nw + 1
+
+    nvector      = 1 ! No. vector vars
+    allocate(iw_vector(nvector))
+    iw_vector(1) = mom(1) - 1   ! TODO: why like this?
 
     phys_get_v           => hd_get_v
     phys_get_cmax        => hd_get_cmax
@@ -463,6 +459,7 @@ contains
   ! Calculate non-transport flux f_idim[iw] within ixO^L.
   subroutine hd_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
     use mod_global_parameters
+    ! use mod_dust, only: dust_get_flux
 
     integer, intent(in)             :: ixI^L, ixO^L, iw, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
@@ -480,11 +477,13 @@ contains
        ! f_i[e]= v_i*e + m_i/rho*p
        call hd_get_pthermal(w, x, ixI^L, ixO^L, f)
        f(ixO^S) = w(ixO^S, mom(idim))/w(ixO^S, rho_)*f(ixO^S)
+    ! else if (iw > hd_nwflux) then
+    !    ! A dust flux
+    !    ! call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
     else
        f(ixO^S) = zero
     endif
 
-    ! TODO: dust
   end subroutine hd_get_flux
 
   ! Add geometrical source terms to w

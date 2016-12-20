@@ -103,7 +103,7 @@ contains
 
     ! deduce the characteristic speed at the CD
     where(Cond_patchf(ixO^S))
-       lambdaCD(ixO^S)=whll(ixO^S,m0_+idims)/whll(ixO^S,rho_)
+       lambdaCD(ixO^S)=whll(ixO^S,mom(idims))/whll(ixO^S,rho_)
     end where
 
     where(Cond_patchf(ixO^S))
@@ -222,13 +222,13 @@ contains
        if(iw /= idims)then
           where(abs(patchf(ixO^S))==1)
              ! eq. 21 22
-             wCD(ixO^S,m0_+iw)=(cspeed(ixO^S)*wSub(ixO^S,m0_+iw)-fSub(ixO^S,m0_+iw))/&
+             wCD(ixO^S,mom(iw))=(cspeed(ixO^S)*wSub(ixO^S,mom(iw))-fSub(ixO^S,mom(iw)))/&
                   (cspeed(ixO^S)-lambdaCD(ixO^S))
           end where
        else
           where(abs(patchf(ixO^S))==1)
              ! eq. 20
-             wCD(ixO^S,m0_+iw) =  wCD(ixO^S,rho_) * lambdaCD(ixO^S)
+             wCD(ixO^S,mom(iw)) =  wCD(ixO^S,rho_) * lambdaCD(ixO^S)
           endwhere
        endif
     enddo
@@ -239,7 +239,7 @@ contains
        ! Eq 31
        pCD(ixO^S)  = wsub(ixO^S,rho_)*(cspeed(ixO^S)-vSub(ixO^S))&
             *(lambdaCD(ixO^S)-vSub(ixO^S))&
-            +fSub(ixO^S,m0_+idims)- wsub(ixO^S,m0_+idims)*vSub(ixO^S)
+            +fSub(ixO^S,mom(idims))- wsub(ixO^S,mom(idims))*vSub(ixO^S)
        wCD(ixO^S,e_) = (cspeed(ixO^S) * wSub(ixO^S,e_) &
             - fSub(ixO^S,e_) +lambdaCD(ixO^S)*pCD(ixO^S))&
             /(cspeed(ixO^S)-lambdaCD(ixO^S))
