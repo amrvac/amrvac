@@ -19,10 +19,10 @@ all: $(TESTS)
 
 %.log: amrvac always_rebuild
 	@$(RM) $@		# Remove log to prevent pass when aborted
-	mpirun --mca pml ob1 -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
+	mpirun -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
 	@if $(LOG_CMP) $@ correct_output/$@ ; \
 	then echo "PASSED $@" ; \
-	else echo "FAILED $@" ; \
+	else echo "** FAILED ** $@" ; \
 	fi
 
 $(SETUP_FILES):
