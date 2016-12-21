@@ -1,6 +1,5 @@
 !=============================================================================
 subroutine set_B0_grid(igrid)
-
 use mod_global_parameters
 
 integer, intent(in) :: igrid
@@ -16,7 +15,7 @@ call set_B0_face(igrid,px(igrid)%x,ixG^LL,ixM^LL)
 end subroutine set_B0_grid
 !=============================================================================
 subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
-
+use mod_usr, only: specialset_B0
 use mod_global_parameters
 
 integer, intent(in):: ixI^L,ix^L

@@ -441,8 +441,10 @@ collapsedData(1:nw+nwauxio) = collapsedData(1:nw+nwauxio) + pw_sub(jgrid)%w(1:nw
 end subroutine integrate_subnode
 !=============================================================================
 subroutine collapse_subnode(igrid,jgrid,dir,normconv)
-use mod_global_parameters
-use mod_physics, only: phys_to_primitive
+  use mod_usr, only: specialvar_output
+  use mod_global_parameters
+  use mod_physics, only: phys_to_primitive
+
 integer, intent(in) :: igrid, jgrid, dir
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
 ! .. local ..

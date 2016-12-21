@@ -604,8 +604,9 @@ end subroutine traverse_slice
 end subroutine select_slice
 !=============================================================================
 subroutine fill_subnode(igrid,active,jgrid,dir,xslice,normconv)
-use mod_global_parameters
-use mod_physics, only: phys_to_primitive
+  use mod_usr, only: specialvar_output
+  use mod_global_parameters
+  use mod_physics, only: phys_to_primitive
 integer, intent(in) :: igrid, dir
 integer, intent(inout) :: jgrid
 logical, intent(in)  :: active

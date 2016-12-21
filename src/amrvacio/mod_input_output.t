@@ -803,7 +803,7 @@ contains
 
     ! following specific for Intel compiler and use on VIC3 with MPT
     !DEC$ ATTRIBUTES NOINLINE :: write_snapshot
-
+    use mod_usr, only: printlog_special
     use mod_global_parameters
     integer:: ifile
     !-----------------------------------------------------------------------------
@@ -955,6 +955,7 @@ contains
   end subroutine write_snapshot
 
   subroutine write_snapshot_tf
+    use mod_usr, only: transformw_usr
     use mod_forest
     use mod_global_parameters
     use mod_physics

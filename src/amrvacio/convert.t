@@ -1,5 +1,6 @@
 !=============================================================================
 subroutine generate_plotfile
+  use mod_usr, only: userspecialconvert
 
 {#IFDEF PARTICLES
 use mod_timing, only: tpartc, tpartc0
@@ -63,7 +64,8 @@ subroutine getheadernames(wnamei,xandwnamei,outfilehead)
 ! the dimensional names, and only those names from the nw variables for output (through writew)
 ! together with the added names for nwauxio variables
 
-use mod_global_parameters
+  use mod_usr, only: specialvarnames_output
+  use mod_global_parameters
 
 character(len=10)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
@@ -165,6 +167,7 @@ endif
 end subroutine getheadernames
 !=============================================================================
 subroutine oneblock(qunit)
+  use mod_usr, only: specialvar_output
 
 ! this is for turning an AMR run into a single block
 ! the data will be all on selected level level_io
@@ -935,7 +938,7 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 !
 ! the normconv is passed on to specialvar_output for extending with
 ! possible normalization values for the nw+1:nw+nwauxio entries
-  
+use mod_usr, only: specialvar_output
 use mod_global_parameters
 use mod_physics, only: physics_type, phys_to_primitive
 

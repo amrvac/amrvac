@@ -58,6 +58,7 @@ buffer=.false.
 end subroutine errest
 !=============================================================================
 subroutine lohner_grid(igrid)
+  use mod_usr, only: specialvarforerrest, special_tolerance
 use mod_forest, only: coarsen, refine
 use mod_global_parameters
 
@@ -168,8 +169,9 @@ if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 end subroutine lohner_grid
 !=============================================================================
 subroutine lohner_orig_grid(igrid)
-use mod_forest, only: coarsen, refine
-use mod_global_parameters
+  use mod_usr, only: specialvarforerrest, special_tolerance
+  use mod_forest, only: coarsen, refine
+  use mod_global_parameters
 
 integer, intent(in) :: igrid
 
@@ -248,8 +250,9 @@ if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 end subroutine lohner_orig_grid
 !=============================================================================
 subroutine compare1_grid(igrid,wold,w)
-use mod_forest, only: coarsen, refine
-use mod_global_parameters
+    use mod_usr, only: specialvarforerrest, special_tolerance
+    use mod_forest, only: coarsen, refine
+    use mod_global_parameters
 
 integer, intent(in) :: igrid
 double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
@@ -302,6 +305,7 @@ end if
 end subroutine compare1_grid
 !=============================================================================
 subroutine forcedrefine_grid(igrid,w)
+  use mod_usr, only: specialrefine_grid
 use mod_forest, only: coarsen, refine, buffer
 use mod_global_parameters
 

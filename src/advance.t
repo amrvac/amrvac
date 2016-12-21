@@ -1,5 +1,6 @@
 !=============================================================================
 subroutine advance(iit)
+  use mod_usr
 
 {#IFDEF PARTICLES
 use mod_particles, only: tmax_particles
@@ -603,6 +604,7 @@ subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
 use mod_global_parameters
 use mod_physics, only: phys_add_source
+use mod_usr, only: specialsource
 ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
@@ -622,6 +624,7 @@ call phys_add_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 end subroutine addsource2
 !=============================================================================
 subroutine process(iit,qt)
+  use mod_usr, only: process_grid_usr, process_global_usr
 
 use mod_global_parameters
 

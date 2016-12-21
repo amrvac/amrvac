@@ -88,6 +88,7 @@ contains
     iw_vector(1) = mom(1) - 1   ! TODO: why like this?
 
     phys_get_v           => hd_get_v
+    phys_get_dt          => hd_get_dt
     phys_get_cmax        => hd_get_cmax
     phys_get_flux        => hd_get_flux
     phys_add_source_geom => hd_add_source_geom
@@ -255,32 +256,32 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) / w(ixO^S, rho_)
     end do
 
-    ! if (strictsmall) then
-    !    if (any(w(ixO^S, p_)<minp)) then
-    !       lowpindex = minloc(w(ixO^S, p_))
-    !       ^D&lowpindex(^D) = lowpindex(^D)+ixOmin^D-1;
-    !       write(*,*)'too small pressure = ', minval(w(ixO^S, p_)),' with limit=', minp,&
-    !            ' at x=', x(^D&lowpindex(^D), 1:ndim), lowpindex,' where E_k=',&
-    !            half*(^C&w(^D&lowpindex(^D), mom(idir))**2+)/w(^D&lowpindex(^D), rho_),&
-    !            ' E_total=', w(^D&lowpindex(^D), e_),&
-    !            ' w(1:nwflux) =', w(^D&lowpindex(^D), 1:nwflux),' when t=', t,' it=', it
-    !       call mpistop("=== primitive pressure problem===")
-    !    end if
-    ! else if (strictgetaux) then
-    !    ! TODO: check
-    !    where(w(ixO^S, p_)<minp)
-    !       w(ixO^S, p_) = minp
-    !    endwhere
-    ! else
-    !    where(w(ixO^S, p_)<minp)
-    !       patchierror(ixO^S) = 1
-    !    else where
-    !       patchierror(ixO^S) = 0
-    !    end where
+    if (strictsmall) then
+       if (any(w(ixO^S, e_)<minp)) then
+       !    lowpindex = minloc(w(ixO^S, e_))
+       !    ^D&lowpindex(^D) = lowpindex(^D)+ixOmin^D-1;
+       !    write(*,*)'too small pressure = ', minval(w(ixO^S, e_)),' with limit=', minp,&
+       !         ' at x=', x(^D&lowpindex(^D), 1:ndim), lowpindex,' where E_k=',&
+       !         half*(^C&w(^D&lowpindex(^D), mom(idir))**2+)/w(^D&lowpindex(^D), rho_),&
+       !         ' E_total=', w(^D&lowpindex(^D), e_),&
+       !         ' w(1:nwflux) =', w(^D&lowpindex(^D), 1:nwflux),' when t=', t,' it=', it
+          call mpistop("=== primitive pressure problem===")
+       end if
+    else if (strictgetaux) then
+       ! TODO: check
+       where(w(ixO^S, e_)<minp)
+          w(ixO^S, e_) = minp
+       endwhere
+    else
+       where(w(ixO^S, e_)<minp)
+          patchierror(ixO^S) = 1
+       else where
+          patchierror(ixO^S) = 0
+       end where
 
-    !    if (any(patchierror(ixO^S)/= 0)) &
-    !         call correctaux(ixI^L, ixO^L, w, x, patchierror,'primitive')
-    ! end if
+       if (any(patchierror(ixO^S)/= 0)) &
+            call correctaux(ixI^L, ixO^L, w, x, patchierror,'primitive')
+    end if
 
 
     ! Jannis: Removed (hd_adiab == 0.0)
@@ -651,7 +652,7 @@ contains
 
   end subroutine hd_add_source
 
-  subroutine getdt(w, ixI^L, ixO^L, dtnew, dx^D, x)
+  subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
 
     integer, intent(in)                        :: ixI^L, ixO^L
@@ -662,7 +663,7 @@ contains
     ! TODO
     ! call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     dtnew = bigdouble
-  end subroutine getdt
+  end subroutine hd_get_dt
 
   function hd_kin_en(w, ixI^L, ixO^L) result(ke)
     use mod_global_parameters, only: nw, ndim

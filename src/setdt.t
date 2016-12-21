@@ -2,10 +2,10 @@
 !>         dtpar>0  --> use fixed dtpar for all level
 !>         dtpar<=0 --> determine CFL limited timestep 
 !>       - set dtimpl
-subroutine setdt
-
+subroutine setdt()
 use mod_global_parameters
 use mod_physics, only: phys_get_dt, phys_get_aux
+use mod_usr, only: getdt_special
 
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D

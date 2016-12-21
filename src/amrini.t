@@ -49,12 +49,11 @@ end subroutine initlevelone
 subroutine initial_condition(igrid)
 
 ! Need only to set the mesh values (can leave ghost cells untouched)
-
+use mod_usr, only: initonegrid_usr
 use mod_global_parameters
 
 integer, intent(in) :: igrid
 
-external initonegrid_usr
 !----------------------------------------------------------------------------
 pw(igrid)%w(ixG^T,1:nw)=zero
 
@@ -74,12 +73,11 @@ call initonegrid_usr(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
 end subroutine initial_condition
 !=============================================================================
 subroutine modify_IC
-
+use mod_usr, only: initonegrid_usr
 use mod_global_parameters
 
 integer :: iigrid, igrid
 
-external initonegrid_usr
 !-----------------------------------------------------------------------------
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid

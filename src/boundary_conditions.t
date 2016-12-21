@@ -1,6 +1,6 @@
 !=============================================================================
 subroutine bc_phys(iside,idims,time,qdt,w,x,ixG^L,ixB^L)
-
+use mod_usr, only: specialbound_usr
 use mod_global_parameters
 
 integer, intent(in) :: iside, idims, ixG^L,ixB^L
@@ -170,7 +170,7 @@ end if
 end subroutine bc_phys
 !=============================================================================
 subroutine getintbc(time,ixG^L,pwuse)
-
+use mod_usr, only: bc_int
 use mod_global_parameters
 
 double precision, intent(in)   :: time

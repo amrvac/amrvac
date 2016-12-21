@@ -235,18 +235,20 @@ end function isafety_cf_max
 !=============================================================================
 end subroutine selectgrids
 !=============================================================================
-      integer function igrid_active(igrid)
-      use mod_global_parameters
-      
-      integer, intent(in) :: igrid
-      integer             :: ixO^L, flag
-!-----------------------------------------------------------------------------
-      ixO^L=ixG^LL^LSUBdixB;
 
-      igrid_active = -1      
-      
-      call flag_grid_usr(t,ixG^LL,ixO^L,pw(igrid)%w,px(igrid)%x,igrid_active)
-      
-      end function igrid_active
+integer function igrid_active(igrid)
+  use mod_usr, only: flag_grid_usr
+  use mod_global_parameters
+
+  integer, intent(in) :: igrid
+  integer             :: ixO^L, flag
+  !-----------------------------------------------------------------------------
+  ixO^L=ixG^LL^LSUBdixB;
+
+  igrid_active = -1
+
+  call flag_grid_usr(t,ixG^LL,ixO^L,pw(igrid)%w,px(igrid)%x,igrid_active)
+
+end function igrid_active
 !=============================================================================
 

@@ -602,11 +602,10 @@ double precision, dimension(ixI^S)      :: cminC, cminRC, cminLC
 double precision, dimension(1:ndim)     :: dxinv, dxdim
 integer, dimension(ixI^S)               :: patchf
 integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
-logical :: transport, new_cmax, CmaxMeanState, logiB
+logical :: transport, new_cmax, CmaxMeanState
 !-----------------------------------------------------------------------------
 
-! CmaxMeanState = (typetvdlf=='cmaxmean')
-! logiB=(BnormLF.and.b0_>0)
+CmaxMeanState = (typetvdlf=='cmaxmean')
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
    method/='hll1')&
@@ -733,8 +732,8 @@ do idims= idim^LIM
    endwhere
 
    ! Calculate velocities for transport fluxes
-   if(any(patchf(ixC^S)/= 2).or.(logiB)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-   if(any(patchf(ixC^S)/=-2).or.(logiB)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
+   if(any(patchf(ixC^S)/= 2)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
+   if(any(patchf(ixC^S)/=-2)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
 {#IFDEF GLM
 ! Solve the Riemann problem for the linear 2x2 system for normal
@@ -745,22 +744,22 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-     if(any(patchf(ixC^S)/= 2)) then !.or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
+     if(any(patchf(ixC^S)/= 2){#IFDEF GLM .or.iw==psi_}) then 
         call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
         if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
      end if
-     if(any(patchf(ixC^S)/=-2)) then !.or.(logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_}))) then 
+     if(any(patchf(ixC^S)/=-2){#IFDEF GLM .or.iw==psi_}) then 
         call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
         if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
      end if
 
 
-     ! if (logiB.and.(iw==b0_+idims{#IFDEF GLM .or.iw==psi_})) then
+     ! if (b0_>0.and.iw==b0_+idims{#IFDEF GLM .or.iw==psi_}) then
      !    if (BnormLF) then
      !       ! flat B norm using tvdlf
-     !       fLC(ixC^S)= half*((fLC(ixC^S)+fRC(ixC^S)) &
-     !                     -tvdlfeps*max(cmaxC(ixC^S)&
+     !       fLC(ixC^S)= half*(-tvdlfeps*max(cmaxC(ixC^S)&
      !                     ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+     !       {#IFDEF GLM if(iw==psi_) fLC(ixC^S)=fLC(ixC^S)+half*(fLC(ixC^S)+fRC(ixC^S))}
      !     else
      !       fLC(ixC^S)=zero
      !     endif
@@ -821,7 +820,9 @@ else
    if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hll_wCT')
 endif
 
-if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
+if (.not.slab.and.idimmin==1) &
+     call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
+
 call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
@@ -864,7 +865,7 @@ double precision, dimension(ixI^S)              :: lambdaCD
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
 ! logiB=(BnormLF.and.b0_>0)
-! logiB=.false.
+logiB=.false.
 
 if (idimmax>idimmin .and. typelimited=='original' .and. &
    method/='hllc1' .and. method/='hllcd1')&
