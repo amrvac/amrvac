@@ -229,7 +229,6 @@ contains
        ! Compute pressure
        w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
             hd_kin_en(w, ixI^L, ixO^L))
-       where (w(ixO^S, e_) < 0.0d0) w(ixO^S, e_) = 0.0d0
     end if
 
     ! Convert momentum to velocity
@@ -237,20 +236,19 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * hd_inv_rho(w, ixI^L, ixO^L)
     end do
 
-    ! We got rho, Dtr, now we can get the tracers
     do itr = 1, hd_n_tracer
        w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * hd_inv_rho(w, ixI^L, ixO^L)
     end do
 
     if (apply_fixes .and. strictsmall) then
        if (any(w(ixO^S, e_)<minp)) then
-       !    lowpindex = minloc(w(ixO^S, e_))
-       !    ^D&lowpindex(^D) = lowpindex(^D)+ixOmin^D-1;
-       !    write(*,*)'too small pressure = ', minval(w(ixO^S, e_)),' with limit=', minp,&
-       !         ' at x=', x(^D&lowpindex(^D), 1:ndim), lowpindex,' where E_k=',&
-       !         half*(^C&w(^D&lowpindex(^D), mom(idir))**2+)/w(^D&lowpindex(^D), rho_),&
-       !         ' E_total=', w(^D&lowpindex(^D), e_),&
-       !         ' w(1:nwflux) =', w(^D&lowpindex(^D), 1:nwflux),' when t=', t,' it=', it
+          !    lowpindex = minloc(w(ixO^S, e_))
+          !    ^D&lowpindex(^D) = lowpindex(^D)+ixOmin^D-1;
+          !    write(*,*)'too small pressure = ', minval(w(ixO^S, e_)),' with limit=', minp,&
+          !         ' at x=', x(^D&lowpindex(^D), 1:ndim), lowpindex,' where E_k=',&
+          !         half*(^C&w(^D&lowpindex(^D), mom(idir))**2+)/w(^D&lowpindex(^D), rho_),&
+          !         ' E_total=', w(^D&lowpindex(^D), e_),&
+          !         ' w(1:nwflux) =', w(^D&lowpindex(^D), 1:nwflux),' when t=', t,' it=', it
           call mpistop("=== primitive pressure problem===")
        end if
     else if (apply_fixes .and. strictgetaux) then
@@ -456,9 +454,9 @@ contains
        ! f_i[e]= v_i*e + m_i/rho*p
        call hd_get_pthermal(w, x, ixI^L, ixO^L, f)
        f(ixO^S) = w(ixO^S, mom(idim))/w(ixO^S, rho_)*f(ixO^S)
-    ! else if (iw > hd_nwflux) then
-    !    ! A dust flux
-    !    ! call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
+       ! else if (iw > hd_nwflux) then
+       !    ! A dust flux
+       !    ! call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
     else
        f(ixO^S) = zero
     endif

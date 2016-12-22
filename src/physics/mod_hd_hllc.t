@@ -238,17 +238,17 @@ contains
     enddo
 
 
-    where(abs(patchf(ixO^S))==1)
-       {#IFDEF ENERGY
-       ! Eq 31
-       pCD(ixO^S)  = wsub(ixO^S,rho_)*(cspeed(ixO^S)-vSub(ixO^S))&
-            *(lambdaCD(ixO^S)-vSub(ixO^S))&
-            +fSub(ixO^S,mom(idims))- wsub(ixO^S,mom(idims))*vSub(ixO^S)
-       wCD(ixO^S,e_) = (cspeed(ixO^S) * wSub(ixO^S,e_) &
-            - fSub(ixO^S,e_) +lambdaCD(ixO^S)*pCD(ixO^S))&
-            /(cspeed(ixO^S)-lambdaCD(ixO^S))
-       }
-    end where
+    if (hd_energy) then
+       where(abs(patchf(ixO^S))==1)
+          ! Eq 31
+          pCD(ixO^S)  = wsub(ixO^S,rho_)*(cspeed(ixO^S)-vSub(ixO^S))&
+               *(lambdaCD(ixO^S)-vSub(ixO^S))&
+               +fSub(ixO^S,mom(idims))- wsub(ixO^S,mom(idims))*vSub(ixO^S)
+          wCD(ixO^S,e_) = (cspeed(ixO^S) * wSub(ixO^S,e_) &
+               - fSub(ixO^S,e_) +lambdaCD(ixO^S)*pCD(ixO^S))&
+               /(cspeed(ixO^S)-lambdaCD(ixO^S))
+       end where
+    end if
 
     do iw=1,nwflux
        where(abs(patchf(ixO^S))==1)
