@@ -20,6 +20,7 @@
 
  &savelist
         dtsave(1)=0.1
+        ! dtsave(2)=0.1
  /
 
  &stoplist
@@ -30,10 +31,10 @@
  &methodlist
         wnames= 'rho m1 m2 e tr'
         fileheadout=  'jetcl_2d_ssprk54_hllc_mp5'
-        typeadvance=  'ssprk54'
-        typefull1=    13*'hllc'
-        typepred1=    13*'hllc'
-        typelimiter1= 13*'mp5'
+        typeadvance=  'twostep'
+        typefull1=    13*'tvdlf'
+        typepred1=    13*'tvdlf'
+        typelimiter1= 13*'koren'
         typelimited='predictor'
         useprimitive=.true.
         dimsplit=.false.
@@ -77,4 +78,8 @@
  &paramlist
         slowsteps=100
         courantpar=0.8d0
+ /
+
+ &hd_list
+        hd_n_tracer = 1
  /

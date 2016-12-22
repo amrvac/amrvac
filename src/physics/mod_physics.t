@@ -36,11 +36,12 @@ module mod_physics
      subroutine sub_check_params()
      end subroutine sub_check_params
 
-     subroutine sub_convert(ixI^L, ixO^L, w, x)
+     subroutine sub_convert(ixI^L, ixO^L, w, x, fix)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(inout) :: w(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
+       logical, intent(in), optional   :: fix
      end subroutine sub_convert
 
      subroutine sub_get_v(w, x, ixI^L, ixO^L, idim, v)
@@ -175,11 +176,12 @@ contains
   subroutine dummy_check_params()
   end subroutine dummy_check_params
 
-  subroutine dummy_convert(ixI^L, ixO^L, w, x)
+  subroutine dummy_convert(ixI^L, ixO^L, w, x, fix)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
+    logical, intent(in), optional   :: fix
   end subroutine dummy_convert
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)

@@ -127,7 +127,7 @@ program amrvac
   time_advance=.true.
 
   ! do time integration of all grids on all levels
-  call timeintegration
+  call timeintegration()
 
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
@@ -178,8 +178,7 @@ contains
     end if
 
     time_evol : do
-
-       call setdt
+       call setdt()
        if(fixprocess) call process(it,t)
 
        timeio0=MPI_WTIME()

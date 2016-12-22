@@ -3,7 +3,7 @@ default:
 	@echo '=== Please read ../doc/getting_started.md                      ==='
 ################# Definitions for source files #############################
 
-INCLUDES += amrvacusrpar$F mod_indices$F mod_physicaldata$F \
+INCLUDES += mod_indices$F mod_physicaldata$F \
 mod_fix_conserve$F mod_connectivity$F					\
 mod_global_parameters$F mod_usr_methods$F $(MAKE_)
 

@@ -180,7 +180,7 @@ contains
     double precision, dimension(ixG^T,1:nwflux)  :: fSub
     double precision, dimension(ixG^T)           :: vSub,cspeed,pCD
 
-    integer                                      :: iw
+    integer                                      :: n, iw
     !--------------------------------------------
 
     !-------------- auxiliary Speed and array-------------!
@@ -211,11 +211,15 @@ contains
     where(abs(patchf(ixO^S))==1)
        wCD(ixO^S,rho_) = wSub(ixO^S,rho_)&
             *(cspeed(ixO^S)-vSub(ixO^S))/(cspeed(ixO^S)-lambdaCD(ixO^S))
-       {#IFDEF TRACER
-       {^FL& wCD(ixO^S,Dtr^FL_)   = wSub(ixO^S,Dtr^FL_)&
-            *(cspeed(ixO^S)-vSub(ixO^S))/(cspeed(ixO^S)-lambdaCD(ixO^S)) \}
-       }
     endwhere
+
+    do n = 1, hd_n_tracer
+       iw = tracer(n)
+       where(abs(patchf(ixO^S))==1)
+          wCD(ixO^S, iw)   = wSub(ixO^S, iw) * (cspeed(ixO^S)-vSub(ixO^S)) &
+               / (cspeed(ixO^S)-lambdaCD(ixO^S))
+       end where
+    end do
 
     !------- Momentum ------!
     do iw =1, ^NC
