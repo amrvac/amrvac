@@ -12,25 +12,18 @@ double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 integer :: iw, idims
 !-----------------------------------------------------------------------------
 ! add sources from gravity
-do iw= iw^LIM
-   select case (iw)
-   case (m^D_)
-      ! dm_i/dt= +rho*g_i
-      idims=iw-m0_
-      if (abs(eqpar(grav0_+idims))>smalldouble) &
-          w(ixO^S,m0_+idims)=w(ixO^S,m0_+idims) &
-              +qdt*eqpar(grav0_+idims)*wCT(ixO^S,rho_)
-{#IFDEF ENERGY
-   case (e_)
-      ! de/dt= +g_i*m_i
-      do idims=1,ndim
-         if (abs(eqpar(grav0_+idims))>smalldouble) &
-            w(ixO^S,ee_)=w(ixO^S,ee_) &
-              +qdt*eqpar(grav0_+idims)*wCT(ixO^S,m0_+idims)
-      end do
-}
-   end select
-end do        
+
+do idims = 1, ndim
+   if (mom(idims) >= iwmin .and. mom(idims) <= iwmax) then
+      w(ixO^S,mom(idims))=w(ixO^S,mom(idims)) &
+           +qdt*grav_(idims)*wCT(ixO^S,rho_)
+   end if
+
+   if (hd_energy .and. e_ >= iwmin .and. e_ <= iwmax) then
+      w(ixO^S,e_)=w(ixO^S,e_) &
+           +qdt*grav_(idims)*wCT(ixO^S,mom(idims))
+   end if
+end do
 
 end subroutine addsource_grav
 !=============================================================================
@@ -49,8 +42,8 @@ integer:: idims
 ^D&dxinv(^D)=one/dx^D;
 dtgrav=bigdouble
 do idims=1,ndim
-   if(abs(eqpar(grav0_+idims))>zero)&
-   dtgrav=min(dtgrav,one/sqrt(abs(eqpar(grav0_+idims))*dxinv(idims)))
+   if(abs(grav_(idims))>zero)&
+   dtgrav=min(dtgrav,one/sqrt(abs(grav_(idims))*dxinv(idims)))
 enddo
 
 dtnew=dtgrav
