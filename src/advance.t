@@ -1,6 +1,5 @@
 !=============================================================================
 subroutine advance(iit)
-  use mod_usr
 
 {#IFDEF PARTICLES
 use mod_particles, only: tmax_particles
@@ -604,7 +603,7 @@ subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
 use mod_global_parameters
 use mod_physics, only: phys_add_source
-use mod_usr, only: specialsource
+use mod_usr_methods, only: usr_source
 ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
 integer, intent(in) :: ixI^L, ixO^L, iw^LIM
@@ -614,8 +613,9 @@ logical, intent(in) :: qsourcesplit
 !-----------------------------------------------------------------------------
 
 ! user defined sources, typically explicitly added
-if(qsourcesplit .eqv. ssplituser) &
-   call specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+if ((qsourcesplit .eqv. ssplituser) .and. associated(usr_source)) then
+   call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+end if
 
 ! physics defined sources, typically explicitly added,
 ! along with geometrical source additions
@@ -624,9 +624,8 @@ call phys_add_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 end subroutine addsource2
 !=============================================================================
 subroutine process(iit,qt)
-  use mod_usr, only: process_grid_usr, process_global_usr
-
-use mod_global_parameters
+  use mod_usr_methods, only: usr_process_grid, usr_process_global
+  use mod_global_parameters
 
 ! .. scalars ..
 integer,intent(in)          :: iit
@@ -635,9 +634,9 @@ double precision, intent(in):: qt
 integer:: iigrid, igrid,level
 !-----------------------------------------------------------------------------
 
-{#IFDEF PROCESSGLOBAL
-call process_global_usr(iit,qt)
-}
+if (associated(usr_process_grid)) then
+   call usr_process_global(iit,qt)
+end if
 
 !$OMP PARALLEL DO PRIVATE(igrid,level)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -651,7 +650,11 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    end if
    typelimiter=typelimiter1(node(plevel_,igrid))
    typegradlimiter=typegradlimiter1(node(plevel_,igrid))
-   call process_grid_usr(igrid,level,ixG^LL,ixM^LL,qt,pw(igrid)%w,px(igrid)%x)
+
+   if (associated(usr_process_grid)) then
+      call usr_process_grid(igrid,level,ixG^LL,ixM^LL, &
+           qt,pw(igrid)%w,px(igrid)%x)
+   end if
 end do
 !$OMP END PARALLEL DO
 

@@ -9,10 +9,8 @@ module mod_hd
 
 contains
 
-  subroutine hd_activate(par_files)
-    character(len=*), intent(in) :: par_files(:)
-
-    call hd_phys_init(par_files)
+  subroutine hd_activate()
+    call hd_phys_init()
     call hd_hllc_init()
     call hd_roe_init()
     call hd_ppm_init()

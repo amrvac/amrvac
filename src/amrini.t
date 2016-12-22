@@ -49,7 +49,7 @@ end subroutine initlevelone
 subroutine initial_condition(igrid)
 
 ! Need only to set the mesh values (can leave ghost cells untouched)
-use mod_usr, only: initonegrid_usr
+use mod_usr_methods, only: usr_init_one_grid
 use mod_global_parameters
 
 integer, intent(in) :: igrid
@@ -68,12 +68,16 @@ end if
 typelimiter=typelimiter1(node(plevel_,igrid))
 typegradlimiter=typegradlimiter1(node(plevel_,igrid))
 
-call initonegrid_usr(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+if (.not. associated(usr_init_one_grid)) then
+   call mpistop("usr_init_one_grid not defined")
+else
+   call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+end if
 
 end subroutine initial_condition
 !=============================================================================
 subroutine modify_IC
-use mod_usr, only: initonegrid_usr
+use mod_usr_methods, only: usr_init_one_grid
 use mod_global_parameters
 
 integer :: iigrid, igrid
@@ -81,7 +85,12 @@ integer :: iigrid, igrid
 !-----------------------------------------------------------------------------
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
-   call initonegrid_usr(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+
+   if (.not. associated(usr_init_one_grid)) then
+      call mpistop("usr_init_one_grid not defined")
+   else
+      call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+   end if
 end do
 
 end subroutine modify_IC

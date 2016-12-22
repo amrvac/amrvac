@@ -604,7 +604,7 @@ end subroutine traverse_slice
 end subroutine select_slice
 !=============================================================================
 subroutine fill_subnode(igrid,active,jgrid,dir,xslice,normconv)
-  use mod_usr, only: specialvar_output
+  use mod_usr_methods, only: usr_aux_output
   use mod_global_parameters
   use mod_physics, only: phys_to_primitive
 integer, intent(in) :: igrid, dir
@@ -681,7 +681,12 @@ typegradlimiter=typegradlimiter1(node(plevel_,igrid))
   end if
   ! default (no) normalization for auxiliary variables
   normconv(nw+1:nw+nwauxio)=one
-  call specialvar_output(ixG^LL,ixM^LL,w,px(igrid)%x,normconv)
+
+  if (.not. associated(usr_aux_output)) then
+     call mpistop("usr_aux_output not defined")
+  else
+     call usr_aux_output(ixG^LL,ixM^LL,w,px(igrid)%x,normconv)
+  end if
 endif
 
 {^IFMHDPHYS

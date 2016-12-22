@@ -11,7 +11,7 @@ if (igridstail==0) return
 
 select case (errorestimate)
 case (0) 
-   ! all refinement solely based on user routine specialrefine_grid
+   ! all refinement solely based on user routine usr_refine_grid
 case (1) 
    ! simply compare w_n-1 with w_n and trigger refinement on relative
    ! differences
@@ -58,7 +58,7 @@ buffer=.false.
 end subroutine errest
 !=============================================================================
 subroutine lohner_grid(igrid)
-  use mod_usr, only: specialvarforerrest, special_tolerance
+  use mod_usr_methods, only: usr_var_for_errest, usr_amr_tolerance
 use mod_forest, only: coarsen, refine
 use mod_global_parameters
 
@@ -78,7 +78,15 @@ ix^L=ixM^LL^LADD1;
 error=zero
 do iiflag=1,flags(nflag_); iflag=flags(iiflag);
    numerator=zero
-   if (iflag>nw)call specialvarforerrest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
+
+   if (iflag > nw) then
+      if (.not. associated(usr_var_for_errest)) then
+         call mpistop("usr_var_for_errest not defined")
+      else
+         call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
+      end if
+   end if
+
    do idims=1,ndim
       hx^L=ix^L-kr(^D,idims);
       jx^L=ix^L+kr(^D,idims);
@@ -154,7 +162,12 @@ refineflag=.false.
 coarsenflag=.false.
 tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
-   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+
+   if (associated(usr_amr_tolerance)) then
+      call usr_amr_tolerance(pw(igrid)%w(ix^D,1:nw), &
+           px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   end if
+
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error(ix^D) <= tolratio(level)*tolerance) then
@@ -169,7 +182,7 @@ if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 end subroutine lohner_grid
 !=============================================================================
 subroutine lohner_orig_grid(igrid)
-  use mod_usr, only: specialvarforerrest, special_tolerance
+  use mod_usr_methods, only: usr_var_for_errest, usr_amr_tolerance
   use mod_forest, only: coarsen, refine
   use mod_global_parameters
 
@@ -190,7 +203,15 @@ error=zero
 do iiflag=1,flags(nflag_); iflag=flags(iiflag);
    numerator=zero
    denominator=zero
-   if (iflag>nw)call specialvarforerrest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
+
+   if (iflag > nw) then
+      if (.not. associated(usr_var_for_errest)) then
+         call mpistop("usr_var_for_errest not defined")
+      else
+         call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
+      end if
+   end if
+
    do idims=1,ndim
       hx^L=ix^L-kr(^D,idims);
       jx^L=ix^L+kr(^D,idims);
@@ -236,7 +257,12 @@ coarsenflag=.false.
 
 tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
-   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+
+   if (associated(usr_amr_tolerance)) then
+      call usr_amr_tolerance(pw(igrid)%w(ix^D,1:nw), &
+           px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   end if
+
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error(ix^D) <= tolratio(level)*tolerance) then
@@ -250,7 +276,7 @@ if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 end subroutine lohner_orig_grid
 !=============================================================================
 subroutine compare1_grid(igrid,wold,w)
-    use mod_usr, only: specialvarforerrest, special_tolerance
+    use mod_usr_methods, only: usr_amr_tolerance
     use mod_forest, only: coarsen, refine
     use mod_global_parameters
 
@@ -287,7 +313,12 @@ tolerance=tol(level)
             abs(averages(iflag))/(abs(wold(ix^D,iflag)))
       end if
    end do
-   if (specialtol) call special_tolerance(pw(igrid)%w(ix^D,1:nw),px(igrid)%x(ix^D,1:ndim),tolerance,t)
+
+   if (associated(usr_amr_tolerance)) then
+      call usr_amr_tolerance(pw(igrid)%w(ix^D,1:nw),&
+           px(igrid)%x(ix^D,1:ndim),tolerance,t)
+   end if
+
    if (error >= tolerance) then
       refineflag(ix^D) = .true.
    else if (error <= tolratio(level)*tolerance) then
@@ -305,7 +336,7 @@ end if
 end subroutine compare1_grid
 !=============================================================================
 subroutine forcedrefine_grid(igrid,w)
-  use mod_usr, only: specialrefine_grid
+  use mod_usr_methods, only: usr_refine_grid
 use mod_forest, only: coarsen, refine, buffer
 use mod_global_parameters
 
@@ -332,9 +363,11 @@ else
       qt=t
    end if
 end if
-   
-call specialrefine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,px(igrid)%x, &
-                        my_refine,my_coarsen)
+
+if (associated(usr_refine_grid)) then
+   call usr_refine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,px(igrid)%x, &
+        my_refine,my_coarsen)
+end if
 
 if (my_coarsen==1) then
    if (level>1) then

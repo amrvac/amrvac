@@ -20,30 +20,30 @@ module mod_hd_phys
   public :: hd_kin_en
   public :: hd_get_pthermal
   public :: hd_get_v
+  public :: hd_to_conserved
+  public :: hd_to_primitive
 
 contains
 
-  subroutine hd_params_read(par_files)
+  subroutine hd_params_read(files)
     use mod_global_parameters, only: unitpar
-    character(len=*), intent(in) :: par_files(:)
+    character(len=*), intent(in) :: files(:)
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab
 
-    do n = 1, size(par_files)
-       open(unitpar, file=trim(par_files(n)), status='old')
+    do n = 1, size(files)
+       open(unitpar, file=trim(files(n)), status='old')
        read(unitpar, hd_list, end=111)
 111    close(unitpar)
     end do
 
   end subroutine hd_params_read
 
-  subroutine hd_phys_init(par_files)
+  subroutine hd_phys_init()
     use mod_global_parameters
 
     integer :: itr, idir
-
-    character(len=*), intent(in) :: par_files(:)
 
     call hd_params_read(par_files)
 
@@ -97,20 +97,6 @@ contains
     phys_check_params => hd_check_params
 
   end subroutine hd_phys_init
-
-  subroutine hd_read_params(file_unit, success)
-    integer, intent(in) :: file_unit
-    logical, intent(out) :: success
-
-    namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab
-
-    ! Success indicates if read succeeds
-    success = .false.
-    read(file_unit, hd_list, end=101)
-    success = .true.
-
-101 return
-  end subroutine hd_read_params
 
   subroutine hd_check_params
     use mod_global_parameters

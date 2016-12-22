@@ -12,11 +12,9 @@ module mod_input_output
 contains
 
   !> Read the command line arguments passed to amrvac
-  subroutine read_arguments(par_files)
+  subroutine read_arguments()
     use M_kracken
     use mod_global_parameters
-
-    character(len=*), allocatable, intent(inout) :: par_files(:)
 
     integer                          :: len, ier, n
     integer, parameter               :: max_files = 20 ! Maximum number of par files
@@ -80,11 +78,9 @@ contains
   end subroutine read_arguments
 
   !> Read in the user-supplied parameter-file
-  subroutine read_par_files(par_files)
+  subroutine read_par_files()
     use mod_global_parameters
     use mod_physics, only: physics_type
-
-    character(len=*), intent(in) :: par_files(:)
 
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
@@ -803,7 +799,7 @@ contains
 
     ! following specific for Intel compiler and use on VIC3 with MPT
     !DEC$ ATTRIBUTES NOINLINE :: write_snapshot
-    use mod_usr, only: printlog_special
+    use mod_usr_methods, only: usr_print_log
     use mod_global_parameters
     integer:: ifile
     !-----------------------------------------------------------------------------
@@ -833,7 +829,11 @@ contains
        case ('regression_test')
           call printlog_regression_test()
        case ('special')
-          call printlog_special
+          if (.not. associated(usr_print_log)) then
+             call mpistop("usr_print_log not defined")
+          else
+             call usr_print_log()
+          end if
        case default
           call mpistop("Error in SaveFile: Unknown typefilelog")
        end select
@@ -955,7 +955,7 @@ contains
   end subroutine write_snapshot
 
   subroutine write_snapshot_tf
-    use mod_usr, only: transformw_usr
+    use mod_usr_methods, only: usr_transform_w
     use mod_forest
     use mod_global_parameters
     use mod_physics
@@ -1011,7 +1011,11 @@ contains
           call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
        endif
        iwrite=iwrite+1
-       call transformw_usr(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
+
+       if (associated(usr_transform_w)) then
+          call usr_transform_w(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
+       end if
+
        offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
             *int(Morton_no-1,kind=MPI_OFFSET_KIND)
        call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &

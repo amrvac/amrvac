@@ -475,6 +475,9 @@ module mod_global_parameters
   double precision ::ratebdflux
   logical :: internalboundary
 
+  !> Which par files are used as input
+  character(len=std_len), allocatable :: par_files(:)
+
   !> Name of input file
   !> \todo Remove this
   character(len=std_len) :: inifile

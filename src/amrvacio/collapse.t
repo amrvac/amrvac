@@ -441,7 +441,7 @@ collapsedData(1:nw+nwauxio) = collapsedData(1:nw+nwauxio) + pw_sub(jgrid)%w(1:nw
 end subroutine integrate_subnode
 !=============================================================================
 subroutine collapse_subnode(igrid,jgrid,dir,normconv)
-  use mod_usr, only: specialvar_output
+  use mod_usr_methods, only: usr_aux_output
   use mod_global_parameters
   use mod_physics, only: phys_to_primitive
 
@@ -476,7 +476,12 @@ typegradlimiter=typegradlimiter1(node(plevel_,igrid))
   end if
   ! default (no) normalization for auxiliary variables
   normconv(nw+1:nw+nwauxio)=one
-  call specialvar_output(ixG^LL,ixM^LL,w,px(igrid)%x,normconv)
+
+  if (.not. associated(usr_aux_output)) then
+     call mpistop("usr_aux_output not defined")
+  else
+     call usr_aux_output(ixG^LL,ixM^LL,w,px(igrid)%x,normconv)
+  end if
 endif
 {^IFMHDPHYS
 if (B0field) w(ixM^T,b1_:b0_+ndir) = w(ixM^T,b1_:b0_+ndir) + pB0_cell(igrid)%w(ixM^T,1:ndir)

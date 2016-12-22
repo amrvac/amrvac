@@ -13,14 +13,11 @@ program amrvac
   use mod_global_parameters
   use mod_input_output
   use mod_physics
-  use mod_usr
+  use mod_usr_methods, only: usr_before_main_loop
+  use mod_usr, only: usr_init
 
-  use mod_rho
-  use mod_hd
-
-  integer                             :: itin
-  double precision                    :: time0, time_in, tin
-  character(len=std_len), allocatable :: par_files(:)
+  integer          :: itin
+  double precision :: time0, time_in, tin
 
   call comm_start()
 
@@ -28,12 +25,12 @@ program amrvac
   time0        = MPI_WTIME()
   time_bc      = zero
 
-  call read_arguments(par_files)
+  call read_arguments()
 
-  ! In the future, include a mod_user and define the physics type there
-  call activate_physics_module("hd", par_files)
+  call usr_init()
+  call phys_check_methods()
 
-  call read_par_files(par_files)
+  call read_par_files()
 
   call initialize_vars()
   call init_comm_types()
@@ -123,8 +120,9 @@ program amrvac
      print*,'-------------------------------------------------------------------------------'
   end if
 
-  ! an interface to allow user do special process
-  call special_process_usr
+  ! an interface to allow user to do special things before the main loop
+  if (associated(usr_before_main_loop)) &
+       call usr_before_main_loop()
 
   time_advance=.true.
 
@@ -144,30 +142,6 @@ program amrvac
   call comm_finalize
 
 contains
-
-  subroutine activate_physics_module(physics_name, par_files)
-    use mod_physics, only: phys_check_methods
-    use mod_rho, only: rho_activate
-    ! use mod_nonlinear, only: nonlinear_activate
-    use mod_hd, only: hd_activate
-
-    character(len=*), intent(in) :: physics_name
-    character(len=*), intent(in) :: par_files(:)
-
-    select case (physics_name)
-    case ("rho")
-       call rho_activate(par_files)
-       ! case ("nonlinear")
-       !    call nonlinear_activate(par_files)
-    case ("hd")
-       call hd_activate(par_files)
-    case default
-       call mpistop("Invalid physics module selected")
-    end select
-
-    call phys_check_methods()
-
-  end subroutine activate_physics_module
 
   subroutine timeintegration()
     use mod_timing
@@ -340,12 +314,8 @@ contains
   end function fixgrid
 
   !> Perform global initialization, in three steps:
-  !> * Call initglobaldata from the selected physics module
-  !> * Call initglobaldata_usr which is supplied by the user
-  !> * Call checkglobaldata from the selected physics module
   subroutine initglobal()
     call phys_init_params()
-    call initglobaldata_usr()
     call phys_check_params()
   end subroutine initglobal
 end program amrvac

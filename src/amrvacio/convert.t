@@ -1,6 +1,6 @@
 !=============================================================================
 subroutine generate_plotfile
-  use mod_usr, only: userspecialconvert
+  use mod_usr_methods, only: usr_special_convert
 
 {#IFDEF PARTICLES
 use mod_timing, only: tpartc, tpartc0
@@ -49,7 +49,11 @@ select case(convert_type)
      tpartc = tpartc + (MPI_WTIME() - tpartc0)
 }
   case('user','usermpi')
-   call userspecialconvert(unitconvert)
+     if (.not. associated(usr_special_convert)) then
+        call mpistop("usr_special_convert not defined")
+     else
+        call usr_special_convert(unitconvert)
+     end if
   case default
    call mpistop("Error in generate_plotfile: Unknown convert_type")
 end select
@@ -64,7 +68,7 @@ subroutine getheadernames(wnamei,xandwnamei,outfilehead)
 ! the dimensional names, and only those names from the nw variables for output (through writew)
 ! together with the added names for nwauxio variables
 
-  use mod_usr, only: specialvarnames_output
+  use mod_usr_methods, only: usr_add_aux_names
   use mod_global_parameters
 
 character(len=10)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
@@ -79,7 +83,13 @@ logical, save:: first=.true.
 
 ! in case additional variables are computed and stored for output, adjust 
 ! the wnames and primnames string
-if(nwauxio>0 .and. first) call specialvarnames_output
+if (nwauxio>0 .and. first) then
+   if (.not. associated(usr_add_aux_names)) then
+      call mpistop("usr_add_aux_names not defined")
+   else
+      call usr_add_aux_names()
+   end if
+end if
 
 ! --- part to provide variable names from primnames/varnames strings
 if(saveprim) then
@@ -167,7 +177,7 @@ endif
 end subroutine getheadernames
 !=============================================================================
 subroutine oneblock(qunit)
-  use mod_usr, only: specialvar_output
+  use mod_usr_methods, only: usr_aux_output
 
 ! this is for turning an AMR run into a single block
 ! the data will be all on selected level level_io
@@ -247,9 +257,15 @@ call getheadernames(wnamei,xandwnamei,outfilehead)
 do iigrid=1,igridstail; igrid=igrids(iigrid)
    allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
    pwio(igrid)%w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
-   if(nwauxio>=1)then
-     call specialvar_output(ixG^LL,ixM^LL^LADD1,pwio(igrid)%w,px(igrid)%x,normconv)
-   endif
+
+   if (nwauxio > 0) then
+      if (.not. associated(usr_aux_output)) then
+         call mpistop("usr_aux_output not defined")
+      else
+         call usr_aux_output(ixG^LL,ixM^LL^LADD1, &
+              pwio(igrid)%w,px(igrid)%x,normconv)
+      end if
+   end if
 end do
 
 if (saveprim) then
@@ -936,9 +952,9 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 ! whether we switch to cartesian or want primitive or conservative output,
 ! handling the addition of B0 in B0+B1 cases, ...
 !
-! the normconv is passed on to specialvar_output for extending with
+! the normconv is passed on to usr_aux_output for extending with
 ! possible normalization values for the nw+1:nw+nwauxio entries
-use mod_usr, only: specialvar_output
+use mod_usr_methods, only: usr_aux_output
 use mod_global_parameters
 use mod_physics, only: physics_type, phys_to_primitive
 
@@ -1050,7 +1066,7 @@ if (nwextra>0) then
  end do
 end if
 
-! next lines needed when specialvar_output uses gradients
+! next lines needed when usr_aux_output uses gradients
 ! and later on when dwlimiter2 is used 
 typelimiter=typelimiter1(node(plevel_,igrid))
 typegradlimiter=typegradlimiter1(node(plevel_,igrid))
@@ -1067,9 +1083,14 @@ if(nwauxio>0)then
   ! default (no) normalization for auxiliary variables
   normconv(nw+1:nw+nwauxio)=one
   ! maybe need for restriction to ixG^LL^LSUB1 ??
-  !call specialvar_output(ixG^LL,ixG^LL,w,px(igrid)%x,normconv)
-  !call specialvar_output(ixG^LL,ixG^LL^LSUB1,w,px(igrid)%x,normconv)
-  call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+  !call usr_aux_output(ixG^LL,ixG^LL,w,px(igrid)%x,normconv)
+  !call usr_aux_output(ixG^LL,ixG^LL^LSUB1,w,px(igrid)%x,normconv)
+
+  if (.not. associated(usr_aux_output)) then
+     call mpistop("usr_aux_output not defined")
+  else
+     call usr_aux_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+  end if
 endif
 
 ! In case primitives to be saved: use primitive subroutine

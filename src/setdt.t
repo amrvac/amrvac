@@ -5,7 +5,7 @@
 subroutine setdt()
 use mod_global_parameters
 use mod_physics, only: phys_get_dt, phys_get_aux
-use mod_usr, only: getdt_special
+use mod_usr_methods, only: usr_get_dt
 
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
@@ -39,7 +39,11 @@ if (dtpar<=zero) then
       dtnew=min(dtnew,qdtnew)
       call phys_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
       dtnew=min(dtnew,qdtnew)
-      call getdt_special(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+
+      if (associated(usr_get_dt)) then
+         call usr_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+      end if
+
       dtnew=min(dtnew,qdtnew)
       dtmin_mype=min(dtmin_mype,dtnew)
       dt_grid(igrid)=dtnew

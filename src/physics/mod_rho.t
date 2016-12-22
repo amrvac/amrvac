@@ -7,12 +7,9 @@ module mod_rho
 
 contains
 
-  subroutine rho_activate(par_files)
-    character(len=*), intent(in) :: par_files(:)
-
-    call rho_phys_init(par_files)
+  subroutine rho_activate()
+    call rho_phys_init()
     call rho_roe_init()
-
   end subroutine rho_activate
 
 end module mod_rho

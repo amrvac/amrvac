@@ -13,25 +13,23 @@ module mod_rho_phys
 
 contains
 
-  subroutine rho_params_read(par_files)
+  subroutine rho_params_read(files)
     use mod_global_parameters, only: unitpar
-    character(len=*), intent(in) :: par_files(:)
+    character(len=*), intent(in) :: files(:)
     integer                      :: n
 
     namelist /rho_list/ rho_v
 
-    do n = 1, size(par_files)
-       open(unitpar, file=trim(par_files(n)), status='old')
+    do n = 1, size(files)
+       open(unitpar, file=trim(files(n)), status='old')
        read(unitpar, rho_list, end=111)
 111    close(unitpar)
     end do
 
   end subroutine rho_params_read
 
-  subroutine rho_phys_init(par_files)
+  subroutine rho_phys_init()
     use mod_global_parameters
-
-    character(len=*), intent(in) :: par_files(:)
 
     call rho_params_read(par_files)
 

@@ -237,7 +237,7 @@ end subroutine selectgrids
 !=============================================================================
 
 integer function igrid_active(igrid)
-  use mod_usr, only: flag_grid_usr
+  use mod_usr_methods, only: usr_flag_grid
   use mod_global_parameters
 
   integer, intent(in) :: igrid
@@ -247,7 +247,9 @@ integer function igrid_active(igrid)
 
   igrid_active = -1
 
-  call flag_grid_usr(t,ixG^LL,ixO^L,pw(igrid)%w,px(igrid)%x,igrid_active)
+  if (associated(usr_flag_grid)) then
+     call usr_flag_grid(t,ixG^LL,ixO^L,pw(igrid)%w,px(igrid)%x,igrid_active)
+  end if
 
 end function igrid_active
 !=============================================================================

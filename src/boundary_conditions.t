@@ -1,6 +1,6 @@
 !=============================================================================
 subroutine bc_phys(iside,idims,time,qdt,w,x,ixG^L,ixB^L)
-use mod_usr, only: specialbound_usr
+use mod_usr_methods, only: usr_special_bc
 use mod_global_parameters
 
 integer, intent(in) :: iside, idims, ixG^L,ixB^L
@@ -122,8 +122,11 @@ end select
 !do iw=1,nwflux+nwaux
 ! opedit: iw==0 since this breaks fewest of setups.
 if (any(typeB(1:nwflux+nwaux,iB)=="special")) then
-  call specialbound_usr(time,ixG^L,ixI^L,0,iB,w,x)
+   if (.not. associated(usr_special_bc)) &
+        call mpistop("usr_special_bc not defined")
+   call usr_special_bc(time,ixG^L,ixI^L,0,iB,w,x)
 end if
+
 {#IFDEF EVOLVINGBOUNDARY
 if (any(typeB(1:nwflux,iB)=="character")) then
   ixM^L=ixG^L^LSUB1;
@@ -170,7 +173,7 @@ end if
 end subroutine bc_phys
 !=============================================================================
 subroutine getintbc(time,ixG^L,pwuse)
-use mod_usr, only: bc_int
+use mod_usr_methods, only: usr_internal_bc
 use mod_global_parameters
 
 double precision, intent(in)   :: time
@@ -194,9 +197,11 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
    typegradlimiter=typegradlimiter1(node(plevel_,igrid))
    level=node(plevel_,igrid)
    saveigrid=igrid
-   call bc_int(level,time,ixG^L,ixO^L,pwuse(igrid)%w,px(igrid)%x)
+
+   if (associated(usr_internal_bc)) then
+      call usr_internal_bc(level,time,ixG^L,ixO^L,pwuse(igrid)%w,px(igrid)%x)
+   end if
 end do
 
-      
 end subroutine getintbc
 !=============================================================================

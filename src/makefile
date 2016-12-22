@@ -5,7 +5,7 @@ default:
 
 INCLUDES += amrvacusrpar$F mod_indices$F mod_physicaldata$F \
 mod_fix_conserve$F mod_connectivity$F					\
-mod_global_parameters$F mod_usr$F $(MAKE_)
+mod_global_parameters$F mod_usr_methods$F $(MAKE_)
 
 FOBJECTS =	                                                        \
 mod_physicaldata$F	mod_indices$F		initialize_vars$F	\
@@ -22,7 +22,7 @@ forest$F		mod_forest$F		amr_neighbors$F		\
 amr_coarsen_refine$F	refine$F                                        \
 coarsen$F		set_B0$F             				\
 selectgrids$F           geometry$F		mod_global_parameters$F	\
-mod_usr_dummy$F mod_usr$F
+mod_usr_methods$F mod_usr$F
 
 ############################################################################
 #  Dependencies:
@@ -32,14 +32,14 @@ mod_physicaldata.o : mod_indices.o
 amr_fix_conserve.o : mod_fix_conserve.o
 forest.o initialize_vars.o : mod_forest.o mod_global_parameters.o
 amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o \
-	mod_physics.o mod_usr.o
+	mod_physics.o
+amrvac.o: mod_usr.o
+mod_usr.o: mod_usr_methods.o mod_rho.o mod_hd.o
 
-mod_usr.o: mod_usr_dummy.o mod_rho.o mod_hd.o
-mod_input_output.o: mod_usr.o
 # TODO
 amrvac.o: mod_rho.o mod_hd.o
 
-mod_input_output.o: mod_physics.o
+mod_input_output.o: mod_physics.o mod_usr_methods.o
 mod_physics.o: mod_global_parameters.o mod_physics_roe.o mod_physics_hllc.o \
 	mod_physics_ppm.o
 amr_ghostcells.o: mod_physics.o
