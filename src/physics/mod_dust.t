@@ -34,6 +34,24 @@ contains
        end do
     end do
 
+    ! set default values for entropy fixes for 'yee' type
+    ! subroutine initglobaldata
+
+    !   if (hd_energy) then
+    !      hd_gamma = 5.d0/3.d0
+    !   else
+    !      hd_gamma = 1.d0
+    !      hd_adiab = 1.d0
+    !   end if
+
+    !   ! if (dust_num_species > 0) then
+    !   !    eqpar(mu_) = 1.0d0
+    !   !    mhcgspar = 1.6733D-24
+    !   !    kbcgspar = 1.38065D-16
+    !   ! end if
+
+    ! end subroutine initglobaldata
+
   end subroutine dust_init
 
   subroutine dust_to_conserved(ixI^L, ixO^L, w, x)

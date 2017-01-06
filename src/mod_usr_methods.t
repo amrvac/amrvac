@@ -1,5 +1,6 @@
-! TODO: divide into smaller modules(?), make sure these don't do anything by
-! default.
+! TODO: divide into smaller modules(?)
+! TODO: make sure methods do nothing by default
+! TODO: document methods
 module mod_usr_methods
 
   implicit none
