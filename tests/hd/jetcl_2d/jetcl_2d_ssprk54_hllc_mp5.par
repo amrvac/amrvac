@@ -31,10 +31,10 @@
  &methodlist
         wnames= 'rho m1 m2 e tr'
         fileheadout=  'jetcl_2d_ssprk54_hllc_mp5'
-        typeadvance=  'twostep'
-        typefull1=    13*'tvdlf'
-        typepred1=    13*'tvdlf'
-        typelimiter1= 13*'koren'
+        typeadvance=  'ssprk54'
+        typefull1=    13*'hllc'
+        typepred1=    13*'hllc'
+        typelimiter1= 13*'mp5'
         typelimited='predictor'
         useprimitive=.true.
         dimsplit=.false.
