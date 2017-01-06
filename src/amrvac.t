@@ -58,7 +58,7 @@ program amrvac
 
      {#IFDEF PARTICLES
      call init_tracerparticles
-     call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+     call getbc(t,0.d0,pw,0,nwflux+nwaux)
      call init_gridvars
      call read_particles_snapshot
      call finish_gridvars
@@ -103,7 +103,7 @@ program amrvac
 
      {#IFDEF PARTICLES
      call init_tracerparticles
-     call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+     call getbc(t,0.d0,pw,0,nwflux+nwaux)
      call init_gridvars
      call init_particles
      call finish_gridvars

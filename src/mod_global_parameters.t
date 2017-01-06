@@ -174,7 +174,10 @@ module mod_global_parameters
   integer, dimension(:), allocatable :: iw_vector
 
   integer           :: iprob
+  !> positions of the minimum and maximum surfaces for each dimension
   double precision  :: xprob^L
+  !> number of cells for each dimension in level-one mesh
+  integer :: nxlone^D
 
   ! TODO: remove
   integer, parameter :: neqpar = 1
