@@ -136,14 +136,29 @@ module mod_global_parameters
   !> Pi
   double precision, parameter :: dpi=3.141592653589793238462643383279502884197169399375105d0
 
-  !> Physical scaling factor for lengths
-  double precision :: UNIT_LENGTH
+  !> Physical scaling factor for length
+  double precision :: unit_length
 
-  !> Physical scaling factor for densities
-  double precision :: UNIT_DENSITY
+  !> Physical scaling factor for time
+  double precision :: unit_time
 
-  !> Physical scaling factor for velocities
-  double precision :: UNIT_VELOCITY
+  !> Physical scaling factor for density
+  double precision :: unit_density
+
+  !> Physical scaling factor for velocity
+  double precision :: unit_velocity
+
+  !> Physical scaling factor for temperature
+  double precision :: unit_temperature
+
+  !> Physical scaling factor for pressure
+  double precision :: unit_pressure
+
+  !> Physical scaling factor for magnetic field
+  double precision :: unit_magneticfield
+
+  !> Physical scaling factor for number density
+  double precision :: unit_numberdensity
 
   ! TODO temporary placed here (Jannis)
   integer           :: nwflux

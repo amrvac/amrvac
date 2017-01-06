@@ -5,9 +5,7 @@ use mod_input_output
 
 {#IFDEF MAGNETOFRICTION
 if(itmaxmf>0) then
-   time_in=MPI_WTIME()
    call magnetofriction
-   if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
 endif
 }
 ! write transformed data file

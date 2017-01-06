@@ -9,7 +9,8 @@ double precision, intent(inout) :: w(ixG^S,1:nw)
 double precision, intent(in) :: x(ixG^S,1:ndim)
 double precision :: wtmp(ixG^S,1:nwflux)
 
-integer :: iw, iB, ix^D, ixI^L, ixM^L
+integer :: iw, iB, ix^D, ixI^L, ixM^L, dixBi,iib^D
+logical  :: isphysbound
 !-----------------------------------------------------------------------------
 select case (idims)
 {case (^D)
@@ -129,19 +130,24 @@ end if
 
 {#IFDEF EVOLVINGBOUNDARY
 if (any(typeB(1:nwflux,iB)=="character")) then
-  ixM^L=ixG^L^LSUB1;
+  ixM^L=ixM^LL;
+  if(ixGmax1==ixGhi1) then
+    dixBi=dixB
+  else
+    dixBi=ceiling(dixB*0.5d0)
+  end if
   select case (idims)
   {case (^D)
      if (iside==2) then
         ! maximal boundary
-        ixImin^DD=ixGmax^D+1-dixB^D%ixImin^DD=ixGmin^DD;
-        ixImax^DD=ixGmax^DD;
+        ixImin^DD=ixGmax^D+1-dixBi^D%ixImin^DD=ixBmin^DD;
+        ixImax^DD=ixBmax^DD;
         if(all(w(ixI^S,1:nwflux)==0.d0)) then
           do ix^D=ixImin^D,ixImax^D
              w(ix^D^D%ixI^S,1:nwflux) = w(ixImin^D-1^D%ixI^S,1:nwflux)
           end do
         end if
-        if(qdt>0.d0) then
+        if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
           ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
           ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
           wtmp(ixG^S,1:nw)=pwold(saveigrid)%w(ixG^S,1:nw)
@@ -150,14 +156,14 @@ if (any(typeB(1:nwflux,iB)=="character")) then
         end if
      else
         ! minimal boundary
-        ixImin^DD=ixGmin^DD;
-        ixImax^DD=ixGmin^D-1+dixB^D%ixImax^DD=ixGmax^DD;
+        ixImin^DD=ixBmin^DD;
+        ixImax^DD=ixGmin^D-1+dixBi^D%ixImax^DD=ixBmax^DD;
         if(all(w(ixI^S,1:nwflux)==0.d0)) then
           do ix^D=ixImin^D,ixImax^D
              w(ix^D^D%ixI^S,1:nwflux) = w(ixImax^D+1^D%ixI^S,1:nwflux)
           end do
         end if
-        if(qdt>0.d0) then
+        if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
           ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
           ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
           wtmp(ixG^S,1:nw)=pwold(saveigrid)%w(ixG^S,1:nw)
@@ -166,6 +172,37 @@ if (any(typeB(1:nwflux,iB)=="character")) then
         end if
      end if \}
   end select
+  if(ixGmax1==ixGhi1) then
+    call identifyphysbound(saveigrid,isphysbound,iib^D)   
+    if(iib1==-1.and.iib2==-1) then
+      do ix2=dixB,1,-1 
+        do ix1=dixB,1,-1 
+          w(ix^D,1:nwflux)=(w(ix1+1,ix2+1,1:nwflux)+w(ix1+1,ix2,1:nwflux)+w(ix1,ix2+1,1:nwflux))/3.d0
+        end do
+      end do
+    end if
+    if(iib1== 1.and.iib2==-1) then
+      do ix2=dixB,1,-1 
+        do ix1=ixMmax1+1,ixGmax1
+          w(ix^D,1:nwflux)=(w(ix1-1,ix2+1,1:nwflux)+w(ix1-1,ix2,1:nwflux)+w(ix1,ix2+1,1:nwflux))/3.d0
+        end do
+      end do
+    end if
+    if(iib1==-1.and.iib2== 1) then
+      do ix2=ixMmax2+1,ixGmax2
+        do ix1=dixB,1,-1 
+          w(ix^D,1:nwflux)=(w(ix1+1,ix2-1,1:nwflux)+w(ix1+1,ix2,1:nwflux)+w(ix1,ix2-1,1:nwflux))/3.d0
+        end do
+      end do
+    end if
+    if(iib1== 1.and.iib2== 1) then
+      do ix2=ixMmax2+1,ixGmax2
+        do ix1=ixMmax1+1,ixGmax1
+          w(ix^D,1:nwflux)=(w(ix1-1,ix2-1,1:nwflux)+w(ix1-1,ix2,1:nwflux)+w(ix1,ix2-1,1:nwflux))/3.d0
+        end do
+      end do
+    end if
+  end if
 end if
 }
 !end do

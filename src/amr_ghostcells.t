@@ -1,17 +1,7 @@
 !> update ghost cells of all blocks including physical boundaries 
-subroutine getbc(time,qdt,ixG^L,pwuse,nwstart,nwbc)
-use mod_global_parameters
-
-double precision, intent(in)               :: time, qdt
-integer, intent(in)                        :: ixG^L,nwstart,nwbc
-type(walloc), dimension(ngridshi)          :: pwuse
-
-integer :: ixM^L, ixCoG^L, ixCoM^L, idims, iside
-integer :: my_neighbor_type, ipole
-integer :: iigrid, igrid, ineighbor, ipe_neighbor
-integer :: nrecvs, nsends, isizes
-integer :: ixR^L, ixS^L, ixB^L, ixI^L, k^L
-integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
+module mod_getbc
+implicit none
+integer :: ixM^L, ixCoG^L, ixCoM^L
 ! index ranges to send (S) to sibling blocks, receive (R) from 
 ! sibling blocks, send restricted (r) ghost cells to coarser blocks 
 integer, dimension(-1:1,-1:1) :: ixS_srl_^L, ixR_srl_^L, ixS_r_^L
@@ -23,6 +13,199 @@ integer, dimension(-1:1, 0:3) :: ixR_r_^L, ixS_p_^L, ixR_p_^L
 ! neighbor blocks in a different processor
 integer, dimension(-1:1^D&,-1:1^D&) :: type_send_srl, type_recv_srl, type_send_r
 integer, dimension(-1:1^D&,0:3^D&) :: type_recv_r, type_send_p, type_recv_p
+
+end module mod_getbc
+!=============================================================================
+subroutine init_bc
+use mod_getbc
+use mod_global_parameters
+
+integer :: dixBCo, interpolation_order
+integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, iib^D
+!-----------------------------------------------------------------------------
+ixG^L=ixG^LL;
+ixM^L=ixG^L^LSUBdixB;
+ixCoGmin^D=1;
+ixCoGmax^D=ixGmax^D/2+dixB;
+ixCoM^L=ixCoG^L^LSUBdixB;
+
+nx^D=ixMmax^D-ixMmin^D+1;
+nxCo^D=nx^D/2;
+
+select case (typeghostfill)
+case ("copy")
+   interpolation_order=1
+case ("linear","unlimit")
+   interpolation_order=2
+case default
+   write (unitterm,*) "Undefined typeghostfill ",typeghostfill
+   call mpistop("")
+end select
+dixBCo=int((dixB+1)/2)
+
+if (dixBCo+interpolation_order-1>dixB) then
+   call mpistop("interpolation order for prolongation in getbc to high")
+end if
+
+! (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
+! iib=-1 means it is at the minimum side of a physical boundary  
+! iib= 1 means it is at the maximum side of a physical boundary  
+! i=-1 means subregion prepared for the neighbor at its minimum side 
+! i= 1 means subregion prepared for the neighbor at its maximum side 
+{
+ixS_srl_min^D(:,-1)=ixMmin^D
+ixS_srl_min^D(:, 0)=ixMmin^D
+ixS_srl_min^D(:, 1)=ixMmax^D+1-dixB
+ixS_srl_max^D(:,-1)=ixMmin^D-1+dixB
+ixS_srl_max^D(:, 0)=ixMmax^D
+ixS_srl_max^D(:, 1)=ixMmax^D
+
+ixS_srl_min^D(-1,0)=1
+ixS_srl_min^D( 1,0)=ixMmin^D
+ixS_srl_max^D(-1,0)=ixMmax^D
+ixS_srl_max^D( 1,0)=ixGmax^D
+ 
+ixR_srl_min^D(:,-1)=1
+ixR_srl_min^D(:, 0)=ixMmin^D
+ixR_srl_min^D(:, 1)=ixMmax^D+1
+ixR_srl_max^D(:,-1)=dixB
+ixR_srl_max^D(:, 0)=ixMmax^D
+ixR_srl_max^D(:, 1)=ixGmax^D
+
+ixR_srl_min^D(-1,0)=1
+ixR_srl_min^D( 1,0)=ixMmin^D
+ixR_srl_max^D(-1,0)=ixMmax^D
+ixR_srl_max^D( 1,0)=ixGmax^D
+
+ixS_r_min^D(:,-1)=ixCoMmin^D
+ixS_r_min^D(:, 0)=ixCoMmin^D
+ixS_r_min^D(:, 1)=ixCoMmax^D+1-dixB
+ixS_r_max^D(:,-1)=ixCoMmin^D-1+dixB
+ixS_r_max^D(:, 0)=ixCoMmax^D
+ixS_r_max^D(:, 1)=ixCoMmax^D
+
+ixS_r_min^D(-1,0)=1
+ixS_r_min^D( 1,0)=ixCoMmin^D
+ixS_r_max^D(-1,0)=ixCoMmax^D
+ixS_r_max^D( 1,0)=ixCoGmax^D
+
+ixR_r_min^D(:, 0)=1
+ixR_r_min^D(:, 1)=ixMmin^D
+ixR_r_min^D(:, 2)=ixMmin^D+nxCo^D
+ixR_r_min^D(:, 3)=ixMmax^D+1
+ixR_r_max^D(:, 0)=dixB
+ixR_r_max^D(:, 1)=ixMmin^D-1+nxCo^D
+ixR_r_max^D(:, 2)=ixMmax^D
+ixR_r_max^D(:, 3)=ixGmax^D
+
+ixR_r_min^D(-1,1)=1
+ixR_r_max^D(-1,1)=ixMmin^D-1+nxCo^D
+ixR_r_min^D( 1,2)=ixMmin^D+nxCo^D
+ixR_r_max^D( 1,2)=ixGmax^D
+
+ixS_p_min^D(:, 0)=ixMmin^D-(interpolation_order-1)
+ixS_p_min^D(:, 1)=ixMmin^D-(interpolation_order-1)
+ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
+ixS_p_min^D(:, 3)=ixMmax^D+1-dixBCo-(interpolation_order-1)
+ixS_p_max^D(:, 0)=ixMmin^D-1+dixBCo+(interpolation_order-1)
+ixS_p_max^D(:, 1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
+ixS_p_max^D(:, 2)=ixMmax^D+(interpolation_order-1)
+ixS_p_max^D(:, 3)=ixMmax^D+(interpolation_order-1)
+
+ixS_p_min^D(-1,1)=1
+ixS_p_max^D(-1,1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
+ixS_p_min^D( 1,2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
+ixS_p_max^D( 1,2)=ixGmax^D
+
+ixR_p_min^D(:, 0)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+ixR_p_min^D(:, 1)=ixCoMmin^D-(interpolation_order-1)
+ixR_p_min^D(:, 2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+ixR_p_min^D(:, 3)=ixCoMmax^D+1-(interpolation_order-1)
+ixR_p_max^D(:, 0)=dixB+(interpolation_order-1)
+ixR_p_max^D(:, 1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
+ixR_p_max^D(:, 2)=ixCoMmax^D+(interpolation_order-1)
+ixR_p_max^D(:, 3)=ixCoMmax^D+dixBCo+(interpolation_order-1)
+
+ixR_p_min^D(-1,1)=1
+ixR_p_max^D(-1,1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
+ixR_p_min^D( 1,2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+ixR_p_max^D( 1,2)=ixCoGmax^D
+\}
+
+{do i^DB=-1,1\}
+   {do iib^DB=-1,1\}
+       if (i^D==0|.and.) cycle
+       call get_bc_comm_type(type_send_srl(iib^D,i^D),ixS_srl_^L(iib^D,i^D),ixG^L)
+       call get_bc_comm_type(type_recv_srl(iib^D,i^D),ixR_srl_^L(iib^D,i^D),ixG^L)
+       call get_bc_comm_type(type_send_r(iib^D,i^D),ixS_r_^L(iib^D,i^D),ixCoG^L)
+       {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
+          inc^DB=2*i^DB+ic^DB\}
+          call get_bc_comm_type(type_recv_r(iib^D,inc^D),ixR_r_^L(iib^D,inc^D),ixG^L)
+          call get_bc_comm_type(type_send_p(iib^D,inc^D),ixS_p_^L(iib^D,inc^D),ixG^L)
+          call get_bc_comm_type(type_recv_p(iib^D,inc^D),ixR_p_^L(iib^D,inc^D),ixCoG^L)
+       {end do\}
+   {end do\}
+{end do\}
+
+contains
+!=============================================================================
+subroutine get_bc_comm_type(comm_type,ix^L,ixG^L)
+
+integer, intent(inout) :: comm_type
+integer, intent(in) :: ix^L, ixG^L
+
+integer, dimension(ndim+1) :: size, subsize, start
+!-----------------------------------------------------------------------------
+^D&size(^D)=ixGmax^D;
+size(ndim+1)=nw
+^D&subsize(^D)=ixmax^D-ixmin^D+1;
+subsize(ndim+1)=nwflux+nwaux
+^D&start(^D)=ixmin^D-1;
+start(ndim+1)=0
+
+call MPI_TYPE_CREATE_SUBARRAY(ndim+1,size,subsize,start,MPI_ORDER_FORTRAN, &
+                              MPI_DOUBLE_PRECISION,comm_type,ierrmpi)
+call MPI_TYPE_COMMIT(comm_type,ierrmpi)
+
+end subroutine get_bc_comm_type
+end subroutine init_bc
+!=============================================================================
+subroutine put_bc_comm_types
+use mod_getbc
+use mod_global_parameters
+integer :: i^D, ic^D, inc^D, iib^D
+!-----------------------------------------------------------------------------
+{do i^DB=-1,1\}
+   {do iib^DB=-1,1\}
+       if (i^D==0|.and.) cycle
+       call MPI_TYPE_FREE(type_send_srl(iib^D,i^D),ierrmpi)
+       call MPI_TYPE_FREE(type_recv_srl(iib^D,i^D),ierrmpi)
+       if (levmin==levmax) cycle
+       call MPI_TYPE_FREE(type_send_r(iib^D,i^D),ierrmpi)
+       {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
+          inc^DB=2*i^DB+ic^DB\}
+          call MPI_TYPE_FREE(type_recv_r(iib^D,inc^D),ierrmpi)
+          call MPI_TYPE_FREE(type_send_p(iib^D,inc^D),ierrmpi)
+          call MPI_TYPE_FREE(type_recv_p(iib^D,inc^D),ierrmpi)
+       {end do\}
+   {end do\}
+{end do\}
+
+end subroutine put_bc_comm_types
+!=============================================================================
+subroutine getbc(time,qdt,pwuse,nwstart,nwbc)
+use mod_getbc
+use mod_global_parameters
+
+double precision, intent(in)               :: time, qdt
+integer, intent(in)                        :: nwstart,nwbc
+type(walloc), dimension(ngridshi)          :: pwuse
+
+integer :: my_neighbor_type, ipole, idims, iside
+integer :: iigrid, igrid, ineighbor, ipe_neighbor
+integer :: nrecvs, nsends, isizes
+integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
+integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
 ! store physical boundary indicating index
 integer :: idphyb(ngridshi,ndim),bindex(ndim)
 integer :: isend_buf(npwbuf), ipwbuf, dixBco,iB
@@ -36,9 +219,8 @@ double precision :: logGl,qstl
 }
 !-----------------------------------------------------------------------------
 time_bcin=MPI_WTIME()
+ixG^L=ixG^LL;
 
-! define index ranges and MPI send/receive derived datatype for ghost-cell swap
-call init_bc
 if (internalboundary) then 
    call getintbc(time,ixG^L,pwuse)
 end if
@@ -132,14 +314,10 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 {#IFDEF EVOLVINGBOUNDARY
       if(isphysbound) then
         ! coarsen finer ghost cells at physical boundaries
-        {if(iib^D==-1) then
-           ixCoMmin^D=ixCoGmin^D+dixBco
-           ixMmin^D=ixGmin^D+(dixBco-1)
-         else if(iib^D==1) then
-           ixCoMmax^D=ixCoGmax^D-dixBco
-           ixMmin^D=ixGmin^D+(dixBco-1)
-           ixMmax^D=ixGmax^D-(dixBco-1)
-         end if \}
+        ixCoMmin^D=ixCoGmin^D+dixBco;
+        ixCoMmax^D=ixCoGmax^D-dixBco;
+        ixMmin^D=ixGmin^D+(dixBco-1);
+        ixMmax^D=ixGmax^D-(dixBco-1);
       else
         ixCoM^L=ixCoG^L^LSUBdixB;
         ixM^L=ixG^L^LSUBdixB;
@@ -147,40 +325,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 }
       call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,&
                         ixCoG^L,ixCoM^L,pgeo(igrid),pgeoCoarse(igrid),coarsenprimitive,.true.)
-      if(isphysbound) then
-        ! the block has a part of physical boundary and its coarser representative needs 
-        ! ghost-cell value at physical boundary 
-        do idims=1,ndim
-           if(idphyb(igrid,idims)==0) cycle
-           ^D&bindex(^D)=1-kr(^D,idims);
-           if(any(neighbor_type(^D&-bindex(^D):bindex(^D),igrid)==2)) then
-             ! to avoid using as yet unknown corner info in more than 1D, we
-             ! fill only interior mesh ranges of the ghost cell ranges at first,
-             ! and progressively enlarge the ranges to include corners later
-             {
-              kmin^D=merge(0, 1, idims==^D)
-              kmax^D=merge(0, 1, idims==^D)
-              ixBmin^D=ixCoGmin^D+kmin^D*dixB
-              ixBmax^D=ixCoGmax^D-kmax^D*dixB
-             \}
-             {^IFTWOD
-              if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixCoGmin1
-              if(idims > 1 .and. neighbor_type( 1,0,igrid)==1) ixBmax1=ixCoGmax1}
-             {^IFTHREED
-              if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==1) ixBmin1=ixCoGmin1
-              if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==1) ixBmax1=ixCoGmax1
-              if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==1) ixBmin2=ixCoGmin2
-              if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==1) ixBmax2=ixCoGmax2}
-             if (idphyb(igrid,idims)==-1) then
-                iside=1
-             else 
-                iside=2
-             end if
-             if(.not.slab) mygeo=>pgeoCoarse(igrid)
-             call bc_phys(iside,idims,time,0.d0,pwCoarse(igrid)%w,pxCoarse(igrid)%x,ixCoG^L,ixB^L)
-           end if
-        end do
-      end if
    end if
 
    {do i^DB=-1,1\}
@@ -327,8 +471,6 @@ if(bcphys .and. b0_>0) then
 end if
 }
 
-if (npe>1) call put_bc_comm_types
-
 if (nwaux>0) call fix_auxiliary
 
 time_bc=time_bc+(MPI_WTIME()-time_bcin)
@@ -385,9 +527,45 @@ end if
 end subroutine bc_send_srl
 !=============================================================================
 subroutine bc_send_restrict
+integer :: ii^D
 !-----------------------------------------------------------------------------
 ic^D=1+modulo(node(pig^D_,igrid)-1,2);
 if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
+if(isphysbound) then
+  ! filling physical boundary ghost cells of a coarser representative block for
+  ! sending swap region with width of dixB to its coarser neighbor
+  do idims=1,ndim
+     ! to avoid using as yet unknown corner info in more than 1D, we
+     ! fill only interior mesh ranges of the ghost cell ranges at first,
+     ! and progressively enlarge the ranges to include corners later
+     {kmin^D=merge(0, 1, idims==^D)
+     kmax^D=merge(0, 1, idims==^D)
+     ixBmin^D=ixCoGmin^D+kmin^D*dixB
+     ixBmax^D=ixCoGmax^D-kmax^D*dixB\}
+     {^IFTWOD
+     if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixCoGmin1
+     if(idims > 1 .and. neighbor_type( 1,0,igrid)==1) ixBmax1=ixCoGmax1}
+     {^IFTHREED
+     if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==1) ixBmin1=ixCoGmin1
+     if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==1) ixBmax1=ixCoGmax1
+     if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==1) ixBmin2=ixCoGmin2
+     if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==1) ixBmax2=ixCoGmax2}
+     {if(i^D==-1) then
+       ixBmin^D=ixCoGmin^D+dixB
+       ixBmax^D=ixCoGmin^D+2*dixB-1
+     else if(i^D==1) then
+       ixBmin^D=ixCoGmax^D-2*dixB+1
+       ixBmax^D=ixCoGmax^D-dixB
+     end if\}
+     do iside=1,2
+        ii^D=kr(^D,idims)*(2*iside-3);
+        if ({abs(i^D)==1.and.abs(ii^D)==1|.or.}) cycle
+        if (neighbor_type(ii^D,igrid)/=1) cycle
+        if (.not.slab) mygeo=>pgeoCoarse(igrid)
+        call bc_phys(iside,idims,time,0.d0,pwCoarse(igrid)%w,pxCoarse(igrid)%x,ixCoG^L,ixB^L)
+     end do
+  end do
+end if
 
 ineighbor=neighbor(1,i^D,igrid)
 ipe_neighbor=neighbor(2,i^D,igrid)
@@ -751,183 +929,6 @@ call phys_convert_after_prolong(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
 
 end subroutine interpolation_unlimit
 !=============================================================================
-subroutine init_bc
-
-integer :: dixBCo, interpolation_order
-integer :: nx^D, nxCo^D
-!-----------------------------------------------------------------------------
-ixM^L=ixG^L^LSUBdixB;
-ixCoGmin^D=1;
-ixCoGmax^D=ixGmax^D/2+dixB;
-ixCoM^L=ixCoG^L^LSUBdixB;
-
-nx^D=ixMmax^D-ixMmin^D+1;
-nxCo^D=nx^D/2;
-
-select case (typeghostfill)
-case ("copy")
-   interpolation_order=1
-case ("linear","unlimit")
-   interpolation_order=2
-case default
-   write (unitterm,*) "Undefined typeghostfill ",typeghostfill
-   call mpistop("")
-end select
-dixBCo=int((dixB+1)/2)
-
-if (dixBCo+interpolation_order-1>dixB) then
-   call mpistop("interpolation order for prolongation in getbc to high")
-end if
-
-! (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
-! iib=-1 means it is at the minimum side of a physical boundary  
-! iib= 1 means it is at the maximum side of a physical boundary  
-! i=-1 means subregion prepared for the neighbor at its minimum side 
-! i= 1 means subregion prepared for the neighbor at its maximum side 
-{
-ixS_srl_min^D(:,-1)=ixMmin^D
-ixS_srl_min^D(:, 0)=ixMmin^D
-ixS_srl_min^D(:, 1)=ixMmax^D+1-dixB
-ixS_srl_max^D(:,-1)=ixMmin^D-1+dixB
-ixS_srl_max^D(:, 0)=ixMmax^D
-ixS_srl_max^D(:, 1)=ixMmax^D
-
-ixS_srl_min^D(-1,0)=1
-ixS_srl_min^D( 1,0)=ixMmin^D
-ixS_srl_max^D(-1,0)=ixMmax^D
-ixS_srl_max^D( 1,0)=ixGmax^D
- 
-ixR_srl_min^D(:,-1)=1
-ixR_srl_min^D(:, 0)=ixMmin^D
-ixR_srl_min^D(:, 1)=ixMmax^D+1
-ixR_srl_max^D(:,-1)=dixB
-ixR_srl_max^D(:, 0)=ixMmax^D
-ixR_srl_max^D(:, 1)=ixGmax^D
-
-ixR_srl_min^D(-1,0)=1
-ixR_srl_min^D( 1,0)=ixMmin^D
-ixR_srl_max^D(-1,0)=ixMmax^D
-ixR_srl_max^D( 1,0)=ixGmax^D
-\}
-
-if (levmin/=levmax) then
-{
-   ixS_r_min^D(:,-1)=ixCoMmin^D
-   ixS_r_min^D(:, 0)=ixCoMmin^D
-   ixS_r_min^D(:, 1)=ixCoMmax^D+1-dixB
-   ixS_r_max^D(:,-1)=ixCoMmin^D-1+dixB
-   ixS_r_max^D(:, 0)=ixCoMmax^D
-   ixS_r_max^D(:, 1)=ixCoMmax^D
-
-   ixS_r_min^D(-1,0)=1
-   ixS_r_min^D( 1,0)=ixCoMmin^D
-   ixS_r_max^D(-1,0)=ixCoMmax^D
-   ixS_r_max^D( 1,0)=ixCoGmax^D
-
-   ixR_r_min^D(:, 0)=1
-   ixR_r_min^D(:, 1)=ixMmin^D
-   ixR_r_min^D(:, 2)=ixMmin^D+nxCo^D
-   ixR_r_min^D(:, 3)=ixMmax^D+1
-   ixR_r_max^D(:, 0)=dixB
-   ixR_r_max^D(:, 1)=ixMmin^D-1+nxCo^D
-   ixR_r_max^D(:, 2)=ixMmax^D
-   ixR_r_max^D(:, 3)=ixGmax^D
-
-   ixR_r_min^D(-1,1)=1
-   ixR_r_max^D(-1,1)=ixMmin^D-1+nxCo^D
-   ixR_r_min^D( 1,2)=ixMmin^D+nxCo^D
-   ixR_r_max^D( 1,2)=ixGmax^D
-
-   ixS_p_min^D(:, 0)=ixMmin^D-(interpolation_order-1)
-   ixS_p_min^D(:, 1)=ixMmin^D-(interpolation_order-1)
-   ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
-   ixS_p_min^D(:, 3)=ixMmax^D+1-dixBCo-(interpolation_order-1)
-   ixS_p_max^D(:, 0)=ixMmin^D-1+dixBCo+(interpolation_order-1)
-   ixS_p_max^D(:, 1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
-   ixS_p_max^D(:, 2)=ixMmax^D+(interpolation_order-1)
-   ixS_p_max^D(:, 3)=ixMmax^D+(interpolation_order-1)
-
-   ixS_p_min^D(-1,1)=1
-   ixS_p_max^D(-1,1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
-   ixS_p_min^D( 1,2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
-   ixS_p_max^D( 1,2)=ixGmax^D
-
-   ixR_p_min^D(:, 0)=ixCoMmin^D-dixBCo-(interpolation_order-1)
-   ixR_p_min^D(:, 1)=ixCoMmin^D-(interpolation_order-1)
-   ixR_p_min^D(:, 2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
-   ixR_p_min^D(:, 3)=ixCoMmax^D+1-(interpolation_order-1)
-   ixR_p_max^D(:, 0)=dixB+(interpolation_order-1)
-   ixR_p_max^D(:, 1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
-   ixR_p_max^D(:, 2)=ixCoMmax^D+(interpolation_order-1)
-   ixR_p_max^D(:, 3)=ixCoMmax^D+dixBCo+(interpolation_order-1)
-
-   ixR_p_min^D(-1,1)=1
-   ixR_p_max^D(-1,1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
-   ixR_p_min^D( 1,2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
-   ixR_p_max^D( 1,2)=ixCoGmax^D
-\}
-end if
-
-if (npe>1) then
-   {do i^DB=-1,1\}
-      {do iib^DB=-1,1\}
-          if (i^D==0|.and.) cycle
-          call get_bc_comm_type(type_send_srl(iib^D,i^D),ixS_srl_^L(iib^D,i^D),ixG^L)
-          call get_bc_comm_type(type_recv_srl(iib^D,i^D),ixR_srl_^L(iib^D,i^D),ixG^L)
-          if (levmin==levmax) cycle
-          call get_bc_comm_type(type_send_r(iib^D,i^D),ixS_r_^L(iib^D,i^D),ixCoG^L)
-          {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
-             inc^DB=2*i^DB+ic^DB\}
-             call get_bc_comm_type(type_recv_r(iib^D,inc^D),ixR_r_^L(iib^D,inc^D),ixG^L)
-             call get_bc_comm_type(type_send_p(iib^D,inc^D),ixS_p_^L(iib^D,inc^D),ixG^L)
-             call get_bc_comm_type(type_recv_p(iib^D,inc^D),ixR_p_^L(iib^D,inc^D),ixCoG^L)
-          {end do\}
-      {end do\}
-   {end do\}
-end if
-
-end subroutine init_bc
-!=============================================================================
-subroutine get_bc_comm_type(comm_type,ix^L,ixG^L)
-
-integer, intent(inout) :: comm_type
-integer, intent(in) :: ix^L, ixG^L
-
-integer, dimension(ndim+1) :: size, subsize, start
-!-----------------------------------------------------------------------------
-^D&size(^D)=ixGmax^D;
-size(ndim+1)=nw
-^D&subsize(^D)=ixmax^D-ixmin^D+1;
-subsize(ndim+1)=nwbc
-^D&start(^D)=ixmin^D-1;
-start(ndim+1)=nwstart
-
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,size,subsize,start,MPI_ORDER_FORTRAN, &
-                              MPI_DOUBLE_PRECISION,comm_type,ierrmpi)
-call MPI_TYPE_COMMIT(comm_type,ierrmpi)
-
-end subroutine get_bc_comm_type
-!=============================================================================
-subroutine put_bc_comm_types
-!-----------------------------------------------------------------------------
-{do i^DB=-1,1\}
-   {do iib^DB=-1,1\}
-       if (i^D==0|.and.) cycle
-       call MPI_TYPE_FREE(type_send_srl(iib^D,i^D),ierrmpi)
-       call MPI_TYPE_FREE(type_recv_srl(iib^D,i^D),ierrmpi)
-       if (levmin==levmax) cycle
-       call MPI_TYPE_FREE(type_send_r(iib^D,i^D),ierrmpi)
-       {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
-          inc^DB=2*i^DB+ic^DB\}
-          call MPI_TYPE_FREE(type_recv_r(iib^D,inc^D),ierrmpi)
-          call MPI_TYPE_FREE(type_send_p(iib^D,inc^D),ierrmpi)
-          call MPI_TYPE_FREE(type_recv_p(iib^D,inc^D),ierrmpi)
-       {end do\}
-   {end do\}
-{end do\}
-
-end subroutine put_bc_comm_types
-!=============================================================================
 subroutine pole_copy(pwrecv,ixR^L,pwsend,ixS^L)
 
 integer, intent(in) :: ixR^L, ixS^L
@@ -1038,7 +1039,7 @@ integer, intent(in) :: ixG^L,ixO^L,iB
 double precision, intent(inout) :: w(ixG^S,1:nw)
 double precision, intent(in) :: x(ixG^S,1:ndim)
 
-double precision :: dx1x2,dx1x3,dx2x1,dx2dx3,dx3x1,dx3x2
+double precision :: dx1x2,dx1x3,dx2x1,dx2x3,dx3x1,dx3x2
 integer :: ix^D
 !-----------------------------------------------------------------------------
 select case(iB)

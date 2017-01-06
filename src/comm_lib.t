@@ -28,6 +28,7 @@ subroutine comm_finalize
 
   use mod_global_parameters
 
+  call put_bc_comm_types
   call MPI_BARRIER(MPI_COMM_WORLD,ierrmpi)
   call MPI_FINALIZE(ierrmpi)
 

@@ -150,7 +150,7 @@ contains
 
     integer :: level, ifile, fixcount
     logical :: alive
-    !-----------------------------------------------------------------------------
+
     time_in=MPI_WTIME()
     fixcount=1
 
@@ -166,7 +166,7 @@ contains
     itTimeLast=it
     timeLast=MPI_WTIME()
 
-    call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+    call getbc(t, 0.d0, pw, 0, nwflux+nwaux)
 
     !  ------ start of integration loop. ------------------
     timeloop0=MPI_WTIME()

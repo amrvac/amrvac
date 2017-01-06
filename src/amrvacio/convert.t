@@ -13,7 +13,7 @@ if(level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) then
    call resettree_convert
 end if
 
-call getbc(t,0.d0,ixG^LL,pw,0,nwflux+nwaux)
+call getbc(t,0.d0,pw,0,nwflux+nwaux)
 
 !!!call Global_useroutput !compute at user level any global variable over all grids
 
@@ -651,7 +651,8 @@ else
        rnode_IDL(rpxmax3_)=rnode(rpxmax1_,igrid)*cos(rnode(rpxmax2_,igrid))}
      end select 
      normconv(0)=normvar(0)
-     write(qunit) {rnode_IDL(rpxmin^D_)*normconv(0)},{rnode_IDL(rpxmax^D_)*normconv(0)}
+     write(qunit) {rnode_IDL(rpxmin^D_)*normconv(0)}, &
+          {rnode_IDL(rpxmax^D_)*normconv(0)}
   end do
 end if
 
@@ -2372,7 +2373,8 @@ write(qunit,'(a)')'<?xml version="1.0"?>'
 write(qunit,'(a)',advance='no') '<VTKFile type="ImageData"'
 {#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
 {#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
-write(qunit,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'
+write(qunit,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',&
+     origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'
  write(qunit,'(a)')'<FieldData>'
  write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                     'NumberOfTuples="1" format="ascii">'

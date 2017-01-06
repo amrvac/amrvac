@@ -221,7 +221,8 @@ length = length*size_single
  inquire(unitcollapse,opened=fileopen)
  if(.not.fileopen)then
       ! generate filename: 
-      write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_l',collapseLevel,'_n',icollapse,'.vti'
+    write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") trim(filenameout)//'_d',dir,&
+         '_l',collapseLevel,'_n',icollapse,'.vti'
       open(unitcollapse,file=filename,status='unknown',form='formatted')
  end if
 ! get the header: 
@@ -232,7 +233,8 @@ write(unitcollapse,'(a)')'<?xml version="1.0"?>'
 write(unitcollapse,'(a)',advance='no') '<VTKFile type="ImageData"'
 {#IFDEF BIGENDIAN write(unitcollapse,'(a)')' version="0.1" byte_order="BigEndian">'}
 {#IFNDEF BIGENDIAN write(unitcollapse,'(a)')' version="0.1" byte_order="LittleEndian">'}
-write(unitcollapse,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'
+write(unitcollapse,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',&
+     origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'
 write(unitcollapse,'(a)')'<FieldData>'
 write(unitcollapse,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
@@ -250,7 +252,8 @@ do iw=1,nw+nwauxio
     if(.not.writew(iw)) cycle
   endif
   write(unitcollapse,'(a,a,a,i16,a)')&
-       '<DataArray type="Float32" Name="',TRIM(wnamei(iw)),'" format="appended" offset="',offset,'"/>'
+       '<DataArray type="Float32" Name="',trim(wnamei(iw)),&
+       '" format="appended" offset="',offset,'"/>'
   offset = offset + length + size_length
 enddo
 

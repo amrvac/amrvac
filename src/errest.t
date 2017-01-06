@@ -6,6 +6,7 @@ use mod_global_parameters
 
 integer :: igrid, iigrid, ixCoG^L
 double precision :: factor
+logical, dimension(:,:), allocatable :: refine2
 !-----------------------------------------------------------------------------
 if (igridstail==0) return
 
@@ -43,9 +44,12 @@ case default
 end select
 
 ! enforce additional refinement on e.g. coordinate and/or time info here
-if (nbufferx^D/=0|.or.) &
-   call MPI_ALLREDUCE(MPI_IN_PLACE,refine,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
+if (nbufferx^D/=0|.or.) then
+   allocate(refine2(ngridshi,npe))
+   call MPI_ALLREDUCE(refine,refine2,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
                       icomm,ierrmpi)
+   refine=refine2
+end if
 !$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    call forcedrefine_grid(igrid,pw(igrid)%w)
@@ -64,15 +68,15 @@ use mod_global_parameters
 
 integer, intent(in) :: igrid
 
-integer :: iiflag, iflag, idims, idims2, level
-integer :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
-double precision :: epsilon, tolerance
+integer                            :: iiflag, iflag, idims, idims2, level
+integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
+double precision                   :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
 double precision, dimension(ixG^T) :: tmp, tmp1, tmp2
-logical, dimension(ixG^T) :: refineflag, coarsenflag
-!-----------------------------------------------------------------------------
-epsilon=1.0d-6
-level=node(plevel_,igrid)
+logical, dimension(ixG^T)          :: refineflag, coarsenflag
+
+epsilon = 1.0d-6
+level   = node(plevel_,igrid)
 ix^L=ixM^LL^LADD1;
 
 error=zero
@@ -164,8 +168,9 @@ tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 
    if (associated(usr_amr_tolerance)) then
-      call usr_amr_tolerance(pw(igrid)%w(ix^D,1:nw), &
-           px(igrid)%x(ix^D,1:ndim),tolerance,t)
+      wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
+      call usr_amr_tolerance(wtol, xtol, tolerance, t)
    end if
 
    if (error(ix^D) >= tolerance) then
@@ -190,7 +195,7 @@ integer, intent(in) :: igrid
 
 integer :: iiflag, iflag, idims, level
 integer :: ix^L, hx^L, jx^L, ix^D
-double precision :: epsilon, tolerance
+double precision :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
 double precision, dimension(ixG^T) :: dp, dm, dref, tmp1
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -259,8 +264,9 @@ tolerance=tol(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 
    if (associated(usr_amr_tolerance)) then
-      call usr_amr_tolerance(pw(igrid)%w(ix^D,1:nw), &
-           px(igrid)%x(ix^D,1:ndim),tolerance,t)
+      wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
+      call usr_amr_tolerance(wtol, xtol, tolerance, t)
    end if
 
    if (error(ix^D) >= tolerance) then
@@ -284,7 +290,7 @@ integer, intent(in) :: igrid
 double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
 
 integer :: ix^D, iiflag, iflag, level
-double precision :: epsilon, tolerance
+double precision :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
 double precision :: average, error
 double precision :: averages(nflag_)
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -315,8 +321,9 @@ tolerance=tol(level)
    end do
 
    if (associated(usr_amr_tolerance)) then
-      call usr_amr_tolerance(pw(igrid)%w(ix^D,1:nw),&
-           px(igrid)%x(ix^D,1:ndim),tolerance,t)
+      wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
+      call usr_amr_tolerance(wtol, xtol, tolerance, t)
    end if
 
    if (error >= tolerance) then

@@ -88,7 +88,6 @@ if ($show) {
 
 # Get these files if they do not exist already
 copy_if_not_present("makefile", "arch", "make_temp");
-copy_if_not_present("definitions.h", "src");
 copy_if_not_present('mod_indices.t', "src");
 copy_if_not_present("definitions.h", "src");
 

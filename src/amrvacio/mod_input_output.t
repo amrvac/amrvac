@@ -910,8 +910,8 @@ contains
             int(size_block,kind=MPI_OFFSET_KIND) &
             *int(nphyboundblock,kind=MPI_OFFSET_KIND)
        if (sfc_phybound(Morton_no)==1) then
-          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
-               istatus,ierrmpi)
+          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+               type_block,istatus,ierrmpi)
        else
           call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
                type_block_io,istatus,ierrmpi)
@@ -1225,7 +1225,10 @@ contains
        call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-
+       {#IFDEF EVOLVINGBOUNDARY
+       nphyboundblock=sum(sfc_phybound)
+       call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
+       }
        call MPI_FILE_CLOSE(file_handle,ierrmpi)
     end if
     snapshot=snapshot+1
@@ -1388,13 +1391,10 @@ contains
     {^IFNOMPT  integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb}
 
     integer(kind=MPI_OFFSET_KIND) :: offset
-    integer, dimension(ngridshi) :: iorequest
-    integer, dimension(MPI_STATUS_SIZE,ngridshi) :: iostatus
     integer, dimension(MPI_STATUS_SIZE) :: istatus
     character(len=80) :: filename
     logical :: fexist
     !-----------------------------------------------------------------------------
-!!!call MPI_BARRIER(icomm,ierrmpi)
     ! generate filename
     write(filename,"(a,i4.4,a)") TRIM(filenameini),snapshotini,".dat"
 
@@ -1407,8 +1407,6 @@ contains
     call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
 
 
-    !call MPI_TYPE_EXTENT(MPI_DOUBLE_PRECISION,size_double,ierrmpi)
-    !call MPI_TYPE_EXTENT(MPI_INTEGER,size_int,ierrmpi)
     call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
     call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
@@ -1417,7 +1415,6 @@ contains
     }{#IFNDEF EVOLVINGBOUNDARY
     offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
     }
-    !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
     call MPI_FILE_READ_ALL(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
@@ -1471,7 +1468,6 @@ contains
 
     call read_forest(file_handle)
 
-    iorequest=MPI_REQUEST_NULL
     iread=0
     {#IFDEF EVOLVINGBOUNDARY
     ! mark physical-boundary blocks on space-filling curve
@@ -1492,11 +1488,11 @@ contains
             int(size_block,kind=MPI_OFFSET_KIND) &
             *int(nphyboundblock,kind=MPI_OFFSET_KIND)
        if (sfc_phybound(Morton_no)==1) then
-          call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1, &
-               type_block, iorequest(iread),ierrmpi)
+          call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1, &
+               type_block,istatus,ierrmpi)
        else
-          call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1, &
-               type_block_io, iorequest(iread),ierrmpi)
+          call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1, &
+               type_block_io,istatus,ierrmpi)
        end if
     end do
     }{#IFNDEF EVOLVINGBOUNDARY
@@ -1506,12 +1502,10 @@ contains
        iread=iread+1
        offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
             *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-       call MPI_FILE_IREAD_AT(file_handle,offset,pw(igrid)%w,1, &
-            type_block_io, iorequest(iread),ierrmpi)
+       call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1, &
+            type_block_io,istatus,ierrmpi)
     end do
     }
-
-    if (iread>0) call MPI_WAITALL(iread,iorequest,iostatus,ierrmpi)
 
     call MPI_FILE_CLOSE(file_handle,ierrmpi)
 
@@ -1530,9 +1524,7 @@ contains
     {^IFNOMPT  integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb}
 
     integer(kind=MPI_OFFSET_KIND) :: offset
-    integer, dimension(ngridshi) :: iorequest
     integer, dimension(MPI_STATUS_SIZE) :: istatus
-    integer, dimension(MPI_STATUS_SIZE) :: iostatus
 
     integer, allocatable :: iorecvstatus(:,:)
     integer :: ipe,inrecv,nrecv
@@ -1540,7 +1532,6 @@ contains
     character(len=80) :: filename
     logical :: fexist
     !-----------------------------------------------------------------------------
-!!!call MPI_BARRIER(icomm,ierrmpi)
     ! generate filename
     write(filename,"(a,i4.4,a)") TRIM(filenameini),snapshotini,".dat"
     if (mype==0) then
@@ -1549,13 +1540,14 @@ contains
        amode=MPI_MODE_RDONLY
        call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
 
-       !call MPI_TYPE_EXTENT(MPI_DOUBLE_PRECISION,size_double,ierrmpi)
-       !call MPI_TYPE_EXTENT(MPI_INTEGER,size_int,ierrmpi)
        call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
        call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
+       {#IFDEF EVOLVINGBOUNDARY
+       offset=-int(8*size_int+size_double,kind=MPI_OFFSET_KIND)
+       }{#IFNDEF EVOLVINGBOUNDARY
        offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
-       !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
+       }
        call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
        call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
@@ -1567,6 +1559,9 @@ contains
        call MPI_FILE_READ(file_handle,neqparini,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_READ(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       {#IFDEF EVOLVINGBOUNDARY
+       call MPI_FILE_READ(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
+       }
        ! check if settings are suitable for restart
        if (levmaxini>mxnest) then
           write(*,*) "number of levels in restart file = ",levmaxini
@@ -1590,7 +1585,6 @@ contains
 
 
        offset=offset-int(ndimini*size_int+neqparini*size_double,kind=MPI_OFFSET_KIND)
-       !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
        call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
        {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
@@ -1619,29 +1613,75 @@ contains
     end if
 
     call read_forest(file_handle)
+    {#IFDEF EVOLVINGBOUNDARY
+    ! mark physical-boundary blocks on space-filling curve
+    do Morton_no=Morton_start(mype),Morton_stop(mype)
+       igrid=sfc_to_igrid(Morton_no)
+       call alloc_node(igrid)
+       if (phyboundblock(igrid)) sfc_phybound(Morton_no)=1
+    end do
+    call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
+         MPI_SUM,icomm,ierrmpi)
+    }{#IFNDEF EVOLVINGBOUNDARY
+    do Morton_no=Morton_start(mype),Morton_stop(mype)
+       igrid=sfc_to_igrid(Morton_no)
+       call alloc_node(igrid)
+    end do
+    }
 
     if (mype==0)then
        iread=0
-       iorequest=MPI_REQUEST_NULL
+
        do Morton_no=Morton_start(0),Morton_stop(0)
           igrid=sfc_to_igrid(Morton_no)
-          call alloc_node(igrid)
           iread=iread+1
+    {#IFDEF EVOLVINGBOUNDARY
+          nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
+          offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+               *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
+               int(size_block,kind=MPI_OFFSET_KIND) &
+               *int(nphyboundblock,kind=MPI_OFFSET_KIND)
+          if (sfc_phybound(Morton_no)==1) then
+            call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,&
+                 type_block,istatus,ierrmpi)
+          else
+            call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,&
+                 type_block_io,istatus,ierrmpi)
+          endif
+    }{#IFNDEF EVOLVINGBOUNDARY
           offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
                *int(Morton_no-1,kind=MPI_OFFSET_KIND)
           call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-               iostatus,ierrmpi)
+               istatus,ierrmpi)
+    }
        end do
        if (npe>1) then
           do ipe=1,npe-1
              do Morton_no=Morton_start(ipe),Morton_stop(ipe)
                 iread=iread+1
                 itag=Morton_no
+    {#IFDEF EVOLVINGBOUNDARY
+                nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
                 offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+                     *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
+                     int(size_block,kind=MPI_OFFSET_KIND) &
+                     *int(nphyboundblock,kind=MPI_OFFSET_KIND)
+                if (sfc_phybound(Morton_no)==1) then
+                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block,&
+                       istatus,ierrmpi)
+                  call MPI_SEND(wio,1,type_block, ipe,itag,icomm,ierrmpi)
+                else
+                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io,&
+                       istatus,ierrmpi)
+                  call MPI_SEND(wio,1,type_block_io, ipe,itag,icomm,ierrmpi)
+                endif
+    }{#IFNDEF EVOLVINGBOUNDARY
+                offset=int(size_block_io,kind=MPI_OFFSET_KIND)&
                      *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-                call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io, &
-                     iostatus,ierrmpi)
-                call MPI_SEND(wio,1,type_block_io, ipe,itag,icomm,ierrmpi)
+                call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io,&
+                     istatus,ierrmpi)
+                call MPI_SEND(wio,1,type_block_io,ipe,itag,icomm,ierrmpi)
+    }
              end do
           end do
        end if
@@ -1653,10 +1693,19 @@ contains
        do Morton_no=Morton_start(mype),Morton_stop(mype)
           igrid=sfc_to_igrid(Morton_no)
           itag=Morton_no
-          call alloc_node(igrid)
           inrecv=inrecv+1
+    {#IFDEF EVOLVINGBOUNDARY
+          if (sfc_phybound(Morton_no)==1) then
+            call MPI_RECV(pw(igrid)%w,1,type_block   ,0,itag,icomm,&
+                 iorecvstatus(:,inrecv),ierrmpi)
+          else
+            call MPI_RECV(pw(igrid)%w,1,type_block_io,0,itag,icomm,&
+                 iorecvstatus(:,inrecv),ierrmpi)
+          endif
+    }{#IFNDEF EVOLVINGBOUNDARY
           call MPI_RECV(pw(igrid)%w,1,type_block_io,0,itag,icomm,&
                iorecvstatus(:,inrecv),ierrmpi)
+    }
        end do
        deallocate(iorecvstatus)
     end if

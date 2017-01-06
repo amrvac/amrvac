@@ -186,7 +186,7 @@ if (has_particle(mype)) then
    buff(1) = mype
 end if
 
-if (npe>0) call MPI_ALLGATHER(MPI_IN_PLACE,1,MPI_LOGICAL,has_particle,1,MPI_LOGICAL,icomm,ierrmpi)
+if (npe>0) call MPI_ALLGATHER(has_particle(mype),1,MPI_LOGICAL,has_particle,1,MPI_LOGICAL,icomm,ierrmpi)
 
 ipe_has_particle = -1
 do ipe=0,npe-1

@@ -846,43 +846,44 @@ end subroutine addgeometry
 {#IFDEF DUST
 subroutine addsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
 
-! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
+  ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
 
-use mod_global_parameters
+  use mod_global_parameters
 
-integer, intent(in) :: ixI^L, ixO^L, iw^LIM
-double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
-double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
-logical, intent(in) :: qsourcesplit
+  integer, intent(in) :: ixI^L, ixO^L, iw^LIM
+  double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
+  double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+  logical, intent(in) :: qsourcesplit
 
-! .. local ..
-double precision, dimension(ixG^T,1:^NC,1:^NDS)  :: fdrag
-integer :: idir
-!-----------------------------------------------------------------------------
+  ! .. local ..
+  double precision, dimension(ixG^T,1:^NC,1:^NDS)  :: fdrag
+  integer :: idir
+  !-----------------------------------------------------------------------------
 
-select case( TRIM(dustmethod) )
-   case( 'none' ) 
-	!do nothing here
-   case default !all regular dust methods here
-	if(qsourcesplit .eqv. ssplitdust) then
-		call get_3d_dragforce(ixI^L,ixO^L,wCT,x,fdrag)
-		do idir=1,ndir
-		    fdrag(ixO^S,idir,1:^NDS)=fdrag(ixO^S,idir,1:^NDS)*qdt
-		    {^DS&
-		    !!RK!where( w(ixO^S,rhod^DS_)>minrhod )
-		       w(ixO^S,m0_+idir)  = w(ixO^S,m0_+idir)  + fdrag(ixO^S,idir,^DS)
-		{#IFDEF ENERGY
-		       w(ixO^S,e_)        = w(ixO^S,e_)        + (wCT(ixO^S,m0_+idir)/ &
-				            wCT(ixO^S,rho_))*fdrag(ixO^S,idir,^DS)
-		}
-		       w(ixO^S,(rhod^DS_)+idir*^NDS) = w(ixO^S,(rhod^DS_)+idir*^NDS) - fdrag(ixO^S,idir,^DS)
-		    !!RK!end where
-		    \}
-		end do
+  select case( TRIM(dustmethod) )
+  case( 'none' )
+     !do nothing here
+  case default !all regular dust methods here
+     if(qsourcesplit .eqv. ssplitdust) then
+        call get_3d_dragforce(ixI^L,ixO^L,wCT,x,fdrag)
+        do idir=1,ndir
+           fdrag(ixO^S,idir,1:^NDS)=fdrag(ixO^S,idir,1:^NDS)*qdt
+           {^DS&
+                !!RK!where( w(ixO^S,rhod^DS_)>minrhod )
+                w(ixO^S,m0_+idir)  = w(ixO^S,m0_+idir)  + fdrag(ixO^S,idir,^DS)
+           {#IFDEF ENERGY
+           w(ixO^S,e_)        = w(ixO^S,e_)        + (wCT(ixO^S,m0_+idir)/ &
+                wCT(ixO^S,rho_))*fdrag(ixO^S,idir,^DS)
+           }
+           w(ixO^S,(rhod^DS_)+idir*^NDS) = w(ixO^S,(rhod^DS_)+idir*^NDS) - &
+                fdrag(ixO^S,idir,^DS)
+           !!RK!end where
+           \}
+        end do
 
-		if( dustzero ) call set_dusttozero(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
-	endif
-end select
+        if( dustzero ) call set_dusttozero(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+     endif
+  end select
 
 end subroutine addsource
 !=============================================================================
