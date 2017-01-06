@@ -5,7 +5,7 @@ module mod_input_output
   public
 
   ! Formats used in output
-  character(len=*), parameter :: fmt_r  = 'es14.6' ! Default precision
+  character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
   character(len=*), parameter :: fmt_i  = 'i8'     ! Integer format
 
