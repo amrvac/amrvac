@@ -145,10 +145,11 @@ contains
 
   subroutine timeintegration()
     use mod_timing
+    use mod_forest, only: nleafs_active
     use mod_global_parameters
     use mod_input_output, only: saveamrfile
 
-    integer :: level, ifile, fixcount
+    integer :: level, ifile, fixcount, ncells_update, ncells_block
     logical :: alive
 
     time_in=MPI_WTIME()
@@ -176,7 +177,8 @@ contains
        write(*,'(a,f12.3,a)')&
             ' BCs before Advance took : ',timefirstbc,' sec'
     end if
-
+    ncells_block={(ixGhi^D-2*dixB)*}
+    ncells_update=0
     time_evol : do
        call setdt()
        if(fixprocess) call process(it,t)
@@ -231,7 +233,7 @@ contains
           itmin=0
           itsavelast(:)=0
        end if
-
+       ncells_update=ncells_update+ncells_block*nleafs_active
     end do time_evol
 
     timeloop=MPI_WTIME()-timeloop0
@@ -245,6 +247,7 @@ contains
        write(*,'(a,f12.3,a)')' Time spent on BC           : ',time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on run          : ',timeloop-timeio_tot,' sec'
+       write(*,'(a,es16.8,a)')' Cells_updated / cpu / sec  : ',dble(ncells_update*nstep)/timeloop/dble(npe)
     end if
 
     timeio0=MPI_WTIME()
