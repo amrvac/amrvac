@@ -85,7 +85,7 @@ contains
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
     integer          :: iB, isave, iw, level, idim, islice
-    integer          :: nxlone^D, nx_vec(^ND)
+    integer          :: nx_vec(^ND)
     double precision :: dx_vec(^ND)
 
     character              :: c_ndim
@@ -933,15 +933,15 @@ contains
        call write_forest(file_handle)
 
        {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
-       call MPI_FILE_WRITE(file_handle,eqpar,neqpar+nspecialpar, &
-            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nxlone^D,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        {#IFDEF EVOLVINGBOUNDARY
@@ -1030,15 +1030,15 @@ contains
     call write_forest(file_handle_tf)
 
     {nx^D=ixMhi^D-ixMlo^D+1
-    call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
-    call MPI_FILE_WRITE(file_handle_tf,eqpar_tf,neqpartf, &
-         MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,nxlone^D,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
     call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,neqpartf,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
 
@@ -1214,15 +1214,15 @@ contains
        call write_forest(file_handle)
 
        {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)\}
-       call MPI_FILE_WRITE(file_handle,eqpar,neqpar+nspecialpar, &
-            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nxlone^D,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,neqpar+nspecialpar,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        {#IFDEF EVOLVINGBOUNDARY
@@ -1361,14 +1361,15 @@ contains
     if(mype==0) then
        call write_forest(unitsnapshot)
        {nx^D=ixMhi^D-ixMlo^D+1
-       write(unitsnapshot) nx^D\}
-       write(unitsnapshot) eqpar
+       write(unitsnapshot) nx^D
+       write(unitsnapshot) nxlone^D
+       write(unitsnapshot) xprobmin^D
+       write(unitsnapshot) xprobmax^D\}
        write(unitsnapshot) nleafs
        write(unitsnapshot) levmax 
        write(unitsnapshot) ndim 
        write(unitsnapshot) ndir
        write(unitsnapshot) nw
-       write(unitsnapshot) neqpar+nspecialpar
        write(unitsnapshot) it
        write(unitsnapshot) t
        close(unitsnapshot)
@@ -1385,7 +1386,8 @@ contains
     use mod_global_parameters
 
     integer :: file_handle, amode, igrid, Morton_no, iread
-    integer :: levmaxini, ndimini, ndirini, nwini, neqparini, nxini^D
+    integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, nxloneini^D
+    double precision :: xprobminini^D,xprobmaxini^D
 
     {^IFMPT integer :: size_double, size_int,lb}
     {^IFNOMPT  integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb}
@@ -1411,24 +1413,22 @@ contains
     call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
     {#IFDEF EVOLVINGBOUNDARY
-    offset=-int(8*size_int+size_double,kind=MPI_OFFSET_KIND)
-    }{#IFNDEF EVOLVINGBOUNDARY
     offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
+    }{#IFNDEF EVOLVINGBOUNDARY
+    offset=-int(6*size_int+size_double,kind=MPI_OFFSET_KIND)
     }
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
-
     call MPI_FILE_READ_ALL(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-    nleafs_active = nleafs
     call MPI_FILE_READ_ALL(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,neqparini,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     {#IFDEF EVOLVINGBOUNDARY
     call MPI_FILE_READ_ALL(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
     }
+    nleafs_active = nleafs
 
     ! check if settings are suitable for restart
     if (levmaxini>mxnest) then
@@ -1451,20 +1451,30 @@ contains
        call mpistop("currently, changing nw at restart is not allowed")
     end if
 
-    offset=offset-int(ndimini*size_int+neqparini*size_double,kind=MPI_OFFSET_KIND)
+    offset=offset-int(2*ndimini*size_int+2*ndimini*size_double,kind=MPI_OFFSET_KIND)
     !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
-    {call MPI_FILE_READ_ALL(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
+   {call MPI_FILE_READ_ALL(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,nxloneini^D,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,xprobminini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,xprobmaxini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
     if (ixGhi^D/=nxini^D+2*dixB|.or.) then
-       if (mype==0) write(*,*) "Error: reset resolution to ",nxini^D+2*dixB
-       call mpistop("change with setup.pl")
+       if (mype==0) write(*,*) "Error: reset block resolution to ",nxini^D+2*dixB
+       call mpistop("change ixGhi^D in par file")
     end if
-    neqparini=min(neqparini,neqpar+nspecialpar)
-    call MPI_FILE_READ_ALL(file_handle,eqpar,neqparini, &
-         MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-
-
+    if (nxlone^D/=nxloneini^D|.or.) then
+       if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",nxloneini^D
+       call mpistop("change nxlone^D in par file")
+    end if
+    if (xprobmin^D/=xprobminini^D|.or.) then
+       if (mype==0) write(*,*) "Error: location of minimum does not match the data: ",xprobminini^D
+       call mpistop("change xprobmin^D in par file")
+    end if
+    if (xprobmax^D/=xprobmaxini^D|.or.) then
+       if (mype==0) write(*,*) "Error: location of maximum does not match the data: ",xprobmaxini^D
+       call mpistop("change xprobmax^D in par file")
+    end if
 
     call read_forest(file_handle)
 
@@ -1528,7 +1538,6 @@ contains
 
     integer, allocatable :: iorecvstatus(:,:)
     integer :: ipe,inrecv,nrecv
-    integer :: sendini(7+^ND)
     character(len=80) :: filename
     logical :: fexist
     !-----------------------------------------------------------------------------
@@ -1544,19 +1553,16 @@ contains
        call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
        {#IFDEF EVOLVINGBOUNDARY
-       offset=-int(8*size_int+size_double,kind=MPI_OFFSET_KIND)
-       }{#IFNDEF EVOLVINGBOUNDARY
        offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
+       }{#IFNDEF EVOLVINGBOUNDARY
+       offset=-int(6*size_int+size_double,kind=MPI_OFFSET_KIND)
        }
        call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
-
        call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-       nleafs_active = nleafs
        call MPI_FILE_READ(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_READ(file_handle,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_READ(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_READ(file_handle,neqparini,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_READ(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        {#IFDEF EVOLVINGBOUNDARY
@@ -1584,7 +1590,7 @@ contains
        end if
 
 
-       offset=offset-int(ndimini*size_int+neqparini*size_double,kind=MPI_OFFSET_KIND)
+       offset=offset-int(2*ndimini*size_int+2*ndimini*size_double,kind=MPI_OFFSET_KIND)
        call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
        {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
@@ -1592,25 +1598,15 @@ contains
           write(*,*) "Error: reset resolution to ",nxini^D+2*dixB
           call mpistop("change with setamrvac")
        end if
-       neqparini=min(neqparini,neqpar+nspecialpar)
-       call MPI_FILE_READ(file_handle,eqpar,neqparini, &
-            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     end if
 
     ! broadcast the global parameters first
     if (npe>1) then
-       if (mype==0) then
-          sendini=(/nleafs,levmaxini,ndimini,ndirini,nwini,neqparini,it ,^D&nxini^D /)
-       end if
-       call MPI_BCAST(sendini,7+^ND,MPI_INTEGER,0,icomm,ierrmpi)
-       nleafs=sendini(1);levmaxini=sendini(2);ndimini=sendini(3);
-       ndirini=sendini(4);nwini=sendini(5);
-       neqparini=sendini(6);it=sendini(7);
-       nxini^D=sendini(7+^D);
-       nleafs_active = nleafs
+       call MPI_BCAST(nleafs,1,MPI_INTEGER,0,icomm,ierrmpi)
+       call MPI_BCAST(it,1,MPI_INTEGER,0,icomm,ierrmpi)
        call MPI_BCAST(t,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
-       call MPI_BCAST(eqpar,neqparini,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     end if
+    nleafs_active = nleafs
 
     call read_forest(file_handle)
     {#IFDEF EVOLVINGBOUNDARY

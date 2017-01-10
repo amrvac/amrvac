@@ -24,12 +24,6 @@ def get_args():
     parser.add_argument('dat_files', nargs='+',
                         type=argparse.FileType('rb'),
                         help='MPI-AMRVAC .dat files to read')
-    parser.add_argument('-xmin', type=float, default=0.0,
-                        help='The minimum x-coordinate')
-    parser.add_argument('-xmax', type=float, required=True,
-                        help='The maximum x-coordinate')
-    parser.add_argument('-ngrid', type=int, required=True,
-                        help='The number of grid points')
     parser.add_argument('-iw', type=int, default=1,
                         help='Index of variable to plot')
     parser.add_argument('-outfile', type=argparse.FileType('w'),
@@ -48,10 +42,10 @@ def animate(f):
 def get_data(dat, args):
 
     dat.seek(0,2)       # goto EOF
-    offset = -36        # 36 = 7*size_int + size_double = 7*4 + 8
+    offset = -32        # 32 = 6*size_int + size_double = 6*4 + 8
     dat.seek(offset,1)  # go back 36 bytes
 
-    ### Read 7 footer ints + 1 double
+    ### Read 6 footer ints + 1 double
     int_in = dat.read(4)
     nleafs = struct.unpack('i',int_in)[0]    # number of active tree leafs nleafs (= #blocks)
     int_in = dat.read(4)
@@ -63,8 +57,6 @@ def get_data(dat, args):
     int_in = dat.read(4)
     nwini = struct.unpack('i',int_in)[0]     # number of variables nw
     int_in = dat.read(4)
-    neqparini = struct.unpack('i',int_in)[0] # number of equation-specific variables neqpar+nspecialpar
-    int_in = dat.read(4)
     it = struct.unpack('i',int_in)[0]        # integer time counter it
     flt_in = dat.read(8)
     t = struct.unpack('d',flt_in)[0]         # global time t
@@ -72,21 +64,28 @@ def get_data(dat, args):
     # TODO: Check ndimini
 
     # read block size in each dimension and all eqpars
-    offset = offset-int(ndimini*4 + neqparini*8) # int size = 4, double = 8
+    offset = offset-int(2*ndimini*4 + 2*ndimini*8) # int size = 4, double = 8
     dat.seek(offset,1)
 
     # Get block size
     int_in = dat.read(4)
     n_cell = struct.unpack('i',int_in)[0]
     size_block = n_cell*nwini*8   # block size in bytes
-
+    # Get size of level one mesh
+    int_in = dat.read(4)
+    n_mesh_lev1= struct.unpack('i',int_in)[0]
+    # Get x minimum location
     flt_in = dat.read(8)
-    neqpar = struct.unpack('d',flt_in)[0]
+    xmin = struct.unpack('d',flt_in)[0]
+    # Get x maximum location
+    flt_in = dat.read(8)
+    xmax = struct.unpack('d',flt_in)[0]
+    
 
     # Read forest
     dat.seek(nleafs*size_block,0)   # go to end of block stuctures, start of the forest
 
-    n_blocks = args.ngrid // n_cell     # number of blocks in each direction
+    n_blocks = n_mesh_lev1 // n_cell     # number of blocks in each direction
 
     block_info = []
     igrid = 0
@@ -102,10 +101,10 @@ def get_data(dat, args):
     # Calculate physical sizes of blocks and cells on level one
 
     # physical block size in each direction (on the first level)
-    dx = (args.xmax - args.xmin) / n_blocks
+    dx = (xmax - xmin) / n_blocks
 
     # physical cell size in each direction (on the first level)
-    dxc = (args.xmax - args.xmin) / args.ngrid
+    dxc = (xmax - xmin) / n_mesh_lev1
 
     data_1d = np.zeros((n_cell * nleafs, nwini+1))
     i_cell = 0
@@ -114,7 +113,7 @@ def get_data(dat, args):
     dat.seek(0,0)  # go to start of file
     for i in range(nleafs):
         # coordinates of bottom left corner of block
-        lb = args.xmin + (block_info[i][1] - 1) * dx / (2**(block_info[i][0]-1))
+        lb = xmin + (block_info[i][1] - 1) * dx / (2**(block_info[i][0]-1))
 
         # local cell size
         dxc_block = dxc/(2**(block_info[i][0]-1))
