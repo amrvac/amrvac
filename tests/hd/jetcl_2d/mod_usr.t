@@ -18,8 +18,6 @@ module mod_usr
 
   implicit none
 
-  double precision :: gamma_=1.66666667d0
-
   ! jet to cloud density ratio parameter
   double precision :: beta_ = 0.04d0
   ! jet to ambient density contrast
@@ -40,6 +38,7 @@ contains
     usr_special_bc => specialbound_usr
 
     call hd_activate()
+
   end subroutine usr_init
 
   ! initialize one grid
@@ -71,7 +70,7 @@ contains
        {^IFTHREED
        w(ix^S,mom(3))=0.0d0
        }
-       w(ix^S,e_)   = ca_**2/(gamma_*eta_)
+       w(ix^S,e_)   = ca_**2/(hd_gamma*eta_)
        w(ix^S, tracer(1)) = 100.0d0
     elsewhere
        !=== Set Ambient ===!
@@ -81,7 +80,7 @@ contains
        {^IFTHREED
        w(ix^S,mom(3))=0.0d0
        }
-       w(ix^S,e_)   = ca_**2/(gamma_*eta_)
+       w(ix^S,e_)   = ca_**2/(hd_gamma*eta_)
        w(ix^S,tracer(1)) = 0.0d0
     endwhere
 
@@ -130,13 +129,13 @@ contains
           w(ixO^S,rho_) = 1.0d0
           w(ixO^S,mom(1))  = Ma_*ca_
           w(ixO^S,mom(2))  = 0.0d0
-          w(ixO^S,e_)   = ca_**2/(gamma_*eta_)
+          w(ixO^S,e_)   = ca_**2/(hd_gamma*eta_)
           w(ixO^S,tracer(1)) = 100.0d0
        elsewhere
           w(ixO^S,rho_) = 1.0d0/eta_
           w(ixO^S,mom(1))  = 0.0d0
           w(ixO^S,mom(2))  = 0.0d0
-          w(ixO^S,e_)   = ca_**2/(gamma_*eta_)
+          w(ixO^S,e_)   = ca_**2/(hd_gamma*eta_)
           w(ixO^S,tracer(1)) = 0.0d0
        endwhere
        {^IFTHREED

@@ -82,4 +82,5 @@
 
  &hd_list
         hd_n_tracer = 1
+        hd_gamma = 1.66666667d0
  /
