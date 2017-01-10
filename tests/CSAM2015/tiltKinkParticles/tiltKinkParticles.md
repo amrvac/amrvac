@@ -1,12 +1,6 @@
 # Test stressedIsland
 
 \test stressedIsland
-\todo Does not compile:
-
-    comm_lib.f:63.10:
-    size_block=nxG1*nxG2*nw*size_double
-          1
-    Error: Symbol 'size_block' at (1) has no IMPLICIT type
 
 # Setup instructions
 
