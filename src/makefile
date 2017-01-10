@@ -13,7 +13,6 @@ amrvac$F		advance$F		setdt$F	               	\
 amrini$F				                        	\
 amr_solution_node$F	                                        	\
 errest$F		amrgrid$F		amr_fix_conserve$F      \
-amr_ghostcells$F \
 tvdlf$F			tvd$F			cd$F			\
 fd$F                                                                    \
 load_balance$F		connectivity$F		mod_fix_conserve$F	\
@@ -22,7 +21,7 @@ forest$F		mod_forest$F		amr_neighbors$F		\
 amr_coarsen_refine$F	refine$F                                        \
 coarsen$F		set_B0$F             				\
 selectgrids$F           geometry$F		mod_global_parameters$F	\
-mod_usr_methods$F mod_usr$F
+mod_usr_methods$F mod_usr$F mod_ghostcells_update$F
 
 ############################################################################
 #  Dependencies:
@@ -32,7 +31,7 @@ mod_physicaldata.o : mod_indices.o
 amr_fix_conserve.o : mod_fix_conserve.o
 forest.o initialize_vars.o : mod_forest.o mod_global_parameters.o
 amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o \
-	mod_physics.o
+	mod_physics.o mod_ghostcells_update.o
 amrvac.o: mod_usr.o
 mod_usr.o: mod_usr_methods.o mod_rho.o mod_hd.o
 
@@ -42,5 +41,5 @@ amrvac.o: mod_rho.o mod_hd.o
 mod_input_output.o: mod_physics.o mod_usr_methods.o
 mod_physics.o: mod_global_parameters.o mod_physics_roe.o mod_physics_hllc.o \
 	mod_physics_ppm.o
-amr_ghostcells.o: mod_physics.o
+mod_ghostcells_update.o: mod_global_parameters.o mod_physics.o
 ############################################################################

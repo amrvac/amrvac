@@ -2,6 +2,7 @@
 subroutine settree
 
 use mod_global_parameters
+use mod_ghostcells_update
 
 ! create and initialize grids on all levels > 1. On entry, all
 ! level=1 grids have been formed and initialized. This subroutine
@@ -58,6 +59,7 @@ end subroutine resettree
 subroutine resettree_convert
 
 use mod_global_parameters
+use mod_ghostcells_update
 integer  :: igrid,iigrid, my_levmin, my_levmax
 !-----------------------------------------------------------------------------
 if (level_io > 0) then

@@ -15,6 +15,7 @@ program amrvac
   use mod_physics
   use mod_usr_methods, only: usr_before_main_loop
   use mod_usr, only: usr_init
+  use mod_ghostcells_update
 
   integer          :: itin
   double precision :: time0, time_in, tin
@@ -148,6 +149,7 @@ contains
     use mod_forest, only: nleafs_active
     use mod_global_parameters
     use mod_input_output, only: saveamrfile
+    use mod_ghostcells_update
 
     integer :: level, ifile, fixcount, ncells_update, ncells_block
     logical :: alive

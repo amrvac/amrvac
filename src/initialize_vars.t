@@ -4,6 +4,7 @@
 subroutine initialize_vars
 use mod_forest
 use mod_global_parameters
+use mod_ghostcells_update
 
 integer :: igrid, level, ipe, ig^D
 logical :: ok
@@ -166,7 +167,7 @@ UNIT_LENGTH   = ONE
 UNIT_DENSITY  = ONE
 UNIT_VELOCITY = ONE
 ! define index ranges and MPI send/receive derived datatype for ghost-cell swap
-call init_bc
+call init_bc()
 
 end subroutine initialize_vars
 !=============================================================================

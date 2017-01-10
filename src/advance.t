@@ -346,6 +346,7 @@ subroutine advect1(method,dtfactor,idim^LIM,qtC,pwa,qt,pwb,pwc)
 ! This subroutine is equivalent to VAC's `advect1', but does
 ! the advection for all grids
 use mod_global_parameters
+use mod_ghostcells_update
 
 integer, intent(in) :: idim^LIM
 double precision, intent(in) :: dtfactor, qtC, qt
@@ -500,8 +501,8 @@ end select
 end subroutine advect1_grid
 !=============================================================================
 subroutine addsource_all(prior)
-
 use mod_global_parameters
+use mod_ghostcells_update
 
 logical, intent(in) :: prior
 

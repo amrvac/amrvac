@@ -6,6 +6,7 @@ subroutine generate_plotfile
 use mod_timing, only: tpartc, tpartc0
 }
 use mod_global_parameters
+use mod_ghostcells_update
 !-----------------------------------------------------------------------------
 
 if(mype==0.and.level_io>0)write(unitterm,*)'reset tree to fixed level=',level_io

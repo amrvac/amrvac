@@ -2,6 +2,7 @@
 subroutine amr_coarsen_refine
 use mod_forest
 use mod_global_parameters
+use mod_ghostcells_update
 
 integer :: iigrid, igrid, ipe, igridCo, ipeCo, level, ic^D
 integer, dimension(2^D&) :: igridFi, ipeFi
