@@ -53,6 +53,10 @@ module mod_indices
 
   logical, allocatable, dimension(:^D&), save :: patchfalse
 
+  !> For MHD: split B=B0+B1 (time-independent potential field B0 in set_B0.t)
+  !>   In spherical coordinates: Dipole/Quadrupole/Octopole strengths
+  !>   In general: Busr different from zero interfaces to specialset_B0
+  !> @todo Make local to the MHD module only
   logical, save :: B0field
   double precision, save :: Bdip, Bquad, Boct, Busr
 end module mod_indices
