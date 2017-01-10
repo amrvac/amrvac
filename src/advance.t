@@ -31,7 +31,7 @@ call update_rays
 }
 
 ! split source addition
-if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser .or. conduction) &
+if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser .or. thermalconduction) &
   call addsource_all(.true.)
 
 ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
@@ -65,7 +65,7 @@ end if
 
 
 ! split source addition
-if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser .or. conduction) &
+if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser .or. thermalconduction) &
   call addsource_all(.false.)
 
 {#IFDEF PARTICLES
@@ -503,16 +503,17 @@ end subroutine advect1_grid
 subroutine addsource_all(prior)
 use mod_global_parameters
 use mod_ghostcells_update
+use mod_thermalconduction
 
 logical, intent(in) :: prior
 
 double precision :: qdt, qt
 integer :: iigrid, igrid, i^D
 !-----------------------------------------------------------------------------
-{#IFDEF TCRKL2
+
 ! add thermal conduction
-if(conduction) call thermalconduction
-}
+if(associated(phys_thermalconduction_main)) call phys_thermalconduction_main()
+
 
 if ((.not.prior).and.&
     (typesourcesplit=='sf' .or. typesourcesplit=='ssf')) return

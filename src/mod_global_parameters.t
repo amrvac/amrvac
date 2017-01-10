@@ -429,7 +429,7 @@ module mod_global_parameters
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps, mcbeta, TCphi
   !> \todo organize Thermal Conduction: bcphys/TCphi/TCsaturate/conduction
-  logical                       :: conduction,TCsaturate,TCperpendicular,bcphys
+  logical                       :: thermalconduction,TCsaturate,TCperpendicular,bcphys
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh,flatppm
   logical                       :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
@@ -600,7 +600,6 @@ module mod_global_parameters
   double precision :: tolratio(nlevelshi)
   double precision :: dx(ndim,nlevelshi)
   double precision :: dt
-  double precision :: dtimpl
   double precision, allocatable :: dt_grid(:)
   double precision :: dxlevel(ndim)
 

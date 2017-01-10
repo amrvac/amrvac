@@ -1,15 +1,14 @@
 !>setdt  - set dt for all levels between levmin and levmax. 
 !>         dtpar>0  --> use fixed dtpar for all level
 !>         dtpar<=0 --> determine CFL limited timestep 
-!>       - set dtimpl
 subroutine setdt()
 use mod_global_parameters
 use mod_physics, only: phys_get_dt, phys_get_aux
 use mod_usr_methods, only: usr_get_dt
+use mod_thermalconduction
 
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
-double precision :: qdtimpl,dtimpl_mype
 
 double precision :: dtmax, dxmin
 integer,save :: stepflag
@@ -93,30 +92,22 @@ else
    dt=dtmin_mype
 end if
    
-{#IFDEF TCRKL2
 ! estimate time step of thermal conduction
-if(conduction) then
-   dtimpl_mype=bigdouble
-!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,qdtimpl,&
-!$OMP& dx^D) REDUCTION(min:dtimpl_mype)
+if(associated(phys_getdt_heatconduct)) then
+   dtmin_mype=bigdouble
+!$OMP PARALLEL DO PRIVATE(igrid,qdtnew,&
+!$OMP& dx^D) REDUCTION(min:dt_mype)
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      qdtimpl=bigdouble
       dx^D=rnode(rpdx^D_,igrid);
       saveigrid = igrid
       if (.not.slab) mygeo => pgeo(igrid)
       if (B0field) myB0_cell => pB0_cell(igrid)
       qdtnew=bigdouble
-{^IFMHDPHYS
-      call getdt_heatconduct_mhd(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
-}
-{^IFHDPHYS
-      call getdt_heatconduct_hd(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
-}
-      qdtimpl=min(qdtimpl,qdtnew)
-      dtimpl_mype=min(dtimpl_mype,qdtimpl)
+      call phys_getdt_heatconduct(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+      dtmin_mype=min(dtmin_mype,qdtnew)
    end do
 !$OMP END PARALLEL DO
-   call MPI_ALLREDUCE(dtimpl_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
+   call MPI_ALLREDUCE(dtmin_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
    ncycle=ceiling(dt/dtimpl)
    if (ncycle>ncyclemax) then
@@ -127,7 +118,6 @@ if(conduction) then
      dt=ncyclemax*dtimpl
    endif
 endif
-}
 
 !$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);

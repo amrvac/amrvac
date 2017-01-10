@@ -78,6 +78,7 @@ contains
   !> Initialize the module
   subroutine hd_phys_init()
     use mod_global_parameters
+    use mod_thermalconduction
 
     integer :: itr, idir
 
@@ -132,6 +133,15 @@ contains
     phys_to_primitive    => hd_to_primitive
     phys_check_params    => hd_check_params
     phys_check_w         => hd_check_w
+  
+    ! initialize thermal conduction module
+    if(thermalconduction) then
+      tc_gamma=hd_gamma
+      phys_thermalconduction_main => do_thermalconduction_main
+      phys_get_heatconduct   => hd_get_heatconduct
+      phys_getdt_heatconduct => hd_getdt_heatconduct
+      call thermalconduction_init()
+    end if
 
   end subroutine hd_phys_init
 
