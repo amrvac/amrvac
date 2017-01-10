@@ -17,9 +17,9 @@
         convert_type = 'vtuBCCmpi'
         saveprim      = T
         nwauxio       = 1
-        filenameout='output/data'
-        filenamelog='output/data'
-        filenameini='output/data'
+        filenameout='data'
+        filenamelog='data'
+        filenameini='data'
 !        typefilelog='special'
 /
 
