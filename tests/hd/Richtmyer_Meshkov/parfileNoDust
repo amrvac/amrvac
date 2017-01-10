@@ -12,20 +12,21 @@
 	!snapshotnext=471
 	writew=.T.,3*.F.
 	nwauxio=1
-	convert=.true.
+	convert=.false.
  /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
 	ditsave(1)=20
-        dtsave(2)=0.005
+        dtsave(2)=0.005d0
  /
         ditsave(1)=1
 
  &stoplist
         !dtmin=1.0d-6
         tmax=3.0d0
+        !itmax=1
  /
 
  &methodlist

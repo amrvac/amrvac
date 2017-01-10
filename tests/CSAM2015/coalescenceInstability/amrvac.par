@@ -14,9 +14,9 @@
   saveprim                = T
   typeparIO               = 0
   nwauxio                 = 6
-  filenameout             = 'output/data'
-  filenameini             = 'output/data'
-  filenamelog             = 'output/amrvac'
+  filenameout             = 'data'
+  filenameini             = 'data'
+  filenamelog             = 'amrvac'
   sliceascii              = T
 /
 

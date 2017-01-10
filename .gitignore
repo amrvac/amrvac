@@ -5,3 +5,4 @@ doc/html/*
 *.out
 *amrvac
 F90sources
+*.amrvac.log.shfp.*

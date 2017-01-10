@@ -199,9 +199,9 @@ integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix^D,ig^D,level
 integer, pointer    :: ig_to_igrid(:^D&,:)
-logical             :: fileopen
+logical             :: fileopen,writeblk(ngridshi)
 character(len=80)   :: filename
-integer             :: filenr
+integer             :: filenr,ncells,ncells^D,ncellg,ncellx^D,jg^D,jig^D
 
 character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
@@ -245,16 +245,42 @@ if (level_io>0) then
   allocate(ig_to_igrid(ng^D(level_io),0:npe-1))
   ig_to_igrid(:^D&,:)=-1 ! initialize
 end if
-
+writeblk=.false.
 do Morton_no=Morton_start(mype),Morton_stop(mype)
   igrid=sfc_to_igrid(Morton_no)
   level=node(plevel_,igrid)
   ig^D=igrid_to_node(igrid,mype)%node%ig^D;
   ig_to_igrid(ig^D,mype)=igrid
+  if(({rnode(rpxmin^D_,igrid)>=xprobmin^D+(xprobmax^D-xprobmin^D)&
+        *writespshift(^D,1)|.and.}).and.({rnode(rpxmax^D_,igrid)&
+       <=xprobmax^D-(xprobmax^D-xprobmin^D)*writespshift(^D,2)|.and.})) then
+    writeblk(igrid)=.true.
+  end if
 end do
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
+ncells=0
+ncells^D=0;
+ncellg=(^D&(ixMhi^D-ixMlo^D+1)*)
+ncellx^D=ixMhi^D-ixMlo^D+1\
+{do ig^D=1,ng^D(level_io)\}
+  igrid=ig_to_igrid(ig^D,mype)
+  if(writeblk(igrid)) go to 20
+{end do\}
+20 continue
+jg^D=ig^D;
+{
+jig^DD=jg^DD;
+do ig^D=1,ng^D(level_io)
+  jig^D=ig^D
+  igrid=ig_to_igrid(jig^DD,mype)
+  if(writeblk(igrid)) ncells^D=ncells^D+ncellx^D
+end do
+\}
+
 do iigrid=1,igridstail; igrid=igrids(iigrid)
+   if(.not.writeblk(igrid)) cycle
+   ncells=ncells+ncellg
    allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
    pwio(igrid)%w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 
@@ -270,16 +296,27 @@ end do
 
 if (saveprim) then
  do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x)
+    if(.not.writeblk(igrid)) cycle
+    call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x)
  end do
 else
  if (nwaux>0) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
-   call phys_get_aux(.true.,pwio(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
+     if(.not.writeblk(igrid)) cycle
+     call phys_get_aux(.true.,pwio(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
   end do
  end if
 end if
-
+{^IFMHD
+! add background magnetic field B0 to B
+do iigrid=1,igridstail; igrid=igrids(iigrid)
+   if(.not.writeblk(igrid)) cycle
+   if(B0field) then
+     myB0_cell => pB0_cell(igrid)
+     ^C&pwio(igrid)%w(ixG^T,b^C_)=pwio(igrid)%w(ixG^T,b^C_)+myB0_cell%w(ixG^T,^C);\
+   end if
+end do
+}
 
 Master_cpu_open : if (mype == 0) then
  inquire(qunit,opened=fileopen)
@@ -292,49 +329,16 @@ Master_cpu_open : if (mype == 0) then
     case("oneblock")
      open(qunit,file=filename,status='unknown')
      write(qunit,*) TRIM(outfilehead)
-     write(qunit,*)( {^D&(ixMhi^D-ixMlo^D+1)*})*(Morton_stop(npe-1)-Morton_start(0)+1),&
-                    {ng^D(level_io)*(ixMhi^D-ixMlo^D+1)|,}
-     write(qunit,*)t*normt
+     write(qunit,*) ncells,ncells^D
+     write(qunit,*) t*normt
     case("oneblockB")
      open(qunit,file=filename,form='unformatted',status='unknown')
      write(qunit) outfilehead
-     write(qunit)  ( {^D&(ixMhi^D-ixMlo^D+1)*})*(Morton_stop(npe-1)-Morton_start(0)+1),&
-                    {ng^D(level_io)*(ixMhi^D-ixMlo^D+1)|,}
-     write(qunit)t*normt
+     write(qunit) ncells,ncells^D
+     write(qunit) t*normt
    end select
  end if
 end if Master_cpu_open
-
-{^IFTHREED 
-do ig3=1,ng3(level_io)}
-   {^NOONED
-   do ig2=1,ng2(level_io)}
-       do ig1=1,ng1(level_io)
-         igrid=ig_to_igrid(ig^D,mype)
-         typelimiter=typelimiter1(node(plevel_,igrid))
-         typegradlimiter=typegradlimiter1(node(plevel_,igrid))
-         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         if (.not.slab) mygeo => pgeo(igrid)
-         if (B0field) then
-           myB0_cell => pB0_cell(igrid)
-           myB0      => pB0_cell(igrid)
-           {^D&myB0_face^D => pB0_face^D(igrid)\}
-         end if
-         ! default (no) normalization for auxiliary variables
-         {^IFMHD
-         ! add B0 component to B
-         if(B0field) then
-           ^C&pwio(igrid)%w(ixG^T,b^C_)=pwio(igrid)%w(ixG^T,b^C_)+myB0_cell%w(ixG^T,^C);\
-         end if
-         }
-         where(dabs(pwio(igrid)%w(ixG^T,1:nw+nwauxio))<smalldouble**2)
-            pwio(igrid)%w(ixG^T,1:nw+nwauxio)=zero
-         endwhere
-       end do
-   {^NOONED
-   end do}
-{^IFTHREED
-end do}
 
 {^IFTHREED
 do ig3=1,ng3(level_io)
@@ -345,8 +349,9 @@ do ig3=1,ng3(level_io)
      do ix2=ixMlo2,ixMhi2}
 
        do ig1=1,ng1(level_io)
+         igrid=ig_to_igrid(ig^D,mype)
+         if(.not.writeblk(igrid)) cycle
          do ix1=ixMlo1,ixMhi1
-           igrid=ig_to_igrid(ig^D,mype)
            Master_write : if(mype==0) then
              select case(convert_type)
                case("oneblock")
@@ -368,6 +373,7 @@ do ig3=1,ng3(level_io)
 end do}
 
 do iigrid=1,igridstail; igrid=igrids(iigrid)
+   if(.not.writeblk(igrid)) cycle
    deallocate(pwio(igrid)%w)
 end do
 

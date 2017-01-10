@@ -5,14 +5,16 @@
         saveprim=.true.
         autoconvert=.true.
 	convert_type='vtuBCCmpi'
+        filenameout='rm_2d_'  ! Base file name for dat/vtu output
+        filenamelog='rm_2d'   ! Base file name for the log
 /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave=0.01,0.05
+        dtsave(1)=0.05          ! For the log
+        dtsave(2)=0.05          ! For dat/vtu output
  /
-        ditsave(1)=1
 
  &stoplist
         dtmin=1.0d-6
@@ -35,9 +37,9 @@
 
  &amrlist
         errorestimate=3
-        mxnest=3
-        nxlone1=120
-        nxlone2=120
+        mxnest=2
+        nxlone1=128
+        nxlone2=128
         xprobmin1=0.0d0
         xprobmax1=1.0d0
         xprobmin2=0.0d0
@@ -45,6 +47,7 @@
  /
 
  &paramlist
-        courantpar=0.6d0
- /
+        typecourant='maxsum'
+        courantpar=0.9d0
         slowsteps=10
+ /

@@ -806,11 +806,44 @@ These are only used when one or more dustspecies is used for HD.
     	typegridfill= 'linear' | 'other'
     /
 
-The boundary types have to be defined for each conserved variable at each
+The boundary types have to be defined for each **conserved variable** at each
 physical edge of the grid, i.e. for 2D hydrodynamics they are in the order:
 rho,m1,m2,e at the left boundary; rho,m1,m2,e at the right; rho,m1,m2,e at the
-bottom; finally rho,m1,m2,e at the top boundary. In general, the order is
-xmin, xmax, ymin, ymax, zmin, and zmax.
+bottom; finally rho,m1,m2,e at the top boundary. The order is always, unless
+explicitly stated, xmin, xmax, ymin, ymax, zmin, and zmax. The general
+subroutine devoted to the treatment of boundary conditions (either customized
+by the user or not, internal or external to the simulation space, polar or not)
+is _get_bc_ and the main files concerned are _amr_ghostcells.t_ and
+_boundary_conditions.t_. Since the pre-defined boundary conditions are applied
+to the conserved variables, it does not guarantee the continuity of the fluxes
+(i.e. the terms associated to the velocity within the divergences in the
+fundamental equations under their conservative form, see
+[equations.md](equations.md)) and can prevent the fluid
+from reaching a steady state. For instance, a conserved total specific intern
+energy (i.e. intern plus kinetic energy) _e_ does not result, in general, in a
+conserved flux of the variable carried by the velocity field i.e. _e+P_, where
+_P_ is the pressure. Without a source term, it means that the time variation of
+_e_ can not cancel out.
+
+Instead of manually specifying one by one the boundary conditions, the user can
+write _8*'X'_ to replace _'X'_ 8 times in a row for instance. Beware, it is
+simply a syntax substitution rule which does not tell anything about the number
+of variables nor the number of dimensions. To improve readability, users are
+invited to highlight this underlying structure in the instructions. For
+instance, in a two dimensional hydrodynamical (_-p=hd_) simulation space
+(_ndim=2_) with the mass density, three components of the velocity field
+(_ndir=3_) and an energy equation (_-eos=energy_ in the initial setup), if the
+bottom boundary is a plane of symmetry, the upper boundary is opened and the
+lateral boundaries are periodic, we would write :
+
+##
+
+         &
+    	typeB= 5*'periodic',
+             5*'periodic',
+             'symm','symm','asymm','symm','symm',
+             5*'cont'
+    /
 
 The default number of ghost cell layers used to surround the grid (and in fact
 each grid at each level and location) is set by default to `dixB=2`. If
@@ -827,7 +860,28 @@ the given boundary antisymmetric (`asymm`), the rest of the variables
 `symm`. These boundary types can also be used to represent a perfectly
 conducting wall (the orthogonal component of the magnetic field should be
 antisymmetric, the transverse component symmetric) or the physical symmetry of
-the physical problem.
+the physical problem. More generally, true (a.k.a. polar) vectors (resp.
+pseudovectors, a.k.a. axial vectors) such as the ones associated to a velocity
+(resp. magnetic) field, transform such as the normal component (resp. the
+tangential components) is antisymmetric while the tangential components (resp.
+the normal component) are symmetric with respect to a plane of symmetry of
+causes (distribution of mass, of currents, of charges, etc). And vice versa for
+a plane of antisymmetry.
+
+If the pole is adjacent to the simulation space (i.e. if the simulation extends
+down to a distance to the axis of 0 in cylindrical coordinates and if the
+simulation extends down to a colatitude of 0 or up to a colatitude of pi in
+spherical coordinates), symm and/or asymm boundary conditions must necessarily
+be specified. Scalar quantities are always symmetric. For a vector, whatever
+its nature (true vector or pseudovector), the boundary condition to choose for
+a given component depends on the behaviour of the axis vector associated to
+this component when a rotation of pi is performed within the plane orthogonal
+to the pole. In cylindrical coordinates, it means that the radial and vertical
+components should be symmetric while the orthoradial component is antisymmetric.
+In spherical coordinates, it means that the radial component is symmetric while
+the two remaining components are antisymmetric. Any other boundary condition at
+the pole than symm or asymm results in the error message "Boundary condition at
+pole should be symm or asymm".
 
 The case of periodic boundaries can be handled with setting 'periodic' for all
 variables at both boundaries that make up a periodic pair. Hence triple

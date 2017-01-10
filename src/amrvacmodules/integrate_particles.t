@@ -9,6 +9,9 @@ call integrate_particles_lorentz
 {#IFDEF PARTICLES_ADVECT
 call integrate_particles_advect
 }
+{#IFDEF PARTICLES_SPACECRAFT
+call integrate_particles_spacecraft
+}
 {#IFDEF PARTICLES_GCA
 call integrate_particles_gca
 }
@@ -26,6 +29,9 @@ call set_particles_dt_lorentz
 }
 {#IFDEF PARTICLES_ADVECT
 call set_particles_dt_advect
+}
+{#IFDEF PARTICLES_SPACECRAFT
+call set_particles_dt_spacecraft
 }
 {#IFDEF PARTICLES_GCA
 call set_particles_dt_gca
@@ -56,7 +62,7 @@ double precision                    :: dt_p, tloc
 double precision, dimension(1:ndir) :: x, ue, e, b, bhat
 double precision                    :: kappa, Mr, upar, m, absb, gamma, q
 ! for odeint:
-integer                             :: nok, nbad
+integer                             :: nok, nbad, ierror
 double precision                    :: h1, hmin
 
 !!!!! Precision of time-integration: !!!!!!!!!!!!!
@@ -86,7 +92,14 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 !   y(ndir+3) = particle(ipart)%self%u(3) ! Lorentz factor of particle
 
    h1 = dt_p/2.0d0; hmin=h1/128.0d0
-   call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
+   call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,&
+        derivs_gca,rkqs,ierror)
+
+   if (ierror /= 0) then
+      print *, "odeint returned error code", ierror
+      print *, "1 means hmin too small, 2 means MAXSTP exceeded"
+      print *, "Having a problem with particle", iipart
+   end if
 
    ! final solution vector:
    particle(ipart)%self%x(1:ndir) = y(1:ndir)
@@ -308,7 +321,7 @@ do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 
 
 !**************************************************
-! Make sure we don't miss an output or tmax_particles:
+! Make sure we dont miss an output or tmax_particles:
 !**************************************************
    ! corresponding output slot:
    nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
@@ -533,7 +546,7 @@ end if
 
 
 !**************************************************
-! Make sure we don't miss an output or tmax_particles:
+! Make sure we dont miss an output or tmax_particles:
 !**************************************************
    ! corresponding output slot:
    nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
@@ -563,6 +576,209 @@ call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
      icomm,ierrmpi)
 
 end subroutine set_particles_dt_advect
+}
+!=============================================================================
+{#IFDEF PARTICLES_SPACECRAFT
+subroutine integrate_particles_spacecraft()
+!> extract data from chosen points -> synthetic spacecrafts 
+!> TODO : add orbit to spacecrafts
+
+use mod_particles
+use mod_gridvars, only: igrid_working, interpolate_var
+include 'amrvacdef.f'
+
+integer                                           :: ipart, iipart, igrid
+integer                                           :: 
+double precision                                  :: dt_p, td, tloc, rho, rho1, rho2, cur, cur1, cur2
+double precision                                  :: p, p1, p2, tp, tp1, tp2, tr, tr1, tr2
+double precision                                  :: v1, v11, v12, v2, v21, v22, v3, v31, v32 
+double precision                                  :: b1, b11, b12, b2, b21, b22, b3, b31, b32
+double precision, dimension(1:ndir)               :: x
+double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
+double precision, dimension(1:nw+nwauxio)         :: normconv
+!-----------------------------------------------------------------------------
+normconv=one
+!> get the details of the particle
+do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);   
+   dt_p = particle(ipart)%self%dt
+   igrid = particle(ipart)%igrid
+   igrid_working = igrid
+   tloc = particle(ipart)%self%t
+   x(1:ndir) = particle(ipart)%self%x(1:ndir)
+
+   ! **************************************************
+   !> Payload update :
+   !> interpolate the different fields, including auxiliary 
+   !> outputs if included as shown for cur and tp
+   !> do not forget to update npayloads in mod_particles
+   ! **************************************************
+
+   if (.not.time_advance) then
+      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+!      if(nwauxio>=1)then
+!      call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+!      endif
+      call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,v1_),px(igrid)%x(ixG^T,1:ndim),x,v1)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,v2_),px(igrid)%x(ixG^T,1:ndim),x,v2)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,v3_),px(igrid)%x(ixG^T,1:ndim),x,v3)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,b1_),px(igrid)%x(ixG^T,1:ndim),x,b1)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,b2_),px(igrid)%x(ixG^T,1:ndim),x,b2)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,b3_),px(igrid)%x(ixG^T,1:ndim),x,b3)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,p_),px(igrid)%x(ixG^T,1:ndim),x,p)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,tr1_),px(igrid)%x(ixG^T,1:ndim),x,tr)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,nw+1),px(igrid)%x(ixG^T,1:ndim),x,cur)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,nw+2),px(igrid)%x(ixG^T,1:ndim),x,tp)
+   else ! mean between the two time steps
+      ! old time step
+      w(ixG^T,1:nw) = pwold(igrid)%w(ixG^T,1:nw)
+!      if(nwauxio>=1)then
+!      call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+!      endif
+      call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v1_),px(igrid)%x(ixG^T,1:ndim),x,v11)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v2_),px(igrid)%x(ixG^T,1:ndim),x,v21)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v3_),px(igrid)%x(ixG^T,1:ndim),x,v31)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,b1_),px(igrid)%x(ixG^T,1:ndim),x,b11)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,b2_),px(igrid)%x(ixG^T,1:ndim),x,b21)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,b3_),px(igrid)%x(ixG^T,1:ndim),x,b31)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho1)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,p_),px(igrid)%x(ixG^T,1:ndim),x,p1)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,tr1_),px(igrid)%x(ixG^T,1:ndim),x,tr1)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+1),px(igrid)%x(ixG^T,1:ndim),x,cur1)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+2),px(igrid)%x(ixG^T,1:ndim),x,tp1)
+      ! advanced time step
+      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+!      if(nwauxio>=1)then
+!      call specialvar_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+!      endif
+      call primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v1_),px(igrid)%x(ixG^T,1:ndim),x,v12)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v2_),px(igrid)%x(ixG^T,1:ndim),x,v22)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,v3_),px(igrid)%x(ixG^T,1:ndim),x,v32)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,b1_),px(igrid)%x(ixG^T,1:ndim),x,b12)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,b2_),px(igrid)%x(ixG^T,1:ndim),x,b22)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,b3_),px(igrid)%x(ixG^T,1:ndim),x,b32)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),px(igrid)%x(ixG^T,1:ndim),x,rho2)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,p_),px(igrid)%x(ixG^T,1:ndim),x,p2)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,tr1_),px(igrid)%x(ixG^T,1:ndim),x,tr2)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+1),px(igrid)%x(ixG^T,1:ndim),x,cur2)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,nw+2),px(igrid)%x(ixG^T,1:ndim),x,tp2)
+      td  = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - t) / dt
+      v1  = v12  * (1.0d0 - td) + v12  * td
+      v2  = v22  * (1.0d0 - td) + v22  * td
+      v3  = v32  * (1.0d0 - td) + v32  * td
+      b1  = b12  * (1.0d0 - td) + b12  * td
+      b2  = b22  * (1.0d0 - td) + b22  * td
+      b3  = b32  * (1.0d0 - td) + b32  * td
+      rho = rho1 * (1.0d0 - td) + rho2 * td
+      p   = p1   * (1.0d0 - td) + p2   * td
+      tr  = tr1  * (1.0d0 - td) + tr2  * td
+      cur = cur1 * (1.0d0 - td) + cur2 * td
+      tp  = tp1  * (1.0d0 - td) + tp2  * td
+   end if
+   particle(ipart)%self%payload(1) = v1
+   particle(ipart)%self%payload(2) = v2
+   particle(ipart)%self%payload(3) = v3
+   particle(ipart)%self%payload(4) = b1
+   particle(ipart)%self%payload(5) = b2
+   particle(ipart)%self%payload(6) = b3
+   particle(ipart)%self%payload(7) = rho
+   particle(ipart)%self%payload(8) = p
+   particle(ipart)%self%payload(9) = tr 
+   particle(ipart)%self%payload(10) = cur
+   particle(ipart)%self%payload(11) = tp
+   ! **************************************************
+   ! Time update
+   ! **************************************************
+   particle(ipart)%self%t = particle(ipart)%self%t + dt_p
+
+
+end do
+
+!=============================================================================
+end subroutine integrate_particles_spacecraft
+!=============================================================================
+subroutine set_particles_dt_spacecraft()
+!> get_dt for the spacecrafts, not useful as such (until spacecrafts moves) 
+!> but check that the rate of writing output is respected
+use mod_particles
+include 'amrvacdef.f'
+
+integer                         :: ipart, iipart, nout
+double precision                :: t_min_mype, tout, dt_particles_mype, dt_cfl
+double precision                :: v(1:ndir)
+!-----------------------------------------------------------------------------
+dt_particles      = bigdouble
+dt_particles_mype = bigdouble
+t_min_mype        = bigdouble
+
+
+do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+
+! make sure we step only one cell at a time:
+{v(^C)   = abs(particle(ipart)%self%u(^C))\}
+
+{^IFPHI 
+! convert to angular velocity:
+if (typeaxial =='cylindrical') v(phi_) = abs(v(phi_)/particle(ipart)%self%x(r_))
+}
+
+{#IFNDEF D1
+   dt_cfl = min({rnode(rpdx^D_,particle(ipart)%igrid)/v(^D)})
+}
+{#IFDEF D1
+   dt_cfl = rnode(rpdx1_,particle(ipart)%igrid)/v(1)
+}
+
+{^IFPHI
+if (typeaxial =='cylindrical') then 
+! phi-momentum leads to radial velocity:
+if (phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
+     sqrt(rnode(rpdx1_,particle(ipart)%igrid)/particle(ipart)%self%x(r_)) &
+     / v(phi_))
+! limit the delta phi of the orbit (just for aesthetic reasons):
+   dt_cfl = min(dt_cfl,0.1d0/v(phi_))
+! take some care at the axis:
+   dt_cfl = min(dt_cfl,(particle(ipart)%self%x(r_)+smalldouble)/v(r_))
+end if
+}
+
+   particle(ipart)%self%dt = dt_cfl*UNIT_LENGTH
+
+
+!**************************************************
+! Make sure we dont miss an output or tmax_particles:
+!**************************************************
+   ! corresponding output slot:
+   nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
+   tout = dble(nout) * dtsave_ensemble
+   if (particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) &
+        particle(ipart)%self%dt = max(tout - particle(ipart)%self%t , smalldouble * tout)
+
+   ! bring to tmax_particles:
+   if (particle(ipart)%self%t+particle(ipart)%self%dt .gt. tmax_particles) &
+        particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%t , smalldouble * tmax_particles)
+!**************************************************
+!**************************************************
+
+
+   dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
+
+   t_min_mype = min(t_min_mype,particle(ipart)%self%t)
+
+end do !ipart
+
+! keep track of the global minimum:
+call MPI_ALLREDUCE(dt_particles_mype,dt_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+     icomm,ierrmpi)
+
+! keep track of the minimum particle time:
+call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+     icomm,ierrmpi)
+
+end subroutine set_particles_dt_spacecraft
 }
 !=============================================================================
 {#IFDEF PARTICLES_LORENTZ
@@ -866,7 +1082,7 @@ particle(ipart)%self%dt = min(particle(ipart)%self%dt,dt_cfl)*UNIT_LENGTH
 
 
 !**************************************************
-! Make sure we don't miss an output or tmax_particles:
+! Make sure we dont miss an output or tmax_particles:
 !**************************************************
    ! corresponding output slot:
    nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1

@@ -21,6 +21,11 @@ integer,parameter                      :: {ep^C_=bp^NC_+^C}
 integer,parameter                      :: ngridvars=^NC
 integer,parameter                      :: {vp^C_=^C}
 }
+{#IFDEF PARTICLES_SPACECRAFT
+integer,parameter                      :: ngridvars=^NC
+integer,parameter                      :: {vp^C_=^C}
+integer,parameter                      :: {bp^C_=^C}
+}
 {#IFDEF PARTICLES_GCA
 integer,parameter                      :: ngridvars=7*^NC
 integer,parameter                      :: {bp^C_=^C},{ep^C_=bp^NC_+^C},{grad_kappa_B^C_=ep^NC_+^C}
