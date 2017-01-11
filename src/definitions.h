@@ -5,7 +5,6 @@
 #undefine RAY
 #undefine BIGENDIAN
 #undefine FOURTHORDER
-#undefine TCRKL2
 #undefine MAGNETOFRICTION
 #undefine PARTICLES
 #undefine PARTICLES_ADVECT

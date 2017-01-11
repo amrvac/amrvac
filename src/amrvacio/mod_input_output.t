@@ -95,7 +95,7 @@ contains
     character(len=std_len) :: filenamelog_full, filenamelog_prev
 
     namelist /filelist/ filenameout,filenameini,filenamelog, &
-         snapshotini,typefilelog,firstprocess,resetgrid,changeglobals,snapshotnext, &
+         snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,dxfiletype,saveprim,primnames, &
          typeparIO,uselimiter,nwauxio,nocartesian,addmpibarrier, &
          writew,writelevel,writespshift,endian_swap, &
@@ -107,7 +107,7 @@ contains
          residmax,typeresid{#IFDEF MAGNETOFRICTION , itmaxmf}
     namelist /methodlist/ wnames,fileheadout,typeadvance, &
          ssplitdust,ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
-         thermalconduction,TCsaturate,TCphi,ncyclemax,&
+         ncyclemax,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
          typefull1,typepred1,&
          typelimiter1,mcbeta,typegradlimiter1,&
@@ -128,7 +128,7 @@ contains
     namelist /boundlist/ dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
          internalboundary
     namelist /amrlist/ mxnest,nbufferx^D,specialtol,tol,tolratio,errorestimate, &
-         amr_wavefilter,ngridshi,ixGhi^D,nxlone^D,iprob,xprob^L, &
+         amr_wavefilter,ngridshi,nxblock^D,nxlone^D,iprob,xprob^L, &
          skipfinestep,wflags,flags,&
          restrictprimitive,prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
@@ -140,13 +140,15 @@ contains
     ! default maximum number of grid blocks in a processor
     ngridshi=4000
 
-    ! default block size
-    {ixGhi^D = 16\}
+    ! default block size excluding ghost cells
+    {nxblock^D = 12\}
 
     ! defaults for boundary treatments
     ratebdflux         = one
     typeghostfill      = 'linear'
     dixB               = 2
+    ! default block size
+    {ixGhi^D = nxblock^D + 2*dixB\}
     allocate(typeB(nw, nhiB))
     typeB(1:nw,1:nhiB) = 'cont'
     internalboundary   = .false.
@@ -312,7 +314,6 @@ contains
     ! defaults for input 
     firstprocess  = .false.
     resetgrid     = .false.
-    changeglobals = .false.
     treset        = .false.
     itreset       = .false.
     filenameout   = 'data'
@@ -342,10 +343,6 @@ contains
     useprimitive    = .true.
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
-    thermalconduction= .false.
-    TCsaturate      = .false.
-    TCperpendicular = .false.
-    TCphi           = 1.d0
     bcphys          = .true.
     ncyclemax       = 1000
     ssplitdust      = .false.
@@ -378,7 +375,7 @@ contains
     end do
 
     dtdiffpar     = 0.5d0
-    dtTCpar       = 0.9d0
+    dtTCpar       = 0.9d0/dble(ndim)
     dtpar         = -1.d0
     {#IFDEF MAGNETOFRICTION
     cmf_c         = 0.3d0
@@ -630,31 +627,31 @@ contains
             'Alternatives for typedivbfix are powel, janhunen, linde or none')
     end if
     \}
-    if (B0field) then
-       if(mype==0)print *,'B0+B1 split for MHD'
-       if (.not. physics_type=='mhd') call mpistop("B0+B1 split for MHD only")
-    end if
+    !if (B0field) then
+    !   if(mype==0)print *,'B0+B1 split for MHD'
+    !   if (.not. physics_type=='mhd') call mpistop("B0+B1 split for MHD only")
+    !end if
 
-    if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatsh.and.physics_type=='rho')) then
-       call mpistop(" PPM with flatsh=.true. can not be used with physics_type='rho'!")
-    end if
-    if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatsh.and.physics_type=='hdadiab')) then
-       call mpistop(" PPM with flatsh=.true. can not be used with physics_type='hdadiab'!")
-    end if
-    if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatcd.and.physics_type=='hdadiab')) then
-       call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
-    end if
-    if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatsh.and..not.useprimitive)) then
-       call mpistop(" PPM with flatsh=.true. needs useprimitive=T!")
-    end if
-    if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-         .and.(flatcd.and..not.useprimitive)) then
-       call mpistop(" PPM with flatcd=.true. needs useprimitive=T!")
-    end if
+    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !     .and.(flatsh.and.physics_type=='rho')) then
+    !   call mpistop(" PPM with flatsh=.true. can not be used with physics_type='rho'!")
+    !end if
+    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !     .and.(flatsh.and.physics_type=='hdadiab')) then
+    !   call mpistop(" PPM with flatsh=.true. can not be used with physics_type='hdadiab'!")
+    !end if
+    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !     .and.(flatcd.and.physics_type=='hdadiab')) then
+    !   call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
+    !end if
+    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !     .and.(flatsh.and..not.useprimitive)) then
+    !   call mpistop(" PPM with flatsh=.true. needs useprimitive=T!")
+    !end if
+    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !     .and.(flatcd.and..not.useprimitive)) then
+    !   call mpistop(" PPM with flatcd=.true. needs useprimitive=T!")
+    !end if
 
     do idim=1,ndim
        periodB(idim)=(any(typeB(:,2*idim-1:2*idim)=='periodic'))
@@ -779,7 +776,7 @@ contains
     end do
 
     ! Warn when too few blocks at start of simulation 
-    if (mype.eq.0 .and. snapshotini.eq.-1 .and. {^D& floor(dble(nxlone^D)/(dble(ixGhi^D)-2.0d0*dble(dixB))) |*} .lt. npe) then
+    if (mype.eq.0 .and. snapshotini.eq.-1 .and. {^D& floor(dble(nxlone^D)/dble(nxblock^D)) |*} .lt. npe) then
        call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
     end if
 
@@ -1459,9 +1456,9 @@ contains
     call MPI_FILE_READ_ALL(file_handle,nxloneini^D,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,xprobminini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,xprobmaxini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-    if (ixGhi^D/=nxini^D+2*dixB|.or.) then
-       if (mype==0) write(*,*) "Error: reset block resolution to ",nxini^D+2*dixB
-       call mpistop("change ixGhi^D in par file")
+    if (nxblock^D/=nxini^D|.or.) then
+       if (mype==0) write(*,*) "Error: reset block resolution to nxblock^D=",nxini^D
+       call mpistop("change nxblock^D in par file")
     end if
     if (nxlone^D/=nxloneini^D|.or.) then
        if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",nxloneini^D
@@ -1594,9 +1591,9 @@ contains
        call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
        {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
-       if (ixGhi^D/=nxini^D+2*dixB|.or.) then
-          write(*,*) "Error: reset resolution to ",nxini^D+2*dixB
-          call mpistop("change with setamrvac")
+       if (nxblock^D/=nxini^D|.or.) then
+          write(*,*) "Error: reset block resolution to nxblock^D=",nxini^D
+          call mpistop("change nxblock^D in par file")
        end if
     end if
 

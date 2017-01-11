@@ -65,9 +65,6 @@ program amrvac
      call finish_gridvars
      }
 
-     ! modify globals
-     if (changeglobals) call initglobal()
-
      if (convert) then
         if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
              .and. convert_type .ne. 'user')  &

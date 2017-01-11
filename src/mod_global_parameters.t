@@ -137,28 +137,28 @@ module mod_global_parameters
   double precision, parameter :: dpi=3.141592653589793238462643383279502884197169399375105d0
 
   !> Physical scaling factor for length
-  double precision :: unit_length
+  double precision :: unit_length=1.d0
 
   !> Physical scaling factor for time
-  double precision :: unit_time
+  double precision :: unit_time=1.d0
 
   !> Physical scaling factor for density
-  double precision :: unit_density
+  double precision :: unit_density=1.d0
 
   !> Physical scaling factor for velocity
-  double precision :: unit_velocity
+  double precision :: unit_velocity=1.d0
 
   !> Physical scaling factor for temperature
-  double precision :: unit_temperature
+  double precision :: unit_temperature=1.d0
 
   !> Physical scaling factor for pressure
-  double precision :: unit_pressure
+  double precision :: unit_pressure=1.d0
 
   !> Physical scaling factor for magnetic field
-  double precision :: unit_magneticfield
+  double precision :: unit_magneticfield=1.d0
 
   !> Physical scaling factor for number density
-  double precision :: unit_numberdensity
+  double precision :: unit_numberdensity=1.d0
 
   ! TODO temporary placed here (Jannis)
   integer           :: nwflux
@@ -176,8 +176,6 @@ module mod_global_parameters
   integer           :: iprob
   !> positions of the minimum and maximum surfaces for each dimension
   double precision  :: xprob^L
-  !> number of cells for each dimension in level-one mesh
-  integer :: nxlone^D
 
   ! TODO: remove
   integer, parameter :: neqpar = 1
@@ -296,9 +294,6 @@ module mod_global_parameters
   !> the determination of the timestep constraint by means of CFL and other
   !> restrictions
   logical :: fixprocess
-
-  !> If true, call initglobal to specify global parameters upon restarting
-  logical :: changeglobals
 
   !> If collapse(DIM) is true, generate output integrated over DIM
   logical :: collapse(ndim)
@@ -427,9 +422,9 @@ module mod_global_parameters
 
   integer                       :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
   double precision, allocatable :: entropycoef(:)
-  double precision              :: tvdlfeps, mcbeta, TCphi
-  !> \todo organize Thermal Conduction: bcphys/TCphi/TCsaturate/conduction
-  logical                       :: thermalconduction,TCsaturate,TCperpendicular,bcphys
+  double precision              :: tvdlfeps, mcbeta
+  !> \todo organize Thermal Conduction: bcphys
+  logical                       :: bcphys
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh,flatppm
   logical                       :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
@@ -486,7 +481,7 @@ module mod_global_parameters
   !> physical boundary
   character(len=std_len), allocatable :: typeB(:, :)
 
-  character(len=std_len) :: typeghostfill,typegridfill
+  character(len=std_len) :: typeghostfill='linear',typegridfill
   double precision ::ratebdflux
   logical :: internalboundary
 
@@ -622,10 +617,16 @@ module mod_global_parameters
   !> Maximal number of AMR levels
   integer :: mxnest
 
-  !> Lower index of grid arrays (always 1)
+  !> number of cells for each dimension in level-one mesh
+  integer :: nxlone^D
+
+  !> number of cells for each dimension in grid block excluding ghostcells
+  integer :: nxblock^D
+
+  !> Lower index of grid block arrays (always 1)
   integer, parameter :: {ixGlo^D = 1|, }
 
-  !> Upper index of grid arrays
+  !> Upper index of grid block arrays
   integer :: ixGhi^D
 
   !> Number of ghost cells surrounding a grid

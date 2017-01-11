@@ -38,9 +38,9 @@
  &amrlist
    errorestimate   = 3
    mxnest          = 3
-   ixGhi1          = 8
-   ixGhi2          = 8
-   ixGhi3          = 8
+   nxblock1        = 4
+   nxblock2        = 4
+   nxblock3        = 4
    nxlone1         = 8
    nxlone2         = 8
    nxlone3         = 8

@@ -5,7 +5,7 @@ subroutine setdt()
 use mod_global_parameters
 use mod_physics, only: phys_get_dt, phys_get_aux
 use mod_usr_methods, only: usr_get_dt
-use mod_thermalconduction
+use mod_thermal_conduction
 
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
@@ -107,16 +107,29 @@ if(associated(phys_getdt_heatconduct)) then
       dtmin_mype=min(dtmin_mype,qdtnew)
    end do
 !$OMP END PARALLEL DO
-   call MPI_ALLREDUCE(dtmin_mype,dtimpl,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
+   call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
-   ncycle=ceiling(dt/dtimpl)
+   ncycle=ceiling(dt/dtnew)
    if (ncycle>ncyclemax) then
      if(mype==0 .and. .true.) then
        write(*,*) 'CLF time step is too many times larger than conduction time step',ncycle
        write(*,*) 'reducing dt to',ncyclemax,'times of dt_impl!!'
      endif
-     dt=ncyclemax*dtimpl
+     dt=ncyclemax*dtnew
    endif
+  ! get number of sub-steps of supertime stepping (Meyer 2012 MNRAS 422,2102)
+   if(dt/dtnew< 0.5d0) then
+     s=1
+   else if(dt/dtnew< 2.d0) then
+     s=2
+   else
+     s=ceiling((dsqrt(9.d0+8.d0*dt/dtnew)-1.d0)/2.d0)
+     ! only use odd s number
+     s=s/2*2+1
+   endif
+   dt_tc=dt*0.5d0
+   if(mype==0 .and. .false.) write(*,*) 'supertime steps:',s,' normal subcycles:',&
+                               ceiling(dt/dtnew/2.d0)
 endif
 
 !$OMP PARALLEL DO PRIVATE(igrid)

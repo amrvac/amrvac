@@ -31,8 +31,8 @@
  &amrlist
         errorestimate=3
         mxnest=3
-        ixGhi1=16
-        ixGhi2=16
+        nxblock1=12
+        nxblock2=12
         nxlone1=24
         nxlone2=24
         xprobmin1=0.0d0

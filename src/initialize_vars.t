@@ -56,7 +56,7 @@ end do
 
 ! domain decomposition
 ! physical extent of a grid block at level 1, per dimension
-^D&dg^D(1)=dx(^D,1)*dble(ixGhi^D-2*dixB)\
+^D&dg^D(1)=dx(^D,1)*dble(nxblock^D)\
 ! number of grid blocks at level 1 in simulation domain, per dimension
 ^D&ng^D(1)=nint((xprobmax^D-xprobmin^D)/dg^D(1))\
 ! total number of grid blocks at level 1
@@ -161,10 +161,6 @@ if(mxnest>1) then
 end if
 }
 
-! default the physical scaling parameters:
-UNIT_LENGTH   = ONE
-UNIT_DENSITY  = ONE
-UNIT_VELOCITY = ONE
 ! define index ranges and MPI send/receive derived datatype for ghost-cell swap
 call init_bc()
 type_send_srl=>type_send_srl_f

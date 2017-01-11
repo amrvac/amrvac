@@ -57,7 +57,6 @@ typefilelog | string | 'default' | Use the value 'special' to enable user-define
 snapshotnext | integer | 0 | Start index for writing snapshots
 slicenext | integer | 0 | Start index for writing slices
 firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
-changeglobals | logical | F | If true, call `initglobal` to specify global parameters upon restarting
 resetgrid | logical | F | If true, rebuild the AMR grid upon restarting
 typeparIO | integer | 1 | 1: Parallel MPI output, 0: master-slave parallel IO, -1: master-slave IO without MPI (no `MPI_FILE_WRITE`, `MPI_FILE_OPEN` etc)
 addmpibarrier | logical | F | Enable additional `MPI_BARRIER` calls, useful when debugging on new platforms
@@ -1137,7 +1136,7 @@ For resistive MHD, the time step is also limited by the diffusion time: `dt
 restrictions on the time step can be put in the `getdt_special` subroutine in
 the [AMRVACUSR module](@ref amrvacusr_specialsource). The library routines for
 viscosity and div B diffusive cleaning, all use the coefficient `dtdiffpar` in
-their stability conditions. `dtTCpar` with default value of 0.5 limits the
+their stability conditions. `dtTCpar` with default value of 0.9/ndim limits the
 time step of thermal conduction. The `typecourant='maxsum'` means that the
 time step limit for the CFL conditions takes the maximum over a summed
 contribution to the maximum physical propagation speed for all dimensions. The

@@ -39,9 +39,9 @@
  &amrlist
         mxnest=3
         tol=13*0.1d0
-        ixGhi1=16
-        ixGhi2=16
-        ixGhi3=16
+        nxblock1=10
+        nxblock2=10
+        nxblock3=10
         nxlone1=20
         nxlone2=20
         nxlone3=20

@@ -16,6 +16,9 @@ module mod_hd_phys
   !> Whether an energy equation is used
   logical, public, protected              :: hd_energy = .true.
 
+  !> Whether thermal conduction is used
+  logical, public, protected              :: hd_thermal_conduction = .false.
+
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
@@ -30,6 +33,9 @@ module mod_hd_phys
 
   !> Index of the energy density (-1 if not present)
   integer, public, protected              :: e_
+
+  !> Index of the gas pressure (-1 if not present) should equal e_
+  integer, public, protected              :: p_
 
   !> The number of flux variables in this module
   integer, public, protected              :: hd_nwflux
@@ -65,7 +71,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab
+    namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, hd_thermal_conduction
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -78,7 +84,7 @@ contains
   !> Initialize the module
   subroutine hd_phys_init()
     use mod_global_parameters
-    use mod_thermalconduction
+    use mod_thermal_conduction
 
     integer :: itr, idir
 
@@ -99,8 +105,10 @@ contains
     if (hd_energy) then
        nwflux = nwflux + 1
        e_     = nwflux          ! energy density
+       p_     = nwflux          ! gas pressure
     else
        e_ = -1
+       p_ = -1
     end if
 
     allocate(tracer(hd_n_tracer))
@@ -135,12 +143,11 @@ contains
     phys_check_w         => hd_check_w
   
     ! initialize thermal conduction module
-    if(thermalconduction) then
+    if(hd_thermal_conduction) then
       tc_gamma=hd_gamma
-      phys_thermalconduction_main => do_thermalconduction_main
       phys_get_heatconduct   => hd_get_heatconduct
       phys_getdt_heatconduct => hd_getdt_heatconduct
-      call thermalconduction_init()
+      call thermal_conduction_init()
     end if
 
   end subroutine hd_phys_init

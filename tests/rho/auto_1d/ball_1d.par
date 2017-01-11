@@ -34,7 +34,7 @@
  &amrlist
         mxnest=4
         tol=13*0.1d0
-        ixGhi1=16
+        nxblock1=10
         nxlone1=50
         iprob=6
         xprobmin1=0.0d0
