@@ -474,6 +474,13 @@ contains
 
     if(firstprocess .and. snapshotini<0) &
          call mpistop("Please restart from a snapshot when firstprocess=T")
+
+    if(convert .and. snapshotini<0) then
+       convert = .false.
+       write(uniterr,*) 'Warning in ReadParameters: ',&
+            'Please change convert to .false. when start a new run !'
+    end if
+
     if(convert) autoconvert=.false.
 
     if (mype == 0) then
@@ -1926,5 +1933,56 @@ contains
     ! Normalize
     vol_cov = dsum_recv / sum(dsum_recv)
   end subroutine get_volume_coverage
+
+  !> Compute the volume average of func(w) over the leaves of the grid.
+  subroutine get_volume_average_func(func, f_avg, volume)
+    use mod_global_parameters
+
+    interface
+       pure function func(w_vec, w_size) result(val)
+         integer, intent(in)          :: w_size
+         double precision, intent(in) :: w_vec(w_size)
+         double precision             :: val
+       end function func
+    end interface
+    double precision, intent(out) :: f_avg  !< The volume average of func
+    double precision, intent(out) :: volume    !< The total grid volume
+    integer                       :: iigrid, igrid, i^D
+    double precision              :: wsum(2)
+    double precision              :: dvolume(ixG^T)
+    double precision              :: dsum_recv(2)
+
+    wsum(:) = 0
+
+    ! Loop over all the grids
+    do iigrid = 1, igridstail
+       igrid = igrids(iigrid)
+
+       ! Determine the volume of the grid cells
+       if (slab) then
+          dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
+       else
+          dvolume(ixM^T) = pgeo(igrid)%dvolume(ixM^T)
+       end if
+
+       ! Store total volume in last element
+       wsum(2) = wsum(2) + sum(dvolume(ixM^T))
+
+       ! Compute the modes of the cell-centered variables, weighted by volume
+       {do i^D = ixMlo^D, ixMhi^D\}
+       wsum(1) = wsum(1) + dvolume(i^D) * &
+            func(pw(igrid)%w(i^D, :), nw)
+       {end do\}
+    end do
+
+    ! Make the information available on all tasks
+    call MPI_ALLREDUCE(wsum, dsum_recv, 2, MPI_DOUBLE_PRECISION, &
+         MPI_SUM, icomm, ierrmpi)
+
+    ! Set the volume and the average
+    volume = dsum_recv(2)
+    f_avg  = dsum_recv(1) / volume
+
+  end subroutine get_volume_average_func
 
 end module mod_input_output
