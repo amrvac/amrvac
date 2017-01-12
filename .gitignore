@@ -4,4 +4,4 @@ doc/html/*
 *.vti
 *.out
 *amrvac
-F90sources
+*.amrvac.log.shfp.*
