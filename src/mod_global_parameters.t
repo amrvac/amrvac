@@ -215,9 +215,6 @@ module mod_global_parameters
   !> \f$ dt < dtdiffpar \times dx^2/eta \f$
   double precision :: dtdiffpar
 
-  !> Time step restriction for thermal conduction.
-  double precision :: dtTCpar
-
   {#IFDEF MAGNETOFRICTION
   double precision :: cmf_c,cmf_y,cmf_divb
   }

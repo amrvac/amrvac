@@ -133,7 +133,7 @@ contains
          restrictprimitive,prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
          amrentropy,logflag,tfixgrid,itfixgrid,ditregrid{#IFDEF STRETCHGRID ,qst}
-    namelist /paramlist/  courantpar, dtpar, dtdiffpar, dtTCpar,&
+    namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps, cfrac{#IFDEF MAGNETOFRICTION , cmf_c, cmf_y, cmf_divb}
     !----------------------------------------------------------------------------
  
@@ -147,8 +147,6 @@ contains
     ratebdflux         = one
     typeghostfill      = 'linear'
     dixB               = 2
-    ! default block size
-    {ixGhi^D = nxblock^D + 2*dixB\}
     allocate(typeB(nw, nhiB))
     typeB(1:nw,1:nhiB) = 'cont'
     internalboundary   = .false.
@@ -375,7 +373,6 @@ contains
     end do
 
     dtdiffpar     = 0.5d0
-    dtTCpar       = 0.9d0/dble(ndim)
     dtpar         = -1.d0
     {#IFDEF MAGNETOFRICTION
     cmf_c         = 0.3d0
@@ -687,6 +684,9 @@ contains
        end if
        \}
     end select
+
+    ! full block size including ghostcells
+    {ixGhi^D = nxblock^D + 2*dixB\}
 
     {#IFDEF STRETCHGRID
     !if (mxnest>1) call mpistop("No refinement possible with a loggrid")
