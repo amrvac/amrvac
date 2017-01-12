@@ -486,6 +486,13 @@ contains
 
     if(firstprocess .and. snapshotini<0) &
          call mpistop("Please restart from a snapshot when firstprocess=T")
+
+    if(convert .and. snapshotini<0) then
+       convert = .false.
+       write(uniterr,*) 'Warning in ReadParameters: ',&
+            'Please change convert to .false. when start a new run !'
+    end if
+
     if(convert) autoconvert=.false.
 
     if (mype == 0) then
