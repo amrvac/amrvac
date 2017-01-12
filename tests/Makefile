@@ -1,5 +1,6 @@
-TEST_DIRS := rho/auto_1d rho/auto_2d rho/auto_3d hd/RM2D hd/RT3D hd/jetcl_2d	\
-mhd/promRT mhd/doubleGEM_25D mhd/solar_atmosphere_25D
+TEST_DIRS := rho/auto_1d rho/auto_2d rho/auto_3d hd/Riemann_2D	\
+hd/Rayleigh_Taylor hd/implosion hd/jet_cloud mhd/doubleGEM_25D	\
+mhd/solar_atmosphere_25D mhd/promRT
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
