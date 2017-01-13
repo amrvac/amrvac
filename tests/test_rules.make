@@ -1,5 +1,8 @@
 # This is a template Makefile to simplify writing tests
 
+# Disable built-in rules
+.SUFFIXES:
+
 # Location of setup script
 SETUP_SCRIPT := $(AMRVAC_DIR)/setup.pl
 
@@ -10,8 +13,7 @@ LOG_CMP := $(AMRVAC_DIR)/tools/python/compare_logs.py
 NUM_PROCS ?= 4
 
 # The files that define a setup
-SETUP_FILES := amrvacusr.t amrvacusrpar.t amrvacsettings.t definitions.h	\
-mod_indices.t makefile
+SETUP_FILES := makefile
 
 .PHONY: all always_rebuild
 

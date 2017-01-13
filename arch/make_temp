@@ -26,6 +26,9 @@ endif
 ARCH          = default.defs
 SRC           = $(AMRVAC_DIR)/src
 
+# Disable built-in rules
+.SUFFIXES:
+
 include $(AMRVAC_DIR)/arch/$(ARCH)
 
 ############## setup.pl: #######################
