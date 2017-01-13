@@ -622,7 +622,7 @@ double precision, intent(in):: qt
 integer:: iigrid, igrid,level
 !-----------------------------------------------------------------------------
 
-if (associated(usr_process_grid)) then
+if (associated(usr_process_global)) then
    call usr_process_global(iit,qt)
 end if
 
