@@ -3,17 +3,28 @@ module mod_dust
   implicit none
   private
 
+  !> The number of dust species
   integer, public, protected :: n_dust
-  integer, allocatable :: rho_dust(:)
-  integer, allocatable :: m_dust(:, :)
 
+  !> The dust densities
+  integer, allocatable       :: rho_dust(:)
+
+  !> The dust momentum densities
+  integer, allocatable       :: m_dust(:, :)
+
+  ! TODO: describe?
   double precision, allocatable :: sdust(:), dsdust(:), rhodust(:), mhcgspar, kbcgspar
   double precision              :: Lstar, Tdust
+  double precision              :: mu_      = 1.0d0
+  double precision              :: mhcgspar = 1.6733D-24
+  double precision              :: kbcgspar = 1.38065D-16
 
   ! Public methods
   public :: dust_init
 
 contains
+
+  ! TODO: how will dust read settings? Use m_config?
 
   subroutine dust_init()
     use mod_global_parameters
@@ -34,24 +45,6 @@ contains
        end do
     end do
 
-    ! set default values for entropy fixes for 'yee' type
-    ! subroutine initglobaldata
-
-    !   if (hd_energy) then
-    !      hd_gamma = 5.d0/3.d0
-    !   else
-    !      hd_gamma = 1.d0
-    !      hd_adiab = 1.d0
-    !   end if
-
-    !   ! if (dust_num_species > 0) then
-    !   !    eqpar(mu_) = 1.0d0
-    !   !    mhcgspar = 1.6733D-24
-    !   !    kbcgspar = 1.38065D-16
-    !   ! end if
-
-    ! end subroutine initglobaldata
-
   end subroutine dust_init
 
   subroutine dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -65,8 +58,8 @@ contains
     do n = 1, n_dust
        ! Convert velocity to momentum
        do idir = 1, ndir
-          w(ixO^S, m_dust(i_dim, n)) = w(ixO^S, rho_dust(n)) * &
-               w(ixO^S, m_dust(i_dim, n))
+          w(ixO^S, m_dust(idir, n)) = w(ixO^S, rho_dust(n)) * &
+               w(ixO^S, m_dust(idir, n))
        end do
     end do
   end subroutine dust_to_conserved
@@ -83,10 +76,10 @@ contains
        ! Convert momentum to velocity
        do idir = 1, ndir
           where (w(ixO^S, rho_dust(n)) > minrhod)
-             w(ixO^S, m_dust(i_dim, n)) = w(ixO^S, rho_dust(n)) / &
-                  w(ixO^S, m_dust(i_dim, n))
+             w(ixO^S, m_dust(idir, n)) = w(ixO^S, rho_dust(n)) / &
+                  w(ixO^S, m_dust(idir, n))
           elsewhere
-             w(ixO^S, m_dust(i_dim, n)) = 0
+             w(ixO^S, m_dust(idir, n)) = 0
           end where
        end do
     end do
@@ -249,26 +242,17 @@ contains
 
   end subroutine get_3d_dragforce
 
+  !> get sticking coefficient
+  !>
+  !> Assume cgs units, and use of normvar(0:nw) array for conversion
+  !> Equation from Decin et al. 2006
   subroutine get_sticking(w, x, ixI^L, ixO^L, alpha_T)
-    !
-    !  get sticking coefficient
-    !
-    !  Assume cgs units, and use of normvar(0:nw) array for conversion
-    !
-    !
-    !  Equation from Decin et al. 2006
-    !
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
-
-
     double precision, intent(out)   :: alpha_T(ixG^T, 1:n_dust)
-
     double precision                :: Tgas(ixG^T)
-    !-----------------------------------------------------------------------------
 
     call getpthermal(w, x, ixI^L, ixO^L, Tgas)
     call get_tdust(w, x, ixI^L, ixO^L, alpha_T)
@@ -282,14 +266,14 @@ contains
     end do
   end subroutine get_sticking
 
-  ! Returns dust temperature (in K), either as constant or based
-  ! on equ. 5.41, 5.42 and 5.44 from Tielens (2005)
-  !
-  !  Note that this calculation assumes cgs!!!! with conversion between
-  !  physical and scaled quantities done through the normvar(0:nw) array!!!!
-  !
-  !  It takes as input the stellar luminosoity in solar units
-  !  and/or a fixed dust temperature in Kelvin
+  !> Returns dust temperature (in K), either as constant or based on equ. 5.41,
+  !> 5.42 and 5.44 from Tielens (2005)
+  !>
+  !> Note that this calculation assumes cgs!!!! with conversion between physical
+  !> and scaled quantities done through the normvar(0:nw) array!!!!
+  !>
+  !> It takes as input the stellar luminosoity in solar units and/or a fixed
+  !> dust temperature in Kelvin
   subroutine get_tdust(w, x, ixI^L, ixO^L, Td)
     use mod_global_parameters
 
@@ -342,7 +326,7 @@ contains
 
   end subroutine get_tdust
 
-  ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
+  !> w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine addsource(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
     use mod_global_parameters
 
@@ -380,6 +364,7 @@ contains
 
   end subroutine addsource
 
+  !> Get dt related to dust and gas stopping time (Laibe 2011)
   subroutine dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
 
@@ -392,10 +377,6 @@ contains
     double precision, dimension(ixG^T)         :: vt2, deltav, tstop, ptherm, vdust, vgas
     double precision, dimension(ixG^T, 1:n_dust) :: alpha_T
     double precision                           :: K
-
-    !-----------------------------
-    !get dt related to dust and gas stopping time (Laibe 2011)
-    !-----------------------------
 
     select case( TRIM(dustmethod) )
 
@@ -507,7 +488,7 @@ contains
     double precision, intent(inout), optional :: cmin(ixG^T)
     double precision                          :: csound(ixG^T)
     double precision                          :: vdust(ixG^T, n_dust)
-    integer :: n
+    integer                                   :: n
 
     do n = 1, n_dust
        vdust(ixO^S, n) = get_vdust(w, x, ixI^L, ixO^L, idim, n)

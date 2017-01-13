@@ -1,7 +1,8 @@
 !> This is a custom analysis routine. When it is called is controlled by
 !> dtsave(5), ditsave(5) etc. in the savelist part of your .par file.
 subroutine write_analysis()
-  include 'amrvacdef.f'
+  use mod_global_parameters
+  use mod_input_output
 
   integer, parameter          :: n_modes   = 2
   logical, save               :: file_open = .false.

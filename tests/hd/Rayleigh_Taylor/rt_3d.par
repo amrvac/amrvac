@@ -1,5 +1,3 @@
- &testlist
- /
 
  &filelist
 	autoconvert    = .true.

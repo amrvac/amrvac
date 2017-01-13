@@ -3,14 +3,14 @@
 !=============================================================================
 ! Deflection of a jet by a cloud
 ! Variation/Simplification of De Gouveia del Pino, E., ApJ 526, 862-873 (1999)
-!   original paper: 3D SPH simulations of adiabatic versus cooling jets 
+!   original paper: 3D SPH simulations of adiabatic versus cooling jets
 !                          into gravitationally stratified isothermal cloud
-!   our approximation: adiabatic HD, 2D to 3D, non-isothermal (pressure-matched) 
+!   our approximation: adiabatic HD, 2D to 3D, non-isothermal (pressure-matched)
 !                          cloud, single tracer added to jet
 !
-! For setup in 2D use: 
+! For setup in 2D use:
 !$AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=0 -g=16,16    -p=hd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
-! For setup in 3D use: 
+! For setup in 3D use:
 !$AMRVAC_DIR/setup.pl -d=33 -phi=0 -z=0 -g=16,16,16 -p=hd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
 
 INCLUDE:amrvacnul/specialimpl.t
@@ -125,14 +125,14 @@ double precision:: rinlet(ixG^T)
 select case(iB)
  case(1)
     ! === Left boundary ===!
-  
+
   {^IFTWOD
     rinlet(ixO^S)=abs(x(ixO^S,2))
   }
   {^IFTHREED
     rinlet(ixO^S)=dsqrt(x(ixO^S,2)**2+x(ixO^S,3)**2)
   }
-		
+
   where(rinlet(ixO^S)<1.0d0)
       w(ixO^S,rho_) = one
       w(ixO^S,v1_)  = eqpar(Ma_)*eqpar(ca_)
@@ -153,7 +153,7 @@ select case(iB)
   {^IFTHREED
       w(ixO^S,v3_)=zero
   }
-  
+
   patchw(ixO^S)=.false.
   call conserve(ixG^L,ixO^L,w,x,patchw)
  case default
@@ -166,10 +166,10 @@ subroutine bc_int(level,qt,ixG^L,ixO^L,w,x)
 
 ! internal boundary, user defined
 !
-! This subroutine can be used to artificially overwrite ALL conservative 
+! This subroutine can be used to artificially overwrite ALL conservative
 ! variables in a user-selected region of the mesh, and thereby act as
 ! an internal boundary region. It is called just before external (ghost cell)
-! boundary regions will be set by the BC selection. Here, you could e.g. 
+! boundary regions will be set by the BC selection. Here, you could e.g.
 ! want to introduce an extra variable (nwextra, to be distinguished from nwaux)
 ! which can be used to identify the internal boundary region location.
 ! Its effect should always be local as it acts on the mesh.
