@@ -1,4 +1,3 @@
-! TODO: divide into smaller modules(?)
 ! TODO: make sure methods do nothing by default
 ! TODO: document methods
 module mod_usr_methods
@@ -6,28 +5,40 @@ module mod_usr_methods
   implicit none
   public
 
+  ! Initialize grid data
   procedure(init_one_grid), pointer   :: usr_init_one_grid    => null()
+
+  ! Boundary condition related
   procedure(special_bc), pointer      :: usr_special_bc       => null()
   procedure(internal_bc), pointer     :: usr_internal_bc      => null()
+
+  ! Output related
   procedure(p_no_args), pointer       :: usr_print_log        => null()
-  procedure(process_grid), pointer    :: usr_process_grid     => null()
-  procedure(process_global), pointer  :: usr_process_global   => null()
+  procedure(transform_w), pointer     :: usr_transform_w      => null()
   procedure(aux_output), pointer      :: usr_aux_output       => null()
   procedure(p_no_args), pointer       :: usr_add_aux_names    => null()
+  procedure(special_convert), pointer :: usr_special_convert  => null()
+
+  ! Called every time step
+  procedure(process_grid), pointer    :: usr_process_grid     => null()
+  procedure(process_global), pointer  :: usr_process_global   => null()
+
+  ! Called before the start of the simulation
+  procedure(p_no_args), pointer       :: usr_before_main_loop => null()
+
+  ! Source terms
   procedure(source), pointer          :: usr_source           => null()
   procedure(get_dt), pointer          :: usr_get_dt           => null()
-  procedure(get_dt_impl), pointer     :: usr_get_dt_impl      => null()
-  procedure(set_eta), pointer         :: usr_set_eta          => null()
+
+  ! Refinement related procedures
   procedure(refine_grid), pointer     :: usr_refine_grid      => null()
   procedure(var_for_errest), pointer  :: usr_var_for_errest   => null()
-  procedure(set_B0), pointer          :: usr_set_B0           => null()
-  procedure(source_impl), pointer     :: usr_source_impl      => null()
-  procedure(p_no_args), pointer       :: usr_before_main_loop => null()
-  procedure(transform_w), pointer     :: usr_transform_w      => null()
   procedure(amr_tolerance), pointer   :: usr_amr_tolerance    => null()
-  procedure(special_convert), pointer :: usr_special_convert  => null()
-  procedure(fix_p), pointer           :: usr_fix_p            => null()
   procedure(flag_grid), pointer       :: usr_flag_grid        => null()
+
+  ! Only for MHD
+  procedure(set_B0), pointer          :: usr_set_B0           => null()
+
 
   abstract interface
 
@@ -166,21 +177,6 @@ module mod_usr_methods
        double precision, intent(inout) :: wB0(ixI^S,1:ndir)
      end subroutine set_B0
 
-     subroutine source_impl(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
-       use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-       double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim)
-       double precision, intent(inout) :: w(ixI^S,1:nw), wCT(ixI^S,1:nw)
-     end subroutine source_impl
-
-     subroutine get_dt_impl(w,ixG^L,ix^L,dtnew,dx^D,x)
-       use mod_global_parameters
-       integer, intent(in)             :: ixG^L,ix^L
-       double precision, intent(in)    :: dx^D, x(ixG^S,1:ndim)
-       !> note that depending on strictsmall etc, w values may change
-       double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
-     end subroutine get_dt_impl
-
      !> regenerate w and eqpar arrays to output into *tf.dat
      subroutine transform_w(w,wtf,eqpar_tf,ixI^L,ixO^L)
        use mod_global_parameters
@@ -226,42 +222,6 @@ module mod_usr_methods
        double precision, intent(in)    :: x(ixG^S,1:ndim)
      end subroutine flag_grid
   end interface
-
-    ! !> this is the place to compute a local auxiliary variable to be used
-    ! !> as refinement criterion for the Lohner error estimator only
-    ! !>  -->it is then requiring and iflag>nw
-    ! !> note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
-    ! subroutine var_for_errest(ixI^L,ixO^L,iflag,w,var)
-    !   use mod_global_parameters
-    !   integer, intent(in)           :: ixI^L,ixO^L,iflag
-    !   double precision, intent(in)  :: w(ixI^S,1:nw)
-    !   double precision, intent(out) :: var(ixG^T)
-
-    !   if (iflag > nw) call mpistop('iflag > nw, make change in parfile or in user file')
-    !   var(ixI^S) = zero
-    ! end subroutine var_for_errest
-
-    ! !> Limit "dt" further if necessary, e.g. due to the special source terms.
-    ! !> The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
-    ! !> module have already been called.
-    ! subroutine get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
-    !   use mod_global_parameters
-    !   integer, intent(in)             :: ixI^L, ixO^L
-    !   double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim)
-    !   double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
-
-    !   dtnew=bigdouble
-    ! end subroutine get_dt
-
-    ! subroutine get_dt_impl(w,ixG^L,ix^L,dtnew,dx^D,x)
-    !   use mod_global_parameters
-    !   integer, intent(in)             :: ixG^L,ix^L
-    !   double precision, intent(in)    :: dx^D, x(ixG^S,1:ndim)
-    !   !> note that depending on strictsmall etc, w values may change
-    !   double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
-
-    !   dtnew = bigdouble
-    ! end subroutine get_dt_impl
 
     ! !> to allow use defined global process before main loop evolution
     ! subroutine usr_before_main_loop()
