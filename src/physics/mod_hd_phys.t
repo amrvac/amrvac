@@ -258,8 +258,9 @@ contains
     apply_fixes = .true.
     if (present(fix)) apply_fixes = fix
 
-    if (apply_fixes .and. fixsmall) &
-         call smallvalues(w, x, ixI^L, ixO^L, "hd_to_primitive")
+    ! TODO
+    ! if (apply_fixes .and. fixsmall) &
+    !      call smallvalues(w, x, ixI^L, ixO^L, "hd_to_primitive")
 
     if (hd_energy) then
        ! Compute pressure
@@ -399,7 +400,8 @@ contains
     integer, dimension(ixG^T)    :: patchierror
     integer                      :: lowpindex(ndim), idir
 
-    if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"hd_get_pthermal")
+    ! TODO
+    ! if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"hd_get_pthermal")
 
     if (hd_energy) then
        pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
@@ -690,6 +692,7 @@ contains
     inv_rho = 1.0d0 / w(ixO^S, rho_)
   end function hd_inv_rho
 
+  ! TODO: remove routine
   subroutine smallvalues(w,x,ixI^L,ixO^L,subname)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L,ixO^L
@@ -725,6 +728,7 @@ contains
           call mpistop("Smallvalues with strictgetaux=T not implemented")
           ! where(w(ixO^S,rho_) < minrho .or. w(ixO^S,e_) < smalle&
           !      .or. pth(ixO^S)<minp)
+          ! TODO: should be minrho etc.
           !    w(ixO^S,rho_)  = 2.0*(1.0d0 + 10.0d0 * minrho)*minrho
           !    w(ixO^S,e_)    = 2.0*(1.0d0 + 10.0d0 * minp)*smalle
           !    {^C&w(ixO^S,m^C_) =zero;}
