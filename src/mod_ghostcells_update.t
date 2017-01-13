@@ -3,15 +3,26 @@ module mod_ghostcells_update
 
   implicit none
   integer :: ixM^L, ixCoG^L, ixCoM^L
+
   ! index ranges to send (S) to sibling blocks, receive (R) from 
   ! sibling blocks, send restricted (r) ghost cells to coarser blocks 
   integer, dimension(-1:1,-1:1) :: ixS_srl_^L, ixR_srl_^L, ixS_r_^L
+
   ! index ranges to receive restriced ghost cells from finer blocks, 
   ! send prolongated (p) ghost cells to finer blocks, receive prolongated 
   ! ghost from coarser blocks
   integer, dimension(-1:1, 0:3) :: ixR_r_^L, ixS_p_^L, ixR_p_^L
-  ! MPI derived datatype to send and receive subarrays of ghost cells to 
-  ! neighbor blocks in a different processor
+
+  ! MPI derived datatype to send and receive subarrays of ghost cells to
+  ! neighbor blocks in a different processor.
+  !
+  ! The first index goes from -1:1, where -1 is used when a block touches the
+  ! lower boundary, 1 when a block touches an upper boundary, and 0 a situation
+  ! away from boundary conditions.
+  !
+  ! There are two variants, _f indicates that all flux variables are filled,
+  ! whereas _p means that part of the variables is filled (currently used for
+  ! energy). Furthermore _r_ stands for restrict, _p_ for prolongation.
   integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_f, type_recv_srl_f, type_send_r_f
   integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_f, type_send_p_f, type_recv_p_f
   integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_p, type_recv_srl_p, type_send_r_p
@@ -208,9 +219,10 @@ contains
   subroutine getbc(time,qdt,pwuse,nwstart,nwbc)
     use mod_global_parameters
     
-    double precision, intent(in)               :: time, qdt
-    integer, intent(in)                        :: nwstart,nwbc
-    type(walloc), dimension(ngridshi)          :: pwuse
+    double precision, intent(in)      :: time, qdt
+    integer, intent(in)               :: nwstart ! Fill from nw = nwstart+1
+    integer, intent(in)               :: nwbc    ! Number of variables to fill
+    type(walloc), dimension(ngridshi) :: pwuse
     
     integer :: my_neighbor_type, ipole, idims, iside
     integer :: iigrid, igrid, ineighbor, ipe_neighbor
