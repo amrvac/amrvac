@@ -94,6 +94,7 @@ contains
     character(len=std_len) :: filenameout_full, filenameout_prev
     character(len=std_len) :: filenamelog_full, filenamelog_prev
 
+    namelist /levellist/ nlevelshi
     namelist /filelist/ filenameout,filenameini,filenamelog, &
          snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,dxfiletype,saveprim,primnames, &
@@ -139,6 +140,32 @@ contains
  
     ! default maximum number of grid blocks in a processor
     ngridshi=4000
+
+    ! default maximum number of levels
+    nlevelshi=13
+
+    ! Read in the .par files
+    do i = 1, size(par_files)
+       if (mype == 0) print *, "Reading " // trim(par_files(i))
+
+       ! Check whether the file exists
+       inquire(file=trim(par_files(i)), exist=file_exists)
+
+       if (.not. file_exists) then
+          write(err_msg, *) "The parameter file " // trim(par_files(i)) // &
+               " does not exist"
+          call mpistop(trim(err_msg))
+       end if
+       open(unitpar, file=trim(par_files(i)), status='old')
+       rewind(unitpar)
+       read(unitpar, levellist, end=100)
+100    close(unitpar)
+    end do
+
+    ! allocate cell size of all levels
+    allocate(dx(ndim,nlevelshi))
+    {allocate(dg^D(nlevelshi))\}
+    {allocate(ng^D(nlevelshi))\}
 
     ! default block size excluding ghost cells
     {nxblock^D = 12\}
@@ -211,6 +238,7 @@ contains
     dxfiletype               = 'lsb'
     allocate(writew(nw))
     writew(1:nw)             = .true.
+    allocate(writelevel(nlevelshi))
     writelevel(1:nlevelshi)  = .true.
     writespshift(1:ndim,1:2) = zero
     level_io                 = -1
@@ -233,7 +261,9 @@ contains
     mxnest                      = 1
     {nbufferx^D                 = 0\}
     specialtol                  = .false.
+    allocate(tol(nlevelshi))
     tol(1:nlevelshi)            = 0.1d0
+    allocate(tolratio(nlevelshi))
     tolratio(1:nlevelshi)       = 1.0d0/8.0d0
     typegridfill                = 'linear'
     amrentropy                  = .false.
@@ -251,6 +281,7 @@ contains
     wflags(1)                   = one
     allocate(logflag(nw))
     logflag(1:nw)               = .false.
+    allocate(amr_wavefilter(nlevelshi))
     amr_wavefilter(1:nlevelshi) = 1.0d-2
     skipfinestep                = .false.
     tfixgrid                    = bigdouble
@@ -341,7 +372,6 @@ contains
     useprimitive    = .true.
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
-    bcphys          = .true.
     ncyclemax       = 1000
     ssplitdust      = .false.
     ssplitdivb      = .false.
@@ -352,6 +382,8 @@ contains
     ssplituser      = .false.
     typeadvance     = 'twostep'
 
+    allocate(typefull1(nlevelshi),typepred1(nlevelshi))
+    allocate(typelimiter1(nlevelshi),typegradlimiter1(nlevelshi))
     do level=1,nlevelshi
        typefull1(level)        = 'tvdlf'
        typepred1(level)        = 'default'
@@ -416,19 +448,8 @@ contains
     filenamelog_full = ''
     filenamelog_prev = ''
 
-    ! Read in the .par files
+
     do i = 1, size(par_files)
-       if (mype == 0) print *, "Reading " // trim(par_files(i))
-
-       ! Check whether the file exists
-       inquire(file=trim(par_files(i)), exist=file_exists)
-
-       if (.not. file_exists) then
-          write(err_msg, *) "The parameter file " // trim(par_files(i)) // &
-               " does not exist"
-          call mpistop(trim(err_msg))
-       end if
-
        open(unitpar, file=trim(par_files(i)), status='old')
 
        ! Try to read in the namelists. They can be absent or in a different
@@ -698,7 +719,7 @@ contains
     {#IFDEF STRETCHGRID
     !if (mxnest>1) call mpistop("No refinement possible with a loggrid")
     if (typeaxial=='slab') call mpistop("Cartesian log grid not implemented")
-
+    allocate(logGs(0:nlevelshi),qsts(0:nlevelshi))
     if (qst/=bigdouble) then
        xprobmax1=xprobmin1*qst**nxlone1
        if(mype==0) write(*,*) 'xprobmax1 is computed for given nxlone1 and qst:', xprobmax1

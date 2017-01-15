@@ -3,12 +3,12 @@ default:
 	@echo '=== Please read ../doc/getting_started.md                      ==='
 ################# Definitions for source files #############################
 
-INCLUDES += mod_indices$F mod_physicaldata$F \
+INCLUDES +=  mod_physicaldata$F \
 mod_fix_conserve$F mod_connectivity$F					\
 mod_global_parameters$F mod_usr_methods$F $(MAKE_)
 
 FOBJECTS =	                                                        \
-mod_physicaldata$F	mod_indices$F		initialize_vars$F	\
+mod_physicaldata$F      initialize_vars$F	\
 amrvac$F		advance$F		setdt$F	               	\
 amrini$F				                        	\
 amr_solution_node$F	                                        	\
@@ -26,8 +26,7 @@ mod_usr_methods$F mod_usr$F mod_ghostcells_update$F
 ############################################################################
 #  Dependencies:
 ############################################################################
-mod_global_parameters.o: mod_indices.o mod_physicaldata.o mod_connectivity.o
-mod_physicaldata.o : mod_indices.o
+mod_global_parameters.o: mod_physicaldata.o mod_connectivity.o
 amr_fix_conserve.o : mod_fix_conserve.o
 forest.o initialize_vars.o : mod_forest.o mod_global_parameters.o
 amrvac.o initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o \

@@ -2,6 +2,8 @@
 module mod_ghostcells_update
 
   implicit none
+  ! A switch of update physical boundary or not
+  logical :: bcphys=.true.
   integer :: ixM^L, ixCoG^L, ixCoM^L
 
   ! index ranges to send (S) to sibling blocks, receive (R) from 
