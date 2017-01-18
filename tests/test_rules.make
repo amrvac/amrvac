@@ -1,5 +1,8 @@
 # This is a template Makefile to simplify writing tests
 
+# Location of setup script
+SETUP_SCRIPT := $(AMRVAC_DIR)/setup.pl
+
 # Disable built-in rules
 .SUFFIXES:
 
@@ -21,7 +24,9 @@ all: $(TESTS)
 	else echo "** FAILED ** $@" ; \
 	fi
 
-amrvac:
+amrvac: makefile
 	$(MAKE)
 
+makefile:
+	$(SETUP_SCRIPT) $(SETUP_FLAGS) > setup.log
 

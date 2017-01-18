@@ -12,11 +12,6 @@ Options:
 
     -d=NM                       N is the the problem dimension (1 to 3)
                                 M is the vector dimension (1 to 3)
-    -phi={1,2,3}                Index of vector phi-component (default: 3)
-    -z={1,2,3}                  Index of vector z-component (default: 2)
-    -eos=<equation of state>    The equation of state
-    -nf=<number>                The number of fluid tracers (default: 0)
-    -ndust=<number>             The number of dust species (default: 0)
     -arch=<name>                Use compilation flags from arch/<name>.defs
 
     -show                       Show current options
@@ -24,18 +19,13 @@ Options:
 
 Examples:
 
-setup.pl -d=22 -p=mhd -arch=default
+setup.pl -d=22 -arch=default
 setup.pl -show\n";
 
 # Locally define the variables that will hold the options
 my $ndim;
 my $ndir;
-my $eos;
-my $phi_dir;
-my $z_dir;
 my $arch;
-my $ntracers;
-my $ndust;
 my $show;
 my $help;
 
@@ -54,21 +44,14 @@ GetOptions(
         $ndim <= $ndir && $ndir <= 3 ||
             die("ndim <= ndir <= 3 does not hold\n");
     },
-    "eos=s"   => \$eos,
-    "phi=i"   => \$phi_dir,
-    "z=i"     => \$z_dir,
     "arch=s"  => \$arch,
-    "nf=i"    => \$ntracers,
-    "ndust=i" => \$ndust,
     "show"    => \$show,
     "help"    => \$help)
     or die("Error in command line arguments\n");
 
 
 # Show help if -help is given or if there are no other arguments
-if ($help || !($ndim || $ndir || $show || $eos ||
-               length($phi_dir) || length($z_dir) || $arch ||
-               length($ntracers) || length($ndust))) {
+if ($help || !($ndim || $ndir || $show || $arch )) {
     print STDERR $help_message;
     exit;
 }
@@ -87,40 +70,18 @@ if ($show) {
 }
 
 # Get these files if they do not exist already
-copy_if_not_present("makefile", "arch", "make_temp");
-copy_if_not_present('mod_indices.t', "src");
-copy_if_not_present("definitions.h", "src");
+copy_if_not_present("makefile", "arch", "template.make");
 
 if ($ndim) {
-    replace_regexp_file("makefile", qr/ndim\s*=.*/, "ndim = $ndim");
+    replace_regexp_file("makefile", qr/NDIM\s*[:?]?=.*/, "NDIM := $ndim");
 }
 
 if ($ndir) {
-    replace_regexp_file("makefile", qr/ndir\s*=.*/, "ndir = $ndir");
-}
-
-if (length($ntracers)) {
-    replace_regexp_file("makefile", qr/nf\s*=.*/, "nf = $ntracers");
-}
-
-if (length($ndust)) {
-    replace_regexp_file("makefile", qr/ndust\s*=.*/, "ndust = $ndust");
-}
-
-if ($eos) {
-    replace_regexp_file("makefile", qr/eos\s*=.*/, "eos = $eos");
+    replace_regexp_file("makefile", qr/NDIR\s*[:?]?=.*/, "NDIR = $ndir");
 }
 
 if ($arch) {
-    replace_regexp_file("makefile", qr/ARCH\s*=.*/, "ARCH = $arch.defs");
-}
-
-if (length($phi_dir)) {
-    replace_regexp_file("makefile", qr/phi\s*=.*/, "phi = $phi_dir");
-}
-
-if (length($z_dir)) {
-    replace_regexp_file("makefile", qr/z\s*=.*/, "z = $z_dir");
+    replace_regexp_file("makefile", qr/ARCH\s*[:?]?=.*/, "ARCH = $arch.defs");
 }
 
 # Copy a file if it doesn't exist yet
@@ -175,9 +136,6 @@ sub show_current_parameters {
 
     print "\n Invocation of setup.pl:\n";
     printf " setup.pl -d=%d%d", $params{"ndim"}, $params{"ndir"};
-    printf " -phi=%d", $params{"phi"};
-    printf " -z=%d -eos=%s", $params{"z"}, $params{"eos"};
-    printf " -nf=%d -ndust=%d", $params{"nf"}, $params{"ndust"};
     printf " -arch=%s\n", $params{"arch"};
 }
 
@@ -197,12 +155,6 @@ sub get_current_parameters {
         $params{"ndim"}    = $1 if /^ndim\s*=\s*(\d+)/ ;
         $params{"ndir"}    = $1 if /^ndir\s*=\s*(\d+)/;
         $params{"arch"}    = $1 if /^ARCH\s*=\s*(\w+)/ ;
-        $params{"phi"}     = $' if /^phi\s*=\s*/ ;
-        $params{"z"}       = $' if /^z\s*=\s*/ ;
-        $params{"nf"}      = $1 if /^nf\s*=\s*(\d+)/ ;
-        $params{"ndust"}   = $1 if /^ndust\s*=\s*(\d+)*/ ;
-        $params{"eos"}     = $1 if /^eos\s*=\s*(\w+)/ ;
-        last if /SETVAC READS UP TO THIS POINT/;
     }
     close($fh_makefile);
 

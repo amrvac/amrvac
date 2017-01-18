@@ -1,23 +1,20 @@
 ifndef ARCH
-	$(error build.make: ARCH is not set)
+$(error build.make: ARCH is not set)
 endif
 
 ifndef NDIM
-	$(error build.make: NDIM is not set)
+$(error build.make: NDIM is not set)
 endif
 
 SRC_DIRS := . modules amrvacio physics rho hd #mhd
 SRC_DIRS := $(addprefix $(AMRVAC_DIR)/src/, $(SRC_DIRS))
+LIB_AMRVAC := libamrvac.a
+PPFLAGS := -z=-2 -phi=-1	# Remove in future
 
-LIB := libamrvac_$(ARCH).a
+.PHONY: libamrvac clean
 
-.PHONY: all clean force
-all: $(LIB)
-
-.SUFFIXES:			# Disable built-in rules
-.PRECIOUS: %.f			# Keep .f files
-
-vpath %.t $(SRC_DIRS)		# Get .t files from SRC_DIRS
+# Ensure that LIB_AMRVAC is the default target
+libamrvac: $(LIB_AMRVAC)
 
 # Include makefiles, which define FOBJECTS and dependencies
 include $(addsuffix /makefile, $(SRC_DIRS))
@@ -26,21 +23,18 @@ include $(addsuffix /makefile, $(SRC_DIRS))
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
 include $(AMRVAC_DIR)/arch/rules.make
 
-OBJECTS := $(FOBJECTS:.t=.o) $(INCLUDES:.t=.o)
-PPFLAGS := -z=-2 -phi=-1
+# Get .t files from SRC_DIRS
+vpath %.t $(SRC_DIRS)
 
-# amrvac.f will be compiled later
-$(LIB): $(OBJECTS) amrvac.f
+OBJECTS := $(FOBJECTS:.t=.o) $(INCLUDES:.t=.o)
+
+# amrvac.f depends on user code so it will be compiled later
+$(LIB_AMRVAC): $(OBJECTS) amrvac.f
 	$(RM) $@
 	$(AR) rcs $@ $^
 
-# Used to rebuild objects when ARCH changes
-current_arch: force
-	@echo '$(ARCH)' | cmp -s - $@ || echo '$(ARCH)' > $@
-
 clean:
-	$(RM) $(OBJECTS) *.mod $(LIB)
+	$(RM) $(OBJECTS) *.mod $(LIB_AMRVAC)
 
-# Dependencies
+# INCLUDES are always compiled before FOBJECTS
 $(FOBJECTS:.t=.o): $(INCLUDES:.t=.o)
-$(OBJECTS): current_arch

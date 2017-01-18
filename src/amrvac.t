@@ -26,8 +26,6 @@ program amrvac
   time0        = MPI_WTIME()
   time_bc      = zero
 
-  print *, "HELLO"
-
   call read_arguments()
 
   call usr_init()
