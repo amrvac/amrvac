@@ -1,6 +1,6 @@
 ################# Definitions for source files #############################
-INCLUDES = mod_indices.t mod_physicaldata.t mod_fix_conserve.t	\
-mod_connectivity.t mod_global_parameters.t mod_usr_methods.t mod_forest.t
+INCLUDES = mod_physicaldata.t mod_fix_conserve.t mod_connectivity.t	\
+mod_global_parameters.t mod_usr_methods.t mod_forest.t
 
 FOBJECTS = initialize_vars.t advance.t setdt.t amrini.t		\
 amr_solution_node.t errest.t amrgrid.t amr_fix_conserve.t tvdlf.t tvd.t cd.t	\
@@ -11,8 +11,7 @@ geometry.t mod_ghostcells_update.t mod_usr.t
 ############################################################################
 #  Dependencies:
 ############################################################################
-mod_global_parameters.o: mod_indices.o mod_physicaldata.o mod_connectivity.o
-mod_connectivity.o mod_physicaldata.o: mod_indices.o
+mod_global_parameters.o: mod_physicaldata.o mod_connectivity.o
 amr_fix_conserve.o : mod_fix_conserve.o mod_ghostcells_update.o
 forest.o initialize_vars.o: mod_global_parameters.o
 initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o	\
