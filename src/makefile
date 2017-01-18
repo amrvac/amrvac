@@ -6,7 +6,7 @@ FOBJECTS = initialize_vars.t advance.t setdt.t amrini.t		\
 amr_solution_node.t errest.t amrgrid.t amr_fix_conserve.t tvdlf.t tvd.t cd.t	\
 fd.t load_balance.t connectivity.t boundary_conditions.t comm_lib.t forest.t	\
 amr_neighbors.t amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t	\
-geometry.t mod_ghostcells_update.t mod_usr.t
+geometry.t mod_ghostcells_update.t
 
 ############################################################################
 #  Dependencies:
