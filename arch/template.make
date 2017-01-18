@@ -19,9 +19,6 @@ LIBS := amrvac
 .PHONY: all clean force
 
 all: amrvac
-amrvac: amrvac.o mod_usr.o
-amrvac.o: mod_usr.o
-mod_usr.o: $(LIB_AMRVAC)
 
 # Include architecture and compilation rules
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
@@ -36,4 +33,9 @@ $(LIB_AMRVAC): force
 	$(MAKE) -C $(BUILD_DIR) -f $(BUILD_MAKEFILE)
 
 clean:
-	$(RM) mod_usr.o mod_usr.mod amrvac.o
+	$(RM) mod_usr.o mod_usr.mod amrvac.o amrvac
+
+# Dependencies
+amrvac: mod_usr.o amrvac.o
+amrvac.o: mod_usr.o $(LIB_AMRVAC)
+mod_usr.o: $(LIB_AMRVAC)
