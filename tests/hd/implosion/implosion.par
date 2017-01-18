@@ -54,3 +54,7 @@
         courantpar=0.9d0
         slowsteps=10
  /
+
+ &hd_list
+        hd_gamma = 1.4d0
+ /

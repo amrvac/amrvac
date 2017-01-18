@@ -51,3 +51,8 @@
         courantpar=0.9d0
         slowsteps=10
  /
+
+ &hd_list
+        hd_adiab = 1.4d0
+ /
+
