@@ -24,7 +24,7 @@ all: $(TESTS)
 	else echo "** FAILED ** $@" ; \
 	fi
 
-amrvac: makefile
+amrvac: makefile force		# Always try to build
 	$(MAKE)
 
 makefile:
