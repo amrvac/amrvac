@@ -14,8 +14,8 @@ program amrvac
   use mod_input_output
   use mod_physics
   use mod_usr_methods, only: usr_before_main_loop
-  use mod_usr, only: usr_init
   use mod_ghostcells_update
+  use mod_usr
 
   integer          :: itin
   double precision :: time0, time_in, tin
@@ -26,10 +26,12 @@ program amrvac
   time0        = MPI_WTIME()
   time_bc      = zero
 
+  print *, "HELLO"
+
   call read_arguments()
 
   call usr_init()
-  call phys_check_methods()
+  call phys_check()
 
   call read_par_files()
 
@@ -45,7 +47,7 @@ program amrvac
      tin=t
 
      ! order: first physics dependent part then user for defaults.
-     call initglobal()
+     call phys_check_params()
 
      {#IFDEF RAY
      call init_rays
@@ -88,7 +90,7 @@ program amrvac
 
   else
      ! order: first physics dependent part then user for defaults.
-     call initglobal()
+     call phys_check_params()
 
      {#IFDEF RAY
      call init_rays
@@ -314,9 +316,4 @@ contains
     fixgrid= (t>=tfixgrid .or. it>=itfixgrid)
   end function fixgrid
 
-  !> Perform global initialization, in three steps:
-  subroutine initglobal()
-    call phys_init_params()
-    call phys_check_params()
-  end subroutine initglobal
 end program amrvac

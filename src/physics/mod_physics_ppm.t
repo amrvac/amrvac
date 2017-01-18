@@ -25,13 +25,13 @@ module mod_physics_ppm
 
 contains
 
-  subroutine phys_ppm_check_methods
+  subroutine phys_ppm_check
     if (.not. associated(phys_ppm_flatcd)) &
          phys_ppm_flatcd => dummy_ppm_flatcd
 
     if (.not. associated(phys_ppm_flatsh)) &
          phys_ppm_flatsh => dummy_ppm_flatsh
-  end subroutine phys_ppm_check_methods
+  end subroutine phys_ppm_check
 
   subroutine dummy_ppm_flatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
     use mod_global_parameters

@@ -141,12 +141,12 @@ contains
     phys_to_primitive    => hd_to_primitive
     phys_check_params    => hd_check_params
     phys_check_w         => hd_check_w
-  
+
     ! initialize thermal conduction module
-    if(hd_thermal_conduction) then
-      tc_gamma=hd_gamma
-      phys_get_heatconduct   => hd_get_heatconduct
-      phys_getdt_heatconduct => hd_getdt_heatconduct
+    if (hd_thermal_conduction) then
+       tc_gamma               =  hd_gamma
+       phys_get_heatconduct   => hd_get_heatconduct
+       phys_getdt_heatconduct => hd_getdt_heatconduct
       call thermal_conduction_init()
     end if
 
@@ -155,16 +155,16 @@ contains
   subroutine hd_check_params
     use mod_global_parameters
 
+    minrho = max(0.0d0, smallrho)
+
     if (.not. hd_energy) then
        if (hd_gamma <= 0.0d0) call mpistop ("hd_gamma negative not ok")
        if (hd_adiab < 0.0d0) call mpistop ("adiab strict negative not ok")
-       minrho = max(0.0d0, smallrho)
        minp   = hd_adiab*minrho**hd_gamma
     else
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
             call mpistop ("hd_gamma negative or 1 not ok")
        minp   = max(0.0d0, smallp)
-       minrho = max(0.0d0, smallrho)
        smalle = minp/(hd_gamma - 1.0d0)
     end if
 
@@ -649,9 +649,6 @@ contains
     double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
-
-    double precision, dimension(ixG^T, 1:ndir, 1:^NDS) :: fdrag
-    integer                                           :: idir
 
     ! TODO
     ! call dust_add_source(qdt, ixI^L, ixO^L, iw^LIM, &

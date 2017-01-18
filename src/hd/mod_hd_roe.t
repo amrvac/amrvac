@@ -6,6 +6,11 @@ module mod_hd_roe
   implicit none
   private
 
+  integer :: soundRW_ = -1
+  integer :: soundLW_ = -1
+  integer :: entropW_ = -1
+  integer :: shearW0_ = -1
+
   public :: hd_roe_init
 
 contains

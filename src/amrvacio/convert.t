@@ -1018,14 +1018,15 @@ else
      ix=ix+ndir
      normconv(ix:nw)=normvar(ix:nw)
   endif
-  if (physics_type == 'hdmdust') then
-  ! energy followed by dust density and momentum
-     normconv(ix)=normvar(ix) !energy
-     normconv(ix+1:ix+^NDS)=normvar(ix+1:ix+^NDS) !dust density
-     {^DS&{^C&normconv(ix+^NDS+^C+(^DS-1)*^NC)= &
-               normvar(ix+^NDS+^C+(^DS-1)*^NC)* &
-               normvar(ix+^DS);}\} !dust momentum     
-  end if
+  ! Jannis: TODO disabled this for now
+  ! if (physics_type == 'hdmdust') then
+  ! ! energy followed by dust density and momentum
+  !    normconv(ix)=normvar(ix) !energy
+  !    normconv(ix+1:ix+^NDS)=normvar(ix+1:ix+^NDS) !dust density
+  !    {^DS&{^C&normconv(ix+^NDS+^C+(^DS-1)*^NC)= &
+  !              normvar(ix+^NDS+^C+(^DS-1)*^NC)* &
+  !              normvar(ix+^DS);}\} !dust momentum     
+  ! end if
 end if
 
 ! coordinates of cell centers

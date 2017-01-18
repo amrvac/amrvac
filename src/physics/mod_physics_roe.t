@@ -7,10 +7,6 @@ module mod_physics_roe
   procedure(sub_get_eigenjump), pointer   :: phys_get_eigenjump => null()
   procedure(sub_rtimes), pointer          :: phys_rtimes => null()
 
-  integer :: soundRW_ = -1
-  integer :: soundLW_ = -1
-  integer :: entropW_ = -1
-  integer :: shearW0_ = -1
   integer :: nworkroe = -1
 
   abstract interface
@@ -47,7 +43,7 @@ module mod_physics_roe
 
 contains
 
-  subroutine phys_roe_check_methods()
+  subroutine phys_roe_check()
     if (.not. associated(phys_average)) &
          call mpistop("Error: no average method has been specified")
 
@@ -56,6 +52,6 @@ contains
 
     if (.not. associated(phys_rtimes)) &
          call mpistop("Error: no rtimes method has been specified")
-  end subroutine phys_roe_check_methods
+  end subroutine phys_roe_check
 
 end module mod_physics_roe

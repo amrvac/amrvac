@@ -8,30 +8,31 @@ module mod_physics
   use mod_physics_ppm
 
   implicit none
+  public
 
-  character(len=40) :: physics_type
+  character(len=40)    :: physics_type
+  integer, allocatable :: flux_type(:, :)
+  integer, parameter   :: flux_default = 0
+  integer, parameter   :: flux_tvdlf   = 1
 
-  procedure(sub_init_params), pointer     :: phys_init_params => null()
-  procedure(sub_check_params), pointer    :: phys_check_params => null()
-  procedure(sub_convert), pointer         :: phys_to_conserved => null()
-  procedure(sub_convert), pointer         :: phys_to_primitive => null()
+  procedure(sub_check_params), pointer    :: phys_check_params           => null()
+  procedure(sub_convert), pointer         :: phys_to_conserved           => null()
+  procedure(sub_convert), pointer         :: phys_to_primitive           => null()
   procedure(sub_convert), pointer         :: phys_convert_before_prolong => null()
-  procedure(sub_convert), pointer         :: phys_convert_after_prolong => null()
+  procedure(sub_convert), pointer         :: phys_convert_after_prolong  => null()
   procedure(sub_convert), pointer         :: phys_convert_before_coarsen => null()
-  procedure(sub_convert), pointer         :: phys_convert_after_coarsen => null()
-  procedure(sub_get_v), pointer           :: phys_get_v => null()
-  procedure(sub_get_cmax), pointer        :: phys_get_cmax => null()
-  procedure(sub_get_flux), pointer        :: phys_get_flux => null()
-  procedure(sub_get_dt), pointer          :: phys_get_dt => null()
-  procedure(sub_add_source_geom), pointer :: phys_add_source_geom => null()
-  procedure(sub_add_source), pointer      :: phys_add_source => null()
-  procedure(sub_get_aux), pointer         :: phys_get_aux => null()
-  procedure(sub_check_w), pointer         :: phys_check_w => null()
+  procedure(sub_convert), pointer         :: phys_convert_after_coarsen  => null()
+  procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
+  procedure(sub_get_v), pointer           :: phys_get_v                  => null()
+  procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
+  procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
+  procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
+  procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
+  procedure(sub_add_source), pointer      :: phys_add_source             => null()
+  procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
+  procedure(sub_check_w), pointer         :: phys_check_w                => null()
 
   abstract interface
-
-     subroutine sub_init_params()
-     end subroutine sub_init_params
 
      subroutine sub_check_params()
      end subroutine sub_check_params
@@ -43,6 +44,12 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
        logical, intent(in), optional   :: fix
      end subroutine sub_convert
+
+     subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+       use mod_global_parameters, only: nw
+       double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+       integer, intent(in)                :: ixI^L, ixO^L, idir
+     end subroutine sub_modify_wLR
 
      subroutine sub_get_v(w, x, ixI^L, ixO^L, idim, v)
        use mod_global_parameters
@@ -110,27 +117,35 @@ module mod_physics
 
 contains
 
-  subroutine phys_check_methods()
-    use mod_physics_hllc, only: phys_hllc_check_methods
-    use mod_physics_roe, only: phys_roe_check_methods
-    use mod_physics_ppm, only: phys_ppm_check_methods
+  subroutine phys_check()
+    use mod_global_parameters, only: nw, ndir
 
-    call phys_hllc_check_methods()
-    call phys_roe_check_methods()
-    call phys_ppm_check_methods()
+    use mod_physics_hllc, only: phys_hllc_check
+    use mod_physics_roe, only: phys_roe_check
+    use mod_physics_ppm, only: phys_ppm_check
+
+    ! Check whether custom flux types have been defined
+    if (.not. allocated(flux_type)) then
+       allocate(flux_type(ndir, nw))
+       flux_type = flux_default
+    else if (any(shape(flux_type) /= [ndir, nw])) then
+       call mpistop("phys_check error: flux_type has wrong shape")
+    end if
+
+    call phys_hllc_check()
+    call phys_roe_check()
+    call phys_ppm_check()
 
     ! Checks whether the required physics methods have been defined
-    if (.not. associated(phys_init_params)) &
-         phys_init_params => dummy_init_params
 
     if (.not. associated(phys_check_params)) &
          phys_check_params => dummy_check_params
 
     if (.not. associated(phys_to_conserved)) &
-         phys_to_conserved => dummy_convert
+         call mpistop("Error: phys_to_conserved not defined")
 
     if (.not. associated(phys_to_primitive)) &
-         phys_to_primitive => dummy_convert
+         call mpistop("Error: phys_to_primitive not defined")
 
     if (.not. associated(phys_convert_before_prolong)) &
          phys_convert_before_prolong => dummy_convert
@@ -144,17 +159,20 @@ contains
     if (.not. associated(phys_convert_after_coarsen)) &
          phys_convert_after_coarsen => dummy_convert
 
+    if (.not. associated(phys_modify_wLR)) &
+         phys_modify_wLR => dummy_modify_wLR
+
     if (.not. associated(phys_get_v)) &
-         call mpistop("Error: no get_v method has been specified")
+         call mpistop("Error: phys_get_v not defined")
 
     if (.not. associated(phys_get_cmax)) &
-         call mpistop("Error: no get_cmax method has been specified")
+         call mpistop("Error: no phys_get_cmax not defined")
 
     if (.not. associated(phys_get_flux)) &
-         call mpistop("Error: no get_flux method has been specified")
+         call mpistop("Error: no phys_get_flux not defined")
 
     if (.not. associated(phys_get_dt)) &
-         phys_get_dt => dummy_get_dt
+         call mpistop("Error: no phys_get_dt not defined")
 
     if (.not. associated(phys_add_source_geom)) &
          phys_add_source_geom => dummy_add_source_geom
@@ -168,7 +186,7 @@ contains
     if (.not. associated(phys_check_w)) &
          phys_check_w => dummy_check_w
 
-  end subroutine phys_check_methods
+  end subroutine phys_check
 
   subroutine dummy_init_params()
   end subroutine dummy_init_params
@@ -184,6 +202,12 @@ contains
     logical, intent(in), optional   :: fix
   end subroutine dummy_convert
 
+  subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+    use mod_global_parameters, only: nw
+    double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    integer, intent(in)                :: ixI^L, ixO^L, idir
+  end subroutine dummy_modify_wLR
+
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
@@ -198,15 +222,6 @@ contains
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
   end subroutine dummy_add_source
-
-  subroutine dummy_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
-
-    dtnew = bigdouble
-  end subroutine dummy_get_dt
 
   subroutine dummy_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
     use mod_global_parameters

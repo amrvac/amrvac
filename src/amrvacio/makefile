@@ -1,7 +1,8 @@
 #########################################################################
 # Everything IO-related goes here:
 #########################################################################
-FOBJECTS += mod_input_output$F  convert$F  kracken$F  analysis$F collapse$F slice$F
+FOBJECTS += mod_input_output.t convert.t kracken.t analysis.t collapse.t	\
+slice.t
 
 #########################################################################
 # Dependencies:

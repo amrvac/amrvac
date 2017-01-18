@@ -638,12 +638,7 @@ do idims= idim^LIM
 
    hxO^L=ixO^L-kr(idims,^D);
    ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
-{#IFDEF FCT
-! Flux-interpolated constrained transport needs one more layer:
-   ixCmax^D=ixOmax^D+1; ixCmin^D=hxOmin^D-1;
-}{#IFNDEF FCT
    ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
-}
 
    ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2 
    jxC^L=ixC^L+kr(idims,^D);
@@ -670,7 +665,9 @@ do idims= idim^LIM
    xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
 {#IFDEF STRETCHGRID
    if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
-}
+   }
+
+   ! call phys_grow_stencil(ixCR^L)
 
    ! for hll (second order scheme): apply limiting
    if (method=='hll') then
@@ -734,45 +731,37 @@ do idims= idim^LIM
    if(any(patchf(ixC^S)/= 2)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
    if(any(patchf(ixC^S)/=-2)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
-{#IFDEF GLM
-! Solve the Riemann problem for the linear 2x2 system for normal
-! B-field and GLM_Psi according to Dedner 2002:
-call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
-}
-
+   call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-     if(any(patchf(ixC^S)/= 2){#IFDEF GLM .or.iw==psi_}) then 
-        call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
-        if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
-     end if
-     if(any(patchf(ixC^S)/=-2){#IFDEF GLM .or.iw==psi_}) then 
-        call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
-        if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
-     end if
 
-     ! if (b0_>0.and.iw==b0_+idims{#IFDEF GLM .or.iw==psi_}) then
-     !    if (BnormLF) then
-     !       ! flat B norm using tvdlf
-     !       fLC(ixC^S)= half*(-tvdlfeps*max(cmaxC(ixC^S)&
-     !                     ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-     !       {#IFDEF GLM if(iw==psi_) fLC(ixC^S)=fLC(ixC^S)+half*(fLC(ixC^S)+fRC(ixC^S))}
-     !     else
-     !       fLC(ixC^S)=zero
-     !     endif
-     ! else
-       where(patchf(ixC^S)==1)
-         ! Add hll dissipation to the flux
-         fLC(ixC^S)=(cmaxC(ixC^S)*fLC(ixC^S)-cminC(ixC^S)*fRC(ixC^S) &
-                   +tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))&
+      if (any(patchf(ixC^S)/= 2) .or. flux_type(idims, iw) == flux_tvdlf) then
+         call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
+         if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
+      end if
+
+      if (any(patchf(ixC^S)/=-2) .or. flux_type(idims, iw) == flux_tvdlf) then
+         call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
+         if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
+      end if
+
+      if (flux_type(idims, iw) == flux_tvdlf) then
+         fLC(ixC^S) = half*((fLC(ixC^S) + fRC(ixC^S)) &
+              -tvdlfeps*max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
+              (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+      else
+         where(patchf(ixC^S)==1)
+            ! Add hll dissipation to the flux
+            fLC(ixC^S)=(cmaxC(ixC^S)*fLC(ixC^S)-cminC(ixC^S)*fRC(ixC^S) &
+                 +tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))&
                  /(cmaxC(ixC^S)-cminC(ixC^S))
-       elsewhere(patchf(ixC^S)== 2)
-         fLC(ixC^S)=fRC(ixC^S)
-       elsewhere(patchf(ixC^S)==-2)
-         fLC(ixC^S)=fLC(ixC^S)
-       endwhere
-     ! endif
+         elsewhere(patchf(ixC^S)== 2)
+            fLC(ixC^S)=fRC(ixC^S)
+         elsewhere(patchf(ixC^S)==-2)
+            fLC(ixC^S)=fLC(ixC^S)
+         endwhere
+      endif
 
      if (slab) then
          fC(ixC^S,iw,idims)=fLC(ixC^S)
@@ -787,9 +776,6 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 end do ! Next idims
 
 
-{#IFDEF FCT
-call fct_average(ixI^L,ixO^L,fC)
-}
 do idims= idim^LIM
    hxO^L=ixO^L-kr(idims,^D);
    do iw=1,nwflux

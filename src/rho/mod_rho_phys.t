@@ -48,8 +48,30 @@ contains
     phys_get_cmax        => rho_get_cmax
     phys_get_flux        => rho_get_flux
     phys_add_source_geom => rho_add_source_geom
-
+    phys_to_conserved    => rho_to_conserved
+    phys_to_primitive    => rho_to_primitive
+    phys_get_dt          => rho_get_dt
   end subroutine rho_phys_init
+
+  subroutine rho_to_conserved(ixI^L, ixO^L, w, x, fix)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:^ND)
+    logical, intent(in), optional   :: fix
+
+    ! Do nothing (primitive and conservative are equal for rho module)
+  end subroutine rho_to_conserved
+
+  subroutine rho_to_primitive(ixI^L, ixO^L, w, x, fix)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:^ND)
+    logical, intent(in), optional   :: fix
+
+    ! Do nothing (primitive and conservative are equal for rho module)
+  end subroutine rho_to_primitive
 
   subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v)
     use mod_global_parameters
@@ -76,6 +98,15 @@ contains
        cmax(ixO^S) = abs(cmax(ixO^S))
     end if
   end subroutine rho_get_cmax
+
+  subroutine rho_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
+    double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
+
+    dtnew = bigdouble
+  end subroutine rho_get_dt
 
   ! There is nothing to add to the transport flux in the transport equation
   subroutine rho_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)

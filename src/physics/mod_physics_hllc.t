@@ -44,7 +44,7 @@ module mod_physics_hllc
 
 contains
 
-  subroutine phys_hllc_check_methods
+  subroutine phys_hllc_check
     if (.not. associated(phys_diffuse_hllcd)) &
          phys_diffuse_hllcd => dummy_diffuse_hllcd
 
@@ -53,7 +53,7 @@ contains
 
     if (.not. associated(phys_get_wCD)) &
          phys_get_wCD => dummy_get_wCD
-  end subroutine phys_hllc_check_methods
+  end subroutine phys_hllc_check
 
   ! When method is hllcd or hllcd1 then: this subroutine is to impose enforce
   ! regions where we AVOID HLLC and use TVDLF instead: this is achieved by setting

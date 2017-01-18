@@ -199,7 +199,7 @@ sub definepatterns{
    # E.g. ^D -> 1,2 is defined by &patdef('D',2,'1','2','3')
    &patdef('ND'	,1	,$ndim			);
    &patdef('NC'	,1	,$ndir			);
-   &patdef('NFL',1	,$nf			);
+   # &patdef('NFL',1	,$nf			);
    &patdef('PHI',1	,$phi			);
    &patdef('Z'	,1	,$z			);
    if($phi>0){$pphi=$phi}else{$pphi=1};
@@ -217,14 +217,14 @@ sub definepatterns{
    &patdef('TE'	,$ndim-1,'^LLIM2:','^LLIM3:'	);
 
 #  Dust specific patterns:
-   &patdef('NDS',1	,$ndust			);
-   &patdef('DS',$ndust,1  ,2  ,3  ,4,5,6,7,8,9,10);
-   &patdef('DS&',$ndust);
+   # &patdef('NDS',1	,$ndust			);
+   # &patdef('DS',$ndust,1  ,2  ,3  ,4,5,6,7,8,9,10);
+   # &patdef('DS&',$ndust);
 
-   &patdef('FL'	,$nf	,1, 2	,3	,4,5,6,7,8,9,10);
-   &patdef('FL&'	,$nf			       );
-   &patdef('FL%',$nf	,'^%2'	,'^%3'	,'^%4','^%5','^%6','^%7','^%8','^%9','^%10');
-   &patdef('FLLOOP',$nf       			);
+   # &patdef('FL'	,$nf	,1, 2	,3	,4,5,6,7,8,9,10);
+   # &patdef('FL&'	,$nf			       );
+   # &patdef('FL%',$nf	,'^%2'	,'^%3'	,'^%4','^%5','^%6','^%7','^%8','^%9','^%10');
+   # &patdef('FLLOOP',$nf       			);
    &patdef('TD'  ,$ndim  ,1      ,2      ,3      );
    &patdef('D'	,$ndim	,1	,2	,3	);
    &patdef('D&'	,$ndim				);
@@ -258,17 +258,17 @@ sub definepatterns{
    &patdef('LADD'	,2	,'-'	,'+'	);
    &patdef('LT'		,2	,'>'	,'<'	);
 
-   &patdef('IFONEFLUID'	,$nf==0			);
-   &patdef('IFMLTFLUID'	,$nf>0			);
-   &patdef('IFTOFLUID'	,$nf>1			);
-   &patdef('IFTRFLUID'	,$nf>2			);
-   &patdef('IFFRFLUID'	,$nf>3			);
-   &patdef('IFFVFLUID'	,$nf>4			);
-   &patdef('IFSIFLUID'	,$nf>5			);
-   &patdef('IFSEFLUID'	,$nf>6			);
-   &patdef('IFHEFLUID'	,$nf>7			);
-   &patdef('IFNIFLUID'	,$nf>8			);
-   &patdef('IFTEFLUID'	,$nf==10		);
+   # &patdef('IFONEFLUID'	,$nf==0			);
+   # &patdef('IFMLTFLUID'	,$nf>0			);
+   # &patdef('IFTOFLUID'	,$nf>1			);
+   # &patdef('IFTRFLUID'	,$nf>2			);
+   # &patdef('IFFRFLUID'	,$nf>3			);
+   # &patdef('IFFVFLUID'	,$nf>4			);
+   # &patdef('IFSIFLUID'	,$nf>5			);
+   # &patdef('IFSEFLUID'	,$nf>6			);
+   # &patdef('IFHEFLUID'	,$nf>7			);
+   # &patdef('IFNIFLUID'	,$nf>8			);
+   # &patdef('IFTEFLUID'	,$nf==10		);
 
    &patdef('IFONED'	,$ndim==1		);
    &patdef('IFTWOD'	,$ndim==2		);
