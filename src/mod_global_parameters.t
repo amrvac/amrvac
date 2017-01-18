@@ -1,7 +1,6 @@
 !> This module contains definitions of global parameters and variables
 !> \todo Move the parameters to the relevant (physics) modules
 module mod_global_parameters
-  use mod_indices
   use mod_physicaldata
   use mod_connectivity
   use mpi
@@ -16,8 +15,8 @@ module mod_global_parameters
 
   integer :: ixM^LL
 
-  integer, dimension(nlevelshi) :: ng^D
-  double precision, dimension(nlevelshi) :: dg^D
+  integer, dimension(:), allocatable :: ng^D
+  double precision, dimension(:), allocatable :: dg^D
 
   logical :: slab
 
@@ -380,18 +379,18 @@ module mod_global_parameters
   character(len=std_len) :: typesourcesplit
 
   !> Which spatial discretization to use (per grid level)
-  character(len=std_len) :: typefull1(nlevelshi)
+  character(len=std_len), allocatable :: typefull1(:)
 
   !> The spatial dicretization to use for the predictor step when using a two
   !> step method
-  character(len=std_len) :: typepred1(nlevelshi)
+  character(len=std_len), allocatable :: typepred1(:)
 
   !> Type of slope limiter used for reconstructing variables on cell edges
-  character(len=std_len) :: typelimiter1(nlevelshi)
+  character(len=std_len), allocatable :: typelimiter1(:)
 
   !> Type of slope limiter used for computing gradients or divergences, when
   !> typegrad or typediv are set to 'limited'
-  character(len=std_len) :: typegradlimiter1(nlevelshi)
+  character(len=std_len), allocatable :: typegradlimiter1(:)
 
   !> \todo Remove / replace with typelimiter1
   character(len=std_len) :: typelimiter
@@ -420,8 +419,6 @@ module mod_global_parameters
   integer                       :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps, mcbeta
-  !> \todo organize Thermal Conduction: bcphys
-  logical                       :: bcphys
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh,flatppm
   logical                       :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
@@ -429,7 +426,8 @@ module mod_global_parameters
   logical                       :: coarsenprimitive,useprimitiveRel, amrentropy
 
   logical                :: divbwave,compactres,BnormLF
-  double precision       :: divbdiff,smallT,smallp,smallrho,amr_wavefilter(nlevelshi)
+  double precision       :: divbdiff,smallT,smallp,smallrho
+  double precision, allocatable :: amr_wavefilter(:)
   character(len=std_len) :: typedivbdiff,typedivbfix,typediv,typegrad
 
   !> related to primitive-conservative switch in relativistic modules
@@ -439,7 +437,7 @@ module mod_global_parameters
 
   logical          :: nocartesian
   logical, allocatable :: writew(:)
-  logical :: writelevel(nlevelshi)
+  logical, allocatable :: writelevel(:)
   double precision :: writespshift(ndim,2)
   integer          :: level_io, level_io_min, level_io_max
 
@@ -564,7 +562,7 @@ module mod_global_parameters
   {#IFDEF STRETCHGRID
   ! stretching factor qst for log stretch grid
   double precision :: logG, qst
-  double precision :: logGs(0:nlevelshi), qsts(0:nlevelshi)
+  double precision, allocatable :: logGs(:), qsts(:)
   }
 
   integer, parameter :: nodehi=^ND+1
@@ -588,9 +586,9 @@ module mod_global_parameters
 
   !> Error tolerance for refinement decision
   logical :: specialtol
-  double precision :: tol(nlevelshi)
-  double precision :: tolratio(nlevelshi)
-  double precision :: dx(ndim,nlevelshi)
+  double precision, allocatable :: tol(:)
+  double precision, allocatable :: tolratio(:)
+  double precision, allocatable :: dx(:,:)
   double precision :: dt
   double precision, allocatable :: dt_grid(:)
   double precision :: dxlevel(ndim)
@@ -610,6 +608,9 @@ module mod_global_parameters
  
   !> The maximum number of grid blocks in a processor
   integer :: ngridshi
+
+  !> The maximum number of levels in the grid refinement
+  integer :: nlevelshi
 
   !> Maximal number of AMR levels
   integer :: mxnest
