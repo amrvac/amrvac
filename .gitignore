@@ -3,7 +3,8 @@ doc/html/*
 *.vtu
 *.vti
 *.out
+*.log
 *amrvac
 *.amrvac.log.shfp.*
 *F90sources
-
+!**/correct_output/**
