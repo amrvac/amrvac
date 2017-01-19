@@ -12,6 +12,7 @@ LIB_AMRVAC := libamrvac.a
 PPFLAGS := -z=-2 -phi=-1	# Remove in future
 
 .PHONY: libamrvac clean
+.PRECIOUS: %.f			# Don't remove intermediate .f files
 
 # Ensure that LIB_AMRVAC is the default target
 libamrvac: $(LIB_AMRVAC)
