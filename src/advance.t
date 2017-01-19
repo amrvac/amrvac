@@ -34,7 +34,7 @@ call update_rays
 if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
 ! split source addition
-if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser) &
+if(ssplitdivb .or. ssplitresis .or. ssplituser) &
   call addsource_all(.true.)
 
 ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
@@ -70,7 +70,7 @@ end if
 if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
 ! split source addition
-if(ssplitdust .or. ssplitdivb .or. ssplitresis .or. ssplituser) &
+if(ssplitdivb .or. ssplitresis .or. ssplituser) &
   call addsource_all(.false.)
 
 {#IFDEF PARTICLES

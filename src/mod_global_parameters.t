@@ -421,7 +421,7 @@ module mod_global_parameters
   double precision              :: tvdlfeps, mcbeta
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh,flatppm
-  logical                       :: ssplitdust,ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
+  logical                       :: ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
   logical                       :: restrictprimitive,prolongprimitive
   logical                       :: coarsenprimitive,useprimitiveRel, amrentropy
 
@@ -446,11 +446,6 @@ module mod_global_parameters
   character(len=std_len) :: coolcurve,coolmethod
   double precision       :: cfrac,tlow
   logical                :: Tfix
-
-  ! dust related paramters
-  logical                :: dustzero
-  double precision       :: smallrhod
-  character(len=std_len) :: dustmethod,dustspecies,dusttemp
 
   ! local and global fastest wave speed (computed in setdt):
   double precision :: cmax_mype, cmax_global

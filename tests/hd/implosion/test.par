@@ -38,8 +38,8 @@
         mxnest = 2
         nxlone1=32
         nxlone2=32
-        ixGhi1=20
-        ixGhi2=20
+        nxblock1=16
+        nxblock2=16
         xprobmin1=0.
         xprobmax1=0.3
         xprobmin2=0.
@@ -51,3 +51,12 @@
         courantpar=0.9d0
         slowsteps=10
  /
+
+ &hd_list
+        hd_gamma = 1.4d0
+ /
+
+ &dust_list
+        dust_n_species = 1
+ /
+ 

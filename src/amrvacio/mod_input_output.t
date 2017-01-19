@@ -107,7 +107,7 @@ contains
     namelist /stoplist/ itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,&
          residmax,typeresid{#IFDEF MAGNETOFRICTION , itmaxmf}
     namelist /methodlist/ wnames,fileheadout,typeadvance, &
-         ssplitdust,ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
+         ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
          ncyclemax,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
          typefull1,typepred1,&
@@ -124,7 +124,6 @@ contains
          strictzero,nxdiffusehllc,typespherical,&
          fixprocess,flathllc, &
          ncool,cmulti,coolmethod,coolcurve,Tfix, &
-         smallrhod, dustzero, dustmethod,dustspecies,dusttemp, &
          x1ptms,x2ptms,x3ptms,ptmass,tlow,nwtf,neqpartf
     namelist /boundlist/ dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
          internalboundary
@@ -189,12 +188,6 @@ contains
     cfrac      = 0.1d0
     Tfix       = .false.
 
-    ! defaults for dust
-    dustzero    = .false.
-    dustmethod  = 'Kwok'
-    dustspecies = 'graphite'
-    dusttemp    = 'constant'
-
     ! defaults for parameters for optional pointgrav module (van Marle)
     ! --> set here mass to zero, coordinates to zero
     x1ptms = zero
@@ -209,7 +202,6 @@ contains
     smallT     = -one
     smallp     = -one
     smallrho   = -one
-    smallrhod  = -one
 
     ! relativistic module defaults
     useprimitiveRel = .true.
@@ -373,7 +365,6 @@ contains
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
     ncyclemax       = 1000
-    ssplitdust      = .false.
     ssplitdivb      = .false.
     {^IFMHDPHYS
     ssplitdivb      = .true.

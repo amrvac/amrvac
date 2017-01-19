@@ -66,7 +66,7 @@ module mod_hd_phys
 contains
 
   !> Read this module"s parameters from a file
-  subroutine hd_params_read(files)
+  subroutine hd_read_params(files)
     use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
     integer                      :: n
@@ -79,16 +79,17 @@ contains
 111    close(unitpar)
     end do
 
-  end subroutine hd_params_read
+  end subroutine hd_read_params
 
   !> Initialize the module
   subroutine hd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
+    use mod_dust, only: dust_init
 
     integer :: itr, idir
 
-    call hd_params_read(par_files)
+    call hd_read_params(par_files)
 
     physics_type = "hd"
 
@@ -121,7 +122,7 @@ contains
 
     hd_nwflux = nwflux
 
-    ! call dust_init()
+    call dust_init(rho_, mom(:), e_)
 
     nwaux   = 0
     nwextra = 0
@@ -167,12 +168,6 @@ contains
        minp   = max(0.0d0, smallp)
        smalle = minp/(hd_gamma - 1.0d0)
     end if
-
-    ! TODO: dust
-    ! if (dust_num_species > 0) then
-    !    if (eqpar(mu_)<= 0.0d0) call mpistop ("mu (molecular weight) negative not ok")
-    !    minrhod = max(0.0d0, smallrhod)
-    ! end if
 
   end subroutine hd_check_params
 
@@ -354,9 +349,10 @@ contains
     ! end if
   end subroutine hd_get_v
 
-  ! Calculate cmax_idim = csound + abs(v_idim) within ixO^L
+  !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
     use mod_global_parameters
+    use mod_dust, only: dust_get_cmax, dust_n_species
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
@@ -379,18 +375,11 @@ contains
        cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
     end if
 
-    ! else
-    ! Jannis: removed this case
-    ! case of zero temperature: allow zero density
-    ! cmax(ixO^S) = max(v(ixO^S), zero)
-    ! cmin(ixO^S) = min(v(ixO^S), zero)
-    ! end if
-
-    ! TODO
-    ! call dust_get_cmax(...)
+    if (dust_n_species > 0) &
+         call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
   end subroutine hd_get_cmax
 
-  ! Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
+  !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
 
@@ -465,7 +454,7 @@ contains
   ! Calculate non-transport flux f_idim[iw] within ixO^L.
   subroutine hd_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
     use mod_global_parameters
-    ! use mod_dust, only: dust_get_flux
+    use mod_dust, only: dust_get_flux
 
     integer, intent(in)             :: ixI^L, ixO^L, iw, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
@@ -483,9 +472,9 @@ contains
        ! f_i[e]= v_i*e + m_i/rho*p
        call hd_get_pthermal(w, x, ixI^L, ixO^L, f)
        f(ixO^S) = w(ixO^S, mom(idim))/w(ixO^S, rho_)*f(ixO^S)
-       ! else if (iw > hd_nwflux) then
-       !    ! A dust flux
-       !    ! call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
+    else if (iw > hd_nwflux) then
+       ! A dust flux
+       call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
     else
        f(ixO^S) = zero
     endif
@@ -644,29 +633,48 @@ contains
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine hd_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
     use mod_global_parameters
+    use mod_dust, only: dust_add_source, dust_n_species
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision                :: ptherm(ixG^T), vgas(ixG^T, ndir)
     logical, intent(in)             :: qsourcesplit
+    integer                         :: idir
 
-    ! TODO
-    ! call dust_add_source(qdt, ixI^L, ixO^L, iw^LIM, &
-    !      qtC, wCT, qt, w, x, qsourcesplit)
+    if (dust_n_species > 0) then
+       call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
+
+       do idir = 1, ndir
+          call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
+       end do
+
+       call dust_add_source(qdt, ixI^L, ixO^L, iw^LIM, &
+            qtC, wCT, qt, w, x, qsourcesplit, ptherm, vgas)
+    end if
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
+    use mod_dust, only: dust_get_dt, dust_n_species
 
-    integer, intent(in)                        :: ixI^L, ixO^L
-    double precision, intent(in)               :: dx^D, x(ixI^S, 1:ndim)
-    double precision, intent(inout)            :: w(ixI^S, 1:nw), dtnew
-    double precision :: dtdust
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: dx^D, x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
+    double precision                :: ptherm(ixG^T), vgas(ixG^T, ndir)
+    integer                         :: idir
 
     dtnew = bigdouble
 
-    ! TODO
-    ! call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
+    if (dust_n_species > 0) then
+       call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
+
+       do idir = 1, ndir
+          call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
+       end do
+
+       call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x, ptherm, vgas)
+    end if
   end subroutine hd_get_dt
 
   function hd_kin_en(w, ixI^L, ixO^L) result(ke)
