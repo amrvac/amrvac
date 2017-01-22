@@ -61,7 +61,7 @@ module mod_thermal_conduction
   !> Index of the energy density (-1 if not present)
   integer, private, protected              :: e_
 
-  !> Indices of the tracers
+  !> Indices of the magnetic field
   integer, allocatable, private, protected :: mag(:)
 
   !> The adiabatic index
@@ -78,6 +78,24 @@ module mod_thermal_conduction
 
   !> Time step coefficient
   double precision, private :: tc_dtpar=0.9d0
+
+  !> Proton mass in cgs
+  double precision, parameter :: mp_cgs  = 1.672621777d-24  ! g
+
+  !> Boltzmann constant in cgs
+  double precision, parameter :: kB_cgs  = 1.3806488d-16    ! erg K^-1
+
+  !> Proton mass in SI
+  double precision, parameter :: mp_SI  = 1.672621777d-27  ! kg
+
+  !> Boltzmann constant in SI
+  double precision, parameter :: kB_SI  = 1.3806488d-23    ! J K^-1
+
+  !> Permeability in SI
+  double precision, parameter :: miu0_SI  = 1.2566370614d-6 ! H m^-1
+
+  !> Helium abundance over Hydrogen
+  double precision    :: He_abundance=0.1d0
 
   !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
   logical, private :: tc_perpendicular=.false.
@@ -129,7 +147,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_SI_unit
+    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_SI_unit, He_abundance
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -142,9 +160,9 @@ contains
   !> Initialize the module
   subroutine thermal_conduction_init()
     use mod_global_parameters
-    use mod_ghostcells_update
-    
-    integer nwx,idir
+
+    double precision :: mp,kB,miu0
+    integer :: nwx,idir
 
     tc_dtpar=tc_dtpar/dble(ndim)
 
@@ -173,6 +191,21 @@ contains
     minp   = max(0.0d0, smallp)
     minrho = max(0.0d0, smallrho)
     smalle = minp/(tc_gamma - 1.0d0)
+
+    ! Derive scaling units
+    if(tc_SI_unit) then
+      mp=mp_SI
+      kB=kB_SI
+      miu0=miu0_SI
+    else
+      mp=mp_cgs
+      kB=kB_cgs
+      miu0=miu0_SI*1.d7
+    end if
+    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+    unit_velocity=dsqrt(unit_pressure/unit_density)
+    unit_magneticfield=dsqrt(miu0*unit_pressure)
 
     if(tc_SI_unit) then
       ! Spitzer thermal conductivity with SI units

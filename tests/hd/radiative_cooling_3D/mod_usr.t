@@ -1,5 +1,5 @@
 ! setup.pl -d=33
-! test thermal conduction in a central hot ball
+! test radiative cooling in a central hot ball
 module mod_usr
   use mod_hd
   implicit none
@@ -10,9 +10,9 @@ contains
     use mod_global_parameters
     use mod_usr_methods
 
-    unit_length        = 1.d9                                         ! cm
-    unit_temperature   = 1.d6                                         ! K
-    unit_numberdensity = 1.d9                                         ! cm^-3
+    unit_length        = 1.d9   ! cm
+    unit_temperature   = 1.d6   ! K
+    unit_numberdensity = 1.d9   ! cm^-3
 
     usr_init_one_grid => initonegrid_usr
 
@@ -34,9 +34,9 @@ contains
     w(ixG^S,p_)   =2.d0
     ! hot central circular spot with uniform pressure
     where((^D&x(ixG^S,^D)**2+) .lt. 0.25d0**2)
-     w(ixG^S,rho_) =1.d0
+      w(ixG^S,rho_) =1.d0
     elsewhere
-     w(ixG^S,rho_) =10.d0
+      w(ixG^S,rho_) =10.d0
     endwhere
 
     call phys_to_conserved(ixG^L,ixG^L,w,x)

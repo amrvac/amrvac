@@ -81,7 +81,7 @@ if ($ndir) {
 }
 
 if ($arch) {
-    replace_regexp_file("makefile", qr/ARCH\s*[:?]?=.*/, "ARCH = $arch.defs");
+    replace_regexp_file("makefile", qr/ARCH\s*[:?]?=.*/, "ARCH = $arch");
 }
 
 # Copy a file if it doesn't exist yet

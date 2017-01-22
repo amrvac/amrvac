@@ -16,8 +16,14 @@ module mod_hd_phys
   !> Whether an energy equation is used
   logical, public, protected              :: hd_energy = .true.
 
-  !> Whether thermal conduction is used
+  !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
+
+  !> Whether radiative cooling is added
+  logical, public, protected              :: hd_radiative_cooling = .false.
+
+  !> Whether dust is added
+  logical, public, protected              :: hd_dust= .false.
 
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
@@ -41,7 +47,7 @@ module mod_hd_phys
   integer, public, protected              :: hd_nwflux
 
   !> The adiabatic index
-  double precision, public, protected     :: hd_gamma = 5/3.0d0
+  double precision, public, protected     :: hd_gamma = 5.d0/3.0d0
 
   !> The adiabatic constant
   double precision, public, protected     :: hd_adiab = 1.0d0
@@ -71,7 +77,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, hd_thermal_conduction
+    namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, hd_dust, hd_thermal_conduction, hd_radiative_cooling
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -85,6 +91,7 @@ contains
   subroutine hd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
+    use mod_radiative_cooling
     use mod_dust, only: dust_init
 
     integer :: itr, idir
@@ -122,7 +129,7 @@ contains
 
     hd_nwflux = nwflux
 
-    call dust_init(rho_, mom(:), e_)
+    if(hd_dust) call dust_init(rho_, mom(:), e_)
 
     nwaux   = 0
     nwextra = 0
@@ -144,11 +151,18 @@ contains
     phys_check_w         => hd_check_w
 
     ! initialize thermal conduction module
-    if (hd_thermal_conduction) then
-       tc_gamma               =  hd_gamma
-       phys_get_heatconduct   => hd_get_heatconduct
-       phys_getdt_heatconduct => hd_getdt_heatconduct
+    if(hd_thermal_conduction) then
+      tc_gamma               =  hd_gamma
+      phys_get_heatconduct   => hd_get_heatconduct
+      phys_getdt_heatconduct => hd_getdt_heatconduct
       call thermal_conduction_init()
+    end if
+
+    ! Initialize radiative cooling module
+    if(hd_radiative_cooling) then
+      rc_gamma=hd_gamma
+      phys_get_pthermal_rc => hd_get_pthermal_rc
+      call radiative_cooling_init()
     end if
 
   end subroutine hd_phys_init
@@ -633,6 +647,7 @@ contains
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine hd_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
     use mod_global_parameters
+    use mod_radiative_cooling
     use mod_dust, only: dust_add_source, dust_n_species
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
@@ -649,9 +664,14 @@ contains
           call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
        end do
 
-       call dust_add_source(qdt, ixI^L, ixO^L, iw^LIM, &
-            qtC, wCT, qt, w, x, qsourcesplit, ptherm, vgas)
+       call dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x,&
+                   qsourcesplit, ptherm, vgas)
     end if
+
+    if(hd_radiative_cooling) then
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x,qsourcesplit)
+    end if
+
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)

@@ -42,7 +42,7 @@ module mod_dust
   double precision :: dust_min_rho = -1.0d0
 
   !> TODO: 1. Introduce this generically in advance, 2: document
-  logical :: ssplitdust = .false.
+  logical :: dust_source_split = .false.
 
   !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear',or 'none'.
   character(len=std_len) :: dust_method = 'Kwok'
@@ -69,6 +69,8 @@ contains
     integer, intent(in) :: g_energy ! Negative value if not present
     integer             :: n, idir
 
+    dust_n_species=1
+
     call dust_read_params(par_files)
 
     allocate(gas_mom(ndir))
@@ -93,8 +95,6 @@ contains
           dust_mom(idir, n) = nwflux ! Dust momentum
        end do
     end do
-
-    print *, "nwflux = ", nwflux, dust_n_species
 
   end subroutine dust_init
 
@@ -199,10 +199,10 @@ contains
   end function get_vdust
 
   ! Force dust density to zero if dust_rho <= dust_min_rho
-  subroutine set_dusttozero(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x)
+  subroutine set_dusttozero(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x)
     use mod_global_parameters
 
-    integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
+    integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     integer                         :: n, idir
@@ -411,11 +411,11 @@ contains
   end subroutine get_tdust
 
   !> w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine dust_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, &
+  subroutine dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, &
        qt, w, x, qsourcesplit, ptherm, vgas)
     use mod_global_parameters
 
-    integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
+    integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -430,7 +430,7 @@ contains
     case( 'none' )
        !do nothing here
     case default !all regular dust methods here
-       if (qsourcesplit .eqv. ssplitdust) then
+       if (qsourcesplit .eqv. dust_source_split) then
           call get_3d_dragforce(ixI^L, ixO^L, wCT, x, fdrag, ptherm, vgas)
 
           do idir = 1, ndir
@@ -446,7 +446,7 @@ contains
              w(ixO^S,dust_mom(idir, :)) = w(ixO^S,dust_mom(idir, :)) - fdrag(ixO^S, idir, :)
           end do
 
-          if ( dust_small_to_zero ) call set_dusttozero(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x)
+          if ( dust_small_to_zero ) call set_dusttozero(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x)
        endif
     end select
 
