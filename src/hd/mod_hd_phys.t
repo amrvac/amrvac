@@ -657,15 +657,15 @@ contains
     logical, intent(in)             :: qsourcesplit
     integer                         :: idir
 
-    if (dust_n_species > 0) then
-       call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
+    if(hd_dust) then
+      call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
 
-       do idir = 1, ndir
-          call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-       end do
+      do idir = 1, ndir
+        call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
+      end do
 
-       call dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x,&
-                   qsourcesplit, ptherm, vgas)
+      call dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x,&
+                  qsourcesplit, ptherm, vgas)
     end if
 
     if(hd_radiative_cooling) then
