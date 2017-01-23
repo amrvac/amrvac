@@ -1,3 +1,7 @@
+ifndef AMRVAC_DIR
+$(error AMRVAC_DIR is not set)
+endif
+
 ifndef ARCH
 $(error build.make: ARCH is not set)
 endif
@@ -14,8 +18,7 @@ PPFLAGS := -z=-2 -phi=-1	# Remove in future
 .PHONY: libamrvac clean
 .PRECIOUS: %.f			# Don't remove intermediate .f files
 
-# Ensure that LIB_AMRVAC is the default target
-libamrvac: $(LIB_AMRVAC)
+libamrvac: $(LIB_AMRVAC) amrvac.f
 
 # Include makefiles, which define FOBJECTS and dependencies
 include $(addsuffix /makefile, $(SRC_DIRS))
@@ -29,8 +32,7 @@ vpath %.t $(SRC_DIRS)
 
 OBJECTS := $(FOBJECTS:.t=.o) $(INCLUDES:.t=.o)
 
-# amrvac.f depends on user code so it will be compiled later
-$(LIB_AMRVAC): $(OBJECTS) amrvac.f
+$(LIB_AMRVAC): $(OBJECTS)
 	$(RM) $@
 	$(AR) rcs $@ $^
 

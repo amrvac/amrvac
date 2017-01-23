@@ -70,7 +70,7 @@ if ($show) {
 }
 
 # Get these files if they do not exist already
-copy_if_not_present("makefile", "arch", "template.make");
+copy_if_not_present("makefile", "arch", "amrvac.make");
 
 if ($ndim) {
     replace_regexp_file("makefile", qr/NDIM\s*[:?]?=.*/, "NDIM := $ndim");

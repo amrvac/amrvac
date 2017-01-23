@@ -26,5 +26,5 @@ $(BUILD_DIRS):
 
 # Remove everything
 clean:
-	$(RM) -r 1d_*
+	$(RM) -r 1d_* 2d_* 3d_*
 
