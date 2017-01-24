@@ -207,17 +207,14 @@ contains
 
   end subroutine hd_check_w
 
-  ! Transform primitive variables into conservative ones
+  !> Transform primitive variables into conservative ones
   subroutine hd_to_conserved(ixI^L, ixO^L, w, x)
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision                :: invgam
     integer                         :: idir, itr
-
-    invgam = 1.d0/(hd_gamma - 1.0d0)
 
     ! Convert velocity to momentum
     do idir = 1, ndir
@@ -225,6 +222,7 @@ contains
     end do
 
     if (hd_energy) then
+       invgam = 1.d0/(hd_gamma - 1.0d0)
        ! Calculate total energy from pressure and kinetic energy
        w(ixO^S, e_) = w(ixO^S, e_) * invgam + hd_kin_en(w, ixI^L, ixO^L)
     end if
@@ -242,7 +240,6 @@ contains
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
