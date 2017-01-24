@@ -1,9 +1,9 @@
 # TODO: check AMRVAC_DIR
 ARCH ?= default
-BUILD_DIRS := 1d_$(ARCH) 2d_$(ARCH) 3d_$(ARCH)
-BUILD_MAKEFILE := $(AMRVAC_DIR)/arch/build.make
+DIRS := 1d_$(ARCH) 2d_$(ARCH) 3d_$(ARCH)
+LIB_MAKE := $(AMRVAC_DIR)/arch/lib.make
 
-.PHONY: all clean 1d 2d 3d $(BUILD_DIRS)
+.PHONY: all clean 1d 2d 3d $(DIRS)
 
 all: 1d 2d 3d
 
@@ -20,9 +20,9 @@ all: 1d 2d 3d
 export ARCH NDIM
 
 # How to make the builds
-$(BUILD_DIRS):
+$(DIRS):
 	@mkdir -p $@
-	$(MAKE) -C $@ -f $(BUILD_MAKEFILE)
+	$(MAKE) -C $@ -f $(LIB_MAKE)
 
 # Remove everything
 clean:

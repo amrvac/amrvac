@@ -28,6 +28,9 @@ include $(AMRVAC_DIR)/arch/rules.make
 # To get amrvac.f
 vpath %.f $(LIB_DIR)
 
+# Keep .f files for inspection
+.PRECIOUS: %.f
+
 # Intermediate files are removed
 .INTERMEDIATE: amrvac.o mod_usr.o mod_usr.mod
 
