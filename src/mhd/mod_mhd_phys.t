@@ -98,7 +98,7 @@ contains
 
     integer :: itr, idir
 
-    call hd_params_read(par_files)
+    call mhd_params_read(par_files)
 
     physics_type = "mhd"
 
@@ -112,7 +112,7 @@ contains
     end do
 
     ! Set index of energy variable
-    if (hd_energy) then
+    if (mhd_energy) then
        nwflux = nwflux + 1
        e_     = nwflux          ! energy density
        p_     = nwflux          ! gas pressure
@@ -134,15 +134,15 @@ contains
        psi_ = -1
     end if
 
-    allocate(tracer(hd_n_tracer))
+    allocate(tracer(mhd_n_tracer))
 
     ! Set starting index of tracers
-    do itr = 1, hd_n_tracer
+    do itr = 1, mhd_n_tracer
        nwflux = nwflux + 1
        tracer(itr) = nwflux     ! tracers
     end do
 
-    hd_nwflux = nwflux
+    mhd_nwflux = nwflux
 
     nwaux   = 0
     nwextra = 0
@@ -154,21 +154,21 @@ contains
     iw_vector(1) = mom(1) - 1   ! TODO: why like this?
     iw_vector(2) = mag(1) - 1   ! TODO: why like this?
 
-    phys_get_v           => hd_get_v
-    phys_get_dt          => hd_get_dt
-    phys_get_cmax        => hd_get_cmax
-    phys_get_flux        => hd_get_flux
-    phys_add_source_geom => hd_add_source_geom
-    phys_to_conserved    => hd_to_conserved
-    phys_to_primitive    => hd_to_primitive
-    phys_check_params    => hd_check_params
-    phys_check_w         => hd_check_w
+    phys_get_v           => mhd_get_v
+    phys_get_dt          => mhd_get_dt
+    phys_get_cmax        => mhd_get_cmax
+    phys_get_flux        => mhd_get_flux
+    phys_add_source_geom => mhd_add_source_geom
+    phys_to_conserved    => mhd_to_conserved
+    phys_to_primitive    => mhd_to_primitive
+    phys_check_params    => mhd_check_params
+    phys_check_w         => mhd_check_w
 
     ! initialize thermal conduction module
-    if (hd_thermal_conduction) then
-       tc_gamma               =  hd_gamma
-       phys_get_heatconduct   => hd_get_heatconduct
-       phys_getdt_heatconduct => hd_getdt_heatconduct
+    if (mhd_thermal_conduction) then
+       tc_gamma               =  mhd_gamma
+       phys_get_heatconduct   => mhd_get_heatconduct
+       phys_getdt_heatconduct => mhd_getdt_heatconduct
        call thermal_conduction_init()
     end if
 
@@ -223,7 +223,7 @@ contains
   end subroutine mhd_check_w
 
   !> Transform primitive variables into conservative ones
-  subroutine hd_to_conserved(ixI^L,ixO^L,w,x,patchw)
+  subroutine mhd_to_conserved(ixI^L,ixO^L,w,x,patchw)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
@@ -240,42 +240,42 @@ contains
        invgam=1.d0/(mhd_gamma-one)
        ! Calculate total energy from pressure, kinetic and magnetic energy
        w(ixO^S,e_)=w(ixO^S,p_)*invgam + &
-            hd_kin_en(w, ixI^L, ixO^L) + hd_mag_en(w, ixI^L, ixO^L)
+            mhd_kin_en(w, ixI^L, ixO^L) + mhd_mag_en(w, ixI^L, ixO^L)
     end if
 
-    do itr = 1, hd_n_tracer
+    do itr = 1, mhd_n_tracer
        w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
     end do
 
     ! if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
-  end subroutine hd_to_conserved
+  end subroutine mhd_to_conserved
 
   !> Transform conservative variables into primitive ones
-  subroutine hd_to_primitive(ixI^L,ixO^L,w,x)
+  subroutine mhd_to_primitive(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: itr, idir
 
-    if (hd_energy) then
+    if (mhd_energy) then
        ! Calculate pressure = (gamma-1) * (e-0.5*(2ek+2eb))
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) &
-            - hd_kin_en(w, ixI^L, ixO^L) &
-            - hd_mag_en(w, ixI^L, ixO^L))
+       w(ixO^S, e_) = (mhd_gamma - 1.0d0) * (w(ixO^S, e_) &
+            - mhd_kin_en(w, ixI^L, ixO^L) &
+            - mhd_mag_en(w, ixI^L, ixO^L))
     end if
 
     ! Convert momentum to velocity
     do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * hd_inv_rho(w, ixI^L, ixO^L)
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
     end do
 
-    do itr = 1, hd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * hd_inv_rho(w, ixI^L, ixO^L)
+    do itr = 1, mhd_n_tracer
+       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * mhd_inv_rho(w, ixI^L, ixO^L)
     end do
 
     ! call handle_small_values(.true., w, x, ixI^L, ixO^L)
-  end subroutine hd_to_primitive
+  end subroutine mhd_to_primitive
 
   subroutine e_to_rhos(ixI^L,ixO^L,w,x)
     use mod_global_parameters
@@ -284,9 +284,9 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
     if (mhd_energy) then
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - hd_gamma) * &
-            (w(ixO^S, e_) - hd_kin_en(w, ixI^L, ixO^L) &
-            - hd_mom_en(w, ixI^L, ixO^L)) &
+       w(ixO^S, e_) = (mhd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
+            (w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
+            - mhd_mom_en(w, ixI^L, ixO^L)) &
             else
        call mpistop("e_to_rhos can not be used with eos=iso !")
     end if
@@ -299,9 +299,9 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
     if (mhd_energy) then
-       w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (hd_gamma - 1.0d0) + hd_kin_en(w, ixI^L, ixO^L) + &
-            hd_mom_en(w, ixI^L, ixO^L) + &
+       w(ixO^S, e_) = w(ixO^S, rho_)**(mhd_gamma - 1.0d0) * w(ixO^S, e_) &
+            / (mhd_gamma - 1.0d0) + mhd_kin_en(w, ixI^L, ixO^L) + &
+            mhd_mom_en(w, ixI^L, ixO^L) + &
             else
        call mpistop("rhos_to_e can not be used with eos=iso !")
     end if
@@ -554,7 +554,7 @@ contains
        ! f_i[b_k]=v_i*b_k-m_k/rho*b_i
        if (idims==^C) then
           ! f_i[b_i] should be exactly 0, so we do not use the transport flux
-          if (hd_glm) then
+          if (mhd_glm) then
              f(ixO^S)=w(ixO^S,psi_)
           else
              f(ixO^S)=zero
