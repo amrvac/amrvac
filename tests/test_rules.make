@@ -27,6 +27,7 @@ all: $(TESTS)
 amrvac: makefile force		# Always try to build
 	$(MAKE)
 
-makefile:
+makefile: $(AMRVAC_DIR)/arch/amrvac.make
+	$(RM) $@
 	$(SETUP_SCRIPT) $(SETUP_FLAGS) > setup.log
 
