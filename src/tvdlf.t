@@ -1,19 +1,13 @@
 INCLUDE:ppm.t
 INCLUDE:mp5.t
-!=============================================================================
+
+!> The non-conservative Hancock predictor for TVDLF
+!>
+!> on entry:
+!> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBdixB
+!> one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
+!> on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
 subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
-
-! The non-conservative Hancock predictor for TVDLF
-
-! on entry:
-! input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBdixB
-
-! one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
-
-! on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
-
-
-! FCT not implemented here
 use mod_physics
 use mod_global_parameters
 
@@ -37,9 +31,9 @@ end do
 if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in Hancock: Nonconforming input limits")
 
-if (useprimitive) then  
+if (useprimitive) then
    call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-endif 
+endif
 
 ^D&dxinv(^D)=-qdt/dx^D;
 ^D&dxdim(^D)=dx^D;
@@ -76,6 +70,7 @@ do idims= idim^LIM
       ! Calculate the fLC and fRC fluxes
       call phys_get_flux(wRC,x,ixI^L,hxO^L,iw,idims,fRC,transport)
       call phys_get_flux(wLC,x,ixI^L,ixO^L,iw,idims,fLC,transport)
+
       if (transport) then
          fRC(hxO^S)=fRC(hxO^S)+vRC(hxO^S)*wRC(hxO^S,iw)
          fLC(ixO^S)=fLC(ixO^S)+vLC(ixO^S)*wLC(ixO^S,iw)
@@ -96,7 +91,7 @@ do idims= idim^LIM
    end do
 end do ! next idims
 
-if (useprimitive) then  
+if (useprimitive) then
     call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
    if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hancock_wCT')
@@ -107,11 +102,10 @@ call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
                                    ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
 end subroutine hancock
-!============================================================================
-subroutine upwindLR(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,x,needprim,dxdim)
 
-! Determine the upwinded wLC(ixL) and wRC(ixR) from w. 
-! the wCT is only used when PPM is exploited.
+!> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
+!> the wCT is only used when PPM is exploited.
+subroutine upwindLR(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,x,needprim,dxdim)
 use mod_physics
 use mod_global_parameters
 
@@ -202,7 +196,7 @@ endif
 
 ! Transform w,wL,wR back to conservative variables
 if (useprimitive) then
-   if(needprim)then 
+   if(needprim)then
       call phys_to_conserved(ixI^L,ixI^L,w,x)
    endif
    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
@@ -210,19 +204,18 @@ if (useprimitive) then
 end if
 
 end subroutine upwindLR
-!============================================================================
+
+!> Limit the centered dwC differences within ixC for iw in direction idim.
+!> The limiter is chosen according to typelimiter.
+!>
+!> Note that this subroutine is called from upwindLR (hence from methods
+!> like tvdlf, hancock, hll(c) etc) or directly from tvd.t,
+!> but also from the gradientS and divvectorS subroutines in geometry.t
+!> Accordingly, the typelimiter here corresponds to one of typelimiter1
+!> or one of typegradlimiter1.
+!>
+!> note: there is no iw dependence here...
 subroutine dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
-
-! Limit the centered dwC differences within ixC for iw in direction idim.
-! The limiter is chosen according to typelimiter.
-
-! Note that this subroutine is called from upwindLR (hence from methods 
-! like tvdlf, hancock, hll(c) etc) or directly from tvd.t,
-! but also from the gradientS and divvectorS subroutines in geometry.t
-! Accordingly, the typelimiter here corresponds to one of typelimiter1
-! or one of typegradlimiter1.
-
-! note: there is no iw dependence here...
 
 use mod_global_parameters
 
@@ -390,11 +383,11 @@ if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in TVDLF: Nonconforming input limits")
 
 
-if ((method=='tvdlf').and.useprimitive) then  
-   ! second order methods with primitive limiting: 
+if ((method=='tvdlf').and.useprimitive) then
+   ! second order methods with primitive limiting:
    ! this call ensures wCT is primitive with updated auxiliaries
    call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-endif 
+endif
 
 
 ^D&dxinv(^D)=-qdt/dx^D;
@@ -411,27 +404,11 @@ do idims= idim^LIM
    ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
 !   ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
 
-{#IFDEF FCT
-! Flux-interpolated constrained transport needs one more layer:
-   ixCmax^D=ixOmax^D+1; ixCmin^D=hxOmin^D-1;
-}{#IFNDEF FCT
    ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
-}
 
    kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
    kxR^L=kxC^L+kr(idims,^D);
-{#IFDEF HALL
-   ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
-   ! assuming one additional ghost layer (two for FOURTHORDER) was added in dixB.
-{#IFNDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD1;}
-}
-{#IFDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD2;}
-}
-}{#IFNDEF HALL
-   {ixCR^L=ixC^L;}
-}
+
    wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
    wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
 
@@ -441,6 +418,10 @@ do idims= idim^LIM
 {#IFDEF STRETCHGRID
    if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
 }
+
+   ! Determine stencil size
+   {ixCRmin^D = ixCmin^D - phys_wider_stencil\}
+   {ixCRmax^D = ixCmax^D + phys_wider_stencil\}
 
    ! for tvdlf (second order scheme): apply limiting
    if (method=='tvdlf') then
@@ -490,40 +471,33 @@ do idims= idim^LIM
       ! now take the maximum of left and right states
       cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
    end if
-   
+
    ! Calculate velocities for transport fluxes
    call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
    call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
-
-{#IFDEF GLM
-! Solve the Riemann problem for the linear 2x2 system for normal
-! B-field and GLM_Psi according to Dedner 2002:
-call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
-}
-
+   call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
       call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
       call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
+
       if (transport) then
          fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
          fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
       end if
+
       ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
       fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
 
       ! Add TVDLF dissipation to the flux
-      ! select case (flux_type(iw, idims))
-      ! case (flux_no_dissipation)
-      !    fRC(ixC^S)=0.d0
-      ! case (flux_default)
+      if (flux_type(iw, idims) == flux_no_dissipation) then
+         fRC(ixC^S)=0.d0
+      else
          ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
          fRC(ixC^S)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
-      ! case default
-      !    call mpistop("tvdlf error: unknown flux type")
-      ! end select
+      end if
 
       ! fLC contains physical+dissipative fluxes
       fLC(ixC^S)=fLC(ixC^S)+fRC(ixC^S)
@@ -540,10 +514,6 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
    end do ! Next iw
 
 end do ! Next idims
-
-{#IFDEF FCT
-call fct_average(ixI^L,ixO^L,fC)
-}
 
 !Now update the state:
 do idims= idim^LIM
@@ -568,7 +538,7 @@ do idims= idim^LIM
 
 end do ! Next idims
 
-if ((method=='tvdlf').and.useprimitive) then  
+if ((method=='tvdlf').and.useprimitive) then
     call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
    if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
@@ -621,11 +591,11 @@ end do
 if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in hll : Nonconforming input limits")
 
-if (method=='hll'.and.useprimitive) then  
-   ! second order methods with primitive limiting: 
+if (method=='hll'.and.useprimitive) then
+   ! second order methods with primitive limiting:
    ! this call ensures wCT is primitive with updated auxiliaries
    call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-endif 
+endif
 
 ^D&dxinv(^D)=-qdt/dx^D;
 ^D&dxdim(^D)=dx^D;
@@ -641,23 +611,12 @@ do idims= idim^LIM
    ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
    ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
 
-   ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2 
+   ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2
    jxC^L=ixC^L+kr(idims,^D);
 
-   kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D); 
-   kxR^L=kxC^L+kr(idims,^D);                        
-{#IFDEF HALL
-   ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
-   ! assuming one additional ghost layer (two for FOURTHORDER) was added in dixB.
-{#IFNDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD1;}
-}
-{#IFDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD2;}
-}
-}{#IFNDEF HALL
-   {ixCR^L=ixC^L;}
-}
+   kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+   kxR^L=kxC^L+kr(idims,^D);
+
    wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
    wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
 
@@ -666,9 +625,11 @@ do idims= idim^LIM
    xi(kxC^S,idims) = half* ( x(kxR^S,idims)+x(kxC^S,idims) )
 {#IFDEF STRETCHGRID
    if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
-   }
+}
 
-   ! call phys_grow_stencil(ixCR^L)
+   ! Determine stencil size
+   {ixCRmin^D = ixCmin^D - phys_wider_stencil\}
+   {ixCRmax^D = ixCmax^D + phys_wider_stencil\}
 
    ! for hll (second order scheme): apply limiting
    if (method=='hll') then
@@ -715,11 +676,11 @@ do idims= idim^LIM
 
          call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxLC,cminLC)
          call phys_get_cmax(wRC,xi,ixI^L,ixC^L,idims,cmaxRC,cminRC)
-         ! now take the maximum of left and right states 
+         ! now take the maximum of left and right states
          ! S.F. Davis, SIAM J. Sci. Statist. Comput. 1988, 9, 445
          cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
          cminC(ixC^S)=min(cminRC(ixC^S),cminLC(ixC^S))
-   end if 
+   end if
 
    patchf(ixC^S) =  1
    where(cminC(ixC^S) >= zero)
@@ -799,7 +760,7 @@ do idims= idim^LIM
 
 end do ! Next idims
 
-if (method=='hll'.and.useprimitive) then  
+if (method=='hll'.and.useprimitive) then
    call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
    if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hll_wCT')
@@ -845,7 +806,7 @@ logical :: transport, new_cmax, CmaxMeanState, firstordermethod
 !=== specific to HLLC and HLLCD ===!
 double precision, dimension(ixI^S,1:nwflux)     :: fLC, fRC
 double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
-double precision, dimension(ixI^S)              :: lambdaCD 
+double precision, dimension(ixI^S)              :: lambdaCD
 !-----------------------------------------------------------------------------
 
 CmaxMeanState = (typetvdlf=='cmaxmean')
@@ -867,7 +828,7 @@ if (ixI^L^LTix^L|.or.|.or.) &
 
 if ((method=='hllc'.or.method=='hllcd').and.useprimitive) then
    call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-endif 
+endif
 firstordermethod=(method=='hllc1'.or.method=='hllcd1')
 
 ^D&dxinv(^D)=-qdt/dx^D;
@@ -882,31 +843,15 @@ do idims= idim^LIM
 
    hxO^L=ixO^L-kr(idims,^D);
    ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
-{#IFDEF FCT
-! Flux-interpolated constrained transport needs one more layer:
-   ixCmax^D=ixOmax^D+1; ixCmin^D=hxOmin^D-1;
-}{#IFNDEF FCT
    ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
-}
 
-   ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2 
+   ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2
    jxC^L=ixC^L+kr(idims,^D);
 
    ! enlarged for ppm purposes
-   kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D); 
-   kxR^L=kxC^L+kr(idims,^D);                         
-{#IFDEF HALL
-   ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
-   ! assuming one additional ghost layer (two for FOURTHORDER) was added in dixB.
-{#IFNDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD1;}
-}
-{#IFDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD2;}
-}
-}{#IFNDEF HALL
-   {ixCR^L=ixC^L;}
-}
+   kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+   kxR^L=kxC^L+kr(idims,^D);
+
    wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
    wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
 
@@ -916,6 +861,11 @@ do idims= idim^LIM
 {#IFDEF STRETCHGRID
    if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
 }
+
+   ! Determine stencil size
+   {ixCRmin^D = ixCmin^D - phys_wider_stencil\}
+   {ixCRmax^D = ixCmax^D + phys_wider_stencil\}
+
 
    ! for hllc and hllcd (second order schemes): apply limiting
    if (method=='hllc'.or.method=='hllcd') then
@@ -980,25 +930,21 @@ do idims= idim^LIM
    if(any(patchf(ixC^S)/= 2)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
    if(any(patchf(ixC^S)/=-2)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
-{#IFDEF GLM
-! Solve the Riemann problem for the linear 2x2 system for normal
-! B-field and GLM_Psi according to Dedner 2002:
-call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
-}
+   call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
-     if(any(patchf(ixC^S)/= 2){#IFDEF GLM .or.iw==psi_}) then
+     if(any(patchf(ixC^S)/= 2) .or. flux_type(idims, iw) == flux_tvdlf) then
         call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC(ixI^S,iw),transport)
         if (transport)  fLC(ixC^S,iw)=fLC(ixC^S,iw)+vLC(ixC^S)*wLC(ixC^S,iw)
      end if
-     if(any(patchf(ixC^S)/=-2){#IFDEF GLM .or.iw==psi_}) then
+     if(any(patchf(ixC^S)/=-2) .or. flux_type(idims, iw) == flux_tvdlf) then
         call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC(ixI^S,iw),transport)
         if (transport)   fRC(ixC^S,iw)=fRC(ixC^S,iw)+vRC(ixC^S)*wRC(ixC^S,iw)
      end if
    end do
 
-   ! Use more diffusive scheme, is actually TVDLF and selected by patchf=4 
+   ! Use more diffusive scheme, is actually TVDLF and selected by patchf=4
    if(method=='hllcd' .or. method=='hllcd1') &
      call phys_diffuse_hllcd(ixI^L,ixC^L,idims,wLC,wRC,fLC,fRC,patchf)
 
@@ -1007,7 +953,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
      call phys_get_lCD(wLC,wRC,fLC,fRC,cminC,cmaxC,idims,ixI^L,ixC^L, &
             whll,Fhll,lambdaCD,patchf)
 
-   ! now patchf may be -1 or 1 due to phys_get_lCD 
+   ! now patchf may be -1 or 1 due to phys_get_lCD
    if(any(abs(patchf(ixC^S))== 1))then
       !======== flux at intermediate state ========!
       call phys_get_wCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,&
@@ -1015,33 +961,28 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
    endif ! Calculate the CD flux
 
    do iw=1,nwflux
-      ! select case (flux_type(iw, idims))
-      ! case (flux_LF)
-      !    ! flat B norm using tvdlf
-      !    fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
-      !         -tvdlfeps*max(cmaxC(ixC^S)&
-      !         ,dabs(cminC(ixC^S)))*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-      ! case (flux_zero)
-      !    fLC(ixC^S,iw)=zero
-      ! case (flux_default)
-      where(patchf(ixC^S)==-2)
-         fLC(ixC^S,iw)=fLC(ixC^S,iw)
-      elsewhere(abs(patchf(ixC^S))==1)
-         fLC(ixC^S,iw)=fCD(ixC^S,iw)
-      elsewhere(patchf(ixC^S)==2)
-         fLC(ixC^S,iw)=fRC(ixC^S,iw)
-      elsewhere(patchf(ixC^S)==3)
-         ! fallback option, reducing to HLL flux
-         fLC(ixC^S,iw)=Fhll(ixC^S,iw)
-      elsewhere(patchf(ixC^S)==4)
-         ! fallback option, reducing to TVDLF flux
-         fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
-              -tvdlfeps * max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
-              (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-      endwhere
-      ! case default
-      !    call mpistop("hllc error: unknown flux type")
-      ! end select
+      if (flux_type(idims, iw) == flux_tvdlf) then
+         fLC(ixC^S,iw) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
+              max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
+              (wRC(ixC^S,iw) - wLC(ixC^S,iw)))
+         ! TODO: include flc = 0 depending on bnormlf?
+      else
+         where(patchf(ixC^S)==-2)
+            fLC(ixC^S,iw)=fLC(ixC^S,iw)
+         elsewhere(abs(patchf(ixC^S))==1)
+            fLC(ixC^S,iw)=fCD(ixC^S,iw)
+         elsewhere(patchf(ixC^S)==2)
+            fLC(ixC^S,iw)=fRC(ixC^S,iw)
+         elsewhere(patchf(ixC^S)==3)
+            ! fallback option, reducing to HLL flux
+            fLC(ixC^S,iw)=Fhll(ixC^S,iw)
+         elsewhere(patchf(ixC^S)==4)
+            ! fallback option, reducing to TVDLF flux
+            fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
+                 -tvdlfeps * max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
+                 (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+         endwhere
+      end if
 
       if (slab) then
          fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
@@ -1056,13 +997,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
 end do ! Next idims
 
-
-{#IFDEF FCT
-call fct_average(ixI^L,ixO^L,fC)
-}
-
-
-!Now update the state
+! Now update the state
 do idims= idim^LIM
    hxO^L=ixO^L-kr(idims,^D);
    do iw=1,nwflux
@@ -1085,7 +1020,7 @@ do idims= idim^LIM
 
 end do ! Next idims
 
-if ((method=='hllc'.or.method=='hllcd').and.useprimitive) then  
+if ((method=='hllc'.or.method=='hllcd').and.useprimitive) then
    call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
    if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hllc_wCT')
@@ -1102,7 +1037,6 @@ subroutine tvdmusclf(method,qdt,ixI^L,ixO^L,idim^LIM, &
 
 ! method=='tvdmu'  --> 2nd order (may be 3rd order in 1D) TVD-MUSCL scheme.
 ! method=='tvdmu1' --> 1st order TVD-MUSCL scheme (upwind per charact. var.)
-! FCT not implemented here.
 use mod_physics
 use mod_global_parameters
 
@@ -1138,11 +1072,11 @@ if (ixI^L^LTix^L|.or.|.or.) &
    call mpistop("Error in TVDMUSCLF: Nonconforming input limits")
 
 
-if ((method=='tvdmu').and.useprimitive) then  
-   ! second order methods with primitive limiting: 
+if ((method=='tvdmu').and.useprimitive) then
+   ! second order methods with primitive limiting:
    ! this call ensures wCT is primitive with updated auxiliaries
    call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-endif 
+endif
 
 
 ^D&dxinv(^D)=-qdt/dx^D;
@@ -1162,18 +1096,7 @@ do idims= idim^LIM
 
    kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
    kxR^L=kxC^L+kr(idims,^D);
-{#IFDEF HALL
-   ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
-   ! assuming one additional ghost layer (two for FOURTHORDER) was added in dixB.
-{#IFNDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD1;}
-}
-{#IFDEF FOURTHORDER
-   {ixCR^L=ixC^L^LADD2;}
-}
-}{#IFNDEF HALL
-   {ixCR^L=ixC^L;}
-}
+
    wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
    wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
 
@@ -1183,6 +1106,10 @@ do idims= idim^LIM
 {#IFDEF STRETCHGRID
    if(idims==1) xi(kxC^S,1)=x(kxC^S,1)*(one+half*logG)
 }
+
+   ! Determine stencil size
+   {ixCRmin^D = ixCmin^D - phys_wider_stencil\}
+   {ixCRmax^D = ixCmax^D + phys_wider_stencil\}
 
    ! for tvdlf and tvdmu (second order schemes): apply limiting
    if (method=='tvdmu') then
@@ -1204,27 +1131,24 @@ do idims= idim^LIM
       call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_B')
       call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_B')
    end if
-   
+
 
    ! Calculate velocities for transport fluxes
    call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
    call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
 
-
-{#IFDEF GLM
-! Solve the Riemann problem for the linear 2x2 system for normal
-! B-field and GLM_Psi according to Dedner 2002:
-call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
-}
+   call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
    ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
    do iw=1,nwflux
       call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
       call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
+
       if (transport) then
          fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
          fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
       end if
+
       ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
       fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
 
@@ -1249,7 +1173,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
 end do ! Next idims
 
-if ((method=='tvdmu').and.useprimitive) then  
+if ((method=='tvdmu').and.useprimitive) then
     call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 else
    if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
@@ -1260,36 +1184,4 @@ call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),ixI^L,ixO^L,1,nw,qtC,&
                 wCT,qt,wnew,x,.false.)
 
 end subroutine tvdmusclf
-!=============================================================================
-{#IFDEF GLM
-subroutine glmSolve(wLC,wRC,ixI^L,ixO^L,idir)
-use mod_global_parameters
-double precision, dimension(ixI^S,1:nw), intent(inout) :: wLC, wRC
-integer, intent(in)                                  :: ixI^L, ixO^L, idir
-double precision, dimension(ixI^S)                   :: dB, dPsi
-!-----------------------------------------------------------------------------
 
-! This implements eq. (42) in Dedner et al. 2002 JcP 175
-! Gives the Riemann solution on the interface 
-! for the normal B component and Psi in the GLM-MHD system.
-
-! 23/04/2013 Oliver Porth
-
-!BL(ixO^S) = wLC(ixO^S,b0_+idir)
-!BR(ixO^S) = wRC(ixO^S,b0_+idir)
-
-!PsiL(ixO^S) = wLC(ixO^S,psi_)
-!PsiR(ixO^S) = wRC(ixO^S,psi_)
-
-dB(ixO^S)   = wRC(ixO^S,b0_+idir) - wLC(ixO^S,b0_+idir)
-dPsi(ixO^S) = wRC(ixO^S,psi_) - wLC(ixO^S,psi_)
-
-wLC(ixO^S,b0_+idir)   = half * (wRC(ixO^S,b0_+idir) + wLC(ixO^S,b0_+idir)) - half/cmax_global * dPsi(ixO^S)
-wLC(ixO^S,psi_)       = half * (wRC(ixO^S,psi_) + wLC(ixO^S,psi_))         - half*cmax_global * dB(ixO^S)
-
-wRC(ixO^S,b0_+idir) = wLC(ixO^S,b0_+idir)
-wRC(ixO^S,psi_) = wLC(ixO^S,psi_)
-
-end subroutine glmSolve
-!=============================================================================
-}
