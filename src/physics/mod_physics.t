@@ -37,12 +37,11 @@ module mod_physics
      subroutine sub_check_params()
      end subroutine sub_check_params
 
-     subroutine sub_convert(ixI^L, ixO^L, w, x, fix)
+     subroutine sub_convert(ixI^L, ixO^L, w, x)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(inout) :: w(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
-       logical, intent(in), optional   :: fix
      end subroutine sub_convert
 
      subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
@@ -105,12 +104,12 @@ module mod_physics
        character(len=*)                :: subname
      end subroutine sub_get_aux
 
-     subroutine sub_check_w(checkprimitive,ixI^L,ixO^L,w,flag)
+     subroutine sub_check_w(primitive, ixI^L, ixO^L, w, w_flag)
        use mod_global_parameters
-       logical             :: checkprimitive
-       integer, intent(in) :: ixI^L, ixO^L
-       double precision    :: w(ixI^S,nw)
-       logical             :: flag(ixG^T)
+       logical, intent(in)          :: primitive
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(in) :: w(ixI^S,nw)
+       integer, intent(inout)       :: w_flag(ixG^T)
      end subroutine sub_check_w
 
   end interface
@@ -194,12 +193,11 @@ contains
   subroutine dummy_check_params()
   end subroutine dummy_check_params
 
-  subroutine dummy_convert(ixI^L, ixO^L, w, x, fix)
+  subroutine dummy_convert(ixI^L, ixO^L, w, x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
-    logical, intent(in), optional   :: fix
   end subroutine dummy_convert
 
   subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
@@ -232,13 +230,14 @@ contains
     character(len=*)                :: subname
   end subroutine dummy_get_aux
 
-  subroutine dummy_check_w(checkprimitive,ixI^L,ixO^L,w,flag)
+  subroutine dummy_check_w(primitive, ixI^L, ixO^L, w, w_flag)
     use mod_global_parameters
-    logical             :: checkprimitive
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision    :: w(ixI^S,nw)
-    logical             :: flag(ixG^T)
-    flag(ixO^S)=.true.
+    logical, intent(in)          :: primitive
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,nw)
+    integer, intent(inout)       :: w_flag(ixG^T)
+
+    w_flag(ixO^S) = 0             ! All okay
   end subroutine dummy_check_w
 
 end module mod_physics

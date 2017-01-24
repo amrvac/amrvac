@@ -125,7 +125,7 @@ double precision, dimension(ixI^S,1:ndim) :: x
 integer :: jxR^L, ixC^L, jxC^L, iw, ixtest^L
 double precision :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
 double precision :: ldw(ixI^S), dwC(ixI^S)
-logical, dimension(ixI^S) :: flagL, flagR
+integer :: flagL(ixI^S), flagR(ixI^S)
 character*79 :: savetypelimiter
 !-----------------------------------------------------------------------------
 
@@ -177,17 +177,18 @@ if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
    end if
  end do
 
- call phys_check_w(useprimitive,ixI^L,ixL^L,wLtmp,flagL)
- call phys_check_w(useprimitive,ixI^L,ixR^L,wRtmp,flagR)
+ call phys_check_w(useprimitive, ixI^L, ixL^L, wLtmp, flagL)
+ call phys_check_w(useprimitive, ixI^L, ixR^L, wRtmp, flagR)
 
  do iw=1,nwflux
-   where (flagL(ixL^S).and.flagR(ixR^S))
+   where (flagL(ixL^S) == 0 .and. flagR(ixR^S) == 0)
       wLC(ixL^S,iw)=wLtmp(ixL^S,iw)
       wRC(ixR^S,iw)=wRtmp(ixR^S,iw)
    end where
 
    if (loglimit(iw)) then
-      where (.not.(flagL(ixL^S).and.flagR(ixR^S)))
+      ! Jannis: why this?
+      where (flagL(ixL^S) /= 0 .or. flagR(ixR^S) /= 0)
          wLC(ixL^S,iw)=10.0d0**wLC(ixL^S,iw)
          wRC(ixR^S,iw)=10.0d0**wRC(ixR^S,iw)
       end where

@@ -18,11 +18,12 @@ contains
 
     integer                          :: len, ier, n
     integer, parameter               :: max_files = 20 ! Maximum number of par files
-    integer                          :: n_par_files
+    integer                          :: n_files, n_par_files
     integer                          :: ibegin(max_files)
     integer                          :: iterm(max_files)
     character(len=max_files*std_len) :: all_par_files
-    character(len=std_len)           :: tmp_files(max_files)
+    character(len=std_len)           :: tmp_files(max_files), tmp
+    character(len=std_len)           :: tmp_par(max_files)
 
     if (mype == 0) then
        print *, '-----------------------------------------------------------------------------'
@@ -37,8 +38,8 @@ contains
     end if
 
     ! Specify the options and their default values
-    call kracken('cmd','-i amrvac.par -if data -restart -1 -slice 0'//&
-         ' -collapse 0 --help .false. -convert .false.')
+    call kracken('cmd','-i amrvac.par -if data -restart -1 '//&
+         '-slice 0 -collapse 0 --help .false. -convert .false.')
 
     ! Get the par file(s)
     call retrev('cmd_i', all_par_files, len, ier)
@@ -60,11 +61,29 @@ contains
        stop
     end if
 
-    ! Split the par files, in case multiple were given
-    call delim(all_par_files, tmp_files, max_files, n_par_files, &
+    ! Split the input files, in case multiple were given
+    call delim(all_par_files, tmp_files, max_files, n_files, &
          ibegin, iterm, len, " ,'"""//char(9))
+
+    n_par_files = 0
+
+    do n = 1, n_files
+       tmp = tmp_files(n)
+       len = len_trim(tmp)
+
+       if (tmp(len-3:) == ".par") then
+          n_par_files = n_par_files + 1
+          tmp_par(n_par_files) = tmp
+       else if (tmp(len-3:) == ".cfg") then
+          call CFG_read_file(cfg, trim(tmp))
+       else
+          call mpistop("Unknown par/cfg file extension (not .par or .cfg)")
+       end if
+
+    end do
+
     allocate(par_files(n_par_files))
-    par_files = tmp_files(1:n_par_files)
+    par_files = tmp_par(1:n_par_files)
 
     ! Read in the other command line arguments
     call retrev('cmd_if', filenameini, len, ier)
@@ -120,7 +139,7 @@ contains
          useprimitiveRel,maxitnr,dmaxvel,typepoly,&
          tvdlfeps,BnormLF,&
          smallT,smallp,smallrho,typegrad,typediv,tolernr,absaccnr,&
-         strictnr,fixsmall,strictsmall,strictgetaux,nflatgetaux,&
+         strictnr, &
          strictzero,nxdiffusehllc,typespherical,&
          fixprocess,flathllc, &
          ncool,cmulti,coolmethod,coolcurve,Tfix, &
@@ -206,10 +225,6 @@ contains
     ! relativistic module defaults
     useprimitiveRel = .true.
     strictnr        = .true.
-    fixsmall        = .false.
-    strictsmall     = .true.
-    strictgetaux    = .false.
-    nflatgetaux     = 1
     strictzero      = .true.
     typepoly        = 'meliani'
     tolernr         = 1.0d-13

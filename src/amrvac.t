@@ -32,6 +32,9 @@ program amrvac
   call phys_check()
 
   call read_par_files()
+  call init_modules()
+
+  call CFG_check(cfg)
 
   call initialize_vars()
   call init_comm_types()
@@ -313,5 +316,11 @@ contains
 
     fixgrid= (t>=tfixgrid .or. it>=itfixgrid)
   end function fixgrid
+
+  subroutine init_modules()
+    use mod_small_values, only: small_values_init
+
+    call small_values_init()
+  end subroutine init_modules
 
 end program amrvac

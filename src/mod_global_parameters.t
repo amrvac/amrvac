@@ -4,11 +4,15 @@ module mod_global_parameters
   use mod_physicaldata
   use mod_connectivity
   use mpi
+  use mod_config
 
   implicit none
   public
 
   ! Parameters
+
+  !> Object with configuration settings
+  type(CFG_t) :: cfg
 
   !> The number of interleaving sending buffers for ghost cells
   integer, parameter :: npwbuf=2

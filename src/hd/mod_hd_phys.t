@@ -1,10 +1,7 @@
 ! TODO:
-! * Keep/remove strictgetaux?
 ! * Can we make methods robust without fixes?
+! * Why replace all variables when one is 'small'? Especially rho_
 ! * Generic names for momentum and other indices?
-! * Remove "subname"
-! * Use check_w more generally?
-! * Single method to quit and show problematic values
 
 !> Hydrodynamics module
 module mod_hd_phys
@@ -173,60 +170,52 @@ contains
     minrho = max(0.0d0, smallrho)
 
     if (.not. hd_energy) then
-       if (hd_gamma <= 0.0d0) call mpistop ("hd_gamma negative not ok")
-       if (hd_adiab < 0.0d0) call mpistop ("adiab strict negative not ok")
+       if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
+       if (hd_adiab <= 0.0d0) call mpistop ("Error: hd_adiab <= 0")
        minp   = hd_adiab*minrho**hd_gamma
     else
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
-            call mpistop ("hd_gamma negative or 1 not ok")
+            call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
        minp   = max(0.0d0, smallp)
        smalle = minp/(hd_gamma - 1.0d0)
     end if
 
   end subroutine hd_check_params
 
-  !> @todo can perhaps use this function more generally?
-  subroutine hd_check_w(checkprimitive, ixI^L, ixO^L, w, flag)
+  !> Returns 0 in argument flag where values are ok
+  subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag)
     use mod_global_parameters
 
-    logical             :: checkprimitive
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision    :: w(ixI^S, nw)
-    logical             :: flag(ixG^T)
-    double precision    :: tmp(ixG^T)
+    logical, intent(in)          :: primitive
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, nw)
+    integer, intent(inout)       :: flag(ixI^S)
+    double precision             :: tmp(ixI^S)
 
-    flag(ixG^T) =.true.
+    flag(ixO^S) = 0
+    where(w(ixO^S, rho_) < minrho) flag(ixO^S) = rho_
 
     if (hd_energy) then
-       if (checkprimitive) then
-          flag(ixO^S) =(w(ixO^S, e_)>= minp .and. w(ixO^S, rho_)>= minrho)
+       if (primitive) then
+          where(w(ixO^S, e_) < minp) flag(ixO^S) = e_
        else
-          tmp(ixO^S) =(hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
+          tmp(ixO^S) = (hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
                hd_kin_en(w, ixI^L, ixO^L))
-          flag(ixO^S) =(tmp(ixO^S)>= minp .and. w(ixO^S, rho_)>= minrho)
-       endif
-    else
-       if (hd_adiab > 0.0d0) then
-          flag(ixO^S) = (w(ixO^S, rho_) >= 0.0d0)
+          where(tmp(ixO^S) < minp) flag(ixO^S) = e_
        endif
     end if
 
   end subroutine hd_check_w
 
   ! Transform primitive variables into conservative ones
-  recursive subroutine hd_to_conserved(ixI^L, ixO^L, w, x, fix)
+  subroutine hd_to_conserved(ixI^L, ixO^L, w, x)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    logical, intent(in), optional   :: fix
     double precision                :: invgam
     integer                         :: idir, itr
-    logical                         :: apply_fixes
-
-    apply_fixes = .true.
-    if (present(fix)) apply_fixes = fix
 
     invgam = 1.d0/(hd_gamma - 1.0d0)
 
@@ -244,32 +233,20 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
     end do
 
-    ! call dust_conserve(...)
+    ! TODO call dust_conserve(...)
 
-    if (apply_fixes .and. fixsmall) &
-         call smallvalues(w, x, ixI^L, ixO^L, "hd_to_conserved")
+    call handle_small_values(.false., w, x, ixI^L, ixO^L)
 
   end subroutine hd_to_conserved
 
   !> Transform conservative variables into primitive ones
-  recursive subroutine hd_to_primitive(ixI^L, ixO^L, w, x, fix)
+  subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    logical, intent(in), optional   :: fix
-    integer, dimension(ixG^T)       :: patchierror
-    integer, dimension(ndim)        :: lowpindex
     integer                         :: itr, idir
-    logical                         :: apply_fixes
-
-    apply_fixes = .true.
-    if (present(fix)) apply_fixes = fix
-
-    ! TODO
-    ! if (apply_fixes .and. fixsmall) &
-    !      call smallvalues(w, x, ixI^L, ixO^L, "hd_to_primitive")
 
     if (hd_energy) then
        ! Compute pressure
@@ -286,30 +263,11 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * hd_inv_rho(w, ixI^L, ixO^L)
     end do
 
-    if (apply_fixes) then
-       if (strictsmall) then
-          if (any(w(ixO^S, e_)<minp)) then
-             call mpistop("=== primitive pressure problem===")
-          end if
-       else if (strictgetaux) then
-          ! TODO: check
-          where(w(ixO^S, e_)<minp)
-             w(ixO^S, e_) = minp
-          endwhere
-       else
-          where(w(ixO^S, e_)<minp)
-             patchierror(ixO^S) = 1
-          else where
-             patchierror(ixO^S) = 0
-          end where
-
-          if (any(patchierror(ixO^S)/= 0)) &
-               call correctaux(ixI^L, ixO^L, w, x, patchierror, "hd_to_primitive")
-       end if
-    end if
-
     ! Convert dust momentum to dust velocity
     ! call dust_primitive(...)
+
+    call handle_small_values(.true., w, x, ixI^L, ixO^L)
+
   end subroutine hd_to_primitive
 
   subroutine e_to_rhos(ixI^L, ixO^L, w, x)
@@ -350,23 +308,12 @@ contains
     double precision, intent(out) :: v(ixG^T)
 
     v(ixO^S) = w(ixO^S, mom(idim)) * hd_inv_rho(w, ixI^L, ixO^L)
-
-    ! Jannis: Remove this case?
-    ! if (hd_energy .or. hd_adiab > 0.0d0) then
-    ! else
-    !    ! case of zero temperature: allow zero density
-    !    where(w(ixO^S, rho_)/= zero)
-    !       v(ixO^S) = w(ixO^S, mom(idims))/w(ixO^S, rho_)
-    !    elsewhere
-    !       v(ixO^S) = zero
-    !    endwhere
-    ! end if
   end subroutine hd_get_v
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
     use mod_global_parameters
-    use mod_dust, only: dust_get_cmax, dust_n_species
+    use mod_dust, only: dust_get_cmax
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
@@ -376,9 +323,8 @@ contains
     double precision                          :: v(ixG^T)
 
     call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
-
-    ! if (hd_energy .or. hd_adiab > 0.0d0) then
     call hd_get_pthermal(w, x, ixI^L, ixO^L, csound)
+
     csound(ixO^S) = sqrt(hd_gamma * csound(ixO^S) * &
          hd_inv_rho(w, ixI^L, ixO^L))
 
@@ -389,7 +335,7 @@ contains
        cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
     end if
 
-    if (dust_n_species > 0) &
+    if (hd_dust) &
          call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
   end subroutine hd_get_cmax
 
@@ -400,67 +346,15 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L
     double precision             :: w(ixI^S, nw), pth(ixG^T)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
-    integer, dimension(ixG^T)    :: patchierror
-    integer                      :: lowpindex(ndim), idir
 
-    ! TODO
-    ! if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"hd_get_pthermal")
+    ! Jannis: TODO: is this needed?
+    call handle_small_values(.false., w, x, ixI^L, ixO^L)
 
     if (hd_energy) then
        pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
             hd_kin_en(w, ixI^L, ixO^L))
     else
-       pth(ixO^S) = hd_adiab*w(ixO^S, rho_)**hd_gamma
-    end if
-
-    if (any(pth(ixO^S)<minp)) then
-       if (strictsmall) then
-          lowpindex = minloc(pth(ixO^S))
-          ^D&lowpindex(^D)=lowpindex(^D)+ixOmin^D-1;
-          write(*,*) "too small pressure = ", minval(pth(ixO^S))," with limit=", minp,&
-               " at x=", x(^D&lowpindex(^D), 1:ndim), lowpindex
-          if (hd_energy) then
-             write(*,*)" E_total=", w(^D&lowpindex(^D), e_)
-          end if
-          write(*,*)" w(1:nwflux) =", w(^D&lowpindex(^D), 1:nwflux)," when t=", t," it=", it
-          call mpistop("=== strictsmall in hd_get_pthermal ===")
-       else if (strictgetaux) then
-          if (.not. hd_energy) then
-             where(pth(ixO^S)<minp)
-                w(ixO^S, rho_) = minrho
-             end where
-
-             do idir = 1, ndir
-                where(pth(ixO^S)<minp)
-                   w(ixO^S, mom(idir)) = zero
-                end where
-             end do
-          end if
-          where(pth(ixO^S)<minp)
-             pth(ixO^S) = minp
-          endwhere
-       else
-          where(pth(ixO^S)<minp)
-             patchierror(ixO^S) = 1
-          else where
-             patchierror(ixO^S) = 0
-          end where
-
-          if (any(patchierror(ixO^S)/= 0)) then
-             call correctaux(ixI^L, ixO^L, w, x, patchierror,"hd_get_pthermal")
-             if (hd_energy) then
-                where(patchierror(ixO^S)/= 0)
-                   pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_)- &
-                        hd_kin_en(w, ixI^L, ixO^L))
-                end where
-             else
-                where(patchierror(ixO^S)/= 0)
-                   pth(ixO^S) = hd_adiab*w(ixO^S, rho_)**hd_gamma
-                end where
-             end if
-
-          end if
-       end if
+       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
     end if
 
   end subroutine hd_get_pthermal
@@ -648,7 +542,7 @@ contains
   subroutine hd_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
     use mod_global_parameters
     use mod_radiative_cooling
-    use mod_dust, only: dust_add_source, dust_n_species
+    use mod_dust, only: dust_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
@@ -657,26 +551,26 @@ contains
     logical, intent(in)             :: qsourcesplit
     integer                         :: idir
 
-    if(hd_dust) then
-      call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
+    if (hd_dust) then
+       call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
 
-      do idir = 1, ndir
-        call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-      end do
+       do idir = 1, ndir
+          call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
+       end do
 
-      call dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x,&
-                  qsourcesplit, ptherm, vgas)
+       call dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x, &
+            qsourcesplit, ptherm, vgas)
     end if
 
-    if(hd_radiative_cooling) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x,qsourcesplit)
+    if (hd_radiative_cooling) then
+       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x,qsourcesplit)
     end if
 
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
-    use mod_dust, only: dust_get_dt, dust_n_species
+    use mod_dust, only: dust_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:ndim)
@@ -686,7 +580,7 @@ contains
 
     dtnew = bigdouble
 
-    if (dust_n_species > 0) then
+    if (hd_dust) then
        call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
 
        do idir = 1, ndir
@@ -717,110 +611,38 @@ contains
     inv_rho = 1.0d0 / w(ixO^S, rho_)
   end function hd_inv_rho
 
-  ! TODO: remove routine
-  subroutine smallvalues(w,x,ixI^L,ixO^L,subname)
+  subroutine handle_small_values(primitive, w, x, ixI^L, ixO^L)
     use mod_global_parameters
+    use mod_small_values
+    logical, intent(in)             :: primitive
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    character(len=*), intent(in)    :: subname
-    integer                         :: posvec(ndim)
-    integer, dimension(ixG^T)       :: patchierror
-    double precision                :: pth(ixG^T)
 
-    patchierror(ixO^S) = 0
+    integer :: idir
+    integer :: flag(ixI^S)
+    integer :: posvec(ndim)
 
-    if (hd_energy) then
-       pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            hd_kin_en(w, ixI^L, ixO^L))
+    call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
-       where(w(ixO^S,rho_) < minrho .or. w(ixO^S,e_) < smalle &
-            .or. pth(ixO^S)<minp)
-          patchierror(ixO^S)=-1
-       end where
-    else
-       where(w(ixO^S,rho_) < minrho)
-          patchierror(ixO^S)=-1
-       end where
-    end if
+    if (any(flag(ixO^S) /= 0)) then
+       select case (small_values_method)
+       case ("replace")
+          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = minrho
 
-    if (any(patchierror(ixO^S) /= 0)) then
-       if (strictsmall) then
-          write(*,*)"SMALLVALUES under strictsmall problem From:  ", &
-               subname," iteration ", it," time ",t
-          call mpistop("Smallvalues with strictsmall=T failed")
-       else if(strictgetaux)then
-          call mpistop("Smallvalues with strictgetaux=T not implemented")
-          ! where(w(ixO^S,rho_) < minrho .or. w(ixO^S,e_) < smalle&
-          !      .or. pth(ixO^S)<minp)
-          ! TODO: should be minrho etc.
-          !    w(ixO^S,rho_)  = 2.0*(1.0d0 + 10.0d0 * minrho)*minrho
-          !    w(ixO^S,e_)    = 2.0*(1.0d0 + 10.0d0 * minp)*smalle
-          !    {^C&w(ixO^S,m^C_) =zero;}
-          ! end where
-       else
-          call correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
-       end if
-    end if
-  end subroutine smallvalues
-
-  subroutine correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
-    use mod_global_parameters
-
-    integer, intent(in)         :: ixI^L, ixO^L
-    integer, intent(in)         :: patchierror(ixG^T)
-    character(len=*), intent(in)   :: subname
-    double precision, intent(inout):: w(ixI^S,1:nw)
-    double precision, intent(in)      :: x(ixI^S,1:ndim)
-    integer        :: iw, kxO^L, ix^D, i
-
-    {do ix^DB= ixO^LIM^DB\}
-    ! point with local failure identified by patchierror
-    ! patchierror=-1 then from smallvalues call
-    ! patchierror=1  then from getpthermal or primitive call
-    if (patchierror(ix^D)/=0) then
-       ! verify in cube with border width nflatgetaux the presence
-       ! of cells where all went ok
-       do i=1,nflatgetaux
-          {kxOmin^D= max(ix^D-i,ixOmin^D);
-          kxOmax^D= min(ix^D+i,ixOmax^D);\}
-          ! in case cells are fine within smaller cube than 
-          ! the userset nflatgetaux: use that smaller cube
-          if (any(patchierror(kxO^S)==0)) exit
-       end do
-       if (any(patchierror(kxO^S)==0))then
-          ! within surrounding cube, cells without problem were found
-          if (useprimitive .and. subname/="hd_to_primitive") then
-             call hd_to_primitive(ixI^L,kxO^L,w,x, .false.)
-          end if
-          ! faulty cells are corrected by averaging here
-          ! only average those which were ok and replace faulty cells
-          do iw = 1,nw
-             w(ix^D,iw)=sum(w(kxO^S,iw),patchierror(kxO^S)==0)&
-                  /count(patchierror(kxO^S)==0)
+          do idir = 1, ndir
+             where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
           end do
-          if (useprimitive .and. subname/="hd_to_primitive") then
-             ! in addition to those switched to primitive variables
-             ! above, also switch the corrected variables
-             call hd_to_conserved(ixI^L,kxO^L,w,x, .false.)
-          end if
-       else
-          ! no cells without error were found in cube of size nflatgetaux
-          ! --> point of no recovery
-          print*,"Getaux error:",patchierror(ix^D),"ix^D=",ix^D
-          !print*,"New ","rho=",w(ix^D,rho_),"m=", &
-          !        {^C&w(ix^D,m^C_)},"e=",w(ix^D,e_)
-          !print*,"position  ", px(saveigrid)%x(ix^D, 1:ndim)
-          print*,"Called from: ",subname
-          if (patchierror(ix^D)<0) then
-             call mpistop("-correctaux from smallvalues-----")
-          else
-             call mpistop("-correctaux from primitive or getpthermal--")
-          end if
-       end if
-    end if
-    {enddo^D&\}
 
-  end subroutine correctaux
+          if (hd_energy) then
+             where(flag(ixO^S) /= 0) w(ixO^S,e_) = smalle
+          end if
+       case ("average")
+          call small_values_average(ixI^L, ixO^L, w, x, flag)
+       case default
+          call small_values_error(w, x, ixI^L, ixO^L, flag)
+       end select
+    end if
+  end subroutine handle_small_values
 
 end module mod_hd_phys

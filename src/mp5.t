@@ -17,7 +17,7 @@ integer                         :: iw
 double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
 double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
-logical, dimension(ixI^S)       :: flagL, flagR
+integer                         :: flagL(ixI^S), flagR(ixI^S)
 double precision, parameter     :: eps=1.0d-12, alpha=4.0d0
 !double precision                :: alpha
 !----------------------------------------------------------------------------
@@ -195,7 +195,7 @@ call phys_check_w(useprimitive,ixG^LL,iL^L,wLCtmp,flagL)
 call phys_check_w(useprimitive,ixG^LL,iL^L,wRCtmp,flagR)
 
 do iw=1,nwflux
-   where (flagL(iL^S).and.flagR(iL^S))
+   where (flagL(iL^S) == 0 .and. flagR(iL^S) == 0)
       wLC(iL^S,iw)=wLCtmp(iL^S,iw)
       wRC(iL^S,iw)=wRCtmp(iL^S,iw)
    end where

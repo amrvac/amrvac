@@ -53,22 +53,20 @@ contains
     phys_get_dt          => rho_get_dt
   end subroutine rho_phys_init
 
-  subroutine rho_to_conserved(ixI^L, ixO^L, w, x, fix)
+  subroutine rho_to_conserved(ixI^L, ixO^L, w, x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
-    logical, intent(in), optional   :: fix
 
     ! Do nothing (primitive and conservative are equal for rho module)
   end subroutine rho_to_conserved
 
-  subroutine rho_to_primitive(ixI^L, ixO^L, w, x, fix)
+  subroutine rho_to_primitive(ixI^L, ixO^L, w, x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
-    logical, intent(in), optional   :: fix
 
     ! Do nothing (primitive and conservative are equal for rho module)
   end subroutine rho_to_primitive
