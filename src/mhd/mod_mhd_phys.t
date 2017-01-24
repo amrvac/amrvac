@@ -1,5 +1,4 @@
 ! TODO: GLM (to module?)
-! TODO: FCT -> Remove
 ! TODO: B0field (inside here / module?)
 ! TODO: fourthorder
 
@@ -55,6 +54,9 @@ module mod_mhd_phys
   !> The MHD hyper-resistivity
   double precision, public, protected     :: mhd_eta_hyper = 0.0d0
 
+  !> TODO: what is this?
+  double precision, public, protected     :: mhd_etah = 0.0d0
+
   !> The smallest allowed energy
   double precision, protected             :: smalle
 
@@ -63,8 +65,6 @@ module mod_mhd_phys
 
   !> The smallest allowed pressure
   double precision, protected             :: minp
-
-
 
 contains
 
@@ -172,12 +172,22 @@ contains
        call thermal_conduction_init()
     end if
 
-    {#IFDEF GLM
-! Solve the Riemann problem for the linear 2x2 system for normal
-    ! B-field and GLM_Psi according to Dedner 2002:
-    phys_modify_interface =>
-call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
-}
+    if (mhd_glm) then
+       ! Solve the Riemann problem for the linear 2x2 system for normal
+       ! B-field and GLM_Psi according to Dedner 2002:
+       phys_modify_interface => glmSolve
+    end if
+
+    ! For Hall, we need one more reconstructed layer since currents are computed
+    ! in getflux: assuming one additional ghost layer (two for FOURTHORDER) was
+    ! added in dixB.
+    if (mhd_hall) then
+       if (mhd_4th_order) then
+          phys_wider_stencil = 2
+       else
+          phys_wider_stencil = 1
+       end if
+    end if
 
   end subroutine mhd_phys_init
 
@@ -203,7 +213,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
           ! Add magnetic energy*2=b**2
           tmp1(ixO^S)=tmp1(ixO^S)+ ^C&w(ixO^S,b^C_)**2+
           ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-          tmp1(ixO^S)=(eqpar(gamma_)-one)*(w(ixO^S,e_)-half*tmp1(ixO^S))
+          tmp1(ixO^S)=(mhd_gamma-one)*(w(ixO^S,e_)-half*tmp1(ixO^S))
        end if
 
        flag(ixO^S)=(tmp1(ixO^S)>=minp .and. w(ixO^S,rho_)>=minrho)
@@ -212,137 +222,99 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     end if
   end subroutine mhd_check_w
 
-  subroutine conserve(ixI^L,ixO^L,w,x,patchw)
-
-    ! Transform primitive variables into conservative ones
-
+  !> Transform primitive variables into conservative ones
+  subroutine hd_to_conserved(ixI^L,ixO^L,w,x,patchw)
     use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: invgam
+    integer                         :: idir, itr
 
-    integer, intent(in)    :: ixI^L, ixO^L
-    double precision       :: w(ixI^S,nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    logical                :: patchw(ixI^S)
-    double precision       :: invgam
-    !-----------------------------------------------------------------------------
+    ! Convert velocity to momentum
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
+    end do
 
     if (mhd_energy) then
-       invgam=1.d0/(eqpar(gamma_)-one)
+       invgam=1.d0/(mhd_gamma-one)
        ! Calculate total energy from pressure, kinetic and magnetic energy
-       w(ixO^S,e_)=w(ixO^S,p_)*invgam+&
-            half*(w(ixO^S,rho_)*(^C&w(ixO^S,v^C_)**2+)+(^C&w(ixO^S,b^C_)**2+))
+       w(ixO^S,e_)=w(ixO^S,p_)*invgam + &
+            hd_kin_en(w, ixI^L, ixO^L) + hd_mag_en(w, ixI^L, ixO^L)
     end if
-    ! Convert velocity to momentum
-    ^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,v^C_);
 
-    {#IFDEF TRACER
-    {^FL&w(ixO^S,tr^FL_) = w(ixO^S,rho_)*w(ixO^S,tr^FL_)\}
-    }
+    do itr = 1, hd_n_tracer
+       w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
+    end do
 
-    if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
+    ! if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
+  end subroutine hd_to_conserved
 
-  end subroutine conserve
-
-  subroutine primitive(ixI^L,ixO^L,w,x)
-
-    ! Transform conservative variables into primitive ones
-
+  !> Transform conservative variables into primitive ones
+  subroutine hd_to_primitive(ixI^L,ixO^L,w,x)
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S,nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    integer, dimension(ixI^S)       :: patchierror
-    integer, dimension(ndim)       :: lowpindex
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: itr, idir
+
+    if (hd_energy) then
+       ! Calculate pressure = (gamma-1) * (e-0.5*(2ek+2eb))
+       w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) &
+            - hd_kin_en(w, ixI^L, ixO^L) &
+            - hd_mag_en(w, ixI^L, ixO^L))
+    end if
 
     ! Convert momentum to velocity
-    ^C&w(ixO^S,v^C_)=w(ixO^S,m^C_)/w(ixO^S,rho_);
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * hd_inv_rho(w, ixI^L, ixO^L)
+    end do
 
-    if (mhd_energy) then
-       ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-       w(ixO^S,p_)=(eqpar(gamma_)-one)*(w(ixO^S,e_)- &
-            half*(({^C&w(ixO^S,v^C_)**2+})*w(ixO^S,rho_)&
-            +{ ^C&w(ixO^S,b^C_)**2+}))
-       if(strictsmall) then
-          if(any(w(ixO^S,p_)<minp)) then
-             lowpindex=minloc(w(ixO^S,p_))
-             ^D&lowpindex(^D)=lowpindex(^D)+ixOmin^D-1;
-             write(*,*)'too small pressure = ',minval(w(ixO^S,p_)),' with limit=',&
-                  minp,' at x=',x(^D&lowpindex(^D),1:ndim),' array index=',lowpindex,&
-                  ' where E_k=',half*(^C&w(^D&lowpindex(^D),v^C_)**2+)*&
-                  w(^D&lowpindex(^D),rho_),&
-                  ' E_B=',half*(^C&w(^D&lowpindex(^D),b^C_)**2+),' E_total=',&
-                  w(^D&lowpindex(^D),p_)/(eqpar(gamma_)-one)+half*&
-                  (^C&w(^D&lowpindex(^D),v^C_)**2+)*w(^D&lowpindex(^D),rho_)+&
-                  half*(^C&w(^D&lowpindex(^D),b^C_)**2+),' w(1:nwflux)=',&
-                  w(^D&lowpindex(^D),1:nwflux),' when t=',t,' it=',it
-             call mpistop("=== primitive pressure problem===")
-          end if
-       else
-          if (strictgetaux) then
-             where(w(ixO^S,p_)<minp)
-                w(ixO^S,p_)=minp
-             endwhere
-          else
-             where(w(ixO^S,p_)<minp)
-                patchierror(ixO^S) = 1
-             elsewhere
-                patchierror(ixO^S) = 0
-             end where
-             if (any(patchierror(ixO^S)/=0)) &
-                  call correctaux(ixI^L,ixO^L,w,x,patchierror,'primitive')
-          end if
-       end if
-    end if
-    {#IFDEF TRACER
-    ! We got rho, Dtr, now we can get the tracers:
-    {^FL&w(ixO^S,tr^FL_) = w(ixO^S,Dtr^FL_)/w(ixO^S,rho_)\}
-    }
-  end subroutine primitive
+    do itr = 1, hd_n_tracer
+       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * hd_inv_rho(w, ixI^L, ixO^L)
+    end do
+
+    ! call handle_small_values(.true., w, x, ixI^L, ixO^L)
+  end subroutine hd_to_primitive
 
   subroutine e_to_rhos(ixI^L,ixO^L,w,x)
-
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L
     double precision,intent(inout)  :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    !-----------------------------------------------------------------------------
+
     if (mhd_energy) then
-       w(ixO^S,rhos_)=(eqpar(gamma_)-one)*w(ixO^S,rho_)**(one-eqpar(gamma_)) &
-            *(w(ixO^S,e_)-half*((^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_) &
-            +(^C&w(ixO^S,b^C_)**2+)))
-    else
+       w(ixO^S, e_) = (hd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - hd_gamma) * &
+            (w(ixO^S, e_) - hd_kin_en(w, ixI^L, ixO^L) &
+            - hd_mom_en(w, ixI^L, ixO^L)) &
+            else
        call mpistop("e_to_rhos can not be used with eos=iso !")
     end if
   end subroutine e_to_rhos
 
   subroutine rhos_to_e(ixI^L,ixO^L,w,x)
-
     use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    !-----------------------------------------------------------------------------
+
     if (mhd_energy) then
-       w(ixO^S,e_)=(one/(eqpar(gamma_)-one))*w(ixO^S,rho_)**(eqpar(gamma_)-one)*&
-            w(ixO^S,rhos_)+half*((^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_)+&
-            (^C&w(ixO^S,b^C_)**2+))
-    else
+       w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma - 1.0d0) * w(ixO^S, e_) &
+            / (hd_gamma - 1.0d0) + hd_kin_en(w, ixI^L, ixO^L) + &
+            hd_mom_en(w, ixI^L, ixO^L) + &
+            else
        call mpistop("rhos_to_e can not be used with eos=iso !")
     end if
   end subroutine rhos_to_e
+
+  !> Get internal energy
   subroutine internalenergy(ixI^L,ixO^L,w,x,ie)
-
-    ! get internal energy
-
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision                :: ie(ixI^S)
-    !-----------------------------------------------------------------------------
+
     if (mhd_energy) then
        ie(ixO^S)=( ^C&w(ixO^S,m^C_)**2+ )/w(ixO^S,rho_)+ ^C&w(ixO^S,b^C_)**2+
        ! internal energy=e-0.5*(2ek+2eb)
@@ -412,7 +384,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
        ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
        kmax = dpi/min({dxlevel(^D)},bigdouble)*half
        tmp(ixO^S) = max(dsqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S))), &
-            eqpar(etah_) * sqrt(bmag2(ixO^S))/w(ixO^S,rho_)*kmax)
+            mhd_etah * sqrt(bmag2(ixO^S))/w(ixO^S,rho_)*kmax)
     end if
 
     if (needcmin)then
@@ -437,98 +409,53 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     integer, dimension(ixI^S)    :: patchierror
     integer, dimension(ndim)     :: lowpindex
 
-    if (.not. mhd_energy) then
-       p(ixO^S)=eqpar(adiab_)*w(ixO^S,rho_)**eqpar(gamma_)
-    else
-       if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,'getpthermal')
-
+    if (mhd_energy) then
        ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-       p(ixO^S)=(eqpar(gamma_)-one)*(w(ixO^S,e_)- &
+       p(ixO^S)=(mhd_gamma-one)*(w(ixO^S,e_)- &
             half*(({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)&
             +{^C&w(ixO^S,b^C_)**2+}))
-
-       ! Clip off negative pressure if smallp is set
-       if(strictsmall) then
-          if(any(p(ixO^S)<minp)) then
-             lowpindex=minloc(p(ixO^S))
-             ^D&lowpindex(^D)=lowpindex(^D)+ixOmin^D-1;
-             write(*,*)'too small pressure = ',minval(p(ixO^S)),' with limit=',minp,&
-                  ' at x=',x(^D&lowpindex(^D),1:ndim),' array index=',lowpindex,&
-                  ' where E_k=',half*(^C&w(^D&lowpindex(^D),m^C_)**2+)/&
-                  w(^D&lowpindex(^D),rho_),&
-                  ' E_B=',half*(^C&w(^D&lowpindex(^D),b^C_)**2+),' E_total=',w(^D&lowpindex(^D),e_),&
-                  ' w(1:nwflux)=',w(^D&lowpindex(^D),1:nwflux),&
-                  ' when t=',t,' it=',it
-             call mpistop("=== strictsmall in getpthermal ===")
-          end if
-       else
-          if (strictgetaux) then
-             where(p(ixO^S)<minp)
-                p(ixO^S)=minp
-             endwhere
-          else
-             where(p(ixO^S)<minp)
-                patchierror(ixO^S) = 1
-             elsewhere
-                patchierror(ixO^S) = 0
-             end where
-             if (any(patchierror(ixO^S)/=0))then
-                call correctaux(ixI^L,ixO^L,w,x,patchierror,'getpthermal')
-                where(patchierror(ixO^S)/=0)
-                   p(ixO^S)=(eqpar(gamma_)-one)*(w(ixO^S,e_)- &
-                        half*(({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,b^C_)**2+}))
-                end where
-             end if
-          end if
-       end if
+    else
+       p(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
   end subroutine mhd_get_pthermal
 
+  !> Calculate the square of the thermal sound speed csound2 within ixO^L
+  !> from the primitive variables in w.
+  !> csound2=gamma*p/rho
   subroutine getcsound2prim(w,x,ixI^L,ixO^L,csound2)
-
-    ! Calculate the square of the thermal sound speed csound2 within ixO^L
-    ! from the primitive variables in w.
-    ! csound2=gamma*p/rho
-
     use mod_global_parameters
-
     integer, intent(in)             :: ixO^L, ixI^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(out)   :: csound2(ixI^S)
-    !-----------------------------------------------------------------------------
+
     if (mhd_energy) then
-       csound2(ixO^S)=eqpar(gamma_)*w(ixO^S,p_)/w(ixO^S,rho_)
+       csound2(ixO^S)=mhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_)
     else
-       csound2(ixO^S)=eqpar(gamma_)*eqpar(adiab_)*w(ixO^S,rho_)**(eqpar(gamma_)-one)
+       csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**(mhd_gamma-one)
     end if
   end subroutine getcsound2prim
 
+  !> Calculate the square of the thermal sound speed csound2 within ixO^L.
+  !> csound2=gamma*p/rho
   subroutine getcsound2(w,x,ixI^L,ixO^L,csound2)
-
-    ! Calculate the square of the thermal sound speed csound2 within ixO^L.
-    ! csound2=gamma*p/rho
-
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: csound2(ixI^S)
-    !-----------------------------------------------------------------------------
+
     if (mhd_energy) then
        call getpthermal(w,x,ixI^L,ixO^L,csound2)
-       csound2(ixO^S)=eqpar(gamma_)*csound2(ixO^S)/w(ixO^S,rho_)
+       csound2(ixO^S)=mhd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
     else
-       csound2(ixO^S)=eqpar(gamma_)*eqpar(adiab_)*w(ixO^S,rho_)**(eqpar(gamma_)-one)
+       csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**(mhd_gamma-one)
     end if
   end subroutine getcsound2
 
+  ! Calculate total pressure within ixO^L including magnetic pressure
+  ! p=(g-1)*e-0.5*(g-1)*m**2/rho+(1-0.5*g)*b**2
   subroutine getptotal(w,x,ixI^L,ixO^L,p)
-
-    ! Calculate total pressure within ixO^L including magnetic pressure
-    ! p=(g-1)*e-0.5*(g-1)*m**2/rho+(1-0.5*g)*b**2
-
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
@@ -539,68 +466,36 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     integer, dimension(ixI^S)       :: patchierror
     integer, dimension(ndim)       :: lowpindex
 
-    if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,'getptotal')
+    ! if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,'getptotal')
 
-    if (.not. mhd_energy) then
-       p(ixO^S)=eqpar(adiab_)*w(ixO^S,rho_)**eqpar(mhd_gamma_)+(^C&w(ixO^S,b^C_)**2+)*half
-    else
+    if (mhd_energy) then
        p(ixO^S)=(one-half*mhd_gamma)*( ^C&w(ixO^S,b^C_)**2+ )+(mhd_gamma-one)*&
             (w(ixO^S,e_)-half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_))
-
-       if(strictsmall) then
-          if(any(p(ixO^S)<minp)) then
-             lowpindex=minloc(p(ixO^S))
-             ^D&lowpindex(^D)=lowpindex(^D)+ixOmin^D-1;
-             write(*,*)'too small pressure = ',minval(p(ixO^S)),' at x=',&
-                  x(^D&lowpindex(^D),1:ndim),lowpindex,' with limit=',minp,' where E_k=',&
-                  half*(^C&w(^D&lowpindex(^D),m^C_)**2+)/w(^D&lowpindex(^D),rho_),' E_B=',&
-                  half*(^C&w(^D&lowpindex(^D),b^C_)**2+),'E_total=',w(^D&lowpindex(^D),e_),&
-                  ' w(1:nwflux)=',w(^D&lowpindex(^D),1:nwflux),' when t=',t,' it=',it
-             call mpistop("=== strictsmall in getptotal ===")
-          end if
-       else
-          if (strictgetaux) then
-             where(p(ixO^S)<minp)
-                p(ixO^S)=minp
-             endwhere
-          else
-             where(p(ixO^S)<minp)
-                patchierror(ixO^S) = 1
-             elsewhere
-                patchierror(ixO^S) = 0
-             end where
-             if (any(patchierror(ixO^S)/=0))then
-                call correctaux(ixI^L,ixO^L,w,x,patchierror,'getptotal')
-                where(patchierror(ixO^S)/=0)
-                   p(ixO^S)=(one-half*mhd_gamma)*( ^C&w(ixO^S,b^C_)**2+ )+(mhd_gamma-one)*&
-                        (w(ixO^S,e_)-half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_))
-                end where
-             end if
-          end if
-       end if
+    else
+       p(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma+(^C&w(ixO^S,b^C_)**2+)*half
     end if
 
   end subroutine getptotal
 
+  !> Calculate non-transport flux f_idim[iw] within ixO^L.
   subroutine mhd_get_flux(w,x,ixI^L,ixO^L,iw,idims,f,transport)
-
-    ! Calculate non-transport flux f_idim[iw] within ixO^L.
-
     use mod_global_parameters
 
-    integer, intent(in)             :: ixI^L, ixO^L, iw, idims
-    double precision, intent(in)    :: w(ixI^S,nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision,intent(out)    :: f(ixI^S)
+    integer, intent(in)          :: ixI^L, ixO^L, iw, idims
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision,intent(out) :: f(ixI^S)
     !.. local ..
-    logical :: transport
-    double precision :: tmp(ixI^S){#IFDEF HALL , vh(ixI^S,1:3)}
-    integer          :: idirmin, idir
-    !-----------------------------------------------------------------------------
-    transport=.true.
+    logical                      :: transport
+    double precision             :: tmp(ixI^S), vh(ixI^S,1:3)
+    integer                      :: idirmin, idir
+
+    transport = .true.
 
     if (B0field) then
-       if (iw==m0_+idims{#IFDEF ENERGY .or. iw==e_}) tmp(ixO^S)={^C&myB0%w(ixO^S,^C)*w(ixO^S,b^C_)+}
+       if (iw==m0_+idims{#IFDEF ENERGY .or. iw==e_}) then
+          tmp(ixO^S)={^C&myB0%w(ixO^S,^C)*w(ixO^S,b^C_)+}
+       end if
     end if
 
     select case (iw)
@@ -635,7 +530,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
        if (mhd_Hall) then
           ! f_i[e]= f_i[e] + vh_i*(b_k*b_k) - b_i*(vh_k*b_k)
-          if (eqpar(etah_)>zero) then
+          if (mhd_etah>zero) then
              call getvh(w,x,ixI^L,ixO^L,vh)
              f(ixO^S) = f(ixO^S) + vh(ixO^S,idims)*&
                   (^C&w(ixO^S,b^C_)*w(ixO^S,b^C_)+ )&
@@ -676,7 +571,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
           if (mhd_Hall) then
              ! f_i[b_k] = f_i[b_k] + vh_i*b_k - vh_k*b_i
-             if (eqpar(etah_)>zero) then
+             if (mhd_etah>zero) then
                 call getvh(w,x,ixI^L,ixO^L,vh)
                 if (B0field) then
                    f(ixO^S) = f(ixO^S) &
@@ -696,21 +591,16 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
        ! TODO: only with GLM
        !f_i[psi]=Ch^2*b_{i}
        ! Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
-       {#IFNDEF FCT
-       f(ixO^S)=cmax_global**2*w(ixO^S,b0_+idims)
-       }{#IFDEF FCT
-       f(ixO^S)=zero
-       }
-       transport=.false.\}
+       f(ixO^S)  = cmax_global**2*w(ixO^S,b0_+idims)
+       transport = .false.
     case default
        call mpistop("Error in getflux: unknown flow variable!")
     end select
 
   end subroutine mhd_get_flux
 
-  ! w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
+  !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
   subroutine mhd_add_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
-
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
@@ -725,7 +615,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     dx^D=dxlevel(^D);
     if(qsourcesplit .eqv. ssplitresis) then
        ! Sources for resistivity in eqs. for e, B1, B2 and B3
-       if(dabs(eqpar(eta_))>smalldouble)then
+       if(dabs(mhd_eta)>smalldouble)then
           if (.not.slab) call mpistop("no resistivity in non-slab geometry")
           if(compactres)then
              call addsource_res1(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
@@ -734,7 +624,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
           end if
        end if
 
-       if (eqpar(etahyper_)>0.d0)then
+       if (mhd_eta_hyper>0.d0)then
           call addsource_hyperres(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
        end if
     end if
@@ -767,11 +657,11 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     }
   end subroutine mhd_add_source
 
+  !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
+  !> each direction, non-conservative. If the fourthorder precompiler flag is
+  !> set, uses fourth order central difference for the laplacian. Then the
+  !> stencil is 5 (2 neighbours).
   subroutine addsource_res1(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
-
-    ! Add resistive source to w within ixO 
-    ! Uses 3 point stencil (1 neighbour) in each direction, non-conservative
-    ! If the fourthorder precompiler flag is set, uses fourth order central difference for the laplacian. Then the stencil is 5 (2 neighbours).  
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
@@ -803,8 +693,8 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     ! Calculate current density and idirmin
     call getcurrent(wCT,ixI^L,ixO^L,idirmin,current)
 
-    if(eqpar(eta_)>zero)then
-       eta(ix^S)=eqpar(eta_)
+    if(mhd_eta>zero)then
+       eta(ix^S)=mhd_eta
        gradeta(ixO^S,1:ndim)=zero
     else
        call specialeta(wCT,ixI^L,ix^L,idirmin,x,current,eta)
@@ -845,7 +735,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
        tmp(ixO^S)=tmp(ixO^S)*eta(ixO^S)
 
        ! Subtract grad(eta) x J = eps_ijk d_j eta J_k if eta is non-constant
-       if(eqpar(eta_)<zero)then
+       if(mhd_eta<zero)then
           do jdir=1,ndim; do kdir=idirmin,3
              if(lvc(idir,jdir,kdir)/=0)then
                 if(lvc(idir,jdir,kdir)==1)then
@@ -881,11 +771,9 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     end if
   end subroutine addsource_res1
 
+  !> Add resistive source to w within ixO 
+  !> Uses 5 point stencil (2 neighbours) in each direction, conservative
   subroutine addsource_res2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
-
-    ! Add resistive source to w within ixO 
-    ! Uses 5 point stencil (2 neighbours) in each direction, conservative
-
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
@@ -913,8 +801,8 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     ! Determine exact value of idirmin while doing the loop.
     call getcurrent(wCT,ixI^L,ix^L,idirmin,current)
 
-    if(eqpar(eta_)>zero)then
-       eta(ix^S)=eqpar(eta_)
+    if(mhd_eta>zero)then
+       eta(ix^S)=mhd_eta
     else
        call specialeta(wCT,ixI^L,ix^L,idirmin,x,current,eta)
     end if
@@ -952,11 +840,9 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     end if
   end subroutine addsource_res2
 
+  !> Add Hyper-resistive source to w within ixO 
+  !> Uses 9 point stencil (4 neighbours) in each direction.
   subroutine addsource_hyperres(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,dx^D)
-
-    ! Add Hyper-resistive source to w within ixO 
-    ! Uses 9 point stencil (4 neighbours) in each direction.
-
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
@@ -985,14 +871,13 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     ix^L=ixO^L^LADD1;
     tmpvec(ix^S,1:ndir)=zero
     call curlvector(tmpvec2,ixI^L,ix^L,tmpvec,idirmin1,1,3)
-    ehyper(ix^S,1:ndir) = - tmpvec(ix^S,1:ndir)*eqpar(etahyper_)
+    ehyper(ix^S,1:ndir) = - tmpvec(ix^S,1:ndir)*mhd_eta_hyper
 
     ix^L=ixO^L;
     tmpvec2(ix^S,1:ndir)=zero
     call curlvector(ehyper,ixI^L,ix^L,tmpvec2,idirmin1,1,3)
 
     {^C& w(ixO^S,b^C_) = w(ixO^S,b^C_)-tmpvec2(ixO^S,^C)*qdt\}
-
 
     if (mhd_energy) then
        ! de/dt= +div(B x Ehyper)
@@ -1010,10 +895,9 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     end if
   end subroutine addsource_hyperres
 
+  !> Calculate idirmin and the idirmin:3 components of the common current array
+  !> make sure that dxlevel(^D) is set correctly.
   subroutine getcurrent(w,ixI^L,ix^L,idirmin,current)
-
-    ! Calculate idirmin and the idirmin:3 components of the common current array
-    ! make sure that dxlevel(^D) is set correctly.
     use mod_global_parameters
 
     integer, parameter:: idirmin0=7-2*ndir
@@ -1022,7 +906,6 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
-    !-----------------------------------------------------------------------------
 
     if(B0field) then
        ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_)+myB0_cell%w(ixI^S,^C);
@@ -1036,27 +919,25 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
 
   !> If resistivity is not zero, check diffusion time limit for dt
   subroutine mhd_get_dt(w,ixI^L,ix^L,dtnew,dx^D,x)
-
     use mod_global_parameters
 
-    integer, intent(in) :: ixI^L, ix^L
-    double precision, intent(out)   :: dtnew
-    double precision, intent(in)    :: dx^D
-    double precision, intent(in)    :: w(ixI^S,1:nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    integer, intent(in)           :: ixI^L, ix^L
+    double precision, intent(out) :: dtnew
+    double precision, intent(in)  :: dx^D
+    double precision, intent(in)  :: w(ixI^S,1:nw)
+    double precision, intent(in)  :: x(ixI^S,1:ndim)
     !.. local ..
-    integer :: idirmin,idims
-    double precision :: dxarr(ndim)
-    double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S) 
-    !double precision :: {#IFDEF HALL , dthall }
+    integer                       :: idirmin,idims
+    double precision              :: dxarr(ndim)
+    double precision              :: current(ixI^S,7-2*ndir:3),eta(ixI^S) 
     !-----------------------------------------------------------------------------
-    dtnew=bigdouble
+    dtnew = bigdouble
 
     ^D&dxarr(^D)=dx^D;
     ^D&dxlevel(^D)=dx^D;
-    if(eqpar(eta_)>zero)then
-       dtnew=dtdiffpar*minval(dxarr(1:ndim))**2/eqpar(eta_)
-    else if(eqpar(eta_)<zero)then
+    if(mhd_eta>zero)then
+       dtnew=dtdiffpar*minval(dxarr(1:ndim))**2/mhd_eta
+    else if(mhd_eta<zero)then
        call getcurrent(w,ixI^L,ix^L,idirmin,current)
        call specialeta(w,ixI^L,ix^L,idirmin,x,current,eta)
        dtnew=bigdouble
@@ -1066,8 +947,8 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
        end do
     end if
 
-    if(eqpar(etahyper_)>zero)then
-       dtnew=min(dtdiffpar*minval(dxarr(1:ndim))**4/eqpar(etahyper_),dtnew)
+    if(mhd_eta_hyper>zero)then
+       dtnew=min(dtdiffpar*minval(dxarr(1:ndim))**4/mhd_eta_hyper,dtnew)
     end if
 
   end subroutine mhd_get_dt
@@ -1085,240 +966,167 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     logical          :: angmomfix=.false.
     !-----------------------------------------------------------------------------
 
-    TODO
-    INTEGER,PARAMETER:: mr_=m0_+r_,mphi_=m0_+phi_,mz_=m0_+z_  ! Polar var. names
-    integer,parameter:: br_=b0_+r_,bphi_=b0_+phi_,bz_=b0_+z_
+    ! TODO
+    ! INTEGER,PARAMETER:: mr_=m0_+r_,mphi_=m0_+phi_,mz_=m0_+z_  ! Polar var. names
+    ! integer,parameter:: br_=b0_+r_,bphi_=b0_+phi_,bz_=b0_+z_
 
 
-    select case (typeaxial)
-    case ('slab')
-       ! No source terms in slab symmetry
-    case ('cylindrical')
-       do iw=1,nwflux
-          select case (iw)
-             ! s[mr]=(ptotal-Bphi**2+mphi**2/rho)/radius
-          case (mr_)
-             call getptotal(wCT,x,ixI^L,ixO^L,tmp)
-             w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
-             tmp(ixO^S)=zero
-             {^IFPHI
-             tmp(ixO^S)= &
-                  -wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
+    ! select case (typeaxial)
+    ! case ('slab')
+    !    ! No source terms in slab symmetry
+    ! case ('cylindrical')
+    !    do iw=1,nwflux
+    !       select case (iw)
+    !          ! s[mr]=(ptotal-Bphi**2+mphi**2/rho)/radius
+    !       case (mr_)
+    !          call getptotal(wCT,x,ixI^L,ixO^L,tmp)
+    !          w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
+    !          tmp(ixO^S)=zero
+    !          {^IFPHI
+    !          tmp(ixO^S)= &
+    !               -wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
 
-             ! s[mphi]=(-mphi*mr/rho+Bphi*Br)/radius
-          case (mphi_)
-             tmp(ixO^S)= &
-                  -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_) &
-                  +wCT(ixO^S,bphi_)*wCT(ixO^S,br_)
+    !          ! s[mphi]=(-mphi*mr/rho+Bphi*Br)/radius
+    !       case (mphi_)
+    !          tmp(ixO^S)= &
+    !               -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_) &
+    !               +wCT(ixO^S,bphi_)*wCT(ixO^S,br_)
 
-             ! s[Bphi]=((Bphi*mr-Br*mphi)/rho)/radius
-          case (bphi_)
-             tmp(ixO^S)=(wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
-                  -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
-                  /wCT(ixO^S,rho_)
-             }
-             {#IFDEF GLM      ! s[br]=psi/radius
-          case (br_)
-             tmp(ixO^S)=wCT(ixO^S,psi_)
-             }
-          end select
+    !          ! s[Bphi]=((Bphi*mr-Br*mphi)/rho)/radius
+    !       case (bphi_)
+    !          tmp(ixO^S)=(wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
+    !               -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
+    !               /wCT(ixO^S,rho_)
+    !          }
+    !          {#IFDEF GLM      ! s[br]=psi/radius
+    !       case (br_)
+    !          tmp(ixO^S)=wCT(ixO^S,psi_)
+    !          }
+    !       end select
 
-          ! Divide by radius and add to w
-          if (iw==mr_{#IFDEF GLM .or.iw==br_}{^IFPHI .or.iw==mphi_.or.iw==bphi_}) then
-             w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
-          end if
+    !       ! Divide by radius and add to w
+    !       if (iw==mr_{#IFDEF GLM .or.iw==br_}{^IFPHI .or.iw==mphi_.or.iw==bphi_}) then
+    !          w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
+    !       end if
 
-       end do
-    case ('spherical')
-       h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-       do iw=1,nwflux
-          select case (iw)
-             ! s[m1]=((mtheta**2+mphi**2)/rho+2*ptotal-(Btheta**2+Bphi**2))/r
-          case (m1_)
-             call getptotal(wCT,x,ixI^L,ixO^L,tmp)
-             if (B0field) then
-                tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,b^C_)+}
-             end if
-             ! For nonuniform Cartesian grid this provides hydrostatic equil.
-             tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-                  *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
-                  /mygeo%dvolume(ixO^S){&^CE&
-                  +wCT(ixO^S,m^CE_)**2/wCT(ixO^S,rho_)-wCT(ixO^S,b^CE_)**2 }
-             if (B0field.and.ndir>1) then
-                tmp(ixO^S)=tmp(ixO^S){^CE&-2.0d0*myB0_cell%w(ixO^S,^CE) &
-                     *wCT(ixO^S,b^CE_)|}
-             end if
-             {^NOONEC
-             ! s[m2]=-(mr*mtheta/rho-Br*Btheta)/r
-             !       + cot(theta)*(mphi**2/rho+(p+0.5*B**2)-Bphi**2)/r
-          case (m2_)
-             }
-             {^NOONED
-             call getptotal(wCT,x,ixI^L,ixO^L,tmp)
-             if (B0field) then
-                tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,b^C_)+}
-             end if
-             ! This will make hydrostatic p=const an exact solution
-             w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S) &
-                  *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
-                  /mygeo%dvolume(ixO^S)
-             }
-             {^NOONEC
-             tmp(ixO^S)=-(wCT(ixO^S,m1_)*wCT(ixO^S,m2_)/wCT(ixO^S,rho_) &
-                  -wCT(ixO^S,b1_)*wCT(ixO^S,b2_))
-             if (B0field) then
-                tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,b2_) &
-                     +wCT(ixO^S,b1_)*myB0_cell%w(ixO^S,2)
-             end if
-             }
-             {^IFTHREEC
-             {^NOONED
-             tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m3_)**2/wCT(ixO^S,rho_) &
-                  -wCT(ixO^S,b3_)**2)*dcos(x(ixO^S,2)) &
-                  /dsin(x(ixO^S,2))
-             if (B0field) then
-                tmp(ixO^S)=tmp(ixO^S)-2.0d0*myB0_cell%w(ixO^S,3)*wCT(ixO^S,b3_)&
-                     *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
-             end if
-             }
-             ! s[m3]=-(mphi*mr/rho-Bphi*Br)/r
-             !       -cot(theta)*(mtheta*mphi/rho-Btheta*Bphi)/r
-          case (m3_)
-             if (.not.angmomfix) then
-                tmp(ixO^S)=-(wCT(ixO^S,m3_)*wCT(ixO^S,m1_)/wCT(ixO^S,rho_) &
-                     -wCT(ixO^S,b3_)*wCT(ixO^S,b1_)) {^NOONED &
-                     -(wCT(ixO^S,m2_)*wCT(ixO^S,m3_)/wCT(ixO^S,rho_) &
-                     -wCT(ixO^S,b2_)*wCT(ixO^S,b3_)) &
-                     *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-                if (B0field) then
-                   tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,b3_) &
-                        +wCT(ixO^S,b1_)*myB0_cell%w(ixO^S,3) {^NOONED &
-                        +(myB0_cell%w(ixO^S,2)*wCT(ixO^S,b3_) &
-                        +wCT(ixO^S,b2_)*myB0_cell%w(ixO^S,3)) &
-                        *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-                end if
-             end if
-             }
-             {#IFDEF GLM
-             ! s[b1]=2*psi/r
-          case (b1_)
-             tmp(ixO^S)=2.0d0*wCT(ixO^S,psi_)
-             }
-             {^NOONEC
-             ! s[b2]=(mr*Btheta-mtheta*Br)/rho/r
-             !       + cot(theta)*psi/r
-          case (b2_)
-             tmp(ixO^S)=(wCT(ixO^S,m1_)*wCT(ixO^S,b2_) &
-                  -wCT(ixO^S,m2_)*wCT(ixO^S,b1_))/wCT(ixO^S,rho_)
-             if (B0field) then
-                tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m1_)*myB0_cell%w(ixO^S,2) &
-                     -wCT(ixO^S,m2_)*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_)
-             end if
-             {#IFDEF GLM
-             tmp(ixO^S)=tmp(ixO^S) &
-                  + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
-             }
-             }
-             {^IFTHREEC
-             ! s[b3]=(mr*Bphi-mphi*Br)/rho/r
-             !       -cot(theta)*(mphi*Btheta-mtheta*Bphi)/rho/r
-          case (b3_)
-             tmp(ixO^S)=(wCT(ixO^S,m1_)*wCT(ixO^S,b3_) &
-                  -wCT(ixO^S,m3_)*wCT(ixO^S,b1_))/wCT(ixO^S,rho_) {^NOONED &
-                  -(wCT(ixO^S,m3_)*wCT(ixO^S,b2_) &
-                  -wCT(ixO^S,m2_)*wCT(ixO^S,b3_))*dcos(x(ixO^S,2)) &
-                  /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
-             if (B0field) then
-                tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m1_)*myB0_cell%w(ixO^S,3) &
-                     -wCT(ixO^S,m3_)*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_){^NOONED &
-                     -(wCT(ixO^S,m3_)*myB0_cell%w(ixO^S,2) &
-                     -wCT(ixO^S,m2_)*myB0_cell%w(ixO^S,3))*dcos(x(ixO^S,2)) &
-                     /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
-             end if
-             }
-          end select
-          ! Divide by radius and add to w
-          if (iw==m1_{#IFDEF GLM .or.iw==b1_}{^NOONEC.or.iw==m2_.or.iw==b2_}&
-               {^IFTHREEC .or.iw==b3_ .or.(iw==m3_.and..not.angmomfix)}) &
-               w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
-       end do
-    end select
-
+    !    end do
+    ! case ('spherical')
+    !    h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
+    !    do iw=1,nwflux
+    !       select case (iw)
+    !          ! s[m1]=((mtheta**2+mphi**2)/rho+2*ptotal-(Btheta**2+Bphi**2))/r
+    !       case (m1_)
+    !          call getptotal(wCT,x,ixI^L,ixO^L,tmp)
+    !          if (B0field) then
+    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,b^C_)+}
+    !          end if
+    !          ! For nonuniform Cartesian grid this provides hydrostatic equil.
+    !          tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
+    !               *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
+    !               /mygeo%dvolume(ixO^S){&^CE&
+    !               +wCT(ixO^S,m^CE_)**2/wCT(ixO^S,rho_)-wCT(ixO^S,b^CE_)**2 }
+    !          if (B0field.and.ndir>1) then
+    !             tmp(ixO^S)=tmp(ixO^S){^CE&-2.0d0*myB0_cell%w(ixO^S,^CE) &
+    !                  *wCT(ixO^S,b^CE_)|}
+    !          end if
+    !          {^NOONEC
+    !          ! s[m2]=-(mr*mtheta/rho-Br*Btheta)/r
+    !          !       + cot(theta)*(mphi**2/rho+(p+0.5*B**2)-Bphi**2)/r
+    !       case (m2_)
+    !          }
+    !          {^NOONED
+    !          call getptotal(wCT,x,ixI^L,ixO^L,tmp)
+    !          if (B0field) then
+    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,b^C_)+}
+    !          end if
+    !          ! This will make hydrostatic p=const an exact solution
+    !          w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S) &
+    !               *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
+    !               /mygeo%dvolume(ixO^S)
+    !          }
+    !          {^NOONEC
+    !          tmp(ixO^S)=-(wCT(ixO^S,m1_)*wCT(ixO^S,m2_)/wCT(ixO^S,rho_) &
+    !               -wCT(ixO^S,b1_)*wCT(ixO^S,b2_))
+    !          if (B0field) then
+    !             tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,b2_) &
+    !                  +wCT(ixO^S,b1_)*myB0_cell%w(ixO^S,2)
+    !          end if
+    !          }
+    !          {^IFTHREEC
+    !          {^NOONED
+    !          tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m3_)**2/wCT(ixO^S,rho_) &
+    !               -wCT(ixO^S,b3_)**2)*dcos(x(ixO^S,2)) &
+    !               /dsin(x(ixO^S,2))
+    !          if (B0field) then
+    !             tmp(ixO^S)=tmp(ixO^S)-2.0d0*myB0_cell%w(ixO^S,3)*wCT(ixO^S,b3_)&
+    !                  *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
+    !          end if
+    !          }
+    !          ! s[m3]=-(mphi*mr/rho-Bphi*Br)/r
+    !          !       -cot(theta)*(mtheta*mphi/rho-Btheta*Bphi)/r
+    !       case (m3_)
+    !          if (.not.angmomfix) then
+    !             tmp(ixO^S)=-(wCT(ixO^S,m3_)*wCT(ixO^S,m1_)/wCT(ixO^S,rho_) &
+    !                  -wCT(ixO^S,b3_)*wCT(ixO^S,b1_)) {^NOONED &
+    !                  -(wCT(ixO^S,m2_)*wCT(ixO^S,m3_)/wCT(ixO^S,rho_) &
+    !                  -wCT(ixO^S,b2_)*wCT(ixO^S,b3_)) &
+    !                  *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
+    !             if (B0field) then
+    !                tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,b3_) &
+    !                     +wCT(ixO^S,b1_)*myB0_cell%w(ixO^S,3) {^NOONED &
+    !                     +(myB0_cell%w(ixO^S,2)*wCT(ixO^S,b3_) &
+    !                     +wCT(ixO^S,b2_)*myB0_cell%w(ixO^S,3)) &
+    !                     *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
+    !             end if
+    !          end if
+    !          }
+    !          {#IFDEF GLM
+    !          ! s[b1]=2*psi/r
+    !       case (b1_)
+    !          tmp(ixO^S)=2.0d0*wCT(ixO^S,psi_)
+    !          }
+    !          {^NOONEC
+    !          ! s[b2]=(mr*Btheta-mtheta*Br)/rho/r
+    !          !       + cot(theta)*psi/r
+    !       case (b2_)
+    !          tmp(ixO^S)=(wCT(ixO^S,m1_)*wCT(ixO^S,b2_) &
+    !               -wCT(ixO^S,m2_)*wCT(ixO^S,b1_))/wCT(ixO^S,rho_)
+    !          if (B0field) then
+    !             tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m1_)*myB0_cell%w(ixO^S,2) &
+    !                  -wCT(ixO^S,m2_)*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_)
+    !          end if
+    !          {#IFDEF GLM
+    !          tmp(ixO^S)=tmp(ixO^S) &
+    !               + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
+    !          }
+    !          }
+    !          {^IFTHREEC
+    !          ! s[b3]=(mr*Bphi-mphi*Br)/rho/r
+    !          !       -cot(theta)*(mphi*Btheta-mtheta*Bphi)/rho/r
+    !       case (b3_)
+    !          tmp(ixO^S)=(wCT(ixO^S,m1_)*wCT(ixO^S,b3_) &
+    !               -wCT(ixO^S,m3_)*wCT(ixO^S,b1_))/wCT(ixO^S,rho_) {^NOONED &
+    !               -(wCT(ixO^S,m3_)*wCT(ixO^S,b2_) &
+    !               -wCT(ixO^S,m2_)*wCT(ixO^S,b3_))*dcos(x(ixO^S,2)) &
+    !               /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
+    !          if (B0field) then
+    !             tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m1_)*myB0_cell%w(ixO^S,3) &
+    !                  -wCT(ixO^S,m3_)*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_){^NOONED &
+    !                  -(wCT(ixO^S,m3_)*myB0_cell%w(ixO^S,2) &
+    !                  -wCT(ixO^S,m2_)*myB0_cell%w(ixO^S,3))*dcos(x(ixO^S,2)) &
+    !                  /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
+    !          end if
+    !          }
+    !       end select
+    !       ! Divide by radius and add to w
+    !       if (iw==m1_{#IFDEF GLM .or.iw==b1_}{^NOONEC.or.iw==m2_.or.iw==b2_}&
+    !            {^IFTHREEC .or.iw==b3_ .or.(iw==m3_.and..not.angmomfix)}) &
+    !            w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
+    !    end do
+    ! end select
   end subroutine mhd_add_source_geom
 
-  subroutine correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
-
-    use mod_global_parameters
-
-    integer, intent(in)         :: ixI^L, ixO^L
-    integer, intent(in)         :: patchierror(ixI^S)
-    character(len=*), intent(in)   :: subname
-    double precision, intent(inout):: w(ixI^S,1:nw)
-    double precision, intent(in)      :: x(ixI^S,1:ndim)
-    integer        :: iw, kxO^L, ix^D, i
-    logical        :: patchw(ixI^S)
-    !-----------------------------------------------------------------------------
-
-    {do ix^DB= ixO^LIM^DB\}
-    ! point with local failure identified by patchierror
-    ! patchierror=-1 then from smallvalues call
-    ! patchierror=1  then from getpthermal/total or primitive call
-    if (patchierror(ix^D)/=0) then
-       ! verify in cube with border width nflatgetaux the presence
-       ! of cells where all went ok
-       do i=1,nflatgetaux
-          {kxOmin^D= max(ix^D-i,ixOmin^D);
-          kxOmax^D= min(ix^D+i,ixOmax^D);\}
-          ! in case cells are fine within smaller cube than 
-          ! the userset nflatgetaux: use that smaller cube
-          if (any(patchierror(kxO^S)==0)) exit
-       end do
-       if (any(patchierror(kxO^S)==0))then
-          ! within surrounding cube, cells without problem were found
-          if (subname/='primitive') then
-             patchw(kxO^S)=(patchierror(kxO^S)/=0)
-             call primitiven(ixI^L,kxO^L,w,patchw)
-          end if
-          ! faulty cells are corrected by averaging here
-          ! only average those which were ok and replace faulty cells
-          do iw = 1,nw
-             if (iw/=b^C_|.and.) then
-                w(ix^D,iw)=sum(w(kxO^S,iw),patchierror(kxO^S)==0)&
-                     /count(patchierror(kxO^S)==0)
-             end if
-          end do
-          if (subname/='primitive') then
-             ! in addition to those switched to primitive variables
-             ! above, also switch the corrected variables
-             patchw(ix^D)=.false.
-             call conserven(ixI^L,kxO^L,w,patchw)
-          end if
-       else
-          ! no cells without error were found in cube of size nflatgetaux
-          ! --> point of no recovery
-          print*,'Getaux error:',patchierror(ix^D),'ix^D=',ix^D
-          print*,'New ','rho=',w(ix^D,rho_),'m=', &
-               {^C&w(ix^D,m^C_)}
-          print*,'B=',{^C&w(ix^D,b^C_)}
-          {#IFDEF ENERGY
-          print*,'pressure ', (eqpar(gamma_)-one)*(w(ix^D,e_)- &
-               half*(({^C&w(ix^D,m^C_)**2+})/w(ix^D,rho_)&
-               +{^C&w(ix^D,b^C_)**2+}))
-          print*,'e=',w(ix^D,e_)
-          }
-          print*,'position ', x(ix^D, 1:ndim),' time ',t,it
-          print*,'Called from: ',subname
-          if (patchierror(ix^D)<0) then
-             call mpistop("-correctaux from smallvalues-----")
-          else
-             call mpistop("-correctaux from primitive-getpthermal-total-")
-          end if
-       end if
-    end if
-    {end do^D&\}
-
-  end subroutine correctaux
-
+  ! TODO: rewrite
   subroutine smallvalues(w,x,ixI^L,ixO^L,subname)
 
     use mod_global_parameters
@@ -1334,7 +1142,7 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     !-----------------------------------------------------------------------------
 
     {#IFDEF ENERGY
-    pth(ixO^S)=(eqpar(gamma_)-one)*(w(ixO^S,e_)- &
+    pth(ixO^S)=(mhd_gamma-one)*(w(ixO^S,e_)- &
          half*(({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)&
          +{ ^C&w(ixO^S,b^C_)**2+}))
     if(smallT>0.d0) then
@@ -1400,11 +1208,11 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
              {^C&w(ixO^S,m^C_) =zero;}
           end where
           where(pth(ixO^S) < minp)
-             w(ixO^S,e_)=minp/(eqpar(gamma_)-one)+&
+             w(ixO^S,e_)=minp/(mhd_gamma-one)+&
                   (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,b^C_)**2+})*half
           end where
           where(Te(ixO^S) < smallT)
-             w(ixO^S,e_)=smallT*w(ixO^S,rho_)/(eqpar(gamma_)-one)+&
+             w(ixO^S,e_)=smallT*w(ixO^S,rho_)/(mhd_gamma-one)+&
                   (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,b^C_)**2+})*half
           end where
        else
@@ -1448,5 +1256,34 @@ call glmSolve(wLC,wRC,ixI^L,ixC^L,idims)
     end if
     }
   end subroutine smallvalues
+
+  !> This implements eq. (42) in Dedner et al. 2002 JcP 175
+  !> Gives the Riemann solution on the interface
+  !> for the normal B component and Psi in the GLM-MHD system.
+  !> 23/04/2013 Oliver Porth
+  subroutine glmSolve(wLC,wRC,ixI^L,ixO^L,idir)
+    use mod_global_parameters
+    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision                :: dB(ixI^S), dPsi(ixI^S)
+
+    !BL(ixO^S) = wLC(ixO^S,b0_+idir)
+    !BR(ixO^S) = wRC(ixO^S,b0_+idir)
+
+    !PsiL(ixO^S) = wLC(ixO^S,psi_)
+    !PsiR(ixO^S) = wRC(ixO^S,psi_)
+
+    dB(ixO^S)   = wRC(ixO^S,b0_+idir) - wLC(ixO^S,b0_+idir)
+    dPsi(ixO^S) = wRC(ixO^S,psi_) - wLC(ixO^S,psi_)
+
+    wLC(ixO^S,b0_+idir)   = 0.5d0 * (wRC(ixO^S,b0_+idir) + wLC(ixO^S,b0_+idir)) &
+         - half/cmax_global * dPsi(ixO^S)
+    wLC(ixO^S,psi_)       = 0.5d0 * (wRC(ixO^S,psi_) + wLC(ixO^S,psi_)) &
+         - half*cmax_global * dB(ixO^S)
+
+    wRC(ixO^S,b0_+idir) = wLC(ixO^S,b0_+idir)
+    wRC(ixO^S,psi_) = wLC(ixO^S,psi_)
+
+  end subroutine glmSolve
 
 end module mod_mhd_phys
