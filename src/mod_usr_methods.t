@@ -38,6 +38,7 @@ module mod_usr_methods
 
   ! Only for MHD
   procedure(set_B0), pointer          :: usr_set_B0           => null()
+  procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
 
   abstract interface
@@ -133,12 +134,12 @@ module mod_usr_methods
 
      !> Set the "eta" array for resistive MHD based on w or the
      !> "current" variable which has components between idirmin and 3.
-     subroutine set_eta(w,ixI^L,ixO^L,idirmin,x,current,eta)
+     subroutine special_resistivity(w,ixI^L,ixO^L,idirmin,x,current,eta)
        use mod_global_parameters
        integer, intent(in)          :: ixI^L, ixO^L, idirmin
        double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
-       double precision             :: current(ixG^T,7-2*ndir:3), eta(ixG^T)
-     end subroutine set_eta
+       double precision             :: current(ixI^S,7-2*ndir:3), eta(ixI^S)
+     end subroutine special_resistivity
 
      !> Enforce additional refinement or coarsening
      !> One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
@@ -166,14 +167,14 @@ module mod_usr_methods
        use mod_global_parameters
        integer, intent(in)           :: ixI^L,ixO^L,iflag
        double precision, intent(in)  :: w(ixI^S,1:nw)
-       double precision, intent(out) :: var(ixG^T)
+       double precision, intent(out) :: var(ixI^S)
      end subroutine var_for_errest
 
      !> Here one can add a steady (time-independent) potential background field
      subroutine set_B0(ixI^L,ixO^L,x,wB0)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L,ixO^L
-       double precision, intent(in)    :: x(ixG^T,1:ndim)
+       double precision, intent(in)    :: x(ixI^S,1:ndim)
        double precision, intent(inout) :: wB0(ixI^S,1:ndir)
      end subroutine set_B0
 

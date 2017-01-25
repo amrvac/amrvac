@@ -301,8 +301,8 @@ contains
   subroutine hd_get_v(w, x, ixI^L, ixO^L, idim, v)
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L, idim
-    double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-    double precision, intent(out) :: v(ixG^T)
+    double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
+    double precision, intent(out) :: v(ixI^S)
 
     v(ixO^S) = w(ixO^S, mom(idim)) * hd_inv_rho(w, ixI^L, ixO^L)
   end subroutine hd_get_v
@@ -313,11 +313,11 @@ contains
     use mod_dust, only: dust_get_cmax
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
-    double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-    double precision, intent(inout)           :: cmax(ixG^T)
-    double precision, intent(inout), optional :: cmin(ixG^T)
-    double precision                          :: csound(ixG^T)
-    double precision                          :: v(ixG^T)
+    double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout)           :: cmax(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision                          :: csound(ixI^S)
+    double precision                          :: v(ixI^S)
 
     call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
     call hd_get_pthermal(w, x, ixI^L, ixO^L, csound)
@@ -341,7 +341,7 @@ contains
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L
-    double precision             :: w(ixI^S, nw), pth(ixG^T)
+    double precision             :: w(ixI^S, nw), pth(ixI^S)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
 
     ! Jannis: TODO: is this needed?
@@ -362,8 +362,8 @@ contains
     use mod_dust, only: dust_get_flux
 
     integer, intent(in)             :: ixI^L, ixO^L, iw, idim
-    double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: f(ixG^T)
+    double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: f(ixI^S)
     logical, intent(out)            :: transport
 
     ! TODO: reorganize this, maybe compute all fluxes in a direction at once?
@@ -544,7 +544,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
-    double precision                :: ptherm(ixG^T), vgas(ixG^T, ndir)
+    double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
     logical, intent(in)             :: qsourcesplit
     integer                         :: idir
 
@@ -572,7 +572,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
-    double precision                :: ptherm(ixG^T), vgas(ixG^T, ndir)
+    double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
     integer                         :: idir
 
     dtnew = bigdouble

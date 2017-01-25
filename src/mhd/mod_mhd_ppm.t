@@ -24,7 +24,7 @@ contains
 
     if (mhd_energy) then
        if(useprimitive)then
-          drho(ixO^S) =eqpar(gamma_)*dabs(d2w(ixO^S,rho_))&
+          drho(ixO^S) =mhd_gamma*dabs(d2w(ixO^S,rho_))&
                /min(w(ixL^S,rho_),w(ixR^S,rho_))
           dp(ixO^S) = dabs(d2w(ixO^S,p_))/min(w(ixL^S,p_),w(ixR^S,p_))
        end if
@@ -47,7 +47,7 @@ contains
     if (mhd_energy) then
        if(useprimitive)then
           ! eq. B15, page 218, Mignone and Bodo 2005, ApJS (beta1)
-          ptot(ixO^S)=w(ixO^S,p_)+half*( ^C&w(ixO^S,b^C_)**2+ )
+          ptot(ixO^S)=w(ixO^S,p_)+half*sum(w(ixO^S,mag(:))**2,dim=ndim+1)
           where (dabs(ptot(ixRR^S)-ptot(ixLL^S))>smalldouble)
              drho(ixO^S) = dabs((ptot(ixR^S)-ptot(ixL^S))&
                   /(ptot(ixRR^S)-ptot(ixLL^S)))
@@ -57,12 +57,12 @@ contains
 
           !  eq. B76, page 48, Miller and Collela 2002, JCP 183, 26
           !  use "dp" to save squared sound speed, assume primitive in w
-          dp(ixO^S)=(eqpar(gamma_)*w(ixO^S,p_)/w(ixO^S,rho_))
+          dp(ixO^S)=(mhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
 
           dp(ixO^S)  = dabs(ptot(ixR^S)-ptot(ixL^S))&
                /(w(ixO^S,rho_)*dp(ixO^S))
           ! recycle ptot to store v
-          ptot(ixI^S)= w(ixI^S,v0_+idims)
+          ptot(ixI^S)= w(ixI^S,mom(idims))
           call gradient(ptot,ixI^L,ixO^L,idims,dv)
        end if
     else
