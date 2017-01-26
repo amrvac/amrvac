@@ -319,15 +319,14 @@ contains
   end subroutine rhos_to_e
 
   !> Calculate v_idim=m_idim/rho within ixO^L
-  subroutine mhd_get_v(w,x,ixI^L,ixO^L,v)
+  subroutine mhd_get_v(w,x,ixI^L,ixO^L,idim,v)
     use mod_global_parameters
 
-    integer, intent(in)           :: ixI^L, ixO^L
+    integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
-    double precision, intent(out) :: v(ixI^S,1:ndir)
+    double precision, intent(out) :: v(ixI^S)
 
-    do idir=1,ndir
-      v(ixO^S,idir) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
+      v(ixO^S) = w(ixO^S, mom(idim)) * mhd_inv_rho(w, ixI^L, ixO^L)
     end do
   end subroutine mhd_get_v
 
@@ -434,38 +433,36 @@ contains
   end subroutine mhd_get_p_total
 
   !> Calculate non-transport flux f_idim[iw] within ixO^L.
-  subroutine mhd_get_flux(w,x,ixI^L,ixO^L,idim,f,transport)
+  subroutine mhd_get_flux(w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S,nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
-    logical                      :: transport
 
     double precision             :: p(ixI^S),tmp(ixI^S), v(ixI^S)
-    double precision, allocatable:: vh(:^D,:)
+    double precision, allocatable:: vHall(:^D&,:),vB0(:^D&,:)
     integer                      :: idirmin, iw, idir
 
-    transport = .true.
+    call mhd_get_v(w,x,ixI^L,ixO^L,idim,v)
 
-    if (B0field) then
-       if (iw==m0_+idim{#IFDEF ENERGY .or. iw==e_}) then
-          tmp(ixO^S)={^C&myB0%w(ixO^S,^C)*w(ixO^S,b^C_)+}
-       end if
+    if(B0field) then
+      allocate(vB0(ixI^S,1:ndir))
+      do idir=1,ndir
+        vB0(ixO^S,idir)=w(ixO^S,mom(idir))/w(ixO^S,rho_)
+      end do
     end if
 
-    call mhd_get_v(w,x,ixI^L,ixO^L,v)
-
     if(mhd_Hall) then
-      allocate(vh(ixI^S,1:3)
-      call mhd_getv_Hall(w,x,ixI^L,ixO^L,vh)
+      allocate(vHall(ixI^S,1:3)
+      call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
     call mhd_get_p_total(w,x,ixI^L,ixO^L,p)
 
     ! Get flux of density 
-    f(ixO^S,rho_)=v(ixO^S,idim)*w(ixO^S,rho_)
+    f(ixO^S,rho_)=v(ixO^S)*w(ixO^S,rho_)
 
     ! Get flux of momentum
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
@@ -476,10 +473,11 @@ contains
         f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       end if
       if(B0field) then
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))-myB0%w(ixO^S,idim)*w(ixO^S,mag(idir)) &
+        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
+             -w(ixO^S,mag(idir))*myB0%w(ixO^S,idim)&
              -w(ixO^S,mag(idim))*myB0%w(ixO^S,idir)
       end if
-      f(ixO^S,mom(idir))=v(ixO^S,idim)*w(ixO^S,mom(idir))
+      f(ixO^S,mom(idir))=v(ixO^S)*w(ixO^S,mom(idir))
     end do
 
     ! Get flux of energy
@@ -490,25 +488,26 @@ contains
            /w(ixO^S,rho_)
 
       if(B0field) then
+        tmp(ixO^S)=sum(myB0%w(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
         f(ixO^S,e_) = f(ixO^S,e_) &
-             + v(ixO^S,idim) * tmp(ixO^S) &
-             - sum(v(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
+             + vB0(ixO^S,idim) * tmp(ixO^S) &
+             - sum(vB0(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
       end if
 
       if(mhd_Hall) then
-        ! f_i[e]= f_i[e] + vh_i*(b_k*b_k) - b_i*(vh_k*b_k)
+        ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
         if(mhd_etah>zero) then
-          f(ixO^S,e_) = f(ixO^S,e_) + vh(ixO^S,idim)*&
+          f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim)*&
                  sum(w(ixO^S, mag(:))**2,dim=ndim+1)&
-               - w(ixO^S,mag(idim))*sum(vh(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1)
+               - w(ixO^S,mag(idim))*sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1)
           if(B0field) then
             f(ixO^S,e_) = f(ixO^S,e_) &
-                 + vh(ixO^S,idim) * tmp(ixO^S) &
-                 - sum(vh(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
+                 + vHall(ixO^S,idim) * tmp(ixO^S) &
+                 - sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
           end if
         end if
       end if
-      f(ixO^S,e_)=v(ixO^S,idim)*w(ixO^S,e_)
+      f(ixO^S,e_)=v(ixO^S)*w(ixO^S,e_)
     end if
     ! compute flux of magnetic field
     ! f_i[b_k]=v_i*b_k-m_k/rho*b_i
@@ -520,38 +519,35 @@ contains
         else
            f(ixO^S,mag(idir))=zero
         end if
-        transport=.false.
       else
         f(ixO^S,mag(idir))= -w(ixO^S,mag(idim))*w(ixO^S,mom(idir))/w(ixO^S,rho_)
 
         if(B0field) then
-          f(ixO^S)=f(ixO^S) &
-               +w(ixO^S,m0_+idim)/w(ixO^S,rho_)*myB0%w(ixO^S,^C) &
-               -myB0%w(ixO^S,idim)*w(ixO^S,m^C_)/w(ixO^S,rho_)
+          f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
+                +vB0(ixO^S,idim)*myB0%w(ixO^S,idir)&
+                -vB0(ixO^S,idir)*myB0%w(ixO^S,idim)
         end if
 
         if(mhd_Hall) then
-          ! f_i[b_k] = f_i[b_k] + vh_i*b_k - vh_k*b_i
+          ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
           if(mhd_etah>zero) then
             if(B0field) then
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-                   - vh(ixO^S,idir)*(w(ixO^S,mag(idim))+myB0%w(ixO^S,idim)) &
-                   + vh(ixO^S,idim)*(w(ixO^S,mag(idir))+myB0%w(ixO^S,idir))
+                   - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+myB0%w(ixO^S,idim)) &
+                   + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+myB0%w(ixO^S,idir))
             else 
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-                   - vh(ixO^S,idir)*w(ixO^S,mag(idim)) &
-                   + vh(ixO^S,idim)*w(ixO^S,mag(idir))
+                   - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
+                   + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
             end if
           end if
         end if
+        f(ixO^S,mag(idir))=v(ixO^S)*w(ixO^S,mag(idir))
       end if
-      f(ixO^S,mag(idir))=v(ixO^S,idim)*w(ixO^S,mag(idir))
     end do
 
     if(mhd_glm)
-      ! TODO: only with GLM
-      !f_i[psi]=Ch^2*b_{i}
-      ! Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
       f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
@@ -1401,44 +1397,44 @@ contains
     inv_rho = 1.0d0 / w(ixO^S, rho_)
   end function mhd_inv_rho
 
-  subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vh)
+  subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     use mod_global_parameters
     
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: vh(ixI^S,1:3)
+    double precision, intent(inout) :: vHall(ixI^S,1:3)
   
     integer          :: idir, idirmin
     double precision :: current(ixI^S,7-2*ndir:3)
     
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    vh(ixI^S,1:3) = zero
-    vh(ixO^S,idirmin:3) = - eqpar(etah_)*current(ixO^S,idirmin:3)
+    vHall(ixI^S,1:3) = zero
+    vHall(ixO^S,idirmin:3) = - eqpar(etah_)*current(ixO^S,idirmin:3)
     do idir = idirmin, 3
-       vh(ixO^S,idir) = vh(ixO^S,idir)/w(ixO^S,rho_)
+       vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)
     end do
   
   end subroutine mhd_getv_Hall
 
-  subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vh)
+  subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     use mod_global_parameters
     
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: vh(ixI^S,1:3)
+    double precision, intent(inout) :: vHall(ixI^S,1:3)
   
     integer          :: idir, idirmin
     double precision :: current(ixI^S,7-2*ndir:3)
     
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    vh(ixI^S,1:3) = zero
-    vh(ixO^S,idirmin:3) = - mhd_etah*current(ixO^S,idirmin:3)
+    vHall(ixI^S,1:3) = zero
+    vHall(ixO^S,idirmin:3) = - mhd_etah*current(ixO^S,idirmin:3)
     do idir = idirmin, 3
-       vh(ixO^S,idir) = vh(ixO^S,idir)/w(ixO^S,rho_)
+       vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)
     end do
   
   end subroutine mhd_getv_Hall
