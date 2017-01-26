@@ -45,7 +45,7 @@ module mod_mhd_phys
   !> Indices of the magnetic field
   integer, allocatable, public, protected :: mag(:)
 
-  !> Indices of the GLM psi 
+  !> Indices of the GLM psi
   integer, allocatable, public, protected :: psi_
 
   !> Indices of the tracers
@@ -422,17 +422,17 @@ contains
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: p(ixI^S)
-  
+
     integer, dimension(ixI^S)       :: patchierror
     integer, dimension(ndim)       :: lowpindex
- 
+
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,p)
-   
+
     p(ixO^S) = p(ixO^S) + 0.5d0 * sum(w(ixO^S, mag(:))**2, dim=ndim+1)
 
   end subroutine mhd_get_p_total
 
-  !> Calculate non-transport flux f_idim[iw] within ixO^L.
+  !> Calculate non-transport fluxes within ixO^L.
   subroutine mhd_get_flux(w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
 
@@ -461,7 +461,7 @@ contains
 
     call mhd_get_p_total(w,x,ixI^L,ixO^L,p)
 
-    ! Get flux of density 
+    ! Get flux of density
     f(ixO^S,rho_)=v(ixO^S)*w(ixO^S,rho_)
 
     ! Get flux of momentum
@@ -509,6 +509,7 @@ contains
       end if
       f(ixO^S,e_)=v(ixO^S)*w(ixO^S,e_)
     end if
+
     ! compute flux of magnetic field
     ! f_i[b_k]=v_i*b_k-m_k/rho*b_i
     do idir=1,ndir
@@ -535,7 +536,7 @@ contains
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+myB0%w(ixO^S,idim)) &
                    + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+myB0%w(ixO^S,idir))
-            else 
+            else
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
                    + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
@@ -586,7 +587,7 @@ contains
        case ('glm1')
           call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
        case ('glm2')
-          call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x) 
+          call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
        case ('glm3')
           call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
        case ('powel')
@@ -713,7 +714,7 @@ contains
     end if
   end subroutine add_source_res1
 
-  !> Add resistive source to w within ixO 
+  !> Add resistive source to w within ixO
   !> Uses 5 point stencil (2 neighbours) in each direction, conservative
   subroutine add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
@@ -782,7 +783,7 @@ contains
     end if
   end subroutine add_source_res2
 
-  !> Add Hyper-resistive source to w within ixO 
+  !> Add Hyper-resistive source to w within ixO
   !> Uses 9 point stencil (4 neighbours) in each direction.
   subroutine add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
@@ -843,25 +844,25 @@ contains
     ! corresponding to Dedner JCP 2002, 175, 645 _equation 24_
     ! giving the EGLM-MHD scheme
     use mod_global_parameters
-    
+
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision:: divb(ixI^S)
     integer          :: idim,idir
     double precision :: gradPsi(ixI^S)
-    
+
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
-    
+
     ! Psi = Psi - qdt Ch^2/Cp^2 Psi
     if (mhd_glm_Cr < zero) then
       w(ixO^S,psi_) = abs(mhd_glm_Cr)*wCT(ixO^S,psi_)
-    else 
+    else
       ! implicit update of psi variable
       w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
     end if
-    
+
     ! gradient of Psi
     do idim=1,ndim
        select case(typegrad)
@@ -875,7 +876,7 @@ contains
          w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
        end if
     end do
-    
+
     ! m = m - qdt b div b
     do idir=1,ndir
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
@@ -883,32 +884,32 @@ contains
     ! since this option changes energy: smallvalues call
     if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_glm")
   end subroutine add_source_glm1
-  
+
   subroutine add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add divB related sources to w within ixO
     ! corresponding to Dedner JCP 2002, 175, 645 _equation 38_
     ! giving the non conservative EGLM-MHD scheme.
     use mod_global_parameters
-    
+
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision:: divb(ixI^S),v(ixI^S,1:ndir)
     integer          :: idim,idir
     double precision :: gradPsi(ixI^S)
-    
+
     ! calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
-    ! calculate velocity 
+    ! calculate velocity
     call mhd_get_v(wCT,ixI^L,ixO^L,v)
     ! Psi = Psi - qdt Ch^2/Cp^2 Psi
     if (mhd_glm_Cr < zero) then
       w(ixO^S,psi_) = abs(mhd_glm_Cr)*wCT(ixO^S,psi_)
-    else 
+    else
       ! implicit update of psi variable
       w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
     end if
-    
+
     ! gradient of Psi
     do idim=1,ndim
        select case(typegrad)
@@ -917,7 +918,7 @@ contains
        case("limited")
          call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
-    
+
       ! Psi=Psi - qdt (v . grad(Psi))
       w(ixO^S,psi_) = w(ixO^S,psi_)-qdt*v(ixO^S,idim)*gradPsi(ixO^S)
 
@@ -927,7 +928,7 @@ contains
              -qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
       end if
     end do
-    
+
     if(mhd_energy) then
     ! e = e - qdt (v . b) * div b
       w(ixO^S,e_)=w(ixO^S,e_)-&
@@ -937,7 +938,7 @@ contains
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
     end do
-    
+
     ! m = m - qdt b div b
     do idir=1,ndir
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
@@ -947,46 +948,46 @@ contains
     if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_glm2")
     end if
   end subroutine add_source_glm2
-  
+
   subroutine add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add divB related sources to w within ixO
     ! corresponding to Dedner JCP 2002, 175, 645 _equation (1a), (1b), (4), (1d), 19
     ! conservative hyperbolic mixed GLM-MHD with no additional source terms.
     use mod_global_parameters
-    
+
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    
+
     ! Psi = Psi - qdt Ch^2/Cp^2 Psi
     if (mhd_glm_Cr < zero) then
       w(ixO^S,psi_) = abs(mhd_glm_Cr)*w(ixO^S,psi_)
-    else 
+    else
       ! implicit update of psi variable
       w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*w(ixO^S,psi_)
     end if
- 
+
   end subroutine add_source_glm3
-  
+
   !> Add divB related sources to w within ixO corresponding to Powel
   subroutine add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
-    
+
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision:: divb(ixI^S),v(ixI^S,1:ndir)
-    
+
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
-    ! calculate velocity 
+    ! calculate velocity
     call mhd_get_v(wCT,ixI^L,ixO^L,v)
     if(mhd_energy) then
       ! e = e - qdt (v . b) * div b
       w(ixO^S,e_)=w(ixO^S,e_)-&
            qdt*sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)*divb(ixO^S)
     end if
-    
+
     ! b = b - qdt v * div b
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
@@ -1001,39 +1002,39 @@ contains
     if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_powel")
 
   end subroutine add_source_powel
-  
+
   subroutine add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add divB related sources to w within ixO
     ! corresponding to Janhunen, just the term in the induction equation.
     use mod_global_parameters
-    
+
     integer, intent(in) :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in) :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    
+
     double precision:: divb(ixI^S)
-    
+
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
-    
+
     ! b = b - qdt v * div b
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)*divb(ixO^S)
     end do
 
   end subroutine add_source_janhunen
-  
+
   subroutine add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add Linde's divB related sources to wnew within ixO
     use mod_global_parameters
-    
+
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
     integer :: iw, idim, ix^L, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S)
-    
-    
+
+
     ! Calculate div B
     ix^L=ixO^L^LADD1;
     call get_divb(wCT,ixI^L,ix^L,divb)
@@ -1049,13 +1050,13 @@ contains
                 ixpmin^D=ixOmin^D-i^D
               else
                 ixpmax^D=ixOmax^D-i^D
-              end if 
+              end if
             end if
           end do
        \}
       end select
     end do
-    
+
     ! Add Linde's diffusive terms
     do idim=1,ndim
        ! Calculate grad_idim(divb)
@@ -1065,7 +1066,7 @@ contains
        case("limited")
          call gradientS(divb,ixI^L,ixp^L,idim,graddivb)
        end select
-    
+
        ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
        if (slab) then
           graddivb(ixp^S)=graddivb(ixp^S)*divbdiff/(^D&1.0d0/dxlevel(^D)**2+)
@@ -1081,25 +1082,25 @@ contains
          w(ixp^S,e_)=w(ixp^S,e_)+wCT(ixp^S,mag(idim))*graddivb(ixp^S)
        end do
     end do
-    
+
     if(fixsmall) call smallvalues(w,x,ixI^L,ixp^L,"add_source_linde")
 
   end subroutine add_source_linde
-  
+
   subroutine get_divb(w,ixI^L,ixO^L,divb)
-    
+
     ! Calculate div B within ixO
-    
+
     use mod_global_parameters
-    
+
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: w(ixI^S,1:nw)
     double precision                   :: divb(ixI^S)
-    
+
     double precision                   :: bvec(ixI^S,1:ndir)
-    
+
     bvec(ixI^S,:)=w(ixI^S,mag(:))
-    
+
     select case(typediv)
     case("central")
       call divvector(bvec,ixI^L,ixO^L,divb)
@@ -1143,7 +1144,7 @@ contains
 
     integer                       :: idirmin,idim
     double precision              :: dxarr(ndim)
-    double precision              :: current(ixI^S,7-2*ndir:3),eta(ixI^S) 
+    double precision              :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
 
     dtnew = bigdouble
 
@@ -1399,15 +1400,15 @@ contains
 
   subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     use mod_global_parameters
-    
+
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: vHall(ixI^S,1:3)
-  
+
     integer          :: idir, idirmin
     double precision :: current(ixI^S,7-2*ndir:3)
-    
+
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
     vHall(ixI^S,1:3) = zero
@@ -1415,20 +1416,20 @@ contains
     do idir = idirmin, 3
        vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)
     end do
-  
+
   end subroutine mhd_getv_Hall
 
   subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     use mod_global_parameters
-    
+
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: vHall(ixI^S,1:3)
-  
+
     integer          :: idir, idirmin
     double precision :: current(ixI^S,7-2*ndir:3)
-    
+
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
     vHall(ixI^S,1:3) = zero
@@ -1436,12 +1437,12 @@ contains
     do idir = idirmin, 3
        vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)
     end do
-  
+
   end subroutine mhd_getv_Hall
 
   subroutine mhd_getdt_Hall(w,x,ixI^L,ixO^L,dx^D,dthall)
     use mod_global_parameters
-    
+
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -1450,20 +1451,20 @@ contains
     !.. local ..
     double precision :: dxarr(ndim)
     double precision :: bmag(ixI^S)
-    
+
     dthall=bigdouble
-    
+
     ! because we have that in cmax now:
     return
-    
+
     ^D&dxarr(^D)=dx^D;
-    
+
     if (.not. B0field) then
        bmag(ixO^S)=sqrt({^C& w(ixO^S,b^C_)**2 +})
     else
        bmag(ixO^S)=sqrt({^C& (w(ixO^S,b^C_)+myB0%w(ixO^S,^C))**2 +})
     end if
-    
+
     dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(eqpar(etah_)*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
   end subroutine mhd_getdt_Hall
   ! TODO: rewrite
