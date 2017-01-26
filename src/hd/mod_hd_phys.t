@@ -357,32 +357,37 @@ contains
   end subroutine hd_get_pthermal
 
   ! Calculate non-transport flux f_idim[iw] within ixO^L.
-  subroutine hd_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
+  subroutine hd_get_flux(w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux
 
-    integer, intent(in)             :: ixI^L, ixO^L, iw, idim
+    integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: f(ixI^S)
-    logical, intent(out)            :: transport
+    double precision, intent(inout) :: f(ixI^S, nwflux)
+    double precision                :: pth(ixI^S), v(ixI^S)
+    integer                         :: idir, itr
 
-    ! TODO: reorganize this, maybe compute all fluxes in a direction at once?
+    call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
+    call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
 
-    transport = .true.
+    f(ixO^S, rho_) = v(ixO^S) * w(ixO^S, rho_)
 
-    if (iw == mom(idim)) then
-       ! f_i[m_i]= v_i*m_i + p
-       call hd_get_pthermal(w, x, ixI^L, ixO^L, f)
-    else if (iw == e_) then
-       ! f_i[e]= v_i*e + m_i/rho*p
-       call hd_get_pthermal(w, x, ixI^L, ixO^L, f)
-       f(ixO^S) = w(ixO^S, mom(idim))/w(ixO^S, rho_)*f(ixO^S)
-    else if (iw > hd_nwflux) then
-       ! A dust flux
-       call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
-    else
-       f(ixO^S) = zero
-    endif
+    ! Momentum flux is v_i*m_i, +p in direction idim
+    do idir = 1, ndir
+      f(ixO^S, mom(idir)) = v(ixO^S) * w(ixO^S, mom(idir))
+    end do
+
+    f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
+
+    ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+    f(ixO^S, e_) = v(ixO^S) * (w(ixO^S, e_) + pth(ixO^S))
+
+    do itr = 1, hd_n_tracer
+       f(ixO^S, tracer(itr)) = v(ixO^S) * w(ixO^S, tracer(itr))
+    end do
+
+    ! TODO: A dust flux
+    ! call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
 
   end subroutine hd_get_flux
 

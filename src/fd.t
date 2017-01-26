@@ -55,17 +55,14 @@ do idims= idim^LIM
    {ixCR^L=ixC^L;}
 }
 
-   ! Calculate velocities for transport fluxes
-   call phys_get_v(wCT,x,ixG^LL,ixCR^L,idims,v)
-   
+   call phys_get_flux(wCT,x,ixG^LL,ixCR^L,idims,fCT)
+
    do iw=1,nwflux
-      call phys_get_flux(wCT,x,ixG^LL,ixCR^L,iw,idims,fCT(ixI^S,iw),transport)
-      if (transport) fCT(ixCR^S,iw) = fCT(ixCR^S,iw) + v(ixCR^S) * wCT(ixCR^S,iw)
       ! Lax-Friedrich splitting:
       fp(ixCR^S,iw) = half * (fCT(ixCR^S,iw) + tvdlfeps * cmax_global * wCT(ixCR^S,iw))
       fm(ixCR^S,iw) = half * (fCT(ixCR^S,iw) - tvdlfeps * cmax_global * wCT(ixCR^S,iw))
    end do ! iw loop
-  
+
    ! now do the reconstruction of fp and fm:
    call reconstructL(ixI^L,ix^L,idims,fp,fpL,dxdims)
    call reconstructR(ixI^L,ix^L,idims,fm,fmR,dxdims)

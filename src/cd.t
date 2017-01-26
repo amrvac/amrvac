@@ -17,7 +17,7 @@ double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 double precision, intent(in) :: x(ixI^S,1:ndim)
 double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
-double precision :: v(ixG^T,ndim), f(ixG^T)
+double precision :: f(ixG^T, nwflux)
 double precision :: dxinv(1:ndim)
 integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L
 logical :: transport
@@ -40,16 +40,11 @@ do idims= idim^LIM
    jxC^L=ixC^L+kr(idims,^D); 
    hxO^L=ixO^L-kr(idims,^D);
 
-   call phys_get_v(wCT,x,ixI^L,ix^L,idims,f)
-   v(ix^S,idims)=f(ix^S)
+   call phys_get_flux(wCT,x,ixI^L,ix^L,idims,f)
 
    do iw=1,nwflux
-      ! Get non-transported flux
-      call phys_get_flux(wCT,x,ixI^L,ix^L,iw,idims,f,transport)
-      ! Add transport flux
-      if (transport) f(ix^S)=f(ix^S)+v(ix^S,idims)*wCT(ix^S,iw)
       ! Center flux to interface
-      fC(ixC^S,iw,idims)=half*(f(ixC^S)+f(jxC^S))
+      fC(ixC^S,iw,idims)=half*(f(ixC^S, iw)+f(jxC^S, iw))
       if (slab) then
          fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
          w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
@@ -87,7 +82,7 @@ double precision, intent(in) :: x(ixI^S,1:ndim)
 double precision, dimension(ixI^S,1:ndim)             ::  xi
 double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
-double precision :: v(ixG^T,ndim), f(ixG^T)
+double precision :: v(ixG^T,ndim), f(ixG^T, nwflux)
 
 double precision, dimension(ixG^T,1:nw) :: wLC, wRC
 double precision, dimension(ixG^T)      :: vLC, vRC, phi, cmaxLC, cmaxRC
@@ -158,24 +153,24 @@ do idims= idim^LIM
    ! now take the maximum of left and right states
    vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
 
-   ! Calculate velocities for centered values
-   call phys_get_v(wCT,xi,ixI^L,ix^L,idims,f)
-   v(ix^S,idims)=f(ix^S)
+   ! ! Calculate velocities for centered values
+   ! call phys_get_v(wCT,xi,ixI^L,ix^L,idims,f)
+   ! v(ix^S,idims)=f(ix^S)
 
 if (useprimitive) then
+   ! Jannis: TODO check this
    ! primitive limiting:
    ! this call ensures wCT is primitive with updated auxiliaries
    call phys_to_conserved(ixI^L,ixI^L,wCT,x)
 endif
 
+   call phys_get_flux(wCT,xi,ixI^L,ix^L,idims,f)
+
    do iw=1,nwflux
-      ! Get non-transported flux
-      call phys_get_flux(wCT,xi,ixI^L,ix^L,iw,idims,f,transport)
-      ! Add transport flux
-      if (transport) f(ix^S)=f(ix^S)+v(ix^S,idims)*wCT(ix^S,iw)
       ! Center flux to interface
       ! f_i+1/2= (-f_(i+2) +7 f_(i+1) + 7 f_i - f_(i-1))/12
-      fC(ixC^S,iw,idims)=(-f(kxC^S)+7.0d0*(f(jxC^S)+f(ixC^S))-f(hxC^S))/12.0d0
+     fC(ixC^S,iw,idims)=(-f(kxC^S, iw)+7.0d0*(f(jxC^S, iw) + &
+          f(ixC^S, iw))-f(hxC^S, iw))/12.0d0
       ! add rempel dissipative flux, only second order version for now
       fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-half*vLC(ixC^S) &
                                      *(wRC(ixC^S,iw)-wLC(ixC^S,iw))

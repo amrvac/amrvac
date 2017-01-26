@@ -107,15 +107,16 @@ contains
   end subroutine rho_get_dt
 
   ! There is nothing to add to the transport flux in the transport equation
-  subroutine rho_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
+  subroutine rho_get_flux(w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L, iw, idim
+    integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: f(ixG^T)
-    logical, intent(out)            :: transport
+    double precision, intent(inout) :: f(ixG^T, nwflux)
+    double precision                :: v(ixI^S)
 
-    f(ixO^S)  = zero
-    transport = .true.
+    call rho_get_v(w, x, ixI^L, ixO^L, idim, v)
+
+    f(ixO^S, rho_) = w(ixO^S, rho_) * v(ixO^S)
   end subroutine rho_get_flux
 
   subroutine rho_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)

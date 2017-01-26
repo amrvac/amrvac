@@ -78,12 +78,11 @@ module mod_physics
        double precision, intent(inout), optional :: cmin(ixG^T)
      end subroutine sub_get_cmax
 
-     subroutine sub_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
+     subroutine sub_get_flux(w, x, ixI^L, ixO^L, idim, f)
        use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L, iw, idim
+       integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
-       double precision, intent(inout) :: f(ixG^T)
-       logical, intent(out)            :: transport
+       double precision, intent(inout) :: f(ixG^T, nwflux)
      end subroutine sub_get_flux
 
      subroutine sub_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
