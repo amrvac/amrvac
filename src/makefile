@@ -1,39 +1,106 @@
 ################# Definitions for source files #############################
-INCLUDES = mod_physicaldata.t mod_fix_conserve.t mod_connectivity.t	\
-mod_global_parameters.t mod_usr_methods.t mod_forest.t
+INCLUDES = mod_global_parameters.t mod_usr_methods.t mod_forest.t	\
+mod_physicaldata.o mod_connectivity.t
 
-FOBJECTS = initialize_vars.t advance.t setdt.t amrini.t		\
-amr_solution_node.t errest.t amrgrid.t amr_fix_conserve.t tvdlf.t tvd.t cd.t	\
-fd.t load_balance.t connectivity.t boundary_conditions.t comm_lib.t forest.t	\
+FOBJECTS = initialize_vars.t advance.t setdt.t amrini.t amr_solution_node.t	\
+errest.t amrgrid.t amr_fix_conserve.t mod_tvdlf.t mod_tvd.t mod_cd.t mod_fd.t	\
+load_balance.t connectivity.t boundary_conditions.t comm_lib.t forest.t		\
 amr_neighbors.t amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t	\
-geometry.t mod_ghostcells_update.t mod_small_values.t
+geometry.t mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t	\
+mod_limiter.o mod_fix_conserve.t
 
 ############################################################################
-#  Dependencies:
+#  Dependencies (best to generate these automaticcaly)
 ############################################################################
-mod_global_parameters.o: mod_physicaldata.o mod_connectivity.o mod_config.o
-amr_fix_conserve.o : mod_fix_conserve.o mod_ghostcells_update.o
-forest.o initialize_vars.o: mod_global_parameters.o
-initialize_vars.o : mod_connectivity.o mod_timing.o mod_input_output.o	\
-	mod_physics.o mod_ghostcells_update.o
-advance.o setdt.o: mod_thermal_conduction.o
-tvdlf.o: mod_physics.o mod_ghostcells_update.o
-tvd.o: mod_physics.o
-cd.o: mod_physics.o
-fd.o: mod_physics.o
-comm_lib.o: mod_ghostcells_update.o
+advance.o: mod_cd.o
+advance.o: mod_fd.o
+advance.o: mod_ghostcells_update.o
+advance.o: mod_physics.o
+advance.o: mod_thermal_conduction.o
+advance.o: mod_timing.o
+advance.o: mod_tvd.o
+advance.o: mod_tvdlf.o
 amr_coarsen_refine.o: mod_ghostcells_update.o
-refine.o: mod_physics.o
-coarsen.o: mod_physics.o
-convert.o: mod_ghostcells_update.o
-collapse.o: mod_physics.o
-slice.o: mod_physics.o
-
+amr_fix_conserve.o: mod_fix_conserve.o
+amr_ghostcells.o: mod_getbc.o
+amr_ghostcells.o: mod_physics.o
 amrgrid.o: mod_ghostcells_update.o
-
-mod_input_output.o: mod_physics.o mod_usr_methods.o
-mod_physics.o: mod_global_parameters.o mod_physics_roe.o mod_physics_hllc.o	\
-	mod_physics_ppm.o
-mod_ghostcells_update.o: mod_global_parameters.o mod_physics.o
+coarsen.o: mod_physics.o
+collapse.o: mod_physics.o
+comm_lib.o: mod_ghostcells_update.o
+convert.o: mod_ghostcells_update.o
+convert.o: mod_limiter.o
+convert.o: mod_physics.o
+convert.o: mod_timing.o
+geometry.o: mod_limiter.o
+geometry.o: mod_ppm.o
+initialize_vars.o: mod_ghostcells_update.o
+mod_cd.o: mod_limiter.o
+mod_cd.o: mod_physics.o
+mod_cd.o: mod_tvdlf.o
+mod_fd.o: mod_limiter.o
+mod_fd.o: mod_mp5.o
+mod_fd.o: mod_physics.o
+mod_ghostcells_update.o: mod_physics.o
+mod_global_parameters.o: mod_config.o
+mod_global_parameters.o: mod_connectivity.o
+mod_global_parameters.o: mod_physicaldata.o
+mod_gridvars.o: mod_physicaldata.o
+mod_hd.o: mod_hd_hllc.o
+mod_hd.o: mod_hd_phys.o
+mod_hd.o: mod_hd_ppm.o
+mod_hd.o: mod_hd_roe.o
+mod_hd_hllc.o: mod_hd_phys.o
+mod_hd_hllc.o: mod_physics_hllc.o
+mod_hd_phys.o: mod_dust.o
+mod_hd_phys.o: mod_physics.o
+mod_hd_phys.o: mod_radiative_cooling.o
+mod_hd_phys.o: mod_small_values.o
+mod_hd_phys.o: mod_thermal_conduction.o
+mod_hd_ppm.o: mod_hd_phys.o
+mod_hd_ppm.o: mod_physics_ppm.o
+mod_hd_roe.o: mod_hd_phys.o
+mod_hd_roe.o: mod_physics_roe.o
+mod_hd_roe.o: mod_tvd.o
+mod_input_output.o: mod_physics.o
+mod_input_output.o: mod_timing.o
+mod_input_output.o: kracken.o
+mod_limiter.o: mod_mp5.o
+mod_limiter.o: mod_ppm.o
+mod_mhd.o: mod_mhd_hllc.o
+mod_mhd.o: mod_mhd_phys.o
+mod_mhd.o: mod_mhd_ppm.o
+mod_mhd.o: mod_mhd_roe.o
+mod_mhd_phys.o: mod_physic.o
+mod_mhd_phys.o: mod_radiative_cooling.o
+mod_mhd_phys.o: mod_thermal_conduction.o
+mod_mhd_ppm.o: mod_mhd_phys.o
+mod_mhd_ppm.o: mod_physics_ppm.o
+mod_mhd_roe.o: mod_mhd_phys.o
+mod_mhd_roe.o: mod_physics_roe.o
+mod_mhd_roe.o: mod_tvd.o
+mod_mp5.o: mod_physics.o
+mod_nonlinear.o: mod_nonlinear_params.o
+mod_nonlinear.o: mod_physics.o
+mod_physics.o: mod_physics_hllc.o
+mod_physics.o: mod_physics_ppm.o
+mod_physics.o: mod_physics_roe.o
+mod_ppm.o: mod_physics.o
+mod_rho.o: mod_rho_phys.o
+mod_rho.o: mod_rho_roe.o
+mod_rho_phys.o: mod_physics.o
+mod_rho_roe.o: mod_physics_roe.o
+mod_rho_roe.o: mod_rho_phys.o
+mod_thermal_conduction.o: mod_ghostcells_update.o
+mod_tvd.o: mod_limiter.o
+mod_tvd.o: mod_physics_roe.o
+mod_tvdlf.o: mod_limiter.o
+mod_tvdlf.o: mod_mp5.o
+mod_tvdlf.o: mod_physics.o
+mod_tvdlf.o: mod_ppm.o
+mod_tvdlf.o: mod_tvd.o
 mod_usr_methods.o: mod_global_parameters.o
-############################################################################
+refine.o: mod_physics.o
+setdt.o: mod_physics.o
+setdt.o: mod_thermal_conduction.o
+slice.o: mod_physics.o

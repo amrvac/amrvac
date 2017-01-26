@@ -455,7 +455,10 @@ end subroutine process1_grid
 subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
 
 !  integrate one grid by one partial step 
-
+use mod_tvdlf
+use mod_tvd
+use mod_cd
+use mod_fd
 use mod_global_parameters
 
 character(len=*), intent(in) :: method

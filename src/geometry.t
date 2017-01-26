@@ -417,6 +417,8 @@ subroutine gradientS(q,ixI^L,ix^L,idir,gradq)
 ! first use limiter to go from cell center to edge
 
 use mod_global_parameters
+use mod_limiter
+use mod_ppm
 
 integer :: ixI^L, ix^L, idir
 double precision :: q(ixI^S), gradq(ixI^S)
@@ -650,6 +652,8 @@ subroutine divvectorS(qvec,ixI^L,ixO^L,divq)
 ! using limited extrapolation to cell edges
 
 use mod_global_parameters
+use mod_limiter
+use mod_ppm
 
 integer :: ixI^L,ixO^L
 double precision :: qvec(ixG^T,1:ndir), divq(ixG^T)

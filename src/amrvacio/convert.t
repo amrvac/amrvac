@@ -964,6 +964,7 @@ subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 ! possible normalization values for the nw+1:nw+nwauxio entries
 use mod_usr_methods, only: usr_aux_output
 use mod_global_parameters
+use mod_limiter
 use mod_physics, only: physics_type, phys_to_primitive
 
 integer, intent(in) :: qunit, igrid

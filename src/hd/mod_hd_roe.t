@@ -137,6 +137,7 @@ contains
     ! jump(il)=Sum_il L(il,iw)*(wR(iw)-wL(iw))
 
     use mod_global_parameters
+    use mod_tvd
 
     integer                                             :: ix^L,il,idim,idir
     double precision, dimension(ixG^T,nw)               :: wL,wR,wroe
@@ -372,6 +373,7 @@ contains
     ! jump(il)=Sum_il L(il,iw)*(wR(iw)-wL(iw))
 
     use mod_global_parameters
+    use mod_tvd
 
     integer:: ix^L,il,idim,idir
     double precision, dimension(ixG^T,nw):: wL,wR,wroe
