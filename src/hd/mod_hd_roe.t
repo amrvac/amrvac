@@ -145,9 +145,6 @@ contains
     double precision, dimension(ixG^T)                  :: smalla,a,jump,tmp,tmp2
     double precision, dimension(ixG^T)                  :: csound,dpperc2,dvperc
     double precision                                    :: kin_en(ixG^T)
-    ! !save dpperc2,dvperc
-    ! !common /roe/ csound
-    !-----------------------------------------------------------------------------
 
     if(il==1)then
        !First calculate the square of the sound speed: c**2=(gamma-1)*(h-0.5*v**2)
@@ -241,12 +238,10 @@ contains
 
     use mod_global_parameters
 
-    integer::          ix^L,iw,il,idim,idir
-    double precision:: wroe(ixG^T,nw)
-    double precision, dimension(ixG^T):: q,rq,csound
-    logical:: shearwave
-    !!common /roe/ csound
-    !-----------------------------------------------------------------------------
+    integer                            :: ix^L,iw,il,idim,idir
+    double precision                   :: wroe(ixG^T,nw)
+    double precision, dimension(ixG^T) :: q,rq,csound
+    logical                            :: shearwave
 
     shearwave=il>shearW0_
     if(shearwave)then

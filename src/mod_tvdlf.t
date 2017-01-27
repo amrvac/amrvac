@@ -1,7 +1,4 @@
 module mod_tvdlf
-  use mod_ppm
-  use mod_mp5
-
   implicit none
   private
 
@@ -23,6 +20,7 @@ contains
   subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
     use mod_physics
     use mod_global_parameters
+    use mod_source, only: addsource2
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
@@ -30,10 +28,8 @@ contains
 
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
-    double precision, dimension(ixI^S) :: vLC, vRC
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
-    integer :: idims, iw, ix^L, hxO^L, ixtest^L
-    logical :: transport
+    integer :: idims, iw, ix^L, hxO^L
     !-----------------------------------------------------------------------------
 
     ! Expand limits in each idims direction in which fluxes are added
@@ -120,11 +116,11 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer :: jxR^L, ixC^L, jxC^L, iw, ixtest^L
+    integer :: jxR^L, ixC^L, jxC^L, iw
     double precision :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
     double precision :: ldw(ixI^S), dwC(ixI^S)
     integer :: flagL(ixI^S), flagR(ixI^S)
-    character*79 :: savetypelimiter
+    character(std_len) :: savetypelimiter
     !-----------------------------------------------------------------------------
 
     ! Transform w,wL,wR to primitive variables
@@ -184,8 +180,8 @@ contains
              wRC(ixR^S,iw)=wRtmp(ixR^S,iw)
           end where
 
+          ! Elsewhere, we still need to convert back when using loglimit
           if (loglimit(iw)) then
-             ! Jannis: why this?
              where (flagL(ixL^S) /= 0 .or. flagR(ixR^S) /= 0)
                 wLC(ixL^S,iw)=10.0d0**wLC(ixL^S,iw)
                 wRC(ixR^S,iw)=10.0d0**wRC(ixR^S,iw)
@@ -210,15 +206,14 @@ contains
   end subroutine upwindLR
 
 
-  !=============================================================================
+  !> method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
+  !> method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
   subroutine tvdlf(method,qdt,ixI^L,ixO^L,idim^LIM, &
        qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
-    !> method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
-    !> method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
-
     use mod_physics
     use mod_global_parameters
+    use mod_source, only: addsource2
 
     character(len=*), intent(in)                         :: method
     double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -232,8 +227,8 @@ contains
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
-    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ixtest^L
-    logical :: transport, new_cmax, CmaxMeanState
+    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
+    logical :: CmaxMeanState
     !-----------------------------------------------------------------------------
 
     CmaxMeanState = (typetvdlf=='cmaxmean')
@@ -341,13 +336,8 @@ contains
           cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
        end if
 
-       ! Calculate velocities for transport fluxes
-       ! call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-       ! call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
-
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
-       ! TODO: Check if order is better/worse
        call phys_get_flux(wLC,xi,ixI^L,ixC^L,idims,fLC)
        call phys_get_flux(wRC,xi,ixI^L,ixC^L,idims,fRC)
 
@@ -423,6 +413,7 @@ contains
     !> method=='hll1' --> 1st order HLL scheme.
     use mod_physics
     use mod_global_parameters
+    use mod_source, only: addsource2
 
     character(len=*), intent(in)                         :: method
     double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -439,7 +430,7 @@ contains
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     integer, dimension(ixI^S)               :: patchf
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
-    logical :: transport, new_cmax, CmaxMeanState
+    logical :: CmaxMeanState
 
     CmaxMeanState = (typetvdlf=='cmaxmean')
 
@@ -555,10 +546,6 @@ contains
           patchf(ixC^S) =  2
        endwhere
 
-       ! Calculate velocities for transport fluxes
-       ! if(any(patchf(ixC^S)/= 2)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-       ! if(any(patchf(ixC^S)/=-2)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
-
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
        call phys_get_flux(wLC,xi,ixI^L,ixC^L,idims,fLC)
@@ -566,16 +553,6 @@ contains
 
        ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
        do iw=1,nwflux
-
-          ! if (any(patchf(ixC^S)/= 2) .or. flux_type(idims, iw) == flux_tvdlf) then
-          !    call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
-          !    if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
-          ! end if
-
-          ! if (any(patchf(ixC^S)/=-2) .or. flux_type(idims, iw) == flux_tvdlf) then
-          !    call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
-          !    if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
-          ! end if
 
           if (flux_type(idims, iw) == flux_tvdlf) then
              fLC(ixC^S, iw) = half*((fLC(ixC^S, iw) + fRC(ixC^S, iw)) &
@@ -653,6 +630,7 @@ contains
 
     use mod_physics
     use mod_global_parameters
+    use mod_source, only: addsource2
 
     character(len=*), intent(in)                         :: method
     double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -670,7 +648,7 @@ contains
 
     integer, dimension(ixI^S)                          :: patchf
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
-    logical :: transport, new_cmax, CmaxMeanState, firstordermethod
+    logical :: CmaxMeanState, firstordermethod
 
     !=== specific to HLLC and HLLCD ===!
     double precision :: fLC(ixI^S,1:nwflux), fRC(ixI^S,1:nwflux)
@@ -900,6 +878,7 @@ contains
     use mod_physics
     use mod_global_parameters
     use mod_tvd
+    use mod_source, only: addsource2
 
     character(len=*), intent(in)                         :: method
     double precision, intent(in)                         :: qdt, qtC, qt, dx^D
@@ -911,10 +890,9 @@ contains
 
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
-    double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
-    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ixtest^L
-    logical :: transport, new_cmax, CmaxMeanState
+    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
+    logical :: CmaxMeanState
     !-----------------------------------------------------------------------------
 
     CmaxMeanState = (typetvdlf=='cmaxmean')
@@ -943,7 +921,6 @@ contains
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
     do idims= idim^LIM
-       ! Jannis: what's up with these blocks?
        if (B0field) then
           select case (idims)
              {case (^D)
@@ -993,12 +970,8 @@ contains
           call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_B')
        end if
 
-       ! Calculate velocities for transport fluxes
-       ! call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-       ! call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
-       ! Jannis: check if order should be like this or as before
        call phys_get_flux(wLC,xi,ixI^L,ixC^L,idims,fLC)
        call phys_get_flux(wRC,xi,ixI^L,ixC^L,idims,fRC)
 
