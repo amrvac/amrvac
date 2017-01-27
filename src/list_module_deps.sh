@@ -10,6 +10,12 @@ deps=$(echo "$deps" | sed 's/use mod_forest//')
 deps=$(echo "$deps" | sed 's/use mod_physicaldata//')
 deps=$(echo "$deps" | sed 's/use mod_connectivity//')
 
+# Remove old_physics entries
+deps=$(echo "$deps" | sed 's/^.*old_physics[/].*$//')
+
+# Remove amrvac.o entry (it is compiled later)
+deps=$(echo "$deps" | sed 's/^amrvac[.]t.*$//')
+
 # Remove comments
 deps=$(echo "$deps" | sed 's/!.*$//')
 
@@ -28,8 +34,8 @@ deps=$(echo "$deps" | sed 's/ *: */:/')
 # Replace extension
 deps=$(echo "$deps" | sed 's/[.]t/.o/')
 
-# Replace 'use ' by ' '
-deps=$(echo "$deps" | sed 's/use / /')
+# Replace 'use mod_xxx' by ' mod_xxx.o'
+deps=$(echo "$deps" | sed 's/use \(.*\)$/ \1.o/')
 
 # Sort lines and remove duplicates
 deps=$(echo "$deps" | sort -u)
