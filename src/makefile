@@ -89,7 +89,7 @@ mod_mhd.o: mod_mhd_hllc.o
 mod_mhd.o: mod_mhd_phys.o
 mod_mhd.o: mod_mhd_ppm.o
 mod_mhd.o: mod_mhd_roe.o
-mod_mhd_phys.o: mod_physic.o
+mod_mhd_phys.o: mod_physics.o
 mod_mhd_phys.o: mod_radiative_cooling.o
 mod_mhd_phys.o: mod_thermal_conduction.o
 mod_mhd_ppm.o: mod_mhd_phys.o
