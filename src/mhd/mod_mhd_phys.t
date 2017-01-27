@@ -80,6 +80,15 @@ module mod_mhd_phys
 
   !> The number of waves
   integer :: nwwave=8
+
+  ! Public methods
+  public :: mhd_phys_init
+  public :: mhd_kin_en
+  public :: mhd_get_pthermal
+  public :: mhd_get_v
+  public :: mhd_to_conserved
+  public :: mhd_to_primitive
+
 contains
 
   subroutine mhd_check_params
@@ -165,7 +174,6 @@ contains
     iw_vector(1) = mom(1) - 1   ! TODO: why like this?
     iw_vector(2) = mag(1) - 1   ! TODO: why like this?
 
-    phys_get_v           => mhd_get_v
     phys_get_dt          => mhd_get_dt
     phys_get_cmax        => mhd_get_cmax
     phys_get_flux        => mhd_get_flux
@@ -174,6 +182,7 @@ contains
     phys_to_primitive    => mhd_to_primitive
     phys_check_params    => mhd_check_params
     phys_check_w         => mhd_check_w
+    phys_get_pthermal    => mhd_get_pthermal
 
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
@@ -186,7 +195,7 @@ contains
     ! Initialize radiative cooling module
     if(mhd_radiative_cooling) then
       rc_gamma=mhd_gamma
-      phys_get_pthermal_rc => mhd_get_pthermal_rc
+!      phys_get_pthermal_rc => mhd_get_pthermal_rc
       call radiative_cooling_init()
     end if
 
@@ -319,14 +328,17 @@ contains
   end subroutine rhos_to_e
 
   !> Calculate v_idim=m_idim/rho within ixO^L
-  subroutine mhd_get_v(w,x,ixI^L,ixO^L,idim,v)
+  subroutine mhd_get_v(w,x,ixI^L,ixO^L,v)
     use mod_global_parameters
 
-    integer, intent(in)           :: ixI^L, ixO^L, idim
+    integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
-    double precision, intent(out) :: v(ixI^S)
+    double precision, intent(out) :: v(ixI^S,ndir)
 
-      v(ixO^S) = w(ixO^S, mom(idim)) * mhd_inv_rho(w, ixI^L, ixO^L)
+    integer :: idir
+
+    do idir=1,ndir
+      v(ixO^S,idir) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
     end do
   end subroutine mhd_get_v
 
@@ -367,7 +379,7 @@ contains
             mhd_etah * sqrt(v(ixO^S))/w(ixO^S,rho_)*kmax)
     end if
 
-    call mhd_get_v(w, x, ixI^L, ixO^L, idim, v)
+    v(ixO^S)=w(ixO^S,mom(idim))/w(ixO^S,rho_)
 
     if (present(cmin))then
        cmax(ixO^S)=max(v(ixO^S)+csound(ixO^S),zero)
@@ -441,34 +453,27 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: p(ixI^S),tmp(ixI^S), v(ixI^S)
-    double precision, allocatable:: vHall(:^D&,:),vB0(:^D&,:)
+    double precision             :: ptotal(ixI^S),tmp(ixI^S), v(ixI^S,ndir)
+    double precision, allocatable:: vHall(:^D&,:)
     integer                      :: idirmin, iw, idir
 
-    call mhd_get_v(w,x,ixI^L,ixO^L,idim,v)
-
-    if(B0field) then
-      allocate(vB0(ixI^S,1:ndir))
-      do idir=1,ndir
-        vB0(ixO^S,idir)=w(ixO^S,mom(idir))/w(ixO^S,rho_)
-      end do
-    end if
+    call mhd_get_v(w,x,ixI^L,ixO^L,v)
 
     if(mhd_Hall) then
       allocate(vHall(ixI^S,1:3)
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
-    call mhd_get_p_total(w,x,ixI^L,ixO^L,p)
+    call mhd_get_p_total(w,x,ixI^L,ixO^L,ptotal)
 
     ! Get flux of density
-    f(ixO^S,rho_)=v(ixO^S)*w(ixO^S,rho_)
+    f(ixO^S,rho_)=v(ixO^S,idim)*w(ixO^S,rho_)
 
     ! Get flux of momentum
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
     do idir=1,ndir
       if(idim==idir) then
-        f(ixO^S,mom(idir))=p(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
       else
         f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       end if
@@ -477,21 +482,20 @@ contains
              -w(ixO^S,mag(idir))*myB0%w(ixO^S,idim)&
              -w(ixO^S,mag(idim))*myB0%w(ixO^S,idir)
       end if
-      f(ixO^S,mom(idir))=v(ixO^S)*w(ixO^S,mom(idir))
+      f(ixO^S,mom(idir))=v(ixO^S,idim)*w(ixO^S,mom(idir))
     end do
 
     ! Get flux of energy
-    ! f_i[e]=v_i*e+(m_i*ptotal-b_i*(b_k*m_k))/rho
+    ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if(mhd_energy) then
-      f(ixO^S,e_)=(w(ixO^S,mom(idim))*p(ixO^S)- &
-            w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:),dim=ndim+1))&
-           /w(ixO^S,rho_)
+      f(ixO^S,e_)=v(ixO^S,idim)*(w(ixO^S,e_)+ptotal(ixO^S))- &
+            w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*v(ixO^S,:),dim=ndim+1)
 
       if(B0field) then
         tmp(ixO^S)=sum(myB0%w(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
         f(ixO^S,e_) = f(ixO^S,e_) &
-             + vB0(ixO^S,idim) * tmp(ixO^S) &
-             - sum(vB0(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
+             + v(ixO^S,idim) * tmp(ixO^S) &
+             - sum(v(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
       end if
 
       if(mhd_Hall) then
@@ -507,11 +511,11 @@ contains
           end if
         end if
       end if
-      f(ixO^S,e_)=v(ixO^S)*w(ixO^S,e_)
+
     end if
 
     ! compute flux of magnetic field
-    ! f_i[b_k]=v_i*b_k-m_k/rho*b_i
+    ! f_i[b_k]=v_i*b_k-v_k*b_i
     do idir=1,ndir
       if(idim==idir) then
         ! f_i[b_i] should be exactly 0, so we do not use the transport flux
@@ -521,12 +525,12 @@ contains
            f(ixO^S,mag(idir))=zero
         end if
       else
-        f(ixO^S,mag(idir))= -w(ixO^S,mag(idim))*w(ixO^S,mom(idir))/w(ixO^S,rho_)
+        f(ixO^S,mag(idir))=v(ixO^S,idim)*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*v(ixO^S,idir)
 
         if(B0field) then
           f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
-                +vB0(ixO^S,idim)*myB0%w(ixO^S,idir)&
-                -vB0(ixO^S,idir)*myB0%w(ixO^S,idim)
+                +v(ixO^S,idim)*myB0%w(ixO^S,idir)&
+                -v(ixO^S,idir)*myB0%w(ixO^S,idim)
         end if
 
         if(mhd_Hall) then
@@ -543,7 +547,7 @@ contains
             end if
           end if
         end if
-        f(ixO^S,mag(idir))=v(ixO^S)*w(ixO^S,mag(idir))
+
       end if
     end do
 

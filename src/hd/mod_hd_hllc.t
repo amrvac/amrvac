@@ -16,7 +16,7 @@ contains
     phys_get_wCD => hd_get_wCD
   end subroutine hd_hllc_init
 
-  subroutine hd_diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
+  subroutine hd_diffuse_hllcd(ixI^L,ixO^L,idim,wLC,wRC,fLC,fRC,patchf)
 
     ! when method is hllcd or hllcd1 then: 
 
@@ -27,21 +27,19 @@ contains
 
     use mod_global_parameters
 
-    integer, intent(in)                                      :: ixI^L,ixO^L,idims
-    double precision, dimension(ixG^T,1:nw), intent(in)      :: wRC,wLC
-    double precision, dimension(ixG^T,1:nwflux),intent(in) :: fLC, fRC
-
-    integer         , dimension(ixG^T), intent(inout)        :: patchf
+    integer, intent(in)                                      :: ixI^L,ixO^L,idim
+    double precision, dimension(ixI^S,1:nw), intent(in)      :: wRC,wLC
+    double precision, dimension(ixI^S,1:nwflux),intent(in) :: fLC, fRC
+    integer         , dimension(ixI^S), intent(inout)        :: patchf
 
     integer                                           :: ixOO^D,TxOO^L
-    !-----------------------------------
 
     ! In a user-controlled region around any point with flux sign change between
     ! left and right, ensure fallback to TVDLF
     {do ixOO^D= ixO^LIM^D\}
     {
-    TxOOmin^D= max(ixOO^D - nxdiffusehllc*kr(idims,^D), ixOmin^D);
-    TxOOmax^D= min(ixOO^D + nxdiffusehllc*kr(idims,^D), ixOmax^D);
+    TxOOmin^D= max(ixOO^D - nxdiffusehllc*kr(idim,^D), ixOmin^D);
+    TxOOmax^D= min(ixOO^D + nxdiffusehllc*kr(idim,^D), ixOmax^D);
     \}
     if(abs(patchf(ixOO^D)) == 1 .or. abs(patchf(ixOO^D)) == 4)Then
        if(any(fRC(ixOO^D,1:nwflux)*fLC(ixOO^D,1:nwflux)<-smalldouble))Then
@@ -53,8 +51,8 @@ contains
     {enddo^D&\}
 
   end subroutine hd_diffuse_hllcd
-  !=============================================================================
-  subroutine hd_get_lCD(wLC,wRC,fLC,fRC,cmin,cmax,idims,ixI^L,ixO^L, &
+
+  subroutine hd_get_lCD(wLC,wRC,fLC,fRC,cmin,cmax,idim,ixI^L,ixO^L, &
        whll,Fhll,lambdaCD,patchf)
 
     ! Calculate lambda at CD and set the patchf to know the orientation
@@ -65,21 +63,18 @@ contains
 
     use mod_global_parameters
 
-    integer, intent(in)                                      :: ixI^L,ixO^L,idims
-    double precision, dimension(ixG^T,1:nw), intent(in)      :: wLC,wRC
-    double precision, dimension(ixG^T,1:nwflux), intent(in):: fLC,fRC
-    double precision, dimension(ixG^T), intent(in)           :: cmax,cmin
+    integer, intent(in)                                      :: ixI^L,ixO^L,idim
+    double precision, dimension(ixI^S,1:nw), intent(in)      :: wLC,wRC
+    double precision, dimension(ixI^S,1:nwflux), intent(in):: fLC,fRC
+    double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
+    integer         , dimension(ixI^S), intent(inout)        :: patchf
+    double precision, dimension(ixI^S,1:nwflux), intent(out) :: Fhll,whll
+    double precision, dimension(ixI^S), intent(out)            :: lambdaCD
 
-    integer         , dimension(ixG^T), intent(inout)        :: patchf
-
-    double precision, dimension(ixG^T,1:nwflux), intent(out) :: Fhll,whll
-    double precision, dimension(ixG^T), intent(out)            :: lambdaCD
-
-
-    logical         , dimension(ixG^T)     :: Cond_patchf
+    logical         , dimension(ixI^S)     :: Cond_patchf
     double precision                       :: Epsilon
     integer                                :: iw
-    !--------------------------------------------
+
     !--------------------------------------------
     ! on entry, patch is preset to contain values from -2,1,2,4
     !      -2: take left flux, no computation here
@@ -103,7 +98,7 @@ contains
 
     ! deduce the characteristic speed at the CD
     where(Cond_patchf(ixO^S))
-       lambdaCD(ixO^S)=whll(ixO^S,mom(idims))/whll(ixO^S,rho_)
+       lambdaCD(ixO^S)=whll(ixO^S,mom(idim))/whll(ixO^S,rho_)
     end where
 
     where(Cond_patchf(ixO^S))
@@ -140,7 +135,7 @@ contains
        endwhere
     endif
 
-    !-----------------------------------------------------------------------!
+
     ! eigenvalue lambda for contact is near zero: decrease noise by this trick
     if(flathllc)then
        Epsilon=1.0d-6
@@ -150,14 +145,11 @@ contains
           lambdaCD(ixO^S) =  zero
        end where
     end if
-    !-----------------------------------------------------------------------!
 
-    return
   end subroutine hd_get_lCD
-  !=============================================================================
-  subroutine hd_get_wCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
-       ixI^L,ixO^L,idims,f)
 
+  subroutine hd_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
+       ixI^L,ixO^L,idim,f)
     ! compute the intermediate state U*
     ! only needed where patchf=-1/1
 
@@ -166,30 +158,27 @@ contains
 
     use mod_global_parameters
 
-    integer, intent(in)                                      :: ixI^L,ixO^L,idims
-    double precision, dimension(ixG^T,1:nw), intent(in)      :: wRC,wLC
-    double precision, dimension(ixG^T,1:nwflux), intent(in):: whll, Fhll
-    double precision, dimension(ixG^T), intent(in)           :: vRC, vLC,lambdaCD
-    double precision, dimension(ixG^T), intent(in)           :: cmax,cmin
-    double precision, dimension(ixG^T,1:nwflux), intent(in):: fRC,fLC
-    double precision, dimension(ixG^T,1:nwflux),intent(out):: f
-
-    integer         , dimension(ixG^T), intent(in)           :: patchf
-
-    double precision, dimension(ixG^T,1:nw)      :: wCD,wSub
-    double precision, dimension(ixG^T,1:nwflux)  :: fSub
-    double precision, dimension(ixG^T)           :: vSub,cspeed,pCD
+    integer, intent(in)                                      :: ixI^L,ixO^L,idim
+    double precision, dimension(ixI^S,1:nw), intent(in)      :: wRC,wLC
+    double precision, dimension(ixI^S,1:nwflux), intent(in):: whll, Fhll
+    double precision, dimension(ixI^S), intent(in)           :: lambdaCD
+    double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
+    double precision, dimension(ixI^S,1:nwflux), intent(in):: fRC,fLC
+    double precision, dimension(ixI^S,1:nwflux),intent(out):: f
+    double precision, dimension(ixI^S,1:nw)      :: wCD,wSub
+    double precision, dimension(ixI^S,1:nwflux)  :: fSub
+    double precision, dimension(ixI^S)           :: vSub,cspeed,pCD
+    integer         , dimension(ixI^S), intent(in)           :: patchf
 
     integer                                      :: n, iw
-    !--------------------------------------------
 
     !-------------- auxiliary Speed and array-------------!
     where(patchf(ixO^S) == 1)
        cspeed(ixO^S) = cmax(ixO^S)
-       vSub(ixO^S)   = vRC(ixO^S)
+       vSub(ixO^S)   = wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)
     elsewhere(patchf(ixO^S) == -1)
        cspeed(ixO^S) = cmin(ixO^S)
-       vSub(ixO^S)   = vLC(ixO^S)
+       vSub(ixO^S)   = wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_)
     endwhere
 
     do iw=1,nw
@@ -222,8 +211,8 @@ contains
     end do
 
     !------- Momentum ------!
-    do iw =1, ^NC
-       if(iw /= idims)then
+    do iw =1, ndir
+       if(iw /= idim)then
           where(abs(patchf(ixO^S))==1)
              ! eq. 21 22
              wCD(ixO^S,mom(iw))=(cspeed(ixO^S)*wSub(ixO^S,mom(iw))-fSub(ixO^S,mom(iw)))/&
@@ -237,13 +226,12 @@ contains
        endif
     enddo
 
-
     if (hd_energy) then
        where(abs(patchf(ixO^S))==1)
           ! Eq 31
           pCD(ixO^S)  = wsub(ixO^S,rho_)*(cspeed(ixO^S)-vSub(ixO^S))&
                *(lambdaCD(ixO^S)-vSub(ixO^S))&
-               +fSub(ixO^S,mom(idims))- wsub(ixO^S,mom(idims))*vSub(ixO^S)
+               +fSub(ixO^S,mom(idim))- wsub(ixO^S,mom(idim))*vSub(ixO^S)
           wCD(ixO^S,e_) = (cspeed(ixO^S) * wSub(ixO^S,e_) &
                - fSub(ixO^S,e_) +lambdaCD(ixO^S)*pCD(ixO^S))&
                /(cspeed(ixO^S)-lambdaCD(ixO^S))
@@ -257,7 +245,6 @@ contains
        endwhere
     end do
 
-    return
   end subroutine hd_get_wCD
 
 end module mod_hd_hllc

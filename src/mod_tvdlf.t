@@ -30,7 +30,6 @@ contains
 
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
-    double precision, dimension(ixI^S) :: vLC, vRC
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixtest^L
     logical :: transport
@@ -341,10 +340,6 @@ contains
           cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
        end if
 
-       ! Calculate velocities for transport fluxes
-       ! call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-       ! call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
-
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
        ! TODO: Check if order is better/worse
@@ -555,10 +550,6 @@ contains
           patchf(ixC^S) =  2
        endwhere
 
-       ! Calculate velocities for transport fluxes
-       ! if(any(patchf(ixC^S)/= 2)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-       ! if(any(patchf(ixC^S)/=-2)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
-
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
        call phys_get_flux(wLC,xi,ixI^L,ixC^L,idims,fLC)
@@ -569,12 +560,10 @@ contains
 
           ! if (any(patchf(ixC^S)/= 2) .or. flux_type(idims, iw) == flux_tvdlf) then
           !    call phys_get_flux(wLC,xi,ixI^L,ixC^L,iw,idims,fLC,transport)
-          !    if (transport) fLC(ixC^S)=fLC(ixC^S)+vLC(ixC^S)*wLC(ixC^S,iw)
           ! end if
 
           ! if (any(patchf(ixC^S)/=-2) .or. flux_type(idims, iw) == flux_tvdlf) then
           !    call phys_get_flux(wRC,xi,ixI^L,ixC^L,iw,idims,fRC,transport)
-          !    if (transport) fRC(ixC^S)=fRC(ixC^S)+vRC(ixC^S)*wRC(ixC^S,iw)
           ! end if
 
           if (flux_type(idims, iw) == flux_tvdlf) then
@@ -795,10 +784,6 @@ contains
           patchf(ixC^S) =  2
        endwhere
 
-       ! Calculate velocities
-       if(any(patchf(ixC^S)/= 2)) call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-       if(any(patchf(ixC^S)/=-2)) call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
-
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
        call phys_get_flux(wLC,xi,ixI^L,ixC^L,idims,fLC)
@@ -816,7 +801,7 @@ contains
        ! now patchf may be -1 or 1 due to phys_get_lCD
        if(any(abs(patchf(ixC^S))== 1))then
           !======== flux at intermediate state ========!
-          call phys_get_wCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,&
+          call phys_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,&
                cminC,cmaxC,ixI^L,ixC^L,idims,fCD)
        endif ! Calculate the CD flux
 
@@ -993,9 +978,6 @@ contains
           call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_B')
        end if
 
-       ! Calculate velocities for transport fluxes
-       ! call phys_get_v(wLC,xi,ixI^L,ixC^L,idims,vLC)
-       ! call phys_get_v(wRC,xi,ixI^L,ixC^L,idims,vRC)
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idims)
 
        ! Jannis: check if order should be like this or as before

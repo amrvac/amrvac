@@ -122,7 +122,7 @@ contains
     double precision, dimension(ixG^T,ndim), intent(in) :: x
     double precision, dimension(ixG^T)   :: smalla,a,jump
     double precision, dimension(ixG^T,nworkroe) :: workroe
-    !-----------------------------------------------------------------------------
+
     call geteigenjump2(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump, &
          workroe(ixG^T,1),workroe(ixG^T,2),workroe(ixG^T,3))
 
@@ -145,9 +145,6 @@ contains
     double precision, dimension(ixG^T)                  :: smalla,a,jump,tmp,tmp2
     double precision, dimension(ixG^T)                  :: csound,dpperc2,dvperc
     double precision                                    :: kin_en(ixG^T)
-    ! !save dpperc2,dvperc
-    ! !common /roe/ csound
-    !-----------------------------------------------------------------------------
 
     if(il==1)then
        !First calculate the square of the sound speed: c**2=(gamma-1)*(h-0.5*v**2)
@@ -488,7 +485,6 @@ contains
     integer::          ix^L,iw,il,idim,idir
     double precision:: wroe(ixG^T,nw)
     double precision, dimension(ixG^T):: q,rq,csound
-    !-----------------------------------------------------------------------------
 
     if(iw==rho_)then
        if (il == soundRW_ .or. il == soundLW_) then

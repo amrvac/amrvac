@@ -94,7 +94,7 @@ contains
     double precision :: v(ixG^T,ndim), f(ixG^T, nwflux)
 
     double precision, dimension(ixG^T,1:nw) :: wLC, wRC
-    double precision, dimension(ixG^T)      :: vLC, vRC, phi, cmaxLC, cmaxRC
+    double precision, dimension(ixG^T)      :: vLC, phi, cmaxLC, cmaxRC
 
     double precision :: dxinv(1:ndim), dxdim
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L

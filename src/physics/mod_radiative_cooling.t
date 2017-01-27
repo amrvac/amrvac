@@ -20,6 +20,7 @@ module mod_radiative_cooling
 ! at the official upper limit of log(T) = 8.16)
 !
   use mod_global_parameters, only: std_len
+  use mod_physics
   implicit none
   ! parameters used for implicit cooling source calculations
   
@@ -589,18 +590,6 @@ module mod_radiative_cooling
    -18.719   , -18.669   , -18.619   , -18.569   , &
    -18.519   , -18.469   , -18.419   /
 
-   procedure(get_pthermal_rc), pointer :: phys_get_pthermal_rc => null()
-
-   abstract interface
-     subroutine get_pthermal_rc(w,x,ixI^L,ixO^L,p)
-       use mod_global_parameters
-
-       integer, intent(in)          :: ixI^L, ixO^L
-       double precision             :: w(ixI^S,nw), p(ixI^S)
-       double precision, intent(in) :: x(ixI^S,1:ndim)
-     end subroutine get_pthermal_rc
-   end interface
-  
   contains
 
     !> Read this module"s parameters from a file
@@ -934,7 +923,7 @@ module mod_radiative_cooling
       dtnew=bigdouble
       
       if(coolmethod == 'explicit1') then
-       call phys_get_pthermal_rc(w,x,ixG^L,ix^L,ptherm)   
+       call phys_get_pthermal(w,x,ixG^L,ix^L,ptherm)   
        {do ix^DB = ix^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = w(ix^D,rho_)
@@ -983,7 +972,7 @@ module mod_radiative_cooling
       
       integer :: ixO^D
       
-      call phys_get_pthermal_rc(w,x,ixI^L,ixO^L,ptherm) 
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,ptherm) 
       
       {do ixO^DB = ixI^LIM^DB\}
          plocal   = ptherm(ixO^D)
@@ -1072,7 +1061,7 @@ module mod_radiative_cooling
 
       tfloor = tlow
       
-      call phys_get_pthermal_rc(w,x,ixI^L,ixO^L,etherm)  
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,etherm)  
       
       {do ix^DB = ixO^LIM^DB\}
          emin         = w(ix^D,rho_)*tfloor/(rc_gamma-1.d0)
@@ -1100,8 +1089,8 @@ module mod_radiative_cooling
       integer :: ix^D
       integer :: icool
       
-      call phys_get_pthermal_rc(wCT,x,ixI^L,ixO^L,ptherm)     
-      call phys_get_pthermal_rc(w,x,ixI^L,ixO^L,pnew)
+      call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)     
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew)
       
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
@@ -1162,8 +1151,8 @@ module mod_radiative_cooling
       integer :: ix^D
       integer :: icool
       
-      call phys_get_pthermal_rc(wCT,x,ixI^L,ixO^L,ptherm) 
-      call phys_get_pthermal_rc(w,x,ixI^L,ixO^L,pnew ) 
+      call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm) 
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew ) 
         
       
       {do ix^DB = ixO^LIM^DB\}
@@ -1255,8 +1244,8 @@ module mod_radiative_cooling
       double precision :: ptherm(ixI^S),pnew(ixI^S)
       integer :: ix^D
 
-      call phys_get_pthermal_rc(wCT,x,ixI^L,ixO^L,ptherm)   
-      call phys_get_pthermal_rc(w,x,ixI^L,ixO^L,pnew )  
+      call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew )  
       
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
@@ -1321,8 +1310,8 @@ module mod_radiative_cooling
       
       integer :: ix^D, j
 
-      call phys_get_pthermal_rc(wCT,x,ixI^L,ixO^L,ptherm)   
-      call phys_get_pthermal_rc(w,x,ixI^L,ixO^L,pnew )  
+      call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew )  
         
       
       {do ix^DB = ixO^LIM^DB\}
@@ -1393,8 +1382,8 @@ module mod_radiative_cooling
       integer :: ix^D
       integer :: icool
 
-      call phys_get_pthermal_rc(wCT,x,ixI^L,ixO^L,ptherm)  
-      call phys_get_pthermal_rc(w,x,ixI^L,ixO^L,pnew )  
+      call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)  
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew )  
       
       fact = Lref*qdt/Tref
       
@@ -1586,30 +1575,5 @@ module mod_radiative_cooling
       end if
     
     end subroutine finddLdt
-
-    subroutine hd_get_pthermal_rc(w,x,ixI^L,ixO^L,p)
-      use mod_global_parameters
-
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision             :: w(ixI^S,nw), p(ixI^S)
-      double precision, intent(in) :: x(ixI^S,1:ndim)
-
-      p(ixO^S)=(rc_gamma-1.d0)*(w(ixO^S,e_)- &
-           half*(^C&w(ixO^S,mom(^C))**2+)/w(ixO^S,rho_))
-
-    end subroutine hd_get_pthermal_rc
-
-    subroutine mhd_get_pthermal_rc(w,x,ixI^L,ixO^L,p)
-      use mod_global_parameters
-
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision             :: w(ixI^S,nw), p(ixI^S)
-      double precision, intent(in) :: x(ixI^S,1:ndim)
-
-      p(ixO^S)=(rc_gamma-1.d0)*(w(ixO^S,e_)- &
-           half*((^C&w(ixO^S,mom(^C))**2+)/w(ixO^S,rho_)&
-           +^C&w(ixO^S,mag(^C))**2+))
-
-    end subroutine mhd_get_pthermal_rc
 
 end module mod_radiative_cooling

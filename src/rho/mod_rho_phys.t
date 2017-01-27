@@ -44,7 +44,6 @@ contains
 
     nflag_ = nw+1
 
-    phys_get_v           => rho_get_v
     phys_get_cmax        => rho_get_cmax
     phys_get_flux        => rho_get_flux
     phys_add_source_geom => rho_add_source_geom
@@ -87,7 +86,7 @@ contains
     double precision, intent(inout)           :: cmax(ixG^T)
     double precision, intent(inout), optional :: cmin(ixG^T)
 
-    call phys_get_v(w, x, ixI^L, ixO^L, idim, cmax)
+    call rho_get_v(w, x, ixI^L, ixO^L, idim, cmax)
 
     if (present(cmin)) then
        cmin(ixO^S) = min(cmax(ixO^S), zero)

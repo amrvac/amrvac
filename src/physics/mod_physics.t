@@ -36,7 +36,6 @@ module mod_physics
   procedure(sub_convert), pointer         :: phys_convert_before_coarsen => null()
   procedure(sub_convert), pointer         :: phys_convert_after_coarsen  => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
-  procedure(sub_get_v), pointer           :: phys_get_v                  => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
@@ -44,6 +43,7 @@ module mod_physics
   procedure(sub_add_source), pointer      :: phys_add_source             => null()
   procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
+  procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
 
   abstract interface
 
@@ -62,13 +62,6 @@ module mod_physics
        double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
        integer, intent(in)                :: ixI^L, ixO^L, idir
      end subroutine sub_modify_wLR
-
-     subroutine sub_get_v(w, x, ixI^L, ixO^L, idim, v)
-       use mod_global_parameters
-       integer, intent(in)           :: ixI^L, ixO^L, idim
-       double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-       double precision, intent(out) :: v(ixG^T)
-     end subroutine sub_get_v
 
      subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
        use mod_global_parameters
@@ -124,6 +117,13 @@ module mod_physics
        integer, intent(inout)       :: w_flag(ixG^T)
      end subroutine sub_check_w
 
+     subroutine sub_get_pthermal(w,x,ixI^L,ixO^L,pth)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision             :: w(ixI^S,nw), pth(ixI^S)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+     end subroutine sub_get_pthermal
+
   end interface
 
 contains
@@ -172,9 +172,6 @@ contains
 
     if (.not. associated(phys_modify_wLR)) &
          phys_modify_wLR => dummy_modify_wLR
-
-    if (.not. associated(phys_get_v)) &
-         call mpistop("Error: phys_get_v not defined")
 
     if (.not. associated(phys_get_cmax)) &
          call mpistop("Error: no phys_get_cmax not defined")

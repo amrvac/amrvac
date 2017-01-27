@@ -11,34 +11,34 @@ module mod_physics_hllc
      subroutine sub_diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
        use mod_global_parameters
        integer, intent(in)                                    :: ixI^L,ixO^L,idims
-       double precision, dimension(ixG^T,1:nw), intent(in)    :: wRC,wLC
-       double precision, dimension(ixG^T,1:nwflux),intent(in) :: fLC, fRC
-       integer, dimension(ixG^T), intent(inout)               :: patchf
+       double precision, dimension(ixI^S,1:nw), intent(in)    :: wRC,wLC
+       double precision, dimension(ixI^S,1:nwflux),intent(in) :: fLC, fRC
+       integer, dimension(ixI^S), intent(inout)               :: patchf
      end subroutine sub_diffuse_hllcd
 
      subroutine sub_get_lCD(wLC,wRC,fLC,fRC,cmin,cmax,idims,ixI^L,ixO^L, &
           whll,Fhll,lambdaCD,patchf)
        use mod_global_parameters
        integer, intent(in)                                      :: ixI^L,ixO^L,idims
-       double precision, dimension(ixG^T,1:nw), intent(in)      :: wLC,wRC
-       double precision, dimension(ixG^T,1:nwflux), intent(in)  :: fLC,fRC
-       double precision, dimension(ixG^T), intent(in)           :: cmax,cmin
-       integer, dimension(ixG^T), intent(inout)                 :: patchf
-       double precision, dimension(ixG^T,1:nwflux), intent(out) :: Fhll,whll
-       double precision, dimension(ixG^T), intent(out)          :: lambdaCD
+       double precision, dimension(ixI^S,1:nw), intent(in)      :: wLC,wRC
+       double precision, dimension(ixI^S,1:nwflux), intent(in)  :: fLC,fRC
+       double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
+       integer, dimension(ixI^S), intent(inout)                 :: patchf
+       double precision, dimension(ixI^S,1:nwflux), intent(out) :: Fhll,whll
+       double precision, dimension(ixI^S), intent(out)          :: lambdaCD
      end subroutine sub_get_lCD
 
-     subroutine sub_get_wCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
+     subroutine sub_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
           ixI^L,ixO^L,idims,f)
        use mod_global_parameters
        integer, intent(in)                                     :: ixI^L,ixO^L,idims
-       double precision, dimension(ixG^T,1:nw), intent(in)     :: wRC,wLC
-       double precision, dimension(ixG^T,1:nwflux), intent(in) :: whll, Fhll
-       double precision, dimension(ixG^T), intent(in)          :: vRC, vLC,lambdaCD
-       double precision, dimension(ixG^T), intent(in)          :: cmax,cmin
-       double precision, dimension(ixG^T,1:nwflux), intent(in) :: fRC,fLC
-       integer, dimension(ixG^T), intent(in)                   :: patchf
-       double precision, dimension(ixG^T,1:nwflux),intent(out) :: f
+       double precision, dimension(ixI^S,1:nw), intent(in)     :: wRC,wLC
+       double precision, dimension(ixI^S,1:nwflux), intent(in) :: whll, Fhll
+       double precision, dimension(ixI^S), intent(in)          :: lambdaCD
+       double precision, dimension(ixI^S), intent(in)          :: cmax,cmin
+       double precision, dimension(ixI^S,1:nwflux), intent(in) :: fRC,fLC
+       integer, dimension(ixI^S), intent(in)                   :: patchf
+       double precision, dimension(ixI^S,1:nwflux),intent(out) :: f
      end subroutine sub_get_wCD
   end interface
 
@@ -63,9 +63,9 @@ contains
   subroutine dummy_diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
     use mod_global_parameters
     integer, intent(in)                                    :: ixI^L,ixO^L,idims
-    double precision, dimension(ixG^T,1:nw), intent(in)    :: wRC,wLC
-    double precision, dimension(ixG^T,1:nwflux),intent(in) :: fLC, fRC
-    integer, dimension(ixG^T), intent(inout)               :: patchf
+    double precision, dimension(ixI^S,1:nw), intent(in)    :: wRC,wLC
+    double precision, dimension(ixI^S,1:nwflux),intent(in) :: fLC, fRC
+    integer, dimension(ixI^S), intent(inout)               :: patchf
 
     patchf(ixO^S) = 4 ! enforce TVDLF everywhere
   end subroutine dummy_diffuse_hllcd
@@ -78,12 +78,12 @@ contains
        whll,Fhll,lambdaCD,patchf)
     use mod_global_parameters
     integer, intent(in)                                      :: ixI^L,ixO^L,idims
-    double precision, dimension(ixG^T,1:nw), intent(in)      :: wLC,wRC
-    double precision, dimension(ixG^T,1:nwflux), intent(in)  :: fLC,fRC
-    double precision, dimension(ixG^T), intent(in)           :: cmax,cmin
-    integer, dimension(ixG^T), intent(inout)                 :: patchf
-    double precision, dimension(ixG^T,1:nwflux), intent(out) :: Fhll,whll
-    double precision, dimension(ixG^T), intent(out)          :: lambdaCD
+    double precision, dimension(ixI^S,1:nw), intent(in)      :: wLC,wRC
+    double precision, dimension(ixI^S,1:nwflux), intent(in)  :: fLC,fRC
+    double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
+    integer, dimension(ixI^S), intent(inout)                 :: patchf
+    double precision, dimension(ixI^S,1:nwflux), intent(out) :: Fhll,whll
+    double precision, dimension(ixI^S), intent(out)          :: lambdaCD
 
     ! Next must normally be computed
     Fhll(ixO^S,1:nwflux) = zero
@@ -96,17 +96,17 @@ contains
 
   ! compute the intermediate state U*. Only needed where patchf=-1/1. This nul
   ! version simply nullifies all values
-  subroutine dummy_get_wCD(wLC,wRC,whll,vLC,vRC,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
+  subroutine dummy_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,cmin,cmax,&
        ixI^L,ixO^L,idims,f)
     use mod_global_parameters
     integer, intent(in)                                     :: ixI^L,ixO^L,idims
-    double precision, dimension(ixG^T,1:nw), intent(in)     :: wRC,wLC
-    double precision, dimension(ixG^T,1:nwflux), intent(in) :: whll, Fhll
-    double precision, dimension(ixG^T), intent(in)          :: vRC, vLC,lambdaCD
-    double precision, dimension(ixG^T), intent(in)          :: cmax,cmin
-    double precision, dimension(ixG^T,1:nwflux), intent(in) :: fRC,fLC
-    integer, dimension(ixG^T), intent(in)                   :: patchf
-    double precision, dimension(ixG^T,1:nwflux),intent(out) :: f
+    double precision, dimension(ixI^S,1:nw), intent(in)     :: wRC,wLC
+    double precision, dimension(ixI^S,1:nwflux), intent(in) :: whll, Fhll
+    double precision, dimension(ixI^S), intent(in)          :: lambdaCD
+    double precision, dimension(ixI^S), intent(in)          :: cmax,cmin
+    double precision, dimension(ixI^S,1:nwflux), intent(in) :: fRC,fLC
+    integer, dimension(ixI^S), intent(in)                   :: patchf
+    double precision, dimension(ixI^S,1:nwflux),intent(out) :: f
 
     ! Next must normally be computed
     f(ixO^S,1:nwflux)  = zero

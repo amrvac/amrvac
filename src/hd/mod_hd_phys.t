@@ -137,7 +137,6 @@ contains
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1   ! TODO: why like this?
 
-    phys_get_v           => hd_get_v
     phys_get_dt          => hd_get_dt
     phys_get_cmax        => hd_get_cmax
     phys_get_flux        => hd_get_flux
@@ -146,6 +145,7 @@ contains
     phys_to_primitive    => hd_to_primitive
     phys_check_params    => hd_check_params
     phys_check_w         => hd_check_w
+    phys_get_pthermal    => hd_get_pthermal
 
     ! initialize thermal conduction module
     if(hd_thermal_conduction) then
@@ -158,7 +158,6 @@ contains
     ! Initialize radiative cooling module
     if(hd_radiative_cooling) then
       rc_gamma=hd_gamma
-      phys_get_pthermal_rc => hd_get_pthermal_rc
       call radiative_cooling_init()
     end if
 
