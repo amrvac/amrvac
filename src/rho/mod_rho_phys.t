@@ -1,5 +1,4 @@
 module mod_rho_phys
-  use mod_physics
 
   implicit none
   private
@@ -30,6 +29,7 @@ contains
 
   subroutine rho_phys_init()
     use mod_global_parameters
+    use mod_physics
 
     call rho_params_read(par_files)
 
@@ -100,7 +100,8 @@ contains
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(inout) :: dtnew
 
     dtnew = bigdouble
   end subroutine rho_get_dt

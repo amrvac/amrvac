@@ -10,6 +10,7 @@ contains
   subroutine fd(method,qdt,ixI^L,ixO^L,idim^LIM, &
        qtC,wCT,qt,wnew,wold,fC,dx^D,x)
     use mod_physics
+    use mod_source, only: addsource2
     use mod_global_parameters
 
     character(len=*), intent(in)                                     :: method

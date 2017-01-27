@@ -146,6 +146,7 @@ contains
 
   subroutine timeintegration()
     use mod_timing
+    use mod_advance, only: advance, process
     use mod_forest, only: nleafs_active
     use mod_global_parameters
     use mod_input_output, only: saveamrfile

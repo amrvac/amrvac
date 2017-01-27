@@ -3,6 +3,7 @@ subroutine settree
 
 use mod_global_parameters
 use mod_ghostcells_update
+use mod_advance, only: advance
 
 ! create and initialize grids on all levels > 1. On entry, all
 ! level=1 grids have been formed and initialized. This subroutine

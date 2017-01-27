@@ -5,7 +5,6 @@
 
 !> Hydrodynamics module
 module mod_hd_phys
-  use mod_physics
 
   implicit none
   private
@@ -90,6 +89,7 @@ contains
     use mod_thermal_conduction
     use mod_radiative_cooling
     use mod_dust, only: dust_init
+    use mod_physics
 
     integer :: itr, idir
 
@@ -574,8 +574,9 @@ contains
     use mod_dust, only: dust_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: dx^D, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
+    double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(inout) :: dtnew
     double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
     integer                         :: idir
 

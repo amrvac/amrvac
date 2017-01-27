@@ -238,12 +238,10 @@ contains
 
     use mod_global_parameters
 
-    integer::          ix^L,iw,il,idim,idir
-    double precision:: wroe(ixG^T,nw)
-    double precision, dimension(ixG^T):: q,rq,csound
-    logical:: shearwave
-    !!common /roe/ csound
-    !-----------------------------------------------------------------------------
+    integer                            :: ix^L,iw,il,idim,idir
+    double precision                   :: wroe(ixG^T,nw)
+    double precision, dimension(ixG^T) :: q,rq,csound
+    logical                            :: shearwave
 
     shearwave=il>shearW0_
     if(shearwave)then

@@ -18,6 +18,7 @@ contains
     use mod_physics
     use mod_limiter
     use mod_global_parameters
+    use mod_source, only: addsource2
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D
@@ -83,6 +84,7 @@ contains
     use mod_physics
     use mod_tvdlf, only: upwindLR
     use mod_global_parameters
+    use mod_source, only: addsource2
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D

@@ -4,7 +4,6 @@
 
 !> Magneto-hydrodynamics module
 module mod_mhd_phys
-  use mod_physic
 
   implicit none
   private
@@ -23,6 +22,9 @@ module mod_mhd_phys
 
   !> Whether MHD-GLM is used
   logical, public, protected              :: mhd_glm = .false.
+
+  !> TODO: describe and set value
+  double precision, public, protected     :: mhd_glm_Cr = 0.0
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
@@ -113,6 +115,7 @@ contains
     use mod_global_parameters
     use mod_thermal_conduction
     use mod_radiative_cooling
+    use mod_physics
 
     integer :: itr, idir
 
@@ -193,7 +196,7 @@ contains
     end if
 
     ! Initialize radiative cooling module
-    if(mhd_radiative_cooling) then
+    if (mhd_radiative_cooling) then
       rc_gamma=mhd_gamma
 !      phys_get_pthermal_rc => mhd_get_pthermal_rc
       call radiative_cooling_init()
@@ -202,7 +205,7 @@ contains
     if (mhd_glm) then
        ! Solve the Riemann problem for the linear 2x2 system for normal
        ! B-field and GLM_Psi according to Dedner 2002:
-       phys_modify_interface => glmSolve
+       phys_modify_wLR => glmSolve
     end if
 
     ! For Hall, we need one more reconstructed layer since currents are computed
@@ -230,8 +233,8 @@ contains
     flag(ixO^S)=0
     where(w(ixO^S, rho_) < minrho) flag(ixO^S) = rho_
 
-    if(mhd_energy) then
-      if(primitive)then
+    if (mhd_energy) then
+      if (primitive)then
         where(w(ixO^S, e_) < minp) flag(ixO^S) = e_
       else
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
@@ -243,7 +246,7 @@ contains
   end subroutine mhd_check_w
 
   !> Transform primitive variables into conservative ones
-  subroutine mhd_to_conserved(ixI^L,ixO^L,w,x,patchw)
+  subroutine mhd_to_conserved(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
@@ -265,7 +268,7 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
     end do
 
-    ! if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
+    ! if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
   end subroutine mhd_to_conserved
 
   !> Transform conservative variables into primitive ones
@@ -302,10 +305,10 @@ contains
     double precision,intent(inout)  :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    if(mhd_energy) then
+    if (mhd_energy) then
       w(ixO^S, e_) = (mhd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
             (w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
-            - mhd_mom_en(w, ixI^L, ixO^L)) &
+            - mhd_mom_en(w, ixI^L, ixO^L))
     else
       call mpistop("e_to_rhos can not be used without energy equation!")
     end if
@@ -321,13 +324,13 @@ contains
     if (mhd_energy) then
        w(ixO^S, e_) = w(ixO^S, rho_)**(mhd_gamma - 1.0d0) * w(ixO^S, e_) &
             / (mhd_gamma - 1.0d0) + mhd_kin_en(w, ixI^L, ixO^L) + &
-            mhd_mom_en(w, ixI^L, ixO^L) + &
+            mhd_mom_en(w, ixI^L, ixO^L)
     else
        call mpistop("rhos_to_e can not be used without energy equation!")
     end if
   end subroutine rhos_to_e
 
-  !> Calculate v_idim=m_idim/rho within ixO^L
+  !> Calculate v vector
   subroutine mhd_get_v(w,x,ixI^L,ixO^L,v)
     use mod_global_parameters
 
@@ -340,6 +343,7 @@ contains
     do idir=1,ndir
       v(ixO^S,idir) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
     end do
+
   end subroutine mhd_get_v
 
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
@@ -355,12 +359,11 @@ contains
 
     call mhd_get_csound2(w,x,ixI^L,ixO^L,csound)
     ! store |B|^2 in v
-    v(ixO^S)=mhd_mag_en_all(w,ixI^L,ixO^L)
-    cfast2(ixO^S)=v(ixO^S)
-         /w(ixO^S,rho_)+csound(ixO^S)
-    AvMinCs2(ixO^S)=cfast2(ixO^S)**2-4.0d0*csound(ixO^S)&
-         *mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
-         /w(ixO^S,rho_)
+    v(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
+    cfast2(ixO^S)   = v(ixO^S) / w(ixO^S,rho_)+csound(ixO^S)
+    AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
+         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
+         / w(ixO^S,rho_)
 
     where(AvMinCs2(ixO^S)<zero)
        AvMinCs2(ixO^S)=zero
@@ -403,9 +406,9 @@ contains
     if (mhd_energy) then
        pth(ixO^S)=(mhd_gamma-1.0d0)*(w(ixO^S,e_)&
           - mhd_kin_en(w,ixI^L,ixO^L)&
-          - mhd_kin_en(w,ixI^L,ixO^L))
+          - mhd_mom_en(w,ixI^L,ixO^L))
     else
-       p(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
+       pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
   end subroutine mhd_get_pthermal
 
@@ -459,8 +462,8 @@ contains
 
     call mhd_get_v(w,x,ixI^L,ixO^L,v)
 
-    if(mhd_Hall) then
-      allocate(vHall(ixI^S,1:3)
+    if (mhd_Hall) then
+      allocate(vHall(ixI^S,1:ndir))
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
@@ -477,7 +480,7 @@ contains
       else
         f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       end if
-      if(B0field) then
+      if (B0field) then
         f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
              -w(ixO^S,mag(idir))*myB0%w(ixO^S,idim)&
              -w(ixO^S,mag(idim))*myB0%w(ixO^S,idir)
@@ -491,20 +494,20 @@ contains
       f(ixO^S,e_)=v(ixO^S,idim)*(w(ixO^S,e_)+ptotal(ixO^S))- &
             w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*v(ixO^S,:),dim=ndim+1)
 
-      if(B0field) then
+      if (B0field) then
         tmp(ixO^S)=sum(myB0%w(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
         f(ixO^S,e_) = f(ixO^S,e_) &
              + v(ixO^S,idim) * tmp(ixO^S) &
              - sum(v(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
       end if
 
-      if(mhd_Hall) then
+      if (mhd_Hall) then
         ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
-        if(mhd_etah>zero) then
-          f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim)*&
-                 sum(w(ixO^S, mag(:))**2,dim=ndim+1)&
-               - w(ixO^S,mag(idim))*sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1)
-          if(B0field) then
+        if (mhd_etah>zero) then
+          f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
+                 sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
+               - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1)
+          if (B0field) then
             f(ixO^S,e_) = f(ixO^S,e_) &
                  + vHall(ixO^S,idim) * tmp(ixO^S) &
                  - sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * myB0%w(ixO^S,idim)
@@ -517,7 +520,7 @@ contains
     ! compute flux of magnetic field
     ! f_i[b_k]=v_i*b_k-v_k*b_i
     do idir=1,ndir
-      if(idim==idir) then
+      if (idim==idir) then
         ! f_i[b_i] should be exactly 0, so we do not use the transport flux
         if (mhd_glm) then
            f(ixO^S,mag(idir))=w(ixO^S,psi_)
@@ -527,16 +530,16 @@ contains
       else
         f(ixO^S,mag(idir))=v(ixO^S,idim)*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*v(ixO^S,idir)
 
-        if(B0field) then
+        if (B0field) then
           f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
                 +v(ixO^S,idim)*myB0%w(ixO^S,idir)&
                 -v(ixO^S,idir)*myB0%w(ixO^S,idim)
         end if
 
-        if(mhd_Hall) then
+        if (mhd_Hall) then
           ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
-          if(mhd_etah>zero) then
-            if(B0field) then
+          if (mhd_etah>zero) then
+            if (B0field) then
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+myB0%w(ixO^S,idim)) &
                    + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+myB0%w(ixO^S,idir))
@@ -551,7 +554,7 @@ contains
       end if
     end do
 
-    if(mhd_glm)
+    if (mhd_glm) then
       !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
       f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
@@ -568,11 +571,11 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
 
-    if(qsourcesplit .eqv. ssplitresis) then
+    if (qsourcesplit .eqv. ssplitresis) then
        ! Sources for resistivity in eqs. for e, B1, B2 and B3
-       if(dabs(mhd_eta)>smalldouble)then
+       if (dabs(mhd_eta)>smalldouble)then
           if (.not.slab) call mpistop("no resistivity in non-slab geometry")
-          if(compactres)then
+          if (compactres)then
              call add_source_res1(qdt,ixI^L,ixO^L,wCT,w,x)
           else
              call add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -585,7 +588,7 @@ contains
     end if
 
     {^NOONED
-    if(qsourcesplit .eqv. ssplitdivb) then
+    if (qsourcesplit .eqv. ssplitdivb) then
        ! Sources related to div B
        select case (typedivbfix)
        case ('glm1')
@@ -635,19 +638,19 @@ contains
 
 
     ! Calculating resistive sources involve one extra layer
-    if(mhd_4th_order) then
+    if (mhd_4th_order) then
       ix^L=ixO^L^LADD2;
     else
       ix^L=ixO^L^LADD1;
     end if
 
-    if(ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+    if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
          call mpistop("Error in add_source_res1: Non-conforming input limits")
 
     ! Calculate current density and idirmin
     call get_current(wCT,ixI^L,ixO^L,idirmin,current)
 
-    if(mhd_eta>zero)then
+    if (mhd_eta>zero)then
        eta(ix^S)=mhd_eta
        gradeta(ixO^S,1:ndim)=zero
     else
@@ -661,7 +664,7 @@ contains
 
     do idir=1,ndir
        ! Put B_idir into tmp2 and eta*Laplace B_idir into tmp
-       if(mhd_4th_order) then
+       if (mhd_4th_order) then
          tmp(ixO^S)=zero
          tmp2(ixI^S)=wCT(ixI^S,mag(idir))
          do idim=1,ndim
@@ -688,10 +691,10 @@ contains
        tmp(ixO^S)=tmp(ixO^S)*eta(ixO^S)
 
        ! Subtract grad(eta) x J = eps_ijk d_j eta J_k if eta is non-constant
-       if(mhd_eta<zero)then
+       if (mhd_eta<zero)then
           do jdir=1,ndim; do kdir=idirmin,3
-             if(lvc(idir,jdir,kdir)/=0)then
-                if(lvc(idir,jdir,kdir)==1)then
+             if (lvc(idir,jdir,kdir)/=0)then
+                if (lvc(idir,jdir,kdir)==1)then
                    tmp(ixO^S)=tmp(ixO^S)-gradeta(ixO^S,jdir)*current(ixO^S,kdir)
                 else
                    tmp(ixO^S)=tmp(ixO^S)+gradeta(ixO^S,jdir)*current(ixO^S,kdir)
@@ -702,7 +705,9 @@ contains
 
        ! Add sources related to eta*laplB-grad(eta) x J to B and e
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
-       if(mhd_energy) w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*wCT(ixO^S,mag(idir))
+       if (mhd_energy) then
+          w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*wCT(ixO^S,mag(idir))
+       end if
 
     end do ! idir
 
@@ -714,7 +719,7 @@ contains
        end do
        w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
 
-       if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_res1")
+       if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_res1")
     end if
   end subroutine add_source_res1
 
@@ -738,7 +743,7 @@ contains
 
     ix^L=ixO^L^LADD2;
 
-    if(ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+    if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
          call mpistop("Error in add_source_res2: Non-conforming input limits")
 
     ix^L=ixO^L^LADD1;
@@ -746,7 +751,7 @@ contains
     ! Determine exact value of idirmin while doing the loop.
     call get_current(wCT,ixI^L,ix^L,idirmin,current)
 
-    if(mhd_eta>zero)then
+    if (mhd_eta>zero)then
        eta(ix^S)=mhd_eta
     else
        call usr_special_resistivity(wCT,ixI^L,ix^L,idirmin,x,current,eta)
@@ -766,9 +771,9 @@ contains
        ! de/dt= +div(B x Jeta)
        tmpvec2(ix^S,1:ndir)=zero
        do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
-          if(lvc(idir,jdir,kdir)/=0)then
+          if (lvc(idir,jdir,kdir)/=0)then
              tmp(ix^S)=wCT(ix^S,mag(jdir))*current(ix^S,kdir)*eta(ix^S)*qdt
-             if(lvc(idir,jdir,kdir)==1)then
+             if (lvc(idir,jdir,kdir)==1)then
                 tmpvec2(ix^S,idir)=tmpvec2(ix^S,idir)+tmp(ix^S)
              else
                 tmpvec2(ix^S,idir)=tmpvec2(ix^S,idir)-tmp(ix^S)
@@ -783,7 +788,7 @@ contains
        !end select
        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
 
-       if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_res2")
+       if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_res2")
     end if
   end subroutine add_source_res2
 
@@ -802,7 +807,7 @@ contains
     integer                         :: ix^L,idir,jdir,kdir,idirmin,idirmin1
     !-----------------------------------------------------------------------------
     ix^L=ixO^L^LADD3;
-    if(ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+    if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
          call mpistop("Error in add_source_hyperres: Non-conforming input limits")
 
     call get_current(wCT,ixI^L,ix^L,idirmin,current)
@@ -839,7 +844,7 @@ contains
        call divvector(tmpvec2,ixI^L,ixO^L,tmp)
        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
 
-       if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_hyperres")
+       if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_hyperres")
     end if
   end subroutine add_source_hyperres
 
@@ -875,7 +880,7 @@ contains
        case("limited")
           call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
-       if(mhd_energy)
+       if (mhd_energy) then
        ! e  = e  -qdt (b . grad(Psi))
          w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
        end if
@@ -886,7 +891,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
     ! since this option changes energy: smallvalues call
-    if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_glm")
+    if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_glm")
   end subroutine add_source_glm1
 
   subroutine add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -904,8 +909,12 @@ contains
 
     ! calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
+
     ! calculate velocity
-    call mhd_get_v(wCT,ixI^L,ixO^L,v)
+    do idir = 1, ndir
+       call mhd_get_v(wCT,x,ixI^L,ixO^L,idir,v(ixI^S, idir))
+    end do
+
     ! Psi = Psi - qdt Ch^2/Cp^2 Psi
     if (mhd_glm_Cr < zero) then
       w(ixO^S,psi_) = abs(mhd_glm_Cr)*wCT(ixO^S,psi_)
@@ -926,17 +935,17 @@ contains
       ! Psi=Psi - qdt (v . grad(Psi))
       w(ixO^S,psi_) = w(ixO^S,psi_)-qdt*v(ixO^S,idim)*gradPsi(ixO^S)
 
-      if(mhd_energy) then
+      if (mhd_energy) then
       ! e  = e  - qdt (b . grad(Psi))
         w(ixO^S,e_) = w(ixO^S,e_)&
              -qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
       end if
     end do
 
-    if(mhd_energy) then
+    if (mhd_energy) then
     ! e = e - qdt (v . b) * div b
-      w(ixO^S,e_)=w(ixO^S,e_)-&
-         qdt*(sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)*divb(ixO^S)
+       w(ixO^S,e_)=w(ixO^S,e_) - qdt * divb(ixO^S) * &
+            sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)
     end if
     ! b = b - qdt v * div b
     do idir=1,ndir
@@ -947,9 +956,9 @@ contains
     do idir=1,ndir
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
-    if(mhd_energy) then
+    if (mhd_energy) then
     ! since this option changes energy: smallvalues call
-    if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_glm2")
+    if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_glm2")
     end if
   end subroutine add_source_glm2
 
@@ -977,16 +986,21 @@ contains
   subroutine add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
 
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision:: divb(ixI^S),v(ixI^S,1:ndir)
+    double precision                :: divb(ixI^S),v(ixI^S,1:ndir)
+    integer                         :: idir
 
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
+
     ! calculate velocity
-    call mhd_get_v(wCT,ixI^L,ixO^L,v)
-    if(mhd_energy) then
+    do idir = 1, ndir
+       call mhd_get_v(wCT,x,ixI^L,ixO^L,idir,v(ixI^S, idir))
+    end do
+
+    if (mhd_energy) then
       ! e = e - qdt (v . b) * div b
       w(ixO^S,e_)=w(ixO^S,e_)-&
            qdt*sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)*divb(ixO^S)
@@ -1003,7 +1017,7 @@ contains
     end do
 
     ! since this option changes energy: smallvalues call
-    if(fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_powel")
+    if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_powel")
 
   end subroutine add_source_powel
 
@@ -1012,11 +1026,11 @@ contains
     ! corresponding to Janhunen, just the term in the induction equation.
     use mod_global_parameters
 
-    integer, intent(in) :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in) :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    double precision:: divb(ixI^S)
+    double precision                :: divb(ixI^S)
+    integer                         :: idir
 
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
@@ -1035,7 +1049,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
-    integer :: iw, idim, ix^L, ixp^L, i^D, iside
+    integer :: iw, idim, idir, ix^L, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S)
 
 
@@ -1049,8 +1063,8 @@ contains
        {case(^D)
           do iside=1,2
             i^DD=kr(^DD,^D)*(2*iside-3);
-            if(leveljump(i^DD)) then
-              if(iside==1) then
+            if (leveljump(i^DD)) then
+              if (iside==1) then
                 ixpmin^D=ixOmin^D-i^D
               else
                 ixpmax^D=ixOmax^D-i^D
@@ -1078,16 +1092,18 @@ contains
           graddivb(ixp^S)=graddivb(ixp^S)*divbdiff &
                           /(^D&1.0d0/mygeo%dx(ixp^S,^D)**2+)
        end if
+
        do idir=1,ndir
          w(ixp^S,mag(idir))=w(ixp^S,mag(idir))+graddivb(ixp^S)
-       end if
-       if(mhd_energy .and. typedivbdiff=='all') then
+       end do
+
+       if (mhd_energy .and. typedivbdiff=='all') then
          ! e += B_idim*eta*grad_idim(divb)
          w(ixp^S,e_)=w(ixp^S,e_)+wCT(ixp^S,mag(idim))*graddivb(ixp^S)
-       end do
+       end if
     end do
 
-    if(fixsmall) call smallvalues(w,x,ixI^L,ixp^L,"add_source_linde")
+    if (fixsmall) call smallvalues(w,x,ixI^L,ixp^L,"add_source_linde")
 
   end subroutine add_source_linde
 
@@ -1121,15 +1137,21 @@ contains
     integer, parameter:: idirmin0=7-2*ndir
     integer :: ix^L, idirmin, ixI^L
     double precision :: w(ixI^S,1:nw)
+    integer :: idir
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
 
-    if(B0field) then
-       ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_)+myB0_cell%w(ixI^S,^C);
+    if (B0field) then
+       do idir = 1, ndir
+          bvec(ixI^S,idir)=w(ixI^S,mag(idir))+myB0_cell%w(ixI^S,idir)
+       end do
     else
-       ^C&bvec(ixI^S,^C)=w(ixI^S,b^C_);
+       do idir = 1, ndir
+          bvec(ixI^S,idir)=w(ixI^S,mag(idir))
+       end do
     end if
+
     !bvec(ixI^S,1:ndir)=w(ixI^S,b0_+1:b0_+ndir)
     call curlvector(bvec,ixI^L,ix^L,current,idirmin,idirmin0,ndir)
 
@@ -1140,11 +1162,11 @@ contains
     use mod_global_parameters
     use mod_usr_methods
 
-    integer, intent(in)           :: ixI^L, ix^L
-    double precision, intent(out) :: dtnew
-    double precision, intent(in)  :: dx^D
-    double precision, intent(in)  :: w(ixI^S,1:nw)
-    double precision, intent(in)  :: x(ixI^S,1:ndim)
+    integer, intent(in)             :: ixI^L, ix^L
+    double precision, intent(inout) :: dtnew
+    double precision, intent(in)    :: dx^D
+    double precision, intent(in)    :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
 
     integer                       :: idirmin,idim
     double precision              :: dxarr(ndim)
@@ -1153,9 +1175,9 @@ contains
     dtnew = bigdouble
 
     ^D&dxarr(^D)=dx^D;
-    if(mhd_eta>zero)then
+    if (mhd_eta>zero)then
        dtnew=dtdiffpar*minval(dxarr(1:ndim))**2/mhd_eta
-    else if(mhd_eta<zero)then
+    else if (mhd_eta<zero)then
        call get_current(w,ixI^L,ix^L,idirmin,current)
        call usr_special_resistivity(w,ixI^L,ix^L,idirmin,x,current,eta)
        dtnew=bigdouble
@@ -1165,7 +1187,7 @@ contains
        end do
     end if
 
-    if(mhd_eta_hyper>zero)then
+    if (mhd_eta_hyper>zero)then
        dtnew=min(dtdiffpar*minval(dxarr(1:ndim))**4/mhd_eta_hyper,dtnew)
     end if
 
@@ -1235,7 +1257,7 @@ contains
     !       case (m1_)
     !          call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
     !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,b^C_)+}
+    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,mag(idir))+}
     !          end if
     !          ! For nonuniform Cartesian grid this provides hydrostatic equil.
     !          tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
@@ -1254,7 +1276,7 @@ contains
     !          {^NOONED
     !          call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
     !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,b^C_)+}
+    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,mag(idir))+}
     !          end if
     !          ! This will make hydrostatic p=const an exact solution
     !          w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S) &
@@ -1350,7 +1372,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mge(ixO^S)
 
-    if(B0field) then
+    if (B0field) then
       mge = sum((w(ixO^S, mag(:))+myB0%w(ixO^S,:))**2, dim=ndim+1)
     else
       mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
@@ -1364,7 +1386,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mgf(ixO^S)
 
-    if(B0field) then
+    if (B0field) then
       mgf = w(ixO^S, mag(idir))+myB0%w(ixO^S,idir)
     else
       mgf = w(ixO^S, mag(idir))
@@ -1416,27 +1438,6 @@ contains
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
     vHall(ixI^S,1:3) = zero
-    vHall(ixO^S,idirmin:3) = - eqpar(etah_)*current(ixO^S,idirmin:3)
-    do idir = idirmin, 3
-       vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)
-    end do
-
-  end subroutine mhd_getv_Hall
-
-  subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: w(ixI^S,nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: vHall(ixI^S,1:3)
-
-    integer          :: idir, idirmin
-    double precision :: current(ixI^S,7-2*ndir:3)
-
-    ! Calculate current density and idirmin
-    call get_current(w,ixI^L,ixO^L,idirmin,current)
-    vHall(ixI^S,1:3) = zero
     vHall(ixO^S,idirmin:3) = - mhd_etah*current(ixO^S,idirmin:3)
     do idir = idirmin, 3
        vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)
@@ -1464,12 +1465,11 @@ contains
     ^D&dxarr(^D)=dx^D;
 
     if (.not. B0field) then
-       bmag(ixO^S)=sqrt({^C& w(ixO^S,b^C_)**2 +})
-    else
-       bmag(ixO^S)=sqrt({^C& (w(ixO^S,b^C_)+myB0%w(ixO^S,^C))**2 +})
+       bmag(ixO^S)=sqrt(sum(w(ixO^S,mag(:))**2, dim=ndim+1))
+       bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + myB0%w(ixO^S,1:ndir))**2))
     end if
 
-    dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(eqpar(etah_)*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
+    dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
   end subroutine mhd_getdt_Hall
   ! TODO: rewrite
   subroutine smallvalues(w,x,ixI^L,ixO^L,subname)
@@ -1486,120 +1486,121 @@ contains
     double precision                :: pth(ixI^S), Te(ixI^S)
     !-----------------------------------------------------------------------------
 
-    {#IFDEF ENERGY
-    pth(ixO^S)=(mhd_gamma-one)*(w(ixO^S,e_)- &
-         half*(({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)&
-         +{ ^C&w(ixO^S,b^C_)**2+}))
-    if(smallT>0.d0) then
-       Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
-    else
-       Te(ixO^S)=zero
-    end if
-    if(strictsmall) then
-       if(smallT>0.d0 .and. any(Te(ixO^S) <=smallT)) then
-          print *,'SMALLVALUES of temperature under strictsmall problem From:  ', &
-               subname,' iteration=', it,' time=',t
-          posvec(1:ndim)=minloc(Te(ixO^S))
-          ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
-          write(*,*)'minimum temperature= ', minval(Te(ixO^S)),' with limit=',smallT,&
-               ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where rho=',&
-               w({^D&posvec(^D)},rho_),', velocity v=',&
-               ^C&w({^D&posvec(^D)},m^C_)/w({^D&posvec(^D)},rho_),&
-               ', and magnetic field B=',^C&w({^D&posvec(^D)},b^C_),&
-               ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
-          call mpistop("Smallvalues of temperature with strictsmall=T failed")
-       end if
-       if(any(pth(ixO^S) <=minp)) then
-          print *,'SMALLVALUES of pressure under strictsmall problem From:  ', &
-               subname,' iteration=', it,' time=',t
-          posvec(1:ndim)=minloc(pth(ixO^S))
-          ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
-          write(*,*)'minimum pressure = ', minval(pth(ixO^S)),' with limit=',minp,&
-               ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where rho=',&
-               w({^D&posvec(^D)},rho_),', velocity v=',&
-               ^C&w({^D&posvec(^D)},m^C_)/w({^D&posvec(^D)},rho_),&
-               ', and magnetic field B=',^C&w({^D&posvec(^D)},b^C_),&
-               ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
-          call mpistop("Smallvalues of pressure with strictsmall=T failed")
-       end if
-       if(any(w(ixO^S,e_) <=smalle)) then
-          print *,'SMALLVALUES of energy under strictsmall problem From:  ', &
-               subname,' iteration=', it,' time=',t
-          posvec(1:ndim)=minloc(w(ixO^S,e_))
-          ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
-          write(*,*)'minimum e =', minval(w(ixO^S,e_)),' with limit=',smalle,&
-               ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where E_k=',&
-               half*(^C&w(^D&posvec(^D),m^C_)**2+)/w(^D&posvec(^D),rho_),&
-               ' E_total=',w(^D&posvec(^D),e_),&
-               ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
-          call mpistop("Smallvalues of energy with strictsmall=T failed")
-       end if
-       if(any(w(ixO^S,rho_) <=minrho)) then
-          print *,'SMALLVALUES of density under strictsmall problem From:  ', &
-               subname,' iteration=', it,' time=',t
-          posvec(1:ndim)=minloc(w(ixO^S,rho_))
-          ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
-          write(*,*)'minimum rho =', minval(w(ixO^S,rho_)),' with limit=',minrho,&
-               ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where E_k=',&
-               half*(^C&w(^D&posvec(^D),m^C_)**2+)/w(^D&posvec(^D),rho_),&
-               ' E_total=',w(^D&posvec(^D),e_),&
-               ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
-          call mpistop("Smallvalues of density with strictsmall=T failed")
-       end if
-    else
-       if(strictgetaux)then
-          where(w(ixO^S,rho_) < minrho)
-             w(ixO^S,rho_)=minrho
-             {^C&w(ixO^S,m^C_) =zero;}
-          end where
-          where(pth(ixO^S) < minp)
-             w(ixO^S,e_)=minp/(mhd_gamma-one)+&
-                  (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,b^C_)**2+})*half
-          end where
-          where(Te(ixO^S) < smallT)
-             w(ixO^S,e_)=smallT*w(ixO^S,rho_)/(mhd_gamma-one)+&
-                  (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,b^C_)**2+})*half
-          end where
-       else
-          where(w(ixO^S,rho_) < minrho .or. w(ixO^S,e_) < smalle&
-               .or. pth(ixO^S) < minp .or. Te(ixO^S) < smallT)
-             patchierror(ixO^S)=-1
-          elsewhere
-             patchierror(ixO^S)=0
-          end where
-          call correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
-       end if
-    end if
-    }
+    ! {#IFDEF ENERGY
+    ! pth(ixO^S)=(mhd_gamma-one)*(w(ixO^S,e_)- &
+    !      half*(({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)&
+    !      +{ ^C&w(ixO^S,mag(idir))**2+}))
+    ! if (smallT>0.d0) then
+    !    Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
+    ! else
+    !    Te(ixO^S)=zero
+    ! end if
 
-    {#IFDEF ISO
-    if(any(w(ixO^S,rho_) < minrho)) then
-       if(strictsmall)then
-          write(*,*)'SMALLVALUES of density under strictsmall problem From:  ', &
-               subname,' iteration ', it,' time ',t
-          posvec(1:ndim)=minloc(w(ixO^S,rho_))
-          ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
-          write(*,*)'minimum rho =', minval(w(ixO^S,rho_)),' with limit=',minrho,&
-               ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where E_k=',&
-               half*(^C&w(^D&posvec(^D),m^C_)**2+)/w(^D&posvec(^D),rho_),&
-               ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
-          call mpistop("Smallvalues of density with strictsmall=T failed")
-       else
-          if(strictgetaux)then
-             where(w(ixO^S,rho_) < minrho)
-                w(ixO^S,rho_)  = 2.0*(1.0d0 + 10.0d0 * minrho)*minrho
-             end where
-          else
-             where(w(ixO^S,rho_) < minrho)
-                patchierror(ixO^S)=-1
-             elsewhere
-                patchierror(ixO^S)=0
-             end where
-             call correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
-          end if
-       end if ! strict
-    end if
-    }
+    ! if (strictsmall) then
+    !    if (smallT>0.d0 .and. any(Te(ixO^S) <=smallT)) then
+    !       print *,'SMALLVALUES of temperature under strictsmall problem From:  ', &
+    !            subname,' iteration=', it,' time=',t
+    !       posvec(1:ndim)=minloc(Te(ixO^S))
+    !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
+    !       write(*,*)'minimum temperature= ', minval(Te(ixO^S)),' with limit=',smallT,&
+    !            ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where rho=',&
+    !            w({^D&posvec(^D)},rho_),', velocity v=',&
+    !            ^C&w({^D&posvec(^D)},m^C_)/w({^D&posvec(^D)},rho_),&
+    !            ', and magnetic field B=',^C&w({^D&posvec(^D)},mag(idir)),&
+    !            ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
+    !       call mpistop("Smallvalues of temperature with strictsmall=T failed")
+    !    end if
+    !    if (any(pth(ixO^S) <=minp)) then
+    !       print *,'SMALLVALUES of pressure under strictsmall problem From:  ', &
+    !            subname,' iteration=', it,' time=',t
+    !       posvec(1:ndim)=minloc(pth(ixO^S))
+    !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
+    !       write(*,*)'minimum pressure = ', minval(pth(ixO^S)),' with limit=',minp,&
+    !            ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where rho=',&
+    !            w({^D&posvec(^D)},rho_),', velocity v=',&
+    !            ^C&w({^D&posvec(^D)},m^C_)/w({^D&posvec(^D)},rho_),&
+    !            ', and magnetic field B=',^C&w({^D&posvec(^D)},mag(idir)),&
+    !            ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
+    !       call mpistop("Smallvalues of pressure with strictsmall=T failed")
+    !    end if
+    !    if (any(w(ixO^S,e_) <=smalle)) then
+    !       print *,'SMALLVALUES of energy under strictsmall problem From:  ', &
+    !            subname,' iteration=', it,' time=',t
+    !       posvec(1:ndim)=minloc(w(ixO^S,e_))
+    !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
+    !       write(*,*)'minimum e =', minval(w(ixO^S,e_)),' with limit=',smalle,&
+    !            ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where E_k=',&
+    !            half*(^C&w(^D&posvec(^D),m^C_)**2+)/w(^D&posvec(^D),rho_),&
+    !            ' E_total=',w(^D&posvec(^D),e_),&
+    !            ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
+    !       call mpistop("Smallvalues of energy with strictsmall=T failed")
+    !    end if
+    !    if (any(w(ixO^S,rho_) <=minrho)) then
+    !       print *,'SMALLVALUES of density under strictsmall problem From:  ', &
+    !            subname,' iteration=', it,' time=',t
+    !       posvec(1:ndim)=minloc(w(ixO^S,rho_))
+    !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
+    !       write(*,*)'minimum rho =', minval(w(ixO^S,rho_)),' with limit=',minrho,&
+    !            ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where E_k=',&
+    !            half*(^C&w(^D&posvec(^D),m^C_)**2+)/w(^D&posvec(^D),rho_),&
+    !            ' E_total=',w(^D&posvec(^D),e_),&
+    !            ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
+    !       call mpistop("Smallvalues of density with strictsmall=T failed")
+    !    end if
+    ! else
+    !    if (strictgetaux)then
+    !       where(w(ixO^S,rho_) < minrho)
+    !          w(ixO^S,rho_)=minrho
+    !          {^C&w(ixO^S,m^C_) =zero;}
+    !       end where
+    !       where(pth(ixO^S) < minp)
+    !          w(ixO^S,e_)=minp/(mhd_gamma-one)+&
+    !               (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,mag(idir))**2+})*half
+    !       end where
+    !       where(Te(ixO^S) < smallT)
+    !          w(ixO^S,e_)=smallT*w(ixO^S,rho_)/(mhd_gamma-one)+&
+    !               (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,mag(idir))**2+})*half
+    !       end where
+    !    else
+    !       where(w(ixO^S,rho_) < minrho .or. w(ixO^S,e_) < smalle&
+    !            .or. pth(ixO^S) < minp .or. Te(ixO^S) < smallT)
+    !          patchierror(ixO^S)=-1
+    !       elsewhere
+    !          patchierror(ixO^S)=0
+    !       end where
+    !       call correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
+    !    end if
+    ! end if
+    ! }
+
+    ! {#IFDEF ISO
+    ! if (any(w(ixO^S,rho_) < minrho)) then
+    !    if (strictsmall)then
+    !       write(*,*)'SMALLVALUES of density under strictsmall problem From:  ', &
+    !            subname,' iteration ', it,' time ',t
+    !       posvec(1:ndim)=minloc(w(ixO^S,rho_))
+    !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
+    !       write(*,*)'minimum rho =', minval(w(ixO^S,rho_)),' with limit=',minrho,&
+    !            ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where E_k=',&
+    !            half*(^C&w(^D&posvec(^D),m^C_)**2+)/w(^D&posvec(^D),rho_),&
+    !            ' w(1:nwflux)=',w(^D&posvec(^D),1:nwflux)
+    !       call mpistop("Smallvalues of density with strictsmall=T failed")
+    !    else
+    !       if (strictgetaux)then
+    !          where(w(ixO^S,rho_) < minrho)
+    !             w(ixO^S,rho_)  = 2.0*(1.0d0 + 10.0d0 * minrho)*minrho
+    !          end where
+    !       else
+    !          where(w(ixO^S,rho_) < minrho)
+    !             patchierror(ixO^S)=-1
+    !          elsewhere
+    !             patchierror(ixO^S)=0
+    !          end where
+    !          call correctaux(ixI^L,ixO^L,w,x,patchierror,subname)
+    !       end if
+    !    end if ! strict
+    ! end if
+    ! }
   end subroutine smallvalues
 
   !> This implements eq. (42) in Dedner et al. 2002 JcP 175

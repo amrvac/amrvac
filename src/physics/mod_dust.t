@@ -321,13 +321,13 @@ contains
   !> Equation from Decin et al. 2006
   subroutine get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
     use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: w(ixI^S, 1:nw)
-    double precision, intent(out)   :: alpha_T(ixG^T, 1:dust_n_species)
-    double precision, intent(in)    :: ptherm(ixG^T)
-    double precision                :: Tgas(ixG^T)
-    integer                         :: n
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: x(ixI^S, 1:ndim)
+    double precision, intent(in)  :: w(ixI^S, 1:nw)
+    double precision, intent(out) :: alpha_T(ixG^T, 1:dust_n_species)
+    double precision, intent(in)  :: ptherm(ixG^T)
+    double precision              :: Tgas(ixG^T)
+    integer                       :: n
 
     ! call getpthermal(w, x, ixI^L, ixO^L, Tgas)
     call get_tdust(w, x, ixI^L, ixO^L, alpha_T)
@@ -352,12 +352,12 @@ contains
   subroutine get_tdust(w, x, ixI^L, ixO^L, Td)
     use mod_global_parameters
 
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: w(ixI^S, 1:nw)
-    double precision, intent(out)   :: Td(ixG^T, 1:dust_n_species)
-    double precision                :: G0(ixO^S)
-    integer                         :: n
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: x(ixI^S, 1:ndim)
+    double precision, intent(in)  :: w(ixI^S, 1:nw)
+    double precision, intent(out) :: Td(ixG^T, 1:dust_n_species)
+    double precision              :: G0(ixO^S)
+    integer                       :: n
 
     select case( trim(dust_temperature_type) )
     case( 'constant' )
@@ -457,8 +457,9 @@ contains
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: dx^D, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
+    double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(inout) :: dtnew
     double precision, intent(in)    :: ptherm(ixG^T), vgas(ixG^T, ndir)
 
     integer                                    :: n, idims, idust, idir

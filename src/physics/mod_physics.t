@@ -97,7 +97,8 @@ module mod_physics
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
-       double precision, intent(inout) :: w(ixI^S, 1:nw), dtnew
+       double precision, intent(in)    :: w(ixI^S, 1:nw)
+       double precision, intent(inout) :: dtnew
      end subroutine sub_get_dt
 
      subroutine sub_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
