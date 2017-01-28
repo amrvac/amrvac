@@ -15,7 +15,7 @@ contains
 
   subroutine mhd_roe_init()
     use mod_global_parameters, only: entropycoef, nw
-    integer :: iw
+    integer :: il
 
     phys_average => mhd_average
     phys_get_eigenjump => mhd_get_eigenjump
@@ -46,10 +46,11 @@ contains
   subroutine mhd_average(wL,wR,x,ix^L,idim,wroe,workroe)
     use mod_global_parameters
 
-    integer                                     :: ix^L,idim,iw
-    double precision, dimension(ixG^T,nw)       :: wL,wR,wroe
-    double precision, intent(in)                :: x(ixG^T,1:ndim)
-    double precision, dimension(ixG^T,nworkroe) :: workroe
+    integer, intent(in)             :: ix^L, idim
+    double precision, intent(in)    :: wL(ixG^T, nw), wR(ixG^T, nw)
+    double precision, intent(inout) :: wroe(ixG^T, nw)
+    double precision, intent(inout) :: workroe(ixG^T, nworkroe)
+    double precision, intent(in)    :: x(ixG^T, 1:^ND)
 
     call average2(wL,wR,x,ix^L,idim,wroe,workroe(ixG^T,1),workroe(ixG^T,2), &
          workroe(ixG^T,3),workroe(ixG^T,4),workroe(ixG^T,5),workroe(ixG^T,6), &
@@ -72,8 +73,6 @@ contains
     double precision, intent(in)          :: x(ixG^T,1:ndim)
     double precision, dimension(ixG^T)    :: cfast,cslow,afast,aslow,csound2,dp, &
          rhodv,tmp
-
-    integer :: idir
 
     if (ndir==1) call mpistop("MHD with d=11 is the same as HD")
 
@@ -111,9 +110,9 @@ contains
 
     ! get csound**2
     if(mhd_energy) then
-      csound2(ixO^S)=mhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_)
+      csound2(ix^S)=mhd_gamma*wroe(ix^S,p_)/wroe(ix^S,rho_)
     else
-      csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**(mhd_gamma-one)
+      csound2(ix^S)=mhd_gamma*mhd_adiab*wroe(ix^S,rho_)**(mhd_gamma-one)
     end if
 
     ! aa=B**2/rho+a**2
@@ -185,7 +184,7 @@ contains
   subroutine mhd_get_eigenjump(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump,workroe)
     use mod_global_parameters
 
-    integer                                     :: ix^L,il,idim
+    integer, intent(in)                         :: ix^L,il,idim
     double precision, dimension(ixG^T,nw)       :: wL,wR,wroe
     double precision, intent(in)                :: x(ixG^T,1:ndim)
     double precision, dimension(ixG^T)          :: smalla,a,jump
@@ -309,10 +308,10 @@ contains
        case(fastRW_)
           ! These quantities will be used for all the fast and slow waves
           ! Calculate soundspeed**2 and cs**2+ca**2.
-          call getcsound2(wL,x,ixG^LL,ix^L,cs2L)
-          call getcsound2(wR,x,ixG^LL,ix^L,cs2R)
-          cs2ca2L(ix^S)=cs2L(ix^S)+(^C&wL(ix^S,b^C_)**2+)/wL(ix^S,rho_)
-          cs2ca2R(ix^S)=cs2R(ix^S)+(^C&wR(ix^S,b^C_)**2+)/wR(ix^S,rho_)
+          call mhd_get_csound2(wL,x,ixG^LL,ix^L,cs2L)
+          call mhd_get_csound2(wR,x,ixG^LL,ix^L,cs2R)
+          cs2ca2L(ix^S)=cs2L(ix^S)+sum(wL(ix^S,mag(:))**2,dim=ndim+1)/wL(ix^S,rho_)
+          cs2ca2R(ix^S)=cs2R(ix^S)+sum(wR(ix^S,mag(:))**2,dim=ndim+1)/wR(ix^S,rho_)
           ! Save the discriminants into cs2L and cs2R
           cs2L(ix^S)=&
                dsqrt(cs2ca2L(ix^S)**2-4d0*cs2L(ix^S)*wL(ix^S,mag(idim))**2/wL(ix^S,rho_))
@@ -351,15 +350,15 @@ contains
   end subroutine geteigenjump2
 
   ! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe
-  subroutine mhd_rtimes(q,wroe,ix^L,iw,il,idim,rq,workroe)
+  subroutine mhd_rtimes(q,w,ix^L,iw,il,idim,rq,workroe)
     use mod_global_parameters
 
-    integer                                     :: ix^L,iw,il,idim
-    double precision                            :: wroe(ixG^T,nw)
-    double precision, dimension(ixG^T)          :: q,rq
-    double precision, dimension(ixG^T,nworkroe) :: workroe
+    integer, intent(in)             :: ix^L, iw, il, idim
+    double precision, intent(in)    :: w(ixG^T, nw), q(ixG^T)
+    double precision, intent(inout) :: rq(ixG^T)
+    double precision, intent(inout) :: workroe(ixG^T, nworkroe)
 
-    call rtimes2(q,wroe,ix^L,iw,il,idim,rq,&
+    call rtimes2(q,w,ix^L,iw,il,idim,rq,&
          workroe(ixG^T,1),workroe(ixG^T,2), &
          workroe(ixG^T,3),workroe(ixG^T,4),workroe(ixG^T,5),workroe(ixG^T,6), &
          workroe(ixG^T,7),workroe(ixG^T,14),workroe(ixG^T,15))
@@ -394,7 +393,7 @@ contains
     else if(iw == e_) then
       if(il==fastRW_)then
         ! Store 0.5*v**2+(2-gamma)/(gamma-1)*a**2
-        v2a2(ix^S)=half*(^C&wroe(ix^S,m^C_)**2+)+ &
+        v2a2(ix^S)=half*sum(wroe(ix^S,mom(:))**2,dim=ndim+1)+ &
              (two-mhd_gamma)/(mhd_gamma-one)*csound2(ix^S)
         ! Store sgn(bx)*(betay*vy+betaz*vz) in bv
         bv(ix^S)=wroe(ix^S,mag(idir))*wroe(ix^S,mom(idir))
@@ -420,7 +419,7 @@ contains
         rq(ix^S)=q(ix^S)*(-afast(ix^S)*cfast(ix^S)*bv(ix^S)+aslow(ix^S)*&
              (v2a2(ix^S)+cslow(ix^S)*(cslow(ix^S)-wroe(ix^S,mom(idim)))))
       case(entroW_)
-        rq(ix^S)= q(ix^S)*half*(^C&wroe(ix^S,m^C_)**2+)
+        rq(ix^S)= q(ix^S)*half*sum(wroe(ix^S,mom(:))**2,dim=ndim+1)
       case(diverW_)
         if(divbwave)then
           rq(ix^S)= q(ix^S)*wroe(ix^S,mag(idim))
@@ -432,7 +431,7 @@ contains
       case(alfvLW_)
         rq(ix^S)=-q(ix^S)*bv(ix^S)
       end select
-    else if(any(mom(:)==iw) then
+    else if(any(mom(:)==iw)) then
       if(iw==mom(idim))then
         select case(il)
         case(fastRW_)
@@ -480,7 +479,7 @@ contains
           endif
         end select
       end if ! iw=m_idir,m_jdir
-    else if(any(mag(:))==iw) then
+    else if(any(mag(:)==iw)) then
       if(iw==mag(idim))then
         if(il==diverW_ .and. divbwave)then
           rq(ix^S)=q(ix^S)

@@ -75,7 +75,7 @@ module mod_physics
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
-       double precision, intent(inout) :: f(ixG^T, nwflux)
+       double precision, intent(out)   :: f(ixG^T, nwflux)
      end subroutine sub_get_flux
 
      subroutine sub_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
@@ -121,8 +121,9 @@ module mod_physics
      subroutine sub_get_pthermal(w,x,ixI^L,ixO^L,pth)
        use mod_global_parameters
        integer, intent(in)          :: ixI^L, ixO^L
-       double precision             :: w(ixI^S,nw), pth(ixI^S)
+       double precision, intent(in) :: w(ixI^S,nw)
        double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision, intent(out):: pth(ixI^S)
      end subroutine sub_get_pthermal
 
   end interface

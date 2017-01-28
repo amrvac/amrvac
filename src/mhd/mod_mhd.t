@@ -1,4 +1,4 @@
-module mod_hd
+module mod_mhd
   use mod_mhd_phys
   use mod_mhd_hllc
   use mod_mhd_roe
@@ -16,4 +16,4 @@ contains
     call mhd_ppm_init()
   end subroutine mhd_activate
 
-end module mod_hd
+end module mod_mhd

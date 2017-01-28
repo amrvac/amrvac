@@ -1,7 +1,3 @@
-! TODO: GLM (to module?)
-! TODO: B0field (inside here / module?)
-! TODO: fourthorder
-
 !> Magneto-hydrodynamics module
 module mod_mhd_phys
 
@@ -90,26 +86,25 @@ module mod_mhd_phys
   public :: mhd_get_v
   public :: mhd_to_conserved
   public :: mhd_to_primitive
+  public :: mhd_get_csound2
 
 contains
 
-  subroutine mhd_check_params
-    use mod_global_parameters
+  !> Read this module"s parameters from a file
+  subroutine mhd_read_params(files)
+    use mod_global_parameters, only: unitpar
+    character(len=*), intent(in) :: files(:)
+    integer                      :: n
 
-    minrho = max(0.0d0, smallrho)
+    namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab, mhd_eta, mhd_eta_hyper, mhd_etah, mhd_thermal_conduction, mhd_radiative_cooling
 
-    if (.not. mhd_energy) then
-       if (mhd_gamma <= 0.0d0) call mpistop ("Error: mhd_gamma <= 0")
-       if (mhd_adiab < 0.0d0) call mpistop ("Error: mhd_adiab < 0")
-       minp   = mhd_adiab*minrho**mhd_gamma
-    else
-       if (mhd_gamma <= 0.0d0 .or. mhd_gamma == 1.0d0) &
-            call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
-       minp   = max(0.0d0, smallp)
-       smalle = minp/(mhd_gamma - 1.0d0)
-    end if
+    do n = 1, size(files)
+       open(unitpar, file=trim(files(n)), status="old")
+       read(unitpar, mhd_list, end=111)
+111    close(unitpar)
+    end do
 
-  end subroutine mhd_check_params
+  end subroutine mhd_read_params
 
   subroutine mhd_phys_init()
     use mod_global_parameters
@@ -119,7 +114,7 @@ contains
 
     integer :: itr, idir
 
-    call mhd_params_read(par_files)
+    call mhd_read_params(par_files)
 
     physics_type = "mhd"
 
@@ -198,7 +193,6 @@ contains
     ! Initialize radiative cooling module
     if (mhd_radiative_cooling) then
       rc_gamma=mhd_gamma
-!      phys_get_pthermal_rc => mhd_get_pthermal_rc
       call radiative_cooling_init()
     end if
 
@@ -220,6 +214,24 @@ contains
     end if
 
   end subroutine mhd_phys_init
+
+  subroutine mhd_check_params
+    use mod_global_parameters
+
+    minrho = max(0.0d0, smallrho)
+
+    if (.not. mhd_energy) then
+       if (mhd_gamma <= 0.0d0) call mpistop ("Error: mhd_gamma <= 0")
+       if (mhd_adiab < 0.0d0) call mpistop ("Error: mhd_adiab < 0")
+       minp   = mhd_adiab*minrho**mhd_gamma
+    else
+       if (mhd_gamma <= 0.0d0 .or. mhd_gamma == 1.0d0) &
+            call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
+       minp   = max(0.0d0, smallp)
+       smalle = minp/(mhd_gamma - 1.0d0)
+    end if
+
+  end subroutine mhd_check_params
 
   subroutine mhd_check_w(primitive,ixI^L,ixO^L,w,flag)
     use mod_global_parameters
@@ -308,7 +320,7 @@ contains
     if (mhd_energy) then
       w(ixO^S, e_) = (mhd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
             (w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
-            - mhd_mom_en(w, ixI^L, ixO^L))
+            - mhd_mag_en(w, ixI^L, ixO^L))
     else
       call mpistop("e_to_rhos can not be used without energy equation!")
     end if
@@ -324,7 +336,7 @@ contains
     if (mhd_energy) then
        w(ixO^S, e_) = w(ixO^S, rho_)**(mhd_gamma - 1.0d0) * w(ixO^S, e_) &
             / (mhd_gamma - 1.0d0) + mhd_kin_en(w, ixI^L, ixO^L) + &
-            mhd_mom_en(w, ixI^L, ixO^L)
+            mhd_mag_en(w, ixI^L, ixO^L)
     else
        call mpistop("rhos_to_e can not be used without energy equation!")
     end if
@@ -398,15 +410,14 @@ contains
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L
-    double precision             :: w(ixI^S,nw), pth(ixI^S)
+    double precision, intent(in) :: w(ixI^S,nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
-
-    call handle_small_values(.false., w, x, ixI^L, ixO^L)
+    double precision, intent(out):: pth(ixI^S)
 
     if (mhd_energy) then
        pth(ixO^S)=(mhd_gamma-1.0d0)*(w(ixO^S,e_)&
           - mhd_kin_en(w,ixI^L,ixO^L)&
-          - mhd_mom_en(w,ixI^L,ixO^L))
+          - mhd_mag_en(w,ixI^L,ixO^L))
     else
        pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
@@ -911,9 +922,7 @@ contains
     call get_divb(wCT,ixI^L,ixO^L,divb)
 
     ! calculate velocity
-    do idir = 1, ndir
-       call mhd_get_v(wCT,x,ixI^L,ixO^L,idir,v(ixI^S, idir))
-    end do
+    call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
 
     ! Psi = Psi - qdt Ch^2/Cp^2 Psi
     if (mhd_glm_Cr < zero) then
@@ -996,9 +1005,7 @@ contains
     call get_divb(wCT,ixI^L,ixO^L,divb)
 
     ! calculate velocity
-    do idir = 1, ndir
-       call mhd_get_v(wCT,x,ixI^L,ixO^L,idir,v(ixI^S, idir))
-    end do
+    call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
 
     if (mhd_energy) then
       ! e = e - qdt (v . b) * div b
@@ -1047,8 +1054,8 @@ contains
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt,   x(ixI^S,1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in)    :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
     integer :: iw, idim, idir, ix^L, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S)
 

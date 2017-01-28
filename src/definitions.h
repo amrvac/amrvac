@@ -1,7 +1,4 @@
 #undefine EPSINF
-#undefine GLM
-#undefine FCT
-#undefine HALL
 #undefine RAY
 #undefine BIGENDIAN
 #undefine FOURTHORDER

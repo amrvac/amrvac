@@ -26,7 +26,7 @@ module mod_physics_roe
        import
        integer, intent(in)                          :: ix^L, il, idim
        double precision, dimension(ixG^T, nw)       :: wL, wR, wC
-       double precision, dimension(ixG^T)           :: smalla, a, jump, v
+       double precision, dimension(ixG^T)           :: smalla, a, jump
        double precision, dimension(ixG^T, nworkroe) :: workroe
        double precision, intent(in)                 :: x(ixG^T, 1:^ND)
      end subroutine sub_get_eigenjump

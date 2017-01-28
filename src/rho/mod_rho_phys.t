@@ -74,7 +74,7 @@ contains
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-    double precision, intent(out) :: v(ixG^T)
+    double precision, intent(out) :: v(ixI^S)
 
     v(ixO^S) = rho_v(idim)
   end subroutine rho_get_v
@@ -83,8 +83,8 @@ contains
     use mod_global_parameters
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-    double precision, intent(inout)           :: cmax(ixG^T)
-    double precision, intent(inout), optional :: cmin(ixG^T)
+    double precision, intent(inout)           :: cmax(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
 
     call rho_get_v(w, x, ixI^L, ixO^L, idim, cmax)
 
@@ -111,7 +111,7 @@ contains
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: f(ixG^T, nwflux)
+    double precision, intent(out)   :: f(ixI^S, nwflux)
     double precision                :: v(ixI^S)
 
     call rho_get_v(w, x, ixI^L, ixO^L, idim, v)

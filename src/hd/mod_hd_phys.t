@@ -340,11 +340,9 @@ contains
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L
-    double precision             :: w(ixI^S, nw), pth(ixI^S)
+    double precision, intent(in) :: w(ixI^S, nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
-
-    ! Jannis: TODO: is this needed?
-    call handle_small_values(.false., w, x, ixI^L, ixO^L)
+    double precision, intent(out):: pth(ixI^S)
 
     if (hd_energy) then
        pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
@@ -362,7 +360,7 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: f(ixI^S, nwflux)
+    double precision, intent(out)   :: f(ixI^S, nwflux)
     double precision                :: pth(ixI^S), v(ixI^S)
     integer                         :: idir, itr
 
@@ -623,7 +621,6 @@ contains
 
     integer :: idir
     integer :: flag(ixI^S)
-    integer :: posvec(ndim)
 
     call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
 

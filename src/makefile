@@ -65,8 +65,6 @@ mod_fd.o: mod_physics.o
 mod_fd.o: mod_source.o
 mod_ghostcells_update.o: mod_physics.o
 mod_global_parameters.o: mod_config.o
-mod_hd_hllc.o: mod_hd_phys.o
-mod_hd_hllc.o: mod_physics_hllc.o
 mod_hd.o: mod_hd_hllc.o
 mod_hd.o: mod_hd_phys.o
 mod_hd.o: mod_hd_ppm.o
@@ -76,6 +74,8 @@ mod_hd_phys.o: mod_physics.o
 mod_hd_phys.o: mod_radiative_cooling.o
 mod_hd_phys.o: mod_small_values.o
 mod_hd_phys.o: mod_thermal_conduction.o
+mod_hd_hllc.o: mod_hd_phys.o
+mod_hd_hllc.o: mod_physics_hllc.o
 mod_hd_ppm.o: mod_hd_phys.o
 mod_hd_ppm.o: mod_physics_ppm.o
 mod_hd_roe.o: mod_hd_phys.o
@@ -83,6 +83,7 @@ mod_hd_roe.o: mod_physics_roe.o
 mod_hd_roe.o: mod_tvd.o
 mod_input_output.o: mod_physics.o
 mod_input_output.o: mod_timing.o
+mod_input_output.o: kracken.o
 mod_limiter.o: mod_mp5.o
 mod_limiter.o: mod_ppm.o
 mod_mhd.o: mod_mhd_hllc.o
@@ -92,6 +93,8 @@ mod_mhd.o: mod_mhd_roe.o
 mod_mhd_phys.o: mod_physics.o
 mod_mhd_phys.o: mod_radiative_cooling.o
 mod_mhd_phys.o: mod_thermal_conduction.o
+mod_mhd_hllc.o: mod_mhd_phys.o
+mod_mhd_hllc.o: mod_physics_hllc.o
 mod_mhd_ppm.o: mod_mhd_phys.o
 mod_mhd_ppm.o: mod_physics_ppm.o
 mod_mhd_roe.o: mod_mhd_phys.o
@@ -111,6 +114,7 @@ mod_rho_roe.o: mod_rho_phys.o
 mod_source.o: mod_ghostcells_update.o
 mod_source.o: mod_physics.o
 mod_thermal_conduction.o: mod_ghostcells_update.o
+mod_radiative_cooling.o: mod_physics.o
 mod_tvdlf.o: mod_limiter.o
 mod_tvdlf.o: mod_physics.o
 mod_tvdlf.o: mod_source.o
@@ -122,4 +126,3 @@ refine.o: mod_physics.o
 setdt.o: mod_physics.o
 setdt.o: mod_thermal_conduction.o
 slice.o: mod_physics.o
-thermalconduction.o: mod_thermalconduction.o

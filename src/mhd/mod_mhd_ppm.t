@@ -66,7 +66,7 @@ contains
           call gradient(ptot,ixI^L,ixO^L,idims,dv)
        end if
     else
-       call mpistop("PPM with flatsh=.true. can not be used with eos=iso !")
+       call mpistop("PPM with flatsh=.true. can not be used without energy equation!")
     end if
 
   end subroutine mhd_ppm_flatsh
