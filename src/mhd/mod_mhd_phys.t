@@ -738,6 +738,7 @@ contains
   !> Uses 5 point stencil (2 neighbours) in each direction, conservative
   subroutine add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
+    use mod_usr_methods
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
