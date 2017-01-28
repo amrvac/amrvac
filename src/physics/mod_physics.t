@@ -88,8 +88,9 @@ module mod_physics
      subroutine sub_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-       double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:^ND)
-       double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+       double precision, intent(in)    :: qdt, qtC, qt
+       double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+       double precision, intent(inout) :: w(ixI^S, 1:nw)
        logical, intent(in)             :: qsourcesplit
      end subroutine sub_add_source
 
@@ -227,8 +228,9 @@ contains
   subroutine dummy_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(in)    :: qdt, qtC, qt
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
   end subroutine dummy_add_source
 

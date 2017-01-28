@@ -56,9 +56,9 @@ module mod_usr_methods
 
      !> special boundary types, user defined user must assign conservative
      !> variables in bounderies
-     subroutine special_bc(qt,ixI^L,ixO^L,iw,iB,w,x)
+     subroutine special_bc(qt,ixI^L,ixO^L,iB,w,x)
        use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L, iw, iB
+       integer, intent(in)             :: ixI^L, ixO^L, iB
        double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine special_bc
@@ -118,8 +118,9 @@ module mod_usr_methods
      subroutine source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-       double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim)
-       double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+       double precision, intent(in)    :: qdt, qtC, qt
+       double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine source
 
      !> Limit "dt" further if necessary, e.g. due to the special source terms.

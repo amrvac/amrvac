@@ -8,15 +8,14 @@
 !==============================================================
 
  &filelist
-        filenamelog='solar_atm_25D'
-        filenameout='solar_atm_25D'
+        filenamelog='solar_atm'
+        filenameout='solar_atm'
         typefilelog='regression_test'
         primnames='rho v1 v2 v3 p b1 b2 b3'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBCCmpi'
         nwauxio=9
-        typeparIO=-1
  /
         filenameini='solar_atm_25D'
         snapshotini=0
@@ -49,18 +48,12 @@
         dimsplit=.false.
         ssplitdivb=.true.
         typedivbfix='linde'
-        ncool=4000
-        coolmethod='exact'
-        coolcurve='JCcorona'
-        Tfix=.true.
         strictsmall=.true.
         strictgetaux=.false.
         nflatgetaux=2
         smallp=1.0d-8
         smallrho=1.0d-14
-        conduction=.true.
  /
-        fixsmall=.true.
 
  &boundlist
         dixB=    2
@@ -83,8 +76,8 @@
         wflags(2)=0.2d0
         wflags(3)=0.2d0
         wflags(4)=0.2d0
-        ixGhi1=16
-        ixGhi2=16
+        nxblock1=12
+        nxblock2=12
         nxlone1=96
         nxlone2=96
         iprob=1
@@ -98,4 +91,8 @@
  &paramlist
         typecourant='maxsum'
         courantpar=0.8d0
+ /
+ &mhd_list
+  mhd_thermal_conduction=.true.
+  mhd_radiative_cooling=.true.
  /

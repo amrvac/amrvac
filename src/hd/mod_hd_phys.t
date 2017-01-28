@@ -544,8 +544,9 @@ contains
     use mod_dust, only: dust_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(in)    :: qdt, qtC, qt
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
     logical, intent(in)             :: qsourcesplit
     integer                         :: idir

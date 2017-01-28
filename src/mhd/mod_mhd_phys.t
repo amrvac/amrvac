@@ -87,6 +87,7 @@ module mod_mhd_phys
   public :: mhd_to_conserved
   public :: mhd_to_primitive
   public :: mhd_get_csound2
+  public :: get_divb
 
 contains
 

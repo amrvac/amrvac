@@ -98,10 +98,10 @@ contains
     ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
     integer, intent(in) :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) :: qdt, qtC, qt
+    double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in) :: qsourcesplit
-    !-----------------------------------------------------------------------------
 
     ! user defined sources, typically explicitly added
     if ((qsourcesplit .eqv. ssplituser) .and. associated(usr_source)) then

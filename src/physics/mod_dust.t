@@ -203,8 +203,9 @@ contains
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(in)    :: qdt, qtC, qt
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: w(ixI^S, 1:nw)
     integer                         :: n, idir
 
     do n = 1, dust_n_species
@@ -227,7 +228,7 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: w(ixI^S, 1:nw)
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(out)   :: &
          fdrag(ixG^T, 1:ndir, 1:dust_n_species)
     double precision, intent(in)    :: ptherm(ixG^T), vgas(ixG^T, ndir)
@@ -416,8 +417,9 @@ contains
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(in)    :: qdt, qtC, qt
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     double precision, intent(in)    :: ptherm(ixG^T), vgas(ixG^T, ndir)
 

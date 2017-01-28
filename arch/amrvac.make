@@ -4,9 +4,10 @@ endif
 
 ARCH ?= default
 NDIM := 1
+NDIR := 1
 
 # By exporting these can be used when building libamrvac
-export ARCH NDIM
+export ARCH NDIM NDIR
 
 SRC_DIR := $(AMRVAC_DIR)/src
 LIB_DIR := $(AMRVAC_DIR)/lib/$(NDIM)d_$(ARCH)

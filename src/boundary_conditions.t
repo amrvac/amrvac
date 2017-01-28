@@ -125,7 +125,7 @@ end select
 if (any(typeB(1:nwflux+nwaux,iB)=="special")) then
    if (.not. associated(usr_special_bc)) &
         call mpistop("usr_special_bc not defined")
-   call usr_special_bc(time,ixG^L,ixI^L,0,iB,w,x)
+   call usr_special_bc(time,ixG^L,ixI^L,iB,w,x)
 end if
 
 {#IFDEF EVOLVINGBOUNDARY

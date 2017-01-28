@@ -1,0 +1,56 @@
+!setup.pl -d=33
+
+&filelist
+  primnames        = 'rho v1 v2 v3 p b1 b2 b3'
+  typefilelog      = 'regression_test'
+  filenamelog      = 'tc_3d'
+  autoconvert      = .true.
+  convert_type     = 'vtuBCCmpi'
+  saveprim         = .true.
+/
+
+ &savelist
+   dtsave(1)       = 1.d-3
+/
+
+ &stoplist
+   tmax            = 5.d-2
+/
+
+ &methodlist
+   wnames          = 'rho m1 m2 m3 e b1 b2 b3'
+   fileheadout     = 'tc_3d'
+   typeadvance     = 'threestep'
+   typefull1       = 13*'hll'
+   typelimiter1    = 13*'cada3'
+   useprimitive    = T
+/
+ &boundlist
+  dixB  =   2
+  typeB=          8*'cont', 8*'cont',
+                  8*'cont', 8*'cont',
+                  8*'cont', 8*'cont'
+/
+ &amrlist
+   errorestimate   = 3
+   mxnest          = 3
+   nxblock1        = 4
+   nxblock2        = 4
+   nxblock3        = 4
+   nxlone1         = 8
+   nxlone2         = 8
+   nxlone3         = 8
+   xprobmin1       =-1.0d0
+   xprobmax1       = 1.0d0
+   xprobmin2       =-1.0d0
+   xprobmax2       = 1.0d0
+   xprobmin3       =-1.0d0
+   xprobmax3       = 1.0d0
+ /
+
+ &paramlist
+  slowsteps        = 10
+ /
+ &mhd_list
+  mhd_thermal_conduction =T
+ /
