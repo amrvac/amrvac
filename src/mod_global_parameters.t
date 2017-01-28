@@ -163,6 +163,9 @@ module mod_global_parameters
   !> Physical scaling factor for number density
   double precision :: unit_numberdensity=1.d0
 
+  !> Elapsed time for evaluate the performance
+  real :: time_elapsed=0.0
+
   ! TODO temporary placed here (Jannis)
   integer           :: nwflux
   integer           :: nwaux
