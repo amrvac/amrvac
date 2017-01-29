@@ -684,7 +684,7 @@ module mod_radiative_cooling
       
       case('MB')
          if(mype ==0) &
-         write(*,'(3a)'),'Use MacDonald & Bailey (1981) cooling curve '&
+         write(*,'(3a)') 'Use MacDonald & Bailey (1981) cooling curve '&
               ,'as implemented in ZEUS-3D, with the values '&
               ,'from Delgano & McCRay (1972) for low temperatures.'
       
