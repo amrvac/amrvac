@@ -75,7 +75,7 @@ module mod_global_parameters
   integer, parameter :: ndim=^ND
 
   !> Number of spatial dimensions for vector variables
-  integer, parameter :: ndir=^NC
+  integer :: ndir=ndim
 
   !> Constant indicating log output
   integer, parameter :: filelog_      = 1

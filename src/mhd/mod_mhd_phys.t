@@ -1143,13 +1143,15 @@ contains
   subroutine get_current(w,ixI^L,ix^L,idirmin,current)
     use mod_global_parameters
 
-    integer, parameter:: idirmin0=7-2*ndir
+    integer :: idirmin0
     integer :: ix^L, idirmin, ixI^L
     double precision :: w(ixI^S,1:nw)
     integer :: idir
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+
+    idirmin0 = 7-2*ndir
 
     if (B0field) then
        do idir = 1, ndir
