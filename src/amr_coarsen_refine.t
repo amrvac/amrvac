@@ -131,7 +131,7 @@ if (nbufferx^D/=0|.or.) then
                       icomm,ierrmpi)
    refine=refine2
 else
-   call MPI_ALLGATHER(refine(:,mype),ngridshi,MPI_LOGICAL,refine,ngridshi, &
+   call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_LOGICAL,refine,ngridshi, &
                       MPI_LOGICAL,icomm,ierrmpi)
 end if
 
@@ -167,8 +167,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 end do
 
 ! For all grids on all processors, do a check on coarsen flags.
-
-call MPI_ALLGATHER(coarsen(:,mype),ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
+call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
                    MPI_LOGICAL,icomm,ierrmpi)
 
 do level=levmax,max(2,levmin),-1
