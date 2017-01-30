@@ -423,19 +423,20 @@ module mod_global_parameters
   character(len=std_len) :: typecoord
   character(len=std_len) :: typepoly
 
-  integer                       :: errorestimate,nxdiffusehllc,typespherical,ncyclemax
+  integer                       :: errorestimate,nxdiffusehllc,typespherical
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps, mcbeta
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh,flatppm
-  logical                       :: ssplitdivb,ssplitresis,ssplituser,useprimitive,dimsplit
+  !> Use split or unsplit way to add user's source terms, default: unsplit
+  logical                       :: source_split_usr
+  logical                       :: useprimitive,dimsplit
   logical                       :: restrictprimitive,prolongprimitive
   logical                       :: coarsenprimitive,useprimitiveRel, amrentropy
 
-  logical                :: divbwave,compactres,BnormLF
-  double precision       :: divbdiff,smallT,smallp,smallrho
+  double precision       :: smallT,smallp,smallrho
   double precision, allocatable :: amr_wavefilter(:)
-  character(len=std_len) :: typedivbdiff,typedivbfix,typediv,typegrad
+  character(len=std_len) :: typediv,typegrad
 
   !> related to primitive-conservative switch in relativistic modules
   logical          :: fixsmall,strictnr,strictsmall,strictzero,strictgetaux
@@ -447,12 +448,6 @@ module mod_global_parameters
   logical, allocatable :: writelevel(:)
   double precision :: writespshift(ndim,2)
   integer          :: level_io, level_io_min, level_io_max
-
-  ! cooling related parameters
-  integer                :: ncool, cmulti
-  character(len=std_len) :: coolcurve,coolmethod
-  double precision       :: cfrac,tlow
-  logical                :: Tfix
 
   ! local and global fastest wave speed (computed in setdt):
   double precision :: cmax_mype, cmax_global

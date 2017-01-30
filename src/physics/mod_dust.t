@@ -1,5 +1,6 @@
 module mod_dust
   use mod_global_parameters, only: std_len
+  use mod_physics
 
   implicit none
   private
@@ -162,8 +163,8 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L, iw, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: f(ixG^T)
-    double precision                :: vdust(ixG^T)
+    double precision, intent(inout) :: f(ixI^S)
+    double precision                :: vdust(ixI^S)
     logical, intent(out)            :: transport
     integer                         :: n
 
@@ -199,11 +200,11 @@ contains
   end function get_vdust
 
   ! Force dust density to zero if dust_rho <= dust_min_rho
-  subroutine set_dusttozero(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x)
+  subroutine set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, qtC, qt
+    double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     integer                         :: n, idir
@@ -230,11 +231,11 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(out)   :: &
-         fdrag(ixG^T, 1:ndir, 1:dust_n_species)
-    double precision, intent(in)    :: ptherm(ixG^T), vgas(ixG^T, ndir)
+         fdrag(ixI^S, 1:ndir, 1:dust_n_species)
+    double precision, intent(in)    :: ptherm(ixI^S), vgas(ixI^S, ndir)
 
-    double precision, dimension(ixG^T) :: vt2, deltav, fd, vdust, Tgas
-    double precision                   :: alpha_T(ixG^T, 1:dust_n_species)
+    double precision, dimension(ixI^S) :: vt2, deltav, fd, vdust, Tgas
+    double precision                   :: alpha_T(ixI^S, 1:dust_n_species)
     integer                            :: n, idir
     double precision                   :: K
 
@@ -325,9 +326,9 @@ contains
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: x(ixI^S, 1:ndim)
     double precision, intent(in)  :: w(ixI^S, 1:nw)
-    double precision, intent(out) :: alpha_T(ixG^T, 1:dust_n_species)
-    double precision, intent(in)  :: ptherm(ixG^T)
-    double precision              :: Tgas(ixG^T)
+    double precision, intent(out) :: alpha_T(ixI^S, 1:dust_n_species)
+    double precision, intent(in)  :: ptherm(ixI^S)
+    double precision              :: Tgas(ixI^S)
     integer                       :: n
 
     ! call getpthermal(w, x, ixI^L, ixO^L, Tgas)
@@ -356,7 +357,7 @@ contains
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: x(ixI^S, 1:ndim)
     double precision, intent(in)  :: w(ixI^S, 1:nw)
-    double precision, intent(out) :: Td(ixG^T, 1:dust_n_species)
+    double precision, intent(out) :: Td(ixI^S, 1:dust_n_species)
     double precision              :: G0(ixO^S)
     integer                       :: n
 
@@ -411,19 +412,18 @@ contains
 
   end subroutine get_tdust
 
-  !> w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, &
-       qt, w, x, qsourcesplit, ptherm, vgas)
+  !> w[iw]= w[iw]+qdt*S[wCT,  x] where S is the source based on wCT within ixO
+  subroutine dust_add_source(qdt, ixI^L, ixO^L, wCT,w, x, qsourcesplit)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, qtC, qt
+    double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
-    double precision, intent(in)    :: ptherm(ixG^T), vgas(ixG^T, ndir)
 
-    double precision, dimension(ixG^T, 1:^NC, 1:dust_n_species) :: fdrag
+    double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
+    double precision, dimension(ixI^S, 1:ndir, 1:dust_n_species) :: fdrag
     integer                                             :: n, idir, sum_dim
 
     sum_dim = ndim + 2          ! Temporary variable, used below
@@ -433,6 +433,10 @@ contains
        !do nothing here
     case default !all regular dust methods here
        if (qsourcesplit .eqv. dust_source_split) then
+          call phys_get_pthermal(wCT, x, ixI^L, ixO^L, ptherm)
+          do idir=1,ndir
+            vgas(ixO^S,idir)=wCT(ixO^S,gas_mom(idir))/wCT(ixO^S,gas_rho_)
+          end do
           call get_3d_dragforce(ixI^L, ixO^L, wCT, x, fdrag, ptherm, vgas)
 
           do idir = 1, ndir
@@ -448,34 +452,37 @@ contains
              w(ixO^S,dust_mom(idir, :)) = w(ixO^S,dust_mom(idir, :)) - fdrag(ixO^S, idir, :)
           end do
 
-          if ( dust_small_to_zero ) call set_dusttozero(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x)
+          if ( dust_small_to_zero ) call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
        endif
     end select
 
   end subroutine dust_add_source
 
   !> Get dt related to dust and gas stopping time (Laibe 2011)
-  subroutine dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x, ptherm, vgas)
+  subroutine dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(inout) :: dtnew
-    double precision, intent(in)    :: ptherm(ixG^T), vgas(ixG^T, ndir)
 
-    integer                                    :: n, idims, idust, idir
+    double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
     double precision, dimension(1:dust_n_species)        :: dtdust
-    double precision, dimension(ixG^T)         :: vt2, deltav, tstop, vdust
-    double precision, dimension(ixG^T, 1:dust_n_species) :: alpha_T
+    double precision, dimension(ixI^S)         :: vt2, deltav, tstop, vdust
+    double precision, dimension(ixI^S, 1:dust_n_species) :: alpha_T
     double precision                           :: K
+    integer                                    :: n, idims, idust, idir
 
+    call phys_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
+    do idir = 1, ndir
+      vgas(ixO^S,idir)=w(ixO^S,gas_mom(idir))/w(ixO^S,gas_rho_)
+    end do
     select case( TRIM(dust_method) )
 
     case( 'Kwok' ) ! assume sticking coefficient equals 0.25
        dtdust(:) = bigdouble
 
-       ! call getpthermal(w, x, ixI^L, ixO^L, ptherm)
        vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
        ! Tgas, mu = mean molecular weight
@@ -505,7 +512,6 @@ contains
     case( 'sticking' ) ! Calculate sticking coefficient based on the gas temperature
        dtdust(:) = bigdouble
 
-       ! call getpthermal(w, x, ixI^L, ixO^L, ptherm)
        vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
        ! Sticking coefficient
@@ -577,9 +583,9 @@ contains
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-    double precision, intent(inout)           :: cmax(ixG^T)
-    double precision, intent(inout), optional :: cmin(ixG^T)
-    double precision                          :: vdust(ixG^T, dust_n_species)
+    double precision, intent(inout)           :: cmax(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision                          :: vdust(ixI^S, dust_n_species)
     integer                                   :: n
 
     do n = 1, dust_n_species

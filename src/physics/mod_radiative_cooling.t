@@ -72,11 +72,8 @@ module mod_radiative_cooling
   !> Index of the energy density
   integer, private, protected              :: e_
 
-  !> Indices of the magnetic field
-  integer, allocatable, private, protected :: mag(:)
-
   !> The adiabatic index
-  double precision, public :: rc_gamma
+  double precision, private :: rc_gamma
 
   double precision, allocatable :: tcool(:), Lcool(:), dLdtcool(:)
   double precision, allocatable :: Yc(:), invYc(:)
@@ -609,12 +606,14 @@ module mod_radiative_cooling
     end subroutine rc_params_read
 
     !> Radiative cooling initialization
-    subroutine radiative_cooling_init()
+    subroutine radiative_cooling_init(phys_gamma)
     !
     !  Reads in a cooling curve to be used for the radiative
     !  cooling routine
     !
       use mod_global_parameters
+
+      double precision, intent(in) :: phys_gamma
       
       double precision, dimension(:), allocatable :: t_table
       double precision, dimension(:), allocatable :: L_table
@@ -624,6 +623,7 @@ module mod_radiative_cooling
       integer :: ntable, i, j, ic, nwx,idir
       logical :: jump
 
+      rc_gamma=phys_gamma
       ncool=4000
       coolcurve='JCcorona'
       coolmethod='exact'
@@ -641,12 +641,6 @@ module mod_radiative_cooling
 
       nwx = nwx + 1
       e_     = nwx          ! energy density
-
-      allocate(mag(ndir))
-      do idir = 1, ndir
-         nwx    = nwx + 1
-         mag(idir) = nwx       ! magnetic field
-      end do
 
       allocate(tcool(1:ncool), Lcool(1:ncool), dLdtcool(1:ncool))
       allocate(Yc(1:ncool), invYc(1:ncool))
@@ -905,15 +899,15 @@ module mod_radiative_cooling
       
     end subroutine radiative_cooling_init
 
-    subroutine getdt_cooling(w,ixG^L,ix^L,dtnew,dx^D,x)
+    subroutine cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
       use mod_global_parameters
 
-      integer, intent(in) :: ixG^L, ix^L
-      double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
-      double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
+      double precision, intent(inout) :: dtnew
       
-      double precision :: etherm(ixG^S)
-      double precision :: L1,Tlocal1, ptherm(ixG^S), lum(ixG^S)
+      double precision :: etherm(ixI^S)
+      double precision :: L1,Tlocal1, ptherm(ixI^S), lum(ixI^S)
       double precision :: plocal, rholocal
       double precision :: Lmax
       integer :: ix^D
@@ -923,8 +917,8 @@ module mod_radiative_cooling
       dtnew=bigdouble
       
       if(coolmethod == 'explicit1') then
-       call phys_get_pthermal(w,x,ixG^L,ix^L,ptherm)   
-       {do ix^DB = ix^LIM^DB\}
+       call phys_get_pthermal(w,x,ixI^L,ixO^L,ptherm)   
+       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = w(ix^D,rho_)
          !  Tlocal = P/rho
@@ -945,11 +939,11 @@ module mod_radiative_cooling
          endif
          lum(ix^D) = L1
         {enddo^D&\}
-        etherm(ix^S)=ptherm(ix^S)/(rc_gamma-1.d0)
-        dtnew = cfrac*minval(etherm(ix^S)/max(lum(ix^S),smalldouble))
+        etherm(ixO^S)=ptherm(ixO^S)/(rc_gamma-1.d0)
+        dtnew = cfrac*minval(etherm(ixO^S)/max(lum(ixO^S),smalldouble))
       endif
     
-    end subroutine getdt_cooling
+    end subroutine cooling_get_dt
 
     subroutine getvar_cooling(ixI^L,ixO^L,w,x,coolrate,normconv)
     !
@@ -970,13 +964,13 @@ module mod_radiative_cooling
       double precision :: plocal, rholocal
       double precision :: emin
       
-      integer :: ixO^D
+      integer :: ix^D
       
       call phys_get_pthermal(w,x,ixI^L,ixO^L,ptherm) 
       
-      {do ixO^DB = ixI^LIM^DB\}
-         plocal   = ptherm(ixO^D)
-         rholocal = w(ixO^D,rho_)
+      {do ix^DB = ixO^LIM^DB\}
+         plocal   = ptherm(ix^D)
+         rholocal = w(ix^D,rho_)
          !  Tlocal = P/rho
          Tlocal1       = max(plocal/(rholocal),smalldouble)
          !
@@ -991,36 +985,36 @@ module mod_radiative_cooling
             call findL(Tlocal1,L1)
             L1         = L1*(rholocal**2)
          endif
-         coolrate(ixO^D) = L1
+         coolrate(ix^D) = L1
       {enddo^D&\}
     
     end subroutine getvar_cooling
 
-    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x,qsourcesplit)
+    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
     
-    ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
+    ! w[iw]=w[iw]+qdt*S[wCT,x] where S is the source based on wCT within ixO
       use mod_global_parameters
       
       integer, intent(in) :: ixI^L, ixO^L
-      double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
+      double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       logical, intent(in) :: qsourcesplit
       
       if(qsourcesplit .eqv. rc_split) then 
-        call radcool(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
-        if( Tfix ) call floortemperature(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+        call radcool(qdt,ixI^L,ixO^L,wCT,w,x)
+        if( Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
      
     end subroutine radiative_cooling_add_source
 
-    subroutine radcool(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+    subroutine radcool(qdt,ixI^L,ixO^L,wCT,w,x)
     !
     !  selects cooling method
     !
       use mod_global_parameters
       
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt,   x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
       select case(coolmethod)
@@ -1031,29 +1025,29 @@ module mod_radiative_cooling
             write(*,*)'PROCEED WITH CAUTION!'
           endif
         endif
-        call cool_explicit1(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+        call cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('explicit2')
-        call cool_explicit2(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+        call cool_explicit2(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('semiimplicit')
-        call cool_semiimplicit(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+        call cool_semiimplicit(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('implicit')   
-        call cool_implicit(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)   
+        call cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x)   
       case ('exact')   
-        call cool_exact(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+        call cool_exact(qdt,ixI^L,ixO^L,wCT,w,x)
       case default
         call mpistop("This cooling method is unknown")
       end select
     
     end subroutine radcool
 
-    subroutine floortemperature(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+    subroutine floortemperature(qdt,ixI^L,ixO^L,wCT,w,x)
     !
     !  Force minimum temperature to a fixed temperature
     !
       use mod_global_parameters
       
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
       double precision :: etherm(ixI^S), emin, tfloor
@@ -1071,7 +1065,7 @@ module mod_radiative_cooling
     
     end subroutine floortemperature
 
-    subroutine cool_explicit1(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+    subroutine cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x)
     !
     ! explicit cooling routine that depends on getdt to 
     ! adjust the timestep. Accurate but incredibly slow
@@ -1079,7 +1073,7 @@ module mod_radiative_cooling
       use mod_global_parameters
       
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
       double precision :: L1,Tlocal1, ptherm(ixI^S),pnew(ixI^S)
@@ -1124,7 +1118,7 @@ module mod_radiative_cooling
       
     end subroutine cool_explicit1
 
-    subroutine cool_explicit2(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+    subroutine cool_explicit2(qdt,ixI^L,ixO^L,wCT,w,x)
     !
     ! explicit cooling routine that does a series 
     ! of small forward integration steps, to make 
@@ -1136,7 +1130,7 @@ module mod_radiative_cooling
       use mod_global_parameters
       
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
       double precision :: Ltest, etherm, de
@@ -1223,7 +1217,7 @@ module mod_radiative_cooling
       
     end subroutine cool_explicit2
 
-    subroutine cool_semiimplicit(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+    subroutine cool_semiimplicit(qdt,ixI^L,ixO^L,wCT,w,x)
     !
     ! Semi-implicit cooling method based on a two point 
     ! average
@@ -1232,7 +1226,7 @@ module mod_radiative_cooling
       use mod_global_parameters
       
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
       double precision :: L1,L2,Tlocal1, Tlocal2
@@ -1290,7 +1284,7 @@ module mod_radiative_cooling
       
     end subroutine cool_semiimplicit
 
-    subroutine cool_implicit(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+    subroutine cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x)
     !
     ! Implicit cooling method based on a half-step
     ! refinement algorithm
@@ -1298,7 +1292,7 @@ module mod_radiative_cooling
       use mod_global_parameters
       
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
       double precision :: Ltemp,Tlocal1,Tnew,f1,f2,ptherm(ixI^S), pnew(ixI^S)
@@ -1364,14 +1358,14 @@ module mod_radiative_cooling
        
     end subroutine cool_implicit
 
-    subroutine cool_exact(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x)
+    subroutine cool_exact(qdt,ixI^L,ixO^L,wCT,w,x)
     !
     !  Cooling routine using exact integration method from Townsend 2009
     !
       use mod_global_parameters
       
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
       double precision :: Y1, tc, Y2

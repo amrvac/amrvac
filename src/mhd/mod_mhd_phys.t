@@ -1,6 +1,6 @@
 !> Magneto-hydrodynamics module
 module mod_mhd_phys
-
+  use mod_global_parameters, only: std_len
   implicit none
   private
 
@@ -20,7 +20,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_glm = .false.
 
   !> TODO: describe and set value
-  double precision, public, protected     :: mhd_glm_Cr = 0.0
+  double precision, public, protected     :: mhd_glm_Cr = -2.0d0
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
@@ -79,6 +79,21 @@ module mod_mhd_phys
   !> The number of waves
   integer :: nwwave=8
 
+  !> Method type to clean divergence of B
+  character(len=std_len) :: typedivbfix  = 'linde'
+
+  !> Coefficient of diffusive divB cleaning
+  double precision :: divbdiff     = 0.5d0
+
+  !> Update all equations due to divB cleaning
+  character(len=std_len) ::    typedivbdiff = 'all'
+
+  !> Use a compact way to add resistivity
+  logical :: compactres   = .false.
+
+  !> Add divB wave in Roe solver
+  logical, public :: divbwave     = .true.
+
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -97,7 +112,10 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab, mhd_eta, mhd_eta_hyper, mhd_etah, mhd_thermal_conduction, mhd_radiative_cooling
+    namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
+      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
+      mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, &
+      mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, divbwave
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -185,16 +203,12 @@ contains
 
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
-       tc_gamma               =  mhd_gamma
-       phys_get_heatconduct   => mhd_get_heatconduct
-       phys_getdt_heatconduct => mhd_getdt_heatconduct
-       call thermal_conduction_init()
+       call thermal_conduction_init(mhd_gamma)
     end if
 
     ! Initialize radiative cooling module
     if (mhd_radiative_cooling) then
-      rc_gamma=mhd_gamma
-      call radiative_cooling_init()
+      call radiative_cooling_init(mhd_gamma)
     end if
 
     if (mhd_glm) then
@@ -583,7 +597,7 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
 
-    if (qsourcesplit .eqv. ssplitresis) then
+    if (.not. qsourcesplit) then
        ! Sources for resistivity in eqs. for e, B1, B2 and B3
        if (dabs(mhd_eta)>smalldouble)then
           if (.not.slab) call mpistop("no resistivity in non-slab geometry")
@@ -599,8 +613,12 @@ contains
        end if
     end if
 
+    if (mhd_radiative_cooling) then
+       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+    end if
+
     {^NOONED
-    if (qsourcesplit .eqv. ssplitdivb) then
+    if (qsourcesplit) then
        ! Sources related to div B
        select case (typedivbfix)
        case ('glm1')
@@ -639,7 +657,7 @@ contains
     double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    integer :: ix^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
+    integer :: ixA^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
     integer :: lxO^L, kxO^L
 
     double precision :: tmp(ixI^S),tmp2(ixI^S)
@@ -651,22 +669,22 @@ contains
 
     ! Calculating resistive sources involve one extra layer
     if (mhd_4th_order) then
-      ix^L=ixO^L^LADD2;
+      ixA^L=ixO^L^LADD2;
     else
-      ix^L=ixO^L^LADD1;
+      ixA^L=ixO^L^LADD1;
     end if
 
-    if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+    if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
          call mpistop("Error in add_source_res1: Non-conforming input limits")
 
     ! Calculate current density and idirmin
     call get_current(wCT,ixI^L,ixO^L,idirmin,current)
 
     if (mhd_eta>zero)then
-       eta(ix^S)=mhd_eta
+       eta(ixA^S)=mhd_eta
        gradeta(ixO^S,1:ndim)=zero
     else
-       call usr_special_resistivity(wCT,ixI^L,ix^L,idirmin,x,current,eta)
+       call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,current,eta)
        ! assumes that eta is not function of current?
        do idim=1,ndim
           call gradient(eta,ixI^L,ixO^L,idim,tmp)
@@ -746,7 +764,7 @@ contains
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    integer :: ix^L,idir,jdir,kdir,idirmin,iw,idim,idirmin1
+    integer :: ixA^L,idir,jdir,kdir,idirmin,iw,idim,idirmin1
 
     double precision :: tmp(ixI^S),tmp2(ixI^S)
 
@@ -754,26 +772,26 @@ contains
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S),curlj(ixI^S,1:3)
     double precision :: tmpvec(ixI^S,1:3),tmpvec2(ixI^S,1:ndir)
 
-    ix^L=ixO^L^LADD2;
+    ixA^L=ixO^L^LADD2;
 
-    if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+    if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
          call mpistop("Error in add_source_res2: Non-conforming input limits")
 
-    ix^L=ixO^L^LADD1;
+    ixA^L=ixO^L^LADD1;
     ! Calculate current density within ixL: J=curl B, thus J_i=eps_ijk*d_j B_k
     ! Determine exact value of idirmin while doing the loop.
-    call get_current(wCT,ixI^L,ix^L,idirmin,current)
+    call get_current(wCT,ixI^L,ixA^L,idirmin,current)
 
     if (mhd_eta>zero)then
-       eta(ix^S)=mhd_eta
+       eta(ixA^S)=mhd_eta
     else
-       call usr_special_resistivity(wCT,ixI^L,ix^L,idirmin,x,current,eta)
+       call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,current,eta)
     end if
 
     ! dB/dt= -curl(J*eta), thus B_i=B_i-eps_ijk d_j Jeta_k
-    tmpvec(ix^S,1:ndir)=zero
+    tmpvec(ixA^S,1:ndir)=zero
     do jdir=idirmin,3
-       tmpvec(ix^S,jdir)=current(ix^S,jdir)*eta(ix^S)*qdt
+       tmpvec(ixA^S,jdir)=current(ixA^S,jdir)*eta(ixA^S)*qdt
     end do
     call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
     do idir=1,ndir
@@ -782,23 +800,20 @@ contains
 
     if (mhd_energy) then
        ! de/dt= +div(B x Jeta)
-       tmpvec2(ix^S,1:ndir)=zero
+       tmpvec2(ixA^S,1:ndir)=zero
        do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
           if (lvc(idir,jdir,kdir)/=0)then
-             tmp(ix^S)=wCT(ix^S,mag(jdir))*current(ix^S,kdir)*eta(ix^S)*qdt
+             tmp(ixA^S)=wCT(ixA^S,mag(jdir))*current(ixA^S,kdir)*eta(ixA^S)*qdt
              if (lvc(idir,jdir,kdir)==1)then
-                tmpvec2(ix^S,idir)=tmpvec2(ix^S,idir)+tmp(ix^S)
+                tmpvec2(ixA^S,idir)=tmpvec2(ixA^S,idir)+tmp(ixA^S)
              else
-                tmpvec2(ix^S,idir)=tmpvec2(ix^S,idir)-tmp(ix^S)
+                tmpvec2(ixA^S,idir)=tmpvec2(ixA^S,idir)-tmp(ixA^S)
              end if
           end if
        end do; end do; end do
-       !select case(typediv)
-       !case("central")
+
        call divvector(tmpvec2,ixI^L,ixO^L,tmp)
-       !case("limited")
-       !   call divvectorS(tmpvec2,ixI^L,ixO^L,tmp)
-       !end select
+
        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
 
        if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"add_source_res2")
@@ -817,29 +832,29 @@ contains
     !.. local ..
     double precision                :: current(ixI^S,7-2*ndir:3)
     double precision                :: tmpvec(ixI^S,1:3),tmpvec2(ixI^S,1:3),tmp(ixI^S),ehyper(ixI^S,1:3)
-    integer                         :: ix^L,idir,jdir,kdir,idirmin,idirmin1
+    integer                         :: ixA^L,idir,jdir,kdir,idirmin,idirmin1
     !-----------------------------------------------------------------------------
-    ix^L=ixO^L^LADD3;
-    if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+    ixA^L=ixO^L^LADD3;
+    if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
          call mpistop("Error in add_source_hyperres: Non-conforming input limits")
 
-    call get_current(wCT,ixI^L,ix^L,idirmin,current)
-    tmpvec(ix^S,1:ndir)=zero
+    call get_current(wCT,ixI^L,ixA^L,idirmin,current)
+    tmpvec(ixA^S,1:ndir)=zero
     do jdir=idirmin,3
-       tmpvec(ix^S,jdir)=current(ix^S,jdir)
+       tmpvec(ixA^S,jdir)=current(ixA^S,jdir)
     end do
 
-    ix^L=ixO^L^LADD2;
-    call curlvector(tmpvec,ixI^L,ix^L,tmpvec2,idirmin1,1,3)
+    ixA^L=ixO^L^LADD2;
+    call curlvector(tmpvec,ixI^L,ixA^L,tmpvec2,idirmin1,1,3)
 
-    ix^L=ixO^L^LADD1;
-    tmpvec(ix^S,1:ndir)=zero
-    call curlvector(tmpvec2,ixI^L,ix^L,tmpvec,idirmin1,1,3)
-    ehyper(ix^S,1:ndir) = - tmpvec(ix^S,1:ndir)*mhd_eta_hyper
+    ixA^L=ixO^L^LADD1;
+    tmpvec(ixA^S,1:ndir)=zero
+    call curlvector(tmpvec2,ixI^L,ixA^L,tmpvec,idirmin1,1,3)
+    ehyper(ixA^S,1:ndir) = - tmpvec(ixA^S,1:ndir)*mhd_eta_hyper
 
-    ix^L=ixO^L;
-    tmpvec2(ix^S,1:ndir)=zero
-    call curlvector(ehyper,ixI^L,ix^L,tmpvec2,idirmin1,1,3)
+    ixA^L=ixO^L;
+    tmpvec2(ixA^S,1:ndir)=zero
+    call curlvector(ehyper,ixI^L,ixA^L,tmpvec2,idirmin1,1,3)
 
     do idir=1,ndir
       w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-tmpvec2(ixO^S,idir)*qdt
@@ -847,11 +862,11 @@ contains
 
     if (mhd_energy) then
        ! de/dt= +div(B x Ehyper)
-       ix^L=ixO^L^LADD1;
-       tmpvec2(ix^S,1:ndir)=zero
+       ixA^L=ixO^L^LADD1;
+       tmpvec2(ixA^S,1:ndir)=zero
        do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
-          tmpvec2(ix^S,idir) = tmpvec(ix^S,idir)&
-               + lvc(idir,jdir,kdir)*wCT(ix^S,mag(jdir))*ehyper(ix^S,kdir)
+          tmpvec2(ixA^S,idir) = tmpvec(ixA^S,idir)&
+               + lvc(idir,jdir,kdir)*wCT(ixA^S,mag(jdir))*ehyper(ixA^S,kdir)
        end do; end do; end do
        tmp(ixO^S)=zero
        call divvector(tmpvec2,ixI^L,ixO^L,tmp)
@@ -1058,13 +1073,13 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: iw, idim, idir, ix^L, ixp^L, i^D, iside
+    integer :: idim, idir, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S)
 
 
     ! Calculate div B
-    ix^L=ixO^L^LADD1;
-    call get_divb(wCT,ixI^L,ix^L,divb)
+    ixp^L=ixO^L^LADD1;
+    call get_divb(wCT,ixI^L,ixp^L,divb)
     ! for AMR stability, retreat one cell layer from the boarders of level jump
     ixp^L=ixO^L;
     do idim=1,ndim
@@ -1140,11 +1155,11 @@ contains
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
   !> make sure that dxlevel(^D) is set correctly.
-  subroutine get_current(w,ixI^L,ix^L,idirmin,current)
+  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
     use mod_global_parameters
 
     integer :: idirmin0
-    integer :: ix^L, idirmin, ixI^L
+    integer :: ixO^L, idirmin, ixI^L
     double precision :: w(ixI^S,1:nw)
     integer :: idir
 
@@ -1164,16 +1179,17 @@ contains
     end if
 
     !bvec(ixI^S,1:ndir)=w(ixI^S,b0_+1:b0_+ndir)
-    call curlvector(bvec,ixI^L,ix^L,current,idirmin,idirmin0,ndir)
+    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
 
   end subroutine get_current
 
   !> If resistivity is not zero, check diffusion time limit for dt
-  subroutine mhd_get_dt(w,ixI^L,ix^L,dtnew,dx^D,x)
+  subroutine mhd_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     use mod_global_parameters
     use mod_usr_methods
+    use mod_radiative_cooling, only: cooling_get_dt
 
-    integer, intent(in)             :: ixI^L, ix^L
+    integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: dtnew
     double precision, intent(in)    :: dx^D
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -1189,17 +1205,21 @@ contains
     if (mhd_eta>zero)then
        dtnew=dtdiffpar*minval(dxarr(1:ndim))**2/mhd_eta
     else if (mhd_eta<zero)then
-       call get_current(w,ixI^L,ix^L,idirmin,current)
-       call usr_special_resistivity(w,ixI^L,ix^L,idirmin,x,current,eta)
+       call get_current(w,ixI^L,ixO^L,idirmin,current)
+       call usr_special_resistivity(w,ixI^L,ixO^L,idirmin,x,current,eta)
        dtnew=bigdouble
        do idim=1,ndim
           dtnew=min(dtnew,&
-               dtdiffpar/(smalldouble+maxval(eta(ix^S)/dxarr(idim)**2)))
+               dtdiffpar/(smalldouble+maxval(eta(ixO^S)/dxarr(idim)**2)))
        end do
     end if
 
     if (mhd_eta_hyper>zero)then
        dtnew=min(dtdiffpar*minval(dxarr(1:ndim))**4/mhd_eta_hyper,dtnew)
+    end if
+
+    if(mhd_radiative_cooling) then
+      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     end if
 
   end subroutine mhd_get_dt

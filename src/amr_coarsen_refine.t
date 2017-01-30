@@ -117,7 +117,7 @@ use mod_global_parameters
 
 logical, dimension(:,:), allocatable :: refine2
 integer :: iigrid, igrid, level, ic^D, inp^D, i^D, my_neighbor_type,ipe
-logical :: coarsening, pole(ndim)
+logical :: coarsening, pole(ndim), sendbuf(ngridshi)
 type(tree_node_ptr) :: tree, p_neighbor, my_parent, sibling, my_neighbor, &
                        neighborchild
 !-----------------------------------------------------------------------------
@@ -131,7 +131,8 @@ if (nbufferx^D/=0|.or.) then
                       icomm,ierrmpi)
    refine=refine2
 else
-   call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_LOGICAL,refine,ngridshi, &
+   sendbuf(:)=refine(:,mype)
+   call MPI_ALLGATHER(sendbuf,ngridshi,MPI_LOGICAL,refine,ngridshi, &
                       MPI_LOGICAL,icomm,ierrmpi)
 end if
 
@@ -167,7 +168,8 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 end do
 
 ! For all grids on all processors, do a check on coarsen flags.
-call MPI_ALLGATHER(MPI_IN_PLACE,ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
+sendbuf(:)=coarsen(:,mype)
+call MPI_ALLGATHER(sendbuf,ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
                    MPI_LOGICAL,icomm,ierrmpi)
 
 do level=levmax,max(2,levmin),-1

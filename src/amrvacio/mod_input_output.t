@@ -126,24 +126,20 @@ contains
     namelist /stoplist/ itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,&
          residmax,typeresid{#IFDEF MAGNETOFRICTION , itmaxmf}
     namelist /methodlist/ wnames,fileheadout,typeadvance, &
-         ssplitdivb,ssplitresis,ssplituser,typesourcesplit,&
-         ncyclemax,&
+         source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
          typefull1,typepred1,&
          typelimiter1,mcbeta,typegradlimiter1,&
          flatcd,flatsh,flatppm,&
          loglimit,typelimited,useprimitive,typetvdlf, &
          typetvd,typeentropy,entropycoef,typeaverage, &
-         B0field,Bdip,Bquad,Boct,Busr,divbwave,&
-         typedivbfix,divbdiff,typedivbdiff,compactres,&
-         useprimitiveRel,maxitnr,dmaxvel,typepoly,&
-         tvdlfeps,BnormLF,&
+         B0field,Bdip,Bquad,Boct,Busr,&
+         useprimitiveRel,maxitnr,dmaxvel,typepoly, tvdlfeps,&
          smallT,smallp,smallrho,typegrad,typediv,tolernr,absaccnr,&
          strictnr, &
          strictzero,nxdiffusehllc,typespherical,&
          fixprocess,flathllc, &
-         ncool,cmulti,coolmethod,coolcurve,Tfix, &
-         x1ptms,x2ptms,x3ptms,ptmass,tlow,nwtf,neqpartf
+         x1ptms,x2ptms,x3ptms,ptmass,nwtf,neqpartf
     namelist /boundlist/ dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
          internalboundary
     namelist /amrlist/ mxnest,nbufferx^D,specialtol,tol,tolratio,errorestimate, &
@@ -153,7 +149,7 @@ contains
          typeprolonglimit, &
          amrentropy,logflag,tfixgrid,itfixgrid,ditregrid{#IFDEF STRETCHGRID ,qst}
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
-         typecourant, slowsteps, cfrac{#IFDEF MAGNETOFRICTION , cmf_c, cmf_y, cmf_divb}
+         typecourant, slowsteps{#IFDEF MAGNETOFRICTION , cmf_c, cmf_y, cmf_divb}
     !----------------------------------------------------------------------------
  
     ! default maximum number of grid blocks in a processor
@@ -199,14 +195,6 @@ contains
     ! code behavior and testing defaults
     addmpibarrier = .false.
 
-    ! defaults for parameters for optional cooling module (van Marle)
-    ncool      = 100
-    cmulti     = 1
-    coolcurve  = 'DM'
-    coolmethod = 'explicit2'
-    cfrac      = 0.1d0
-    Tfix       = .false.
-
     ! defaults for parameters for optional pointgrav module (van Marle)
     ! --> set here mass to zero, coordinates to zero
     x1ptms = zero
@@ -231,7 +219,6 @@ contains
     absaccnr        = 1.0d-13
     maxitnr         = 100
     dmaxvel         = 1.0d-8
-    tlow            = zero
 
     ! defaults for convert behavior
 
@@ -304,15 +291,6 @@ contains
     Bquad        = zero
     Boct         = zero
     Busr         = zero
-    {#IFNDEF GLM
-    typedivbfix  = 'linde'\}
-    {#IFDEF GLM
-    typedivbfix  = 'glm1'\}
-    divbdiff     = 0.5d0
-    typedivbdiff = 'all'
-    compactres   = .false.
-    divbwave     = .true.
-
 
     ! IO defaults
     itmax         = biginteger
@@ -358,12 +336,6 @@ contains
     ! Defaults for discretization methods
     typeaverage     = 'default'
     tvdlfeps        = one
-    {#IFDEF FCT
-    BnormLF         = .false.
-    }
-    {#IFNDEF FCT
-    BnormLF         = .true.
-    }
     nxdiffusehllc   = 0
     flathllc        = .false.
     typeaxial       = 'slab'
@@ -379,13 +351,7 @@ contains
     useprimitive    = .true.
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
-    ncyclemax       = 1000
-    ssplitdivb      = .false.
-    {^IFMHDPHYS
-    ssplitdivb      = .true.
-    }
-    ssplitresis     = .false.
-    ssplituser      = .false.
+    source_split_usr= .false.
     typeadvance     = 'twostep'
 
     allocate(typefull1(nlevelshi),typepred1(nlevelshi))
@@ -541,10 +507,6 @@ contains
        if(residmin<=smalldouble) call mpistop("Provide value for residual above smalldouble")
     end if
 
-    if(compactres)then
-       if(typeaxial/='slab') call mpistop("compactres for MHD only in cartesian case")
-    endif
-
     if(TRIM(wnames)=='default') call mpistop("Provide wnames and restart code")
 
     do level=1,nlevelshi
@@ -646,18 +608,6 @@ contains
        end select
     end if
 
-    {#IFDEF GLM
-    if (typedivbfix/='glm1' .and. typedivbfix/='glm2' .and. typedivbfix/='glm3') &
-         call mpistop('using GLM, so typedivbfix should be either glm1 or glm2 (or glm3 with no additional sources)')
-    if (ssplitdivb .eqv. .false.) &
-         call mpistop('GLM needs ssplitdivb = .true.')
-    \}
-    {#IFNDEF GLM
-    if(typedivbfix=='glm1' .or. typedivbfix=='glm2' .or. typedivbfix=='glm3') then
-       call mpistop('Not using GLM, to enable GLM, change definitions.h. '//&
-            'Alternatives for typedivbfix are powel, janhunen, linde or none')
-    end if
-    \}
     !if (B0field) then
     !   if(mype==0)print *,'B0+B1 split for MHD'
     !   if (.not. physics_type=='mhd') call mpistop("B0+B1 split for MHD only")

@@ -104,7 +104,7 @@ contains
     logical, intent(in) :: qsourcesplit
 
     ! user defined sources, typically explicitly added
-    if ((qsourcesplit .eqv. ssplituser) .and. associated(usr_source)) then
+    if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source)) then
        call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     end if
 

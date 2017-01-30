@@ -149,16 +149,12 @@ contains
 
     ! initialize thermal conduction module
     if(hd_thermal_conduction) then
-      tc_gamma               =  hd_gamma
-      phys_get_heatconduct   => hd_get_heatconduct
-      phys_getdt_heatconduct => hd_getdt_heatconduct
-      call thermal_conduction_init()
+      call thermal_conduction_init(hd_gamma)
     end if
 
     ! Initialize radiative cooling module
     if(hd_radiative_cooling) then
-      rc_gamma=hd_gamma
-      call radiative_cooling_init()
+      call radiative_cooling_init(hd_gamma)
     end if
 
   end subroutine hd_phys_init
@@ -547,23 +543,14 @@ contains
     double precision, intent(in)    :: qdt, qtC, qt
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
-    double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
     logical, intent(in)             :: qsourcesplit
-    integer                         :: idir
 
-    if (hd_dust) then
-       call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
-
-       do idir = 1, ndir
-          call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-       end do
-
-       call dust_add_source(qdt, ixI^L, ixO^L, qtC, wCT, qt, w, x, &
-            qsourcesplit, ptherm, vgas)
+    if(hd_dust) then
+      call dust_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
     end if
 
-    if (hd_radiative_cooling) then
-       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,qtC,wCT,qt,w,x,qsourcesplit)
+    if(hd_radiative_cooling) then
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
     end if
 
   end subroutine hd_add_source
@@ -571,25 +558,23 @@ contains
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
     use mod_dust, only: dust_get_dt
+    use mod_radiative_cooling, only: cooling_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(inout) :: dtnew
-    double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
-    integer                         :: idir
 
     dtnew = bigdouble
 
-    if (hd_dust) then
-       call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
-
-       do idir = 1, ndir
-          call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-       end do
-
-       call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x, ptherm, vgas)
+    if(hd_dust) then
+      call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     end if
+
+    if(hd_radiative_cooling) then
+      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+    end if
+
   end subroutine hd_get_dt
 
   function hd_kin_en(w, ixI^L, ixO^L) result(ke)

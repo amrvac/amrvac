@@ -43,8 +43,7 @@ contains
     if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
-    if(ssplitdivb .or. ssplitresis .or. ssplituser) &
-         call addsource_all(.true.)
+    call addsource_all(.true.)
 
     ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -79,8 +78,7 @@ contains
     if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
-    if(ssplitdivb .or. ssplitresis .or. ssplituser) &
-         call addsource_all(.false.)
+    call addsource_all(.false.)
 
     {#IFDEF PARTICLES
     tpartc0 = MPI_WTIME()

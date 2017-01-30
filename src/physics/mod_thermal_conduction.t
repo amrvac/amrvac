@@ -38,7 +38,7 @@
 !>    tc_SI_unit=.true. ! (default .false.) to use SI units other than default cgs units
 
 module mod_thermal_conduction
-  
+
   implicit none
   !> Coefficient of thermal conductivity
   double precision :: kappa
@@ -65,7 +65,7 @@ module mod_thermal_conduction
   integer, allocatable, private, protected :: mag(:)
 
   !> The adiabatic index
-  double precision, public                :: tc_gamma
+  double precision, private :: tc_gamma
 
   !> The smallest allowed energy
   double precision, private :: smalle
@@ -96,6 +96,9 @@ module mod_thermal_conduction
 
   !> Helium abundance over Hydrogen
   double precision    :: He_abundance=0.1d0
+
+  !> Maximal number of sub-cycles within one fuild time step
+  integer :: ncyclemax=1000
 
   !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
   logical, private :: tc_perpendicular=.false.
@@ -158,17 +161,29 @@ contains
   end subroutine tc_params_read
 
   !> Initialize the module
-  subroutine thermal_conduction_init()
+  subroutine thermal_conduction_init(phys_gamma)
     use mod_global_parameters
+    use mod_physics
+
+    double precision, intent(in) :: phys_gamma
 
     double precision :: mp,kB,miu0
     integer :: nwx,idir
+
+    tc_gamma=phys_gamma
 
     tc_dtpar=tc_dtpar/dble(ndim)
 
     call tc_params_read(par_files)
   
     phys_thermal_conduction => do_thermal_conduction
+    if(physics_type=='hd') then
+      phys_get_heatconduct   => hd_get_heatconduct
+      phys_getdt_heatconduct => hd_getdt_heatconduct
+    else if(physics_type=='mhd') then
+      phys_get_heatconduct   => mhd_get_heatconduct
+      phys_getdt_heatconduct => mhd_getdt_heatconduct
+    end if
 
     ! Determine flux variables
     nwx = 1                  ! rho (density)
@@ -644,82 +659,80 @@ contains
   
   end subroutine mhd_get_heatconduct
 
-  subroutine mhd_getdt_heatconduct(w,ixG^L,ix^L,dtnew,dx^D,x)
+  subroutine mhd_getdt_heatconduct(w,ixI^L,ixO^L,dtnew,dx^D,x)
     !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*kappa_i/rho)
     !where                      kappa_i=kappa*B_i**2/B**2
     !and                        T=p/rho
     use mod_global_parameters
+    use mod_physics
     
-    integer, intent(in) :: ixG^L, ix^L
-    double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
     ! note that depending on strictsmall etc, w values may change 
     ! through call to getpthermal
-    double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
+    double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
     
-    double precision :: dxinv(1:ndim),mf(ixG^S,1:ndir)
-    double precision :: tmp2(ixG^S),tmp(ixG^S),Te(ixG^S),B2inv(ixG^S)
+    double precision :: dxinv(1:ndim),mf(ixI^S,1:ndir)
+    double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2inv(ixI^S)
     double precision :: dtdiff_tcond, dtdiff_tsat
     integer          :: idim,idir,ix^D
     integer, dimension(ndim)       :: lowindex
 
     ^D&dxinv(^D)=one/dx^D;
     
-    ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-    tmp(ix^S)=(tc_gamma-one)*(w(ix^S,e_)- &
-           half*(({^C&w(ix^S,mom(^C))**2+})/w(ix^S,rho_)&
-           +{ ^C&w(ix^S,mag(^C))**2+}))
+    call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! Clip off negative pressure if smallp is set
     if(strictsmall) then
-      if(any(tmp(ix^S)<minp)) then
-        lowindex=minloc(tmp(ix^S))
-        ^D&lowindex(^D)=lowindex(^D)+ixmin^D-1;
-        write(*,*)'low pressure = ',minval(tmp(ix^S)),' at x=',&
+      if(any(tmp(ixO^S)<minp)) then
+        lowindex=minloc(tmp(ixO^S))
+        ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
+        write(*,*)'low pressure = ',minval(tmp(ixO^S)),' at x=',&
         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',t,&
         ' step=',it
        call mpistop("=== strictsmall in getdt_heatconduct_mhd: low pressure ===")
       end if
     else
-    {do ix^DB=ixmin^DB,ixmax^DB\}
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
        if(tmp(ix^D)<minp) then
           tmp(ix^D)=minp
        end if
     {end do\}
     end if
     !temperature
-    Te(ix^S)=tmp(ix^S)/w(ix^S,rho_)
+    Te(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
     !kappa_i
-    tmp(ix^S)=kappa*dsqrt(Te(ix^S)**5)
+    tmp(ixO^S)=kappa*dsqrt(Te(ixO^S)**5)
     !(gamma-1)*kappa_i/rho
-    tmp(ix^S)=(tc_gamma-one)*tmp(ix^S)/w(ix^S,rho_)
+    tmp(ixO^S)=(tc_gamma-one)*tmp(ixO^S)/w(ixO^S,rho_)
     
     ! B
     if(B0field) then
-      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+myB0_cell%w(ix^S,1:ndir)
+      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+myB0_cell%w(ixO^S,1:ndir)
     else
-      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))
+      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))
     end if
     ! B^-2
     B2inv=0.d0
     do idir=1,ndir
-      B2inv(ix^S)=B2inv(ix^S)+mf(ix^S,idir)**2
+      B2inv(ixO^S)=B2inv(ixO^S)+mf(ixO^S,idir)**2
     end do
-    where(B2inv(ix^S)/=0.d0)
-      B2inv(ix^S)=1.d0/B2inv(ix^S)
+    where(B2inv(ixO^S)/=0.d0)
+      B2inv(ixO^S)=1.d0/B2inv(ixO^S)
     end where
 
     do idim=1,ndim
        ! B_i**2/B**2
-       where(B2inv(ix^S)/=0.d0)
-         tmp2(ix^S)=mf(ix^S,idim)**2*B2inv(ix^S)
+       where(B2inv(ixO^S)/=0.d0)
+         tmp2(ixO^S)=mf(ixO^S,idim)**2*B2inv(ixO^S)
        elsewhere
-         tmp2(ix^S)=1.d0
+         tmp2(ixO^S)=1.d0
        end where
        ! dt< tc_dtpar * dx_idim**2/((gamma-1)*kappa_i/rho*B_i**2/B**2)
-       dtdiff_tcond=tc_dtpar/maxval(tmp(ix^S)*tmp2(ix^S)*dxinv(idim)**2)
+       dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*tmp2(ixO^S)*dxinv(idim)**2)
        if(tc_saturate) then
          ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
          ! with an empirical coefficient dx_idim
-         dtdiff_tsat=tc_dtpar/maxval((tc_gamma-1.d0)*dsqrt(Te(ix^S))*&
+         dtdiff_tsat=tc_dtpar/maxval((tc_gamma-1.d0)*dsqrt(Te(ixO^S))*&
                      5.d0*dxinv(idim)**2)
          ! choose the slower flux (bigger time step) between classic and saturated
          dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
@@ -747,7 +760,7 @@ contains
        call mpistop("Need two extra layers for thermal conduction")
     
     ! store old kinetic energy
-    tmp2(ixI^S)=half*(^C&w(ixI^S,mom(^C))**2+ )/w(ixI^S,rho_)
+    tmp2(ixI^S)=half*sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
     tmp(ixI^S)=(tc_gamma-one)*(w(ixI^S,e_)-tmp2(ixI^S))
     ! Clip off negative pressure if smallp is set
@@ -778,7 +791,7 @@ contains
            write(*,*)'too low temperature = ',minval(Te(ixI^S)),' at x=',&
            x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smallT,' on time=',t,&
            ' step=',it,' where density=',w(^D&lowindex(^D),rho_),' velocity=',&
-           dsqrt((^C&w(^D&lowindex(^D),mom(^C))**2+)/w(^D&lowindex(^D),rho_)**2)
+           dsqrt(sum(w(^D&lowindex(^D),mom(:))**2,dim=1)/w(^D&lowindex(^D),rho_)**2)
            call mpistop("=== strictsmall in heatcond_hd: low temperature ===")
          end if
       else
@@ -826,52 +839,50 @@ contains
 
   end subroutine hd_get_heatconduct
 
-  subroutine hd_getdt_heatconduct(w,ixG^L,ix^L,dtnew,dx^D,x)
+  subroutine hd_getdt_heatconduct(w,ixI^L,ixO^L,dtnew,dx^D,x)
     ! Check diffusion time limit dt < tc_dtpar * dx_i**2 / ((gamma-1)*kappa_i/rho)
     use mod_global_parameters
+    use mod_physics
     
-    integer, intent(in) :: ixG^L, ix^L
-    double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
     ! note that depending on strictsmall etc, w values may change 
     ! through call to getpthermal
-    double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
+    double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
     
-    double precision :: dxinv(1:ndim), tmp(ixG^S), Te(ixG^S)
+    double precision :: dxinv(1:ndim), tmp(ixI^S), Te(ixI^S)
     double precision :: dtdiff_tcond,dtdiff_tsat
     integer          :: idim,ix^D
     integer, dimension(ndim)       :: lowindex
 
     ^D&dxinv(^D)=one/dx^D;
-    
-    ! Determine pressure and then the direction independent part of
-    tmp(ix^S)=( ^C&w(ix^S,mom(^C))**2+ )/w(ix^S,rho_)
-    ! Calculate pressure=(gamma-1)*(e-0.5*(2ek))
-    tmp(ix^S)=(tc_gamma-one)*(w(ix^S,e_)-half*tmp(ix^S))
+
+    call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! Clip off negative pressure if smallp is set
     if(strictsmall) then
-      if(any(tmp(ix^S)<minp)) then
-        lowindex=minloc(tmp(ix^S))
-        ^D&lowindex(^D)=lowindex(^D)+ixmin^D-1;
-        write(*,*)'low pressure = ',minval(tmp(ix^S)),' at x=',&
+      if(any(tmp(ixO^S)<minp)) then
+        lowindex=minloc(tmp(ixO^S))
+        ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
+        write(*,*)'low pressure = ',minval(tmp(ixO^S)),' at x=',&
         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',t
         call mpistop("=== strictsmall in getdt_heatconduct_hd: low pressure ===")
       end if
     else
-      {do ix^DB=ixmin^DB,ixmax^DB\}
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(tmp(ix^D)<minp) then
          tmp(ix^D)=minp
         end if
       {end do\}
     end if
-    Te(ix^S)=tmp(ix^S)/w(ix^S,rho_)
-    tmp(ix^S)=(tc_gamma-one)*kappa*dsqrt((Te(ix^S))**5)/w(ix^S,rho_)
+    Te(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
+    tmp(ixO^S)=(tc_gamma-one)*kappa*dsqrt((Te(ixO^S))**5)/w(ixO^S,rho_)
     
     do idim=1,ndim
        ! dt< tc_dtpar * dx_idim**2/((gamma-1)*kappa_idim/rho)
-       dtdiff_tcond=tc_dtpar/maxval(tmp(ix^S)*dxinv(idim)**2)
+       dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*dxinv(idim)**2)
        if(tc_saturate) then
          ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
-         dtdiff_tsat=tc_dtpar/maxval((tc_gamma-1.d0)*dsqrt(Te(ix^S))*&
+         dtdiff_tsat=tc_dtpar/maxval((tc_gamma-1.d0)*dsqrt(Te(ixO^S))*&
                      5.d0*dxinv(idim)**2)
          ! choose the slower flux (bigger time scale) between classic and saturated
          dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
