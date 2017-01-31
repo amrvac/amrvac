@@ -18,25 +18,19 @@ my $help_message =
 
 Required options:
 
-    -d=NM                       N is the the problem dimension (1 to 3)
-                                M is the vector dimension (1 to 3)
+    -d=N                        N is the the problem dimension (1 to 3)
+
 Optional options:
 
-    -phi={1,2,3}                Index of vector phi-component (default: 3)
-    -z={1,2,3}                  Index of vector z-component (default: 2)
-    -eos=<equation of state>    The equation of state
-    -nf=<number>                The number of fluid tracers (default: 0)
-    -ndust=<number>             The number of dust species (default: 0)
-    -cp=<compiler>              Use a specific compiler (default: openmpi)
     -maxlen=<number>            Maximum line length (default: 78)
 
 Examples:
 
     # Interactive usage
-    vacpp.pl -d=23 -p=rho -
+    vacpp.pl -d=2
 
     # File translation
-    vacpp.pl -d=22 -phi=3 -z=2 -p=mhd file.t > file.f
+    vacpp.pl -d=2 file.t > file.f
 ";
 
 # Check presence of required arguments
@@ -61,30 +55,30 @@ $maxlen=78 unless $maxlen;
 # Check whether the problem and vector dimension lie between 1 and 3, by
 # matching with a regexp.
 # TODO: check input, allow more when in interactive mode
-$d =~ /([123])([123])/ || die "Incorrect -d flag value\n";
+$d =~ /([123])/ || die "Incorrect -d flag value\n";
 
 # Store the problem and vector dimension ($1 and $2 refer to the matching groups
 # of the regexp)
 $ndim = $1;
-$ndir = $2;
+# $ndir = $2;
 
-if ($phi) {
+# if ($phi) {
     # Check if $phi matches a single-digit number
     # TODO: improve validity check
-    $phi=~/\d/ || die "Incorrect -phi flag value\n";
-} else {
+    # $phi=~/\d/ || die "Incorrect -phi flag value\n";
+# } else {
     # If not defined, set $phi to 3
-    $phi = 3;
-}
+    # $phi = 3;
+# }
 
-if ($z) {
+# if ($z) {
     # Check if $z matches a single-digit number
     # TODO: improve validity check
-    $z =~ /(\d)/ || die "Incorrect -z flag value\n";
-} else {
+    # $z =~ /(\d)/ || die "Incorrect -z flag value\n";
+# } else {
     # If not defined, set $z to 2
-    $z = 2;
-}
+    # $z = 2;
+# }
 
 # Set default options unless given
 $nf  = 0 unless $nf;
@@ -133,10 +127,10 @@ sub processfile {
       &processline($input);
 
       # Process files included by "INCLUDE:filename"
-      if (/INCLUDE:(.*)/) {
-          &processfile("$AMRVAC_DIR/src/$1",$input);
-          next;
-      }
+      # if (/INCLUDE:(.*)/) {
+          # &processfile("$AMRVAC_DIR/src/$1",$input);
+          # next;
+      # }
 
       # Print the line formatted according to maxlen
       &printline if $_;
@@ -171,7 +165,6 @@ sub processline{
    # DO SUBSTITUTIONS FOR BLOCKS "{....}"
    while(/$ope/){
       &block($input);
-      #print "Block:$_";
    }
    # DO SUBSTITUTION FOR EXPRESSIONS "...^pattern..."
    while(/$pat/){
@@ -198,14 +191,14 @@ sub definepatterns{
    # Define number of substitutes and subtitute strings for patterns
    # E.g. ^D -> 1,2 is defined by &patdef('D',2,'1','2','3')
    &patdef('ND'	,1	,$ndim			);
-   &patdef('NC'	,1	,$ndir			);
+   # &patdef('NC'	,1	,$ndir			);
    # &patdef('NFL',1	,$nf			);
-   &patdef('PHI',1	,$phi			);
-   &patdef('Z'	,1	,$z			);
-   if($phi>0){$pphi=$phi}else{$pphi=1};
-   if($z>0){$zz=$z}else{$zz=1};
-   &patdef('PPHI',1	,$pphi			);
-   &patdef('ZZ'	,1	,$zz			);
+   # &patdef('PHI',1	,$phi			);
+   # &patdef('Z'	,1	,$z			);
+   # if($phi>0){$pphi=$phi}else{$pphi=1};
+   # if($z>0){$zz=$z}else{$zz=1};
+   # &patdef('PPHI',1	,$pphi			);
+   # &patdef('ZZ'	,1	,$zz			);
 
    &patdef('DE'	,$ndim-1,2	,3		);
    &patdef('DE&',$ndim-1			);
@@ -241,14 +234,14 @@ sub definepatterns{
    &patdef('T'	,$ndim	,'^LLIM1:','^LLIM2:','^LLIM3:');
    &patdef('DLB',$ndim	,'^LIM'.$ndim,'^LIM'.($ndim-1),'^LIM'.($ndim-2));
 
-   &patdef('CE'	,$ndir-1,2	,3		);
-   &patdef('CE&',$ndir-1			);
-   &patdef('CELOOP',$ndir-1			);
+   # &patdef('CE'	,$ndir-1,2	,3		);
+   # &patdef('CE&',$ndir-1			);
+   # &patdef('CELOOP',$ndir-1			);
 
-   &patdef('C'	,$ndir	,1	,2	,3	);
-   &patdef('C&'	,$ndir				);
-   &patdef('CLOOP',$ndir       			);
-   &patdef('CC'	,$ndir	,'^C'	,'^C'	,'^C'	);
+   # &patdef('C'	,$ndir	,1	,2	,3	);
+   # &patdef('C&'	,$ndir				);
+   # &patdef('CLOOP',$ndir       			);
+   # &patdef('CC'	,$ndir	,'^C'	,'^C'	,'^C'	);
 
    &patdef('LIM'	,2	,'min'	,'max'	);
    &patdef('LLIM'	,2	,'lo'	,'hi'	);
@@ -276,13 +269,13 @@ sub definepatterns{
    &patdef('IF_NOT_1D'	,$ndim!=1		);
    &patdef('IF_NOT_2D'	,$ndim!=2		);
    &patdef('IF_NOT_3D'	,$ndim!=3		);
-   &patdef('IFONEC'     ,$ndir==1               );
-   &patdef('IFTWOC'	,$ndir==2		);
-   &patdef('IFTHREEC'	,$ndir==3		);
+   # &patdef('IFONEC'     ,$ndir==1               );
+   # &patdef('IFTWOC'	,$ndir==2		);
+   # &patdef('IFTHREEC'	,$ndir==3		);
    &patdef('NOONED'	,$ndim!=1		);
-   &patdef('NOONEC'     ,$ndir!=1               );
-   &patdef('IFPHI'      ,$phi>0			);
-   &patdef('IFZ'        ,$z>0			);
+   # &patdef('NOONEC'     ,$ndir!=1               );
+   # &patdef('IFPHI'      ,$phi>0			);
+   # &patdef('IFZ'        ,$z>0			);
    # &patdef('IFMHD'      ,$p eq mhd              );
    # &patdef('IFSRMHD'    ,$p eq srmhd		);
 #   &patdef('IFSRMHDGLM' ,$p eq srmhdglm         );
@@ -337,9 +330,9 @@ sub definevars{
    if ($ndim==3){$defvars{D3}=1;}
 
 # Components:
-   if ($ndir==1){$defvars{C1}=1;}
-   if ($ndir==2){$defvars{C2}=1;}
-   if ($ndir==3){$defvars{C3}=1;}
+   # if ($ndir==1){$defvars{C1}=1;}
+   # if ($ndir==2){$defvars{C2}=1;}
+   # if ($ndir==3){$defvars{C3}=1;}
 
 
 # Remove incompatible definitions:
@@ -439,47 +432,41 @@ sub substitute{
    $symbol=substr($_,$leftpos+1,1);
 
    if($symbol==$pre){
+     # Handle #IFDEF ...
      if($expr=~/^$pre\s*$ifdef\s*(\S*)\s.*/){
        $var=$1;
        if (exists $defvars{$var}){
 	 $expr=~ s/$pre\s*$ifdef\s*$var(.*)/$1/;
 	 $lchr='' if $lchr eq $ope || ($nsub==0 && $lchr eq $separator);
-#	 $rchr=';' if $rchr eq $clo && $separator eq ";";
 	 $rchr='' if $rchr eq $clo;
 	 $_=$head.$lchr.$expr.$rchr.$tail;
-#	        print 'var is gold, expression :',$expr,'end expr', 'var: ',$var, ' _: ',$_;
 	 return;
-       }
-       else{
-#	 print "var is silver, expression :", $expr,'end expr';
+       } else {
 	 $lchr='' if $lchr eq $ope || ($nsub==0 && $lchr eq $separator);
-#	 $rchr=';' if $rchr eq $clo && $separator eq ";";
 	 $rchr='' if $rchr eq $clo;
 	 $_=$head.$lchr.$rchr.$tail;
 	 return;
        }
      }
-     if($expr=~/^$pre\s*$ifndef\s*(\S*)\s.*/){
+
+     # Handle #IFNDEF ...
+     if ($expr=~/^$pre\s*$ifndef\s*(\S*)\s.*/) {
        $var=$1;
        if (not exists $defvars{$var}){
-#	 print $var, ' not defined';
 	 $expr=~ s/$pre\s*$ifndef\s*$var(.*)/$1/;
 	 $lchr='' if $lchr eq $ope || ($nsub==0 && $lchr eq $separator);
-#	 $rchr=';' if $rchr eq $clo && $separator eq ";";
 	 $rchr='' if $rchr eq $clo;
 	 $_=$head.$lchr.$expr.$rchr.$tail;
 	 return;
-       }
-       else{
-#	 print "var is silver, expression :", $expr,'end expr';
+       } else{
 	 $lchr='' if $lchr eq $ope || ($nsub==0 && $lchr eq $separator);
-#	 $rchr=';' if $rchr eq $clo && $separator eq ";";
 	 $rchr='' if $rchr eq $clo;
 	 $_=$head.$lchr.$rchr.$tail;
 	 return;
        }
      }
    }
+
    #Determine separator
    if($rchr eq ";")                 {$separator=";"}
    elsif($expr=~s/$bar([^$bar]*)$//){$separator="$spc$1$spc"}
@@ -488,8 +475,20 @@ sub substitute{
    else                             {$separator=","};
 
    # Determine number of substitutions and ID
-   if($expr=~/$pat($patid)($patchr*)/){$id=$1;$nsub=$nsub{"$1$2"};}
-   else{$nsub=$nsubdefault}
+   if ($expr=~/$pat($patid)($patchr*)/) {
+       # Example: ^D& gives $1 = D and $2 = &
+       $id=$1;
+
+       if (exists $nsub{"$1$2"}) {
+           $nsub=$nsub{"$1$2"};     # Look up in $nsub array
+       } else {
+           die "Unknown pattern $_\n";
+       }
+   } else {
+       # Patterns such as {end do\}
+       $nsub=$nsubdefault
+   }
+
    # Do the substitutions
    for($isub=1;$isub<=$nsub;$isub++){
      $expa=$expr;
@@ -501,7 +500,6 @@ sub substitute{
      $result.=$separator if $isub>1;
      $result.=$expa;
    }
-
 
    $lchr='' if $lchr eq $ope || ($nsub==0 && $lchr eq $separator);
    $rchr=';' if $rchr eq $clo && $separator eq ";";
