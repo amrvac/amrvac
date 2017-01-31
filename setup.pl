@@ -10,21 +10,18 @@ my $help_message =
 
 Options:
 
-    -d=NM                       N is the the problem dimension (1 to 3)
-                                M is the vector dimension (1 to 3)
+    -d=N                        N is the the problem dimension (1 to 3)
     -arch=<name>                Use compilation flags from arch/<name>.defs
-
     -show                       Show current options
     -help                       Show this help message
 
 Examples:
 
-setup.pl -d=22 -arch=default
+setup.pl -d=2 -arch=default
 setup.pl -show\n";
 
 # Locally define the variables that will hold the options
 my $ndim;
-my $ndir;
 my $arch;
 my $show;
 my $help;
@@ -35,14 +32,10 @@ GetOptions(
     "d=i"     =>
     sub {
         my ($opt_name, $opt_value) = @_;
-        $opt_value =~ /([123])([123])/ || die "-$opt_name flag incorrect\n";
+        $opt_value =~ /([123])/ || die "-$opt_name flag incorrect\n";
         $ndim = $1;
-        $ndir = $2;
-
         $ndim >= 1 && $ndim <= 3 ||
             die("1 <= ndim <= 3 does not hold\n");
-        $ndim <= $ndir && $ndir <= 3 ||
-            die("ndim <= ndir <= 3 does not hold\n");
     },
     "arch=s"  => \$arch,
     "show"    => \$show,
@@ -51,7 +44,7 @@ GetOptions(
 
 
 # Show help if -help is given or if there are no other arguments
-if ($help || !($ndim || $ndir || $show || $arch )) {
+if ($help || !($ndim || $show || $arch )) {
     print STDERR $help_message;
     exit;
 }
@@ -74,10 +67,6 @@ copy_if_not_present("makefile", "arch", "amrvac.make");
 
 if ($ndim) {
     replace_regexp_file("makefile", qr/NDIM\s*[:?]?=.*/, "NDIM := $ndim");
-}
-
-if ($ndir) {
-    replace_regexp_file("makefile", qr/NDIR\s*[:?]?=.*/, "NDIR = $ndir");
 }
 
 if ($arch) {
@@ -135,7 +124,7 @@ sub show_current_parameters {
     }
 
     print "\n Invocation of setup.pl:\n";
-    printf " setup.pl -d=%d%d", $params{"ndim"}, $params{"ndir"};
+    printf " setup.pl -d=%d", $params{"ndim"};
     printf " -arch=%s\n", $params{"arch"};
 }
 
@@ -153,7 +142,6 @@ sub get_current_parameters {
 
         # Note that $' returns the text after the match
         $params{"ndim"}    = $1 if /^ndim\s*=\s*(\d+)/ ;
-        $params{"ndir"}    = $1 if /^ndir\s*=\s*(\d+)/;
         $params{"arch"}    = $1 if /^ARCH\s*=\s*(\w+)/ ;
     }
     close($fh_makefile);
