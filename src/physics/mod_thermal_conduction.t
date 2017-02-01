@@ -481,22 +481,19 @@ contains
        call mpistop("Need two extra layers for thermal conduction")
     
     ! tmp2 store kinetic+magnetic energy before addition of heat conduction source
-    tmp2(ixI^S)=half*( (^C&w(ixI^S,mom(^C))**2+)/w(ixI^S,rho_)+ &
-      (^C&w(ixI^S,mag(^C))**2+) )
-    
+    tmp2(ixI^S) = 0.5d0 * (sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_) + &
+         sum(w(ixI^S,mag(:))**2,dim=ndim+1))
+
     ! tmp1 store internal energy
     tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+
     ! Clip off negative pressure if smallp is set
     if(strictsmall) then
-       if(any(tmp1(ixI^S)<smalle)) then
+       if (any(tmp1(ixI^S)<smalle)) then
          lowindex=minloc(tmp1(ixI^S))
          ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
          write(*,*)'too low internal energy = ',minval(tmp1(ixI^S)),' at x=',&
-         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smalle,' on time=',t,&
-         ' step=',it,' where density=',w(^D&lowindex(^D),rho_),' velocity=',&
-         dsqrt((^C&w(^D&lowindex(^D),mom(^C))**2+)/w(^D&lowindex(^D),rho_)**2),&
-         ' magnetic field=',dsqrt((^C&w(^D&lowindex(^D),mag(^C))**2+))
-         call mpistop("=== strictsmall in heatcond_mhd: low internal energy ===")
+         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smalle,' on time=',t
        end if
     else
     {do ix^DB=ixImin^DB,ixImax^DB\}
@@ -513,11 +510,7 @@ contains
            lowindex=minloc(tmp(ixI^S))
            ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
            write(*,*)'too low temperature = ',minval(tmp(ixI^S)),' at x=',&
-           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smallT,' on time=',t,&
-           ' step=',it,' where density=',w(^D&lowindex(^D),rho_),' velocity=',&
-           dsqrt((^C&w(^D&lowindex(^D),mom(^C))**2+)/w(^D&lowindex(^D),rho_)**2),&
-           ' magnetic field=',dsqrt((^C&w(^D&lowindex(^D),mag(^C))**2+))
-           call mpistop("=== strictsmall in heatcond_mhd: low temperature ===")
+           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smallT,' on time=',t
          end if
       else
       {do ix^DB=ixImin^DB,ixImax^DB\}
