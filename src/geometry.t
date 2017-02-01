@@ -1,4 +1,30 @@
-!=============================================================================
+subroutine select_geometry(geom)
+  use mod_global_parameters
+
+  character(len=*), intent(in) :: geom
+
+  select case (geom)
+  case ("Cartesian")
+    ! Do nothing
+  case ("cylindrical_2.5D")
+    if (ndim /= 2) &
+         call mpistop("Geometry cylindrical_2.5D requires ndim == 2")
+    ndir = 3
+    r_   = 1
+    phi_ = 2
+    z_   = 3
+  case ("spherical_2.5D")
+    if (ndim /= 2) &
+         call mpistop("Geometry spherical_2.5D requires ndim == 2")
+    ndir = 3
+    r_   = 1
+    phi_ = 3
+    z_   = -1
+  case default
+    call mpistop("Unknown geometry specified")
+  end select
+end subroutine select_geometry
+
 subroutine set_pole
 
 use mod_global_parameters
@@ -7,7 +33,7 @@ select case (typeaxial)
 case ("spherical") {^IFTHREED
   ! For spherical grid, check whether phi-direction is periodic
   if(periodB(ndim)) then
-    if(^PHI/=3) call mpistop("do setup.pl -phi=3 and recompile")
+    if(phi_/=3) call mpistop("do setup.pl -phi=3 and recompile")
     if(mod(ng3(1),2)/=0) &
       call mpistop("Number of meshes in phi-direction should be even!")
     if(abs(xprobmin2)<smalldouble) then
@@ -26,7 +52,7 @@ case ("spherical") {^IFTHREED
     end if
   end if}
 case ("cylindrical")
-  {if (^D==^PHI.and.periodB(^D)) then
+  {if (^D == phi_ .and. periodB(^D)) then
     if(mod(ng^D(1),2)/=0) &
       call mpistop("Number of meshes in phi-direction should be even!")
     if(abs(xprobmin1)<smalldouble) then
@@ -306,24 +332,24 @@ case ("cylindrical")
    pgeogrid%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (^Z==2) pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-   if (^PHI==2) pgeogrid%surfaceC2(ixC^S)=dx1{^IFTHREED*dx3}}
+   if (z_==2) pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+   if (phi_ == 2) pgeogrid%surfaceC2(ixC^S)=dx1{^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (^Z==3) pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2
-   if (^PHI==3) pgeogrid%surfaceC3(ixC^S)=dx1*dx2}
+   if (z_==3) pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2
+   if (phi_==3) pgeogrid%surfaceC3(ixC^S)=dx1*dx2}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    !!pgeogrid%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
    pgeogrid%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (^Z==2) pgeogrid%surface2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-   if (^PHI==2) pgeogrid%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
+   if (z_==2) pgeogrid%surface2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+   if (phi_==2) pgeogrid%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (^Z==3) pgeogrid%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2
-   if (^PHI==3) pgeogrid%surface3(ixC^S)=dx1*dx2}
+   if (z_==3) pgeogrid%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2
+   if (phi_==3) pgeogrid%surface3(ixC^S)=dx1*dx2}
 
 
    pgeogrid%dx(ixGext^S,1)=dx1
@@ -332,36 +358,41 @@ case ("cylindrical")
    pgeogrid%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (^Z==2) pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (^PHI==2) pgeogrid%surfaceC2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+   if (z_==2) pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+   if (phi_==2) pgeogrid%surfaceC2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (^Z==3) pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (^PHI==3) pgeogrid%surfaceC3(ixC^S)=drs(ixC^S)*dx2}
+   if (z_==3) pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
+   if (phi_==3) pgeogrid%surfaceC3(ixC^S)=drs(ixC^S)*dx2}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    !!pgeogrid%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
    pgeogrid%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (^Z==2) pgeogrid%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (^PHI==2) pgeogrid%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+   if (z_==2) pgeogrid%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+   if (phi_==2) pgeogrid%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (^Z==3) pgeogrid%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (^PHI==3) pgeogrid%surface3(ixC^S)=drs(ixC^S)*dx2}
+   if (z_==3) pgeogrid%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
+   if (phi_==3) pgeogrid%surface3(ixC^S)=drs(ixC^S)*dx2}
 
 
    pgeogrid%dx(ixGext^S,1)=drs(ixGext^S)
 }
-   {^IFZ {^DE&if (^DE==^Z) pgeogrid%dx(ixGext^S,^DE)=dx^DE\}}
-   {^IFPHI {if (^DE==^PHI) pgeogrid%dx(ixGext^S,^DE)=x(ixGext^S,1)*dx^DE\}}
 
+   if (z_ > 0) then
+     {^DE&if (^DE==z_) pgeogrid%dx(ixGext^S,^DE)=dx^DE\}
+   end if
+
+   if (phi_ > 0) then
+     {if (^DE==phi_) pgeogrid%dx(ixGext^S,^DE)=x(ixGext^S,1)*dx^DE\}
+   end if
 
 case default
 
    call mpistop("Sorry, typeaxial unknown")
-   
+
 end select
 
 end subroutine fillgeo
@@ -604,7 +635,7 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
              tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
          end select
         case('cylindrical')
-         if(^Z==3) then
+         if(z_==3) then
            select case(jdir)
               case(1)
                mydx(ixO^S)=mygeo%dx(ixO^S,1)
@@ -619,7 +650,7 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
                tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
            end select
          end if
-         if(^PHI==3) then
+         if(phi_==3) then
            select case(jdir)
               case(1)
                mydx(ixO^S)=mygeo%dx(ixO^S,1)

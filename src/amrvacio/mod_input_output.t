@@ -663,7 +663,7 @@ contains
        \}
     case ("cylindrical")
        {
-       if (^D==^PHI) then
+       if (^D==phi_) then
           xprob^LIM^D=xprob^LIM^D*two*dpi;
        end if
        \}

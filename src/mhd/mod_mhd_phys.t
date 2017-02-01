@@ -590,6 +590,7 @@ contains
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
   subroutine mhd_add_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
     use mod_global_parameters
+    use mod_radiative_cooling
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)    :: qdt, qtC, qt

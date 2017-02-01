@@ -25,7 +25,7 @@ if (.not.slab) then
    case ("cylindrical")
       if (poleB(1,1).and.jg1==0) then ! cylindrical axis
          jg1=1
-         {if (^D==^PHI) jg^D=1+modulo(jg^D+ng^D(1)/2-1,ng^D(1))\}
+         {if (^D==phi_) jg^D=1+modulo(jg^D+ng^D(1)/2-1,ng^D(1))\}
       end if
    end select
 end if
@@ -54,10 +54,11 @@ level=tree%node%level
 if (level==1) then
    call find_root_neighbor(my_neighbor,tree,i^D)
    if (associated(my_neighbor%node)) then
-      {^IFPHI
-      ig^D=tree%node%ig^D;
-      {if ((poleB(2,^D).and.ig^D==ng^D(1).and.i^D==1) .or. &
-           (poleB(1,^D).and.ig^D==1.and.i^D==-1)) pole(^D)=.true.\}}
+     if (phi_ > 0) then
+       ig^D=tree%node%ig^D;
+       {if ((poleB(2,^D).and.ig^D==ng^D(1).and.i^D==1) .or. &
+            (poleB(1,^D).and.ig^D==1.and.i^D==-1)) pole(^D)=.true.\}
+     end if
       if (my_neighbor%node%leaf) then
          my_neighbor_type=3
       else
@@ -69,9 +70,12 @@ if (level==1) then
    end if
 else
    ig^D=tree%node%ig^D;
-   {^IFPHI
-   {if ((poleB(2,^D).and.ig^D==ng^D(level).and.i^D==1) .or. &
-        (poleB(1,^D).and.ig^D==1.and.i^D==-1)) pole(^D)=.true.\}}
+
+   if (phi_ > 0) then
+     {if ((poleB(2,^D).and.ig^D==ng^D(level).and.i^D==1) .or. &
+          (poleB(1,^D).and.ig^D==1.and.i^D==-1)) pole(^D)=.true.\}
+   end if
+
    ic^D=1+modulo(ig^D-1,2);
    inp^D=int((ic^D+i^D+1)/2)-1;
    my_neighbor%node => tree%node%parent%node
@@ -85,7 +89,7 @@ else
    if (my_neighbor%node%leaf) then
       my_neighbor_type=2
    else
-      {if (i^D==0{^IFPHI.or.pole(^D)}) then
+      {if (i^D==0 .or. pole(^D)) then
          n_ic^D=ic^D
       else
          n_ic^D=3-ic^D

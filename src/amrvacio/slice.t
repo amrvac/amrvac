@@ -689,16 +689,17 @@ typegradlimiter=typegradlimiter1(node(plevel_,igrid))
   end if
 endif
 
-{^IFMHDPHYS
-if (B0field) w(ixM^T,b1_:b0_+ndir) = w(ixM^T,b1_:b0_+ndir) + pB0_cell(igrid)%w(ixM^T,1:ndir)
-{#IFDEF ENERGY
-if((.not.saveprim) .and. B0field) then
-   w(ixM^T,e_)=w(ixM^T,e_) &
-           +half*( ^C&pB0_cell(igrid)%w(ixM^T,b^C_-b0_)**2+ ) &
-           + ( ^C&w(ixM^T,b^C_)*pB0_cell(igrid)%w(ixM^T,b^C_-b0_)+ )
-endif
-}
-}
+!> @todo fix later
+! {^IFMHDPHYS
+! if (B0field) w(ixM^T,b1_:b0_+ndir) = w(ixM^T,b1_:b0_+ndir) + pB0_cell(igrid)%w(ixM^T,1:ndir)
+! {#IFDEF ENERGY
+! if((.not.saveprim) .and. B0field) then
+!    w(ixM^T,e_)=w(ixM^T,e_) &
+!            +half*( ^C&pB0_cell(igrid)%w(ixM^T,b^C_-b0_)**2+ ) &
+!            + ( ^C&w(ixM^T,b^C_)*pB0_cell(igrid)%w(ixM^T,b^C_-b0_)+ )
+! endif
+! }
+! }
 
 ! Fill the subdimensional solution and position array:
 

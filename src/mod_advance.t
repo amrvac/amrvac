@@ -496,10 +496,6 @@ contains
        call hll(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
     case ('hllc','hllc1', 'hllcd','hllcd1')
        call hllc(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-       {^IFMHDPHYS
-    case ('hlld','hlld1', 'hlldd','hlldd1')
-       call hlld(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-       }
     case ('tvd','tvd1')
        call centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
        call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,wCT,qt+qdt,w,fC,dx^D,x)

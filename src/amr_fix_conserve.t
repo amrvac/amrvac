@@ -36,7 +36,11 @@ if (nrecv>0) then
       do idims= idim^LIM
          do iside=1,2
             i^D=kr(^D,idims)*(2*iside-3);
-            {^IFPHI if (neighbor_pole(i^D,igrid)/=0) cycle}
+
+            if (phi_ > 0) then
+              if (neighbor_pole(i^D,igrid)/=0) cycle
+            end if
+
             if (neighbor_type(i^D,igrid)/=4) cycle
             {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
                inc^DB=2*i^DB+ic^DB\}
@@ -75,7 +79,11 @@ nxCo^D=nx^D/2;
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    {do iside=1,2
       i^DD=kr(^DD,^D)*(2*iside-3);
-      {^IFPHI if (neighbor_pole(i^DD,igrid)/=0) cycle}
+
+      if (phi_ > 0) then
+        if (neighbor_pole(i^DD,igrid)/=0) cycle
+      end if
+
       select case (neighbor_type(i^DD,igrid))
       case (4)
          allocate(pflux(iside,^D,igrid)%flux(1^D%1:nx^DD,1:nwflux))
@@ -137,7 +145,11 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
       {case (^D)
          do iside=1,2
             i^DD=kr(^DD,^D)*(2*iside-3);
-            {^IFPHI if (neighbor_pole(i^DD,igrid)/=0) cycle}
+
+            if (phi_ > 0) then
+              if (neighbor_pole(i^DD,igrid)/=0) cycle
+            end if
+
             if (neighbor_type(i^DD,igrid)/=4) cycle
 
 ! opedit: skip over active/passive interface since flux for passive ones is 
@@ -249,7 +261,11 @@ do idims = idim^LIM
    {case (^D)
       do iside=1,2
          i^DD=kr(^DD,^D)*(2*iside-3);
-         {^IFPHI if (neighbor_pole(i^DD,igrid)/=0) cycle}
+
+         if (phi_ > 0) then
+           if (neighbor_pole(i^DD,igrid)/=0) cycle
+         end if
+
          select case (neighbor_type(i^DD,igrid))
          case (4)
             select case (iside)
@@ -313,9 +329,12 @@ do idims = idim^LIM
    select case (idims)
    {case (^D)
       do iside=1,2
-         i^DD=kr(^DD,^D)*(2*iside-3);
-         {^IFPHI if (neighbor_pole(i^DD,igrid)/=0) cycle}
-         
+        i^DD=kr(^DD,^D)*(2*iside-3);
+
+         if (phi_ > 0) then
+           if (neighbor_pole(i^DD,igrid)/=0) cycle
+         end if
+
          if (neighbor_type(i^DD,igrid)==2) then
 
             ineighbor=neighbor(1,i^DD,igrid)

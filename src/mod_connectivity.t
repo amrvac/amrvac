@@ -9,7 +9,7 @@ module mod_connectivity
    integer, dimension(:^D&,:), allocatable :: neighbor_type
    logical, dimension(:^D&,:), allocatable :: neighbor_active
    logical, dimension(-1:1^D&) :: leveljump
-   {^IFPHI integer, dimension(:^D&,:), allocatable :: neighbor_pole}
+   integer, dimension(:^D&,:), allocatable :: neighbor_pole
 
    integer, dimension(:), allocatable :: igrids
    integer, dimension(:), allocatable :: igrids_active

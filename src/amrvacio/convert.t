@@ -120,13 +120,13 @@ select case (typeaxial)
    case( "cylindrical" )
       xandwnamei(1)="R";
       {^NOONED
-      if( ^PHI == 2 )then
+      if( phi_ == 2 )then
          xandwnamei(2)="Phi"
       else
          xandwnamei(2)="Z"
       endif}
       {^IFTHREED
-      if( ^PHI == 2 )then
+      if( phi_ == 2 )then
          xandwnamei(3)="Z"
       else
          xandwnamei(3)="Phi"
@@ -308,16 +308,16 @@ else
   end do
  end if
 end if
-{^IFMHD
+
+!> @todo Add similar functionality back in
 ! add background magnetic field B0 to B
-do iigrid=1,igridstail; igrid=igrids(iigrid)
-   if(.not.writeblk(igrid)) cycle
-   if(B0field) then
-     myB0_cell => pB0_cell(igrid)
-     ^C&pwio(igrid)%w(ixG^T,b^C_)=pwio(igrid)%w(ixG^T,b^C_)+myB0_cell%w(ixG^T,^C);\
-   end if
-end do
-}
+! do iigrid=1,igridstail; igrid=igrids(iigrid)
+!    if(.not.writeblk(igrid)) cycle
+!    if(B0field) then
+!      myB0_cell => pB0_cell(igrid)
+!      ^C&pwio(igrid)%w(ixG^T,b^C_)=pwio(igrid)%w(ixG^T,b^C_)+myB0_cell%w(ixG^T,^C);\
+!    end if
+! end do
 
 Master_cpu_open : if (mype == 0) then
  inquire(qunit,opened=fileopen)
@@ -984,7 +984,7 @@ double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC
 double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
 double precision :: dx^D
-integer :: nxCC^D,idims,jxC^L,iwe,iwb^C
+integer :: nxCC^D,idims,jxC^L,iwe
 integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
 logical, save :: subfirst=.true.
 !-----------------------------------------------------------------------------
@@ -1270,9 +1270,9 @@ endif
          x_TEC(2)=xC(ix^D,2)
       end select}
       {^IFTHREED
-      x_TEC(1)=xC(ix^D,1)*cos(xC(ix^D,pphi_))
-      x_TEC(2)=xC(ix^D,1)*sin(xC(ix^D,pphi_))
-      x_TEC(3)=xC(ix^D,zz_)}
+      x_TEC(1)=xC(ix^D,1)*cos(xC(ix^D,phi_))
+      x_TEC(2)=xC(ix^D,1)*sin(xC(ix^D,phi_))
+      x_TEC(3)=xC(ix^D,z_)}
 
       if (nvector>0) then
          {^IFONED normal(1,1)=one}
@@ -1292,17 +1292,17 @@ endif
          end select}
 
          {^IFTHREED
-         normal(1,1)=cos(xC(ix^D,pphi_))
-         normal(1,pphi_)=-sin(xC(ix^D,pphi_))
-         normal(1,zz_)=zero
+         normal(1,1)=cos(xC(ix^D,phi_))
+         normal(1,phi_)=-sin(xC(ix^D,phi_))
+         normal(1,z_)=zero
 
-         normal(2,1)=sin(xC(ix^D,pphi_))
-         normal(2,pphi_)=cos(xC(ix^D,pphi_))
-         normal(2,zz_)=zero
+         normal(2,1)=sin(xC(ix^D,phi_))
+         normal(2,phi_)=cos(xC(ix^D,phi_))
+         normal(2,z_)=zero
 
          normal(3,1)=zero
-         normal(3,pphi_)=zero
-         normal(3,zz_)=one}
+         normal(3,phi_)=zero
+         normal(3,z_)=one}
       end if
       do iw=1,nw+nwauxio
          if (iw<=nw) iw0=vectoriw(iw)

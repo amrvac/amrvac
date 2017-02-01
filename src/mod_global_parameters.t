@@ -65,11 +65,15 @@ module mod_global_parameters
   integer, parameter :: std_len = 131
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
-  integer, parameter :: r_=1, phi_=^PHI, z_=^Z
+  integer :: r_ = -1
+
+  integer :: phi_ = -1
+
+  integer :: z_ = -1
 
   !> Indices for cylindrical coordinates FOR INDEXING, always positive
   !> \todo Check whether these are still needed
-  integer, parameter :: pphi_=^PPHI, zz_=^ZZ
+  ! integer, parameter :: pphi_=^PPHI, zz_=^ZZ
 
   !> Number of spatial dimensions for grid variables
   integer, parameter :: ndim=^ND

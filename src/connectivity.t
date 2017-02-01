@@ -146,16 +146,17 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
             end select
          end if
 
-         {^IFPHI
-         neighbor_pole(i^D,igrid)=0
-         if (my_neighbor_type>1) then
-            do idim=1,^ND
+         if (phi_ > 0) then
+           neighbor_pole(i^D,igrid)=0
+           if (my_neighbor_type>1) then
+             do idim=1,^ND
                if (pole(idim)) then
-                  neighbor_pole(i^D,igrid)=idim
-                  exit ! there can only be one pole between two meshes
+                 neighbor_pole(i^D,igrid)=idim
+                 exit ! there can only be one pole between two meshes
                end if
-            end do
-         end if}
+             end do
+           end if
+         end if
          neighbor_type(i^D,igrid)=my_neighbor_type
 
       end if
