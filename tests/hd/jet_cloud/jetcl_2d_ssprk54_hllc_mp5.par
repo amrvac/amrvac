@@ -38,10 +38,8 @@
         typelimited='predictor'
         useprimitive=.true.
         dimsplit=.false.
-        fixsmall=.true.
-        strictsmall=.false.
-        strictgetaux=.false.
-        nflatgetaux=2
+        small_values_method='average'
+        small_values_daverage=2
         smallp=1.0d-14
         smallrho=1.0d-14
  /

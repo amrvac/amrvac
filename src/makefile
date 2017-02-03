@@ -63,7 +63,6 @@ mod_fd.o: mod_mp5.o
 mod_fd.o: mod_physics.o
 mod_fd.o: mod_source.o
 mod_ghostcells_update.o: mod_physics.o
-mod_global_parameters.o: mod_config.o
 mod_hd_hllc.o: mod_hd_phys.o
 mod_hd_hllc.o: mod_physics_hllc.o
 mod_hd.o: mod_hd_hllc.o
@@ -81,6 +80,7 @@ mod_hd_roe.o: mod_hd_phys.o
 mod_hd_roe.o: mod_physics_roe.o
 mod_hd_roe.o: mod_tvd.o
 mod_input_output.o: mod_physics.o
+mod_input_output.o: mod_small_values.o
 mod_input_output.o: mod_timing.o
 mod_limiter.o: mod_mp5.o
 mod_limiter.o: mod_ppm.o

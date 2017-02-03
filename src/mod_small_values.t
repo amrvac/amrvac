@@ -3,28 +3,16 @@ module mod_small_values
   implicit none
   private
 
-  integer :: daverage = 1
-
+  !> How to handle small values
   character(len=20), public :: small_values_method = "error"
 
-  public :: small_values_init
+  !> Average over this many cells in each direction
+  integer, public :: small_values_daverage = 1
+
   public :: small_values_error
   public :: small_values_average
 
 contains
-
-  subroutine small_values_init()
-    use mod_global_parameters
-
-    character(len=20) :: method
-
-    call CFG_add_get(cfg, "small_value%method", small_values_method, &
-         "How to handle small values. Options: error, replace, average")
-
-    call CFG_add_get(cfg, "small_value%daverage", daverage, &
-         "Distance (in cells) used for averaging small values")
-
-  end subroutine small_values_init
 
   subroutine small_values_error(w, x, ixI^L, ixO^L, w_flag)
     use mod_global_parameters
@@ -59,14 +47,14 @@ contains
     ! point with local failure identified by w_flag
     if (w_flag(ix^D) /= 0) then
 
-       ! verify in cube with border width daverage the presence
-       ! of cells where all went ok
-       do i = 1, daverage
+       ! verify in cube with border width small_values_daverage the presence of
+       ! cells where all went ok
+       do i = 1, small_values_daverage
           {kxOmin^D= max(ix^D-i, ixOmin^D);
           kxOmax^D= min(ix^D+i, ixOmax^D);\}
 
           ! in case cells are fine within smaller cube than 
-          ! the userset daverage: use that smaller cube
+          ! the userset small_values_daverage: use that smaller cube
           if (any(w_flag(kxO^S) == 0)) exit
        end do
 
@@ -80,8 +68,8 @@ contains
                   / count(w_flag(kxO^S) == 0)
           end do
        else
-          ! no cells without error were found in cube of size daverage
-          ! --> point of no recovery
+          ! no cells without error were found in cube of size
+          ! small_values_daverage --> point of no recovery
           print*,"Getaux error:", w_flag(ix^D),"ix^D=", ix^D
           !print*,"New ","rho=", w(ix^D, rho_),"m=", &
           !        {^C&w(ix^D, m^C_)},"e=", w(ix^D, e_)
