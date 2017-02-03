@@ -1,75 +1,19 @@
-!#############################################################################
-! module amrvacusr - testhdrt
-! setup.pl -d=33 -phi=0 -z=0 -g=16,16,16 -p=hd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
-! play around with the subroutine initonegrid_usr which setups the initial value
 module mod_usr
   use mod_hd
 
   implicit none
 
-  double precision :: grav_(3) = [0.0d0, -1.0d0, 0.0d0]
-
 contains
-
-  !> @todo: use mod_gravity
-  subroutine addsource_grav(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
-
-    ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
-
-    use mod_global_parameters
-
-    integer, intent(in) :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
-    double precision, intent(in) :: wCT(ixI^S,1:nw)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    integer :: iw, idims
-    !-----------------------------------------------------------------------------
-    ! add sources from gravity
-
-    do idims = 1, ndim
-       if (mom(idims) >= iwmin .and. mom(idims) <= iwmax) then
-          w(ixO^S,mom(idims))=w(ixO^S,mom(idims)) &
-               +qdt*grav_(idims)*wCT(ixO^S,rho_)
-       end if
-
-       if (hd_energy .and. e_ >= iwmin .and. e_ <= iwmax) then
-          w(ixO^S,e_)=w(ixO^S,e_) &
-               +qdt*grav_(idims)*wCT(ixO^S,mom(idims))
-       end if
-    end do
-
-  end subroutine addsource_grav
-
-  subroutine getdt_grav(w,ixG^L,ix^L,dtnew,dx^D,x)
-
-    use mod_global_parameters
-
-    integer, intent(in) :: ixG^L, ix^L
-    double precision, intent(in) :: dx^D, x(ixG^S,1:ndim), w(ixG^S,1:nw)
-    double precision, intent(inout) :: dtnew
-
-    double precision:: dxinv(1:ndim), dtgrav
-    integer:: idims
-    !----------------------------------------------------------------------------
-
-    ^D&dxinv(^D)=one/dx^D;
-    dtgrav=bigdouble
-    do idims=1,ndim
-       if(abs(grav_(idims))>zero)&
-            dtgrav=min(dtgrav,one/sqrt(abs(grav_(idims))*dxinv(idims)))
-    enddo
-
-    dtnew=dtgrav
-
-  end subroutine getdt_grav
 
   subroutine usr_init()
     use mod_usr_methods
+    use mod_gravity
 
     usr_init_one_grid => initonegrid_usr
     usr_source => specialsource
     usr_get_dt => getdt_special
+
+    gravity_field = [0.0d0, -1.0d0, 0.0d0]
 
     call hd_activate()
 
@@ -150,37 +94,34 @@ contains
     end if
   end subroutine initonegrid_usr
 
+  ! Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
+  ! iw=iwmin...iwmax.  wCT is at time qCT
   subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
-
-    ! Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
-    ! iw=iwmin...iwmax.  wCT is at time qCT
-
     use mod_global_parameters
+    use mod_gravity
 
-    integer, intent(in) :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in) :: qdt, qtC, qt, x(ixI^S,1:ndim)
-    double precision, intent(in) :: wCT(ixI^S,1:nw)
+    integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
+    double precision, intent(in)    :: qdt, qtC, qt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    !-----------------------------------------------------------------------------
 
-    call addsource_grav(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+    call gravity_add_source(qdt,ixI^L,ixO^L,iw^LIM, rho_, mom, e_, &
+         qtC,wCT,qt,w,x)
 
   end subroutine specialsource
 
+  ! Limit "dt" further if necessary, e.g. due to the special source terms.
+  ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
+  ! module have already been called.
   subroutine getdt_special(w,ixG^L,ix^L,dtnew,dx^D,x)
-
-    ! Limit "dt" further if necessary, e.g. due to the special source terms.
-    ! The getdt_courant (CFL condition) and the getdt subroutine in the AMRVACPHYS
-    ! module have already been called.
-
     use mod_global_parameters
+    use mod_gravity
 
-    integer, intent(in) :: ixG^L, ix^L
-    double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
+    integer, intent(in)             :: ixG^L, ix^L
+    double precision, intent(in)    :: dx^D, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
-    !-----------------------------------------------------------------------------
 
-    call getdt_grav(w,ixG^L,ix^L,dtnew,dx^D,x)
+    call gravity_get_dt(w,ixG^L,ix^L,dtnew,dx^D,x)
 
   end subroutine getdt_special
 
