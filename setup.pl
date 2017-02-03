@@ -10,7 +10,7 @@ my $help_message =
 
 Options:
 
-    -d=N                        N is the the problem dimension (1 to 3)
+    -d=N                        N is the problem dimension (1 to 3)
     -arch=<name>                Use compilation flags from arch/<name>.defs
     -show                       Show current options
     -help                       Show this help message
