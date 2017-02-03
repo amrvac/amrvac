@@ -1144,19 +1144,19 @@ if(typeaxial=='slab')then
       !                      +pB0_cell(igrid)%w(ix^D:ix^D+1,idir))/dble(2**ndim)
       !    {end do\}
       ! else
-        if(uselimiter)then
-           if(ndim>1)call mpistop("to be corrected for multi-D")
-           do idims =1,ndim
-              jxC^L=ixC^L+kr(idims,^D);
-              dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-              call dwlimiter2(dwC,ixG^LL,ixC^L,iw,idims,ldw,dxlevel(idims))
-              wC(ixC^S,iw)=w(ixC^S,iw)+half*ldw(ixC^S)
-           end do
-        else
+        !if(uselimiter)then
+        !   if(ndim>1)call mpistop("to be corrected for multi-D")
+        !   do idims =1,ndim
+        !      jxC^L=ixC^L+kr(idims,^D);
+        !      dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
+        !      call dwlimiter2(dwC,ixG^LL,ixC^L,iw,idims,ldw,dxlevel(idims))
+        !      wC(ixC^S,iw)=w(ixC^S,iw)+half*ldw(ixC^S)
+        !   end do
+        !else
           {do ix^DB=ixCmin^DB,ixCmax^DB\}
              wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw))/dble(2**ndim)
           {end do\}
-       end if
+       !end if
       ! end if
    end do
 ! {#IFDEF ENERGY
@@ -2064,7 +2064,7 @@ if (B0field) call mpistop("No B0 field implemented in dx plotfile")
 
 nx^D=ixGhi^D-2*dixB;
 
-byteorder = ' '//TRIM(dxfiletype)//' '
+byteorder = 'lsb'
    ! generate filename    
    filenr=snapshotini
    if (autoconvert) filenr=snapshot-1

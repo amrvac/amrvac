@@ -46,7 +46,7 @@ end if
          ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2;
 
          call coarsen_grid(pw(igridFi)%w,px(igridFi)%x,ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,ixG^LL, &
-                     ixCo^L,pgeo(igridFi),pgeo(igrid),restrictprimitive,.false.)
+                     ixCo^L,pgeo(igridFi),pgeo(igrid))
 
          ! remove solution space of child
          call dealloc_node(igridFi)
@@ -55,8 +55,7 @@ end if
          ixCoGmax^D=ixGhi^D/2+dixB;
          ixCoM^L=ixCoG^L^LSUBdixB;
          call coarsen_grid(pw(igridFi)%w,px(igridFi)%x,ixG^LL,ixM^LL,pwCoarse(igridFi)%w,pxCoarse(igridFi)%x, &
-                           ixCoG^L,ixCoM^L,pgeo(igridFi),pgeoCoarse(igridFi),&
-                           restrictprimitive,.false.)
+                           ixCoG^L,ixCoM^L,pgeo(igridFi),pgeoCoarse(igridFi))
 
          itag=ipeFi*ngridshi+igridFi
          isend=isend+1
@@ -77,7 +76,7 @@ if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 end subroutine coarsen_grid_siblings
 !=============================================================================
 subroutine coarsen_grid(wFi,xFi,ixFiG^L,ixFi^L,wCo,xCo,ixCoG^L,ixCo^L,&
-                        pgeogrid,pgeoCoarsegrid,coarsenprim,keepFi)
+                        pgeogrid,pgeoCoarsegrid)
 
 use mod_global_parameters
 use mod_physics
@@ -86,7 +85,6 @@ integer, intent(in) :: ixFiG^L, ixFi^L, ixCoG^L, ixCo^L
 double precision, intent(inout) :: wFi(ixFiG^S,1:nw), xFi(ixFiG^S,1:ndim)
 double precision,intent(inout) :: wCo(ixCoG^S,1:nw), xCo(ixCoG^S,1:ndim)
 type(geoalloc) :: pgeogrid, pgeoCoarsegrid
-logical, intent(in) :: coarsenprim, keepFi
 
 integer :: ixCo^D, ixFi^D, iw
 double precision :: CoFiratio

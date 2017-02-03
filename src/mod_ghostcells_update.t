@@ -349,7 +349,7 @@ contains
           end if
     }
           call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,&
-                            ixCoG^L,ixCoM^L,pgeo(igrid),pgeoCoarse(igrid),coarsenprimitive,.true.)
+                            ixCoG^L,ixCoM^L,pgeo(igrid),pgeoCoarse(igrid))
        end if
     
        {do i^DB=-1,1\}

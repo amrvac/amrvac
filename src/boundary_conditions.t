@@ -40,17 +40,6 @@ select case (idims)
                   w(ix^D^D%ixI^S,iw) = w(ixImin^D-1^D%ixI^S,iw)
               end do
             end if
-         case("limitinflow")
-            if (iw==1+^D)then
-              do ix^D=ixImin^D,ixImax^D
-                  w(ix^D^D%ixI^S,iw) = max(w(ixImin^D-1^D%ixI^S,iw), &
-                                           w(ixImin^D-1^D%ixI^S,iw)*ratebdflux)
-              end do
-            else
-              do ix^D=ixImin^D,ixImax^D
-                  w(ix^D^D%ixI^S,iw) = w(ixImin^D-1^D%ixI^S,iw)
-              end do
-            end if
          case ("special")
             ! skip it here, do AFTER all normal type boundaries are set
          case ("character")
@@ -85,17 +74,6 @@ select case (idims)
             if (iw==1+^D)then
                do ix^D=ixImin^D,ixImax^D
                  w(ix^D^D%ixI^S,iw) = min(w(ixImax^D+1^D%ixI^S,iw),zero)
-               end do
-            else
-               do ix^D=ixImin^D,ixImax^D
-                 w(ix^D^D%ixI^S,iw) = w(ixImax^D+1^D%ixI^S,iw)
-               end do
-            end if
-         case("limitinflow")
-            if (iw==1+^D)then
-               do ix^D=ixImin^D,ixImax^D
-                 w(ix^D^D%ixI^S,iw) = min(w(ixImax^D+1^D%ixI^S,iw), &
-                                          w(ixImax^D+1^D%ixI^S,iw)*ratebdflux)
                end do
             else
                do ix^D=ixImin^D,ixImax^D
