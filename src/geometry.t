@@ -1,4 +1,4 @@
-subroutine select_geometry(geom)
+subroutine set_coordinate_system(geom)
   use mod_global_parameters
 
   character(len=*), intent(in) :: geom
@@ -23,7 +23,7 @@ subroutine select_geometry(geom)
   case default
     call mpistop("Unknown geometry specified")
   end select
-end subroutine select_geometry
+end subroutine set_coordinate_system
 
 subroutine set_pole
 
