@@ -99,15 +99,15 @@ contains
     namelist /levellist/ nlevelshi
     namelist /filelist/ filenameout,filenameini,filenamelog, &
          snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
-         convert,convert_type,dxfiletype,saveprim,primnames, &
-         typeparIO,uselimiter,nwauxio,nocartesian,addmpibarrier, &
+         convert,convert_type,saveprim,primnames, &
+         typeparIO,nwauxio,nocartesian,addmpibarrier, &
          writew,writelevel,writespshift,endian_swap, &
          normvar,normt,level_io,level_io_min,level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
-         slicecoord,collapse,collapseLevel{#IFDEF MAGNETOFRICTION , ditsavemf}
+         slicecoord,collapse,collapseLevel
     namelist /stoplist/ itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,&
-         residmax,typeresid{#IFDEF MAGNETOFRICTION , itmaxmf}
+         residmax,typeresid
     namelist /methodlist/ wnames,fileheadout,typeadvance, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
@@ -117,23 +117,22 @@ contains
          loglimit,typelimited,useprimitive,typetvdlf, &
          typetvd,typeentropy,entropycoef,typeaverage, &
          B0field,Bdip,Bquad,Boct,Busr,&
-         useprimitiveRel,maxitnr,dmaxvel,typepoly, tvdlfeps,&
-         smallT,smallp,smallrho,typegrad,typediv,tolernr,absaccnr,&
-         strictnr, &
-         strictzero,nxdiffusehllc,typespherical,&
+         tvdlfeps,&
+         smallT,smallp,smallrho,typegrad,typediv,&
+         nxdiffusehllc,typespherical,&
          fixprocess,flathllc, &
-         x1ptms,x2ptms,x3ptms,ptmass,nwtf,neqpartf, &
+         x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage
-    namelist /boundlist/ dixB,typeB,typeghostfill,typegridfill,ratebdflux,&
+    namelist /boundlist/ dixB,typeB,typeghostfill,typegridfill,&
          internalboundary
     namelist /amrlist/ mxnest,nbufferx^D,specialtol,tol,tolratio,errorestimate, &
          amr_wavefilter,ngridshi,nxblock^D,nxlone^D,iprob,xprob^L, &
-         skipfinestep,wflags,flags,&
-         restrictprimitive,prolongprimitive,coarsenprimitive, &
+         wflags,flags,&
+         prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
-         amrentropy,logflag,tfixgrid,itfixgrid,ditregrid{#IFDEF STRETCHGRID ,qst}
+         logflag,tfixgrid,itfixgrid,ditregrid{#IFDEF STRETCHGRID ,qst}
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
-         typecourant, slowsteps{#IFDEF MAGNETOFRICTION , cmf_c, cmf_y, cmf_divb}
+         typecourant, slowsteps
     !----------------------------------------------------------------------------
  
     ! default maximum number of grid blocks in a processor
@@ -169,7 +168,6 @@ contains
     {nxblock^D = 12\}
 
     ! defaults for boundary treatments
-    ratebdflux         = one
     typeghostfill      = 'linear'
     dixB               = 2
     allocate(typeB(nw, nhiB))
@@ -194,16 +192,6 @@ contains
     smallp     = -one
     smallrho   = -one
 
-    ! relativistic module defaults
-    useprimitiveRel = .true.
-    strictnr        = .true.
-    strictzero      = .true.
-    typepoly        = 'meliani'
-    tolernr         = 1.0d-13
-    absaccnr        = 1.0d-13
-    maxitnr         = 100
-    dmaxvel         = 1.0d-8
-
     ! defaults for convert behavior
 
     nwauxio                  = 0
@@ -213,7 +201,6 @@ contains
     endian_swap              = .false.
     convert_type             = 'vtuBCCmpi'
     collapse_type            = 'vti'
-    dxfiletype               = 'lsb'
     allocate(writew(nw))
     writew(1:nw)             = .true.
     allocate(writelevel(nlevelshi))
@@ -244,8 +231,6 @@ contains
     allocate(tolratio(nlevelshi))
     tolratio(1:nlevelshi)       = 1.0d0/8.0d0
     typegridfill                = 'linear'
-    amrentropy                  = .false.
-    restrictprimitive           = .false.
     coarsenprimitive            = .false.
     prolongprimitive            = .false.
     typeprolonglimit            = 'default'
@@ -261,7 +246,6 @@ contains
     logflag(1:nw)               = .false.
     allocate(amr_wavefilter(nlevelshi))
     amr_wavefilter(1:nlevelshi) = 1.0d-2
-    skipfinestep                = .false.
     tfixgrid                    = bigdouble
     itfixgrid                   = biginteger
     ditregrid                   = 1
@@ -278,10 +262,6 @@ contains
 
     ! IO defaults
     itmax         = biginteger
-    {#IFDEF MAGNETOFRICTION
-    itmaxmf       = 0
-    ditsavemf     = 20000
-    }
     tmax          = bigdouble
     tmaxexact     = .true.
     dtmin         = 1.0d-10
@@ -306,8 +286,6 @@ contains
     fileheadout = 'AMRVAC'
     ! defaults for number of w in the transformed data
     nwtf        = 0
-    ! defaults for number of equation parameters in the transformed data
-    neqpartf    = 0
 
     ! defaults for input 
     firstprocess  = .false.
@@ -362,11 +340,6 @@ contains
 
     dtdiffpar     = 0.5d0
     dtpar         = -1.d0
-    {#IFDEF MAGNETOFRICTION
-    cmf_c         = 0.3d0
-    cmf_y         = 0.2d0
-    cmf_divb      = 0.1d0
-    }
 
     ! problem setup defaults
     {nxlone^D = 0\}
@@ -778,6 +751,7 @@ contains
        else if(typeparIO==-1) then
           call write_snapshot_noparf
        endif
+       if(nwtf>0) call write_snapshot_tf
        !opedit: now we can also convert directly and will when autoconvert is set in inifile: 
        if (autoconvert) call generate_plotfile
        {#IFDEF PARTICLES
@@ -926,7 +900,6 @@ contains
     use mod_physics
 
     double precision, allocatable :: wtf(:^D&,:)
-    double precision :: eqpar_tf(neqpartf)
     integer :: file_handle_tf
     character(len=80) :: filenametf
     integer :: file_handle, amode, igrid, Morton_no, iwrite
@@ -978,7 +951,7 @@ contains
        iwrite=iwrite+1
 
        if (associated(usr_transform_w)) then
-          call usr_transform_w(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
+          call usr_transform_w(pw(igrid)%w,wtf,ixG^LL,ixM^LL)
        end if
 
        offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &

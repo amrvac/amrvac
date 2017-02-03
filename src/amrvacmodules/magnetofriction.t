@@ -20,6 +20,16 @@
 !>     cmf_c=0.3    ! stability coefficient controls numerical stability
 !>     cmf_y=0.2    ! frictional velocity coefficient
 !>     cmf_divb=0.1 ! divb cleaning coefficient controls diffusion speed of divb
+module mod_magnetofriction
+  implicit none
+
+  double precision :: cmf_c
+  double precision :: cmf_y
+  double precision :: cmf_divb
+  double precision :: tmf
+  integer :: ditsavemf
+  integer :: itmaxmf
+  logical :: mf_advance
 subroutine magnetofriction
 
 use mod_global_parameters
@@ -1438,4 +1448,5 @@ case ('spherical')
 end select
 
 end subroutine addgeometrymf
+end mod_magnetofriction
 !=============================================================================

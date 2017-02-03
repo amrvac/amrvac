@@ -193,8 +193,6 @@ module mod_global_parameters
   !> For transform variables and save selected data
   !> number of w in the transformed data
   integer :: nwtf
-  !> number of equation parameters in the transformed data
-  integer :: neqpartf
 
   !> Kronecker delta tensor
   integer :: kr(3,3)
@@ -220,10 +218,6 @@ module mod_global_parameters
   !> For resistive MHD, the time step is also limited by the diffusion time:
   !> \f$ dt < dtdiffpar \times dx^2/eta \f$
   double precision :: dtdiffpar
-
-  {#IFDEF MAGNETOFRICTION
-  double precision :: cmf_c,cmf_y,cmf_divb
-  }
 
   !> How to compute the residual
   character(len=std_len) :: typeresid
@@ -259,11 +253,6 @@ module mod_global_parameters
 
   !> \todo Remove residual?
   double precision :: residual
-
-  {#IFDEF MAGNETOFRICTION
-  !> \todo What is tmf?
-  double precision :: tmf
-  }
 
   !> Save output of type N on times tsave(:, N)
   double precision :: tsave(nsavehi,nfile)
@@ -313,10 +302,6 @@ module mod_global_parameters
   !> If > 1, then in the first slowsteps-1 time steps dt is reduced
   !> by a factor \f$ 1 - (1- step/slowsteps)^2 \f$
   integer :: slowsteps
-
-  {#IFDEF MAGNETOFRICTION
-  integer :: itmaxmf, ditsavemf
-  }
 
   !> Save output of type N on iterations itsave(:, N)
   integer :: itsave(nsavehi,nfile)
@@ -431,8 +416,8 @@ module mod_global_parameters
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
   logical                       :: useprimitive,dimsplit
-  logical                       :: restrictprimitive,prolongprimitive
-  logical                       :: coarsenprimitive,useprimitiveRel, amrentropy
+  logical                       :: prolongprimitive
+  logical                       :: coarsenprimitive
 
   double precision       :: smallT,smallp,smallrho
   double precision, allocatable :: amr_wavefilter(:)
@@ -474,7 +459,6 @@ module mod_global_parameters
   character(len=std_len), allocatable :: typeB(:, :)
 
   character(len=std_len) :: typeghostfill='linear',typegridfill
-  double precision ::ratebdflux
   logical :: internalboundary
 
   !> Which par files are used as input
@@ -524,9 +508,6 @@ module mod_global_parameters
 
   !> If true, convert from conservative to primitive variables in output
   logical                :: saveprim
-
-  !> If true and doing a 1D run, use a limiter to determine corner values
-  logical                :: uselimiter
 
   logical                :: endian_swap
 
@@ -632,7 +613,7 @@ module mod_global_parameters
 
   logical :: skipfinestep
   logical, allocatable :: phyboundblock(:)
-  logical :: time_advance{#IFDEF MAGNETOFRICTION , mf_advance}
+  logical :: time_advance
 
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)

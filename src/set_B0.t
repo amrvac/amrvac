@@ -6,11 +6,7 @@ integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
 
 call set_B0_cell(pB0_cell(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL)
-{#IFDEF FCT
-call set_B0_face(igrid,px(igrid)%x,ixG^LL,ixM^LL^LADD1)
-}{#IFNDEF FCT
 call set_B0_face(igrid,px(igrid)%x,ixG^LL,ixM^LL)
-}
 
 end subroutine set_B0_grid
 !=============================================================================

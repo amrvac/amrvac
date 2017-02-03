@@ -822,10 +822,7 @@ write(qunit,'(a)')'</UnstructuredGrid>'
 write(qunit,'(a)')'<AppendedData encoding="raw">'
 
 close(qunit)
-! next to make gfortran compiler happy, as it does not know
-! form='binary' and produces error on compilation
-bufform='binary'
-open(qunit,file=filename,form=bufform,position='append')
+open(qunit,file=filename,form='unformatted',access='stream',status='old',position='append')
 buffer='_'
 write(qunit) TRIM(buffer)
 
@@ -1248,10 +1245,7 @@ write(qunit,'(a)')'</UnstructuredGrid>'
 write(qunit,'(a)')'<AppendedData encoding="raw">'
 
 close(qunit)
-! next to make gfortran compiler happy, as it does not know
-! form='binary' and produces error on compilation
-bufform='binary'
-open(qunit,file=filename,form=bufform,position='append')
+open(qunit,file=filename,form='unformatted',access='stream',status='old',position='append')
 buffer='_'
 write(qunit) TRIM(buffer)
 do level=levmin,levmax
@@ -2113,10 +2107,7 @@ write(qunit,'(a)')'</UnstructuredGrid>'
 write(qunit,'(a)')'<AppendedData encoding="raw">'
 
 close(qunit)
-! next to make gfortran compiler happy, as it does not know
-! form='binary' and produces error on compilation
-bufform='binary'
-open(qunit,file=filename,form=bufform,position='append')
+open(qunit,file=filename,form='unformatted',access='stream',status='old',position='append')
 buffer='_'
 write(qunit) TRIM(buffer)
 
