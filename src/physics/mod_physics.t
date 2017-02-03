@@ -197,6 +197,9 @@ contains
     if (.not. associated(phys_check_w)) &
          phys_check_w => dummy_check_w
 
+    if (.not. associated(phys_get_pthermal)) &
+         phys_get_pthermal => dummy_get_pthermal
+
   end subroutine phys_check
 
   subroutine dummy_init_params()
@@ -252,5 +255,16 @@ contains
 
     w_flag(ixO^S) = 0             ! All okay
   end subroutine dummy_check_w
+
+  subroutine dummy_get_pthermal(w, x, ixI^L, ixO^L, pth)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision, intent(out):: pth(ixI^S)
+
+    call mpistop("No get_pthermal method specified")
+  end subroutine dummy_get_pthermal
 
 end module mod_physics
