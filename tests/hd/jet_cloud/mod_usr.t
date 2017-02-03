@@ -104,10 +104,10 @@ contains
 
   ! special boundary types, user defined
   ! user must assign conservative variables in bounderies
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iw,iB,w,x)
+  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
     use mod_global_parameters
 
-    integer, intent(in) :: ixG^L, ixO^L, iw, iB
+    integer, intent(in) :: ixG^L, ixO^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
