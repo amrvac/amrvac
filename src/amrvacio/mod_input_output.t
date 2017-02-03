@@ -767,6 +767,7 @@ contains
        else if(typeparIO==-1) then
           call write_snapshot_noparf
        endif
+       if(nwtf>0) call write_snapshot_tf
        !opedit: now we can also convert directly and will when autoconvert is set in inifile: 
        if (autoconvert) call generate_plotfile
        {#IFDEF PARTICLES
@@ -966,7 +967,7 @@ contains
        iwrite=iwrite+1
 
        if (associated(usr_transform_w)) then
-          call usr_transform_w(pw(igrid)%w,wtf,eqpar_tf,ixG^LL,ixM^LL)
+          call usr_transform_w(pw(igrid)%w,wtf,ixG^LL,ixM^LL)
        end if
 
        offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &

@@ -180,12 +180,11 @@ module mod_usr_methods
      end subroutine set_B0
 
      !> regenerate w and eqpar arrays to output into *tf.dat
-     subroutine transform_w(w,wtf,eqpar_tf,ixI^L,ixO^L)
+     subroutine transform_w(w,wtf,ixI^L,ixO^L)
        use mod_global_parameters
        integer, intent(in)           :: ixI^L, ixO^L
        double precision, intent(in)  :: w(ixI^S,1:nw)
        double precision, intent(out) :: wtf(ixI^S,1:nwtf)
-       double precision, intent(out) :: eqpar_tf(neqpartf)
      end subroutine transform_w
 
      !> use different tolerance in special regions for AMR to
