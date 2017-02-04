@@ -79,6 +79,7 @@ mod_hd_ppm.o: mod_physics_ppm.o
 mod_hd_roe.o: mod_hd_phys.o
 mod_hd_roe.o: mod_physics_roe.o
 mod_hd_roe.o: mod_tvd.o
+mod_input_output.o: mod_kracken.o
 mod_input_output.o: mod_physics.o
 mod_input_output.o: mod_small_values.o
 mod_input_output.o: mod_timing.o

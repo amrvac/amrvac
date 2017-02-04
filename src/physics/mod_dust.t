@@ -382,7 +382,7 @@ contains
        case( 'spherical' )
           G0(ixO^S) = max(x(ixO^S, 1)*normvar(0), smalldouble)
        case( 'cylindrical' )
-          G0(ixO^S) = max(dsqrt(x(ixO^S, 1)**2 + x(ixO^S, 2)**2)*normvar(0), smalldouble)
+          G0(ixO^S) = max(dsqrt(sum(x(ixO^S,:)**2,dim=ndim+1))*normvar(0), smalldouble)
        case( 'slab' )
           {^IFTHREED
           G0(ixO^S) = max(dsqrt((x(ixO^S, 1)-x1ptms)**2 + (x(ixO^S, 2)-x2ptms)**2  &

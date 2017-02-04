@@ -5,4 +5,5 @@
 
  &amrlist
         nxlone1=256
+        nxblock1=16
  /

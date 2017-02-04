@@ -13,7 +13,7 @@ contains
 
   !> Read the command line arguments passed to amrvac
   subroutine read_arguments()
-    use M_kracken
+    use mod_kracken
     use mod_global_parameters
 
     integer                          :: len, ier, n

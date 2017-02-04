@@ -25,7 +25,7 @@
  /
 
  &boundlist
-        dixB=   3
+        dixB=   2
         typeB=  'periodic','periodic'
  /
 
