@@ -1,40 +1,11 @@
-!=============================================================================
-!
-!    THE FOLLOWING SUBROUTINES ADD VISCOUS SOURCE TERMS AND CHECK DT
-!
-!------------------------------------------------------------------------------
-!    Viscous forces in the momentum equations:
-!
-!    d m_i/dt +=  - div (vc_mu * PI)
-!
-!    !! Viscous work in the energy equation:
-!
-!    !! de/dt    += - div (v . vc_mu * PI)
-!
-!    where the PI stress tensor is
-!
-!    PI_i,j = - (dv_j/dx_i + dv_i/dx_j) + (2/3)*Sum_k dv_k/dx_k
-!
-!    where vc_mu is the dynamic viscosity coefficient (g cm^-1 s^-1). 
-!    Positive value for mu defines a constant viscosity, and use 0 for no viscosity. 
-!
-!------------------------------------------------------------------------------
-!    This can be added via amrvacusr.t as follows:
-!
-!    INCLUDE:amrvacmodules/viscosity.t
-!    
-!    In specialsource:
-!    if(abs(vc_mu)>smalldouble) call addsource_visc(qdt,ixI^L,ixO^L,wCT,w,x)
-!    
-!    In getdt_special:
-!    if(abs(vc_mu)>smalldouble) call getdt_visc(w,ixI^L,ix^L,dtnew,dx^D,x)
-!
-!    In initglobaldata_usr:
-!    vc_mu    = x
-!
-!    And add mu_ as user-definable parameter in amrvacusrpar.t
-!
-!==============================================================================
+!>   THE MODULE ADD VISCOUS SOURCE TERMS AND CHECK TIME STEP
+!>   Viscous forces in the momentum equations:
+!>   d m_i/dt +=  - div (vc_mu * PI)
+!>   !! Viscous work in the energy equation:
+!>   !! de/dt    += - div (v . vc_mu * PI)
+!>   where the PI stress tensor is
+!>   PI_i,j = - (dv_j/dx_i + dv_i/dx_j) + (2/3)*Sum_k dv_k/dx_k
+!>   where vc_mu is the dynamic viscosity coefficient (g cm^-1 s^-1). 
 module mod_viscosity
   implicit none
 

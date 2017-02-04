@@ -42,7 +42,7 @@ $(LIB_AMRVAC): force
 	$(MAKE) -C $(LIB_DIR) -f $(LIB_MAKE)
 
 clean:
-	$(RM) amrvac amrvac.o mod_usr.o mod_usr.mod
+	$(RM) amrvac amrvac.o mod_usr.o mod_usr.f mod_usr.mod
 
 # Dependencies
 amrvac: mod_usr.o amrvac.o

@@ -170,80 +170,60 @@ contains
     double precision, dimension(ixI^S)           :: vSub,cspeed,pCD
     integer         , dimension(ixI^S), intent(in)           :: patchf
 
-    integer                                      :: n, iw
+    integer                                      :: n, iw, ix^D
 
     !-------------- auxiliary Speed and array-------------!
-    where(patchf(ixO^S) == 1)
-       cspeed(ixO^S) = cmax(ixO^S)
-       vSub(ixO^S)   = wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)
-    elsewhere(patchf(ixO^S) == -1)
-       cspeed(ixO^S) = cmin(ixO^S)
-       vSub(ixO^S)   = wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_)
-    endwhere
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       if(patchf(ix^D)==1) then
+         cspeed(ix^D)=cmax(ix^D)
+         vSub(ix^D)=wRC(ix^D,mom(idim))/wRC(ix^D,rho_)
+         wSub(ix^D,:)=wRC(ix^D,:)
+         fSub(ix^D,:)=fRC(ix^D,:)
+       else if(patchf(ix^D)==-1) then
+         cspeed(ix^D)=cmin(ix^D)
+         vSub(ix^D)=wLC(ix^D,mom(idim))/wLC(ix^D,rho_)
+         wSub(ix^D,:)=wLC(ix^D,:)
+         fSub(ix^D,:)=fLC(ix^D,:)
+       end if
+    {end do\}
 
-    do iw=1,nw
-       where(patchf(ixO^S) == 1)
-          wSub(ixO^S,iw) =  wRC(ixO^S,iw)
-       elsewhere(patchf(ixO^S) == -1)
-          wSub(ixO^S,iw) =  wLC(ixO^S,iw)
-       endwhere
-    enddo
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if(abs(patchf(ix^D))==1) then
+        wCD(ix^D,rho_) = wSub(ix^D,rho_)&
+                         *(cspeed(ix^D)-vSub(ix^D))/(cspeed(ix^D)-lambdaCD(ix^D))
+        do n=1,hd_n_tracer
+          iw = tracer(n)
+          wCD(ix^D,iw) = wSub(ix^D,iw)*(cspeed(ix^D)-vSub(ix^D))&
+             /(cspeed(ix^D)-lambdaCD(ix^D))
+        end do
 
-    do iw=1,nwflux
-       where(patchf(ixO^S) == 1)
-          fSub(ixO^S,iw) =  fRC(ixO^S,iw)
-       elsewhere(patchf(ixO^S) == -1)
-          fSub(ixO^S,iw) =  fLC(ixO^S,iw)
-       endwhere
-    enddo
-
-    where(abs(patchf(ixO^S))==1)
-       wCD(ixO^S,rho_) = wSub(ixO^S,rho_)&
-            *(cspeed(ixO^S)-vSub(ixO^S))/(cspeed(ixO^S)-lambdaCD(ixO^S))
-    endwhere
-
-    do n = 1, hd_n_tracer
-       iw = tracer(n)
-       where(abs(patchf(ixO^S))==1)
-          wCD(ixO^S, iw)   = wSub(ixO^S, iw) * (cspeed(ixO^S)-vSub(ixO^S)) &
-               / (cspeed(ixO^S)-lambdaCD(ixO^S))
-       end where
-    end do
-
-    !------- Momentum ------!
-    do iw =1, ndir
-       if(iw /= idim)then
-          where(abs(patchf(ixO^S))==1)
-             ! eq. 21 22
-             wCD(ixO^S,mom(iw))=(cspeed(ixO^S)*wSub(ixO^S,mom(iw))-fSub(ixO^S,mom(iw)))/&
-                  (cspeed(ixO^S)-lambdaCD(ixO^S))
-          end where
-       else
-          where(abs(patchf(ixO^S))==1)
-             ! eq. 20
-             wCD(ixO^S,mom(iw)) =  wCD(ixO^S,rho_) * lambdaCD(ixO^S)
-          endwhere
-       endif
-    enddo
-
-    if (hd_energy) then
-       where(abs(patchf(ixO^S))==1)
+        !------- Momentum ------!
+        do iw=1, ndir
+          if(iw /= idim)then
+            ! eq. 21 22
+            wCD(ix^D,mom(iw))=(cspeed(ix^D)*wSub(ix^D,mom(iw))-fSub(ix^D,mom(iw)))/&
+                (cspeed(ix^D)-lambdaCD(ix^D))
+          else
+            ! eq. 20
+            wCD(ix^D,mom(iw)) =  wCD(ix^D,rho_) * lambdaCD(ix^D)
+          endif
+        enddo
+        if(hd_energy) then
+          pCD(ix^D) = wSub(ix^D,rho_)*(cspeed(ix^D)-vSub(ix^D))&
+                        *(lambdaCD(ix^D)-vSub(ix^D))&
+                        +fSub(ix^D,mom(idim))-wSub(ix^D,mom(idim))*vSub(ix^D)
           ! Eq 31
-          pCD(ixO^S)  = wsub(ixO^S,rho_)*(cspeed(ixO^S)-vSub(ixO^S))&
-               *(lambdaCD(ixO^S)-vSub(ixO^S))&
-               +fSub(ixO^S,mom(idim))- wsub(ixO^S,mom(idim))*vSub(ixO^S)
-          wCD(ixO^S,e_) = (cspeed(ixO^S) * wSub(ixO^S,e_) &
-               - fSub(ixO^S,e_) +lambdaCD(ixO^S)*pCD(ixO^S))&
-               /(cspeed(ixO^S)-lambdaCD(ixO^S))
-       end where
-    end if
+          wCD(ix^D,e_) = (cspeed(ix^D)*wSub(ix^D,e_) &
+                          -fSub(ix^D,e_)+lambdaCD(ix^D)*pCD(ix^D))&
+                          /(cspeed(ix^D)-lambdaCD(ix^D))
+        end if
 
-    do iw=1,nwflux
-       where(abs(patchf(ixO^S))==1)
+        do iw=1,nwflux
           ! f_i=fsub+lambda (wCD-wSub)
-          f(ixO^S,iw)=fsub(ixO^S,iw)+cspeed(ixO^S)*(wCD(ixO^S,iw)-wsub(ixO^S,iw))
-       endwhere
-    end do
+          f(ix^D,iw)=fsub(ix^D,iw)+cspeed(ix^D)*(wCD(ix^D,iw)-wSub(ix^D,iw))
+        end do
+      end if
+    {end do\}
 
   end subroutine hd_get_wCD
 

@@ -110,7 +110,7 @@ contains
 
     ! physics defined sources, typically explicitly added,
     ! along with geometrical source additions
-    call phys_add_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
+    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
 
   end subroutine addsource2
 

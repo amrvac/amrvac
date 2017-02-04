@@ -29,7 +29,7 @@ module mod_usr_methods
   ! Source terms
   procedure(source), pointer          :: usr_source           => null()
   procedure(get_dt), pointer          :: usr_get_dt           => null()
-  procedure(gravity), pointer         :: usr_gravity          => null()
+  procedure(phys_gravity), pointer    :: usr_gravity          => null()
 
   ! Refinement related procedures
   procedure(refine_grid), pointer     :: usr_refine_grid      => null()
@@ -48,11 +48,11 @@ module mod_usr_methods
      end subroutine p_no_args
 
      !> Initialize one grid
-     subroutine init_one_grid(ixG^L,ix^L,w,x)
+     subroutine init_one_grid(ixI^L,ixO^L,w,x)
        use mod_global_parameters
-       integer, intent(in)             :: ixG^L, ix^L
-       double precision, intent(in)    :: x(ixG^S,1:ndim)
-       double precision, intent(inout) :: w(ixG^S,1:nw)
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: x(ixI^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine init_one_grid
 
      !> special boundary types, user defined user must assign conservative
@@ -135,13 +135,13 @@ module mod_usr_methods
      end subroutine get_dt
 
      !> Calculate gravitational acceleration in each dimension
-     subroutine gravity(ixI^L,ixO^L,wCT,x,gravity_field)
+     subroutine phys_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: x(ixI^S,1:ndim)
        double precision, intent(in)    :: wCT(ixI^S,1:nw)
        double precision, intent(out)   :: gravity_field(ixI^S,ndim)
-     end subroutine gravity
+     end subroutine phys_gravity
 
      !> Set the "eta" array for resistive MHD based on w or the
      !> "current" variable which has components between idirmin and 3.
@@ -224,13 +224,13 @@ module mod_usr_methods
      !> flag=0  : Treat as normal domain
      !> flag=1  : Treat as passive, but reduce by safety belt
      !> flag=2  : Always treat as passive
-     subroutine flag_grid(qt,ixG^L,ixO^L,w,x,flag)
+     subroutine flag_grid(qt,ixI^L,ixO^L,w,x,flag)
        use mod_global_parameters
-       integer, intent(in)             :: ixG^L, ixO^L
+       integer, intent(in)             :: ixI^L, ixO^L
        integer, intent(inout)          :: flag
        double precision, intent(in)    :: qt
-       double precision, intent(inout) :: w(ixG^S,1:nw)
-       double precision, intent(in)    :: x(ixG^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,1:nw)
+       double precision, intent(in)    :: x(ixI^S,1:ndim)
      end subroutine flag_grid
   end interface
 

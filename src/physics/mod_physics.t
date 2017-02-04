@@ -85,10 +85,10 @@ module mod_physics
        double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
      end subroutine sub_add_source_geom
 
-     subroutine sub_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
+     subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, w, x, qsourcesplit)
        use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-       double precision, intent(in)    :: qdt, qtC, qt
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: qdt
        double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
        double precision, intent(inout) :: w(ixI^S, 1:nw)
        logical, intent(in)             :: qsourcesplit
@@ -228,10 +228,10 @@ contains
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
   end subroutine dummy_add_source_geom
 
-  subroutine dummy_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
+  subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, w, x, qsourcesplit)
     use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in)    :: qdt, qtC, qt
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit

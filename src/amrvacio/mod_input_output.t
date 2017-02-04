@@ -165,7 +165,7 @@ contains
     {allocate(ng^D(nlevelshi))\}
 
     ! default block size excluding ghost cells
-    {nxblock^D = 12\}
+    {nxblock^D = 16\}
 
     ! defaults for boundary treatments
     typeghostfill      = 'linear'

@@ -24,6 +24,9 @@ module mod_hd_phys
   !> Whether viscosity is added
   logical, public, protected              :: hd_viscosity= .false.
 
+  !> Whether gravity is added
+  logical, public, protected              :: hd_gravity= .false.
+
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
@@ -77,7 +80,7 @@ contains
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
-    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity
+    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, hd_gravity
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -94,6 +97,7 @@ contains
     use mod_radiative_cooling
     use mod_dust, only: dust_init
     use mod_viscosity, only: viscosity_init
+    use mod_gravity, only: gravity_init
     use mod_physics
 
     integer :: itr, idir
@@ -146,6 +150,7 @@ contains
     phys_get_cmax        => hd_get_cmax
     phys_get_flux        => hd_get_flux
     phys_add_source_geom => hd_add_source_geom
+    phys_add_source      => hd_add_source
     phys_to_conserved    => hd_to_conserved
     phys_to_primitive    => hd_to_primitive
     phys_check_params    => hd_check_params
@@ -172,6 +177,11 @@ contains
     ! Initialize viscosity module
     if(hd_viscosity) then
       call viscosity_init()
+    end if
+
+    ! Initialize gravity module
+    if(hd_gravity) then
+      call gravity_init()
     end if
 
   end subroutine hd_phys_init
@@ -551,14 +561,15 @@ contains
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine hd_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
+  subroutine hd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source
     use mod_viscosity, only: viscosity_add_source
+    use mod_gravity, only: gravity_add_source
 
-    integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
-    double precision, intent(in)    :: qdt, qtC, qt
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -575,6 +586,10 @@ contains
       call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit)
     end if
 
+    if(hd_gravity) then
+      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit)
+    end if
+
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
@@ -582,6 +597,7 @@ contains
     use mod_dust, only: dust_get_dt
     use mod_radiative_cooling, only: cooling_get_dt
     use mod_viscosity, only: viscosity_get_dt 
+    use mod_gravity, only: gravity_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
@@ -600,6 +616,10 @@ contains
 
     if(hd_viscosity) then
       call viscosity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+    end if
+
+    if(hd_gravity) then
+      call gravity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     end if
 
   end subroutine hd_get_dt
