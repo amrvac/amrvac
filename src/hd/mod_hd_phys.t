@@ -21,6 +21,9 @@ module mod_hd_phys
   !> Whether dust is added
   logical, public, protected              :: hd_dust= .false.
 
+  !> Whether viscosity is added
+  logical, public, protected              :: hd_viscosity= .false.
+
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
@@ -73,7 +76,8 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, hd_dust, hd_thermal_conduction, hd_radiative_cooling
+    namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
+    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -89,6 +93,7 @@ contains
     use mod_thermal_conduction
     use mod_radiative_cooling
     use mod_dust, only: dust_init
+    use mod_viscosity, only: viscosity_init
     use mod_physics
 
     integer :: itr, idir
@@ -147,6 +152,13 @@ contains
     phys_check_w         => hd_check_w
     phys_get_pthermal    => hd_get_pthermal
 
+    if(.not. hd_energy .and. hd_thermal_conduction) then
+      call mpistop("thermal conduction needs hd_energy=T")
+    end if
+    if(.not. hd_energy .and. hd_radiative_cooling) then
+      call mpistop("radiative cooling needs hd_energy=T")
+    end if
+
     ! initialize thermal conduction module
     if(hd_thermal_conduction) then
       call thermal_conduction_init(hd_gamma)
@@ -155,6 +167,11 @@ contains
     ! Initialize radiative cooling module
     if(hd_radiative_cooling) then
       call radiative_cooling_init(hd_gamma)
+    end if
+
+    ! Initialize viscosity module
+    if(hd_viscosity) then
+      call viscosity_init()
     end if
 
   end subroutine hd_phys_init
@@ -536,8 +553,9 @@ contains
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine hd_add_source(qdt, ixI^L, ixO^L, iw^LIM, qtC, wCT, qt, w, x, qsourcesplit)
     use mod_global_parameters
-    use mod_radiative_cooling
+    use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source
+    use mod_viscosity, only: viscosity_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)    :: qdt, qtC, qt
@@ -553,12 +571,17 @@ contains
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
     end if
 
+    if(hd_viscosity) then
+      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit)
+    end if
+
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
     use mod_dust, only: dust_get_dt
     use mod_radiative_cooling, only: cooling_get_dt
+    use mod_viscosity, only: viscosity_get_dt 
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
@@ -573,6 +596,10 @@ contains
 
     if(hd_radiative_cooling) then
       call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+    end if
+
+    if(hd_viscosity) then
+      call viscosity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     end if
 
   end subroutine hd_get_dt

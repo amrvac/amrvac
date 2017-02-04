@@ -914,7 +914,6 @@ module mod_radiative_cooling
       !
       ! Limit timestep to avoid cooling problems when using explicit cooling
       !
-      dtnew=bigdouble
       
       if(coolmethod == 'explicit1') then
        call phys_get_pthermal(w,x,ixI^L,ixO^L,ptherm)   

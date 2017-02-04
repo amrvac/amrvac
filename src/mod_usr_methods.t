@@ -136,6 +136,7 @@ module mod_usr_methods
 
      !> Calculate gravitational acceleration in each dimension
      subroutine gravity(ixI^L,ixO^L,wCT,x,gravity_field)
+       use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: x(ixI^S,1:ndim)
        double precision, intent(in)    :: wCT(ixI^S,1:nw)

@@ -13,6 +13,9 @@ module mod_mhd_phys
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
 
+  !> Whether viscosity is added
+  logical, public, protected              :: mhd_viscosity= .false.
+
   !> Whether Hall-MHD is used
   logical, public, protected              :: mhd_Hall = .false.
 
@@ -129,6 +132,7 @@ contains
     use mod_global_parameters
     use mod_thermal_conduction
     use mod_radiative_cooling
+    use mod_viscosity
     use mod_physics
 
     integer :: itr, idir
@@ -201,6 +205,13 @@ contains
     phys_check_w         => mhd_check_w
     phys_get_pthermal    => mhd_get_pthermal
 
+    if(.not. mhd_energy .and. mhd_thermal_conduction) then
+      call mpistop("thermal conduction needs hd_energy=T")
+    end if
+    if(.not. mhd_energy .and. mhd_radiative_cooling) then
+      call mpistop("radiative cooling needs hd_energy=T")
+    end if
+
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
        call thermal_conduction_init(mhd_gamma)
@@ -209,6 +220,11 @@ contains
     ! Initialize radiative cooling module
     if (mhd_radiative_cooling) then
       call radiative_cooling_init(mhd_gamma)
+    end if
+
+    ! Initialize viscosity module
+    if(mhd_viscosity) then
+      call viscosity_init()
     end if
 
     if (mhd_glm) then
@@ -590,7 +606,8 @@ contains
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
   subroutine mhd_add_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,qsourcesplit)
     use mod_global_parameters
-    use mod_radiative_cooling
+    use mod_radiative_cooling, only: radiative_cooling_add_source
+    use mod_viscosity, only: viscosity_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)    :: qdt, qtC, qt
@@ -614,8 +631,12 @@ contains
        end if
     end if
 
-    if (mhd_radiative_cooling) then
-       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+    if(mhd_radiative_cooling) then
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+    end if
+
+    if(mhd_viscosity) then
+      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
     end if
 
     {^NOONED
@@ -1189,6 +1210,7 @@ contains
     use mod_global_parameters
     use mod_usr_methods
     use mod_radiative_cooling, only: cooling_get_dt
+    use mod_viscosity, only: viscosity_get_dt 
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: dtnew
@@ -1221,6 +1243,10 @@ contains
 
     if(mhd_radiative_cooling) then
       call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+    end if
+
+    if(mhd_viscosity) then
+      call viscosity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     end if
 
   end subroutine mhd_get_dt

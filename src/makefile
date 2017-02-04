@@ -74,6 +74,7 @@ mod_hd_phys.o: mod_physics.o
 mod_hd_phys.o: mod_radiative_cooling.o
 mod_hd_phys.o: mod_small_values.o
 mod_hd_phys.o: mod_thermal_conduction.o
+mod_hd_phys.o: mod_viscosity.o
 mod_hd_ppm.o: mod_hd_phys.o
 mod_hd_ppm.o: mod_physics_ppm.o
 mod_hd_roe.o: mod_hd_phys.o
@@ -94,6 +95,7 @@ mod_mhd.o: mod_mhd_roe.o
 mod_mhd_phys.o: mod_physics.o
 mod_mhd_phys.o: mod_radiative_cooling.o
 mod_mhd_phys.o: mod_thermal_conduction.o
+mod_mhd_phys.o: mod_viscosity.o
 mod_mhd_ppm.o: mod_mhd_phys.o
 mod_mhd_ppm.o: mod_physics_ppm.o
 mod_mhd_roe.o: mod_mhd_phys.o
