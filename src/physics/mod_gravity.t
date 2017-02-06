@@ -68,7 +68,11 @@ contains
 
     if(qsourcesplit .eqv. grav_split) then
   
-      call usr_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
+      if (.not. associated(usr_gravity)) then
+        call mpistop("gravity_add_source: usr_gravity not defined")
+      else
+        call usr_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
+      end if
   
       do idim = 1, ndim
         w(ixO^S,mom(idim)) = w(ixO^S,mom(idim)) &
@@ -97,7 +101,11 @@ contains
 
     ^D&dxinv(^D)=one/dx^D;
 
-    call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
+    if (.not. associated(usr_gravity)) then
+      call mpistop("gravity_add_source: usr_gravity not defined")
+    else
+      call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
+    end if
 
     do idim = 1, ndim
       dtnew = min(dtnew, minval(1.0d0 / &
