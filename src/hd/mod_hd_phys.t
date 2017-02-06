@@ -135,12 +135,19 @@ contains
 
     hd_nwflux = nwflux
 
-    if(hd_dust) call dust_init(rho_, mom(:), e_)
 
     nwaux   = 0
     nwextra = 0
     nw      = nwflux + nwaux + nwextra
     nflag_  = nw + 1
+
+    ! Check whether custom flux types have been defined
+    if (.not. allocated(flux_type)) then
+       allocate(flux_type(ndir, nw))
+       flux_type = flux_default
+    else if (any(shape(flux_type) /= [ndir, nw])) then
+       call mpistop("phys_check error: flux_type has wrong shape")
+    end if
 
     nvector      = 1 ! No. vector vars
     allocate(iw_vector(nvector))
@@ -156,6 +163,8 @@ contains
     phys_check_params    => hd_check_params
     phys_check_w         => hd_check_w
     phys_get_pthermal    => hd_get_pthermal
+
+    if(hd_dust) call dust_init(rho_, mom(:), e_)
 
     if(.not. hd_energy .and. hd_thermal_conduction) then
       call mpistop("thermal conduction needs hd_energy=T")
@@ -399,8 +408,10 @@ contains
 
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
 
-    ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
-    f(ixO^S, e_) = v(ixO^S) * (w(ixO^S, e_) + pth(ixO^S))
+    if(hd_energy) then
+      ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+      f(ixO^S, e_) = v(ixO^S) * (w(ixO^S, e_) + pth(ixO^S))
+    end if
 
     do itr = 1, hd_n_tracer
        f(ixO^S, tracer(itr)) = v(ixO^S) * w(ixO^S, tracer(itr))

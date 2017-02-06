@@ -735,8 +735,6 @@ contains
 
   subroutine saveamrfile(ifile)
 
-    ! following specific for Intel compiler and use on VIC3 with MPT
-    !DEC$ ATTRIBUTES NOINLINE :: write_snapshot
     use mod_usr_methods, only: usr_print_log
     use mod_global_parameters
     integer:: ifile
@@ -1004,7 +1002,7 @@ contains
     integer  :: ipe,insend,inrecv,nrecv,nwrite
     character(len=80) :: filename, line
     logical, save :: firstsnapshot=.true.
-    !-----------------------------------------------------------------------------
+
     call MPI_BARRIER(icomm,ierrmpi)
 
     if (firstsnapshot) then
@@ -1190,7 +1188,7 @@ contains
     integer  :: ipe,insend,inrecv,nrecv,nwrite
     character(len=80) :: filename, line
     logical, save :: firstsnapshot=.true.
-    !-----------------------------------------------------------------------------
+
     call MPI_BARRIER(icomm,ierrmpi)
 
     if (firstsnapshot) then
@@ -1327,14 +1325,13 @@ contains
     integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, nxloneini^D
     double precision :: xprobminini^D,xprobmaxini^D
 
-    {^IFMPT integer :: size_double, size_int,lb}
-    {^IFNOMPT  integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb}
+    integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb
 
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(MPI_STATUS_SIZE) :: istatus
     character(len=80) :: filename
     logical :: fexist
-    !-----------------------------------------------------------------------------
+
     ! generate filename
     write(filename,"(a,i4.4,a)") TRIM(filenameini),snapshotini,".dat"
 
@@ -1390,7 +1387,6 @@ contains
     end if
 
     offset=offset-int(2*ndimini*size_int+2*ndimini*size_double,kind=MPI_OFFSET_KIND)
-    !call MPI_FILE_SEEK_SHARED(file_handle,offset,MPI_SEEK_END,ierrmpi)
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
    {call MPI_FILE_READ_ALL(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
@@ -1466,10 +1462,10 @@ contains
 
     double precision :: wio(ixG^T,1:nw)
     integer :: file_handle, amode, igrid, Morton_no, iread
-    integer :: levmaxini, ndimini, ndirini, nwini, neqparini, nxini^D
+    integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, nxloneini^D
+    double precision :: xprobminini^D,xprobmaxini^D
 
-    {^IFMPT integer :: size_double, size_int,lb}
-    {^IFNOMPT  integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb}
+    integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb
 
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(MPI_STATUS_SIZE) :: istatus
@@ -1478,64 +1474,79 @@ contains
     integer :: ipe,inrecv,nrecv
     character(len=80) :: filename
     logical :: fexist
-    !-----------------------------------------------------------------------------
+
     ! generate filename
     write(filename,"(a,i4.4,a)") TRIM(filenameini),snapshotini,".dat"
-    if (mype==0) then
-       inquire(file=filename,exist=fexist)
-       if(.not.fexist) call mpistop(filename//"as an input snapshot file is not found!")
-       amode=MPI_MODE_RDONLY
-       call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
+    if(mype==0) then
+      inquire(file=filename,exist=fexist)
+      if(.not.fexist) call mpistop(filename//"as an input snapshot file is not found!")
+      amode=MPI_MODE_RDONLY
+      call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
 
-       call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
-       call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
+      call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
+      call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
-       {#IFDEF EVOLVINGBOUNDARY
-       offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
-       }{#IFNDEF EVOLVINGBOUNDARY
-       offset=-int(6*size_int+size_double,kind=MPI_OFFSET_KIND)
-       }
-       call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
-       call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_READ(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_READ(file_handle,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_READ(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_READ(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       {#IFDEF EVOLVINGBOUNDARY
-       call MPI_FILE_READ(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
-       }
-       ! check if settings are suitable for restart
-       if (levmaxini>mxnest) then
-          write(*,*) "number of levels in restart file = ",levmaxini
-          write(*,*) "mxnest = ",mxnest
-          call mpistop("mxnest should be at least number of levels in restart file")
-       end if
-       if (ndimini/=ndim) then
-          write(*,*) "ndim in restart file = ",ndimini
-          write(*,*) "ndim = ",ndim
-          call mpistop("reset ndim to ndim in restart file")
-       end if
-       if (ndirini/=ndir) then
-          write(*,*) "ndir in restart file = ",ndirini
-          write(*,*) "ndir = ",ndir
-          call mpistop("reset ndir to ndir in restart file")
-       end if
-       if (nw/=nwini) then
-          write(*,*) "nw=",nw," and nw in restart file=",nwini
-          call mpistop("currently, changing nw at restart is not allowed")
-       end if
+      {#IFDEF EVOLVINGBOUNDARY
+      offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
+      }{#IFNDEF EVOLVINGBOUNDARY
+      offset=-int(6*size_int+size_double,kind=MPI_OFFSET_KIND)
+      }
+      call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
+      call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+      {#IFDEF EVOLVINGBOUNDARY
+      call MPI_FILE_READ(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
+      }
+      ! check if settings are suitable for restart
+      if (levmaxini>mxnest) then
+         write(*,*) "number of levels in restart file = ",levmaxini
+         write(*,*) "mxnest = ",mxnest
+         call mpistop("mxnest should be at least number of levels in restart file")
+      end if
+      if (ndimini/=ndim) then
+         write(*,*) "ndim in restart file = ",ndimini
+         write(*,*) "ndim = ",ndim
+         call mpistop("reset ndim to ndim in restart file")
+      end if
+      if (ndirini/=ndir) then
+         write(*,*) "ndir in restart file = ",ndirini
+         write(*,*) "ndir = ",ndir
+         call mpistop("reset ndir to ndir in restart file")
+      end if
+      if (nw/=nwini) then
+         write(*,*) "nw=",nw," and nw in restart file=",nwini
+         call mpistop("currently, changing nw at restart is not allowed")
+      end if
 
 
-       offset=offset-int(2*ndimini*size_int+2*ndimini*size_double,kind=MPI_OFFSET_KIND)
-       call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
+      offset=offset-int(2*ndimini*size_int+2*ndimini*size_double,kind=MPI_OFFSET_KIND)
+      call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
-       {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
-       if (nxblock^D/=nxini^D|.or.) then
-          write(*,*) "Error: reset block resolution to nxblock^D=",nxini^D
-          call mpistop("change nxblock^D in par file")
-       end if
+      {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,nxloneini^D,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,xprobminini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,xprobmaxini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
+      if (nxblock^D/=nxini^D|.or.) then
+         if (mype==0) write(*,*) "Error: reset block resolution to nxblock^D=",nxini^D
+         call mpistop("change nxblock^D in par file")
+      end if
+      if (nxlone^D/=nxloneini^D|.or.) then
+         if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",nxloneini^D
+         call mpistop("change nxlone^D in par file")
+      end if
+      if (xprobmin^D/=xprobminini^D|.or.) then
+         if (mype==0) write(*,*) "Error: location of minimum does not match the data: ",xprobminini^D
+         call mpistop("change xprobmin^D in par file")
+      end if
+      if (xprobmax^D/=xprobmaxini^D|.or.) then
+         if (mype==0) write(*,*) "Error: location of maximum does not match the data: ",xprobmaxini^D
+         call mpistop("change xprobmax^D in par file")
+      end if
     end if
 
     ! broadcast the global parameters first

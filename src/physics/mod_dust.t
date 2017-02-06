@@ -560,7 +560,6 @@ contains
        dtnew = min(minval(dtdiffpar*dtdust(:)), dtnew)
     case('none')
        ! no dust timestep
-       dtnew = bigdouble
     case default
        call mpistop( "=== This dust method has not been implemented===" )
     end select

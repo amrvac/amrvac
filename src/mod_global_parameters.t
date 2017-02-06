@@ -614,6 +614,16 @@ module mod_global_parameters
   logical :: skipfinestep
   logical, allocatable :: phyboundblock(:)
   logical :: time_advance
+  !> Array per direction per variable, which can be used to specify that certain
+  !> fluxes have to be treated differently
+  integer, allocatable :: flux_type(:, :)
+
+  !> Indicates a normal flux
+  integer, parameter   :: flux_default        = 0
+  !> Indicates the flux should be treated with tvdlf
+  integer, parameter   :: flux_tvdlf          = 1
+  !> Indicates dissipation should be omitted
+  integer, parameter   :: flux_no_dissipation = 2
 
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)

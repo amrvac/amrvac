@@ -13,17 +13,6 @@ module mod_physics
   !> String describing the physics type of the simulation
   character(len=40)    :: physics_type
 
-  !> Array per direction per variable, which can be used to specify that certain
-  !> fluxes have to be treated differently
-  integer, allocatable :: flux_type(:, :)
-
-  !> Indicates a normal flux
-  integer, parameter   :: flux_default        = 0
-  !> Indicates the flux should be treated with tvdlf
-  integer, parameter   :: flux_tvdlf          = 1
-  !> Indicates dissipation should be omitted
-  integer, parameter   :: flux_no_dissipation = 2
-
   !> To use wider stencils in flux calculations. A value of 1 will extend it by
   !> one cell in both directions, in any dimension
   integer :: phys_wider_stencil = 0
@@ -138,13 +127,6 @@ contains
     use mod_physics_roe, only: phys_roe_check
     use mod_physics_ppm, only: phys_ppm_check
 
-    ! Check whether custom flux types have been defined
-    if (.not. allocated(flux_type)) then
-       allocate(flux_type(ndir, nw))
-       flux_type = flux_default
-    else if (any(shape(flux_type) /= [ndir, nw])) then
-       call mpistop("phys_check error: flux_type has wrong shape")
-    end if
 
     call phys_hllc_check()
     call phys_roe_check()

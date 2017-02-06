@@ -4,21 +4,21 @@
 ! Results : 
 ! Update  : 
 ! configuration :
-! -d=22 -g=16,16 -p=mhd
+! -d=2
 !=====================================================
  
  &filelist
-        filenamelog='datamr/KH3prob'
-        filenameout='datamr/KH3prob'
-        saveprim=.true.
+        filenamelog='KH2proba'
+        filenameout='KH2proba'
         primnames='rho v1 v2 p b1 b2'
-        convert_type='vtuCCmpi'
-        nwauxio=1
+        convert_type='vtuBCCmpi'
+        saveprim=.true.
         autoconvert=.true.
+        nwauxio=1
  /
-        filenameini='datamr/KH3prob'
-        snapshotini=0
-        snapshotnext=1
+        filenameini='KH2proba'
+        snapshotini=8
+        snapshotnext=9
         convert=.true.
  
  &savelist
@@ -26,10 +26,9 @@
         itsave(1,2)=0
         dtsave=0.01d0,0.5d0
  /
-        ditsave=1,10
  
  &stoplist
-        tmax=10.d0
+        tmax=8.d0
         dtmin=1.0D-9
  /
  
@@ -37,16 +36,11 @@
         wnames=       'rho m1 m2 e b1 b2'
         fileheadout=  'KH_mhd22'
         typeadvance=  'threestep'
-        typefull1=    13*'hllc'
-        typepred1=    13*'hllc'
+        typefull1=    13*'hll'
+        typepred1=    13*'hll'
         typelimiter1= 13*'cada3'
-        typelimited ="previous"
+        typelimited ='predictor'
         useprimitive=.true.
-        smallp=1.0d-14
-        smallrho=1.0d-13
-        strictsmall=.true.
-        strictgetaux = .false.
-        typedivbfix='linde'
  /
  &boundlist
         dixB  =   2
@@ -63,15 +57,17 @@
         wflags(1)=0.4d0
         wflags(2)=0.3d0
         wflags(3)=0.3d0
-        mxnest=4
+        mxnest=3
         tol=13*0.2d0
+        nxblock1=12
+        nxblock2=12
         nxlone1=48
         nxlone2=48
         xprobmin1=0
         xprobmax1=4.0d0
         xprobmin2=0
         xprobmax2=4.0d0
-        iprob=3 
+        iprob=2 
  /
  
  &paramlist

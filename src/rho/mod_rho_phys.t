@@ -44,6 +44,14 @@ contains
 
     nflag_ = nw+1
 
+    ! Check whether custom flux types have been defined
+    if (.not. allocated(flux_type)) then
+       allocate(flux_type(ndir, nw))
+       flux_type = flux_default
+    else if (any(shape(flux_type) /= [ndir, nw])) then
+       call mpistop("phys_check error: flux_type has wrong shape")
+    end if
+
     phys_get_cmax        => rho_get_cmax
     phys_get_flux        => rho_get_flux
     phys_add_source_geom => rho_add_source_geom

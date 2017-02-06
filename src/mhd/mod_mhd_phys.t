@@ -194,6 +194,18 @@ contains
     nw      = nwflux + nwaux + nwextra
     nflag_  = nw + 1
 
+    ! Check whether custom flux types have been defined
+    if (.not. allocated(flux_type)) then
+       allocate(flux_type(ndir, nw))
+       flux_type = flux_default
+    else if (any(shape(flux_type) /= [ndir, nw])) then
+       call mpistop("phys_check error: flux_type has wrong shape")
+    end if
+    do idir=1,ndir
+      flux_type(idir,mag(idir))=flux_tvdlf
+    end do
+    if(mhd_glm) flux_type(:,psi_)=flux_tvdlf
+
     nvector      = 2 ! No. vector vars
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1   ! TODO: why like this?
@@ -537,7 +549,7 @@ contains
              -w(ixO^S,mag(idir))*myB0%w(ixO^S,idim)&
              -w(ixO^S,mag(idim))*myB0%w(ixO^S,idir)
       end if
-      f(ixO^S,mom(idir))=v(ixO^S,idim)*w(ixO^S,mom(idir))
+      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+v(ixO^S,idim)*w(ixO^S,mom(idir))
     end do
 
     ! Get flux of energy

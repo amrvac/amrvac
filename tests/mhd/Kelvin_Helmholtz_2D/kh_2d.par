@@ -4,67 +4,56 @@
 ! Results : 
 ! Update  : 
 ! configuration :
-! -d=22 -g=16,16 -p=mhd
+! -d=2
 !=====================================================
  
  &filelist
-        filenamelog='datamr/KH2proba'
-        filenameout='datamr/KH2proba'
+        typefilelog='regression_test'
+        filenamelog='kh_2d'
+        filenameout='kh_2d'
+        primnames='rho v1 v2 p b1 b2'
+        convert_type='vtuBCCmpi'
         saveprim=.true.
-        primnames='rho v1 v2 p b1 b2 tr'
-        convert_type='vtuCCmpi'
-        nwauxio=1
         autoconvert=.true.
+        nwauxio=1
  /
-        filenameini='datamr/KH2proba'
-        snapshotini=0
-        snapshotnext=1
-        convert=.true.
  
  &savelist
-        itsave(1,1)=0
-        itsave(1,2)=0
-        dtsave=0.01d0,0.5d0
- /
-        ditsave=1,10
- 
+   dtsave(1)       = 1.d-3
+/
+
  &stoplist
-        tmax=8.d0
-        dtmin=1.0D-9
- /
+   tmax            = 5.d-2
+/
  
  &methodlist
-        wnames=       'rho m1 m2 e b1 b2 tr'
+        wnames=       'rho m1 m2 e b1 b2'
         fileheadout=  'KH_mhd22'
         typeadvance=  'threestep'
-        typefull1=    13*'hllc'
-        typepred1=    13*'hllc'
+        typefull1=    13*'hll'
         typelimiter1= 13*'cada3'
         typelimited ='predictor'
         useprimitive=.true.
-        smallp=1.0d-14
-        smallrho=1.0d-13
-        strictsmall=.true.
-        strictgetaux=.false.
-        typedivbfix='linde'
  /
  &boundlist
         dixB  =   2
-        typeB = 7*'periodic', 7*'periodic',7*'cont',7*'cont'
+        typeB = 6*'periodic', 6*'periodic',6*'cont',6*'cont'
  /
  
  
  &amrlist
         errorestimate=3
-        flags(8)=3
+        flags(7)=3
         flags(1)=1
         flags(2)=2
         flags(3)=3
         wflags(1)=0.4d0
         wflags(2)=0.3d0
         wflags(3)=0.3d0
-        mxnest=4
+        mxnest=3
         tol=13*0.2d0
+        nxblock1=12
+        nxblock2=12
         nxlone1=48
         nxlone2=48
         xprobmin1=0
