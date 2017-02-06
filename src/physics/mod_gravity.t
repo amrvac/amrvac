@@ -69,6 +69,8 @@ contains
     if(qsourcesplit .eqv. grav_split) then
   
       if (.not. associated(usr_gravity)) then
+        write(*,*) "mod_usr.t: please point usr_gravity to a subroutine"
+        write(*,*) "like the phys_gravity in mod_usr_methods.t"
         call mpistop("gravity_add_source: usr_gravity not defined")
       else
         call usr_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
@@ -101,8 +103,10 @@ contains
 
     ^D&dxinv(^D)=one/dx^D;
 
-    if (.not. associated(usr_gravity)) then
-      call mpistop("gravity_add_source: usr_gravity not defined")
+    if(.not. associated(usr_gravity)) then
+      write(*,*) "mod_usr.t: please point usr_gravity to a subroutine"
+      write(*,*) "like the phys_gravity in mod_usr_methods.t"
+      call mpistop("gravity_get_dt: usr_gravity not defined")
     else
       call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
     end if
