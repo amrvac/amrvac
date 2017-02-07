@@ -26,11 +26,10 @@ contains
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), wnew(ixI^S,1:nw)
 
-    double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+    double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L
-    !-----------------------------------------------------------------------------
 
     ! Expand limits in each idims direction in which fluxes are added
     ix^L=ixO^L;
@@ -40,9 +39,8 @@ contains
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in Hancock: Nonconforming input limits")
 
-    if (useprimitive) then
-       call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-    endif
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
@@ -59,16 +57,10 @@ contains
        ! wLC is to the left of ixO, wRC is to the right of wCT.
        hxO^L=ixO^L-kr(idims,^D);
 
-       wRC(hxO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
-       wLC(ixO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
+       wRC(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
+       wLC(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
-       call upwindLR(ixI^L,ixO^L,hxO^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim(idims))
-
-       if (nwaux>0.and.(.not.(useprimitive))) then
-          !!if (nwaux>0) then
-          call phys_get_aux(.true.,wLC,x,ixI^L,ixO^L,'hancock_wLC')
-          call phys_get_aux(.true.,wRC,x,ixI^L,hxO^L,'hancock_wRC')
-       end if
+       call upwindLR(ixI^L,ixO^L,hxO^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim(idims))
 
        ! Calculate the fLC and fRC fluxes
        call phys_get_flux(wRC,x,ixI^L,hxO^L,idims,fRC)
@@ -89,12 +81,6 @@ contains
           end if
        end do
     end do ! next idims
-
-    if (useprimitive) then
-       call phys_to_conserved(ixI^L,ixI^L,wCT,x)
-    else
-       if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hancock_wCT')
-    endif
 
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
@@ -121,10 +107,9 @@ contains
     double precision :: ldw(ixI^S), dwC(ixI^S)
     integer :: flagL(ixI^S), flagR(ixI^S)
     character(std_len) :: savetypelimiter
-    !-----------------------------------------------------------------------------
 
     ! Transform w,wL,wR to primitive variables
-    if (needprim.and.useprimitive) then
+    if (needprim) then
        call phys_to_primitive(ixI^L,ixI^L,w,x)
     end if
 
@@ -171,8 +156,8 @@ contains
           end if
        end do
 
-       call phys_check_w(useprimitive, ixI^L, ixL^L, wLtmp, flagL)
-       call phys_check_w(useprimitive, ixI^L, ixR^L, wRtmp, flagR)
+       call phys_check_w(.true., ixI^L, ixL^L, wLtmp, flagL)
+       call phys_check_w(.true., ixI^L, ixR^L, wRtmp, flagR)
 
        do iw=1,nwflux
           where (flagL(ixL^S) == 0 .and. flagR(ixR^S) == 0)
@@ -195,13 +180,11 @@ contains
     endif
 
     ! Transform w,wL,wR back to conservative variables
-    if (useprimitive) then
-       if(needprim)then
-          call phys_to_conserved(ixI^L,ixI^L,w,x)
-       endif
-       call phys_to_conserved(ixI^L,ixL^L,wLC,x)
-       call phys_to_conserved(ixI^L,ixR^L,wRC,x)
-    end if
+    if(needprim)then
+       call phys_to_conserved(ixI^L,ixI^L,w,x)
+    endif
+    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
+    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
 
   end subroutine upwindLR
 
@@ -223,13 +206,12 @@ contains
     double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)        :: fC
 
-    double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+    double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC, wmean
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
     logical :: CmaxMeanState
-    !-----------------------------------------------------------------------------
 
     CmaxMeanState = (typetvdlf=='cmaxmean')
 
@@ -246,13 +228,8 @@ contains
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in TVDLF: Nonconforming input limits")
 
-
-    if ((method=='tvdlf').and.useprimitive) then
-       ! second order methods with primitive limiting:
-       ! this call ensures wCT is primitive with updated auxiliaries
-       call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-    endif
-
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
@@ -273,8 +250,8 @@ contains
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
 
-       wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
-       wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
+       wRC(kxC^S,1:nwflux)=wprim(kxR^S,1:nwflux)
+       wLC(kxC^S,1:nwflux)=wprim(kxC^S,1:nwflux)
 
        ! Get interface positions:
        xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
@@ -291,11 +268,11 @@ contains
        if (method=='tvdlf') then
           select case (typelimited)
           case ('previous')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case ('predictor')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim(idims))
           case ('original')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case default
              call mpistop("Error in TVDMUSCLF: no such base for limiter")
           end select
@@ -305,27 +282,23 @@ contains
        ! the maximum eigenvalue, it is calculated in advance.
        if (CmaxMeanState) then
           ! determine mean state and store in wLC
-          wLC(ixC^S,1:nwflux)= &
-               half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
+          wmean(ixC^S,1:nwflux)=half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
           ! get auxilaries for mean state
           if (nwaux>0) then
-             call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_cmaxmeanstate')
+             call phys_get_aux(.true.,wmean,xi,ixI^L,ixC^L,'tvdlf_cmaxmeanstate')
           end if
 
-          call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxC)
+          call phys_get_cmax(wmean,xi,ixI^L,ixC^L,idims,cmaxC)
 
-          ! We regain wLC for further use
-          wLC(ixC^S,1:nwflux)=two*wLC(ixC^S,1:nwflux)-wRC(ixC^S,1:nwflux)
           if (nwaux>0) then
              call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_A')
           endif
-          if (nwaux>0.and.(.not.(useprimitive).or.method=='tvdlf1')) then
+          if (nwaux>0.and.method=='tvdlf1') then
              call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_A')
           end if
        else
           ! get auxilaries for L and R states
-          if (nwaux>0.and.(.not.(useprimitive).or.method=='tvdlf1')) then
-             !!if (nwaux>0) then
+          if (nwaux>0.and.method=='tvdlf1') then
              call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC')
              call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC')
           end if
@@ -394,18 +367,12 @@ contains
 
     end do ! Next idims
 
-    if ((method=='tvdlf').and.useprimitive) then
-       call phys_to_conserved(ixI^L,ixI^L,wCT,x)
-    else
-       if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
-    endif
-
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),ixI^L,ixO^L,1,nw,qtC,&
          wCT,qt,wnew,x,.false.)
 
   end subroutine tvdlf
-  !=============================================================================
+
   subroutine hll(method,qdt,ixI^L,ixO^L,idim^LIM, &
        qtC,wCT,qt,wnew,wold,fC,dx^D,x)
 
@@ -423,7 +390,7 @@ contains
     double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)  :: fC
 
-    double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+    double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC, wmean
     double precision, dimension(ixI^S, nwflux) :: fLC, fRC
     double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
     double precision, dimension(ixI^S)      :: cminC, cminRC, cminLC
@@ -448,11 +415,8 @@ contains
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in hll : Nonconforming input limits")
 
-    if (method=='hll'.and.useprimitive) then
-       ! second order methods with primitive limiting:
-       ! this call ensures wCT is primitive with updated auxiliaries
-       call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-    endif
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
@@ -474,8 +438,8 @@ contains
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
 
-       wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
-       wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
+       wRC(kxC^S,1:nwflux)=wprim(kxR^S,1:nwflux)
+       wLC(kxC^S,1:nwflux)=wprim(kxC^S,1:nwflux)
 
        ! Get interface positions:
        xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
@@ -492,11 +456,11 @@ contains
        if (method=='hll') then
           select case (typelimited)
           case ('previous')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case ('predictor')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim(idims))
           case ('original')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case default
              call mpistop("Error in hll: no such base for limiter")
           end select
@@ -505,27 +469,24 @@ contains
        ! For the high order hll scheme the limiter is based on
        ! the maximum eigenvalue, it is calculated in advance.
        if (CmaxMeanState) then
-          ! determine mean state and store in wLC
-          wLC(ixC^S,1:nwflux)= &
-               half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
+          ! determine mean state and store in wprim
+          wmean(ixC^S,1:nwflux)=half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
           ! get auxilaries for mean state
           if (nwaux>0) then
-             call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hll_cmaxmeanstate')
+             call phys_get_aux(.true.,wprim,xi,ixI^L,ixC^L,'hll_cmaxmeanstate')
           end if
 
-          call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
+          call phys_get_cmax(wmean,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
 
-          ! We regain wLC for further use
-          wLC(ixC^S,1:nwflux)=two*wLC(ixC^S,1:nwflux)-wRC(ixC^S,1:nwflux)
           if (nwaux>0) then
              call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hll_wLC_B')
           endif
-          if (nwaux>0.and.(.not.(useprimitive).or.method=='hll1')) then
+          if (nwaux>0.and.method=='hll1') then
              call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hll_wRC_B')
           end if
        else
           ! get auxilaries for L and R states
-          if (nwaux>0.and.(.not.(useprimitive).or.method=='hll1')) then
+          if (nwaux>0.and.method=='hll1') then
              !!if (nwaux>0) then
              call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hll_wLC')
              call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hll_wRC')
@@ -605,12 +566,6 @@ contains
 
     end do ! Next idims
 
-    if (method=='hll'.and.useprimitive) then
-       call phys_to_conserved(ixI^L,ixI^L,wCT,x)
-    else
-       if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hll_wCT')
-    endif
-
     if (.not.slab.and.idimmin==1) &
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
@@ -639,7 +594,7 @@ contains
     double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)  :: fC
 
-    double precision, dimension(ixI^S,1:nw)            :: wLC, wRC
+    double precision, dimension(ixI^S,1:nw)            :: wprim, wLC, wRC, wmean
     double precision, dimension(ixI^S)                 :: vLC, vRC
     double precision, dimension(ixI^S)                 :: cmaxC,cminC
 
@@ -672,9 +627,8 @@ contains
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in hllc : Nonconforming input limits")
 
-    if ((method=='hllc'.or.method=='hllcd').and.useprimitive) then
-       call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-    endif
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
     firstordermethod=(method=='hllc1'.or.method=='hllcd1')
 
     ^D&dxinv(^D)=-qdt/dx^D;
@@ -698,8 +652,8 @@ contains
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
 
-       wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
-       wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
+       wRC(kxC^S,1:nwflux)=wprim(kxR^S,1:nwflux)
+       wLC(kxC^S,1:nwflux)=wprim(kxC^S,1:nwflux)
 
        ! Get interface positions:
        xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
@@ -717,11 +671,11 @@ contains
        if (method=='hllc'.or.method=='hllcd') then
           select case (typelimited)
           case ('previous')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case ('predictor')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim(idims))
           case ('original')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case default
              call mpistop("Error in hllc: no such base for limiter")
           end select
@@ -731,27 +685,23 @@ contains
        ! the maximum eigenvalue, it is calculated in advance.
        if (CmaxMeanState) then
           ! determine mean state and store in wLC
-          wLC(ixC^S,1:nwflux)= &
-               half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
+          wmean(ixC^S,1:nwflux)=half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
           ! get auxilaries for mean state
           if (nwaux>0) then
-             call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_cmaxmeanstate')
+             call phys_get_aux(.true.,wmean,xi,ixI^L,ixC^L,'hllc_cmaxmeanstate')
           end if
 
-          call phys_get_cmax(wLC,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
+          call phys_get_cmax(wmean,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
 
-          ! We regain wLC for further use
-          wLC(ixC^S,1:nwflux)=two*wLC(ixC^S,1:nwflux)-wRC(ixC^S,1:nwflux)
           if (nwaux>0) then
              call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_wLC_B')
           end if
-          if (nwaux>0.and.(.not.(useprimitive).or.firstordermethod)) then
+          if (nwaux>0.and.firstordermethod) then
              call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hllc_wRC_B')
           end if
        else
           ! get auxilaries for L and R states
-          if (nwaux>0.and.(.not.(useprimitive).or.firstordermethod)) then
-             !!if (nwaux>0) then
+          if (nwaux>0.and.firstordermethod) then
              call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'hllc_wLC')
              call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'hllc_wRC')
           end if
@@ -798,7 +748,6 @@ contains
              fLC(ixC^S,iw) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
                   max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
                   (wRC(ixC^S,iw) - wLC(ixC^S,iw)))
-             ! TODO: include flc = 0 depending on bnormlf?
           else
              where(patchf(ixC^S)==-2)
                 fLC(ixC^S,iw)=fLC(ixC^S,iw)
@@ -853,12 +802,6 @@ contains
 
     end do ! Next idims
 
-    if ((method=='hllc'.or.method=='hllcd').and.useprimitive) then
-       call phys_to_conserved(ixI^L,ixI^L,wCT,x)
-    else
-       if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'hllc_wCT')
-    endif
-
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
@@ -883,7 +826,7 @@ contains
     double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)        :: fC
 
-    double precision, dimension(ixI^S,1:nw) :: wLC, wRC
+    double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC, wmean
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
@@ -905,13 +848,8 @@ contains
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in TVDMUSCLF: Nonconforming input limits")
 
-
-    if ((method=='tvdmu').and.useprimitive) then
-       ! second order methods with primitive limiting:
-       ! this call ensures wCT is primitive with updated auxiliaries
-       call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-    endif
-
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
@@ -930,8 +868,8 @@ contains
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
 
-       wRC(kxC^S,1:nwflux)=wCT(kxR^S,1:nwflux)
-       wLC(kxC^S,1:nwflux)=wCT(kxC^S,1:nwflux)
+       wRC(kxC^S,1:nwflux)=wprim(kxR^S,1:nwflux)
+       wLC(kxC^S,1:nwflux)=wprim(kxC^S,1:nwflux)
 
        ! Get interface positions:
        xi(kxC^S,1:ndim) = x(kxC^S,1:ndim)
@@ -948,19 +886,18 @@ contains
        if (method=='tvdmu') then
           select case (typelimited)
           case ('previous')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case ('predictor')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim(idims))
           case ('original')
-             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wCT,wLC,wRC,x,.true.,dxdim(idims))
+             call upwindLR(ixI^L,ixCR^L,ixCR^L,idims,wnew,wprim,wLC,wRC,x,.true.,dxdim(idims))
           case default
              call mpistop("Error in TVDMUSCLF: no such base for limiter")
           end select
        end if
 
        ! handle all other methods than tvdlf, namely tvdmu and tvdmu1 here
-       if (nwaux>0.and.(.not.(useprimitive).or.method=='tvdmu1')) then
-          !!if (nwaux>0) then
+       if (nwaux>0.and.method=='tvdmu1') then
           call phys_get_aux(.true.,wLC,xi,ixI^L,ixC^L,'tvdlf_wLC_B')
           call phys_get_aux(.true.,wRC,xi,ixI^L,ixC^L,'tvdlf_wRC_B')
        end if
@@ -995,12 +932,6 @@ contains
             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dx^D)
 
     end do ! Next idims
-
-    if ((method=='tvdmu').and.useprimitive) then
-       call phys_to_conserved(ixI^L,ixI^L,wCT,x)
-    else
-       if(nwaux>0) call phys_get_aux(.true.,wCT,x,ixI^L,ixI^L,'tvdlf_wCT')
-    endif
 
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),ixI^L,ixO^L,1,nw,qtC,&

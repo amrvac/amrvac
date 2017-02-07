@@ -22,14 +22,12 @@ contains
     double precision, intent(in)    :: w(ixI^S,nw),d2w(ixI^S,1:nwflux)
     double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
 
-    if (mhd_energy) then
-       if(useprimitive)then
-          drho(ixO^S) =mhd_gamma*dabs(d2w(ixO^S,rho_))&
-               /min(w(ixL^S,rho_),w(ixR^S,rho_))
-          dp(ixO^S) = dabs(d2w(ixO^S,p_))/min(w(ixL^S,p_),w(ixR^S,p_))
-       end if
+    if(mhd_energy) then
+      drho(ixO^S) =mhd_gamma*dabs(d2w(ixO^S,rho_))&
+           /min(w(ixL^S,rho_),w(ixR^S,rho_))
+      dp(ixO^S) = dabs(d2w(ixO^S,p_))/min(w(ixL^S,p_),w(ixR^S,p_))
     else
-       call mpistop("PPM with flatcd=.true. can not be used with eos=iso !")
+      call mpistop("PPM with flatcd=.true. can not be used with eos=iso !")
     end if
   end subroutine mhd_ppm_flatcd
 
@@ -44,29 +42,27 @@ contains
     double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
     double precision                :: ptot(ixI^S)
 
-    if (mhd_energy) then
-       if(useprimitive)then
-          ! eq. B15, page 218, Mignone and Bodo 2005, ApJS (beta1)
-          ptot(ixO^S)=w(ixO^S,p_)+half*sum(w(ixO^S,mag(:))**2,dim=ndim+1)
-          where (dabs(ptot(ixRR^S)-ptot(ixLL^S))>smalldouble)
-             drho(ixO^S) = dabs((ptot(ixR^S)-ptot(ixL^S))&
-                  /(ptot(ixRR^S)-ptot(ixLL^S)))
-          elsewhere
-             drho(ixO^S) = zero
-          end where
+    if(mhd_energy) then
+      ! eq. B15, page 218, Mignone and Bodo 2005, ApJS (beta1)
+      ptot(ixO^S)=w(ixO^S,p_)+half*sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+      where (dabs(ptot(ixRR^S)-ptot(ixLL^S))>smalldouble)
+         drho(ixO^S) = dabs((ptot(ixR^S)-ptot(ixL^S))&
+              /(ptot(ixRR^S)-ptot(ixLL^S)))
+      elsewhere
+         drho(ixO^S) = zero
+      end where
 
-          !  eq. B76, page 48, Miller and Collela 2002, JCP 183, 26
-          !  use "dp" to save squared sound speed, assume primitive in w
-          dp(ixO^S)=(mhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
+      !  eq. B76, page 48, Miller and Collela 2002, JCP 183, 26
+      !  use "dp" to save squared sound speed, assume primitive in w
+      dp(ixO^S)=(mhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
 
-          dp(ixO^S)  = dabs(ptot(ixR^S)-ptot(ixL^S))&
-               /(w(ixO^S,rho_)*dp(ixO^S))
-          ! recycle ptot to store v
-          ptot(ixI^S)= w(ixI^S,mom(idims))
-          call gradient(ptot,ixI^L,ixO^L,idims,dv)
-       end if
+      dp(ixO^S)  = dabs(ptot(ixR^S)-ptot(ixL^S))&
+           /(w(ixO^S,rho_)*dp(ixO^S))
+      ! recycle ptot to store v
+      ptot(ixI^S)= w(ixI^S,mom(idims))
+      call gradient(ptot,ixI^L,ixO^L,idims,dv)
     else
-       call mpistop("PPM with flatsh=.true. can not be used without energy equation!")
+      call mpistop("PPM with flatsh=.true. can not be used without energy equation!")
     end if
 
   end subroutine mhd_ppm_flatsh

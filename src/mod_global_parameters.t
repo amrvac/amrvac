@@ -415,7 +415,7 @@ module mod_global_parameters
   logical                       :: flathllc,flatcd,flatsh,flatppm
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
-  logical                       :: useprimitive,dimsplit
+  logical                       :: dimsplit
   logical                       :: prolongprimitive
   logical                       :: coarsenprimitive
 

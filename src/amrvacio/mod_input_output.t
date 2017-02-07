@@ -114,7 +114,7 @@ contains
          typefull1,typepred1,&
          typelimiter1,mcbeta,typegradlimiter1,&
          flatcd,flatsh,flatppm,&
-         loglimit,typelimited,useprimitive,typetvdlf, &
+         loglimit,typelimited,typetvdlf, &
          typetvd,typeentropy,entropycoef,typeaverage, &
          B0field,Bdip,Bquad,Boct,Busr,&
          tvdlfeps,&
@@ -310,7 +310,6 @@ contains
     typedimsplit    = 'default'
     typelimited     = 'predictor'
     mcbeta          = 1.4d0
-    useprimitive    = .true.
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
     source_split_usr= .false.
@@ -581,14 +580,6 @@ contains
     !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
     !     .and.(flatcd.and.physics_type=='hdadiab')) then
     !   call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
-    !end if
-    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-    !     .and.(flatsh.and..not.useprimitive)) then
-    !   call mpistop(" PPM with flatsh=.true. needs useprimitive=T!")
-    !end if
-    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
-    !     .and.(flatcd.and..not.useprimitive)) then
-    !   call mpistop(" PPM with flatcd=.true. needs useprimitive=T!")
     !end if
 
     do idim=1,ndim

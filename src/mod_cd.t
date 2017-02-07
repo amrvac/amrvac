@@ -26,7 +26,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
-    double precision :: f(ixG^T, nwflux)
+    double precision :: f(ixI^S, nwflux)
     double precision :: dxinv(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L
     logical :: transport
@@ -93,14 +93,14 @@ contains
     double precision, dimension(ixI^S,1:ndim)             ::  xi
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
-    double precision :: v(ixG^T,ndim), f(ixG^T, nwflux)
+    double precision :: v(ixI^S,ndim), f(ixI^S, nwflux)
 
-    double precision, dimension(ixG^T,1:nw) :: wLC, wRC
-    double precision, dimension(ixG^T)      :: vLC, phi, cmaxLC, cmaxRC
+    double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
+    double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
 
     double precision :: dxinv(1:ndim), dxdim
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
-    logical :: transport, new_cmax, patchw(ixG^T)
+    logical :: transport, new_cmax, patchw(ixI^S)
     !-----------------------------------------------------------------------------
     ! two extra layers are needed in each direction for which fluxes are added.
     ix^L=ixO^L;
@@ -114,11 +114,8 @@ contains
 
     ^D&dxinv(^D)=-qdt/dx^D;
 
-    if (useprimitive) then
-       ! primitive limiting:
-       ! this call ensures wCT is primitive with updated auxiliaries
-       call phys_to_primitive(ixI^L,ixI^L,wCT,x)
-    endif
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ! Add fluxes to w
     do idims= idim^LIM
@@ -139,8 +136,8 @@ contains
 
        kkxCmin^D=ixImin^D; kkxCmax^D=ixImax^D-kr(idims,^D);
        kkxR^L=kkxC^L+kr(idims,^D);
-       wRC(kkxC^S,1:nwflux)=wCT(kkxR^S,1:nwflux)
-       wLC(kkxC^S,1:nwflux)=wCT(kkxC^S,1:nwflux)
+       wRC(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
+       wLC(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
 
        ! Get interface positions:
        xi(kkxC^S,1:ndim) = x(kkxC^S,1:ndim)
@@ -150,13 +147,7 @@ contains
        }
 
        dxdim=-qdt/dxinv(idims)
-       call upwindLR(ixI^L,ixC^L,ixC^L,idims,wCT,wCT,wLC,wRC,x,.false.,dxdim)
-
-       ! get auxiliaries for L and R states
-       if (nwaux>0.and.(.not.(useprimitive))) then
-          call phys_get_aux(.true.,wLC,xi,ixG^LL,ixC^L,'cd4_wLC')
-          call phys_get_aux(.true.,wRC,xi,ixG^LL,ixC^L,'cd4_wRC')
-       end if
+       call upwindLR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim)
 
        ! Calculate velocities from upwinded values
        call phys_get_cmax(wLC,xi,ixG^LL,ixC^L,idims,cmaxLC)
@@ -167,13 +158,6 @@ contains
        ! ! Calculate velocities for centered values
        ! call phys_get_v(wCT,xi,ixI^L,ix^L,idims,f)
        ! v(ix^S,idims)=f(ix^S)
-
-       if (useprimitive) then
-          ! Jannis: TODO check this
-          ! primitive limiting:
-          ! this call ensures wCT is primitive with updated auxiliaries
-          call phys_to_conserved(ixI^L,ixI^L,wCT,x)
-       endif
 
        call phys_get_flux(wCT,xi,ixI^L,ix^L,idims,f)
 

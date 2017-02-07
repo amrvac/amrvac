@@ -88,16 +88,8 @@ contains
 
     if(mhd_energy) then
       wroe(ix^S,e_)=half*(afast(ix^S)+aslow(ix^S))
-      if(useprimitive)then
-        ! dp=pR-pL
-        dp(ix^S)=aslow(ix^S)-afast(ix^S)
-      else
-        !CONSERVATIVE dp=(g-1)*(de-v*dm+0.5*v**2*drho-0.5*d(B**2))
-        dp(ix^S)=(mhd_gamma-one)*(wR(ix^S,e_)-wL(ix^S,e_)&
-            -sum(wroe(ix^S,mom(:))*(wR(ix^S,mom(:))-wL(ix^S,mom(:))),dim=ndim+1)&
-            +half*sum(wroe(ix^S,mom(:))**2,dim=ndim+1)*(wR(ix^S,rho_)-wL(ix^S,rho_))&
-            -half*sum(wR(ix^S,mag(:))**2-wL(ix^S,mag(:))**2,dim=ndim+1))
-      endif
+      ! dp=pR-pL
+      dp(ix^S)=aslow(ix^S)-afast(ix^S)
     else
       dp(ix^S)=aslow(ix^S)-afast(ix^S)
     end if
