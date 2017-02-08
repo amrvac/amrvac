@@ -23,7 +23,6 @@
    typeadvance     = 'threestep'
    typefull1       = 13*'hllc'
    typelimiter1    = 13*'cada3'
-   useprimitive    = T
 /
  &boundlist
   dixB  =   2

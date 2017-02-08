@@ -23,9 +23,6 @@ contains
     integer, intent(in) :: iit
 
     integer :: iigrid, igrid, idimsplit
-    {#IFDEF TCRKL2
-    integer :: s
-    }
 
     ! when computing to steady state, store old solution
     if(residmin>smalldouble)then
@@ -111,7 +108,6 @@ contains
 
     integer :: iigrid, igrid
 
-    !-----------------------------------------------------------------------------
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -369,7 +365,6 @@ contains
 
     logical :: setigrid
 
-    !-----------------------------------------------------------------------------
     istep=istep+1
 
     if (time_advance.and.levmax>levmin) then
@@ -425,7 +420,7 @@ contains
 
     double precision :: dx^D
     double precision :: fC(ixG^S,1:nwflux,1:ndim)
-    !-----------------------------------------------------------------------------
+
     dx^D=rnode(rpdx^D_,igrid);
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     saveigrid=igrid
@@ -461,10 +456,9 @@ contains
   subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
 
     !  integrate one grid by one partial step
-    use mod_tvdlf
+    use mod_finite_volume
+    use mod_finite_difference
     use mod_tvd
-    use mod_cd
-    use mod_fd
     use mod_source, only: addsource2
     use mod_global_parameters
 
@@ -475,7 +469,6 @@ contains
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
     integer :: ixO^L
-    !-----------------------------------------------------------------------------
 
     ixO^L=ixI^L^LSUBdixB;
 
@@ -488,15 +481,9 @@ contains
        call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,dx^D,x)
     case ('fd')
        call fd(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-    case ('tvdmu','tvdmu1')
-       call tvdmusclf(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-    case ('tvdlf','tvdlf1')
-       call tvdlf(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-    case ('hll','hll1')
-       call hll(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-    case ('hllc','hllc1', 'hllcd','hllcd1')
-       call hllc(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-    case ('tvd','tvd1')
+    case ('tvdmu','tvdlf','hll','hllc','hllcd')
+       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
+    case ('tvd')
        call centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
        call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,wCT,qt+qdt,w,fC,dx^D,x)
     case ('source')
@@ -520,7 +507,6 @@ contains
     double precision, intent(in):: qt
 
     integer:: iigrid, igrid,level
-    !-----------------------------------------------------------------------------
 
     if (associated(usr_process_global)) then
        call usr_process_global(iit,qt)
