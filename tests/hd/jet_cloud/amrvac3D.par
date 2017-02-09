@@ -19,8 +19,8 @@
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-	dtsave(1)=0.05
-        dtsave(2)=0.5d0
+	dtsave_log=0.05
+        dtsave_dat=0.5d0
  /
 
  &stoplist

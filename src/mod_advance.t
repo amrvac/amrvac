@@ -24,15 +24,6 @@ contains
 
     integer :: iigrid, igrid, idimsplit
 
-    ! when computing to steady state, store old solution
-    if(residmin>smalldouble)then
-       !$OMP PARALLEL DO PRIVATE(igrid)
-       do iigrid=1,igridstail; igrid=igrids(iigrid);
-          pwres(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
-       end do
-       !$OMP END PARALLEL DO
-    endif
-
     {#IFDEF RAY
     call update_rays
     }
@@ -83,15 +74,6 @@ contains
     call handle_particles
     tpartc = tpartc + (MPI_WTIME() - tpartc0)
     }
-
-    if(residmin>smalldouble)then
-       !$OMP PARALLEL DO PRIVATE(igrid)
-       do iigrid=1,igridstail; igrid=igrids(iigrid);
-          pwres(igrid)%w(ixG^T,1:nwflux)= &
-               pw(igrid)%w(ixG^T,1:nwflux)-pwres(igrid)%w(ixG^T,1:nwflux)
-       end do
-       !$OMP END PARALLEL DO
-    endif
 
   end subroutine advance
 

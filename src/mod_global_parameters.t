@@ -10,6 +10,8 @@ module mod_global_parameters
 
   ! Parameters
 
+  character(len=*), parameter :: not_specified = 'not_specified'
+
   !> The number of interleaving sending buffers for ghost cells
   integer, parameter :: npwbuf=2
 
@@ -219,16 +221,9 @@ module mod_global_parameters
   !> \f$ dt < dtdiffpar \times dx^2/eta \f$
   double precision :: dtdiffpar
 
-  !> How to compute the residual
-  character(len=std_len) :: typeresid
-
   !> Under construction
   !> \todo Remove time_accurate?
   logical :: time_accurate
-
-  !> Enable additional MPI_BARRIER calls, useful when debugging on new platforms
-  !> \todo Remove addmpibarrier?
-  logical :: addmpibarrier
 
   ! Time parameters
 
@@ -244,15 +239,6 @@ module mod_global_parameters
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
 
-  !> \todo Remove residmin?
-  double precision :: residmin
-
-  !> \todo Remove residmax?
-  double precision :: residmax
-
-  !> \todo Remove residual?
-  double precision :: residual
-
   !> Save output of type N on times tsave(:, N)
   double precision :: tsave(nsavehi,nfile)
 
@@ -265,15 +251,9 @@ module mod_global_parameters
   !> Slice coordinates, see @ref slices.md
   double precision :: slicecoord(nslicemax)
 
-  !> If true, the last time step will be reduced so that the final time is the
-  !> end time of the simulation
-  logical :: time_max_exact
-
-  !> If true, do not use the time_max stored in a snapshot when restarting
-  logical :: time_reset
-
-  !> If true, do not use the itmax stored in a snapshot when restarting
-  logical :: itreset
+  !> If true, reset iteration count and global_time to original values, and
+  !> start writing snapshots at index 0
+  logical :: restart_reset_time
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
@@ -441,9 +421,6 @@ module mod_global_parameters
 
   ! Boundary region parameters
 
-  !> Number of boundaries for grid blocks
-  integer, parameter :: nhiB = 2*ndim
-
   !> True for dimensions with periodic boundaries
   logical :: periodB(ndim)
 
@@ -457,7 +434,7 @@ module mod_global_parameters
   !> physical boundary
   character(len=std_len), allocatable :: typeB(:, :)
 
-  character(len=std_len) :: typeghostfill='linear',typegridfill
+  character(len=std_len) :: typeghostfill='linear',prolongation_method
   logical :: internalboundary
 
   !> Which par files are used as input
@@ -492,7 +469,7 @@ module mod_global_parameters
   !> If true, enable ASCII output of slices
   logical :: sliceascii
 
-  !> If true and restart_from_file and snapshotini are given, convert snapshots to
+  !> If true and restart_from_file is given, convert snapshots to
   !> other file formats
   logical                :: convert
 

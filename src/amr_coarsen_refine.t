@@ -10,7 +10,6 @@ type(tree_node_ptr) :: tree, sibling
 logical             :: active
 integer, external :: getnode
 !-----------------------------------------------------------------------------
-if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 call proper_nesting
 
 ! to save memory: first coarsen then refine
@@ -106,9 +105,6 @@ else
    call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
 end if
 
-
-
-if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 end subroutine amr_coarsen_refine
 !=============================================================================
 subroutine proper_nesting

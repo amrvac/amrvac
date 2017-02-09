@@ -77,8 +77,14 @@ program amrvac
         stop
      end if
 
-     if (itreset) it=itin
-     if (time_reset) global_time=tin
+     if (restart_reset_time) then
+       ! Reset it and global_time to original values, and start writing
+       ! snapshots at index 0
+       it           = itin
+       global_time  = tin
+       snapshotnext = 0
+     end if
+
      ! modify initial condition
      if (firstprocess) call modify_IC
      ! reset AMR grid
@@ -205,11 +211,6 @@ contains
 
        call advance(it)
 
-       if (residmin>smalldouble) then
-          call getresidual(it)
-       endif
-       if (residual<residmin .or. residual>residmax) exit time_evol
-
        ! resetting of tree BEFORE IO and setdt
        timegr0=MPI_WTIME()
        if(ditregrid>1) then
@@ -226,7 +227,6 @@ contains
 
        it = it + 1
        global_time = global_time + dt
-       if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 
        if(it>9000000)then
           it = slowsteps+10

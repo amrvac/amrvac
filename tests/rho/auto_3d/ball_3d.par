@@ -17,8 +17,8 @@
 /
 
  &savelist
-        dtsave(1)=1.0d-2
-        dtsave(2)=1.0d-2
+        dtsave_log=1.0d-2
+        dtsave_dat=1.0d-2
  /
 
  &stoplist
@@ -31,7 +31,12 @@
 
  &boundlist
         nghostcells=   3
-        typeB=  'periodic','periodic','periodic','periodic','periodic','periodic'
+        typeboundary_min1 = 'periodic'
+        typeboundary_max1 = 'periodic'
+        typeboundary_min2 = 'periodic'
+        typeboundary_max2 = 'periodic'
+        typeboundary_min3 = 'periodic'
+        typeboundary_max3 = 'periodic'
  /
 
  &meshlist

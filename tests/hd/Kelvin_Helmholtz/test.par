@@ -8,7 +8,7 @@
 /
 
  &savelist
-   dtsave(1)       = 1.d-1
+   dtsave_log       = 1.d-1
 /
 
  &stoplist

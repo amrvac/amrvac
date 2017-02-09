@@ -71,9 +71,7 @@ if( stepflag<1.and.mype==0) then
    endif
 endif   
 
-if (time_max_exact) then
-   dtmin_mype=min(dtmin_mype,time_max-global_time)
-end if
+dtmin_mype=min(dtmin_mype,time_max-global_time)
 
 if(any(dtsave(1:nfile)<bigdouble).or.any(tsave(isavet(1:nfile),1:nfile)<bigdouble))then
    dtmax = minval((int(global_time/dtsave(1:nfile))+1)*dtsave(1:nfile))-global_time
@@ -209,64 +207,4 @@ case default
 end select
 
 end subroutine getdt_courant
-!=============================================================================
-subroutine getresidual(iit)
 
-! compute residual for steady state calculations
-
-use mod_global_parameters
- 
-integer, intent(in) :: iit
-
-integer :: iigrid,igrid,iw
-double precision :: wnrm2_send(1:nwflux),wnrm2_recv(1:nwflux)
-double precision :: wnrm2localgrids(1:nwflux),residlocalgrids(1:nwflux)
-double precision :: resid_send(1:nwflux),resid_recv(1:nwflux)
-!----------------------------------------------------------------------------
-
-select case(typeresid)
-  case('relative')
-    wnrm2localgrids(1:nwflux)=zero
-!$OMP PARALLEL DO PRIVATE(igrid,iw) REDUCTION(+:wnrm2localgrids)
-    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      do iw=1,nwflux
-        wnrm2localgrids(iw)=wnrm2localgrids(iw)+sum(pw(igrid)%w(ixM^T,iw)**2)
-      enddo
-    end do 
-!$OMP END PARALLEL DO
-
-    wnrm2_send(1:nwflux)=wnrm2localgrids(1:nwflux)
-
-    call MPI_ALLREDUCE(wnrm2_send,wnrm2_recv,nwflux,MPI_DOUBLE_PRECISION, &
-               MPI_SUM,icomm,ierrmpi)
-
-    do iw=1,nwflux
-      if(wnrm2_recv(iw)<smalldouble) wnrm2_recv(iw)=one
-    enddo
-  case('absolute')
-    wnrm2_recv(1:nwflux)=one
-  case default
-    call mpistop('no such typeresid')
-end select
-
-residlocalgrids(1:nwflux)=zero
-!$OMP PARALLEL DO PRIVATE(igrid,iw) REDUCTION(+:residlocalgrids)
-do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-    do iw=1,nwflux
-      residlocalgrids(iw)=residlocalgrids(iw) &
-           +sum(pwres(igrid)%w(ixM^T,iw)**2)/wnrm2_recv(iw)
-    enddo
-end do 
-!$OMP END PARALLEL DO
-
-resid_send(1:nwflux)=residlocalgrids(1:nwflux)
-
-call MPI_ALLREDUCE(resid_send,resid_recv,nwflux,MPI_DOUBLE_PRECISION, &
-            MPI_SUM,icomm,ierrmpi)
-
-
-residual=sqrt(sum(resid_recv(1:nwflux))/(nwflux))
-
-
-end subroutine getresidual
-!=============================================================================

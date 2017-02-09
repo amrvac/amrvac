@@ -18,8 +18,8 @@
  /
 
  &savelist
-        dtsave(1)=0.1
-        ! dtsave(2)=0.1
+        dtsave_log=0.1
+        ! dtsave_dat=0.1
  /
 
  &stoplist

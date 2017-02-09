@@ -37,7 +37,7 @@ contains
     end if
 
     ! Specify the options and their default values
-    call kracken('cmd','-i amrvac.par -if data -restart -1 '//&
+    call kracken('cmd','-i amrvac.par -if unavailable '//&
          '-slice 0 -collapse 0 --help .false. -convert .false.')
 
     ! Get the par file(s)
@@ -52,7 +52,7 @@ contains
           print *, 'Optional arguments:'
           print *, '-restart <N>         Restart a run at this snapshot'
           print *, '-convert             Convert snapshot files'
-          print *, '-if file.dat         Use this snapshot'
+          print *, '-if file0001.dat     Use this snapshot'
           print *, ''
           print *, 'Note: later parameter files override earlier ones.'
        end if
@@ -69,8 +69,7 @@ contains
 
     ! Read in the other command line arguments
     call retrev('cmd_if', restart_from_file, len, ier)
-    snapshotini  = iget('cmd_restart')
-    snapshotnext = snapshotini+1
+
     !> \todo Document these command line options
     slicenext    = iget('cmd_slice')
     collapseNext = iget('cmd_collapse')
@@ -94,18 +93,28 @@ contains
     character(len=80)      :: fmt_string
     character(len=std_len) :: err_msg
     character(len=std_len) :: basename_full, basename_prev
+    character(len=std_len), dimension(:), allocatable :: &
+         typeboundary_min^D, typeboundary_max^D
+    double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
+         tsave_collapsed, tsave_custom
+    double precision :: dtsave_log, dtsave_dat, dtsave_slice, &
+         dtsave_collapsed, dtsave_custom
+    integer :: ditsave_log, ditsave_dat, ditsave_slice, &
+         ditsave_collapsed, ditsave_custom
 
     namelist /filelist/ base_filename,restart_from_file, &
-         snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
+         typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,primnames, &
-         typeparIO,nwauxio,nocartesian,addmpibarrier, &
+         typeparIO,nwauxio,nocartesian, &
          w_write,writelevel,writespshift,endian_swap, &
          normvar,time_convert_factor,level_io,level_io_min,level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
-         slicecoord,collapse,collapseLevel
-    namelist /stoplist/ itmax,time_max,time_max_exact,dtmin,global_time,it,time_reset,itreset,residmin,&
-         residmax,typeresid
+         slicecoord,collapse,collapseLevel, &
+         tsave_log, tsave_dat, tsave_slice, tsave_collapsed, tsave_custom, &
+         dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
+         ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
+    namelist /stoplist/ itmax,time_max,dtmin,global_time,it
     namelist /methodlist/ w_names,time_integrator, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
@@ -121,8 +130,8 @@ contains
          fixprocess,flathllc, &
          x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage
-    namelist /boundlist/ nghostcells,typeB,typeghostfill,typegridfill,&
-         internalboundary
+    namelist /boundlist/ nghostcells,typeB,typeghostfill,prolongation_method,&
+         internalboundary, typeboundary_^L
     namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,derefine_ratio,refine_criterion, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight,w_for_refine,&
@@ -147,12 +156,19 @@ contains
     ! defaults for boundary treatments
     typeghostfill      = 'linear'
     nghostcells               = 2
-    allocate(typeB(nw, nhiB))
-    typeB(1:nw,1:nhiB) = 'cont'
-    internalboundary   = .false.
 
-    ! code behavior and testing defaults
-    addmpibarrier = .false.
+    ! Allocate boundary conditions arrays in new and old style
+    {
+    allocate(typeboundary_min^D(nw))
+    allocate(typeboundary_max^D(nw))
+    typeboundary_min^D = not_specified
+    typeboundary_max^D = not_specified
+    }
+
+    allocate(typeB(nw, 2 * ndim))
+    typeB(:, :) = not_specified
+
+    internalboundary   = .false.
 
     ! defaults for parameters for optional pointgrav module (van Marle)
     ! --> set here mass to zero, coordinates to zero
@@ -194,11 +210,6 @@ contains
     normvar(0:nw) = one
     time_convert_factor         = one
 
-    ! residual defaults
-    residmin  = -1.0d0
-    residmax  = bigdouble
-    typeresid = 'relative'
-
     ! AMR related defaults
     refine_max_level                      = 1
     {nbufferx^D                 = 0\}
@@ -207,7 +218,7 @@ contains
     refine_threshold(1:nlevelshi)            = 0.1d0
     allocate(derefine_ratio(nlevelshi))
     derefine_ratio(1:nlevelshi)       = 1.0d0/8.0d0
-    typegridfill                = 'linear'
+    prolongation_method                = 'linear'
     coarsenprimitive            = .false.
     prolongprimitive            = .false.
     typeprolonglimit            = 'default'
@@ -240,7 +251,6 @@ contains
     ! IO defaults
     itmax         = biginteger
     time_max          = bigdouble
-    time_max_exact     = .true.
     dtmin         = 1.0d-10
     typeparIO     = 0
     nslices       = 0
@@ -249,26 +259,45 @@ contains
     sliceascii    = .false.
 
     do ifile=1,nfile
-       do isave=1,nsavehi
-          tsave(isave,ifile)  = bigdouble  ! global_time  of saves into the output files
-          itsave(isave,ifile) = biginteger ! it of saves into the output files
-       end do
-       dtsave(ifile)  = bigdouble  ! time between saves
-       ditsave(ifile) = biginteger ! timesteps between saves
-       isavet(ifile)  = 1          ! index for saves by global_time
-       isaveit(ifile) = 1          ! index for saves by it
+      do isave=1,nsavehi
+        tsave(isave,ifile)  = bigdouble  ! global_time  of saves into the output files
+        itsave(isave,ifile) = biginteger ! it of saves into the output files
+      end do
+      dtsave(ifile)  = bigdouble  ! time between saves
+      ditsave(ifile) = biginteger ! timesteps between saves
+      isavet(ifile)  = 1          ! index for saves by global_time
+      isaveit(ifile) = 1          ! index for saves by it
     end do
+
+    tsave_log       = bigdouble
+    tsave_dat       = bigdouble
+    tsave_slice     = bigdouble
+    tsave_collapsed = bigdouble
+    tsave_custom    = bigdouble
+
+    dtsave_log       = bigdouble
+    dtsave_dat       = bigdouble
+    dtsave_slice     = bigdouble
+    dtsave_collapsed = bigdouble
+    dtsave_custom    = bigdouble
+
+    ditsave_log       = biginteger
+    ditsave_dat       = biginteger
+    ditsave_slice     = biginteger
+    ditsave_collapsed = biginteger
+    ditsave_custom    = biginteger
 
     typefilelog = 'default'
     ! defaults for number of w in the transformed data
     nwtf        = 0
 
-    ! defaults for input 
+    ! defaults for input
     firstprocess  = .false.
     resetgrid     = .false.
-    time_reset        = .false.
-    itreset       = .false.
+    restart_reset_time = .false.
     base_filename   = 'data'
+    snapshotini = -1
+    snapshotnext = 0
 
     ! Defaults for discretization methods
     typeaverage     = 'default'
@@ -396,6 +425,13 @@ contains
 
     base_filename = basename_full
 
+    if (restart_from_file /= 'unavailable') then
+      ! Parse index in restart_from_file string (e.g. basename0000.dat)
+      i = len_trim(restart_from_file) - 7
+      read(restart_from_file(i:i+3), '(I4)') snapshotini
+      snapshotnext = snapshotini+1
+    end if
+
     if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: primnames not given!'
 
@@ -409,6 +445,24 @@ contains
     end if
 
     if(convert) autoconvert=.false.
+
+    where (tsave_log < bigdouble) tsave(:, 1) = tsave_log
+    where (tsave_dat < bigdouble) tsave(:, 2) = tsave_dat
+    where (tsave_slice < bigdouble) tsave(:, 3) = tsave_slice
+    where (tsave_collapsed < bigdouble) tsave(:, 4) = tsave_collapsed
+    where (tsave_custom < bigdouble) tsave(:, 5) = tsave_custom
+
+    if (dtsave_log < bigdouble) dtsave(1) = dtsave_log
+    if (dtsave_dat < bigdouble) dtsave(2) = dtsave_dat
+    if (dtsave_slice < bigdouble) dtsave(3) = dtsave_slice
+    if (dtsave_collapsed < bigdouble) dtsave(4) = dtsave_collapsed
+    if (dtsave_custom < bigdouble) dtsave(5) = dtsave_custom
+
+    if (ditsave_log < bigdouble) ditsave(1) = ditsave_log
+    if (ditsave_dat < bigdouble) ditsave(2) = ditsave_dat
+    if (ditsave_slice < bigdouble) ditsave(3) = ditsave_slice
+    if (ditsave_collapsed < bigdouble) ditsave(4) = ditsave_collapsed
+    if (ditsave_custom < bigdouble) ditsave(5) = ditsave_custom
 
     if (mype == 0) then
        write(unitterm, *) ''
@@ -435,11 +489,6 @@ contains
 
     if(itmax==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: itmax or time_max not given!'
-
-    if(residmin>=zero) then
-       if (mype==0) write(unitterm,*)"SS computation with input value residmin"
-       if(residmin<=smalldouble) call mpistop("Provide value for residual above smalldouble")
-    end if
 
     if(TRIM(w_names)=='default') call mpistop("Provide w_names and restart code")
 
@@ -559,6 +608,21 @@ contains
     !     .and.(flatcd.and.physics_type=='hdadiab')) then
     !   call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
     !end if
+
+    ! Copy boundary conditions to typeB, which is used internally
+    {
+    if (any(typeboundary_min^D /= not_specified)) then
+      typeB(:, 2*^D-1) = typeboundary_min^D
+    end if
+
+    if (any(typeboundary_max^D /= not_specified)) then
+      typeB(:, 2*^D) = typeboundary_max^D
+    end if
+    }
+
+    if (any(typeB == not_specified)) then
+      call mpistop("Not all boundary conditions have been defined")
+    end if
 
     do idim=1,ndim
        periodB(idim)=(any(typeB(:,2*idim-1:2*idim)=='periodic'))
@@ -1298,20 +1362,16 @@ contains
 
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(MPI_STATUS_SIZE) :: istatus
-    character(len=80) :: filename
     logical :: fexist
 
-    ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(restart_from_file),snapshotini,".dat"
-
     if(mype==0) then
-       inquire(file=filename,exist=fexist)
-       if(.not.fexist) call mpistop(filename//"as an input snapshot file is not found!")
+       inquire(file=trim(restart_from_file),exist=fexist)
+       if(.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
     endif
 
     amode=MPI_MODE_RDONLY
-    call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
-
+    call MPI_FILE_OPEN(icomm,trim(restart_from_file),amode,&
+         MPI_INFO_NULL,file_handle,ierrmpi)
 
     call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
     call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
@@ -1441,16 +1501,14 @@ contains
 
     integer, allocatable :: iorecvstatus(:,:)
     integer :: ipe,inrecv,nrecv
-    character(len=80) :: filename
     logical :: fexist
 
-    ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(restart_from_file),snapshotini,".dat"
     if(mype==0) then
-      inquire(file=filename,exist=fexist)
-      if(.not.fexist) call mpistop(filename//"as an input snapshot file is not found!")
+      inquire(file=trim(restart_from_file), exist=fexist)
+      if(.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
       amode=MPI_MODE_RDONLY
-      call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
+      call MPI_FILE_OPEN(MPI_COMM_SELF,restart_from_file,amode, &
+           MPI_INFO_NULL,file_handle,ierrmpi)
 
       call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
       call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
@@ -1716,8 +1774,8 @@ contains
 
        ! Construct the line to be added to the log
 
-       fmt_string = '(' // fmt_i // ',3' // fmt_r // ')'
-       write(line, fmt_string) it, global_time, dt, residual
+       fmt_string = '(' // fmt_i // ',2' // fmt_r // ')'
+       write(line, fmt_string) it, global_time, dt
        i = len_trim(line) + 2
 
        write(fmt_string, '(a,i0,a)') '(', nw, fmt_r // ')'
