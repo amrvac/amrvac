@@ -119,7 +119,7 @@ contains
          fixprocess,flathllc, &
          x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage
-    namelist /boundlist/ nghostcells,typeB,typeghostfill,typegridfill,&
+    namelist /boundlist/ nghostcells,typeB,typeghostfill,prolongation_method,&
          internalboundary
     namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,derefine_ratio,refine_criterion, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
@@ -197,7 +197,7 @@ contains
     refine_threshold(1:nlevelshi)            = 0.1d0
     allocate(derefine_ratio(nlevelshi))
     derefine_ratio(1:nlevelshi)       = 1.0d0/8.0d0
-    typegridfill                = 'linear'
+    prolongation_method                = 'linear'
     coarsenprimitive            = .false.
     prolongprimitive            = .false.
     typeprolonglimit            = 'default'

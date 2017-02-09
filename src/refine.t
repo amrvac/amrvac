@@ -43,7 +43,7 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
   !-----------------------------------------------------------------------------
   ! TODO: discuss/clean commented code below
-  if (typegridfill=="linear") then
+  if (prolongation_method=="linear") then
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      {#IFDEF EVOLVINGBOUNDARY
      if (phyboundblock(igrid)) then
@@ -71,7 +71,7 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   ixComin^D=ixMlo^D+(ic^D-1)*(ixMhi^D-ixMlo^D+1)/2\
   ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2\
 
-  if (typegridfill=="linear") then
+  if (prolongation_method=="linear") then
      xFimin^D=rnode(rpxmin^D_,ichild)\
      dxFi^D=rnode(rpdx^D_,ichild)\
      {#IFDEF EVOLVINGBOUNDARY
@@ -91,7 +91,7 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   end if
   {end do\}
 
-  if (typegridfill=="linear") then
+  if (prolongation_method=="linear") then
      call phys_convert_after_prolong(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
      ! TODO: clean this up
      !    if (amrentropy) then

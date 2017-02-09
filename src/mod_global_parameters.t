@@ -435,7 +435,7 @@ module mod_global_parameters
   !> physical boundary
   character(len=std_len), allocatable :: typeB(:, :)
 
-  character(len=std_len) :: typeghostfill='linear',typegridfill
+  character(len=std_len) :: typeghostfill='linear',prolongation_method
   logical :: internalboundary
 
   !> Which par files are used as input

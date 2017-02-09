@@ -39,6 +39,7 @@ my %simple_replacements = (
     qr/\bwritew\b/ => "w_write",
     qr/\btol\b/ => "refine_threshold",
     qr/\btolratio\b/ => "derefine_ratio",
+    qr/\btypegridfill\b/ => "prolongation_method",
     qr/\b13\*/ => "20*",   # nlevelshi went from 13 to 20
     qr/ *useprimitive *=.*\n/ => "", # Remove useprimitive = ... lines
     qr/ *filenamelog *=.*\n/ => "", # Remove useprimitive = ... lines
