@@ -54,11 +54,17 @@ $AMRVAC_DIR/tools/upgrade.pl
 cd $AMRVAC_DIR/tests/hd/jet_cloud
 $AMRVAC_DIR/tools/upgrade.pl
 
-# cd $AMRVAC_DIR/mhd/doubleGEM_25D
-# $AMRVAC_DIR/tools/upgrade.pl
+cd $AMRVAC_DIR/tests/mhd/ripple_2.5D
+$AMRVAC_DIR/tools/upgrade.pl
 
-# cd $AMRVAC_DIR/mhd/solar_atmosphere_25D
-# $AMRVAC_DIR/tools/upgrade.pl
+cd $AMRVAC_DIR/tests/mhd/Kelvin_Helmholtz_2D
+$AMRVAC_DIR/tools/upgrade.pl
 
-# cd $AMRVAC_DIR/mhd/promRT
-# $AMRVAC_DIR/tools/upgrade.pl
+cd $AMRVAC_DIR/tests/mhd/radiative_cooling_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/mhd/thermal_conduction_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/mhd/solar_atmosphere_2.5D
+$AMRVAC_DIR/tools/upgrade.pl

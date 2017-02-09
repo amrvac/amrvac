@@ -30,7 +30,6 @@
 
  &methodlist
         w_names= 'rho m1 m2 e tr'
-        fileheadout=  'jetCloud_hd22'
         time_integrator=  'ssprk54'
         flux_scheme=    20*'hllc'
         typepred1=    20*'hllc'

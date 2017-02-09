@@ -8,3 +8,4 @@ doc/html/*
 *.amrvac.log.shfp.*
 *F90sources
 !**/correct_output/**
+*.bak

@@ -20,7 +20,6 @@
 
  &methodlist
         w_names=       'rho m1 m2 e'
-        fileheadout=  'rm_2d'
  /
 
  &boundlist

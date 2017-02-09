@@ -450,9 +450,6 @@ module mod_global_parameters
   !> If not 'unavailable', resume from snapshot with this base file name
   character(len=std_len) :: restart_from_file
 
-  !> The header line in the output file
-  character(len=std_len) :: fileheadout
-
   !> Names of the conservative variables
   character(len=1024) :: w_names
 

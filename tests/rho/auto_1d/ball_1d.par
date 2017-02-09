@@ -22,7 +22,6 @@
 
  &methodlist
         w_names=       'rho'
-        fileheadout=  'ball_1d'
  /
 
  &boundlist

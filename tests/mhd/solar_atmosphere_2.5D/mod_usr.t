@@ -90,11 +90,11 @@ contains
     res=gzone-(dble(na)-0.5d0)*dya
     rhob=ra(na)+res/dya*(ra(na+1)-ra(na))
     pb=pa(na)+res/dya*(pa(na+1)-pa(na))
-    allocate(rbc(dixB))
-    allocate(pbc(dixB))
-    do ibc=dixB,1,-1
-      na=floor((gzone-dx(2,mxnest)*(dble(dixB-ibc+1)-0.5d0))/dya+0.5d0)
-      res=gzone-dx(2,mxnest)*(dble(dixB-ibc+1)-0.5d0)-(dble(na)-0.5d0)*dya
+    allocate(rbc(nghostcells))
+    allocate(pbc(nghostcells))
+    do ibc=nghostcells,1,-1
+      na=floor((gzone-dx(2,refine_max_level)*(dble(nghostcells-ibc+1)-0.5d0))/dya+0.5d0)
+      res=gzone-dx(2,refine_max_level)*(dble(nghostcells-ibc+1)-0.5d0)-(dble(na)-0.5d0)*dya
       rbc(ibc)=ra(na)+res/dya*(ra(na+1)-ra(na))
       pbc(ibc)=pa(na)+res/dya*(pa(na+1)-pa(na))
     end do
@@ -161,8 +161,8 @@ contains
     case(3)
       !! fixed zero velocity
       do idir=1,ndir
-        w(ixO^S,mom(idir)) =-w(ixOmin1:ixOmax1,ixOmax2+dixB:ixOmax2+1:-1,mom(idir))&
-                   /w(ixOmin1:ixOmax1,ixOmax2+dixB:ixOmax2+1:-1,rho_)
+        w(ixO^S,mom(idir)) =-w(ixOmin1:ixOmax1,ixOmax2+nghostcells:ixOmax2+1:-1,mom(idir))&
+                   /w(ixOmin1:ixOmax1,ixOmax2+nghostcells:ixOmax2+1:-1,rho_)
       end do
       !! fixed b1 b2 b3
       if(iprob==0 .or. B0field) then
@@ -195,8 +195,8 @@ contains
       enddo
       !> fixed zero velocity
       do idir=1,ndir
-        w(ixO^S,mom(idir)) =-w(ixOmin1:ixOmax1,ixOmin2-1:ixOmin2-dixB:-1,mom(idir))&
-                     /w(ixOmin1:ixOmax1,ixOmin2-1:ixOmin2-dixB:-1,rho_)
+        w(ixO^S,mom(idir)) =-w(ixOmin1:ixOmax1,ixOmin2-1:ixOmin2-nghostcells:-1,mom(idir))&
+                     /w(ixOmin1:ixOmax1,ixOmin2-1:ixOmin2-nghostcells:-1,rho_)
       end do
       !> zero normal gradient extrapolation
       do ix2=ixOmin2,ixOmax2
@@ -391,7 +391,7 @@ contains
     ! output the plasma beta p*2/B**2
     w(ixO^S,nw+4)=pth(ixO^S)*two/B2(ixO^S)
     ! output heating rate
-    call getbQ(ens,ixI^L,ixO^L,t,w,x)
+    call getbQ(ens,ixI^L,ixO^L,global_time,w,x)
     w(ixO^S,nw+5)=ens(ixO^S)
     ! store the cooling rate 
     call getvar_cooling(ixI^L,ixO^L,w,x,ens,normconv)
@@ -406,11 +406,11 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output
-  ! newly added variables need to be concatenated with the wnames/primnames string
+  ! newly added variables need to be concatenated with the w_names/primnames string
     use mod_global_parameters
 
     primnames=TRIM(primnames)//' '//'Te Alfv divB beta bQ rad j1 j2 j3'
-       wnames=   TRIM(wnames)//' '//'Te Alfv divB beta bQ rad j1 j2 j3'
+       w_names=   TRIM(w_names)//' '//'Te Alfv divB beta bQ rad j1 j2 j3'
 
   end subroutine specialvarnames_output
 

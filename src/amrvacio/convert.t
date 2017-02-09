@@ -546,7 +546,6 @@ if (.not.fileopen) then
    open(qunit,file=filename,status='unknown',form='unformatted')
 end if
 
-write(qunit)fileheadout
 write(qunit)it,global_time*time_convert_factor,ndim,neqpar+nspecialpar,nw+nwauxio
 
 nx^D=ixMhi^D-ixMlo^D+1;
@@ -1999,6 +1998,7 @@ subroutine valout_dx(qunit)
 !  Array ordering becomes row-major (C/DX style).
 !
 use mod_global_parameters
+use mod_physics, only: physics_type
 
 integer, intent(in) :: qunit
 
@@ -2063,7 +2063,7 @@ call date_and_time(dummy_date,dummy_time,dummy_zone,DateAndTime)
 ! Open the file for the header part, ascii data
 open(qunit,file=filename,status='unknown',form='formatted')
 
-write(qunit,'(2a)') '### AMRVAC datafile for simulation ',TRIM(fileheadout)
+write(qunit,'(a)') '### AMRVAC datafile for simulation '
 write(qunit,'(a,i02,a,i02,a,i4,a,i02,a,i02)') '### Generated on ', &
      DateAndTime(3),'/',DateAndTime(2),'/',DateAndTime(1), &
      ' at ',DateAndTime(5),'h',DateAndTime(6)
@@ -2180,15 +2180,6 @@ enddo
 write(qunit,'(a)') ' '
 write(qunit,'(a)') '#'
 
-! Separate name and physics from fileheadout
-underscore_position = index(TRIM(fileheadout),'_',.true.)
-if (underscore_position == 0) then
-   name=fileheadout
-   physics='unknown'
-else
-   name=fileheadout(:underscore_position-1)
-   physics=fileheadout(underscore_position+1:)
-endif
 !
 ! Top level group with all attributes
 !
@@ -2196,8 +2187,7 @@ write(qunit,'(a)') 'object "default" class multigrid'
 do igrid=1,ngrids
    write(qunit,'(a,i5,a,i5.5,a)') 'member ',igrid-1,' value ',igrid-1
 end do
-write(qunit,'(3a)')  'attribute "simulationname"     string "',TRIM(name),'"'
-write(qunit,'(3a)')  'attribute "physics"  string "',TRIM(physics),'"'
+write(qunit,'(3a)')  'attribute "physics"  string "',TRIM(physics_type),'"'
 write(qunit,'(a,x,i11)') 'attribute "ndim"     number ',ndim
 write(qunit,'(a,x,i11)') 'attribute "ndir"     number ',ndir
 write(qunit,'(a,x,i11)') 'attribute "nw"       number ',nw+nwauxio

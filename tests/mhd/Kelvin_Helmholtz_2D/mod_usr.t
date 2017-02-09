@@ -127,12 +127,12 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output
-    ! newly added variables to be concatenated with the primnames/wnames string
+    ! newly added variables to be concatenated with the primnames/w_names string
 
     use mod_global_parameters
     
     primnames= TRIM(primnames)//' '//'divB'
-    wnames=TRIM(wnames)//' '//'divB'
+    w_names=TRIM(w_names)//' '//'divB'
 
   end subroutine specialvarnames_output
 

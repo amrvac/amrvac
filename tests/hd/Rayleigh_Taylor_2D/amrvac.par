@@ -19,7 +19,6 @@
 
  &methodlist
    w_names          = 'rho m1 m2 e'
-   fileheadout     = 'rt_2d'
    time_integrator     = 'threestep'
    flux_scheme       = 20*'hllc'
    limiter    = 20*'cada3'

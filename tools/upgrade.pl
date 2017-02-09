@@ -52,6 +52,7 @@ my %par_file_replacements = (
     qr/\b13\*/ => "20*",   # nlevelshi went from 13 to 20
     qr/ *useprimitive *=.*\n/ => "", # Remove useprimitive = ... lines
     qr/ *filenamelog *=.*\n/ => "", # Remove useprimitive = ... lines
+    qr/ *fileheadout *=.*\n/ => "", # Remove fileheadout = ... lines
     qr/tsave\(1\)/ => "tsave_log",
     qr/tsave\(2\)/ => "tsave_dat",
     qr/tsave\(3\)/ => "tsave_slice",
