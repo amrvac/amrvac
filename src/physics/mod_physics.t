@@ -11,7 +11,7 @@ module mod_physics
   public
 
   !> String describing the physics type of the simulation
-  character(len=40)    :: physics_type
+  character(len=40)    :: physics_type = ""
 
   !> To use wider stencils in flux calculations. A value of 1 will extend it by
   !> one cell in both directions, in any dimension
@@ -127,13 +127,13 @@ contains
     use mod_physics_roe, only: phys_roe_check
     use mod_physics_ppm, only: phys_ppm_check
 
+    if (physics_type == "") call mpistop("Error: no physics module loaded")
 
     call phys_hllc_check()
     call phys_roe_check()
     call phys_ppm_check()
 
     ! Checks whether the required physics methods have been defined
-
     if (.not. associated(phys_check_params)) &
          phys_check_params => dummy_check_params
 
