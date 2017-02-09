@@ -42,7 +42,7 @@ program amrvac
      ! restart from previous file or dat file conversion
      ! get input data from previous VAC/AMRVAC run
      itin=it
-     tin=t
+     tin=global_time
 
      ! order: first physics dependent part then user for defaults.
      call phys_check_params()
@@ -59,7 +59,7 @@ program amrvac
 
      {#IFDEF PARTICLES
      call init_tracerparticles
-     call getbc(t,0.d0,pw,0,nwflux+nwaux)
+     call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
      call init_gridvars
      call read_particles_snapshot
      call finish_gridvars
@@ -78,7 +78,7 @@ program amrvac
      end if
 
      if (itreset) it=itin
-     if (treset) t=tin
+     if (time_reset) global_time=tin
      ! modify initial condition
      if (firstprocess) call modify_IC
      ! reset AMR grid
@@ -101,7 +101,7 @@ program amrvac
 
      {#IFDEF PARTICLES
      call init_tracerparticles
-     call getbc(t,0.d0,pw,0,nwflux+nwaux)
+     call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
      call init_gridvars
      call init_particles
      call finish_gridvars
@@ -158,7 +158,7 @@ contains
     n_saves(filelog_:fileout_) = snapshotini
 
     do ifile=nfile,1,-1
-       tsavelast(ifile)=t
+       tsavelast(ifile)=global_time
        itsavelast(ifile)=it
     end do
 
@@ -167,7 +167,7 @@ contains
     itTimeLast=it
     timeLast=MPI_WTIME()
 
-    call getbc(t, 0.d0, pw, 0, nwflux+nwaux)
+    call getbc(global_time, 0.d0, pw, 0, nwflux+nwaux)
 
     !  ------ start of integration loop. ------------------
     timeloop0=MPI_WTIME()
@@ -177,11 +177,11 @@ contains
        write(*,'(a,f12.3,a)')&
             ' BCs before Advance took : ',timefirstbc,' sec'
     end if
-    ncells_block={(ixGhi^D-2*dixB)*}
+    ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
     time_evol : do
        call setdt()
-       if(fixprocess) call process(it,t)
+       if(fixprocess) call process(it,global_time)
 
        timeio0=MPI_WTIME()
        do ifile=nfile,1,-1
@@ -192,7 +192,7 @@ contains
        if(npe>1) call MPI_BCAST(alive,1,MPI_LOGICAL,0,icomm,ierrmpi)
        if(alive) then
           if(mype==0) write(*,'(a,i7,a,i7,a,es12.4)') ' save a snapshot No.',&
-               snapshot,' at it=',it,' t=',t
+               snapshot,' at it=',it,' global_time=',global_time
           call saveamrfile(1)
           call saveamrfile(2)
           call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
@@ -201,7 +201,7 @@ contains
 
        ! exit time loop criteria
        if (it>=itmax) exit time_evol
-       if (t>=tmax) exit time_evol
+       if (global_time>=time_max) exit time_evol
 
        call advance(it)
 
@@ -216,16 +216,16 @@ contains
           if(fixcount<ditregrid) then
              fixcount=fixcount+1
           else
-             if (mxnest>1 .and. .not.(fixgrid(0))) call resettree
+             if (refine_max_level>1 .and. .not.(fixgrid(0))) call resettree
              fixcount=1
           endif
        else
-          if (mxnest>1 .and. .not.(fixgrid(0))) call resettree
+          if (refine_max_level>1 .and. .not.(fixgrid(0))) call resettree
        endif
        timegr_tot=timegr_tot+(MPI_WTIME()-timegr0)
 
        it = it + 1
-       t = t + dt
+       global_time = global_time + dt
        if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 
        if(it>9000000)then
@@ -287,17 +287,17 @@ contains
     end if
     if (it==itsavelast(ifile)+ditsave(ifile)) oksave=.true.
 
-    if (t>=tsave(isavet(ifile),ifile)) then
+    if (global_time>=tsave(isavet(ifile),ifile)) then
        oksave=.true.
        isavet(ifile)=isavet(ifile)+1
     end if
-    if (t>=tsavelast(ifile)+dtsave(ifile)-smalldouble)then
+    if (global_time>=tsavelast(ifile)+dtsave(ifile)-smalldouble)then
        oksave=.true.
        n_saves(ifile) = n_saves(ifile) + 1
     endif
 
     if (oksave) then
-       tsavelast(ifile) =t
+       tsavelast(ifile) =global_time
        itsavelast(ifile)=it
     end if
     timetosave=oksave
@@ -312,7 +312,7 @@ contains
     use mod_global_parameters
     integer :: dummy              !< Unused dummy argument
 
-    fixgrid= (t>=tfixgrid .or. it>=itfixgrid)
+    fixgrid= (global_time>=tfixgrid .or. it>=itfixgrid)
   end function fixgrid
 
 end program amrvac

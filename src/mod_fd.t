@@ -41,9 +41,9 @@ contains
           myB0 => myB0_cell
        end if
 
-       ! Get fluxes for the whole grid (mesh+dixB)
-       {^D& ixCmin^D = ixOmin^D - dixB * kr(idims,^D)\}
-       {^D& ixCmax^D = ixOmax^D + dixB * kr(idims,^D)\}
+       ! Get fluxes for the whole grid (mesh+nghostcells)
+       {^D& ixCmin^D = ixOmin^D - nghostcells * kr(idims,^D)\}
+       {^D& ixCmax^D = ixOmax^D + nghostcells * kr(idims,^D)\}
 
        hxO^L=ixO^L-kr(idims,^D);
        ! ix is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
@@ -51,7 +51,7 @@ contains
 
        {#IFDEF HALL
        ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
-       ! assuming one additional ghost layer was added in dixB.
+       ! assuming one additional ghost layer was added in nghostcells.
        {#IFNDEF FOURTHORDER
        {^D& ixCRmin^D = ixCmin^D + kr(idims,^D)\}
        {^D& ixCRmax^D = ixCmax^D - kr(idims,^D)\}

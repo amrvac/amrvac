@@ -198,7 +198,7 @@ contains
   subroutine hd_check_params
     use mod_global_parameters
 
-    minrho = max(0.0d0, smallrho)
+    minrho = max(0.0d0, small_density)
 
     if (.not. hd_energy) then
        if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
@@ -207,7 +207,7 @@ contains
     else
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
             call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
-       minp   = max(0.0d0, smallp)
+       minp   = max(0.0d0, small_pressure)
        smalle = minp/(hd_gamma - 1.0d0)
     end if
 

@@ -1,13 +1,13 @@
  &filelist
         filenamelog  = '_2step_tvdmu_al'
-        filenameout  = '_2step_tvdmu_al'
+        base_filename  = '_2step_tvdmu_al'
  /
 
  &methodlist
-        typeadvance  = 'twostep'
-        typefull1    = 13*'tvdmu'
-        typepred1    = 13*'hancock'
-        typelimiter1 = 13*'albada'
+        time_integrator  = 'twostep'
+        flux_scheme    = 20*'tvdmu'
+        typepred1    = 20*'hancock'
+        limiter = 20*'albada'
         dimsplit     = .true.
  /
 

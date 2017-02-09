@@ -37,14 +37,14 @@ contains
   subroutine init_bc()
     use mod_global_parameters 
 
-    integer :: dixBCo, interpolation_order
+    integer :: nghostcellsCo, interpolation_order
     integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, iib^D
 
     ixG^L=ixG^LL;
-    ixM^L=ixG^L^LSUBdixB;
+    ixM^L=ixG^L^LSUBnghostcells;
     ixCoGmin^D=1;
-    ixCoGmax^D=ixGmax^D/2+dixB;
-    ixCoM^L=ixCoG^L^LSUBdixB;
+    ixCoGmax^D=ixGmax^D/2+nghostcells;
+    ixCoM^L=ixCoG^L^LSUBnghostcells;
     
     nx^D=ixMmax^D-ixMmin^D+1;
     nxCo^D=nx^D/2;
@@ -58,9 +58,9 @@ contains
        write (unitterm,*) "Undefined typeghostfill ",typeghostfill
        call mpistop("")
     end select
-    dixBCo=int((dixB+1)/2)
+    nghostcellsCo=int((nghostcells+1)/2)
     
-    if (dixBCo+interpolation_order-1>dixB) then
+    if (nghostcellsCo+interpolation_order-1>nghostcells) then
        call mpistop("interpolation order for prolongation in getbc to high")
     end if
     
@@ -72,8 +72,8 @@ contains
     {
     ixS_srl_min^D(:,-1)=ixMmin^D
     ixS_srl_min^D(:, 0)=ixMmin^D
-    ixS_srl_min^D(:, 1)=ixMmax^D+1-dixB
-    ixS_srl_max^D(:,-1)=ixMmin^D-1+dixB
+    ixS_srl_min^D(:, 1)=ixMmax^D+1-nghostcells
+    ixS_srl_max^D(:,-1)=ixMmin^D-1+nghostcells
     ixS_srl_max^D(:, 0)=ixMmax^D
     ixS_srl_max^D(:, 1)=ixMmax^D
     
@@ -85,7 +85,7 @@ contains
     ixR_srl_min^D(:,-1)=1
     ixR_srl_min^D(:, 0)=ixMmin^D
     ixR_srl_min^D(:, 1)=ixMmax^D+1
-    ixR_srl_max^D(:,-1)=dixB
+    ixR_srl_max^D(:,-1)=nghostcells
     ixR_srl_max^D(:, 0)=ixMmax^D
     ixR_srl_max^D(:, 1)=ixGmax^D
     
@@ -96,8 +96,8 @@ contains
     
     ixS_r_min^D(:,-1)=ixCoMmin^D
     ixS_r_min^D(:, 0)=ixCoMmin^D
-    ixS_r_min^D(:, 1)=ixCoMmax^D+1-dixB
-    ixS_r_max^D(:,-1)=ixCoMmin^D-1+dixB
+    ixS_r_min^D(:, 1)=ixCoMmax^D+1-nghostcells
+    ixS_r_max^D(:,-1)=ixCoMmin^D-1+nghostcells
     ixS_r_max^D(:, 0)=ixCoMmax^D
     ixS_r_max^D(:, 1)=ixCoMmax^D
     
@@ -110,7 +110,7 @@ contains
     ixR_r_min^D(:, 1)=ixMmin^D
     ixR_r_min^D(:, 2)=ixMmin^D+nxCo^D
     ixR_r_min^D(:, 3)=ixMmax^D+1
-    ixR_r_max^D(:, 0)=dixB
+    ixR_r_max^D(:, 0)=nghostcells
     ixR_r_max^D(:, 1)=ixMmin^D-1+nxCo^D
     ixR_r_max^D(:, 2)=ixMmax^D
     ixR_r_max^D(:, 3)=ixGmax^D
@@ -122,30 +122,30 @@ contains
     
     ixS_p_min^D(:, 0)=ixMmin^D-(interpolation_order-1)
     ixS_p_min^D(:, 1)=ixMmin^D-(interpolation_order-1)
-    ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
-    ixS_p_min^D(:, 3)=ixMmax^D+1-dixBCo-(interpolation_order-1)
-    ixS_p_max^D(:, 0)=ixMmin^D-1+dixBCo+(interpolation_order-1)
-    ixS_p_max^D(:, 1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
+    ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-nghostcellsCo-(interpolation_order-1)
+    ixS_p_min^D(:, 3)=ixMmax^D+1-nghostcellsCo-(interpolation_order-1)
+    ixS_p_max^D(:, 0)=ixMmin^D-1+nghostcellsCo+(interpolation_order-1)
+    ixS_p_max^D(:, 1)=ixMmin^D-1+nxCo^D+nghostcellsCo+(interpolation_order-1)
     ixS_p_max^D(:, 2)=ixMmax^D+(interpolation_order-1)
     ixS_p_max^D(:, 3)=ixMmax^D+(interpolation_order-1)
     
     ixS_p_min^D(-1,1)=1
-    ixS_p_max^D(-1,1)=ixMmin^D-1+nxCo^D+dixBCo+(interpolation_order-1)
-    ixS_p_min^D( 1,2)=ixMmin^D+nxCo^D-dixBCo-(interpolation_order-1)
+    ixS_p_max^D(-1,1)=ixMmin^D-1+nxCo^D+nghostcellsCo+(interpolation_order-1)
+    ixS_p_min^D( 1,2)=ixMmin^D+nxCo^D-nghostcellsCo-(interpolation_order-1)
     ixS_p_max^D( 1,2)=ixGmax^D
     
-    ixR_p_min^D(:, 0)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+    ixR_p_min^D(:, 0)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
     ixR_p_min^D(:, 1)=ixCoMmin^D-(interpolation_order-1)
-    ixR_p_min^D(:, 2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+    ixR_p_min^D(:, 2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
     ixR_p_min^D(:, 3)=ixCoMmax^D+1-(interpolation_order-1)
-    ixR_p_max^D(:, 0)=dixB+(interpolation_order-1)
-    ixR_p_max^D(:, 1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
+    ixR_p_max^D(:, 0)=nghostcells+(interpolation_order-1)
+    ixR_p_max^D(:, 1)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
     ixR_p_max^D(:, 2)=ixCoMmax^D+(interpolation_order-1)
-    ixR_p_max^D(:, 3)=ixCoMmax^D+dixBCo+(interpolation_order-1)
+    ixR_p_max^D(:, 3)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
     
     ixR_p_min^D(-1,1)=1
-    ixR_p_max^D(-1,1)=ixCoMmax^D+dixBCo+(interpolation_order-1)
-    ixR_p_min^D( 1,2)=ixCoMmin^D-dixBCo-(interpolation_order-1)
+    ixR_p_max^D(-1,1)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
+    ixR_p_min^D( 1,2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
     ixR_p_max^D( 1,2)=ixCoGmax^D
     \}
 
@@ -224,7 +224,7 @@ contains
     double precision, intent(in)      :: time, qdt
     integer, intent(in)               :: nwstart ! Fill from nw = nwstart+1
     integer, intent(in)               :: nwbc    ! Number of variables to fill
-    type(walloc), dimension(ngridshi) :: pwuse
+    type(walloc), dimension(max_blocks) :: pwuse
     
     integer :: my_neighbor_type, ipole, idims, iside
     integer :: iigrid, igrid, ineighbor, ipe_neighbor
@@ -232,8 +232,8 @@ contains
     integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
     integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
     ! store physical boundary indicating index
-    integer :: idphyb(ngridshi,ndim),bindex(ndim)
-    integer :: isend_buf(npwbuf), ipwbuf, dixBco,iB
+    integer :: idphyb(max_blocks,ndim),bindex(ndim)
+    integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco,iB
     type(walloc) :: pwbuf(npwbuf)
     logical  :: isphysbound
     
@@ -262,8 +262,8 @@ contains
             {
              kmin^D=merge(0, 1, idims==^D)
              kmax^D=merge(0, 1, idims==^D)
-             ixBmin^D=ixGmin^D+kmin^D*dixB
-             ixBmax^D=ixGmax^D-kmax^D*dixB
+             ixBmin^D=ixGmin^D+kmin^D*nghostcells
+             ixBmax^D=ixGmax^D-kmax^D*nghostcells
             \}
             {^IFTWOD
              if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixGmin1
@@ -330,7 +330,7 @@ contains
     end do
     
     ! sending ghost-cell values to sibling blocks and coarser neighbors
-    dixBco=ceiling(dixB*0.5d0)
+    nghostcellsco=ceiling(nghostcells*0.5d0)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        call identifyphysbound(igrid,isphysbound,iib^D)   
@@ -339,13 +339,13 @@ contains
     {#IFDEF EVOLVINGBOUNDARY
           if(isphysbound) then
             ! coarsen finer ghost cells at physical boundaries
-            ixCoMmin^D=ixCoGmin^D+dixBco;
-            ixCoMmax^D=ixCoGmax^D-dixBco;
-            ixMmin^D=ixGmin^D+(dixBco-1);
-            ixMmax^D=ixGmax^D-(dixBco-1);
+            ixCoMmin^D=ixCoGmin^D+nghostcellsco;
+            ixCoMmax^D=ixCoGmax^D-nghostcellsco;
+            ixMmin^D=ixGmin^D+(nghostcellsco-1);
+            ixMmax^D=ixGmax^D-(nghostcellsco-1);
           else
-            ixCoM^L=ixCoG^L^LSUBdixB;
-            ixM^L=ixG^L^LSUBdixB;
+            ixCoM^L=ixCoG^L^LSUBnghostcells;
+            ixM^L=ixG^L^LSUBnghostcells;
           end if
     }
           call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,&
@@ -482,12 +482,12 @@ contains
     !              {case (^D)
     !                 if (iside==2) then
     !                    ! maximal boundary
-    !                    ixImin^DD=ixGmax^D+1-dixB^D%ixImin^DD=ixGmin^DD;
+    !                    ixImin^DD=ixGmax^D+1-nghostcells^D%ixImin^DD=ixGmin^DD;
     !                    ixImax^DD=ixGmax^DD;
     !                 else
     !                    ! minimal boundary
     !                    ixImin^DD=ixGmin^DD;
-    !                    ixImax^DD=ixGmin^D-1+dixB^D%ixImax^DD=ixGmax^DD;
+    !                    ixImax^DD=ixGmin^D-1+nghostcells^D%ixImax^DD=ixGmax^DD;
     !                 end if \}
     !              end select
     !              call fixdivB_boundary(ixG^L,ixI^L,pwuse(igrid)%w,px(igrid)%x,iB)
@@ -559,15 +559,15 @@ contains
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
         if(isphysbound) then
           ! filling physical boundary ghost cells of a coarser representative block for
-          ! sending swap region with width of dixB to its coarser neighbor
+          ! sending swap region with width of nghostcells to its coarser neighbor
           do idims=1,ndim
              ! to avoid using as yet unknown corner info in more than 1D, we
              ! fill only interior mesh ranges of the ghost cell ranges at first,
              ! and progressively enlarge the ranges to include corners later
              {kmin^D=merge(0, 1, idims==^D)
              kmax^D=merge(0, 1, idims==^D)
-             ixBmin^D=ixCoGmin^D+kmin^D*dixB
-             ixBmax^D=ixCoGmax^D-kmax^D*dixB\}
+             ixBmin^D=ixCoGmin^D+kmin^D*nghostcells
+             ixBmax^D=ixCoGmax^D-kmax^D*nghostcells\}
              {^IFTWOD
              if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixCoGmin1
              if(idims > 1 .and. neighbor_type( 1,0,igrid)==1) ixBmax1=ixCoGmax1}
@@ -577,11 +577,11 @@ contains
              if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==1) ixBmin2=ixCoGmin2
              if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==1) ixBmax2=ixCoGmax2}
              {if(i^D==-1) then
-               ixBmin^D=ixCoGmin^D+dixB
-               ixBmax^D=ixCoGmin^D+2*dixB-1
+               ixBmin^D=ixCoGmin^D+nghostcells
+               ixBmax^D=ixCoGmin^D+2*nghostcells-1
              else if(i^D==1) then
-               ixBmin^D=ixCoGmax^D-2*dixB+1
-               ixBmax^D=ixCoGmax^D-dixB
+               ixBmin^D=ixCoGmax^D-2*nghostcells+1
+               ixBmax^D=ixCoGmax^D-nghostcells
              end if\}
              do iside=1,2
                 ii^D=kr(^D,idims)*(2*iside-3);
@@ -748,15 +748,15 @@ contains
         dxCo^D=two*dxFi^D;
         invdxCo^D=1.d0/dxCo^D;
         
-        xFimin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxFi^D;
-        xComin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxCo^D;
+        xFimin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxFi^D;
+        xComin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxCo^D;
         {#IFDEF STRETCHGRID
         qst=qsts(node(plevel_,igrid))
         logG=logGs(node(plevel_,igrid))
         qstl=qsts(node(plevel_,igrid)-1)
         logGl=logGs(node(plevel_,igrid)-1)
-        xFimin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
-        xComin1=rnode(rpxmin1_,igrid)*qstl**(-dixB)
+        xFimin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
+        xComin1=rnode(rpxmin1_,igrid)*qstl**(-nghostcells)
         }
         
         ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;

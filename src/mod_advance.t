@@ -82,7 +82,7 @@ contains
 
     {#IFDEF PARTICLES
     tpartc0 = MPI_WTIME()
-    tmax_particles = (t + dt)* (UNIT_LENGTH/UNIT_VELOCITY)
+    tmax_particles = (global_time + dt)* (UNIT_LENGTH/UNIT_VELOCITY)
     call handle_particles
     tpartc = tpartc + (MPI_WTIME() - tpartc0)
     }
@@ -100,7 +100,7 @@ contains
 
   subroutine advect(idim^LIM)
 
-    !  integrate all grids by one step of its delta(t)
+    !  integrate all grids by one step of its dt
 
     ! This subroutine is in VAC terminology equivalent to
     ! `advect' (with the difference that it will `advect' all grids)
@@ -122,17 +122,21 @@ contains
 
     istep=0
 
-    select case (typeadvance)
+    select case (time_integrator)
     case ("onestep")
-       call advect1(typefull1,one,    idim^LIM,t,          pw1,t,pw, pwold)
+       call advect1(flux_scheme,one, idim^LIM,global_time, pw1, &
+            global_time,pw, pwold)
     case ("twostep")
        ! predictor step
-       call advect1(typepred1,half,   idim^LIM,t,          pw, t,pw1,pwold)
+       call advect1(typepred1,half, idim^LIM,global_time, pw, &
+            global_time,pw1,pwold)
        ! corrector step
-       call advect1(typefull1,one,    idim^LIM,t+half*dt,  pw1,t,pw, pwold)
+       call advect1(flux_scheme,one,    idim^LIM,global_time+half*dt,&
+            pw1,global_time,pw, pwold)
     case ("threestep")
        ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
-       call advect1(typefull1,one, idim^LIM,t,          pw ,t,pw1,pwold)
+       call advect1(flux_scheme,one, idim^LIM,global_time, &
+            pw ,global_time,pw1,pwold)
 
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           allocate (pw2(igrid)%w(ixG^T,1:nw))
@@ -142,7 +146,7 @@ contains
                pw(igrid)%w(ixG^T,nwflux+1:nw)
        end do
 
-       call advect1(typefull1,0.25d0, idim^LIM,t+dt,pw1,t+dt*0.25d0,pw2,pwold)
+       call advect1(flux_scheme,0.25d0, idim^LIM,global_time+dt,pw1,global_time+dt*0.25d0,pw2,pwold)
 
        !$OMP PARALLEL DO PRIVATE(igrid)
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -150,7 +154,7 @@ contains
                2.0d0/3.0d0*pw2(igrid)%w(ixG^T,1:nwflux)
        end do
        !$OMP END PARALLEL DO
-       call advect1(typefull1,2.0d0/3.0d0, idim^LIM,t+dt/2.0d0,pw2,t+dt/3.0d0,pw,&
+       call advect1(flux_scheme,2.0d0/3.0d0, idim^LIM,global_time+dt/2.0d0,pw2,global_time+dt/3.0d0,pw,&
             pwold)
 
     case ("ssprk43")
@@ -164,7 +168,7 @@ contains
        ! oliver.
 
        ! === First step ===
-       call advect1(typefull1,0.5d0, idim^LIM,t,          pw ,t,pw1,pwold)
+       call advect1(flux_scheme,0.5d0, idim^LIM,global_time,          pw ,global_time,pw1,pwold)
 
        ! === Second step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -173,7 +177,7 @@ contains
           if (nw>nwflux) pw2(igrid)%w(ixG^T,nwflux+1:nw) = &
                pw(igrid)%w(ixG^T,nwflux+1:nw)
        end do
-       call advect1(typefull1,0.5d0, idim^LIM,t,pw1,t+dt,pw2,pwold)
+       call advect1(flux_scheme,0.5d0, idim^LIM,global_time,pw1,global_time+dt,pw2,pwold)
 
        ! === Third step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -183,7 +187,7 @@ contains
           if (nw>nwflux) pw3(igrid)%w(ixG^T,nwflux+1:nw) = &
                pw(igrid)%w(ixG^T,nwflux+1:nw)
        end do
-       call advect1(typefull1,1.0d0/6.0d0, idim^LIM,t,pw2,t+dt,pw3,pwold)
+       call advect1(flux_scheme,1.0d0/6.0d0, idim^LIM,global_time,pw2,global_time+dt,pw3,pwold)
 
        ! === Fourth step ===
        !$OMP PARALLEL DO PRIVATE(igrid)
@@ -191,7 +195,7 @@ contains
           pw(igrid)%w(ixG^T,1:nwflux)=pw3(igrid)%w(ixG^T,1:nwflux)
        end do
        !$OMP END PARALLEL DO
-       call advect1(typefull1,0.5d0, idim^LIM, t,pw3, t+dt,pw, pwold)
+       call advect1(flux_scheme,0.5d0, idim^LIM, global_time,pw3, global_time+dt,pw, pwold)
 
     case ("ssprk54")
        ! Strong stability preserving 5 stage RK 4th order method by Ruuth and Spiteri
@@ -215,7 +219,7 @@ contains
        ! coded by oliver on 11/05/2013.  Enjoy!
 
        ! === First step ===
-       call advect1(typefull1,0.391752226571890d0, idim^LIM, t,pw ,t,pw1, pwold)
+       call advect1(flux_scheme,0.391752226571890d0, idim^LIM, global_time,pw ,global_time,pw1, pwold)
 
        ! === Second step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -225,7 +229,7 @@ contains
           if (nw>nwflux) pw2(igrid)%w(ixG^T,nwflux+1:nw) = &
                pw(igrid)%w(ixG^T,nwflux+1:nw)
        end do
-       call advect1(typefull1,0.368410593050371d0, idim^LIM, t+0.391752226571890d0*dt,pw1, t+0.2176690962611688d0*dt,pw2, pwold)
+       call advect1(flux_scheme,0.368410593050371d0, idim^LIM, global_time+0.391752226571890d0*dt,pw1, global_time+0.2176690962611688d0*dt,pw2, pwold)
 
        ! === Third step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -235,7 +239,7 @@ contains
           if (nw>nwflux) pw3(igrid)%w(ixG^T,nwflux+1:nw) = &
                pw(igrid)%w(ixG^T,nwflux+1:nw)
        end do
-       call advect1(typefull1,0.251891774271694d0, idim^LIM, t+0.5860796893115398d0*dt,pw2, t+0.222650588849706d0*dt,pw3, pwold)
+       call advect1(flux_scheme,0.251891774271694d0, idim^LIM, global_time+0.5860796893115398d0*dt,pw2, global_time+0.222650588849706d0*dt,pw3, pwold)
 
        ! === Fourth step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -245,7 +249,7 @@ contains
           if (nw>nwflux) pw4(igrid)%w(ixG^T,nwflux+1:nw) = &
                pw(igrid)%w(ixG^T,nwflux+1:nw)
        end do
-       call advect1(typefull1,0.544974750228521d0, idim^LIM, t+0.4745423631214d0*dt,pw3, t+0.390035880739132d0*dt,pw4, pwold)
+       call advect1(flux_scheme,0.544974750228521d0, idim^LIM, global_time+0.4745423631214d0*dt,pw3, global_time+0.390035880739132d0*dt,pw4, pwold)
        ! Now recover back the dt*L(u3), store in pw1:
        !$OMP PARALLEL DO PRIVATE(igrid)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -264,22 +268,22 @@ contains
                + 0.386708617503269d0 * pw4(igrid)%w(ixG^T,1:nwflux)
        end do
        !$OMP END PARALLEL DO
-       call advect1(typefull1,0.226007483236906d0, idim^LIM, t+0.935010630967653d0*dt,pw4, t+0.710300048096804d0*dt,pw, pwold)
+       call advect1(flux_scheme,0.226007483236906d0, idim^LIM, global_time+0.935010630967653d0*dt,pw4, global_time+0.710300048096804d0*dt,pw, pwold)
 
 
     case ("rk4")
        ! classical RK4 four step scheme
-       call advect1(typefull1,0.5d0, idim^LIM,t,          pw ,t,pw1,pwold)
+       call advect1(flux_scheme,0.5d0, idim^LIM,global_time,          pw ,global_time,pw1,pwold)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           allocate (pw2(igrid)%w(ixG^T,1:nw))
           pw2(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
        end do
-       call advect1(typefull1,0.5d0, idim^LIM,t+dt/2d0,   pw1,t,pw2,pwold)
+       call advect1(flux_scheme,0.5d0, idim^LIM,global_time+dt/2d0,   pw1,global_time,pw2,pwold)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           allocate (pw3(igrid)%w(ixG^T,1:nw))
           pw3(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
        end do
-       call advect1(typefull1,one,   idim^LIM,t+dt/2d0,   pw2,t,pw3,pwold)
+       call advect1(flux_scheme,one,   idim^LIM,global_time+dt/2d0,   pw2,global_time,pw3,pwold)
        !$OMP PARALLEL DO PRIVATE(igrid)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           pw1(igrid)%w(ixG^T,1:nwflux)=(pw1(igrid)%w(ixG^T,1:nwflux) &
@@ -288,7 +292,7 @@ contains
                -4.0d0*pw(igrid)%w(ixG^T,1:nwflux))/3.0d0
        end do
        !$OMP END PARALLEL DO
-       call advect1(typefull1,1.0d0/6.0d0, idim^LIM,t+dt,  pw3,t,pw,pwold)
+       call advect1(flux_scheme,1.0d0/6.0d0, idim^LIM,global_time+dt,  pw3,global_time,pw,pwold)
        !$OMP PARALLEL DO PRIVATE(igrid)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           pw(igrid)%w(ixG^T,1:nwflux)=pw1(igrid)%w(ixG^T,1:nwflux)+&
@@ -297,43 +301,43 @@ contains
        !$OMP END PARALLEL DO
     case ("fourstep")
        ! four step scheme, variant Hans De Sterck
-       call advect1(typefull1,0.12d0, idim^LIM,t,          pw ,t,pw1,pwold)
+       call advect1(flux_scheme,0.12d0, idim^LIM,global_time,          pw ,global_time,pw1,pwold)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           allocate (pw2(igrid)%w(ixG^T,1:nw))
           pw2(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
        end do
-       call advect1(typefull1,0.25d0, idim^LIM,t+dt*0.12d0,pw1,t,pw2,pwold)
+       call advect1(flux_scheme,0.25d0, idim^LIM,global_time+dt*0.12d0,pw1,global_time,pw2,pwold)
        !$OMP PARALLEL DO PRIVATE(igrid)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           pw1(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
        end do
        !$OMP END PARALLEL DO
-       call advect1(typefull1,0.5d0,  idim^LIM,t+dt/4d0   ,pw2,t,pw1,pwold)
-       call advect1(typefull1,one,    idim^LIM,t+dt/2d0   ,pw1,t,pw, pwold)
+       call advect1(flux_scheme,0.5d0,  idim^LIM,global_time+dt/4d0   ,pw2,global_time,pw1,pwold)
+       call advect1(flux_scheme,one,    idim^LIM,global_time+dt/2d0   ,pw1,global_time,pw, pwold)
     case ("jameson")
        ! four step scheme, variant jameson
-       call advect1(typefull1,0.25d0, idim^LIM,t,          pw ,t,pw1,pwold)
+       call advect1(flux_scheme,0.25d0, idim^LIM,global_time,          pw ,global_time,pw1,pwold)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           allocate (pw2(igrid)%w(ixG^T,1:nw))
           pw2(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
        end do
-       call advect1(typefull1,(1.0d0/3.0d0), idim^LIM,t+dt*0.25d0,pw1,t,pw2,pwold)
+       call advect1(flux_scheme,(1.0d0/3.0d0), idim^LIM,global_time+dt*0.25d0,pw1,global_time,pw2,pwold)
        !$OMP PARALLEL DO PRIVATE(igrid)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           pw1(igrid)%w(ixG^T,1:nwflux)=pw(igrid)%w(ixG^T,1:nwflux)
        end do
        !$OMP END PARALLEL DO
-       call advect1(typefull1,0.5d0,  idim^LIM,t+dt/3d0   ,pw2,t,pw1,pwold)
-       call advect1(typefull1,one,    idim^LIM,t+dt/2d0   ,pw1,t,pw, pwold)
+       call advect1(flux_scheme,0.5d0,  idim^LIM,global_time+dt/3d0   ,pw2,global_time,pw1,pwold)
+       call advect1(flux_scheme,one,    idim^LIM,global_time+dt/2d0   ,pw1,global_time,pw, pwold)
     case default
-       write(unitterm,*) "typeadvance=",typeadvance
+       write(unitterm,*) "time_integrator=",time_integrator
        write(unitterm,*) "Error in advect: Unknown time integration method"
-       call mpistop("Correct typeadvance")
+       call mpistop("Correct time_integrator")
     end select
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        deallocate (pw1(igrid)%w)
-       select case (typeadvance)
+       select case (time_integrator)
        case ("threestep","fourstep","jameson")
           deallocate (pw2(igrid)%w)
        case ("rk4","ssprk43")
@@ -362,7 +366,7 @@ contains
     integer, intent(in) :: idim^LIM
     double precision, intent(in) :: dtfactor, qtC, qt
     character(len=*), intent(in) :: method(nlevelshi)
-    type(walloc) :: pwa(ngridshi), pwb(ngridshi), pwc(ngridshi)
+    type(walloc) :: pwa(max_blocks), pwb(max_blocks), pwc(max_blocks)
 
     double precision :: qdt
     integer :: iigrid, igrid, level
@@ -406,7 +410,7 @@ contains
     ! for all grids: fill ghost cells
     qdt=dtfactor*dt
     {#IFDEF BOUNDARYDRIVER
-    call boundarydriver(method(mxnest),qdt,idim^LIM,qtC,pwa,qt,pwb)
+    call boundarydriver(method(refine_max_level),qdt,idim^LIM,qtC,pwa,qt,pwb)
     }
     call getbc(qt+qdt,qdt,pwb,0,nwflux+nwaux)
 
@@ -439,8 +443,8 @@ contains
        myB0_cell => pB0_cell(igrid)
        {^D&myB0_face^D => pB0_face^D(igrid)\}
     end if
-    typelimiter=typelimiter1(node(plevel_,igrid))
-    typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+    typelimiter=limiter(node(plevel_,igrid))
+    typegradlimiter=gradient_limiter(node(plevel_,igrid))
 
     call advect1_grid(method,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D, &
          px(igrid)%x)
@@ -477,7 +481,7 @@ contains
     integer :: ixO^L
     !-----------------------------------------------------------------------------
 
-    ixO^L=ixI^L^LSUBdixB;
+    ixO^L=ixI^L^LSUBnghostcells;
 
     select case (method)
     case ('cd')
@@ -536,8 +540,8 @@ contains
           myB0_cell => pB0_cell(igrid)
           {^D&myB0_face^D => pB0_face^D(igrid)\}
        end if
-       typelimiter=typelimiter1(node(plevel_,igrid))
-       typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+       typelimiter=limiter(node(plevel_,igrid))
+       typegradlimiter=gradient_limiter(node(plevel_,igrid))
 
        if (associated(usr_process_grid)) then
           call usr_process_grid(igrid,level,ixG^LL,ixM^LL, &

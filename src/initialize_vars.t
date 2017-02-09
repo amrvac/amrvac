@@ -9,21 +9,21 @@ use mod_ghostcells_update
 integer :: igrid, level, ipe, ig^D
 logical :: ok
 !-----------------------------------------------------------------------------
-allocate(pw(ngridshi),pwold(ngridshi),pw1(ngridshi),pw2(ngridshi),pw3(ngridshi))
-allocate(pw4(ngridshi),pwres(ngridshi),pwCoarse(ngridshi),pwio(ngridshi))
-allocate(pB0_cell(ngridshi),pB0_face^D(ngridshi))
-allocate(pw_sub(ngridshi))
-allocate(px(ngridshi),pxCoarse(ngridshi),px_sub(ngridshi))
-allocate(pgeo(ngridshi),pgeoCoarse(ngridshi))
-allocate(neighbor(2,-1:1^D&,ngridshi),neighbor_child(2,0:3^D&,ngridshi))
-allocate(neighbor_type(-1:1^D&,ngridshi),neighbor_active(-1:1^D&,ngridshi))
-if (phi_ > 0) allocate(neighbor_pole(-1:1^D&,ngridshi))
-allocate(igrids(ngridshi),igrids_active(ngridshi),igrids_passive(ngridshi))
-allocate(rnode(rnodehi,ngridshi),rnode_sub(rnodehi,ngridshi),dt_grid(ngridshi))
-allocate(node(nodehi,ngridshi),node_sub(nodehi,ngridshi),phyboundblock(ngridshi))
-allocate(pflux(2,^ND,ngridshi))
+allocate(pw(max_blocks),pwold(max_blocks),pw1(max_blocks),pw2(max_blocks),pw3(max_blocks))
+allocate(pw4(max_blocks),pwres(max_blocks),pwCoarse(max_blocks),pwio(max_blocks))
+allocate(pB0_cell(max_blocks),pB0_face^D(max_blocks))
+allocate(pw_sub(max_blocks))
+allocate(px(max_blocks),pxCoarse(max_blocks),px_sub(max_blocks))
+allocate(pgeo(max_blocks),pgeoCoarse(max_blocks))
+allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))
+allocate(neighbor_type(-1:1^D&,max_blocks),neighbor_active(-1:1^D&,max_blocks))
+if (phi_ > 0) allocate(neighbor_pole(-1:1^D&,max_blocks))
+allocate(igrids(max_blocks),igrids_active(max_blocks),igrids_passive(max_blocks))
+allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks),dt_grid(max_blocks))
+allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
+allocate(pflux(2,^ND,max_blocks))
 ! set time, time counter
-if(.not.treset)t=zero
+if(.not.time_reset)global_time=zero
 if(.not.itreset)it=0
 dt=zero
 itmin=0
@@ -35,13 +35,13 @@ else
 endif
 
 ! set all dt to zero
-dt_grid(1:ngridshi)=zero
+dt_grid(1:max_blocks)=zero
 
 ! check resolution
 if ({mod(ixGhi^D,2)/=0|.or.}) then
    call mpistop("mesh widths must give even number grid points")
 end if
-ixM^LL=ixG^LL^LSUBdixB;
+ixM^LL=ixG^LL^LSUBnghostcells;
 
 if (nbufferx^D>(ixMhi^D-ixMlo^D+1)|.or.) then
    write(unitterm,*) "nbufferx^D bigger than mesh size makes no sense."
@@ -50,19 +50,19 @@ if (nbufferx^D>(ixMhi^D-ixMlo^D+1)|.or.) then
 end if
 
 ! initialize dx arrays on finer (>1) levels
-do level=2,mxnest
+do level=2,refine_max_level
    {dx(^D,level) = dx(^D,level-1) * half\}  ! refine ratio 2
 end do
 
 ! domain decomposition
 ! physical extent of a grid block at level 1, per dimension
-^D&dg^D(1)=dx(^D,1)*dble(nxblock^D)\
+^D&dg^D(1)=dx(^D,1)*dble(block_nx^D)\
 ! number of grid blocks at level 1 in simulation domain, per dimension
 ^D&ng^D(1)=nint((xprobmax^D-xprobmin^D)/dg^D(1))\
 ! total number of grid blocks at level 1
 nglev1={ng^D(1)*}
 
-do level=2,mxnest
+do level=2,refine_max_level
    dg^D(level)=half*dg^D(level-1);
    ng^D(level)=ng^D(level-1)*2;
 end do
@@ -78,7 +78,7 @@ end if
 poleB=.false.
 if (.not.slab) call set_pole
 
-do igrid=1,ngridshi
+do igrid=1,max_blocks
    nullify(pwold(igrid)%w,pw(igrid)%w,pw1(igrid)%w, &
            pwCoarse(igrid)%w)
    nullify(px(igrid)%x,pxCoarse(igrid)%x)
@@ -111,21 +111,21 @@ patchfalse(ixG^T)=.false.
 igridstail=0
 
 ! allocate memory for forest data structures
-allocate(level_head(mxnest),level_tail(mxnest))
-do level=1,mxnest
+allocate(level_head(refine_max_level),level_tail(refine_max_level))
+do level=1,refine_max_level
    nullify(level_head(level)%node,level_tail(level)%node)
 end do
 
-allocate(igrid_to_node(ngridshi,0:npe-1))
+allocate(igrid_to_node(max_blocks,0:npe-1))
 do ipe=0,npe-1
-   do igrid=1,ngridshi
+   do igrid=1,max_blocks
       nullify(igrid_to_node(igrid,ipe)%node)
    end do
 end do
 
-allocate(sfc(1:3,ngridshi*npe))
+allocate(sfc(1:3,max_blocks*npe))
 
-allocate(igrid_to_sfc(ngridshi))
+allocate(igrid_to_sfc(max_blocks))
 
 sfc=0
 allocate(Morton_start(0:npe-1),Morton_stop(0:npe-1))
@@ -133,14 +133,14 @@ allocate(Morton_sub_start(0:npe-1),Morton_sub_stop(0:npe-1))
 
 allocate(nleafs_level(1:nlevelshi))
 
-allocate(coarsen(ngridshi,0:npe-1),refine(ngridshi,0:npe-1))
+allocate(coarsen(max_blocks,0:npe-1),refine(max_blocks,0:npe-1))
 coarsen=.false.
 refine=.false.
 if (nbufferx^D/=0|.or.) then
-   allocate(buffer(ngridshi,0:npe-1))
+   allocate(buffer(max_blocks,0:npe-1))
    buffer=.false.
 end if
-allocate(igrid_inuse(ngridshi,0:npe-1))
+allocate(igrid_inuse(max_blocks,0:npe-1))
 igrid_inuse=.false.
 
 allocate(tree_root(1:ng^D(1)))
@@ -153,8 +153,8 @@ logGs(1)=logG
 qsts(1)=qst
 qsts(0)=qst**2
 logGs(0)=2.d0*(qsts(0)-1.d0)/(qsts(0)+1.d0)
-if(mxnest>1) then
-  do level=2,mxnest
+if(refine_max_level>1) then
+  do level=2,refine_max_level
     qsts(level)=dsqrt(qsts(level-1))
     logGs(level)=2.d0*(qsts(level)-1.d0)/(qsts(level)+1.d0) 
   end do

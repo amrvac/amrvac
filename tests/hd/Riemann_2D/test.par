@@ -15,26 +15,26 @@
 
  &stoplist
         dtmin=1.0d-6
-        tmax=0.5d0
+        time_max=0.5d0
  /
 
  &methodlist
-        wnames=       'rho m1 m2 e'
+        w_names=       'rho m1 m2 e'
         fileheadout=  'rm_2d'
  /
 
  &boundlist
-        dixB=2
+        nghostcells=2
         typeB=4*'cont',4*'cont',4*'cont',4*'cont'
  /
 
- &amrlist
-        errorestimate=3
-        mxnest=3
-        nxblock1=12
-        nxblock2=12
-        nxlone1=24
-        nxlone2=24
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+        block_nx1=12
+        block_nx2=12
+        domain_nx1=24
+        domain_nx2=24
         xprobmin1=0.0d0
         xprobmax1=1.0d0
         xprobmin2=0.0d0

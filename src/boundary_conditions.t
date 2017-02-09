@@ -9,7 +9,7 @@ double precision, intent(inout) :: w(ixG^S,1:nw)
 double precision, intent(in) :: x(ixG^S,1:ndim)
 double precision :: wtmp(ixG^S,1:nwflux)
 
-integer :: iw, iB, ix^D, ixI^L, ixM^L, dixBi,iib^D
+integer :: iw, iB, ix^D, ixI^L, ixM^L, nghostcellsi,iib^D
 logical  :: isphysbound
 !-----------------------------------------------------------------------------
 select case (idims)
@@ -17,15 +17,15 @@ select case (idims)
    if (iside==2) then
       ! maximal boundary
       iB=ismax^D
-      ixImin^DD=ixBmax^D+1-dixB^D%ixImin^DD=ixBmin^DD;
+      ixImin^DD=ixBmax^D+1-nghostcells^D%ixImin^DD=ixBmin^DD;
       ixImax^DD=ixBmax^DD;
       ! cont/symm/asymm types
       do iw=1,nwflux+nwaux
          select case (typeB(iw,iB))
          case ("symm")
-            w(ixI^S,iw) = w(ixImin^D-1:ixImin^D-dixB:-1^D%ixI^S,iw)
+            w(ixI^S,iw) = w(ixImin^D-1:ixImin^D-nghostcells:-1^D%ixI^S,iw)
          case ("asymm")
-            w(ixI^S,iw) =-w(ixImin^D-1:ixImin^D-dixB:-1^D%ixI^S,iw)
+            w(ixI^S,iw) =-w(ixImin^D-1:ixImin^D-nghostcells:-1^D%ixI^S,iw)
          case ("cont")
             do ix^D=ixImin^D,ixImax^D
                w(ix^D^D%ixI^S,iw) = w(ixImin^D-1^D%ixI^S,iw)
@@ -58,14 +58,14 @@ select case (idims)
       ! minimal boundary
       iB=ismin^D
       ixImin^DD=ixBmin^DD;
-      ixImax^DD=ixBmin^D-1+dixB^D%ixImax^DD=ixBmax^DD;
+      ixImax^DD=ixBmin^D-1+nghostcells^D%ixImax^DD=ixBmax^DD;
       ! cont/symm/asymm types
       do iw=1,nwflux+nwaux
          select case (typeB(iw,iB))
          case ("symm")
-            w(ixI^S,iw) = w(ixImax^D+dixB:ixImax^D+1:-1^D%ixI^S,iw)
+            w(ixI^S,iw) = w(ixImax^D+nghostcells:ixImax^D+1:-1^D%ixI^S,iw)
          case ("asymm")
-            w(ixI^S,iw) =-w(ixImax^D+dixB:ixImax^D+1:-1^D%ixI^S,iw)
+            w(ixI^S,iw) =-w(ixImax^D+nghostcells:ixImax^D+1:-1^D%ixI^S,iw)
          case ("cont")
             do ix^D=ixImin^D,ixImax^D
                w(ix^D^D%ixI^S,iw) = w(ixImax^D+1^D%ixI^S,iw)
@@ -110,15 +110,15 @@ end if
 if (any(typeB(1:nwflux,iB)=="character")) then
   ixM^L=ixM^LL;
   if(ixGmax1==ixGhi1) then
-    dixBi=dixB
+    nghostcellsi=nghostcells
   else
-    dixBi=ceiling(dixB*0.5d0)
+    nghostcellsi=ceiling(nghostcells*0.5d0)
   end if
   select case (idims)
   {case (^D)
      if (iside==2) then
         ! maximal boundary
-        ixImin^DD=ixGmax^D+1-dixBi^D%ixImin^DD=ixBmin^DD;
+        ixImin^DD=ixGmax^D+1-nghostcellsi^D%ixImin^DD=ixBmin^DD;
         ixImax^DD=ixBmax^DD;
         if(all(w(ixI^S,1:nwflux)==0.d0)) then
           do ix^D=ixImin^D,ixImax^D
@@ -135,7 +135,7 @@ if (any(typeB(1:nwflux,iB)=="character")) then
      else
         ! minimal boundary
         ixImin^DD=ixBmin^DD;
-        ixImax^DD=ixGmin^D-1+dixBi^D%ixImax^DD=ixBmax^DD;
+        ixImax^DD=ixGmin^D-1+nghostcellsi^D%ixImax^DD=ixBmax^DD;
         if(all(w(ixI^S,1:nwflux)==0.d0)) then
           do ix^D=ixImin^D,ixImax^D
              w(ix^D^D%ixI^S,1:nwflux) = w(ixImax^D+1^D%ixI^S,1:nwflux)
@@ -153,14 +153,14 @@ if (any(typeB(1:nwflux,iB)=="character")) then
   if(ixGmax1==ixGhi1) then
     call identifyphysbound(saveigrid,isphysbound,iib^D)   
     if(iib1==-1.and.iib2==-1) then
-      do ix2=dixB,1,-1 
-        do ix1=dixB,1,-1 
+      do ix2=nghostcells,1,-1 
+        do ix1=nghostcells,1,-1 
           w(ix^D,1:nwflux)=(w(ix1+1,ix2+1,1:nwflux)+w(ix1+1,ix2,1:nwflux)+w(ix1,ix2+1,1:nwflux))/3.d0
         end do
       end do
     end if
     if(iib1== 1.and.iib2==-1) then
-      do ix2=dixB,1,-1 
+      do ix2=nghostcells,1,-1 
         do ix1=ixMmax1+1,ixGmax1
           w(ix^D,1:nwflux)=(w(ix1-1,ix2+1,1:nwflux)+w(ix1-1,ix2,1:nwflux)+w(ix1,ix2+1,1:nwflux))/3.d0
         end do
@@ -168,7 +168,7 @@ if (any(typeB(1:nwflux,iB)=="character")) then
     end if
     if(iib1==-1.and.iib2== 1) then
       do ix2=ixMmax2+1,ixGmax2
-        do ix1=dixB,1,-1 
+        do ix1=nghostcells,1,-1 
           w(ix^D,1:nwflux)=(w(ix1+1,ix2-1,1:nwflux)+w(ix1+1,ix2,1:nwflux)+w(ix1,ix2-1,1:nwflux))/3.d0
         end do
       end do
@@ -193,12 +193,12 @@ use mod_global_parameters
 
 double precision, intent(in)   :: time
 integer, intent(in)            :: ixG^L
-type(walloc), dimension(ngridshi)          :: pwuse
+type(walloc), dimension(max_blocks)          :: pwuse
 
 ! .. local ..
 integer :: iigrid, igrid, ixO^L,level
 !----------------------------------------------------------------------------
-ixO^L=ixG^L^LSUBdixB;
+ixO^L=ixG^L^LSUBnghostcells;
 
 do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
 !do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -208,8 +208,8 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       myB0_cell => pB0_cell(igrid)
       {^D&myB0_face^D => pB0_face^D(igrid)\}
    end if
-   typelimiter=typelimiter1(node(plevel_,igrid))
-   typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+   typelimiter=limiter(node(plevel_,igrid))
+   typegradlimiter=gradient_limiter(node(plevel_,igrid))
    level=node(plevel_,igrid)
    saveigrid=igrid
 

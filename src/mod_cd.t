@@ -11,7 +11,7 @@ contains
 
   subroutine centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
 
-    ! Advance the iws flow variables from t to t+qdt within ixO^L by centered 
+    ! Advance the iws flow variables from global_time to global_time+qdt within ixO^L by centered 
     ! differencing in space the dw/dt+dF_i(w)/dx_i=S type equation. 
     ! wCT contains the time centered variables at time qtC for flux and source.
     ! w is the old value at qt on input and the new value at qt+qdt on output.
@@ -76,7 +76,7 @@ contains
   !=============================================================================
   subroutine centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
 
-    ! Advance the flow variables from t to t+qdt within ixO^L by
+    ! Advance the flow variables from global_time to global_time+qdt within ixO^L by
     ! fourth order centered differencing in space 
     ! for the dw/dt+dF_i(w)/dx_i=S type equation.
     ! wCT contains the time centered variables at time qtC for flux and source.

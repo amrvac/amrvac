@@ -174,8 +174,8 @@ module mod_global_parameters
   integer           :: nvector
 
   integer                       :: nflag_
-  integer, allocatable          :: flags(:)
-  double precision, allocatable :: wflags(:)
+  integer, allocatable          :: w_for_refine(:)
+  double precision, allocatable :: w_refine_weight(:)
 
   integer, dimension(:), allocatable :: iw_vector
 
@@ -236,11 +236,10 @@ module mod_global_parameters
   integer, parameter :: nsavehi=100
 
   !> The global simulation time
-  !> \todo change t to a longer name
-  double precision :: t
+  double precision :: global_time
 
   !> End time for the simulation
-  double precision :: tmax
+  double precision :: time_max
 
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
@@ -268,10 +267,10 @@ module mod_global_parameters
 
   !> If true, the last time step will be reduced so that the final time is the
   !> end time of the simulation
-  logical :: tmaxexact
+  logical :: time_max_exact
 
-  !> If true, do not use the tmax stored in a snapshot when restarting
-  logical :: treset
+  !> If true, do not use the time_max stored in a snapshot when restarting
+  logical :: time_reset
 
   !> If true, do not use the itmax stored in a snapshot when restarting
   logical :: itreset
@@ -356,7 +355,7 @@ module mod_global_parameters
   ! Method switches
 
   !> Which time integrator to use
-  character(len=std_len) :: typeadvance
+  character(len=std_len) :: time_integrator
 
   !> What should be used as a basis for the limiting in TVD methods. Options are
   !> 'original', 'previous' and 'predictor'.
@@ -371,23 +370,23 @@ module mod_global_parameters
   character(len=std_len) :: typesourcesplit
 
   !> Which spatial discretization to use (per grid level)
-  character(len=std_len), allocatable :: typefull1(:)
+  character(len=std_len), allocatable :: flux_scheme(:)
 
   !> The spatial dicretization to use for the predictor step when using a two
   !> step method
   character(len=std_len), allocatable :: typepred1(:)
 
   !> Type of slope limiter used for reconstructing variables on cell edges
-  character(len=std_len), allocatable :: typelimiter1(:)
+  character(len=std_len), allocatable :: limiter(:)
 
   !> Type of slope limiter used for computing gradients or divergences, when
   !> typegrad or typediv are set to 'limited'
-  character(len=std_len), allocatable :: typegradlimiter1(:)
+  character(len=std_len), allocatable :: gradient_limiter(:)
 
-  !> \todo Remove / replace with typelimiter1
+  !> \todo Remove / replace with limiter
   character(len=std_len) :: typelimiter
 
-  !> \todo Remove / replace with typegradlimiter1
+  !> \todo Remove / replace with gradient_limiter
   character(len=std_len) :: typegradlimiter
 
   !> Limiter used for prolongation to refined grids and ghost cells
@@ -408,7 +407,7 @@ module mod_global_parameters
   character(len=std_len) :: typecoord
   character(len=std_len) :: typepoly
 
-  integer                       :: errorestimate,nxdiffusehllc,typespherical
+  integer                       :: refine_criterion,nxdiffusehllc,typespherical
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps, mcbeta
   logical, allocatable          :: loglimit(:), logflag(:)
@@ -419,7 +418,7 @@ module mod_global_parameters
   logical                       :: prolongprimitive
   logical                       :: coarsenprimitive
 
-  double precision       :: smallT,smallp,smallrho
+  double precision       :: small_temperature,small_pressure,small_density
   double precision, allocatable :: amr_wavefilter(:)
   character(len=std_len) :: typediv,typegrad
 
@@ -429,7 +428,7 @@ module mod_global_parameters
   integer          :: maxitnr,nflatgetaux
 
   logical          :: nocartesian
-  logical, allocatable :: writew(:)
+  logical, allocatable :: w_write(:)
   logical, allocatable :: writelevel(:)
   double precision :: writespshift(ndim,2)
   integer          :: level_io, level_io_min, level_io_max
@@ -469,10 +468,10 @@ module mod_global_parameters
   character(len=std_len) :: inifile
 
   !> Base file name for simulation output, which will be followed by a number
-  character(len=std_len) :: filenameout
+  character(len=std_len) :: base_filename
 
   !> If not 'unavailable', resume from snapshot with this base file name
-  character(len=std_len) :: filenameini
+  character(len=std_len) :: restart_from_file
 
   !> Log file name (without the .log extension)
   character(len=std_len) :: filenamelog
@@ -481,7 +480,7 @@ module mod_global_parameters
   character(len=std_len) :: fileheadout
 
   !> Names of the conservative variables
-  character(len=1024) :: wnames
+  character(len=1024) :: w_names
 
   !> Names of the primitive variables
   character(len=1024) :: primnames
@@ -499,7 +498,7 @@ module mod_global_parameters
   !> If true, enable ASCII output of slices
   logical :: sliceascii
 
-  !> If true and filenameini and snapshotini are given, convert snapshots to
+  !> If true and restart_from_file and snapshotini are given, convert snapshots to
   !> other file formats
   logical                :: convert
 
@@ -529,7 +528,7 @@ module mod_global_parameters
   double precision, allocatable :: normvar(:)
 
   !> Conversion factor for time unit
-  double precision       :: normt
+  double precision       :: time_convert_factor
 
   integer                :: saveigrid
 
@@ -564,8 +563,8 @@ module mod_global_parameters
 
   !> Error tolerance for refinement decision
   logical :: specialtol
-  double precision, allocatable :: tol(:)
-  double precision, allocatable :: tolratio(:)
+  double precision, allocatable :: refine_threshold(:)
+  double precision, allocatable :: derefine_ratio(:)
   double precision, allocatable :: dx(:,:)
   double precision :: dt
   double precision, allocatable :: dt_grid(:)
@@ -585,19 +584,19 @@ module mod_global_parameters
   integer :: nbufferx^D
  
   !> The maximum number of grid blocks in a processor
-  integer :: ngridshi
+  integer :: max_blocks
 
   !> The maximum number of levels in the grid refinement
   integer, parameter :: nlevelshi = 20
 
   !> Maximal number of AMR levels
-  integer :: mxnest
+  integer :: refine_max_level
 
   !> number of cells for each dimension in level-one mesh
-  integer :: nxlone^D
+  integer :: domain_nx^D
 
   !> number of cells for each dimension in grid block excluding ghostcells
-  integer :: nxblock^D
+  integer :: block_nx^D
 
   !> Lower index of grid block arrays (always 1)
   integer, parameter :: {ixGlo^D = 1|, }
@@ -606,7 +605,7 @@ module mod_global_parameters
   integer :: ixGhi^D
 
   !> Number of ghost cells surrounding a grid
-  integer :: dixB
+  integer :: nghostcells
   integer :: levmin
   integer :: levmax
   integer :: levmax_sub

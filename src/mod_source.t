@@ -22,9 +22,9 @@ contains
          (typesourcesplit=='sf' .or. typesourcesplit=='ssf')) return
 
     if (prior) then
-       qt=t
+       qt=global_time
     else
-       qt=t+dt
+       qt=global_time+dt
     end if
     !$OMP PARALLEL DO PRIVATE(igrid,qdt,i^D)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -63,8 +63,8 @@ contains
     if (.not.slab) mygeo => pgeo(igrid)
 
     saveigrid=igrid
-    typelimiter=typelimiter1(node(plevel_,igrid))
-    typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+    typelimiter=limiter(node(plevel_,igrid))
+    typegradlimiter=gradient_limiter(node(plevel_,igrid))
 
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 

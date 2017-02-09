@@ -7,7 +7,7 @@ integer :: level
 !-----------------------------------------------------------------------------
 
 ! determine new finest level
-do level=mxnest,1,-1
+do level=refine_max_level,1,-1
    if (associated(level_tail(level)%node)) then
       levmax=level
       exit
@@ -32,7 +32,7 @@ implicit none
 integer :: iigrid, igrid
 !-----------------------------------------------------------------------------
 iigrid=0
-do igrid=1,ngridshi
+do igrid=1,max_blocks
    if (igrid_inuse(igrid,mype)) then
       iigrid=iigrid+1
       igrids(iigrid)=igrid

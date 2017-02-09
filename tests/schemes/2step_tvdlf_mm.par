@@ -1,13 +1,13 @@
  &filelist
         filenamelog  = '_2step_tvdlf_mm'
-        filenameout  = '_2step_tvdlf_mm'
+        base_filename  = '_2step_tvdlf_mm'
  /
 
  &methodlist
-        typeadvance  = 'twostep'
-        typefull1    = 13*'tvdlf'
-        typepred1    = 13*'hancock'
-        typelimiter1 = 13*'minmod'
+        time_integrator  = 'twostep'
+        flux_scheme    = 20*'tvdlf'
+        typepred1    = 20*'hancock'
+        limiter = 20*'minmod'
  /
 
  &paramlist

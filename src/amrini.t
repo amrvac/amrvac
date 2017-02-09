@@ -28,8 +28,8 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
       myB0_cell => pB0_cell(igrid)
       {^D&myB0_face^D => pB0_face^D(igrid)\}
    end if
-   typelimiter=typelimiter1(node(plevel_,igrid))
-   typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+   typelimiter=limiter(node(plevel_,igrid))
+   typegradlimiter=gradient_limiter(node(plevel_,igrid))
    call initial_condition(igrid)
 end do
 {#IFDEF EVOLVINGBOUNDARY
@@ -65,8 +65,8 @@ if (B0field) then
    myB0_cell => pB0_cell(igrid)
    {^D&myB0_face^D => pB0_face^D(igrid)\}
 end if
-typelimiter=typelimiter1(node(plevel_,igrid))
-typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+typelimiter=limiter(node(plevel_,igrid))
+typegradlimiter=gradient_limiter(node(plevel_,igrid))
 
 if (.not. associated(usr_init_one_grid)) then
    call mpistop("usr_init_one_grid not defined")

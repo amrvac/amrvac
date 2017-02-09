@@ -6,8 +6,8 @@ module mod_gridvars
 use mod_physicaldata
 implicit none
 
-type(walloc), save,dimension(ngridshi) :: gridvars
-type(walloc), save,dimension(ngridshi) :: gridvars_old
+type(walloc), save,dimension(max_blocks) :: gridvars
+type(walloc), save,dimension(max_blocks) :: gridvars_old
 
 ! I use this variables to set the current igrid and ipart for the particle integrator:
 integer                                :: igrid_working, ipart_working
@@ -47,7 +47,7 @@ use mod_global_parameters
 integer                                   :: igrid, iigrid
 !-----------------------------------------------------------------------------
 
-do igrid=1,ngridshi
+do igrid=1,max_blocks
    nullify(gridvars(igrid)%w)
    if (time_advance) nullify(gridvars_old(igrid)%w)
 end do
@@ -98,7 +98,7 @@ character(len=1024)                   :: line
 !-----------------------------------------------------------------------------
 
 ! flat interpolation:
-{ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + dixB \}
+{ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells \}
 !gfloc = gf(ic^D)
 
 
@@ -177,7 +177,7 @@ if (.not.time_advance) then
    
 else
    
-   td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - t) / dt
+   td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - global_time) / dt
    
    do ivar=ibeg,iend
       iloc = ivar-ibeg+1

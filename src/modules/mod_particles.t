@@ -41,7 +41,7 @@ type particle_node
    logical                               :: follow
    integer                               :: index
    double precision                      :: q, m
-   double precision                      :: t, dt
+   double precision                      :: global_time, dt
    double precision, dimension(npayload) :: payload
    double precision, dimension(^NC)      :: x
    double precision, dimension(^NC)      :: u
@@ -84,9 +84,9 @@ integer                           :: iipart, ipart
 
 do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
    if (particle(ipart)%self%follow) then
-      filename = make_particle_filename(particle(ipart)%self%t,particle(ipart)%self%index,'individual')
+      filename = make_particle_filename(particle(ipart)%self%global_time,particle(ipart)%self%index,'individual')
       open(unit=unitparticles,file=filename,status='replace')
-      write(unitparticles,"(a)") trim('# t, dt, x^C, u^C, payload(1:npayload), ipe, iteration, index')
+      write(unitparticles,"(a)") trim('# global_time, dt, x^C, u^C, payload(1:npayload), ipe, iteration, index')
       close(unit=unitparticles)
    end if
 end do
@@ -147,9 +147,9 @@ nparticles_active_on_mype = 0
 do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
 
    if (time_advance) then
-      activate = particle(ipart)%self%t .lt. tmax_particles
+      activate = particle(ipart)%self%global_time .lt. tmax_particles
    else
-      activate = particle(ipart)%self%t .le. tmax_particles
+      activate = particle(ipart)%self%global_time .le. tmax_particles
    end if
    
    if (activate) then 
@@ -463,11 +463,11 @@ send_n_particles_for_output = 0
 do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 
    ! corresponding output slot:
-   nout = nint(particle(ipart)%self%t/dtsave_ensemble)
+   nout = nint(particle(ipart)%self%global_time/dtsave_ensemble)
    tout = dble(nout) * dtsave_ensemble
    ! should the particle be dumped?
-   if (particle(ipart)%self%t .le. tout &
-        .and. particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) then
+   if (particle(ipart)%self%global_time .le. tout &
+        .and. particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) then
       ! have to send particle to rank zero for output
       send_n_particles_for_output = send_n_particles_for_output + 1
       send_particles(send_n_particles_for_output-1) = particle(ipart)%self
@@ -499,27 +499,27 @@ if (.not. time_advance) then
   select case(type)
   case ('ensemble')
      nout = nint(tout / dtsave_ensemble)
-     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_ensemble',nout,'.csv'
+     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(base_filename),mysnapshot,'_ensemble',nout,'.csv'
   case ('destroy')
-     write(make_particle_filename,"(a,i4.4,a)") trim(filenameout),mysnapshot,'_destroyed.csv'
+     write(make_particle_filename,"(a,i4.4,a)") trim(base_filename),mysnapshot,'_destroyed.csv'
   case ('individual')
-     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_particle',index,'.csv'
+     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(base_filename),mysnapshot,'_particle',index,'.csv'
   case ('followed')
      nout = nint(tout / dtsave_ensemble)
-     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(filenameout),mysnapshot,'_followed',nout,'.csv'
+     write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(base_filename),mysnapshot,'_followed',nout,'.csv'
   end select
 else
   select case(type)
   case ('ensemble')
      nout = nint(tout / dtsave_ensemble)
-     write(make_particle_filename,"(a,a,i6.6,a)") trim(filenameout),'_ensemble',nout,'.csv'
+     write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_ensemble',nout,'.csv'
   case ('destroy')
-     write(make_particle_filename,"(a,a)") trim(filenameout),'_destroyed.csv'
+     write(make_particle_filename,"(a,a)") trim(base_filename),'_destroyed.csv'
   case ('individual')
-     write(make_particle_filename,"(a,a,i6.6,a)") trim(filenameout),'_particle',index,'.csv'
+     write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_particle',index,'.csv'
   case ('followed')
      nout = nint(tout / dtsave_ensemble)
-     write(make_particle_filename,"(a,a,i6.6,a)") trim(filenameout),'_followed',nout,'.csv'
+     write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_followed',nout,'.csv'
   end select
 end if
 
@@ -542,10 +542,10 @@ receive_n_particles_for_output_from_ipe(:) = 0
 
 if (npe==1) then 
    do ipart=1,send_n_particles_for_output
-      filename = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,type)
+      filename = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,type)
       call output_particle(send_particles(ipart-1),mype,filename)
       if(type=='ensemble' .and. send_particles(ipart-1)%follow) then
-        filename2 = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,'followed')
+        filename2 = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,'followed')
         call output_particle(send_particles(ipart-1),mype,filename2)
       end if
    end do
@@ -574,10 +574,10 @@ if (mype .ne. 0) &
 
 if (mype==0) then
    do ipart=1,receive_n_particles_for_output_from_ipe(0)
-      filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,type)
+      filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,type)
       call output_particle(receive_particles(ipart-1),0,filename)
       if(type=='ensemble' .and. receive_particles(ipart-1)%follow) then
-        filename2 = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'followed')
+        filename2 = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'followed')
         call output_particle(receive_particles(ipart-1),0,filename2)
       end if
    end do
@@ -585,10 +585,10 @@ if (mype==0) then
    do ipe=1,npe-1
       call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
       do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-         filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,type)
+         filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,type)
          call output_particle(receive_particles(ipart-1),ipe,filename)
          if(type=='ensemble' .and. receive_particles(ipart-1)%follow) then
-           filename2 = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'followed')
+           filename2 = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'followed')
            call output_particle(receive_particles(ipart-1),ipe,filename2)
          end if
       end do ! ipart
@@ -628,7 +628,7 @@ end do ! ipart
 
 if (npe==1) then 
    do ipart=1,send_n_particles_for_output
-      filename = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,'individual')
+      filename = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,'individual')
       call output_particle(send_particles(ipart-1),mype,filename)
    end do
       itsavelast_particles = it_particles
@@ -656,14 +656,14 @@ if (output_from_root) then
    
    if (mype==0) then
       do ipart=1,receive_n_particles_for_output_from_ipe(0)
-      filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'individual')
+      filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'individual')
          call output_particle(receive_particles(ipart-1),0,filename)
       end do
       
       do ipe=1,npe-1
          call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
          do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-            filename = make_particle_filename(receive_particles(ipart-1)%t,receive_particles(ipart-1)%index,'individual')
+            filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'individual')
             call output_particle(receive_particles(ipart-1),ipe,filename)
          end do
       end do
@@ -673,7 +673,7 @@ else ! output_from_root
 
    do ipart=1,send_n_particles_for_output
       ! generate filename
-      filename = make_particle_filename(send_particles(ipart-1)%t,send_particles(ipart-1)%index,'individual')
+      filename = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,'individual')
       call output_particle(send_particles(ipart-1),mype,filename)
    end do
 
@@ -728,11 +728,11 @@ end if
 ! create the formatstring:
 !write(formatstring,"(a,i1,a)") '(',ndoubles,'(es14.6),3(i12.10))'
 
-!write(unitparticles,formatstring) myparticle%t, myparticle%dt, x, &
+!write(unitparticles,formatstring) myparticle%global_time, myparticle%dt, x, &
 !           myparticle%u, myparticle%payload(1:npayload), ipe, it_particles, myparticle%index
 
 line = ''
-write(data,"(es13.6, a)")roundoff(myparticle%t,minvalue), ','
+write(data,"(es13.6, a)")roundoff(myparticle%global_time,minvalue), ','
 line = trim(line)//trim(data)
 write(data,"(es13.6, a)")roundoff(myparticle%dt,minvalue), ','
 line = trim(line)//trim(data)
@@ -770,7 +770,7 @@ write(unitparticles) myparticle%index
 write(unitparticles) myparticle%follow
 write(unitparticles) myparticle%q
 write(unitparticles) myparticle%m
-write(unitparticles) myparticle%t
+write(unitparticles) myparticle%global_time
 write(unitparticles) myparticle%dt
 write(unitparticles) myparticle%x
 write(unitparticles) myparticle%u 
@@ -792,7 +792,7 @@ particle(index)%self%index = index
 read(unitparticles) particle(index)%self%follow
 read(unitparticles) particle(index)%self%q
 read(unitparticles) particle(index)%self%m
-read(unitparticles) particle(index)%self%t
+read(unitparticles) particle(index)%self%global_time
 read(unitparticles) particle(index)%self%dt
 read(unitparticles) particle(index)%self%x
 read(unitparticles) particle(index)%self%u
@@ -835,7 +835,7 @@ do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
 
    ! first check if the particle should be destroyed (user defined criterion)
    if ( user_destroy(particle(ipart)%self) .or. &
-        (.not.time_advance .and. particle(ipart)%self%t .gt. tmax_particles) ) then
+        (.not.time_advance .and. particle(ipart)%self%global_time .gt. tmax_particles) ) then
       destroy_n_particles_mype  = destroy_n_particles_mype + 1
       particle_index_to_be_destroyed(destroy_n_particles_mype) = ipart
       cycle   
@@ -1098,8 +1098,8 @@ do iipart=1,destroy_n_particles_mype;ipart=particle_index_to_be_destroyed(iipart
    particle(ipart)%igrid = -1
    particle(ipart)%ipe   = -1
    if(time_advance) then
-     write(*,*), particle(ipart)%self%t, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
-     write(*,*), particle(ipart)%self%t, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
+     write(*,*), particle(ipart)%self%global_time, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
+     write(*,*), particle(ipart)%self%global_time, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
    endif
    deallocate(particle(ipart)%self)
    call pull_particle_from_particles_on_mype(ipart)

@@ -65,7 +65,7 @@ call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
 call MPI_TYPE_COMMIT(type_block,ierrmpi)
 size_block={nxG^D*}*nw*size_double
 
-^D&sizes(^D)=ixGhi^D/2+dixB;
+^D&sizes(^D)=ixGhi^D/2+nghostcells;
 sizes(ndim+1)=nw
 ^D&subsizes(^D)=nxCo^D;
 subsizes(ndim+1)=nw

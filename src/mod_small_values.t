@@ -26,7 +26,7 @@ contains
     ix_bad = maxloc(w_flag(ixO^S)) + [ ixOmin^D-1 ]
 
     write(*, *) "Error: small value encountered"
-    write(*, *) "Iteration: ", it, " Time: ", t
+    write(*, *) "Iteration: ", it, " Time: ", global_time
     write(*, *) "Location: ", x({ix_bad(^D)}, :)
     write(*, *) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
 

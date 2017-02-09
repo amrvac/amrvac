@@ -14,7 +14,7 @@ contains
   !> The non-conservative Hancock predictor for TVDLF
   !>
   !> on entry:
-  !> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBdixB
+  !> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBnghostcells
   !> one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
   !> on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
   subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)

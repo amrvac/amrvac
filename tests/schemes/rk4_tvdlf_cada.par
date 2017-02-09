@@ -1,12 +1,12 @@
  &filelist
         filenamelog  = '_rk4_tvdlf_cada'
-        filenameout  = '_rk4_tvdlf_cada'
+        base_filename  = '_rk4_tvdlf_cada'
  /
 
  &methodlist
-        typeadvance=  'rk4'
-        typefull1 =    13*'tvdlf'
-        typelimiter1=  13*'cada3'
+        time_integrator=  'rk4'
+        flux_scheme =    20*'tvdlf'
+        limiter=  20*'cada3'
  /
 
  &paramlist

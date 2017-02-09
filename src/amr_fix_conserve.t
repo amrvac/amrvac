@@ -18,7 +18,7 @@ do idims= idim^LIM
    {case (^D)
       nrecv=nrecv+nrecv_fc(^D)
       nsend=nsend+nsend_fc(^D)
-      nxCo^D=1^D%nxCo^DD=ixGhi^DD/2-dixB;
+      nxCo^D=1^D%nxCo^DD=ixGhi^DD/2-nghostcells;
       isize(^D)={nxCo^DD*}*(nwflux)
       recvsize=recvsize+nrecv_fc(^D)*isize(^D)\}
    end select
@@ -116,7 +116,7 @@ subroutine fix_conserve(pwuse,idim^LIM)
 use mod_fix_conserve
 use mod_global_parameters
 
-type(walloc) :: pwuse(ngridshi)
+type(walloc) :: pwuse(max_blocks)
 integer, intent(in) :: idim^LIM
 
 integer :: iigrid, igrid, idims, iside, iotherside, i^D, ic^D, inc^D, ix^L
@@ -271,18 +271,18 @@ do idims = idim^LIM
             select case (iside)
             case (1)
                pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwflux) = &
-                  -fC(dixB^D%ixM^T,1:nwflux,^D)
+                  -fC(nghostcells^D%ixM^T,1:nwflux,^D)
             case (2)
                pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwflux) = &
                   fC(ixMhi^D^D%ixM^T,1:nwflux,^D)
             end select
          case (2)
-            nxCo^D=1^D%nxCo^DD=ixGhi^DD/2-dixB;
+            nxCo^D=1^D%nxCo^DD=ixGhi^DD/2-nghostcells;
             select case (iside)
             case (1)
                do iw=1,nwflux
                   {do ixCo^DDB=1,nxCo^DDB\}
-                     ix^D=dixB^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
+                     ix^D=nghostcells^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
                      pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
                         = {^NOONEDsum}(fC(ix^D^D%ix^DD:ix^DD+1,iw,^D))
                   {end do\}

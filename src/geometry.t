@@ -77,7 +77,7 @@ double precision :: xmin^D, dx^D
 !-----------------------------------------------------------------------------
 !ix^L=ixM^LL^LADD1;
 ix^L=ixG^LL^LSUB1;
-if (2*int(dixB/2)==dixB) then
+if (2*int(nghostcells/2)==nghostcells) then
    ixGext^L=ixG^LL;
 else
    ixGext^L=ixG^LL^LADD1;
@@ -98,8 +98,8 @@ qst=qsts(node(plevel_,igrid))
 }
 call fillgeo(pgeo(igrid),ixG^LL,ixGext^L,xmin^D,dx^D,.false.)
 
-ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+dixB;
-if (2*int(dixB/2)==dixB) then
+ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+nghostcells;
+if (2*int(nghostcells/2)==nghostcells) then
    ixGext^L=ixCoG^L;
 else
    ixGext^L=ixCoG^L^LADD1;
@@ -140,7 +140,7 @@ logical, intent(in) :: need_only_volume
 integer :: idims, ix, ixM^L, ix^L, ixC^L
 double precision :: x(ixGext^S,ndim) {#IFDEF STRETCHGRID ,drs(ixGext^S)}
 !-----------------------------------------------------------------------------
-ixM^L=ixG^L^LSUBdixB;
+ixM^L=ixG^L^LSUBnghostcells;
 !ix^L=ixM^L^LADD1;
 ix^L=ixG^L^LSUB1;
 
@@ -169,7 +169,7 @@ case ("slabtest")
 {#IFDEF STRETCHGRID
 case ("slabstretch")
    do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-dixB-1)
+      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
    end do
    drs(ixGext^S)=x(ixGext^S,1)*logG
    pgeogrid%dvolume(ixGext^S)=drs(ixGext^S){^DE&*dx^DE }
@@ -196,13 +196,13 @@ case ("spherical")
       select case(idims)
       {case(^D)
          do ix = ixGext^LIM^D
-            x(ix^D%ixGext^S,^D)=xmin^D+(dble(ix-dixB)-half)*dx^D
+            x(ix^D%ixGext^S,^D)=xmin^D+(dble(ix-nghostcells)-half)*dx^D
          end do\}
       end select
    end do
 {#IFDEF STRETCHGRID
    do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-dixB-1)
+      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
    end do
    drs(ixGext^S)=x(ixGext^S,1)*logG
 }
@@ -308,14 +308,14 @@ case ("cylindrical")
 
 {#IFNDEF STRETCHGRID
    do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=xmin1+(dble(ix-dixB)-half)*dx1
+      x(ix,ixGext^SE,1)=xmin1+(dble(ix-nghostcells)-half)*dx1
    end do
 
    pgeogrid%dvolume(ixGext^S)=dabs(half*((x(ixGext^S,1)+half*dx1)**2-(x(ixGext^S,1)-half*dx1)**2)){^DE&*dx^DE }
 }
 {#IFDEF STRETCHGRID
    do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-dixB-1)
+      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
    end do
    drs(ixGext^S)=x(ixGext^S,1)*logG
    pgeogrid%dvolume(ixGext^S)=dabs(half*&

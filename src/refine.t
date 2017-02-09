@@ -128,16 +128,16 @@ qsth=dsqrt(qst)
 logGh=2.d0*(qsth-1.d0)/(qsth+1.d0)
 }
 invdxCo^D=1.d0/dxCo^D;
-el=ceiling(real(dixB)/2.)
+el=ceiling(real(nghostcells)/2.)
 ixCgmin^D=ixComin^D-el\
 ixCgmax^D=ixComax^D+el\
 {do ixCo^DB = ixCg^LIM^DB
    ! cell-centered coordinates of coarse grid point
-   xCo^DB=xComin^DB+(dble(ixCo^DB-dixB)-half)*dxCo^DB
+   xCo^DB=xComin^DB+(dble(ixCo^DB-nghostcells)-half)*dxCo^DB
 
    ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
 {#IFDEF STRETCHGRID
-   xCo1=xComin1/(one-half*logG)*qst**(ixCo1-dixB-1)
+   xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
 }
 
    do idim=1,ndim
@@ -174,9 +174,9 @@ ixCgmax^D=ixComax^D+el\
    {do ix^DB=ixFi^DB,ixFi^DB+1
       if (ixFi^DB==0) cycle
       ! cell-centered coordinates of fine grid point
-      xFi^DB=xFimin^DB+(dble(ix^DB-dixB)-half)*dxFi^DB\}
+      xFi^DB=xFimin^DB+(dble(ix^DB-nghostcells)-half)*dxFi^DB\}
 {#IFDEF STRETCHGRID
-      xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-dixB-1)
+      xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
 }
 
       ! normalized distance between fine/coarse cell center
@@ -230,11 +230,11 @@ logGh=2.d0*(qsth-1.d0)/(qsth+1.d0)
 invdxCo^D=1.d0/dxCo^D;
 {do ixCo^DB = ixCo^LIM^DB
    ! cell-centered coordinates of coarse grid point
-   xCo^DB=xComin^DB+(dble(ixCo^DB-dixB)-half)*dxCo^DB
+   xCo^DB=xComin^DB+(dble(ixCo^DB-nghostcells)-half)*dxCo^DB
 
    ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
 {#IFDEF STRETCHGRID
-   xCo1=xComin1/(one-half*logG)*qst**(ixCo1-dixB-1)
+   xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
 }
 
    do idim=1,ndim
@@ -270,9 +270,9 @@ invdxCo^D=1.d0/dxCo^D;
    end do
    {do ix^DB=ixFi^DB,ixFi^DB+1
       ! cell-centered coordinates of fine grid point
-      xFi^DB=xFimin^DB+(dble(ix^DB-dixB)-half)*dxFi^DB\}
+      xFi^DB=xFimin^DB+(dble(ix^DB-nghostcells)-half)*dxFi^DB\}
 {#IFDEF STRETCHGRID
-      xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-dixB-1)
+      xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
 }
 
       ! normalized distance between fine/coarse cell center

@@ -124,7 +124,7 @@ end select
  inquire(unitcollapse,opened=fileopen)
  if(.not.fileopen)then
       ! generate filename: 
-      write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_l',collapseLevel,'_n',icollapse,'.csv'
+      write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_l',collapseLevel,'_n',icollapse,'.csv'
       open(unitcollapse,file=filename,status='unknown',form='formatted')
    end if
    ! get and write the header: 
@@ -221,7 +221,7 @@ length = length*size_single
  inquire(unitcollapse,opened=fileopen)
  if(.not.fileopen)then
       ! generate filename: 
-    write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") trim(filenameout)//'_d',dir,&
+    write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") trim(base_filename)//'_d',dir,&
          '_l',collapseLevel,'_n',icollapse,'.vti'
       open(unitcollapse,file=filename,status='unknown',form='formatted')
  end if
@@ -238,7 +238,7 @@ write(unitcollapse,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin
 write(unitcollapse,'(a)')'<FieldData>'
 write(unitcollapse,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(unitcollapse,*) real(t*normt)
+write(unitcollapse,*) real(global_time*time_convert_factor)
 write(unitcollapse,'(a)')'</DataArray>'
 write(unitcollapse,'(a)')'</FieldData>'
 
@@ -249,7 +249,7 @@ write(unitcollapse,'(a)')'<CellData>'
 
 do iw=1,nw+nwauxio
   if(iw<=nw) then 
-    if(.not.writew(iw)) cycle
+    if(.not.w_write(iw)) cycle
   endif
   write(unitcollapse,'(a,a,a,i16,a)')&
        '<DataArray type="Float32" Name="',trim(wnamei(iw)),&
@@ -269,7 +269,7 @@ write(unitcollapse) TRIM(buf)
 
 do iw=1,nw+nwauxio
   if(iw<=nw) then 
-    if(.not.writew(iw)) cycle
+    if(.not.w_write(iw)) cycle
   endif
 {#IFNDEF D1
    write(unitcollapse) length
@@ -396,7 +396,7 @@ end select
 if (level .ge. collapseLevel) then
    do ix1orig = ixMdimlo1,ixMdimhi1
       do ix2orig = ixMdimlo2,ixMdimhi2
-{^DM& ix^DM = int(dble(ix^DMorig-dixB+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
+{^DM& ix^DM = int(dble(ix^DMorig-nghostcells+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
          collapsedData(ix1,ix2,1:nw+nwauxio) = collapsedData(ix1,ix2,1:nw+nwauxio) &
               + pw_sub(jgrid)%w(ix1orig,ix2orig,1:nw+nwauxio) / 2.0d0**(2*(level-collapseLevel))
       end do
@@ -404,7 +404,7 @@ if (level .ge. collapseLevel) then
 else
 {^DM&
    do ix^DM = idim^DMtargetmin,idim^DMtargetmax\}
- {^DM& ix^DMorig = int(dble(ix^DM-idim^DMtargetmin)/2.0d0**(collapseLevel-level))+1+dixB \}
+ {^DM& ix^DMorig = int(dble(ix^DM-idim^DMtargetmin)/2.0d0**(collapseLevel-level))+1+nghostcells \}
  collapsedData(ix1,ix2,1:nw+nwauxio) = collapsedData(ix1,ix2,1:nw+nwauxio) + pw_sub(jgrid)%w(ix1orig,ix2orig,1:nw+nwauxio)
  {^DM& enddo\}
 end if
@@ -425,14 +425,14 @@ end select
 
 if (level .ge. collapseLevel) then
    do ix1orig = ixMdimlo1,ixMdimhi1
-{^DM& ix^DM = int(dble(ix^DMorig-dixB+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
+{^DM& ix^DM = int(dble(ix^DMorig-nghostcells+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
          collapsedData(ix1,1:nw+nwauxio) = collapsedData(ix1,1:nw+nwauxio) &
               + pw_sub(jgrid)%w(ix1orig,1:nw+nwauxio) / 2.0d0**(level-collapseLevel)
    end do
 else
 {^DM&
    do ix^DM = idim^DMtargetmin,idim^DMtargetmax\}
- {^DM& ix^DMorig = int(dble(ix^DM-idim^DMtargetmin)/2.0d0**(collapseLevel-level))+1+dixB \}
+ {^DM& ix^DMorig = int(dble(ix^DM-idim^DMtargetmin)/2.0d0**(collapseLevel-level))+1+nghostcells \}
  collapsedData(ix1,1:nw+nwauxio) = collapsedData(ix1,1:nw+nwauxio) + pw_sub(jgrid)%w(ix1orig,1:nw+nwauxio)
  {^DM& enddo\}
 end if
@@ -468,8 +468,8 @@ end if
 
 if(nwauxio>0)then
 ! auxiliary io variables can be computed and added by user
-typelimiter=typelimiter1(node(plevel_,igrid))
-typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+typelimiter=limiter(node(plevel_,igrid))
+typegradlimiter=gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
   if (.not.slab) mygeo => pgeo(igrid)
   if (B0field) then

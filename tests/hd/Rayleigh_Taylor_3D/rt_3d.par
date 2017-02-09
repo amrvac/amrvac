@@ -14,33 +14,33 @@
 /
 
  &stoplist
-   tmax            = 5.d-2
+   time_max            = 5.d-2
 /
 
  &methodlist
-   wnames          = 'rho m1 m2 m3 e'
+   w_names          = 'rho m1 m2 m3 e'
    fileheadout     = 'rt_3d'
-   typeadvance     = 'threestep'
-   typefull1       = 13*'hllc'
-   typelimiter1    = 13*'cada3'
-   useprimitive    = T
+   time_integrator     = 'threestep'
+   flux_scheme       = 20*'hllc'
+   limiter    = 20*'cada3'
 /
+
  &boundlist
-  dixB  =   2
+  nghostcells  =   2
   typeB =         5*'periodic', 5*'periodic',
                  'symm','symm','asymm','symm','symm',
                  'symm','symm','asymm','symm','symm',
                   5*'periodic', 5*'periodic'
 /
- &amrlist
-   errorestimate   = 3
-   mxnest          = 3
-   nxblock1        = 4
-   nxblock2        = 4
-   nxblock3        = 4
-   nxlone1         = 8
-   nxlone2         = 8
-   nxlone3         = 8
+ &meshlist
+   refine_criterion   = 3
+   refine_max_level          = 3
+   block_nx1        = 4
+   block_nx2        = 4
+   block_nx3        = 4
+   domain_nx1         = 8
+   domain_nx2         = 8
+   domain_nx3         = 8
    xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0

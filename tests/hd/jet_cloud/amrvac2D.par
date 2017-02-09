@@ -9,7 +9,7 @@
 
  &filelist
         filenamelog='jetCloud'
-        filenameout='jetCloud'
+        base_filename='jetCloud'
         primnames='rho v1 v2 p tr'
         saveprim=.true.
         autoconvert=.true.
@@ -26,47 +26,45 @@
 
  &stoplist
         dtmin=1.D-9
-        tmax=6.0d0
+        time_max=6.0d0
  /
 
  &methodlist
-        wnames= 'rho m1 m2 e tr'
+        w_names= 'rho m1 m2 e tr'
         fileheadout=  'jetCloud_hd22'
-        typeadvance=  'ssprk54'
-        typefull1=    13*'hllc'
-        typepred1=    13*'hllc'
-        typelimiter1= 13*'mp5'
-        typelimited='predictor'
-        useprimitive=.true.
-        dimsplit=.false.
+        time_integrator=  'ssprk54'
+        flux_scheme=    20*'hllc'
+        typepred1=    20*'hllc'
+        limiter= 20*'mp5'
+        typelimited='predictor'        dimsplit=.false.
         fixsmall=.true.
         strictsmall=.false.
         strictgetaux=.false.
         nflatgetaux=2
-        smallp=1.0d-14
-        smallrho=1.0d-14
+        small_pressure=1.0d-14
+        small_density=1.0d-14
  /
 
  &boundlist
-        dixB=    3
+        nghostcells=    3
         typeB=   5*'special',5*'cont',
                  5*'noinflow',5*'noinflow'
  /
 
- &amrlist
-        errorestimate=3
-        mxnest=3
-	flags(6)=2
-        flags(1)=1
-	flags(2)=2
-	wflags(1)=0.8
-	wflags(2)=0.2
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+	w_for_refine(6)=2
+        w_for_refine(1)=1
+	w_for_refine(2)=2
+	w_refine_weight(1)=0.8
+	w_refine_weight(2)=0.2
         nbufferx1=0
         nbufferx2=0
-        tol=13*0.3d0
-        tolratio=13*0.3d0
-        nxlone1=160
-        nxlone2=60
+        refine_threshold=20*0.3d0
+        derefine_ratio=20*0.3d0
+        domain_nx1=160
+        domain_nx2=60
         xprobmin1=-16.0d0
         xprobmax1=16.0d0
         xprobmin2=-6.0d0

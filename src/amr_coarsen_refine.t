@@ -16,13 +16,13 @@ call proper_nesting
 ! to save memory: first coarsen then refine
 irecv=0
 isend=0
-allocate(recvstatus(MPI_STATUS_SIZE,ngridshi),recvrequest(ngridshi), &
-         sendstatus(MPI_STATUS_SIZE,ngridshi),sendrequest(ngridshi))
+allocate(recvstatus(MPI_STATUS_SIZE,max_blocks),recvrequest(max_blocks), &
+         sendstatus(MPI_STATUS_SIZE,max_blocks),sendrequest(max_blocks))
 recvrequest=MPI_REQUEST_NULL
 sendrequest=MPI_REQUEST_NULL
 
 do ipe=0,npe-1
-   do igrid=1,ngridshi
+   do igrid=1,max_blocks
       if (coarsen(igrid,ipe)) then
          if (.not.associated(igrid_to_node(igrid,ipe)%node)) cycle
 
@@ -56,7 +56,7 @@ if (isend>0) call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
 
 ! non-local coarsening done
 do ipe=0,npe-1
-   do igrid=1,ngridshi
+   do igrid=1,max_blocks
       if (coarsen(igrid,ipe)) then
          if (ipe==mype) call dealloc_node(igrid)
          call putnode(igrid,ipe)
@@ -66,7 +66,7 @@ do ipe=0,npe-1
 end do
 
 do ipe=0,npe-1
-   do igrid=1,ngridshi
+   do igrid=1,max_blocks
       if (refine(igrid,ipe)) then
 
          {do ic^DB=1,2\}
@@ -101,9 +101,9 @@ call selectgrids
 ! since we only filled mesh values, and advance assumes filled
 ! ghost cells, do boundary filling for the new levels
 if (time_advance) then
-   call getbc(t+dt,0.d0,pw,0,nwflux+nwaux)
+   call getbc(global_time+dt,0.d0,pw,0,nwflux+nwaux)
 else
-   call getbc(t,0.d0,pw,0,nwflux+nwaux)
+   call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
 end if
 
 
@@ -117,26 +117,26 @@ use mod_global_parameters
 
 logical, dimension(:,:), allocatable :: refine2
 integer :: iigrid, igrid, level, ic^D, inp^D, i^D, my_neighbor_type,ipe
-logical :: coarsening, pole(ndim), sendbuf(ngridshi)
+logical :: coarsening, pole(ndim), sendbuf(max_blocks)
 type(tree_node_ptr) :: tree, p_neighbor, my_parent, sibling, my_neighbor, &
                        neighborchild
 !-----------------------------------------------------------------------------
 
-! For all grids on all processors, do a check on refinement flags. Make
+! For all grids on all processors, do a check on refinement w_for_refine. Make
 ! sure that neighbors will not differ more than one level of refinement.
 
 if (nbufferx^D/=0|.or.) then
-   allocate(refine2(ngridshi,npe))
-   call MPI_ALLREDUCE(refine,refine2,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
+   allocate(refine2(max_blocks,npe))
+   call MPI_ALLREDUCE(refine,refine2,max_blocks*npe,MPI_LOGICAL,MPI_LOR, &
                       icomm,ierrmpi)
    refine=refine2
 else
    sendbuf(:)=refine(:,mype)
-   call MPI_ALLGATHER(sendbuf,ngridshi,MPI_LOGICAL,refine,ngridshi, &
+   call MPI_ALLGATHER(sendbuf,max_blocks,MPI_LOGICAL,refine,max_blocks, &
                       MPI_LOGICAL,icomm,ierrmpi)
 end if
 
-do level=min(levmax,mxnest-1),levmin+1,-1
+do level=min(levmax,refine_max_level-1),levmin+1,-1
    tree%node => level_head(level)%node
    do
       if (.not.associated(tree%node)) exit
@@ -169,7 +169,7 @@ end do
 
 ! For all grids on all processors, do a check on coarsen flags.
 sendbuf(:)=coarsen(:,mype)
-call MPI_ALLGATHER(sendbuf,ngridshi,MPI_LOGICAL,coarsen,ngridshi, &
+call MPI_ALLGATHER(sendbuf,max_blocks,MPI_LOGICAL,coarsen,max_blocks, &
                    MPI_LOGICAL,icomm,ierrmpi)
 
 do level=levmax,max(2,levmin),-1

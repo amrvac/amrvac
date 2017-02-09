@@ -52,19 +52,19 @@ end if
          call dealloc_node(igridFi)
       else
          ixCoGmin^D=1;
-         ixCoGmax^D=ixGhi^D/2+dixB;
-         ixCoM^L=ixCoG^L^LSUBdixB;
+         ixCoGmax^D=ixGhi^D/2+nghostcells;
+         ixCoM^L=ixCoG^L^LSUBnghostcells;
          call coarsen_grid(pw(igridFi)%w,px(igridFi)%x,ixG^LL,ixM^LL,pwCoarse(igridFi)%w,pxCoarse(igridFi)%x, &
                            ixCoG^L,ixCoM^L,pgeo(igridFi),pgeoCoarse(igridFi))
 
-         itag=ipeFi*ngridshi+igridFi
+         itag=ipeFi*max_blocks+igridFi
          isend=isend+1
          call MPI_ISEND(pwCoarse(igridFi)%w,1,type_coarse_block,ipe,itag, &
                         icomm,sendrequest(isend),ierrmpi)
       end if
    else
       if (ipe==mype) then
-         itag=ipeFi*ngridshi+igridFi
+         itag=ipeFi*max_blocks+igridFi
          irecv=irecv+1
          call MPI_IRECV(pw(igrid)%w,1,type_sub_block(ic^D),ipeFi,itag, &
                         icomm,recvrequest(irecv),ierrmpi)

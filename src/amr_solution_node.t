@@ -11,7 +11,7 @@ integer :: igrid, igrid_available
 !----------------------------------------------------------------------------
 igrid_available=0
 
-do igrid=1,ngridshi
+do igrid=1,max_blocks
    if (igrid_inuse(igrid,ipe)) cycle
 
    igrid_available=igrid
@@ -19,7 +19,7 @@ do igrid=1,ngridshi
 end do
 
 if (igrid_available==0) then
-   write(unitterm,*) " out of nodal space - allowed ",ngridshi," grids"
+   write(unitterm,*) " out of nodal space - allowed ",max_blocks," grids"
    call mpistop("")
 else
    getnode=igrid_available
@@ -56,7 +56,7 @@ integer :: level, ig^D, ixCoG^L, ixCoCoG^L, ix
 double precision :: rXmin^D, dx^D
 !-----------------------------------------------------------------------------
 ixCoGmin^D=1;
-ixCoGmax^D=ixGhi^D/2+dixB;
+ixCoGmax^D=ixGhi^D/2+nghostcells;
 
 ! initialize solution space
 allocate(pwold(igrid)%w(ixG^T,1:nw), &
@@ -85,12 +85,12 @@ node(plevel_,igrid)=level
 
 allocate(px(igrid)%x(ixG^T,1:ndim),pxCoarse(igrid)%x(ixCoG^S,1:ndim))
 ^D&dx^D=rnode(rpdx^D_,igrid)\
-^D&rXmin^D=rnode(rpxmin^D_,igrid)-dixB*dx^D\
+^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
 {do ix=ixGlo^D,ixGhi^D
    px(igrid)%x(ix^D%ixG^T,^D)=rXmin^D+(dble(ix)-half)*dx^D
 end do\}
 ^D&dx^D=2.0d0*rnode(rpdx^D_,igrid)\
-^D&rXmin^D=rnode(rpxmin^D_,igrid)-dixB*dx^D\
+^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
 {do ix=ixCoGmin^D,ixCoGmax^D
    pxCoarse(igrid)%x(ix^D%ixCoG^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
 end do\}
@@ -102,14 +102,14 @@ rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
 rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
 ! fix possible out of bound due to precision
 if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
-rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
+rXmin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
 do ix=ixGlo1,ixGhi1
   px(igrid)%x(ix^%1ixG^T,1)=rXmin1/(one-half*logG)*qst**(ix-1)
 end do
 rnode(rpdx1_,igrid)=minval(px(igrid)%x(ixG^T,1)*logG)
 logG=logGs(level-1)
 qst=qsts(level-1)
-rXmin1=rnode(rpxmin1_,igrid)*qst**(-dixB)
+rXmin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
 do ix=ixCoGmin1,ixCoGmax1
   pxCoarse(igrid)%x(ix^%1ixCoG^S,1)=rXmin1/(one-half*logG)*qst**(ix-1)
 end do

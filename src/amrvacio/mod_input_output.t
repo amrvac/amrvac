@@ -68,7 +68,7 @@ contains
     par_files = tmp_files(1:n_par_files)
 
     ! Read in the other command line arguments
-    call retrev('cmd_if', filenameini, len, ier)
+    call retrev('cmd_if', restart_from_file, len, ier)
     snapshotini  = iget('cmd_restart')
     snapshotnext = snapshotini+1
     !> \todo Document these command line options
@@ -96,37 +96,37 @@ contains
     character(len=std_len) :: filenameout_full, filenameout_prev
     character(len=std_len) :: filenamelog_full, filenamelog_prev
 
-    namelist /filelist/ filenameout,filenameini,filenamelog, &
+    namelist /filelist/ base_filename,restart_from_file,filenamelog, &
          snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,primnames, &
          typeparIO,nwauxio,nocartesian,addmpibarrier, &
-         writew,writelevel,writespshift,endian_swap, &
-         normvar,normt,level_io,level_io_min,level_io_max, &
+         w_write,writelevel,writespshift,endian_swap, &
+         normvar,time_convert_factor,level_io,level_io_min,level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
          slicecoord,collapse,collapseLevel
-    namelist /stoplist/ itmax,tmax,tmaxexact,dtmin,t,it,treset,itreset,residmin,&
+    namelist /stoplist/ itmax,time_max,time_max_exact,dtmin,global_time,it,time_reset,itreset,residmin,&
          residmax,typeresid
-    namelist /methodlist/ wnames,fileheadout,typeadvance, &
+    namelist /methodlist/ w_names,fileheadout,time_integrator, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
-         typefull1,typepred1,&
-         typelimiter1,mcbeta,typegradlimiter1,&
+         flux_scheme,typepred1,&
+         limiter,mcbeta,gradient_limiter,&
          flatcd,flatsh,flatppm,&
          loglimit,typelimited,typetvdlf, &
          typetvd,typeentropy,entropycoef,typeaverage, &
          B0field,Bdip,Bquad,Boct,Busr,&
          tvdlfeps,&
-         smallT,smallp,smallrho,typegrad,typediv,&
+         small_temperature,small_pressure,small_density,typegrad,typediv,&
          nxdiffusehllc,typespherical,&
          fixprocess,flathllc, &
          x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage
-    namelist /boundlist/ dixB,typeB,typeghostfill,typegridfill,&
+    namelist /boundlist/ nghostcells,typeB,typeghostfill,typegridfill,&
          internalboundary
-    namelist /amrlist/ mxnest,nbufferx^D,specialtol,tol,tolratio,errorestimate, &
-         amr_wavefilter,ngridshi,nxblock^D,nxlone^D,iprob,xprob^L, &
-         wflags,flags,&
+    namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,derefine_ratio,refine_criterion, &
+         amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
+         w_refine_weight,w_for_refine,&
          prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
          logflag,tfixgrid,itfixgrid,ditregrid{#IFDEF STRETCHGRID ,qst}
@@ -135,7 +135,7 @@ contains
     !----------------------------------------------------------------------------
 
     ! default maximum number of grid blocks in a processor
-    ngridshi=4000
+    max_blocks=4000
 
     ! allocate cell size of all levels
     allocate(dx(ndim,nlevelshi))
@@ -143,11 +143,11 @@ contains
     {allocate(ng^D(nlevelshi))\}
 
     ! default block size excluding ghost cells
-    {nxblock^D = 16\}
+    {block_nx^D = 16\}
 
     ! defaults for boundary treatments
     typeghostfill      = 'linear'
-    dixB               = 2
+    nghostcells               = 2
     allocate(typeB(nw, nhiB))
     typeB(1:nw,1:nhiB) = 'cont'
     internalboundary   = .false.
@@ -166,9 +166,9 @@ contains
     fixprocess = .false.
     typegrad   = 'central'
     typediv    = 'central'
-    smallT     = -one
-    smallp     = -one
-    smallrho   = -one
+    small_temperature     = -one
+    small_pressure     = -one
+    small_density   = -one
 
     ! defaults for convert behavior
 
@@ -179,8 +179,8 @@ contains
     endian_swap              = .false.
     convert_type             = 'vtuBCCmpi'
     collapse_type            = 'vti'
-    allocate(writew(nw))
-    writew(1:nw)             = .true.
+    allocate(w_write(nw))
+    w_write(1:nw)             = .true.
     allocate(writelevel(nlevelshi))
     writelevel(1:nlevelshi)  = .true.
     writespshift(1:ndim,1:2) = zero
@@ -193,7 +193,7 @@ contains
     ! this scaling is optional, and must be set consistently if used
     allocate(normvar(0:nw))
     normvar(0:nw) = one
-    normt         = one
+    time_convert_factor         = one
 
     ! residual defaults
     residmin  = -1.0d0
@@ -201,25 +201,25 @@ contains
     typeresid = 'relative'
 
     ! AMR related defaults
-    mxnest                      = 1
+    refine_max_level                      = 1
     {nbufferx^D                 = 0\}
     specialtol                  = .false.
-    allocate(tol(nlevelshi))
-    tol(1:nlevelshi)            = 0.1d0
-    allocate(tolratio(nlevelshi))
-    tolratio(1:nlevelshi)       = 1.0d0/8.0d0
+    allocate(refine_threshold(nlevelshi))
+    refine_threshold(1:nlevelshi)            = 0.1d0
+    allocate(derefine_ratio(nlevelshi))
+    derefine_ratio(1:nlevelshi)       = 1.0d0/8.0d0
     typegridfill                = 'linear'
     coarsenprimitive            = .false.
     prolongprimitive            = .false.
     typeprolonglimit            = 'default'
-    errorestimate               = 3
-    allocate(flags(nflag_))
-    allocate(wflags(nflag_))
-    flags(1:nflag_)             = 0
-    wflags(1:nflag_)            = zero
-    flags(nflag_)               = 1
-    flags(1)                    = 1
-    wflags(1)                   = one
+    refine_criterion               = 3
+    allocate(w_for_refine(nflag_))
+    allocate(w_refine_weight(nflag_))
+    w_for_refine(1:nflag_)             = 0
+    w_refine_weight(1:nflag_)            = zero
+    w_for_refine(nflag_)               = 1
+    w_for_refine(1)                    = 1
+    w_refine_weight(1)                   = one
     allocate(logflag(nw))
     logflag(1:nw)               = .false.
     allocate(amr_wavefilter(nlevelshi))
@@ -240,8 +240,8 @@ contains
 
     ! IO defaults
     itmax         = biginteger
-    tmax          = bigdouble
-    tmaxexact     = .true.
+    time_max          = bigdouble
+    time_max_exact     = .true.
     dtmin         = 1.0d-10
     typeparIO     = 0
     nslices       = 0
@@ -251,12 +251,12 @@ contains
 
     do ifile=1,nfile
        do isave=1,nsavehi
-          tsave(isave,ifile)  = bigdouble  ! t  of saves into the output files
+          tsave(isave,ifile)  = bigdouble  ! global_time  of saves into the output files
           itsave(isave,ifile) = biginteger ! it of saves into the output files
        end do
        dtsave(ifile)  = bigdouble  ! time between saves
        ditsave(ifile) = biginteger ! timesteps between saves
-       isavet(ifile)  = 1          ! index for saves by t
+       isavet(ifile)  = 1          ! index for saves by global_time
        isaveit(ifile) = 1          ! index for saves by it
     end do
 
@@ -268,9 +268,9 @@ contains
     ! defaults for input 
     firstprocess  = .false.
     resetgrid     = .false.
-    treset        = .false.
+    time_reset        = .false.
     itreset       = .false.
-    filenameout   = 'data'
+    base_filename   = 'data'
     filenamelog   = 'amrvac'
 
     ! Defaults for discretization methods
@@ -291,15 +291,15 @@ contains
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
     source_split_usr= .false.
-    typeadvance     = 'twostep'
+    time_integrator     = 'twostep'
 
-    allocate(typefull1(nlevelshi),typepred1(nlevelshi))
-    allocate(typelimiter1(nlevelshi),typegradlimiter1(nlevelshi))
+    allocate(flux_scheme(nlevelshi),typepred1(nlevelshi))
+    allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))
     do level=1,nlevelshi
-       typefull1(level)        = 'tvdlf'
+       flux_scheme(level)        = 'tvdlf'
        typepred1(level)        = 'default'
-       typelimiter1(level)     = 'minmod'
-       typegradlimiter1(level) = 'minmod'
+       limiter(level)     = 'minmod'
+       gradient_limiter(level) = 'minmod'
     end do
 
     flatcd          = .false.
@@ -319,7 +319,7 @@ contains
     dtpar         = -1.d0
 
     ! problem setup defaults
-    {nxlone^D = 0\}
+    {domain_nx^D = 0\}
     iprob    = 1
 
     ! end defaults
@@ -346,7 +346,7 @@ contains
 
     ! Set default variable names
     primnames = 'default'
-    wnames    = 'default'
+    w_names    = 'default'
 
     ! These are used to construct file and log names from multiple par files
     filenameout_full = ''
@@ -387,7 +387,7 @@ contains
        read(unitpar, boundlist, end=105)
 
 105    rewind(unitpar)
-       read(unitpar, amrlist, end=106)
+       read(unitpar, meshlist, end=106)
 
 106    rewind(unitpar)
        read(unitpar, paramlist, end=107)
@@ -395,16 +395,16 @@ contains
 107    close(unitpar)
 
        ! Append the log and file names given in the par files
-       if (filenameout /= filenameout_prev) &
-            filenameout_full = trim(filenameout_full) // trim(filenameout)
-       filenameout_prev = filenameout
+       if (base_filename /= filenameout_prev) &
+            filenameout_full = trim(filenameout_full) // trim(base_filename)
+       filenameout_prev = base_filename
 
        if (filenamelog /= filenamelog_prev) &
             filenamelog_full = trim(filenamelog_full) // trim(filenamelog)
        filenamelog_prev = filenamelog
     end do
 
-    filenameout = filenameout_full
+    base_filename = filenameout_full
     filenamelog = filenamelog_full
 
     if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
@@ -444,39 +444,39 @@ contains
             'Slice ', islice,' direction',slicedir(islice),'too small, should be [',1,ndim,']'
     end do
 
-    if(itmax==biginteger .and. tmax==bigdouble.and.mype==0) write(uniterr,*) &
-         'Warning in read_par_files: itmax or tmax not given!'
+    if(itmax==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
+         'Warning in read_par_files: itmax or time_max not given!'
 
     if(residmin>=zero) then
        if (mype==0) write(unitterm,*)"SS computation with input value residmin"
        if(residmin<=smalldouble) call mpistop("Provide value for residual above smalldouble")
     end if
 
-    if(TRIM(wnames)=='default') call mpistop("Provide wnames and restart code")
+    if(TRIM(w_names)=='default') call mpistop("Provide w_names and restart code")
 
     do level=1,nlevelshi
-       !if(typefull1(level)=='tvdlf1'.and.typeadvance=='twostep') &
-       !   call mpistop(" tvdlf1 is onestep method, reset typeadvance=onestep!")
-       !if(typefull1(level)=='hll1'.and.typeadvance=='twostep') &
-       !   call mpistop(" hll1 is onestep method, reset typeadvance=onestep!")
-       !if(typefull1(level)=='hllc1'.and.typeadvance=='twostep') &
-       !   call mpistop(" hllc1 is onestep method, reset typeadvance=onestep!")
-       !if(typefull1(level)=='hllcd1'.and.typeadvance=='twostep') &
-       !   call mpistop(" hllcd1 is onestep method, reset typeadvance=onestep!")
-       !if(typefull1(level)=='tvdmu1'.and.typeadvance=='twostep') &
-       !   call mpistop(" tvdmu1 is onestep method, reset typeadvance=onestep!")
-       if(typefull1(level)=='tvd'.and.typeadvance=='twostep') &
-            call mpistop(" tvd is onestep method, reset typeadvance=onestep!")
-       if(typefull1(level)=='tvd1'.and.typeadvance=='twostep') &
-            call mpistop(" tvd1 is onestep method, reset typeadvance=onestep!")
-       if(typefull1(level)=='tvd'.or.typefull1(level)=='tvd1')then 
+       !if(flux_scheme(level)=='tvdlf1'.and.time_integrator=='twostep') &
+       !   call mpistop(" tvdlf1 is onestep method, reset time_integrator=onestep!")
+       !if(flux_scheme(level)=='hll1'.and.time_integrator=='twostep') &
+       !   call mpistop(" hll1 is onestep method, reset time_integrator=onestep!")
+       !if(flux_scheme(level)=='hllc1'.and.time_integrator=='twostep') &
+       !   call mpistop(" hllc1 is onestep method, reset time_integrator=onestep!")
+       !if(flux_scheme(level)=='hllcd1'.and.time_integrator=='twostep') &
+       !   call mpistop(" hllcd1 is onestep method, reset time_integrator=onestep!")
+       !if(flux_scheme(level)=='tvdmu1'.and.time_integrator=='twostep') &
+       !   call mpistop(" tvdmu1 is onestep method, reset time_integrator=onestep!")
+       if(flux_scheme(level)=='tvd'.and.time_integrator=='twostep') &
+            call mpistop(" tvd is onestep method, reset time_integrator=onestep!")
+       if(flux_scheme(level)=='tvd1'.and.time_integrator=='twostep') &
+            call mpistop(" tvd1 is onestep method, reset time_integrator=onestep!")
+       if(flux_scheme(level)=='tvd'.or.flux_scheme(level)=='tvd1')then 
           if(mype==0.and.(.not.dimsplit)) write(unitterm,*) &
                'Warning: setting dimsplit=T for tvd, as used for level=',level
           dimsplit=.true.
        endif
 
        if (typepred1(level)=='default') then
-          select case (typefull1(level))
+          select case (flux_scheme(level))
           case ('cd')
              typepred1(level)='cd'
           case ('cd4')
@@ -504,7 +504,7 @@ contains
        end if
     end do
 
-    select case (typeadvance)
+    select case (time_integrator)
     case ("onestep")
        nstep=1
     case ("twostep")
@@ -516,7 +516,7 @@ contains
     case ("ssprk54")
        nstep=5
     case default
-       call mpistop("Unknown typeadvance")
+       call mpistop("Unknown time_integrator")
     end select
 
 
@@ -545,7 +545,7 @@ contains
 
     if (ndim==1) dimsplit=.false.
     if (.not.dimsplit.and.ndim>1) then
-       select case (typeadvance)
+       select case (time_integrator)
        case ("ssprk54","ssprk43","fourstep", "rk4", "threestep", "twostep")
           ! Runge-Kutta needs predictor
           typelimited="predictor"
@@ -558,15 +558,15 @@ contains
     !   if (.not. physics_type=='mhd') call mpistop("B0+B1 split for MHD only")
     !end if
 
-    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !if (any(limiter(1:nlevelshi)== 'ppm')&
     !     .and.(flatsh.and.physics_type=='rho')) then
     !   call mpistop(" PPM with flatsh=.true. can not be used with physics_type='rho'!")
     !end if
-    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !if (any(limiter(1:nlevelshi)== 'ppm')&
     !     .and.(flatsh.and.physics_type=='hdadiab')) then
     !   call mpistop(" PPM with flatsh=.true. can not be used with physics_type='hdadiab'!")
     !end if
-    !if (any(typelimiter1(1:nlevelshi)== 'ppm')&
+    !if (any(limiter(1:nlevelshi)== 'ppm')&
     !     .and.(flatcd.and.physics_type=='hdadiab')) then
     !   call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
     !end if
@@ -585,12 +585,12 @@ contains
        end if
     end do
 
-    if (any(typelimiter1(1:nlevelshi)=='ppm').and.(dixB<4)) then
-       call mpistop(" PPM works only with dixB>=4 !")
+    if (any(limiter(1:nlevelshi)=='ppm').and.(nghostcells<4)) then
+       call mpistop(" PPM works only with nghostcells>=4 !")
     end if
 
-    if (any(typelimiter1(1:nlevelshi)=='mp5') .and. (dixB<3)) then
-       call mpistop("mp5 needs at at least 3 ghost cells! Set dixB=3 in boundlist.")
+    if (any(limiter(1:nlevelshi)=='mp5') .and. (nghostcells<3)) then
+       call mpistop("mp5 needs at at least 3 ghost cells! Set nghostcells=3 in boundlist.")
     end if
 
     select case (typeaxial)
@@ -607,26 +607,26 @@ contains
     end select
 
     ! full block size including ghostcells
-    {ixGhi^D = nxblock^D + 2*dixB\}
+    {ixGhi^D = block_nx^D + 2*nghostcells\}
 
     {#IFDEF STRETCHGRID
-    !if (mxnest>1) call mpistop("No refinement possible with a loggrid")
+    !if (refine_max_level>1) call mpistop("No refinement possible with a loggrid")
     if (typeaxial=='slab') call mpistop("Cartesian log grid not implemented")
     allocate(logGs(0:nlevelshi),qsts(0:nlevelshi))
     if (qst/=bigdouble) then
-       xprobmax1=xprobmin1*qst**nxlone1
-       if(mype==0) write(*,*) 'xprobmax1 is computed for given nxlone1 and qst:', xprobmax1
+       xprobmax1=xprobmin1*qst**domain_nx1
+       if(mype==0) write(*,*) 'xprobmax1 is computed for given domain_nx1 and qst:', xprobmax1
     else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
-       qst=(xprobmax1/xprobmin1)**(1.d0/dble(nxlone1))
+       qst=(xprobmax1/xprobmin1)**(1.d0/dble(domain_nx1))
        logG=2.d0*(qst-1.d0)/(qst+1.d0)
        if(mype==0) write(*,*) 'logG and qst computed from xprobmax1: ', logG, qst
     end if
     }
 
-    nx_vec = [{nxlone^D|, }]
+    nx_vec = [{domain_nx^D|, }]
 
     if (any(nx_vec < 2) .or. any(mod(nx_vec, 2) == 1)) &
-         call mpistop('Grid size (nxlone^D) has to be even and positive')
+         call mpistop('Grid size (domain_nx^D) has to be even and positive')
 
     dx_vec = [{xprobmax^D-xprobmin^D|, }] / nx_vec
 
@@ -643,26 +643,26 @@ contains
 
     dx(:, 1) = dx_vec
 
-    if(mxnest>nlevelshi.or.mxnest<1)then
-       write(unitterm,*)'Error: mxnest',mxnest,'>nlevelshi ',nlevelshi
+    if(refine_max_level>nlevelshi.or.refine_max_level<1)then
+       write(unitterm,*)'Error: refine_max_level',refine_max_level,'>nlevelshi ',nlevelshi
        call mpistop("Reset nlevelshi and recompile!")
     endif
 
-    if (flags(nflag_)>nw) then
-       write(unitterm,*)'Error: flags(nw+1)=',flags(nw+1),'>nw ',nw
-       call mpistop("Reset flags(nw+1)!")
+    if (w_for_refine(nflag_)>nw) then
+       write(unitterm,*)'Error: w_for_refine(nw+1)=',w_for_refine(nw+1),'>nw ',nw
+       call mpistop("Reset w_for_refine(nw+1)!")
     end if
-    if (flags(nflag_)==0) errorestimate=0
-    if (flags(nflag_)<0) then
+    if (w_for_refine(nflag_)==0) refine_criterion=0
+    if (w_for_refine(nflag_)<0) then
        if (mype==0) then
-          write(unitterm,*) "flags(",nflag_,") can not be negative"
+          write(unitterm,*) "w_for_refine(",nflag_,") can not be negative"
           call mpistop("")
        end if
     end if
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Error estimation: '
 
-    select case (errorestimate)
+    select case (refine_criterion)
     case (0)
        if (mype==0) write(unitterm, '(A)') "user defined"
     case (2)
@@ -672,7 +672,7 @@ contains
     case (4)
        if (mype==0) write(unitterm, '(A)') "Lohner's original scheme"
     case default
-       call mpistop("Unknown error estimator, change errorestimate")
+       call mpistop("Unknown error estimator, change refine_criterion")
     end select
 
     if (tfixgrid<bigdouble/2.0d0) then
@@ -697,7 +697,7 @@ contains
     end do
 
     ! Warn when too few blocks at start of simulation 
-    if (mype.eq.0 .and. snapshotini.eq.-1 .and. {^D& floor(dble(nxlone^D)/dble(nxblock^D)) |*} .lt. npe) then
+    if (mype.eq.0 .and. snapshotini.eq.-1 .and. {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
        call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
     end if
 
@@ -706,7 +706,7 @@ contains
        write(unitterm, '(A30,I0)') 'snapshotini: ', snapshotini
        write(unitterm, '(A30,I0)') 'slicenext: ', slicenext
        write(unitterm, '(A30,I0)') 'collapsenext: ', collapsenext
-       write(unitterm, '(A30,A,A)')  'filenameini: ', ' ', trim(filenameini)
+       write(unitterm, '(A30,A,A)')  'restart_from_file: ', ' ', trim(restart_from_file)
        write(unitterm, '(A30,L1)') 'converting: ', convert
        write(unitterm, '(A)') ''
     endif
@@ -792,7 +792,7 @@ contains
     end if
 
     ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
+    write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
 
     if(mype==0) then
        open(unit=unitsnapshot,file=filename,status='replace')
@@ -851,7 +851,7 @@ contains
 
        {nx^D=ixMhi^D-ixMlo^D+1
        call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nxlone^D,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
@@ -860,7 +860,7 @@ contains
        call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        {#IFDEF EVOLVINGBOUNDARY
        nphyboundblock=sum(sfc_phybound)
        call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
@@ -901,7 +901,7 @@ contains
     end if
 
     ! generate filename
-    write(filenametf,"(a,i4.4,a)") TRIM(filenameout),snapshot,"tf.dat"
+    write(filenametf,"(a,i4.4,a)") TRIM(base_filename),snapshot,"tf.dat"
     if(mype==0) then
        open(unit=unitsnapshot,file=filenametf,status='replace')
        close(unit=unitsnapshot)
@@ -947,7 +947,7 @@ contains
 
     {nx^D=ixMhi^D-ixMlo^D+1
     call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,nxlone^D,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
     call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
@@ -956,7 +956,7 @@ contains
     call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+    call MPI_FILE_WRITE(file_handle_tf,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
 
     call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
     snapshot=snapshot+1
@@ -1030,7 +1030,7 @@ contains
        nwrite=(Morton_stop(0)-Morton_start(0)+1)
 
        ! master processor writes out
-       write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
+       write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
 
        open(unit=unitsnapshot,file=filename,status='replace')
        close(unitsnapshot, status='delete')
@@ -1131,7 +1131,7 @@ contains
 
        {nx^D=ixMhi^D-ixMlo^D+1
        call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nxlone^D,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
        call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
@@ -1140,7 +1140,7 @@ contains
        call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
        call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
        {#IFDEF EVOLVINGBOUNDARY
        nphyboundblock=sum(sfc_phybound)
        call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
@@ -1215,7 +1215,7 @@ contains
        nwrite=(Morton_stop(0)-Morton_start(0)+1)
 
        ! master processor writes out
-       write(filename,"(a,i4.4,a)") TRIM(filenameout),snapshot,".dat"
+       write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
        if(endian_swap) then
           {#IFNDEF BIGENDIAN
           open(unit=unitsnapshot,file=filename,form='unformatted',access='stream',&
@@ -1278,7 +1278,7 @@ contains
        call write_forest(unitsnapshot)
        {nx^D=ixMhi^D-ixMlo^D+1
        write(unitsnapshot) nx^D
-       write(unitsnapshot) nxlone^D
+       write(unitsnapshot) domain_nx^D
        write(unitsnapshot) xprobmin^D
        write(unitsnapshot) xprobmax^D\}
        write(unitsnapshot) nleafs
@@ -1287,7 +1287,7 @@ contains
        write(unitsnapshot) ndir
        write(unitsnapshot) nw
        write(unitsnapshot) it
-       write(unitsnapshot) t
+       write(unitsnapshot) global_time
        close(unitsnapshot)
     end if
 
@@ -1302,7 +1302,7 @@ contains
     use mod_global_parameters
 
     integer :: file_handle, amode, igrid, Morton_no, iread
-    integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, nxloneini^D
+    integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, domain_nxini^D
     double precision :: xprobminini^D,xprobmaxini^D
 
     integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb
@@ -1313,7 +1313,7 @@ contains
     logical :: fexist
 
     ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(filenameini),snapshotini,".dat"
+    write(filename,"(a,i4.4,a)") TRIM(restart_from_file),snapshotini,".dat"
 
     if(mype==0) then
        inquire(file=filename,exist=fexist)
@@ -1339,17 +1339,17 @@ contains
     call MPI_FILE_READ_ALL(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     {#IFDEF EVOLVINGBOUNDARY
     call MPI_FILE_READ_ALL(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
     }
     nleafs_active = nleafs
 
     ! check if settings are suitable for restart
-    if (levmaxini>mxnest) then
+    if (levmaxini>refine_max_level) then
        if (mype==0) write(*,*) "number of levels in restart file = ",levmaxini
-       if (mype==0) write(*,*) "mxnest = ",mxnest
-       call mpistop("mxnest should be at least number of levels in restart file")
+       if (mype==0) write(*,*) "refine_max_level = ",refine_max_level
+       call mpistop("refine_max_level should be at least number of levels in restart file")
     end if
     if (ndimini/=ndim) then
        if (mype==0) write(*,*) "ndim in restart file = ",ndimini
@@ -1370,16 +1370,16 @@ contains
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
    {call MPI_FILE_READ_ALL(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_READ_ALL(file_handle,nxloneini^D,1,MPI_INTEGER,istatus,ierrmpi)
+    call MPI_FILE_READ_ALL(file_handle,domain_nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,xprobminini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,xprobmaxini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-    if (nxblock^D/=nxini^D|.or.) then
-       if (mype==0) write(*,*) "Error: reset block resolution to nxblock^D=",nxini^D
-       call mpistop("change nxblock^D in par file")
+    if (block_nx^D/=nxini^D|.or.) then
+       if (mype==0) write(*,*) "Error: reset block resolution to block_nx^D=",nxini^D
+       call mpistop("change block_nx^D in par file")
     end if
-    if (nxlone^D/=nxloneini^D|.or.) then
-       if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",nxloneini^D
-       call mpistop("change nxlone^D in par file")
+    if (domain_nx^D/=domain_nxini^D|.or.) then
+       if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",domain_nxini^D
+       call mpistop("change domain_nx^D in par file")
     end if
     if (xprobmin^D/=xprobminini^D|.or.) then
        if (mype==0) write(*,*) "Error: location of minimum does not match the data: ",xprobminini^D
@@ -1442,7 +1442,7 @@ contains
 
     double precision :: wio(ixG^T,1:nw)
     integer :: file_handle, amode, igrid, Morton_no, iread
-    integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, nxloneini^D
+    integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, domain_nxini^D
     double precision :: xprobminini^D,xprobmaxini^D
 
     integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb
@@ -1456,7 +1456,7 @@ contains
     logical :: fexist
 
     ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(filenameini),snapshotini,".dat"
+    write(filename,"(a,i4.4,a)") TRIM(restart_from_file),snapshotini,".dat"
     if(mype==0) then
       inquire(file=filename,exist=fexist)
       if(.not.fexist) call mpistop(filename//"as an input snapshot file is not found!")
@@ -1478,15 +1478,15 @@ contains
       call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
       call MPI_FILE_READ(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
       call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,t,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
       {#IFDEF EVOLVINGBOUNDARY
       call MPI_FILE_READ(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
       }
       ! check if settings are suitable for restart
-      if (levmaxini>mxnest) then
+      if (levmaxini>refine_max_level) then
          write(*,*) "number of levels in restart file = ",levmaxini
-         write(*,*) "mxnest = ",mxnest
-         call mpistop("mxnest should be at least number of levels in restart file")
+         write(*,*) "refine_max_level = ",refine_max_level
+         call mpistop("refine_max_level should be at least number of levels in restart file")
       end if
       if (ndimini/=ndim) then
          write(*,*) "ndim in restart file = ",ndimini
@@ -1508,16 +1508,16 @@ contains
       call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
 
       {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,nxloneini^D,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(file_handle,domain_nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
       call MPI_FILE_READ(file_handle,xprobminini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
       call MPI_FILE_READ(file_handle,xprobmaxini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-      if (nxblock^D/=nxini^D|.or.) then
-         if (mype==0) write(*,*) "Error: reset block resolution to nxblock^D=",nxini^D
-         call mpistop("change nxblock^D in par file")
+      if (block_nx^D/=nxini^D|.or.) then
+         if (mype==0) write(*,*) "Error: reset block resolution to block_nx^D=",nxini^D
+         call mpistop("change block_nx^D in par file")
       end if
-      if (nxlone^D/=nxloneini^D|.or.) then
-         if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",nxloneini^D
-         call mpistop("change nxlone^D in par file")
+      if (domain_nx^D/=domain_nxini^D|.or.) then
+         if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",domain_nxini^D
+         call mpistop("change domain_nx^D in par file")
       end if
       if (xprobmin^D/=xprobminini^D|.or.) then
          if (mype==0) write(*,*) "Error: location of minimum does not match the data: ",xprobminini^D
@@ -1533,7 +1533,7 @@ contains
     if (npe>1) then
        call MPI_BCAST(nleafs,1,MPI_INTEGER,0,icomm,ierrmpi)
        call MPI_BCAST(it,1,MPI_INTEGER,0,icomm,ierrmpi)
-       call MPI_BCAST(t,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+       call MPI_BCAST(global_time,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     end if
     nleafs_active = nleafs
 
@@ -1649,7 +1649,7 @@ contains
     logical              :: fileopen
     integer              :: i, iw, level
     double precision     :: wmean(1:nw), total_volume
-    double precision     :: volume_coverage(mxnest)
+    double precision     :: volume_coverage(refine_max_level)
     integer              :: nx^D, nc, ncells, dit
     double precision     :: dtTimeLast, now, cellupdatesPerSecond
     double precision     :: activeBlocksPerCore, wctPerCodeTime, timeToFinish
@@ -1687,7 +1687,7 @@ contains
        wctPerCodeTime = dtTimeLast / max(dit * dt, epsilon(1.0d0))
 
        ! Wall clock time to finish in hours:
-       timeToFinish = (tmax - t) * wctPerCodeTime / 3600.0d0
+       timeToFinish = (time_max - global_time) * wctPerCodeTime / 3600.0d0
 
        ! On first entry, open the file and generate the header
        if (.not. opened) then
@@ -1705,16 +1705,16 @@ contains
                len_trim(fileheadout)+1, MPI_CHARACTER, istatus, ierrmpi)
 
           ! Start of file headern
-          line = "it t dt res " // trim(wnames)
+          line = "it global_time dt res " // trim(w_names)
 
           ! Volume coverage per level
-          do level = 1, mxnest
+          do level = 1, refine_max_level
              i = len_trim(line) + 2
              write(line(i:), "(a,i0)") "c", level
           end do
 
           ! Cell counts per level
-          do level=1,mxnest
+          do level=1,refine_max_level
              i = len_trim(line) + 2
              write(line(i:), "(a,i0)") "n", level
           end do
@@ -1731,19 +1731,19 @@ contains
        ! Construct the line to be added to the log
 
        fmt_string = '(' // fmt_i // ',3' // fmt_r // ')'
-       write(line, fmt_string) it, t, dt, residual
+       write(line, fmt_string) it, global_time, dt, residual
        i = len_trim(line) + 2
 
        write(fmt_string, '(a,i0,a)') '(', nw, fmt_r // ')'
        write(line(i:), fmt_string) wmean(1:nw)
        i = len_trim(line) + 2
 
-       write(fmt_string, '(a,i0,a)') '(', mxnest, fmt_r // ')'
-       write(line(i:), fmt_string) volume_coverage(1:mxnest)
+       write(fmt_string, '(a,i0,a)') '(', refine_max_level, fmt_r // ')'
+       write(line(i:), fmt_string) volume_coverage(1:refine_max_level)
        i = len_trim(line) + 2
 
-       write(fmt_string, '(a,i0,a)') '(', mxnest, fmt_i // ')'
-       write(line(i:), fmt_string) nleafs_level(1:mxnest)
+       write(fmt_string, '(a,i0,a)') '(', refine_max_level, fmt_i // ')'
+       write(line(i:), fmt_string) nleafs_level(1:refine_max_level)
        i = len_trim(line) + 2
 
        fmt_string = '(a,6' // fmt_r2 // ')'
@@ -1781,7 +1781,7 @@ contains
        end if
 
        write(fmt_string, "(a,i0,a)") "(", nw * n_modes + 1, fmt_r // ")"
-       write(my_unit, fmt_string) t, modes
+       write(my_unit, fmt_string) global_time, modes
     end if
   end subroutine printlog_regression_test
 
@@ -1837,12 +1837,12 @@ contains
   subroutine get_volume_coverage(vol_cov)
     use mod_global_parameters
 
-    double precision, intent(out) :: vol_cov(1:mxnest)
-    double precision              :: dsum_recv(1:mxnest)
+    double precision, intent(out) :: vol_cov(1:refine_max_level)
+    double precision              :: dsum_recv(1:refine_max_level)
     integer                       :: iigrid, igrid, iw, level
 
     ! First determine the total 'flat' volume in each level
-    vol_cov(1:mxnest)=zero
+    vol_cov(1:refine_max_level)=zero
 
     do iigrid = 1, igridstail
        igrid          = igrids(iigrid);
@@ -1852,7 +1852,7 @@ contains
     end do
 
     ! Make the information available on all tasks
-    call MPI_ALLREDUCE(vol_cov, dsum_recv, mxnest, MPI_DOUBLE_PRECISION, &
+    call MPI_ALLREDUCE(vol_cov, dsum_recv, refine_max_level, MPI_DOUBLE_PRECISION, &
          MPI_SUM, icomm, ierrmpi)
 
     ! Normalize

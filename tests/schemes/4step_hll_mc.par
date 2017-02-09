@@ -1,12 +1,12 @@
  &filelist
         filenamelog  = '_4step_hll_mc'
-        filenameout  = '_4step_hll_mc'
+        base_filename  = '_4step_hll_mc'
  /
 
  &methodlist
-        typeadvance=  'fourstep'
-        typefull1 =    13*'hll'
-        typelimiter1=  13*'woodward'
+        time_integrator=  'fourstep'
+        flux_scheme =    20*'hll'
+        limiter=  20*'woodward'
  /
 
  &paramlist

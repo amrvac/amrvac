@@ -203,8 +203,8 @@ contains
        mag(idir) = nwx       ! magnetic field
     end do
 
-    minp   = max(0.0d0, smallp)
-    minrho = max(0.0d0, smallrho)
+    minp   = max(0.0d0, small_pressure)
+    minrho = max(0.0d0, small_density)
     smalle = minp/(tc_gamma - 1.0d0)
 
     ! Derive scaling units
@@ -285,15 +285,15 @@ contains
          myB0_cell => pB0_cell(igrid)
          {^D&myB0_face^D => pB0_face^D(igrid)\}
       end if
-      typelimiter=typelimiter1(node(plevel_,igrid))
-      typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+      typelimiter=limiter(node(plevel_,igrid))
+      typegradlimiter=gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       call evolve_step1(cmut,dt_tc,ixG^LL,ixM^LL,pw1(igrid)%w,pw(igrid)%w,&
                         px(igrid)%x,pw3(igrid)%w)
     end do
     !$OMP END PARALLEL DO
     bcphys=.false.
-    call getbc(t,0.d0,pw1,e_-1,1)
+    call getbc(global_time,0.d0,pw1,e_-1,1)
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
@@ -326,14 +326,14 @@ contains
             myB0_cell => pB0_cell(igrid)
             {^D&myB0_face^D => pB0_face^D(igrid)\}
           end if
-          typelimiter=typelimiter1(node(plevel_,igrid))
-          typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+          typelimiter=limiter(node(plevel_,igrid))
+          typegradlimiter=gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           call evolve_stepj(cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw1(igrid)%w,&
                             pw2(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
         end do
     !$OMP END PARALLEL DO
-        call getbc(t,0.d0,pw2,e_-1,1)
+        call getbc(global_time,0.d0,pw2,e_-1,1)
         evenstep=.false.
       else
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -343,14 +343,14 @@ contains
              myB0_cell => pB0_cell(igrid)
             {^D&myB0_face^D => pB0_face^D(igrid)\}
           end if
-          typelimiter=typelimiter1(node(plevel_,igrid))
-          typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+          typelimiter=limiter(node(plevel_,igrid))
+          typegradlimiter=gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           call evolve_stepj(cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw2(igrid)%w,&
                             pw1(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
         end do
     !$OMP END PARALLEL DO
-        call getbc(t,0.d0,pw1,e_-1,1)
+        call getbc(global_time,0.d0,pw1,e_-1,1)
         evenstep=.true.
       end if 
     end do
@@ -419,16 +419,16 @@ contains
     ! ensure you never trigger negative pressure 
     ! hence code up energy change with respect to kinetic and magnetic
     ! part(nonthermal)
-    if(smallT>0.d0) then
+    if(small_temperature>0.d0) then
       Te(ixO^S)=tmp1(ixO^S)*(tc_gamma-1.d0)/w(ixO^S,rho_)
     endif
     if(strictsmall) then
-      if(smallT>0.d0 .and. any(Te(ixO^S)<smallT)) then
+      if(small_temperature>0.d0 .and. any(Te(ixO^S)<small_temperature)) then
         lowindex=minloc(Te(ixO^S))
         ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
         write(*,*)'too small temperature = ',minval(Te(ixO^S)),'at x=',&
-       x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smallT,&
-       ' on time=',t,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
+       x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_temperature,&
+       ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
         call mpistop("==evolve_step1: too small temperature==")
       end if
       if(any(tmp1(ixO^S)<smalle)) then
@@ -436,15 +436,15 @@ contains
         ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
         write(*,*)'too small internal energy = ',minval(tmp1(ixO^S)),'at x=',&
        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smalle,&
-       ' on time=',t,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
+       ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
         call mpistop("==evolve_step1: too small internal energy==")
       end if
       w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
     else
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        if(smallT>0.d0) then
-          if(Te(ix^D)<smallT) then
-            w1(ix^D,e_) = tmp2(ix^D)+smallT*w(ix^D,rho_)/(tc_gamma-1.d0)
+        if(small_temperature>0.d0) then
+          if(Te(ix^D)<small_temperature) then
+            w1(ix^D,e_) = tmp2(ix^D)+small_temperature*w(ix^D,rho_)/(tc_gamma-1.d0)
           else
             w1(ix^D,e_) = tmp2(ix^D)+tmp1(ix^D)
           end if
@@ -487,13 +487,13 @@ contains
     ! tmp1 store internal energy
     tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
 
-    ! Clip off negative pressure if smallp is set
+    ! Clip off negative pressure if small_pressure is set
     if(strictsmall) then
        if (any(tmp1(ixI^S)<smalle)) then
          lowindex=minloc(tmp1(ixI^S))
          ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
          write(*,*)'too low internal energy = ',minval(tmp1(ixI^S)),' at x=',&
-         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smalle,' on time=',t
+         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smalle,' on time=',global_time
        end if
     else
     {do ix^DB=ixImin^DB,ixImax^DB\}
@@ -504,18 +504,18 @@ contains
     end if
     ! compute the temperature
     tmp(ixI^S)=tmp1(ixI^S)*(tc_gamma-one)/w(ixI^S,rho_)
-    if(smallT>0.d0) then
+    if(small_temperature>0.d0) then
       if(strictsmall) then
-         if(any(tmp(ixI^S)<smallT)) then
+         if(any(tmp(ixI^S)<small_temperature)) then
            lowindex=minloc(tmp(ixI^S))
            ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
            write(*,*)'too low temperature = ',minval(tmp(ixI^S)),' at x=',&
-           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smallT,' on time=',t
+           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_temperature,' on time=',global_time
          end if
       else
       {do ix^DB=ixImin^DB,ixImax^DB\}
-         if(tmp(ix^D)<smallT) then
-            tmp(ix^D)=smallT
+         if(tmp(ix^D)<small_temperature) then
+            tmp(ix^D)=small_temperature
          end if
       {end do\}
       end if
@@ -674,13 +674,13 @@ contains
     ^D&dxinv(^D)=one/dx^D;
     
     call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
-    ! Clip off negative pressure if smallp is set
+    ! Clip off negative pressure if small_pressure is set
     if(strictsmall) then
       if(any(tmp(ixO^S)<minp)) then
         lowindex=minloc(tmp(ixO^S))
         ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
         write(*,*)'low pressure = ',minval(tmp(ixO^S)),' at x=',&
-        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',t,&
+        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',global_time,&
         ' step=',it
        call mpistop("=== strictsmall in getdt_heatconduct_mhd: low pressure ===")
       end if
@@ -756,12 +756,12 @@ contains
     tmp2(ixI^S)=half*sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
     tmp(ixI^S)=(tc_gamma-one)*(w(ixI^S,e_)-tmp2(ixI^S))
-    ! Clip off negative pressure if smallp is set
+    ! Clip off negative pressure if small_pressure is set
     if(strictsmall) then
       if(any(tmp(ixI^S)<minp)) then
         lowindex=minloc(tmp(ixI^S))
         write(*,*)'low pressure = ',minval(tmp(ixI^S)),' at x=',&
-        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',t
+        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',global_time
         call mpistop("=== strictsmall in heatconduct: low pressure ===")
       end if
     else
@@ -776,21 +776,21 @@ contains
     
     ! compute temperature before source addition
     Te(ixI^S)=tmp(ixI^S)/w(ixI^S,rho_)
-    if(smallT>0.d0) then
+    if(small_temperature>0.d0) then
       if(strictsmall) then
-         if(any(Te(ixI^S)<smallT)) then
+         if(any(Te(ixI^S)<small_temperature)) then
            lowindex=minloc(Te(ixI^S))
            ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
            write(*,*)'too low temperature = ',minval(Te(ixI^S)),' at x=',&
-           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smallT,' on time=',t,&
+           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_temperature,' on time=',global_time,&
            ' step=',it,' where density=',w(^D&lowindex(^D),rho_),' velocity=',&
            dsqrt(sum(w(^D&lowindex(^D),mom(:))**2,dim=1)/w(^D&lowindex(^D),rho_)**2)
            call mpistop("=== strictsmall in heatcond_hd: low temperature ===")
          end if
       else
       {do ix^DB=ixImin^DB,ixImax^DB\}
-         if(Te(ix^D)<smallT) then
-            Te(ix^D)=smallT
+         if(Te(ix^D)<small_temperature) then
+            Te(ix^D)=small_temperature
          end if
       {end do\}
       end if
@@ -851,13 +851,13 @@ contains
     ^D&dxinv(^D)=one/dx^D;
 
     call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
-    ! Clip off negative pressure if smallp is set
+    ! Clip off negative pressure if small_pressure is set
     if(strictsmall) then
       if(any(tmp(ixO^S)<minp)) then
         lowindex=minloc(tmp(ixO^S))
         ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
         write(*,*)'low pressure = ',minval(tmp(ixO^S)),' at x=',&
-        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',t
+        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',global_time
         call mpistop("=== strictsmall in getdt_heatconduct_hd: low pressure ===")
       end if
     else

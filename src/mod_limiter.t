@@ -13,8 +13,8 @@ contains
   !> Note that this subroutine is called from upwindLR (hence from methods
   !> like tvdlf, hancock, hll(c) etc) or directly from tvd.t,
   !> but also from the gradientS and divvectorS subroutines in geometry.t
-  !> Accordingly, the typelimiter here corresponds to one of typelimiter1
-  !> or one of typegradlimiter1.
+  !> Accordingly, the typelimiter here corresponds to one of limiter
+  !> or one of gradient_limiter.
   !>
   !> note: there is no iw dependence here...
   subroutine dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)

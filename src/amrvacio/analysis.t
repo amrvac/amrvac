@@ -27,8 +27,8 @@ double precision :: trcut
 !!$trcut = 1.0d-3
 !!$!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!$
-!!$volume(1:mxnest)=zero
-!!$volumeflat(1:mxnest)=zero
+!!$volume(1:refine_max_level)=zero
+!!$volumeflat(1:refine_max_level)=zero
 !!$re = 0.0d0
 !!$ke = 0.0d0
 !!$me = 0.0d0

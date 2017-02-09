@@ -5,7 +5,7 @@
 !=====================================================
 
  &filelist
-        filenameout='ball_1d'
+        base_filename='ball_1d'
         filenamelog='ball_1d'
         typefilelog='regression_test'
         primnames='rho'
@@ -18,24 +18,24 @@
  /
 
  &stoplist
-        tmax=0.1d0
+        time_max=0.1d0
  /
 
  &methodlist
-        wnames=       'rho'
+        w_names=       'rho'
         fileheadout=  'ball_1d'
  /
 
  &boundlist
-        dixB=   3
+        nghostcells=   3
         typeB=  'periodic','periodic'
  /
 
- &amrlist
-        mxnest=4
-        tol=13*0.1d0
-        nxblock1=10
-        nxlone1=50
+ &meshlist
+        refine_max_level=4
+        refine_threshold=20*0.1d0
+        block_nx1=10
+        domain_nx1=50
         iprob=6
         xprobmin1=0.0d0
         xprobmax1=1.0d0

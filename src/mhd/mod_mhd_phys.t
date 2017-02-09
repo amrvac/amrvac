@@ -257,7 +257,7 @@ contains
 
     ! For Hall, we need one more reconstructed layer since currents are computed
     ! in getflux: assuming one additional ghost layer (two for FOURTHORDER) was
-    ! added in dixB.
+    ! added in nghostcells.
     if (mhd_hall) then
        if (mhd_4th_order) then
           phys_wider_stencil = 2
@@ -271,7 +271,7 @@ contains
   subroutine mhd_check_params
     use mod_global_parameters
 
-    minrho = max(0.0d0, smallrho)
+    minrho = max(0.0d0, small_density)
 
     if (.not. mhd_energy) then
        if (mhd_gamma <= 0.0d0) call mpistop ("Error: mhd_gamma <= 0")
@@ -280,7 +280,7 @@ contains
     else
        if (mhd_gamma <= 0.0d0 .or. mhd_gamma == 1.0d0) &
             call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
-       minp   = max(0.0d0, smallp)
+       minp   = max(0.0d0, small_pressure)
        smalle = minp/(mhd_gamma - 1.0d0)
     end if
 
@@ -1580,19 +1580,19 @@ contains
     ! pth(ixO^S)=(mhd_gamma-one)*(w(ixO^S,e_)- &
     !      half*(({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)&
     !      +{ ^C&w(ixO^S,mag(idir))**2+}))
-    ! if (smallT>0.d0) then
+    ! if (small_temperature>0.d0) then
     !    Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
     ! else
     !    Te(ixO^S)=zero
     ! end if
 
     ! if (strictsmall) then
-    !    if (smallT>0.d0 .and. any(Te(ixO^S) <=smallT)) then
+    !    if (small_temperature>0.d0 .and. any(Te(ixO^S) <=small_temperature)) then
     !       print *,'SMALLVALUES of temperature under strictsmall problem From:  ', &
-    !            subname,' iteration=', it,' time=',t
+    !            subname,' iteration=', it,' time=',global_time
     !       posvec(1:ndim)=minloc(Te(ixO^S))
     !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
-    !       write(*,*)'minimum temperature= ', minval(Te(ixO^S)),' with limit=',smallT,&
+    !       write(*,*)'minimum temperature= ', minval(Te(ixO^S)),' with limit=',small_temperature,&
     !            ' at x=', x(^D&posvec(^D),1:ndim),' array index=',posvec,' where rho=',&
     !            w({^D&posvec(^D)},rho_),', velocity v=',&
     !            ^C&w({^D&posvec(^D)},m^C_)/w({^D&posvec(^D)},rho_),&
@@ -1602,7 +1602,7 @@ contains
     !    end if
     !    if (any(pth(ixO^S) <=minp)) then
     !       print *,'SMALLVALUES of pressure under strictsmall problem From:  ', &
-    !            subname,' iteration=', it,' time=',t
+    !            subname,' iteration=', it,' time=',global_time
     !       posvec(1:ndim)=minloc(pth(ixO^S))
     !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
     !       write(*,*)'minimum pressure = ', minval(pth(ixO^S)),' with limit=',minp,&
@@ -1615,7 +1615,7 @@ contains
     !    end if
     !    if (any(w(ixO^S,e_) <=smalle)) then
     !       print *,'SMALLVALUES of energy under strictsmall problem From:  ', &
-    !            subname,' iteration=', it,' time=',t
+    !            subname,' iteration=', it,' time=',global_time
     !       posvec(1:ndim)=minloc(w(ixO^S,e_))
     !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
     !       write(*,*)'minimum e =', minval(w(ixO^S,e_)),' with limit=',smalle,&
@@ -1627,7 +1627,7 @@ contains
     !    end if
     !    if (any(w(ixO^S,rho_) <=minrho)) then
     !       print *,'SMALLVALUES of density under strictsmall problem From:  ', &
-    !            subname,' iteration=', it,' time=',t
+    !            subname,' iteration=', it,' time=',global_time
     !       posvec(1:ndim)=minloc(w(ixO^S,rho_))
     !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
     !       write(*,*)'minimum rho =', minval(w(ixO^S,rho_)),' with limit=',minrho,&
@@ -1647,13 +1647,13 @@ contains
     !          w(ixO^S,e_)=minp/(mhd_gamma-one)+&
     !               (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,mag(idir))**2+})*half
     !       end where
-    !       where(Te(ixO^S) < smallT)
-    !          w(ixO^S,e_)=smallT*w(ixO^S,rho_)/(mhd_gamma-one)+&
+    !       where(Te(ixO^S) < small_temperature)
+    !          w(ixO^S,e_)=small_temperature*w(ixO^S,rho_)/(mhd_gamma-one)+&
     !               (({^C&w(ixO^S,m^C_)**2+})/w(ixO^S,rho_)+{^C&w(ixO^S,mag(idir))**2+})*half
     !       end where
     !    else
     !       where(w(ixO^S,rho_) < minrho .or. w(ixO^S,e_) < smalle&
-    !            .or. pth(ixO^S) < minp .or. Te(ixO^S) < smallT)
+    !            .or. pth(ixO^S) < minp .or. Te(ixO^S) < small_temperature)
     !          patchierror(ixO^S)=-1
     !       elsewhere
     !          patchierror(ixO^S)=0
@@ -1667,7 +1667,7 @@ contains
     ! if (any(w(ixO^S,rho_) < minrho)) then
     !    if (strictsmall)then
     !       write(*,*)'SMALLVALUES of density under strictsmall problem From:  ', &
-    !            subname,' iteration ', it,' time ',t
+    !            subname,' iteration ', it,' time ',global_time
     !       posvec(1:ndim)=minloc(w(ixO^S,rho_))
     !       ^D&posvec(^D)=posvec(^D)+ixOmin^D-1;
     !       write(*,*)'minimum rho =', minval(w(ixO^S,rho_)),' with limit=',minrho,&

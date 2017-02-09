@@ -14,7 +14,7 @@ type(tree_node_ptr) :: tree
 integer             :: igrid_active, userflag
 !-----------------------------------------------------------------------------
 if (.not. allocated(isafety)) &
-      allocate(isafety(ngridshi,0:npe-1))
+      allocate(isafety(max_blocks,0:npe-1))
 
 ! reset all grids to active:
 neighbor_active = .true.
@@ -46,8 +46,8 @@ neighbor_active = .true.
 !     Now, we re-activate a safety belt of radius nsafety blocks.
 
 !     First communicate the current isafety buffer:
-      call MPI_ALLGATHER(isafety(:,mype),ngridshi,MPI_INTEGER,isafety,&
-      ngridshi,MPI_INTEGER,icomm,ierrmpi)
+      call MPI_ALLGATHER(isafety(:,mype),max_blocks,MPI_INTEGER,isafety,&
+      max_blocks,MPI_INTEGER,icomm,ierrmpi)
 
 !     Now check the distance of neighbors to the active zone:
       do isave = 1, nsafety
@@ -61,8 +61,8 @@ neighbor_active = .true.
          end do
          
 !     Communicate the incremented buffers:
-         call MPI_ALLGATHER(isafety(:,mype),ngridshi,MPI_INTEGER,isafety,&
-         ngridshi,MPI_INTEGER,icomm,ierrmpi)
+         call MPI_ALLGATHER(isafety(:,mype),max_blocks,MPI_INTEGER,isafety,&
+         max_blocks,MPI_INTEGER,icomm,ierrmpi)
       end do
 
 !     Update the active and passive arrays:
@@ -76,7 +76,7 @@ neighbor_active = .true.
             kgrid=kgrid+1
             igrids_passive(kgrid)=igrid
          end if
-!     Create the neighbor flags:
+!     Create the neighbor w_for_refine:
          call set_neighbor_state(igrid)
       end do
       igridstail_active  = jgrid
@@ -85,7 +85,7 @@ neighbor_active = .true.
 !     Update the tree:
       nleafs_active = 0
       do ipe=0,npe-1
-         do igrid=1,ngridshi
+         do igrid=1,max_blocks
             if (isafety(igrid,ipe) == -1) cycle
             if (.not.associated(igrid_to_node(igrid,ipe)%node)) cycle
             tree%node => igrid_to_node(igrid,ipe)%node
@@ -99,7 +99,7 @@ neighbor_active = .true.
       end do
 
 !     Just for output and testing: 
-!      ixO^L=ixG^LL^LSUBdixB;      
+!      ixO^L=ixG^LL^LSUBnghostcells;      
 !      do iigrid=1,igridstail; igrid=igrids(iigrid);        
 !         pw(igrid)%w(ixO^S,flg_) = dble(isafety(igrid,mype))
 !         pw(igrid)%w(ixO^S,cpu_) = dble(mype)
@@ -243,12 +243,12 @@ integer function igrid_active(igrid)
   integer, intent(in) :: igrid
   integer             :: ixO^L, flag
   !-----------------------------------------------------------------------------
-  ixO^L=ixG^LL^LSUBdixB;
+  ixO^L=ixG^LL^LSUBnghostcells;
 
   igrid_active = -1
 
   if (associated(usr_flag_grid)) then
-     call usr_flag_grid(t,ixG^LL,ixO^L,pw(igrid)%w,px(igrid)%x,igrid_active)
+     call usr_flag_grid(global_time,ixG^LL,ixO^L,pw(igrid)%w,px(igrid)%x,igrid_active)
   end if
 
 end function igrid_active

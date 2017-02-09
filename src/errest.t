@@ -10,7 +10,7 @@ logical, dimension(:,:), allocatable :: refine2
 !-----------------------------------------------------------------------------
 if (igridstail==0) return
 
-select case (errorestimate)
+select case (refine_criterion)
 case (0) 
    ! all refinement solely based on user routine usr_refine_grid
 case (1) 
@@ -45,8 +45,8 @@ end select
 
 ! enforce additional refinement on e.g. coordinate and/or time info here
 if (nbufferx^D/=0|.or.) then
-   allocate(refine2(ngridshi,npe))
-   call MPI_ALLREDUCE(refine,refine2,ngridshi*npe,MPI_LOGICAL,MPI_LOR, &
+   allocate(refine2(max_blocks,npe))
+   call MPI_ALLREDUCE(refine,refine2,max_blocks*npe,MPI_LOGICAL,MPI_LOR, &
                       icomm,ierrmpi)
    refine=refine2
 end if
@@ -80,7 +80,7 @@ level   = node(plevel_,igrid)
 ix^L=ixM^LL^LADD1;
 
 error=zero
-do iiflag=1,flags(nflag_); iflag=flags(iiflag);
+do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
    numerator=zero
 
    if (iflag > nw) then
@@ -159,29 +159,29 @@ do iiflag=1,flags(nflag_); iflag=flags(iiflag);
                     +(tmp(ixM^T)+amr_wavefilter(level)*(tmp2(j2x^S)+tmp2(h2x^S)))**2
       end do
    end do
-   error=error+wflags(iiflag)*dsqrt(numerator/max(denominator,epsilon))
+   error=error+w_refine_weight(iiflag)*dsqrt(numerator/max(denominator,epsilon))
 end do
 
 refineflag=.false.
 coarsenflag=.false.
-tolerance=tol(level)
+tolerance=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 
    if (associated(usr_amr_tolerance)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
       xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
-      call usr_amr_tolerance(wtol, xtol, tolerance, t)
+      call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
    end if
 
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
-   else if (error(ix^D) <= tolratio(level)*tolerance) then
+   else if (error(ix^D) <= derefine_ratio(level)*tolerance) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}
 
 
-if (any(refineflag(ixM^T)).and.level<mxnest) refine(igrid,mype)=.true.
+if (any(refineflag(ixM^T)).and.level<refine_max_level) refine(igrid,mype)=.true.
 if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 
 end subroutine lohner_grid
@@ -205,7 +205,7 @@ level=node(plevel_,igrid)
 ix^L=ixM^LL;
 
 error=zero
-do iiflag=1,flags(nflag_); iflag=flags(iiflag);
+do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
    numerator=zero
    denominator=zero
 
@@ -254,29 +254,29 @@ do iiflag=1,flags(nflag_); iflag=flags(iiflag);
            + (dabs(dp(ixM^T)) + dabs(dm(ixM^T)) + amr_wavefilter(level)*dref(ixM^T))**2.0d0
 
    end do
-   error=error+wflags(iiflag)*dsqrt(numerator/max(denominator,epsilon))
+   error=error+w_refine_weight(iiflag)*dsqrt(numerator/max(denominator,epsilon))
 end do
 
 refineflag=.false.
 coarsenflag=.false.
 
-tolerance=tol(level)
+tolerance=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 
    if (associated(usr_amr_tolerance)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
       xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
-      call usr_amr_tolerance(wtol, xtol, tolerance, t)
+      call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
    end if
 
    if (error(ix^D) >= tolerance) then
       refineflag(ix^D) = .true.
-   else if (error(ix^D) <= tolratio(level)*tolerance) then
+   else if (error(ix^D) <= derefine_ratio(level)*tolerance) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}
 
-if (any(refineflag(ixM^T)).and.level<mxnest) refine(igrid,mype)=.true.
+if (any(refineflag(ixM^T)).and.level<refine_max_level) refine(igrid,mype)=.true.
 if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 
 end subroutine lohner_orig_grid
@@ -296,26 +296,26 @@ double precision :: averages(nflag_)
 logical, dimension(ixG^T) :: refineflag, coarsenflag
 !-----------------------------------------------------------------------------
 ! identify the points to be flagged in two steps:
-!  step I: compare w_n-1 with w_n solution, store flags in auxiliary
-!  step II: transfer flags from auxiliary to refine and coarsen
+!  step I: compare w_n-1 with w_n solution, store w_for_refine in auxiliary
+!  step II: transfer w_for_refine from auxiliary to refine and coarsen
 
 epsilon=1.0d-6
 
 refineflag(ixM^T) = .false.
 coarsenflag(ixM^T) = .false.
 level=node(plevel_,igrid)
-tolerance=tol(level)
+tolerance=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB \}
    average=zero
    error=zero
-   do iiflag=1,flags(nflag_); iflag=flags(iiflag);
+   do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
       averages(iflag) = w(ix^D,iflag)-wold(ix^D,iflag)
-      average=average+wflags(iiflag)*abs(averages(iflag))
+      average=average+w_refine_weight(iiflag)*abs(averages(iflag))
       if (abs(wold(ix^D,iflag))<smalldouble)then
-         error=error+wflags(iiflag)* &
+         error=error+w_refine_weight(iiflag)* &
             abs(averages(iflag))/(abs(wold(ix^D,iflag))+epsilon)
       else
-         error=error+wflags(iiflag)* &
+         error=error+w_refine_weight(iiflag)* &
             abs(averages(iflag))/(abs(wold(ix^D,iflag)))
       end if
    end do
@@ -323,18 +323,18 @@ tolerance=tol(level)
    if (associated(usr_amr_tolerance)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
       xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
-      call usr_amr_tolerance(wtol, xtol, tolerance, t)
+      call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
    end if
 
    if (error >= tolerance) then
       refineflag(ix^D) = .true.
-   else if (error <= tolratio(level)*tolerance) then
+   else if (error <= derefine_ratio(level)*tolerance) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}
 
 if (any(refineflag(ixM^T))) then
-   if (level<mxnest) refine(igrid,mype)=.true.
+   if (level<refine_max_level) refine(igrid,mype)=.true.
 end if
 if (time_advance) then
    if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
@@ -362,12 +362,12 @@ my_refine   = 0
 my_coarsen  = 0
 
 if (time_advance) then
-   qt=t+dt
+   qt=global_time+dt
 else
-   if (errorestimate==2) then
-      qt=t+dt
+   if (refine_criterion==2) then
+      qt=global_time+dt
    else
-      qt=t
+      qt=global_time
    end if
 end if
 
@@ -391,7 +391,7 @@ if (my_coarsen==-1)then
 end if
 
 if (my_refine==1) then
-   if (level<mxnest) then
+   if (level<refine_max_level) then
       refine(igrid,mype)=.true.
       coarsen(igrid,mype)=.false.
    else
@@ -430,7 +430,7 @@ if (level_io > 0) then
    my_levmax = level_io
 else
    my_levmin = max(1,level_io_min)
-   my_levmax = min(mxnest,level_io_max)
+   my_levmax = min(refine_max_level,level_io_max)
 end if
 
 
@@ -448,7 +448,7 @@ if (level==my_levmin .or. level==my_levmax) then
 end if
 
 
-if(refine(igrid,mype).and.level>=mxnest)refine(igrid,mype)=.false.
+if(refine(igrid,mype).and.level>=refine_max_level)refine(igrid,mype)=.false.
 if(coarsen(igrid,mype).and.level<=1)coarsen(igrid,mype)=.false.
 
 end subroutine forcedrefine_grid_io
@@ -478,7 +478,7 @@ ishiftbuf^D=ixMhi^D-ixMlo^D-nbufferx^D+1;
          end if
       case (3)
          level=node(plevel_,igrid)
-         if (level<mxnest) then
+         if (level<refine_max_level) then
             ineighbor=neighbor(1,i^D,igrid)
             ipe_neighbor=neighbor(2,i^D,igrid)
             if (.not.refine(ineighbor,ipe_neighbor)) then

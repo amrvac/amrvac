@@ -1,12 +1,12 @@
  &filelist
         filenamelog  = '_4step_hllc_ko'
-        filenameout  = '_4step_hllc_ko'
+        base_filename  = '_4step_hllc_ko'
  /
 
  &methodlist
-        typeadvance=  'fourstep'
-        typefull1 =    13*'hllc'
-        typelimiter1=  13*'koren'
+        time_integrator=  'fourstep'
+        flux_scheme =    20*'hllc'
+        limiter=  20*'koren'
  /
 
  &paramlist

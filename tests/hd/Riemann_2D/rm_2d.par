@@ -5,7 +5,7 @@
         saveprim=.true.
         autoconvert=.true.
 	convert_type='vtuBCCmpi'
-        filenameout='rm_2d_'  ! Base file name for dat/vtu output
+        base_filename='rm_2d_'  ! Base file name for dat/vtu output
         filenamelog='rm_2d'   ! Base file name for the log
 /
 
@@ -18,28 +18,28 @@
 
  &stoplist
         dtmin=1.0d-6
-        tmax=5.0d0
+        time_max=5.0d0
  /
 
  &methodlist
-        wnames=       'rho m1 m2 e'
+        w_names=       'rho m1 m2 e'
         fileheadout=  'hd22'
-        typeadvance=  'threestep'
-        typefull1=13*'hllc'
-        typelimiter1='cada3'
+        time_integrator=  'threestep'
+        flux_scheme=20*'hllc'
+        limiter='cada3'
 
  /
 
  &boundlist
-        dixB=2
+        nghostcells=2
         typeB=4*'cont',4*'cont',4*'cont',4*'cont'
  /
 
- &amrlist
-        errorestimate=3
-        mxnest=2
-        nxlone1=128
-        nxlone2=128
+ &meshlist
+        refine_criterion=3
+        refine_max_level=2
+        domain_nx1=128
+        domain_nx2=128
         xprobmin1=0.0d0
         xprobmax1=1.0d0
         xprobmin2=0.0d0

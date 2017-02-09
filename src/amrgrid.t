@@ -13,18 +13,18 @@ integer :: igrid, iigrid, levnew
 type(walloc) :: pwtmp
 !----------------------------------------------------------------------------
 ! when only one level allowed, there is nothing to do anymore
-if (mxnest == 1) return
+if (refine_max_level == 1) return
 
-call getbc(t,0.d0,pw,0,nwflux+nwaux)
-do levnew=2,mxnest
-   if (errorestimate==2) then
+call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
+do levnew=2,refine_max_level
+   if (refine_criterion==2) then
       call setdt
       call advance(0)
    end if
 
    call errest
 
-   if (errorestimate==2) then
+   if (refine_criterion==2) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
          pwtmp%w => pwold(igrid)%w
          pwold(igrid)%w => pw(igrid)%w
@@ -68,12 +68,12 @@ if (level_io > 0) then
    my_levmax = level_io
 else
    my_levmin = max(1,level_io_min)
-   my_levmax = min(mxnest,level_io_max)
+   my_levmax = min(refine_max_level,level_io_max)
 end if
 
 
 do while(levmin<my_levmin.or.levmax>my_levmax)
- call getbc(t,0.d0,pw,0,nwflux+nwaux)
+ call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
  do iigrid=1,igridstail; igrid=igrids(iigrid);
     call forcedrefine_grid_io(igrid,pw(igrid)%w)
  end do

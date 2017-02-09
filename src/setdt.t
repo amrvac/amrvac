@@ -55,7 +55,7 @@ end if
 if (dtmin_mype<dtmin) then
    write(unitterm,*)"Warning: Time step too small!", dtmin_mype
    write(unitterm,*)"on processor:", mype
-   write(unitterm,*)"at time:", t," step:", it
+   write(unitterm,*)"at time:", global_time," step:", it
    call mpistop("too small timestep")
 end if
 
@@ -71,14 +71,14 @@ if( stepflag<1.and.mype==0) then
    endif
 endif   
 
-if (tmaxexact) then
-   dtmin_mype=min(dtmin_mype,tmax-t)
+if (time_max_exact) then
+   dtmin_mype=min(dtmin_mype,time_max-global_time)
 end if
 
 if(any(dtsave(1:nfile)<bigdouble).or.any(tsave(isavet(1:nfile),1:nfile)<bigdouble))then
-   dtmax = minval((int(t/dtsave(1:nfile))+1)*dtsave(1:nfile))-t
+   dtmax = minval((int(global_time/dtsave(1:nfile))+1)*dtsave(1:nfile))-global_time
    do ifile=1,nfile
-      dtmax = min(tsave(isavet(ifile),ifile)-t,dtmax)
+      dtmax = min(tsave(isavet(ifile),ifile)-global_time,dtmax)
    end do
    if(dtmax<dtmin_mype .and. dtmax > smalldouble)then 
      dtmin_mype=min(dtmin_mype,dtmax)

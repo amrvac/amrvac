@@ -79,16 +79,16 @@ do idims=1,ndim
       select case(idims2)
       {case(^D)
         do ix = ixC^LIM^D
-          xC(ix^D%ixC^S,^D)=xmin^D+(dble(ix-dixB)-xshift^D)*dx^D
+          xC(ix^D%ixC^S,^D)=xmin^D+(dble(ix-nghostcells)-xshift^D)*dx^D
         end do\}
       end select
    end do
 {#IFDEF STRETCHGRID
    do ix = ixCmin1,ixCmax1
      if(xshift1==0.d0) then
-       xC(ix^%1ixC^S,1)=xmin1*qst**(ix-dixB)
+       xC(ix^%1ixC^S,1)=xmin1*qst**(ix-nghostcells)
      else
-       xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-dixB-1)
+       xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-nghostcells-1)
      end if
    end do
 }

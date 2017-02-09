@@ -114,8 +114,8 @@ end select
 }
 
 {^NOONED
-{^DE&ixsubMlo(^DE-1) = ixsubGlo(^DE-1)+dixB;}
-{^DE&ixsubMhi(^DE-1) = ixsubGhi(^DE-1)-dixB;}
+{^DE&ixsubMlo(^DE-1) = ixsubGlo(^DE-1)+nghostcells;}
+{^DE&ixsubMhi(^DE-1) = ixsubGhi(^DE-1)-nghostcells;}
 }
 
 sizes(ndim)=nw+nwexpand
@@ -182,7 +182,7 @@ if (mype==0) then
       else
          write(xxlabel(1:1),"(a)") "n"
       endif
-      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.csv'
+      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.csv'
       open(slice_fh,file=filename,status='unknown',form='formatted')
    end if
    ! get and write the header: 
@@ -292,8 +292,8 @@ end subroutine put_slice_line
 !=============================================================================
 subroutine put_slice_dat
 
-integer, dimension(ngridshi) :: iorequest
-integer, dimension(MPI_STATUS_SIZE,ngridshi) :: iostatus
+integer, dimension(max_blocks) :: iorequest
+integer, dimension(MPI_STATUS_SIZE,max_blocks) :: iostatus
 integer(kind=MPI_OFFSET_KIND) :: offset
 integer :: nsubleafs
 character(len=1024) :: filename, xlabel
@@ -310,7 +310,7 @@ if(xslice>=zero)then
 else
    write(xxlabel(1:1),"(a)") "n"
 endif
-write(filename,"(a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.dat'
+write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//trim(xxlabel)//'_n',slice,'.dat'
 
 if(mype==0) then
    open(unit=slice_fh,file=filename,status='replace')
@@ -351,7 +351,7 @@ if (mype==0) then
    call MPI_FILE_WRITE(slice_fh,nw,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,neqpar+nspecialpar,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,it,1,MPI_INTEGER,status,ierrmpi)
-   call MPI_FILE_WRITE(slice_fh,t,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
+   call MPI_FILE_WRITE(slice_fh,global_time,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
 
    call MPI_FILE_CLOSE(slice_fh,ierrmpi)
 end if
@@ -376,7 +376,7 @@ integer :: amode, iwrite, status(MPI_STATUS_SIZE)
       if(xslice>=zero)then
          write(xxlabel(1:1),"(a)") "+"
       endif
-      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(filenameout)//'_d',dir,'_x'//trim(xxlabel)//'.csv'
+      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//trim(xxlabel)//'.csv'
 
 ! Open for header:       
    if (.not. opened .and. mype==0) then
@@ -408,7 +408,7 @@ integer :: amode, iwrite, status(MPI_STATUS_SIZE)
            MPI_INFO_NULL,slice_fh,ierrmpi)
 
 ! Format the line:
-      write(data,"(es14.6)")t
+      write(data,"(es14.6)")global_time
       line =  trim(data)
       write(data,"(es14.6)")px_sub(1)%x
       line =  trim(line)//', '//trim(data)
@@ -670,8 +670,8 @@ end if
 
 if(nwexpand>0)then
 ! auxiliary io variables can be computed and added by user
-typelimiter=typelimiter1(node(plevel_,igrid))
-typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+typelimiter=limiter(node(plevel_,igrid))
+typegradlimiter=gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
   if (.not.slab) mygeo => pgeo(igrid)
   if (B0field) then
@@ -859,7 +859,7 @@ integer level
 !-----------------------------------------------------------------------------
 select case (dir)
 {case (^D)
-do level = 1, mxnest
+do level = 1, refine_max_level
    igslice(level) = int((x-xprobmin^D)/dg^D(level))+1
 ! Gets out of domain when x==xprobmax^D, not caught by put_slice, so limit:
    if (x>=xprobmax^D) igslice(level) =  int((xprobmax^D-xprobmin^D)/dg^D(level))

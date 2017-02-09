@@ -14,7 +14,7 @@ if(level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) then
    call resettree_convert
 end if
 
-call getbc(t,0.d0,pw,0,nwflux+nwaux)
+call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
 
 !!!call Global_useroutput !compute at user level any global variable over all grids
 
@@ -64,9 +64,9 @@ end subroutine generate_plotfile
 subroutine getheadernames(wnamei,xandwnamei,outfilehead)
 
 ! this collects all variables names in the wnamei character array, getting the info from
-! the primnames/wnames strings (depending on saveprim). It combines this info with names
+! the primnames/w_names strings (depending on saveprim). It combines this info with names
 ! for the dimensional directions in the xandwnamei array. In the outfilehead, it collects
-! the dimensional names, and only those names from the nw variables for output (through writew)
+! the dimensional names, and only those names from the nw variables for output (through w_write)
 ! together with the added names for nwauxio variables
 
   use mod_usr_methods, only: usr_add_aux_names
@@ -83,7 +83,7 @@ logical, save:: first=.true.
 !-----------------------------------------------------------------------------
 
 ! in case additional variables are computed and stored for output, adjust 
-! the wnames and primnames string
+! the w_names and primnames string
 if (nwauxio>0 .and. first) then
    if (.not. associated(usr_add_aux_names)) then
       call mpistop("usr_add_aux_names not defined")
@@ -96,7 +96,7 @@ end if
 if(saveprim) then
    scanstring=TRIM(primnames)
 else
-   scanstring=TRIM(wnames)
+   scanstring=TRIM(w_names)
 endif
 
 space_position=index(scanstring,' ')
@@ -146,10 +146,10 @@ do iw=2,ndim
 write(outfilehead,'(a)')outfilehead(1:len_trim(outfilehead))//" "//TRIM(wname)
 enddo
 }
-! then all nw variables, with writew control for inclusion
+! then all nw variables, with w_write control for inclusion
 do iw=ndim+1,ndim+nw
    wname=xandwnamei(iw)
-   if(writew(iw-ndim)) then
+   if(w_write(iw-ndim)) then
 write(outfilehead,'(a)')outfilehead(1:len_trim(outfilehead))//" "//TRIM(wname)
    endif
 enddo
@@ -170,7 +170,7 @@ if(first.and.mype==0)then
   do iw=ndim+1,ndim+nw+nwauxio
     print *,iw,wnamei(iw-ndim),xandwnamei(iw)
   enddo
-  write(unitterm,*)'time =', t
+  write(unitterm,*)'time =', global_time
   print*,'-----------------------------------------------------------------------------'
   first=.false.
 endif
@@ -184,7 +184,7 @@ subroutine oneblock(qunit)
 ! the data will be all on selected level level_io
 
 ! this version should work for any dimension
-! only writes writew selected 1:nw variables, also nwauxio
+! only writes w_write selected 1:nw variables, also nwauxio
 ! may use saveprim to switch to primitives
 ! this version can not work on multiple CPUs
 ! does not renormalize variables
@@ -200,7 +200,7 @@ integer, intent(in) :: qunit
 
 integer             :: Morton_no,igrid,ix^D,ig^D,level
 integer, pointer    :: ig_to_igrid(:^D&,:)
-logical             :: fileopen,writeblk(ngridshi)
+logical             :: fileopen,writeblk(max_blocks)
 character(len=80)   :: filename
 integer             :: filenr,ncells,ncells^D,ncellg,ncellx^D,jg^D,jig^D
 
@@ -225,13 +225,13 @@ if(npe>1)then
  call mpistop('npe>1, oneblock')
 end if
 
-! only variables selected by writew will be written out
+! only variables selected by w_write will be written out
 normconv(0:nw+nwauxio)=one
 normconv(0:nw)=normvar(0:nw)
-writenw=count(writew(1:nw))+nwauxio
+writenw=count(w_write(1:nw))+nwauxio
 iiw=0
 do iw =1,nw
- if (.not.writew(iw))cycle
+ if (.not.w_write(iw))cycle
  iiw=iiw+1
  iwrite(iiw)=iw
 end do
@@ -325,18 +325,18 @@ Master_cpu_open : if (mype == 0) then
    ! generate filename
     filenr=snapshotini
     if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".blk"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    select case(convert_type)
     case("oneblock")
      open(qunit,file=filename,status='unknown')
      write(qunit,*) TRIM(outfilehead)
      write(qunit,*) ncells,ncells^D
-     write(qunit,*) t*normt
+     write(qunit,*) global_time*time_convert_factor
     case("oneblockB")
      open(qunit,file=filename,form='unformatted',status='unknown')
      write(qunit) outfilehead
      write(qunit) ncells,ncells^D
-     write(qunit) t*normt
+     write(qunit) global_time*time_convert_factor
    end select
  end if
 end if Master_cpu_open
@@ -433,7 +433,7 @@ Master_cpu_open : if (mype == 0) then
    ! generate filename
     filenr=snapshotini
     if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".blk"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    open(qunit,file=filename,status='unknown')
  end if
  write(qunit,"(a)")outfilehead
@@ -497,7 +497,7 @@ subroutine valout_idl(qunit)
 
 ! output for idl macros from (amr)vac
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normt and normvar-array
+! allows renormalizing using time_convert_factor and normvar-array
 
 ! binary output format
 
@@ -531,9 +531,9 @@ if(npe>1)then
  call mpistop('npe>1, valoutidl')
 end if
 
-if(nw/=count(writew(1:nw)))then
- if(mype==0) PRINT *,'valoutidl does not use writew=F'
- call mpistop('writew, valoutidl')
+if(nw/=count(w_write(1:nw)))then
+ if(mype==0) PRINT *,'valoutidl does not use w_write=F'
+ call mpistop('w_write, valoutidl')
 end if
 
 inquire(qunit,opened=fileopen)
@@ -541,12 +541,12 @@ if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
     if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".out"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".out"
    open(qunit,file=filename,status='unknown',form='unformatted')
 end if
 
 write(qunit)fileheadout
-write(qunit)it,t*normt,ndim,neqpar+nspecialpar,nw+nwauxio
+write(qunit)it,global_time*time_convert_factor,ndim,neqpar+nspecialpar,nw+nwauxio
 
 nx^D=ixMhi^D-ixMlo^D+1;
 select case(convert_type)
@@ -566,7 +566,7 @@ call getheadernames(wnamei,xandwnamei,outfilehead)
 tmpnames=TRIM(outfilehead)//' '//TRIM(eqparname)//' '//TRIM(specialparname)
 
 ! use -nleafs to indicate amr grid
-if (nleafs==1 .and. mxnest==1) then
+if (nleafs==1 .and. refine_max_level==1) then
   write(qunit) nxC^D
   write(qunit)eqpar
   write(qunit)tmpnames
@@ -688,7 +688,7 @@ subroutine tecplot(qunit)
 
 ! output for tecplot (ASCII format)
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normt and normvar-array
+! allows renormalizing using time_convert_factor and normvar-array
 
 use mod_global_parameters
 
@@ -725,9 +725,9 @@ if(npe>1)then
  call mpistop('npe>1, tecplot')
 end if
 
-if(nw/=count(writew(1:nw)))then
- if(mype==0) PRINT *,'tecplot does not use writew=F'
- call mpistop('writew, tecplot')
+if(nw/=count(w_write(1:nw)))then
+ if(mype==0) PRINT *,'tecplot does not use w_write=F'
+ call mpistop('w_write, tecplot')
 end if
 
 if(nocartesian)then
@@ -739,7 +739,7 @@ if (.not.fileopen) then
    ! generate filename    
    filenr=snapshotini
    if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".plt"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
    open(qunit,file=filename,status='unknown')
 end if
 
@@ -772,7 +772,7 @@ if(convert_type=='tecline') then
 
    write(qunit,"(a,i7,a,1pe12.5,a)") &
          'ZONE T="all levels", I=',elems, &
-         ', SOLUTIONTIME=',t*normt,', F=POINT' 
+         ', SOLUTIONTIME=',global_time*time_convert_factor,', F=POINT' 
 
    igonlevel=0
    do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -803,7 +803,7 @@ do level=levmin,levmax
        ! and thus we can save full grid info by using one call to calc_grid
        write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevel,', E=',elemsonlevel, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=POINT, ZONETYPE=', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=POINT, ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
        do iigrid=1,igridstail; igrid=igrids(iigrid);
          if (node(plevel_,igrid)/=level) cycle
@@ -827,7 +827,7 @@ do level=levmin,levmax
          ! and just set [ndim+1]
          write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevel,', E=',elemsonlevel, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
        else
@@ -835,13 +835,13 @@ do level=levmin,levmax
          ! difference only in length of integer format specification for ndim+nw+nwauxio
          write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,i1,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevel,', E=',elemsonlevel, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,'-',ndim+nw+nwauxio,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
         else
          write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,i2,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevel,', E=',elemsonlevel, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,'-',ndim+nw+nwauxio,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
         endif
@@ -1062,13 +1062,13 @@ if (nwextra>0) then
  do idims=1,ndim
   select case(idims)
    {case(^D)
-     jxCmin^DD=ixGhi^D+1-dixB^D%jxCmin^DD=ixGlo^DD;
+     jxCmin^DD=ixGhi^D+1-nghostcells^D%jxCmin^DD=ixGlo^DD;
      jxCmax^DD=ixGhi^DD;
      do ix^D=jxCmin^D,jxCmax^D
          w(ix^D^D%jxC^S,nw-nwextra+1:nw) = w(jxCmin^D-1^D%jxC^S,nw-nwextra+1:nw)
      end do 
      jxCmin^DD=ixGlo^DD;
-     jxCmax^DD=ixGlo^D-1+dixB^D%jxCmax^DD=ixGhi^DD;
+     jxCmax^DD=ixGlo^D-1+nghostcells^D%jxCmax^DD=ixGhi^DD;
      do ix^D=jxCmin^D,jxCmax^D
          w(ix^D^D%jxC^S,nw-nwextra+1:nw) = w(jxCmax^D+1^D%jxC^S,nw-nwextra+1:nw)
      end do \}
@@ -1078,8 +1078,8 @@ end if
 
 ! next lines needed when usr_aux_output uses gradients
 ! and later on when dwlimiter2 is used 
-typelimiter=typelimiter1(node(plevel_,igrid))
-typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+typelimiter=limiter(node(plevel_,igrid))
+typegradlimiter=gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 if(nwauxio>0)then
   ! auxiliary io variables can be computed and added by user
@@ -1403,7 +1403,7 @@ if(.not.fileopen)then
   ! generate filename 
    filenr=snapshotini
    if (autoconvert) filenr=snapshot-1
-  write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vtu"
+  write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown')
 endif
@@ -1419,7 +1419,7 @@ write(qunit,'(a)')'<UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,*) dble(dble(t)*normt)
+write(qunit,*) dble(dble(global_time)*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -1429,7 +1429,7 @@ nxC^D=nx^D+1;
 nc={nx^D*}
 np={nxC^D*}
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 do level=levmin,levmax
  if (writelevel(level)) then
@@ -1450,7 +1450,7 @@ do level=levmin,levmax
          write(qunit,'(a)')'<PointData>'
          do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
             write(qunit,'(a,a,a)')&
@@ -1477,7 +1477,7 @@ do level=levmin,levmax
          write(qunit,'(a)')'<CellData>'
          do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
             write(qunit,'(a,a,a)')&
@@ -1630,7 +1630,7 @@ else
    ! generate filename 
     filenr=snapshotini
     if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vtu"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='replace')
  endif
@@ -1646,7 +1646,7 @@ else
  write(qunit,'(a)')'<FieldData>'
  write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                     'NumberOfTuples="1" format="ascii">'
- write(qunit,*) real(t*normt)
+ write(qunit,*) real(global_time*time_convert_factor)
  write(qunit,'(a)')'</DataArray>'
  write(qunit,'(a)')'</FieldData>'
  
@@ -1663,7 +1663,7 @@ else
  length_conn=2**^ND*size_int*nc
  length_offsets=nc*size_int
 
- ! Note: using the writew, writelevel, writespshift
+ ! Note: using the w_write, writelevel, writespshift
  do Morton_no=Morton_start(0),Morton_stop(0)
     if(.not. Morton_aim(Morton_no)) cycle
     if(cell_corner) then
@@ -1673,7 +1673,7 @@ else
       write(qunit,'(a)')'<PointData>'
       do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
          write(qunit,'(a,a,a,i16,a)')&
@@ -1697,7 +1697,7 @@ else
       write(qunit,'(a)')'<CellData>'
       do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
          write(qunit,'(a,a,a,i16,a)')&
@@ -1749,7 +1749,7 @@ else
         write(qunit,'(a)')'<PointData>'
         do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
            write(qunit,'(a,a,a,i16,a)')&
@@ -1773,7 +1773,7 @@ else
         write(qunit,'(a)')'<CellData>'
         do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
            write(qunit,'(a,a,a,i16,a)')&
@@ -1830,7 +1830,7 @@ else
                   ixC^L,ixCC^L,.true.)
    do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
      if(cell_corner) then
        write(qunit) length
@@ -1900,7 +1900,7 @@ else
       end if
       do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
         if(cell_corner) then
           write(qunit) length
@@ -2045,9 +2045,9 @@ if(npe>1)then
  call mpistop('npe>1, valoutdx')
 end if
 
-if(nw/=count(writew(1:nw)))then
- if(mype==0) PRINT *,'valoutdx does not use writew=F'
- call mpistop('writew, valoutdx')
+if(nw/=count(w_write(1:nw)))then
+ if(mype==0) PRINT *,'valoutdx does not use w_write=F'
+ call mpistop('w_write, valoutdx')
 end if
 
 if(saveprim)then
@@ -2062,13 +2062,13 @@ end if
 
 if (B0field) call mpistop("No B0 field implemented in dx plotfile")
 
-nx^D=ixGhi^D-2*dixB;
+nx^D=ixGhi^D-2*nghostcells;
 
 byteorder = 'lsb'
    ! generate filename    
    filenr=snapshotini
    if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".plt"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
 
 call date_and_time(dummy_date,dummy_time,dummy_zone,DateAndTime)
 
@@ -2181,7 +2181,7 @@ write(qunit,'(a,x,i11,a)') &
 write(qunit,'(100(x,i11))') NumGridsOnLevel(levmin:levmax)
 write(qunit,'(a)') '#'
 !
-! wnames array
+! w_names array
 !
 write(qunit,'(a,x,i11,a)') &
   'object "wnamesarray" class array type string rank 1 shape 80 items ', &
@@ -2214,10 +2214,10 @@ write(qunit,'(a,x,i11)') 'attribute "ndim"     number ',ndim
 write(qunit,'(a,x,i11)') 'attribute "ndir"     number ',ndir
 write(qunit,'(a,x,i11)') 'attribute "nw"       number ',nw+nwauxio
 write(qunit,'(a,x,i11)') 'attribute "timestep" number ',it
-write(qunit,'(a,f25.16)')'attribute "time"     number ',t *normt
+write(qunit,'(a,f25.16)')'attribute "time"     number ',global_time *time_convert_factor
 write(qunit,'(a)')   'attribute "eqpar"    value "eqpararray"'
 write(qunit,'(a)')   'attribute "ngrids"   value "ngridsonlevarray"'
-write(qunit,'(a)')   'attribute "wnames"   value "wnamesarray"'
+write(qunit,'(a)')   'attribute "w_names"   value "wnamesarray"'
 write(qunit,'(a)') '#'
 
 ! denote the end of the header section
@@ -2256,7 +2256,7 @@ double precision, intent(in) :: w(ixG^S,1:nw)
 
 integer :: ixM^L, ix^D, iw
 !-----------------------------------------------------------------------------
-ixM^L=ixG^L^LSUBdixB;
+ixM^L=ixG^L^LSUBnghostcells;
 
 ! We write the arrays in row-major order (C/DX style) for the spatial indices
 write(qunit) ({(|}w(ix^D,iw)*normvar(iw),iw=1,nw),{ix^DB=ixMmin^DB,ixMmax^DB)}
@@ -2270,7 +2270,7 @@ subroutine ImageDataVtk_mpi(qunit)
 ! output for vti format to paraview, non-binary version output
 ! parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normvar-array
-! allows skipping of writew selected variables
+! allows skipping of w_write selected variables
 
 ! implementation such that length of ASCII output is identical when 
 ! run on 1 versus multiple CPUs (however, the order of the vtu pieces can differ)
@@ -2355,7 +2355,7 @@ else
     ! generate filename 
     filenr=snapshotini
     if (autoconvert) filenr=snapshot-1
-    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vti"
+    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vti"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
  endif
@@ -2387,7 +2387,7 @@ write(qunit,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',&
  write(qunit,'(a)')'<FieldData>'
  write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                     'NumberOfTuples="1" format="ascii">'
- write(qunit,*) real(t*normt)
+ write(qunit,*) real(global_time*time_convert_factor)
  write(qunit,'(a)')'</DataArray>'
  write(qunit,'(a)')'</FieldData>'
 
@@ -2469,7 +2469,7 @@ if(.not.fileopen)then
    filenr=snapshotini
    if (autoconvert) filenr=snapshot-1
    ! Open the file for the header part
-   write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(filenameout),filenr,"p",mype,".vtu"
+   write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')
 endif
 ! generate xml header
@@ -2481,7 +2481,7 @@ write(qunit,'(a)')'  <UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,*) real(t*normt)
+write(qunit,*) real(global_time*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -2493,7 +2493,7 @@ nxC^D=nx^D+1;
 nc={nx^D*}
 np={nxC^D*}
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 do level=levmin,levmax
    if (.not.writelevel(level)) cycle
@@ -2530,7 +2530,7 @@ subroutine unstructuredvtk_mpi(qunit)
 ! output for vtu format to paraview, non-binary version output
 ! parallel, uses calc_grid to compute nwauxio variables
 ! allows renormalizing using normvar-array
-! allows skipping of writew selected variables
+! allows skipping of w_write selected variables
 
 ! implementation such that length of ASCII output is identical when 
 ! run on 1 versus multiple CPUs (however, the order of the vtu pieces can differ)
@@ -2571,7 +2571,7 @@ if (mype==0) then
     ! generate filename 
     filenr=snapshotini
     if (autoconvert) filenr=snapshot-1
-    write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".vtu"
+    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
  endif
@@ -2584,7 +2584,7 @@ if (mype==0) then
  write(qunit,'(a)')'<FieldData>'
  write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                     'NumberOfTuples="1" format="ascii">'
- write(qunit,*) real(t*normt)
+ write(qunit,*) real(global_time*time_convert_factor)
  write(qunit,'(a)')'</DataArray>'
  write(qunit,'(a)')'</FieldData>'
 end if
@@ -2608,7 +2608,7 @@ if  (mype/=0) then
 end if
 
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 do level=levmin,levmax
    if (.not.writelevel(level)) cycle
@@ -2739,7 +2739,7 @@ select case(convert_type)
       write(qunit,'(a)')'<PointData>'
       do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
             write(qunit,'(a,a,a)')&
@@ -2767,7 +2767,7 @@ select case(convert_type)
       write(qunit,'(a)')'<CellData>'
       do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
             write(qunit,'(a,a,a)')&
           '<DataArray type="Float64" Name="',TRIM(wnamei(iw)),'" format="ascii">'
@@ -2849,7 +2849,7 @@ select case(convert_type)
       write(qunit,'(a)')'<PointData>'
       do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
 
             write(qunit,'(a,a,a)')&
@@ -2866,7 +2866,7 @@ select case(convert_type)
       write(qunit,'(a)')'<CellData>'
       do iw=1,nw+nwauxio
          if(iw<=nw) then 
-            if(.not.writew(iw)) cycle
+            if(.not.w_write(iw)) cycle
          endif
             write(qunit,'(a,a,a)')&
           '<DataArray type="Float64" Name="',TRIM(wnamei(iw)),'" format="ascii">'
@@ -2903,7 +2903,7 @@ if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
    if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".pvtu"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".pvtu"
    ! Open the file
    open(qunit,file=filename,status='unknown',form='formatted')
 endif
@@ -2913,7 +2913,7 @@ call getheadernames(wnamei,xandwnamei,outfilehead)
 ! Get the default selection:
 iscalars=1
 do iw=nw,1, -1
-   if (writew(iw)) iscalars=iw
+   if (w_write(iw)) iscalars=iw
 end do
 
 
@@ -2927,7 +2927,7 @@ write(qunit,'(a)')'  <PUnstructuredGrid GhostLevel="0">'
 write(qunit,'(a,a,a,a,a)')&
      '    <',TRIM(outtype),' Scalars="',TRIM(wnamei(iscalars))//'">'
 do iw=1,nw
-   if(.not.writew(iw))cycle
+   if(.not.w_write(iw))cycle
    write(qunit,'(a,a,a)')&
         '      <PDataArray type="Float32" Name="',TRIM(wnamei(iw)),'"/>'
 end do
@@ -2942,9 +2942,9 @@ write(qunit,'(a)')'      <PDataArray type="Float32" NumberOfComponents="3"/>'
 write(qunit,'(a)')'    </PPoints>'
 
 do ipe=0,npe-1
-   write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(filenameout(&
-        INDEX (filenameout, '/', BACK = .TRUE.)+1:&
-        LEN(filenameout))),filenr,"p",&
+   write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename(&
+        INDEX (base_filename, '/', BACK = .TRUE.)+1:&
+        LEN(base_filename))),filenr,"p",&
         ipe,".vtu"
    write(qunit,'(a,a,a)')'    <Piece Source="',TRIM(pfilename),'"/>'
 end do
@@ -2959,7 +2959,7 @@ subroutine tecplot_mpi(qunit)
 
 ! output for tecplot (ASCII format)
 ! parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normt and normvar-array
+! allows renormalizing using time_convert_factor and normvar-array
 
 ! the current implementation is such that tecplotmpi and tecplotCCmpi will 
 ! create different length output ASCII files when used on 1 versus multiple CPUs
@@ -3001,9 +3001,9 @@ character(len=1024) :: tecplothead
 character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 !-----------------------------------------------------------------------------
-if(nw/=count(writew(1:nw)))then
- if(mype==0) PRINT *,'tecplot_mpi does not use writew=F'
- call mpistop('writew, tecplot')
+if(nw/=count(w_write(1:nw)))then
+ if(mype==0) PRINT *,'tecplot_mpi does not use w_write=F'
+ call mpistop('w_write, tecplot')
 end if
 
 if(nocartesian)then
@@ -3016,7 +3016,7 @@ Master_cpu_open : if (mype == 0) then
    ! generate filename
     filenr=snapshotini
     if (autoconvert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".plt"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
    open(qunit,file=filename,status='unknown')
  end if
 
@@ -3069,7 +3069,7 @@ if(convert_type=='teclinempi') then
 
    if (mype==0) write(qunit,"(a,i7,a,1pe12.5,a)") &
          'ZONE T="all levels", I=',elems, &
-         ', SOLUTIONTIME=',t*normt,', F=POINT' 
+         ', SOLUTIONTIME=',global_time*time_convert_factor,', F=POINT' 
 
    igonlevel=0
    do Morton_no=Morton_start(mype),Morton_stop(mype)
@@ -3138,7 +3138,7 @@ do level=levmin,levmax
        if (mype==0.and.(nodesonlevelmype>0.and.elemsonlevelmype>0))&
         write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,a)") &
              'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-             ', SOLUTIONTIME=',t*normt,', DATAPACKING=POINT, ZONETYPE=', &
+             ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=POINT, ZONETYPE=', &
           {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
       do Morton_no=Morton_start(mype),Morton_stop(mype)
          igrid = sfc_to_igrid(Morton_no)
@@ -3182,7 +3182,7 @@ do level=levmin,levmax
          if (mype==0.and.(nodesonlevelmype>0.and.elemsonlevelmype>0))&
           write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
        else
@@ -3191,14 +3191,14 @@ do level=levmin,levmax
          if (mype==0.and.(nodesonlevelmype>0.and.elemsonlevelmype>0))&
           write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,i1,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,'-',ndim+nw+nwauxio,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
         else
          if (mype==0.and.(nodesonlevelmype>0.and.elemsonlevelmype>0))&
           write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,i2,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,'-',ndim+nw+nwauxio,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
         endif
@@ -3304,7 +3304,7 @@ if (mype==0) then
         if(nodesonlevelmype>0.and.elemsonlevelmype>0) &
         write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,a)") &
              'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-             ', SOLUTIONTIME=',t*normt,', DATAPACKING=POINT, ZONETYPE=', &
+             ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=POINT, ZONETYPE=', &
           {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
         do  Morton_no=Morton_start(ipe),Morton_stop(ipe)
          itag=Morton_no
@@ -3345,7 +3345,7 @@ if (mype==0) then
          if(nodesonlevelmype>0.and.elemsonlevelmype>0) &
          write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
        else
@@ -3354,14 +3354,14 @@ if (mype==0) then
          if(nodesonlevelmype>0.and.elemsonlevelmype>0) &
          write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,i1,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,'-',ndim+nw+nwauxio,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
         else
          if(nodesonlevelmype>0.and.elemsonlevelmype>0) &
          write(qunit,"(a,i7,a,a,i7,a,i7,a,f25.16,a,i1,a,i2,a,a)") &
             'ZONE T="',level,'"',', N=',nodesonlevelmype,', E=',elemsonlevelmype, &
-            ', SOLUTIONTIME=',t*normt,', DATAPACKING=BLOCK, VARLOCATION=([', &
+            ', SOLUTIONTIME=',global_time*time_convert_factor,', DATAPACKING=BLOCK, VARLOCATION=([', &
             ndim+1,'-',ndim+nw+nwauxio,']=CELLCENTERED), ZONETYPE=', &
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
         endif
@@ -3482,7 +3482,7 @@ if(.not.fileopen)then
    filenr=snapshotini
    if (autoconvert) filenr=snapshot-1
    ! Open the file for the header part
-   write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(filenameout),filenr,"p",mype,".vtu"
+   write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')
 endif
 ! generate xml header
@@ -3494,7 +3494,7 @@ write(qunit,'(a)')'  <UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,*) real(t*normt)
+write(qunit,*) real(global_time*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -3520,7 +3520,7 @@ length_coords=3*length
 length_conn=2**^ND*size_int*nc
 length_offsets=nc*size_int
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 do level=levmin,levmax
  if (writelevel(level)) then
@@ -3539,7 +3539,7 @@ do level=levmin,levmax
             '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<PointData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
 
             write(qunit,'(a,a,a,i16,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
@@ -3569,7 +3569,7 @@ do level=levmin,levmax
             '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<CellData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
 
             write(qunit,'(a,a,a,i16,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
@@ -3647,7 +3647,7 @@ do level=levmin,levmax
         call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                        ixC^L,ixCC^L,.true.)
         do iw=1,nw
-          if(.not.writew(iw))cycle
+          if(.not.w_write(iw))cycle
           select case(convert_type)
             case('pvtuBmpi')
               write(qunit) length
