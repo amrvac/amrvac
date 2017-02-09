@@ -76,7 +76,7 @@ neighbor_active = .true.
             kgrid=kgrid+1
             igrids_passive(kgrid)=igrid
          end if
-!     Create the neighbor w_for_refine:
+!     Create the neighbor flags:
          call set_neighbor_state(igrid)
       end do
       igridstail_active  = jgrid

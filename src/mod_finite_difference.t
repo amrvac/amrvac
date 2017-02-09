@@ -1,0 +1,349 @@
+module mod_finite_difference
+
+  implicit none
+  private
+
+  public :: fd
+  public :: centdiff
+  public :: centdiff4
+
+contains
+
+  subroutine fd(method,qdt,ixI^L,ixO^L,idim^LIM, &
+       qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+    use mod_physics
+    use mod_source, only: addsource2
+    use mod_global_parameters
+
+    character(len=*), intent(in)                                     :: method
+    double precision, intent(in)                                     :: qdt, qtC, qt, dx^D
+    integer, intent(in)                                              :: ixI^L, ixO^L, idim^LIM
+    double precision, dimension(ixI^S,1:ndim), intent(in)            :: x
+
+    double precision, dimension(ixI^S,1:nw), intent(inout)           :: wCT, wnew, wold
+    double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
+
+    double precision, dimension(ixI^S,1:nwflux)                      :: fCT
+    double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL
+    double precision, dimension(ixI^S)                               :: v
+    double precision                                                 :: dxinv(1:ndim), dxdims
+    logical                                                          :: transport
+    integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L, ixCR^L
+
+    ^D&dxinv(^D)=-qdt/dx^D;
+    do idims= idim^LIM
+
+       select case (idims)
+          {case (^D) 
+          dxdims = dx^D\}
+       end select
+       if (B0field) then
+          myB0 => myB0_cell
+       end if
+
+       ! Get fluxes for the whole grid (mesh+nghostcells)
+       {^D& ixCmin^D = ixOmin^D - nghostcells * kr(idims,^D)\}
+       {^D& ixCmax^D = ixOmax^D + nghostcells * kr(idims,^D)\}
+
+       hxO^L=ixO^L-kr(idims,^D);
+       ! ix is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
+       ixmax^D=ixOmax^D; ixmin^D=hxOmin^D;
+
+       {^D& ixCRmin^D = ixCmin^D + kr(idims,^D)*phys_wider_stencil\}
+       {^D& ixCRmax^D = ixCmax^D - kr(idims,^D)*phys_wider_stencil\}
+
+       call phys_get_flux(wCT,x,ixG^LL,ixCR^L,idims,fCT)
+
+       do iw=1,nwflux
+          ! Lax-Friedrich splitting:
+          fp(ixCR^S,iw) = half * (fCT(ixCR^S,iw) + tvdlfeps * cmax_global * wCT(ixCR^S,iw))
+          fm(ixCR^S,iw) = half * (fCT(ixCR^S,iw) - tvdlfeps * cmax_global * wCT(ixCR^S,iw))
+       end do ! iw loop
+
+       ! now do the reconstruction of fp and fm:
+       call reconstructL(ixI^L,ix^L,idims,fp,fpL,dxdims)
+       call reconstructR(ixI^L,ix^L,idims,fm,fmR,dxdims)
+
+       do iw=1,nwflux
+          if (slab) then
+             fC(ix^S,iw,idims) = dxinv(idims) * (fpL(ix^S,iw) + fmR(ix^S,iw))
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+          else
+             select case (idims)
+                {case (^D)
+                fC(ix^S,iw,^D)=-qdt*mygeo%surfaceC^D(ix^S) * (fpL(ix^S,iw) + fmR(ix^S,iw))
+                wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+             end select
+          end if
+       end do ! iw loop
+
+    end do !idims loop
+
+    if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
+    call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+
+
+  end subroutine fd
+
+  subroutine reconstructL(ixI^L,iL^L,idims,w,wLC,dxdims)
+    use mod_global_parameters
+    use mod_mp5
+    use mod_limiter
+
+    integer, intent(in)             :: ixI^L, iL^L, idims
+    double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
+
+    double precision, intent(out)   :: wLC(ixI^S,1:nw) 
+
+    double precision                :: ldw(ixI^S), dwC(ixI^S)
+    integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
+    character*79                    :: savetypelimiter
+
+    select case (typelimiter)
+    case ('mp5')
+       call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
+    case default 
+
+       kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+
+       wLC(kxC^S,1:nwflux) = w(kxC^S,1:nwflux)
+
+       jxR^L=iL^L+kr(idims,^D);
+
+       ixCmax^D=jxRmax^D; ixCmin^D=iLmin^D-kr(idims,^D);
+       jxC^L=ixC^L+kr(idims,^D);
+
+       do iw=1,nwflux
+          dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
+
+          savetypelimiter=typelimiter
+          if(savetypelimiter=='koren') typelimiter='korenL'
+          if(savetypelimiter=='cada')  typelimiter='cadaL'
+          if(savetypelimiter=='cada3') typelimiter='cada3L'
+          call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdims)
+          typelimiter=savetypelimiter
+
+          wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
+       end do
+    end select
+
+  end subroutine reconstructL
+
+  subroutine reconstructR(ixI^L,iL^L,idims,w,wRC,dxdims)
+    use mod_global_parameters
+    use mod_mp5
+    use mod_limiter
+
+    integer, intent(in)             :: ixI^L, iL^L, idims
+    double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
+
+    double precision, intent(out)   :: wRC(ixI^S,1:nw) 
+
+    double precision                :: ldw(ixI^S), dwC(ixI^S)
+    integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
+    character*79                    :: savetypelimiter
+
+    select case (typelimiter)
+    case ('mp5')
+       call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
+    case default 
+
+       kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+       kxR^L=kxC^L+kr(idims,^D);
+
+       wRC(kxC^S,1:nwflux)=w(kxR^S,1:nwflux)
+
+       jxR^L=iL^L+kr(idims,^D);
+       ixCmax^D=jxRmax^D; ixCmin^D=iLmin^D-kr(idims,^D);
+       jxC^L=ixC^L+kr(idims,^D);
+
+       do iw=1,nwflux
+          dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
+
+          savetypelimiter=typelimiter
+          if(savetypelimiter=='koren') typelimiter='korenR'
+          if(savetypelimiter=='cada')  typelimiter='cadaR'
+          if(savetypelimiter=='cada3') typelimiter='cada3R'
+          call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdims)
+          typelimiter=savetypelimiter
+
+          wRC(iL^S,iw)=wRC(iL^S,iw)-half*ldw(jxR^S)
+       end do
+    end select
+
+  end subroutine reconstructR
+
+  subroutine centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
+
+    ! Advance the iws flow variables from global_time to global_time+qdt within ixO^L by centered 
+    ! differencing in space the dw/dt+dF_i(w)/dx_i=S type equation. 
+    ! wCT contains the time centered variables at time qtC for flux and source.
+    ! w is the old value at qt on input and the new value at qt+qdt on output.
+    use mod_physics
+    use mod_limiter
+    use mod_global_parameters
+    use mod_source, only: addsource2
+
+    integer, intent(in) :: ixI^L, ixO^L, idim^LIM
+    double precision, intent(in) :: qdt, qtC, qt, dx^D
+    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+
+    double precision :: f(ixI^S, nwflux)
+    double precision :: dxinv(1:ndim)
+    integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L
+    logical :: transport
+
+    ! An extra layer is needed in each direction for which fluxes are added.
+    ix^L=ixO^L;
+    do idims= idim^LIM
+       ix^L=ix^L^LADDkr(idims,^D);
+    end do
+    if (ixI^L^LTix^L|.or.|.or.) then
+       call mpistop("Error in CentDiff: Non-conforming input limits")
+    end if
+
+    ^D&dxinv(^D)=-qdt/dx^D;
+
+    ! Add fluxes to w
+    do idims= idim^LIM
+       ix^L=ixO^L^LADDkr(idims,^D); ixCmin^D=ixmin^D; ixCmax^D=ixOmax^D;
+       jxC^L=ixC^L+kr(idims,^D); 
+       hxO^L=ixO^L-kr(idims,^D);
+
+       call phys_get_flux(wCT,x,ixI^L,ix^L,idims,f)
+
+       do iw=1,nwflux
+          ! Center flux to interface
+          fC(ixC^S,iw,idims)=half*(f(ixC^S, iw)+f(jxC^S, iw))
+          if (slab) then
+             fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
+             w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+          else
+             select case (idims)
+                {case (^D)
+                fC(ixC^S,iw,^D)=-qdt*mygeo%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
+                w(ixO^S,iw)=w(ixO^S,iw)+ &
+                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+             end select
+          end if
+       end do    !next iw
+    end do       !next idims
+
+    if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+    call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
+
+  end subroutine centdiff
+
+  subroutine centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
+
+    ! Advance the flow variables from global_time to global_time+qdt within ixO^L by
+    ! fourth order centered differencing in space 
+    ! for the dw/dt+dF_i(w)/dx_i=S type equation.
+    ! wCT contains the time centered variables at time qtC for flux and source.
+    ! w is the old value at qt on input and the new value at qt+qdt on output.
+    use mod_physics
+    use mod_finite_volume, only: upwindLR
+    use mod_global_parameters
+    use mod_source, only: addsource2
+
+    integer, intent(in) :: ixI^L, ixO^L, idim^LIM
+    double precision, intent(in) :: qdt, qtC, qt, dx^D
+    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+
+    double precision :: v(ixI^S,ndim), f(ixI^S, nwflux)
+
+    double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
+    double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
+
+    double precision :: dxinv(1:ndim), dxdim
+    integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
+    logical :: transport, new_cmax, patchw(ixI^S)
+
+    ! two extra layers are needed in each direction for which fluxes are added.
+    ix^L=ixO^L;
+    do idims= idim^LIM
+       ix^L=ix^L^LADD2*kr(idims,^D);
+    end do
+
+    if (ixI^L^LTix^L|.or.|.or.) then
+       call mpistop("Error in CentDiff4: Non-conforming input limits")
+    end if
+
+    ^D&dxinv(^D)=-qdt/dx^D;
+
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+
+    ! Add fluxes to w
+    do idims= idim^LIM
+       if (B0field) then
+          select case (idims)
+             {case (^D)
+             myB0 => myB0_face^D\}
+          end select
+       end if
+
+       ix^L=ixO^L^LADD2*kr(idims,^D); 
+       hxO^L=ixO^L-kr(idims,^D);
+
+       ixCmin^D=hxOmin^D; ixCmax^D=ixOmax^D;
+       hxC^L=ixC^L-kr(idims,^D); 
+       jxC^L=ixC^L+kr(idims,^D); 
+       kxC^L=ixC^L+2*kr(idims,^D); 
+
+       kkxCmin^D=ixImin^D; kkxCmax^D=ixImax^D-kr(idims,^D);
+       kkxR^L=kkxC^L+kr(idims,^D);
+       wRC(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
+       wLC(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
+
+       dxdim=-qdt/dxinv(idims)
+       call upwindLR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim)
+
+       ! Calculate velocities from upwinded values
+       call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
+       call phys_get_cmax(wRC,x,ixG^LL,ixC^L,idims,cmaxRC)
+       ! now take the maximum of left and right states
+       vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
+
+       call phys_get_flux(wCT,x,ixI^L,ix^L,idims,f)
+
+       do iw=1,nwflux
+          ! Center flux to interface
+          ! f_i+1/2= (-f_(i+2) +7 f_(i+1) + 7 f_i - f_(i-1))/12
+          fC(ixC^S,iw,idims)=(-f(kxC^S, iw)+7.0d0*(f(jxC^S, iw) + &
+               f(ixC^S, iw))-f(hxC^S, iw))/12.0d0
+          ! add rempel dissipative flux, only second order version for now
+          fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-half*vLC(ixC^S) &
+               *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+
+          if (slab) then
+             fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
+             ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)+f_(i-1))-f_(i-2)]/12
+             w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+          else
+             select case (idims)
+                {case (^D)
+                fC(ixC^S,iw,^D)=-qdt*mygeo%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
+                w(ixO^S,iw)=w(ixO^S,iw)+ &
+                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+             end select
+          end if
+       end do    !next iw
+    end do       !next idims
+
+    if (.not.slab.and.idimmin==1) &
+         call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+    call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
+
+  end subroutine centdiff4
+
+end module mod_finite_difference
