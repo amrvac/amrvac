@@ -219,9 +219,6 @@ module mod_global_parameters
   !> \f$ dt < dtdiffpar \times dx^2/eta \f$
   double precision :: dtdiffpar
 
-  !> How to compute the residual
-  character(len=std_len) :: typeresid
-
   !> Under construction
   !> \todo Remove time_accurate?
   logical :: time_accurate
@@ -244,15 +241,6 @@ module mod_global_parameters
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
 
-  !> \todo Remove residmin?
-  double precision :: residmin
-
-  !> \todo Remove residmax?
-  double precision :: residmax
-
-  !> \todo Remove residual?
-  double precision :: residual
-
   !> Save output of type N on times tsave(:, N)
   double precision :: tsave(nsavehi,nfile)
 
@@ -264,10 +252,6 @@ module mod_global_parameters
 
   !> Slice coordinates, see @ref slices.md
   double precision :: slicecoord(nslicemax)
-
-  !> If true, the last time step will be reduced so that the final time is the
-  !> end time of the simulation
-  logical :: time_max_exact
 
   !> If true, reset iteration count and global_time to original values, and
   !> start writing snapshots at index 0

@@ -103,8 +103,7 @@ contains
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
          slicecoord,collapse,collapseLevel
-    namelist /stoplist/ itmax,time_max,time_max_exact,dtmin,global_time,it,residmin,&
-         residmax,typeresid
+    namelist /stoplist/ itmax,time_max,dtmin,global_time,it
     namelist /methodlist/ w_names,fileheadout,time_integrator, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
@@ -193,11 +192,6 @@ contains
     normvar(0:nw) = one
     time_convert_factor         = one
 
-    ! residual defaults
-    residmin  = -1.0d0
-    residmax  = bigdouble
-    typeresid = 'relative'
-
     ! AMR related defaults
     refine_max_level                      = 1
     {nbufferx^D                 = 0\}
@@ -239,7 +233,6 @@ contains
     ! IO defaults
     itmax         = biginteger
     time_max          = bigdouble
-    time_max_exact     = .true.
     dtmin         = 1.0d-10
     typeparIO     = 0
     nslices       = 0
@@ -443,11 +436,6 @@ contains
 
     if(itmax==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: itmax or time_max not given!'
-
-    if(residmin>=zero) then
-       if (mype==0) write(unitterm,*)"SS computation with input value residmin"
-       if(residmin<=smalldouble) call mpistop("Provide value for residual above smalldouble")
-    end if
 
     if(TRIM(w_names)=='default') call mpistop("Provide w_names and restart code")
 
@@ -1721,8 +1709,8 @@ contains
 
        ! Construct the line to be added to the log
 
-       fmt_string = '(' // fmt_i // ',3' // fmt_r // ')'
-       write(line, fmt_string) it, global_time, dt, residual
+       fmt_string = '(' // fmt_i // ',2' // fmt_r // ')'
+       write(line, fmt_string) it, global_time, dt
        i = len_trim(line) + 2
 
        write(fmt_string, '(a,i0,a)') '(', nw, fmt_r // ')'

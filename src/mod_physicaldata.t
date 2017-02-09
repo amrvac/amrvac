@@ -17,7 +17,7 @@ module mod_physicaldata
    end type walloc_sub
 }
    ! array of physical variables
-   type(walloc), dimension(:), allocatable :: pw, pwold, pw1, pw2, pw3, pw4, pwres,&
+   type(walloc), dimension(:), allocatable :: pw, pwold, pw1, pw2, pw3, pw4, &
                                               pwCoarse, pwio
    type(walloc), dimension(:), allocatable, target :: pB0_cell,  pB0_face^D
 {#IFDEF BOUNDARYDRIVER

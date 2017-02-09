@@ -10,7 +10,7 @@ integer :: igrid, level, ipe, ig^D
 logical :: ok
 !-----------------------------------------------------------------------------
 allocate(pw(max_blocks),pwold(max_blocks),pw1(max_blocks),pw2(max_blocks),pw3(max_blocks))
-allocate(pw4(max_blocks),pwres(max_blocks),pwCoarse(max_blocks),pwio(max_blocks))
+allocate(pw4(max_blocks),pwCoarse(max_blocks),pwio(max_blocks))
 allocate(pB0_cell(max_blocks),pB0_face^D(max_blocks))
 allocate(pw_sub(max_blocks))
 allocate(px(max_blocks),pxCoarse(max_blocks),px_sub(max_blocks))
@@ -31,12 +31,6 @@ end if
 
 dt=zero
 itmin=0
-
-if (residmin > smalldouble) then
-   residual = one
-else
-   residual = zero
-endif
 
 ! set all dt to zero
 dt_grid(1:max_blocks)=zero
@@ -102,9 +96,6 @@ do igrid=1,max_blocks
    if (nstep>4) then
       nullify(pw4(igrid)%w)
    end if
-   if (residmin>smalldouble) then
-     nullify(pwres(igrid)%w)
-  end if
 end do
 
 ! on each processor, create for later use a default patch array

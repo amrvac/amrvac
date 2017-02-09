@@ -211,11 +211,6 @@ contains
 
        call advance(it)
 
-       if (residmin>smalldouble) then
-          call getresidual(it)
-       endif
-       if (residual<residmin .or. residual>residmax) exit time_evol
-
        ! resetting of tree BEFORE IO and setdt
        timegr0=MPI_WTIME()
        if(ditregrid>1) then
