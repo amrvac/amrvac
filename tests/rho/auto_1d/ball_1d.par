@@ -6,7 +6,6 @@
 
  &filelist
         base_filename='ball_1d'
-        filenamelog='ball_1d'
         typefilelog='regression_test'
         primnames='rho'
     	convert_type='vtuBCCmpi'

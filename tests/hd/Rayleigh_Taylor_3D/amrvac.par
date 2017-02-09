@@ -2,7 +2,6 @@
 
 &filelist
   primnames        = 'rho v1 v2 v3 p'
-  filenamelog      = 'rthd_3d'
   base_filename      = 'rthd_3d'
   autoconvert      = .true.
   convert_type     = 'vtuBCCmpi'

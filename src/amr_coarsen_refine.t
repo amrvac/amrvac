@@ -122,7 +122,7 @@ type(tree_node_ptr) :: tree, p_neighbor, my_parent, sibling, my_neighbor, &
                        neighborchild
 !-----------------------------------------------------------------------------
 
-! For all grids on all processors, do a check on refinement w_for_refine. Make
+! For all grids on all processors, do a check on refinement-flags. Make
 ! sure that neighbors will not differ more than one level of refinement.
 
 if (nbufferx^D/=0|.or.) then
@@ -167,7 +167,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    if (refine(igrid,mype).and.coarsen(igrid,mype)) coarsen(igrid,mype)=.false.
 end do
 
-! For all grids on all processors, do a check on coarsen flags.
+! For all grids on all processors, do a check on coarse refinement-flags.
 sendbuf(:)=coarsen(:,mype)
 call MPI_ALLGATHER(sendbuf,max_blocks,MPI_LOGICAL,coarsen,max_blocks, &
                    MPI_LOGICAL,icomm,ierrmpi)

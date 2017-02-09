@@ -8,7 +8,6 @@
 
  &filelist
         base_filename='vac_2d'
-        filenamelog='vac_2d'
         typefilelog='regression_test'
         primnames='rho'
     	convert_type='vtuBCCmpi'

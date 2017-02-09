@@ -10,7 +10,6 @@
 
  &filelist
         base_filename='ball_3d'
-        filenamelog='ball_3d'
         typefilelog='regression_test'
         primnames='rho'
     	convert_type='vtuBCCmpi'

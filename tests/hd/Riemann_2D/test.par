@@ -2,8 +2,8 @@
 
  &filelist
         primnames= 'rho v1 v2 p'
+        base_filename='rm_2d'
         typefilelog='regression_test'
-        filenamelog='rm_2d'
         saveprim=.true.
         autoconvert=.false.
 	convert_type='vtuBCCmpi'

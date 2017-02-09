@@ -8,7 +8,6 @@
 !=====================================================
 
  &filelist
-        filenamelog='jetCloud'
         base_filename='jetCloud'
         primnames='rho v1 v2 p tr'
         saveprim=.true.

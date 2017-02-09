@@ -93,10 +93,9 @@ contains
     character              :: c_ndim
     character(len=80)      :: fmt_string
     character(len=std_len) :: err_msg
-    character(len=std_len) :: filenameout_full, filenameout_prev
-    character(len=std_len) :: filenamelog_full, filenamelog_prev
+    character(len=std_len) :: basename_full, basename_prev
 
-    namelist /filelist/ base_filename,restart_from_file,filenamelog, &
+    namelist /filelist/ base_filename,restart_from_file, &
          snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,primnames, &
          typeparIO,nwauxio,nocartesian,addmpibarrier, &
@@ -271,7 +270,6 @@ contains
     time_reset        = .false.
     itreset       = .false.
     base_filename   = 'data'
-    filenamelog   = 'amrvac'
 
     ! Defaults for discretization methods
     typeaverage     = 'default'
@@ -349,11 +347,8 @@ contains
     w_names    = 'default'
 
     ! These are used to construct file and log names from multiple par files
-    filenameout_full = ''
-    filenameout_prev = ''
-    filenamelog_full = ''
-    filenamelog_prev = ''
-
+    basename_full = ''
+    basename_prev = ''
 
     do i = 1, size(par_files)
        if (mype == 0) print *, "Reading " // trim(par_files(i))
@@ -395,17 +390,12 @@ contains
 107    close(unitpar)
 
        ! Append the log and file names given in the par files
-       if (base_filename /= filenameout_prev) &
-            filenameout_full = trim(filenameout_full) // trim(base_filename)
-       filenameout_prev = base_filename
-
-       if (filenamelog /= filenamelog_prev) &
-            filenamelog_full = trim(filenamelog_full) // trim(filenamelog)
-       filenamelog_prev = filenamelog
+       if (base_filename /= basename_prev) &
+            basename_full = trim(basename_full) // trim(base_filename)
+       basename_prev = base_filename
     end do
 
-    base_filename = filenameout_full
-    filenamelog = filenamelog_full
+    base_filename = basename_full
 
     if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: primnames not given!'
@@ -1692,7 +1682,7 @@ contains
        ! On first entry, open the file and generate the header
        if (.not. opened) then
 
-          filename = trim(filenamelog) // ".log"
+          filename = trim(base_filename) // ".log"
           amode    = ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
           amode    = ior(amode,MPI_MODE_APPEND)
 
@@ -1774,7 +1764,7 @@ contains
 
     if (mype == 0) then
        if (.not. file_open) then
-          open(my_unit, file=trim(filenamelog)//".log")
+          open(my_unit, file = trim(base_filename) // ".log")
           file_open = .true.
 
           write(my_unit, *) "# time mean(w) mean(w**2)"

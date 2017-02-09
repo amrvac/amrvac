@@ -331,7 +331,7 @@ end select
 
 if(mype == 0) then
    fileid = 10
-   write(filename,"(a,a)") TRIM(filenamelog),".rays"
+   write(filename,"(a,a)") TRIM(base_filename), ".rays"
    open(fileid,file=filename, status='unknown')
    write(fileid,*) 'TITLE="RAYS"'
 {^IFONED      write(10,*) 'VARIABLES = X'}

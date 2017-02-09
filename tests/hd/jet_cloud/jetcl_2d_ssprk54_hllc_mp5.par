@@ -8,7 +8,6 @@
 !=====================================================
 
  &filelist
-        filenamelog='jetcl_2d_ssprk54_hllc_mp5'
         base_filename='jetcl_2d_ssprk54_hllc_mp5'
         typefilelog='regression_test'
         primnames='rho v1 v2 p tr'

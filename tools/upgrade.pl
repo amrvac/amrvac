@@ -40,7 +40,8 @@ my %simple_replacements = (
     qr/\btol\b/ => "refine_threshold",
     qr/\btolratio\b/ => "derefine_ratio",
     qr/\b13\*/ => "20*",   # nlevelshi went from 13 to 20
-    qr/\s*useprimitive\s*=.*\n/ => "", # Remove useprimitive = ... lines
+    qr/ *useprimitive *=.*\n/ => "", # Remove useprimitive = ... lines
+    qr/ *filenamelog *=.*\n/ => "", # Remove useprimitive = ... lines
     # qr/tsave\(1\)/ => "tsave_log",
     # qr/tsave\(2\)/ => "tsave_dat",
     # qr/tsave\(3\)/ => "tsave_slice",
@@ -65,6 +66,8 @@ my %replacement_functions = (
 # List of regular expressions and associated warnings
 my %warnings = (
     qr/\buseprimitive\b/ => "useprimitive is now always .true.",
+    qr/\bfilenamelog\b/ => "filenamelog has been removed, log files now have the\
+same name as the simulation output (controlled by base_filename)",
     # qr/\bnormvar/ => "TODO: normvar(1:nw) is now w_convert_factor and
     #                  normvar(0) is now length_convert_factor",
     # qr/\btypeB/ => "TODO: typeB is now split in typeboundary_min1,

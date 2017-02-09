@@ -292,7 +292,7 @@ logical, save :: logmfopened=.false.
 if(mype==0) then
   if(.not.logmfopened) then
     ! generate filename
-    write(filename,"(a,a)") TRIM(filenamelog),"_mflog.csv"
+    write(filename,"(a,a)") TRIM(base_filename), "_mflog.csv"
 
     amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
     amode=ior(amode,MPI_MODE_APPEND)

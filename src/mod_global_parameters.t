@@ -473,9 +473,6 @@ module mod_global_parameters
   !> If not 'unavailable', resume from snapshot with this base file name
   character(len=std_len) :: restart_from_file
 
-  !> Log file name (without the .log extension)
-  character(len=std_len) :: filenamelog
-
   !> The header line in the output file
   character(len=std_len) :: fileheadout
 

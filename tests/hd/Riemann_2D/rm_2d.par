@@ -5,8 +5,7 @@
         saveprim=.true.
         autoconvert=.true.
 	convert_type='vtuBCCmpi'
-        base_filename='rm_2d_'  ! Base file name for dat/vtu output
-        filenamelog='rm_2d'   ! Base file name for the log
+        base_filename='rm_2d'  ! Base file name for dat/vtu output
 /
 
  &savelist

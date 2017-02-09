@@ -1,5 +1,5 @@
 &filelist
-  filenamelog = 'kh_2d'
+  base_filename='kh_2d'
   typefilelog = 'regression_test'
   primnames        = 'rho v1 v2 p'
   autoconvert      = .false.
@@ -21,7 +21,6 @@
    time_integrator     = 'threestep'
    flux_scheme       = 20*'hllc'
    limiter    = 20*'cada3'
-        useprimitive= .true.
         dimsplit    = .false.
         small_pressure=-1.0d0
         small_density=-1.0d0
