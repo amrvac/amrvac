@@ -73,9 +73,8 @@ same name as the simulation output (controlled by base_filename)",
     #                  normvar(0) is now length_convert_factor",
     # qr/\btypeB/ => "TODO: typeB is now split in typeboundary_min1,
     #                   typeboundary_max1, typeboundary_min2, etc."
-    # qr/\btypeB\b/ => sub {
-    #     return qq{TODO: typeB is now split in typeboundary_min1,
-    #                   typeboundary_max1, typeboundary_min2, etc.\n@_};}
+    qr/\btypeB\b/ => "typeB can now be split in typeboundary_min1,
+typeboundary_max1, typeboundary_min2, etc."
     );
 
 

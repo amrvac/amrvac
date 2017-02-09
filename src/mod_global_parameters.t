@@ -10,6 +10,8 @@ module mod_global_parameters
 
   ! Parameters
 
+  character(len=*), parameter :: not_specified = 'not_specified'
+
   !> The number of interleaving sending buffers for ghost cells
   integer, parameter :: npwbuf=2
 
@@ -418,9 +420,6 @@ module mod_global_parameters
   double precision ::  x1ptms,x2ptms,x3ptms,ptmass
 
   ! Boundary region parameters
-
-  !> Number of boundaries for grid blocks
-  integer, parameter :: nhiB = 2*ndim
 
   !> True for dimensions with periodic boundaries
   logical :: periodB(ndim)

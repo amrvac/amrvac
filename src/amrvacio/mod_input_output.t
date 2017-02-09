@@ -93,6 +93,8 @@ contains
     character(len=80)      :: fmt_string
     character(len=std_len) :: err_msg
     character(len=std_len) :: basename_full, basename_prev
+    character(len=std_len), dimension(:), allocatable :: &
+       typeboundary_min^D, typeboundary_max^D
 
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,resetgrid,snapshotnext, &
@@ -120,7 +122,7 @@ contains
          x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage
     namelist /boundlist/ nghostcells,typeB,typeghostfill,prolongation_method,&
-         internalboundary
+         internalboundary, typeboundary_^L
     namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,derefine_ratio,refine_criterion, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight,w_for_refine,&
@@ -145,8 +147,18 @@ contains
     ! defaults for boundary treatments
     typeghostfill      = 'linear'
     nghostcells               = 2
-    allocate(typeB(nw, nhiB))
-    typeB(1:nw,1:nhiB) = 'cont'
+
+    ! Allocate boundary conditions arrays in new and old style
+    {
+    allocate(typeboundary_min^D(nw))
+    allocate(typeboundary_max^D(nw))
+    typeboundary_min^D = not_specified
+    typeboundary_max^D = not_specified
+    }
+
+    allocate(typeB(nw, 2 * ndim))
+    typeB(:, :) = not_specified
+
     internalboundary   = .false.
 
     ! defaults for parameters for optional pointgrav module (van Marle)
@@ -552,6 +564,21 @@ contains
     !     .and.(flatcd.and.physics_type=='hdadiab')) then
     !   call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
     !end if
+
+    ! Copy boundary conditions to typeB, which is used internally
+    {
+    if (any(typeboundary_min^D /= not_specified)) then
+      typeB(:, 2*^D-1) = typeboundary_min^D
+    end if
+
+    if (any(typeboundary_max^D /= not_specified)) then
+      typeB(:, 2*^D) = typeboundary_max^D
+    end if
+    }
+
+    if (any(typeB == not_specified)) then
+      call mpistop("Not all boundary conditions have been defined")
+    end if
 
     do idim=1,ndim
        periodB(idim)=(any(typeB(:,2*idim-1:2*idim)=='periodic'))
