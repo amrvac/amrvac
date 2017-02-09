@@ -97,7 +97,7 @@ contains
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,primnames, &
-         typeparIO,nwauxio,nocartesian,addmpibarrier, &
+         typeparIO,nwauxio,nocartesian, &
          w_write,writelevel,writespshift,endian_swap, &
          normvar,time_convert_factor,level_io,level_io_min,level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
@@ -148,9 +148,6 @@ contains
     allocate(typeB(nw, nhiB))
     typeB(1:nw,1:nhiB) = 'cont'
     internalboundary   = .false.
-
-    ! code behavior and testing defaults
-    addmpibarrier = .false.
 
     ! defaults for parameters for optional pointgrav module (van Marle)
     ! --> set here mass to zero, coordinates to zero

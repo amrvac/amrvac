@@ -8,8 +8,6 @@ integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
 logical, intent(in) :: active
 
 integer :: igridFi, ipeFi, ixCo^L, ixCoG^L, ixCoM^L, ic^D
-!-----------------------------------------------------------------------------
-if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 
 if (ipe==mype) call alloc_node(igrid)
 
@@ -72,7 +70,6 @@ end if
    end if
 {end do\}
 
-if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 end subroutine coarsen_grid_siblings
 !=============================================================================
 subroutine coarsen_grid(wFi,xFi,ixFiG^L,ixFi^L,wCo,xCo,ixCoG^L,ixCo^L,&

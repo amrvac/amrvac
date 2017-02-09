@@ -223,10 +223,6 @@ module mod_global_parameters
   !> \todo Remove time_accurate?
   logical :: time_accurate
 
-  !> Enable additional MPI_BARRIER calls, useful when debugging on new platforms
-  !> \todo Remove addmpibarrier?
-  logical :: addmpibarrier
-
   ! Time parameters
 
   !> Maximum number of saves that can be defined by tsave or itsave

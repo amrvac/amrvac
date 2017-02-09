@@ -227,7 +227,6 @@ contains
 
        it = it + 1
        global_time = global_time + dt
-       if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
 
        if(it>9000000)then
           it = slowsteps+10

@@ -6,8 +6,7 @@ use mod_global_parameters
 integer :: Morton_no, recv_igrid, recv_ipe, send_igrid, send_ipe, igrid, ipe
 
 integer, external :: getnode
-!-----------------------------------------------------------------------------
-if(addmpibarrier) call MPI_BARRIER(icomm,ierrmpi)
+
 call amr_Morton_order
 call get_Morton_range_active
 
