@@ -5,10 +5,18 @@ subroutine set_coordinate_system(geom)
 
   select case (geom)
   case ("Cartesian")
-    ! Do nothing
+     ndir = ndim
+  case ("Cartesian_1.5D")
+     if (ndim /= 1) call mpistop("Geometry Cartesian_1.5D but ndim /= 1")
+     ndir = 2
+  case ("Cartesian_1.75D")
+     if (ndim /= 1) call mpistop("Geometry Cartesian_1.75D but ndim /= 1")
+     ndir = 3
+  case ("Cartesian_2.5D")
+     if (ndim /= 2) call mpistop("Geometry Cartesian_2.5D but ndim /= 2")
+     ndir = 3
   case ("cylindrical_2.5D")
-    if (ndim /= 2) &
-         call mpistop("Geometry cylindrical_2.5D requires ndim == 2")
+    if (ndim /= 2) call mpistop("Geometry cylindrical_2.5D but ndim /= 2")
     ndir = 3
     r_   = 1
     phi_ = 2
