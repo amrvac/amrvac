@@ -588,7 +588,7 @@ module mod_global_parameters
   integer :: ngridshi
 
   !> The maximum number of levels in the grid refinement
-  integer :: nlevelshi
+  integer, parameter :: nlevelshi = 20
 
   !> Maximal number of AMR levels
   integer :: mxnest

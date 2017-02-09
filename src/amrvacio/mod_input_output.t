@@ -96,7 +96,6 @@ contains
     character(len=std_len) :: filenameout_full, filenameout_prev
     character(len=std_len) :: filenamelog_full, filenamelog_prev
 
-    namelist /levellist/ nlevelshi
     namelist /filelist/ filenameout,filenameini,filenamelog, &
          snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,primnames, &
@@ -134,30 +133,9 @@ contains
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
     !----------------------------------------------------------------------------
- 
+
     ! default maximum number of grid blocks in a processor
     ngridshi=4000
-
-    ! default maximum number of levels
-    nlevelshi=13
-
-    ! Read in the .par files
-    do i = 1, size(par_files)
-       if (mype == 0) print *, "Reading " // trim(par_files(i))
-
-       ! Check whether the file exists
-       inquire(file=trim(par_files(i)), exist=file_exists)
-
-       if (.not. file_exists) then
-          write(err_msg, *) "The parameter file " // trim(par_files(i)) // &
-               " does not exist"
-          call mpistop(trim(err_msg))
-       end if
-       open(unitpar, file=trim(par_files(i)), status='old')
-       rewind(unitpar)
-       read(unitpar, levellist, end=100)
-100    close(unitpar)
-    end do
 
     ! allocate cell size of all levels
     allocate(dx(ndim,nlevelshi))
@@ -378,6 +356,17 @@ contains
 
 
     do i = 1, size(par_files)
+       if (mype == 0) print *, "Reading " // trim(par_files(i))
+
+       ! Check whether the file exists
+       inquire(file=trim(par_files(i)), exist=file_exists)
+
+       if (.not. file_exists) then
+          write(err_msg, *) "The parameter file " // trim(par_files(i)) // &
+               " does not exist"
+          call mpistop(trim(err_msg))
+       end if
+
        open(unitpar, file=trim(par_files(i)), status='old')
 
        ! Try to read in the namelists. They can be absent or in a different
