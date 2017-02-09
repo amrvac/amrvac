@@ -8,7 +8,7 @@
 !==============================================================
 
  &filelist
-        base_filename='solar_atm'
+        base_filename='solar_atm_25D'
         typefilelog='regression_test'
         primnames='rho v1 v2 v3 p b1 b2 b3'
         saveprim=.true.
@@ -44,11 +44,10 @@
         limiter= 20*'cada3'
         typelimited='predictor'
         dimsplit=.false.
-        ssplitdivb=.true.
-        typedivbfix='linde'
-        strictsmall=.true.
-        strictgetaux=.false.
-        nflatgetaux=2
+        ! ssplitdivb=.true.
+        ! strictsmall=.true.
+        ! strictgetaux=.false.
+        ! nflatgetaux=2
         small_pressure=1.0d-8
         small_density=1.0d-14
  /
@@ -94,4 +93,5 @@
  &mhd_list
   mhd_thermal_conduction=.true.
   mhd_radiative_cooling=.true.
+  typedivbfix='linde'
  /
