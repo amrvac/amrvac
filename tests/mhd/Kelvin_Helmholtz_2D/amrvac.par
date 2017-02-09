@@ -8,15 +8,14 @@
 !=====================================================
  
  &filelist
-        filenamelog='KH2proba'
-        filenameout='KH2proba'
+        base_filename='KH2proba'
         primnames='rho v1 v2 p b1 b2'
         convert_type='vtuBCCmpi'
         saveprim=.true.
         autoconvert=.true.
         nwauxio=1
  /
-        filenameini='KH2proba'
+        restart_from_file='KH2proba'
         snapshotini=8
         snapshotnext=9
         convert=.true.
@@ -28,41 +27,39 @@
  /
  
  &stoplist
-        tmax=8.d0
+        time_max=8.d0
         dtmin=1.0D-9
  /
  
  &methodlist
-        wnames=       'rho m1 m2 e b1 b2'
-        fileheadout=  'KH_mhd22'
-        typeadvance=  'threestep'
-        typefull1=    13*'hll'
-        typepred1=    13*'hll'
-        typelimiter1= 13*'cada3'
+        w_names=       'rho m1 m2 e b1 b2'
+        time_integrator=  'threestep'
+        flux_scheme=    20*'hll'
+        typepred1=    20*'hll'
+        limiter= 20*'cada3'
         typelimited ='predictor'
-        useprimitive=.true.
  /
  &boundlist
-        dixB  =   2
+        nghostcells  =   2
         typeB = 6*'periodic', 6*'periodic',6*'cont',6*'cont'
  /
  
  
- &amrlist
-        errorestimate=3
-        flags(7)=3
-        flags(1)=1
-        flags(2)=2
-        flags(3)=3
-        wflags(1)=0.4d0
-        wflags(2)=0.3d0
-        wflags(3)=0.3d0
-        mxnest=3
-        tol=13*0.2d0
-        nxblock1=12
-        nxblock2=12
-        nxlone1=48
-        nxlone2=48
+ &meshlist
+        refine_criterion=3
+        w_for_refine(7)=3
+        w_for_refine(1)=1
+        w_for_refine(2)=2
+        w_for_refine(3)=3
+        w_refine_weight(1)=0.4d0
+        w_refine_weight(2)=0.3d0
+        w_refine_weight(3)=0.3d0
+        refine_max_level=3
+        refine_threshold=20*0.2d0
+        block_nx1=12
+        block_nx2=12
+        domain_nx1=48
+        domain_nx2=48
         xprobmin1=0
         xprobmax1=4.0d0
         xprobmin2=0

@@ -106,7 +106,7 @@ contains
          slicecoord,collapse,collapseLevel
     namelist /stoplist/ itmax,time_max,time_max_exact,dtmin,global_time,it,time_reset,itreset,residmin,&
          residmax,typeresid
-    namelist /methodlist/ w_names,fileheadout,time_integrator, &
+    namelist /methodlist/ w_names,time_integrator, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
          flux_scheme,typepred1,&
@@ -260,7 +260,6 @@ contains
     end do
 
     typefilelog = 'default'
-    fileheadout = 'AMRVAC'
     ! defaults for number of w in the transformed data
     nwtf        = 0
 
@@ -1690,9 +1689,6 @@ contains
                MPI_INFO_NULL, log_fh, ierrmpi)
 
           opened = .true.
-
-          call MPI_FILE_WRITE(log_fh, trim(fileheadout) // new_line('a'), &
-               len_trim(fileheadout)+1, MPI_CHARACTER, istatus, ierrmpi)
 
           ! Start of file headern
           line = "it global_time dt res " // trim(w_names)

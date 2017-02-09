@@ -8,8 +8,7 @@
 !==============================================================
 
  &filelist
-        filenamelog='solar_atm'
-        filenameout='solar_atm'
+        base_filename='solar_atm'
         typefilelog='regression_test'
         primnames='rho v1 v2 v3 p b1 b2 b3'
         saveprim=.true.
@@ -17,7 +16,7 @@
         convert_type='vtuBCCmpi'
         nwauxio=9
  /
-        filenameini='solar_atm_25D'
+        restart_from_file='solar_atm_25D'
         snapshotini=0
         snapshotnext=1
         convert=.true.
@@ -34,16 +33,15 @@
         dtmin=1.D-7
         itmax=100
  /
-        tmax=80.d0
+        time_max=80.d0
         itreset=.true.
-        treset=.true.
+        time_reset=.true.
 
  &methodlist
-        wnames=       'rho m1 m2 m3 e b1 b2 b3'
-        fileheadout=  'prom_mhd23'
-        typeadvance=  'threestep'
-        typefull1=    13*'hll'
-        typelimiter1= 13*'cada3'
+        w_names=       'rho m1 m2 m3 e b1 b2 b3'
+        time_integrator=  'threestep'
+        flux_scheme=    20*'hll'
+        limiter= 20*'cada3'
         typelimited='predictor'
         dimsplit=.false.
         ssplitdivb=.true.
@@ -51,35 +49,35 @@
         strictsmall=.true.
         strictgetaux=.false.
         nflatgetaux=2
-        smallp=1.0d-8
-        smallrho=1.0d-14
+        small_pressure=1.0d-8
+        small_density=1.0d-14
  /
 
  &boundlist
-        dixB=    2
+        nghostcells=    2
         typeB=	 'symm','asymm','symm','asymm','symm','asymm','symm','asymm',
                  'symm','asymm','symm','asymm','symm','asymm','symm','asymm',
                  8*'special',8*'special'
  /
 
- &amrlist
-        errorestimate=3
-        mxnest=4
-        tol=13*0.2d0
-        tolratio=13*0.15d0
-        flags(9)=4
-        flags(1)=1
-        flags(2)=6
-        flags(3)=7
-        flags(4)=8
-        wflags(1)=0.4d0
-        wflags(2)=0.2d0
-        wflags(3)=0.2d0
-        wflags(4)=0.2d0
-        nxblock1=12
-        nxblock2=12
-        nxlone1=96
-        nxlone2=96
+ &meshlist
+        refine_criterion=3
+        refine_max_level=4
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.15d0
+        w_for_refine(9)=4
+        w_for_refine(1)=1
+        w_for_refine(2)=6
+        w_for_refine(3)=7
+        w_for_refine(4)=8
+        w_refine_weight(1)=0.4d0
+        w_refine_weight(2)=0.2d0
+        w_refine_weight(3)=0.2d0
+        w_refine_weight(4)=0.2d0
+        block_nx1=12
+        block_nx2=12
+        domain_nx1=96
+        domain_nx2=96
         iprob=1
         xprobmin1=-3.d0
         xprobmax1=3.d0

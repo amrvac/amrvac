@@ -22,7 +22,6 @@
 
  &methodlist
         w_names=       'rho m1 m2 e'
-        fileheadout=  'hd22'
         time_integrator=  'threestep'
         flux_scheme=20*'hllc'
         limiter='cada3'

@@ -23,7 +23,6 @@
 
  &methodlist
         w_names=       'rho'
-        fileheadout=  'vac_2d'
  /
 
  &boundlist

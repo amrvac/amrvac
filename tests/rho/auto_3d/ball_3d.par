@@ -27,7 +27,6 @@
 
  &methodlist
         w_names=       'rho'
-        fileheadout=  'ball_3d'
  /
 
  &boundlist

@@ -7,9 +7,8 @@
         primnames    = 'rho'
     	convert_type = 'vtiCCmpi'
         autoconvert  = T
-	filenameout  = 'rk54_cfl08_mp5_256_'
-	filenamelog  = 'rk54_cfl08_mp5_256'
-/
+	base_filename  = 'rk54_cfl08_mp5_256_'
+	/
  &savelist
         itsave(1,1)  = 0
         itsave(1,2)  = 0
@@ -17,27 +16,27 @@
  /
 
  &stoplist
-        tmax         = 10.0d0
+        time_max         = 10.0d0
  /
 
  &methodlist
-        wnames=       'rho'
-        typeadvance=  'ssprk54'
-        typefull1 =    13*'fd'
-        typepred1 =    13*'fd'
-        typelow1  =    13*'fd'
-        typelimiter1= 13*'mp5'
+        w_names=       'rho'
+        time_integrator=  'ssprk54'
+        flux_scheme =    20*'fd'
+        typepred1 =    20*'fd'
+        typelow1  =    20*'fd'
+        limiter= 20*'mp5'
         typelimited='predictor'
  /
 
  &boundlist
-        dixB=   3
+        nghostcells=   3
         typeB=  'periodic','periodic'
  /
 
- &amrlist
-        mxnest=1
-        nxlone1=256
+ &meshlist
+        refine_max_level=1
+        domain_nx1=256
         iprob=1
         xprobmin1=0.0d0
         xprobmax1=1.0d0

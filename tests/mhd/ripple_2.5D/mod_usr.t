@@ -64,11 +64,11 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output
-  ! newly added variables need to be concatenated with the wnames/primnames string
+  ! newly added variables need to be concatenated with the w_names/primnames string
     use mod_global_parameters
 
     primnames= TRIM(primnames)//' '//'Te'
-    wnames=TRIM(wnames)//' '//'Te'
+    w_names=TRIM(w_names)//' '//'Te'
     
   end subroutine specialvarnames_output
 
