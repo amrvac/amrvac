@@ -77,8 +77,14 @@ program amrvac
         stop
      end if
 
-     if (itreset) it=itin
-     if (time_reset) global_time=tin
+     if (restart_reset_time) then
+       ! Reset it and global_time to original values, and start writing
+       ! snapshots at index 0
+       it           = itin
+       global_time  = tin
+       snapshotnext = 0
+     end if
+
      ! modify initial condition
      if (firstprocess) call modify_IC
      ! reset AMR grid

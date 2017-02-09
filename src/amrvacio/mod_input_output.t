@@ -37,7 +37,7 @@ contains
     end if
 
     ! Specify the options and their default values
-    call kracken('cmd','-i amrvac.par -if data -restart -1 '//&
+    call kracken('cmd','-i amrvac.par -if unavailable '//&
          '-slice 0 -collapse 0 --help .false. -convert .false.')
 
     ! Get the par file(s)
@@ -52,7 +52,7 @@ contains
           print *, 'Optional arguments:'
           print *, '-restart <N>         Restart a run at this snapshot'
           print *, '-convert             Convert snapshot files'
-          print *, '-if file.dat         Use this snapshot'
+          print *, '-if file0001.dat     Use this snapshot'
           print *, ''
           print *, 'Note: later parameter files override earlier ones.'
        end if
@@ -69,8 +69,7 @@ contains
 
     ! Read in the other command line arguments
     call retrev('cmd_if', restart_from_file, len, ier)
-    snapshotini  = iget('cmd_restart')
-    snapshotnext = snapshotini+1
+
     !> \todo Document these command line options
     slicenext    = iget('cmd_slice')
     collapseNext = iget('cmd_collapse')
@@ -96,7 +95,7 @@ contains
     character(len=std_len) :: basename_full, basename_prev
 
     namelist /filelist/ base_filename,restart_from_file, &
-         snapshotini,typefilelog,firstprocess,resetgrid,snapshotnext, &
+         typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,primnames, &
          typeparIO,nwauxio,nocartesian,addmpibarrier, &
          w_write,writelevel,writespshift,endian_swap, &
@@ -104,7 +103,7 @@ contains
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
          slicecoord,collapse,collapseLevel
-    namelist /stoplist/ itmax,time_max,time_max_exact,dtmin,global_time,it,time_reset,itreset,residmin,&
+    namelist /stoplist/ itmax,time_max,time_max_exact,dtmin,global_time,it,residmin,&
          residmax,typeresid
     namelist /methodlist/ w_names,fileheadout,time_integrator, &
          source_split_usr,typesourcesplit,&
@@ -264,12 +263,13 @@ contains
     ! defaults for number of w in the transformed data
     nwtf        = 0
 
-    ! defaults for input 
+    ! defaults for input
     firstprocess  = .false.
     resetgrid     = .false.
-    time_reset        = .false.
-    itreset       = .false.
+    restart_reset_time = .false.
     base_filename   = 'data'
+    snapshotini = -1
+    snapshotnext = 0
 
     ! Defaults for discretization methods
     typeaverage     = 'default'
@@ -396,6 +396,13 @@ contains
     end do
 
     base_filename = basename_full
+
+    if (restart_from_file /= 'unavailable') then
+      ! Parse index in restart_from_file string (e.g. basename0000.dat)
+      i = len_trim(restart_from_file) - 7
+      read(restart_from_file(i:i+3), '(I4)') snapshotini
+      snapshotnext = snapshotini+1
+    end if
 
     if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: primnames not given!'
@@ -1299,20 +1306,16 @@ contains
 
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(MPI_STATUS_SIZE) :: istatus
-    character(len=80) :: filename
     logical :: fexist
 
-    ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(restart_from_file),snapshotini,".dat"
-
     if(mype==0) then
-       inquire(file=filename,exist=fexist)
-       if(.not.fexist) call mpistop(filename//"as an input snapshot file is not found!")
+       inquire(file=trim(restart_from_file),exist=fexist)
+       if(.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
     endif
 
     amode=MPI_MODE_RDONLY
-    call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
-
+    call MPI_FILE_OPEN(icomm,trim(restart_from_file),amode,&
+         MPI_INFO_NULL,file_handle,ierrmpi)
 
     call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
     call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
@@ -1442,16 +1445,14 @@ contains
 
     integer, allocatable :: iorecvstatus(:,:)
     integer :: ipe,inrecv,nrecv
-    character(len=80) :: filename
     logical :: fexist
 
-    ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(restart_from_file),snapshotini,".dat"
     if(mype==0) then
-      inquire(file=filename,exist=fexist)
-      if(.not.fexist) call mpistop(filename//"as an input snapshot file is not found!")
+      inquire(file=trim(restart_from_file), exist=fexist)
+      if(.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
       amode=MPI_MODE_RDONLY
-      call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
+      call MPI_FILE_OPEN(MPI_COMM_SELF,restart_from_file,amode, &
+           MPI_INFO_NULL,file_handle,ierrmpi)
 
       call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
       call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)

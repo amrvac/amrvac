@@ -269,11 +269,9 @@ module mod_global_parameters
   !> end time of the simulation
   logical :: time_max_exact
 
-  !> If true, do not use the time_max stored in a snapshot when restarting
-  logical :: time_reset
-
-  !> If true, do not use the itmax stored in a snapshot when restarting
-  logical :: itreset
+  !> If true, reset iteration count and global_time to original values, and
+  !> start writing snapshots at index 0
+  logical :: restart_reset_time
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
@@ -495,7 +493,7 @@ module mod_global_parameters
   !> If true, enable ASCII output of slices
   logical :: sliceascii
 
-  !> If true and restart_from_file and snapshotini are given, convert snapshots to
+  !> If true and restart_from_file is given, convert snapshots to
   !> other file formats
   logical                :: convert
 
