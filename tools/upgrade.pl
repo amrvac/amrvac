@@ -39,16 +39,19 @@ my %simple_replacements = (
     qr/\bwritew\b/ => "w_write",
     qr/\btol\b/ => "refine_threshold",
     qr/\btolratio\b/ => "derefine_ratio",
-    qr/\btypegridfill\b/ => "prolongation_method",
+    qr/\btypegridfill\b/ => "prolongation_method"
+    );
+
+# Replace words only used in par files (pattern => replacement)
+my %par_file_replacements = (
     qr/\b13\*/ => "20*",   # nlevelshi went from 13 to 20
     qr/ *useprimitive *=.*\n/ => "", # Remove useprimitive = ... lines
     qr/ *filenamelog *=.*\n/ => "", # Remove useprimitive = ... lines
-    # qr/tsave\(1\)/ => "tsave_log",
-    # qr/tsave\(2\)/ => "tsave_dat",
-    # qr/tsave\(3\)/ => "tsave_slice",
-    # qr/tsave\(4\)/ => "tsave_collapsed",
-    # qr/tsave\(5\)/ => "tsave_analysis"
-    # qr/\s*filenamelog.*=.*/ => "", # Remove filenamelog
+    qr/tsave\(1\)/ => "tsave_log",
+    qr/tsave\(2\)/ => "tsave_dat",
+    qr/tsave\(3\)/ => "tsave_slice",
+    qr/tsave\(4\)/ => "tsave_collapsed",
+    qr/tsave\(5\)/ => "tsave_custom"
     );
 
 # List of regular expressions for which the associated functions will be called. They should return a pattern.
@@ -56,12 +59,6 @@ my %replacement_functions = (
     # qr/\bnormvar/ => sub {
     #     return qq{TODO: normvar(1:nw) is now w_convert_factor and
     #                  normvar(0) is now length_convert_factor\n@_};},
-    # qr/\btypeB\b/ => sub {
-    #     return qq{TODO: typeB is now split in typeboundary_min1,
-    #                   typeboundary_max1, typeboundary_min2, etc.\n@_};}
-    # qr/\btypeB\b/ => sub {
-    #     return qq{TODO: typeB is now split in typeboundary_min1,
-    #                   typeboundary_max1, typeboundary_min2, etc.\n@_};}
     );
 
 # List of regular expressions and associated warnings
@@ -97,6 +94,14 @@ foreach my $fname (@in_files) {
     foreach my $pat (keys %simple_replacements) {
         my $repl = $simple_replacements{$pat};
         $data =~ s/$pat/$repl/g;
+    }
+
+    # Only do these replacements in par files
+    if ($fname =~ /\.par$/) {
+        foreach my $pat (keys %par_file_replacements) {
+        my $repl = $par_file_replacements{$pat};
+        $data =~ s/$pat/$repl/g;
+        }
     }
 
     foreach my $pat (keys %replacement_functions) {

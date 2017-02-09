@@ -94,7 +94,13 @@ contains
     character(len=std_len) :: err_msg
     character(len=std_len) :: basename_full, basename_prev
     character(len=std_len), dimension(:), allocatable :: &
-       typeboundary_min^D, typeboundary_max^D
+         typeboundary_min^D, typeboundary_max^D
+    double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
+         tsave_collapsed, tsave_custom
+    double precision :: dtsave_log, dtsave_dat, dtsave_slice, &
+         dtsave_collapsed, dtsave_custom
+    integer :: ditsave_log, ditsave_dat, ditsave_slice, &
+         ditsave_collapsed, ditsave_custom
 
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,resetgrid,snapshotnext, &
@@ -104,7 +110,10 @@ contains
          normvar,time_convert_factor,level_io,level_io_min,level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
-         slicecoord,collapse,collapseLevel
+         slicecoord,collapse,collapseLevel, &
+         tsave_log, tsave_dat, tsave_slice, tsave_collapsed, tsave_custom, &
+         dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
+         ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
     namelist /stoplist/ itmax,time_max,dtmin,global_time,it
     namelist /methodlist/ w_names,fileheadout,time_integrator, &
          source_split_usr,typesourcesplit,&
@@ -250,15 +259,33 @@ contains
     sliceascii    = .false.
 
     do ifile=1,nfile
-       do isave=1,nsavehi
-          tsave(isave,ifile)  = bigdouble  ! global_time  of saves into the output files
-          itsave(isave,ifile) = biginteger ! it of saves into the output files
-       end do
-       dtsave(ifile)  = bigdouble  ! time between saves
-       ditsave(ifile) = biginteger ! timesteps between saves
-       isavet(ifile)  = 1          ! index for saves by global_time
-       isaveit(ifile) = 1          ! index for saves by it
+      do isave=1,nsavehi
+        tsave(isave,ifile)  = bigdouble  ! global_time  of saves into the output files
+        itsave(isave,ifile) = biginteger ! it of saves into the output files
+      end do
+      dtsave(ifile)  = bigdouble  ! time between saves
+      ditsave(ifile) = biginteger ! timesteps between saves
+      isavet(ifile)  = 1          ! index for saves by global_time
+      isaveit(ifile) = 1          ! index for saves by it
     end do
+
+    tsave_log       = bigdouble
+    tsave_dat       = bigdouble
+    tsave_slice     = bigdouble
+    tsave_collapsed = bigdouble
+    tsave_custom    = bigdouble
+
+    dtsave_log       = bigdouble
+    dtsave_dat       = bigdouble
+    dtsave_slice     = bigdouble
+    dtsave_collapsed = bigdouble
+    dtsave_custom    = bigdouble
+
+    ditsave_log       = biginteger
+    ditsave_dat       = biginteger
+    ditsave_slice     = biginteger
+    ditsave_collapsed = biginteger
+    ditsave_custom    = biginteger
 
     typefilelog = 'default'
     fileheadout = 'AMRVAC'
@@ -419,6 +446,24 @@ contains
     end if
 
     if(convert) autoconvert=.false.
+
+    where (tsave_log < bigdouble) tsave(:, 1) = tsave_log
+    where (tsave_dat < bigdouble) tsave(:, 2) = tsave_dat
+    where (tsave_slice < bigdouble) tsave(:, 3) = tsave_slice
+    where (tsave_collapsed < bigdouble) tsave(:, 4) = tsave_collapsed
+    where (tsave_custom < bigdouble) tsave(:, 5) = tsave_custom
+
+    if (dtsave_log < bigdouble) dtsave(1) = dtsave_log
+    if (dtsave_dat < bigdouble) dtsave(2) = dtsave_dat
+    if (dtsave_slice < bigdouble) dtsave(3) = dtsave_slice
+    if (dtsave_collapsed < bigdouble) dtsave(4) = dtsave_collapsed
+    if (dtsave_custom < bigdouble) dtsave(5) = dtsave_custom
+
+    if (ditsave_log < bigdouble) ditsave(1) = ditsave_log
+    if (ditsave_dat < bigdouble) ditsave(2) = ditsave_dat
+    if (ditsave_slice < bigdouble) ditsave(3) = ditsave_slice
+    if (ditsave_collapsed < bigdouble) ditsave(4) = ditsave_collapsed
+    if (ditsave_custom < bigdouble) ditsave(5) = ditsave_custom
 
     if (mype == 0) then
        write(unitterm, *) ''

@@ -11,8 +11,8 @@
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave(1)=0.05          ! For the log
-        dtsave(2)=0.05          ! For dat/vtu output
+        dtsave_log=0.05          ! For the log
+        dtsave_dat=0.05          ! For dat/vtu output
  /
 
  &stoplist
