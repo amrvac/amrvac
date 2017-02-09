@@ -33,8 +33,8 @@ module mod_dust
   double precision :: dust_stellar_luminosity
 
   ! ???
-  double precision :: mhcgspar = 1.6733D-24
-  double precision :: kbcgspar = 1.38065D-16
+  double precision :: hydrogen_mass_cgs = 1.6733D-24
+  double precision :: kboltzmann_cgs = 1.38065D-16
 
   !> Set small dust densities to zero to avoid numerical problems
   logical :: dust_small_to_zero = .false.
@@ -272,8 +272,8 @@ contains
        !  Equation from Decin et al. 2006
        if (gas_e_ < 0) call mpistop("dust sticking requires gas energy")
 
-       Tgas(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*mhcgspar) / &
-            (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kbcgspar)
+       Tgas(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs) / &
+            (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
        call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
 
        do idir = 1, ndir
@@ -334,8 +334,8 @@ contains
     ! call getpthermal(w, x, ixI^L, ixO^L, Tgas)
     call get_tdust(w, x, ixI^L, ixO^L, alpha_T)
 
-    Tgas(ixO^S) = (ptherm(ixO^S)*w_convert_factor(gas_e_)*mhcgspar) / &
-         (w(ixO^S, gas_rho_) * w_convert_factor(gas_rho_) * kbcgspar)
+    Tgas(ixO^S) = (ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs) / &
+         (w(ixO^S, gas_rho_) * w_convert_factor(gas_rho_) * kboltzmann_cgs)
 
     do n = 1, dust_n_species
        alpha_T(ixO^S,n) =  max(0.35d0 * exp(-dsqrt((Tgas(ixO^S) + &
@@ -486,7 +486,7 @@ contains
        vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
        ! Tgas, mu = mean molecular weight
-       ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*mhcgspar*gas_mu)/(w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kbcgspar)
+       ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs*gas_mu)/(w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
 
        do idir = 1, ndir
           ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
@@ -518,8 +518,8 @@ contains
        call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
 
        ! Tgas, mu = mean molecular weight
-       ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_) * mhcgspar*gas_mu) / &
-            ! (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kbcgspar)
+       ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_) * hydrogen_mass_cgs*gas_mu) / &
+            ! (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
 
        do idir = 1, ndir
           ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)

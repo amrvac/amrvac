@@ -26,11 +26,14 @@
 
  &boundlist
   nghostcells  =   2
-  typeboundary =         5*'periodic', 5*'periodic',
-                 'symm','symm','asymm','symm','symm',
-                 'symm','symm','asymm','symm','symm',
-                  5*'periodic', 5*'periodic'
+  typeboundary_min1 = 5*'periodic'
+  typeboundary_max1 = 5*'periodic'
+  typeboundary_min2 = 'symm','symm','asymm','symm','symm'
+  typeboundary_max2 = 'symm','symm','asymm','symm','symm'
+  typeboundary_min3 = 5*'periodic'
+  typeboundary_max3 = 5*'periodic'
 /
+
  &meshlist
    refine_criterion   = 3
    refine_max_level          = 3
