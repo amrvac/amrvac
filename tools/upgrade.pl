@@ -5,6 +5,7 @@
 
 use strict;
 use warnings;
+use Cwd;
 use File::Copy;
 
 my $backup_suffix = ".bak";
@@ -34,6 +35,7 @@ my %simple_replacements = (
     qr/\btypefull1\b/ => "flux_scheme",
     qr/\btypegradlimiter1\b/ => "gradient_limiter",
     qr/\btypelimiter1\b/ => "limiter",
+    qr/\btypeB\b/ => "typeboundary",
     qr/\bwflags\b/ => "w_refine_weight",
     qr/\bwnames\b/ => "w_names",
     qr/\bwritew\b/ => "w_write",
@@ -44,7 +46,8 @@ my %simple_replacements = (
     qr/normvar\(rho_\)/ => "w_convert_factor(rho_)",
     qr/normvar\(p_\)/ => "w_convert_factor(p_)",
     qr/normvar\(1:nw\)\b/ => "w_convert_factor(:)",
-    qr/\btypeB\b/ => "typeboundary",
+    qr/mhcgspar/ => "hydrogen_mass_cgs",
+    qr/kbcgspar/ => "kboltzmann_cgs",
     );
 
 # Replace words only used in par files (pattern => replacement)
@@ -60,40 +63,27 @@ my %par_file_replacements = (
     qr/tsave\(5\)/ => "tsave_custom",
     );
 
-# List of regular expressions for which the associated functions will be called. They should return a pattern.
-my %replacement_functions = (
-    # qr/\bnormvar/ => sub {
-    #     return qq{TODO: normvar(1:nw) is now w_convert_factor and
-    #                  normvar(0) is now length_convert_factor\n@_};},
-    );
-
 # List of regular expressions and associated warnings
-my %warnings = (
+my %warnings = ();
+
+# List of regular expressions and associated warnings in par files
+my %par_file_warnings = (
     qr/\buseprimitive\b/ => "useprimitive is now always .true.",
     qr/\bfilenamelog\b/ => "filenamelog has been removed, log files now have the\
 same name as the simulation output (controlled by base_filename)",
     qr/\bnormvar/ => "TODO: normvar(1:nw) is now w_convert_factor and
                      normvar(0) is now length_convert_factor",
-    qr/\btypeB\b/ => "typeB can now be split in typeboundary_min1,
-typeboundary_max1, typeboundary_min2, etc.",
+    qr/\btypeboundary *=/ => "typeboundary (formerly typeB) can now be split in typeboundary_min1, typeboundary_max1, typeboundary_min2, etc.",
     );
-
 
 # Get list of files, but exclude previous output of script
 my @in_files = (glob "*.par *.t");
 
 foreach my $fname (@in_files) {
-    print "Updating par file: $fname\n";
-
     my $backup = $fname.$backup_suffix;
-
-    if (-f "$backup") {
-        print "Already have $backup\n";
-    } else {
-        copy("$fname", "$backup") or die "Backup failed: $!\n";
-    }
-
     my $data = read_file($fname);
+    my $orig_data = $data;
+    my $cwd = getcwd;
 
     foreach my $pat (keys %simple_replacements) {
         my $repl = $simple_replacements{$pat};
@@ -106,19 +96,35 @@ foreach my $fname (@in_files) {
         my $repl = $par_file_replacements{$pat};
         $data =~ s/$pat/$repl/g;
         }
-    }
 
-    foreach my $pat (keys %replacement_functions) {
-        my $func = $replacement_functions{$pat};
-        $data =~ s/$pat/&$func($&)/ge;
+        foreach my $pat (keys %par_file_warnings) {
+            my $msg = $par_file_warnings{$pat};
+            if ($data =~ /$pat/g) {
+                my $cwd = getcwd;
+                print STDERR "** Warning ** in file $cwd/$fname:\n";
+                print STDERR "$msg\n";
+            }
+        }
     }
 
     foreach my $pat (keys %warnings) {
         my $msg = $warnings{$pat};
-        print STDERR "Warning: $msg\n" if ($data =~ /$pat/g);
+        if ($data =~ /$pat/g) {
+            print STDERR "** Warning ** in file $cwd/$fname:\n";
+            print STDERR "$msg\n";
+        }
     }
 
-    write_file($fname, $data);
+    if ($data ne $orig_data) {
+        print "Modifying $cwd/$fname\n";
+
+        if (-f "$backup") {
+            print "Already have a backup, not storing a new one\n";
+        } else {
+            copy("$fname", "$backup") or die "Backup failed: $!\n";
+        }
+        write_file($fname, $data);
+    }
 }
 
 sub read_file {
