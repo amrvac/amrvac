@@ -461,7 +461,8 @@ dx^D=rnode(rpdx^D_,igrid);
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 if(saveprim) then 
    call phys_to_primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
-   normconv(0:nw)=normvar(0:nw)
+   normconv(0) = length_convert_factor
+   normconv(1:nw) = w_convert_factor
 else
   normconv(0:nw)=one
 end if

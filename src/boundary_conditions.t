@@ -21,7 +21,7 @@ select case (idims)
       ixImax^DD=ixBmax^DD;
       ! cont/symm/asymm types
       do iw=1,nwflux+nwaux
-         select case (typeB(iw,iB))
+         select case (typeboundary(iw,iB))
          case ("symm")
             w(ixI^S,iw) = w(ixImin^D-1:ixImin^D-nghostcells:-1^D%ixI^S,iw)
          case ("asymm")
@@ -50,7 +50,7 @@ select case (idims)
          case ("periodic")
 !            call mpistop("periodic bc info should come from neighbors")
          case default
-            write (unitterm,*) "Undefined boundarytype ",typeB(iw,iB), &
+            write (unitterm,*) "Undefined boundarytype ",typeboundary(iw,iB), &
                "for variable iw=",iw," and side iB=",iB
          end select
       end do
@@ -61,7 +61,7 @@ select case (idims)
       ixImax^DD=ixBmin^D-1+nghostcells^D%ixImax^DD=ixBmax^DD;
       ! cont/symm/asymm types
       do iw=1,nwflux+nwaux
-         select case (typeB(iw,iB))
+         select case (typeboundary(iw,iB))
          case ("symm")
             w(ixI^S,iw) = w(ixImax^D+nghostcells:ixImax^D+1:-1^D%ixI^S,iw)
          case ("asymm")
@@ -90,7 +90,7 @@ select case (idims)
          case ("periodic")
 !            call mpistop("periodic bc info should come from neighbors")
          case default
-            write (unitterm,*) "Undefined boundarytype ",typeB(iw,iB), &
+            write (unitterm,*) "Undefined boundarytype ",typeboundary(iw,iB), &
                "for variable iw=",iw," and side iB=",iB
          end select
       end do
@@ -100,14 +100,14 @@ end select
 ! do special case AFTER all normal cases are set
 !do iw=1,nwflux+nwaux
 ! opedit: iw==0 since this breaks fewest of setups.
-if (any(typeB(1:nwflux+nwaux,iB)=="special")) then
+if (any(typeboundary(1:nwflux+nwaux,iB)=="special")) then
    if (.not. associated(usr_special_bc)) &
         call mpistop("usr_special_bc not defined")
    call usr_special_bc(time,ixG^L,ixI^L,iB,w,x)
 end if
 
 {#IFDEF EVOLVINGBOUNDARY
-if (any(typeB(1:nwflux,iB)=="character")) then
+if (any(typeboundary(1:nwflux,iB)=="character")) then
   ixM^L=ixM^LL;
   if(ixGmax1==ixGhi1) then
     nghostcellsi=nghostcells

@@ -432,7 +432,7 @@ module mod_global_parameters
 
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
-  character(len=std_len), allocatable :: typeB(:, :)
+  character(len=std_len), allocatable :: typeboundary(:, :)
 
   character(len=std_len) :: typeghostfill='linear',prolongation_method
   logical :: internalboundary
@@ -497,9 +497,10 @@ module mod_global_parameters
 
   character(len=std_len) :: collapse_type
 
-  !> Conversion factors for length (normvar(0)) and the primitive variables
-  !> (normvar(1:nw))
-  double precision, allocatable :: normvar(:)
+  !> Conversion factors the primitive variables
+  double precision, allocatable :: w_convert_factor(:)
+
+  double precision :: length_convert_factor
 
   !> Conversion factor for time unit
   double precision       :: time_convert_factor

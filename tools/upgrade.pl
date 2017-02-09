@@ -39,7 +39,12 @@ my %simple_replacements = (
     qr/\bwritew\b/ => "w_write",
     qr/\btol\b/ => "refine_threshold",
     qr/\btolratio\b/ => "derefine_ratio",
-    qr/\btypegridfill\b/ => "prolongation_method"
+    qr/\btypegridfill\b/ => "prolongation_method",
+    qr/normvar\(0\)/ => "length_convert_factor",
+    qr/normvar\(rho_\)/ => "w_convert_factor(rho_)",
+    qr/normvar\(p_\)/ => "w_convert_factor(p_)",
+    qr/normvar\(1:nw\)\b/ => "w_convert_factor(:)",
+    qr/\btypeB\b/ => "typeboundary",
     );
 
 # Replace words only used in par files (pattern => replacement)
@@ -51,7 +56,7 @@ my %par_file_replacements = (
     qr/tsave\(2\)/ => "tsave_dat",
     qr/tsave\(3\)/ => "tsave_slice",
     qr/tsave\(4\)/ => "tsave_collapsed",
-    qr/tsave\(5\)/ => "tsave_custom"
+    qr/tsave\(5\)/ => "tsave_custom",
     );
 
 # List of regular expressions for which the associated functions will be called. They should return a pattern.
@@ -66,12 +71,10 @@ my %warnings = (
     qr/\buseprimitive\b/ => "useprimitive is now always .true.",
     qr/\bfilenamelog\b/ => "filenamelog has been removed, log files now have the\
 same name as the simulation output (controlled by base_filename)",
-    # qr/\bnormvar/ => "TODO: normvar(1:nw) is now w_convert_factor and
-    #                  normvar(0) is now length_convert_factor",
-    # qr/\btypeB/ => "TODO: typeB is now split in typeboundary_min1,
-    #                   typeboundary_max1, typeboundary_min2, etc."
+    qr/\bnormvar/ => "TODO: normvar(1:nw) is now w_convert_factor and
+                     normvar(0) is now length_convert_factor",
     qr/\btypeB\b/ => "typeB can now be split in typeboundary_min1,
-typeboundary_max1, typeboundary_min2, etc."
+typeboundary_max1, typeboundary_min2, etc.",
     );
 
 

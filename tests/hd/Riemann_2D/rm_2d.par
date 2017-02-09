@@ -31,7 +31,7 @@
 
  &boundlist
         nghostcells=2
-        typeB=4*'cont',4*'cont',4*'cont',4*'cont'
+        typeboundary=4*'cont',4*'cont',4*'cont',4*'cont'
  /
 
  &meshlist

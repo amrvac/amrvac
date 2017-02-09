@@ -46,7 +46,7 @@ c2tilde = 1.578d-3     ! g^-2 cm^-1 s^3
 
 ! Bring to code units:
 c2tilde   = c2tilde   / (UNIT_DENSITY**(-2.0D0)*UNIT_LENGTH**(-4.0D0)*UNIT_VELOCITY**(-3.0D0)) 
-epstocode = normvar(epsinf_)  / (UNIT_DENSITY*UNIT_LENGTH**3.0D0*UNIT_VELOCITY**2.0D0) * 4*dpi
+epstocode = w_convert_factor(epsinf_)  / (UNIT_DENSITY*UNIT_LENGTH**3.0D0*UNIT_VELOCITY**2.0D0) * 4*dpi
 
 
 ! Obtain co-moving magnetic field:
@@ -114,7 +114,7 @@ c2tilde = 1.578d-3     ! g^-2 cm^-1 s^3
 
 ! Bring to code units:
 c2tilde   = c2tilde   / (UNIT_DENSITY**(-2.0D0)*UNIT_LENGTH**(-4.0D0)*UNIT_VELOCITY**(-3.0D0)) 
-epstocode = normvar(epsinf_)  / (UNIT_DENSITY*UNIT_LENGTH**3.0D0*UNIT_VELOCITY**2.0D0) * 4*dpi
+epstocode = w_convert_factor(epsinf_)  / (UNIT_DENSITY*UNIT_LENGTH**3.0D0*UNIT_VELOCITY**2.0D0) * 4*dpi
 
 call primitiven(ixG^L,ix^L,w,patchw)
 

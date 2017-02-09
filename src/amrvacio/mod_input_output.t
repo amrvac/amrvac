@@ -105,16 +105,21 @@ contains
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,primnames, &
-         typeparIO,nwauxio,nocartesian, &
-         w_write,writelevel,writespshift,endian_swap, &
-         normvar,time_convert_factor,level_io,level_io_min,level_io_max, &
+         typeparIO,nwauxio,nocartesian, w_write,writelevel,&
+         writespshift,endian_swap, length_convert_factor, &
+         time_convert_factor,level_io,level_io_min, level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
+
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
          slicecoord,collapse,collapseLevel, &
          tsave_log, tsave_dat, tsave_slice, tsave_collapsed, tsave_custom, &
          dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
          ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
+
+    namelist /w_list/ w_convert_factor
+
     namelist /stoplist/ itmax,time_max,dtmin,global_time,it
+
     namelist /methodlist/ w_names,fileheadout,time_integrator, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,typeaxial,typecoord,&
@@ -130,9 +135,12 @@ contains
          fixprocess,flathllc, &
          x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage
-    namelist /boundlist/ nghostcells,typeB,typeghostfill,prolongation_method,&
+
+    namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L
-    namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,derefine_ratio,refine_criterion, &
+
+    namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,&
+         derefine_ratio, refine_criterion, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight,w_for_refine,&
          prolongprimitive,coarsenprimitive, &
@@ -165,8 +173,8 @@ contains
     typeboundary_max^D = not_specified
     }
 
-    allocate(typeB(nw, 2 * ndim))
-    typeB(:, :) = not_specified
+    allocate(typeboundary(nw, 2 * ndim))
+    typeboundary(:, :) = not_specified
 
     internalboundary   = .false.
 
@@ -204,11 +212,12 @@ contains
     level_io_max             = nlevelshi
 
     ! normalization of primitive variables: only for output
-    ! note that normvar(0) is for length
+    ! note that length_convert_factor is for length
     ! this scaling is optional, and must be set consistently if used
-    allocate(normvar(0:nw))
-    normvar(0:nw) = one
-    time_convert_factor         = one
+    allocate(w_convert_factor(nw))
+    w_convert_factor(:)   = 1.0d0
+    time_convert_factor   = 1.0d0
+    length_convert_factor = 1.0d0
 
     ! AMR related defaults
     refine_max_level                      = 1
@@ -610,29 +619,29 @@ contains
     !   call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
     !end if
 
-    ! Copy boundary conditions to typeB, which is used internally
+    ! Copy boundary conditions to typeboundary, which is used internally
     {
     if (any(typeboundary_min^D /= not_specified)) then
-      typeB(:, 2*^D-1) = typeboundary_min^D
+      typeboundary(:, 2*^D-1) = typeboundary_min^D
     end if
 
     if (any(typeboundary_max^D /= not_specified)) then
-      typeB(:, 2*^D) = typeboundary_max^D
+      typeboundary(:, 2*^D) = typeboundary_max^D
     end if
     }
 
-    if (any(typeB == not_specified)) then
+    if (any(typeboundary == not_specified)) then
       call mpistop("Not all boundary conditions have been defined")
     end if
 
     do idim=1,ndim
-       periodB(idim)=(any(typeB(:,2*idim-1:2*idim)=='periodic'))
-       aperiodB(idim)=(any(typeB(:,2*idim-1:2*idim)=='aperiodic'))
+       periodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='periodic'))
+       aperiodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='aperiodic'))
        if (periodB(idim).or.aperiodB(idim)) then
           do iw=1,nw
-             if (typeB(iw,2*idim-1) .ne. typeB(iw,2*idim)) &
+             if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
-             if (typeB(iw,2*idim-1) /= 'periodic' .and. typeB(iw,2*idim-1) /= 'aperiodic') &
+             if (typeboundary(iw,2*idim-1) /= 'periodic' .and. typeboundary(iw,2*idim-1) /= 'aperiodic') &
                   call mpistop("Each dimension should either have all &
                   or no variables periodic, some can be aperiodic")
           end do

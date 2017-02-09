@@ -741,7 +741,7 @@ integer          :: iray,ipoint
 
     F    = eqpar(Fstar_)
     Tray = (wraypoint( iray,1,p_ )/wraypoint( iray,1,rho_ )) /eqpar(Tscale_)
-    dF   = ((wraypoint(iray,1,rho_)*normvar(rho_))/mhydro)**2
+    dF   = ((wraypoint(iray,1,rho_)*w_convert_factor(rho_))/mhydro)**2
     dF   = (dF * (4.0d0*(drray**3)* eqpar(alphah_))/3.0D0)   
     F    = F-dF
 
@@ -753,8 +753,8 @@ integer          :: iray,ipoint
       Tray  = (wraypoint( iray,ipoint,p_ ) /wraypoint( iray,ipoint,rho_ )) /eqpar(Tscale_)
       drray = rray(ipoint) - rray(ipoint-1)
     
-      dF    = half*((rray(ipoint-1)*(wraypoint(iray,ipoint-1,rho_)*normvar(rho_)/mhydro))**2 &
-            + (rray(ipoint)* (wraypoint(iray,ipoint,rho_)*normvar(rho_)/mhydro))**2)
+      dF    = half*((rray(ipoint-1)*(wraypoint(iray,ipoint-1,rho_)*w_convert_factor(rho_)/mhydro))**2 &
+            + (rray(ipoint)* (wraypoint(iray,ipoint,rho_)*w_convert_factor(rho_)/mhydro))**2)
       dF    = dF * drray * eqpar(alphah_)  
       F     = F-dF
       if( F> zero ) then 
@@ -1416,7 +1416,7 @@ end select
     do iray = 1,nrays
        write(11, '(a,i4,a,i4a,1pe12.5,a)' ) 'ZONE T= "',iray,'",I=',npointsmax(iray) ,',SOLUTIONTIME=',t*normt,',F=POINT'
        do ipoint = 1,npointsmax(iray)
-          write(11,1001) {^D&xraypoint(iray,ipoint,^D)},wraypoint(iray,ipoint,1:nw)*normvar(1:nw) &
+          write(11,1001) {^D&xraypoint(iray,ipoint,^D)},wraypoint(iray,ipoint,1:nw)*w_convert_factor(1:nw) &
 	                 ,uraypoint(iray,ipoint,1:nu)
        enddo
        write(11,*)

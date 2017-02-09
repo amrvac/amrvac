@@ -46,7 +46,7 @@
 
  &boundlist
         nghostcells=    3
-        typeB=   5*'special',5*'cont',
+        typeboundary=   5*'special',5*'cont',
                  5*'noinflow',5*'noinflow'
  /
 

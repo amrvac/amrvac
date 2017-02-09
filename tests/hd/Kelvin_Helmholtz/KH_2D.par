@@ -44,7 +44,7 @@
         loglimit(4) = .true.
  &boundlist
   nghostcells  =   3
-  typeB=
+  typeboundary=
                   4*'periodic',
                   4*'periodic',
                   4*'periodic',
