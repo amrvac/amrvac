@@ -8,28 +8,30 @@
 !==============================================================
 
  &filelist
-        base_filename='solar_atm_25D'
-        typefilelog='regression_test'
+        base_filename='solar_atm_a'
         primnames='rho v1 v2 v3 p b1 b2 b3'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBCCmpi'
         nwauxio=9
  /
-        restart_from_file='solar_atm_25D'
-        snapshotini=0
-        snapshotnext=1
+        restart_from_file='solar_atm_a0001.dat'
+        snapshotnext=2
         convert=.true.
 
  &savelist
-        ditsave_log = 1
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_dat=0.2d0
  /
+        ditsave_log = 1
+        ditsave_dat =100
 
  &stoplist
         dtmin=1.D-7
-        itmax=100
+        time_max=2.d0
  /
-        time_max=80.d0
+        itmax=300
         time_reset=.true.
 
  &methodlist

@@ -1,7 +1,7 @@
 module mod_usr
   use mod_mhd
   implicit none
-  double precision, allocatable, save :: pbc(:),rbc(:)
+  double precision, allocatable :: pbc(:),rbc(:)
   double precision :: usr_grav
   double precision :: heatunit,gzone,B0,theta,SRadius,kx,ly,bQ0,dya
   double precision, allocatable :: pa(:),ra(:),ya(:)
@@ -23,7 +23,7 @@ contains
     usr_init_one_grid   => initonegrid_usr
     usr_special_bc      => specialbound_usr
     usr_source          => special_source
-    usr_get_dt          => get_dt_special
+    usr_gravity         => gravity
     usr_refine_grid     => special_refine_grid
     usr_set_B0          => specialset_B0
     usr_aux_output      => specialvar_output
@@ -51,20 +51,20 @@ contains
 
   subroutine inithdstatic
   !! initialize the table in a vertical line through the global domain
-    use mod_thermal_conduction, only:kappa
     use mod_global_parameters
     
     integer :: j,na,nb,ibc
     double precision, allocatable :: Ta(:),gg(:)
-    double precision:: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,Ttr,Fc,invT
+    double precision:: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,Ttr,Fc,invT,kappa
   
     rpho=1.151d15/unit_numberdensity ! number density at the bottom relaxla
-    Tpho=8.d3/unit_temperature !< temperature of chromosphere
-    Ttop=1.5d6/unit_temperature !< estimated temperature in the top
-    htra=0.2d0 !< height of initial transition region
-    wtra=0.02d0 !< width of initial transition region 
-    Ttr=1.6d5/unit_temperature !< lowest temperature of upper profile
-    Fc=2.d5/heatunit/unit_length !< constant thermal conduction flux
+    Tpho=8.d3/unit_temperature ! temperature of chromosphere
+    Ttop=1.5d6/unit_temperature ! estimated temperature in the top
+    htra=0.2d0 ! height of initial transition region
+    wtra=0.02d0 ! width of initial transition region 
+    Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
+    Fc=2.d5/heatunit/unit_length ! constant thermal conduction flux
+    kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
 
     allocate(ya(jmax),Ta(jmax),gg(jmax),pa(jmax),ra(jmax))
     do j=1,jmax
@@ -213,47 +213,29 @@ contains
     
   end subroutine specialbound_usr
 
-  subroutine getggrav(ggrid,ixI^L,ixO^L,x)
-    ! calculate gravity
+  subroutine gravity(ixI^L,ixO^L,wCT,x,gravity_field)
     use mod_global_parameters
-    
-    integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision, intent(out) :: ggrid(ixI^S)
-    
-    ggrid(ixO^S)=usr_grav*(SRadius/(SRadius+x(ixO^S,2)))**2
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw)
+    double precision, intent(out)   :: gravity_field(ixI^S,ndim)
 
-  end subroutine getggrav
+    double precision                :: ggrid(ixI^S)
 
-  subroutine add_source_gravSA(qdt,ixI^L,ixO^L,wCT,w,x)
-    ! w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
-    ! gravity distribution along a magnetic loop (a circular arc)
-    
-    use mod_global_parameters
-    
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    double precision :: ggrid(ixI^S)
-
+    gravity_field=0.d0
     call getggrav(ggrid,ixI^L,ixO^L,x)
+    gravity_field(ixO^S,2)=ggrid(ixO^S)
 
-    w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*ggrid(ixO^S)*wCT(ixO^S,rho_)
-    w(ixO^S,e_)=w(ixO^S,e_)+qdt*ggrid(ixO^S)*wCT(ixO^S,mom(2))
+  end subroutine gravity
 
-  end subroutine add_source_gravSA
-
-  subroutine get_dt_grav(w,ixI^L,ixO^L,dtnew,dx^D,x)
+  subroutine getggrav(ggrid,ixI^L,ixO^L,x)
     use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(out)   :: ggrid(ixI^S)
 
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
-    double precision, intent(inout) :: dtnew
-
-    dtnew=one/sqrt(abs(usr_grav)/dx2)
-
-  end subroutine get_dt_grav
+    ggrid(ixO^S)=usr_grav*(SRadius/(SRadius+x(ixO^S,2)))**2
+  end subroutine
 
   subroutine special_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     use mod_global_parameters
@@ -265,8 +247,6 @@ contains
 
     double precision :: lQgrid(ixI^S),bQgrid(ixI^S)
 
-    ! add gravity source
-    call add_source_gravSA(qdt,ixI^L,ixO^L,wCT,w,x)
     if(B0field) then
     ! add source terms when splitting linear force-free field
       call add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -303,23 +283,6 @@ contains
         +(v(ixO^S,1)*wCT(ixO^S,mag(2))-v(ixO^S,2)*wCT(ixO^S,mag(1)))*current0(ixO^S,ndir))
 
   end subroutine add_source_lfff
-
-  subroutine get_dt_special(w,ixI^L,ixO^L,dtnew,dx^D,x)
-    ! Limit "dt" further if necessary, e.g. due to the special source terms.
-    ! The get_dt_courant (CFL condition) and the get_dt subroutine in the AMRVACPHYS
-    ! module have already been called.
-    use mod_global_parameters
-
-    integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
-    ! note that depending on strictsmall etc, w values may change
-    double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
-
-    dtnew=bigdouble
-
-    call get_dt_grav(w,ixI^L,ixO^L,dtnew,dx^D,x)
-
-  end subroutine get_dt_special
 
   subroutine getbQ(bQgrid,ixI^L,ixO^L,qt,w,x)
   ! calculate background heating bQ
@@ -396,7 +359,7 @@ contains
     call getbQ(ens,ixI^L,ixO^L,global_time,w,x)
     w(ixO^S,nw+5)=ens(ixO^S)
     ! store the cooling rate 
-    call getvar_cooling(ixI^L,ixO^L,w,x,ens,normconv)
+    if(mhd_radiative_cooling)call getvar_cooling(ixI^L,ixO^L,w,x,ens,normconv)
     w(ixO^S,nw+6)=ens(ixO^S)
 
     ! store current
@@ -407,12 +370,12 @@ contains
   
   end subroutine specialvar_output
 
-  subroutine specialvarnames_output
+  subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
     use mod_global_parameters
+    character(len=*) :: varnames
 
-    primnames=TRIM(primnames)//' '//'Te Alfv divB beta bQ rad j1 j2 j3'
-       w_names=   TRIM(w_names)//' '//'Te Alfv divB beta bQ rad j1 j2 j3'
+    varnames='Te Alfv divB beta bQ rad j1 j2 j3'
 
   end subroutine specialvarnames_output
 

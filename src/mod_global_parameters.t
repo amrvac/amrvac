@@ -596,6 +596,24 @@ module mod_global_parameters
   !> Indicates dissipation should be omitted
   integer, parameter   :: flux_no_dissipation = 2
 
+  !> Use SI units (.true.) or use cgs units (.false.)
+  logical                                 :: SI_unit=.false.
+
+  !> Proton mass in cgs
+  double precision, parameter :: mp_cgs  = 1.672621777d-24  ! g
+
+  !> Boltzmann constant in cgs
+  double precision, parameter :: kB_cgs  = 1.3806488d-16    ! erg K^-1
+
+  !> Proton mass in SI
+  double precision, parameter :: mp_SI  = 1.672621777d-27  ! kg
+
+  !> Boltzmann constant in SI
+  double precision, parameter :: kB_SI  = 1.3806488d-23    ! J K^-1
+
+  !> Permeability in SI
+  double precision, parameter :: miu0_SI  = 1.2566370614d-6 ! H m^-1
+
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

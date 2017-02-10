@@ -63,6 +63,9 @@ module mod_hd_phys
   !> The smallest allowed pressure
   double precision, protected             :: minp
 
+  !> Helium abundance over Hydrogen
+  double precision, public, protected  :: He_abundance=0.1d0
+
   ! Public methods
   public :: hd_phys_init
   public :: hd_kin_en
@@ -75,12 +78,13 @@ contains
 
   !> Read this module"s parameters from a file
   subroutine hd_read_params(files)
-    use mod_global_parameters, only: unitpar
+    use mod_global_parameters, only: unitpar, SI_unit
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
-    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, hd_gravity
+    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
+    hd_gravity, He_abundance, SI_unit
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -164,6 +168,9 @@ contains
     phys_check_w         => hd_check_w
     phys_get_pthermal    => hd_get_pthermal
 
+    ! derive units from basic units
+    call hd_physical_units
+
     if(hd_dust) call dust_init(rho_, mom(:), e_)
 
     if(.not. hd_energy .and. hd_thermal_conduction) then
@@ -212,6 +219,24 @@ contains
     end if
 
   end subroutine hd_check_params
+
+  subroutine hd_physical_units
+    use mod_global_parameters
+    double precision :: mp,kB
+    ! Derive scaling units
+    if(SI_unit) then
+      mp=mp_SI
+      kB=kB_SI
+    else
+      mp=mp_cgs
+      kB=kB_cgs
+    end if
+    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+    unit_velocity=dsqrt(unit_pressure/unit_density)
+    unit_time=unit_length/unit_velocity
+
+  end subroutine hd_physical_units
 
   !> Returns 0 in argument flag where values are ok
   subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag)

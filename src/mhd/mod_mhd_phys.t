@@ -100,6 +100,12 @@ module mod_mhd_phys
   !> Add divB wave in Roe solver
   logical, public :: divbwave     = .true.
 
+  !> Helium abundance over Hydrogen
+  double precision, public, protected  :: He_abundance=0.1d0
+
+  !> Use SI units (.true.) or use cgs units (.false.)
+  logical, public, protected              :: SI_unit=.false.
+
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -115,14 +121,15 @@ contains
 
   !> Read this module"s parameters from a file
   subroutine mhd_read_params(files)
-    use mod_global_parameters, only: unitpar
+    use mod_global_parameters, only: unitpar, SI_unit
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
-      mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, divbwave
+      mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
+      divbwave, He_abundance, SI_unit
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -223,6 +230,9 @@ contains
     phys_check_w         => mhd_check_w
     phys_get_pthermal    => mhd_get_pthermal
 
+    ! derive units from basic units
+    call mhd_physical_units
+
     if(.not. mhd_energy .and. mhd_thermal_conduction) then
       call mpistop("thermal conduction needs hd_energy=T")
     end if
@@ -286,6 +296,27 @@ contains
     end if
 
   end subroutine mhd_check_params
+
+  subroutine mhd_physical_units
+    use mod_global_parameters
+    double precision :: mp,kB,miu0
+    ! Derive scaling units
+    if(SI_unit) then
+      mp=mp_SI
+      kB=kB_SI
+      miu0=miu0_SI
+    else
+      mp=mp_cgs
+      kB=kB_cgs
+      miu0=miu0_SI*1.d7
+    end if
+    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+    unit_velocity=dsqrt(unit_pressure/unit_density)
+    unit_magneticfield=dsqrt(miu0*unit_pressure)
+    unit_time=unit_length/unit_velocity
+
+  end subroutine mhd_physical_units
 
   subroutine mhd_check_w(primitive,ixI^L,ixO^L,w,flag)
     use mod_global_parameters
@@ -1167,9 +1198,7 @@ contains
                           /(^D&1.0d0/mygeo%dx(ixp^S,^D)**2+)
        end if
 
-       do idir=1,ndir
-         w(ixp^S,mag(idir))=w(ixp^S,mag(idir))+graddivb(ixp^S)
-       end do
+       w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
 
        if (mhd_energy .and. typedivbdiff=='all') then
          ! e += B_idim*eta*grad_idim(divb)

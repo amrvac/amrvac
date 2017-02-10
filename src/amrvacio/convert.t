@@ -85,7 +85,7 @@ logical, save:: first=.true.
 
 ! in case additional variables are computed and stored for output, adjust 
 ! the w_names and primnames string
-if (nwauxio>0 .and. first) then
+if (nwauxio>0) then
    if (.not. associated(usr_add_aux_names)) then
       call mpistop("usr_add_aux_names not defined")
    else

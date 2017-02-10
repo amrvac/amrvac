@@ -10,8 +10,8 @@ else
    goto done
 endif
 step1:
-#set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^filenameout/=}'`
-set linedata=`sed 's/[[:space:]]//g' $fname | sed -n -e '/\&filelist/,$ {' -e '/^filenameout/=' -e '}'`
+#set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^base_filename/=}'`
+set linedata=`sed 's/[[:space:]]//g' $fname | sed -n -e '/\&filelist/,$ {' -e '/^base_filename/=' -e '}'`
 set linedata=`echo $linedata | awk '{print $1}'`
 #set dataname=`sed -n "$linedata p;$linedata q" $fname | awk -F\' '{print $2}'`
 set dataname=`sed -n -e "$linedata p" -e "$linedata q" $fname | awk -F\' '{print $2}'`
@@ -21,11 +21,11 @@ if($datacount < 1 ) then
  goto done
 endif
 
-ls $dataname*
+ls $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt
 echo -n "Are you sure to delete data above? (y to delete)"
 set yn=$<
 if ($yn == "y") then
- rm -f $dataname*
+ rm -f $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt
 endif
 done:
 exit 0

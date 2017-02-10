@@ -79,24 +79,6 @@ module mod_thermal_conduction
   !> Time step coefficient
   double precision, private :: tc_dtpar=0.9d0
 
-  !> Proton mass in cgs
-  double precision, parameter :: mp_cgs  = 1.672621777d-24  ! g
-
-  !> Boltzmann constant in cgs
-  double precision, parameter :: kB_cgs  = 1.3806488d-16    ! erg K^-1
-
-  !> Proton mass in SI
-  double precision, parameter :: mp_SI  = 1.672621777d-27  ! kg
-
-  !> Boltzmann constant in SI
-  double precision, parameter :: kB_SI  = 1.3806488d-23    ! J K^-1
-
-  !> Permeability in SI
-  double precision, parameter :: miu0_SI  = 1.2566370614d-6 ! H m^-1
-
-  !> Helium abundance over Hydrogen
-  double precision    :: He_abundance=0.1d0
-
   !> Maximal number of sub-cycles within one fuild time step
   integer :: ncyclemax=1000
 
@@ -105,9 +87,6 @@ module mod_thermal_conduction
 
   !> Consider thermal conduction saturation effect (.true.) or not (.false.)
   logical, private :: tc_saturate=.true.
-
-  !> Use SI units (.true.) or use cgs units (.false.)
-  logical, private :: tc_SI_unit=.false.
 
   !> Logical switch for prepare mpi datatype only once
   logical, private :: first=.true.
@@ -150,7 +129,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_SI_unit, He_abundance
+    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -167,7 +146,6 @@ contains
 
     double precision, intent(in) :: phys_gamma
 
-    double precision :: mp,kB,miu0
     integer :: nwx,idir
 
     tc_gamma=phys_gamma
@@ -207,22 +185,8 @@ contains
     minrho = max(0.0d0, small_density)
     smalle = minp/(tc_gamma - 1.0d0)
 
-    ! Derive scaling units
-    if(tc_SI_unit) then
-      mp=mp_SI
-      kB=kB_SI
-      miu0=miu0_SI
-    else
-      mp=mp_cgs
-      kB=kB_cgs
-      miu0=miu0_SI*1.d7
-    end if
-    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-    unit_velocity=dsqrt(unit_pressure/unit_density)
-    unit_magneticfield=dsqrt(miu0*unit_pressure)
 
-    if(tc_SI_unit) then
+    if(SI_unit) then
       ! Spitzer thermal conductivity with SI units
       kappa=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
       ! thermal conductivity perpendicular to magnetic field

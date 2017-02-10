@@ -45,23 +45,8 @@ module mod_radiative_cooling
   !> Fixed temperature not lower than tlow
   logical, private    :: Tfix=.false.
 
-  !> Use SI units (.true.) or use cgs units (.false.)
-  logical, private :: rc_SI_unit=.false.
-
   !> Add cooling source in a split way (.true.) or un-split way (.false.)
   logical :: rc_split=.false.
- 
-  !> Proton mass in cgs
-  double precision, parameter :: mp_cgs  = 1.672621777d-24  ! g
-
-  !> Boltzmann constant in cgs
-  double precision, parameter :: kB_cgs  = 1.3806488d-16    ! erg K^-1
-
-  !> Proton mass in SI
-  double precision, parameter :: mp_SI  = 1.672621777d-27  ! kg
-
-  !> Boltzmann constant in SI
-  double precision, parameter :: kB_SI  = 1.3806488d-23    ! J K^-1
 
   !> Index of the density (in the w array)
   integer, private, parameter              :: rho_ = 1
@@ -595,7 +580,7 @@ module mod_radiative_cooling
       character(len=*), intent(in) :: files(:)
       integer                      :: n
   
-      namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, He_abundance, Tfix, rc_SI_unit
+      namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix
   
       do n = 1, size(files)
         open(unitpar, file=trim(files(n)), status="old")
@@ -617,7 +602,7 @@ module mod_radiative_cooling
       
       double precision, dimension(:), allocatable :: t_table
       double precision, dimension(:), allocatable :: L_table
-      double precision :: ratt, Lerror, mp, kB
+      double precision :: ratt, Lerror
       double precision ::fact1, fact2, fact3, dL1, dL2
       double precision :: tstep, Lstep
       integer :: ntable, i, j, ic, nwx,idir
@@ -853,18 +838,6 @@ module mod_radiative_cooling
       tcool(1:ncool) = 10.0D0**tcool(1:ncool)
       Lcool(1:ncool) = 10.0D0**Lcool(1:ncool)
       
-      ! Derive scaling units
-      if(rc_SI_unit) then
-        mp=mp_SI
-        kB=kB_SI
-      else
-        mp=mp_cgs
-        kB=kB_cgs
-      end if
-      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-      unit_velocity=dsqrt(unit_pressure/unit_density)
-      unit_time=unit_length/unit_velocity
       ! Scale both T and Lambda
       tcool(1:ncool) = tcool(1:ncool) / unit_temperature
       Lcool(1:ncool) = Lcool(1:ncool) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance) 
