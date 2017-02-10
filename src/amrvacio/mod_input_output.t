@@ -434,6 +434,18 @@ contains
 
     base_filename = basename_full
 
+    ! Check whether output directory exists
+    i = index(base_filename, '/', back=.true.)
+
+    if (i > 0) then
+       inquire(file=base_filename(:i-1), exist=file_exists)
+
+       if (.not. file_exists) then
+          call mpistop("Please create output directory ("//&
+               base_filename(:i-1)//") and run again")
+       end if
+    end if
+
     if (restart_from_file /= 'unavailable') then
       ! Parse index in restart_from_file string (e.g. basename0000.dat)
       i = len_trim(restart_from_file) - 7
