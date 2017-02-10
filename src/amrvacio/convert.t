@@ -228,7 +228,8 @@ end if
 
 ! only variables selected by w_write will be written out
 normconv(0:nw+nwauxio)=one
-normconv(0:nw)=normvar(0:nw)
+normconv(0) = length_convert_factor
+normconv(1:nw) = w_convert_factor
 writenw=count(w_write(1:nw))+nwauxio
 iiw=0
 do iw =1,nw
@@ -498,7 +499,7 @@ subroutine valout_idl(qunit)
 
 ! output for idl macros from (amr)vac
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using time_convert_factor and normvar-array
+! allows renormalizing using convert factors
 
 ! binary output format
 
@@ -657,7 +658,7 @@ else
        rnode_IDL(rpxmin3_)=rnode(rpxmin1_,igrid)*cos(rnode(rpxmin2_,igrid))
        rnode_IDL(rpxmax3_)=rnode(rpxmax1_,igrid)*cos(rnode(rpxmax2_,igrid))}
      end select 
-     normconv(0)=normvar(0)
+     normconv(0)=length_convert_factor
      write(qunit) {rnode_IDL(rpxmin^D_)*normconv(0)}, &
           {rnode_IDL(rpxmax^D_)*normconv(0)}
   end do
@@ -688,7 +689,7 @@ subroutine tecplot(qunit)
 
 ! output for tecplot (ASCII format)
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using time_convert_factor and normvar-array
+! allows renormalizing using convert factors
 
 use mod_global_parameters
 
@@ -1000,34 +1001,13 @@ nx^D=ixMhi^D-ixMlo^D+1;
 level=node(plevel_,igrid)
 dx^D=dx(^D,level);
 
+normconv(0) = length_convert_factor
+normconv(1:nw) = w_convert_factor
+
 ! for normalization within the code
-if(saveprim) then
-  normconv(0:nw)=normvar(0:nw)
-else
-  ix=0
-  normconv(ix)=normvar(ix)
-  ! assuming density
-  ix=ix+1
-  normconv(ix)=normvar(ix)
-  ! assuming momentum=density*velocity
-  if (nw>=2) then
-     ix=ix+1
-     normconv(ix:ix-1+ndir)=normvar(1)*normvar(ix:ix-1+ndir)
-  end if
-  ! assuming energy/pressure and magnetic field
-  if (nw>=2+ndir) then
-     ix=ix+ndir
-     normconv(ix:nw)=normvar(ix:nw)
-  endif
-  ! Jannis: TODO disabled this for now
-  ! if (physics_type == 'hdmdust') then
-  ! ! energy followed by dust density and momentum
-  !    normconv(ix)=normvar(ix) !energy
-  !    normconv(ix+1:ix+^NDS)=normvar(ix+1:ix+^NDS) !dust density
-  !    {^DS&{^C&normconv(ix+^NDS+^C+(^DS-1)*^NC)= &
-  !              normvar(ix+^NDS+^C+(^DS-1)*^NC)* &
-  !              normvar(ix+^DS);}\} !dust momentum     
-  ! end if
+if(.not. saveprim) then
+  ! Jannis: removed code that 'guessed' conversion factor
+  if (mype == 0) print *, "Warning, using wrong conversion factors"
 end if
 
 ! coordinates of cell centers
@@ -1366,7 +1346,7 @@ subroutine unstructuredvtk(qunit)
 
 ! output for vtu format to paraview
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
+! allows renormalizing using convert factors
 
 use mod_global_parameters
 
@@ -1543,7 +1523,7 @@ subroutine unstructuredvtkB(qunit)
 
 ! output for vtu format to paraview, binary version output
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
+! allows renormalizing using convert factors
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
 use mod_global_parameters
 
@@ -2099,18 +2079,18 @@ do level=levmin,levmax
       !
       write(qunit,'(a,i5.5,a,3(x,i11))') 'object "pos',ngrids-1, &
                   '" class gridpositions counts ',{nx^D+1}
-      write(qunit,'(a,3(x,f25.16))') '  origin ',{rnode(rpxmin^D_,igrid)*normvar(0)}
+      write(qunit,'(a,3(x,f25.16))') '  origin ',{rnode(rpxmin^D_,igrid)*length_convert_factor}
       {^IFONED 
-      write(qunit,'(a,x,f25.16)') '  delta  ',rnode(rpdx1_,igrid)*normvar(0)
+      write(qunit,'(a,x,f25.16)') '  delta  ',rnode(rpdx1_,igrid)*length_convert_factor
       \}
       {^IFTWOD
-      write(qunit,'(a,2(x,f25.16))') '  delta  ',rnode(rpdx1_,igrid)*normvar(0),0.0d0
-      write(qunit,'(a,2(x,f25.16))') '  delta  ',0.0d0,rnode(rpdx2_,igrid)*normvar(0)
+      write(qunit,'(a,2(x,f25.16))') '  delta  ',rnode(rpdx1_,igrid)*length_convert_factor,0.0d0
+      write(qunit,'(a,2(x,f25.16))') '  delta  ',0.0d0,rnode(rpdx2_,igrid)*length_convert_factor
       \}
       {^IFTHREED 
-      write(qunit,'(a,3(x,f25.16))') '  delta  ',rnode(rpdx1_,igrid)*normvar(0),0.0d0,0.0d0
-      write(qunit,'(a,3(x,f25.16))') '  delta  ',0.0d0,rnode(rpdx2_,igrid)*normvar(0),0.0d0
-      write(qunit,'(a,3(x,f25.16))') '  delta  ',0.0d0,0.0d0,rnode(rpdx3_,igrid)*normvar(0)
+      write(qunit,'(a,3(x,f25.16))') '  delta  ',rnode(rpdx1_,igrid)*length_convert_factor,0.0d0,0.0d0
+      write(qunit,'(a,3(x,f25.16))') '  delta  ',0.0d0,rnode(rpdx2_,igrid)*length_convert_factor,0.0d0
+      write(qunit,'(a,3(x,f25.16))') '  delta  ',0.0d0,0.0d0,rnode(rpdx3_,igrid)*length_convert_factor
       \}
       write(qunit,'(a)') 'attribute "dep" string "positions" '
       write(qunit,'(a)') '#'
@@ -2250,7 +2230,7 @@ integer :: ixM^L, ix^D, iw
 ixM^L=ixG^L^LSUBnghostcells;
 
 ! We write the arrays in row-major order (C/DX style) for the spatial indices
-write(qunit) ({(|}w(ix^D,iw)*normvar(iw),iw=1,nw),{ix^DB=ixMmin^DB,ixMmax^DB)}
+write(qunit) ({(|}w(ix^D,iw)*w_convert_factor(iw),iw=1,nw),{ix^DB=ixMmin^DB,ixMmax^DB)}
 
 end subroutine varout_dx_condep
 
@@ -2260,7 +2240,7 @@ subroutine ImageDataVtk_mpi(qunit)
 
 ! output for vti format to paraview, non-binary version output
 ! parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
+! allows renormalizing using convert factors
 ! allows skipping of w_write selected variables
 
 ! implementation such that length of ASCII output is identical when 
@@ -2299,7 +2279,8 @@ type(tree_node_ptr) :: tree
 !-----------------------------------------------------------------------------
 if(levmin/=levmax) call mpistop('ImageData can only be used when levmin=levmax')
 
-normconv(0:nw)=normvar(0:nw)
+normconv(0) = length_convert_factor
+normconv(1:nw) = w_convert_factor
 siz_ind=5*^ND
 Morton_length=Morton_stop(npe-1)-Morton_start(0)+1
 allocate(Morton_aim(Morton_start(0):Morton_stop(npe-1)))
@@ -2520,7 +2501,7 @@ subroutine unstructuredvtk_mpi(qunit)
 
 ! output for vtu format to paraview, non-binary version output
 ! parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
+! allows renormalizing using convert factors
 ! allows skipping of w_write selected variables
 
 ! implementation such that length of ASCII output is identical when 
@@ -2950,7 +2931,7 @@ subroutine tecplot_mpi(qunit)
 
 ! output for tecplot (ASCII format)
 ! parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using time_convert_factor and normvar-array
+! allows renormalizing using convert factors
 
 ! the current implementation is such that tecplotmpi and tecplotCCmpi will 
 ! create different length output ASCII files when used on 1 versus multiple CPUs
@@ -3429,7 +3410,7 @@ subroutine punstructuredvtkB_mpi(qunit)
 ! Otherwise like unstructuredvtk_mpi
 ! output for vtu format to paraview, binary version output
 ! uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
+! allows renormalizing using convert factors
 
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
 use mod_global_parameters

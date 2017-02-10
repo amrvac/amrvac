@@ -41,7 +41,10 @@
  /
  &boundlist
         nghostcells  =   2
-        typeB = 6*'periodic', 6*'periodic',6*'cont',6*'cont'
+        typeboundary_min1 = 6*'periodic'
+        typeboundary_max1 = 6*'periodic'
+        typeboundary_min2 = 6*'cont'
+        typeboundary_max2 = 6*'cont'
  /
  
  

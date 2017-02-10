@@ -476,7 +476,7 @@ contains
     !            i^D=kr(^D,idims)*(2*iside-3);
     !            if (neighbor_type(i^D,igrid)/=1) cycle
     !            iB=(idims-1)*2+iside
-    !            if(any(typeB(:,iB)=="special")) then
+    !            if(any(typeboundary(:,iB)=="special")) then
     !              if(.not.slab)mygeo=>pgeo(igrid)
     !              select case (idims)
     !              {case (^D)
@@ -972,7 +972,7 @@ contains
            iside=int((i^D+3)/2)
            iB=2*(^D-1)+iside
            do iw=nwstart+1,nwstart+nwbc
-             select case (typeB(iw,iB))
+             select case (typeboundary(iw,iB))
              case ("symm")
                pwrecv%w(ixR^S,iw) = pwsend%w(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
              case ("asymm")

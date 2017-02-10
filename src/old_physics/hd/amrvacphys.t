@@ -957,7 +957,7 @@ select case( TRIM(dustmethod) )
 !
 !  Equation from Decin et al. 2006
 !
-  Tgas(ixO^S) = ( ptherm(ixO^S)*normvar(p_)*mhcgspar)/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
+  Tgas(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(p_)*mhcgspar)/(w(ixO^S,rho_)*w_convert_factor(rho_)*kbcgspar)
   call get_sticking(w,x,ixI^L,ixO^L,alpha_T)
   
   do idir=1,^NC
@@ -1007,7 +1007,7 @@ subroutine get_sticking(w,x,ixI^L,ixO^L,alpha_T)
 !
 !  get sticking coefficient
 !
-!  Assume cgs units, and use of normvar(0:nw) array for conversion
+!  Assume cgs units, and use of convert factors
 !
 !
 !  Equation from Decin et al. 2006
@@ -1027,7 +1027,7 @@ double precision                :: Tgas(ixG^T)
   call getpthermal(w,x,ixI^L,ixO^L,Tgas)
   call get_tdust(w,x,ixI^L,ixO^L,alpha_T)
 
-  Tgas(ixO^S) = (Tgas(ixO^S)*normvar(p_)*mhcgspar)/(w(ixO^S,rho_)*normvar(rho_)*kbcgspar)
+  Tgas(ixO^S) = (Tgas(ixO^S)*w_convert_factor(p_)*mhcgspar)/(w(ixO^S,rho_)*w_convert_factor(rho_)*kbcgspar)
 
   {^DS&alpha_T(ixO^S,^DS) = max(0.35d0*dexp(-dsqrt((Tgas(ixO^S)+alpha_T(ixO^S,^DS))/5.0d2))+0.1d0,smalldouble)\}
 

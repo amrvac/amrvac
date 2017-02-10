@@ -12,10 +12,11 @@ program amrvac
   }
   use mod_global_parameters
   use mod_input_output
-  use mod_physics
+  use mod_physics, only: phys_check_params
   use mod_usr_methods, only: usr_before_main_loop
   use mod_ghostcells_update
   use mod_usr
+  use mod_initialize
 
   integer          :: itin
   double precision :: time0, time_in, tin
@@ -26,15 +27,13 @@ program amrvac
   time0        = MPI_WTIME()
   time_bc      = zero
 
+  ! Read command line arguments first
   call read_arguments()
 
+  ! The user_init routine should load a physics module
   call usr_init()
-  call phys_check()
 
-  call read_par_files()
-
-  call initialize_vars()
-  call init_comm_types()
+  call initialize_amrvac()
 
   ! Begin of the code
   ! -----------------

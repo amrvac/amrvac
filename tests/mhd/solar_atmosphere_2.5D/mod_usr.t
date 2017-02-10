@@ -5,13 +5,16 @@ module mod_usr
   double precision :: usr_grav
   double precision :: heatunit,gzone,B0,theta,SRadius,kx,ly,bQ0,dya
   double precision, allocatable :: pa(:),ra(:),ya(:)
-  integer :: jmax
+  integer, parameter :: jmax=8000
 
 contains
 
   subroutine usr_init()
     use mod_global_parameters
     use mod_usr_methods
+    use mod_initialize
+
+    call set_coordinate_system("Cartesian_2.5D")
 
     unit_length        = 1.d9                                         ! cm
     unit_temperature   = 1.d6                                         ! K
@@ -27,10 +30,11 @@ contains
     usr_add_aux_names   => specialvarnames_output 
 
     call mhd_activate()
+    call initialize_amrvac()
 
     unit_time=unit_length/unit_velocity             ! 85.8746159942810 s
     heatunit=unit_pressure/unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
-    
+
     usr_grav=-2.74d4*unit_length/unit_velocity**2 ! solar gravity
     bQ0=1.d-4/heatunit ! background heating power density
     gzone=0.2d0 ! thickness of a ghostzone below the bottom boundary
@@ -42,7 +46,6 @@ contains
     SRadius=69.61d0 ! Solar radius
     ! hydrostatic vertical stratification of density, temperature, pressure
     call inithdstatic
-    if(mype==0) print*,'ndir ndim',ndir,ndim
 
   end subroutine usr_init
 
@@ -63,7 +66,6 @@ contains
     Ttr=1.6d5/unit_temperature !< lowest temperature of upper profile
     Fc=2.d5/heatunit/unit_length !< constant thermal conduction flux
 
-    jmax=8000
     allocate(ya(jmax),Ta(jmax),gg(jmax),pa(jmax),ra(jmax))
     do j=1,jmax
        ya(j)=(dble(j)-0.5d0)*dya-gzone
@@ -98,13 +100,13 @@ contains
       rbc(ibc)=ra(na)+res/dya*(ra(na+1)-ra(na))
       pbc(ibc)=pa(na)+res/dya*(pa(na+1)-pa(na))
     end do
-    
+
     if (mype==0) then
      print*,'minra',minval(ra)
      print*,'rhob',rhob
      print*,'pb',pb
     endif
-        
+
   end subroutine inithdstatic
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)

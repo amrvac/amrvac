@@ -33,8 +33,8 @@ module mod_dust
   double precision :: dust_stellar_luminosity
 
   ! ???
-  double precision :: mhcgspar = 1.6733D-24
-  double precision :: kbcgspar = 1.38065D-16
+  double precision :: hydrogen_mass_cgs = 1.6733D-24
+  double precision :: kboltzmann_cgs = 1.38065D-16
 
   !> Set small dust densities to zero to avoid numerical problems
   logical :: dust_small_to_zero = .false.
@@ -272,8 +272,8 @@ contains
        !  Equation from Decin et al. 2006
        if (gas_e_ < 0) call mpistop("dust sticking requires gas energy")
 
-       Tgas(ixO^S) = ( ptherm(ixO^S)*normvar(gas_e_)*mhcgspar) / &
-            (w(ixO^S, gas_rho_)*normvar(gas_rho_)*kbcgspar)
+       Tgas(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs) / &
+            (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
        call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
 
        do idir = 1, ndir
@@ -319,7 +319,7 @@ contains
 
   !> get sticking coefficient
   !>
-  !> Assume cgs units, and use of normvar(0:nw) array for conversion
+  !> Assume cgs units, and use of convert factors for conversion
   !> Equation from Decin et al. 2006
   subroutine get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
     use mod_global_parameters
@@ -334,8 +334,8 @@ contains
     ! call getpthermal(w, x, ixI^L, ixO^L, Tgas)
     call get_tdust(w, x, ixI^L, ixO^L, alpha_T)
 
-    Tgas(ixO^S) = (ptherm(ixO^S)*normvar(gas_e_)*mhcgspar) / &
-         (w(ixO^S, gas_rho_) * normvar(gas_rho_) * kbcgspar)
+    Tgas(ixO^S) = (ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs) / &
+         (w(ixO^S, gas_rho_) * w_convert_factor(gas_rho_) * kboltzmann_cgs)
 
     do n = 1, dust_n_species
        alpha_T(ixO^S,n) =  max(0.35d0 * exp(-dsqrt((Tgas(ixO^S) + &
@@ -347,7 +347,7 @@ contains
   !> 5.42 and 5.44 from Tielens (2005)
   !>
   !> Note that this calculation assumes cgs!!!! with conversion between physical
-  !> and scaled quantities done through the normvar(0:nw) array!!!!
+  !> and scaled quantities done through the convert factors!!!!
   !>
   !> It takes as input the stellar luminosoity in solar units and/or a fixed
   !> dust temperature in Kelvin
@@ -368,11 +368,11 @@ contains
        select case( trim(dust_species) )
        case( 'graphite' )
           do n = 1, dust_n_species
-             Td(ixO^S, n) = 15.8d0*((0.0001d0/(dust_size(n)*normvar(0)))**0.06d0)
+             Td(ixO^S, n) = 15.8d0*((0.0001d0/(dust_size(n)*length_convert_factor))**0.06d0)
           end do
        case( 'silicate' )
           do n = 1, dust_n_species
-             Td(ixO^S, n) = 13.6d0*((0.0001d0/(dust_size(n)*normvar(0)))**0.06d0)
+             Td(ixO^S, n) = 13.6d0*((0.0001d0/(dust_size(n)*length_convert_factor))**0.06d0)
           end do
        case default
           call mpistop( "=== Dust species undetermined===" )
@@ -380,13 +380,13 @@ contains
     case( 'stellar' )
        select case( trim(typeaxial) )
        case( 'spherical' )
-          G0(ixO^S) = max(x(ixO^S, 1)*normvar(0), smalldouble)
+          G0(ixO^S) = max(x(ixO^S, 1)*length_convert_factor, smalldouble)
        case( 'cylindrical' )
-          G0(ixO^S) = max(dsqrt(sum(x(ixO^S,:)**2,dim=ndim+1))*normvar(0), smalldouble)
+          G0(ixO^S) = max(dsqrt(sum(x(ixO^S,:)**2,dim=ndim+1))*length_convert_factor, smalldouble)
        case( 'slab' )
           {^IFTHREED
           G0(ixO^S) = max(dsqrt((x(ixO^S, 1)-x1ptms)**2 + (x(ixO^S, 2)-x2ptms)**2  &
-               + (x(ixO^S, 3)-x3ptms)**2)*normvar(0), smalldouble)
+               + (x(ixO^S, 3)-x3ptms)**2)*length_convert_factor, smalldouble)
           }
        end select
 
@@ -395,12 +395,12 @@ contains
        select case( trim(dust_species) )
        case( 'graphite' )
           do n = 1, dust_n_species
-             Td(ixO^S, n) = 61.0d0*((0.0001d0/(dust_size(n)*normvar(0)))**0.06d0) &
+             Td(ixO^S, n) = 61.0d0*((0.0001d0/(dust_size(n)*length_convert_factor))**0.06d0) &
                   *(G0(ixO^S)**(one/5.8d0))
           end do
        case( 'silicate' )
           do n = 1, dust_n_species
-             Td(ixO^S, n) = 50.0d0*((0.0001d0/(dust_size(n)*normvar(0)))**0.06d0) &
+             Td(ixO^S, n) = 50.0d0*((0.0001d0/(dust_size(n)*length_convert_factor))**0.06d0) &
                   *(G0(ixO^S)**(one/6.0d0))
           end do
        case default
@@ -486,7 +486,7 @@ contains
        vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
        ! Tgas, mu = mean molecular weight
-       ! ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(gas_e_)*mhcgspar*gas_mu)/(w(ixO^S, gas_rho_)*normvar(gas_rho_)*kbcgspar)
+       ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs*gas_mu)/(w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
 
        do idir = 1, ndir
           ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
@@ -518,8 +518,8 @@ contains
        call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
 
        ! Tgas, mu = mean molecular weight
-       ! ptherm(ixO^S) = ( ptherm(ixO^S)*normvar(gas_e_) * mhcgspar*gas_mu) / &
-            ! (w(ixO^S, gas_rho_)*normvar(gas_rho_)*kbcgspar)
+       ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_) * hydrogen_mass_cgs*gas_mu) / &
+            ! (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
 
        do idir = 1, ndir
           ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)

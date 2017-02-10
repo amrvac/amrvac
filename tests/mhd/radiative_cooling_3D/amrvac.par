@@ -9,8 +9,8 @@
   typefilelog      = 'regression_test'
 
  &savelist
-   dtsave(1)       = 1.d-3
-   dtsave(2)       = 1.d-1
+   dtsave_log       = 1.d-3
+   dtsave_dat       = 1.d-1
 /
 
  &stoplist
@@ -25,10 +25,14 @@
 /
  &boundlist
   nghostcells  =   2
-  typeB=          8*'cont', 8*'cont',
-                  8*'cont', 8*'cont',
-                  8*'cont', 8*'cont'
+  typeboundary_min1 = 8*'cont'
+  typeboundary_max1 = 8*'cont'
+  typeboundary_min2 = 8*'cont'
+  typeboundary_max2 = 8*'cont'
+  typeboundary_min3 = 8*'cont'
+  typeboundary_max3 = 8*'cont'
 /
+
  &meshlist
    refine_criterion   = 3
    refine_max_level          = 3

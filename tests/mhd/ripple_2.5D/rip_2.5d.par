@@ -14,7 +14,7 @@
  /
 
  &savelist
-   dtsave(1)       = 1.d-3
+   dtsave_log       = 1.d-3
 /
 
  &stoplist
@@ -32,7 +32,10 @@
 
  &boundlist
         nghostcells=    2
-        typeB= 8*'cont',8*'cont',8*'cont',8*'cont'
+        typeboundary_min1 = 8*'cont'
+        typeboundary_max1 = 8*'cont'
+        typeboundary_min2 = 8*'cont'
+        typeboundary_max2 = 8*'cont'
  /
 
  &meshlist

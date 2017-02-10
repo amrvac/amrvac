@@ -5,7 +5,6 @@ subroutine unstructuredvtk23(qunit,userconvert_type)
 
 ! output for vtu format to paraview
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
 
 use mod_global_parameters
 
@@ -245,8 +244,7 @@ subroutine unstructuredvtksym23(qunit,userconvert_type)
 
 ! output for vtu format to paraview
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
-! 
+!
 ! use this subroutine  when the physical domain is symmetric/asymmetric about (0,y,z) 
 ! plane, xprobmin1=0 and the computational domain is a half of the physical domain
 
@@ -619,7 +617,6 @@ subroutine unstructuredvtkB23(qunit,userconvert_type)
 
 ! output for vtu format to paraview, binary version output
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
 
 use mod_global_parameters
 
@@ -951,7 +948,6 @@ subroutine unstructuredvtkBsym23(qunit,userconvert_type)
 
 ! output for vtu format to paraview, binary version output
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
 ! use this subroutine  when the physical domain is symmetric/asymmetric about (0,y,z) 
 ! plane, xprobmin1=0 and the computational domain is a half of the physical domain
 
@@ -1518,7 +1514,8 @@ dx1=dx(1,level);dx2=dx(2,level);dx3=zgridsc*dx(1,level);
 
 ! for normalization within the code
 if(saveprim) then
-  normconv(0:nw)=normvar(0:nw)
+  normconv(0) = length_convert_factor
+  normconv(1:nw) = w_convert_factor
 else
   normconv(0)=normvar(0)
   ! assuming density
@@ -2383,7 +2380,8 @@ end if
 
 ! only variables selected by writew will be written out
 normconv(0:nw+nwauxio)=one
-normconv(0:nw)=normvar(0:nw)
+normconv(0) = length_convert_factor
+normconv(1:nw) = w_convert_factor
 writenw=count(writew(1:nw))+nwauxio
 iiw=0
 do iw =1,nw
@@ -2666,7 +2664,8 @@ if(ndim/=2) then
 end if
 ! only variables selected by writew will be written out
 normconv(0:nw+nwauxio)=one
-normconv(0:nw)=normvar(0:nw)
+normconv(0) = length_convert_factor
+normconv(1:nw) = w_convert_factor
 writenw=count(writew(1:nw))+nwauxio
 iiw=0
 do iw =1,nw

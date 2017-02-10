@@ -4,15 +4,14 @@
 
         level_io=1
  &filelist
-        filenamelog='ripple'
-        filenameout='ripple'
+        base_filename='ripple'
         primnames='rho v1 v2 v3 p b1 b2 b3'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuCCmpi'
         nwauxio=1
  /
-        filenameini='ripple'
+        restart_from_file='ripple'
         snapshotini=19
         snapshotnext=20
         convert=.true.
@@ -25,42 +24,44 @@
 
  &stoplist
         dtmin=1.D-6
-        tmax=0.2d0
+        time_max=0.2d0
  /
 
  &methodlist
-        wnames=       'rho m1 m2 m3 e b1 b2 b3'
-        fileheadout=  'test_mhd33'
-        typeadvance=  'threestep'
-        typefull1=    13*'hll'
-        typelimiter1= 13*'koren'
+        w_names=       'rho m1 m2 m3 e b1 b2 b3'
+        time_integrator=  'threestep'
+        flux_scheme=    20*'hll'
+        limiter= 20*'koren'
         typelimited='predictor'
         dimsplit=.false.
  /
 
  &boundlist
-        dixB=    2
-        typeB= 8*'cont',8*'cont',8*'cont',8*'cont'
+        nghostcells=    2
+        typeboundary_min1 = 8*'cont'
+        typeboundary_max1 = 8*'cont'
+        typeboundary_min2 = 8*'cont'
+        typeboundary_max2 = 8*'cont'
  /
 
- &amrlist
-        errorestimate=3
-        mxnest=3
-        tol=13*0.2d0
-        tolratio=13*0.125d0
-        flags(9)=4
-        flags(1)=1
-        flags(2)=2
-        flags(3)=3
-        flags(4)=4
-        wflags(1)=0.3d0
-        wflags(2)=0.2d0
-        wflags(3)=0.2d0
-        wflags(4)=0.2d0
-        nxblock1=16
-        nxblock2=16
-        nxlone1=64
-        nxlone2=64
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.125d0
+        w_for_refine(9)=4
+        w_for_refine(1)=1
+        w_for_refine(2)=2
+        w_for_refine(3)=3
+        w_for_refine(4)=4
+        w_refine_weight(1)=0.3d0
+        w_refine_weight(2)=0.2d0
+        w_refine_weight(3)=0.2d0
+        w_refine_weight(4)=0.2d0
+        block_nx1=16
+        block_nx2=16
+        domain_nx1=64
+        domain_nx2=64
         iprob=1
         xprobmin1=-0.2d0
         xprobmax1=0.2d0

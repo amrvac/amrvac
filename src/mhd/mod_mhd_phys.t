@@ -50,7 +50,7 @@ module mod_mhd_phys
   integer, allocatable, public, protected :: mag(:)
 
   !> Indices of the GLM psi
-  integer, allocatable, public, protected :: psi_
+  integer, public, protected :: psi_
 
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
