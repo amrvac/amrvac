@@ -220,6 +220,7 @@ contains
 
   subroutine getbc(time,qdt,pwuse,nwstart,nwbc)
     use mod_global_parameters
+    use mod_physics
     
     double precision, intent(in)      :: time, qdt
     integer, intent(in)               :: nwstart ! Fill from nw = nwstart+1
@@ -461,42 +462,8 @@ contains
     end if
 
     !> @todo Implement generic interface for modifying ghost cells
-    ! {^IFMHD
-    ! ! modify normal component of magnetic field to fix divB=0 
-    ! if(bcphys .and. b0_>0) then
-    !   do iigrid=1,igridstail; igrid=igrids(iigrid);
-    !      if(.not.phyboundblock(igrid)) cycle
-    !      saveigrid=igrid
-    !      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    !      do idims=1,ndim
-    !         ! to avoid using as yet unknown corner info in more than 1D, we
-    !         ! fill only interior mesh ranges of the ghost cell ranges at first,
-    !         ! and progressively enlarge the ranges to include corners later
-    !         do iside=1,2
-    !            i^D=kr(^D,idims)*(2*iside-3);
-    !            if (neighbor_type(i^D,igrid)/=1) cycle
-    !            iB=(idims-1)*2+iside
-    !            if(any(typeboundary(:,iB)=="special")) then
-    !              if(.not.slab)mygeo=>pgeo(igrid)
-    !              select case (idims)
-    !              {case (^D)
-    !                 if (iside==2) then
-    !                    ! maximal boundary
-    !                    ixImin^DD=ixGmax^D+1-nghostcells^D%ixImin^DD=ixGmin^DD;
-    !                    ixImax^DD=ixGmax^DD;
-    !                 else
-    !                    ! minimal boundary
-    !                    ixImin^DD=ixGmin^DD;
-    !                    ixImax^DD=ixGmin^D-1+nghostcells^D%ixImax^DD=ixGmax^DD;
-    !                 end if \}
-    !              end select
-    !              call fixdivB_boundary(ixG^L,ixI^L,pwuse(igrid)%w,px(igrid)%x,iB)
-    !            end if
-    !         end do
-    !      end do
-    !   end do
-    ! end if
-    ! }
+     ! modify normal component of magnetic field to fix divB=0 
+    if(bcphys .and. physics_type=='mhd' .and. ndim>1) call phys_boundary_adjust(pwuse)
     
     if (nwaux>0) call fix_auxiliary
     
@@ -1059,156 +1026,5 @@ contains
        \}
     {end do\}
   end subroutine identifyphysbound
-
-  ! subroutine fixdivB_boundary(ixG^L,ixO^L,w,x,iB)
-  !   use mod_physics, only: phys_to_conserved, phys_to_primitive
-  !   use mod_global_parameters
-    
-  !   integer, intent(in) :: ixG^L,ixO^L,iB
-  !   double precision, intent(inout) :: w(ixG^S,1:nw)
-  !   double precision, intent(in) :: x(ixG^S,1:ndim)
-    
-  !   double precision :: dx1x2,dx1x3,dx2x1,dx2x3,dx3x1,dx3x2
-  !   integer :: ix^D
-
-  !   select case(iB)
-  !    case(1)
-  !      ! 2nd order CD for divB=0 to set normal B component better
-  !      call phys_to_primitive(ixG^L,ixO^L,w,x)
-  !      {^IFTWODMHD
-  !      dx1x2=dxlevel(1)/dxlevel(2)
-  !      do ix2=ixOmin2+1,ixOmax2-1
-  !        do ix1=ixOmax1,ixOmin1,-1
-  !          w(ix1,ix2,b1_)=w(ix1+2,ix2,b1_) &
-  !           +dx1x2*(w(ix1+1,ix2+1,b2_)-w(ix1+1,ix2-1,b2_))
-  !        enddo
-  !      enddo
-  !      }
-  !      {^IFTHREEDMHD
-  !      dx1x2=dxlevel(1)/dxlevel(2)
-  !      dx1x3=dxlevel(1)/dxlevel(3)
-  !      do ix3=ixOmin3+1,ixOmax3-1
-  !        do ix2=ixOmin2+1,ixOmax2-1
-  !          do ix1=ixOmax1,ixOmin1,-1
-  !            w(ix1,ix2,ix3,b1_)=w(ix1+2,ix2,ix3,b1_) &
-  !             +dx1x2*(w(ix1+1,ix2+1,ix3,b2_)-w(ix1+1,ix2-1,ix3,b2_))&
-  !             +dx1x3*(w(ix1+1,ix2,ix3+1,b3_)-w(ix1+1,ix2,ix3-1,b3_))
-  !          enddo
-  !        enddo
-  !      enddo
-  !      }
-  !      call phys_to_conserved(ixG^L,ixO^L,w,x)
-  !    case(2)
-  !      call phys_to_primitive(ixG^L,ixO^L,w,x)
-  !      {^IFTWODMHD
-  !      dx1x2=dxlevel(1)/dxlevel(2)
-  !      do ix2=ixOmin2+1,ixOmax2-1
-  !        do ix1=ixOmin1,ixOmax1
-  !          w(ix1,ix2,b1_)=w(ix1-2,ix2,b1_) &
-  !           -dx1x2*(w(ix1-1,ix2+1,b2_)-w(ix1-1,ix2-1,b2_))
-  !        enddo
-  !      enddo
-  !      }
-  !      {^IFTHREEDMHD
-  !      dx1x2=dxlevel(1)/dxlevel(2)
-  !      dx1x3=dxlevel(1)/dxlevel(3)
-  !      do ix3=ixOmin3+1,ixOmax3-1
-  !        do ix2=ixOmin2+1,ixOmax2-1
-  !          do ix1=ixOmin1,ixOmax1
-  !            w(ix1,ix2,ix3,b1_)=w(ix1-2,ix2,ix3,b1_) &
-  !             -dx1x2*(w(ix1-1,ix2+1,ix3,b2_)-w(ix1-1,ix2-1,ix3,b2_))&
-  !             -dx1x3*(w(ix1-1,ix2,ix3+1,b3_)-w(ix1-1,ix2,ix3-1,b3_))
-  !          enddo
-  !        enddo
-  !      enddo
-  !      }
-  !      call phys_to_conserved(ixG^L,ixO^L,w,x)
-  !    case(3)
-  !      call phys_to_primitive(ixG^L,ixO^L,w,x)
-  !      {^IFTWODMHD
-  !      dx2x1=dxlevel(2)/dxlevel(1)
-  !      do ix2=ixOmax2,ixOmin2,-1
-  !        do ix1=ixOmin1+1,ixOmax1-1
-  !          w(ix1,ix2,b2_)=w(ix1,ix2+2,b2_) &
-  !           +dx2x1*(w(ix1+1,ix2+1,b1_)-w(ix1-1,ix2+1,b1_))
-  !        enddo
-  !      enddo
-  !      }
-  !      {^IFTHREEDMHD
-  !      dx2x1=dxlevel(2)/dxlevel(1)
-  !      dx2x3=dxlevel(2)/dxlevel(3)
-  !      do ix3=ixOmin3+1,ixOmax3-1
-  !        do ix2=ixOmax2,ixOmin2,-1
-  !          do ix1=ixOmin1+1,ixOmax1-1
-  !            w(ix1,ix2,ix3,b2_)=w(ix1,ix2+2,ix3,b2_) &
-  !             +dx2x1*(w(ix1+1,ix2+1,ix3,b1_)-w(ix1-1,ix2+1,ix3,b1_))&
-  !             +dx2x3*(w(ix1,ix2+1,ix3+1,b3_)-w(ix1,ix2+1,ix3-1,b3_))
-  !          enddo
-  !        enddo
-  !      enddo
-  !      }
-  !      call phys_to_conserved(ixG^L,ixO^L,w,x)
-  !    case(4)
-  !      call phys_to_primitive(ixG^L,ixO^L,w,x)
-  !      {^IFTWODMHD
-  !      dx2x1=dxlevel(2)/dxlevel(1)
-  !      do ix2=ixOmin2,ixOmax2
-  !        do ix1=ixOmin1+1,ixOmax1-1
-  !            w(ix1,ix2,b2_)=w(ix1,ix2-2,b2_) &
-  !             -dx2x1*(w(ix1+1,ix2-1,b1_)-w(ix1-1,ix2-1,b1_))
-  !        enddo
-  !      enddo
-  !      }
-  !      {^IFTHREEDMHD
-  !      dx2x1=dxlevel(2)/dxlevel(1)
-  !      dx2x3=dxlevel(2)/dxlevel(3)
-  !      do ix3=ixOmin3+1,ixOmax3-1
-  !        do ix2=ixOmin2,ixOmax2
-  !          do ix1=ixOmin1+1,ixOmax1-1
-  !            w(ix1,ix2,ix3,b2_)=w(ix1,ix2-2,ix3,b2_) &
-  !             -dx2x1*(w(ix1+1,ix2-1,ix3,b1_)-w(ix1-1,ix2-1,ix3,b1_))&
-  !             -dx2x3*(w(ix1,ix2-1,ix3+1,b3_)-w(ix1,ix2-1,ix3-1,b3_))
-  !          enddo
-  !        enddo
-  !      enddo
-  !      }
-  !      call phys_to_conserved(ixG^L,ixO^L,w,x)
-  !    case(5)
-  !      call phys_to_primitive(ixG^L,ixO^L,w,x)
-  !      {^IFTHREEDMHD
-  !      dx3x1=dxlevel(3)/dxlevel(1)
-  !      dx3x2=dxlevel(3)/dxlevel(2)
-  !      do ix3=ixOmax3,ixOmin3,-1
-  !        do ix2=ixOmin2+1,ixOmax2-1
-  !          do ix1=ixOmin1+1,ixOmax1-1
-  !            w(ix1,ix2,ix3,b3_)=w(ix1,ix2,ix3+2,b3_) &
-  !            +dx3x1*(w(ix1+1,ix2,ix3+1,b1_)-w(ix1-1,ix2,ix3+1,b1_))&
-  !            +dx3x2*(w(ix1,ix2+1,ix3+1,b2_)-w(ix1,ix2-1,ix3+1,b2_))
-  !          enddo
-  !        enddo
-  !      enddo
-  !      }
-  !      call phys_to_conserved(ixG^L,ixO^L,w,x)
-  !    case(6)
-  !      call phys_to_primitive(ixG^L,ixO^L,w,x)
-  !      {^IFTHREEDMHD
-  !      dx3x1=dxlevel(3)/dxlevel(1)
-  !      dx3x2=dxlevel(3)/dxlevel(2)
-  !      do ix3=ixOmin3,ixOmax3
-  !        do ix2=ixOmin2+1,ixOmax2-1
-  !          do ix1=ixOmin1+1,ixOmax1-1
-  !            w(ix1,ix2,ix3,b3_)=w(ix1,ix2,ix3-2,b3_) &
-  !            -dx3x1*(w(ix1+1,ix2,ix3-1,b1_)-w(ix1-1,ix2,ix3-1,b1_))&
-  !            -dx3x2*(w(ix1,ix2+1,ix3-1,b2_)-w(ix1,ix2-1,ix3-1,b2_))
-  !          enddo
-  !        enddo
-  !      enddo
-  !      }
-  !      call phys_to_conserved(ixG^L,ixO^L,w,x)
-  !    case default
-  !      call mpistop("Special boundary is not defined for this region")
-  !   end select
-  
-  ! end subroutine fixdivB_boundary
 
 end module mod_ghostcells_update

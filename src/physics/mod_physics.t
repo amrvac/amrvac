@@ -33,11 +33,17 @@ module mod_physics
   procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
+  procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust         => null()
 
   abstract interface
 
      subroutine sub_check_params()
      end subroutine sub_check_params
+
+     subroutine sub_boundary_adjust(pwuse)
+       use mod_global_parameters
+       type(walloc), dimension(max_blocks) :: pwuse
+     end subroutine sub_boundary_adjust
 
      subroutine sub_convert(ixI^L, ixO^L, w, x)
        use mod_global_parameters
@@ -182,6 +188,9 @@ contains
     if (.not. associated(phys_get_pthermal)) &
          phys_get_pthermal => dummy_get_pthermal
 
+    if (.not. associated(phys_boundary_adjust)) &
+         phys_boundary_adjust => dummy_boundary_adjust
+
   end subroutine phys_check
 
   subroutine dummy_init_params()
@@ -248,5 +257,10 @@ contains
 
     call mpistop("No get_pthermal method specified")
   end subroutine dummy_get_pthermal
+
+  subroutine dummy_boundary_adjust(pwuse)
+    use mod_global_parameters
+    type(walloc), dimension(max_blocks) :: pwuse
+  end subroutine dummy_boundary_adjust
 
 end module mod_physics
