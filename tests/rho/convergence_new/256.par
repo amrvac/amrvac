@@ -1,9 +1,8 @@
  &filelist
-        filenamelog  = '_256'
-        filenameout  = '_256'
+        base_filename  = '_256'
  /
 
- &amrlist
-        nxlone1=256
-        nxblock1=16
+ &meshlist
+        domain_nx1=256
+        block_nx1=16
  /

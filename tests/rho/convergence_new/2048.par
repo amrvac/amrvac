@@ -1,9 +1,8 @@
  &filelist
-        filenamelog  = '_2048'
-        filenameout  = '_2048'
+        base_filename  = '_2048'
  /
 
- &amrlist
-        nxlone1=2048
-        nxblock1=16
+ &meshlist
+        domain_nx1=2048
+        block_nx1=16
  /

@@ -7,30 +7,30 @@
         primnames    = 'rho'
     	convert_type = 'vtiCCmpi'
         autoconvert  = T
-	filenameout  = 'conv'
-	filenamelog  = 'conv'
-/
+	base_filename  = 'conv'
+	/
  &savelist
         itsave(1,1)  = 0
         itsave(1,2)  = 0
-        ditsave(1)   = 1
+        ditsave_log   = 1
  /
 
  &stoplist
-        tmax         = 10.0d0
+        time_max         = 10.0d0
  /
 
  &methodlist
-        wnames=       'rho'
+        w_names=       'rho'
  /
 
  &boundlist
-        dixB=   2
-        typeB=  'periodic','periodic'
+        nghostcells=   3
+        typeboundary_min1 = 'periodic'
+        typeboundary_max1 = 'periodic'
  /
 
- &amrlist
-        mxnest=1
+ &meshlist
+        refine_max_level=1
         iprob=1
         xprobmin1=0.0d0
         xprobmax1=1.0d0
