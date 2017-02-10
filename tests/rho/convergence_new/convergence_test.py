@@ -11,16 +11,21 @@ from __future__ import unicode_literals
 import argparse
 import vtk
 from tvtk import array_handler as ah
-from subprocess import Popen
+from multiprocessing import Pool, Manager, cpu_count
+from subprocess import check_output
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
 
 def get_args():
     p = argparse.ArgumentParser()
 
     p.add_argument('-only_plot', action='store_true',
                    help='Only plot, do not run amrvac')
+    p.add_argument('-np', type=int,
+                   default=max(1, cpu_count()//2),
+                   help='Number of parallel amrvac proccesses')
     p.add_argument('-fig_size', type=float, nargs=2,
                    default=[10,6], help='Figure size in inches')
     p.add_argument('-fig_name', type=str, default='result.pdf',
@@ -86,10 +91,16 @@ def getDifference(file_a, file_b, norm_type):
 
     return norm
 
-
-def run_amrvac(par_files):
-    return Popen(['./amrvac -i ' + par_files], shell=True)
-
+# Wrapper script to run amrvac
+def amrvac_wrapper(par_files):
+    cmd = ['./amrvac', '-i ' + par_files]
+    try:
+        res = check_output(cmd)
+    except:
+        print('Error when running:')
+        print(' '.join(cmd))
+        sys.exit(1)
+    return res
 
 if __name__ == '__main__':
     args = get_args()
@@ -99,16 +110,15 @@ if __name__ == '__main__':
                    sch in args.schemes]
 
     if not args.only_plot:
-        pipes = []
+        pool = Pool(processes=args.np)
+        cmd_list = []
         for sch, par_sch  in zip(args.schemes, scheme_pars):
             for res in grids:
                 par_files = '{} {:d}.par {}'.format(
                     args.base_par, res, par_sch)
-                print('Starting amrvac -i ' + par_files)
-                pipes.append(run_amrvac(par_files))
+                cmd_list.append(par_files)
 
-        for p in pipes:
-            out, err = p.communicate()
+        run = pool.map(amrvac_wrapper, cmd_list)
 
     plt.figure(figsize=args.fig_size)
 
