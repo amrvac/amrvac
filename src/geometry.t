@@ -5,22 +5,52 @@ subroutine set_coordinate_system(geom)
 
   select case (geom)
   case ("Cartesian")
-     ndir = ndim
+    ndir = ndim
+    typeaxial='slab'
   case ("Cartesian_1.5D")
-     if (ndim /= 1) call mpistop("Geometry Cartesian_1.5D but ndim /= 1")
-     ndir = 2
+    if (ndim /= 1) call mpistop("Geometry Cartesian_1.5D but ndim /= 1")
+    typeaxial='slab'
+    ndir = 2
   case ("Cartesian_1.75D")
-     if (ndim /= 1) call mpistop("Geometry Cartesian_1.75D but ndim /= 1")
-     ndir = 3
+    if (ndim /= 1) call mpistop("Geometry Cartesian_1.75D but ndim /= 1")
+    typeaxial='slab'
+    ndir = 3
   case ("Cartesian_2.5D")
-     if (ndim /= 2) call mpistop("Geometry Cartesian_2.5D but ndim /= 2")
-     ndir = 3
+    if (ndim /= 2) call mpistop("Geometry Cartesian_2.5D but ndim /= 2")
+    typeaxial='slab'
+    ndir = 3
+  case ("cylindrical")
+    ndir = ndim
+    r_   = 1
+    z_   = 2
+    phi_ = 3
+    typeaxial='cylindrical'
   case ("cylindrical_2.5D")
     if (ndim /= 2) call mpistop("Geometry cylindrical_2.5D but ndim /= 2")
     ndir = 3
     r_   = 1
+    z_   = 2
+    phi_ = 3
+    typeaxial='cylindrical'
+  case ("polar")
+    ndir = ndim
+    r_   = 1
     phi_ = 2
     z_   = 3
+    typeaxial='cylindrical'
+  case ("polar_2.5D")
+    if (ndim /= 2) call mpistop("Geometry polar_2.5D but ndim /= 2")
+    ndir = 3
+    r_   = 1
+    phi_ = 2
+    z_   = 3
+    typeaxial='cylindrical'
+  case ("spherical")
+    ndir = ndim
+    r_   = 1
+    phi_ = 3
+    z_   = -1
+    typeaxial='spherical'
   case ("spherical_2.5D")
     if (ndim /= 2) &
          call mpistop("Geometry spherical_2.5D requires ndim == 2")
@@ -28,6 +58,7 @@ subroutine set_coordinate_system(geom)
     r_   = 1
     phi_ = 3
     z_   = -1
+    typeaxial='spherical'
   case default
     call mpistop("Unknown geometry specified")
   end select

@@ -122,7 +122,7 @@ contains
 
     namelist /methodlist/ w_names,time_integrator, &
          source_split_usr,typesourcesplit,&
-         dimsplit,typedimsplit,typeaxial,typecoord,&
+         dimsplit,typedimsplit,&
          flux_scheme,typepred1,&
          limiter,mcbeta,gradient_limiter,&
          flatcd,flatsh,flatppm,&
@@ -313,8 +313,6 @@ contains
     tvdlfeps        = one
     nxdiffusehllc   = 0
     flathllc        = .false.
-    typeaxial       = 'slab'
-    typecoord       = 'default'
     typespherical   = 1
     slowsteps       = -1
     courantpar      = 0.8d0
@@ -584,6 +582,12 @@ contains
     if(typedimsplit   =='default'.and..not.dimsplit)   typedimsplit='unsplit'
     dimsplit   = typedimsplit   /='unsplit'
 
+    if(typeaxial=='default') then
+      typeaxial='slab'
+      write(*,*) 'Warning: coordinate system is not specified!'
+      write(*,*) 'call set_coordinate_system in usr_init in mod_usr.t' 
+      write(*,*) 'Now use Cartesian coordinate'
+    end if
 
     if (typeaxial=="slab") then
        slab=.true.
@@ -596,10 +600,6 @@ contains
           if(mype==0)print *,'Warning: spherical symmetry needs dimsplit=F, resetting'
           dimsplit=.false.
        end if
-    end if
-
-    if (typecoord=='default') then
-       typecoord = typeaxial
     end if
 
     if (ndim==1) dimsplit=.false.

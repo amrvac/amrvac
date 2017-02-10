@@ -12,7 +12,6 @@ contains
   subroutine usr_init()
     use mod_global_parameters
     use mod_usr_methods
-    use mod_initialize
 
     call set_coordinate_system("Cartesian_2.5D")
 
@@ -20,6 +19,7 @@ contains
     unit_temperature   = 1.d6                                         ! K
     unit_numberdensity = 1.d9                                         ! cm^-3
 
+    usr_init_global_data=> initglobaldata_usr
     usr_init_one_grid   => initonegrid_usr
     usr_special_bc      => specialbound_usr
     usr_source          => special_source
@@ -30,7 +30,10 @@ contains
     usr_add_aux_names   => specialvarnames_output 
 
     call mhd_activate()
-    call initialize_amrvac()
+  end subroutine usr_init
+
+  subroutine initglobaldata_usr()
+    use mod_global_parameters
 
     unit_time=unit_length/unit_velocity             ! 85.8746159942810 s
     heatunit=unit_pressure/unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
@@ -47,7 +50,7 @@ contains
     ! hydrostatic vertical stratification of density, temperature, pressure
     call inithdstatic
 
-  end subroutine usr_init
+  end subroutine initglobaldata_usr
 
   subroutine inithdstatic
   !! initialize the table in a vertical line through the global domain

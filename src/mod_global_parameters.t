@@ -383,8 +383,7 @@ module mod_global_parameters
 
   character(len=std_len) :: typeaverage
   character(len=std_len) :: typedimsplit
-  character(len=std_len) :: typeaxial
-  character(len=std_len) :: typecoord
+  character(len=std_len) :: typeaxial='default'
   character(len=std_len) :: typepoly
 
   integer                       :: refine_criterion,nxdiffusehllc,typespherical

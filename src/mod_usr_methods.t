@@ -6,6 +6,7 @@ module mod_usr_methods
   public
 
   ! Initialize grid data
+  procedure(init_global_data), pointer:: usr_init_global_data => null()
   procedure(init_one_grid), pointer   :: usr_init_one_grid    => null()
 
   ! Boundary condition related
@@ -46,6 +47,11 @@ module mod_usr_methods
 
      subroutine p_no_args()
      end subroutine p_no_args
+
+     !> Initialize user's global data
+     subroutine init_global_data()
+       use mod_global_parameters
+     end subroutine init_global_data
 
      !> Initialize one grid
      subroutine init_one_grid(ixI^L,ixO^L,w,x)
