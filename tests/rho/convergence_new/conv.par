@@ -7,7 +7,7 @@
         primnames    = 'rho'
     	convert_type = 'vtiCCmpi'
         autoconvert  = T
-	base_filename  = 'conv'
+	base_filename  = 'output/conv'
 	/
  &savelist
         itsave(1,1)  = 0

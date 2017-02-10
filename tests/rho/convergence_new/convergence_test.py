@@ -125,8 +125,8 @@ if __name__ == '__main__':
     for sch, par_sch in zip(args.schemes, scheme_pars):
         diff = []
         for res in grids:
-            fname0 = 'conv_{:d}_{}{:04d}.vti'.format(res, sch, 0)
-            fname1 = 'conv_{:d}_{}{:04d}.vti'.format(res, sch, 1)
+            fname0 = 'output/conv_{:d}_{}{:04d}.vti'.format(res, sch, 0)
+            fname1 = 'output/conv_{:d}_{}{:04d}.vti'.format(res, sch, 1)
             diff.append(getDifference(fname0, fname1, args.norm))
         line, = plt.loglog(grids, diff, linestyle='-',
                            marker='.', label=sch)
