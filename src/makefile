@@ -2,7 +2,7 @@
 INCLUDES = mod_global_parameters.t mod_usr_methods.t mod_forest.t	\
 mod_physicaldata.o mod_connectivity.t
 
-FOBJECTS = initialize_vars.t mod_advance.t setdt.t amrini.t amr_solution_node.t	\
+FOBJECTS = mod_advance.t setdt.t amrini.t amr_solution_node.t	\
 errest.t amrgrid.t amr_fix_conserve.t mod_finite_volume.t mod_tvd.t mod_finite_difference.t	\
 load_balance.t connectivity.t boundary_conditions.t comm_lib.t forest.t		\
 amr_neighbors.t amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t	\
