@@ -63,13 +63,13 @@ contains
 
   end subroutine specialvar_output
 
-  subroutine specialvarnames_output
+  subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
     use mod_global_parameters
+    character(len=*) :: varnames
 
-    primnames= TRIM(primnames)//' '//'Te'
-    w_names=TRIM(w_names)//' '//'Te'
-    
+    varnames='Te'
+
   end subroutine specialvarnames_output
 
 end module mod_usr

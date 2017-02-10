@@ -16,7 +16,7 @@ module mod_usr_methods
   procedure(p_no_args), pointer       :: usr_print_log        => null()
   procedure(transform_w), pointer     :: usr_transform_w      => null()
   procedure(aux_output), pointer      :: usr_aux_output       => null()
-  procedure(p_no_args), pointer       :: usr_add_aux_names    => null()
+  procedure(add_aux_names), pointer   :: usr_add_aux_names    => null()
   procedure(special_convert), pointer :: usr_special_convert  => null()
 
   ! Called every time step
@@ -113,6 +113,12 @@ module mod_usr_methods
        double precision             :: w(ixI^S,nw+nwauxio)
        double precision             :: normconv(0:nw+nwauxio)
      end subroutine aux_output
+
+     !> Add names for the auxiliary variables
+     subroutine add_aux_names(varnames)
+       use mod_global_parameters
+       character(len=*) :: varnames
+     end subroutine add_aux_names
 
      !> Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
      !> iw=iwmin...iwmax.  wCT is at time qCT

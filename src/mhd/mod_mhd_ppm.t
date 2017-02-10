@@ -27,7 +27,7 @@ contains
            /min(w(ixL^S,rho_),w(ixR^S,rho_))
       dp(ixO^S) = dabs(d2w(ixO^S,p_))/min(w(ixL^S,p_),w(ixR^S,p_))
     else
-      call mpistop("PPM with flatcd=.true. can not be used with eos=iso !")
+      call mpistop("PPM with flatcd=.true. can not be used without energy equation!")
     end if
   end subroutine mhd_ppm_flatcd
 

@@ -26,7 +26,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_glm = .false.
 
   !> TODO: describe and set value
-  double precision, public, protected     :: mhd_glm_Cr = -2.0d0
+  double precision, public                :: mhd_glm_Cr = -2.0d0
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
@@ -59,19 +59,19 @@ module mod_mhd_phys
   integer, public, protected              :: mhd_nwflux
 
   !> The adiabatic index
-  double precision, public, protected     :: mhd_gamma = 5/3.0d0
+  double precision, public                :: mhd_gamma = 5/3.0d0
 
   !> The adiabatic constant
-  double precision, public, protected     :: mhd_adiab = 1.0d0
+  double precision, public                :: mhd_adiab = 1.0d0
 
   !> The MHD resistivity
-  double precision, public, protected     :: mhd_eta = 0.0d0
+  double precision, public                :: mhd_eta = 0.0d0
 
   !> The MHD hyper-resistivity
-  double precision, public, protected     :: mhd_eta_hyper = 0.0d0
+  double precision, public                :: mhd_eta_hyper = 0.0d0
 
   !> TODO: what is this?
-  double precision, public, protected     :: mhd_etah = 0.0d0
+  double precision, public                :: mhd_etah = 0.0d0
 
   !> The smallest allowed energy
   double precision, protected             :: smalle
@@ -109,6 +109,7 @@ module mod_mhd_phys
   public :: mhd_to_primitive
   public :: mhd_get_csound2
   public :: get_divb
+  public :: get_current
 
 contains
 
@@ -882,7 +883,7 @@ contains
     double precision                :: current(ixI^S,7-2*ndir:3)
     double precision                :: tmpvec(ixI^S,1:3),tmpvec2(ixI^S,1:3),tmp(ixI^S),ehyper(ixI^S,1:3)
     integer                         :: ixA^L,idir,jdir,kdir,idirmin,idirmin1
-    !-----------------------------------------------------------------------------
+
     ixA^L=ixO^L^LADD3;
     if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
          call mpistop("Error in add_source_hyperres: Non-conforming input limits")

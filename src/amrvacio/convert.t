@@ -77,6 +77,7 @@ character(len=1024) :: outfilehead
 
 integer::  space_position,iw
 character(len=10)::  wname
+character(len=std_len):: aux_variable_names
 character(len=len(primnames))::  scanstring
 
 logical, save:: first=.true.
@@ -88,15 +89,15 @@ if (nwauxio>0 .and. first) then
    if (.not. associated(usr_add_aux_names)) then
       call mpistop("usr_add_aux_names not defined")
    else
-      call usr_add_aux_names()
+      call usr_add_aux_names(aux_variable_names)
    end if
 end if
 
 ! --- part to provide variable names from primnames/varnames strings
 if(saveprim) then
-   scanstring=TRIM(primnames)
+   scanstring=TRIM(primnames)//' '//TRIM(aux_variable_names)
 else
-   scanstring=TRIM(w_names)
+   scanstring=TRIM(w_names)//' '//TRIM(aux_variable_names)
 endif
 
 space_position=index(scanstring,' ')
