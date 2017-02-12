@@ -1,6 +1,7 @@
 !setup.pl -d=33
 
 &filelist
+  base_filename    = 'tc_3d'
   primnames        = 'rho v1 v2 v3 p b1 b2 b3'
   typefilelog      = 'regression_test'
   autoconvert      = .true.

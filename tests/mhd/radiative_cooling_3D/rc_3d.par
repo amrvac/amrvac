@@ -1,6 +1,7 @@
 !setup.pl -d=33
 
 &filelist
+  base_filename    = 'rc_3d'
   primnames        = 'rho v1 v2 v3 p b1 b2 b3'
   typefilelog      = 'regression_test'
   autoconvert      = .true.
@@ -18,8 +19,8 @@
 
  &methodlist
    w_names          = 'rho m1 m2 m3 e b1 b2 b3'
-   time_integrator     = 'threestep'
-   flux_scheme       = 20*'hll'
+   time_integrator  = 'threestep'
+   flux_scheme      = 20*'hll'
    limiter    = 20*'cada3'
 /
  &boundlist
@@ -32,14 +33,14 @@
   typeboundary_max3 = 8*'cont'
 /
  &meshlist
-   refine_criterion   = 3
-   refine_max_level          = 3
+   refine_criterion = 3
+   refine_max_level = 3
    block_nx1        = 4
    block_nx2        = 4
    block_nx3        = 4
-   domain_nx1         = 8
-   domain_nx2         = 8
-   domain_nx3         = 8
+   domain_nx1       = 8
+   domain_nx2       = 8
+   domain_nx3       = 8
    xprobmin1       =-1.0d0
    xprobmax1       = 1.0d0
    xprobmin2       =-1.0d0

@@ -55,9 +55,12 @@ module mod_global_parameters
   logical, allocatable, dimension(:^D&) :: patchfalse
 
   !> split potential or linear force-free magnetic field as background B0 field
-  logical :: B0field
+  logical :: B0field=.false.
   !> amplitude of background dipolar, quadrupolar, octupolar, user's field
-  double precision :: Bdip, Bquad, Boct, Busr
+  double precision :: Bdip=0.d0
+  double precision :: Bquad=0.d0
+  double precision :: Boct=0.d0
+  double precision :: Busr=0.d0
 
   !> Default length for strings
   integer, parameter :: std_len = 131

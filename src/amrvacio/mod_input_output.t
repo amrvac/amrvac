@@ -128,7 +128,6 @@ contains
          flatcd,flatsh,flatppm,&
          loglimit,typelimited,typetvdlf, &
          typetvd,typeentropy,entropycoef,typeaverage, &
-         B0field,Bdip,Bquad,Boct,Busr,&
          tvdlfeps,&
          small_temperature,small_pressure,small_density,typegrad,typediv,&
          nxdiffusehllc,typespherical,&
@@ -250,16 +249,9 @@ contains
     qst                         = bigdouble
     }
 
-    ! MHD specific defaults
-    B0field      = .false.
-    Bdip         = zero
-    Bquad        = zero
-    Boct         = zero
-    Busr         = zero
-
     ! IO defaults
     itmax         = biginteger
-    time_max          = bigdouble
+    time_max      = bigdouble
     dtmin         = 1.0d-10
     typeparIO     = 0
     nslices       = 0
@@ -1770,7 +1762,7 @@ contains
           opened = .true.
 
           ! Start of file headern
-          line = "it global_time dt res " // trim(w_names)
+          line = "it global_time dt " // trim(w_names)
 
           ! Volume coverage per level
           do level = 1, refine_max_level

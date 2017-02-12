@@ -1,6 +1,7 @@
 !setup.pl -d=33
 
 &filelist
+  base_filename    = '3d_radiative_cooling'
   primnames        = 'rho v1 v2 v3 p b1 b2 b3'
   autoconvert      = .true.
   convert_type     = 'vtuBCCmpi'

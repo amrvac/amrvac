@@ -12,7 +12,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
 
-    ndir=3
+    call set_coordinate_system("Cartesian_2.5D")
 
     call mhd_activate()
 

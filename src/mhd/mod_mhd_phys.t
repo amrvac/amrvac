@@ -121,7 +121,7 @@ contains
 
   !> Read this module"s parameters from a file
   subroutine mhd_read_params(files)
-    use mod_global_parameters, only: unitpar, SI_unit
+    use mod_global_parameters
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
@@ -129,7 +129,7 @@ contains
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
-      divbwave, He_abundance, SI_unit
+      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -1323,167 +1323,129 @@ contains
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
     integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
-    double precision :: tmp(ixI^S)
+    double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
     logical          :: angmomfix=.false.
 
-    ! TODO
-    ! INTEGER,PARAMETER:: mr_=m0_+r_,mphi_=m0_+phi_,mz_=m0_+z_  ! Polar var. names
-    ! integer,parameter:: br_=b0_+r_,bphi_=b0_+phi_,bz_=b0_+z_
+    integer :: mr_,mphi_,mz_ ! Polar var. names
+    integer :: br_,bphi_,bz_
 
+    mr_=mom(1); mphi_=mom(1)-1+phi_; mz_=mom(1)-1+z_  ! Polar var. names
+    br_=mag(1); bphi_=mag(1)-1+phi_; bz_=mag(1)-1+z_
 
-    ! select case (typeaxial)
-    ! case ('slab')
-    !    ! No source terms in slab symmetry
-    ! case ('cylindrical')
-    !    do iw=1,nwflux
-    !       select case (iw)
-    !          ! s[mr]=(ptotal-Bphi**2+mphi**2/rho)/radius
-    !       case (mr_)
-    !          call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
-    !          w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !          tmp(ixO^S)=zero
-    !          {^IFPHI
-    !          tmp(ixO^S)= &
-    !               -wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
+    select case (typeaxial)
+    case ('slab')
+       ! No source terms in slab symmetry
+    case ('cylindrical')
+       call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
+       if(phi_>0) then
+         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*(tmp(ixO^S)-&
+                   wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_))
+         w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt/x(ixO^S,1)*(&
+                  -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_) &
+                  +wCT(ixO^S,bphi_)*wCT(ixO^S,br_))
+         w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt/x(ixO^S,1)*&
+                  (wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
+                  -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
+                  /wCT(ixO^S,rho_)
+       else
+         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*tmp(ixO^S)
+       end if
+       if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
+    case ('spherical')
+       h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
+       call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
+       tmp(ixO^S)=tmp1(ixO^S)
+       if(B0field) then
+         tmp2(ixO^S)=sum(myB0_cell%w(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)
+         tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
+       end if
+       ! m1
+       tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
+                  *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S))/mygeo%dvolume(ixO^S)
+       if(ndir>1) then
+         do idir=2,ndir
+           tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2/wCT(ixO^S,rho_)-wCT(ixO^S,mag(idir))**2
+           if(B0field) tmp(ixO^S)=tmp(ixO^S)-2.0d0*myB0_cell%w(ixO^S,idir)*wCT(ixO^S,mag(idir))
+         end do
+       end if
+       w(ixO^S,mom(1))=w(ixO^S,mom(1))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       ! b1
+       if(mhd_glm) then
+         w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt/x(ixO^S,1)*2.0d0*wCT(ixO^S,psi_)
+       end if
 
-    !          ! s[mphi]=(-mphi*mr/rho+Bphi*Br)/radius
-    !       case (mphi_)
-    !          tmp(ixO^S)= &
-    !               -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_) &
-    !               +wCT(ixO^S,bphi_)*wCT(ixO^S,br_)
+       if(ndim>1) then
+         ! m2
+         tmp(ixO^S)=tmp1(ixO^S)
+         if(B0field) then
+           tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
+         end if
+         ! This will make hydrostatic p=const an exact solution
+         w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S) &
+              *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
+              /mygeo%dvolume(ixO^S)
+         tmp(ixO^S)=-(wCT(ixO^S,mom(1))*wCT(ixO^S,mom(2))/wCT(ixO^S,rho_) &
+              -wCT(ixO^S,mag(1))*wCT(ixO^S,mag(2)))
+         if (B0field) then
+            tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,mag(2)) &
+                 +wCT(ixO^S,mag(1))*myB0_cell%w(ixO^S,2)
+         end if
+         if(ndir==3) then
+           tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_) &
+                -wCT(ixO^S,mag(3))**2)*dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
+           if (B0field) then
+              tmp(ixO^S)=tmp(ixO^S)-2.0d0*myB0_cell%w(ixO^S,3)*wCT(ixO^S,mag(3))&
+                   *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
+           end if
+         end if
+         w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
+         ! b2
+         tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
+              -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_)
+         if(B0field) then
+           tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*myB0_cell%w(ixO^S,2) &
+                -wCT(ixO^S,mom(2))*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_)
+         end if
+         if(mhd_glm) then
+           tmp(ixO^S)=tmp(ixO^S) &
+                + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
+         end if
+         w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       end if
 
-    !          ! s[Bphi]=((Bphi*mr-Br*mphi)/rho)/radius
-    !       case (bphi_)
-    !          tmp(ixO^S)=(wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
-    !               -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
-    !               /wCT(ixO^S,rho_)
-    !          }
-    !          {#IFDEF GLM      ! s[br]=psi/radius
-    !       case (br_)
-    !          tmp(ixO^S)=wCT(ixO^S,psi_)
-    !          }
-    !       end select
-
-    !       ! Divide by radius and add to w
-    !       if (iw==mr_{#IFDEF GLM .or.iw==br_}{^IFPHI .or.iw==mphi_.or.iw==bphi_}) then
-    !          w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       end if
-
-    !    end do
-    ! case ('spherical')
-    !    h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-    !    do iw=1,nwflux
-    !       select case (iw)
-    !          ! s[m1]=((mtheta**2+mphi**2)/rho+2*ptotal-(Btheta**2+Bphi**2))/r
-    !       case (m1_)
-    !          call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
-    !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,mag(idir))+}
-    !          end if
-    !          ! For nonuniform Cartesian grid this provides hydrostatic equil.
-    !          tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-    !               *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
-    !               /mygeo%dvolume(ixO^S){&^CE&
-    !               +wCT(ixO^S,m^CE_)**2/wCT(ixO^S,rho_)-wCT(ixO^S,b^CE_)**2 }
-    !          if (B0field.and.ndir>1) then
-    !             tmp(ixO^S)=tmp(ixO^S){^CE&-2.0d0*myB0_cell%w(ixO^S,^CE) &
-    !                  *wCT(ixO^S,b^CE_)|}
-    !          end if
-    !          {^NOONEC
-    !          ! s[m2]=-(mr*mtheta/rho-Br*Btheta)/r
-    !          !       + cot(theta)*(mphi**2/rho+(p+0.5*B**2)-Bphi**2)/r
-    !       case (m2_)
-    !          }
-    !          {^NOONED
-    !          call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
-    !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)+{^C&myB0_cell%w(ixO^S,^C)*wCT(ixO^S,mag(idir))+}
-    !          end if
-    !          ! This will make hydrostatic p=const an exact solution
-    !          w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S) &
-    !               *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
-    !               /mygeo%dvolume(ixO^S)
-    !          }
-    !          {^NOONEC
-    !          tmp(ixO^S)=-(wCT(ixO^S,m1_)*wCT(ixO^S,m2_)/wCT(ixO^S,rho_) &
-    !               -wCT(ixO^S,b1_)*wCT(ixO^S,b2_))
-    !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,b2_) &
-    !                  +wCT(ixO^S,b1_)*myB0_cell%w(ixO^S,2)
-    !          end if
-    !          }
-    !          {^IFTHREEC
-    !          {^NOONED
-    !          tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m3_)**2/wCT(ixO^S,rho_) &
-    !               -wCT(ixO^S,b3_)**2)*dcos(x(ixO^S,2)) &
-    !               /dsin(x(ixO^S,2))
-    !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)-2.0d0*myB0_cell%w(ixO^S,3)*wCT(ixO^S,b3_)&
-    !                  *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
-    !          end if
-    !          }
-    !          ! s[m3]=-(mphi*mr/rho-Bphi*Br)/r
-    !          !       -cot(theta)*(mtheta*mphi/rho-Btheta*Bphi)/r
-    !       case (m3_)
-    !          if (.not.angmomfix) then
-    !             tmp(ixO^S)=-(wCT(ixO^S,m3_)*wCT(ixO^S,m1_)/wCT(ixO^S,rho_) &
-    !                  -wCT(ixO^S,b3_)*wCT(ixO^S,b1_)) {^NOONED &
-    !                  -(wCT(ixO^S,m2_)*wCT(ixO^S,m3_)/wCT(ixO^S,rho_) &
-    !                  -wCT(ixO^S,b2_)*wCT(ixO^S,b3_)) &
-    !                  *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-    !             if (B0field) then
-    !                tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,b3_) &
-    !                     +wCT(ixO^S,b1_)*myB0_cell%w(ixO^S,3) {^NOONED &
-    !                     +(myB0_cell%w(ixO^S,2)*wCT(ixO^S,b3_) &
-    !                     +wCT(ixO^S,b2_)*myB0_cell%w(ixO^S,3)) &
-    !                     *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-    !             end if
-    !          end if
-    !          }
-    !          {#IFDEF GLM
-    !          ! s[b1]=2*psi/r
-    !       case (b1_)
-    !          tmp(ixO^S)=2.0d0*wCT(ixO^S,psi_)
-    !          }
-    !          {^NOONEC
-    !          ! s[b2]=(mr*Btheta-mtheta*Br)/rho/r
-    !          !       + cot(theta)*psi/r
-    !       case (b2_)
-    !          tmp(ixO^S)=(wCT(ixO^S,m1_)*wCT(ixO^S,b2_) &
-    !               -wCT(ixO^S,m2_)*wCT(ixO^S,b1_))/wCT(ixO^S,rho_)
-    !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m1_)*myB0_cell%w(ixO^S,2) &
-    !                  -wCT(ixO^S,m2_)*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_)
-    !          end if
-    !          {#IFDEF GLM
-    !          tmp(ixO^S)=tmp(ixO^S) &
-    !               + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
-    !          }
-    !          }
-    !          {^IFTHREEC
-    !          ! s[b3]=(mr*Bphi-mphi*Br)/rho/r
-    !          !       -cot(theta)*(mphi*Btheta-mtheta*Bphi)/rho/r
-    !       case (b3_)
-    !          tmp(ixO^S)=(wCT(ixO^S,m1_)*wCT(ixO^S,b3_) &
-    !               -wCT(ixO^S,m3_)*wCT(ixO^S,b1_))/wCT(ixO^S,rho_) {^NOONED &
-    !               -(wCT(ixO^S,m3_)*wCT(ixO^S,b2_) &
-    !               -wCT(ixO^S,m2_)*wCT(ixO^S,b3_))*dcos(x(ixO^S,2)) &
-    !               /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
-    !          if (B0field) then
-    !             tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,m1_)*myB0_cell%w(ixO^S,3) &
-    !                  -wCT(ixO^S,m3_)*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_){^NOONED &
-    !                  -(wCT(ixO^S,m3_)*myB0_cell%w(ixO^S,2) &
-    !                  -wCT(ixO^S,m2_)*myB0_cell%w(ixO^S,3))*dcos(x(ixO^S,2)) &
-    !                  /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
-    !          end if
-    !          }
-    !       end select
-    !       ! Divide by radius and add to w
-    !       if (iw==m1_{#IFDEF GLM .or.iw==b1_}{^NOONEC.or.iw==m2_.or.iw==b2_}&
-    !            {^IFTHREEC .or.iw==b3_ .or.(iw==m3_.and..not.angmomfix)}) &
-    !            w(ixO^S,iw)=w(ixO^S,iw)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !    end do
-    ! end select
+       if(ndir==3) then 
+         ! m3
+         if(.not.angmomfix) then
+           tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mom(1))/wCT(ixO^S,rho_) &
+                -wCT(ixO^S,mag(3))*wCT(ixO^S,mag(1))) {^NOONED &
+                -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3))/wCT(ixO^S,rho_) &
+                -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
+                *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
+           if (B0field) then
+              tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,mag(3)) &
+                   +wCT(ixO^S,mag(1))*myB0_cell%w(ixO^S,3) {^NOONED &
+                   +(myB0_cell%w(ixO^S,2)*wCT(ixO^S,mag(3)) &
+                   +wCT(ixO^S,mag(2))*myB0_cell%w(ixO^S,3)) &
+                   *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
+           end if
+           w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+         end if
+         ! b3
+         tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
+              -wCT(ixO^S,mom(3))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_) {^NOONED &
+              -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
+              -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
+              /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
+         if (B0field) then
+            tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*myB0_cell%w(ixO^S,3) &
+                 -wCT(ixO^S,mom(3))*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_){^NOONED &
+                 -(wCT(ixO^S,mom(3))*myB0_cell%w(ixO^S,2) &
+                 -wCT(ixO^S,mom(2))*myB0_cell%w(ixO^S,3))*dcos(x(ixO^S,2)) &
+                 /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
+         end if
+         w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       end if
+    end select
   end subroutine mhd_add_source_geom
 
   !> Compute 2 times total magnetic energy
