@@ -6,7 +6,7 @@ module mod_usr_methods
   public
 
   ! Initialize grid data
-  procedure(init_global_data), pointer:: usr_init_global_data => null()
+  procedure(set_parameters), pointer  :: usr_set_parameters   => null()
   procedure(init_one_grid), pointer   :: usr_init_one_grid    => null()
 
   ! Boundary condition related
@@ -48,10 +48,10 @@ module mod_usr_methods
      subroutine p_no_args()
      end subroutine p_no_args
 
-     !> Initialize user's global data
-     subroutine init_global_data()
+     !> Initialize the user's settings (after initializing amrvac)
+     subroutine set_parameters()
        use mod_global_parameters
-     end subroutine init_global_data
+     end subroutine set_parameters
 
      !> Initialize one grid
      subroutine init_one_grid(ixI^L,ixO^L,w,x)
