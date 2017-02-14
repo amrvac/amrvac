@@ -576,9 +576,11 @@ contains
 
     if(typeaxial=='default') then
       typeaxial='slab'
-      write(*,*) 'Warning: coordinate system is not specified!'
-      write(*,*) 'call set_coordinate_system in usr_init in mod_usr.t' 
-      write(*,*) 'Now use Cartesian coordinate'
+      if(mype==0) then
+        write(*,*) 'Warning: coordinate system is not specified!'
+        write(*,*) 'call set_coordinate_system in usr_init in mod_usr.t' 
+        write(*,*) 'Now use Cartesian coordinate'
+      end if
     end if
 
     if (typeaxial=="slab") then
