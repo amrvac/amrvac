@@ -4,6 +4,8 @@ module mod_input_output
   implicit none
   public
 
+  integer, parameter :: version_number = 1
+
   ! Formats used in output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
@@ -1037,7 +1039,6 @@ contains
     use mod_physics
 
     integer :: file_handle, amode, igrid, Morton_no, iwrite
-    integer :: nx^D
 
     integer(kind=MPI_OFFSET_KIND) :: offset
 
@@ -1047,30 +1048,73 @@ contains
 
     integer, dimension(MPI_STATUS_SIZE) :: istatus
 
-    integer  :: ipe,insend,inrecv,nrecv,nwrite
+    integer  :: ipe,insend,inrecv,nrecv
     character(len=80) :: filename, line
-    logical, save :: firstsnapshot=.true.
+    integer, parameter :: offset_tree_info = 256
 
     call MPI_BARRIER(icomm,ierrmpi)
 
-    if (firstsnapshot) then
-       snapshot=snapshotnext
-       firstsnapshot=.false.
-    end if
-
-    if (snapshot >= 10000) then
+    if (snapshotnext >= 10000) then
        if (mype==0) then
           write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
           write(*,*) "overwriting first frames"
        end if
-       snapshot=0
+       snapshotnext=0
     end if
+
+    ! Determine number of parents
+    nparents = ...
+
+    ! First compute block data offset (in bytes)
+    offset_block_data = offset_tree_info + &
+         ! TODO: use only first line at first
+         size_logical * (nleafs + nparents) + & ! leaf/parent logical array
+         size_integer * nleafs + &              ! byte offsets of leave blocks
+         size_integer * nleafs + &              ! refinement levels
+         size_integer * ndim * nleafs           ! spatial indices
+
+    ! master processor
+    if (mype==0) then
+       write(filename,"(a,i4.4,a)") trim(base_filename), &
+            snapshotnext, ".dat"
+
+       ! MPI cannot easily replace existing files
+       open(unit=unitsnapshot,file=filename,status='replace')
+       close(unitsnapshot, status='delete')
+
+       call MPI_FILE_OPEN(MPI_COMM_SELF,filename,MPI_MODE_WRONLY, &
+            MPI_INFO_NULL, file_handle,ierrmpi)
+
+       call MPI_FILE_WRITE(file_handle,version_number,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,offset_tree_info,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,offset_block_data,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle,nparents,1,MPI_INTEGER,istatus,ierrmpi)
+
+       call MPI_FILE_WRITE(file_handle, [ xprobmax^D ], ndim, &
+            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle, [ xprobmin^D ], ndim, &
+            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle, [domain_nx^D ], ndim, &
+            MPI_INTEGER,istatus,ierrmpi)
+       call MPI_FILE_WRITE(file_handle, [ block_nx^D ], ndim, &
+            MPI_INTEGER,istatus,ierrmpi)
+    end if
+
+    call MPI_SEEK               ! go to offset
+    call write_forest(file_handle)
 
     nrecv=0
     inrecv=0
-    nwrite=0
     insend=0
     iwrite=0
+    offset(1) = offset_block_data
 
     if (mype /= 0) then
        do Morton_no=Morton_start(mype),Morton_stop(mype)
@@ -1090,21 +1134,15 @@ contains
              end if
              call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
           endif
+
+          call block_shape_io(igrid, ghostlayers, n_values, ixO^L)
           call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
-          call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
+          call MPI_SEND(igrid, ghostlayers, 2*ndim, &
+               MPI_INTEGER, 0,itag,icomm,ierrmpi)
+          call MPI_SEND(pw(igrid)%w(ixO^S, 1:nw), n_values, &
+               MPI_DOUBLE_PRECISION, 0,itag,icomm,ierrmpi)
        end do
-    else 
-       ! mype==0
-       nwrite=(Morton_stop(0)-Morton_start(0)+1)
-
-       ! master processor writes out
-       write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
-
-       open(unit=unitsnapshot,file=filename,status='replace')
-       close(unitsnapshot, status='delete')
-
-       amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
-       call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
+    else ! mype==0
 
        ! writing his local data first
        do Morton_no=Morton_start(0),Morton_stop(0)
@@ -1121,31 +1159,22 @@ contains
                 myB0_cell => pB0_cell(igrid)
                 {^D&myB0_face^D => pB0_face^D(igrid)\}
              end if
-             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,&
+                  ixG^LL,ixM^LL^LADD1,"write_snapshot")
           endif
-          {#IFDEF EVOLVINGBOUNDARY
-          nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
-          offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-               *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
-               int(size_block,kind=MPI_OFFSET_KIND) &
-               *int(nphyboundblock,kind=MPI_OFFSET_KIND)
-          if (sfc_phybound(Morton_no)==1) then
-             call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block, &
-                  istatus,ierrmpi)
-          else
-             call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
-                  type_block_io,istatus,ierrmpi)
-          end if
-          }{#IFNDEF EVOLVINGBOUNDARY
-          offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-               *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-               istatus,ierrmpi)
-          }
+
+          ! TODO: possibly include ghost cells
+          ! TODO: make size_double available in module
+          n_values = nw * product([ block_nx^D ])
+          offset(iwrite+1) = offset(iwrite) + n_values * size_double
+
+          call MPI_FILE_WRITE_AT(file_handle,offset(iwrite),pw(igrid)%w(ixM^T,1:nw), &
+               n_values, MPI_DOUBLE_PRECISION, istatus,ierrmpi)
        end do
+
        ! write data communicated from other processors
        if(npe>1)then
-          nrecv=(Morton_stop(npe-1)-Morton_start(1)+1)
+          nnrecv=(Morton_stop(npe-1)-Morton_start(1)+1)
           inrecv=0
           allocate(igrid_recv(nrecv))
           allocate(igrecvstatus(MPI_STATUS_SIZE,nrecv),iorecvstatus(MPI_STATUS_SIZE,nrecv))
@@ -1190,32 +1219,7 @@ contains
 
     if(mype==0) call MPI_FILE_CLOSE(file_handle,ierrmpi)
 
-    if (mype==0) then
-       amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
-       call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL, &
-            file_handle,ierrmpi)
-
-       call write_forest(file_handle)
-
-       {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       {#IFDEF EVOLVINGBOUNDARY
-       nphyboundblock=sum(sfc_phybound)
-       call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
-       }
-       call MPI_FILE_CLOSE(file_handle,ierrmpi)
-    end if
-    snapshot=snapshot+1
+    snapshotnext=snapshotnext+1
 
     call MPI_BARRIER(icomm,ierrmpi)
 

@@ -50,7 +50,7 @@ module mod_global_parameters
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
 
-  integer :: snapshot, snapshotnext, slice, slicenext, collapseNext, icollapse
+  integer :: snapshotnext, slice, slicenext, collapseNext, icollapse
 
   logical, allocatable, dimension(:^D&) :: patchfalse
 
