@@ -43,9 +43,6 @@ program amrvac
      itin=it
      tin=global_time
 
-     ! order: first physics dependent part then user for defaults.
-     call phys_check_params()
-
      {#IFDEF RAY
      call init_rays
      }
@@ -92,9 +89,6 @@ program amrvac
      call selectgrids
 
   else
-     ! order: first physics dependent part then user for defaults.
-     call phys_check_params()
-
      {#IFDEF RAY
      call init_rays
      }

@@ -1412,44 +1412,44 @@ contains
          w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt/x(ixO^S,1)*2.0d0*wCT(ixO^S,psi_)
        end if
 
-       if(ndim>1) then
-         ! m2
-         tmp(ixO^S)=tmp1(ixO^S)
-         if(B0field) then
-           tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
-         end if
-         ! This will make hydrostatic p=const an exact solution
-         w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S) &
-              *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
-              /mygeo%dvolume(ixO^S)
-         tmp(ixO^S)=-(wCT(ixO^S,mom(1))*wCT(ixO^S,mom(2))/wCT(ixO^S,rho_) &
-              -wCT(ixO^S,mag(1))*wCT(ixO^S,mag(2)))
-         if (B0field) then
-            tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,mag(2)) &
-                 +wCT(ixO^S,mag(1))*myB0_cell%w(ixO^S,2)
-         end if
-         if(ndir==3) then
-           tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_) &
-                -wCT(ixO^S,mag(3))**2)*dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
-           if (B0field) then
-              tmp(ixO^S)=tmp(ixO^S)-2.0d0*myB0_cell%w(ixO^S,3)*wCT(ixO^S,mag(3))&
-                   *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
-           end if
-         end if
-         w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
-         ! b2
-         tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
-              -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_)
-         if(B0field) then
-           tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*myB0_cell%w(ixO^S,2) &
-                -wCT(ixO^S,mom(2))*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_)
-         end if
-         if(mhd_glm) then
-           tmp(ixO^S)=tmp(ixO^S) &
-                + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
-         end if
-         w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       {^NOONED
+       ! m2
+       tmp(ixO^S)=tmp1(ixO^S)
+       if(B0field) then
+         tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
        end if
+       ! This will make hydrostatic p=const an exact solution
+       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S) &
+            *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
+            /mygeo%dvolume(ixO^S)
+       tmp(ixO^S)=-(wCT(ixO^S,mom(1))*wCT(ixO^S,mom(2))/wCT(ixO^S,rho_) &
+            -wCT(ixO^S,mag(1))*wCT(ixO^S,mag(2)))
+       if (B0field) then
+          tmp(ixO^S)=tmp(ixO^S)+myB0_cell%w(ixO^S,1)*wCT(ixO^S,mag(2)) &
+               +wCT(ixO^S,mag(1))*myB0_cell%w(ixO^S,2)
+       end if
+       if(ndir==3) then
+         tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_) &
+              -wCT(ixO^S,mag(3))**2)*dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
+         if (B0field) then
+            tmp(ixO^S)=tmp(ixO^S)-2.0d0*myB0_cell%w(ixO^S,3)*wCT(ixO^S,mag(3))&
+                 *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
+         end if
+       end if
+       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       ! b2
+       tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
+            -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_)
+       if(B0field) then
+         tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*myB0_cell%w(ixO^S,2) &
+              -wCT(ixO^S,mom(2))*myB0_cell%w(ixO^S,1))/wCT(ixO^S,rho_)
+       end if
+       if(mhd_glm) then
+         tmp(ixO^S)=tmp(ixO^S) &
+              + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
+       end if
+       w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       }
 
        if(ndir==3) then 
          ! m3

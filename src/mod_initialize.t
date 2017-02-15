@@ -14,8 +14,8 @@ contains
   !> Initialize amrvac: read par files and initialize variables
   subroutine initialize_amrvac()
     use mod_input_output
-    use mod_physics, only: phys_check
-    use mod_usr_methods, only: usr_init_global_data
+    use mod_physics, only: phys_check, phys_check_params
+    use mod_usr_methods, only: usr_set_parameters
 
     if (initialized_already) return
 
@@ -26,7 +26,10 @@ contains
     call read_par_files()
     call initialize_vars()
     call init_comm_types()
-    if(associated(usr_init_global_data)) call usr_init_global_data()
+
+    if(associated(usr_set_parameters)) call usr_set_parameters()
+
+    call phys_check_params()
 
     initialized_already = .true.
   end subroutine initialize_amrvac

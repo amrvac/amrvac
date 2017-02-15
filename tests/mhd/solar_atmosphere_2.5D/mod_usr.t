@@ -19,7 +19,7 @@ contains
     unit_temperature   = 1.d6                                         ! K
     unit_numberdensity = 1.d9                                         ! cm^-3
 
-    usr_init_global_data=> initglobaldata_usr
+    usr_set_parameters  => initglobaldata_usr
     usr_init_one_grid   => initonegrid_usr
     usr_special_bc      => specialbound_usr
     usr_source          => special_source
