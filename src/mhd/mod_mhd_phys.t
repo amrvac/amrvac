@@ -366,7 +366,7 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
     end do
 
-    ! if (fixsmall) call smallvalues(w,x,ixI^L,ixO^L,"conserve")
+    call handle_small_values(.false., w, x, ixI^L, ixO^L)
   end subroutine mhd_to_conserved
 
   !> Transform conservative variables into primitive ones
@@ -393,8 +393,46 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * mhd_inv_rho(w, ixI^L, ixO^L)
     end do
 
-    ! call handle_small_values(.true., w, x, ixI^L, ixO^L)
+    call handle_small_values(.true., w, x, ixI^L, ixO^L)
   end subroutine mhd_to_primitive
+
+  subroutine handle_small_values(primitive, w, x, ixI^L, ixO^L)
+    use mod_global_parameters
+    use mod_small_values
+    logical, intent(in)             :: primitive
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+
+    double precision :: smallone
+    integer :: idir, flag(ixI^S)
+
+    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
+
+    if (any(flag(ixO^S) /= 0)) then
+       select case (small_values_method)
+       case ("replace")
+          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = minrho
+
+          do idir = 1, ndir
+             where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
+          end do
+
+          if (mhd_energy) then
+             if(primitive) then
+               smallone = minp
+             else
+               smallone = smalle
+             end if
+             where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
+          end if
+       case ("average")
+          call small_values_average(ixI^L, ixO^L, w, x, flag)
+       case default
+          call small_values_error(w, x, ixI^L, ixO^L, flag)
+       end select
+    end if
+  end subroutine handle_small_values
 
   !> Convert energy to entropy
   subroutine e_to_rhos(ixI^L,ixO^L,w,x)
@@ -1758,138 +1796,366 @@ contains
     double precision, intent(in) :: x(ixG^S,1:ndim)
 
     double precision :: dx1x2,dx1x3,dx2x1,dx2x3,dx3x1,dx3x2
-    integer :: ix^D
+    integer :: ix^D,ixF^L
 
     select case(iB)
      case(1)
        ! 2nd order CD for divB=0 to set normal B component better
        call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
-       dx1x2=dxlevel(1)/dxlevel(2)
-       do ix2=ixOmin2+1,ixOmax2-1
-         do ix1=ixOmax1,ixOmin1,-1
-           w(ix1,ix2,mag(1))=w(ix1+2,ix2,mag(1)) &
-            +dx1x2*(w(ix1+1,ix2+1,mag(2))-w(ix1+1,ix2-1,mag(2)))
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1+1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2-1
+       if(slab) then
+         dx1x2=dxlevel(1)/dxlevel(2)
+         do ix1=ixFmax1,ixFmin1,-1
+           w(ix1-1,ixFmin2:ixFmax2,mag(1))=w(ix1+1,ixFmin2:ixFmax2,mag(1)) &
+            +dx1x2*(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))-&
+                    w(ix1,ixFmin2-1:ixFmax2-1,mag(2)))
          enddo
-       enddo
+       else
+         do ix1=ixFmax1,ixFmin1,-1
+           w(ix1-1,ixFmin2:ixFmax2,mag(1))=( (w(ix1+1,ixFmin2:ixFmax2,mag(1))+&
+             w(ix1,ixFmin2:ixFmax2,mag(1)))*mygeo%surfaceC1(ix1,ixFmin2:ixFmax2)&
+           +(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2:ixFmax2)&
+           -(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,ix2,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2-1:ixFmax2-1) )&
+            /mygeo%surfaceC1(ix1-1,ixFmin2:ixFmax2)-w(ix1,ixFmin2:ixFmax2,mag(1))
+         end do
+       end if
        }
        {^IFTHREED
-       dx1x2=dxlevel(1)/dxlevel(2)
-       dx1x3=dxlevel(1)/dxlevel(3)
-       do ix3=ixOmin3+1,ixOmax3-1
-         do ix2=ixOmin2+1,ixOmax2-1
-           do ix1=ixOmax1,ixOmin1,-1
-             w(ix1,ix2,ix3,mag(1))=w(ix1+2,ix2,ix3,mag(1)) &
-              +dx1x2*(w(ix1+1,ix2+1,ix3,mag(2))-w(ix1+1,ix2-1,ix3,mag(2)))&
-              +dx1x3*(w(ix1+1,ix2,ix3+1,mag(3))-w(ix1+1,ix2,ix3-1,mag(3)))
-           enddo
-         enddo
-       enddo
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1+1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2-1
+       ixFmin3=ixOmin3+1
+       ixFmax3=ixOmax3-1
+       if(slab) then
+         dx1x2=dxlevel(1)/dxlevel(2)
+         dx1x3=dxlevel(1)/dxlevel(3)
+         do ix1=ixFmax1,ixFmin1,-1
+           w(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))=&
+                     w(ix1+1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1)) &
+             +dx1x2*(w(ix1,ixFmin2+1:ixFmax2+1,ixFmin3:ixFmax3,mag(2))-&
+                     w(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,mag(2))) &
+             +dx1x3*(w(ix1,ixFmin2:ixFmax2,ixFmin3+1:ixFmax3+1,mag(3))-&
+                     w(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,mag(3)))
+         end do
+       else
+         do ix1=ixFmax1,ixFmin1,-1
+           w(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))=&
+          ( (w(ix1+1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1)))*&
+             mygeo%surfaceC1(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+           +(w(ix1,ixFmin2+1:ixFmax2+1,ixFmin3:ixFmax3,mag(2))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+           -(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2))+&
+             w(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3)&
+           +(w(ix1,ixFmin2:ixFmax2,ixFmin3+1:ixFmax3+1,mag(3))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3)))*&
+             mygeo%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+           -(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,mag(3)))*&
+             mygeo%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1) )&
+            /mygeo%surfaceC1(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)-&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))
+         end do
+       end if
        }
        call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(2)
        call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
-       dx1x2=dxlevel(1)/dxlevel(2)
-       do ix2=ixOmin2+1,ixOmax2-1
-         do ix1=ixOmin1,ixOmax1
-           w(ix1,ix2,mag(1))=w(ix1-2,ix2,mag(1)) &
-            -dx1x2*(w(ix1-1,ix2+1,mag(2))-w(ix1-1,ix2-1,mag(2)))
+       ixFmin1=ixOmin1-1
+       ixFmax1=ixOmax1-1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2-1
+       if(slab) then
+         dx1x2=dxlevel(1)/dxlevel(2)
+         do ix1=ixFmin1,ixFmax1
+           w(ix1+1,ixFmin2:ixFmax2,mag(1))=w(ix1-1,ixFmin2:ixFmax2,mag(1)) &
+            -dx1x2*(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))-&
+                    w(ix1,ixFmin2-1:ixFmax2-1,mag(2)))
          enddo
-       enddo
+       else
+         do ix1=ixFmin1,ixFmax1
+           w(ix1+1,ixFmin2:ixFmax2,mag(1))=( (w(ix1-1,ixFmin2:ixFmax2,mag(1))+&
+             w(ix1,ixFmin2:ixFmax2,mag(1)))*mygeo%surfaceC1(ix1-1,ixFmin2:ixFmax2)&
+           -(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2:ixFmax2)&
+           +(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,ix2,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2-1:ixFmax2-1) )&
+            /mygeo%surfaceC1(ix1,ixFmin2:ixFmax2)-w(ix1,ixFmin2:ixFmax2,mag(1))
+         end do
+       end if
        }
        {^IFTHREED
-       dx1x2=dxlevel(1)/dxlevel(2)
-       dx1x3=dxlevel(1)/dxlevel(3)
-       do ix3=ixOmin3+1,ixOmax3-1
-         do ix2=ixOmin2+1,ixOmax2-1
-           do ix1=ixOmin1,ixOmax1
-             w(ix1,ix2,ix3,mag(1))=w(ix1-2,ix2,ix3,mag(1)) &
-              -dx1x2*(w(ix1-1,ix2+1,ix3,mag(2))-w(ix1-1,ix2-1,ix3,mag(2)))&
-              -dx1x3*(w(ix1-1,ix2,ix3+1,mag(3))-w(ix1-1,ix2,ix3-1,mag(3)))
-           enddo
-         enddo
-       enddo
+       ixFmin1=ixOmin1-1
+       ixFmax1=ixOmax1-1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2-1
+       ixFmin3=ixOmin3+1
+       ixFmax3=ixOmax3-1
+       if(slab) then
+         dx1x2=dxlevel(1)/dxlevel(2)
+         dx1x3=dxlevel(1)/dxlevel(3)
+         do ix1=ixFmin1,ixFmax1
+           w(ix1+1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))=&
+                     w(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1)) &
+             -dx1x2*(w(ix1,ixFmin2+1:ixFmax2+1,ixFmin3:ixFmax3,mag(2))-&
+                     w(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,mag(2))) &
+             -dx1x3*(w(ix1,ixFmin2:ixFmax2,ixFmin3+1:ixFmax3+1,mag(3))-&
+                     w(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,mag(3)))
+         end do
+       else
+         do ix1=ixFmin1,ixFmax1
+           w(ix1+1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))=&
+          ( (w(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1)))*&
+             mygeo%surfaceC1(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+           -(w(ix1,ixFmin2+1:ixFmax2+1,ixFmin3:ixFmax3,mag(2))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+           +(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2))+&
+             w(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,mag(2)))*&
+             mygeo%surfaceC2(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3)&
+           -(w(ix1,ixFmin2:ixFmax2,ixFmin3+1:ixFmax3+1,mag(3))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3)))*&
+             mygeo%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+           +(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3))+&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,mag(3)))*&
+             mygeo%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1) )&
+            /mygeo%surfaceC1(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)-&
+             w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))
+         end do
+       end if
        }
        call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(3)
        call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
-       dx2x1=dxlevel(2)/dxlevel(1)
-       do ix2=ixOmax2,ixOmin2,-1
-         do ix1=ixOmin1+1,ixOmax1-1
-           w(ix1,ix2,mag(2))=w(ix1,ix2+2,mag(2)) &
-            +dx2x1*(w(ix1+1,ix2+1,mag(1))-w(ix1-1,ix2+1,mag(1)))
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1-1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2+1
+       if(slab) then
+         dx2x1=dxlevel(2)/dxlevel(1)
+         do ix2=ixFmax2,ixFmin2,-1
+           w(ixFmin1:ixFmax1,ix2-1,mag(2))=w(ixFmin1:ixFmax1,ix2+1,mag(2)) &
+            +dx2x1*(w(ixFmin1+1:ixFmax1+1,ix2,mag(1))-&
+                    w(ixFmin1-1:ixFmax1-1,ix2,mag(1)))
          enddo
-       enddo
+       else
+         do ix2=ixFmax2,ixFmin2,-1
+           w(ixFmin1:ixFmax1,ix2-1,mag(2))=( (w(ixFmin1:ixFmax1,ix2+1,mag(2))+&
+             w(ixFmin1:ixFmax1,ix2,mag(2)))*mygeo%surfaceC2(ixFmin1:ixFmax1,ix2)&
+           +(w(ixFmin1+1:ixFmax1+1,ix2,mag(1))+w(ixFmin1:ixFmax1,ix2,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1:ixFmax1,ix2)&
+           -(w(ixFmin1:ixFmax1,ix2,mag(1))+w(ixFmin1-1:ixFmax1-1,ix2,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1-1:ixFmax1-1,ix2) )&
+            /mygeo%surfaceC2(ixFmin1:ixFmax1,ix2-1)-w(ixFmin1:ixFmax1,ix2,mag(2))
+         end do
+       end if
        }
        {^IFTHREED
-       dx2x1=dxlevel(2)/dxlevel(1)
-       dx2x3=dxlevel(2)/dxlevel(3)
-       do ix3=ixOmin3+1,ixOmax3-1
-         do ix2=ixOmax2,ixOmin2,-1
-           do ix1=ixOmin1+1,ixOmax1-1
-             w(ix1,ix2,ix3,mag(2))=w(ix1,ix2+2,ix3,mag(2)) &
-              +dx2x1*(w(ix1+1,ix2+1,ix3,mag(1))-w(ix1-1,ix2+1,ix3,mag(1)))&
-              +dx2x3*(w(ix1,ix2+1,ix3+1,mag(3))-w(ix1,ix2+1,ix3-1,mag(3)))
-           enddo
-         enddo
-       enddo
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1-1
+       ixFmin3=ixOmin3+1
+       ixFmax3=ixOmax3-1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2+1
+       if(slab) then
+         dx2x1=dxlevel(2)/dxlevel(1)
+         dx2x3=dxlevel(2)/dxlevel(3)
+         do ix2=ixFmax2,ixFmax2,-1
+           w(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,mag(2))=w(ixFmin1:ixFmax1,&
+             ix2+1,ixFmin3:ixFmax3,mag(2)) &
+             +dx2x1*(w(ixFmin1+1:ixFmax1+1,ix2,ixFmin3:ixFmax3,mag(1))-&
+                     w(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,mag(1))) &
+             +dx2x3*(w(ixFmin1:ixFmax1,ix2,ixFmin3+1:ixFmax3+1,mag(3))-&
+                     w(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,mag(3)))
+         end do
+       else
+         do ix2=ixFmax2,ixFmin2,-1
+           w(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,mag(2))=&
+          ( (w(ixFmin1:ixFmax1,ix2+1,ixFmin3:ixFmax3,mag(2))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2)))*&
+             mygeo%surfaceC2(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+           +(w(ixFmin1+1:ixFmax1+1,ix2,ixFmin3:ixFmax3,mag(1))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+           -(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1))+&
+             w(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3)&
+           +(w(ixFmin1:ixFmax1,ix2,ixFmin3+1:ixFmax3+1,mag(3))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3)))*&
+             mygeo%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+           -(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,mag(3)))*&
+             mygeo%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1) )&
+            /mygeo%surfaceC2(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3)-&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2))
+         end do
+       end if
        }
        call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(4)
        call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
-       dx2x1=dxlevel(2)/dxlevel(1)
-       do ix2=ixOmin2,ixOmax2
-         do ix1=ixOmin1+1,ixOmax1-1
-             w(ix1,ix2,mag(2))=w(ix1,ix2-2,mag(2)) &
-              -dx2x1*(w(ix1+1,ix2-1,mag(1))-w(ix1-1,ix2-1,mag(1)))
-         enddo
-       enddo
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1-1
+       ixFmin2=ixOmin2-1
+       ixFmax2=ixOmax2-1
+       if(slab) then
+         dx2x1=dxlevel(2)/dxlevel(1)
+         do ix2=ixFmin2,ixFmax2
+           w(ixFmin1:ixFmax1,ix2+1,mag(2))=w(ixFmin1:ixFmax1,ix2-1,mag(2)) &
+            -dx2x1*(w(ixFmin1+1:ixFmax1+1,ix2,mag(1))-&
+                    w(ixFmin1-1:ixFmax1-1,ix2,mag(1)))
+         end do
+       else
+         do ix2=ixFmin2,ixFmax2
+           w(ixFmin1:ixFmax1,ix2+1,mag(2))=( (w(ixFmin1:ixFmax1,ix2-1,mag(2))+&
+             w(ixFmin1:ixFmax1,ix2,mag(2)))*mygeo%surfaceC2(ixFmin1:ixFmax1,ix2-1)&
+           -(w(ixFmin1+1:ixFmax1+1,ix2,mag(1))+w(ixFmin1:ixFmax1,ix2,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1:ixFmax1,ix2)&
+           +(w(ixFmin1:ixFmax1,ix2,mag(1))+w(ixFmin1-1:ixFmax1-1,ix2,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1-1:ixFmax1-1,ix2) )&
+            /mygeo%surfaceC2(ixFmin1:ixFmax1,ix2)-w(ixFmin1:ixFmax1,ix2,mag(2))
+         end do
+       end if
        }
        {^IFTHREED
-       dx2x1=dxlevel(2)/dxlevel(1)
-       dx2x3=dxlevel(2)/dxlevel(3)
-       do ix3=ixOmin3+1,ixOmax3-1
-         do ix2=ixOmin2,ixOmax2
-           do ix1=ixOmin1+1,ixOmax1-1
-             w(ix1,ix2,ix3,mag(2))=w(ix1,ix2-2,ix3,mag(2)) &
-              -dx2x1*(w(ix1+1,ix2-1,ix3,mag(1))-w(ix1-1,ix2-1,ix3,mag(1)))&
-              -dx2x3*(w(ix1,ix2-1,ix3+1,mag(3))-w(ix1,ix2-1,ix3-1,mag(3)))
-           enddo
-         enddo
-       enddo
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1-1
+       ixFmin3=ixOmin3+1
+       ixFmax3=ixOmax3-1
+       ixFmin2=ixOmin2-1
+       ixFmax2=ixOmax2-1
+       if(slab) then
+         dx2x1=dxlevel(2)/dxlevel(1)
+         dx2x3=dxlevel(2)/dxlevel(3)
+         do ix2=ixFmin2,ixFmax2
+           w(ixFmin1:ixFmax1,ix2+1,ixFmin3:ixFmax3,mag(2))=w(ixFmin1:ixFmax1,&
+             ix2-1,ixFmin3:ixFmax3,mag(2)) &
+             -dx2x1*(w(ixFmin1+1:ixFmax1+1,ix2,ixFmin3:ixFmax3,mag(1))-&
+                     w(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,mag(1))) &
+             -dx2x3*(w(ixFmin1:ixFmax1,ix2,ixFmin3+1:ixFmax3+1,mag(3))-&
+                     w(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,mag(3)))
+         end do
+       else
+         do ix2=ixFmin2,ixFmax2
+           w(ixFmin1:ixFmax1,ix2+1,ixFmin3:ixFmax3,mag(2))=&
+          ( (w(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,mag(2))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2)))*&
+             mygeo%surfaceC2(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3)&
+           -(w(ixFmin1+1:ixFmax1+1,ix2,ixFmin3:ixFmax3,mag(1))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+           +(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1))+&
+             w(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3)&
+           -(w(ixFmin1:ixFmax1,ix2,ixFmin3+1:ixFmax3+1,mag(3))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3)))*&
+             mygeo%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+           +(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3))+&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,mag(3)))*&
+             mygeo%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1) )&
+            /mygeo%surfaceC2(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)-&
+             w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2))
+         end do
+       end if
        }
        call mhd_to_conserved(ixG^L,ixO^L,w,x)
      {^IFTHREED
      case(5)
        call mhd_to_primitive(ixG^L,ixO^L,w,x)
-       dx3x1=dxlevel(3)/dxlevel(1)
-       dx3x2=dxlevel(3)/dxlevel(2)
-       do ix3=ixOmax3,ixOmin3,-1
-         do ix2=ixOmin2+1,ixOmax2-1
-           do ix1=ixOmin1+1,ixOmax1-1
-             w(ix1,ix2,ix3,mag(3))=w(ix1,ix2,ix3+2,mag(3)) &
-             +dx3x1*(w(ix1+1,ix2,ix3+1,mag(1))-w(ix1-1,ix2,ix3+1,mag(1)))&
-             +dx3x2*(w(ix1,ix2+1,ix3+1,mag(2))-w(ix1,ix2-1,ix3+1,mag(2)))
-           enddo
-         enddo
-       enddo
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1-1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2-1
+       ixFmin3=ixOmin3+1
+       ixFmax3=ixOmax3+1
+       if(slab) then
+         dx3x1=dxlevel(3)/dxlevel(1)
+         dx3x2=dxlevel(3)/dxlevel(2)
+         do ix3=ixFmax3,ixFmax3,-1
+           w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,mag(3))=w(ixFmin1:ixFmax1,&
+             ixFmin2:ixFmax2,ix3+1,mag(3)) &
+             +dx3x1*(w(ixFmin1+1:ixFmax1+1,ixFmin2:ixFmax2,ix3,mag(1))-&
+                     w(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,mag(1))) &
+             +dx3x2*(w(ixFmin1:ixFmax1,ixFmin2+1:ixFmax2+1,ix3,mag(2))-&
+                     w(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,mag(2)))
+         end do
+       else
+         do ix3=ixFmax3,ixFmin3,-1
+           w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,mag(3))=&
+          ( (w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3+1,mag(3))+&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3)))*&
+             mygeo%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+           +(w(ixFmin1+1:ixFmax1+1,ixFmin2:ixFmax2,ix3,mag(1))+&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+           -(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1))+&
+             w(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3)&
+           +(w(ixFmin1:ixFmax1,ixFmin2+1:ixFmax2+1,ix3,mag(2))+&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2)))*&
+             mygeo%surfaceC2(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+           -(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2))+&
+             w(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,mag(2)))*&
+             mygeo%surfaceC2(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3) )&
+            /mygeo%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1)-&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
+         end do
+       end if
        call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(6)
        call mhd_to_primitive(ixG^L,ixO^L,w,x)
-       dx3x1=dxlevel(3)/dxlevel(1)
-       dx3x2=dxlevel(3)/dxlevel(2)
-       do ix3=ixOmin3,ixOmax3
-         do ix2=ixOmin2+1,ixOmax2-1
-           do ix1=ixOmin1+1,ixOmax1-1
-             w(ix1,ix2,ix3,mag(3))=w(ix1,ix2,ix3-2,mag(3)) &
-             -dx3x1*(w(ix1+1,ix2,ix3-1,mag(1))-w(ix1-1,ix2,ix3-1,mag(1)))&
-             -dx3x2*(w(ix1,ix2+1,ix3-1,mag(2))-w(ix1,ix2-1,ix3-1,mag(2)))
-           enddo
-         enddo
-       enddo
+       ixFmin1=ixOmin1+1
+       ixFmax1=ixOmax1-1
+       ixFmin2=ixOmin2+1
+       ixFmax2=ixOmax2-1
+       ixFmin3=ixOmin3-1
+       ixFmax3=ixOmax3-1
+       if(slab) then
+         dx3x1=dxlevel(3)/dxlevel(1)
+         dx3x2=dxlevel(3)/dxlevel(2)
+         do ix3=ixFmin3,ixFmax3
+           w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3+1,mag(3))=w(ixFmin1:ixFmax1,&
+             ixFmin2:ixFmax2,ix3-1,mag(3)) &
+             -dx3x1*(w(ixFmin1+1:ixFmax1+1,ixFmin2:ixFmax2,ix3,mag(1))-&
+                     w(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,mag(1))) &
+             -dx3x2*(w(ixFmin1:ixFmax1,ixFmin2+1:ixFmax2+1,ix3,mag(2))-&
+                     w(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,mag(2)))
+         end do
+       else
+         do ix3=ixFmin3,ixFmax3
+           w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3+1,mag(3))=&
+          ( (w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,mag(3))+&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3)))*&
+             mygeo%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1)&
+           -(w(ixFmin1+1:ixFmax1+1,ixFmin2:ixFmax2,ix3,mag(1))+&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+           +(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1))+&
+             w(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,mag(1)))*&
+             mygeo%surfaceC1(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3)&
+           -(w(ixFmin1:ixFmax1,ixFmin2+1:ixFmax2+1,ix3,mag(2))+&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2)))*&
+             mygeo%surfaceC2(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+           +(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2))+&
+             w(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,mag(2)))*&
+             mygeo%surfaceC2(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3) )&
+            /mygeo%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)-&
+             w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
+         end do
+       end if
        call mhd_to_conserved(ixG^L,ixO^L,w,x)
      }
      case default

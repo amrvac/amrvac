@@ -688,8 +688,8 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    integer :: idir
-    integer :: flag(ixI^S)
+    double precision :: smallone
+    integer :: idir, flag(ixI^S)
 
     call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
@@ -703,7 +703,12 @@ contains
           end do
 
           if (hd_energy) then
-             where(flag(ixO^S) /= 0) w(ixO^S,e_) = smalle
+             if(primitive) then
+               smallone = minp
+             else
+               smallone = smalle
+             end if
+             where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
           end if
        case ("average")
           call small_values_average(ixI^L, ixO^L, w, x, flag)
