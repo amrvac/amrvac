@@ -23,7 +23,7 @@ subroutine set_coordinate_system(geom)
     ndir = ndim
     r_   = 1
     z_   = 2
-    if(ndim==3) phi_ = 3
+    phi_ = 3
     typeaxial='cylindrical'
   case ("cylindrical_2.5D")
     if (ndim /= 2) call mpistop("Geometry cylindrical_2.5D but ndim /= 2")
@@ -36,7 +36,7 @@ subroutine set_coordinate_system(geom)
     ndir = ndim
     r_   = 1
     phi_ = 2
-    if(ndim==3) z_ = 3
+    z_ = 3
     typeaxial='cylindrical'
   case ("polar_2.5D")
     if (ndim /= 2) call mpistop("Geometry polar_2.5D but ndim /= 2")
@@ -48,7 +48,7 @@ subroutine set_coordinate_system(geom)
   case ("spherical")
     ndir = ndim
     r_   = 1
-    if(ndim==3) phi_ = 3
+    phi_ = 3
     z_   = -1
     typeaxial='spherical'
   case ("spherical_2.5D")
@@ -66,42 +66,42 @@ end subroutine set_coordinate_system
 
 subroutine set_pole
 
-use mod_global_parameters
-!-----------------------------------------------------------------------------
-select case (typeaxial)
-case ("spherical") {^IFTHREED
-  ! For spherical grid, check whether phi-direction is periodic
-  if(periodB(ndim)) then
-    if(phi_/=3) call mpistop("do setup.pl -phi=3 and recompile")
-    if(mod(ng3(1),2)/=0) &
-      call mpistop("Number of meshes in phi-direction should be even!")
-    if(abs(xprobmin2)<smalldouble) then
-      if(mype==0) write(unitterm,*) &
-        "Will apply pi-periodic conditions at northpole!"
-      poleB(1,2)=.true.
-    else
-      if(mype==0) write(unitterm,*) "There is no northpole!"
-    end if
-    if(abs(xprobmax2-dpi)<smalldouble) then
-      if(mype==0) write(unitterm,*) &
-        "Will apply pi-periodic conditions at southpole!"
-      poleB(2,2)=.true.
-    else
-      if(mype==0) write(unitterm,*) "There is no southpole!"
-    end if
-  end if}
-case ("cylindrical")
-  {if (^D == phi_ .and. periodB(^D)) then
-    if(mod(ng^D(1),2)/=0) &
-      call mpistop("Number of meshes in phi-direction should be even!")
-    if(abs(xprobmin1)<smalldouble) then
-      if(mype==0) write(unitterm,*) "Will apply pi-periodic conditions at r=0"
-      poleB(1,1)=.true.
-    else
-      if(mype==0) write(unitterm,*) "There is no cylindrical axis!"
-    end if
-  end if\}
-end select
+  use mod_global_parameters
+  
+  select case (typeaxial)
+  case ("spherical") {^IFTHREED
+    ! For spherical grid, check whether phi-direction is periodic
+    if(periodB(ndim)) then
+      if(phi_/=3) call mpistop("phi_ shoule be 3 in 3D spherical coord!")
+      if(mod(ng3(1),2)/=0) &
+        call mpistop("Number of meshes in phi-direction should be even!")
+      if(abs(xprobmin2)<smalldouble) then
+        if(mype==0) write(unitterm,*) &
+          "Will apply pi-periodic conditions at northpole!"
+        poleB(1,2)=.true.
+      else
+        if(mype==0) write(unitterm,*) "There is no northpole!"
+      end if
+      if(abs(xprobmax2-dpi)<smalldouble) then
+        if(mype==0) write(unitterm,*) &
+          "Will apply pi-periodic conditions at southpole!"
+        poleB(2,2)=.true.
+      else
+        if(mype==0) write(unitterm,*) "There is no southpole!"
+      end if
+    end if}
+  case ("cylindrical")
+    {if (^D == phi_ .and. periodB(^D)) then
+      if(mod(ng^D(1),2)/=0) &
+        call mpistop("Number of meshes in phi-direction should be even!")
+      if(abs(xprobmin1)<smalldouble) then
+        if(mype==0) write(unitterm,*) "Will apply pi-periodic conditions at r=0"
+        poleB(1,1)=.true.
+      else
+        if(mype==0) write(unitterm,*) "There is no cylindrical axis!"
+      end if
+    end if\}
+  end select
 
 end subroutine set_pole
 !=============================================================================
