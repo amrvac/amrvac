@@ -1818,9 +1818,9 @@ contains
          do ix1=ixFmax1,ixFmin1,-1
            w(ix1-1,ixFmin2:ixFmax2,mag(1))=( (w(ix1+1,ixFmin2:ixFmax2,mag(1))+&
              w(ix1,ixFmin2:ixFmax2,mag(1)))*mygeo%surfaceC1(ix1,ixFmin2:ixFmax2)&
-           +(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,,mag(2)))*&
+           +(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,mag(2)))*&
              mygeo%surfaceC2(ix1,ixFmin2:ixFmax2)&
-           -(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,ix2,mag(2)))*&
+           -(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,mag(2)))*&
              mygeo%surfaceC2(ix1,ixFmin2-1:ixFmax2-1) )&
             /mygeo%surfaceC1(ix1-1,ixFmin2:ixFmax2)-w(ix1,ixFmin2:ixFmax2,mag(1))
          end do
@@ -1886,9 +1886,9 @@ contains
          do ix1=ixFmin1,ixFmax1
            w(ix1+1,ixFmin2:ixFmax2,mag(1))=( (w(ix1-1,ixFmin2:ixFmax2,mag(1))+&
              w(ix1,ixFmin2:ixFmax2,mag(1)))*mygeo%surfaceC1(ix1-1,ixFmin2:ixFmax2)&
-           -(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,,mag(2)))*&
+           -(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,mag(2)))*&
              mygeo%surfaceC2(ix1,ixFmin2:ixFmax2)&
-           +(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,ix2,mag(2)))*&
+           +(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,mag(2)))*&
              mygeo%surfaceC2(ix1,ixFmin2-1:ixFmax2-1) )&
             /mygeo%surfaceC1(ix1,ixFmin2:ixFmax2)-w(ix1,ixFmin2:ixFmax2,mag(1))
          end do
