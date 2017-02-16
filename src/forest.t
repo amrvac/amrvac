@@ -325,12 +325,8 @@ integer(kind=MPI_OFFSET_KIND) :: offset
 integer, dimension(MPI_STATUS_SIZE) :: status
 !integer :: ig^D, level, size_logical, Morton_no, igrid, ipe
 integer :: ig^D, level, Morton_no, igrid, ipe, isfc
-{^IFMPT integer :: size_logical, lb}
-{^IFNOMPT integer(kind=MPI_ADDRESS_KIND) :: size_logical, lb}
-
 integer, external :: getnode
 !-----------------------------------------------------------------------------
-call MPI_TYPE_GET_EXTENT(MPI_LOGICAL,lb,size_logical,ierrmpi)
 {#IFDEF EVOLVINGBOUNDARY
 offset=int(size_block_io,kind=MPI_OFFSET_KIND)*&
        int(nleafs-nphyboundblock,kind=MPI_OFFSET_KIND)+&

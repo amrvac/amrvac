@@ -314,11 +314,6 @@ integer                                :: oldtypes(0:8), offsets(0:8), &
 !-----------------------------------------------------------------------------
 
 ! create the MPI-datatype for particle
-
-call MPI_TYPE_GET_EXTENT(MPI_INTEGER, lb, size_int, ierrmpi)
-call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION, lb, size_double, ierrmpi)
-call MPI_TYPE_GET_EXTENT(MPI_LOGICAL, lb, size_logical, ierrmpi)
-
 oldtypes(0) = MPI_LOGICAL
 oldtypes(1) = MPI_INTEGER
 oldtypes(2:8) = MPI_DOUBLE_PRECISION

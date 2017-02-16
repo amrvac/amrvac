@@ -22,6 +22,8 @@ module mod_global_parameters
 
   logical :: slab
 
+  !> @todo Move mpi related variables to e.g. mod_comm
+
   !> The number of MPI tasks
   integer :: npe
 
@@ -34,6 +36,15 @@ module mod_global_parameters
   !> A global MPI error return code
   !> @todo Make local
   integer :: ierrmpi
+
+  !> Size (in bytes) of MPI_DOUBLE_PRECISION
+  integer(kind=MPI_ADDRESS_KIND) :: size_double
+
+  !> Size (in bytes) of MPI_INTEGER
+  integer(kind=MPI_ADDRESS_KIND) :: size_int
+
+  !> Size (in bytes) of MPI_LOGICAL
+  integer(kind=MPI_ADDRESS_KIND) :: size_logical
 
   integer :: log_fh
   !> MPI IO type for block including ghost cells

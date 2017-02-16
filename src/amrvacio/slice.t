@@ -38,11 +38,7 @@ integer, dimension(ndim-1) :: ixsubMlo, ixsubMhi
 integer :: size_subblock_io, nx^D, slice_fh, nwexpand
 integer, dimension(ndim) :: sizes, subsizes, start
 double precision,dimension(0:nw+nwauxio)          :: normconv 
-{^IFMPT integer :: size_double, lb}
-{^IFNOMPT integer(kind=MPI_ADDRESS_KIND):: size_double, lb}
-!-----------------------------------------------------------------------------
 ! Preamble: 
-call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
 nx^D=ixMhi^D-ixMlo^D+1;
 slice_fh=unitslice
 

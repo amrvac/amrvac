@@ -4,8 +4,9 @@
 !> Initialize the MPI environment
 !> @todo Check for errors in return code
 subroutine comm_start
-
   use mod_global_parameters
+
+  integer(kind=MPI_ADDRESS_KIND) :: lb
 
   ! Initialize MPI
   call MPI_INIT(ierrmpi)
@@ -19,6 +20,11 @@ subroutine comm_start
 
   ! Use the default communicator, which contains all the processes
   icomm = MPI_COMM_WORLD
+
+  ! Get size of double/integer
+  call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
+  call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
+  call MPI_TYPE_GET_EXTENT(MPI_LOGICAL,lb,size_logical,ierrmpi)
 
 end subroutine comm_start
 
@@ -44,14 +50,10 @@ use mod_global_parameters
 integer, dimension(ndim+1) :: sizes, subsizes, start
 !integer :: i^D, ic^D, nx^D, nxCo^D, size_double
 integer :: i^D, ic^D, nx^D, nxCo^D, nxG^D
-{^IFMPT integer :: size_double, lb}
-{^IFNOMPT integer(kind=MPI_ADDRESS_KIND):: size_double, lb}
 !-----------------------------------------------------------------------------
 nx^D=ixMhi^D-ixMlo^D+1;
 nxG^D=ixGhi^D-ixGlo^D+1;
 nxCo^D=nx^D/2;
-
-call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
 
 ^D&sizes(^D)=ixGhi^D;
 sizes(ndim+1)=nw

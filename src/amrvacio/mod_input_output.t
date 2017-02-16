@@ -1377,8 +1377,6 @@ contains
     integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, domain_nxini^D
     double precision :: xprobminini^D,xprobmaxini^D
 
-    integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb
-
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(MPI_STATUS_SIZE) :: istatus
     logical :: fexist
@@ -1391,9 +1389,6 @@ contains
     amode=MPI_MODE_RDONLY
     call MPI_FILE_OPEN(icomm,trim(restart_from_file),amode,&
          MPI_INFO_NULL,file_handle,ierrmpi)
-
-    call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
-    call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
     {#IFDEF EVOLVINGBOUNDARY
     offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
@@ -1513,8 +1508,6 @@ contains
     integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, domain_nxini^D
     double precision :: xprobminini^D,xprobmaxini^D
 
-    integer(kind=MPI_ADDRESS_KIND) :: size_double, size_int, lb
-
     integer(kind=MPI_OFFSET_KIND) :: offset
     integer, dimension(MPI_STATUS_SIZE) :: istatus
 
@@ -1528,9 +1521,6 @@ contains
       amode=MPI_MODE_RDONLY
       call MPI_FILE_OPEN(MPI_COMM_SELF,restart_from_file,amode, &
            MPI_INFO_NULL,file_handle,ierrmpi)
-
-      call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
-      call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
 
       {#IFDEF EVOLVINGBOUNDARY
       offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)

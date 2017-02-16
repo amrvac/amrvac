@@ -294,8 +294,8 @@ sub definepatterns{
    # &patdef('IFREL'  , $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
   # &patdef('IFCLA'      ,$p eq hdadiab || $p eq hd || $p eq mhd || $p eq mhdglm || $p eq mhdadiab);
    # &patdef('IFRESSRMHD' ,$p eq ressrmhd         );
-   &patdef('IFMPT'      ,$cp eq mpt             );
-   &patdef('IFNOMPT'    ,$cp ne mpt             );
+   # &patdef('IFMPT'      ,$cp eq mpt             );
+   # &patdef('IFNOMPT'    ,$cp ne mpt             );
    # &patdef('IFGR'       ,$p eq grhd ||$p eq grhdeos || $p eq grmhd  || $p eq grmhdeos || $p eq grmhdglm || $p eq grmhdglmeos            );
   # &patdef('IFNOGR'       ,$p ne grhd && $p ne grhdeos && $p ne grmhd  && $p ne grmhdeos && $p ne grmhdglm && $p ne grmhdglmeos            );
    # &patdef('IFTWODMHD'   ,$p eq mhd && $ndim==2 );

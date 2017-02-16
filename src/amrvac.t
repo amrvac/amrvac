@@ -3,10 +3,6 @@
 !> using adaptive mesh refinement.
 program amrvac
 
-  ! following line may avoid mystery problems in the combination
-  !  where we use ifort compiler and MPT (SGIs MPI implementation)
-  !DEC$ ATTRIBUTES NOINLINE :: read_snapshot
-
   {#IFDEF PARTICLES
   use mod_gridvars, only: init_gridvars, finish_gridvars
   }
