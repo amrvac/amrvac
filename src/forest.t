@@ -11,6 +11,7 @@ integer, external :: getnode
 level=1
 Morton_no=0
 ipe=0
+nparents=0
 nleafs={ng^D(1)*}
 nleafs_active=nleafs
 nleafs_level(1)={ng^D(1)*}
@@ -135,6 +136,7 @@ end if
 active = tree%node%active
 
 nleafs=nleafs-2**^ND+1
+nparents=nparents-1
 nleafs_level(child_level)=nleafs_level(child_level)-2**^ND
 nleafs_level(level)=nleafs_level(level)+1
 
@@ -199,6 +201,7 @@ child_level=level+1
 {end do\}
 
 nleafs=nleafs+2**^ND-1
+nparents=nparents+1
 nleafs_level(child_level)=nleafs_level(child_level)+2**^ND
 nleafs_level(level)=nleafs_level(level)-1
 

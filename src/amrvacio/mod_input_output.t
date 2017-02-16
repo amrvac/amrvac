@@ -4,7 +4,7 @@ module mod_input_output
   implicit none
   public
 
-  integer, parameter :: version_number = 1
+  integer, parameter :: version_number = 3
 
   ! Formats used in output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
@@ -836,538 +836,522 @@ contains
 
   end subroutine saveamrfile
 
-  subroutine write_snapshot
+  ! subroutine write_snapshot
+  !   use mod_forest
+  !   use mod_global_parameters
+  !   use mod_physics
+
+  !   integer :: file_handle, amode, igrid, Morton_no, iwrite
+  !   integer :: nx^D
+  !   integer(kind=MPI_OFFSET_KIND) :: offset
+  !   integer, dimension(MPI_STATUS_SIZE) :: istatus
+  !   character(len=80) :: filename, line
+  !   logical, save :: firstsnapshot=.true.
+  !   !-----------------------------------------------------------------------------
+  !   if (firstsnapshot) then
+  !      snapshot=snapshotnext
+  !      firstsnapshot=.false.
+  !   end if
+
+  !   if (snapshot >= 10000) then
+  !      if (mype==0) then
+  !         write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
+  !         write(*,*) "overwriting first frames"
+  !      end if
+  !      snapshot=0
+  !   end if
+
+  !   ! generate filename
+  !   write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
+
+  !   if(mype==0) then
+  !      open(unit=unitsnapshot,file=filename,status='replace')
+  !      close(unit=unitsnapshot, status='delete')
+  !   end if
+  !   call MPI_BARRIER(icomm,ierrmpi)
+
+  !   amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+  !   call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
+
+  !   iwrite=0
+  !   do Morton_no=Morton_start(mype),Morton_stop(mype)
+  !      igrid=sfc_to_igrid(Morton_no)
+  !      if (nwaux>0) then
+  !         ! extra layer around mesh only for later averaging in convert
+  !         ! set dxlevel value for use in gradient subroutine, 
+  !         ! which might be used in getaux
+  !         saveigrid=igrid
+  !         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  !         if (.not.slab) mygeo => pgeo(igrid)
+  !         if (B0field) then
+  !            myB0_cell => pB0_cell(igrid)
+  !            {^D&myB0_face^D => pB0_face^D(igrid)\}
+  !         end if
+  !         call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+  !      endif
+  !      iwrite=iwrite+1
+  !      {#IFDEF EVOLVINGBOUNDARY
+  !      nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
+  !      offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+  !           *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
+  !           int(size_block,kind=MPI_OFFSET_KIND) &
+  !           *int(nphyboundblock,kind=MPI_OFFSET_KIND)
+  !      if (sfc_phybound(Morton_no)==1) then
+  !         call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+  !              type_block,istatus,ierrmpi)
+  !      else
+  !         call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+  !              type_block_io,istatus,ierrmpi)
+  !      end if
+  !      }{#IFNDEF EVOLVINGBOUNDARY
+  !      offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+  !           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
+  !      call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
+  !           type_block_io, istatus,ierrmpi)
+  !      }
+  !   end do
+
+  !   call MPI_FILE_CLOSE(file_handle,ierrmpi)
+  !   if (mype==0) then
+  !      amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
+  !      call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL, &
+  !           file_handle,ierrmpi)
+
+  !      call write_forest(file_handle)
+
+  !      {nx^D=ixMhi^D-ixMlo^D+1
+  !      call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
+  !      call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
+  !      call MPI_FILE_WRITE(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+  !      {#IFDEF EVOLVINGBOUNDARY
+  !      nphyboundblock=sum(sfc_phybound)
+  !      call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
+  !      }
+  !      call MPI_FILE_CLOSE(file_handle,ierrmpi)
+  !   end if
+  !   snapshot=snapshot+1
+
+  ! end subroutine write_snapshot
+
+  ! subroutine write_snapshot_tf
+  !   use mod_usr_methods, only: usr_transform_w
+  !   use mod_forest
+  !   use mod_global_parameters
+  !   use mod_physics
+
+  !   double precision, allocatable :: wtf(:^D&,:)
+  !   integer :: file_handle_tf
+  !   character(len=80) :: filenametf
+  !   integer :: file_handle, amode, igrid, Morton_no, iwrite
+  !   integer :: nx^D
+  !   integer(kind=MPI_OFFSET_KIND) :: offset
+  !   integer, dimension(MPI_STATUS_SIZE) :: istatus
+  !   character(len=80) :: filename, line
+  !   logical, save :: firstsnapshot=.true.
+  !   !-----------------------------------------------------------------------------
+  !   if (firstsnapshot) then
+  !      snapshot=snapshotnext
+  !      firstsnapshot=.false.
+  !   end if
+
+  !   if (snapshot >= 10000) then
+  !      if (mype==0) then
+  !         write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
+  !         write(*,*) "overwriting first frames"
+  !      end if
+  !      snapshot=0
+  !   end if
+
+  !   ! generate filename
+  !   write(filenametf,"(a,i4.4,a)") TRIM(base_filename),snapshot,"tf.dat"
+  !   if(mype==0) then
+  !      open(unit=unitsnapshot,file=filenametf,status='replace')
+  !      close(unit=unitsnapshot)
+  !   end if
+  !   amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+  !   call MPI_FILE_OPEN(icomm,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
+  !   allocate(wtf(ixG^T,1:nwtf))
+
+  !   iwrite=0
+  !   do Morton_no=Morton_start(mype),Morton_stop(mype)
+  !      igrid=sfc_to_igrid(Morton_no)
+  !      if (nwaux>0) then
+  !         ! extra layer around mesh only for later averaging in convert
+  !         ! set dxlevel value for use in gradient subroutine, 
+  !         ! which might be used in getaux
+  !         saveigrid=igrid
+  !         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  !         if (.not.slab) mygeo => pgeo(igrid)
+  !         if (B0field) then
+  !            myB0_cell => pB0_cell(igrid)
+  !            {^D&myB0_face^D => pB0_face^D(igrid)\}
+  !         end if
+  !         call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+  !      endif
+  !      iwrite=iwrite+1
+
+  !      if (associated(usr_transform_w)) then
+  !         call usr_transform_w(pw(igrid)%w,wtf,ixG^LL,ixM^LL)
+  !      end if
+
+  !      offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
+  !           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
+  !      call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &
+  !           type_block_io_tf,istatus,ierrmpi)     
+  !   end do
+
+  !   call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
+  !   amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
+  !   call MPI_FILE_OPEN(MPI_COMM_SELF,filenametf,amode,MPI_INFO_NULL, &
+  !        file_handle_tf,ierrmpi)
+
+  !   call write_forest(file_handle_tf)
+
+  !   {nx^D=ixMhi^D-ixMlo^D+1
+  !   call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
+  !   call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
+  !   call MPI_FILE_WRITE(file_handle_tf,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+
+  !   call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
+  !   snapshot=snapshot+1
+
+  ! end subroutine write_snapshot_tf
+
+  ! subroutine create_output_file(fh, ix, extension)
+  !   integer, intent(out)         :: fh !< File handle
+  !   integer, intent(in)          :: ix !< Index of file
+  !   character(len=*), intent(in) :: extension !< Extension of file
+  !   character(len=std_len)       :: filename
+
+  !   if (ix >= 10000) then
+  !     call mpistop("Number of output files is limited to 10000 (0...9999)")
+  !   end if
+
+  !   write(filename,"(a,i4.4,a)") trim(base_filename), ix, extension
+
+  !   ! MPI cannot easily replace existing files
+  !   open(unit=unitsnapshot,file=filename,status='replace')
+  !   close(unitsnapshot, status='delete')
+
+  !   call MPI_FILE_OPEN(MPI_COMM_SELF,filename,MPI_MODE_WRONLY, &
+  !        MPI_INFO_NULL, file_handle,ierrmpi)
+
+  ! end subroutine create_output_file
+
+  !> Write header for a snapshot
+  subroutine snapshot_write_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_global_parameters
-    use mod_physics
+    integer, intent(in)                 :: fh           !< File handle
+    integer, intent(in)                 :: offset_tree  !< Offset of tree info
+    integer, intent(in)                 :: offset_block !< Offset of block data
+    integer, dimension(MPI_STATUS_SIZE) :: st
+    integer                             :: er
 
-    integer :: file_handle, amode, igrid, Morton_no, iwrite
-    integer :: nx^D
-    integer(kind=MPI_OFFSET_KIND) :: offset
-    integer, dimension(MPI_STATUS_SIZE) :: istatus
-    character(len=80) :: filename, line
-    logical, save :: firstsnapshot=.true.
-    !-----------------------------------------------------------------------------
-    if (firstsnapshot) then
-       snapshot=snapshotnext
-       firstsnapshot=.false.
-    end if
+    call MPI_FILE_WRITE(fh, version_number, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, offset_tree, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, offset_block, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, global_time, 1, MPI_DOUBLE_PRECISION, st, er)
+    call MPI_FILE_WRITE(fh, it, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, nw, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, ndir, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, ndim, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, levmax, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, nleafs, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, nparents, 1, MPI_INTEGER, st, er)
 
-    if (snapshot >= 10000) then
-       if (mype==0) then
-          write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
-          write(*,*) "overwriting first frames"
-       end if
-       snapshot=0
-    end if
+    call MPI_FILE_WRITE(fh, [ xprobmax^D ], ndim, &
+         MPI_DOUBLE_PRECISION, st, er)
+    call MPI_FILE_WRITE(fh, [ xprobmin^D ], ndim, &
+         MPI_DOUBLE_PRECISION, st, er)
+    call MPI_FILE_WRITE(fh, [ domain_nx^D ], ndim, &
+         MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, [ block_nx^D ], ndim, &
+         MPI_INTEGER, st, er)
+  end subroutine snapshot_write_header
 
-    ! generate filename
-    write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
+  !> Compute number of elements in index range
+  pure integer function count_ix(ixO^L)
+    integer, intent(in) :: ixO^L
 
-    if(mype==0) then
-       open(unit=unitsnapshot,file=filename,status='replace')
-       close(unit=unitsnapshot, status='delete')
-    end if
-    call MPI_BARRIER(icomm,ierrmpi)
-
-    amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
-    call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,file_handle,ierrmpi)
-
-    iwrite=0
-    do Morton_no=Morton_start(mype),Morton_stop(mype)
-       igrid=sfc_to_igrid(Morton_no)
-       if (nwaux>0) then
-          ! extra layer around mesh only for later averaging in convert
-          ! set dxlevel value for use in gradient subroutine, 
-          ! which might be used in getaux
-          saveigrid=igrid
-          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          if (.not.slab) mygeo => pgeo(igrid)
-          if (B0field) then
-             myB0_cell => pB0_cell(igrid)
-             {^D&myB0_face^D => pB0_face^D(igrid)\}
-          end if
-          call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
-       endif
-       iwrite=iwrite+1
-       {#IFDEF EVOLVINGBOUNDARY
-       nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
-       offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-            *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
-            int(size_block,kind=MPI_OFFSET_KIND) &
-            *int(nphyboundblock,kind=MPI_OFFSET_KIND)
-       if (sfc_phybound(Morton_no)==1) then
-          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
-               type_block,istatus,ierrmpi)
-       else
-          call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
-               type_block_io,istatus,ierrmpi)
-       end if
-       }{#IFNDEF EVOLVINGBOUNDARY
-       offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-            *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-       call MPI_FILE_WRITE_AT(file_handle,offset,pw(igrid)%w,1,&
-            type_block_io, istatus,ierrmpi)
-       }
-    end do
-
-    call MPI_FILE_CLOSE(file_handle,ierrmpi)
-    if (mype==0) then
-       amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
-       call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL, &
-            file_handle,ierrmpi)
-
-       call write_forest(file_handle)
-
-       {nx^D=ixMhi^D-ixMlo^D+1
-       call MPI_FILE_WRITE(file_handle,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       {#IFDEF EVOLVINGBOUNDARY
-       nphyboundblock=sum(sfc_phybound)
-       call MPI_FILE_WRITE(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
-       }
-       call MPI_FILE_CLOSE(file_handle,ierrmpi)
-    end if
-    snapshot=snapshot+1
-
-  end subroutine write_snapshot
-
-  subroutine write_snapshot_tf
-    use mod_usr_methods, only: usr_transform_w
-    use mod_forest
-    use mod_global_parameters
-    use mod_physics
-
-    double precision, allocatable :: wtf(:^D&,:)
-    integer :: file_handle_tf
-    character(len=80) :: filenametf
-    integer :: file_handle, amode, igrid, Morton_no, iwrite
-    integer :: nx^D
-    integer(kind=MPI_OFFSET_KIND) :: offset
-    integer, dimension(MPI_STATUS_SIZE) :: istatus
-    character(len=80) :: filename, line
-    logical, save :: firstsnapshot=.true.
-    !-----------------------------------------------------------------------------
-    if (firstsnapshot) then
-       snapshot=snapshotnext
-       firstsnapshot=.false.
-    end if
-
-    if (snapshot >= 10000) then
-       if (mype==0) then
-          write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
-          write(*,*) "overwriting first frames"
-       end if
-       snapshot=0
-    end if
-
-    ! generate filename
-    write(filenametf,"(a,i4.4,a)") TRIM(base_filename),snapshot,"tf.dat"
-    if(mype==0) then
-       open(unit=unitsnapshot,file=filenametf,status='replace')
-       close(unit=unitsnapshot)
-    end if
-    amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
-    call MPI_FILE_OPEN(icomm,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
-    allocate(wtf(ixG^T,1:nwtf))
-
-    iwrite=0
-    do Morton_no=Morton_start(mype),Morton_stop(mype)
-       igrid=sfc_to_igrid(Morton_no)
-       if (nwaux>0) then
-          ! extra layer around mesh only for later averaging in convert
-          ! set dxlevel value for use in gradient subroutine, 
-          ! which might be used in getaux
-          saveigrid=igrid
-          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          if (.not.slab) mygeo => pgeo(igrid)
-          if (B0field) then
-             myB0_cell => pB0_cell(igrid)
-             {^D&myB0_face^D => pB0_face^D(igrid)\}
-          end if
-          call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
-       endif
-       iwrite=iwrite+1
-
-       if (associated(usr_transform_w)) then
-          call usr_transform_w(pw(igrid)%w,wtf,ixG^LL,ixM^LL)
-       end if
-
-       offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
-            *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-       call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &
-            type_block_io_tf,istatus,ierrmpi)     
-    end do
-
-    call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-    amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
-    call MPI_FILE_OPEN(MPI_COMM_SELF,filenametf,amode,MPI_INFO_NULL, &
-         file_handle_tf,ierrmpi)
-
-    call write_forest(file_handle_tf)
-
-    {nx^D=ixMhi^D-ixMlo^D+1
-    call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-    call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
-    call MPI_FILE_WRITE(file_handle_tf,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-
-    call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-    snapshot=snapshot+1
-
-  end subroutine write_snapshot_tf
+    count_ix = product([ ixOmax^D ] - [ ixOmin^D ] + 1)
+  end function count_ix
 
   subroutine write_snapshot_nopar
     use mod_forest
     use mod_global_parameters
     use mod_physics
 
-    integer :: file_handle, amode, igrid, Morton_no, iwrite
+    integer                                  :: file_handle, igrid, Morton_no, iwrite
+    integer                                  :: ipe, ix_buffer(2*ndim+1), n_values
+    integer                                  :: ixO^L
+    integer(kind=MPI_OFFSET_KIND)            :: offsets(nleafs+1)
+    integer                                  :: iorecvstatus(MPI_STATUS_SIZE)
+    integer                                  :: ioastatus(MPI_STATUS_SIZE)
+    integer                                  :: igrecvstatus
+    integer, dimension(MPI_STATUS_SIZE)      :: istatus
+    integer(kind=MPI_OFFSET_KIND), parameter :: offset_tree_info = 256
+    integer(kind=MPI_OFFSET_KIND)            :: offset_block_data
+    double precision, allocatable            :: w_buffer(:)
 
-    integer(kind=MPI_OFFSET_KIND) :: offset
+    call MPI_BARRIER(icomm, ierrmpi)
 
-    integer, allocatable :: iorecvstatus(:,:),ioastatus(:,:)
-    integer, allocatable :: igrecvstatus(:,:)
-    integer, allocatable :: igrid_recv(:) 
-
-    integer, dimension(MPI_STATUS_SIZE) :: istatus
-
-    integer  :: ipe,insend,inrecv,nrecv
-    character(len=80) :: filename, line
-    integer, parameter :: offset_tree_info = 256
-
-    call MPI_BARRIER(icomm,ierrmpi)
-
-    if (snapshotnext >= 10000) then
-       if (mype==0) then
-          write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
-          write(*,*) "overwriting first frames"
-       end if
-       snapshotnext=0
-    end if
-
-    ! Determine number of parents
-    nparents = ...
+    ! Allocate send/receive buffer
+    n_values = count_ix(ixG^LL) * nw
+    allocate(w_buffer(n_values))
 
     ! First compute block data offset (in bytes)
     offset_block_data = offset_tree_info + &
-         ! TODO: use only first line at first
-         size_logical * (nleafs + nparents) + & ! leaf/parent logical array
-         size_integer * nleafs + &              ! byte offsets of leave blocks
-         size_integer * nleafs + &              ! refinement levels
-         size_integer * ndim * nleafs           ! spatial indices
+         size_logical * (nleafs + nparents) !+ & ! leaf/parent logical array
+         ! size_integer * nleafs + &              ! byte offsets of leave blocks
+         ! size_integer * nleafs + &              ! refinement levels
+         ! size_integer * ndim * nleafs           ! spatial indices
 
     ! master processor
     if (mype==0) then
-       write(filename,"(a,i4.4,a)") trim(base_filename), &
-            snapshotnext, ".dat"
-
-       ! MPI cannot easily replace existing files
-       open(unit=unitsnapshot,file=filename,status='replace')
-       close(unitsnapshot, status='delete')
-
-       call MPI_FILE_OPEN(MPI_COMM_SELF,filename,MPI_MODE_WRONLY, &
-            MPI_INFO_NULL, file_handle,ierrmpi)
-
-       call MPI_FILE_WRITE(file_handle,version_number,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,offset_tree_info,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,offset_block_data,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nw,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndir,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,ndim,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,levmax,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle,nparents,1,MPI_INTEGER,istatus,ierrmpi)
-
-       call MPI_FILE_WRITE(file_handle, [ xprobmax^D ], ndim, &
-            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle, [ xprobmin^D ], ndim, &
-            MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle, [domain_nx^D ], ndim, &
-            MPI_INTEGER,istatus,ierrmpi)
-       call MPI_FILE_WRITE(file_handle, [ block_nx^D ], ndim, &
-            MPI_INTEGER,istatus,ierrmpi)
+      call create_output_file(file_handle, snapshotnext, ".dat")
+      call snapshot_write_header(file_handle, int(offset_tree_info), &
+           int(offset_block_data))
+      call MPI_FILE_SEEK(file_handle, offset_tree_info, MPI_SEEK_SET, ierrmpi)
     end if
 
-    call MPI_SEEK               ! go to offset
     call write_forest(file_handle)
 
-    nrecv=0
-    inrecv=0
-    insend=0
-    iwrite=0
-    offset(1) = offset_block_data
-
-    if (mype /= 0) then
-       do Morton_no=Morton_start(mype),Morton_stop(mype)
-          igrid=sfc_to_igrid(Morton_no)
-          itag=Morton_no
-          insend=insend+1
-          if (nwaux>0) then
-             ! extra layer around mesh only for later averaging in convert
-             ! set dxlevel value for use in gradient subroutine, 
-             ! which might be used in getaux
-             saveigrid=igrid
-             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-             mygeo =>pgeo(igrid)
-             if (B0field) then
-                myB0_cell => pB0_cell(igrid)
-                {^D&myB0_face^D => pB0_face^D(igrid)\}
-             end if
-             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
-          endif
-
-          call block_shape_io(igrid, ghostlayers, n_values, ixO^L)
-          call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
-          call MPI_SEND(igrid, ghostlayers, 2*ndim, &
-               MPI_INTEGER, 0,itag,icomm,ierrmpi)
-          call MPI_SEND(pw(igrid)%w(ixO^S, 1:nw), n_values, &
-               MPI_DOUBLE_PRECISION, 0,itag,icomm,ierrmpi)
-       end do
-    else ! mype==0
-
-       ! writing his local data first
-       do Morton_no=Morton_start(0),Morton_stop(0)
-          igrid=sfc_to_igrid(Morton_no)
-          iwrite=iwrite+1
-          if (nwaux>0) then
-             ! extra layer around mesh only for later averaging in convert
-             ! set dxlevel value for use in gradient subroutine,
-             ! which might be used in getaux
-             saveigrid=igrid
-             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-             mygeo =>pgeo(igrid)
-             if (B0field) then
-                myB0_cell => pB0_cell(igrid)
-                {^D&myB0_face^D => pB0_face^D(igrid)\}
-             end if
-             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,&
-                  ixG^LL,ixM^LL^LADD1,"write_snapshot")
-          endif
-
-          ! TODO: possibly include ghost cells
-          ! TODO: make size_double available in module
-          n_values = nw * product([ block_nx^D ])
-          offset(iwrite+1) = offset(iwrite) + n_values * size_double
-
-          call MPI_FILE_WRITE_AT(file_handle,offset(iwrite),pw(igrid)%w(ixM^T,1:nw), &
-               n_values, MPI_DOUBLE_PRECISION, istatus,ierrmpi)
-       end do
-
-       ! write data communicated from other processors
-       if(npe>1)then
-          nnrecv=(Morton_stop(npe-1)-Morton_start(1)+1)
-          inrecv=0
-          allocate(igrid_recv(nrecv))
-          allocate(igrecvstatus(MPI_STATUS_SIZE,nrecv),iorecvstatus(MPI_STATUS_SIZE,nrecv))
-          allocate(ioastatus(MPI_STATUS_SIZE,nrecv))
-
-          do ipe =1, npe-1
-             do Morton_no=Morton_start(ipe),Morton_stop(ipe)
-                iwrite=iwrite+1
-                itag=Morton_no
-                inrecv=inrecv+1
-                call MPI_RECV(igrid_recv(inrecv),1,MPI_INTEGER, ipe,itag,icomm,&
-                     igrecvstatus(:,inrecv),ierrmpi)
-
-                allocate(pwio(igrid_recv(inrecv))%w(ixG^T,1:nw))
-                call MPI_RECV(pwio(igrid_recv(inrecv))%w,1,type_block_io,ipe,itag,icomm,&
-                     iorecvstatus(:,inrecv),ierrmpi)
-                {#IFDEF EVOLVINGBOUNDARY
-                nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
-                offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-                     *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
-                     int(size_block,kind=MPI_OFFSET_KIND) &
-                     *int(nphyboundblock,kind=MPI_OFFSET_KIND)
-                if (sfc_phybound(Morton_no)==1) then
-                   call MPI_FILE_WRITE_AT(file_handle,offset,pwio(igrid_recv(inrecv))%w,1,&
-                        type_block   ,ioastatus(:,inrecv),ierrmpi)
-                else
-                   call MPI_FILE_WRITE_AT(file_handle,offset,pwio(igrid_recv(inrecv))%w,1,&
-                        type_block_io,ioastatus(:,inrecv),ierrmpi)
-                end if
-                }{#IFNDEF EVOLVINGBOUNDARY
-                offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-                     *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-                call MPI_FILE_WRITE_AT(file_handle,offset,pwio(igrid_recv(inrecv))%w,1,&
-                     type_block_io,ioastatus(:,inrecv),ierrmpi)
-                }
-                deallocate(pwio(igrid_recv(inrecv))%w)
-             end do
-          end do
-          deallocate(igrecvstatus,iorecvstatus,ioastatus,igrid_recv)
-       end if
+    if (mype == 0) then
+      iwrite = 0
+      call MPI_File_get_position(file_handle, offsets(1), ierrmpi)
     end if
 
-    if(mype==0) call MPI_FILE_CLOSE(file_handle,ierrmpi)
+    do Morton_no=Morton_start(mype), Morton_stop(mype)
+      igrid  = sfc_to_igrid(Morton_no)
+      itag   = Morton_no
 
-    snapshotnext=snapshotnext+1
+      if (nwaux>0) then
+        ! extra layer around mesh only for later averaging in convert
+        ! set dxlevel value for use in gradient subroutine, 
+        ! which might be used in getaux
+        saveigrid=igrid
+        ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
+        mygeo =>pgeo(igrid)
+        if (B0field) then
+          myB0_cell => pB0_cell(igrid)
+          {^D&myB0_face^D => pB0_face^D(igrid)\}
+        end if
+        call phys_get_aux(.true., pw(igrid)%w, px(igrid)%x, ixG^LL, &
+             ixM^LL^LADD1, "write_snapshot")
+      endif
 
-    call MPI_BARRIER(icomm,ierrmpi)
+      call block_shape_io(igrid, ixO^L)
+      n_values = count_ix(ixO^L) * nw
+      w_buffer(1:n_values) = pack(pw(igrid)%w(ixO^S, 1:nw), .true.)
+
+      if (mype /= 0) then
+        call MPI_SEND(igrid, [ ixO^L, n_values ], 2*ndim+1, &
+             MPI_INTEGER, 0, itag, icomm, ierrmpi)
+        call MPI_SEND(w_buffer, n_values, &
+             MPI_DOUBLE_PRECISION, 0, itag, icomm, ierrmpi)
+      else
+        iwrite = iwrite+1
+        call MPI_FILE_WRITE(file_handle, [ ixO^L ], &
+             2*ndim, MPI_INTEGER, istatus, ierrmpi)
+        call MPI_FILE_WRITE(file_handle, w_buffer, &
+             n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
+
+        ! Set offset of next block
+        offsets(iwrite+1) = offsets(iwrite) + n_values * size_double
+      end if
+    end do
+
+    ! Write data communicated from other processors
+    if (mype == 0) then
+      do ipe = 1, npe-1
+        do Morton_no=Morton_start(ipe), Morton_stop(ipe)
+          iwrite=iwrite+1
+          itag=Morton_no
+
+          call MPI_RECV(ix_buffer, 2*ndim+1, MPI_INTEGER, ipe, itag, icomm,&
+               igrecvstatus, ierrmpi)
+          n_values = ix_buffer(2*ndim+1)
+
+          call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION,&
+               ipe, itag, icomm, iorecvstatus, ierrmpi)
+
+          call MPI_FILE_WRITE(file_handle, ix_buffer(1:2*ndim), &
+             2*ndim, MPI_INTEGER, istatus, ierrmpi)
+          call MPI_FILE_WRITE(file_handle, w_buffer, &
+             n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
+
+          ! Set offset of next block
+          offsets(iwrite+1) = offsets(iwrite) + n_values * size_double
+        end do
+      end do
+
+      call MPI_FILE_CLOSE(file_handle, ierrmpi)
+    end if
+
+    call MPI_BARRIER(icomm, ierrmpi)
 
   end subroutine write_snapshot_nopar
 
-  subroutine write_snapshot_noparf
-    use mod_forest
-    use mod_global_parameters
-    use mod_physics
+  ! subroutine write_snapshot_noparf
+  !   use mod_forest
+  !   use mod_global_parameters
+  !   use mod_physics
 
-    integer :: igrid, Morton_no
-    integer :: nx^D
+  !   integer :: igrid, Morton_no
+  !   integer :: nx^D
 
-    integer, allocatable :: iorecvstatus(:,:),ioastatus(:,:)
-    integer, allocatable :: igrecvstatus(:,:)
-    integer, allocatable :: igrid_recv(:) 
+  !   integer, allocatable :: iorecvstatus(:,:),ioastatus(:,:)
+  !   integer, allocatable :: igrecvstatus(:,:)
+  !   integer, allocatable :: igrid_recv(:) 
 
-    integer  :: ipe,insend,inrecv,nrecv,nwrite
-    character(len=80) :: filename, line
-    logical, save :: firstsnapshot=.true.
+  !   integer  :: ipe,insend,inrecv,nrecv,nwrite
+  !   character(len=80) :: filename, line
+  !   logical, save :: firstsnapshot=.true.
 
-    call MPI_BARRIER(icomm,ierrmpi)
+  !   call MPI_BARRIER(icomm,ierrmpi)
 
-    if (firstsnapshot) then
-       snapshot=snapshotnext
-       firstsnapshot=.false.
-    end if
+  !   if (firstsnapshot) then
+  !      snapshot=snapshotnext
+  !      firstsnapshot=.false.
+  !   end if
 
-    if (snapshot >= 10000) then
-       if (mype==0) then
-          write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
-          write(*,*) "overwriting first frames"
-       end if
-       snapshot=0
-    end if
+  !   if (snapshot >= 10000) then
+  !      if (mype==0) then
+  !         write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
+  !         write(*,*) "overwriting first frames"
+  !      end if
+  !      snapshot=0
+  !   end if
 
-    nrecv=0
-    inrecv=0
-    nwrite=0
-    insend=0
+  !   nrecv=0
+  !   inrecv=0
+  !   nwrite=0
+  !   insend=0
 
-    if (mype /= 0) then
-       do Morton_no=Morton_start(mype),Morton_stop(mype)
-          igrid=sfc_to_igrid(Morton_no)
-          itag=Morton_no
-          insend=insend+1
-          if (nwaux>0) then
-             ! extra layer around mesh only for later averaging in convert
-             ! set dxlevel value for use in gradient subroutine, 
-             ! which might be used in getaux
-             saveigrid=igrid
-             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-             mygeo =>pgeo(igrid)
-             if (B0field) then
-                myB0_cell => pB0_cell(igrid)
-                {^D&myB0_face^D => pB0_face^D(igrid)\}
-             end if
-             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
-          endif
-          call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
-          call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
-       end do
-    else 
-       ! mype==0
-       nwrite=(Morton_stop(0)-Morton_start(0)+1)
+  !   if (mype /= 0) then
+  !      do Morton_no=Morton_start(mype),Morton_stop(mype)
+  !         igrid=sfc_to_igrid(Morton_no)
+  !         itag=Morton_no
+  !         insend=insend+1
+  !         if (nwaux>0) then
+  !            ! extra layer around mesh only for later averaging in convert
+  !            ! set dxlevel value for use in gradient subroutine, 
+  !            ! which might be used in getaux
+  !            saveigrid=igrid
+  !            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  !            mygeo =>pgeo(igrid)
+  !            if (B0field) then
+  !               myB0_cell => pB0_cell(igrid)
+  !               {^D&myB0_face^D => pB0_face^D(igrid)\}
+  !            end if
+  !            call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+  !         endif
+  !         call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
+  !         call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
+  !      end do
+  !   else 
+  !      ! mype==0
+  !      nwrite=(Morton_stop(0)-Morton_start(0)+1)
 
-       ! master processor writes out
-       write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
-       if(endian_swap) then
-          {#IFNDEF BIGENDIAN
-          open(unit=unitsnapshot,file=filename,form='unformatted',access='stream',&
-               status='replace',convert='BIG_ENDIAN')
-          }
-          {#IFDEF BIGENDIAN
-          open(unit=unitsnapshot,file=filename,form='unformatted',access='stream',&
-               status='replace',convert='LITTLE_ENDIAN')
-          }
-       else
-          open(unit=unitsnapshot,file=filename,form='unformatted',access='stream',&
-               status='replace')
-       end if
-       ! writing his local data first
-       do Morton_no=Morton_start(0),Morton_stop(0)
-          igrid=sfc_to_igrid(Morton_no)
-          if (nwaux>0) then
-             ! extra layer around mesh only for later averaging in convert
-             ! set dxlevel value for use in gradient subroutine,
-             ! which might be used in getaux
-             saveigrid=igrid
-             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-             mygeo =>pgeo(igrid)
-             if (B0field) then
-                myB0_cell => pB0_cell(igrid)
-                {^D&myB0_face^D => pB0_face^D(igrid)\}
-             end if
-             call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
-          endif
-          write(unitsnapshot) pw(igrid)%w(ixM^T,1:nw)
-       end do
-       ! write data communicated from other processors
-       if(npe>1)then
-          nrecv=(Morton_stop(npe-1)-Morton_start(1)+1)
-          inrecv=0
-          allocate(igrid_recv(nrecv))
-          allocate(igrecvstatus(MPI_STATUS_SIZE,nrecv),iorecvstatus(MPI_STATUS_SIZE,nrecv))
-          allocate(ioastatus(MPI_STATUS_SIZE,nrecv))
+  !      ! master processor writes out
+  !      write(filename,"(a,i4.4,a)") TRIM(base_filename),snapshot,".dat"
+  !      if(endian_swap) then
+  !         {#IFNDEF BIGENDIAN
+  !         open(unit=unitsnapshot,file=filename,form='unformatted',access='stream',&
+  !              status='replace',convert='BIG_ENDIAN')
+  !         }
+  !         {#IFDEF BIGENDIAN
+  !         open(unit=unitsnapshot,file=filename,form='unformatted',access='stream',&
+  !              status='replace',convert='LITTLE_ENDIAN')
+  !         }
+  !      else
+  !         open(unit=unitsnapshot,file=filename,form='unformatted',access='stream',&
+  !              status='replace')
+  !      end if
+  !      ! writing his local data first
+  !      do Morton_no=Morton_start(0),Morton_stop(0)
+  !         igrid=sfc_to_igrid(Morton_no)
+  !         if (nwaux>0) then
+  !            ! extra layer around mesh only for later averaging in convert
+  !            ! set dxlevel value for use in gradient subroutine,
+  !            ! which might be used in getaux
+  !            saveigrid=igrid
+  !            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  !            mygeo =>pgeo(igrid)
+  !            if (B0field) then
+  !               myB0_cell => pB0_cell(igrid)
+  !               {^D&myB0_face^D => pB0_face^D(igrid)\}
+  !            end if
+  !            call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+  !         endif
+  !         write(unitsnapshot) pw(igrid)%w(ixM^T,1:nw)
+  !      end do
+  !      ! write data communicated from other processors
+  !      if(npe>1)then
+  !         nrecv=(Morton_stop(npe-1)-Morton_start(1)+1)
+  !         inrecv=0
+  !         allocate(igrid_recv(nrecv))
+  !         allocate(igrecvstatus(MPI_STATUS_SIZE,nrecv),iorecvstatus(MPI_STATUS_SIZE,nrecv))
+  !         allocate(ioastatus(MPI_STATUS_SIZE,nrecv))
 
-          do ipe =1, npe-1
-             do Morton_no=Morton_start(ipe),Morton_stop(ipe)
-                itag=Morton_no
-                inrecv=inrecv+1
-                call MPI_RECV(igrid_recv(inrecv),1,MPI_INTEGER, ipe,itag,icomm,&
-                     igrecvstatus(:,inrecv),ierrmpi)
+  !         do ipe =1, npe-1
+  !            do Morton_no=Morton_start(ipe),Morton_stop(ipe)
+  !               itag=Morton_no
+  !               inrecv=inrecv+1
+  !               call MPI_RECV(igrid_recv(inrecv),1,MPI_INTEGER, ipe,itag,icomm,&
+  !                    igrecvstatus(:,inrecv),ierrmpi)
 
-                allocate(pwio(igrid_recv(inrecv))%w(ixG^T,1:nw))
-                call MPI_RECV(pwio(igrid_recv(inrecv))%w,1,type_block_io,ipe,itag,icomm,&
-                     iorecvstatus(:,inrecv),ierrmpi)
+  !               allocate(pwio(igrid_recv(inrecv))%w(ixG^T,1:nw))
+  !               call MPI_RECV(pwio(igrid_recv(inrecv))%w,1,type_block_io,ipe,itag,icomm,&
+  !                    iorecvstatus(:,inrecv),ierrmpi)
 
-                write(unitsnapshot) pwio(igrid_recv(inrecv))%w(ixM^T,1:nw)
-                deallocate(pwio(igrid_recv(inrecv))%w)
-             end do
-          end do
-          deallocate(igrecvstatus,iorecvstatus,ioastatus,igrid_recv)
-       end if
-    end if
+  !               write(unitsnapshot) pwio(igrid_recv(inrecv))%w(ixM^T,1:nw)
+  !               deallocate(pwio(igrid_recv(inrecv))%w)
+  !            end do
+  !         end do
+  !         deallocate(igrecvstatus,iorecvstatus,ioastatus,igrid_recv)
+  !      end if
+  !   end if
 
-    if(mype==0) then
-       call write_forest(unitsnapshot)
-       {nx^D=ixMhi^D-ixMlo^D+1
-       write(unitsnapshot) nx^D
-       write(unitsnapshot) domain_nx^D
-       write(unitsnapshot) xprobmin^D
-       write(unitsnapshot) xprobmax^D\}
-       write(unitsnapshot) nleafs
-       write(unitsnapshot) levmax 
-       write(unitsnapshot) ndim 
-       write(unitsnapshot) ndir
-       write(unitsnapshot) nw
-       write(unitsnapshot) it
-       write(unitsnapshot) global_time
-       close(unitsnapshot)
-    end if
+  !   if(mype==0) then
+  !      call write_forest(unitsnapshot)
+  !      {nx^D=ixMhi^D-ixMlo^D+1
+  !      write(unitsnapshot) nx^D
+  !      write(unitsnapshot) domain_nx^D
+  !      write(unitsnapshot) xprobmin^D
+  !      write(unitsnapshot) xprobmax^D\}
+  !      write(unitsnapshot) nleafs
+  !      write(unitsnapshot) levmax 
+  !      write(unitsnapshot) ndim 
+  !      write(unitsnapshot) ndir
+  !      write(unitsnapshot) nw
+  !      write(unitsnapshot) it
+  !      write(unitsnapshot) global_time
+  !      close(unitsnapshot)
+  !   end if
 
-    snapshot=snapshot+1
+  !   snapshot=snapshot+1
 
-    call MPI_BARRIER(icomm,ierrmpi)
+  !   call MPI_BARRIER(icomm,ierrmpi)
 
-  end subroutine write_snapshot_noparf
+  ! end subroutine write_snapshot_noparf
 
   subroutine read_snapshot
     use mod_forest

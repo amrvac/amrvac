@@ -25,7 +25,13 @@ module mod_forest
 
    logical, dimension(:,:), allocatable, save :: coarsen, refine, buffer, igrid_inuse
 
-   integer, save :: nleafs, nleafs_active, nglev1{#IFDEF EVOLVINGBOUNDARY , nphyboundblock}
+   !> Number of parent blocks
+   integer, save :: nparents
+
+   !> Number of leaf block
+   integer, save :: nleafs
+
+   integer :: nleafs_active, nglev1{#IFDEF EVOLVINGBOUNDARY , nphyboundblock}
    integer, dimension(:), allocatable, save :: nleafs_level
 
 end module mod_forest
