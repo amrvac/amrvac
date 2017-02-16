@@ -10,6 +10,7 @@ integer :: jg^D
 !-----------------------------------------------------------------------------
 jg^D=tree%node%ig^D+i^D;
 
+! find the periodic grid indices, modulo(-1,10)=9
 {if (periodB(^D)) jg^D=1+modulo(jg^D-1,ng^D(1))\}
 
 if (.not.slab) then
@@ -76,6 +77,7 @@ else
           (poleB(1,^D).and.ig^D==1.and.i^D==-1)) pole(^D)=.true.\}
    end if
 
+   ! ic^D is 1 when ig^D is odd, is 2 when ig^D is even
    ic^D=1+modulo(ig^D-1,2);
    inp^D=int((ic^D+i^D+1)/2)-1;
    my_neighbor%node => tree%node%parent%node
@@ -92,7 +94,7 @@ else
       {if (i^D==0 .or. pole(^D)) then
          n_ic^D=ic^D
       else
-         n_ic^D=3-ic^D
+         n_ic^D=3-ic^D ! switch 1 <--> 2
       end if\}
       my_neighbor%node => my_neighbor%node%child(n_ic^D)%node
       if (associated(my_neighbor%node)) then

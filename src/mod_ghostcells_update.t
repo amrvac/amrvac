@@ -1001,9 +1001,10 @@ contains
     integer, intent(in)  :: igrid
     logical, intent(out) :: isphysbound
     type(tree_node_ptr)  :: tree
-    integer              :: i^D,level, ig^D, ign^D, iib^D
+    integer              :: i^D,level, ig^D, ign^D, iib^D,ipole
 
     isphysbound = .false.
+    ipole=0
     
     tree%node => igrid_to_node(igrid,mype)%node
     level = tree%node%level
@@ -1015,15 +1016,16 @@ contains
        ! blocks at periodic boundary have neighbors in the physical domain
        ! thus threated at internal blocks with no physical boundary 
        {if (periodB(^D)) ign^D=1+modulo(ign^D-1,ng^D(level))\}
+       if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
        {
        if (ign^D .gt. ng^D(level)) then
           iib^D=1
-          isphysbound = .true.
        else if (ign^D .lt. 1) then
           iib^D=-1
-          isphysbound = .true.
        end if
+       if(ipole==^D) iib^D=0
        \}
+       if ({iib^D/=0|.or.}) isphysbound = .true.
     {end do\}
   end subroutine identifyphysbound
 
