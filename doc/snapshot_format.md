@@ -8,16 +8,16 @@
     double precision :: global_time
     integer :: it
     integer :: nw
-    character(len=XX) :: variable names(nw)
     integer :: ndir
     integer :: ndim
     integer :: levmax
     integer :: nleafs
     integer :: nparents
-    double precision :: xprobmax(ndim)
     double precision :: xprobmin(ndim)
+    double precision :: xprobmax(ndim)
     integer :: domain_nx(ndim)
     integer :: block_nx(ndim)
+    character(len=10) :: w_names(nw)
 
 # Tree information
 
