@@ -76,6 +76,9 @@ module mod_global_parameters
   !> Default length for strings
   integer, parameter :: std_len = 131
 
+  !> Default length for names (of e.g. variables)
+  integer, parameter :: name_len = 10
+
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
   integer :: r_ = -1
 
@@ -465,6 +468,9 @@ module mod_global_parameters
 
   !> Names of the conservative variables
   character(len=1024) :: w_names
+
+  !> Names of the conservative variables (array)
+  character(len=name_len), allocatable :: w_names_array(:)
 
   !> Names of the primitive variables
   character(len=1024) :: primnames

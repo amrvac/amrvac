@@ -326,7 +326,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    select case(convert_type)
     case("oneblock")
@@ -434,7 +434,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    open(qunit,file=filename,status='unknown')
  end if
@@ -542,7 +542,7 @@ inquire(qunit,opened=fileopen)
 if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".out"
    open(qunit,file=filename,status='unknown',form='unformatted')
 end if
@@ -739,7 +739,7 @@ inquire(qunit,opened=fileopen)
 if (.not.fileopen) then
    ! generate filename    
    filenr=snapshotini
-   if (autoconvert) filenr=snapshotnext-1
+   if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
    open(qunit,file=filename,status='unknown')
 end if
@@ -1003,12 +1003,6 @@ dx^D=dx(^D,level);
 
 normconv(0) = length_convert_factor
 normconv(1:nw) = w_convert_factor
-
-! for normalization within the code
-if(.not. saveprim) then
-  ! Jannis: removed code that 'guessed' conversion factor
-  if (mype == 0) print *, "Warning, using wrong conversion factors"
-end if
 
 ! coordinates of cell centers
 nxCC^D=nx^D;
@@ -1382,7 +1376,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshotnext-1
+   if (autoconvert) filenr=snapshotnext
   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown')
@@ -1607,7 +1601,7 @@ else
  if(.not.fileopen)then
    ! generate filename 
     filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='replace')
@@ -2046,7 +2040,7 @@ nx^D=ixGhi^D-2*nghostcells;
 byteorder = 'lsb'
    ! generate filename    
    filenr=snapshotini
-   if (autoconvert) filenr=snapshotnext-1
+   if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
 
 call date_and_time(dummy_date,dummy_time,dummy_zone,DateAndTime)
@@ -2324,7 +2318,7 @@ else
  if(.not.fileopen)then
     ! generate filename 
     filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext-1
+    if (autoconvert) filenr=snapshotnext
     write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vti"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2437,7 +2431,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshotnext-1
+   if (autoconvert) filenr=snapshotnext
    ! Open the file for the header part
    write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')
@@ -2540,7 +2534,7 @@ if (mype==0) then
  if(.not.fileopen)then
     ! generate filename 
     filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext-1
+    if (autoconvert) filenr=snapshotnext
     write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2872,7 +2866,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshotnext-1
+   if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".pvtu"
    ! Open the file
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2985,7 +2979,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
    open(qunit,file=filename,status='unknown')
  end if
@@ -3450,7 +3444,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshotnext-1
+   if (autoconvert) filenr=snapshotnext
    ! Open the file for the header part
    write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')

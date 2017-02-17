@@ -2,21 +2,21 @@
 
 # Header
 
-    integer :: Version number
-    integer :: Byte offset where tree information starts
-    integer :: Byte offset where block data starts
-    double precision :: global_time
-    integer :: it
-    integer :: nw
-    integer :: ndir
-    integer :: ndim
-    integer :: levmax
-    integer :: nleafs
-    integer :: nparents
-    double precision :: xprobmin(ndim)
-    double precision :: xprobmax(ndim)
-    integer :: domain_nx(ndim)
-    integer :: block_nx(ndim)
+    integer           :: Version number
+    integer           :: Byte offset where tree information starts
+    integer           :: Byte offset where block data starts
+    double precision  :: global_time
+    integer           :: it
+    integer           :: nw
+    integer           :: ndir
+    integer           :: ndim
+    integer           :: levmax
+    integer           :: nleafs
+    integer           :: nparents
+    double precision  :: xprobmin(ndim)
+    double precision  :: xprobmax(ndim)
+    integer           :: domain_nx(ndim)
+    integer           :: block_nx(ndim)
     character(len=10) :: w_names(nw)
 
 # Tree information

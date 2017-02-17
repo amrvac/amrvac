@@ -324,20 +324,10 @@ use mod_global_parameters
 
 integer, intent(in) :: file_handle
 
-integer(kind=MPI_OFFSET_KIND) :: offset
 integer, dimension(MPI_STATUS_SIZE) :: status
 !integer :: ig^D, level, size_logical, Morton_no, igrid, ipe
 integer :: ig^D, level, Morton_no, igrid, ipe, isfc
 integer, external :: getnode
-!-----------------------------------------------------------------------------
-{#IFDEF EVOLVINGBOUNDARY
-offset=int(size_block_io,kind=MPI_OFFSET_KIND)*&
-       int(nleafs-nphyboundblock,kind=MPI_OFFSET_KIND)+&
-       int(size_block,kind=MPI_OFFSET_KIND)*&
-       int(nphyboundblock,kind=MPI_OFFSET_KIND)
-}{#IFNDEF EVOLVINGBOUNDARY
-offset=int(size_block_io,kind=MPI_OFFSET_KIND)*int(nleafs,kind=MPI_OFFSET_KIND)
-}
 
 Morton_no=0
 ipe=0
@@ -373,16 +363,15 @@ logical :: leaf
 integer :: ic^D, child_ig^D, child_level
 !-----------------------------------------------------------------------------
 if (typeparIO==1) then
-   call MPI_FILE_READ_AT_ALL(file_handle,offset,leaf,1,MPI_LOGICAL, &
+   call MPI_FILE_READ_ALL(file_handle,leaf,1,MPI_LOGICAL, &
                               status,ierrmpi)
 else
  if (mype==0) then
-   call MPI_FILE_READ_AT(file_handle,offset,leaf,1,MPI_LOGICAL, &
+   call MPI_FILE_READ(file_handle,leaf,1,MPI_LOGICAL, &
                              status,ierrmpi)
  end if
  if (npe>1)  call MPI_BCAST(leaf,1,MPI_LOGICAL,0,icomm,ierrmpi)
 end if
-offset=offset+int(size_logical,kind=MPI_OFFSET_KIND)
 
 tree%node%leaf=leaf
 tree%node%ig^D=ig^D;

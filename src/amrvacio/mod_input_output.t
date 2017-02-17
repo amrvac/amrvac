@@ -4,7 +4,11 @@ module mod_input_output
   implicit none
   public
 
+  !> Version number of the .dat file output
   integer, parameter :: version_number = 3
+
+  !> List of compatible versions
+  integer, parameter :: compatible_versions(1) = [3]
 
   ! Formats used in output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
@@ -63,8 +67,8 @@ contains
     end if
 
     ! Split the input files, in case multiple were given
-    call delim(all_par_files, tmp_files, max_files, n_par_files, &
-         ibegin, iterm, len, " ,'"""//char(9))
+    call get_fields_string(all_par_files, " ,'"""//char(9), max_files, &
+         tmp_files, n_par_files)
 
     allocate(par_files(n_par_files))
     par_files = tmp_files(1:n_par_files)
@@ -85,8 +89,8 @@ contains
     use mod_physics, only: physics_type
     use mod_small_values
 
-    logical          :: fileopen, file_exists
-    integer          :: i, j, k, ifile, io_state
+    logical          :: fileopen, file_exists, fully_read
+    integer          :: i, j, k, ifile, io_state, nw_found
     integer          :: iB, isave, iw, level, idim, islice
     integer          :: nx_vec(^ND)
     double precision :: dx_vec(^ND)
@@ -372,8 +376,10 @@ contains
     enddo
 
     ! Set default variable names
-    primnames = 'default'
-    w_names    = 'default'
+    primnames = not_specified
+    w_names = not_specified
+    allocate(w_names_array(nw))
+    w_names_array(:) = not_specified
 
     ! These are used to construct file and log names from multiple par files
     basename_full = ''
@@ -445,8 +451,8 @@ contains
       snapshotnext = snapshotini+1
     end if
 
-    if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
-         'Warning in read_par_files: primnames not given!'
+    if (trim(primnames) == not_specified .and. mype == 0) &
+         write(uniterr,*) 'Warning in read_par_files: primnames not given!'
 
     if(firstprocess .and. snapshotini<0) &
          call mpistop("Please restart from a snapshot when firstprocess=T")
@@ -503,7 +509,18 @@ contains
     if(itmax==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: itmax or time_max not given!'
 
-    if(TRIM(w_names)=='default') call mpistop("Provide w_names and restart code")
+    if (trim(w_names) == not_specified) call mpistop("Provide w_names and restart code")
+
+    call get_fields_string(w_names, " ,'"""//char(9), nw, &
+         w_names_array, nw_found, fully_read)
+
+    if (.not. fully_read) then
+      if (mype == 0) print *, "more than nw = ", nw, "names given"
+      call mpistop("Correct w_names and restart")
+    else if (nw_found /= nw) then
+      if (mype == 0) print *, "Found", nw_found, "names, expected ", nw
+      call mpistop("Correct w_names and restart")
+    end if
 
     do level=1,nlevelshi
        !if(flux_scheme(level)=='tvdlf1'.and.time_integrator=='twostep') &
@@ -520,7 +537,7 @@ contains
             call mpistop(" tvd is onestep method, reset time_integrator=onestep!")
        if(flux_scheme(level)=='tvd1'.and.time_integrator=='twostep') &
             call mpistop(" tvd1 is onestep method, reset time_integrator=onestep!")
-       if(flux_scheme(level)=='tvd'.or.flux_scheme(level)=='tvd1')then 
+       if(flux_scheme(level)=='tvd'.or.flux_scheme(level)=='tvd1')then
           if(mype==0.and.(.not.dimsplit)) write(unitterm,*) &
                'Warning: setting dimsplit=T for tvd, as used for level=',level
           dimsplit=.true.
@@ -531,7 +548,7 @@ contains
           case ('cd')
              typepred1(level)='cd'
           case ('cd4')
-             typepred1(level)='cd4' 
+             typepred1(level)='cd4'
           case ('fd')
              typepred1(level)='fd'
           case ('tvdlf','tvdmu')
@@ -580,7 +597,7 @@ contains
       typeaxial='slab'
       if(mype==0) then
         write(*,*) 'Warning: coordinate system is not specified!'
-        write(*,*) 'call set_coordinate_system in usr_init in mod_usr.t' 
+        write(*,*) 'call set_coordinate_system in usr_init in mod_usr.t'
         write(*,*) 'Now use Cartesian coordinate'
       end if
     end if
@@ -766,7 +783,7 @@ contains
        end select
     end do
 
-    ! Warn when too few blocks at start of simulation 
+    ! Warn when too few blocks at start of simulation
     if (mype.eq.0 .and. snapshotini.eq.-1 .and. {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
        call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
     end if
@@ -783,6 +800,55 @@ contains
 
   end subroutine read_par_files
 
+  !> Routine to find entries in a string
+  subroutine get_fields_string(line, delims, n_max, fields, n_found, fully_read)
+    !> The line from which we want to read
+    character(len=*), intent(in)    :: line
+    !> A string with delimiters. For example delims = " ,'"""//char(9)
+    character(len=*), intent(in)    :: delims
+    !> Maximum number of entries to read in
+    integer, intent(in)             :: n_max
+    !> Number of entries found
+    integer, intent(inout)          :: n_found
+    !> Fields in the strings
+    character(len=*), intent(inout) :: fields(n_max)
+    logical, intent(out), optional  :: fully_read
+
+    integer :: ixs_start(n_max)
+    integer :: ixs_end(n_max)
+    integer :: ix, ix_prev
+
+    ix_prev = 0
+    n_found = 0
+
+    do while (n_found < n_max)
+       ! Find the starting point of the next entry (a non-delimiter value)
+       ix = verify(line(ix_prev+1:), delims)
+       if (ix == 0) exit
+
+       n_found            = n_found + 1
+       ixs_start(n_found) = ix_prev + ix ! This is the absolute position in 'line'
+
+       ! Get the end point of the current entry (next delimiter index minus one)
+       ix = scan(line(ixs_start(n_found)+1:), delims) - 1
+
+       if (ix == -1) then              ! If there is no last delimiter,
+          ixs_end(n_found) = len(line) ! the end of the line is the endpoint
+       else
+          ixs_end(n_found) = ixs_start(n_found) + ix
+       end if
+
+       fields(n_found) = line(ixs_start(n_found):ixs_end(n_found))
+       ix_prev = ixs_end(n_found) ! We continue to search from here
+    end do
+
+    if (present(fully_read)) then
+      ix = verify(line(ix_prev+1:), delims)
+      fully_read = (ix == 0)    ! Are there only delimiters?
+    end if
+
+  end subroutine get_fields_string
+
   subroutine saveamrfile(ifile)
 
     use mod_usr_methods, only: usr_print_log
@@ -792,19 +858,22 @@ contains
     select case (ifile)
     case (fileout_)
        if(endian_swap) typeparIO=-1
-       if (typeparIO==1)then
-          call write_snapshot
-       else if(typeparIO==0) then
-          call write_snapshot_nopar
-       else if(typeparIO==-1) then
-          call write_snapshot_noparf
-       endif
-       if(nwtf>0) call write_snapshot_tf
-       !opedit: now we can also convert directly and will when autoconvert is set in inifile: 
+       ! if (typeparIO==1)then
+       !    call write_snapshot
+     ! else
+       !if(typeparIO==0) then
+       call write_snapshot_nopar()
+       ! else if(typeparIO==-1) then
+       !    call write_snapshot_noparf
+       ! endif
+          ! if(nwtf>0) call write_snapshot_tf
+
+       !opedit: now we can also convert directly and will when autoconvert is set in inifile:
        if (autoconvert) call generate_plotfile
        {#IFDEF PARTICLES
        call write_particles_snapshot
        }
+       snapshotnext = snapshotnext + 1
     case (fileslice_)
        call write_slice
     case (filecollapse_)
@@ -878,7 +947,7 @@ contains
   !      igrid=sfc_to_igrid(Morton_no)
   !      if (nwaux>0) then
   !         ! extra layer around mesh only for later averaging in convert
-  !         ! set dxlevel value for use in gradient subroutine, 
+  !         ! set dxlevel value for use in gradient subroutine,
   !         ! which might be used in getaux
   !         saveigrid=igrid
   !         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -985,7 +1054,7 @@ contains
   !      igrid=sfc_to_igrid(Morton_no)
   !      if (nwaux>0) then
   !         ! extra layer around mesh only for later averaging in convert
-  !         ! set dxlevel value for use in gradient subroutine, 
+  !         ! set dxlevel value for use in gradient subroutine,
   !         ! which might be used in getaux
   !         saveigrid=igrid
   !         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -1005,7 +1074,7 @@ contains
   !      offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
   !           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
   !      call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &
-  !           type_block_io_tf,istatus,ierrmpi)     
+  !           type_block_io_tf,istatus,ierrmpi)
   !   end do
 
   !   call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
@@ -1033,40 +1102,49 @@ contains
 
   ! end subroutine write_snapshot_tf
 
-  ! subroutine create_output_file(fh, ix, extension)
-  !   integer, intent(out)         :: fh !< File handle
-  !   integer, intent(in)          :: ix !< Index of file
-  !   character(len=*), intent(in) :: extension !< Extension of file
-  !   character(len=std_len)       :: filename
+  !> Standard method for creating a new output file
+  subroutine create_output_file(fh, ix, extension)
+    use mod_global_parameters
+    integer, intent(out)         :: fh !< File handle
+    integer, intent(in)          :: ix !< Index of file
+    character(len=*), intent(in) :: extension !< Extension of file
+    character(len=std_len)       :: filename
+    integer :: amode
 
-  !   if (ix >= 10000) then
-  !     call mpistop("Number of output files is limited to 10000 (0...9999)")
-  !   end if
+    if (ix >= 10000) then
+      call mpistop("Number of output files is limited to 10000 (0...9999)")
+    end if
 
-  !   write(filename,"(a,i4.4,a)") trim(base_filename), ix, extension
+    write(filename,"(a,i4.4,a)") trim(base_filename), ix, extension
 
-  !   ! MPI cannot easily replace existing files
-  !   open(unit=unitsnapshot,file=filename,status='replace')
-  !   close(unitsnapshot, status='delete')
+    ! MPI cannot easily replace existing files
+    open(unit=unitsnapshot,file=filename,status='replace')
+    close(unitsnapshot, status='delete')
 
-  !   call MPI_FILE_OPEN(MPI_COMM_SELF,filename,MPI_MODE_WRONLY, &
-  !        MPI_INFO_NULL, file_handle,ierrmpi)
+    amode = ior(MPI_MODE_CREATE, MPI_MODE_WRONLY)
+    call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode, &
+         MPI_INFO_NULL, fh, ierrmpi)
 
-  ! end subroutine create_output_file
+    if (ierrmpi /= 0) then
+      print *, "Error, cannot create file ", trim(filename)
+      call mpistop("Fatal error")
+    end if
+
+  end subroutine create_output_file
 
   !> Write header for a snapshot
   subroutine snapshot_write_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_global_parameters
-    integer, intent(in)                 :: fh           !< File handle
-    integer, intent(in)                 :: offset_tree  !< Offset of tree info
-    integer, intent(in)                 :: offset_block !< Offset of block data
-    integer, dimension(MPI_STATUS_SIZE) :: st
-    integer                             :: er
+    integer, intent(in)                       :: fh           !< File handle
+    integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_tree  !< Offset of tree info
+    integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_block !< Offset of block data
+    integer, dimension(MPI_STATUS_SIZE)       :: st
+    integer                                   :: iw, er
 
     call MPI_FILE_WRITE(fh, version_number, 1, MPI_INTEGER, st, er)
-    call MPI_FILE_WRITE(fh, offset_tree, 1, MPI_INTEGER, st, er)
-    call MPI_FILE_WRITE(fh, offset_block, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, int(offset_tree), 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, int(offset_block), 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, global_time, 1, MPI_DOUBLE_PRECISION, st, er)
     call MPI_FILE_WRITE(fh, it, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, nw, 1, MPI_INTEGER, st, er)
@@ -1076,15 +1154,123 @@ contains
     call MPI_FILE_WRITE(fh, nleafs, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, nparents, 1, MPI_INTEGER, st, er)
 
-    call MPI_FILE_WRITE(fh, [ xprobmax^D ], ndim, &
-         MPI_DOUBLE_PRECISION, st, er)
     call MPI_FILE_WRITE(fh, [ xprobmin^D ], ndim, &
+         MPI_DOUBLE_PRECISION, st, er)
+    call MPI_FILE_WRITE(fh, [ xprobmax^D ], ndim, &
          MPI_DOUBLE_PRECISION, st, er)
     call MPI_FILE_WRITE(fh, [ domain_nx^D ], ndim, &
          MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, [ block_nx^D ], ndim, &
          MPI_INTEGER, st, er)
+    do iw = 1, nw
+      call MPI_FILE_WRITE(fh, w_names_array(iw), name_len, MPI_CHARACTER, st, er)
+    end do
+
   end subroutine snapshot_write_header
+
+  subroutine snapshot_read_header(fh, offset_tree, offset_block)
+    use mod_forest
+    use mod_global_parameters
+    integer, intent(in)                   :: fh           !< File handle
+    integer(MPI_OFFSET_KIND), intent(out) :: offset_tree  !< Offset of tree info
+    integer(MPI_OFFSET_KIND), intent(out) :: offset_block !< Offset of block data
+    integer                               :: ibuf(ndim), iw
+    double precision                      :: rbuf(ndim)
+    integer, dimension(MPI_STATUS_SIZE)   :: st
+    character(len=10)                     :: var_names(nw)
+    integer                               :: er
+
+    ! Version number
+    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    if (all(compatible_versions /= ibuf(1))) then
+      call mpistop("Incompatible file version")
+    end if
+
+    ! offset_tree
+    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    offset_tree = ibuf(1)
+
+    ! offset_block
+    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    offset_block = ibuf(1)
+
+    ! global time
+    call MPI_FILE_READ(fh, global_time, 1, MPI_DOUBLE_PRECISION, st, er)
+
+    ! it
+    call MPI_FILE_READ(fh, it, 1, MPI_INTEGER, st, er)
+
+    ! nw
+    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    if (nw /= ibuf(1)) then
+      write(*,*) "nw=",nw," and nw in restart file=",ibuf(1)
+      call mpistop("currently, changing nw at restart is not allowed")
+    end if
+
+    ! ndir
+    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    if (ibuf(1) /= ndir) then
+      write(*,*) "ndir in restart file = ",ibuf(1)
+      write(*,*) "ndir = ",ndir
+      call mpistop("reset ndir to ndir in restart file")
+    end if
+
+    ! ndim
+    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    if (ibuf(1) /= ndim) then
+      write(*,*) "ndim in restart file = ",ibuf(1)
+      write(*,*) "ndim = ",ndim
+      call mpistop("reset ndim to ndim in restart file")
+    end if
+
+    ! levmax
+    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    if (ibuf(1) > refine_max_level) then
+      write(*,*) "number of levels in restart file = ",ibuf(1)
+      write(*,*) "refine_max_level = ",refine_max_level
+      call mpistop("refine_max_level < num. levels in restart file")
+    end if
+
+    ! nleafs
+    call MPI_FILE_READ(fh, nleafs, 1, MPI_INTEGER, st, er)
+
+    ! nparents
+    call MPI_FILE_READ(fh, nparents, 1, MPI_INTEGER, st, er)
+
+    ! xprobmin^D
+    call MPI_FILE_READ(fh,rbuf(1:ndim),ndim,MPI_DOUBLE_PRECISION,st,er)
+    if (maxval(abs(rbuf(1:ndim) - [ xprobmin^D ])) > 0) then
+      write(*,*) "Error: xprobmin differs from restart data: ", rbuf(1:ndim)
+      call mpistop("change xprobmin^D in par file")
+    end if
+
+    ! xprobmax^D
+    call MPI_FILE_READ(fh,rbuf(1:ndim),ndim,MPI_DOUBLE_PRECISION,st,er)
+    if (maxval(abs(rbuf(1:ndim) - [ xprobmax^D ])) > 0) then
+      write(*,*) "Error: xprobmax differs from restart data: ", rbuf(1:ndim)
+      call mpistop("change xprobmax^D in par file")
+    end if
+
+    ! domain_nx^D
+    call MPI_FILE_READ(fh,ibuf(1:ndim), ndim, MPI_INTEGER,st,er)
+    if (any(ibuf(1:ndim) /= [ domain_nx^D ])) then
+      write(*,*) "Error: mesh size differs from restart data: ", ibuf(1:ndim)
+      call mpistop("change domain_nx^D in par file")
+    end if
+
+    ! block_nx^D
+    call MPI_FILE_READ(fh,ibuf(1:ndim), ndim, MPI_INTEGER,st,er)
+    if (any(ibuf(1:ndim) /= [ block_nx^D ])) then
+      write(*,*) "Error: block size differs from restart data:", ibuf(1:ndim)
+      call mpistop("change block_nx^D in par file")
+    end if
+
+    ! w_names (not used here)
+    do iw = 1, nw
+      call MPI_FILE_READ(fh, var_names(iw), 10, MPI_CHARACTER, st, er)
+    end do
+
+  end subroutine snapshot_read_header
 
   !> Compute number of elements in index range
   pure integer function count_ix(ixO^L)
@@ -1093,22 +1279,48 @@ contains
     count_ix = product([ ixOmax^D ] - [ ixOmin^D ] + 1)
   end function count_ix
 
+  !> Determine the shape of a block for output (whether to include ghost cells,
+  !> and on which sides)
+  subroutine block_shape_io(igrid,ixO^L)
+    use mod_global_parameters
+    use mod_ghostcells_update, only: identifyphysbound
+
+    integer, intent(in) :: igrid
+    integer, intent(out) :: ixO^L
+    logical, parameter :: save_physical_boundary = .false. ! TODO
+
+    integer :: iib^D
+    logical :: isphysbound
+
+    ixO^L=ixG^LL^LSUBnghostcells;
+    if (save_physical_boundary) then
+      call identifyphysbound(igrid,isphysbound,iib^D)
+      {
+      if(iib^D ==1) then
+        ixOmax^D=ixOmax^D+nghostcells
+      else if(iib^D==-1) then
+        ixOmin^D=ixOmin^D-nghostcells
+      end if
+      \}
+    end if
+  end subroutine block_shape_io
+
   subroutine write_snapshot_nopar
     use mod_forest
     use mod_global_parameters
     use mod_physics
 
-    integer                                  :: file_handle, igrid, Morton_no, iwrite
-    integer                                  :: ipe, ix_buffer(2*ndim+1), n_values
-    integer                                  :: ixO^L
-    integer(kind=MPI_OFFSET_KIND)            :: offsets(nleafs+1)
-    integer                                  :: iorecvstatus(MPI_STATUS_SIZE)
-    integer                                  :: ioastatus(MPI_STATUS_SIZE)
-    integer                                  :: igrecvstatus
-    integer, dimension(MPI_STATUS_SIZE)      :: istatus
-    integer(kind=MPI_OFFSET_KIND), parameter :: offset_tree_info = 256
-    integer(kind=MPI_OFFSET_KIND)            :: offset_block_data
-    double precision, allocatable            :: w_buffer(:)
+    integer                       :: file_handle, igrid, Morton_no, iwrite
+    integer                       :: ipe, ix_buffer(2*ndim+1), n_values
+    integer                       :: ixO^L
+    integer(kind=MPI_OFFSET_KIND) :: offsets(nleafs+1)
+    integer                       :: iorecvstatus(MPI_STATUS_SIZE)
+    integer                       :: ioastatus(MPI_STATUS_SIZE)
+    integer                       :: igrecvstatus(MPI_STATUS_SIZE)
+    integer                       :: istatus(MPI_STATUS_SIZE)
+    integer(kind=MPI_OFFSET_KIND) :: offset_tree_info
+    integer(kind=MPI_OFFSET_KIND) :: offset_block_data
+    double precision, allocatable :: w_buffer(:)
 
     call MPI_BARRIER(icomm, ierrmpi)
 
@@ -1116,26 +1328,30 @@ contains
     n_values = count_ix(ixG^LL) * nw
     allocate(w_buffer(n_values))
 
-    ! First compute block data offset (in bytes)
-    offset_block_data = offset_tree_info + &
-         size_logical * (nleafs + nparents) !+ & ! leaf/parent logical array
-         ! size_integer * nleafs + &              ! byte offsets of leave blocks
-         ! size_integer * nleafs + &              ! refinement levels
-         ! size_integer * ndim * nleafs           ! spatial indices
-
     ! master processor
     if (mype==0) then
       call create_output_file(file_handle, snapshotnext, ".dat")
-      call snapshot_write_header(file_handle, int(offset_tree_info), &
-           int(offset_block_data))
-      call MPI_FILE_SEEK(file_handle, offset_tree_info, MPI_SEEK_SET, ierrmpi)
-    end if
 
-    call write_forest(file_handle)
+      ! Don't know offsets yet, we will write header again later
+      offset_tree_info = -1
+      offset_block_data = -1
+      call snapshot_write_header(file_handle, offset_tree_info, &
+           offset_block_data)
 
-    if (mype == 0) then
+      call MPI_File_get_position(file_handle, offset_tree_info, ierrmpi)
+      print *, "offset tree info", offset_tree_info
+      call write_forest(file_handle)
+
+      call MPI_File_get_position(file_handle, offset_block_data, ierrmpi)
+
+      ! Check whether data was written as expected
+      if (offset_block_data - offset_tree_info /= &
+           size_int * (nleafs + nparents)) then
+        call mpistop("Unexpected difference in offset when writing .dat file")
+      end if
+
+      offsets(1) = offset_block_data
       iwrite = 0
-      call MPI_File_get_position(file_handle, offsets(1), ierrmpi)
     end if
 
     do Morton_no=Morton_start(mype), Morton_stop(mype)
@@ -1144,7 +1360,7 @@ contains
 
       if (nwaux>0) then
         ! extra layer around mesh only for later averaging in convert
-        ! set dxlevel value for use in gradient subroutine, 
+        ! set dxlevel value for use in gradient subroutine,
         ! which might be used in getaux
         saveigrid=igrid
         ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
@@ -1162,7 +1378,7 @@ contains
       w_buffer(1:n_values) = pack(pw(igrid)%w(ixO^S, 1:nw), .true.)
 
       if (mype /= 0) then
-        call MPI_SEND(igrid, [ ixO^L, n_values ], 2*ndim+1, &
+        call MPI_SEND([ ixO^L, n_values ], 2*ndim+1, &
              MPI_INTEGER, 0, itag, icomm, ierrmpi)
         call MPI_SEND(w_buffer, n_values, &
              MPI_DOUBLE_PRECISION, 0, itag, icomm, ierrmpi)
@@ -1174,7 +1390,8 @@ contains
              n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
 
         ! Set offset of next block
-        offsets(iwrite+1) = offsets(iwrite) + n_values * size_double
+        offsets(iwrite+1) = offsets(iwrite) + n_values * size_double + &
+             2 * ndim * size_int
       end if
     end do
 
@@ -1198,10 +1415,15 @@ contains
              n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
 
           ! Set offset of next block
-          offsets(iwrite+1) = offsets(iwrite) + n_values * size_double
+          offsets(iwrite+1) = offsets(iwrite) + n_values * size_double + &
+               2 * ndim * size_int
         end do
       end do
 
+      ! Write header again, now with correct offsets
+      call MPI_FILE_SEEK(file_handle, 0_MPI_OFFSET_KIND, MPI_SEEK_SET, ierrmpi)
+      call snapshot_write_header(file_handle, offset_tree_info, &
+           offset_block_data)
       call MPI_FILE_CLOSE(file_handle, ierrmpi)
     end if
 
@@ -1219,7 +1441,7 @@ contains
 
   !   integer, allocatable :: iorecvstatus(:,:),ioastatus(:,:)
   !   integer, allocatable :: igrecvstatus(:,:)
-  !   integer, allocatable :: igrid_recv(:) 
+  !   integer, allocatable :: igrid_recv(:)
 
   !   integer  :: ipe,insend,inrecv,nrecv,nwrite
   !   character(len=80) :: filename, line
@@ -1252,7 +1474,7 @@ contains
   !         insend=insend+1
   !         if (nwaux>0) then
   !            ! extra layer around mesh only for later averaging in convert
-  !            ! set dxlevel value for use in gradient subroutine, 
+  !            ! set dxlevel value for use in gradient subroutine,
   !            ! which might be used in getaux
   !            saveigrid=igrid
   !            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -1266,7 +1488,7 @@ contains
   !         call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
   !         call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
   !      end do
-  !   else 
+  !   else
   !      ! mype==0
   !      nwrite=(Morton_stop(0)-Morton_start(0)+1)
 
@@ -1338,8 +1560,8 @@ contains
   !      write(unitsnapshot) xprobmin^D
   !      write(unitsnapshot) xprobmax^D\}
   !      write(unitsnapshot) nleafs
-  !      write(unitsnapshot) levmax 
-  !      write(unitsnapshot) ndim 
+  !      write(unitsnapshot) levmax
+  !      write(unitsnapshot) ndim
   !      write(unitsnapshot) ndir
   !      write(unitsnapshot) nw
   !      write(unitsnapshot) it
@@ -1365,7 +1587,7 @@ contains
     integer, dimension(MPI_STATUS_SIZE) :: istatus
     logical :: fexist
 
-    if(mype==0) then
+    if (mype ==0 ) then
        inquire(file=trim(restart_from_file),exist=fexist)
        if(.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
     endif
@@ -1374,11 +1596,6 @@ contains
     call MPI_FILE_OPEN(icomm,trim(restart_from_file),amode,&
          MPI_INFO_NULL,file_handle,ierrmpi)
 
-    {#IFDEF EVOLVINGBOUNDARY
-    offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
-    }{#IFNDEF EVOLVINGBOUNDARY
-    offset=-int(6*size_int+size_double,kind=MPI_OFFSET_KIND)
-    }
     call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
     call MPI_FILE_READ_ALL(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
@@ -1487,192 +1704,107 @@ contains
     use mod_forest
     use mod_global_parameters
 
-    double precision :: wio(ixG^T,1:nw)
-    integer :: file_handle, amode, igrid, Morton_no, iread
-    integer :: levmaxini, ndimini, ndirini, nwini, nxini^D, domain_nxini^D
-    double precision :: xprobminini^D,xprobmaxini^D
+    integer                       :: ix_buffer(2*ndim+1), n_values
+    integer                       :: ixO^L
+    integer                       :: file_handle, amode, igrid, Morton_no, iread
+    integer                       :: istatus(MPI_STATUS_SIZE)
+    integer                       :: iorecvstatus(MPI_STATUS_SIZE)
+    integer                       :: ipe,inrecv,nrecv
+    logical                       :: fexist
+    integer(MPI_OFFSET_KIND)      :: offset_tree_info
+    integer(MPI_OFFSET_KIND)      :: offset_block_data
+    double precision, allocatable :: w_buffer(:)
 
-    integer(kind=MPI_OFFSET_KIND) :: offset
-    integer, dimension(MPI_STATUS_SIZE) :: istatus
-
-    integer, allocatable :: iorecvstatus(:,:)
-    integer :: ipe,inrecv,nrecv
-    logical :: fexist
+    ! Allocate send/receive buffer
+    n_values = count_ix(ixG^LL) * nw
+    allocate(w_buffer(n_values))
 
     if(mype==0) then
       inquire(file=trim(restart_from_file), exist=fexist)
       if(.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
+
       amode=MPI_MODE_RDONLY
       call MPI_FILE_OPEN(MPI_COMM_SELF,restart_from_file,amode, &
            MPI_INFO_NULL,file_handle,ierrmpi)
 
-      {#IFDEF EVOLVINGBOUNDARY
-      offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
-      }{#IFNDEF EVOLVINGBOUNDARY
-      offset=-int(6*size_int+size_double,kind=MPI_OFFSET_KIND)
-      }
-      call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
-      call MPI_FILE_READ(file_handle,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,nwini,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,it,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-      {#IFDEF EVOLVINGBOUNDARY
-      call MPI_FILE_READ(file_handle,nphyboundblock,1,MPI_INTEGER,istatus,ierrmpi)
-      }
-      ! check if settings are suitable for restart
-      if (levmaxini>refine_max_level) then
-         write(*,*) "number of levels in restart file = ",levmaxini
-         write(*,*) "refine_max_level = ",refine_max_level
-         call mpistop("refine_max_level should be at least number of levels in restart file")
-      end if
-      if (ndimini/=ndim) then
-         write(*,*) "ndim in restart file = ",ndimini
-         write(*,*) "ndim = ",ndim
-         call mpistop("reset ndim to ndim in restart file")
-      end if
-      if (ndirini/=ndir) then
-         write(*,*) "ndir in restart file = ",ndirini
-         write(*,*) "ndir = ",ndir
-         call mpistop("reset ndir to ndir in restart file")
-      end if
-      if (nw/=nwini) then
-         write(*,*) "nw=",nw," and nw in restart file=",nwini
-         call mpistop("currently, changing nw at restart is not allowed")
-      end if
-
-
-      offset=offset-int(2*ndimini*size_int+2*ndimini*size_double,kind=MPI_OFFSET_KIND)
-      call MPI_FILE_SEEK(file_handle,offset,MPI_SEEK_END,ierrmpi)
-
-      {call MPI_FILE_READ(file_handle,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,domain_nxini^D,1,MPI_INTEGER,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,xprobminini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-      call MPI_FILE_READ(file_handle,xprobmaxini^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-      if (block_nx^D/=nxini^D|.or.) then
-         if (mype==0) write(*,*) "Error: reset block resolution to block_nx^D=",nxini^D
-         call mpistop("change block_nx^D in par file")
-      end if
-      if (domain_nx^D/=domain_nxini^D|.or.) then
-         if (mype==0) write(*,*) "Error: resolution of base mesh does not match the data: ",domain_nxini^D
-         call mpistop("change domain_nx^D in par file")
-      end if
-      if (xprobmin^D/=xprobminini^D|.or.) then
-         if (mype==0) write(*,*) "Error: location of minimum does not match the data: ",xprobminini^D
-         call mpistop("change xprobmin^D in par file")
-      end if
-      if (xprobmax^D/=xprobmaxini^D|.or.) then
-         if (mype==0) write(*,*) "Error: location of maximum does not match the data: ",xprobmaxini^D
-         call mpistop("change xprobmax^D in par file")
-      end if
+      call snapshot_read_header(file_handle, offset_tree_info, &
+           offset_block_data)
     end if
 
-    ! broadcast the global parameters first
-    if (npe>1) then
-       call MPI_BCAST(nleafs,1,MPI_INTEGER,0,icomm,ierrmpi)
-       call MPI_BCAST(it,1,MPI_INTEGER,0,icomm,ierrmpi)
-       call MPI_BCAST(global_time,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
-    end if
+    ! Share information about restart file
+    call MPI_BCAST(nleafs,1,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(nparents,1,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(it,1,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(global_time,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+
     nleafs_active = nleafs
 
+    ! For compatibility with future versions
+    if (mype == 0) then
+      call MPI_FILE_SEEK(file_handle, offset_tree_info, &
+           MPI_SEEK_SET, ierrmpi)
+    end if
+
     call read_forest(file_handle)
-    {#IFDEF EVOLVINGBOUNDARY
-    ! mark physical-boundary blocks on space-filling curve
-    do Morton_no=Morton_start(mype),Morton_stop(mype)
-       igrid=sfc_to_igrid(Morton_no)
-       call alloc_node(igrid)
-       if (phyboundblock(igrid)) sfc_phybound(Morton_no)=1
-    end do
-    call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
-         MPI_SUM,icomm,ierrmpi)
-    }{#IFNDEF EVOLVINGBOUNDARY
-    do Morton_no=Morton_start(mype),Morton_stop(mype)
-       igrid=sfc_to_igrid(Morton_no)
-       call alloc_node(igrid)
-    end do
-    }
 
-    if (mype==0)then
-       iread=0
+    do Morton_no=Morton_start(mype),Morton_stop(mype)
+      igrid=sfc_to_igrid(Morton_no)
+      call alloc_node(igrid)
+    end do
 
-       do Morton_no=Morton_start(0),Morton_stop(0)
-          igrid=sfc_to_igrid(Morton_no)
+    if (mype==0) then
+      ! For compatibility with future versions
+      call MPI_FILE_SEEK(file_handle, offset_block_data, MPI_SEEK_SET, ierrmpi)
+
+      iread = 0
+      do ipe = 0, npe-1
+        do Morton_no=Morton_start(ipe),Morton_stop(ipe)
           iread=iread+1
-    {#IFDEF EVOLVINGBOUNDARY
-          nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
-          offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-               *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
-               int(size_block,kind=MPI_OFFSET_KIND) &
-               *int(nphyboundblock,kind=MPI_OFFSET_KIND)
-          if (sfc_phybound(Morton_no)==1) then
-            call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,&
-                 type_block,istatus,ierrmpi)
-          else
-            call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,&
-                 type_block_io,istatus,ierrmpi)
-          endif
-    }{#IFNDEF EVOLVINGBOUNDARY
-          offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-               *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-          call MPI_FILE_READ_AT(file_handle,offset,pw(igrid)%w,1,type_block_io, &
-               istatus,ierrmpi)
-    }
-       end do
-       if (npe>1) then
-          do ipe=1,npe-1
-             do Morton_no=Morton_start(ipe),Morton_stop(ipe)
-                iread=iread+1
-                itag=Morton_no
-    {#IFDEF EVOLVINGBOUNDARY
-                nphyboundblock=sum(sfc_phybound(1:Morton_no-1))
-                offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
-                     *int(Morton_no-1-nphyboundblock,kind=MPI_OFFSET_KIND) + &
-                     int(size_block,kind=MPI_OFFSET_KIND) &
-                     *int(nphyboundblock,kind=MPI_OFFSET_KIND)
-                if (sfc_phybound(Morton_no)==1) then
-                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block,&
-                       istatus,ierrmpi)
-                  call MPI_SEND(wio,1,type_block, ipe,itag,icomm,ierrmpi)
-                else
-                  call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io,&
-                       istatus,ierrmpi)
-                  call MPI_SEND(wio,1,type_block_io, ipe,itag,icomm,ierrmpi)
-                endif
-    }{#IFNDEF EVOLVINGBOUNDARY
-                offset=int(size_block_io,kind=MPI_OFFSET_KIND)&
-                     *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-                call MPI_FILE_READ_AT(file_handle,offset,wio,1,type_block_io,&
-                     istatus,ierrmpi)
-                call MPI_SEND(wio,1,type_block_io,ipe,itag,icomm,ierrmpi)
-    }
-             end do
-          end do
-       end if
-       call MPI_FILE_CLOSE(file_handle,ierrmpi)
-    else
-       nrecv=(Morton_stop(mype)-Morton_start(mype)+1)
-       allocate(iorecvstatus(MPI_STATUS_SIZE,nrecv))
-       inrecv=0
-       do Morton_no=Morton_start(mype),Morton_stop(mype)
-          igrid=sfc_to_igrid(Morton_no)
           itag=Morton_no
-          inrecv=inrecv+1
-    {#IFDEF EVOLVINGBOUNDARY
-          if (sfc_phybound(Morton_no)==1) then
-            call MPI_RECV(pw(igrid)%w,1,type_block   ,0,itag,icomm,&
-                 iorecvstatus(:,inrecv),ierrmpi)
+
+          call MPI_FILE_READ(file_handle,ix_buffer(1:2*ndim), 2*ndim, &
+               MPI_INTEGER, istatus,ierrmpi)
+
+          {ixOmin^D = ix_buffer(^D)\}
+          {ixOmax^D = ix_buffer(ndim+^D)\}
+          n_values = count_ix(ixO^L) * nw
+
+          call MPI_FILE_READ(file_handle, w_buffer, n_values, &
+               MPI_DOUBLE_PRECISION, istatus, ierrmpi)
+
+          if (mype == ipe) then ! Root task
+            igrid=sfc_to_igrid(Morton_no)
+            pw(igrid)%w(ixO^S, 1:nw) = reshape(w_buffer(1:n_values), &
+                 shape(pw(igrid)%w(ixO^S, 1:nw)))
           else
-            call MPI_RECV(pw(igrid)%w,1,type_block_io,0,itag,icomm,&
-                 iorecvstatus(:,inrecv),ierrmpi)
-          endif
-    }{#IFNDEF EVOLVINGBOUNDARY
-          call MPI_RECV(pw(igrid)%w,1,type_block_io,0,itag,icomm,&
-               iorecvstatus(:,inrecv),ierrmpi)
-    }
-       end do
-       deallocate(iorecvstatus)
+            call MPI_SEND([ ixO^L, n_values ], 2*ndim+1, &
+                 MPI_INTEGER, ipe, itag, icomm, ierrmpi)
+            call MPI_SEND(w_buffer, n_values, &
+                 MPI_DOUBLE_PRECISION, ipe, itag, icomm, ierrmpi)
+          end if
+        end do
+      end do
+
+      call MPI_FILE_CLOSE(file_handle,ierrmpi)
+
+    else                        ! mype > 0
+
+       do Morton_no=Morton_start(mype),Morton_stop(mype)
+         igrid=sfc_to_igrid(Morton_no)
+         itag=Morton_no
+
+          call MPI_RECV(ix_buffer, 2*ndim+1, MPI_INTEGER, 0, itag, icomm,&
+               iorecvstatus, ierrmpi)
+          {ixOmin^D = ix_buffer(^D)\}
+          {ixOmax^D = ix_buffer(ndim+^D)\}
+          n_values = ix_buffer(2*ndim+1)
+
+          call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION,&
+               0, itag, icomm, iorecvstatus, ierrmpi)
+
+          pw(igrid)%w(ixO^S, 1:nw) = reshape(w_buffer(1:n_values), &
+               shape(pw(igrid)%w(ixO^S, 1:nw)))
+        end do
     end if
 
     call MPI_BARRIER(icomm,ierrmpi)
