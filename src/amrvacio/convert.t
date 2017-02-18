@@ -1586,6 +1586,7 @@ if (mype /= 0) then
  do Morton_no=Morton_start(mype),Morton_stop(mype)
    if(.not. Morton_aim(Morton_no)) cycle
    igrid=sfc_to_igrid(Morton_no)
+   saveigrid=igrid
    call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                      ixC^L,ixCC^L,.true.)
    itag=Morton_no
@@ -1806,6 +1807,7 @@ else
  do Morton_no=Morton_start(0),Morton_stop(0)
    if(.not. Morton_aim(Morton_no)) cycle
    igrid=sfc_to_igrid(Morton_no)
+   saveigrid=igrid
    call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                   ixC^L,ixCC^L,.true.)
    do iw=1,nw+nwauxio

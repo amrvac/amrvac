@@ -475,8 +475,7 @@ contains
 
         ineighbor=neighbor(1,i^D,igrid)
         ipe_neighbor=neighbor(2,i^D,igrid)
-        
-        
+
         if (ipole==0) then
            n_i^D=-i^D;
            if (ipe_neighbor==mype) then
@@ -516,7 +515,7 @@ contains
               ipwbuf=1+modulo(ipwbuf,npwbuf)
            end if
         end if
-      
+
       end subroutine bc_send_srl
 
       subroutine bc_send_restrict
@@ -560,10 +559,10 @@ contains
              end do
           end do
         end if
-        
+
         ineighbor=neighbor(1,i^D,igrid)
         ipe_neighbor=neighbor(2,i^D,igrid)
-        
+
         if (ipole==0) then
            n_inc^D=-2*i^D+ic^D;
            if (ipe_neighbor==mype) then
@@ -603,7 +602,7 @@ contains
               ipwbuf=1+modulo(ipwbuf,npwbuf)
            end if
         end if
-      
+
       end subroutine bc_send_restrict
 
       subroutine bc_send_prolong
@@ -612,8 +611,7 @@ contains
         {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
            inc^DB=2*i^DB+ic^DB\}
            ixS^L=ixS_p_^L(iib^D,inc^D);
-        
-        
+
            ineighbor=neighbor_child(1,inc^D,igrid)
            ipe_neighbor=neighbor_child(2,inc^D,igrid)
         
@@ -656,7 +654,7 @@ contains
               end if
            end if
         {end do\}
-      
+
       end subroutine bc_send_prolong
 
       subroutine bc_recv_srl
@@ -668,7 +666,7 @@ contains
            call MPI_IRECV(pwuse(igrid)%w,1,type_recv_srl(iib^D,i^D), &
                           ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)
         end if
-      
+
       end subroutine bc_recv_srl
 
       subroutine bc_recv_restrict
@@ -683,14 +681,14 @@ contains
                              ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)
            end if
         {end do\}
-      
+
       end subroutine bc_recv_restrict
 
       subroutine bc_recv_prolong
 
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
-        
+
         ipe_neighbor=neighbor(2,i^D,igrid)
         if (ipe_neighbor/=mype) then
            irecv=irecv+1
@@ -699,22 +697,21 @@ contains
            call MPI_IRECV(pwCoarse(igrid)%w,1,type_recv_p(iib^D,inc^D), &
                           ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)  
         end if
-      
+
       end subroutine bc_recv_prolong
 
       subroutine bc_prolong
         use mod_physics, only: phys_convert_before_prolong, &
              phys_convert_after_prolong
-      
+
         integer :: ixFi^L,ixCo^L,ii^D
         double precision :: dxFi^D, dxCo^D, xFimin^D, xComin^D, invdxCo^D
 
         ixFi^L=ixR_srl_^L(iib^D,i^D);
-        
         dxFi^D=rnode(rpdx^D_,igrid);
         dxCo^D=two*dxFi^D;
         invdxCo^D=1.d0/dxCo^D;
-        
+
         xFimin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxFi^D;
         xComin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxCo^D;
         {#IFDEF STRETCHGRID
@@ -725,19 +722,19 @@ contains
         xFimin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
         xComin1=rnode(rpxmin1_,igrid)*qstl**(-nghostcells)
         }
-        
+
         ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
         ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
-        
+
         call phys_convert_before_prolong(ixCoG^L,ixCo^L,&
              pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-        
+
         ! if (amrentropy) then
         !    call e_to_rhos(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
         ! else if (prolongprimitive) then
         !    call primitive(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
         ! end if
-        
+
         select case (typeghostfill)
         case ("linear")
            call interpolation_linear(pwuse(igrid),ixFi^L,dxFi^D,xFimin^D, &
@@ -752,16 +749,16 @@ contains
            write (unitterm,*) "Undefined typeghostfill ",typeghostfill
            call mpistop("")
         end select
-        
+
         call phys_convert_after_prolong(ixCoG^L,ixCo^L,&
              pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-        
+
         ! if (amrentropy) then
         !     call rhos_to_e(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
         ! else if (prolongprimitive) then
         !     call conserve(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,patchfalse)
         ! end if
-      
+
       end subroutine bc_prolong
 
       subroutine interpolation_linear(pwFi,ixFi^L,dxFi^D,xFimin^D, &
@@ -770,7 +767,7 @@ contains
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
         type(walloc) :: pwCo, pwFi
-        
+
         integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, iw, idims
         double precision :: xCo^D, xFi^D, eta^D
         double precision :: slopeL, slopeR, slopeC, signC, signR
@@ -997,7 +994,7 @@ contains
   subroutine identifyphysbound(igrid,isphysbound,iib^D)
     use mod_forest
     use mod_global_parameters
-    
+
     integer, intent(in)  :: igrid
     logical, intent(out) :: isphysbound
     type(tree_node_ptr)  :: tree
@@ -1005,28 +1002,31 @@ contains
 
     isphysbound = .false.
     ipole=0
-    
+
     tree%node => igrid_to_node(igrid,mype)%node
     level = tree%node%level
     {ig^D = tree%node%ig^D; }
     iib^D=0;
     {do i^DB=-1,1\}
-        if (i^D==0|.and.) cycle
-       {ign^D = ig^D + i^D; }
-       ! blocks at periodic boundary have neighbors in the physical domain
-       ! thus threated at internal blocks with no physical boundary 
-       {if (periodB(^D)) ign^D=1+modulo(ign^D-1,ng^D(level))\}
-       if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
-       {
-       if (ign^D .gt. ng^D(level)) then
-          iib^D=1
-       else if (ign^D .lt. 1) then
-          iib^D=-1
-       end if
-       if(ipole==^D) iib^D=0
-       \}
-       if ({iib^D/=0|.or.}) isphysbound = .true.
+       if (i^D==0|.and.) cycle
+       if (phi_ > 0 .and. neighbor_pole(i^D,igrid)>0) ipole=neighbor_pole(i^D,igrid)
     {end do\}
+    {
+    do i^D=-1,1
+      ign^D=ig^D+i^D
+      ! blocks at periodic boundary have neighbors in the physical domain
+      ! thus threated at internal blocks with no physical boundary
+      if (periodB(^D)) ign^D=1+modulo(ign^D-1,ng^D(level))
+      if (ign^D .gt. ng^D(level)) then
+         iib^D=1
+      else if (ign^D .lt. 1) then
+         iib^D=-1
+      end if
+      if(ipole==^D) iib^D=0
+    end do
+    \}
+    if ({iib^D/=0|.or.}) isphysbound = .true.
+
   end subroutine identifyphysbound
 
 end module mod_ghostcells_update
