@@ -616,6 +616,9 @@ module mod_global_parameters
   !> Permeability in SI
   double precision, parameter :: miu0_SI  = 1.2566370614d-6 ! H m^-1
 
+  !> Solve energy equation or not
+  logical :: phys_energy=.true.
+
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

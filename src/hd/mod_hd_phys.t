@@ -109,6 +109,7 @@ contains
     call hd_read_params(par_files)
 
     physics_type = "hd"
+    phys_energy=hd_energy
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)
@@ -455,142 +456,81 @@ contains
   !> Ileyk : to do :
   !>     - give the possibility to set angmomfix=.true.
   !>     - address the source term for the dust
-  subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x) ! - - - - - - - - - - - -
+  subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
-    double precision                :: tmp(ixI^S)
-    integer                         :: iw,idir,h1x^L,h2x^L
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
+    double precision :: tmp(ixI^S),tmp1(ixI^S)
+    integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
+    integer :: mr_,mphi_ ! Polar var. names
     logical                         :: angmomfix = .false.
 
-    call mpistop("Not implemented yet")
+    mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
 
-    ! if (ndir==3) then
+    select case (typeaxial)
+    case ("slab")
+       ! No source terms in slab symmetry
+    case ("cylindrical")
+       ! s[mr]=(pthermal+mphi**2/rho)/radius
+       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
+       if(phi_>0) then
+         tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
+         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+         ! s[mphi]=(-mphi*mr/rho)/radius
+         ! Ileyk : beware the index permutation : mphi=2 if -phi=2 (2.5D
+         ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
+         if(.not. angmomfix) then
+           tmp(ixO^S)=-wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_)
+         else
+           tmp(ixO^S)=0.d0
+         end if
+         ! no geometrical source term if angular momentum conserving form of
+         ! the equations
+         w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+       else
+         ! s[mr]=2pthermal/radius
+         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+       end if
+    case ("spherical")
+       h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
+       ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
+       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp1)
+       tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
+            *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
+            /mygeo%dvolume(ixO^S)
+       if(ndir>1) then
+         do idir=2,ndir
+           tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2/wCT(ixO^S,rho_)
+         end do
+       end if
+       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
 
-    !    select case (typeaxial)
-    !    case ("slab")
-    !       ! No source terms in slab symmetry
-    !    case ("cylindrical")
-    !       ! s[mr]=(pthermal+mphi**2/rho)/radius
-    !       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !       tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
-    !       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !       ! s[mphi]=(-mphi*mr/rho)/radius
-    !       !
-    !       ! Ileyk : beware the index permutation : mphi=2 if -phi=2 (2.5D
-    !       ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
-    !       if (.not. angmomfix) then
-    !          tmp(ixO^S)=-wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_)
-    !       end if
-    !       ! no geometrical source term if angular momentum conserving form of
-    !       ! the equations
-    !       w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !    case ("spherical")
-    !       h1x^L=ixO^L-kr(1,^D); h2x^L=ixO^L-kr(2,^D)
-    !       ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
-    !       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !       tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-    !            *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
-    !            /mygeo%dvolume(ixO^S)
-    !       tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mphi_  )**2/wCT(ixO^S,rho_)
-    !       tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mtheta_)**2/wCT(ixO^S,rho_)
-    !       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !       ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
-    !       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !       tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-    !            *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
-    !            /mygeo%dvolume(ixO^S)
-    !       tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_))/dtan(x(ixO^S,2))
-    !       if (.not. angmomfix) tmp(ixO^S)=tmp(ixO^S)-(wCT(ixO^S,mtheta_)*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)
-    !       w(ixO^S,mtheta_)=w(ixO^S,mtheta_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !       ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-    !       if (.not. angmomfix) tmp(ixO^S)=          -(wCT(ixO^S,mtheta_)*wCT(ixO^S,mphi_))/wCT(ixO^S,rho_)
-    !       tmp(ixO^S)=tmp(ixO^S)/dtan(x(ixO^S,2))
-    !       if (.not. angmomfix) tmp(ixO^S)=tmp(ixO^S)-(wCT(ixO^S,mphi_  )*wCT(ixO^S,mr_  ))/wCT(ixO^S,rho_)
-    !       w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !    case default
-    !       call mpistop("typeaxial is slab, cylindrical or spherical")
-    !    end select
+       {^NOONED
+       ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
+       tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
+            *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
+            /mygeo%dvolume(ixO^S)
+       if(ndir==3) tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_))/tan(x(ixO^S,2))
+       if (.not. angmomfix) tmp(ixO^S)=tmp(ixO^S)-(wCT(ixO^S,mom(2))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)
+       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
 
-    ! elseif (ndir==2) then
-
-    !    select case (typeaxial)
-    !    case ("slab")
-    !       ! No source terms in slab symmetry
-    !    case ("cylindrical")
-    !       ! (r,phi) : same as ndir==3
-    !       ! phi true if and only if -d=22 -phi=2 (and typeaxial==cyl)
-    !       if (phi) then ! Ileyk : new argument "phi" here for the parfile. Make sense just if typeaxial==cyl.
-    !          ! s[mr]=(pthermal+mphi**2/rho)/radius
-    !          call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !          tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
-    !          w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !          tmp(ixO^S)=zero
-    !          ! s[mphi]=(-mphi*mr/rho)/radius
-    !          if (.not. angmomfix) tmp(ixO^S)=-wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_)
-    !          w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !          tmp(ixO^S)=zero
-    !          ! (r,z) : no mphi, just the pressure in the geom. source term
-    !       else
-    !          ! s[mr]=pthermal/radius
-    !          call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !          w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !          tmp(ixO^S)=zero
-    !       endif
-    !    case ("spherical") ! (r,theta), w/ theta the colatitude. No mphi
-    !       ! s[mr]=((mtheta**2)/rho+2*p)/r
-    !       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !       tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-    !            *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
-    !            /mygeo%dvolume(ixO^S)
-    !       tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mtheta_)**2/wCT(ixO^S,rho_)
-    !       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !       ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*p/r
-    !       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !       tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-    !            *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
-    !            /mygeo%dvolume(ixO^S)
-    !       if (.not. angmomfix) tmp(ixO^S)=tmp(ixO^S)-(wCT(ixO^S,mtheta_)*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)
-    !       w(ixO^S,mtheta_)=w(ixO^S,mtheta_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !    case default
-    !       call mpistop("typeaxial is slab, cylindrical or spherical")
-    !    end select
-
-    ! elseif (ndir==1) then
-
-    !    select case (typeaxial)
-    !    case ("slab")
-    !       ! No source terms in slab symmetry
-    !    case ("cylindrical")
-    !       ! s[mr]=pthermal/radius
-    !       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !    case ("spherical")
-    !       ! s[mr]=2pthermal/radius
-    !       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-    !       tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-    !            *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
-    !            /mygeo%dvolume(ixO^S)
-    !       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-    !       tmp(ixO^S)=zero
-    !    case default
-    !       call mpistop("typeaxial is slab, cylindrical or spherical")
-    !    end select
-
-    ! endif
+       if(ndir==3) then
+         ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
+         if(.not. angmomfix) then 
+           tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)&
+                      -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3)))/wCT(ixO^S,rho_)/tan(x(ixO^S,2))
+           w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+         end if
+       end if
+       }
+    case default
+       call mpistop("typeaxial is slab, cylindrical or spherical")
+    end select
 
     ! if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"addgeometry")
 

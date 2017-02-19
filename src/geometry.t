@@ -23,7 +23,7 @@ subroutine set_coordinate_system(geom)
     ndir = ndim
     r_   = 1
     z_   = 2
-    phi_ = 3
+    if(ndir==3) phi_ = 3
     typeaxial='cylindrical'
   case ("cylindrical_2.5D")
     if (ndim /= 2) call mpistop("Geometry cylindrical_2.5D but ndim /= 2")
@@ -36,7 +36,7 @@ subroutine set_coordinate_system(geom)
     ndir = ndim
     r_   = 1
     phi_ = 2
-    z_ = 3
+    if(ndir==3) z_ = 3
     typeaxial='cylindrical'
   case ("polar_2.5D")
     if (ndim /= 2) call mpistop("Geometry polar_2.5D but ndim /= 2")
@@ -48,7 +48,7 @@ subroutine set_coordinate_system(geom)
   case ("spherical")
     ndir = ndim
     r_   = 1
-    phi_ = 3
+    if(ndir==3) phi_ = 3
     z_   = -1
     typeaxial='spherical'
   case ("spherical_2.5D")

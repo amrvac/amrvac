@@ -34,7 +34,7 @@ contains
 
     if (first) then
        if (mype==0) then
-          print *,'2.5D MHD blast wave in polar coordinate'
+          print *,'2D MHD blast wave in polar coordinate'
        end if
        first=.false.
     end if

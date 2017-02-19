@@ -997,15 +997,13 @@ contains
 
     integer, intent(in)  :: igrid
     logical, intent(out) :: isphysbound
-    type(tree_node_ptr)  :: tree
     integer              :: i^D,level, ig^D, ign^D, iib^D,ipole
 
     isphysbound = .false.
     ipole=0
 
-    tree%node => igrid_to_node(igrid,mype)%node
-    level = tree%node%level
-    {ig^D = tree%node%ig^D; }
+    level = node(plevel_,igrid)
+    {ig^D = node(pig^D_,igrid);}
     iib^D=0;
     {do i^DB=-1,1\}
        if (i^D==0|.and.) cycle

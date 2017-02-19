@@ -34,6 +34,7 @@ contains
     call rho_params_read(par_files)
 
     physics_type = "rho"
+    phys_energy  = .false.
 
     nwflux       = 1
     nwaux        = 0

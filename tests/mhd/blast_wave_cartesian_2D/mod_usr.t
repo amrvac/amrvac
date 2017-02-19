@@ -33,7 +33,7 @@ contains
 
     if (first) then
        if (mype==0) then
-          print *,'2.5D MHD blast wave in Cartesian coordinate'
+          print *,'2D MHD blast wave in Cartesian coordinate'
        end if
        first=.false.
     end if

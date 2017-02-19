@@ -152,6 +152,7 @@ contains
     call mhd_read_params(par_files)
 
     physics_type = "mhd"
+    phys_energy=mhd_energy
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)
@@ -1364,11 +1365,11 @@ contains
     double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
     logical          :: angmomfix=.false.
 
-    integer :: mr_,mphi_,mz_ ! Polar var. names
-    integer :: br_,bphi_,bz_
+    integer :: mr_,mphi_ ! Polar var. names
+    integer :: br_,bphi_
 
-    mr_=mom(1); mphi_=mom(1)-1+phi_; mz_=mom(1)-1+z_  ! Polar var. names
-    br_=mag(1); bphi_=mag(1)-1+phi_; bz_=mag(1)-1+z_
+    mr_=mom(1); mphi_=mom(1)-1+phi_  ! Polar var. names
+    br_=mag(1); bphi_=mag(1)-1+phi_
 
     select case (typeaxial)
     case ('slab')

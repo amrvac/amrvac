@@ -101,6 +101,7 @@ contains
          dtsave_collapsed, dtsave_custom
     integer :: ditsave_log, ditsave_dat, ditsave_slice, &
          ditsave_collapsed, ditsave_custom
+    integer :: windex
 
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,resetgrid,snapshotnext, &
@@ -652,6 +653,50 @@ contains
           end do
        end if
     end do
+    {^NOONED
+    do idim=1,ndim
+      if(any(typeboundary(:,2*idim-1)=='pole')) then
+        if(any(typeboundary(:,2*idim-1)/='pole')) &
+          call mpistop("At pole boundary, boundary type of all variables should be pole!")
+        if(phys_energy) then
+          windex=2
+        else
+          windex=1
+        end if
+        typeboundary(:,2*idim-1)='symm'
+        select case(typeaxial)
+        case('cylindrical')
+          typeboundary(phi_+1,2*idim-1)='asymm'
+          if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim-1)='asymm'
+        case('spherical')
+          typeboundary(3:ndir+1,2*idim-1)='asymm'
+          if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)='asymm'
+        case default
+          call mpistop('Only cylinrical, polar, or spherical coordinate can have pole boundary!')
+        end select
+      end if
+      if(any(typeboundary(:,2*idim)=='pole')) then
+        if(any(typeboundary(:,2*idim)/='pole')) &
+          call mpistop("At pole boundary, boundary type of all variables should be pole!")
+        if(phys_energy) then
+          windex=2
+        else
+          windex=1
+        end if
+        typeboundary(:,2*idim)='symm'
+        select case(typeaxial)
+        case('cylindrical')
+          typeboundary(phi_+1,2*idim)='asymm'
+          if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim)='asymm'
+        case('spherical')
+          typeboundary(3:ndir+1,2*idim)='asymm'
+          if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)='asymm'
+        case default
+          call mpistop('Only cylinrical, polar, or spherical coordinate can have pole boundary!')
+        end select
+      end if
+    end do
+    }
 
     if (any(limiter(1:nlevelshi)=='ppm').and.(nghostcells<4)) then
        call mpistop(" PPM works only with nghostcells>=4 !")
