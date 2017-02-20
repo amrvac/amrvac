@@ -39,6 +39,9 @@ end do
    end do\}
 {end do\}
 
+! This call is here to ensure the sfc array is initialized
+call load_balance()
+
 end subroutine init_forest_root
 !=============================================================================
 subroutine init_tree_leaf(tree,ig^D,level,igrid,ipe,active)
