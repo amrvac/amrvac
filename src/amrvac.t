@@ -43,11 +43,7 @@ program amrvac
      call init_rays
      }
 
-     if (typeparIO==1)then
-        call read_snapshot
-     else
-        call read_snapshotnopar
-     end if
+     call read_snapshot
 
      {#IFDEF PARTICLES
      call init_tracerparticles

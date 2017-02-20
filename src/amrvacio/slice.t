@@ -338,14 +338,15 @@ if (mype==0) then
    call select_slice(dir,xslice,.true.,slice_fh,normconv)
 
    {call MPI_FILE_WRITE(slice_fh,subsizes(^DE-1),1,MPI_INTEGER,status,ierrmpi)\}
-   call MPI_FILE_WRITE(slice_fh,eqpar,neqpar+nspecialpar, &
-                       MPI_DOUBLE_PRECISION,status,ierrmpi)
+   ! Jannis: have removed eqpar and neqpar here
+   ! call MPI_FILE_WRITE(slice_fh,eqpar,neqpar+nspecialpar, &
+   !                     MPI_DOUBLE_PRECISION,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,nsubleafs,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,levmax_sub,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,ndim-1,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,ndir,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,nw,1,MPI_INTEGER,status,ierrmpi)
-   call MPI_FILE_WRITE(slice_fh,neqpar+nspecialpar,1,MPI_INTEGER,status,ierrmpi)
+   ! call MPI_FILE_WRITE(slice_fh,neqpar+nspecialpar,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,it,1,MPI_INTEGER,status,ierrmpi)
    call MPI_FILE_WRITE(slice_fh,global_time,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
 

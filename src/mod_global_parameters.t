@@ -77,7 +77,7 @@ module mod_global_parameters
   integer, parameter :: std_len = 131
 
   !> Default length for names (of e.g. variables)
-  integer, parameter :: name_len = 10
+  integer, parameter :: name_len = 15
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
   integer :: r_ = -1
@@ -201,13 +201,6 @@ module mod_global_parameters
   integer           :: iprob
   !> positions of the minimum and maximum surfaces for each dimension
   double precision  :: xprob^L
-
-  ! TODO: remove
-  integer, parameter :: neqpar = 1
-  integer, parameter :: nspecialpar = 0
-  double precision :: eqpar(neqpar) = -0.0d0
-  character(len=*), parameter :: eqparname = "DEPRECATED"
-  character(len=*), parameter :: specialparname = "DEPRECATED"
 
   !> For transform variables and save selected data
   !> number of w in the transformed data

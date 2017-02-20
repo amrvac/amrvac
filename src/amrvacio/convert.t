@@ -547,7 +547,9 @@ if (.not.fileopen) then
    open(qunit,file=filename,status='unknown',form='unformatted')
 end if
 
-write(qunit)it,global_time*time_convert_factor,ndim,neqpar+nspecialpar,nw+nwauxio
+! Jannis: have removed neqpar here
+! write(qunit)it,global_time*time_convert_factor,ndim,neqpar+nspecialpar,nw+nwauxio
+write(qunit)it,global_time*time_convert_factor,ndim,nw+nwauxio
 
 nx^D=ixMhi^D-ixMlo^D+1;
 select case(convert_type)
@@ -563,17 +565,18 @@ end select
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
 
+! Jannis: have removed eqpar here
 ! for idl output: add the eqparnames, note the length mismatch!!!
-tmpnames=TRIM(outfilehead)//' '//TRIM(eqparname)//' '//TRIM(specialparname)
+! tmpnames=TRIM(outfilehead)//' '//TRIM(eqparname)//' '//TRIM(specialparname)
 
 ! use -nleafs to indicate amr grid
 if (nleafs==1 .and. refine_max_level==1) then
   write(qunit) nxC^D
-  write(qunit)eqpar
+  ! write(qunit)eqpar
   write(qunit)tmpnames
 else
   write(qunit) ^D&-nleafs
-  write(qunit) eqpar
+  ! write(qunit) eqpar
   write(qunit)tmpnames
   ! write out individual grid sizes, grid level, and corners
   do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -2140,11 +2143,12 @@ write(qunit,'(a)') '#'
 !
 ! eqpar array
 !
-write(qunit,'(a,x,i11,a)') &
-  'object "eqpararray" class array type float items ', &
-  neqpar+nspecialpar,' data follows'
-write(qunit,'(f24.12)') eqpar
-write(qunit,'(a)') '#'
+! Jannis: have removed eqpar here
+! write(qunit,'(a,x,i11,a)') &
+!   'object "eqpararray" class array type float items ', &
+!   neqpar+nspecialpar,' data follows'
+! write(qunit,'(f24.12)') eqpar
+! write(qunit,'(a)') '#'
 !
 ! # grids on level
 !
@@ -2178,7 +2182,8 @@ write(qunit,'(a,x,i11)') 'attribute "ndir"     number ',ndir
 write(qunit,'(a,x,i11)') 'attribute "nw"       number ',nw+nwauxio
 write(qunit,'(a,x,i11)') 'attribute "timestep" number ',it
 write(qunit,'(a,f25.16)')'attribute "time"     number ',global_time *time_convert_factor
-write(qunit,'(a)')   'attribute "eqpar"    value "eqpararray"'
+! Jannis: have removed eqpar here
+! write(qunit,'(a)')   'attribute "eqpar"    value "eqpararray"'
 write(qunit,'(a)')   'attribute "ngrids"   value "ngridsonlevarray"'
 write(qunit,'(a)')   'attribute "w_names"   value "wnamesarray"'
 write(qunit,'(a)') '#'
