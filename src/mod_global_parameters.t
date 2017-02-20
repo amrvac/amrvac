@@ -77,7 +77,7 @@ module mod_global_parameters
   integer, parameter :: std_len = 131
 
   !> Default length for names (of e.g. variables)
-  integer, parameter :: name_len = 15
+  integer, parameter :: name_len = 16
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
   integer :: r_ = -1
