@@ -1261,7 +1261,7 @@ contains
       ! Check whether data was written as expected
       if (offset_block_data - offset_tree_info /= &
            (nleafs + nparents) * size_logical + &
-           nleafs * (2 * size_int)) then
+           nleafs * ((1+ndim) * size_int)) then
         call mpistop("Unexpected difference in offset when writing .dat file")
       end if
 
