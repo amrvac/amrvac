@@ -40,124 +40,53 @@ def animate(f):
     line.set_ydata(data_1d[:,args.iw])
 
 def get_data(dat, args):
+    size_logical = 4
+    size_int = 4
+    size_double = 8
 
-    dat.seek(0,2)       # goto EOF
-    offset = -32        # 32 = 6*size_int + size_double = 6*4 + 8
-    dat.seek(offset,1)  # go back 36 bytes
+    fmt = 'iiiiiiiiiid'
+    hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    [version, offset_tree, offset_blocks, nw, ndir, ndim,
+     levmax, nleafs, nparents, it, time] = hdr
 
-    ### Read 6 footer ints + 1 double
-    int_in = dat.read(4)
-    nleafs = struct.unpack('i',int_in)[0]    # number of active tree leafs nleafs (= #blocks)
-    int_in = dat.read(4)
-    levmaxini = struct.unpack('i',int_in)[0] # maximal refinement level present levmax
-    int_in = dat.read(4)
-    ndimini = struct.unpack('i',int_in)[0]   # dimensionality NDIM
-    int_in = dat.read(4)
-    ndirini = struct.unpack('i',int_in)[0]   # number of vector components NDIR
-    int_in = dat.read(4)
-    nwini = struct.unpack('i',int_in)[0]     # number of variables nw
-    int_in = dat.read(4)
-    it = struct.unpack('i',int_in)[0]        # integer time counter it
-    flt_in = dat.read(8)
-    t = struct.unpack('d',flt_in)[0]         # global time t
+    fmt = 2 * 'd' + 2 * 'i'
+    hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    [xmin, xmax, domain_nx, block_nx] = hdr
 
-    # TODO: Check ndimini
+    # Read tree info. Skip 'leaf' array
+    dat.seek(offset_tree + (nleafs+nparents) * size_logical)
 
-    # read block size in each dimension and all eqpars
-    offset = offset-int(2*ndimini*4 + 2*ndimini*8) # int size = 4, double = 8
-    dat.seek(offset,1)
+    # Read block levels
+    fmt = nleafs * 'i'
+    block_lvls = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
-    # Get block size
-    int_in = dat.read(4)
-    n_cell = struct.unpack('i',int_in)[0]
-    size_block = n_cell*nwini*8   # block size in bytes
-    # Get size of level one mesh
-    int_in = dat.read(4)
-    n_mesh_lev1= struct.unpack('i',int_in)[0]
-    # Get x minimum location
-    flt_in = dat.read(8)
-    xmin = struct.unpack('d',flt_in)[0]
-    # Get x maximum location
-    flt_in = dat.read(8)
-    xmax = struct.unpack('d',flt_in)[0]
-    
+    # Read block indices
+    fmt = nleafs * 'i'
+    block_ixs = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
-    # Read forest
-    dat.seek(nleafs*size_block,0)   # go to end of block stuctures, start of the forest
+    # Determine block coordinates
+    dx0 = (xmax - xmin) / domain_nx
 
-    n_blocks = n_mesh_lev1 // n_cell     # number of blocks in each direction
-
-    block_info = []
-    igrid = 0
-    refine = 0
-    forest = []
-    level = 1
-
-    for i in range(1, n_blocks+1):
-        (igrid,refine) = read_node(dat,forest,igrid,refine,ndimini,level,block_info, i)
-
-    outfile = args.outfile
-
-    # Calculate physical sizes of blocks and cells on level one
-
-    # physical block size in each direction (on the first level)
-    dx = (xmax - xmin) / n_blocks
-
-    # physical cell size in each direction (on the first level)
-    dxc = (xmax - xmin) / n_mesh_lev1
-
-    data_1d = np.zeros((n_cell * nleafs, nwini+1))
-    i_cell = 0
     ### Start reading data blocks
+    dat.seek(offset_blocks)
 
-    dat.seek(0,0)  # go to start of file
     for i in range(nleafs):
-        # coordinates of bottom left corner of block
-        lb = xmin + (block_info[i][1] - 1) * dx / (2**(block_info[i][0]-1))
+        lvl = block_lvls[i]
+        ix = block_ixs[i]
 
-        # local cell size
-        dxc_block = dxc/(2**(block_info[i][0]-1))
-        values = [ [] for i in range(nwini) ]
-        for nw in range(nwini):
-            for c in range(n_cell):
-                flt_in = dat.read(8)
-                dbl = struct.unpack('d',flt_in)[0]
-                values[nw].append(dbl)
+        x0 = (ix-1) * block_nx * dx0 * 0.5**(lvl-1)
+        x1 = ix * block_nx * dx0 * 0.5**(lvl-1)
 
-        for c in range(n_cell):
-            x = calc_coord(c,n_cell,lb,dxc_block)
-            data_1d[i_cell][0] = x
-            data_1d[i_cell][1:] = values[nw][c]
-            i_cell += 1
+        # Read ghost cell info
+        fmt = 2 * 'i'
+        n_ghost = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
-    return data_1d
+        # Read actual data
+        fmt = nw * block_nx * 'd'
+        data = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+        print(x0, x1, data)
 
-def read_node(dat,forest,igrid,refine,ndimini,level,block_info,ix):
-    # Recursive function that checks if the block is a leaf or not.
-    # If leaf, write block info. If not, run recursively for all
-    # possible child nodes
-
-    b = dat.read(4)
-    leaf = struct.unpack('i',b)[0]
-
-    if (leaf):
-        forest.append(1)
-        igrid += 1
-        block_info.append([level,ix])
-    else:
-        forest.append(0)
-        refine += 1
-        for i in range(2):
-            child_index = new_index(ndimini, i, ix)
-            (igrid,refine) = read_node(dat,forest,igrid,refine,ndimini,level+1,block_info,child_index)
-    return igrid,refine
-
-
-def new_index(dims, i, ig):
-    # Calculate new grid indices for child nodes if node is refined.
-    # See Keppens (2012) section 3.3
-    return 2 * (ig-1) + 1 + i
-
+    sys.exit(0)
 
 def calc_coord(c,n_cell,lb,dxc_block):
     # calculate the cell coordinates from the cell number
