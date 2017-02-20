@@ -1033,14 +1033,16 @@ contains
     call MPI_FILE_WRITE(fh, version_number, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, int(offset_tree), 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, int(offset_block), 1, MPI_INTEGER, st, er)
-    call MPI_FILE_WRITE(fh, global_time, 1, MPI_DOUBLE_PRECISION, st, er)
-    call MPI_FILE_WRITE(fh, it, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, nw, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, ndir, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, ndim, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, levmax, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, nleafs, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, nparents, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, it, 1, MPI_INTEGER, st, er)
+    ! Note: It is nice when this double has an even number of 4 byte
+    ! integers before it (for alignment)
+    call MPI_FILE_WRITE(fh, global_time, 1, MPI_DOUBLE_PRECISION, st, er)
 
     call MPI_FILE_WRITE(fh, [ xprobmin^D ], ndim, &
          MPI_DOUBLE_PRECISION, st, er)
@@ -1086,12 +1088,6 @@ contains
     call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
     offset_block = ibuf(1)
 
-    ! global time
-    call MPI_FILE_READ(fh, global_time, 1, MPI_DOUBLE_PRECISION, st, er)
-
-    ! it
-    call MPI_FILE_READ(fh, it, 1, MPI_INTEGER, st, er)
-
     ! nw
     call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
     if (nw /= ibuf(1)) then
@@ -1128,6 +1124,12 @@ contains
 
     ! nparents
     call MPI_FILE_READ(fh, nparents, 1, MPI_INTEGER, st, er)
+
+    ! it
+    call MPI_FILE_READ(fh, it, 1, MPI_INTEGER, st, er)
+
+    ! global time
+    call MPI_FILE_READ(fh, global_time, 1, MPI_DOUBLE_PRECISION, st, er)
 
     ! xprobmin^D
     call MPI_FILE_READ(fh,rbuf(1:ndim),ndim,MPI_DOUBLE_PRECISION,st,er)

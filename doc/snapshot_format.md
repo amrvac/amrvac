@@ -5,14 +5,14 @@
     integer           :: Version number
     integer           :: Byte offset where tree information starts
     integer           :: Byte offset where block data starts
-    double precision  :: global_time
-    integer           :: it
     integer           :: nw
     integer           :: ndir
     integer           :: ndim
     integer           :: levmax
     integer           :: nleafs
     integer           :: nparents
+    integer           :: it
+    double precision  :: global_time
     double precision  :: xprobmin(ndim)
     double precision  :: xprobmax(ndim)
     integer           :: domain_nx(ndim)
