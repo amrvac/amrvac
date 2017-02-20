@@ -10,7 +10,6 @@
  &filelist
         base_filename='solar_atm_25D'
         typefilelog='regression_test'
-        primnames='rho v1 v2 v3 p b1 b2 b3'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBCCmpi'
@@ -33,7 +32,6 @@
         time_reset=.true.
 
  &methodlist
-        w_names=       'rho m1 m2 m3 e b1 b2 b3'
         time_integrator=  'threestep'
         flux_scheme=    20*'hll'
         limiter= 20*'cada3'

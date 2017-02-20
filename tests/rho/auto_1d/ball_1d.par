@@ -7,7 +7,6 @@
  &filelist
         base_filename='ball_1d'
         typefilelog='regression_test'
-        primnames='rho'
     	convert_type='vtuBCCmpi'
         autoconvert=T
 /
@@ -21,7 +20,6 @@
  /
 
  &methodlist
-        w_names=       'rho'
  /
 
  &boundlist

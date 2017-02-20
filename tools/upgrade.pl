@@ -58,6 +58,8 @@ my %par_file_replacements = (
     qr/ *fileheadout *=.*\n/ => "", # Remove fileheadout = ... lines
     qr/ *typeaxial *=.*\n/ => "", # Remove typeaxial = ... lines
     qr/ *ssplitdivb *=.*\n/ => "", # Remove ssplitdivb = ... lines
+    qr/ *primnames *=.*\n/ => "", # Remove primnames = ... lines
+    qr/ *w_names *=.*\n/ => "", # Remove w_names = ... lines
     qr/tsave\(1\)/ => "tsave_log",
     qr/tsave\(2\)/ => "tsave_dat",
     qr/tsave\(3\)/ => "tsave_slice",

@@ -36,7 +36,10 @@ $AMRVAC_DIR/tools/upgrade.pl
 cd $AMRVAC_DIR/tests/rho/auto_3d
 $AMRVAC_DIR/tools/upgrade.pl
 
-cd $AMRVAC_DIR/tests/rho/auto_3d
+cd $AMRVAC_DIR/tests/rho/convergence_new
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/Riemann_1D
 $AMRVAC_DIR/tools/upgrade.pl
 
 cd $AMRVAC_DIR/tests/hd/Riemann_2D
@@ -46,6 +49,27 @@ cd $AMRVAC_DIR/tests/hd/Rayleigh_Taylor_2D
 $AMRVAC_DIR/tools/upgrade.pl
 
 cd $AMRVAC_DIR/tests/hd/Rayleigh_Taylor_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/blast_wave_cartesian_2D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/blast_wave_cylindrical_2D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/blast_wave_cylindrical_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/blast_wave_polar_2D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/blast_wave_spherical_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/radiative_cooling_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/thermal_conduction_3D
 $AMRVAC_DIR/tools/upgrade.pl
 
 cd $AMRVAC_DIR/tests/hd/Kelvin_Helmholtz
@@ -67,4 +91,16 @@ cd $AMRVAC_DIR/tests/mhd/thermal_conduction_3D
 $AMRVAC_DIR/tools/upgrade.pl
 
 cd $AMRVAC_DIR/tests/mhd/solar_atmosphere_2.5D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/mhd/blast_wave_cylindrical_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/mhd/blast_wave_polar_2D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/mhd/blast_wave_spherical_2D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/mhd/blast_wave_spherical_3D
 $AMRVAC_DIR/tools/upgrade.pl

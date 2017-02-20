@@ -452,16 +452,6 @@ module mod_global_parameters
   !> If not 'unavailable', resume from snapshot with this base file name
   character(len=std_len) :: restart_from_file
 
-  !> Names of the conservative variables
-  character(len=1024) :: w_names
-
-  !> Names of the primitive variables
-  character(len=1024) :: primnames
-
-  !> This variable was used to store names for the log file
-  !> \todo remove this variable when printlog_special has been updated in all projects
-  character(len=1024) :: wnameslog
-
   !> Which type of log to write: 'normal', 'special', 'regression_test'
   character(len=std_len) :: typefilelog
 
@@ -619,6 +609,8 @@ module mod_global_parameters
   !> Solve energy equation or not
   logical :: phys_energy=.true.
 
+  !> Store variable names, primitive and conservative
+  character(len=10), dimension(50) :: prim_wnames, cons_wnames
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

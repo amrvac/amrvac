@@ -10,7 +10,6 @@
  &filelist
         typefilelog='regression_test'
         base_filename='kh_2d'
-        primnames='rho v1 v2 p b1 b2'
         convert_type='vtuBCCmpi'
         saveprim=.true.
         autoconvert=.true.
@@ -26,7 +25,6 @@
 /
  
  &methodlist
-        w_names=       'rho m1 m2 e b1 b2'
         time_integrator=  'threestep'
         flux_scheme=    20*'hll'
         limiter= 20*'cada3'

@@ -156,11 +156,15 @@ contains
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)
+    prim_wnames(nwflux)='rho'
+    cons_wnames(nwflux)='rho'
 
     allocate(mom(ndir))
     do idir = 1, ndir
        nwflux    = nwflux + 1
        mom(idir) = nwflux       ! momentum density
+       write(prim_wnames(nwflux),"(A1,I1)") "v",idir
+       write(cons_wnames(nwflux),"(A1,I1)") "m",idir
     end do
 
     ! Set index of energy variable
@@ -169,6 +173,8 @@ contains
        nwflux = nwflux + 1
        e_     = nwflux          ! energy density
        p_     = nwflux          ! gas pressure
+       prim_wnames(nwflux)='p'
+       cons_wnames(nwflux)='e'
     else
        nwwave=7
        e_ = -1
@@ -179,11 +185,15 @@ contains
     do idir = 1, ndir
        nwflux    = nwflux + 1
        mag(idir) = nwflux       ! magnetic field
+       write(prim_wnames(nwflux),"(A1,I1)") "b",idir
+       write(cons_wnames(nwflux),"(A1,I1)") "b",idir
     end do
 
     if (mhd_glm) then
        nwflux = nwflux + 1
        psi_   = nwflux
+       prim_wnames(nwflux)='psi'
+       cons_wnames(nwflux)='psi'
     else
        psi_ = -1
     end if
@@ -194,6 +204,8 @@ contains
     do itr = 1, mhd_n_tracer
        nwflux = nwflux + 1
        tracer(itr) = nwflux     ! tracers
+       write(prim_wnames(nwflux),"(A3,I1)") "trp",itr
+       write(cons_wnames(nwflux),"(A3,I1)") "trc",itr
     end do
 
     mhd_nwflux = nwflux
@@ -236,10 +248,10 @@ contains
     call mhd_physical_units
 
     if(.not. mhd_energy .and. mhd_thermal_conduction) then
-      call mpistop("thermal conduction needs hd_energy=T")
+      call mpistop("thermal conduction needs mhd_energy=T")
     end if
     if(.not. mhd_energy .and. mhd_radiative_cooling) then
-      call mpistop("radiative cooling needs hd_energy=T")
+      call mpistop("radiative cooling needs mhd_energy=T")
     end if
 
     ! initialize thermal conduction module

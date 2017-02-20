@@ -9,7 +9,6 @@
  
  &filelist
         base_filename='KH2proba'
-        primnames='rho v1 v2 p b1 b2'
         convert_type='vtuBCCmpi'
         saveprim=.true.
         autoconvert=.true.
@@ -32,7 +31,6 @@
  /
  
  &methodlist
-        w_names=       'rho m1 m2 e b1 b2'
         time_integrator=  'threestep'
         flux_scheme=    20*'hll'
         typepred1=    20*'hll'

@@ -6,7 +6,6 @@
 
 &filelist
      base_filename='./data/khhd'
-  primnames        = 'rho v1 v2 p'
   autoconvert      = T
   convert_type     = 'vtuBmpi'
   saveprim         = T
@@ -26,7 +25,6 @@
 /
 
  &methodlist
-   w_names         = 'rho m1 m2 e'
    time_integrator = 'threestep'
    flux_scheme     = 20*'hllc'
    limiter         = 20*'cada3'

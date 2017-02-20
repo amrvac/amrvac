@@ -1,7 +1,6 @@
 
 &filelist
-  filenameout      = 'a_rc_hd_a'
-  primnames        = 'rho v1 v2 v3 p'
+  base_filename      = 'a_rc_hd_a'
   autoconvert      = T
   convert_type     = 'vtuBCCmpi'
   saveprim         = T
@@ -10,35 +9,32 @@
 &savelist
    itsave(1,1)     = 0
    itsave(1,2)     = 0
-   ditsave(1)      = 1
-   dtsave(2)       = 1.d-1
+   ditsave_log      = 1
+   dtsave_dat       = 1.d-1
 /
 
 &stoplist
-   tmax            = 5.d-1
+   time_max            = 5.d-1
 /
 
 &methodlist
-   wnames          = 'rho m1 m2 m3 e'
-   fileheadout     = '3Dhd'
-   typeadvance     = 'threestep'
-   typefull1       = 13*'hllc'
-   typelimiter1    = 13*'cada3'
-   useprimitive    = T
+   time_integrator     = 'threestep'
+   flux_scheme       = 20*'hllc'
+   limiter    = 20*'cada3'
 /   
 &boundlist
-  dixB  = 2
-  typeB = 5*'cont', 5*'cont', 5*'cont', 5*'cont', 5*'cont', 5*'cont'
+  nghostcells  = 2
+  typeboundary = 5*'cont', 5*'cont', 5*'cont', 5*'cont', 5*'cont', 5*'cont'
 /
-&amrlist
-   errorestimate   = 3
-   mxnest          = 3
-   nxblock1        = 4
-   nxblock2        = 4
-   nxblock3        = 4
-   nxlone1         = 8
-   nxlone2         = 8
-   nxlone3         = 8
+&meshlist
+   refine_criterion   = 3
+   refine_max_level          = 3
+   block_nx1        = 4
+   block_nx2        = 4
+   block_nx3        = 4
+   domain_nx1         = 8
+   domain_nx2         = 8
+   domain_nx3         = 8
    xprobmin1       =-1.0d0
    xprobmax1       = 1.0d0
    xprobmin2       =-1.0d0

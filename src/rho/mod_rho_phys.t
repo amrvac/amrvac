@@ -43,6 +43,9 @@ contains
     nvector      = 0
     nworkroe     = 1
 
+    prim_wnames(nwflux)='rho'
+    cons_wnames(nwflux)='rho'
+
     nflag_ = nw+1
 
     ! Check whether custom flux types have been defined
@@ -59,6 +62,7 @@ contains
     phys_to_conserved    => rho_to_conserved
     phys_to_primitive    => rho_to_primitive
     phys_get_dt          => rho_get_dt
+
   end subroutine rho_phys_init
 
   subroutine rho_to_conserved(ixI^L, ixO^L, w, x)

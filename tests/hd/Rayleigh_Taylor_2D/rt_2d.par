@@ -1,7 +1,6 @@
 !setup.pl -d=3
 
 &filelist
-  primnames        = 'rho v1 v2 p'
   base_filename    = 'rt_2d'
   typefilelog      = 'regression_test'
   autoconvert      = .true.
@@ -18,7 +17,6 @@
 /
 
  &methodlist
-   w_names          = 'rho m1 m2 e'
    time_integrator     = 'threestep'
    flux_scheme       = 20*'hllc'
    limiter    = 20*'cada3'

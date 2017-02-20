@@ -105,7 +105,7 @@ contains
 
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,resetgrid,snapshotnext, &
-         convert,convert_type,saveprim,primnames, &
+         convert,convert_type,saveprim,&
          typeparIO,nwauxio,nocartesian, w_write,writelevel,&
          writespshift,endian_swap, length_convert_factor, &
          time_convert_factor,level_io,level_io_min, level_io_max, &
@@ -121,7 +121,7 @@ contains
 
     namelist /stoplist/ itmax,time_max,dtmin,global_time,it
 
-    namelist /methodlist/ w_names,time_integrator, &
+    namelist /methodlist/ time_integrator, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,&
          flux_scheme,typepred1,&
@@ -370,10 +370,6 @@ contains
        enddo
     enddo
 
-    ! Set default variable names
-    primnames = 'default'
-    w_names    = 'default'
-
     ! These are used to construct file and log names from multiple par files
     basename_full = ''
     basename_prev = ''
@@ -444,9 +440,6 @@ contains
       snapshotnext = snapshotini+1
     end if
 
-    if(TRIM(primnames)=='default'.and.mype==0) write(uniterr,*) &
-         'Warning in read_par_files: primnames not given!'
-
     if(firstprocess .and. snapshotini<0) &
          call mpistop("Please restart from a snapshot when firstprocess=T")
 
@@ -501,8 +494,6 @@ contains
 
     if(itmax==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: itmax or time_max not given!'
-
-    if(TRIM(w_names)=='default') call mpistop("Provide w_names and restart code")
 
     do level=1,nlevelshi
        !if(flux_scheme(level)=='tvdlf1'.and.time_integrator=='twostep') &
@@ -1809,7 +1800,11 @@ contains
           opened = .true.
 
           ! Start of file headern
-          line = "it global_time dt " // trim(w_names)
+          line = "it global_time dt"
+          do level=1,nw
+             i = len_trim(line) + 2
+             write(line(i:),"(a,a)") trim(cons_wnames(level)), " "
+          end do
 
           ! Volume coverage per level
           do level = 1, refine_max_level

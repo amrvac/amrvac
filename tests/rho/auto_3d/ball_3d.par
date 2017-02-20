@@ -5,13 +5,12 @@
 !>              conservative finite difference scheme,
 !>              mp5 limiter (hence 3 ghost cell layers)
 !>              CFL 0.6 ok (CFL 0.9 unstable!)
-!> $AMRVAC_DIR/setup.pl -d=33 -p=rho
+!> $AMRVAC_DIR/setup.pl -d=3
 !=====================================================
 
  &filelist
         base_filename='ball_3d'
         typefilelog='regression_test'
-        primnames='rho'
     	convert_type='vtuBCCmpi'
         autoconvert=T
 /
@@ -26,7 +25,6 @@
  /
 
  &methodlist
-        w_names=       'rho'
  /
 
  &boundlist

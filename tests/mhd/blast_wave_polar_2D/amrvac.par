@@ -1,7 +1,6 @@
 !setup.pl -d=2 
  &filelist
 	base_filename='bw_polar_2D'
-        primnames='rho v1 v2 p b1 b2'
         autoconvert=.true.
         saveprim=.true.
         nwauxio=3
@@ -16,12 +15,11 @@
  /
 
  &stoplist
-        time_max=0.2d0
+        time_max=0.25d0
  /
         itmax=1
 
  &methodlist
-        w_names='rho m1 m2 e b1 b2'
         time_integrator='threestep'
         flux_scheme=20*'hll'
         limiter=20*'koren'

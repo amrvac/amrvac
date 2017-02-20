@@ -4,7 +4,6 @@
 !=====================================================
 
  &filelist
-        primnames    = 'rho'
     	convert_type = 'vtiCCmpi'
         autoconvert  = T
 	base_filename  = 'output/conv'
@@ -20,7 +19,6 @@
  /
 
  &methodlist
-        w_names=       'rho'
  /
 
  &boundlist

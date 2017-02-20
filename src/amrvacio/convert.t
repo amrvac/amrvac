@@ -64,7 +64,7 @@ end subroutine generate_plotfile
 subroutine getheadernames(wnamei,xandwnamei,outfilehead)
 
 ! this collects all variables names in the wnamei character array, getting the info from
-! the primnames/w_names strings (depending on saveprim). It combines this info with names
+! the prim_wnames/cons_wnames strings (depending on saveprim). It combines this info with names
 ! for the dimensional directions in the xandwnamei array. In the outfilehead, it collects
 ! the dimensional names, and only those names from the nw variables for output (through w_write)
 ! together with the added names for nwauxio variables
@@ -78,13 +78,12 @@ character(len=1024) :: outfilehead
 integer::  space_position,iw
 character(len=10)::  wname
 character(len=std_len):: aux_variable_names
-character(len=len(primnames))::  scanstring
+character(len=50)::  scanstring
 
 logical, save:: first=.true.
 !-----------------------------------------------------------------------------
 
-! in case additional variables are computed and stored for output, adjust 
-! the w_names and primnames string
+! in case additional variables are computed and stored for output
 if (nwauxio>0) then
    if (.not. associated(usr_add_aux_names)) then
       call mpistop("usr_add_aux_names not defined")
@@ -93,15 +92,17 @@ if (nwauxio>0) then
    end if
 end if
 
-! --- part to provide variable names from primnames/varnames strings
+! --- part to provide variable names from prim_wnames/cons_wnames strings
 if(saveprim) then
-   scanstring=TRIM(primnames)//' '//TRIM(aux_variable_names)
+   scanstring=TRIM(aux_variable_names)
+   wnamei(1:nw)=prim_wnames(1:nw)
 else
-   scanstring=TRIM(w_names)//' '//TRIM(aux_variable_names)
+   scanstring=TRIM(aux_variable_names)
+   wnamei(1:nw)=cons_wnames(1:nw)
 endif
 
 space_position=index(scanstring,' ')
-do iw=1,nw+nwauxio
+do iw=nw+1,nw+nwauxio
    do while (space_position==1)
      scanstring=scanstring(2:)
      space_position=index(scanstring,' ')
@@ -2189,7 +2190,7 @@ write(qunit,'(a,x,i11)') 'attribute "timestep" number ',it
 write(qunit,'(a,f25.16)')'attribute "time"     number ',global_time *time_convert_factor
 write(qunit,'(a)')   'attribute "eqpar"    value "eqpararray"'
 write(qunit,'(a)')   'attribute "ngrids"   value "ngridsonlevarray"'
-write(qunit,'(a)')   'attribute "w_names"   value "wnamesarray"'
+write(qunit,'(a)')   'attribute "cons_wnames"   value "wnamesarray"'
 write(qunit,'(a)') '#'
 
 ! denote the end of the header section

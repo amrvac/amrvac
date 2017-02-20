@@ -9,7 +9,6 @@
 
  &filelist
         base_filename='jetCloud3D'
-        primnames='rho v1 v2 v3 p tr'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBmpi'
@@ -30,7 +29,6 @@
         time_max=6.0d0
 
  &methodlist
-        w_names= 'rho m1 m2 m3 e tr'
         time_integrator=  'ssprk54'
         flux_scheme=    20*'hllc'
         typepred1=    20*'hllc'

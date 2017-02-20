@@ -1,44 +1,40 @@
 !setup.pl -d=33
 
 &filelist
-  primnames        = 'rho v1 v2 v3 p'
   typefilelog      = 'regression_test'
-  filenamelog      = 'rc_3d'
   autoconvert      = .true.
   convert_type     = 'vtuBCCmpi'
   saveprim         = .true.
 /
 
  &savelist
-   dtsave(1)       = 1.d-3
+   dtsave_log       = 1.d-3
 /
 
  &stoplist
-   tmax            = 5.d-2
+   time_max            = 5.d-2
 /
 
  &methodlist
-   wnames          = 'rho m1 m2 m3 e'
-   fileheadout     = 'rc_3d'
-   typeadvance     = 'threestep'
-   typefull1       = 13*'hllc'
-   typelimiter1    = 13*'cada3'
+   time_integrator     = 'threestep'
+   flux_scheme       = 20*'hllc'
+   limiter    = 20*'cada3'
 /
  &boundlist
-  dixB  =   2
-  typeB=          5*'cont', 5*'cont',
+  nghostcells  =   2
+  typeboundary=          5*'cont', 5*'cont',
                   5*'cont', 5*'cont',
                   5*'cont', 5*'cont'
 /
- &amrlist
-   errorestimate   = 3
-   mxnest          = 3
-   nxblock1        = 4
-   nxblock2        = 4
-   nxblock3        = 4
-   nxlone1         = 8
-   nxlone2         = 8
-   nxlone3         = 8
+ &meshlist
+   refine_criterion   = 3
+   refine_max_level          = 3
+   block_nx1        = 4
+   block_nx2        = 4
+   block_nx3        = 4
+   domain_nx1         = 8
+   domain_nx2         = 8
+   domain_nx3         = 8
    xprobmin1       =-1.0d0
    xprobmax1       = 1.0d0
    xprobmin2       =-1.0d0

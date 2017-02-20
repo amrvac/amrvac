@@ -113,11 +113,15 @@ contains
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)
+    prim_wnames(nwflux)='rho'
+    cons_wnames(nwflux)='rho'
 
     allocate(mom(ndir))
     do idir = 1, ndir
        nwflux    = nwflux + 1
        mom(idir) = nwflux       ! momentum density
+       write(prim_wnames(nwflux),"(A1,I1)") "v",idir
+       write(cons_wnames(nwflux),"(A1,I1)") "m",idir
     end do
 
     ! Set index of energy variable
@@ -125,6 +129,8 @@ contains
        nwflux = nwflux + 1
        e_     = nwflux          ! energy density
        p_     = nwflux          ! gas pressure
+       prim_wnames(nwflux)='p'
+       cons_wnames(nwflux)='e'
     else
        e_ = -1
        p_ = -1
@@ -136,6 +142,8 @@ contains
     do itr = 1, hd_n_tracer
        nwflux = nwflux + 1
        tracer(itr) = nwflux     ! tracers
+       write(prim_wnames(nwflux),"(A3,I1)") "trp",itr
+       write(cons_wnames(nwflux),"(A3,I1)") "trc",itr
     end do
 
     hd_nwflux = nwflux
