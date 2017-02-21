@@ -3,10 +3,6 @@
 !> using adaptive mesh refinement.
 program amrvac
 
-  ! following line may avoid mystery problems in the combination
-  !  where we use ifort compiler and MPT (SGIs MPI implementation)
-  !DEC$ ATTRIBUTES NOINLINE :: read_snapshot
-
   {#IFDEF PARTICLES
   use mod_gridvars, only: init_gridvars, finish_gridvars
   }
@@ -47,11 +43,7 @@ program amrvac
      call init_rays
      }
 
-     if (typeparIO==1)then
-        call read_snapshot
-     else
-        call read_snapshotnopar
-     end if
+     call read_snapshot
 
      {#IFDEF PARTICLES
      call init_tracerparticles
@@ -149,7 +141,7 @@ contains
     use mod_ghostcells_update
 
     integer :: level, ifile, fixcount, ncells_update, ncells_block
-    logical :: alive
+    logical :: save_now
 
     time_in=MPI_WTIME()
     fixcount=1
@@ -184,14 +176,16 @@ contains
 
        timeio0=MPI_WTIME()
        do ifile=nfile,1,-1
-          if(timetosave(ifile)) call saveamrfile(ifile)
+         if(timetosave(ifile)) call saveamrfile(ifile)
        end do
+
        ! save a snapshot when a file name 'savenow' is present
-       if(mype==0) inquire(file='savenow',exist=alive)
-       if(npe>1) call MPI_BCAST(alive,1,MPI_LOGICAL,0,icomm,ierrmpi)
-       if(alive) then
+       if (mype==0) inquire(file='savenow',exist=save_now)
+       if (npe>1) call MPI_BCAST(save_now,1,MPI_LOGICAL,0,icomm,ierrmpi)
+
+       if (save_now) then
           if(mype==0) write(*,'(a,i7,a,i7,a,es12.4)') ' save a snapshot No.',&
-               snapshot,' at it=',it,' global_time=',global_time
+               snapshotnext,' at it=',it,' global_time=',global_time
           call saveamrfile(1)
           call saveamrfile(2)
           call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)

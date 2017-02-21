@@ -96,7 +96,7 @@ contains
     double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
     double precision, intent(inout) :: dtnew
 
-    double precision                :: dxinv(1:ndim)
+    double precision                :: dxinv(1:ndim), max_grav
     integer                         :: idim
 
     double precision :: gravity_field(ixI^S,ndim)
@@ -112,8 +112,9 @@ contains
     end if
 
     do idim = 1, ndim
-      dtnew = min(dtnew, minval(1.0d0 / &
-           sqrt(abs(gravity_field(ixO^S,idim)) * dxinv(idim))))
+      max_grav = maxval(abs(gravity_field(ixO^S,idim)))
+      max_grav = max(max_grav, epsilon(1.0d0))
+      dtnew = min(dtnew, 1.0d0 / sqrt(max_grav * dxinv(idim)))
     end do
 
   end subroutine gravity_get_dt

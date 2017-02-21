@@ -2,7 +2,7 @@
 !> pointers for the various supported routines. An actual physics module has to
 !> set these pointers to its implementation of these routines.
 module mod_physics
-
+  use mod_global_parameters, only: name_len
   use mod_physics_hllc
   use mod_physics_roe
   use mod_physics_ppm
@@ -11,7 +11,7 @@ module mod_physics
   public
 
   !> String describing the physics type of the simulation
-  character(len=40)    :: physics_type = ""
+  character(len=name_len) :: physics_type = ""
 
   !> To use wider stencils in flux calculations. A value of 1 will extend it by
   !> one cell in both directions, in any dimension
@@ -33,7 +33,8 @@ module mod_physics
   procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
-  procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust         => null()
+  procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust        => null()
+  procedure(sub_write_info), pointer      :: phys_write_info             => null()
 
   abstract interface
 
@@ -122,6 +123,10 @@ module mod_physics
        double precision, intent(out):: pth(ixI^S)
      end subroutine sub_get_pthermal
 
+     subroutine sub_write_info(file_handle)
+       integer, intent(in) :: file_handle
+     end subroutine sub_write_info
+
   end interface
 
 contains
@@ -190,6 +195,9 @@ contains
 
     if (.not. associated(phys_boundary_adjust)) &
          phys_boundary_adjust => dummy_boundary_adjust
+
+    if (.not. associated(phys_write_info)) &
+         phys_write_info => dummy_write_info
 
   end subroutine phys_check
 
@@ -262,5 +270,17 @@ contains
     use mod_global_parameters
     type(walloc), dimension(max_blocks) :: pwuse
   end subroutine dummy_boundary_adjust
+
+  subroutine dummy_write_info(fh)
+    use mod_global_parameters
+    integer, intent(in)                 :: fh !< File handle
+    integer, dimension(MPI_STATUS_SIZE) :: st
+    integer                             :: er
+
+    ! Number of physics parameters
+    integer, parameter                  :: n_par = 0
+
+    call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
+  end subroutine dummy_write_info
 
 end module mod_physics

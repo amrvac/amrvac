@@ -327,7 +327,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    select case(convert_type)
     case("oneblock")
@@ -435,7 +435,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    open(qunit,file=filename,status='unknown')
  end if
@@ -543,12 +543,14 @@ inquire(qunit,opened=fileopen)
 if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".out"
    open(qunit,file=filename,status='unknown',form='unformatted')
 end if
 
-write(qunit)it,global_time*time_convert_factor,ndim,neqpar+nspecialpar,nw+nwauxio
+! Jannis: have removed neqpar here
+! write(qunit)it,global_time*time_convert_factor,ndim,neqpar+nspecialpar,nw+nwauxio
+write(qunit)it,global_time*time_convert_factor,ndim,nw+nwauxio
 
 nx^D=ixMhi^D-ixMlo^D+1;
 select case(convert_type)
@@ -564,17 +566,18 @@ end select
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
 
+! Jannis: have removed eqpar here
 ! for idl output: add the eqparnames, note the length mismatch!!!
-tmpnames=TRIM(outfilehead)//' '//TRIM(eqparname)//' '//TRIM(specialparname)
+! tmpnames=TRIM(outfilehead)//' '//TRIM(eqparname)//' '//TRIM(specialparname)
 
 ! use -nleafs to indicate amr grid
 if (nleafs==1 .and. refine_max_level==1) then
   write(qunit) nxC^D
-  write(qunit)eqpar
+  ! write(qunit)eqpar
   write(qunit)tmpnames
 else
   write(qunit) ^D&-nleafs
-  write(qunit) eqpar
+  ! write(qunit) eqpar
   write(qunit)tmpnames
   ! write out individual grid sizes, grid level, and corners
   do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -740,7 +743,7 @@ inquire(qunit,opened=fileopen)
 if (.not.fileopen) then
    ! generate filename    
    filenr=snapshotini
-   if (autoconvert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
    open(qunit,file=filename,status='unknown')
 end if
@@ -1005,12 +1008,6 @@ dx^D=dx(^D,level);
 
 normconv(0) = length_convert_factor
 normconv(1:nw) = w_convert_factor
-
-! for normalization within the code
-if(.not. saveprim) then
-  ! Jannis: removed code that 'guessed' conversion factor
-  if (mype == 0) print *, "Warning, using wrong conversion factors"
-end if
 
 ! coordinates of cell centers
 nxCC^D=nx^D;
@@ -1384,7 +1381,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshotnext
   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown')
@@ -1545,7 +1542,7 @@ integer :: ipe,igrid,level,icel,ixC^L,ixCC^L,Morton_no,Morton_length
 integer :: nx^D,nxC^D,nc,np,VTK_type,ix^D,filenr
 integer*8 :: offset
 
-integer::  size_int,size_double,size_length,k,iw
+integer::  size_real,k,iw
 integer::  length,lengthcc,length_coords,length_conn,length_offsets
 character::  buf
 character(len=80)::  filename
@@ -1602,16 +1599,14 @@ if (mype /= 0) then
 else
  ! mype==0
  offset=0
- !size_double=8
- size_double=4
- size_length=4
- size_int=size_length
+ !size_real=8
+ size_real=4
  
  inquire(qunit,opened=fileopen)
  if(.not.fileopen)then
    ! generate filename 
     filenr=snapshotini
-    if (autoconvert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='replace')
@@ -1638,8 +1633,8 @@ else
  nc={nx^D*}
  np={nxC^D*}
  
- length=np*size_double
- lengthcc=nc*size_double
+ length=np*size_real
+ lengthcc=nc*size_real
  
  length_coords=3*length
  length_conn=2**^ND*size_int*nc
@@ -1662,7 +1657,7 @@ else
              '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
              '" format="appended" offset="',offset,'">'
          write(qunit,'(a)')'</DataArray>'
-         offset=offset+length+size_length
+         offset=offset+length+size_int
       enddo
       write(qunit,'(a)')'</PointData>'
 
@@ -1670,7 +1665,7 @@ else
       write(qunit,'(a,i16,a)') &
    '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
       ! write cell corner coordinates in a backward dimensional loop, always 3D output
-      offset=offset+length_coords+size_length
+      offset=offset+length_coords+size_int
       write(qunit,'(a)')'</Points>'
     else
       ! we write out every grid as one VTK PIECE
@@ -1686,7 +1681,7 @@ else
              '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
              '" format="appended" offset="',offset,'">'
          write(qunit,'(a)')'</DataArray>'
-         offset=offset+lengthcc+size_length
+         offset=offset+lengthcc+size_int
       enddo
       write(qunit,'(a)')'</CellData>'
 
@@ -1694,7 +1689,7 @@ else
       write(qunit,'(a,i16,a)') &
    '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
       ! write cell corner coordinates in a backward dimensional loop, always 3D output
-      offset=offset+length_coords+size_length
+      offset=offset+length_coords+size_int
       write(qunit,'(a)')'</Points>'
     end if
    
@@ -1703,17 +1698,17 @@ else
     ! connectivity part
     write(qunit,'(a,i16,a)')&
       '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
-    offset=offset+length_conn+size_length    
+    offset=offset+length_conn+size_int    
 
     ! offsets data array
     write(qunit,'(a,i16,a)') &
       '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
-    offset=offset+length_offsets+size_length    
+    offset=offset+length_offsets+size_int    
 
     ! VTK cell type data array
     write(qunit,'(a,i16,a)') &
       '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
-    offset=offset+size_length+nc*size_int
+    offset=offset+size_int+nc*size_int
 
     write(qunit,'(a)')'</Cells>'
 
@@ -1738,7 +1733,7 @@ else
                '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                '" format="appended" offset="',offset,'">'
            write(qunit,'(a)')'</DataArray>'
-           offset=offset+length+size_length
+           offset=offset+length+size_int
         enddo
         write(qunit,'(a)')'</PointData>'
 
@@ -1746,7 +1741,7 @@ else
         write(qunit,'(a,i16,a)') &
      '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
         ! write cell corner coordinates in a backward dimensional loop, always 3D output
-        offset=offset+length_coords+size_length
+        offset=offset+length_coords+size_int
         write(qunit,'(a)')'</Points>'
       else
         ! we write out every grid as one VTK PIECE
@@ -1762,7 +1757,7 @@ else
                '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                '" format="appended" offset="',offset,'">'
            write(qunit,'(a)')'</DataArray>'
-           offset=offset+lengthcc+size_length
+           offset=offset+lengthcc+size_int
         enddo
         write(qunit,'(a)')'</CellData>'
 
@@ -1770,7 +1765,7 @@ else
         write(qunit,'(a,i16,a)') &
      '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
         ! write cell corner coordinates in a backward dimensional loop, always 3D output
-        offset=offset+length_coords+size_length
+        offset=offset+length_coords+size_int
         write(qunit,'(a)')'</Points>'
       end if
      
@@ -1779,17 +1774,17 @@ else
       ! connectivity part
       write(qunit,'(a,i16,a)')&
         '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
-      offset=offset+length_conn+size_length    
+      offset=offset+length_conn+size_int    
 
       ! offsets data array
       write(qunit,'(a,i16,a)') &
         '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
-      offset=offset+length_offsets+size_length    
+      offset=offset+length_offsets+size_int    
 
       ! VTK cell type data array
       write(qunit,'(a,i16,a)') &
         '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
-      offset=offset+size_length+nc*size_int
+      offset=offset+size_int+nc*size_int
 
       write(qunit,'(a)')'</Cells>'
 
@@ -1999,7 +1994,7 @@ integer, intent(in) :: qunit
 
 integer :: iigrid, igrid, level, ngrids, nx^D
 
-integer,parameter::     size_double = 8
+integer,parameter::     size_real = 8
 integer,parameter::     size_byte   = 1
 integer,parameter::     size_recsep = 4
 character(len=5) ::     byteorder
@@ -2050,7 +2045,7 @@ nx^D=ixGhi^D-2*nghostcells;
 byteorder = 'lsb'
    ! generate filename    
    filenr=snapshotini
-   if (autoconvert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
 
 call date_and_time(dummy_date,dummy_time,dummy_zone,DateAndTime)
@@ -2123,7 +2118,7 @@ do level=levmin,levmax
            '" class array type double rank 1 shape ',nw+nwauxio, &
            ' items ',                                nummeshpoints, &
            byteorder, 'binary data ',                offset
-      offset = offset + (nw+nwauxio)*nummeshpoints*size_double + size_recsep
+      offset = offset + (nw+nwauxio)*nummeshpoints*size_real + size_recsep
       write(qunit,'(a)') 'attribute "dep" string "connections" '
       write(qunit,'(a)') '#'
       !
@@ -2150,11 +2145,12 @@ write(qunit,'(a)') '#'
 !
 ! eqpar array
 !
-write(qunit,'(a,x,i11,a)') &
-  'object "eqpararray" class array type float items ', &
-  neqpar+nspecialpar,' data follows'
-write(qunit,'(f24.12)') eqpar
-write(qunit,'(a)') '#'
+! Jannis: have removed eqpar here
+! write(qunit,'(a,x,i11,a)') &
+!   'object "eqpararray" class array type float items ', &
+!   neqpar+nspecialpar,' data follows'
+! write(qunit,'(f24.12)') eqpar
+! write(qunit,'(a)') '#'
 !
 ! # grids on level
 !
@@ -2188,7 +2184,8 @@ write(qunit,'(a,x,i11)') 'attribute "ndir"     number ',ndir
 write(qunit,'(a,x,i11)') 'attribute "nw"       number ',nw+nwauxio
 write(qunit,'(a,x,i11)') 'attribute "timestep" number ',it
 write(qunit,'(a,f25.16)')'attribute "time"     number ',global_time *time_convert_factor
-write(qunit,'(a)')   'attribute "eqpar"    value "eqpararray"'
+! Jannis: have removed eqpar here
+! write(qunit,'(a)')   'attribute "eqpar"    value "eqpararray"'
 write(qunit,'(a)')   'attribute "ngrids"   value "ngridsonlevarray"'
 write(qunit,'(a)')   'attribute "cons_wnames"   value "wnamesarray"'
 write(qunit,'(a)') '#'
@@ -2212,7 +2209,7 @@ do level=levmin,levmax
       offset = offset + size_recsep
       ! write data array
       call varout_dx_condep(qunit,pw(igrid)%w,ixG^LL)
-      offset = offset + (nw+nwauxio)*nummeshpoints*size_double + size_recsep
+      offset = offset + (nw+nwauxio)*nummeshpoints*size_real + size_recsep
    end do
 end do
 
@@ -2328,7 +2325,7 @@ else
  if(.not.fileopen)then
     ! generate filename 
     filenr=snapshotini
-    if (autoconvert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshotnext
     write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vti"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2441,7 +2438,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshotnext
    ! Open the file for the header part
    write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')
@@ -2544,7 +2541,7 @@ if (mype==0) then
  if(.not.fileopen)then
     ! generate filename 
     filenr=snapshotini
-    if (autoconvert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshotnext
     write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
    ! Open the file for the header part
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2876,7 +2873,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".pvtu"
    ! Open the file
    open(qunit,file=filename,status='unknown',form='formatted')
@@ -2989,7 +2986,7 @@ Master_cpu_open : if (mype == 0) then
  if (.not.fileopen) then
    ! generate filename
     filenr=snapshotini
-    if (autoconvert) filenr=snapshot-1
+    if (autoconvert) filenr=snapshotnext
    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
    open(qunit,file=filename,status='unknown')
  end if
@@ -3436,7 +3433,7 @@ character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 integer*8 :: offset
-integer::  size_int,size_double,size_length,recsep,k,iw,filenr
+integer::  size_real,recsep,k,iw,filenr
 integer::  length,lengthcc,offset_points,offset_cells, &
            length_coords,length_conn,length_offsets
 character::  buf
@@ -3454,7 +3451,7 @@ inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
    filenr=snapshotini
-   if (autoconvert) filenr=snapshot-1
+   if (autoconvert) filenr=snapshotnext
    ! Open the file for the header part
    write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename),filenr,"p",mype,".vtu"
    open(qunit,file=pfilename,status='unknown',form='formatted')
@@ -3475,9 +3472,7 @@ write(qunit,'(a)')'</FieldData>'
 
 offset=0
 recsep=4
-size_double=4
-size_length=4
-size_int=size_length
+size_real=4
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
 
@@ -3487,8 +3482,8 @@ nxC^D=nx^D+1;
 nc={nx^D*}
 np={nxC^D*}
 
-length=np*size_double
-lengthcc=nc*size_double
+length=np*size_real
+lengthcc=nc*size_real
 
 length_coords=3*length
 length_conn=2**^ND*size_int*nc
@@ -3519,7 +3514,7 @@ do level=levmin,levmax
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                 '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
-            offset=offset+length+size_length
+            offset=offset+length+size_int
          enddo
          do iw=nw+1,nw+nwauxio
 
@@ -3527,7 +3522,7 @@ do level=levmin,levmax
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                 '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
-            offset=offset+length+size_length
+            offset=offset+length+size_int
          enddo
          write(qunit,'(a)')'</PointData>'
 
@@ -3535,7 +3530,7 @@ do level=levmin,levmax
          write(qunit,'(a,i16,a)') &
      '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
          ! write cell corner coordinates in a backward dimensional loop, always 3D output
-         offset=offset+length_coords+size_length
+         offset=offset+length_coords+size_int
          write(qunit,'(a)')'</Points>'
        case('pvtuBCCmpi')
          ! we write out every grid as one VTK PIECE
@@ -3549,7 +3544,7 @@ do level=levmin,levmax
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                 '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
-            offset=offset+lengthcc+size_length
+            offset=offset+lengthcc+size_int
          enddo
          do iw=nw+1,nw+nwauxio
 
@@ -3557,7 +3552,7 @@ do level=levmin,levmax
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                 '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
-            offset=offset+lengthcc+size_length
+            offset=offset+lengthcc+size_int
          enddo
          write(qunit,'(a)')'</CellData>'
 
@@ -3565,7 +3560,7 @@ do level=levmin,levmax
          write(qunit,'(a,i16,a)') &
      '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
          ! write cell corner coordinates in a backward dimensional loop, always 3D output
-         offset=offset+length_coords+size_length
+         offset=offset+length_coords+size_int
          write(qunit,'(a)')'</Points>'
       end select
 
@@ -3575,17 +3570,17 @@ do level=levmin,levmax
       ! connectivity part
       write(qunit,'(a,i16,a)')&
         '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
-      offset=offset+length_conn+size_length    
+      offset=offset+length_conn+size_int    
 
       ! offsets data array
       write(qunit,'(a,i16,a)') &
         '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
-      offset=offset+length_offsets+size_length    
+      offset=offset+length_offsets+size_int    
 
       ! VTK cell type data array
       write(qunit,'(a,i16,a)') &
         '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
-      offset=offset+size_length+nc*size_int
+      offset=offset+size_int+nc*size_int
 
       write(qunit,'(a)')'</Cells>'
 

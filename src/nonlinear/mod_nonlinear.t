@@ -64,7 +64,7 @@ contains
     case(2)
        v(ixO^S)=3.0d0*w(ixO^S,rho_)**2
     case default
-       call mpistop('Undefined fluxtype: set eqpar to 1 or 2')
+       call mpistop('Undefined fluxtype: set nonlinear_flux_type to 1 or 2')
     end select
 
   end subroutine nonlinear_get_v
@@ -100,7 +100,7 @@ contains
     case(2)
        f(ixO^S)=w(ixO^S,rho_)**3
     case default
-       call mpistop('Undefined fluxtype: set eqpar to 1 or 2')
+       call mpistop('Undefined fluxtype: set nonlinear_flux_type to 1 or 2')
     end select
 
     transport = .false.

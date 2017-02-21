@@ -22,6 +22,8 @@ module mod_global_parameters
 
   logical :: slab
 
+  !> @todo Move mpi related variables to e.g. mod_comm
+
   !> The number of MPI tasks
   integer :: npe
 
@@ -34,6 +36,15 @@ module mod_global_parameters
   !> A global MPI error return code
   !> @todo Make local
   integer :: ierrmpi
+
+  !> Size (in bytes) of MPI_DOUBLE_PRECISION
+  integer(kind=MPI_ADDRESS_KIND) :: size_double
+
+  !> Size (in bytes) of MPI_INTEGER
+  integer(kind=MPI_ADDRESS_KIND) :: size_int
+
+  !> Size (in bytes) of MPI_LOGICAL
+  integer(kind=MPI_ADDRESS_KIND) :: size_logical
 
   integer :: log_fh
   !> MPI IO type for block including ghost cells
@@ -50,7 +61,7 @@ module mod_global_parameters
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
 
-  integer :: snapshot, snapshotnext, slice, slicenext, collapseNext, icollapse
+  integer :: snapshotnext, slice, slicenext, collapseNext, icollapse
 
   logical, allocatable, dimension(:^D&) :: patchfalse
 
@@ -64,6 +75,9 @@ module mod_global_parameters
 
   !> Default length for strings
   integer, parameter :: std_len = 131
+
+  !> Default length for names (of e.g. variables)
+  integer, parameter :: name_len = 16
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
   integer :: r_ = -1
@@ -187,13 +201,6 @@ module mod_global_parameters
   integer           :: iprob
   !> positions of the minimum and maximum surfaces for each dimension
   double precision  :: xprob^L
-
-  ! TODO: remove
-  integer, parameter :: neqpar = 1
-  integer, parameter :: nspecialpar = 0
-  double precision :: eqpar(neqpar) = -0.0d0
-  character(len=*), parameter :: eqparname = "DEPRECATED"
-  character(len=*), parameter :: specialparname = "DEPRECATED"
 
   !> For transform variables and save selected data
   !> number of w in the transformed data
@@ -609,8 +616,14 @@ module mod_global_parameters
   !> Solve energy equation or not
   logical :: phys_energy=.true.
 
-  !> Store variable names, primitive and conservative
-  character(len=10), dimension(50) :: prim_wnames, cons_wnames
+  !> Maximum number of variables
+  integer, parameter :: max_nw = 50
+
+  !> Primitive variable names
+  character(len=name_len) :: prim_wnames(max_nw)
+
+  !> Conservative variable names
+  character(len=name_len) :: cons_wnames(max_nw)
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

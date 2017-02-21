@@ -1007,7 +1007,11 @@ contains
     iib^D=0;
     {do i^DB=-1,1\}
        if (i^D==0|.and.) cycle
-       if (phi_ > 0 .and. neighbor_pole(i^D,igrid)>0) ipole=neighbor_pole(i^D,igrid)
+       if (phi_ > 0) then
+         if (neighbor_pole(i^D,igrid)>0) then
+           ipole=neighbor_pole(i^D,igrid)
+         end if
+       end if
     {end do\}
     {
     do i^D=-1,1

@@ -201,7 +201,7 @@ module mod_usr_methods
        double precision, intent(inout) :: wB0(ixI^S,1:ndir)
      end subroutine set_B0
 
-     !> regenerate w and eqpar arrays to output into *tf.dat
+     !> regenerate w and eqpartf arrays to output into *tf.dat
      subroutine transform_w(w,wtf,ixI^L,ixO^L)
        use mod_global_parameters
        integer, intent(in)           :: ixI^L, ixO^L
@@ -245,26 +245,5 @@ module mod_usr_methods
        double precision, intent(in)    :: x(ixI^S,1:ndim)
      end subroutine flag_grid
   end interface
-
-    ! !> to allow use defined global process before main loop evolution
-    ! subroutine usr_before_main_loop()
-    !   use mod_global_parameters
-
-    !   ! call mpistop("usr_before_main_loop not implemented")
-    !   ! use mod_input_output
-
-    !   ! {#IFDEF MAGNETOFRICTION
-    !   ! if(itmaxmf>0) then
-    !   !    time_in=MPI_WTIME()
-    !   !    call magnetofriction
-    !   !    if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
-    !   ! endif
-    !   ! }
-    !   ! !> write transformed data file
-    !   if(nwtf>0 .and. neqpartf>0) then
-    !      call mpistop("usr_before_main_loop not implemented")
-    !      !    call write_snapshot_tf
-    !   end if
-    ! end subroutine usr_before_main_loop
 
 end module mod_usr_methods

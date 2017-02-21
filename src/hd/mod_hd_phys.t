@@ -76,7 +76,7 @@ module mod_hd_phys
 
 contains
 
-  !> Read this module"s parameters from a file
+  !> Read this module's parameters from a file
   subroutine hd_read_params(files)
     use mod_global_parameters, only: unitpar, SI_unit
     character(len=*), intent(in) :: files(:)
@@ -93,6 +93,26 @@ contains
     end do
 
   end subroutine hd_read_params
+
+  !> Write this module's parameters to a snapsoht
+  subroutine hd_write_info(fh)
+    use mod_global_parameters
+    integer, intent(in)                 :: fh
+    character(len=name_len)             :: name
+    integer, dimension(MPI_STATUS_SIZE) :: st
+    integer                             :: n_par, er
+
+    n_par = 2
+    call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
+
+    name = "gamma"
+    call MPI_FILE_WRITE(fh, name, name_len, MPI_CHARACTER, st, er)
+    call MPI_FILE_WRITE(fh, hd_gamma, 1, MPI_DOUBLE_PRECISION, st, er)
+
+    name = "adiab"
+    call MPI_FILE_WRITE(fh, name, name_len, MPI_CHARACTER, st, er)
+    call MPI_FILE_WRITE(fh, hd_adiab, 1, MPI_DOUBLE_PRECISION, st, er)
+  end subroutine hd_write_info
 
   !> Initialize the module
   subroutine hd_phys_init()
@@ -176,6 +196,7 @@ contains
     phys_check_params    => hd_check_params
     phys_check_w         => hd_check_w
     phys_get_pthermal    => hd_get_pthermal
+    phys_write_info      => hd_write_info
 
     ! derive units from basic units
     call hd_physical_units

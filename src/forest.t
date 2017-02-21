@@ -11,6 +11,7 @@ integer, external :: getnode
 level=1
 Morton_no=0
 ipe=0
+nparents=0
 nleafs={ng^D(1)*}
 nleafs_active=nleafs
 nleafs_level(1)={ng^D(1)*}
@@ -37,6 +38,9 @@ end do
                               tree_root(ig^DD),i^DD)
    end do\}
 {end do\}
+
+! This call is here to ensure the sfc array is initialized
+call load_balance()
 
 end subroutine init_forest_root
 !=============================================================================
@@ -135,6 +139,7 @@ end if
 active = tree%node%active
 
 nleafs=nleafs-2**^ND+1
+nparents=nparents-1
 nleafs_level(child_level)=nleafs_level(child_level)-2**^ND
 nleafs_level(level)=nleafs_level(level)+1
 
@@ -199,6 +204,7 @@ child_level=level+1
 {end do\}
 
 nleafs=nleafs+2**^ND-1
+nparents=nparents+1
 nleafs_level(child_level)=nleafs_level(child_level)+2**^ND
 nleafs_level(level)=nleafs_level(level)-1
 
@@ -321,24 +327,10 @@ use mod_global_parameters
 
 integer, intent(in) :: file_handle
 
-integer(kind=MPI_OFFSET_KIND) :: offset
 integer, dimension(MPI_STATUS_SIZE) :: status
 !integer :: ig^D, level, size_logical, Morton_no, igrid, ipe
 integer :: ig^D, level, Morton_no, igrid, ipe, isfc
-{^IFMPT integer :: size_logical, lb}
-{^IFNOMPT integer(kind=MPI_ADDRESS_KIND) :: size_logical, lb}
-
 integer, external :: getnode
-!-----------------------------------------------------------------------------
-call MPI_TYPE_GET_EXTENT(MPI_LOGICAL,lb,size_logical,ierrmpi)
-{#IFDEF EVOLVINGBOUNDARY
-offset=int(size_block_io,kind=MPI_OFFSET_KIND)*&
-       int(nleafs-nphyboundblock,kind=MPI_OFFSET_KIND)+&
-       int(size_block,kind=MPI_OFFSET_KIND)*&
-       int(nphyboundblock,kind=MPI_OFFSET_KIND)
-}{#IFNDEF EVOLVINGBOUNDARY
-offset=int(size_block_io,kind=MPI_OFFSET_KIND)*int(nleafs,kind=MPI_OFFSET_KIND)
-}
 
 Morton_no=0
 ipe=0
@@ -374,16 +366,15 @@ logical :: leaf
 integer :: ic^D, child_ig^D, child_level
 !-----------------------------------------------------------------------------
 if (typeparIO==1) then
-   call MPI_FILE_READ_AT_ALL(file_handle,offset,leaf,1,MPI_LOGICAL, &
+   call MPI_FILE_READ_ALL(file_handle,leaf,1,MPI_LOGICAL, &
                               status,ierrmpi)
 else
  if (mype==0) then
-   call MPI_FILE_READ_AT(file_handle,offset,leaf,1,MPI_LOGICAL, &
+   call MPI_FILE_READ(file_handle,leaf,1,MPI_LOGICAL, &
                              status,ierrmpi)
  end if
  if (npe>1)  call MPI_BCAST(leaf,1,MPI_LOGICAL,0,icomm,ierrmpi)
 end if
-offset=offset+int(size_logical,kind=MPI_OFFSET_KIND)
 
 tree%node%leaf=leaf
 tree%node%ig^D=ig^D;

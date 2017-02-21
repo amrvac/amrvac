@@ -6,14 +6,18 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from __future__ import unicode_literals
+# from __future__ import unicode_literals
 
 import argparse
 import struct
 import sys
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib.widgets import Slider
 import numpy as np
+
+size_logical = 4
+size_int = 4
+size_double = 8
 
 def get_args():
     # Get and parse the command line arguments
@@ -21,156 +25,87 @@ def get_args():
         description='''Plot .dat files of 1D MPI-AMRVAC simulations''',
         epilog='''Example:
         ./plot_1d.py ...''')
-    parser.add_argument('dat_files', nargs='+',
-                        type=argparse.FileType('rb'),
+    parser.add_argument('dat_file', type=argparse.FileType('rb'),
                         help='MPI-AMRVAC .dat files to read')
     parser.add_argument('-iw', type=int, default=1,
                         help='Index of variable to plot')
-    parser.add_argument('-outfile', type=argparse.FileType('w'),
-                        default=sys.stdout, help='MPI-AMRVAC .dat file')
     return parser.parse_args()
 
-def main():
-    ani = animation.FuncAnimation(fig, animate, args.dat_files, interval=50)
-    plt.show()
+def read_header(dat):
+    h = {}
 
-def animate(f):
-    data_1d = get_data(f, args)
-    line.set_xdata(data_1d[:,0])
-    line.set_ydata(data_1d[:,args.iw])
+    fmt = 'iiiiiiiiiid'
+    hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    [h['version'], h['offset_tree'], h['offset_blocks'], h['nw'],
+     h['ndir'], h['ndim'], h['levmax'], h['nleafs'], h['nparents'],
+     h['it'], h['time']] = hdr
 
-def get_data(dat, args):
+    fmt = 2 * 'd' + 2 * 'i'
+    hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    [h['xmin'], h['xmax'], h['domain_nx'], h['block_nx']] = hdr
 
-    dat.seek(0,2)       # goto EOF
-    offset = -32        # 32 = 6*size_int + size_double = 6*4 + 8
-    dat.seek(offset,1)  # go back 36 bytes
+    # Read w_names
+    w_names = []
+    for i in range(h['nw']):
+        fmt = 16 * 'c'
+        hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+        w_names.append(''.join(hdr).strip())
+    h['w_names'] = w_names
+    return h
 
-    ### Read 6 footer ints + 1 double
-    int_in = dat.read(4)
-    nleafs = struct.unpack('i',int_in)[0]    # number of active tree leafs nleafs (= #blocks)
-    int_in = dat.read(4)
-    levmaxini = struct.unpack('i',int_in)[0] # maximal refinement level present levmax
-    int_in = dat.read(4)
-    ndimini = struct.unpack('i',int_in)[0]   # dimensionality NDIM
-    int_in = dat.read(4)
-    ndirini = struct.unpack('i',int_in)[0]   # number of vector components NDIR
-    int_in = dat.read(4)
-    nwini = struct.unpack('i',int_in)[0]     # number of variables nw
-    int_in = dat.read(4)
-    it = struct.unpack('i',int_in)[0]        # integer time counter it
-    flt_in = dat.read(8)
-    t = struct.unpack('d',flt_in)[0]         # global time t
+def get_data_1d(dat, args):
+    h = read_header(dat)
+    nw = h['nw']
+    nx = h['block_nx']
+    nleafs = h['nleafs']
+    nparents = h['nparents']
 
-    # TODO: Check ndimini
+    # Read tree info. Skip 'leaf' array
+    dat.seek(h['offset_tree'] + (nleafs+nparents) * size_logical)
 
-    # read block size in each dimension and all eqpars
-    offset = offset-int(2*ndimini*4 + 2*ndimini*8) # int size = 4, double = 8
-    dat.seek(offset,1)
+    # Read block levels
+    fmt = nleafs * 'i'
+    block_lvls = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
-    # Get block size
-    int_in = dat.read(4)
-    n_cell = struct.unpack('i',int_in)[0]
-    size_block = n_cell*nwini*8   # block size in bytes
-    # Get size of level one mesh
-    int_in = dat.read(4)
-    n_mesh_lev1= struct.unpack('i',int_in)[0]
-    # Get x minimum location
-    flt_in = dat.read(8)
-    xmin = struct.unpack('d',flt_in)[0]
-    # Get x maximum location
-    flt_in = dat.read(8)
-    xmax = struct.unpack('d',flt_in)[0]
-    
+    # Read block indices
+    fmt = nleafs * 'i'
+    block_ixs = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
-    # Read forest
-    dat.seek(nleafs*size_block,0)   # go to end of block stuctures, start of the forest
+    # Determine coarse grid spacing
+    dx0 = (h['xmax'] - h['xmin']) / h['domain_nx']
 
-    n_blocks = n_mesh_lev1 // n_cell     # number of blocks in each direction
-
-    block_info = []
-    igrid = 0
-    refine = 0
-    forest = []
-    level = 1
-
-    for i in range(1, n_blocks+1):
-        (igrid,refine) = read_node(dat,forest,igrid,refine,ndimini,level,block_info, i)
-
-    outfile = args.outfile
-
-    # Calculate physical sizes of blocks and cells on level one
-
-    # physical block size in each direction (on the first level)
-    dx = (xmax - xmin) / n_blocks
-
-    # physical cell size in each direction (on the first level)
-    dxc = (xmax - xmin) / n_mesh_lev1
-
-    data_1d = np.zeros((n_cell * nleafs, nwini+1))
-    i_cell = 0
     ### Start reading data blocks
+    dat.seek(h['offset_blocks'])
 
-    dat.seek(0,0)  # go to start of file
+    out_data = np.zeros((nx * nleafs, nw+1))
+
     for i in range(nleafs):
-        # coordinates of bottom left corner of block
-        lb = xmin + (block_info[i][1] - 1) * dx / (2**(block_info[i][0]-1))
+        lvl = block_lvls[i]
+        ix = block_ixs[i]
 
-        # local cell size
-        dxc_block = dxc/(2**(block_info[i][0]-1))
-        values = [ [] for i in range(nwini) ]
-        for nw in range(nwini):
-            for c in range(n_cell):
-                flt_in = dat.read(8)
-                dbl = struct.unpack('d',flt_in)[0]
-                values[nw].append(dbl)
+        x0 = (ix-1) * nx * dx0 * 0.5**(lvl-1)
+        x1 = ix * nx * dx0 * 0.5**(lvl-1)
+        x = np.linspace(x0, x1, nx)
 
-        for c in range(n_cell):
-            x = calc_coord(c,n_cell,lb,dxc_block)
-            data_1d[i_cell][0] = x
-            data_1d[i_cell][1:] = values[nw][c]
-            i_cell += 1
+        # Read number of ghost cells
+        fmt = 2 * 'i'
+        [gc_lo, gc_hi] = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
-    return data_1d
+        # Read actual data
+        block_size = gc_lo + nw * nx + gc_hi
+        fmt = block_size * nw * 'd'
+        d = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+        w = np.reshape(d, [block_size, nw], 'F') # Fortran ordering
 
-def read_node(dat,forest,igrid,refine,ndimini,level,block_info,ix):
-    # Recursive function that checks if the block is a leaf or not.
-    # If leaf, write block info. If not, run recursively for all
-    # possible child nodes
+        out_data[i*nx:(i+1)*nx, 0] = x
+        out_data[i*nx:(i+1)*nx, 1:] = w[gc_lo:gc_lo+nx, :]
 
-    b = dat.read(4)
-    leaf = struct.unpack('i',b)[0]
-
-    if (leaf):
-        forest.append(1)
-        igrid += 1
-        block_info.append([level,ix])
-    else:
-        forest.append(0)
-        refine += 1
-        for i in range(2):
-            child_index = new_index(ndimini, i, ix)
-            (igrid,refine) = read_node(dat,forest,igrid,refine,ndimini,level+1,block_info,child_index)
-    return igrid,refine
-
-
-def new_index(dims, i, ig):
-    # Calculate new grid indices for child nodes if node is refined.
-    # See Keppens (2012) section 3.3
-    return 2 * (ig-1) + 1 + i
-
-
-def calc_coord(c,n_cell,lb,dxc_block):
-    # calculate the cell coordinates from the cell number
-    local_ig = 1 + c % n_cell
-    x = lb + (local_ig - 0.5) * dxc_block
-    return x
-
+    return h, out_data
 
 args = get_args()
 fig, ax = plt.subplots()
-data_1d = get_data(args.dat_files[0], args)
+h, data_1d = get_data_1d(args.dat_file, args)
 line, = ax.plot(data_1d[:,0], data_1d[:,args.iw])
 ax.set_xlabel('x')
-
-if __name__ == "__main__":
-    main()
+ax.set_ylabel(h['w_names'][args.iw-1])
+plt.show()

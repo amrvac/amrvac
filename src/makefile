@@ -83,7 +83,7 @@ mod_hd_roe.o: mod_tvd.o
 mod_initialize.o: mod_ghostcells_update.o
 mod_initialize.o: mod_input_output.o
 mod_initialize.o: mod_physics.o
-mod_initialize.o: mod_usr_methods.o
+mod_input_output.o: mod_ghostcells_update.o
 mod_input_output.o: mod_kracken.o
 mod_input_output.o: mod_physics.o
 mod_input_output.o: mod_small_values.o
@@ -99,6 +99,7 @@ mod_mhd.o: mod_mhd_roe.o
 mod_mhd_phys.o: mod_gravity.o
 mod_mhd_phys.o: mod_physics.o
 mod_mhd_phys.o: mod_radiative_cooling.o
+mod_mhd_phys.o: mod_small_values.o
 mod_mhd_phys.o: mod_thermal_conduction.o
 mod_mhd_phys.o: mod_viscosity.o
 mod_mhd_ppm.o: mod_mhd_phys.o
@@ -130,3 +131,4 @@ refine.o: mod_physics.o
 setdt.o: mod_physics.o
 setdt.o: mod_thermal_conduction.o
 slice.o: mod_physics.o
+write_shape.o: mod_ghostcells_update.o
