@@ -51,6 +51,11 @@ def read_header(dat):
         hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
         w_names.append(''.join(hdr).strip())
     h['w_names'] = w_names
+
+    fmt = 16 * 'c'
+    hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    h['physics_type'] = ''.join(hdr).strip()
+
     return h
 
 def get_data_1d(dat, args):
