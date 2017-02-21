@@ -17,19 +17,31 @@
     double precision  :: xprobmax(ndim)
     integer           :: domain_nx(ndim)
     integer           :: block_nx(ndim)
-    character(len=10) :: w_names(nw)
+    character(len=16) :: w_names(nw)
+
+    ! TODO: write geometry info
+
+    character(len=16) :: physics_type
+    integer :: n_params
+    character(len=16) :: param_name_1
+    param_value_1 (type depends on name)
+    character(len=16) :: param_name_2
+    param_value_2 (type depends on name)
+    ...
 
 # Tree information
 
     logical :: leaf(nleafs+nparents)
-    integer :: offset_block(nleafs)
     integer :: refinement_level(nleafs)
     integer :: spatial_index(ndim, nleafs)
+    integer :: offset_block(nleafs)
 
 # Block
 
-    integer :: ixO^L (2 * ndim indices)
-    double precision :: w(ixO^L, nw)
+    integer :: n_ghost_lo(ndim) ! number of ghost cells on lower boundaries
+    integer :: n_ghost_hi(ndim) ! number of ghost cells on upper boundaries
+    ! block_shape = 1-n_ghost_lo:block_nx+n_ghost_hi
+    double precision :: w(block_shape, nw)
 
 # Version history
 
