@@ -153,7 +153,9 @@ if (igrid==0) then
    call mpistop("trying to delete a non-existing grid in dealloc_node")
 end if
 
-deallocate(pw(igrid)%w,pwold(igrid)%w,pwCoarse(igrid)%w)
+deallocate(pw(igrid)%w, pw(igrid)%x)
+deallocate(pwCoarse(igrid)%w, pwCoarse(igrid)%x)
+deallocate(pwold(igrid)%w)
 deallocate(px(igrid)%x,pxCoarse(igrid)%x)
 
 if (.not.slab) call putgridgeo(igrid)
