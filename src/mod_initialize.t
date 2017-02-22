@@ -112,25 +112,11 @@ contains
     if (.not.slab) call set_pole
 
     do igrid=1,max_blocks
-       nullify(pwold(igrid)%w,pw(igrid)%w,pw1(igrid)%w, &
-            pwCoarse(igrid)%w)
        nullify(px(igrid)%x,pxCoarse(igrid)%x)
        nullify(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D, &
             pgeo(igrid)%dvolume,pgeo(igrid)%dx)
        nullify(pgeoCoarse(igrid)%surfaceC^D,pgeoCoarse(igrid)%surface^D, &
             pgeoCoarse(igrid)%dvolume,pgeoCoarse(igrid)%dx)
-       if (B0field) then
-          nullify(pB0_cell(igrid)%w,pB0_face^D(igrid)%w)
-       end if
-       if (nstep>2) then
-          nullify(pw2(igrid)%w)
-       end if
-       if (nstep>3) then
-          nullify(pw3(igrid)%w)
-       end if
-       if (nstep>4) then
-          nullify(pw4(igrid)%w)
-       end if
     end do
 
     ! on each processor, create for later use a default patch array

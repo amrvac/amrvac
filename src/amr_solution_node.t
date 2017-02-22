@@ -66,6 +66,19 @@ pwold(igrid)%w(ixG^T,1:nw)=0.d0
 pw(igrid)%w(ixG^T,1:nw)=0.d0
 pwCoarse(igrid)%w(ixCoG^S,1:nw)=0.d0
 
+! initialize background non-evolving solution
+if(B0field) then
+  allocate(pw(igrid)%w0(ixG^T,1:ndir), &
+           pw(igrid)%w0face(ixG^T,1:ndir,1:ndim))
+  pw(igrid)%w0=0.d0
+  pw(igrid)%w0face=0.d0
+end if
+
+! initialize coordinates
+allocate(pw(igrid)%x(ixG^T,1:ndim), &
+         pwCoarse(igrid)%x(ixCoG^S,1:ndim))
+
+
 ! set level information
 level=igrid_to_node(igrid,mype)%node%level
 ig^D=igrid_to_node(igrid,mype)%node%ig^D;

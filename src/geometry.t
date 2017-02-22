@@ -122,6 +122,12 @@ else
    ixGext^L=ixG^LL^LADD1;
 end if
 
+! allocate geometric info
+allocate(pw(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
+         pw(igrid)%surface^D(ixmin^D-1:ixmax^D^D%ix^S), &
+         pw(igrid)%dvolume(ixGext^S), &
+         pw(igrid)%xg(ixGext^S,1:ndim),&
+         pw(igrid)%dx(ixGext^S,1:ndim))
 
 allocate(pgeo(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
          pgeo(igrid)%surface^D(ixmin^D-1:ixmax^D^D%ix^S), &
@@ -144,6 +150,7 @@ else
    ixGext^L=ixCoG^L^LADD1;
 end if
 
+allocate(pwCoarse(igrid)%dvolume(ixGext^S))
 
 allocate(pgeoCoarse(igrid)%dvolume(ixGext^S))
 

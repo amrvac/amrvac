@@ -14,23 +14,24 @@ type(walloc) :: pwtmp
 !----------------------------------------------------------------------------
 ! when only one level allowed, there is nothing to do anymore
 if (refine_max_level == 1) return
+!if (refine_criterion==2) allocate(pwtmp%w(ixG^T,1:nw))
 
 call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
 do levnew=2,refine_max_level
-   if (refine_criterion==2) then
-      call setdt
-      call advance(0)
-   end if
+   !if (refine_criterion==2) then
+   !   call setdt
+   !   call advance(0)
+   !end if
 
    call errest
 
-   if (refine_criterion==2) then
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-         pwtmp%w => pwold(igrid)%w
-         pwold(igrid)%w => pw(igrid)%w
-         pw(igrid)%w => pwtmp%w
-      end do
-   end if
+   !if (refine_criterion==2) then
+   !   do iigrid=1,igridstail; igrid=igrids(iigrid);
+   !      pwtmp%w = pwold(igrid)%w
+   !      pwold(igrid)%w = pw(igrid)%w
+   !      pw(igrid)%w = pwtmp%w
+   !   end do
+   !end if
 
    call amr_coarsen_refine
    
@@ -39,6 +40,8 @@ do levnew=2,refine_max_level
      if (levmax/=levnew) exit
    end if
 end do
+
+!if (refine_criterion==2) deallocate(pwtmp%w)
 
 end subroutine settree
 !=============================================================================

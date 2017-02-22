@@ -3,17 +3,76 @@ module mod_physicaldata
    save
 
    type walloc
-      double precision, dimension(:^D&,:), pointer :: w
+      !> ID of a grid block
+      integer :: igrid=-1
+      !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
+      integer :: iwpos=0
+      !> Is w in primitive state or not
+      logical :: w_is_primitive=.false.
+      !> Variables, normally center
+      double precision, dimension(:^D&,:), allocatable :: w
+      !> Background fixed components of w at cell center
+      double precision, dimension(:^D&,:), allocatable :: w0
+      !> Background fixed components of w at cell interface
+      double precision, dimension(:^D&,:,:), allocatable :: w0face
+      !> Cell-center positions
+      double precision, dimension(:^D&,:), allocatable :: x
+      !> Cell-center positions for non-Cartesian coordinates
+      double precision, dimension(:^D&,:), allocatable :: xg
+      !> Cell sizes
+      double precision, dimension(:^D&,:), allocatable :: dx
+      !> Volumes of a cell
+      double precision, dimension(:^D&), allocatable :: dvolume
+      !> Areas of cell-center surfaces
+      double precision, dimension(:^D&), allocatable :: surface^D
+      !> Areas of cell-face surfaces
+      double precision, dimension(:^D&), allocatable :: surfaceC^D
    end type walloc
 
 {^NOONED
    type walloc_sub
-      double precision, dimension(:^DE&,:), pointer :: w
+      !> ID of a grid block
+      integer :: igrid=-1
+      !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
+      integer :: iwpos=0
+      !> Is w in primitive state or not
+      logical :: w_is_primitive=.false.
+      !> Variables, normally center
+      double precision, dimension(:^DE&,:), allocatable :: w
+      !> Background fixed components of w at cell center
+      double precision, dimension(:^DE&,:), allocatable :: w0
+      !> Background fixed components of w at cell interface
+      double precision, dimension(:^DE&,:,:), allocatable :: w0face
+      !> Cell-center positions
+      double precision, dimension(:^DE&,:), allocatable :: x
+      !> Cell-center positions for non-Cartesian coordinates
+      double precision, dimension(:^DE&,:), allocatable :: xg
+      !> Cell sizes
+      double precision, dimension(:^DE&,:), allocatable :: dx
+      !> Volumes of a cell
+      double precision, dimension(:^DE&), allocatable :: dvolume
+      !> Areas of cell-center surfaces 
+      double precision, dimension(:^DE&), allocatable :: surface^DE
+      !> Areas of cell-face surfaces
+      double precision, dimension(:^DE&), allocatable :: surfaceC^DE
    end type walloc_sub
 }
 {^IFONED
    type walloc_sub
-      double precision, dimension(:), pointer :: w
+      !> ID of a grid block
+      integer :: igrid=-1
+      !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
+      integer :: iwpos=0
+      !> Is w in primitive state or not
+      logical :: w_is_primitive=.false.
+      !> Variables, normally center
+      double precision, dimension(:), allocatable :: w
+      !> Background fixed components of w at cell center
+      double precision, dimension(:), allocatable :: w0
+      !> Background fixed components of w at cell interface
+      double precision, dimension(:), allocatable :: w0face
+      !> Cell-center positions
+      double precision, dimension(:), allocatable :: x
    end type walloc_sub
 }
    ! array of physical variables
