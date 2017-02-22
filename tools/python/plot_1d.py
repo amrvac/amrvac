@@ -58,6 +58,17 @@ def read_header(dat):
     hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
     h['physics_type'] = ''.join(hdr).strip()
 
+    fmt = align + 'i'
+    n_pars, = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+
+    for i in range(n_pars):
+        fmt = align + 'd'
+        val = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+        fmt = align + 16 * 'c'
+        name = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+        name = ''.join(name).strip()
+        h[name] = val
+
     return h
 
 def get_data_1d(dat, args):

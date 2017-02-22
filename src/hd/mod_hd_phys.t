@@ -98,20 +98,18 @@ contains
   subroutine hd_write_info(fh)
     use mod_global_parameters
     integer, intent(in)                 :: fh
-    character(len=name_len)             :: name
+    integer, parameter                  :: n_par = 1
+    double precision                    :: values(n_par)
+    character(len=name_len)             :: names(n_par)
     integer, dimension(MPI_STATUS_SIZE) :: st
-    integer                             :: n_par, er
+    integer                             :: er
 
-    n_par = 2
     call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
 
-    name = "gamma"
-    call MPI_FILE_WRITE(fh, name, name_len, MPI_CHARACTER, st, er)
-    call MPI_FILE_WRITE(fh, hd_gamma, 1, MPI_DOUBLE_PRECISION, st, er)
-
-    name = "adiab"
-    call MPI_FILE_WRITE(fh, name, name_len, MPI_CHARACTER, st, er)
-    call MPI_FILE_WRITE(fh, hd_adiab, 1, MPI_DOUBLE_PRECISION, st, er)
+    names(1) = "gamma"
+    values(1) = hd_gamma
+    call MPI_FILE_WRITE(fh, values, n_par, MPI_DOUBLE_PRECISION, st, er)
+    call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine hd_write_info
 
   !> Initialize the module

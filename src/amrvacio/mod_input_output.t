@@ -1076,7 +1076,7 @@ contains
     call MPI_FILE_WRITE(fh, [ block_nx^D ], ndim, &
          MPI_INTEGER, st, er)
     do iw = 1, nw
-      call MPI_FILE_WRITE(fh, prim_wnames(iw), name_len, MPI_CHARACTER, st, er)
+      call MPI_FILE_WRITE(fh, cons_wnames(iw), name_len, MPI_CHARACTER, st, er)
     end do
 
     ! TODO: write geometry info
