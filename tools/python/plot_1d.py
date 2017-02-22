@@ -10,14 +10,16 @@ from __future__ import print_function
 
 import argparse
 import struct
-import sys
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
 import numpy as np
 
+# Size of basic types (in bytes)
 size_logical = 4
 size_int = 4
 size_double = 8
+
+# For un-aligned data, use '=' (for aligned data set to '')
+align = '='
 
 def get_args():
     # Get and parse the command line arguments
@@ -34,25 +36,25 @@ def get_args():
 def read_header(dat):
     h = {}
 
-    fmt = 'iiiiiiiiiid'
+    fmt = align + 'iiiiiiiiiid'
     hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
     [h['version'], h['offset_tree'], h['offset_blocks'], h['nw'],
      h['ndir'], h['ndim'], h['levmax'], h['nleafs'], h['nparents'],
      h['it'], h['time']] = hdr
 
-    fmt = 2 * 'd' + 2 * 'i'
+    fmt = align + 2 * 'd' + 2 * 'i'
     hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
     [h['xmin'], h['xmax'], h['domain_nx'], h['block_nx']] = hdr
 
     # Read w_names
     w_names = []
     for i in range(h['nw']):
-        fmt = 16 * 'c'
+        fmt = align + 16 * 'c'
         hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
         w_names.append(''.join(hdr).strip())
     h['w_names'] = w_names
 
-    fmt = 16 * 'c'
+    fmt = align + 16 * 'c'
     hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
     h['physics_type'] = ''.join(hdr).strip()
 
@@ -69,11 +71,11 @@ def get_data_1d(dat, args):
     dat.seek(h['offset_tree'] + (nleafs+nparents) * size_logical)
 
     # Read block levels
-    fmt = nleafs * 'i'
+    fmt = align + nleafs * 'i'
     block_lvls = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
     # Read block indices
-    fmt = nleafs * 'i'
+    fmt = align + nleafs * 'i'
     block_ixs = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
     # Determine coarse grid spacing
@@ -93,23 +95,23 @@ def get_data_1d(dat, args):
         x = np.linspace(x0, x1, nx)
 
         # Read number of ghost cells
-        fmt = 2 * 'i'
+        fmt = align + 2 * 'i'
         [gc_lo, gc_hi] = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
         # Read actual data
-        block_size = gc_lo + nw * nx + gc_hi
-        fmt = block_size * nw * 'd'
+        block_size = gc_lo + nx + gc_hi
+        fmt = align + block_size * nw * 'd'
         d = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
         w = np.reshape(d, [block_size, nw], 'F') # Fortran ordering
-
         out_data[i*nx:(i+1)*nx, 0] = x
         out_data[i*nx:(i+1)*nx, 1:] = w[gc_lo:gc_lo+nx, :]
 
     return h, out_data
 
 args = get_args()
-fig, ax = plt.subplots()
 h, data_1d = get_data_1d(args.dat_file, args)
+
+fig, ax = plt.subplots()
 line, = ax.plot(data_1d[:,0], data_1d[:,args.iw])
 ax.set_xlabel('x')
 ax.set_ylabel(h['w_names'][args.iw-1])
