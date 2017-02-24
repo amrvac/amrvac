@@ -7,7 +7,6 @@ integer :: Morton_no, recv_igrid, recv_ipe, send_igrid, send_ipe, igrid, ipe
 
 integer, external :: getnode
 
-call amr_Morton_order
 call get_Morton_range_active
 
 if (npe==1) then
@@ -73,6 +72,9 @@ call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
 !!$      end if
 !!$   end do
 !!$end if
+
+! Update space filling curve
+call amr_Morton_order()
 
 contains
 !=============================================================================

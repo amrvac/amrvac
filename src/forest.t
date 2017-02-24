@@ -40,7 +40,7 @@ end do
 {end do\}
 
 ! This call is here to ensure the sfc array is initialized
-call load_balance()
+call amr_Morton_order()
 
 end subroutine init_forest_root
 !=============================================================================

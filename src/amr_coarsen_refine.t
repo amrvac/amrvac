@@ -86,6 +86,8 @@ end do
 
 call get_level_range
 
+call amr_Morton_order()
+
 call load_balance
 deallocate(recvstatus,recvrequest,sendstatus,sendrequest)
 
