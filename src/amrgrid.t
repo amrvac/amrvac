@@ -16,7 +16,7 @@ type(walloc) :: pwtmp
 if (refine_max_level == 1) return
 !if (refine_criterion==2) allocate(pwtmp%w(ixG^T,1:nw))
 
-call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
+call getbc(global_time,0.d0,0,nwflux+nwaux)
 do levnew=2,refine_max_level
    !if (refine_criterion==2) then
    !   call setdt
@@ -76,7 +76,7 @@ end if
 
 
 do while(levmin<my_levmin.or.levmax>my_levmax)
- call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
+ call getbc(global_time,0.d0,0,nwflux+nwaux)
  do iigrid=1,igridstail; igrid=igrids(iigrid);
     call forcedrefine_grid_io(igrid,pw(igrid)%w)
  end do

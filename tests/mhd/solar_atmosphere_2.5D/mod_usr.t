@@ -342,7 +342,7 @@ contains
 
     do idir=1,ndir
       if(B0field) then
-        Btotal(ixI^S,idir)=w(ixI^S,mag(idir))+myB0_cell%w(ixI^S,mag(idir))
+        Btotal(ixI^S,idir)=w(ixI^S,mag(idir))+block%w0(ixI^S,idir,0)
       else
         Btotal(ixI^S,idir)=w(ixI^S,mag(idir))
       endif

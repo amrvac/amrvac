@@ -204,12 +204,12 @@ if (npe>1) then
       do jgrid=1,Morton_sub_stop(ipe)-Morton_sub_start(ipe)+1
          itag=Morton_sub_start(ipe)+jgrid-1
          if (ipe == mype ) then 
-            call MPI_SEND(px_sub(jgrid)%x,1,type_subblock_x_io,0,itag,icomm,ierrmpi)
+            call MPI_SEND(pw_sub(jgrid)%x,1,type_subblock_x_io,0,itag,icomm,ierrmpi)
             call MPI_SEND(pw_sub(jgrid)%w,1,type_subblock_io,0,itag,icomm,ierrmpi)
             call MPI_SEND(normconv,nw+nwauxio+1,MPI_DOUBLE_PRECISION,0,itag,icomm,ierrmpi)
          end if
          if (mype == 0) then
-            call MPI_RECV(px_sub(Njgrid+1)%x,1,type_subblock_x_io,ipe,itag,icomm,status,ierrmpi)
+            call MPI_RECV(pw_sub(Njgrid+1)%x,1,type_subblock_x_io,ipe,itag,icomm,status,ierrmpi)
             call MPI_RECV(pw_sub(Njgrid+1)%w,1,type_subblock_io,ipe,itag,icomm,status,ierrmpi)
             call MPI_RECV(normconv,nw+nwauxio+1,MPI_DOUBLE_PRECISION,ipe,&
                itag,icomm,status,ierrmpi)
@@ -245,13 +245,13 @@ do ix1=ixsubMlo(1),ixsubMhi(1)
       line = ''
       do idir=1,ndim
 {^IFTHREED
-         write(data,"(es14.6)")roundoff(px_sub(jout)%x(ix1,ix2,idir),minvalue)
+         write(data,"(es14.6)")roundoff(pw_sub(jout)%x(ix1,ix2,idir),minvalue)
 }
 {^IFTWOD
-         write(data,"(es14.6)")roundoff(px_sub(jout)%x(ix1,idir),minvalue)
+         write(data,"(es14.6)")roundoff(pw_sub(jout)%x(ix1,idir),minvalue)
 }
 {^IFONED
-         write(data,"(es14.6)")roundoff(px_sub(jout)%x(idir),minvalue)
+         write(data,"(es14.6)")roundoff(pw_sub(jout)%x(idir),minvalue)
 }
 
          line = trim(line)//trim(data)//', '
@@ -407,7 +407,7 @@ integer :: amode, iwrite, status(MPI_STATUS_SIZE)
 ! Format the line:
       write(data,"(es14.6)")global_time
       line =  trim(data)
-      write(data,"(es14.6)")px_sub(1)%x
+      write(data,"(es14.6)")pw_sub(1)%x
       line =  trim(line)//', '//trim(data)
       do iw = 1,nw+nwauxio
          write(data,"(es14.6)")pw_sub(1)%w(iw)*normconv(iw)
@@ -631,14 +631,14 @@ call fill_subnode_info(igrid,jgrid,dir)
 
 ! Now hunt for the index closest to the slice:
 {^IFONED
-ixslice = minloc(dabs(xslice-px(igrid)%x(:,dir)),1,mask(:))
+ixslice = minloc(dabs(xslice-pw(igrid)%x(:,dir)),1,mask(:))
 }
 {^IFTWOD
 select case (dir)
 case (1)
-   ixslice = minloc(dabs(xslice-px(igrid)%x(:,ixMlo2,dir)),1,mask(:,ixMlo2))
+   ixslice = minloc(dabs(xslice-pw(igrid)%x(:,ixMlo2,dir)),1,mask(:,ixMlo2))
 case (2)
-   ixslice = minloc(dabs(xslice-px(igrid)%x(ixMlo1,:,dir)),1,mask(ixMlo1,:))
+   ixslice = minloc(dabs(xslice-pw(igrid)%x(ixMlo1,:,dir)),1,mask(ixMlo1,:))
 case default
    call mpistop("slice direction not clear in fill_subnode")
 end select
@@ -646,11 +646,11 @@ end select
 {^IFTHREED
 select case (dir)
 case (1)
-   ixslice = minloc(dabs(xslice-px(igrid)%x(:,ixMlo2,ixMlo3,dir)),1,mask(:,ixMlo2,ixMlo3))
+   ixslice = minloc(dabs(xslice-pw(igrid)%x(:,ixMlo2,ixMlo3,dir)),1,mask(:,ixMlo2,ixMlo3))
 case (2)
-   ixslice = minloc(dabs(xslice-px(igrid)%x(ixMlo1,:,ixMlo3,dir)),1,mask(ixMlo1,:,ixMlo3))
+   ixslice = minloc(dabs(xslice-pw(igrid)%x(ixMlo1,:,ixMlo3,dir)),1,mask(ixMlo1,:,ixMlo3))
 case (3)
-   ixslice = minloc(dabs(xslice-px(igrid)%x(ixMlo1,ixMlo2,:,dir)),1,mask(ixMlo1,ixMlo2,:))
+   ixslice = minloc(dabs(xslice-pw(igrid)%x(ixMlo1,ixMlo2,:,dir)),1,mask(ixMlo1,ixMlo2,:))
 case default
    call mpistop("slice direction not clear in fill_subnode")
 end select
@@ -659,7 +659,7 @@ end select
 ! Make a local copy of the pw(igrid)%w() array and compute nwauxio variables on this: 
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 if(saveprim.and.(sliceascii.or.ndim==1)) then 
-   call phys_to_primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
    normconv(0) = length_convert_factor
    normconv(1:nw) = w_convert_factor
 else
@@ -671,19 +671,14 @@ if(nwexpand>0)then
 typelimiter=limiter(node(plevel_,igrid))
 typegradlimiter=gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  if (.not.slab) mygeo => pgeo(igrid)
-  if (B0field) then
-     myB0_cell => pB0_cell(igrid)
-     myB0      => pB0_cell(igrid)
-     {^D&myB0_face^D => pB0_face^D(igrid)\}
-  end if
+  block=>pw(igrid)
   ! default (no) normalization for auxiliary variables
   normconv(nw+1:nw+nwauxio)=one
 
   if (.not. associated(usr_aux_output)) then
      call mpistop("usr_aux_output not defined")
   else
-     call usr_aux_output(ixG^LL,ixM^LL,w,px(igrid)%x,normconv)
+     call usr_aux_output(ixG^LL,ixM^LL,w,pw(igrid)%x,normconv)
   end if
 endif
 
@@ -703,16 +698,16 @@ endif
 
 {^IFONED
 pw_sub(jgrid)%w(1:nw+nwexpand) = w(ixslice,1:nw+nwexpand)
-px_sub(jgrid)%x(1:ndim) = px(igrid)%x(ixslice,1:ndim)
+pw_sub(jgrid)%x(1:ndim) = pw(igrid)%x(ixslice,1:ndim)
 }
 {^IFTWOD
 select case (dir)
 case (1)
    pw_sub(jgrid)%w(ixGlo2:ixGhi2,1:nw+nwexpand) = w(ixslice,ixGlo2:ixGhi2,1:nw+nwexpand)
-   px_sub(jgrid)%x(ixGlo2:ixGhi2,1:ndim) = px(igrid)%x(ixslice,ixGlo2:ixGhi2,1:ndim)
+   pw_sub(jgrid)%x(ixGlo2:ixGhi2,1:ndim) = pw(igrid)%x(ixslice,ixGlo2:ixGhi2,1:ndim)
 case (2)
    pw_sub(jgrid)%w(ixGlo1:ixGhi1,1:nw+nwexpand) = w(ixGlo1:ixGhi1,ixslice,1:nw+nwexpand)
-   px_sub(jgrid)%x(ixGlo1:ixGhi1,1:ndim) = px(igrid)%x(ixGlo1:ixGhi1,ixslice,1:ndim)
+   pw_sub(jgrid)%x(ixGlo1:ixGhi1,1:ndim) = pw(igrid)%x(ixGlo1:ixGhi1,ixslice,1:ndim)
 case default
    call mpistop("slice direction not clear in fill_subnode")
 end select
@@ -722,18 +717,18 @@ select case (dir)
 case (1)
    pw_sub(jgrid)%w(ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:nw+nwexpand) = &
         w(ixslice,ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:nw+nwexpand)
-   px_sub(jgrid)%x(ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:ndim) = &
-        px(igrid)%x(ixslice,ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:ndim)
+   pw_sub(jgrid)%x(ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:ndim) = &
+        pw(igrid)%x(ixslice,ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:ndim)
 case (2)
    pw_sub(jgrid)%w(ixGlo1:ixGhi1,ixGlo3:ixGhi3,1:nw+nwexpand) = &
         w(ixGlo1:ixGhi1,ixslice,ixGlo3:ixGhi3,1:nw+nwexpand)
-   px_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo3:ixGhi3,1:ndim) = &
-        px(igrid)%x(ixGlo1:ixGhi1,ixslice,ixGlo3:ixGhi3,1:ndim) 
+   pw_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo3:ixGhi3,1:ndim) = &
+        pw(igrid)%x(ixGlo1:ixGhi1,ixslice,ixGlo3:ixGhi3,1:ndim) 
 case (3)
    pw_sub(jgrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,1:nw+nwexpand) = &
         w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixslice,1:nw+nwexpand) 
-   px_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo2:ixGhi2,1:ndim) = &
-        px(igrid)%x(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixslice,1:ndim) 
+   pw_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo2:ixGhi2,1:ndim) = &
+        pw(igrid)%x(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixslice,1:ndim) 
 case default
    call mpistop("slice direction not clear in fill_subnode")
 end select
@@ -747,16 +742,16 @@ integer, intent(in) :: jgrid, dir, nwexpand
 !-----------------------------------------------------------------------------
 ! take care, what comes out is not necessarily a right handed system!
 {^IFONED
-allocate(pw_sub(jgrid)%w(1:nw+nwexpand),px_sub(jgrid)%x(1:ndim))
+allocate(pw_sub(jgrid)%w(1:nw+nwexpand),pw_sub(jgrid)%x(1:ndim))
 }
 {^IFTWOD
 select case (dir)
 case (1)
 allocate(pw_sub(jgrid)%w(ixGlo2:ixGhi2,1:nw+nwexpand),&
-     px_sub(jgrid)%x(ixGlo2:ixGhi2,1:ndim))
+     pw_sub(jgrid)%x(ixGlo2:ixGhi2,1:ndim))
 case (2)
 allocate(pw_sub(jgrid)%w(ixGlo1:ixGhi1,1:nw+nwexpand),&
-     px_sub(jgrid)%x(ixGlo1:ixGhi1,1:ndim))
+     pw_sub(jgrid)%x(ixGlo1:ixGhi1,1:ndim))
 case default
    call mpistop("slice direction not clear in alloc_subnode")
 end select
@@ -765,13 +760,13 @@ end select
 select case (dir)
 case (1)
 allocate(pw_sub(jgrid)%w(ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:nw+nwexpand),&
-     px_sub(jgrid)%x(ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:ndim))
+     pw_sub(jgrid)%x(ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:ndim))
 case (2)
 allocate(pw_sub(jgrid)%w(ixGlo1:ixGhi1,ixGlo3:ixGhi3,1:nw+nwexpand),&
-     px_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo3:ixGhi3,1:ndim))
+     pw_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo3:ixGhi3,1:ndim))
 case (3)
 allocate(pw_sub(jgrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,1:nw+nwexpand),&
-     px_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo2:ixGhi2,1:ndim))
+     pw_sub(jgrid)%x(ixGlo1:ixGhi1,ixGlo2:ixGhi2,1:ndim))
 case default
    call mpistop("slice direction not clear in alloc_subnode")
 end select
@@ -786,7 +781,7 @@ if (jgrid==0) then
    call mpistop("trying to delete a non-existing grid in dealloc_subnode")
 end if
 
-deallocate(pw_sub(jgrid)%w,px_sub(jgrid)%x)
+deallocate(pw_sub(jgrid)%w,pw_sub(jgrid)%x)
 
 ! reset the global node info:
 node_sub(:,jgrid)=0

@@ -112,11 +112,10 @@ end do
 
 end subroutine deallocateBflux
 !=============================================================================
-subroutine fix_conserve(pwuse,idim^LIM)
+subroutine fix_conserve(idim^LIM)
 use mod_fix_conserve
 use mod_global_parameters
 
-type(walloc) :: pwuse(max_blocks)
 integer, intent(in) :: idim^LIM
 
 integer :: iigrid, igrid, idims, iside, iotherside, i^D, ic^D, inc^D, ix^L
@@ -177,14 +176,14 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 
             ! remove coarse flux
             if (slab) then
-               pwuse(igrid)%w(ix^D%ixM^T,1:nwflux) &
-                  = pwuse(igrid)%w(ix^D%ixM^T,1:nwflux) &
+               pw(igrid)%wb(ix^D%ixM^T,1:nwflux) &
+                  = pw(igrid)%wb(ix^D%ixM^T,1:nwflux) &
                    -pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwflux)
             else
                do iw=1,nwflux
-                  pwuse(igrid)%w(ix^D%ixM^T,iw)=pwuse(igrid)%w(ix^D%ixM^T,iw)&
+                  pw(igrid)%wb(ix^D%ixM^T,iw)=pw(igrid)%wb(ix^D%ixM^T,iw)&
                      -pflux(iside,^D,igrid)%flux(1^D%:^DD&,iw) &
-                     /pgeo(igrid)%dvolume(ix^D%ixM^T)
+                     /pw(igrid)%dvolume(ix^D%ixM^T)
                end do
             end if
 
@@ -199,32 +198,32 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
                if (ipe_neighbor==mype) then
                   iotherside=3-iside
                   if (slab) then
-                     pwuse(igrid)%w(ix^S,1:nwflux) &
-                       = pwuse(igrid)%w(ix^S,1:nwflux) &
+                     pw(igrid)%wb(ix^S,1:nwflux) &
+                       = pw(igrid)%wb(ix^S,1:nwflux) &
                        + pflux(iotherside,^D,ineighbor)%flux(:^DD&,1:nwflux)&
                        * CoFiratio
                   else
                      do iw=1,nwflux
-                        pwuse(igrid)%w(ix^S,iw)=pwuse(igrid)%w(ix^S,iw) &
+                        pw(igrid)%wb(ix^S,iw)=pw(igrid)%wb(ix^S,iw) &
                             +pflux(iotherside,^D,ineighbor)%flux(:^DD&,iw) &
-                            /pgeo(igrid)%dvolume(ix^S)
+                            /pw(igrid)%dvolume(ix^S)
                      end do
                   end if
                else
                   if (slab) then
                      ibufnext=ibuf+isize(^D)
-                     pwuse(igrid)%w(ix^S,1:nwflux) &
-                         = pwuse(igrid)%w(ix^S,1:nwflux)+CoFiratio &
+                     pw(igrid)%wb(ix^S,1:nwflux) &
+                         = pw(igrid)%wb(ix^S,1:nwflux)+CoFiratio &
                           *reshape(source=recvbuffer(ibuf:ibufnext-1), &
-                                 shape=shape(pwuse(igrid)%w(ix^S,1:nwflux)))
+                                 shape=shape(pw(igrid)%wb(ix^S,1:nwflux)))
                      ibuf=ibufnext
                   else
                      do iw=1,nwflux
                         ibufnext=ibuf+isize(^D)/(nwflux)
-                        pwuse(igrid)%w(ix^S,iw)=pwuse(igrid)%w(ix^S,iw) &
+                        pw(igrid)%wb(ix^S,iw)=pw(igrid)%wb(ix^S,iw) &
                            +reshape(source=recvbuffer(ibuf:ibufnext-1), &
-                                    shape=shape(pwuse(igrid)%w(ix^S,iw))) &
-                           /pgeo(igrid)%dvolume(ix^S)
+                                    shape=shape(pw(igrid)%wb(ix^S,iw))) &
+                           /pw(igrid)%dvolume(ix^S)
                         ibuf=ibufnext
                      end do
                   end if

@@ -43,13 +43,9 @@ contains
 
     integer :: igrid, level, ipe, ig^D
     logical :: ok
-    !-----------------------------------------------------------------------------
-    allocate(pw(max_blocks),pwold(max_blocks),pw1(max_blocks),pw2(max_blocks),pw3(max_blocks))
-    allocate(pw4(max_blocks),pwCoarse(max_blocks),pwio(max_blocks))
-    allocate(pB0_cell(max_blocks),pB0_face^D(max_blocks))
+
+    allocate(pw(max_blocks))
     allocate(pw_sub(max_blocks))
-    allocate(px(max_blocks),pxCoarse(max_blocks),px_sub(max_blocks))
-    allocate(pgeo(max_blocks),pgeoCoarse(max_blocks))
     allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))
     allocate(neighbor_type(-1:1^D&,max_blocks),neighbor_active(-1:1^D&,max_blocks))
     if (phi_ > 0) allocate(neighbor_pole(-1:1^D&,max_blocks))
@@ -110,14 +106,6 @@ contains
 
     poleB=.false.
     if (.not.slab) call set_pole
-
-    do igrid=1,max_blocks
-       nullify(px(igrid)%x,pxCoarse(igrid)%x)
-       nullify(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D, &
-            pgeo(igrid)%dvolume,pgeo(igrid)%dx)
-       nullify(pgeoCoarse(igrid)%surfaceC^D,pgeoCoarse(igrid)%surface^D, &
-            pgeoCoarse(igrid)%dvolume,pgeoCoarse(igrid)%dx)
-    end do
 
     ! on each processor, create for later use a default patch array
     allocate(patchfalse(ixG^T))

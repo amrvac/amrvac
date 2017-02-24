@@ -14,7 +14,7 @@ if(level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) then
    call resettree_convert
 end if
 
-call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
+call getbc(global_time,0.d0,0,nwflux+nwaux)
 
 !!!call Global_useroutput !compute at user level any global variable over all grids
 
@@ -181,6 +181,7 @@ end subroutine getheadernames
 !=============================================================================
 subroutine oneblock(qunit)
   use mod_usr_methods, only: usr_aux_output
+  use mod_mhd_phys
 
 ! this is for turning an AMR run into a single block
 ! the data will be all on selected level level_io
@@ -285,15 +286,14 @@ end do
 do iigrid=1,igridstail; igrid=igrids(iigrid)
    if(.not.writeblk(igrid)) cycle
    ncells=ncells+ncellg
-   allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
-   pwio(igrid)%w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+   pw(igrid)%wio(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 
    if (nwauxio > 0) then
       if (.not. associated(usr_aux_output)) then
          call mpistop("usr_aux_output not defined")
       else
          call usr_aux_output(ixG^LL,ixM^LL^LADD1, &
-              pwio(igrid)%w,px(igrid)%x,normconv)
+              pw(igrid)%wio,pw(igrid)%x,normconv)
       end if
    end if
 end do
@@ -301,26 +301,24 @@ end do
 if (saveprim) then
  do iigrid=1,igridstail; igrid=igrids(iigrid)
     if(.not.writeblk(igrid)) cycle
-    call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x)
+    call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,pw(igrid)%wio,pw(igrid)%x)
  end do
 else
  if (nwaux>0) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
      if(.not.writeblk(igrid)) cycle
-     call phys_get_aux(.true.,pwio(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
+     call phys_get_aux(.true.,pw(igrid)%wio,pw(igrid)%x,ixG^LL,ixG^LL^LSUB1,"oneblock")
   end do
  end if
 end if
 
-!> @todo Add similar functionality back in
 ! add background magnetic field B0 to B
-! do iigrid=1,igridstail; igrid=igrids(iigrid)
-!    if(.not.writeblk(igrid)) cycle
-!    if(B0field) then
-!      myB0_cell => pB0_cell(igrid)
-!      ^C&pwio(igrid)%w(ixG^T,b^C_)=pwio(igrid)%w(ixG^T,b^C_)+myB0_cell%w(ixG^T,^C);\
-!    end if
-! end do
+do iigrid=1,igridstail; igrid=igrids(iigrid)
+   if(.not.writeblk(igrid)) cycle
+   block=>pw(igrid)
+   if(allocated(pw(igrid)%w0)) &
+     pw(igrid)%wio(ixG^T,mag(:))=pw(igrid)%wio(ixG^T,mag(:))+pw(igrid)%w0(ixG^T,:,0)
+end do
 
 Master_cpu_open : if (mype == 0) then
  inquire(qunit,opened=fileopen)
@@ -360,11 +358,11 @@ do ig3=1,ng3(level_io)
              select case(convert_type)
                case("oneblock")
                  write(qunit,fmt="(100(e14.6))") &
-                  px(igrid)%x(ix^D,1:ndim)*normconv(0),&
-                  (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
+                  pw(igrid)%x(ix^D,1:ndim)*normconv(0),&
+                  (pw(igrid)%wio(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblockB")
-                 write(qunit) real(px(igrid)%x(ix^D,1:ndim)*normconv(0)),&
-                  (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
+                 write(qunit) real(pw(igrid)%x(ix^D,1:ndim)*normconv(0)),&
+                  (real(pw(igrid)%wio(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
            end if Master_write
          end do
@@ -375,11 +373,6 @@ do ig3=1,ng3(level_io)
  {^IFTHREED
  end do
 end do}
-
-do iigrid=1,igridstail; igrid=igrids(iigrid)
-   if(.not.writeblk(igrid)) cycle
-   deallocate(pwio(igrid)%w)
-end do
 
 close(qunit)
 
@@ -445,11 +438,11 @@ end if Master_cpu_open
 
 do Morton_no=Morton_start(mype),Morton_stop(mype)
   igrid=sfc_to_igrid(Morton_no)
-  if(saveprim) call phys_to_primitive(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+  if(saveprim) call phys_to_primitive(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
   if (mype/=0)then
       itag=Morton_no
       call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
-      call MPI_SEND(px(igrid)%x,1,type_block_xcc_io, 0,itag,icomm,ierrmpi)
+      call MPI_SEND(pw(igrid)%x,1,type_block_xcc_io, 0,itag,icomm,ierrmpi)
       itag=igrid
       call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
   else
@@ -457,7 +450,7 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
       do iw=1,nw
         if( dabs(pw(igrid)%w(ix^D,iw)) < 1.0d-32 ) pw(igrid)%w(ix^D,iw) = zero
       enddo
-       write(qunit,fmt="(100(e14.6))") px(igrid)%x(ix^D,1:ndim)&
+       write(qunit,fmt="(100(e14.6))") pw(igrid)%x(ix^D,1:ndim)&
                                      ,pw(igrid)%w(ix^D,1:nw)
    {end do\}
   end if
@@ -971,6 +964,7 @@ use mod_usr_methods, only: usr_aux_output
 use mod_global_parameters
 use mod_limiter
 use mod_physics, only: physics_type, phys_to_primitive
+use mod_mhd_phys
 
 integer, intent(in) :: qunit, igrid
 integer :: ixC^L,ixCC^L
@@ -994,11 +988,6 @@ integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
 logical, save :: subfirst=.true.
 !-----------------------------------------------------------------------------
 ! following only for allowing compiler to go through with debug on
-! TODO: Jannis: deactivated a lot of code here
-! {#IFDEF ENERGY
-! iwe=e_
-! }
-! iwb^C=b^C_;
 
 
 saveigrid=igrid
@@ -1060,121 +1049,54 @@ end if
 typelimiter=limiter(node(plevel_,igrid))
 typegradlimiter=gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+block=>pw(igrid)
 if(nwauxio>0)then
   ! auxiliary io variables can be computed and added by user
   ! next few lines ensure correct usage of routines like divvector etc
-  if (.not.slab) mygeo => pgeo(igrid)
-  if (B0field) then
-    myB0_cell => pB0_cell(igrid)
-    myB0      => pB0_cell(igrid)
-    {^D&myB0_face^D => pB0_face^D(igrid)\}
-  end if
   ! default (no) normalization for auxiliary variables
   normconv(nw+1:nw+nwauxio)=one
   ! maybe need for restriction to ixG^LL^LSUB1 ??
-  !call usr_aux_output(ixG^LL,ixG^LL,w,px(igrid)%x,normconv)
-  !call usr_aux_output(ixG^LL,ixG^LL^LSUB1,w,px(igrid)%x,normconv)
+  !call usr_aux_output(ixG^LL,ixG^LL,w,pw(igrid)%x,normconv)
+  !call usr_aux_output(ixG^LL,ixG^LL^LSUB1,w,pw(igrid)%x,normconv)
 
   if (.not. associated(usr_aux_output)) then
      call mpistop("usr_aux_output not defined")
   else
-     call usr_aux_output(ixG^LL,ixM^LL^LADD1,w,px(igrid)%x,normconv)
+     call usr_aux_output(ixG^LL,ixM^LL^LADD1,w,pw(igrid)%x,normconv)
   end if
 endif
 
 ! In case primitives to be saved: use primitive subroutine
 !  extra layer around mesh only needed when storing corner values and averaging
-if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),px(igrid)%x)
+if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),pw(igrid)%x)
 
+if(allocated(pw(igrid)%w0)) then
+  w(ixC^S,mag(:))=w(ixC^S,mag(:))+pw(igrid)%w0(ixC^S,:,0)
+  if(.not.saveprim.and.phys_energy) then
+    w(ixC^S,e_)=w(ixC^S,e_)+0.5d0*sum(pw(igrid)%w0(ixC^S,:,0)**2,dim=ndim+1) &
+          + sum(w(ixC^S,mag(:))*pw(igrid)%w0(ixC^S,:,0),dim=ndim+1)
+  end if
+end if
 ! compute the cell-center values for w first
-!===========================================
 ! cell center values obtained from mere copy, while B0+B1 split handled here
-do iw=1,nw+nwauxio
-   ! if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
-   !    idir=iw-b0_
-   !    {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
-   !       wCC(ix^D,iw)=w(ix^D,iw)+pB0_cell(igrid)%w(ix^D,idir)
-   !    {end do\}
-   ! else
-      {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
-          wCC(ix^D,iw)=w(ix^D,iw)
-      {end do\}
-   ! end if
-end do
-! {#IFDEF ENERGY
-! if((.not.saveprim) .and. B0field) then
-!    {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
-!        wCC(ix^D,iwe)=w(ix^D,iwe) &
-!            +half*( ^C&pB0_cell(igrid)%w(ix^D,iwb^C-b0_)**2+ ) &
-!            + ( ^C&w(ix^D,iwb^C)*pB0_cell(igrid)%w(ix^D,iwb^C-b0_)+ )
-!    {end do\}
-! endif
-! }
+wCC(ixCC^S,:)=w(ixCC^S,:)
+
 ! compute the corner values for w now by averaging
-!=================================================
 
 if(typeaxial=='slab')then
    ! for slab symmetry: no geometrical info required
    do iw=1,nw+nwauxio
-      ! if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
-      !    idir=iw-b0_
-      !    {do ix^DB=ixCmin^DB,ixCmax^DB\}
-      !      wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw) &
-      !                      +pB0_cell(igrid)%w(ix^D:ix^D+1,idir))/dble(2**ndim)
-      !    {end do\}
-      ! else
-        !if(uselimiter)then
-        !   if(ndim>1)call mpistop("to be corrected for multi-D")
-        !   do idims =1,ndim
-        !      jxC^L=ixC^L+kr(idims,^D);
-        !      dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-        !      call dwlimiter2(dwC,ixG^LL,ixC^L,iw,idims,ldw,dxlevel(idims))
-        !      wC(ixC^S,iw)=w(ixC^S,iw)+half*ldw(ixC^S)
-        !   end do
-        !else
-          {do ix^DB=ixCmin^DB,ixCmax^DB\}
-             wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw))/dble(2**ndim)
-          {end do\}
-       !end if
-      ! end if
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw))/dble(2**ndim)
+     {end do\}
    end do
-! {#IFDEF ENERGY
-!    if((.not.saveprim) .and. B0field) then
-!       {do ix^DB=ixCmin^DB,ixCmax^DB\}
-!          wC(ix^D,iwe)=sum(w(ix^D:ix^D+1,iwe) &
-!            +half*( ^C&pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)**2+ ) &
-!            + ( ^C&w(ix^D:ix^D+1,iwb^C)*pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)+ ) ) &
-!             /dble(2**ndim)
-!       {end do\}
-!    endif
-! }
 else
    do iw=1,nw+nwauxio
-   !    if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
-   !       idir=iw-b0_
-   !       {do ix^DB=ixCmin^DB,ixCmax^DB\}
-   !         wC(ix^D,iw)= sum((w(ix^D:ix^D+1,iw)+pB0_cell(igrid)%w(ix^D:ix^D+1,idir)) &
-   !                          *pgeo(igrid)%dvolume(ix^D:ix^D+1))    &
-   !                  /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
-   !       {end do\}
-   !    else
-         {do ix^DB=ixCmin^DB,ixCmax^DB\}
-           wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw)*pgeo(igrid)%dvolume(ix^D:ix^D+1)) &
-                    /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
-         {end do\}
-      ! end if
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+       wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw)*pw(igrid)%dvolume(ix^D:ix^D+1)) &
+                /sum(pw(igrid)%dvolume(ix^D:ix^D+1))
+     {end do\}
    end do
-! {#IFDEF ENERGY
-!    if((.not.saveprim) .and. B0field) then
-!       {do ix^DB=ixCmin^DB,ixCmax^DB\}
-!          wC(ix^D,iwe)=sum((w(ix^D:ix^D+1,iwe) &
-!            +half*( ^C&pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)**2+ ) &
-!            + ( ^C&w(ix^D:ix^D+1,iwb^C)*pB0_cell(igrid)%w(ix^D:ix^D+1,iwb^C-b0_)+ ) ) &
-!                             *pgeo(igrid)%dvolume(ix^D:ix^D+1))    &
-!                     /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1))
-!       {end do\}
-!    endif
-! }
 endif
 
 if(nocartesian) then

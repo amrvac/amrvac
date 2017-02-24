@@ -43,8 +43,8 @@ end if
          ixComin^D=ixMlo^D+(ic^D-1)*(ixMhi^D-ixMlo^D+1)/2;
          ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2;
 
-         call coarsen_grid(pw(igridFi)%w,px(igridFi)%x,ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x,ixG^LL, &
-                     ixCo^L,pgeo(igridFi),pgeo(igrid))
+         call coarsen_grid(pw(igridFi)%w,pw(igridFi)%x,ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,ixG^LL, &
+                     ixCo^L,igridFi,igrid)
 
          ! remove solution space of child
          call dealloc_node(igridFi)
@@ -52,12 +52,12 @@ end if
          ixCoGmin^D=1;
          ixCoGmax^D=ixGhi^D/2+nghostcells;
          ixCoM^L=ixCoG^L^LSUBnghostcells;
-         call coarsen_grid(pw(igridFi)%w,px(igridFi)%x,ixG^LL,ixM^LL,pwCoarse(igridFi)%w,pxCoarse(igridFi)%x, &
-                           ixCoG^L,ixCoM^L,pgeo(igridFi),pgeoCoarse(igridFi))
+         call coarsen_grid(pw(igridFi)%w,pw(igridFi)%x,ixG^LL,ixM^LL,pw(igridFi)%wcoarse,pw(igridFi)%xcoarse, &
+                           ixCoG^L,ixCoM^L,igridFi,igridFi)
 
          itag=ipeFi*max_blocks+igridFi
          isend=isend+1
-         call MPI_ISEND(pwCoarse(igridFi)%w,1,type_coarse_block,ipe,itag, &
+         call MPI_ISEND(pw(igridFi)%wcoarse,1,type_coarse_block,ipe,itag, &
                         icomm,sendrequest(isend),ierrmpi)
       end if
    else
@@ -73,15 +73,14 @@ end if
 end subroutine coarsen_grid_siblings
 !=============================================================================
 subroutine coarsen_grid(wFi,xFi,ixFiG^L,ixFi^L,wCo,xCo,ixCoG^L,ixCo^L,&
-                        pgeogrid,pgeoCoarsegrid)
+                        igridFi,igridCo)
 
 use mod_global_parameters
 use mod_physics
 
-integer, intent(in) :: ixFiG^L, ixFi^L, ixCoG^L, ixCo^L
+integer, intent(in) :: ixFiG^L, ixFi^L, ixCoG^L, ixCo^L, igridFi, igridCo
 double precision, intent(inout) :: wFi(ixFiG^S,1:nw), xFi(ixFiG^S,1:ndim)
 double precision,intent(inout) :: wCo(ixCoG^S,1:nw), xCo(ixCoG^S,1:ndim)
-type(geoalloc) :: pgeogrid, pgeoCoarsegrid
 
 integer :: ixCo^D, ixFi^D, iw
 double precision :: CoFiratio
@@ -104,14 +103,25 @@ if (slab) then
       {end do\}
    end do
 else
-   do iw=1,nw
-      {do ixCo^DB = ixCo^LIM^DB
-         ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixFimin^DB\}
-         wCo(ixCo^D,iw)= &
-             sum(pgeogrid%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
-            /pgeoCoarsegrid%dvolume(ixCo^D)
-      {end do\}
-   end do
+   if(igridFi==igridCo) then
+     do iw=1,nw
+        {do ixCo^DB = ixCo^LIM^DB
+           ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixFimin^DB\}
+           wCo(ixCo^D,iw)= &
+               sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
+              /pw(igridCo)%dvolumecoarse(ixCo^D)
+        {end do\}
+     end do
+   else
+     do iw=1,nw
+        {do ixCo^DB = ixCo^LIM^DB
+           ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixFimin^DB\}
+           wCo(ixCo^D,iw)= &
+               sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
+              /pw(igridCo)%dvolume(ixCo^D)
+        {end do\}
+     end do
+   end if
 end if
 
 call phys_convert_after_coarsen(ixFiG^L,ixFi^L,wFi,xFi)

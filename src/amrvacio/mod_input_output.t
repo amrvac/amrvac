@@ -881,7 +881,9 @@ contains
     select case (ifile)
     case (fileout_)
        ! Write .dat snapshot
+       print*,'saveamrfile 1 snapshot',mype
        call write_snapshot()
+       print*,'saveamrfile 2 snapshot',mype
 
        ! Generate formatted output (e.g., VTK)
        if (autoconvert) call generate_plotfile
@@ -968,12 +970,11 @@ contains
   !         ! which might be used in getaux
   !         saveigrid=igrid
   !         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  !         if (.not.slab) mygeo => pgeo(igrid)
   !         if (B0field) then
   !            myB0_cell => pB0_cell(igrid)
   !            {^D&myB0_face^D => pB0_face^D(igrid)\}
   !         end if
-  !         call phys_get_aux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
+  !         call phys_get_aux(.true.,pw(igrid)%w,pw(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
   !      endif
   !      iwrite=iwrite+1
 
@@ -1327,12 +1328,8 @@ contains
         ! which might be used in getaux
         saveigrid=igrid
         ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
-        mygeo =>pgeo(igrid)
-        if (B0field) then
-          myB0_cell => pB0_cell(igrid)
-          {^D&myB0_face^D => pB0_face^D(igrid)\}
-        end if
-        call phys_get_aux(.true., pw(igrid)%w, px(igrid)%x, ixG^LL, &
+        block=>pw(igrid)
+        call phys_get_aux(.true., pw(igrid)%w, pw(igrid)%x, ixG^LL, &
              ixM^LL^LADD1, "write_snapshot")
       endif
 
@@ -1682,7 +1679,7 @@ contains
        if (slab) then
           dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
        else
-          dvolume(ixM^T) = pgeo(igrid)%dvolume(ixM^T)
+          dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
        end if
 
        ! Store total volume in last element
@@ -1760,7 +1757,7 @@ contains
        if (slab) then
           dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
        else
-          dvolume(ixM^T) = pgeo(igrid)%dvolume(ixM^T)
+          dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
        end if
 
        ! Store total volume in last element

@@ -12,9 +12,6 @@ module mod_global_parameters
 
   character(len=*), parameter :: not_specified = 'not_specified'
 
-  !> The number of interleaving sending buffers for ghost cells
-  integer, parameter :: npwbuf=2
-
   integer :: ixM^LL
 
   integer, dimension(:), allocatable :: ng^D

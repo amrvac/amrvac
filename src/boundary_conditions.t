@@ -128,7 +128,7 @@ if (any(typeboundary(1:nwflux,iB)=="character")) then
         if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
           ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
           ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
-          wtmp(ixG^S,1:nw)=pwold(saveigrid)%w(ixG^S,1:nw)
+          wtmp(ixG^S,1:nw)=pw(saveigrid)%wold(ixG^S,1:nw)
           call characteristic_project(idims,iside,ixG^L,ixI^L,wtmp,x,dxlevel,qdt)
           w(ixI^S,1:nwflux)=wtmp(ixI^S,1:nwflux)
         end if
@@ -144,7 +144,7 @@ if (any(typeboundary(1:nwflux,iB)=="character")) then
         if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
           ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
           ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
-          wtmp(ixG^S,1:nw)=pwold(saveigrid)%w(ixG^S,1:nw)
+          wtmp(ixG^S,1:nw)=pw(saveigrid)%wold(ixG^S,1:nw)
           call characteristic_project(idims,iside,ixG^L,ixI^L,wtmp,x,dxlevel,qdt)
           w(ixI^S,1:nwflux)=wtmp(ixI^S,1:nwflux)
         end if
@@ -187,13 +187,12 @@ end if
 
 end subroutine bc_phys
 !=============================================================================
-subroutine getintbc(time,ixG^L,pwuse)
+subroutine getintbc(time,ixG^L)
 use mod_usr_methods, only: usr_internal_bc
 use mod_global_parameters
 
 double precision, intent(in)   :: time
 integer, intent(in)            :: ixG^L
-type(walloc), dimension(max_blocks)          :: pwuse
 
 ! .. local ..
 integer :: iigrid, igrid, ixO^L,level
@@ -203,18 +202,14 @@ ixO^L=ixG^L^LSUBnghostcells;
 do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
 !do iigrid=1,igridstail; igrid=igrids(iigrid);
    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-   if (.not.slab) mygeo => pgeo(igrid)
-   if (B0field) then
-      myB0_cell => pB0_cell(igrid)
-      {^D&myB0_face^D => pB0_face^D(igrid)\}
-   end if
+   block=>pw(igrid)
    typelimiter=limiter(node(plevel_,igrid))
    typegradlimiter=gradient_limiter(node(plevel_,igrid))
    level=node(plevel_,igrid)
    saveigrid=igrid
 
    if (associated(usr_internal_bc)) then
-      call usr_internal_bc(level,time,ixG^L,ixO^L,pwuse(igrid)%w,px(igrid)%x)
+      call usr_internal_bc(level,time,ixG^L,ixO^L,pw(igrid)%wb,pw(igrid)%x)
    end if
 end do
 
