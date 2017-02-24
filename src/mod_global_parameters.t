@@ -37,17 +37,17 @@ module mod_global_parameters
   !> @todo Make local
   integer :: ierrmpi
 
-  !> Size (in bytes) of MPI_REAL
-  integer(kind=MPI_ADDRESS_KIND) :: size_real
+  !> Size (in bytes) of single precision real
+  integer, parameter :: size_real = 4
 
-  !> Size (in bytes) of MPI_DOUBLE_PRECISION
-  integer(kind=MPI_ADDRESS_KIND) :: size_double
+  !> Size (in bytes) of double precision real
+  integer, parameter :: size_double = 8
 
-  !> Size (in bytes) of MPI_INTEGER
-  integer(kind=MPI_ADDRESS_KIND) :: size_int
+  !> Size (in bytes) of default integer
+  integer, parameter :: size_int = 4
 
-  !> Size (in bytes) of MPI_LOGICAL
-  integer(kind=MPI_ADDRESS_KIND) :: size_logical
+  !> Size (in bytes) of default logical
+  integer, parameter :: size_logical = 4
 
   integer :: log_fh
   !> MPI IO type for block including ghost cells

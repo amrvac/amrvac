@@ -7,6 +7,7 @@ subroutine comm_start
   use mod_global_parameters
 
   integer(kind=MPI_ADDRESS_KIND) :: lb
+  integer(kind=MPI_ADDRESS_KIND) :: size
 
   ! Initialize MPI
   call MPI_INIT(ierrmpi)
@@ -22,10 +23,14 @@ subroutine comm_start
   icomm = MPI_COMM_WORLD
 
   ! Get size of double/integer
-  call MPI_TYPE_GET_EXTENT(MPI_REAL,lb,size_real,ierrmpi)
-  call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
-  call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
-  call MPI_TYPE_GET_EXTENT(MPI_LOGICAL,lb,size_logical,ierrmpi)
+  call MPI_TYPE_GET_EXTENT(MPI_REAL,lb,size,ierrmpi)
+  if (size /= size_real) call mpistop("Incompatible real size")
+  call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size,ierrmpi)
+  if (size /= size_double) call mpistop("Incompatible double size")
+  call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size,ierrmpi)
+  if (size /= size_int) call mpistop("Incompatible integer size")
+  call MPI_TYPE_GET_EXTENT(MPI_LOGICAL,lb,size,ierrmpi)
+  if (size /= size_logical) call mpistop("Incompatible logical size")
 
 end subroutine comm_start
 
