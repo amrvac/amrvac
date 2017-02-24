@@ -1542,7 +1542,7 @@ integer :: ipe,igrid,level,icel,ixC^L,ixCC^L,Morton_no,Morton_length
 integer :: nx^D,nxC^D,nc,np,VTK_type,ix^D,filenr
 integer*8 :: offset
 
-integer::  size_real,k,iw
+integer::  k,iw
 integer::  length,lengthcc,length_coords,length_conn,length_offsets
 character::  buf
 character(len=80)::  filename
@@ -1599,9 +1599,7 @@ if (mype /= 0) then
 else
  ! mype==0
  offset=0
- !size_real=8
- size_real=4
- 
+
  inquire(qunit,opened=fileopen)
  if(.not.fileopen)then
    ! generate filename 
@@ -1994,7 +1992,6 @@ integer, intent(in) :: qunit
 
 integer :: iigrid, igrid, level, ngrids, nx^D
 
-integer,parameter::     size_real = 8
 integer,parameter::     size_byte   = 1
 integer,parameter::     size_recsep = 4
 character(len=5) ::     byteorder
@@ -2118,7 +2115,7 @@ do level=levmin,levmax
            '" class array type double rank 1 shape ',nw+nwauxio, &
            ' items ',                                nummeshpoints, &
            byteorder, 'binary data ',                offset
-      offset = offset + (nw+nwauxio)*nummeshpoints*size_real + size_recsep
+      offset = offset + (nw+nwauxio)*nummeshpoints*size_double + size_recsep
       write(qunit,'(a)') 'attribute "dep" string "connections" '
       write(qunit,'(a)') '#'
       !
@@ -2209,7 +2206,7 @@ do level=levmin,levmax
       offset = offset + size_recsep
       ! write data array
       call varout_dx_condep(qunit,pw(igrid)%w,ixG^LL)
-      offset = offset + (nw+nwauxio)*nummeshpoints*size_real + size_recsep
+      offset = offset + (nw+nwauxio)*nummeshpoints*size_double + size_recsep
    end do
 end do
 
@@ -3433,7 +3430,7 @@ character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 integer*8 :: offset
-integer::  size_real,recsep,k,iw,filenr
+integer::  recsep,k,iw,filenr
 integer::  length,lengthcc,offset_points,offset_cells, &
            length_coords,length_conn,length_offsets
 character::  buf
@@ -3472,7 +3469,6 @@ write(qunit,'(a)')'</FieldData>'
 
 offset=0
 recsep=4
-size_real=4
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
 

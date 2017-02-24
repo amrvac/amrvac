@@ -37,6 +37,9 @@ module mod_global_parameters
   !> @todo Make local
   integer :: ierrmpi
 
+  !> Size (in bytes) of MPI_REAL
+  integer(kind=MPI_ADDRESS_KIND) :: size_real
+
   !> Size (in bytes) of MPI_DOUBLE_PRECISION
   integer(kind=MPI_ADDRESS_KIND) :: size_double
 

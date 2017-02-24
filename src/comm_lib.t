@@ -22,6 +22,7 @@ subroutine comm_start
   icomm = MPI_COMM_WORLD
 
   ! Get size of double/integer
+  call MPI_TYPE_GET_EXTENT(MPI_REAL,lb,size_real,ierrmpi)
   call MPI_TYPE_GET_EXTENT(MPI_DOUBLE_PRECISION,lb,size_double,ierrmpi)
   call MPI_TYPE_GET_EXTENT(MPI_INTEGER,lb,size_int,ierrmpi)
   call MPI_TYPE_GET_EXTENT(MPI_LOGICAL,lb,size_logical,ierrmpi)
