@@ -267,7 +267,7 @@ case ("spherical")
 
    if (need_only_volume) return
 
-   pw(igrid)%x(ixGext^S,1:ndim)=x(ixGext^S,1:ndim)
+   pw(igrid)%xg(ixGext^S,1:ndim)=x(ixGext^S,1:ndim)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
 {#IFNDEF STRETCHGRID
@@ -364,7 +364,7 @@ case ("cylindrical")
 
    if (need_only_volume) return
 
-   pw(igrid)%x(ixGext^S,1)=x(ixGext^S,1)
+   pw(igrid)%xg(ixGext^S,1)=x(ixGext^S,1)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
 {#IFNDEF STRETCHGRID
