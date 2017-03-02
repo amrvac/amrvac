@@ -2,12 +2,10 @@
  &filelist
         typefilelog='regression_test'
         base_filename='bw_2d'
-        primnames='rho v1 v2 p b1 b2'
         saveprim=.true.
         convert_type='vtuBCCmpi'
         autoconvert=.true.
         nwauxio=3
-        typeparIO=-1
  /
         restart_from_file='blastwavemhda'
         snapshotini=1
@@ -23,7 +21,6 @@
 /
 
  &methodlist
-        w_names=       'rho m1 m2 e b1 b2'
         time_integrator=  'threestep'
         flux_scheme=    20*'hll'
         limiter= 20*'koren'

@@ -4,7 +4,7 @@
         autoconvert=.true.
         saveprim=.true.
         nwauxio=3
-	convert_type='vtuBmpi'
+	convert_type='vtuBCCmpi'
  /
 
  &savelist

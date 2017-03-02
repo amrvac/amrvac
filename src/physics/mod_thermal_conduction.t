@@ -228,7 +228,7 @@ contains
       if(.not. allocated(pw(igrid)%w3)) allocate(pw(igrid)%w3(ixG^T,1:nw))
       pw(igrid)%w1=pw(igrid)%w
       pw(igrid)%w2=pw(igrid)%w
-      pw(igrid)%w3=pw(igrid)%wold
+      pw(igrid)%w3=pw(igrid)%w
     end do
     
     allocate(bj(0:s))
@@ -309,10 +309,12 @@ contains
     if(evenstep) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         pw(igrid)%w(ixG^T,e_)=pw(igrid)%w1(ixG^T,e_)
+        pw(igrid)%wb=>pw(igrid)%w
       end do 
     else
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         pw(igrid)%w(ixG^T,e_)=pw(igrid)%w2(ixG^T,e_)
+        pw(igrid)%wb=>pw(igrid)%w
       end do 
     end if
     deallocate(bj)

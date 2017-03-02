@@ -881,9 +881,7 @@ contains
     select case (ifile)
     case (fileout_)
        ! Write .dat snapshot
-       print*,'saveamrfile 1 snapshot',mype
        call write_snapshot()
-       print*,'saveamrfile 2 snapshot',mype
 
        ! Generate formatted output (e.g., VTK)
        if (autoconvert) call generate_plotfile

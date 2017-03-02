@@ -7,7 +7,6 @@ integer :: Morton_no, recv_igrid, recv_ipe, send_igrid, send_ipe, igrid, ipe
 
 integer, external :: getnode
 
-call amr_Morton_order
 call get_Morton_range_active
 
 if (npe==1) then
@@ -63,6 +62,9 @@ end do
 call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
                    MPI_SUM,icomm,ierrmpi)
 }
+
+! Update sfc array: igrid and ipe info in space filling curve
+call amr_Morton_order()
 
 !!$if (nwaux>0) then
 !!$   do Morton_no=Morton_start(mype),Morton_stop(mype)
