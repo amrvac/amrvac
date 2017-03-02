@@ -71,8 +71,8 @@ contains
              end select
           end if
        end do
-       block%iw0=0
     end do ! next idims
+    block%iw0=0
 
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
@@ -188,10 +188,8 @@ contains
        ! use approximate Riemann solver to get flux at interfaces
        call get_Riemann_flux()
 
-       block%iw0=0
-
     end do ! Next idims
-
+    block%iw0=0
 
     do idims= idim^LIM
        hxO^L=ixO^L-kr(idims,^D);
