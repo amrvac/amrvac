@@ -469,7 +469,7 @@ contains
 
     !> @todo Implement generic interface for modifying ghost cells
      ! modify normal component of magnetic field to fix divB=0 
-    if(bcphys .and. physics_type=='mhd' .and. ndim>1) call phys_boundary_adjust(pw)
+    if(bcphys .and. physics_type=='mhd' .and. ndim>1) call phys_boundary_adjust()
     
     if (nwaux>0) call fix_auxiliary
     

@@ -1779,9 +1779,8 @@ contains
 
   end subroutine glmSolve
 
-  subroutine mhd_boundary_adjust(pwuse)
+  subroutine mhd_boundary_adjust()
     use mod_global_parameters
-    type(walloc), dimension(max_blocks) :: pwuse
     integer :: iB, idim, iside, iigrid, igrid 
     integer :: ixG^L, ixO^L, i^D
 
@@ -1812,7 +1811,7 @@ contains
                       ixOmax^DD=ixGmin^D-1+nghostcells^D%ixOmax^DD=ixGmax^DD;
                    end if \}
                 end select
-                call fixdivB_boundary(ixG^L,ixO^L,pwuse(igrid)%w,pw(igrid)%x,iB)
+                call fixdivB_boundary(ixG^L,ixO^L,pw(igrid)%wb,pw(igrid)%x,iB)
               end if
            end do
         end do

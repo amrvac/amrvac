@@ -41,9 +41,8 @@ module mod_physics
      subroutine sub_check_params()
      end subroutine sub_check_params
 
-     subroutine sub_boundary_adjust(pwuse)
+     subroutine sub_boundary_adjust()
        use mod_global_parameters
-       type(walloc), dimension(max_blocks) :: pwuse
      end subroutine sub_boundary_adjust
 
      subroutine sub_convert(ixI^L, ixO^L, w, x)
@@ -266,9 +265,8 @@ contains
     call mpistop("No get_pthermal method specified")
   end subroutine dummy_get_pthermal
 
-  subroutine dummy_boundary_adjust(pwuse)
+  subroutine dummy_boundary_adjust()
     use mod_global_parameters
-    type(walloc), dimension(max_blocks) :: pwuse
   end subroutine dummy_boundary_adjust
 
   subroutine dummy_write_info(fh)
