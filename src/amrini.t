@@ -22,14 +22,6 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
    call alloc_node(igrid)
    ! in case gradient routine used in initial condition, ensure geometry known
-   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-   if (.not.slab) mygeo => pgeo(igrid)
-   if (B0field) then
-      myB0_cell => pB0_cell(igrid)
-      {^D&myB0_face^D => pB0_face^D(igrid)\}
-   end if
-   typelimiter=limiter(node(plevel_,igrid))
-   typegradlimiter=gradient_limiter(node(plevel_,igrid))
    call initial_condition(igrid)
 end do
 {#IFDEF EVOLVINGBOUNDARY
@@ -59,19 +51,15 @@ pw(igrid)%w(ixG^T,1:nw)=zero
 
 saveigrid=igrid
 ! in case gradient routine used in initial condition, ensure geometry known
+block=>pw(igrid)
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-if (.not.slab) mygeo => pgeo(igrid)
-if (B0field) then
-   myB0_cell => pB0_cell(igrid)
-   {^D&myB0_face^D => pB0_face^D(igrid)\}
-end if
 typelimiter=limiter(node(plevel_,igrid))
 typegradlimiter=gradient_limiter(node(plevel_,igrid))
 
 if (.not. associated(usr_init_one_grid)) then
    call mpistop("usr_init_one_grid not defined")
 else
-   call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+   call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
 end if
 
 end subroutine initial_condition
@@ -85,11 +73,15 @@ integer :: iigrid, igrid
 !-----------------------------------------------------------------------------
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
+   block=>pw(igrid)
+   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+   typelimiter=limiter(node(plevel_,igrid))
+   typegradlimiter=gradient_limiter(node(plevel_,igrid))
 
    if (.not. associated(usr_init_one_grid)) then
       call mpistop("usr_init_one_grid not defined")
    else
-      call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,px(igrid)%x)
+      call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
    end if
 end do
 

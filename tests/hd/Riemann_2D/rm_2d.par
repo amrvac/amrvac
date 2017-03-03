@@ -1,4 +1,4 @@
-!setup.pl -d=22 -g=16,16 -p=hd
+!setup.pl -d=2
 
  &filelist
         saveprim=.true.

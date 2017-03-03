@@ -528,8 +528,8 @@ contains
        ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
        call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp1)
        tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
-            *(mygeo%surfaceC1(ixO^S)-mygeo%surfaceC1(h1x^S)) &
-            /mygeo%dvolume(ixO^S)
+            *(block%surfaceC1(ixO^S)-block%surfaceC1(h1x^S)) &
+            /block%dvolume(ixO^S)
        if(ndir>1) then
          do idir=2,ndir
            tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2/wCT(ixO^S,rho_)
@@ -540,8 +540,8 @@ contains
        {^NOONED
        ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
        tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
-            *(mygeo%surfaceC2(ixO^S)-mygeo%surfaceC2(h2x^S)) &
-            /mygeo%dvolume(ixO^S)
+            *(block%surfaceC2(ixO^S)-block%surfaceC2(h2x^S)) &
+            /block%dvolume(ixO^S)
        if(ndir==3) tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_))/tan(x(ixO^S,2))
        if (.not. angmomfix) tmp(ixO^S)=tmp(ixO^S)-(wCT(ixO^S,mom(2))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)
        w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)

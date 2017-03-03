@@ -16,7 +16,6 @@ contains
 
     double precision :: qdt, qt
     integer :: iigrid, igrid, i^D
-    !-----------------------------------------------------------------------------
 
     if ((.not.prior).and.&
          (typesourcesplit=='sf' .or. typesourcesplit=='ssf')) return
@@ -29,10 +28,7 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid,qdt,i^D)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        qdt=dt_grid(igrid)
-       if (B0field) then
-          myB0_cell => pB0_cell(igrid)
-          {^D&myB0_face^D => pB0_face^D(igrid)\}
-       end if
+       block=>pw(igrid)
        {do i^DB=-1,1\}
        if (i^D==0|.and.) cycle
        if (neighbor_type(i^D,igrid)==2 .or. neighbor_type(i^D,igrid)==4) then
@@ -45,7 +41,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call getbc(qt,0.d0,pw,0,nwflux+nwaux)
+    call getbc(qt,0.d0,0,nwflux+nwaux)
 
   end subroutine addsource_all
 
@@ -58,9 +54,6 @@ contains
     double precision, intent(inout) :: w(ixG^T,nw)
 
     double precision :: w1(ixG^T,nw)
-    !-----------------------------------------------------------------------------
-
-    if (.not.slab) mygeo => pgeo(igrid)
 
     saveigrid=igrid
     typelimiter=limiter(node(plevel_,igrid))
@@ -72,15 +65,15 @@ contains
 
     select case (typesourcesplit)
     case ('sf')
-       call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,px(igrid)%x,.true.)
+       call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,pw(igrid)%x,.true.)
     case ('sfs')
-       call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,px(igrid)%x,.true.)
+       call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,pw(igrid)%x,.true.)
     case ('ssf')
-       call addsource2(qdt/2,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,px(igrid)%x,.true.)
-       call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,px(igrid)%x,.true.)
+       call addsource2(qdt/2,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,pw(igrid)%x,.true.)
+       call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,pw(igrid)%x,.true.)
     case ('ssfss')
-       call addsource2(qdt/4,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,px(igrid)%x,.true.)
-       call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,px(igrid)%x,.true.)
+       call addsource2(qdt/4,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,pw(igrid)%x,.true.)
+       call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,pw(igrid)%x,.true.)
     case default
        write(unitterm,*)'No such typesourcesplit=',typesourcesplit
        call mpistop("Error: Unknown typesourcesplit!")

@@ -5,8 +5,8 @@ use mod_global_parameters
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
 
-call set_B0_cell(pB0_cell(igrid)%w,px(igrid)%x,ixG^LL,ixG^LL)
-call set_B0_face(igrid,px(igrid)%x,ixG^LL,ixM^LL)
+call set_B0_cell(pw(igrid)%w0(:^D&,:,0),pw(igrid)%x,ixG^LL,ixG^LL)
+call set_B0_face(igrid,pw(igrid)%x,ixG^LL,ixM^LL)
 
 end subroutine set_B0_grid
 !=============================================================================
@@ -93,10 +93,7 @@ do idims=1,ndim
    end do
 }
 
-   select case(idims)
-   {case (^D)
-      call set_B0_cell(pB0_face^D(igrid)%w,xC,ixI^L,ixC^L) \}
-   end select
+   call set_B0_cell(pw(igrid)%w0(:^D&,:,idims),xC,ixI^L,ixC^L)
 end do
 
 end subroutine set_B0_face
@@ -108,8 +105,7 @@ use mod_global_parameters
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
 
-allocate(pB0_cell(igrid)%w(ixG^T,1:ndir))
-{allocate(pB0_face^D(igrid)%w(ixG^T,1:ndir))\}
+allocate(pw(igrid)%w0(ixG^T,1:ndir,0:ndim))
 
 end subroutine alloc_B0_grid
 !=============================================================================
@@ -120,8 +116,7 @@ use mod_global_parameters
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
 
-deallocate(pB0_cell(igrid)%w)
-{deallocate(pB0_face^D(igrid)%w)\}
+deallocate(pw(igrid)%w0)
 
 end subroutine dealloc_B0_grid
 !=============================================================================

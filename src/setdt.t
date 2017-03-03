@@ -25,22 +25,20 @@ if (dtpar<=zero) then
       dx^D=rnode(rpdx^D_,igrid);
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       saveigrid = igrid
-      if (.not.slab) mygeo => pgeo(igrid)
-      if (B0field) myB0 => pB0_cell(igrid)
-      if (B0field) myB0_cell => pB0_cell(igrid)
-
+      block=>pw(igrid)
+      block%iw0=0
       if (nwaux>0) then
          call phys_get_aux(.true.,pw(igrid)%w,&
-              px(igrid)%x,ixG^LL,ixM^LL,'setdt')
+              pw(igrid)%x,ixG^LL,ixM^LL,'setdt')
       end if
 
-      call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+      call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
       dtnew=min(dtnew,qdtnew)
-      call phys_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+      call phys_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
       dtnew=min(dtnew,qdtnew)
 
       if (associated(usr_get_dt)) then
-         call usr_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+         call usr_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
       end if
 
       dtnew=min(dtnew,qdtnew)
@@ -98,10 +96,9 @@ if(associated(phys_getdt_heatconduct)) then
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       dx^D=rnode(rpdx^D_,igrid);
       saveigrid = igrid
-      if (.not.slab) mygeo => pgeo(igrid)
-      if (B0field) myB0_cell => pB0_cell(igrid)
+      block=>pw(igrid)
       qdtnew=bigdouble
-      call phys_getdt_heatconduct(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,px(igrid)%x)
+      call phys_getdt_heatconduct(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
       dtmin_mype=min(dtmin_mype,qdtnew)
    end do
 !$OMP END PARALLEL DO
@@ -179,7 +176,7 @@ do idims=1,ndim
    call phys_get_cmax(w,x,ixG^L,ix^L,idims,cmax, cmin)
    cmax_mype = max(cmax_mype,maxval(cmax(ix^S)), maxval(abs(cmin(ix^S))))
    if (.not.slab) then
-      tmp(ix^S)=cmax(ix^S)/mygeo%dx(ix^S,idims)
+      tmp(ix^S)=cmax(ix^S)/block%dx(ix^S,idims)
       cmaxtot(ix^S)=cmaxtot(ix^S)+tmp(ix^S)
       courantmax=max(courantmax,maxval(tmp(ix^S)))
    else

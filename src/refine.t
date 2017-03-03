@@ -55,7 +55,7 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
      ix^L=ixM^LL^LADD1;
      }
 
-     call phys_convert_before_prolong(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
+     call phys_convert_before_prolong(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
 
      xComin^D=rnode(rpxmin^D_,igrid)\
      dxCo^D=rnode(rpdx^D_,igrid)\
@@ -76,28 +76,28 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
      dxFi^D=rnode(rpdx^D_,ichild)\
      {#IFDEF EVOLVINGBOUNDARY
      if (phyboundblock(ichild)) then
-        call prolong_2ab(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+        call prolong_2ab(pw(igrid)%w,pw(igrid)%x,ixCo^L,pw(ichild)%w,pw(ichild)%x, &
              dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
      else
-        call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+        call prolong_2nd(pw(igrid)%w,pw(igrid)%x,ixCo^L,pw(ichild)%w,pw(ichild)%x, &
              dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
      end if
      }{#IFNDEF EVOLVINGBOUNDARY
-     call prolong_2nd(pw(igrid)%w,px(igrid)%x,ixCo^L,pw(ichild)%w,px(ichild)%x, &
+     call prolong_2nd(pw(igrid)%w,pw(igrid)%x,ixCo^L,pw(ichild)%w,pw(ichild)%x, &
           dxCo^D,xComin^D,dxFi^D,xFimin^D,ichild)
      }
   else
-     call prolong_1st(pw(igrid)%w,ixCo^L,pw(ichild)%w,px(ichild)%x)
+     call prolong_1st(pw(igrid)%w,ixCo^L,pw(ichild)%w,pw(ichild)%x)
   end if
   {end do\}
 
   if (prolongation_method=="linear") then
-     call phys_convert_after_prolong(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
+     call phys_convert_after_prolong(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
      ! TODO: clean this up
      !    if (amrentropy) then
-     !       call rhos_to_e(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x)
+     !       call rhos_to_e(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
      !    else if (prolongprimitive) then
-     !       call conserve(ixG^LL,ix^L,pw(igrid)%w,px(igrid)%x,patchfalse)
+     !       call conserve(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x,patchfalse)
      !    end if
   end if
 
@@ -186,12 +186,12 @@ ixCgmax^D=ixComax^D+el\
          eta^D=(xFi^D-xCo^D)*invdxCo^D;
       else
          {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-               *two*(one-pgeo(igridFi)%dvolume(ix^DD) &
-               /sum(pgeo(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
+               *two*(one-pw(igridFi)%dvolume(ix^DD) &
+               /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
 {#IFDEF STRETCHGRID
          eta1=(xFi1-xCo1)/(logG*xCo1) &
-               *two*(one-pgeo(igridFi)%dvolume(ix^D) &
-               /sum(pgeo(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
+               *two*(one-pw(igridFi)%dvolume(ix^D) &
+               /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
 }
       end if
 
@@ -282,12 +282,12 @@ invdxCo^D=1.d0/dxCo^D;
          eta^D=(xFi^D-xCo^D)*invdxCo^D;
       else
          {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-               *two*(one-pgeo(igridFi)%dvolume(ix^DD) &
-               /sum(pgeo(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
+               *two*(one-pw(igridFi)%dvolume(ix^DD) &
+               /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
 {#IFDEF STRETCHGRID
          eta1=(xFi1-xCo1)/(logG*xCo1) &
-               *two*(one-pgeo(igridFi)%dvolume(ix^D) &
-               /sum(pgeo(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
+               *two*(one-pw(igridFi)%dvolume(ix^D) &
+               /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
 }
       end if
 

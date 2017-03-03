@@ -460,7 +460,7 @@ dx^D=rnode(rpdx^D_,igrid);
 
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 if(saveprim) then 
-   call phys_to_primitive(ixG^LL,ixG^LL,w,px(igrid)%x)
+   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
    normconv(0) = length_convert_factor
    normconv(1:nw) = w_convert_factor
 else
@@ -472,19 +472,14 @@ if(nwauxio>0)then
 typelimiter=limiter(node(plevel_,igrid))
 typegradlimiter=gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  if (.not.slab) mygeo => pgeo(igrid)
-  if (B0field) then
-     myB0_cell => pB0_cell(igrid)
-     myB0      => pB0_cell(igrid)
-     {^D&myB0_face^D => pB0_face^D(igrid)\}
-  end if
+  block=>pw(igrid)
   ! default (no) normalization for auxiliary variables
   normconv(nw+1:nw+nwauxio)=one
 
   if (.not. associated(usr_aux_output)) then
      call mpistop("usr_aux_output not defined")
   else
-     call usr_aux_output(ixG^LL,ixM^LL,w,px(igrid)%x,normconv)
+     call usr_aux_output(ixG^LL,ixM^LL,w,pw(igrid)%x,normconv)
   end if
 endif
 
@@ -507,24 +502,24 @@ case (1)
            pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) &
            + w(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) * dx1
    end do
-   px_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
-        px(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
+   pw_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
+        pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
 case (2)
    do ix=ixMlo2,ixMhi2
       pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
            pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
            + w(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,1:nw+nwauxio) * dx2
    end do
-   px_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
-        px(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
+   pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
+        pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
 case (3)
    do ix=ixMlo3,ixMhi3
       pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
            pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
            + w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,1:nw+nwauxio) * dx3
    end do
-      px_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
-           px(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
+      pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
+           pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
 case default
    print*, 'subnode, dir: ', dir
    call mpistop("slice direction not clear in collapse_subnode")
@@ -538,16 +533,16 @@ case (1)
            pw_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) &
            + w(ix,ixMlo2:ixMhi2,1:nw+nwauxio) * dx1
    end do
-   px_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
-        px(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
+   pw_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
+        pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
 case (2)
    do ix=ixMlo2,ixMhi2
       pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
            pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
            + w(ixMlo1:ixMhi1,ix,1:nw+nwauxio) * dx2
    end do
-   px_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
-        px(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
+   pw_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
+        pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
 case default
    call mpistop("slice direction not clear in collapse_subnode")
 end select
@@ -556,7 +551,7 @@ end select
 do ix=ixMlo1,ixMhi1
    pw_sub(jgrid)%w(1:nw+nwauxio) = pw_sub(jgrid)%w(1:nw+nwauxio) + w(ix,1:nw+nwauxio) * dx1
 end do
-px_sub(jgrid)%x(1:ndim) = px(igrid)%x(ixMlo1,1:ndim)
+pw_sub(jgrid)%x(1:ndim) = pw(igrid)%x(ixMlo1,1:ndim)
 }
 
 end subroutine collapse_subnode

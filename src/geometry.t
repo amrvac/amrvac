@@ -122,12 +122,12 @@ else
    ixGext^L=ixG^LL^LADD1;
 end if
 
-
-allocate(pgeo(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
-         pgeo(igrid)%surface^D(ixmin^D-1:ixmax^D^D%ix^S), &
-         pgeo(igrid)%dvolume(ixGext^S), &
-         pgeo(igrid)%x(ixGext^S,1:ndim),&
-         pgeo(igrid)%dx(ixGext^S,1:ndim))
+! allocate geometric info
+allocate(pw(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
+         pw(igrid)%surface^D(ixmin^D-1:ixmax^D^D%ix^S), &
+         pw(igrid)%dvolume(ixGext^S), &
+         pw(igrid)%xg(ixGext^S,1:ndim),&
+         pw(igrid)%dx(ixGext^S,1:ndim))
 
 dx^D=rnode(rpdx^D_,igrid);
 xmin^D=rnode(rpxmin^D_,igrid);
@@ -135,7 +135,8 @@ xmin^D=rnode(rpxmin^D_,igrid);
 logG=logGs(node(plevel_,igrid))
 qst=qsts(node(plevel_,igrid))
 }
-call fillgeo(pgeo(igrid),ixG^LL,ixGext^L,xmin^D,dx^D,.false.)
+pw(igrid)%dvolumep=>pw(igrid)%dvolume
+call fillgeo(igrid,ixG^LL,ixGext^L,xmin^D,dx^D,.false.)
 
 ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+nghostcells;
 if (2*int(nghostcells/2)==nghostcells) then
@@ -144,15 +145,15 @@ else
    ixGext^L=ixCoG^L^LADD1;
 end if
 
-
-allocate(pgeoCoarse(igrid)%dvolume(ixGext^S))
+allocate(pw(igrid)%dvolumecoarse(ixGext^S))
 
 dx^D=two*rnode(rpdx^D_,igrid);
 {#IFDEF STRETCHGRID
 logG=logGs(node(plevel_,igrid)-1)
 qst=qsts(node(plevel_,igrid)-1)
 }
-call fillgeo(pgeoCoarse(igrid),ixCoG^L,ixGext^L,xmin^D,dx^D,.true.)
+pw(igrid)%dvolumep=>pw(igrid)%dvolumecoarse
+call fillgeo(igrid,ixCoG^L,ixGext^L,xmin^D,dx^D,.true.)
 
 end subroutine getgridgeo
 !=============================================================================
@@ -162,17 +163,16 @@ subroutine putgridgeo(igrid)
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
-deallocate(pgeo(igrid)%surfaceC^D,pgeo(igrid)%surface^D,&
-     pgeo(igrid)%dvolume,pgeo(igrid)%dx,pgeo(igrid)%x,pgeoCoarse(igrid)%dvolume)
+deallocate(pw(igrid)%surfaceC^D,pw(igrid)%surface^D,&
+     pw(igrid)%dvolume,pw(igrid)%dx,pw(igrid)%xg,pw(igrid)%dvolumecoarse)
 
 end subroutine putgridgeo
 !=============================================================================
-subroutine fillgeo(pgeogrid,ixG^L,ixGext^L,xmin^D,dx^D,need_only_volume)
+subroutine fillgeo(igrid,ixG^L,ixGext^L,xmin^D,dx^D,need_only_volume)
 
 use mod_global_parameters
 
-type(geoalloc) :: pgeogrid
-integer, intent(in) :: ixG^L, ixGext^L
+integer, intent(in) :: igrid, ixG^L, ixGext^L
 double precision, intent(in) :: xmin^D, dx^D
 logical, intent(in) :: need_only_volume
 
@@ -186,48 +186,48 @@ ix^L=ixG^L^LSUB1;
 select case (typeaxial)
 case ("slabtest")
 
-   pgeogrid%dvolume(ixGext^S) = ^D&dx^D*
+   pw(igrid)%dvolumep(ixGext^S) = ^D&dx^D*
 
    if (need_only_volume) return
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC1(ixC^S)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
-   pgeogrid%surface1(ixC^S) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   pw(igrid)%surfaceC1(ixC^S)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   pw(igrid)%surface1(ixC^S) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC2(ixC^S)=dx1}{^IFTHREED*dx3}
+   pw(igrid)%surfaceC2(ixC^S)=dx1}{^IFTHREED*dx3}
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surface2(ixC^S)=dx1}{^IFTHREED*dx3}
+   pw(igrid)%surface2(ixC^S)=dx1}{^IFTHREED*dx3}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC3(ixC^S)=dx1*dx2
-   pgeogrid%surface3(ixC^S)=dx1*dx2}
+   pw(igrid)%surfaceC3(ixC^S)=dx1*dx2
+   pw(igrid)%surface3(ixC^S)=dx1*dx2}
 
-   ^D&pgeogrid%dx(ixGext^S,^D)=dx^D;
+   ^D&pw(igrid)%dx(ixGext^S,^D)=dx^D;
 {#IFDEF STRETCHGRID
 case ("slabstretch")
    do ix = ixGext^LIM1
       x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
    end do
    drs(ixGext^S)=x(ixGext^S,1)*logG
-   pgeogrid%dvolume(ixGext^S)=drs(ixGext^S){^DE&*dx^DE }
+   pw(igrid)%dvolumep(ixGext^S)=drs(ixGext^S){^DE&*dx^DE }
    if (need_only_volume) return
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC1(ixC^S)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
-   pgeogrid%surface1(ixC^S) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   pw(igrid)%surfaceC1(ixC^S)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   pw(igrid)%surface1(ixC^S) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
+   pw(igrid)%surfaceC2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surface2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
+   pw(igrid)%surface2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC3(ixC^S)=drs(ixC^S)*dx2
-   pgeogrid%surface3(ixC^S)=drs(ixC^S)*dx2}
-   pgeogrid%dx(ixGext^S,1)=drs(ixGext^S)
-   ^DE&pgeogrid%dx(ixGext^S,^DE)=dx^DE;
+   pw(igrid)%surfaceC3(ixC^S)=drs(ixC^S)*dx2
+   pw(igrid)%surface3(ixC^S)=drs(ixC^S)*dx2}
+   pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
+   ^DE&pw(igrid)%dx(ixGext^S,^DE)=dx^DE;
 }
 case ("spherical")
 
@@ -247,101 +247,101 @@ case ("spherical")
 }
 {#IFNDEF STRETCHGRID
    if(typespherical==0) then
-     pgeogrid%dvolume(ixGext^S)=(x(ixGext^S,1)**2+dx1**2/12.0d0)*dx1 {^NOONED &
+     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+dx1**2/12.0d0)*dx1 {^NOONED &
               *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
    else
-     pgeogrid%dvolume(ixGext^S)=(x(ixGext^S,1)**2)*dx1 {^NOONED &
+     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*dx1 {^NOONED &
               *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
    endif
 }
 {#IFDEF STRETCHGRID
    if(typespherical==0) then
-     pgeogrid%dvolume(ixGext^S)=(x(ixGext^S,1)**2+drs(ixGext^S)**2/12.0d0)*&
+     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+drs(ixGext^S)**2/12.0d0)*&
                drs(ixGext^S){^NOONED &
               *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
    else
-     pgeogrid%dvolume(ixGext^S)=(x(ixGext^S,1)**2)*drs(ixGext^S){^NOONED &
+     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*drs(ixGext^S){^NOONED &
               *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
    endif
 }
 
    if (need_only_volume) return
 
-   pgeogrid%x(ixGext^S,1:ndim)=x(ixGext^S,1:ndim)
+   pw(igrid)%xg(ixGext^S,1:ndim)=x(ixGext^S,1:ndim)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
 {#IFNDEF STRETCHGRID
    if(typespherical==0) then
-       pgeogrid%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
+       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
               *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
    else
-       pgeogrid%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
+       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
               *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
    endif
 
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*dx1 &
+   pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1 &
               *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
 
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2}
+   pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2}
 }
 {#IFDEF STRETCHGRID
    if(typespherical==0) then
-       pgeogrid%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
+       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
               *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
    else
-       pgeogrid%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
+       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
               *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
    endif
 
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
+   pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
               *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
 
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
+   pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
 }
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    if(typespherical==0) then
-       pgeogrid%surface1(ixC^S)=x(ixC^S,1)**2 {^NOONED &
+       pw(igrid)%surface1(ixC^S)=x(ixC^S,1)**2 {^NOONED &
               *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
    else
-      pgeogrid%surface1(ixC^S)=x(ixC^S,1)**2 {^NOONED &
+      pw(igrid)%surface1(ixC^S)=x(ixC^S,1)**2 {^NOONED &
               *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
    endif
 
 {#IFNDEF STRETCHGRID
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surface2(ixC^S)=x(ixC^S,1)*dx1 &
+   pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1 &
               *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
 
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pgeogrid%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2}
+   pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2}
 
-   pgeogrid%dx(ixGext^S,1)=dx1
+   pw(igrid)%dx(ixGext^S,1)=dx1
 }
 {#IFDEF STRETCHGRID
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pgeogrid%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
+   pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
               *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
 
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pgeogrid%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
+   pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
 
-   pgeogrid%dx(ixGext^S,1)=drs(ixGext^S)
+   pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
 }
-   {^NOONED pgeogrid%dx(ixGext^S,2)=x(ixGext^S,1)*dx2}
-   {^IFTHREED pgeogrid%dx(ixGext^S,3)=x(ixGext^S,1)*dsin(x(ixGext^S,2))*dx3}
+   {^NOONED pw(igrid)%dx(ixGext^S,2)=x(ixGext^S,1)*dx2}
+   {^IFTHREED pw(igrid)%dx(ixGext^S,3)=x(ixGext^S,1)*dsin(x(ixGext^S,2))*dx3}
 
 case ("cylindrical")
 
@@ -350,82 +350,82 @@ case ("cylindrical")
       x(ix,ixGext^SE,1)=xmin1+(dble(ix-nghostcells)-half)*dx1
    end do
 
-   pgeogrid%dvolume(ixGext^S)=dabs(half*((x(ixGext^S,1)+half*dx1)**2-(x(ixGext^S,1)-half*dx1)**2)){^DE&*dx^DE }
+   pw(igrid)%dvolumep(ixGext^S)=dabs(half*((x(ixGext^S,1)+half*dx1)**2-(x(ixGext^S,1)-half*dx1)**2)){^DE&*dx^DE }
 }
 {#IFDEF STRETCHGRID
    do ix = ixGext^LIM1
       x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
    end do
    drs(ixGext^S)=x(ixGext^S,1)*logG
-   pgeogrid%dvolume(ixGext^S)=dabs(half*&
+   pw(igrid)%dvolumep(ixGext^S)=dabs(half*&
         ((x(ixGext^S,1)+half*drs(ixGext^S))**2-&
          (x(ixGext^S,1)-half*drs(ixGext^S))**2)){^DE&*dx^DE }
 }
 
    if (need_only_volume) return
 
-   pgeogrid%x(ixGext^S,1)=x(ixGext^S,1)
+   pw(igrid)%xg(ixGext^S,1)=x(ixGext^S,1)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
 {#IFNDEF STRETCHGRID
-   pgeogrid%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
+   pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-   if (phi_ == 2) pgeogrid%surfaceC2(ixC^S)=dx1{^IFTHREED*dx3}}
+   if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+   if (phi_ == 2) pw(igrid)%surfaceC2(ixC^S)=dx1{^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2
-   if (phi_==3) pgeogrid%surfaceC3(ixC^S)=dx1*dx2}
+   if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2
+   if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=dx1*dx2}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   !!pgeogrid%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
-   pgeogrid%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
+   !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
+   pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pgeogrid%surface2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-   if (phi_==2) pgeogrid%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
+   if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+   if (phi_==2) pw(igrid)%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pgeogrid%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2
-   if (phi_==3) pgeogrid%surface3(ixC^S)=dx1*dx2}
+   if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2
+   if (phi_==3) pw(igrid)%surface3(ixC^S)=dx1*dx2}
 
 
-   pgeogrid%dx(ixGext^S,1)=dx1
+   pw(igrid)%dx(ixGext^S,1)=dx1
 }
 {#IFDEF STRETCHGRID
-   pgeogrid%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
+   pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pgeogrid%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (phi_==2) pgeogrid%surfaceC2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+   if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+   if (phi_==2) pw(igrid)%surfaceC2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pgeogrid%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (phi_==3) pgeogrid%surfaceC3(ixC^S)=drs(ixC^S)*dx2}
+   if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
+   if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=drs(ixC^S)*dx2}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   !!pgeogrid%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
-   pgeogrid%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
+   !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
+   pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pgeogrid%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (phi_==2) pgeogrid%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+   if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+   if (phi_==2) pw(igrid)%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pgeogrid%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (phi_==3) pgeogrid%surface3(ixC^S)=drs(ixC^S)*dx2}
+   if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
+   if (phi_==3) pw(igrid)%surface3(ixC^S)=drs(ixC^S)*dx2}
 
 
-   pgeogrid%dx(ixGext^S,1)=drs(ixGext^S)
+   pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
 }
 
    if (z_ > 0) then
-     {^DE&if (^DE==z_) pgeogrid%dx(ixGext^S,^DE)=dx^DE\}
+     {^DE&if (^DE==z_) pw(igrid)%dx(ixGext^S,^DE)=dx^DE\}
    end if
 
    if (phi_ > 0) then
-     {if (^DE==phi_) pgeogrid%dx(ixGext^S,^DE)=x(ixGext^S,1)*dx^DE\}
+     {if (^DE==phi_) pw(igrid)%dx(ixGext^S,^DE)=x(ixGext^S,1)*dx^DE\}
    end if
 
 case default
@@ -470,12 +470,12 @@ else
    jxC^L=ixC^L+kr(idir,^D);
    select case(idir)
    {case(^D)
-      qC(ixC^S)=mygeo%surfaceC^D(ixC^S)*half*(q(ixC^S)+q(jxC^S))
-      gradq(ix^S)=(qC(ix^S)-qC(hx^S))/mygeo%dvolume(ix^S)
+      qC(ixC^S)=block%surfaceC^D(ixC^S)*half*(q(ixC^S)+q(jxC^S))
+      gradq(ix^S)=(qC(ix^S)-qC(hx^S))/block%dvolume(ix^S)
       ! Substract difference divergence and gradient
       !gradq(ix^S)=gradq(ix^S)-q(ix^S) &
-      !               *(mygeo%surfaceC^D(ix^S)-mygeo%surfaceC^D(hx^S)) &
-      !              /mygeo%dvolume(ix^S) \}
+      !               *(block%surfaceC^D(ix^S)-block%surfaceC^D(hx^S)) &
+      !              /block%dvolume(ix^S) \}
    end select
 end if
 
@@ -549,7 +549,7 @@ if (slab) then
 else
    select case(idir)
    {case(^D)
-    gradq(ix^S)=(qR(ix^S)-qL(hx^S))/mygeo%dx(ix^S,idir) \}
+    gradq(ix^S)=(qR(ix^S)-qL(hx^S))/block%dx(ix^S,idir) \}
    end select
 end if
 
@@ -598,11 +598,11 @@ else
      jxC^L=ixC^L+kr(idims,^D);
      select case(idims)
      {case(^D)
-        qC(ixC^S)=mygeo%surfaceC^D(ixC^S)*half*(qvec(ixC^S,idims)+qvec(jxC^S,idims))
+        qC(ixC^S)=block%surfaceC^D(ixC^S)*half*(qvec(ixC^S,idims)+qvec(jxC^S,idims))
         divq(ixO^S)=divq(ixO^S)+qC(ixO^S)-qC(hxO^S) \}
       end select
   end do
-  divq(ixO^S)=divq(ixO^S)/mygeo%dvolume(ixO^S)
+  divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
 end if
 
 
@@ -661,47 +661,47 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
         case('spherical')
          select case(jdir)
             case(1)
-             tmp(ixI^S)=tmp(ixI^S)*mygeo%x(ixI^S,1)
-             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/(mygeo%x(ixO^S,1)*mygeo%dx(ixO^S,1))
+             tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
+             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/(block%x(ixO^S,1)*block%dx(ixO^S,1))
    {^NOONED case(2)
-             mydx(ixO^S)=mygeo%dx(ixO^S,2)
+             mydx(ixO^S)=block%dx(ixO^S,2)
              if(idir==1) then
-                tmp(ixI^S)=tmp(ixI^S)*dsin(mygeo%x(ixI^S,2))
-                mydx(ixO^S)=dsin(mygeo%x(ixO^S,2))*mydx(ixO^S)
+                tmp(ixI^S)=tmp(ixI^S)*dsin(block%x(ixI^S,2))
+                mydx(ixO^S)=dsin(block%x(ixO^S,2))*mydx(ixO^S)
              endif
              tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)}
  {^IFTHREED case(3)
-             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
+             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,3)}
          end select
         case('cylindrical')
          if(z_==3) then
            select case(jdir)
               case(1)
-               mydx(ixO^S)=mygeo%dx(ixO^S,1)
+               mydx(ixO^S)=block%dx(ixO^S,1)
                if(idir==3) then
-                  tmp(ixI^S)=tmp(ixI^S)*mygeo%x(ixI^S,1)
-                  mydx(ixO^S)=mygeo%x(ixO^S,1)*mydx(ixO^S)
+                  tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
+                  mydx(ixO^S)=block%x(ixO^S,1)*mydx(ixO^S)
                endif
                tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)
      {^NOONED case(2)
-               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,2)}
+               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,2)}
    {^IFTHREED case(3)
-               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
+               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,3)}
            end select
          end if
          if(phi_==3) then
            select case(jdir)
               case(1)
-               mydx(ixO^S)=mygeo%dx(ixO^S,1)
+               mydx(ixO^S)=block%dx(ixO^S,1)
                if(idir==2) then
-                  tmp(ixI^S)=tmp(ixI^S)*mygeo%x(ixI^S,1)
-                  mydx(ixO^S)=mygeo%x(ixO^S,1)*mydx(ixO^S)
+                  tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
+                  mydx(ixO^S)=block%x(ixO^S,1)*mydx(ixO^S)
                endif
                tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)
      {^NOONED case(2)
-               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,2)}
+               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,2)}
    {^IFTHREED case(3)
-               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/mygeo%dx(ixO^S,3)}
+               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,3)}
            end select
          end if
       end select
@@ -800,13 +800,13 @@ do idims=1,ndim
    else
      select case(idims)
      {case(^D)
-        qR(ixC^S)=mygeo%surfaceC^D(ixC^S)*qR(ixC^S)
-        qL(ixC^S)=mygeo%surfaceC^D(ixC^S)*qL(ixC^S)
+        qR(ixC^S)=block%surfaceC^D(ixC^S)*qR(ixC^S)
+        qL(ixC^S)=block%surfaceC^D(ixC^S)*qL(ixC^S)
         divq(ixO^S)=divq(ixO^S)+qR(ixO^S)-qL(hxO^S) \}
       end select
    end if
 end do
-if(.not.slab) divq(ixO^S)=divq(ixO^S)/mygeo%dvolume(ixO^S)
+if(.not.slab) divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
 
 end subroutine divvectorS
 !=============================================================================

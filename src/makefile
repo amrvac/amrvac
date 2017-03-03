@@ -32,6 +32,7 @@ convert.o: mod_ghostcells_update.o
 convert.o: mod_limiter.o
 convert.o: mod_physics.o
 convert.o: mod_timing.o
+convert.o: mod_mhd_phys.o
 geometry.o: mod_limiter.o
 geometry.o: mod_ppm.o
 handle_particles.o: mod_gridvars.o

@@ -224,12 +224,11 @@ contains
     end if
     
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       allocate(pw1(igrid)%w(ixG^T,1:nw))
-       allocate(pw2(igrid)%w(ixG^T,1:nw))
-       allocate(pw3(igrid)%w(ixG^T,1:nw))
-       pw1(igrid)%w=pw(igrid)%w
-       pw2(igrid)%w=pw(igrid)%w
-       pw3(igrid)%w=pwold(igrid)%w
+      if(.not. allocated(pw(igrid)%w2)) allocate(pw(igrid)%w2(ixG^T,1:nw))
+      if(.not. allocated(pw(igrid)%w3)) allocate(pw(igrid)%w3(ixG^T,1:nw))
+      pw(igrid)%w1=pw(igrid)%w
+      pw(igrid)%w2=pw(igrid)%w
+      pw(igrid)%w3=pw(igrid)%w
     end do
     
     allocate(bj(0:s))
@@ -244,26 +243,21 @@ contains
     
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      if (.not.slab) mygeo => pgeo(igrid)
-      if (B0field) then
-         myB0_cell => pB0_cell(igrid)
-         {^D&myB0_face^D => pB0_face^D(igrid)\}
-      end if
+      block=>pw(igrid)
       typelimiter=limiter(node(plevel_,igrid))
       typegradlimiter=gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      call evolve_step1(cmut,dt_tc,ixG^LL,ixM^LL,pw1(igrid)%w,pw(igrid)%w,&
-                        px(igrid)%x,pw3(igrid)%w)
+      call evolve_step1(cmut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,pw(igrid)%w,&
+                        pw(igrid)%x,pw(igrid)%w3)
+      pw(igrid)%wb=>pw(igrid)%w1
     end do
     !$OMP END PARALLEL DO
     bcphys=.false.
-    call getbc(global_time,0.d0,pw1,e_-1,1)
+    call getbc(global_time,0.d0,e_-1,1)
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
-        deallocate(pw1(igrid)%w)
-        deallocate(pw2(igrid)%w)
-        deallocate(pw3(igrid)%w)
+        pw(igrid)%w(ixG^T,e_)=pw(igrid)%w1(ixG^T,e_)
+        pw(igrid)%wb=>pw(igrid)%w
       end do
       ! point bc mpi data type back to full type for (M)HD
       type_send_srl=>type_send_srl_f
@@ -273,6 +267,7 @@ contains
       type_send_p=>type_send_p_f
       type_recv_p=>type_recv_p_f
       bcphys=.true.
+      deallocate(bj)
       return
     endif
     evenstep=.true.
@@ -285,52 +280,42 @@ contains
       if(evenstep) then
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          if(.not.slab) mygeo => pgeo(igrid)
-          if(B0field) then
-            myB0_cell => pB0_cell(igrid)
-            {^D&myB0_face^D => pB0_face^D(igrid)\}
-          end if
+          block=>pw(igrid)
           typelimiter=limiter(node(plevel_,igrid))
           typegradlimiter=gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          call evolve_stepj(cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw1(igrid)%w,&
-                            pw2(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
+          call evolve_stepj(cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,&
+                            pw(igrid)%w2,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)
+          pw(igrid)%wb=>pw(igrid)%w2
         end do
     !$OMP END PARALLEL DO
-        call getbc(global_time,0.d0,pw2,e_-1,1)
+        call getbc(global_time,0.d0,e_-1,1)
         evenstep=.false.
       else
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          if(.not.slab) mygeo => pgeo(igrid)
-          if(B0field) then
-             myB0_cell => pB0_cell(igrid)
-            {^D&myB0_face^D => pB0_face^D(igrid)\}
-          end if
+          block=>pw(igrid)
           typelimiter=limiter(node(plevel_,igrid))
           typegradlimiter=gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          call evolve_stepj(cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw2(igrid)%w,&
-                            pw1(igrid)%w,pw(igrid)%w,px(igrid)%x,pw3(igrid)%w)
+          call evolve_stepj(cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w2,&
+                            pw(igrid)%w1,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)
+          pw(igrid)%wb=>pw(igrid)%w1
         end do
     !$OMP END PARALLEL DO
-        call getbc(global_time,0.d0,pw1,e_-1,1)
+        call getbc(global_time,0.d0,e_-1,1)
         evenstep=.true.
       end if 
     end do
     if(evenstep) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        pw(igrid)%w(ixG^T,e_)=pw1(igrid)%w(ixG^T,e_)
-        deallocate(pw1(igrid)%w)
-        deallocate(pw2(igrid)%w)
-        deallocate(pw3(igrid)%w)
+        pw(igrid)%w(ixG^T,e_)=pw(igrid)%w1(ixG^T,e_)
+        pw(igrid)%wb=>pw(igrid)%w
       end do 
     else
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        pw(igrid)%w(ixG^T,e_)=pw2(igrid)%w(ixG^T,e_)
-        deallocate(pw1(igrid)%w)
-        deallocate(pw2(igrid)%w)
-        deallocate(pw3(igrid)%w)
+        pw(igrid)%w(ixG^T,e_)=pw(igrid)%w2(ixG^T,e_)
+        pw(igrid)%wb=>pw(igrid)%w
       end do 
     end if
     deallocate(bj)
@@ -499,7 +484,7 @@ contains
     end do
     ! B
     if(B0field) then
-      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+myB0_cell%w(ix^S,1:ndir)
+      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+block%w0(ix^S,1:ndir,0)
     else
       mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir));
     end if
@@ -664,7 +649,7 @@ contains
     
     ! B
     if(B0field) then
-      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+myB0_cell%w(ixO^S,1:ndir)
+      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+block%w0(ixO^S,1:ndir,0)
     else
       mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))
     end if

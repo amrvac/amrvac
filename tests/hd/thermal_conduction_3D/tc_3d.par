@@ -1,4 +1,4 @@
-!setup.pl -d=33
+!setup.pl -d=3
 
 &filelist
   base_filename    = 'tc_3d'

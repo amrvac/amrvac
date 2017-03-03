@@ -106,7 +106,7 @@ contains
     !! output the plasma beta p*2/B**2
     if(B0field)then
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum((w(ixO^S,mag(:))+&
-                    myB0_cell%w(ixO^S,:))**2,dim=ndim+1)
+                    block%w0(ixO^S,:,0))**2,dim=ndim+1)
     else
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     endif

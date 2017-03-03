@@ -248,7 +248,7 @@ integer function igrid_active(igrid)
   igrid_active = -1
 
   if (associated(usr_flag_grid)) then
-     call usr_flag_grid(global_time,ixG^LL,ixO^L,pw(igrid)%w,px(igrid)%x,igrid_active)
+     call usr_flag_grid(global_time,ixG^LL,ixO^L,pw(igrid)%w,pw(igrid)%x,igrid_active)
   end if
 
 end function igrid_active

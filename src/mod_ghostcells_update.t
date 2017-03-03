@@ -2,9 +2,17 @@
 module mod_ghostcells_update
 
   implicit none
+  ! Special buffer for pole copy
+  type wbuffer
+    double precision, dimension(:^D&,:), allocatable :: w
+  end type wbuffer
+
   ! A switch of update physical boundary or not
   logical :: bcphys=.true.
   integer :: ixM^L, ixCoG^L, ixCoM^L
+
+  !> The number of interleaving sending buffers for ghost cells
+  integer, parameter :: npwbuf=2
 
   ! index ranges to send (S) to sibling blocks, receive (R) from 
   ! sibling blocks, send restricted (r) ghost cells to coarser blocks 
@@ -218,14 +226,13 @@ contains
   
   end subroutine put_bc_comm_types
 
-  subroutine getbc(time,qdt,pwuse,nwstart,nwbc)
+  subroutine getbc(time,qdt,nwstart,nwbc)
     use mod_global_parameters
     use mod_physics
     
     double precision, intent(in)      :: time, qdt
     integer, intent(in)               :: nwstart ! Fill from nw = nwstart+1
     integer, intent(in)               :: nwbc    ! Number of variables to fill
-    type(walloc), dimension(max_blocks) :: pwuse
     
     integer :: my_neighbor_type, ipole, idims, iside
     integer :: iigrid, igrid, ineighbor, ipe_neighbor
@@ -235,9 +242,9 @@ contains
     ! store physical boundary indicating index
     integer :: idphyb(max_blocks,ndim),bindex(ndim)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco,iB
-    type(walloc) :: pwbuf(npwbuf)
     logical  :: isphysbound
-    
+    type(wbuffer) :: pwbuf(npwbuf)
+
     double precision :: time_bcin
     {#IFDEF STRETCHGRID
     ! Stretching grid parameters for coarsened block of the current block
@@ -248,13 +255,14 @@ contains
     ixG^L=ixG^LL;
     
     if (internalboundary) then 
-       call getintbc(time,ixG^L,pwuse)
+       call getintbc(time,ixG^L)
     end if
     ! fill ghost cells in physical boundaries
     if(bcphys) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
          if(.not.phyboundblock(igrid)) cycle
          saveigrid=igrid
+         block=>pw(igrid)
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          do idims=1,ndim
             ! to avoid using as yet unknown corner info in more than 1D, we
@@ -282,12 +290,7 @@ contains
                else 
                   if (neighbor_type(i^D,igrid)/=1) cycle
                end if
-               if(.not.slab)mygeo=>pgeo(igrid)
-               if (B0field) then
-                  myB0_cell => pB0_cell(igrid)
-                  {^D&myB0_face^D => pB0_face^D(igrid)\}
-               end if
-               call bc_phys(iside,idims,time,qdt,pwuse(igrid)%w,px(igrid)%x,ixG^L,ixB^L)
+               call bc_phys(iside,idims,time,qdt,pw(igrid)%wb,pw(igrid)%x,ixG^L,ixB^L)
             end do
          end do
       end do
@@ -334,6 +337,7 @@ contains
     nghostcellsco=ceiling(nghostcells*0.5d0)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
+       block=>pw(igrid)
        call identifyphysbound(igrid,isphysbound,iib^D)   
        if (any(neighbor_type(:^D&,igrid)==2)) then
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -349,8 +353,8 @@ contains
             ixM^L=ixG^L^LSUBnghostcells;
           end if
     }
-          call coarsen_grid(pwuse(igrid)%w,px(igrid)%x,ixG^L,ixM^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,&
-                            ixCoG^L,ixCoM^L,pgeo(igrid),pgeoCoarse(igrid))
+          call coarsen_grid(pw(igrid)%wb,pw(igrid)%x,ixG^L,ixM^L,pw(igrid)%wcoarse,pw(igrid)%xcoarse,&
+                            ixCoG^L,ixCoM^L,igrid,igrid)
        end if
     
        {do i^DB=-1,1\}
@@ -415,6 +419,7 @@ contains
     ! sending ghost-cell values to finer neighbors 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
+       block=>pw(igrid)
        ^D&iib^D=idphyb(igrid,^D);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        if (any(neighbor_type(:^D&,igrid)==4)) then
@@ -442,6 +447,7 @@ contains
     ! do prolongation on the ghost-cell values received from coarser neighbors 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
+       block=>pw(igrid)
        ^D&iib^D=idphyb(igrid,^D);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        if (any(neighbor_type(:^D&,igrid)==2)) then
@@ -463,7 +469,7 @@ contains
 
     !> @todo Implement generic interface for modifying ghost cells
      ! modify normal component of magnetic field to fix divB=0 
-    if(bcphys .and. physics_type=='mhd' .and. ndim>1) call phys_boundary_adjust(pwuse)
+    if(bcphys .and. physics_type=='mhd' .and. ndim>1) call phys_boundary_adjust(pw)
     
     if (nwaux>0) call fix_auxiliary
     
@@ -481,12 +487,12 @@ contains
            if (ipe_neighbor==mype) then
               ixS^L=ixS_srl_^L(iib^D,i^D);
               ixR^L=ixR_srl_^L(iib^D,n_i^D);
-              pwuse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc)=&
-                  pwuse(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
+              pw(ineighbor)%wb(ixR^S,nwstart+1:nwstart+nwbc)=&
+                  pw(igrid)%wb(ixS^S,nwstart+1:nwstart+nwbc)
            else
               isend=isend+1
               itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
-              call MPI_ISEND(pwuse(igrid)%w,1,type_send_srl(iib^D,i^D), &
+              call MPI_ISEND(pw(igrid)%wb,1,type_send_srl(iib^D,i^D), &
                              ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
            end if
         else
@@ -497,7 +503,7 @@ contains
            end select
            if (ipe_neighbor==mype) then
               ixR^L=ixR_srl_^L(iib^D,n_i^D);
-              call pole_copy(pwuse(ineighbor),ixR^L,pwuse(igrid),ixS^L)
+              call pole_copy(pw(ineighbor)%wb,ixG^L,ixR^L,pw(igrid)%wb,ixG^L,ixS^L)
            else
               if (isend_buf(ipwbuf)/=0) then
                  call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
@@ -505,7 +511,7 @@ contains
                  deallocate(pwbuf(ipwbuf)%w)
               end if
               allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
-              call pole_copy(pwbuf(ipwbuf),ixS^L,pwuse(igrid),ixS^L)
+              call pole_buf(pwbuf(ipwbuf)%w,ixS^L,ixS^L,pw(igrid)%wb,ixG^L,ixS^L)
               isend=isend+1
               isend_buf(ipwbuf)=isend
               itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
@@ -553,9 +559,8 @@ contains
                 ii^D=kr(^D,idims)*(2*iside-3);
                 if ({abs(i^D)==1.and.abs(ii^D)==1|.or.}) cycle
                 if (neighbor_type(ii^D,igrid)/=1) cycle
-                if (.not.slab) mygeo=>pgeoCoarse(igrid)
-                call bc_phys(iside,idims,time,0.d0,pwCoarse(igrid)%w,&
-                       pxCoarse(igrid)%x,ixCoG^L,ixB^L)
+                call bc_phys(iside,idims,time,0.d0,pw(igrid)%wcoarse,&
+                       pw(igrid)%xcoarse,ixCoG^L,ixB^L)
              end do
           end do
         end if
@@ -568,12 +573,12 @@ contains
            if (ipe_neighbor==mype) then
               ixS^L=ixS_r_^L(iib^D,i^D);
               ixR^L=ixR_r_^L(iib^D,n_inc^D);
-              pwuse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc)=&
-               pwCoarse(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
+              pw(ineighbor)%wb(ixR^S,nwstart+1:nwstart+nwbc)=&
+               pw(igrid)%wcoarse(ixS^S,nwstart+1:nwstart+nwbc)
            else
               isend=isend+1
               itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
-              call MPI_ISEND(pwCoarse(igrid)%w,1,type_send_r(iib^D,i^D), &
+              call MPI_ISEND(pw(igrid)%wcoarse,1,type_send_r(iib^D,i^D), &
                              ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
            end if
         else
@@ -584,7 +589,7 @@ contains
            end select
            if (ipe_neighbor==mype) then
               ixR^L=ixR_r_^L(iib^D,n_inc^D);
-              call pole_copy(pwuse(ineighbor),ixR^L,pwCoarse(igrid),ixS^L)
+              call pole_copy(pw(ineighbor)%wb,ixG^L,ixR^L,pw(igrid)%wcoarse,ixCoG^L,ixS^L)
            else
               if (isend_buf(ipwbuf)/=0) then
                  call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
@@ -592,7 +597,7 @@ contains
                  deallocate(pwbuf(ipwbuf)%w)
               end if
               allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
-              call pole_copy(pwbuf(ipwbuf),ixS^L,pwCoarse(igrid),ixS^L)
+              call pole_buf(pwbuf(ipwbuf)%w,ixS^L,ixS^L,pw(igrid)%wcoarse,ixCoG^L,ixS^L)
               isend=isend+1
               isend_buf(ipwbuf)=isend
               itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -620,12 +625,12 @@ contains
               n_inc^D=ic^D+n_i^D;
               if (ipe_neighbor==mype) then
                  ixR^L=ixR_p_^L(iib^D,n_inc^D);
-                 pwCoarse(ineighbor)%w(ixR^S,nwstart+1:nwstart+nwbc) &
-                    =pwuse(igrid)%w(ixS^S,nwstart+1:nwstart+nwbc)
+                 pw(ineighbor)%wcoarse(ixR^S,nwstart+1:nwstart+nwbc) &
+                    =pw(igrid)%wb(ixS^S,nwstart+1:nwstart+nwbc)
               else
                  isend=isend+1
                  itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
-                 call MPI_ISEND(pwuse(igrid)%w,1,type_send_p(iib^D,inc^D), &
+                 call MPI_ISEND(pw(igrid)%wb,1,type_send_p(iib^D,inc^D), &
                                 ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
               end if
            else
@@ -635,7 +640,7 @@ contains
               end select
               if (ipe_neighbor==mype) then
                  ixR^L=ixR_p_^L(iib^D,n_inc^D);
-                 call pole_copy(pwCoarse(ineighbor),ixR^L,pwuse(igrid),ixS^L)
+                 call pole_copy(pw(ineighbor)%wcoarse,ixCoG^L,ixR^L,pw(igrid)%wb,ixG^L,ixS^L)
               else
                  if (isend_buf(ipwbuf)/=0) then
                     call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
@@ -643,7 +648,7 @@ contains
                     deallocate(pwbuf(ipwbuf)%w)
                  end if
                  allocate(pwbuf(ipwbuf)%w(ixS^S,nwstart+1:nwstart+nwbc))
-                 call pole_copy(pwbuf(ipwbuf),ixS^L,pwuse(igrid),ixS^L)
+                 call pole_buf(pwbuf(ipwbuf)%w,ixS^L,ixS^L,pw(igrid)%wb,ixG^L,ixS^L)
                  isend=isend+1
                  isend_buf(ipwbuf)=isend
                  itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -663,7 +668,7 @@ contains
         if (ipe_neighbor/=mype) then
            irecv=irecv+1
            itag=(3**^ND+4**^ND)*(igrid-1)+{(i^D+1)*3**(^D-1)+}
-           call MPI_IRECV(pwuse(igrid)%w,1,type_recv_srl(iib^D,i^D), &
+           call MPI_IRECV(pw(igrid)%wb,1,type_recv_srl(iib^D,i^D), &
                           ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)
         end if
 
@@ -677,7 +682,7 @@ contains
            if (ipe_neighbor/=mype) then
               irecv=irecv+1
               itag=(3**^ND+4**^ND)*(igrid-1)+3**^ND+{inc^D*4**(^D-1)+}
-              call MPI_IRECV(pwuse(igrid)%w,1,type_recv_r(iib^D,inc^D), &
+              call MPI_IRECV(pw(igrid)%wb,1,type_recv_r(iib^D,inc^D), &
                              ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)
            end if
         {end do\}
@@ -694,7 +699,7 @@ contains
            irecv=irecv+1
            inc^D=ic^D+i^D;
            itag=(3**^ND+4**^ND)*(igrid-1)+3**^ND+{inc^D*4**(^D-1)+}
-           call MPI_IRECV(pwCoarse(igrid)%w,1,type_recv_p(iib^D,inc^D), &
+           call MPI_IRECV(pw(igrid)%wcoarse,1,type_recv_p(iib^D,inc^D), &
                           ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)  
         end if
 
@@ -727,46 +732,30 @@ contains
         ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
 
         call phys_convert_before_prolong(ixCoG^L,ixCo^L,&
-             pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-
-        ! if (amrentropy) then
-        !    call e_to_rhos(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-        ! else if (prolongprimitive) then
-        !    call primitive(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-        ! end if
+             pw(igrid)%wcoarse,pw(igrid)%xcoarse)
 
         select case (typeghostfill)
         case ("linear")
-           call interpolation_linear(pwuse(igrid),ixFi^L,dxFi^D,xFimin^D, &
-                                   pwCoarse(igrid),dxCo^D,invdxCo^D,xComin^D)
+           call interpolation_linear(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
         case ("copy")
-           call interpolation_copy(pwuse(igrid),ixFi^L,dxFi^D,xFimin^D, &
-                                   pwCoarse(igrid),dxCo^D,invdxCo^D,xComin^D)
+           call interpolation_copy(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
         case ("unlimit")
-           call interpolation_unlimit(pwuse(igrid),ixFi^L,dxFi^D,xFimin^D, &
-                                   pwCoarse(igrid),dxCo^D,invdxCo^D,xComin^D)
+           call interpolation_unlimit(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
         case default
            write (unitterm,*) "Undefined typeghostfill ",typeghostfill
            call mpistop("")
         end select
 
         call phys_convert_after_prolong(ixCoG^L,ixCo^L,&
-             pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-
-        ! if (amrentropy) then
-        !     call rhos_to_e(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x)
-        ! else if (prolongprimitive) then
-        !     call conserve(ixCoG^L,ixCo^L,pwCoarse(igrid)%w,pxCoarse(igrid)%x,patchfalse)
-        ! end if
+             pw(igrid)%wcoarse,pw(igrid)%xcoarse)
 
       end subroutine bc_prolong
 
-      subroutine interpolation_linear(pwFi,ixFi^L,dxFi^D,xFimin^D, &
-                                      pwCo,dxCo^D,invdxCo^D,xComin^D)
+      subroutine interpolation_linear(ixFi^L,dxFi^D,xFimin^D, &
+                                      dxCo^D,invdxCo^D,xComin^D)
         use mod_physics, only: phys_convert_after_prolong
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
-        type(walloc) :: pwCo, pwFi
 
         integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, iw, idims
         double precision :: xCo^D, xFi^D, eta^D
@@ -797,11 +786,11 @@ contains
            else
               ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
               {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-                    *two*(one-pgeo(igrid)%dvolume(ixFi^DD) &
-                    /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
+                    *two*(one-block%dvolume(ixFi^DD) &
+                    /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
         {#IFDEF STRETCHGRID
-              eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-pgeo(igrid)%dvolume(ixFi^D) &
-                    /sum(pgeo(igrid)%dvolume(ix1:ix1+1^%1ixFi^D))) 
+              eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-block%dvolume(ixFi^D) &
+                    /sum(block%dvolume(ix1:ix1+1^%1ixFi^D))) 
         }
            end if
         
@@ -810,8 +799,8 @@ contains
               jxCo^D=ixCo^D+kr(^D,idims)\
         
               do iw=nwstart+1,nwstart+nwbc
-                 slopeL=pwCo%w(ixCo^D,iw)-pwCo%w(hxCo^D,iw)
-                 slopeR=pwCo%w(jxCo^D,iw)-pwCo%w(ixCo^D,iw)
+                 slopeL=pw(igrid)%wcoarse(ixCo^D,iw)-pw(igrid)%wcoarse(hxCo^D,iw)
+                 slopeR=pw(igrid)%wcoarse(jxCo^D,iw)-pw(igrid)%wcoarse(ixCo^D,iw)
                  slopeC=half*(slopeR+slopeL)
         
                  ! get limited slope
@@ -838,22 +827,21 @@ contains
            end do
         
            ! Interpolate from coarse cell using limited slopes
-           pwFi%w(ixFi^D,nwstart+1:nwstart+nwbc)=pwCo%w(ixCo^D,nwstart+1:&
+           pw(igrid)%wb(ixFi^D,nwstart+1:nwstart+nwbc)=pw(igrid)%wcoarse(ixCo^D,nwstart+1:&
              nwstart+nwbc)+{(slope(nwstart+1:nwstart+nwbc,^D)*eta^D)+}
         
         {end do\}
         
-        call phys_convert_after_prolong(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
+        call phys_convert_after_prolong(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
       
       end subroutine interpolation_linear
 
-      subroutine interpolation_copy(pwFi,ixFi^L,dxFi^D,xFimin^D, &
-                                    pwCo,dxCo^D,invdxCo^D,xComin^D)
+      subroutine interpolation_copy(ixFi^L,dxFi^D,xFimin^D, &
+                                    dxCo^D,invdxCo^D,xComin^D)
         use mod_physics, only: phys_convert_after_prolong
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
-        type(walloc) :: pwCo, pwFi
-        
+
         integer :: ixCo^D, ixFi^D
         double precision :: xFi^D
 
@@ -865,21 +853,20 @@ contains
            ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
         
            ! Copy from coarse cell
-           pwFi%w(ixFi^D,nwstart+1:nwstart+nwbc)=pwCo%w(ixCo^D,nwstart+1:nwstart+nwbc)
+           pw(igrid)%wb(ixFi^D,nwstart+1:nwstart+nwbc)=pw(igrid)%wcoarse(ixCo^D,nwstart+1:nwstart+nwbc)
         
         {end do\}
         
-        call phys_convert_after_prolong(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
+        call phys_convert_after_prolong(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
       
       end subroutine interpolation_copy
 
-      subroutine interpolation_unlimit(pwFi,ixFi^L,dxFi^D,xFimin^D, &
-                                       pwCo,dxCo^D,invdxCo^D,xComin^D)
+      subroutine interpolation_unlimit(ixFi^L,dxFi^D,xFimin^D, &
+                                       dxCo^D,invdxCo^D,xComin^D)
         use mod_physics, only: phys_convert_after_prolong
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D, dxCo^D,invdxCo^D, xComin^D
-        type(walloc) :: pwCo, pwFi
-        
+
         integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idims
         double precision :: xCo^D, xFi^D, eta^D
         double precision :: slope(nwstart+1:nwstart+nwbc,ndim)
@@ -902,8 +889,8 @@ contains
            else
               ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
               {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-                    *two*(one-pgeo(igrid)%dvolume(ixFi^DD) &
-                    /sum(pgeo(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
+                    *two*(one-block%dvolume(ixFi^DD) &
+                    /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
            end if
         
            do idims=1,ndim
@@ -911,24 +898,24 @@ contains
               jxCo^D=ixCo^D+kr(^D,idims)\
         
               ! get centered slope
-              slope(nwstart+1:nwstart+nwbc,idims)=half*(pwCo%w(jxCo^D,&
-                nwstart+1:nwstart+nwbc)-pwCo%w(hxCo^D,nwstart+1:nwstart+nwbc))
+              slope(nwstart+1:nwstart+nwbc,idims)=half*(pw(igrid)%wcoarse(jxCo^D,&
+                nwstart+1:nwstart+nwbc)-pw(igrid)%wcoarse(hxCo^D,nwstart+1:nwstart+nwbc))
            end do
         
            ! Interpolate from coarse cell using centered slopes
-           pwFi%w(ixFi^D,nwstart+1:nwstart+nwbc)=pwCo%w(ixCo^D,nwstart+1:&
+           pw(igrid)%wb(ixFi^D,nwstart+1:nwstart+nwbc)=pw(igrid)%wcoarse(ixCo^D,nwstart+1:&
              nwstart+nwbc)+{(slope(nwstart+1:nwstart+nwbc,^D)*eta^D)+}
         {end do\}
         
-        call phys_convert_after_prolong(ixG^LL,ixFi^L,pwFi%w,px(igrid)%x)
+        call phys_convert_after_prolong(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
       
       end subroutine interpolation_unlimit
 
-      subroutine pole_copy(pwrecv,ixR^L,pwsend,ixS^L)
+      subroutine pole_copy(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L)
       
-        integer, intent(in) :: ixR^L, ixS^L
-        type(walloc) :: pwrecv, pwsend
-        
+        integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
+        double precision :: wrecv(ixIR^S,1:nw), wsend(ixIS^S,1:nw)
+
         integer :: iw, iB
 
         select case (ipole)
@@ -938,9 +925,9 @@ contains
            do iw=nwstart+1,nwstart+nwbc
              select case (typeboundary(iw,iB))
              case ("symm")
-               pwrecv%w(ixR^S,iw) = pwsend%w(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
+               wrecv(ixR^S,iw) = wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
              case ("asymm")
-               pwrecv%w(ixR^S,iw) =-pwsend%w(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
+               wrecv(ixR^S,iw) =-wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
              case default
                call mpistop("Boundary condition at pole should be symm or asymm")
              end select
@@ -949,6 +936,31 @@ contains
       
       end subroutine pole_copy
 
+      subroutine pole_buf(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L)
+      
+        integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
+        double precision :: wrecv(ixIR^S,nwstart+1:nwstart+nwbc), wsend(ixIS^S,1:nw)
+
+        integer :: iw, iB
+
+        select case (ipole)
+        {case (^D)
+           iside=int((i^D+3)/2)
+           iB=2*(^D-1)+iside
+           do iw=nwstart+1,nwstart+nwbc
+             select case (typeboundary(iw,iB))
+             case ("symm")
+               wrecv(ixR^S,iw) = wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
+             case ("asymm")
+               wrecv(ixR^S,iw) =-wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
+             case default
+               call mpistop("Boundary condition at pole should be symm or asymm")
+             end select
+           end do \}
+        end select
+      
+      end subroutine pole_buf
+
       subroutine fix_auxiliary
         use mod_physics, only: phys_get_aux
       
@@ -956,14 +968,14 @@ contains
 
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           saveigrid=igrid
+          block=>pw(igrid)
           call identifyphysbound(igrid,isphysbound,iib^D)   
              
           {do i^DB=-1,1\}
              if (i^D==0|.and.) cycle
         
              ix^L=ixR_srl_^L(iib^D,i^D);
-             if(.not.slab)mygeo=>pgeo(igrid)
-             call phys_get_aux(.true.,pwuse(igrid)%w,px(igrid)%x,ixG^L,ix^L,"bc")
+             call phys_get_aux(.true.,pw(igrid)%wb,pw(igrid)%x,ixG^L,ix^L,"bc")
           {end do\}
         end do
       

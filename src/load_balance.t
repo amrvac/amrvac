@@ -63,6 +63,9 @@ call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
                    MPI_SUM,icomm,ierrmpi)
 }
 
+! Update sfc array: igrid and ipe info in space filling curve
+call amr_Morton_order()
+
 !!$if (nwaux>0) then
 !!$   do Morton_no=Morton_start(mype),Morton_stop(mype)
 !!$      if (sfc(2,Morton_no)/=mype) then

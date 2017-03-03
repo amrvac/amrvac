@@ -42,13 +42,7 @@ contains
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
     do idims= idim^LIM
-       if (B0field) then
-          select case (idims)
-             {case (^D)
-             myB0 => myB0_face^D\}
-          end select
-       end if
-
+       block%iw0=idims
        ! Calculate w_j+g_j/2 and w_j-g_j/2
        ! First copy all variables, then upwind wLC and wRC.
        ! wLC is to the left of ixO, wRC is to the right of wCT.
@@ -71,13 +65,14 @@ contains
           else
              select case (idims)
                 {case (^D)
-                wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/mygeo%dvolume(ixO^S) &
-                     *(mygeo%surfaceC^D(ixO^S)*fLC(ixO^S, iw) &
-                     -mygeo%surfaceC^D(hxO^S)*fRC(hxO^S, iw))\}
+                wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/block%dvolume(ixO^S) &
+                     *(block%surfaceC^D(ixO^S)*fLC(ixO^S, iw) &
+                     -block%surfaceC^D(hxO^S)*fRC(hxO^S, iw))\}
              end select
           end if
        end do
     end do ! next idims
+    block%iw0=0
 
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
@@ -132,12 +127,7 @@ contains
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
     do idims= idim^LIM
-       if (B0field) then
-          select case (idims)
-             {case (^D)
-             myB0 => myB0_face^D\}
-          end select
-       end if
+       block%iw0=idims
 
        hxO^L=ixO^L-kr(idims,^D);
        ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
@@ -199,7 +189,7 @@ contains
        call get_Riemann_flux()
 
     end do ! Next idims
-
+    block%iw0=0
 
     do idims= idim^LIM
        hxO^L=ixO^L-kr(idims,^D);
@@ -215,7 +205,7 @@ contains
                 {case (^D)
                 fC(ixI^S,iw,^D)=-qdt*fC(ixI^S,iw,idims)
                 wnew(ixO^S,iw)=wnew(ixO^S,iw) &
-                     + (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+                     + (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
              end select
           end if
 
@@ -249,7 +239,7 @@ contains
            else
               select case (idims)
                  {case (^D)
-                 fC(ixC^S,iw,^D)=mygeo%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
+                 fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
               end select
            end if
         end do
@@ -276,7 +266,7 @@ contains
            else
               select case (idims)
                  {case (^D)
-                 fC(ixC^S,iw,^D)=mygeo%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
+                 fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
               end select
            end if
 
@@ -313,7 +303,7 @@ contains
             else
                select case (idims)
                   {case (^D)
-                  fC(ixC^S,iw,^D)=mygeo%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
+                  fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
                end select
             end if
 
@@ -369,7 +359,7 @@ contains
            else
               select case (idims)
                  {case (^D)
-                 fC(ixC^S,iw,^D)=mygeo%surfaceC^D(ixC^S)*fLC(ixC^S,iw)\}
+                 fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S,iw)\}
               end select
            end if
 

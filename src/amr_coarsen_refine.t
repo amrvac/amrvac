@@ -86,6 +86,7 @@ end do
 
 call get_level_range
 
+! Update sfc array: igrid and ipe info in space filling curve
 call amr_Morton_order()
 
 call load_balance
@@ -102,9 +103,9 @@ call selectgrids
 ! since we only filled mesh values, and advance assumes filled
 ! ghost cells, do boundary filling for the new levels
 if (time_advance) then
-   call getbc(global_time+dt,0.d0,pw,0,nwflux+nwaux)
+   call getbc(global_time+dt,0.d0,0,nwflux+nwaux)
 else
-   call getbc(global_time,0.d0,pw,0,nwflux+nwaux)
+   call getbc(global_time,0.d0,0,nwflux+nwaux)
 end if
 
 end subroutine amr_coarsen_refine

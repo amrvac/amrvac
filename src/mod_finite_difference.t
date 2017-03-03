@@ -37,9 +37,7 @@ contains
           {case (^D) 
           dxdims = dx^D\}
        end select
-       if (B0field) then
-          myB0 => myB0_cell
-       end if
+       block%iw0=idims
 
        ! Get fluxes for the whole grid (mesh+nghostcells)
        {^D& ixCmin^D = ixOmin^D - nghostcells * kr(idims,^D)\}
@@ -72,9 +70,9 @@ contains
           else
              select case (idims)
                 {case (^D)
-                fC(ix^S,iw,^D)=-qdt*mygeo%surfaceC^D(ix^S) * (fpL(ix^S,iw) + fmR(ix^S,iw))
+                fC(ix^S,iw,^D)=-qdt*block%surfaceC^D(ix^S) * (fpL(ix^S,iw) + fmR(ix^S,iw))
                 wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
              end select
           end if
        end do ! iw loop
@@ -226,9 +224,9 @@ contains
           else
              select case (idims)
                 {case (^D)
-                fC(ixC^S,iw,^D)=-qdt*mygeo%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
+                fC(ixC^S,iw,^D)=-qdt*block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
                 w(ixO^S,iw)=w(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
              end select
           end if
        end do    !next iw
@@ -284,12 +282,7 @@ contains
 
     ! Add fluxes to w
     do idims= idim^LIM
-       if (B0field) then
-          select case (idims)
-             {case (^D)
-             myB0 => myB0_face^D\}
-          end select
-       end if
+       block%iw0=idims
 
        ix^L=ixO^L^LADD2*kr(idims,^D); 
        hxO^L=ixO^L-kr(idims,^D);
@@ -331,9 +324,9 @@ contains
           else
              select case (idims)
                 {case (^D)
-                fC(ixC^S,iw,^D)=-qdt*mygeo%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
+                fC(ixC^S,iw,^D)=-qdt*block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
                 w(ixO^S,iw)=w(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/mygeo%dvolume(ixO^S)\}
+                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
              end select
           end if
        end do    !next iw

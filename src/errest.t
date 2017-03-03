@@ -18,7 +18,7 @@ case (1)
    ! differences
 !$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call compare1_grid(igrid,pwold(igrid)%w,pw(igrid)%w)
+      call compare1_grid(igrid,pw(igrid)%wold,pw(igrid)%w)
    end do
 !$OMP END PARALLEL DO
 case (2)
@@ -169,7 +169,7 @@ tolerance=refine_threshold(level)
 
    if (associated(usr_amr_tolerance)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
-      xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
+      xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
       call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
    end if
 
@@ -265,7 +265,7 @@ tolerance=refine_threshold(level)
 
    if (associated(usr_amr_tolerance)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
-      xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
+      xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
       call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
    end if
 
@@ -322,7 +322,7 @@ tolerance=refine_threshold(level)
 
    if (associated(usr_amr_tolerance)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
-      xtol(1:ndim) = px(igrid)%x(ix^D,1:ndim)
+      xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
       call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
    end if
 
@@ -372,7 +372,7 @@ else
 end if
 
 if (associated(usr_refine_grid)) then
-   call usr_refine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,px(igrid)%x, &
+   call usr_refine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,pw(igrid)%x, &
         my_refine,my_coarsen)
 end if
 
