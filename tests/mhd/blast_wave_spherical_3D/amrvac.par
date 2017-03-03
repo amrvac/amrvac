@@ -1,7 +1,7 @@
 ! setup.pl -d=3
  &filelist
 	base_filename='bw_spherical_3D'
-        autoconvert=.true.
+        autoconvert=.false.
         saveprim=.true.
         nwauxio=3
 	convert_type='vtuBmpi'
@@ -10,12 +10,12 @@
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        ditsave_log=1
+        ditsave_log=20
         dtsave_dat=0.05
  /
 
  &stoplist
-        time_max=0.15d0
+        time_max=0.05d0
  /
 
  &methodlist
@@ -46,8 +46,8 @@
         block_nx2=16
         block_nx3=16
         domain_nx1=32
-        domain_nx2=16
-        domain_nx3=32
+        domain_nx2=32
+        domain_nx3=64
         xprobmin1=1.d0
         xprobmax1=3.d0
         xprobmin2=0.d0
