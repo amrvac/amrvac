@@ -257,6 +257,7 @@ contains
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         pw(igrid)%w(ixG^T,e_)=pw(igrid)%w1(ixG^T,e_)
+        pw(igrid)%wb=>pw(igrid)%w
       end do
       ! point bc mpi data type back to full type for (M)HD
       type_send_srl=>type_send_srl_f
