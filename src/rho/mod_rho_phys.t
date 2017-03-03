@@ -27,6 +27,27 @@ contains
 
   end subroutine rho_params_read
 
+  !> Write this module's parameters to a snapsoht
+  subroutine rho_write_info(fh)
+    use mod_global_parameters
+    integer, intent(in)                 :: fh
+    integer, parameter                  :: n_par = ^ND
+    double precision                    :: values(n_par)
+    character(len=name_len)             :: names(n_par)
+    integer, dimension(MPI_STATUS_SIZE) :: st
+    integer                             :: er
+    integer                             :: idim
+
+    call MPI_FILE_WRITE(fh, n_par, ^ND, MPI_INTEGER, st, er)
+
+    do idim=1,ndim
+      write(names(idim),'(a,i1)') "v",idim
+      values(idim) = rho_v(idim)
+    end do
+    call MPI_FILE_WRITE(fh, values, n_par, MPI_DOUBLE_PRECISION, st, er)
+    call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
+  end subroutine rho_write_info
+
   subroutine rho_phys_init()
     use mod_global_parameters
     use mod_physics
@@ -62,6 +83,7 @@ contains
     phys_to_conserved    => rho_to_conserved
     phys_to_primitive    => rho_to_primitive
     phys_get_dt          => rho_get_dt
+    phys_write_info      => rho_write_info
 
   end subroutine rho_phys_init
 

@@ -139,6 +139,24 @@ contains
 
   end subroutine mhd_read_params
 
+  !> Write this module's parameters to a snapsoht
+  subroutine mhd_write_info(fh)
+    use mod_global_parameters
+    integer, intent(in)                 :: fh
+    integer, parameter                  :: n_par = 1
+    double precision                    :: values(n_par)
+    character(len=name_len)             :: names(n_par)
+    integer, dimension(MPI_STATUS_SIZE) :: st
+    integer                             :: er
+
+    call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
+
+    names(1) = "gamma"
+    values(1) = mhd_gamma
+    call MPI_FILE_WRITE(fh, values, n_par, MPI_DOUBLE_PRECISION, st, er)
+    call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
+  end subroutine mhd_write_info
+
   subroutine mhd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
@@ -243,6 +261,7 @@ contains
     phys_check_w         => mhd_check_w
     phys_get_pthermal    => mhd_get_pthermal
     phys_boundary_adjust => mhd_boundary_adjust
+    phys_write_info      => mhd_write_info
 
     ! derive units from basic units
     call mhd_physical_units

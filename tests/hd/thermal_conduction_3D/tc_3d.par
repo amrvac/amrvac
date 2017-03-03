@@ -1,6 +1,7 @@
 !setup.pl -d=33
 
 &filelist
+  base_filename    = 'tc_3d'
   typefilelog      = 'regression_test'
   autoconvert      = .true.
   convert_type     = 'vtuBCCmpi'
