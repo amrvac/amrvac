@@ -1,6 +1,9 @@
 TEST_DIRS := rho/auto_1d rho/auto_2d rho/auto_3d hd/Riemann_2D			\
-hd/Rayleigh_Taylor_2D hd/Rayleigh_Taylor_3D hd/Kelvin_Helmholtz hd/jet_cloud	\
-mhd/doubleGEM_25D mhd/solar_atmosphere_25D mhd/promRT
+hd/Rayleigh_Taylor_2D hd/Rayleigh_Taylor_3D hd/Kelvin_Helmholtz hd/blast_wave_cartesian_2D \
+mhd/Kelvin_Helmholtz_2D mhd/Orszag_Tang_2D mhd/blast_wave_cartesian_2D \
+mhd/blast_wave_polar_2D mhd/blast_wave_spherical_3D mhd/ripple_2.5D \
+mhd/prominence_Rayleigh_Taylor_2.5D mhd/solar_atmosphere_2.5D \
+mhd/radiative_cooling_3D mhd/thermal_conduction_3D
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)

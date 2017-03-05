@@ -35,7 +35,6 @@ contains
   subroutine initglobaldata_usr()
     use mod_global_parameters
 
-    unit_time=unit_length/unit_velocity             ! 85.8746159942810 s
     heatunit=unit_pressure/unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
 
     usr_grav=-2.74d4*unit_length/unit_velocity**2 ! solar gravity

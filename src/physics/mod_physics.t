@@ -53,7 +53,7 @@ module mod_physics
      end subroutine sub_convert
 
      subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
-       use mod_global_parameters, only: nw
+       use mod_global_parameters
        double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
        integer, intent(in)                :: ixI^L, ixO^L, idir
      end subroutine sub_modify_wLR
@@ -214,7 +214,7 @@ contains
   end subroutine dummy_convert
 
   subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
-    use mod_global_parameters, only: nw
+    use mod_global_parameters
     double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     integer, intent(in)                :: ixI^L, ixO^L, idir
   end subroutine dummy_modify_wLR

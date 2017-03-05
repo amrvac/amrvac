@@ -14,7 +14,7 @@ module mod_small_values
 
 contains
 
-  subroutine small_values_error(w, x, ixI^L, ixO^L, w_flag)
+  subroutine small_values_error(w, x, ixI^L, ixO^L, w_flag, subname)
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L
@@ -22,10 +22,11 @@ contains
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     integer, intent(in)          :: w_flag(ixI^S)
     integer                      :: ix_bad(ndim)
+    character(len=*), intent(in) :: subname
 
     ix_bad = maxloc(w_flag(ixO^S)) + [ ixOmin^D-1 ]
 
-    write(*, *) "Error: small value encountered"
+    write(*, *) "Error: small value encountered when call ", subname
     write(*, *) "Iteration: ", it, " Time: ", global_time
     write(*, *) "Location: ", x({ix_bad(^D)}, :)
     write(*, *) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)

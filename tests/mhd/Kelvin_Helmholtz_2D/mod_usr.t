@@ -127,10 +127,9 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    ! newly added variables to be concatenated with the primnames/w_names string
     use mod_global_parameters
     character(len=*) :: varnames
-    
+
     varnames='divB'
 
   end subroutine specialvarnames_output

@@ -317,7 +317,7 @@ contains
 
     ! TODO call dust_conserve(...)
 
-    call handle_small_values(.false., w, x, ixI^L, ixO^L)
+    call handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
 
   end subroutine hd_to_conserved
 
@@ -347,7 +347,7 @@ contains
     ! Convert dust momentum to dust velocity
     ! call dust_primitive(...)
 
-    call handle_small_values(.true., w, x, ixI^L, ixO^L)
+    call handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
 
   end subroutine hd_to_primitive
 
@@ -647,13 +647,14 @@ contains
     inv_rho = 1.0d0 / w(ixO^S, rho_)
   end function hd_inv_rho
 
-  subroutine handle_small_values(primitive, w, x, ixI^L, ixO^L)
+  subroutine handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
     use mod_small_values
     logical, intent(in)             :: primitive
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
+    character(len=*), intent(in)    :: subname
 
     double precision :: smallone
     integer :: idir, flag(ixI^S)
@@ -680,7 +681,7 @@ contains
        case ("average")
           call small_values_average(ixI^L, ixO^L, w, x, flag)
        case default
-          call small_values_error(w, x, ixI^L, ixO^L, flag)
+          call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
        end select
     end if
   end subroutine handle_small_values
