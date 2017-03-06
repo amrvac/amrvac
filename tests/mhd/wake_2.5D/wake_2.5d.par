@@ -1,0 +1,72 @@
+!=====================================================
+! Project : Wake
+! Aim     : shock-dominated MHD evolution, 2.5D setup
+! Results :
+! Update  : 11/07/2013
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=2
+!=====================================================
+
+ &filelist
+        base_filename = 'wake_2d'
+        typefilelog   = 'regression_test'
+        autoconvert   = T
+        saveprim      = T
+	convert_type  = 'vtuBCCmpi'
+        nwauxio       = 2
+ /
+
+ &savelist
+        dtsave_log   = 1.d-3
+ /
+
+ &stoplist
+        time_max     = 5.d-2
+ /
+
+ &methodlist
+        time_integrator   = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+ /
+
+ &boundlist
+        nghostcells          = 2
+        typeboundary_min1    = 8*'periodic'
+        typeboundary_max1    = 8*'periodic'
+        typeboundary_min2    = 8*'cont'
+        typeboundary_max2    = 8*'cont'
+ /
+
+ &meshlist
+        refine_criterion=3
+        w_for_refine(9)=3
+        w_for_refine(1)=1
+        w_for_refine(2)=2
+        w_for_refine(3)=3
+        w_refine_weight(1)=0.1
+        w_refine_weight(2)=0.8
+        w_refine_weight(3)=0.1
+        refine_max_level=4
+        nbufferx1=2
+        nbufferx2=2
+        refine_threshold=20*0.05d0
+        block_nx1=12
+        block_nx2=12
+        domain_nx1=48
+        domain_nx2=96
+        xprobmin1=0.0
+        xprobmax1=17.951958
+        xprobmin2=-15.0
+        xprobmax2=15.0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.9d0
+        slowsteps=10
+ /
+
+ &mhd_list
+        mhd_eta=1.d-4
+ /
