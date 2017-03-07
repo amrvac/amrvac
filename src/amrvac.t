@@ -69,8 +69,6 @@ program amrvac
        ! Reset it and global_time to original values
        it           = itin
        global_time  = tin
-       !!and start writing snapshots at index 0
-       !!snapshotnext = 0
      end if
 
      ! modify initial condition

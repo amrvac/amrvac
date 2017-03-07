@@ -352,6 +352,9 @@ call get_level_range
 call getigrids
 call build_connectivity
 
+! This call is here to ensure the sfc array is initialized
+call amr_Morton_order()
+
 contains
 !=============================================================================
 ! internal procedures
