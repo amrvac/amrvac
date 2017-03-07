@@ -1,6 +1,5 @@
 module mod_usr
   use mod_mhd
-  use mod_physics
   implicit none
 
 contains
@@ -39,7 +38,7 @@ contains
     w(ixO^S,mag(1))=-b0*sin(2.0d0*dpi*x(ixO^S,2))
     w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
     if(first .and. mype==0 )then
       write(*,*)'Doing 2D ideal MHD, Orszag Tang problem'

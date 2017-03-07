@@ -494,11 +494,10 @@ integer :: ixI^L, ix^L, idir
 double precision :: q(ixI^S), gradq(ixI^S)
 double precision :: dxdim
 
-double precision :: qC(ixI^S)
-double precision,dimension(ixI^S):: qL,qR,dqC,ldq,invdx
-integer                          :: hx^L,ixC^L,jxC^L,gxC^L,hxC^L,idummy
+double precision,dimension(ixI^S):: qC,qL,qR,dqC,ldq
+double precision :: invdx
+integer :: hx^L,ixC^L,jxC^L,gxC^L,hxC^L,idummy
 character*79 :: savetypelimiter,savetypegradlimiter,save2typelimiter
-!-----------------------------------------------------------------------------
 
 invdx=1.d0/dxlevel(idir)
 hx^L=ix^L-kr(idir,^D);

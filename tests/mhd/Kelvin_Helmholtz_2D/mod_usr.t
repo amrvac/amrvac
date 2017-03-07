@@ -1,6 +1,5 @@
 module mod_usr
   use mod_mhd
-  use mod_physics
   implicit none
 
 contains
@@ -13,6 +12,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
 
+    call set_coordinate_system('Cartesian')
     call mhd_activate()
 
   end subroutine usr_init
@@ -44,7 +44,7 @@ contains
        w(ixO^S,mom(1))=qv*tanh((x(ixO^S,2)-(xprobmax2+xprobmin2)/two)/width)
        w(ixO^S,mom(2))=dv*sin(k1*(x(ixO^S,1)-xprobmin1)/(xprobmax1-xprobmin1))*&
                     exp(-((x(ixO^S,2)-(xprobmax2+xprobmin2)/two)/sigma)**2)
-       call phys_to_conserved(ixI^L,ixO^L,w,x)
+       call mhd_to_conserved(ixI^L,ixO^L,w,x)
        if(first .and. mype==0)then
           write(*,*)'Doing 2D MHD, Kelvin-Helmholtz problem, uniform density'
           write(*,*)'qv, width, dv, k1, sigma:'
@@ -69,7 +69,7 @@ contains
        w(ixO^S,mom(1))=qv*tanh((x(ixO^S,2)-(xprobmax2+xprobmin2)/two)/width)
        w(ixO^S,mom(2))=dv*sin(k1*(x(ixO^S,1)-xprobmin1)/(xprobmax1-xprobmin1))*&
                     exp(-((x(ixO^S,2)-(xprobmax2+xprobmin2)/two)/sigma)**2)
-       call phys_to_conserved(ixI^L,ixO^L,w,x)
+       call mhd_to_conserved(ixI^L,ixO^L,w,x)
        if(first .and. mype==0)then
           write(*,*)'Doing 2D MHD, Kelvin-Helmholtz problem, two density layers'
           write(*,*)'qv, width, dv, k1, sigma:'
@@ -101,7 +101,7 @@ contains
        w(ixO^S,mom(1))=qv*tanh((x(ixO^S,2)-(xprobmax2+xprobmin2)/two)/width)
        w(ixO^S,mom(2))=dv*sin(k1*(x(ixO^S,1)-xprobmin1)/(xprobmax1-xprobmin1))*&
                     exp(-((x(ixO^S,2)-(xprobmax2+xprobmin2)/two)/sigma)**2)
-       call phys_to_conserved(ixI^L,ixO^L,w,x)
+       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
        write(unitterm,*)'Undefined Iprob in Userfile ',iprob
        Call mpistop(' --- initonegrid_usr ---')
@@ -111,7 +111,6 @@ contains
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
     use mod_global_parameters
-    use mod_mhd_phys
 
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
