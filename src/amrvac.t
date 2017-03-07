@@ -66,11 +66,11 @@ program amrvac
      end if
 
      if (restart_reset_time) then
-       ! Reset it and global_time to original values, and start writing
-       ! snapshots at index 0
+       ! Reset it and global_time to original values
        it           = itin
        global_time  = tin
-       snapshotnext = 0
+       !!and start writing snapshots at index 0
+       !!snapshotnext = 0
      end if
 
      ! modify initial condition

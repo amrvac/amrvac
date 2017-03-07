@@ -57,7 +57,7 @@ contains
     if(.not. restart_reset_time) then
        global_time  = zero
        it           = 0
-       snapshotnext = 0
+       !!snapshotnext = 0
     end if
 
     dt=zero
