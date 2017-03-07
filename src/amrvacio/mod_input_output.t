@@ -56,9 +56,8 @@ contains
           print *, './amrvac -i file.par [file2.par ...]'
           print *, ''
           print *, 'Optional arguments:'
-          print *, '-restart <N>         Restart a run at this snapshot'
           print *, '-convert             Convert snapshot files'
-          print *, '-if file0001.dat     Use this snapshot'
+          print *, '-if file0001.dat     Use this snapshot to restart from'
           print *, ''
           print *, 'Note: later parameter files override earlier ones.'
        end if
@@ -125,7 +124,7 @@ contains
 
     namelist /w_list/ w_convert_factor
 
-    namelist /stoplist/ itmax,time_max,dtmin,global_time,it
+    namelist /stoplist/ itmax,time_max,dtmin,global_time,it,restart_reset_time
 
     namelist /methodlist/ time_integrator, &
          source_split_usr,typesourcesplit,&
@@ -599,8 +598,9 @@ contains
        select case (time_integrator)
        case ("ssprk54","ssprk43","fourstep", "rk4", "threestep", "twostep")
           ! Runge-Kutta needs predictor
-          typelimited="predictor"
-          if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', 'predictor (for RK)'
+ !!!         typelimited="predictor"
+ !!!         if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', 'predictor (for RK)'
+          if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
        end select
     end if
 
