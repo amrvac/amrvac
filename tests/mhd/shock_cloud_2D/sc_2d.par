@@ -1,0 +1,74 @@
+!=====================================================
+! Project : 2D MHD shock cloud, AMR
+! Aim     : Shin et al ApJ 680, 2008
+! Results :
+! Update  : 07/03/2017
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=2
+!=====================================================
+
+ &filelist
+        base_filename='sc_2d'
+        typefilelog='regression_test'
+        saveprim=.true.
+        autoconvert=.true.
+        convert_type='vtuBCCmpi'
+ /
+
+ &savelist
+        dtsave_log=1.d-3
+ /
+
+ &stoplist
+        time_max=5.d-2
+ /
+
+ &methodlist
+        time_integrator=  'threestep'
+        flux_scheme=    20*'hll'
+        limiter= 20*'mp5'
+        small_pressure=1.0d-14
+        small_density=1.0d-14
+ /
+
+ &boundlist
+        nghostcells=    3
+        typeboundary_min1=7*'special'
+        typeboundary_max1=7*'cont'
+        typeboundary_min2=7*'cont'
+        typeboundary_max2=7*'cont'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+        w_for_refine(8)=4
+        w_for_refine(1)=1
+        w_for_refine(2)=5
+        w_for_refine(3)=6
+        w_for_refine(4)=7
+        w_refine_weight(1)=0.6d0
+        w_refine_weight(2)=0.1d0
+        w_refine_weight(3)=0.1d0
+        w_refine_weight(4)=0.2d0
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.125d0
+        domain_nx1=64
+        domain_nx2=64
+        xprobmin1=-3.66d0
+        xprobmax1=6.34d0
+        xprobmin2=-5.0d0
+        xprobmax2=5.0d0
+        iprob=1
+ /
+
+ &paramlist
+        slowsteps=10
+        typecourant='maxsum'
+        courantpar=0.4d0
+        dtdiffpar=0.4d0
+ /
+
+ &mhd_list
+        mhd_n_tracer=1
+ /

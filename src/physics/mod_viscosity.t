@@ -10,7 +10,7 @@ module mod_viscosity
   implicit none
 
   !> Viscosity coefficient
-  double precision :: vc_mu = 1.d0
+  double precision, public :: vc_mu = 1.d0
 
   !> fourth order
   logical :: vc_4th_order = .false.

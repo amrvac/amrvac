@@ -41,16 +41,16 @@ module mod_thermal_conduction
 
   implicit none
   !> Coefficient of thermal conductivity
-  double precision :: kappa
+  double precision, public :: kappa
 
   !> Coefficient of thermal conductivity perpendicular to magnetic field
-  double precision :: kappe
+  double precision, public :: kappe
 
   !> Time step of thermal conduction
   double precision :: dt_tc
 
   !> Number of sub-steps of supertime stepping
-  integer :: s
+  integer, public :: s
 
   !> Index of the density (in the w array)
   integer, private, parameter              :: rho_ = 1

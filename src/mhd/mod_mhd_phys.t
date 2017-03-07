@@ -128,7 +128,7 @@ contains
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
-      mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
+      mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
       divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr
 
     do n = 1, size(files)
@@ -639,11 +639,11 @@ contains
 
     ! Get flux of density
     f(ixO^S,rho_)=v(ixO^S,idim)*w(ixO^S,rho_)
-    if(mhd_n_tracer>0) then
-      do iw=1,mhd_n_tracer
-        f(ixO^S,tracer(iw))=f(ixO^S,rho_)
-      end do
-    end if
+
+    ! Get flux of tracer
+    do iw=1,mhd_n_tracer
+      f(ixO^S,tracer(iw))=v(ixO^S,idim)*w(ixO^S,tracer(iw))
+    end do
 
     ! Get flux of momentum
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
