@@ -10,6 +10,7 @@ contains
     use mod_usr_methods
 
     usr_init_one_grid => initonegrid_usr
+    usr_special_bc    => specialbound_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_set_B0        => specialset_B0
@@ -22,7 +23,6 @@ contains
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
     use mod_global_parameters
-    use mod_physics
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -60,7 +60,7 @@ contains
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -76,6 +76,92 @@ contains
 
   end subroutine get_B
 
+  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+    ! special boundary types, user defined
+    use mod_global_parameters
+    
+    integer, intent(in) :: ixO^L, iB, ixI^L
+    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
+    double precision :: delydelx
+    integer :: ix^D,idir,ixInt^L
+
+    select case(iB)
+    case(1)
+      ixInt^L=ixO^L;
+      ixIntmin1=ixOmax1+1;ixIntmax1=ixOmax1+1;
+      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      do ix1=ixOmin1,ixOmax1
+        w(ix1^%1ixO^S,rho_)=w(ixOmax1+1^%1ixO^S,rho_)
+        w(ix1^%1ixO^S,p_)=pth(ixOmax1+1^%1ixO^S)
+        w(ix1^%1ixO^S,mom(1))=w(ixOmax1+1^%1ixO^S,mom(1))/w(ixOmax1+1^%1ixO^S,rho_)
+        w(ix1^%1ixO^S,mom(2))=w(ixOmax1+1^%1ixO^S,mom(2))/w(ixOmax1+1^%1ixO^S,rho_)
+      enddo
+      !> zero normal gradient extrapolation
+      do ix1=ixOmax1,ixOmin1,-1
+        w(ix1^%1ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                    (-w(ix1+2^%1ixO^S,mag(:))&
+               +4.0d0*w(ix1+1^%1ixO^S,mag(:)))
+      enddo
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    case(2)
+      ixInt^L=ixO^L;
+      ixIntmin1=ixOmin1-1;ixIntmax1=ixOmin1-1;
+      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      do ix1=ixOmin1,ixOmax1
+        w(ix1^%1ixO^S,rho_)=w(ixOmin1-1^%1ixO^S,rho_)
+        w(ix1^%1ixO^S,p_)=pth(ixOmin1-1^%1ixO^S)
+        w(ix1^%1ixO^S,mom(1))=w(ixOmin1-1^%1ixO^S,mom(1))/w(ixOmin1-1^%1ixO^S,rho_)
+        w(ix1^%1ixO^S,mom(2))=w(ixOmin1-1^%1ixO^S,mom(2))/w(ixOmin1-1^%1ixO^S,rho_)
+      enddo
+      !> zero normal gradient extrapolation
+      do ix1=ixOmin1,ixOmax1
+        w(ix1^%1ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                    (-w(ix1-2^%1ixO^S,mag(:))&
+               +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
+      enddo
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    case(3)
+      ixInt^L=ixO^L;
+      ixIntmin2=ixOmax2+1;ixIntmax2=ixOmax2+1;
+      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      do ix2=ixOmin2,ixOmax2
+        w(ix2^%2ixO^S,rho_)=w(ixOmax2+1^%2ixO^S,rho_)
+        w(ix2^%2ixO^S,p_)=pth(ixOmax2+1^%2ixO^S)
+        w(ix2^%2ixO^S,mom(1))=w(ixOmax2+1^%2ixO^S,mom(1))/w(ixOmax2+1^%2ixO^S,rho_)
+        w(ix2^%2ixO^S,mom(2))=w(ixOmax2+1^%2ixO^S,mom(2))/w(ixOmax2+1^%2ixO^S,rho_)
+      enddo
+      !> zero normal gradient extrapolation
+      do ix2=ixOmax2,ixOmin2,-1
+        w(ix2^%2ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                    (-w(ix2+2^%2ixO^S,mag(:))&
+               +4.0d0*w(ix2+1^%2ixO^S,mag(:)))
+      enddo
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    case(4)
+      ixInt^L=ixO^L;
+      ixIntmin2=ixOmin2-1;ixIntmax2=ixOmin2-1;
+      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      do ix2=ixOmin2,ixOmax2
+        w(ix2^%2ixO^S,rho_)=w(ixOmin2-1^%2ixO^S,rho_)
+        w(ix2^%2ixO^S,p_)=pth(ixOmin2-1^%2ixO^S)
+        w(ix2^%2ixO^S,mom(1))=w(ixOmin2-1^%2ixO^S,mom(1))/w(ixOmin2-1^%2ixO^S,rho_)
+        w(ix2^%2ixO^S,mom(2))=w(ixOmin2-1^%2ixO^S,mom(2))/w(ixOmin2-1^%2ixO^S,rho_)
+      enddo
+      !> zero normal gradient extrapolation
+      do ix2=ixOmin2,ixOmax2
+        w(ix2^%2ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                    (-w(ix2-2^%2ixO^S,mag(:))&
+               +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
+      enddo
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    case default
+       call mpistop("Special boundary is not defined for this region")
+    end select
+  end subroutine specialbound_usr
+
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
   ! this subroutine can be used in convert, to add auxiliary variables to the
   ! converted output file, for further analysis using tecplot, paraview, ....
@@ -84,8 +170,6 @@ contains
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
     use mod_global_parameters
-    use mod_physics
-    use mod_mhd_phys
 
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -94,13 +178,13 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     !! output the plasma beta p*2/B**2
     if(B0field)then
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum((w(ixO^S,mag(:))+&
-                    myB0_cell%w(ixO^S,:))**2,dim=ndim+1)
+                    block%w0(ixO^S,:,0))**2,dim=ndim+1)
     else
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     endif

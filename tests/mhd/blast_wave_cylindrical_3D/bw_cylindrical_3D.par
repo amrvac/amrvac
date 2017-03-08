@@ -1,6 +1,7 @@
 ! setup.pl -d=3
  &filelist
 	base_filename='bw_cylindrical_3D'
+        typefilelog='regression_test'
         autoconvert=.true.
         saveprim=.true.
         nwauxio=3
@@ -8,14 +9,11 @@
  /
 
  &savelist
-        itsave(1,1)=0
-        itsave(1,2)=0
-        ditsave_log=10
-        dtsave_dat=0.05
+        dtsave_log=1.d-3
  /
 
  &stoplist
-        time_max=0.25d0
+        time_max=5.d-2
  /
 
  &methodlist
@@ -36,7 +34,7 @@
 
  &meshlist
         refine_criterion=3
-        refine_max_level=3
+        refine_max_level=2
         w_for_refine(9)=2
         w_for_refine(1)=1
         w_for_refine(2)=5
