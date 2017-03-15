@@ -3,9 +3,6 @@
 !> using adaptive mesh refinement.
 program amrvac
 
-  {#IFDEF PARTICLES
-  use mod_gridvars, only: init_gridvars, finish_gridvars
-  }
   use mod_global_parameters
   use mod_input_output
   use mod_physics, only: phys_check_params
@@ -13,6 +10,7 @@ program amrvac
   use mod_ghostcells_update
   use mod_usr
   use mod_initialize
+  use mod_particles
 
   integer          :: itin
   double precision :: time0, time_in, tin
@@ -45,22 +43,29 @@ program amrvac
 
      call read_snapshot
 
-     {#IFDEF PARTICLES
-     call init_tracerparticles
+     ! Select active grids
+     call selectgrids
+
+     ! Update ghost cells
      call getbc(global_time,0.d0,0,nwflux+nwaux)
-     call init_gridvars
-     call read_particles_snapshot
-     call finish_gridvars
-     }
+
+     if(use_particles) then
+       call init_gridvars
+       call read_particles_snapshot
+       call finish_gridvars
+       if(convert) then
+         call handle_particles()
+         call time_spent_on_particles()
+         call comm_finalize
+         stop
+       end if
+     end if
 
      if (convert) then
         if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
              .and. convert_type .ne. 'user')  &
              call mpistop("non-mpi conversion only uses 1 cpu")
         call generate_plotfile
-        {#IFDEF PARTICLES
-        call finish_tracerparticles
-        }
         call comm_finalize
         stop
      end if
@@ -75,8 +80,6 @@ program amrvac
      if (firstprocess) call modify_IC
      ! reset AMR grid
      if (resetgrid) call settree
-     ! Select active grids
-     call selectgrids
 
   else
      {#IFDEF RAY
@@ -88,13 +91,11 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
-     {#IFDEF PARTICLES
-     call init_tracerparticles
-     call getbc(global_time,0.d0,0,nwflux+nwaux)
-     call init_gridvars
-     call init_particles
-     call finish_gridvars
-     }
+     if(use_particles) then
+       call init_gridvars
+       call phys_init_particles
+       call finish_gridvars
+     end if
 
   end if
 
@@ -122,10 +123,8 @@ program amrvac
      print*,'-------------------------------------------------------------------------------'
   end if
 
-  {#IFDEF PARTICLES
   time_advance=.false.
-  call finish_tracerparticles
-  }
+
   call comm_finalize
 
 contains
@@ -242,17 +241,17 @@ contains
     if (mype==0) call MPI_FILE_CLOSE(log_fh,ierrmpi)
     timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
-    {#IFDEF RAY
-    call time_spent_on_rays
-    }
-    {#IFDEF PARTICLES
-    call time_spent_on_particles
-    }
 
     if (mype==0) then
        write(*,'(a,f12.3,a)')' Total time spent on IO     : ',timeio_tot,' sec'
        write(*,'(a,f12.3,a)')' Total timeintegration took : ',MPI_WTIME()-time_in,' sec'
     end if
+
+    {#IFDEF RAY
+    call time_spent_on_rays
+    }
+
+    if(use_particles) call time_spent_on_particles
 
   end subroutine timeintegration
 

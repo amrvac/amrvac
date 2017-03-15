@@ -78,13 +78,13 @@ contains
 
   !> Read this module's parameters from a file
   subroutine hd_read_params(files)
-    use mod_global_parameters, only: unitpar, SI_unit
+    use mod_global_parameters
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit
+    hd_gravity, He_abundance, SI_unit, use_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -120,6 +120,7 @@ contains
     use mod_dust, only: dust_init
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
+    use mod_particles, only: particles_init
     use mod_physics
 
     integer :: itr, idir
@@ -226,6 +227,11 @@ contains
     ! Initialize gravity module
     if(hd_gravity) then
       call gravity_init()
+    end if
+
+    ! Initialize particles module
+    if(use_particles) then
+      call particles_init()
     end if
 
   end subroutine hd_phys_init

@@ -6,6 +6,7 @@ use mod_forest
 }
 
 use mod_global_parameters
+use mod_ghostcells_update
 
 integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
 !-----------------------------------------------------------------------------
@@ -33,6 +34,8 @@ end do
 call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
                    MPI_SUM,icomm,ierrmpi)
 }
+
+call getbc(global_time,0.d0,0,nwflux+nwaux)
 
 call selectgrids
 

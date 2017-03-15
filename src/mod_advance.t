@@ -12,12 +12,9 @@ contains
 
   subroutine advance(iit)
 
-    {#IFDEF PARTICLES
-    use mod_particles, only: tmax_particles
-    use mod_timing, only: tpartc, tpartc0
-    }
     use mod_global_parameters
     use mod_thermal_conduction
+    use mod_particles
     use mod_source, only: addsource_all
 
     integer, intent(in) :: iit
@@ -68,12 +65,10 @@ contains
     ! split source addition
     call addsource_all(.false.)
 
-    {#IFDEF PARTICLES
-    tpartc0 = MPI_WTIME()
-    tmax_particles = (global_time + dt)* (UNIT_LENGTH/UNIT_VELOCITY)
-    call handle_particles
-    tpartc = tpartc + (MPI_WTIME() - tpartc0)
-    }
+    if(use_particles) then
+      tmax_particles = (global_time + dt)* (UNIT_LENGTH/UNIT_VELOCITY)
+      call handle_particles
+    end if
 
   end subroutine advance
 

@@ -103,6 +103,12 @@ module mod_physicaldata
       double precision, dimension(:), allocatable :: xcoarse
    end type walloc_sub
 }
+   type grid_field
+      !> Variables new state
+      double precision, dimension(:^D&,:), allocatable :: w
+      !> Variables old state
+      double precision, dimension(:^D&,:), allocatable :: wold
+   end type grid_field
    !> Block pointer for using current block
    type(walloc), pointer :: block
 
@@ -118,5 +124,7 @@ module mod_physicaldata
 {^NOONED
    double precision, dimension(:^DE&,:), allocatable :: collapsedData
 }
+   !> array of physical blocks of meshed fields for particles
+   type(grid_field), dimension(:), allocatable, target :: gridvars
 
 end module mod_physicaldata

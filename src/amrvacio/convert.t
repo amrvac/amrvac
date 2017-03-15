@@ -1,22 +1,14 @@
 !=============================================================================
 subroutine generate_plotfile
-  use mod_usr_methods, only: usr_special_convert
-
-{#IFDEF PARTICLES
-use mod_timing, only: tpartc, tpartc0
-}
+use mod_usr_methods, only: usr_special_convert
 use mod_global_parameters
 use mod_ghostcells_update
 !-----------------------------------------------------------------------------
 
-if(mype==0.and.level_io>0)write(unitterm,*)'reset tree to fixed level=',level_io
+if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
 if(level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) then 
    call resettree_convert
 end if
-
-call getbc(global_time,0.d0,0,nwflux+nwaux)
-
-!!!call Global_useroutput !compute at user level any global variable over all grids
 
 select case(convert_type)
   case('idl','idlCC')
@@ -43,12 +35,6 @@ select case(convert_type)
    call onegrid(unitconvert)
   case('oneblock','oneblockB')
    call oneblock(unitconvert)
-{#IFDEF PARTICLES
-  case('particles', 'particlesmpi')
-     tpartc0 = MPI_WTIME()
-     call handle_particles()
-     tpartc = tpartc + (MPI_WTIME() - tpartc0)
-}
   case('user','usermpi')
      if (.not. associated(usr_special_convert)) then
         call mpistop("usr_special_convert not defined")

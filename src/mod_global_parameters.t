@@ -624,6 +624,10 @@ module mod_global_parameters
 
   !> Conservative variable names
   character(len=name_len) :: cons_wnames(max_nw)
+
+  !> Use particles module or not
+  logical :: use_particles=.false.
+
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

@@ -129,7 +129,7 @@ contains
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
-      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr
+      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr,use_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -163,6 +163,7 @@ contains
     use mod_radiative_cooling
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
+    use mod_particles, only: particles_init
     use mod_physics
 
     integer :: itr, idir
@@ -291,6 +292,11 @@ contains
     ! Initialize gravity module
     if(mhd_gravity) then
       call gravity_init()
+    end if
+
+    ! Initialize particles module
+    if(use_particles) then
+      call particles_init()
     end if
 
     if (mhd_glm) then

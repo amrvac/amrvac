@@ -53,6 +53,8 @@ contains
     allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks),dt_grid(max_blocks))
     allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
     allocate(pflux(2,^ND,max_blocks))
+    ! allocate mesh for particles
+    if(use_particles) allocate(gridvars(max_blocks))
 
     ! set time, time counter
     if(.not. restart_reset_time) then
