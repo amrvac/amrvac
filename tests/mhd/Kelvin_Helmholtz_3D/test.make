@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=2
+SETUP_FLAGS := -d=3
 SCHEME_DIR := ../../schemes
 TESTS := kh_3d_2step_tvdlf_mm.log kh_3d_2step_tvdmu_al.log		\
 kh_3d_3step_hll_cada.log kh_3d_4step_hll_mc.log kh_3d_4step_hllc_ko.log	\
