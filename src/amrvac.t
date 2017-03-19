@@ -21,19 +21,17 @@ program amrvac
   time0        = MPI_WTIME()
   time_bc      = zero
 
-  ! Read command line arguments first
+  ! read command line arguments first
   call read_arguments()
 
-  ! The user_init routine should load a physics module
+  ! the user_init routine should load a physics module
   call usr_init()
 
   call initialize_amrvac()
 
-  ! Begin of the code
-  ! -----------------
   if (snapshotini/=-1) then
      ! restart from previous file or dat file conversion
-     ! get input data from previous VAC/AMRVAC run
+     ! get input data from previous AMRVAC run
      itin=it
      tin=global_time
 
@@ -41,12 +39,13 @@ program amrvac
      call init_rays
      }
 
+     ! read in dat file
      call read_snapshot
 
-     ! Select active grids
+     ! select active grids
      call selectgrids
 
-     ! Update ghost cells
+     ! update ghost cells
      call getbc(global_time,0.d0,0,nwflux+nwaux)
 
      if(use_particles) then
@@ -69,7 +68,7 @@ program amrvac
      end if
 
      if (restart_reset_time) then
-       ! Reset it and global_time to original values
+       ! reset it and global_time to original values
        it           = itin
        global_time  = tin
      end if
@@ -86,6 +85,13 @@ program amrvac
 
      ! form and initialize all grids at level one
      call initlevelone
+
+     ! select active grids
+     call selectgrids
+
+     ! update ghost cells
+     call getbc(global_time,0.d0,0,nwflux+nwaux)
+
      ! set up and initialize finer level grids, if needed
      call settree
 
@@ -149,16 +155,10 @@ contains
     itTimeLast=it
     timeLast=MPI_WTIME()
 
-    call getbc(global_time,0.d0,0,nwflux+nwaux)
-
     !  ------ start of integration loop. ------------------
+    if(mype==0) write(*,*) 'Start integrating ...'
     timeloop0=MPI_WTIME()
-    timefirstbc=timeloop0-time_in
     time_bc=0.d0
-    if (mype==0) then
-       write(*,'(a,f12.3,a)')&
-            ' BCs before Advance took : ',timefirstbc,' sec'
-    end if
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
     time_evol : do

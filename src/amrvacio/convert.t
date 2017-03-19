@@ -150,7 +150,7 @@ write(outfilehead,'(a)')outfilehead(1:len_trim(outfilehead))//" "//TRIM(wname)
 endif
 
 if(first.and.mype==0)then
-  print*,'-----------------------------------------------------------------------------'
+  print*,'-------------------------------------------------------------------------------'
   write(unitterm,*)'Saving visual data. Coordinate directions and variable names are:'
   do iw=1,ndim
     print *,iw,xandwnamei(iw)
@@ -159,7 +159,7 @@ if(first.and.mype==0)then
     print *,iw,wnamei(iw-ndim),xandwnamei(iw)
   enddo
   write(unitterm,*)'time =', global_time
-  print*,'-----------------------------------------------------------------------------'
+  print*,'-------------------------------------------------------------------------------'
   first=.false.
 endif
 
