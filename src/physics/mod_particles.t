@@ -11,7 +11,7 @@ module mod_particles
   !> Maximal number of particles in one processor
   integer                                :: nparticles_per_cpu_hi
   !> Number of additional variables for a particle
-  integer                                :: npayload
+  integer,parameter                      :: npayload=1
   !> Number of variables for grid field
   integer                                :: ngridvars
   !> Number of particles
@@ -102,11 +102,11 @@ module mod_particles
      !> time step
      double precision                      :: dt
      !> extra information carried by the particle
-     double precision, dimension(:), allocatable  :: payload
+     double precision, dimension(npayload) :: payload
      !> coordinates
-     double precision, dimension(:), allocatable  :: x
+     double precision, dimension(3) :: x
      !> velocity, momentum, or special ones 
-     double precision, dimension(:), allocatable  :: u
+     double precision, dimension(3) :: u
   end type particle_node
 
   ! Array containing all particles
@@ -190,7 +190,7 @@ module mod_particles
     nparticleshi = 100000
     nparticles_per_cpu_hi = 100000
     num_particles     = 1000
-    npayload          = 1
+    !npayload          = 1
     dt_particles      = bigdouble
     t_particles       = 0.0d0
     tmax_particles    = bigdouble
@@ -211,7 +211,6 @@ module mod_particles
     allocate(ipe_neighbor(0:npe-1))
     allocate(particles_on_mype(nparticles_per_cpu_hi))
     allocate(particles_active_on_mype(nparticles_per_cpu_hi))
-    allocate(gridvars(max_blocks))
 
     particles_on_mype(:) = 0
     particles_active_on_mype(:) = 0
@@ -246,7 +245,9 @@ module mod_particles
       phys_integrate_particles => advect_integrate_particles
       phys_set_particles_dt => advect_set_particles_dt
     case('Lorentz')
+      if(physics_type/='mhd') call mpistop("Lorentz particles need magnetic field!")
       if(ndir/=3) call mpistop("Lorentz particles need ndir=3!")
+      dtsave_ensemble=dtsave_ensemble*unit_time
       ngridvars=ndir*2
       nwx = 0
       allocate(bp(ndir))
@@ -264,7 +265,9 @@ module mod_particles
       phys_integrate_particles => Lorentz_integrate_particles
       phys_set_particles_dt => Lorentz_set_particles_dt
     case('gca')
+      if(physics_type/='mhd') call mpistop("GCA particles need magnetic field!")
       if(ndir/=3) call mpistop("GCA particles need ndir=3!")
+      dtsave_ensemble=dtsave_ensemble*unit_time
       ngridvars=ndir*7
       nwx = 0
       allocate(bp(ndir))
@@ -319,7 +322,7 @@ module mod_particles
     integer                      :: n
 
     namelist /particles_list/ physics_type_particles,nparticleshi, &
-      nparticles_per_cpu_hi,npayload,ditsave_particles, particles_eta, &
+      nparticles_per_cpu_hi,ditsave_particles, particles_eta, &
       dtsave_ensemble,num_particles,itmax_particles,tmax_particles,dtheta,losses
 
     do n = 1, size(files)
@@ -336,7 +339,6 @@ module mod_particles
 
     integer :: oldtypes(0:8), offsets(0:8), blocklengths(0:8)
 
-    ! create the MPI-datatype for particle
     oldtypes(0) = MPI_LOGICAL
     oldtypes(1) = MPI_INTEGER
     oldtypes(2:8) = MPI_DOUBLE_PRECISION
@@ -368,15 +370,20 @@ module mod_particles
     
     double precision, dimension(ndir)    :: x, v
     double precision, dimension(num_particles,ndir) :: rrd
+    double precision                     :: rho_particle
     integer                              :: igrid_particle, ipe_particle
-    integer                              :: idir
+    integer                              :: idir,seed
     logical, dimension(1:num_particles)  :: follow
 
     follow=.false.
     x(:)=0.0d0
+    ! initialise the random number generator
+    seed = 310952
+    call rnstrt(seed)
     do idir=1,ndir
       call rand(rrd(:,idir),num_particles)
     end do
+    follow(num_particles/2)=.true.
 
     do while (nparticles .lt. num_particles)
     
@@ -395,20 +402,18 @@ module mod_particles
         particle(nparticles)%self%index  = nparticles
         particle(nparticles)%self%global_time      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
-    
-        allocate(particle(nparticles)%self%x(ndir))
-        particle(nparticles)%self%x(:) = x(:)
-        allocate(particle(nparticles)%self%u(ndir))
+        particle(nparticles)%self%x(:) = 0.d0
+        particle(nparticles)%self%x(1:ndir) = x(1:ndir)
 
         do idir=1,ndir
           call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
             pw(igrid_particle)%w(ixG^T,mom(idir)),pw(igrid_particle)%x(ixG^T,1:ndim),x,v(idir))
         end do
+        call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
+          pw(igrid_particle)%w(ixG^T,rho_),pw(igrid_particle)%x(ixG^T,1:ndim),x,rho_particle)
 
-        do idir=1,ndir
-          particle(nparticles)%self%u(idir) = v(idir) * UNIT_VELOCITY
-        end do
-        allocate(particle(nparticles)%self%payload(npayload))
+        particle(nparticles)%self%u(:) = 0.d0
+        particle(nparticles)%self%u(1:ndir) = v(1:ndir)/rho_particle
         particle(nparticles)%self%payload(:) = 0.0d0
       end if
 
@@ -462,11 +467,8 @@ module mod_particles
     
         particle(nparticles)%self%global_time      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
-    
-        allocate(particle(nparticles)%self%x(ndir))
         particle(nparticles)%self%x(:) = x(:)
-        allocate(particle(nparticles)%self%u(ndir))
-    
+
         ! Maxwellian velocity distribution
         absS = sqrt(sum(srd(nparticles,:)**2))
 
@@ -480,12 +482,11 @@ module mod_particles
         
         ! random maxwellian velocity
         ! momentum gamma*v/c normalised by speed of light
-        u(1) =  UNIT_VELOCITY *prob*dcos(theta)/const_c    
-        u(2) =  UNIT_VELOCITY *prob*dsin(theta)/const_c
-        u(3) =  UNIT_VELOCITY *prob2*dcos(theta2)/const_c
+        u(1) =  unit_velocity *prob*dcos(theta)/const_c    
+        u(2) =  unit_velocity *prob*dsin(theta)/const_c
+        u(3) =  unit_velocity *prob2*dcos(theta2)/const_c
         particle(nparticles)%self%u(:) = u(:)
         ! initialise payloads for Lorentz module
-        allocate(particle(nparticles)%self%payload(npayload))
         particle(nparticles)%self%payload(1:npayload) = 0.0d0
 
       end if
@@ -540,10 +541,7 @@ module mod_particles
     
         particle(nparticles)%self%global_time      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
-    
-        allocate(particle(nparticles)%self%x(ndir))
         particle(nparticles)%self%x(:) = x(:)
-        allocate(particle(nparticles)%self%u(ndir))
 
         ! Maxwellian velocity distribution
         absS = sqrt(sum(srd(nparticles,:)**2))
@@ -558,11 +556,11 @@ module mod_particles
         !> sqrt(u(1)^2) and vthermal = sqrt(v_perp^2 + v//^2)
      
         !*sqrt(const_mp/const_me)
-        u(1) = sqrt(2.0d0) * UNIT_VELOCITY *prob*dsin(theta) 
+        u(1) = sqrt(2.0d0) * unit_velocity *prob*dsin(theta) 
         !*sqrt(const_mp/const_me)
-        u(2) =  UNIT_VELOCITY *prob*dcos(theta)              
+        u(2) =  unit_velocity *prob*dcos(theta)              
         !*sqrt(const_mp/const_me)
-        u(3) =  UNIT_VELOCITY *prob*dcos(theta)              
+        u(3) =  unit_velocity *prob*dcos(theta)              
 
         lfac = one/sqrt(one-sum(u(:)**2)/const_c**2)
 
@@ -584,7 +582,6 @@ module mod_particles
         particle(nparticles)%self%u(3) = lfac 
 
         ! initialise payloads for guiding centre module
-        allocate(particle(nparticles)%self%payload(npayload))
         particle(nparticles)%self%payload(1:npayload) = 0.0d0
 
         ! gyroradius
@@ -612,7 +609,7 @@ module mod_particles
       allocate(gridvars(igrid)%w(ixG^T,1:ngridvars))
       if(time_advance) allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
     end do
-    
+
     call phys_fill_gridvars()
 
   end subroutine init_gridvars
@@ -633,10 +630,10 @@ module mod_particles
     use mod_global_parameters
 
     integer                                   :: igrid, iigrid, idir
-    double precision, dimension(ixG^T,1:nw)   :: w,wold
+    double precision, dimension(ixG^T,1:nw)   :: w
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-    
+
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
@@ -647,9 +644,9 @@ module mod_particles
 
        if(time_advance) then
          gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
-         wold(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
-         call phys_to_primitive(ixG^LL,ixG^LL,wold,pw(igrid)%x)
-         gridvars(igrid)%wold(ixG^T,vp(:)) = wold(ixG^T,mom(:))
+         w(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
+         call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+         gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,mom(:))
        end if
 
     end do
@@ -689,9 +686,9 @@ module mod_particles
 
        ! scale to cgs units:
        gridvars(igrid)%w(ixG^T,bp(:)) = &
-            gridvars(igrid)%w(ixG^T,bp(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY)
+            gridvars(igrid)%w(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
        gridvars(igrid)%w(ixG^T,ep(:)) = &
-            gridvars(igrid)%w(ixG^T,ep(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY) * UNIT_VELOCITY / const_c
+            gridvars(igrid)%w(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
 
        ! grad(kappa B)
        absB(ixG^T) = sqrt(sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1))
@@ -710,7 +707,7 @@ module mod_particles
     
        do idim=1,ndim
          call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
-         gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/UNIT_LENGTH
+         gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/unit_length
          bhat(ixG^T,idim) = gridvars(igrid)%w(ixG^T,bp(idim)) / absB(ixG^T)
        end do
 
@@ -719,14 +716,14 @@ module mod_particles
          do idim=1,ndim
            call gradient(bhat(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
            gridvars(igrid)%w(ixG^T,b_dot_grad_b(idir)) = gridvars(igrid)%w(ixG^T,b_dot_grad_b(idir)) &
-                + bhat(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                + bhat(ixG^T,idim) * tmp(ixG^T)/unit_length
            gridvars(igrid)%w(ixG^T,ue_dot_grad_b(idir)) = gridvars(igrid)%w(ixG^T,ue_dot_grad_b(idir)) &
-                + ue(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                + ue(ixG^T,idim) * tmp(ixG^T)/unit_length
            call gradient(ue(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
            gridvars(igrid)%w(ixG^T,b_dot_grad_ue(idir)) = gridvars(igrid)%w(ixG^T,b_dot_grad_ue(idir)) &
-                + bhat(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                + bhat(ixG^T,idim) * tmp(ixG^T)/unit_length
            gridvars(igrid)%w(ixG^T,ue_dot_grad_ue(idir)) = gridvars(igrid)%w(ixG^T,ue_dot_grad_b(idir)) &
-                + ue(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                + ue(ixG^T,idim) * tmp(ixG^T)/unit_length
          end do
        end do
 
@@ -747,9 +744,9 @@ module mod_particles
 
          ! scale to cgs units:
          gridvars(igrid)%wold(ixG^T,bp(:)) = &
-              gridvars(igrid)%wold(ixG^T,bp(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY)
+              gridvars(igrid)%wold(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
          gridvars(igrid)%wold(ixG^T,ep(:)) = &
-              gridvars(igrid)%wold(ixG^T,ep(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY) * UNIT_VELOCITY / const_c
+              gridvars(igrid)%wold(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
 
          ! grad(kappa B)
          absB(ixG^T) = sqrt(sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1))
@@ -768,7 +765,7 @@ module mod_particles
     
          do idim=1,ndim
            call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
-           gridvars(igrid)%wold(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/UNIT_LENGTH
+           gridvars(igrid)%wold(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/unit_length
            bhat(ixG^T,idim) = gridvars(igrid)%wold(ixG^T,bp(idim)) / absB(ixG^T)
          end do
 
@@ -777,14 +774,14 @@ module mod_particles
            do idim=1,ndim
              call gradient(bhat(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
              gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) &
-                  + bhat(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                  + bhat(ixG^T,idim) * tmp(ixG^T)/unit_length
              gridvars(igrid)%wold(ixG^T,ue_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,ue_dot_grad_b(idir)) &
-                  + ue(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                  + ue(ixG^T,idim) * tmp(ixG^T)/unit_length
              call gradient(ue(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
              gridvars(igrid)%wold(ixG^T,b_dot_grad_ue(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_ue(idir)) &
-                  + bhat(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                  + bhat(ixG^T,idim) * tmp(ixG^T)/unit_length
              gridvars(igrid)%wold(ixG^T,ue_dot_grad_ue(idir)) = gridvars(igrid)%wold(ixG^T,ue_dot_grad_b(idir)) &
-                  + ue(ixG^T,idim) * tmp(ixG^T)/UNIT_LENGTH
+                  + ue(ixG^T,idim) * tmp(ixG^T)/unit_length
            end do
          end do
        end if
@@ -824,9 +821,9 @@ module mod_particles
 
        ! scale to cgs units:
        gridvars(igrid)%w(ixG^T,bp(:)) = &
-            gridvars(igrid)%w(ixG^T,bp(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY)
+            gridvars(igrid)%w(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
        gridvars(igrid)%w(ixG^T,ep(:)) = &
-            gridvars(igrid)%w(ixG^T,ep(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY) * UNIT_VELOCITY / const_c
+            gridvars(igrid)%w(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
 
        if(time_advance) then
          gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
@@ -846,9 +843,9 @@ module mod_particles
 
          ! scale to cgs units:
          gridvars(igrid)%wold(ixG^T,bp(:)) = &
-              gridvars(igrid)%wold(ixG^T,bp(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY)
+              gridvars(igrid)%wold(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
          gridvars(igrid)%wold(ixG^T,ep(:)) = &
-              gridvars(igrid)%wold(ixG^T,ep(:)) * sqrt(4.0d0*dpi*UNIT_VELOCITY**2 * UNIT_DENSITY) * UNIT_VELOCITY / const_c
+              gridvars(igrid)%wold(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
        end if
 
     end do
@@ -885,14 +882,17 @@ module mod_particles
 
   subroutine handle_particles()
     use mod_timing
-    use mpi
+    use mod_global_parameters
+
+    if(time_advance) tmax_particles = global_time + dt
+    if(physics_type_particles/='advect') tmax_particles=tmax_particles*unit_length/unit_velocity
 
     tpartc0 = MPI_WTIME()
 
     call set_neighbor_ipe
 
     tpartc_grid_0=MPI_WTIME()
-    call init_gridvars
+    call init_gridvars()
     tpartc_grid = tpartc_grid + (MPI_WTIME()-tpartc_grid_0)
 
     tpartc_com0=MPI_WTIME()
@@ -929,11 +929,163 @@ module mod_particles
     call comm_particles
     tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
 
-    call finish_gridvars
+    call finish_gridvars()
 
     tpartc = tpartc + (MPI_WTIME() - tpartc0)
 
   end subroutine handle_particles
+
+  subroutine advect_integrate_particles()
+    ! this solves dx/dt=v for particles
+    use mod_odeint
+    use mod_global_parameters
+
+    double precision, dimension(1:ndir) :: v, x
+    double precision, dimension(ixG^T,1:nw) :: w
+    double precision                    :: rho, rho1, rho2, td, tloc, dt_p
+    integer                             :: ipart, iipart, igrid
+
+    double precision                 :: h1
+    double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
+    integer                          :: nok, nbad, ierror
+
+    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+
+      dt_p = particle(ipart)%self%dt
+      igrid = particle(ipart)%igrid
+      igrid_working = igrid
+      tloc = particle(ipart)%self%global_time
+      x(1:ndir) = particle(ipart)%self%x(1:ndir)
+
+      ! Position update
+      ! Simple forward Euler start
+      !call get_vec_advect(igrid,x,tloc,v,vp(1),vp(ndir))
+      !particle(ipart)%self%u(1:ndir) = v(1:ndir)
+      !particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
+      !     + dt_p * v(1:ndir)
+      ! Simple forward Euler end
+
+      ! Adaptive stepwidth RK4:
+      h1 = dt_p/2.0d0
+      call odeint(x,ndir,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
+      particle(ipart)%self%x(1:ndir) = x(1:ndir)
+
+      if (ierror /= 0) then
+        print *, "odeint returned error code", ierror
+        print *, "1 means hmin too small, 2 means MAXSTP exceeded"
+        print *, "Having a problem with particle", iipart
+      end if
+
+      ! Velocity update
+      call get_vec_advect(igrid,x,tloc+dt_p,v,vp(1),vp(ndir))
+      particle(ipart)%self%u(1:ndir) = v(1:ndir)
+
+      ! Payload update
+      ! To give an example, we set the payload to the interpolated density at 
+      ! the particles position.  
+      ! In general, it would be better to add the auxilary variable to mod_gridvars 
+      ! since then you can use the convenient subroutine get_vec() for this.  
+
+      !if (.not.time_advance) then
+      !   
+      !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+      !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+      !   
+      !   call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho)
+      !else
+      !   w(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
+      !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+      !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho1)
+    
+      !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+      !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+      !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho2)
+      !   
+      !   td = (tloc - global_time) / dt
+      !   rho = rho1 * (1.0d0 - td) + rho2 * td
+      !   
+      !end if
+      !particle(ipart)%self%payload(1) = rho * unit_density
+    
+      ! Time update
+      particle(ipart)%self%global_time = particle(ipart)%self%global_time + dt_p
+
+    end do
+
+  end subroutine advect_integrate_particles
+
+  subroutine derivs_advect(t_s,x,dxdt)
+    use mod_global_parameters
+    double precision :: t_s, x(ndir)
+    double precision :: dxdt(ndir)
+
+    double precision :: v(ndir)
+
+    call get_vec_advect(igrid_working,x,t_s,v,vp(1),vp(ndir))
+    dxdt(:) = v(:)
+
+  end subroutine derivs_advect
+
+  subroutine advect_set_particles_dt()
+    use mod_global_parameters
+
+    integer                         :: ipart, iipart, nout
+    double precision                :: t_min_mype, tout, dt_particles_mype, dt_cfl
+    double precision                :: v(1:ndir)
+
+    dt_particles      = bigdouble
+    dt_particles_mype = bigdouble
+    t_min_mype        = bigdouble
+
+    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+
+      ! make sure we step only one cell at a time:
+      v(1:ndir)=abs(particle(ipart)%self%u(1:ndir))
+
+      ! convert to angular velocity:
+      if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/particle(ipart)%self%x(r_))
+
+      dt_cfl = min({rnode(rpdx^D_,particle(ipart)%igrid)/v(^D)},bigdouble)
+
+      if(typeaxial =='cylindrical'.and.phi_>0) then 
+        ! phi-momentum leads to radial velocity:
+        if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
+          sqrt(rnode(rpdx1_,particle(ipart)%igrid)/particle(ipart)%self%x(r_)) &
+           / v(phi_))
+        ! limit the delta phi of the orbit (just for aesthetic reasons):
+        dt_cfl = min(dt_cfl,0.1d0/v(phi_))
+        ! take some care at the axis:
+        dt_cfl = min(dt_cfl,(particle(ipart)%self%x(r_)+smalldouble)/v(r_))
+      end if
+
+      particle(ipart)%self%dt = dt_cfl
+
+      ! Make sure we don't miss an output or tmax_particles:
+      ! corresponding output slot:
+      nout = int(particle(ipart)%self%global_time/dtsave_ensemble) + 1
+      tout = dble(nout) * dtsave_ensemble
+      if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) &
+           particle(ipart)%self%dt = max(tout - particle(ipart)%self%global_time, smalldouble * tout)
+      ! bring to tmax_particles:
+      !if (particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) &
+      !     particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%global_time, smalldouble * tmax_particles)
+
+      dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
+      t_min_mype = min(t_min_mype,particle(ipart)%self%global_time)
+
+      !print*,'particles time', particle(ipart)%self%dt, dt_cfl, tmax_particles, dtsave_ensemble
+
+    end do ! ipart loop
+    
+    ! keep track of the global minimum:
+    call MPI_ALLREDUCE(dt_particles_mype,dt_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+         icomm,ierrmpi)
+
+    ! keep track of the minimum particle time:
+    call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+         icomm,ierrmpi)
+  
+  end subroutine advect_set_particles_dt
 
   subroutine gca_integrate_particles()
     use mod_odeint
@@ -1221,12 +1373,12 @@ module mod_particles
     u(1:ndir) = ue(1:ndir) + utmp3(1:ndir)
 
     ! done assembling the terms, now write rhs:
-    dydt(1:ndir) = ( u(1:ndir) + upar/gamma * bhat(1:ndir) )/ UNIT_LENGTH
+    dydt(1:ndir) = ( u(1:ndir) + upar/gamma * bhat(1:ndir) )/ unit_length
     dydt(ndir+1) = sum(ue(:)*(upar*bdotgradb(:)+gamma*uedotgradb(:))) &
          + q/m*epar - Mr/(m*gamma) * sum(bhat(:)*gradkappaB(:))
 
     dydt(ndir+2) = 0.0d0 ! magnetic moment is conserved
-    !dydt(ndir+3) = q/(m*const_c**2) * ({^C& dydt(^C)*e(^C)|+}) * UNIT_LENGTH
+    !dydt(ndir+3) = q/(m*const_c**2) * ({^C& dydt(^C)*e(^C)|+}) * unit_length
 
   end subroutine derivs_gca_rk
 
@@ -1279,11 +1431,11 @@ module mod_particles
     u(1:ndir) = ue(1:ndir) + utmp3(1:ndir)
 
     ! done assembling the terms, now write rhs:
-    dydt(1:ndir) = ( u(1:ndir) + upar/gamma * bhat(1:ndir) )/ UNIT_LENGTH
+    dydt(1:ndir) = ( u(1:ndir) + upar/gamma * bhat(1:ndir) )/ unit_length
     dydt(ndir+1) = sum(ue(:)*(upar*bdotgradb(:)+gamma*uedotgradb(:))) &
          + q/m*epar - Mr/(m*gamma) * sum(bhat(:)*gradkappaB(:))
     dydt(ndir+2) = 0.0d0 ! magnetic moment is conserved
-    !dydt(ndir+3) = q/(m*const_c**2) * ({^C& dydt(^C)*e(^C)|+}) * UNIT_LENGTH
+    !dydt(ndir+3) = q/(m*const_c**2) * ({^C& dydt(^C)*e(^C)|+}) * unit_length
 
   end subroutine derivs_gca
 
@@ -1337,7 +1489,7 @@ module mod_particles
 
       dt_cfl0    = dxmin/vp
       dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap0)
-      !dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(UNIT_LENGTH*dxmin/(ap0+smalldouble))) )
+      !dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(unit_length*dxmin/(ap0+smalldouble))) )
 
       ! make an Euler step with the proposed timestep:
       ! new solution vector:
@@ -1365,7 +1517,7 @@ module mod_particles
     
       dt_cfl1    = dxmin/vp
       dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap1)
-      !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(UNIT_LENGTH*dxmin/(ap1+smalldouble))) )
+      !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(unit_length*dxmin/(ap1+smalldouble))) )
 
       dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap1)
 
@@ -1376,11 +1528,11 @@ module mod_particles
 
       ! time step due to parallel acceleration:
       ! The standart thing, dt=sqrt(dx/a) where we comupte a from d(gamma v||)/dt and d(gamma)/dt
-      ! dt_ap = sqrt(abs(dxmin*UNIT_LENGTH*y(ndir+3)/( dydt(ndir+1) - y(ndir+1)/y(ndir+3)*dydt(ndir+3) ) ) )
-      ! vp = sqrt({^C& (v(^C)*UNIT_LENGTH)**2|+})
+      ! dt_ap = sqrt(abs(dxmin*unit_length*y(ndir+3)/( dydt(ndir+1) - y(ndir+1)/y(ndir+3)*dydt(ndir+3) ) ) )
+      ! vp = sqrt({^C& (v(^C)*unit_length)**2|+})
       ! gammap = sqrt(1.0d0/(1.0d0-(vp/const_c)**2))
       ! ap = const_c**2/vp*gammap**(-3)*dydt(ndir+3)
-      ! dt_ap = sqrt(dxmin*UNIT_LENGTH/ap)
+      ! dt_ap = sqrt(dxmin*unit_length/ap)
       
       !dt_a = bigdouble
       !if (dt_euler .gt. smalldouble) then 
@@ -1422,152 +1574,6 @@ module mod_particles
          icomm,ierrmpi)
 
   end subroutine gca_set_particles_dt
-
-  subroutine advect_integrate_particles()
-    ! this solves dx/dt=v for particles
-    use mod_odeint
-    use mod_global_parameters
-
-    double precision, dimension(1:ndir) :: v, x
-    double precision, dimension(ixG^T,1:nw) :: w
-    double precision                    :: rho, rho1, rho2, td, tloc, dt_p
-    integer                             :: ipart, iipart, igrid
-
-    double precision                 :: h1
-    double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
-    integer                          :: nok, nbad
-    external derivs_advect
-
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
-       
-       dt_p = particle(ipart)%self%dt
-       igrid = particle(ipart)%igrid
-       igrid_working = igrid
-       tloc = particle(ipart)%self%global_time
-       x(1:ndir) = particle(ipart)%self%x(1:ndir)
-
-       ! Position update
-       ! Simple forward Euler:
-       call get_vec(igrid,x,tloc,v,vp(1),vp(ndir))
-       particle(ipart)%self%u(1:ndir) = v(1:ndir)
-
-       particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-            + dt_p * v(1:ndir) / UNIT_LENGTH
-
-       ! Adaptive stepwidth RK4:
-       !h1 = dt_p/2.0d0
-       !call odeint(x,ndir,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_advect,rkqs)
-       !particle(ipart)%self%x(1:ndir) = x(1:ndir)
-
-       ! Velocity update
-       call get_vec(igrid,x,tloc+dt_p,v,vp(1),vp(ndir))
-       particle(ipart)%self%u(1:ndir) = v(1:ndir)
-
-       ! Payload update
-       ! To give an example, we set the payload to the interpolated density at 
-       ! the particles position.  
-       ! In general, it would be better to add the auxilary variable to mod_gridvars 
-       ! since then you can use the convenient subroutine get_vec() for this.  
-       
-       
-       !if (.not.time_advance) then
-       !   
-       !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-       !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-       !   
-       !   call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho)
-       !else
-       !   w(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
-       !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-       !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho1)
-    
-       !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-       !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-       !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho2)
-       !   
-       !   td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - global_time) / dt
-       !   rho = rho1 * (1.0d0 - td) + rho2 * td
-       !   
-       !end if
-       !particle(ipart)%self%payload(1) = rho * UNIT_DENSITY
-    
-       ! Time update
-       particle(ipart)%self%global_time = particle(ipart)%self%global_time + dt_p
-
-    end do
-
-  end subroutine advect_integrate_particles
-
-  subroutine derivs_advect(t_s,x,dxdt)
-    use mod_global_parameters
-    double precision :: t_s, x(ndir)
-    double precision :: dxdt(ndir)
-
-    double precision :: v(ndir)
-
-    call get_vec(igrid_working,x,t_s,v,vp(1),vp(ndir))
-    dxdt(:) = v(:)/UNIT_LENGTH
-
-  end subroutine derivs_advect
-
-  subroutine advect_set_particles_dt()
-    use mod_global_parameters
-
-    integer                         :: ipart, iipart, nout
-    double precision                :: t_min_mype, tout, dt_particles_mype, dt_cfl
-    double precision                :: v(1:ndir)
-
-    dt_particles      = bigdouble
-    dt_particles_mype = bigdouble
-    t_min_mype        = bigdouble
-
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
-
-      ! make sure we step only one cell at a time:
-      v(:)=abs(particle(ipart)%self%u(:))
-      
-      ! convert to angular velocity:
-      if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/particle(ipart)%self%x(r_))
-
-      dt_cfl = min({rnode(rpdx^D_,particle(ipart)%igrid)/v(^D)},bigdouble)
-      
-      if(typeaxial =='cylindrical'.and.phi_>0) then 
-        ! phi-momentum leads to radial velocity:
-        if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
-          sqrt(rnode(rpdx1_,particle(ipart)%igrid)/particle(ipart)%self%x(r_)) &
-           / v(phi_))
-        ! limit the delta phi of the orbit (just for aesthetic reasons):
-        dt_cfl = min(dt_cfl,0.1d0/v(phi_))
-        ! take some care at the axis:
-        dt_cfl = min(dt_cfl,(particle(ipart)%self%x(r_)+smalldouble)/v(r_))
-      end if
-
-      particle(ipart)%self%dt = dt_cfl*UNIT_LENGTH
-
-      ! Make sure we don't miss an output or tmax_particles:
-      ! corresponding output slot:
-      nout = int(particle(ipart)%self%global_time/dtsave_ensemble) + 1
-      tout = dble(nout) * dtsave_ensemble
-      if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) &
-           particle(ipart)%self%dt = max(tout - particle(ipart)%self%global_time, smalldouble * tout)
-      ! bring to tmax_particles:
-      if (particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) &
-           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%global_time, smalldouble * tmax_particles)
-
-      dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
-      t_min_mype = min(t_min_mype,particle(ipart)%self%global_time)
-
-    end do ! ipart loop
-    
-    ! keep track of the global minimum:
-    call MPI_ALLREDUCE(dt_particles_mype,dt_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-
-    ! keep track of the minimum particle time:
-    call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-  
-  end subroutine advect_set_particles_dt
 
   !> this is the relativistic Boris scheme, a leapfrog integrator
   subroutine Lorentz_integrate_particles()
@@ -1631,7 +1637,7 @@ module mod_particles
         ! update position
         particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
              + dt_p * particle(ipart)%self%u(1:ndir)/lfac &
-             * const_c / UNIT_LENGTH
+             * const_c / unit_length
 
         ! Payload update
         ! current gyroradius
@@ -1699,7 +1705,7 @@ module mod_particles
         ! update position
         xcart2(1:ndir) = xcart1(1:ndir) &
              + dt_p * ucart2(1:ndir)/lfac &
-             * const_c/UNIT_LENGTH
+             * const_c/unit_length
 
         ! back to cylindrical coordinates
         phi2 = atan2(xcart2(2),xcart2(1))
@@ -1798,10 +1804,10 @@ module mod_particles
 
       ! bound by gyro-rotation:
       particle(ipart)%self%dt = &
-           abs( dtheta * const_c/UNIT_LENGTH * particle(ipart)%self%m * lfac &
+           abs( dtheta * const_c/unit_length * particle(ipart)%self%m * lfac &
            / (particle(ipart)%self%q * absb) )
 
-      particle(ipart)%self%dt = min(particle(ipart)%self%dt,dt_cfl)*UNIT_LENGTH
+      particle(ipart)%self%dt = min(particle(ipart)%self%dt,dt_cfl)*unit_length
 
       ! Make sure we don't miss an output or tmax_particles:
       ! corresponding output slot:
@@ -1857,7 +1863,7 @@ module mod_particles
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ep(idir)),pw(igrid)%x(ixG^T,1:ndim),x,e1(idir))
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ep(idir)),pw(igrid)%x(ixG^T,1:ndim),x,e2(idir))
       end do 
-      td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - global_time) / dt
+      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
       e(:) = e1(:) * (1.0d0 - td) + e2(:) * td
     end if
 
@@ -1883,7 +1889,7 @@ module mod_particles
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)),pw(igrid)%x(ixG^T,1:ndim),x,b1(idir))
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)),pw(igrid)%x(ixG^T,1:ndim),x,b2(idir))
       end do 
-      td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - global_time) / dt
+      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
       b(:) = b1(:) * (1.0d0 - td) + b2(:) * td
     end if
 
@@ -2089,7 +2095,7 @@ module mod_particles
         call interpolate_var_rk(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,var(iloc))
       end do
     else
-      td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - global_time) / dt
+      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
       do ivar=ibeg,iend
         iloc = ivar-ibeg+1
         call interpolate_var_rk(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
@@ -2117,7 +2123,7 @@ module mod_particles
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,var(iloc))
       end do
     else
-      td = (tloc/(UNIT_LENGTH/UNIT_VELOCITY) - global_time) / dt
+      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
       do ivar=ibeg,iend
         iloc = ivar-ibeg+1
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
@@ -2127,6 +2133,34 @@ module mod_particles
     end if
 
   end subroutine get_vec
+
+  subroutine get_vec_advect(igrid,x,tloc,var,ibeg,iend)
+    use mod_global_parameters
+
+    integer,intent(in)                                   :: igrid, ibeg, iend
+    double precision,dimension(ndir), intent(in)         :: x
+    double precision, intent(in)                         :: tloc
+    double precision,dimension(iend-ibeg+1), intent(out) :: var
+    double precision,dimension(iend-ibeg+1)              :: e1, e2
+    integer                                              :: ivar, iloc
+    double precision                                     :: td
+
+    if(.not.time_advance) then
+      do ivar=ibeg,iend
+        iloc = ivar-ibeg+1
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,var(iloc))
+      end do
+    else
+      td = (tloc - global_time) / dt
+      do ivar=ibeg,iend
+        iloc = ivar-ibeg+1
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e2(iloc))
+        var(iloc) = e1(iloc) * (1.0d0 - td) + e2(iloc) * td
+      end do
+    end if
+
+  end subroutine get_vec_advect
 
   !> Check if we should go out of the integration loop
   logical function exit_condition()
@@ -2334,7 +2368,6 @@ module mod_particles
   subroutine append_to_snapshot(myparticle)
 
     type(particle_node),intent(in) :: myparticle
-
     write(unitparticles) myparticle%index
     write(unitparticles) myparticle%follow
     write(unitparticles) myparticle%q
@@ -2343,7 +2376,7 @@ module mod_particles
     write(unitparticles) myparticle%dt
     write(unitparticles) myparticle%x
     write(unitparticles) myparticle%u 
-    write(unitparticles) myparticle%payload
+    write(unitparticles) myparticle%payload(1:npayload)
 
   end subroutine append_to_snapshot
 
@@ -2351,13 +2384,19 @@ module mod_particles
     use mod_global_parameters
 
     character(len=std_len)            :: filename
-    integer                           :: iipart, ipart
+    character(len=1024)               :: line, strdata
+    integer                           :: iipart, ipart, icomp
 
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
       if (particle(ipart)%self%follow) then
         filename = make_particle_filename(particle(ipart)%self%global_time,particle(ipart)%self%index,'individual')
         open(unit=unitparticles,file=filename,status='replace')
-        write(unitparticles,"(a)") trim('# global_time, dt, x^C, u^C, payload(1:npayload), ipe, iteration, index')
+        line=''
+        do icomp=1, npayload
+          write(strdata,"(a,i2.2,a)") 'payload',icomp,', '
+          line = trim(line)//trim(strdata)
+        end do
+        write(unitparticles,"(a,a,a)") 'time, dt, x1, x2, x3, u1, u2, u3, ',trim(line),' ipe, iteration, index'
         close(unit=unitparticles)
       end if
     end do
@@ -2372,12 +2411,7 @@ module mod_particles
 
     nparticles_active_on_mype = 0
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
-      if(time_advance) then
-        activate = particle(ipart)%self%global_time .lt. tmax_particles
-      else
-        activate = particle(ipart)%self%global_time .le. tmax_particles
-      end if
-
+      activate = particle(ipart)%self%global_time .le. tmax_particles
       if(activate) then 
         nparticles_active_on_mype = nparticles_active_on_mype + 1
         particles_active_on_mype(nparticles_active_on_mype) = ipart
@@ -2825,26 +2859,23 @@ module mod_particles
     integer, intent(in)                            :: ipe
     character(len=std_len),intent(in)              :: filename
     logical,save                                   :: file_exists=.false.
-    integer                                        :: ndoubles
     character(len=20)                              :: formatstring
-    double precision, allocatable                  :: x(:)
-    character(len=1024)                            :: line, data
+    double precision                               :: x(3)
+    character(len=1024)                            :: line, strdata
     integer                                        :: icomp
     double precision, parameter                    :: minvalue = 1.0d-99
     double precision                               :: roundoff
 
-    ndoubles=2+2*ndir+npayload
-    allocate(x(ndir))
     ! normalize the position
-    if (typeaxial == 'slab') x = myparticle%x*UNIT_LENGTH
+    if (typeaxial == 'slab') x = myparticle%x*length_convert_factor
     if (typeaxial == 'cylindrical') then
-       x(r_)   = myparticle%x(r_)*UNIT_LENGTH
-       x(z_)   = myparticle%x(z_)*UNIT_LENGTH
+       x(r_)   = myparticle%x(r_)*length_convert_factor
+       x(z_)   = myparticle%x(z_)*length_convert_factor
        x(phi_) = myparticle%x(phi_) 
     end if
     if (typeaxial == 'spherical') then
        x(:) = myparticle%x(:)
-       x(1) = x(1)*UNIT_LENGTH
+       x(1) = x(1)*length_convert_factor
     end if
 
     INQUIRE(FILE=filename, EXIST=file_exists)
@@ -2853,38 +2884,38 @@ module mod_particles
        open(unit=unitparticles,file=filename,status='unknown',access='append')
        line=''
        do icomp=1, npayload
-          write(data,"(a,i2.2,a)") 'payload',icomp,','
-          line = trim(line)//trim(data)
+          write(strdata,"(a,i2.2,a)") 'payload',icomp,', '
+          line = trim(line)//trim(strdata)
        end do
-       write(unitparticles,"(a,a,a)") 't,dt,x^C,u^C,',trim(line),'ipe,iteration,index'
+       write(unitparticles,"(a,a,a)") 'time, dt, x1, x2, x3, u1, u2, u3, ',trim(line),' ipe, iteration, index'
     else
        open(unit=unitparticles,file=filename,status='unknown',access='append')
     end if
 
     ! create the formatstring:
     line = ''
-    write(data,"(es13.6, a)")roundoff(myparticle%global_time,minvalue), ','
-    line = trim(line)//trim(data)
-    write(data,"(es13.6, a)")roundoff(myparticle%dt,minvalue), ','
-    line = trim(line)//trim(data)
-    do icomp = 1, ndir
-       write(data,"(es13.6, a)")roundoff(x(icomp),minvalue), ','
-       line = trim(line)//trim(data)
+    write(strdata,"(es13.6, a)")roundoff(myparticle%global_time,minvalue), ','
+    line = trim(line)//trim(strdata)
+    write(strdata,"(es13.6, a)")roundoff(myparticle%dt,minvalue), ','
+    line = trim(line)//trim(strdata)
+    do icomp = 1, 3
+       write(strdata,"(es13.6, a)")roundoff(x(icomp),minvalue), ','
+       line = trim(line)//trim(strdata)
     end do
-    do icomp = 1, ndir
-       write(data,"(es13.6, a)")roundoff(myparticle%u(icomp),minvalue), ','
-       line = trim(line)//trim(data)
+    do icomp = 1, 3
+       write(strdata,"(es13.6, a)")roundoff(myparticle%u(icomp),minvalue), ','
+       line = trim(line)//trim(strdata)
     end do
     do icomp = 1, npayload
-       write(data,"(es13.6, a)")roundoff(myparticle%payload(icomp),minvalue), ','
-       line = trim(line)//trim(data)
+       write(strdata,"(es13.6, a)")roundoff(myparticle%payload(icomp),minvalue), ','
+       line = trim(line)//trim(strdata)
     end do
-    write(data,"(i8.7, a)")ipe, ','
-    line = trim(line)//trim(data)
-    write(data,"(i11.10, a)")it_particles, ','
-    line = trim(line)//trim(data)
-    write(data,"(i8.7)")myparticle%index
-    line = trim(line)//trim(data)
+    write(strdata,"(i8.7, a)")ipe, ','
+    line = trim(line)//trim(strdata)
+    write(strdata,"(i11.10, a)")it_particles, ','
+    line = trim(line)//trim(strdata)
+    write(strdata,"(i8.7)")myparticle%index
+    line = trim(line)//trim(strdata)
     write(unitparticles,"(a)") trim(line)
     close(unit=unitparticles)
 

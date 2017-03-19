@@ -21,11 +21,11 @@ if($datacount < 1 ) then
  goto done
 endif
 
-ls $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt
+ls $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt $dataname*.csv
 echo -n "Are you sure to delete data above? (y to delete)"
 set yn=$<
 if ($yn == "y") then
- rm -f $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt
+ rm -f $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt $dataname*.csv
 endif
 done:
 exit 0

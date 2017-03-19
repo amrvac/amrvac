@@ -14,7 +14,7 @@ contains
 
     use mod_global_parameters
     use mod_thermal_conduction
-    use mod_particles
+    use mod_particles, only: handle_particles
     use mod_source, only: addsource_all
 
     integer, intent(in) :: iit
@@ -65,10 +65,7 @@ contains
     ! split source addition
     call addsource_all(.false.)
 
-    if(use_particles) then
-      tmax_particles = (global_time + dt)* (UNIT_LENGTH/UNIT_VELOCITY)
-      call handle_particles
-    end if
+    if(use_particles) call handle_particles
 
   end subroutine advance
 

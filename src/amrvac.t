@@ -50,9 +50,7 @@ program amrvac
      call getbc(global_time,0.d0,0,nwflux+nwaux)
 
      if(use_particles) then
-       call init_gridvars
        call read_particles_snapshot
-       call finish_gridvars
        if(convert) then
          call handle_particles()
          call time_spent_on_particles()
@@ -91,11 +89,7 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
-     if(use_particles) then
-       call init_gridvars
-       call phys_init_particles
-       call finish_gridvars
-     end if
+     if(use_particles) call phys_init_particles
 
   end if
 

@@ -265,7 +265,7 @@ contains
     phys_write_info      => mhd_write_info
 
     ! derive units from basic units
-    call mhd_physical_units
+    call mhd_physical_units()
 
     if(.not. mhd_energy .and. mhd_thermal_conduction) then
       call mpistop("thermal conduction needs mhd_energy=T")
@@ -336,7 +336,7 @@ contains
 
   end subroutine mhd_check_params
 
-  subroutine mhd_physical_units
+  subroutine mhd_physical_units()
     use mod_global_parameters
     double precision :: mp,kB,miu0
     ! Derive scaling units

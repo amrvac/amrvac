@@ -12,6 +12,8 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
 
+    call set_coordinate_system("Cartesian")
+
     call mhd_activate()
 
   end subroutine usr_init
@@ -56,13 +58,12 @@ contains
     ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with 
     ! corresponding normalization values (default value 1)
     use mod_global_parameters
-    use mod_mhd_phys
-    
+
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
     double precision                   :: normconv(0:nw+nwauxio)
-    ! .. local ..
+
     double precision:: divb(ixI^S)
     double precision :: current(ixI^S,7-2*ndir:3)
     integer          :: idirmin
