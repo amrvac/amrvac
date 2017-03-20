@@ -49,10 +49,10 @@ module mod_hd_phys
   integer, public, protected              :: hd_nwflux
 
   !> The adiabatic index
-  double precision, public, protected     :: hd_gamma = 5.d0/3.0d0
+  double precision, public                :: hd_gamma = 5.d0/3.0d0
 
   !> The adiabatic constant
-  double precision, public, protected     :: hd_adiab = 1.0d0
+  double precision, public                :: hd_adiab = 1.0d0
 
   !> The smallest allowed energy
   double precision, protected             :: smalle
