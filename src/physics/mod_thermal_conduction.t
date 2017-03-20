@@ -35,7 +35,6 @@
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field 
 !>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
 !>    tc_dtpar=0.9/0.45/0.3 ! stable time step coefficient for 1D/2D/3D, decrease it for more stable run
-!>    tc_SI_unit=.true. ! (default .false.) to use SI units other than default cgs units
 
 module mod_thermal_conduction
 

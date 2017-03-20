@@ -13,7 +13,7 @@ step1:
 set linedata=`sed 's/[[:space:]]//g' $fname | sed -n -e '/\&filelist/,$ {' -e '/^base_filename/=' -e '}'`
 set linedata=`echo $linedata | awk '{print $1}'`
 set dataname=`sed -n -e "$linedata p" -e "$linedata q" $fname | awk -F\' '{print $2}'`
-ls $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt
+ls $dataname*.vtu $dataname*.dat $dataname*.log $dataname*.blk $dataname*.vti $dataname*.pvtu $dataname*.out $dataname*.plt $dataname*.csv
 done:
 exit 0
 error:

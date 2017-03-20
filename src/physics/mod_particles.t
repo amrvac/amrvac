@@ -968,13 +968,14 @@ module mod_particles
       ! Adaptive stepwidth RK4:
       h1 = dt_p/2.0d0
       call odeint(x,ndir,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
-      particle(ipart)%self%x(1:ndir) = x(1:ndir)
 
       if (ierror /= 0) then
         print *, "odeint returned error code", ierror
         print *, "1 means hmin too small, 2 means MAXSTP exceeded"
         print *, "Having a problem with particle", iipart
       end if
+
+      particle(ipart)%self%x(1:ndir) = x(1:ndir)
 
       ! Velocity update
       call get_vec_advect(igrid,x,tloc+dt_p,v,vp(1),vp(ndir))
@@ -1067,13 +1068,11 @@ module mod_particles
       if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) &
            particle(ipart)%self%dt = max(tout - particle(ipart)%self%global_time, smalldouble * tout)
       ! bring to tmax_particles:
-      !if (particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) &
-      !     particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%global_time, smalldouble * tmax_particles)
+      if (particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) &
+           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%global_time, smalldouble * tmax_particles)
 
       dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
       t_min_mype = min(t_min_mype,particle(ipart)%self%global_time)
-
-      !print*,'particles time', particle(ipart)%self%dt, dt_cfl, tmax_particles, dtsave_ensemble
 
     end do ! ipart loop
     

@@ -22,6 +22,9 @@ module mod_mhd_phys
   !> Whether Hall-MHD is used
   logical, public, protected              :: mhd_Hall = .false.
 
+  !> Whether particles module is added
+  logical, public, protected              :: mhd_particles = .false.
+
   !> Whether MHD-GLM is used
   logical, public, protected              :: mhd_glm = .false.
 
@@ -59,7 +62,7 @@ module mod_mhd_phys
   integer, public, protected              :: mhd_nwflux
 
   !> The adiabatic index
-  double precision, public                :: mhd_gamma = 5/3.0d0
+  double precision, public                :: mhd_gamma = 5.d0/3.0d0
 
   !> The adiabatic constant
   double precision, public                :: mhd_adiab = 1.0d0
@@ -103,9 +106,6 @@ module mod_mhd_phys
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
-  !> Use SI units (.true.) or use cgs units (.false.)
-  logical, public, protected              :: SI_unit=.false.
-
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -129,7 +129,7 @@ contains
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
-      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr,use_particles
+      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr,mhd_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -172,6 +172,7 @@ contains
 
     physics_type = "mhd"
     phys_energy=mhd_energy
+    use_particles=mhd_particles
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)

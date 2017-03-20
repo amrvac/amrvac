@@ -596,7 +596,7 @@ module mod_global_parameters
   integer, parameter   :: flux_no_dissipation = 2
 
   !> Use SI units (.true.) or use cgs units (.false.)
-  logical                                 :: SI_unit=.false.
+  logical              :: SI_unit=.false.
 
   !> Proton mass in cgs
   double precision, parameter :: mp_cgs  = 1.672621777d-24  ! g

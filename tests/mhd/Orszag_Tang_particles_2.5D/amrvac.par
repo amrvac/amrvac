@@ -3,6 +3,7 @@
         saveprim      = T
         nwauxio       = 2
         base_filename = 'ot_2d'
+        convert_type  = 'vtuBmpi'
  /
 
  &savelist
@@ -53,7 +54,7 @@
 
  &mhd_list
         typedivbfix   = 'linde'
-        use_particles = .true.
+        mhd_particles = .true.
  /
 
  &particles_list

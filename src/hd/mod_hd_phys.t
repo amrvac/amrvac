@@ -1,8 +1,3 @@
-! TODO:
-! * Can we make methods robust without fixes?
-! * Why replace all variables when one is 'small'? Especially rho_
-! * Generic names for momentum and other indices?
-
 !> Hydrodynamics module
 module mod_hd_phys
 
@@ -19,13 +14,16 @@ module mod_hd_phys
   logical, public, protected              :: hd_radiative_cooling = .false.
 
   !> Whether dust is added
-  logical, public, protected              :: hd_dust= .false.
+  logical, public, protected              :: hd_dust = .false.
 
   !> Whether viscosity is added
-  logical, public, protected              :: hd_viscosity= .false.
+  logical, public, protected              :: hd_viscosity = .false.
 
   !> Whether gravity is added
-  logical, public, protected              :: hd_gravity= .false.
+  logical, public, protected              :: hd_gravity = .false.
+
+  !> Whether particles module is added
+  logical, public, protected              :: hd_particles = .false.
 
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
@@ -84,7 +82,7 @@ contains
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit, use_particles
+    hd_gravity, He_abundance, SI_unit, hd_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -129,6 +127,7 @@ contains
 
     physics_type = "hd"
     phys_energy=hd_energy
+    use_particles=hd_particles
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)
@@ -230,7 +229,7 @@ contains
     end if
 
     ! Initialize particles module
-    if(use_particles) then
+    if(hd_particles) then
       call particles_init()
     end if
 
