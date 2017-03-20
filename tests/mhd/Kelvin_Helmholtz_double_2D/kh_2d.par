@@ -9,6 +9,7 @@
  
  &filelist
         base_filename='kh_2d'
+        typefilelog='regression_test'
         convert_type='vtuBCCmpi'
         saveprim=.true.
         autoconvert=.true.
