@@ -10,7 +10,7 @@ contains
 
     usr_set_parameters=> initglobaldata_usr
     usr_init_one_grid => initonegrid_usr
-    usr_special_bc => specialbound_usr
+    usr_special_bc    => specialbound_usr
     usr_refine_grid   => specialrefine_grid
 
     call hd_activate()
@@ -41,50 +41,50 @@ contains
     {^IFONED call mpistop("This is a multi-D HD problem") }
 
     where(dabs(x(ix^S,1))<0.05d0.and.x(ix^S,2)<0.00d0)
-       w(ix^S,rho_)=eqpar(rhoj_)
-       w(ix^S,m1_)=zero
-       w(ix^S,m2_)=eqpar(rhoj_)*eqpar(vj_)
-       w(ix^S,e_)=one/(eqpar(gamma_)-one)+0.5d0*eqpar(rhoj_)*eqpar(vj_)**2.0d0
+       w(ix^S,rho_)=rhoj
+       w(ix^S,mom(1))=zero
+       w(ix^S,mom(2))=rhoj*vj
+       w(ix^S,e_)=one/(hd_gamma-one)+0.5d0*rhoj*vj**2.0d0
     else where
-       w(ix^S,rho_) = eqpar(rhoj_)/eqpar(eta_)
-       w(ix^S,e_) = one/(eqpar(gamma_)-one)
-       w(ix^S,m1_) = zero
-       w(ix^S,m2_) = zero
+       w(ix^S,rho_) = rhoj/eta
+       w(ix^S,e_) = one/(hd_gamma-one)
+       w(ix^S,mom(1)) = zero
+       w(ix^S,mom(2)) = zero
     end where
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixG^L,ixB^L,iw,iB,w,x)
+  subroutine specialbound_usr(qt,ixG^L,ixB^L,iB,w,x)
 
     ! special boundary types, user defined
 
     use mod_global_parameters
 
-    integer, intent(in) :: ixG^L, ixB^L, iw, iB
+    integer, intent(in) :: ixG^L, ixB^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
     integer :: ixI^L, ix2
 
     ixImin^DD=ixBmin^DD;
-    ixImax^DD=ixBmin^D-1+dixB^D%ixImax^DD=ixBmax^DD;
+    ixImax^DD=ixBmin^D-1+nghostcells^D%ixImax^DD=ixBmax^DD;
     ! Outflow:
     do ix2=ixImin2,ixImax2
        w(ixImin1:ixImax1,ix2,rho_) = w(ixImin1:ixImax1,ixImax2+1,rho_) 
        w(ixImin1:ixImax1,ix2,e_)   = w(ixImin1:ixImax1,ixImax2+1,e_) 
-       w(ixImin1:ixImax1,ix2,m1_)  = w(ixImin1:ixImax1,ixImax2+1,m1_)
-       w(ixImin1:ixImax1,ix2,m2_)  = w(ixImin1:ixImax1,ixImax2+1,m2_)
+       w(ixImin1:ixImax1,ix2,mom(1))  = w(ixImin1:ixImax1,ixImax2+1,mom(1))
+       w(ixImin1:ixImax1,ix2,mom(2))  = w(ixImin1:ixImax1,ixImax2+1,mom(2))
     end do
     where(dabs(x(ixI^S,1))<0.05d0)
-       w(ixI^S,rho_)=eqpar(rhoj_)
-       w(ixI^S,m1_)=zero
-       w(ixI^S,m2_)=eqpar(rhoj_)*eqpar(vj_)
-       w(ixI^S,e_)=one/(eqpar(gamma_)-one)+0.5d0*eqpar(rhoj_)*eqpar(vj_)**2.0d0
+       w(ixI^S,rho_)=rhoj
+       w(ixI^S,mom(1))=zero
+       w(ixI^S,mom(2))=rhoj*vj
+       w(ixI^S,e_)=one/(hd_gamma-one)+0.5d0*rhoj*vj**2.0d0
     else where
        ! Reflective:
-       !   w(ixI^S,rho_) = w(ixImin1:ixImax1,ixImax2+dixB:ixImax2+1:-1,rho_) 
-       !   w(ixI^S,e_) = w(ixImin1:ixImax1,ixImax2+dixB:ixImax2+1:-1,e_) 
-       !   w(ixI^S,m1_) = w(ixImin1:ixImax1,ixImax2+dixB:ixImax2+1:-1,m1_)
-       !   w(ixI^S,m2_) =-w(ixImin1:ixImax1,ixImax2+dixB:ixImax2+1:-1,m2_)
+       !   w(ixI^S,rho_) = w(ixImin1:ixImax1,ixImax2+nghostcells:ixImax2+1:-1,rho_) 
+       !   w(ixI^S,e_) = w(ixImin1:ixImax1,ixImax2+nghostcells:ixImax2+1:-1,e_) 
+       !   w(ixI^S,mom(1)) = w(ixImin1:ixImax1,ixImax2+nghostcells:ixImax2+1:-1,mom(1))
+       !   w(ixI^S,mom(2)) =-w(ixImin1:ixImax1,ixImax2+nghostcells:ixImax2+1:-1,mom(2))
     end where
 
   end subroutine specialbound_usr
@@ -115,3 +115,5 @@ contains
     if (minval(dabs(x(ix^S,1))) < 0.1.and.minval(dabs(x(ix^S,2))) < 0.1) refine=1
 
   end subroutine specialrefine_grid
+
+end module mod_usr
