@@ -108,6 +108,7 @@ mod_particles.o: mod_Knuth_random.o
 mod_particles.o: mod_odeint.o
 mod_particles.o: mod_physics.o
 mod_particles.o: mod_timing.o
+mod_particles.o: mod_usr_methods.o
 mod_physics.o: mod_physics_hllc.o
 mod_physics.o: mod_physics_ppm.o
 mod_physics.o: mod_physics_roe.o

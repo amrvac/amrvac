@@ -350,11 +350,19 @@ contains
       kB=kB_cgs
       miu0=miu0_SI*1.d7
     end if
-    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-    unit_velocity=dsqrt(unit_pressure/unit_density)
-    unit_magneticfield=dsqrt(miu0*unit_pressure)
-    unit_time=unit_length/unit_velocity
+    if(unit_velocity==0) then
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+      unit_velocity=dsqrt(unit_pressure/unit_density)
+      unit_magneticfield=dsqrt(miu0*unit_pressure)
+      unit_time=unit_length/unit_velocity
+    else
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=unit_density*unit_velocity**2
+      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_magneticfield=dsqrt(miu0*unit_pressure)
+      unit_time=unit_length/unit_velocity
+    end if
 
   end subroutine mhd_physical_units
 

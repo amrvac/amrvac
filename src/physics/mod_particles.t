@@ -184,6 +184,7 @@ module mod_particles
   !> Give initial values to paramters
   subroutine init_particles_vars()
     use mod_global_parameters
+    use mod_usr_methods, only: usr_init_particles
     integer :: nwx, idir
 
     physics_type_particles='advect'
@@ -312,6 +313,8 @@ module mod_particles
     case default
       call mpistop("unknown physics_type_particles (advect,gca,Lorentz)")
     end select
+
+    if(associated(usr_init_particles)) phys_init_particles => usr_init_particles
 
   end subroutine init_particles_vars
 
@@ -885,7 +888,7 @@ module mod_particles
     use mod_global_parameters
 
     if(time_advance) tmax_particles = global_time + dt
-    if(physics_type_particles/='advect') tmax_particles=tmax_particles*unit_length/unit_velocity
+    if(physics_type_particles/='advect') tmax_particles=tmax_particles*unit_time
 
     tpartc0 = MPI_WTIME()
 
@@ -1553,7 +1556,6 @@ module mod_particles
 
       ! bring to tmax_particles:
       if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) then
-        !particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%global_time , smalldouble * tmax_particles)
         dt_max_time = (tmax_particles - particle(ipart)%self%global_time)
         if (dt_max_time .le. 0.0d0) dt_max_time = smalldouble * tmax_particles
       end if
@@ -1862,7 +1864,7 @@ module mod_particles
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ep(idir)),pw(igrid)%x(ixG^T,1:ndim),x,e1(idir))
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ep(idir)),pw(igrid)%x(ixG^T,1:ndim),x,e2(idir))
       end do 
-      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
+      td = (tloc/unit_time - global_time) / dt
       e(:) = e1(:) * (1.0d0 - td) + e2(:) * td
     end if
 
@@ -1888,7 +1890,7 @@ module mod_particles
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)),pw(igrid)%x(ixG^T,1:ndim),x,b1(idir))
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)),pw(igrid)%x(ixG^T,1:ndim),x,b2(idir))
       end do 
-      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
+      td = (tloc/unit_time - global_time) / dt
       b(:) = b1(:) * (1.0d0 - td) + b2(:) * td
     end if
 
@@ -2094,7 +2096,7 @@ module mod_particles
         call interpolate_var_rk(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,var(iloc))
       end do
     else
-      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
+      td = (tloc/unit_time - global_time) / dt
       do ivar=ibeg,iend
         iloc = ivar-ibeg+1
         call interpolate_var_rk(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
@@ -2122,7 +2124,7 @@ module mod_particles
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,var(iloc))
       end do
     else
-      td = (tloc/(unit_length/unit_velocity) - global_time) / dt
+      td = (tloc/unit_time - global_time) / dt
       do ivar=ibeg,iend
         iloc = ivar-ibeg+1
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
@@ -2299,6 +2301,8 @@ module mod_particles
     character(len=std_len)          :: filename
     type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
     type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
+    double precision, dimension(2*ndir+npayload,0:nparticles_per_cpu_hi-1)  :: receive_particles_data 
+    double precision, dimension(2*ndir+npayload,0:nparticles_per_cpu_hi-1)  :: send_particles_data 
     integer                         :: status(MPI_STATUS_SIZE)
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart, iipart, send_n_particles_for_output
@@ -2331,6 +2335,9 @@ module mod_particles
        send_n_particles_for_output = nparticles_on_mype
        do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
           send_particles(iipart-1) = particle(ipart)%self
+          send_particles_data(1:ndir                  ,iipart-1) = particle(ipart)%self%x(1:ndir)
+          send_particles_data(1+ndir:2*ndir           ,iipart-1) = particle(ipart)%self%u(1:ndir)
+          send_particles_data(2*ndir+1:2*ndir+npayload,iipart-1) = particle(ipart)%self%payload(1:npayload)
        end do
     else
        ! directly fill the receive buffer
@@ -2344,8 +2351,10 @@ module mod_particles
        end do
     end if
 
-    if (mype .ne. 0) &
+    if (mype .ne. 0) then
          call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
+         call MPI_SEND(send_particles_data,(2*ndir+npayload)*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
+    end if
 
     if (mype==0) then
        ! first output own particles (already in receive buffer)
@@ -2355,6 +2364,7 @@ module mod_particles
        ! now output the particles sent from the other ipes
        do ipe=1,npe-1
           call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
+          call MPI_RECV(receive_particles_data,(2*ndir+npayload)*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
           do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
              call append_to_snapshot(receive_particles(ipart-1))
           end do ! ipart

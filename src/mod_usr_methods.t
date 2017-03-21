@@ -42,6 +42,8 @@ module mod_usr_methods
   procedure(set_B0), pointer          :: usr_set_B0           => null()
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
+  ! Particles module related
+  procedure(p_no_args), pointer       :: usr_init_particles   => null()
 
   abstract interface
 

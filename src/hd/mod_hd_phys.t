@@ -264,10 +264,17 @@ contains
       mp=mp_cgs
       kB=kB_cgs
     end if
-    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-    unit_velocity=dsqrt(unit_pressure/unit_density)
-    unit_time=unit_length/unit_velocity
+    if(unit_velocity==0) then
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+      unit_velocity=dsqrt(unit_pressure/unit_density)
+      unit_time=unit_length/unit_velocity
+    else
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=unit_density*unit_velocity**2
+      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_time=unit_length/unit_velocity
+    end if
 
   end subroutine hd_physical_units
 
