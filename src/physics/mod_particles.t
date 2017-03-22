@@ -1,5 +1,6 @@
 module mod_particles
   use mod_global_parameters, only: name_len, std_len
+  use mod_usr_methods, only: usr_init_particles, usr_update_payload
   use mod_constants
   use mod_physics
   implicit none
@@ -11,7 +12,7 @@ module mod_particles
   !> Maximal number of particles in one processor
   integer                                :: nparticles_per_cpu_hi
   !> Number of additional variables for a particle
-  integer,parameter                      :: npayload=1
+  integer                                :: npayload
   !> Number of variables for grid field
   integer                                :: ngridvars
   !> Number of particles
@@ -32,7 +33,7 @@ module mod_particles
   double precision                       :: particles_eta
   double precision                       :: dtheta
   logical                                :: losses
-  !> Identity number of particles 
+  !> Identity number and total number of particles 
   integer                                :: nparticles
   !> Iteration number of paritcles
   integer                                :: it_particles
@@ -85,6 +86,8 @@ module mod_particles
 
   type particle_ptr
      type(particle_node), pointer         :: self
+     !> extra information carried by the particle
+     double precision, allocatable        :: payload(:)
      integer                              :: igrid, ipe
   end type particle_ptr
   
@@ -101,8 +104,6 @@ module mod_particles
      double precision                      :: global_time
      !> time step
      double precision                      :: dt
-     !> extra information carried by the particle
-     double precision, dimension(npayload) :: payload
      !> coordinates
      double precision, dimension(3) :: x
      !> velocity, momentum, or special ones 
@@ -184,14 +185,13 @@ module mod_particles
   !> Give initial values to paramters
   subroutine init_particles_vars()
     use mod_global_parameters
-    use mod_usr_methods, only: usr_init_particles
     integer :: nwx, idir
 
     physics_type_particles='advect'
     nparticleshi = 100000
     nparticles_per_cpu_hi = 100000
     num_particles     = 1000
-    !npayload          = 1
+    npayload          = 1
     dt_particles      = bigdouble
     t_particles       = 0.0d0
     tmax_particles    = bigdouble
@@ -245,6 +245,7 @@ module mod_particles
       phys_fill_gridvars => advect_fill_gridvars
       phys_integrate_particles => advect_integrate_particles
       phys_set_particles_dt => advect_set_particles_dt
+      if(.not. associated(usr_update_payload)) usr_update_payload => advect_update_payload
     case('Lorentz')
       if(physics_type/='mhd') call mpistop("Lorentz particles need magnetic field!")
       if(ndir/=3) call mpistop("Lorentz particles need ndir=3!")
@@ -326,7 +327,7 @@ module mod_particles
 
     namelist /particles_list/ physics_type_particles,nparticleshi, &
       nparticles_per_cpu_hi,ditsave_particles, particles_eta, &
-      dtsave_ensemble,num_particles,itmax_particles,tmax_particles,dtheta,losses
+      dtsave_ensemble,num_particles,npayload,itmax_particles,tmax_particles,dtheta,losses
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -340,16 +341,15 @@ module mod_particles
   subroutine init_particles_com()
     use mod_global_parameters
 
-    integer :: oldtypes(0:8), offsets(0:8), blocklengths(0:8)
+    integer :: oldtypes(0:7), offsets(0:7), blocklengths(0:7)
 
     oldtypes(0) = MPI_LOGICAL
     oldtypes(1) = MPI_INTEGER
-    oldtypes(2:8) = MPI_DOUBLE_PRECISION
+    oldtypes(2:7) = MPI_DOUBLE_PRECISION
 
     blocklengths(0:5)=1
-    blocklengths(6)=npayload
-    blocklengths(7)=ndir
-    blocklengths(8)=ndir
+    blocklengths(6)=3
+    blocklengths(7)=3
 
     offsets(0) = 0
     offsets(1) = size_logical * blocklengths(0)
@@ -359,9 +359,8 @@ module mod_particles
     offsets(5) = offsets(4) + size_double * blocklengths(4)
     offsets(6) = offsets(5) + size_double * blocklengths(5)
     offsets(7) = offsets(6) + size_double * blocklengths(6)
-    offsets(8) = offsets(7) + size_double * blocklengths(7)
 
-    call MPI_TYPE_STRUCT(9,blocklengths,offsets,oldtypes,type_particle,ierrmpi)
+    call MPI_TYPE_STRUCT(8,blocklengths,offsets,oldtypes,type_particle,ierrmpi)
     call MPI_TYPE_COMMIT(type_particle,ierrmpi)
 
   end subroutine init_particles_com
@@ -373,7 +372,7 @@ module mod_particles
     
     double precision, dimension(ndir)    :: x, v
     double precision, dimension(num_particles,ndir) :: rrd
-    double precision                     :: rho_particle
+    double precision                     :: w(ixG^T,1:nw)
     integer                              :: igrid_particle, ipe_particle
     integer                              :: idir,seed
     logical, dimension(1:num_particles)  :: follow
@@ -408,16 +407,21 @@ module mod_particles
         particle(nparticles)%self%x(:) = 0.d0
         particle(nparticles)%self%x(1:ndir) = x(1:ndir)
 
+        w=pw(igrid_particle)%w
+        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid_particle)%x)
         do idir=1,ndir
           call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
-            pw(igrid_particle)%w(ixG^T,mom(idir)),pw(igrid_particle)%x(ixG^T,1:ndim),x,v(idir))
+            w(ixG^T,mom(idir)),pw(igrid_particle)%x,x,v(idir))
         end do
-        call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
-          pw(igrid_particle)%w(ixG^T,rho_),pw(igrid_particle)%x(ixG^T,1:ndim),x,rho_particle)
-
         particle(nparticles)%self%u(:) = 0.d0
-        particle(nparticles)%self%u(1:ndir) = v(1:ndir)/rho_particle
-        particle(nparticles)%self%payload(:) = 0.0d0
+        particle(nparticles)%self%u(1:ndir) = v(1:ndir)
+        allocate(particle(nparticles)%payload(npayload))
+        particle(nparticles)%payload=0.d0
+
+        ! Payload update
+        call usr_update_payload(igrid_particle,pw(igrid_particle)%w,pw(igrid_particle)%wold,&
+          pw(igrid_particle)%x,x,particle(nparticles)%payload,npayload,0.d0)
+
       end if
 
     end do
@@ -490,7 +494,8 @@ module mod_particles
         u(3) =  unit_velocity *prob2*dcos(theta2)/const_c
         particle(nparticles)%self%u(:) = u(:)
         ! initialise payloads for Lorentz module
-        particle(nparticles)%self%payload(1:npayload) = 0.0d0
+        allocate(particle(nparticles)%payload(npayload))
+        particle(nparticles)%payload(:) = 0.0d0
 
       end if
 
@@ -585,17 +590,19 @@ module mod_particles
         particle(nparticles)%self%u(3) = lfac 
 
         ! initialise payloads for guiding centre module
-        particle(nparticles)%self%payload(1:npayload) = 0.0d0
-
-        ! gyroradius
-        particle(nparticles)%self%payload(1)=sqrt(2.0d0*particle(nparticles)%self%m*&
-          particle(nparticles)%self%u(2)*absB)/abs(particle(nparticles)%self%q*absB)*const_c
-        ! pitch angle
-        particle(nparticles)%self%payload(2)=datan(sqrt((2.0d0*particle(nparticles)%self%u(2)*&
-          absB)/(particle(nparticles)%self%m*particle(nparticles)%self%u(3)**2))/(u(1)))
-        ! perpendicular velocity
-        particle(nparticles)%self%payload(3)=sqrt((2.0d0*particle(nparticles)%self%u(2)*&
-          absB)/(particle(nparticles)%self%m*particle(nparticles)%self%u(3)**2))
+        if(npayload>2) then
+          allocate(particle(nparticles)%payload(npayload))
+          particle(nparticles)%payload(:) = 0.0d0
+          ! gyroradius
+          particle(nparticles)%payload(1)=sqrt(2.0d0*particle(nparticles)%self%m*&
+            particle(nparticles)%self%u(2)*absB)/abs(particle(nparticles)%self%q*absB)*const_c
+          ! pitch angle
+          particle(nparticles)%payload(2)=datan(sqrt((2.0d0*particle(nparticles)%self%u(2)*&
+            absB)/(particle(nparticles)%self%m*particle(nparticles)%self%u(3)**2))/(u(1)))
+          ! perpendicular velocity
+          particle(nparticles)%payload(3)=sqrt((2.0d0*particle(nparticles)%self%u(2)*&
+            absB)/(particle(nparticles)%self%m*particle(nparticles)%self%u(3)**2))
+        end if
 
       end if
 
@@ -944,12 +951,9 @@ module mod_particles
     use mod_global_parameters
 
     double precision, dimension(1:ndir) :: v, x
-    double precision, dimension(ixG^T,1:nw) :: w
-    double precision                    :: rho, rho1, rho2, td, tloc, dt_p
-    integer                             :: ipart, iipart, igrid
-
-    double precision                 :: h1
+    double precision                 :: tloc, tlocnew, dt_p, h1
     double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
+    integer                          :: ipart, iipart, igrid
     integer                          :: nok, nbad, ierror
 
     do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
@@ -959,6 +963,7 @@ module mod_particles
       igrid_working = igrid
       tloc = particle(ipart)%self%global_time
       x(1:ndir) = particle(ipart)%self%x(1:ndir)
+      tlocnew=tloc+dt_p
 
       ! Position update
       ! Simple forward Euler start
@@ -970,7 +975,7 @@ module mod_particles
 
       ! Adaptive stepwidth RK4:
       h1 = dt_p/2.0d0
-      call odeint(x,ndir,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
+      call odeint(x,ndir,tloc,tlocnew,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
 
       if (ierror /= 0) then
         print *, "odeint returned error code", ierror
@@ -981,42 +986,40 @@ module mod_particles
       particle(ipart)%self%x(1:ndir) = x(1:ndir)
 
       ! Velocity update
-      call get_vec_advect(igrid,x,tloc+dt_p,v,vp(1),vp(ndir))
+      call get_vec_advect(igrid,x,tlocnew,v,vp(1),vp(ndir))
       particle(ipart)%self%u(1:ndir) = v(1:ndir)
 
       ! Payload update
-      ! To give an example, we set the payload to the interpolated density at 
-      ! the particles position.  
-      ! In general, it would be better to add the auxilary variable to mod_gridvars 
-      ! since then you can use the convenient subroutine get_vec() for this.  
-
-      !if (.not.time_advance) then
-      !   
-      !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-      !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-      !   
-      !   call interpolate_var(igrid,ixG^LL,ixM^LL,pw(igrid)%w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho)
-      !else
-      !   w(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
-      !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-      !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho1)
-    
-      !   w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-      !   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-      !   call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),pw(igrid)%x(ixG^T,1:ndim),x,rho2)
-      !   
-      !   td = (tloc - global_time) / dt
-      !   rho = rho1 * (1.0d0 - td) + rho2 * td
-      !   
-      !end if
-      !particle(ipart)%self%payload(1) = rho * unit_density
+      call usr_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,&
+        x,particle(ipart)%payload,npayload,tlocnew)
     
       ! Time update
-      particle(ipart)%self%global_time = particle(ipart)%self%global_time + dt_p
+      particle(ipart)%self%global_time = tlocnew
 
     end do
 
   end subroutine advect_integrate_particles
+
+  !> Example of update payload with local density
+  subroutine advect_update_payload(igrid,w,wold,xgrid,xpart,payload,npayload,particle_time)
+    use mod_global_parameters
+    integer, intent(in)           :: igrid,npayload
+    double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
+    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),particle_time
+    double precision, intent(out) :: payload(npayload)
+    double precision              :: rho, rho1, rho2, td
+
+    if (.not.time_advance) then
+       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),xgrid,xpart,rho)
+    else
+       call interpolate_var(igrid,ixG^LL,ixM^LL,wold(ixG^T,rho_),xgrid,xpart,rho1)
+       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),xgrid,xpart,rho2)
+       td = (particle_time - global_time) / dt
+       rho = rho1 * (1.0d0 - td) + rho2 * td
+    end if
+    payload(1) = rho * w_convert_factor(1) 
+
+  end subroutine advect_update_payload
 
   subroutine derivs_advect(t_s,x,dxdt)
     use mod_global_parameters
@@ -1289,33 +1292,33 @@ module mod_particles
 
       ! Payload update
       ! current gyroradius
-      particle(ipart)%self%payload(1) = sqrt(2.0d0*m*Mr*absb)/abs(q*absb)*const_c
+      particle(ipart)%payload(1) = sqrt(2.0d0*m*Mr*absb)/abs(q*absb)*const_c
       ! pitch angle
-      particle(ipart)%self%payload(2) = datan(sqrt((2.0d0*Mr*absb)/(m*gamma**2))/vpar)
+      particle(ipart)%payload(2) = datan(sqrt((2.0d0*Mr*absb)/(m*gamma**2))/vpar)
       ! particle v_perp
-      particle(ipart)%self%payload(3) = sqrt((2.0d0*Mr*absb)/(m*gamma**2))
+      particle(ipart)%payload(3) = sqrt((2.0d0*Mr*absb)/(m*gamma**2))
       ! particle parallel momentum term 1
-      particle(ipart)%self%payload(4) = momentumpar1
+      particle(ipart)%payload(4) = momentumpar1
       ! particle parallel momentum term 2
-      particle(ipart)%self%payload(5) = momentumpar2
+      particle(ipart)%payload(5) = momentumpar2
       ! particle parallel momentum term 3
-      particle(ipart)%self%payload(6) = momentumpar3
+      particle(ipart)%payload(6) = momentumpar3
       ! particle parallel momentum term 4
-      particle(ipart)%self%payload(7) = momentumpar4
+      particle(ipart)%payload(7) = momentumpar4
       ! particle ExB drift
-      particle(ipart)%self%payload(8) = ueabs 
+      particle(ipart)%payload(8) = ueabs 
       ! relativistic drift
-      particle(ipart)%self%payload(9) = reldrift_abs
+      particle(ipart)%payload(9) = reldrift_abs
       ! gradB drift
-      particle(ipart)%self%payload(10) = gradBdrift_abs
+      particle(ipart)%payload(10) = gradBdrift_abs
       ! bdotgradb drift
-      particle(ipart)%self%payload(11) = bdotgradbdrift_abs
+      particle(ipart)%payload(11) = bdotgradbdrift_abs
       ! uedotgradb drift
-      particle(ipart)%self%payload(12) = uedotgradbdrift_abs
+      particle(ipart)%payload(12) = uedotgradbdrift_abs
       ! bdotgradue drift
-      particle(ipart)%self%payload(13) = bdotgraduedrift_abs
+      particle(ipart)%payload(13) = bdotgraduedrift_abs
       ! uedotgradue drift
-      particle(ipart)%self%payload(14) = uedotgraduedrift_abs
+      particle(ipart)%payload(14) = uedotgraduedrift_abs
 
       ! Time update
       particle(ipart)%self%global_time = particle(ipart)%self%global_time + dt_p
@@ -1644,10 +1647,10 @@ module mod_particles
         ! current gyroradius
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
-        particle(ipart)%self%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * m / abs(q) * 8.9875d+20
+        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * m / abs(q) * 8.9875d+20
 
-        ! e.b (set npayload=2 first):
-        !particle(ipart)%self%payload(2) = sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
+        ! e.b
+        if(npayload>1) particle(ipart)%payload(2) = sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
 
       case ('cylindrical')
 
@@ -1730,7 +1733,7 @@ module mod_particles
         ! current gyroradius
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
-        particle(ipart)%self%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * m / abs(q) * 8.9875d+20
+        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * m / abs(q) * 8.9875d+20
 
       end select
 
@@ -2274,6 +2277,7 @@ module mod_particles
 
     read(unitparticles) index
     allocate(particle(index)%self)
+    allocate(particle(index)%payload(1:npayload))
     particle(index)%self%index = index
 
     read(unitparticles) particle(index)%self%follow
@@ -2283,7 +2287,7 @@ module mod_particles
     read(unitparticles) particle(index)%self%dt
     read(unitparticles) particle(index)%self%x
     read(unitparticles) particle(index)%self%u
-    read(unitparticles) particle(index)%self%payload
+    read(unitparticles) particle(index)%payload(1:npayload)
 
     if (particle(index)%self%follow) print*, 'follow index:', index
 
@@ -2299,10 +2303,10 @@ module mod_particles
     use mod_global_parameters
 
     character(len=std_len)          :: filename
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
-    double precision, dimension(2*ndir+npayload,0:nparticles_per_cpu_hi-1)  :: receive_particles_data 
-    double precision, dimension(2*ndir+npayload,0:nparticles_per_cpu_hi-1)  :: send_particles_data 
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart, iipart, send_n_particles_for_output
@@ -2324,7 +2328,7 @@ module mod_particles
 
     if (npe==1) then 
        do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
-          call append_to_snapshot(particle(ipart)%self)
+          call append_to_snapshot(particle(ipart)%self,particle(ipart)%payload)
        end do
        return
     end if
@@ -2334,17 +2338,10 @@ module mod_particles
        ! fill the send_buffer
        send_n_particles_for_output = nparticles_on_mype
        do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
-          send_particles(iipart-1) = particle(ipart)%self
-          send_particles_data(1:ndir                  ,iipart-1) = particle(ipart)%self%x(1:ndir)
-          send_particles_data(1+ndir:2*ndir           ,iipart-1) = particle(ipart)%self%u(1:ndir)
-          send_particles_data(2*ndir+1:2*ndir+npayload,iipart-1) = particle(ipart)%self%payload(1:npayload)
+          send_particles(iipart) = particle(ipart)%self
+          send_payload(1:npayload,iipart) = particle(ipart)%payload(1:npayload)
        end do
     else
-       ! directly fill the receive buffer
-       receive_n_particles_for_output_from_ipe(0) = nparticles_on_mype
-       do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
-          receive_particles(iipart-1) = particle(ipart)%self
-       end do
        ! get number of particles on other ipes
        do ipe=1,npe-1
           call MPI_RECV(receive_n_particles_for_output_from_ipe(ipe),1,MPI_INTEGER,ipe,ipe,icomm,status,ierrmpi)
@@ -2352,21 +2349,21 @@ module mod_particles
     end if
 
     if (mype .ne. 0) then
-         call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
-         call MPI_SEND(send_particles_data,(2*ndir+npayload)*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
+       call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
+       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     end if
 
     if (mype==0) then
        ! first output own particles (already in receive buffer)
-       do ipart=1,receive_n_particles_for_output_from_ipe(0)
-          call append_to_snapshot(receive_particles(ipart-1))
+       do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
+          call append_to_snapshot(particle(ipart)%self,particle(ipart)%payload)
        end do
        ! now output the particles sent from the other ipes
        do ipe=1,npe-1
           call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
-          call MPI_RECV(receive_particles_data,(2*ndir+npayload)*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
+          call MPI_RECV(receive_payload,npayload*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
           do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-             call append_to_snapshot(receive_particles(ipart-1))
+             call append_to_snapshot(receive_particles(ipart),receive_payload(1:npayload,ipart))
           end do ! ipart
        end do ! ipe
        close(unit=unitparticles)
@@ -2374,9 +2371,11 @@ module mod_particles
 
   end subroutine write_particles_snapshot
 
-  subroutine append_to_snapshot(myparticle)
+  subroutine append_to_snapshot(myparticle,mypayload)
 
     type(particle_node),intent(in) :: myparticle
+    double precision :: mypayload(1:npayload)
+
     write(unitparticles) myparticle%index
     write(unitparticles) myparticle%follow
     write(unitparticles) myparticle%q
@@ -2385,7 +2384,7 @@ module mod_particles
     write(unitparticles) myparticle%dt
     write(unitparticles) myparticle%x
     write(unitparticles) myparticle%u 
-    write(unitparticles) myparticle%payload(1:npayload)
+    write(unitparticles) mypayload(1:npayload)
 
   end subroutine append_to_snapshot
 
@@ -2402,10 +2401,10 @@ module mod_particles
         open(unit=unitparticles,file=filename,status='replace')
         line=''
         do icomp=1, npayload
-          write(strdata,"(a,i2.2,a)") 'payload',icomp,', '
+          write(strdata,"(a,i2.2,a)") 'payload',icomp,','
           line = trim(line)//trim(strdata)
         end do
-        write(unitparticles,"(a,a,a)") 'time, dt, x1, x2, x3, u1, u2, u3, ',trim(line),' ipe, iteration, index'
+        write(unitparticles,"(a,a,a)") 'time,dt,x1,x2,x3,u1,u2,u3,',trim(line),'ipe,iteration,index'
         close(unit=unitparticles)
       end if
     end do
@@ -2649,7 +2648,8 @@ module mod_particles
     use mod_global_parameters
 
     integer                         :: ipart,iipart
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     integer                         :: send_n_particles_for_output
     integer                         :: nout
     double precision                :: tout
@@ -2671,12 +2671,13 @@ module mod_particles
             .and. particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) then
           ! have to send particle to rank zero for output
           send_n_particles_for_output = send_n_particles_for_output + 1
-          send_particles(send_n_particles_for_output-1) = particle(ipart)%self
+          send_particles(send_n_particles_for_output) = particle(ipart)%self
+          send_payload(1:npayload,send_n_particles_for_output) = particle(ipart)%payload(1:npayload)
        end if ! time to output?
 
     end do
 
-    call output_ensemble(send_n_particles_for_output,send_particles(0:send_n_particles_for_output-1),'ensemble')
+    call output_ensemble(send_n_particles_for_output,send_particles,send_payload,'ensemble')
 
   end subroutine check_particles_output
 
@@ -2694,7 +2695,7 @@ module mod_particles
        mysnapshot = 0
     end if
 
-    if (.not. time_advance) then
+    if (convert) then
       select case(type)
       case ('ensemble')
          nout = nint(tout / dtsave_ensemble)
@@ -2724,14 +2725,16 @@ module mod_particles
 
   end function make_particle_filename
 
-  subroutine output_ensemble(send_n_particles_for_output,send_particles,type)
+  subroutine output_ensemble(send_n_particles_for_output,send_particles,send_payload,type)
     use mod_global_parameters
 
     integer, intent(in)             :: send_n_particles_for_output
-    type(particle_node), dimension(0:send_n_particles_for_output-1), intent(in)  :: send_particles
+    type(particle_node), dimension(send_n_particles_for_output), intent(in)  :: send_particles
+    double precision, dimension(npayload,send_n_particles_for_output), intent(in)  :: send_payload
     character(len=*), intent(in)    :: type
     character(len=std_len)              :: filename, filename2
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    double precision, dimension(npayload,nparticles_per_cpu_hi) :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart
@@ -2740,11 +2743,11 @@ module mod_particles
 
     if (npe==1) then 
        do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,type)
-          call output_particle(send_particles(ipart-1),mype,filename)
-          if(type=='ensemble' .and. send_particles(ipart-1)%follow) then
-            filename2 = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,'followed')
-            call output_particle(send_particles(ipart-1),mype,filename2)
+          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,type)
+          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
+          if(type=='ensemble' .and. send_particles(ipart)%follow) then
+            filename2 = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'followed')
+            call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename2)
           end if
        end do
        return
@@ -2753,35 +2756,34 @@ module mod_particles
     if (mype .ne. 0) then
        call MPI_SEND(send_n_particles_for_output,1,MPI_INTEGER,0,mype,icomm,ierrmpi)
     else
-       receive_n_particles_for_output_from_ipe(0) = send_n_particles_for_output
-       if (send_n_particles_for_output .gt. 0) &
-       receive_particles(0:send_n_particles_for_output-1) = &
-            send_particles(0:send_n_particles_for_output-1)
        do ipe=1,npe-1
           call MPI_RECV(receive_n_particles_for_output_from_ipe(ipe),1,MPI_INTEGER,ipe,ipe,icomm,status,ierrmpi)
        end do
     end if
 
-    if (mype .ne. 0) &
-         call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
+    if (mype .ne. 0) then
+       call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
+       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
+    end if
 
     if (mype==0) then
-       do ipart=1,receive_n_particles_for_output_from_ipe(0)
-          filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,type)
-          call output_particle(receive_particles(ipart-1),0,filename)
-          if(type=='ensemble' .and. receive_particles(ipart-1)%follow) then
-            filename2 = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'followed')
-            call output_particle(receive_particles(ipart-1),0,filename2)
+       do ipart=1,send_n_particles_for_output
+          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,type)
+          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename)
+          if(type=='ensemble' .and. send_particles(ipart)%follow) then
+            filename2 = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'followed')
+            call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename2)
           end if
        end do
        do ipe=1,npe-1
           call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
+          call MPI_RECV(receive_payload,npayload*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
           do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-             filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,type)
-             call output_particle(receive_particles(ipart-1),ipe,filename)
-             if(type=='ensemble' .and. receive_particles(ipart-1)%follow) then
-               filename2 = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'followed')
-               call output_particle(receive_particles(ipart-1),ipe,filename2)
+             filename = make_particle_filename(receive_particles(ipart)%global_time,receive_particles(ipart)%index,type)
+             call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename)
+             if(type=='ensemble' .and. receive_particles(ipart)%follow) then
+               filename2 = make_particle_filename(receive_particles(ipart)%global_time,receive_particles(ipart)%index,'followed')
+               call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename2)
              end if
           end do ! ipart
        end do ! ipe
@@ -2795,8 +2797,10 @@ module mod_particles
     character(len=std_len)          :: filename
     integer                         :: ipart,iipart,ipe
     integer                         :: send_n_particles_for_output
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
 
@@ -2808,16 +2812,17 @@ module mod_particles
        if (particle(ipart)%self%follow) then
           ! have to send particle to rank zero for output
           send_n_particles_for_output = send_n_particles_for_output + 1
-          send_particles(send_n_particles_for_output-1) = particle(ipart)%self
+          send_particles(send_n_particles_for_output) = particle(ipart)%self
+          send_payload(1:npayload,send_n_particles_for_output) = particle(ipart)%payload(1:npayload)
        end if ! follow
     end do ! ipart
 
     if (npe==1) then 
        do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,'individual')
-          call output_particle(send_particles(ipart-1),mype,filename)
+          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'individual')
+          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
        end do
-          itsavelast_particles = it_particles
+       itsavelast_particles = it_particles
        return
     end if
 
@@ -2825,35 +2830,35 @@ module mod_particles
        if (mype .ne. 0) then
           call MPI_SEND(send_n_particles_for_output,1,MPI_INTEGER,0,mype,icomm,ierrmpi)
        else
-          receive_n_particles_for_output_from_ipe(0) = send_n_particles_for_output
-          receive_particles(0:send_n_particles_for_output) = &
-               send_particles(0:send_n_particles_for_output)
           do ipe=1,npe-1
              call MPI_RECV(receive_n_particles_for_output_from_ipe(ipe),1,MPI_INTEGER,ipe,ipe,icomm,status,ierrmpi)
           end do
        end if
 
-       if (mype .ne. 0) &
-            call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
+       if (mype .ne. 0) then
+          call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
+          call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
+       end if
        
        if (mype==0) then
-          do ipart=1,receive_n_particles_for_output_from_ipe(0)
-          filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'individual')
-             call output_particle(receive_particles(ipart-1),0,filename)
+          do ipart=1,send_n_particles_for_output
+            filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'individual')
+            call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename)
           end do
           do ipe=1,npe-1
              call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
+             call MPI_RECV(receive_payload,npayload*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
              do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-                filename = make_particle_filename(receive_particles(ipart-1)%global_time,receive_particles(ipart-1)%index,'individual')
-                call output_particle(receive_particles(ipart-1),ipe,filename)
+                filename = make_particle_filename(receive_particles(ipart)%global_time,receive_particles(ipart)%index,'individual')
+                call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename)
              end do
           end do
        end if
     else
        do ipart=1,send_n_particles_for_output
           ! generate filename
-          filename = make_particle_filename(send_particles(ipart-1)%global_time,send_particles(ipart-1)%index,'individual')
-          call output_particle(send_particles(ipart-1),mype,filename)
+          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'individual')
+          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
        end do
     end if
 
@@ -2861,10 +2866,11 @@ module mod_particles
 
   end subroutine output_individual
 
-  subroutine output_particle(myparticle,ipe,filename)
+  subroutine output_particle(myparticle,payload,ipe,filename)
     use mod_global_parameters
 
     type(particle_node),intent(in)                 :: myparticle
+    double precision, intent(in)                   :: payload(npayload)
     integer, intent(in)                            :: ipe
     character(len=std_len),intent(in)              :: filename
     logical,save                                   :: file_exists=.false.
@@ -2893,10 +2899,10 @@ module mod_particles
        open(unit=unitparticles,file=filename,status='unknown',access='append')
        line=''
        do icomp=1, npayload
-          write(strdata,"(a,i2.2,a)") 'payload',icomp,', '
+          write(strdata,"(a,i2.2,a)") 'payload',icomp,','
           line = trim(line)//trim(strdata)
        end do
-       write(unitparticles,"(a,a,a)") 'time, dt, x1, x2, x3, u1, u2, u3, ',trim(line),' ipe, iteration, index'
+       write(unitparticles,"(a,a,a)") 'time,dt,x1,x2,x3,u1,u2,u3,',trim(line),'ipe,iteration,index'
     else
        open(unit=unitparticles,file=filename,status='unknown',access='append')
     end if
@@ -2916,7 +2922,7 @@ module mod_particles
        line = trim(line)//trim(strdata)
     end do
     do icomp = 1, npayload
-       write(strdata,"(es13.6, a)")roundoff(myparticle%payload(icomp),minvalue), ','
+       write(strdata,"(es13.6, a)")roundoff(payload(icomp),minvalue), ','
        line = trim(line)//trim(strdata)
     end do
     write(strdata,"(i8.7, a)")ipe, ','
@@ -2940,8 +2946,10 @@ module mod_particles
     integer                         :: status(MPI_STATUS_SIZE)
     integer, dimension(0:npe-1)     :: send_n_particles_to_ipe
     integer, dimension(0:npe-1)    :: receive_n_particles_from_ipe
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer, dimension(nparticles_per_cpu_hi,0:npe-1)  :: particle_index_to_be_sent_to_ipe
     integer, dimension(nparticles_per_cpu_hi) :: particle_index_to_be_destroyed
     integer                                   :: destroy_n_particles_mype
@@ -3013,11 +3021,14 @@ module mod_particles
 
           ! create the send buffer
           do ipart = 1, send_n_particles_to_ipe(ipe)
-             send_particles(ipart-1) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self
+             send_particles(ipart) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self
+             send_payload(1:npayload,ipart) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload(1:npayload)
           end do ! ipart
           call MPI_SEND(send_particles,send_n_particles_to_ipe(ipe),type_particle,ipe,tag_send,icomm,ierrmpi)
+          call MPI_SEND(send_payload,npayload*send_n_particles_to_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,tag_send,icomm,ierrmpi)
           do ipart = 1, send_n_particles_to_ipe(ipe)
              deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self)
+             deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload)
              call pull_particle_from_particles_on_mype(particle_index_to_be_sent_to_ipe(ipart,ipe))
           end do ! ipart
 
@@ -3027,11 +3038,14 @@ module mod_particles
        if (receive_n_particles_from_ipe(ipe) .gt. 0) then
 
           call MPI_RECV(receive_particles,receive_n_particles_from_ipe(ipe),type_particle,ipe,tag_receive,icomm,status,ierrmpi)
+          call MPI_RECV(receive_payload,npayload*receive_n_particles_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,tag_receive,icomm,status,ierrmpi)
 
           do ipart = 1, receive_n_particles_from_ipe(ipe)
-             index = receive_particles(ipart-1)%index
+             index = receive_particles(ipart)%index
              allocate(particle(index)%self)
-             particle(index)%self = receive_particles(ipart-1)
+             particle(index)%self = receive_particles(ipart)
+             allocate(particle(index)%payload(npayload))
+             particle(index)%payload(1:npayload) = receive_payload(1:npayload,ipart)
              call push_particle_into_particles_on_mype(index)
              ! since we don't send the igrid, need to re-locate it
              call find_particle_ipe(particle(index)%self%x,igrid_particle,ipe_particle)
@@ -3053,8 +3067,10 @@ module mod_particles
     integer                         :: status(MPI_STATUS_SIZE)
     integer, dimension(0:npe-1)     :: send_n_particles_to_ipe
     integer, dimension(0:npe-1)    :: receive_n_particles_from_ipe
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: send_particles
-    type(particle_node), dimension(0:nparticles_per_cpu_hi-1)  :: receive_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
+    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer, dimension(nparticles_per_cpu_hi,0:npe-1)  :: particle_index_to_be_sent_to_ipe
     integer, dimension(nparticles_per_cpu_hi) :: particle_index_to_be_destroyed
     integer                                   :: destroy_n_particles_mype
@@ -3102,13 +3118,14 @@ module mod_particles
 
           ! create the send buffer
           do ipart = 1, send_n_particles_to_ipe(ipe)
-             send_particles(ipart-1) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self
+             send_particles(ipart) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self
+             send_payload(1:npayload,ipart) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload(1:npayload)
           end do ! ipart
-
           call MPI_SEND(send_particles,send_n_particles_to_ipe(ipe),type_particle,ipe,tag_send,icomm,ierrmpi)
-
+          call MPI_SEND(send_payload,npayload*send_n_particles_to_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,tag_send,icomm,ierrmpi)
           do ipart = 1, send_n_particles_to_ipe(ipe)
              deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self)
+             deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload)
              call pull_particle_from_particles_on_mype(particle_index_to_be_sent_to_ipe(ipart,ipe))
           end do ! ipart
 
@@ -3118,12 +3135,15 @@ module mod_particles
        if (receive_n_particles_from_ipe(ipe) .gt. 0) then
 
           call MPI_RECV(receive_particles,receive_n_particles_from_ipe(ipe),type_particle,ipe,tag_receive,icomm,status,ierrmpi)
+          call MPI_RECV(receive_payload,npayload*receive_n_particles_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,tag_receive,icomm,status,ierrmpi)
 
           do ipart = 1, receive_n_particles_from_ipe(ipe)
 
-             index = receive_particles(ipart-1)%index
+             index = receive_particles(ipart)%index
              allocate(particle(index)%self)
-             particle(index)%self = receive_particles(ipart-1)
+             particle(index)%self = receive_particles(ipart)
+             allocate(particle(index)%payload(npayload))
+             particle(index)%payload(1:npayload) = receive_payload(1:npayload,ipart)
              call push_particle_into_particles_on_mype(index)
 
              ! since we don't send the igrid, need to re-locate it
@@ -3180,17 +3200,19 @@ module mod_particles
 
     integer, intent(in)                                   :: destroy_n_particles_mype
     integer, dimension(1:destroy_n_particles_mype), intent(in) :: particle_index_to_be_destroyed
-    type(particle_node), dimension(0:destroy_n_particles_mype-1):: destroy_particles_mype
+    type(particle_node), dimension(destroy_n_particles_mype):: destroy_particles_mype
+    double precision, dimension(npayload,destroy_n_particles_mype):: destroy_payload_mype
     integer                                               :: iipart,ipart,destroy_n_particles
 
     destroy_n_particles             = 0
 
     ! append the particle to list of destroyed particles
     do iipart=1,destroy_n_particles_mype;ipart=particle_index_to_be_destroyed(iipart);
-       destroy_particles_mype(iipart-1) = particle(ipart)%self
+       destroy_particles_mype(iipart) = particle(ipart)%self
+       destroy_payload_mype(1:npayload,iipart) = particle(ipart)%payload(1:npayload)
     end do
 
-    call output_ensemble(destroy_n_particles_mype,destroy_particles_mype,'destroy')
+    call output_ensemble(destroy_n_particles_mype,destroy_particles_mype,destroy_payload_mype,'destroy')
 
     if (npe > 1) then
        call MPI_ALLREDUCE(destroy_n_particles_mype,destroy_n_particles,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
@@ -3208,6 +3230,7 @@ module mod_particles
          write(*,*), particle(ipart)%self%global_time, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
        endif
        deallocate(particle(ipart)%self)
+       deallocate(particle(ipart)%payload)
        call pull_particle_from_particles_on_mype(ipart)
     end do
 
