@@ -199,6 +199,7 @@ module mod_particles
     ditsave_particles = 8 
     dtsave_ensemble   = bigdouble
     dtheta            = 2.0d0*dpi / 60.0d0
+    particles_eta     = 0.d0
     losses            = .false.
     nparticles = 0
     it_particles = 0
@@ -270,7 +271,6 @@ module mod_particles
       if(physics_type/='mhd') call mpistop("GCA particles need magnetic field!")
       if(ndir/=3) call mpistop("GCA particles need ndir=3!")
       dtsave_ensemble=dtsave_ensemble*unit_time
-      ngridvars=ndir*7
       nwx = 0
       allocate(bp(ndir))
       do idir = 1, ndir
@@ -307,6 +307,7 @@ module mod_particles
         nwx = nwx + 1
         ue_dot_grad_ue(idir) = nwx
       end do
+      ngridvars=nwx
       phys_init_particles => gca_init_particles
       phys_fill_gridvars => gca_fill_gridvars
       phys_integrate_particles => gca_integrate_particles
@@ -404,7 +405,7 @@ module mod_particles
         particle(nparticles)%self%index  = nparticles
         particle(nparticles)%self%global_time      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
-        particle(nparticles)%self%x(:) = 0.d0
+        particle(nparticles)%self%x = 0.d0
         particle(nparticles)%self%x(1:ndir) = x(1:ndir)
 
         w=pw(igrid_particle)%w
@@ -474,7 +475,8 @@ module mod_particles
     
         particle(nparticles)%self%global_time      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
-        particle(nparticles)%self%x(:) = x(:)
+        particle(nparticles)%self%x = 0.d0
+        particle(nparticles)%self%x(1:ndir) = x(1:ndir)
 
         ! Maxwellian velocity distribution
         absS = sqrt(sum(srd(nparticles,:)**2))
@@ -549,7 +551,8 @@ module mod_particles
     
         particle(nparticles)%self%global_time      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
-        particle(nparticles)%self%x(:) = x(:)
+        particle(nparticles)%self%x = 0.d0
+        particle(nparticles)%self%x(1:ndir) = x(1:ndir)
 
         ! Maxwellian velocity distribution
         absS = sqrt(sum(srd(nparticles,:)**2))
@@ -575,7 +578,11 @@ module mod_particles
         ! particles Lorentz factor
         gamma = sqrt(1.0d0 + lfac**2*sum(u(:)**2)/const_c**2) 
 
-        call get_vec(igrid_particle,x,particle(nparticles)%self%global_time,B,bp(1),bp(ndir))
+        do idir=1,ndir
+          call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
+            pw(igrid_particle)%w(ixG^T,mag(idir)),pw(igrid_particle)%x,x,B(idir))
+        end do
+        B=B*unit_magneticfield
         absB = sqrt(sum(B(:)**2))
 
         ! parallel momentum component (gamma v||)
@@ -696,9 +703,9 @@ module mod_particles
 
        ! scale to cgs units:
        gridvars(igrid)%w(ixG^T,bp(:)) = &
-            gridvars(igrid)%w(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
+            gridvars(igrid)%w(ixG^T,bp(:)) * unit_magneticfield
        gridvars(igrid)%w(ixG^T,ep(:)) = &
-            gridvars(igrid)%w(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
+            gridvars(igrid)%w(ixG^T,ep(:)) * unit_magneticfield * unit_velocity / const_c
 
        ! grad(kappa B)
        absB(ixG^T) = sqrt(sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1))
@@ -718,7 +725,10 @@ module mod_particles
        do idim=1,ndim
          call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
          gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/unit_length
-         bhat(ixG^T,idim) = gridvars(igrid)%w(ixG^T,bp(idim)) / absB(ixG^T)
+       end do
+
+       do idir=1,ndir
+         bhat(ixG^T,idir) = gridvars(igrid)%w(ixG^T,bp(idir)) / absB(ixG^T)
        end do
 
        do idir=1,ndir
@@ -776,7 +786,10 @@ module mod_particles
          do idim=1,ndim
            call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
            gridvars(igrid)%wold(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/unit_length
-           bhat(ixG^T,idim) = gridvars(igrid)%wold(ixG^T,bp(idim)) / absB(ixG^T)
+         end do
+
+         do idir=1,ndir
+           bhat(ixG^T,idir) = gridvars(igrid)%wold(ixG^T,bp(idir)) / absB(ixG^T)
          end do
 
          do idir=1,ndir
@@ -1097,7 +1110,7 @@ module mod_particles
     use mod_global_parameters
 
     double precision                    :: lfac, absS
-    double precision                    :: dt_p, tloc, dydt(1:ndir+2),ytmp(1:ndir+2), euler_cfl, int_factor
+    double precision                    :: dt_p, tloc, y(ndir+2),dydt(ndir+2),ytmp(ndir+2), euler_cfl, int_factor
     double precision, dimension(1:ndir) :: x, ue, e, b, bhat, x_new
     double precision, dimension(1:ndir) :: drift1, drift2
     double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6, drift7
@@ -1111,7 +1124,6 @@ module mod_particles
     double precision                    :: bdotgradbdrift_abs, uedotgradbdrift_abs
     double precision                    :: bdotgraduedrift_abs, uedotgraduedrift_abs
     double precision                    :: momentumpar1, momentumpar2, momentumpar3, momentumpar4
-    double precision,dimension(:), allocatable  :: y
     ! Precision of time-integration:
     double precision,parameter          :: eps=1.0d-6
     ! for odeint:
@@ -1122,7 +1134,6 @@ module mod_particles
     logical                             :: BC_applied
 
     nvar=ndir+2
-    allocate(y(nvar))
 
     do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
       int_choice=.false.   
@@ -1330,8 +1341,8 @@ module mod_particles
   subroutine derivs_gca_rk(t_s,y,dydt)
     use mod_global_parameters
 
-    double precision                :: t_s, y(*)
-    double precision                :: dydt(*)
+    double precision                :: t_s, y(ndir+2)
+    double precision                :: dydt(ndir+2)
 
     double precision,dimension(ndir):: ue, b, e, x, bhat, bdotgradb, uedotgradb, gradkappaB
     double precision,dimension(ndir):: bdotgradue, uedotgradue, u, utmp1, utmp2, utmp3
@@ -1390,9 +1401,8 @@ module mod_particles
   subroutine derivs_gca(t_s,y,dydt)
     use mod_global_parameters
 
-    integer                         :: ic^D, igrid_particle, ipe_particle, ipe
-    double precision                :: t_s, y(*)
-    double precision                :: dydt(*)
+    double precision                :: t_s, y(ndir+2)
+    double precision                :: dydt(ndir+2)
 
     double precision,dimension(ndir):: ue, b, e, x, bhat, bdotgradb, uedotgradb, gradkappaB
     double precision,dimension(ndir):: bdotgradue, uedotgradue, u, utmp1, utmp2, utmp3
@@ -1420,7 +1430,6 @@ module mod_particles
     bhat(1:ndir) = b(1:ndir) / absb
     
     epar         = sum(e(:)*bhat(:))
-
     call cross(e,bhat,ue)
     ue(1:ndir)   = ue(1:ndir)*const_c / absb
 
@@ -1489,7 +1498,7 @@ module mod_particles
       ap0        = dydt(ndir+1)
 
       ! guiding center velocity:
-      v(:) = abs(dydt(:))
+      v(1:ndir) = abs(dydt(1:ndir))
       vp = sqrt(sum(v(:)**2))
 
       dt_cfl0    = dxmin/vp
@@ -1517,7 +1526,7 @@ module mod_particles
       ap1        = dydt(ndir+1)
 
       ! guiding center velocity:
-      v(:) = abs(dydt(:))
+      v(1:ndir) = abs(dydt(1:ndir))
       vp = sqrt(sum(v(:)**2))
     
       dt_cfl1    = dxmin/vp
@@ -1952,8 +1961,7 @@ module mod_particles
     character(len=1024)                   :: line
 
     ! flat interpolation:
-    {ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
-    \}
+    {ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells \}
     !gfloc = gf(ic^D)
 
     ! linear interpolation:

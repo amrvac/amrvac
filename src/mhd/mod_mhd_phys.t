@@ -296,7 +296,7 @@ contains
     end if
 
     ! Initialize particles module
-    if(use_particles) then
+    if(mhd_particles) then
       call particles_init()
     end if
 
@@ -348,7 +348,7 @@ contains
     else
       mp=mp_cgs
       kB=kB_cgs
-      miu0=miu0_SI*1.d7
+      miu0=4.d0*dpi
     end if
     if(unit_velocity==0) then
       unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity

@@ -1,17 +1,22 @@
  &filelist
-        typefilelog   = 'regression_test'
-        base_filename = 'ot_2d'
         autoconvert   = T
         saveprim      = T
         nwauxio       = 2
+        base_filename = 'ot_2d'
+        convert_type  = 'vtuBmpi'
  /
+        restart_from_file='ot_2d0004.dat'
+        snapshotnext=5
 
  &savelist
-        dtsave_log    = 1.d-3
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave_log   = 1
+        dtsave_dat    = 0.02d0
  /
 
  &stoplist
-        time_max      = 0.1
+        time_max      = 0.1d0
  /
 
  &methodlist
@@ -22,19 +27,19 @@
 
  &boundlist
         nghostcells   = 2
-        typeboundary_min1  = 6*'periodic'
-        typeboundary_min2  = 6*'periodic'
-        typeboundary_max1  = 6*'periodic'
-        typeboundary_max2  = 6*'periodic'
+        typeboundary_min1  = 8*'periodic'
+        typeboundary_min2  = 8*'periodic'
+        typeboundary_max1  = 8*'periodic'
+        typeboundary_max2  = 8*'periodic'
  /
 
  &meshlist
         refine_criterion = 3
         refine_max_level = 3
     	refine_threshold = 20*0.4d0
-        w_for_refine(7)=2
+        w_for_refine(9)=2
         w_for_refine(1)=1
-        w_for_refine(2)=4
+        w_for_refine(2)=5
         w_refine_weight(1)=0.5d0
         w_refine_weight(2)=0.5d0
         domain_nx1    = 64
@@ -51,4 +56,13 @@
 
  &mhd_list
         typedivbfix   = 'linde'
+        mhd_particles = .true.
+ /
+
+ &particles_list
+        physics_type_particles='gca'
+        num_particles=1000
+        dtsave_ensemble=0.02d0
+        npayload=14
+        particles_eta=1.d-4
  /
