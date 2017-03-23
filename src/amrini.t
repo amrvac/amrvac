@@ -34,8 +34,6 @@ call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
                    MPI_SUM,icomm,ierrmpi)
 }
 
-call selectgrids
-
 end subroutine initlevelone
 !=============================================================================
 subroutine initial_condition(igrid)

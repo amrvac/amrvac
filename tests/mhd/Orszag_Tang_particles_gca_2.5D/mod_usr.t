@@ -8,11 +8,14 @@ contains
     use mod_global_parameters
     use mod_usr_methods
 
+    unit_length=1.d9
+    unit_numberdensity=1.d9
+    unit_velocity=1.d7
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
 
-    call set_coordinate_system("Cartesian")
+    call set_coordinate_system("Cartesian_2.5D")
 
     call mhd_activate()
 
@@ -36,14 +39,16 @@ contains
     w(ixO^S,rho_)=rho0
     w(ixO^S,mom(1))=-sin(2.0d0*dpi*x(ixO^S,2))
     w(ixO^S,mom(2))= sin(2.0d0*dpi*x(ixO^S,1))
+    w(ixO^S,mom(3))= 0.d0
     w(ixO^S,p_)=p0
     w(ixO^S,mag(1))=-b0*sin(2.0d0*dpi*x(ixO^S,2))
     w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
+    w(ixO^S,mag(3))= 0.d0
 
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
     if(first .and. mype==0 )then
-      write(*,*)'Doing 2D ideal MHD, Orszag Tang problem'
+      write(*,*)'Doing 2.5D ideal MHD, Orszag Tang problem with tracing particles'
       write(*,*)'rho - p - b:',rho0,p0,b0
       first=.false.
     endif

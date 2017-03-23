@@ -23,15 +23,15 @@
 /
 
  &boundlist
-  nghostcells  =   2
-  typeboundary_min1 = 4*'periodic'
-  typeboundary_max1 = 4*'periodic'
-  typeboundary_min2 = 'symm','symm','asymm','symm'
-  typeboundary_max2 = 'symm','symm','asymm','symm'
+   nghostcells  =   2
+   typeboundary_min1 = 4*'periodic'
+   typeboundary_max1 = 4*'periodic'
+   typeboundary_min2 = 'symm','symm','asymm','symm'
+   typeboundary_max2 = 'symm','symm','asymm','symm'
 /
  &meshlist
    refine_criterion   = 3
-   refine_max_level          = 5
+   refine_max_level   = 5
    block_nx1        = 4
    block_nx2        = 4
    domain_nx1         = 8
@@ -43,9 +43,16 @@
  /
 
  &paramlist
-  slowsteps        = 10
+    slowsteps        = 10
  /
 
  &hd_list
-  hd_gravity = .true.
+   hd_gravity = .true.
+   hd_particles = .true.
+ /
+
+ &particles_list
+   physics_type_particles='advect'
+   num_particles=1000
+   dtsave_ensemble=0.1d0
  /

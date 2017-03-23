@@ -42,6 +42,9 @@ module mod_usr_methods
   procedure(set_B0), pointer          :: usr_set_B0           => null()
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
+  ! Particles module related
+  procedure(p_no_args), pointer       :: usr_init_particles   => null()
+  procedure(update_payload), pointer  :: usr_update_payload   => null()
 
   abstract interface
 
@@ -244,6 +247,16 @@ module mod_usr_methods
        double precision, intent(inout) :: w(ixI^S,1:nw)
        double precision, intent(in)    :: x(ixI^S,1:ndim)
      end subroutine flag_grid
+
+     !> Update payload of particles
+     subroutine update_payload(igrid,w,wold,xgrid,xpart,payload,npayload,particle_time)
+       use mod_global_parameters
+       integer, intent(in)           :: igrid,npayload
+       double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
+       double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),particle_time
+       double precision, intent(out) :: payload(npayload)
+     end subroutine update_payload
+
   end interface
 
 end module mod_usr_methods

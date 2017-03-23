@@ -168,7 +168,7 @@ module mod_global_parameters
   double precision :: unit_density=1.d0
 
   !> Physical scaling factor for velocity
-  double precision :: unit_velocity=1.d0
+  double precision :: unit_velocity=0.d0
 
   !> Physical scaling factor for temperature
   double precision :: unit_temperature=1.d0
@@ -596,7 +596,7 @@ module mod_global_parameters
   integer, parameter   :: flux_no_dissipation = 2
 
   !> Use SI units (.true.) or use cgs units (.false.)
-  logical                                 :: SI_unit=.false.
+  logical              :: SI_unit=.false.
 
   !> Proton mass in cgs
   double precision, parameter :: mp_cgs  = 1.672621777d-24  ! g
@@ -624,6 +624,10 @@ module mod_global_parameters
 
   !> Conservative variable names
   character(len=name_len) :: cons_wnames(max_nw)
+
+  !> Use particles module or not
+  logical :: use_particles=.false.
+
   !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

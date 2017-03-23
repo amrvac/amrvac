@@ -1,8 +1,3 @@
-! TODO:
-! * Can we make methods robust without fixes?
-! * Why replace all variables when one is 'small'? Especially rho_
-! * Generic names for momentum and other indices?
-
 !> Hydrodynamics module
 module mod_hd_phys
 
@@ -19,13 +14,16 @@ module mod_hd_phys
   logical, public, protected              :: hd_radiative_cooling = .false.
 
   !> Whether dust is added
-  logical, public, protected              :: hd_dust= .false.
+  logical, public, protected              :: hd_dust = .false.
 
   !> Whether viscosity is added
-  logical, public, protected              :: hd_viscosity= .false.
+  logical, public, protected              :: hd_viscosity = .false.
 
   !> Whether gravity is added
-  logical, public, protected              :: hd_gravity= .false.
+  logical, public, protected              :: hd_gravity = .false.
+
+  !> Whether particles module is added
+  logical, public, protected              :: hd_particles = .false.
 
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
@@ -78,13 +76,13 @@ contains
 
   !> Read this module's parameters from a file
   subroutine hd_read_params(files)
-    use mod_global_parameters, only: unitpar, SI_unit
+    use mod_global_parameters
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit
+    hd_gravity, He_abundance, SI_unit, hd_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -120,6 +118,7 @@ contains
     use mod_dust, only: dust_init
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
+    use mod_particles, only: particles_init
     use mod_physics
 
     integer :: itr, idir
@@ -128,6 +127,7 @@ contains
 
     physics_type = "hd"
     phys_energy=hd_energy
+    use_particles=hd_particles
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)
@@ -228,6 +228,11 @@ contains
       call gravity_init()
     end if
 
+    ! Initialize particles module
+    if(hd_particles) then
+      call particles_init()
+    end if
+
   end subroutine hd_phys_init
 
   subroutine hd_check_params
@@ -259,10 +264,17 @@ contains
       mp=mp_cgs
       kB=kB_cgs
     end if
-    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-    unit_velocity=dsqrt(unit_pressure/unit_density)
-    unit_time=unit_length/unit_velocity
+    if(unit_velocity==0) then
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+      unit_velocity=dsqrt(unit_pressure/unit_density)
+      unit_time=unit_length/unit_velocity
+    else
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=unit_density*unit_velocity**2
+      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_time=unit_length/unit_velocity
+    end if
 
   end subroutine hd_physical_units
 

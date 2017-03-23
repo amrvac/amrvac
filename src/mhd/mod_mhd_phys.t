@@ -22,6 +22,9 @@ module mod_mhd_phys
   !> Whether Hall-MHD is used
   logical, public, protected              :: mhd_Hall = .false.
 
+  !> Whether particles module is added
+  logical, public, protected              :: mhd_particles = .false.
+
   !> Whether MHD-GLM is used
   logical, public, protected              :: mhd_glm = .false.
 
@@ -59,7 +62,7 @@ module mod_mhd_phys
   integer, public, protected              :: mhd_nwflux
 
   !> The adiabatic index
-  double precision, public                :: mhd_gamma = 5/3.0d0
+  double precision, public                :: mhd_gamma = 5.d0/3.0d0
 
   !> The adiabatic constant
   double precision, public                :: mhd_adiab = 1.0d0
@@ -103,9 +106,6 @@ module mod_mhd_phys
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
-  !> Use SI units (.true.) or use cgs units (.false.)
-  logical, public, protected              :: SI_unit=.false.
-
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -129,7 +129,7 @@ contains
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
-      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr
+      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr,mhd_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -163,6 +163,7 @@ contains
     use mod_radiative_cooling
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
+    use mod_particles, only: particles_init
     use mod_physics
 
     integer :: itr, idir
@@ -171,6 +172,7 @@ contains
 
     physics_type = "mhd"
     phys_energy=mhd_energy
+    use_particles=mhd_particles
 
     ! Determine flux variables
     nwflux = 1                  ! rho (density)
@@ -264,7 +266,7 @@ contains
     phys_write_info      => mhd_write_info
 
     ! derive units from basic units
-    call mhd_physical_units
+    call mhd_physical_units()
 
     if(.not. mhd_energy .and. mhd_thermal_conduction) then
       call mpistop("thermal conduction needs mhd_energy=T")
@@ -291,6 +293,11 @@ contains
     ! Initialize gravity module
     if(mhd_gravity) then
       call gravity_init()
+    end if
+
+    ! Initialize particles module
+    if(mhd_particles) then
+      call particles_init()
     end if
 
     if (mhd_glm) then
@@ -330,7 +337,7 @@ contains
 
   end subroutine mhd_check_params
 
-  subroutine mhd_physical_units
+  subroutine mhd_physical_units()
     use mod_global_parameters
     double precision :: mp,kB,miu0
     ! Derive scaling units
@@ -341,13 +348,21 @@ contains
     else
       mp=mp_cgs
       kB=kB_cgs
-      miu0=miu0_SI*1.d7
+      miu0=4.d0*dpi
     end if
-    unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-    unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-    unit_velocity=dsqrt(unit_pressure/unit_density)
-    unit_magneticfield=dsqrt(miu0*unit_pressure)
-    unit_time=unit_length/unit_velocity
+    if(unit_velocity==0) then
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+      unit_velocity=dsqrt(unit_pressure/unit_density)
+      unit_magneticfield=dsqrt(miu0*unit_pressure)
+      unit_time=unit_length/unit_velocity
+    else
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_pressure=unit_density*unit_velocity**2
+      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_magneticfield=dsqrt(miu0*unit_pressure)
+      unit_time=unit_length/unit_velocity
+    end if
 
   end subroutine mhd_physical_units
 

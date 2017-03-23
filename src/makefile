@@ -7,7 +7,7 @@ errest.t amrgrid.t amr_fix_conserve.t mod_finite_volume.t mod_tvd.t mod_finite_d
 load_balance.t connectivity.t boundary_conditions.t comm_lib.t forest.t		\
 amr_neighbors.t amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t	\
 geometry.t mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t	\
-mod_limiter.o mod_fix_conserve.t mod_source.t mod_initialize.t
+mod_limiter.t mod_fix_conserve.t mod_source.t mod_initialize.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -24,25 +24,15 @@ mod_usr_methods.o: mod_global_parameters.o
 amr_coarsen_refine.o: mod_ghostcells_update.o
 amr_fix_conserve.o: mod_fix_conserve.o
 amrgrid.o: mod_advance.o
-amrgrid.o: mod_ghostcells_update.o
 coarsen.o: mod_physics.o
 collapse.o: mod_physics.o
 comm_lib.o: mod_ghostcells_update.o
 convert.o: mod_ghostcells_update.o
 convert.o: mod_limiter.o
 convert.o: mod_physics.o
-convert.o: mod_timing.o
 convert.o: mod_mhd_phys.o
 geometry.o: mod_limiter.o
 geometry.o: mod_ppm.o
-handle_particles.o: mod_gridvars.o
-handle_particles.o: mod_particles.o
-handle_particles.o: mod_timing.o
-init_particles.o: mod_gridvars.o
-init_particles.o: mod_particles.o
-integrate_particles.o: mod_gridvars.o
-integrate_particles.o: mod_odeint.o
-integrate_particles.o: mod_particles.o
 magnetofriction.o: mod_input_output.o
 mod_advance.o: mod_finite_difference.o
 mod_advance.o: mod_finite_volume.o
@@ -50,7 +40,6 @@ mod_advance.o: mod_ghostcells_update.o
 mod_advance.o: mod_particles.o
 mod_advance.o: mod_source.o
 mod_advance.o: mod_thermal_conduction.o
-mod_advance.o: mod_timing.o
 mod_advance.o: mod_tvd.o
 mod_dust.o: mod_physics.o
 mod_finite_difference.o: mod_finite_volume.o
@@ -72,6 +61,7 @@ mod_hd.o: mod_hd_roe.o
 mod_hd_phys.o: mod_dust.o
 mod_hd_phys.o: mod_gravity.o
 mod_hd_phys.o: mod_physics.o
+mod_hd_phys.o: mod_particles.o
 mod_hd_phys.o: mod_radiative_cooling.o
 mod_hd_phys.o: mod_small_values.o
 mod_hd_phys.o: mod_thermal_conduction.o
@@ -86,6 +76,7 @@ mod_initialize.o: mod_input_output.o
 mod_initialize.o: mod_physics.o
 mod_input_output.o: mod_ghostcells_update.o
 mod_input_output.o: mod_kracken.o
+mod_input_output.o: mod_particles.o
 mod_input_output.o: mod_physics.o
 mod_input_output.o: mod_small_values.o
 mod_input_output.o: mod_timing.o
@@ -99,6 +90,7 @@ mod_mhd.o: mod_mhd_ppm.o
 mod_mhd.o: mod_mhd_roe.o
 mod_mhd_phys.o: mod_gravity.o
 mod_mhd_phys.o: mod_physics.o
+mod_mhd_phys.o: mod_particles.o
 mod_mhd_phys.o: mod_radiative_cooling.o
 mod_mhd_phys.o: mod_small_values.o
 mod_mhd_phys.o: mod_thermal_conduction.o
@@ -111,6 +103,12 @@ mod_mhd_roe.o: mod_tvd.o
 mod_mp5.o: mod_physics.o
 mod_nonlinear.o: mod_nonlinear_params.o
 mod_nonlinear.o: mod_physics.o
+mod_particles.o: mod_constants.o
+mod_particles.o: mod_Knuth_random.o
+mod_particles.o: mod_odeint.o
+mod_particles.o: mod_physics.o
+mod_particles.o: mod_timing.o
+mod_particles.o: mod_usr_methods.o
 mod_physics.o: mod_physics_hllc.o
 mod_physics.o: mod_physics_ppm.o
 mod_physics.o: mod_physics_roe.o

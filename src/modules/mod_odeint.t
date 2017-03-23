@@ -1,9 +1,6 @@
-!=============================================================================
+!> This module packages odeint from numerical recipes.
 module mod_odeint
-
   implicit none
-
-! This module packages odeint from numerical recipes.
   integer                  :: MAXSTP, NMAX, KMAXX
   PARAMETER (MAXSTP=10000,NMAX=50,KMAXX=200)
   double precision         :: TINY
@@ -11,8 +8,7 @@ module mod_odeint
 
 contains
 
-  subroutine odeint(ystart,nvar,x1,x2,eps,h1,hmin,nok,nbad,derivs,rkqs, &
-       ierror)
+  subroutine odeint(ystart,nvar,x1,x2,eps,h1,hmin,nok,nbad,derivs,rkqs,ierror)
 
     INTEGER nbad,nok,nvar
     double precision eps,h1,hmin,x1,x2,ystart(nvar)
@@ -93,7 +89,7 @@ contains
 
     ierror = 2
   end subroutine odeint
-!=============================================================================
+
       SUBROUTINE rkqs(y,dydx,n,x,htry,eps,yscal,hdid,hnext,derivs)
 
       INTEGER n,NMAX
@@ -118,7 +114,7 @@ contains
             h=.1d0*h
          end if
          xnew=x+h
-         if(xnew.eq.x)call stop( 'stepsize underflow in rkqs')
+         if(xnew.eq.x) call stop('stepsize underflow in rkqs')
          goto 1
       else
          if(errmax.gt.ERRCON)then
@@ -135,7 +131,7 @@ contains
       end if
       END subroutine rkqs
 !C (C) Copr. 1986-92 Numerical Recipes Software Vs1&v%1jw#<?4210(9p#.
-!=============================================================================
+
       SUBROUTINE rkck(y,dydx,n,x,h,yout,yerr,derivs)
 
       INTEGER n,NMAX
@@ -189,15 +185,10 @@ contains
       return
       END subroutine rkck
 !C  (C) Copr. 1986-92 Numerical Recipes Software Vs1&v%1jw#<?4210(9p#.
-!=============================================================================
-      subroutine stop(text)
+  subroutine stop(text)
+    character(len=*), intent(in)   :: text
+    print*, text
+    STOP
+  end subroutine stop
 
-        character(len=*), intent(in)   :: text
-!-----------------------------------------------------------------------------
-
-        print*, text
-        STOP
-      end subroutine stop
-!=============================================================================
 end module mod_odeint
-!=============================================================================

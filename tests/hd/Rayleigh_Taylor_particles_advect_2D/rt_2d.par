@@ -1,19 +1,19 @@
-!setup.pl -d=2
+!setup.pl -d=3
 
- &filelist
-   base_filename      = 'rthd_2d'
-   autoconvert      = .true.
-   convert_type     = 'vtuBCCmpi'
-   saveprim         = .true.
- /
+&filelist
+  base_filename    = 'rt_2d'
+  typefilelog      = 'regression_test'
+  autoconvert      = .true.
+  convert_type     = 'vtuBCCmpi'
+  saveprim         = .true.
+/
 
  &savelist
    dtsave_log       = 1.d-3
-   dtsave_dat       = 1.d-1
 /
 
  &stoplist
-   time_max            = 2.d0
+   time_max            = 5.d-2
 /
 
  &methodlist
@@ -29,9 +29,10 @@
   typeboundary_min2 = 'symm','symm','asymm','symm'
   typeboundary_max2 = 'symm','symm','asymm','symm'
 /
+
  &meshlist
    refine_criterion   = 3
-   refine_max_level          = 5
+   refine_max_level          = 3
    block_nx1        = 4
    block_nx2        = 4
    domain_nx1         = 8

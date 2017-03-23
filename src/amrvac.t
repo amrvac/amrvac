@@ -3,9 +3,6 @@
 !> using adaptive mesh refinement.
 program amrvac
 
-  {#IFDEF PARTICLES
-  use mod_gridvars, only: init_gridvars, finish_gridvars
-  }
   use mod_global_parameters
   use mod_input_output
   use mod_physics, only: phys_check_params
@@ -13,6 +10,7 @@ program amrvac
   use mod_ghostcells_update
   use mod_usr
   use mod_initialize
+  use mod_particles
 
   integer          :: itin
   double precision :: time0, time_in, tin
@@ -23,19 +21,17 @@ program amrvac
   time0        = MPI_WTIME()
   time_bc      = zero
 
-  ! Read command line arguments first
+  ! read command line arguments first
   call read_arguments()
 
-  ! The user_init routine should load a physics module
+  ! the user_init routine should load a physics module
   call usr_init()
 
   call initialize_amrvac()
 
-  ! Begin of the code
-  ! -----------------
   if (snapshotini/=-1) then
      ! restart from previous file or dat file conversion
-     ! get input data from previous VAC/AMRVAC run
+     ! get input data from previous AMRVAC run
      itin=it
      tin=global_time
 
@@ -43,30 +39,36 @@ program amrvac
      call init_rays
      }
 
+     ! read in dat file
      call read_snapshot
 
-     {#IFDEF PARTICLES
-     call init_tracerparticles
+     ! select active grids
+     call selectgrids
+
+     ! update ghost cells
      call getbc(global_time,0.d0,0,nwflux+nwaux)
-     call init_gridvars
-     call read_particles_snapshot
-     call finish_gridvars
-     }
+
+     if(use_particles) then
+       call read_particles_snapshot
+       if(convert) then
+         call handle_particles()
+         call time_spent_on_particles()
+         call comm_finalize
+         stop
+       end if
+     end if
 
      if (convert) then
         if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
              .and. convert_type .ne. 'user')  &
              call mpistop("non-mpi conversion only uses 1 cpu")
         call generate_plotfile
-        {#IFDEF PARTICLES
-        call finish_tracerparticles
-        }
         call comm_finalize
         stop
      end if
 
      if (restart_reset_time) then
-       ! Reset it and global_time to original values
+       ! reset it and global_time to original values
        it           = itin
        global_time  = tin
      end if
@@ -75,8 +77,6 @@ program amrvac
      if (firstprocess) call modify_IC
      ! reset AMR grid
      if (resetgrid) call settree
-     ! Select active grids
-     call selectgrids
 
   else
      {#IFDEF RAY
@@ -85,16 +85,17 @@ program amrvac
 
      ! form and initialize all grids at level one
      call initlevelone
+
+     ! select active grids
+     call selectgrids
+
+     ! update ghost cells
+     call getbc(global_time,0.d0,0,nwflux+nwaux)
+
      ! set up and initialize finer level grids, if needed
      call settree
 
-     {#IFDEF PARTICLES
-     call init_tracerparticles
-     call getbc(global_time,0.d0,0,nwflux+nwaux)
-     call init_gridvars
-     call init_particles
-     call finish_gridvars
-     }
+     if(use_particles) call phys_init_particles
 
   end if
 
@@ -122,10 +123,8 @@ program amrvac
      print*,'-------------------------------------------------------------------------------'
   end if
 
-  {#IFDEF PARTICLES
   time_advance=.false.
-  call finish_tracerparticles
-  }
+
   call comm_finalize
 
 contains
@@ -156,16 +155,10 @@ contains
     itTimeLast=it
     timeLast=MPI_WTIME()
 
-    call getbc(global_time,0.d0,0,nwflux+nwaux)
-
     !  ------ start of integration loop. ------------------
+    if(mype==0) write(*,*) 'Start integrating ...'
     timeloop0=MPI_WTIME()
-    timefirstbc=timeloop0-time_in
     time_bc=0.d0
-    if (mype==0) then
-       write(*,'(a,f12.3,a)')&
-            ' BCs before Advance took : ',timefirstbc,' sec'
-    end if
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
     time_evol : do
@@ -242,17 +235,17 @@ contains
     if (mype==0) call MPI_FILE_CLOSE(log_fh,ierrmpi)
     timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
-    {#IFDEF RAY
-    call time_spent_on_rays
-    }
-    {#IFDEF PARTICLES
-    call time_spent_on_particles
-    }
 
     if (mype==0) then
        write(*,'(a,f12.3,a)')' Total time spent on IO     : ',timeio_tot,' sec'
        write(*,'(a,f12.3,a)')' Total timeintegration took : ',MPI_WTIME()-time_in,' sec'
     end if
+
+    {#IFDEF RAY
+    call time_spent_on_rays
+    }
+
+    if(use_particles) call time_spent_on_particles
 
   end subroutine timeintegration
 

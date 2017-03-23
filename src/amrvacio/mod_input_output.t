@@ -876,18 +876,19 @@ contains
 
     use mod_usr_methods, only: usr_print_log
     use mod_global_parameters
+    use mod_particles, only: write_particles_snapshot
     integer:: ifile
-    !-----------------------------------------------------------------------------
+
     select case (ifile)
     case (fileout_)
        ! Write .dat snapshot
        call write_snapshot()
 
        ! Generate formatted output (e.g., VTK)
-       if (autoconvert) call generate_plotfile
-       {#IFDEF PARTICLES
-       call write_particles_snapshot
-       }
+       if(autoconvert) call generate_plotfile
+
+       if(use_particles) call write_particles_snapshot()
+
        snapshotnext = snapshotnext + 1
     case (fileslice_)
        call write_slice

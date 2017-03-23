@@ -40,7 +40,9 @@ subroutine comm_finalize
 
   use mod_global_parameters
   use mod_ghostcells_update
+  use mod_particles, only: particles_finish
 
+  if(use_particles) call particles_finish
   call put_bc_comm_types
   call MPI_BARRIER(MPI_COMM_WORLD,ierrmpi)
   call MPI_FINALIZE(ierrmpi)
