@@ -16,19 +16,12 @@
 !> IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
 !> S=DIV(kappa . GRAD T)
 !> USAGE:
-!> 1. in mod_usr.t -> subroutine initglobaldata_usr, add 
+!> 1. in mod_usr.t -> subroutine usr_init(), add 
 !>        unit_length=<your length unit>
-!>        unit_density=<your density unit>
+!>        unit_numberdensity=<your number density unit>
 !>        unit_velocity=<your velocity unit>
 !>        unit_temperature=<your temperature unit>
-!>        unit_numberdensity=<your number density unit>
-!>        unit_magneticfield=<your magnetic field unit>
-!>      to add conductivity for solar corona. Note that:
-!>      kappa=kappa0*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
-!>      kappa0=8.d-7 erg/cm/s/K**3.5 or 8.d-12 J/m/s/K**3.5
-!>      therml conductivity perpendicular to magnetic field: 
-!>      kappe=kappe*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*kappa
-!>      kappe0=4.d-26 in cgs or 4.d-30 in SI
+!>    before call (m)hd_activate()
 !> 2. to switch on thermal conduction in the (m)hd_list of amrvac.par add:
 !>    (m)hd_thermal_conduction=.true.
 !> 3. in the tc_list of amrvac.par :
