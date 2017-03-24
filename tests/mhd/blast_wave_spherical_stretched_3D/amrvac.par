@@ -11,7 +11,7 @@
         itsave(1,1)=0
         itsave(1,2)=0
         ditsave_log=20
-        dtsave_dat=0.05
+        dtsave_dat=0.05d0
  /
 
  &stoplist
@@ -41,10 +41,10 @@
         w_for_refine(2)=5
         w_refine_weight(1)=0.5
         w_refine_weight(2)=0.5
-        block_nx1=16
-        block_nx2=16
-        block_nx3=16
-        domain_nx1=32
+        block_nx1=8
+        block_nx2=8
+        block_nx3=8
+        domain_nx1=16
         domain_nx2=32
         domain_nx3=64
         xprobmin1=1.d0
@@ -53,6 +53,7 @@
         xprobmax2=0.5d0
         xprobmin3=0.d0
         xprobmax3=1.d0
+        stretched_grid=.true.
  /
 
  &paramlist
