@@ -119,25 +119,25 @@ end do\}
    pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
 end do\}
 
-{#IFDEF STRETCHGRID
-logG=logGs(level)
-qst=qsts(level)
-rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
-rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
-! fix possible out of bound due to precision
-if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
-rXmin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
-do ix=ixGlo1,ixGhi1
-  pw(igrid)%x(ix^%1ixG^T,1)=rXmin1/(one-half*logG)*qst**(ix-1)
-end do
-rnode(rpdx1_,igrid)=minval(pw(igrid)%x(ixG^T,1)*logG)
-logG=logGs(level-1)
-qst=qsts(level-1)
-rXmin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
-do ix=ixCoGmin1,ixCoGmax1
-  pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=rXmin1/(one-half*logG)*qst**(ix-1)
-end do
-}
+if(stretched_grid) then
+  logG=logGs(level)
+  qst=qsts(level)
+  rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
+  rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
+  ! fix possible out of bound due to precision
+  if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
+  rXmin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
+  do ix=ixGlo1,ixGhi1
+    pw(igrid)%x(ix^%1ixG^T,1)=rXmin1/(one-half*logG)*qst**(ix-1)
+  end do
+  rnode(rpdx1_,igrid)=minval(pw(igrid)%x(ixG^T,1)*logG)
+  logG=logGs(level-1)
+  qst=qsts(level-1)
+  rXmin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
+  do ix=ixCoGmin1,ixCoGmax1
+    pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=rXmin1/(one-half*logG)*qst**(ix-1)
+  end do
+end if
 
 ! find the blocks on the boundaries
 if ({rnode(rpxmin^D_,igrid)-dx(^D,level)<xprobmin^D|.or.}.or.&

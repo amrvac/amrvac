@@ -1,0 +1,13 @@
+ &filelist
+        base_filename  = '_3step_hllc_ko'
+ /
+
+ &methodlist
+        time_integrator=  'threestep'
+        flux_scheme =    20*'hllc'
+        limiter=  20*'koren'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

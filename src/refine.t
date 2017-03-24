@@ -59,10 +59,10 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
 
      xComin^D=rnode(rpxmin^D_,igrid)\
      dxCo^D=rnode(rpdx^D_,igrid)\
-     {#IFDEF STRETCHGRID
-     logG=logGs(node(plevel_,igrid))
-     qst=qsts(node(plevel_,igrid))
-     }
+     if(stretched_grid) then
+       logG=logGs(node(plevel_,igrid))
+       qst=qsts(node(plevel_,igrid))
+     end if
   end if
 
   {do ic^DB=1,2\}
@@ -119,14 +119,12 @@ integer :: ixFi^L, ixCg^L, el
 double precision :: slopeL, slopeR, slopeC, signC, signR
 double precision :: slope(nw,ndim)
 double precision :: xCo^D, xFi^D, eta^D, invdxCo^D
-{#IFDEF STRETCHGRID
 double precision :: logGh,qsth
-}
 !-----------------------------------------------------------------------------
-{#IFDEF STRETCHGRID
-qsth=dsqrt(qst)
-logGh=2.d0*(qsth-1.d0)/(qsth+1.d0)
-}
+if(stretched_grid) then
+  qsth=dsqrt(qst)
+  logGh=2.d0*(qsth-1.d0)/(qsth+1.d0)
+end if
 invdxCo^D=1.d0/dxCo^D;
 el=ceiling(real(nghostcells)/2.)
 ixCgmin^D=ixComin^D-el\
@@ -136,9 +134,7 @@ ixCgmax^D=ixComax^D+el\
    xCo^DB=xComin^DB+(dble(ixCo^DB-nghostcells)-half)*dxCo^DB
 
    ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
-{#IFDEF STRETCHGRID
-   xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
-}
+   if(stretched_grid) xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
 
    do idim=1,ndim
       hxCo^D=ixCo^D-kr(^D,idim)\
@@ -175,26 +171,21 @@ ixCgmax^D=ixComax^D+el\
       if (ixFi^DB==0) cycle
       ! cell-centered coordinates of fine grid point
       xFi^DB=xFimin^DB+(dble(ix^DB-nghostcells)-half)*dxFi^DB\}
-{#IFDEF STRETCHGRID
-      xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
-}
+      if(stretched_grid) xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
 
       ! normalized distance between fine/coarse cell center
       ! in coarse cell: ranges from -0.5 to 0.5 in each direction
       ! (origin is coarse cell center)
-      if (slab) then
-         eta^D=(xFi^D-xCo^D)*invdxCo^D;
+      if(slab) then
+        eta^D=(xFi^D-xCo^D)*invdxCo^D;
       else
-         {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-               *two*(one-pw(igridFi)%dvolume(ix^DD) &
-               /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
-{#IFDEF STRETCHGRID
-         eta1=(xFi1-xCo1)/(logG*xCo1) &
-               *two*(one-pw(igridFi)%dvolume(ix^D) &
-               /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
-}
+        {eta^D=(xFi^D-xCo^D)*invdxCo^D &
+              *two*(one-pw(igridFi)%dvolume(ix^DD) &
+              /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
+        if(stretched_grid) eta1=(xFi1-xCo1)/(logG*xCo1) &
+              *two*(one-pw(igridFi)%dvolume(ix^D) &
+              /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
       end if
-
       wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
                             + {(slope(1:nw,^D)*eta^D)+}
    {end do\}
@@ -219,23 +210,19 @@ integer :: ixFi^L
 double precision :: slopeL, slopeR, slopeC, signC, signR
 double precision :: slope(nw,ndim)
 double precision :: xCo^D, xFi^D, eta^D, invdxCo^D
-{#IFDEF STRETCHGRID
 double precision :: logGh,qsth
-}
 !-----------------------------------------------------------------------------
-{#IFDEF STRETCHGRID
-qsth=dsqrt(qst)
-logGh=2.d0*(qsth-1.d0)/(qsth+1.d0)
-}
+if(stretched_grid) then
+  qsth=dsqrt(qst)
+  logGh=2.d0*(qsth-1.d0)/(qsth+1.d0)
+end if
 invdxCo^D=1.d0/dxCo^D;
 {do ixCo^DB = ixCo^LIM^DB
    ! cell-centered coordinates of coarse grid point
    xCo^DB=xComin^DB+(dble(ixCo^DB-nghostcells)-half)*dxCo^DB
 
    ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
-{#IFDEF STRETCHGRID
-   xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
-}
+   if(stretched_grid) xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
 
    do idim=1,ndim
       hxCo^D=ixCo^D-kr(^D,idim)\
@@ -271,26 +258,21 @@ invdxCo^D=1.d0/dxCo^D;
    {do ix^DB=ixFi^DB,ixFi^DB+1
       ! cell-centered coordinates of fine grid point
       xFi^DB=xFimin^DB+(dble(ix^DB-nghostcells)-half)*dxFi^DB\}
-{#IFDEF STRETCHGRID
-      xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
-}
+      if(stretched_grid) xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
 
       ! normalized distance between fine/coarse cell center
       ! in coarse cell: ranges from -0.5 to 0.5 in each direction
       ! (origin is coarse cell center)
-      if (slab) then
-         eta^D=(xFi^D-xCo^D)*invdxCo^D;
+      if(slab) then
+        eta^D=(xFi^D-xCo^D)*invdxCo^D;
       else
-         {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-               *two*(one-pw(igridFi)%dvolume(ix^DD) &
-               /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
-{#IFDEF STRETCHGRID
-         eta1=(xFi1-xCo1)/(logG*xCo1) &
-               *two*(one-pw(igridFi)%dvolume(ix^D) &
-               /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
-}
+        {eta^D=(xFi^D-xCo^D)*invdxCo^D &
+              *two*(one-pw(igridFi)%dvolume(ix^DD) &
+              /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
+        if(stretched_grid) eta1=(xFi1-xCo1)/(logG*xCo1) &
+              *two*(one-pw(igridFi)%dvolume(ix^D) &
+              /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
       end if
-
       wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
                             + {(slope(1:nw,^D)*eta^D)+}
    {end do\}

@@ -377,9 +377,7 @@ contains
   end subroutine advect1
 
   subroutine process1_grid(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
-
     ! This subroutine is equivalent to VAC's`advect1' for one grid
-
     use mod_global_parameters
 
     character(len=*), intent(in) :: method
@@ -393,10 +391,10 @@ contains
     dx^D=rnode(rpdx^D_,igrid);
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     saveigrid=igrid
-    {#IFDEF STRETCHGRID
-    logG=logGs(node(plevel_,igrid))
-    qst=qsts(node(plevel_,igrid))
-    }
+    if(stretched_grid) then
+      logG=logGs(node(plevel_,igrid))
+      qst=qsts(node(plevel_,igrid))
+    end if
 
     block=>pw(igrid)
     typelimiter=limiter(node(plevel_,igrid))
@@ -466,7 +464,6 @@ contains
   subroutine process(iit,qt)
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters
-
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt

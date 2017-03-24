@@ -56,7 +56,6 @@ end if
 end subroutine set_B0_cell
 !=============================================================================
 subroutine set_B0_face(igrid,x,ixI^L,ix^L)
-
 use mod_global_parameters
 
 integer, intent(in) :: igrid, ixI^L, ix^L
@@ -67,31 +66,31 @@ integer :: idims, ixC^L, ix, idims2
 !-----------------------------------------------------------------------------
 dx^D=rnode(rpdx^D_,igrid);
 xmin^D=rnode(rpxmin^D_,igrid);
-{#IFDEF STRETCHGRID
-logG=logGs(node(plevel_,igrid))
-qst=qsts(node(plevel_,igrid))
-}
+if(stretched_grid) then
+  logG=logGs(node(plevel_,igrid))
+  qst=qsts(node(plevel_,igrid))
+end if
 
 do idims=1,ndim
    ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
    xshift^D=half*(one-kr(^D,idims));
    do idims2=1,ndim
-      select case(idims2)
-      {case(^D)
-        do ix = ixC^LIM^D
-          xC(ix^D%ixC^S,^D)=xmin^D+(dble(ix-nghostcells)-xshift^D)*dx^D
-        end do\}
-      end select
+     select case(idims2)
+     {case(^D)
+       do ix = ixC^LIM^D
+         xC(ix^D%ixC^S,^D)=xmin^D+(dble(ix-nghostcells)-xshift^D)*dx^D
+       end do\}
+     end select
    end do
-{#IFDEF STRETCHGRID
-   do ix = ixCmin1,ixCmax1
-     if(xshift1==0.d0) then
-       xC(ix^%1ixC^S,1)=xmin1*qst**(ix-nghostcells)
-     else
-       xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-nghostcells-1)
-     end if
-   end do
-}
+   if(stretched_grid) then
+     do ix = ixCmin1,ixCmax1
+       if(xshift1==0.d0) then
+         xC(ix^%1ixC^S,1)=xmin1*qst**(ix-nghostcells)
+       else
+         xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-nghostcells-1)
+       end if
+     end do
+   end if
 
    call set_B0_cell(pw(igrid)%w0(:^D&,:,idims),xC,ixI^L,ixC^L)
 end do

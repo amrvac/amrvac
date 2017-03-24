@@ -1425,8 +1425,6 @@ contains
     br_=mag(1); bphi_=mag(1)-1+phi_
 
     select case (typeaxial)
-    case ('slab')
-       ! No source terms in slab symmetry
     case ('cylindrical')
        call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
        if(phi_>0) then

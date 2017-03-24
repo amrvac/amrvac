@@ -1,14 +1,6 @@
 #undefine EPSINF
 #undefine RAY
 #undefine BIGENDIAN
-#undefine FOURTHORDER
 #undefine MAGNETOFRICTION
-#undefine PARTICLES
-#undefine PARTICLES_ADVECT
-#undefine PARTICLES_SPACECRAFT
-#undefine PARTICLES_GCA
-#undefine PARTICLES_LORENTZ
-#undefine PARTICLES_USER
 #undefine BOUNDARYDRIVER
-#undefine STRETCHGRID
 #undefine EVOLVINGBOUNDARY

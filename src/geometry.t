@@ -131,27 +131,31 @@ allocate(pw(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
 
 dx^D=rnode(rpdx^D_,igrid);
 xmin^D=rnode(rpxmin^D_,igrid);
-{#IFDEF STRETCHGRID
-logG=logGs(node(plevel_,igrid))
-qst=qsts(node(plevel_,igrid))
-}
+
+if(stretched_grid) then
+  logG=logGs(node(plevel_,igrid))
+  qst=qsts(node(plevel_,igrid))
+end if
+
 pw(igrid)%dvolumep=>pw(igrid)%dvolume
 call fillgeo(igrid,ixG^LL,ixGext^L,xmin^D,dx^D,.false.)
 
 ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+nghostcells;
-if (2*int(nghostcells/2)==nghostcells) then
-   ixGext^L=ixCoG^L;
+if(2*int(nghostcells/2)==nghostcells) then
+  ixGext^L=ixCoG^L;
 else
-   ixGext^L=ixCoG^L^LADD1;
+  ixGext^L=ixCoG^L^LADD1;
 end if
 
 allocate(pw(igrid)%dvolumecoarse(ixGext^S))
 
 dx^D=two*rnode(rpdx^D_,igrid);
-{#IFDEF STRETCHGRID
-logG=logGs(node(plevel_,igrid)-1)
-qst=qsts(node(plevel_,igrid)-1)
-}
+
+if(stretched_grid) then
+  logG=logGs(node(plevel_,igrid)-1)
+  qst=qsts(node(plevel_,igrid)-1)
+end if
+
 pw(igrid)%dvolumep=>pw(igrid)%dvolumecoarse
 call fillgeo(igrid,ixCoG^L,ixGext^L,xmin^D,dx^D,.true.)
 
@@ -177,35 +181,12 @@ double precision, intent(in) :: xmin^D, dx^D
 logical, intent(in) :: need_only_volume
 
 integer :: idims, ix, ixM^L, ix^L, ixC^L
-double precision :: x(ixGext^S,ndim) {#IFDEF STRETCHGRID ,drs(ixGext^S)}
+double precision :: x(ixGext^S,ndim), drs(ixGext^S)
 !-----------------------------------------------------------------------------
 ixM^L=ixG^L^LSUBnghostcells;
-!ix^L=ixM^L^LADD1;
 ix^L=ixG^L^LSUB1;
 
 select case (typeaxial)
-case ("slabtest")
-
-   pw(igrid)%dvolumep(ixGext^S) = ^D&dx^D*
-
-   if (need_only_volume) return
-
-   ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC1(ixC^S)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
-   pw(igrid)%surface1(ixC^S) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC2(ixC^S)=dx1}{^IFTHREED*dx3}
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surface2(ixC^S)=dx1}{^IFTHREED*dx3}
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC3(ixC^S)=dx1*dx2
-   pw(igrid)%surface3(ixC^S)=dx1*dx2}
-
-   ^D&pw(igrid)%dx(ixGext^S,^D)=dx^D;
-{#IFDEF STRETCHGRID
 case ("slabstretch")
    do ix = ixGext^LIM1
       x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
@@ -228,9 +209,8 @@ case ("slabstretch")
    pw(igrid)%surface3(ixC^S)=drs(ixC^S)*dx2}
    pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
    ^DE&pw(igrid)%dx(ixGext^S,^DE)=dx^DE;
-}
-case ("spherical")
 
+case ("spherical")
    do idims=1,min(ndim,2)
       select case(idims)
       {case(^D)
@@ -239,73 +219,90 @@ case ("spherical")
          end do\}
       end select
    end do
-{#IFDEF STRETCHGRID
-   do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
-   end do
-   drs(ixGext^S)=x(ixGext^S,1)*logG
-}
-{#IFNDEF STRETCHGRID
-   if(typespherical==0) then
-     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+dx1**2/12.0d0)*dx1 {^NOONED &
-              *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
+   if(stretched_grid) then
+     do ix = ixGext^LIM1
+        x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
+     end do
+     drs(ixGext^S)=x(ixGext^S,1)*logG
+     if(typespherical==0) then
+       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+drs(ixGext^S)**2/12.0d0)*&
+                 drs(ixGext^S){^NOONED &
+                *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
+     else
+       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*drs(ixGext^S){^NOONED &
+                *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
+     endif
    else
-     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*dx1 {^NOONED &
-              *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
-   endif
-}
-{#IFDEF STRETCHGRID
-   if(typespherical==0) then
-     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+drs(ixGext^S)**2/12.0d0)*&
-               drs(ixGext^S){^NOONED &
-              *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
-   else
-     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*drs(ixGext^S){^NOONED &
-              *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
-   endif
-}
+     if(typespherical==0) then
+       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+dx1**2/12.0d0)*dx1 {^NOONED &
+                *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
+     else
+       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*dx1 {^NOONED &
+                *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
+     endif
+   end if
 
    if (need_only_volume) return
 
    pw(igrid)%xg(ixGext^S,1:ndim)=x(ixGext^S,1:ndim)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-{#IFNDEF STRETCHGRID
-   if(typespherical==0) then
-       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
-              *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
-   else
-       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
-              *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
-   endif
 
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1 &
-              *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
-
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2}
-}
-{#IFDEF STRETCHGRID
-   if(typespherical==0) then
+   if(stretched_grid) then
+     if(typespherical==0) then
        pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
-              *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
-   else
+                *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
+     else
        pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
-              *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
-   endif
+                *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
+     endif
 
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
-              *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
+                *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
 
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
-}
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
+                *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
+
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
+
+     pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
+   else
+     if(typespherical==0) then
+       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
+                *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
+     else
+       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
+                *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
+     endif
+
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1 &
+                *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
+
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2}
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1 &
+                *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
+
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2}
+
+     pw(igrid)%dx(ixGext^S,1)=dx1
+   end if
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    if(typespherical==0) then
@@ -315,110 +312,79 @@ case ("spherical")
       pw(igrid)%surface1(ixC^S)=x(ixC^S,1)**2 {^NOONED &
               *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
    endif
-
-{#IFNDEF STRETCHGRID
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1 &
-              *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
-
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2}
-
-   pw(igrid)%dx(ixGext^S,1)=dx1
-}
-{#IFDEF STRETCHGRID
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
-              *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
-
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
-
-   pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
-}
    {^NOONED pw(igrid)%dx(ixGext^S,2)=x(ixGext^S,1)*dx2}
    {^IFTHREED pw(igrid)%dx(ixGext^S,3)=x(ixGext^S,1)*dsin(x(ixGext^S,2))*dx3}
 
 case ("cylindrical")
-
-{#IFNDEF STRETCHGRID
-   do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=xmin1+(dble(ix-nghostcells)-half)*dx1
-   end do
-
-   pw(igrid)%dvolumep(ixGext^S)=dabs(half*((x(ixGext^S,1)+half*dx1)**2-(x(ixGext^S,1)-half*dx1)**2)){^DE&*dx^DE }
-}
-{#IFDEF STRETCHGRID
-   do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
-   end do
-   drs(ixGext^S)=x(ixGext^S,1)*logG
-   pw(igrid)%dvolumep(ixGext^S)=dabs(half*&
-        ((x(ixGext^S,1)+half*drs(ixGext^S))**2-&
-         (x(ixGext^S,1)-half*drs(ixGext^S))**2)){^DE&*dx^DE }
-}
+   if(stretched_grid) then
+     do ix = ixGext^LIM1
+       x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
+     end do
+     drs(ixGext^S)=x(ixGext^S,1)*logG
+     pw(igrid)%dvolumep(ixGext^S)=dabs(half*&
+          ((x(ixGext^S,1)+half*drs(ixGext^S))**2-&
+           (x(ixGext^S,1)-half*drs(ixGext^S))**2)){^DE&*dx^DE }
+   else
+     do ix = ixGext^LIM1
+       x(ix,ixGext^SE,1)=xmin1+(dble(ix-nghostcells)-half)*dx1
+     end do
+     pw(igrid)%dvolumep(ixGext^S)=dabs(half*((x(ixGext^S,1)+half*dx1)**2-(x(ixGext^S,1)-half*dx1)**2)){^DE&*dx^DE }
+   end if
 
    if (need_only_volume) return
 
    pw(igrid)%xg(ixGext^S,1)=x(ixGext^S,1)
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-{#IFNDEF STRETCHGRID
-   pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-   if (phi_ == 2) pw(igrid)%surfaceC2(ixC^S)=dx1{^IFTHREED*dx3}}
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2
-   if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=dx1*dx2}
+   if(stretched_grid) then
+     pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+     if (phi_==2) pw(igrid)%surfaceC2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
+     if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=drs(ixC^S)*dx2}
 
-   ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
-   pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-   if (phi_==2) pw(igrid)%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2
-   if (phi_==3) pw(igrid)%surface3(ixC^S)=dx1*dx2}
+     ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
+     !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
+     pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+     if (phi_==2) pw(igrid)%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
+     if (phi_==3) pw(igrid)%surface3(ixC^S)=drs(ixC^S)*dx2}
 
+     pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
+   else
+     pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+     if (phi_ == 2) pw(igrid)%surfaceC2(ixC^S)=dx1{^IFTHREED*dx3}}
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2
+     if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=dx1*dx2}
 
-   pw(igrid)%dx(ixGext^S,1)=dx1
-}
-{#IFDEF STRETCHGRID
-   pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (phi_==2) pw(igrid)%surfaceC2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=drs(ixC^S)*dx2}
+     ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
+     !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
+     pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
+     {^NOONED
+     ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+     if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+     if (phi_==2) pw(igrid)%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
+     {^IFTHREED
+     ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
+     if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2
+     if (phi_==3) pw(igrid)%surface3(ixC^S)=dx1*dx2}
 
-   ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
-   pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (phi_==2) pw(igrid)%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
-   {^IFTHREED
-   ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (phi_==3) pw(igrid)%surface3(ixC^S)=drs(ixC^S)*dx2}
-
-
-   pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
-}
+     pw(igrid)%dx(ixGext^S,1)=dx1
+   end if
 
    if (z_ > 0) then
      {^DE&if (^DE==z_) pw(igrid)%dx(ixGext^S,^DE)=dx^DE\}
@@ -429,9 +395,7 @@ case ("cylindrical")
    end if
 
 case default
-
    call mpistop("Sorry, typeaxial unknown")
-
 end select
 
 end subroutine fillgeo
@@ -649,14 +613,12 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
 {#IFNDEF FOURTHORDER
          tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
 }
-{#IFDEF STRETCHGRID
         case('slabstretch')
          if(jdir==1) then
            call gradient(tmp,ixI^L,ixO^L,jdir,tmp2)
          else
            tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
          end if
-}
         case('spherical')
          select case(jdir)
             case(1)

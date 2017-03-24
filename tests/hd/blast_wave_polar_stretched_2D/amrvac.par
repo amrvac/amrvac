@@ -1,0 +1,58 @@
+!setup.pl -d=2 
+ &filelist
+	base_filename='bw_polar_2D'
+        autoconvert=.true.
+        saveprim=.true.
+        nwauxio=1
+	convert_type='vtuBCCmpi'
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave_log=10
+        dtsave_dat=0.05d0
+ /
+
+ &stoplist
+        time_max=0.25d0
+ /
+        itmax=1
+
+ &methodlist
+        time_integrator='threestep'
+        flux_scheme=20*'hllc'
+        limiter=20*'koren'
+ /
+
+ &boundlist
+        nghostcells=2
+        typeboundary_min1=4*'cont'
+        typeboundary_max1=4*'cont'
+        typeboundary_min2=4*'periodic'
+        typeboundary_max2=4*'periodic'
+ / 
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+        w_for_refine(5)=2
+        w_for_refine(1)=1
+        w_for_refine(2)=4
+        w_refine_weight(1)=0.5
+        w_refine_weight(2)=0.5
+        block_nx1=16
+        block_nx2=16
+        domain_nx1=32
+        domain_nx2=64
+        xprobmin1=0.1d0
+        xprobmax1=2.d0
+        xprobmin2=0.d0
+        xprobmax2=1.d0
+        stretched_grid=.true.
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.5d0
+ /

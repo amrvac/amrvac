@@ -512,8 +512,6 @@ contains
     mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
 
     select case (typeaxial)
-    case ("slab")
-       ! No source terms in slab symmetry
     case ("cylindrical")
        ! s[mr]=(pthermal+mphi**2/rho)/radius
        call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
@@ -567,11 +565,7 @@ contains
          end if
        end if
        }
-    case default
-       call mpistop("typeaxial is slab, cylindrical or spherical")
     end select
-
-    ! if (fixsmall) call smallvalues(w, x, ixI^L, ixO^L,"addgeometry")
 
   end subroutine hd_add_source_geom
 

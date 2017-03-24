@@ -507,11 +507,15 @@ module mod_global_parameters
   double precision       :: Xload, Xmemory
 
   double precision :: time_bc
-  {#IFDEF STRETCHGRID
-  ! stretching factor qst for log stretch grid
-  double precision :: logG, qst
+
+  !> Stretching factor for log stretch grid, cell size = logG * cell-center position
+  double precision :: logG
+  !> Stretching factor for log stretch grid, r_i = qst * r_i-1
+  double precision :: qst
+  !> Store stretching factors for each AMR level
   double precision, allocatable :: logGs(:), qsts(:)
-  }
+  !> Switch to use stretched grid
+  logical :: stretched_grid=.false.
 
   integer, parameter :: nodehi=^ND+1
   integer, parameter :: plevel_=1
@@ -628,7 +632,7 @@ module mod_global_parameters
   !> Use particles module or not
   logical :: use_particles=.false.
 
-  !$OMP THREADPRIVATE(dxlevel{#IFDEF STRETCHGRID ,logG,qst})
+  !$OMP THREADPRIVATE(dxlevel,logG,qst)
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)
 end module mod_global_parameters

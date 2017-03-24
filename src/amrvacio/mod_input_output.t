@@ -145,12 +145,12 @@ contains
          internalboundary, typeboundary_^L
 
     namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,&
-         derefine_ratio, refine_criterion, &
+         derefine_ratio, refine_criterion, stretched_grid, qst, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight,w_for_refine,&
          prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
-         logflag,tfixgrid,itfixgrid,ditregrid{#IFDEF STRETCHGRID ,qst}
+         logflag,tfixgrid,itfixgrid,ditregrid
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
     !----------------------------------------------------------------------------
@@ -166,9 +166,14 @@ contains
     ! default block size excluding ghost cells
     {block_nx^D = 16\}
 
+    ! default resolution of level-1 mesh (full domain)
+    {domain_nx^D = 32\}
+
     ! defaults for boundary treatments
-    typeghostfill      = 'linear'
-    nghostcells               = 2
+    typeghostfill = 'linear'
+
+    ! default number of ghost-cell layers at each boundary of a block  
+    nghostcells = 2
 
     ! Allocate boundary conditions arrays in new and old style
     {
@@ -225,7 +230,7 @@ contains
     length_convert_factor = 1.0d0
 
     ! AMR related defaults
-    refine_max_level                      = 1
+    refine_max_level      = 1
     {nbufferx^D                 = 0\}
     specialtol                  = .false.
     allocate(refine_threshold(nlevelshi))
@@ -251,9 +256,10 @@ contains
     tfixgrid                    = bigdouble
     itfixgrid                   = biginteger
     ditregrid                   = 1
-    {#IFDEF STRETCHGRID
+
+    ! using stretched grid or not by default
+    stretched_grid = .false.
     qst                         = bigdouble
-    }
 
     ! IO defaults
     itmax         = biginteger
@@ -322,13 +328,13 @@ contains
     typetvd         = 'roe'
     typetvdlf       = 'cmaxmean'
     source_split_usr= .false.
-    time_integrator     = 'twostep'
+    time_integrator = 'twostep'
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))
     do level=1,nlevelshi
-       flux_scheme(level)        = 'tvdlf'
-       typepred1(level)        = 'default'
+       flux_scheme(level) = 'tvdlf'
+       typepred1(level)   = 'default'
        limiter(level)     = 'minmod'
        gradient_limiter(level) = 'minmod'
     end do
@@ -350,7 +356,6 @@ contains
     dtpar         = -1.d0
 
     ! problem setup defaults
-    {domain_nx^D = 0\}
     iprob    = 1
 
     ! end defaults
@@ -580,17 +585,22 @@ contains
       end if
     end if
 
-    if (typeaxial=="slab") then
-       slab=.true.
+    if(typeaxial=="slab") then
+      if(stretched_grid) then
+        typeaxial="slabstretch"
+        slab=.false.
+      else
+        slab=.true.
+      end if
     else
-       slab=.false.
+      slab=.false.
     end if
 
-    if (typeaxial=='spherical') then
-       if (dimsplit) then
-          if(mype==0)print *,'Warning: spherical symmetry needs dimsplit=F, resetting'
-          dimsplit=.false.
-       end if
+    if(typeaxial=='spherical') then
+      if(dimsplit) then
+        if(mype==0)print *,'Warning: spherical symmetry needs dimsplit=F, resetting'
+        dimsplit=.false.
+      end if
     end if
 
     if (ndim==1) dimsplit=.false.
@@ -603,11 +613,6 @@ contains
           if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
        end select
     end if
-
-    !if (B0field) then
-    !   if(mype==0)print *,'B0+B1 split for MHD'
-    !   if (.not. physics_type=='mhd') call mpistop("B0+B1 split for MHD only")
-    !end if
 
     !if (any(limiter(1:nlevelshi)== 'ppm')&
     !     .and.(flatsh.and.physics_type=='rho')) then
@@ -719,19 +724,19 @@ contains
     ! full block size including ghostcells
     {ixGhi^D = block_nx^D + 2*nghostcells\}
 
-    {#IFDEF STRETCHGRID
-    !if (refine_max_level>1) call mpistop("No refinement possible with a loggrid")
-    if (typeaxial=='slab') call mpistop("Cartesian log grid not implemented")
-    allocate(logGs(0:nlevelshi),qsts(0:nlevelshi))
-    if (qst/=bigdouble) then
-       xprobmax1=xprobmin1*qst**domain_nx1
-       if(mype==0) write(*,*) 'xprobmax1 is computed for given domain_nx1 and qst:', xprobmax1
-    else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
-       qst=(xprobmax1/xprobmin1)**(1.d0/dble(domain_nx1))
-       logG=2.d0*(qst-1.d0)/(qst+1.d0)
-       if(mype==0) write(*,*) 'logG and qst computed from xprobmax1: ', logG, qst
+    if(stretched_grid) then
+      if(slab) call mpistop("Wrong geometry for stretched grid!")
+      if(xprobmin1==0) call mpistop("Stretched grid needs xprobmin1 > 0")
+      allocate(logGs(0:nlevelshi),qsts(0:nlevelshi))
+      if (qst/=bigdouble) then
+         xprobmax1=xprobmin1*qst**domain_nx1
+         if(mype==0) write(*,*) 'xprobmax1 is computed for given domain_nx1 and qst:', xprobmax1
+      else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
+         qst=(xprobmax1/xprobmin1)**(1.d0/dble(domain_nx1))
+         logG=2.d0*(qst-1.d0)/(qst+1.d0)
+         if(mype==0) write(*,*) 'logG and qst computed from xprobmax1: ', logG, qst
+      end if
     end if
-    }
 
     nx_vec = [{domain_nx^D|, }]
 

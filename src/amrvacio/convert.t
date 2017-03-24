@@ -563,7 +563,7 @@ else
      write(qunit) nxC^D
      write(qunit) node(plevel_,igrid)
      select case (typeaxial)
-      case ("slab","slabtest")
+      case ("slab","slabstretch")
       {rnode_IDL(rpxmin1_:rpxmin^ND_)=rnode(rpxmin1_:rpxmin^ND_,igrid)};
       {rnode_IDL(rpxmax1_:rpxmax^ND_)=rnode(rpxmax1_:rpxmax^ND_,igrid)}; 
       case ("cylindrical")
@@ -988,25 +988,25 @@ normconv(1:nw) = w_convert_factor
 nxCC^D=nx^D;
 ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
 {do ix=ixCCmin^D,ixCCmax^D
-    xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
+   xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
 end do\}
-{#IFDEF STRETCHGRID
-do ix=ixCCmin1,ixCCmax1
-   xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
-enddo
-}
+if(stretched_grid) then
+  do ix=ixCCmin1,ixCCmax1
+    xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
+  enddo
+end if
 
 ! coordinates of cell corners
 nxC^D=nx^D+1;
 ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
 {do ix=ixCmin^D,ixCmax^D
-    xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
+   xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
 end do\}
-{#IFDEF STRETCHGRID
-do ix=ixCmin1,ixCmax1
-   xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
-enddo
-}
+if(stretched_grid) then
+  do ix=ixCmin1,ixCmax1
+    xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
+  enddo
+end if
 
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 
@@ -1069,7 +1069,7 @@ wCC(ixCC^S,:)=w(ixCC^S,:)
 
 ! compute the corner values for w now by averaging
 
-if(typeaxial=='slab')then
+if(slab) then
    ! for slab symmetry: no geometrical info required
    do iw=1,nw+nwauxio
      {do ix^DB=ixCmin^DB,ixCmax^DB\}
@@ -1141,7 +1141,7 @@ endif
 
 {do ix^DB=ixmin^DB,ixmax^DB\}
    select case (typeaxial)
-   case ("slab","slabtest","slabstretch")
+   case ("slab","slabstretch")
       x_TEC(1:ndim)=xC(ix^D,1:ndim)
       w_TEC(1:nw+nwauxio)=wC(ix^D,1:nw+nwauxio)
    case ("cylindrical")

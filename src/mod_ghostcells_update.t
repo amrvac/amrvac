@@ -246,10 +246,8 @@ contains
     type(wbuffer) :: pwbuf(npwbuf)
 
     double precision :: time_bcin
-    {#IFDEF STRETCHGRID
     ! Stretching grid parameters for coarsened block of the current block
     double precision :: logGl,qstl
-    }
 
     time_bcin=MPI_WTIME()
     ixG^L=ixG^LL;
@@ -719,14 +717,14 @@ contains
 
         xFimin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxFi^D;
         xComin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxCo^D;
-        {#IFDEF STRETCHGRID
-        qst=qsts(node(plevel_,igrid))
-        logG=logGs(node(plevel_,igrid))
-        qstl=qsts(node(plevel_,igrid)-1)
-        logGl=logGs(node(plevel_,igrid)-1)
-        xFimin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
-        xComin1=rnode(rpxmin1_,igrid)*qstl**(-nghostcells)
-        }
+        if(stretched_grid) then
+          qst=qsts(node(plevel_,igrid))
+          logG=logGs(node(plevel_,igrid))
+          qstl=qsts(node(plevel_,igrid)-1)
+          logGl=logGs(node(plevel_,igrid)-1)
+          xFimin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
+          xComin1=rnode(rpxmin1_,igrid)*qstl**(-nghostcells)
+        end if
 
         ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
         ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
@@ -771,27 +769,27 @@ contains
         
            ! cell-centered coordinate for coarse cell
            xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB\}
-        {#IFDEF STRETCHGRID
-           xFi1=xFimin1/(one-half*logG)*qst**(ixFi1-1)
-           do ixCo1=1,ixCoGmax1
-             xCo1=xComin1/(one-half*logGl)*qstl**(ixCo1-1)
-             if(dabs(xFi1-xCo1)<half*logGl*xCo1) exit
-           end do
-        }
+           if(stretched_grid) then
+             xFi1=xFimin1/(one-half*logG)*qst**(ixFi1-1)
+             do ixCo1=1,ixCoGmax1
+               xCo1=xComin1/(one-half*logGl)*qstl**(ixCo1-1)
+               if(dabs(xFi1-xCo1)<half*logGl*xCo1) exit
+             end do
+           end if
            ! normalized distance between fine/coarse cell center
            ! in coarse cell: ranges from -0.5 to 0.5 in each direction
            ! (origin is coarse cell center)
-           if (slab) then
-              eta^D=(xFi^D-xCo^D)*invdxCo^D;
+           if(slab) then
+             eta^D=(xFi^D-xCo^D)*invdxCo^D;
            else
-              ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
-              {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-                    *two*(one-block%dvolume(ixFi^DD) &
-                    /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
-        {#IFDEF STRETCHGRID
-              eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-block%dvolume(ixFi^D) &
-                    /sum(block%dvolume(ix1:ix1+1^%1ixFi^D))) 
-        }
+             ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
+             {eta^D=(xFi^D-xCo^D)*invdxCo^D &
+                   *two*(one-block%dvolume(ixFi^DD) &
+                   /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
+             if(stretched_grid) then
+               eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-block%dvolume(ixFi^D) &
+                   /sum(block%dvolume(ix1:ix1+1^%1ixFi^D))) 
+             end if
            end if
         
            do idims=1,ndim
