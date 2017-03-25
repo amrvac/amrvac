@@ -71,7 +71,7 @@ MODULE mod_Knuth_random
     INTEGER, INTENT(IN)  :: seed
 
     ! Local variables
-    INTEGER  :: x(kkk), j, ss, sseed, t
+    INTEGER  :: x(kkk), j, ss, sseed, tk
 
     IF (seed < 0) THEN
       sseed = mm - 1 - MOD(-1-seed, mm)
@@ -87,7 +87,7 @@ MODULE mod_Knuth_random
     x(kk+1:kkk) = 0
     x(2) = x(2)+1
     ss = sseed
-    t = tt - 1
+    tk = tt - 1
     10 DO  j=kk, 2, -1
       x(j+j-1) = x(j)
     END DO
@@ -108,9 +108,9 @@ MODULE mod_Knuth_random
     IF (ss /= 0) THEN
       ss = ISHFT(ss, -1)
     ELSE
-      t = t - 1
+      tk = tk - 1
     END IF
-    IF (t > 0) GO TO 10
+    IF (tk > 0) GO TO 10
     
     DO  j=1, ll
       ranx(j+kk-ll) = x(j)

@@ -20,16 +20,16 @@ logical, save :: first=.true.
 !-----------------------------------------------------------------------------
 eqpar(gamma_)=1.4d0
  
-normvar(0)     = 0.001d0*3.08567758d18  ! 0.1 pc          ! normalization for distance
-normvar(rho_)  = 1.0d-20              ! normalization for rho
+length_convert_factor     = 0.001d0*3.08567758d18  ! 0.1 pc          ! normalization for distance
+w_convert_factor(rho_)  = 1.0d-20              ! normalization for rho
 normvar(v1_)   = 1.0d7                ! normalization for speed
 
 normvar(v2_)   = normvar(v1_)
 {^IFTHREED
 normvar(v3_)   = normvar(v1_)
 }
-normt          = normvar(0)/normvar(v1_)
-normvar(p_)    = normvar(rho_)*(normvar(v1_)**2)
+time_convert_factor          = length_convert_factor/normvar(v1_)
+w_convert_factor(p_)    = w_convert_factor(rho_)*(normvar(v1_)**2)
 
 
 
@@ -40,13 +40,13 @@ eqpar(mu_)=2.3d0 ! moleculair waterstof
 rhodust(1:^NDS) = 3.3d0    ! dust grain density
 eqpar(min_ar_)  = 1.0d-7   ! minimum dust grain size (cm)
 eqpar(max_ar_)  = 500.0d-7 ! maximum dust grain size (cm)
-{normvar(rhod^DS_)   = normvar(rho_)\}
+{normvar(rhod^DS_)   = w_convert_factor(rho_)\}
 {^DS&{^C&normvar(v^Cd^DS_) = normvar(v^C_);}\}
 
 ! === rescale dust quantities to dimensionless scale === !
 rhodust(1:^NDS)  = rhodust(1:^NDS)/normvar(rhod1_)
-eqpar(min_ar_)= eqpar(min_ar_)/normvar(0)
-eqpar(max_ar_)= eqpar(max_ar_)/normvar(0) 
+eqpar(min_ar_)= eqpar(min_ar_)/length_convert_factor
+eqpar(max_ar_)= eqpar(max_ar_)/length_convert_factor 
 
 
 !-------------------------------
@@ -72,7 +72,7 @@ end do
 if(first)then
   if(mype==0)then
     do i=1,^NDS
-        write(*,*) 'Dust type ',i,': grain radius r=',sdust(i)*normvar(0)
+        write(*,*) 'Dust type ',i,': grain radius r=',sdust(i)*length_convert_factor
     end do
   endif
   first=.false.
@@ -245,13 +245,13 @@ end subroutine specialvar_output
 !=============================================================================
 subroutine specialvarnames_output
 
-! newly added variables to be concatenated with the primnames/wnames string
+! newly added variables to be concatenated with the primnames/w_names string
 
 use mod_global_parameters
 !-----------------------------------------------------------------------------
 ! Example : as above in specialvar_output
 primnames= TRIM(primnames)//' '//'schlierrho'
-wnames=TRIM(wnames)//' '//'schlierrho'
+w_names=TRIM(w_names)//' '//'schlierrho'
 
 end subroutine specialvarnames_output
 !=============================================================================

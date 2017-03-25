@@ -24,7 +24,6 @@
  /
 
  &boundlist
-   nghostcells  =   3
    typeboundary_min1 = 4*'periodic'
    typeboundary_max1 = 4*'periodic'
    typeboundary_min2 = 4*'periodic'

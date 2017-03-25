@@ -62,6 +62,7 @@ my %par_file_replacements = (
     qr/ *w_names *=.*\n/ => "", # Remove w_names = ... lines
     qr/ *ssplituser *=.*\n/ => "", # Remove ssplituser = ... lines
     qr/ *fixsmall *=.*\n/ => "", # Remove fixsmall = ... lines
+    qr/ *nghostcells *=.*\n/ => "", # Remove nghostcells = ... lines
     qr/tsave\(1\)/ => "tsave_log",
     qr/tsave\(2\)/ => "tsave_dat",
     qr/tsave\(3\)/ => "tsave_slice",

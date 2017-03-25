@@ -31,7 +31,6 @@
         typelimited ='predictor'
  /
  &boundlist
-        nghostcells  =   2
         typeboundary_min1 = 6*'periodic'
         typeboundary_max1 = 6*'periodic'
         typeboundary_min2 = 6*'cont'

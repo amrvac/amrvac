@@ -32,7 +32,6 @@
  /
 
  &boundlist
-        nghostcells=    3
         typeboundary_min1=7*'special'
         typeboundary_max1=7*'cont'
         typeboundary_min2=7*'cont'

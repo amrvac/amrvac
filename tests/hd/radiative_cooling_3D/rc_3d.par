@@ -21,7 +21,6 @@
    limiter    = 20*'cada3'
 /
  &boundlist
-  nghostcells  =   2
   typeboundary=          5*'cont', 5*'cont',
                   5*'cont', 5*'cont',
                   5*'cont', 5*'cont'

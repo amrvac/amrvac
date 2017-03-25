@@ -34,7 +34,6 @@
         typepred1=    20*'hllc'
         limiter= 20*'mp5'
         typelimited='predictor'        dimsplit=.false.
-        fixsmall=.true.
         strictsmall=.false.
         strictgetaux=.false.
         nflatgetaux=2
@@ -43,7 +42,6 @@
  /
 
  &boundlist
-        nghostcells=    3
         typeboundary_min1 = 6*'special'
         typeboundary_max1 = 6*'cont'
         typeboundary_min2 = 6*'noinflow'

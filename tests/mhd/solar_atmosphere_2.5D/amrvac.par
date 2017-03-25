@@ -44,7 +44,6 @@
  /
 
  &boundlist
-        nghostcells=    2
         typeboundary_min1 = 'symm','asymm','symm','asymm','symm','asymm','symm','asymm'
         typeboundary_max1 = 'symm','asymm','symm','asymm','symm','asymm','symm','asymm'
         typeboundary_min2 = 8*'special'

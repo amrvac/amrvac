@@ -700,12 +700,12 @@ contains
     end do
     }
 
-    if (any(limiter(1:nlevelshi)=='ppm').and.(nghostcells<4)) then
-       call mpistop(" PPM works only with nghostcells>=4 !")
+    if(any(limiter(1:nlevelshi)=='mp5')) then
+      nghostcells=3
     end if
 
-    if (any(limiter(1:nlevelshi)=='mp5') .and. (nghostcells<3)) then
-       call mpistop("mp5 needs at at least 3 ghost cells! Set nghostcells=3 in boundlist.")
+    if(any(limiter(1:nlevelshi)=='ppm')) then
+      nghostcells=4
     end if
 
     select case (typeaxial)
