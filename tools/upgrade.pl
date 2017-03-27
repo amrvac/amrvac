@@ -48,6 +48,7 @@ my %simple_replacements = (
     qr/normvar\(1:nw\)\b/ => "w_convert_factor(:)",
     qr/mhcgspar/ => "hydrogen_mass_cgs",
     qr/kbcgspar/ => "kboltzmann_cgs",
+    qr/include 'amrvacdef.f'/ => "use mod_global_parameters",
     );
 
 # Replace words only used in par files (pattern => replacement)
