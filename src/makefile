@@ -48,6 +48,7 @@ mod_finite_difference.o: mod_mp5.o
 mod_finite_difference.o: mod_physics.o
 mod_finite_difference.o: mod_source.o
 mod_finite_volume.o: mod_limiter.o
+mod_finite_volume.o: mod_mhd_phys.o
 mod_finite_volume.o: mod_physics.o
 mod_finite_volume.o: mod_source.o
 mod_finite_volume.o: mod_tvd.o

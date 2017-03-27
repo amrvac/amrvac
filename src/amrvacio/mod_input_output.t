@@ -525,6 +525,8 @@ contains
                'Warning: setting dimsplit=T for tvd, as used for level=',level
           dimsplit=.true.
        endif
+       if(flux_scheme(level)=='hlld'.and.physics_type/='mhd') &
+          call mpistop("Cannot use hlld flux if not using MHD physics!")
 
        if (typepred1(level)=='default') then
           select case (flux_scheme(level))

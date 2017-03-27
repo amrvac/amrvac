@@ -444,7 +444,7 @@ contains
        call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,dx^D,x)
     case ('fd')
        call fd(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
-    case ('tvdmu','tvdlf','hll','hllc','hllcd')
+    case ('tvdmu','tvdlf','hll','hllc','hllcd','hlld')
        call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
     case ('tvd')
        call centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
