@@ -49,6 +49,21 @@ my %simple_replacements = (
     qr/mhcgspar/ => "hydrogen_mass_cgs",
     qr/kbcgspar/ => "kboltzmann_cgs",
     qr/include 'amrvacdef.f'/ => "use mod_global_parameters",
+    qr/INCLUDE:amrvacmodules\/cooling.t/ => "",
+    qr/INCLUDE:amrvacmodules\/heatconduct.t/ => "",
+    qr/INCLUDE:amrvacmodules\/viscosity.t/ => "",
+    qr/INCLUDE:amrvacmodules\/gravity.t/ => "",
+    qr/INCLUDE:amrvacmodules\/handle_particles.t/ => "",
+    qr/INCLUDE:amrvacmodules\/integrate_particles.t/ => "",
+    qr/INCLUDE:amrvacmodules\/magnetofriction.t/ => "INCLUDE:includes/magnetofriction.t",
+    qr/INCLUDE:amrvacmodules\/fff.t/ => "INCLUDE:includes/fff.t",
+    qr/INCLUDE:amrvacmodules\/pfss.t/ => "INCLUDE:includes/pfss.t",
+    qr/INCLUDE:amrvacnul\/usrflags.t/ => "",
+    qr/INCLUDE:amrvacnul\/specialbound.t/ => "",
+    qr/INCLUDE:amrvacnul\/specialini.t/ => "",
+    qr/INCLUDE:amrvacnul\/specialimpl.t/ => "",
+    qr/INCLUDE:amrvacnul\/speciallog.t/ => "",
+    qr/INCLUDE:amrvacnul\/specialsource.t/ => "",
     );
 
 # Replace words only used in par files (pattern => replacement)
@@ -64,6 +79,7 @@ my %par_file_replacements = (
     qr/ *ssplituser *=.*\n/ => "", # Remove ssplituser = ... lines
     qr/ *fixsmall *=.*\n/ => "", # Remove fixsmall = ... lines
     qr/ *nghostcells *=.*\n/ => "", # Remove nghostcells = ... lines
+    qr/ *typeparIO *=.*\n/ => "", # Remove typeparIO = ... lines
     qr/tsave\(1\)/ => "tsave_log",
     qr/tsave\(2\)/ => "tsave_dat",
     qr/tsave\(3\)/ => "tsave_slice",

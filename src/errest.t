@@ -62,7 +62,7 @@ buffer=.false.
 end subroutine errest
 !=============================================================================
 subroutine lohner_grid(igrid)
-  use mod_usr_methods, only: usr_var_for_errest, usr_amr_tolerance
+  use mod_usr_methods, only: usr_var_for_errest, usr_refine_threshold
 use mod_forest, only: coarsen, refine
 use mod_global_parameters
 
@@ -70,7 +70,7 @@ integer, intent(in) :: igrid
 
 integer                            :: iiflag, iflag, idims, idims2, level
 integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
-double precision                   :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
+double precision                   :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
 double precision, dimension(ixG^T) :: tmp, tmp1, tmp2
 logical, dimension(ixG^T)          :: refineflag, coarsenflag
@@ -164,18 +164,18 @@ end do
 
 refineflag=.false.
 coarsenflag=.false.
-tolerance=refine_threshold(level)
+threshold=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 
-   if (associated(usr_amr_tolerance)) then
+   if (associated(usr_refine_threshold)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
       xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
-      call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
+      call usr_refine_threshold(wtol, xtol, threshold, global_time)
    end if
 
-   if (error(ix^D) >= tolerance) then
+   if (error(ix^D) >= threshold) then
       refineflag(ix^D) = .true.
-   else if (error(ix^D) <= derefine_ratio(level)*tolerance) then
+   else if (error(ix^D) <= derefine_ratio(level)*threshold) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}
@@ -187,7 +187,7 @@ if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 end subroutine lohner_grid
 !=============================================================================
 subroutine lohner_orig_grid(igrid)
-  use mod_usr_methods, only: usr_var_for_errest, usr_amr_tolerance
+  use mod_usr_methods, only: usr_var_for_errest, usr_refine_threshold
   use mod_forest, only: coarsen, refine
   use mod_global_parameters
 
@@ -195,7 +195,7 @@ integer, intent(in) :: igrid
 
 integer :: iiflag, iflag, idims, level
 integer :: ix^L, hx^L, jx^L, ix^D
-double precision :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
+double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
 double precision, dimension(ixG^T) :: dp, dm, dref, tmp1
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -260,18 +260,18 @@ end do
 refineflag=.false.
 coarsenflag=.false.
 
-tolerance=refine_threshold(level)
+threshold=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 
-   if (associated(usr_amr_tolerance)) then
+   if (associated(usr_refine_threshold)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
       xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
-      call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
+      call usr_refine_threshold(wtol, xtol, threshold, global_time)
    end if
 
-   if (error(ix^D) >= tolerance) then
+   if (error(ix^D) >= threshold) then
       refineflag(ix^D) = .true.
-   else if (error(ix^D) <= derefine_ratio(level)*tolerance) then
+   else if (error(ix^D) <= derefine_ratio(level)*threshold) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}
@@ -282,7 +282,7 @@ if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 end subroutine lohner_orig_grid
 !=============================================================================
 subroutine compare1_grid(igrid,wold,w)
-    use mod_usr_methods, only: usr_amr_tolerance
+    use mod_usr_methods, only: usr_refine_threshold
     use mod_forest, only: coarsen, refine
     use mod_global_parameters
 
@@ -290,7 +290,7 @@ integer, intent(in) :: igrid
 double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
 
 integer :: ix^D, iiflag, iflag, level
-double precision :: epsilon, tolerance, wtol(1:nw), xtol(1:ndim)
+double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
 double precision :: average, error
 double precision :: averages(nflag_)
 logical, dimension(ixG^T) :: refineflag, coarsenflag
@@ -304,7 +304,7 @@ epsilon=1.0d-6
 refineflag(ixM^T) = .false.
 coarsenflag(ixM^T) = .false.
 level=node(plevel_,igrid)
-tolerance=refine_threshold(level)
+threshold=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB \}
    average=zero
    error=zero
@@ -320,15 +320,15 @@ tolerance=refine_threshold(level)
       end if
    end do
 
-   if (associated(usr_amr_tolerance)) then
+   if (associated(usr_refine_threshold)) then
       wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
       xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
-      call usr_amr_tolerance(wtol, xtol, tolerance, global_time)
+      call usr_refine_threshold(wtol, xtol, threshold, global_time)
    end if
 
-   if (error >= tolerance) then
+   if (error >= threshold) then
       refineflag(ix^D) = .true.
-   else if (error <= derefine_ratio(level)*tolerance) then
+   else if (error <= derefine_ratio(level)*threshold) then
       coarsenflag(ix^D) = .true.
    end if
 {end do\}

@@ -69,10 +69,13 @@ $AMRVAC_DIR/tools/upgrade.pl
 cd $AMRVAC_DIR/tests/hd/Woodward_Collela_2D
 $AMRVAC_DIR/tools/upgrade.pl
 
-cd $AMRVAC_DIR/tests/hd/blast_wave_cartesian_2D
+cd $AMRVAC_DIR/tests/hd/blast_wave_Cartesian_2D
 $AMRVAC_DIR/tools/upgrade.pl
 
-cd $AMRVAC_DIR/tests/hd/blast_wave_cartesian_stretched_2D
+cd $AMRVAC_DIR/tests/hd/blast_wave_Cartesian_3D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/hd/blast_wave_Cartesian_stretched_2D
 $AMRVAC_DIR/tools/upgrade.pl
 
 cd $AMRVAC_DIR/tests/hd/blast_wave_cylindrical_2D
@@ -135,7 +138,10 @@ $AMRVAC_DIR/tools/upgrade.pl
 cd $AMRVAC_DIR/tests/mhd/Riemann_1.75D
 $AMRVAC_DIR/tools/upgrade.pl
 
-cd $AMRVAC_DIR/tests/mhd/blast_wave_cartesian_2D
+cd $AMRVAC_DIR/tests/mhd/blast_wave_Cartesian_2D
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/tests/mhd/blast_wave_Cartesian_3D
 $AMRVAC_DIR/tools/upgrade.pl
 
 cd $AMRVAC_DIR/tests/mhd/blast_wave_cylindrical_3D

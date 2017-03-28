@@ -111,7 +111,7 @@ contains
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,&
-         typeparIO,nwauxio,nocartesian, w_write,writelevel,&
+         nwauxio,nocartesian, w_write,writelevel,&
          writespshift,endian_swap, length_convert_factor, &
          time_convert_factor,level_io,level_io_min, level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
@@ -265,7 +265,6 @@ contains
     itmax         = biginteger
     time_max      = bigdouble
     dtmin         = 1.0d-10
-    typeparIO     = 0
     nslices       = 0
     collapse      = .false.
     collapseLevel = 1
