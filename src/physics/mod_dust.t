@@ -6,11 +6,11 @@ module mod_dust
   private
 
   !> The number of dust species
-  integer, public, protected :: dust_n_species
+  integer, public, protected :: dust_n_species = 0
 
-  integer, protected              :: gas_rho_
+  integer, protected              :: gas_rho_ = -1
   integer, allocatable, protected :: gas_mom(:)
-  integer, protected              :: gas_e_
+  integer, protected              :: gas_e_ = -1
   double precision, protected     :: gas_mu = -huge(1.0d0)
 
   !> Indices of the dust densities
@@ -26,7 +26,7 @@ module mod_dust
   double precision, allocatable, public :: dust_density(:)
 
   !> Dust temperature (if dust_temperature_type is constant)
-  double precision :: dust_temperature
+  double precision :: dust_temperature = -1.0d0
 
   !> If dust_temperature_type is stellar, it will be calculated according to Tielens (2005),
   !> eqn. 5.44 using a stellar luminosity in solar luminosities
@@ -79,8 +79,6 @@ contains
     gas_rho_ = g_rho
     gas_mom  = g_mom
     gas_e_   = g_energy
-
-    ! TODO: how will dust read settings? Use m_config?
 
     allocate(dust_size(dust_n_species))
     allocate(dust_density(dust_n_species))
@@ -249,10 +247,7 @@ contains
     case ('Kwok') ! assume sticking coefficient equals 0.25
 
       do idir = 1, ndir
-        ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-
         do n = 1, dust_n_species
-          ! TODO: simplify
           where(w(ixO^S, dust_rho(n)) > dust_min_rho)
             vdust(ixO^S)  = w(ixO^S, dust_mom(idir, n)) / w(ixO^S, dust_rho(n))
             deltav(ixO^S) = (vgas(ixO^S, idir)-vdust(ixO^S))
@@ -279,8 +274,6 @@ contains
       call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
 
       do idir = 1, ndir
-        ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-
         do n = 1, dust_n_species
           where(w(ixO^S, dust_rho(n))>dust_min_rho)
             vdust(ixO^S)  = w(ixO^S,dust_mom(idir, n)) / w(ixO^S, dust_rho(n))
@@ -297,8 +290,6 @@ contains
     case('linear') !linear with Deltav, for testing (see Laibe & Price 2011)
       K = 3.4d5 / dust_n_species
       do idir = 1, ndir
-        ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-
         do n = 1, dust_n_species
           where(w(ixO^S, dust_rho(n))>dust_min_rho)
             vdust(ixO^S)  = w(ixO^S,dust_mom(idir, n))/w(ixO^S, dust_rho(n))
@@ -319,7 +310,7 @@ contains
 
   end subroutine get_3d_dragforce
 
-  !> get sticking coefficient
+  !> Get sticking coefficient
   !>
   !> Assume cgs units, and use of convert factors for conversion
   !> Equation from Decin et al. 2006
@@ -488,11 +479,11 @@ contains
       vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
       ! Tgas, mu = mean molecular weight
-      ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs*gas_mu)/(w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
+      ptherm(ixO^S) = ( ptherm(ixO^S) * w_convert_factor(gas_e_) * &
+           hydrogen_mass_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
+           w_convert_factor(gas_rho_)*kboltzmann_cgs)
 
       do idir = 1, ndir
-        ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-
         do n = 1, dust_n_species
           where(w(ixO^S, dust_rho(n))>dust_min_rho)
             vdust(ixO^S)  = w(ixO^S,dust_mom(idir, n))/w(ixO^S, dust_rho(n))
@@ -520,12 +511,11 @@ contains
       call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
 
       ! Tgas, mu = mean molecular weight
-      ! ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_) * hydrogen_mass_cgs*gas_mu) / &
-      ! (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
+      ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_) * &
+           hydrogen_mass_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
+           w_convert_factor(gas_rho_)*kboltzmann_cgs)
 
       do idir = 1, ndir
-        ! call hd_get_v(w, x, ixI^L, ixO^L, idir, vgas)
-
         do n = 1, dust_n_species
           where(w(ixO^S, dust_rho(n))>dust_min_rho)
             vdust(ixO^S)  = w(ixO^S,dust_mom(idir, n))/w(ixO^S, dust_rho(n))
