@@ -49,6 +49,15 @@
  &paramlist
   slowsteps        = 10
  /
+
  &mhd_list
   mhd_radiative_cooling =T
  /
+
+ &rc_list
+  ncool=4000
+  coolcurve='JCcorona'
+  coolmethod='exact'
+  cfrac=1.d0
+  Tfix=.true.
+ / 

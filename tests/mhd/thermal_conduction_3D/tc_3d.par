@@ -52,3 +52,7 @@
  &mhd_list
   mhd_thermal_conduction =T
  /
+ &tc_list
+  tc_perpendicular=.false.
+  tc_saturate     =.true.
+ /

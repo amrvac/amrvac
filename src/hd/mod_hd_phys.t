@@ -215,7 +215,7 @@ contains
 
     ! Initialize radiative cooling module
     if(hd_radiative_cooling) then
-      call radiative_cooling_init(hd_gamma)
+      call radiative_cooling_init(hd_gamma,He_abundance)
     end if
 
     ! Initialize viscosity module
