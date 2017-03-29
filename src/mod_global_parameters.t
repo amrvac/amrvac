@@ -320,10 +320,6 @@ module mod_global_parameters
   !> \todo Move to mod_input_output
   integer :: n_saves(1:nfile)
 
-  !> Options are 1: Parallel MPI output, 0: master-slave parallel IO, -1:
-  !> master-slave IO without MPI (no MPI_FILE_WRITE, MPI_FILE_OPEN etc)
-  integer :: typeparIO
-
   !> Fix the AMR grid after this time
   double precision :: tfixgrid
 
