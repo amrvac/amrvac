@@ -93,8 +93,10 @@ contains
       dust_rho(n) = nwflux     ! Dust density
       write(prim_wnames(nwflux),"(A4,I1)") "rhod",n
       write(cons_wnames(nwflux),"(A4,I1)") "rhod",n
+    end do
 
-      do idir = 1, ndir
+    do idir = 1, ndir
+      do n = 1, dust_n_species
         nwflux = nwflux + 1
         dust_mom(idir, n) = nwflux ! Dust momentum
         write(prim_wnames(nwflux),"(A1,I1,A1,I1)") "v",idir,"d",n
