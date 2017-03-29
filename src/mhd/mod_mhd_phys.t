@@ -800,7 +800,7 @@ contains
           call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
        case ('glm3')
           call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('powel')
+       case ('powel', 'powell')
           call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
        case ('janhunen')
           call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -812,6 +812,10 @@ contains
        case ('lindepowel')
           call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
           call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+       case ('none')
+         ! Do nothing
+       case default
+         call mpistop('Unknown divB fix')
        end select
     end if
     }

@@ -126,13 +126,16 @@ contains
     call hd_read_params(par_files)
 
     physics_type = "hd"
-    phys_energy=hd_energy
-    use_particles=hd_particles
+    phys_energy  = hd_energy
+    use_particles = hd_particles
+    nwflux        = 0
+    nwaux         = 0
+    nwextra       = 0
 
     ! Determine flux variables
-    nwflux = 1                  ! rho (density)
-    prim_wnames(nwflux)='rho'
-    cons_wnames(nwflux)='rho'
+    nwflux              = nwflux+1 ! rho (density)
+    prim_wnames(nwflux) = 'rho'
+    cons_wnames(nwflux) = 'rho'
 
     allocate(mom(ndir))
     do idir = 1, ndir
@@ -166,24 +169,6 @@ contains
 
     hd_nwflux = nwflux
 
-
-    nwaux   = 0
-    nwextra = 0
-    nw      = nwflux + nwaux + nwextra
-    nflag_  = nw + 1
-
-    ! Check whether custom flux types have been defined
-    if (.not. allocated(flux_type)) then
-       allocate(flux_type(ndir, nw))
-       flux_type = flux_default
-    else if (any(shape(flux_type) /= [ndir, nw])) then
-       call mpistop("phys_check error: flux_type has wrong shape")
-    end if
-
-    nvector      = 1 ! No. vector vars
-    allocate(iw_vector(nvector))
-    iw_vector(1) = mom(1) - 1   ! TODO: why like this?
-
     phys_get_dt          => hd_get_dt
     phys_get_cmax        => hd_get_cmax
     phys_get_flux        => hd_get_flux
@@ -197,41 +182,47 @@ contains
     phys_write_info      => hd_write_info
 
     ! derive units from basic units
-    call hd_physical_units
+    call hd_physical_units()
 
-    if(hd_dust) call dust_init(rho_, mom(:), e_)
-
-    if(.not. hd_energy .and. hd_thermal_conduction) then
-      call mpistop("thermal conduction needs hd_energy=T")
-    end if
-    if(.not. hd_energy .and. hd_radiative_cooling) then
-      call mpistop("radiative cooling needs hd_energy=T")
-    end if
+    if (hd_dust) call dust_init(rho_, mom(:), e_)
 
     ! initialize thermal conduction module
-    if(hd_thermal_conduction) then
+    if (hd_thermal_conduction) then
+      if (.not. hd_energy) &
+           call mpistop("thermal conduction needs hd_energy=T")
       call thermal_conduction_init(hd_gamma)
     end if
 
     ! Initialize radiative cooling module
-    if(hd_radiative_cooling) then
+    if (hd_radiative_cooling) then
+      if (.not. hd_energy) &
+           call mpistop("radiative cooling needs hd_energy=T")
       call radiative_cooling_init(hd_gamma,He_abundance)
     end if
 
     ! Initialize viscosity module
-    if(hd_viscosity) then
-      call viscosity_init()
-    end if
+    if (hd_viscosity) call viscosity_init()
 
     ! Initialize gravity module
-    if(hd_gravity) then
-      call gravity_init()
-    end if
+    if (hd_gravity) call gravity_init()
 
     ! Initialize particles module
-    if(hd_particles) then
-      call particles_init()
+    if (hd_particles) call particles_init()
+
+    nw      = nwflux + nwaux + nwextra
+    nflag_  = nw + 1
+
+    ! Check whether custom flux types have been defined
+    if (.not. allocated(flux_type)) then
+       allocate(flux_type(ndir, nw))
+       flux_type = flux_default
+    else if (any(shape(flux_type) /= [ndir, nw])) then
+       call mpistop("phys_check error: flux_type has wrong shape")
     end if
+
+    nvector      = 1 ! No. vector vars
+    allocate(iw_vector(nvector))
+    iw_vector(1) = mom(1) - 1
 
   end subroutine hd_phys_init
 
@@ -306,6 +297,7 @@ contains
   !> Transform primitive variables into conservative ones
   subroutine hd_to_conserved(ixI^L, ixO^L, w, x)
     use mod_global_parameters
+    use mod_dust, only: dust_to_conserved
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
@@ -327,7 +319,7 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
     end do
 
-    ! TODO call dust_conserve(...)
+    call dust_to_conserved(ixI^L, ixO^L, w, x)
 
     call handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
 
@@ -336,6 +328,7 @@ contains
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
     use mod_global_parameters
+    use mod_dust, only: dust_to_primitive
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
@@ -357,7 +350,7 @@ contains
     end do
 
     ! Convert dust momentum to dust velocity
-    ! call dust_primitive(...)
+    call dust_to_primitive(ixI^L, ixO^L, w, x)
 
     call handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
 
@@ -482,8 +475,8 @@ contains
        f(ixO^S, tracer(itr)) = v(ixO^S) * w(ixO^S, tracer(itr))
     end do
 
-    ! TODO: A dust flux
-    ! call dust_get_flux(w, x, ixI^L, ixO^L, iw, idim, f, transport)
+    ! Dust fluxes
+    call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
 
   end subroutine hd_get_flux
 
