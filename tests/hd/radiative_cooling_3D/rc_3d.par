@@ -1,6 +1,6 @@
-!setup.pl -d=33
-
+!setup.pl -d=3
 &filelist
+  base_filename    = 'rc_3d'
   typefilelog      = 'regression_test'
   autoconvert      = .true.
   convert_type     = 'vtuBCCmpi'
@@ -21,7 +21,7 @@
    limiter    = 20*'cada3'
 /
  &boundlist
-  typeboundary=          5*'cont', 5*'cont',
+  typeboundary=   5*'cont', 5*'cont',
                   5*'cont', 5*'cont',
                   5*'cont', 5*'cont'
 /
@@ -45,6 +45,15 @@
  &paramlist
   slowsteps        = 10
  /
+
  &hd_list
   hd_radiative_cooling =T
+ /
+
+ &rc_list
+  ncool=4000
+  coolcurve='JCcorona'
+  coolmethod='exact'
+  cfrac=1.d0
+  Tfix=.true.
  /

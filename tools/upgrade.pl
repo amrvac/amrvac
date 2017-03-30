@@ -72,6 +72,7 @@ my %par_file_replacements = (
     qr/ *useprimitive *=.*\n/ => "", # Remove useprimitive = ... lines
     qr/ *filenamelog *=.*\n/ => "", # Remove useprimitive = ... lines
     qr/ *fileheadout *=.*\n/ => "", # Remove fileheadout = ... lines
+    qr/ *snapshotini *=.*\n/ => "", # Remove snapshotini = ... lines
     qr/ *typeaxial *=.*\n/ => "", # Remove typeaxial = ... lines
     qr/ *ssplitdivb *=.*\n/ => "", # Remove ssplitdivb = ... lines
     qr/ *primnames *=.*\n/ => "", # Remove primnames = ... lines
@@ -80,6 +81,11 @@ my %par_file_replacements = (
     qr/ *fixsmall *=.*\n/ => "", # Remove fixsmall = ... lines
     qr/ *nghostcells *=.*\n/ => "", # Remove nghostcells = ... lines
     qr/ *typeparIO *=.*\n/ => "", # Remove typeparIO = ... lines
+    qr/ *strictsmall *=.*\n/ => "", # Remove strictsmall = ... lines
+    qr/ *strictgetaux *=.*\n/ => "", # Remove strictgetaux = ... lines
+    qr/ *nflatgetaux *=.*\n/ => "", # Remove nflatgetaux = ... lines
+    qr/ *\bconduction\b *=.*\n/ => "", # Remove conduction = ... lines
+    qr/ *TCsaturate *=.*\n/ => "", # Remove TCsaturate = ... lines
     qr/tsave\(1\)/ => "tsave_log",
     qr/tsave\(2\)/ => "tsave_dat",
     qr/tsave\(3\)/ => "tsave_slice",

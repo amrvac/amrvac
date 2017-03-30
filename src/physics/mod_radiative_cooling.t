@@ -25,13 +25,13 @@ module mod_radiative_cooling
   ! parameters used for implicit cooling source calculations
   
   !> Coefficent of cooling time step
-  double precision, private   :: cfrac=1.d0
+  double precision, private   :: cfrac
 
   !> Lower limit of temperature
-  double precision, private   :: tlow=1.d+99
+  double precision, private   :: tlow
 
   !> Helium abundance over Hydrogen
-  double precision, private    :: He_abundance=0.1d0
+  double precision, private    :: He_abundance
 
   !> resolution of temperature in interpolated tables
   integer, private :: ncool
@@ -43,7 +43,7 @@ module mod_radiative_cooling
   character(len=std_len), private  :: coolmethod
 
   !> Fixed temperature not lower than tlow
-  logical, private    :: Tfix=.false.
+  logical, private    :: Tfix
 
   !> Add cooling source in a split way (.true.) or un-split way (.false.)
   logical :: rc_split=.false.
@@ -591,14 +591,10 @@ module mod_radiative_cooling
     end subroutine rc_params_read
 
     !> Radiative cooling initialization
-    subroutine radiative_cooling_init(phys_gamma)
-    !
-    !  Reads in a cooling curve to be used for the radiative
-    !  cooling routine
-    !
+    subroutine radiative_cooling_init(phys_gamma,He_abund)
       use mod_global_parameters
 
-      double precision, intent(in) :: phys_gamma
+      double precision, intent(in) :: phys_gamma,He_abund
       
       double precision, dimension(:), allocatable :: t_table
       double precision, dimension(:), allocatable :: L_table
@@ -609,9 +605,13 @@ module mod_radiative_cooling
       logical :: jump
 
       rc_gamma=phys_gamma
+      He_abundance=He_abund
       ncool=4000
       coolcurve='JCcorona'
       coolmethod='exact'
+      cfrac=1.d0
+      tlow=bigdouble
+      Tfix=.false.
 
       call rc_params_read(par_files)
 

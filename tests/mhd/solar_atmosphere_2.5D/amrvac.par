@@ -80,9 +80,22 @@
         typecourant='maxsum'
         courantpar=0.8d0
  /
+
  &mhd_list
         mhd_thermal_conduction=.true.
         mhd_radiative_cooling=.true.
         mhd_gravity=.true.
         typedivbfix='linde'
+ /
+ &tc_list
+        tc_perpendicular=.false.
+        tc_saturate=.true.
+ /
+
+ &rc_list
+        ncool=4000
+        coolcurve='JCcorona'
+        coolmethod='exact'
+        cfrac=1.d0
+        Tfix=.false.
  /

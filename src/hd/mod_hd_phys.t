@@ -197,7 +197,7 @@ contains
     if (hd_radiative_cooling) then
       if (.not. hd_energy) &
            call mpistop("radiative cooling needs hd_energy=T")
-      call radiative_cooling_init(hd_gamma)
+      call radiative_cooling_init(hd_gamma,He_abundance)
     end if
 
     ! Initialize viscosity module

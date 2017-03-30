@@ -112,7 +112,7 @@ contains
          typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,&
          nwauxio,nocartesian, w_write,writelevel,&
-         writespshift,endian_swap, length_convert_factor, &
+         writespshift,endian_swap, length_convert_factor, w_convert_factor, &
          time_convert_factor,level_io,level_io_min, level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
 
@@ -121,8 +121,6 @@ contains
          tsave_log, tsave_dat, tsave_slice, tsave_collapsed, tsave_custom, &
          dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
          ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
-
-    namelist /w_list/ w_convert_factor
 
     namelist /stoplist/ itmax,time_max,dtmin,global_time,it,restart_reset_time
 
@@ -153,7 +151,6 @@ contains
          logflag,tfixgrid,itfixgrid,ditregrid
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
-    !----------------------------------------------------------------------------
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000

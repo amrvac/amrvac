@@ -1,6 +1,6 @@
 
 &filelist
-  base_filename      = 'a_rc_hd_a'
+  base_filename      = 'rc_3d'
   autoconvert      = T
   convert_type     = 'vtuBCCmpi'
   saveprim         = T
@@ -52,3 +52,10 @@
   hd_radiative_cooling=T
 /
  
+&rc_list
+  ncool=4000
+  coolcurve='JCcorona'
+  coolmethod='exact'
+  cfrac=1.d0
+  Tfix=.true.
+/ 
