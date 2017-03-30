@@ -22,6 +22,7 @@ neighbor_active = .true.
       jgrid=0
       kgrid=0
       isafety = -1
+      userflag = -1
 
 !     Check the user flag:
       do iigrid=1,igridstail; igrid=igrids(iigrid);
