@@ -1676,6 +1676,7 @@ contains
     character(len=2048)  :: line
     logical, save        :: opened  = .false.
     integer              :: amode, istatus(MPI_STATUS_SIZE)
+    integer, parameter   :: my_unit = 20
 
     ! Compute the volume-average of w**1 = w
     call get_volume_average(1, wmean, total_volume)
@@ -1711,6 +1712,11 @@ contains
        if (.not. opened) then
 
           filename = trim(base_filename) // ".log"
+
+          ! MPI cannot easily replace existing files
+          open(unit=my_unit,file=trim(filename),status='replace')
+          close(my_unit, status='delete')
+
           amode    = ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
           amode    = ior(amode,MPI_MODE_APPEND)
 
