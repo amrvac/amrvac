@@ -331,6 +331,7 @@ Morton_no=0
 ipe=0
 level=1
 nleafs_level(1:nlevelshi) = 0
+nparents = 0
 
 call get_Morton_range
 call level1_Morton_order
@@ -393,7 +394,8 @@ if (leaf) then
    tree%node%ipe=ipe
    igrid_to_node(igrid,ipe)%node => tree%node
    if (ipe==mype) sfc_to_igrid(Morton_no)=igrid
-else
+ else
+   nparents = nparents + 1
    tree%node%igrid=0
    tree%node%ipe=-1
    child_level=level+1

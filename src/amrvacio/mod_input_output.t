@@ -43,8 +43,8 @@ contains
     end if
 
     ! Specify the options and their default values
-    call kracken('cmd','-i amrvac.par -if unavailable '//&
-         '-slice 0 -collapse 0 --help .false. -convert .false.')
+    call kracken('cmd','-i amrvac.par -if ' // undefined // &
+         ' -slice 0 -collapse 0 --help .false. -convert .false.')
 
     ! Get the par file(s)
     call retrev('cmd_i', all_par_files, len, ier)
@@ -88,7 +88,7 @@ contains
     use mod_physics, only: physics_type
     use mod_small_values
 
-    logical          :: fileopen, file_exists, fully_read
+    logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state, nw_found
     integer          :: iB, isave, iw, level, idim, islice
     integer          :: nx_vec(^ND)
@@ -179,12 +179,12 @@ contains
     {
     allocate(typeboundary_min^D(nw))
     allocate(typeboundary_max^D(nw))
-    typeboundary_min^D = not_specified
-    typeboundary_max^D = not_specified
+    typeboundary_min^D = undefined
+    typeboundary_max^D = undefined
     }
 
     allocate(typeboundary(nw, 2 * ndim))
-    typeboundary(:, :) = not_specified
+    typeboundary(:, :) = undefined
 
     internalboundary   = .false.
 
@@ -442,20 +442,18 @@ contains
        end if
     end if
 
-    if (restart_from_file /= 'unavailable') then
+    if (restart_from_file /= undefined) then
       ! Parse index in restart_from_file string (e.g. basename0000.dat)
       i = len_trim(restart_from_file) - 7
-      read(restart_from_file(i:i+3), '(I4)') snapshotini
-      snapshotnext = snapshotini+1
-    end if
-
-    if(firstprocess .and. snapshotini<0) &
-         call mpistop("Please restart from a snapshot when firstprocess=T")
-
-    if(convert .and. snapshotini<0) then
-       convert = .false.
-       write(uniterr,*) 'Warning in ReadParameters: ',&
-            'Please change convert to .false. when start a new run !'
+      read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
+      if (io_state == 0) snapshotnext = snapshotini + 1
+    else
+      if (firstprocess) &
+           call mpistop("Please restart from a snapshot when firstprocess=T")
+      if (convert) then
+        convert = .false.
+        write(uniterr,*) 'Change convert to .false. for a new run!'
+      end if
     end if
 
     if(convert) autoconvert=.false.
@@ -628,16 +626,16 @@ contains
 
     ! Copy boundary conditions to typeboundary, which is used internally
     {
-    if (any(typeboundary_min^D /= not_specified)) then
+    if (any(typeboundary_min^D /= undefined)) then
       typeboundary(:, 2*^D-1) = typeboundary_min^D
     end if
 
-    if (any(typeboundary_max^D /= not_specified)) then
+    if (any(typeboundary_max^D /= undefined)) then
       typeboundary(:, 2*^D) = typeboundary_max^D
     end if
     }
 
-    if (any(typeboundary == not_specified)) then
+    if (any(typeboundary == undefined)) then
       call mpistop("Not all boundary conditions have been defined")
     end if
 
@@ -811,13 +809,13 @@ contains
     end do
 
     ! Warn when too few blocks at start of simulation
-    if (mype.eq.0 .and. snapshotini.eq.-1 .and. {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
+    if (mype.eq.0 .and. restart_from_file /= undefined .and. &
+         {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
        call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
     end if
 
 
     if (mype==0) then
-       write(unitterm, '(A30,I0)') 'snapshotini: ', snapshotini
        write(unitterm, '(A30,I0)') 'slicenext: ', slicenext
        write(unitterm, '(A30,I0)') 'collapsenext: ', collapsenext
        write(unitterm, '(A30,A,A)')  'restart_from_file: ', ' ', trim(restart_from_file)
@@ -1106,7 +1104,7 @@ contains
     ! Version number
     call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
     if (all(compatible_versions /= ibuf(1))) then
-      call mpistop("Incompatible file version")
+      call mpistop("Incompatible file version (maybe old format?)")
     end if
 
     ! offset_tree
@@ -1401,6 +1399,8 @@ contains
 
   end subroutine write_snapshot
 
+  !> Routine to read in snapshots (.dat files). When it cannot recognize the
+  !> file version, it will automatically try the 'old' reader.
   subroutine read_snapshot
     use mod_forest
     use mod_global_parameters
@@ -1410,7 +1410,7 @@ contains
     integer                       :: file_handle, amode, igrid, Morton_no, iread
     integer                       :: istatus(MPI_STATUS_SIZE)
     integer                       :: iorecvstatus(MPI_STATUS_SIZE)
-    integer                       :: ipe,inrecv,nrecv
+    integer                       :: ipe,inrecv,nrecv, file_version
     logical                       :: fexist
     integer(MPI_OFFSET_KIND)      :: offset_tree_info
     integer(MPI_OFFSET_KIND)      :: offset_block_data
@@ -1420,14 +1420,25 @@ contains
     n_values = count_ix(ixG^LL) * nw
     allocate(w_buffer(n_values))
 
-    if(mype==0) then
+    if (mype==0) then
       inquire(file=trim(restart_from_file), exist=fexist)
-      if(.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
+      if (.not.fexist) call mpistop(trim(restart_from_file)//" not found!")
 
-      amode=MPI_MODE_RDONLY
-      call MPI_FILE_OPEN(MPI_COMM_SELF,restart_from_file,amode, &
+      call MPI_FILE_OPEN(MPI_COMM_SELF,restart_from_file,MPI_MODE_RDONLY, &
            MPI_INFO_NULL,file_handle,ierrmpi)
+      call MPI_FILE_READ(file_handle, file_version, 1, MPI_INTEGER, &
+           istatus, ierrmpi)
+    end if
 
+    call MPI_BCAST(file_version,1,MPI_INTEGER,0,icomm,ierrmpi)
+
+    if (all(compatible_versions /= file_version)) then
+      if (mype == 0) print *, "Unknown version, trying old snapshot reader..."
+      call MPI_FILE_CLOSE(file_handle,ierrmpi)
+      call read_snapshot_old()
+      return ! Leave this routine
+    else if (mype == 0) then
+      call MPI_FILE_SEEK(file_handle, 0_MPI_OFFSET_KIND, MPI_SEEK_SET, ierrmpi)
       call snapshot_read_header(file_handle, offset_tree_info, &
            offset_block_data)
     end if
@@ -1489,27 +1500,165 @@ contains
 
     else                        ! mype > 0
 
-       do Morton_no=Morton_start(mype),Morton_stop(mype)
-         igrid=sfc_to_igrid(Morton_no)
-         itag=Morton_no
+      do Morton_no=Morton_start(mype),Morton_stop(mype)
+        igrid=sfc_to_igrid(Morton_no)
+        itag=Morton_no
 
-          call MPI_RECV(ix_buffer, 2*ndim+1, MPI_INTEGER, 0, itag, icomm,&
-               iorecvstatus, ierrmpi)
-          {ixOmin^D = ix_buffer(^D)\}
-          {ixOmax^D = ix_buffer(ndim+^D)\}
-          n_values = ix_buffer(2*ndim+1)
+        call MPI_RECV(ix_buffer, 2*ndim+1, MPI_INTEGER, 0, itag, icomm,&
+             iorecvstatus, ierrmpi)
+        {ixOmin^D = ix_buffer(^D)\}
+        {ixOmax^D = ix_buffer(ndim+^D)\}
+        n_values = ix_buffer(2*ndim+1)
 
-          call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION,&
-               0, itag, icomm, iorecvstatus, ierrmpi)
+        call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION,&
+             0, itag, icomm, iorecvstatus, ierrmpi)
 
-          pw(igrid)%w(ixO^S, 1:nw) = reshape(w_buffer(1:n_values), &
-               shape(pw(igrid)%w(ixO^S, 1:nw)))
-        end do
+        pw(igrid)%w(ixO^S, 1:nw) = reshape(w_buffer(1:n_values), &
+             shape(pw(igrid)%w(ixO^S, 1:nw)))
+      end do
     end if
 
     call MPI_BARRIER(icomm,ierrmpi)
 
   end subroutine read_snapshot
+
+  subroutine read_snapshot_old()
+    use mod_forest
+    use mod_global_parameters
+
+    double precision              :: wio(ixG^T,1:nw)
+    integer                       :: fh, igrid, Morton_no, iread
+    integer                       :: levmaxini, ndimini, ndirini
+    integer                       :: nwini, neqparini, nxini^D
+    integer(kind=MPI_OFFSET_KIND) :: offset
+    integer                       :: istatus(MPI_STATUS_SIZE)
+    integer, allocatable          :: iorecvstatus(:,:)
+    integer                       :: ipe,inrecv,nrecv
+    integer                       :: sendini(7+^ND)
+    character(len=80)             :: filename
+    logical                       :: fexist
+    double precision              :: eqpar_dummy(100)
+
+    if (mype==0) then
+      call MPI_FILE_OPEN(MPI_COMM_SELF,trim(restart_from_file), &
+           MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierrmpi)
+
+      offset=-int(7*size_int+size_double,kind=MPI_OFFSET_KIND)
+      call MPI_FILE_SEEK(fh,offset,MPI_SEEK_END,ierrmpi)
+
+      call MPI_FILE_READ(fh,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
+      nleafs_active = nleafs
+      call MPI_FILE_READ(fh,levmaxini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(fh,ndimini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(fh,ndirini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(fh,nwini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(fh,neqparini,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(fh,it,1,MPI_INTEGER,istatus,ierrmpi)
+      call MPI_FILE_READ(fh,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+
+      ! check if settings are suitable for restart
+      if (levmaxini>refine_max_level) then
+        write(*,*) "number of levels in restart file = ",levmaxini
+        write(*,*) "refine_max_level = ",refine_max_level
+        call mpistop("refine_max_level < number of levels in restart file")
+      end if
+      if (ndimini/=ndim) then
+        write(*,*) "ndim in restart file = ",ndimini
+        write(*,*) "ndim = ",ndim
+        call mpistop("reset ndim to ndim in restart file")
+      end if
+      if (ndirini/=ndir) then
+        write(*,*) "ndir in restart file = ",ndirini
+        write(*,*) "ndir = ",ndir
+        call mpistop("reset ndir to ndir in restart file")
+      end if
+      if (nw/=nwini) then
+        write(*,*) "nw=",nw," and nw in restart file=",nwini
+        call mpistop("currently, changing nw at restart is not allowed")
+      end if
+
+      offset=offset-int(ndimini*size_int+neqparini*size_double,kind=MPI_OFFSET_KIND)
+      call MPI_FILE_SEEK(fh,offset,MPI_SEEK_END,ierrmpi)
+
+      {call MPI_FILE_READ(fh,nxini^D,1,MPI_INTEGER,istatus,ierrmpi)\}
+      if (ixGhi^D/=nxini^D+2*nghostcells|.or.) then
+        write(*,*) "Error: reset resolution to ",nxini^D+2*nghostcells
+        call mpistop("change with setamrvac")
+      end if
+
+      call MPI_FILE_READ(fh,eqpar_dummy,neqparini, &
+           MPI_DOUBLE_PRECISION,istatus,ierrmpi)
+    end if
+
+    ! broadcast the global parameters first
+    if (npe>1) then
+      if (mype==0) then
+        sendini=(/nleafs,levmaxini,ndimini,ndirini,nwini,neqparini,it ,^D&nxini^D /)
+      end if
+      call MPI_BCAST(sendini,7+^ND,MPI_INTEGER,0,icomm,ierrmpi)
+      nleafs=sendini(1);levmaxini=sendini(2);ndimini=sendini(3);
+      ndirini=sendini(4);nwini=sendini(5);
+      neqparini=sendini(6);it=sendini(7);
+      nxini^D=sendini(7+^D);
+      nleafs_active = nleafs
+      call MPI_BCAST(global_time,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    end if
+
+    if (mype == 0) then
+      offset = int(size_block_io,kind=MPI_OFFSET_KIND) * &
+           int(nleafs,kind=MPI_OFFSET_KIND)
+      call MPI_FILE_SEEK(fh,offset,MPI_SEEK_SET,ierrmpi)
+    end if
+
+    call read_forest(fh)
+
+    do Morton_no=Morton_start(mype),Morton_stop(mype)
+      igrid=sfc_to_igrid(Morton_no)
+      call alloc_node(igrid)
+    end do
+
+    if (mype==0)then
+      iread=0
+
+      do Morton_no=Morton_start(0),Morton_stop(0)
+        igrid=sfc_to_igrid(Morton_no)
+        iread=iread+1
+        offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
+             *int(Morton_no-1,kind=MPI_OFFSET_KIND)
+        call MPI_FILE_READ_AT(fh,offset,pw(igrid)%w,1,type_block_io, &
+             istatus,ierrmpi)
+      end do
+      if (npe>1) then
+        do ipe=1,npe-1
+          do Morton_no=Morton_start(ipe),Morton_stop(ipe)
+            iread=iread+1
+            itag=Morton_no
+            offset=int(size_block_io,kind=MPI_OFFSET_KIND)&
+                 *int(Morton_no-1,kind=MPI_OFFSET_KIND)
+            call MPI_FILE_READ_AT(fh,offset,wio,1,type_block_io,&
+                 istatus,ierrmpi)
+            call MPI_SEND(wio,1,type_block_io,ipe,itag,icomm,ierrmpi)
+          end do
+        end do
+      end if
+      call MPI_FILE_CLOSE(fh,ierrmpi)
+    else
+      nrecv=(Morton_stop(mype)-Morton_start(mype)+1)
+      allocate(iorecvstatus(MPI_STATUS_SIZE,nrecv))
+      inrecv=0
+      do Morton_no=Morton_start(mype),Morton_stop(mype)
+        igrid=sfc_to_igrid(Morton_no)
+        itag=Morton_no
+        inrecv=inrecv+1
+        call MPI_RECV(pw(igrid)%w,1,type_block_io,0,itag,icomm,&
+             iorecvstatus(:,inrecv),ierrmpi)
+      end do
+      deallocate(iorecvstatus)
+    end if
+
+    call MPI_BARRIER(icomm,ierrmpi)
+
+  end subroutine read_snapshot_old
 
   !> Write volume-averaged values and other information to the log file
   subroutine printlog_default

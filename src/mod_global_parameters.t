@@ -10,7 +10,7 @@ module mod_global_parameters
 
   ! Parameters
 
-  character(len=*), parameter :: not_specified = 'not_specified'
+  character(len=*), parameter :: undefined = 'undefined'
 
   integer :: ixM^LL
 
@@ -444,10 +444,6 @@ module mod_global_parameters
 
   !> Which par files are used as input
   character(len=std_len), allocatable :: par_files(:)
-
-  !> Name of input file
-  !> \todo Remove this
-  character(len=std_len) :: inifile
 
   !> Base file name for simulation output, which will be followed by a number
   character(len=std_len) :: base_filename
