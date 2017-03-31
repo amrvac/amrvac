@@ -1713,9 +1713,11 @@ contains
 
           filename = trim(base_filename) // ".log"
 
-          ! MPI cannot easily replace existing files
-          open(unit=my_unit,file=trim(filename),status='replace')
-          close(my_unit, status='delete')
+          ! Delete the log when not doing a restart run
+          if (restart_from_file == undefined) then
+             open(unit=my_unit,file=trim(filename),status='replace')
+             close(my_unit, status='delete')
+          end if
 
           amode    = ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
           amode    = ior(amode,MPI_MODE_APPEND)
