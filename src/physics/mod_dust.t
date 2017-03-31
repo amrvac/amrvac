@@ -419,10 +419,7 @@ contains
 
     double precision :: ptherm(ixI^S), vgas(ixI^S, ndir)
     double precision :: fdrag(ixI^S, ndir, dust_n_species)
-    double precision :: sum_drag(ixO^S)
-    integer          :: n, idir, sum_dim
-
-    sum_dim = ndim + 2          ! Temporary variable, used below
+    integer          :: n, idir
 
     select case( TRIM(dust_method) )
     case( 'none' )
@@ -438,18 +435,19 @@ contains
         fdrag = fdrag * qdt
 
         do idir = 1, ndir
-          sum_drag = sum(fdrag(ixO^S, idir, :), dim=sum_dim)
 
-          w(ixO^S, gas_mom(idir))  = w(ixO^S, gas_mom(idir)) + &
-               sum_drag
+          do n = 1, dust_n_species
+            w(ixO^S, gas_mom(idir))  = w(ixO^S, gas_mom(idir)) + &
+                 fdrag(ixO^S, idir, n)
 
-          if (gas_e_ > 0) then
-            w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + (wCT(ixO^S, gas_mom(idir)) / &
-                 wCT(ixO^S, gas_rho_)) * sum(fdrag(ixO^S, idir, :), dim=sum_dim)
-          end if
+            if (gas_e_ > 0) then
+              w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + (wCT(ixO^S, gas_mom(idir)) / &
+                   wCT(ixO^S, gas_rho_)) * fdrag(ixO^S, idir, n)
+            end if
 
-          w(ixO^S, dust_mom(idir, :)) = w(ixO^S, dust_mom(idir, :)) - &
-               fdrag(ixO^S, idir, :)
+            w(ixO^S, dust_mom(idir, n)) = w(ixO^S, dust_mom(idir, n)) - &
+                 fdrag(ixO^S, idir, n)
+          end do
         end do
 
         if (dust_small_to_zero) then
