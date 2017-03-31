@@ -1697,7 +1697,8 @@ contains
        dtTimeLast = now - timeLast
        itTimeLast = it
        timeLast   = now
-       cellupdatesPerSecond = dble(ncells) * dble(nstep) * dble(dit) / (dtTimeLast * dble(npe))
+       cellupdatesPerSecond = dble(ncells) * dble(nstep) * &
+            dble(dit) / (dtTimeLast * dble(npe))
 
        ! blocks per core:
        activeBlocksPerCore = dble(nleafs_active) / dble(npe)
