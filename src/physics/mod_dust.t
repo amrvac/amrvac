@@ -6,12 +6,14 @@ module mod_dust
   private
 
   !> The number of dust species
-  integer, public, protected :: dust_n_species = 0
+  integer, public, protected      :: dust_n_species = 0
 
   integer, protected              :: gas_rho_ = -1
   integer, allocatable, protected :: gas_mom(:)
-  integer, protected              :: gas_e_ = -1
-  double precision, protected     :: gas_mu = -huge(1.0d0)
+  integer, protected              :: gas_e_   = -1
+
+  !> Mean molecular weight of gas molecules
+  double precision, protected, public :: gas_mu = -huge(1.0d0)
 
   !> Indices of the dust densities
   integer, allocatable, public, protected :: dust_rho(:)
@@ -32,8 +34,8 @@ module mod_dust
   !> eqn. 5.44 using a stellar luminosity in solar luminosities
   double precision :: dust_stellar_luminosity
 
-  double precision, parameter :: hydrogen_mass_cgs = 1.6733D-24
-  double precision, parameter :: kboltzmann_cgs = 1.38065D-16
+  double precision, parameter, public :: hydrogen_mass_cgs = 1.6733D-24
+  double precision, parameter, public :: kboltzmann_cgs = 1.38065D-16
 
   !> Set small dust densities to zero to avoid numerical problems
   logical :: dust_small_to_zero = .false.
@@ -61,6 +63,7 @@ module mod_dust
   public :: dust_add_source
   public :: dust_to_conserved
   public :: dust_to_primitive
+  public :: dust_check_params
 
 contains
 
@@ -70,8 +73,6 @@ contains
     integer, intent(in) :: g_mom(ndir)
     integer, intent(in) :: g_energy ! Negative value if not present
     integer             :: n, idir
-
-    dust_n_species=1
 
     call dust_read_params(par_files)
 
@@ -122,7 +123,8 @@ contains
   end subroutine dust_read_params
 
   subroutine dust_check_params()
-    if (gas_mu <= 0.0d0) call mpistop ("Error: mu (molecular weight) negative")
+    if (gas_mu <= 0.0d0) call mpistop ("Dust error: gas_mu (molecular weight)"//&
+         "negative or not set")
   end subroutine dust_check_params
 
   subroutine dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -415,11 +417,9 @@ contains
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
 
-    double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
-    double precision, dimension(ixI^S, 1:ndir, 1:dust_n_species) :: fdrag
-    integer                                             :: n, idir, sum_dim
-
-    sum_dim = ndim + 2          ! Temporary variable, used below
+    double precision :: ptherm(ixI^S), vgas(ixI^S, ndir)
+    double precision :: fdrag(ixI^S, ndir, dust_n_species)
+    integer          :: n, idir
 
     select case( TRIM(dust_method) )
     case( 'none' )
@@ -430,22 +430,29 @@ contains
         do idir=1,ndir
           vgas(ixO^S,idir)=wCT(ixO^S,gas_mom(idir))/wCT(ixO^S,gas_rho_)
         end do
+
         call get_3d_dragforce(ixI^L, ixO^L, wCT, x, fdrag, ptherm, vgas)
+        fdrag = fdrag * qdt
 
         do idir = 1, ndir
-          fdrag(ixO^S, idir, :) = fdrag(ixO^S, idir, :) * qdt
 
-          w(ixO^S, gas_mom(idir))  = w(ixO^S, gas_mom(idir)) + &
-               sum(fdrag(ixO^S, idir, :), dim=sum_dim)
+          do n = 1, dust_n_species
+            w(ixO^S, gas_mom(idir))  = w(ixO^S, gas_mom(idir)) + &
+                 fdrag(ixO^S, idir, n)
 
-          if (gas_e_ > 0) then
-            w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + (wCT(ixO^S, gas_mom(idir)) / &
-                 wCT(ixO^S, gas_rho_)) * sum(fdrag(ixO^S, idir, :), dim=sum_dim)
-          end if
-          w(ixO^S,dust_mom(idir, :)) = w(ixO^S,dust_mom(idir, :)) - fdrag(ixO^S, idir, :)
+            if (gas_e_ > 0) then
+              w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + (wCT(ixO^S, gas_mom(idir)) / &
+                   wCT(ixO^S, gas_rho_)) * fdrag(ixO^S, idir, n)
+            end if
+
+            w(ixO^S, dust_mom(idir, n)) = w(ixO^S, dust_mom(idir, n)) - &
+                 fdrag(ixO^S, idir, n)
+          end do
         end do
 
-        if ( dust_small_to_zero ) call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
+        if (dust_small_to_zero) then
+          call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
+        end if
       endif
     end select
 

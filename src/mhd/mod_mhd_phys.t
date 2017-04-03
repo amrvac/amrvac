@@ -1217,7 +1217,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_power')
+    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
 
   end subroutine add_source_powel
 
@@ -1303,7 +1303,7 @@ contains
        end if
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
+    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
 
   end subroutine add_source_linde
 

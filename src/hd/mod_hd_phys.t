@@ -228,6 +228,7 @@ contains
 
   subroutine hd_check_params
     use mod_global_parameters
+    use mod_dust, only: dust_check_params
 
     minrho = max(0.0d0, small_density)
 
@@ -241,6 +242,8 @@ contains
        minp   = max(0.0d0, small_pressure)
        smalle = minp/(hd_gamma - 1.0d0)
     end if
+
+    if (hd_dust) call dust_check_params()
 
   end subroutine hd_check_params
 

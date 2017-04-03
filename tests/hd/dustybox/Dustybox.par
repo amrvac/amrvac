@@ -1,13 +1,10 @@
 
  &filelist
-        filenamelog='./dustyB'
-        filenameout='./output/DustyB'
-        primnames='rho v1 p rhod1 rhod2 rhod3 rhod4 v1d1 v1d2 v1d3 v1d4'
+        base_filename='./output/DustyB'
 	autoconvert=.true.
 	saveprim=.true.
  /
-        filenameini='datamr/DUSTYSEDOV/D2000'
-        snapshotini=10
+        restart_from_file='datamr/DUSTYSEDOV/D2000'
         snapshotnext=11
         convert=.true.
         convert_type='vtu'
@@ -18,56 +15,47 @@
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        ditsave(1)=1
-        !dtsave(1)=0.00001
-	dtsave(2)=10.0d0
+        ditsave_log=1
+        !dtsave_log=0.00001
+	dtsave_dat=10.0d0
  /
 
  &stoplist
         dtmin=1.d-30
-        tmax=1.0d0
+        time_max=1.0d0
  /
         itmax=1000
 
  &methodlist
-        wnames=       'rho m1 e rhod1 rhod2 rhod3 rhod4 m1d1 m1d2 m1d3 m1d4'
-        fileheadout=  'RiemannHD'
-        typeadvance=  'twostep'
-        typefull1=    13*'tvdlf'
-        typelimiter1= 13*'woodward'
+        time_integrator=  'twostep'
+        flux_scheme=    20*'tvdlf'
+        limiter= 20*'woodward'
         typelimited=  'previous'
-        useprimitive=.true.
-        typeaxial='slab'
         dimsplit=.false.
-	dustmethod = 'sticking'
-	smallrho  = 1.0d-12
-        smallp    = 1.0d-12
-	dustzero=.true.
-        smallrhod=1.0d-12
-	strictsmall = .F.
-        strictgetaux = .T.
+	small_density  = 1.0d-12
+        small_pressure    = 1.0d-12
  /
 
  &boundlist
-        dixB=    2
-        typeB=	 11*'periodic',
+        typeboundary=	 11*'periodic',
                  11*'periodic'
  /
 
- &amrlist
-        errorestimate=3
-        !flags(6)=1
-        !flags(1)=4
-        !flags(2)=2
-        !flags(3)=3
-        !wflags(1)=1.0d0
-        !wflags(2)=0.1d0
-        !wflags(3)=0.1d0
-        mxnest=1
+ &meshlist
+        refine_criterion=3
+        !w_for_refine(6)=1
+        !w_for_refine(1)=4
+        !w_for_refine(2)=2
+        !w_for_refine(3)=3
+        !w_refine_weight(1)=1.0d0
+        !w_refine_weight(2)=0.1d0
+        !w_refine_weight(3)=0.1d0
+        refine_max_level=1
         nbufferx1=0
-        tol=13*0.2d0
-        tolratio=13*0.1d0
-        nxlone1=2000
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.1d0
+        block_nx1=8
+        domain_nx1=2000
         xprobmin1=-1.0d0
         xprobmax1=1.0d0
         !iprob=4
@@ -78,4 +66,16 @@
 	typecourant='maxsum'
         courantpar=0.2d0
         slowsteps=0
+ /
+
+ &hd_list
+        hd_dust = .true.
+ /
+
+ &dust_list
+        dust_n_species     = 4
+        dust_method        = 'sticking'
+        dust_small_to_zero = .true.
+        dust_min_rho = 1.0d-12
+        gas_mu = 1.0d0
  /
