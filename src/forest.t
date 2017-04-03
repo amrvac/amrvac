@@ -302,12 +302,7 @@ type(tree_node_ptr) :: tree
 
 integer :: ic^D
 !-----------------------------------------------------------------------------
-if(typeparIO /= -1) then
-  call MPI_FILE_WRITE(file_handle,tree%node%leaf,1,MPI_LOGICAL, &
-                    status,ierrmpi)
-else
-  write(file_handle) tree%node%leaf
-end if
+call MPI_FILE_WRITE(file_handle,tree%node%leaf,1,MPI_LOGICAL,status,ierrmpi)
 
 if (.not.tree%node%leaf) then
    {do ic^DB=1,2\}
@@ -336,6 +331,7 @@ Morton_no=0
 ipe=0
 level=1
 nleafs_level(1:nlevelshi) = 0
+nparents = 0
 
 call get_Morton_range
 call level1_Morton_order
@@ -368,16 +364,11 @@ integer, intent(in) :: ig^D, level
 logical :: leaf
 integer :: ic^D, child_ig^D, child_level
 !-----------------------------------------------------------------------------
-if (typeparIO==1) then
-   call MPI_FILE_READ_ALL(file_handle,leaf,1,MPI_LOGICAL, &
-                              status,ierrmpi)
-else
- if (mype==0) then
-   call MPI_FILE_READ(file_handle,leaf,1,MPI_LOGICAL, &
-                             status,ierrmpi)
- end if
- if (npe>1)  call MPI_BCAST(leaf,1,MPI_LOGICAL,0,icomm,ierrmpi)
+if (mype==0) then
+  call MPI_FILE_READ(file_handle,leaf,1,MPI_LOGICAL, &
+                            status,ierrmpi)
 end if
+if (npe>1)  call MPI_BCAST(leaf,1,MPI_LOGICAL,0,icomm,ierrmpi)
 
 tree%node%leaf=leaf
 tree%node%ig^D=ig^D;
@@ -403,7 +394,8 @@ if (leaf) then
    tree%node%ipe=ipe
    igrid_to_node(igrid,ipe)%node => tree%node
    if (ipe==mype) sfc_to_igrid(Morton_no)=igrid
-else
+ else
+   nparents = nparents + 1
    tree%node%igrid=0
    tree%node%ipe=-1
    child_level=level+1

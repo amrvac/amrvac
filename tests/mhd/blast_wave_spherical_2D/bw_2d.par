@@ -32,11 +32,8 @@
  &meshlist
         refine_criterion=3
         refine_max_level=3
-        w_for_refine(7)=2
-        w_for_refine(1)=1
-        w_for_refine(2)=5
         w_refine_weight(1)=0.5
-        w_refine_weight(2)=0.5
+        w_refine_weight(5)=0.5
         block_nx1=16
         block_nx2=16
         domain_nx1=32

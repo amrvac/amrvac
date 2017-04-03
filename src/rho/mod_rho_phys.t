@@ -67,8 +67,6 @@ contains
     prim_wnames(nwflux)='rho'
     cons_wnames(nwflux)='rho'
 
-    nflag_ = nw+1
-
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
        allocate(flux_type(ndir, nw))

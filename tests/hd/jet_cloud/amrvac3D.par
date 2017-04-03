@@ -12,7 +12,6 @@
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBmpi'
-        typeparIO=-1
  /
 
  &savelist
@@ -34,9 +33,6 @@
         typepred1=    20*'hllc'
         limiter= 20*'mp5'
         typelimited='predictor'        dimsplit=.false.
-        strictsmall=.false.
-        strictgetaux=.false.
-        nflatgetaux=2
         small_pressure=1.0d-14
         small_density=1.0d-14
  /
@@ -53,10 +49,7 @@
  &meshlist
         refine_criterion=3
         refine_max_level=1
-	w_for_refine(7)=2
-        w_for_refine(1)=1
-	w_for_refine(2)=2
-	w_refine_weight(1)=0.8
+			w_refine_weight(1)=0.8
 	w_refine_weight(2)=0.2
         nbufferx1=0
         nbufferx2=0

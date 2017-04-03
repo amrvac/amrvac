@@ -35,7 +35,7 @@ module mod_usr_methods
   ! Refinement related procedures
   procedure(refine_grid), pointer     :: usr_refine_grid      => null()
   procedure(var_for_errest), pointer  :: usr_var_for_errest   => null()
-  procedure(amr_tolerance), pointer   :: usr_amr_tolerance    => null()
+  procedure(a_refine_threshold), pointer :: usr_refine_threshold => null()
   procedure(flag_grid), pointer       :: usr_flag_grid        => null()
 
   ! Only for MHD
@@ -212,14 +212,13 @@ module mod_usr_methods
        double precision, intent(out) :: wtf(ixI^S,1:nwtf)
      end subroutine transform_w
 
-     !> use different tolerance in special regions for AMR to
+     !> use different threshold in special regions for AMR to
      !> reduce/increase resolution there where nothing/something interesting happens.
-     subroutine amr_tolerance(wlocal,xlocal,tolerance,qt)
+     subroutine a_refine_threshold(wlocal,xlocal,threshold,qt)
        use mod_global_parameters
        double precision, intent(in)    :: wlocal(1:nw),xlocal(1:ndim),qt
-       double precision, intent(inout) :: tolerance
-       double precision                :: bczone^D,addtol,tol_add
-     end subroutine amr_tolerance
+       double precision, intent(inout) :: threshold
+     end subroutine a_refine_threshold
 
      !> Allow user to use their own data-postprocessing procedures
      subroutine special_convert(qunitconvert)

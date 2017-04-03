@@ -29,7 +29,7 @@ program amrvac
 
   call initialize_amrvac()
 
-  if (snapshotini/=-1) then
+  if (restart_from_file /= undefined) then
      ! restart from previous file or dat file conversion
      ! get input data from previous AMRVAC run
      itin=it
@@ -40,7 +40,7 @@ program amrvac
      }
 
      ! read in dat file
-     call read_snapshot
+     call read_snapshot()
 
      ! select active grids
      call selectgrids

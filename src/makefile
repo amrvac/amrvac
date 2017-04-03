@@ -24,13 +24,15 @@ mod_usr_methods.o: mod_global_parameters.o
 amr_coarsen_refine.o: mod_ghostcells_update.o
 amr_fix_conserve.o: mod_fix_conserve.o
 amrgrid.o: mod_advance.o
+amrgrid.o: mod_ghostcells_update.o
 coarsen.o: mod_physics.o
 collapse.o: mod_physics.o
 comm_lib.o: mod_ghostcells_update.o
+comm_lib.o: mod_particles.o
 convert.o: mod_ghostcells_update.o
 convert.o: mod_limiter.o
-convert.o: mod_physics.o
 convert.o: mod_mhd_phys.o
+convert.o: mod_physics.o
 geometry.o: mod_limiter.o
 geometry.o: mod_ppm.o
 magnetofriction.o: mod_input_output.o
@@ -61,8 +63,8 @@ mod_hd.o: mod_hd_ppm.o
 mod_hd.o: mod_hd_roe.o
 mod_hd_phys.o: mod_dust.o
 mod_hd_phys.o: mod_gravity.o
-mod_hd_phys.o: mod_physics.o
 mod_hd_phys.o: mod_particles.o
+mod_hd_phys.o: mod_physics.o
 mod_hd_phys.o: mod_radiative_cooling.o
 mod_hd_phys.o: mod_small_values.o
 mod_hd_phys.o: mod_thermal_conduction.o
@@ -90,8 +92,8 @@ mod_mhd.o: mod_mhd_phys.o
 mod_mhd.o: mod_mhd_ppm.o
 mod_mhd.o: mod_mhd_roe.o
 mod_mhd_phys.o: mod_gravity.o
-mod_mhd_phys.o: mod_physics.o
 mod_mhd_phys.o: mod_particles.o
+mod_mhd_phys.o: mod_physics.o
 mod_mhd_phys.o: mod_radiative_cooling.o
 mod_mhd_phys.o: mod_small_values.o
 mod_mhd_phys.o: mod_thermal_conduction.o
@@ -109,7 +111,6 @@ mod_particles.o: mod_Knuth_random.o
 mod_particles.o: mod_odeint.o
 mod_particles.o: mod_physics.o
 mod_particles.o: mod_timing.o
-mod_particles.o: mod_usr_methods.o
 mod_physics.o: mod_physics_hllc.o
 mod_physics.o: mod_physics_ppm.o
 mod_physics.o: mod_physics_roe.o

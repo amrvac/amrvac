@@ -44,8 +44,6 @@ contains
     nvector      = 0
     nworkroe     = 1
 
-    nflag_ = nw+1
-
     phys_get_v           => nonlinear_get_v
     phys_get_cmax        => nonlinear_get_cmax
     phys_get_flux        => nonlinear_get_flux

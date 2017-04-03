@@ -55,15 +55,10 @@
         refine_max_level=4
         refine_threshold=20*0.2d0
         derefine_ratio=20*0.15d0
-        w_for_refine(9)=4
-        w_for_refine(1)=1
-        w_for_refine(2)=6
-        w_for_refine(3)=7
-        w_for_refine(4)=8
         w_refine_weight(1)=0.4d0
-        w_refine_weight(2)=0.2d0
-        w_refine_weight(3)=0.2d0
-        w_refine_weight(4)=0.2d0
+        w_refine_weight(6)=0.2d0
+        w_refine_weight(7)=0.2d0
+        w_refine_weight(8)=0.2d0
         block_nx1=12
         block_nx2=12
         domain_nx1=96
@@ -80,9 +75,22 @@
         typecourant='maxsum'
         courantpar=0.8d0
  /
+
  &mhd_list
         mhd_thermal_conduction=.true.
         mhd_radiative_cooling=.true.
         mhd_gravity=.true.
         typedivbfix='linde'
+ /
+ &tc_list
+        tc_perpendicular=.false.
+        tc_saturate=.true.
+ /
+
+ &rc_list
+        ncool=4000
+        coolcurve='JCcorona'
+        coolmethod='exact'
+        cfrac=1.d0
+        Tfix=.false.
  /

@@ -186,4 +186,3 @@ subroutine mpistop(message)
   call MPI_ABORT(icomm, ierrcode, ierrmpi)
 
 end subroutine mpistop
-

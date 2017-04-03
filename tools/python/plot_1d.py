@@ -101,8 +101,8 @@ def get_data_1d(dat, args):
         lvl = block_lvls[i]
         ix = block_ixs[i]
 
-        x0 = (ix-1) * nx * dx0 * 0.5**(lvl-1)
-        x1 = ix * nx * dx0 * 0.5**(lvl-1)
+        x0 = (ix-1) * nx * dx0 * 0.5**(lvl-1) + dx0 * 0.5**lvl + h['xmin']
+        x1 = ix * nx * dx0 * 0.5**(lvl-1) - dx0 * 0.5**lvl + h['xmin']
         x = np.linspace(x0, x1, nx)
 
         # Read number of ghost cells
@@ -124,6 +124,7 @@ h, data_1d = get_data_1d(args.dat_file, args)
 
 fig, ax = plt.subplots()
 line, = ax.plot(data_1d[:,0], data_1d[:,args.iw])
+ax.set_title('t = {}'.format(h['time']))
 ax.set_xlabel('x')
 ax.set_ylabel(h['w_names'][args.iw-1])
 plt.show()

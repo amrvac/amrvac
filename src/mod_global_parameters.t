@@ -10,7 +10,7 @@ module mod_global_parameters
 
   ! Parameters
 
-  character(len=*), parameter :: not_specified = 'not_specified'
+  character(len=*), parameter :: undefined = 'undefined'
 
   integer :: ixM^LL
 
@@ -192,8 +192,7 @@ module mod_global_parameters
   integer           :: nw
   integer           :: nvector
 
-  integer                       :: nflag_
-  integer, allocatable          :: w_for_refine(:)
+  !> Weights of variables used to calculate error for mesh refinement
   double precision, allocatable :: w_refine_weight(:)
 
   integer, dimension(:), allocatable :: iw_vector
@@ -320,10 +319,6 @@ module mod_global_parameters
   !> \todo Move to mod_input_output
   integer :: n_saves(1:nfile)
 
-  !> Options are 1: Parallel MPI output, 0: master-slave parallel IO, -1:
-  !> master-slave IO without MPI (no MPI_FILE_WRITE, MPI_FILE_OPEN etc)
-  integer :: typeparIO
-
   !> Fix the AMR grid after this time
   double precision :: tfixgrid
 
@@ -448,10 +443,6 @@ module mod_global_parameters
 
   !> Which par files are used as input
   character(len=std_len), allocatable :: par_files(:)
-
-  !> Name of input file
-  !> \todo Remove this
-  character(len=std_len) :: inifile
 
   !> Base file name for simulation output, which will be followed by a number
   character(len=std_len) :: base_filename

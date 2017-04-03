@@ -233,7 +233,6 @@ contains
     nwaux   = 0
     nwextra = 0
     nw      = nwflux + nwaux + nwextra
-    nflag_  = nw + 1
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -282,7 +281,7 @@ contains
 
     ! Initialize radiative cooling module
     if (mhd_radiative_cooling) then
-      call radiative_cooling_init(mhd_gamma)
+      call radiative_cooling_init(mhd_gamma,He_abundance)
     end if
 
     ! Initialize viscosity module
@@ -800,7 +799,7 @@ contains
           call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
        case ('glm3')
           call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('powel')
+       case ('powel', 'powell')
           call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
        case ('janhunen')
           call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -812,6 +811,10 @@ contains
        case ('lindepowel')
           call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
           call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+       case ('none')
+         ! Do nothing
+       case default
+         call mpistop('Unknown divB fix')
        end select
     end if
     }
@@ -1213,7 +1216,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_power')
+    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
 
   end subroutine add_source_powel
 
@@ -1299,7 +1302,7 @@ contains
        end if
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
+    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
 
   end subroutine add_source_linde
 

@@ -7,7 +7,8 @@ integer :: Morton_no, recv_igrid, recv_ipe, send_igrid, send_ipe, igrid, ipe
 
 integer, external :: getnode
 
-call get_Morton_range_active
+! Jannis: for now, not using version for passive/active blocks
+call get_Morton_range()
 
 if (npe==1) then
    sfc_to_igrid(:)=sfc(1,Morton_start(mype):Morton_stop(mype))
@@ -151,8 +152,8 @@ allocate(gsq_sfc(ngsq^D))
    if (ig^D>ng^D(1)|.or.) then
       where(gsq_sfc>=gsq_sfc(ig^D))
          gsq_sfc=gsq_sfc-1
-      end where 
-   end if  
+      end where
+   end if
 {end do\}
 ! copy the modified Morton numbers to the blocks in the domain
 allocate(iglevel1_sfc(ng^D(1)))
@@ -240,32 +241,42 @@ end subroutine get_Morton_number
 ! end of internal procedures
 !=============================================================================
 end subroutine amr_Morton_order
-!=============================================================================
+
+!> Set the Morton range for each processor
 subroutine get_Morton_range
 use mod_forest
 use mod_global_parameters
 
-integer :: ipe
+integer :: ipe, blocks_left, procs_left, num_blocks
 !-----------------------------------------------------------------------------
 if (allocated(sfc_to_igrid)) deallocate(sfc_to_igrid)
 {#IFDEF EVOLVINGBOUNDARY
 if (allocated(sfc_phybound)) deallocate(sfc_phybound)
 }
-do ipe=0,npe-1
-   Morton_start(ipe)=1+ipe*int(nleafs/npe)+min(ipe,mod(nleafs,npe))
-   Morton_stop(ipe)=(ipe+1)*int(nleafs/npe)+min(ipe+1,mod(nleafs,npe))
+
+blocks_left = nleafs
+
+do ipe = 0, npe-1
+  if (ipe == 0) then
+    Morton_start(ipe) = 1
+  else
+    Morton_start(ipe) = Morton_stop(ipe-1) + 1
+  end if
+
+  ! Compute how many blocks this cpu should take
+  procs_left = npe - ipe
+  num_blocks = ceiling(blocks_left / dble(procs_left))
+  Morton_stop(ipe) = Morton_start(ipe) + num_blocks - 1
+  blocks_left = blocks_left - num_blocks
 end do
-if (Morton_stop(mype)>=Morton_start(mype)) then
-   allocate(sfc_to_igrid(Morton_start(mype):Morton_stop(mype)))
+
+allocate(sfc_to_igrid(Morton_start(mype):Morton_stop(mype)))
 {#IFDEF EVOLVINGBOUNDARY
-   allocate(sfc_phybound(nleafs))
-   sfc_phybound=0
+allocate(sfc_phybound(nleafs))
+sfc_phybound=0
 }
-end if
 
 end subroutine get_Morton_range
-!=============================================================================
-
 !=============================================================================
 subroutine get_Morton_range_active
 use mod_forest

@@ -1,6 +1,7 @@
 !setup.pl -d=2
  &filelist
-        base_filename='bw_cartesian_2D'
+        typefilelog='regression_test'
+        base_filename='bw_2d'
         saveprim=.true.
         convert_type='vtuBCCmpi'
         autoconvert=.true.
@@ -8,14 +9,11 @@
  /
 
  &savelist
-        itsave(1,1)=0
-        itsave(1,2)=0
-        ditsave_log=1
-        dtsave_dat=0.05d0
+        dtsave_log       = 1.d-3
  /
 
  &stoplist
-        time_max=0.25d0
+        time_max            = 5.d-2
 /
 
  &methodlist
@@ -34,12 +32,8 @@
  &meshlist
         refine_criterion=3
         refine_max_level=3
-        w_for_refine(5)=2
-        w_for_refine(1)=1
-        w_for_refine(2)=4
         w_refine_weight(1)=0.5d0
-        w_refine_weight(2)=0.5d0
-        refine_threshold=20*0.2d0
+        w_refine_weight(4)=0.5d0
         block_nx1=16
         block_nx2=16
         domain_nx1=32

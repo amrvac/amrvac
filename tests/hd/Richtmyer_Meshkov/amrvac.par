@@ -5,8 +5,7 @@
 	base_filename= '/scratch/leuven/304/vsc30438/RMDust/rmDust'
         restart_from_file= '/scratch/leuven/304/vsc30438/RMDust/rmDust'
 	convert_type='vtuBCCmpi'
-	snapshotini=365
-	snapshotnext=366
+		snapshotnext=366
 	!w_write=.T.,3*.F.
 	nwauxio=1
  /
@@ -48,13 +47,9 @@
  &meshlist
         refine_criterion=3
         refine_max_level=7
-	w_for_refine(17)=3
-	w_for_refine(1)=1
-	w_for_refine(2)=5
-	w_for_refine(3)=8
-	w_refine_weight(1)=0.6d0
-	w_refine_weight(2)=0.1d0
-	w_refine_weight(3)=0.3d0
+					w_refine_weight(1)=0.6d0
+	w_refine_weight(5)=0.1d0
+	w_refine_weight(8)=0.3d0
 	refine_threshold=20*0.05
 	derefine_ratio=20*0.125d0
         domain_nx1=120

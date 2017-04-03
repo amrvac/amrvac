@@ -90,7 +90,7 @@ contains
     w(ixG^S,mom(2))=0.01d0*dsin(kx*x(ixG^S,1))* &
          (dexp(-0.5d0*(x(ixG^S,2)-0.25d0)**2/sigma)+dexp(-0.5d0*(x(ixG^S,2)-0.75d0)**2/sigma))
     {^IFTHREED
-    w(ixG^S,v3_)=0.1d0*dsin(kz*x(ixG^S,3))* &
+    w(ixG^S,mom(3))=0.1d0*dsin(kz*x(ixG^S,3))* &
          (dexp(-0.5d0*(x(ixG^S,2)-0.25d0)**2/sigma)+dexp(-0.5d0*(x(ixG^S,2)-0.75d0)**2/sigma))
     }
 

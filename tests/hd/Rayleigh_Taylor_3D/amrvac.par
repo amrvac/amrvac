@@ -1,7 +1,7 @@
 !setup.pl -d=3
 
 &filelist
-  base_filename      = 'rthd_3d'
+  base_filename      = 'rt_3d'
   autoconvert      = .true.
   convert_type     = 'vtuBCCmpi'
   saveprim         = .true.

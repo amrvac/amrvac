@@ -684,7 +684,7 @@ endif
 
 !> @todo fix later
 ! {^IFMHDPHYS
-! if (B0field) w(ixM^T,b1_:b0_+ndir) = w(ixM^T,b1_:b0_+ndir) + pB0_cell(igrid)%w(ixM^T,1:ndir)
+! if (B0field) w(ixM^T,mag(1):b0_+ndir) = w(ixM^T,mag(1):b0_+ndir) + pB0_cell(igrid)%w(ixM^T,1:ndir)
 ! {#IFDEF ENERGY
 ! if((.not.saveprim) .and. B0field) then
 !    w(ixM^T,e_)=w(ixM^T,e_) &
