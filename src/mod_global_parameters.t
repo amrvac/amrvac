@@ -192,8 +192,7 @@ module mod_global_parameters
   integer           :: nw
   integer           :: nvector
 
-  integer                       :: nflag_
-  integer, allocatable          :: w_for_refine(:)
+  !> Weights of variables used to calculate error for mesh refinement
   double precision, allocatable :: w_refine_weight(:)
 
   integer, dimension(:), allocatable :: iw_vector

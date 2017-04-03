@@ -13,7 +13,6 @@
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBCCmpi'
-        typeparIO=-1
  /
 
  &savelist
@@ -48,10 +47,7 @@
  &meshlist
         refine_criterion=3
         refine_max_level=2
-	w_for_refine(6)=2
-        w_for_refine(1)=1
-	w_for_refine(2)=2
-	w_refine_weight(1)=0.8
+			w_refine_weight(1)=0.8
 	w_refine_weight(2)=0.2
         nbufferx1=0
         nbufferx2=0

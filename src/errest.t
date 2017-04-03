@@ -68,7 +68,7 @@ use mod_global_parameters
 
 integer, intent(in) :: igrid
 
-integer                            :: iiflag, iflag, idims, idims2, level
+integer                            :: iflag, idims, idims2, level
 integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
 double precision                   :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
@@ -80,7 +80,9 @@ level   = node(plevel_,igrid)
 ix^L=ixM^LL^LADD1;
 
 error=zero
-do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
+do iflag=1,nw+1
+
+   if(w_refine_weight(iflag)==0) cycle
    numerator=zero
 
    if (iflag > nw) then
@@ -95,13 +97,13 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
       hx^L=ix^L-kr(^D,idims);
       jx^L=ix^L+kr(^D,idims);
       if (iflag<=nw) then
-        if (logflag(iiflag)) then
+        if (logflag(iflag)) then
           tmp(ix^S)=dlog10(pw(igrid)%w(jx^S,iflag))-dlog10(pw(igrid)%w(hx^S,iflag))
         else
           tmp(ix^S)=pw(igrid)%w(jx^S,iflag)-pw(igrid)%w(hx^S,iflag)
         end if
       else
-        if (logflag(iiflag)) then
+        if (logflag(iflag)) then
           tmp(ix^S)=dlog10(tmp1(jx^S))-dlog10(tmp1(hx^S))
         else
           tmp(ix^S)=tmp1(jx^S)-tmp1(hx^S)
@@ -116,13 +118,13 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
    denominator=zero
    do idims=1,ndim
       if (iflag<=nw) then
-         if (logflag(iiflag)) then
+         if (logflag(iflag)) then
           tmp=dabs(dlog10(pw(igrid)%w(ixG^T,iflag)))
          else
           tmp=dabs(pw(igrid)%w(ixG^T,iflag))
          end if
       else
-         if (logflag(iiflag)) then
+         if (logflag(iflag)) then
           tmp=dabs(dlog10(tmp1(ixG^T)))
          else
           tmp=dabs(tmp1(ixG^T))
@@ -134,7 +136,7 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
       hx^L=ixM^LL-2*kr(^D,idims);
       jx^L=ixM^LL+2*kr(^D,idims);
       if (iflag<=nw) then
-        if (logflag(iiflag)) then
+        if (logflag(iflag)) then
           tmp(ixM^T)=dabs(dlog10(pw(igrid)%w(jx^S,iflag))&
                      -dlog10(pw(igrid)%w(ixM^T,iflag))) &
                      +dabs(dlog10(pw(igrid)%w(ixM^T,iflag))&
@@ -144,7 +146,7 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
                       +dabs(pw(igrid)%w(ixM^T,iflag)-pw(igrid)%w(hx^S,iflag))
         end if
       else
-        if (logflag(iiflag)) then
+        if (logflag(iflag)) then
           tmp(ixM^T)=dabs(dlog10(tmp1(jx^S))-dlog10(tmp1(ixM^T))) &
                     +dabs(dlog10(tmp1(ixM^T))-dlog10(tmp1(hx^S)))
         else
@@ -159,7 +161,7 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
                     +(tmp(ixM^T)+amr_wavefilter(level)*(tmp2(j2x^S)+tmp2(h2x^S)))**2
       end do
    end do
-   error=error+w_refine_weight(iiflag)*dsqrt(numerator/max(denominator,epsilon))
+   error=error+w_refine_weight(iflag)*dsqrt(numerator/max(denominator,epsilon))
 end do
 
 refineflag=.false.
@@ -193,7 +195,7 @@ subroutine lohner_orig_grid(igrid)
 
 integer, intent(in) :: igrid
 
-integer :: iiflag, iflag, idims, level
+integer :: iflag, idims, level
 integer :: ix^L, hx^L, jx^L, ix^D
 double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
 double precision, dimension(ixM^T) :: numerator, denominator, error
@@ -205,7 +207,8 @@ level=node(plevel_,igrid)
 ix^L=ixM^LL;
 
 error=zero
-do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
+do iflag=1,nw+1
+   if(w_refine_weight(iflag)==0) cycle
    numerator=zero
    denominator=zero
 
@@ -221,7 +224,7 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
       hx^L=ix^L-kr(^D,idims);
       jx^L=ix^L+kr(^D,idims);
       if (iflag<=nw) then
-        if (logflag(iiflag)) then
+        if (logflag(iflag)) then
           dp(ix^S)=dlog10(pw(igrid)%w(jx^S,iflag))-dlog10(pw(igrid)%w(ix^S,iflag))
           dm(ix^S)=dlog10(pw(igrid)%w(ix^S,iflag))-dlog10(pw(igrid)%w(hx^S,iflag))
           dref(ixM^T)=dabs(dlog10(pw(igrid)%w(jx^S,iflag)))&
@@ -234,7 +237,7 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
                       +dabs(pw(igrid)%w(hx^S,iflag))
         end if
       else
-        if (logflag(iiflag)) then
+        if (logflag(iflag)) then
           dp(ix^S)=dlog10(tmp1(jx^S))-dlog10(tmp1(ix^S))
           dm(ix^S)=dlog10(tmp1(ix^S))-dlog10(tmp1(hx^S))
           dref(ix^S)=dabs(dlog10(tmp1(jx^S)))&
@@ -254,7 +257,7 @@ do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
            + (dabs(dp(ixM^T)) + dabs(dm(ixM^T)) + amr_wavefilter(level)*dref(ixM^T))**2.0d0
 
    end do
-   error=error+w_refine_weight(iiflag)*dsqrt(numerator/max(denominator,epsilon))
+   error=error+w_refine_weight(iflag)*dsqrt(numerator/max(denominator,epsilon))
 end do
 
 refineflag=.false.
@@ -289,10 +292,10 @@ subroutine compare1_grid(igrid,wold,w)
 integer, intent(in) :: igrid
 double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
 
-integer :: ix^D, iiflag, iflag, level
+integer :: ix^D, iflag, level
 double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
 double precision :: average, error
-double precision :: averages(nflag_)
+double precision :: averages(nw)
 logical, dimension(ixG^T) :: refineflag, coarsenflag
 !-----------------------------------------------------------------------------
 ! identify the points to be flagged in two steps:
@@ -308,14 +311,15 @@ threshold=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB \}
    average=zero
    error=zero
-   do iiflag=1,w_for_refine(nflag_); iflag=w_for_refine(iiflag);
+   do iflag=1,nw+1
+      if(w_refine_weight(iflag)==0) cycle
       averages(iflag) = w(ix^D,iflag)-wold(ix^D,iflag)
-      average=average+w_refine_weight(iiflag)*abs(averages(iflag))
+      average=average+w_refine_weight(iflag)*abs(averages(iflag))
       if (abs(wold(ix^D,iflag))<smalldouble)then
-         error=error+w_refine_weight(iiflag)* &
+         error=error+w_refine_weight(iflag)* &
             abs(averages(iflag))/(abs(wold(ix^D,iflag))+epsilon)
       else
-         error=error+w_refine_weight(iiflag)* &
+         error=error+w_refine_weight(iflag)* &
             abs(averages(iflag))/(abs(wold(ix^D,iflag)))
       end if
    end do

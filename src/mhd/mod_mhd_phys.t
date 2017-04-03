@@ -233,7 +233,6 @@ contains
     nwaux   = 0
     nwextra = 0
     nw      = nwflux + nwaux + nwextra
-    nflag_  = nw + 1
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then

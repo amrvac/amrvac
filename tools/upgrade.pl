@@ -94,6 +94,26 @@ my %par_file_replacements = (
     qr/ *nflatgetaux *=.*\n/ => "", # Remove nflatgetaux = ... lines
     qr/ *\bconduction\b *=.*\n/ => "", # Remove conduction = ... lines
     qr/ *TCsaturate *=.*\n/ => "", # Remove TCsaturate = ... lines
+    qr/ *w_for_refine\(1\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(2\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(3\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(4\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(5\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(6\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(7\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(8\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(9\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(10\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(11\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(12\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(13\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(14\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(15\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(16\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(17\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(18\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(19\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
+    qr/ *w_for_refine\(20\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/tsave\(1\)/ => "tsave_log",
     qr/tsave\(2\)/ => "tsave_dat",
     qr/tsave\(3\)/ => "tsave_slice",

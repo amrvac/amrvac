@@ -36,11 +36,8 @@
  &meshlist
         refine_criterion=3
         refine_max_level=3
-        w_for_refine(9)=2
-        w_for_refine(1)=1
-        w_for_refine(2)=5
         w_refine_weight(1)=0.5d0
-        w_refine_weight(2)=0.5d0
+        w_refine_weight(5)=0.5d0
         refine_threshold=20*0.2d0
         block_nx1=8
         block_nx2=8

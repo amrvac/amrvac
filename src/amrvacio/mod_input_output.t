@@ -145,8 +145,7 @@ contains
     namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,&
          derefine_ratio, refine_criterion, stretched_grid, qst, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
-         w_refine_weight,w_for_refine,&
-         prolongprimitive,coarsenprimitive, &
+         w_refine_weight, prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
          logflag,tfixgrid,itfixgrid,ditregrid
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
@@ -239,13 +238,8 @@ contains
     prolongprimitive            = .false.
     typeprolonglimit            = 'default'
     refine_criterion               = 3
-    allocate(w_for_refine(nflag_))
-    allocate(w_refine_weight(nflag_))
-    w_for_refine(1:nflag_)             = 0
-    w_refine_weight(1:nflag_)            = zero
-    w_for_refine(nflag_)               = 1
-    w_for_refine(1)                    = 1
-    w_refine_weight(1)                   = one
+    allocate(w_refine_weight(nw+1))
+    w_refine_weight                    = 0.d0
     allocate(logflag(nw))
     logflag(1:nw)               = .false.
     allocate(amr_wavefilter(nlevelshi))
@@ -757,16 +751,10 @@ contains
        call mpistop("Reset nlevelshi and recompile!")
     endif
 
-    if (w_for_refine(nflag_)>nw) then
-       write(unitterm,*)'Error: w_for_refine(nw+1)=',w_for_refine(nw+1),'>nw ',nw
-       call mpistop("Reset w_for_refine(nw+1)!")
-    end if
-    if (w_for_refine(nflag_)==0) refine_criterion=0
-    if (w_for_refine(nflag_)<0) then
-       if (mype==0) then
-          write(unitterm,*) "w_for_refine(",nflag_,") can not be negative"
-          call mpistop("")
-       end if
+    if(sum(w_refine_weight(:))==0) w_refine_weight(1) = 1.d0
+    if(dabs(sum(w_refine_weight(:))-1.d0)>smalldouble) then
+      write(unitterm,*) "Sum of all elements in w_refine_weight be 1.d0"
+      call mpistop("Reset w_refine_weight so the sum is 1.d0")
     end if
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Error estimation: '

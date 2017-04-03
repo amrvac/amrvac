@@ -40,11 +40,6 @@
  &meshlist
         refine_criterion=3
         refine_max_level=3
-        w_for_refine(9)=4
-        w_for_refine(1)=1
-        w_for_refine(2)=2
-        w_for_refine(3)=3
-        w_for_refine(4)=4
         w_refine_weight(1)=0.4d0
         w_refine_weight(2)=0.2d0
         w_refine_weight(3)=0.2d0

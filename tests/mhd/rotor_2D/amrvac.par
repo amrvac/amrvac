@@ -32,13 +32,9 @@
  &meshlist
         refine_criterion=3
         refine_max_level=3
-        w_for_refine(7)=3
-        w_for_refine(1)=1
-        w_for_refine(2)=5
-        w_for_refine(3)=6
         w_refine_weight(1)=0.8
-        w_refine_weight(2)=0.1
-        w_refine_weight(3)=0.1
+        w_refine_weight(5)=0.1
+        w_refine_weight(6)=0.1
         refine_threshold=20*0.1d0
         domain_nx1=32
         domain_nx2=32
