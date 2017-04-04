@@ -1,14 +1,11 @@
-!=============================================================================
+!> Get first available igrid on processor ipe
 integer function getnode(ipe)
 use mod_forest, only: igrid_inuse
 use mod_global_parameters
 
-! getnode = get first available igrid on processor ipe
-
 integer, intent(in) :: ipe
-
 integer :: igrid, igrid_available
-!----------------------------------------------------------------------------
+
 igrid_available=0
 
 do igrid=1,max_blocks
@@ -18,7 +15,8 @@ do igrid=1,max_blocks
    exit
 end do
 
-if (igrid_available==0) then
+if (igrid_available == 0) then
+   getnode = -1
    write(unitterm,*) " out of nodal space - allowed ",max_blocks," grids"
    call mpistop("")
 else

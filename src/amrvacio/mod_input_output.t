@@ -637,9 +637,12 @@ contains
           do iw=1,nw
              if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
-             if (typeboundary(iw,2*idim-1) /= 'periodic' .and. typeboundary(iw,2*idim-1) /= 'aperiodic') &
-                  call mpistop("Each dimension should either have all &
-                  or no variables periodic, some can be aperiodic")
+
+             if (typeboundary(iw,2*idim-1) /= 'periodic' .and. &
+                  typeboundary(iw,2*idim-1) /= 'aperiodic') then
+               call mpistop("Each dimension should either have all "//&
+                    "or no variables periodic, some can be aperiodic")
+             end if
           end do
        end if
     end do
@@ -1300,7 +1303,7 @@ contains
         call mpistop("Unexpected difference in offsets when writing .dat file")
       end if
 
-      block_offset(1) = offset_block_data
+      block_offset(1) = int(offset_block_data)
       iwrite = 0
     end if
 

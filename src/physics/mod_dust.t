@@ -191,7 +191,6 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
     double precision, intent(inout) :: f(ixI^S, nwflux)
-    double precision                :: vdust(ixI^S)
     integer                         :: n, idir
 
     do n = 1, dust_n_species
@@ -261,8 +260,6 @@ contains
     integer                            :: n, idir
     double precision                   :: K
 
-    ! call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
-
     vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
     select case( TRIM(dust_method) )
@@ -323,7 +320,7 @@ contains
         end do
       end do
     case('none')
-      fdrag(ixO^S, idir, :) = 0.0d0
+      fdrag(ixO^S, :, :) = 0.0d0
     case default
       call mpistop( "=== This dust method has not been implemented===" )
     end select
@@ -489,7 +486,7 @@ contains
     double precision, dimension(ixI^S)         :: vt2, deltav, tstop, vdust
     double precision, dimension(ixI^S, 1:dust_n_species) :: alpha_T
     double precision                           :: K
-    integer                                    :: n, idims, idust, idir
+    integer                                    :: n, idir
 
     call phys_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
     do idir = 1, ndir

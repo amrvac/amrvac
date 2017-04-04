@@ -98,7 +98,7 @@ contains
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
-    character*79                    :: savetypelimiter
+    character(len=std_len)          :: savetypelimiter
 
     select case (typelimiter)
     case ('mp5')
@@ -142,7 +142,7 @@ contains
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
-    character*79                    :: savetypelimiter
+    character(len=std_len)          :: savetypelimiter
 
     select case (typelimiter)
     case ('mp5')

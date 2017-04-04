@@ -92,13 +92,19 @@ subroutine set_pole
     end if}
   case ("cylindrical")
     {if (^D == phi_ .and. periodB(^D)) then
-      if(mod(ng^D(1),2)/=0) &
+      if(mod(ng^D(1),2)/=0) then
         call mpistop("Number of meshes in phi-direction should be even!")
+      end if
+
       if(abs(xprobmin1)<smalldouble) then
-        if(mype==0) write(unitterm,*) "Will apply pi-periodic conditions at r=0"
+        if (mype==0) then
+          write(unitterm,*) "Will apply pi-periodic conditions at r=0"
+        end if
         poleB(1,1)=.true.
       else
-        if(mype==0) write(unitterm,*) "There is no cylindrical axis!"
+        if (mype==0) then
+          write(unitterm,*) "There is no cylindrical axis!"
+        end if
       end if
     end if\}
   end select
@@ -461,7 +467,7 @@ double precision :: dxdim
 double precision,dimension(ixI^S):: qC,qL,qR,dqC,ldq
 double precision :: invdx
 integer :: hx^L,ixC^L,jxC^L,gxC^L,hxC^L,idummy
-character*79 :: savetypelimiter,savetypegradlimiter,save2typelimiter
+character(len=std_len) :: savetypelimiter,savetypegradlimiter,save2typelimiter
 
 invdx=1.d0/dxlevel(idir)
 hx^L=ix^L-kr(idir,^D);
@@ -693,7 +699,7 @@ double precision,dimension(ixG^T):: qL,qR,dqC,ldq
 double precision :: dxdim, invdx(1:ndim)
 
 integer :: hxO^L,ixC^L,jxC^L,idims,ix^L,gxC^L,hxC^L,idummy
-character*79, save :: savetypelimiter,savetypegradlimiter,save2typelimiter
+character(len=std_len), save :: savetypelimiter,savetypegradlimiter,save2typelimiter
 !-----------------------------------------------------------------------------
 ix^L=ixO^L^LADD2;
 
