@@ -302,8 +302,8 @@ end if
 do iigrid=1,igridstail; igrid=igrids(iigrid)
    if(.not.writeblk(igrid)) cycle
    block=>pw(igrid)
-   if(allocated(pw(igrid)%w0)) &
-     pw(igrid)%wio(ixG^T,mag(:))=pw(igrid)%wio(ixG^T,mag(:))+pw(igrid)%w0(ixG^T,:,0)
+   if(allocated(pw(igrid)%B0)) &
+     pw(igrid)%wio(ixG^T,mag(:))=pw(igrid)%wio(ixG^T,mag(:))+pw(igrid)%B0(ixG^T,:,0)
 end do
 
 Master_cpu_open : if (mype == 0) then
@@ -1056,11 +1056,11 @@ endif
 !  extra layer around mesh only needed when storing corner values and averaging
 if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),pw(igrid)%x)
 
-if(allocated(pw(igrid)%w0)) then
-  w(ixC^S,mag(:))=w(ixC^S,mag(:))+pw(igrid)%w0(ixC^S,:,0)
+if(allocated(pw(igrid)%B0)) then
+  w(ixC^S,mag(:))=w(ixC^S,mag(:))+pw(igrid)%B0(ixC^S,:,0)
   if(.not.saveprim.and.phys_energy) then
-    w(ixC^S,e_)=w(ixC^S,e_)+0.5d0*sum(pw(igrid)%w0(ixC^S,:,0)**2,dim=ndim+1) &
-          + sum(w(ixC^S,mag(:))*pw(igrid)%w0(ixC^S,:,0),dim=ndim+1)
+    w(ixC^S,e_)=w(ixC^S,e_)+0.5d0*sum(pw(igrid)%B0(ixC^S,:,0)**2,dim=ndim+1) &
+          + sum(w(ixC^S,mag(:))*pw(igrid)%B0(ixC^S,:,0),dim=ndim+1)
   end if
 end if
 ! compute the cell-center values for w first
