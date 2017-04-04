@@ -25,9 +25,10 @@ contains
     use mod_global_parameters
     use mod_dust
 
-    double precision     :: r(0:dust_n_species)
-    integer              :: i
-    logical, save        :: first=.true.
+    double precision :: r(0:dust_n_species)
+    double precision :: dsdust(dust_n_species)
+    integer          :: i
+    logical, save    :: first = .true.
 
     hd_gamma=1.4d0
 
@@ -56,25 +57,26 @@ contains
       ! To do this, assume the particle distribution goes as r^-3.5
       r(0) = min_ar
       do i=1,dust_n_species
-        r(i) = (dsqrt(r(i-1)) +(dsqrt(max_ar)- &
-             dsqrt(min_ar))/dust_n_species)**2.0d0
-        dust_size(i) = r(i)-r(i-1)
+        r(i) = (sqrt(r(i-1)) +(sqrt(max_ar)- &
+             sqrt(min_ar))/dust_n_species)**2.0d0
+        dsdust(i) = r(i)-r(i-1)
       end do
 
       ! ! now calculate the weighted mean size of each bin, again assuming n goes as r^-3.5
-      ! do i=1,dust_n_species
-      !    sdust(i) = (5.0d0/3.0d0)*(r(i)**(-1.5d0) - r(i-1)**(-1.5d0)) &
-      !         /(r(i)**(-2.5d0) - r(i-1)**(-2.5d0))
-      ! end do
+      do i=1,dust_n_species
+         dust_size(i) = (5.0d0/3.0d0)*(r(i)**(-1.5d0) - r(i-1)**(-1.5d0)) &
+              /(r(i)**(-2.5d0) - r(i-1)**(-2.5d0))
+      end do
 
-      ! if(first)then
-      !    if(mype==0)then
-      !       do i=1,dust_n_species
-      !          write(*,*) 'Dust type ',i,': grain radius r=',sdust(i)*length_convert_factor
-      !       end do
-      !    endif
-      !    first=.false.
-      ! endif
+      if(first)then
+         if(mype==0)then
+            do i=1,dust_n_species
+              write(*,*) 'Dust type ',i,': grain radius r=', &
+                   dust_size(i)*length_convert_factor
+            end do
+         endif
+         first=.false.
+      endif
     end if
 
   end subroutine initglobaldata_usr
