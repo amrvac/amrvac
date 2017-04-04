@@ -31,8 +31,8 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), allocatable :: wio
       !> Variables, normally center, one level coarser representative
       double precision, dimension(:^D&,:), allocatable :: wcoarse
-      !> Background fixed components of w at cell center and cell interface
-      double precision, dimension(:^D&,:,:), allocatable :: w0
+      !> Time-independent magnetic field at cell center and cell interface
+      double precision, dimension(:^D&,:,:), allocatable :: B0
       !> Cell-center positions
       double precision, dimension(:^D&,:), allocatable :: x
       !> Cell-center positions, one level coarser representative

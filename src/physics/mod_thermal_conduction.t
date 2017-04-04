@@ -476,7 +476,7 @@ contains
     end do
     ! B
     if(B0field) then
-      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+block%w0(ix^S,1:ndir,0)
+      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+block%B0(ix^S,1:ndir,0)
     else
       mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir));
     end if
@@ -641,7 +641,7 @@ contains
     
     ! B
     if(B0field) then
-      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+block%w0(ixO^S,1:ndir,0)
+      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+block%B0(ixO^S,1:ndir,0)
     else
       mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))
     end if

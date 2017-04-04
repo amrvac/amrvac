@@ -891,7 +891,7 @@ module mod_particles
 
     if (B0field) then
        do idir = 1, ndir
-          bvec(ixI^S,idir)=w(ixI^S,mag(idir))+block%w0(ixI^S,idir,0)
+          bvec(ixI^S,idir)=w(ixI^S,mag(idir))+block%B0(ixI^S,idir,0)
        end do
     else
        do idir = 1, ndir
