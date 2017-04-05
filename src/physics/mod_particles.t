@@ -5,11 +5,11 @@ module mod_particles
   use mod_physics
   implicit none
 
-  !> String describing the physics type of the p
+  !> String describing the particle physics type
   character(len=name_len) :: physics_type_particles = ""
-  !> Maximal number of particles
+  !> Maximum number of particles
   integer                                :: nparticleshi
-  !> Maximal number of particles in one processor
+  !> Maximum number of particles in one processor
   integer                                :: nparticles_per_cpu_hi
   !> Number of additional variables for a particle
   integer                                :: npayload
@@ -21,7 +21,7 @@ module mod_particles
   double precision                       :: t_particles
   !> Time step of particles
   double precision                       :: dt_particles
-  !> Time limit of particles 
+  !> Time limit of particles
   double precision                       :: tmax_particles
   !> Iteration limit of particles
   integer                                :: itmax_particles
@@ -33,24 +33,24 @@ module mod_particles
   double precision                       :: particles_eta
   double precision                       :: dtheta
   logical                                :: losses
-  !> Identity number and total number of particles 
+  !> Identity number and total number of particles
   integer                                :: nparticles
   !> Iteration number of paritcles
   integer                                :: it_particles
   integer                                :: itsavelast_particles
-  
+
   ! these two save the list of neighboring cpus:
   integer, dimension(:), allocatable,save :: ipe_neighbor
   integer                                 :: npe_neighbors
- 
+
   integer                                 :: type_particle
   !> set the current igrid for the particle integrator:
   integer                                :: igrid_working
   !> set the current ipart for the particle integrator:
   integer                                :: ipart_working
-  
-  integer, parameter                      :: unitparticles=15 
-  
+
+  integer, parameter                      :: unitparticles=15
+
   !> Array of identity numbers of particles in current processor
   integer, dimension(:), allocatable      :: particles_on_mype
   !> Array of identity numbers of active particles in current processor
@@ -59,14 +59,7 @@ module mod_particles
   integer                                 :: nparticles_on_mype
   !> Number of active particles in current processor
   integer                                 :: nparticles_active_on_mype
-  !> Index of the density (in the w array)
-  integer, private, parameter              :: rho_ = 1
-  !> Indices of the momentum density
-  integer, allocatable, private, protected :: mom(:)
-  !> Index of the energy density (-1 if not present)
-  integer, private, protected              :: e_
-  !> Indices of the magnetic field
-  integer, allocatable, private, protected :: mag(:)
+
   !> Variable index for velocity
   integer, dimension(:), allocatable      :: vp(:)
   !> Variable index for magnetic field
@@ -85,30 +78,30 @@ module mod_particles
   integer, dimension(:), allocatable      :: ue_dot_grad_ue(:)
 
   type particle_ptr
-     type(particle_node), pointer         :: self
+     type(particle_t), pointer         :: self
      !> extra information carried by the particle
      double precision, allocatable        :: payload(:)
      integer                              :: igrid, ipe
   end type particle_ptr
-  
-  type particle_node
+
+  type particle_t
      !> follow the history of the particle
-     logical                               :: follow
+     logical                        :: follow
      !> identity number
-     integer                               :: index
+     integer                        :: index
      !> charge
-     double precision                      :: q
+     double precision               :: q
      !> mass
-     double precision                      :: m
+     double precision               :: m
      !> time
-     double precision                      :: global_time
+     double precision               :: t
      !> time step
-     double precision                      :: dt
+     double precision               :: dt
      !> coordinates
      double precision, dimension(3) :: x
-     !> velocity, momentum, or special ones 
+     !> velocity, momentum, or special ones
      double precision, dimension(3) :: u
-  end type particle_node
+  end type particle_t
 
   ! Array containing all particles
   type(particle_ptr), dimension(:), allocatable  :: particle
@@ -118,7 +111,7 @@ module mod_particles
   procedure(integrate_particles), pointer   :: phys_integrate_particles => null()
   procedure(set_particles_dt), pointer   :: phys_set_particles_dt => null()
 
-  abstract interface 
+  abstract interface
 
     subroutine init_particles()
       use mod_Knuth_random
@@ -196,7 +189,7 @@ module mod_particles
     t_particles       = 0.0d0
     tmax_particles    = bigdouble
     itmax_particles   = biginteger
-    ditsave_particles = 8 
+    ditsave_particles = 8
     dtsave_ensemble   = bigdouble
     dtheta            = 2.0d0*dpi / 60.0d0
     particles_eta     = 0.d0
@@ -208,7 +201,7 @@ module mod_particles
     nparticles_active_on_mype   = 0
 
     call particles_params_read(par_files)
-    
+
     allocate(particle(1:nparticleshi))
     allocate(ipe_neighbor(0:npe-1))
     allocate(particles_on_mype(nparticles_per_cpu_hi))
@@ -216,24 +209,6 @@ module mod_particles
 
     particles_on_mype(:) = 0
     particles_active_on_mype(:) = 0
-
-    ! Determine flux variables
-    nwx = 1                  ! rho (density)
-
-    allocate(mom(ndir))
-    do idir = 1, ndir
-      nwx    = nwx + 1
-      mom(idir) = nwx       ! momentum density
-    end do
-
-    nwx = nwx + 1
-    e_     = nwx          ! energy density
-
-    allocate(mag(ndir))
-    do idir = 1, ndir
-      nwx    = nwx + 1
-      mag(idir) = nwx       ! magnetic field
-    end do
 
     select case(physics_type_particles)
     case('advect')
@@ -370,7 +345,7 @@ module mod_particles
     ! initialise the particles
     use mod_Knuth_random
     use mod_global_parameters
-    
+
     double precision, dimension(ndir)    :: x, v
     double precision, dimension(num_particles,ndir) :: rrd
     double precision                     :: w(ixG^T,1:nw)
@@ -389,7 +364,7 @@ module mod_particles
     follow(num_particles/2)=.true.
 
     do while (nparticles .lt. num_particles)
-    
+
    {^D&x(^D) = xprobmin^D + rrd(nparticles+1,^D) * (xprobmax^D - xprobmin^D)\}
 
       call find_particle_ipe(x,igrid_particle,ipe_particle)
@@ -398,12 +373,12 @@ module mod_particles
       particle(nparticles)%igrid  = igrid_particle
       particle(nparticles)%ipe    = ipe_particle
 
-      if(ipe_particle == mype) then 
+      if(ipe_particle == mype) then
         call push_particle_into_particles_on_mype(nparticles)
         allocate(particle(nparticles)%self)
         particle(nparticles)%self%follow = follow(nparticles)
         particle(nparticles)%self%index  = nparticles
-        particle(nparticles)%self%global_time      = 0.0d0
+        particle(nparticles)%self%t      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
         particle(nparticles)%self%x = 0.d0
         particle(nparticles)%self%x(1:ndir) = x(1:ndir)
@@ -412,7 +387,7 @@ module mod_particles
         call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid_particle)%x)
         do idir=1,ndir
           call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
-            w(ixG^T,mom(idir)),pw(igrid_particle)%x,x,v(idir))
+            w(ixG^T,iw_mom(idir)),pw(igrid_particle)%x,x,v(idir))
         end do
         particle(nparticles)%self%u(:) = 0.d0
         particle(nparticles)%self%u(1:ndir) = v(1:ndir)
@@ -433,7 +408,7 @@ module mod_particles
     ! initialise the particles
     use mod_Knuth_random
     use mod_global_parameters
-    
+
     double precision, dimension(ndir)   :: x,B,u
     double precision, dimension(num_particles,ndir) :: rrd, srd, trd
     double precision                    :: absB, absS, theta, prob, theta2, prob2
@@ -452,28 +427,28 @@ module mod_particles
     end do
 
     ! first find ipe and igrid responsible for particle
-    
+
     x(:)=0.0d0
-    
+
     do while (nparticles .lt. num_particles)
-    
+
    {^D&x(^D) = xprobmin^D + rrd(nparticles+1,^D) * (xprobmax^D - xprobmin^D)\}
-    
+
       call find_particle_ipe(x,igrid_particle,ipe_particle)
 
       nparticles=nparticles+1
       particle(nparticles)%igrid  = igrid_particle
       particle(nparticles)%ipe    = ipe_particle
-    
-      if(ipe_particle == mype) then 
+
+      if(ipe_particle == mype) then
         call push_particle_into_particles_on_mype(nparticles)
         allocate(particle(nparticles)%self)
         particle(nparticles)%self%follow = follow(nparticles)
         particle(nparticles)%self%index  = nparticles
         particle(nparticles)%self%q      = - const_e
         particle(nparticles)%self%m      =   const_me
-    
-        particle(nparticles)%self%global_time      = 0.0d0
+
+        particle(nparticles)%self%t      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
         particle(nparticles)%self%x = 0.d0
         particle(nparticles)%self%x(1:ndir) = x(1:ndir)
@@ -488,10 +463,10 @@ module mod_particles
         ! random pitch angle given to each particle
         theta  = 2.0d0*dpi*trd(nparticles,1)
         theta2 = 2.0d0*dpi*trd(nparticles,2)
-        
+
         ! random maxwellian velocity
         ! momentum gamma*v/c normalised by speed of light
-        u(1) =  unit_velocity *prob*dcos(theta)/const_c    
+        u(1) =  unit_velocity *prob*dcos(theta)/const_c
         u(2) =  unit_velocity *prob*dsin(theta)/const_c
         u(3) =  unit_velocity *prob2*dcos(theta2)/const_c
         particle(nparticles)%self%u(:) = u(:)
@@ -509,7 +484,7 @@ module mod_particles
     ! initialise the particles
     use mod_Knuth_random
     use mod_global_parameters
-    
+
     double precision, dimension(ndir)   :: x,B,u
     double precision, dimension(num_particles,ndir) :: rrd, srd, trd
     double precision                    :: absB, absS, theta, prob, lfac, gamma
@@ -528,35 +503,35 @@ module mod_particles
     end do
 
     ! first find ipe and igrid responsible for particle
-    
+
     x(:)=0.0d0
-    
+
     do while (nparticles .lt. num_particles)
-    
+
    {^D&x(^D) = xprobmin^D + rrd(nparticles+1,^D) * (xprobmax^D - xprobmin^D)\}
-    
+
       call find_particle_ipe(x,igrid_particle,ipe_particle)
 
       nparticles=nparticles+1
       particle(nparticles)%igrid  = igrid_particle
       particle(nparticles)%ipe    = ipe_particle
-    
-      if(ipe_particle == mype) then 
+
+      if(ipe_particle == mype) then
         call push_particle_into_particles_on_mype(nparticles)
         allocate(particle(nparticles)%self)
         particle(nparticles)%self%follow = follow(nparticles)
         particle(nparticles)%self%index  = nparticles
         particle(nparticles)%self%q      = - const_e
         particle(nparticles)%self%m      =   const_me
-    
-        particle(nparticles)%self%global_time      = 0.0d0
+
+        particle(nparticles)%self%t      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
         particle(nparticles)%self%x = 0.d0
         particle(nparticles)%self%x(1:ndir) = x(1:ndir)
 
         ! Maxwellian velocity distribution
         absS = sqrt(sum(srd(nparticles,:)**2))
-     
+
         ! Maxwellian velocity distribution assigned here
         prob  = sqrt(-2.0d0*log(1.0-0.999999*srd(nparticles,1)))
 
@@ -565,36 +540,36 @@ module mod_particles
 
         !> random Maxwellian velocity. In this way v_perp = u(2)^2+u(3)^2, v// =
         !> sqrt(u(1)^2) and vthermal = sqrt(v_perp^2 + v//^2)
-     
+
         !*sqrt(const_mp/const_me)
-        u(1) = sqrt(2.0d0) * unit_velocity *prob*dsin(theta) 
+        u(1) = sqrt(2.0d0) * unit_velocity *prob*dsin(theta)
         !*sqrt(const_mp/const_me)
-        u(2) =  unit_velocity *prob*dcos(theta)              
+        u(2) =  unit_velocity *prob*dcos(theta)
         !*sqrt(const_mp/const_me)
-        u(3) =  unit_velocity *prob*dcos(theta)              
+        u(3) =  unit_velocity *prob*dcos(theta)
 
         lfac = one/sqrt(one-sum(u(:)**2)/const_c**2)
 
         ! particles Lorentz factor
-        gamma = sqrt(1.0d0 + lfac**2*sum(u(:)**2)/const_c**2) 
+        gamma = sqrt(1.0d0 + lfac**2*sum(u(:)**2)/const_c**2)
 
         do idir=1,ndir
           call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
-            pw(igrid_particle)%w(ixG^T,mag(idir)),pw(igrid_particle)%x,x,B(idir))
+            pw(igrid_particle)%w(ixG^T,iw_mag(idir)),pw(igrid_particle)%x,x,B(idir))
         end do
         B=B*unit_magneticfield
         absB = sqrt(sum(B(:)**2))
 
         ! parallel momentum component (gamma v||)
-        particle(nparticles)%self%u(1) = lfac * u(1) 
+        particle(nparticles)%self%u(1) = lfac * u(1)
 
         ! Mr: the conserved magnetic moment
-        particle(nparticles)%self%u(2) = (sqrt(u(2)**2+u(3)**2)* & 
+        particle(nparticles)%self%u(2) = (sqrt(u(2)**2+u(3)**2)* &
                particle(nparticles)%self%m )**2 / (2.0d0* &
-               particle(nparticles)%self%m * absB) 
+               particle(nparticles)%self%m * absB)
 
         ! Lorentz factor
-        particle(nparticles)%self%u(3) = lfac 
+        particle(nparticles)%self%u(3) = lfac
 
         ! initialise payloads for guiding centre module
         if(npayload>2) then
@@ -657,13 +632,13 @@ module mod_particles
        w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
        ! fill with velocity:
-       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,mom(:))
+       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
 
        if(time_advance) then
          gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
          w(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
          call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-         gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,mom(:))
+         gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
        end if
 
     end do
@@ -689,17 +664,17 @@ module mod_particles
        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
 
        ! fill with magnetic field:
-       gridvars(igrid)%w(ixG^T,bp(:)) = w(ixG^T,mag(:))
-    
+       gridvars(igrid)%w(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+
        current = zero
        call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
        ! fill electric field
-       gridvars(igrid)%w(ixG^T,ep(1)) = gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,mom(3)) &
-            - gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,mom(2)) + particles_eta * current(ixG^T,1)
-       gridvars(igrid)%w(ixG^T,ep(2)) = gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,mom(1)) &
-            - gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,mom(3)) + particles_eta * current(ixG^T,2)
-       gridvars(igrid)%w(ixG^T,ep(3)) = gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,mom(2)) &
-            - gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,mom(1)) + particles_eta * current(ixG^T,3)
+       gridvars(igrid)%w(ixG^T,ep(1)) = gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(3)) &
+            - gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+       gridvars(igrid)%w(ixG^T,ep(2)) = gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(1)) &
+            - gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+       gridvars(igrid)%w(ixG^T,ep(3)) = gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(2)) &
+            - gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
 
        ! scale to cgs units:
        gridvars(igrid)%w(ixG^T,bp(:)) = &
@@ -718,10 +693,10 @@ module mod_particles
        do idir=1,ndir
          ue(ixG^T,idir) = ue(ixG^T,idir) * const_c / absB(ixG^T)**2
        end do
-    
+
        kappa(ixG^T) = sqrt(1.0d0 - sum(ue(ixG^T,:)**2,dim=ndim+1)/const_c**2)
        kappa_B(ixG^T) = kappa(ixG^T) * absB(ixG^T)
-    
+
        do idim=1,ndim
          call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
          gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/unit_length
@@ -751,16 +726,16 @@ module mod_particles
          gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
          wold(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
          call phys_to_primitive(ixG^LL,ixG^LL,wold,pw(igrid)%x)
-         gridvars(igrid)%wold(ixG^T,bp(:)) = wold(ixG^T,mag(:))
+         gridvars(igrid)%wold(ixG^T,bp(:)) = wold(ixG^T,iw_mag(:))
          current = zero
          call get_current(wold,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
          ! fill electric field
-         gridvars(igrid)%wold(ixG^T,ep(1)) = gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,mom(3)) &
-              - gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,mom(2)) + particles_eta * current(ixG^T,1)
-         gridvars(igrid)%wold(ixG^T,ep(2)) = gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,mom(1)) &
-              - gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,mom(3)) + particles_eta * current(ixG^T,2)
-         gridvars(igrid)%wold(ixG^T,ep(3)) = gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,mom(2)) &
-              - gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,mom(1)) + particles_eta * current(ixG^T,3)
+         gridvars(igrid)%wold(ixG^T,ep(1)) = gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(3)) &
+              - gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+         gridvars(igrid)%wold(ixG^T,ep(2)) = gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(1)) &
+              - gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+         gridvars(igrid)%wold(ixG^T,ep(3)) = gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(2)) &
+              - gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
 
          ! scale to cgs units:
          gridvars(igrid)%wold(ixG^T,bp(:)) = &
@@ -779,10 +754,10 @@ module mod_particles
          do idir=1,ndir
            ue(ixG^T,idir) = ue(ixG^T,idir) * const_c / absB(ixG^T)**2
          end do
-    
+
          kappa(ixG^T) = sqrt(1.0d0 - sum(ue(ixG^T,:)**2,dim=ndim+1)/const_c**2)
          kappa_B(ixG^T) = kappa(ixG^T) * absB(ixG^T)
-    
+
          do idim=1,ndim
            call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
            gridvars(igrid)%wold(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)/unit_length
@@ -830,17 +805,17 @@ module mod_particles
        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
 
        ! fill with magnetic field:
-       gridvars(igrid)%w(ixG^T,bp(:)) = w(ixG^T,mag(:))
+       gridvars(igrid)%w(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
 
        ! fill with electric field
        current = zero
        call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
-       gridvars(igrid)%w(ixG^T,ep(1)) = gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,mom(3)) &
-            - gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,mom(2)) + particles_eta * current(ixG^T,1)
-       gridvars(igrid)%w(ixG^T,ep(2)) = gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,mom(1)) &
-            - gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,mom(3)) + particles_eta * current(ixG^T,2)
-       gridvars(igrid)%w(ixG^T,ep(3)) = gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,mom(2)) &
-            - gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,mom(1)) + particles_eta * current(ixG^T,3)
+       gridvars(igrid)%w(ixG^T,ep(1)) = gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(3)) &
+            - gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+       gridvars(igrid)%w(ixG^T,ep(2)) = gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(1)) &
+            - gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+       gridvars(igrid)%w(ixG^T,ep(3)) = gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(2)) &
+            - gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
 
        ! scale to cgs units:
        gridvars(igrid)%w(ixG^T,bp(:)) = &
@@ -853,16 +828,16 @@ module mod_particles
          wold(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
          call phys_to_primitive(ixG^LL,ixG^LL,wold,pw(igrid)%x)
          ! fill with magnetic field:
-         gridvars(igrid)%wold(ixG^T,bp(:)) = wold(ixG^T,mag(:))
+         gridvars(igrid)%wold(ixG^T,bp(:)) = wold(ixG^T,iw_mag(:))
          ! fill with electric field
          current = zero
          call get_current(wold,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
-         gridvars(igrid)%wold(ixG^T,ep(1)) = gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,mom(3)) &
-              - gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,mom(2)) + particles_eta * current(ixG^T,1)
-         gridvars(igrid)%wold(ixG^T,ep(2)) = gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,mom(1)) &
-              - gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,mom(3)) + particles_eta * current(ixG^T,2)
-         gridvars(igrid)%wold(ixG^T,ep(3)) = gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,mom(2)) &
-              - gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,mom(1)) + particles_eta * current(ixG^T,3)
+         gridvars(igrid)%wold(ixG^T,ep(1)) = gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(3)) &
+              - gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+         gridvars(igrid)%wold(ixG^T,ep(2)) = gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(1)) &
+              - gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+         gridvars(igrid)%wold(ixG^T,ep(3)) = gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(2)) &
+              - gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
 
          ! scale to cgs units:
          gridvars(igrid)%wold(ixG^T,bp(:)) = &
@@ -891,11 +866,11 @@ module mod_particles
 
     if (B0field) then
        do idir = 1, ndir
-          bvec(ixI^S,idir)=w(ixI^S,mag(idir))+block%w0(ixI^S,idir,0)
+          bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))+block%B0(ixI^S,idir,0)
        end do
     else
        do idir = 1, ndir
-          bvec(ixI^S,idir)=w(ixI^S,mag(idir))
+          bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))
        end do
     end if
 
@@ -934,7 +909,7 @@ module mod_particles
        timeio_tot=timeio_tot+(MPI_WTIME()-tpartc_io_0)
        tpartc_io=tpartc_io+(MPI_WTIME()-tpartc_io_0)
 
-       if (exit_condition() .eqv. .true.) exit particle_evol 
+       if (exit_condition() .eqv. .true.) exit particle_evol
 
        tpartc_int_0=MPI_WTIME()
        call phys_integrate_particles
@@ -974,7 +949,7 @@ module mod_particles
       dt_p = particle(ipart)%self%dt
       igrid = particle(ipart)%igrid
       igrid_working = igrid
-      tloc = particle(ipart)%self%global_time
+      tloc = particle(ipart)%self%t
       x(1:ndir) = particle(ipart)%self%x(1:ndir)
       tlocnew=tloc+dt_p
 
@@ -1005,9 +980,9 @@ module mod_particles
       ! Payload update
       call usr_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,&
         x,particle(ipart)%payload,npayload,tlocnew)
-    
+
       ! Time update
-      particle(ipart)%self%global_time = tlocnew
+      particle(ipart)%self%t = tlocnew
 
     end do
 
@@ -1023,14 +998,14 @@ module mod_particles
     double precision              :: rho, rho1, rho2, td
 
     if (.not.time_advance) then
-       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),xgrid,xpart,rho)
+       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho)
     else
-       call interpolate_var(igrid,ixG^LL,ixM^LL,wold(ixG^T,rho_),xgrid,xpart,rho1)
-       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,rho_),xgrid,xpart,rho2)
+       call interpolate_var(igrid,ixG^LL,ixM^LL,wold(ixG^T,iw_rho),xgrid,xpart,rho1)
+       call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho2)
        td = (particle_time - global_time) / dt
        rho = rho1 * (1.0d0 - td) + rho2 * td
     end if
-    payload(1) = rho * w_convert_factor(1) 
+    payload(1) = rho * w_convert_factor(1)
 
   end subroutine advect_update_payload
 
@@ -1067,7 +1042,7 @@ module mod_particles
 
       dt_cfl = min({rnode(rpdx^D_,particle(ipart)%igrid)/v(^D)},bigdouble)
 
-      if(typeaxial =='cylindrical'.and.phi_>0) then 
+      if(typeaxial =='cylindrical'.and.phi_>0) then
         ! phi-momentum leads to radial velocity:
         if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
           sqrt(rnode(rpdx1_,particle(ipart)%igrid)/particle(ipart)%self%x(r_)) &
@@ -1082,19 +1057,19 @@ module mod_particles
 
       ! Make sure we don't miss an output or tmax_particles:
       ! corresponding output slot:
-      nout = int(particle(ipart)%self%global_time/dtsave_ensemble) + 1
+      nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
       tout = dble(nout) * dtsave_ensemble
-      if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) &
-           particle(ipart)%self%dt = max(tout - particle(ipart)%self%global_time, smalldouble * tout)
+      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) &
+           particle(ipart)%self%dt = max(tout - particle(ipart)%self%t, smalldouble * tout)
       ! bring to tmax_particles:
-      if (particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) &
-           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%global_time, smalldouble * tmax_particles)
+      if (particle(ipart)%self%t+particle(ipart)%self%dt .gt. tmax_particles) &
+           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%t, smalldouble * tmax_particles)
 
       dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
-      t_min_mype = min(t_min_mype,particle(ipart)%self%global_time)
+      t_min_mype = min(t_min_mype,particle(ipart)%self%t)
 
     end do ! ipart loop
-    
+
     ! keep track of the global minimum:
     call MPI_ALLREDUCE(dt_particles_mype,dt_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
          icomm,ierrmpi)
@@ -1102,7 +1077,7 @@ module mod_particles
     ! keep track of the minimum particle time:
     call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
          icomm,ierrmpi)
-  
+
   end subroutine advect_set_particles_dt
 
   subroutine gca_integrate_particles()
@@ -1136,11 +1111,11 @@ module mod_particles
     nvar=ndir+2
 
     do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
-      int_choice=.false.   
+      int_choice=.false.
       dt_p = particle(ipart)%self%dt
       igrid_working = particle(ipart)%igrid
       ipart_working = particle(ipart)%self%index
-      tloc = particle(ipart)%self%global_time
+      tloc = particle(ipart)%self%t
       x(1:ndir) = particle(ipart)%self%x(1:ndir)
 
       ! Adaptive stepwidth RK4:
@@ -1154,10 +1129,10 @@ module mod_particles
       ! timestep after euler integration
       ytmp=y
 
-      call derivs_gca(particle(ipart)%self%global_time,y,dydt)
+      call derivs_gca(particle(ipart)%self%t,y,dydt)
 
       ! make an Euler step with the proposed timestep:
-      ! factor to ensure we capture all particles near the internal ghost cells. 
+      ! factor to ensure we capture all particles near the internal ghost cells.
       ! Can be adjusted during a run, after an interpolation error.
       euler_cfl=2.5d0
 
@@ -1210,7 +1185,7 @@ module mod_particles
 
       ! replace the solution vector with the original as it was before the Euler timestep
       y(1:ndir+2) = ytmp(1:ndir+2)
-    
+
       particle(ipart)%self%x(1:ndir) = ytmp(1:ndir) ! position of guiding center
       particle(ipart)%self%u(1)      = ytmp(ndir+1) ! parallel momentum component (gamma v||)
       particle(ipart)%self%u(2)      = ytmp(ndir+2) ! conserved magnetic moment
@@ -1235,13 +1210,13 @@ module mod_particles
 
       ! original RK integration without interpolation in ghost cells
       ! call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
-    
+
       ! final solution vector after rk integration
       particle(ipart)%self%x(1:ndir) = y(1:ndir)
       particle(ipart)%self%u(1)      = y(ndir+1)
       particle(ipart)%self%u(2)      = y(ndir+2)
       !particle(ipart)%self%u(3)      = y(ndir+3)
-    
+
       ! now calculate other quantities, mean Lorentz factor, drifts, perpendicular velocity:
       call get_vec_rk(igrid_working,y(1:ndir),tloc+dt_p,b,bp(1),bp(ndir))
       call get_vec_rk(igrid_working,y(1:ndir),tloc+dt_p,e,ep(1),ep(ndir))
@@ -1275,7 +1250,7 @@ module mod_particles
 
       call cross(drift1,drift2,gradBdrift)
       gradBdrift_abs = sqrt(sum(gradBdrift(:)**2))
-    
+
       drift3(1:ndir) = upar*epar/(gamma*const_c)*ue(1:ndir)
       call cross(drift1,drift3,reldrift)
       reldrift_abs = sqrt(sum(reldrift(:)**2))
@@ -1317,7 +1292,7 @@ module mod_particles
       ! particle parallel momentum term 4
       particle(ipart)%payload(7) = momentumpar4
       ! particle ExB drift
-      particle(ipart)%payload(8) = ueabs 
+      particle(ipart)%payload(8) = ueabs
       ! relativistic drift
       particle(ipart)%payload(9) = reldrift_abs
       ! gradB drift
@@ -1332,7 +1307,7 @@ module mod_particles
       particle(ipart)%payload(14) = uedotgraduedrift_abs
 
       ! Time update
-      particle(ipart)%self%global_time = particle(ipart)%self%global_time + dt_p
+      particle(ipart)%self%t = particle(ipart)%self%t + dt_p
 
     end do
 
@@ -1428,7 +1403,7 @@ module mod_particles
 
     absb         = sqrt(sum(b(:)**2))
     bhat(1:ndir) = b(1:ndir) / absb
-    
+
     epar         = sum(e(:)*bhat(:))
     call cross(e,bhat,ue)
     ue(1:ndir)   = ue(1:ndir)*const_c / absb
@@ -1439,7 +1414,7 @@ module mod_particles
     utmp2(1:ndir) = Mr*const_c/(gamma*q)*gradkappaB(1:ndir) &
      + upar*epar/(gamma*const_c)*ue(1:ndir) &
          + m*const_c/q* ( upar**2/gamma*bdotgradb(1:ndir) + upar*uedotgradb(1:ndir) &
-         + upar*bdotgradue(1:ndir) + gamma*uedotgradue(1:ndir)) 
+         + upar*bdotgradue(1:ndir) + gamma*uedotgradue(1:ndir))
 
     call cross(utmp1,utmp2,utmp3)
     u(1:ndir) = ue(1:ndir) + utmp3(1:ndir)
@@ -1463,7 +1438,7 @@ module mod_particles
     double precision            :: ap0, ap1, dt_cfl_ap0, dt_cfl_ap1, dt_cfl_ap
     double precision            :: dt_max_output, dt_max_time, dt_euler, dt_tmp
     ! make these particle cfl conditions more restrictive if you are interpolating out of the grid
-    double precision, parameter :: cfl=0.8d0, uparcfl=0.8d0 
+    double precision, parameter :: cfl=0.8d0, uparcfl=0.8d0
     double precision, parameter :: uparmin=1.0d-6*const_c
     integer                     :: ipart, iipart, nout, ic^D, igrid_particle, ipe_particle, ipe
     logical                     :: BC_applied
@@ -1479,11 +1454,11 @@ module mod_particles
 
       igrid_working = particle(ipart)%igrid
       ipart_working = particle(ipart)%self%index
-      dt_tmp = (tmax_particles - particle(ipart)%self%global_time)
+      dt_tmp = (tmax_particles - particle(ipart)%self%t)
       if(dt_tmp .le. 0.0d0) dt_tmp = smalldouble
       ! make sure we step only one cell at a time, first check CFL at current location
-      ! then we make an Euler step to the new location and check the new CFL 
-      ! we simply take the minimum of the two timesteps. 
+      ! then we make an Euler step to the new location and check the new CFL
+      ! we simply take the minimum of the two timesteps.
       ! added safety factor cfl:
       dxmin  = min({rnode(rpdx^D_,particle(ipart)%igrid)},bigdouble)*cfl
       ! initial solution vector:
@@ -1493,7 +1468,7 @@ module mod_particles
       ytmp=y
       !y(ndir+3) = particle(ipart)%self%u(3) ! Lorentz factor of guiding centre
 
-      call derivs_gca(particle(ipart)%self%global_time,y,dydt)
+      call derivs_gca(particle(ipart)%self%t,y,dydt)
       v0(1:ndir) = dydt(1:ndir)
       ap0        = dydt(ndir+1)
 
@@ -1513,14 +1488,14 @@ module mod_particles
       particle(ipart)%self%x(1:ndir) = y(1:ndir) ! position of guiding center
       particle(ipart)%self%u(1)      = y(ndir+1) ! parallel momentum component (gamma v||)
       particle(ipart)%self%u(2)      = y(ndir+2) ! conserved magnetic moment
-      
+
       ! first check if the particle is outside the physical domain or in the ghost cells
       if(.not. particle_in_igrid(ipart_working,igrid_working)) then
         y(1:ndir+2) = ytmp(1:ndir+2)
       end if
 
-      call derivs_gca_rk(particle(ipart)%self%global_time+dt_euler,y,dydt)
-      !call derivs_gca(particle(ipart)%self%global_time+dt_euler,y,dydt)
+      call derivs_gca_rk(particle(ipart)%self%t+dt_euler,y,dydt)
+      !call derivs_gca(particle(ipart)%self%t+dt_euler,y,dydt)
 
       v1(1:ndir) = dydt(1:ndir)
       ap1        = dydt(ndir+1)
@@ -1528,7 +1503,7 @@ module mod_particles
       ! guiding center velocity:
       v(1:ndir) = abs(dydt(1:ndir))
       vp = sqrt(sum(v(:)**2))
-    
+
       dt_cfl1    = dxmin/vp
       dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap1)
       !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(unit_length*dxmin/(ap1+smalldouble))) )
@@ -1547,9 +1522,9 @@ module mod_particles
       ! gammap = sqrt(1.0d0/(1.0d0-(vp/const_c)**2))
       ! ap = const_c**2/vp*gammap**(-3)*dydt(ndir+3)
       ! dt_ap = sqrt(dxmin*unit_length/ap)
-      
+
       !dt_a = bigdouble
-      !if (dt_euler .gt. smalldouble) then 
+      !if (dt_euler .gt. smalldouble) then
       !   a = sqrt({^C& (v1(^C)-v0(^C))**2 |+})/dt_euler
       !   dt_a = min(sqrt(dxmin/a),bigdouble)
       !end if
@@ -1559,22 +1534,22 @@ module mod_particles
 
       ! Make sure we don't miss an output or tmax_particles:
       ! corresponding output slot:
-      nout = int(particle(ipart)%self%global_time/dtsave_ensemble) + 1
+      nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
       tout = dble(nout) * dtsave_ensemble
-      if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) then
-        dt_max_output = tout - particle(ipart)%self%global_time
+      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) then
+        dt_max_output = tout - particle(ipart)%self%t
         if(dt_max_output .le. 0.0d0) dt_max_output = smalldouble * tout
       end if
 
       ! bring to tmax_particles:
-      if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) then
-        dt_max_time = (tmax_particles - particle(ipart)%self%global_time)
+      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tmax_particles) then
+        dt_max_time = (tmax_particles - particle(ipart)%self%t)
         if (dt_max_time .le. 0.0d0) dt_max_time = smalldouble * tmax_particles
       end if
 
       particle(ipart)%self%dt = min(particle(ipart)%self%dt,dt_max_time,dt_max_output)
       dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
-      t_min_mype = min(t_min_mype,particle(ipart)%self%global_time)
+      t_min_mype = min(t_min_mype,particle(ipart)%self%t)
 
     end do ! ipart loop
 
@@ -1601,8 +1576,8 @@ module mod_particles
       q  = particle(ipart)%self%q
       m  = particle(ipart)%self%m
       dt_p = particle(ipart)%self%dt
-      call get_b(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%global_time,b)
-      call get_e(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%global_time,e)
+      call get_b(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,b)
+      call get_e(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,e)
 
       select case(typeaxial)
 
@@ -1727,7 +1702,7 @@ module mod_particles
         particle(ipart)%self%x(r_)   = r
         particle(ipart)%self%x(phi_) = phi2
         particle(ipart)%self%x(z_)   = xcart2(3)
-      
+
         ! Rotate the momentum to the new cooridnates
         ! rotate velocities
         cosphi     = cos(phi2-phi1)
@@ -1747,28 +1722,28 @@ module mod_particles
       end select
 
       ! Time update
-      particle(ipart)%self%global_time = particle(ipart)%self%global_time + dt_p
+      particle(ipart)%self%t = particle(ipart)%self%t + dt_p
 
     end do ! ipart loop
 
     contains
 
-    subroutine get_t(b,lfac,dt,q,m,global_time)
+    subroutine get_t(b,lfac,dt,q,m,t)
       implicit none
       double precision, dimension(ndir), intent(in)      :: b
       double precision, intent(in)                      :: lfac, dt, q, m
-      double precision, dimension(ndir), intent(out)     :: global_time
+      double precision, dimension(ndir), intent(out)     :: t
 
-      global_time = q * b * dt / (2.0d0 * lfac * m * const_c)
+      t = q * b * dt / (2.0d0 * lfac * m * const_c)
 
     end subroutine get_t
 
-    subroutine get_s(global_time,s)
+    subroutine get_s(t,s)
       implicit none
-      double precision, dimension(ndir), intent(in)   :: global_time
+      double precision, dimension(ndir), intent(in)   :: t
       double precision, dimension(ndir), intent(out)  :: s
 
-      s = 2.0d0 * global_time / (1.0d0+sum(global_time(:)**2))
+      s = 2.0d0 * t / (1.0d0+sum(t(:)**2))
 
     end subroutine get_s
 
@@ -1789,20 +1764,20 @@ module mod_particles
 
     do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 
-      call get_b(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%global_time,b)
+      call get_b(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,b)
       absb = sqrt(sum(b(:)**2))
       call get_lfac(particle(ipart)%self%u,lfac)
 
       ! CFL timestep
       ! make sure we step only one cell at a time:
       v(:) = abs(const_c * particle(ipart)%self%u(:) / lfac)
-      
+
       ! convert to angular velocity:
       if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/particle(ipart)%self%x(r_))
 
       dt_cfl = min({rnode(rpdx^D_,particle(ipart)%igrid)/v(^D)},bigdouble)
 
-      if(typeaxial =='cylindrical'.and.phi_>0) then 
+      if(typeaxial =='cylindrical'.and.phi_>0) then
         ! phi-momentum leads to radial velocity:
         if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
           sqrt(rnode(rpdx1_,particle(ipart)%igrid)/particle(ipart)%self%x(r_)) &
@@ -1824,18 +1799,18 @@ module mod_particles
 
       ! Make sure we don't miss an output or tmax_particles:
       ! corresponding output slot:
-      nout = int(particle(ipart)%self%global_time/dtsave_ensemble) + 1
+      nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
       tout = dble(nout) * dtsave_ensemble
-      if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) &
-           particle(ipart)%self%dt = max(tout - particle(ipart)%self%global_time , smalldouble * tout)
+      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) &
+           particle(ipart)%self%dt = max(tout - particle(ipart)%self%t , smalldouble * tout)
 
       ! bring to tmax_particles:
-      if(particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tmax_particles) &
-           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%global_time , smalldouble * tmax_particles)
+      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tmax_particles) &
+           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%t , smalldouble * tmax_particles)
 
       dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
 
-      t_min_mype = min(t_min_mype,particle(ipart)%self%global_time)
+      t_min_mype = min(t_min_mype,particle(ipart)%self%t)
 
     end do ! ipart loop
 
@@ -1852,10 +1827,10 @@ module mod_particles
   subroutine get_e(igrid,x,tloc,e)
     ! Get the electric field in the grid at postion x.
     ! For ideal SRMHD, we first interpolate b and u=lfac*v/c
-    ! The electric field then follows from e = b x beta, where beta=u/lfac.  
-    ! This ensures for the resulting e that e<b and e.b=0. Interpolating on u 
-    ! avoids interpolation-errors leading to v>c.  
-    ! For (non-ideal) MHD, we directly interpolate the electric field as 
+    ! The electric field then follows from e = b x beta, where beta=u/lfac.
+    ! This ensures for the resulting e that e<b and e.b=0. Interpolating on u
+    ! avoids interpolation-errors leading to v>c.
+    ! For (non-ideal) MHD, we directly interpolate the electric field as
     ! there is no such constraint.
     use mod_global_parameters
 
@@ -1870,12 +1845,12 @@ module mod_particles
     if(.not.time_advance) then
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ep(idir)),pw(igrid)%x(ixG^T,1:ndim),x,e(idir))
-      end do 
+      end do
     else
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ep(idir)),pw(igrid)%x(ixG^T,1:ndim),x,e1(idir))
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ep(idir)),pw(igrid)%x(ixG^T,1:ndim),x,e2(idir))
-      end do 
+      end do
       td = (tloc/unit_time - global_time) / dt
       e(:) = e1(:) * (1.0d0 - td) + e2(:) * td
     end if
@@ -1883,7 +1858,7 @@ module mod_particles
   end subroutine get_e
 
   subroutine get_b(igrid,x,tloc,b)
-    use mod_global_parameters 
+    use mod_global_parameters
 
     integer,intent(in)                                 :: igrid
     double precision,dimension(ndir), intent(in)       :: x
@@ -1896,12 +1871,12 @@ module mod_particles
     if(.not.time_advance) then
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)),pw(igrid)%x(ixG^T,1:ndim),x,b(idir))
-      end do 
+      end do
     else
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)),pw(igrid)%x(ixG^T,1:ndim),x,b1(idir))
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)),pw(igrid)%x(ixG^T,1:ndim),x,b2(idir))
-      end do 
+      end do
       td = (tloc/unit_time - global_time) / dt
       b(:) = b1(:) * (1.0d0 - td) + b2(:) * td
     end if
@@ -1974,7 +1949,7 @@ module mod_particles
     ic2^D = ic1^D + 1
     \}
 
-    {^D& 
+    {^D&
     ! for the RK4 integration in integrate_particles.t we allow interpolation in
     ! to enter the ghost cells. After his integration the particle is communicated
     ! to the neighbouring grid block.
@@ -1994,16 +1969,16 @@ module mod_particles
     gfloc  = gf(ic11) * (1.0d0 - xd1) + gf(ic21) * xd1
     }
     {^IFTWOD
-    xd1 = (xloc(1)-x(ic11,ic12,1)) / (x(ic21,ic12,1) - x(ic11,ic12,1))      
+    xd1 = (xloc(1)-x(ic11,ic12,1)) / (x(ic21,ic12,1) - x(ic11,ic12,1))
     xd2 = (xloc(2)-x(ic11,ic12,2)) / (x(ic11,ic22,2) - x(ic11,ic12,2))
     c00 = gf(ic11,ic12) * (1.0d0 - xd1) + gf(ic21,ic12) * xd1
     c10 = gf(ic11,ic22) * (1.0d0 - xd1) + gf(ic21,ic22) * xd1
     gfloc  = c00 * (1.0d0 - xd2) + c10 * xd2
     }
     {^IFTHREED
-    xd1 = (xloc(1)-x(ic11,ic12,ic13,1)) / (x(ic21,ic12,ic13,1) - x(ic11,ic12,ic13,1))      
-    xd2 = (xloc(2)-x(ic11,ic12,ic13,2)) / (x(ic11,ic22,ic13,2) - x(ic11,ic12,ic13,2))      
-    xd3 = (xloc(3)-x(ic11,ic12,ic13,3)) / (x(ic11,ic12,ic23,3) - x(ic11,ic12,ic13,3))    
+    xd1 = (xloc(1)-x(ic11,ic12,ic13,1)) / (x(ic21,ic12,ic13,1) - x(ic11,ic12,ic13,1))
+    xd2 = (xloc(2)-x(ic11,ic12,ic13,2)) / (x(ic11,ic22,ic13,2) - x(ic11,ic12,ic13,2))
+    xd3 = (xloc(3)-x(ic11,ic12,ic13,3)) / (x(ic11,ic12,ic23,3) - x(ic11,ic12,ic13,3))
 
     c00 = gf(ic11,ic12,ic13) * (1.0d0 - xd1) + gf(ic21,ic12,ic13) * xd1
     c10 = gf(ic11,ic22,ic13) * (1.0d0 - xd1) + gf(ic21,ic22,ic13) * xd1
@@ -2049,8 +2024,8 @@ module mod_particles
     end if
     ic2^D = ic1^D + 1
     \}
-    
-    {^D& 
+
+    {^D&
     if(ic1^D.lt.ixGlo^D+1 .or. ic2^D.gt.ixGhi^D-1) then
       line = ''
       write(line,"(a)")'Trying to interpolate from out of grid!'
@@ -2066,16 +2041,16 @@ module mod_particles
     gfloc  = gf(ic11) * (1.0d0 - xd1) + gf(ic21) * xd1
     }
     {^IFTWOD
-    xd1 = (xloc(1)-x(ic11,ic12,1)) / (x(ic21,ic12,1) - x(ic11,ic12,1))      
+    xd1 = (xloc(1)-x(ic11,ic12,1)) / (x(ic21,ic12,1) - x(ic11,ic12,1))
     xd2 = (xloc(2)-x(ic11,ic12,2)) / (x(ic11,ic22,2) - x(ic11,ic12,2))
     c00 = gf(ic11,ic12) * (1.0d0 - xd1) + gf(ic21,ic12) * xd1
     c10 = gf(ic11,ic22) * (1.0d0 - xd1) + gf(ic21,ic22) * xd1
     gfloc  = c00 * (1.0d0 - xd2) + c10 * xd2
     }
     {^IFTHREED
-    xd1 = (xloc(1)-x(ic11,ic12,ic13,1)) / (x(ic21,ic12,ic13,1) - x(ic11,ic12,ic13,1))      
-    xd2 = (xloc(2)-x(ic11,ic12,ic13,2)) / (x(ic11,ic22,ic13,2) - x(ic11,ic12,ic13,2))      
-    xd3 = (xloc(3)-x(ic11,ic12,ic13,3)) / (x(ic11,ic12,ic23,3) - x(ic11,ic12,ic13,3))    
+    xd1 = (xloc(1)-x(ic11,ic12,ic13,1)) / (x(ic21,ic12,ic13,1) - x(ic11,ic12,ic13,1))
+    xd2 = (xloc(2)-x(ic11,ic12,ic13,2)) / (x(ic11,ic22,ic13,2) - x(ic11,ic12,ic13,2))
+    xd3 = (xloc(3)-x(ic11,ic12,ic13,3)) / (x(ic11,ic12,ic23,3) - x(ic11,ic12,ic13,3))
 
     c00 = gf(ic11,ic12,ic13) * (1.0d0 - xd1) + gf(ic21,ic12,ic13) * xd1
     c10 = gf(ic11,ic22,ic13) * (1.0d0 - xd1) + gf(ic21,ic22,ic13) * xd1
@@ -2252,7 +2227,7 @@ module mod_particles
     if (npe>0) call MPI_BCAST(buff,2,MPI_INTEGER,0,icomm,ierrmpi)
 
     ! check if the particle data was found:
-    if (buff(1) .eq. -1) then 
+    if (buff(1) .eq. -1) then
        call phys_init_particles
        return
     end if
@@ -2291,7 +2266,7 @@ module mod_particles
     read(unitparticles) particle(index)%self%follow
     read(unitparticles) particle(index)%self%q
     read(unitparticles) particle(index)%self%m
-    read(unitparticles) particle(index)%self%global_time
+    read(unitparticles) particle(index)%self%t
     read(unitparticles) particle(index)%self%dt
     read(unitparticles) particle(index)%self%x
     read(unitparticles) particle(index)%self%u
@@ -2311,8 +2286,8 @@ module mod_particles
     use mod_global_parameters
 
     character(len=std_len)          :: filename
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
@@ -2334,7 +2309,7 @@ module mod_particles
        write(unitparticles) nparticles,it_particles,npayload
     end if
 
-    if (npe==1) then 
+    if (npe==1) then
        do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
           call append_to_snapshot(particle(ipart)%self,particle(ipart)%payload)
        end do
@@ -2381,17 +2356,17 @@ module mod_particles
 
   subroutine append_to_snapshot(myparticle,mypayload)
 
-    type(particle_node),intent(in) :: myparticle
+    type(particle_t),intent(in) :: myparticle
     double precision :: mypayload(1:npayload)
 
     write(unitparticles) myparticle%index
     write(unitparticles) myparticle%follow
     write(unitparticles) myparticle%q
     write(unitparticles) myparticle%m
-    write(unitparticles) myparticle%global_time
+    write(unitparticles) myparticle%t
     write(unitparticles) myparticle%dt
     write(unitparticles) myparticle%x
-    write(unitparticles) myparticle%u 
+    write(unitparticles) myparticle%u
     write(unitparticles) mypayload(1:npayload)
 
   end subroutine append_to_snapshot
@@ -2405,7 +2380,7 @@ module mod_particles
 
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
       if (particle(ipart)%self%follow) then
-        filename = make_particle_filename(particle(ipart)%self%global_time,particle(ipart)%self%index,'individual')
+        filename = make_particle_filename(particle(ipart)%self%t,particle(ipart)%self%index,'individual')
         open(unit=unitparticles,file=filename,status='replace')
         line=''
         do icomp=1, npayload
@@ -2427,8 +2402,8 @@ module mod_particles
 
     nparticles_active_on_mype = 0
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
-      activate = particle(ipart)%self%global_time .le. tmax_particles
-      if(activate) then 
+      activate = particle(ipart)%self%t .le. tmax_particles
+      if(activate) then
         nparticles_active_on_mype = nparticles_active_on_mype + 1
         particles_active_on_mype(nparticles_active_on_mype) = ipart
       end if
@@ -2464,7 +2439,7 @@ module mod_particles
 
     ipe_has_particle = -1
     do ipe=0,npe-1
-       if (has_particle(ipe) .eqv. .true.) then 
+       if (has_particle(ipe) .eqv. .true.) then
           ipe_has_particle = ipe
           exit
        end if
@@ -2484,10 +2459,10 @@ module mod_particles
   subroutine find_particle_ipe(x,igrid_particle,ipe_particle)
     use mod_forest, only: tree_node_ptr, tree_root
     use mod_global_parameters
-    
+
     double precision, dimension(ndir), intent(in)   :: x
     integer, intent(out)                            :: igrid_particle, ipe_particle
-    
+
     integer, dimension(ndir,nlevelshi)              :: ig
     integer                                         :: idim, ic(ndim)
     type(tree_node_ptr)                             :: branch
@@ -2589,7 +2564,7 @@ module mod_particles
           cycle
        end if
        my_neighbor_type=neighbor_type(i^D,igrid)
-       
+
        select case (my_neighbor_type)
         case (1) ! boundary
            ! do nothing
@@ -2656,7 +2631,7 @@ module mod_particles
     use mod_global_parameters
 
     integer                         :: ipart,iipart
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     integer                         :: send_n_particles_for_output
     integer                         :: nout
@@ -2672,11 +2647,11 @@ module mod_particles
     do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
 
        ! corresponding output slot:
-       nout = nint(particle(ipart)%self%global_time/dtsave_ensemble)
+       nout = nint(particle(ipart)%self%t/dtsave_ensemble)
        tout = dble(nout) * dtsave_ensemble
        ! should the particle be dumped?
-       if (particle(ipart)%self%global_time .le. tout &
-            .and. particle(ipart)%self%global_time+particle(ipart)%self%dt .gt. tout) then
+       if (particle(ipart)%self%t .le. tout &
+            .and. particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) then
           ! have to send particle to rank zero for output
           send_n_particles_for_output = send_n_particles_for_output + 1
           send_particles(send_n_particles_for_output) = particle(ipart)%self
@@ -2737,11 +2712,11 @@ module mod_particles
     use mod_global_parameters
 
     integer, intent(in)             :: send_n_particles_for_output
-    type(particle_node), dimension(send_n_particles_for_output), intent(in)  :: send_particles
+    type(particle_t), dimension(send_n_particles_for_output), intent(in)  :: send_particles
     double precision, dimension(npayload,send_n_particles_for_output), intent(in)  :: send_payload
     character(len=*), intent(in)    :: type
     character(len=std_len)              :: filename, filename2
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi) :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
@@ -2749,12 +2724,12 @@ module mod_particles
 
     receive_n_particles_for_output_from_ipe(:) = 0
 
-    if (npe==1) then 
+    if (npe==1) then
        do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,type)
+          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,type)
           call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
           if(type=='ensemble' .and. send_particles(ipart)%follow) then
-            filename2 = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'followed')
+            filename2 = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'followed')
             call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename2)
           end if
        end do
@@ -2776,10 +2751,10 @@ module mod_particles
 
     if (mype==0) then
        do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,type)
+          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,type)
           call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename)
           if(type=='ensemble' .and. send_particles(ipart)%follow) then
-            filename2 = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'followed')
+            filename2 = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'followed')
             call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename2)
           end if
        end do
@@ -2787,16 +2762,16 @@ module mod_particles
           call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
           call MPI_RECV(receive_payload,npayload*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
           do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-             filename = make_particle_filename(receive_particles(ipart)%global_time,receive_particles(ipart)%index,type)
+             filename = make_particle_filename(receive_particles(ipart)%t,receive_particles(ipart)%index,type)
              call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename)
              if(type=='ensemble' .and. receive_particles(ipart)%follow) then
-               filename2 = make_particle_filename(receive_particles(ipart)%global_time,receive_particles(ipart)%index,'followed')
+               filename2 = make_particle_filename(receive_particles(ipart)%t,receive_particles(ipart)%index,'followed')
                call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename2)
              end if
           end do ! ipart
        end do ! ipe
     end if ! mype == 0
-  
+
   end subroutine output_ensemble
 
   subroutine output_individual()
@@ -2805,8 +2780,8 @@ module mod_particles
     character(len=std_len)          :: filename
     integer                         :: ipart,iipart,ipe
     integer                         :: send_n_particles_for_output
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
@@ -2825,9 +2800,9 @@ module mod_particles
        end if ! follow
     end do ! ipart
 
-    if (npe==1) then 
+    if (npe==1) then
        do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'individual')
+          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'individual')
           call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
        end do
        itsavelast_particles = it_particles
@@ -2847,17 +2822,17 @@ module mod_particles
           call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
           call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
        end if
-       
+
        if (mype==0) then
           do ipart=1,send_n_particles_for_output
-            filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'individual')
+            filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'individual')
             call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename)
           end do
           do ipe=1,npe-1
              call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
              call MPI_RECV(receive_payload,npayload*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
              do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-                filename = make_particle_filename(receive_particles(ipart)%global_time,receive_particles(ipart)%index,'individual')
+                filename = make_particle_filename(receive_particles(ipart)%t,receive_particles(ipart)%index,'individual')
                 call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename)
              end do
           end do
@@ -2865,7 +2840,7 @@ module mod_particles
     else
        do ipart=1,send_n_particles_for_output
           ! generate filename
-          filename = make_particle_filename(send_particles(ipart)%global_time,send_particles(ipart)%index,'individual')
+          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'individual')
           call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
        end do
     end if
@@ -2877,7 +2852,7 @@ module mod_particles
   subroutine output_particle(myparticle,payload,ipe,filename)
     use mod_global_parameters
 
-    type(particle_node),intent(in)                 :: myparticle
+    type(particle_t),intent(in)                 :: myparticle
     double precision, intent(in)                   :: payload(npayload)
     integer, intent(in)                            :: ipe
     character(len=std_len),intent(in)              :: filename
@@ -2894,7 +2869,7 @@ module mod_particles
     if (typeaxial == 'cylindrical') then
        x(r_)   = myparticle%x(r_)*length_convert_factor
        x(z_)   = myparticle%x(z_)*length_convert_factor
-       x(phi_) = myparticle%x(phi_) 
+       x(phi_) = myparticle%x(phi_)
     end if
     if (typeaxial == 'spherical') then
        x(:) = myparticle%x(:)
@@ -2917,7 +2892,7 @@ module mod_particles
 
     ! create the formatstring:
     line = ''
-    write(strdata,"(es13.6, a)")roundoff(myparticle%global_time,minvalue), ','
+    write(strdata,"(es13.6, a)")roundoff(myparticle%t,minvalue), ','
     line = trim(line)//trim(strdata)
     write(strdata,"(es13.6, a)")roundoff(myparticle%dt,minvalue), ','
     line = trim(line)//trim(strdata)
@@ -2954,8 +2929,8 @@ module mod_particles
     integer                         :: status(MPI_STATUS_SIZE)
     integer, dimension(0:npe-1)     :: send_n_particles_to_ipe
     integer, dimension(0:npe-1)    :: receive_n_particles_from_ipe
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer, dimension(nparticles_per_cpu_hi,0:npe-1)  :: particle_index_to_be_sent_to_ipe
@@ -2971,10 +2946,10 @@ module mod_particles
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
 
        ! first check if the particle should be destroyed (user defined criterion)
-       if ( .not.time_advance .and. particle(ipart)%self%global_time .gt. tmax_particles ) then
+       if ( .not.time_advance .and. particle(ipart)%self%t .gt. tmax_particles ) then
           destroy_n_particles_mype  = destroy_n_particles_mype + 1
           particle_index_to_be_destroyed(destroy_n_particles_mype) = ipart
-          cycle   
+          cycle
        end if
 
        ! is my particle still in the same igrid?
@@ -2982,7 +2957,7 @@ module mod_particles
           call find_particle_ipe(particle(ipart)%self%x,igrid_particle,ipe_particle)
 
           ! destroy particle if out of domain (signalled by return value of -1)
-          if (igrid_particle == -1 )then 
+          if (igrid_particle == -1 )then
              call apply_periodB(particle(ipart)%self,igrid_particle,ipe_particle,BC_applied)
              if (.not. BC_applied .or. igrid_particle == -1) then
                 destroy_n_particles_mype  = destroy_n_particles_mype + 1
@@ -3075,8 +3050,8 @@ module mod_particles
     integer                         :: status(MPI_STATUS_SIZE)
     integer, dimension(0:npe-1)     :: send_n_particles_to_ipe
     integer, dimension(0:npe-1)    :: receive_n_particles_from_ipe
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: send_particles
-    type(particle_node), dimension(nparticles_per_cpu_hi)  :: receive_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
+    type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer, dimension(nparticles_per_cpu_hi,0:npe-1)  :: particle_index_to_be_sent_to_ipe
@@ -3169,7 +3144,7 @@ module mod_particles
   subroutine apply_periodB(particle,igrid_particle,ipe_particle,BC_applied)
     use mod_global_parameters
 
-    type(particle_node), intent(inout)        :: particle
+    type(particle_t), intent(inout)        :: particle
     integer, intent(inout)                    :: igrid_particle, ipe_particle
     logical,intent(out)                       :: BC_applied
     integer                                   :: idim
@@ -3208,7 +3183,7 @@ module mod_particles
 
     integer, intent(in)                                   :: destroy_n_particles_mype
     integer, dimension(1:destroy_n_particles_mype), intent(in) :: particle_index_to_be_destroyed
-    type(particle_node), dimension(destroy_n_particles_mype):: destroy_particles_mype
+    type(particle_t), dimension(destroy_n_particles_mype):: destroy_particles_mype
     double precision, dimension(npayload,destroy_n_particles_mype):: destroy_payload_mype
     integer                                               :: iipart,ipart,destroy_n_particles
 
@@ -3234,8 +3209,8 @@ module mod_particles
        particle(ipart)%igrid = -1
        particle(ipart)%ipe   = -1
        if(time_advance) then
-         write(*,*), particle(ipart)%self%global_time, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
-         write(*,*), particle(ipart)%self%global_time, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
+         write(*,*), particle(ipart)%self%t, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
+         write(*,*), particle(ipart)%self%t, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
        endif
        deallocate(particle(ipart)%self)
        deallocate(particle(ipart)%payload)

@@ -17,6 +17,18 @@ module mod_physics
   !> one cell in both directions, in any dimension
   integer :: phys_wider_stencil = 0
 
+  !> Array per direction per variable, which can be used to specify that certain
+  !> fluxes have to be treated differently
+  integer, allocatable :: flux_type(:, :)
+
+  !> Indicates a normal flux
+  integer, parameter   :: flux_default        = 0
+  !> Indicates the flux should be treated with tvdlf
+  integer, parameter   :: flux_tvdlf          = 1
+  !> Indicates dissipation should be omitted
+  integer, parameter   :: flux_no_dissipation = 2
+
+
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()

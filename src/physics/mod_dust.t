@@ -32,10 +32,7 @@ module mod_dust
 
   !> If dust_temperature_type is stellar, it will be calculated according to Tielens (2005),
   !> eqn. 5.44 using a stellar luminosity in solar luminosities
-  double precision :: dust_stellar_luminosity
-
-  double precision, parameter, public :: hydrogen_mass_cgs = 1.6733D-24
-  double precision, parameter, public :: kboltzmann_cgs = 1.38065D-16
+  double precision :: dust_stellar_luminosity = -1.0d0
 
   !> Set small dust densities to zero to avoid numerical problems
   logical :: dust_small_to_zero = .false.
@@ -73,6 +70,7 @@ contains
     integer, intent(in) :: g_mom(ndir)
     integer, intent(in) :: g_energy ! Negative value if not present
     integer             :: n, idir
+    character(len=2)    :: dim
 
     call dust_read_params(par_files)
 
@@ -83,23 +81,22 @@ contains
 
     allocate(dust_size(dust_n_species))
     allocate(dust_density(dust_n_species))
+    dust_size(:) = -1.0d0
+    dust_density(:) = -1.0d0
+
     allocate(dust_rho(dust_n_species))
     allocate(dust_mom(ndir, dust_n_species))
 
-    ! Set starting index of dust species
+    ! Set index of dust densities
     do n = 1, dust_n_species
-      nwflux = nwflux + 1
-      dust_rho(n) = nwflux     ! Dust density
-      write(prim_wnames(nwflux),"(A4,I1)") "rhod",n
-      write(cons_wnames(nwflux),"(A4,I1)") "rhod",n
+      dust_rho(n) = var_set_fluxvar("rhod", "rhod", n)
     end do
 
+    ! Dust momentum
     do idir = 1, ndir
+      write(dim, "(I0,A)") idir, "d"
       do n = 1, dust_n_species
-        nwflux = nwflux + 1
-        dust_mom(idir, n) = nwflux ! Dust momentum
-        write(prim_wnames(nwflux),"(A1,I1,A1,I1)") "v",idir,"d",n
-        write(cons_wnames(nwflux),"(A1,I1,A1,I1)") "m",idir,"d",n
+        dust_mom(idir, n) = var_set_fluxvar("m"//dim, "v"//dim, n)
       end do
     end do
 
@@ -112,7 +109,8 @@ contains
     integer                      :: n
 
     namelist /dust_list/ dust_n_species, dust_min_rho, gas_mu, dust_method, &
-         dust_small_to_zero, dust_source_split, dust_temperature
+         dust_small_to_zero, dust_source_split, dust_temperature, &
+         dust_temperature_type
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -125,6 +123,22 @@ contains
   subroutine dust_check_params()
     if (gas_mu <= 0.0d0) call mpistop ("Dust error: gas_mu (molecular weight)"//&
          "negative or not set")
+
+    if (dust_temperature_type == "constant") then
+       if (dust_temperature < 0.0d0) then
+          call mpistop("Dust error: dust_temperature < 0 or not set")
+       end if
+    else if (dust_temperature_type == "stellar") then
+       if (dust_stellar_luminosity < 0.0d0) then
+          call mpistop("Dust error: dust_stellar_luminosity < 0 or not set")
+       end if
+    end if
+
+    if (any(dust_size < 0.0d0)) &
+         call mpistop("Dust error: any(dust_size < 0) or not set")
+
+    if (any(dust_density < 0.0d0)) &
+         call mpistop("Dust error: any(dust_density < 0) or not set")
   end subroutine dust_check_params
 
   subroutine dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -171,7 +185,6 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
     double precision, intent(inout) :: f(ixI^S, nwflux)
-    double precision                :: vdust(ixI^S)
     integer                         :: n, idir
 
     do n = 1, dust_n_species
@@ -236,12 +249,10 @@ contains
          fdrag(ixI^S, 1:ndir, 1:dust_n_species)
     double precision, intent(in)    :: ptherm(ixI^S), vgas(ixI^S, ndir)
 
-    double precision, dimension(ixI^S) :: vt2, deltav, fd, vdust, Tgas
+    double precision, dimension(ixI^S) :: vt2, deltav, fd, vdust
     double precision                   :: alpha_T(ixI^S, 1:dust_n_species)
     integer                            :: n, idir
     double precision                   :: K
-
-    ! call hd_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
 
     vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
@@ -271,8 +282,6 @@ contains
       !  Equation from Decin et al. 2006
       if (gas_e_ < 0) call mpistop("dust sticking requires gas energy")
 
-      Tgas(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs) / &
-           (w(ixO^S, gas_rho_)*w_convert_factor(gas_rho_)*kboltzmann_cgs)
       call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
 
       do idir = 1, ndir
@@ -305,7 +314,7 @@ contains
         end do
       end do
     case('none')
-      fdrag(ixO^S, idir, :) = 0.0d0
+      fdrag(ixO^S, :, :) = 0.0d0
     case default
       call mpistop( "=== This dust method has not been implemented===" )
     end select
@@ -326,14 +335,13 @@ contains
     double precision              :: Tgas(ixI^S)
     integer                       :: n
 
-    ! call getpthermal(w, x, ixI^L, ixO^L, Tgas)
     call get_tdust(w, x, ixI^L, ixO^L, alpha_T)
 
-    Tgas(ixO^S) = (ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs) / &
-         (w(ixO^S, gas_rho_) * w_convert_factor(gas_rho_) * kboltzmann_cgs)
+    Tgas(ixO^S) = (ptherm(ixO^S)*w_convert_factor(gas_e_)*mH_cgs) / &
+         (w(ixO^S, gas_rho_) * w_convert_factor(gas_rho_) * kB_cgs)
 
     do n = 1, dust_n_species
-      alpha_T(ixO^S,n) =  max(0.35d0 * exp(-dsqrt((Tgas(ixO^S) + &
+      alpha_T(ixO^S,n) =  max(0.35d0 * exp(-sqrt((Tgas(ixO^S) + &
            alpha_T(ixO^S,n))/5.0d2))+0.1d0, smalldouble)
     end do
   end subroutine get_sticking
@@ -472,7 +480,7 @@ contains
     double precision, dimension(ixI^S)         :: vt2, deltav, tstop, vdust
     double precision, dimension(ixI^S, 1:dust_n_species) :: alpha_T
     double precision                           :: K
-    integer                                    :: n, idims, idust, idir
+    integer                                    :: n, idir
 
     call phys_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
     do idir = 1, ndir
@@ -487,8 +495,8 @@ contains
 
       ! Tgas, mu = mean molecular weight
       ptherm(ixO^S) = ( ptherm(ixO^S) * w_convert_factor(gas_e_) * &
-           hydrogen_mass_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
-           w_convert_factor(gas_rho_)*kboltzmann_cgs)
+           mH_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
+           w_convert_factor(gas_rho_)*kB_cgs)
 
       do idir = 1, ndir
         do n = 1, dust_n_species
@@ -519,8 +527,8 @@ contains
 
       ! Tgas, mu = mean molecular weight
       ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_) * &
-           hydrogen_mass_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
-           w_convert_factor(gas_rho_)*kboltzmann_cgs)
+           mH_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
+           w_convert_factor(gas_rho_)*kB_cgs)
 
       do idir = 1, ndir
         do n = 1, dust_n_species
@@ -583,17 +591,17 @@ contains
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(inout)           :: cmax(ixI^S)
     double precision, intent(inout), optional :: cmin(ixI^S)
-    double precision                          :: vdust(ixI^S, dust_n_species)
+    double precision                          :: vdust(ixI^S)
     integer                                   :: n
 
     do n = 1, dust_n_species
-      vdust(ixO^S, n) = get_vdust(w, ixI^L, ixO^L, idim, n)
+      vdust(ixO^S) = get_vdust(w, ixI^L, ixO^L, idim, n)
 
       if (present(cmin)) then
-        cmin(ixO^S) = min(cmin(ixO^S), vdust(ixO^S, n))
-        cmax(ixO^S) = max(cmax(ixO^S), vdust(ixO^S, n))
+        cmin(ixO^S) = min(cmin(ixO^S), vdust(ixO^S))
+        cmax(ixO^S) = max(cmax(ixO^S), vdust(ixO^S))
       else
-        cmax(ixO^S) = max(cmax(ixO^S), abs(vdust(ixO^S, n)))
+        cmax(ixO^S) = max(cmax(ixO^S), abs(vdust(ixO^S)))
       end if
     end do
   end subroutine dust_get_cmax

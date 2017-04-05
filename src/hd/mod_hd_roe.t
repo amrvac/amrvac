@@ -244,6 +244,7 @@ contains
     logical                            :: shearwave
 
     shearwave=il>shearW0_
+    idir=idim
     if(shearwave)then
        ! Direction of shearwave increases with il plus idir==idim is jumped over
        idir=il-shearW0_; if(idir>=idim)idir=idir+1

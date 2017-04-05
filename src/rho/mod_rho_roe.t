@@ -12,6 +12,8 @@ contains
   subroutine rho_roe_init()
     use mod_physics_roe
 
+    nworkroe = 1
+
     phys_average         => rho_average
     phys_get_eigenjump   => rho_get_eigenjump
     phys_rtimes          => rho_rtimes

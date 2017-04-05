@@ -32,26 +32,22 @@ a single or all _*.dat_ file(s) to one of these formats.
 
 # Converting (on a single CPU) {#converting}
 
-** Note that all the steps below assume you're running on a single CPU. The same steps are to be taken for obtaining any of the other precoded data formats. One important warning is due: when you run a simulation for some reason twice, and you did not erase the previously created _*.dat_ files, these files are overwritten (if the filenameout has not changed). Then, it may be that conversion fails, since the end of the file may contain some leftover data from the previous time, if the filelength has changed due to some other reason. The only remedy to this is that one should always remove old _*.dat_ files, or never forget to change the name for the files accordingly, by setting _filenameout_ in the _&amp;filelist;_.**
+** Note that all the steps below assume you're running on a single CPU. The same steps are to be taken for obtaining any of the other precoded data formats. One important warning is due: when you run a simulation for some reason twice, and you did not erase the previously created _*.dat_ files, these files are overwritten (if the base_filename has not changed). Then, it may be that conversion fails, since the end of the file may contain some leftover data from the previous time, if the filelength has changed due to some other reason. The only remedy to this is that one should always remove old _*.dat_ files, or never forget to change the name for the files accordingly, by setting _base_filename_ in the _&amp;filelist;_.**
 
 We will assume that you ran the standard 2D advection problem used for test
 purposes, i.e. that you did the following steps beforehand:
 
     cd $AMRVAC_DIR/tests/rho/vac
-    mkdir datamr
-    $AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=0 -p=rho -g=16,16 -s
+    $AMRVAC_DIR/setup.pl -d=2
     make
-    ln -s testrho_vac22 amrvac.par
     mpirun -np 1 amrvac
 
-We also assume that in the parameter file mentioned above, the namelist
+We also assume that in the parameter file amrvac.par, the namelist
 _&amp;filelist;_ was stating (note that the end of the namelist is indicated
 as usual by a backslash)
 
-     &filelist;
-            filenamelog='datamr/vaclogo'
-            filenameout='datamr/vaclogo'
-            primnames='rho'
+     &filelist
+            base_filename='vaclogo'
      /
 
 If all went well, you then have created as many _*.dat_ files as requested
@@ -60,24 +56,18 @@ _&amp;stoplist;_ namelists from the [par-file](par.md). For the example,
 they normally default to asking a full data dump at time zero, as well as
 every time the time has increased by 0.05, and this till _tmax=1.0d0_, such
 that we actually have 21 snapshots in total. You should thus have files like
-_datamr/vaclogo0000.dat_ up to _datamr/vaclogo0020.dat_. You can now
+_vaclogo0000.dat_ up to _vaclogo0020.dat_. You can now
 individually convert such _*.dat_ file to a _*.vtu_ file by doing the
-following. Edit the par-file, to modify the _&amp;filelist;_ to something like
+following. Edit the amrvac.par file, to select a visualization data format like
 
-     &filelist;
-            filenamelog='datamr/vaclogo'
-            filenameout='datamr/vaclogo'
-            primnames='rho'
-            filenameini='datamr/vaclogo'
+     &filelist
+            base_filename='vaclogo'
+            convert_type='vtuBCC'
             convert=.true.
-            convert_type='vtuCC'
-            saveprim=.false.
-            snapshotini=0
+            restart_from_file='vaclogo0000.dat'
      /
 
-Assuming that this par-file is still known through the symbolic link
-_amrvac.par_ as above, you can then convert a single _*.dat_ file (here the
-_datamr/testrho/vaclogo0000.dat_ file, as we select _snapshotini=0_) simply
+you can then convert the single _vaclogo0000.dat_ file simply
 running again
 
     mpirun -np 1 amrvac
@@ -86,49 +76,26 @@ or, which is actually equivalent (single CPU)
 
     amrvac
 
-Note that this will create a new file, namely _datamr/vaclogo0000.vtu_, which
+Note that this will create a new file, namely _vaclogo0000.vtu_, which
 can be directly imported in Paraview. It will, under the settings above, just
 contain the density on the grid hierarchy at time zero. The
-_convert_type='vtuCC'_ indicates that the data is exactly as the code
-interprets and updates the values, namely as cell-centered quantities. The
-_saveprim=.false._ has for the example here no real meaning, as for advection
-conservative and primitive variables coincide (just density _rho_ exists).
+_convert_type='vtuBCC'_ indicates that the data is exactly as the code
+interprets and updates the values, namely as cell-centered quantities. 
 
 Realizing that you typically want to convert multiple data files, you can do
 this by repeating the above as many times as here are _*.dat_ files, by
-raising/changing the _snapshotini_ identifier. Since you typicallly want to
+raising/changing the _restart_from_file_ identifier. Since you typicallly want to
 convert all data files between a minimum and maximum number of similarly named
-files, the script **doconvert** is added. If you have a line
+files, the script **aiconvert** is added. If you have a line
 `PATH="$AMRVAC_DIR:$AMRVAC_DIR/tools:./:$PATH"` in `~/.bash_profile` (or
-`~/.bashrc`), typing _doconvert_ will tell you its intended usage, namely
-
-    doconvert testrho_vac22 0 20
-
-in the example case at hand, where we created 21 data files from running the
-advection problem. **This _doconvert_ script does assume that you actually
-edited the par-file manually once as above (such that the needed lines for
-conversion are in the _&amp;filelist;_ namelist), and that the executable
-_amrvac_ exists in the same directory.** It will complain when the parfile
+`~/.bashrc`), typing _aiconvert_ will tell you its intended usage.
+In the example case at hand, where we created 21 data files from running the
+advection problem. **This _aiconvert_ script needs the intended _base_filename_ 
+and the executable _amrvac_ exists in the same directory.** It will complain when the parfile
 does not exist, and obviously requires the existence of all files between the
 start and stopindex (0 and 20 here). With paraview, you will then be able to
 immediately import all 21 _*.vtu_ files with the same base filename, and
-directly make movies or still images from them. Furthermore, there is a more
-convenient script **aiconvert**, which will automatically modify the par-file,
-do converting data, and resume the par-file, as long as the amrvac.par has
-been linked and it has the parameters for converting like
-
-     &filelist;
-            filenamelog='datamr/vaclogo'
-            filenameout='datamr/vaclogo'
-            primnames='rho'
-     /
-            filenameini='datamr/vaclogo'
-            convert=.true.
-            convert_type='vtuCC'
-            saveprim=.false.
-            snapshotini=0
-
-     &savelist;
+directly make movies or still images from them.
 
 For example, to convert snapshots from number 10 to number 20:
 
@@ -142,10 +109,13 @@ or just type
 
     aiconvert
 
-to convert all the snapshots! Besides, if amrvac.par is not linked just do
-similarly as doconcert:
+to convert all the snapshots! You can also specify a parfile other than amrvac.par as:
 
-    aiconvert testrho_vac22 0 20
+    aiconvert newname.par 0 20
+
+or to convert the snapshot number 12
+
+    aiconvert newname.par 12
 
 For details of aiconvert, please read the header of the
 $AMRVAC_DIR/tools/aiconvert.
@@ -178,21 +148,7 @@ write operation on suitable file systems is sped up significantly. In a
 visualization software, only the _*.pvtu_ files need to be imported and also
 the reading process is sped up in case of parallel visualization.
 
-Also, you can then use the same strategy as explained above for converting on
-a single CPU: you will always need to edit the [par-file](par.md)
-once to specify how to do the conversion, and then you may run interactively
-on e.g. 4 CPU like
-
-    mpirun -np 4 amrvac
-
-or do this in batch (use a batch job script for that), to do multiple data
-file conversions. We also provide a small script, called **doconvertpar**,
-which works similar to the **doconvert** explained above, but takes one extra
-parameter: the number of CPUs. Its usage is described by
-
-    doconvertpar parfilename startindex stopindex nprocessor
-
-Besides, you can again use aiconvert as expained above, and type in the number
+You can again use aiconvert as expained above, and type in the number
 of processors to use by answering a popup question:
 
     How many processors do you want to use? (default=1) 4
@@ -207,20 +163,17 @@ capability, simply set the switch _autoconvert=.true._. The example above
 would then read
 
     &filelist;
-            filenamelog='datamr/testrho/vaclogo'
-            filenameout='datamr/testrho/vaclogo'
-            primnames='rho'
-            saveprim=.false.
+            base_filename='vaclogo'
             autoconvert=.true.
-            convert_type='pvtuCCmpi'
+            convert_type='vtuBCCmpi'
      /
 
 and when the code is run via
 
     mpirun -np 2 amrvac
 
-three new output files (_vaclogoXXXX.pvtu, vaclogoXXXXp0000.vtu,
-vaclogoXXXXp0001.vtu_) will appear simultaneous to the _vaclogoXXXX.dat_
+three new output files (_vaclogoXXXX0000.vtu,
+vaclogoXXXX0001.vtu_) will appear simultaneous to the _vaclogoXXXX.dat_
 files, stored at given intervals. All functionality of the usual convert is
 conserved, e.g. derived quantities and primitive variables (using the
 _saveprim=.true._ option) can be stored in the output files.
@@ -249,29 +202,27 @@ Tecplot format.
 
 The **saveprim** logical allows you to select whether the conservative or
 primitive variables need to be stored in the resulting output file. The names
-for the conservative variables are taken from the _wnames_ string, and those
-for the primitive need to be set in _primnames_.
+for the conservative variables and primitive ones are hard coded depending on
+the physics.
 
 Another very useful option is to specify which variables actually need to be
 converted: by default all conservative variables available in the _*.dat_ file
 will be included, but then again filesizes may become restrictive. For that
-purpose, the logical array _writew_ allows to select which variable(s) to
+purpose, the logical array _w_write_ allows to select which variable(s) to
 store (and this in combination with saveprim, possibly). You can then create
 different files for selected variables, knowing that the output filename will
-start with _filenameout_, while the actual data file converted is known from
-the combination _filenameini_ and _snapshotini_.
+start with _base_filename_.
 
 We allow the possibility to compute derived variables from the _*.dat_ file in
 the userfile, by setting how many you add beyond the _nw_ variables typcial
 for the physics module at hand, in the integer _nwauxio_. Correspondingly that
 many variables, you should then compute and store in the _w(*,nw+1)_ ...
 _w(*,nw+nwauxio)_ entries, in the user-written subroutine _ specialvar_output_
-(as defined in _amrvacnul.speciallog.t_). The names for these variables then
-need to be provided in the corresponding _specialvarnames_output_ subroutine,
-which simply then extends the strings _wnames_ and _primnames_. This feature
-is very useful, for the same reason as above: you can let the code compute
-gradients of scalar fields, divergence of vector quantities, curls of vectors,
-etc, using the precoded subroutines for that purpose found in _geometry.t_.
+(as defined in _mod_usr_methods.t_). The names for these variables then
+need to be provided in the corresponding _specialvarnames_output_ subroutine.i
+This feature is very useful, for the same reason as above: you can let the 
+code compute gradients of scalar fields, divergence of vector quantities, curls 
+of vectors, etc, using the precoded subroutines for that purpose found in _geometry.t_.
 You then do not rely on visualization software to do interpolations or
 discretizations, which may not reflect those actually taken in MPI-AMRVAC.
 
@@ -347,13 +298,13 @@ script, which basically concatenates all requested _*.out_ files in a single
 file, that can be used with the (few) Idl macro's above. Its intended use for
 the 2D advection example would be
 
-    doconvert par/testrho/testrho_vac22 0 20
-    doidlcat datamr/testrho/vaclogo 0 20 1
+    aiconvert 0 20
+    doidlcat vaclogo 0 20 1
 
-The first line creates the 21 files _datamr/testrho/vaclogo0000.out_ till
-_datamr/testrho/vaclogo0020.out_ (assuming you edited the par-file and
+The first line creates the 21 files _vaclogo0000.out_ till
+_vaclogo0020.out_ (assuming you edited the par-file and
 indicated the proper _convert_type_ for idl), while the next line then gathers
-them all in a single _datamr/testrho/vaclogoall.out_ file, ready for Idl
+them all in a single _vaclogoall.out_ file, ready for Idl
 visualization with VAC-like macro's, like _.r getpict_, _.r plotfunc_ or _.r
 animate_. The 3 integer parameters to **doidlcat** indicate the first and last
 snapshot number, and a skiprate. If the latter is different from 1, you

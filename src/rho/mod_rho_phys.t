@@ -3,7 +3,7 @@ module mod_rho_phys
   implicit none
   private
 
-  integer, parameter, public          :: rho_       = 1
+  integer, protected, public          :: rho_       = 1
   double precision, protected, public :: rho_v(^ND) = 1.0d0
 
   ! Public methods
@@ -57,15 +57,7 @@ contains
     physics_type = "rho"
     phys_energy  = .false.
 
-    nwflux       = 1
-    nwaux        = 0
-    nwextra      = 0
-    nw           = nwflux + nwaux + nwextra
-    nvector      = 0
-    nworkroe     = 1
-
-    prim_wnames(nwflux)='rho'
-    cons_wnames(nwflux)='rho'
+    rho_ = var_set_rho()
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then

@@ -96,7 +96,7 @@ contains
 
     character              :: c_ndim
     character(len=80)      :: fmt_string
-    character(len=std_len) :: err_msg
+    character(len=std_len) :: err_msg, restart_from_file_arg
     character(len=std_len) :: basename_full, basename_prev
     character(len=std_len), dimension(:), allocatable :: &
          typeboundary_min^D, typeboundary_max^D
@@ -201,6 +201,8 @@ contains
 
     ! defaults for convert behavior
 
+    ! store the -if value from argument in command line 
+    restart_from_file_arg    = restart_from_file
     nwauxio                  = 0
     nocartesian              = .false.
     saveprim                 = .false.
@@ -300,7 +302,7 @@ contains
     restart_reset_time = .false.
     base_filename   = 'data'
     snapshotini = -1
-    snapshotnext = 0
+    snapshotnext = -1
 
     ! Defaults for discretization methods
     typeaverage     = 'default'
@@ -433,12 +435,17 @@ contains
        end if
     end if
 
+    ! restart filename from command line overwrites the one in par file
+    if(restart_from_file_arg /= undefined) &
+      restart_from_file=restart_from_file_arg
+
     if (restart_from_file /= undefined) then
       ! Parse index in restart_from_file string (e.g. basename0000.dat)
       i = len_trim(restart_from_file) - 7
       read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
-      if (io_state == 0) snapshotnext = snapshotini + 1
+      if (io_state == 0 .and. snapshotnext==-1) snapshotnext = snapshotini + 1
     else
+      snapshotnext=0
       if (firstprocess) &
            call mpistop("Please restart from a snapshot when firstprocess=T")
       if (convert) then
@@ -598,8 +605,8 @@ contains
        select case (time_integrator)
        case ("ssprk54","ssprk43","fourstep", "rk4", "threestep", "twostep")
           ! Runge-Kutta needs predictor
- !!!         typelimited="predictor"
- !!!         if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', 'predictor (for RK)'
+          typelimited="predictor"
+          if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', 'predictor (for RK)'
           if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
        end select
     end if
@@ -639,17 +646,19 @@ contains
           do iw=1,nw
              if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
-             if (typeboundary(iw,2*idim-1) /= 'periodic' .and. typeboundary(iw,2*idim-1) /= 'aperiodic') &
-                  call mpistop("Each dimension should either have all &
-                  or no variables periodic, some can be aperiodic")
+
+             if (typeboundary(iw,2*idim-1) /= 'periodic' .and. &
+                  typeboundary(iw,2*idim-1) /= 'aperiodic') then
+               call mpistop("Each dimension should either have all "//&
+                    "or no variables periodic, some can be aperiodic")
+             end if
           end do
        end if
     end do
     {^NOONED
     do idim=1,ndim
       if(any(typeboundary(:,2*idim-1)=='pole')) then
-        if(any(typeboundary(:,2*idim-1)/='pole')) &
-          call mpistop("At pole boundary, boundary type of all variables should be pole!")
+        if(any(typeboundary(:,2*idim-1)/='pole')) typeboundary(:,2*idim-1)='pole'
         if(phys_energy) then
           windex=2
         else
@@ -664,12 +673,11 @@ contains
           typeboundary(3:ndir+1,2*idim-1)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)='asymm'
         case default
-          call mpistop('Only cylinrical, polar, or spherical coordinate can have pole boundary!')
+          call mpistop('Pole is in cylinrical, polar, spherical coordinates!')
         end select
       end if
       if(any(typeboundary(:,2*idim)=='pole')) then
-        if(any(typeboundary(:,2*idim)/='pole')) &
-          call mpistop("At pole boundary, boundary type of all variables should be pole!")
+        if(any(typeboundary(:,2*idim-1)/='pole')) typeboundary(:,2*idim-1)='pole'
         if(phys_energy) then
           windex=2
         else
@@ -684,7 +692,7 @@ contains
           typeboundary(3:ndir+1,2*idim)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)='asymm'
         case default
-          call mpistop('Only cylinrical, polar, or spherical coordinate can have pole boundary!')
+          call mpistop('Pole is in cylinrical, polar, spherical coordinates!')
         end select
       end if
     end do
@@ -795,11 +803,11 @@ contains
        end select
     end do
 
-    ! Warn when too few blocks at start of simulation
-    if (mype.eq.0 .and. restart_from_file /= undefined .and. &
-         {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
-       call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
-    end if
+    !! Warn when too few blocks at start of simulation
+    !if (mype.eq.0 .and. restart_from_file /= undefined .and. &
+    !     {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
+    !   call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
+    !end if
 
 
     if (mype==0) then
@@ -1302,7 +1310,7 @@ contains
         call mpistop("Unexpected difference in offsets when writing .dat file")
       end if
 
-      block_offset(1) = offset_block_data
+      block_offset(1) = int(offset_block_data)
       iwrite = 0
     end if
 

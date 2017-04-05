@@ -1,26 +1,23 @@
 !=====================================================
 ! Project : 2D Richtmyer-Meshkov with dust
-! Aim     : 
+! Aim     :
 ! Results :
 ! Update  : 31/08/2015
 !=====================================================
 
  &filelist
-        base_filename='dustyrimhd'
-        saveprim=.true.
+        base_filename='RM2D_dust_Kwok'
+        typefilelog='regression_test'
         autoconvert=.true.
 	convert_type='vtuBCCmpi'
-	! nwauxio=1
  /
 
  &savelist
-        itsave(1,1)=0
-        itsave(1,2)=0
-        dtsave_dat=0.01
+        dtsave_log=0.02
  /
 
  &stoplist
-        time_max=2.0d0
+        time_max=0.2d0
  /
 
  &methodlist
@@ -46,8 +43,8 @@
 	derefine_ratio=20*0.125d0
         block_nx1 = 10
         block_nx2 = 10
-        domain_nx1=160
-        domain_nx2=40
+        domain_nx1=80
+        domain_nx2=20
         xprobmin1=0.0d0
         xprobmax1=4.0d0
         xprobmin2=0.0d0
@@ -67,7 +64,7 @@
  &dust_list
         dust_n_species = 4
         gas_mu = 2.3d0
-        dust_method='sticking'
+        dust_method='Kwok'
 	dust_small_to_zero=.false.
         dust_min_rho=1.0d-10
         dust_source_split=.false.

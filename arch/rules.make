@@ -13,7 +13,7 @@ mod_%.o mod_%.mod: mod_%.f
 
 # How to translate .t source files to normal Fortran
 %.f: %.t
-	$(VACPP) $(PPFLAGS) -d=$(NDIM)$(NDIM) $< > $(@)
+	$(VACPP) $(PPFLAGS) -d=$(NDIM) $< > $(@)
 
 # How to generate executables
 %: %.o

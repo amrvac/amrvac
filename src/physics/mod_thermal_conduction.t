@@ -45,7 +45,7 @@ module mod_thermal_conduction
   integer, public :: s
 
   !> Index of the density (in the w array)
-  integer, private, parameter              :: rho_ = 1
+  integer, private :: rho_
 
   !> Indices of the momentum density
   integer, allocatable, private, protected :: mom(:)
@@ -138,8 +138,6 @@ contains
 
     double precision, intent(in) :: phys_gamma
 
-    integer :: nwx,idir
-
     tc_gamma=phys_gamma
 
     tc_dtpar=tc_dtpar/dble(ndim)
@@ -155,28 +153,16 @@ contains
       phys_getdt_heatconduct => mhd_getdt_heatconduct
     end if
 
-    ! Determine flux variables
-    nwx = 1                  ! rho (density)
-
-    allocate(mom(ndir))
-    do idir = 1, ndir
-       nwx    = nwx + 1
-       mom(idir) = nwx       ! momentum density
-    end do
-
-    nwx = nwx + 1
-    e_     = nwx          ! energy density
-
-    allocate(mag(ndir))
-    do idir = 1, ndir
-       nwx    = nwx + 1
-       mag(idir) = nwx       ! magnetic field
-    end do
+    allocate(mom(ndir), mag(ndir))
+    rho_ = iw_rho
+    e_ = iw_e
+    mom(:) = iw_mom(:)
+    mag(:) = iw_mag(:)
+    print *, mype, e_, mom(:), mag(:)
 
     minp   = max(0.0d0, small_pressure)
     minrho = max(0.0d0, small_density)
     smalle = minp/(tc_gamma - 1.0d0)
-
 
     if(SI_unit) then
       ! Spitzer thermal conductivity with SI units
@@ -230,6 +216,7 @@ contains
       omega1=4.d0/dble(s**2+s-2)
       cmut=omega1/3.d0
     else
+      omega1=0.d0
       cmut=1.d0
     endif
     
@@ -476,7 +463,7 @@ contains
     end do
     ! B
     if(B0field) then
-      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+block%w0(ix^S,1:ndir,0)
+      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+block%B0(ix^S,1:ndir,0)
     else
       mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir));
     end if
@@ -641,7 +628,7 @@ contains
     
     ! B
     if(B0field) then
-      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+block%w0(ixO^S,1:ndir,0)
+      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+block%B0(ixO^S,1:ndir,0)
     else
       mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))
     end if

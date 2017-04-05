@@ -14,6 +14,7 @@ my $backup_suffix = ".bak";
 my %simple_replacements = (
     qr/\bamrlist\b/ => "meshlist",
     qr/dixB/ => "nghostcells",                   # Don't use word boundary here
+    qr/%w0/ => "%B0",                   # Don't use word boundary here
     qr/\berrorestimate\b/ => "refine_criterion", # (TODO: of type string)
     qr/\bfilenameini\b/ => "restart_from_file",
     qr/\bfilenameout\b/ => "base_filename",

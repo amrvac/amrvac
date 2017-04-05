@@ -9,6 +9,8 @@ deps=$(echo "$deps" | sed 's/use mod_usr_methods//')
 deps=$(echo "$deps" | sed 's/use mod_forest//')
 deps=$(echo "$deps" | sed 's/use mod_physicaldata//')
 deps=$(echo "$deps" | sed 's/use mod_connectivity//')
+deps=$(echo "$deps" | sed 's/use mod_constants//')
+deps=$(echo "$deps" | sed 's/use mod_variables//')
 
 # Remove old_physics entries
 deps=$(echo "$deps" | sed 's/^.*old_physics[/].*$//')

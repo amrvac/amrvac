@@ -27,6 +27,7 @@ if (dtpar<=zero) then
       saveigrid = igrid
       block=>pw(igrid)
       block%iw0=0
+
       if (nwaux>0) then
          call phys_get_aux(.true.,pw(igrid)%w,&
               pw(igrid)%x,ixG^LL,ixM^LL,'setdt')
@@ -34,6 +35,7 @@ if (dtpar<=zero) then
 
       call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
       dtnew=min(dtnew,qdtnew)
+
       call phys_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
       dtnew=min(dtnew,qdtnew)
 
@@ -41,9 +43,9 @@ if (dtpar<=zero) then
          call usr_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
       end if
 
-      dtnew=min(dtnew,qdtnew)
-      dtmin_mype=min(dtmin_mype,dtnew)
-      dt_grid(igrid)=dtnew
+      dtnew          = min(dtnew,qdtnew)
+      dtmin_mype     = min(dtmin_mype,dtnew)
+      dt_grid(igrid) = dtnew
    end do
 !$OMP END PARALLEL DO
 else
@@ -157,7 +159,7 @@ double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 integer :: idims
 logical :: new_cmax
 double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-double precision :: cmax(ixG^T), cmin(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
+double precision :: cmax(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
 !-----------------------------------------------------------------------------
 dtnew=bigdouble
 
@@ -173,8 +175,8 @@ new_cmax=.true.
 cmaxtot(ix^S)=zero
 
 do idims=1,ndim
-   call phys_get_cmax(w,x,ixG^L,ix^L,idims,cmax, cmin)
-   cmax_mype = max(cmax_mype,maxval(cmax(ix^S)), maxval(abs(cmin(ix^S))))
+   call phys_get_cmax(w,x,ixG^L,ix^L,idims,cmax)
+   cmax_mype = max(cmax_mype,maxval(cmax(ix^S)))
    if (.not.slab) then
       tmp(ix^S)=cmax(ix^S)/block%dx(ix^S,idims)
       cmaxtot(ix^S)=cmaxtot(ix^S)+tmp(ix^S)

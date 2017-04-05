@@ -29,7 +29,7 @@ module mod_hd_phys
   integer, public, protected              :: hd_n_tracer = 0
 
   !> Index of the density (in the w array)
-  integer, public, parameter              :: rho_ = 1
+  integer, public, protected              :: rho_
 
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
@@ -42,9 +42,6 @@ module mod_hd_phys
 
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
-
-  !> The number of flux variables in this module
-  integer, public, protected              :: hd_nwflux
 
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
@@ -128,30 +125,17 @@ contains
     physics_type = "hd"
     phys_energy  = hd_energy
     use_particles = hd_particles
-    nwflux        = 0
-    nwaux         = 0
-    nwextra       = 0
 
     ! Determine flux variables
-    nwflux              = nwflux+1 ! rho (density)
-    prim_wnames(nwflux) = 'rho'
-    cons_wnames(nwflux) = 'rho'
+    rho_ = var_set_rho()
 
     allocate(mom(ndir))
-    do idir = 1, ndir
-       nwflux    = nwflux + 1
-       mom(idir) = nwflux       ! momentum density
-       write(prim_wnames(nwflux),"(A1,I1)") "v",idir
-       write(cons_wnames(nwflux),"(A1,I1)") "m",idir
-    end do
+    mom(:) = var_set_momentum(ndir)
 
     ! Set index of energy variable
     if (hd_energy) then
-       nwflux = nwflux + 1
-       e_     = nwflux          ! energy density
-       p_     = nwflux          ! gas pressure
-       prim_wnames(nwflux)='p'
-       cons_wnames(nwflux)='e'
+       e_ = var_set_energy()
+       p_ = e_
     else
        e_ = -1
        p_ = -1
@@ -161,13 +145,8 @@ contains
 
     ! Set starting index of tracers
     do itr = 1, hd_n_tracer
-       nwflux = nwflux + 1
-       tracer(itr) = nwflux     ! tracers
-       write(prim_wnames(nwflux),"(A3,I1)") "trp",itr
-       write(cons_wnames(nwflux),"(A3,I1)") "trc",itr
+       tracer(itr) = var_set_fluxvar("trc", "trp", itr)
     end do
-
-    hd_nwflux = nwflux
 
     phys_get_dt          => hd_get_dt
     phys_get_cmax        => hd_get_cmax
@@ -208,8 +187,6 @@ contains
 
     ! Initialize particles module
     if (hd_particles) call particles_init()
-
-    nw      = nwflux + nwaux + nwextra
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then

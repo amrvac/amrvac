@@ -38,7 +38,7 @@ module mod_mhd_phys
   integer, public, protected              :: mhd_n_tracer = 0
 
   !> Index of the density (in the w array)
-  integer, public, parameter              :: rho_ = 1
+  integer, public, protected              :: rho_
 
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
@@ -57,9 +57,6 @@ module mod_mhd_phys
 
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
-
-  !> The number of flux variables in this module
-  integer, public, protected              :: mhd_nwflux
 
   !> The adiabatic index
   double precision, public                :: mhd_gamma = 5.d0/3.0d0
@@ -175,64 +172,42 @@ contains
     use_particles=mhd_particles
 
     ! Determine flux variables
-    nwflux = 1                  ! rho (density)
-    prim_wnames(nwflux)='rho'
-    cons_wnames(nwflux)='rho'
+    rho_ = var_set_rho()
 
     allocate(mom(ndir))
-    do idir = 1, ndir
-       nwflux    = nwflux + 1
-       mom(idir) = nwflux       ! momentum density
-       write(prim_wnames(nwflux),"(A1,I1)") "v",idir
-       write(cons_wnames(nwflux),"(A1,I1)") "m",idir
-    end do
+    mom(:) = var_set_momentum(ndir)
 
     ! Set index of energy variable
     if (mhd_energy) then
-       nwwave=8
-       nwflux = nwflux + 1
-       e_     = nwflux          ! energy density
-       p_     = nwflux          ! gas pressure
-       prim_wnames(nwflux)='p'
-       cons_wnames(nwflux)='e'
+      nwwave = 8
+      e_     = var_set_energy() ! energy density
+      p_     = e_               ! gas pressure
     else
-       nwwave=7
-       e_ = -1
-       p_ = -1
+      nwwave = 7
+      e_     = -1
+      p_     = -1
     end if
 
     allocate(mag(ndir))
-    do idir = 1, ndir
-       nwflux    = nwflux + 1
-       mag(idir) = nwflux       ! magnetic field
-       write(prim_wnames(nwflux),"(A1,I1)") "b",idir
-       write(cons_wnames(nwflux),"(A1,I1)") "b",idir
-    end do
+    mag(:) = var_set_bfield(ndir)
 
     if (mhd_glm) then
-       nwflux = nwflux + 1
-       psi_   = nwflux
-       prim_wnames(nwflux)='psi'
-       cons_wnames(nwflux)='psi'
+      psi_ = var_set_fluxvar('psi', 'psi')
     else
-       psi_ = -1
+      psi_ = -1
     end if
 
     allocate(tracer(mhd_n_tracer))
 
     ! Set starting index of tracers
     do itr = 1, mhd_n_tracer
-       nwflux = nwflux + 1
-       tracer(itr) = nwflux     ! tracers
-       write(prim_wnames(nwflux),"(A3,I1)") "trp",itr
-       write(cons_wnames(nwflux),"(A3,I1)") "trc",itr
+      tracer(itr) = var_set_fluxvar("trc", "trp", itr)
     end do
 
-    mhd_nwflux = nwflux
-
-    nwaux   = 0
-    nwextra = 0
-    nw      = nwflux + nwaux + nwextra
+    nvector      = 2 ! No. vector vars
+    allocate(iw_vector(nvector))
+    iw_vector(1) = mom(1) - 1   ! TODO: why like this?
+    iw_vector(2) = mag(1) - 1   ! TODO: why like this?
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -245,11 +220,6 @@ contains
       flux_type(idir,mag(idir))=flux_tvdlf
     end do
     if(mhd_glm) flux_type(:,psi_)=flux_tvdlf
-
-    nvector      = 2 ! No. vector vars
-    allocate(iw_vector(nvector))
-    iw_vector(1) = mom(1) - 1   ! TODO: why like this?
-    iw_vector(2) = mag(1) - 1   ! TODO: why like this?
 
     phys_get_dt          => mhd_get_dt
     phys_get_cmax        => mhd_get_cmax
@@ -669,8 +639,8 @@ contains
       end if
       if (B0field) then
         f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
-             -w(ixO^S,mag(idir))*block%w0(ixO^S,idim,idim)&
-             -w(ixO^S,mag(idim))*block%w0(ixO^S,idir,idim)
+             -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
+             -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
       end if
       f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+v(ixO^S,idim)*w(ixO^S,mom(idir))
     end do
@@ -682,10 +652,10 @@ contains
             w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*v(ixO^S,:),dim=ndim+1)
 
       if (B0field) then
-        tmp(ixO^S)=sum(block%w0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
+        tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
         f(ixO^S,e_) = f(ixO^S,e_) &
              + v(ixO^S,idim) * tmp(ixO^S) &
-             - sum(v(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * block%w0(ixO^S,idim,idim)
+             - sum(v(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * block%B0(ixO^S,idim,idim)
       end if
 
       if (mhd_Hall) then
@@ -697,7 +667,7 @@ contains
           if (B0field) then
             f(ixO^S,e_) = f(ixO^S,e_) &
                  + vHall(ixO^S,idim) * tmp(ixO^S) &
-                 - sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * block%w0(ixO^S,idim,idim)
+                 - sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * block%B0(ixO^S,idim,idim)
           end if
         end if
       end if
@@ -719,8 +689,8 @@ contains
 
         if (B0field) then
           f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
-                +v(ixO^S,idim)*block%w0(ixO^S,idir,idim)&
-                -v(ixO^S,idir)*block%w0(ixO^S,idim,idim)
+                +v(ixO^S,idim)*block%B0(ixO^S,idir,idim)&
+                -v(ixO^S,idir)*block%B0(ixO^S,idim,idim)
         end if
 
         if (mhd_Hall) then
@@ -728,8 +698,8 @@ contains
           if (mhd_etah>zero) then
             if (B0field) then
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-                   - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+block%w0(ixO^S,idim,idim)) &
-                   + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+block%w0(ixO^S,idir,idim))
+                   - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+block%B0(ixO^S,idim,idim)) &
+                   + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idim))
             else
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
@@ -789,6 +759,10 @@ contains
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
     end if
 
+    if(B0field .and. .not.qsourcesplit) then
+      call add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
+    end if
+
     {^NOONED
     if (qsourcesplit) then
        ! Sources related to div B
@@ -820,6 +794,27 @@ contains
     }
   end subroutine mhd_add_source
 
+  !> Source terms after split off time-independent magnetic field
+  subroutine add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
+    use mod_global_parameters
+
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: current0(ixI^S,1:ndir),v(ixI^S,1:ndir)
+    integer :: idir
+
+    do idir=1,ndir
+      v(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
+    end do
+
+    w(ixO^S,e_)=w(ixO^S,e_)-&
+    qdt*((v(ixO^S,2)*wCT(ixO^S,mag(3))-v(ixO^S,3)*wCT(ixO^S,mag(2)))*block%J0(ixO^S,1)&
+        +(v(ixO^S,3)*wCT(ixO^S,mag(1))-v(ixO^S,1)*wCT(ixO^S,mag(3)))*block%J0(ixO^S,2)&
+        +(v(ixO^S,1)*wCT(ixO^S,mag(2))-v(ixO^S,2)*wCT(ixO^S,mag(1)))*block%J0(ixO^S,3))
+
+  end subroutine add_source_lfff
   !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
   !> each direction, non-conservative. If the fourthorder precompiler flag is
   !> set, uses fourth order central difference for the laplacian. Then the
@@ -1345,7 +1340,7 @@ contains
 
     if (B0field) then
        do idir = 1, ndir
-          bvec(ixI^S,idir)=w(ixI^S,mag(idir))+block%w0(ixI^S,idir,0)
+          bvec(ixI^S,idir)=w(ixI^S,mag(idir))+block%B0(ixI^S,idir,0)
        end do
     else
        do idir = 1, ndir
@@ -1353,7 +1348,6 @@ contains
        end do
     end if
 
-    !bvec(ixI^S,1:ndir)=w(ixI^S,b0_+1:b0_+ndir)
     call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
 
   end subroutine get_current
@@ -1449,7 +1443,7 @@ contains
        call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
        tmp(ixO^S)=tmp1(ixO^S)
        if(B0field) then
-         tmp2(ixO^S)=sum(block%w0(ixO^S,:,0)*wCT(ixO^S,mag(:)),dim=ndim+1)
+         tmp2(ixO^S)=sum(block%B0(ixO^S,:,0)*wCT(ixO^S,mag(:)),dim=ndim+1)
          tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
        end if
        ! m1
@@ -1458,7 +1452,7 @@ contains
        if(ndir>1) then
          do idir=2,ndir
            tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2/wCT(ixO^S,rho_)-wCT(ixO^S,mag(idir))**2
-           if(B0field) tmp(ixO^S)=tmp(ixO^S)-2.0d0*block%w0(ixO^S,idir,0)*wCT(ixO^S,mag(idir))
+           if(B0field) tmp(ixO^S)=tmp(ixO^S)-2.0d0*block%B0(ixO^S,idir,0)*wCT(ixO^S,mag(idir))
          end do
        end if
        w(ixO^S,mom(1))=w(ixO^S,mom(1))+qdt*tmp(ixO^S)/x(ixO^S,1)
@@ -1480,14 +1474,14 @@ contains
        tmp(ixO^S)=-(wCT(ixO^S,mom(1))*wCT(ixO^S,mom(2))/wCT(ixO^S,rho_) &
             -wCT(ixO^S,mag(1))*wCT(ixO^S,mag(2)))
        if (B0field) then
-          tmp(ixO^S)=tmp(ixO^S)+block%w0(ixO^S,1,0)*wCT(ixO^S,mag(2)) &
-               +wCT(ixO^S,mag(1))*block%w0(ixO^S,2,0)
+          tmp(ixO^S)=tmp(ixO^S)+block%B0(ixO^S,1,0)*wCT(ixO^S,mag(2)) &
+               +wCT(ixO^S,mag(1))*block%B0(ixO^S,2,0)
        end if
        if(ndir==3) then
          tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_) &
               -wCT(ixO^S,mag(3))**2)*dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
          if (B0field) then
-            tmp(ixO^S)=tmp(ixO^S)-2.0d0*block%w0(ixO^S,3,0)*wCT(ixO^S,mag(3))&
+            tmp(ixO^S)=tmp(ixO^S)-2.0d0*block%B0(ixO^S,3,0)*wCT(ixO^S,mag(3))&
                  *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
          end if
        end if
@@ -1496,8 +1490,8 @@ contains
        tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
             -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_)
        if(B0field) then
-         tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%w0(ixO^S,2,0) &
-              -wCT(ixO^S,mom(2))*block%w0(ixO^S,1,0))/wCT(ixO^S,rho_)
+         tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,2,0) &
+              -wCT(ixO^S,mom(2))*block%B0(ixO^S,1,0))/wCT(ixO^S,rho_)
        end if
        if(mhd_glm) then
          tmp(ixO^S)=tmp(ixO^S) &
@@ -1515,10 +1509,10 @@ contains
                 -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
                 *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
            if (B0field) then
-              tmp(ixO^S)=tmp(ixO^S)+block%w0(ixO^S,1,0)*wCT(ixO^S,mag(3)) &
-                   +wCT(ixO^S,mag(1))*block%w0(ixO^S,3,0) {^NOONED &
-                   +(block%w0(ixO^S,2,0)*wCT(ixO^S,mag(3)) &
-                   +wCT(ixO^S,mag(2))*block%w0(ixO^S,3,0)) &
+              tmp(ixO^S)=tmp(ixO^S)+block%B0(ixO^S,1,0)*wCT(ixO^S,mag(3)) &
+                   +wCT(ixO^S,mag(1))*block%B0(ixO^S,3,0) {^NOONED &
+                   +(block%B0(ixO^S,2,0)*wCT(ixO^S,mag(3)) &
+                   +wCT(ixO^S,mag(2))*block%B0(ixO^S,3,0)) &
                    *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
            end if
            w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
@@ -1530,10 +1524,10 @@ contains
               -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
               /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
          if (B0field) then
-            tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%w0(ixO^S,3,0) &
-                 -wCT(ixO^S,mom(3))*block%w0(ixO^S,1,0))/wCT(ixO^S,rho_){^NOONED &
-                 -(wCT(ixO^S,mom(3))*block%w0(ixO^S,2,0) &
-                 -wCT(ixO^S,mom(2))*block%w0(ixO^S,3,0))*dcos(x(ixO^S,2)) &
+            tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,3,0) &
+                 -wCT(ixO^S,mom(3))*block%B0(ixO^S,1,0))/wCT(ixO^S,rho_){^NOONED &
+                 -(wCT(ixO^S,mom(3))*block%B0(ixO^S,2,0) &
+                 -wCT(ixO^S,mom(2))*block%B0(ixO^S,3,0))*dcos(x(ixO^S,2)) &
                  /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
          end if
          w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
@@ -1549,7 +1543,7 @@ contains
     double precision              :: mge(ixO^S)
 
     if (B0field) then
-      mge = sum((w(ixO^S, mag(:))+block%w0(ixO^S,:,block%iw0))**2, dim=ndim+1)
+      mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,block%iw0))**2, dim=ndim+1)
     else
       mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
     end if
@@ -1563,7 +1557,7 @@ contains
     double precision              :: mgf(ixO^S)
 
     if (B0field) then
-      mgf = w(ixO^S, mag(idir))+block%w0(ixO^S,idir,block%iw0)
+      mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,block%iw0)
     else
       mgf = w(ixO^S, mag(idir))
     end if
@@ -1642,7 +1636,7 @@ contains
 
     if (.not. B0field) then
        bmag(ixO^S)=sqrt(sum(w(ixO^S,mag(:))**2, dim=ndim+1))
-       bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%w0(ixO^S,1:ndir,block%iw0))**2))
+       bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%B0(ixO^S,1:ndir,block%iw0))**2))
     end if
 
     dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
