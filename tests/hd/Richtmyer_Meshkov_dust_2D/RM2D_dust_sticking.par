@@ -1,0 +1,72 @@
+!=====================================================
+! Project : 2D Richtmyer-Meshkov with dust
+! Aim     :
+! Results :
+! Update  : 31/08/2015
+!=====================================================
+
+ &filelist
+        base_filename='RM2D_dust_sticking'
+        typefilelog='regression_test'
+        autoconvert=.true.
+	convert_type='vtuBCCmpi'
+ /
+
+ &savelist
+        dtsave_log=0.02
+ /
+
+ &stoplist
+        time_max=0.2d0
+ /
+
+ &methodlist
+        time_integrator=  'ssprk54'
+        flux_scheme=   20*'hll'
+        limiter=20*'koren'
+ /
+
+ &boundlist
+        typeboundary_min1 = 16*'cont'
+        typeboundary_max1 = 16*'cont',
+	typeboundary_min2 = 'symm','symm','asymm','symm',4*'symm',4*'symm',4*'asymm',
+        typeboundary_max2 = 'symm','symm','asymm','symm',4*'symm',4*'symm',4*'asymm'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=2
+        w_refine_weight(1)=0.8d0
+	w_refine_weight(5)=0.1d0
+	w_refine_weight(8)=0.1d0
+	refine_threshold=20*0.05
+	derefine_ratio=20*0.125d0
+        block_nx1 = 10
+        block_nx2 = 10
+        domain_nx1=80
+        domain_nx2=20
+        xprobmin1=0.0d0
+        xprobmax1=4.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /
+
+ &paramlist
+        slowsteps=10
+        courantpar=0.9d0
+ /
+
+ &hd_list
+        hd_gamma = 1.4d0
+        hd_dust = .true.
+ /
+
+ &dust_list
+        dust_n_species = 4
+        gas_mu = 2.3d0
+        dust_method='sticking'
+	dust_small_to_zero=.false.
+        dust_min_rho=1.0d-10
+        dust_source_split=.false.
+        dust_temperature=0.0d0
+ /
