@@ -1,6 +1,7 @@
 ################# Definitions for source files #############################
 INCLUDES = mod_global_parameters.t mod_usr_methods.t mod_forest.t	\
-mod_physicaldata.o mod_connectivity.t
+mod_physicaldata.o mod_connectivity.t mod_constants.t mod_variables.t	\
+mod_basic_types.t
 
 FOBJECTS = mod_advance.t setdt.t amrini.t amr_solution_node.t	\
 errest.t amrgrid.t amr_fix_conserve.t mod_finite_volume.t mod_tvd.t mod_finite_difference.t	\
@@ -15,6 +16,10 @@ mod_limiter.t mod_fix_conserve.t mod_source.t mod_initialize.t
 
 mod_global_parameters.o: mod_connectivity.o
 mod_global_parameters.o: mod_physicaldata.o
+mod_global_parameters.o: mod_constants.o
+mod_global_parameters.o: mod_variables.o
+mod_global_parameters.o: mod_basic_types.o
+mod_variables.o: mod_basic_types.o
 mod_usr_methods.o: mod_global_parameters.o
 
 ############################################################################
@@ -105,7 +110,6 @@ mod_mhd_roe.o: mod_tvd.o
 mod_mp5.o: mod_physics.o
 mod_nonlinear.o: mod_nonlinear_params.o
 mod_nonlinear.o: mod_physics.o
-mod_particles.o: mod_constants.o
 mod_particles.o: mod_Knuth_random.o
 mod_particles.o: mod_odeint.o
 mod_particles.o: mod_physics.o

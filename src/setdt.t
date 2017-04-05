@@ -159,7 +159,7 @@ double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 integer :: idims
 logical :: new_cmax
 double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-double precision :: cmax(ixG^T), cmin(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
+double precision :: cmax(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
 !-----------------------------------------------------------------------------
 dtnew=bigdouble
 

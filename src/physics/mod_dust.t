@@ -34,9 +34,6 @@ module mod_dust
   !> eqn. 5.44 using a stellar luminosity in solar luminosities
   double precision :: dust_stellar_luminosity = -1.0d0
 
-  double precision, parameter, public :: hydrogen_mass_cgs = 1.6733D-24
-  double precision, parameter, public :: kboltzmann_cgs = 1.38065D-16
-
   !> Set small dust densities to zero to avoid numerical problems
   logical :: dust_small_to_zero = .false.
 
@@ -73,6 +70,7 @@ contains
     integer, intent(in) :: g_mom(ndir)
     integer, intent(in) :: g_energy ! Negative value if not present
     integer             :: n, idir
+    character(len=2)    :: dim
 
     call dust_read_params(par_files)
 
@@ -89,20 +87,16 @@ contains
     allocate(dust_rho(dust_n_species))
     allocate(dust_mom(ndir, dust_n_species))
 
-    ! Set starting index of dust species
+    ! Set index of dust densities
     do n = 1, dust_n_species
-      nwflux = nwflux + 1
-      dust_rho(n) = nwflux     ! Dust density
-      write(prim_wnames(nwflux),"(A4,I1)") "rhod",n
-      write(cons_wnames(nwflux),"(A4,I1)") "rhod",n
+      dust_rho(n) = var_set_fluxvar("rhod", "rhod", n)
     end do
 
+    ! Dust momentum
     do idir = 1, ndir
+      write(dim, "(I0,A)") idir, "d"
       do n = 1, dust_n_species
-        nwflux = nwflux + 1
-        dust_mom(idir, n) = nwflux ! Dust momentum
-        write(prim_wnames(nwflux),"(A1,I1,A1,I1)") "v",idir,"d",n
-        write(cons_wnames(nwflux),"(A1,I1,A1,I1)") "m",idir,"d",n
+        dust_mom(idir, n) = var_set_fluxvar("m"//dim, "v"//dim, n)
       end do
     end do
 
@@ -343,8 +337,8 @@ contains
 
     call get_tdust(w, x, ixI^L, ixO^L, alpha_T)
 
-    Tgas(ixO^S) = (ptherm(ixO^S)*w_convert_factor(gas_e_)*hydrogen_mass_cgs) / &
-         (w(ixO^S, gas_rho_) * w_convert_factor(gas_rho_) * kboltzmann_cgs)
+    Tgas(ixO^S) = (ptherm(ixO^S)*w_convert_factor(gas_e_)*mH_cgs) / &
+         (w(ixO^S, gas_rho_) * w_convert_factor(gas_rho_) * kB_cgs)
 
     do n = 1, dust_n_species
       alpha_T(ixO^S,n) =  max(0.35d0 * exp(-sqrt((Tgas(ixO^S) + &
@@ -501,8 +495,8 @@ contains
 
       ! Tgas, mu = mean molecular weight
       ptherm(ixO^S) = ( ptherm(ixO^S) * w_convert_factor(gas_e_) * &
-           hydrogen_mass_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
-           w_convert_factor(gas_rho_)*kboltzmann_cgs)
+           mH_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
+           w_convert_factor(gas_rho_)*kB_cgs)
 
       do idir = 1, ndir
         do n = 1, dust_n_species
@@ -533,8 +527,8 @@ contains
 
       ! Tgas, mu = mean molecular weight
       ptherm(ixO^S) = ( ptherm(ixO^S)*w_convert_factor(gas_e_) * &
-           hydrogen_mass_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
-           w_convert_factor(gas_rho_)*kboltzmann_cgs)
+           mH_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
+           w_convert_factor(gas_rho_)*kB_cgs)
 
       do idir = 1, ndir
         do n = 1, dust_n_species

@@ -4,6 +4,9 @@ module mod_global_parameters
   use mod_physicaldata
   use mod_connectivity
   use mpi
+  use mod_constants
+  use mod_variables
+  use mod_basic_types
 
   implicit none
   public
@@ -34,18 +37,6 @@ module mod_global_parameters
   !> @todo Make local
   integer :: ierrmpi
 
-  !> Size (in bytes) of single precision real
-  integer, parameter :: size_real = 4
-
-  !> Size (in bytes) of double precision real
-  integer, parameter :: size_double = 8
-
-  !> Size (in bytes) of default integer
-  integer, parameter :: size_int = 4
-
-  !> Size (in bytes) of default logical
-  integer, parameter :: size_logical = 4
-
   integer :: log_fh
   !> MPI IO type for block including ghost cells
   integer :: type_block, type_coarse_block, type_sub_block(2^D&)
@@ -72,12 +63,6 @@ module mod_global_parameters
   double precision :: Bquad=0.d0
   double precision :: Boct=0.d0
   double precision :: Busr=0.d0
-
-  !> Default length for strings
-  integer, parameter :: std_len = 131
-
-  !> Default length for names (of e.g. variables)
-  integer, parameter :: name_len = 16
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
   integer :: r_ = -1
@@ -138,26 +123,6 @@ module mod_global_parameters
   integer, parameter :: unitcollapse=13
   integer, parameter :: unitanalysis=14
 
-  !> A very large integer
-  integer, parameter :: biginteger=10000000
-
-  ! A very small real number (but above machine precision)
-  double precision, parameter :: smalldouble=1.D-12
-
-  !> A very large real number
-  double precision, parameter :: bigdouble=1.D+99
-
-  !> \todo Remove these
-  double precision, parameter :: zero    = 0.0d0
-  double precision, parameter :: one     = 1.0d0
-  double precision, parameter :: two     = 2.0d0
-  double precision, parameter :: half    = 0.5d0
-  double precision, parameter :: quarter = 0.25d0
-  double precision, parameter :: third   = 1/3.0d0
-
-  !> Pi
-  double precision, parameter :: dpi=3.141592653589793238462643383279502884197169399375105d0
-
   !> Physical scaling factor for length
   double precision :: unit_length=1.d0
 
@@ -185,17 +150,8 @@ module mod_global_parameters
   !> Elapsed time for evaluate the performance
   real :: time_elapsed=0.0
 
-  ! TODO temporary placed here (Jannis)
-  integer           :: nwflux
-  integer           :: nwaux
-  integer           :: nwextra
-  integer           :: nw
-  integer           :: nvector
-
   !> Weights of variables used to calculate error for mesh refinement
   double precision, allocatable :: w_refine_weight(:)
-
-  integer, dimension(:), allocatable :: iw_vector
 
   integer           :: iprob
   !> positions of the minimum and maximum surfaces for each dimension
@@ -579,46 +535,12 @@ module mod_global_parameters
   logical :: skipfinestep
   logical, allocatable :: phyboundblock(:)
   logical :: time_advance
-  !> Array per direction per variable, which can be used to specify that certain
-  !> fluxes have to be treated differently
-  integer, allocatable :: flux_type(:, :)
-
-  !> Indicates a normal flux
-  integer, parameter   :: flux_default        = 0
-  !> Indicates the flux should be treated with tvdlf
-  integer, parameter   :: flux_tvdlf          = 1
-  !> Indicates dissipation should be omitted
-  integer, parameter   :: flux_no_dissipation = 2
 
   !> Use SI units (.true.) or use cgs units (.false.)
   logical              :: SI_unit=.false.
 
-  !> Proton mass in cgs
-  double precision, parameter :: mp_cgs  = 1.672621777d-24  ! g
-
-  !> Boltzmann constant in cgs
-  double precision, parameter :: kB_cgs  = 1.3806488d-16    ! erg K^-1
-
-  !> Proton mass in SI
-  double precision, parameter :: mp_SI  = 1.672621777d-27  ! kg
-
-  !> Boltzmann constant in SI
-  double precision, parameter :: kB_SI  = 1.3806488d-23    ! J K^-1
-
-  !> Permeability in SI
-  double precision, parameter :: miu0_SI  = 1.2566370614d-6 ! H m^-1
-
   !> Solve energy equation or not
   logical :: phys_energy=.true.
-
-  !> Maximum number of variables
-  integer, parameter :: max_nw = 50
-
-  !> Primitive variable names
-  character(len=name_len) :: prim_wnames(max_nw)
-
-  !> Conservative variable names
-  character(len=name_len) :: cons_wnames(max_nw)
 
   !> Use particles module or not
   logical :: use_particles=.false.

@@ -38,7 +38,7 @@ module mod_mhd_phys
   integer, public, protected              :: mhd_n_tracer = 0
 
   !> Index of the density (in the w array)
-  integer, public, parameter              :: rho_ = 1
+  integer, public, protected              :: rho_
 
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
@@ -57,9 +57,6 @@ module mod_mhd_phys
 
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
-
-  !> The number of flux variables in this module
-  integer, public, protected              :: mhd_nwflux
 
   !> The adiabatic index
   double precision, public                :: mhd_gamma = 5.d0/3.0d0
@@ -175,64 +172,42 @@ contains
     use_particles=mhd_particles
 
     ! Determine flux variables
-    nwflux = 1                  ! rho (density)
-    prim_wnames(nwflux)='rho'
-    cons_wnames(nwflux)='rho'
+    rho_ = var_set_rho()
 
     allocate(mom(ndir))
-    do idir = 1, ndir
-       nwflux    = nwflux + 1
-       mom(idir) = nwflux       ! momentum density
-       write(prim_wnames(nwflux),"(A1,I1)") "v",idir
-       write(cons_wnames(nwflux),"(A1,I1)") "m",idir
-    end do
+    mom(:) = var_set_momentum(ndir)
 
     ! Set index of energy variable
     if (mhd_energy) then
-       nwwave=8
-       nwflux = nwflux + 1
-       e_     = nwflux          ! energy density
-       p_     = nwflux          ! gas pressure
-       prim_wnames(nwflux)='p'
-       cons_wnames(nwflux)='e'
+      nwwave = 8
+      e_     = var_set_energy() ! energy density
+      p_     = e_               ! gas pressure
     else
-       nwwave=7
-       e_ = -1
-       p_ = -1
+      nwwave = 7
+      e_     = -1
+      p_     = -1
     end if
 
     allocate(mag(ndir))
-    do idir = 1, ndir
-       nwflux    = nwflux + 1
-       mag(idir) = nwflux       ! magnetic field
-       write(prim_wnames(nwflux),"(A1,I1)") "b",idir
-       write(cons_wnames(nwflux),"(A1,I1)") "b",idir
-    end do
+    mag(:) = var_set_bfield(ndir)
 
     if (mhd_glm) then
-       nwflux = nwflux + 1
-       psi_   = nwflux
-       prim_wnames(nwflux)='psi'
-       cons_wnames(nwflux)='psi'
+      psi_ = var_set_fluxvar('psi', 'psi')
     else
-       psi_ = -1
+      psi_ = -1
     end if
 
     allocate(tracer(mhd_n_tracer))
 
     ! Set starting index of tracers
     do itr = 1, mhd_n_tracer
-       nwflux = nwflux + 1
-       tracer(itr) = nwflux     ! tracers
-       write(prim_wnames(nwflux),"(A3,I1)") "trp",itr
-       write(cons_wnames(nwflux),"(A3,I1)") "trc",itr
+      tracer(itr) = var_set_fluxvar("trc", "trp", itr)
     end do
 
-    mhd_nwflux = nwflux
-
-    nwaux   = 0
-    nwextra = 0
-    nw      = nwflux + nwaux + nwextra
+    nvector      = 2 ! No. vector vars
+    allocate(iw_vector(nvector))
+    iw_vector(1) = mom(1) - 1   ! TODO: why like this?
+    iw_vector(2) = mag(1) - 1   ! TODO: why like this?
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -245,11 +220,6 @@ contains
       flux_type(idir,mag(idir))=flux_tvdlf
     end do
     if(mhd_glm) flux_type(:,psi_)=flux_tvdlf
-
-    nvector      = 2 ! No. vector vars
-    allocate(iw_vector(nvector))
-    iw_vector(1) = mom(1) - 1   ! TODO: why like this?
-    iw_vector(2) = mag(1) - 1   ! TODO: why like this?
 
     phys_get_dt          => mhd_get_dt
     phys_get_cmax        => mhd_get_cmax

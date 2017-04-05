@@ -4,15 +4,6 @@ module mod_gravity
   !> source split or not
   logical :: grav_split= .false.
 
-  !> Index of the density (in the w array)
-  integer, private, parameter              :: rho_ = 1
-
-  !> Indices of the momentum density
-  integer, allocatable, private, protected :: mom(:)
-
-  !> Index of the energy density (-1 if not present)
-  integer, private, protected              :: e_
-
 contains
   !> Read this module's parameters from a file
   subroutine grav_params_read(files)
@@ -36,18 +27,6 @@ contains
     integer :: nwx,idir
 
     call grav_params_read(par_files)
-
-    ! Determine flux variables
-    nwx = 1                  ! rho (density)
-
-    allocate(mom(ndir))
-    do idir = 1, ndir
-       nwx    = nwx + 1
-       mom(idir) = nwx       ! momentum density
-    end do
-
-    nwx = nwx + 1
-    e_     = nwx          ! energy density
 
   end subroutine gravity_init
 
@@ -77,11 +56,11 @@ contains
       end if
   
       do idim = 1, ndim
-        w(ixO^S,mom(idim)) = w(ixO^S,mom(idim)) &
-              + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,rho_)
+        w(ixO^S,iw_mom(idim)) = w(ixO^S,iw_mom(idim)) &
+              + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_rho)
         if(energy) then
-          w(ixO^S,e_)=w(ixO^S,e_) &
-              + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,mom(idim))
+          w(ixO^S,iw_e)=w(ixO^S,iw_e) &
+              + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_mom(idim))
         end if
       end do
     end if
