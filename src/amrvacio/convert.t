@@ -193,7 +193,7 @@ logical             :: fileopen,writeblk(max_blocks)
 character(len=80)   :: filename
 integer             :: filenr,ncells,ncells^D,ncellg,ncellx^D,jg^D,jig^D
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 double precision :: wval1,xval1
@@ -384,7 +384,7 @@ logical             :: fileopen
 character(len=80)   :: filename
 integer             :: filenr
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 !.. MPI variables ..
@@ -492,7 +492,7 @@ double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 logical :: fileopen
@@ -699,7 +699,7 @@ integer  :: filenr
 !!! possible length conflict
 character(len=1024) :: tecplothead
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 !-----------------------------------------------------------------------------
 
@@ -1274,7 +1274,7 @@ integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,nc,np,VTK_type,ix^D
 character(len=80)::  filename
 integer          :: filenr
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 logical :: fileopen
@@ -1454,7 +1454,7 @@ integer::  k,iw
 integer::  length,lengthcc,length_coords,length_conn,length_offsets
 character::  buf
 character(len=80)::  filename
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 logical ::   fileopen,cell_corner=.true.
@@ -1905,7 +1905,7 @@ integer,parameter::     size_recsep = 4
 character(len=5) ::     byteorder
 
 character(len=80)::     filename
-character(len=80)::     name,physics,scanstring,wname
+character(len=80)::     name,physics,scanstring
 integer          ::     filenr
 
 integer::               underscore_position
@@ -1917,7 +1917,7 @@ integer::               NumGridsOnLevel(1:nlevelshi)
 
 integer,parameter ::    byte=selected_int_kind(1)
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 character(LEN=10)    :: dummy_date,dummy_time,dummy_zone
@@ -2171,7 +2171,7 @@ integer ::           filenr
 integer, allocatable :: intstatus(:,:)
 logical, allocatable :: Morton_aim(:),Morton_aim_p(:)
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 logical :: fileopen
@@ -2325,7 +2325,7 @@ double precision, dimension(ixMlo^D-1:ixMhi^D,ndim)         :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)           :: xCC_TMP
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
-character(len=10)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 integer             :: nx^D,nxC^D,nc,np, igrid,ixC^L,ixCC^L,level,Morton_no
 character(len=80)   :: pfilename
@@ -2433,7 +2433,7 @@ integer ::           filenr
 
 integer, allocatable :: intstatus(:,:)
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 logical :: fileopen,conv_grid,cond_grid_recv
@@ -2595,7 +2595,7 @@ integer, intent(in) :: qunit
 integer, intent(in) :: ixI^L,ixC^L,ixCC^L
 integer, intent(in) :: igrid,nc,np,nx^D,nxC^D
 double precision, intent(in) :: normconv(0:nw+nwauxio) 
-character(len=10), intent(in)::  wnamei(1:nw+nwauxio)
+character(len=name_len), intent(in)::  wnamei(1:nw+nwauxio)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
@@ -2703,7 +2703,7 @@ integer, intent(in) :: qunit
 integer, intent(in) :: ixI^L,ixC^L,ixCC^L
 integer, intent(in) :: ig^D,nx^D
 double precision, intent(in) :: normconv(0:nw+nwauxio) 
-character(len=10), intent(in)::  wnamei(1:nw+nwauxio)
+character(len=name_len), intent(in)::  wnamei(1:nw+nwauxio)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC
@@ -2762,7 +2762,7 @@ use mod_global_parameters
 
 integer, intent(in) :: qunit
 
-character(len=10)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio),outtype
+character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio),outtype
 character(len=1024) :: outfilehead
 character(len=80)   :: filename,pfilename
 integer             :: filenr,iw,ipe,iscalars
@@ -2874,7 +2874,7 @@ character(len=80) :: filename
 integer ::           filenr
 character(len=1024) :: tecplothead
 
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 !-----------------------------------------------------------------------------
 if(nw/=count(w_write(1:nw)))then
@@ -3334,7 +3334,7 @@ integer ::               NumGridsOnLevel(1:nlevelshi)
 integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,nc,np,VTK_type,ix^D
 double precision :: normconv(0:nw+nwauxio)
 character(len=80) :: pfilename
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 integer*8 :: offset

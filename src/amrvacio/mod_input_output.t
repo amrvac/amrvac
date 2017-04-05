@@ -440,6 +440,7 @@ contains
       read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
       if (io_state == 0 .and. snapshotnext==-1) snapshotnext = snapshotini + 1
     else
+      snapshotnext=0
       if (firstprocess) &
            call mpistop("Please restart from a snapshot when firstprocess=T")
       if (convert) then
