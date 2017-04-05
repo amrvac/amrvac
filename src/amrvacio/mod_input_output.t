@@ -96,7 +96,7 @@ contains
 
     character              :: c_ndim
     character(len=80)      :: fmt_string
-    character(len=std_len) :: err_msg
+    character(len=std_len) :: err_msg, restart_from_file_arg
     character(len=std_len) :: basename_full, basename_prev
     character(len=std_len), dimension(:), allocatable :: &
          typeboundary_min^D, typeboundary_max^D
@@ -201,7 +201,8 @@ contains
 
     ! defaults for convert behavior
 
-    restart_from_file        = undefined
+    ! store the -if value from argument in command line 
+    restart_from_file_arg    = restart_from_file
     nwauxio                  = 0
     nocartesian              = .false.
     saveprim                 = .false.
@@ -433,6 +434,10 @@ contains
                base_filename(:i-1)//") and run again")
        end if
     end if
+
+    ! restart filename from command line overwrites the one in par file
+    if(restart_from_file_arg /= undefined) &
+      restart_from_file=restart_from_file_arg
 
     if (restart_from_file /= undefined) then
       ! Parse index in restart_from_file string (e.g. basename0000.dat)

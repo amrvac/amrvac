@@ -6,7 +6,6 @@
 # 3: from startnumber to stopnumber according to amrvac.par
 # 4: one selected data according to parfilename
 # 5: from startnumber to stopnumber according to parfilename
-# All lines between &filelist and &savelist in parfile will be validated automaticly.
 
 echo "Usage:(1, 2, 3, 4, or 5)"
 echo "1 $0"
@@ -123,19 +122,6 @@ if ( `grep -c 'convert_type.*mpi' $fname` > 0 ) then
 else
  set npe=1
 endif
-# change &end into / in the parfile
-sed -i "s/&[eE][nN][dD]/\//g" $fname
-#  find the line numbers of the line including "/" 
-set line_num_list1=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^\//=}'`
-#  find the line number of first "/" below "&filelist"
-set line_num1=`echo $line_num_list1 | awk '{print $1}'`
-#  delete the line of "/"
-sed -i "${line_num1} d" $fname
-#  find the line number of first "&" below "&filelist"
-set line_num_list2=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^\&/=}'`
-set line_num2=`echo $line_num_list2 | awk '{print $2}'`
-#  add a line of "/" before the "&" line
-sed -i "${line_num2} i\ \/" $fname
 
 if($#argv > 0) then
  set indx="$startind"
@@ -165,10 +151,6 @@ else
  end
 endif
 
-# delete the added line of "/" at the end of filelist 
-sed -i "${line_num2} d" $fname
-# add the first deleted line of "/" back
-sed -i "${line_num1} i\ \/" $fname
 # output the number of data tried to convert
 if($#argv > 0) then
  if($cnum > 1) then
