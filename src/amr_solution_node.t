@@ -70,6 +70,9 @@ pw(igrid)%igrid=igrid
 ! wb is w by default
 pw(igrid)%wb=>pw(igrid)%w
 
+! block pointer to current block
+block=>pw(igrid)
+
 ! wio for visualization data
 allocate(pw(igrid)%wio(ixG^T,1:nw+nwauxio))
 pw(igrid)%wio=0.d0
@@ -101,6 +104,7 @@ node(plevel_,igrid)=level
 
 ! set dx information
 ^D&rnode(rpdx^D_,igrid)=dx(^D,level)\
+dxlevel(:)=dx(:,level)
 
 ! determine the minimal and maximal corners
 ^D&rnode(rpxmin^D_,igrid)=xprobmin^D+dble(ig^D-1)*dg^D(level)\
