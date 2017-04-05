@@ -33,6 +33,8 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), allocatable :: wcoarse
       !> Time-independent magnetic field at cell center and cell interface
       double precision, dimension(:^D&,:,:), allocatable :: B0
+      !> Time-independent electric current density at cell center
+      double precision, dimension(:^D&,:), allocatable :: J0
       !> Cell-center positions
       double precision, dimension(:^D&,:), allocatable :: x
       !> Cell-center positions, one level coarser representative

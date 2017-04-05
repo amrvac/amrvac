@@ -201,6 +201,7 @@ contains
 
     ! defaults for convert behavior
 
+    restart_from_file        = undefined
     nwauxio                  = 0
     nocartesian              = .false.
     saveprim                 = .false.
@@ -596,8 +597,8 @@ contains
        select case (time_integrator)
        case ("ssprk54","ssprk43","fourstep", "rk4", "threestep", "twostep")
           ! Runge-Kutta needs predictor
- !!!         typelimited="predictor"
- !!!         if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', 'predictor (for RK)'
+          typelimited="predictor"
+          if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', 'predictor (for RK)'
           if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
        end select
     end if
@@ -793,11 +794,11 @@ contains
        end select
     end do
 
-    ! Warn when too few blocks at start of simulation
-    if (mype.eq.0 .and. restart_from_file /= undefined .and. &
-         {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
-       call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
-    end if
+    !! Warn when too few blocks at start of simulation
+    !if (mype.eq.0 .and. restart_from_file /= undefined .and. &
+    !     {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
+    !   call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
+    !end if
 
 
     if (mype==0) then

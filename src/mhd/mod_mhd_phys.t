@@ -789,6 +789,10 @@ contains
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
     end if
 
+    if(B0field .and. .not.qsourcesplit) then
+      call add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
+    end if
+
     {^NOONED
     if (qsourcesplit) then
        ! Sources related to div B
@@ -820,6 +824,27 @@ contains
     }
   end subroutine mhd_add_source
 
+  !> Source terms after split off time-independent magnetic field
+  subroutine add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
+    use mod_global_parameters
+
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: current0(ixI^S,1:ndir),v(ixI^S,1:ndir)
+    integer :: idir
+
+    do idir=1,ndir
+      v(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
+    end do
+
+    w(ixO^S,e_)=w(ixO^S,e_)-&
+    qdt*((v(ixO^S,2)*wCT(ixO^S,mag(3))-v(ixO^S,3)*wCT(ixO^S,mag(2)))*block%J0(ixO^S,1)&
+        +(v(ixO^S,3)*wCT(ixO^S,mag(1))-v(ixO^S,1)*wCT(ixO^S,mag(3)))*block%J0(ixO^S,2)&
+        +(v(ixO^S,1)*wCT(ixO^S,mag(2))-v(ixO^S,2)*wCT(ixO^S,mag(1)))*block%J0(ixO^S,3))
+
+  end subroutine add_source_lfff
   !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
   !> each direction, non-conservative. If the fourthorder precompiler flag is
   !> set, uses fourth order central difference for the laplacian. Then the
@@ -1353,7 +1378,6 @@ contains
        end do
     end if
 
-    !bvec(ixI^S,1:ndir)=w(ixI^S,b0_+1:b0_+ndir)
     call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
 
   end subroutine get_current
