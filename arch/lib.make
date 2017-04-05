@@ -13,7 +13,7 @@ endif
 SRC_DIRS := . modules amrvacio physics rho hd mhd
 SRC_DIRS := $(addprefix $(AMRVAC_DIR)/src/, $(SRC_DIRS))
 LIB_AMRVAC := libamrvac.a
-PPFLAGS := -z=-2 -phi=-1	# Remove in future
+PPFLAGS :=
 
 .PHONY: libamrvac clean
 .PRECIOUS: %.f			# Don't remove intermediate .f files
