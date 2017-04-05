@@ -156,6 +156,7 @@ contains
           call mpistop("Error in reconstruction: no such base for limiter")
        end select
 
+       ! TODO wLC,wRC take primitive values may save a lot of calculation
        ! For the high order scheme the limiter is based on
        ! the maximum eigenvalue, it is calculated in advance.
        if (CmaxMeanState) then
@@ -178,6 +179,8 @@ contains
             call phys_get_cmax(wRC,x,ixI^L,ixC^L,idim,cmaxRC,cminRC)
             cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
             cminC(ixC^S)=min(cminRC(ixC^S),cminLC(ixC^S))
+            print*,'min cmax',minval(cmaxC(ixC^S))
+            print*,'max cmin',maxval(cminC(ixC^S))
           end if
        end if
 
@@ -387,7 +390,7 @@ contains
       end do ! Next iw
     end subroutine get_Riemann_flux_hllc
 
-    !> HLLD Riemann flux from Miyoshi 2005 JCP
+    !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315
     subroutine get_Riemann_flux_hlld()
       use mod_mhd_phys
       implicit none
@@ -403,19 +406,25 @@ contains
       Bidim(ixC^S)=0.5d0*(wRC(ixC^S,mag(idim))+wLC(ixC^S,mag(idim)))
       suR(ixC^S)=(cmaxC(ixC^S)-vRC(ixC^S,idim))*wRC(ixC^S,rho_)
       suL(ixC^S)=(cminC(ixC^S)-vLC(ixC^S,idim))*wLC(ixC^S,rho_)
-      ptR(ixC^S)=wRC(ixC^S,p_)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
-      ptL(ixC^S)=wLC(ixC^S,p_)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
+      call mhd_get_pthermal(wRC,x,ixI^L,ixC^L,ptR)
+      call mhd_get_pthermal(wLC,x,ixI^L,ixC^L,ptL)
+      ptR(ixC^S)=ptR(ixC^S)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
+      ptL(ixC^S)=ptL(ixC^S)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
       ! equation (38)
       sm(ixC^S)=(suR(ixC^S)*vRC(ixC^S,idim)-suL(ixC^S)*vLC(ixC^S,idim)-&
                  ptR(ixC^S)+ptL(ixC^S))/(suR(ixC^S)-suL(ixC^S))
       ! equation (39)
+      w1R(ixC^S,mom(idim))=sm(ixC^S)
+      w1L(ixC^S,mom(idim))=sm(ixC^S)
+      w2R(ixC^S,mom(idim))=sm(ixC^S)
+      w2L(ixC^S,mom(idim))=sm(ixC^S)
       w1R(ixC^S,mag(idim))=Bidim(ixC^S)
       w1L(ixC^S,mag(idim))=Bidim(ixC^S)
       w2R(ixC^S,mag(idim))=Bidim(ixC^S)
       w2L(ixC^S,mag(idim))=Bidim(ixC^S)
       ! equation (41)
-      pts(ixC^S)=suR(ixC^S)*ptL(ixC^S)-suL(ixC^S)*ptR(ixC^S)+suR(ixC^S)*suL(ixC^S)*&
-                 (vRC(ixC^S,idim)-vLC(ixC^S,idim))/(suR(ixC^S)-suL(ixC^S))
+      pts(ixC^S)=(suR(ixC^S)*ptL(ixC^S)-suL(ixC^S)*ptR(ixC^S)+suR(ixC^S)*suL(ixC^S)*&
+                 (vRC(ixC^S,idim)-vLC(ixC^S,idim)))/(suR(ixC^S)-suL(ixC^S))
       ! equation (43)
       w1R(ixC^S,rho_)=suR(ixC^S)/(cmaxC(ixC^S)-sm(ixC^S))
       w1L(ixC^S,rho_)=suL(ixC^S)/(cminC(ixC^S)-sm(ixC^S))
@@ -487,8 +496,8 @@ contains
       w2L(ixC^S,e_)=w1L(ixC^S,e_)-rls(ixC^S)*(sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)-&
         sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signB(ixC^S)
       ! convert velocity to momentum
-      w1R(ixC^S,mom(idim))=sm(ixC^S)*w1R(ixC^S,rho_)
-      w1L(ixC^S,mom(idim))=sm(ixC^S)*w1L(ixC^S,rho_)
+      w1R(ixC^S,mom(idim))=w1R(ixC^S,mom(idim))*w1R(ixC^S,rho_)
+      w1L(ixC^S,mom(idim))=w1L(ixC^S,mom(idim))*w1L(ixC^S,rho_)
       w1R(ixC^S,mom(ip1))=w1R(ixC^S,mom(ip1))*w1R(ixC^S,rho_)
       w1L(ixC^S,mom(ip1))=w1L(ixC^S,mom(ip1))*w1R(ixC^S,rho_)
       w2R(ixC^S,mom(idim))=w1R(ixC^S,mom(idim))
@@ -503,6 +512,10 @@ contains
       end if
       ! get fluxes of intermedate states
       do iw=1,nwflux
+        if(iw==mag(idim)) then
+          fC(ixC^S,iw,idim)=0.d0
+          cycle
+        end if
         f1L(ixC^S,iw)=fLC(ixC^S,iw)+cminC(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
         f1R(ixC^S,iw)=fRC(ixC^S,iw)+cmaxC(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
         f2L(ixC^S,iw)=fLC(ixC^S,iw)+s1L(ixC^S)*w2L(ixC^S,iw)-&
