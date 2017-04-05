@@ -58,13 +58,13 @@ subroutine getheadernames(wnamei,xandwnamei,outfilehead)
   use mod_usr_methods, only: usr_add_aux_names
   use mod_global_parameters
 
-character(len=10)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 integer::  space_position,iw
-character(len=10)::  wname
+character(len=name_len)::  wname
 character(len=std_len):: aux_variable_names
-character(len=50)::  scanstring
+character(len=std_len)::  scanstring
 
 logical, save:: first=.true.
 !-----------------------------------------------------------------------------
@@ -232,10 +232,8 @@ if(nwauxio>0)then
   end do
 endif
 
-if (level_io>0) then
-  allocate(ig_to_igrid(ng^D(level_io),0:npe-1))
-  ig_to_igrid(:^D&,:)=-1 ! initialize
-end if
+allocate(ig_to_igrid(ng^D(level_io),0:npe-1))
+ig_to_igrid=-1
 writeblk=.false.
 do Morton_no=Morton_start(mype),Morton_stop(mype)
   igrid=sfc_to_igrid(Morton_no)
@@ -555,6 +553,7 @@ if (nleafs==1 .and. refine_max_level==1) then
   ! write(qunit)eqpar
   write(qunit)tmpnames
 else
+  rnode_IDL=0.d0
   write(qunit) ^D&-nleafs
   ! write(qunit) eqpar
   write(qunit)tmpnames
@@ -1130,6 +1129,7 @@ double precision, dimension(ix^S,ndim) :: x_TMP
 double precision, dimension(ix^S,nw+nwauxio)   :: w_TMP
 !-----------------------------------------------------------------------------
 
+iw0=0
 vectoriw=-1
 if(nvector>0) then
   do ivector=1,nvector
@@ -1138,7 +1138,7 @@ if(nvector>0) then
      end do
   end do
 endif
-
+x_TEC=0.d0
 {do ix^DB=ixmin^DB,ixmax^DB\}
    select case (typeaxial)
    case ("slab","slabstretch")
@@ -1457,7 +1457,7 @@ character(len=80)::  filename
 character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
-logical ::   fileopen,cell_corner
+logical ::   fileopen,cell_corner=.true.
 logical, allocatable :: Morton_aim(:),Morton_aim_p(:)
 !-----------------------------------------------------------------------------
 

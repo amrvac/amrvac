@@ -230,6 +230,7 @@ contains
       omega1=4.d0/dble(s**2+s-2)
       cmut=omega1/3.d0
     else
+      omega1=0.d0
       cmut=1.d0
     endif
     
