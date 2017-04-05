@@ -50,7 +50,7 @@ contains
 
        ! verify in cube with border width small_values_daverage the presence of
        ! cells where all went ok
-       do i = 1, small_values_daverage
+       do i = 1, max(small_values_daverage, 1)
           {kxOmin^D= max(ix^D-i, ixOmin^D);
           kxOmax^D= min(ix^D+i, ixOmax^D);\}
 

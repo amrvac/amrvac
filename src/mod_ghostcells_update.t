@@ -63,6 +63,7 @@ contains
     case ("linear","unlimit")
        interpolation_order=2
     case default
+       interpolation_order=2
        write (unitterm,*) "Undefined typeghostfill ",typeghostfill
        call mpistop("")
     end select
@@ -927,7 +928,7 @@ contains
              case ("asymm")
                wrecv(ixR^S,iw) =-wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
              case default
-               call mpistop("Boundary condition at pole should be symm or asymm")
+               call mpistop("Pole boundary condition should be symm or asymm")
              end select
            end do \}
         end select
@@ -952,7 +953,7 @@ contains
              case ("asymm")
                wrecv(ixR^S,iw) =-wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,iw)
              case default
-               call mpistop("Boundary condition at pole should be symm or asymm")
+               call mpistop("Pole boundary condition should be symm or asymm")
              end select
            end do \}
         end select
