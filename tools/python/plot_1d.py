@@ -11,6 +11,7 @@ from __future__ import print_function
 import argparse
 import struct
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider, Button
 import numpy as np
 
 # Size of basic types (in bytes)
@@ -27,10 +28,9 @@ def get_args():
         description='''Plot .dat files of 1D MPI-AMRVAC simulations''',
         epilog='''Example:
         ./plot_1d.py ...''')
-    parser.add_argument('dat_file', type=argparse.FileType('rb'),
+    parser.add_argument('dat_files', nargs='+',
+                        type=argparse.FileType('rb'),
                         help='MPI-AMRVAC .dat files to read')
-    parser.add_argument('-iw', type=int, default=1,
-                        help='Index of variable to plot')
     return parser.parse_args()
 
 def read_header(dat):
@@ -119,12 +119,60 @@ def get_data_1d(dat, args):
 
     return h, out_data
 
+def next_var(event):
+    global i_var
+    i_var = (i_var + 1) % h['nw']
+    update(i_file)
+
+def prev_var(event):
+    global i_var
+    i_var = (i_var - 1) % h['nw']
+    update(i_file)
+
+def update(val):
+    i_file = int(val+0.5)           # Get file index
+    line.set_data(all_data[i_file][:,0], all_data[i_file][:,i_var])
+    ax.relim()
+    ax.autoscale_view()
+    ax.set_ylabel(h['w_names'][i_var-1])
+    ax.set_title('{} t = {:.3e}'.format(args.dat_files[i_file].name,
+                                        all_times[i_file]))
+    fig.canvas.draw_idle()
+
 args = get_args()
-h, data_1d = get_data_1d(args.dat_file, args)
+all_data = []
+all_times = []
+
+# Read in all data
+for f in args.dat_files:
+    h, data_1d = get_data_1d(f, args)
+    all_data.append(data_1d)
+    all_times.append(h['time'])
 
 fig, ax = plt.subplots()
-line, = ax.plot(data_1d[:,0], data_1d[:,args.iw])
-ax.set_title('t = {}'.format(h['time']))
+
+# Add a time slider
+if len(all_times) > 1:
+    axfreq = plt.axes([0.1, 0.0, 0.5, 0.03])
+    sfreq = Slider(axfreq, 'index', 0., len(all_times)-1, 0.)
+    sfreq.on_changed(update)
+
+# Add buttons to go to next/previous variable
+axprev = plt.axes([0.7, 0.0, 0.07, 0.05])
+axnext = plt.axes([0.8, 0.0, 0.07, 0.05])
+bnext = Button(axnext, '+iw')
+bnext.on_clicked(next_var)
+bprev = Button(axprev, '-iw')
+bprev.on_clicked(prev_var)
+
+# Initial state
+i_var = 1
+i_file = 0
+
+line, = ax.plot(all_data[0][:,0], all_data[0][:,i_var])
+ax.set_title('{} t = {}'.format(args.dat_files[0].name, all_times[0]))
 ax.set_xlabel('x')
-ax.set_ylabel(h['w_names'][args.iw-1])
+ax.set_ylabel(h['w_names'][i_var-1])
+
 plt.show()
+
