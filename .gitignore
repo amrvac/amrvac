@@ -9,3 +9,5 @@ doc/html/*
 *F90sources
 !**/correct_output/**
 *.bak
+*.csv
+*.log.shfp.*
