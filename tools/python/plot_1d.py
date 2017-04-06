@@ -120,16 +120,17 @@ def get_data_1d(dat, args):
     return h, out_data
 
 def next_var(event):
-    global i_var
+    global i_var, i_file
     i_var = (i_var + 1) % h['nw']
     update(i_file)
 
 def prev_var(event):
-    global i_var
+    global i_var, i_file
     i_var = (i_var - 1) % h['nw']
     update(i_file)
 
 def update(val):
+    global i_file
     i_file = int(val+0.5)           # Get file index
     line.set_data(all_data[i_file][:,0], all_data[i_file][:,i_var])
     ax.relim()
