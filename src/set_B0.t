@@ -55,14 +55,19 @@ subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
 end subroutine set_B0_cell
 
 subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
+  use mod_usr_methods, only: usr_set_J0
   use mod_global_parameters
 
   integer, intent(in):: igrid,ixI^L,ix^L
   double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:3)
   integer :: idirmin0, idirmin
 
-  idirmin0 = 7-2*ndir
-  call curlvector(pw(igrid)%B0(:^D&,:,0),ixI^L,ix^L,wJ0,idirmin,idirmin0,ndir)
+  if(associated(usr_set_J0)) then
+    call usr_set_J0(ixI^L,ix^L,pw(igrid)%x,wJ0)
+  else
+    idirmin0 = 7-2*ndir
+    call curlvector(pw(igrid)%B0(:^D&,:,0),ixI^L,ix^L,wJ0,idirmin,idirmin0,ndir)
+  end if
 
 end subroutine set_J0_cell
 

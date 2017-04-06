@@ -760,7 +760,7 @@ contains
     end if
 
     if(B0field .and. .not.qsourcesplit) then
-      call add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
+      call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
     end if
 
     {^NOONED
@@ -795,26 +795,50 @@ contains
   end subroutine mhd_add_source
 
   !> Source terms after split off time-independent magnetic field
-  subroutine add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: current0(ixI^S,1:ndir),v(ixI^S,1:ndir)
+    double precision :: a(ixI^S,3), b(ixI^S,3), axb(ixI^S,3)
     integer :: idir
 
+    a=0.d0
+    b=0.d0
+    ! store B0 magnetic field in b
+    b(ixO^S,:)=block%B0(ixO^S,:,0)
+
+    ! store J0 current in a
+    do idir=7-2*ndir,3
+      a(ixO^S,idir)=block%J0(ixO^S,idir)
+    end do
+    call cross_product(ixI^L,ixO^L,a,b,axb)
+    axb(ixO^S,:)=axb(ixO^S,:)*qdt
+    ! add J0xB0 source term in momentum equations
     do idir=1,ndir
-      v(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
+      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+axb(ixO^S,idir)
     end do
 
-    w(ixO^S,e_)=w(ixO^S,e_)-&
-    qdt*((v(ixO^S,2)*wCT(ixO^S,mag(3))-v(ixO^S,3)*wCT(ixO^S,mag(2)))*block%J0(ixO^S,1)&
-        +(v(ixO^S,3)*wCT(ixO^S,mag(1))-v(ixO^S,1)*wCT(ixO^S,mag(3)))*block%J0(ixO^S,2)&
-        +(v(ixO^S,1)*wCT(ixO^S,mag(2))-v(ixO^S,2)*wCT(ixO^S,mag(1)))*block%J0(ixO^S,3))
+    if(mhd_energy) then
+      a=0.d0
+      ! store full magnetic field B0+B1 in b
+      b(ixO^S,:)=wCT(ixO^S,mag(:))+block%B0(ixO^S,:,0)
+      ! store velocity in a
+      do idir=1,ndir
+        a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
+      end do
+      call cross_product(ixI^L,ixO^L,a,b,axb)
+      axb(ixO^S,:)=axb(ixO^S,:)*qdt
+      ! add -(vxB) dot J0 source term in energy equation
+      do idir=7-2*ndir,3
+        w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
+      end do
+    end if
 
-  end subroutine add_source_lfff
+  end subroutine add_source_B0split
+
   !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
   !> each direction, non-conservative. If the fourthorder precompiler flag is
   !> set, uses fourth order central difference for the laplacian. Then the

@@ -38,8 +38,10 @@ module mod_usr_methods
   procedure(a_refine_threshold), pointer :: usr_refine_threshold => null()
   procedure(flag_grid), pointer       :: usr_flag_grid        => null()
 
-  ! Only for MHD
+  ! Set time-independent magnetic field for B0 splitting
   procedure(set_B0), pointer          :: usr_set_B0           => null()
+  ! Set time-independent current density for B0 splitting
+  procedure(set_J0), pointer          :: usr_set_J0           => null()
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
   ! Particles module related
@@ -203,6 +205,14 @@ module mod_usr_methods
        double precision, intent(in)    :: x(ixI^S,1:ndim)
        double precision, intent(inout) :: wB0(ixI^S,1:ndir)
      end subroutine set_B0
+
+     !> Here one can add a time-independent background current density
+     subroutine set_J0(ixI^L,ixO^L,x,wJ0)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L,ixO^L
+       double precision, intent(in)    :: x(ixI^S,1:ndim)
+       double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:ndir)
+     end subroutine set_J0
 
      !> regenerate w and eqpartf arrays to output into *tf.dat
      subroutine transform_w(w,wtf,ixI^L,ixO^L)

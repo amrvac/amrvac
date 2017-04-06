@@ -776,6 +776,19 @@ end do
 if(.not.slab) divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
 
 end subroutine divvectorS
+!> cross product of two vectors
+subroutine cross_product(ixI^L,ixO^L,a,b,axb)
+  use mod_global_parameters
+
+  integer, intent(in) :: ixI^L, ixO^L
+  double precision, intent(in) :: a(ixI^S,3), b(ixI^S,3)
+  double precision, intent(out) :: axb(ixI^S,3)
+
+  axb(ixO^S,1)=a(ixO^S,2)*b(ixO^S,3)-a(ixO^S,3)*b(ixO^S,2)
+  axb(ixO^S,2)=a(ixO^S,3)*b(ixO^S,1)-a(ixO^S,1)*b(ixO^S,3)
+  axb(ixO^S,3)=a(ixO^S,1)*b(ixO^S,2)-a(ixO^S,2)*b(ixO^S,1)
+
+end subroutine cross_product
 !=============================================================================
 subroutine extremaq(ixI^L,ixO^L,q,nshift,qMax,qMin)
 
