@@ -298,7 +298,9 @@ contains
        w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
     end do
 
-    call dust_to_conserved(ixI^L, ixO^L, w, x)
+    if (hd_dust) then
+      call dust_to_conserved(ixI^L, ixO^L, w, x)
+    end if
 
     call handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
 
@@ -329,7 +331,9 @@ contains
     end do
 
     ! Convert dust momentum to dust velocity
-    call dust_to_primitive(ixI^L, ixO^L, w, x)
+    if (hd_dust) then
+      call dust_to_primitive(ixI^L, ixO^L, w, x)
+    end if
 
     call handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
 
@@ -400,8 +404,9 @@ contains
        cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
     end if
 
-    if (hd_dust) &
-         call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+    if (hd_dust) then
+      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+    end if
   end subroutine hd_get_cmax
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
@@ -455,7 +460,9 @@ contains
     end do
 
     ! Dust fluxes
-    call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
+    if (hd_dust) then
+      call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
+    end if
 
   end subroutine hd_get_flux
 
@@ -658,6 +665,8 @@ contains
           end if
        case ("average")
           call small_values_average(ixI^L, ixO^L, w, x, flag)
+       case ("ignore")
+          continue              ! Do nothing
        case default
           call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
        end select

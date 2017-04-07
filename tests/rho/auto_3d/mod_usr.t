@@ -152,7 +152,7 @@ contains
        }
     else if (iprob==6) then
        radius = 0.2d0
-       xcircle^D=zero;
+       xcircle^D=xprobmin^D+0.5d0*(xprobmax^D-xprobmin^D);
        where(radius**2> ^D&(x(ix^S,^D)-xcircle^D)**2+ )
           w(ix^S,rho_)     = rhosquare
        elsewhere
