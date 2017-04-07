@@ -18,6 +18,27 @@ import matplotlib as mpl
 import pickle, os
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+def _read_field_data( vtk_data ):
+    '''Gather field data.
+    '''
+    vtk_field_data = vtk_data.GetFieldData()
+    num_arrays = vtk_field_data.GetNumberOfArrays()
+
+    field_data = {}
+    for k in xrange( num_arrays ):
+        array  = vtk_field_data.GetArray(k)
+        name   = array.GetName()
+        num_values = array.GetDataSize()
+        if num_values == 1:
+            values = array.GetValue( k )
+        else:
+            values = np.zeros( num_values )
+            for i in xrange( num_values ):
+                values[i] = array.GetValue(i)
+        field_data[ name ] = values
+
+    return field_data
+
 def get_pointdata(offset,filenameout='data',type='pvtu',attribute_mode='cell'):
 
     if type == 'vtu':
@@ -32,6 +53,7 @@ def get_pointdata(offset,filenameout='data',type='pvtu',attribute_mode='cell'):
     datareader.SetFileName(filename)
     datareader.Update()
     data = datareader.GetOutput()
+    field_data=_read_field_data(data)
 
     if attribute_mode == 'cell':
         c2p = v.vtkCellDataToPointData()
@@ -46,7 +68,7 @@ def get_pointdata(offset,filenameout='data',type='pvtu',attribute_mode='cell'):
     points=ah.vtk2array(vtk_points)
  
     print '=== Done with reading data! ==='
-    return {'pointdata': pointdata, 'points': points}
+    return {'pointdata': pointdata, 'points': points, 'field': field_data}
 
 
 def rot2D(offset,nphi,filenameout='data',type='pvtu'):
