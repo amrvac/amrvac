@@ -157,7 +157,6 @@ double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
 double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
 
 integer :: idims
-logical :: new_cmax
 double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
 double precision :: cmax(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
 !-----------------------------------------------------------------------------
@@ -166,9 +165,6 @@ dtnew=bigdouble
 courantmax=zero
 courantmaxtot=zero
 courantmaxtots=zero
-
-
-new_cmax=.true.
 
 ^D&dxinv(^D)=one/dx^D;
 
@@ -187,7 +183,6 @@ do idims=1,ndim
    end if
    courantmaxtot=courantmaxtot+courantmax
 end do
-
 
 select case (typecourant)
 case ('minimum')
