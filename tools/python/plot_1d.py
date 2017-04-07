@@ -133,6 +133,14 @@ def prev_var(event):
         i_var = h['nw']
     update(i_file)
 
+def next_file(event):
+    global i_file
+    time_slider.set_val((i_file+1) % len(all_times))
+
+def prev_file(event):
+    global i_file
+    time_slider.set_val((i_file+len(all_times)-1) % len(all_times))
+
 def update(val):
     global i_file, i_var, is_conservative
 
@@ -159,16 +167,32 @@ def switch_cons_prim(event):
 def get_primitive_data(cc, wnames):
     pp = np.copy(cc)
     prim_names = wnames[:]
+    ndir = h['ndir']
     i_rho = wnames.index('rho')
 
+    # Convert momentum
     try:
-        i_m = wnames.index('m1')
-        pp[:, i_m] = pp[:, i_m] / pp[:, i_rho]
-        prim_names[i_m] = 'v1'
+        i_m1 = wnames.index('m1')
+        for i in range(ndir):
+            pp[:, i_m1+i] = pp[:, i_m1+i] / pp[:, i_rho]
+            prim_names[i_m1+i] = 'v' + str(i+1)
+    except ValueError:
+        pass
+
+    # Convert energy
+    try:
         i_e = wnames.index('e')
-        pp[:, i_e] = (h['gamma'] - 1.0) * \
-                     (pp[:, i_e] - 0.5 * pp[:, i_rho] * pp[:, i_m]**2)
         prim_names[i_e] = 'p'
+        kin_en = 0.5 * pp[:, i_rho] * np.sum(pp[:, i_m1:i_m1+ndir]**2, axis=1)
+
+        if h['physics_type'] == 'hd':
+            pp[:, i_e] = (h['gamma'] - 1.0) * (pp[:, i_e] - kin_en)
+        elif h['physics_type'] == 'mhd':
+            i_b1 = wnames.index('b1')
+            mag_en = 0.5 * np.sum(pp[:, i_b1:i_b1+ndir]**2, axis=1)
+            pp[:, i_e] = (h['gamma'] - 1.0) * (pp[:, i_e] - kin_en - mag_en)
+        else:
+            print("Unknown physics type, cannot convert to pressure")
     except ValueError:
         pass
 
@@ -193,17 +217,25 @@ fig, ax = plt.subplots()
 # Add a time slider
 if len(all_times) > 1:
     axfreq = plt.axes([0.1, 0.0, 0.5, 0.03])
-    sfreq = Slider(axfreq, 'index', 0., len(all_times)-1, 0.)
-    sfreq.on_changed(update)
+    time_slider = Slider(axfreq, 'ix', 0., len(all_times)-1, 0.)
+    time_slider.on_changed(update)
 
-# Add buttons to go to next/previous variable and switch between primitive
-axprev = plt.axes([0.7, 0.0, 0.07, 0.05])
-axnext = plt.axes([0.8, 0.0, 0.07, 0.05])
-axprim = plt.axes([0.9, 0.0, 0.07, 0.05])
-bnext = Button(axnext, '+iw')
-bnext.on_clicked(next_var)
-bprev = Button(axprev, '-iw')
-bprev.on_clicked(prev_var)
+# Add buttons to go to next/previous variable and snapshot, and one to switch
+# between primitive
+axprev_iw = plt.axes([0.8, 0.0, 0.075, 0.05])
+axnext_iw = plt.axes([0.875, 0.0, 0.075, 0.05])
+axprim = plt.axes([0.95, 0.0, 0.05, 0.05])
+axprev_file = plt.axes([0.0, 0.0, 0.05, 0.05])
+axnext_file = plt.axes([0.7, 0.0, 0.05, 0.05])
+
+bnext_iw = Button(axnext_iw, '+iw')
+bnext_iw.on_clicked(next_var)
+bprev_iw = Button(axprev_iw, '-iw')
+bprev_iw.on_clicked(prev_var)
+bnext_file = Button(axnext_file, '+')
+bnext_file.on_clicked(next_file)
+bprev_file = Button(axprev_file, '-')
+bprev_file.on_clicked(prev_file)
 bprim = Button(axprim, 'P/C')
 bprim.on_clicked(switch_cons_prim)
 
