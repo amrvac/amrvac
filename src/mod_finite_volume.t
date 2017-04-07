@@ -168,19 +168,17 @@ contains
             call phys_get_cmax(wmean,x,ixI^L,ixC^L,idim,cmaxC,cminC)
           end if
        else
-          ! now take the maximum of left and right states
-          ! S.F. Davis, SIAM J. Sci. Statist. Comput. 1988, 9, 445
           if(method=='tvdlf'.or.method=='tvdmu') then
             call phys_get_cmax(wLC,x,ixI^L,ixC^L,idim,cmaxLC)
             call phys_get_cmax(wRC,x,ixI^L,ixC^L,idim,cmaxRC)
             cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
           else
+          ! now take the maximum of left and right states
+          ! S.F. Davis, SIAM J. Sci. Statist. Comput. 1988, 9, 445
             call phys_get_cmax(wLC,x,ixI^L,ixC^L,idim,cmaxLC,cminLC)
             call phys_get_cmax(wRC,x,ixI^L,ixC^L,idim,cmaxRC,cminRC)
             cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
             cminC(ixC^S)=min(cminRC(ixC^S),cminLC(ixC^S))
-            print*,'min cmax',minval(cmaxC(ixC^S))
-            print*,'max cmin',maxval(cminC(ixC^S))
           end if
        end if
 
@@ -396,147 +394,153 @@ contains
       implicit none
       double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L
       double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L,f2R,f2L
-      double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bidim
-      double precision, dimension(ixI^S) :: pts,ptR,ptL,signB,rls,rrs,tmp 
+      double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
+      double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp 
       double precision, dimension(ixI^S,ndir) :: vRC, vLC
-      integer :: ip1,ip2
+      integer :: ip1,ip2,ip3
 
+      ip1=idim
+      ip3=3
       call mhd_get_v(wRC,x,ixI^L,ixC^L,vRC)
       call mhd_get_v(wLC,x,ixI^L,ixC^L,vLC)
-      Bidim(ixC^S)=0.5d0*(wRC(ixC^S,mag(idim))+wLC(ixC^S,mag(idim)))
-      suR(ixC^S)=(cmaxC(ixC^S)-vRC(ixC^S,idim))*wRC(ixC^S,rho_)
-      suL(ixC^S)=(cminC(ixC^S)-vLC(ixC^S,idim))*wLC(ixC^S,rho_)
+      Bx(ixC^S)=0.5d0*(wRC(ixC^S,mag(ip1))+wLC(ixC^S,mag(ip1)))
+      suR(ixC^S)=(cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,rho_)
+      suL(ixC^S)=(cminC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,rho_)
       call mhd_get_pthermal(wRC,x,ixI^L,ixC^L,ptR)
       call mhd_get_pthermal(wLC,x,ixI^L,ixC^L,ptL)
       ptR(ixC^S)=ptR(ixC^S)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
       ptL(ixC^S)=ptL(ixC^S)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
       ! equation (38)
-      sm(ixC^S)=(suR(ixC^S)*vRC(ixC^S,idim)-suL(ixC^S)*vLC(ixC^S,idim)-&
+      sm(ixC^S)=(suR(ixC^S)*vRC(ixC^S,ip1)-suL(ixC^S)*vLC(ixC^S,ip1)-&
                  ptR(ixC^S)+ptL(ixC^S))/(suR(ixC^S)-suL(ixC^S))
       ! equation (39)
-      w1R(ixC^S,mom(idim))=sm(ixC^S)
-      w1L(ixC^S,mom(idim))=sm(ixC^S)
-      w2R(ixC^S,mom(idim))=sm(ixC^S)
-      w2L(ixC^S,mom(idim))=sm(ixC^S)
-      w1R(ixC^S,mag(idim))=Bidim(ixC^S)
-      w1L(ixC^S,mag(idim))=Bidim(ixC^S)
-      w2R(ixC^S,mag(idim))=Bidim(ixC^S)
-      w2L(ixC^S,mag(idim))=Bidim(ixC^S)
+      w1R(ixC^S,mom(ip1))=sm(ixC^S)
+      w1L(ixC^S,mom(ip1))=sm(ixC^S)
+      w2R(ixC^S,mom(ip1))=sm(ixC^S)
+      w2L(ixC^S,mom(ip1))=sm(ixC^S)
+      w1R(ixC^S,mag(ip1))=Bx(ixC^S)
+      w1L(ixC^S,mag(ip1))=Bx(ixC^S)
+      w2R(ixC^S,mag(ip1))=Bx(ixC^S)
+      w2L(ixC^S,mag(ip1))=Bx(ixC^S)
       ! equation (41)
       pts(ixC^S)=(suR(ixC^S)*ptL(ixC^S)-suL(ixC^S)*ptR(ixC^S)+suR(ixC^S)*suL(ixC^S)*&
-                 (vRC(ixC^S,idim)-vLC(ixC^S,idim)))/(suR(ixC^S)-suL(ixC^S))
+                 (vRC(ixC^S,ip1)-vLC(ixC^S,ip1)))/(suR(ixC^S)-suL(ixC^S))
       ! equation (43)
       w1R(ixC^S,rho_)=suR(ixC^S)/(cmaxC(ixC^S)-sm(ixC^S))
       w1L(ixC^S,rho_)=suL(ixC^S)/(cminC(ixC^S)-sm(ixC^S))
       ! equation (44) ~ (47)
-      ip1=mod(idim+1,ndir)
-      if(ip1==0) ip1=ndir
-      w1R(ixC^S,mom(ip1))=vRC(ixC^S,ip1)-Bidim(ixC^S)*wRC(ixC^S,mag(ip1))*&
-        (sm(ixC^S)-vRC(ixC^S,idim))/(suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
-      w1L(ixC^S,mom(ip1))=vLC(ixC^S,ip1)-Bidim(ixC^S)*wLC(ixC^S,mag(ip1))*&
-        (sm(ixC^S)-vLC(ixC^S,idim))/(suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
-      w1R(ixC^S,mag(ip1))=wRC(ixC^S,mag(ip1))*&
-        (suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,idim))-Bidim(ixC^S)**2)/&
-        (suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
-      w1L(ixC^S,mag(ip1))=wLC(ixC^S,mag(ip1))*&
-        (suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,idim))-Bidim(ixC^S)**2)/&
-        (suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
+      ip2=mod(ip1+1,ndir)
+      if(ip2==0) ip2=ndir
+      r1R(ixC^S)=1.d0/(suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2)
+      r1L(ixC^S)=1.d0/(suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2)
+      w1R(ixC^S,mom(ip2))=vRC(ixC^S,ip2)-Bx(ixC^S)*wRC(ixC^S,mag(ip2))*&
+        (sm(ixC^S)-vRC(ixC^S,ip1))*r1R(ixC^S)
+      w1L(ixC^S,mom(ip2))=vLC(ixC^S,ip2)-Bx(ixC^S)*wLC(ixC^S,mag(ip2))*&
+        (sm(ixC^S)-vLC(ixC^S,ip1))*r1L(ixC^S)
+      w1R(ixC^S,mag(ip2))=wRC(ixC^S,mag(ip2))*&
+        (suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
+      w1L(ixC^S,mag(ip2))=wLC(ixC^S,mag(ip2))*&
+        (suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
       if(ndir==3) then
-        ip2=mod(idim+2,ndir)
-        if(ip2==0) ip2=ndir
-        w1R(ixC^S,mom(ip2))=vRC(ixC^S,ip2)-Bidim(ixC^S)*wRC(ixC^S,mag(ip2))*&
-          (sm(ixC^S)-vRC(ixC^S,idim))/(suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
-        w1L(ixC^S,mom(ip2))=vLC(ixC^S,ip2)-Bidim(ixC^S)*wLC(ixC^S,mag(ip2))*&
-          (sm(ixC^S)-vLC(ixC^S,idim))/(suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
-        w1R(ixC^S,mag(ip2))=wRC(ixC^S,mag(ip2))*&
-          (suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,idim))-Bidim(ixC^S)**2)/&
-          (suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
-        w1L(ixC^S,mag(ip2))=wLC(ixC^S,mag(ip2))*&
-          (suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,idim))-Bidim(ixC^S)**2)/&
-          (suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bidim(ixC^S)**2)
+        ip3=mod(ip1+2,ndir)
+        if(ip3==0) ip3=ndir
+        w1R(ixC^S,mom(ip3))=vRC(ixC^S,ip3)-Bx(ixC^S)*wRC(ixC^S,mag(ip3))*&
+          (sm(ixC^S)-vRC(ixC^S,ip1))*r1R(ixC^S)
+        w1L(ixC^S,mom(ip3))=vLC(ixC^S,ip3)-Bx(ixC^S)*wLC(ixC^S,mag(ip3))*&
+          (sm(ixC^S)-vLC(ixC^S,ip1))*r1L(ixC^S)
+        w1R(ixC^S,mag(ip3))=wRC(ixC^S,mag(ip3))*&
+          (suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
+        w1L(ixC^S,mag(ip3))=wLC(ixC^S,mag(ip3))*&
+          (suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
       end if
       ! equation (48)
-      w1R(ixC^S,e_)=((cmaxC(ixC^S)-vRC(ixC^S,idim))*wRC(ixC^S,e_)-ptR(ixC^S)*vRC(ixC^S,idim)+&
-        pts(ixC^S)*sm(ixC^S)+Bidim(ixC^S)*(sum(vRC(ixC^S,:)*wRC(ixC^S,mag(:)),dim=ndim+1)-&
-        sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)))/(cmaxC(ixC^S)-sm(ixC^S))
-      w1L(ixC^S,e_)=((cmaxC(ixC^S)-vLC(ixC^S,idim))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,idim)+&
-        pts(ixC^S)*sm(ixC^S)+Bidim(ixC^S)*(sum(vLC(ixC^S,:)*wLC(ixC^S,mag(:)),dim=ndim+1)-&
-        sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)))/(cminC(ixC^S)-sm(ixC^S))
+      if(mhd_energy) then
+        w1R(ixC^S,e_)=((cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,e_)-ptR(ixC^S)*vRC(ixC^S,ip1)+&
+          pts(ixC^S)*sm(ixC^S)+Bx(ixC^S)*(sum(vRC(ixC^S,:)*wRC(ixC^S,mag(:)),dim=ndim+1)-&
+          sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)))/(cmaxC(ixC^S)-sm(ixC^S))
+        w1L(ixC^S,e_)=((cmaxC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,ip1)+&
+          pts(ixC^S)*sm(ixC^S)+Bx(ixC^S)*(sum(vLC(ixC^S,:)*wLC(ixC^S,mag(:)),dim=ndim+1)-&
+          sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)))/(cminC(ixC^S)-sm(ixC^S))
+      end if
       ! equation (49)
       w2R(ixC^S,rho_)=w1R(ixC^S,rho_)
       w2L(ixC^S,rho_)=w1L(ixC^S,rho_)
-      rrs(ixC^S)=sqrt(w1R(ixC^S,rho_))
-      rls(ixC^S)=sqrt(w1L(ixC^S,rho_))
-      tmp(ixC^S)=1.d0/(rrs(ixC^S)+rls(ixC^S))
-      signB(ixC^S)=sign(1.d0,Bidim(ixC^S))
+      r1R(ixC^S)=sqrt(w1R(ixC^S,rho_))
+      r1L(ixC^S)=sqrt(w1L(ixC^S,rho_))
+      tmp(ixC^S)=1.d0/(r1R(ixC^S)+r1L(ixC^S))
+      signBx(ixC^S)=sign(1.d0,Bx(ixC^S))
       ! equation (51)
-      s1R(ixC^S)=sm(ixC^S)+abs(Bidim(ixC^S))/rrs(ixC^S)
-      s1L(ixC^S)=sm(ixC^S)-abs(Bidim(ixC^S))/rls(ixC^S)
+      s1R(ixC^S)=sm(ixC^S)+abs(Bx(ixC^S))/r1R(ixC^S)
+      s1L(ixC^S)=sm(ixC^S)-abs(Bx(ixC^S))/r1L(ixC^S)
       ! equation (59)
-      w2R(ixC^S,mom(ip1))=(rls(ixC^S)*w1L(ixC^S,mom(ip1))+rrs(ixC^S)*w1R(ixC^S,mom(ip1))+&
-          (w1R(ixC^S,mag(ip1))-w1L(ixC^S,mag(ip1)))*signB(ixC^S))*tmp(ixC^S)
-      w2L(ixC^S,mom(ip1))=w2R(ixC^S,mom(ip1))
+      w2R(ixC^S,mom(ip2))=(r1L(ixC^S)*w1L(ixC^S,mom(ip2))+r1R(ixC^S)*w1R(ixC^S,mom(ip2))+&
+          (w1R(ixC^S,mag(ip2))-w1L(ixC^S,mag(ip2)))*signBx(ixC^S))*tmp(ixC^S)
+      w2L(ixC^S,mom(ip2))=w2R(ixC^S,mom(ip2))
       ! equation (61)
-      w2R(ixC^S,mag(ip1))=(rls(ixC^S)*w1R(ixC^S,mag(ip1))+rrs(ixC^S)*w1L(ixC^S,mag(ip1))+&
-          rls(ixC^S)*rrs(ixC^S)*(w1R(ixC^S,mom(ip1))-w1L(ixC^S,mom(ip1)))*signB(ixC^S))*tmp(ixC^S)
-      w2L(ixC^S,mag(ip1))=w2R(ixC^S,mag(ip1))
+      w2R(ixC^S,mag(ip2))=(r1L(ixC^S)*w1R(ixC^S,mag(ip2))+r1R(ixC^S)*w1L(ixC^S,mag(ip2))+&
+          r1L(ixC^S)*r1R(ixC^S)*(w1R(ixC^S,mom(ip2))-w1L(ixC^S,mom(ip2)))*signBx(ixC^S))*tmp(ixC^S)
+      w2L(ixC^S,mag(ip2))=w2R(ixC^S,mag(ip2))
       if(ndir==3) then
         ! equation (60)
-        w2R(ixC^S,mom(ip2))=(rls(ixC^S)*w1L(ixC^S,mom(ip2))+rrs(ixC^S)*w1R(ixC^S,mom(ip2))+&
-            (w1R(ixC^S,mag(ip2))-w1L(ixC^S,mag(ip2)))*signB(ixC^S))*tmp(ixC^S)
-        w2L(ixC^S,mom(ip2))=w2R(ixC^S,mom(ip2))
+        w2R(ixC^S,mom(ip3))=(r1L(ixC^S)*w1L(ixC^S,mom(ip3))+r1R(ixC^S)*w1R(ixC^S,mom(ip3))+&
+            (w1R(ixC^S,mag(ip3))-w1L(ixC^S,mag(ip3)))*signBx(ixC^S))*tmp(ixC^S)
+        w2L(ixC^S,mom(ip3))=w2R(ixC^S,mom(ip3))
         ! equation (62)
-        w2R(ixC^S,mag(ip2))=(rls(ixC^S)*w1R(ixC^S,mag(ip2))+rrs(ixC^S)*w1L(ixC^S,mag(ip2))+&
-            rls(ixC^S)*rrs(ixC^S)*(w1R(ixC^S,mom(ip2))-w1L(ixC^S,mom(ip2)))*signB(ixC^S))*tmp(ixC^S)
-        w2L(ixC^S,mag(ip2))=w2R(ixC^S,mag(ip2))
+        w2R(ixC^S,mag(ip3))=(r1L(ixC^S)*w1R(ixC^S,mag(ip3))+r1R(ixC^S)*w1L(ixC^S,mag(ip3))+&
+            r1L(ixC^S)*r1R(ixC^S)*(w1R(ixC^S,mom(ip3))-w1L(ixC^S,mom(ip3)))*signBx(ixC^S))*tmp(ixC^S)
+        w2L(ixC^S,mag(ip3))=w2R(ixC^S,mag(ip3))
       end if
       ! equation (63)
-      w2R(ixC^S,e_)=w1R(ixC^S,e_)+rrs(ixC^S)*(sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)-&
-        sum(w2R(ixC^S,mom(:))*w2R(ixC^S,mag(:)),dim=ndim+1))*signB(ixC^S)
-      w2L(ixC^S,e_)=w1L(ixC^S,e_)-rls(ixC^S)*(sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)-&
-        sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signB(ixC^S)
+      if(mhd_energy) then
+        w2R(ixC^S,e_)=w1R(ixC^S,e_)+r1R(ixC^S)*(sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)-&
+          sum(w2R(ixC^S,mom(:))*w2R(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
+        w2L(ixC^S,e_)=w1L(ixC^S,e_)-r1L(ixC^S)*(sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)-&
+          sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
+      end if
       ! convert velocity to momentum
-      w1R(ixC^S,mom(idim))=w1R(ixC^S,mom(idim))*w1R(ixC^S,rho_)
-      w1L(ixC^S,mom(idim))=w1L(ixC^S,mom(idim))*w1L(ixC^S,rho_)
       w1R(ixC^S,mom(ip1))=w1R(ixC^S,mom(ip1))*w1R(ixC^S,rho_)
-      w1L(ixC^S,mom(ip1))=w1L(ixC^S,mom(ip1))*w1R(ixC^S,rho_)
-      w2R(ixC^S,mom(idim))=w1R(ixC^S,mom(idim))
-      w2L(ixC^S,mom(idim))=w1L(ixC^S,mom(idim))
-      w2R(ixC^S,mom(ip1))=w2R(ixC^S,mom(ip1))*w2R(ixC^S,rho_)
-      w2L(ixC^S,mom(ip1))=w2L(ixC^S,mom(ip1))*w2R(ixC^S,rho_)
+      w1L(ixC^S,mom(ip1))=w1L(ixC^S,mom(ip1))*w1L(ixC^S,rho_)
+      w1R(ixC^S,mom(ip2))=w1R(ixC^S,mom(ip2))*w1R(ixC^S,rho_)
+      w1L(ixC^S,mom(ip2))=w1L(ixC^S,mom(ip2))*w1R(ixC^S,rho_)
+      w2R(ixC^S,mom(ip1))=w1R(ixC^S,mom(ip1))
+      w2L(ixC^S,mom(ip1))=w1L(ixC^S,mom(ip1))
+      w2R(ixC^S,mom(ip2))=w2R(ixC^S,mom(ip2))*w2R(ixC^S,rho_)
+      w2L(ixC^S,mom(ip2))=w2L(ixC^S,mom(ip2))*w2R(ixC^S,rho_)
       if(ndir==3) then
-        w1R(ixC^S,mom(ip2))=w1R(ixC^S,mom(ip2))*w1R(ixC^S,rho_)
-        w1L(ixC^S,mom(ip2))=w1L(ixC^S,mom(ip2))*w1R(ixC^S,rho_)
-        w2R(ixC^S,mom(ip2))=w2R(ixC^S,mom(ip2))*w2R(ixC^S,rho_)
-        w2L(ixC^S,mom(ip2))=w2L(ixC^S,mom(ip2))*w2R(ixC^S,rho_)
+        w1R(ixC^S,mom(ip3))=w1R(ixC^S,mom(ip3))*w1R(ixC^S,rho_)
+        w1L(ixC^S,mom(ip3))=w1L(ixC^S,mom(ip3))*w1R(ixC^S,rho_)
+        w2R(ixC^S,mom(ip3))=w2R(ixC^S,mom(ip3))*w2R(ixC^S,rho_)
+        w2L(ixC^S,mom(ip3))=w2L(ixC^S,mom(ip3))*w2R(ixC^S,rho_)
       end if
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        if(iw==mag(idim)) then
-          fC(ixC^S,iw,idim)=0.d0
+        if(iw==mag(ip1)) then
+          fC(ixC^S,iw,ip1)=0.d0
           cycle
         end if
         f1L(ixC^S,iw)=fLC(ixC^S,iw)+cminC(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
         f1R(ixC^S,iw)=fRC(ixC^S,iw)+cmaxC(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
-        f2L(ixC^S,iw)=fLC(ixC^S,iw)+s1L(ixC^S)*w2L(ixC^S,iw)-&
-            (s1L(ixC^S)-cminC(ixC^S))*w1L(ixC^S,iw)-cminC(ixC^S)*wLC(ixC^S,iw)
-        f2R(ixC^S,iw)=fRC(ixC^S,iw)+s1R(ixC^S)*w2R(ixC^S,iw)-&
-            (s1R(ixC^S)-cmaxC(ixC^S))*w1R(ixC^S,iw)-cmaxC(ixC^S)*wRC(ixC^S,iw)
+        f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
+        f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
+        !f2L(ixC^S,iw)=fLC(ixC^S,iw)+s1L(ixC^S)*w2L(ixC^S,iw)-&
+        !    (s1L(ixC^S)-cminC(ixC^S))*w1L(ixC^S,iw)-cminC(ixC^S)*wLC(ixC^S,iw)
+        !f2R(ixC^S,iw)=fRC(ixC^S,iw)+s1R(ixC^S)*w2R(ixC^S,iw)-&
+        !    (s1R(ixC^S)-cmaxC(ixC^S))*w1R(ixC^S,iw)-cmaxC(ixC^S)*wRC(ixC^S,iw)
         where(cminC(ixC^S)>0.d0)
-          fC(ixC^S,iw,idim)=fLC(ixC^S,iw)
+          fC(ixC^S,iw,ip1)=fLC(ixC^S,iw)
         else where(s1L(ixC^S)>0.d0)
-          fC(ixC^S,iw,idim)=f1L(ixC^S,iw)
+          fC(ixC^S,iw,ip1)=f1L(ixC^S,iw)
         else where(sm(ixC^S)>0.d0)
-          fC(ixC^S,iw,idim)=f2L(ixC^S,iw)
+          fC(ixC^S,iw,ip1)=f2L(ixC^S,iw)
         else where(s1R(ixC^S)>0.d0)
-          fC(ixC^S,iw,idim)=f2R(ixC^S,iw)
+          fC(ixC^S,iw,ip1)=f2R(ixC^S,iw)
         else where(cmaxC(ixC^S)>=0.d0)
-          fC(ixC^S,iw,idim)=f1R(ixC^S,iw)
+          fC(ixC^S,iw,ip1)=f1R(ixC^S,iw)
         else where(cmaxC(ixC^S)<0.d0)
-          fC(ixC^S,iw,idim)=fRC(ixC^S,iw)
+          fC(ixC^S,iw,ip1)=fRC(ixC^S,iw)
         end where
         if(.not.slab) then
-          select case (idim)
+          select case (ip1)
             {case (^D)
             fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)\}
           end select
