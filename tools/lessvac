@@ -10,7 +10,7 @@ else
    goto done
 endif
 step1:
-set datadir=`grep "filenamelog" $fname`
+set datadir=`grep "base_filename" $fname`
 set dataname=`echo $datadir | awk -F\' '{print $2}'`
 set datalog=$dataname".log"
 less $1 $datalog
