@@ -111,6 +111,7 @@ contains
     if (idimmax>idimmin .and. typelimited=='original')&
          call mpistop("Error in fv: Unsplit dim. and original is limited")
 
+    fC=0.d0
 
     ! The flux calculation contracts by one in the idim direction it is applied.
     ! The limiter contracts the same directions by one more, so expand ixO by 2.
@@ -397,8 +398,12 @@ contains
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
       double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp 
       double precision, dimension(ixI^S,ndir) :: vRC, vLC
-      integer :: ip1,ip2,ip3
+      integer :: ip1,ip2,ip3,idir,ix^D
 
+      f1R=0.d0
+      f1L=0.d0
+      f2R=0.d0
+      f2L=0.d0
       ip1=idim
       ip3=3
       call mhd_get_v(wRC,x,ixI^L,ixC^L,vRC)
@@ -431,16 +436,20 @@ contains
       ! equation (44) ~ (47)
       ip2=mod(ip1+1,ndir)
       if(ip2==0) ip2=ndir
-      r1R(ixC^S)=1.d0/(suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2)
-      r1L(ixC^S)=1.d0/(suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2)
+      r1R(ixC^S)=suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
+      where(r1R(ixC^S)/=0.d0)
+        r1R(ixC^S)=1.d0/r1R(ixC^S)
+      endwhere
+      r1L(ixC^S)=suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
+      where(r1L(ixC^S)/=0.d0)
+        r1L(ixC^S)=1.d0/r1L(ixC^S)
+      endwhere
       w1R(ixC^S,mom(ip2))=vRC(ixC^S,ip2)-Bx(ixC^S)*wRC(ixC^S,mag(ip2))*&
         (sm(ixC^S)-vRC(ixC^S,ip1))*r1R(ixC^S)
       w1L(ixC^S,mom(ip2))=vLC(ixC^S,ip2)-Bx(ixC^S)*wLC(ixC^S,mag(ip2))*&
         (sm(ixC^S)-vLC(ixC^S,ip1))*r1L(ixC^S)
-      w1R(ixC^S,mag(ip2))=wRC(ixC^S,mag(ip2))*&
-        (suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
-      w1L(ixC^S,mag(ip2))=wLC(ixC^S,mag(ip2))*&
-        (suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
+      w1R(ixC^S,mag(ip2))=(suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
+      w1L(ixC^S,mag(ip2))=(suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
       if(ndir==3) then
         ip3=mod(ip1+2,ndir)
         if(ip3==0) ip3=ndir
@@ -448,17 +457,17 @@ contains
           (sm(ixC^S)-vRC(ixC^S,ip1))*r1R(ixC^S)
         w1L(ixC^S,mom(ip3))=vLC(ixC^S,ip3)-Bx(ixC^S)*wLC(ixC^S,mag(ip3))*&
           (sm(ixC^S)-vLC(ixC^S,ip1))*r1L(ixC^S)
-        w1R(ixC^S,mag(ip3))=wRC(ixC^S,mag(ip3))*&
-          (suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
-        w1L(ixC^S,mag(ip3))=wLC(ixC^S,mag(ip3))*&
-          (suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
+        w1R(ixC^S,mag(ip3))=wRC(ixC^S,mag(ip3))*w1R(ixC^S,mag(ip2))
+        w1L(ixC^S,mag(ip3))=wLC(ixC^S,mag(ip3))*w1L(ixC^S,mag(ip2))
       end if
+      w1R(ixC^S,mag(ip2))=wRC(ixC^S,mag(ip2))*w1R(ixC^S,mag(ip2))
+      w1L(ixC^S,mag(ip2))=wLC(ixC^S,mag(ip2))*w1L(ixC^S,mag(ip2))
       ! equation (48)
       if(mhd_energy) then
         w1R(ixC^S,e_)=((cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,e_)-ptR(ixC^S)*vRC(ixC^S,ip1)+&
           pts(ixC^S)*sm(ixC^S)+Bx(ixC^S)*(sum(vRC(ixC^S,:)*wRC(ixC^S,mag(:)),dim=ndim+1)-&
           sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)))/(cmaxC(ixC^S)-sm(ixC^S))
-        w1L(ixC^S,e_)=((cmaxC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,ip1)+&
+        w1L(ixC^S,e_)=((cminC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,ip1)+&
           pts(ixC^S)*sm(ixC^S)+Bx(ixC^S)*(sum(vLC(ixC^S,:)*wLC(ixC^S,mag(:)),dim=ndim+1)-&
           sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)))/(cminC(ixC^S)-sm(ixC^S))
       end if
@@ -498,34 +507,24 @@ contains
           sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
       end if
       ! convert velocity to momentum
-      w1R(ixC^S,mom(ip1))=w1R(ixC^S,mom(ip1))*w1R(ixC^S,rho_)
-      w1L(ixC^S,mom(ip1))=w1L(ixC^S,mom(ip1))*w1L(ixC^S,rho_)
-      w1R(ixC^S,mom(ip2))=w1R(ixC^S,mom(ip2))*w1R(ixC^S,rho_)
-      w1L(ixC^S,mom(ip2))=w1L(ixC^S,mom(ip2))*w1R(ixC^S,rho_)
-      w2R(ixC^S,mom(ip1))=w1R(ixC^S,mom(ip1))
-      w2L(ixC^S,mom(ip1))=w1L(ixC^S,mom(ip1))
-      w2R(ixC^S,mom(ip2))=w2R(ixC^S,mom(ip2))*w2R(ixC^S,rho_)
-      w2L(ixC^S,mom(ip2))=w2L(ixC^S,mom(ip2))*w2R(ixC^S,rho_)
-      if(ndir==3) then
-        w1R(ixC^S,mom(ip3))=w1R(ixC^S,mom(ip3))*w1R(ixC^S,rho_)
-        w1L(ixC^S,mom(ip3))=w1L(ixC^S,mom(ip3))*w1R(ixC^S,rho_)
-        w2R(ixC^S,mom(ip3))=w2R(ixC^S,mom(ip3))*w2R(ixC^S,rho_)
-        w2L(ixC^S,mom(ip3))=w2L(ixC^S,mom(ip3))*w2R(ixC^S,rho_)
-      end if
+      do idir=1,ndir
+        w1R(ixC^S,mom(idir))=w1R(ixC^S,mom(idir))*w1R(ixC^S,rho_)
+        w1L(ixC^S,mom(idir))=w1L(ixC^S,mom(idir))*w1L(ixC^S,rho_)
+        w2R(ixC^S,mom(idir))=w2R(ixC^S,mom(idir))*w2R(ixC^S,rho_)
+        w2L(ixC^S,mom(idir))=w2L(ixC^S,mom(idir))*w2L(ixC^S,rho_)
+      end do
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        if(iw==mag(ip1)) then
-          fC(ixC^S,iw,ip1)=0.d0
-          cycle
-        end if
+        if(flux_type(idim, iw) == flux_tvdlf) then 
+            fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
+                 max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
+                 (wRC(ixC^S,iw) - wLC(ixC^S,iw)))
+           cycle
+        endif
         f1L(ixC^S,iw)=fLC(ixC^S,iw)+cminC(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
         f1R(ixC^S,iw)=fRC(ixC^S,iw)+cmaxC(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
         f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
         f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
-        !f2L(ixC^S,iw)=fLC(ixC^S,iw)+s1L(ixC^S)*w2L(ixC^S,iw)-&
-        !    (s1L(ixC^S)-cminC(ixC^S))*w1L(ixC^S,iw)-cminC(ixC^S)*wLC(ixC^S,iw)
-        !f2R(ixC^S,iw)=fRC(ixC^S,iw)+s1R(ixC^S)*w2R(ixC^S,iw)-&
-        !    (s1R(ixC^S)-cmaxC(ixC^S))*w1R(ixC^S,iw)-cmaxC(ixC^S)*wRC(ixC^S,iw)
         where(cminC(ixC^S)>0.d0)
           fC(ixC^S,iw,ip1)=fLC(ixC^S,iw)
         else where(s1L(ixC^S)>0.d0)
