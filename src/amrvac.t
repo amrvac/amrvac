@@ -42,6 +42,12 @@ program amrvac
      ! read in dat file
      call read_snapshot()
 
+     ! modify initial condition
+     if (firstprocess) call modify_IC
+
+     ! reset AMR grid
+     if (resetgrid) call settree
+
      ! select active grids
      call selectgrids
 
@@ -72,11 +78,6 @@ program amrvac
        it           = itin
        global_time  = tin
      end if
-
-     ! modify initial condition
-     if (firstprocess) call modify_IC
-     ! reset AMR grid
-     if (resetgrid) call settree
 
   else
      {#IFDEF RAY
