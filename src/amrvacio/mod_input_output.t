@@ -541,8 +541,6 @@ contains
              typepred1(level)='hllcd'
           case ('hlld')
              typepred1(level)='hlld'
-          case ('hlldd')
-             typepred1(level)='hlldd'
           case ('tvdlf1','tvdmu1','tvd1','tvd','hll1','hllc1', &
                'hlld1','hllcd1','hlldd1','nul','source')
              typepred1(level)='nul'

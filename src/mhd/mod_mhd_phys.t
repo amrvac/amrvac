@@ -217,9 +217,9 @@ contains
        call mpistop("phys_check error: flux_type has wrong shape")
     end if
     do idir=1,ndir
-      flux_type(idir,mag(idir))=flux_tvdlf
+      if(ndim>1) flux_type(idir,mag(idir))=flux_tvdlf
     end do
-    if(mhd_glm) flux_type(:,psi_)=flux_tvdlf
+    if(mhd_glm .and. ndim>1) flux_type(:,psi_)=flux_tvdlf
 
     phys_get_dt          => mhd_get_dt
     phys_get_cmax        => mhd_get_cmax
