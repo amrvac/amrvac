@@ -542,7 +542,6 @@ contains
         if(.not.slab) then
           select case (ip1)
             {case (^D)
-             print*,'non-cartesian',ip1
             fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)\}
           end select
         end if
