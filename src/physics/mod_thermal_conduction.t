@@ -158,7 +158,6 @@ contains
     e_ = iw_e
     mom(:) = iw_mom(:)
     mag(:) = iw_mag(:)
-    print *, mype, e_, mom(:), mag(:)
 
     minp   = max(0.0d0, small_pressure)
     minrho = max(0.0d0, small_density)
