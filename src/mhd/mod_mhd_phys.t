@@ -103,6 +103,11 @@ module mod_mhd_phys
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
+  !> To control divB=0 fix for boundary
+  logical, public, protected :: boundary_divbfix(2*^ND)=.true.
+
+  !> B0 field is force-free
+  logical, public, protected :: B0field_forcefree=.true.
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -126,7 +131,8 @@ contains
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
-      divbwave, He_abundance, SI_unit, B0field,Bdip,Bquad,Boct,Busr,mhd_particles
+      divbwave, He_abundance, SI_unit, B0field, B0field_forcefree, Bdip, Bquad, Boct, &
+      Busr,mhd_particles, boundary_divbfix
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -619,6 +625,8 @@ contains
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
+    if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
+
     call mhd_get_p_total(w,x,ixI^L,ixO^L,ptotal)
 
     ! Get flux of density
@@ -634,6 +642,7 @@ contains
     do idir=1,ndir
       if(idim==idir) then
         f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+        if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
       else
         f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       end if
@@ -652,10 +661,9 @@ contains
             w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*v(ixO^S,:),dim=ndim+1)
 
       if (B0field) then
-        tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
         f(ixO^S,e_) = f(ixO^S,e_) &
              + v(ixO^S,idim) * tmp(ixO^S) &
-             - sum(v(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * block%B0(ixO^S,idim,idim)
+             - sum(v(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
       end if
 
       if (mhd_Hall) then
@@ -667,7 +675,7 @@ contains
           if (B0field) then
             f(ixO^S,e_) = f(ixO^S,e_) &
                  + vHall(ixO^S,idim) * tmp(ixO^S) &
-                 - sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1) * block%B0(ixO^S,idim,idim)
+                 - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
           end if
         end if
       end if
@@ -807,24 +815,29 @@ contains
 
     a=0.d0
     b=0.d0
-    ! store B0 magnetic field in b
-    b(ixO^S,:)=block%B0(ixO^S,:,0)
+    ! for force-free field J0xB0 =0
+    if(.not.B0field_forcefree) then
+      ! store B0 magnetic field in b
+      b(ixO^S,:)=block%B0(ixO^S,:,0)
 
-    ! store J0 current in a
-    do idir=7-2*ndir,3
-      a(ixO^S,idir)=block%J0(ixO^S,idir)
-    end do
-    call cross_product(ixI^L,ixO^L,a,b,axb)
-    axb(ixO^S,:)=axb(ixO^S,:)*qdt
-    ! add J0xB0 source term in momentum equations
-    do idir=1,ndir
-      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+axb(ixO^S,idir)
-    end do
+      ! store J0 current in a
+      do idir=7-2*ndir,3
+        a(ixO^S,idir)=block%J0(ixO^S,idir)
+      end do
+      call cross_product(ixI^L,ixO^L,a,b,axb)
+      axb(ixO^S,:)=axb(ixO^S,:)*qdt
+      ! add J0xB0 source term in momentum equations
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+axb(ixO^S,idir)
+      end do
+    end if
 
     if(mhd_energy) then
       a=0.d0
+      ! for free-free field -(vxB0) dot J0 =0
+      b(ixO^S,:)=wCT(ixO^S,mag(:))
       ! store full magnetic field B0+B1 in b
-      b(ixO^S,:)=wCT(ixO^S,mag(:))+block%B0(ixO^S,:,0)
+      if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
       ! store velocity in a
       do idir=1,ndir
         a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
@@ -1708,6 +1721,7 @@ contains
               i^D=kr(^D,idim)*(2*iside-3);
               if (neighbor_type(i^D,igrid)/=1) cycle
               iB=(idim-1)*2+iside
+              if(.not.boundary_divbfix(iB)) cycle
               if(any(typeboundary(:,iB)=="special")) then
                 select case (idim)
                 {case (^D)
