@@ -671,7 +671,7 @@ contains
         if (mhd_etah>zero) then
           f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
                  sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
-               - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:))**2,dim=ndim+1)
+               - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
           if (B0field) then
             f(ixO^S,e_) = f(ixO^S,e_) &
                  + vHall(ixO^S,idim) * tmp(ixO^S) &
