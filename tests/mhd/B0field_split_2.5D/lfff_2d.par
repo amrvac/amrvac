@@ -63,6 +63,6 @@
 
  &mhd_list
         B0field=.true.
-        Busr=0.1d0
+        Busr=1.d0
         typedivbfix='linde'
  /

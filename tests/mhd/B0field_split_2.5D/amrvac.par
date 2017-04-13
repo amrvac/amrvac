@@ -11,7 +11,7 @@
         base_filename='lfff_2d'
         saveprim=.true.
         autoconvert=.true.
-        convert_type='vtuBCCmpi'
+        convert_type='vtuBmpi'
         nwauxio=4
  /
 
@@ -69,6 +69,6 @@
 
  &mhd_list
         B0field=.true.
-        Busr=0.1d0
+        Busr=1.d0
         typedivbfix='linde'
  /

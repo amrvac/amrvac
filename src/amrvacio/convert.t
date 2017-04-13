@@ -1056,10 +1056,10 @@ endif
 if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),pw(igrid)%x)
 
 if(allocated(pw(igrid)%B0)) then
-  w(ixC^S,mag(:))=w(ixC^S,mag(:))+pw(igrid)%B0(ixC^S,:,0)
+  w(ixG^T,mag(:))=w(ixG^T,mag(:))+pw(igrid)%B0(ixG^T,:,0)
   if(.not.saveprim.and.phys_energy) then
-    w(ixC^S,e_)=w(ixC^S,e_)+0.5d0*sum(pw(igrid)%B0(ixC^S,:,0)**2,dim=ndim+1) &
-          + sum(w(ixC^S,mag(:))*pw(igrid)%B0(ixC^S,:,0),dim=ndim+1)
+    w(ixG^T,e_)=w(ixG^T,e_)+0.5d0*sum(pw(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+          + sum(w(ixG^T,mag(:))*pw(igrid)%B0(ixG^T,:,0),dim=ndim+1)
   end if
 end if
 ! compute the cell-center values for w first
