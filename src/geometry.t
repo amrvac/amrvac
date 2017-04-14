@@ -466,7 +466,7 @@ double precision :: dxdim
 
 double precision,dimension(ixI^S):: qC,qL,qR,dqC,ldq
 double precision :: invdx
-integer :: hx^L,ixC^L,jxC^L,gxC^L,hxC^L,idummy
+integer :: hx^L,ixC^L,jxC^L,gxC^L,hxC^L
 character(len=std_len) :: savetypelimiter,savetypegradlimiter,save2typelimiter
 
 invdx=1.d0/dxlevel(idir)
@@ -475,7 +475,6 @@ ixCmin^D=hxmin^D;ixCmax^D=ixmax^D;
 jxC^L=ixC^L+kr(idir,^D);
 gxCmin^D=ixCmin^D-kr(idir,^D);gxCmax^D=jxCmax^D;
 hxC^L=gxC^L+kr(idir,^D);
-idummy=0
 
 savetypelimiter=typelimiter
 savetypegradlimiter=typegradlimiter
@@ -490,19 +489,19 @@ if (typelimiter/='ppm') then
    if(save2typelimiter=='cada')  typelimiter='cadaL'
    if(save2typelimiter=='cada3') typelimiter='cada3L'
    dxdim=dxlevel(idir)
-   call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
+   call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
    qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
    if(save2typelimiter=='koren')then
      typelimiter='korenR'
-     call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
+     call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
    endif
    if(save2typelimiter=='cada')then
      typelimiter='cadaR'
-     call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
+     call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
    endif
    if(save2typelimiter=='cada3')then
      typelimiter='cada3R'
-     call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idir,ldq,dxdim)
+     call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
    endif
    typelimiter=save2typelimiter
    qR(ixC^S) = qR(ixC^S) - half*ldq(jxC^S)
@@ -698,7 +697,7 @@ double precision :: qvec(ixG^T,1:ndir), divq(ixG^T)
 double precision,dimension(ixG^T):: qL,qR,dqC,ldq
 double precision :: dxdim, invdx(1:ndim)
 
-integer :: hxO^L,ixC^L,jxC^L,idims,ix^L,gxC^L,hxC^L,idummy
+integer :: hxO^L,ixC^L,jxC^L,idims,ix^L,gxC^L,hxC^L
 character(len=std_len), save :: savetypelimiter,savetypegradlimiter,save2typelimiter
 !-----------------------------------------------------------------------------
 ix^L=ixO^L^LADD2;
@@ -706,7 +705,6 @@ ix^L=ixO^L^LADD2;
 if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
    call mpistop("Error in divvectorS: Non-conforming input limits")
 
-idummy=0
 invdx=1.d0/dxlevel
 divq(ixO^S)=zero
 do idims=1,ndim
@@ -736,19 +734,19 @@ do idims=1,ndim
       if(save2typelimiter=='cada')  typelimiter='cadaL'
       if(save2typelimiter=='cada3') typelimiter='cada3L'
       dxdim=dxlevel(idims)
-      call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
+      call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
       if(save2typelimiter=='koren')then
          typelimiter='korenR'
-         call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
+         call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
        endif
       if(save2typelimiter=='cada')then
          typelimiter='cadaR'
-         call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
+         call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
        endif
       if(save2typelimiter=='cada3')then
          typelimiter='cada3R'
-         call dwlimiter2(dqC,ixI^L,gxC^L,idummy,idims,ldq,dxdim)
+         call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
        endif
        typelimiter=save2typelimiter
       qR(ixC^S) = qR(ixC^S) - half*ldq(jxC^S)

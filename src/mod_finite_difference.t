@@ -121,7 +121,7 @@ contains
           if(savetypelimiter=='koren') typelimiter='korenL'
           if(savetypelimiter=='cada')  typelimiter='cadaL'
           if(savetypelimiter=='cada3') typelimiter='cada3L'
-          call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdims)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims)
           typelimiter=savetypelimiter
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
@@ -165,7 +165,7 @@ contains
           if(savetypelimiter=='koren') typelimiter='korenR'
           if(savetypelimiter=='cada')  typelimiter='cadaR'
           if(savetypelimiter=='cada3') typelimiter='cada3R'
-          call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdims)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims)
           typelimiter=savetypelimiter
 
           wRC(iL^S,iw)=wRC(iL^S,iw)-half*ldw(jxR^S)

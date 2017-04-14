@@ -786,20 +786,20 @@ if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
    if(savetypelimiter=='koren') typelimiter='korenL'
    if(savetypelimiter=='cada')  typelimiter='cadaL'
    if(savetypelimiter=='cada3') typelimiter='cada3L'
-   call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+   call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim)
 
    wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
    if(savetypelimiter=='koren')then
      typelimiter='korenR'
-     call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+     call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim)
    endif
    if(savetypelimiter=='cada')then
      typelimiter='cadaR'
-     call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+     call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim)
    endif
    if(savetypelimiter=='cada3')then
      typelimiter='cada3R'
-     call dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+     call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim)
    endif
    wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*ldw(jxR^S)
    typelimiter=savetypelimiter

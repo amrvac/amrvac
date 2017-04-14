@@ -550,6 +550,7 @@ contains
     end subroutine get_Riemann_flux_hlld
 
   end subroutine finite_volume
+
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
   subroutine upwindLR(ixI^L,ixL^L,ixR^L,idim,w,wCT,wLC,wRC,x,needprim,dxdim)
@@ -593,20 +594,20 @@ contains
           if(savetypelimiter=='koren') typelimiter='korenL'
           if(savetypelimiter=='cada')  typelimiter='cadaL'
           if(savetypelimiter=='cada3') typelimiter='cada3L'
-          call dwlimiter2(dwC,ixI^L,ixC^L,iw,idim,ldw,dxdim)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
 
           wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
           if(savetypelimiter=='koren')then
              typelimiter='korenR'
-             call dwlimiter2(dwC,ixI^L,ixC^L,iw,idim,ldw,dxdim)
+             call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
           endif
           if(savetypelimiter=='cada')then
              typelimiter='cadaR'
-             call dwlimiter2(dwC,ixI^L,ixC^L,iw,idim,ldw,dxdim)
+             call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
           endif
           if(savetypelimiter=='cada3')then
              typelimiter='cada3R'
-             call dwlimiter2(dwC,ixI^L,ixC^L,iw,idim,ldw,dxdim)
+             call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
           endif
           wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*ldw(jxR^S)
           typelimiter=savetypelimiter

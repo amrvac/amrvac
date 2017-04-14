@@ -15,13 +15,11 @@ contains
   !> but also from the gradientS and divvectorS subroutines in geometry.t
   !> Accordingly, the typelimiter here corresponds to one of limiter
   !> or one of gradient_limiter.
-  !>
-  !> note: there is no iw dependence here...
-  subroutine dwlimiter2(dwC,ixI^L,ixC^L,iw,idims,ldw,dxdim)
+  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim)
 
     use mod_global_parameters
 
-    integer, intent(in) :: ixI^L, ixC^L, iw, idims
+    integer, intent(in) :: ixI^L, ixC^L, idims
     double precision, intent(in) :: dxdim
     double precision, intent(in) :: dwC(ixI^S)
     double precision, intent(out) :: ldw(ixI^S)
