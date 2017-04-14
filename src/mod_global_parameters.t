@@ -216,6 +216,8 @@ module mod_global_parameters
   !> Slice coordinates, see @ref slices.md
   double precision :: slicecoord(nslicemax)
 
+  double precision :: time_between_print
+
   !> If true, reset iteration count and global_time to original values, and
   !> start writing snapshots at index 0
   logical :: restart_reset_time

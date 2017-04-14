@@ -140,8 +140,10 @@ contains
 
     integer :: level, ifile, fixcount, ncells_update, ncells_block
     logical :: save_now
+    double precision :: time_last_print
 
     time_in=MPI_WTIME()
+    time_last_print = -bigdouble
     fixcount=1
 
     n_saves(filelog_:fileout_) = snapshotini
@@ -157,7 +159,12 @@ contains
     timeLast=MPI_WTIME()
 
     !  ------ start of integration loop. ------------------
-    if(mype==0) write(*,*) 'Start integrating ...'
+    if (mype==0) then
+      write(*, '(A,E9.2,A)') ' Start integrating, print status every ', &
+           time_between_print, ' seconds'
+      write(*, '(A10,A12,A12,A12)') 'it', 'time', 'dt', 'wc-time(s)'
+    end if
+
     timeloop0=MPI_WTIME()
     time_bc=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
@@ -167,6 +174,14 @@ contains
        if(fixprocess) call process(it,global_time)
 
        timeio0=MPI_WTIME()
+
+       if (timeio0 - time_last_print > time_between_print) then
+         time_last_print = timeio0
+         if (mype == 0) then
+           write(*, '(I10,E12.3,E12.3,E12.3)') it, global_time, dt, timeio0 - time_in
+         end if
+       end if
+
        do ifile=nfile,1,-1
          if(timetosave(ifile)) call saveamrfile(ifile)
        end do

@@ -117,7 +117,7 @@ contains
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
 
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
-         slicecoord,collapse,collapseLevel, &
+         slicecoord,collapse,collapseLevel, time_between_print, &
          tsave_log, tsave_dat, tsave_slice, tsave_collapsed, tsave_custom, &
          dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
          ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
@@ -262,6 +262,7 @@ contains
     collapse      = .false.
     collapseLevel = 1
     sliceascii    = .false.
+    time_between_print = 30.0d0 ! Print status every 30 seconds
 
     do ifile=1,nfile
       do isave=1,nsavehi
