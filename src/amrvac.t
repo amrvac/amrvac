@@ -160,7 +160,7 @@ contains
 
     !  ------ start of integration loop. ------------------
     if (mype==0) then
-      write(*, '(A,E9.2,A)') ' Start integrating, print status every ', &
+      write(*, '(A,ES9.2,A)') ' Start integrating, print status every ', &
            time_between_print, ' seconds'
       write(*, '(A10,A12,A12,A12)') 'it', 'time', 'dt', 'wc-time(s)'
     end if
@@ -178,7 +178,7 @@ contains
        if (timeio0 - time_last_print > time_between_print) then
          time_last_print = timeio0
          if (mype == 0) then
-           write(*, '(I10,E12.3,E12.3,E12.3)') it, global_time, dt, timeio0 - time_in
+           write(*, '(I10,ES12.3,ES12.3,ES12.3)') it, global_time, dt, timeio0 - time_in
          end if
        end if
 
