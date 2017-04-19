@@ -92,12 +92,13 @@ contains
     integer          :: i, j, k, ifile, io_state, nw_found
     integer          :: iB, isave, iw, level, idim, islice
     integer          :: nx_vec(^ND)
+    integer          :: my_unit, iostate
     double precision :: dx_vec(^ND)
 
     character              :: c_ndim
     character(len=80)      :: fmt_string
     character(len=std_len) :: err_msg, restart_from_file_arg
-    character(len=std_len) :: basename_full, basename_prev
+    character(len=std_len) :: basename_full, basename_prev, dummy_file
     character(len=std_len), dimension(:), allocatable :: &
          typeboundary_min^D, typeboundary_max^D
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
@@ -424,16 +425,14 @@ contains
 
     base_filename = basename_full
 
-    ! Check whether output directory exists
-    i = index(base_filename, '/', back=.true.)
-
-    if (i > 0) then
-       inquire(file=base_filename(:i-1), exist=file_exists)
-
-       if (.not. file_exists) then
-          call mpistop("Please create output directory ("//&
-               base_filename(:i-1)//") and run again")
-       end if
+    ! Check whether output directory is writable
+    dummy_file = trim(base_filename)//"DUMMY"
+    open(newunit=my_unit, file=trim(dummy_file), iostat=iostate)
+    if (iostate /= 0) then
+       call mpistop("Can't write to output directory (" // &
+            trim(base_filename) // ")")
+    else
+       close(my_unit, status='delete')
     end if
 
     ! restart filename from command line overwrites the one in par file
