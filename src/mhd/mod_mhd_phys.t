@@ -1927,7 +1927,7 @@ contains
        if(slab) then
          dx2x1=dxlevel(2)/dxlevel(1)
          dx2x3=dxlevel(2)/dxlevel(3)
-         do ix2=ixFmax2,ixFmax2,-1
+         do ix2=ixFmax2,ixFmin2,-1
            w(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,mag(2))=w(ixFmin1:ixFmax1,&
              ix2+1,ixFmin3:ixFmax3,mag(2)) &
              +dx2x1*(w(ixFmin1+1:ixFmax1+1,ix2,ixFmin3:ixFmax3,mag(1))-&
@@ -2039,7 +2039,7 @@ contains
        if(slab) then
          dx3x1=dxlevel(3)/dxlevel(1)
          dx3x2=dxlevel(3)/dxlevel(2)
-         do ix3=ixFmax3,ixFmax3,-1
+         do ix3=ixFmax3,ixFmin3,-1
            w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,mag(3))=w(ixFmin1:ixFmax1,&
              ixFmin2:ixFmax2,ix3+1,mag(3)) &
              +dx3x1*(w(ixFmin1+1:ixFmax1+1,ixFmin2:ixFmax2,ix3,mag(1))-&
