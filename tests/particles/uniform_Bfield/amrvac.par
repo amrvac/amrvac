@@ -1,0 +1,73 @@
+ &filelist
+        autoconvert   = T
+        saveprim      = T
+        nwauxio       = 0
+        base_filename = 'output/ot_2d'
+        ! convert = .true.
+        convert_type  = 'vtuBmpi'
+        ! restart_from_file='output/ot_2d0000.dat'
+ /
+        restart_from_file='ot_2d0004.dat'
+        snapshotnext=5
+
+ &savelist
+        ! itsave(1,1)   = 0
+        ! itsave(1,2)   = 0
+        ditsave_log   = 1
+        dtsave_dat    = 0.02d0
+        time_between_print = 10.0
+ /
+
+ &stoplist
+        time_max      = 1.0
+ /
+
+ &methodlist
+        time_integrator = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+ /
+
+ &boundlist
+        typeboundary_min1  = 8*'periodic'
+        typeboundary_min2  = 8*'periodic'
+        typeboundary_min3  = 8*'periodic'
+        typeboundary_max1  = 8*'periodic'
+        typeboundary_max2  = 8*'periodic'
+        typeboundary_max3  = 8*'periodic'
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 1
+    	! refine_threshold = 20*0.4d0
+        ! w_refine_weight(1)=0.5d0
+        ! w_refine_weight(5)=0.5d0
+        domain_nx1    = 16
+        domain_nx2    = 16
+        domain_nx3    = 16
+        xprobmin1     = 0.0d0
+        xprobmax1     = 1.0d0
+        xprobmin2     = 0.0d0
+        xprobmax2     = 1.0d0
+        xprobmin3     = 0.0d0
+        xprobmax3     = 1.0d0
+ /
+
+ &paramlist
+        courantpar    = 0.8d0
+ /
+
+ &mhd_list
+        typedivbfix   = 'linde'
+        mhd_particles = .true.
+ /
+
+ &particles_list
+        physics_type_particles='Lorentz'
+        num_particles=10
+        dtsave_ensemble=0.02d0
+        ditsave_particles=1
+        npayload=1
+        particles_eta=0.0d-4
+ /
