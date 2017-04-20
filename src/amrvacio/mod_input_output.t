@@ -426,13 +426,15 @@ contains
     base_filename = basename_full
 
     ! Check whether output directory is writable
-    dummy_file = trim(base_filename)//"DUMMY"
-    open(newunit=my_unit, file=trim(dummy_file), iostat=iostate)
-    if (iostate /= 0) then
-       call mpistop("Can't write to output directory (" // &
-            trim(base_filename) // ")")
-    else
-       close(my_unit, status='delete')
+    if(mype==0) then
+      dummy_file = trim(base_filename)//"DUMMY"
+      open(newunit=my_unit, file=trim(dummy_file), iostat=iostate)
+      if (iostate /= 0) then
+         call mpistop("Can't write to output directory (" // &
+              trim(base_filename) // ")")
+      else
+         close(my_unit, status='delete')
+      end if
     end if
 
     ! restart filename from command line overwrites the one in par file
