@@ -3,6 +3,8 @@ module mod_particles
   use mod_usr_methods, only: usr_init_particles, usr_update_payload
   use mod_constants
   use mod_physics
+  use mod_random
+
   implicit none
 
   !> String describing the particle physics type
@@ -106,6 +108,9 @@ module mod_particles
   ! Array containing all particles
   type(particle_ptr), dimension(:), allocatable  :: particle
 
+  ! The pseudo-random number generator
+  type(rng_t) :: rng
+
   procedure(init_particles), pointer  :: phys_init_particles => null()
   procedure(fill_gridvars), pointer   :: phys_fill_gridvars => null()
   procedure(integrate_particles), pointer   :: phys_integrate_particles => null()
@@ -114,20 +119,15 @@ module mod_particles
   abstract interface
 
     subroutine init_particles()
-      use mod_Knuth_random
-      use mod_global_parameters
     end subroutine init_particles
 
     subroutine fill_gridvars()
-      use mod_global_parameters
     end subroutine fill_gridvars
 
     subroutine integrate_particles()
-      use mod_global_parameters
     end subroutine integrate_particles
 
     subroutine set_particles_dt()
-      use mod_global_parameters
     end subroutine set_particles_dt
 
   end interface
@@ -178,7 +178,9 @@ module mod_particles
   !> Give initial values to paramters
   subroutine init_particles_vars()
     use mod_global_parameters
-    integer :: nwx, idir
+    integer            :: nwx, idir
+    integer, parameter :: i8 = selected_int_kind(18)
+    integer(i8)        :: seed(2)
 
     physics_type_particles='advect'
     nparticleshi = 100000
@@ -201,6 +203,10 @@ module mod_particles
     nparticles_active_on_mype   = 0
 
     call particles_params_read(par_files)
+
+    ! initialise the random number generator
+    seed = [310952_i8, 8948923749821_i8]
+    call rng%set_seed(seed)
 
     allocate(particle(1:nparticleshi))
     allocate(ipe_neighbor(0:npe-1))
@@ -343,25 +349,23 @@ module mod_particles
 
   subroutine advect_init_particles()
     ! initialise the particles
-    use mod_Knuth_random
     use mod_global_parameters
 
-    double precision, dimension(ndir)    :: x, v
-    double precision, dimension(num_particles,ndir) :: rrd
-    double precision                     :: w(ixG^T,1:nw)
-    integer                              :: igrid_particle, ipe_particle
-    integer                              :: idir,seed
-    logical, dimension(1:num_particles)  :: follow
+    double precision :: x(ndir), v(ndir)
+    double precision :: rrd(num_particles,ndir)
+    double precision :: w(ixG^T,1:nw)
+    integer          :: igrid_particle, ipe_particle
+    integer          :: n, idir
+    logical          :: follow(1:num_particles)
 
-    follow=.false.
-    x(:)=0.0d0
-    ! initialise the random number generator
-    seed = 310952
-    call rnstrt(seed)
+    follow(:) = .false.
+    x(:)      = 0.0d0
+
     do idir=1,ndir
-      call rand(rrd(:,idir),num_particles)
+      do n = 1, num_particles
+        rrd(n,idir) = rng%unif_01()
+      end do
     end do
-    follow(num_particles/2)=.true.
 
     do while (nparticles .lt. num_particles)
 
@@ -406,24 +410,23 @@ module mod_particles
 
   subroutine Lorentz_init_particles()
     ! initialise the particles
-    use mod_Knuth_random
     use mod_global_parameters
 
     double precision, dimension(ndir)   :: x,B,u
     double precision, dimension(num_particles,ndir) :: rrd, srd, trd
     double precision                    :: absB, absS, theta, prob, theta2, prob2
     integer                             :: igrid_particle, ipe_particle
-    integer                             :: seed, idir
+    integer                             :: n, idir
     logical, dimension(1:num_particles) :: follow
 
-    follow=.false.
-    ! initialise the random number generator
-    seed = 310952
-    call rnstrt(seed)
+    follow(:) = .false.
+
     do idir=1,ndir
-      call rand(rrd(:,idir),num_particles)
-      call rand(srd(:,idir),num_particles)
-      call rand(trd(:,idir),num_particles)
+      do n = 1, num_particles
+        rrd(n, idir) = rng%unif_01()
+        srd(n, idir) = rng%unif_01()
+        trd(n, idir) = rng%unif_01()
+      end do
     end do
 
     ! first find ipe and igrid responsible for particle
@@ -436,9 +439,9 @@ module mod_particles
 
       call find_particle_ipe(x,igrid_particle,ipe_particle)
 
-      nparticles=nparticles+1
-      particle(nparticles)%igrid  = igrid_particle
-      particle(nparticles)%ipe    = ipe_particle
+      nparticles                 = nparticles+1
+      particle(nparticles)%igrid = igrid_particle
+      particle(nparticles)%ipe   = ipe_particle
 
       if(ipe_particle == mype) then
         call push_particle_into_particles_on_mype(nparticles)
@@ -457,8 +460,8 @@ module mod_particles
         absS = sqrt(sum(srd(nparticles,:)**2))
 
         ! Maxwellian velocity distribution assigned here
-        prob  = sqrt(-2.0d0*log(1.0-0.999999*srd(nparticles,1)));
-        prob2 = sqrt(-2.0d0*log(1.0-0.999999*srd(nparticles,2)));
+        prob  = sqrt(-2.0d0*log(1 - srd(nparticles,1)));
+        prob2 = sqrt(-2.0d0*log(1 - srd(nparticles,2)));
 
         ! random pitch angle given to each particle
         theta  = 2.0d0*dpi*trd(nparticles,1)
@@ -470,6 +473,7 @@ module mod_particles
         u(2) =  unit_velocity *prob*dsin(theta)/const_c
         u(3) =  unit_velocity *prob2*dcos(theta2)/const_c
         particle(nparticles)%self%u(:) = u(:)
+
         ! initialise payloads for Lorentz module
         allocate(particle(nparticles)%payload(npayload))
         particle(nparticles)%payload(:) = 0.0d0
@@ -482,24 +486,23 @@ module mod_particles
 
   subroutine gca_init_particles()
     ! initialise the particles
-    use mod_Knuth_random
     use mod_global_parameters
 
     double precision, dimension(ndir)   :: x,B,u
     double precision, dimension(num_particles,ndir) :: rrd, srd, trd
     double precision                    :: absB, absS, theta, prob, lfac, gamma
     integer                             :: igrid_particle, ipe_particle
-    integer                             :: seed, idir
+    integer                             :: n, idir
     logical, dimension(1:num_particles) :: follow
 
     follow=.false.
-    ! initialise the random number generator
-    seed = 310952
-    call rnstrt(seed)
+
     do idir=1,ndir
-      call rand(rrd(:,idir),num_particles)
-      call rand(srd(:,idir),num_particles)
-      call rand(trd(:,idir),num_particles)
+      do n = 1, num_particles
+        rrd(n, idir) = rng%unif_01()
+        srd(n, idir) = rng%unif_01()
+        trd(n, idir) = rng%unif_01()
+      end do
     end do
 
     ! first find ipe and igrid responsible for particle
