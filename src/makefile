@@ -111,7 +111,7 @@ mod_mhd_roe.o: mod_tvd.o
 mod_mp5.o: mod_physics.o
 mod_nonlinear.o: mod_nonlinear_params.o
 mod_nonlinear.o: mod_physics.o
-mod_particles.o: mod_Knuth_random.o
+mod_particles.o: mod_random.o
 mod_particles.o: mod_odeint.o
 mod_particles.o: mod_physics.o
 mod_particles.o: mod_timing.o
