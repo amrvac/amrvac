@@ -818,7 +818,7 @@ contains
     ! for force-free field J0xB0 =0
     if(.not.B0field_forcefree) then
       ! store B0 magnetic field in b
-      b(ixO^S,:)=block%B0(ixO^S,:,0)
+      b(ixO^S,1:ndir)=block%B0(ixO^S,1:ndir,0)
 
       ! store J0 current in a
       do idir=7-2*ndir,3
@@ -827,9 +827,7 @@ contains
       call cross_product(ixI^L,ixO^L,a,b,axb)
       axb(ixO^S,:)=axb(ixO^S,:)*qdt
       ! add J0xB0 source term in momentum equations
-      do idir=1,ndir
-        w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+axb(ixO^S,idir)
-      end do
+      w(ixO^S,mom(1:ndir))=w(ixO^S,mom(1:ndir))+axb(ixO^S,1:ndir)
     end if
 
     if(mhd_energy) then
@@ -872,7 +870,7 @@ contains
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
-    double precision :: gradeta(ixI^S,1:ndim)
+    double precision :: gradeta(ixI^S,1:ndim), Bf(ixI^S,1:ndir)
 
 
     ! Calculating resistive sources involve one extra layer
@@ -900,11 +898,17 @@ contains
        end do
     end if
 
+    if(B0field) then
+      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,0)
+    else
+      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))
+    end if
+
     do idir=1,ndir
        ! Put B_idir into tmp2 and eta*Laplace B_idir into tmp
        if (mhd_4th_order) then
          tmp(ixO^S)=zero
-         tmp2(ixI^S)=wCT(ixI^S,mag(idir))
+         tmp2(ixI^S)=Bf(ixI^S,idir)
          do idim=1,ndim
             lxO^L=ixO^L+2*kr(idim,^D);
             jxO^L=ixO^L+kr(idim,^D);
@@ -916,7 +920,7 @@ contains
          end do
        else
          tmp(ixO^S)=zero
-         tmp2(ixI^S)=wCT(ixI^S,mag(idir))
+         tmp2(ixI^S)=Bf(ixI^S,idir)
          do idim=1,ndim
             jxO^L=ixO^L+kr(idim,^D);
             hxO^L=ixO^L-kr(idim,^D);
@@ -944,7 +948,7 @@ contains
        ! Add sources related to eta*laplB-grad(eta) x J to B and e
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
        if (mhd_energy) then
-          w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*wCT(ixO^S,mag(idir))
+          w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
        end if
 
     end do ! idir
@@ -978,7 +982,7 @@ contains
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S),curlj(ixI^S,1:3)
-    double precision :: tmpvec(ixI^S,1:3),tmpvec2(ixI^S,1:ndir)
+    double precision :: tmpvec(ixI^S,1:3)
 
     ixA^L=ixO^L^LADD2;
 
@@ -999,33 +1003,25 @@ contains
     ! dB/dt= -curl(J*eta), thus B_i=B_i-eps_ijk d_j Jeta_k
     tmpvec(ixA^S,1:ndir)=zero
     do jdir=idirmin,3
-       tmpvec(ixA^S,jdir)=current(ixA^S,jdir)*eta(ixA^S)*qdt
+       tmpvec(ixA^S,jdir)=current(ixA^S,jdir)*eta(ixA^S)
     end do
     call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
     do idir=1,ndir
-      w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-curlj(ixO^S,idir)
+      w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-qdt*curlj(ixO^S,idir)
     end do
 
-    if (mhd_energy) then
-       ! de/dt= +div(B x Jeta)
-       tmpvec2(ixA^S,1:ndir)=zero
-       do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
-          if (lvc(idir,jdir,kdir)/=0)then
-             tmp(ixA^S)=wCT(ixA^S,mag(jdir))*current(ixA^S,kdir)*eta(ixA^S)*qdt
-             if (lvc(idir,jdir,kdir)==1)then
-                tmpvec2(ixA^S,idir)=tmpvec2(ixA^S,idir)+tmp(ixA^S)
-             else
-                tmpvec2(ixA^S,idir)=tmpvec2(ixA^S,idir)-tmp(ixA^S)
-             end if
-          end if
-       end do; end do; end do
+    if(mhd_energy) then
+       ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
+      if(B0field) then
+         w(ixO^S,e_)=w(ixO^S,e_)+qdt*sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)
+      else
+         w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
+           sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
+      end if
 
-       call divvector(tmpvec2,ixI^L,ixO^L,tmp)
-
-       w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
-
-       call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
+      call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
     end if
+
   end subroutine add_source_res2
 
   !> Add Hyper-resistive source to w within ixO
@@ -1375,17 +1371,12 @@ contains
 
     idirmin0 = 7-2*ndir
 
-    if (B0field) then
-       do idir = 1, ndir
-          bvec(ixI^S,idir)=w(ixI^S,mag(idir))+block%B0(ixI^S,idir,0)
-       end do
-    else
-       do idir = 1, ndir
-          bvec(ixI^S,idir)=w(ixI^S,mag(idir))
-       end do
-    end if
+    bvec(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
 
     call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+
+    if(B0field) current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+&
+        block%J0(ixO^S,idirmin0:3)
 
   end subroutine get_current
 
