@@ -88,21 +88,21 @@ module mod_particles
 
   type particle_t
      !> follow the history of the particle
-     logical                        :: follow
-     !> identity number
-     integer                        :: index
-     !> charge
-     double precision               :: q
-     !> mass
-     double precision               :: m
-     !> time
-     double precision               :: t
-     !> time step
-     double precision               :: dt
-     !> coordinates
-     double precision, dimension(3) :: x
-     !> velocity, momentum, or special ones
-     double precision, dimension(3) :: u
+    logical          :: follow
+    !> identity number
+    integer          :: index
+    !> charge
+    double precision :: q
+    !> mass
+    double precision :: m
+    !> time
+    double precision :: t
+    !> time step
+    double precision :: dt
+    !> coordinates
+    double precision :: x(3)
+    !> velocity, momentum, or special ones
+    double precision :: u(3)
   end type particle_t
 
   ! Array containing all particles
@@ -347,6 +347,28 @@ module mod_particles
 
   end subroutine init_particles_com
 
+  subroutine get_maxwellian_velocity(v, velocity)
+    double precision, intent(out) :: v(3)
+    double precision, intent(in)  :: velocity
+    double precision              :: vtmp(3), vnorm
+
+    vtmp(1) = velocity * rng%normal()
+    vtmp(2) = velocity * rng%normal()
+    vtmp(3) = velocity * rng%normal()
+    vnorm   = norm2(vtmp)
+    v       = rng%sphere(vnorm)
+  end subroutine get_maxwellian_velocity
+
+  subroutine get_uniform_pos(x)
+    use mod_global_parameters
+    double precision, intent(out) :: x(3)
+
+    call rng%unif_01_vec(x)
+
+    {^D&x(^D) = xprobmin^D + x(^D) * (xprobmax^D - xprobmin^D)\}
+    x(ndim+1:) = 0.0d0
+  end subroutine get_uniform_pos
+
   subroutine advect_init_particles()
     ! initialise the particles
     use mod_global_parameters
@@ -411,75 +433,52 @@ module mod_particles
   subroutine Lorentz_init_particles()
     ! initialise the particles
     use mod_global_parameters
+    use mod_usr_methods, only: usr_create_particles
 
-    double precision, dimension(ndir)   :: x,B,u
-    double precision, dimension(num_particles,ndir) :: rrd, srd, trd
-    double precision                    :: absB, absS, theta, prob, theta2, prob2
-    integer                             :: igrid_particle, ipe_particle
-    integer                             :: n, idir
-    logical, dimension(1:num_particles) :: follow
+    integer          :: n, igrid_particle, ipe_particle
+    double precision :: x(3, num_particles)
+    double precision :: v(3, num_particles)
+    double precision :: q(num_particles)
+    double precision :: m(num_particles)
+    logical          :: follow(num_particles)
 
-    follow(:) = .false.
+    if (.not. associated(usr_create_particles)) then
+      call mpistop("Error: no usr_create_particles method specified")
+    else if (mype == 0) then
+      call usr_create_particles(num_particles, x, v, q, m, follow)
+    end if
 
-    do idir=1,ndir
-      do n = 1, num_particles
-        rrd(n, idir) = rng%unif_01()
-        srd(n, idir) = rng%unif_01()
-        trd(n, idir) = rng%unif_01()
-      end do
-    end do
+    call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(v,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(q,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(m,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
-    ! first find ipe and igrid responsible for particle
-
-    x(:)=0.0d0
-
-    do while (nparticles .lt. num_particles)
-
-   {^D&x(^D) = xprobmin^D + rrd(nparticles+1,^D) * (xprobmax^D - xprobmin^D)\}
-
-      call find_particle_ipe(x,igrid_particle,ipe_particle)
+    ! Find ipe and igrid responsible for particle
+    do n = 1, num_particles
+      call find_particle_ipe(x(:, n),igrid_particle,ipe_particle)
 
       nparticles                 = nparticles+1
       particle(nparticles)%igrid = igrid_particle
       particle(nparticles)%ipe   = ipe_particle
 
-      if(ipe_particle == mype) then
+      if (ipe_particle == mype) then
         call push_particle_into_particles_on_mype(nparticles)
-        allocate(particle(nparticles)%self)
-        particle(nparticles)%self%follow = follow(nparticles)
-        particle(nparticles)%self%index  = nparticles
-        particle(nparticles)%self%q      = - const_e
-        particle(nparticles)%self%m      =   const_me
 
+        allocate(particle(nparticles)%self)
+        particle(nparticles)%self%x      = x(:, n)
+        particle(nparticles)%self%u      = v(:, n)
+        particle(nparticles)%self%q      = q(n)
+        particle(nparticles)%self%m      = m(n)
+        particle(nparticles)%self%follow = follow(n)
+        particle(nparticles)%self%index  = nparticles
         particle(nparticles)%self%t      = 0.0d0
         particle(nparticles)%self%dt     = 0.0d0
-        particle(nparticles)%self%x = 0.d0
-        particle(nparticles)%self%x(1:ndir) = x(1:ndir)
-
-        ! Maxwellian velocity distribution
-        absS = sqrt(sum(srd(nparticles,:)**2))
-
-        ! Maxwellian velocity distribution assigned here
-        prob  = sqrt(-2.0d0*log(1 - srd(nparticles,1)));
-        prob2 = sqrt(-2.0d0*log(1 - srd(nparticles,2)));
-
-        ! random pitch angle given to each particle
-        theta  = 2.0d0*dpi*trd(nparticles,1)
-        theta2 = 2.0d0*dpi*trd(nparticles,2)
-
-        ! random maxwellian velocity
-        ! momentum gamma*v/c normalised by speed of light
-        u(1) =  unit_velocity *prob*dcos(theta)/const_c
-        u(2) =  unit_velocity *prob*dsin(theta)/const_c
-        u(3) =  unit_velocity *prob2*dcos(theta2)/const_c
-        particle(nparticles)%self%u(:) = u(:)
 
         ! initialise payloads for Lorentz module
         allocate(particle(nparticles)%payload(npayload))
         particle(nparticles)%payload(:) = 0.0d0
-
       end if
-
     end do
 
   end subroutine Lorentz_init_particles
@@ -1634,7 +1633,8 @@ module mod_particles
         ! current gyroradius
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
-        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * m / abs(q) * 8.9875d+20
+        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
+             m / abs(q) * const_c**2
 
         ! e.b
         if(npayload>1) particle(ipart)%payload(2) = sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))

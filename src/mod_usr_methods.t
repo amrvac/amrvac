@@ -45,8 +45,9 @@ module mod_usr_methods
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
   ! Particles module related
-  procedure(p_no_args), pointer       :: usr_init_particles   => null()
-  procedure(update_payload), pointer  :: usr_update_payload   => null()
+  procedure(p_no_args), pointer        :: usr_init_particles   => null()
+  procedure(update_payload), pointer   :: usr_update_payload   => null()
+  procedure(create_particles), pointer :: usr_create_particles => null()
 
   abstract interface
 
@@ -265,6 +266,15 @@ module mod_usr_methods
        double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),particle_time
        double precision, intent(out) :: payload(npayload)
      end subroutine update_payload
+
+     subroutine create_particles(n_particles, x, v, q, m, follow)
+       integer, intent(in)           :: n_particles
+       double precision, intent(out) :: x(3, n_particles)
+       double precision, intent(out) :: v(3, n_particles)
+       double precision, intent(out) :: q(n_particles)
+       double precision, intent(out) :: m(n_particles)
+       logical, intent(out)          :: follow(n_particles)
+     end subroutine create_particles
 
   end interface
 
