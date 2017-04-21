@@ -24,6 +24,8 @@ module mod_random
      procedure, non_overridable :: int_4       ! 4-byte random integer
      procedure, non_overridable :: int_8       ! 8-byte random integer
      procedure, non_overridable :: unif_01     ! Uniform (0,1] real
+     procedure, non_overridable :: unif_01_vec ! Uniform (0,1] real vector
+     procedure, non_overridable :: normal      ! One normal(0,1) number
      procedure, non_overridable :: two_normals ! Two normal(0,1) samples
      procedure, non_overridable :: poisson     ! Sample from Poisson-dist.
      procedure, non_overridable :: circle      ! Sample on a circle
@@ -118,6 +120,17 @@ contains
     unif_01 = transfer(x, tmp) - 1.0_dp
   end function unif_01
 
+  !> Fill array with uniform random numbers
+  subroutine unif_01_vec(self, rr)
+    class(rng_t), intent(inout) :: self
+    real(dp), intent(out)       :: rr(:)
+    integer                     :: i
+
+    do i = 1, size(rr)
+      rr(i) = self%unif_01()
+    end do
+  end subroutine unif_01_vec
+
   !> Return two normal random variates with mean 0 and variance 1.
   !> http://en.wikipedia.org/wiki/Marsaglia_polar_method
   function two_normals(self) result(rands)
@@ -132,6 +145,15 @@ contains
     end do
     rands = rands * sqrt(-2 * log(sum_sq) / sum_sq)
   end function two_normals
+
+  !> Single normal random number
+  real(dp) function normal(self)
+    class(rng_t), intent(inout) :: self
+    real(dp)                    :: rands(2)
+
+    rands  = self%two_normals()
+    normal = rands(1)
+  end function normal
 
   !> Return Poisson random variate with rate lambda. Works well for lambda < 30
   !> or so. For lambda >> 1 it can produce wrong results due to roundoff error.
