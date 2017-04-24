@@ -71,19 +71,19 @@ module mod_radiative_cooling
   
   double precision :: t_DM(1:71),       t_MB(1:51),       t_MLcosmol(1:71) &
                     , t_MLwc(1:71),     t_MLsolar1(1:71), t_SPEX(1:110)    &
-                    , t_JCcorona(1:46), t_cl_ism(1:151),  t_cl_solar(1:151)&
+                    , t_JCcorona(1:45), t_cl_ism(1:151),  t_cl_solar(1:151)&
                     , t_DM_2(1:76)
   
   double precision :: l_DM(1:71),       l_MB(1:51),       l_MLcosmol(1:71) &
                     , l_MLwc(1:71),     l_MLsolar1(1:71), l_SPEX(1:110)    &
-                    , l_JCcorona(1:46), l_cl_ism(1:151),  l_cl_solar(1:151)&
+                    , l_JCcorona(1:45), l_cl_ism(1:151),  l_cl_solar(1:151)&
                     , l_DM_2(1:76)
   
   double precision :: nenh_SPEX(1:110)
   
-  data    n_JCcorona / 46 /
+  data    n_JCcorona / 45 /
   
-  data    t_JCcorona / 3.69897, 4.00000, 4.14230, 4.21995, 4.29761, 4.37528, &
+  data    t_JCcorona / 4.00000, 4.14230, 4.21995, 4.29761, 4.37528, &
                        4.45294, 4.53061, 4.60827, 4.68593, 4.76359, &
                        4.79705, 4.83049, 4.86394, 4.89739, 4.93084, &
                        4.96428, 4.99773, 5.03117, 5.06461, 5.17574, &
@@ -93,7 +93,7 @@ module mod_radiative_cooling
                        6.95351, 7.06461, 7.17574, 7.28684, 7.39796, &
                        7.50907, 7.62018, 7.73129, 7.84240, 7.95351  /
   
-  data    l_JCcorona / -300.0, -200.18883, -100.78630, -30.60384, -22.68481, -21.76445, &
+  data    l_JCcorona / -200.18883, -100.78630, -30.60384, -22.68481, -21.76445, &
                        -21.67936, -21.54218, -21.37958, -21.25172, -21.17584, &
                        -21.15783, -21.14491, -21.13527, -21.12837, -21.12485, &
                        -21.12439, -21.12642, -21.12802, -21.12548, -21.08965, &
@@ -843,7 +843,7 @@ module mod_radiative_cooling
       Lcool(1:ncool) = Lcool(1:ncool) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance) 
       tcoolmin       = tcool(1)+smalldouble  ! avoid pointless interpolation
       ! smaller value for lowest temperatures from cooling table and user's choice
-      tlow           = min(tcoolmin,tlow)    
+      if (tlow==bigdouble) tlow=tcoolmin
       tcoolmax       = tcool(ncool)
       
       dLdtcool(1)     = (Lcool(2)-Lcool(1))/(tcool(2)-tcool(1))
@@ -963,32 +963,30 @@ module mod_radiative_cooling
     end subroutine getvar_cooling
 
     subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
-    
+
     ! w[iw]=w[iw]+qdt*S[wCT,x] where S is the source based on wCT within ixO
       use mod_global_parameters
-      
+ 
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       logical, intent(in) :: qsourcesplit
-      
+
       if(qsourcesplit .eqv. rc_split) then 
         call radcool(qdt,ixI^L,ixO^L,wCT,w,x)
         if( Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
-     
+
     end subroutine radiative_cooling_add_source
 
     subroutine radcool(qdt,ixI^L,ixO^L,wCT,w,x)
-    !
     !  selects cooling method
-    !
       use mod_global_parameters
-      
+
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt,   x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
-      
+
       select case(coolmethod)
       case ('explicit1')
         if(mype==0)then
@@ -1013,11 +1011,9 @@ module mod_radiative_cooling
     end subroutine radcool
 
     subroutine floortemperature(qdt,ixI^L,ixO^L,wCT,w,x)
-    !
     !  Force minimum temperature to a fixed temperature
-    !
       use mod_global_parameters
-      
+
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -1026,7 +1022,7 @@ module mod_radiative_cooling
       integer :: ix^D
 
       tfloor = tlow
-      
+
       call phys_get_pthermal(w,x,ixI^L,ixO^L,etherm)  
       
       {do ix^DB = ixO^LIM^DB\}
@@ -1034,16 +1030,14 @@ module mod_radiative_cooling
          etherm(ix^D) = etherm(ix^D)/(rc_gamma-1.d0)
          if( etherm(ix^D) < emin ) w(ix^D,e_)=w(ix^D,e_)-etherm(ix^D)+emin
       {enddo^D&\}
-    
+
     end subroutine floortemperature
 
     subroutine cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x)
-    !
     ! explicit cooling routine that depends on getdt to 
     ! adjust the timestep. Accurate but incredibly slow
-    !
       use mod_global_parameters
-      
+
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
