@@ -1011,13 +1011,10 @@ contains
     end do
 
     if(mhd_energy) then
-       ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
-      if(B0field) then
-         w(ixO^S,e_)=w(ixO^S,e_)+qdt*sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)
-      else
-         w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
-           sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
-      end if
+      ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
+      ! de1/dt= eta J^2 - B1 dot curl(eta J)
+      w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
+         sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
 
       call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
     end if
