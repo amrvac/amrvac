@@ -1,48 +1,30 @@
-!##############################################################################
-! module fff
-! PURPOSE:
-! Program to extrapolate linear force-free fields in 3D Cartesian coordinates,
-! based on exact Green function method (Chiu & Hilton 1977 ApJ 212,873).
-! Usage:
-!2 In the subroutine initglobaldata_usr of amrvacusr.t:
-!  To extrapolate a linear force free field from an analytical magnetogram, 
-!  add lines like:
-!  
-!  logical, save :: firstusrglobaldata=.true.
-! 
-!  if(firstusrglobaldata) then
-!
-!    call init_bc_fff(600,360)
-!    firstusrglobaldata=.false.
-!  endif
-!
-!  600 x 360 is the resolution of the magnetogram. Users can use subroutine
-!  init_bc_fff as an example and make a similar subroutine creating any
-!  analytical magnetograms.
-!  To extrapolate a linear force free field from a observed magnetogram 
-!  prepared in a data file, e.g., 'hmiM720sxxxx.dat' replace 
-!  "call init_bc_fff(xx,xx)" used above by
-!  call init_bc_fff_data('hmiM720sxxxx.dat',Lunit,Bunit)
-!  Lunit and Bunit are dimensionless unit for length and magnetic field.
-!  'hmiM720sxxxx.dat' must be a binary file containing nx1,nx2,xc1,xc2,dxm1,
-!  dxm2, Bz0(nx1,nx2). Integers nx1 and nx2 give the resolution of the 
-!  uniform-grid magentogram. Others are double-precision floats. xc1 and xc2
-!  are coordinates of the central point of the magnetogram. dxm1 and dxm2 
-!  are the cell sizes for each direction, Bz0 is the vertical conponent 
-!  of magetic field on the solar surface from observations.
-!3 In the subroutine initonegrid_usr of amrvacusr.t,
-!  add lines like:
-!
-!  double precision :: Bf(ixG^S,1:ndir), alpha, zshift
-!
-!  alpha=0.d0     ! potential field
-!  !alpha=0.08d0  ! non-potential linear force-free field
-!  zshift=0.05d0  ! lift your box zshift heigher to the bottom magnetogram
-!  call calc_lin_fff(ixG^L,ix^L,Bf,x,alpha,zshift) 
-!
-! Notice that the resolution of input magnetogram must be better than the best
-!  resolution of your AMR grid to have a good behavior in the bottom layer
-! when zshift=0.
+!> module fff
+!> PURPOSE:
+!> Program to extrapolate linear force-free fields in 3D Cartesian coordinates,
+!> based on exact Green function method (Chiu & Hilton 1977 ApJ 212,873).
+!> Usage:
+!>1 In the subroutine usr_set_parameters of mod_usr.t:
+!>  To extrapolate a linear force free field from a observed magnetogram 
+!>  prepared in a data file, e.g., 'hmiM720sxxxx.dat' replace 
+!>  call init_bc_fff_data('hmiM720sxxxx.dat',unit_length,unit_magneticfield)
+!>  'hmiM720sxxxx.dat' must be a binary file containing nx1,nx2,xc1,xc2,dxm1,
+!>  dxm2, Bz0(nx1,nx2). Integers nx1 and nx2 give the resolution of the 
+!>  uniform-grid magentogram. Others are double-precision floats. xc1 and xc2
+!>  are coordinates of the central point of the magnetogram. dxm1 and dxm2 
+!>  are the cell sizes for each direction, Bz0 is the vertical conponent 
+!>  of magetic field on the solar surface from observations.
+!>2 In the subroutine usr_init_one_grid of mod_usr.t,
+!>  add lines like:
+!>
+!>  double precision :: Bf(ixG^S,1:ndir), alpha, zshift
+!>
+!>  alpha=0.d0     ! potential field
+!>  !alpha=0.08d0  ! non-potential linear force-free field
+!>  zshift=0.05d0  ! lift your box zshift heigher to the bottom magnetogram
+!>  call calc_lin_fff(ixG^L,ix^L,Bf,x,alpha,zshift) 
+!>
+!>3 Notice that the resolution of input magnetogram must be better than the best
+!>  resolution of your AMR grid to have a good behavior close to the bottom layer
 module mod_lfff
   implicit none
   
