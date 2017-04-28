@@ -446,6 +446,7 @@ contains
       i = len_trim(restart_from_file) - 7
       read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
       if (io_state == 0 .and. snapshotnext==-1) snapshotnext = snapshotini + 1
+      if(restart_reset_time) snapshotnext=0
     else
       snapshotnext=0
       if (firstprocess) &
@@ -677,7 +678,7 @@ contains
         end select
       end if
       if(any(typeboundary(:,2*idim)=='pole')) then
-        if(any(typeboundary(:,2*idim-1)/='pole')) typeboundary(:,2*idim-1)='pole'
+        if(any(typeboundary(:,2*idim)/='pole')) typeboundary(:,2*idim)='pole'
         if(phys_energy) then
           windex=2
         else

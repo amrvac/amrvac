@@ -1,0 +1,78 @@
+!=====================================================
+! Project : CME/flare system based on TD99 3D
+! Aim     : CMF/flare eruptive process and reconnecting current sheet, 3D setup
+! Results :
+! Update  : 12/02/2016
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=3
+
+!=====================================================
+ &testlist
+ /
+ 
+ &filelist
+        base_filename   = 'titov3d'
+        autoconvert   = T
+        saveprim      = T
+        nwauxio       = 7
+        convert_type='vtuBmpi'
+ /
+ 
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        ditsave_log    = 100
+        dtsave_dat     = 2.0d-1
+ /
+ 
+ &stoplist
+        time_max          = 40.0d0
+        itmax=0
+ /
+ 
+ &methodlist
+        time_integrator   = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+ /
+
+ &boundlist
+        internalboundary = .true.
+        typeboundary_min1 = 8*'special'
+        typeboundary_min2 = 8*'special'
+        typeboundary_min3 = 8*'special'
+        typeboundary_max1 = 8*'special'
+        typeboundary_max2 = 8*'special'
+        typeboundary_max3 = 8*'special'
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 4
+        w_refine_weight(6)=0.2d0
+        w_refine_weight(7)=0.6d0
+        w_refine_weight(8)=0.2d0
+    	refine_threshold = 20*0.2d0
+        block_nx1       = 16
+        block_nx2       = 16
+        block_nx3       = 16
+        domain_nx1       = 32
+        domain_nx2       = 48
+        domain_nx3       = 48
+        xprobmin1     = -4.0d0
+        xprobmax1     = 4.0d0
+        xprobmin2     = -6.0d0
+        xprobmax2     = 6.0d0
+        xprobmin3     = 0.0d0
+        xprobmax3     = 12.0d0
+        iprob         = 1221
+ /
+
+ &paramlist
+        courantpar    = 0.8d0
+ /
+
+ $mhd_list
+        mhd_energy = .true.
+        typedivbfix = 'linde'
+ /
