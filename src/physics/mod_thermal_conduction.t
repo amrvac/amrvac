@@ -462,15 +462,12 @@ contains
     end do
     ! B
     if(B0field) then
-      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir))+block%B0(ix^S,1:ndir,0)
+      mf(ix^S,1:ndir)=w(ix^S,mag(1:ndir))+block%B0(ix^S,1:ndir,0)
     else
-      mf(ix^S,1:ndir)=w(ix^S,mag(1):mag(ndir));
+      mf(ix^S,1:ndir)=w(ix^S,mag(1:ndir));
     end if
     ! B^-2
-    B2inv=0.d0
-    do idir=1,ndir
-      B2inv(ix^S)=B2inv(ix^S)+mf(ix^S,idir)**2
-    end do
+    B2inv(ix^S)=sum(mf(ix^S,:)**2,dim=ndim+1)
     Bnull(ixI^S)=.false.
     where(B2inv(ix^S)/=0.d0)
       B2inv(ix^S)=1.d0/B2inv(ix^S)
