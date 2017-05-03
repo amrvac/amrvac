@@ -4,7 +4,7 @@ subroutine set_B0_grid(igrid)
   integer, intent(in) :: igrid
 
   call set_B0_cell(pw(igrid)%B0(:^D&,:,0),pw(igrid)%x,ixG^LL,ixG^LL)
-  call set_J0_cell(igrid,pw(igrid)%J0,ixG^LL,ixM^LL)
+  call set_J0_cell(igrid,pw(igrid)%J0,ixG^LL,ixM^LL^LADD1)
   call set_B0_face(igrid,pw(igrid)%x,ixG^LL,ixM^LL)
 
 end subroutine set_B0_grid
