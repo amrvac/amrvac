@@ -1,6 +1,7 @@
 module mod_usr
   use mod_mhd
   implicit none
+  double precision :: miu,k,zc
 
 contains
 
@@ -8,16 +9,26 @@ contains
     use mod_global_parameters
     use mod_usr_methods
 
+    usr_set_parameters=> initglobaldata_usr
     usr_init_one_grid => initonegrid_usr
     usr_special_bc    => specialbound_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_set_B0        => specialset_B0
+    usr_set_J0        => specialset_J0
 
     call set_coordinate_system("Cartesian")
     call mhd_activate()
 
   end subroutine usr_init
+
+  subroutine initglobaldata_usr
+    use mod_global_parameters
+    miu=1.d0
+    k=0.5d0
+    zc=0.5d0*(xprobmax3+xprobmin3)
+
+  end subroutine initglobaldata_usr
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
@@ -39,33 +50,16 @@ contains
     w(ixO^S,rho_)=1.d0
     w(ixO^S,p_)=1.d0
     w(ixO^S,mom(:))=zero
-    call get_B(ixI^L,ixO^L,Bloc,x)
-    w(ixO^S,mag(:))=Bloc(ixO^S,:)
+    if(B0field) then
+      w(ixO^S,mag(:))=0.d0
+    else
+      call specialset_B0(ixI^L,ixO^L,x,Bloc)
+      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+    end if
     if(mhd_glm) w(ixO^S,psi_)=0.d0
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
-
-  subroutine get_B(ixI^L,ixO^L,B,x)
-    use mod_global_parameters
-
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision, intent(out) :: B(ixI^S,1:ndir)
-
-    double precision :: miu,park,parf(ixI^S),zz(ixI^S),zmin
-
-    miu=0.95d0
-    park=0.5d0
-    zmin=3.d0
-    zz(ixO^S)=x(ixO^S,3)-zmin
-    parf(ixO^S)=4.d0*miu*miu/(1.d0+miu*miu)**2+park*park*x(ixO^S,1)**2+&
-       (park*zz(ixO^S)+(1.d0-miu*miu)/(1.d0+miu*miu))**2
-    B(ixO^S,1)=2.d0*Busr*(park*zz(ixO^S)+(1.d0-miu*miu)/(1.d0+miu*miu))/parf(ixO^S)
-    B(ixO^S,2)=4.d0*miu*Busr/(1.d0+miu*miu)/parf(ixO^S)
-    B(ixO^S,3)=-2.d0*Busr*park*x(ixO^S,1)/parf(ixO^S)
-
-  end subroutine get_B
 
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
@@ -80,8 +74,12 @@ contains
 
     select case(iB)
     case(1)
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(B0field) then
+        w(ixO^S,mag(:))=0.d0
+      else
+        call specialset_B0(ixI^L,ixO^L,x,Bloc)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
       ixA^L=ixO^L;
       ixAmin1=ixOmax1+1;ixAmax1=ixOmax1+1;
       call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
@@ -94,8 +92,12 @@ contains
       enddo
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(2)
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(B0field) then
+        w(ixO^S,mag(:))=0.d0
+      else
+        call specialset_B0(ixI^L,ixO^L,x,Bloc)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
       ixA^L=ixO^L;
       ixAmin1=ixOmin1-1;ixAmax1=ixOmin1-1;
       call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
@@ -108,8 +110,12 @@ contains
       enddo
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(3)
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(B0field) then
+        w(ixO^S,mag(:))=0.d0
+      else
+        call specialset_B0(ixI^L,ixO^L,x,Bloc)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
       ixA^L=ixO^L;
       ixAmin2=ixOmax2+1;ixAmax2=ixOmax2+1;
       call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
@@ -122,8 +128,12 @@ contains
       enddo
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(B0field) then
+        w(ixO^S,mag(:))=0.d0
+      else
+        call specialset_B0(ixI^L,ixO^L,x,Bloc)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
       ixA^L=ixO^L;
       ixAmin2=ixOmin2-1;ixAmax2=ixOmin2-1;
       call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
@@ -136,8 +146,12 @@ contains
       enddo
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(5)
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(B0field) then
+        w(ixO^S,mag(:))=0.d0
+      else
+        call specialset_B0(ixI^L,ixO^L,x,Bloc)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
       ixA^L=ixO^L;
       ixAmin3=ixOmax3+1;ixAmax3=ixOmax3+1;
       call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
@@ -150,8 +164,12 @@ contains
       enddo
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(6)
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(B0field) then
+        w(ixO^S,mag(:))=0.d0
+      else
+        call specialset_B0(ixI^L,ixO^L,x,Bloc)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
       ixA^L=ixO^L;
       ixAmin3=ixOmin3-1;ixAmax3=ixOmin3-1;
       call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
@@ -194,7 +212,9 @@ contains
     w(ixO^S,nw+3)=tmp(ixO^S)
     ! output current
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    w(ixO^S,nw+4)=current(ixO^S,2)
+    w(ixO^S,nw+4)=current(ixO^S,1)
+    w(ixO^S,nw+5)=current(ixO^S,2)
+    w(ixO^S,nw+6)=current(ixO^S,3)
 
   end subroutine specialvar_output
 
@@ -203,7 +223,7 @@ contains
     use mod_global_parameters
     character(len=*) :: varnames
 
-    varnames='Te beta divb j2'
+    varnames='Te beta divb j1 j2 j3'
 
   end subroutine specialvarnames_output
 
@@ -215,11 +235,32 @@ contains
     double precision, intent(in)  :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: wB0(ixI^S,1:ndir)
 
-    double precision :: Bloc(ixI^S,1:ndir)
+    double precision :: f(ixI^S),zz(ixI^S)
 
-    call get_B(ixI^L,ixO^L,Bloc,x)
-    wB0(ixO^S,:)=wB0(ixO^S,:)+Bloc(ixO^S,:)
+    zz(ixO^S)=k*(x(ixO^S,3)-zc)+(1.d0-miu**2)/(1.d0+miu**2)
+    f(ixO^S)=Busr/(4.d0*miu**2/(1.d0+miu**2)**2+k**2*x(ixO^S,2)**2+zz(ixO^S)**2)
+    wB0(ixO^S,1)=4.d0*miu/(1.d0+miu**2)*f(ixO^S)
+    wB0(ixO^S,2)=2.d0*zz(ixO^S)*f(ixO^S)
+    wB0(ixO^S,3)=-2.d0*k*x(ixO^S,2)*f(ixO^S)
 
   end subroutine specialset_B0
+
+  subroutine specialset_J0(ixI^L,ixO^L,x,wJ0)
+  ! Here one can add a steady (time-independent) background current
+    use mod_global_parameters
+
+    integer, intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in)  :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: wJ0(ixI^S,1:ndir)
+
+    double precision :: f(ixI^S),zz(ixI^S)
+
+    zz(ixO^S)=k*(x(ixO^S,3)-zc)+(1.d0-miu**2)/(1.d0+miu**2)
+    f(ixO^S)=Busr/(4.d0*miu**2/(1.d0+miu**2)**2+k**2*x(ixO^S,2)**2+zz(ixO^S)**2)
+    wJ0(ixO^S,1)=-4.d0*k*f(ixO^S)+4.d0*k/Busr*f(ixO^S)**2*(k**2*x(ixO^S,2)**2+zz(ixO^S)**2)
+    wJ0(ixO^S,2)=8.d0*miu*k/(1.d0+miu**2)/Busr*zz(ixO^S)*f(ixO^S)**2
+    wJ0(ixO^S,3)=-8.d0*miu*k/(1.d0+miu**2)/Busr*x(ixO^S,2)*f(ixO^S)**2
+
+  end subroutine specialset_J0
 
 end module mod_usr

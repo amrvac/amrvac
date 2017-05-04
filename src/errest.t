@@ -63,128 +63,137 @@ end subroutine errest
 !=============================================================================
 subroutine lohner_grid(igrid)
   use mod_usr_methods, only: usr_var_for_errest, usr_refine_threshold
-use mod_forest, only: coarsen, refine
-use mod_global_parameters
+  use mod_forest, only: coarsen, refine
+  use mod_global_parameters
 
-integer, intent(in) :: igrid
+  integer, intent(in) :: igrid
 
-integer                            :: iflag, idims, idims2, level
-integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
-double precision                   :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
-double precision, dimension(ixM^T) :: numerator, denominator, error
-double precision, dimension(ixG^T) :: tmp, tmp1, tmp2
-logical, dimension(ixG^T)          :: refineflag, coarsenflag
+  integer                            :: iflag, idims, idims2, level
+  integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
+  double precision                   :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
+  double precision, dimension(ixM^T) :: numerator, denominator, error
+  double precision, dimension(ixG^T) :: tmp, tmp1, tmp2
+  double precision                   :: w(ixG^T,1:nw)
+  logical, dimension(ixG^T)          :: refineflag, coarsenflag
 
-epsilon = 1.0d-6
-level   = node(plevel_,igrid)
-ix^L=ixM^LL^LADD1;
+  epsilon = 1.0d-6
+  level   = node(plevel_,igrid)
+  ix^L=ixM^LL^LADD1;
 
-error=zero
-do iflag=1,nw+1
+  error=zero
 
-   if(w_refine_weight(iflag)==0) cycle
-   numerator=zero
+  if(B0field) then
+    w(ixG^T,iw_mag(1:ndir))=w(ixG^T,iw_mag(1:ndir))+pw(igrid)%B0(ixG^T,1:ndir,0)
+    if(phys_energy) &
+      w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(pw(igrid)%B0(ixG^T,1:ndir,0)**2,dim=ndim+1)
+  else
+    w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+  end if
 
-   if (iflag > nw) then
-      if (.not. associated(usr_var_for_errest)) then
-         call mpistop("usr_var_for_errest not defined")
-      else
-         call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
-      end if
-   end if
+  do iflag=1,nw+1
 
-   do idims=1,ndim
-      hx^L=ix^L-kr(^D,idims);
-      jx^L=ix^L+kr(^D,idims);
-      if (iflag<=nw) then
-        if (logflag(iflag)) then
-          tmp(ix^S)=dlog10(pw(igrid)%w(jx^S,iflag))-dlog10(pw(igrid)%w(hx^S,iflag))
+     if(w_refine_weight(iflag)==0.d0) cycle
+     numerator=zero
+
+     if (iflag > nw) then
+        if (.not. associated(usr_var_for_errest)) then
+           call mpistop("usr_var_for_errest not defined")
         else
-          tmp(ix^S)=pw(igrid)%w(jx^S,iflag)-pw(igrid)%w(hx^S,iflag)
+           call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
         end if
-      else
-        if (logflag(iflag)) then
-          tmp(ix^S)=dlog10(tmp1(jx^S))-dlog10(tmp1(hx^S))
+     end if
+
+     do idims=1,ndim
+        hx^L=ix^L-kr(^D,idims);
+        jx^L=ix^L+kr(^D,idims);
+        if (iflag<=nw) then
+          if (logflag(iflag)) then
+            tmp(ix^S)=dlog10(w(jx^S,iflag))-dlog10(w(hx^S,iflag))
+          else
+            tmp(ix^S)=w(jx^S,iflag)-w(hx^S,iflag)
+          end if
         else
-          tmp(ix^S)=tmp1(jx^S)-tmp1(hx^S)
+          if (logflag(iflag)) then
+            tmp(ix^S)=dlog10(tmp1(jx^S))-dlog10(tmp1(hx^S))
+          else
+            tmp(ix^S)=tmp1(jx^S)-tmp1(hx^S)
+          end if
         end if
-      end if
-      do idims2=1,ndim
-         h2x^L=ixM^LL-kr(^D,idims2);
-         j2x^L=ixM^LL+kr(^D,idims2);
-         numerator=numerator+(tmp(j2x^S)-tmp(h2x^S))**2.0d0
-      end do
-   end do
-   denominator=zero
-   do idims=1,ndim
-      if (iflag<=nw) then
-         if (logflag(iflag)) then
-          tmp=dabs(dlog10(pw(igrid)%w(ixG^T,iflag)))
-         else
-          tmp=dabs(pw(igrid)%w(ixG^T,iflag))
-         end if
-      else
-         if (logflag(iflag)) then
-          tmp=dabs(dlog10(tmp1(ixG^T)))
-         else
-          tmp=dabs(tmp1(ixG^T))
-         end if
-      end if
-      hx^L=ix^L-kr(^D,idims);
-      jx^L=ix^L+kr(^D,idims);
-      tmp2(ix^S)=tmp(jx^S)+tmp(hx^S)
-      hx^L=ixM^LL-2*kr(^D,idims);
-      jx^L=ixM^LL+2*kr(^D,idims);
-      if (iflag<=nw) then
-        if (logflag(iflag)) then
-          tmp(ixM^T)=dabs(dlog10(pw(igrid)%w(jx^S,iflag))&
-                     -dlog10(pw(igrid)%w(ixM^T,iflag))) &
-                     +dabs(dlog10(pw(igrid)%w(ixM^T,iflag))&
-                     -dlog10(pw(igrid)%w(hx^S,iflag)))
+        do idims2=1,ndim
+           h2x^L=ixM^LL-kr(^D,idims2);
+           j2x^L=ixM^LL+kr(^D,idims2);
+           numerator=numerator+(tmp(j2x^S)-tmp(h2x^S))**2.0d0
+        end do
+     end do
+     denominator=zero
+     do idims=1,ndim
+        if (iflag<=nw) then
+           if (logflag(iflag)) then
+            tmp=dabs(dlog10(w(ixG^T,iflag)))
+           else
+            tmp=dabs(w(ixG^T,iflag))
+           end if
         else
-           tmp(ixM^T)=dabs(pw(igrid)%w(jx^S,iflag)-pw(igrid)%w(ixM^T,iflag)) &
-                      +dabs(pw(igrid)%w(ixM^T,iflag)-pw(igrid)%w(hx^S,iflag))
+           if (logflag(iflag)) then
+            tmp=dabs(dlog10(tmp1(ixG^T)))
+           else
+            tmp=dabs(tmp1(ixG^T))
+           end if
         end if
-      else
-        if (logflag(iflag)) then
-          tmp(ixM^T)=dabs(dlog10(tmp1(jx^S))-dlog10(tmp1(ixM^T))) &
-                    +dabs(dlog10(tmp1(ixM^T))-dlog10(tmp1(hx^S)))
+        hx^L=ix^L-kr(^D,idims);
+        jx^L=ix^L+kr(^D,idims);
+        tmp2(ix^S)=tmp(jx^S)+tmp(hx^S)
+        hx^L=ixM^LL-2*kr(^D,idims);
+        jx^L=ixM^LL+2*kr(^D,idims);
+        if (iflag<=nw) then
+          if (logflag(iflag)) then
+            tmp(ixM^T)=dabs(dlog10(w(jx^S,iflag))&
+                       -dlog10(w(ixM^T,iflag))) &
+                       +dabs(dlog10(w(ixM^T,iflag))&
+                       -dlog10(w(hx^S,iflag)))
+          else
+             tmp(ixM^T)=dabs(w(jx^S,iflag)-w(ixM^T,iflag)) &
+                        +dabs(w(ixM^T,iflag)-w(hx^S,iflag))
+          end if
         else
-           tmp(ixM^T)=dabs(tmp1(jx^S)-tmp1(ixM^T)) &
-                      +dabs(tmp1(ixM^T)-tmp1(hx^S))
+          if (logflag(iflag)) then
+            tmp(ixM^T)=dabs(dlog10(tmp1(jx^S))-dlog10(tmp1(ixM^T))) &
+                      +dabs(dlog10(tmp1(ixM^T))-dlog10(tmp1(hx^S)))
+          else
+             tmp(ixM^T)=dabs(tmp1(jx^S)-tmp1(ixM^T)) &
+                        +dabs(tmp1(ixM^T)-tmp1(hx^S))
+          end if
         end if
-      end if
-      do idims2=1,ndim
-         h2x^L=ixM^LL-kr(^D,idims2);
-         j2x^L=ixM^LL+kr(^D,idims2);
-         denominator=denominator &
-                    +(tmp(ixM^T)+amr_wavefilter(level)*(tmp2(j2x^S)+tmp2(h2x^S)))**2
-      end do
-   end do
-   error=error+w_refine_weight(iflag)*dsqrt(numerator/max(denominator,epsilon))
-end do
-
-refineflag=.false.
-coarsenflag=.false.
-threshold=refine_threshold(level)
-{do ix^DB=ixMlo^DB,ixMhi^DB\}
-
-   if (associated(usr_refine_threshold)) then
-      wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
-      xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
-      call usr_refine_threshold(wtol, xtol, threshold, global_time)
-   end if
-
-   if (error(ix^D) >= threshold) then
-      refineflag(ix^D) = .true.
-   else if (error(ix^D) <= derefine_ratio(level)*threshold) then
-      coarsenflag(ix^D) = .true.
-   end if
-{end do\}
-
-
-if (any(refineflag(ixM^T)).and.level<refine_max_level) refine(igrid,mype)=.true.
-if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
+        do idims2=1,ndim
+           h2x^L=ixM^LL-kr(^D,idims2);
+           j2x^L=ixM^LL+kr(^D,idims2);
+           denominator=denominator &
+                      +(tmp(ixM^T)+amr_wavefilter(level)*(tmp2(j2x^S)+tmp2(h2x^S)))**2
+        end do
+     end do
+     error=error+w_refine_weight(iflag)*dsqrt(numerator/max(denominator,epsilon))
+  end do
+  
+  refineflag=.false.
+  coarsenflag=.false.
+  threshold=refine_threshold(level)
+  {do ix^DB=ixMlo^DB,ixMhi^DB\}
+  
+     if (associated(usr_refine_threshold)) then
+        wtol(1:nw)   = w(ix^D,1:nw)
+        xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
+        call usr_refine_threshold(wtol, xtol, threshold, global_time)
+     end if
+  
+     if (error(ix^D) >= threshold) then
+        refineflag(ix^D) = .true.
+     else if (error(ix^D) <= derefine_ratio(level)*threshold) then
+        coarsenflag(ix^D) = .true.
+     end if
+  {end do\}
+  
+  if (any(refineflag(ixM^T)).and.level<refine_max_level) refine(igrid,mype)=.true.
+  if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
 
 end subroutine lohner_grid
 !=============================================================================
@@ -208,7 +217,7 @@ ix^L=ixM^LL;
 
 error=zero
 do iflag=1,nw+1
-   if(w_refine_weight(iflag)==0) cycle
+   if(w_refine_weight(iflag)==0.d0) cycle
    numerator=zero
    denominator=zero
 

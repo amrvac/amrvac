@@ -768,17 +768,17 @@ contains
       call mpistop("Reset w_refine_weight so the sum is 1.d0")
     end if
 
-    if (mype==0) write(unitterm, '(A30)', advance='no') 'Error estimation: '
+    if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '
 
     select case (refine_criterion)
     case (0)
        if (mype==0) write(unitterm, '(A)') "user defined"
-    case (2)
+    case (1)
        if (mype==0) write(unitterm, '(A)') "relative error"
+    case (2)
+       if (mype==0) write(unitterm, '(A)') "Lohner's original scheme"
     case (3)
        if (mype==0) write(unitterm, '(A)') "Lohner's scheme"
-    case (4)
-       if (mype==0) write(unitterm, '(A)') "Lohner's original scheme"
     case default
        call mpistop("Unknown error estimator, change refine_criterion")
     end select

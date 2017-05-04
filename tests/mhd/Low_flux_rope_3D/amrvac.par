@@ -1,10 +1,10 @@
 !setup.pl -d=3
  &filelist
-        base_filename='lfr_3d'
+        base_filename='lfr_3db'
         saveprim=.true.
-        convert_type='vtuBCCmpi'
+        convert_type='vtuBmpi'
         autoconvert=.true.
-        nwauxio=4
+        nwauxio=6
  /
 
  &savelist
@@ -15,13 +15,13 @@
  /
 
  &stoplist
-        time_max=0.5d0
+        time_max=1.d0
 /
 
  &methodlist
         time_integrator='threestep'
         flux_scheme=20*'hll'
-        limiter= 20*'mp5'
+        limiter= 20*'cada3'
         small_pressure=1.0d-14
         small_density=1.0d-14
  /
@@ -38,21 +38,22 @@
  &meshlist
         refine_criterion=3
         refine_max_level=1
-        w_refine_weight(1)=0.5d0
-        w_refine_weight(2)=0.5d0
+        w_refine_weight(6)=0.4d0
+        w_refine_weight(7)=0.3d0
+        w_refine_weight(8)=0.3d0
         refine_threshold=20*0.2d0
         block_nx1=16
         block_nx2=16
         block_nx3=16
-        domain_nx1=64
-        domain_nx2=64
-        domain_nx3=64
+        domain_nx1=128
+        domain_nx2=128
+        domain_nx3=128
         xprobmin1=-3.d0
         xprobmax1=3.d0
         xprobmin2=-3.d0
         xprobmax2=3.d0
-        xprobmin3=0.d0
-        xprobmax3=6.d0
+        xprobmin3=-3.d0
+        xprobmax3=3.d0
  /
 
  &paramlist
@@ -62,4 +63,5 @@
 
  &mhd_list
         Busr=10.d0
+        B0field=.true.
  /
