@@ -138,7 +138,7 @@ contains
          nxdiffusehllc,typespherical,&
          fixprocess,flathllc, &
          x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
-         small_values_method, small_values_daverage
+         small_values_method, small_values_daverage, solve_pthermal
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L
@@ -323,6 +323,7 @@ contains
     typetvdlf       = 'cmaxmean'
     source_split_usr= .false.
     time_integrator = 'twostep'
+    solve_pthermal = .false.
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))

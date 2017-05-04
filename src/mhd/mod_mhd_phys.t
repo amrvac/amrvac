@@ -262,7 +262,7 @@ contains
 
     ! Initialize viscosity module
     if(mhd_viscosity) then
-      call viscosity_init()
+      call viscosity_init(mhd_gamma)
     end if
 
     ! Initialize gravity module
@@ -354,14 +354,18 @@ contains
     where(w(ixO^S, rho_) < minrho) flag(ixO^S) = rho_
 
     if (mhd_energy) then
-      if (primitive)then
-        where(w(ixO^S, e_) < minp) flag(ixO^S) = e_
-      else
+       if (solve_pthermal) then
+          where(w(ixO^S, p_) < minp) flag(ixO^S) = p_
+       else
+         if (primitive)then
+           where(w(ixO^S, e_) < minp) flag(ixO^S) = e_
+         else
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-        tmp(ixO^S)=(mhd_gamma-1.d0)*(w(ixO^S,e_) - &
-           mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
-        where(tmp(ixO^S) < minp) flag(ixO^S) = e_
-      end if
+           tmp(ixO^S)=(mhd_gamma-1.d0)*(w(ixO^S,e_) - &
+              mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
+           where(tmp(ixO^S) < minp) flag(ixO^S) = e_
+         end if
+       end if  
     end if
   end subroutine mhd_check_w
 
@@ -378,7 +382,7 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
 
-    if (mhd_energy) then
+    if (mhd_energy .and. .not.solve_pthermal) then
        ! Calculate total energy from pressure, kinetic and magnetic energy
        w(ixO^S,e_)=w(ixO^S,p_)/(mhd_gamma-1.d0) + &
             mhd_kin_en(w, ixI^L, ixO^L) + mhd_mag_en(w, ixI^L, ixO^L)
@@ -399,7 +403,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: itr, idir
 
-    if (mhd_energy) then
+    if (mhd_energy .and. .not.solve_pthermal) then
        ! Calculate pressure = (gamma-1) * (e-0.5*(2ek+2eb))
        w(ixO^S, e_) = (mhd_gamma - 1.0d0) * (w(ixO^S, e_) &
             - mhd_kin_en(w, ixI^L, ixO^L) &
@@ -464,7 +468,7 @@ contains
     double precision,intent(inout)  :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    if (mhd_energy) then
+    if (mhd_energy .and. .not.solve_pthermal) then
       w(ixO^S, e_) = (mhd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
             (w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
             - mhd_mag_en(w, ixI^L, ixO^L))
@@ -480,7 +484,7 @@ contains
     double precision :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    if (mhd_energy) then
+    if (mhd_energy .and. .not.solve_pthermal) then
        w(ixO^S, e_) = w(ixO^S, rho_)**(mhd_gamma - 1.0d0) * w(ixO^S, e_) &
             / (mhd_gamma - 1.0d0) + mhd_kin_en(w, ixI^L, ixO^L) + &
             mhd_mag_en(w, ixI^L, ixO^L)
@@ -561,10 +565,12 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(out):: pth(ixI^S)
 
-    if (mhd_energy) then
+    if (mhd_energy .and. .not.solve_pthermal) then
        pth(ixO^S)=(mhd_gamma-1.0d0)*(w(ixO^S,e_)&
           - mhd_kin_en(w,ixI^L,ixO^L)&
           - mhd_mag_en(w,ixI^L,ixO^L))
+    else if (mhd_energy) then
+       pth(ixO^S)=w(ixO^S,p_)
     else
        pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
@@ -656,30 +662,39 @@ contains
 
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
-    if(mhd_energy) then
-      f(ixO^S,e_)=v(ixO^S,idim)*(w(ixO^S,e_)+ptotal(ixO^S))- &
-            w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*v(ixO^S,:),dim=ndim+1)
-
-      if (B0field) then
-        f(ixO^S,e_) = f(ixO^S,e_) &
-             + v(ixO^S,idim) * tmp(ixO^S) &
-             - sum(v(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
-      end if
-
-      if (mhd_Hall) then
-        ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
-        if (mhd_etah>zero) then
-          f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
-                 sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
-               - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
+    if (mhd_energy) then
+       if (solve_pthermal) then
+          f(ixO^S,p_)=v(ixO^S,idim)*w(ixO^S,p_)*mhd_gamma
           if (B0field) then
-            f(ixO^S,e_) = f(ixO^S,e_) &
-                 + vHall(ixO^S,idim) * tmp(ixO^S) &
-                 - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
-          end if
-        end if
-      end if
+             call mpistop("solve pthermal not designed for B0 split")
+          endif
+          if (mhd_Hall) then
+             call mpistop("solve pthermal not designed for Hall MHD")
+          endif
+       else
+          f(ixO^S,e_)=v(ixO^S,idim)*(w(ixO^S,e_)+ptotal(ixO^S))- &
+             w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*v(ixO^S,:),dim=ndim+1)
 
+          if (B0field) then
+             f(ixO^S,e_) = f(ixO^S,e_) &
+                + v(ixO^S,idim) * tmp(ixO^S) &
+                - sum(v(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
+          end if
+
+          if (mhd_Hall) then
+          ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
+             if (mhd_etah>zero) then
+                f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
+                   sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
+                   - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
+                if (B0field) then
+                   f(ixO^S,e_) = f(ixO^S,e_) &
+                      + vHall(ixO^S,idim) * tmp(ixO^S) &
+                      - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
+                end if
+             end if
+          end if
+       end if
     end if
 
     ! compute flux of magnetic field
@@ -767,6 +782,10 @@ contains
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
     end if
 
+    if(mhd_energy .and. solve_pthermal .and. .not.qsourcesplit) then
+      call gas_pressure_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+    endif
+
     if(B0field .and. .not.qsourcesplit) then
       call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
     end if
@@ -802,6 +821,28 @@ contains
     }
   end subroutine mhd_add_source
 
+  subroutine gas_pressure_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt
+    double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    
+    double precision :: tmp(ixI^S),gradgas(ixI^S,1:ndim),gas(ixI^S),v(ixI^S,1:ndir)
+    integer :: idim
+ 
+    call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
+    gas(ixI^S)=wCT(ixI^S,p_)
+    do idim=1,ndim
+       call gradient(gas,ixI^L,ixO^L,idim,tmp)
+       gradgas(ixO^S,idim)=tmp(ixO^S)
+    end do
+    w(ixO^S,p_)=w(ixO^S,p_)+qdt*(mhd_gamma-1.d0)*&
+            sum(v(ixO^S,1:ndim)*gradgas(ixO^S,1:ndim),dim=ndim+1)
+
+  end subroutine gas_pressure_add_source
+
   !> Source terms after split off time-independent magnetic field
   subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
@@ -831,21 +872,25 @@ contains
     end if
 
     if(mhd_energy) then
-      a=0.d0
-      ! for free-free field -(vxB0) dot J0 =0
-      b(ixO^S,:)=wCT(ixO^S,mag(:))
-      ! store full magnetic field B0+B1 in b
-      if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
-      ! store velocity in a
-      do idir=1,ndir
-        a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
-      end do
-      call cross_product(ixI^L,ixO^L,a,b,axb)
-      axb(ixO^S,:)=axb(ixO^S,:)*qdt
-      ! add -(vxB) dot J0 source term in energy equation
-      do idir=7-2*ndir,3
-        w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
-      end do
+       if(.not.solve_pthermal) then
+          a=0.d0
+          ! for free-free field -(vxB0) dot J0 =0
+          b(ixO^S,:)=wCT(ixO^S,mag(:))
+          ! store full magnetic field B0+B1 in b
+          if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
+          ! store velocity in a
+          do idir=1,ndir
+            a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
+          end do
+          call cross_product(ixI^L,ixO^L,a,b,axb)
+          axb(ixO^S,:)=axb(ixO^S,:)*qdt
+          ! add -(vxB) dot J0 source term in energy equation
+          do idir=7-2*ndir,3
+            w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
+          end do
+       else
+          call mpistop("solve pthermal not designed for B0 split")
+       end if
     end if
 
   end subroutine add_source_B0split
@@ -948,7 +993,11 @@ contains
        ! Add sources related to eta*laplB-grad(eta) x J to B and e
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
        if (mhd_energy) then
-          w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
+          if (solve_pthermal) then
+             w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)*(mhd_gamma-1.d0)
+          else
+             w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
+          end if
        end if
 
     end do ! idir
@@ -959,8 +1008,11 @@ contains
        do idir=idirmin,3
           tmp(ixO^S)=tmp(ixO^S)+current(ixO^S,idir)**2
        end do
-       w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
-
+       if(solve_pthermal) then
+          w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)*(mhd_gamma-1.d0)
+       else
+          w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
+       end if
        call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
     end if
   end subroutine add_source_res1
@@ -1013,9 +1065,13 @@ contains
     if(mhd_energy) then
       ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
       ! de1/dt= eta J^2 - B1 dot curl(eta J)
-      w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
-         sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
-
+      if(solve_pthermal) then
+        w(ixO^S,e_)=w(ixO^S,e_)+qdt*(mhd_gamma-1.d0)*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
+          sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
+      else
+        w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
+          sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
+      endif
       call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
     end if
 
@@ -1062,18 +1118,21 @@ contains
     end do
 
     if (mhd_energy) then
-       ! de/dt= +div(B x Ehyper)
-       ixA^L=ixO^L^LADD1;
-       tmpvec2(ixA^S,1:ndir)=zero
-       do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
-          tmpvec2(ixA^S,idir) = tmpvec(ixA^S,idir)&
-               + lvc(idir,jdir,kdir)*wCT(ixA^S,mag(jdir))*ehyper(ixA^S,kdir)
-       end do; end do; end do
-       tmp(ixO^S)=zero
-       call divvector(tmpvec2,ixI^L,ixO^L,tmp)
-       w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
-
-       call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
+      ! de/dt= +div(B x Ehyper)
+      ixA^L=ixO^L^LADD1;
+      tmpvec2(ixA^S,1:ndir)=zero
+      do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+        tmpvec2(ixA^S,idir) = tmpvec(ixA^S,idir)&
+        + lvc(idir,jdir,kdir)*wCT(ixA^S,mag(jdir))*ehyper(ixA^S,kdir)
+      end do; end do; end do
+      tmp(ixO^S)=zero
+      call divvector(tmpvec2,ixI^L,ixO^L,tmp)
+      if (solve_pthermal) then
+        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt*(mhd_gamma-1.d0)
+      else
+        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
+      endif
+      call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
     end if
   end subroutine add_source_hyperres
 
@@ -1109,7 +1168,7 @@ contains
        case("limited")
           call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
-       if (mhd_energy) then
+       if (mhd_energy .and. .not.solve_pthermal) then
        ! e  = e  -qdt (b . grad(Psi))
          w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
        end if
@@ -1163,14 +1222,14 @@ contains
       ! Psi=Psi - qdt (v . grad(Psi))
       w(ixO^S,psi_) = w(ixO^S,psi_)-qdt*v(ixO^S,idim)*gradPsi(ixO^S)
 
-      if (mhd_energy) then
+      if (mhd_energy .and. .not.solve_pthermal) then
       ! e  = e  - qdt (b . grad(Psi))
         w(ixO^S,e_) = w(ixO^S,e_)&
              -qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
       end if
     end do
 
-    if (mhd_energy) then
+    if (mhd_energy .and. .not.solve_pthermal) then
     ! e = e - qdt (v . b) * div b
        w(ixO^S,e_)=w(ixO^S,e_) - qdt * divb(ixO^S) * &
             sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)
@@ -1225,7 +1284,7 @@ contains
     ! calculate velocity
     call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
 
-    if (mhd_energy) then
+    if (mhd_energy .and. .not.solve_pthermal) then
       ! e = e - qdt (v . b) * div b
       w(ixO^S,e_)=w(ixO^S,e_)-&
            qdt*sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)*divb(ixO^S)
@@ -1321,7 +1380,7 @@ contains
 
        w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
 
-       if (mhd_energy .and. typedivbdiff=='all') then
+       if (mhd_energy .and. typedivbdiff=='all' .and. .not.solve_pthermal) then
          ! e += B_idim*eta*grad_idim(divb)
          w(ixp^S,e_)=w(ixp^S,e_)+wCT(ixp^S,mag(idim))*graddivb(ixp^S)
        end if

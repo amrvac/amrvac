@@ -73,6 +73,10 @@ pw(igrid)%wb=>pw(igrid)%w
 ! block pointer to current block
 block=>pw(igrid)
 
+if(phys_energy .and. solve_pthermal) then
+  block%w_is_primitive=.true.
+endif
+
 ! wio for visualization data
 allocate(pw(igrid)%wio(ixG^T,1:nw+nwauxio))
 pw(igrid)%wio=0.d0
