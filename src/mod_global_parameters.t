@@ -545,7 +545,7 @@ module mod_global_parameters
   logical :: phys_energy=.true.
 
   !> Solve polytropic process instead of solving total energy
-  logical :: solve_pthermal=.false.
+  logical :: solve_internal_e=.false.
 
   !> Use particles module or not
   logical :: use_particles=.false.

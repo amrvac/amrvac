@@ -180,7 +180,7 @@ contains
     end if
 
     ! Initialize viscosity module
-    if (hd_viscosity) call viscosity_init(hd_gamma)
+    if (hd_viscosity) call viscosity_init()
 
     ! Initialize gravity module
     if (hd_gravity) call gravity_init()

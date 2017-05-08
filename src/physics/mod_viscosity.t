@@ -12,9 +12,6 @@ module mod_viscosity
   !> Viscosity coefficient
   double precision, public :: vc_mu = 1.d0
 
-  !> The adiabatic index
-  double precision, private, protected :: vc_gamma
-
   !> fourth order
   logical :: vc_4th_order = .false.
 
@@ -48,12 +45,9 @@ contains
   end subroutine vc_params_read
 
   !> Initialize the module
-  subroutine viscosity_init(phys_gamma)
+  subroutine viscosity_init()
     use mod_global_parameters
     integer :: nwx,idir
-    double precision, intent(in) :: phys_gamma
-
-    vc_gamma=phys_gamma
 
     call vc_params_read(par_files)
 
@@ -164,11 +158,7 @@ contains
              tmp(ix^S)=tmp(ix^S)+v(ix^S,idir)*lambda(ix^S,idir,idim)
           end do
           call gradient(tmp,ixI^L,ixO^L,idim,tmp2)
-          if (solve_pthermal) then
-            w(ixO^S,e_)=w(ixO^S,e_)+tmp2(ixO^S)*(vc_gamma-1.d0)
-          else
-            w(ixO^S,e_)=w(ixO^S,e_)+tmp2(ixO^S)
-          endif
+          w(ixO^S,e_)=w(ixO^S,e_)+tmp2(ixO^S)
         enddo
       end if
     end if

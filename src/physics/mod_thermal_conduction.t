@@ -412,7 +412,11 @@ contains
          sum(w(ixI^S,mag(:))**2,dim=ndim+1))
 
     ! tmp1 store internal energy
-    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+    if(solve_internal_e) then
+      tmp1(ixI^S)=w(ixI^S,e_)
+    else
+      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+    end if
 
     ! Clip off negative pressure if small_pressure is set
     if(strictsmall) then
@@ -678,28 +682,30 @@ contains
     
     ! store old kinetic energy
     tmp2(ixI^S)=half*sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-    ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-    tmp(ixI^S)=(tc_gamma-one)*(w(ixI^S,e_)-tmp2(ixI^S))
+    ! store old internal energy
+    if(solve_internal_e) then
+      tmp1(ixI^S)=w(ixI^S,e_)
+    else
+      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+    end if
     ! Clip off negative pressure if small_pressure is set
     if(strictsmall) then
-      if(any(tmp(ixI^S)<minp)) then
-        lowindex=minloc(tmp(ixI^S))
-        write(*,*)'low pressure = ',minval(tmp(ixI^S)),' at x=',&
+      if(any(tmp1(ixI^S)<minp)) then
+        lowindex=minloc(tmp1(ixI^S))
+        write(*,*)'low internal energy= ',minval(tmp1(ixI^S)),' at x=',&
         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',global_time
         call mpistop("=== strictsmall in heatconduct: low pressure ===")
       end if
     else
        {do ix^DB=ixImin^DB,ixImax^DB\}
-         if(tmp(ix^D)<minp) then
-          tmp(ix^D)=minp
+         if(tmp1(ix^D)<minp) then
+          tmp1(ix^D)=minp
          end if
        {end do\}
     end if
-    ! store old internal energy
-    tmp1(ixI^S)=tmp(ixI^S)/(tc_gamma-one)
-    
+
     ! compute temperature before source addition
-    Te(ixI^S)=tmp(ixI^S)/w(ixI^S,rho_)
+    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(tc_gamma-one)
     if(small_temperature>0.d0) then
       if(strictsmall) then
          if(any(Te(ixI^S)<small_temperature)) then

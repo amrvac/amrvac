@@ -9,8 +9,8 @@ module mod_physicaldata
       integer :: iwpos=0
       !> location of w0-array, 0: cell center, ^D : cell interface in dimension ^D
       integer :: iw0=0
-      !> Is w in primitive state or not
-      logical :: w_is_primitive=.false.
+      !> Is e is internal energy or total energy
+      logical :: e_is_internal=.false.
       !> Variables, normally center
       double precision, dimension(:^D&,:), allocatable :: w
       !> Variables, normally center, temperary state for multi-step scheme
@@ -62,7 +62,7 @@ module mod_physicaldata
       !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
       integer :: iwpos=0
       !> Is w in primitive state or not
-      logical :: w_is_primitive=.false.
+      logical :: e_is_internal=.false.
       !> Variables, normally center
       double precision, dimension(:^DE&,:), allocatable :: w
       !> Variables, normally center, one level coarser representative
@@ -94,7 +94,7 @@ module mod_physicaldata
       !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
       integer :: iwpos=0
       !> Is w in primitive state or not
-      logical :: w_is_primitive=.false.
+      logical :: e_is_internal=.false.
       !> Variables, normally center
       double precision, dimension(:), allocatable :: w
       !> Variables, normally center, one level coarser representative

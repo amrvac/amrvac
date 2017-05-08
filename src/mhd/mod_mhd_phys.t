@@ -262,7 +262,7 @@ contains
 
     ! Initialize viscosity module
     if(mhd_viscosity) then
-      call viscosity_init(mhd_gamma)
+      call viscosity_init()
     end if
 
     ! Initialize gravity module
@@ -354,8 +354,8 @@ contains
     where(w(ixO^S, rho_) < minrho) flag(ixO^S) = rho_
 
     if (mhd_energy) then
-       if (solve_pthermal) then
-          where(w(ixO^S, p_) < minp) flag(ixO^S) = p_
+       if (block%e_is_internal) then
+          where(w(ixO^S, e_) < minp/(mhd_gamma-1.d0)) flag(ixO^S) = e_
        else
          if (primitive)then
            where(w(ixO^S, e_) < minp) flag(ixO^S) = e_
@@ -382,9 +382,10 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
 
-    if (mhd_energy .and. .not.solve_pthermal) then
+    if (mhd_energy) then
        ! Calculate total energy from pressure, kinetic and magnetic energy
-       w(ixO^S,e_)=w(ixO^S,p_)/(mhd_gamma-1.d0) + &
+       w(ixO^S,e_)=w(ixO^S,p_)/(mhd_gamma-1.d0)
+      if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + &
             mhd_kin_en(w, ixI^L, ixO^L) + mhd_mag_en(w, ixI^L, ixO^L)
     end if
 
@@ -403,11 +404,15 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: itr, idir
 
-    if (mhd_energy .and. .not.solve_pthermal) then
+    if (mhd_energy) then
+      if(block%e_is_internal) then
+        w(ixO^S, p_) = (mhd_gamma - 1.0d0)*w(ixO^S, e_)
+      else
        ! Calculate pressure = (gamma-1) * (e-0.5*(2ek+2eb))
-       w(ixO^S, e_) = (mhd_gamma - 1.0d0) * (w(ixO^S, e_) &
-            - mhd_kin_en(w, ixI^L, ixO^L) &
-            - mhd_mag_en(w, ixI^L, ixO^L))
+        w(ixO^S, p_) = (mhd_gamma - 1.0d0)*(w(ixO^S, e_) &
+              - mhd_kin_en(w, ixI^L, ixO^L) &
+              - mhd_mag_en(w, ixI^L, ixO^L))
+      end if
     end if
 
     ! Convert momentum to velocity
@@ -468,10 +473,12 @@ contains
     double precision,intent(inout)  :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    if (mhd_energy .and. .not.solve_pthermal) then
+    if (mhd_energy) then
+      if(.not.block%e_is_internal) &
+        w(ixO^S, e_) = w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
+              - mhd_mag_en(w, ixI^L, ixO^L)
       w(ixO^S, e_) = (mhd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
-            (w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
-            - mhd_mag_en(w, ixI^L, ixO^L))
+            w(ixO^S, e_)
     else
       call mpistop("e_to_rhos can not be used without energy equation!")
     end if
@@ -484,9 +491,11 @@ contains
     double precision :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    if (mhd_energy .and. .not.solve_pthermal) then
+    if (mhd_energy) then
        w(ixO^S, e_) = w(ixO^S, rho_)**(mhd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (mhd_gamma - 1.0d0) + mhd_kin_en(w, ixI^L, ixO^L) + &
+            / (mhd_gamma - 1.0d0)
+       if(.not.block%e_is_internal) &
+         w(ixO^S, e_) =w(ixO^S, e_) + mhd_kin_en(w, ixI^L, ixO^L) + &
             mhd_mag_en(w, ixI^L, ixO^L)
     else
        call mpistop("rhos_to_e can not be used without energy equation!")
@@ -565,14 +574,16 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(out):: pth(ixI^S)
 
-    if (mhd_energy .and. .not.solve_pthermal) then
-       pth(ixO^S)=(mhd_gamma-1.0d0)*(w(ixO^S,e_)&
-          - mhd_kin_en(w,ixI^L,ixO^L)&
-          - mhd_mag_en(w,ixI^L,ixO^L))
-    else if (mhd_energy) then
-       pth(ixO^S)=w(ixO^S,p_)
+    if(mhd_energy) then
+      if(block%e_is_internal) then
+        pth(ixO^S)=(mhd_gamma-1.0d0)*w(ixO^S,e_)
+      else
+        pth(ixO^S)=(mhd_gamma-1.0d0)*(w(ixO^S,e_)&
+           - mhd_kin_en(w,ixI^L,ixO^L)&
+           - mhd_mag_en(w,ixI^L,ixO^L))
+      end if
     else
-       pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
+      pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
   end subroutine mhd_get_pthermal
 
@@ -585,11 +596,11 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: csound2(ixI^S)
 
-    if (mhd_energy) then
-       call mhd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
-       csound2(ixO^S)=mhd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
+    if(mhd_energy) then
+      call mhd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
+      csound2(ixO^S)=mhd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
     else
-       csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**(mhd_gamma-one)
+      csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**(mhd_gamma-one)
     end if
   end subroutine mhd_get_csound2
 
@@ -601,9 +612,6 @@ contains
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: p(ixI^S)
-
-    integer, dimension(ixI^S)       :: patchierror
-    integer, dimension(ndim)       :: lowpindex
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,p)
 
@@ -663,11 +671,8 @@ contains
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if (mhd_energy) then
-       if (solve_pthermal) then
-          f(ixO^S,p_)=v(ixO^S,idim)*w(ixO^S,p_)*mhd_gamma
-          if (B0field) then
-             call mpistop("solve pthermal not designed for B0 split")
-          endif
+       if (block%e_is_internal) then
+          f(ixO^S,e_)=v(ixO^S,idim)*w(ixO^S,e_)
           if (mhd_Hall) then
              call mpistop("solve pthermal not designed for Hall MHD")
           endif
@@ -768,6 +773,16 @@ contains
        if (mhd_eta_hyper>0.d0)then
           call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
        end if
+
+       ! Source for solving internal energy
+       if(mhd_energy .and. block%e_is_internal) then
+         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+       endif
+
+       ! Source for B0 splitting
+       if(B0field) then
+         call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
+       end if
     end if
 
     if(mhd_radiative_cooling) then
@@ -780,14 +795,6 @@ contains
 
     if(mhd_gravity) then
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
-    end if
-
-    if(mhd_energy .and. solve_pthermal .and. .not.qsourcesplit) then
-      call gas_pressure_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
-    endif
-
-    if(B0field .and. .not.qsourcesplit) then
-      call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
     end if
 
     {^NOONED
@@ -821,7 +828,7 @@ contains
     }
   end subroutine mhd_add_source
 
-  subroutine gas_pressure_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
@@ -829,19 +836,14 @@ contains
     double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     
-    double precision :: tmp(ixI^S),gradgas(ixI^S,1:ndim),gas(ixI^S),v(ixI^S,1:ndir)
-    integer :: idim
+    double precision :: pth(ixI^S),v(ixI^S,1:ndir),divv(ixI^S)
  
-    call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
-    gas(ixI^S)=wCT(ixI^S,p_)
-    do idim=1,ndim
-       call gradient(gas,ixI^L,ixO^L,idim,tmp)
-       gradgas(ixO^S,idim)=tmp(ixO^S)
-    end do
-    w(ixO^S,p_)=w(ixO^S,p_)+qdt*(mhd_gamma-1.d0)*&
-            sum(v(ixO^S,1:ndim)*gradgas(ixO^S,1:ndim),dim=ndim+1)
+    call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
+    call divvector(v,ixI^L,ixO^L,divv)
+    call mhd_get_pthermal(wCT,x,ixI^L,ixO^L,pth)
+    w(ixO^S,e_)=w(ixO^S,e_)-qdt*pth(ixO^S)*divv(ixO^S)
 
-  end subroutine gas_pressure_add_source
+  end subroutine internal_energy_add_source
 
   !> Source terms after split off time-independent magnetic field
   subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -872,24 +874,22 @@ contains
     end if
 
     if(mhd_energy) then
-       if(.not.solve_pthermal) then
-          a=0.d0
-          ! for free-free field -(vxB0) dot J0 =0
-          b(ixO^S,:)=wCT(ixO^S,mag(:))
-          ! store full magnetic field B0+B1 in b
-          if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
-          ! store velocity in a
-          do idir=1,ndir
-            a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
-          end do
-          call cross_product(ixI^L,ixO^L,a,b,axb)
-          axb(ixO^S,:)=axb(ixO^S,:)*qdt
-          ! add -(vxB) dot J0 source term in energy equation
-          do idir=7-2*ndir,3
-            w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
-          end do
-       else
-          call mpistop("solve pthermal not designed for B0 split")
+       if(.not.block%e_is_internal) then
+         a=0.d0
+         ! for free-free field -(vxB0) dot J0 =0
+         b(ixO^S,:)=wCT(ixO^S,mag(:))
+         ! store full magnetic field B0+B1 in b
+         if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
+         ! store velocity in a
+         do idir=1,ndir
+           a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
+         end do
+         call cross_product(ixI^L,ixO^L,a,b,axb)
+         axb(ixO^S,:)=axb(ixO^S,:)*qdt
+         ! add -(vxB) dot J0 source term in energy equation
+         do idir=7-2*ndir,3
+           w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
+         end do
        end if
     end if
 
@@ -993,11 +993,7 @@ contains
        ! Add sources related to eta*laplB-grad(eta) x J to B and e
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
        if (mhd_energy) then
-          if (solve_pthermal) then
-             w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)*(mhd_gamma-1.d0)
-          else
-             w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
-          end if
+          w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
        end if
 
     end do ! idir
@@ -1008,13 +1004,10 @@ contains
        do idir=idirmin,3
           tmp(ixO^S)=tmp(ixO^S)+current(ixO^S,idir)**2
        end do
-       if(solve_pthermal) then
-          w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)*(mhd_gamma-1.d0)
-       else
-          w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
-       end if
+       w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
        call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
     end if
+
   end subroutine add_source_res1
 
   !> Add resistive source to w within ixO
@@ -1065,13 +1058,8 @@ contains
     if(mhd_energy) then
       ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
       ! de1/dt= eta J^2 - B1 dot curl(eta J)
-      if(solve_pthermal) then
-        w(ixO^S,e_)=w(ixO^S,e_)+qdt*(mhd_gamma-1.d0)*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
-          sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
-      else
-        w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
-          sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
-      endif
+      w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
+        sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
       call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
     end if
 
@@ -1127,11 +1115,7 @@ contains
       end do; end do; end do
       tmp(ixO^S)=zero
       call divvector(tmpvec2,ixI^L,ixO^L,tmp)
-      if (solve_pthermal) then
-        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt*(mhd_gamma-1.d0)
-      else
-        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
-      endif
+      w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
       call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
     end if
   end subroutine add_source_hyperres
@@ -1168,7 +1152,7 @@ contains
        case("limited")
           call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
-       if (mhd_energy .and. .not.solve_pthermal) then
+       if (mhd_energy .and. .not.block%e_is_internal) then
        ! e  = e  -qdt (b . grad(Psi))
          w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
        end if
@@ -1222,14 +1206,14 @@ contains
       ! Psi=Psi - qdt (v . grad(Psi))
       w(ixO^S,psi_) = w(ixO^S,psi_)-qdt*v(ixO^S,idim)*gradPsi(ixO^S)
 
-      if (mhd_energy .and. .not.solve_pthermal) then
+      if (mhd_energy .and. .not.block%e_is_internal) then
       ! e  = e  - qdt (b . grad(Psi))
         w(ixO^S,e_) = w(ixO^S,e_)&
              -qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
       end if
     end do
 
-    if (mhd_energy .and. .not.solve_pthermal) then
+    if (mhd_energy .and. .not.block%e_is_internal) then
     ! e = e - qdt (v . b) * div b
        w(ixO^S,e_)=w(ixO^S,e_) - qdt * divb(ixO^S) * &
             sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)
@@ -1284,7 +1268,7 @@ contains
     ! calculate velocity
     call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
 
-    if (mhd_energy .and. .not.solve_pthermal) then
+    if (mhd_energy .and. .not.block%e_is_internal) then
       ! e = e - qdt (v . b) * div b
       w(ixO^S,e_)=w(ixO^S,e_)-&
            qdt*sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)*divb(ixO^S)
@@ -1380,7 +1364,7 @@ contains
 
        w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
 
-       if (mhd_energy .and. typedivbdiff=='all' .and. .not.solve_pthermal) then
+       if (mhd_energy .and. typedivbdiff=='all' .and. .not.block%e_is_internal) then
          ! e += B_idim*eta*grad_idim(divb)
          w(ixp^S,e_)=w(ixp^S,e_)+wCT(ixp^S,mag(idim))*graddivb(ixp^S)
        end if
@@ -1803,7 +1787,7 @@ contains
     select case(iB)
      case(1)
        ! 2nd order CD for divB=0 to set normal B component better
-       call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1+1
@@ -1869,9 +1853,9 @@ contains
          end do
        end if
        }
-       call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(2)
-       call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1-1
        ixFmax1=ixOmax1-1
@@ -1937,9 +1921,9 @@ contains
          end do
        end if
        }
-       call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(3)
-       call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
@@ -2005,9 +1989,9 @@ contains
          end do
        end if
        }
-       call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(4)
-       call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
@@ -2073,10 +2057,10 @@ contains
          end do
        end if
        }
-       call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      {^IFTHREED
      case(5)
-       call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
@@ -2116,9 +2100,9 @@ contains
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if
-       call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(6)
-       call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
@@ -2158,7 +2142,7 @@ contains
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if
-       call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      }
      case default
        call mpistop("Special boundary is not defined for this region")

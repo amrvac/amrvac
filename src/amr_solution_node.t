@@ -73,8 +73,8 @@ pw(igrid)%wb=>pw(igrid)%w
 ! block pointer to current block
 block=>pw(igrid)
 
-if(phys_energy .and. solve_pthermal) then
-  block%w_is_primitive=.true.
+if(phys_energy .and. solve_internal_e) then
+  block%e_is_internal=.true.
 endif
 
 ! wio for visualization data
