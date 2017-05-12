@@ -497,29 +497,40 @@ endif
 {^IFTHREED
 select case (dir)
 case (1)
-   do ix=ixMlo1,ixMhi1
+  if(slab) then
+    do ix=ixMlo1,ixMhi1
       pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) = &
            pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) &
            + w(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) * dx1
-   end do
-   pw_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
-        pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
+    end do
+  else
+    do iw=1,nw+nwauxio
+      do ix=ixMlo1,ixMhi1
+        pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) = &
+             pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) &
+             + w(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) * &
+             pw(igrid)%dx(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1)
+      end do
+    end do
+  end if
+  pw_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
+       pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
 case (2)
-   do ix=ixMlo2,ixMhi2
-      pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
-           pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
-           + w(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,1:nw+nwauxio) * dx2
-   end do
-   pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
-        pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
+  do ix=ixMlo2,ixMhi2
+     pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
+          pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
+          + w(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,1:nw+nwauxio) * dx2
+  end do
+  pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
+       pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
 case (3)
-   do ix=ixMlo3,ixMhi3
-      pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
-           pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
-           + w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,1:nw+nwauxio) * dx3
-   end do
-      pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
-           pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
+  do ix=ixMlo3,ixMhi3
+     pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
+          pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
+          + w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,1:nw+nwauxio) * dx3
+  end do
+     pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
+          pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
 case default
    print*, 'subnode, dir: ', dir
    call mpistop("slice direction not clear in collapse_subnode")
@@ -528,28 +539,46 @@ end select
 {^IFTWOD
 select case (dir)
 case (1)
-   do ix=ixMlo1,ixMhi1
+  if(slab) then
+    do ix=ixMlo1,ixMhi1
       pw_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) = &
            pw_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) &
            + w(ix,ixMlo2:ixMhi2,1:nw+nwauxio) * dx1
-   end do
-   pw_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
-        pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
+    end do
+  else
+    do iw=1,nw+nwauxio
+      do ix=ixMlo1,ixMhi1
+        pw_sub(jgrid)%w(ixMlo2:ixMhi2,iw) = &
+             pw_sub(jgrid)%w(ixMlo2:ixMhi2,iw) &
+             + w(ix,ixMlo2:ixMhi2,iw) * pw(igrid)%dx(ix,ixMlo2:ixMhi2,1)
+      end do
+    end do
+  end if
+  pw_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
+       pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
 case (2)
-   do ix=ixMlo2,ixMhi2
-      pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
-           pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
-           + w(ixMlo1:ixMhi1,ix,1:nw+nwauxio) * dx2
-   end do
-   pw_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
-        pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
+  do ix=ixMlo2,ixMhi2
+     pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
+          pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
+          + w(ixMlo1:ixMhi1,ix,1:nw+nwauxio) * dx2
+  end do
+  pw_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
+       pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
 case default
    call mpistop("slice direction not clear in collapse_subnode")
 end select
 }
 {^IFONED   
-do ix=ixMlo1,ixMhi1
-   pw_sub(jgrid)%w(1:nw+nwauxio) = pw_sub(jgrid)%w(1:nw+nwauxio) + w(ix,1:nw+nwauxio) * dx1
+if(slab) then
+  do ix=ixMlo1,ixMhi1
+     pw_sub(jgrid)%w(1:nw+nwauxio) = pw_sub(jgrid)%w(1:nw+nwauxio) + w(ix,1:nw+nwauxio) * dx1
+  end do
+else
+  do iw=1,nw+nwauxio
+    do ix=ixMlo1,ixMhi1
+      pw_sub(jgrid)%w(iw) = pw_sub(jgrid)%w(iw) + w(ix,iw) * pw(igrid)%dx(ix,1)
+    end do
+  end do
 end do
 pw_sub(jgrid)%x(1:ndim) = pw(igrid)%x(ixMlo1,1:ndim)
 }
