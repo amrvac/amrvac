@@ -223,11 +223,21 @@ module mod_particles
       do idir = 1, ndir
         vp(idir) = idir
       end do
-      phys_init_particles => advect_init_particles
-      phys_fill_gridvars => advect_fill_gridvars
-      phys_integrate_particles => advect_integrate_particles
-      phys_set_particles_dt => advect_set_particles_dt
-      if(.not. associated(usr_update_payload)) usr_update_payload => advect_update_payload
+
+      if (.not. associated(phys_init_particles)) &
+           phys_init_particles => advect_init_particles
+
+      if (.not. associated(phys_fill_gridvars)) &
+           phys_fill_gridvars => advect_fill_gridvars
+
+      if (.not. associated(phys_integrate_particles)) &
+           phys_integrate_particles => advect_integrate_particles
+
+      if (.not. associated(phys_set_particles_dt)) &
+           phys_set_particles_dt => advect_set_particles_dt
+
+      if (.not. associated(usr_update_payload)) &
+           usr_update_payload => advect_update_payload
     case('Lorentz')
       if(physics_type/='mhd') call mpistop("Lorentz particles need magnetic field!")
       if(ndir/=3) call mpistop("Lorentz particles need ndir=3!")
@@ -244,10 +254,18 @@ module mod_particles
         nwx = nwx + 1
         ep(idir) = nwx
       end do
-      phys_init_particles => Lorentz_init_particles
-      phys_fill_gridvars => Lorentz_fill_gridvars
-      phys_integrate_particles => Lorentz_integrate_particles
-      phys_set_particles_dt => Lorentz_set_particles_dt
+
+      if (.not. associated(phys_init_particles)) &
+           phys_init_particles => Lorentz_init_particles
+
+      if (.not. associated(phys_fill_gridvars)) &
+           phys_fill_gridvars => Lorentz_fill_gridvars
+
+      if (.not. associated(phys_integrate_particles)) &
+           phys_integrate_particles => Lorentz_integrate_particles
+
+      if (.not. associated(phys_set_particles_dt)) &
+           phys_set_particles_dt => Lorentz_set_particles_dt
     case('gca')
       if(physics_type/='mhd') call mpistop("GCA particles need magnetic field!")
       if(ndir/=3) call mpistop("GCA particles need ndir=3!")
@@ -289,10 +307,17 @@ module mod_particles
         ue_dot_grad_ue(idir) = nwx
       end do
       ngridvars=nwx
-      phys_init_particles => gca_init_particles
-      phys_fill_gridvars => gca_fill_gridvars
-      phys_integrate_particles => gca_integrate_particles
-      phys_set_particles_dt => gca_set_particles_dt
+      if (.not. associated(phys_init_particles)) &
+           phys_init_particles => gca_init_particles
+
+      if (.not. associated(phys_fill_gridvars)) &
+           phys_fill_gridvars => gca_fill_gridvars
+
+      if (.not. associated(phys_integrate_particles)) &
+           phys_integrate_particles => gca_integrate_particles
+
+      if (.not. associated(phys_set_particles_dt)) &
+           phys_set_particles_dt => gca_set_particles_dt
     case default
       call mpistop("unknown physics_type_particles (advect,gca,Lorentz)")
     end select
