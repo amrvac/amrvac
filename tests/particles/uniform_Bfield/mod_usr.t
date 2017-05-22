@@ -1,5 +1,7 @@
 module mod_usr
   use mod_mhd
+  use mod_particles
+
   implicit none
 
 contains
@@ -14,6 +16,7 @@ contains
 
     usr_init_one_grid => initonegrid_usr
     usr_create_particles => generate_particles
+    phys_fill_gridvars => custom_field
 
     call set_coordinate_system("Cartesian_3D")
 
@@ -70,11 +73,48 @@ contains
       ! call get_uniform_pos(x(:, n))
       ! call get_maxwellian_velocity(v(:, n), 1.0d0/const_c)
       x(:, n) = 0.5d0
-      v(:, n) = [const_e/const_me, 0.0d0, 0.0d0] / const_c
+
+      ! Velocities are assumed to be normalized by the speed of light for the
+      ! Lorentz mover
+      v(:, n) = [1.0d2, 0.0d0, 0.0d0] / const_c
       follow(n) = .true.
-      q(n)      = 1.0d0
-      m(n)      = 1.0d0
+
+      ! A unit charge converted to CGS units
+      q(n)      = const_c * 0.1d0
+      m(n)      = 1d3
     end do
   end subroutine generate_particles
+
+  subroutine custom_field()
+    use mod_global_parameters
+
+    integer                                   :: igrid, iigrid, idir
+    double precision, dimension(ixG^T,1:ndir) :: beta
+    double precision, dimension(ixG^T,1:nw)   :: w,wold
+    integer                                   :: idirmin
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
+
+       ! fill with magnetic field (in CGS units, note that mu0 is scaled to 1)
+       gridvars(igrid)%w(ixG^T,bp(1)) = 0.0d0 * 1.0d4
+       gridvars(igrid)%w(ixG^T,bp(2)) = 0.0d0 * 1.0d4
+       gridvars(igrid)%w(ixG^T,bp(3)) = 1.0d0 * 1.0d4
+
+       gridvars(igrid)%w(ixG^T,ep(1)) = 0.0d0 * 1.0d6/const_c
+       gridvars(igrid)%w(ixG^T,ep(2)) = 0.0d0 * 1.0d6/const_c
+       gridvars(igrid)%w(ixG^T,ep(3)) = 0.0d0 * 1.0d6/const_c
+
+       ! The code interpolates between two states in time (even though we don't
+       ! need it here)
+       if (time_advance) then
+         gridvars(igrid)%wold(ixG^T,bp(:)) = &
+            gridvars(igrid)%w(ixG^T,bp(:))
+         gridvars(igrid)%wold(ixG^T,ep(:)) = &
+            gridvars(igrid)%w(ixG^T,ep(:))
+       end if
+    end do
+
+  end subroutine custom_field
 
 end module mod_usr
