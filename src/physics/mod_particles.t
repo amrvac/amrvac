@@ -2920,20 +2920,20 @@ module mod_particles
 
     ! create the formatstring:
     line = ''
-    write(strdata,"(es13.6, a)")roundoff(myparticle%t,minvalue), ','
+    write(strdata,"(es14.6, a)")roundoff(myparticle%t,minvalue), ','
     line = trim(line)//trim(strdata)
-    write(strdata,"(es13.6, a)")roundoff(myparticle%dt,minvalue), ','
+    write(strdata,"(es14.6, a)")roundoff(myparticle%dt,minvalue), ','
     line = trim(line)//trim(strdata)
     do icomp = 1, 3
-       write(strdata,"(es13.6, a)")roundoff(x(icomp),minvalue), ','
+       write(strdata,"(es14.6, a)")roundoff(x(icomp),minvalue), ','
        line = trim(line)//trim(strdata)
     end do
     do icomp = 1, 3
-       write(strdata,"(es13.6, a)")roundoff(myparticle%u(icomp),minvalue), ','
+       write(strdata,"(es14.6, a)")roundoff(myparticle%u(icomp),minvalue), ','
        line = trim(line)//trim(strdata)
     end do
     do icomp = 1, npayload
-       write(strdata,"(es13.6, a)")roundoff(payload(icomp),minvalue), ','
+       write(strdata,"(es14.6, a)")roundoff(payload(icomp),minvalue), ','
        line = trim(line)//trim(strdata)
     end do
     write(strdata,"(i8.7, a)")ipe, ','
