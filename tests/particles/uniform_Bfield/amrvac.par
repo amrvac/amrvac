@@ -46,12 +46,12 @@
         domain_nx1    = 16
         domain_nx2    = 16
         domain_nx3    = 16
-        xprobmin1     = -5.0d0
-        xprobmax1     = 5.0d0
-        xprobmin2     = -5.0d0
-        xprobmax2     = 5.0d0
-        xprobmin3     = -5.0d0
-        xprobmax3     = 5.0d0
+        xprobmin1     = -5.0d8
+        xprobmax1     = 5.0d8
+        xprobmin2     = -5.0d8
+        xprobmax2     = 5.0d8
+        xprobmin3     = -5.0d8
+        xprobmax3     = 5.0d8
  /
 
  &paramlist
@@ -66,8 +66,14 @@
  &particles_list
         physics_type_particles='Lorentz'
         num_particles=1
-        dtsave_ensemble=0.02d0
+        dtsave_ensemble=0.2d0
         ditsave_particles=1
         npayload=1
         particles_eta=0.0d-4
+ /
+
+ &my_list
+        init_gammav_SI = 1.0 0.0 0.0
+        Efield_SI = 0.0 0.0 1.0
+        Bfield_SI = 0.0 0.0 1.0
  /
