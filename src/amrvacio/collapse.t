@@ -579,7 +579,7 @@ else
       pw_sub(jgrid)%w(iw) = pw_sub(jgrid)%w(iw) + w(ix,iw) * pw(igrid)%dx(ix,1)
     end do
   end do
-end do
+end if
 pw_sub(jgrid)%x(1:ndim) = pw(igrid)%x(ixMlo1,1:ndim)
 }
 
