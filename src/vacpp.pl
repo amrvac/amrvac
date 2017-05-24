@@ -378,7 +378,9 @@ sub block{
        ($line, $partial_line) = contline($line, $partial_line);
        next if ($partial_line);
 
-       $_.=&unquote($line); $nline++;
+       # $_.=&unquote($line);
+       $_.=$line;
+       $nline++;
        $rightpos=&rightmatch($rightpos-1,$ope,$clo,$clo);
    }
 
