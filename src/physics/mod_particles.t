@@ -1983,12 +1983,10 @@ module mod_particles
     ! to the neighbouring grid block.
     !if (ic1^D.lt.ixGlo^D+1 .or. ic2^D.gt.ixGhi^D-1) then
     if(ic1^D.lt.ixGlo^D .or. ic2^D.gt.ixGhi^D) then
-      line = ''
-      write(line,"(a)")'Trying to interpolate from out of grid!'
-      write(line,"(a,a,i3.2)")trim(line),' direction: ',^D
-      write(line,"(a,a,^NDes14.6)")trim(line),' position: ',xloc(1:ndim)
-      write(line,"(a,a,^NDi3.2,^NDi3.2)"),trim(line),' indices:', ic1^D,ic2^D
-      call mpistop(line)
+      print *, 'direction: ',^D
+      print *, 'position: ',xloc(1:ndim)
+      print *, 'indices:', ic1^D,ic2^D
+      call mpistop('Trying to interpolate from out of grid!')
     end if
     \}
 
@@ -2055,12 +2053,10 @@ module mod_particles
 
     {^D&
     if(ic1^D.lt.ixGlo^D+1 .or. ic2^D.gt.ixGhi^D-1) then
-      line = ''
-      write(line,"(a)")'Trying to interpolate from out of grid!'
-      write(line,"(a,a,i3.2)")trim(line),' direction: ',^D
-      write(line,"(a,a,^NDes14.6)")trim(line),' position: ',xloc(1:ndim)
-      write(line,"(a,a,^NDi3.2,^NDi3.2)"),trim(line),' indices:', ic1^D,ic2^D
-      call mpistop(line)
+      print *, 'direction: ',^D
+      print *, 'position: ',xloc(1:ndim)
+      print *, 'indices:', ic1^D,ic2^D
+      call mpistop('Trying to interpolate from out of grid!')
     end if
     \}
 
@@ -2540,7 +2536,7 @@ module mod_particles
     else
        grid_rmin         = [ {rnode(rpxmin^D_,igrid)} ]
        grid_rmax         = [ {rnode(rpxmax^D_,igrid)} ]
-       x                 = particle(ipart)%self%x
+       x                 = particle(ipart)%self%x(1:ndim)
        particle_in_igrid = all(x >= grid_rmin) .and. all(x < grid_rmax)
     end if
   end function particle_in_igrid
