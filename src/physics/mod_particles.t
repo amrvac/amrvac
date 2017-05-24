@@ -2519,63 +2519,31 @@ module mod_particles
 
   end subroutine find_particle_ipe
 
+  !> Check if particle is inside computational domain
   logical function particle_in_domain(x)
     use mod_global_parameters
-
     double precision, dimension(ndim), intent(in)  :: x
-    integer                                        :: idim
 
-    particle_in_domain = .true.
-
-    do idim=1,ndim
-       select case(idim)
-          {case (^D)
-          if (x(^D) .lt. xprobmin^D) then
-             particle_in_domain = .false.
-             exit
-          end if
-          if (x(^D) .ge. xprobmax^D) then
-             particle_in_domain = .false.
-             exit
-          end if
-          \}
-       end select
-    end do
-
+    particle_in_domain = all(x >= [ xprobmin^D ]) .and. &
+         all(x < [ xprobmax^D ]) ! Jannis: as before < instead of <= here, necessary?
   end function particle_in_domain
 
   !> Quick check if particle is still in igrid
-  logical function particle_in_igrid(ipart,igrid)
+  logical function particle_in_igrid(ipart, igrid)
     use mod_global_parameters
-    integer, intent(in)                            :: igrid,ipart
-    integer                                        :: idim
+    integer, intent(in) :: igrid, ipart
+    double precision    :: x(ndim), grid_rmin(ndim), grid_rmax(ndim)
 
-    ! first check if the igrid is still there:
+    ! First check if the igrid is still there
     if (.not. allocated(pw(igrid)%w)) then
        particle_in_igrid = .false.
-       return
+    else
+       grid_rmin         = [ {rnode(rpxmin^D_,igrid)} ]
+       grid_rmax         = [ {rnode(rpxmax^D_,igrid)} ]
+       x                 = particle(ipart)%self%x
+       particle_in_igrid = all(x >= grid_rmin) .and. all(x < grid_rmax)
     end if
-
-    particle_in_igrid = .true.
-
-    do idim=1,ndim
-       select case(idim)
-          {case (^D)
-          if (particle(ipart)%self%x(^D) .lt. rnode(rpxmin^D_,igrid)) then
-             particle_in_igrid = .false.
-             exit
-          end if
-          if (particle(ipart)%self%x(^D) .ge. rnode(rpxmax^D_,igrid)) then
-             particle_in_igrid = .false.
-             exit
-          end if
-          \}
-       end select
-    end do
-
-    return
   end function particle_in_igrid
-
 
   subroutine set_neighbor_ipe()
     use mod_global_parameters
