@@ -66,8 +66,7 @@
  &particles_list
         physics_type_particles='Lorentz'
         num_particles=1
-        dtsave_ensemble=0.2d0
-        ditsave_particles=1
+        dtsave_ensemble=1.0d0
         npayload=1
         particles_eta=0.0d-4
  /

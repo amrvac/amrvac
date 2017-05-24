@@ -25,12 +25,10 @@ module mod_particles
   double precision                       :: dt_particles
   !> Time limit of particles
   double precision                       :: tmax_particles
-  !> Iteration limit of particles
-  integer                                :: itmax_particles
-  !> Iteration interval to save info of traced particles
-  integer                                :: ditsave_particles
   !> Time interval to save snapshots of all particles
   double precision                       :: dtsave_ensemble
+  !> Time interval to save followed particles
+  double precision                       :: dtsave_follow
   !> Resistivity
   double precision                       :: particles_eta
   double precision                       :: dtheta
@@ -190,8 +188,6 @@ module mod_particles
     dt_particles      = bigdouble
     t_particles       = 0.0d0
     tmax_particles    = bigdouble
-    itmax_particles   = biginteger
-    ditsave_particles = 8
     dtsave_ensemble   = bigdouble
     dtheta            = 2.0d0*dpi / 60.0d0
     particles_eta     = 0.d0
@@ -333,8 +329,8 @@ module mod_particles
     integer                      :: n
 
     namelist /particles_list/ physics_type_particles,nparticleshi, &
-      nparticles_per_cpu_hi,ditsave_particles, particles_eta, &
-      dtsave_ensemble,num_particles,npayload,itmax_particles,tmax_particles,dtheta,losses
+      nparticles_per_cpu_hi, particles_eta, &
+      dtsave_ensemble,num_particles,npayload,tmax_particles,dtheta,losses
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -2175,13 +2171,7 @@ module mod_particles
 
   !> Check if we should go out of the integration loop
   logical function exit_condition()
-
-    exit_condition = (&
-         t_particles >= tmax_particles &
-         .or. nparticles == 0 &
-         .or. it_particles >= itmax_particles &
-         )
-
+    exit_condition = (t_particles >= tmax_particles .or. nparticles == 0)
   end function exit_condition
 
   subroutine time_spent_on_particles()
@@ -2628,10 +2618,6 @@ module mod_particles
     integer                         :: send_n_particles_for_output
     integer                         :: nout
     double precision                :: tout
-
-    ! is it time for output of individual particle?
-    if ((it_particles == itsavelast_particles + ditsave_particles) &
-         .or.  (it_particles == 0)) call output_individual()
 
     ! append to ensemble files if its time to do so
     send_n_particles_for_output = 0
