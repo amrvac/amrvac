@@ -9,35 +9,44 @@ module mod_particles
 
   !> String describing the particle physics type
   character(len=name_len) :: physics_type_particles = ""
+  !> Header string used in CSV files
+  character(len=std_len) :: csv_header
+  !> Format string used in CSV files
+  character(len=60) :: csv_format
   !> Maximum number of particles
-  integer                                :: nparticleshi
+  integer                 :: nparticleshi
   !> Maximum number of particles in one processor
-  integer                                :: nparticles_per_cpu_hi
+  integer                 :: nparticles_per_cpu_hi
   !> Number of additional variables for a particle
-  integer                                :: npayload
+  integer                 :: npayload
   !> Number of variables for grid field
-  integer                                :: ngridvars
+  integer                 :: ngridvars
   !> Number of particles
-  integer                                :: num_particles
+  integer                 :: num_particles
   !> Time of particles
-  double precision                       :: t_particles
+  double precision        :: tmin_particles
   !> Time step of particles
-  double precision                       :: dt_particles
+  double precision        :: dt_particles
   !> Time limit of particles
-  double precision                       :: tmax_particles
-  !> Time interval to save snapshots of all particles
-  double precision                       :: dtsave_ensemble
-  !> Time interval to save followed particles
-  double precision                       :: dtsave_follow
+  double precision        :: tmax_particles
+  !> Time interval to save particles
+  double precision        :: dtsave_particles
+  !> Time to write next particle output
+  double precision        :: t_next_output
+  !> Whether to write individual particle output (followed particles)
+  logical                 :: write_individual
+  !> Whether to write ensemble output
+  logical                 :: write_ensemble
+  !> Whether to write particle snapshots
+  logical                 :: write_snapshot
   !> Resistivity
-  double precision                       :: particles_eta
-  double precision                       :: dtheta
-  logical                                :: losses
+  double precision        :: particles_eta
+  double precision        :: dtheta
+  logical                 :: losses
   !> Identity number and total number of particles
-  integer                                :: nparticles
+  integer                 :: nparticles
   !> Iteration number of paritcles
-  integer                                :: it_particles
-  integer                                :: itsavelast_particles
+  integer                 :: it_particles
 
   ! these two save the list of neighboring cpus:
   integer, dimension(:), allocatable,save :: ipe_neighbor
@@ -125,7 +134,8 @@ module mod_particles
     subroutine integrate_particles()
     end subroutine integrate_particles
 
-    subroutine set_particles_dt()
+    subroutine set_particles_dt(end_time)
+      double precision, intent(in) :: end_time
     end subroutine set_particles_dt
 
   end interface
@@ -176,27 +186,31 @@ module mod_particles
   !> Give initial values to paramters
   subroutine init_particles_vars()
     use mod_global_parameters
-    integer            :: nwx, idir
+    integer            :: n, nwx, idir
     integer, parameter :: i8 = selected_int_kind(18)
     integer(i8)        :: seed(2)
+    character(len=20)  :: strdata
 
-    physics_type_particles='advect'
-    nparticleshi = 100000
-    nparticles_per_cpu_hi = 100000
-    num_particles     = 1000
-    npayload          = 1
-    dt_particles      = bigdouble
-    t_particles       = 0.0d0
-    tmax_particles    = bigdouble
-    dtsave_ensemble   = bigdouble
-    dtheta            = 2.0d0*dpi / 60.0d0
-    particles_eta     = 0.d0
-    losses            = .false.
-    nparticles = 0
-    it_particles = 0
-    itsavelast_particles = 0
-    nparticles_on_mype   = 0
-    nparticles_active_on_mype   = 0
+    physics_type_particles    = 'advect'
+    nparticleshi              = 100000
+    nparticles_per_cpu_hi     = 100000
+    num_particles             = 1000
+    npayload                  = 1
+    dt_particles              = bigdouble
+    tmin_particles            = 0.0d0
+    tmax_particles            = bigdouble
+    dtsave_particles          = bigdouble
+    write_individual          = .true.
+    write_ensemble            = .true.
+    write_snapshot            = .true.
+    t_next_output             = 0.0d0
+    dtheta                    = 2.0d0*dpi / 60.0d0
+    particles_eta             = 0.d0
+    losses                    = .false.
+    nparticles                = 0
+    it_particles              = 0
+    nparticles_on_mype        = 0
+    nparticles_active_on_mype = 0
 
     call particles_params_read(par_files)
 
@@ -211,6 +225,18 @@ module mod_particles
 
     particles_on_mype(:) = 0
     particles_active_on_mype(:) = 0
+
+    ! Generate header for CSV files
+    csv_header = ' time, dt, x1, x2, x3, u1, u2, u3,'
+    do n = 1, npayload
+       write(strdata,"(a,i2.2,a)") 'payload', n, ', '
+       csv_header = trim(csv_header) // trim(strdata)
+    end do
+    csv_header = trim(csv_header) // 'ipe, iteration, index'
+
+    ! Generate format string for CSV files
+    write(csv_format, '(A,I0,A,A)') '(', 8 + npayload, '(es14.6,", ")', &
+         'i8.7,", ",i11.10,", ",i8.7)'
 
     select case(physics_type_particles)
     case('advect')
@@ -237,7 +263,7 @@ module mod_particles
     case('Lorentz')
       if(physics_type/='mhd') call mpistop("Lorentz particles need magnetic field!")
       if(ndir/=3) call mpistop("Lorentz particles need ndir=3!")
-      dtsave_ensemble=dtsave_ensemble*unit_time
+      dtsave_particles=dtsave_particles*unit_time
       ngridvars=ndir*2
       nwx = 0
       allocate(bp(ndir))
@@ -265,7 +291,7 @@ module mod_particles
     case('gca')
       if(physics_type/='mhd') call mpistop("GCA particles need magnetic field!")
       if(ndir/=3) call mpistop("GCA particles need ndir=3!")
-      dtsave_ensemble=dtsave_ensemble*unit_time
+      dtsave_particles=dtsave_particles*unit_time
       nwx = 0
       allocate(bp(ndir))
       do idir = 1, ndir
@@ -329,8 +355,9 @@ module mod_particles
     integer                      :: n
 
     namelist /particles_list/ physics_type_particles,nparticleshi, &
-      nparticles_per_cpu_hi, particles_eta, &
-      dtsave_ensemble,num_particles,npayload,tmax_particles,dtheta,losses
+         nparticles_per_cpu_hi, particles_eta, write_individual, write_ensemble, &
+         write_snapshot, dtsave_particles,num_particles,npayload,tmax_particles, &
+         dtheta,losses
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -920,41 +947,51 @@ module mod_particles
     call comm_particles_global
     tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
 
-    ! main integration loop:
-    particle_evol: do
+    ! main integration loop
+    do
+       if (tmax_particles > t_next_output) then
+          call advance_particles(t_next_output)
+          tpartc_io_0 = MPI_WTIME()
+          call write_particle_output()
+          timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
+          tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
 
-       call select_active_particles
-
-       call phys_set_particles_dt
-
-       tpartc_io_0=MPI_WTIME()
-       call check_particles_output
-       timeio_tot=timeio_tot+(MPI_WTIME()-tpartc_io_0)
-       tpartc_io=tpartc_io+(MPI_WTIME()-tpartc_io_0)
-
-       if (exit_condition() .eqv. .true.) exit particle_evol
-
-       tpartc_int_0=MPI_WTIME()
-       call phys_integrate_particles
-       tpartc_int=tpartc_int+(MPI_WTIME()-tpartc_int_0)
-
-       tpartc_com0=MPI_WTIME()
-       call comm_particles
-       tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
-
-       it_particles = it_particles + 1
-
-    end do particle_evol
-
-    tpartc_com0=MPI_WTIME()
-    call comm_particles
-    tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
+          t_next_output = t_next_output + dtsave_particles
+       else
+          call advance_particles(tmax_particles)
+          exit
+       end if
+    end do
 
     call finish_gridvars()
 
     tpartc = tpartc + (MPI_WTIME() - tpartc0)
 
   end subroutine handle_particles
+
+  subroutine advance_particles(end_time)
+    use mod_timing
+    use mod_global_parameters
+    double precision, intent(in) :: end_time
+
+    do
+       call select_active_particles()
+       call phys_set_particles_dt(end_time)
+
+       if (tmin_particles >= end_time .or. nparticles == 0) exit
+
+       tpartc_int_0=MPI_WTIME()
+       call phys_integrate_particles()
+       tpartc_int=tpartc_int+(MPI_WTIME()-tpartc_int_0)
+
+       tpartc_com0=MPI_WTIME()
+       call comm_particles()
+       tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
+
+       it_particles = it_particles + 1
+    end do
+
+  end subroutine advance_particles
 
   subroutine advect_integrate_particles()
     ! this solves dx/dt=v for particles
@@ -1044,9 +1081,9 @@ module mod_particles
 
   end subroutine derivs_advect
 
-  subroutine advect_set_particles_dt()
+  subroutine advect_set_particles_dt(end_time)
     use mod_global_parameters
-
+    double precision, intent(in) :: end_time
     integer                         :: ipart, iipart, nout
     double precision                :: t_min_mype, tout, dt_particles_mype, dt_cfl
     double precision                :: v(1:ndir)
@@ -1078,15 +1115,10 @@ module mod_particles
 
       particle(ipart)%self%dt = dt_cfl
 
-      ! Make sure we don't miss an output or tmax_particles:
-      ! corresponding output slot:
-      nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
-      tout = dble(nout) * dtsave_ensemble
-      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) &
-           particle(ipart)%self%dt = max(tout - particle(ipart)%self%t, smalldouble * tout)
-      ! bring to tmax_particles:
-      if (particle(ipart)%self%t+particle(ipart)%self%dt .gt. tmax_particles) &
-           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%t, smalldouble * tmax_particles)
+      ! Make sure we don't advance beyond end_time
+      if (particle(ipart)%self%t + particle(ipart)%self%dt > end_time) then
+         particle(ipart)%self%dt = end_time - particle(ipart)%self%t
+      end if
 
       dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
       t_min_mype = min(t_min_mype,particle(ipart)%self%t)
@@ -1098,7 +1130,7 @@ module mod_particles
          icomm,ierrmpi)
 
     ! keep track of the minimum particle time:
-    call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+    call MPI_ALLREDUCE(t_min_mype,tmin_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
          icomm,ierrmpi)
 
   end subroutine advect_set_particles_dt
@@ -1451,9 +1483,10 @@ module mod_particles
 
   end subroutine derivs_gca
 
-  subroutine gca_set_particles_dt()
+  subroutine gca_set_particles_dt(end_time)
     use mod_odeint
     use mod_global_parameters
+    double precision, intent(in) :: end_time
 
     double precision            :: t_min_mype, tout, dt_particles_mype, dt_cfl0, dt_cfl1, dt_a
     double precision            :: dxmin, vp, a, gammap
@@ -1555,22 +1588,11 @@ module mod_particles
       !particle(ipart)%self%dt = min(dt_tmp , dt_a)
       particle(ipart)%self%dt = dt_tmp
 
-      ! Make sure we don't miss an output or tmax_particles:
-      ! corresponding output slot:
-      nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
-      tout = dble(nout) * dtsave_ensemble
-      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) then
-        dt_max_output = tout - particle(ipart)%self%t
-        if(dt_max_output .le. 0.0d0) dt_max_output = smalldouble * tout
+      ! Make sure we don't advance beyond end_time
+      if (particle(ipart)%self%t + particle(ipart)%self%dt > end_time) then
+         particle(ipart)%self%dt = end_time - particle(ipart)%self%t
       end if
 
-      ! bring to tmax_particles:
-      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tmax_particles) then
-        dt_max_time = (tmax_particles - particle(ipart)%self%t)
-        if (dt_max_time .le. 0.0d0) dt_max_time = smalldouble * tmax_particles
-      end if
-
-      particle(ipart)%self%dt = min(particle(ipart)%self%dt,dt_max_time,dt_max_output)
       dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
       t_min_mype = min(t_min_mype,particle(ipart)%self%t)
 
@@ -1581,7 +1603,7 @@ module mod_particles
          icomm,ierrmpi)
 
     ! keep track of the minimum particle time:
-    call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+    call MPI_ALLREDUCE(t_min_mype,tmin_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
          icomm,ierrmpi)
 
   end subroutine gca_set_particles_dt
@@ -1773,9 +1795,9 @@ module mod_particles
 
   end subroutine Lorentz_integrate_particles
 
-  subroutine Lorentz_set_particles_dt()
+  subroutine Lorentz_set_particles_dt(end_time)
     use mod_global_parameters
-
+    double precision, intent(in) :: end_time
     integer                         :: ipart, iipart, nout
     double precision,dimension(ndir):: b,v
     double precision                :: lfac,absb,dt_particles_mype,dt_cfl
@@ -1821,16 +1843,10 @@ module mod_particles
 
       particle(ipart)%self%dt = min(particle(ipart)%self%dt,dt_cfl)*unit_length
 
-      ! Make sure we don't miss an output or tmax_particles:
-      ! corresponding output slot:
-      nout = int(particle(ipart)%self%t/dtsave_ensemble) + 1
-      tout = dble(nout) * dtsave_ensemble
-      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) &
-           particle(ipart)%self%dt = max(tout - particle(ipart)%self%t , smalldouble * tout)
-
-      ! bring to tmax_particles:
-      if(particle(ipart)%self%t+particle(ipart)%self%dt .gt. tmax_particles) &
-           particle(ipart)%self%dt = max(tmax_particles - particle(ipart)%self%t , smalldouble * tmax_particles)
+      ! Make sure we don't advance beyond end_time
+      if (particle(ipart)%self%t + particle(ipart)%self%dt > end_time) then
+         particle(ipart)%self%dt = end_time - particle(ipart)%self%t
+      end if
 
       dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
 
@@ -1843,7 +1859,7 @@ module mod_particles
          icomm,ierrmpi)
 
     ! keep track of the minimum particle time:
-    call MPI_ALLREDUCE(t_min_mype,t_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+    call MPI_ALLREDUCE(t_min_mype,tmin_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
          icomm,ierrmpi)
 
   end subroutine Lorentz_set_particles_dt
@@ -2169,11 +2185,6 @@ module mod_particles
 
   end subroutine get_vec_advect
 
-  !> Check if we should go out of the integration loop
-  logical function exit_condition()
-    exit_condition = (t_particles >= tmax_particles .or. nparticles == 0)
-  end function exit_condition
-
   subroutine time_spent_on_particles()
     use mod_timing
     use mod_global_parameters
@@ -2264,8 +2275,6 @@ module mod_particles
 
     if (mype .eq. 0) close(unit=unitparticles)
 
-    itsavelast_particles = it_particles
-
   end subroutine read_particles_snapshot
 
   subroutine read_from_snapshot()
@@ -2308,6 +2317,8 @@ module mod_particles
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart, iipart, send_n_particles_for_output
     logical,save                    :: file_exists=.false.
+
+    if (.not. write_snapshot) return
 
     receive_n_particles_for_output_from_ipe(:) = 0
 
@@ -2609,9 +2620,10 @@ module mod_particles
 
   end subroutine ipe_cf
 
-  subroutine check_particles_output()
+  subroutine write_particle_output()
     use mod_global_parameters
 
+    character(len=std_len) :: filename
     integer                         :: ipart,iipart
     type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
@@ -2619,28 +2631,32 @@ module mod_particles
     integer                         :: nout
     double precision                :: tout
 
-    ! append to ensemble files if its time to do so
-    send_n_particles_for_output = 0
+    ! Write headers (and overwrite old data) when starting a new run
+    if (write_individual .and. it_particles == 0) then
+       
+    end if
 
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+    if (write_individual) then
+       call output_individual()
+    end if
 
-       ! corresponding output slot:
-       nout = nint(particle(ipart)%self%t/dtsave_ensemble)
-       tout = dble(nout) * dtsave_ensemble
-       ! should the particle be dumped?
-       if (particle(ipart)%self%t .le. tout &
-            .and. particle(ipart)%self%t+particle(ipart)%self%dt .gt. tout) then
+    if (write_ensemble) then
+       send_n_particles_for_output = 0
+
+       do iipart=1,nparticles_on_mype
+          ipart=particles_on_mype(iipart);
+
           ! have to send particle to rank zero for output
           send_n_particles_for_output = send_n_particles_for_output + 1
           send_particles(send_n_particles_for_output) = particle(ipart)%self
           send_payload(1:npayload,send_n_particles_for_output) = particle(ipart)%payload(1:npayload)
-       end if ! time to output?
+       end do
 
-    end do
+       call output_ensemble(send_n_particles_for_output,send_particles, &
+            send_payload,'ensemble')
+    end if
 
-    call output_ensemble(send_n_particles_for_output,send_particles,send_payload,'ensemble')
-
-  end subroutine check_particles_output
+  end subroutine write_particle_output
 
   character(len=128) function make_particle_filename(tout,index,type)
     use mod_global_parameters
@@ -2650,39 +2666,15 @@ module mod_particles
     integer, intent(in)             :: index
     integer                         :: nout, mysnapshot
 
-    if (snapshotini .ne. -1) then
-       mysnapshot = snapshotini
-    else
-       mysnapshot = 0
-    end if
-
-    if (convert) then
-      select case(type)
-      case ('ensemble')
-         nout = nint(tout / dtsave_ensemble)
-         write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(base_filename),mysnapshot,'_ensemble',nout,'.csv'
-      case ('destroy')
-         write(make_particle_filename,"(a,i4.4,a)") trim(base_filename),mysnapshot,'_destroyed.csv'
-      case ('individual')
-         write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(base_filename),mysnapshot,'_particle',index,'.csv'
-      case ('followed')
-         nout = nint(tout / dtsave_ensemble)
-         write(make_particle_filename,"(a,i4.4,a,i6.6,a)") trim(base_filename),mysnapshot,'_followed',nout,'.csv'
-      end select
-    else
-      select case(type)
-      case ('ensemble')
-         nout = nint(tout / dtsave_ensemble)
-         write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_ensemble',nout,'.csv'
-      case ('destroy')
-         write(make_particle_filename,"(a,a)") trim(base_filename),'_destroyed.csv'
-      case ('individual')
-         write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_particle',index,'.csv'
-      case ('followed')
-         nout = nint(tout / dtsave_ensemble)
-         write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_followed',nout,'.csv'
-      end select
-    end if
+    select case(type)
+    case ('ensemble')
+       nout = nint(tout / dtsave_particles)
+       write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_ensemble',nout,'.csv'
+    case ('destroy')
+       write(make_particle_filename,"(a,a)") trim(base_filename),'_destroyed.csv'
+    case ('individual')
+       write(make_particle_filename,"(a,a,i6.6,a)") trim(base_filename),'_particle',index,'.csv'
+    end select
 
   end function make_particle_filename
 
@@ -2693,207 +2685,108 @@ module mod_particles
     type(particle_t), dimension(send_n_particles_for_output), intent(in)  :: send_particles
     double precision, dimension(npayload,send_n_particles_for_output), intent(in)  :: send_payload
     character(len=*), intent(in)    :: type
-    character(len=std_len)              :: filename, filename2
+    character(len=std_len)              :: filename
     type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi) :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
-    integer                         :: ipe, ipart
+    integer                         :: ipe, ipart, nout
 
     receive_n_particles_for_output_from_ipe(:) = 0
 
-    if (npe==1) then
-       do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,type)
-          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
-          if(type=='ensemble' .and. send_particles(ipart)%follow) then
-            filename2 = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'followed')
-            call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename2)
-          end if
-       end do
-       return
-    end if
+    call MPI_ALLGATHER(send_n_particles_for_output, 1, MPI_INTEGER, &
+         receive_n_particles_for_output_from_ipe, 1, MPI_INTEGER, icomm, ierrmpi)
 
-    if (mype .ne. 0) then
-       call MPI_SEND(send_n_particles_for_output,1,MPI_INTEGER,0,mype,icomm,ierrmpi)
-    else
-       do ipe=1,npe-1
-          call MPI_RECV(receive_n_particles_for_output_from_ipe(ipe),1,MPI_INTEGER,ipe,ipe,icomm,status,ierrmpi)
-       end do
-    end if
+    ! If there are no particles to be written, skip the output
+    if (sum(receive_n_particles_for_output_from_ipe(:)) == 0) return
 
-    if (mype .ne. 0) then
+    if (mype > 0) then
        call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
        call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
-    end if
+    else
+       ! Create file and write header
+       nout = nint(tmin_particles / dtsave_particles)
+       write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
+            trim(type) // '_', nout,'.csv'
+       open(unit=unitparticles,file=filename)
+       write(unitparticles,"(a)") trim(csv_header)
 
-    if (mype==0) then
+       ! Write own particles
        do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,type)
-          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename)
-          if(type=='ensemble' .and. send_particles(ipart)%follow) then
-            filename2 = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'followed')
-            call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename2)
-          end if
+          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,unitparticles)
        end do
+
+       ! Write particles from other tasks
        do ipe=1,npe-1
           call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
           call MPI_RECV(receive_payload,npayload*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
           do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-             filename = make_particle_filename(receive_particles(ipart)%t,receive_particles(ipart)%index,type)
-             call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename)
-             if(type=='ensemble' .and. receive_particles(ipart)%follow) then
-               filename2 = make_particle_filename(receive_particles(ipart)%t,receive_particles(ipart)%index,'followed')
-               call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename2)
-             end if
+             call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,unitparticles)
           end do ! ipart
        end do ! ipe
-    end if ! mype == 0
+
+       close(unitparticles)
+    end if
 
   end subroutine output_ensemble
 
   subroutine output_individual()
     use mod_global_parameters
-    logical,parameter               :: output_from_root=.false.
-    character(len=std_len)          :: filename
-    integer                         :: ipart,iipart,ipe
-    integer                         :: send_n_particles_for_output
-    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
-    type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
-    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
-    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
-    integer                         :: status(MPI_STATUS_SIZE)
-    integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
+    character(len=std_len) :: filename
+    integer                :: ipart,iipart,ipe
+    logical                :: file_exists
 
-    send_n_particles_for_output = 0
-    receive_n_particles_for_output_from_ipe(:) = 0
+    do iipart=1,nparticles_on_mype
+       ipart=particles_on_mype(iipart)
 
-    do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
        ! should the particle be dumped?
        if (particle(ipart)%self%follow) then
-          ! have to send particle to rank zero for output
-          send_n_particles_for_output = send_n_particles_for_output + 1
-          send_particles(send_n_particles_for_output) = particle(ipart)%self
-          send_payload(1:npayload,send_n_particles_for_output) = particle(ipart)%payload(1:npayload)
-       end if ! follow
-    end do ! ipart
+          write(filename,"(a,a,i6.6,a)") trim(base_filename), '_particle_', ipart, '.csv'
+          inquire(file=filename, exist=file_exists)
 
-    if (npe==1) then
-       do ipart=1,send_n_particles_for_output
-          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'individual')
-          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
-       end do
-       itsavelast_particles = it_particles
-       return
-    end if
+          ! Create empty file and write header on first iteration, or when the
+          ! file does not exist yet
+          if (it_particles == 0 .or. .not. file_exists) then
+             open(unit=unitparticles, file=filename)
+             write(unitparticles,"(a)") trim(csv_header)
+          else
+             open(unit=unitparticles, file=filename, access='append')
+          end if
 
-    if (output_from_root) then
-       if (mype .ne. 0) then
-          call MPI_SEND(send_n_particles_for_output,1,MPI_INTEGER,0,mype,icomm,ierrmpi)
-       else
-          do ipe=1,npe-1
-             call MPI_RECV(receive_n_particles_for_output_from_ipe(ipe),1,MPI_INTEGER,ipe,ipe,icomm,status,ierrmpi)
-          end do
+          call output_particle(particle(ipart)%self,&
+               particle(ipart)%payload(1:npayload),mype,unitparticles)
+
+          close(unitparticles)
        end if
-
-       if (mype .ne. 0) then
-          call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
-          call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
-       end if
-
-       if (mype==0) then
-          do ipart=1,send_n_particles_for_output
-            filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'individual')
-            call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,filename)
-          end do
-          do ipe=1,npe-1
-             call MPI_RECV(receive_particles,receive_n_particles_for_output_from_ipe(ipe),type_particle,ipe,ipe,icomm,status,ierrmpi)
-             call MPI_RECV(receive_payload,npayload*receive_n_particles_for_output_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,ipe,icomm,status,ierrmpi)
-             do ipart=1,receive_n_particles_for_output_from_ipe(ipe)
-                filename = make_particle_filename(receive_particles(ipart)%t,receive_particles(ipart)%index,'individual')
-                call output_particle(receive_particles(ipart),receive_payload(1:npayload,ipart),ipe,filename)
-             end do
-          end do
-       end if
-    else
-       do ipart=1,send_n_particles_for_output
-          ! generate filename
-          filename = make_particle_filename(send_particles(ipart)%t,send_particles(ipart)%index,'individual')
-          call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),mype,filename)
-       end do
-    end if
-
-    itsavelast_particles = it_particles
+    end do
 
   end subroutine output_individual
 
-  subroutine output_particle(myparticle,payload,ipe,filename)
+  subroutine output_particle(myparticle,payload,ipe,file_unit)
     use mod_global_parameters
 
-    type(particle_t),intent(in)                 :: myparticle
-    double precision, intent(in)                   :: payload(npayload)
-    integer, intent(in)                            :: ipe
-    character(len=std_len),intent(in)              :: filename
-    logical,save                                   :: file_exists=.false.
-    character(len=20)                              :: formatstring
-    double precision                               :: x(3)
-    character(len=1024)                            :: line, strdata
-    integer                                        :: icomp
-    double precision, parameter                    :: minvalue = 1.0d-99
-    double precision                               :: roundoff
+    type(particle_t),intent(in)  :: myparticle
+    double precision, intent(in) :: payload(npayload)
+    integer, intent(in)          :: ipe
+    integer, intent(in)          :: file_unit
+    double precision             :: x(3)
+    integer                      :: icomp
 
     ! normalize the position
-    if (typeaxial == 'slab') x = myparticle%x*length_convert_factor
-    if (typeaxial == 'cylindrical') then
+    if (typeaxial == 'slab') then
+       x = myparticle%x*length_convert_factor
+    else if (typeaxial == 'cylindrical') then
        x(r_)   = myparticle%x(r_)*length_convert_factor
        x(z_)   = myparticle%x(z_)*length_convert_factor
        x(phi_) = myparticle%x(phi_)
-    end if
-    if (typeaxial == 'spherical') then
+    else if (typeaxial == 'spherical') then
        x(:) = myparticle%x(:)
        x(1) = x(1)*length_convert_factor
     end if
 
-    INQUIRE(FILE=filename, EXIST=file_exists)
-
-    if (.not. file_exists) then
-       open(unit=unitparticles,file=filename,status='unknown',access='append')
-       line=''
-       do icomp=1, npayload
-          write(strdata,"(a,i2.2,a)") 'payload',icomp,','
-          line = trim(line)//trim(strdata)
-       end do
-       write(unitparticles,"(a,a,a)") 'time,dt,x1,x2,x3,u1,u2,u3,',trim(line),'ipe,iteration,index'
-    else
-       open(unit=unitparticles,file=filename,status='unknown',access='append')
-    end if
-
-    ! create the formatstring:
-    line = ''
-    write(strdata,"(es14.6, a)")roundoff(myparticle%t,minvalue), ','
-    line = trim(line)//trim(strdata)
-    write(strdata,"(es14.6, a)")roundoff(myparticle%dt,minvalue), ','
-    line = trim(line)//trim(strdata)
-    do icomp = 1, 3
-       write(strdata,"(es14.6, a)")roundoff(x(icomp),minvalue), ','
-       line = trim(line)//trim(strdata)
-    end do
-    do icomp = 1, 3
-       write(strdata,"(es14.6, a)")roundoff(myparticle%u(icomp),minvalue), ','
-       line = trim(line)//trim(strdata)
-    end do
-    do icomp = 1, npayload
-       write(strdata,"(es14.6, a)")roundoff(payload(icomp),minvalue), ','
-       line = trim(line)//trim(strdata)
-    end do
-    write(strdata,"(i8.7, a)")ipe, ','
-    line = trim(line)//trim(strdata)
-    write(strdata,"(i11.10, a)")it_particles, ','
-    line = trim(line)//trim(strdata)
-    write(strdata,"(i8.7)")myparticle%index
-    line = trim(line)//trim(strdata)
-    write(unitparticles,"(a)") trim(line)
-    close(unit=unitparticles)
+    write(file_unit, csv_format) myparticle%t, myparticle%dt, x(1:3), &
+         myparticle%u(1:3), payload(1:npayload), ipe, it_particles, &
+         myparticle%index
 
   end subroutine output_particle
 
