@@ -1664,13 +1664,17 @@ module mod_particles
           radmom = 0.0d0
         end if
 
-        particle(ipart)%self%u = uplus + emom + radmom
+        ! Half the velocity update
+        particle(ipart)%self%u = 0.5d0 * (particle(ipart)%self%u + &
+             uplus + emom + radmom)
 
-        ! Position update
-        ! update position
+        ! Update position using average velocity
         particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
              + dt_p * particle(ipart)%self%u(1:ndir)/lfac &
              * const_c / unit_length
+
+        ! Now the full velocity update
+        particle(ipart)%self%u = uplus + emom + radmom
 
         ! Payload update
         ! current gyroradius
