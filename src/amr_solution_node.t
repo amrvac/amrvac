@@ -17,8 +17,8 @@ end do
 
 if (igrid_available == 0) then
    getnode = -1
-   write(unitterm,*) " out of nodal space - allowed ",max_blocks," grids"
-   call mpistop("")
+   print *, "Current maximum number of grid blocks:", max_blocks
+   call mpistop("Insufficient grid blocks; increase max_blocks in meshlist")
 else
    getnode=igrid_available
    igrid_inuse(igrid,ipe)=.true.
