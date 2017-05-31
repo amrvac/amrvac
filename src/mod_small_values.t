@@ -26,7 +26,8 @@ contains
 
     ix_bad = maxloc(w_flag(ixO^S)) + [ ixOmin^D-1 ]
 
-    write(*, *) "Error: small value of ",trim(prim_wnames(maxval(w_flag(ixO^S))))," encountered when call ", subname
+    write(*, *) "Error: small value of ", trim(prim_wnames(maxval(w_flag(ixO^S)))), &
+         " encountered when call ", subname
     write(*, *) "Iteration: ", it, " Time: ", global_time
     write(*, *) "Location: ", x({ix_bad(^D)}, :)
     write(*, *) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
@@ -69,12 +70,11 @@ contains
                   / count(w_flag(kxO^S) == 0)
           end do
        else
-          ! no cells without error were found in cube of size
-          ! small_values_daverage --> point of no recovery
-          print*,"Getaux error:", w_flag(ix^D),"ix^D=", ix^D
-          !print*,"New ","rho=", w(ix^D, rho_),"m=", &
-          !        {^C&w(ix^D, m^C_)},"e=", w(ix^D, e_)
-          !print*,"position  ", px(saveigrid)%x(ix^D, 1:ndim)
+          print *, "no cells without error were found in cube of size", &
+               small_values_daverage
+          print *, "at location:", x(ix^D, 1:ndim)
+          print *, "at index:", ix^D
+          print *, "w_flag(ix^D):", w_flag(ix^D)
           if (w_flag(ix^D)<0) then
              call mpistop("-small_values_average from smallvalues-----")
           else
