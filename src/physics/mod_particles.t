@@ -23,14 +23,14 @@ module mod_particles
   integer                 :: ngridvars
   !> Number of particles
   integer                 :: num_particles
-  !> Time of particles
-  double precision        :: tmin_particles
-  !> Time step of particles
-  double precision        :: dt_particles
   !> Time limit of particles
   double precision        :: tmax_particles
+  !> Minimum time of all particles
+  double precision        :: min_particle_time
   !> Time interval to save particles
   double precision        :: dtsave_particles
+  !> If positive, a constant time step for the particles
+  double precision        :: const_dt_particles
   !> Time to write next particle output
   double precision        :: t_next_output
   !> Whether to write individual particle output (followed particles)
@@ -47,6 +47,8 @@ module mod_particles
   integer                 :: nparticles
   !> Iteration number of paritcles
   integer                 :: it_particles
+  !> Output count for ensembles
+  integer                 :: n_output_ensemble
 
   ! these two save the list of neighboring cpus:
   integer, dimension(:), allocatable,save :: ipe_neighbor
@@ -121,7 +123,6 @@ module mod_particles
   procedure(init_particles), pointer  :: phys_init_particles => null()
   procedure(fill_gridvars), pointer   :: phys_fill_gridvars => null()
   procedure(integrate_particles), pointer   :: phys_integrate_particles => null()
-  procedure(set_particles_dt), pointer   :: phys_set_particles_dt => null()
 
   abstract interface
 
@@ -131,12 +132,9 @@ module mod_particles
     subroutine fill_gridvars()
     end subroutine fill_gridvars
 
-    subroutine integrate_particles()
-    end subroutine integrate_particles
-
-    subroutine set_particles_dt(end_time)
+    subroutine integrate_particles(end_time)
       double precision, intent(in) :: end_time
-    end subroutine set_particles_dt
+    end subroutine integrate_particles
 
   end interface
 
@@ -196,10 +194,9 @@ module mod_particles
     nparticles_per_cpu_hi     = 100000
     num_particles             = 1000
     npayload                  = 1
-    dt_particles              = bigdouble
-    tmin_particles            = 0.0d0
     tmax_particles            = bigdouble
     dtsave_particles          = bigdouble
+    const_dt_particles        = -bigdouble
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
@@ -209,6 +206,7 @@ module mod_particles
     losses                    = .false.
     nparticles                = 0
     it_particles              = 0
+    n_output_ensemble         = 0
     nparticles_on_mype        = 0
     nparticles_active_on_mype = 0
 
@@ -255,9 +253,6 @@ module mod_particles
       if (.not. associated(phys_integrate_particles)) &
            phys_integrate_particles => advect_integrate_particles
 
-      if (.not. associated(phys_set_particles_dt)) &
-           phys_set_particles_dt => advect_set_particles_dt
-
       if (.not. associated(usr_update_payload)) &
            usr_update_payload => advect_update_payload
     case('Lorentz')
@@ -286,8 +281,6 @@ module mod_particles
       if (.not. associated(phys_integrate_particles)) &
            phys_integrate_particles => Lorentz_integrate_particles
 
-      if (.not. associated(phys_set_particles_dt)) &
-           phys_set_particles_dt => Lorentz_set_particles_dt
     case('gca')
       if(physics_type/='mhd') call mpistop("GCA particles need magnetic field!")
       if(ndir/=3) call mpistop("GCA particles need ndir=3!")
@@ -338,8 +331,6 @@ module mod_particles
       if (.not. associated(phys_integrate_particles)) &
            phys_integrate_particles => gca_integrate_particles
 
-      if (.not. associated(phys_set_particles_dt)) &
-           phys_set_particles_dt => gca_set_particles_dt
     case default
       call mpistop("unknown physics_type_particles (advect,gca,Lorentz)")
     end select
@@ -357,7 +348,7 @@ module mod_particles
     namelist /particles_list/ physics_type_particles,nparticleshi, &
          nparticles_per_cpu_hi, particles_eta, write_individual, write_ensemble, &
          write_snapshot, dtsave_particles,num_particles,npayload,tmax_particles, &
-         dtheta,losses
+         dtheta,losses, const_dt_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -932,6 +923,8 @@ module mod_particles
     use mod_timing
     use mod_global_parameters
 
+    integer :: steps_taken
+
     if(time_advance) tmax_particles = global_time + dt
     if(physics_type_particles/='advect') tmax_particles=tmax_particles*unit_time
 
@@ -949,18 +942,22 @@ module mod_particles
 
     ! main integration loop
     do
-       if (tmax_particles > t_next_output) then
-          call advance_particles(t_next_output)
-          tpartc_io_0 = MPI_WTIME()
-          call write_particle_output()
-          timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
-          tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
+      if (tmax_particles > t_next_output) then
+        call advance_particles(t_next_output, steps_taken)
 
-          t_next_output = t_next_output + dtsave_particles
-       else
-          call advance_particles(tmax_particles)
-          exit
-       end if
+        tpartc_io_0 = MPI_WTIME()
+        call write_particle_output()
+        timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
+        tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
+
+        ! If we are using a constant time step, this prevents multiple outputs
+        ! at the same time
+        t_next_output = max(t_next_output, min_particle_time) + &
+             dtsave_particles
+      else
+        call advance_particles(tmax_particles, steps_taken)
+        exit
+      end if
     end do
 
     call finish_gridvars()
@@ -969,34 +966,43 @@ module mod_particles
 
   end subroutine handle_particles
 
-  subroutine advance_particles(end_time)
+  subroutine advance_particles(end_time, steps_taken)
     use mod_timing
     use mod_global_parameters
     double precision, intent(in) :: end_time
+    integer, intent(out)         :: steps_taken
+    integer                      :: n_active
+
+    steps_taken = 0
 
     do
-       call select_active_particles()
-       call phys_set_particles_dt(end_time)
+      call select_active_particles(end_time)
 
-       if (tmin_particles >= end_time .or. nparticles == 0) exit
+      ! Determine total number of active particles
+      call MPI_ALLREDUCE(nparticles_active_on_mype, n_active, 1, MPI_INTEGER, &
+           MPI_SUM, icomm, ierrmpi)
 
-       tpartc_int_0=MPI_WTIME()
-       call phys_integrate_particles()
-       tpartc_int=tpartc_int+(MPI_WTIME()-tpartc_int_0)
+      if (n_active == 0) exit
 
-       tpartc_com0=MPI_WTIME()
-       call comm_particles()
-       tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
+      tpartc_int_0=MPI_WTIME()
+      call phys_integrate_particles(end_time)
+      steps_taken = steps_taken + 1
+      tpartc_int=tpartc_int+(MPI_WTIME()-tpartc_int_0)
 
-       it_particles = it_particles + 1
+      tpartc_com0=MPI_WTIME()
+      call comm_particles()
+      tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
+
+      it_particles = it_particles + 1
     end do
 
   end subroutine advance_particles
 
-  subroutine advect_integrate_particles()
+  subroutine advect_integrate_particles(end_time)
     ! this solves dx/dt=v for particles
     use mod_odeint
     use mod_global_parameters
+    double precision, intent(in) :: end_time
 
     double precision, dimension(1:ndir) :: v, x
     double precision                 :: tloc, tlocnew, dt_p, h1
@@ -1004,14 +1010,16 @@ module mod_particles
     integer                          :: ipart, iipart, igrid
     integer                          :: nok, nbad, ierror
 
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+    do iipart=1,nparticles_active_on_mype
+      ipart                   = particles_active_on_mype(iipart);
+      dt_p                    = advect_get_particle_dt(particle(ipart), end_time)
+      particle(ipart)%self%dt = dt_p
 
-      dt_p = particle(ipart)%self%dt
-      igrid = particle(ipart)%igrid
-      igrid_working = igrid
-      tloc = particle(ipart)%self%t
-      x(1:ndir) = particle(ipart)%self%x(1:ndir)
-      tlocnew=tloc+dt_p
+      igrid                   = particle(ipart)%igrid
+      igrid_working           = igrid
+      tloc                    = particle(ipart)%self%t
+      x(1:ndir)               = particle(ipart)%self%x(1:ndir)
+      tlocnew                 = tloc+dt_p
 
       ! Position update
       ! Simple forward Euler start
@@ -1081,63 +1089,52 @@ module mod_particles
 
   end subroutine derivs_advect
 
-  subroutine advect_set_particles_dt(end_time)
+  pure function advect_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
-    double precision, intent(in) :: end_time
-    integer                         :: ipart, iipart, nout
-    double precision                :: t_min_mype, tout, dt_particles_mype, dt_cfl
-    double precision                :: v(1:ndir)
+    type(particle_ptr), intent(in) :: partp
+    double precision, intent(in)   :: end_time
+    double precision               :: dt_p
+    integer                        :: ipart, iipart, nout
+    double precision               :: tout, dt_cfl
+    double precision               :: v(1:ndir)
 
-    dt_particles      = bigdouble
-    dt_particles_mype = bigdouble
-    t_min_mype        = bigdouble
+    if (const_dt_particles > 0) then
+      dt_p = const_dt_particles
+      return
+    end if
 
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+    ! make sure we step only one cell at a time:
+    v(1:ndir)=abs(partp%self%u(1:ndir))
 
-      ! make sure we step only one cell at a time:
-      v(1:ndir)=abs(particle(ipart)%self%u(1:ndir))
+    ! convert to angular velocity:
+    if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
 
-      ! convert to angular velocity:
-      if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/particle(ipart)%self%x(r_))
+    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
 
-      dt_cfl = min({rnode(rpdx^D_,particle(ipart)%igrid)/v(^D)},bigdouble)
-
-      if(typeaxial =='cylindrical'.and.phi_>0) then
-        ! phi-momentum leads to radial velocity:
-        if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
-          sqrt(rnode(rpdx1_,particle(ipart)%igrid)/particle(ipart)%self%x(r_)) &
+    if(typeaxial =='cylindrical'.and.phi_>0) then
+      ! phi-momentum leads to radial velocity:
+      if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
+           sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
            / v(phi_))
-        ! limit the delta phi of the orbit (just for aesthetic reasons):
-        dt_cfl = min(dt_cfl,0.1d0/v(phi_))
-        ! take some care at the axis:
-        dt_cfl = min(dt_cfl,(particle(ipart)%self%x(r_)+smalldouble)/v(r_))
-      end if
+      ! limit the delta phi of the orbit (just for aesthetic reasons):
+      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
+      ! take some care at the axis:
+      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
+    end if
 
-      particle(ipart)%self%dt = dt_cfl
+    dt_p = dt_cfl
 
-      ! Make sure we don't advance beyond end_time
-      if (particle(ipart)%self%t + particle(ipart)%self%dt > end_time) then
-         particle(ipart)%self%dt = end_time - particle(ipart)%self%t
-      end if
+    ! Make sure we don't advance beyond end_time
+    if (partp%self%t + dt_p > end_time) then
+      dt_p = end_time - partp%self%t
+    end if
 
-      dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
-      t_min_mype = min(t_min_mype,particle(ipart)%self%t)
+  end function advect_get_particle_dt
 
-    end do ! ipart loop
-
-    ! keep track of the global minimum:
-    call MPI_ALLREDUCE(dt_particles_mype,dt_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-
-    ! keep track of the minimum particle time:
-    call MPI_ALLREDUCE(t_min_mype,tmin_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-
-  end subroutine advect_set_particles_dt
-
-  subroutine gca_integrate_particles()
+  subroutine gca_integrate_particles(end_time)
     use mod_odeint
     use mod_global_parameters
+    double precision, intent(in)        :: end_time
 
     double precision                    :: lfac, absS
     double precision                    :: dt_p, tloc, y(ndir+2),dydt(ndir+2),ytmp(ndir+2), euler_cfl, int_factor
@@ -1165,13 +1162,16 @@ module mod_particles
 
     nvar=ndir+2
 
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
-      int_choice=.false.
-      dt_p = particle(ipart)%self%dt
-      igrid_working = particle(ipart)%igrid
-      ipart_working = particle(ipart)%self%index
-      tloc = particle(ipart)%self%t
-      x(1:ndir) = particle(ipart)%self%x(1:ndir)
+    do iipart=1,nparticles_active_on_mype
+      ipart                   = particles_active_on_mype(iipart)
+      int_choice              = .false.
+      dt_p                    = gca_get_particle_dt(particle(ipart), end_time)
+      particle(ipart)%self%dt = dt_p
+
+      igrid_working           = particle(ipart)%igrid
+      ipart_working           = particle(ipart)%self%index
+      tloc                    = particle(ipart)%self%t
+      x(1:ndir)               = particle(ipart)%self%x(1:ndir)
 
       ! Adaptive stepwidth RK4:
       ! initial solution vector:
@@ -1483,147 +1483,153 @@ module mod_particles
 
   end subroutine derivs_gca
 
-  subroutine gca_set_particles_dt(end_time)
+  function gca_get_particle_dt(partp, end_time) result(dt_p)
     use mod_odeint
     use mod_global_parameters
-    double precision, intent(in) :: end_time
+    type(particle_ptr), intent(in) :: partp
+    double precision, intent(in)   :: end_time
+    double precision               :: dt_p
 
-    double precision            :: t_min_mype, tout, dt_particles_mype, dt_cfl0, dt_cfl1, dt_a
+    double precision            :: tout, dt_particles_mype, dt_cfl0, dt_cfl1, dt_a
     double precision            :: dxmin, vp, a, gammap
     double precision            :: v(ndir), y(ndir+2),ytmp(ndir+2), dydt(ndir+2), v0(ndir), v1(ndir), dydt1(ndir+2)
     double precision            :: ap0, ap1, dt_cfl_ap0, dt_cfl_ap1, dt_cfl_ap
-    double precision            :: dt_max_output, dt_max_time, dt_euler, dt_tmp
+    double precision            :: dt_euler, dt_tmp
     ! make these particle cfl conditions more restrictive if you are interpolating out of the grid
     double precision, parameter :: cfl=0.8d0, uparcfl=0.8d0
     double precision, parameter :: uparmin=1.0d-6*const_c
     integer                     :: ipart, iipart, nout, ic^D, igrid_particle, ipe_particle, ipe
     logical                     :: BC_applied
 
-    ! Here the timestep for the guiding centre integration is chosen
-    dt_particles      = bigdouble
-    dt_particles_mype = bigdouble
-    t_min_mype        = bigdouble
-    dt_max_output     = bigdouble
-    dt_max_time       = bigdouble
+    if (const_dt_particles > 0) then
+      dt_p = const_dt_particles
+      return
+    end if
 
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+    igrid_working = partp%igrid
+    ipart_working = partp%self%index
+    dt_tmp = (end_time - partp%self%t)
+    if(dt_tmp .le. 0.0d0) dt_tmp = smalldouble
+    ! make sure we step only one cell at a time, first check CFL at current location
+    ! then we make an Euler step to the new location and check the new CFL
+    ! we simply take the minimum of the two timesteps.
+    ! added safety factor cfl:
+    dxmin  = min({rnode(rpdx^D_,partp%igrid)},bigdouble)*cfl
+    ! initial solution vector:
+    y(1:ndir) = partp%self%x(1:ndir) ! position of guiding center
+    y(ndir+1) = partp%self%u(1) ! parallel momentum component (gamma v||)
+    y(ndir+2) = partp%self%u(2) ! conserved magnetic moment
+    ytmp=y
+    !y(ndir+3) = partp%self%u(3) ! Lorentz factor of guiding centre
 
-      igrid_working = particle(ipart)%igrid
-      ipart_working = particle(ipart)%self%index
-      dt_tmp = (tmax_particles - particle(ipart)%self%t)
-      if(dt_tmp .le. 0.0d0) dt_tmp = smalldouble
-      ! make sure we step only one cell at a time, first check CFL at current location
-      ! then we make an Euler step to the new location and check the new CFL
-      ! we simply take the minimum of the two timesteps.
-      ! added safety factor cfl:
-      dxmin  = min({rnode(rpdx^D_,particle(ipart)%igrid)},bigdouble)*cfl
-      ! initial solution vector:
-      y(1:ndir) = particle(ipart)%self%x(1:ndir) ! position of guiding center
-      y(ndir+1) = particle(ipart)%self%u(1) ! parallel momentum component (gamma v||)
-      y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment
-      ytmp=y
-      !y(ndir+3) = particle(ipart)%self%u(3) ! Lorentz factor of guiding centre
+    call derivs_gca(partp%self%t,y,dydt)
+    v0(1:ndir) = dydt(1:ndir)
+    ap0        = dydt(ndir+1)
 
-      call derivs_gca(particle(ipart)%self%t,y,dydt)
-      v0(1:ndir) = dydt(1:ndir)
-      ap0        = dydt(ndir+1)
+    ! guiding center velocity:
+    v(1:ndir) = abs(dydt(1:ndir))
+    vp = sqrt(sum(v(:)**2))
 
-      ! guiding center velocity:
-      v(1:ndir) = abs(dydt(1:ndir))
-      vp = sqrt(sum(v(:)**2))
+    dt_cfl0    = dxmin/vp
+    dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap0)
+    !dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(unit_length*dxmin/(ap0+smalldouble))) )
 
-      dt_cfl0    = dxmin/vp
-      dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap0)
-      !dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(unit_length*dxmin/(ap0+smalldouble))) )
+    ! make an Euler step with the proposed timestep:
+    ! new solution vector:
+    dt_euler = min(dt_tmp,dt_cfl0,dt_cfl_ap0)
+    y(1:ndir+2) = y(1:ndir+2) + dt_euler * dydt(1:ndir+2)
 
-      ! make an Euler step with the proposed timestep:
-      ! new solution vector:
-      dt_euler = min(dt_tmp,dt_cfl0,dt_cfl_ap0)
-      y(1:ndir+2) = y(1:ndir+2) + dt_euler * dydt(1:ndir+2)
+    partp%self%x(1:ndir) = y(1:ndir) ! position of guiding center
+    partp%self%u(1)      = y(ndir+1) ! parallel momentum component (gamma v||)
+    partp%self%u(2)      = y(ndir+2) ! conserved magnetic moment
 
-      particle(ipart)%self%x(1:ndir) = y(1:ndir) ! position of guiding center
-      particle(ipart)%self%u(1)      = y(ndir+1) ! parallel momentum component (gamma v||)
-      particle(ipart)%self%u(2)      = y(ndir+2) ! conserved magnetic moment
+    ! first check if the particle is outside the physical domain or in the ghost cells
+    if(.not. particle_in_igrid(ipart_working,igrid_working)) then
+      y(1:ndir+2) = ytmp(1:ndir+2)
+    end if
 
-      ! first check if the particle is outside the physical domain or in the ghost cells
-      if(.not. particle_in_igrid(ipart_working,igrid_working)) then
-        y(1:ndir+2) = ytmp(1:ndir+2)
-      end if
+    call derivs_gca_rk(partp%self%t+dt_euler,y,dydt)
+    !call derivs_gca(partp%self%t+dt_euler,y,dydt)
 
-      call derivs_gca_rk(particle(ipart)%self%t+dt_euler,y,dydt)
-      !call derivs_gca(particle(ipart)%self%t+dt_euler,y,dydt)
+    v1(1:ndir) = dydt(1:ndir)
+    ap1        = dydt(ndir+1)
 
-      v1(1:ndir) = dydt(1:ndir)
-      ap1        = dydt(ndir+1)
+    ! guiding center velocity:
+    v(1:ndir) = abs(dydt(1:ndir))
+    vp = sqrt(sum(v(:)**2))
 
-      ! guiding center velocity:
-      v(1:ndir) = abs(dydt(1:ndir))
-      vp = sqrt(sum(v(:)**2))
+    dt_cfl1    = dxmin/vp
+    dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap1)
+    !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(unit_length*dxmin/(ap1+smalldouble))) )
 
-      dt_cfl1    = dxmin/vp
-      dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap1)
-      !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(unit_length*dxmin/(ap1+smalldouble))) )
+    dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap1)
 
-      dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap1)
+    partp%self%x(1:ndir) = ytmp(1:ndir) ! position of guiding center
+    partp%self%u(1)      = ytmp(ndir+1) ! parallel momentum component (gamma v||)
+    partp%self%u(2)      = ytmp(ndir+2) ! conserved magnetic moment
+    !dt_tmp = min(dt_cfl1, dt_cfl_ap1)
 
-      particle(ipart)%self%x(1:ndir) = ytmp(1:ndir) ! position of guiding center
-      particle(ipart)%self%u(1)      = ytmp(ndir+1) ! parallel momentum component (gamma v||)
-      particle(ipart)%self%u(2)      = ytmp(ndir+2) ! conserved magnetic moment
-      !dt_tmp = min(dt_cfl1, dt_cfl_ap1)
+    ! time step due to parallel acceleration:
+    ! The standart thing, dt=sqrt(dx/a) where we comupte a from d(gamma v||)/dt and d(gamma)/dt
+    ! dt_ap = sqrt(abs(dxmin*unit_length*y(ndir+3)/( dydt(ndir+1) - y(ndir+1)/y(ndir+3)*dydt(ndir+3) ) ) )
+    ! vp = sqrt({^C& (v(^C)*unit_length)**2|+})
+    ! gammap = sqrt(1.0d0/(1.0d0-(vp/const_c)**2))
+    ! ap = const_c**2/vp*gammap**(-3)*dydt(ndir+3)
+    ! dt_ap = sqrt(dxmin*unit_length/ap)
 
-      ! time step due to parallel acceleration:
-      ! The standart thing, dt=sqrt(dx/a) where we comupte a from d(gamma v||)/dt and d(gamma)/dt
-      ! dt_ap = sqrt(abs(dxmin*unit_length*y(ndir+3)/( dydt(ndir+1) - y(ndir+1)/y(ndir+3)*dydt(ndir+3) ) ) )
-      ! vp = sqrt({^C& (v(^C)*unit_length)**2|+})
-      ! gammap = sqrt(1.0d0/(1.0d0-(vp/const_c)**2))
-      ! ap = const_c**2/vp*gammap**(-3)*dydt(ndir+3)
-      ! dt_ap = sqrt(dxmin*unit_length/ap)
+    !dt_a = bigdouble
+    !if (dt_euler .gt. smalldouble) then
+    !   a = sqrt({^C& (v1(^C)-v0(^C))**2 |+})/dt_euler
+    !   dt_a = min(sqrt(dxmin/a),bigdouble)
+    !end if
 
-      !dt_a = bigdouble
-      !if (dt_euler .gt. smalldouble) then
-      !   a = sqrt({^C& (v1(^C)-v0(^C))**2 |+})/dt_euler
-      !   dt_a = min(sqrt(dxmin/a),bigdouble)
-      !end if
+    !dt_p = min(dt_tmp , dt_a)
+    dt_p = dt_tmp
 
-      !particle(ipart)%self%dt = min(dt_tmp , dt_a)
-      particle(ipart)%self%dt = dt_tmp
+    ! Make sure we don't advance beyond end_time
+    if (partp%self%t + dt_p > end_time) then
+      dt_p = end_time - partp%self%t
+    end if
 
-      ! Make sure we don't advance beyond end_time
-      if (particle(ipart)%self%t + particle(ipart)%self%dt > end_time) then
-         particle(ipart)%self%dt = end_time - particle(ipart)%self%t
-      end if
+  end function gca_get_particle_dt
 
-      dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
-      t_min_mype = min(t_min_mype,particle(ipart)%self%t)
-
-    end do ! ipart loop
-
-    ! keep track of the global minimum:
-    call MPI_ALLREDUCE(dt_particles_mype,dt_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-
-    ! keep track of the minimum particle time:
-    call MPI_ALLREDUCE(t_min_mype,tmin_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-
-  end subroutine gca_set_particles_dt
-
-  !> this is the relativistic Boris scheme, a leapfrog integrator
-  subroutine Lorentz_integrate_particles()
+  !> Relativistic Boris scheme
+  subroutine Lorentz_integrate_particles(end_time)
     use mod_global_parameters
-
+    double precision, intent(in)      :: end_time
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
+    double precision                  :: dt_first_push, dt_last_push
     double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
 
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+    do iipart=1,nparticles_active_on_mype
+      ipart = particles_active_on_mype(iipart);
+      q     = particle(ipart)%self%q
+      m     = particle(ipart)%self%m
 
-      q  = particle(ipart)%self%q
-      m  = particle(ipart)%self%m
-      dt_p = particle(ipart)%self%dt
+      if (it_particles > 0) then
+        ! Push particle over half of previous time step
+        dt_first_push = 0.5d0 * particle(ipart)%self%dt
+      else
+        ! At the first iteration we have no previous time step, so compute an
+        ! initial one
+        dt_first_push = 0.5d0 * Lorentz_get_particle_dt(particle(ipart), end_time)
+      end if
+
+      ! Push the particles
+      call get_lfac(particle(ipart)%self%u,lfac)
+      particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
+           + dt_first_push * particle(ipart)%self%u(1:ndir)/lfac &
+           * const_c / unit_length
+
+      ! Get E, B at new position
       call get_b(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,b)
       call get_e(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,e)
 
+      ! Determine new time step
+      dt_p = Lorentz_get_particle_dt(particle(ipart), end_time)
+
+      ! 'Kick' particle (update velocity)
       select case(typeaxial)
 
       ! CARTESIAN COORDINATES
@@ -1664,16 +1670,7 @@ module mod_particles
           radmom = 0.0d0
         end if
 
-        ! Half the velocity update
-        particle(ipart)%self%u = 0.5d0 * (particle(ipart)%self%u + &
-             uplus + emom + radmom)
-
-        ! Update position using average velocity
-        particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-             + dt_p * particle(ipart)%self%u(1:ndir)/lfac &
-             * const_c / unit_length
-
-        ! Now the full velocity update
+        ! Update the velocity
         particle(ipart)%self%u = uplus + emom + radmom
 
         ! Payload update
@@ -1771,6 +1768,19 @@ module mod_particles
 
       end select
 
+      call get_lfac(particle(ipart)%self%u,lfac)
+
+      ! Push particle at end
+      dt_last_push = dt_p - dt_first_push ! This may be negative
+
+      particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
+           + dt_last_push * particle(ipart)%self%u(1:ndir)/lfac &
+           * const_c / unit_length
+
+      ! At the start of the next iteration, we will again push the particle over
+      ! half * dt (== dt_last_push)
+      particle(ipart)%self%dt = 2 * dt_last_push
+
       ! Time update
       particle(ipart)%self%t = particle(ipart)%self%t + dt_p
 
@@ -1799,74 +1809,60 @@ module mod_particles
 
   end subroutine Lorentz_integrate_particles
 
-  subroutine Lorentz_set_particles_dt(end_time)
+  function Lorentz_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
-    double precision, intent(in) :: end_time
-    integer                         :: ipart, iipart, nout
-    double precision,dimension(ndir):: b,v
-    double precision                :: lfac,absb,dt_particles_mype,dt_cfl
-    double precision                :: t_min_mype, tout
-    double precision, parameter     :: cfl=0.5d0
+    type(particle_ptr), intent(in)   :: partp
+    double precision, intent(in)     :: end_time
+    double precision                 :: dt_p
+    integer                          :: ipart, iipart, nout
+    double precision,dimension(ndir) :: b,v
+    double precision                 :: lfac,absb,dt_cfl
+    double precision                 :: tout
+    double precision, parameter      :: cfl = 0.5d0
 
-    dt_particles      = bigdouble
-    dt_particles_mype = bigdouble
-    t_min_mype        = bigdouble
+    if (const_dt_particles > 0) then
+      dt_p = const_dt_particles
+      return
+    end if
 
-    do iipart=1,nparticles_active_on_mype;ipart=particles_active_on_mype(iipart);
+    call get_b(partp%igrid,partp%self%x,partp%self%t,b)
+    absb = sqrt(sum(b(:)**2))
+    call get_lfac(partp%self%u,lfac)
 
-      call get_b(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,b)
-      absb = sqrt(sum(b(:)**2))
-      call get_lfac(particle(ipart)%self%u,lfac)
+    ! CFL timestep
+    ! make sure we step only one cell at a time:
+    v(:) = abs(const_c * partp%self%u(:) / lfac)
 
-      ! CFL timestep
-      ! make sure we step only one cell at a time:
-      v(:) = abs(const_c * particle(ipart)%self%u(:) / lfac)
+    ! convert to angular velocity:
+    if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
 
-      ! convert to angular velocity:
-      if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/particle(ipart)%self%x(r_))
+    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
 
-      dt_cfl = min({rnode(rpdx^D_,particle(ipart)%igrid)/v(^D)},bigdouble)
-
-      if(typeaxial =='cylindrical'.and.phi_>0) then
-        ! phi-momentum leads to radial velocity:
-        if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
-          sqrt(rnode(rpdx1_,particle(ipart)%igrid)/particle(ipart)%self%x(r_)) &
+    if(typeaxial =='cylindrical'.and.phi_>0) then
+      ! phi-momentum leads to radial velocity:
+      if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
+           sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
            / v(phi_))
-        ! limit the delta phi of the orbit (just for aesthetic reasons):
-        dt_cfl = min(dt_cfl,0.1d0/v(phi_))
-        ! take some care at the axis:
-        dt_cfl = min(dt_cfl,(particle(ipart)%self%x(r_)+smalldouble)/v(r_))
-      end if
+      ! limit the delta phi of the orbit (just for aesthetic reasons):
+      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
+      ! take some care at the axis:
+      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
+    end if
 
-      dt_cfl = dt_cfl * cfl
+    dt_cfl = dt_cfl * cfl
 
-      ! bound by gyro-rotation:
-      particle(ipart)%self%dt = &
-           abs( dtheta * const_c/unit_length * particle(ipart)%self%m * lfac &
-           / (particle(ipart)%self%q * absb) )
+    ! bound by gyro-rotation:
+    dt_p = abs( dtheta * const_c/unit_length * partp%self%m * lfac &
+         / (partp%self%q * absb) )
 
-      particle(ipart)%self%dt = min(particle(ipart)%self%dt,dt_cfl)*unit_length
+    dt_p = min(dt_p, dt_cfl)*unit_length
 
-      ! Make sure we don't advance beyond end_time
-      if (particle(ipart)%self%t + particle(ipart)%self%dt > end_time) then
-         particle(ipart)%self%dt = end_time - particle(ipart)%self%t
-      end if
+    ! Make sure we don't advance beyond end_time
+    if (partp%self%t + dt_p > end_time) then
+      dt_p = end_time - partp%self%t
+    end if
 
-      dt_particles_mype = min(particle(ipart)%self%dt,dt_particles_mype)
-
-      t_min_mype = min(t_min_mype,particle(ipart)%self%t)
-
-    end do ! ipart loop
-
-    ! keep track of the global minimum:
-    call MPI_ALLREDUCE(dt_particles_mype,dt_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-
-    ! keep track of the minimum particle time:
-    call MPI_ALLREDUCE(t_min_mype,tmin_particles,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
-         icomm,ierrmpi)
-
-  end subroutine Lorentz_set_particles_dt
+  end function Lorentz_get_particle_dt
 
   subroutine get_e(igrid,x,tloc,e)
     ! Get the electric field in the grid at postion x.
@@ -1927,7 +1923,7 @@ module mod_particles
 
   end subroutine get_b
 
-  subroutine get_lfac(u,lfac)
+  pure subroutine get_lfac(u,lfac)
     use mod_global_parameters, only: ndir
     double precision,dimension(ndir), intent(in)        :: u
     double precision, intent(out)                      :: lfac
@@ -2423,20 +2419,30 @@ module mod_particles
 
   end subroutine init_particles_output
 
-  subroutine select_active_particles
+  subroutine select_active_particles(end_time)
     use mod_global_parameters
+    double precision, intent(in) :: end_time
 
-    integer                                         :: ipart, iipart
-    logical                                         :: activate
+    integer          :: ipart, iipart
+    logical          :: activate
+    double precision :: t_min_mype
 
+    t_min_mype = bigdouble
     nparticles_active_on_mype = 0
-    do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
-      activate = particle(ipart)%self%t .le. tmax_particles
-      if(activate) then
+
+    do iipart=1,nparticles_on_mype
+      ipart      = particles_on_mype(iipart);
+      activate   = (particle(ipart)%self%t < end_time)
+      t_min_mype = min(t_min_mype, particle(ipart)%self%t)
+
+      if (activate) then
         nparticles_active_on_mype = nparticles_active_on_mype + 1
         particles_active_on_mype(nparticles_active_on_mype) = ipart
       end if
     end do
+
+    call MPI_ALLREDUCE(t_min_mype, min_particle_time, 1, MPI_DOUBLE_PRECISION, &
+         MPI_MIN, icomm, ierrmpi)
 
   end subroutine select_active_particles
 
@@ -2635,11 +2641,6 @@ module mod_particles
     integer                         :: nout
     double precision                :: tout
 
-    ! Write headers (and overwrite old data) when starting a new run
-    if (write_individual .and. it_particles == 0) then
-       
-    end if
-
     if (write_individual) then
        call output_individual()
     end if
@@ -2709,11 +2710,11 @@ module mod_particles
        call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     else
        ! Create file and write header
-       nout = nint(tmin_particles / dtsave_particles)
        write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
-            trim(type) // '_', nout,'.csv'
+            trim(type) // '_', n_output_ensemble,'.csv'
        open(unit=unitparticles,file=filename)
        write(unitparticles,"(a)") trim(csv_header)
+       n_output_ensemble = n_output_ensemble + 1
 
        ! Write own particles
        do ipart=1,send_n_particles_for_output
