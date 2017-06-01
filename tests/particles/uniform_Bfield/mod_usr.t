@@ -4,9 +4,8 @@ module mod_usr
 
   implicit none
 
-  double precision :: Efield_SI(3) = [0.0d0, 0.0d0, 1.0d0]
-  double precision :: Bfield_SI(3) = [0.0d0, 0.0d0, 0.0d0]
-  double precision :: init_gammav_SI(3) = [1d2, 0.0d0, 0.0d0]
+  double precision :: charge = 1.0d0
+  double precision :: mass = 1.0d0
 
 contains
 
@@ -34,7 +33,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /my_list/ Efield_SI, Bfield_SI, init_gammav_SI
+    namelist /my_list/ charge, mass
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -70,10 +69,11 @@ contains
 
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
-    if(first .and. mype==0 )then
+    if (first .and. mype==0 )then
       write(*,*) 'Particles in 3D homogeneous B-field'
       write(*,*) 'rho - p - b:',rho0,p0,b0
       first=.false.
+      print *, "Running test case", iprob
     endif
 
   end subroutine initonegrid_usr
@@ -90,20 +90,90 @@ contains
     integer                       :: n
 
     do n = 1, n_particles
-      ! call get_uniform_pos(x(:, n))
-      ! call get_maxwellian_velocity(v(:, n), 1.0d0/const_c)
-      x(:, n) = 0.5d0
-
-      ! Velocities are assumed to be normalized by the speed of light for the
-      ! Lorentz mover
-      v(:, n) = 1d2 * init_gammav_SI / const_c
-      follow(n) = .true.
-
-      ! A unit charge converted to CGS units
-      q(n)      = const_c * 0.1d0
-      m(n)      = 1d3
+      call get_particle(x(:, n), v(:, n), q(n), m(n), n, iprob)
     end do
+
+    ! Scale to CGS units
+    x = x * 1d2 ! m to cm
+
+    if (physics_type_particles == 'Lorentz') then
+      v = v * 1d2 / const_c     ! to cm/s, then normalize by speed of light
+    else if (physics_type_particles == 'gca') then
+      v = v * 1d2               ! to cm/s
+    else
+      call mpistop('This type of particle mover is not supported here')
+    end if
+
+    q      = q * const_c * 0.1d0 ! A unit charge converted to CGS units
+    m      = m * 1d3             ! kg to gram
   end subroutine generate_particles
+
+  ! Return field at location x (in SI units: Tesla, V/m)
+  subroutine get_field(x, E, B)
+    use mod_global_parameters
+    double precision, intent(in)  :: x(3)
+    double precision, intent(out) :: E(3), B(3)
+
+    select case (iprob)
+    case (1)
+      ! Linear acceleration
+      E = [0.0d0, 0.0d0, 1.0d0]
+      B = [0.0d0, 0.0d0, 1.0d0]
+    case (2)
+      ! Pure gyration
+      E = [0.0d0, 0.0d0, 0.0d0]
+      B = [0.0d0, 0.0d0, 1.0d0]
+    case (3)
+      ! Force-free
+      E = [-1.0d0, 0.0d0, 0.0d0]
+      B = [0.0d0, 0.0d0, 1.0d0]
+    case (4)
+      ! ExB
+      E = [1.0d0, 0.0d0, 0.0d0]
+      B = [0.0d0, 0.0d0, 1.0d0]
+    case (5)
+      ! Gradient in B
+      E = [0.0d0, 0.0d0, 0.0d0]
+      B = [0.0d0, 0.0d0, 1.0d0 + 1d-2 * x(1)]
+    case default
+      call mpistop("Unknown value for iprob")
+    end select
+  end subroutine get_field
+
+  ! Set particle properties (SI units)
+  subroutine get_particle(x, v, q, m, ipart, iprob)
+    double precision, intent(out) :: x(3), v(3), q, m
+    integer, intent(in)           :: ipart, iprob
+
+    q = charge
+    m = mass
+
+    select case (iprob)
+    case (1)
+      ! Linear acceleration
+      x = [0.0d0, 0.0d0, 0.0d0]
+      v = [0.0d0, 0.0d0, 0.0d0]
+    case (2)
+      ! Pure gyration
+      q = 2 * dpi
+      x = [0.0d0, 0.0d0, 0.0d0]
+      v = [1.0d0, 0.0d0, 0.0d0]
+    case (3)
+      ! Force-free
+      x = [0.0d0, 0.0d0, 0.0d0]
+      v = [0.0d0, 1.0d0, 0.0d0]
+    case (4)
+      ! ExB
+      x = [0.0d0, 0.0d0, 0.0d0]
+      v = [0.0d0, 0.0d0, 0.0d0]
+    case (5)
+      ! ExB
+      x = [0.0d0, 0.0d0, 0.0d0]
+      v = [0.0d0, 1.0d0, 0.0d0]
+    case default
+      call mpistop("Unknown value for iprob")
+    end select
+  end subroutine get_particle
 
   subroutine custom_field()
     use mod_global_parameters
@@ -111,19 +181,22 @@ contains
     integer                                   :: igrid, iigrid, idir
     double precision, dimension(ixG^T,1:ndir) :: beta
     double precision, dimension(ixG^T,1:nw)   :: w,wold
-    integer                                   :: idirmin
+    integer                                   :: idirmin, i^D
+    double precision :: x(3), E(3), B(3)
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
 
-       ! fill with magnetic field (converted to CGS units, 1 T -> 1e4 Gauss)
-       gridvars(igrid)%w(ixG^T,bp(1)) = Bfield_SI(1) * 1.0d4
-       gridvars(igrid)%w(ixG^T,bp(2)) = Bfield_SI(2) * 1.0d4
-       gridvars(igrid)%w(ixG^T,bp(3)) = Bfield_SI(3) * 1.0d4
+       {do i^D = ixGlo^D, ixGhi^D\}
+         x = pw(igrid)%x(i^D, :)
+         call get_field(x, E, B)
 
-       gridvars(igrid)%w(ixG^T,ep(1)) = Efield_SI(1) * 1.0d6/const_c
-       gridvars(igrid)%w(ixG^T,ep(2)) = Efield_SI(2) * 1.0d6/const_c
-       gridvars(igrid)%w(ixG^T,ep(3)) = Efield_SI(3) * 1.0d6/const_c
+         ! Convert to CGS units, 1 T -> 1e4 Gauss
+         gridvars(igrid)%w(i^D,bp(:)) = B * 1.0d4
+
+         ! Convert to CGS units
+         gridvars(igrid)%w(i^D,ep(:)) = E * 1.0d6/const_c
+       {end do\}
 
        ! The code interpolates between two states in time (even though we don't
        ! need it here)

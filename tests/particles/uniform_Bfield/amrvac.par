@@ -2,24 +2,17 @@
         autoconvert   = T
         saveprim      = T
         nwauxio       = 0
-        base_filename = 'output/ot_2d'
-        ! convert = .true.
+        base_filename = 'output/method_test'
         convert_type  = 'vtuBmpi'
-        ! restart_from_file='output/ot_2d0000.dat'
  /
-        restart_from_file='ot_2d0004.dat'
-        snapshotnext=5
 
  &savelist
-        ! itsave(1,1)   = 0
-        ! itsave(1,2)   = 0
-        ditsave_log   = 1
-        dtsave_dat    = 1.0d0
+        dtsave_dat    = 1000.0d0
         time_between_print = 10.0
  /
 
  &stoplist
-        time_max      = 100.0
+        time_max      = 10.5
  /
 
  &methodlist
@@ -38,11 +31,9 @@
  /
 
  &meshlist
+        iprob = 5
         refine_criterion = 3
         refine_max_level = 1
-    	! refine_threshold = 20*0.4d0
-        ! w_refine_weight(1)=0.5d0
-        ! w_refine_weight(5)=0.5d0
         domain_nx1    = 16
         domain_nx2    = 16
         domain_nx3    = 16
@@ -66,13 +57,14 @@
  &particles_list
         physics_type_particles='Lorentz'
         num_particles=1
-        dtsave_ensemble=1.0d0
+        dtsave_particles = 1.0d-2
+        write_ensemble = t
+        write_individual = t
         npayload=1
         particles_eta=0.0d-4
+        !const_dt_particles = 0.1d0
  /
 
  &my_list
-        init_gammav_SI = 1.0 0.0 0.0
-        Efield_SI = 0.0 0.0 1.0
-        Bfield_SI = 0.0 0.0 1.0
+        charge = 1.
  /
