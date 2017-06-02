@@ -1125,11 +1125,27 @@ module mod_particles
     dt_p = dt_cfl
 
     ! Make sure we don't advance beyond end_time
-    if (partp%self%t + dt_p > end_time) then
-      dt_p = end_time - partp%self%t
-    end if
+    call limit_dt_endtime(end_time - partp%self%t, dt_p)
 
   end function advect_get_particle_dt
+
+  pure subroutine limit_dt_endtime(t_left, dt_p)
+    double precision, intent(in)    :: t_left
+    double precision, intent(inout) :: dt_p
+    double precision                :: n_steps
+    double precision, parameter     :: eps = 1d-10
+
+    n_steps = t_left / dt_p
+
+    if (n_steps < 1+eps) then
+      ! Last step
+      dt_p = t_left
+    else if (n_steps < 2-eps) then
+      ! Divide time left over two steps, to prevent one tiny time step
+      dt_p = 0.5d0 * t_left
+    end if
+
+  end subroutine limit_dt_endtime
 
   subroutine gca_integrate_particles(end_time)
     use mod_odeint
@@ -1587,9 +1603,7 @@ module mod_particles
     dt_p = dt_tmp
 
     ! Make sure we don't advance beyond end_time
-    if (partp%self%t + dt_p > end_time) then
-      dt_p = end_time - partp%self%t
-    end if
+    call limit_dt_endtime(end_time - partp%self%t, dt_p)
 
   end function gca_get_particle_dt
 
@@ -1842,9 +1856,7 @@ module mod_particles
     dt_p = min(dt_p, dt_cfl)*unit_length
 
     ! Make sure we don't advance beyond end_time
-    if (partp%self%t + dt_p > end_time) then
-      dt_p = end_time - partp%self%t
-    end if
+    call limit_dt_endtime(end_time - partp%self%t, dt_p)
 
   end function Lorentz_get_particle_dt
 
