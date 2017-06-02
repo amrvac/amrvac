@@ -51,7 +51,7 @@ module mod_particles
   integer                 :: n_output_ensemble
 
   ! these two save the list of neighboring cpus:
-  integer, dimension(:), allocatable,save :: ipe_neighbor
+  integer, allocatable :: ipe_neighbor(:)
   integer                                 :: npe_neighbors
 
   integer                                 :: type_particle
@@ -150,36 +150,21 @@ module mod_particles
 
   !> Finalize the particles module
   subroutine particles_finish()
-
-    call finish_particles
-    call finish_particles_com
-    call finish_particles_vars
-
-  end subroutine particles_finish
-
-  subroutine finish_particles()
+    use mod_global_parameters
 
     call destroy_particles(nparticles_on_mype,particles_on_mype(1:nparticles_on_mype))
 
-  end subroutine finish_particles
-
-  subroutine finish_particles_com()
-    use mod_global_parameters
-
+    ! Clean up particle type
     call MPI_TYPE_FREE(type_particle,ierrmpi)
 
-  end subroutine finish_particles_com
-
-  subroutine finish_particles_vars()
-    use mod_global_parameters
-
+    ! Clean up variables
     deallocate(particle)
     deallocate(ipe_neighbor)
     deallocate(particles_on_mype)
     deallocate(particles_active_on_mype)
     deallocate(gridvars)
 
-  end subroutine finish_particles_vars
+  end subroutine particles_finish
 
   !> Give initial values to paramters
   subroutine init_particles_vars()
@@ -2738,27 +2723,28 @@ module mod_particles
     logical                :: file_exists
 
     do iipart=1,nparticles_on_mype
-       ipart=particles_on_mype(iipart)
+      ipart=particles_on_mype(iipart)
 
-       ! should the particle be dumped?
-       if (particle(ipart)%self%follow) then
-          write(filename,"(a,a,i6.6,a)") trim(base_filename), '_particle_', ipart, '.csv'
-          inquire(file=filename, exist=file_exists)
+      ! should the particle be dumped?
+      if (particle(ipart)%self%follow) then
+        write(filename,"(a,a,i6.6,a)") trim(base_filename), '_particle_', &
+             particle(ipart)%self%index, '.csv'
+        inquire(file=filename, exist=file_exists)
 
-          ! Create empty file and write header on first iteration, or when the
-          ! file does not exist yet
-          if (it_particles == 0 .or. .not. file_exists) then
-             open(unit=unitparticles, file=filename)
-             write(unitparticles,"(a)") trim(csv_header)
-          else
-             open(unit=unitparticles, file=filename, access='append')
-          end if
+        ! Create empty file and write header on first iteration, or when the
+        ! file does not exist yet
+        if (it_particles == 0 .or. .not. file_exists) then
+          open(unit=unitparticles, file=filename)
+          write(unitparticles,"(a)") trim(csv_header)
+        else
+          open(unit=unitparticles, file=filename, access='append')
+        end if
 
-          call output_particle(particle(ipart)%self,&
-               particle(ipart)%payload(1:npayload),mype,unitparticles)
+        call output_particle(particle(ipart)%self,&
+             particle(ipart)%payload(1:npayload),mype,unitparticles)
 
-          close(unitparticles)
-       end if
+        close(unitparticles)
+      end if
     end do
 
   end subroutine output_individual
