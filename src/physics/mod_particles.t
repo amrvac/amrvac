@@ -1599,7 +1599,6 @@ module mod_particles
     double precision, intent(in)      :: end_time
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
-    double precision                  :: dt_first_push, dt_last_push
     double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
 
     do iipart=1,nparticles_active_on_mype
@@ -1607,27 +1606,18 @@ module mod_particles
       q     = particle(ipart)%self%q
       m     = particle(ipart)%self%m
 
-      if (it_particles > 0) then
-        ! Push particle over half of previous time step
-        dt_first_push = 0.5d0 * particle(ipart)%self%dt
-      else
-        ! At the first iteration we have no previous time step, so compute an
-        ! initial one
-        dt_first_push = 0.5d0 * Lorentz_get_particle_dt(particle(ipart), end_time)
-      end if
+      dt_p = Lorentz_get_particle_dt(particle(ipart), end_time)
+      particle(ipart)%self%dt = dt_p
 
-      ! Push the particles
+      ! Push particle over half time step
       call get_lfac(particle(ipart)%self%u,lfac)
       particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-           + dt_first_push * particle(ipart)%self%u(1:ndir)/lfac &
+           + 0.5d0 * dt_p * particle(ipart)%self%u(1:ndir)/lfac &
            * const_c / unit_length
 
       ! Get E, B at new position
       call get_b(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,b)
       call get_e(particle(ipart)%igrid,particle(ipart)%self%x,particle(ipart)%self%t,e)
-
-      ! Determine new time step
-      dt_p = Lorentz_get_particle_dt(particle(ipart), end_time)
 
       ! 'Kick' particle (update velocity)
       select case(typeaxial)
@@ -1770,16 +1760,10 @@ module mod_particles
 
       call get_lfac(particle(ipart)%self%u,lfac)
 
-      ! Push particle at end
-      dt_last_push = dt_p - dt_first_push ! This may be negative
-
+      ! Push particle over half time step at end
       particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-           + dt_last_push * particle(ipart)%self%u(1:ndir)/lfac &
+           + 0.5d0 * dt_p * particle(ipart)%self%u(1:ndir)/lfac &
            * const_c / unit_length
-
-      ! At the start of the next iteration, we will again push the particle over
-      ! half * dt (== dt_last_push)
-      particle(ipart)%self%dt = 2 * dt_last_push
 
       ! Time update
       particle(ipart)%self%t = particle(ipart)%self%t + dt_p
