@@ -31,7 +31,7 @@
  /
 
  &meshlist
-        iprob = 5
+        iprob = 2
         refine_criterion = 3
         refine_max_level = 1
         domain_nx1    = 16
@@ -57,12 +57,12 @@
  &particles_list
         physics_type_particles='Lorentz'
         num_particles=1
-        dtsave_particles = 1.0d-2
+        dtsave_particles = 1.0d-1
         write_ensemble = t
         write_individual = t
         npayload=1
         particles_eta=0.0d-4
-        !const_dt_particles = 0.1d0
+        ! const_dt_particles = 0.01d0
  /
 
  &my_list

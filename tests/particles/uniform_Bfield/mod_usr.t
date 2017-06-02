@@ -12,6 +12,7 @@ contains
   subroutine usr_init()
     use mod_global_parameters
     use mod_usr_methods
+    use mod_initialize
 
     unit_length        = 1.d0
     unit_numberdensity = 1.d0
@@ -19,11 +20,20 @@ contains
 
     usr_init_one_grid => initonegrid_usr
     usr_create_particles => generate_particles
-    phys_fill_gridvars => custom_field
 
     call set_coordinate_system("Cartesian_3D")
     call mhd_activate()
     call params_read(par_files)
+
+    call initialize_amrvac()    ! So that we have settings available
+
+    if (physics_type_particles == 'Lorentz') then
+      particles_fill_gridvars => custom_field_Lorentz
+    ! else if (physics_type_particles == 'gca') then
+      ! particle_fill_gridvars => custom_field_gca
+    else
+      call mpistop('This type of particle mover is not supported here')
+    end if
 
   end subroutine usr_init
 
@@ -92,6 +102,8 @@ contains
     do n = 1, n_particles
       call get_particle(x(:, n), v(:, n), q(n), m(n), n, iprob)
     end do
+
+    follow(:) = .true.
 
     ! Scale to CGS units
     x = x * 1d2 ! m to cm
@@ -175,7 +187,8 @@ contains
     end select
   end subroutine get_particle
 
-  subroutine custom_field()
+  subroutine custom_field_Lorentz()
+    use mod_particle_Lorentz
     use mod_global_parameters
 
     integer                                   :: igrid, iigrid, idir
@@ -208,6 +221,6 @@ contains
        end if
     end do
 
-  end subroutine custom_field
+  end subroutine custom_field_Lorentz
 
 end module mod_usr
