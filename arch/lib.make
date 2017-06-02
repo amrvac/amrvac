@@ -10,7 +10,7 @@ ifndef NDIM
 $(error build.make: NDIM is not set)
 endif
 
-SRC_DIRS := . modules amrvacio physics rho hd mhd
+SRC_DIRS := . modules amrvacio physics rho hd mhd particle
 SRC_DIRS := $(addprefix $(AMRVAC_DIR)/src/, $(SRC_DIRS))
 LIB_AMRVAC := libamrvac.a
 PPFLAGS :=

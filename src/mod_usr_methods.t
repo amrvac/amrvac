@@ -45,7 +45,6 @@ module mod_usr_methods
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
   ! Particles module related
-  procedure(p_no_args), pointer        :: usr_init_particles   => null()
   procedure(update_payload), pointer   :: usr_update_payload   => null()
   procedure(create_particles), pointer :: usr_create_particles => null()
 

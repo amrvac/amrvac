@@ -96,7 +96,7 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
-     if(use_particles) call phys_init_particles
+     if (use_particles) call particles_create()
 
   end if
 
