@@ -12,7 +12,7 @@
  /
 
  &stoplist
-        time_max      = 10.5
+        time_max = 1.0
  /
 
  &methodlist
@@ -31,22 +31,22 @@
  /
 
  &meshlist
-        iprob = 1
+        iprob = 5
         refine_criterion = 3
         refine_max_level = 1
         domain_nx1    = 16
         domain_nx2    = 16
         domain_nx3    = 16
-        xprobmin1     = -5.0d8
-        xprobmax1     = 5.0d8
-        xprobmin2     = -5.0d8
-        xprobmax2     = 5.0d8
-        xprobmin3     = -5.0d8
-        xprobmax3     = 5.0d8
+        xprobmin1     = 0.0d0
+        xprobmax1     = 100.0d0
+        xprobmin2     = 0.0d0
+        xprobmax2     = 100.0d0
+        xprobmin3     = 0.0d0
+        xprobmax3     = 100.0d0
  /
 
  &paramlist
-        courantpar    = 0.8d0
+        dtpar = 1d3             ! One big time step for MHD
  /
 
  &mhd_list
@@ -57,12 +57,12 @@
  &particles_list
         physics_type_particles='Lorentz'
         num_particles=1
-        dtsave_particles = 1.0d-1
+        dtsave_particles = 1.0d-2
         write_ensemble = t
         write_individual = t
         npayload=1
         particles_eta=0.0d-4
-        ! const_dt_particles = 0.01d0
+        ! const_dt_particles = 5d-3
  /
 
  &my_list
