@@ -100,14 +100,10 @@ module mod_particle_base
   ! The pseudo-random number generator
   type(rng_t) :: rng
 
-  procedure(sub_create), pointer    :: particles_create        => null()
   procedure(sub_fill_vars), pointer :: particles_fill_gridvars => null()
   procedure(sub_integrate), pointer :: particles_integrate     => null()
 
   abstract interface
-
-    subroutine sub_create()
-    end subroutine sub_create
 
     subroutine sub_fill_vars()
     end subroutine sub_fill_vars
@@ -264,6 +260,7 @@ contains
     x(ndim+1:) = 0.0d0
   end subroutine get_uniform_pos
 
+  !> Initialize grid variables for particles
   subroutine init_gridvars()
     use mod_global_parameters
 
@@ -271,13 +268,19 @@ contains
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate(gridvars(igrid)%w(ixG^T,1:ngridvars))
-      if(time_advance) allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
+      gridvars(igrid)%w = 0.0d0
+
+      if (time_advance) then
+        allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
+        gridvars(igrid)%wold = 0.0d0
+      end if
     end do
 
     call particles_fill_gridvars()
 
   end subroutine init_gridvars
 
+  !> Deallocate grid variables for particles
   subroutine finish_gridvars()
     use mod_global_parameters
 
@@ -318,6 +321,8 @@ contains
 
   end subroutine get_current
 
+  !> Let particles evolve in time. The routine also handles grid variables and
+  !> output.
   subroutine handle_particles()
     use mod_timing
     use mod_global_parameters
@@ -365,10 +370,11 @@ contains
 
   end subroutine handle_particles
 
+  !> Routine handles the particle evolution
   subroutine advance_particles(end_time, steps_taken)
     use mod_timing
     use mod_global_parameters
-    double precision, intent(in) :: end_time
+    double precision, intent(in) :: end_time !< Advance at most up to this time
     integer, intent(out)         :: steps_taken
     integer                      :: n_active
 
@@ -453,6 +459,7 @@ contains
 
   end subroutine get_vec
 
+  !> Get Lorentz factor from relativistic momentum
   pure subroutine get_lfac(u,lfac)
     use mod_global_parameters, only: ndir
     double precision,dimension(ndir), intent(in)        :: u
@@ -461,6 +468,16 @@ contains
     lfac = sqrt(1.0d0 + sum(u(:)**2))
 
   end subroutine get_lfac
+
+  !> Get Lorentz factor from velocity
+  pure subroutine get_lfac_from_velocity(v,lfac)
+    use mod_global_parameters, only: ndir
+    double precision,dimension(ndir), intent(in)        :: v
+    double precision, intent(out)                      :: lfac
+
+    lfac = 1.0d0 / sqrt(1.0d0 - sum(v(:)**2)/const_c**2)
+
+  end subroutine get_lfac_from_velocity
 
   subroutine cross(a,b,c)
     use mod_global_parameters
@@ -487,80 +504,6 @@ contains
 
   end subroutine cross
 
-  subroutine interpolate_var_rk(igrid,ixI^L,ixO^L,gf,x,xloc,gfloc)
-    use mod_global_parameters
-
-    integer, intent(in)                   :: igrid,ixI^L, ixO^L
-    double precision, intent(in)          :: gf(ixI^S)
-    double precision, intent(in)          :: x(ixI^S,1:ndim)
-    double precision, intent(in)          :: xloc(1:ndir)
-    double precision, intent(out)         :: gfloc
-    double precision                      :: xd^D
-    {^IFTWOD
-    double precision                      :: c00, c10
-    }
-    {^IFTHREED
-    double precision                      :: c0, c1, c00, c10, c01, c11
-    }
-    integer                               :: ic^D, ic1^D, ic2^D, idir
-    character(len=1024)                   :: line
-
-    ! flat interpolation:
-    {ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells \}
-    !gfloc = gf(ic^D)
-
-    ! linear interpolation:
-    {
-    if (x({ic^DD},^D) .lt. xloc(^D)) then
-      ic1^D = ic^D
-    else
-      ic1^D = ic^D -1
-    end if
-    ic2^D = ic1^D + 1
-    \}
-
-    {^D&
-                                ! for the RK4 integration in integrate_particles.t we allow interpolation in
-                                ! to enter the ghost cells. After his integration the particle is communicated
-                                ! to the neighbouring grid block.
-                                !if (ic1^D.lt.ixGlo^D+1 .or. ic2^D.gt.ixGhi^D-1) then
-    if(ic1^D.lt.ixGlo^D .or. ic2^D.gt.ixGhi^D) then
-      print *, 'direction: ',^D
-      print *, 'position: ',xloc(1:ndim)
-      print *, 'indices:', ic1^D,ic2^D
-      call mpistop('Trying to interpolate from out of grid!')
-    end if
-    \}
-
-    {^IFONED
-    xd1 = (xloc(1)-x(ic11,1)) / (x(ic21,1) - x(ic11,1))
-    gfloc  = gf(ic11) * (1.0d0 - xd1) + gf(ic21) * xd1
-    }
-    {^IFTWOD
-    xd1 = (xloc(1)-x(ic11,ic12,1)) / (x(ic21,ic12,1) - x(ic11,ic12,1))
-    xd2 = (xloc(2)-x(ic11,ic12,2)) / (x(ic11,ic22,2) - x(ic11,ic12,2))
-    c00 = gf(ic11,ic12) * (1.0d0 - xd1) + gf(ic21,ic12) * xd1
-    c10 = gf(ic11,ic22) * (1.0d0 - xd1) + gf(ic21,ic22) * xd1
-    gfloc  = c00 * (1.0d0 - xd2) + c10 * xd2
-    }
-    {^IFTHREED
-    xd1 = (xloc(1)-x(ic11,ic12,ic13,1)) / (x(ic21,ic12,ic13,1) - x(ic11,ic12,ic13,1))
-    xd2 = (xloc(2)-x(ic11,ic12,ic13,2)) / (x(ic11,ic22,ic13,2) - x(ic11,ic12,ic13,2))
-    xd3 = (xloc(3)-x(ic11,ic12,ic13,3)) / (x(ic11,ic12,ic23,3) - x(ic11,ic12,ic13,3))
-
-    c00 = gf(ic11,ic12,ic13) * (1.0d0 - xd1) + gf(ic21,ic12,ic13) * xd1
-    c10 = gf(ic11,ic22,ic13) * (1.0d0 - xd1) + gf(ic21,ic22,ic13) * xd1
-    c01 = gf(ic11,ic12,ic23) * (1.0d0 - xd1) + gf(ic21,ic12,ic23) * xd1
-    c11 = gf(ic11,ic22,ic23) * (1.0d0 - xd1) + gf(ic21,ic22,ic23) * xd1
-
-    c0  = c00 * (1.0d0 - xd2) + c10 * xd2
-    c1  = c01 * (1.0d0 - xd2) + c11 * xd2
-
-    gfloc = c0 * (1.0d0 - xd3) + c1 * xd3
-    }
-
-  end subroutine interpolate_var_rk
-
   subroutine interpolate_var(igrid,ixI^L,ixO^L,gf,x,xloc,gfloc)
     use mod_global_parameters
 
@@ -577,7 +520,6 @@ contains
     double precision                      :: c0, c1, c00, c10, c01, c11
     }
     integer                               :: ic^D, ic1^D, ic2^D, idir
-    character(len=1024)                   :: line
 
     ! flat interpolation:
     {ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells \}
@@ -933,12 +875,11 @@ contains
     use mod_forest, only: tree_node_ptr, tree_root
     use mod_global_parameters
 
-    double precision, dimension(ndir), intent(in)   :: x
-    integer, intent(out)                            :: igrid_particle, ipe_particle
-
-    integer, dimension(ndir,nlevelshi)              :: ig
-    integer                                         :: idim, ic(ndim)
-    type(tree_node_ptr)                             :: branch
+    double precision, intent(in) :: x(ndir)
+    integer, intent(out)         :: igrid_particle, ipe_particle
+    integer                      :: ig(ndir,nlevelshi), ig_lvl(nlevelshi)
+    integer                      :: idim, ic(ndim)
+    type(tree_node_ptr)          :: branch
 
     ! first check if the particle is in the domain
     if (.not. particle_in_domain(x)) then
@@ -949,7 +890,8 @@ contains
 
     ! get the index on each level
     do idim = 1, ndim
-      call get_igslice(idim,x(idim),ig(idim,:))
+      call get_igslice(idim,x(idim), ig_lvl)
+      ig(idim,:) = ig_lvl
     end do
 
     ! traverse the tree until leaf is found

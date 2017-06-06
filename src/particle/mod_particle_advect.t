@@ -6,11 +6,12 @@ module mod_particle_advect
   !> Variable index for velocity
   integer, dimension(:), allocatable      :: vp(:)
 
-  public :: particle_advect_init
+  public :: advect_init
+  public :: advect_create_particles
 
 contains
 
-  subroutine particle_advect_init()
+  subroutine advect_init()
     use mod_global_parameters
     integer :: idir
 
@@ -21,12 +22,11 @@ contains
       vp(idir) = idir
     end do
 
-    particles_create          => advect_create_particles
     if (.not. associated(particles_fill_gridvars)) &
          particles_fill_gridvars => advect_fill_gridvars
     particles_integrate     => advect_integrate_particles
 
-  end subroutine particle_advect_init
+  end subroutine advect_init
 
   subroutine advect_create_particles()
     ! initialise the particles

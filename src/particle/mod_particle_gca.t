@@ -3,27 +3,35 @@ module mod_particle_gca
 
   private
 
-  public :: particle_gca_init
-
   !> Variable index for magnetic field
-  integer, dimension(:), allocatable      :: bp(:)
+  integer, protected, allocatable      :: bp(:)
   !> Variable index for electric field
-  integer, dimension(:), allocatable      :: ep(:)
+  integer, protected, allocatable      :: ep(:)
 
-  !> Variable index for
-  integer, dimension(:), allocatable      :: grad_kappa_B(:)
-  !> Variable index for
-  integer, dimension(:), allocatable      :: b_dot_grad_b(:)
-  !> Variable index for
-  integer, dimension(:), allocatable      :: ue_dot_grad_b(:)
-  !> Variable index for
-  integer, dimension(:), allocatable      :: b_dot_grad_ue(:)
-  !> Variable index for
-  integer, dimension(:), allocatable      :: ue_dot_grad_ue(:)
+  !> Variable index for gradient B (but with relativistic correction kappa,
+  !> which is given by kappa = sqrt(1 - E_perp^2/B^2)
+  integer, protected, allocatable      :: grad_kappa_B(:)
+  !> Variable index for B . grad(B) (curvature B drift)
+  integer, protected, allocatable      :: b_dot_grad_b(:)
+
+  ! ExB related drifts (ue = ExB/B^2)
+  !> Variable index for curvature drift
+  integer, protected, allocatable      :: ue_dot_grad_b(:)
+  !> Variable index for polarization drift
+  integer, protected, allocatable      :: b_dot_grad_ue(:)
+  !> Variable index for polarization drift
+  integer, protected, allocatable      :: ue_dot_grad_ue(:)
+
+  public :: gca_init
+  public :: gca_create_particles
+
+  ! Variables
+  public :: bp, ep, grad_kappa_B, b_dot_grad_b
+  public :: ue_dot_grad_b, b_dot_grad_ue, ue_dot_grad_ue
 
 contains
 
-  subroutine particle_gca_init()
+  subroutine gca_init()
     use mod_global_parameters
     integer :: idir, nwx
 
@@ -68,115 +76,95 @@ contains
     end do
     ngridvars=nwx
 
-    particles_create => gca_create_particles
     if (.not. associated(particles_fill_gridvars)) &
          particles_fill_gridvars => gca_fill_gridvars
     particles_integrate     => gca_integrate_particles
-  end subroutine particle_gca_init
+  end subroutine gca_init
 
   subroutine gca_create_particles()
     ! initialise the particles
     use mod_global_parameters
+    use mod_usr_methods, only: usr_create_particles
 
-    double precision, dimension(ndir)   :: x,B,u
-    double precision, dimension(num_particles,ndir) :: rrd, srd, trd
-    double precision                    :: absB, absS, theta, prob, lfac, gamma
-    integer                             :: igrid_particle, ipe_particle
-    integer                             :: n, idir
-    logical, dimension(1:num_particles) :: follow
+    double precision :: B(ndir), u(ndir), magmom
+    double precision :: Bnorm, lfac, vnorm, vperp, vpar
+    integer          :: igrid_particle, ipe_particle
+    integer          :: n, idir
+    double precision :: x(3, num_particles)
+    double precision :: v(3, num_particles)
+    double precision :: q(num_particles)
+    double precision :: m(num_particles)
+    logical          :: follow(num_particles)
 
-    follow=.false.
+    if (.not. associated(usr_create_particles)) then
+      call mpistop("Error: no usr_create_particles method specified")
+    else if (mype == 0) then
+      call usr_create_particles(num_particles, x, v, q, m, follow)
+    end if
 
-    do idir=1,ndir
-      do n = 1, num_particles
-        rrd(n, idir) = rng%unif_01()
-        srd(n, idir) = rng%unif_01()
-        trd(n, idir) = rng%unif_01()
-      end do
-    end do
+    call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(v,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(q,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(m,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
+
+    nparticles = num_particles
 
     ! first find ipe and igrid responsible for particle
+    do n = 1, num_particles
+      call find_particle_ipe(x(:, n),igrid_particle,ipe_particle)
 
-    x(:)=0.0d0
-
-    do while (nparticles .lt. num_particles)
-
-      {^D&x(^D) = xprobmin^D + rrd(nparticles+1,^D) * (xprobmax^D - xprobmin^D)\}
-
-      call find_particle_ipe(x,igrid_particle,ipe_particle)
-
-      nparticles=nparticles+1
-      particle(nparticles)%igrid  = igrid_particle
-      particle(nparticles)%ipe    = ipe_particle
+      particle(n)%igrid = igrid_particle
+      particle(n)%ipe   = ipe_particle
 
       if(ipe_particle == mype) then
-        call push_particle_into_particles_on_mype(nparticles)
-        allocate(particle(nparticles)%self)
-        particle(nparticles)%self%follow = follow(nparticles)
-        particle(nparticles)%self%index  = nparticles
-        particle(nparticles)%self%q      = - const_e
-        particle(nparticles)%self%m      =   const_me
+        call push_particle_into_particles_on_mype(n)
+        call get_lfac_from_velocity(v(:, n), lfac)
 
-        particle(nparticles)%self%t      = 0.0d0
-        particle(nparticles)%self%dt     = 0.0d0
-        particle(nparticles)%self%x = 0.d0
-        particle(nparticles)%self%x(1:ndir) = x(1:ndir)
-
-        ! Maxwellian velocity distribution
-        absS = sqrt(sum(srd(nparticles,:)**2))
-
-        ! Maxwellian velocity distribution assigned here
-        prob  = sqrt(-2.0d0*log(1.0-0.999999*srd(nparticles,1)))
-
-        ! random pitch angle given to each particle
-        theta = 2.0d0*dpi*trd(nparticles,1)
-
-        !> random Maxwellian velocity. In this way v_perp = u(2)^2+u(3)^2, v// =
-        !> sqrt(u(1)^2) and vthermal = sqrt(v_perp^2 + v//^2)
-
-        !*sqrt(const_mp/const_me)
-        u(1) = sqrt(2.0d0) * unit_velocity *prob*dsin(theta)
-        !*sqrt(const_mp/const_me)
-        u(2) =  unit_velocity *prob*dcos(theta)
-        !*sqrt(const_mp/const_me)
-        u(3) =  unit_velocity *prob*dcos(theta)
-
-        lfac = one/sqrt(one-sum(u(:)**2)/const_c**2)
-
-        ! particles Lorentz factor
-        gamma = sqrt(1.0d0 + lfac**2*sum(u(:)**2)/const_c**2)
+        allocate(particle(n)%self)
+        particle(n)%self%x      = x(:, n)
+        particle(n)%self%q      = q(n)
+        particle(n)%self%m      = m(n)
+        particle(n)%self%follow = follow(n)
+        particle(n)%self%index  = n
+        particle(n)%self%t      = 0.0d0
+        particle(n)%self%dt     = 0.0d0
 
         do idir=1,ndir
           call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
                pw(igrid_particle)%w(ixG^T,iw_mag(idir)),pw(igrid_particle)%x,x,B(idir))
         end do
-        B=B*unit_magneticfield
-        absB = sqrt(sum(B(:)**2))
+        B     = B*unit_magneticfield
+        Bnorm = norm2(B(:))
+        vnorm = norm2(v(:, n))
+        vpar  = norm2(v(:, n) * B/Bnorm)
+        vperp = vnorm - vpar
+
+        ! The momentum vector u(1:3) is filled with the following components
 
         ! parallel momentum component (gamma v||)
-        particle(nparticles)%self%u(1) = lfac * u(1)
+        particle(n)%self%u(1) = lfac * vpar
 
         ! Mr: the conserved magnetic moment
-        particle(nparticles)%self%u(2) = (sqrt(u(2)**2+u(3)**2)* &
-             particle(nparticles)%self%m )**2 / (2.0d0* &
-             particle(nparticles)%self%m * absB)
+        magmom = m(n) * (vperp * lfac)**2 / (2.0d0 * Bnorm)
+        particle(n)%self%u(2) = magmom
 
         ! Lorentz factor
-        particle(nparticles)%self%u(3) = lfac
+        particle(n)%self%u(3) = lfac
 
         ! initialise payloads for guiding centre module
-        if(npayload>2) then
-          allocate(particle(nparticles)%payload(npayload))
-          particle(nparticles)%payload(:) = 0.0d0
+        allocate(particle(n)%payload(npayload))
+        particle(n)%payload(:) = 0.0d0
+
+        if (npayload >= 3) then
           ! gyroradius
-          particle(nparticles)%payload(1)=sqrt(2.0d0*particle(nparticles)%self%m*&
-               particle(nparticles)%self%u(2)*absB)/abs(particle(nparticles)%self%q*absB)*const_c
+          particle(n)%payload(1)=sqrt(2.0d0*m(n)*&
+               magmom*Bnorm)/abs(q(n)*Bnorm)*const_c
           ! pitch angle
-          particle(nparticles)%payload(2)=datan(sqrt((2.0d0*particle(nparticles)%self%u(2)*&
-               absB)/(particle(nparticles)%self%m*particle(nparticles)%self%u(3)**2))/(u(1)))
+          particle(n)%payload(2)=atan(vperp/vpar)
           ! perpendicular velocity
-          particle(nparticles)%payload(3)=sqrt((2.0d0*particle(nparticles)%self%u(2)*&
-               absB)/(particle(nparticles)%self%m*particle(nparticles)%self%u(3)**2))
+          particle(n)%payload(3)=sqrt((2.0d0*magmom*&
+               Bnorm)/(m(n)*lfac**2))
         end if
 
       end if
@@ -185,7 +173,7 @@ contains
 
   end subroutine gca_create_particles
 
-    subroutine gca_fill_gridvars()
+  subroutine gca_fill_gridvars()
     use mod_global_parameters
 
     integer                                   :: igrid, iigrid, idir, idim
@@ -529,34 +517,36 @@ contains
       momentumpar4 = -(Mr/gamma)*sum(bhat(:)*gradkappaB(:))
 
       ! Payload update
-      ! current gyroradius
-      particle(ipart)%payload(1) = sqrt(2.0d0*m*Mr*absb)/abs(q*absb)*const_c
-      ! pitch angle
-      particle(ipart)%payload(2) = datan(sqrt((2.0d0*Mr*absb)/(m*gamma**2))/vpar)
-      ! particle v_perp
-      particle(ipart)%payload(3) = sqrt((2.0d0*Mr*absb)/(m*gamma**2))
-      ! particle parallel momentum term 1
-      particle(ipart)%payload(4) = momentumpar1
-      ! particle parallel momentum term 2
-      particle(ipart)%payload(5) = momentumpar2
-      ! particle parallel momentum term 3
-      particle(ipart)%payload(6) = momentumpar3
-      ! particle parallel momentum term 4
-      particle(ipart)%payload(7) = momentumpar4
-      ! particle ExB drift
-      particle(ipart)%payload(8) = ueabs
-      ! relativistic drift
-      particle(ipart)%payload(9) = reldrift_abs
-      ! gradB drift
-      particle(ipart)%payload(10) = gradBdrift_abs
-      ! bdotgradb drift
-      particle(ipart)%payload(11) = bdotgradbdrift_abs
-      ! uedotgradb drift
-      particle(ipart)%payload(12) = uedotgradbdrift_abs
-      ! bdotgradue drift
-      particle(ipart)%payload(13) = bdotgraduedrift_abs
-      ! uedotgradue drift
-      particle(ipart)%payload(14) = uedotgraduedrift_abs
+      if (npayload >= 14) then
+        ! current gyroradius
+        particle(ipart)%payload(1) = sqrt(2.0d0*m*Mr*absb)/abs(q*absb)*const_c
+        ! pitch angle
+        particle(ipart)%payload(2) = datan(sqrt((2.0d0*Mr*absb)/(m*gamma**2))/vpar)
+        ! particle v_perp
+        particle(ipart)%payload(3) = sqrt((2.0d0*Mr*absb)/(m*gamma**2))
+        ! particle parallel momentum term 1
+        particle(ipart)%payload(4) = momentumpar1
+        ! particle parallel momentum term 2
+        particle(ipart)%payload(5) = momentumpar2
+        ! particle parallel momentum term 3
+        particle(ipart)%payload(6) = momentumpar3
+        ! particle parallel momentum term 4
+        particle(ipart)%payload(7) = momentumpar4
+        ! particle ExB drift
+        particle(ipart)%payload(8) = ueabs
+        ! relativistic drift
+        particle(ipart)%payload(9) = reldrift_abs
+        ! gradB drift
+        particle(ipart)%payload(10) = gradBdrift_abs
+        ! bdotgradb drift
+        particle(ipart)%payload(11) = bdotgradbdrift_abs
+        ! uedotgradb drift
+        particle(ipart)%payload(12) = uedotgradbdrift_abs
+        ! bdotgradue drift
+        particle(ipart)%payload(13) = bdotgraduedrift_abs
+        ! uedotgradue drift
+        particle(ipart)%payload(14) = uedotgraduedrift_abs
+      end if
 
       ! Time update
       particle(ipart)%self%t = particle(ipart)%self%t + dt_p
@@ -727,8 +717,8 @@ contains
     v(1:ndir) = abs(dydt(1:ndir))
     vp = sqrt(sum(v(:)**2))
 
-    dt_cfl0    = dxmin/vp
-    dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap0)
+    dt_cfl0    = dxmin / max(vp, smalldouble)
+    dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(ap0, smalldouble))
     !dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(unit_length*dxmin/(ap0+smalldouble))) )
 
     ! make an Euler step with the proposed timestep:
@@ -755,8 +745,8 @@ contains
     v(1:ndir) = abs(dydt(1:ndir))
     vp = sqrt(sum(v(:)**2))
 
-    dt_cfl1    = dxmin/vp
-    dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / ap1)
+    dt_cfl1    = dxmin / max(vp, smalldouble)
+    dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(ap1, smalldouble))
     !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(unit_length*dxmin/(ap1+smalldouble))) )
 
     dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap1)
