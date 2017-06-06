@@ -2,7 +2,7 @@
         autoconvert   = T
         saveprim      = T
         nwauxio       = 0
-        base_filename = 'output/method_test'
+        base_filename = 'output/test'
         convert_type  = 'vtuBmpi'
  /
 

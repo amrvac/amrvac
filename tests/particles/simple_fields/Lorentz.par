@@ -1,0 +1,8 @@
+ &filelist
+        base_filename = '_Lorentz'
+ /
+
+ &particles_list
+        physics_type_particles='Lorentz'
+        npayload=1
+ /
