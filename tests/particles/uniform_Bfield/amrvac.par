@@ -31,7 +31,7 @@
  /
 
  &meshlist
-        iprob = 2
+        iprob = 1
         refine_criterion = 3
         refine_max_level = 1
         domain_nx1    = 16
