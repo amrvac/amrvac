@@ -7,7 +7,7 @@ module mod_particle_base
   !> String describing the particle physics type
   character(len=name_len) :: physics_type_particles = ""
   !> Header string used in CSV files
-  character(len=std_len) :: csv_header
+  character(len=200) :: csv_header
   !> Format string used in CSV files
   character(len=60) :: csv_format
   !> Maximum number of particles
@@ -199,7 +199,7 @@ contains
     ! Generate header for CSV files
     csv_header = ' time, dt, x1, x2, x3, u1, u2, u3,'
     do n = 1, npayload
-      write(strdata,"(a,i2.2,a)") 'payload', n, ', '
+      write(strdata,"(a,i2.2,a)") 'pl', n, ','
       csv_header = trim(csv_header) // trim(strdata)
     end do
     csv_header = trim(csv_header) // 'ipe, iteration, index'
@@ -327,7 +327,7 @@ contains
     use mod_timing
     use mod_global_parameters
 
-    integer :: steps_taken
+    integer :: steps_taken, nparticles_left
 
     if(time_advance) tmax_particles = global_time + dt
     if(physics_type_particles/='advect') tmax_particles=tmax_particles*unit_time
@@ -362,6 +362,11 @@ contains
         call advance_particles(tmax_particles, steps_taken)
         exit
       end if
+
+      call MPI_ALLREDUCE(nparticles_on_mype, nparticles_left, 1, MPI_INTEGER, &
+           MPI_SUM, icomm, ierrmpi)
+      if (nparticles_left == 0) call mpistop('No particles left')
+
     end do
 
     call finish_gridvars()
@@ -810,7 +815,7 @@ contains
     t_min_mype = bigdouble
     nparticles_active_on_mype = 0
 
-    do iipart=1,nparticles_on_mype
+    do iipart = 1, nparticles_on_mype
       ipart      = particles_on_mype(iipart);
       activate   = (particle(ipart)%self%t < end_time)
       t_min_mype = min(t_min_mype, particle(ipart)%self%t)
