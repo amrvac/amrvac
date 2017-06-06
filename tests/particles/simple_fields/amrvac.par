@@ -31,18 +31,18 @@
  /
 
  &meshlist
-        iprob = 5
+        iprob = 6
         refine_criterion = 3
         refine_max_level = 1
-        domain_nx1    = 16
-        domain_nx2    = 16
-        domain_nx3    = 16
-        xprobmin1     = 0.0d0
-        xprobmax1     = 100.0d0
-        xprobmin2     = 0.0d0
-        xprobmax2     = 100.0d0
-        xprobmin3     = 0.0d0
-        xprobmax3     = 100.0d0
+        domain_nx1    = 32
+        domain_nx2    = 32
+        domain_nx3    = 32
+        xprobmin1     = -50.0d0
+        xprobmax1     = 50.0d0
+        xprobmin2     = -50.0d0
+        xprobmax2     = 50.0d0
+        xprobmin3     = -50.0d0
+        xprobmax3     = 50.0d0
  /
 
  &paramlist

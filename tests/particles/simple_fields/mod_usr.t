@@ -139,7 +139,11 @@ contains
     case (5)
       ! Gradient in B
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, 8 * dpi * (1.0d0 + 1.0d-2 * x(1))]
+      B = [0.0d0, 0.0d0, 4 * dpi * (2.0d0 + 1.0d-2 * x(1))]
+    case (6)
+      ! Magnetic mirror (requires longer time a.t.m.)
+      E = [0.0d0, 0.0d0, 0.0d0]
+      B = [-x(1) * x(3), -x(2) * x(3), 1d2 + x(3)**2] * 1d-2
     case default
       call mpistop("Unknown value for iprob")
     end select
@@ -160,7 +164,7 @@ contains
       v = [0.0d0, 0.0d0, 0.0d0]
     case (2)
       ! Pure gyration centered around (0.5, 0.5)
-      x = [0.5d0, 0.0d0, 0.0d0]
+      x = [0.0d0, 0.0d0, 0.0d0]
       v = [-4 * dpi, 0.0d0, 0.0d0]
     case (3)
       ! Force-free
@@ -172,8 +176,12 @@ contains
       v = [0.0d0, 0.0d0, 0.0d0]
     case (5)
       ! Gradient in B
-      x = [0.5d0, 0.0d0, 0.0d0]
-      v = [-2 * dpi, 0.0d0, 0.0d0]
+      x = [0.0d0, 0.0d0, 0.0d0]
+      v = [-dpi, 0.0d0, 0.0d0]
+    case (6)
+      ! Magnetic mirror
+      x = [0.0d0, 0.0d0, 0.0d0]
+      v = [0.0d0, 1.0d0, 1.0d0]
     case default
       call mpistop("Unknown value for iprob")
     end select
