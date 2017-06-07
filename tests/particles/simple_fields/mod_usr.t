@@ -144,6 +144,11 @@ contains
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
       B = [-x(1) * x(3), -x(2) * x(3), 1d2 + x(3)**2] * 1d-2
+    case (7)
+      ! Magnetic dipole
+      E = [0.0d0, 0.0d0, 0.0d0]
+      B = 300d0 * [3d0 * x(1) * x(3), 3d0 * x(2) * x(3) , 2d0 * x(3)**2 - x(1)**2 - x(2)**2] / (x(1)**2 + x(2)**2 + x(3)**2)**(5/2) 
+      !B = [3d0 * x(1) * x(3), 0.0d0, 2d0 * x(3)**2 - x(1)**2] / (x(1)**2 + x(3)**2)**(5/2) !This is a dipole in azimuthal symmetry with phi = y = 0
     case default
       call mpistop("Unknown value for iprob")
     end select
@@ -182,6 +187,11 @@ contains
       ! Magnetic mirror
       x = [0.0d0, 0.0d0, 0.0d0]
       v = [0.0d0, 1.0d0, 1.0d0]
+    case (7)
+      ! Magnetic dipole
+      x = [1.0d0, 1.0d0, 0.0d0]
+      v = [1.0d0, 1.0d0, 1.0d0]
+
     case default
       call mpistop("Unknown value for iprob")
     end select
