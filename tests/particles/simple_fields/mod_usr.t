@@ -6,6 +6,8 @@ module mod_usr
 
   double precision :: charge = 1.0d0
   double precision :: mass = 1.0d0
+  double precision :: x0(3) = [0.0d0, 0.0d0, 0.0d0]
+  double precision :: v0(3) = [0.0d0, 0.0d0, 0.0d0]
 
 contains
 
@@ -36,7 +38,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /my_list/ charge, mass
+    namelist /my_list/ charge, mass, x0, v0
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -127,28 +129,32 @@ contains
     case (2)
       ! Pure gyration
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, 8 * dpi]
+      B = [0.0d0, 0.0d0, 1.0d0]
     case (3)
       ! Force-free
       E = [-1.0d0, 0.0d0, 0.0d0]
       B = [0.0d0, 0.0d0, 1.0d0]
     case (4)
       ! ExB
-      E = [16 * dpi, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, 8 * dpi]
+      E = [2.0d0, 0.0d0, 0.0d0]
+      B = [0.0d0, 0.0d0, 1.0d0]
     case (5)
       ! Gradient in B
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, 4 * dpi * (2.0d0 + 1.0d-2 * x(1))]
+      B = [0.0d0, 0.0d0, (2.0d0 + 1.0d-2 * x(1))]
     case (6)
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = [-x(1) * x(3), -x(2) * x(3), 1d2 + x(3)**2] * 1d-2
+      ! x is in cm
+      B = [-x(1) * x(3), -x(2) * x(3), 1d4 + x(3)**2] * 1d-4
     case (7)
-      ! Magnetic dipole
+      ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = 300d0 * [3d0 * x(1) * x(3), 3d0 * x(2) * x(3) , 2d0 * x(3)**2 - x(1)**2 - x(2)**2] / (x(1)**2 + x(2)**2 + x(3)**2)**(5/2) 
-      !B = [3d0 * x(1) * x(3), 0.0d0, 2d0 * x(3)**2 - x(1)**2] / (x(1)**2 + x(3)**2)**(5/2) !This is a dipole in azimuthal symmetry with phi = y = 0
+      ! x is in cm, this corresponds to B = 1 T at 1 m
+      B = 1d6 * [3d0 * x(1) * x(3), &
+           3d0 * x(2) * x(3), &
+           2d0 * x(3)**2 - x(1)**2 - x(2)**2] / &
+           (x(1)**2 + x(2)**2 + x(3)**2)**(5/2)
     case default
       call mpistop("Unknown value for iprob")
     end select
@@ -162,39 +168,42 @@ contains
     q = charge
     m = mass
 
-    select case (iprob)
-    case (1)
-      ! Linear acceleration
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 0.0d0, 0.0d0]
-    case (2)
-      ! Pure gyration centered around (0.5, 0.5)
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [-4 * dpi, 0.0d0, 0.0d0]
-    case (3)
-      ! Force-free
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 1.0d0, 0.0d0]
-    case (4)
-      ! ExB
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 0.0d0, 0.0d0]
-    case (5)
-      ! Gradient in B
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [-dpi, 0.0d0, 0.0d0]
-    case (6)
-      ! Magnetic mirror
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 1.0d0, 1.0d0]
-    case (7)
-      ! Magnetic dipole
-      x = [1.0d0, 1.0d0, 0.0d0]
-      v = [1.0d0, 1.0d0, 1.0d0]
+    x = x0
+    v = v0
 
-    case default
-      call mpistop("Unknown value for iprob")
-    end select
+    ! select case (iprob)
+    ! case (1)
+    !   ! Linear acceleration
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 0.0d0, 0.0d0]
+    ! case (2)
+    !   ! Pure gyration centered around (0.5, 0.5)
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [-4 * dpi, 0.0d0, 0.0d0]
+    ! case (3)
+    !   ! Force-free
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 1.0d0, 0.0d0]
+    ! case (4)
+    !   ! ExB
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 0.0d0, 0.0d0]
+    ! case (5)
+    !   ! Gradient in B
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [-dpi, 0.0d0, 0.0d0]
+    ! case (6)
+    !   ! Magnetic mirror
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 0.5d0, 0.1d0]
+    ! case (7)
+    !   ! Magnetic dipole
+    !   x = [0.5d0, 0.5d0, 0.0d0]
+    !   v = [1.0d0, 1.0d0, 1.0d0]
+
+    ! case default
+    !   call mpistop("Unknown value for iprob")
+    ! end select
   end subroutine get_particle
 
   subroutine custom_field(x, E_field, B_field)
