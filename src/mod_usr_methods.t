@@ -47,6 +47,7 @@ module mod_usr_methods
   ! Particles module related
   procedure(update_payload), pointer   :: usr_update_payload   => null()
   procedure(create_particles), pointer :: usr_create_particles => null()
+  procedure(particle_fields), pointer  :: usr_particle_fields  => null()
 
   abstract interface
 
@@ -274,6 +275,13 @@ module mod_usr_methods
        double precision, intent(out) :: m(n_particles)
        logical, intent(out)          :: follow(n_particles)
      end subroutine create_particles
+
+     subroutine particle_fields(x, E, B)
+       use mod_global_parameters
+       double precision, intent(in)  :: x(ixG^T,1:ndim)
+       double precision, intent(out) :: E(ixG^T, 1:ndir)
+       double precision, intent(out) :: B(ixG^T, 1:ndir)
+     end subroutine particle_fields
 
   end interface
 

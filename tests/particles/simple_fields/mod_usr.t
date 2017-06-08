@@ -6,6 +6,8 @@ module mod_usr
 
   double precision :: charge = 1.0d0
   double precision :: mass = 1.0d0
+  double precision :: x0(3) = [0.0d0, 0.0d0, 0.0d0]
+  double precision :: v0(3) = [0.0d0, 0.0d0, 0.0d0]
 
 contains
 
@@ -20,20 +22,13 @@ contains
 
     usr_init_one_grid => initonegrid_usr
     usr_create_particles => generate_particles
+    usr_particle_fields => custom_field
 
     call set_coordinate_system("Cartesian_3D")
     call mhd_activate()
     call params_read(par_files)
 
     call initialize_amrvac()    ! So that we have settings available
-
-    if (physics_type_particles == 'Lorentz') then
-      particles_fill_gridvars => custom_field_Lorentz
-    ! else if (physics_type_particles == 'gca') then
-      ! particle_fill_gridvars => custom_field_gca
-    else
-      call mpistop('This type of particle mover is not supported here')
-    end if
 
   end subroutine usr_init
 
@@ -43,7 +38,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /my_list/ charge, mass
+    namelist /my_list/ charge, mass, x0, v0
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -141,12 +136,25 @@ contains
       B = [0.0d0, 0.0d0, 1.0d0]
     case (4)
       ! ExB
-      E = [1.0d0, 0.0d0, 0.0d0]
+      E = [2.0d0, 0.0d0, 0.0d0]
       B = [0.0d0, 0.0d0, 1.0d0]
     case (5)
       ! Gradient in B
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, 1.0d0 + 1d-2 * x(1)]
+      B = [0.0d0, 0.0d0, (2.0d0 + 1.0d-2 * x(1))]
+    case (6)
+      ! Magnetic mirror (requires longer time a.t.m.)
+      E = [0.0d0, 0.0d0, 0.0d0]
+      ! x is in cm
+      B = [-x(1) * x(3), -x(2) * x(3), 1d4 + x(3)**2] * 1d-4
+    case (7)
+      ! Magnetic dipole (run up to t = 100)
+      E = [0.0d0, 0.0d0, 0.0d0]
+      ! x is in cm, this corresponds to B = 1 T at 1 m
+      B = 1d6 * [3d0 * x(1) * x(3), &
+           3d0 * x(2) * x(3), &
+           2d0 * x(3)**2 - x(1)**2 - x(2)**2] / &
+           (x(1)**2 + x(2)**2 + x(3)**2)**(5/2)
     case default
       call mpistop("Unknown value for iprob")
     end select
@@ -160,67 +168,65 @@ contains
     q = charge
     m = mass
 
-    select case (iprob)
-    case (1)
-      ! Linear acceleration
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 0.0d0, 0.0d0]
-    case (2)
-      ! Pure gyration
-      q = 2 * dpi
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [1.0d0, 0.0d0, 0.0d0]
-    case (3)
-      ! Force-free
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 1.0d0, 0.0d0]
-    case (4)
-      ! ExB
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 0.0d0, 0.0d0]
-    case (5)
-      ! ExB
-      x = [0.0d0, 0.0d0, 0.0d0]
-      v = [0.0d0, 1.0d0, 0.0d0]
-    case default
-      call mpistop("Unknown value for iprob")
-    end select
+    x = x0
+    v = v0
+
+    ! select case (iprob)
+    ! case (1)
+    !   ! Linear acceleration
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 0.0d0, 0.0d0]
+    ! case (2)
+    !   ! Pure gyration centered around (0.5, 0.5)
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [-4 * dpi, 0.0d0, 0.0d0]
+    ! case (3)
+    !   ! Force-free
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 1.0d0, 0.0d0]
+    ! case (4)
+    !   ! ExB
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 0.0d0, 0.0d0]
+    ! case (5)
+    !   ! Gradient in B
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [-dpi, 0.0d0, 0.0d0]
+    ! case (6)
+    !   ! Magnetic mirror
+    !   x = [0.0d0, 0.0d0, 0.0d0]
+    !   v = [0.0d0, 0.5d0, 0.1d0]
+    ! case (7)
+    !   ! Magnetic dipole
+    !   x = [0.5d0, 0.5d0, 0.0d0]
+    !   v = [1.0d0, 1.0d0, 1.0d0]
+
+    ! case default
+    !   call mpistop("Unknown value for iprob")
+    ! end select
   end subroutine get_particle
 
-  subroutine custom_field_Lorentz()
-    use mod_particle_Lorentz
+  subroutine custom_field(x, E_field, B_field)
     use mod_global_parameters
+    double precision, intent(in)  :: x(ixG^T,1:ndim)
+    double precision, intent(out) :: E_field(ixG^T, 1:ndir)
+    double precision, intent(out) :: B_field(ixG^T, 1:ndir)
 
-    integer                                   :: igrid, iigrid, idir
-    double precision, dimension(ixG^T,1:ndir) :: beta
-    double precision, dimension(ixG^T,1:nw)   :: w,wold
-    integer                                   :: idirmin, i^D
-    double precision :: x(3), E(3), B(3)
+    integer          :: i^D
+    double precision :: E(3), B(3), xtmp(ndim)
 
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
 
-       {do i^D = ixGlo^D, ixGhi^D\}
-         x = pw(igrid)%x(i^D, :)
-         call get_field(x, E, B)
+    {do i^D = ixGlo^D, ixGhi^D\}
+    xtmp = x(i^D, :)
+    call get_field(xtmp, E, B)
 
-         ! Convert to CGS units, 1 T -> 1e4 Gauss
-         gridvars(igrid)%w(i^D,bp(:)) = B * 1.0d4
+    ! Convert to CGS units, 1 T -> 1e4 Gauss
+    B_field(i^D, :) = B * 1.0d4
 
-         ! Convert to CGS units
-         gridvars(igrid)%w(i^D,ep(:)) = E * 1.0d6/const_c
-       {end do\}
+    ! Convert to CGS units
+    E_field(i^D, :) = E * 1.0d6/const_c
+    {end do\}
 
-       ! The code interpolates between two states in time (even though we don't
-       ! need it here)
-       if (time_advance) then
-         gridvars(igrid)%wold(ixG^T,bp(:)) = &
-            gridvars(igrid)%w(ixG^T,bp(:))
-         gridvars(igrid)%wold(ixG^T,ep(:)) = &
-            gridvars(igrid)%w(ixG^T,ep(:))
-       end if
-    end do
-
-  end subroutine custom_field_Lorentz
+  end subroutine custom_field
 
 end module mod_usr

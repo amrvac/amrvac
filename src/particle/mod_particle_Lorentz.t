@@ -8,12 +8,13 @@ module mod_particle_Lorentz
   !> Variable index for electric field
   integer, allocatable, protected :: ep(:)
 
-  public :: particle_Lorentz_init
+  public :: Lorentz_init
+  public :: Lorentz_create_particles
   public :: bp, ep
 
 contains
 
-  subroutine particle_Lorentz_init()
+  subroutine Lorentz_init()
     use mod_global_parameters
     integer :: idir, nwx
 
@@ -35,11 +36,9 @@ contains
       ep(idir) = nwx
     end do
 
-    particles_create => Lorentz_create_particles
-    if (.not. associated(particles_fill_gridvars)) &
-         particles_fill_gridvars => Lorentz_fill_gridvars
+    particles_fill_gridvars => Lorentz_fill_gridvars
     particles_integrate     => Lorentz_integrate_particles
-  end subroutine particle_Lorentz_init
+  end subroutine Lorentz_init
 
   subroutine Lorentz_create_particles()
 
@@ -47,6 +46,7 @@ contains
     use mod_usr_methods, only: usr_create_particles
 
     integer          :: n, igrid_particle, ipe_particle
+    double precision :: lfac
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
     double precision :: q(num_particles)
@@ -65,30 +65,33 @@ contains
     call MPI_BCAST(m,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
+    nparticles = num_particles
+
     ! Find ipe and igrid responsible for particle
     do n = 1, num_particles
       call find_particle_ipe(x(:, n),igrid_particle,ipe_particle)
 
-      nparticles                 = nparticles+1
-      particle(nparticles)%igrid = igrid_particle
-      particle(nparticles)%ipe   = ipe_particle
+      particle(n)%igrid = igrid_particle
+      particle(n)%ipe   = ipe_particle
 
       if (ipe_particle == mype) then
-        call push_particle_into_particles_on_mype(nparticles)
+        call push_particle_into_particles_on_mype(n)
 
-        allocate(particle(nparticles)%self)
-        particle(nparticles)%self%x      = x(:, n)
-        particle(nparticles)%self%u      = v(:, n)
-        particle(nparticles)%self%q      = q(n)
-        particle(nparticles)%self%m      = m(n)
-        particle(nparticles)%self%follow = follow(n)
-        particle(nparticles)%self%index  = nparticles
-        particle(nparticles)%self%t      = 0.0d0
-        particle(nparticles)%self%dt     = 0.0d0
+        call get_lfac_from_velocity(v(:, n), lfac)
+
+        allocate(particle(n)%self)
+        particle(n)%self%x      = x(:, n)
+        particle(n)%self%u      = v(:, n) * lfac
+        particle(n)%self%q      = q(n)
+        particle(n)%self%m      = m(n)
+        particle(n)%self%follow = follow(n)
+        particle(n)%self%index  = n
+        particle(n)%self%t      = 0.0d0
+        particle(n)%self%dt     = 0.0d0
 
         ! initialise payloads for Lorentz module
-        allocate(particle(nparticles)%payload(npayload))
-        particle(nparticles)%payload(:) = 0.0d0
+        allocate(particle(n)%payload(npayload))
+        particle(n)%payload(:) = 0.0d0
       end if
     end do
 
@@ -96,60 +99,79 @@ contains
 
   subroutine Lorentz_fill_gridvars()
     use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_fields
 
     integer                                   :: igrid, iigrid, idir
     double precision, dimension(ixG^T,1:ndir) :: beta
     double precision, dimension(ixG^T,1:nw)   :: w,wold
     double precision                          :: current(ixG^T,7-2*ndir:3)
     integer                                   :: idirmin
+    double precision                          :: E_field(ixG^T, 1:ndir)
+    double precision                          :: B_field(ixG^T, 1:ndir)
+
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
-      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-      call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
 
-      ! fill with magnetic field:
-      gridvars(igrid)%w(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+      if (associated(usr_particle_fields)) then
+        call usr_particle_fields(pw(igrid)%x, E_field, B_field)
+        gridvars(igrid)%w(ixG^T,ep(:)) = E_field
+        gridvars(igrid)%w(ixG^T,bp(:)) = B_field
+      else
+        ! Determine fields from MHD variables
+        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+        w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
+        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
 
-      ! fill with electric field
-      current = zero
-      call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
-      gridvars(igrid)%w(ixG^T,ep(1)) = gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(3)) &
-           - gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
-      gridvars(igrid)%w(ixG^T,ep(2)) = gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(1)) &
-           - gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
-      gridvars(igrid)%w(ixG^T,ep(3)) = gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(2)) &
-           - gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
-
-      ! scale to cgs units:
-      gridvars(igrid)%w(ixG^T,bp(:)) = &
-           gridvars(igrid)%w(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
-      gridvars(igrid)%w(ixG^T,ep(:)) = &
-           gridvars(igrid)%w(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
-
-      if(time_advance) then
-        gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
-        wold(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,wold,pw(igrid)%x)
         ! fill with magnetic field:
-        gridvars(igrid)%wold(ixG^T,bp(:)) = wold(ixG^T,iw_mag(:))
+        gridvars(igrid)%w(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+
         ! fill with electric field
         current = zero
-        call get_current(wold,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
-        gridvars(igrid)%wold(ixG^T,ep(1)) = gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(3)) &
-             - gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
-        gridvars(igrid)%wold(ixG^T,ep(2)) = gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(1)) &
-             - gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
-        gridvars(igrid)%wold(ixG^T,ep(3)) = gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(2)) &
-             - gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
+        call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
+        gridvars(igrid)%w(ixG^T,ep(1)) = gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(3)) &
+             - gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+        gridvars(igrid)%w(ixG^T,ep(2)) = gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(1)) &
+             - gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+        gridvars(igrid)%w(ixG^T,ep(3)) = gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(2)) &
+             - gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
 
         ! scale to cgs units:
-        gridvars(igrid)%wold(ixG^T,bp(:)) = &
-             gridvars(igrid)%wold(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
-        gridvars(igrid)%wold(ixG^T,ep(:)) = &
-             gridvars(igrid)%wold(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
+        gridvars(igrid)%w(ixG^T,bp(:)) = &
+             gridvars(igrid)%w(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
+        gridvars(igrid)%w(ixG^T,ep(:)) = &
+             gridvars(igrid)%w(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
+      end if
+
+      if (time_advance) then
+        gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
+
+        if (associated(usr_particle_fields)) then
+          !> @todo Compute these fields at a different time?
+          call usr_particle_fields(pw(igrid)%x, E_field, B_field)
+          gridvars(igrid)%wold(ixG^T,ep(:)) = E_field
+          gridvars(igrid)%wold(ixG^T,bp(:)) = B_field
+        else
+          wold(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
+          call phys_to_primitive(ixG^LL,ixG^LL,wold,pw(igrid)%x)
+          ! fill with magnetic field:
+          gridvars(igrid)%wold(ixG^T,bp(:)) = wold(ixG^T,iw_mag(:))
+          ! fill with electric field
+          current = zero
+          call get_current(wold,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
+          gridvars(igrid)%wold(ixG^T,ep(1)) = gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(3)) &
+               - gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+          gridvars(igrid)%wold(ixG^T,ep(2)) = gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(1)) &
+               - gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+          gridvars(igrid)%wold(ixG^T,ep(3)) = gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(2)) &
+               - gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
+
+          ! scale to cgs units:
+          gridvars(igrid)%wold(ixG^T,bp(:)) = &
+               gridvars(igrid)%wold(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
+          gridvars(igrid)%wold(ixG^T,ep(:)) = &
+               gridvars(igrid)%wold(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
+        end if
       end if
 
     end do
@@ -383,9 +405,11 @@ contains
     v(:) = abs(const_c * partp%self%u(:) / lfac)
 
     ! convert to angular velocity:
-    if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
+    if(typeaxial =='cylindrical'.and.phi_>0) then
+      v(phi_) = abs(v(phi_)/partp%self%x(r_))
+    end if
 
-    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
+    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/max(v(^D), smalldouble)})
 
     if(typeaxial =='cylindrical'.and.phi_>0) then
       ! phi-momentum leads to radial velocity:
@@ -393,9 +417,9 @@ contains
            sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
            / v(phi_))
       ! limit the delta phi of the orbit (just for aesthetic reasons):
-      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
+      dt_cfl = min(dt_cfl,0.1d0/max(v(phi_), smalldouble))
       ! take some care at the axis:
-      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
+      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/max(v(r_), smalldouble))
     end if
 
     dt_cfl = dt_cfl * cfl
