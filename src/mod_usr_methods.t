@@ -216,11 +216,12 @@ module mod_usr_methods
      end subroutine set_J0
 
      !> regenerate w and eqpartf arrays to output into *tf.dat
-     subroutine transform_w(w,wtf,ixI^L,ixO^L)
+     subroutine transform_w(ixI^L,ixO^L,nw_in,w_in,x,w_out)
        use mod_global_parameters
-       integer, intent(in)           :: ixI^L, ixO^L
-       double precision, intent(in)  :: w(ixI^S,1:nw)
-       double precision, intent(out) :: wtf(ixI^S,1:nwtf)
+       integer, intent(in)           :: ixI^L, ixO^L, nw_in
+       double precision, intent(in)  :: w_in(ixI^S,1:nw_in)
+       double precision, intent(in)  :: x(ixI^S, 1:ndim)
+       double precision, intent(out) :: w_out(ixI^S,1:nw)
      end subroutine transform_w
 
      !> use different threshold in special regions for AMR to

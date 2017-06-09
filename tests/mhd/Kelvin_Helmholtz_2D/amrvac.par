@@ -13,9 +13,8 @@
         saveprim=.true.
         autoconvert=.true.
         nwauxio=1
+        restart_from_file='KH2proba0001.dat'
  /
-        restart_from_file='KH2proba'
-        snapshotnext=9
         convert=.true.
  
  &savelist
