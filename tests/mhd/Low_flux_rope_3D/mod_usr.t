@@ -16,6 +16,7 @@ contains
     usr_add_aux_names => specialvarnames_output 
     usr_set_B0        => specialset_B0
     usr_set_J0        => specialset_J0
+    usr_special_convert=> usrspecial_convert
 
     call set_coordinate_system("Cartesian")
     call mhd_activate()
@@ -189,13 +190,14 @@ contains
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
     use mod_global_parameters
 
-    integer, intent(in)                :: ixI^L,ixO^L
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-    double precision                   :: w(ixI^S,nw+nwauxio)
-    double precision                   :: normconv(0:nw+nwauxio)
+    integer, intent(in)          :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision             :: w(ixI^S,nw+nwauxio)
+    double precision             :: normconv(0:nw+nwauxio)
 
-    double precision                   :: tmp(ixI^S),current(ixI^S,7-2*ndir:3) 
-    integer :: idirmin
+    double precision             :: tmp(ixI^S),current(ixI^S,7-2*ndir:3) 
+    double precision             :: bvec(ixI^S,1:ndir),qvec(ixI^S,1:ndir)
+    integer :: idirmin, idir, jdir, kdir
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
@@ -215,6 +217,25 @@ contains
     w(ixO^S,nw+4)=current(ixO^S,1)
     w(ixO^S,nw+5)=current(ixO^S,2)
     w(ixO^S,nw+6)=current(ixO^S,3)
+    ! output Lorenz force
+    if(B0field)then
+      bvec(ixO^S,:)=w(ixO^S,mag(:))+block%B0(ixO^S,:,0)
+    else
+      bvec(ixO^S,:)=w(ixO^S,mag(:))
+    end if
+    do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
+      if(lvc(idir,jdir,kdir)/=0)then
+        tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
+        if(lvc(idir,jdir,kdir)==1)then
+           qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
+        else
+           qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
+        endif
+      endif
+    enddo; enddo; enddo
+    w(ixO^S,nw+7)=qvec(ixO^S,1)
+    w(ixO^S,nw+8)=qvec(ixO^S,2)
+    w(ixO^S,nw+9)=qvec(ixO^S,3)
 
   end subroutine specialvar_output
 
@@ -223,7 +244,7 @@ contains
     use mod_global_parameters
     character(len=*) :: varnames
 
-    varnames='Te beta divb j1 j2 j3'
+    varnames='Te beta divb j1 j2 j3 L1 L2 L3'
 
   end subroutine specialvarnames_output
 
@@ -262,5 +283,220 @@ contains
     wJ0(ixO^S,3)=-8.d0*miu*k/(1.d0+miu**2)/Busr*x(ixO^S,2)*f(ixO^S)**2
 
   end subroutine specialset_J0
+
+  subroutine usrspecial_convert(qunitconvert)
+    use mod_global_parameters
+    integer, intent(in) :: qunitconvert
+    character(len=20):: userconvert_type
+  
+    call spatial_integral_w
+  end subroutine usrspecial_convert
+
+  subroutine spatial_integral_w
+    use mod_global_parameters
+
+    double precision :: dvolume(ixG^T), dsurface(ixG^T),timephy,dvone
+    double precision, allocatable :: integral_ipe(:), integral_w(:)
+
+    integer           :: nregions,ireg,ncellpe,ncell,idims,hxM^LL,nx^D
+    integer           :: iigrid,igrid,status(MPI_STATUS_SIZE),ni
+    character(len=100):: filename,region
+    character(len=1024) :: line, datastr
+    logical           :: patchwi(ixG^T),alive
+
+    nregions=1
+    ! number of integrals to perform
+    ni=3
+    allocate(integral_ipe(ni),integral_w(ni))
+    integral_ipe=0.d0
+    integral_w=0.d0
+    nx^D=ixMhi^D-ixMlo^D+1;
+    do ireg=1,nregions
+      select case(ireg)
+      case(1)
+        region='fulldomain'
+      case(2)
+        region='cropped'
+      end select
+      ncellpe=0 
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>pw(igrid)
+        if(slab) then
+          dvone={rnode(rpdx^D_,igrid)|*}
+          dvolume(ixM^T)=dvone
+          dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
+        else
+          dvolume(ixM^T)=pw(igrid)%dvolume(ixM^T)
+          dsurface(ixM^T)= ^D&pw(igrid)%surfaceC^D(ixM^T)+
+          do idims=1,ndim
+            hxM^LL=ixM^LL-kr(idims,^D);
+            select case(idims)
+            {case(^D)
+               dsurface(ixM^T)=dsurface(ixM^T)+pw(igrid)%surfaceC^D(hxM^T) \}
+            end select
+          end do
+        end if
+        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+        typelimiter=limiter(node(plevel_,igrid))
+        typegradlimiter=gradient_limiter(node(plevel_,igrid))
+        patchwi(ixG^T)=.false.
+        select case(region)
+        case('cropped')
+           call mask_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,patchwi,ncellpe)
+        case('fulldomain')
+           patchwi(ixM^T)=.true.
+           ncellpe=ncellpe+{nx^D*}
+        case default
+           call mpistop("region not defined")
+        end select
+        integral_ipe(1)=integral_ipe(1)+ &
+                  integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,dsurface,4,patchwi)
+        integral_ipe(2)=integral_ipe(2)+ &
+                  integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,dsurface,5,patchwi)
+        integral_ipe(3)=integral_ipe(3)+ &
+                  integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,dsurface,6,patchwi)
+      end do
+      call MPI_ALLREDUCE(integral_ipe,integral_w,ni,MPI_DOUBLE_PRECISION,&
+                           MPI_SUM,icomm,ierrmpi)
+      !call MPI_ALLREDUCE(ncellpe,ncell,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
+      timephy=global_time
+      if(mype==0) then
+        write(filename,"(a,a,a)") TRIM(base_filename),TRIM(region),"aftime.csv"
+        inquire(file=filename,exist=alive)
+        if(alive) then
+          open(unit=21,file=filename,form='formatted',status='old',access='append')
+        else
+          open(unit=21,file=filename,form='formatted',status='new')
+          write(21,'(a)') 'time, emagnetic, einternal, current'
+        endif
+        write(datastr,'(es13.6, a)') timephy,','
+        line=datastr
+        write(datastr,"(es13.6, a)") integral_w(1),','
+        line = trim(line)//trim(datastr)
+        write(datastr,"(es13.6, a)") integral_w(2),','
+        line = trim(line)//trim(datastr)
+        write(datastr,"(es13.6)") integral_w(3)
+        line = trim(line)//trim(datastr)
+        write(21,'(a)') trim(line)
+        close(21)
+      endif
+    enddo
+    deallocate(integral_ipe,integral_w)
+  end subroutine spatial_integral_w
+
+  subroutine mask_grid(ixI^L,ixO^L,w,x,patchwi,cellcount)
+    use mod_global_parameters
+
+    integer, intent(in)                :: ixI^L,ixO^L
+    double precision, intent(in)       :: x(ixI^S,1:ndim)
+    double precision                   :: w(ixI^S,nw+nwauxio)
+    logical, intent(inout)             :: patchwi(ixG^T)
+
+    double precision  ::  buff
+    integer                            :: ix^D,cellcount
+
+    buff=0.05d0*(xprobmax1-xprobmin1)
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       if(x(ix^D,1)>xprobmin1+buff .and. x(ix^D,1)<xprobmax1-buff .and. &
+          x(ix^D,2)>xprobmin2+buff .and. x(ix^D,2)<xprobmax2-buff) then
+         patchwi(ix^D)=.true.
+         cellcount=cellcount+1
+       else
+         patchwi(ix^D)=.false.
+       endif
+    {end do\}
+    return
+
+  end subroutine mask_grid
+
+  function integral_grid(ixI^L,ixO^L,w,x,dvolume,dsurface,intval,patchwi)
+    use mod_global_parameters
+    
+    integer, intent(in)                :: ixI^L,ixO^L,intval
+    double precision, intent(in)       :: x(ixI^S,1:ndim),dvolume(ixG^T),dsurface(ixG^T)
+    double precision, intent(in)       :: w(ixI^S,nw)
+    logical, intent(in) :: patchwi(ixG^T)
+    
+    double precision, dimension(ixG^T,1:ndir) :: bvec,qvec
+    double precision :: current(ixG^T,7-2*ndir:3),tmp(ixG^T)
+    double precision :: integral_grid,mcurrent
+    integer :: ix^D,idirmin,idir,jdir,kdir
+
+    integral_grid=0.d0
+    select case(intval)
+     case(1)
+      ! magnetic energy
+      if(B0field)then
+        tmp(ixO^S)=0.5d0*sum((w(ixO^S,mag(:))+&
+                      block%B0(ixO^S,:,0))**2,dim=ndim+1)
+      else
+        tmp(ixO^S)=0.5d0*sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+      endif
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchwi(ix^D)) integral_grid=integral_grid+tmp(ix^D)*dvolume(ix^D)
+      {end do\}
+     case(2)
+      ! internal energy
+      call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchwi(ix^D))  integral_grid=integral_grid+tmp(ix^D)/(mhd_gamma-1.d0)*dvolume(ix^D)
+      {end do\}
+     case(3)
+      ! current strength
+      call get_current(w,ixI^L,ixO^L,idirmin,current)
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchwi(ix^D)) integral_grid=integral_grid+dsqrt(sum(current(ix^D,:)**2))*dvolume(ix^D)
+      {end do\}
+     case(4)
+      ! Alfven crossing time x
+      if(B0field)then
+        tmp(ixO^S)=sum((w(ixO^S,mag(:))+&
+                      block%B0(ixO^S,:,0))**2,dim=ndim+1)
+      else
+        tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+      endif
+      do ix3=ixOmin3,ixOmin3
+      do ix2=ixOmin2,ixOmin2
+      do ix1=ixOmin1,ixOmax1
+         if(patchwi(ix^D)) integral_grid=integral_grid+dxlevel(1)/dsqrt(tmp(ix^D)/w(ix^D,rho_))/64.d0
+      end do
+      end do
+      end do
+     case(5)
+      ! Alfven crossing time y
+      if(B0field)then
+        tmp(ixO^S)=sum((w(ixO^S,mag(:))+&
+                      block%B0(ixO^S,:,0))**2,dim=ndim+1)
+      else
+        tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+      endif
+      do ix3=ixOmin3,ixOmin3
+      do ix2=ixOmin2,ixOmax2
+      do ix1=ixOmin1,ixOmin1
+         if(patchwi(ix^D)) integral_grid=integral_grid+dxlevel(2)/dsqrt(tmp(ix^D)/w(ix^D,rho_))/64.d0
+      end do
+      end do
+      end do
+     case(6)
+      ! Alfven crossing time z
+      if(B0field)then
+        tmp(ixO^S)=sum((w(ixO^S,mag(:))+&
+                      block%B0(ixO^S,:,0))**2,dim=ndim+1)
+      else
+        tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+      endif
+      do ix3=ixOmin3,ixOmax3
+      do ix2=ixOmin2,ixOmin2
+      do ix1=ixOmin1,ixOmin1
+         if(patchwi(ix^D)) integral_grid=integral_grid+dxlevel(3)/dsqrt(tmp(ix^D)/w(ix^D,rho_))/64.d0
+      end do
+      end do
+      end do
+     case default
+         call mpistop("intval not defined")
+    end select
+    
+    return
+  end function integral_grid
 
 end module mod_usr

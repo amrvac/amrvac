@@ -90,8 +90,8 @@ contains
         ! involves second derivatives, four extra layers
         ix^L=ixO^L^LADD4;
         if({ ixImin^D>ixmin^D .or. ixImax^D<ixmax^D|.or.})&
-          call mpistop("error for viscous source addition, &
-          requested fourth order gradients: 4 layers needed")
+          call mpistop("error for viscous source addition"//&
+          "requested fourth order gradients: 4 layers needed")
         ix^L=ixO^L^LADD2;
       end if
 
