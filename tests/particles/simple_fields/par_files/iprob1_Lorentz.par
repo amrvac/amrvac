@@ -1,4 +1,5 @@
- &filelist
+!This is the linear acceleration test 
+&filelist
         base_filename = '_Lorentz1'
  /
 

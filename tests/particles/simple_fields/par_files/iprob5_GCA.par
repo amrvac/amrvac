@@ -1,15 +1,15 @@
-!This is the grad B test 
+!This is the grad B test
  &filelist
-        base_filename = '_Lorentz5'
+        base_filename = '_GCA5'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
-        npayload=1
+        physics_type_particles='gca'
+        npayload=14
  /
 
  &stoplist
-        time_max =12.566370614 ! 4*pi
+        time_max = 12.566370614 ! 4 * pi
  /
 
  &meshlist
@@ -27,7 +27,6 @@
 
  &my_list
         x0 = 1.0d0, 1.0d0, 0.0d0
-        !v0 = -0.5d0, 0.0d0, 0.0d0
-	v0 = 1.0d0, 0.0d0, 0.0d0
+        v0 = 1.0d0, 0.0d0, 0.0d0
  /
 

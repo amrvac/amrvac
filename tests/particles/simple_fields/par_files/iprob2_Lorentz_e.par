@@ -1,6 +1,6 @@
-!This is the force-free test 
-&filelist
-        base_filename = '_Lorentz3'
+!This is the gyration test
+ &filelist
+        base_filename = '_Lorentz2_e'
  /
 
  &particles_list
@@ -9,11 +9,11 @@
  /
 
  &stoplist
-        time_max = 100.0d0
+        time_max = 31.41592653589793 ! 10 * pi
  /
 
  &meshlist
-        iprob = 3
+        iprob = 2
         domain_nx1    = 16
         domain_nx2    = 16
         domain_nx3    = 16
@@ -26,7 +26,10 @@
  /
 
  &my_list
-        x0 = 0.0d0, 0.0d0, 0.0d0
-        v0 = 0.0d0, 1.0d0, 0.0d0
+        x0 = 0.0d0, 0.000272313d0, 0.0d0
+        v0 = -0.5d0, 0.0d0, 0.0d0
+        charge = -1
+        mass = 0.000544625d0
+
  /
 

@@ -75,7 +75,7 @@ contains
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
     if (first .and. mype==0 )then
-      write(*,*) 'Particles in 3D homogeneous B-field'
+      write(*,*) 'Test particles in 3D simple B-field'
       write(*,*) 'rho - p - b:',rho0,p0,b0
       first=.false.
       print *, "Running test case", iprob
@@ -136,12 +136,12 @@ contains
       B = [0.0d0, 0.0d0, 1.0d0]
     case (4)
       ! ExB
-      E = [2.0d0, 0.0d0, 0.0d0]
+      E = [1.0d0, 0.0d0, 0.0d0]
       B = [0.0d0, 0.0d0, 1.0d0]
     case (5)
       ! Gradient in B
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, (2.0d0 + 1.0d-2 * x(1))]
+      B = [0.0d0, 0.0d0, (1.0d0 + 1.0d-2 * x(1))]
     case (6)
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]

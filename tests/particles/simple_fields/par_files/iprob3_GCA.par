@@ -1,11 +1,11 @@
-!This is the force-free test 
-&filelist
-        base_filename = '_Lorentz3'
+!This is the force-free test
+ &filelist
+        base_filename = '_GCA3'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
-        npayload=1
+        physics_type_particles='gca'
+        npayload=14
  /
 
  &stoplist

@@ -1,22 +1,21 @@
-!This is the force-free test 
-&filelist
-        base_filename = '_Lorentz3'
+ &filelist
+        base_filename = '_GCA6'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
-        npayload=1
+        physics_type_particles='gca'
+        npayload=14
  /
 
  &stoplist
-        time_max = 100.0d0
+        time_max = 31.41592653589793 ! 10 * pi
  /
 
  &meshlist
-        iprob = 3
+        iprob = 6
         domain_nx1    = 16
         domain_nx2    = 16
-        domain_nx3    = 16
+        domain_nx3    = 128
         xprobmin1     = -150.0d0
         xprobmax1     = 150.0d0
         xprobmin2     = -150.0d0
@@ -27,6 +26,6 @@
 
  &my_list
         x0 = 0.0d0, 0.0d0, 0.0d0
-        v0 = 0.0d0, 1.0d0, 0.0d0
+        v0 = 0.0d0, 0.5d0, 0.01d0
  /
 

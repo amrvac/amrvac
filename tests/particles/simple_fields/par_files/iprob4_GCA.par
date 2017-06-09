@@ -1,15 +1,15 @@
-!This is the ExB test 
+!This is the ExB test
  &filelist
-        base_filename = '_Lorentz4'
+        base_filename = '_GCA4'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
-        npayload=1
+        physics_type_particles='gca'
+        npayload=14
  /
 
  &stoplist
-        time_max = 13.663706144 ! 4 * pi
+        time_max = 13.663706144 !4*pi
  /
 
  &meshlist
