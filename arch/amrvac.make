@@ -41,7 +41,14 @@ $(LIB_AMRVAC): force
 	$(MAKE) -C $(LIB_DIR) -f $(LIB_MAKE)
 
 clean:
+	@echo 'Cleaning local objects ("make allclean" cleans libamrvac)'
 	$(RM) amrvac amrvac.o mod_usr.o mod_usr.f mod_usr.mod
+
+# Also clean the library
+allclean: clean
+	@echo 'Cleaning libamrvac'
+	@mkdir -p $(LIB_DIR)	# Prevent error message
+	$(MAKE) -C $(LIB_DIR) -f $(LIB_MAKE) clean
 
 # Dependencies
 amrvac: mod_usr.o amrvac.o
