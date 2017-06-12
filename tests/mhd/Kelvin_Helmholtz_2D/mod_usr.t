@@ -11,6 +11,7 @@ contains
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
+    usr_transform_w   => transformw
 
     call set_coordinate_system('Cartesian')
     call mhd_activate()
@@ -132,5 +133,22 @@ contains
     varnames='divB'
 
   end subroutine specialvarnames_output
+
+  subroutine transformw(ixI^L,ixO^L,nw_in,w_in,x,w_out)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L, nw_in
+    double precision, intent(in)  :: w_in(ixI^S,1:nw_in)
+    double precision, intent(in)  :: x(ixI^S, 1:ndim)
+    double precision, intent(out) :: w_out(ixI^S,1:nw)
+
+    ! add one tracer fluid at restart
+    w_out(ixO^S,1:nw)=w_in(ixO^S,1:nw)
+    where(x(ixO^S,2)>=0.5d0*(xprobmax2+xprobmin2))
+      w_out(ixO^S,tracer(1))=10.d0*w_in(ixO^S,rho_)
+    elsewhere
+      w_out(ixO^S,tracer(1))=-10.d0*w_in(ixO^S,rho_)
+    endwhere
+
+  end subroutine transformw
 
 end module mod_usr

@@ -10,6 +10,9 @@ module mod_input_output
   !> List of compatible versions
   integer, parameter :: compatible_versions(1) = [3]
 
+  !> number of w found in dat files
+  integer :: nw_found
+
   ! Formats used in output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
@@ -89,7 +92,7 @@ contains
     use mod_small_values
 
     logical          :: fileopen, file_exists
-    integer          :: i, j, k, ifile, io_state, nw_found
+    integer          :: i, j, k, ifile, io_state
     integer          :: iB, isave, iw, level, idim, islice
     integer          :: nx_vec(^ND)
     integer          :: my_unit, iostate
@@ -920,97 +923,6 @@ contains
 
   end subroutine saveamrfile
 
-  ! subroutine write_snapshot_tf
-  !   use mod_usr_methods, only: usr_transform_w
-  !   use mod_forest
-  !   use mod_global_parameters
-  !   use mod_physics
-
-  !   double precision, allocatable :: wtf(:^D&,:)
-  !   integer :: file_handle_tf
-  !   character(len=80) :: filenametf
-  !   integer :: file_handle, amode, igrid, Morton_no, iwrite
-  !   integer :: nx^D
-  !   integer(kind=MPI_OFFSET_KIND) :: offset
-  !   integer, dimension(MPI_STATUS_SIZE) :: istatus
-  !   character(len=80) :: filename, line
-  !   logical, save :: firstsnapshot=.true.
-  !   !-----------------------------------------------------------------------------
-  !   if (firstsnapshot) then
-  !      snapshot=snapshotnext
-  !      firstsnapshot=.false.
-  !   end if
-
-  !   if (snapshot >= 10000) then
-  !      if (mype==0) then
-  !         write(*,*) "WARNING: Number of frames is limited to 10000 (0...9999),"
-  !         write(*,*) "overwriting first frames"
-  !      end if
-  !      snapshot=0
-  !   end if
-
-  !   ! generate filename
-  !   write(filenametf,"(a,i4.4,a)") TRIM(base_filename),snapshot,"tf.dat"
-  !   if(mype==0) then
-  !      open(unit=unitsnapshot,file=filenametf,status='replace')
-  !      close(unit=unitsnapshot)
-  !   end if
-  !   amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
-  !   call MPI_FILE_OPEN(icomm,filenametf,amode,MPI_INFO_NULL,file_handle_tf,ierrmpi)
-  !   allocate(wtf(ixG^T,1:nwtf))
-
-  !   iwrite=0
-  !   do Morton_no=Morton_start(mype),Morton_stop(mype)
-  !      igrid=sfc_to_igrid(Morton_no)
-  !      if (nwaux>0) then
-  !         ! extra layer around mesh only for later averaging in convert
-  !         ! set dxlevel value for use in gradient subroutine,
-  !         ! which might be used in getaux
-  !         saveigrid=igrid
-  !         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  !         if (B0field) then
-  !            myB0_cell => pB0_cell(igrid)
-  !            {^D&myB0_face^D => pB0_face^D(igrid)\}
-  !         end if
-  !         call phys_get_aux(.true.,pw(igrid)%w,pw(igrid)%x,ixG^LL,ixM^LL^LADD1,"write_snapshot")
-  !      endif
-  !      iwrite=iwrite+1
-
-  !      if (associated(usr_transform_w)) then
-  !         call usr_transform_w(pw(igrid)%w,wtf,ixG^LL,ixM^LL)
-  !      end if
-
-  !      offset=int(size_block_io_tf,kind=MPI_OFFSET_KIND) &
-  !           *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-  !      call MPI_FILE_WRITE_AT(file_handle_tf,offset,wtf,1, &
-  !           type_block_io_tf,istatus,ierrmpi)
-  !   end do
-
-  !   call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-  !   amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
-  !   call MPI_FILE_OPEN(MPI_COMM_SELF,filenametf,amode,MPI_INFO_NULL, &
-  !        file_handle_tf,ierrmpi)
-
-  !   call write_forest(file_handle_tf)
-
-  !   {nx^D=ixMhi^D-ixMlo^D+1
-  !   call MPI_FILE_WRITE(file_handle_tf,nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,domain_nx^D,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,xprobmin^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,xprobmax^D,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)\}
-  !   call MPI_FILE_WRITE(file_handle_tf,nleafs,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,levmax,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,ndim,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,ndir,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,nwtf,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,it,1,MPI_INTEGER,istatus,ierrmpi)
-  !   call MPI_FILE_WRITE(file_handle_tf,global_time,1,MPI_DOUBLE_PRECISION,istatus,ierrmpi)
-
-  !   call MPI_FILE_CLOSE(file_handle_tf,ierrmpi)
-  !   snapshot=snapshot+1
-
-  ! end subroutine write_snapshot_tf
-
   !> Standard method for creating a new output file
   subroutine create_output_file(fh, ix, extension)
     use mod_global_parameters
@@ -1095,7 +1007,7 @@ contains
     integer                               :: ibuf(ndim), iw
     double precision                      :: rbuf(ndim)
     integer, dimension(MPI_STATUS_SIZE)   :: st
-    character(len=10)                     :: var_names(nw)
+    character(len=10), allocatable        :: var_names(:)
     integer                               :: er
 
     ! Version number
@@ -1114,9 +1026,11 @@ contains
 
     ! nw
     call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
+    nw_found=ibuf(1)
     if (nw /= ibuf(1)) then
-      write(*,*) "nw=",nw," and nw in restart file=",ibuf(1)
-      call mpistop("currently, changing nw at restart is not allowed")
+      write(*,*) "nw=",nw," and nw found in restart file=",ibuf(1)
+      write(*,*) "Please be aware of changes in w at restart." 
+      !call mpistop("currently, changing nw at restart is not allowed")
     end if
 
     ! ndir
@@ -1184,7 +1098,8 @@ contains
     end if
 
     ! w_names (not used here)
-    do iw = 1, nw
+    allocate(var_names(nw_found))
+    do iw = 1, nw_found
       call MPI_FILE_READ(fh, var_names(iw), 10, MPI_CHARACTER, st, er)
     end do
 
@@ -1399,6 +1314,7 @@ contains
   !> Routine to read in snapshots (.dat files). When it cannot recognize the
   !> file version, it will automatically try the 'old' reader.
   subroutine read_snapshot
+    use mod_usr_methods, only: usr_transform_w
     use mod_forest
     use mod_global_parameters
 
@@ -1412,10 +1328,7 @@ contains
     integer(MPI_OFFSET_KIND)      :: offset_tree_info
     integer(MPI_OFFSET_KIND)      :: offset_block_data
     double precision, allocatable :: w_buffer(:)
-
-    ! Allocate send/receive buffer
-    n_values = count_ix(ixG^LL) * nw
-    allocate(w_buffer(n_values))
+    double precision, dimension(:^D&,:), allocatable :: w
 
     if (mype==0) then
       inquire(file=trim(restart_from_file), exist=fexist)
@@ -1441,10 +1354,16 @@ contains
     end if
 
     ! Share information about restart file
+    call MPI_BCAST(nw_found,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(nleafs,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(nparents,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(it,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(global_time,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+
+    ! Allocate send/receive buffer
+    n_values = count_ix(ixG^LL) * nw_found
+    allocate(w_buffer(n_values))
+    allocate(w(ixG^T,1:nw_found))
 
     nleafs_active = nleafs
 
@@ -1475,15 +1394,30 @@ contains
           ! Construct ixO^L array from number of ghost cells
           {ixOmin^D = ixMlo^D + ix_buffer(^D)\}
           {ixOmax^D = ixMhi^D + ix_buffer(ndim+^D)\}
-          n_values = count_ix(ixO^L) * nw
+          n_values = count_ix(ixO^L) * nw_found
 
           call MPI_FILE_READ(file_handle, w_buffer, n_values, &
                MPI_DOUBLE_PRECISION, istatus, ierrmpi)
 
           if (mype == ipe) then ! Root task
             igrid=sfc_to_igrid(Morton_no)
-            pw(igrid)%w(ixO^S, 1:nw) = reshape(w_buffer(1:n_values), &
-                 shape(pw(igrid)%w(ixO^S, 1:nw)))
+            w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
+                 shape(w(ixO^S, 1:nw_found)))
+            if (nw_found<nw) then
+              if (associated(usr_transform_w)) then
+                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+              else
+                pw(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
+              end if
+            else if (nw_found>nw) then
+              if (associated(usr_transform_w)) then
+                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+              else
+                pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+              end if
+            else
+              pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+            end if
           else
             call MPI_SEND([ ixO^L, n_values ], 2*ndim+1, &
                  MPI_INTEGER, ipe, itag, icomm, ierrmpi)
@@ -1495,7 +1429,7 @@ contains
 
       call MPI_FILE_CLOSE(file_handle,ierrmpi)
 
-    else                        ! mype > 0
+    else ! mype > 0
 
       do Morton_no=Morton_start(mype),Morton_stop(mype)
         igrid=sfc_to_igrid(Morton_no)
@@ -1510,8 +1444,23 @@ contains
         call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION,&
              0, itag, icomm, iorecvstatus, ierrmpi)
 
-        pw(igrid)%w(ixO^S, 1:nw) = reshape(w_buffer(1:n_values), &
-             shape(pw(igrid)%w(ixO^S, 1:nw)))
+        w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
+             shape(w(ixO^S, 1:nw_found)))
+        if (nw_found<nw) then
+          if (associated(usr_transform_w)) then
+            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+          else
+            pw(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
+          end if
+        else if (nw_found>nw) then
+          if (associated(usr_transform_w)) then
+            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+          else
+            pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+          end if
+        else
+          pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+        end if
       end do
     end if
 

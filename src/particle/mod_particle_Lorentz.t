@@ -409,7 +409,8 @@ contains
       v(phi_) = abs(v(phi_)/partp%self%x(r_))
     end if
 
-    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/max(v(^D), smalldouble)})
+    dt_cfl = min(bigdouble, &
+         {rnode(rpdx^D_,partp%igrid)/max(v(^D), smalldouble)})
 
     if(typeaxial =='cylindrical'.and.phi_>0) then
       ! phi-momentum leads to radial velocity:
