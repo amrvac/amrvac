@@ -131,8 +131,8 @@ contains
       E = [0.0d0, 0.0d0, 0.0d0]
       B = [0.0d0, 0.0d0, 1.0d0]
     case (3)
-      ! Force-free
-      E = [-1.0d0, 0.0d0, 0.0d0]
+      ! Force-free (this only works for one particle)
+      E = [-v0(2), 0.0d0, 0.0d0]
       B = [0.0d0, 0.0d0, 1.0d0]
     case (4)
       ! ExB

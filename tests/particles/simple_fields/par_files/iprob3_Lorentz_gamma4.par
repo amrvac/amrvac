@@ -1,0 +1,32 @@
+!This is the force-free test 
+&filelist
+        base_filename = '_Lorentz3_gamma4'
+ /
+
+ &particles_list
+        physics_type_particles='Lorentz'
+        npayload=1
+ /
+
+ &stoplist
+        time_max = 1000.0d0
+ /
+
+ &meshlist
+        iprob = 3
+        domain_nx1    = 16
+        domain_nx2    = 16
+        domain_nx3    = 16
+        xprobmin1     = -150.0d10
+        xprobmax1     = 150.0d10
+        xprobmin2     = -150.0d10
+        xprobmax2     = 150.0d10
+        xprobmin3     = -150.0d10
+        xprobmax3     = 150.0d10
+ /
+
+ &my_list
+        x0 = 0.0d0, 0.0d0, 0.0d0
+        v0 = 0.0d0, 2.99792457999999d8, 0.0d0
+ /
+
