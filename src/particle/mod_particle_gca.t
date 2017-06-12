@@ -129,7 +129,6 @@ contains
         particle(n)%self%t      = 0.0d0
         particle(n)%self%dt     = 0.0d0
 
-        ! TODO: check global time
         call get_vec(bp, igrid_particle, x(:, n), particle(n)%self%t, B)
 
         Bnorm = norm2(B(:))
