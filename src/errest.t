@@ -82,12 +82,13 @@ subroutine lohner_grid(igrid)
 
   error=zero
 
+  w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+
   if(B0field) then
-    w(ixG^T,iw_mag(1:ndir))=w(ixG^T,iw_mag(1:ndir))+pw(igrid)%B0(ixG^T,1:ndir,0)
+    w(ixG^T,iw_mag(:))=w(ixG^T,iw_mag(:))+pw(igrid)%B0(ixG^T,:,0)
     if(phys_energy) &
-      w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(pw(igrid)%B0(ixG^T,1:ndir,0)**2,dim=ndim+1)
-  else
-    w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+      w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(pw(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+                      + sum(w(ixG^T,iw_mag(:))*pw(igrid)%B0(ixG^T,:,0),dim=ndim+1)
   end if
 
   do iflag=1,nw+1

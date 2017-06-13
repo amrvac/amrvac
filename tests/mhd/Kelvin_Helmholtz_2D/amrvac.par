@@ -13,9 +13,7 @@
         saveprim=.true.
         autoconvert=.true.
         nwauxio=1
-        restart_from_file='KH2proba0001.dat'
  /
-        convert=.true.
  
  &savelist
         itsave(1,1)=0
