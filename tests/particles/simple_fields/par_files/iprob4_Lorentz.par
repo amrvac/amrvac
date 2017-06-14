@@ -9,7 +9,7 @@
  /
 
  &stoplist
-        time_max = 13.663706144 ! 4 * pi
+        time_max = 12.5663706143592
  /
 
  &meshlist
