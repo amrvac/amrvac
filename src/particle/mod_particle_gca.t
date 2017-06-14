@@ -133,8 +133,8 @@ contains
 
         Bnorm = norm2(B(:))
         vnorm = norm2(v(:, n))
-        vpar  = norm2(v(:, n) * B/Bnorm)
-        vperp = vnorm - vpar
+        vpar  = sum(v(:, n) * B/Bnorm)
+        vperp = sqrt(vnorm**2 - vpar**2)
 
         ! The momentum vector u(1:3) is filled with the following components
 
