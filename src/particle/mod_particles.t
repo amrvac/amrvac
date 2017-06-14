@@ -3,6 +3,7 @@ module mod_particles
   use mod_particle_advect
   use mod_particle_Lorentz
   use mod_particle_gca
+  use mod_particle_lfimp
 
   implicit none
 
@@ -20,8 +21,10 @@ contains
       call Lorentz_init()
     case('gca')
       call gca_init()
+    case('lfimp')
+      call lfimp_init()
     case default
-      call mpistop("unknown physics_type_particles (advect,gca,Lorentz)")
+      call mpistop("unknown physics_type_particles (advect,gca,Lorentz,lfimp)")
     end select
 
   end subroutine particles_init
@@ -43,8 +46,10 @@ contains
       call Lorentz_create_particles()
     case('gca')
       call gca_create_particles()
+    case('lfimp')
+      call lfimp_create_particles()
     case default
-      call mpistop("unknown physics_type_particles (advect,gca,Lorentz)")
+      call mpistop("unknown physics_type_particles (advect,gca,Lorentz,lfimp)")
     end select
 
     ! Remove grid variables again

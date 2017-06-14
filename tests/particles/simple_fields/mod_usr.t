@@ -6,7 +6,11 @@ module mod_usr
 
   double precision :: charge = 1.0d0
   double precision :: mass = 1.0d0
+
+  ! Initial position (in m)
   double precision :: x0(3) = [0.0d0, 0.0d0, 0.0d0]
+
+  ! Initial velocity (in m/s)
   double precision :: v0(3) = [0.0d0, 0.0d0, 0.0d0]
 
 contains
@@ -103,13 +107,14 @@ contains
     ! Scale to CGS units
     x = x * 1d2 ! m to cm
 
-    if (physics_type_particles == 'Lorentz') then
+    select case (physics_type_particles)
+    case ('Lorentz', 'lfimp')
       v = v * 1d2 / const_c     ! to cm/s, then normalize by speed of light
-    else if (physics_type_particles == 'gca') then
+    case ('gca')
       v = v * 1d2               ! to cm/s
-    else
+    case default
       call mpistop('This type of particle mover is not supported here')
-    end if
+    end select
 
     q      = q * const_c * 0.1d0 ! A unit charge converted to CGS units
     m      = m * 1d3             ! kg to gram
@@ -160,7 +165,7 @@ contains
     end select
   end subroutine get_field
 
-  ! Set particle properties (SI units)
+  ! Set particle properties (in SI units)
   subroutine get_particle(x, v, q, m, ipart, iprob)
     double precision, intent(out) :: x(3), v(3), q, m
     integer, intent(in)           :: ipart, iprob
@@ -170,40 +175,6 @@ contains
 
     x = x0
     v = v0
-
-    ! select case (iprob)
-    ! case (1)
-    !   ! Linear acceleration
-    !   x = [0.0d0, 0.0d0, 0.0d0]
-    !   v = [0.0d0, 0.0d0, 0.0d0]
-    ! case (2)
-    !   ! Pure gyration centered around (0.5, 0.5)
-    !   x = [0.0d0, 0.0d0, 0.0d0]
-    !   v = [-4 * dpi, 0.0d0, 0.0d0]
-    ! case (3)
-    !   ! Force-free
-    !   x = [0.0d0, 0.0d0, 0.0d0]
-    !   v = [0.0d0, 1.0d0, 0.0d0]
-    ! case (4)
-    !   ! ExB
-    !   x = [0.0d0, 0.0d0, 0.0d0]
-    !   v = [0.0d0, 0.0d0, 0.0d0]
-    ! case (5)
-    !   ! Gradient in B
-    !   x = [0.0d0, 0.0d0, 0.0d0]
-    !   v = [-dpi, 0.0d0, 0.0d0]
-    ! case (6)
-    !   ! Magnetic mirror
-    !   x = [0.0d0, 0.0d0, 0.0d0]
-    !   v = [0.0d0, 0.5d0, 0.1d0]
-    ! case (7)
-    !   ! Magnetic dipole
-    !   x = [0.5d0, 0.5d0, 0.0d0]
-    !   v = [1.0d0, 1.0d0, 1.0d0]
-
-    ! case default
-    !   call mpistop("Unknown value for iprob")
-    ! end select
   end subroutine get_particle
 
   subroutine custom_field(x, E_field, B_field)
