@@ -78,6 +78,8 @@
         mhd_radiative_cooling=.true.
         mhd_gravity=.true.
         typedivbfix='linde'
+        Busr=20.d0
+        B0field=.false.
  /
 
  &tc_list

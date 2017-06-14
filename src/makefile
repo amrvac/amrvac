@@ -34,9 +34,7 @@ coarsen.o: mod_physics.o
 collapse.o: mod_physics.o
 comm_lib.o: mod_ghostcells_update.o
 comm_lib.o: mod_particles.o
-convert.o: mod_ghostcells_update.o
 convert.o: mod_limiter.o
-convert.o: mod_mhd_phys.o
 convert.o: mod_physics.o
 geometry.o: mod_limiter.o
 geometry.o: mod_ppm.o

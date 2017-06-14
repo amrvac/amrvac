@@ -41,7 +41,7 @@ contains
     bQ0=1.d-4/heatunit ! background heating power density
     gzone=0.2d0 ! thickness of a ghostzone below the bottom boundary
     dya=(2.d0*gzone+xprobmax2-xprobmin2)/dble(jmax) ! cells size of high-resolution 1D solar atmosphere
-    B0=20.d0/unit_magneticfield ! magnetic field strength at the bottom
+    B0=Busr/unit_magneticfield ! magnetic field strength at the bottom
     theta=60.d0*dpi/180.d0 ! the angle to the plane xy, 90-theta is the angle to the polarity inversion line of the arcade 
     kx=dpi/(xprobmax1-xprobmin1)
     ly=kx*dcos(theta)
@@ -249,42 +249,11 @@ contains
 
     double precision :: lQgrid(ixI^S),bQgrid(ixI^S)
 
-    if(B0field) then
-    ! add source terms when splitting linear force-free field
-      call add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
-    endif 
     ! add global background heating bQ
     call getbQ(bQgrid,ixI^L,ixO^L,qtC,wCT,x)
     w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
 
   end subroutine special_source
-
-  subroutine add_source_lfff(qdt,ixI^L,ixO^L,wCT,w,x)
-    use mod_global_parameters
-
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    double precision :: current0(ixI^S,1:ndir),v(ixI^S,1:ndir)
-    integer :: idir
-
-    ! electric current density of the background linear force-free field
-    current0(ixO^S,1)= ly*B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
-    current0(ixO^S,2)=-kx*B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
-    current0(ixO^S,ndir)= kx*B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))&
-                      -ly*B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
-
-    do idir=1,ndir
-      v(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
-    end do
-
-    w(ixO^S,e_)=w(ixO^S,e_)-&
-    qdt*((v(ixO^S,2)*wCT(ixO^S,mag(3))-v(ixO^S,ndir)*wCT(ixO^S,mag(2)))*current0(ixO^S,1)&
-        +(v(ixO^S,ndir)*wCT(ixO^S,mag(1))-v(ixO^S,1)*wCT(ixO^S,mag(3)))*current0(ixO^S,2)&
-        +(v(ixO^S,1)*wCT(ixO^S,mag(2))-v(ixO^S,2)*wCT(ixO^S,mag(1)))*current0(ixO^S,ndir))
-
-  end subroutine add_source_lfff
 
   subroutine getbQ(bQgrid,ixI^L,ixO^L,qt,w,x)
   ! calculate background heating bQ
