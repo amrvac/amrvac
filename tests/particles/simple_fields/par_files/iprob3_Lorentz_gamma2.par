@@ -6,10 +6,11 @@
  &particles_list
         physics_type_particles='Lorentz'
         npayload=1
+        const_dt_particles = 5d-2
  /
 
  &stoplist
-        time_max = 100.0d0
+        time_max = 10000.0d0
  /
 
  &meshlist

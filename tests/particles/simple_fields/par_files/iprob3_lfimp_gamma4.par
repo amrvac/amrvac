@@ -1,10 +1,10 @@
 !This is the force-free test 
 &filelist
-        base_filename = '_Lorentz3_gamma3'
+        base_filename = '_lfimp3_gamma4'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
+        physics_type_particles='lfimp'
         npayload=1
         const_dt_particles = 5d-2
  /
@@ -28,6 +28,6 @@
 
  &my_list
         x0 = 0.0d0, 0.0d0, 0.0d0
-        v0 = 0.0d0, 2.9979245798501d8, 0.0d0
+        v0 = 0.0d0, 2.99792457999999d8, 0.0d0
  /
 
