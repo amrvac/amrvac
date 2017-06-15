@@ -37,6 +37,8 @@ contains
       ep(idir) = nwx
     end do
 
+    integrator_velocity_factor = const_c
+
     particles_fill_gridvars => lfimp_fill_gridvars
     particles_integrate     => lfimp_integrate_particles
   end subroutine lfimp_init
@@ -82,7 +84,7 @@ contains
 
         allocate(particle(n)%self)
         particle(n)%self%x      = x(:, n)
-        particle(n)%self%u      = v(:, n) * lfac
+        particle(n)%self%u      = v(:, n) * lfac / const_c
         particle(n)%self%q      = q(n)
         particle(n)%self%m      = m(n)
         particle(n)%self%follow = follow(n)
@@ -213,7 +215,7 @@ contains
       ! START OF THE NONLINEAR CYCLE
       ! Push particle over half time step
 
-      lfack = sqrt(1. + (pkp(1)**2 + pkp(2)**2 + pkp(3)**2) / const_c**2)
+      call get_lfac(pkp,lfack)
 
       vbar(1:ndir) = (pnp(1:ndir) + pkp(1:ndir)) / (lfac + lfack)
 
@@ -247,8 +249,8 @@ contains
            xbar,particle(ipart)%self%t,dzb,3)
 
       ! Compute auxiliary coefficients
-      C1(1:ndim) = (lfack + lfac - pkp(1:ndim) / lfack / const_c**2 * (pkp(1:ndim) + pnp(1:ndim))) / (lfack + lfac)**2
-      C2(1:ndim) = - pkp(1:ndim) / lfack / const_c**2 / (lfack + lfac)**2
+      C1(1:ndim) = (lfack + lfac - pkp(1:ndim) / lfack * (pkp(1:ndim) + pnp(1:ndim))) / (lfack + lfac)**2
+      C2(1:ndim) = - pkp(1:ndim) / lfack / (lfack + lfac)**2
 
       ! Compute Jacobian
       J11 = 1. - q * dt_p**2 /(2 * m * const_c) &
@@ -333,7 +335,7 @@ contains
 
 
       ! Recompute final vbar
-      lfack = sqrt(1. + (pkp(1)**2 + pkp(2)**2 + pkp(3)**2) / const_c**2)
+      call get_lfac(pkp, lfack)
 
       vbar(1:ndir) = (pnp(1:ndir) + pkp(1:ndir)) / (lfac + lfack)
 

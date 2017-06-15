@@ -36,6 +36,8 @@ contains
       ep(idir) = nwx
     end do
 
+    integrator_velocity_factor = const_c
+
     particles_fill_gridvars => Lorentz_fill_gridvars
     particles_integrate     => Lorentz_integrate_particles
   end subroutine Lorentz_init
@@ -81,7 +83,7 @@ contains
 
         allocate(particle(n)%self)
         particle(n)%self%x      = x(:, n)
-        particle(n)%self%u      = v(:, n) * lfac
+        particle(n)%self%u      = v(:, n) * lfac / const_c
         particle(n)%self%q      = q(n)
         particle(n)%self%m      = m(n)
         particle(n)%self%follow = follow(n)

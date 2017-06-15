@@ -67,6 +67,8 @@ module mod_particle_base
   integer                                 :: nparticles_on_mype
   !> Number of active particles in current processor
   integer                                 :: nparticles_active_on_mype
+  !> Normalization factor for velocity in the integrator
+  double precision                        :: integrator_velocity_factor(3)
 
   type particle_ptr
     type(particle_t), pointer         :: self
@@ -181,6 +183,7 @@ contains
     n_output_ensemble         = 0
     nparticles_on_mype        = 0
     nparticles_active_on_mype = 0
+    integrator_velocity_factor(:) = 1.0d0
 
     call particles_params_read(par_files)
 
@@ -1160,7 +1163,7 @@ contains
     double precision, intent(in) :: payload(npayload)
     integer, intent(in)          :: ipe
     integer, intent(in)          :: file_unit
-    double precision             :: x(3)
+    double precision             :: x(3), u(3)
     integer                      :: icomp
 
     ! normalize the position
@@ -1175,8 +1178,10 @@ contains
       x(1) = x(1)*length_convert_factor
     end if
 
+    u = myparticle%u(1:3) * integrator_velocity_factor
+
     write(file_unit, csv_format) myparticle%t, myparticle%dt, x(1:3), &
-         myparticle%u(1:3), payload(1:npayload), ipe, it_particles, &
+         u, payload(1:npayload), ipe, it_particles, &
          myparticle%index
 
   end subroutine output_particle

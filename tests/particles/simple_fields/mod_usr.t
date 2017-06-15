@@ -105,19 +105,10 @@ contains
     follow(:) = .true.
 
     ! Scale to CGS units
-    x = x * 1d2 ! m to cm
-
-    select case (physics_type_particles)
-    case ('Lorentz', 'lfimp')
-      v = v * 1d2 / const_c     ! to cm/s, then normalize by speed of light
-    case ('gca')
-      v = v * 1d2               ! to cm/s
-    case default
-      call mpistop('This type of particle mover is not supported here')
-    end select
-
-    q      = q * const_c * 0.1d0 ! A unit charge converted to CGS units
-    m      = m * 1d3             ! kg to gram
+    x = x * 1d2             ! m to cm
+    v = v * 1d2             ! to cm/s
+    q = q * const_c * 0.1d0 ! A unit charge converted to CGS units
+    m = m * 1d3             ! kg to gram
   end subroutine generate_particles
 
   ! Return field at location x (in SI units: Tesla, V/m)
