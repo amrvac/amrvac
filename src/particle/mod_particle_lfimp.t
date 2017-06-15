@@ -458,9 +458,10 @@ contains
 
     {^IFONED
     if(dir .eq. 1) then
-      xd1 = sign(1.0 / (x(ic21,1) - x(ic11,1),(xloc(1)-x(ic11,1)))
-    gfloc  = gf(ic11) * (- xd1) + gf(ic21) * xd1
-    else gfloc = 0.0
+      xd1 = sign(1.0 / (x(ic21,1) - x(ic11,1)),xloc(1)-x(ic11,1))
+      gfloc  = gf(ic11) * (- xd1) + gf(ic21) * xd1
+    else
+      gfloc = 0.0
     end if
     }
     {^IFTWOD
@@ -476,7 +477,8 @@ contains
       c00 = gf(ic11,ic12) * (1.0d0 - xd1) + gf(ic21,ic12) * xd1
       c10 = gf(ic11,ic22) * (1.0d0 - xd1) + gf(ic21,ic22) * xd1
       gfloc  = c00 * (- xd2) + c10 * xd2
-    else gfloc = 0.0
+    else
+      gfloc = 0.0
     end if
     }
     {^IFTHREED
