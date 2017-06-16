@@ -241,7 +241,7 @@ contains
        write(*,'(a,f12.3,a)')' Time spent on BC           : ',time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on run          : ',timeloop-timeio_tot,' sec'
-       write(*,'(a,es16.8,a)')' Cells_updated / cpu / sec  : ',dble(ncells_update*nstep)/timeloop/dble(npe)
+       write(*,'(a,es16.8 )')' Cells_updated / cpu / sec  : ',dble(ncells_update)*dble(nstep)/timeloop/dble(npe)
     end if
 
     timeio0=MPI_WTIME()

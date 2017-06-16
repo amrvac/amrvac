@@ -2,8 +2,7 @@
 
 # MPI-AMRVAC thermal conduction implementation
 
-This is an overview of the option that allows users to add thermal condution in
-mpi-amrvac.
+This is an overview of the option that allows users to add thermal condution.
 
 # Physics
 

@@ -45,6 +45,11 @@ for MPI-AMRVAC.
 * [Auxiliary variables for MPI-AMRVAC](mpiamrvac_nw.md) Description of the
 intended use for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
 
+# Special Sources {#special_sources}
+
+* [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction. 
+* [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling. 
+
 # Source Code {#source_code}
 
 * [Source](source.md) Description of the dimension independent source language,
