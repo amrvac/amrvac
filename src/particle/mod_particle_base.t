@@ -70,6 +70,11 @@ module mod_particle_base
   !> Normalization factor for velocity in the integrator
   double precision                        :: integrator_velocity_factor(3)
 
+  !> Variable index for magnetic field
+  integer, allocatable :: bp(:)
+  !> Variable index for electric field
+  integer, allocatable :: ep(:)
+
   type particle_ptr
     type(particle_t), pointer         :: self
     !> extra information carried by the particle
@@ -295,6 +300,76 @@ contains
     end do
 
   end subroutine finish_gridvars
+
+  subroutine fill_gridvars_default()
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_fields
+
+    integer :: igrid, iigrid
+    double precision :: E(ixG^T, ndir)
+    double precision :: B(ixG^T, ndir)
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      if (associated(usr_particle_fields)) then
+        call usr_particle_fields(pw(igrid)%w, pw(igrid)%x, E, B)
+        gridvars(igrid)%w(ixG^T,ep(:)) = E
+        gridvars(igrid)%w(ixG^T,bp(:)) = B
+      else
+        call fields_from_mhd(igrid, pw(igrid)%w, gridvars(igrid)%w)
+      end if
+
+      if (time_advance) then
+        if (associated(usr_particle_fields)) then
+          call usr_particle_fields(pw(igrid)%wold, pw(igrid)%x, E, B)
+          gridvars(igrid)%wold(ixG^T,ep(:)) = E
+          gridvars(igrid)%wold(ixG^T,bp(:)) = B
+        else
+          call fields_from_mhd(igrid, pw(igrid)%wold, gridvars(igrid)%wold)
+        end if
+      end if
+    end do
+  end subroutine fill_gridvars_default
+
+  !> Determine fields from MHD variables
+  subroutine fields_from_mhd(igrid, w_mhd, w_part)
+    use mod_global_parameters
+    integer, intent(in)             :: igrid
+    double precision, intent(in)    :: w_mhd(ixG^T,nw)
+    double precision, intent(inout) :: w_part(ixG^T,ngridvars)
+    integer                         :: idirmin
+    double precision                :: current(ixG^T,7-2*ndir:3)
+    double precision                :: w(ixG^T,1:nw)
+
+    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+
+    w(ixG^T,1:nw) = w_mhd(ixG^T,1:nw)
+    w_part(ixG^T,1:ngridvars) = 0.0d0
+
+    call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+
+    ! fill with magnetic field:
+    w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+
+    ! fill with electric field
+    current = zero
+    call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
+
+    w_part(ixG^T,ep(1)) = w_part(ixG^T,bp(2)) * &
+         w(ixG^T,iw_mom(3)) - w_part(ixG^T,bp(3)) * &
+         w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+    w_part(ixG^T,ep(2)) = w_part(ixG^T,bp(3)) * &
+         w(ixG^T,iw_mom(1)) - w_part(ixG^T,bp(1)) * &
+         w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+    w_part(ixG^T,ep(3)) = w_part(ixG^T,bp(1)) * &
+         w(ixG^T,iw_mom(2)) - w_part(ixG^T,bp(2)) * &
+         w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
+
+    ! scale to cgs units:
+    w_part(ixG^T,bp(:)) = w_part(ixG^T,bp(:)) * &
+         sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
+    w_part(ixG^T,ep(:)) = w_part(ixG^T,ep(:)) * &
+         sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
+  end subroutine fields_from_mhd
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
   !> make sure that dxlevel(^D) is set correctly.

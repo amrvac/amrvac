@@ -168,11 +168,12 @@ contains
     v = v0
   end subroutine get_particle
 
-  subroutine custom_field(x, E_field, B_field)
+  subroutine custom_field(w, x, E_field, B_field)
     use mod_global_parameters
-    double precision, intent(in)  :: x(ixG^T,1:ndim)
-    double precision, intent(out) :: E_field(ixG^T, 1:ndir)
-    double precision, intent(out) :: B_field(ixG^T, 1:ndir)
+    double precision, intent(in)  :: w(ixG^T,nw)
+    double precision, intent(in)  :: x(ixG^T,ndim)
+    double precision, intent(out) :: E_field(ixG^T, ndir)
+    double precision, intent(out) :: B_field(ixG^T, ndir)
 
     integer          :: i^D
     double precision :: E(3), B(3), xtmp(ndim)

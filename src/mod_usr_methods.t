@@ -277,11 +277,12 @@ module mod_usr_methods
        logical, intent(out)          :: follow(n_particles)
      end subroutine create_particles
 
-     subroutine particle_fields(x, E, B)
+     subroutine particle_fields(w, x, E, B)
        use mod_global_parameters
+       double precision, intent(in)  :: w(ixG^T,1:nw)
        double precision, intent(in)  :: x(ixG^T,1:ndim)
-       double precision, intent(out) :: E(ixG^T, 1:ndir)
-       double precision, intent(out) :: B(ixG^T, 1:ndir)
+       double precision, intent(out) :: E(ixG^T, ndir)
+       double precision, intent(out) :: B(ixG^T, ndir)
      end subroutine particle_fields
 
   end interface

@@ -3,11 +3,6 @@ module mod_particle_gca
 
   private
 
-  !> Variable index for magnetic field
-  integer, protected, allocatable      :: bp(:)
-  !> Variable index for electric field
-  integer, protected, allocatable      :: ep(:)
-
   !> Variable index for gradient B (but with relativistic correction kappa,
   !> which is given by kappa = sqrt(1 - E_perp^2/B^2)
   integer, protected, allocatable      :: grad_kappa_B(:)
@@ -179,44 +174,10 @@ contains
     integer                                   :: idirmin
     double precision, dimension(ixG^T,1:ndir) :: ue, bhat
     double precision, dimension(ixG^T)        :: kappa, kappa_B, absB, tmp
-    double precision                          :: E_field(ixG^T, 1:ndir)
-    double precision                          :: B_field(ixG^T, 1:ndir)
+
+    call fill_gridvars_default()
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
-
-       if (associated(usr_particle_fields)) then
-         call usr_particle_fields(pw(igrid)%x, E_field, B_field)
-         gridvars(igrid)%w(ixG^T,ep(:)) = E_field
-         gridvars(igrid)%w(ixG^T,bp(:)) = B_field
-       else
-         ! Determine fields from MHD variables
-         w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-         call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-
-         ! fill with magnetic field:
-         gridvars(igrid)%w(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
-
-         current = zero
-         call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
-         ! fill electric field
-         gridvars(igrid)%w(ixG^T,ep(1)) = gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(3)) &
-              - gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
-         gridvars(igrid)%w(ixG^T,ep(2)) = gridvars(igrid)%w(ixG^T,bp(3)) * w(ixG^T,iw_mom(1)) &
-              - gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
-         gridvars(igrid)%w(ixG^T,ep(3)) = gridvars(igrid)%w(ixG^T,bp(1)) * w(ixG^T,iw_mom(2)) &
-              - gridvars(igrid)%w(ixG^T,bp(2)) * w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
-
-         ! scale to cgs units:
-         ! TODO: here unit_magneticfield is used, below something else
-         gridvars(igrid)%w(ixG^T,bp(:)) = &
-              gridvars(igrid)%w(ixG^T,bp(:)) * unit_magneticfield
-         gridvars(igrid)%w(ixG^T,ep(:)) = &
-              gridvars(igrid)%w(ixG^T,ep(:)) * unit_magneticfield * unit_velocity / const_c
-       end if
-
        ! grad(kappa B)
        absB(ixG^T) = sqrt(sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1))
        ue(ixG^T,1) = gridvars(igrid)%w(ixG^T,ep(2)) * gridvars(igrid)%w(ixG^T,bp(3)) &
@@ -258,34 +219,6 @@ contains
        end do
 
        if(time_advance) then
-         gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
-
-         if (associated(usr_particle_fields)) then
-           !> @todo Compute these fields at a different time?
-           call usr_particle_fields(pw(igrid)%x, E_field, B_field)
-           gridvars(igrid)%wold(ixG^T,ep(:)) = E_field
-           gridvars(igrid)%wold(ixG^T,bp(:)) = B_field
-         else
-           wold(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
-           call phys_to_primitive(ixG^LL,ixG^LL,wold,pw(igrid)%x)
-           gridvars(igrid)%wold(ixG^T,bp(:)) = wold(ixG^T,iw_mag(:))
-           current = zero
-           call get_current(wold,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
-           ! fill electric field
-           gridvars(igrid)%wold(ixG^T,ep(1)) = gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(3)) &
-                - gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
-           gridvars(igrid)%wold(ixG^T,ep(2)) = gridvars(igrid)%wold(ixG^T,bp(3)) * wold(ixG^T,iw_mom(1)) &
-                - gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
-           gridvars(igrid)%wold(ixG^T,ep(3)) = gridvars(igrid)%wold(ixG^T,bp(1)) * wold(ixG^T,iw_mom(2)) &
-                - gridvars(igrid)%wold(ixG^T,bp(2)) * wold(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
-
-           ! scale to cgs units:
-           gridvars(igrid)%wold(ixG^T,bp(:)) = &
-                gridvars(igrid)%wold(ixG^T,bp(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
-           gridvars(igrid)%wold(ixG^T,ep(:)) = &
-                gridvars(igrid)%wold(ixG^T,ep(:)) * sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
-         end if
-
          ! grad(kappa B)
          absB(ixG^T) = sqrt(sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1))
          ue(ixG^T,1) = gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(3)) &
