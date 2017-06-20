@@ -1,0 +1,7 @@
+ &filelist
+        base_filename = '_an'
+ /
+
+ &my_list
+        use_analytic_field = t
+ /

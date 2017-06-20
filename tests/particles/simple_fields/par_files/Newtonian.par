@@ -1,0 +1,7 @@
+ &filelist
+        base_filename = '_Newt'
+ /
+
+ &particles_list
+        relativistic = F
+ /

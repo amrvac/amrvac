@@ -7,9 +7,9 @@ module mod_particle_base
   !> String describing the particle physics type
   character(len=name_len) :: physics_type_particles = ""
   !> Header string used in CSV files
-  character(len=200) :: csv_header
+  character(len=200)      :: csv_header
   !> Format string used in CSV files
-  character(len=60) :: csv_format
+  character(len=60)       :: csv_format
   !> Maximum number of particles
   integer                 :: nparticleshi
   !> Maximum number of particles in one processor
@@ -36,6 +36,8 @@ module mod_particle_base
   logical                 :: write_ensemble
   !> Whether to write particle snapshots
   logical                 :: write_snapshot
+  !> Use a relativistic particle mover?
+  logical                 :: relativistic
   !> Resistivity
   double precision        :: particles_eta
   double precision        :: dtheta
@@ -150,7 +152,7 @@ contains
     namelist /particles_list/ physics_type_particles,nparticleshi, &
          nparticles_per_cpu_hi, particles_eta, write_individual, write_ensemble, &
          write_snapshot, dtsave_particles,num_particles,npayload,tmax_particles, &
-         dtheta,losses, const_dt_particles
+         dtheta,losses, const_dt_particles, relativistic
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -179,6 +181,7 @@ contains
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
+    relativistic              = .true.
     t_next_output             = 0.0d0
     dtheta                    = 2.0d0*dpi / 60.0d0
     particles_eta             = 0.d0
@@ -551,8 +554,11 @@ contains
     double precision,dimension(ndir), intent(in)        :: u
     double precision, intent(out)                      :: lfac
 
-    lfac = sqrt(1.0d0 + sum(u(:)**2))
-
+    if (relativistic) then
+       lfac = sqrt(1.0d0 + sum(u(:)**2))
+    else
+       lfac = 1.0d0
+    end if
   end subroutine get_lfac
 
   !> Get Lorentz factor from velocity
@@ -561,7 +567,11 @@ contains
     double precision,dimension(ndir), intent(in)        :: v
     double precision, intent(out)                      :: lfac
 
-    lfac = 1.0d0 / sqrt(1.0d0 - sum(v(:)**2)/const_c**2)
+    if (relativistic) then
+       lfac = 1.0d0 / sqrt(1.0d0 - sum(v(:)**2)/const_c**2)
+    else
+       lfac = 1.0d0
+    end if
 
   end subroutine get_lfac_from_velocity
 

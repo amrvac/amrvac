@@ -30,8 +30,10 @@ contains
     use mod_global_parameters
     integer :: idir, nwx
 
-    if(physics_type/='mhd') call mpistop("GCA particles need magnetic field!")
-    if(ndir/=3) call mpistop("GCA particles need ndir=3!")
+    if (physics_type/='mhd') call mpistop("GCA particles need magnetic field!")
+    if (ndir/=3) call mpistop("GCA particles need ndir=3!")
+    if (.not. relativistic) call mpistop("GCA requires relativistic=.true.")
+
     dtsave_particles=dtsave_particles*unit_time
     nwx = 0
     allocate(bp(ndir))
