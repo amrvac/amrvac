@@ -45,9 +45,10 @@ module mod_usr_methods
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
   ! Particles module related
-  procedure(update_payload), pointer   :: usr_update_payload   => null()
-  procedure(create_particles), pointer :: usr_create_particles => null()
-  procedure(particle_fields), pointer  :: usr_particle_fields  => null()
+  procedure(update_payload), pointer    :: usr_update_payload    => null()
+  procedure(create_particles), pointer  :: usr_create_particles  => null()
+  procedure(particle_fields), pointer   :: usr_particle_fields   => null()
+  procedure(particle_analytic), pointer :: usr_particle_analytic => null()
 
   abstract interface
 
@@ -284,6 +285,14 @@ module mod_usr_methods
        double precision, intent(out) :: E(ixG^T, ndir)
        double precision, intent(out) :: B(ixG^T, ndir)
      end subroutine particle_fields
+
+     subroutine particle_analytic(ix, x, tloc, vec)
+       use mod_global_parameters
+       integer, intent(in)           :: ix(ndir) !< Indices in gridvars
+       double precision, intent(in)  :: x(ndir)
+       double precision, intent(in)  :: tloc
+       double precision, intent(out) :: vec(ndir)
+     end subroutine particle_analytic
 
   end interface
 

@@ -13,6 +13,9 @@ module mod_usr
   ! Initial velocity (in m/s)
   double precision :: v0(3) = [0.0d0, 0.0d0, 0.0d0]
 
+  ! Use an analytic field instead of an interpolated one
+  logical :: use_analytic_field = .false.
+
 contains
 
   subroutine usr_init()
@@ -26,13 +29,19 @@ contains
 
     usr_init_one_grid => initonegrid_usr
     usr_create_particles => generate_particles
-    usr_particle_fields => custom_field
+    usr_particle_fields => set_custom_field
 
     call set_coordinate_system("Cartesian_3D")
     call mhd_activate()
     call params_read(par_files)
 
     call initialize_amrvac()    ! So that we have settings available
+
+    if (use_analytic_field) then
+      if (physics_type_particles /= 'Lorentz') &
+           call mpistop('Analytic fields only supported with Lorentz')
+      usr_particle_analytic => get_analytic_field
+    end if
 
   end subroutine usr_init
 
@@ -42,7 +51,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /my_list/ charge, mass, x0, v0
+    namelist /my_list/ charge, mass, x0, v0, use_analytic_field
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -168,7 +177,7 @@ contains
     v = v0
   end subroutine get_particle
 
-  subroutine custom_field(w, x, E_field, B_field)
+  subroutine set_custom_field(w, x, E_field, B_field)
     use mod_global_parameters
     double precision, intent(in)  :: w(ixG^T,nw)
     double precision, intent(in)  :: x(ixG^T,ndim)
@@ -190,6 +199,25 @@ contains
     E_field(i^D, :) = E * 1.0d6/const_c
     {end do\}
 
-  end subroutine custom_field
+  end subroutine set_custom_field
+
+  subroutine get_analytic_field(ix, x, tloc, vec)
+    use mod_global_parameters
+    integer, intent(in)           :: ix(ndir) !< Indices in gridvars
+    double precision, intent(in)  :: x(ndir)
+    double precision, intent(in)  :: tloc
+    double precision, intent(out) :: vec(ndir)
+    double precision              :: E(3), B(3)
+
+    call get_field(x, E, B)
+
+    if (ix(1) == bp(1)) then
+      vec = B * 1.0d4
+    else if (ix(1) == ep(1)) then
+      vec = E * 1.0d6/const_c
+    else
+      call mpistop("get_analytic_field: unknown variable index")
+    end if
+  end subroutine get_analytic_field
 
 end module mod_usr

@@ -514,6 +514,7 @@ contains
 
   subroutine get_vec(ix,igrid,x,tloc,vec)
     use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_analytic
 
     integer,intent(in)                                 :: ix(ndir) !< Indices in gridvars
     integer,intent(in)                                 :: igrid
@@ -524,7 +525,9 @@ contains
     double precision                                   :: td
     integer                                            :: ic^D,idir
 
-    if (.not.time_advance) then
+    if (associated(usr_particle_analytic)) then
+      call usr_particle_analytic(ix, x, tloc, vec)
+    else if (.not.time_advance) then
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
              pw(igrid)%x(ixG^T,1:ndim),x,vec(idir))
