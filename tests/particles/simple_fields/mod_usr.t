@@ -160,6 +160,10 @@ contains
            3d0 * x(2) * x(3), &
            2d0 * x(3)**2 - x(1)**2 - x(2)**2] / &
            (x(1)**2 + x(2)**2 + x(3)**2)**(5/2)
+    case (8)
+      ! X-null point
+      E = 0.0d0
+      B = [x(2), x(1), 0.0d0] * 1d-2
     case default
       call mpistop("Unknown value for iprob")
     end select
