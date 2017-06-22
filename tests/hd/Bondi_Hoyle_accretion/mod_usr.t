@@ -74,7 +74,8 @@ contains
 
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
-    double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
+    double precision, intent(in) :: w(ixG^S,1:nw)
+    double precision, intent(inout) :: dtnew
 
     dtnew=bigdouble
     dtnew=min(dtnew,minval(dsqrt(block%dx(ix^S,1)/(gm/x(ix^S,1)**two))))

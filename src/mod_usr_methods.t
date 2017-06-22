@@ -150,7 +150,8 @@ module mod_usr_methods
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim)
-       double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
+       double precision, intent(in)    :: w(ixI^S,1:nw)
+       double precision, intent(inout) :: dtnew
      end subroutine get_dt
 
      !> Calculate gravitational acceleration in each dimension
