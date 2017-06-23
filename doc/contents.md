@@ -1,4 +1,4 @@
-# Contents
+# Contents {#doc-contents}
 
 [TOC]
 

@@ -2,88 +2,62 @@
 
 [TOC]
 
-# Introduction {#started_intro}
+This page shows how to run a first problem after the @ref installation.md is
+completed.
 
-Here we will get you started with MPI-AMRVAC. Fortunately, the code has very
-little dependencies: the only thing you will really need is an implementation of
-MPI, e.g. [open-mpi](http://www.open-mpi.org/) or
-[mpich](http://www.mpich.org/).
-
-# Get the code {#get_code}
-
-We will install the code to the `~/codes/amrvac` directory. The following
-commands should do the trick:
-
-    cd ~
-    mkdir codes
-    cd codes
-
-You can then clone the repository using git:
-
-    git clone https://gitlab.com/mpi-amrvac/amrvac.git
-    cd amrvac
-
-Alternatively, you can also download a zip file of the most recent version from
-[Gitlab](https://gitlab.com/mpi-amrvac/amrvac/tree/master), by clicking the
-"Download zip" button.
-
-# Installation {#install}
-
-The only thing that should be done after unpacking is to set the `$AMRVAC_DIR`
-environment variable holding the path to the code. To do so using bash, you
-should add the following entry to your `~/.bash_profile` (or `~/.bashrc`) file:
-
-    # AMRVAC:
-    export AMRVAC_DIR=$HOME/codes/amrvac
-
-To use scripts more conveniently, the following line can be placed in `~/.bash_profile`:
-
-    PATH="$AMRVAC_DIR:$AMRVAC_DIR/tools:./:$PATH"
-
-Don't forget to source the `.bash_profile`:
-
-    source ~/.bash_profile
-
-# Running a test problem {#running_test}
+# The VAC problem
 
 Traditionally, the first test problem is the VAC advection located in
-`$AMRVAC_DIR/tests/rho/vac`.
-In this folder, you can type
+`$AMRVAC_DIR/tests/rho/vac`. Two files are present in this folder:
 
-    $AMRVAC_DIR/setup.pl -d=22 -g=16,16 -p=rho -u=testrho
+* `mod_usr.t`: the user code for this problem (defining e.g. initial conditions)
+* `amrvac.par`: a text file with settings
 
-which sets up a 2D (-d=22) advection (-p=rho) problem for an AMR-grid with
-16x16 blocks (-g=16,16). This specific problem is pre-defined (-u=testrho).
-You will notice some `*.t` files in your directory:
+# Compilation {#running_test}
 
-* `amrvacsettings.t`
-* `mod_indices.t`
-* `amrvacusr.t`
-* `amrvacusrpar.t`
+In the VAC test folder, run the setup script with:
 
-Normally, you only have to care about the last two. In `amrvacusr.t`, the
-whole problem for example initial conditions and boudary conditions are set
-up. `amrvacusrpar.t` can be used to provide additional global varibles for
-your setup. You will learn more about this later, lets first build the code.
+    $AMRVAC_DIR/setup.pl -d=2
 
-The machine specific definitions are outsourced to the directory
-`$AMRVAC_DIR/arch`. There you have a number of pre-defined make rules for
-various compilers. If you are using intel, you should well be served with
-`default.defs`. To tell amrvac to use these definitions:
-`$AMRVAC_DIR/setup.pl -arch=default`
+This will copy a makefile to the current folder, and set the problem dimension
+to two. To select different compiler settings (present in `$AMRVAC_DIR/arch/`)
+you could for example use:
 
-Then its time to compile and run the code:
+    $AMRVAC_DIR/setup.pl -d=2 -arch=intel
+    $AMRVAC_DIR/setup.pl -d=2 -arch=debug
 
-    make
-    mpirun -np 2 ./amrvac -i testrho_vac22 < /dev/null > out &
+You can also edit the `makefile` directly.
 
-This will run amrvac on two cores of your machine using the pre-defined
-parameter-file testrho_vac22 (-i ) and route output to the file out. This
-should take around 15 seconds. Then you have several new files ending in
-`.dat`, `.vtu` and one file called `amrvac.log` - this is the log file updated
-during computation.
-The `.dat` files are used for restarts (`./amrvac -restart n`) and the `.vtu`
-files contain the output data to be visualized with e.g. Paraview (we also
-provide Python interfaces though).
+Then its time to compile the code:
 
-Congratulations, you have run your first simulation with amrvac!
+    make -j 4
+
+This will perform a parallel compilation using 4 cores. First, the AMRVAC
+library is compiled in `$AMRVAC_DIR/lib/` if it is not available already. This
+is the generic part of AMRVAC that does not depend on your user code. Then your
+user code is also compiled, and a binary called `amrvac` is produced.
+
+There are two useful commands to know about:
+
+* `make clean`: clean the local object files
+* `make allclean`: clean the local object files **and** the AMRVAC library
+
+# Running {#running_test}
+
+To run the test problem on 4 cores:
+
+    mpirun -np 4 ./amrvac -i amrvac.par
+
+This will run amrvac with parameter-file amrvac.par. Then you have several new
+files ending in `.dat`, `.vtu` and one `.log` file. The `.dat` files are used
+for restarts and the `.vtu` files contain the output data to be visualized.
+
+# Visualization {#visualization}
+
+Simulation output in `.vtu` (VTK unstructured) format can directly be
+visualized [Paraview](http://www.paraview.org/)
+or [Visit](https://wci.llnl.gov/simulation/computer-codes/visit).
+
+Visualization or analysis of the results can also be done **a posteriori**, by
+converting `.dat` files to e.g., IDL, openDX, Tecplot, or VTK native formats.
+This requires the same amrvac executable used to run the simulation.
