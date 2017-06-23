@@ -49,28 +49,6 @@ At this point, you can ask for access to the MPI-AMRVAC Gitlab repository so
 that you can `push` your changes to it. You can also clone the repository and
 file a merge request.
 
-## How to send in your changes {#contrib-workflow}
-
-Please work in your own branch, and only include your changes in the master
-branch when they are ready and tested. Suppose you have a branch called
-`new-visualization-format` which you want to include in `master`, then a simple
-way to include your changes would be to:
-
-    # Checkout the master branch
-    git checkout master
-
-    # Fetch and merge with remote changes
-    git pull
-
-    # Merge with your branch
-    git merge new-visualization-format
-
-    # Perhaps resolve conflicts, and write a clear message describing what your
-    # changes are.
-
-    # Push your changes back to master
-    git push
-
 # Contributing documentation {#contrib-doc}
 
 The [documentation](documentation.md) page explains how to write documentation

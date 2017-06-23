@@ -4,15 +4,13 @@
 
 # Introduction {#introduction}
 
-This is the documentation for the development version of MPI-AMRVAC,
-which is now hosted on [Gitlab](https://gitlab.com/mpi-amrvac/amrvac).
+This is the documentation for the development version of MPI-AMRVAC, which is
+now hosted on [Gitlab](https://gitlab.com/mpi-amrvac/amrvac).
 
 # Quick links {#quick_links}
 
 * @ref installation.md
 * @ref getting_started.md
-* @ref changelog.md
-* @ref faq.md
 * @ref contributing.md
 * [List of tests](@ref test)
 * @ref publications.md
@@ -34,48 +32,28 @@ MPI-AMRVAC is written in Fortran 90 and uses MPI for parallelization.
 The [VACPP](vacpp.md) preprocessor is used to extend Fortran with dimensional
 independent notation, but users are not required to learn the VACPP syntax.
 
-# History {#history}
+The philosophy behind MPI-AMRVAC is to use a single versatile code with options
+and switches for various problems. The advantage of such a general approach is
+easier maintenance, the compatibility of different parts, and the automatic
+extension of new features to existing applications. MPI-AMRVAC is not a
+fool-proof black-box design. A user needs to write subroutines for initial
+conditions, and for source terms or special boundary conditions when needed.
 
-This version of the MPI-AMRVAC software was initiated in the course of 2006-2007
-by **Bart van der Holst** (meanwhile at University of Michigan) in a close
-collaboration with [Rony Keppens](http://perswww.kuleuven.be/~u0016541) at the
-[Centre for Plasma-Astrophysics (CPA)](http://wis.kuleuven.be/cpa) at
-K.U.Leuven. The code has witnessed continuous improvements and additions, with
-**Zakaria Meliani** as the main core developer since 2005-2006 (for the
-relativistic physics modules, parallel conversion of MPI-AMRVAC I/O to a large
-variety of postprocessing formats for later visualization, and for many overall
-code additions/improvements), and **Oliver Porth** joining in on the core team
-since 2010. Other contributors to the project are **Allard Jan van Marle** (for
-optically thin radiative loss treatments), **Peter Delmont** (some of the
-visualization capabilities), **Chun Xia** ([an]isotropic thermal conduction) and
-the growing number of users at CmPA and abroad.
+# Current development {#current_develop}
 
-MPI-AMRVAC is an MPI-parallelized Adaptive Mesh Refinement code, with some
-heritage (in the solver part) to the [Versatile Advection Code
-](http://grid.engin.umich.edu/~gtoth/VAC) or VAC, initiated by Gabor Toth at
-the Astronomical Institute at Utrecht in November 1994, with help from Rony
-Keppens since 1996. Previous incarnations of the Adaptive Mesh Refinement
-version of VAC were of restricted use only, and have been used for basic
-research in AMR strategies, or for well-targeted applications. This MPI
-version uses a full octree block-based approach, and allows for general
-orthogonal coordinate systems. Tests have been performed on various
-supercomputing facilities throughout Europe.
+MPI-ARMVAC is currently maintained and further developed by members of
+the
+[Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA).
 
-# Philosophy {#philosophy}
+In 2016-2017 a large modernization effort was started
+by [Chun Xia](https://wis.kuleuven.be/CmPA/current-members/00086290)
+and [Jannis Teunissen](http://teunissen.net/), who are the current maintainers.
+The changes in the new version are:
 
-The philosophy behind MPI-AMRVAC is using a single versatile software with
-options and switches for various problems, rather than developing a different
-method or version for each problem separately. The advantage of such a general
-approach is a reduction of overall time for software development, easier
-maintenance, compatibility of different parts, automatic extension of new
-features to all existing applications. The price of the general approach is
-some added complexity in the source.
-
-MPI-AMRVAC is not a fool-proof black-box design. The user is expected to
-understand how the different parameters change the behaviour of the code, and
-to be able to complete user written subroutines for source terms, special
-boundary conditions etc. if needed. It is essential to keep the user written
-parts well separated. Please put added subroutines into a separate AMRVACUSR
-module in the **src/usr** subdirectory under the **src** (source) directory.
-You must then think of a suitable name, of the form
-**src/usr/amrvacusr.t.MINE**.
+* Automatic regression tests were added
+* The preprocessor is only used for the problem dimension (1D, 2D, or 3D)
+* The code was modernized and re-organized into Fortran modules, and there is
+  now an AMRVAC library
+* The focus of MPI-AMRVAC is now on non-relativistic hydro- and
+  magnetohydrodynamics
+* Many smaller improvements the physics modules

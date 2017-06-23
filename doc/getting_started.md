@@ -13,7 +13,7 @@ Traditionally, the first test problem is the VAC advection located in
 * `mod_usr.t`: the user code for this problem (defining e.g. initial conditions)
 * `amrvac.par`: a text file with settings
 
-# Compilation {#running_test}
+# Compilation {#vac_compilation}
 
 In the VAC test folder, run the setup script with:
 
@@ -42,7 +42,7 @@ There are two useful commands to know about:
 * `make clean`: clean the local object files
 * `make allclean`: clean the local object files **and** the AMRVAC library
 
-# Running {#running_test}
+# Running the test {#vac_run}
 
 To run the test problem on 4 cores:
 
