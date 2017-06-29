@@ -154,7 +154,7 @@ contains
           particle(n)%payload(1)=sqrt(2.0d0*m(n)*&
                magmom*Bnorm)/abs(q(n)*Bnorm)*const_c
           ! pitch angle
-          particle(n)%payload(2)=atan(vperp, vpar)
+          particle(n)%payload(2)=atan2(vperp, vpar)
           ! perpendicular velocity
           particle(n)%payload(3)=vperp
         end if
@@ -470,7 +470,7 @@ contains
         ! current gyroradius
         particle(ipart)%payload(1) = sqrt(2.0d0*m*Mr*absb)/abs(q*absb)*const_c
         ! pitch angle
-        particle(ipart)%payload(2) = atan(sqrt((2.0d0*Mr*absb)/(m*gamma**2)), vpar)
+        particle(ipart)%payload(2) = atan2(sqrt((2.0d0*Mr*absb)/(m*gamma**2)), vpar)
         ! particle v_perp
         particle(ipart)%payload(3) = sqrt((2.0d0*Mr*absb)/(m*gamma**2))
         ! particle parallel momentum term 1
