@@ -1,77 +1,34 @@
 # Features overview
 
+[TOC]
+
 This is a brief overview of the main features of the MPI-AMRVAC software
 package.
 
-## Structure
+# Structure {#feat-structure}
 
 This software has to be configured, preprocessed, and compiled into a single
 main executable program, **amrvac** which can be run on multiple processors
 using MPI. MPI-AMRVAC will initialize and advance the unknowns, and perform
 automated grid refinement to follow all details of the (possibly shock-
 dominated) flow. The program is split into several logical parts, and heavily
-uses Fortran 90 modules and dynamic allocation. The various parts are simply
-sets of subroutines and functions that belong together and they are put in a
-single file.
-
-    partname		    Function
-
-    amrvac			    Main program and subroutines.
-    amrvacio/    		Input and output.
-    amrvacnul/    		Dummies
-    amrvacmodules/      AMRVACUSR LIBRARY functions
-    amrini 	     		Initialization.
-    amrgrid     		Grid setup.
-    advance 			Advancing the grid tree and scheme/method selection.
-    geometry			Initializing the appropriate geometry information.
-    amr_coarsen_refine, amr_fix_conserve, amr_ghostcells, amr_neighbours, amr_solution_node
-                         AMR specific routines
-    coarsen			    grid coarsening operations
-    comm_lib			MPI communication routines
-    connectivity		subroutines for neighbor determinations in the tree hierarchy
-    errest			    the error estimator used for AMR regridding
-    forest			    the AMR octree
-    initialize_vars		basic global variable/parameter initializations
-    load_balance		the load balance strategy
-    refine			    refining
-    set_B0     			subtracting a background potential field in MHD simulations
-    setdt 			    Determining the time step limit
-    convert			    Conversion of data files to different formats for visualization (postprocessing)
-    tvdlf 			    Total Variation Diminishing Lax-Friedrich and Hancock predictor method, as well as HLL(C) variants
-    tvd 				Total Variation Diminishing method
-    cd	     			Central difference scheme
-    fd	     			Finite difference scheme
-    EQUATION/amrvacpar.t  	Basic equation dependent parameters.
-    EQUATION/amrvacphys.t 	Basic equation dependent subroutines.
-    EQUATION/roe.t 		    Basic equation dependent subroutines related to Roe scheme.
-    EQUATION/hllc.t 		Basic equation dependent subroutines related to HLLC scheme.
-    EQUATION/correctaux.t 	Equation dependent subroutines for error handling.
-    usr/amrvacusr.t.PROBLEM Problem dependent user written subroutines.
-    modules/                shared module files
-
-The AMRVACPHYS and AMRVACUSR modules have several versions, but only the
-actual module, selected by the Perl script **setup.pl** is compiled at a time.
-See [usage](usage.md) about the configuration procedure.
+uses Fortran 90 modules and dynamic allocation.
 
 Once the configuration and compilation are done, **amrvac** can advance the
 solution in time, or can be used to convert previously produced data files to
 specific other formats for visualization. The data itself will be saved into
-_*.dat_ data files, which each contain a single snapshot of all grids and
-their unknowns in time, which can be used for eventual restarts. Hence, a
-simulation can be continued from any saved time step. Once a snapshot is
-available in _*.dat_ format, the result can be converted for further
-visualization, e.g. to _*.vtu_ format to be visualized with Paraview, see
-further info on [conversion](convert.md).
+`.dat` data files, which each contain a single snapshot of all grids and their
+unknowns in time, which can be used for eventual restarts. Besides these
+snapshots, the code can write output in a number of formats, which can directly
+be visualized with e.g. Paraview or Visit.
 
-## Source Language and Compilation
+# Source Language and Compilation {#feat-source}
 
 The `*.t` source files of AMRVAC are written in [dimension independent notation](source.md), known as the _LASY_ syntax. A suitably modified (and
 also simplified) version of the VAC Pre-Processor, [VACPP](vacpp.md)
-translates the source code files to Fortran 90. The code is to be run on
-**parallel machines** using MPI, so even on a single processor laptop or
-desktop, we still require compilation for MPI.
+translates the source code files to Fortran 90.
 
-## Equations
+# Equations {#feat-eqns}
 
 In general, MPI-AMRVAC aims to solve a system of (primarily hyperbolic)
 partial differential equations written in conservation form, with optional
@@ -79,44 +36,16 @@ source terms on the right hand side:
 
 ![](figmovdir/eq.general.gif)
 
-All the equation dependent subroutines are collected in the corresponding
-subdirectory (physics module), e.g. **src/EQUATION/amrvacphys.t**. Based on
-the existing physics module, one can easily adjust the code to allow for a new
-(set of) equation(s). The following equations are already defined:
-
-Module name	| Equation
----|---
-rho	| Transport equation [d(rho)/dt+div(v*rho)=0, v fixed]
-nonlinear |	Nonlinear scalar, e.g. Burgers
-hd | Hydrodynamics [Euler equations], ideal gas _-eos=gamma (default)_, isentropic [p=const*rho^gamma] or isothermal eos [p=const*rho] _-eos=iso_
-mhd	| Magnetohydrodynamics, ideal gas _-eos=gamma (default)_, isentropic [p=const*rho^gamma] or isothermal eos [p=const*rho] _-eos=iso_, also zero-beta plasma
-srhd | special relativistic hydrodynamics, ideal gas EOS
-srhdeos	| special relativistic hydrodynamics, Synge-type TM EOS
-srmhd | special relativistic magnetohydrodynamics, ideal gas _-eos=gamma (default)_, Synge-type TM EOS _-eos=synge_ and isentropic _-eos=iso_
-
-The resistivity for mhd can be a function of the flow variables as well as
-position. Some typical source terms have been implemented as a AMRVACUSR
-LIBRARY, collected in the **src/amrvacmodules/** folder:
-
-Library | Equation(s)  Source terms
----|---
-radloss | hd, mhd  optically thin radiative losses
-gravity | hd, mhd  external gravity, constant magnitude and direction
-pointgrav | hd, mhd  external gravity for (several) point sources
-heatconduct | hd, mhd  (an)isotropic thermal conduction
-viscosity | hd, mhd  viscosity
-epsinf | srmhd    synchrotron losses of the cutoff electron energy
-raytracing | all      solve equations on a raygrid, coupling in both directions with the fluid
-fff | mhd      linear force free field extrapolation
-pfss | mhd      potential field spherical surface extrapolation
-
-These can be modified and included into the AMRVACUSR module.
-
 See [equations](equations.md) for more detail.
 
-## Grid and Boundary
+# Grid and Boundary {#feat-grid}
 
-**The base grid is a 1, 2, or 3 dimensional curvilinear grid, with slab or axial symmetry for the ignored direction in less than 3D.** The grid can be Cartesian, cylindrical, spherical in 3D, or a polar grid in 2D. The vector variables are represented by their respective cartesian, cylindrical, or spherical components. Numerical conservation is ensured over the grid hierarchy by a finite volume discretization.
+The following types of finite-volume grids are supported:
+
+* Cartesian 1D, 1.5D, 2D, 2.5D, 3D
+* Cylindrical 2D, 2.5D, 3D
+* Polar 2D, 2.5D, 3D
+* Spherical 2D, 2.5D, 3D
 
 The **slab**, **cylindrical** or **spherical** grids differ in the definition
 of volumes and surfaces for the grid cells, and there are some extra terms in
@@ -142,9 +71,10 @@ special | Defined by the specialbound subroutine in AMRVACUSR module
 The pages on [discretization](discretization.md) and
 [axial coordinates](axial.md) provide further information.
 
-## Spatial Discretization
+# Spatial Discretization {#feat-spatial}
 
-**In MPI-AMRVAC, most discretizations are shock capturing conservative numerical schemes**. A non exhaustive list is given by:
+In MPI-AMRVAC, most discretizations are shock capturing conservative numerical
+schemes. A non exhaustive list is given by:
 
 Name | Description
 ---|---
@@ -167,7 +97,7 @@ accuracy for any of the methods. We have also provide several variants of
 
 See [methods](methods.md) for a more detailed description.
 
-## Temporal Discretization
+# Temporal Discretization {#feat-temporal}
 
 With the finite volume methods, second order accurate explicit time
 integration can be obtained by predictor-corrector and multistep Runge-Kutta
@@ -185,10 +115,3 @@ ssprk43 | 3rd order, strong stability preserving four step Runge-Kutta
 ssprk54 | 4th order, strong stability preserving five step Runge-Kutta
 
 The time step can be adjusted dynamically to satisfy the stability criteria.
-
-## Plans for Future Versions
-
-There are several planned extensions. Some of the more important and clearly
-defined directions are listed below.
-
-**Adaptive Mesh and Algorithm Refinement (AMAR)**      MPI-AMAR-VAC will combine the flexibility of MPI-AMRVAC with the possibility to couple different physics levels across the grid hierarchy.

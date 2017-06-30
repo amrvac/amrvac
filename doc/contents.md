@@ -10,7 +10,7 @@ Passing Interface - Adaptive Mesh Refinement - Versatile Advection Code.
 Interface - Adaptive Mesh Refinement - Versatile Advection Code and run your
 first test problem.
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
-financial support. 
+financial support.
 * [Changes in the GIT version](gitversion.md) How to migrate from the old svn
 code to the new git version.
 * [FAQ](faq.md) Frequently asked questions.
@@ -22,9 +22,8 @@ code to the new git version.
 parameter files and AMRVACUSR modules have been provided.
 * [Equations](equations.md) The equations and parameters in the existing
 AMRVACPHYS modules. How to create a new AMRVACPHYS module.
-* [AMRVACUSR Module](amrvacusr.md) How to create new "amrvacusr.t" and
-"amrvacusrpar.t" files for special initial conditions, boundary types, and
-source terms, etc.
+* [User files](amrvacusr.md) How to create a new problem, specify initial
+  conditions and customize AMRVAC.
 
 # Discretization and AMR related matter {#discretization}
 

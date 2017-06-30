@@ -30,6 +30,5 @@ to your `~/.bashrc` file (or perhaps `~/.bash_profile`):
 
 You can then open a new shell, or source the file with
 
-    source ~/.bash_profile
-
+    source ~/.bashrc
 

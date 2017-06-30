@@ -10,7 +10,12 @@ the [Versatile Advection Code ](http://grid.engin.umich.edu/~gtoth/VAC) or VAC,
 initiated by Gabor Toth at the Astronomical Institute at Utrecht in November
 1994, with help from Rony Keppens since 1996.
 
-MPI-AMRVAC was further developed by among others:
+MPI-AMRVAC is currently developed by:
+
+* **Chun Xia** as a core developer
+* **Jannis Teunissen** as a core developer
+
+Past contributors to MPI-AMRVAC are:
 
 * **Zakaria Meliani** was a core developer (relativistic physics modules,
   parallel I/O, postprocessing formats)

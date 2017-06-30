@@ -52,6 +52,8 @@ This will run amrvac with parameter-file amrvac.par. Then you have several new
 files ending in `.dat`, `.vtu` and one `.log` file. The `.dat` files are used
 for restarts and the `.vtu` files contain the output data to be visualized.
 
+For more information about command line parameters
+
 # Visualization {#visualization}
 
 Simulation output in `.vtu` (VTK unstructured) format can directly be
