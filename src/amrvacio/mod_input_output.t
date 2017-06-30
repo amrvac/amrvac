@@ -56,7 +56,7 @@ contains
     if (lget('cmd_-help') .or. len == 0) then
        if (mype == 0) then
           print *, 'Usage example:'
-          print *, './amrvac -i file.par [file2.par ...]'
+          print *, 'mpirun -np 4 ./amrvac -i file.par [file2.par ...]'
           print *, ''
           print *, 'Optional arguments:'
           print *, '-convert             Convert snapshot files'
@@ -64,7 +64,6 @@ contains
           print *, ''
           print *, 'Note: later parameter files override earlier ones.'
        end if
-       call comm_finalize()
        stop
     end if
 
