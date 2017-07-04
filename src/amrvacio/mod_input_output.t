@@ -133,7 +133,7 @@ contains
          flux_scheme,typepred1,&
          limiter,mcbeta,gradient_limiter,&
          flatcd,flatsh,flatppm,&
-         loglimit,typelimited,typetvdlf, &
+         loglimit,typelimited,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
          tvdlfeps,&
          small_temperature,small_pressure,small_density,typegrad,typediv,&
@@ -322,7 +322,7 @@ contains
     typelimited     = 'predictor'
     mcbeta          = 1.4d0
     typetvd         = 'roe'
-    typetvdlf       = 'cmaxmean'
+    typeboundspeed       = 'cmaxmean'
     source_split_usr= .false.
     time_integrator = 'twostep'
     solve_internal_e= .false.

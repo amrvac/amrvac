@@ -68,6 +68,7 @@ contains
     end if
 
     phys_get_cmax        => rho_get_cmax
+    phys_get_cbounds     => rho_get_cbounds
     phys_get_flux        => rho_get_flux
     phys_add_source_geom => rho_add_source_geom
     phys_to_conserved    => rho_to_conserved
@@ -104,22 +105,35 @@ contains
     v(ixO^S) = rho_v(idim)
   end subroutine rho_get_v
 
-  subroutine rho_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+  subroutine rho_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(inout)           :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
 
     call rho_get_v(w, x, ixI^L, ixO^L, idim, cmax)
 
-    if (present(cmin)) then
-       cmin(ixO^S) = min(cmax(ixO^S), zero)
-       cmax(ixO^S) = max(cmax(ixO^S), zero)
-    else
-       cmax(ixO^S) = abs(cmax(ixO^S))
-    end if
+    cmax(ixO^S) = abs(cmax(ixO^S))
+
   end subroutine rho_get_cmax
+
+  subroutine rho_get_cbounds(wLC, wRC, x, ixI^L, ixO^L, idim, cmax, cmin)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S,nw)
+    double precision, intent(in)    :: x(ixI^S, 1:^ND)
+    double precision, intent(inout) :: cmax(ixI^S)
+    double precision, intent(inout) :: cmin(ixI^S)
+
+    double precision :: wmean(ixI^S,nw)
+
+    wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+    call rho_get_v(wmean, x, ixI^L, ixO^L, idim, cmax)
+
+    cmin(ixO^S) = min(cmax(ixO^S), zero)
+    cmax(ixO^S) = max(cmax(ixO^S), zero)
+
+  end subroutine rho_get_cbounds
 
   subroutine rho_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters

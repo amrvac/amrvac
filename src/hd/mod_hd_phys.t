@@ -150,6 +150,7 @@ contains
 
     phys_get_dt          => hd_get_dt
     phys_get_cmax        => hd_get_cmax
+    phys_get_cbounds     => hd_get_cbounds
     phys_get_flux        => hd_get_flux
     phys_add_source_geom => hd_add_source_geom
     phys_add_source      => hd_add_source
@@ -380,34 +381,86 @@ contains
   end subroutine hd_get_v
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
-  subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+  subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
     double precision                          :: csound(ixI^S)
     double precision                          :: v(ixI^S)
 
     call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
-    call hd_get_pthermal(w, x, ixI^L, ixO^L, csound)
+    call hd_get_csound2(w,x,ixI^L,ixO^L,csound)
+    csound(ixO^S) = sqrt(csound(ixO^S))
 
-    csound(ixO^S) = sqrt(hd_gamma * csound(ixO^S) * &
-         hd_inv_rho(w, ixI^L, ixO^L))
+    cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
 
-    if (present(cmin)) then
-       cmax(ixO^S) = max(v(ixO^S)+csound(ixO^S), zero)
-       cmin(ixO^S) = min(v(ixO^S)-csound(ixO^S), zero)
+    if (hd_dust) then
+      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+    end if
+  end subroutine hd_get_cmax
+
+  !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
+  subroutine hd_get_cbounds(wLC, wRC, x, ixI^L, ixO^L, idim, cmax, cmin)
+    use mod_global_parameters
+    use mod_dust, only: dust_get_cmax
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw) 
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S)
+    double precision, intent(inout) :: cmin(ixI^S)
+
+    double precision :: wmean(ixI^S,nw)
+    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+
+
+    if (typeboundspeed/='cmaxmean') then
+      tmp1(ixO^S)=dsqrt(wLC(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRC(ixO^S,rho_))
+      tmp3(ixO^S)=dsqrt(wLC(ixO^S,rho_))+dsqrt(wRC(ixO^S,rho_))
+      umean(ixO^S)=(wLC(ixO^S,mom(idim))/tmp1(ixO^S)+wRC(ixO^S,mom(idim))/tmp2(ixO^S))/tmp3(ixO^S)
+      call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
+      call hd_get_csound2(wRC,x,ixI^L,ixO^L,csoundR)
+      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S))/tmp3(ixO^S)+&
+       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)/tmp3(ixO^S)**2*&
+       (wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)-wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_))**2
+      dmean(ixO^S)=dsqrt(dmean(ixO^S))
+      cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
+      cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      if(hd_dust) wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
     else
-       cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
+      call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
+      csoundR(ixO^S) = sqrt(csoundR(ixO^S))
+      cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+      cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
     end if
 
     if (hd_dust) then
-      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+      call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
     end if
-  end subroutine hd_get_cmax
+  end subroutine hd_get_cbounds
+
+  !> Calculate the square of the thermal sound speed csound2 within ixO^L.
+  !> csound2=gamma*p/rho
+  subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: w(ixI^S,nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(out)   :: csound2(ixI^S)
+
+    if(hd_energy) then
+      call hd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
+      csound2(ixO^S)=hd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
+    else
+      csound2(ixO^S)=hd_gamma*hd_adiab*w(ixO^S,rho_)**(hd_gamma-one)
+    end if
+  end subroutine hd_get_csound2
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)

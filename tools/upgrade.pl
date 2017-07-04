@@ -37,6 +37,7 @@ my %simple_replacements = (
     qr/\btypefull1\b/ => "flux_scheme",
     qr/\btypegradlimiter1\b/ => "gradient_limiter",
     qr/\btypelimiter1\b/ => "limiter",
+    qr/\btypetvdlf\b/ => "typeboundspeed",
     qr/\btypeB\b/ => "typeboundary",
     qr/\bwflags\b/ => "w_refine_weight",
     qr/\bwnames\b/ => "w_names",
@@ -120,6 +121,7 @@ my %par_file_replacements = (
     qr/tsave\(3\)/ => "tsave_slice",
     qr/tsave\(4\)/ => "tsave_collapsed",
     qr/tsave\(5\)/ => "tsave_custom",
+    qr/\btypetvdlf\b/ => "typeboundspeed",
     );
 
 # List of regular expressions and associated warnings

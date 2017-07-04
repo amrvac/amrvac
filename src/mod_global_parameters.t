@@ -342,7 +342,7 @@ module mod_global_parameters
   character(len=std_len) :: typetvd
 
   !> Which type of TVDLF method to use
-  character(len=std_len) :: typetvdlf
+  character(len=std_len) :: typeboundspeed
 
   character(len=std_len) :: typeaverage
   character(len=std_len) :: typedimsplit

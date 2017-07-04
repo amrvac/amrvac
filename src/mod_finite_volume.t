@@ -104,9 +104,6 @@ contains
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     integer, dimension(ixI^S)               :: patchf
     integer :: idim, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
-    logical :: CmaxMeanState
-
-    CmaxMeanState = (typetvdlf=='cmaxmean')
 
     if (idimmax>idimmin .and. typelimited=='original')&
          call mpistop("Error in fv: Unsplit dim. and original is limited")
@@ -158,29 +155,13 @@ contains
        end select
 
        ! TODO wLC,wRC take primitive values may save a lot of calculation
-       ! For the high order scheme the limiter is based on
-       ! the maximum eigenvalue, it is calculated in advance.
-       if (CmaxMeanState) then
-          ! determine mean state and store in wprim
-          wmean(ixC^S,1:nwflux)=half*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
-          if(method=='tvdlf'.or.method=='tvdmu') then
-            call phys_get_cmax(wmean,x,ixI^L,ixC^L,idim,cmaxC)
-          else
-            call phys_get_cmax(wmean,x,ixI^L,ixC^L,idim,cmaxC,cminC)
-          end if
+
+       ! estimating bounds for the minimum and maximum signal velocities
+       if(method=='tvdlf'.or.method=='tvdmu') then
+         wmean(ixC^S,1:nwflux)=0.5d0*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
+         call phys_get_cmax(wmean,x,ixI^L,ixC^L,idim,cmaxC)
        else
-          if(method=='tvdlf'.or.method=='tvdmu') then
-            call phys_get_cmax(wLC,x,ixI^L,ixC^L,idim,cmaxLC)
-            call phys_get_cmax(wRC,x,ixI^L,ixC^L,idim,cmaxRC)
-            cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
-          else
-          ! now take the maximum of left and right states
-          ! S.F. Davis, SIAM J. Sci. Statist. Comput. 1988, 9, 445
-            call phys_get_cmax(wLC,x,ixI^L,ixC^L,idim,cmaxLC,cminLC)
-            call phys_get_cmax(wRC,x,ixI^L,ixC^L,idim,cmaxRC,cminRC)
-            cmaxC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
-            cminC(ixC^S)=min(cminRC(ixC^S),cminLC(ixC^S))
-          end if
+         call phys_get_cbounds(wLC,wRC,x,ixI^L,ixC^L,idim,cmaxC,cminC)
        end if
 
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idim)

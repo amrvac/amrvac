@@ -29,7 +29,7 @@
 !     double precision :: bpf(ixG^T,3)
 !     ...
 !     call pfss(ixG^L,ix^L,bpf,x)
-!     w(ix^S,b1_:b3_)=bpf(ix^S,1:3)
+!     w(ix^S,mag(1):mag(3))=bpf(ix^S,1:3)
 !
 !   end subroutine initonegrid_usr
 module mod_pfss
