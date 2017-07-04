@@ -37,8 +37,9 @@ library is compiled in `$AMRVAC_DIR/lib/` if it is not available already. This
 is the generic part of AMRVAC that does not depend on your user code. Then your
 user code is also compiled, and a binary called `amrvac` is produced.
 
-There are two useful commands to know about:
+There are a couple useful commands to know about:
 
+* `make ARCH=<name>`: use the compilation flags from arch/<name>.defs, for example `make ARCH=intel` or `make ARCH=debug` (**very useful!**)
 * `make clean`: clean the local object files
 * `make allclean`: clean the local object files **and** the AMRVAC library
 

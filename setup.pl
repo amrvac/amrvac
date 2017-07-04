@@ -5,22 +5,24 @@ use warnings;
 use Getopt::Long;
 
 my $help_message =
-"Usage: setup.pl [options]      To copy AMRVAC's makefile template
+"Usage: setup.pl [options]      To set up an AMRVAC problem
 
 Options:
 
     -d=N                        N is the problem dimension (1 to 3)
     -arch=<name>                Use compilation flags from arch/<name>.defs
+    -phys=<name>                For new setups: use this physics module
     -help                       Show this help message
 
 Examples:
 
-setup.pl -d=2 -arch=default\n";
+setup.pl -d=2\n";
 
 
 # Locally define the variables that will hold the options
 my $ndim;
 my $arch;
+my $phys;
 my $help;
 
 # Parse the options. Some are handled with a subroutine, which can do immediate
@@ -35,6 +37,7 @@ GetOptions(
             die("1 <= ndim <= 3 does not hold\n");
     },
     "arch=s"  => \$arch,
+    "phys=s"  => \$phys,
     "help"    => \$help)
     or die("Error in command line arguments\n");
 
@@ -63,6 +66,28 @@ if ($arch) {
     replace_regexp_file("makefile", qr/ARCH\s*[:?]?=.*/, "ARCH = $arch");
 }
 
+# If mod_usr.t or mod_usr.f are not present, copy a default tempate
+unless (-e("mod_usr.t") || -e("mod_usr.f")) {
+    print "No user files found, copy the default template? [y/n] ";
+
+    chomp(my $yn = <STDIN>);
+    unless ($yn eq "y") {
+        exit;
+    }
+
+    copy_if_not_present("mod_usr.t", "src", "mod_usr_template.t");
+
+    unless ($phys) {
+        print "Please enter the physics name (e.g., hd, mhd, rho): ";
+        $phys = <STDIN>;
+        chomp($phys);
+    }
+
+    replace_regexp_file("mod_usr.t", qr/hd_/, "$phys"."_");
+    replace_regexp_file("mod_usr.t", qr/_hd/, "_"."$phys");
+}
+
+
 # Copy a file if it doesn't exist yet
 # Usage: copy_if_not_present(filename, source directory)
 # Optionally, a local filename can be specified as third argument
@@ -76,7 +101,7 @@ sub copy_if_not_present {
     # If the file does not exist, copy it
     unless (-e($filename)) {
         print "Getting $filename from $location/$local_name\n";
-        `cp $ENV{AMRVAC_DIR}/$location/$local_name $filename`;
+        my $output = `cp $ENV{AMRVAC_DIR}/$location/$local_name $filename`;
     }
 }
 

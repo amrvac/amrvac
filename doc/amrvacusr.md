@@ -1,180 +1,42 @@
-# Setting up an amrvacusr module
+# Setting up an new problem
 
 [TOC]
 
-# Introduction {#amrvacusr_intro}
+# Introduction {#user_intro}
 
-This document describes how the **amrvacusr.t** and the
-optional **amrvacusrpar.t** files should be written for user
-defined initial and boundary conditions, input and output file formats, and
-source terms. It also shows how the library source term routines
-**src/amrvacmodules/*.t** can be included into the AMRVACUSR module. These
-libraries (gravity, pointgrav, cooling, radloss, etc) are in principle self-
-documented.
+This document describes how users can create new problems. It explains how to
+set initial conditions, and how to perform other customizations.
 
-# Purpose and Use {#amrvacusr_purpose}
+# Creating a New Setup {#user_setup}
 
-The AMRVACUSR modules contain the problem dependent user written subroutines.
-Usually a single AMRVACUSR module can be designed to contain several different
-problems that all assume the same physics module. That would be realized by
-the use of the parameter **iprob**, which is to be set in the corresponding
-par-file. A _select case(iprob)_ construct can be used in appropriate places
-then.
+User code for a new problem should go into a file called either:
 
-The setup is represented by two files in your simulation-directory,
-**amrvacusr.t** and **amrvacusrpar.t** that can be copied from specific
-templates in **src/usr/amrvacusr.t.PROBLEM** and
-**src/usr/amrvacusrpar.t.PROBLEM** or from a test in the folder
-**tests/EQUATION/PROBLEM/**. The first approach is automatized by running
-**setup.pl**:
+* `mod_usr.t`, if it contains dimension-independent code (Fortran+LASY)
+* `mod_usr.f`, if it contains regular Fortran code
 
-    $AMRVAC_DIR/setup.pl -u=PROBLEM
+A template for this file is available in `src/mod_usr_template.t`. To create a
+new 1D/2D/3D setup, run one of these commands:
 
-The **amrvacusr.t.PROBLEM** file has to exist, but the
-**amrvacusrpar.t.PROBLEM** file is optional. If it does not exist, the
-**amrvacusrpar.t** will be defaulted from **src/usr/amrvacusrpar.t.nul**.
+    $AMRVAC_DIR/setup.pl -d=1
+    $AMRVAC_DIR/setup.pl -d=2
+    $AMRVAC_DIR/setup.pl -d=3
 
-*We however recommend adapting a suitable setup from the tests folder where
-also the parameter file (default amrvac.par) and anything else to go with the
-setup is present.*
+This will copy an AMRVAC makefile and specify the problem dimension in it. If no
+user code is found, it will ask whether you want to copy the default template.
+Alternatively, you can look for an existing problem (look in `tests/`) and
+customize its `mod_usr.t` or `mod_usr.f` file to get started. To create a normal
+Fortran file from `mod_usr.t`, you can type `make mod_usr.f`.
 
-# Creating a New Setup {#amrvacusr_setup}
+# Structure of mod_usr.t {#user_structure}
 
-In your designated simulation directory, start by copying the
-**src/usr/amrvacusr.t.nul** file (or another similar file) into the new
-**amrvacusr.t** file. It consists of a few include statements. The included
-**amrvacnul/special*.t** files contain the default subroutines, and some or
-all need to be specified for your problem. The arguments are declared and the
-purpose of the subroutines is described below. Comment out the
-**INCLUDE:amrvacnul/specialSUBROUTINE.t** statement(s) for the subroutine(s)
-that you intend to write, and modify the comments at the beginning and at the
-end of the module for clarity.
+\include mod_usr_template.t
 
-## Specialini part {#amrvacusr_specialini}
 
-Your start file should look something like this, where we already included the
-**amrvacnul/specialini.t** file which is always needed:
+# TODO
 
-    !=============================================================================
-    ! amrvacusr.t.MYPROBLEM
-    !=============================================================================
-    !INCLUDE:amrvacnul/specialini.t
-    INCLUDE:amrvacnul/speciallog.t
-    INCLUDE:amrvacnul/specialbound.t
-    INCLUDE:amrvacnul/specialsource.t
-    INCLUDE:amrvacnul/usrflags.t
-    !=============================================================================
-    subroutine initglobaldata_usr
+@todo Finish documentation for user code, par files
 
-    include 'amrvacdef.f'
-    !-----------------------------------------------------------------------------
-
-    end subroutine initglobaldata_usr
-    !=============================================================================
-    subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-
-    ! initialize one grid within ix^L
-
-    include 'amrvacdef.f'
-
-    integer, intent(in) :: ixG^L, ix^L
-    double precision, intent(in) :: x(ixG^S,1:ndim)
-    double precision, intent(inout) :: w(ixG^S,1:nw)
-    !-----------------------------------------------------------------------------
-
-    w(ix^S,1:nw)=zero
-
-    end subroutine initonegrid_usr
-    !=============================================================================
-    ! amrvacusr.t.MYPROBLEM
-    !=============================================================================
-
-Now you should edit both subroutines according to your needs: the idea is that
-in _initglobaldata_usr_ you must set the global equation parameter values
-(i.e. all _eqpar(*)_ entries, note again that you can code up different cases
-depending on the **iprob** parameter). In the subroutine _initonegrid_usr_,
-you have to make sure that at the end of this subroutine, all conservative
-variable values are provided on the full grid, i.e. you need to specify
-physically meaningfull _w_ entries. You have the grid info available in the
-_x_ variable.
-
-You can write the subroutine(s) either in the dimension independent notation,
-described in [source](source.md), or in Fortran 90 if the
-number of dimensions is fixed for your PROBLEM.
-
-Below some help is provided for writing new subroutines.
-
-An example taken from the available _tests/rho/vac/amrvacusr.t_ user module is
-given below
-
-    !=============================================================================
-    ! amrvacusr.t.testrho
-
-    ! INCLUDE:amrvacnul/specialini.t
-    INCLUDE:amrvacnul/speciallog.t
-    INCLUDE:amrvacnul/specialbound.t
-    INCLUDE:amrvacnul/specialsource.t
-    INCLUDE:amrvacnul/usrflags.t
-    !=============================================================================
-    subroutine initglobaldata_usr
-
-    include 'amrvacdef.f'
-    !----------------------------------------------------------------------------
-
-    {^IFONED   eqpar(v1_)=one }
-    {^IFTWOD   eqpar(v1_)=one; eqpar(v2_)=one }
-    {^IFTHREED eqpar(v1_)=one; eqpar(v2_)=one; eqpar(v3_)=one }
-
-    end subroutine initglobaldata_usr
-    !=============================================================================
-    subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-
-    ! initialize one grid
-
-    include 'amrvacdef.f'
-
-    integer, intent(in) :: ixG^L, ix^L
-    double precision, intent(in) :: x(ixG^S,1:ndim)
-    double precision, intent(inout) :: w(ixG^S,1:nw)
-
-    double precision:: rhoflat,rhosquare,slocx^D
-    double precision :: radius, xcircle^D
-    !----------------------------------------------------------------------------
-
-    rhoflat  = 0.5d0
-    rhosquare= 2.0d0
-    ! iprob=1 is a pure 1D Riemann problem, solvable in 1D, 2D, 3D
-    if (iprob==1) then
-        slocx^D=0.2d0;
-        where({^D&x;(ix^S,^D)<=slocx^D|.and.})
-           w(ix^S,rho_)     = rhosquare
-        elsewhere
-           w(ix^S,rho_)     = rhoflat
-       endwhere
-
-    ! **** many more cases in the actual file are omitted here ***
-
-    else if (iprob==6) then
-       radius = 0.2d0
-       xcircle^D=zero;
-       where(radius**2> ^D&(x(ix^S,^D)-xcircle^D)**2+ )
-          w(ix^S,rho_)     = rhosquare
-       elsewhere
-          w(ix^S,rho_)     = rhoflat
-       endwhere
-    else
-        call mpistop("iprob not available!")
-    end if
-
-    end subroutine initonegrid_usr
-    !=============================================================================
-    ! amrvacusr.t.testrho
-    !=============================================================================
-
-Note the use of the rho_ index name. It is clear that the **x** coordinates
-are known on entry. The subroutine above works in 1, 2 or 3D.
-
-## Specialbound part {#amrvacusr_specialbound}
+## Specialbound part {#user_specialbound}
 
 When the predefined boundary types provided by MPI-AMRVAC are not sufficient
 the **specialbound** subroutine can solve the problem. It is called for each
@@ -190,7 +52,7 @@ An example for the use of this _specialbound_usr_ subroutine is found in the
 example user file **usr/amrvacusr.t.wchd22**, which realizes the standard 2D
 hydro Woodward and Collela shock reflection problem.
 
-## Specialsource part {#amrvacusr_specialsource}
+## Specialsource part {#user_specialsource}
 
 There are lots of possible physical source terms for the same basic equation.
 Rather than writing a new physics module for each, it is simpler to define a
@@ -227,7 +89,7 @@ allows to compute a (local) new variable, to be stored in _var_, on which you
 can then base refinement as well. This is true for the lohner error estimator
 only.
 
-## Speciallog part {#amrvacusr_speciallog}
+## Speciallog part {#user_speciallog}
 
 The _amrvacnul/speciallog.t_ file contains additional subroutines more related
 to special I/O requests. The default log-file may be altered, for which you
@@ -249,67 +111,3 @@ here compute current density components using the actual code discretizations
 for computing a curl, and then visualize those with any of the visualization
 tools applicable. You then also need to specify a label for this variable, in
 _specialvarnames_output_.
-
-# AMRVACUSR Library {#amrvacusr_library}
-
-Various source terms are available as library subroutines, in particular for a
-uniform external gravitational field, for an external gravitational point
-mass, and for optically thin radiative losses. They will always need to be
-combined with user written subroutines. To include a library into the
-**amrvacusr.t** file, just add a line
-
-    INCLUDE:amrvacmodules/LIBRARY.t
-
-and call the appropriate library routines from the subroutines
-**specialsource** and **getdt_special** according to the description of the
-library file. An example of that for a constant external gravity is in the
-problem file **src/usr/amrvacusr.t.testhdrt**, which includes the gravity
-library. It is also possible to copy the libraries into **amrvacusr.t**
-directly and modify them as necessary. The parameters of the library should be
-defined in the **amrvacusrpar.t** file according to the description given in
-the library file. See the [equations](@ref eq_hd) description as well,
-below we just list radiative loss treatments.
-
-## Radiative losses: radloss.t and cooling.t {#amrvacusr_radloss}
-
-An optically thin gas cools due to radiative losses. This involves the energy
-equation only:
-
-![](figmovdir/eq.radloss.gif)
-
-The thermal energy loss is proportional to density squared and a complicated
-function of the temperature. The two libraries differ in the details of this
-function, the more general _amrvacmodules/cooling.t_ has many frequently used
-cooling tables implemented, and various ways to add this local source term.
-
-# Special Equation Parameters {#amrvacusr_specialp}
-
-The user-defined source terms or boundary conditions may contain parameters
-which are often changed and have similar meaning to the equation parameters
-defined in the **src/EQUATION/amrvacpar.t** files. The **amrvacusrpar.t** file
-allows the user to define extra, problem dependent, equation parameters.
-
-The indexname and the number of the special equation parameters can be defined
-in the **amrvacusrpar.t** file. The values of these parameters should be set
-in the _initglobaldata_usr_ subroutine.
-
-To prepare a new **amrvacusrpar.t** file, simply copy the
-**src/usr/amrvacusrpar.t.nul** file into **amrvacusrpar.t** and edit it. This
-file will be included into the variable declaration part of all subroutines,
-thus it can also be used for variables to be shared by subroutines in the
-AMRVACUSR module.
-
-A simple example is the following file, taken from
-_src/usr/amrvacusrpar.t.testhdrt_ which just says the code that it has
-equation parameters for the constant gravitational field.
-
-    !##############################################################################
-    ! include amrvacusrpar - gravity
-
-    INTEGER,PARAMETER:: grav0_=neqpar, grav^D_=neqpar+^D, nspecialpar=^ND
-    {^IFONED   CHARACTER*5 ,PARAMETER:: specialparname='grav1'}
-    {^IFTWOD   CHARACTER*11,PARAMETER:: specialparname='grav1 grav2'}
-    {^IFTHREED CHARACTER*17,PARAMETER:: specialparname='grav1 grav2 grav3'}
-
-    ! end include amrvacusrpar - gravity
-    !##############################################################################
