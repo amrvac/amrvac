@@ -38,6 +38,7 @@ module mod_physics
   procedure(sub_convert), pointer         :: phys_convert_after_coarsen  => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
+  procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
   procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
@@ -66,23 +67,31 @@ module mod_physics
 
      subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
        use mod_global_parameters
-       double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
-       integer, intent(in)                :: ixI^L, ixO^L, idir
+       double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+       integer, intent(in)             :: ixI^L, ixO^L, idir
      end subroutine sub_modify_wLR
 
-     subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+     subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
        use mod_global_parameters
-       integer, intent(in)                       :: ixI^L, ixO^L, idim
-       double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-       double precision, intent(inout)           :: cmax(ixG^T)
-       double precision, intent(inout), optional :: cmin(ixG^T)
+       integer, intent(in)             :: ixI^L, ixO^L, idim
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: cmax(ixI^S)
      end subroutine sub_get_cmax
+
+     subroutine sub_get_cbounds(wLC, wRC, x, ixI^L, ixO^L, idim, cmax, cmin)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L, idim
+       double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+       double precision, intent(in)    :: x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: cmax(ixI^S)
+       double precision, intent(inout) :: cmin(ixI^S)
+     end subroutine sub_get_cbounds
 
      subroutine sub_get_flux(w, x, ixI^L, ixO^L, idim, f)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
-       double precision, intent(out)   :: f(ixG^T, nwflux)
+       double precision, intent(out)   :: f(ixI^S, nwflux)
      end subroutine sub_get_flux
 
      subroutine sub_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
@@ -182,6 +191,9 @@ contains
 
     if (.not. associated(phys_get_cmax)) &
          call mpistop("Error: no phys_get_cmax not defined")
+
+    if (.not. associated(phys_get_cbounds)) &
+         call mpistop("Error: no phys_get_cbounds not defined")
 
     if (.not. associated(phys_get_flux)) &
          call mpistop("Error: no phys_get_flux not defined")

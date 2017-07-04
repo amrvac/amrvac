@@ -229,6 +229,7 @@ contains
 
     phys_get_dt          => mhd_get_dt
     phys_get_cmax        => mhd_get_cmax
+    phys_get_cbounds     => mhd_get_cbounds
     phys_get_flux        => mhd_get_flux
     phys_add_source_geom => mhd_add_source_geom
     phys_add_source      => mhd_add_source
@@ -519,20 +520,68 @@ contains
   end subroutine mhd_get_v
 
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
-  subroutine mhd_get_cmax(w,x,ixI^L,ixO^L,idim,cmax,cmin)
+  subroutine mhd_get_cmax(w,x,ixI^L,ixO^L,idim,cmax)
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(inout)           :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision, intent(inout) :: cmax(ixI^S)
 
-    double precision :: csound(ixI^S), cfast2(ixI^S), AvMinCs2(ixI^S), v(ixI^S), kmax
+    call mhd_get_csound(w,x,ixI^L,ixO^L,idim,cmax)
+
+    cmax(ixO^S)=abs(w(ixO^S,mom(idim))/w(ixO^S,rho_))+cmax(ixO^S)
+
+  end subroutine mhd_get_cmax
+
+  !> Estimating bounds for the minimum and maximum signal velocities
+  subroutine mhd_get_cbounds(wLC,wRC,x,ixI^L,ixO^L,idim,cmax,cmin)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S)
+    double precision, intent(inout) :: cmin(ixI^S)
+
+    double precision :: wmean(ixI^S,nw)
+    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+
+    if (typeboundspeed/='cmaxmean') then
+      tmp1(ixO^S)=dsqrt(wLC(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRC(ixO^S,rho_))
+      tmp3(ixO^S)=dsqrt(wLC(ixO^S,rho_))+dsqrt(wRC(ixO^S,rho_))
+      umean(ixO^S)=(wLC(ixO^S,mom(idim))/tmp1(ixO^S)+wRC(ixO^S,mom(idim))/tmp2(ixO^S))/tmp3(ixO^S)
+      call mhd_get_csound(wLC,x,ixI^L,ixO^L,idim,csoundL)
+      call mhd_get_csound(wRC,x,ixI^L,ixO^L,idim,csoundR)
+      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)/tmp3(ixO^S)+&
+       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)/tmp3(ixO^S)**2*&
+       (wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)-wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_))**2
+      dmean(ixO^S)=dsqrt(dmean(ixO^S))
+      cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
+      cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+    else
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
+      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
+      cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+      cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+    end if
+
+  end subroutine mhd_get_cbounds
+
+  !> Calculate fast magnetosonic wave speed
+  subroutine mhd_get_csound(w,x,ixI^L,ixO^L,idim,csound)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L, idim
+    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
+    double precision, intent(out):: csound(ixI^S)
+    double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
 
     call mhd_get_csound2(w,x,ixI^L,ixO^L,csound)
     ! store |B|^2 in v
-    v(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
-    cfast2(ixO^S)   = v(ixO^S) / w(ixO^S,rho_)+csound(ixO^S)
+    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
+    cfast2(ixO^S)   = b2(ixO^S) / w(ixO^S,rho_)+csound(ixO^S)
     AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
          * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
          / w(ixO^S,rho_)
@@ -551,19 +600,10 @@ contains
        ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
        kmax = dpi/min({dxlevel(^D)},bigdouble)*half
        csound(ixO^S) = max(sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S))), &
-            mhd_etah * sqrt(v(ixO^S))/w(ixO^S,rho_)*kmax)
+            mhd_etah * sqrt(b2(ixO^S))/w(ixO^S,rho_)*kmax)
     end if
 
-    v(ixO^S)=w(ixO^S,mom(idim))/w(ixO^S,rho_)
-
-    if (present(cmin))then
-       cmax(ixO^S)=max(v(ixO^S)+csound(ixO^S),zero)
-       cmin(ixO^S)=min(v(ixO^S)-csound(ixO^S),zero)
-    else
-       cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
-    end if
-
-  end subroutine mhd_get_cmax
+  end subroutine mhd_get_csound
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho-b**2/2) within ixO^L
   subroutine mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)

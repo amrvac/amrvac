@@ -9,9 +9,6 @@ $AMRVAC_DIR/tools/upgrade.pl
 cd $AMRVAC_DIR/src/physics
 $AMRVAC_DIR/tools/upgrade.pl
 
-cd $AMRVAC_DIR/src/modules
-$AMRVAC_DIR/tools/upgrade.pl
-
 cd $AMRVAC_DIR/src/rho
 $AMRVAC_DIR/tools/upgrade.pl
 

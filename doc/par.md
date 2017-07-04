@@ -364,7 +364,7 @@ logfile.
     typetvd= 'roe' | 'yee' | 'harten' | 'sweby'
     typeaverage='default' | 'roe' | 'arithmetic'
 
-    typetvdlf= 'cmaxmean' | 'other'
+    typeboundspeed= 'cmaxmean' | 'other'
     tvdlfeps = DOUBLE
     BnormLF = T | F
 
@@ -556,13 +556,13 @@ array.
 ### Different TVD varians {#par_tvdvariants}
 
 Both `tvd` and `tvdlf` have a few variants, these can be set in the
-strings `typetvd` and `typetvdlf`, with defaults 'roe' and 'cmaxmean',
+strings `typetvd` and `typeboundspeed`, with defaults 'roe' and 'cmaxmean',
 respectively. The default `typetvd='roe'` is the fastest of the four upwind
 types. For the TVDLF, the 'cmaxmean' merely means whether the maximal physical
 propagation speed is determined as the maximum speed for the mean state based
-on averaging left centered and right centered states, or by taking the maximum
-physical speed among both deduced from left and right centered states (the
-latter is the Local Lax-Friedrichs variant). In the TVDLF flux, the diffuse
+on averaging left centered and right centered states, or by taking the Roe
+average eigenvalues for the left and right nonlinear waves proposed by Einfeldt
+(Einfeldt 1988 J. Numer. Anal.). In the TVDLF flux, the diffuse
 flux part has a coefficient `tvdlfeps` which is 1 by default. For steady-
 state computations, one may gain in shock sharpness by reducing this factor to
 a positive value smaller than 1.
