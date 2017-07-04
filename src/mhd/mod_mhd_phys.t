@@ -760,29 +760,30 @@ contains
     logical, intent(in)             :: qsourcesplit
 
     if (.not. qsourcesplit) then
-       ! Sources for resistivity in eqs. for e, B1, B2 and B3
-       if (dabs(mhd_eta)>smalldouble)then
-          if (.not.slab) call mpistop("no resistivity in non-slab geometry")
-          if (compactres)then
-             call add_source_res1(qdt,ixI^L,ixO^L,wCT,w,x)
-          else
-             call add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
-          end if
-       end if
+      ! Source for solving internal energy
+      if (mhd_energy .and. block%e_is_internal) then
+        call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+      endif
 
-       if (mhd_eta_hyper>0.d0)then
-          call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
-       end if
+      ! Source for B0 splitting
+      if (B0field) then
+        call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
+      end if
 
-       ! Source for solving internal energy
-       if(mhd_energy .and. block%e_is_internal) then
-         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
-       endif
+      ! Sources for resistivity in eqs. for e, B1, B2 and B3
+      if (dabs(mhd_eta)>smalldouble)then
+        if (.not.slab) call mpistop("no resistivity in non-slab geometry")
+        if (compactres)then
+          call add_source_res1(qdt,ixI^L,ixO^L,wCT,w,x)
+        else
+          call add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
+        end if
+      end if
 
-       ! Source for B0 splitting
-       if(B0field) then
-         call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
-       end if
+      if (mhd_eta_hyper>0.d0)then
+        call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
+      end if
+
     end if
 
     if(mhd_radiative_cooling) then
@@ -799,31 +800,31 @@ contains
 
     {^NOONED
     if (qsourcesplit) then
-       ! Sources related to div B
-       select case (typedivbfix)
-       case ('glm1')
-          call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('glm2')
-          call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('glm3')
-          call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('powel', 'powell')
-          call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('janhunen')
-          call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('linde')
-          call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('lindejanhunen')
-          call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-          call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('lindepowel')
-          call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-          call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-       case ('none')
-         ! Do nothing
-       case default
-         call mpistop('Unknown divB fix')
-       end select
+      ! Sources related to div B
+      select case (typedivbfix)
+      case ('glm1')
+        call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('glm2')
+        call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('glm3')
+        call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('powel', 'powell')
+        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('janhunen')
+        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('linde')
+        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('lindejanhunen')
+        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('lindepowel')
+        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+      case ('none')
+        ! Do nothing
+      case default
+        call mpistop('Unknown divB fix')
+      end select
     end if
     }
   end subroutine mhd_add_source
@@ -874,24 +875,26 @@ contains
     end if
 
     if(mhd_energy) then
-       if(.not.block%e_is_internal) then
-         a=0.d0
-         ! for free-free field -(vxB0) dot J0 =0
-         b(ixO^S,:)=wCT(ixO^S,mag(:))
-         ! store full magnetic field B0+B1 in b
-         if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
-         ! store velocity in a
-         do idir=1,ndir
-           a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
-         end do
-         call cross_product(ixI^L,ixO^L,a,b,axb)
-         axb(ixO^S,:)=axb(ixO^S,:)*qdt
-         ! add -(vxB) dot J0 source term in energy equation
-         do idir=7-2*ndir,3
-           w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
-         end do
-       end if
+      if(.not.block%e_is_internal) then
+        a=0.d0
+        ! for free-free field -(vxB0) dot J0 =0
+        b(ixO^S,:)=wCT(ixO^S,mag(:))
+        ! store full magnetic field B0+B1 in b
+        if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
+        ! store velocity in a
+        do idir=1,ndir
+          a(ixO^S,idir)=wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)
+        end do
+        call cross_product(ixI^L,ixO^L,a,b,axb)
+        axb(ixO^S,:)=axb(ixO^S,:)*qdt
+        ! add -(vxB) dot J0 source term in energy equation
+        do idir=7-2*ndir,3
+          w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
+        end do
+      end if
     end if
+
+    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_B0')
 
   end subroutine add_source_B0split
 
