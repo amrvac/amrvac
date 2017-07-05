@@ -51,10 +51,10 @@ module mod_physics
 
   abstract interface
 
-     subroutine sub_check_params()
+     subroutine sub_check_params
      end subroutine sub_check_params
 
-     subroutine sub_boundary_adjust()
+     subroutine sub_boundary_adjust
        use mod_global_parameters
      end subroutine sub_boundary_adjust
 
@@ -67,8 +67,8 @@ module mod_physics
 
      subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
        use mod_global_parameters
-       double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
        integer, intent(in)             :: ixI^L, ixO^L, idir
+       double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
      end subroutine sub_modify_wLR
 
      subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
@@ -224,10 +224,10 @@ contains
 
   end subroutine phys_check
 
-  subroutine dummy_init_params()
+  subroutine dummy_init_params
   end subroutine dummy_init_params
 
-  subroutine dummy_check_params()
+  subroutine dummy_check_params
   end subroutine dummy_check_params
 
   subroutine dummy_convert(ixI^L, ixO^L, w, x)
@@ -239,8 +239,8 @@ contains
 
   subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
     use mod_global_parameters
-    double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     integer, intent(in)                :: ixI^L, ixO^L, idir
+    double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
   end subroutine dummy_modify_wLR
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
@@ -289,8 +289,7 @@ contains
     call mpistop("No get_pthermal method specified")
   end subroutine dummy_get_pthermal
 
-  subroutine dummy_boundary_adjust()
-    use mod_global_parameters
+  subroutine dummy_boundary_adjust
   end subroutine dummy_boundary_adjust
 
   subroutine dummy_write_info(fh)

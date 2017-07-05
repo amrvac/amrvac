@@ -109,13 +109,13 @@ module mod_particle_base
   ! The pseudo-random number generator
   type(rng_t) :: rng
 
-  procedure(sub_fill_vars), pointer :: particles_fill_gridvars => null()
-  procedure(sub_integrate), pointer :: particles_integrate     => null()
+  procedure(sub_fill_gridvars), pointer :: particles_fill_gridvars => null()
+  procedure(sub_integrate), pointer     :: particles_integrate     => null()
 
   abstract interface
 
-    subroutine sub_fill_vars()
-    end subroutine sub_fill_vars
+    subroutine sub_fill_gridvars
+    end subroutine sub_fill_gridvars
 
     subroutine sub_integrate(end_time)
       double precision, intent(in) :: end_time
@@ -304,7 +304,7 @@ contains
 
   end subroutine finish_gridvars
 
-  subroutine fill_gridvars_default()
+  subroutine fill_gridvars_default
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_fields
 

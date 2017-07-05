@@ -1776,7 +1776,7 @@ contains
 
   end subroutine glmSolve
 
-  subroutine mhd_boundary_adjust()
+  subroutine mhd_boundary_adjust
     use mod_global_parameters
     integer :: iB, idim, iside, iigrid, igrid 
     integer :: ixG^L, ixO^L, i^D

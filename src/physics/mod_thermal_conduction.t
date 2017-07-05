@@ -88,7 +88,7 @@ module mod_thermal_conduction
   procedure(getdt_heatconduct), pointer :: phys_getdt_heatconduct => null()
 
   abstract interface
-    subroutine thermal_conduction()
+    subroutine thermal_conduction
     ! Meyer 2012 MNRAS 422,2102
       use mod_global_parameters
       use mod_ghostcells_update
@@ -177,7 +177,7 @@ contains
 
   end subroutine thermal_conduction_init
 
-  subroutine do_thermal_conduction()
+  subroutine do_thermal_conduction
   ! Meyer 2012 MNRAS 422,2102
     use mod_global_parameters
     use mod_ghostcells_update

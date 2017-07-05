@@ -165,7 +165,7 @@ contains
 
   end subroutine gca_create_particles
 
-  subroutine gca_fill_gridvars()
+  subroutine gca_fill_gridvars
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_fields
 

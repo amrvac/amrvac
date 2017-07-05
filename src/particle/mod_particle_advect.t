@@ -85,7 +85,7 @@ contains
 
   end subroutine advect_create_particles
 
-  subroutine advect_fill_gridvars()
+  subroutine advect_fill_gridvars
     use mod_global_parameters
 
     integer                                   :: igrid, iigrid, idir
