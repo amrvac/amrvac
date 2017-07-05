@@ -138,7 +138,8 @@ contains
     use mod_input_output, only: saveamrfile
     use mod_ghostcells_update
 
-    integer :: level, ifile, fixcount, ncells_update, ncells_block
+    integer :: level, ifile, fixcount, ncells_block
+    integer(kind=8) ncells_update
     logical :: save_now
     double precision :: time_last_print
 
@@ -232,8 +233,6 @@ contains
 
     timeloop=MPI_WTIME()-timeloop0
 
-    ncells_update=ncells_update*nstep/npe
-
     if (mype==0) then
        write(*,'(a,f12.3,a)')' Total timeloop took        : ',timeloop,' sec'
        write(*,'(a,f12.3,a)')' Time spent on Regrid+Update: ',timegr_tot,' sec'
@@ -243,7 +242,7 @@ contains
        write(*,'(a,f12.3,a)')' Time spent on BC           : ',time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on run          : ',timeloop-timeio_tot,' sec'
-       write(*,'(a,f12.3  )')' Cells_updated / cpu / sec  : ',dble(ncells_update)/timeloop
+       write(*,'(a,es12.3 )')' Cells_updated / cpu / sec  : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
     end if
 
     timeio0=MPI_WTIME()
