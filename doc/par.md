@@ -4,9 +4,9 @@
 
 # Introduction {#par_intro}
 
-This document describes the usage of a `.par` parameter file for MPI-AMRVAC.
-Note that the default parameter values are set in `amrvacio/amrio.t`, look at
-subroutine `readparameters` for details.
+This document describes the usage of a `.par` parameter (input) file for MPI-AMRVAC.
+Note that the default parameter values are set in `amrvacio/mod_input_output.t`, look at
+subroutine `read_par_files` for details.
 
 # Namelists {#par_namelists}
 
@@ -25,9 +25,7 @@ The parameter file consists of a sequence of namelists, which look like this:
       ...
      /
 
-If you do not define a variable the default value is used. The default values
-for the (many) parameters are defined in the file `amrio.t`, specifically in the
-subroutine `readparameters`.
+If you do not define a variable the default value is used. 
 
 The Fortran 90 standard for logical variable values is either `T` and `F` or
 `.true.` and `.false.`, but some compilers accept only one of them. Text between
@@ -49,53 +47,44 @@ or extra words in strings.
 
 name | type | default | description
 ---|---|---|---
-filenameini | string | 'unavailable' | If not 'unavailable', resume from snapshot with this base file name
-snapshotini | integer | - | Resume from the snapshot with this index. For example, if `filenameini` is "test" and `snapshotini` is 4, the simulation will resume from `test0004.dat`.
-filenameout | string | 'data' | Base file name for simulation output, which will be followed by a 4-digit number
-filenamelog | string | 'amrvac' | Log file name (without the `.log` extension)
-typefilelog | string | 'default' | Use the value 'special' to enable user-defined log output
+base_filename | string | 'data' | Base file name for simulation output, which will be followed by a 4-digit number
+restart_from_file | string | - | Resume from the snapshot data with this file name. 
+typefilelog | string | 'default' | Use 'regression_test' to do regression test and use the value 'special' to enable user-defined log output
 snapshotnext | integer | 0 | Start index for writing snapshots
 slicenext | integer | 0 | Start index for writing slices
 firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
 resetgrid | logical | F | If true, rebuild the AMR grid upon restarting
-typeparIO | integer | 1 | 1: Parallel MPI output, 0: master-slave parallel IO, -1: master-slave IO without MPI (no `MPI_FILE_WRITE`, `MPI_FILE_OPEN` etc)
-addmpibarrier | logical | F | Enable additional `MPI_BARRIER` calls, useful when debugging on new platforms
 convert | logical | F | If true and filenameini and snapshotini are given, convert snapshots to other file formats
-convert_type | string | vtuBCCmpi | Which format to use when converting, options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,  tecplotmpi, tecplotCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
+convert_type | string | vtuBCCmpi | Which format to use when converting, options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,  tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
 autoconvert | logical | F | If true, already convert to output format during the run
 sliceascii | logical | F | If true, enable ASCII output of @ref slices.md
 saveprim | logical | F | If true, convert from conservative to primitive variables in output
-primnames | string(1:nw) | ' ' | Names of the primitive variables
-nwauxio | integer | 0 | !> Number of auxiliary variables that are only included in the output
-normvar | real(0:nw) | 1.0 | Conversion factors for length (`normvar(0)`) and the primitive variables (`normvar(1:nw)`)
-normt | real | 1.0 | Conversion factor for time unit
+nwauxio | integer | 0 | Number of auxiliary variables that are only included in the output
+w_convert_factor | double(1:nw) | 1.0 | Conversion factors for w variables
+time_convert_factor | double | 1.0 | Conversion factor for time unit
+length_convert_factor | double | 1.0 | Conversion factor for length unit
 `level_io` | integer | - | When doing a convert, generate a uniform grid at this level
 `level_io_min` | integer | 1 | Minimum grid level when doing a convert
 `level_io_max` | integer | `nlevelshi` | Maximum grid level when doing a convert
 nocartesian | logical | F | If true, do not convert the output to a Cartesian coordinate system
-uselimiter | logical | F | If true and doing a 1D run, use a limiter to determine corner values
-dxfiletype | string | 'lsb' | Data Explorer file endianness ('msb' or 'lsb' for last or most significant bit order)
-writew | logical(1:nw) | all true | VTK: Only write variables for which `writew(iw)` is true
+w_write | logical(1:nw) | all true | VTK: Only write variables for which `writew(iw)` is true
 writelevel | logical(1:nlevelshi) | all true | VTK: only write these levels
-writespshift | real(1:ndim,1:2) | all zero | clip this amount of the domain at the lower and upper side in each dimension
+writespshift | double(1:ndim,1:2) | all zero | clip off this relative amount of the domain at the lower and upper side in each dimension
 
 ### The log file
 
-By default, the logfile contains one line with a string
-corresponding to the `fileheadout' given in methodlist (see below), and one line
+By default, the logfile contains one line
 with a string that is meant to identify the coordinate names, the conserved
 variables (wnames) and other entries, and then follows a sequence of lines
 containing numbers: i.e. a single line per requested output time, containing the
-integer timestep counter _it_, the time _t_, the time step to be used in the
+integer timestep counter _it_, the time _global_time_, the time step to be used in the
 next time advance _dt_, the domain integrated value of each conserved variable
 (nw real numbers, which allows to check perfect conservation across the grid
 tree when the boundary conditions imply it), the percentage of the domain
-covered by each allowed grid level (_mxnest_ real numbers between 0.0 and 1.0,
-with 1.0 indicating 100% coverage: when all _mxnest_ numbers are summed, we get
-1.0), and the number of grids per allowed grid level (hence, _mxnest_ integers).
-The logfile is by default saved as an ASCII file. When a residual is calculated
-(steady- state computations), the value of the residual is stored in the
-logfile, just after the time step _dt_ en before all domain integrated values.
+covered by each allowed grid level (_refine_max_level_ real numbers between 0.0 and 1.0,
+with 1.0 indicating 100% coverage: when all _refine_max_level_ numbers are summed, we get
+1.0), and the number of grids per allowed grid level (hence, _refine_max_level_ integers).
+The logfile is by default saved as an ASCII file. 
 
 The order of saving snapshots, and regridding actions through the subroutine
 _resetgridtree_ is fixed: regrid happens after the advance by one timestep,
@@ -107,26 +96,23 @@ variables beyond _nwflux_.
 The code can be used to postprocess the MPI-AMRVAC .dat files (which are the
 only ones to be used for restarts) to some convenient data files for later
 visualisation purposes. Such conversion of a single .dat file at a time is to be
-done with the same executable (or at least one on a possibly different machine,
-but with the same setamrvac settings), on a single processor (i.e. using _mpirun
+done with the same executable (or at least one compiled on a possibly different
+ machine), on a single processor (i.e. using _mpirun
 -np 1 amrvac_). Only selected output types can be converted in parallel, namely
 those whose name contains _mpi_ as part of the _convert_type_ string. Currently,
-this includes the ASCII versions of _vtumpi_ and _vtuCCmpi_ (corner versus cell
-center values), and similarly for tecplot (_tecplotmpi_ or _tecplotCCmpi_). In
-addition, _pvtumpi_ and _pvtuCCmpi_ are possible which will result in a _*.vtu_
-file for each processor.
+this includes the ASCII (binary) versions of _vtumpi_ (_vtuBmpi_) and _vtuCCmpi_
+(_vtuBCCmpi_) (corner versus cell center values), and similarly for tecplot 
+(_tecplotmpi_ or _tecplotCCmpi_). In addition, _pvtumpi_ (_pvtuBmpi_) and 
+_pvtuCCmpi_ (_pvtuBCCmpi_) are possible which will result in a _*.vtu_ file for each processor.
 
-In this conversion mode, the idea is to set the filenameini and the
-snapshotini entries together with `convert=T`. You can ask the code during
+In this conversion mode, the idea is to set restart_from_file together 
+with `convert=T`. You can ask the code during
 conversion to change from conservative to primitive variable output by setting
-`saveprim=T`, and then you should give the corresponding names for the
-primitive variables in `primnames`. Just like `wnames` (the latter is
-defined in the _methodlist_), this is a single string with space-seperated
-labels for the variables. The `primnames` just should list names for the
-_nw_ primitive variables, like _wnames_ does for the conservative ones. It is
+`saveprim=T`, and then the corresponding names for the primitive variables are
+automatically determined. It is
 also possible to perform the conversion step during run of the simulation with
 the switch `autoconvert=T`. Naturally, this leads to more computational
-overhead and IO, but using the _pvtu(CC)mpi_ filetype, this can be reduced to
+overhead and IO, but using the _pvtuB(CC)mpi_ filetype, this can be reduced to
 a minimum.
 
 For simulations on non-cartesian grids (cylindrical or spherical), there is
@@ -140,9 +126,9 @@ for tecplot format, the coordinate labels are then corrected in the converted
 file as well).
 
 The only variable that then further matters is `convert_type`. Selecting
-_'idl'_ will generate a corresponding 'datamr/FILEINIBASExxxx.out' file, which
+_'idl'_ will generate a corresponding 'base_filenamexxxx.out' file, which
 is stored in binary and can be handled with the Idl macros. For type
-'tecplot', a corresponding `datamr/FILEINIBASExxxx.plt` file will be
+'tecplot', a corresponding `base_filenamexxxx.plt` file will be
 generated, which is an ASCII file that stores the cell corner locations and
 corner values for the conserved variables, to be handled with Tecplot. The
 'onegrid' conversion type is just useful in 1D AMR runs, to generate a
@@ -150,7 +136,7 @@ single block file (extension '.blk'). Also particular to 1D data, and for
 TecPlot purposes alone, is the 'tecline' option. This can also be done in
 parallel mode, where it is called 'teclinempi'.
 
-The type 'dx', will generate a Data Explorer file 'datamr/FILEINIBASExxxx.dx',
+The type 'dx', will generate a Data Explorer file 'base_filenamexxxx.dx',
 which can be used with the free [DX visualization software](www.opendx.org).
 When `convert_type='dx'`, there is the additional `dxfiletype` variable. The dx
 filetype stores in binary format, and stores cell center coordinates and values.
@@ -168,47 +154,32 @@ same as _vtu(CC)_ but save the data in binary format.
 
 It is even possible to temporarily add additionally computed auxiliary
 variables that are instantaneously computable from the data in the
-`datamr/FILEOUTBASExxxx.dat` file to the converted snapshot. You should then
+`base_filenamexxxx.dat` file to the converted snapshot. You should then
 provide the number of such extra variables in `nwauxio` (see also
 [this page](mpiamrvac_nw.md)), and a corresponding
-definition for how to compute them from the available _nw_ variables in the
-subroutine _specialvar_output_ whose default interface is provided in the
-_amrvacnul.speciallog.t_ module. You can there compute variables that are not
+definition for how to compute them from the available _nw_ variables in the associated
+subroutine _usr_special_convert_ whose default interface is provided in the
+_mod_usr_methods.t_ module. You can there compute variables that are not
 in your simulation or data file, and store them in the extra slots
 _nw+1:nw+nwauxio_ of the _w_ variable. For consistency, you should also then
-add a meaningfull name to the strings that we use for identifying variables,
-namely _primnames, wnames_. This has to be done in the subroutine
-_specialvarnames_output_.
+add meaningfull names to a string to identify the auxiolary variables,
+This has to be done in the associated subroutine _usr_add_aux_names_.
 
 The output values are normally given in code units, i.e. in the dimensionless
 values used throughout the computation (in the initial condition, we always
 adhere to the good practice of choosing an appropriate unit of length, time,
 mass and expressing everything in dimensionless fashion). One can, in the
 convert stage only, ask to multiply the values by their respective dimensional
-unit value. `normt` should then be the unit for time, while the array
-`normvar` combines the unit of length (to be stored in _normvar(0)_) with
-corresponding units for all primitive variables in _normvar(1:nw)_. The
-corresponding values for conservative entries are computed in _convert.t_ when
-_saveprim=F_. Note that these latter are not all independent and must be set
-correctly by the user. In any case, they are not in the restart files (the
-ones with _.dat_), and just used at conversion stage. See for details of their
-use the _convert.t_ module.
-
-There is a `uselimiter` logical variable, which is false by default, but can
-be used when having a 1D Cartesian grid computation, where it then influences
-the way in which the convert step computes corner values from cell center
-values. Normally, it would just take the arithmetic average as in
-_0.5(w_L+w_R)_ where _w_L_ is the cell center value at left, and _w_R_ is at
-right. Activating uselimiter will compute _0.5(w_LC+w_RC)_ instead, where the
-left and right edge values _w_LC, w_RC_ are computed by limited reconstruction
-first.
+unit value. `time_convert_factor` should then be the unit for time, while the array
+`w_convert_factor` for w variables and `length_convert_factor` for length.
+The corresponding values for conservative entries are computed in _convert.t_ when
+_saveprim=F_.  See for details of their use the _convert.t_ module.
 
 Note that different formats for postprocess data conversion can be added in
-the `convert.t` subroutine. See [convert](convert.md) for
-details.
+the `convert.t` subroutine. See [convert](convert.md) for details.
 
 The _VTK_-based formats allow for saving only a part of the _nw_ variables, by
-setting the logical array `writew`. The same is true for selecting levels by
+setting the logical array `w_write`. The same is true for selecting levels by
 using the array `writelevel`. Finally, you can clip away part of the domain,
 for output in a selected region. This is done by filling the array
 `writespshift`. That array should use (consistent) double precision values
@@ -236,23 +207,24 @@ Example:
     &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        ditsave(1)=1
-        dtsave(2)=0.05d0
-        dtsave(4)=0.1
+        dtsave_log=0.01d0 
+        dtsave_dat=0.1d0
+        dtsave_slice=0.05d0
+        dtsave_collapsed=0.05d0
     /
 
 
 name | type | default | description
 ---|---|---|---
-`ditsave(FILEINDEX)` | integer | `biginteger` | Repeatedly save output when `ditsave(FILEINDEX)` time steps have passed
-`dtsave(FILEINDEX)` | double | `bigdouble` | Repeatedly save output when `dtsave(FILEINDEX)` simulation time has passed
+`ditsave_log` | integer | `biginteger` | Repeatedly save information in a log file when `ditsave_log` time steps have passed
+`dtsave_dat` | double | `bigdouble` | Repeatedly save dat files when `dtsave_dat` simulation time has passed
 `itsave(SAVEINDEX,FILEINDEX)` | integer | 1 | Save on these time steps
 `tsave(SAVEINDEX,FILEINDEX)` | double | `bigdouble` | Save on these times
-nslices | integer | 0 | Number of slices
+`nslices` | integer | 0 | Number of slices
 `slicedir(INTEGER)` | integer | - | Slice direction, see @ref slices.md
 `slicecoord(INTEGER)` | double | - | Slice coordinate, see @ref slices.md
 `collapse(INTEGER)` | logical | F | See @ref collapsed.md
-collapseLevel | integer | 1 | See @ref collapsed.md
+`collapseLevel` | integer | 1 | See @ref collapsed.md
 
 Here FILEINDEX has the following meaning:
 
@@ -262,48 +234,30 @@ index | meaning
 2 | Normal output
 3 | Slice output, see @ref slices.md
 4 | Collapsed output, see @ref collapsed.md
-5 | Call analysis subroutine, see @ref analysis.md
+5 | Call user custom analysis subroutine, see @ref analysis.md
 
-The times can be given in timesteps or physical time. Typical examples:
-`ditsave=1,10` saves results into the log file at every timestep, and will
-generate a .dat output file every 10-th step (however, the number at the end
-of the `datamr/FILEOUTBASExxxx.dat` file will increase by one from
-firstsnapshot, as explained above). `dtsave=0.1,12.5` saves into the log
-file at times 0.1,0.2,... and will generate a .dat output file at time
-12.5,25,37.5,... , assuming that we start at t=0. `ditsave(1)=10
-tsave(1,2)=5.2 tsave(2,2)=7.` will save info into the log file every 10-th
-timestep and snapshots at t=5.2 and 7. Actually, the first timestep when
-physical time is greater than 5.2 (or 7.0) is saved. Mixing itsave and tsave
-is possible, mixing dtsave (or ditsave) with tsave (or itsave) for the same
-file should be done with care, since dtsave (and ditsave) will be offset by
-any intervening tsave (and itsave). However, one may want to save snapshots
+One may want to save snapshots
 more frequently at the beginning of the simulation. E.g. `tsave(1,2)=0.1
-tsave(2,2)=0.25 tsave(3,2)=0.5 dtsave(2)=0.5` could be used to save snapshots
+tsave(2,2)=0.25 tsave(3,2)=0.5 dtsave_dat=0.5` could be used to save snapshots
 at times 0.1, 0.25, 0.5, 1, 1.5, ... etc.
 
-If no save condition is given for a file you get a warning, but _the final
-output is always saved_ after the stop condition has been fulfilled. If
+If no save condition is given for a file you get a warning, but the final
+output is always saved after the stop condition has been fulfilled. If
 `itsave(1,2)=0` is set, the initial state is saved before advancing.
 
 ## Stoplist {#par_stoplist}
 
-         &stoplist
+    &stoplist
     	itmax =INTEGER
-    	tmax =DOUBLE
-    	tmaxexact =F | T
+    	time_max =DOUBLE
     	dtmin =DOUBLE
     	it =INTEGER
-    	t =DOUBLE
-    	treset =F | T
-    	itreset =F | T
-    	residmin =DOUBLE
-    	residmax =DOUBLE
-     typeresid = 'relative' | 'absolute'
+    	global_time =DOUBLE
+    	restart_reset_time =F | T
     /
 
 You may use an upper limit `itmax` for the number of timesteps and/or the
-physical time, `tmax`. If `tmaxexact=T` is set, the last time step will be
-reduced so that the final time 't' is exactly 'tmax'.
+physical time, `time_max`. 
 
 Numerical or physical instabilities may produce huge changes or very small
 time steps depending on the way `dt` is determined. These breakdowns can be
@@ -312,46 +266,24 @@ step, which is useful when `dt` is determined from the `courantpar`
 parameter. If AMRVAC stops due to `dt &lt; dtmin`, a warning message is
 printed.
 
-You have to specify at least one of `tmax, itmax`. AMRVAC stops execution
-when any of the limits are exceeded. The initial time value `t` and integer
+You have to specify at least one of `time_max, itmax`. AMRVAC stops execution
+when any of the limits are exceeded. The initial time value `global_time` and integer
 time step counter `it` values can be specified here. However, when a restart
 is performed from a previous .dat file, the values in that file will be used
-unless you enforce their reset to the values specified here by activating the
-logicals `treset=T`, or `itreset=T`.
-
-In case the code is used for computing towards a steady-state, it is useful to
-quantify the evolution of the residual as a function of time. The residual
-will be computed taking account of all _nwflux_ variables (see also
-[this page](mpiamrvac_nw.md)), over all grids. You can
-tell the code to stop computing when a preset minimal value for this residual
-is reached, by specifying `residmin=1.0d-6` (for example, a rather stringent
-value when all variables are taken into account). Similarly, setting
-`residmax=1.0d8` will force the code to stop when the residual change
-becomes excessively large (indicating that you will not reach a steady state
-for the problem at hand then, without explaining you why). The residual is
-computed as specified in the subroutine _getresidual_ in the _setdt.t_ module,
-and you may want to inspect what it actually computes there (and perhaps
-modify it for your purposes), and see the distinction between
-_typeresid='relative'_ or _typeresid='absolute'_. When either residmin or
-residmax is specified here, the value of the residual will be added to the
-logfile.
+unless you enforce their reset to zeros or the values specified here by 
+activating the logicals `restart_reset_time=T`.
 
 ## Methodlist {#par_methodlist}
 
-        &methodlist
+    &methodlist
 
-    wnames=	'STRING'
-    fileheadout= 'STRING'
-
-    typeadvance='twostep' | 'onestep' | 'threestep' | 'rk4' | 'fourstep' | 'ssprk43' | 'ssprk54'
-    typefull1=nlevelshi strings from: 'tvdlf','hll','hllc','hllcd','tvdmu','tvd','cd','fd','hll1','hllc1','hllcd1','tvd1','tvdlf1','tvdmu1','source','nul'
+    time_integrator='twostep' | 'onestep' | 'threestep' | 'rk4' | 'fourstep' | 'ssprk43' | 'ssprk54'
+    flux_scheme=nlevelshi strings from: 'tvdlf','hll','hllc','hllcd','tvdmu','tvd','cd','fd','hll1','hllc1','hllcd1','tvd1','tvdlf1','tvdmu1','source','nul'
     typepred1=nlevelshi strings from: 'default','hancock','tvdlf','hll','hllc','tvdmu','cd','fd','nul'
-    typelow1= nlevelshi strings from: 'default' | 'tvdlf1' | 'hll1' | 'hllc1' | 'hllcd1' | 'tvdmu1' | 'tvd1' | 'cd' | 'fd'
 
-    typelimiter1= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
-    typegradlimiter1= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
+    limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
+    gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
     typelimited='original' | 'previous' | 'predictor'
-    useprimitive= T | F
     loglimit= nw logicals, all false by default
     flatsh = F | T
     flatcd = F | T
@@ -366,29 +298,19 @@ logfile.
 
     typeboundspeed= 'cmaxmean' | 'other'
     tvdlfeps = DOUBLE
-    BnormLF = T | F
 
     flathllc= F | T
     nxdiffusehllc = INTEGER
 
-    typeaxial= 'slab' | 'cylindrical' | 'spherical'
-    typespherical= 1 | 0
-    usecovariant= F | T
-
-    ssplitdivb= F | T
-    ssplitdust= F | T
-    ssplitresis= F | T
-    ssplituser= F | T
+    source_split_usr= F | T
     typesourcesplit= 'sfs' | 'sf' | 'ssfss' | 'ssf'
     dimsplit= F | T
     typedimsplit= 'default' | 'xyyx'| 'xy'
 
     smallrho= DOUBLE
     smallp= DOUBLE
-    fixsmall= T | F
-    strictsmall= T | F
-    strictgetaux= F | T
-    nflatgetaux=1
+    small_values_method='error' | 'replace' | 'average'
+    small_values_daverage=1
     fixprocess= F | T
 
     typedivbfix= 'powel' | 'janhunen' | 'linde' | 'glm1' | 'glm2' | 'glm3'
@@ -401,17 +323,9 @@ logfile.
     Boct= DOUBLE
     Busr= DOUBLE
     compactres= F | T
+
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
-
-    useprimitiveRel= T | F
-    maxitnr= INTEGER
-    tolernr= DOUBLE
-    absaccnr= DOUBLE
-    dmaxvel= DOUBLE
-    typepoly= 'meliani' | 'bergmans' | 'original' | 'gammie'
-    strictnr= T | F
-    strictzero= T | F
 
     ncool= INTEGER
     cmulti = INTEGER
@@ -428,101 +342,71 @@ logfile.
     dustzero = T|F
     dustspecies = 'graphite','silicate'
     dusttemp = 'constant','ism','stellar'
-    smallrhod = DOUBLE'
+    smallrhod = DOUBLE
 
     /
 
-### wnames, fileheadout {#par_wnames}
+### time_integrator, flux_scheme, typepred1 {#par_time_integrator}
 
-`wnames` is a string of (conserved) variable names, which is only stored for use in the input and output data files. The `wnames` string of variable names is used in the default log file header, and should be e.g. 'rho m1 m2 e b1 b2' for MHD with 2 vector components. These labels are the ones passed on when doing the conversion step for tecplot, vtu formats.
-
-`fileheadout` is the header line in the output file, and is an identifyer used in the (converted) data files. Both wnames and fileheadout are thus only relevant within amrio.t and convert.t, and only have effect for the later data visualization (e.g. when fileheadout='test_mhd22' is specified, the Idl macros will deduce from the name that it is for a 2D MHD run).
-
-### typeadvance, typefull1, typepred1, typelow1 {#par_typeadvance}
-
-The `typeadvance` variable determines the time integration procedure. The
+The `time_integrator` variable determines the time integration procedure. The
 default procedure is a second order predictor-corrector type 'twostep' scheme
 (suitable for TVDLF, TVD-MUSCL schemes), and a simple 'onestep' algorithm for
 the temporally second order TVD method, or the first order TVDLF1, TVDMU1,
-TVD1 schemes. `It is not possible to mix different step size methods across
-the AMR grid levels.` The temporally first order but spatially second order
+TVD1 schemes. It is not possible to mix different step size methods across
+the AMR grid levels. The temporally first order but spatially second order
 TVD1 algorithm is best suited for steady state calculations as a 'onestep'
 scheme. The TVDLF and TVD-MUSCL schemes can be forced to be first order, and
 linear in the time step, which is good for getting a steady state, by setting
-`typeadvance='onestep'`.
+`time_integrator='onestep'`.
 
 There is also a fourth order Runge-Kutta type method, when
-`typeadvance='fourstep'`. It can be used with _dimsplit=.true._ and
+`time_integrator='fourstep'`. It can be used with _dimsplit=.true._ and
 _typelimited='original'_. These higher order time integration methods can be
-most useful in conjunction with higher order spatial discretizations like a
-fourth order central difference scheme (currently not implemented). See also
-[discretization](discretization.md).
+most useful in conjunction with higher order spatial discretizations.
+See also [discretization](discretization.md).
 
-The array `typefull1` defines a spatial discretization
-[method](methods.md) used for the time integration per activated grid level
+The array `flux_scheme` defines a scheme to calculate flux at cell interfaces
+[method](methods.md) (like hll based approximate Riemann solver) per activated grid level
 (and on each level, all variables use the same discretization). In total,
-_nlevelshi_ methods must be specified, by default _nlevelshi=8_ and these are
-then all set by _typefull1=8*'tvdlf'_. Different discretizations can be mixed
-across the _mxnest_ activated grid levels (but the same stepping scheme must
+_nlevelshi_ methods must be specified, by default _nlevelshi=20_ and these are
+then all set by _flux_scheme=20*'tvdlf'_. Different discretizations can be mixed
+across the _refine_max_level_ activated grid levels (but the same stepping scheme must
 apply for all of the schemes).
 
-Setting for a certain level the typefull1 to 'nul' implies doing no advance at
+Setting for a certain level the flux_scheme to 'nul' implies doing no advance at
 all, and 'source' merely adds sources. These latter two values must be used
 with care, obviously, and are only useful for testing source terms or to save
 computations when fluxes are known to be zero.
 
-The `typepred1` array is only used when `typeadvance='twostep'` and
+The `typepred1` array is only used when `time_integrator='twostep'` and
 specifies the predictor step discretization, again per level (so _nlevelshi_
-strings must be set). By default, it contains _typepred1=8*'default'_ (default
-value _nlevelshi=8_), and it then deduces e.g. that 'cd' is predictor for
+strings must be set). By default, it contains _typepred1=20*'default'_ (default
+value _nlevelshi=20_), and it then deduces e.g. that 'cd' is predictor for
 'cd', 'hancock' is predictor for both 'tvdlf' and 'tvdmu'. Check its default
-behavior in the _amrio.t_ module. Thus `typepred1` need not be defined in
-most cases, however `typefull1` should always be defined if methods other
+behavior in the _mod_input_output.t_ module. Thus `typepred1` need not be defined in
+most cases, however `flux_scheme` should always be defined if methods other
 than 'tvdlf' are to be used.
-
-The `typelow1` is only used when the AMR strategy is based on Richardson
-extrapolation. It then specifies the first order scheme used in this process,
-to be done per level. By default, `typelow1=nlevelshi*'default'` will imply
-the use of `'tvdlf1'` for all methods, except for 'cd' where it is 'cd'. It
-is the same low order scheme that is then used in the Richardson process
-across the entire grid hierarchy, and is decided on the basis of the
-typefull1(l) for level l in amrio.t.
 
 ### Limiter type {#par_typelimiter}
 
 For the TVDLF and TVD-MUSCL methods different limiter functions can be defined
 for the limited linear reconstructions from cell-center to cell-edge
-variables, and for the TVD method, for the characteristic variables. See the
-`src/amrvacpar.t` file for the order of the characteristic variables. The
-default limiter is the most diffusive `typelimiter1=nlevelshi*'minmod'`
+variables, and for the TVD method, for the characteristic variables.
+The default limiter is the most diffusive `limiter=nlevelshi*'minmod'`
 limiter (minmod for all levels), but one can also use
-`typelimiter1=nlevelshi*'woodward'`, or use different limiters per level.
+`limiter=nlevelshi*'woodward'`, or use different limiters per level.
 
-The `typegradlimiter1` is the selection of a limiter to be used in computing
+The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
 typediv=limited) is selected. It is thus only used in the gradientS
 (divvectorS) subroutines in geometry.t (and has effect for the MHD modules).
 
-The `typelimited` variable tells the TVD type methods what should be used as
-a basis for the limiting. By default, the `original` value is used in 1D and
+The `typelimited` variable tells the TVD type methods what w should be used as
+a basis for the limited reconstruction. By default, the `original` value is used in 1D and
 for dimensional splitting, while for dimensionally unsplit multidimensional
-case (dimsplit=F), TVDLF and TVD-MUSCL uses the `previous` value from
-`wold` for limiting.
+case (dimsplit=F), uses the `predictor` value from.
 
-The `useprimitive` variable decides whether TVDLF and TVDMUSCL schemes
-should limit the slopes of the _primitive_ or _conservative_ variables. The
-default behaviour is limiting the primitive variables. For the onestep TVD
-scheme the 'useprimitive' parameter determines how the pressure jump is
-calculated in the approximate Riemann solver. For the false value the jump is
-calculated from the jumps in the conservative variables following strictly the
-TVD algorithm, while for the default true value the jump is approximated by
-the pressure difference, which is simpler and slightly faster. This subtle
-change does not seem to influence the results obtained by the TVD scheme
-significantly.
-
-The use of `useprimitive=T` can be combined with the selection of
-logarithmic transformation on (positive) variables. I.e., when e.g. having a
-gravitational stratification, one might benefit from performing linear
+When having a gravitational stratification, one might benefit from performing linear
 reconstruction on the primitive variables log10(rho) and/or log10(p). This can
 be done by setting the corresponding _loglimit(iw)=T_ with _iw_ the label of
 the corresponding component in the _w_ array (for density, this is thus
@@ -533,23 +417,22 @@ switches flatppm, flatcd, flatsh. The last two are meant to minimize potential
 ripples around contact discontuinities (flatcd) or shocks (flatsh), but one
 should first try without these flattenings (default behavior). PPM is actually
 only used in a quadratic reconstruction from center to edge, requires the use
-of a larger stencil (dixB=4), and can be used either in the methods (by
-setting typelimiter1) or in the gradientS/divvectorS routines (when typegrad
-or typediv is limited, and typegradlimiter1 is ppm). The latter is encoded in
+of a larger stencil (nghostcells=4), and can be used either in the methods (by
+setting limiter) or in the gradientS/divvectorS routines (when typegrad
+or typediv is limited, and gradient_limiter is ppm). The latter is encoded in
 geometry.t.
 
 ### Typeentropy, entropycoef {#par_typeentropy}
 
 For Riemann solver based methods, such as TVD and TVD-MUSCL (but not TVDLF),
 an entropyfix may be applied to avoid unphysical solutions. The fix is applied
-to the characteristic variables, their order is defined in
-`src/amrvacpar.t`. The default entropy fix is `'nul'`, i.e. no entropy
+to the characteristic variables. The default entropy fix is `'nul'`, i.e. no entropy
 fix. When an expansion shock is formed, the entropy fix should be applied to
 the non-degenerate characteristic waves, i.e. waves that can form shocks
 (sound waves, fast and slow magnetosonic waves). The most powerful entropy fix
 is called 'powell'. In practice, one may apply an entropy fix to all
 characteristic waves, usually the slight extra diffusion makes the schemes
-more robust. For Yee's entropyfix the minimum characteristic speed (normalized
+more robust. For Yee entropyfix the minimum characteristic speed (normalized
 by dt/dx) can be set for each characteristic wave using the `entropycoef`
 array.
 
@@ -576,11 +459,7 @@ diffuse flux part with coefficient `tvdlfeps` which is 1 by default. For
 steady-state computations, one may gain in shock sharpness by reducing this
 factor to a positive value smaller than 1.
 
-For calculations involving magnetic fields (variable b0_ is positive),
-`BnormLF=T` actually uses the Lax-Friedrichs flux expression for the normal
-magnetic field component in HLL and HLCC methods. This improves robustness.
-
-When using the HLLC scheme variants, for HD, MHD, SRHD and SRMHD there is an
+When using the HLLC scheme variants, for HD, MHD there is an
 optional additional flattening in case the characteristic speed at the contact
 is near zero. This is activated by setting `flathllc=T` (its default is
 false). One can also solve some potential noise problems in the HLLC by
@@ -589,63 +468,10 @@ TVDLF is then used in a user-controlled region around a point where there is a
 sign change in flux, whose width is set by `nxdiffusehllc` (an integer which
 is 0 by default).
 
-### Typeaxial, typespherical, usecovariant {#par_typeaxial}
-
-`typeaxial` defines the type of curvilinear grid. For cylindrical coordinate systems, the _-phi=_ and _-z=_ flags have a meaning and should be used at _$AMRVAC_DIR/setup.pl_, to denote the order of the second and third coordinate. Together, they control the addition of the geometrical source terms as implemented in the various physics modules in the subroutine _addgeometry_. By default, `typeaxial='slab'` and Cartesian coordinates are used (with translational symmetry for ignorable directions).
-
-In 1D where _-d=11_ we have 1 coordinate with one vector component, and for
-cylindrical or spherical cases, the coordinate is the radial cylindrical or
-spherical distance, respectively, with corresponding radial vector component.
-For _-d=12_ and `typeaxial='cylindrical'`, the second vector component can
-be either the phi or the z component, depending on the -phi and -z flags. For
-_-d=12_ and `typeaxial='spherical'`, the second vector component is always
-the theta component. Similarly for _-d=13_, only the cylindrical case has a
-choice for the order of the vector components. Not all combinations make
-sense, though.
-
-In 2D 'slab' means translational symmetry when performing 2.5D simulations
-(i.e. _$AMRVAC_DIR/setup.pl -d=23_).
-
-For 2D and 'cylindrical' (which can be 2D or 2.5D) the grid and the symmetry
-depend on the settings for the -phi and -z flags. When -d=22 -z=2, a cartesian
-grid is used in a poloidal plane, with axial symmetry for the r- and z- vector
-components. The same is true for -d=23 -z=2 -phi=3, when all three vector
-components are then depending on (r,z) coordinates only. The vector components
-then appear in the r,z,phi order. One can use 2.5D on a circular grid also
-with translational symmetry in the third, i.e. axial, direction by the use of
-_$AMRVAC_DIR/setup.pl -d=23 -phi=2 -z=3_. The vector components then appear in
-the r,phi,z order.
-
-For 2D and 'spherical', the coordinates denote radial and polar angle in a
-poloidal plane, and similarly for 2.5D in combination with spherical where the
-third vector component is then the phi- component, depending on (r,theta)
-alone. This means that 2D and 'spherical' implies the use of a polar grid in a
-poloidal cross-section (i.e. one containing the symmetry axis) and axial
-symmetry for 2.5D runs.
-
-In 3D the choice of curvilinear grid is Cartesian for 'slab', and the usual
-Cylindrical and Spherical coordinate systems when setting one of those latter
-values. Note that vector components are to be interpreted in the corresponding
-coordinate system!
-
-Please read [axial](axial.md) before you try to do
-simulations in non-slab symmetry.
-
-In case you select `typeaxial='spherical'`, the geometrical info is filled
-in a slightly different way depending on the integer _typespherical_. See the
-details in _geometry.t_ module.
-
-The _usecovariant_ option is as yet inactive, but is meant to prepare for
-general relativistic modules, and/or an alternative means to handle non-
-cartesian geometries.
-
 ### Dimensional splitting {#par_dimsplit}
 
-The sources, if any, can be added in a split or unsplit way according to the
-logical variables `ssplitdivb`, `ssplitdust`, `ssplitresis`, and
-`ssplituser` which correspond to divb source to maintain divergence free of
-magnetic field, dust effect, resistivity, and other sources added by user,
-respectively. Their default values are false meaning these sources are added
+Special sources, if any, can be added in a split or unsplit way according to the
+logical variables `source_split_usr` The default value is false meaning these sources are added
 in a unplit way by default. The split sources are added according to
 `typesourcesplit`. The meaning of the different options for
 `typesourcesplit` is described in
@@ -655,7 +481,7 @@ settings, we use unsplit sources only, and if one reverts to split sources,
 
 In multidimensional calculations dimensional splitting can be used by setting
 `dimsplit=T`, with an alternating order of the sweeps
-`typedimsplit='xyyx'` by default. For AMRVAC simulations, it is best to use
+`typedimsplit='xyyx'` by default. It is best to use
 `dimsplit=F`, the default value, but the TVD method needs a dimensionally
 split strategy. The limitations on using dimensionally unsplit methods are
 described in [methods](methods.md).
@@ -689,10 +515,10 @@ follows. When setting _strictsmall=F_, two kinds of recovery procedures can be
 selected, controlled by the logical _strictgetaux_. When _strictgetaux=T_, the
 parameters smallp, smallrho (and derived values minrho, minp, smalle,
 smalltau, smallxi) are used in an ad-hoc prescription for dealing with
-`vacuum', as encoded in `src/amrvacphys.correctaux`.t`. In case you select
+`vacuum`, as encoded in `src/amrvacphys.correctaux`.t`. In case you select
 _strictgetaux=F_, the subroutine _correctaux_ is used instead, which uses some
 kind of averaging from a user-controlled environment about the faulty cells.
-The width of this environment is set by the integer _nflatgetaux_.
+The width of this environment is set by the integer _small_values_daverage_.
 
 Setting `fixprocess=T` results in a call to the process subroutine before
 the writing of a snapshot, and following the determination of the timestep
@@ -739,7 +565,7 @@ cylindrical coordinates as well. This splitting strategy can be extended to
 linear force-free background field with non-zero current by adding a source
 term, namely, perturbed magnetic field cross velocity then dot background
 current, in the right hand side of the conservative energy equation as a
-user's unsplit special source .
+user unsplit special source .
 
 Resistive source terms for MHD can use a compact non-conservative formulation
 of resistive source terms, by setting compactres=T. The default
@@ -752,31 +578,7 @@ _gradientS_ ('limited') subroutines that are themselves found in the
 _geometry.t_ module. Similarly, a switch for the divergene of a vector is the
 `typediv` switch. These are as yet only used in the MHD modules (classical
 and relativistic). When the 'limited' variant is used, one must set the
-corresponding typegradlimiter1 array to select a limiter (per level).
-
-### Using primite variables for reconstruction {#par_useprim}
-
-For the SRHD and SRMHD modules only. The `useprimitiveRel=T` will ensure
-that in combination with useprimitive, limited linear reconstruction is done
-on the spatial four-velocity instead of the velocity. It is the default value.
-The special relativistic modules involve a Newton-Raphson procedure for
-switching from conservative to primitive, and the maximum number of NR
-iterates is set to a default value `maxitnr=100`. This newton raphson has a
-tolerance parameter and absolute accuracy parameter, by default set to
-_tolernr=1.0d-13_ and _absaccnr=1.0d-13_. These can be changed if needed. The
-logical _strictnr_ (T by default) will cause the code to stop when there is an
-error related to this NR procedure. See the detailed implementation in the
-_amrvacphys.t.sr(m)hd(eos)_ modules.
-
-For the relativistic MHD modules, an additional parameter is the
-_strictzero=.true._ parameter: it sets the limit for zero flow conditions as
-measured by S.S (or even B.B) in the NR procedure to zero (T) or
-smalldouble*smalldouble (F). Further, the `dmaxvel=1.0d-8` default value is
-used in the process to define a maximal velocity allowed, namely 1-dmaxvel
-(where velocities are always below 1, which is the speed of light value). For
-SRMHD, the `typepoly` determines which formulation is used for the quartic
-polynomial whose zeros determine the forward and backward slow and fast signal
-speeds.
+corresponding gradient_limiter array to select a limiter (per level).
 
 ### ncool, cmulti, coolmethod, coolcurve, Tfix
 
@@ -796,13 +598,13 @@ These are only used when one or more dustspecies is used for HD.
 
 ## Boundlist {#par_boundlist}
 
-         &boundlist
-     dixB= INTEGER
-    	typeB= 'cont','symm','asymm','periodic','special','noinflow','limitinflow'
+    &boundlist
+     nghostcells= INTEGER
+     typeB= 'cont','symm','asymm','periodic','special','noinflow','limitinflow'
      ratebdflux = DOUBLE
      internalboundary = F | T
-    	typeghostfill= 'linear' | 'copy' | 'unlimit'
-    	typegridfill= 'linear' | 'other'
+     typeghostfill= 'linear' | 'copy' | 'unlimit'
+     typegridfill= 'linear' | 'other'
     /
 
 The boundary types have to be defined for each **conserved variable** at each
@@ -837,7 +639,7 @@ lateral boundaries are periodic, we would write :
 
 ##
 
-         &
+    &boundlist
     	typeB= 5*'periodic',
              5*'periodic',
              'symm','symm','asymm','symm','symm',
@@ -845,7 +647,7 @@ lateral boundaries are periodic, we would write :
     /
 
 The default number of ghost cell layers used to surround the grid (and in fact
-each grid at each level and location) is set by default to `dixB=2`. If
+each grid at each level and location) is set by default to `nghostcells=2`. If
 needed, this value can be increased.
 
 The default boundary type is `cont` for all variables and edges, it means
@@ -885,7 +687,7 @@ pole should be symm or asymm".
 The case of periodic boundaries can be handled with setting 'periodic' for all
 variables at both boundaries that make up a periodic pair. Hence triple
 periodic in 3D MHD where 8 variables are at play means setting
-_typeB=8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic_.
+_typeB=8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic'_.
 For 3D cylindrical and spherical grid computations, the singular polar axis is
 trivially handled using a so-called pi-periodic boundary treatment, where
 periodicity across the pole comes from the grid cell diagonally across the
@@ -939,14 +741,14 @@ second order is desired).
 
 ## Amrlist {#par_amrlist}
 
-         &amrlist
-    	mxnest= INTEGER
-    	nxlone1= INTEGER
-    	nxlone2= INTEGER
-    	nxlone3= INTEGER
-    	dxlone1= DOUBLE
-    	dxlone2= DOUBLE
-    	dxlone3= DOUBLE
+    &amrlist
+     refine_max_level= INTEGER
+     nxlone1= INTEGER
+     nxlone2= INTEGER
+     nxlone3= INTEGER
+     dxlone1= DOUBLE
+     dxlone2= DOUBLE
+     dxlone3= DOUBLE
      xprobmin1= DOUBLE
      xprobmax1= DOUBLE
      xprobmin2= DOUBLE
@@ -954,9 +756,9 @@ second order is desired).
      xprobmin3= DOUBLE
      xprobmax3= DOUBLE
      errorestimate= INTEGER
-    	nbufferx1= INTEGER
-    	nbufferx2= INTEGER
-    	nbufferx3= INTEGER
+     nbufferx1= INTEGER
+     nbufferx2= INTEGER
+     nbufferx3= INTEGER
      skipfinestep= F | T
      amr_wavefilter= nlevelshi DOUBLE values
      tol= nlevelshi DOUBLE values
@@ -975,9 +777,9 @@ second order is desired).
      ditregrid= INTEGER
     /
 
-### mxnest, nxlone^D, dxlone^D, xprob^L {#par_mxnest}
+### refine_max_level, nxlone^D, dxlone^D, xprob^L {#par_refine_max_level}
 
-`mxnest` indicates the maximum number of grid levels that can be used during the simulation, including the base grid level. It is an integer value which is maximally equal to the parameter _nlevelshi_ and minimally equal to 1 (which is the default value implying no refinement at all, but possibly a domain decomposition when the domain resolution is a multiple of the maximal grid resolution controlled by the -g= flag of $AMRVAC_DIR/setup.pl). The parameter _nlevelshi=8_ by default, a value set in _mod_indices.t_, so that if more than 8 levels are to be used, one must change this value and recompile. Note that when _mxnest&gt;1_, it is possible that during runtime, the highest grid level is temporarily lower than mxnest, and/or that the coarsest grid is at a higher level than the base level.
+`refine_max_level` indicates the maximum number of grid levels that can be used during the simulation, including the base grid level. It is an integer value which is maximally equal to the parameter _nlevelshi_ and minimally equal to 1 (which is the default value implying no refinement at all, but possibly a domain decomposition when the domain resolution is a multiple of the maximal grid resolution controlled by the -g= flag of $AMRVAC_DIR/setup.pl). The parameter _nlevelshi=20_ by default, a value set in _mod_indices.t_, so that if more than 20 levels are to be used, one must change this value and recompile. Note that when _refine_max_level&gt;1_, it is possible that during runtime, the highest grid level is temporarily lower than refine_max_level, and/or that the coarsest grid is at a higher level than the base level.
 
 The computational domain is set by specifying the minimal and maximal
 coordinate value per direction in the _xprob^L_ settings. When cylindrical or
@@ -1009,21 +811,12 @@ detecting regions that need refinement.
 When `errorestimate=0`, all refinement will only be based on the user-
 defined criteria to be coded up in subroutine _specialrefine_grid_.
 
-When `errorestimate=1`, refinement at time t_n will be based on a Richardson
-procedure where two low order (using the typelow1 discretization) predictions
-of the future time level t_(n+1) solution are computed and compared. The two
-solutions are obtained by reversing the order of integrating and coarsening.
-Note that only unsplit sources are taken into account in this process, and
-that always a dimensionally unsplit scheme of first order is used (in
-practice, always tvdlf1). If this comparison should rather be done on two such
-solutions at time t_n itself, one must set the `skipfinestep=F`.
-
 When `errorestimate=2`, we simply compare the previous time level t_(n-1)
 solution with the present t_n values, and trigger refinement on relative
 differences.
 
 When `errorestimate=3`, the default value, errors are estimated using
-current t_n values and their gradients following Lohner's prescription. In
+current t_n values and their gradients following Lohner prescription. In
 this scheme, the `amr_wavefilter` coefficient can be adjusted from its
 default value 0.01d0. You can set different values for the wavefilter
 coefficient per grid level. This error estimator is computationally efficient,
@@ -1039,7 +832,7 @@ additionally provide a buffer zone of a certain number of grid cells in width,
 which will surround cells that are flagged for refinement by any other means.
 It will thus trigger more finer grids. `nbufferx^D=2` is usually sufficient.
 It can never be greater than the grid size specified with the -g setting of
-_$AMRVAC_DIR/setup.pl_. For Lohner's scheme, the buffer can actually be turned
+_$AMRVAC_DIR/setup.pl_. For Lohner scheme, the buffer can actually be turned
 off completely by setting `nbufferx^D=0` which is default value.
 
 ### flags, wflags, logflag, tol, tolratio {#par_flags}
@@ -1147,7 +940,7 @@ If the `slowsteps` parameter is set to a positive integer value greater than
 according to the
 
                  2
-        dt'= dt * [ 1 - (1-step/slowsteps) ]
+        dt= dt * [ 1 - (1-step/slowsteps) ]
 
 formula, where `step=1..slowsteps-1`. This reduction can help to avoid
 problems resulting from numerically unfavourable initial conditions, e.g. very
