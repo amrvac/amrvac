@@ -49,14 +49,8 @@ module mod_hd_phys
   !> The adiabatic constant
   double precision, public                :: hd_adiab = 1.0d0
 
-  !> The smallest allowed energy
-  double precision, protected             :: smalle
-
-  !> The smallest allowed density
-  double precision, protected             :: minrho
-
-  !> The smallest allowed pressure
-  double precision, protected             :: minp
+  !> The small_est allowed energy
+  double precision, protected             :: small_e
 
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
@@ -207,17 +201,14 @@ contains
     use mod_global_parameters
     use mod_dust, only: dust_check_params
 
-    minrho = max(0.0d0, small_density)
-
     if (.not. hd_energy) then
        if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
        if (hd_adiab <= 0.0d0) call mpistop ("Error: hd_adiab <= 0")
-       minp   = hd_adiab*minrho**hd_gamma
+       small_pressure= hd_adiab*small_density**hd_gamma
     else
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
             call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
-       minp   = max(0.0d0, small_pressure)
-       smalle = minp/(hd_gamma - 1.0d0)
+       small_e = small_pressure/(hd_gamma - 1.0d0)
     end if
 
     if (hd_dust) call dust_check_params()
@@ -260,15 +251,15 @@ contains
     double precision             :: tmp(ixI^S)
 
     flag(ixO^S) = 0
-    where(w(ixO^S, rho_) < minrho) flag(ixO^S) = rho_
+    where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
 
     if (hd_energy) then
        if (primitive) then
-          where(w(ixO^S, e_) < minp) flag(ixO^S) = e_
+          where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
        else
           tmp(ixO^S) = (hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
                hd_kin_en(w, ixI^L, ixO^L))
-          where(tmp(ixO^S) < minp) flag(ixO^S) = e_
+          where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
        endif
     end if
 
@@ -702,7 +693,7 @@ contains
     if (any(flag(ixO^S) /= 0)) then
        select case (small_values_method)
        case ("replace")
-          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = minrho
+          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
 
           do idir = 1, ndir
              where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
@@ -710,9 +701,9 @@ contains
 
           if (hd_energy) then
              if(primitive) then
-               smallone = minp
+               smallone = small_pressure
              else
-               smallone = smalle
+               smallone = small_e
              end if
              where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
           end if

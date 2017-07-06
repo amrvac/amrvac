@@ -198,9 +198,11 @@ contains
     fixprocess = .false.
     typegrad   = 'central'
     typediv    = 'central'
-    small_temperature     = -one
-    small_pressure     = -one
-    small_density   = -one
+
+    ! defaults for smallest physical values allowed
+    small_temperature = 0.d0
+    small_pressure    = 0.d0
+    small_density     = 0.d0
 
     ! defaults for convert behavior
 
@@ -460,6 +462,11 @@ contains
       end if
     end if
 
+    if (small_pressure < 0.d0) call mpistop("small_pressure should be positive.")
+    if (small_density < 0.d0) call mpistop("small_density should be positive.")
+    ! Give priority to non-zero small temperature
+    if (small_temperature>0.d0) small_pressure=small_density*small_temperature
+
     if(convert) autoconvert=.false.
 
     where (tsave_log < bigdouble) tsave(:, 1) = tsave_log
@@ -610,7 +617,6 @@ contains
        case ("ssprk54","ssprk43","fourstep", "rk4", "threestep", "twostep")
           ! Runge-Kutta needs predictor
           typelimited="predictor"
-          if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', 'predictor (for RK)'
           if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
        end select
     end if

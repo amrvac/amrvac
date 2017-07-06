@@ -73,14 +73,8 @@ module mod_mhd_phys
   !> TODO: what is this?
   double precision, public                :: mhd_etah = 0.0d0
 
-  !> The smallest allowed energy
-  double precision, protected             :: smalle
-
-  !> The smallest allowed density
-  double precision, protected             :: minrho
-
-  !> The smallest allowed pressure
-  double precision, protected             :: minp
+  !> The small_est allowed energy
+  double precision, protected             :: small_e
 
   !> The number of waves
   integer :: nwwave=8
@@ -298,17 +292,14 @@ contains
   subroutine mhd_check_params
     use mod_global_parameters
 
-    minrho = max(0.0d0, small_density)
-
     if (.not. mhd_energy) then
        if (mhd_gamma <= 0.0d0) call mpistop ("Error: mhd_gamma <= 0")
        if (mhd_adiab < 0.0d0) call mpistop ("Error: mhd_adiab < 0")
-       minp   = mhd_adiab*minrho**mhd_gamma
+       small_pressure = mhd_adiab*small_density**mhd_gamma
     else
        if (mhd_gamma <= 0.0d0 .or. mhd_gamma == 1.0d0) &
             call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
-       minp   = max(0.0d0, small_pressure)
-       smalle = minp/(mhd_gamma - 1.0d0)
+       small_e = small_pressure/(mhd_gamma - 1.0d0)
     end if
 
   end subroutine mhd_check_params
@@ -352,19 +343,19 @@ contains
     double precision :: tmp(ixI^S)
 
     flag(ixO^S)=0
-    where(w(ixO^S, rho_) < minrho) flag(ixO^S) = rho_
+    where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
 
     if (mhd_energy) then
        if (block%e_is_internal) then
-          where(w(ixO^S, e_) < minp/(mhd_gamma-1.d0)) flag(ixO^S) = e_
+          where(w(ixO^S, e_) < small_pressure/(mhd_gamma-1.d0)) flag(ixO^S) = e_
        else
          if (primitive)then
-           where(w(ixO^S, e_) < minp) flag(ixO^S) = e_
+           where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
          else
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
            tmp(ixO^S)=(mhd_gamma-1.d0)*(w(ixO^S,e_) - &
               mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
-           where(tmp(ixO^S) < minp) flag(ixO^S) = e_
+           where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
          end if
        end if  
     end if
@@ -445,7 +436,7 @@ contains
     if (any(flag(ixO^S) /= 0)) then
        select case (small_values_method)
        case ("replace")
-          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = minrho
+          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
 
           do idir = 1, ndir
              where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
@@ -453,9 +444,9 @@ contains
 
           if (mhd_energy) then
              if(primitive) then
-               smallone = minp
+               smallone = small_pressure
              else
-               smallone = smalle
+               smallone = small_e
              end if
              where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
           end if

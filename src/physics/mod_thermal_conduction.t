@@ -59,14 +59,8 @@ module mod_thermal_conduction
   !> The adiabatic index
   double precision, private :: tc_gamma
 
-  !> The smallest allowed energy
-  double precision, private :: smalle
-
-  !> The smallest allowed density
-  double precision, private :: minrho
-
-  !> The smallest allowed pressure
-  double precision, private :: minp
+  !> The small_est allowed energy
+  double precision, private :: small_e
 
   !> Time step coefficient
   double precision, private :: tc_dtpar=0.9d0
@@ -108,7 +102,7 @@ module mod_thermal_conduction
       
       integer, intent(in) :: ixG^L, ix^L
       double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
-      ! note that depending on strictsmall etc, w values may change 
+      ! note that depending on small_values_method=='error' etc, w values may change 
       ! through call to getpthermal
       double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
     end subroutine getdt_heatconduct
@@ -159,9 +153,7 @@ contains
     mom(:) = iw_mom(:)
     mag(:) = iw_mag(:)
 
-    minp   = max(0.0d0, small_pressure)
-    minrho = max(0.0d0, small_density)
-    smalle = minp/(tc_gamma - 1.0d0)
+    small_e = small_pressure/(tc_gamma - 1.0d0)
 
     if(SI_unit) then
       ! Spitzer thermal conductivity with SI units
@@ -329,6 +321,7 @@ contains
 
   subroutine evolve_step1(qcmut,qdt,ixI^L,ixO^L,w1,w,x,wold)
     use mod_global_parameters
+    use mod_small_values, only: small_values_method
     
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: qcmut, qdt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -346,49 +339,29 @@ contains
     ! ensure you never trigger negative pressure 
     ! hence code up energy change with respect to kinetic and magnetic
     ! part(nonthermal)
-    if(small_temperature>0.d0) then
-      Te(ixO^S)=tmp1(ixO^S)*(tc_gamma-1.d0)/w(ixO^S,rho_)
-    endif
-    if(strictsmall) then
-      if(small_temperature>0.d0 .and. any(Te(ixO^S)<small_temperature)) then
-        lowindex=minloc(Te(ixO^S))
-        ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
-        write(*,*)'too small temperature = ',minval(Te(ixO^S)),'at x=',&
-       x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_temperature,&
-       ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
-        call mpistop("==evolve_step1: too small temperature==")
-      end if
-      if(any(tmp1(ixO^S)<smalle)) then
+    if(small_values_method=='error') then
+      if(any(tmp1(ixO^S)<small_e)) then
         lowindex=minloc(tmp1(ixO^S))
         ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
         write(*,*)'too small internal energy = ',minval(tmp1(ixO^S)),'at x=',&
-       x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smalle,&
+       x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,&
        ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
         call mpistop("==evolve_step1: too small internal energy==")
+      else
+        w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
       end if
-      w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
     else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        if(small_temperature>0.d0) then
-          if(Te(ix^D)<small_temperature) then
-            w1(ix^D,e_) = tmp2(ix^D)+small_temperature*w(ix^D,rho_)/(tc_gamma-1.d0)
-          else
-            w1(ix^D,e_) = tmp2(ix^D)+tmp1(ix^D)
-          end if
-        else
-          if(tmp1(ix^D)<smalle) then
-            w1(ix^D,e_) = tmp2(ix^D)+smalle
-          else
-            w1(ix^D,e_) = tmp2(ix^D)+tmp1(ix^D)
-          end if
-        end if
-     {end do\}
+      where(tmp1(ixO^S)<small_e)
+        tmp1(ixO^S)=small_e
+      endwhere
+      w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
     end if
   
   end subroutine evolve_step1
 
   subroutine mhd_get_heatconduct(tmp,tmp1,tmp2,ixI^L,ixO^L,w,x)
     use mod_global_parameters
+    use mod_small_values, only: small_values_method
     
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
@@ -412,45 +385,25 @@ contains
          sum(w(ixI^S,mag(:))**2,dim=ndim+1))
 
     ! tmp1 store internal energy
-    if(solve_internal_e) then
-      tmp1(ixI^S)=w(ixI^S,e_)
-    else
-      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
-    end if
+    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
 
     ! Clip off negative pressure if small_pressure is set
-    if(strictsmall) then
-       if (any(tmp1(ixI^S)<smalle)) then
+    if(small_values_method=='error') then
+       if (any(tmp1(ixI^S)<small_e)) then
          lowindex=minloc(tmp1(ixI^S))
          ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
          write(*,*)'too low internal energy = ',minval(tmp1(ixI^S)),' at x=',&
-         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',smalle,' on time=',global_time
+         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time
        end if
     else
     {do ix^DB=ixImin^DB,ixImax^DB\}
-       if(tmp1(ix^D)<smalle) then
-          tmp1(ix^D)=smalle
+       if(tmp1(ix^D)<small_e) then
+          tmp1(ix^D)=small_e
        end if
     {end do\}
     end if
     ! compute the temperature
     tmp(ixI^S)=tmp1(ixI^S)*(tc_gamma-one)/w(ixI^S,rho_)
-    if(small_temperature>0.d0) then
-      if(strictsmall) then
-         if(any(tmp(ixI^S)<small_temperature)) then
-           lowindex=minloc(tmp(ixI^S))
-           ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
-           write(*,*)'too low temperature = ',minval(tmp(ixI^S)),' at x=',&
-           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_temperature,' on time=',global_time
-         end if
-      else
-      {do ix^DB=ixImin^DB,ixImax^DB\}
-         if(tmp(ix^D)<small_temperature) then
-            tmp(ix^D)=small_temperature
-         end if
-      {end do\}
-      end if
-    end if
     do idims=1,ndim
       ! idirth component of gradient of temperature at cell center
       select case(typegrad)
@@ -589,7 +542,7 @@ contains
     
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
-    ! note that depending on strictsmall etc, w values may change 
+    ! note that depending on small_values_method=='error' etc, w values may change 
     ! through call to getpthermal
     double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
     
@@ -597,28 +550,11 @@ contains
     double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2inv(ixI^S)
     double precision :: dtdiff_tcond, dtdiff_tsat
     integer          :: idim,idir,ix^D
-    integer, dimension(ndim)       :: lowindex
 
     ^D&dxinv(^D)=one/dx^D;
     
     call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
-    ! Clip off negative pressure if small_pressure is set
-    if(strictsmall) then
-      if(any(tmp(ixO^S)<minp)) then
-        lowindex=minloc(tmp(ixO^S))
-        ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
-        write(*,*)'low pressure = ',minval(tmp(ixO^S)),' at x=',&
-        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',global_time,&
-        ' step=',it
-       call mpistop("=== strictsmall in getdt_heatconduct_mhd: low pressure ===")
-      end if
-    else
-    {do ix^DB=ixOmin^DB,ixOmax^DB\}
-       if(tmp(ix^D)<minp) then
-          tmp(ix^D)=minp
-       end if
-    {end do\}
-    end if
+
     !temperature
     Te(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
     !kappa_i
@@ -667,6 +603,7 @@ contains
 
   subroutine hd_get_heatconduct(tmp,tmp1,tmp2,ixI^L,ixO^L,w,x)
     use mod_global_parameters
+    use mod_small_values, only: small_values_method
     
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
@@ -683,48 +620,26 @@ contains
     ! store old kinetic energy
     tmp2(ixI^S)=half*sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     ! store old internal energy
-    if(solve_internal_e) then
-      tmp1(ixI^S)=w(ixI^S,e_)
-    else
-      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
-    end if
+    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
     ! Clip off negative pressure if small_pressure is set
-    if(strictsmall) then
-      if(any(tmp1(ixI^S)<minp)) then
+    if(small_values_method=='error') then
+      if(any(tmp1(ixI^S)<small_e)) then
         lowindex=minloc(tmp1(ixI^S))
         write(*,*)'low internal energy= ',minval(tmp1(ixI^S)),' at x=',&
-        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',global_time
-        call mpistop("=== strictsmall in heatconduct: low pressure ===")
+        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time
+        call mpistop("=== small_values_method=='error' in heatconduct: low pressure ===")
       end if
     else
        {do ix^DB=ixImin^DB,ixImax^DB\}
-         if(tmp1(ix^D)<minp) then
-          tmp1(ix^D)=minp
+         if(tmp1(ix^D)<small_e) then
+          tmp1(ix^D)=small_e
          end if
        {end do\}
     end if
 
     ! compute temperature before source addition
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(tc_gamma-one)
-    if(small_temperature>0.d0) then
-      if(strictsmall) then
-         if(any(Te(ixI^S)<small_temperature)) then
-           lowindex=minloc(Te(ixI^S))
-           ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
-           write(*,*)'too low temperature = ',minval(Te(ixI^S)),' at x=',&
-           x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_temperature,' on time=',global_time,&
-           ' step=',it,' where density=',w(^D&lowindex(^D),rho_),' velocity=',&
-           dsqrt(sum(w(^D&lowindex(^D),mom(:))**2,dim=1)/w(^D&lowindex(^D),rho_)**2)
-           call mpistop("=== strictsmall in heatcond_hd: low temperature ===")
-         end if
-      else
-      {do ix^DB=ixImin^DB,ixImax^DB\}
-         if(Te(ix^D)<small_temperature) then
-            Te(ix^D)=small_temperature
-         end if
-      {end do\}
-      end if
-    end if
+
     ! compute grad T and store grad T vector
     do idims=1,ndim
       ! idirth component of gradient of temperature at cell center
@@ -769,34 +684,16 @@ contains
     
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
-    ! note that depending on strictsmall etc, w values may change 
-    ! through call to getpthermal
     double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
     
     double precision :: dxinv(1:ndim), tmp(ixI^S), Te(ixI^S)
     double precision :: dtdiff_tcond,dtdiff_tsat
     integer          :: idim,ix^D
-    integer, dimension(ndim)       :: lowindex
 
     ^D&dxinv(^D)=one/dx^D;
 
     call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
-    ! Clip off negative pressure if small_pressure is set
-    if(strictsmall) then
-      if(any(tmp(ixO^S)<minp)) then
-        lowindex=minloc(tmp(ixO^S))
-        ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
-        write(*,*)'low pressure = ',minval(tmp(ixO^S)),' at x=',&
-        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',minp,' on time=',global_time
-        call mpistop("=== strictsmall in getdt_heatconduct_hd: low pressure ===")
-      end if
-    else
-      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        if(tmp(ix^D)<minp) then
-         tmp(ix^D)=minp
-        end if
-      {end do\}
-    end if
+
     Te(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
     tmp(ixO^S)=(tc_gamma-one)*kappa*dsqrt((Te(ixO^S))**5)/w(ixO^S,rho_)
     

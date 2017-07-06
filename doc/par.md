@@ -307,8 +307,8 @@ activating the logicals `restart_reset_time=T`.
     dimsplit= F | T
     typedimsplit= 'default' | 'xyyx'| 'xy'
 
-    smallrho= DOUBLE
-    smallp= DOUBLE
+    small_density= DOUBLE
+    small_pressure= DOUBLE
     small_values_method='error' | 'replace' | 'average'
     small_values_daverage=1
     fixprocess= F | T
@@ -342,7 +342,7 @@ activating the logicals `restart_reset_time=T`.
     dustzero = T|F
     dustspecies = 'graphite','silicate'
     dusttemp = 'constant','ism','stellar'
-    smallrhod = DOUBLE
+    small_densityd = DOUBLE
 
     /
 
@@ -489,57 +489,39 @@ described in [methods](methods.md).
 ### Positivity fixes {#par_positivityfix}
 
 Negative pressure or density caused by the numerical approximations can make the
-code crash. For HD, MHD and all SRHD and SRMHD variants, this can be monitored
-or even cured by the `smallvalues` subroutines in
-`src/amrvacphys.correctaux[mod].t` modules, where `[mod]` denotes the physics
-(hd, mhd, srhd, srmhd). This monitoring is active whenever `fixsmall=T`, its
-default setting (hence, you can avoid all checks, but also all cures, by setting
-`fixsmall=F`). The control parameters `smallrho, smallp` play a role here:
-they can be set to small positive values, while their default is
-`smallrho=-1.0d0` and `smallp=-1.0d0`, i.e. no replacements at all. They
-take effect for HD, MHD, SRHD and SRMHD equations when set to a small value,
-e.g. `smallp=1.0d-12`. Actually, they in turn determine _minp, minrho, smalle_
-for HD and MHD modules (as set in the `initglobaldata` subroutine in the
-physics module) and _minp, minrho, smalltau, smallxi_ for the relativistic
-variants. These latter quantities appear in the
-`src/amrvacphys.correctaux`.t` modules.
+code crash. For HD and MHD modules this can be monitored
+or even cured by the handle_small_values subroutines. 
+The control parameters `small_density, small_pressure, small_temperature` play a role here:
+they can be set to small positive values but not negative values, while their default is 0. If 
+`small_temperature` is positve, `small_pressure` is overwritten by the product of 
+`small_pressure` and `small_temperature`.
 
-The actual treatment involves the _strictsmall_ parameter: Its default value
-(T) causes a full stop when the smallvalues subroutine in the physics modules
-would normally correct small densities or energies by some artificial vacuum
-prescription. This corrective prescription is thus turned off by default. In
-this way, you can use it for debugging purposes, to spot from where the actual
-negative and unphysical value gets introduced. If it is somehow unavoidable in
-your simulations, then you may rerun with a recovery process truned on as
-follows. When setting _strictsmall=F_, two kinds of recovery procedures can be
-selected, controlled by the logical _strictgetaux_. When _strictgetaux=T_, the
-parameters smallp, smallrho (and derived values minrho, minp, smalle,
-smalltau, smallxi) are used in an ad-hoc prescription for dealing with
-`vacuum`, as encoded in `src/amrvacphys.correctaux`.t`. In case you select
-_strictgetaux=F_, the subroutine _correctaux_ is used instead, which uses some
-kind of averaging from a user-controlled environment about the faulty cells.
+The actual treatment involves the _small_values_method_ parameter: Its default value
+'error' causes a full stop when the handle_small_values subroutine in the physics 
+modules. In this way, you can use it for debugging purposes, to spot from where the actual
+negative pressure and unphysical value gets introduced. If it is somehow unavoidable in
+your simulations, then you may rerun with a recovery process turned on as
+follows.  When _small_values_method='replace'_, the parameters small_pressure, small_density 
+are used to replace any unphysical value and set momenton to be 0, as encoded in 
+`mod_small_values.t`. When you select _small_values_method='average'_, any unphysical value
+is replaced by averaging from a user-controlled environment about the faulty cells.
 The width of this environment is set by the integer _small_values_daverage_.
 
-Setting `fixprocess=T` results in a call to the process subroutine before
-the writing of a snapshot, and following the determination of the timestep
-constraint by means of CFL and other restrictions. It then interfaces to the
-_process_grid_usr_ subroutine whose default interface is found in
-_amrvacnul.speciallog.t_. You can use this routine for doing computations of
-non-local auxiliary variables (like the divergence of some vector fields,
-etc), then using these in turn to do particle acceleration treatments (the
-latter to be implemented in the process subroutine, using MPI!), etc.
+### Special process {#par_process}
+When set _fixprocess=.true._, user controlled special process can be added to 
+each iteration. Subroutine usr_process_grid can be registered in 
+mod_usr.t to process for each grid. Subroutine usr_process_global can be registered
+in mod_usr.t to do global process. For example, you can do computations of
+non-local auxiliary variables (like the divergence of some vector fields, time integrals
+etc).
 
 ### Magnetic field divergence fixes {#par_divbfix}
 
 Depending on `typedivbfix`, sources proportionate to the numerical monopole
-errors are added to momemtum, energy, and induction equation (the 'powel'
-type), or to the induction equation alone (the 'janhunen' type). The latter
-type can also be used for SRMHD cases. The `divbwave` switch is effective
-for the Riemann type solvers for multi-D MHD only. The default true value
-corresponds to Powell's _divergence wave_ which stabilizes the Riemann solver.
-Naturally, if Powell's source terms are to be added and in practice it is best
-to keep the sources out of the Richardson type error estimator (when used), so
-that we advocate `ssplitdivb=T`.
+errors are added, in a source-split way, to momemtum, energy, and induction equation 
+(the 'powel' type), or to the induction equation alone (the 'janhunen' type). 
+The `divbwave` switch is effective for the Riemann type solvers for multi-D MHD only. 
+The default true value corresponds to Powell divergence wave which stabilizes the Riemann solver.
 
 Another source term strategy for monopole error control is to do parabolic
 cleaning, i.e. add source terms which diffuse the local error at the maximal
@@ -547,25 +529,21 @@ rate still compliant with the CFL limit on the time step. This is activated
 when `divbdiff` is set to a positive number, which should be less than 2,
 and again comes in various flavors depending on which equations receive source
 terms. The choice where only the induction equation gets modified, i.e.
-`typedivbdiff='ind'` can again be used for both MHD and SRMHD, and is
-advocated.
+`typedivbdiff='ind'` can be used.
 
 For MHD, we implemented the possibility to use a splitting strategy following
-Tanaka, where a time-invariant, potential background magnetic field is handled
+Tanaka, where a time-invariant background magnetic field is handled
 exactly, so that one solves for perturbed magnetic field components instead.
 This field is taken into account when `B0field=T`, and the magnitude of this
 field is controlled using the variables `Bdip, Bquad, Boct, Busr`. The first
 three are pre-implemented formulae for a dipole, quadrupole and octupole field
 in spherical coordinates only (the parameters set the strength of the dipole,
 quadrupole and octupole field). This is coded up in the module _set_B0.t_.
-This same module calls in addition the _specialset_B0_ subroutine when
+This same module calls in addition the _usr_set_B0_ subroutine when
 `Busr` is non-zero, where it then should be used to quantify an additional
-potential, time-independent field. This latter can be used for cartesian or
-cylindrical coordinates as well. This splitting strategy can be extended to
-linear force-free background field with non-zero current by adding a source
-term, namely, perturbed magnetic field cross velocity then dot background
-current, in the right hand side of the conservative energy equation as a
-user unsplit special source .
+time-independent field. This latter can be used for cartesian or
+cylindrical coordinates as well. User can possibly prescibe analytic current in 
+_usr_set_J0_ subroutine to significantly increase accuracy.
 
 Resistive source terms for MHD can use a compact non-conservative formulation
 of resistive source terms, by setting compactres=T. The default
@@ -575,9 +553,8 @@ The `typegrad` can be selected to switch from simple centered differencing
 on the cell center values, to limited reconstruction followed by differencing
 when computing gradients. They call either of _gradient_ ('central') or
 _gradientS_ ('limited') subroutines that are themselves found in the
-_geometry.t_ module. Similarly, a switch for the divergene of a vector is the
-`typediv` switch. These are as yet only used in the MHD modules (classical
-and relativistic). When the 'limited' variant is used, one must set the
+_geometry.t_ module. Similarly, a switch for the divergence of a vector is the
+`typediv` switch. When the 'limited' variant is used, one must set the 
 corresponding gradient_limiter array to select a limiter (per level).
 
 ### ncool, cmulti, coolmethod, coolcurve, Tfix
@@ -592,7 +569,7 @@ These are only used in combination with an optional point gravity module for
 HD and MHD, as developed by AJ van Marle, described in
 [mpiamrvac_pointgrav.md](mpiamrvac_pointgrav.md).
 
-### dustmethod, dustzero,dustspecies,dusttemp,smallrhod
+### dustmethod, dustzero,dustspecies,dusttemp,small_densityd
 
 These are only used when one or more dustspecies is used for HD.
 
@@ -600,11 +577,11 @@ These are only used when one or more dustspecies is used for HD.
 
     &boundlist
      nghostcells= INTEGER
-     typeB= 'cont','symm','asymm','periodic','special','noinflow','limitinflow'
-     ratebdflux = DOUBLE
+     typeboundary_min^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
+     typeboundary_max^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      internalboundary = F | T
      typeghostfill= 'linear' | 'copy' | 'unlimit'
-     typegridfill= 'linear' | 'other'
+     prolongation_method= 'linear' | 'other'
     /
 
 The boundary types have to be defined for each **conserved variable** at each
@@ -614,7 +591,7 @@ bottom; finally rho,m1,m2,e at the top boundary. The order is always, unless
 explicitly stated, xmin, xmax, ymin, ymax, zmin, and zmax. The general
 subroutine devoted to the treatment of boundary conditions (either customized
 by the user or not, internal or external to the simulation space, polar or not)
-is _get_bc_ and the main files concerned are _amr_ghostcells.t_ and
+is _get_bc_ and the main files concerned are _mod_ghostcells_update.t_ and
 _boundary_conditions.t_. Since the pre-defined boundary conditions are applied
 to the conserved variables, it does not guarantee the continuity of the fluxes
 (i.e. the terms associated to the velocity within the divergences in the
@@ -631,24 +608,25 @@ write _8*'X'_ to replace _'X'_ 8 times in a row for instance. Beware, it is
 simply a syntax substitution rule which does not tell anything about the number
 of variables nor the number of dimensions. To improve readability, users are
 invited to highlight this underlying structure in the instructions. For
-instance, in a two dimensional hydrodynamical (_-p=hd_) simulation space
+instance, in a two dimensional hydrodynamical simulation space
 (_ndim=2_) with the mass density, three components of the velocity field
-(_ndir=3_) and an energy equation (_-eos=energy_ in the initial setup), if the
+(_ndir=3_) and an energy equation, if the
 bottom boundary is a plane of symmetry, the upper boundary is opened and the
 lateral boundaries are periodic, we would write :
 
 ##
 
     &boundlist
-    	typeB= 5*'periodic',
-             5*'periodic',
-             'symm','symm','asymm','symm','symm',
-             5*'cont'
+     typeboundary_min1= 5*'periodic'
+     typeboundary_max1= 5*'periodic'
+     typeboundary_min2= 'symm','symm','asymm','symm','symm'
+     typeboundary_max2= 5*'cont'
     /
 
 The default number of ghost cell layers used to surround the grid (and in fact
-each grid at each level and location) is set by default to `nghostcells=2`. If
-needed, this value can be increased.
+each grid at each level and location) is set by default to `nghostcells=2` and
+automatically increased if larger stencil is needed for high-order reconstructions.
+For example, when `limiter=mp5` it takes 3,  and `limiter=ppm` makes it 4. 
 
 The default boundary type is `cont` for all variables and edges, it means
 that the gradient (of the conservative variables) is kept zero by copying the
@@ -687,7 +665,7 @@ pole should be symm or asymm".
 The case of periodic boundaries can be handled with setting 'periodic' for all
 variables at both boundaries that make up a periodic pair. Hence triple
 periodic in 3D MHD where 8 variables are at play means setting
-_typeB=8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic'_.
+_typeboundary=8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic'_.
 For 3D cylindrical and spherical grid computations, the singular polar axis is
 trivially handled using a so-called pi-periodic boundary treatment, where
 periodicity across the pole comes from the grid cell diagonally across the
@@ -695,37 +673,34 @@ pole, i.e. displaced over pi instead of 2 pi. These are automatically
 recognized from the typeaxial setting, and the corresponding range in angle
 phi must span 2 pi for cylindrical, and theta must then start at zero (to
 include the north pole) and/or end at pi (for the south pole) for spherical
-grids. The user just needs to set the typeB as if the singular axis is a
-symmetry boundary (using symm and asymm combinations).
+grids. The user just needs to set the typeboundary as if the singular axis is a
+symmetry boundary (using symm and asymm combinations) or use, e.g., 
+typeboundary_min2='pole' and/or typeboundary_max2='pole'.
 
-The possibility exists to put a boundary condition mimicking zero or reduced
-inflow across the computational boundary, by selecting _typeB='noinflow'_ or
-_typeB='limitinflow'_ for the momentum vector components of your particular
+The possibility exists to put a boundary condition mimicking zero
+across the computational boundary, by selecting _typeboundary='noinflow'_
+ for the momentum vector components of your particular
 application. This is in principle only relevant for the momentum component
 locally perpendicular to the boundary (for others a continuous extrapolation
-is done). The _noinflow, limitinflow_ extrapolates values that are outwardly
+is done). The _noinflow_ extrapolates values that are outwardly
 moving continuously, while clipping all values that are inwardly advecting
-momentum to zero (noinflow) or to a user-controlled fraction of the inward
-momentum (limitinflow). The latter fraction is set by _ratebdflux_ which is 1
-by default, and should be set to a value between zero and 1 accordingly.
+momentum to zero. 
 
 The `special` type is to be used for setting fixed values, or any time
 dependent or other more complicated boundary conditions, and results in a call
-to the `specialbound_usr` subroutine which has to be provided by the user in
-the [AMRVACUSR module](@ref #amrvacusr_specialbound). The variables with
+to the `usr_special_bc` subroutine which has to be provided by the user in
+the mod_usr.t module (@ref #amrvacusr_specialbound). The variables with
 `special` boundary type are updated last within a given boundary region,
 thus the subroutine may use the updated values of the other variables. The
 order of the variables is fixed by the equation module chosen, i.e. _rho m1 m2
-m3 e b1 b2 b3_ for 3D MHD, but by setting all typeB entries for a certain
-boundary region to special, one is of course entirely free to fill the
+m3 e b1 b2 b3_ for 3D MHD. It is suggested to set all typeboundary entries 
+for a certain boundary region to `special`  to consistently fill the
 boundary info in a user-defined manner.
 
 Internal boundaries can be used to overwrite the domain variables with
-specified values. This is activated with the switch `internalboundary=T`.
+specified values through _usr_internal_bc_ subroutine. This is activated with the switch `internalboundary=T`.
 Internally, these are assigned before the ghost-cells and external boundaries
-are applied (in subroutine routine get_bc). The user can provide conditions on
-the conserved variables depending on location or time in the subroutine bc_int
-which is defaulted in amrvacnul.specialbound.t.
+are applied (in subroutine get_bc).
 
 The `typeghostfill='linear'` implies the use of limited linear
 reconstructions in the filling of ghost cells for internal boundaries that
@@ -733,7 +708,7 @@ exist due to the AMR hierarchy. A first order 'copy' can be used as well, or
 an unlimited linear reconstruction by setting it to 'unlimit'. To retain
 second order accuracy, at least the default 'linear' type is needed.
 
-The `typegridfill='linear'` implies the use of limited linear
+The `prolongation_method='linear'` implies the use of limited linear
 reconstructions when filling newly triggered, finer grids from previous
 coarser grid values. Setting it different from this default string will imply
 mere first order copying for finer level grids (and is thus not advised when

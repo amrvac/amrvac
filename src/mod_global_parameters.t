@@ -364,11 +364,6 @@ module mod_global_parameters
   double precision, allocatable :: amr_wavefilter(:)
   character(len=std_len) :: typediv,typegrad
 
-  !> related to primitive-conservative switch in relativistic modules
-  logical          :: fixsmall,strictnr,strictsmall,strictzero,strictgetaux
-  double precision :: dmaxvel,tolernr,absaccnr
-  integer          :: maxitnr,nflatgetaux
-
   logical          :: nocartesian
   logical, allocatable :: w_write(:)
   logical, allocatable :: writelevel(:)

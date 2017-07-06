@@ -138,6 +138,7 @@ mod_source.o: mod_ghostcells_update.o
 mod_source.o: mod_physics.o
 mod_thermal_conduction.o: mod_ghostcells_update.o
 mod_thermal_conduction.o: mod_physics.o
+mod_thermal_conduction.o: mod_small_values.o
 mod_tvd.o: mod_limiter.o
 mod_tvd.o: mod_physics_roe.o
 mod_variables.o: mod_basic_types.o
