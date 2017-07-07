@@ -1,12 +1,12 @@
-! TODO: make sure methods do nothing by default
 ! TODO: document methods
 module mod_usr_methods
 
   implicit none
   public
 
-  ! Initialize grid data
-  procedure(set_parameters), pointer  :: usr_set_parameters   => null()
+  !> Initialize the user's settings (after initializing amrvac)
+  procedure(p_no_args), pointer       :: usr_set_parameters   => null()
+  !> Initialize earch grid block data
   procedure(init_one_grid), pointer   :: usr_init_one_grid    => null()
 
   ! Boundary condition related
@@ -54,11 +54,6 @@ module mod_usr_methods
 
      subroutine p_no_args()
      end subroutine p_no_args
-
-     !> Initialize the user's settings (after initializing amrvac)
-     subroutine set_parameters()
-       use mod_global_parameters
-     end subroutine set_parameters
 
      !> Initialize one grid
      subroutine init_one_grid(ixI^L,ixO^L,w,x)
@@ -240,13 +235,6 @@ module mod_usr_methods
        integer, intent(in) :: qunitconvert
        character(len=20)   :: userconvert_type
      end subroutine special_convert
-
-     subroutine fix_p(ixI^L,ixO^L,w,x)
-       use mod_global_parameters
-       integer, intent(in)                :: ixI^L,ixO^L
-       double precision, intent(inout)    :: w(ixI^S,1:nw)
-       double precision, intent(in)       :: x(ixI^S,1:ndim)
-     end subroutine fix_p
 
      !> flag=-1 : Treat all cells active, omit deactivation (onentry, default)
      !> flag=0  : Treat as normal domain
