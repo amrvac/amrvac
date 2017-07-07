@@ -1,5 +1,0 @@
-F90=mpif90
-FFLAGS = -c
-F90FLAGS = -FR -implicitnone -debug -g
-LINK= $(F90)  $(F90FLAGS) -L$(HOME)/MyMpichDir/lib
-INCLUDE_DIRS = -I$(HOME)/MyMpichDir/include
