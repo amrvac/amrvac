@@ -359,9 +359,9 @@ contains
     double precision, intent(in)  :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: wB0(ixI^S,1:ndir)
 
-    wB0(ixO^S,1)=wB0(ixO^S,1)-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
-    wB0(ixO^S,2)=wB0(ixO^S,2)+B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))
-    wB0(ixO^S,ndir)=wB0(ixO^S,ndir)-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
+    wB0(ixO^S,1)=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
+    wB0(ixO^S,2)=+B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))
+    wB0(ixO^S,3)=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
 
   end subroutine specialset_B0
 

@@ -194,10 +194,10 @@ module mod_usr_methods
      !> as refinement criterion for the Lohner error estimator only
      !>  -->it is then requiring and iflag>nw
      !> note that ixO=ixI=ixG, hence the term local (gradients need special attention!)
-     subroutine var_for_errest(ixI^L,ixO^L,iflag,w,var)
+     subroutine var_for_errest(ixI^L,ixO^L,iflag,w,x,var)
        use mod_global_parameters
        integer, intent(in)           :: ixI^L,ixO^L,iflag
-       double precision, intent(in)  :: w(ixI^S,1:nw)
+       double precision, intent(in)  :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
        double precision, intent(out) :: var(ixI^S)
      end subroutine var_for_errest
 

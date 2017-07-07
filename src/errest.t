@@ -100,7 +100,7 @@ subroutine lohner_grid(igrid)
         if (.not. associated(usr_var_for_errest)) then
            call mpistop("usr_var_for_errest not defined")
         else
-           call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
+           call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,pw(igrid)%x,tmp1)
         end if
      end if
 
@@ -226,7 +226,7 @@ do iflag=1,nw+1
       if (.not. associated(usr_var_for_errest)) then
          call mpistop("usr_var_for_errest not defined")
       else
-         call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,tmp1)
+         call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,pw(igrid)%x,tmp1)
       end if
    end if
 
