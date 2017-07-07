@@ -32,7 +32,7 @@ contains
       write(*, *) "Iteration: ", it, " Time: ", global_time
       write(*, *) "Location: ", x({ix_bad(^D)}, :)
       write(*, *) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
-
+      write(*, *) "Saving status at the previous time step"
       crash=.true.
     end if
   end subroutine small_values_error

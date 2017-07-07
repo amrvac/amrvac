@@ -9,7 +9,7 @@ module mod_mp5
 
 contains
 
-  subroutine MP5limiter(ixI^L,iL^L,idims,w,wCT,wLC,wRC)
+  subroutine MP5limiter(ixI^L,iL^L,idims,w,wLC,wRC)
     ! MP5 limiter from Suresh & Huynh 1997
     ! Following the convention of Mignone et al. 2010.
     ! Needs at least three ghost cells.  Set nghostcells=3.
@@ -18,7 +18,7 @@ contains
     use mod_physics, only: phys_check_w
 
     integer, intent(in)             :: ixI^L, iL^L, idims
-    double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)
+    double precision, intent(in)    :: w(ixI^S,1:nw)
 
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     ! .. local ..
@@ -29,7 +29,7 @@ contains
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     integer                         :: flagL(ixI^S), flagR(ixI^S)
-    double precision, parameter     :: eps=1.0d-12, alpha=4.0d0
+    double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
     !----------------------------------------------------------------------------
 
@@ -232,7 +232,7 @@ contains
     integer                         :: iw
     double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
-    double precision, parameter     :: eps=1.0d-12, alpha=4.0d0
+    double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
     !----------------------------------------------------------------------------
 
@@ -334,7 +334,7 @@ contains
     integer                         :: iw
     double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
-    double precision, parameter     :: eps=1.0d-12, alpha=4.0d0
+    double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
     !----------------------------------------------------------------------------
     ! Right side:

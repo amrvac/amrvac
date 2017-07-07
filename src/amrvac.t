@@ -214,7 +214,6 @@ contains
          end do
          call saveamrfile(1)
          call saveamrfile(2)
-         if(mype==0) write(*,*) 'Status before crash is saved.'
          call mpistop("Crash Error: small value encountered")
        end if
 

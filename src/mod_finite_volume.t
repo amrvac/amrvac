@@ -557,7 +557,11 @@ contains
        call phys_to_primitive(ixI^L,ixI^L,w,x)
     end if
 
-    if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
+    if (typelimiter == 'mp5') then
+       call MP5limiter(ixI^L,ixL^L,idim,w,wLC,wRC)
+    else if (typelimiter == 'ppm') then
+       call PPMlimiter(ixI^L,ixM^LL,idim,w,wCT,wLC,wRC)
+    else
        jxR^L=ixR^L+kr(idim,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idim,^D);
        jxC^L=ixC^L+kr(idim,^D);
@@ -617,10 +621,6 @@ contains
              end where
           end if
        enddo
-    else if (typelimiter .eq. 'ppm') then
-       call PPMlimiter(ixI^L,ixM^LL,idim,w,wCT,wLC,wRC)
-    else
-       call MP5limiter(ixI^L,ixL^L,idim,w,wCT,wLC,wRC)
     endif
 
     ! Transform w,wL,wR back to conservative variables

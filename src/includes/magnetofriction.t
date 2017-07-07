@@ -830,7 +830,7 @@ if(typelimiter/='ppm' .and. typelimiter /= 'mp5')then
 else if (typelimiter .eq. 'ppm') then
  call PPMlimiter(ixI^L,ixM^LL,idims,w,wCT,wLC,wRC)
 else
- call MP5limiter(ixI^L,ixL^L,idims,w,wCT,wLC,wRC)
+ call MP5limiter(ixI^L,ixL^L,idims,w,wLC,wRC)
 endif
 
 end subroutine upwindLRmf
