@@ -545,6 +545,9 @@ module mod_global_parameters
   !> Use particles module or not
   logical :: use_particles=.false.
 
+  !> Save a snapshot before crash a run met unphysical values
+  logical :: crash=.false.
+
   !$OMP THREADPRIVATE(dxlevel,logG,qst)
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

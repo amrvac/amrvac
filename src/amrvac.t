@@ -138,9 +138,9 @@ contains
     use mod_input_output, only: saveamrfile
     use mod_ghostcells_update
 
-    integer :: level, ifile, fixcount, ncells_block
+    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
     integer(kind=8) ncells_update
-    logical :: save_now
+    logical :: save_now, crashall
     double precision :: time_last_print
 
     time_in=MPI_WTIME()
@@ -205,6 +205,18 @@ contains
        if (global_time>=time_max) exit time_evol
 
        call advance(it)
+
+       ! if met unphysical values, save the last good status and crash the run
+       call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
+       if (crashall) then
+         do iigrid=1,igridstail; igrid=igrids(iigrid);
+           pw(igrid)%w=pw(igrid)%wold
+         end do
+         call saveamrfile(1)
+         call saveamrfile(2)
+         if(mype==0) write(*,*) 'Status before crash is saved.'
+         call mpistop("Crash Error: small value encountered")
+       end if
 
        ! resetting of tree BEFORE IO and setdt
        timegr0=MPI_WTIME()

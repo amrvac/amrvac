@@ -26,13 +26,15 @@ contains
 
     ix_bad = maxloc(w_flag(ixO^S)) + [ ixOmin^D-1 ]
 
-    write(*, *) "Error: small value of ", trim(prim_wnames(maxval(w_flag(ixO^S)))), &
-         " encountered when call ", subname
-    write(*, *) "Iteration: ", it, " Time: ", global_time
-    write(*, *) "Location: ", x({ix_bad(^D)}, :)
-    write(*, *) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
+    if (.not.crash) then
+      write(*, *) "Error: small value of ", trim(prim_wnames(maxval(w_flag(ixO^S)))), &
+           " encountered when call ", subname
+      write(*, *) "Iteration: ", it, " Time: ", global_time
+      write(*, *) "Location: ", x({ix_bad(^D)}, :)
+      write(*, *) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
 
-    call mpistop("Error: small value encountered")
+      crash=.true.
+    end if
   end subroutine small_values_error
 
   subroutine small_values_average(ixI^L, ixO^L, w, x, w_flag)

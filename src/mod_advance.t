@@ -21,6 +21,13 @@ contains
 
     integer :: iigrid, igrid, idimsplit
 
+    ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pw(igrid)%wold(ixG^T,1:nwflux+nwaux)=pw(igrid)%w(ixG^T,1:nwflux+nwaux)
+    end do
+    !$OMP END PARALLEL DO
+
     {#IFDEF RAY
     call update_rays
     }
@@ -29,13 +36,6 @@ contains
 
     ! split source addition
     call addsource_all(.true.)
-
-    ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pw(igrid)%wold(ixG^T,1:nwflux+nwaux)=pw(igrid)%w(ixG^T,1:nwflux+nwaux)
-    end do
-    !$OMP END PARALLEL DO
 
     firstsweep=.true.
     if (dimsplit) then
