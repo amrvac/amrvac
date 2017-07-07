@@ -115,7 +115,7 @@ contains
          typefilelog,firstprocess,resetgrid,snapshotnext, &
          convert,convert_type,saveprim,&
          nwauxio,nocartesian, w_write,writelevel,&
-         writespshift,endian_swap, length_convert_factor, w_convert_factor, &
+         writespshift,length_convert_factor, w_convert_factor, &
          time_convert_factor,level_io,level_io_min, level_io_max, &
          autoconvert,sliceascii,slicenext,collapseNext,collapse_type
 
@@ -145,7 +145,7 @@ contains
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L
 
-    namelist /meshlist/ refine_max_level,nbufferx^D,specialtol,refine_threshold,&
+    namelist /meshlist/ refine_max_level,nbufferx^D,refine_threshold,&
          derefine_ratio, refine_criterion, stretched_grid, qst, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight, prolongprimitive,coarsenprimitive, &
@@ -212,7 +212,6 @@ contains
     nocartesian              = .false.
     saveprim                 = .false.
     autoconvert              = .false.
-    endian_swap              = .false.
     convert_type             = 'vtuBCCmpi'
     collapse_type            = 'vti'
     allocate(w_write(nw))
@@ -235,7 +234,6 @@ contains
     ! AMR related defaults
     refine_max_level      = 1
     {nbufferx^D                 = 0\}
-    specialtol                  = .false.
     allocate(refine_threshold(nlevelshi))
     refine_threshold(1:nlevelshi)            = 0.1d0
     allocate(derefine_ratio(nlevelshi))

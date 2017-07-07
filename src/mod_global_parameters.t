@@ -422,8 +422,6 @@ module mod_global_parameters
   !> If true, convert from conservative to primitive variables in output
   logical                :: saveprim
 
-  logical                :: endian_swap
-
   !> Which format to use when converting
   !>
   !> Options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,
@@ -481,7 +479,6 @@ module mod_global_parameters
   double precision, allocatable :: rnode_sub(:,:)
 
   !> Error tolerance for refinement decision
-  logical :: specialtol
   double precision, allocatable :: refine_threshold(:)
   double precision, allocatable :: derefine_ratio(:)
   double precision, allocatable :: dx(:,:)

@@ -263,7 +263,7 @@ Numerical or physical instabilities may produce huge changes or very small
 time steps depending on the way `dt` is determined. These breakdowns can be
 controlled by either setting a lower limit `dtmin` for the physical time
 step, which is useful when `dt` is determined from the `courantpar`
-parameter. If AMRVAC stops due to `dt &lt; dtmin`, a warning message is
+parameter. If a run stops due to `dt &lt; dtmin`, a warning message is
 printed.
 
 You have to specify at least one of `time_max, itmax`. AMRVAC stops execution
@@ -280,7 +280,6 @@ activating the logicals `restart_reset_time=T`.
     time_integrator='twostep' | 'onestep' | 'threestep' | 'rk4' | 'fourstep' | 'ssprk43' | 'ssprk54'
     flux_scheme=nlevelshi strings from: 'tvdlf','hll','hllc','hllcd','tvdmu','tvd','cd','fd','hll1','hllc1','hllcd1','tvd1','tvdlf1','tvdmu1','source','nul'
     typepred1=nlevelshi strings from: 'default','hancock','tvdlf','hll','hllc','tvdmu','cd','fd','nul'
-
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
     gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
     typelimited='original' | 'previous' | 'predictor'
@@ -317,6 +316,7 @@ activating the logicals `restart_reset_time=T`.
     divbwave= T | F
     divbdiff= DOUBLE
     typedivbdiff= 'all' | 'ind'
+
     B0field= F | T
     Bdip= DOUBLE
     Bquad= DOUBLE
@@ -670,7 +670,7 @@ For 3D cylindrical and spherical grid computations, the singular polar axis is
 trivially handled using a so-called pi-periodic boundary treatment, where
 periodicity across the pole comes from the grid cell diagonally across the
 pole, i.e. displaced over pi instead of 2 pi. These are automatically
-recognized from the typeaxial setting, and the corresponding range in angle
+recognized from the coordinate setting, and the corresponding range in angle
 phi must span 2 pi for cylindrical, and theta must then start at zero (to
 include the north pole) and/or end at pi (for the south pole) for spherical
 grids. The user just needs to set the typeboundary as if the singular axis is a
@@ -714,132 +714,129 @@ coarser grid values. Setting it different from this default string will imply
 mere first order copying for finer level grids (and is thus not advised when
 second order is desired).
 
-## Amrlist {#par_amrlist}
+## meshlist {#par_meshlist}
 
-    &amrlist
+    &meshlist
      refine_max_level= INTEGER
-     nxlone1= INTEGER
-     nxlone2= INTEGER
-     nxlone3= INTEGER
-     dxlone1= DOUBLE
-     dxlone2= DOUBLE
-     dxlone3= DOUBLE
+     domain_nx1= INTEGER
+     domain_nx2= INTEGER
+     domain_nx3= INTEGER
+     block_nx1= INTEGER
+     block_nx2= INTEGER
+     block_nx3= INTEGER
      xprobmin1= DOUBLE
      xprobmax1= DOUBLE
      xprobmin2= DOUBLE
      xprobmax2= DOUBLE
      xprobmin3= DOUBLE
      xprobmax3= DOUBLE
-     errorestimate= INTEGER
+     refine_criterion= INTEGER
      nbufferx1= INTEGER
      nbufferx2= INTEGER
      nbufferx3= INTEGER
-     skipfinestep= F | T
+     max_blocks= INTEGER
      amr_wavefilter= nlevelshi DOUBLE values
-     tol= nlevelshi DOUBLE values
-     tolratio= nlevelshi DOUBLE values
-     flags= INTEGER array, with at most nw+1 entries
-     wflags= DOUBLE array, with at most nw values that must sum up to 1.0d0
+     refine_threshold= nlevelshi DOUBLE values
+     derefine_ratio= nlevelshi DOUBLE values
+     w_refine_weight= DOUBLE array nw+1 values that must sum up to 1.0d0
      logflag= nw logical values, all F by default
      iprob= INTEGER
      prolongprimitive= F | T
      coarsenprimitive= F | T
      restrictprimitive= F | T
-     amrentropy= F | T
      typeprolonglimit= 'default' | 'minmod' | 'woodward' | 'mcbeta' | 'koren'
      tfixgrid= DOUBLE
      itfixgrid= INTEGER
      ditregrid= INTEGER
     /
 
-### refine_max_level, nxlone^D, dxlone^D, xprob^L {#par_refine_max_level}
+### refine_max_level, max_blocks, domain_nx^D, block_nx^D, xprobmin^D, xprobmax^D {#par_refine_max_level}
 
-`refine_max_level` indicates the maximum number of grid levels that can be used during the simulation, including the base grid level. It is an integer value which is maximally equal to the parameter _nlevelshi_ and minimally equal to 1 (which is the default value implying no refinement at all, but possibly a domain decomposition when the domain resolution is a multiple of the maximal grid resolution controlled by the -g= flag of $AMRVAC_DIR/setup.pl). The parameter _nlevelshi=20_ by default, a value set in _mod_indices.t_, so that if more than 20 levels are to be used, one must change this value and recompile. Note that when _refine_max_level&gt;1_, it is possible that during runtime, the highest grid level is temporarily lower than refine_max_level, and/or that the coarsest grid is at a higher level than the base level.
+`refine_max_level` indicates the maximum number of grid levels that can be used 
+during the simulation, including the base grid level. It is an integer value 
+which is maximally equal to the parameter _nlevelshi_ and minimally equal to 1. 
+The parameter _nlevelshi=20_ by default, a value set in _mod_global_parameters.t_, 
+so that if more than 20 levels are to be used, one must change this value and 
+recompile. Note that when _refine_max_level&gt;1_, it is possible that during 
+runtime, the highest grid level is temporarily lower than refine_max_level, and/or 
+that the coarsest grid is at a higher level than the base level. The number of 
+grid blocks in each processor has an upper limit defined by `max_blocks` which 
+is 4000 by default and can be set to higher numbers if too many blocks in a 
+processor are allocated.
 
 The computational domain is set by specifying the minimal and maximal
 coordinate value per direction in the _xprob^L_ settings. When cylindrical or
-spherical coordinates are selected with typexial, the angle ranges (for phi in
+spherical coordinates are selected, the angle ranges (for phi in
 the cylindrical case, and for both theta and phi in the spherical case) are to
 be given in 2 pi units.
 
 The base grid resolution (i.e. on the coarsest level 1) is best specified by
-providing the number of grid cells per dimension to cover the full
-computational domain set by the _xprob^L_ ranges. This is done by specifying
-these numbers in _nxlone^D_, where there are as many integers to be set as the
-dimension of the problem. `Note that it is necessary to have a consistent
-combination of base grid resolution and the _-g=_ setting for
-_$AMRVAC_DIR/setup.pl_: the latter specifies the maximal individual grid
-resolution which includes ghost cells at each side, while the _nxlone^D_
-resolution must thus be a multiple of the individual grid resolution without
-the ghost cells included`. An alternative way to specify the domain
-resolution is to give the base grid cell size directly using _dxlone^D_, but
-then again the same restrictions apply, and one must be sure that the step
-size properly divides the domain size (from the _xprob^L_ pairs). It is
-advocated to always use the integer setting through _nxlone^D_, from which the
-code automatically computes the corresponding _dxlone^D_.
+providing _domain_nx^D_, the number of grid cells per dimension, to cover the full
+computational domain set by the _xprobmin^D_ and _xprobmax^D_. The resolution
+of each grid block is set by _block_nx^D_ which exclude ghost cells at each side.
+The _domain_nx^D_ must thus be a integer multiple of _block_nx^D_.
 
-### errorestimate, nbufferx^D, skipfinestep, amr_wavefilter {#par_errest}
+### refine_criterion, nbufferx^D, amr_wavefilter {#par_errest}
 
 The code offers various choices for the error estimator used in automatically
 detecting regions that need refinement.
 
-When `errorestimate=0`, all refinement will only be based on the user-
+When `refine_criterion=0`, all refinement will only be based on the user-
 defined criteria to be coded up in subroutine _specialrefine_grid_.
 
-When `errorestimate=2`, we simply compare the previous time level t_(n-1)
+When `refine_criterion=1`, we simply compare the previous time level t_(n-1)
 solution with the present t_n values, and trigger refinement on relative
 differences.
 
-When `errorestimate=3`, the default value, errors are estimated using
+When `refine_criterion=3`, the default value, errors are estimated using
 current t_n values and their gradients following Lohner prescription. In
 this scheme, the `amr_wavefilter` coefficient can be adjusted from its
 default value 0.01d0. You can set different values for the wavefilter
 coefficient per grid level. This error estimator is computationally efficient,
 and has shown similar accuracy to the Richardson approach on a variety of test
-problems.
+problems. When `refine_criterion=3`, the original Lohner method is used. 
 
-In all three latter cases, a call to the user defined subroutine
-_specialrefine_grid_ follows the error estimator, making it possible to use
-this routine for augmented user-controlled refinement, or even derefinement.
+A call to the user defined subroutine _usr_refine_grid_ follows the error 
+estimator, making it possible to use this routine for augmented user-controlled 
+refinement, or even derefinement.
 
 Depending on the error estimator used, it is needed or advisable to
 additionally provide a buffer zone of a certain number of grid cells in width,
 which will surround cells that are flagged for refinement by any other means.
 It will thus trigger more finer grids. `nbufferx^D=2` is usually sufficient.
-It can never be greater than the grid size specified with the -g setting of
-_$AMRVAC_DIR/setup.pl_. For Lohner scheme, the buffer can actually be turned
-off completely by setting `nbufferx^D=0` which is default value.
+It can never be greater than the block size. For Lohner scheme, the buffer 
+can actually be turned off completely by setting `nbufferx^D=0` which is 
+default value.
 
-### flags, wflags, logflag, tol, tolratio {#par_flags}
+### w_refine_weight, logflag, refine_threshold, derefine_ratio {#par_flags}
 
-In all errorestimators mentioned above (except the errorestimate=0 case), the
+In all error estimators mentioned above (except the refine_criterion=0 case), the
 comparison or evaluation is done only with a user-selected (sub)set of the
-conserved variables. As there are _nw_ variables (which may include auxiliary
-variables such as predefined in the special relativistic modules), the number
-of variables to be used in the estimator is set by specifying it in
-_flags(nw+1)_. Correspondingly, the first _flags(nw+1)_ entries for the flags
-array select their index number, and corresponding weights are to be given in
-wflags. E.g., 3D MHD has _nw=8_, and one can select refining based on density,
-energy, and first component of the magnetic field by setting flags(9)=3,
-flags(1)=1, flags(2)=5, flags(3)=6, since we predefined the order _rho m1 m2
-m3 e b1 b2 b3_. The weights wflags(1), wflags(2), and wflags(3), must be
-positive values between 0.0d0 and 1.0d0, and must add to unity. By default,
-only the first conserved variable (typically density) is used in the
-comparison.
+conserved variables. The _nw_ variables (which may include auxiliary
+variables) can be used for error estimation, by setting corresponding weights 
+in the array _w_refine_weight_, which by default has the first element (corresponds 
+to density) as 1.d0 and rest elements as 0.d0. The weights w_refine_weight(:) must be
+positive values between 0.0d0 and 1.0d0, and must add to unity. 
 
-The Lohner error estimation (errorestimate=3) may also decide to use
+The Lohner error estimation (refine_criterion=3) may also decide to use
 differences in the log10(rho), and this is then done by setting the
 _logflag(1)=T_. This can be done per selected variables involved in the
 estimation, but obviously only works for those that remain positive
 throughout.
 
 In the comparison involving the above selected variables, when the total error
-exceeds the value set by `tol`, the grid is triggered for refining.
-Reversely, if the error drops below `tolratio * tol`, the grid is coarsened.
-`The user must always set a (problem dependent) value for `tol` (below 1),
-while the default value for tolratio=1.0d0/8.0d0 has shown to be a rather
-generally useful value. You can set tolerance values that differ per
+exceeds the value set by `refine_threshold`, the grid is triggered for refining.
+Reversely, if the error drops below `derefine_ratio * refine_threshold`, the 
+grid is coarsened.  `The user must always set a (problem dependent) value for 
+`refine_threshold` (below 1), while the default value for 
+derefine_ratio=1.0d0/8.0d0 has shown to be a rather
+generally useful value. You can set threshold values that differ per
 refinement level. `
+
+When subroutine _usr_refine_threshold_ is registered, user can use it to 
+modify refine_threshold depending on location of interest. For example, increase
+refine_threshold near quiet boundaries to use coarser blocks there or decrease it
+to use finer blocks in focused regions.
 
 ### iprob {#par_iprob}
 
@@ -860,16 +857,6 @@ in the Richardson error estimation process (when used), a coarsened grid is
 created and this can be filled using the primitive variables when
 `coarsenprimitive=T`. Again, this is to be used with care.
 
-A much better strategy for handling positivity issues is offered by means of
-`amrentropy=T`. If one selects `amrentropy=T`, the conserved energy
-variable is replaced by the conserved entropy density (for HD and MHD only
-now) (and both restrictprimitive and coarsenprimitive are overruled). The
-switch from energy to entropy density is a general strategy, and is then used
-in all restriction and prolongation phases. By default, all these flags are
-set to false. For HD and MHD where the switch from energy to entropy is
-already precoded in their _amrvacphys.t.EQUATION_ module, we advocate the use
-of `amrentropy=T`.
-
 The parameters `tfixgrid, itfixgrid` are available to fix the AMR
 hierarchical grid from a certain time onwards (tfixgrid) or iteration (the it-
 counter for the timesteps) onwards (itfixgrid). This may be handy for steady-
@@ -881,16 +868,12 @@ once in every iteration by default.
 
 ## Paramlist {#par_paramlist}
 
-         &paramlist
-    	dtpar= DOUBLE
-    	courantpar= DOUBLE
-     typecourant= 'maxsum' | 'summax' | 'minimum'
-    	dtdiffpar= DOUBLE
-    	dtTCpar= DOUBLE
-    	slowsteps= INTEGER
-     time_accurate= T | F
-     cfrac= DOUBLE
-
+    &paramlist
+      dtpar= DOUBLE
+      courantpar= DOUBLE
+      typecourant= 'maxsum' | 'summax' | 'minimum'
+      dtdiffpar= DOUBLE
+      slowsteps= INTEGER
     /
 
 ### dtpar, courantpar, typecourant, dtdiffpar, dtTCpar, slowsteps {#par_dt}
@@ -901,11 +884,10 @@ The default is `dtpar=-1.` and `courantpar=0.8`.
 
 For resistive MHD, the time step is also limited by the diffusion time: `dt
 &lt; dtdiffpar*dx^2/eta`. The default is `dtdiffpar=0.5`. Further
-restrictions on the time step can be put in the `getdt_special` subroutine in
-the [AMRVACUSR module](@ref amrvacusr_specialsource). The library routines for
+restrictions on the time step can be put in the _usr_get_dt_ subroutine in
+the mod_usr.t. The library routines for
 viscosity and div B diffusive cleaning, all use the coefficient `dtdiffpar` in
-their stability conditions. `dtTCpar` with default value of 0.9/ndim limits the
-time step of thermal conduction. The `typecourant='maxsum'` means that the
+their stability conditions. The `typecourant='maxsum'` means that the
 time step limit for the CFL conditions takes the maximum over a summed
 contribution to the maximum physical propagation speed for all dimensions. The
 detailed formulae are found in setdt.t.
@@ -913,22 +895,7 @@ detailed formulae are found in setdt.t.
 If the `slowsteps` parameter is set to a positive integer value greater than
 1, then in the first `slowsteps-1` time steps `dt` is further reduced
 according to the
-
-                 2
-        dt= dt * [ 1 - (1-step/slowsteps) ]
-
+        dt= dt * [ 1 - (1-step/slowsteps)**2 ]
 formula, where `step=1..slowsteps-1`. This reduction can help to avoid
 problems resulting from numerically unfavourable initial conditions, e.g. very
 sharp discontinuities. It is normally inactive with a default value -1.
-
-### time_accurate {#par_timeacc}
-
-For steady state calculations, a grid-dependent value for the time step can be
-used if the temporal evolution is not interesting. This local time stepping
-strategy is presently under construction, and hence we always have
-`time_accurate=T`.
-
-### cfrac {#par_cfrac}
-
-This is again specific for a cooling module for HD and MHD, as developed by AJ
-van Marle, described in [mpiamrvac_radcool.md](mpiamrvac_radcool.md).
