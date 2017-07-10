@@ -1,4 +1,11 @@
 # This is a template Makefile to simplify writing tests
+ifndef AMRVAC_DIR
+$(error AMRVAC_DIR is not set)
+endif
+
+# Can be needed to compile the compare_log utility
+ARCH ?= default
+export ARCH
 
 # Location of setup script
 SETUP_SCRIPT := $(AMRVAC_DIR)/setup.pl
@@ -7,19 +14,26 @@ SETUP_SCRIPT := $(AMRVAC_DIR)/setup.pl
 .SUFFIXES:
 
 # Tool to compare test output numerically
-LOG_CMP := $(AMRVAC_DIR)/tools/python/compare_logs.py
+LOG_CMP := $(AMRVAC_DIR)/tools/fortran/compare_logs
 
 # Number of MPI processes to use
 NUM_PROCS ?= 4
 
+# force is a dummy to force re-running tests
 .PHONY: all force
 
 all: $(TESTS)
 
+# Include architecture and compilation rules for the compare_log utility
+include $(AMRVAC_DIR)/arch/$(ARCH).defs
+include $(AMRVAC_DIR)/arch/rules.make
+
+$(TESTS): $(LOG_CMP)
+
 %.log: amrvac force
 	@$(RM) $@		# Remove log to prevent pass when aborted
 	mpirun -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
-	@if $(LOG_CMP) $@ correct_output/$@ ; \
+	@if $(LOG_CMP) 1.0e-5 1.0e-8 $@ correct_output/$@ ; \
 	then echo "PASSED $@" ; \
 	else echo "** FAILED ** $@" ; \
 	fi
