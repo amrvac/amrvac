@@ -39,9 +39,10 @@ user code is also compiled, and a binary called `amrvac` is produced.
 
 There are a couple useful commands to know about:
 
-* `make ARCH=<name>`: use the compilation flags from arch/<name>.defs, for example `make ARCH=intel` or `make ARCH=debug` (**very useful!**)
-* `make clean`: clean the local object files
-* `make allclean`: clean the local object files **and** the AMRVAC library
+    make clean        # clean the local object files
+    make ARCH=debug   # do a debug build (extra error checking)
+    make ARCH=<name>  # use the compilation flags from arch/<name>.defs
+    make allclean     # clean the local object files and the AMRVAC library
 
 # Running the test {#vac_run}
 
