@@ -340,13 +340,13 @@ contains
     ! hence code up energy change with respect to kinetic and magnetic
     ! part(nonthermal)
     if(small_values_method=='error') then
-      if(any(tmp1(ixO^S)<small_e)) then
+      if(any(tmp1(ixO^S)<small_e).and. .not.crash) then
         lowindex=minloc(tmp1(ixO^S))
         ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
         write(*,*)'too small internal energy = ',minval(tmp1(ixO^S)),'at x=',&
        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,&
        ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
-        call mpistop("==evolve_step1: too small internal energy==")
+        crash=.true.
       else
         w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
       end if
@@ -389,11 +389,12 @@ contains
 
     ! Clip off negative pressure if small_pressure is set
     if(small_values_method=='error') then
-       if (any(tmp1(ixI^S)<small_e)) then
+       if (any(tmp1(ixI^S)<small_e) .and. .not.crash) then
          lowindex=minloc(tmp1(ixI^S))
          ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
          write(*,*)'too low internal energy = ',minval(tmp1(ixI^S)),' at x=',&
          x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time
+         crash=.true.
        end if
     else
     {do ix^DB=ixImin^DB,ixImax^DB\}
@@ -622,12 +623,12 @@ contains
     ! store old internal energy
     tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
     ! Clip off negative pressure if small_pressure is set
-    if(small_values_method=='error') then
+    if(small_values_method=='error' .and. .not.crash) then
       if(any(tmp1(ixI^S)<small_e)) then
         lowindex=minloc(tmp1(ixI^S))
         write(*,*)'low internal energy= ',minval(tmp1(ixI^S)),' at x=',&
         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time
-        call mpistop("=== small_values_method=='error' in heatconduct: low pressure ===")
+        crash=.true.
       end if
     else
        {do ix^DB=ixImin^DB,ixImax^DB\}
