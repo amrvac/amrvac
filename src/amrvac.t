@@ -214,7 +214,8 @@ contains
          end do
          call saveamrfile(1)
          call saveamrfile(2)
-         call mpistop("Crash Error: small value encountered")
+         if(mype==0) write(*,*) "Error: small value encountered, run crash."
+         call MPI_ABORT(icomm, iigrid, ierrmpi)
        end if
 
        ! resetting of tree BEFORE IO and setdt
