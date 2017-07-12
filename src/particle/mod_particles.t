@@ -11,6 +11,8 @@ contains
 
   !> Initialize particle data and parameters
   subroutine particles_init()
+    use mod_global_parameters
+
     call particle_base_init()
     call init_particles_com()
 
@@ -23,8 +25,15 @@ contains
       call gca_init()
     case('lfimp')
       call lfimp_init()
+    case('Vay')
+      call lfimp_init()
     case default
-      call mpistop("unknown physics_type_particles (advect,gca,Lorentz,lfimp)")
+      if (mype == 0) then
+        print *, "Unknown physics_type_particles", &
+             trim(physics_type_particles)
+        print *, "Options are: advect, gca, Lorentz, lfimp, Vay"
+        call mpistop("Unknown physics_type_particles")
+      end if
     end select
 
   end subroutine particles_init
@@ -42,14 +51,20 @@ contains
     select case(physics_type_particles)
     case('advect')
       call advect_create_particles()
-    case('Lorentz')
+    case('Lorentz', 'Vay')
+      ! The Vay mover can use the same routine
       call Lorentz_create_particles()
     case('gca')
       call gca_create_particles()
     case('lfimp')
       call lfimp_create_particles()
     case default
-      call mpistop("unknown physics_type_particles (advect,gca,Lorentz,lfimp)")
+      if (mype == 0) then
+        print *, "Unknown physics_type_particles", &
+             trim(physics_type_particles)
+        print *, "Options are: advect, gca, Lorentz, lfimp, Vay"
+        call mpistop("Unknown physics_type_particles")
+      end if
     end select
 
     ! Remove grid variables again
