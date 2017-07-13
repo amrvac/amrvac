@@ -123,11 +123,13 @@ mod_particle_lfimp.o: mod_particle_base.o
 mod_particle_lfimp.o: mod_usr_methods.o
 mod_particle_Lorentz.o: mod_particle_base.o
 mod_particle_Lorentz.o: mod_usr_methods.o
+mod_particle_Vay.o: mod_particle_base.o
 mod_particles.o: mod_particle_advect.o
 mod_particles.o: mod_particle_base.o
 mod_particles.o: mod_particle_gca.o
 mod_particles.o: mod_particle_Lorentz.o
 mod_particles.o: mod_particle_lfimp.o
+mod_particles.o: mod_particle_Vay.o
 mod_particles.o: mod_timing.o
 mod_physics.o: mod_physics_hllc.o
 mod_physics.o: mod_physics_ppm.o

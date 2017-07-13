@@ -43,10 +43,10 @@ program compare_logs
   call read_log(trim(arg_string), data2)
 
   if (any(shape(data1) /= shape(data2))) then
-     error stop
+     error stop "Data has different shape"
   else if (any(abs(data1 - data2) > atol + &
        0.5_dp * rtol * (abs(data1) + abs(data2)))) then
-     error stop
+     error stop "Difference detected: |d1-d2| > atol + 0.5*rtol*(|d1|+|d2|)"
   end if
 
 contains
