@@ -1,9 +1,8 @@
-!> module fff
-!> PURPOSE:
 !> Program to extrapolate linear force-free fields in 3D Cartesian coordinates,
 !> based on exact Green function method (Chiu & Hilton 1977 ApJ 212,873).
+!>
 !> Usage:
-!>1 In the subroutine usr_set_parameters of mod_usr.t:
+!> 1 In the subroutine usr_set_parameters of mod_usr.t:
 !>  To extrapolate a linear force free field from a observed magnetogram 
 !>  prepared in a data file, e.g., 'hmiM720sxxxx.dat' replace 
 !>  call init_bc_fff_data('hmiM720sxxxx.dat',unit_length,unit_magneticfield)

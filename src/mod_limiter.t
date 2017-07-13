@@ -1,3 +1,4 @@
+!> Module with slope/flux limiters
 module mod_limiter
   use mod_ppm
   use mod_mp5

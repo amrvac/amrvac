@@ -1,3 +1,4 @@
+!> Module for flux conservation near refinement boundaries
 module mod_fix_conserve
   implicit none
   private

@@ -1,3 +1,4 @@
+!> Module with shared functionality for all the particle movers
 module mod_particle_base
   use mod_global_parameters, only: name_len, std_len
   use mod_physics

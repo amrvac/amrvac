@@ -1,3 +1,4 @@
+!> Hydrodynamics PPM module
 module mod_hd_ppm
   use mod_hd_phys
 

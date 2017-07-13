@@ -11,8 +11,6 @@ Interface - Adaptive Mesh Refinement - Versatile Advection Code and run your
 first test problem.
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
 financial support.
-* [Changes in the GIT version](gitversion.md) How to migrate from the old svn
-code to the new git version.
 * [FAQ](faq.md) Frequently asked questions.
 
 # General {#general}

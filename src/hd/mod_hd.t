@@ -1,3 +1,4 @@
+!> Module containing all hydrodynamics
 module mod_hd
   use mod_hd_phys
   use mod_hd_hllc

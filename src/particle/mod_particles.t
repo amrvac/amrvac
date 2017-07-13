@@ -1,3 +1,4 @@
+!> Module containing all the particle routines
 module mod_particles
   use mod_particle_base
   use mod_particle_advect

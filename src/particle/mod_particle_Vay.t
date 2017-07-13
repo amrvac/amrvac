@@ -1,3 +1,4 @@
+!> Vay particle mover (improvement of Boris method)
 module mod_particle_Vay
   use mod_particle_base
 

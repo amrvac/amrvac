@@ -1,3 +1,4 @@
+!> Relativistic Boris scheme
 module mod_particle_Lorentz
   use mod_particle_base
 
