@@ -6,6 +6,9 @@ module mod_advance
 
   logical :: firstsweep, lastsweep
 
+  !> Whether to conserve fluxes at the current partial step
+  logical :: fix_conserve_at_step = .true.
+
   public :: advance
   public :: process
 
@@ -79,6 +82,7 @@ contains
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
 
+    fix_conserve_at_step = .true.
 
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -94,9 +98,12 @@ contains
        call advect1(flux_scheme,one,idim^LIM,global_time,1,global_time,0)
 
     case ("twostep")
-       ! predictor step
+      ! predictor step
+       fix_conserve_at_step = .false.
        call advect1(typepred1,half, idim^LIM,global_time,0,global_time,1)
+
        ! corrector step
+       fix_conserve_at_step = .true.
        call advect1(flux_scheme,one,idim^LIM,global_time+half*dt,1,global_time,0)
 
     case ("twostep_trapezoidal")
@@ -327,8 +334,8 @@ contains
 
     istep = istep+1
 
-    if (time_advance.and.levmax>levmin) then
-       if (istep==nstep.or.nstep>2) call init_comm_fix_conserve(idim^LIM)
+    if (time_advance .and. levmax>levmin .and. fix_conserve_at_step) then
+       call init_comm_fix_conserve(idim^LIM)
     end if
 
     ! opedit: Just advance the active grids:
@@ -371,13 +378,11 @@ contains
     ! opedit: Send flux for all grids, expects sends for all
     ! nsend_fc(^D), set in connectivity.t.
 
-    if (time_advance.and.levmax>levmin) then
-       if (istep==nstep.or.nstep>2) then
-          do iigrid=1,igridstail; igrid=igrids(iigrid);
-             call sendflux(igrid,idim^LIM)
-          end do
-          call fix_conserve(idim^LIM)
-       end if
+    if (time_advance .and. levmax>levmin .and. fix_conserve_at_step) then
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        call sendflux(igrid,idim^LIM)
+      end do
+      call fix_conserve(idim^LIM)
     end if
 
     ! For all grids: fill ghost cells
@@ -420,9 +425,8 @@ contains
     ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
-    if (time_advance.and.levmax>levmin) then
-       if (istep==nstep.or.nstep>2) &
-            call storeflux(igrid,fC,idim^LIM)
+    if (time_advance .and. levmax>levmin .and. fix_conserve_at_step) then
+      call storeflux(igrid,fC,idim^LIM)
     end if
 
   end subroutine process1_grid
