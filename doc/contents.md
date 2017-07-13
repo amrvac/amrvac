@@ -12,6 +12,7 @@ first test problem.
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
 financial support.
 * [FAQ](faq.md) Frequently asked questions.
+* @ref contributing.md
 
 # General {#general}
 
@@ -28,8 +29,7 @@ AMRVACPHYS modules. How to create a new AMRVACPHYS module.
 * [Discretization](discretization.md) The equation and its discretization, the
 basic variables, the structure of the grid, boundaries, ghost cells.
 * [Using polar/cylindrical/spherical coordinates](axial.md) Some information on
-simulations using non-Cartesian grids, and notes on axial versus translational
-symmetry.
+simulations using non-Cartesian grids
 * [Methods](methods.md) Properties of the discretization methods like TVDLF,
 TVDMU, TVD, HLL, ...
 * [AMR aspects](amrstructure.md) Some essential info on global parameters and
