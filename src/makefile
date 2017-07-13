@@ -28,6 +28,7 @@ mod_usr_methods.o: mod_global_parameters.o
 
 amr_coarsen_refine.o: mod_ghostcells_update.o
 amrgrid.o: mod_advance.o
+amrgrid.o: mod_fix_conserve.o
 amrgrid.o: mod_ghostcells_update.o
 coarsen.o: mod_physics.o
 collapse.o: mod_physics.o
@@ -39,6 +40,7 @@ geometry.o: mod_ppm.o
 magnetofriction.o: mod_input_output.o
 mod_advance.o: mod_finite_difference.o
 mod_advance.o: mod_finite_volume.o
+mod_advance.o: mod_fix_conserve.o
 mod_advance.o: mod_ghostcells_update.o
 mod_advance.o: mod_particles.o
 mod_advance.o: mod_source.o
@@ -117,14 +119,13 @@ mod_particle_gca.o: mod_odeint.o
 mod_particle_gca.o: mod_particle_base.o
 mod_particle_lfimp.o: mod_particle_base.o
 mod_particle_Lorentz.o: mod_particle_base.o
-mod_particle_Vay.o: mod_particle_base.o
 mod_particles.o: mod_particle_advect.o
 mod_particles.o: mod_particle_base.o
 mod_particles.o: mod_particle_gca.o
-mod_particles.o: mod_particle_Lorentz.o
 mod_particles.o: mod_particle_lfimp.o
-mod_particles.o: mod_particle_Vay.o
+mod_particles.o: mod_particle_Lorentz.o
 mod_particles.o: mod_timing.o
+mod_particle_Vay.o: mod_particle_base.o
 mod_physics.o: mod_physics_hllc.o
 mod_physics.o: mod_physics_ppm.o
 mod_physics.o: mod_physics_roe.o
@@ -142,6 +143,7 @@ mod_thermal_conduction.o: mod_physics.o
 mod_thermal_conduction.o: mod_small_values.o
 mod_tvd.o: mod_limiter.o
 mod_tvd.o: mod_physics_roe.o
+mod_usr_template.o: mod_hd.o
 mod_variables.o: mod_basic_types.o
 raytracing.o: mod_raytracing.o
 refine.o: mod_physics.o

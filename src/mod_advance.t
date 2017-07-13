@@ -82,7 +82,8 @@ contains
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
 
-    fix_conserve_at_step = .true.
+    call init_comm_fix_conserve(idim^LIM)
+    fix_conserve_at_step = time_advance .and. levmax>levmin
 
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -103,7 +104,7 @@ contains
        call advect1(typepred1,half, idim^LIM,global_time,0,global_time,1)
 
        ! corrector step
-       fix_conserve_at_step = .true.
+       fix_conserve_at_step = time_advance .and. levmax>levmin
        call advect1(flux_scheme,one,idim^LIM,global_time+half*dt,1,global_time,0)
 
     case ("twostep_trapezoidal")
@@ -335,10 +336,6 @@ contains
 
     istep = istep+1
 
-    if (time_advance .and. levmax>levmin .and. fix_conserve_at_step) then
-       call init_comm_fix_conserve(idim^LIM)
-    end if
-
     ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid,level,qdt)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -379,10 +376,9 @@ contains
     ! opedit: Send flux for all grids, expects sends for all
     ! nsend_fc(^D), set in connectivity.t.
 
-    if (time_advance .and. levmax>levmin .and. fix_conserve_at_step) then
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call sendflux(igrid,idim^LIM)
-      end do
+    if (fix_conserve_at_step) then
+      call recvflux(idim^LIM)
+      call sendflux(idim^LIM)
       call fix_conserve(idim^LIM)
     end if
 
@@ -427,7 +423,7 @@ contains
     ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
-    if (time_advance .and. levmax>levmin .and. fix_conserve_at_step) then
+    if (fix_conserve_at_step) then
       call storeflux(igrid,fC,idim^LIM)
     end if
 

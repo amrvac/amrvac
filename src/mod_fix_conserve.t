@@ -283,9 +283,6 @@ module mod_fix_conserve
        call MPI_WAITALL(nsend,fc_sendreq,fc_sendstat,ierrmpi)
      end if
 
-     deallocate(recvbuffer,fc_recvstat,fc_recvreq)
-     deallocate(fc_sendstat,fc_sendreq)
-
    end subroutine fix_conserve
 
    subroutine storeflux(igrid,fC,idim^LIM)
