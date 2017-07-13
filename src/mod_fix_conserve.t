@@ -62,7 +62,7 @@ module mod_fix_conserve
      end if
 
      if (allocated(fc_sendreq)) then
-       if (nrecv /= size(fc_sendreq)) then
+       if (nsend /= size(fc_sendreq)) then
          deallocate(fc_sendreq, fc_sendstat)
          allocate(fc_sendstat(MPI_STATUS_SIZE,nsend), fc_sendreq(nsend))
        end if
