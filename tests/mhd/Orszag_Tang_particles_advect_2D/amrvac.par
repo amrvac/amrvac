@@ -58,7 +58,7 @@
 
  &particles_list
         physics_type_particles='advect'
-        num_particles=1000
-        dtsave_ensemble=0.02d0
-        npayload=2
+        num_particles=1
+        dtsave_particles=0.02d0
+        npayload=1
  /
