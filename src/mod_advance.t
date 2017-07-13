@@ -1,3 +1,4 @@
+!> Module containing all the time stepping schemes
 module mod_advance
 
   implicit none
@@ -10,8 +11,8 @@ module mod_advance
 
 contains
 
+  !> Advance all the grids over one time step, including all sources
   subroutine advance(iit)
-
     use mod_global_parameters
     use mod_thermal_conduction
     use mod_particles, only: handle_particles
@@ -69,18 +70,15 @@ contains
 
   end subroutine advance
 
+  !> Advance all grids over one time step, but without taking dimensional
+  !> splitting or split source terms into account
   subroutine advect(idim^LIM)
-
-    !  integrate all grids by one step of its dt
-
-    ! This subroutine is in VAC terminology equivalent to
-    ! `advect' (with the difference that it will `advect' all grids)
-
     use mod_global_parameters
+    use mod_fix_conserve
 
     integer, intent(in) :: idim^LIM
+    integer             :: iigrid, igrid
 
-    integer :: iigrid, igrid
 
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -89,16 +87,33 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    istep=0
+    istep = 0
 
     select case (time_integrator)
     case ("onestep")
        call advect1(flux_scheme,one,idim^LIM,global_time,1,global_time,0)
+
     case ("twostep")
        ! predictor step
        call advect1(typepred1,half, idim^LIM,global_time,0,global_time,1)
        ! corrector step
        call advect1(flux_scheme,one,idim^LIM,global_time+half*dt,1,global_time,0)
+
+    case ("twostep_trapezoidal")
+       ! Explicit trapezoidal rule / Euler's method / Heun's method
+       ! In the future, this could be implemented using just w and w1
+       call advect1(flux_scheme, 1.0d0, idim^LIM, global_time, 0, global_time, 1)
+
+       do iigrid=1,igridstail; igrid=igrids(iigrid);
+          pw(igrid)%w2 = pw(igrid)%w
+          pw(igrid)%w = pw(igrid)%w1
+       end do
+
+       call advect1(flux_scheme, 1.0d0, idim^LIM, global_time+dt, 1, global_time+dt, 0)
+
+       do iigrid=1,igridstail; igrid=igrids(iigrid);
+          pw(igrid)%w = 0.5d0 * (pw(igrid)%w + pw(igrid)%w2)
+       end do
     case ("threestep")
        ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
        call advect1(flux_scheme,one, idim^LIM,global_time,0,global_time,1)
@@ -292,17 +307,17 @@ contains
     firstsweep=.false.
   end subroutine advect
 
+  !> Integrate all grids by one partial step
   subroutine advect1(method,dtfactor,idim^LIM,qtC,a,qt,b)
-
-    !  integrate all grids by one partial step
-
-    ! This subroutine is equivalent to VAC's `advect1', but does
-    ! the advection for all grids
     use mod_global_parameters
     use mod_ghostcells_update
 
-    integer, intent(in) :: idim^LIM, a, b
-    double precision, intent(in) :: dtfactor, qtC, qt
+    integer, intent(in) :: idim^LIM
+    integer, intent(in) :: a !< Compute fluxes based on this w
+    integer, intent(in) :: b !< Update solution on this w
+    double precision, intent(in) :: dtfactor !< Advance over dtfactor * dt
+    double precision, intent(in) :: qtC
+    double precision, intent(in) :: qt
     character(len=*), intent(in) :: method(nlevelshi)
 
     double precision :: qdt
@@ -310,15 +325,11 @@ contains
 
     logical :: setigrid
 
-    istep=istep+1
-
+    istep = istep+1
 
     if (time_advance.and.levmax>levmin) then
        if (istep==nstep.or.nstep>2) call init_comm_fix_conserve(idim^LIM)
     end if
-
-    ! loop over all grids to arrive at equivalent
-    ! VAC subroutine advect1==advect1_grid
 
     ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid,level,qdt)
@@ -369,15 +380,14 @@ contains
        end if
     end if
 
-    ! for all grids: fill ghost cells
-    qdt=dtfactor*dt
-
+    ! For all grids: fill ghost cells
+    qdt = dtfactor*dt
     call getbc(qt+qdt,qdt,0,nwflux+nwaux)
 
   end subroutine advect1
 
+  !> Prepare to advance a single grid over one partial time step
   subroutine process1_grid(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
-    ! This subroutine is equivalent to VAC's`advect1' for one grid
     use mod_global_parameters
 
     character(len=*), intent(in) :: method
@@ -406,6 +416,7 @@ contains
 
     ! opedit: Obviously, flux is stored only for active grids.
     ! but we know in fix_conserve wether there is a passive neighbor
+    ! but we know in conserve_fix wether there is a passive neighbor
     ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
@@ -416,6 +427,7 @@ contains
 
   end subroutine process1_grid
 
+  !> Advance a single grid over one partial time step
   subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
 
     !  integrate one grid by one partial step
