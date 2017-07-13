@@ -1,0 +1,13 @@
+ &filelist
+        base_filename  = '_trap_hll_ko'
+ /
+
+ &methodlist
+        time_integrator=  'twostep_trapezoidal'
+        flux_scheme =    20*'hll'
+        limiter=  20*'koren'
+ /
+
+ &paramlist
+        courantpar = 0.5
+ /
