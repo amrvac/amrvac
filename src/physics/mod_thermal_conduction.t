@@ -1,5 +1,5 @@
-!##############################################################################
-!> module thermal conduction for HD and MHD
+!> Thermal conduction for HD and MHD
+!>
 !> 10.07.2011 developed by Chun Xia and Rony Keppens
 !> 01.09.2012 moved to modules folder by Oliver Porth
 !> 13.10.2013 optimized further by Chun Xia

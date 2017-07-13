@@ -1,3 +1,4 @@
+!> Module for handling split source terms (split from the fluxes)
 module mod_source
 
   implicit none

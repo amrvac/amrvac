@@ -1,4 +1,5 @@
-!>   THE MODULE ADD VISCOUS SOURCE TERMS AND CHECK TIME STEP
+!>   The module add viscous source terms and check time step
+!>
 !>   Viscous forces in the momentum equations:
 !>   d m_i/dt +=  - div (vc_mu * PI)
 !>   !! Viscous work in the energy equation:

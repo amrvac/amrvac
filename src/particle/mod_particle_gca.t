@@ -1,3 +1,4 @@
+!> Particle moder with relativistic guiding center approximation 
 module mod_particle_gca
   use mod_particle_base
 
