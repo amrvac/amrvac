@@ -11,6 +11,7 @@ program amrvac
   use mod_usr
   use mod_initialize
   use mod_particles
+  use mod_fix_conserve
 
   integer          :: itin
   double precision :: time0, time_in, tin

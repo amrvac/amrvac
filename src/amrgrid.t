@@ -40,6 +40,7 @@ end subroutine settree
 
 subroutine resettree
   use mod_global_parameters
+  use mod_fix_conserve
 
   if (levmax>levmin) call deallocateBflux
 

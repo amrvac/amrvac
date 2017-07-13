@@ -318,6 +318,7 @@ contains
   subroutine advect1(method,dtfactor,idim^LIM,qtC,a,qt,b)
     use mod_global_parameters
     use mod_ghostcells_update
+    use mod_fix_conserve
 
     integer, intent(in) :: idim^LIM
     integer, intent(in) :: a !< Compute fluxes based on this w
@@ -394,6 +395,7 @@ contains
   !> Prepare to advance a single grid over one partial time step
   subroutine process1_grid(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
     use mod_global_parameters
+    use mod_fix_conserve
 
     character(len=*), intent(in) :: method
     integer, intent(in) :: igrid, ixG^L, idim^LIM
