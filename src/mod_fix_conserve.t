@@ -2,14 +2,17 @@ module mod_fix_conserve
   implicit none
   private
 
-  integer, save                       :: nrecv, nsend
-  double precision, allocatable, save :: recvbuffer(:)
-  integer, save                       :: isize(^ND)
+  integer, save                        :: nrecv, nsend
+  double precision, allocatable, save  :: recvbuffer(:)
+  integer, save                        :: isize(^ND)
+  integer, dimension(:), allocatable   :: fc_recvreq, fc_sendreq
+  integer, dimension(:,:), allocatable :: fc_recvstat, fc_sendstat
 
   public :: init_comm_fix_conserve
   public :: allocateBflux
   public :: deallocateBflux
   public :: sendflux
+  public :: recvflux
   public :: storeflux
   public :: fix_conserve
 
@@ -23,10 +26,10 @@ module mod_fix_conserve
      integer :: iigrid, igrid, idims, iside, i^D, nxCo^D
      integer :: ic^D, inc^D, ipe_neighbor
      integer :: ibuf, recvsize
-     !-----------------------------------------------------------------------------
-     nsend=0
-     nrecv=0
-     recvsize=0
+
+     nsend    = 0
+     nrecv    = 0
+     recvsize = 0
 
      do idims= idim^LIM
        select case (idims)
@@ -39,11 +42,47 @@ module mod_fix_conserve
        end select
      end do
 
-     if (nrecv>0) then
-       allocate(recvbuffer(recvsize),recvstatus(MPI_STATUS_SIZE,nrecv), &
-            recvrequest(nrecv))
+     ! Reallocate buffers when size differs
+     if (allocated(recvbuffer)) then
+       if (recvsize /= size(recvbuffer)) then
+         deallocate(recvbuffer)
+         allocate(recvbuffer(recvsize))
+       end if
+     else
+       allocate(recvbuffer(recvsize))
+     end if
 
-       recvrequest=MPI_REQUEST_NULL
+     if (allocated(fc_recvreq)) then
+       if (nrecv /= size(fc_recvreq)) then
+         deallocate(fc_recvreq, fc_recvstat)
+         allocate(fc_recvstat(MPI_STATUS_SIZE,nrecv), fc_recvreq(nrecv))
+       end if
+     else
+       allocate(fc_recvstat(MPI_STATUS_SIZE,nrecv), fc_recvreq(nrecv))
+     end if
+
+     if (allocated(fc_sendreq)) then
+       if (nrecv /= size(fc_sendreq)) then
+         deallocate(fc_sendreq, fc_sendstat)
+         allocate(fc_sendstat(MPI_STATUS_SIZE,nsend), fc_sendreq(nsend))
+       end if
+     else
+       allocate(fc_sendstat(MPI_STATUS_SIZE,nsend), fc_sendreq(nsend))
+     end if
+
+   end subroutine init_comm_fix_conserve
+
+   subroutine recvflux(idim^LIM)
+     use mod_global_parameters
+
+     integer, intent(in) :: idim^LIM
+
+     integer :: iigrid, igrid, idims, iside, i^D, nxCo^D
+     integer :: ic^D, inc^D, ipe_neighbor
+     integer :: ibuf, recvsize
+
+     if (nrecv>0) then
+       fc_recvreq=MPI_REQUEST_NULL
        ibuf=1
        irecv=0
 
@@ -65,7 +104,7 @@ module mod_fix_conserve
                itag=4**^ND*(igrid-1)+{inc^D*4**(^D-1)+}
                call MPI_IRECV(recvbuffer(ibuf),isize(idims), &
                     MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
-                    icomm,recvrequest(irecv),ierrmpi)
+                    icomm,fc_recvreq(irecv),ierrmpi)
                ibuf=ibuf+isize(idims)
              end if
              {end do\}
@@ -74,13 +113,7 @@ module mod_fix_conserve
        end do
      end if
 
-     if (nsend>0) then
-       allocate(sendstatus(MPI_STATUS_SIZE,nsend),sendrequest(nsend))
-       sendrequest=MPI_REQUEST_NULL
-       isend=0
-     end if
-
-   end subroutine init_comm_fix_conserve
+   end subroutine recvflux
 
    subroutine allocateBflux
      use mod_global_parameters
@@ -141,7 +174,7 @@ module mod_fix_conserve
      end if
 
      if (nrecv>0) then
-       call MPI_WAITALL(nrecv,recvrequest,recvstatus,ierrmpi)
+       call MPI_WAITALL(nrecv,fc_recvreq,fc_recvstat,ierrmpi)
        ibuf=1
      end if
 
@@ -246,14 +279,12 @@ module mod_fix_conserve
        end do
      end do
 
-     !end if
-
-     if (nrecv>0) deallocate(recvbuffer,recvstatus,recvrequest)
-
      if (nsend>0) then
-       call MPI_WAITALL(nsend,sendrequest,sendstatus,ierrmpi)
-       deallocate(sendstatus,sendrequest)
+       call MPI_WAITALL(nsend,fc_sendreq,fc_sendstat,ierrmpi)
      end if
+
+     deallocate(recvbuffer,fc_recvstat,fc_recvreq)
+     deallocate(fc_sendstat,fc_sendreq)
 
    end subroutine fix_conserve
 
@@ -316,7 +347,7 @@ module mod_fix_conserve
              !               isend=isend+1
              !               call MPI_ISEND(pflux(iside,^D,igrid)%flux,isize(^D), &
              !                              MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
-             !                              icomm,sendrequest(isend),ierrmpi)
+             !                              icomm,fc_sendreq(isend),ierrmpi)
              !            end if
 
            end select
@@ -326,41 +357,46 @@ module mod_fix_conserve
 
    end subroutine storeflux
 
-   subroutine sendflux(igrid,idim^LIM)
+   subroutine sendflux(idim^LIM)
      use mod_global_parameters
 
-     integer, intent(in)          :: igrid, idim^LIM
+     integer, intent(in) :: idim^LIM
 
      integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw
-     integer :: ineighbor, ipe_neighbor
-     !----------------------------------------------------------------------------
-     do idims = idim^LIM
-       select case (idims)
-         {case (^D)
-         do iside=1,2
-           i^DD=kr(^DD,^D)*(2*iside-3);
+     integer :: ineighbor, ipe_neighbor, igrid, iigrid
 
-           if (phi_ > 0) then
-             if (neighbor_pole(i^DD,igrid)/=0) cycle
-           end if
+     fc_sendreq = MPI_REQUEST_NULL
+     isend      = 0
 
-           if (neighbor_type(i^DD,igrid)==2) then
+     do iigrid=1,igridstail; igrid=igrids(iigrid);
+       do idims = idim^LIM
+         select case (idims)
+           {case (^D)
+           do iside=1,2
+             i^DD=kr(^DD,^D)*(2*iside-3);
 
-             ineighbor=neighbor(1,i^DD,igrid)
-             ipe_neighbor=neighbor(2,i^DD,igrid)
-             if (ipe_neighbor/=mype) then
-               ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
-               inc^D=-2*i^D+ic^D^D%inc^DD=ic^DD;
-               itag=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
-               isend=isend+1
-
-               call MPI_ISEND(pflux(iside,^D,igrid)%flux,isize(^D), &
-                    MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
-                    icomm,sendrequest(isend),ierrmpi)
+             if (phi_ > 0) then
+               if (neighbor_pole(i^DD,igrid)/=0) cycle
              end if
-           end if
-         end do\}
-       end select
+
+             if (neighbor_type(i^DD,igrid)==2) then
+
+               ineighbor=neighbor(1,i^DD,igrid)
+               ipe_neighbor=neighbor(2,i^DD,igrid)
+               if (ipe_neighbor/=mype) then
+                 ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
+                 inc^D=-2*i^D+ic^D^D%inc^DD=ic^DD;
+                 itag=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
+                 isend=isend+1
+
+                 call MPI_ISEND(pflux(iside,^D,igrid)%flux,isize(^D), &
+                      MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
+                      icomm,fc_sendreq(isend),ierrmpi)
+               end if
+             end if
+           end do\}
+         end select
+       end do
      end do
    end subroutine sendflux
 
