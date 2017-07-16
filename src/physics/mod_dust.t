@@ -1,3 +1,5 @@
+!> Module for including dust species, which interact with the gas through a drag
+!> force
 module mod_dust
   use mod_global_parameters, only: std_len
   use mod_physics

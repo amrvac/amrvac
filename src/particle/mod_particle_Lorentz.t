@@ -1,3 +1,4 @@
+!> Relativistic Boris scheme
 module mod_particle_Lorentz
   use mod_particle_base
 
@@ -165,16 +166,6 @@ contains
         ! Update the velocity
         particle(ipart)%self%u = uplus + emom + radmom
 
-        ! Payload update
-        ! current gyroradius
-        call cross(particle(ipart)%self%u,b,tmp)
-        tmp = tmp / sqrt(sum(b(:)**2))
-        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
-             m / abs(q) * const_c**2
-
-        ! e.b
-        if(npayload>1) particle(ipart)%payload(2) = sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
-
       case ('cylindrical')
 
         !  Momentum update
@@ -251,13 +242,6 @@ contains
         particle(ipart)%self%u(r_)   = cosphi * tmp(r_)   + sinphi * tmp(phi_)
         particle(ipart)%self%u(phi_) = cosphi * tmp(phi_) - sinphi * tmp(r_)
         particle(ipart)%self%u(z_)   = tmp(z_)
-
-        ! Payload update
-        ! current gyroradius
-        call cross(particle(ipart)%self%u,b,tmp)
-        tmp = tmp / sqrt(sum(b(:)**2))
-        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * m / abs(q) * 8.9875d+20
-
       end select
 
       call get_lfac(particle(ipart)%self%u,lfac)
@@ -269,6 +253,21 @@ contains
 
       ! Time update
       particle(ipart)%self%t = particle(ipart)%self%t + dt_p
+
+      ! Payload update
+      if (npayload > 0) then
+        ! current gyroradius
+        call cross(particle(ipart)%self%u,b,tmp)
+        tmp = tmp / sqrt(sum(b(:)**2))
+        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
+             m / abs(q) * const_c**2
+      end if
+
+      ! e.b payload
+      if (npayload>1) then
+        particle(ipart)%payload(2) = &
+             sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
+      end if
 
     end do ! ipart loop
 

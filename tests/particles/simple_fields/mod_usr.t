@@ -13,6 +13,10 @@ module mod_usr
   ! Initial velocity (in m/s)
   double precision :: v0(3) = [0.0d0, 0.0d0, 0.0d0]
 
+  double precision, parameter :: not_used_value = -1.0d20
+  double precision :: force_E0(3) = [not_used_value, 0.0d0, 0.0d0]
+  double precision :: force_B0(3) = [not_used_value, 0.0d0, 0.0d0]
+
   ! Use an analytic field instead of an interpolated one
   logical :: use_analytic_field = .false.
 
@@ -51,7 +55,8 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /my_list/ charge, mass, x0, v0, use_analytic_field
+    namelist /my_list/ charge, mass, x0, v0, use_analytic_field, force_E0, &
+         force_B0
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -167,6 +172,11 @@ contains
     case default
       call mpistop("Unknown value for iprob")
     end select
+
+    ! The user can override these fields
+    if (force_E0(1) > not_used_value) E = force_E0
+    if (force_B0(1) > not_used_value) B = force_B0
+
   end subroutine get_field
 
   ! Set particle properties (in SI units)

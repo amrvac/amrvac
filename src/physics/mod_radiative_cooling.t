@@ -1,4 +1,5 @@
 !> module radiative cooling -- add optically thin radiative cooling for HD and MHD
+!>
 !> Assumptions: full ionize plasma dominated by H and He, ionization equilibrium 
 !> Formula: Q=-n_H*n_e*f(T), positive f(T) function is pre-computed and tabulated
 !> Developed by Allard Jan van Marle, Rony Keppens, and Chun Xia

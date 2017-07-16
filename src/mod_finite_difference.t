@@ -1,3 +1,4 @@
+!> Module with finite difference methods for fluxes
 module mod_finite_difference
 
   implicit none

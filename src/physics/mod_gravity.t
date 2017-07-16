@@ -1,3 +1,4 @@
+!> Module for including gravity in (magneto)hydrodynamics simulations
 module mod_gravity
   implicit none
 

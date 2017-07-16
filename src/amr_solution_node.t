@@ -83,7 +83,7 @@ pw(igrid)%wio=0.d0
 
 ! allocate temperary solution space
 select case (time_integrator)
-case("threestep","fourstep","jameson")
+case("threestep","fourstep","jameson","twostep_trapezoidal")
   allocate(pw(igrid)%w2(ixG^T,1:nw))
 case("rk4","ssprk43")
   allocate(pw(igrid)%w2(ixG^T,1:nw))
@@ -178,7 +178,7 @@ deallocate(pw(igrid)%wcoarse,pw(igrid)%xcoarse)
 deallocate(pw(igrid)%wold,pw(igrid)%wio)
 ! deallocate temperary solution space
 select case (time_integrator)
-case("threestep","fourstep","jameson")
+case("threestep","fourstep","jameson","twostep_trapezoidal")
   deallocate(pw(igrid)%w2)
 case("rk4","ssprk43")
   deallocate(pw(igrid)%w2)

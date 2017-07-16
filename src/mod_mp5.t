@@ -1,3 +1,4 @@
+!> Module containing the MP5 (fifth order) flux scheme
 module mod_mp5
 
   implicit none
@@ -9,10 +10,9 @@ module mod_mp5
 
 contains
 
+  !> MP5 limiter from Suresh & Huynh 1997 Following the convention of Mignone et
+  !> al. 2010. Needs at least three ghost cells
   subroutine MP5limiter(ixI^L,iL^L,idims,w,wLC,wRC)
-    ! MP5 limiter from Suresh & Huynh 1997
-    ! Following the convention of Mignone et al. 2010.
-    ! Needs at least three ghost cells.  Set nghostcells=3.
 
     use mod_global_parameters
     use mod_physics, only: phys_check_w

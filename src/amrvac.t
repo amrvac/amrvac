@@ -11,6 +11,7 @@ program amrvac
   use mod_usr
   use mod_initialize
   use mod_particles
+  use mod_fix_conserve
 
   integer          :: itin
   double precision :: time0, time_in, tin
@@ -214,7 +215,8 @@ contains
          end do
          call saveamrfile(1)
          call saveamrfile(2)
-         call mpistop("Crash Error: small value encountered")
+         if(mype==0) write(*,*) "Error: small value encountered, run crash."
+         call MPI_ABORT(icomm, iigrid, ierrmpi)
        end if
 
        ! resetting of tree BEFORE IO and setdt

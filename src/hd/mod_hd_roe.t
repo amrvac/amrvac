@@ -1,4 +1,4 @@
-!> Subroutines for Roe-type Riemann solver for HD
+!> Module with Roe-type Riemann solver for hydrodynamics
 module mod_hd_roe
   use mod_hd_phys
   use mod_physics_roe

@@ -1,4 +1,4 @@
-!> Hydrodynamics module
+!> Hydrodynamics physics module
 module mod_hd_phys
 
   implicit none

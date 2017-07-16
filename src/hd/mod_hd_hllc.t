@@ -1,3 +1,4 @@
+!> Hydrodynamics HLLC module
 module mod_hd_hllc
   use mod_hd_phys
 

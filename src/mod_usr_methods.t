@@ -1,4 +1,6 @@
-! TODO: document methods
+!> Module with all the methods that users can customize in AMRVAC
+!>
+!> Each procedure pointer can be initialized in a user's mod_usr.t
 module mod_usr_methods
 
   implicit none

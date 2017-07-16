@@ -564,7 +564,7 @@ contains
     select case (time_integrator)
     case ("onestep")
        nstep=1
-    case ("twostep")
+    case ("twostep", "twostep_trapezoidal")
        nstep=2
     case ("threestep")
        nstep=3

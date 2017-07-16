@@ -1,3 +1,4 @@
+!> Module containing Roe solver for scalar advection
 module mod_rho_roe
   use mod_physics_roe
   use mod_rho_phys

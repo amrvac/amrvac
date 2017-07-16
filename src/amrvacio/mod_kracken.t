@@ -1,7 +1,9 @@
-! These routines are available for general use. I ask that you send me
-! interesting alterations that are available for public use; and that you
-! include a note indicating the original author --  John S. Urban
-! Last updated Dec 20, 2008
+!> Module for reading command line arguments
+!>
+!> These routines are available for general use. I ask that you send me
+!> interesting alterations that are available for public use; and that you
+!> include a note indicating the original author --  John S. Urban
+!> Last updated Dec 20, 2008
 module mod_kracken
    implicit none
    private

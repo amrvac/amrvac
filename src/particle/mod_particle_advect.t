@@ -1,3 +1,4 @@
+!> tracer particles moving with fluid flows
 module mod_particle_advect
   use mod_particle_base
 
@@ -31,54 +32,69 @@ contains
   subroutine advect_create_particles()
     ! initialise the particles
     use mod_global_parameters
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload
 
-    double precision :: x(ndir), v(ndir)
+    integer          :: n, idir, igrid, ipe_particle
+    double precision :: x(3, num_particles)
+    double precision :: v(3, num_particles)
+    double precision :: q(num_particles)
+    double precision :: m(num_particles)
     double precision :: rrd(num_particles,ndir)
     double precision :: w(ixG^T,1:nw)
-    integer          :: igrid_particle, ipe_particle
-    integer          :: n, idir
-    logical          :: follow(1:num_particles)
+    double precision :: payload(npayload)
+    logical          :: follow(num_particles)
 
-    follow(:) = .false.
-    x(:)      = 0.0d0
+    follow = .false.
+    x      = 0.0d0
 
-    do idir=1,ndir
-      do n = 1, num_particles
-        rrd(n,idir) = rng%unif_01()
-      end do
-    end do
+    if (mype==0) then
+      if (.not. associated(usr_create_particles)) then
+        ! Randomly distributed
+        do idir=1,ndir
+          do n = 1, num_particles
+            rrd(n,idir) = rng%unif_01()
+          end do
+        end do
+        do n=1, num_particles
+          {^D&x(^D,n) = xprobmin^D + rrd(n+1,^D) * (xprobmax^D - xprobmin^D)\}
+        end do
+      else
+        call usr_create_particles(num_particles, x, v, q, m, follow)
+      end if
+    end if
 
-    do while (nparticles .lt. num_particles)
+    call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
-      {^D&x(^D) = xprobmin^D + rrd(nparticles+1,^D) * (xprobmax^D - xprobmin^D)\}
-
-      call find_particle_ipe(x,igrid_particle,ipe_particle)
-
-      nparticles=nparticles+1
-      particle(nparticles)%igrid  = igrid_particle
-      particle(nparticles)%ipe    = ipe_particle
+    do n=1,num_particles
+      call find_particle_ipe(x(:,n),igrid,ipe_particle)
+      particle(n)%igrid  = igrid
+      particle(n)%ipe    = ipe_particle
 
       if(ipe_particle == mype) then
-        call push_particle_into_particles_on_mype(nparticles)
-        allocate(particle(nparticles)%self)
-        particle(nparticles)%self%follow = follow(nparticles)
-        particle(nparticles)%self%index  = nparticles
-        particle(nparticles)%self%t      = 0.0d0
-        particle(nparticles)%self%dt     = 0.0d0
-        particle(nparticles)%self%x = 0.d0
-        particle(nparticles)%self%x(1:ndir) = x(1:ndir)
-
-        w=pw(igrid_particle)%w
-        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid_particle)%x)
+        call push_particle_into_particles_on_mype(n)
+        allocate(particle(n)%self)
+        particle(n)%self%follow = follow(n)
+        particle(n)%self%index  = n
+        particle(n)%self%t      = 0.0d0
+        particle(n)%self%dt     = 0.0d0
+        particle(n)%self%x = 0.d0
+        particle(n)%self%x(:) = x(:,n)
+        w=pw(igrid)%w
+        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
         do idir=1,ndir
-          call interpolate_var(igrid_particle,ixG^LL,ixM^LL,&
-               w(ixG^T,iw_mom(idir)),pw(igrid_particle)%x,x,v(idir))
+          call interpolate_var(igrid,ixG^LL,ixM^LL,&
+               w(ixG^T,iw_mom(idir)),pw(igrid)%x,x(:,n),v(idir,n))
         end do
-        particle(nparticles)%self%u(:) = 0.d0
-        particle(nparticles)%self%u(1:ndir) = v(1:ndir)
-        allocate(particle(nparticles)%payload(npayload))
-        particle(nparticles)%payload=0.d0
-
+        particle(n)%self%u(:) = 0.d0
+        particle(n)%self%u(1:ndir) = v(1:ndir,n)
+        allocate(particle(n)%payload(npayload))
+        if (.not. associated(usr_update_payload)) then
+          call advect_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x(:,n),payload,npayload,0.d0)
+        else
+          call usr_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x(:,n),payload,npayload,0.d0)
+        end if
+        particle(n)%payload=payload
       end if
 
     end do
@@ -116,9 +132,11 @@ contains
     ! this solves dx/dt=v for particles
     use mod_odeint
     use mod_global_parameters
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload
     double precision, intent(in) :: end_time
 
     double precision, dimension(1:ndir) :: v, x
+    double precision :: payload(npayload)
     double precision                 :: tloc, tlocnew, dt_p, h1
     double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
     integer                          :: ipart, iipart, igrid
@@ -161,6 +179,14 @@ contains
 
       ! Time update
       particle(ipart)%self%t = tlocnew
+
+      ! Update payload
+      if (.not. associated(usr_update_payload)) then
+        call advect_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x,payload,npayload,tlocnew)
+      else
+        call usr_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x,payload,npayload,tlocnew)
+      end if
+      particle(ipart)%payload = payload
 
     end do
 

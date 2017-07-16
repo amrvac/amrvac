@@ -1,3 +1,4 @@
+!> Module containing the physics routines for scalar advection
 module mod_rho_phys
 
   implicit none
