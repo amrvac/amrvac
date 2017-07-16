@@ -537,7 +537,7 @@ contains
           x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
         if(qd(ix^D)>qsatflux(ix^D)) then
         ! saturated TC flux = sign(b * Grad Te) 5 phi rho c**3
-          qsatflux(ix^D)=sign(1.d0,sum(mf(ix^D,:)*gradT(ix^D,:))*qsatflux(ix^D)*Binv(ix^D)
+          qsatflux(ix^D)=sign(1.d0,sum(mf(ix^D,:)*gradT(ix^D,:)))*qsatflux(ix^D)*Binv(ix^D)
           do idims=1,ndim
             qvec(ix^D,idims)=qsatflux(ix^D)*mf(ix^D,idims)
           end do
