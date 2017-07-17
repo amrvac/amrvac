@@ -18,16 +18,12 @@
     integer           :: domain_nx(ndim)
     integer           :: block_nx(ndim)
     character(len=16) :: w_names(nw)
-
-    ! TODO: write geometry info
-
     character(len=16) :: physics_type
-    integer :: n_params
-    character(len=16) :: param_name_1
-    param_value_1 (type depends on name)
-    character(len=16) :: param_name_2
-    param_value_2 (type depends on name)
-    ...
+    ! The physics parameters, such as gamma
+    integer           :: n_params
+    double precision  :: parameters(n_params)
+    character(len=16) :: parameter_names(n_params)
+    ! Future implementations will put geometry info below
 
 # Tree information
 
