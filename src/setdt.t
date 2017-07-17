@@ -106,6 +106,7 @@ if(associated(phys_getdt_heatconduct)) then
 !$OMP END PARALLEL DO
    call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
+   if(all(flux_scheme=='nul')) dt=dtnew
    ncycle=ceiling(dt/dtnew)
    if (ncycle>ncyclemax) then
      if(mype==0 .and. .true.) then

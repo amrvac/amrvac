@@ -25,12 +25,11 @@
 !> 2. to switch on thermal conduction in the (m)hd_list of amrvac.par add:
 !>    (m)hd_thermal_conduction=.true.
 !> 3. in the tc_list of amrvac.par :
-!>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field 
 !>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
 !>    tc_dtpar=0.9/0.45/0.3 ! stable time step coefficient for 1D/2D/3D, decrease it for more stable run
 
 module mod_thermal_conduction
-
+  use mod_global_parameters, only: std_len
   implicit none
   !> Coefficient of thermal conductivity
   double precision, public :: kappa
@@ -77,6 +76,12 @@ module mod_thermal_conduction
   !> Logical switch for prepare mpi datatype only once
   logical, private :: first=.true.
 
+  !> Logical switch for test constant conductivity
+  logical, private :: tc_constant=.false.
+
+  !> Name of slope limiter for transverse component of thermal flux 
+  character(len=std_len), private  :: tc_slope_limiter
+
   procedure(thermal_conduction), pointer   :: phys_thermal_conduction => null()
   procedure(get_heatconduct), pointer   :: phys_get_heatconduct => null()
   procedure(getdt_heatconduct), pointer :: phys_getdt_heatconduct => null()
@@ -115,7 +120,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar
+    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_slope_limiter, tc_constant
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -135,6 +140,8 @@ contains
     tc_gamma=phys_gamma
 
     tc_dtpar=tc_dtpar/dble(ndim)
+
+    tc_slope_limiter='MC'
 
     call tc_params_read(par_files)
   
@@ -166,6 +173,8 @@ contains
       ! thermal conductivity perpendicular to magnetic field
       kappe=4.d-26*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*kappa
     end if
+
+    if(tc_constant) kappa=0.01d0
 
   end subroutine thermal_conduction_init
 
@@ -359,27 +368,28 @@ contains
   
   end subroutine evolve_step1
 
-  subroutine mhd_get_heatconduct(tmp,tmp1,tmp2,ixI^L,ixO^L,w,x)
+  !> anisotropic thermal conduction with slope limited symmetric scheme
+  !> Sharma 2007 Journal of Computational Physics 227, 123
+  subroutine mhd_get_heatconduct(qd,tmp1,tmp2,ixI^L,ixO^L,w,x)
     use mod_global_parameters
     use mod_small_values, only: small_values_method
     
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
-    !! tmp store the heat conduction energy changing rate
-    double precision, intent(out) :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+    !! qd store the heat conduction energy changing rate
+    double precision, intent(out) :: qd(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
     
-    double precision, dimension(ixI^S,1:ndir) :: mf,qvec
-    double precision, dimension(ixI^S,1:ndim) :: gradT,qvecsat
-    double precision, dimension(:^D&,:), allocatable :: qvec_per, qvec_max
-    double precision, dimension(ixI^S) :: B2inv, BgradT,cs3,qflux,qsatflux
+    double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
+    double precision, dimension(ixI^S,1:ndim) :: qvec,gradT
+    double precision, dimension(ixI^S) :: Te,Tc,Tcf,Binv,cs3,qsatflux,minq,maxq
+    double precision :: alpha
     integer, dimension(ndim) :: lowindex
-    integer :: ix^L,idims,idir,ix^D
+    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
     logical :: Bnull(ixI^S)
 
-    ix^L=ixO^L^LADD2;
-    if (ixI^L^LTix^L|.or.|.or.) &
-       call mpistop("Need two extra layers for thermal conduction")
-    
+    alpha=0.75d0
+    ix^L=ixO^L^LADD1;
+
     ! tmp2 store kinetic+magnetic energy before addition of heat conduction source
     tmp2(ixI^S) = 0.5d0 * (sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_) + &
          sum(w(ixI^S,mag(:))**2,dim=ndim+1))
@@ -393,7 +403,8 @@ contains
          lowindex=minloc(tmp1(ixI^S))
          ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
          write(*,*)'too low internal energy = ',minval(tmp1(ixI^S)),' at x=',&
-         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time
+         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time, ' it=',it
+         write(*,*) 'w',w(^D&lowindex(^D),:)
          crash=.true.
        end if
     else
@@ -404,57 +415,129 @@ contains
     {end do\}
     end if
     ! compute the temperature
-    tmp(ixI^S)=tmp1(ixI^S)*(tc_gamma-one)/w(ixI^S,rho_)
-    do idims=1,ndim
-      ! idirth component of gradient of temperature at cell center
-      select case(typegrad)
-      case("central")
-        ix^L=ixI^L^LSUB1;
-        call gradient(tmp,ixI^L,ix^L,idims,B2inv)
-      case("limited")
-        ix^L=ixI^L^LSUB2;
-        call gradientS(tmp,ixI^L,ix^L,idims,B2inv)
-      end select
-      ! get grad T in all directions
-      gradT(ix^S,idims)=B2inv(ix^S)
-    end do
-    ! B
+    Te(ixI^S)=tmp1(ixI^S)*(tc_gamma-one)/w(ixI^S,rho_)
+    ! B vector
     if(B0field) then
-      mf(ix^S,1:ndir)=w(ix^S,mag(1:ndir))+block%B0(ix^S,1:ndir,0)
+      mf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,0)
     else
-      mf(ix^S,1:ndir)=w(ix^S,mag(1:ndir));
+      mf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir));
     end if
-    ! B^-2
-    B2inv(ix^S)=sum(mf(ix^S,:)**2,dim=ndim+1)
+    ! |B|
+    Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
     Bnull(ixI^S)=.false.
-    where(B2inv(ix^S)/=0.d0)
-      B2inv(ix^S)=1.d0/B2inv(ix^S)
+    where(Binv(ix^S)/=0.d0)
+      Binv(ix^S)=1.d0/Binv(ix^S)
     elsewhere
+      Binv(ix^S)=0.d0
       Bnull(ix^S)=.true.
     end where
-    
-    BgradT(ix^S)=(^D&mf(ix^S,^D)*gradT(ix^S,^D)+)*B2inv(ix^S)
-    cs3(ix^S)=kappa*dsqrt(tmp(ix^S))*tmp(ix^S)**2*BgradT(ix^S)
-    
+    ! b unit vector
     do idims=1,ndim
-      qvec(ix^S,idims)=mf(ix^S,idims)*cs3(ix^S)
+      mf(ix^S,idims)=mf(ix^S,idims)*Binv(ix^S)
+    end do
+    ! ixC is cell-corner index
+    ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
+    ! b unit vector at cell corner
+    Bc=0.d0
+    {do ix^DB=0,1\}
+      ixAmin^D=ixCmin^D+ix^D;
+      ixAmax^D=ixCmax^D+ix^D;
+      Bc(ixC^S,:)=Bc(ixC^S,:)+mf(ixA^S,:)
+    {end do\}
+    Bc(ixC^S,:)=Bc(ixC^S,:)*0.5d0**ndim
+    if(tc_constant) then
+      Tc(ixC^S)=kappa
+    else
+      ! Temperature at cell corner
+      Tc=0.d0
+      {do ix^DB=0,1\}
+        ixAmin^D=ixCmin^D+ix^D;
+        ixAmax^D=ixCmax^D+ix^D;
+        Tc(ixC^S)=Tc(ixC^S)+Te(ixA^S)
+      {end do\}
+      ! thermal conductivity kappa*T^2.5
+      Tc(ixC^S)=kappa*(0.5d0**ndim*Tc(ixC^S))**2.5d0
+    end if
+    ! T gradient
+    gradT=0.d0
+    do idims=1,ndim
+      ixBmin^D=ixmin^D;
+      ixBmax^D=ixmax^D-kr(idims,^D);
+      ixA^L=ixB^L+kr(idims,^D);
+      gradT(ixB^S,idims)=(Te(ixA^S)-Te(ixB^S))/dxlevel(idims)
+    end do
+    ! calculate thermal conduction flux for all dimensions
+    qvec=0.d0
+    do idims=1,ndim
+      ixB^L=ixO^L-kr(idims,^D);
+      ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+      Bcf=0.d0
+      Tcf=0.d0
+      {do ix^DB=0,1 \}
+         if({ ix^D==0 .and. ^D==idims | .or.}) then
+           ixBmin^D=ixAmin^D-ix^D;
+           ixBmax^D=ixAmax^D-ix^D;
+           Bcf(ixA^S,:)=Bcf(ixA^S,:)+Bc(ixB^S,:)
+           Tcf(ixA^S)=Tcf(ixA^S)+Tc(ixB^S)
+         end if
+      {end do\}
+      ! averaged b at face centers
+      Bcf(ixA^S,:)=Bcf(ixA^S,:)*0.5d0**(ndim-1)
+      ! averaged thermal conductivity at face centers
+      Tcf(ixA^S)=Tcf(ixA^S)*0.5d0**(ndim-1)
+      ! limited normal component
+      minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
+      maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
+      ! eq (19)
+      qd=0.d0
+      {do ix^DB=0,1 \}
+         if({ ix^D==0 .and. ^D==idims | .or.}) then
+           ixBmin^D=ixCmin^D+ix^D;
+           ixBmax^D=ixCmax^D+ix^D;
+           qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
+         end if
+      {end do\}
+      qd(ixC^S)=qd(ixC^S)*0.5d0**(ndim-1)
+      ! eq (21)
+      {do ix^DB=0,1 \}
+         if({ ix^D==0 .and. ^D==idims | .or.}) then
+           ixBmin^D=ixAmin^D-ix^D;
+           ixBmax^D=ixAmax^D-ix^D;
+           where(qd(ixB^S)<=minq(ixA^S))
+             qd(ixB^S)=minq(ixA^S)
+           elsewhere(qd(ixB^S)>=maxq(ixA^S))
+             qd(ixB^S)=maxq(ixA^S)
+           end where
+           qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
+         end if
+      {end do\}
+      qvec(ixA^S,idims)=Tcf(ixA^S)*qvec(ixA^S,idims)*0.5d0**(ndim-1)
+      ! limited transverse component, eq (17)
+      ixBmin^D=ixAmin^D;
+      ixBmax^D=ixAmax^D+kr(idims,^D);
+      do idir=1,ndim
+        if(idir==idims) cycle
+        qd(ixI^S)=slope_limiter(gradT(ixI^S,idir),ixI^L,ixB^L,idir,-1)
+        qd(ixI^S)=slope_limiter(qd,ixI^L,ixA^L,idims,1)
+        qvec(ixA^S,idims)=qvec(ixA^S,idims)+Tcf(ixA^S)*Bcf(ixA^S,idims)*Bcf(ixA^S,idir)*qd(ixA^S)
+      end do
     end do
 
     if(tc_saturate) then
       ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-      cs3(ix^S)=dsqrt(tmp(ix^S)**3)
+      cs3(ix^S)=dsqrt(Te(ix^S)**3)
       ! unsigned saturated TC flux = 5 phi rho c**3
       qsatflux(ix^S)=5.d0*w(ix^S,rho_)*cs3(ix^S)
       ! strength of classic TC flux
-      qflux(ix^S)=dsqrt(^D&qvec(ix^S,^D)**2+)
+      qd(ix^S)=dsqrt(^D&qvec(ix^S,^D)**2+)
       ! sign(b * Grad Te) 5 phi rho c**3 Bi/B 
       {do ix^DB=ixmin^DB,ixmax^DB\}
-        if(.false. .and. qflux(ix^D)>qsatflux(ix^D) .and. idims==1) write(*,*)& 
-          'it',it,' ratio=',qflux(ix^D)/qsatflux(ix^D),' TC saturated at ',&
-          x(ix^D,:),' rho',w(ix^D,rho_),' Te',tmp(ix^D)
-        if(qflux(ix^D)>qsatflux(ix^D)) then
+        if(.false. .and. qd(ix^D)>qsatflux(ix^D) .and. idims==1) write(*,*)& 
+          'it',it,' ratio=',qd(ix^D)/qsatflux(ix^D),' TC saturated at ',&
+          x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
+        if(qd(ix^D)>qsatflux(ix^D)) then
         ! saturated TC flux = sign(b * Grad Te) 5 phi rho c**3
-          qsatflux(ix^D)=sign(1.d0,BgradT(ix^D))*qsatflux(ix^D)*dsqrt(B2inv(ix^D))
+          qsatflux(ix^D)=sign(1.d0,sum(mf(ix^D,:)*gradT(ix^D,:)))*qsatflux(ix^D)*Binv(ix^D)
           do idims=1,ndim
             qvec(ix^D,idims)=qsatflux(ix^D)*mf(ix^D,idims)
           end do
@@ -462,60 +545,16 @@ contains
       {end do\}
     end if
     
-    if(tc_perpendicular) then
-    ! consider thermal conduction perpendicular to magnetic field
-    ! van der Linden and Goossens 1991 SoPh 131, 79; Orlando et al 2008 ApJ 678, 274
-      allocate(qvec_per(ixI^S,1:ndim), qvec_max(ixI^S,1:ndim))
-      do idims=1,ndim
-        ! q_per = kappe n^2 B^-2 Te^-0.5 (Grad Te - (e_b . Grad Te )e_b) 
-        qvec_per(ix^S,idims)=kappe*w(ix^S,rho_)**2*B2inv(ix^S)/dsqrt(tmp(ix^S))&
-                             *(gradT(ix^S,idims)-BgradT(ix^S)*mf(ix^S,idims))
-      end do
-      ! maximal thermal conducting (saturated) flux
-      do idims=1,ndim
-        qvec_max(ix^S,idims)=kappa*dsqrt(tmp(ix^S)**5)*gradT(ix^S,idims)
-      end do
-
-      if(tc_saturate) then
-        ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-        qsatflux(ix^S)=5.d0*w(ix^S,rho_)*cs3(ix^S)
-        qflux(ix^S)=dsqrt(^D&qvec_max(ix^S,^D)**2+)
-        {do ix^DB=ixmin^DB,ixmax^DB\}
-          if(.false. .and. qflux(ix^D)>qsatflux(ix^D) .and. idims==1) write(*,*) & 
-            'it',it,' ratio=',qflux(ix^D)/qsatflux(ix^D),' TC_PER saturated at ',&
-            x(ix^D,:),' rho',w(ix^D,rho_),' Te',tmp(ix^D)
-          if(qflux(ix^D)>qsatflux(ix^D)) then
-            qsatflux(ix^D)=qsatflux(ix^D)/qflux(ix^D)
-            do idims=1,ndim
-              qvec_max(ix^D,idims)=qsatflux(ix^D)*qvec_max(ix^D,idims)
-            end do
-          end if
-        {end do\}
-      end if
-
-      ! maximal thermal conducting flux perpendicular to magnetic field
-      qvec_max(ix^S,1:ndim)=qvec_max(ix^S,1:ndim)-qvec(ix^S,1:ndim)
-      qsatflux(ix^S)= ^D&qvec_max(ix^S,^D)**2+
-      qflux(ix^S)= ^D&qvec_per(ix^S,^D)**2+
-      {do ix^DB=ixmin^DB,ixmax^DB\}
-         if(qflux(ix^D)>qsatflux(ix^D)) then
-           qvec(ix^D,1:ndim)=qvec(ix^D,1:ndim)+qvec_max(ix^D,1:ndim)
-         else
-           qvec(ix^D,1:ndim)=qvec(ix^D,1:ndim)+qvec_per(ix^D,1:ndim)
-         end if   
-      {end do\}
-    end if
-    
     {do ix^DB=ixmin^DB,ixmax^DB\}
       if(Bnull(ix^D)) then
         ! consider magnetic null point
-        qvec(ix^D,1:ndim)=kappa*dsqrt(tmp(ix^D)**5)*gradT(ix^D,1:ndim)
+        qvec(ix^D,1:ndim)=kappa*dsqrt(Te(ix^D)**5)*gradT(ix^D,1:ndim)
         if(tc_saturate) then
           ! unsigned saturated TC flux = 5 phi rho c**3
           qsatflux(ix^D)=5.d0*w(ix^D,rho_)*cs3(ix^D)
-          qflux(ix^D)=dsqrt(sum(qvec(ix^D,1:ndim)**2))
-          if(qflux(ix^D)>qsatflux(ix^D)) then
-            qsatflux(ix^D)=qsatflux(ix^D)/qflux(ix^D)
+          qd(ix^D)=dsqrt(sum(qvec(ix^D,1:ndim)**2))
+          if(qd(ix^D)>qsatflux(ix^D)) then
+            qsatflux(ix^D)=qsatflux(ix^D)/qd(ix^D)
             do idims=1,ndim
               qvec(ix^D,idims)=qsatflux(ix^D)*qvec(ix^D,idims)
             end do
@@ -523,16 +562,55 @@ contains
         end if
       end if  
     {end do\}
+
+    qd=0.d0
+    do idims=1,ndim
+      ixB^L=ixO^L-kr(idims,^D);
+      qd(ixO^S)=qd(ixO^S)+(qvec(ixO^S,idims)-qvec(ixB^S,idims))/dxlevel(idims)
+    end do
     
-    ! store thermal conduction source term in tmp
-    select case(typediv)
-       case("central")
-          call divvector(qvec,ixI^L,ixO^L,tmp)
-       case("limited")
-          call divvectorS(qvec,ixI^L,ixO^L,tmp)
-    end select
-  
   end subroutine mhd_get_heatconduct
+
+  function slope_limiter(f,ixI^L,ixO^L,idims,pm) result(lf)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L, idims, pm
+    double precision, intent(in) :: f(ixI^S)
+    double precision :: lf(ixI^S)
+
+    double precision :: signf(ixI^S)
+    integer :: ixB^L
+
+    ixB^L=ixO^L+pm*kr(idims,^D);
+    signf(ixO^S)=sign(1.d0,f(ixO^S))
+    select case(tc_slope_limiter)
+     case('minmod')
+       ! minmod limiter
+       lf(ixO^S)=signf(ixO^S)*max(0.d0,min(abs(f(ixO^S)),signf(ixO^S)*f(ixB^S)))
+     case ('MC')
+       ! montonized central limiter Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
+       lf(ixO^S)=two*signf(ixO^S)* &
+            max(zero,min(dabs(f(ixO^S)),signf(ixO^S)*f(ixB^S),&
+            signf(ixO^S)*quarter*(f(ixB^S)+f(ixO^S))))
+     case ('mcbeta')
+       ! Woodward and Collela limiter, with factor beta
+       lf(ixO^S)=signf(ixO^S)* &
+            max(zero,min(mcbeta*dabs(f(ixO^S)),mcbeta*signf(ixO^S)*f(ixB^S),&
+            signf(ixO^S)*half*(f(ixB^S)+f(ixO^S))))
+     case ('superbee')
+       ! Roes superbee limiter (eq.3.51i)
+       lf(ixO^S)=signf(ixO^S)* &
+            max(zero,min(two*dabs(f(ixO^S)),signf(ixO^S)*f(ixB^S)),&
+            min(dabs(f(ixO^S)),two*signf(ixO^S)*f(ixB^S)))
+     case ('koren')
+       ! Barry Koren Right variant
+       lf(ixO^S)=signf(ixO^S)* &
+            max(zero,min(two*dabs(f(ixO^S)),two*signf(ixO^S)*f(ixB^S),&
+            (two*f(ixB^S)*signf(ixO^S)+dabs(f(ixO^S)))*third))
+     case default
+       call mpistop("Unknown slope limiter for thermal conduction")
+    end select
+
+  end function slope_limiter
 
   subroutine mhd_getdt_heatconduct(w,ixI^L,ixO^L,dtnew,dx^D,x)
     !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*kappa_i/rho)
@@ -559,7 +637,11 @@ contains
     !temperature
     Te(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
     !kappa_i
-    tmp(ixO^S)=kappa*dsqrt(Te(ixO^S)**5)
+    if(tc_constant) then
+      tmp(ixO^S)=kappa
+    else
+      tmp(ixO^S)=kappa*dsqrt(Te(ixO^S)**5)
+    end if
     !(gamma-1)*kappa_i/rho
     tmp(ixO^S)=(tc_gamma-one)*tmp(ixO^S)/w(ixO^S,rho_)
     

@@ -413,6 +413,8 @@ contains
     typelimiter=limiter(node(plevel_,igrid))
     typegradlimiter=gradient_limiter(node(plevel_,igrid))
 
+    fC=0.d0
+
     call advect1_grid(method,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D, &
          pw(igrid)%x)
 
