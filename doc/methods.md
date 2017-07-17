@@ -5,13 +5,12 @@ available in MPI-AMRVAC. The different options can be set in the
 [methodlist](@ref par_methodlist) of the **par/PROBLEM** file. For a more
 extensive description, you can read the article [Comparison of some FCT and
 TVD Schemes](http://www-personal.umich.edu/~gtoth/Papers/vac.html). Also, the
-paper using MPI-AMRVAC has info on the various methods, see _`Parallel, grid-
+paper using MPI-AMRVAC has info on the various methods, see 'Parallel, grid-
 adaptive approaches for relativistic hydro and magnetohydrodynamics', R.
 Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A. Vlasis, &amp; B. van der
-Holst, 2011, JCP.
-_[doi:10.1016/j.jcp.2011.01.020](http://dx.doi.org/10.1016/j.jcp.2011.01.020).
-A more recent update is _'MPI-AMRVAC FOR SOLAR AND ASTROPHYSICS', O. Porth, C.
-Xia, T. Hendrix, S. P. Moschou and R. Keppens ApJS._
+Holst, 2011, JCP. [doi:10.1016/j.jcp.2011.01.020](http://dx.doi.org/10.1016/j.jcp.2011.01.020).
+A more recent update is 'MPI-AMRVAC FOR SOLAR AND ASTROPHYSICS', O. Porth, C.
+Xia, T. Hendrix, S. P. Moschou and R. Keppens ApJS.
 [doi:10.1088/0067-0049/214/1/4](http://dx.doi.org/10.1088/0067-0049/214/1/4).
 
 The acronyms TVD, TVDLF, and TVD-MUSCL stand for Total Variation Diminishing,
@@ -30,7 +29,7 @@ we have the following combinations typically:
     ______________________________________________________________________________________________
     rho			TVDLF(=HLL,HLLC),  TVD (trivial Roe), TVDMU (trivial Roe), FD
     nonlinear		TVDLF(=HLL,HLLC),  FD
-    hdadiab			TVDLF, HLL(=HLLC), TVD (Roe solver),  TVDMU (Roe solver), FD
+    hdadiab	        TVDLF, HLL(=HLLC), TVD (Roe solver),  TVDMU (Roe solver), FD
     hd			TVDLF, HLL, HLLC,  TVD (Roe solver),  TVDMU (Roe solver), FD
     mhd(iso)		TVDLF, HLL, HLLC,  TVD (Roe solver),  TVDMU (Roe solver), FD
     srhd(eos)		TVDLF, HLL, HLLC,  FD
@@ -40,11 +39,11 @@ we have the following combinations typically:
 Also, the method can be selected per AMR grid level, but one can not combine
 different stepsize methods (hence, TVD is the only second order onestep
 method, while all others can be used with twostep or fourstep typeadvance
-setting). In MPI-AMRVAC, the **typefull1** is thus an array of strings, one
+setting). In MPI-AMRVAC, the **flux_scheme** is thus an array of strings, one
 string per level up to **nlevelshi**. Some more info follows on the various
 methods.
 
-## 2nd Order Central Difference Scheme: typefull1='cd',...
+## 2nd Order Central Difference Scheme: flux_scheme='cd',...
 
 The explicit central differencing schemes are not stable by themselves for
 advection dominated problems. The second order central difference scheme
@@ -54,14 +53,14 @@ artificial fluxes, thus comparison with analytic formulae is straightforward.
 It is straightforward to generalize this central difference approach to higher
 order accuracy, at the expense of introducing a wider stencil.
 
-## High order finite difference Scheme: typefull1='fd',...
+## High order finite difference Scheme: flux_scheme='fd',...
 
 This implements conservative finite differences with global Lax-Friedrich flux
 splitting. It can be used with almost all limiters (exluding ppm) and yields
 high order accuracy in space. For second, third and fifth order reconstruction
-you can set e.g.: **typelimiter='koren'/'cada3'/'mp5'**.
+you can set e.g.: **limiter='koren'/'cada3'/'mp5'**.
 
-## TVDLF Scheme: typefull1='tvdlf','tvdlf1'...
+## TVDLF Scheme: flux_scheme='tvdlf','tvdlf1'...
 
 The TVD Lax-Friedrich method is robust, in most cases there are no spurious
 oscillations, but it is somewhat more diffusive than other TVD or HLLC
@@ -75,26 +74,26 @@ so the corresponding **typepred1='hancock'**.
 TVDLF can be used with **dimsplit=F**, it is also preferred for steady state
 calculations.
 
-The second order TVDLF scheme **typefull1='tvdlf'** uses limiters. There are
+The second order TVDLF scheme **flux_scheme='tvdlf'** uses limiters. There are
 many choices available: the 'minmod' limiter gives the smoothest result, the
 'woodward' limiter is sharper, and the 'superbee' limiter is probably too
 sharp. The **'woodward'** limiter is recommended, but note that the default is
-the most robust **typelimiter='minmod',...**. The various options can be found
+the most robust **limiter='minmod',...**. The various options can be found
 in the _tvdlf.t_ module, in the subroutine _dwlimiter2_. The slope limiting is
 performed on the primitive variables by default. You can limit the slopes of
 the conservative variables setting **useprimitive=F** in the method list of
 the parameter file. You can even employ limiting on logarithmically stretched
 variables (which should be positive, like a density or pressure), by setting
 the _loglimit_ flags. You can also use third order accurate
-**typelimiter='ppm'**, but then you need to run the code with a wider ghost
+**limiter='ppm'**, but then you need to run the code with a wider ghost
 cell region, namely **dixB=4**, and corresponding grid size settings. A third
 order limiter without a need to widen the ghost cell layers is the _'cada3'_
 limiter (sometimes called LIMO3).
 
-The first order TVDLF method **typefull='tvdlf1'** uses no limiters or
+The first order TVDLF method **flux_scheme='tvdlf1'** uses no limiters or
 predictor step as it is only first order accurate.
 
-## TVD-MUSCL Scheme: typefull1='tvdmu','tvdmu1',...
+## TVD-MUSCL Scheme: flux_scheme='tvdmu','tvdmu1',...
 
 The TVD-MUSCL scheme is a two-step TVD algorithm using the same Hancock
 predictor step and upwinding as TVDLF, and a characteristic based Riemann
@@ -104,7 +103,7 @@ implemented for adiabatic hydrodynamics (setvac -p=hdadiab), hydrodynamics
 trivial Riemann solver. The scheme has comparable resolution to the non-MUSCL
 TVD method.
 
-The first order **typefull='tvdmu1'** scheme uses no limiters, it is a first
+The first order **flux_scheme='tvdmu1'** scheme uses no limiters, it is a first
 order upwind scheme _for each characteristic variable_. It may be used for
 test purposes.
 
@@ -114,7 +113,7 @@ TVD-MUSCL can be dimensionally split **dimsplit=T** or unsplit **F**. The
 multistep Runge-Kutta schemes can be applied, such as
 "typeadvance='fourstep'".
 
-**typelimiter** has the same meaning as for TVDLF. The slope limiting is performed on the conservative variables by default. Numerical problems (e.g. negative temperature) can often be avoided by limiting the slopes of the primitive variables setting **useprimitive=T** in the method list of the parameter file.
+**limiter** has the same meaning as for TVDLF. The slope limiting is performed on the conservative variables by default. Numerical problems (e.g. negative temperature) can often be avoided by limiting the slopes of the primitive variables setting **useprimitive=T** in the method list of the parameter file.
 
 Linear Riemann solvers can produce non-physical solutions. This can be
 eliminated by the use of an entropy fix, controlled by **typeentropy** and the
@@ -122,7 +121,7 @@ eliminated by the use of an entropy fix, controlled by **typeentropy** and the
 the entropy fixes in the respective _amrvacphys.PHYSroe.t_ files, as well as
 in the _tvd.t_ module.
 
-## TVD Scheme: typefull1='tvd','tvd1',...
+## TVD Scheme: flux_scheme='tvd','tvd1',...
 
 The non-MUSCL TVD method with Roe's approximate Riemann solver is one of the
 most accurate and efficient of the implemented schemes.
@@ -138,7 +137,7 @@ The same limiters can be used as for TVDLF and TVD MUSCL, but they are applied
 to the characteristic waves, rather than to the conservative variables. The
 order of the characteristic waves is defined in the **amrvacpar.t.*** files.
 The **'woodward'** limiter is recommended, but note that the default is
-**typelimiter='minmod',...**.
+**limiter='minmod',...**.
 
 The TVD scheme is a single step method. For steady state calculations,
 however, the _temporally first but spatially second order_ **tvd1** method is
@@ -168,9 +167,8 @@ are computed. One switches between their expressions according to the relative
 orientation of the wave signals in the (x,t) diagram. Appropriate recipes for
 computing meaningful intermediate states ensure desirable properties like
 positivity (positive pressures and densities), the ability to capture isolated
-discontinuities, etc. For most physics modules, these HLL and HLC variants are
-available too. The HLLD variant is only applicable for MHD, and is not
-implemented in the repository version.
+discontinuities, etc. For most physics modules, these HLL and HLLC variants are
+available too. The HLLD variant is only applicable for MHD.
 
 ## Maintaining the div B=0 Condition
 
@@ -214,55 +212,22 @@ This implements the mixed hyperbolic and parabolic dampening of the divB error
 using an additional scalar variable _Psi_ (need an addition of the name and
 boundary condition type in your par-file). The algorithm is described by
 Dedner et al. in _Journal of Computational Physics 175, 645-673 (2002)
-doi:10.1006/jcph.2001.6961_. To setup AMRVAC for this method, add to
-_definitions.h_ the line
-
-    #define GLM
-
-and choose _typedivbfix='glm1/glm2/glm3'_ in your methodlist. The three
+doi:10.1006/jcph.2001.6961_. To use this method, choose _mhd_glm=.true. 
+and _typedivbfix='glm1/glm2/glm3'_ in your mhd_list. The three
 versions differ in the source terms taken along. Thus in non-relativistic
 _mhd_, 'glm1' corresponds to _Equation (24)_ of Dedner et al and 'glm2'
 corresponds to _Equation (38)_ of this paper. The option 'glm3' adds no
-additional sources to the MHD system. In _srmhd_, we recommend the option
+additional sources to the MHD system. We recommend the option
 'glm1' which is the one without source terms in this case. For example:
 in your par-file,
 
-    primnames='rho v1 v2 v3 p b1 b2 b3 psi'
-
-    wnames='rho m1 m2 m3 e b1 b2 b3 psi'
-
+    mhd_glm=.true.
     typedivbfix='glm3'
 
     typeB= 8*'special','cont',8*'speical','cont', ...
 
-in your _definitions.h_,
+in your _mod_usr.t_, add
 
-    #define GLM
-
-in your _amrvacusr.t_, add
-
-    {#IFDEF GLM
-    w(ixG^S,psi_)=0.d0
-    }
+    if(mhd_glm) w(ixO^S,psi_)=0.d0
 
 in subroutine initonegrid_usr.
-
-#### Flux-CT
-
-The Flux-CT method, described in _Secction 4.4_ of Gabor Toth's paper _Journal
-of Computational Physics 161, 605-652 (2000) doi:10.1006/jcph.2000.6519_ is
-tested for 2D and 3D Cartesian grids without AMR. It conserves the the divB
-_on the corners_ to machine precision. To set it up, add to _definitions.h_
-the line
-
-    #define FCT
-
-and allow for one additional ghost layer (in ` $AMRVAC_DIR/setup.pl -g=... `
-and ` dixB=... ` in your par-file). The subroutine ` getdivb() ` returns the
-divB conserved by the scheme. To setup magnetic fields, you should provide the
-**vectorpotential** in the subroutine` initvecpot_usr() ` and you can call `
-b_from_vectorpotential() ` in your ` initgrid_usr() ` to initialize the
-solution vector with the consistent fields.
-Note that non-trivial boundary conditions can introduce divB to this scheme,
-so be wary when you are using anything other than _symm, asmm_ or _periodic_!
-
