@@ -525,7 +525,7 @@ contains
 
     if(tc_saturate) then
       ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-      cs3(ix^S)=dsqrt(Te(ixO^S)**3)
+      cs3(ix^S)=dsqrt(Te(ix^S)**3)
       ! unsigned saturated TC flux = 5 phi rho c**3
       qsatflux(ix^S)=5.d0*w(ix^S,rho_)*cs3(ix^S)
       ! strength of classic TC flux
