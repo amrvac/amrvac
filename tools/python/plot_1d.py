@@ -61,13 +61,15 @@ def read_header(dat):
     fmt = align + 'i'
     n_pars, = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
-    for i in range(n_pars):
-        fmt = align + 'd'
-        val = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
-        fmt = align + 16 * 'c'
-        name = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
-        name = ''.join(name).strip()
-        [h[name]] = val
+    fmt = align + n_pars * 'd'
+    vals = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    fmt = align + n_pars * 16 * 'c'
+    names = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    # Split and join the name strings (from one character array)
+    names = [''.join(names[i:i+16]).strip() for i in range(0, len(names), 16)]
+
+    for val, name in zip(vals, names):
+        h[name] = val
 
     return h
 
