@@ -1,4 +1,4 @@
-# MPI-AMRVAC's data file format
+# MPI-AMRVAC data file format
 
 All data files consist of a single snapshot, and they can be used for restart
 and/or further conversion to other data formats directly usable for
@@ -6,34 +6,74 @@ visualization. Note that restart is possible on a differing number of CPUs,
 and may suddenly allow more refinement levels. Also, note that the individual
 snapshots will typically have different lengths, as the number of grid blocks
 will vary dynamically. The data is saved in binary format (double precision).
-You can find the exact implementation in _amrio.t_, in the subroutine
-_saveamrfile_. In fact, there are three options to write out the data files,
-differing in their means to use parallel I/O from MPI-2. They are selected
-through **typeparIO** which is an integer taking values **1,0,-1**. **Each
-snapshot is in a single _*.dat_ file, and contains the following:**
+You can find the exact implementation in _src/mod_input_output.t_. 
+A snapshot is in a single _*.dat_ file, and contains the header, mesh tree 
+information, and block data.
 
-The first part of each _*.dat_ file stores all the conservative variables _w_
-for all grids which happen to be present at that time in the tree hierarchy.
-The Morton-ordered space filling curve through the grid hierarchy, together
-with the fixed block size, allows us to perform fully parallel I/O read and
-write operations. Each processor writes all grids stored in its local memory
-in the order defined by the Morton number of the grid. All processors write
-simultaneously to a single file when **typeparIO=1**. Each grid block writes
-the _nw_ variables out over the full mesh (without the ghost cell layers).
+# Header
 
-This part is then followed by all extra info needed to reconstruct/restart the
-simulation, which is written at the end _*.dat_ file by the master CPU. The
-extra info consists of
+    integer           :: Version number
+    integer           :: Byte offset where tree information starts
+    integer           :: Byte offset where block data starts
+    integer           :: nw
+    integer           :: ndir
+    integer           :: ndim
+    integer           :: levmax
+    integer           :: nleafs
+    integer           :: nparents
+    integer           :: it
+    double precision  :: global_time
+    double precision  :: xprobmin(ndim)
+    double precision  :: xprobmax(ndim)
+    integer           :: domain_nx(ndim)
+    integer           :: block_nx(ndim)
+    character(len=16) :: w_names(nw)
+    character(len=16) :: physics_type
+    ! The physics parameters, such as gamma
+    integer           :: n_params
+    double precision  :: parameters(n_params)
+    character(len=16) :: parameter_names(n_params)
+    ! Future implementations will put geometry info below
 
-    (1)  the boolean representation of the grid structure;
-    (2)  info on grid block size per dimension, actually the mesh size _nx^D_
-    (3)  equation-specific variable values (i.e. the _eqpar_ array)
-    (4)  number of active tree leafs _nleafs_,
-    (5)  maximal refinement level present _levmax_,
-    (6)  dimensionality NDIM,
-    (7)  number of vector components NDIR,
-    (8)  number of variables _nw_,
-    (9)  number of equation-specific variables _neqpar+nspecialpar_,
-    (10) integer time counter _it_,
-    (11) global time _t_.
+# Tree information
 
+    logical :: leaf(nleafs+nparents)
+    integer :: refinement_level(nleafs)
+    integer :: spatial_index(ndim, nleafs)
+    integer :: offset_block(nleafs)
+
+# Block
+
+    integer :: n_ghost_lo(ndim) ! number of ghost cells on lower boundaries
+    integer :: n_ghost_hi(ndim) ! number of ghost cells on upper boundaries
+    ! block_shape = 1-n_ghost_lo:block_nx+n_ghost_hi
+    double precision :: w(block_shape, nw)
+
+# Version history
+
+## Version 1
+
+Version 1 contained the following information
+
+    1. block data (nw variables)
+    2. leaf/parent logical array
+    3. header:
+        nx^D
+        domain_nx^D
+        xprobmin^D
+        xprobmax^D\}
+        nleafs
+        levmax
+        ndim
+        ndir
+        nw
+        it
+        global_time
+
+The idea is that you can reconstruct the full grid when you know the Morton
+order used for the leaf/parent logical array.
+
+## Version 2
+
+Version 2 had the same information as version 1, but changes were made to the
+Morton order on the coarse grid, causing incompatibility.
