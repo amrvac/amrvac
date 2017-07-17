@@ -29,12 +29,12 @@ contains
     ix_bad = maxloc(w_flag(ixO^S)) + [ ixOmin^D-1 ]
 
     if (.not.crash) then
-      write(*, *) "Error: small value of ", trim(prim_wnames(maxval(w_flag(ixO^S)))), &
+      write(*,*) "Error: small value of ", trim(prim_wnames(maxval(w_flag(ixO^S)))), &
            " encountered when call ", subname
-      write(*, *) "Iteration: ", it, " Time: ", global_time
-      write(*, *) "Location: ", x({ix_bad(^D)}, :)
-      write(*, *) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
-      write(*, *) "Saving status at the previous time step"
+      write(*,*) "Iteration: ", it, " Time: ", global_time
+      write(*,*) "Location: ", x({ix_bad(^D)}, :)
+      write(*,*) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
+      write(*,*) "Saving status at the previous time step"
       crash=.true.
     end if
   end subroutine small_values_error
@@ -52,39 +52,35 @@ contains
 
     ! point with local failure identified by w_flag
     if (w_flag(ix^D) /= 0) then
+      ! verify in cube with border width small_values_daverage the presence of
+      ! cells where all went ok
+      do i = 1, max(small_values_daverage, 1)
+        {kxOmin^D= max(ix^D-i, ixOmin^D);
+        kxOmax^D= min(ix^D+i, ixOmax^D);\}
 
-       ! verify in cube with border width small_values_daverage the presence of
-       ! cells where all went ok
-       do i = 1, max(small_values_daverage, 1)
-          {kxOmin^D= max(ix^D-i, ixOmin^D);
-          kxOmax^D= min(ix^D+i, ixOmax^D);\}
+        ! in case cells are fine within smaller cube than 
+        ! the userset small_values_daverage: use that smaller cube
+        if (any(w_flag(kxO^S) == 0)) exit
+      end do
 
-          ! in case cells are fine within smaller cube than 
-          ! the userset small_values_daverage: use that smaller cube
-          if (any(w_flag(kxO^S) == 0)) exit
-       end do
+      if (any(w_flag(kxO^S) == 0)) then
+        ! within surrounding cube, cells without problem were found
 
-       if (any(w_flag(kxO^S) == 0)) then
-          ! within surrounding cube, cells without problem were found
-
-          ! faulty cells are corrected by averaging here
-          ! only average those which were ok and replace faulty cells
-          do iw = 1, nw
-             w(ix^D, iw) = sum(w(kxO^S, iw), w_flag(kxO^S) == 0)&
-                  / count(w_flag(kxO^S) == 0)
-          end do
-       else
-          print *, "no cells without error were found in cube of size", &
-               small_values_daverage
-          print *, "at location:", x(ix^D, 1:ndim)
-          print *, "at index:", ix^D
-          print *, "w_flag(ix^D):", w_flag(ix^D)
-          if (w_flag(ix^D)<0) then
-             call mpistop("-small_values_average from smallvalues-----")
-          else
-             call mpistop("-small_values_average from primitive or getpthermal--")
-          end if
-       end if
+        ! faulty cells are corrected by averaging here
+        ! only average those which were ok and replace faulty cells
+        do iw = 1, nw
+          w(ix^D, iw) = sum(w(kxO^S, iw), w_flag(kxO^S) == 0)&
+               / count(w_flag(kxO^S) == 0)
+        end do
+      else
+        write(*,*) "no cells without error were found in cube of size", & 
+             writesmall_values_daverage
+        write(*,*) "at location:", x(ix^D, 1:ndim)
+        write(*,*) "at index:", ix^D
+        write(*,*) "w_flag(ix^D):", w_flag(ix^D)
+        write(*,*) "Saving status at the previous time step"
+        crash=.true.
+      end if
     end if
     {enddo^D&\}
 
