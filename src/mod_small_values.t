@@ -74,7 +74,7 @@ contains
         end do
       else
         write(*,*) "no cells without error were found in cube of size", & 
-             writesmall_values_daverage
+             small_values_daverage
         write(*,*) "at location:", x(ix^D, 1:ndim)
         write(*,*) "at index:", ix^D
         write(*,*) "w_flag(ix^D):", w_flag(ix^D)
