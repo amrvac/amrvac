@@ -453,10 +453,10 @@ contains
       {do ix^DB=0,1\}
         ixAmin^D=ixCmin^D+ix^D;
         ixAmax^D=ixCmax^D+ix^D;
-        Tc(ixC^S)=Tc(ixC^S)+Te(ixA^S)
+        Tc(ixC^S)=Tc(ixC^S)+Te(ixA^S)**2.5d0
       {end do\}
       ! thermal conductivity kappa*T^2.5
-      Tc(ixC^S)=kappa*(0.5d0**ndim*Tc(ixC^S))**2.5d0
+      Tc(ixC^S)=kappa*0.5d0**ndim*Tc(ixC^S)
     end if
     ! T gradient
     gradT=0.d0
