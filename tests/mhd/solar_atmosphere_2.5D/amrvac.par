@@ -37,7 +37,6 @@
         flux_scheme=    20*'hll'
         limiter= 20*'cada3'
         typelimited='predictor'
-        dimsplit=.false.
         small_pressure=1.0d-8
         small_density=1.0d-14
  /
@@ -93,6 +92,5 @@
         ncool=4000
         coolcurve='JCcorona'
         coolmethod='exact'
-        cfrac=1.d0
         Tfix=.false.
  /
