@@ -381,11 +381,10 @@ contains
     
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: qvec,gradT
-    double precision, dimension(ixI^S) :: Te,Tc,Tcf,Binv,cs3,qsatflux,minq,maxq
+    double precision, dimension(ixI^S) :: Te,Tc,Tcf,Binv,minq,maxq
     double precision :: alpha
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
-    logical :: Bnull(ixI^S)
 
     alpha=0.75d0
     ix^L=ixO^L^LADD1;
@@ -424,12 +423,10 @@ contains
     end if
     ! |B|
     Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
-    Bnull(ixI^S)=.false.
     where(Binv(ix^S)/=0.d0)
       Binv(ix^S)=1.d0/Binv(ix^S)
     elsewhere
       Binv(ix^S)=0.d0
-      Bnull(ix^S)=.true.
     end where
     ! b unit vector
     do idims=1,ndim
@@ -521,47 +518,26 @@ contains
         qd(ixI^S)=slope_limiter(qd,ixI^L,ixA^L,idims,1)
         qvec(ixA^S,idims)=qvec(ixA^S,idims)+Tcf(ixA^S)*Bcf(ixA^S,idims)*Bcf(ixA^S,idir)*qd(ixA^S)
       end do
-    end do
 
-    if(tc_saturate) then
-      ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-      cs3(ix^S)=dsqrt(Te(ix^S)**3)
-      ! unsigned saturated TC flux = 5 phi rho c**3
-      qsatflux(ix^S)=5.d0*w(ix^S,rho_)*cs3(ix^S)
-      ! strength of classic TC flux
-      qd(ix^S)=dsqrt(^D&qvec(ix^S,^D)**2+)
-      ! sign(b * Grad Te) 5 phi rho c**3 Bi/B 
-      {do ix^DB=ixmin^DB,ixmax^DB\}
-        if(.false. .and. qd(ix^D)>qsatflux(ix^D) .and. idims==1) write(*,*)& 
-          'it',it,' ratio=',qd(ix^D)/qsatflux(ix^D),' TC saturated at ',&
-          x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
-        if(qd(ix^D)>qsatflux(ix^D)) then
-        ! saturated TC flux = sign(b * Grad Te) 5 phi rho c**3
-          qsatflux(ix^D)=sign(1.d0,sum(mf(ix^D,:)*gradT(ix^D,:)))*qsatflux(ix^D)*Binv(ix^D)
-          do idims=1,ndim
-            qvec(ix^D,idims)=qsatflux(ix^D)*mf(ix^D,idims)
-          end do
-        end if
-      {end do\}
-    end if
-    
-    {do ix^DB=ixmin^DB,ixmax^DB\}
-      if(Bnull(ix^D)) then
-        ! consider magnetic null point
-        qvec(ix^D,1:ndim)=kappa*dsqrt(Te(ix^D)**5)*gradT(ix^D,1:ndim)
-        if(tc_saturate) then
-          ! unsigned saturated TC flux = 5 phi rho c**3
-          qsatflux(ix^D)=5.d0*w(ix^D,rho_)*cs3(ix^D)
-          qd(ix^D)=dsqrt(sum(qvec(ix^D,1:ndim)**2))
-          if(qd(ix^D)>qsatflux(ix^D)) then
-            qsatflux(ix^D)=qsatflux(ix^D)/qd(ix^D)
-            do idims=1,ndim
-              qvec(ix^D,idims)=qsatflux(ix^D)*qvec(ix^D,idims)
-            end do
+      ! consider magnetic null point
+      ixB^L=ixA^L+kr(idims,^D);
+      where(Bcf(ixA^S,idims)==0.d0)
+        qvec(ixA^S,idims)=kappa*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
+      end where
+
+      if(tc_saturate) then
+        ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
+        ! unsigned saturated TC flux = 5 phi rho c**3
+        qd(ixA^S)=2.5d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(tc_gamma*0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+       {do ix^DB=ixAmin^DB,ixAmax^DB\}
+          if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
+            !write(*,*) 'it',it,' ratio=',qvec(ix^D,idims)/qd(ix^D),' TC saturated at ',&
+            !x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
+            qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
           end if
-        end if
-      end if  
-    {end do\}
+       {end do\}
+      end if
+    end do
 
     qd=0.d0
     do idims=1,ndim
