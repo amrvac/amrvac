@@ -527,8 +527,8 @@ contains
 
       if(tc_saturate) then
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-        ! unsigned saturated TC flux = 5 phi rho c**3
-        qd(ixA^S)=2.5d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(tc_gamma*0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
+        qd(ixA^S)=2.5d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             !write(*,*) 'it',it,' ratio=',qvec(ix^D,idims)/qd(ix^D),' TC saturated at ',&
