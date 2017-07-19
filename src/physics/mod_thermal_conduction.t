@@ -357,13 +357,21 @@ contains
        ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
         crash=.true.
       else
-        w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
+        if(solve_internal_e) then
+          w1(ixO^S,e_) = tmp1(ixO^S)
+        else
+          w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
+        end if
       end if
     else
       where(tmp1(ixO^S)<small_e)
         tmp1(ixO^S)=small_e
       endwhere
-      w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
+      if(solve_internal_e) then
+        w1(ixO^S,e_) = tmp1(ixO^S)
+      else
+        w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
+      end if
     end if
   
   end subroutine evolve_step1
@@ -389,12 +397,16 @@ contains
     alpha=0.75d0
     ix^L=ixO^L^LADD1;
 
-    ! tmp2 store kinetic+magnetic energy before addition of heat conduction source
-    tmp2(ixI^S) = 0.5d0 * (sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_) + &
-         sum(w(ixI^S,mag(:))**2,dim=ndim+1))
 
     ! tmp1 store internal energy
-    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+    if(solve_internal_e) then
+      tmp1(ixI^S)=w(ixI^S,e_)
+    else
+      ! tmp2 store kinetic+magnetic energy before addition of heat conduction source
+      tmp2(ixI^S) = 0.5d0 * (sum(w(ixI^S,mom(:))**2,dim=ndim+1)/w(ixI^S,rho_) + &
+           sum(w(ixI^S,mag(:))**2,dim=ndim+1))
+      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+    end if
 
     ! Clip off negative pressure if small_pressure is set
     if(small_values_method=='error') then
@@ -528,7 +540,7 @@ contains
       if(tc_saturate) then
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
         ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
-        qd(ixA^S)=2.5d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             !write(*,*) 'it',it,' ratio=',qvec(ix^D,idims)/qd(ix^D),' TC saturated at ',&
