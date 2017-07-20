@@ -11,10 +11,10 @@
 !> PURPOSE: 
 !> IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
 !> S=DIV(KAPPA_i,j . GRAD_j T)
-!> where KAPPA_i,j = kappa b_i b_j + kappe (I - b_i b_j)
+!> where KAPPA_i,j = tc_k_para b_i b_j + tc_k_perp (I - b_i b_j)
 !> b_i b_j = B_i B_j / B**2, I is the unit matrix, and i, j= 1, 2, 3 for 3D
 !> IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
-!> S=DIV(kappa . GRAD T)
+!> S=DIV(tc_k_para . GRAD T)
 !> USAGE:
 !> 1. in mod_usr.t -> subroutine usr_init(), add 
 !>        unit_length=<your length unit>
@@ -31,11 +31,11 @@
 module mod_thermal_conduction
   use mod_global_parameters, only: std_len
   implicit none
-  !> Coefficient of thermal conductivity
-  double precision, public :: kappa
+  !> Coefficient of thermal conductivity (parallel to magnetic field)
+  double precision, public :: tc_k_para
 
   !> Coefficient of thermal conductivity perpendicular to magnetic field
-  double precision, public :: kappe
+  double precision, public :: tc_k_perp
 
   !> Time step of thermal conduction
   double precision :: dt_tc
@@ -120,7 +120,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_slope_limiter, tc_constant
+    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_slope_limiter, tc_k_para, tc_k_perp
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -143,6 +143,10 @@ contains
 
     tc_slope_limiter='MC'
 
+    tc_k_para=0.d0
+
+    tc_k_perp=0.d0
+
     call tc_params_read(par_files)
   
     phys_thermal_conduction => do_thermal_conduction
@@ -162,19 +166,21 @@ contains
 
     small_e = small_pressure/(tc_gamma - 1.0d0)
 
-    if(SI_unit) then
-      ! Spitzer thermal conductivity with SI units
-      kappa=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
-      ! thermal conductivity perpendicular to magnetic field
-      kappe=4.d-30*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*kappa
+    if(tc_k_para==0.d0 .and. tc_k_perp==0.d0) then
+      if(SI_unit) then
+        ! Spitzer thermal conductivity with SI units
+        tc_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
+        ! thermal conductivity perpendicular to magnetic field
+        tc_k_perp=4.d-30*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*tc_k_para
+      else
+        ! Spitzer thermal conductivity with cgs units
+        tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
+        ! thermal conductivity perpendicular to magnetic field
+        tc_k_perp=4.d-26*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*tc_k_para
+      end if
     else
-      ! Spitzer thermal conductivity with cgs units
-      kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
-      ! thermal conductivity perpendicular to magnetic field
-      kappe=4.d-26*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*kappa
+      tc_constant=.true.
     end if
-
-    if(tc_constant) kappa=0.01d0
 
   end subroutine thermal_conduction_init
 
@@ -389,7 +395,7 @@ contains
     
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: qvec,gradT
-    double precision, dimension(ixI^S) :: Te,Tc,Tcf,Binv,minq,maxq
+    double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qe,Binv,minq,maxq
     double precision :: alpha
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
@@ -455,17 +461,36 @@ contains
     {end do\}
     Bc(ixC^S,:)=Bc(ixC^S,:)*0.5d0**ndim
     if(tc_constant) then
-      Tc(ixC^S)=kappa
+      if(tc_perpendicular) then
+        ka(ixC^S)=tc_k_para-tc_k_perp
+        ke(ixC^S)=tc_k_perp
+      else
+        ka(ixC^S)=tc_k_para
+      end if
     else
       ! Temperature at cell corner
-      Tc=0.d0
+      minq(ix^S)=tc_k_para*Te(ix^S)**2.5d0
+      ka=0.d0
       {do ix^DB=0,1\}
-        ixAmin^D=ixCmin^D+ix^D;
-        ixAmax^D=ixCmax^D+ix^D;
-        Tc(ixC^S)=Tc(ixC^S)+Te(ixA^S)**2.5d0
+        ixBmin^D=ixCmin^D+ix^D;
+        ixBmax^D=ixCmax^D+ix^D;
+        ka(ixC^S)=ka(ixC^S)+minq(ixB^S)
       {end do\}
-      ! thermal conductivity kappa*T^2.5
-      Tc(ixC^S)=kappa*0.5d0**ndim*Tc(ixC^S)
+      ! cell corner conductivity
+      ka(ixC^S)=0.5d0**ndim*ka(ixC^S)
+      ! compensate with perpendicular conductivity
+      if(tc_perpendicular) then
+        minq(ix^S)=tc_k_perp*w(ix^S,rho_)**2*Binv(ix^S)**2/dsqrt(Te(ix^S))
+        ke=0.d0
+        {do ix^DB=0,1\}
+          ixBmin^D=ixCmin^D+ix^D;
+          ixBmax^D=ixCmax^D+ix^D;
+          ke(ixC^S)=ke(ixC^S)+minq(ixB^S)
+        {end do\}
+        ! cell corner conductivity: k_parallel-k_perpendicular
+        ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
+        ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
+      end if
     end if
     ! T gradient
     gradT=0.d0
@@ -481,19 +506,22 @@ contains
       ixB^L=ixO^L-kr(idims,^D);
       ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
       Bcf=0.d0
-      Tcf=0.d0
+      kaf=0.d0
+      kef=0.d0
       {do ix^DB=0,1 \}
          if({ ix^D==0 .and. ^D==idims | .or.}) then
            ixBmin^D=ixAmin^D-ix^D;
            ixBmax^D=ixAmax^D-ix^D;
            Bcf(ixA^S,:)=Bcf(ixA^S,:)+Bc(ixB^S,:)
-           Tcf(ixA^S)=Tcf(ixA^S)+Tc(ixB^S)
+           kaf(ixA^S)=kaf(ixA^S)+ka(ixB^S)
+           if(tc_perpendicular) kef(ixA^S)=kef(ixA^S)+ke(ixB^S)
          end if
       {end do\}
       ! averaged b at face centers
       Bcf(ixA^S,:)=Bcf(ixA^S,:)*0.5d0**(ndim-1)
       ! averaged thermal conductivity at face centers
-      Tcf(ixA^S)=Tcf(ixA^S)*0.5d0**(ndim-1)
+      kaf(ixA^S)=kaf(ixA^S)*0.5d0**(ndim-1)
+      if(tc_perpendicular) kef(ixA^S)=kef(ixA^S)*0.5d0**(ndim-1)
       ! limited normal component
       minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
       maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
@@ -508,6 +536,7 @@ contains
       {end do\}
       qd(ixC^S)=qd(ixC^S)*0.5d0**(ndim-1)
       ! eq (21)
+      qe=0.d0
       {do ix^DB=0,1 \}
          if({ ix^D==0 .and. ^D==idims | .or.}) then
            ixBmin^D=ixAmin^D-ix^D;
@@ -518,9 +547,12 @@ contains
              qd(ixB^S)=maxq(ixA^S)
            end where
            qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
+           if(tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S) 
          end if
       {end do\}
-      qvec(ixA^S,idims)=Tcf(ixA^S)*qvec(ixA^S,idims)*0.5d0**(ndim-1)
+      qvec(ixA^S,idims)=kaf(ixA^S)*qvec(ixA^S,idims)*0.5d0**(ndim-1)
+      ! add normal flux from perpendicular conduction
+      if(tc_perpendicular) qvec(ixA^S,idims)=qvec(ixA^S,idims)+kef(ixA^S)*qe(ixA^S)*0.5d0**(ndim-1)
       ! limited transverse component, eq (17)
       ixBmin^D=ixAmin^D;
       ixBmax^D=ixAmax^D+kr(idims,^D);
@@ -528,13 +560,13 @@ contains
         if(idir==idims) cycle
         qd(ixI^S)=slope_limiter(gradT(ixI^S,idir),ixI^L,ixB^L,idir,-1)
         qd(ixI^S)=slope_limiter(qd,ixI^L,ixA^L,idims,1)
-        qvec(ixA^S,idims)=qvec(ixA^S,idims)+Tcf(ixA^S)*Bcf(ixA^S,idims)*Bcf(ixA^S,idir)*qd(ixA^S)
+        qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bcf(ixA^S,idims)*Bcf(ixA^S,idir)*qd(ixA^S)
       end do
 
       ! consider magnetic null point
       ixB^L=ixA^L+kr(idims,^D);
       where(Bcf(ixA^S,idims)==0.d0)
-        qvec(ixA^S,idims)=kappa*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
+        qvec(ixA^S,idims)=tc_k_para*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
       end where
 
       if(tc_saturate) then
@@ -601,8 +633,8 @@ contains
   end function slope_limiter
 
   subroutine mhd_getdt_heatconduct(w,ixI^L,ixO^L,dtnew,dx^D,x)
-    !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*kappa_i/rho)
-    !where                      kappa_i=kappa*B_i**2/B**2
+    !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*tc_k_para_i/rho)
+    !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
     !and                        T=p/rho
     use mod_global_parameters
     use mod_physics
@@ -624,13 +656,13 @@ contains
 
     !temperature
     Te(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
-    !kappa_i
+    !tc_k_para_i
     if(tc_constant) then
-      tmp(ixO^S)=kappa
+      tmp(ixO^S)=tc_k_para
     else
-      tmp(ixO^S)=kappa*dsqrt(Te(ixO^S)**5)
+      tmp(ixO^S)=tc_k_para*dsqrt(Te(ixO^S)**5)
     end if
-    !(gamma-1)*kappa_i/rho
+    !(gamma-1)*tc_k_para_i/rho
     tmp(ixO^S)=(tc_gamma-one)*tmp(ixO^S)/w(ixO^S,rho_)
     
     ! B
@@ -655,7 +687,7 @@ contains
        elsewhere
          tmp2(ixO^S)=1.d0
        end where
-       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*kappa_i/rho*B_i**2/B**2)
+       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
        dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*tmp2(ixO^S)*dxinv(idim)**2)
        if(tc_saturate) then
          ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
@@ -722,7 +754,7 @@ contains
          ix^L=ixI^L^LSUB2;
          call gradientS(Te,ixI^L,ix^L,idims,tmp)
        end select
-       qvec(ix^S,idims)=tmp(ix^S)*kappa*dsqrt(Te(ix^S)**5)
+       qvec(ix^S,idims)=tmp(ix^S)*tc_k_para*dsqrt(Te(ix^S)**5)
     end do
 
     if(tc_saturate) then
@@ -749,7 +781,7 @@ contains
   end subroutine hd_get_heatconduct
 
   subroutine hd_getdt_heatconduct(w,ixI^L,ixO^L,dtnew,dx^D,x)
-    ! Check diffusion time limit dt < tc_dtpar * dx_i**2 / ((gamma-1)*kappa_i/rho)
+    ! Check diffusion time limit dt < tc_dtpar * dx_i**2 / ((gamma-1)*tc_k_para_i/rho)
     use mod_global_parameters
     use mod_physics
     
@@ -766,10 +798,10 @@ contains
     call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
 
     Te(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
-    tmp(ixO^S)=(tc_gamma-one)*kappa*dsqrt((Te(ixO^S))**5)/w(ixO^S,rho_)
+    tmp(ixO^S)=(tc_gamma-one)*tc_k_para*dsqrt((Te(ixO^S))**5)/w(ixO^S,rho_)
     
     do idim=1,ndim
-       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*kappa_idim/rho)
+       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
        dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*dxinv(idim)**2)
        if(tc_saturate) then
          ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
