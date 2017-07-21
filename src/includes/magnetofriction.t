@@ -653,7 +653,7 @@ istep=istep+1
 
 if (levmax>levmin) then
    if (istep==nstep.or.nstep>2) &
-   call init_comm_fix_conserve(idim^LIM)
+   call init_comm_fix_conserve(idim^LIM,nwflux)
 end if
 
 ! loop over all grids to arrive at equivalent
@@ -674,7 +674,7 @@ if (levmax>levmin) then
      do iigrid=1,igridstail; igrid=igrids(iigrid);
         call sendflux(igrid,idim^LIM)
      end do
-     call fix_conserve(pwb,idim^LIM)
+     call fix_conserve(pwb,idim^LIM,1,nwflux)
   end if
 end if
    
@@ -741,7 +741,7 @@ end select
 
 if (levmax>levmin) then
   if (istep==nstep.or.nstep>2) &
-    call storeflux(igrid,fC,idim^LIM)
+    call storeflux(igrid,fC,idim^LIM,nwflux)
 end if
 
 end subroutine process1_gridmf

@@ -82,7 +82,7 @@ contains
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
 
-    call init_comm_fix_conserve(idim^LIM)
+    call init_comm_fix_conserve(idim^LIM,nwflux)
     fix_conserve_at_step = time_advance .and. levmax>levmin
 
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
@@ -379,7 +379,7 @@ contains
     if (fix_conserve_at_step) then
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
-      call fix_conserve(idim^LIM)
+      call fix_conserve(idim^LIM,1,nwflux)
     end if
 
     ! For all grids: fill ghost cells
@@ -426,7 +426,7 @@ contains
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
     if (fix_conserve_at_step) then
-      call storeflux(igrid,fC,idim^LIM)
+      call storeflux(igrid,fC,idim^LIM,nwflux)
     end if
 
   end subroutine process1_grid

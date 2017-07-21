@@ -19,10 +19,10 @@ module mod_fix_conserve
 
  contains
 
-   subroutine init_comm_fix_conserve(idim^LIM)
+   subroutine init_comm_fix_conserve(idim^LIM,nwfluxin)
      use mod_global_parameters
 
-     integer, intent(in) :: idim^LIM
+     integer, intent(in) :: idim^LIM,nwfluxin
 
      integer :: iigrid, igrid, idims, iside, i^D, nxCo^D
      integer :: ic^D, inc^D, ipe_neighbor
@@ -38,7 +38,7 @@ module mod_fix_conserve
          nrecv=nrecv+nrecv_fc(^D)
          nsend=nsend+nsend_fc(^D)
          nxCo^D=1^D%nxCo^DD=ixGhi^DD/2-nghostcells;
-         isize(^D)={nxCo^DD*}*(nwflux)
+         isize(^D)={nxCo^DD*}*(nwfluxin)
          recvsize=recvsize+nrecv_fc(^D)*isize(^D)\}
        end select
      end do
@@ -159,15 +159,17 @@ module mod_fix_conserve
 
    end subroutine deallocateBflux
 
-   subroutine fix_conserve(idim^LIM)
+   subroutine fix_conserve(idim^LIM,nw0,nwfluxin)
      use mod_global_parameters
 
-     integer, intent(in) :: idim^LIM
+     integer, intent(in) :: idim^LIM, nw0, nwfluxin
 
      integer :: iigrid, igrid, idims, iside, iotherside, i^D, ic^D, inc^D, ix^L
-     integer :: nxCo^D, iw, ix, ipe_neighbor, ineighbor, ibuf, ibufnext
+     integer :: nxCo^D, iw, ix, ipe_neighbor, ineighbor, ibuf, ibufnext, nw1
      double precision :: CoFiratio
      !-----------------------------------------------------------------------------
+
+     nw1=nw0-1+nwfluxin
      if (slab) then
        ! The flux is divided by volume of fine cell. We need, however,
        ! to divide by volume of coarse cell => muliply by volume ratio
@@ -222,13 +224,13 @@ module mod_fix_conserve
 
              ! remove coarse flux
              if (slab) then
-               pw(igrid)%wb(ix^D%ixM^T,1:nwflux) &
-                    = pw(igrid)%wb(ix^D%ixM^T,1:nwflux) &
-                    -pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwflux)
+               pw(igrid)%wb(ix^D%ixM^T,nw0:nw1) &
+                    = pw(igrid)%wb(ix^D%ixM^T,nw0:nw1) &
+                    -pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwfluxin)
              else
-               do iw=1,nwflux
+               do iw=nw0,nw1
                  pw(igrid)%wb(ix^D%ixM^T,iw)=pw(igrid)%wb(ix^D%ixM^T,iw)&
-                      -pflux(iside,^D,igrid)%flux(1^D%:^DD&,iw) &
+                      -pflux(iside,^D,igrid)%flux(1^D%:^DD&,iw-nw0+1) &
                       /pw(igrid)%dvolume(ix^D%ixM^T)
                end do
              end if
@@ -244,28 +246,28 @@ module mod_fix_conserve
              if (ipe_neighbor==mype) then
                iotherside=3-iside
                if (slab) then
-                 pw(igrid)%wb(ix^S,1:nwflux) &
-                      = pw(igrid)%wb(ix^S,1:nwflux) &
-                      + pflux(iotherside,^D,ineighbor)%flux(:^DD&,1:nwflux)&
+                 pw(igrid)%wb(ix^S,nw0:nw1) &
+                      = pw(igrid)%wb(ix^S,nw0:nw1) &
+                      + pflux(iotherside,^D,ineighbor)%flux(:^DD&,1:nwfluxin)&
                       * CoFiratio
                else
-                 do iw=1,nwflux
+                 do iw=nw0,nw1
                    pw(igrid)%wb(ix^S,iw)=pw(igrid)%wb(ix^S,iw) &
-                        +pflux(iotherside,^D,ineighbor)%flux(:^DD&,iw) &
+                        +pflux(iotherside,^D,ineighbor)%flux(:^DD&,iw-nw0+1) &
                         /pw(igrid)%dvolume(ix^S)
                  end do
                end if
              else
                if (slab) then
                  ibufnext=ibuf+isize(^D)
-                 pw(igrid)%wb(ix^S,1:nwflux) &
-                      = pw(igrid)%wb(ix^S,1:nwflux)+CoFiratio &
+                 pw(igrid)%wb(ix^S,nw0:nw1) &
+                      = pw(igrid)%wb(ix^S,nw0:nw1)+CoFiratio &
                       *reshape(source=recvbuffer(ibuf:ibufnext-1), &
-                      shape=shape(pw(igrid)%wb(ix^S,1:nwflux)))
+                      shape=shape(pw(igrid)%wb(ix^S,nw0:nw1)))
                  ibuf=ibufnext
                else
-                 do iw=1,nwflux
-                   ibufnext=ibuf+isize(^D)/(nwflux)
+                 do iw=nw0,nw1
+                   ibufnext=ibuf+isize(^D)/(nwfluxin)
                    pw(igrid)%wb(ix^S,iw)=pw(igrid)%wb(ix^S,iw) &
                         +reshape(source=recvbuffer(ibuf:ibufnext-1), &
                         shape=shape(pw(igrid)%wb(ix^S,iw))) &
@@ -286,11 +288,11 @@ module mod_fix_conserve
 
    end subroutine fix_conserve
 
-   subroutine storeflux(igrid,fC,idim^LIM)
+   subroutine storeflux(igrid,fC,idim^LIM,nwfluxin)
      use mod_global_parameters
 
-     integer, intent(in)          :: igrid, idim^LIM
-     double precision, intent(in) :: fC(ixG^T,1:nwflux,1:ndim)
+     integer, intent(in)          :: igrid, idim^LIM, nwfluxin
+     double precision, intent(in) :: fC(ixG^T,1:nwfluxin,1:ndim)
 
      integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw
      !integer :: ineighbor, ipe_neighbor
@@ -309,17 +311,17 @@ module mod_fix_conserve
            case (4)
              select case (iside)
              case (1)
-               pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwflux) = &
-                    -fC(nghostcells^D%ixM^T,1:nwflux,^D)
+               pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwfluxin) = &
+                    -fC(nghostcells^D%ixM^T,1:nwfluxin,^D)
              case (2)
-               pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwflux) = &
-                    fC(ixMhi^D^D%ixM^T,1:nwflux,^D)
+               pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwfluxin) = &
+                    fC(ixMhi^D^D%ixM^T,1:nwfluxin,^D)
              end select
            case (2)
              nxCo^D=1^D%nxCo^DD=ixGhi^DD/2-nghostcells;
              select case (iside)
              case (1)
-               do iw=1,nwflux
+               do iw=1,nwfluxin
                  {do ixCo^DDB=1,nxCo^DDB\}
                  ix^D=nghostcells^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
                  pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
@@ -327,7 +329,7 @@ module mod_fix_conserve
                  {end do\}
                end do
              case (2)
-               do iw=1,nwflux
+               do iw=1,nwfluxin
                  {do ixCo^DDB=1,nxCo^DDB\}
                  ix^D=ixMhi^D^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
                  pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
@@ -335,19 +337,6 @@ module mod_fix_conserve
                  {end do\}
                end do
              end select
-
-             !            ineighbor=neighbor(1,i^DD,igrid)
-             !            ipe_neighbor=neighbor(2,i^DD,igrid)
-             !            if (ipe_neighbor/=mype) then
-             !               ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
-             !               inc^D=-2*i^D+ic^D^D%inc^DD=ic^DD;
-             !               itag=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
-             !               isend=isend+1
-             !               call MPI_ISEND(pflux(iside,^D,igrid)%flux,isize(^D), &
-             !                              MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
-             !                              icomm,fc_sendreq(isend),ierrmpi)
-             !            end if
-
            end select
          end do\}
        end select
