@@ -83,7 +83,7 @@ contains
         uprime = uhalf + q * dt_p / (2.d0 * m * const_c) * e
         call get_lfac(uprime,lfacprime)
         sigma = lfacprime**2 - dot_product(tau,tau)
-        ustar = dot_product(uprime,tau)
+        ustar = dot_product(uprime,tau) / const_c
         lfac = sqrt((sigma + sqrt(sigma**2 + 4.d0 * &
              dot_product(tau,tau) + dot_product(ustar,ustar))) / 2.d0)
 
