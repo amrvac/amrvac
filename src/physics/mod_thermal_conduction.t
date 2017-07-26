@@ -607,10 +607,10 @@ contains
       end do
 
       ! consider magnetic null point
-      ixB^L=ixA^L+kr(idims,^D);
-      where(Bcf(ixA^S,idims)==0.d0)
-        qvec(ixA^S,idims)=tc_k_para*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
-      end where
+      !ixB^L=ixA^L+kr(idims,^D);
+      !where(Binv(ixA^S)==0.d0)
+      !  qvec(ixA^S,idims)=tc_k_para*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
+      !end where
 
       if(tc_saturate) then
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
