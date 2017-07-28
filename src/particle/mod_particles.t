@@ -4,6 +4,7 @@ module mod_particles
   use mod_particle_advect
   use mod_particle_Lorentz
   use mod_particle_gca
+  use mod_particle_Vay
   use mod_particle_lfimp
 
   implicit none
@@ -27,7 +28,7 @@ contains
     case('lfimp')
       call lfimp_init()
     case('Vay')
-      call lfimp_init()
+      call Vay_init()
     case default
       if (mype == 0) then
         print *, "Unknown physics_type_particles", &
