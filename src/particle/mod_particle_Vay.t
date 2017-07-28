@@ -48,7 +48,6 @@ contains
     double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
     double precision, dimension(ndir) :: uhalf, tau, uprime, ustar, t
     double precision                  :: lfacprime, sscal, sigma
-print*,'we start the vay loop'
     do iipart=1,nparticles_active_on_mype
       ipart = particles_active_on_mype(iipart);
       q     = particle(ipart)%self%q
@@ -91,7 +90,6 @@ print*,'we start the vay loop'
         sscal = 1.d0 / (1.d0 + dot_product(t,t))
         call cross(uprime,t,tmp)
         particle(ipart)%self%u = sscal * (uprime + dot_product(uprime,t) * t + tmp)
-print*,'finished Vay cycle for particle',ipart
       case default
         call mpistop("This geometry is not supported in mod_particle_Vay")
       end select
