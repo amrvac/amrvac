@@ -99,7 +99,7 @@ contains
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
-    character(len=std_len)          :: savetypelimiter
+    character(len=std_len)          :: qtypelimiter
 
     select case (typelimiter)
     case ('mp5')
@@ -118,12 +118,11 @@ contains
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          savetypelimiter=typelimiter
-          if(savetypelimiter=='koren') typelimiter='korenL'
-          if(savetypelimiter=='cada')  typelimiter='cadaL'
-          if(savetypelimiter=='cada3') typelimiter='cada3L'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims)
-          typelimiter=savetypelimiter
+          qtypelimiter=typelimiter
+          if(typelimiter=='koren') qtypelimiter='korenL'
+          if(typelimiter=='cada')  qtypelimiter='cadaL'
+          if(typelimiter=='cada3') qtypelimiter='cada3L'
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims,qtypelimiter)
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
        end do
@@ -143,7 +142,7 @@ contains
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
-    character(len=std_len)          :: savetypelimiter
+    character(len=std_len)          :: qtypelimiter
 
     select case (typelimiter)
     case ('mp5')
@@ -162,12 +161,11 @@ contains
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          savetypelimiter=typelimiter
-          if(savetypelimiter=='koren') typelimiter='korenR'
-          if(savetypelimiter=='cada')  typelimiter='cadaR'
-          if(savetypelimiter=='cada3') typelimiter='cada3R'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims)
-          typelimiter=savetypelimiter
+          qtypelimiter=typelimiter
+          if(typelimiter=='koren') qtypelimiter='korenR'
+          if(typelimiter=='cada')  qtypelimiter='cadaR'
+          if(typelimiter=='cada3') qtypelimiter='cada3R'
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims,qtypelimiter)
 
           wRC(iL^S,iw)=wRC(iL^S,iw)-half*ldw(jxR^S)
        end do

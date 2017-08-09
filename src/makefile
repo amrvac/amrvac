@@ -124,6 +124,7 @@ mod_particles.o: mod_particle_base.o
 mod_particles.o: mod_particle_gca.o
 mod_particles.o: mod_particle_lfimp.o
 mod_particles.o: mod_particle_Lorentz.o
+mod_particles.o: mod_particle_Vay.o
 mod_particles.o: mod_timing.o
 mod_particle_Vay.o: mod_particle_base.o
 mod_physics.o: mod_physics_hllc.o

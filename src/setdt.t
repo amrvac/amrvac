@@ -94,7 +94,7 @@ end if
 if(associated(phys_getdt_heatconduct)) then
    dtmin_mype=bigdouble
 !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,&
-!$OMP& dx^D) REDUCTION(min:dt_mype)
+!$OMP& dx^D) REDUCTION(min:dtmin_mype)
    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       dx^D=rnode(rpdx^D_,igrid);
       saveigrid = igrid

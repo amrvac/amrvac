@@ -436,12 +436,15 @@ contains
     
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
-    double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qe,Binv,minq,maxq
+    double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qe,Binv,minq,maxq,Bnorm
     double precision :: alpha,dxinv(ndim)
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
-    alpha=0.75d0
+    alpha=dble(2*ndim-1)/2.d0**ndim
+    alpha=0.9d0 !b
+    alpha=0.8d0 !c
+    alpha=0.75d0 !a
     ix^L=ixO^L^LADD1;
 
     dxinv=1.d0/dxlevel
@@ -477,12 +480,12 @@ contains
     Te(ixI^S)=tmp1(ixI^S)*(tc_gamma-one)/w(ixI^S,rho_)
     ! B vector
     if(B0field) then
-      mf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,0)
+      mf(ixI^S,1:ndim)=w(ixI^S,mag(1:ndim))+block%B0(ixI^S,1:ndim,0)
     else
-      mf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir));
+      mf(ixI^S,1:ndim)=w(ixI^S,mag(1:ndim));
     end if
     ! |B|
-    Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
+    Binv(ix^S)=dsqrt(sum(mf(ix^S,1:ndim)**2,dim=ndim+1))
     where(Binv(ix^S)/=0.d0)
       Binv(ix^S)=1.d0/Binv(ix^S)
     elsewhere
@@ -499,9 +502,9 @@ contains
     {do ix^DB=0,1\}
       ixAmin^D=ixCmin^D+ix^D;
       ixAmax^D=ixCmax^D+ix^D;
-      Bc(ixC^S,:)=Bc(ixC^S,:)+mf(ixA^S,:)
+      Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)+mf(ixA^S,1:ndim)
     {end do\}
-    Bc(ixC^S,:)=Bc(ixC^S,:)*0.5d0**ndim
+    Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)*0.5d0**ndim
     if(tc_constant) then
       if(tc_perpendicular) then
         ka(ixC^S)=tc_k_para-tc_k_perp
@@ -510,7 +513,7 @@ contains
         ka(ixC^S)=tc_k_para
       end if
     else
-      ! Temperature at cell corner
+      ! conductivity at cell center
       minq(ix^S)=tc_k_para*Te(ix^S)**2.5d0
       ka=0.d0
       {do ix^DB=0,1\}
@@ -542,89 +545,151 @@ contains
       ixA^L=ixB^L+kr(idims,^D);
       gradT(ixB^S,idims)=(Te(ixA^S)-Te(ixB^S))*dxinv(idims)
     end do
-    ! calculate thermal conduction flux with slope-limited symmetric scheme
-    qvec=0.d0
-    do idims=1,ndim
-      ixB^L=ixO^L-kr(idims,^D);
-      ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
-      Bcf=0.d0
-      kaf=0.d0
-      kef=0.d0
-      {do ix^DB=0,1 \}
-         if({ ix^D==0 .and. ^D==idims | .or.}) then
-           ixBmin^D=ixAmin^D-ix^D;
-           ixBmax^D=ixAmax^D-ix^D;
-           Bcf(ixA^S,:)=Bcf(ixA^S,:)+Bc(ixB^S,:)
-           kaf(ixA^S)=kaf(ixA^S)+ka(ixB^S)
-           if(tc_perpendicular) kef(ixA^S)=kef(ixA^S)+ke(ixB^S)
-         end if
-      {end do\}
-      ! averaged b at face centers
-      Bcf(ixA^S,:)=Bcf(ixA^S,:)*0.5d0**(ndim-1)
-      ! averaged thermal conductivity at face centers
-      kaf(ixA^S)=kaf(ixA^S)*0.5d0**(ndim-1)
-      if(tc_perpendicular) kef(ixA^S)=kef(ixA^S)*0.5d0**(ndim-1)
-      ! limited normal component
-      minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
-      maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
-      ! eq (19)
-      qd=0.d0
-      {do ix^DB=0,1 \}
-         if({ ix^D==0 .and. ^D==idims | .or.}) then
-           ixBmin^D=ixCmin^D+ix^D;
-           ixBmax^D=ixCmax^D+ix^D;
-           qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
-         end if
-      {end do\}
-      ! temperature gradient at cell corner
-      qd(ixC^S)=qd(ixC^S)*0.5d0**(ndim-1)
-      ! eq (21)
-      qe=0.d0
-      {do ix^DB=0,1 \}
-         if({ ix^D==0 .and. ^D==idims | .or.}) then
-           ixBmin^D=ixAmin^D-ix^D;
-           ixBmax^D=ixAmax^D-ix^D;
-           where(qd(ixB^S)<=minq(ixA^S))
-             qd(ixB^S)=minq(ixA^S)
-           elsewhere(qd(ixB^S)>=maxq(ixA^S))
-             qd(ixB^S)=maxq(ixA^S)
-           end where
-           qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
-           if(tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S) 
-         end if
-      {end do\}
-      qvec(ixA^S,idims)=kaf(ixA^S)*qvec(ixA^S,idims)*0.5d0**(ndim-1)
-      ! add normal flux from perpendicular conduction
-      if(tc_perpendicular) qvec(ixA^S,idims)=qvec(ixA^S,idims)+kef(ixA^S)*qe(ixA^S)*0.5d0**(ndim-1)
-      ! limited transverse component, eq (17)
-      ixBmin^D=ixAmin^D;
-      ixBmax^D=ixAmax^D+kr(idims,^D);
-      do idir=1,ndim
-        if(idir==idims) cycle
-        qd(ixI^S)=slope_limiter(gradT(ixI^S,idir),ixI^L,ixB^L,idir,-1)
-        qd(ixI^S)=slope_limiter(qd,ixI^L,ixA^L,idims,1)
-        qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bcf(ixA^S,idims)*Bcf(ixA^S,idir)*qd(ixA^S)
+    if(tc_slope_limiter=='no') then
+      ! calculate thermal conduction flux with symmetric scheme
+      do idims=1,ndim
+        qd=0.d0
+        {do ix^DB=0,1 \}
+           if({ ix^D==0 .and. ^D==idims | .or.}) then
+             ixBmin^D=ixCmin^D+ix^D;
+             ixBmax^D=ixCmax^D+ix^D;
+             qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
+           end if
+        {end do\}
+        ! temperature gradient at cell corner
+        qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
       end do
+      ! b grad T at cell corner
+      qd(ixC^S)=sum(qvec(ixC^S,1:ndim)*Bc(ixC^S,1:ndim),dim=ndim+1)
+      do idims=1,ndim
+        ! TC flux at cell corner
+        gradT(ixC^S,idims)=ka(ixC^S)*Bc(ixC^S,idims)*qd(ixC^S)
+        if(tc_perpendicular) gradT(ixC^S,idims)=gradT(ixC^S,idims)+kef(ixC^S)*qvec(ixC^S,idims)
+      end do
+      ! TC flux at cell face
+      qvec=0.d0
+      do idims=1,ndim
+        ixB^L=ixO^L-kr(idims,^D);
+        ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+        ixB^L=ixA^L;
+        {do ix^DB=0,1 \}
+           if({ ix^D==0 .and. ^D==idims | .or.}) then
+             ixBmin^D=ixAmin^D-ix^D; 
+             ixBmax^D=ixAmax^D-ix^D; 
+             qvec(ixA^S,idims)=qvec(ixA^S,idims)+gradT(ixB^S,idims)
+           end if
+        {end do\}
+        qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
+        if(tc_saturate) then
+          ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
+          ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
+          Bcf=0.d0
+          {do ix^DB=0,1 \}
+             if({ ix^D==0 .and. ^D==idims | .or.}) then
+               ixBmin^D=ixAmin^D-ix^D;
+               ixBmax^D=ixAmax^D-ix^D;
+               Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)+Bc(ixB^S,1:ndim)
+             end if
+          {end do\}
+          ! averaged b at face centers
+          Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)*0.5d0**(ndim-1)
+          ixB^L=ixA^L+kr(idims,^D);
+          qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
+              qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
+            end if
+         {end do\}
+        end if
+      end do
+    else
+      ! calculate thermal conduction flux with slope-limited symmetric scheme
+      qvec=0.d0
+      do idims=1,ndim
+        ixB^L=ixO^L-kr(idims,^D);
+        ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+        ! calculate normal of magnetic field
+        ixB^L=ixA^L+kr(idims,^D);
+        Bnorm(ixA^S)=0.5d0*(mf(ixA^S,idims)+mf(ixB^S,idims))
+        Bcf=0.d0
+        kaf=0.d0
+        kef=0.d0
+        {do ix^DB=0,1 \}
+           if({ ix^D==0 .and. ^D==idims | .or.}) then
+             ixBmin^D=ixAmin^D-ix^D;
+             ixBmax^D=ixAmax^D-ix^D;
+             Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)+Bc(ixB^S,1:ndim)
+             kaf(ixA^S)=kaf(ixA^S)+ka(ixB^S)
+             if(tc_perpendicular) kef(ixA^S)=kef(ixA^S)+ke(ixB^S)
+           end if
+        {end do\}
+        ! averaged b at face centers
+        Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)*0.5d0**(ndim-1)
+        ! averaged thermal conductivity at face centers
+        kaf(ixA^S)=kaf(ixA^S)*0.5d0**(ndim-1)
+        if(tc_perpendicular) kef(ixA^S)=kef(ixA^S)*0.5d0**(ndim-1)
+        ! limited normal component
+        minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
+        maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
+        ! eq (19)
+        qd=0.d0
+        {do ix^DB=0,1 \}
+           if({ ix^D==0 .and. ^D==idims | .or.}) then
+             ixBmin^D=ixCmin^D+ix^D;
+             ixBmax^D=ixCmax^D+ix^D;
+             qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
+           end if
+        {end do\}
+        ! temperature gradient at cell corner
+        qd(ixC^S)=qd(ixC^S)*0.5d0**(ndim-1)
+        ! eq (21)
+        qe=0.d0
+        {do ix^DB=0,1 \}
+           if({ ix^D==0 .and. ^D==idims | .or.}) then
+             ixBmin^D=ixAmin^D-ix^D;
+             ixBmax^D=ixAmax^D-ix^D;
+             where(qd(ixB^S)<=minq(ixA^S))
+               qd(ixB^S)=minq(ixA^S)
+             elsewhere(qd(ixB^S)>=maxq(ixA^S))
+               qd(ixB^S)=maxq(ixA^S)
+             end where
+             qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
+             if(tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S) 
+           end if
+        {end do\}
+        qvec(ixA^S,idims)=kaf(ixA^S)*qvec(ixA^S,idims)*0.5d0**(ndim-1)
+        ! add normal flux from perpendicular conduction
+        if(tc_perpendicular) qvec(ixA^S,idims)=qvec(ixA^S,idims)+kef(ixA^S)*qe(ixA^S)*0.5d0**(ndim-1)
+        ! limited transverse component, eq (17)
+        ixBmin^D=ixAmin^D;
+        ixBmax^D=ixAmax^D+kr(idims,^D);
+        do idir=1,ndim
+          if(idir==idims) cycle
+          qd(ixI^S)=slope_limiter(gradT(ixI^S,idir),ixI^L,ixB^L,idir,-1)
+          qd(ixI^S)=slope_limiter(qd,ixI^L,ixA^L,idims,1)
+          qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bnorm(ixA^S)*Bcf(ixA^S,idir)*qd(ixA^S)
+        end do
 
-      ! consider magnetic null point
-      !ixB^L=ixA^L+kr(idims,^D);
-      !where(Binv(ixA^S)==0.d0)
-      !  qvec(ixA^S,idims)=tc_k_para*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
-      !end where
+        ! consider magnetic null point
+        !where(Binv(ixA^S)==0.d0)
+        !  qvec(ixA^S,idims)=tc_k_para*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
+        !end where
 
-      if(tc_saturate) then
-        ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
-        qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
-       {do ix^DB=ixAmin^DB,ixAmax^DB\}
-          if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
-            !write(*,*) 'it',it,' ratio=',qvec(ix^D,idims)/qd(ix^D),' TC saturated at ',&
-            !x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
-            qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
-          end if
-       {end do\}
-      end if
-    end do
+        if(tc_saturate) then
+          ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
+          ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
+          ixB^L=ixA^L+kr(idims,^D);
+          qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
+              !write(*,*) 'it',it,' ratio=',qvec(ix^D,idims)/qd(ix^D),' TC saturated at ',&
+              !x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
+              qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
+            end if
+         {end do\}
+        end if
+      end do
+    end if
 
     qd=0.d0
     do idims=1,ndim
