@@ -5,7 +5,7 @@
 # Introduction {#introduction}
 
 This is the documentation for the development version of MPI-AMRVAC. The code is
-hosted on [Gitlab](https://github.com/amrvac/amrvac), and the documentation
+available on [Github](https://github.com/amrvac/amrvac), and the documentation
 on [amrvac.org](http://amrvac.org/).
 
 # Quick links {#quick_links}
