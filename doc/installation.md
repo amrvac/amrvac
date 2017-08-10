@@ -17,7 +17,7 @@ facilities. The following software is required:
 To install in `~/codes/amrvac`:
 
     cd ~/codes
-    git clone https://gitlab.com/mpi-amrvac/amrvac.git
+    git clone https://github.com/amrvac/amrvac.git
 
 # Setting AMRVAC_DIR {#install}
 
