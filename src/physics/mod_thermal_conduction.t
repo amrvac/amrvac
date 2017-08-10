@@ -480,12 +480,12 @@ contains
     Te(ixI^S)=tmp1(ixI^S)*(tc_gamma-one)/w(ixI^S,rho_)
     ! B vector
     if(B0field) then
-      mf(ixI^S,1:ndim)=w(ixI^S,mag(1:ndim))+block%B0(ixI^S,1:ndim,0)
+      mf(ixI^S,:)=w(ixI^S,mag(:))+block%B0(ixI^S,:,0)
     else
-      mf(ixI^S,1:ndim)=w(ixI^S,mag(1:ndim));
+      mf(ixI^S,:)=w(ixI^S,mag(:));
     end if
     ! |B|
-    Binv(ix^S)=dsqrt(sum(mf(ix^S,1:ndim)**2,dim=ndim+1))
+    Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
     where(Binv(ix^S)/=0.d0)
       Binv(ix^S)=1.d0/Binv(ix^S)
     elsewhere
