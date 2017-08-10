@@ -551,7 +551,7 @@ contains
     double precision :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
     double precision :: ldw(ixI^S), dwC(ixI^S)
     integer :: flagL(ixI^S), flagR(ixI^S)
-    character(std_len) :: savetypelimiter
+    character(std_len) :: qtypelimiter
 
     ! Transform w,wL,wR to primitive variables
     if (needprim) then
@@ -567,6 +567,7 @@ contains
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idim,^D);
        jxC^L=ixC^L+kr(idim,^D);
 
+       qtypelimiter=typelimiter
        do iw=1,nwflux
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))
@@ -576,27 +577,19 @@ contains
 
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          savetypelimiter=typelimiter
-          if(savetypelimiter=='koren') typelimiter='korenL'
-          if(savetypelimiter=='cada')  typelimiter='cadaL'
-          if(savetypelimiter=='cada3') typelimiter='cada3L'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
-
+          ! limit flux from left
+          if(typelimiter=='koren') qtypelimiter='korenL'
+          if(typelimiter=='cada')  qtypelimiter='cadaL'
+          if(typelimiter=='cada3') qtypelimiter='cada3L'
+          call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim,qtypelimiter)
           wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
-          if(savetypelimiter=='koren')then
-             typelimiter='korenR'
-             call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
-          endif
-          if(savetypelimiter=='cada')then
-             typelimiter='cadaR'
-             call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
-          endif
-          if(savetypelimiter=='cada3')then
-             typelimiter='cada3R'
-             call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim)
-          endif
+
+          ! limit flux from right
+          if(typelimiter=='koren') qtypelimiter='korenR'
+          if(typelimiter=='cada')  qtypelimiter='cadaR'
+          if(typelimiter=='cada3') qtypelimiter='cada3R'
+          call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim,qtypelimiter)
           wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*ldw(jxR^S)
-          typelimiter=savetypelimiter
 
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=10.0d0**w(ixCmin^D:jxCmax^D,iw)

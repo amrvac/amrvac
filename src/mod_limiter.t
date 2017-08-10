@@ -16,7 +16,7 @@ contains
   !> but also from the gradientS and divvectorS subroutines in geometry.t
   !> Accordingly, the typelimiter here corresponds to one of limiter
   !> or one of gradient_limiter.
-  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim)
+  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim,qtypelimiter)
 
     use mod_global_parameters
 
@@ -24,6 +24,7 @@ contains
     double precision, intent(in) :: dxdim
     double precision, intent(in) :: dwC(ixI^S)
     double precision, intent(out) :: ldw(ixI^S)
+    character(len=std_len), intent(in) :: qtypelimiter
 
     double precision :: tmp(ixI^S)
     integer :: ixO^L, hxO^L
@@ -45,7 +46,7 @@ contains
     tmp(ixO^S)=sign(one,dwC(ixO^S))
     rdelinv=one/(cadradius*dxdim)**2
 
-    select case (typelimiter)
+    select case (qtypelimiter)
     case ('minmod')
        ! Minmod limiter eq(3.51e) and (eq.3.38e) with omega=1
        ldw(ixO^S)=tmp(ixO^S)* &
@@ -137,7 +138,7 @@ contains
                +(one+tmp(ixO^S))*ldwB(ixO^S))
        endwhere
     case default
-       write(*,*)'Unknown limiter:',typelimiter
+       write(*,*)'Unknown limiter:',qtypelimiter
        call mpistop("Error in dwLimiter: No such TVD limiter")
     end select
 

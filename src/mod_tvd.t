@@ -164,7 +164,7 @@ contains
 
     select case(typetvd)
     case('roe')
-       call dwlimiter2(jumpC,ixI^L,ixIC^L,idims,ljumpC,dxdim)
+       call dwlimiter2(jumpC,ixI^L,ixIC^L,idims,ljumpC,dxdim,typelimiter)
        where(adtdxC(ixC^S)<=0)
           phiC(ixC^S)=phiC(ixC^S)*(jumpC(ixC^S)-ljumpC(jxC^S))
        elsewhere
@@ -175,7 +175,7 @@ contains
     case('sweby')
        !Sweby eqs.4.11-4.15, but no 0.5 ?!
        phiC(ixIC^S)=phiC(ixIC^S)*jumpC(ixIC^S)
-       call dwlimiter2(phiC,ixI^L,ixIC^L,idims,ljumpC,dxdim)
+       call dwlimiter2(phiC,ixI^L,ixIC^L,idims,ljumpC,dxdim,typelimiter)
        where(adtdxC(ixC^S)<=0)
           phiC(ixC^S)=phiC(ixC^S)-ljumpC(jxC^S)
        elsewhere
@@ -185,7 +185,7 @@ contains
        if(method=='tvd')phiC(ixC^S)=phiC(ixC^S)+adtdxC(ixC^S)**2*jumpC(ixC^S)
     case('yee')
        !eq.3.51 with correction
-       call dwlimiter2(jumpC,ixI^L,ixIC^L,idims,ljumpC,dxdim)
+       call dwlimiter2(jumpC,ixI^L,ixIC^L,idims,ljumpC,dxdim,typelimiter)
 
        !Use phiC as 0.5*(|nu|-nu**2) eq.3.45e for tvd otherwise 0.5*|nu|
        phiC(ixC^S)=half*phiC(ixC^S)
@@ -215,7 +215,7 @@ contains
        !See Ryu, section 2.3
        !Use phiC as 0.5*(|nu|-nu**2)*jumpC eq.3.45b,e
        phiC(ixIC^S)=half*phiC(ixIC^S)*jumpC(ixIC^S)
-       call dwlimiter2(phiC,ixI^L,ixIC^L,idims,ljumpC,dxdim)
+       call dwlimiter2(phiC,ixI^L,ixIC^L,idims,ljumpC,dxdim,typelimiter)
 
        !gamma*lambda eq.3.45d, use tmp as agdtdxC
        where(abs(jumpC(ixC^S))>smalldouble)

@@ -467,7 +467,7 @@ double precision :: dxdim
 double precision,dimension(ixI^S):: qC,qL,qR,dqC,ldq
 double precision :: invdx
 integer :: hx^L,ixC^L,jxC^L,gxC^L,hxC^L
-character(len=std_len) :: savetypelimiter,savetypegradlimiter,save2typelimiter
+character(len=std_len) :: qtypelimiter,qqtypelimiter
 
 invdx=1.d0/dxlevel(idir)
 hx^L=ix^L-kr(idir,^D);
@@ -476,41 +476,27 @@ jxC^L=ixC^L+kr(idir,^D);
 gxCmin^D=ixCmin^D-kr(idir,^D);gxCmax^D=jxCmax^D;
 hxC^L=gxC^L+kr(idir,^D);
 
-savetypelimiter=typelimiter
-savetypegradlimiter=typegradlimiter
 ! set the gradient limiter here
-typelimiter=typegradlimiter
+qtypelimiter=typegradlimiter
 qR(gxC^S) = q(hxC^S)
 qL(gxC^S) = q(gxC^S)
-if (typelimiter/='ppm') then
-   dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-   save2typelimiter=typelimiter
-   if(save2typelimiter=='koren') typelimiter='korenL'
-   if(save2typelimiter=='cada')  typelimiter='cadaL'
-   if(save2typelimiter=='cada3') typelimiter='cada3L'
+if (qtypelimiter/='ppm') then
    dxdim=dxlevel(idir)
-   call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
+   dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
+   qqtypelimiter=qtypelimiter
+   if(qtypelimiter=='koren') qqtypelimiter='korenL'
+   if(qtypelimiter=='cada')  qqtypelimiter='cadaL'
+   if(qtypelimiter=='cada3') qqtypelimiter='cada3L'
+   call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim,qqtypelimiter)
    qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
-   if(save2typelimiter=='koren')then
-     typelimiter='korenR'
-     call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
-   endif
-   if(save2typelimiter=='cada')then
-     typelimiter='cadaR'
-     call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
-   endif
-   if(save2typelimiter=='cada3')then
-     typelimiter='cada3R'
-     call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim)
-   endif
-   typelimiter=save2typelimiter
+   if(qtypelimiter=='koren') qqtypelimiter='korenR'
+   if(qtypelimiter=='cada')  qqtypelimiter='cadaR'
+   if(qtypelimiter=='cada3') qqtypelimiter='cada3R'
+   call dwlimiter2(dqC,ixI^L,gxC^L,idir,ldq,dxdim,qqtypelimiter)
    qR(ixC^S) = qR(ixC^S) - half*ldq(jxC^S)
 else
    call PPMlimitervar(ixG^LL,ixM^LL,idir,q,q,qL,qR)
 endif
-! set the method limiter back
-typelimiter=savetypelimiter
-typegradlimiter=savetypegradlimiter
 
 if (slab) then
    gradq(ix^S)=half*(qR(ix^S)-qL(hx^S))*invdx
@@ -698,7 +684,7 @@ double precision,dimension(ixG^T):: qL,qR,dqC,ldq
 double precision :: dxdim, invdx(1:ndim)
 
 integer :: hxO^L,ixC^L,jxC^L,idims,ix^L,gxC^L,hxC^L
-character(len=std_len), save :: savetypelimiter,savetypegradlimiter,save2typelimiter
+character(len=std_len) :: qtypelimiter,qqtypelimiter
 !-----------------------------------------------------------------------------
 ix^L=ixO^L^LADD2;
 
@@ -713,52 +699,30 @@ do idims=1,ndim
    jxC^L=ixC^L+kr(idims,^D);
    gxCmin^D=ixCmin^D-kr(idims,^D);gxCmax^D=jxCmax^D;
    hxC^L=gxC^L+kr(idims,^D);
-   savetypelimiter=typelimiter
-   savetypegradlimiter=typegradlimiter
    ! set the gradient limiter here
-   typelimiter=savetypegradlimiter
-  !! {if(gxCmin^D<ixGlo1)then
-  !!   gxCmin^D=ixGlo1
-  !!   hxCmin^D=hxCmin^D+1
-  !! endif \}
-  !! {if(hxCmax^D>ixGhi1)then
-  !!   hxCmax^D=ixGhi1
-  !!   gxCmax^D=gxCmax^D-1
-  !! endif \}
+   qtypelimiter=typegradlimiter
    qR(gxC^S) = qvec(hxC^S,idims)
    qL(gxC^S) = qvec(gxC^S,idims)
-   if(typelimiter/='ppm') then
-      dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-      save2typelimiter=typelimiter
-      if(save2typelimiter=='koren') typelimiter='korenL'
-      if(save2typelimiter=='cada')  typelimiter='cadaL'
-      if(save2typelimiter=='cada3') typelimiter='cada3L'
+   if(qtypelimiter/='ppm') then
       dxdim=dxlevel(idims)
-      call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
+      dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
+      qqtypelimiter=qtypelimiter
+      if(qtypelimiter=='koren') qqtypelimiter='korenL'
+      if(qtypelimiter=='cada')  qqtypelimiter='cadaL'
+      if(qtypelimiter=='cada3') qqtypelimiter='cada3L'
+      call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim,qqtypelimiter)
       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
-      if(save2typelimiter=='koren')then
-         typelimiter='korenR'
-         call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
-       endif
-      if(save2typelimiter=='cada')then
-         typelimiter='cadaR'
-         call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
-       endif
-      if(save2typelimiter=='cada3')then
-         typelimiter='cada3R'
-         call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim)
-       endif
-       typelimiter=save2typelimiter
+      if(qtypelimiter=='koren') qqtypelimiter='korenR'
+      if(qtypelimiter=='cada')  qqtypelimiter='cadaR'
+      if(qtypelimiter=='cada3') qqtypelimiter='cada3R'
+      call dwlimiter2(dqC,ixI^L,gxC^L,idims,ldq,dxdim,qqtypelimiter)
       qR(ixC^S) = qR(ixC^S) - half*ldq(jxC^S)
-   else if (typelimiter .eq. 'ppm') then
+   else if (qtypelimiter .eq. 'ppm') then
       dqC(ixI^S)=qvec(ixI^S,idims)
       call PPMlimitervar(ixG^LL,ixM^LL,idims,dqC,dqC,qL,qR)
    else
       call mpistop('typelimiter unknown in divvectorS')
    endif
-   ! set the method limiter back
-   typegradlimiter=typelimiter
-   typelimiter=savetypelimiter
 
    if (slab) then
      divq(ixO^S)=divq(ixO^S)+half*(qR(ixO^S)-qL(hxO^S))*invdx(idims)
@@ -787,7 +751,7 @@ subroutine cross_product(ixI^L,ixO^L,a,b,axb)
   axb(ixO^S,3)=a(ixO^S,1)*b(ixO^S,2)-a(ixO^S,2)*b(ixO^S,1)
 
 end subroutine cross_product
-!=============================================================================
+
 subroutine extremaq(ixI^L,ixO^L,q,nshift,qMax,qMin)
 
 use mod_global_parameters
