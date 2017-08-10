@@ -1,3 +1,3 @@
 # MPI-AMRVAC
 
-This is the development version of [MPI-AMRVAC](http://amrvac.org/)
+This is the latest version of MPI-AMRVAC. All documentation is available on [amrvac.org](http://amrvac.org/).
