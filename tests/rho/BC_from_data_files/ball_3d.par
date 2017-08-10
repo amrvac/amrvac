@@ -2,7 +2,7 @@
         base_filename='data/ball_3d'
         typefilelog='regression_test'
     	convert_type='vtuBCCmpi'
-        autoconvert=F
+        autoconvert=T
 /
 
  &savelist
