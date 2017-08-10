@@ -5,7 +5,7 @@
 # Introduction {#introduction}
 
 This is the documentation for the development version of MPI-AMRVAC. The code is
-hosted on [Gitlab](https://gitlab.com/mpi-amrvac/amrvac), and the documentation
+hosted on [Gitlab](https://github.com/amrvac/amrvac), and the documentation
 on [amrvac.org](http://amrvac.org/).
 
 # Quick links {#quick_links}
@@ -17,7 +17,7 @@ on [amrvac.org](http://amrvac.org/).
 * @ref publications.md
 * @ref acknowledgments.md
 * @ref todo
-* [**Recent changes**](https://gitlab.com/mpi-amrvac/amrvac/commits/physics_modules)
+* [**Recent changes**](https://github.com/amrvac/amrvac/commits/master)
 
 # MPI-AMRVAC aims {#aims}
 
