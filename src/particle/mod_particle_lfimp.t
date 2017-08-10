@@ -100,7 +100,7 @@ contains
     double precision, intent(in)      :: end_time
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p
-    double precision, dimension(ndir) :: b, e, vbar, pnp, pkp, xbar, dpkp
+    double precision, dimension(ndir) :: b, e, vbar, pnp, pkp, xbar, dpkp, tmp
     double precision, dimension(ndir) :: dxb, dyb, dzb, dxe, dye, dze, C1, C2, Fk
     double precision                  :: abserrx, abserry, abserrz, tol, J11, J12, J13, J21, J22, J23, J31, J32, J33, Det, lfack
     double precision                  :: iJ11, iJ12, iJ13, iJ21, iJ22, iJ23, iJ31, iJ32, iJ33
@@ -264,6 +264,21 @@ contains
 
       ! Time update
       particle(ipart)%self%t = particle(ipart)%self%t + dt_p
+
+      ! Payload update
+      if (npayload > 0) then
+        ! current gyroradius
+        call cross(particle(ipart)%self%u,b,tmp)
+        tmp = tmp / sqrt(sum(b(:)**2))
+        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
+             m / abs(q) * const_c**2
+      end if
+
+      ! e.b payload
+      if (npayload>1) then
+        particle(ipart)%payload(2) = &
+             sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
+      end if
 
     end do ! ipart loop
 
