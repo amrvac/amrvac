@@ -28,6 +28,7 @@
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field 
 !>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
 !>    tc_dtpar=0.9/0.45/0.3 ! stable time step coefficient for 1D/2D/3D, decrease it for more stable run
+!>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
 
 module mod_thermal_conduction
   use mod_global_parameters, only: std_len
@@ -65,8 +66,8 @@ module mod_thermal_conduction
   !> Time step coefficient
   double precision, private :: tc_dtpar=0.9d0
 
-  !> Maximal number of sub-cycles within one fuild time step
-  integer :: ncyclemax=1000
+  !> Maximal substeps of TC within one fluid time step to limit fluid time step
+  integer :: tc_ncycles=1000
 
   !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
   logical, private :: tc_perpendicular=.false.
@@ -125,7 +126,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_slope_limiter, tc_k_para, tc_k_perp
+    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_dtpar, tc_slope_limiter, tc_k_para, tc_k_perp, tc_ncycles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -441,10 +442,8 @@ contains
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
-    alpha=dble(2*ndim-1)/2.d0**ndim
-    alpha=0.9d0 !b
-    alpha=0.8d0 !c
-    alpha=0.75d0 !a
+    ! coefficient of limiting on normal component
+    alpha=0.75d0
     ix^L=ixO^L^LADD1;
 
     dxinv=1.d0/dxlevel
