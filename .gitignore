@@ -11,3 +11,11 @@ doc/html/*
 *.bak
 *.csv
 *.log.shfp.*
+/tests/hd/*/makefile
+/tests/mhd/*/makefile
+/tests/rho/*/makefile
+/tools/fortran/compare_logs
+/tests/*/*/mod_usr.f
+/lib/1d_*
+/lib/2d_*
+/lib/3d_*
