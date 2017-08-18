@@ -1,0 +1,36 @@
+!This is the ExB test 
+ &filelist
+        base_filename = '_lfimp4_EoverB1'
+ /
+
+ &particles_list
+        physics_type_particles='lfimp'
+        npayload=1
+ /
+ 
+ &stoplist
+        time_max = 3769.91118430776 !125.663706143592
+ /
+
+ &meshlist
+        iprob = 4
+        domain_nx1    = 16
+        domain_nx2    = 16
+        domain_nx3    = 16
+        xprobmin1     = -200.0d40
+        xprobmax1     = 200.0d40
+        xprobmin2     = -200.0d40
+        xprobmax2     = 200.0d40
+        xprobmin3     = -200.0d40
+        xprobmax3     = 200.0d40 
+/
+
+ &my_list
+        x0 = 0.0d0, 0.0d0, 0.0d0
+        v0 = 0.0d0, 0.0d0, 0.0d0
+	force_E0 = 10.0d7
+!	force_E0 = 299792158.207542d0, 0.0, 0.0
+!	charge = -1.60217662d-19
+!        mass = 9.10938356d-31 
+ /
+

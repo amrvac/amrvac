@@ -1,0 +1,32 @@
+!This is the ExB test 
+ &filelist
+        base_filename = '_Vay4'
+ /
+
+ &particles_list
+        physics_type_particles='Vay'
+        npayload=1
+ /
+
+ &stoplist
+        time_max = 12.5663706143592 !4pi
+ /
+
+ &meshlist
+        iprob = 4
+        domain_nx1    = 16
+        domain_nx2    = 128
+        domain_nx3    = 16
+        xprobmin1     = 0.0d0
+        xprobmax1     = 200.0d0
+        xprobmin2     = -1500.0d0
+        xprobmax2     = 100.0d0
+        xprobmin3     = 0.0d0
+        xprobmax3     = 200.0d0
+ /
+
+ &my_list
+        x0 = 0.0d0, 0.0d0, 0.0d0
+        v0 = 0.0d0, 0.0d0, 0.0d0
+ /
+

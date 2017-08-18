@@ -1,0 +1,66 @@
+ &filelist
+        autoconvert   = f
+        saveprim      = T
+        nwauxio       = 0
+        base_filename = 'output/test'
+        convert_type  = 'vtuBmpi'
+ /
+
+ &savelist
+        dtsave_dat    = 1d10
+        time_between_print = 10.0
+ /
+
+ &stoplist
+        time_max = 1.0
+ /
+
+ &methodlist
+        time_integrator = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+ /
+
+ &boundlist
+        typeboundary_min1  = 8*'periodic'
+        typeboundary_min2  = 8*'periodic'
+        typeboundary_min3  = 8*'periodic'
+        typeboundary_max1  = 8*'periodic'
+        typeboundary_max2  = 8*'periodic'
+        typeboundary_max3  = 8*'periodic'
+ /
+
+ &meshlist
+        iprob = 2
+        refine_criterion = 3
+        refine_max_level = 1
+        domain_nx1    = 16
+        domain_nx2    = 16
+        domain_nx3    = 128
+        xprobmin1     = -150.0d0
+        xprobmax1     = 150.0d0
+        xprobmin2     = -150.0d0
+        xprobmax2     = 150.0d0
+        xprobmin3     = -150.0d0
+        xprobmax3     = 150.0d0
+ /
+
+ &paramlist
+        dtpar = 1d10             ! One big time step for MHD
+ /
+
+ &mhd_list
+        typedivbfix   = 'linde'
+        mhd_particles = .true.
+ /
+
+ &particles_list
+        physics_type_particles='Lorentz'
+        num_particles=1
+        dtsave_particles = 1.0d-2
+        write_ensemble = f
+        write_individual = t
+        npayload=1
+        particles_eta=0.0d-4
+        const_dt_particles = 5d-3
+ /
