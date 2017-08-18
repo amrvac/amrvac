@@ -108,12 +108,12 @@ if(associated(phys_getdt_heatconduct)) then
                          icomm,ierrmpi)
    if(all(flux_scheme=='nul')) dt=min(dt,dtnew)
    ncycle=ceiling(dt/dtnew)
-   if (ncycle>ncyclemax) then
+   if (ncycle>tc_ncycles) then
      if(mype==0 .and. .true.) then
        write(*,*) 'CLF time step is too many times larger than conduction time step',ncycle
-       write(*,*) 'reducing dt to',ncyclemax,'times of dt_impl!!'
+       write(*,*) 'reducing dt to',tc_ncycles,'times of dt_impl!!'
      endif
-     dt=ncyclemax*dtnew
+     dt=tc_ncycles*dtnew
    endif
   ! get number of sub-steps of supertime stepping (Meyer 2012 MNRAS 422,2102)
    if(dt/dtnew< 0.5d0) then
