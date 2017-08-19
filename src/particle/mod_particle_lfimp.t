@@ -98,7 +98,7 @@ contains
   subroutine lfimp_integrate_particles(end_time)
     use mod_global_parameters
     double precision, intent(in)      :: end_time
-    integer                           :: ipart, iipart
+    integer                           :: ipart, iipart,nk
     double precision                  :: lfac, q, m, dt_p
     double precision, dimension(ndir) :: b, e, vbar, pnp, pkp, xbar, dpkp, tmp
     double precision, dimension(ndir) :: dxb, dyb, dzb, dxe, dye, dze, C1, C2, Fk
@@ -121,9 +121,10 @@ contains
       abserrx=1.
       abserrz=1.
       abserry=1.
-      tol=1.d-15
+      tol=1.d-14
 
-      do while(abserrx>tol .or. abserry>tol .or. abserrz>tol)
+      nk=0
+      do while((abserrx>tol .or. abserry>tol .or. abserrz>tol) .and. nk <40)
 
       ! START OF THE NONLINEAR CYCLE
       ! Push particle over half time step
@@ -243,6 +244,8 @@ contains
       abserry=abs(dpkp(2))
       abserrz=abs(dpkp(3))
 
+      nk=nk+1
+      write(*,*) "Newton iteration #", nk, "Residuals:", abserrx, abserry, abserrz
       end do
       ! END OF THE NONLINEAR CYCLE
 
@@ -264,6 +267,7 @@ contains
 
       ! Time update
       particle(ipart)%self%t = particle(ipart)%self%t + dt_p
+      write(*,*) particle(ipart)%self%t
 
       ! Payload update
       if (npayload > 0) then

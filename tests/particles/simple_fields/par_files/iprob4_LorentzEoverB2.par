@@ -3,13 +3,18 @@
         base_filename = '_Lorentz4_EoverB2'
  /
 
+ &savelist
+        dtsave_dat    = 1.5d24
+        time_between_print = 10.0
+ /
+
  &particles_list
         physics_type_particles='Lorentz'
         npayload=1
  /
  
  &stoplist
-        time_max = 3769.91118430776 !12566.3706143592
+        time_max = 1.5d24 !12566.3706143592
  /
 
  &meshlist
@@ -25,13 +30,20 @@
         xprobmax3     = 200.0d40 
 /
 
+ &paramlist
+        dtpar = 1.5d24    ! One big time step for MHD
+ /
+
  &my_list
         x0 = 0.0d0, 0.0d0, 0.0d0
         v0 = 0.0d0, 0.0d0, 0.0d0
-	force_E0 = 29.0d7, 0.0, 0.0 
-!	force_E = 0299792158.207542d0, 0.0, 0.0
+	force_E0 = 2.99777468077d8, 0.0, 0.0 !299762479 for gamma=70.71 and 299792158 for gamma=707.107
 !	charge = -1.60217662d-19
-!        mass = 9.10938356d-31 
-	
- /
+!        mass = 1.d-3 !9.10938356d-31 	
+/
+
+ &particles_list
+        dtsave_particles = 5.0d18
+        const_dt_particles = 5.0d16
+/
 
