@@ -4,7 +4,7 @@
  /
 
  &savelist
-        dtsave_dat    = 1.5d24
+        dtsave_dat    = 2.0d24
         time_between_print = 10.0
  /
 
@@ -14,7 +14,7 @@
  /
  
  &stoplist
-        time_max = 1.5d24 !12566.3706143592
+        time_max = 2.0d24 !12566.3706143592
  /
 
  &meshlist
@@ -31,7 +31,7 @@
 /
 
  &paramlist
-        dtpar = 1.5d24    ! One big time step for MHD
+        dtpar = 2.0d24    ! One big time step for MHD
  /
 
  &my_list
