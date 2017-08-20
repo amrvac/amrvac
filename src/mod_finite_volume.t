@@ -136,8 +136,8 @@ contains
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idim,^D);
        kxR^L=kxC^L+kr(idim,^D);
 
-       wRC(kxC^S,1:nwflux)=wprim(kxR^S,1:nwflux)
-       wLC(kxC^S,1:nwflux)=wprim(kxC^S,1:nwflux)
+       wRC(kxC^S,1:nw)=wprim(kxR^S,1:nw)
+       wLC(kxC^S,1:nw)=wprim(kxC^S,1:nw)
 
        ! Determine stencil size
        {ixCRmin^D = ixCmin^D - phys_wider_stencil\}
