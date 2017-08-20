@@ -4,17 +4,19 @@
  /
 
  &savelist
-        dtsave_dat    = 2.0d24
+        dtsave_dat    = 6.5d7
         time_between_print = 10.0
  /
 
  &particles_list
         physics_type_particles='gca'
         npayload=14
+        dtsave_particles = 1.0d2
+        const_dt_particles = 5.0d-1
  /
  
  &stoplist
-        time_max = 2.0d24 !12566.3706143592
+        time_max = 6.5d7 !12566.3706143592
  /
 
  &meshlist
@@ -31,7 +33,7 @@
 /
 
  &paramlist
-        dtpar = 2.0d24    ! One big time step for MHD
+        dtpar =  6.5d7 ! One big time step for MHD
  /
 
  &my_list
@@ -42,10 +44,4 @@
 	charge = 1.0d0 !3.33564095198d-10 !1 in cgs. !1.60217662d-19 proton
         mass = 1.0d0 !1.0d-3 !1 in cgs !proton1.6726219d-27 !electron 9.10938356d-31 	
 /
-
- &particles_list
-        dtsave_particles = 1.0d1
-        const_dt_particles = 5.0d-2
-/
-
 
