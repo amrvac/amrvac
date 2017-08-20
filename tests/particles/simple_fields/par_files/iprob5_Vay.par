@@ -1,15 +1,15 @@
-!This is the grad B test
+!This is the grad B test 
  &filelist
-        base_filename = '_GCA5_e'
+        base_filename = '_Vay5'
  /
 
  &particles_list
-        physics_type_particles='gca'
-        npayload=14
+        physics_type_particles='Vay'
+        npayload=1
  /
 
  &stoplist
-        time_max = 12.566370614 ! 4 * pi
+        time_max =12.566370614 ! 4*pi
  /
 
  &meshlist
@@ -26,10 +26,8 @@
  /
 
  &my_list
-        x0 = 0.000544626d0, 0.000544626d0, 0.0d0
-        v0 = -1.0d0, 0.0d0, 0.0d0
-        charge = -1
-        mass = 0.000544625d0
-
+        x0 = 1.0d0, 1.0d0, 0.0d0
+        !v0 = -0.5d0, 0.0d0, 0.0d0
+	v0 = 1.0d0, 0.0d0, 0.0d0
  /
 

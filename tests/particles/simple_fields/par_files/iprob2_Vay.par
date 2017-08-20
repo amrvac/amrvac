@@ -1,11 +1,11 @@
 !This is the gyration test
  &filelist
-        base_filename = '_GCA2_e'
+        base_filename = '_Vay2'
  /
 
  &particles_list
-        physics_type_particles='gca'
-        npayload=14
+        physics_type_particles='Vay'
+        npayload=1
  /
 
  &stoplist
@@ -26,10 +26,7 @@
  /
 
  &my_list
-        x0 = 0.0d0, 0.0d0, 0.0d0
-        v0 = -0.5d0, 0.0d0, 0.0d0
-	charge = -1
-	mass = 0.000544625d0
-
+        x0 = 0.0d0, 0.5d0, 0.0d0
+        v0 = 0.5d0, 0.0d0, 0.0d0
  /
 
