@@ -5,10 +5,11 @@
  &particles_list
         physics_type_particles='lfimp'
         npayload=2
+	const_dt_particles = 5.0d-4
  /
 
  &stoplist
-        time_max = 62.8318530717958
+        time_max = 62.8318530717958 !12.5663706143591 
  /
 
  &meshlist

@@ -5,6 +5,7 @@
  &particles_list
         physics_type_particles='Vay'
         npayload=2
+	const_dt_particles = 5.0d-4
  /
 
  &stoplist

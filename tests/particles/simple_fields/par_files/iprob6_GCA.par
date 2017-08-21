@@ -5,6 +5,7 @@
  &particles_list
         physics_type_particles='gca'
         npayload=14
+	const_dt_particles = 5.0d-4
  /
 
  &stoplist

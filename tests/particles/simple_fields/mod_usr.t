@@ -157,7 +157,7 @@ contains
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
       ! x is in cm
-      B = [-x(1) * x(3), -x(2) * x(3), 1d4 + x(3)**2]*1.0d3
+      B = 1.0d2*[-x(1) * x(3), -x(2) * x(3), 1.0d4 + x(3)**2]*1.0d-4
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
@@ -172,8 +172,9 @@ contains
       B = [x(2), x(1), 0.0d0] * 1d-2
     case (9)
       ! electromagnetic two-body problem
-      !E = 
-      !B = 
+      E = -1.0d0*const_c * 0.1d0*[x(1), x(2), 0.0d0] / &
+           (x(1)**2 + x(2)**2 + x(3)**2)**(5.0d0/2.0d0)
+      B = [0.0d0, 0.0d0, 0.0d0]
     case default
       call mpistop("Unknown value for iprob")
     end select
