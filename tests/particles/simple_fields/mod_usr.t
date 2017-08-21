@@ -123,6 +123,7 @@ contains
     v = v * 1d2             ! to cm/s
     q = q * const_c * 0.1d0 ! A unit charge converted to CGS units
     m = m * 1d3             ! kg to gram
+    !print*,'mass in cgs:',m,'charge in cgs:',q,'q/m ratio',q/m
   end subroutine generate_particles
 
   ! Return field at location x (in SI units: Tesla, V/m)
@@ -156,7 +157,7 @@ contains
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
       ! x is in cm
-      B = [-x(1) * x(3), -x(2) * x(3), 1d4 + x(3)**2] * 1d-4
+      B = [-x(1) * x(3), -x(2) * x(3), 1d4 + x(3)**2]*1.0d3
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
@@ -169,6 +170,10 @@ contains
       ! X-null point
       E = 0.0d0
       B = [x(2), x(1), 0.0d0] * 1d-2
+    case (9)
+      ! electromagnetic two-body problem
+      !E = 
+      !B = 
     case default
       call mpistop("Unknown value for iprob")
     end select
@@ -212,7 +217,8 @@ contains
     ! Convert to CGS units
     E_field(i^D, :) = E * 1.0d6/const_c
     {end do\}
-
+  !print*,'E in cgs:',E(1) * 1.0d6/const_c, 'B in cgs',B(3) * 1.0d4
+  !print*,'E/B ratio < 1',(E(1)*1.0d6/const_c)/(B(3)*1.0d4)
   end subroutine set_custom_field
 
   subroutine get_analytic_field(ix, x, tloc, vec)
