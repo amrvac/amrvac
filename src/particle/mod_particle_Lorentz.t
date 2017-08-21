@@ -121,7 +121,7 @@ contains
            particle(ipart)%self%x,particle(ipart)%self%t,b)
       call get_vec(ep, particle(ipart)%igrid, &
            particle(ipart)%self%x,particle(ipart)%self%t,e)
-print*,'b',b
+
       ! 'Kick' particle (update velocity)
       select case(typeaxial)
 
