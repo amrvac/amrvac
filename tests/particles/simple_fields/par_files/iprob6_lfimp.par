@@ -4,17 +4,18 @@
 
  &particles_list
         physics_type_particles='lfimp'
-        npayload=1
+        npayload=2
+	const_dt_particles = 5.0d-4
  /
 
  &stoplist
-        time_max = 31.41592653589793 ! 10 * pi
+        time_max = 62.8318530717958 !12.5663706143591 
  /
 
  &meshlist
         iprob = 6
-        domain_nx1    = 16
-        domain_nx2    = 16
+        domain_nx1    = 128
+        domain_nx2    = 128
         domain_nx3    = 128
         xprobmin1     = -150.0d0
         xprobmax1     = 150.0d0
@@ -25,7 +26,7 @@
  /
 
  &my_list
-        x0 = -0.5d0, 0.0d0, 0.0d0
-        v0 = 0.0d0, 0.5d0, 0.01d0
+        x0 = -1.0d-2, 0.0d0, 0.0d0
+        v0 = 0.0d0, 1.0d0, 1.0d0
  /
 
