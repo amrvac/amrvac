@@ -55,6 +55,19 @@ module mod_hd_phys
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
+  !> Users can use a custom routine to set gamma. This needs to be done before
+  !> calling hd_phys_init.
+  procedure(set_var), public, pointer :: hd_usr_gamma => null()
+
+  interface
+     subroutine set_var(w, ixI^L, ixO^L, var)
+       use mod_global_parameters, only: nw, ndim
+       integer, intent(in)           :: ixI^L, ixO^L
+       double precision, intent(in)  :: w(ixI^S, nw)
+       double precision, intent(out) :: var(ixO^S)
+     end subroutine set_var
+  end interface
+
   ! Public methods
   public :: hd_phys_init
   public :: hd_kin_en
@@ -248,7 +261,7 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, nw)
     integer, intent(inout)       :: flag(ixI^S)
-    double precision             :: tmp(ixI^S)
+    double precision             :: tmp(ixO^S)
 
     flag(ixO^S) = 0
     where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
@@ -257,7 +270,8 @@ contains
        if (primitive) then
           where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
        else
-          tmp(ixO^S) = (hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
+          call hd_get_gamma(w, ixI^L, ixO^L, tmp)
+          tmp(ixO^S) = (tmp(ixO^S) - 1.0d0)*(w(ixO^S, e_) - &
                hd_kin_en(w, ixI^L, ixO^L))
           where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
        endif
@@ -272,7 +286,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision                :: invgam
+    double precision                :: invgam(ixO^S)
     integer                         :: idir, itr
 
     ! Convert velocity to momentum
@@ -281,13 +295,14 @@ contains
     end do
 
     if (hd_energy) then
-       invgam = 1.d0/(hd_gamma - 1.0d0)
+       call hd_get_gamma(w, ixI^L, ixO^L, invgam)
+       invgam = 1.d0/(invgam - 1.0d0)
        ! Calculate total energy from pressure and kinetic energy
        w(ixO^S, e_) = w(ixO^S, e_) * invgam + hd_kin_en(w, ixI^L, ixO^L)
     end if
 
     if (hd_dust) then
-      call dust_to_conserved(ixI^L, ixO^L, w, x)
+       call dust_to_conserved(ixI^L, ixO^L, w, x)
     end if
 
     call handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
@@ -301,11 +316,13 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: gam(ixO^S)
     integer                         :: itr, idir
 
     if (hd_energy) then
        ! Compute pressure
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
+       call hd_get_gamma(w, ixI^L, ixO^L, gam)
+       w(ixO^S, e_) = (gam - 1.0d0) * (w(ixO^S, e_) - &
             hd_kin_en(w, ixI^L, ixO^L))
     end if
 
@@ -329,9 +346,11 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L
     double precision             :: w(ixI^S, nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision             :: gam(ixO^S)
 
     if (hd_energy) then
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - hd_gamma) * &
+      call hd_get_gamma(w, ixI^L, ixO^L, gam)
+       w(ixO^S, e_) = (gam - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - gam) * &
             (w(ixO^S, e_) - hd_kin_en(w, ixI^L, ixO^L))
     else
        call mpistop("energy from entropy can not be used with -eos = iso !")
@@ -344,10 +363,12 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L
     double precision             :: w(ixI^S, nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision             :: gam(ixO^S)
 
     if (hd_energy) then
-       w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (hd_gamma - 1.0d0) + hd_kin_en(w, ixI^L, ixO^L)
+      call hd_get_gamma(w, ixI^L, ixO^L, gam)
+       w(ixO^S, e_) = w(ixO^S, rho_)**(gam - 1.0d0) * w(ixO^S, e_) &
+            / (gam - 1.0d0) + hd_kin_en(w, ixI^L, ixO^L)
     else
        call mpistop("entropy from energy can not be used with -eos = iso !")
     end if
@@ -436,12 +457,15 @@ contains
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: csound2(ixI^S)
+    double precision                :: gam(ixO^S)
 
-    if(hd_energy) then
+    call hd_get_gamma(w, ixI^L, ixO^L, gam)
+
+    if (hd_energy) then
       call hd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
-      csound2(ixO^S)=hd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
+      csound2(ixO^S)=gam*csound2(ixO^S)/w(ixO^S,rho_)
     else
-      csound2(ixO^S)=hd_gamma*hd_adiab*w(ixO^S,rho_)**(hd_gamma-one)
+      csound2(ixO^S)=gam*hd_adiab*w(ixO^S,rho_)**(gam-one)
     end if
   end subroutine hd_get_csound2
 
@@ -449,16 +473,19 @@ contains
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
 
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw)
-    double precision, intent(in) :: x(ixI^S, 1:ndim)
-    double precision, intent(out):: pth(ixI^S)
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision, intent(in)  :: x(ixI^S, 1:ndim)
+    double precision, intent(out) :: pth(ixI^S)
+    double precision              :: gam(ixO^S)
+
+    call hd_get_gamma(w, ixI^L, ixO^L, gam)
 
     if (hd_energy) then
-       pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
+       pth(ixO^S) = (gam - 1.0d0) * (w(ixO^S, e_) - &
             hd_kin_en(w, ixI^L, ixO^L))
     else
-       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**gam
     end if
 
   end subroutine hd_get_pthermal
@@ -667,6 +694,19 @@ contains
     ! Can make this more robust
     inv_rho = 1.0d0 / w(ixO^S, rho_)
   end function hd_inv_rho
+
+  subroutine hd_get_gamma(w, ixI^L, ixO^L, gam)
+    use mod_global_parameters, only: nw, ndim
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision, intent(out) :: gam(ixO^S)
+
+    if (associated(hd_usr_gamma)) then
+       call hd_usr_gamma(w, ixI^L, ixO^L, gam)
+    else
+       gam = hd_gamma
+    end if
+  end subroutine hd_get_gamma
 
   subroutine handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
