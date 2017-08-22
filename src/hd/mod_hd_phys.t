@@ -139,7 +139,7 @@ contains
 
     ! Set starting index of tracers
     do itr = 1, hd_n_tracer
-       tracer(itr) = var_set_fluxvar("trc", "trp", itr)
+       tracer(itr) = var_set_fluxvar("tr", "tr", itr)
     end do
 
     phys_get_dt          => hd_get_dt
@@ -286,10 +286,6 @@ contains
        w(ixO^S, e_) = w(ixO^S, e_) * invgam + hd_kin_en(w, ixI^L, ixO^L)
     end if
 
-    do itr = 1, hd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
-    end do
-
     if (hd_dust) then
       call dust_to_conserved(ixI^L, ixO^L, w, x)
     end if
@@ -316,10 +312,6 @@ contains
     ! Convert momentum to velocity
     do idir = 1, ndir
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * hd_inv_rho(w, ixI^L, ixO^L)
-    end do
-
-    do itr = 1, hd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * hd_inv_rho(w, ixI^L, ixO^L)
     end do
 
     ! Convert dust momentum to dust velocity
