@@ -1,0 +1,31 @@
+ &filelist
+        base_filename = '_Lorentz9'
+ /
+
+ &particles_list
+        physics_type_particles='Lorentz'
+        npayload=1
+ /
+
+ &stoplist
+        time_max = 10000.0
+ /
+
+ &meshlist
+        iprob = 7
+        domain_nx1    = 128
+        domain_nx2    = 128
+        domain_nx3    = 128
+        xprobmin1     = -150.0d6
+        xprobmax1     = 150.0d6
+        xprobmin2     = -150.0d6
+        xprobmax2     = 150.0d6
+        xprobmin3     = -150.0d6
+        xprobmax3     = 150.0d6
+ /
+
+ &my_list
+        x0 = -1.0d-2, -1.0d-2, 0.0d0
+        v0 = 1.0d0, 1.0d0, 0.0d0
+ /
+

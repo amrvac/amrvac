@@ -171,9 +171,10 @@ contains
       E = 0.0d0
       B = [x(2), x(1), 0.0d0] * 1d-2
     case (9)
-      ! electromagnetic two-body problem
-      E = -1.0d0*const_c * 0.1d0*[x(1), x(2), 0.0d0] / &
-           (x(1)**2 + x(2)**2 + x(3)**2)**(5.0d0/2.0d0)
+      ! electromagnetic two-body problem. x is in cm 
+      ! Q=-1 (attracting central electron surrounded by positron)
+      E = -1.0d0 * 1.0d28 * [x(1), x(2), 0.0d0] / &
+           (x(1)**2 + x(2)**2 + x(3)**2)**(3.0d0/2.0d0)
       B = [0.0d0, 0.0d0, 0.0d0]
     case default
       call mpistop("Unknown value for iprob")
