@@ -101,7 +101,7 @@ contains
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
 
     select case (typelimiter)
-    case ('mp5')
+    case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
     case default 
 
@@ -139,7 +139,7 @@ contains
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
 
     select case (typelimiter)
-    case ('mp5')
+    case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
     case default 
 

@@ -478,7 +478,7 @@ hxC^L=gxC^L+kr(idir,^D);
 ! set the gradient limiter here
 qR(gxC^S) = q(hxC^S)
 qL(gxC^S) = q(gxC^S)
-if (typegradlimiter/='ppm') then
+if (typegradlimiter/=limiter_ppm) then
    dxdim=dxlevel(idir)
    dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
    call dwlimiter2(dqC,ixI^L,gxC^L,idir,dxdim,typegradlimiter,ldw=ldq,rdw=rdq)
@@ -690,7 +690,7 @@ do idims=1,ndim
    hxC^L=gxC^L+kr(idims,^D);
    qR(gxC^S) = qvec(hxC^S,idims)
    qL(gxC^S) = qvec(gxC^S,idims)
-   if(typegradlimiter/='ppm') then
+   if(typegradlimiter/=limiter_ppm) then
       dxdim=dxlevel(idims)
       dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
       call dwlimiter2(dqC,ixI^L,gxC^L,idims,dxdim,typegradlimiter,ldw=ldq,rdw=rdq)

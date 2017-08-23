@@ -6,13 +6,59 @@ module mod_limiter
   implicit none
   public
 
+  integer, parameter :: limiter_minmod = 1
+  integer, parameter :: limiter_woodward = 2
+  integer, parameter :: limiter_mcbeta = 3
+  integer, parameter :: limiter_superbee = 4
+  integer, parameter :: limiter_vanleer = 5
+  integer, parameter :: limiter_albada = 6
+  integer, parameter :: limiter_koren = 7
+  integer, parameter :: limiter_cada = 8
+  integer, parameter :: limiter_cada3 = 9
+  ! Special cases
+  integer, parameter :: limiter_ppm = 10
+  integer, parameter :: limiter_mp5 = 11
+
 contains
 
+  integer function limiter_type(namelim)
+    character(len=*), intent(in) :: namelim
+
+    select case (namelim)
+    case ('minmod')
+       limiter_type = limiter_minmod
+    case ('woodward')
+       limiter_type = limiter_woodward
+    case ('mcbeta')
+       limiter_type = limiter_mcbeta
+    case ('superbee')
+       limiter_type = limiter_superbee
+    case ('vanleer')
+       limiter_type = limiter_vanleer
+    case ('albada')
+       limiter_type = limiter_albada
+    case ('koren')
+       limiter_type = limiter_koren
+    case ('cada')
+       limiter_type = limiter_cada
+    case ('cada3')
+       limiter_type = limiter_cada3
+    case ('ppm')
+       limiter_type = limiter_ppm
+    case ('mp5')
+       limiter_type = limiter_mp5
+    case default
+       limiter_type = -1
+       write(*,*) 'Unknown limiter: ', namelim
+       call mpistop("No such limiter")
+    end select
+  end function limiter_type
+
   pure logical function limiter_symmetric(typelim)
-    character(len=*), intent(in) :: typelim
+    integer, intent(in) :: typelim
 
     select case (typelim)
-    case ("koren", "cada", "cada3")
+    case (limiter_koren, limiter_cada, limiter_cada3)
        limiter_symmetric = .false.
     case default
        limiter_symmetric = .true.
@@ -27,14 +73,14 @@ contains
   !> but also from the gradientS and divvectorS subroutines in geometry.t
   !> Accordingly, the typelimiter here corresponds to one of limiter
   !> or one of gradient_limiter.
-  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdim,qtypelimiter,ldw,rdw)
+  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdim,typelim,ldw,rdw)
 
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixC^L, idims
     double precision, intent(in) :: dxdim
     double precision, intent(in) :: dwC(ixI^S)
-    character(len=std_len), intent(in) :: qtypelimiter
+    integer, intent(in) :: typelim
     !> Result using left-limiter (same as right for symmetric)
     double precision, intent(out), optional :: ldw(ixI^S)
     !> Result using right-limiter (same as right for symmetric)
@@ -59,48 +105,48 @@ contains
     ! Store the sign of dwC in tmp
     tmp(ixO^S)=sign(one,dwC(ixO^S))
 
-    select case (qtypelimiter)
-    case ('minmod')
+    select case (typelim)
+    case (limiter_minmod)
        ! Minmod limiter eq(3.51e) and (eq.3.38e) with omega=1
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
-    case ('woodward')
+    case (limiter_woodward)
        ! Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
        tmp(ixO^S)=two*tmp(ixO^S)* &
             max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*quarter*(dwC(hxO^S)+dwC(ixO^S))))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
-    case ('mcbeta')
+    case (limiter_mcbeta)
        ! Woodward and Collela limiter, with factor beta
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(mcbeta*dabs(dwC(ixO^S)),mcbeta*tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*half*(dwC(hxO^S)+dwC(ixO^S))))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
-    case ('superbee')
+    case (limiter_superbee)
        ! Roes superbee limiter (eq.3.51i)
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(two*dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)),&
             min(dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S)))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
-    case ('vanleer')
+    case (limiter_vanleer)
        ! van Leer limiter (eq 3.51f), but a missing delta2=1.D-12 is added
        tmp(ixO^S)=two*max(dwC(hxO^S)*dwC(ixO^S),zero) &
             /(dwC(ixO^S)+dwC(hxO^S)+qsmall)
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
-    case ('albada')
+    case (limiter_albada)
        ! Albada limiter (eq.3.51g) with delta2=1D.-12
        tmp(ixO^S)=(dwC(hxO^S)*(dwC(ixO^S)**2+qsmall)&
             +dwC(ixO^S)*(dwC(hxO^S)**2+qsmall))&
             /(dwC(ixO^S)**2+dwC(hxO^S)**2+qsmall2)
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
-    case ('koren')
+    case (limiter_koren)
        if (present(ldw)) then
           ldw(ixO^S)=tmp(ixO^S)* &
                max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
@@ -111,7 +157,7 @@ contains
                max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
                (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third))
        end if
-    case ('cada')
+    case (limiter_cada)
        if (present(rdw)) then
           ! Cada Right variant
           rdw(ixO^S)=tmp(ixO^S)* &
@@ -130,7 +176,7 @@ contains
                (two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
                cadgamma*dabs(dwC(ixO^S))))))
        end if
-    case ('cada3')
+    case (limiter_cada3)
        rdelinv=one/(cadradius*dxdim)**2
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
 
@@ -173,8 +219,7 @@ contains
        end if
 
     case default
-       write(*,*)'Unknown limiter:',qtypelimiter
-       call mpistop("Error in dwLimiter: No such TVD limiter")
+       call mpistop("Error in dwLimiter: unknown limiter")
     end select
 
   end subroutine dwlimiter2

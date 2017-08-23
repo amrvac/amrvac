@@ -89,6 +89,7 @@ contains
     use mod_global_parameters
     use mod_physics, only: physics_type
     use mod_small_values
+    use mod_limiter
 
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
@@ -103,6 +104,9 @@ contains
     character(len=std_len) :: basename_full, basename_prev, dummy_file
     character(len=std_len), dimension(:), allocatable :: &
          typeboundary_min^D, typeboundary_max^D
+    character(len=std_len), allocatable :: limiter(:)
+    character(len=std_len), allocatable :: gradient_limiter(:)
+
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
     double precision :: dtsave_log, dtsave_dat, dtsave_slice, &
@@ -618,6 +622,15 @@ contains
           if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
        end select
     end if
+
+    ! Type limiter is of integer type for performance
+    allocate(type_limiter(nlevelshi))
+    allocate(type_gradient_limiter(nlevelshi))
+
+    do level=1,nlevelshi
+       type_limiter(level) = limiter_type(limiter(level))
+       type_gradient_limiter(level) = limiter_type(gradient_limiter(level))
+    end do
 
     !if (any(limiter(1:nlevelshi)== 'ppm')&
     !     .and.(flatsh.and.physics_type=='rho')) then

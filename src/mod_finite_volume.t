@@ -557,9 +557,9 @@ contains
        call phys_to_primitive(ixI^L,ixI^L,w,x)
     end if
 
-    if (typelimiter == 'mp5') then
+    if (typelimiter == limiter_mp5) then
        call MP5limiter(ixI^L,ixL^L,idim,w,wLC,wRC)
-    else if (typelimiter == 'ppm') then
+    else if (typelimiter == limiter_ppm) then
        call PPMlimiter(ixI^L,ixM^LL,idim,w,wCT,wLC,wRC)
     else
        jxR^L=ixR^L+kr(idim,^D);

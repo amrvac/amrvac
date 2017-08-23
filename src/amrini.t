@@ -51,8 +51,8 @@ saveigrid=igrid
 ! in case gradient routine used in initial condition, ensure geometry known
 block=>pw(igrid)
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-typelimiter=limiter(node(plevel_,igrid))
-typegradlimiter=gradient_limiter(node(plevel_,igrid))
+typelimiter=type_limiter(node(plevel_,igrid))
+typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
 if (.not. associated(usr_init_one_grid)) then
    call mpistop("usr_init_one_grid not defined")
@@ -73,8 +73,8 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
    block=>pw(igrid)
    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-   typelimiter=limiter(node(plevel_,igrid))
-   typegradlimiter=gradient_limiter(node(plevel_,igrid))
+   typelimiter=type_limiter(node(plevel_,igrid))
+   typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
    if (.not. associated(usr_init_one_grid)) then
       call mpistop("usr_init_one_grid not defined")
