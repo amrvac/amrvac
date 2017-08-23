@@ -113,7 +113,7 @@ contains
     integer                       :: n
 
     do n = 1, n_particles
-      call get_particle(x(:, n), v(:, n), q(n), m(n), n, iprob)
+      call get_particle(x(:, n), v(:, n), q(n), m(n), n, n_particles, iprob)
     end do
 
     follow(:) = .true.
@@ -186,15 +186,21 @@ contains
   end subroutine get_field
 
   ! Set particle properties (in SI units)
-  subroutine get_particle(x, v, q, m, ipart, iprob)
+  subroutine get_particle(x, v, q, m, ipart, n_particles, iprob)
     double precision, intent(out) :: x(3), v(3), q, m
-    integer, intent(in)           :: ipart, iprob
+    integer, intent(in)           :: ipart, iprob, n_particles
 
     q = charge
     m = mass
 
     x = x0
-    v = v0
+
+    select case (iprob)
+    case (5)
+       v = (v0 * ipart) / n_particles
+    case default
+       v = v0
+    end select
   end subroutine get_particle
 
   subroutine set_custom_field(w, x, E_field, B_field)
