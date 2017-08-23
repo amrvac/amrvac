@@ -547,11 +547,10 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer :: jxR^L, ixC^L, jxC^L, iw
-    double precision :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
-    double precision :: ldw(ixI^S), dwC(ixI^S)
-    integer :: flagL(ixI^S), flagR(ixI^S)
-    character(std_len) :: qtypelimiter
+    integer            :: jxR^L, ixC^L, jxC^L, iw
+    double precision   :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
+    double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
+    integer            :: flagL(ixI^S), flagR(ixI^S)
 
     ! Transform w,wL,wR to primitive variables
     if (needprim) then
@@ -567,7 +566,6 @@ contains
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idim,^D);
        jxC^L=ixC^L+kr(idim,^D);
 
-       qtypelimiter=typelimiter
        do iw=1,nwflux
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))
@@ -577,19 +575,10 @@ contains
 
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          ! limit flux from left
-          if(typelimiter=='koren') qtypelimiter='korenL'
-          if(typelimiter=='cada')  qtypelimiter='cadaL'
-          if(typelimiter=='cada3') qtypelimiter='cada3L'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim,qtypelimiter)
+          ! limit flux from left and/or right
+          call dwlimiter2(dwC,ixI^L,ixC^L,idim,dxdim,typelimiter,ldw,rdw)
           wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
-
-          ! limit flux from right
-          if(typelimiter=='koren') qtypelimiter='korenR'
-          if(typelimiter=='cada')  qtypelimiter='cadaR'
-          if(typelimiter=='cada3') qtypelimiter='cada3R'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idim,ldw,dxdim,qtypelimiter)
-          wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*ldw(jxR^S)
+          wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*rdw(jxR^S)
 
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=10.0d0**w(ixCmin^D:jxCmax^D,iw)
