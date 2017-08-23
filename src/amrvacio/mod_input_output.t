@@ -180,13 +180,13 @@ contains
 
     ! Allocate boundary conditions arrays in new and old style
     {
-    allocate(typeboundary_min^D(nw))
-    allocate(typeboundary_max^D(nw))
+    allocate(typeboundary_min^D(nwflux))
+    allocate(typeboundary_max^D(nwflux))
     typeboundary_min^D = undefined
     typeboundary_max^D = undefined
     }
 
-    allocate(typeboundary(nw, 2 * ndim))
+    allocate(typeboundary(nwflux, 2 * ndim))
     typeboundary(:, :) = undefined
 
     internalboundary   = .false.
@@ -664,7 +664,7 @@ contains
        periodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='periodic'))
        aperiodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='aperiodic'))
        if (periodB(idim).or.aperiodB(idim)) then
-          do iw=1,nw
+          do iw=1,nwflux
              if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
 

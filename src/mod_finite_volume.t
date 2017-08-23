@@ -587,6 +587,7 @@ contains
           end if
        end do
 
+       ! TODO: does this actually help? if not, remove
        call phys_check_w(.true., ixI^L, ixL^L, wLtmp, flagL)
        call phys_check_w(.true., ixI^L, ixR^L, wRtmp, flagR)
 
