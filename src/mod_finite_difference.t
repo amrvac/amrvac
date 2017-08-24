@@ -99,10 +99,9 @@ contains
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
-    character(len=std_len)          :: qtypelimiter
 
     select case (typelimiter)
-    case ('mp5')
+    case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
     case default 
 
@@ -118,11 +117,7 @@ contains
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          qtypelimiter=typelimiter
-          if(typelimiter=='koren') qtypelimiter='korenL'
-          if(typelimiter=='cada')  qtypelimiter='cadaL'
-          if(typelimiter=='cada3') qtypelimiter='cada3L'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims,qtypelimiter)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdims,typelimiter,ldw=ldw)
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
        end do
@@ -140,12 +135,11 @@ contains
 
     double precision, intent(out)   :: wRC(ixI^S,1:nw) 
 
-    double precision                :: ldw(ixI^S), dwC(ixI^S)
+    double precision                :: rdw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
-    character(len=std_len)          :: qtypelimiter
 
     select case (typelimiter)
-    case ('mp5')
+    case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
     case default 
 
@@ -160,14 +154,9 @@ contains
 
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdims,typelimiter,rdw=rdw)
 
-          qtypelimiter=typelimiter
-          if(typelimiter=='koren') qtypelimiter='korenR'
-          if(typelimiter=='cada')  qtypelimiter='cadaR'
-          if(typelimiter=='cada3') qtypelimiter='cada3R'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims,qtypelimiter)
-
-          wRC(iL^S,iw)=wRC(iL^S,iw)-half*ldw(jxR^S)
+          wRC(iL^S,iw)=wRC(iL^S,iw)-half*rdw(jxR^S)
        end do
     end select
 

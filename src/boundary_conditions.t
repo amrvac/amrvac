@@ -203,8 +203,8 @@ do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
 !do iigrid=1,igridstail; igrid=igrids(iigrid);
    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
    block=>pw(igrid)
-   typelimiter=limiter(node(plevel_,igrid))
-   typegradlimiter=gradient_limiter(node(plevel_,igrid))
+   typelimiter=type_limiter(node(plevel_,igrid))
+   typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
    level=node(plevel_,igrid)
    saveigrid=igrid
 

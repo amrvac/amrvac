@@ -239,8 +239,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       block=>pw(igrid)
-      typelimiter=limiter(node(plevel_,igrid))
-      typegradlimiter=gradient_limiter(node(plevel_,igrid))
+      typelimiter=type_limiter(node(plevel_,igrid))
+      typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       call evolve_step1(igrid,cmut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,pw(igrid)%w,&
                         pw(igrid)%x,pw(igrid)%w3)
@@ -282,8 +282,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           block=>pw(igrid)
-          typelimiter=limiter(node(plevel_,igrid))
-          typegradlimiter=gradient_limiter(node(plevel_,igrid))
+          typelimiter=type_limiter(node(plevel_,igrid))
+          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,&
                             pw(igrid)%w2,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)
@@ -302,8 +302,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           block=>pw(igrid)
-          typelimiter=limiter(node(plevel_,igrid))
-          typegradlimiter=gradient_limiter(node(plevel_,igrid))
+          typelimiter=type_limiter(node(plevel_,igrid))
+          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w2,&
                             pw(igrid)%w1,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)

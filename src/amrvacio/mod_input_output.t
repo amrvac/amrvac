@@ -89,6 +89,7 @@ contains
     use mod_global_parameters
     use mod_physics, only: physics_type
     use mod_small_values
+    use mod_limiter
 
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
@@ -103,6 +104,9 @@ contains
     character(len=std_len) :: basename_full, basename_prev, dummy_file
     character(len=std_len), dimension(:), allocatable :: &
          typeboundary_min^D, typeboundary_max^D
+    character(len=std_len), allocatable :: limiter(:)
+    character(len=std_len), allocatable :: gradient_limiter(:)
+
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
     double precision :: dtsave_log, dtsave_dat, dtsave_slice, &
@@ -176,13 +180,13 @@ contains
 
     ! Allocate boundary conditions arrays in new and old style
     {
-    allocate(typeboundary_min^D(nw))
-    allocate(typeboundary_max^D(nw))
+    allocate(typeboundary_min^D(nwflux))
+    allocate(typeboundary_max^D(nwflux))
     typeboundary_min^D = undefined
     typeboundary_max^D = undefined
     }
 
-    allocate(typeboundary(nw, 2 * ndim))
+    allocate(typeboundary(nwflux, 2 * ndim))
     typeboundary(:, :) = undefined
 
     internalboundary   = .false.
@@ -619,6 +623,15 @@ contains
        end select
     end if
 
+    ! Type limiter is of integer type for performance
+    allocate(type_limiter(nlevelshi))
+    allocate(type_gradient_limiter(nlevelshi))
+
+    do level=1,nlevelshi
+       type_limiter(level) = limiter_type(limiter(level))
+       type_gradient_limiter(level) = limiter_type(gradient_limiter(level))
+    end do
+
     !if (any(limiter(1:nlevelshi)== 'ppm')&
     !     .and.(flatsh.and.physics_type=='rho')) then
     !   call mpistop(" PPM with flatsh=.true. can not be used with physics_type='rho'!")
@@ -651,7 +664,7 @@ contains
        periodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='periodic'))
        aperiodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='aperiodic'))
        if (periodB(idim).or.aperiodB(idim)) then
-          do iw=1,nw
+          do iw=1,nwflux
              if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
 

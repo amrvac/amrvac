@@ -6,7 +6,64 @@ module mod_limiter
   implicit none
   public
 
+  integer, parameter :: limiter_minmod = 1
+  integer, parameter :: limiter_woodward = 2
+  integer, parameter :: limiter_mcbeta = 3
+  integer, parameter :: limiter_superbee = 4
+  integer, parameter :: limiter_vanleer = 5
+  integer, parameter :: limiter_albada = 6
+  integer, parameter :: limiter_koren = 7
+  integer, parameter :: limiter_cada = 8
+  integer, parameter :: limiter_cada3 = 9
+  ! Special cases
+  integer, parameter :: limiter_ppm = 10
+  integer, parameter :: limiter_mp5 = 11
+
 contains
+
+  integer function limiter_type(namelim)
+    character(len=*), intent(in) :: namelim
+
+    select case (namelim)
+    case ('minmod')
+       limiter_type = limiter_minmod
+    case ('woodward')
+       limiter_type = limiter_woodward
+    case ('mcbeta')
+       limiter_type = limiter_mcbeta
+    case ('superbee')
+       limiter_type = limiter_superbee
+    case ('vanleer')
+       limiter_type = limiter_vanleer
+    case ('albada')
+       limiter_type = limiter_albada
+    case ('koren')
+       limiter_type = limiter_koren
+    case ('cada')
+       limiter_type = limiter_cada
+    case ('cada3')
+       limiter_type = limiter_cada3
+    case ('ppm')
+       limiter_type = limiter_ppm
+    case ('mp5')
+       limiter_type = limiter_mp5
+    case default
+       limiter_type = -1
+       write(*,*) 'Unknown limiter: ', namelim
+       call mpistop("No such limiter")
+    end select
+  end function limiter_type
+
+  pure logical function limiter_symmetric(typelim)
+    integer, intent(in) :: typelim
+
+    select case (typelim)
+    case (limiter_koren, limiter_cada, limiter_cada3)
+       limiter_symmetric = .false.
+    case default
+       limiter_symmetric = .true.
+    end select
+  end function limiter_symmetric
 
   !> Limit the centered dwC differences within ixC for iw in direction idim.
   !> The limiter is chosen according to typelimiter.
@@ -16,15 +73,18 @@ contains
   !> but also from the gradientS and divvectorS subroutines in geometry.t
   !> Accordingly, the typelimiter here corresponds to one of limiter
   !> or one of gradient_limiter.
-  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdim,qtypelimiter)
+  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdim,typelim,ldw,rdw)
 
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixC^L, idims
     double precision, intent(in) :: dxdim
     double precision, intent(in) :: dwC(ixI^S)
-    double precision, intent(out) :: ldw(ixI^S)
-    character(len=std_len), intent(in) :: qtypelimiter
+    integer, intent(in) :: typelim
+    !> Result using left-limiter (same as right for symmetric)
+    double precision, intent(out), optional :: ldw(ixI^S)
+    !> Result using right-limiter (same as right for symmetric)
+    double precision, intent(out), optional :: rdw(ixI^S)
 
     double precision :: tmp(ixI^S)
     integer :: ixO^L, hxO^L
@@ -44,102 +104,122 @@ contains
 
     ! Store the sign of dwC in tmp
     tmp(ixO^S)=sign(one,dwC(ixO^S))
-    rdelinv=one/(cadradius*dxdim)**2
 
-    select case (qtypelimiter)
-    case ('minmod')
+    select case (typelim)
+    case (limiter_minmod)
        ! Minmod limiter eq(3.51e) and (eq.3.38e) with omega=1
-       ldw(ixO^S)=tmp(ixO^S)* &
+       tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
-    case ('woodward')
+       if (present(ldw)) ldw = tmp
+       if (present(rdw)) rdw = tmp
+    case (limiter_woodward)
        ! Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
-       ldw(ixO^S)=two*tmp(ixO^S)* &
+       tmp(ixO^S)=two*tmp(ixO^S)* &
             max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*quarter*(dwC(hxO^S)+dwC(ixO^S))))
-    case ('mcbeta')
+       if (present(ldw)) ldw = tmp
+       if (present(rdw)) rdw = tmp
+    case (limiter_mcbeta)
        ! Woodward and Collela limiter, with factor beta
-       ldw(ixO^S)=tmp(ixO^S)* &
+       tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(mcbeta*dabs(dwC(ixO^S)),mcbeta*tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*half*(dwC(hxO^S)+dwC(ixO^S))))
-    case ('superbee')
+       if (present(ldw)) ldw = tmp
+       if (present(rdw)) rdw = tmp
+    case (limiter_superbee)
        ! Roes superbee limiter (eq.3.51i)
-       ldw(ixO^S)=tmp(ixO^S)* &
+       tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(two*dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)),&
             min(dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S)))
-    case ('vanleer')
+       if (present(ldw)) ldw = tmp
+       if (present(rdw)) rdw = tmp
+    case (limiter_vanleer)
        ! van Leer limiter (eq 3.51f), but a missing delta2=1.D-12 is added
-       ldw(ixO^S)=two*max(dwC(hxO^S)*dwC(ixO^S),zero) &
+       tmp(ixO^S)=two*max(dwC(hxO^S)*dwC(ixO^S),zero) &
             /(dwC(ixO^S)+dwC(hxO^S)+qsmall)
-    case ('albada')
+       if (present(ldw)) ldw = tmp
+       if (present(rdw)) rdw = tmp
+    case (limiter_albada)
        ! Albada limiter (eq.3.51g) with delta2=1D.-12
-       ldw(ixO^S)=(dwC(hxO^S)*(dwC(ixO^S)**2+qsmall)&
+       tmp(ixO^S)=(dwC(hxO^S)*(dwC(ixO^S)**2+qsmall)&
             +dwC(ixO^S)*(dwC(hxO^S)**2+qsmall))&
             /(dwC(ixO^S)**2+dwC(hxO^S)**2+qsmall2)
-    case ('korenR')
-       ! Barry Koren Right variant
-       ldw(ixO^S)=tmp(ixO^S)* &
-            max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
-            (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third))
-    case ('korenL')
-       ! Barry Koren Left variant
-       ldw(ixO^S)=tmp(ixO^S)* &
-            max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
-            (dwC(hxO^S)*tmp(ixO^S)+two*dabs(dwC(ixO^S)))*third))
-    case ('cadaR')
-       ! Cada Right variant
-       ldw(ixO^S)=tmp(ixO^S)* &
-            max(zero,min((two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-            max(-cadalfa*dabs(dwC(ixO^S)),                     &
-            min(cadbeta*dabs(dwC(ixO^S)),                  &
-            (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-            cadgamma*tmp(ixO^S)*dwC(hxO^S)))))
-    case ('cadaL')
-       ! Cada Left variant
-       ldw(ixO^S)=tmp(ixO^S)* &
-            max(zero,min((two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-            max(-cadalfa*tmp(ixO^S)*dwC(hxO^S),                     &
-            min(cadbeta*tmp(ixO^S)*dwC(hxO^S),                  &
-            (two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-            cadgamma*dabs(dwC(ixO^S))))))
-    case ('cada3R')
+       if (present(ldw)) ldw = tmp
+       if (present(rdw)) rdw = tmp
+    case (limiter_koren)
+       if (present(ldw)) then
+          ldw(ixO^S)=tmp(ixO^S)* &
+               max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
+               (dwC(hxO^S)*tmp(ixO^S)+two*dabs(dwC(ixO^S)))*third))
+       end if
+       if (present(rdw)) then
+          rdw(ixO^S)=tmp(ixO^S)* &
+               max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
+               (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third))
+       end if
+    case (limiter_cada)
+       if (present(rdw)) then
+          ! Cada Right variant
+          rdw(ixO^S)=tmp(ixO^S)* &
+               max(zero,min((two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
+               max(-cadalfa*dabs(dwC(ixO^S)),                     &
+               min(cadbeta*dabs(dwC(ixO^S)),                  &
+               (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
+               cadgamma*tmp(ixO^S)*dwC(hxO^S)))))
+       end if
+       if (present(ldw)) then
+          ! Cada Left variant
+          ldw(ixO^S)=tmp(ixO^S)* &
+               max(zero,min((two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
+               max(-cadalfa*tmp(ixO^S)*dwC(hxO^S),                     &
+               min(cadbeta*tmp(ixO^S)*dwC(hxO^S),                  &
+               (two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
+               cadgamma*dabs(dwC(ixO^S))))))
+       end if
+    case (limiter_cada3)
+       rdelinv=one/(cadradius*dxdim)**2
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
-       ldwA(ixO^S)=(two*dwC(hxO^S)+dwC(ixO^S))*third
-       ldwB(ixO^S)=tmp(ixO^S)* &
-            max(zero,min((two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-            max(-cadalfa*dabs(dwC(ixO^S)),                     &
-            min(cadbeta*dabs(dwC(ixO^S)),                  &
-            (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-            cadgamma*tmp(ixO^S)*dwC(hxO^S)))))
-       where(tmpeta(ixO^S)<=one-cadepsilon)
-          ldw(ixO^S)=ldwA(ixO^S)
-       elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
-          ldw(ixO^S)=ldwB(ixO^S)
-       elsewhere
-          tmp(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-          ldw(ixO^S)=half*( (one-tmp(ixO^S))*ldwA(ixO^S) &
-               +(one+tmp(ixO^S))*ldwB(ixO^S))
-       endwhere
-    case ('cada3L')
-       tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
-       ldwA(ixO^S)=(two*dwC(ixO^S)+dwC(hxO^S))*third
-       ldwB(ixO^S)=tmp(ixO^S)* &
-            max(zero,min((two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-            max(-cadalfa*tmp(ixO^S)*dwC(hxO^S),                     &
-            min(cadbeta*tmp(ixO^S)*dwC(hxO^S),                  &
-            (two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-            cadgamma*dabs(dwC(ixO^S))))))
-       where(tmpeta(ixO^S)<=one-cadepsilon)
-          ldw(ixO^S)=ldwA(ixO^S)
-       elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
-          ldw(ixO^S)=ldwB(ixO^S)
-       elsewhere
-          tmp(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-          ldw(ixO^S)=half*( (one-tmp(ixO^S))*ldwA(ixO^S) &
-               +(one+tmp(ixO^S))*ldwB(ixO^S))
-       endwhere
+
+       if (present(ldw)) then
+          ldwA(ixO^S)=(two*dwC(ixO^S)+dwC(hxO^S))*third
+          ldwB(ixO^S)=tmp(ixO^S)* &
+               max(zero,min((two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
+               max(-cadalfa*tmp(ixO^S)*dwC(hxO^S),                     &
+               min(cadbeta*tmp(ixO^S)*dwC(hxO^S),                  &
+               (two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
+               cadgamma*dabs(dwC(ixO^S))))))
+          where(tmpeta(ixO^S)<=one-cadepsilon)
+             ldw(ixO^S)=ldwA(ixO^S)
+          elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
+             ldw(ixO^S)=ldwB(ixO^S)
+          elsewhere
+             tmp(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
+             ldw(ixO^S)=half*( (one-tmp(ixO^S))*ldwA(ixO^S) &
+                  +(one+tmp(ixO^S))*ldwB(ixO^S))
+          endwhere
+       end if
+
+       if (present(rdw)) then
+          ldwA(ixO^S)=(two*dwC(hxO^S)+dwC(ixO^S))*third
+          ldwB(ixO^S)=tmp(ixO^S)* &
+               max(zero,min((two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
+               max(-cadalfa*dabs(dwC(ixO^S)),                     &
+               min(cadbeta*dabs(dwC(ixO^S)),                  &
+               (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
+               cadgamma*tmp(ixO^S)*dwC(hxO^S)))))
+          where(tmpeta(ixO^S)<=one-cadepsilon)
+             rdw(ixO^S)=ldwA(ixO^S)
+          elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
+             rdw(ixO^S)=ldwB(ixO^S)
+          elsewhere
+             tmp(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
+             rdw(ixO^S)=half*( (one-tmp(ixO^S))*ldwA(ixO^S) &
+                  +(one+tmp(ixO^S))*ldwB(ixO^S))
+          endwhere
+       end if
+
     case default
-       write(*,*)'Unknown limiter:',qtypelimiter
-       call mpistop("Error in dwLimiter: No such TVD limiter")
+       call mpistop("Error in dwLimiter: unknown limiter")
     end select
 
   end subroutine dwlimiter2

@@ -32,16 +32,16 @@ $(TESTS): $(LOG_CMP)
 
 %.log: amrvac force
 	@$(RM) $@		# Remove log to prevent pass when aborted
-	mpirun -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
+	@mpirun -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
 	@if $(LOG_CMP) 1.0e-5 1.0e-8 $@ correct_output/$@ ; \
 	then echo "PASSED $@" ; \
 	else echo "** FAILED ** $@" ; \
 	fi
 
 amrvac: makefile force		# Always try to build
-	$(MAKE)
+	@$(MAKE)
 
 makefile: $(AMRVAC_DIR)/arch/amrvac.make
-	$(RM) $@
-	$(SETUP_SCRIPT) $(SETUP_FLAGS) > setup.log
+	@$(RM) $@
+	@$(SETUP_SCRIPT) $(SETUP_FLAGS) > setup.log
 
