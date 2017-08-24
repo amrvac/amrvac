@@ -124,7 +124,7 @@ contains
       tol=1.d-14
 
       nk=0
-      do while((abserrx>tol .or. abserry>tol .or. abserrz>tol) .and. nk <40)
+      do while((abserrx>tol .or. abserry>tol .or. abserrz>tol) .and. nk <10)
 
       ! START OF THE NONLINEAR CYCLE
       ! Push particle over half time step
@@ -245,7 +245,7 @@ contains
       abserrz=abs(dpkp(3))
 
       nk=nk+1
-      write(*,*) "Newton iteration #", nk, "Residuals:", abserrx, abserry, abserrz
+      !write(*,*) "Newton iteration #", nk, "Residuals:", abserrx, abserry, abserrz
       end do
       ! END OF THE NONLINEAR CYCLE
 
@@ -267,20 +267,29 @@ contains
 
       ! Time update
       particle(ipart)%self%t = particle(ipart)%self%t + dt_p
-      write(*,*) particle(ipart)%self%t
+      !write(*,*) particle(ipart)%self%t
 
       ! Payload update
       if (npayload > 0) then
         ! current gyroradius
+        call get_vec(bp, particle(ipart)%igrid, &
+           particle(ipart)%self%x,particle(ipart)%self%t,b)
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
         particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
              m / abs(q) * const_c**2
       end if
 
-      ! e.b payload
+      ! magnetic moment
       if (npayload>1) then
         particle(ipart)%payload(2) = &
+             sqrt(sum(tmp(:)**2))**2 / (2.0d0*sqrt(sum(b(:)**2))) * &
+             m * const_c**2
+      end if
+
+      ! e.b payload
+      if (npayload>2) then
+        particle(ipart)%payload(3) = &
              sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
       end if
 

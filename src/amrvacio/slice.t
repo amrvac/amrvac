@@ -668,8 +668,8 @@ end if
 
 if(nwexpand>0)then
 ! auxiliary io variables can be computed and added by user
-typelimiter=limiter(node(plevel_,igrid))
-typegradlimiter=gradient_limiter(node(plevel_,igrid))
+typelimiter=type_limiter(node(plevel_,igrid))
+typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
   block=>pw(igrid)
   ! default (no) normalization for auxiliary variables

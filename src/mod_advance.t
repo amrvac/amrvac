@@ -410,8 +410,8 @@ contains
     end if
 
     block=>pw(igrid)
-    typelimiter=limiter(node(plevel_,igrid))
-    typegradlimiter=gradient_limiter(node(plevel_,igrid))
+    typelimiter=type_limiter(node(plevel_,igrid))
+    typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
     fC=0.d0
 
@@ -496,8 +496,8 @@ contains
        ! next few lines ensure correct usage of routines like divvector etc
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        block=>pw(igrid)
-       typelimiter=limiter(node(plevel_,igrid))
-       typegradlimiter=gradient_limiter(node(plevel_,igrid))
+       typelimiter=type_limiter(node(plevel_,igrid))
+       typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
        if (associated(usr_process_grid)) then
           call usr_process_grid(igrid,level,ixG^LL,ixM^LL, &

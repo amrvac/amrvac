@@ -1,0 +1,33 @@
+ &filelist
+        base_filename = '_Lorentz6_relativistic'
+ /
+
+ &particles_list
+        physics_type_particles='Lorentz'
+        npayload=2
+	const_dt_particles = 5.0d-7
+	  dtsave_particles = 1.0d-4
+ /
+
+ &stoplist
+        time_max = 20.943951023931954923d0 !6.28318530717958d1
+ /
+
+ &meshlist
+        iprob = 6
+        domain_nx1    = 128
+        domain_nx2    = 128
+        domain_nx3    = 128
+        xprobmin1     = -500.0d10
+        xprobmax1     = 500.0d10
+        xprobmin2     = -500.0d10
+        xprobmax2     = 500.0d10
+        xprobmin3     = -500.0d10
+        xprobmax3     = 500.0d10
+ /
+
+ &my_list
+        x0 = -1.0d-2, 0.0d0, 0.0d0
+        v0 = 0.0d0, 1.0d4, 2.9828972928d8
+ /
+

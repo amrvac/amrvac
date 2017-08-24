@@ -107,15 +107,24 @@ contains
       ! Payload update
       if (npayload > 0) then
         ! current gyroradius
+        call get_vec(bp, particle(ipart)%igrid, &
+           particle(ipart)%self%x,particle(ipart)%self%t,b)
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
         particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
              m / abs(q) * const_c**2
       end if
 
-      ! e.b payload
+      ! magnetic moment
       if (npayload>1) then
         particle(ipart)%payload(2) = &
+             sqrt(sum(tmp(:)**2))**2/(2.0d0*sqrt(sum(b(:)**2)))*&
+             m * const_c**2
+      end if
+
+      ! e.b payload
+      if (npayload>2) then
+        particle(ipart)%payload(3) = &
              sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
       end if
 

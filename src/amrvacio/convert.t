@@ -141,8 +141,8 @@ end if
 
 ! next lines needed when usr_aux_output uses gradients
 ! and later on when dwlimiter2 is used 
-typelimiter=limiter(node(plevel_,igrid))
-typegradlimiter=gradient_limiter(node(plevel_,igrid))
+typelimiter=type_limiter(node(plevel_,igrid))
+typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 block=>pw(igrid)
 if(nwauxio>0)then

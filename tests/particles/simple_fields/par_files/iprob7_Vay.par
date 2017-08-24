@@ -1,19 +1,18 @@
  &filelist
-        base_filename = '_Lorentz6'
+        base_filename = '_Vay7'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
-        npayload=2
-	const_dt_particles = 5.0d-4
+        physics_type_particles='Vay'
+        npayload=1
  /
 
  &stoplist
-        time_max = 62.8318530717958
+        time_max = 100.0
  /
 
  &meshlist
-        iprob = 6
+        iprob = 7
         domain_nx1    = 128
         domain_nx2    = 128
         domain_nx3    = 128
@@ -26,7 +25,7 @@
  /
 
  &my_list
-        x0 = -1.0d-2, 0.0d0, 0.0d0
-        v0 = 0.0d0, 1.0d0, 1.0d0
+        x0 = 0.5d0, 0.5d0, 0.0d0
+        v0 = 1.0d0, 1.0d0, 1.0d0
  /
 

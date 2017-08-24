@@ -1,19 +1,20 @@
-!This is the gyration test
- &filelist
-        base_filename = '_lfimp2_e'
+!This is the force-free test 
+&filelist
+        base_filename = '_Vay3'
  /
 
  &particles_list
-        physics_type_particles='lfimp'
+        physics_type_particles='Vay'
         npayload=1
+        const_dt_particles = 5d-2
  /
 
  &stoplist
-        time_max = 31.41592653589793 ! 10 * pi
+        time_max = 10000.0d0
  /
 
  &meshlist
-        iprob = 2
+        iprob = 3
         domain_nx1    = 16
         domain_nx2    = 16
         domain_nx3    = 16
@@ -26,10 +27,7 @@
  /
 
  &my_list
-        x0 = 0.0d0, 0.000272313d0, 0.0d0
-        v0 = -0.5d0, 0.0d0, 0.0d0
-        charge = -1
-        mass = 0.000544625d0
-
+        x0 = 0.0d0, 0.0d0, 0.0d0
+        v0 = 0.0d0, 1.0d0, 0.0d0
  /
 

@@ -1,11 +1,11 @@
  &filelist
-        base_filename = '_Lorentz6'
+        base_filename = '_GCA6_smalldt'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
-        npayload=2
-	const_dt_particles = 5.0d-4
+        physics_type_particles='gca'
+        npayload=14
+	const_dt_particles = 5.0d-5
  /
 
  &stoplist
@@ -26,7 +26,7 @@
  /
 
  &my_list
-        x0 = -1.0d-2, 0.0d0, 0.0d0
+        x0 = 0.0d0, 0.0d0, 0.0d0
         v0 = 0.0d0, 1.0d0, 1.0d0
  /
 

@@ -57,8 +57,8 @@ contains
     double precision :: w1(ixG^T,nw)
 
     saveigrid=igrid
-    typelimiter=limiter(node(plevel_,igrid))
-    typegradlimiter=gradient_limiter(node(plevel_,igrid))
+    typelimiter=type_limiter(node(plevel_,igrid))
+    typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 

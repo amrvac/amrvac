@@ -688,32 +688,33 @@ contains
     double precision :: smallone
     integer :: idir, flag(ixI^S)
 
+    if (small_values_method == "ignore") return
+
     call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if (any(flag(ixO^S) /= 0)) then
-       select case (small_values_method)
-       case ("replace")
-          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
+      select case (small_values_method)
+      case ("replace")
+        where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
 
-          do idir = 1, ndir
-             where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
-          end do
+        do idir = 1, ndir
+          where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
+        end do
 
-          if (hd_energy) then
-             if(primitive) then
-               smallone = small_pressure
-             else
-               smallone = small_e
-             end if
-             where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
+        if (hd_energy) then
+          if(primitive) then
+            smallone = small_pressure
+          else
+            smallone = small_e
           end if
-       case ("average")
-          call small_values_average(ixI^L, ixO^L, w, x, flag)
-       case ("ignore")
-          continue              ! Do nothing
-       case default
-          call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
-       end select
+          where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
+        end if
+      case ("average")
+        call small_values_average(ixI^L, ixO^L, w, x, flag)
+
+      case default
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+      end select
     end if
   end subroutine handle_small_values
 

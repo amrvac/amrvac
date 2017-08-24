@@ -320,17 +320,17 @@ module mod_global_parameters
   character(len=std_len), allocatable :: typepred1(:)
 
   !> Type of slope limiter used for reconstructing variables on cell edges
-  character(len=std_len), allocatable :: limiter(:)
+  integer, allocatable :: type_limiter(:)
 
   !> Type of slope limiter used for computing gradients or divergences, when
   !> typegrad or typediv are set to 'limited'
-  character(len=std_len), allocatable :: gradient_limiter(:)
+  integer, allocatable :: type_gradient_limiter(:)
 
   !> \todo Remove / replace with limiter
-  character(len=std_len) :: typelimiter
+  integer :: typelimiter
 
   !> \todo Remove / replace with gradient_limiter
-  character(len=std_len) :: typegradlimiter
+  integer :: typegradlimiter
 
   !> Limiter used for prolongation to refined grids and ghost cells
   character(len=std_len) :: typeprolonglimit

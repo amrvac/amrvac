@@ -1,15 +1,15 @@
  &filelist
-        base_filename = '_Lorentz6'
+        base_filename = '_Lorentz6_smalldt'
  /
 
  &particles_list
         physics_type_particles='Lorentz'
         npayload=2
-	const_dt_particles = 5.0d-4
+	const_dt_particles = 5.0d-5
  /
 
  &stoplist
-        time_max = 62.8318530717958
+        time_max = 62.8318530717958d0
  /
 
  &meshlist
