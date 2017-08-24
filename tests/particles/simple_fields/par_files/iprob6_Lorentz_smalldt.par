@@ -9,7 +9,7 @@
  /
 
  &stoplist
-        time_max = 62.8318530717958
+        time_max = 62.8318530717958d0
  /
 
  &meshlist

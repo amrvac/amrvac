@@ -157,7 +157,7 @@ contains
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
       ! x is in cm
-      B = 1.0d2 * [-x(1) * x(3), -x(2) * x(3), 1.0d4 + x(3)**2] * 1.0d-4
+      B = 1.0d7 * [-x(1) * x(3), -x(2) * x(3), 1.0d10 + x(3)**2] * 1.0d-10
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
@@ -173,7 +173,7 @@ contains
     case (9)
       ! electromagnetic two-body problem. x is in cm 
       ! Q=-1 (attracting central electron surrounded by positron)
-      E = -1.0d0 * 1.0d28 * [x(1), x(2), 0.0d0] / &
+      E = -1.0d0 * 1.0d14 * [x(1), x(2), 0.0d0] / &
            (x(1)**2 + x(2)**2 + x(3)**2)**(3.0d0/2.0d0)
       B = [0.0d0, 0.0d0, 0.0d0]
     case default
