@@ -42,7 +42,7 @@ contains
     call initialize_amrvac()    ! So that we have settings available
 
     if (use_analytic_field) then
-      if (physics_type_particles /= 'Lorentz' .or. physics_type_particles /= 'Vay') &
+      if (physics_type_particles /= 'Lorentz' .and. physics_type_particles /= 'Vay') &
            call mpistop('Analytic fields only supported with Lorentz or Vay')
       usr_particle_analytic => get_analytic_field
     end if
