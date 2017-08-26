@@ -587,11 +587,11 @@ contains
              if({ ix^D==0 .and. ^D==idims | .or.}) then
                ixBmin^D=ixAmin^D-ix^D;
                ixBmax^D=ixAmax^D-ix^D;
-               Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)+Bc(ixB^S,1:ndim)
+               Bcf(ixA^S,idims)=Bcf(ixA^S,idims)+Bc(ixB^S,idims)
              end if
           {end do\}
           ! averaged b at face centers
-          Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)*0.5d0**(ndim-1)
+          Bcf(ixA^S,idims)=Bcf(ixA^S,idims)*0.5d0**(ndim-1)
           ixB^L=ixA^L+kr(idims,^D);
           qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
@@ -681,8 +681,8 @@ contains
           qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
-              !write(*,*) 'it',it,' ratio=',qvec(ix^D,idims)/qd(ix^D),' TC saturated at ',&
-              !x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
+        !      write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
+        !      x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
               qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
             end if
          {end do\}
@@ -770,43 +770,40 @@ contains
     else
       tmp(ixO^S)=tc_k_para*dsqrt(Te(ixO^S)**5)
     end if
-    !(gamma-1)*tc_k_para_i/rho
-    tmp(ixO^S)=(tc_gamma-one)*tmp(ixO^S)/w(ixO^S,rho_)
     
     ! B
     if(B0field) then
-      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+block%B0(ixO^S,1:ndir,0)
+      mf(ixO^S,:)=w(ixO^S,mag(:))+block%B0(ixO^S,:,0)
     else
-      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))
+      mf(ixO^S,:)=w(ixO^S,mag(:))
     end if
     ! B^-2
-    B2inv=0.d0
-    do idir=1,ndir
-      B2inv(ixO^S)=B2inv(ixO^S)+mf(ixO^S,idir)**2
-    end do
+    B2inv(ixO^S)=sum(mf(ixO^S,:)**2,dim=ndim+1)
     where(B2inv(ixO^S)/=0.d0)
       B2inv(ixO^S)=1.d0/B2inv(ixO^S)
     end where
 
     do idim=1,ndim
-       ! B_i**2/B**2
-       where(B2inv(ixO^S)/=0.d0)
-         tmp2(ixO^S)=mf(ixO^S,idim)**2*B2inv(ixO^S)
-       elsewhere
-         tmp2(ixO^S)=1.d0
-       end where
-       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-       dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*tmp2(ixO^S)*dxinv(idim)**2)
-       if(tc_saturate) then
-         ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
-         ! with an empirical coefficient dx_idim
-         dtdiff_tsat=tc_dtpar/maxval((tc_gamma-1.d0)*dsqrt(Te(ixO^S))*&
-                     5.d0*dxinv(idim)**2)
-         ! choose the slower flux (bigger time step) between classic and saturated
-         dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
-       end if
-       ! limit the time step
-       dtnew=min(dtnew,dtdiff_tcond)
+      tmp(ixO^S)=tmp(ixO^S)*dxinv(idim)
+      ! B_i**2/B**2
+      where(B2inv(ixO^S)/=0.d0)
+        tmp2(ixO^S)=mf(ixO^S,idim)**2*B2inv(ixO^S)
+      elsewhere
+        tmp2(ixO^S)=1.d0
+      end where
+      tmp(ixO^S)=tmp(ixO^S)*tmp2(ixO^S)
+      if(tc_saturate) then
+        Te(ixO^S)=5.5d0*w(ixO^S,rho_)*dsqrt(Te(ixO^S))*dxinv(idim)
+        where(tmp(ixO^S)>Te(ixO^S))
+          tmp(ixO^S)=Te(ixO^S)
+        end where
+      end if
+      !(gamma-1)*tc_k_para_i/rho
+      tmp(ixO^S)=(tc_gamma-one)*tmp(ixO^S)/w(ixO^S,rho_)
+      ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+      dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*dxinv(idim))
+      ! limit the time step
+      dtnew=min(dtnew,dtdiff_tcond)
     end do
     dtnew=dtnew/dble(ndim)
   
