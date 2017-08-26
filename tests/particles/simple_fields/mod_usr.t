@@ -42,8 +42,8 @@ contains
     call initialize_amrvac()    ! So that we have settings available
 
     if (use_analytic_field) then
-      if (physics_type_particles /= 'Lorentz') &
-           call mpistop('Analytic fields only supported with Lorentz')
+      if (physics_type_particles /= 'Lorentz' .or. physics_type_particles /= 'Vay') &
+           call mpistop('Analytic fields only supported with Lorentz or Vay')
       usr_particle_analytic => get_analytic_field
     end if
 
@@ -157,7 +157,7 @@ contains
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
       ! x is in cm
-      B = 1.0d7 * [-x(1) * x(3), -x(2) * x(3), 1.0d11 + x(3)**2] * 1.0d-11
+      B = 1.0d6 * [-x(1) * x(3), -x(2) * x(3), 1.0d13 + x(3)**2] * 1.0d-13
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
