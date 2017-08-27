@@ -1,11 +1,11 @@
  &filelist
-        base_filename = '_Vay6_relativistic'
+        base_filename = '_Lorentz6_relativistic'
  /
 
  &particles_list
-        physics_type_particles='Vay'
+        physics_type_particles='Lorentz'
         npayload=2
-	const_dt_particles = 5.0d-7
+	const_dt_particles = 5.0d-8
 	dtsave_particles = 1.0d-5
  /
 

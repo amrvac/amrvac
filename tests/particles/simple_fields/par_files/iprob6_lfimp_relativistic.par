@@ -1,9 +1,9 @@
  &filelist
-        base_filename = '_Vay6_relativistic'
+        base_filename = '_lfimp6_relativistic'
  /
 
  &particles_list
-        physics_type_particles='Vay'
+        physics_type_particles='lfimp'
         npayload=2
 	const_dt_particles = 5.0d-7
 	dtsave_particles = 1.0d-5
