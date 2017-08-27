@@ -1,5 +1,5 @@
  &filelist
-        base_filename = '_lfimp6_relativistic'
+        base_filename = '_lfimp6_relativistic_smalldt'
  /
 
  &particles_list
