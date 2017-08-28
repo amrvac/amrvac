@@ -337,7 +337,10 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        block=>pw(igrid)
-       call identifyphysbound(igrid,isphysbound,iib^D)   
+
+       ! Used stored data to identify physical boundaries
+       isphysbound = any(idphyb(igrid,1:ndim) /= 0)
+
        if (any(neighbor_type(:^D&,igrid)==2)) then
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     {#IFDEF EVOLVINGBOUNDARY
