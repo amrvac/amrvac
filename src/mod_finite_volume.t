@@ -94,17 +94,17 @@ contains
     double precision, intent(in)                         :: qdt, qtC, qt, dx^D
     integer, intent(in)                                  :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) ::  x
-    double precision, dimension(ixI^S,1:ndim)             :: xi
     double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)  :: fC
 
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC, wmean
     double precision, dimension(ixI^S, nwflux) :: fLC, fRC
-    double precision, dimension(ixI^S)      :: cmaxC, cmaxRC, cmaxLC
-    double precision, dimension(ixI^S)      :: cminC, cminRC, cminLC
+    double precision, dimension(ixI^S)      :: cmaxC
+    double precision, dimension(ixI^S)      :: cminC
+    double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     integer, dimension(ixI^S)               :: patchf
-    integer :: idim, iw, ix^L, hxO^L, ixC^L, ixCR^L, jxC^L, kxC^L, kxR^L
+    integer :: idim, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
 
     if (idimmax>idimmin .and. typelimited=='original')&
          call mpistop("Error in fv: Unsplit dim. and original is limited")
@@ -191,23 +191,22 @@ contains
 
     do idim= idim^LIM
        hxO^L=ixO^L-kr(idim,^D);
-       do iw=1,nwflux
 
-          ! Multiply the fluxes by -dt/dx since Flux fixing expects this
-          if (slab) then
-             fC(ixI^S,iw,idim)=dxinv(idim)*fC(ixI^S,iw,idim)
-             wnew(ixO^S,iw)=wnew(ixO^S,iw) &
-                  + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim))
-          else
-             select case (idim)
-                {case (^D)
-                fC(ixI^S,iw,^D)=-qdt*fC(ixI^S,iw,idim)
-                wnew(ixO^S,iw)=wnew(ixO^S,iw) &
-                     + (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
-             end select
-          end if
+       ! Multiply the fluxes by -dt/dx since Flux fixing expects this
+       if (slab) then
+          fC(ixI^S,1:nwflux,idim)=dxinv(idim)*fC(ixI^S,1:nwflux,idim)
+          wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
+               + (fC(ixO^S,1:nwflux,idim)-fC(hxO^S,1:nwflux,idim))
+       else
+          inv_volume = 1.0d0/block%dvolume(ixO^S)
+          fC(ixI^S,1:nwflux,idim)=-qdt*fC(ixI^S,1:nwflux,idim)
 
-       end do ! Next iw
+          do iw = 1, nwflux
+             wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+                  inv_volume
+          end do
+       end if
+
        ! For the MUSCL scheme apply the characteristic based limiter
        if (method=='tvdmu') &
             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idim,wLC,wRC,wnew,x,fC,dx^D)
@@ -271,12 +270,18 @@ contains
 
     subroutine get_Riemann_flux_hll()
 
-      patchf(ixC^S) =  1
+      double precision :: fac(ixC^S), div(ixC^S)
+
       where(cminC(ixC^S) >= zero)
          patchf(ixC^S) = -2
       elsewhere(cmaxC(ixC^S) <= zero)
          patchf(ixC^S) =  2
+      elsewhere
+         patchf(ixC^S) =  1
       endwhere
+
+      fac = tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)
+      div = 1/(cmaxC(ixC^S)-cminC(ixC^S))
 
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=1,nwflux
@@ -288,8 +293,7 @@ contains
             where(patchf(ixC^S)==1)
                ! Add hll dissipation to the flux
                fLC(ixC^S, iw) = (cmaxC(ixC^S)*fLC(ixC^S, iw)-cminC(ixC^S) * fRC(ixC^S, iw) &
-                    +tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))&
-                    /(cmaxC(ixC^S)-cminC(ixC^S))
+                    +fac*(wRC(ixC^S,iw)-wLC(ixC^S,iw))) * div
             elsewhere(patchf(ixC^S)== 2)
                fLC(ixC^S, iw)=fRC(ixC^S, iw)
             elsewhere(patchf(ixC^S)==-2)
@@ -380,7 +384,7 @@ contains
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
       double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp 
       double precision, dimension(ixI^S,ndir) :: vRC, vLC
-      integer :: ip1,ip2,ip3,idir,ix^D
+      integer :: ip1,ip2,ip3,idir
 
       f1R=0.d0
       f1L=0.d0
@@ -549,7 +553,7 @@ contains
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
-    integer            :: flagL(ixI^S), flagR(ixI^S)
+    ! integer            :: flagL(ixI^S), flagR(ixI^S)
 
     ! Transform w,wL,wR to primitive variables
     if (needprim) then
