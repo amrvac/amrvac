@@ -86,7 +86,7 @@ contains
     !> Result using right-limiter (same as right for symmetric)
     double precision, intent(out), optional :: rdw(ixI^S)
 
-    double precision :: tmp(ixI^S)
+    double precision :: tmp(ixI^S), tmp2(ixI^S)
     integer :: ixO^L, hxO^L
     double precision, parameter :: qsmall=1.d-12, qsmall2=2.d-12
 
@@ -102,18 +102,17 @@ contains
     ixOmin^D=ixCmin^D+kr(idims,^D); ixOmax^D=ixCmax^D;
     hxO^L=ixO^L-kr(idims,^D);
 
-    ! Store the sign of dwC in tmp
-    tmp(ixO^S)=sign(one,dwC(ixO^S))
-
     select case (typelim)
     case (limiter_minmod)
        ! Minmod limiter eq(3.51e) and (eq.3.38e) with omega=1
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
     case (limiter_woodward)
        ! Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=two*tmp(ixO^S)* &
             max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*quarter*(dwC(hxO^S)+dwC(ixO^S))))
@@ -121,6 +120,7 @@ contains
        if (present(rdw)) rdw = tmp
     case (limiter_mcbeta)
        ! Woodward and Collela limiter, with factor beta
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(mcbeta*dabs(dwC(ixO^S)),mcbeta*tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*half*(dwC(hxO^S)+dwC(ixO^S))))
@@ -128,6 +128,7 @@ contains
        if (present(rdw)) rdw = tmp
     case (limiter_superbee)
        ! Roes superbee limiter (eq.3.51i)
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(two*dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)),&
             min(dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S)))
@@ -147,17 +148,20 @@ contains
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
     case (limiter_koren)
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
+       tmp2(ixO^S)=min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S))
        if (present(ldw)) then
           ldw(ixO^S)=tmp(ixO^S)* &
-               max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
+               max(zero,min(tmp2(ixO^S),&
                (dwC(hxO^S)*tmp(ixO^S)+two*dabs(dwC(ixO^S)))*third))
        end if
        if (present(rdw)) then
           rdw(ixO^S)=tmp(ixO^S)* &
-               max(zero,min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S),&
+               max(zero,min(tmp2(ixO^S),&
                (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third))
        end if
     case (limiter_cada)
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
        if (present(rdw)) then
           ! Cada Right variant
           rdw(ixO^S)=tmp(ixO^S)* &
@@ -177,6 +181,7 @@ contains
                cadgamma*dabs(dwC(ixO^S))))))
        end if
     case (limiter_cada3)
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
        rdelinv=one/(cadradius*dxdim)**2
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
 
