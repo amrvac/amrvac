@@ -238,23 +238,20 @@ contains
     end subroutine get_Riemann_flux_tvdmu
 
     subroutine get_Riemann_flux_tvdlf()
+      double precision :: fac(ixC^S)
+
+      fac = -0.5d0*tvdlfeps*cmaxC(ixC^S)
 
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=1,nwflux
 
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
-         fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
+         fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
 
          ! Add TVDLF dissipation to the flux
-         if (flux_type(idim, iw) == flux_no_dissipation) then
-            fRC(ixC^S, iw)=0.d0
-         else
-            ! To save memory we use fRC to store -cmax*half*(w_R-w_L)
-            fRC(ixC^S, iw)=-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+         if (flux_type(idim, iw) /= flux_no_dissipation) then
+            fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
          end if
-
-         ! fLC contains physical+dissipative fluxes
-         fLC(ixC^S, iw)=fLC(ixC^S, iw)+fRC(ixC^S, iw)
 
          if (slab) then
             fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
