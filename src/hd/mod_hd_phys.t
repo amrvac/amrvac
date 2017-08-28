@@ -274,16 +274,17 @@ contains
     double precision                :: invgam
     integer                         :: idir, itr
 
+    if (hd_energy) then
+       invgam = 1.d0/(hd_gamma - 1.0d0)
+       ! Calculate total energy from pressure and kinetic energy
+       w(ixO^S, e_) = w(ixO^S, e_) * invgam + &
+            0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_)
+    end if
+
     ! Convert velocity to momentum
     do idir = 1, ndir
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
-
-    if (hd_energy) then
-       invgam = 1.d0/(hd_gamma - 1.0d0)
-       ! Calculate total energy from pressure and kinetic energy
-       w(ixO^S, e_) = w(ixO^S, e_) * invgam + hd_kin_en(w, ixI^L, ixO^L)
-    end if
 
     if (hd_dust) then
       call dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -301,16 +302,19 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: itr, idir
+    double precision                :: inv_rho(ixO^S)
+
+    inv_rho = 1.0d0 / w(ixO^S, rho_)
 
     if (hd_energy) then
        ! Compute pressure
        w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            hd_kin_en(w, ixI^L, ixO^L))
+            hd_kin_en(w, ixI^L, ixO^L, inv_rho))
     end if
 
     ! Convert momentum to velocity
     do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) / w(ixO^S, rho_)
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * inv_rho
     end do
 
     ! Convert dust momentum to dust velocity
@@ -647,13 +651,18 @@ contains
 
   end subroutine hd_get_dt
 
-  function hd_kin_en(w, ixI^L, ixO^L) result(ke)
+  function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
     use mod_global_parameters, only: nw, ndim
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: ke(ixO^S)
+    integer, intent(in)                    :: ixI^L, ixO^L
+    double precision, intent(in)           :: w(ixI^S, nw)
+    double precision                       :: ke(ixO^S)
+    double precision, intent(in), optional :: inv_rho(ixO^S)
 
-    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
+    if (present(inv_rho)) then
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * inv_rho
+    else
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
+    end if
   end function hd_kin_en
 
   function hd_inv_rho(w, ixI^L, ixO^L) result(inv_rho)
