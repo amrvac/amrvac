@@ -548,7 +548,6 @@ contains
     double precision, dimension(ixI^S,1:ndim) :: x
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
-    double precision   :: wLtmp(ixI^S,1:nw), wRtmp(ixI^S,1:nw)
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
     integer            :: flagL(ixI^S), flagR(ixI^S)
 
@@ -577,34 +576,34 @@ contains
 
           ! limit flux from left and/or right
           call dwlimiter2(dwC,ixI^L,ixC^L,idim,dxdim,typelimiter,ldw,rdw)
-          wLtmp(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
-          wRtmp(ixR^S,iw)=wRC(ixR^S,iw)-half*rdw(jxR^S)
+          wLC(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
+          wRC(ixR^S,iw)=wRC(ixR^S,iw)-half*rdw(jxR^S)
 
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=10.0d0**w(ixCmin^D:jxCmax^D,iw)
-             wLtmp(ixL^S,iw)=10.0d0**wLtmp(ixL^S,iw)
-             wRtmp(ixR^S,iw)=10.0d0**wRtmp(ixR^S,iw)
+             wLC(ixL^S,iw)=10.0d0**wLC(ixL^S,iw)
+             wRC(ixR^S,iw)=10.0d0**wRC(ixR^S,iw)
           end if
        end do
 
-       ! TODO: does this actually help? if not, remove
-       call phys_check_w(.true., ixI^L, ixL^L, wLtmp, flagL)
-       call phys_check_w(.true., ixI^L, ixR^L, wRtmp, flagR)
+       !! TODO: does this actually help? if not, remove
+       !call phys_check_w(.true., ixI^L, ixL^L, wLtmp, flagL)
+       !call phys_check_w(.true., ixI^L, ixR^L, wRtmp, flagR)
 
-       do iw=1,nwflux
-          where (flagL(ixL^S) == 0 .and. flagR(ixR^S) == 0)
-             wLC(ixL^S,iw)=wLtmp(ixL^S,iw)
-             wRC(ixR^S,iw)=wRtmp(ixR^S,iw)
-          end where
+       !do iw=1,nwflux
+       !   where (flagL(ixL^S) == 0 .and. flagR(ixR^S) == 0)
+       !      wLC(ixL^S,iw)=wLtmp(ixL^S,iw)
+       !      wRC(ixR^S,iw)=wRtmp(ixR^S,iw)
+       !   end where
 
-          ! Elsewhere, we still need to convert back when using loglimit
-          if (loglimit(iw)) then
-             where (flagL(ixL^S) /= 0 .or. flagR(ixR^S) /= 0)
-                wLC(ixL^S,iw)=10.0d0**wLC(ixL^S,iw)
-                wRC(ixR^S,iw)=10.0d0**wRC(ixR^S,iw)
-             end where
-          end if
-       enddo
+       !   ! Elsewhere, we still need to convert back when using loglimit
+       !   if (loglimit(iw)) then
+       !      where (flagL(ixL^S) /= 0 .or. flagR(ixR^S) /= 0)
+       !         wLC(ixL^S,iw)=10.0d0**wLC(ixL^S,iw)
+       !         wRC(ixR^S,iw)=10.0d0**wRC(ixR^S,iw)
+       !      end where
+       !   end if
+       !enddo
     endif
 
     ! Transform w,wL,wR back to conservative variables

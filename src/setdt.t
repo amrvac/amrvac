@@ -109,7 +109,7 @@ if(associated(phys_getdt_heatconduct)) then
    if(all(flux_scheme=='nul')) dt=min(dt,dtnew)
    ncycle=ceiling(dt/dtnew)
    if (ncycle>tc_ncycles) then
-     if(mype==0 .and. .true.) then
+     if(mype==0 .and. .false.) then
        write(*,*) 'CLF time step is too many times larger than conduction time step',ncycle
        write(*,*) 'reducing dt to',tc_ncycles,'times of dt_impl!!'
      endif

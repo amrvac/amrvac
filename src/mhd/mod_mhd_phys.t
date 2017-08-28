@@ -409,11 +409,11 @@ contains
 
     ! Convert momentum to velocity
     do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) / w(ixO^S,rho_)
     end do
 
     do itr = 1, mhd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * mhd_inv_rho(w, ixI^L, ixO^L)
+       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) / w(ixO^S,rho_)
     end do
 
     call handle_small_values(.true., w, x, ixI^L, ixO^L,'mhd_to_primitive')
@@ -505,7 +505,7 @@ contains
     integer :: idir
 
     do idir=1,ndir
-      v(ixO^S,idir) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
+      v(ixO^S,idir) = w(ixO^S, mom(idir)) / w(ixO^S,rho_)
     end do
 
   end subroutine mhd_get_v
@@ -1682,19 +1682,8 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: ke(ixO^S)
 
-    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * &
-         mhd_inv_rho(w, ixI^L, ixO^L)
+    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_)
   end function mhd_kin_en
-
-  function mhd_inv_rho(w, ixI^L, ixO^L) result(inv_rho)
-    use mod_global_parameters, only: nw, ndim
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: inv_rho(ixO^S)
-
-    ! Can make this more robust
-    inv_rho = 1.0d0 / w(ixO^S, rho_)
-  end function mhd_inv_rho
 
   subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     use mod_global_parameters

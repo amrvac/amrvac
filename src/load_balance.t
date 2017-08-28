@@ -128,69 +128,6 @@ end subroutine lb_send
 !=============================================================================
 end subroutine load_balance
 !=============================================================================
-subroutine level1_Morton_order
-! use Morton curve to connect level-1 grid blocks
-use mod_forest
-use mod_global_parameters
-
-integer, allocatable :: gsq_sfc(:^D&)
-integer :: ig^D, ngsq^D, Morton_no
-integer(kind=8), external :: mortonEncode
-!-----------------------------------------------------------------------------
-! use the smallest square/cube to cover the full domain 
-ngsq^D=2**ceiling(log(real(ng^D(1)))/log(2.0));
-{^NOONED
-{ngsq^D=max(ngsq^DD) \}
-}
-allocate(gsq_sfc(ngsq^D))
-! get Morton-order numbers in the square/cube
-{do ig^DB=1,ngsq^DB\}
-   gsq_sfc(ig^D)=int(mortonEncode(ig^D-1,ndim))+1
-{end do\}
-! delete Morton blocks that are out of the domain
-{do ig^DB=1,ngsq^DB\}
-   if (ig^D>ng^D(1)|.or.) then
-      where(gsq_sfc>=gsq_sfc(ig^D))
-         gsq_sfc=gsq_sfc-1
-      end where
-   end if
-{end do\}
-! copy the modified Morton numbers to the blocks in the domain
-allocate(iglevel1_sfc(ng^D(1)))
-allocate(sfc_iglevel1(ndim,nglev1))
-{do ig^DB=1,ng^DB(1)\}
-   iglevel1_sfc(ig^D)=gsq_sfc(ig^D)
-   {sfc_iglevel1(^D,iglevel1_sfc(ig^DD))=ig^D \}
-{end do\}
-!do Morton_no=1,nglev1
-!   ig^D=sfc_iglevel1(^D,Morton_no)\ 
-!   print*,'Morton',Morton_no,'ig',ig^D
-!end do
-!stop
-
-end subroutine level1_Morton_order
-!=============================================================================
-integer(kind=8) function mortonEncode(ig^D,ndim)
-use iso_fortran_env, only : int64
-implicit none
-integer(kind=4) :: i,ig^D,ndim
-integer(kind=8) :: answer
-answer = 0
-do i=0,64/ndim
-  {^IFONED answer=ig1}
-  {^IFTWOD
-   answer=ior(answer,ior(ishft(iand(ig1,ishft(1_int64,i)),i),&
-          ishft(iand(ig2,ishft(1_int64,i)),i+1)))
-  \}
-  {^IFTHREED
-   answer=ior(answer,ior(ishft(iand(ig1,ishft(1_int64,i)),2*i),ior(ishft(&
-   iand(ig2,ishft(1_int64,i)),2*i+1),ishft(iand(ig3,ishft(1_int64,i)),2*i+2))))
-  \}
-end do
-mortonEncode=answer
-return
-end function mortonEncode
-!=============================================================================
 subroutine amr_Morton_order
 ! Construct Morton-order as a global recursive lexicographic ordering.
 
