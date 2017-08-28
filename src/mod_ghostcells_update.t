@@ -340,6 +340,7 @@ contains
 
        ! Used stored data to identify physical boundaries
        isphysbound = any(idphyb(igrid,1:ndim) /= 0)
+       ^D&iib^D=idphyb(igrid,^D);
 
        if (any(neighbor_type(:^D&,igrid)==2)) then
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
