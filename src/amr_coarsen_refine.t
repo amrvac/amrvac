@@ -200,7 +200,7 @@ check2:     {do ic^DB=1,2\}
                   call find_neighbor(my_neighbor,my_neighbor_type, &
                                      sibling,i^D,pole)
                   select case (my_neighbor_type)
-                  case (3)
+                  case (neighbor_sibling)
                      if (refine(my_neighbor%node%igrid, &
                                 my_neighbor%node%ipe)) then
                         call unflag_coarsen_siblings
@@ -208,7 +208,7 @@ check2:     {do ic^DB=1,2\}
                      else
                         cycle
                      end if
-                  case (4)
+                  case (neighbor_fine)
                      neighborchild%node=>my_neighbor%node%child(1^D&)%node
                      if (neighborchild%node%leaf) then
                         if (coarsen(neighborchild%node%igrid, &

@@ -254,7 +254,7 @@ child_level=level+1
    i^DD=kr(^DD,^D)*(2*iside-3);
    call find_neighbor(my_neighbor,my_neighbor_type,child,i^DD,pole)
    select case (my_neighbor_type)
-   case (3,4)
+   case (neighbor_sibling, neighbor_fine)
       child%node%neighbor(iside,^D)%node => my_neighbor%node
       if (pole(^D)) then
          my_neighbor%node%neighbor(iside,^D)%node => child%node

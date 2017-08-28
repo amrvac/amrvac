@@ -324,9 +324,9 @@ contains
           if (i^D==0|.and.) cycle
           my_neighbor_type=neighbor_type(i^D,igrid)
           select case (my_neighbor_type)
-          case (3)
+          case (neighbor_sibling)
              call bc_recv_srl
-          case (4)
+          case (neighbor_fine)
              call bc_recv_restrict
           end select
        {end do\}
@@ -365,9 +365,9 @@ contains
           if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
           my_neighbor_type=neighbor_type(i^D,igrid)
           select case (my_neighbor_type)
-          case (2)
+          case (neighbor_coarse)
              call bc_send_restrict
-          case (3)
+          case (neighbor_sibling)
              call bc_send_srl
           end select
        {end do\}
