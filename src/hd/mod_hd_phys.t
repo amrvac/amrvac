@@ -59,7 +59,6 @@ module mod_hd_phys
   public :: hd_phys_init
   public :: hd_kin_en
   public :: hd_get_pthermal
-  public :: hd_get_v
   public :: hd_to_conserved
   public :: hd_to_primitive
 
@@ -311,7 +310,7 @@ contains
 
     ! Convert momentum to velocity
     do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * hd_inv_rho(w, ixI^L, ixO^L)
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) / w(ixO^S, rho_)
     end do
 
     ! Convert dust momentum to dust velocity
@@ -360,7 +359,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(out) :: v(ixI^S)
 
-    v(ixO^S) = w(ixO^S, mom(idim)) * hd_inv_rho(w, ixI^L, ixO^L)
+    v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S, rho_)
   end subroutine hd_get_v
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
@@ -654,8 +653,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: ke(ixO^S)
 
-    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * &
-         hd_inv_rho(w, ixI^L, ixO^L)
+    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
   end function hd_kin_en
 
   function hd_inv_rho(w, ixI^L, ixO^L) result(inv_rho)
