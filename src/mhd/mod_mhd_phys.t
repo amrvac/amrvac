@@ -102,6 +102,9 @@ module mod_mhd_phys
 
   !> B0 field is force-free
   logical, public, protected :: B0field_forcefree=.true.
+
+  !> gamma minus one
+  double precision :: gamma_1, inv_gamma_1
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -167,6 +170,8 @@ contains
 
     call mhd_read_params(par_files)
 
+    gamma_1=mhd_gamma-1.d0
+    inv_gamma_1=1.d0/gamma_1
     physics_type = "mhd"
     phys_energy=mhd_energy
     use_particles=mhd_particles
@@ -235,6 +240,9 @@ contains
     phys_boundary_adjust => mhd_boundary_adjust
     phys_write_info      => mhd_write_info
 
+    ! Whether diagonal ghost cells are required for the physics
+    if(mhd_eta==0.d0 .and. .not. mhd_Hall) phys_req_diagonal = .false.
+
     ! derive units from basic units
     call mhd_physical_units()
 
@@ -299,7 +307,7 @@ contains
     else
        if (mhd_gamma <= 0.0d0 .or. mhd_gamma == 1.0d0) &
             call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
-       small_e = small_pressure/(mhd_gamma - 1.0d0)
+       small_e = small_pressure * inv_gamma_1
     end if
 
   end subroutine mhd_check_params
@@ -347,13 +355,13 @@ contains
 
     if (mhd_energy) then
        if (block%e_is_internal) then
-          where(w(ixO^S, e_) < small_pressure/(mhd_gamma-1.d0)) flag(ixO^S) = e_
+          where(w(ixO^S, e_) < small_pressure*inv_gamma_1) flag(ixO^S) = e_
        else
          if (primitive)then
            where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
          else
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-           tmp(ixO^S)=(mhd_gamma-1.d0)*(w(ixO^S,e_) - &
+           tmp(ixO^S)=gamma_1*(w(ixO^S,e_) - &
               mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
            where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
          end if
@@ -376,14 +384,11 @@ contains
 
     if (mhd_energy) then
        ! Calculate total energy from pressure, kinetic and magnetic energy
-       w(ixO^S,e_)=w(ixO^S,p_)/(mhd_gamma-1.d0)
+       w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
       if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + &
-            mhd_kin_en(w, ixI^L, ixO^L) + mhd_mag_en(w, ixI^L, ixO^L)
+        0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_) + &
+        mhd_mag_en(w, ixI^L, ixO^L)
     end if
-
-    do itr = 1, mhd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
-    end do
 
     call handle_small_values(.false., w, x, ixI^L, ixO^L,'mhd_to_conserved')
   end subroutine mhd_to_conserved
@@ -394,26 +399,25 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: inv_rho(ixO^S)
     integer                         :: itr, idir
+
+    inv_rho = 1.0d0 / w(ixO^S, rho_)
 
     if (mhd_energy) then
       if(block%e_is_internal) then
-        w(ixO^S, p_) = (mhd_gamma - 1.0d0)*w(ixO^S, e_)
+        w(ixO^S, p_) = gamma_1*w(ixO^S, e_)
       else
        ! Calculate pressure = (gamma-1) * (e-0.5*(2ek+2eb))
-        w(ixO^S, p_) = (mhd_gamma - 1.0d0)*(w(ixO^S, e_) &
-              - mhd_kin_en(w, ixI^L, ixO^L) &
+        w(ixO^S, p_) = gamma_1*(w(ixO^S, e_) &
+              - mhd_kin_en(w, ixI^L, ixO^L, inv_rho) &
               - mhd_mag_en(w, ixI^L, ixO^L))
       end if
     end if
 
     ! Convert momentum to velocity
     do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) / w(ixO^S,rho_)
-    end do
-
-    do itr = 1, mhd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) / w(ixO^S,rho_)
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
     call handle_small_values(.true., w, x, ixI^L, ixO^L,'mhd_to_primitive')
@@ -430,6 +434,8 @@ contains
 
     double precision :: smallone
     integer :: idir, flag(ixI^S)
+
+    if (small_values_method == "ignore") return
 
     call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
@@ -469,7 +475,7 @@ contains
       if(.not.block%e_is_internal) &
         w(ixO^S, e_) = w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
               - mhd_mag_en(w, ixI^L, ixO^L)
-      w(ixO^S, e_) = (mhd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
+      w(ixO^S, e_) = gamma_1* w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
             w(ixO^S, e_)
     else
       call mpistop("e_to_rhos can not be used without energy equation!")
@@ -484,8 +490,8 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
     if (mhd_energy) then
-       w(ixO^S, e_) = w(ixO^S, rho_)**(mhd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (mhd_gamma - 1.0d0)
+       w(ixO^S, e_) = w(ixO^S, rho_)**gamma_1 * w(ixO^S, e_) &
+            * inv_gamma_1
        if(.not.block%e_is_internal) &
          w(ixO^S, e_) =w(ixO^S, e_) + mhd_kin_en(w, ixI^L, ixO^L) + &
             mhd_mag_en(w, ixI^L, ixO^L)
@@ -607,9 +613,9 @@ contains
 
     if(mhd_energy) then
       if(block%e_is_internal) then
-        pth(ixO^S)=(mhd_gamma-1.0d0)*w(ixO^S,e_)
+        pth(ixO^S)=gamma_1*w(ixO^S,e_)
       else
-        pth(ixO^S)=(mhd_gamma-1.0d0)*(w(ixO^S,e_)&
+        pth(ixO^S)=gamma_1*(w(ixO^S,e_)&
            - mhd_kin_en(w,ixI^L,ixO^L)&
            - mhd_mag_en(w,ixI^L,ixO^L))
       end if
@@ -631,7 +637,7 @@ contains
       call mhd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
       csound2(ixO^S)=mhd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
     else
-      csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**(mhd_gamma-one)
+      csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**gamma_1
     end if
   end subroutine mhd_get_csound2
 
@@ -1676,13 +1682,18 @@ contains
   end function mhd_mag_en
 
   !> compute kinetic energy
-  function mhd_kin_en(w, ixI^L, ixO^L) result(ke)
+  function mhd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: ke(ixO^S)
+    double precision, intent(in), optional :: inv_rho(ixO^S)
 
-    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_)
+    if (present(inv_rho)) then
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * inv_rho
+    else
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
+    end if
   end function mhd_kin_en
 
   subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
