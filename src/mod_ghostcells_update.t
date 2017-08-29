@@ -227,14 +227,15 @@ contains
   
   end subroutine put_bc_comm_types
 
-  subroutine getbc(time,qdt,nwstart,nwbc)
+  subroutine getbc(time,qdt,nwstart,nwbc,req_diag)
     use mod_global_parameters
     use mod_physics
-    
+
     double precision, intent(in)      :: time, qdt
     integer, intent(in)               :: nwstart ! Fill from nw = nwstart+1
     integer, intent(in)               :: nwbc    ! Number of variables to fill
-    
+    logical, intent(in), optional     :: req_diag ! If false, skip diagonal ghost cells
+
     integer :: my_neighbor_type, ipole, idims, iside
     integer :: iigrid, igrid, ineighbor, ipe_neighbor
     integer :: nrecvs, nsends, isizes
@@ -243,12 +244,15 @@ contains
     ! store physical boundary indicating index
     integer :: idphyb(max_blocks,ndim),bindex(ndim)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco,iB
-    logical  :: isphysbound
+    logical  :: isphysbound, req_diagonal
     type(wbuffer) :: pwbuf(npwbuf)
 
     double precision :: time_bcin
     ! Stretching grid parameters for coarsened block of the current block
     double precision :: logGl,qstl
+
+    req_diagonal = .true.
+    if (present(req_diag)) req_diagonal = req_diag
 
     time_bcin=MPI_WTIME()
     ixG^L=ixG^LL;
@@ -274,20 +278,21 @@ contains
              ixBmax^D=ixGmax^D-kmax^D*nghostcells
             \}
             {^IFTWOD
-             if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixGmin1
-             if(idims > 1 .and. neighbor_type( 1,0,igrid)==1) ixBmax1=ixGmax1}
+             if(idims > 1 .and. neighbor_type(-1,0,igrid)==neighbor_boundary) ixBmin1=ixGmin1
+             if(idims > 1 .and. neighbor_type( 1,0,igrid)==neighbor_boundary) ixBmax1=ixGmax1}
             {^IFTHREED
-             if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==1) ixBmin1=ixGmin1
-             if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==1) ixBmax1=ixGmax1
-             if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==1) ixBmin2=ixGmin2
-             if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==1) ixBmax2=ixGmax2}
+             if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==neighbor_boundary) ixBmin1=ixGmin1
+             if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==neighbor_boundary) ixBmax1=ixGmax1
+             if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==neighbor_boundary) ixBmin2=ixGmin2
+             if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==neighbor_boundary) ixBmax2=ixGmax2}
             do iside=1,2
                i^D=kr(^D,idims)*(2*iside-3);
                if (aperiodB(idims)) then 
                   call physbound(i^D,igrid,isphysbound)
-                  if (neighbor_type(i^D,igrid)/=1 .and. .not. isphysbound) cycle
+                  if (neighbor_type(i^D,igrid) /= neighbor_boundary .and. &
+                       .not. isphysbound) cycle
                else 
-                  if (neighbor_type(i^D,igrid)/=1) cycle
+                  if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
                end if
                call bc_phys(iside,idims,time,qdt,pw(igrid)%wb,pw(igrid)%x,ixG^L,ixB^L)
             end do
@@ -306,22 +311,20 @@ contains
     nrecvs=nrecv_bc_srl+nrecv_bc_r
     ! total number of times to call MPI_ISEND in each processor between sibling blocks or to coarser neighors
     nsends=nsend_bc_srl+nsend_bc_r
-    if (nrecvs>0) then
-       allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
-       recvrequest=MPI_REQUEST_NULL
-    end if
-    if (nsends>0) then
-       allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
-       sendrequest=MPI_REQUEST_NULL
-    end if
-    
+
+    allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
+    recvrequest=MPI_REQUEST_NULL
+
+    allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
+    sendrequest=MPI_REQUEST_NULL
+
     ! receiving ghost-cell values from sibling blocks and finer neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        call identifyphysbound(igrid,isphysbound,iib^D)   
        ^D&idphyb(igrid,^D)=iib^D;
        {do i^DB=-1,1\}
-          if (i^D==0|.and.) cycle
+          if (skip_direction([ i^D ])) cycle
           my_neighbor_type=neighbor_type(i^D,igrid)
           select case (my_neighbor_type)
           case (neighbor_sibling)
@@ -342,7 +345,7 @@ contains
        isphysbound = any(idphyb(igrid,1:ndim) /= 0)
        ^D&iib^D=idphyb(igrid,^D);
 
-       if (any(neighbor_type(:^D&,igrid)==2)) then
+       if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     {#IFDEF EVOLVINGBOUNDARY
           if(isphysbound) then
@@ -361,7 +364,7 @@ contains
        end if
     
        {do i^DB=-1,1\}
-          if (i^D==0|.and.) cycle
+          if (skip_direction([ i^D ])) cycle
           if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
           my_neighbor_type=neighbor_type(i^D,igrid)
           select case (my_neighbor_type)
@@ -380,18 +383,15 @@ contains
     !   call mpistop("number of sends in phase1 in amr_ghostcells is incorrect")
     !end if
     
-    if (irecv>0) then
-       call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
-       deallocate(recvstatus,recvrequest)
-    end if
-    if (isend>0) then
-       call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
-       deallocate(sendstatus,sendrequest)
-       do ipwbuf=1,npwbuf
-          if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
-       end do
-    end if
-    
+    call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
+    deallocate(recvstatus,recvrequest)
+
+    call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
+    do ipwbuf=1,npwbuf
+       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
+    end do
+    deallocate(sendstatus,sendrequest)
+
     irecv=0
     isend=0
     isend_buf=0
@@ -400,23 +400,20 @@ contains
     nrecvs=nrecv_bc_p
     ! total number of times to call MPI_ISEND in each processor to finer neighbors
     nsends=nsend_bc_p
-    if (nrecvs>0) then
-       allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
-       recvrequest=MPI_REQUEST_NULL
-    end if
-    if (nsends>0) then
-       allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
-       sendrequest=MPI_REQUEST_NULL
-    end if
-    
+
+    allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
+    recvrequest=MPI_REQUEST_NULL
+    allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
+    sendrequest=MPI_REQUEST_NULL
+
     ! receiving ghost-cell values from coarser neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        ^D&iib^D=idphyb(igrid,^D);
        {do i^DB=-1,1\}
-          if (i^D==0|.and.) cycle
+          if (skip_direction([ i^D ])) cycle
           my_neighbor_type=neighbor_type(i^D,igrid)
-          if (my_neighbor_type==2) call bc_recv_prolong
+          if (my_neighbor_type==neighbor_coarse) call bc_recv_prolong
        {end do\}
     end do
     ! sending ghost-cell values to finer neighbors 
@@ -425,12 +422,12 @@ contains
        block=>pw(igrid)
        ^D&iib^D=idphyb(igrid,^D);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       if (any(neighbor_type(:^D&,igrid)==4)) then
+       if (any(neighbor_type(:^D&,igrid)==neighbor_fine)) then
           {do i^DB=-1,1\}
-             if (i^D==0|.and.) cycle
+             if (skip_direction([ i^D ])) cycle
              if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
              my_neighbor_type=neighbor_type(i^D,igrid)
-             if (my_neighbor_type==4) call bc_send_prolong
+             if (my_neighbor_type==neighbor_fine) call bc_send_prolong
           {end do\}
        end if
     end do
@@ -442,33 +439,29 @@ contains
     !   call mpistop("number of sends in phase2 in amr_ghostcells is incorrect")
     !end if
     
-    if (irecv>0) then
-       call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
-       deallocate(recvstatus,recvrequest)
-    end if
-    
+    call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
+    deallocate(recvstatus,recvrequest)
+
     ! do prolongation on the ghost-cell values received from coarser neighbors 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        block=>pw(igrid)
        ^D&iib^D=idphyb(igrid,^D);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       if (any(neighbor_type(:^D&,igrid)==2)) then
+       if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
           {do i^DB=-1,1\}
-             if (i^D==0|.and.) cycle
+             if (skip_direction([ i^D ])) cycle
              my_neighbor_type=neighbor_type(i^D,igrid)
-             if (my_neighbor_type==2) call bc_prolong
+             if (my_neighbor_type==neighbor_coarse) call bc_prolong
           {end do\}
        end if
     end do
     
-    if (isend>0) then
-       call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
-       deallocate(sendstatus,sendrequest)
-       do ipwbuf=1,npwbuf
-          if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
-       end do
-    end if
+    call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
+    do ipwbuf=1,npwbuf
+       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
+    end do
+    deallocate(sendstatus,sendrequest)
 
     !> @todo Implement generic interface for modifying ghost cells
      ! modify normal component of magnetic field to fix divB=0 
@@ -480,6 +473,20 @@ contains
     
     contains
 
+      logical function skip_direction(dir)
+        integer, intent(in) :: dir(^ND)
+
+        if (all(dir == 0)) then
+           skip_direction = .true.
+        else if (.not. req_diagonal .and. ^ND > 1 &
+             .and. product(dir) /= 0) then
+           skip_direction = .true.
+        else
+           skip_direction = .false.
+        end if
+      end function skip_direction
+
+      !> Send to sibling at same refinement level
       subroutine bc_send_srl
 
         ineighbor=neighbor(1,i^D,igrid)
@@ -527,6 +534,7 @@ contains
 
       end subroutine bc_send_srl
 
+      !> Send to coarser neighbor
       subroutine bc_send_restrict
         integer :: ii^D
 
@@ -544,13 +552,13 @@ contains
              ixBmin^D=ixCoGmin^D+kmin^D*nghostcells
              ixBmax^D=ixCoGmax^D-kmax^D*nghostcells\}
              {^IFTWOD
-             if(idims > 1 .and. neighbor_type(-1,0,igrid)==1) ixBmin1=ixCoGmin1
-             if(idims > 1 .and. neighbor_type( 1,0,igrid)==1) ixBmax1=ixCoGmax1}
+             if(idims > 1 .and. neighbor_type(-1,0,igrid)==neighbor_boundary) ixBmin1=ixCoGmin1
+             if(idims > 1 .and. neighbor_type( 1,0,igrid)==neighbor_boundary) ixBmax1=ixCoGmax1}
              {^IFTHREED
-             if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==1) ixBmin1=ixCoGmin1
-             if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==1) ixBmax1=ixCoGmax1
-             if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==1) ixBmin2=ixCoGmin2
-             if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==1) ixBmax2=ixCoGmax2}
+             if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==neighbor_boundary) ixBmin1=ixCoGmin1
+             if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==neighbor_boundary) ixBmax1=ixCoGmax1
+             if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==neighbor_boundary) ixBmin2=ixCoGmin2
+             if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==neighbor_boundary) ixBmax2=ixCoGmax2}
              {if(i^D==-1) then
                ixBmin^D=ixCoGmin^D+nghostcells
                ixBmax^D=ixCoGmin^D+2*nghostcells-1
@@ -561,7 +569,7 @@ contains
              do iside=1,2
                 ii^D=kr(^D,idims)*(2*iside-3);
                 if ({abs(i^D)==1.and.abs(ii^D)==1|.or.}) cycle
-                if (neighbor_type(ii^D,igrid)/=1) cycle
+                if (neighbor_type(ii^D,igrid)/=neighbor_boundary) cycle
                 call bc_phys(iside,idims,time,0.d0,pw(igrid)%wcoarse,&
                        pw(igrid)%xcoarse,ixCoG^L,ixB^L)
              end do
@@ -613,6 +621,7 @@ contains
 
       end subroutine bc_send_restrict
 
+      !> Send to finer neighbor
       subroutine bc_send_prolong
         integer :: ii^D
 
@@ -665,6 +674,7 @@ contains
 
       end subroutine bc_send_prolong
 
+      !> Receive from sibling at same refinement level
       subroutine bc_recv_srl
 
         ipe_neighbor=neighbor(2,i^D,igrid)
@@ -677,6 +687,7 @@ contains
 
       end subroutine bc_recv_srl
 
+      !> Receive from fine neighbor
       subroutine bc_recv_restrict
 
         {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
@@ -692,6 +703,7 @@ contains
 
       end subroutine bc_recv_restrict
 
+      !> Receive from coarse neighbor
       subroutine bc_recv_prolong
 
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
@@ -975,7 +987,7 @@ contains
           call identifyphysbound(igrid,isphysbound,iib^D)   
              
           {do i^DB=-1,1\}
-             if (i^D==0|.and.) cycle
+             if (skip_direction([ i^D ])) cycle
         
              ix^L=ixR_srl_^L(iib^D,i^D);
              call phys_get_aux(.true.,pw(igrid)%wb,pw(igrid)%x,ixG^L,ix^L,"bc")

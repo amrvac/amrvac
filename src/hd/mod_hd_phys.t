@@ -154,6 +154,9 @@ contains
     phys_get_pthermal    => hd_get_pthermal
     phys_write_info      => hd_write_info
 
+    ! Whether diagonal ghost cells are required for the physics
+    phys_req_diagonal = .false.
+
     ! derive units from basic units
     call hd_physical_units()
 
@@ -180,7 +183,10 @@ contains
     if (hd_gravity) call gravity_init()
 
     ! Initialize particles module
-    if (hd_particles) call particles_init()
+    if (hd_particles) then
+       call particles_init()
+       phys_req_diagonal = .true.
+    end if
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then

@@ -17,6 +17,10 @@ module mod_physics
   !> one cell in both directions, in any dimension
   integer :: phys_wider_stencil = 0
 
+  !> Whether the physics routines require diagonal ghost cells, for example for
+  !> computing a curl.
+  logical :: phys_req_diagonal = .true.
+
   !> Array per direction per variable, which can be used to specify that certain
   !> fluxes have to be treated differently
   integer, allocatable :: flux_type(:, :)

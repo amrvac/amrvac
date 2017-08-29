@@ -12,6 +12,7 @@ contains
   subroutine addsource_all(prior)
     use mod_global_parameters
     use mod_ghostcells_update
+    use mod_physics, only: phys_req_diagonal
 
     logical, intent(in) :: prior
 
@@ -42,7 +43,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call getbc(qt,0.d0,0,nwflux+nwaux)
+    call getbc(qt,0.d0,0,nwflux+nwaux, phys_req_diagonal)
 
   end subroutine addsource_all
 

@@ -320,6 +320,7 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
+    use mod_physics, only: phys_req_diagonal
 
     integer, intent(in) :: idim^LIM
     integer, intent(in) :: a !< Compute fluxes based on this w
@@ -384,7 +385,7 @@ contains
 
     ! For all grids: fill ghost cells
     qdt = dtfactor*dt
-    call getbc(qt+qdt,qdt,0,nwflux+nwaux)
+    call getbc(qt+qdt,qdt,0,nwflux+nwaux, phys_req_diagonal)
 
   end subroutine advect1
 
