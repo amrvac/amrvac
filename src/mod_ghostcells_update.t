@@ -242,7 +242,7 @@ contains
     integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
     integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
     ! store physical boundary indicating index
-    integer :: idphyb(max_blocks,ndim),bindex(ndim)
+    integer :: idphyb(ndim,igrids(igridstail)),bindex(ndim)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco,iB
     logical  :: isphysbound, req_diagonal
     type(wbuffer) :: pwbuf(npwbuf)
@@ -322,7 +322,7 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        call identifyphysbound(igrid,isphysbound,iib^D)   
-       ^D&idphyb(igrid,^D)=iib^D;
+       ^D&idphyb(^D,igrid)=iib^D;
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
           my_neighbor_type=neighbor_type(i^D,igrid)
@@ -342,8 +342,8 @@ contains
        block=>pw(igrid)
 
        ! Used stored data to identify physical boundaries
-       isphysbound = any(idphyb(igrid,1:ndim) /= 0)
-       ^D&iib^D=idphyb(igrid,^D);
+       isphysbound = any(idphyb(1:ndim,igrid) /= 0)
+       ^D&iib^D=idphyb(^D,igrid);
 
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -409,7 +409,7 @@ contains
     ! receiving ghost-cell values from coarser neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
-       ^D&iib^D=idphyb(igrid,^D);
+       ^D&iib^D=idphyb(^D,igrid);
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
           my_neighbor_type=neighbor_type(i^D,igrid)
@@ -420,7 +420,7 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        block=>pw(igrid)
-       ^D&iib^D=idphyb(igrid,^D);
+       ^D&iib^D=idphyb(^D,igrid);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        if (any(neighbor_type(:^D&,igrid)==neighbor_fine)) then
           {do i^DB=-1,1\}
@@ -446,7 +446,7 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        block=>pw(igrid)
-       ^D&iib^D=idphyb(igrid,^D);
+       ^D&iib^D=idphyb(^D,igrid);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
           {do i^DB=-1,1\}
@@ -478,8 +478,7 @@ contains
 
         if (all(dir == 0)) then
            skip_direction = .true.
-        else if (.not. req_diagonal .and. ^ND > 1 &
-             .and. product(dir) /= 0) then
+        else if (.not. req_diagonal .and. count(dir /= 0) > 1) then
            skip_direction = .true.
         else
            skip_direction = .false.

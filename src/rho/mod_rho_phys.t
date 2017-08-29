@@ -57,6 +57,7 @@ contains
 
     physics_type = "rho"
     phys_energy  = .false.
+    phys_req_diagonal = .false.
 
     rho_ = var_set_rho()
 
