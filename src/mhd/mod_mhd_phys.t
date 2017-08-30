@@ -241,7 +241,7 @@ contains
     phys_write_info      => mhd_write_info
 
     ! Whether diagonal ghost cells are required for the physics
-    if(mhd_eta==0.d0 .and. .not. mhd_Hall) phys_req_diagonal = .false.
+    !if(mhd_eta==0.d0 .and. .not. mhd_Hall) phys_req_diagonal = .false.
 
     ! derive units from basic units
     call mhd_physical_units()
