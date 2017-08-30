@@ -105,13 +105,15 @@ module mod_physics
        double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
      end subroutine sub_add_source_geom
 
-     subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, w, x, qsourcesplit)
+     subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, w, x, &
+          qsourcesplit, active)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: qdt
        double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
        double precision, intent(inout) :: w(ixI^S, 1:nw)
        logical, intent(in)             :: qsourcesplit
+       logical, intent(inout)          :: active !< Needs to be set to true when active
      end subroutine sub_add_source
 
      subroutine sub_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
@@ -254,13 +256,16 @@ contains
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
   end subroutine dummy_add_source_geom
 
-  subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, w, x, qsourcesplit)
+  subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, w, x, &
+       qsourcesplit, active)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
+    logical, intent(inout)          :: active
+    ! Don't have to set active, since it starts as .false.
   end subroutine dummy_add_source
 
   subroutine dummy_get_aux(clipping,w,x,ixI^L,ixO^L,subname)

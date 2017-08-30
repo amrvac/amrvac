@@ -1,4 +1,7 @@
 !=============================================================================
+! TODO: if in the future we use prolongation which requires diagonal ghost
+! cells, and the physics module does not require them, then getbc should be
+! called before refining
 subroutine amr_coarsen_refine
 use mod_forest
 use mod_global_parameters

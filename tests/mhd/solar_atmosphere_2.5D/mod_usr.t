@@ -239,17 +239,19 @@ contains
     ggrid(ixO^S)=usr_grav*(SRadius/(SRadius+x(ixO^S,2)))**2
   end subroutine
 
-  subroutine special_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+  subroutine special_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,active)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in) :: qdt, qtC, qt
     double precision, intent(in) :: x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
+    logical, intent(inout) :: active
 
     double precision :: lQgrid(ixI^S),bQgrid(ixI^S)
 
     ! add global background heating bQ
+    active = .true.
     call getbQ(bQgrid,ixI^L,ixO^L,qtC,wCT,x)
     w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
 

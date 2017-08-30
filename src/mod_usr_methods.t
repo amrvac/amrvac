@@ -132,12 +132,13 @@ module mod_usr_methods
 
      !> Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
      !> iw=iwmin...iwmax.  wCT is at time qCT
-     subroutine source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+     subroutine source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,active)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
        double precision, intent(in)    :: qdt, qtC, qt
        double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
+       logical, intent(inout)          :: active !< Whether the source is active
      end subroutine source
 
      !> Limit "dt" further if necessary, e.g. due to the special source terms.

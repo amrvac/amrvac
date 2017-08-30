@@ -778,7 +778,7 @@ contains
   end subroutine mhd_get_flux
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+  subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
@@ -789,21 +789,25 @@ contains
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
+    logical, intent(inout)            :: active
 
     if (.not. qsourcesplit) then
       ! Source for solving internal energy
       if (mhd_energy .and. block%e_is_internal) then
+        active = .true.
         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
       endif
 
       ! Source for B0 splitting
       if (B0field) then
+        active = .true.
         call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (dabs(mhd_eta)>smalldouble)then
         if (.not.slab) call mpistop("no resistivity in non-slab geometry")
+        active = .true.
         if (compactres)then
           call add_source_res1(qdt,ixI^L,ixO^L,wCT,w,x)
         else
@@ -812,21 +816,25 @@ contains
       end if
 
       if (mhd_eta_hyper>0.d0)then
+        active = .true.
         call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
 
     end if
 
     if(mhd_radiative_cooling) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
+           w,x,qsourcesplit,active)
     end if
 
     if(mhd_viscosity) then
-      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
+      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,&
+           w,x,mhd_energy,qsourcesplit,active)
     end if
 
     if(mhd_gravity) then
-      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
+      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,&
+           w,x,mhd_energy,qsourcesplit,active)
     end if
 
     {^NOONED
@@ -834,21 +842,29 @@ contains
       ! Sources related to div B
       select case (typedivbfix)
       case ('glm1')
+        active = .true.
         call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('glm2')
+        active = .true.
         call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('glm3')
+        active = .true.
         call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('powel', 'powell')
+        active = .true.
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('janhunen')
+        active = .true.
         call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('linde')
+        active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('lindejanhunen')
+        active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('lindepowel')
+        active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
       case ('none')
@@ -865,11 +881,10 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    
-    double precision :: pth(ixI^S),v(ixI^S,1:ndir),divv(ixI^S)
- 
+    double precision                :: pth(ixI^S),v(ixI^S,1:ndir),divv(ixI^S)
+
     call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
     call divvector(v,ixI^L,ixO^L,divv)
     call mhd_get_pthermal(wCT,x,ixI^L,ixO^L,pth)
@@ -941,7 +956,6 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-
     integer :: ixA^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
     integer :: lxO^L, kxO^L
 
@@ -950,7 +964,6 @@ contains
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
     double precision :: gradeta(ixI^S,1:ndim), Bf(ixI^S,1:ndir)
-
 
     ! Calculating resistive sources involve one extra layer
     if (mhd_4th_order) then
@@ -1054,7 +1067,6 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-
     integer :: ixA^L,idir,jdir,kdir,idirmin,iw,idim,idirmin1
 
     double precision :: tmp(ixI^S),tmp2(ixI^S)
