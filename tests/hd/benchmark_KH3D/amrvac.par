@@ -3,23 +3,24 @@
  &filelist
    base_filename    = 'output/kh3d'
    autoconvert      = T
-   convert_type     = 'vtuBmpi'
+   convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 
  &savelist
-   dtsave_log       = 1.d-1
-   dtsave_dat       = 2.d-1
+   dtsave_log       = 1e10
+   dtsave_dat       = 1e10
  /
 
  &stoplist
-   time_max=3.0d0
+   time_max=0.3d0
  /
 
  &methodlist
    time_integrator = 'twostep'
    flux_scheme     = 20*'tvdlf'
-   limiter         = 20*'koren'
+   limiter         = 20*'vanleer'
+   small_values_method = 'ignore'
  /
 
  &boundlist
