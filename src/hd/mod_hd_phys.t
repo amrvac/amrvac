@@ -144,7 +144,9 @@ contains
     phys_get_dt          => hd_get_dt
     phys_get_cmax        => hd_get_cmax
     phys_get_cbounds     => hd_get_cbounds
-    phys_get_flux        => hd_get_flux
+    !phys_get_flux        => hd_get_flux
+    !phys_get_cbounds     => hd_get_cbounds_prim
+    phys_get_flux        => hd_get_flux_prim
     phys_add_source_geom => hd_add_source_geom
     phys_add_source      => hd_add_source
     phys_to_conserved    => hd_to_conserved
@@ -403,7 +405,7 @@ contains
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw) 
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout) :: cmin(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
@@ -422,20 +424,91 @@ contains
       dmean(ixO^S)=dsqrt(dmean(ixO^S))
       cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
       cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      if(present(cmin)) then
+        cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
+        cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      else
+        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
+      end if
       if(hd_dust) wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
     else
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
       csoundR(ixO^S) = sqrt(csoundR(ixO^S))
-      cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-      cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      if(present(cmin)) then
+        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      else
+        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
+      end if
     end if
 
     if (hd_dust) then
       call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
     end if
   end subroutine hd_get_cbounds
+
+  !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
+  subroutine hd_get_cbounds_prim(wLC, wRC, x, ixI^L, ixO^L, idim, cmax, cmin)
+    use mod_global_parameters
+    use mod_dust, only: dust_get_cmax_prim
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw) 
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
+
+    double precision :: wmean(ixI^S,nw)
+    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+
+
+    if (typeboundspeed/='cmaxmean') then
+      tmp1(ixO^S)=dsqrt(wLC(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRC(ixO^S,rho_))
+      tmp3(ixO^S)=dsqrt(wLC(ixO^S,rho_))+dsqrt(wRC(ixO^S,rho_))
+      umean(ixO^S)=(wLC(ixO^S,mom(idim))*tmp1(ixO^S)+wRC(ixO^S,mom(idim))*tmp2(ixO^S))/tmp3(ixO^S)
+      if(hd_energy) then
+        csoundL(ixO^S)=hd_gamma*wLC(ixO^S,p_)/wLC(ixO^S,rho_)
+        csoundR(ixO^S)=hd_gamma*wRC(ixO^S,p_)/wRC(ixO^S,rho_)
+      else
+        csoundL(ixO^S)=hd_gamma*hd_adiab*wLC(ixO^S,rho_)**(hd_gamma-one)
+        csoundR(ixO^S)=hd_gamma*hd_adiab*wRC(ixO^S,rho_)**(hd_gamma-one)
+      end if
+      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S))/tmp3(ixO^S)+&
+       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)/tmp3(ixO^S)**2*&
+       (wRC(ixO^S,mom(idim))-wLC(ixO^S,mom(idim)))**2
+      dmean(ixO^S)=dsqrt(dmean(ixO^S))
+      if(present(cmin)) then
+        cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
+        cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      else
+        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
+      end if
+    else
+      wmean(ixO^S,rho_)=0.5d0*(wLC(ixO^S,rho_)+wRC(ixO^S,rho_))
+      wmean(ixO^S,mom(idim))=0.5d0*(wLC(ixO^S,mom(idim))+wRC(ixO^S,mom(idim)))
+      if(hd_energy) then
+        wmean(ixO^S,p_)=0.5d0*(wLC(ixO^S,p_)+wRC(ixO^S,p_))
+        csoundR(ixO^S)=hd_gamma*wmean(ixO^S,p_)/wmean(ixO^S,rho_)
+      else
+        csoundR(ixO^S)=hd_gamma*hd_adiab*wmean(ixO^S,rho_)**(hd_gamma-one)
+      end if
+      csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
+      if(present(cmin)) then
+        cmin(ixO^S)=min(wmean(ixO^S,mom(idim))-csoundR(ixO^S),zero)
+        cmax(ixO^S)=max(wmean(ixO^S,mom(idim))+csoundR(ixO^S),zero)
+      else
+        cmax(ixO^S)=dabs(wmean(ixO^S,mom(idim)))+csoundR(ixO^S)
+      end if
+    end if
+
+    if (hd_dust) then
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      call dust_get_cmax_prim(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
+    end if
+  end subroutine hd_get_cbounds_prim
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
@@ -510,6 +583,50 @@ contains
     end if
 
   end subroutine hd_get_flux
+
+  ! Calculate non-transport flux f_idim[iw] within ixO^L.
+  subroutine hd_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
+    use mod_global_parameters
+    use mod_dust, only: dust_get_flux_prim
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(out)   :: f(ixI^S, nwflux)
+    double precision                :: pth(ixO^S)
+    integer                         :: idir, itr
+
+    if (hd_energy) then
+       pth(ixO^S) = w(ixO^S,p_)
+    else
+       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+    end if
+
+    f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
+
+    ! Momentum flux is v_i*m_i, +p in direction idim
+    do idir = 1, ndir
+      f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * w(ixO^S, mom(idir)) *&
+                            w(ixO^S,rho_)
+    end do
+
+    f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
+
+    if(hd_energy) then
+      ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+      f(ixO^S, e_) = w(ixO^S,mom(idim)) * (w(ixO^S, p_) / (hd_gamma-1.d0)  + &
+            0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_) + w(ixO^S,p_))
+    end if
+
+    do itr = 1, hd_n_tracer
+       f(ixO^S, tracer(itr)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(itr))
+    end do
+
+    ! Dust fluxes
+    if (hd_dust) then
+      call dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
+    end if
+
+  end subroutine hd_get_flux_prim
 
   !> Add geometrical source terms to w
   !>

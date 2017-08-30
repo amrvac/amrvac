@@ -88,7 +88,7 @@ module mod_physics
        double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
        double precision, intent(inout) :: cmax(ixI^S)
-       double precision, intent(inout) :: cmin(ixI^S)
+       double precision, intent(inout), optional :: cmin(ixI^S)
      end subroutine sub_get_cbounds
 
      subroutine sub_get_flux(w, x, ixI^L, ixO^L, idim, f)

@@ -125,14 +125,14 @@ contains
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout) :: cmin(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
 
     wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
     call rho_get_v(wmean, x, ixI^L, ixO^L, idim, cmax)
 
-    cmin(ixO^S) = min(cmax(ixO^S), zero)
+    if(present(cmin)) cmin(ixO^S) = min(cmax(ixO^S), zero)
     cmax(ixO^S) = max(cmax(ixO^S), zero)
 
   end subroutine rho_get_cbounds

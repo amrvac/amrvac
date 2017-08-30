@@ -149,26 +149,26 @@ contains
           call upwindLR(ixI^L,ixCR^L,ixCR^L,idim,wold,wprim,wLC,wRC,x,.true.,dxdim(idim))
        case ('predictor')
           call upwindLR(ixI^L,ixCR^L,ixCR^L,idim,wprim,wprim,wLC,wRC,x,.false.,dxdim(idim))
-       case ('original')
-          call upwindLR(ixI^L,ixCR^L,ixCR^L,idim,wnew,wprim,wLC,wRC,x,.true.,dxdim(idim))
        case default
           call mpistop("Error in reconstruction: no such base for limiter")
        end select
 
-       ! TODO wLC,wRC take primitive values may save a lot of calculation
-
-       ! estimating bounds for the minimum and maximum signal velocities
-       if(method=='tvdlf'.or.method=='tvdmu') then
-         wmean(ixC^S,1:nwflux)=0.5d0*(wLC(ixC^S,1:nwflux)+wRC(ixC^S,1:nwflux))
-         call phys_get_cmax(wmean,x,ixI^L,ixC^L,idim,cmaxC)
-       else
-         call phys_get_cbounds(wLC,wRC,x,ixI^L,ixC^L,idim,cmaxC,cminC)
-       end if
-
+       ! wLC,wRC take primitive values save a lot of calculation
        call phys_modify_wLR(wLC, wRC, ixI^L, ixC^L, idim)
 
        call phys_get_flux(wLC,x,ixI^L,ixC^L,idim,fLC)
        call phys_get_flux(wRC,x,ixI^L,ixC^L,idim,fRC)
+
+       ! wLC, wRC need to be conservative for consistency 
+       call phys_to_conserved(ixI^L,ixC^L,wLC,x)
+       call phys_to_conserved(ixI^L,ixC^L,wRC,x)
+
+       ! estimating bounds for the minimum and maximum signal velocities
+       if(method=='tvdlf'.or.method=='tvdmu') then
+         call phys_get_cbounds(wLC,wRC,x,ixI^L,ixC^L,idim,cmaxC)
+       else
+         call phys_get_cbounds(wLC,wRC,x,ixI^L,ixC^L,idim,cmaxC,cminC)
+       end if
 
        ! use approximate Riemann solver to get flux at interfaces
        select case(method)
@@ -611,8 +611,8 @@ contains
     if(needprim)then
        call phys_to_conserved(ixI^L,ixI^L,w,x)
     endif
-    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
-    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
+    !call phys_to_conserved(ixI^L,ixL^L,wLC,x)
+    !call phys_to_conserved(ixI^L,ixR^L,wRC,x)
 
   end subroutine upwindLR
 

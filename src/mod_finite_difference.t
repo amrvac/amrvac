@@ -25,7 +25,7 @@ contains
     double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
 
     double precision, dimension(ixI^S,1:nwflux)                      :: fCT
-    double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL
+    double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL, wprim
     double precision, dimension(ixI^S)                               :: v
     double precision                                                 :: dxinv(1:ndim), dxdims
     logical                                                          :: transport
@@ -51,7 +51,9 @@ contains
        {^D& ixCRmin^D = ixCmin^D + kr(idims,^D)*phys_wider_stencil\}
        {^D& ixCRmax^D = ixCmax^D - kr(idims,^D)*phys_wider_stencil\}
 
-       call phys_get_flux(wCT,x,ixG^LL,ixCR^L,idims,fCT)
+       wprim=wCT
+       call phys_to_primitive(ixG^LL,ixCR^L,wprim,x)
+       call phys_get_flux(wprim,x,ixG^LL,ixCR^L,idims,fCT)
 
        do iw=1,nwflux
           ! Lax-Friedrich splitting:
@@ -288,6 +290,8 @@ contains
        dxdim=-qdt/dxinv(idims)
        call upwindLR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim)
 
+       call phys_to_conserved(ixI^L,ixC^L,wLC,x)
+       call phys_to_conserved(ixI^L,ixC^L,wRC,x)
        ! Calculate velocities from upwinded values
        call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
        call phys_get_cmax(wRC,x,ixG^LL,ixC^L,idims,cmaxRC)
