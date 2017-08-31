@@ -82,6 +82,9 @@ module mod_mhd_phys
   !> Method type to clean divergence of B
   character(len=std_len) :: typedivbfix  = 'linde'
 
+  !> Method type in a integer for good performance
+  integer :: type_divb
+
   !> Coefficient of diffusive divB cleaning
   double precision :: divbdiff     = 0.5d0
 
@@ -126,7 +129,7 @@ contains
     integer                      :: n
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
-      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
+      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
       divbwave, He_abundance, SI_unit, B0field, B0field_forcefree, Bdip, Bquad, Boct, &
@@ -176,6 +179,31 @@ contains
     physics_type = "mhd"
     phys_energy=mhd_energy
     use_particles=mhd_particles
+    select case (typedivbfix)
+    case ('none')
+      type_divb=0
+    case ('glm1')
+      mhd_glm=.true.
+      type_divb=1
+    case ('glm2')
+      mhd_glm=.true.
+      type_divb=2
+    case ('glm3')
+      mhd_glm=.true.
+      type_divb=3
+    case ('powel', 'powell')
+      type_divb=4
+    case ('janhunen')
+      type_divb=5
+    case ('linde')
+      type_divb=6
+    case ('lindejanhunen')
+      type_divb=7
+    case ('lindepowel')
+      type_divb=8
+    case default
+      call mpistop('Unknown divB fix')
+    end select
 
     ! Determine flux variables
     rho_ = var_set_rho()
@@ -243,7 +271,7 @@ contains
     phys_write_info      => mhd_write_info
 
     ! Whether diagonal ghost cells are required for the physics
-    !if(mhd_eta==0.d0 .and. .not. mhd_Hall) phys_req_diagonal = .false.
+    if(type_divb <6) phys_req_diagonal = .false.
 
     ! derive units from basic units
     call mhd_physical_units()
@@ -257,7 +285,8 @@ contains
 
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
-       call thermal_conduction_init(mhd_gamma)
+      phys_req_diagonal = .true.
+      call thermal_conduction_init(mhd_gamma)
     end if
 
     ! Initialize radiative cooling module
@@ -1073,35 +1102,35 @@ contains
     {^NOONED
     if (qsourcesplit) then
       ! Sources related to div B
-      select case (typedivbfix)
-      case ('glm1')
+      select case (type_divb)
+      case (0)
+        ! Do nothing
+      case (1)
         active = .true.
         call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('glm2')
+      case (2)
         active = .true.
         call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('glm3')
+      case (3)
         active = .true.
         call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('powel', 'powell')
+      case (4)
         active = .true.
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('janhunen')
+      case (5)
         active = .true.
         call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('linde')
+      case (6)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('lindejanhunen')
+      case (7)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('lindepowel')
+      case (8)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('none')
-        ! Do nothing
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1948,7 +1977,7 @@ contains
 
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    vHall(ixI^S,1:3) = zero
+    vHall(ixO^S,1:3) = zero
     vHall(ixO^S,idirmin:3) = - mhd_etah*current(ixO^S,idirmin:3)
     do idir = idirmin, 3
        vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)
