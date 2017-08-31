@@ -1,11 +1,11 @@
  &filelist
-        base_filename = '_Lorentz6_relativistic'
+        base_filename = '_Vay6_relativistic_smallerdt'
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
+        physics_type_particles='Vay'
         npayload=2
-	const_dt_particles = 5.0d-7
+	const_dt_particles = 5.0d-9
 	dtsave_particles = 1.0d-5
  /
 
@@ -23,7 +23,7 @@
         xprobmin2     = -3.0d6 !-1.0d12 !-2.0d1
         xprobmax2     = 3.0d6 !1.0d12  !2.0d1
         xprobmin3     = -3.0d9 !-1.0d12 !-2.0d11
-        xprobmax3     = 3.0d9 !1.0d12  !2.0d11 
+        xprobmax3     = 3.0d9 !1.0d12  !2.0d11
 /
 
  &my_list
