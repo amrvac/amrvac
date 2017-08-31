@@ -455,7 +455,7 @@ contains
   end subroutine get_tdust
 
   !> w[iw]= w[iw]+qdt*S[wCT,  x] where S is the source based on wCT within ixO
-  subroutine dust_add_source(qdt, ixI^L, ixO^L, wCT,w, x, qsourcesplit)
+  subroutine dust_add_source(qdt, ixI^L, ixO^L, wCT,w, x, qsourcesplit, active)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
@@ -463,6 +463,7 @@ contains
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
+    logical, intent(inout)            :: active
 
     double precision :: ptherm(ixI^S), vgas(ixI^S, ndir)
     double precision :: fdrag(ixI^S, ndir, dust_n_species)
@@ -473,6 +474,8 @@ contains
       !do nothing here
     case default !all regular dust methods here
       if (qsourcesplit .eqv. dust_source_split) then
+        active = .true.
+
         call phys_get_pthermal(wCT, x, ixI^L, ixO^L, ptherm)
         do idir=1,ndir
           vgas(ixO^S,idir)=wCT(ixO^S,gas_mom(idir))/wCT(ixO^S,gas_rho_)

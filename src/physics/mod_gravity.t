@@ -32,7 +32,8 @@ contains
   end subroutine gravity_init
 
   !> w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
-  subroutine gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,energy,qsourcesplit)
+  subroutine gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+       energy,qsourcesplit,active)
     use mod_global_parameters
     use mod_usr_methods
 
@@ -41,13 +42,14 @@ contains
     double precision, intent(in)    :: wCT(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in) :: energy,qsourcesplit
-
+    logical, intent(inout) :: active
     integer                         :: idim
 
     double precision :: gravity_field(ixI^S,ndim)
 
     if(qsourcesplit .eqv. grav_split) then
-  
+      active = .true.
+
       if (.not. associated(usr_gravity)) then
         write(*,*) "mod_usr.t: please point usr_gravity to a subroutine"
         write(*,*) "like the phys_gravity in mod_usr_methods.t"

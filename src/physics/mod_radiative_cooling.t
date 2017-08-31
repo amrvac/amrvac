@@ -963,7 +963,8 @@ module mod_radiative_cooling
     
     end subroutine getvar_cooling
 
-    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+         qsourcesplit,active)
 
     ! w[iw]=w[iw]+qdt*S[wCT,x] where S is the source based on wCT within ixO
       use mod_global_parameters
@@ -972,8 +973,10 @@ module mod_radiative_cooling
       double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       logical, intent(in) :: qsourcesplit
+      logical, intent(inout) :: active
 
-      if(qsourcesplit .eqv. rc_split) then 
+      if(qsourcesplit .eqv. rc_split) then
+        active = .true.
         call radcool(qdt,ixI^L,ixO^L,wCT,w,x)
         if( Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x)
       end if

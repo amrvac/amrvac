@@ -39,7 +39,7 @@ contains
     if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
-    call addsource_all(.true.)
+    call addsource_all(prior=.true.)
 
     firstsweep=.true.
     if (dimsplit) then
@@ -67,7 +67,7 @@ contains
     if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
-    call addsource_all(.false.)
+    call addsource_all(prior=.false.)
 
     if(use_particles) call handle_particles
 

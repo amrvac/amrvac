@@ -17,6 +17,7 @@ contains
     use mod_usr_methods
 
     usr_init_one_grid => initonegrid_usr
+    call set_coordinate_system("Cartesian_3D")
 
     call hd_activate()
 
