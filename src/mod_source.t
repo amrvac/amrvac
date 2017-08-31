@@ -116,7 +116,8 @@ contains
     tmp_active = .false.
     ! user defined sources, typically explicitly added
     if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source)) then
-       call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x,tmp_active)
+       tmp_active = .true.
+       call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     end if
 
     ! physics defined sources, typically explicitly added,
