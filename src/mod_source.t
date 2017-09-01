@@ -12,6 +12,7 @@ contains
   subroutine add_split_source(prior)
     use mod_global_parameters
     use mod_ghostcells_update
+    use mod_thermal_conduction, only: phys_thermal_conduction
     use mod_physics, only: phys_req_diagonal
 
     logical, intent(in) :: prior
@@ -19,6 +20,9 @@ contains
     double precision :: qdt, qt
     integer :: iigrid, igrid, i^D
     logical :: src_active
+
+    ! add thermal conduction
+    if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     src_active = .false.
 

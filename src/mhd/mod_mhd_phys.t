@@ -182,12 +182,15 @@ contains
       type_divb=0
     case ('glm1')
       mhd_glm=.true.
+      need_global_cmax=.true.
       type_divb=1
     case ('glm2')
       mhd_glm=.true.
+      need_global_cmax=.true.
       type_divb=2
     case ('glm3')
       mhd_glm=.true.
+      need_global_cmax=.true.
       type_divb=3
     case ('powel', 'powell')
       type_divb=4

@@ -45,7 +45,6 @@ mod_advance.o: mod_ghostcells_update.o
 mod_advance.o: mod_particles.o
 mod_advance.o: mod_physics.o
 mod_advance.o: mod_source.o
-mod_advance.o: mod_thermal_conduction.o
 mod_advance.o: mod_tvd.o
 mod_dust.o: mod_physics.o
 mod_finite_difference.o: mod_finite_volume.o
@@ -141,6 +140,7 @@ mod_rho_roe.o: mod_physics_roe.o
 mod_rho_roe.o: mod_rho_phys.o
 mod_source.o: mod_ghostcells_update.o
 mod_source.o: mod_physics.o
+mod_source.o: mod_thermal_conduction.o
 mod_thermal_conduction.o: mod_fix_conserve.o
 mod_thermal_conduction.o: mod_ghostcells_update.o
 mod_thermal_conduction.o: mod_physics.o

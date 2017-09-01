@@ -17,7 +17,6 @@ contains
   !> Advance all the grids over one time step, including all sources
   subroutine advance(iit)
     use mod_global_parameters
-    use mod_thermal_conduction
     use mod_particles, only: handle_particles
     use mod_source, only: add_split_source
 
@@ -35,8 +34,6 @@ contains
     {#IFDEF RAY
     call update_rays
     }
-    ! add thermal conduction
-    if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
     call add_split_source(prior=.true.)
@@ -62,9 +59,6 @@ contains
        lastsweep= .true.
        call advect(1,ndim)
     end if
-
-    ! add thermal conduction
-    if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
     call add_split_source(prior=.false.)
