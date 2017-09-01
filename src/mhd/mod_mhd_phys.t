@@ -86,7 +86,7 @@ module mod_mhd_phys
   integer :: type_divb
 
   !> Coefficient of diffusive divB cleaning
-  double precision :: divbdiff     = 0.5d0
+  double precision :: divbdiff     = 0.8d0
 
   !> Update all equations due to divB cleaning
   character(len=std_len) ::    typedivbdiff = 'all'
@@ -174,8 +174,6 @@ contains
 
     call mhd_read_params(par_files)
 
-    gamma_1=mhd_gamma-1.d0
-    inv_gamma_1=1.d0/gamma_1
     physics_type = "mhd"
     phys_energy=mhd_energy
     use_particles=mhd_particles
@@ -330,6 +328,10 @@ contains
 
   subroutine mhd_check_params
     use mod_global_parameters
+
+    ! after user parameter setting
+    gamma_1=mhd_gamma-1.d0
+    inv_gamma_1=1.d0/gamma_1
 
     if (.not. mhd_energy) then
        if (mhd_gamma <= 0.0d0) call mpistop ("Error: mhd_gamma <= 0")
@@ -1081,6 +1083,43 @@ contains
         active = .true.
         call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
+      {^NOONED
+      if(istep==nstep) then
+        ! Sources related to div B
+        select case (type_divb)
+        case (0)
+          ! Do nothing
+        case (1)
+          active = .true.
+          call add_source_glm1(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (2)
+          active = .true.
+          call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (3)
+          active = .true.
+          call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (4)
+          active = .true.
+          call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (5)
+          active = .true.
+          call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (6)
+          active = .true.
+          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (7)
+          active = .true.
+          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+          call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (8)
+          active = .true.
+          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+          call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case default
+          call mpistop('Unknown divB fix')
+        end select
+      end if
+      }
 
     end if
 
@@ -1099,43 +1138,6 @@ contains
            w,x,mhd_energy,qsourcesplit,active)
     end if
 
-    {^NOONED
-    if (qsourcesplit) then
-      ! Sources related to div B
-      select case (type_divb)
-      case (0)
-        ! Do nothing
-      case (1)
-        active = .true.
-        call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (2)
-        active = .true.
-        call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (3)
-        active = .true.
-        call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (4)
-        active = .true.
-        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (5)
-        active = .true.
-        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (6)
-        active = .true.
-        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (7)
-        active = .true.
-        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (8)
-        active = .true.
-        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case default
-        call mpistop('Unknown divB fix')
-      end select
-    end if
-    }
   end subroutine mhd_add_source
 
   subroutine internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)

@@ -4,12 +4,12 @@ module mod_source
   implicit none
   private
 
-  public :: addsource_all
+  public :: add_split_source
   public :: addsource2
 
 contains
 
-  subroutine addsource_all(prior)
+  subroutine add_split_source(prior)
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal
@@ -50,7 +50,7 @@ contains
        call getbc(qt,0.d0,0,nwflux+nwaux, phys_req_diagonal)
     end if
 
-  end subroutine addsource_all
+  end subroutine add_split_source
 
   subroutine addsource1_grid(igrid,qdt,qt,w,src_active)
 

@@ -19,7 +19,7 @@ contains
     use mod_global_parameters
     use mod_thermal_conduction
     use mod_particles, only: handle_particles
-    use mod_source, only: addsource_all
+    use mod_source, only: add_split_source
 
     integer, intent(in) :: iit
 
@@ -39,7 +39,7 @@ contains
     if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
-    call addsource_all(prior=.true.)
+    call add_split_source(prior=.true.)
 
     firstsweep=.true.
     if (dimsplit) then
@@ -67,7 +67,7 @@ contains
     if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
-    call addsource_all(prior=.false.)
+    call add_split_source(prior=.false.)
 
     if(use_particles) call handle_particles
 
