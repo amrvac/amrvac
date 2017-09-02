@@ -27,17 +27,13 @@ contains
     double precision, dimension(ixI^S,1:nwflux)                      :: fCT
     double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL, wprim
     double precision, dimension(ixI^S)                               :: v
-    double precision                                                 :: dxinv(1:ndim), dxdims
+    double precision                                                 :: dxinv(1:ndim)
     logical                                                          :: transport
     integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L, ixCR^L
 
     ^D&dxinv(^D)=-qdt/dx^D;
     do idims= idim^LIM
 
-       select case (idims)
-          {case (^D) 
-          dxdims = dx^D\}
-       end select
        block%iw0=idims
 
        ! Get fluxes for the whole grid (mesh+nghostcells)
@@ -62,8 +58,8 @@ contains
        end do ! iw loop
 
        ! now do the reconstruction of fp and fm:
-       call reconstructL(ixI^L,ix^L,idims,fp,fpL,dxdims)
-       call reconstructR(ixI^L,ix^L,idims,fm,fmR,dxdims)
+       call reconstructL(ixI^L,ix^L,idims,fp,fpL)
+       call reconstructR(ixI^L,ix^L,idims,fm,fmR)
 
        do iw=1,nwflux
           if (slab) then
@@ -89,13 +85,13 @@ contains
 
   end subroutine fd
 
-  subroutine reconstructL(ixI^L,iL^L,idims,w,wLC,dxdims)
+  subroutine reconstructL(ixI^L,iL^L,idims,w,wLC)
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
 
     integer, intent(in)             :: ixI^L, iL^L, idims
-    double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
+    double precision, intent(in)    :: w(ixI^S,1:nw)
 
     double precision, intent(out)   :: wLC(ixI^S,1:nw) 
 
@@ -119,7 +115,7 @@ contains
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdims,typelimiter,ldw=ldw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw=ldw)
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
        end do
@@ -127,13 +123,13 @@ contains
 
   end subroutine reconstructL
 
-  subroutine reconstructR(ixI^L,iL^L,idims,w,wRC,dxdims)
+  subroutine reconstructR(ixI^L,iL^L,idims,w,wRC)
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
 
     integer, intent(in)             :: ixI^L, iL^L, idims
-    double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
+    double precision, intent(in)    :: w(ixI^S,1:nw)
 
     double precision, intent(out)   :: wRC(ixI^S,1:nw) 
 
@@ -156,7 +152,7 @@ contains
 
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdims,typelimiter,rdw=rdw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,rdw=rdw)
 
           wRC(iL^S,iw)=wRC(iL^S,iw)-half*rdw(jxR^S)
        end do
@@ -251,7 +247,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
     double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
 
-    double precision :: dxinv(1:ndim), dxdim
+    double precision :: dxinv(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
     logical :: transport, new_cmax, patchw(ixI^S)
 
@@ -287,8 +283,7 @@ contains
        wRC(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
        wLC(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
 
-       dxdim=-qdt/dxinv(idims)
-       call upwindLR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim)
+       call upwindLR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,x,.false.)
 
        call phys_to_conserved(ixI^L,ixC^L,wLC,x)
        call phys_to_conserved(ixI^L,ixC^L,wRC,x)

@@ -73,12 +73,11 @@ contains
   !> but also from the gradientS and divvectorS subroutines in geometry.t
   !> Accordingly, the typelimiter here corresponds to one of limiter
   !> or one of gradient_limiter.
-  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,dxdim,typelim,ldw,rdw)
+  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw)
 
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixC^L, idims
-    double precision, intent(in) :: dxdim
     double precision, intent(in) :: dwC(ixI^S)
     integer, intent(in) :: typelim
     !> Result using left-limiter (same as right for symmetric)
@@ -182,7 +181,7 @@ contains
        end if
     case (limiter_cada3)
        tmp(ixO^S)=sign(one,dwC(ixO^S))
-       rdelinv=one/(cadradius*dxdim)**2
+       rdelinv=one/(cadradius*dxlevel(idims))**2
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
 
        if (present(ldw)) then

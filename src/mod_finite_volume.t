@@ -26,7 +26,7 @@ contains
 
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
-    double precision :: dxinv(1:ndim),dxdim(1:ndim)
+    double precision :: dxinv(1:ndim)
     integer :: idim, iw, ix^L, hxO^L
 
     ! Expand limits in each idim direction in which fluxes are added
@@ -41,7 +41,6 @@ contains
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
-    ^D&dxdim(^D)=dx^D;
     do idim= idim^LIM
        block%iw0=idim
        ! Calculate w_j+g_j/2 and w_j-g_j/2
@@ -52,7 +51,7 @@ contains
        wRC(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
        wLC(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
-       call upwindLR(ixI^L,ixO^L,hxO^L,idim,wprim,wprim,wLC,wRC,x,.false.,dxdim(idim))
+       call upwindLR(ixI^L,ixO^L,hxO^L,idim,wprim,wprim,wLC,wRC,x,.false.)
 
        ! Calculate the fLC and fRC fluxes
        call phys_get_flux(wRC,x,ixI^L,hxO^L,idim,fRC)
@@ -102,7 +101,7 @@ contains
     double precision, dimension(ixI^S)      :: cmaxC
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(ixO^S)      :: inv_volume
-    double precision, dimension(1:ndim)     :: dxinv, dxdim
+    double precision, dimension(1:ndim)     :: dxinv
     integer, dimension(ixI^S)               :: patchf
     integer :: idim, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
 
@@ -124,7 +123,6 @@ contains
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
-    ^D&dxdim(^D)=dx^D;
     do idim= idim^LIM
        ! use interface value of w0 at idim
        block%iw0=idim
@@ -146,9 +144,9 @@ contains
        ! for second order scheme: apply limiting
        select case (typelimited)
        case ('previous')
-          call upwindLR(ixI^L,ixCR^L,ixCR^L,idim,wold,wprim,wLC,wRC,x,.true.,dxdim(idim))
+          call upwindLR(ixI^L,ixCR^L,ixCR^L,idim,wold,wprim,wLC,wRC,x,.true.)
        case ('predictor')
-          call upwindLR(ixI^L,ixCR^L,ixCR^L,idim,wprim,wprim,wLC,wRC,x,.false.,dxdim(idim))
+          call upwindLR(ixI^L,ixCR^L,ixCR^L,idim,wprim,wprim,wLC,wRC,x,.false.)
        case default
           call mpistop("Error in reconstruction: no such base for limiter")
        end select
@@ -536,14 +534,13 @@ contains
 
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
-  subroutine upwindLR(ixI^L,ixL^L,ixR^L,idim,w,wCT,wLC,wRC,x,needprim,dxdim)
+  subroutine upwindLR(ixI^L,ixL^L,ixR^L,idim,w,wCT,wLC,wRC,x,needprim)
     use mod_physics
     use mod_global_parameters
     use mod_limiter
 
     integer, intent(in) :: ixI^L, ixL^L, ixR^L, idim
     logical, intent(in) :: needprim
-    double precision, intent(in) :: dxdim
     double precision, dimension(ixI^S,1:nw) :: w, wCT
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     double precision, dimension(ixI^S,1:ndim) :: x
@@ -576,7 +573,7 @@ contains
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
           ! limit flux from left and/or right
-          call dwlimiter2(dwC,ixI^L,ixC^L,idim,dxdim,typelimiter,ldw,rdw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idim,typelimiter,ldw,rdw)
           wLC(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
           wRC(ixR^S,iw)=wRC(ixR^S,iw)-half*rdw(jxR^S)
 
