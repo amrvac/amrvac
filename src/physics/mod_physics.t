@@ -82,19 +82,22 @@ module mod_physics
        double precision, intent(inout) :: cmax(ixI^S)
      end subroutine sub_get_cmax
 
-     subroutine sub_get_cbounds(wLC, wRC, x, ixI^L, ixO^L, idim, cmax, cmin)
+     subroutine sub_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+       double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
        double precision, intent(inout) :: cmax(ixI^S)
        double precision, intent(inout), optional :: cmin(ixI^S)
      end subroutine sub_get_cbounds
 
-     subroutine sub_get_flux(w, x, ixI^L, ixO^L, idim, f)
+     subroutine sub_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idim
-       double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
+       double precision, intent(in)    :: wC(ixI^S, 1:nw)
+       double precision, intent(in)    :: w(ixI^S, 1:nw)
+       double precision, intent(in)    :: x(ixI^S, 1:^ND)
        double precision, intent(out)   :: f(ixI^S, nwflux)
      end subroutine sub_get_flux
 

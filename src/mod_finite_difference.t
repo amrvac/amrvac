@@ -49,7 +49,7 @@ contains
 
        wprim=wCT
        call phys_to_primitive(ixG^LL,ixCR^L,wprim,x)
-       call phys_get_flux(wprim,x,ixG^LL,ixCR^L,idims,fCT)
+       call phys_get_flux(wCT,wprim,x,ixG^LL,ixCR^L,idims,fCT)
 
        do iw=1,nwflux
           ! Lax-Friedrich splitting:
@@ -81,7 +81,6 @@ contains
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
-
 
   end subroutine fd
 
@@ -173,7 +172,7 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D
-    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw), wprim(ixI^S,1:nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
@@ -191,6 +190,9 @@ contains
        call mpistop("Error in CentDiff: Non-conforming input limits")
     end if
 
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+
     ^D&dxinv(^D)=-qdt/dx^D;
 
     ! Add fluxes to w
@@ -199,7 +201,7 @@ contains
        jxC^L=ixC^L+kr(idims,^D); 
        hxO^L=ixO^L-kr(idims,^D);
 
-       call phys_get_flux(wCT,x,ixI^L,ix^L,idims,f)
+       call phys_get_flux(wCT,wprim,x,ixI^L,ix^L,idims,f)
 
        do iw=1,nwflux
           ! Center flux to interface
@@ -232,7 +234,7 @@ contains
     ! wCT contains the time centered variables at time qtC for flux and source.
     ! w is the old value at qt on input and the new value at qt+qdt on output.
     use mod_physics
-    use mod_finite_volume, only: upwindLR
+    use mod_finite_volume, only: reconstruct_LR
     use mod_global_parameters
     use mod_source, only: addsource2
 
@@ -245,6 +247,8 @@ contains
     double precision :: v(ixI^S,ndim), f(ixI^S, nwflux)
 
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
+    ! left and right constructed status in primitive form, needed for better performance
+    double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
 
     double precision :: dxinv(1:ndim)
@@ -283,17 +287,15 @@ contains
        wRC(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
        wLC(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
 
-       call upwindLR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,x,.false.)
+       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
 
-       call phys_to_conserved(ixI^L,ixC^L,wLC,x)
-       call phys_to_conserved(ixI^L,ixC^L,wRC,x)
        ! Calculate velocities from upwinded values
        call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
        call phys_get_cmax(wRC,x,ixG^LL,ixC^L,idims,cmaxRC)
        ! now take the maximum of left and right states
        vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
 
-       call phys_get_flux(wCT,x,ixI^L,ix^L,idims,f)
+       call phys_get_flux(wCT,wprim,x,ixI^L,ix^L,idims,f)
 
        do iw=1,nwflux
           ! Center flux to interface

@@ -259,8 +259,7 @@ contains
     phys_get_dt          => mhd_get_dt
     phys_get_cmax        => mhd_get_cmax
     phys_get_cbounds     => mhd_get_cbounds
-    !phys_get_flux        => mhd_get_flux
-    phys_get_flux        => mhd_get_flux_prim
+    phys_get_flux        => mhd_get_flux
     phys_add_source_geom => mhd_add_source_geom
     phys_add_source      => mhd_add_source
     phys_to_conserved    => mhd_to_conserved
@@ -567,11 +566,12 @@ contains
   end subroutine mhd_get_cmax
 
   !> Estimating bounds for the minimum and maximum signal velocities
-  subroutine mhd_get_cbounds(wLC,wRC,x,ixI^L,ixO^L,idim,cmax,cmin)
+  subroutine mhd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,cmax,cmin)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
     double precision, intent(inout), optional :: cmin(ixI^S)
@@ -580,15 +580,15 @@ contains
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
     if (typeboundspeed/='cmaxmean') then
-      tmp1(ixO^S)=dsqrt(wLC(ixO^S,rho_))
-      tmp2(ixO^S)=dsqrt(wRC(ixO^S,rho_))
-      tmp3(ixO^S)=dsqrt(wLC(ixO^S,rho_))+dsqrt(wRC(ixO^S,rho_))
-      umean(ixO^S)=(wLC(ixO^S,mom(idim))/tmp1(ixO^S)+wRC(ixO^S,mom(idim))/tmp2(ixO^S))/tmp3(ixO^S)
-      call mhd_get_csound(wLC,x,ixI^L,ixO^L,idim,csoundL)
-      call mhd_get_csound(wRC,x,ixI^L,ixO^L,idim,csoundR)
-      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)/tmp3(ixO^S)+&
-       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)/tmp3(ixO^S)**2*&
-       (wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)-wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_))**2
+      tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
+      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
+      umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
+      call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
+      call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)*tmp3(ixO^S)+&
+       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
+       (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
       dmean(ixO^S)=dsqrt(dmean(ixO^S))
       if(present(cmin)) then
         cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
@@ -609,50 +609,6 @@ contains
     end if
 
   end subroutine mhd_get_cbounds
-
-  !> Estimating bounds for the minimum and maximum signal velocities
-  subroutine mhd_get_cbounds_prim(wLC,wRC,x,ixI^L,ixO^L,idim,cmax,cmin)
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L, idim
-    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
-
-    double precision :: wmean(ixI^S,nw)
-    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
-
-    if (typeboundspeed/='cmaxmean') then
-      tmp1(ixO^S)=dsqrt(wLC(ixO^S,rho_))
-      tmp2(ixO^S)=dsqrt(wRC(ixO^S,rho_))
-      tmp3(ixO^S)=dsqrt(wLC(ixO^S,rho_))+dsqrt(wRC(ixO^S,rho_))
-      umean(ixO^S)=(wLC(ixO^S,mom(idim))*tmp1(ixO^S)+wRC(ixO^S,mom(idim))*tmp2(ixO^S))/tmp3(ixO^S)
-      call mhd_get_csound_prim(wLC,x,ixI^L,ixO^L,idim,csoundL)
-      call mhd_get_csound_prim(wRC,x,ixI^L,ixO^L,idim,csoundR)
-      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)/tmp3(ixO^S)+&
-       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)/tmp3(ixO^S)**2*&
-       (wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)-wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_))**2
-      dmean(ixO^S)=dsqrt(dmean(ixO^S))
-      if(present(cmin)) then
-        cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
-        cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
-      else
-        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
-      end if
-    else
-      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-      tmp1(ixO^S)=wmean(ixO^S,mom(idim))
-      call mhd_get_csound_prim(wmean,x,ixI^L,ixO^L,idim,csoundR)
-      if(present(cmin)) then
-        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
-        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-      else
-        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
-      end if
-    end if
-
-  end subroutine mhd_get_cbounds_prim
 
   !> Calculate fast magnetosonic wave speed
   subroutine mhd_get_csound(w,x,ixI^L,ixO^L,idim,csound)
@@ -791,7 +747,7 @@ contains
   end subroutine mhd_get_p_total
 
   !> Calculate fluxes within ixO^L.
-  subroutine mhd_get_flux(w,x,ixI^L,ixO^L,idim,f)
+  subroutine mhd_get_flux_cons(w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
@@ -915,18 +871,21 @@ contains
       f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
-  end subroutine mhd_get_flux
+  end subroutine mhd_get_flux_cons
 
   !> Calculate fluxes within ixO^L.
-  subroutine mhd_get_flux_prim(w,x,ixI^L,ixO^L,idim,f)
+  subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in) :: wC(ixI^S,nw)
+    ! primitive w
     double precision, intent(in) :: w(ixI^S,nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: ptotal(ixO^S),tmp(ixI^S), v(ixI^S,ndir)
+    double precision             :: ptotal(ixO^S),tmp(ixI^S)
     double precision, allocatable:: vHall(:^D&,:)
     integer                      :: idirmin, iw, idir
 
@@ -961,7 +920,7 @@ contains
              -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
              -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
       end if
-      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*w(ixO^S,mom(idir))*w(ixO^S,rho_)
+      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
     end do
 
     ! Get flux of energy
@@ -973,9 +932,7 @@ contains
              call mpistop("solve pthermal not designed for Hall MHD")
           endif
        else
-          f(ixO^S,e_)=w(ixO^S,mom(idim))*(w(ixO^S,p_)*inv_gamma_1 + &
-             0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_) + &
-             mhd_mag_en(w, ixI^L, ixO^L)+ptotal(ixO^S))- &
+          f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_) + ptotal(ixO^S))- &
              w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
 
           if (B0field) then
@@ -1042,7 +999,7 @@ contains
       f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
-  end subroutine mhd_get_flux_prim
+  end subroutine mhd_get_flux
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
   subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
