@@ -125,7 +125,7 @@ type(tree_node_ptr) :: my_neighbor
    i^DD=kr(^DD,^D)*(2*iside-3);
    call find_neighbor(my_neighbor,my_neighbor_type,tree,i^DD,pole)
    select case (my_neighbor_type)
-   case (3,4)
+   case (neighbor_sibling, neighbor_fine)
       tree%node%neighbor(iside,^D)%node => my_neighbor%node
       if (associated(my_neighbor%node)) then
          if (pole(^D)) then

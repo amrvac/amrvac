@@ -117,7 +117,7 @@ contains
     endwhere
     if(mhd_n_tracer>0) then
       where(rval(ix^S)<rbound)
-        w(ix^S,tracer(1))=one
+        w(ix^S,tracer(1))=w(ix^S,rho_)
       elsewhere
         w(ix^S,tracer(1))=zero
       endwhere

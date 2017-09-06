@@ -123,13 +123,13 @@ integer :: my_neighbor_type, i^D, isafety_neighbor
       my_neighbor_type=neighbor_type(i^D,igrid)
 
       select case (my_neighbor_type)
-      case (1) ! boundary
+      case (neighbor_boundary) ! boundary
          isafety_neighbor = nsafety+1
-      case (2) ! fine-coarse
+      case (neighbor_coarse) ! fine-coarse
          isafety_neighbor = isafety_fc(i^D,igrid)
-      case (3) ! same level
+      case (neighbor_sibling) ! same level
          isafety_neighbor = isafety_srl(i^D,igrid)
-      case (4) ! coarse-fine
+      case (neighbor_fine) ! coarse-fine
          isafety_neighbor = isafety_cf_max(i^D,igrid)
       end select
 
@@ -153,13 +153,13 @@ min_isafety_neighbor = biginteger
       my_neighbor_type=neighbor_type(i^D,igrid)
 
       select case (my_neighbor_type)
-      case (2) ! fine-coarse
+      case (neighbor_coarse) ! fine-coarse
          min_isafety_neighbor = min(isafety_fc(i^D,igrid),&
          min_isafety_neighbor)
-      case (3) ! same level
+      case (neighbor_sibling) ! same level
          min_isafety_neighbor = min(isafety_srl(i^D,igrid),&
          min_isafety_neighbor)
-      case (4) ! coarse-fine
+      case (neighbor_fine) ! coarse-fine
          min_isafety_neighbor = min(isafety_cf_min(i^D,igrid),&
          min_isafety_neighbor)
       end select

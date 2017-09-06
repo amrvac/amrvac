@@ -59,6 +59,8 @@ module mod_dust
   public :: dust_get_dt
   public :: dust_get_flux
   public :: dust_get_cmax
+  public :: dust_get_flux_prim
+  public :: dust_get_cmax_prim
   public :: dust_add_source
   public :: dust_to_conserved
   public :: dust_to_primitive
@@ -203,6 +205,28 @@ contains
     end do
   end subroutine dust_get_flux
 
+  subroutine dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
+    double precision, intent(inout) :: f(ixI^S, nwflux)
+    integer                         :: n, idir
+
+    do n = 1, dust_n_species
+      where (w(ixO^S, dust_rho(n)) > dust_min_rho)
+        f(ixO^S, dust_rho(n)) = w(ixO^S, dust_mom(idim, n))*w(ixO^S, dust_rho(n))
+      elsewhere             ! TODO: remove?
+        f(ixO^S, dust_rho(n)) = 0.0d0
+      end where
+
+      do idir = 1, ndir
+        f(ixO^S, dust_mom(idir, n)) = w(ixO^S, dust_mom(idir, n)) * &
+        w(ixO^S, dust_rho(n)) * get_vdust_prim(w, ixI^L, ixO^L, idim, n)
+      end do
+    end do
+  end subroutine dust_get_flux_prim
+
   function get_vdust(w, ixI^L, ixO^L, idim, n) result(vdust)
     use mod_global_parameters, only: nw
     integer, intent(in)           :: ixI^L, ixO^L, idim, n
@@ -212,9 +236,22 @@ contains
     where (w(ixO^S, dust_rho(n)) > dust_min_rho)
       vdust = w(ixO^S, dust_mom(idim, n)) / w(ixO^S, dust_rho(n))
     elsewhere
-      vdust = 0.0d0;
+      vdust = 0.0d0
     end where
   end function get_vdust
+
+  function get_vdust_prim(w, ixI^L, ixO^L, idim, n) result(vdust)
+    use mod_global_parameters, only: nw
+    integer, intent(in)           :: ixI^L, ixO^L, idim, n
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision              :: vdust(ixO^S)
+
+    where (w(ixO^S, dust_rho(n)) > dust_min_rho)
+      vdust = w(ixO^S, dust_mom(idim, n))
+    elsewhere
+      vdust = 0.0d0
+    end where
+  end function get_vdust_prim
 
   ! Force dust density to zero if dust_rho <= dust_min_rho
   subroutine set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
@@ -418,7 +455,7 @@ contains
   end subroutine get_tdust
 
   !> w[iw]= w[iw]+qdt*S[wCT,  x] where S is the source based on wCT within ixO
-  subroutine dust_add_source(qdt, ixI^L, ixO^L, wCT,w, x, qsourcesplit)
+  subroutine dust_add_source(qdt, ixI^L, ixO^L, wCT,w, x, qsourcesplit, active)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
@@ -426,6 +463,7 @@ contains
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
+    logical, intent(inout)            :: active
 
     double precision :: ptherm(ixI^S), vgas(ixI^S, ndir)
     double precision :: fdrag(ixI^S, ndir, dust_n_species)
@@ -436,6 +474,8 @@ contains
       !do nothing here
     case default !all regular dust methods here
       if (qsourcesplit .eqv. dust_source_split) then
+        active = .true.
+
         call phys_get_pthermal(wCT, x, ixI^L, ixO^L, ptherm)
         do idir=1,ndir
           vgas(ixO^S,idir)=wCT(ixO^S,gas_mom(idir))/wCT(ixO^S,gas_rho_)
@@ -607,5 +647,28 @@ contains
       end if
     end do
   end subroutine dust_get_cmax
+
+  ! Note that cmax and cmin are assumed to be initialized
+  subroutine dust_get_cmax_prim(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+    use mod_global_parameters
+
+    integer, intent(in)                       :: ixI^L, ixO^L, idim
+    double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+    double precision, intent(inout)           :: cmax(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision                          :: vdust(ixI^S)
+    integer                                   :: n
+
+    do n = 1, dust_n_species
+      vdust(ixO^S) = get_vdust_prim(w, ixI^L, ixO^L, idim, n)
+
+      if (present(cmin)) then
+        cmin(ixO^S) = min(cmin(ixO^S), vdust(ixO^S))
+        cmax(ixO^S) = max(cmax(ixO^S), vdust(ixO^S))
+      else
+        cmax(ixO^S) = max(cmax(ixO^S), abs(vdust(ixO^S)))
+      end if
+    end do
+  end subroutine dust_get_cmax_prim
 
 end module mod_dust

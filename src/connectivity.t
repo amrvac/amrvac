@@ -73,11 +73,11 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 
          select case (my_neighbor_type)
          ! adjacent to physical boundary
-         case (1)
+         case (neighbor_boundary)
             neighbor(1,i^D,igrid)=0
             neighbor(2,i^D,igrid)=-1
          ! fine-coarse transition
-         case (2)
+         case (neighbor_coarse)
             neighbor(1,i^D,igrid)=my_neighbor%node%igrid
             neighbor(2,i^D,igrid)=my_neighbor%node%ipe
             if (my_neighbor%node%ipe/=mype) then
@@ -88,7 +88,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
                end if
             end if
          ! same refinement level
-         case (3)
+         case (neighbor_sibling)
             neighbor(1,i^D,igrid)=my_neighbor%node%igrid
             neighbor(2,i^D,igrid)=my_neighbor%node%ipe
             if (my_neighbor%node%ipe/=mype) then
@@ -96,7 +96,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
                nsend_bc_srl=nsend_bc_srl+1
             end if
          ! coarse-fine transition
-         case (4)
+         case (neighbor_fine)
             neighbor(1,i^D,igrid)=0
             neighbor(2,i^D,igrid)=-1
             {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
@@ -124,11 +124,11 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
             end if\}
             select case (my_neighbor_type)
             ! only across fine-coarse or coarse-fine boundaries
-            case (2)
+            case (neighbor_coarse)
                if (my_neighbor%node%ipe/=mype) then
                   if (.not.pole(idim)) nsend_fc(idim)=nsend_fc(idim)+1
                end if
-            case (4)
+            case (neighbor_fine)
                if (pole(idim)) then
                   icdim=iside
                else

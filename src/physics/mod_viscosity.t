@@ -66,7 +66,8 @@ contains
 
   end subroutine viscosity_init
 
-  subroutine viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,energy,qsourcesplit)
+  subroutine viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+       energy,qsourcesplit,active)
   ! Add viscosity source to w within ixO 
     use mod_global_parameters
     
@@ -74,11 +75,13 @@ contains
     double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in) :: energy,qsourcesplit
+    logical, intent(inout) :: active
     
     integer:: ix^L,idim,idir,jdir,iw
     double precision:: lambda(ixI^S,ndir,ndir),tmp(ixI^S),tmp2(ixI^S),v(ixI^S,ndir)
 
     if(qsourcesplit .eqv. vc_split) then
+      active = .true.
       ! standard case, textbook viscosity
       ! Calculating viscosity sources 
       if(.not.vc_4th_order) then

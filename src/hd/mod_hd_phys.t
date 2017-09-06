@@ -59,7 +59,6 @@ module mod_hd_phys
   public :: hd_phys_init
   public :: hd_kin_en
   public :: hd_get_pthermal
-  public :: hd_get_v
   public :: hd_to_conserved
   public :: hd_to_primitive
 
@@ -155,6 +154,9 @@ contains
     phys_get_pthermal    => hd_get_pthermal
     phys_write_info      => hd_write_info
 
+    ! Whether diagonal ghost cells are required for the physics
+    phys_req_diagonal = .false.
+
     ! derive units from basic units
     call hd_physical_units()
 
@@ -181,7 +183,10 @@ contains
     if (hd_gravity) call gravity_init()
 
     ! Initialize particles module
-    if (hd_particles) call particles_init()
+    if (hd_particles) then
+       call particles_init()
+       phys_req_diagonal = .true.
+    end if
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -275,19 +280,16 @@ contains
     double precision                :: invgam
     integer                         :: idir, itr
 
-    ! Convert velocity to momentum
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
-    end do
-
     if (hd_energy) then
        invgam = 1.d0/(hd_gamma - 1.0d0)
        ! Calculate total energy from pressure and kinetic energy
-       w(ixO^S, e_) = w(ixO^S, e_) * invgam + hd_kin_en(w, ixI^L, ixO^L)
+       w(ixO^S, e_) = w(ixO^S, e_) * invgam + &
+            0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_)
     end if
 
-    do itr = 1, hd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
+    ! Convert velocity to momentum
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
 
     if (hd_dust) then
@@ -306,20 +308,19 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: itr, idir
+    double precision                :: inv_rho(ixO^S)
+
+    inv_rho = 1.0d0 / w(ixO^S, rho_)
 
     if (hd_energy) then
        ! Compute pressure
        w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            hd_kin_en(w, ixI^L, ixO^L))
+            hd_kin_en(w, ixI^L, ixO^L, inv_rho))
     end if
 
     ! Convert momentum to velocity
     do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * hd_inv_rho(w, ixI^L, ixO^L)
-    end do
-
-    do itr = 1, hd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * hd_inv_rho(w, ixI^L, ixO^L)
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * inv_rho
     end do
 
     ! Convert dust momentum to dust velocity
@@ -368,7 +369,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(out) :: v(ixI^S)
 
-    v(ixO^S) = w(ixO^S, mom(idim)) * hd_inv_rho(w, ixI^L, ixO^L)
+    v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S, rho_)
   end subroutine hd_get_v
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
@@ -394,41 +395,57 @@ contains
   end subroutine hd_get_cmax
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
-  subroutine hd_get_cbounds(wLC, wRC, x, ixI^L, ixO^L, idim, cmax, cmin)
+  subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
+    ! conservative left and right status
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw) 
+    ! primitive left and right status
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw) 
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout) :: cmin(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
 
     if (typeboundspeed/='cmaxmean') then
-      tmp1(ixO^S)=dsqrt(wLC(ixO^S,rho_))
-      tmp2(ixO^S)=dsqrt(wRC(ixO^S,rho_))
-      tmp3(ixO^S)=dsqrt(wLC(ixO^S,rho_))+dsqrt(wRC(ixO^S,rho_))
-      umean(ixO^S)=(wLC(ixO^S,mom(idim))/tmp1(ixO^S)+wRC(ixO^S,mom(idim))/tmp2(ixO^S))/tmp3(ixO^S)
-      call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
-      call hd_get_csound2(wRC,x,ixI^L,ixO^L,csoundR)
-      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S))/tmp3(ixO^S)+&
-       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)/tmp3(ixO^S)**2*&
-       (wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)-wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_))**2
+      tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
+      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
+      umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
+      if(hd_energy) then
+        csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
+        csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
+      else
+        csoundL(ixO^S)=hd_gamma*hd_adiab*wLp(ixO^S,rho_)**(hd_gamma-one)
+        csoundR(ixO^S)=hd_gamma*hd_adiab*wRp(ixO^S,rho_)**(hd_gamma-one)
+      end if
+      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S))*tmp3(ixO^S)+&
+       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
+       (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
       dmean(ixO^S)=dsqrt(dmean(ixO^S))
-      cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
-      cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      if(present(cmin)) then
+        cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
+        cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      else
+        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
+      end if
       if(hd_dust) wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
     else
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
-      csoundR(ixO^S) = sqrt(csoundR(ixO^S))
-      cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-      cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
+      if(present(cmin)) then
+        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      else
+        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
+      end if
     end if
 
     if (hd_dust) then
@@ -471,8 +488,8 @@ contains
 
   end subroutine hd_get_pthermal
 
-  ! Calculate non-transport flux f_idim[iw] within ixO^L.
-  subroutine hd_get_flux(w, x, ixI^L, ixO^L, idim, f)
+  ! Calculate flux f_idim[iw]
+  subroutine hd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux
 
@@ -506,6 +523,52 @@ contains
     ! Dust fluxes
     if (hd_dust) then
       call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
+    end if
+
+  end subroutine hd_get_flux_cons
+
+  ! Calculate flux f_idim[iw]
+  subroutine hd_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
+    use mod_global_parameters
+    use mod_dust, only: dust_get_flux_prim
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in)    :: wC(ixI^S, 1:nw)
+    ! primitive w
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(out)   :: f(ixI^S, nwflux)
+    double precision                :: pth(ixO^S)
+    integer                         :: idir, itr
+
+    if (hd_energy) then
+       pth(ixO^S) = w(ixO^S,p_)
+    else
+       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+    end if
+
+    f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
+
+    ! Momentum flux is v_i*m_i, +p in direction idim
+    do idir = 1, ndir
+      f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
+    end do
+
+    f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
+
+    if(hd_energy) then
+      ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+      f(ixO^S, e_) = w(ixO^S,mom(idim)) * (wC(ixO^S, e_) + w(ixO^S,p_))
+    end if
+
+    do itr = 1, hd_n_tracer
+       f(ixO^S, tracer(itr)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(itr))
+    end do
+
+    ! Dust fluxes
+    if (hd_dust) then
+      call dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
     end if
 
   end subroutine hd_get_flux
@@ -593,7 +656,7 @@ contains
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine hd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+  subroutine hd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source
@@ -605,21 +668,25 @@ contains
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
+    logical, intent(inout)          :: active
 
     if(hd_dust) then
-      call dust_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+      call dust_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     end if
 
     if(hd_radiative_cooling) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+           qsourcesplit,active)
     end if
 
     if(hd_viscosity) then
-      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit)
+      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+           hd_energy,qsourcesplit,active)
     end if
 
     if(hd_gravity) then
-      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit)
+      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+           hd_energy,qsourcesplit,active)
     end if
 
   end subroutine hd_add_source
@@ -656,14 +723,18 @@ contains
 
   end subroutine hd_get_dt
 
-  function hd_kin_en(w, ixI^L, ixO^L) result(ke)
+  function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
     use mod_global_parameters, only: nw, ndim
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: ke(ixO^S)
+    integer, intent(in)                    :: ixI^L, ixO^L
+    double precision, intent(in)           :: w(ixI^S, nw)
+    double precision                       :: ke(ixO^S)
+    double precision, intent(in), optional :: inv_rho(ixO^S)
 
-    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * &
-         hd_inv_rho(w, ixI^L, ixO^L)
+    if (present(inv_rho)) then
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * inv_rho
+    else
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
+    end if
   end function hd_kin_en
 
   function hd_inv_rho(w, ixI^L, ixO^L) result(inv_rho)

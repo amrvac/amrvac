@@ -82,8 +82,11 @@ module mod_mhd_phys
   !> Method type to clean divergence of B
   character(len=std_len) :: typedivbfix  = 'linde'
 
+  !> Method type in a integer for good performance
+  integer :: type_divb
+
   !> Coefficient of diffusive divB cleaning
-  double precision :: divbdiff     = 0.5d0
+  double precision :: divbdiff     = 0.8d0
 
   !> Update all equations due to divB cleaning
   character(len=std_len) ::    typedivbdiff = 'all'
@@ -102,6 +105,10 @@ module mod_mhd_phys
 
   !> B0 field is force-free
   logical, public, protected :: B0field_forcefree=.true.
+
+  !> gamma minus one and its inverse
+  double precision :: gamma_1, inv_gamma_1
+
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -122,7 +129,7 @@ contains
     integer                      :: n
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
-      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm, mhd_glm_Cr, &
+      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm_Cr, &
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
       divbwave, He_abundance, SI_unit, B0field, B0field_forcefree, Bdip, Bquad, Boct, &
@@ -170,6 +177,34 @@ contains
     physics_type = "mhd"
     phys_energy=mhd_energy
     use_particles=mhd_particles
+    select case (typedivbfix)
+    case ('none')
+      type_divb=0
+    case ('glm1')
+      mhd_glm=.true.
+      need_global_cmax=.true.
+      type_divb=1
+    case ('glm2')
+      mhd_glm=.true.
+      need_global_cmax=.true.
+      type_divb=2
+    case ('glm3')
+      mhd_glm=.true.
+      need_global_cmax=.true.
+      type_divb=3
+    case ('powel', 'powell')
+      type_divb=4
+    case ('janhunen')
+      type_divb=5
+    case ('linde')
+      type_divb=6
+    case ('lindejanhunen')
+      type_divb=7
+    case ('lindepowel')
+      type_divb=8
+    case default
+      call mpistop('Unknown divB fix')
+    end select
 
     ! Determine flux variables
     rho_ = var_set_rho()
@@ -235,6 +270,9 @@ contains
     phys_boundary_adjust => mhd_boundary_adjust
     phys_write_info      => mhd_write_info
 
+    ! Whether diagonal ghost cells are required for the physics
+    if(type_divb <6) phys_req_diagonal = .false.
+
     ! derive units from basic units
     call mhd_physical_units()
 
@@ -247,7 +285,8 @@ contains
 
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
-       call thermal_conduction_init(mhd_gamma)
+      phys_req_diagonal = .true.
+      call thermal_conduction_init(mhd_gamma)
     end if
 
     ! Initialize radiative cooling module
@@ -292,6 +331,10 @@ contains
   subroutine mhd_check_params
     use mod_global_parameters
 
+    ! after user parameter setting
+    gamma_1=mhd_gamma-1.d0
+    inv_gamma_1=1.d0/gamma_1
+
     if (.not. mhd_energy) then
        if (mhd_gamma <= 0.0d0) call mpistop ("Error: mhd_gamma <= 0")
        if (mhd_adiab < 0.0d0) call mpistop ("Error: mhd_adiab < 0")
@@ -299,7 +342,7 @@ contains
     else
        if (mhd_gamma <= 0.0d0 .or. mhd_gamma == 1.0d0) &
             call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
-       small_e = small_pressure/(mhd_gamma - 1.0d0)
+       small_e = small_pressure * inv_gamma_1
     end if
 
   end subroutine mhd_check_params
@@ -347,13 +390,13 @@ contains
 
     if (mhd_energy) then
        if (block%e_is_internal) then
-          where(w(ixO^S, e_) < small_pressure/(mhd_gamma-1.d0)) flag(ixO^S) = e_
+          where(w(ixO^S, e_) < small_pressure*inv_gamma_1) flag(ixO^S) = e_
        else
          if (primitive)then
            where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
          else
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-           tmp(ixO^S)=(mhd_gamma-1.d0)*(w(ixO^S,e_) - &
+           tmp(ixO^S)=gamma_1*(w(ixO^S,e_) - &
               mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
            where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
          end if
@@ -369,20 +412,17 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: idir, itr
 
+    if (mhd_energy) then
+       ! Calculate total energy from pressure, kinetic and magnetic energy
+       w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
+      if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + &
+        0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_) + &
+        mhd_mag_en(w, ixI^L, ixO^L)
+    end if
+
     ! Convert velocity to momentum
     do idir = 1, ndir
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
-    end do
-
-    if (mhd_energy) then
-       ! Calculate total energy from pressure, kinetic and magnetic energy
-       w(ixO^S,e_)=w(ixO^S,p_)/(mhd_gamma-1.d0)
-      if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + &
-            mhd_kin_en(w, ixI^L, ixO^L) + mhd_mag_en(w, ixI^L, ixO^L)
-    end if
-
-    do itr = 1, mhd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, rho_) * w(ixO^S, tracer(itr))
     end do
 
     call handle_small_values(.false., w, x, ixI^L, ixO^L,'mhd_to_conserved')
@@ -394,26 +434,25 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: inv_rho(ixO^S)
     integer                         :: itr, idir
+
+    inv_rho = 1.0d0 / w(ixO^S, rho_)
 
     if (mhd_energy) then
       if(block%e_is_internal) then
-        w(ixO^S, p_) = (mhd_gamma - 1.0d0)*w(ixO^S, e_)
+        w(ixO^S, p_) = gamma_1*w(ixO^S, e_)
       else
        ! Calculate pressure = (gamma-1) * (e-0.5*(2ek+2eb))
-        w(ixO^S, p_) = (mhd_gamma - 1.0d0)*(w(ixO^S, e_) &
-              - mhd_kin_en(w, ixI^L, ixO^L) &
+        w(ixO^S, p_) = gamma_1*(w(ixO^S, e_) &
+              - mhd_kin_en(w, ixI^L, ixO^L, inv_rho) &
               - mhd_mag_en(w, ixI^L, ixO^L))
       end if
     end if
 
     ! Convert momentum to velocity
     do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
-    end do
-
-    do itr = 1, mhd_n_tracer
-       w(ixO^S, tracer(itr)) = w(ixO^S, tracer(itr)) * mhd_inv_rho(w, ixI^L, ixO^L)
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
     call handle_small_values(.true., w, x, ixI^L, ixO^L,'mhd_to_primitive')
@@ -430,6 +469,8 @@ contains
 
     double precision :: smallone
     integer :: idir, flag(ixI^S)
+
+    if (small_values_method == "ignore") return
 
     call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
@@ -469,7 +510,7 @@ contains
       if(.not.block%e_is_internal) &
         w(ixO^S, e_) = w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
               - mhd_mag_en(w, ixI^L, ixO^L)
-      w(ixO^S, e_) = (mhd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
+      w(ixO^S, e_) = gamma_1* w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
             w(ixO^S, e_)
     else
       call mpistop("e_to_rhos can not be used without energy equation!")
@@ -484,8 +525,8 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
     if (mhd_energy) then
-       w(ixO^S, e_) = w(ixO^S, rho_)**(mhd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (mhd_gamma - 1.0d0)
+       w(ixO^S, e_) = w(ixO^S, rho_)**gamma_1 * w(ixO^S, e_) &
+            * inv_gamma_1
        if(.not.block%e_is_internal) &
          w(ixO^S, e_) =w(ixO^S, e_) + mhd_kin_en(w, ixI^L, ixO^L) + &
             mhd_mag_en(w, ixI^L, ixO^L)
@@ -505,7 +546,7 @@ contains
     integer :: idir
 
     do idir=1,ndir
-      v(ixO^S,idir) = w(ixO^S, mom(idir)) * mhd_inv_rho(w, ixI^L, ixO^L)
+      v(ixO^S,idir) = w(ixO^S, mom(idir)) / w(ixO^S,rho_)
     end do
 
   end subroutine mhd_get_v
@@ -525,37 +566,46 @@ contains
   end subroutine mhd_get_cmax
 
   !> Estimating bounds for the minimum and maximum signal velocities
-  subroutine mhd_get_cbounds(wLC,wRC,x,ixI^L,ixO^L,idim,cmax,cmin)
+  subroutine mhd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,cmax,cmin)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout) :: cmin(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
     if (typeboundspeed/='cmaxmean') then
-      tmp1(ixO^S)=dsqrt(wLC(ixO^S,rho_))
-      tmp2(ixO^S)=dsqrt(wRC(ixO^S,rho_))
-      tmp3(ixO^S)=dsqrt(wLC(ixO^S,rho_))+dsqrt(wRC(ixO^S,rho_))
-      umean(ixO^S)=(wLC(ixO^S,mom(idim))/tmp1(ixO^S)+wRC(ixO^S,mom(idim))/tmp2(ixO^S))/tmp3(ixO^S)
-      call mhd_get_csound(wLC,x,ixI^L,ixO^L,idim,csoundL)
-      call mhd_get_csound(wRC,x,ixI^L,ixO^L,idim,csoundR)
-      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)/tmp3(ixO^S)+&
-       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)/tmp3(ixO^S)**2*&
-       (wRC(ixO^S,mom(idim))/wRC(ixO^S,rho_)-wLC(ixO^S,mom(idim))/wLC(ixO^S,rho_))**2
+      tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
+      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
+      umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
+      call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
+      call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)*tmp3(ixO^S)+&
+       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
+       (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
       dmean(ixO^S)=dsqrt(dmean(ixO^S))
-      cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
-      cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      if(present(cmin)) then
+        cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
+        cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+      else
+        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
+      end if
     else
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
-      cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-      cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      if(present(cmin)) then
+        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      else
+        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
+      end if
     end if
 
   end subroutine mhd_get_cbounds
@@ -568,14 +618,17 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixI^S)
     double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
+    double precision :: inv_rho(ixO^S)
+
+    inv_rho=1.d0/w(ixO^S,rho_)
 
     call mhd_get_csound2(w,x,ixI^L,ixO^L,csound)
     ! store |B|^2 in v
     b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
-    cfast2(ixO^S)   = b2(ixO^S) / w(ixO^S,rho_)+csound(ixO^S)
+    cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
     AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
          * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
-         / w(ixO^S,rho_)
+         * inv_rho
 
     where(AvMinCs2(ixO^S)<zero)
        AvMinCs2(ixO^S)=zero
@@ -591,10 +644,53 @@ contains
        ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
        kmax = dpi/min({dxlevel(^D)},bigdouble)*half
        csound(ixO^S) = max(sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S))), &
-            mhd_etah * sqrt(b2(ixO^S))/w(ixO^S,rho_)*kmax)
+            mhd_etah * sqrt(b2(ixO^S))*inv_rho*kmax)
     end if
 
   end subroutine mhd_get_csound
+
+  !> Calculate fast magnetosonic wave speed
+  subroutine mhd_get_csound_prim(w,x,ixI^L,ixO^L,idim,csound)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L, idim
+    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
+    double precision, intent(out):: csound(ixI^S)
+    double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
+    double precision :: inv_rho(ixO^S)
+
+    inv_rho=1.d0/w(ixO^S,rho_)
+
+    if(mhd_energy) then
+      csound(ixO^S)=mhd_gamma*w(ixO^S,p_)*inv_rho
+    else
+      csound(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**gamma_1
+    end if
+    ! store |B|^2 in v
+    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
+    cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
+    AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
+         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
+         * inv_rho
+
+    where(AvMinCs2(ixO^S)<zero)
+       AvMinCs2(ixO^S)=zero
+    end where
+
+    AvMinCs2(ixO^S)=sqrt(AvMinCs2(ixO^S))
+
+    if (.not. MHD_Hall) then
+       csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
+    else
+       ! take the Hall velocity into account:
+       ! most simple estimate, high k limit:
+       ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
+       kmax = dpi/min({dxlevel(^D)},bigdouble)*half
+       csound(ixO^S) = max(sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S))), &
+            mhd_etah * sqrt(b2(ixO^S))*inv_rho*kmax)
+    end if
+
+  end subroutine mhd_get_csound_prim
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho-b**2/2) within ixO^L
   subroutine mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
@@ -607,9 +703,9 @@ contains
 
     if(mhd_energy) then
       if(block%e_is_internal) then
-        pth(ixO^S)=(mhd_gamma-1.0d0)*w(ixO^S,e_)
+        pth(ixO^S)=gamma_1*w(ixO^S,e_)
       else
-        pth(ixO^S)=(mhd_gamma-1.0d0)*(w(ixO^S,e_)&
+        pth(ixO^S)=gamma_1*(w(ixO^S,e_)&
            - mhd_kin_en(w,ixI^L,ixO^L)&
            - mhd_mag_en(w,ixI^L,ixO^L))
       end if
@@ -631,7 +727,7 @@ contains
       call mhd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
       csound2(ixO^S)=mhd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
     else
-      csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**(mhd_gamma-one)
+      csound2(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**gamma_1
     end if
   end subroutine mhd_get_csound2
 
@@ -650,8 +746,8 @@ contains
 
   end subroutine mhd_get_p_total
 
-  !> Calculate non-transport fluxes within ixO^L.
-  subroutine mhd_get_flux(w,x,ixI^L,ixO^L,idim,f)
+  !> Calculate fluxes within ixO^L.
+  subroutine mhd_get_flux_cons(w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
@@ -775,10 +871,138 @@ contains
       f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
+  end subroutine mhd_get_flux_cons
+
+  !> Calculate fluxes within ixO^L.
+  subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in) :: wC(ixI^S,nw)
+    ! primitive w
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision,intent(out) :: f(ixI^S,nwflux)
+
+    double precision             :: ptotal(ixO^S),tmp(ixI^S)
+    double precision, allocatable:: vHall(:^D&,:)
+    integer                      :: idirmin, iw, idir
+
+    if (mhd_Hall) then
+      allocate(vHall(ixI^S,1:ndir))
+      call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
+    end if
+
+    if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
+
+    ptotal=w(ixO^S,p_)+0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+
+    ! Get flux of density
+    f(ixO^S,rho_)=w(ixO^S,mom(idim))*w(ixO^S,rho_)
+
+    ! Get flux of tracer
+    do iw=1,mhd_n_tracer
+      f(ixO^S,tracer(iw))=w(ixO^S,mom(idim))*w(ixO^S,tracer(iw))
+    end do
+
+    ! Get flux of momentum
+    ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
+    do idir=1,ndir
+      if(idim==idir) then
+        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+        if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
+      else
+        f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+      end if
+      if (B0field) then
+        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
+             -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
+             -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
+      end if
+      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+    end do
+
+    ! Get flux of energy
+    ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
+    if (mhd_energy) then
+       if (block%e_is_internal) then
+          f(ixO^S,e_)=w(ixO^S,mom(idim))*w(ixO^S,p_)
+          if (mhd_Hall) then
+             call mpistop("solve pthermal not designed for Hall MHD")
+          endif
+       else
+          f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_) + ptotal(ixO^S))- &
+             w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
+
+          if (B0field) then
+             f(ixO^S,e_) = f(ixO^S,e_) &
+                + w(ixO^S,mom(idim)) * tmp(ixO^S) &
+                - sum(w(ixO^S,mom(:))*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
+          end if
+
+          if (mhd_Hall) then
+          ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
+             if (mhd_etah>zero) then
+                f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
+                   sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
+                   - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
+                if (B0field) then
+                   f(ixO^S,e_) = f(ixO^S,e_) &
+                      + vHall(ixO^S,idim) * tmp(ixO^S) &
+                      - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
+                end if
+             end if
+          end if
+       end if
+    end if
+
+    ! compute flux of magnetic field
+    ! f_i[b_k]=v_i*b_k-v_k*b_i
+    do idir=1,ndir
+      if (idim==idir) then
+        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
+        if (mhd_glm) then
+           f(ixO^S,mag(idir))=w(ixO^S,psi_)
+        else
+           f(ixO^S,mag(idir))=zero
+        end if
+      else
+        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
+
+        if (B0field) then
+          f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
+                +w(ixO^S,mom(idim))*block%B0(ixO^S,idir,idim)&
+                -w(ixO^S,mom(idir))*block%B0(ixO^S,idim,idim)
+        end if
+
+        if (mhd_Hall) then
+          ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
+          if (mhd_etah>zero) then
+            if (B0field) then
+              f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
+                   - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+block%B0(ixO^S,idim,idim)) &
+                   + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idim))
+            else
+              f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
+                   - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
+                   + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
+            end if
+          end if
+        end if
+
+      end if
+    end do
+
+    if (mhd_glm) then
+      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+    end if
+
   end subroutine mhd_get_flux
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+  subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
@@ -789,21 +1013,25 @@ contains
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
+    logical, intent(inout)            :: active
 
     if (.not. qsourcesplit) then
       ! Source for solving internal energy
       if (mhd_energy .and. block%e_is_internal) then
+        active = .true.
         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
       endif
 
       ! Source for B0 splitting
       if (B0field) then
+        active = .true.
         call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (dabs(mhd_eta)>smalldouble)then
         if (.not.slab) call mpistop("no resistivity in non-slab geometry")
+        active = .true.
         if (compactres)then
           call add_source_res1(qdt,ixI^L,ixO^L,wCT,w,x)
         else
@@ -812,52 +1040,64 @@ contains
       end if
 
       if (mhd_eta_hyper>0.d0)then
+        active = .true.
         call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
+      {^NOONED
+      if(istep==nstep) then
+        ! Sources related to div B
+        select case (type_divb)
+        case (0)
+          ! Do nothing
+        case (1)
+          active = .true.
+          call add_source_glm1(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (2)
+          active = .true.
+          call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (3)
+          active = .true.
+          call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (4)
+          active = .true.
+          call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (5)
+          active = .true.
+          call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (6)
+          active = .true.
+          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (7)
+          active = .true.
+          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+          call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case (8)
+          active = .true.
+          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+          call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        case default
+          call mpistop('Unknown divB fix')
+        end select
+      end if
+      }
 
     end if
 
     if(mhd_radiative_cooling) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit)
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
+           w,x,qsourcesplit,active)
     end if
 
     if(mhd_viscosity) then
-      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
+      call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,&
+           w,x,mhd_energy,qsourcesplit,active)
     end if
 
     if(mhd_gravity) then
-      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit)
+      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,&
+           w,x,mhd_energy,qsourcesplit,active)
     end if
 
-    {^NOONED
-    if (qsourcesplit) then
-      ! Sources related to div B
-      select case (typedivbfix)
-      case ('glm1')
-        call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('glm2')
-        call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('glm3')
-        call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('powel', 'powell')
-        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('janhunen')
-        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('linde')
-        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('lindejanhunen')
-        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('lindepowel')
-        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('none')
-        ! Do nothing
-      case default
-        call mpistop('Unknown divB fix')
-      end select
-    end if
-    }
   end subroutine mhd_add_source
 
   subroutine internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -865,11 +1105,10 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    
-    double precision :: pth(ixI^S),v(ixI^S,1:ndir),divv(ixI^S)
- 
+    double precision                :: pth(ixI^S),v(ixI^S,1:ndir),divv(ixI^S)
+
     call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
     call divvector(v,ixI^L,ixO^L,divv)
     call mhd_get_pthermal(wCT,x,ixI^L,ixO^L,pth)
@@ -941,7 +1180,6 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-
     integer :: ixA^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
     integer :: lxO^L, kxO^L
 
@@ -950,7 +1188,6 @@ contains
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
     double precision :: gradeta(ixI^S,1:ndim), Bf(ixI^S,1:ndir)
-
 
     ! Calculating resistive sources involve one extra layer
     if (mhd_4th_order) then
@@ -1054,7 +1291,6 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-
     integer :: ixA^L,idir,jdir,kdir,idirmin,iw,idim,idirmin1
 
     double precision :: tmp(ixI^S),tmp2(ixI^S)
@@ -1676,25 +1912,19 @@ contains
   end function mhd_mag_en
 
   !> compute kinetic energy
-  function mhd_kin_en(w, ixI^L, ixO^L) result(ke)
+  function mhd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: ke(ixO^S)
+    double precision, intent(in), optional :: inv_rho(ixO^S)
 
-    ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * &
-         mhd_inv_rho(w, ixI^L, ixO^L)
+    if (present(inv_rho)) then
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * inv_rho
+    else
+       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
+    end if
   end function mhd_kin_en
-
-  function mhd_inv_rho(w, ixI^L, ixO^L) result(inv_rho)
-    use mod_global_parameters, only: nw, ndim
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: inv_rho(ixO^S)
-
-    ! Can make this more robust
-    inv_rho = 1.0d0 / w(ixO^S, rho_)
-  end function mhd_inv_rho
 
   subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     use mod_global_parameters
@@ -1709,7 +1939,7 @@ contains
 
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    vHall(ixI^S,1:3) = zero
+    vHall(ixO^S,1:3) = zero
     vHall(ixO^S,idirmin:3) = - mhd_etah*current(ixO^S,idirmin:3)
     do idir = idirmin, 3
        vHall(ixO^S,idir) = vHall(ixO^S,idir)/w(ixO^S,rho_)

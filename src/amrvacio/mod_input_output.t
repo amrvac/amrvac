@@ -565,6 +565,9 @@ contains
        end if
     end do
 
+    ! finite difference scheme fd need global maximal speed
+    if(any(flux_scheme=='fd')) need_global_cmax=.true.
+
     select case (time_integrator)
     case ("onestep")
        nstep=1

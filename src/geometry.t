@@ -462,7 +462,6 @@ use mod_ppm
 
 integer :: ixI^L, ix^L, idir
 double precision :: q(ixI^S), gradq(ixI^S)
-double precision :: dxdim
 
 double precision,dimension(ixI^S):: qC,qL,qR,dqC,ldq,rdq
 double precision :: invdx
@@ -479,9 +478,8 @@ hxC^L=gxC^L+kr(idir,^D);
 qR(gxC^S) = q(hxC^S)
 qL(gxC^S) = q(gxC^S)
 if (typegradlimiter/=limiter_ppm) then
-   dxdim=dxlevel(idir)
    dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-   call dwlimiter2(dqC,ixI^L,gxC^L,idir,dxdim,typegradlimiter,ldw=ldq,rdw=rdq)
+   call dwlimiter2(dqC,ixI^L,gxC^L,idir,typegradlimiter,ldw=ldq,rdw=rdq)
    qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
    qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
 else
@@ -671,7 +669,7 @@ integer :: ixI^L,ixO^L
 double precision :: qvec(ixG^T,1:ndir), divq(ixG^T)
 
 double precision,dimension(ixG^T):: qL,qR,dqC,ldq,rdq
-double precision :: dxdim, invdx(1:ndim)
+double precision :: invdx(1:ndim)
 
 integer :: hxO^L,ixC^L,jxC^L,idims,ix^L,gxC^L,hxC^L
 !-----------------------------------------------------------------------------
@@ -691,9 +689,8 @@ do idims=1,ndim
    qR(gxC^S) = qvec(hxC^S,idims)
    qL(gxC^S) = qvec(gxC^S,idims)
    if(typegradlimiter/=limiter_ppm) then
-      dxdim=dxlevel(idims)
       dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-      call dwlimiter2(dqC,ixI^L,gxC^L,idims,dxdim,typegradlimiter,ldw=ldq,rdw=rdq)
+      call dwlimiter2(dqC,ixI^L,gxC^L,idims,typegradlimiter,ldw=ldq,rdw=rdq)
       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
       qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
    else

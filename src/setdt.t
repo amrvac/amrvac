@@ -10,7 +10,7 @@ use mod_thermal_conduction
 integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
-double precision :: dtmax, dxmin
+double precision :: dtmax, dxmin, cmax_mype
 integer,save :: stepflag
 !----------------------------------------------------------------------------
 
@@ -33,7 +33,7 @@ if (dtpar<=zero) then
               pw(igrid)%x,ixG^LL,ixM^LL,'setdt')
       end if
 
-      call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
+      call getdt_courant(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,pw(igrid)%x)
       dtnew=min(dtnew,qdtnew)
 
       call phys_get_dt(pw(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,pw(igrid)%x)
@@ -109,7 +109,7 @@ if(associated(phys_getdt_heatconduct)) then
    if(all(flux_scheme=='nul')) dt=min(dt,dtnew)
    ncycle=ceiling(dt/dtnew)
    if (ncycle>tc_ncycles) then
-     if(mype==0 .and. .true.) then
+     if(mype==0 .and. .false.) then
        write(*,*) 'CLF time step is too many times larger than conduction time step',ncycle
        write(*,*) 'reducing dt to',tc_ncycles,'times of dt_impl!!'
      endif
@@ -139,67 +139,67 @@ end do
 
 ! global Lax-Friedrich finite difference flux splitting needs fastest wave-speed
 ! so does GLM: 
-call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
+if(need_global_cmax) call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
      MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
 
 1001 format(' Warning: timesteps: ',1x,1pe12.5,' exceeding output intervals ',2(1x,1pe12.5))
 
+contains
+
+  !> compute CFL limited dt (for variable time stepping)
+  subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,x)
+  
+  use mod_global_parameters
+  use mod_physics, only: phys_get_cmax
+  
+  integer, intent(in) :: ixI^L, ixO^L
+  double precision, intent(in) :: x(ixI^S,1:ndim)
+  double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
+  
+  integer :: idims
+  double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
+  double precision :: cmax(ixI^S), cmaxtot(ixI^S), tmp(ixI^S)
+  !-----------------------------------------------------------------------------
+  dtnew=bigdouble
+  
+  courantmax=zero
+  courantmaxtot=zero
+  courantmaxtots=zero
+  
+  ^D&dxinv(^D)=one/dx^D;
+  
+  cmaxtot(ixO^S)=zero
+  
+  do idims=1,ndim
+     call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+     if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+     if (.not.slab) then
+        tmp(ixO^S)=cmax(ixO^S)/block%dx(ixO^S,idims)
+        cmaxtot(ixO^S)=cmaxtot(ixO^S)+tmp(ixO^S)
+        courantmax=max(courantmax,maxval(tmp(ixO^S)))
+     else
+        cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)*dxinv(idims)
+        courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
+     end if
+     courantmaxtot=courantmaxtot+courantmax
+  end do
+  
+  select case (typecourant)
+  case ('minimum')
+     ! courantmax='max(c/dx)'
+     if (courantmax>smalldouble)     dtnew=min(dtnew,courantpar/courantmax)
+  case ('summax')
+     ! courantmaxtot='summed max(c/dx)'
+     if (courantmaxtot>smalldouble)  dtnew=min(dtnew,courantpar/courantmaxtot)
+  case ('maxsum')
+     ! courantmaxtots='max(summed c/dx)'
+     courantmaxtots=max(courantmaxtots,maxval(cmaxtot(ixO^S)))
+     if (courantmaxtots>smalldouble) dtnew=min(dtnew,courantpar/courantmaxtots)
+  case default
+     write(unitterm,*)'Unknown typecourant=',typecourant
+     call mpistop("Error from getdt_courant: no such typecourant!")
+  end select
+  
+  end subroutine getdt_courant
+
 end subroutine setdt
-!=============================================================================
-!> compute CFL limited dt (for variable time stepping)
-subroutine getdt_courant(w,ixG^L,ix^L,dtnew,dx^D,x)
-
-
-use mod_global_parameters
-use mod_physics, only: phys_get_cmax
-
-integer, intent(in) :: ixG^L, ix^L
-double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
-double precision, intent(inout) :: w(ixG^S,1:nw), dtnew
-
-integer :: idims
-double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-double precision :: cmax(ixG^T), cmaxtot(ixG^T), tmp(ixG^T)
-!-----------------------------------------------------------------------------
-dtnew=bigdouble
-
-courantmax=zero
-courantmaxtot=zero
-courantmaxtots=zero
-
-^D&dxinv(^D)=one/dx^D;
-
-cmaxtot(ix^S)=zero
-
-do idims=1,ndim
-   call phys_get_cmax(w,x,ixG^L,ix^L,idims,cmax)
-   cmax_mype = max(cmax_mype,maxval(cmax(ix^S)))
-   if (.not.slab) then
-      tmp(ix^S)=cmax(ix^S)/block%dx(ix^S,idims)
-      cmaxtot(ix^S)=cmaxtot(ix^S)+tmp(ix^S)
-      courantmax=max(courantmax,maxval(tmp(ix^S)))
-   else
-      cmaxtot(ix^S)=cmaxtot(ix^S)+cmax(ix^S)*dxinv(idims)
-      courantmax=max(courantmax,maxval(cmax(ix^S)*dxinv(idims)))
-   end if
-   courantmaxtot=courantmaxtot+courantmax
-end do
-
-select case (typecourant)
-case ('minimum')
-   ! courantmax='max(c/dx)'
-   if (courantmax>smalldouble)     dtnew=min(dtnew,courantpar/courantmax)
-case ('summax')
-   ! courantmaxtot='summed max(c/dx)'
-   if (courantmaxtot>smalldouble)  dtnew=min(dtnew,courantpar/courantmaxtot)
-case ('maxsum')
-   ! courantmaxtots='max(summed c/dx)'
-   courantmaxtots=max(courantmaxtots,maxval(cmaxtot(ix^S)))
-   if (courantmaxtots>smalldouble) dtnew=min(dtnew,courantpar/courantmaxtots)
-case default
-   write(unitterm,*)'Unknown typecourant=',typecourant
-   call mpistop("Error from getdt_courant: no such typecourant!")
-end select
-
-end subroutine getdt_courant
-

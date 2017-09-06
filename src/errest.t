@@ -483,14 +483,14 @@ ishiftbuf^D=ixMhi^D-ixMlo^D-nbufferx^D+1;
    if (ixmax^D<ixmin^D|.or.) cycle
    if (any(refineflag(ix^S))) then
       select case (neighbor_type(i^D,igrid))
-      case (2)
+      case (neighbor_coarse)
          ineighbor=neighbor(1,i^D,igrid)
          ipe_neighbor=neighbor(2,i^D,igrid)
          if (.not.refine(ineighbor,ipe_neighbor)) then
             buffer(ineighbor,ipe_neighbor)=.true.
             refine(ineighbor,ipe_neighbor)=.true.
          end if
-      case (3)
+      case (neighbor_sibling)
          level=node(plevel_,igrid)
          if (level<refine_max_level) then
             ineighbor=neighbor(1,i^D,igrid)

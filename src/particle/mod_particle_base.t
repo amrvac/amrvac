@@ -1046,13 +1046,13 @@ contains
       my_neighbor_type=neighbor_type(i^D,igrid)
 
       select case (my_neighbor_type)
-      case (1) ! boundary
+      case (neighbor_boundary) ! boundary
         ! do nothing
-      case (2) ! fine-coarse
+      case (neighbor_coarse) ! fine-coarse
         call ipe_fc(i^D,igrid,ipe_is_neighbor)
-      case (3) ! same level
+      case (neighbor_sibling) ! same level
         call ipe_srl(i^D,igrid,ipe_is_neighbor)
-      case (4) ! coarse-fine
+      case (neighbor_fine) ! coarse-fine
         call ipe_cf(i^D,igrid,ipe_is_neighbor)
       end select
 

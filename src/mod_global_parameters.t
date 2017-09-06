@@ -370,8 +370,6 @@ module mod_global_parameters
   double precision :: writespshift(ndim,2)
   integer          :: level_io, level_io_min, level_io_max
 
-  ! local and global fastest wave speed (computed in setdt):
-  double precision :: cmax_mype, cmax_global
 
   ! Gravity related parameters
   double precision ::  x1ptms,x2ptms,x3ptms,ptmass
@@ -544,6 +542,12 @@ module mod_global_parameters
 
   !> Save a snapshot before crash a run met unphysical values
   logical :: crash=.false.
+
+  ! global fastest wave speed needed in fd scheme and glm method
+  double precision :: cmax_global
+
+  !> need global maximal wave speed
+  logical :: need_global_cmax=.false.
 
   !$OMP THREADPRIVATE(dxlevel,logG,qst)
   !$OMP THREADPRIVATE(saveigrid)
