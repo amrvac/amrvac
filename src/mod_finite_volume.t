@@ -500,13 +500,13 @@ contains
       end do
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        if(iw==mag(ip1)) then
-          if(flux_type(idim, iw) == flux_tvdlf) &
-            fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
-                 max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
-                 (wRC(ixC^S,iw) - wLC(ixC^S,iw)))
-          cycle
-        end if
+        !if(iw==mag(ip1)) then
+        !  if(flux_type(idim, iw) == flux_tvdlf) &
+        !    fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
+        !         max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
+        !         (wRC(ixC^S,iw) - wLC(ixC^S,iw)))
+        !  cycle
+        !end if
         f1L(ixC^S,iw)=fLC(ixC^S,iw)+cminC(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
         f1R(ixC^S,iw)=fRC(ixC^S,iw)+cmaxC(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
         f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))

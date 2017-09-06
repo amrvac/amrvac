@@ -1,7 +1,7 @@
 module mod_usr
   use mod_mhd
   use mod_viscosity, only: vc_mu
-  use mod_thermal_conduction, only: kappa
+  use mod_thermal_conduction, only: tc_k_para
   implicit none
   double precision :: usr_grav,bstr,temptop
 
@@ -59,7 +59,7 @@ contains
     ! allows calculation of all equation parameters, namely
     ! the general purpose ones:
     ! ------------------------
-    !  mhd_gamma mhd_eta kappa eqpar(grav1.2_) vc_mu
+    !  mhd_gamma mhd_eta tc_k_para eqpar(grav1.2_) vc_mu
     !
     ! and the problem specific one:
     ! ----------------------------
@@ -107,14 +107,14 @@ contains
     
     mhd_eta=dsqrt(eta2)
     vc_mu=mhd_eta*sigma/zeta0
-    kappa=(gamma/(gamma-one))*mhd_eta/zeta0
+    tc_k_para=(gamma/(gamma-one))*mhd_eta/zeta0
     bstr=dsqrt(qchand*vc_mu*mhd_eta)
     
     if (mype==0) then
       write(*,*)'dimensionless values for dissipative coefficients:'
       write(*,*)'resistivity          eta=',mhd_eta
       write(*,*)'viscosity             mu=',vc_mu
-      write(*,*)'thermal conduction kappa=',kappa
+      write(*,*)'thermal conduction tc_k_para=',tc_k_para
       write(*,*)'dimensionless magnetic field strength:',bstr
     endif
 
