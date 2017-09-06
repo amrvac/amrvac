@@ -1,6 +1,6 @@
 !This is the ExB test 
  &filelist
-        base_filename = '_Lorentz4_EoverB2'
+        base_filename = '_HC4_EoverB2'
  /
 
  &savelist
@@ -9,7 +9,7 @@
  /
 
  &particles_list
-        physics_type_particles='Lorentz'
+        physics_type_particles='Vay'
         npayload=1
         dtsave_particles = 1.0d2
         const_dt_particles = 5.0d-1
@@ -33,7 +33,7 @@
 /
 
  &paramlist
-        dtpar = 6.5d7 ! One big time step for MHD
+        dtpar = 6.5d7! One big time step for MHD
  /
 
  &my_list
