@@ -84,7 +84,7 @@ contains
         sigma = lfacprime**2 - dot_product(tau,tau)
         ustar = (dot_product(uprime,tau))
         lfac = sqrt((sigma + sqrt(sigma**2 + 4.d0 * &
-             dot_product(tau,tau) + dot_product(ustar,ustar))) / 2.d0)
+             (dot_product(tau,tau) + dot_product(ustar,ustar)))) / 2.d0)
 
         t = tau / lfac
         sscal = 1.d0 / (1.d0 + dot_product(t,t))
