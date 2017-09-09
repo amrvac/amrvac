@@ -451,6 +451,51 @@ end if
 
 end subroutine gradient
 !=============================================================================
+subroutine gradient_s(q,ixI^L,ixO^L,idims,gradq)
+
+! Calculate gradient of a scalar q within ixL in direction idir
+
+use mod_global_parameters
+
+integer :: ixI^L, ixO^L, idims
+double precision :: q(ixI^S), gradq(ixI^S)
+
+double precision :: qC(ixI^S),qpoint(ixI^S),qface(ixI^S),invdx
+integer :: ixA^L, ixB^L, ixC^L, jxC^L, ix^D
+
+!-----------------------------------------------------------------------------
+
+invdx=1.d0/dxlevel(idims)
+! ixC is cell-corner index
+ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
+if (slab) then
+  ! b unit vector at cell corner
+  qpoint=0.d0
+  {do ix^DB=0,1\}
+    ixAmin^D=ixCmin^D+ix^D;
+    ixAmax^D=ixCmax^D+ix^D;
+    qpoint(ixC^S)=qpoint(ixC^S)+q(ixA^S)
+  {end do\}
+  qpoint(ixC^S)=qpoint(ixC^S)*0.5d0**ndim
+  ! values at cell face
+  qface=0.d0
+  ixB^L=ixO^L-kr(idims,^D);
+  ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+  ixB^L=ixA^L;
+  {do ix^DB=0,1 \}
+     if({ ix^D==0 .and. ^D==idims | .or.}) then
+       ixBmin^D=ixAmin^D-ix^D; 
+       ixBmax^D=ixAmax^D-ix^D; 
+       qface(ixA^S)=qface(ixA^S)+qpoint(ixB^S)
+     end if
+  {end do\}
+  qface(ixA^S)=qface(ixA^S)*0.5d0**(ndim-1)
+  ixB^L=ixO^L-kr(idims,^D);
+  gradq(ixO^S)=invdx*(qface(ixO^S)-qface(ixB^S))
+end if
+
+end subroutine gradient_s
+!=============================================================================
 subroutine gradientS(q,ixI^L,ix^L,idir,gradq)
 
 ! Calculate gradient of a scalar q within ixL in direction idir
@@ -932,3 +977,55 @@ else
 end if
 end subroutine locate_in_table
 !=============================================================================
+subroutine divvector_s(qvec,ixI^L,ixO^L,divq)
+
+! Calculate divergence of a vector qvec within ixL
+
+use mod_global_parameters
+
+integer :: ixI^L,ixO^L
+double precision :: qvec(ixI^S,1:ndir), divq(ixI^S)
+
+double precision :: qC(ixI^S), invdx(1:ndim)
+double precision :: qpoint(ixI^S,1:ndim),qface(ixI^S,1:ndim)
+integer :: ixA^L, ixB^L, ixC^L, idims, ix^L,ix^D
+
+ix^L=ixO^L^LADD1;
+if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+   call mpistop("Error in divvector: Non-conforming input limits")
+invdx=1.d0/dxlevel
+divq(ixO^S)=zero
+! ixC is cell-corner index
+ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
+if (slab) then
+  ! b unit vector at cell corner
+  qpoint=0.d0
+  {do ix^DB=0,1\}
+    ixAmin^D=ixCmin^D+ix^D;
+    ixAmax^D=ixCmax^D+ix^D;
+    qpoint(ixC^S,1:ndim)=qpoint(ixC^S,1:ndim)+qvec(ixA^S,1:ndim)
+  {end do\}
+  qpoint(ixC^S,1:ndim)=qpoint(ixC^S,1:ndim)*0.5d0**ndim
+  ! values at cell face
+  qface=0.d0
+  do idims=1,ndim
+    ixB^L=ixO^L-kr(idims,^D);
+    ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+    ixB^L=ixA^L;
+    {do ix^DB=0,1 \}
+       if({ ix^D==0 .and. ^D==idims | .or.}) then
+         ixBmin^D=ixAmin^D-ix^D; 
+         ixBmax^D=ixAmax^D-ix^D; 
+         qface(ixA^S,idims)=qface(ixA^S,idims)+qpoint(ixB^S,idims)
+       end if
+    {end do\}
+    qface(ixA^S,idims)=qface(ixA^S,idims)*0.5d0**(ndim-1)
+  end do
+  divq=0.d0
+  do idims=1,ndim
+    ixB^L=ixO^L-kr(idims,^D);
+    divq(ixO^S)=divq(ixO^S)+invdx(idims)*(qface(ixO^S,idims)-qface(ixB^S,idims))
+  end do
+end if
+
+end subroutine divvector_s
