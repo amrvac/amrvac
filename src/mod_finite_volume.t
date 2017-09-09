@@ -376,19 +376,13 @@ contains
       f2L=0.d0
       ip1=idim
       ip3=3
-      call mhd_get_v(wRC,x,ixI^L,ixC^L,vRC)
-      call mhd_get_v(wLC,x,ixI^L,ixC^L,vLC)
-      !vRC(ixC^S,:)=wRp(ixC^S,mom(:))
-      !vLC(ixC^S,:)=wLp(ixC^S,mom(:))
+      vRC(ixC^S,:)=wRp(ixC^S,mom(:))
+      vLC(ixC^S,:)=wLp(ixC^S,mom(:))
       Bx(ixC^S)=0.5d0*(wRC(ixC^S,mag(ip1))+wLC(ixC^S,mag(ip1)))
       suR(ixC^S)=(cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,rho_)
       suL(ixC^S)=(cminC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,rho_)
-      call mhd_get_pthermal(wRC,x,ixI^L,ixC^L,ptR)
-      call mhd_get_pthermal(wLC,x,ixI^L,ixC^L,ptL)
-      !ptR(ixC^S)=wRp(ixC^S,p_)
-      !ptL(ixC^S)=wLp(ixC^S,p_)
-      ptR(ixC^S)=ptR(ixC^S)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
-      ptL(ixC^S)=ptL(ixC^S)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
+      ptR(ixC^S)=wRp(ixC^S,e_)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
+      ptL(ixC^S)=wLp(ixC^S,e_)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
       ! equation (38)
       sm(ixC^S)=(suR(ixC^S)*vRC(ixC^S,ip1)-suL(ixC^S)*vLC(ixC^S,ip1)-&
                  ptR(ixC^S)+ptL(ixC^S))/(suR(ixC^S)-suL(ixC^S))
