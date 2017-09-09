@@ -46,7 +46,7 @@ contains
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
     double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
-    double precision, dimension(ndir) :: uhalf,tau, uprime, ustar, t
+    double precision, dimension(ndir) :: uhalf, tau, uprime, ustar, t
     double precision                  :: lfacprime, sscal, sigma,lfachalf
     do iipart=1,nparticles_active_on_mype
       ipart = particles_active_on_mype(iipart);
@@ -76,22 +76,21 @@ contains
         ! Vay mover
         uhalf(1:ndir) = particle(ipart)%self%u(1:ndir) + &
              q * dt_p /(2.0d0 * m * const_c) * e(1:ndir)
+
+        tau(1:ndir) = q * dt_p / (2.d0 * m * const_c) * b(1:ndir)
         call get_lfac(uhalf,lfachalf)
-
-        tau = q * dt_p / (2.d0 * m * const_c) * b
-        sigma = lfachalf**2 - dot_product(tau,tau)
-        ustar = (dot_product(uhalf,tau))
+        sigma = lfachalf**2 - sum(tau(:)*tau(:))
+        ustar = sum(uhalf(:)*tau(:))
         lfacprime = sqrt((sigma + sqrt(sigma**2 &
-             + 4.d0 * (dot_product(tau,tau) + dot_product(ustar,ustar)))) / 2.d0)
+             + 4.d0 * (sum(tau(:)*tau(:)) + sum(ustar(:)*ustar(:))))) / 2.d0)
 
-        t = tau / lfacprime
-        sscal = 1.d0 / (1.d0 + dot_product(t,t))
+        t(1:ndir) = tau(1:ndir) / lfacprime
+        sscal = 1.d0 / (1.d0 + sum(t(:)*t(:)))
         call cross(uhalf,t,tmp)
-        uprime = sscal * (uhalf + dot_product(uhalf,t) * t + tmp)
-
+        uprime(1:ndir) = sscal * (uhalf(1:ndir) + sum(uhalf(:)*t(:)) * t(1:ndir) + tmp(1:ndir))
         call cross(uprime,t,tmp)
-        particle(ipart)%self%u = uprime + q * dt_p /(2.0d0 * m * const_c) * e + tmp
-
+        particle(ipart)%self%u(1:ndir) = uprime(1:ndir) &
+             + q * dt_p /(2.0d0 * m * const_c) * e(1:ndir) + tmp(1:ndir)
       case default
         call mpistop("This geometry is not supported in mod_particle_Vay")
       end select

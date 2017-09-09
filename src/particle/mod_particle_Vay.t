@@ -78,18 +78,18 @@ contains
         uhalf(1:ndir) = particle(ipart)%self%u(1:ndir) + &
              q * dt_p /(2.0d0 * m * const_c) * (e(1:ndir) + tmp(1:ndir)/lfac)
 
-        tau = q * dt_p / (2.d0 * m * const_c) * b
-        uprime = uhalf + q * dt_p / (2.d0 * m * const_c) * e
+        tau(1:ndir) = q * dt_p / (2.d0 * m * const_c) * b(1:ndir)
+        uprime(1:ndir) = uhalf(1:ndir) + q * dt_p / (2.d0 * m * const_c) * e(1:ndir)
         call get_lfac(uprime,lfacprime)
-        sigma = lfacprime**2 - dot_product(tau,tau)
-        ustar = (dot_product(uprime,tau))
-        lfac = sqrt((sigma + sqrt(sigma**2 + 4.d0 * &
-             (dot_product(tau,tau) + dot_product(ustar,ustar)))) / 2.d0)
+        sigma = lfacprime**2 - sum(tau(:)*tau(:))
+        ustar = sum(uprime(:)*tau(:))
+        lfac = sqrt((sigma + sqrt(sigma**2 &
+             + 4.d0 * (sum(tau(:)*tau(:)) + sum(ustar(:)*ustar(:))))) / 2.d0)
 
-        t = tau / lfac
-        sscal = 1.d0 / (1.d0 + dot_product(t,t))
+        t(1:ndir) = tau(1:ndir) / lfac
+        sscal = 1.d0 / (1.d0 + sum(t(:)*t(:)))
         call cross(uprime,t,tmp)
-        particle(ipart)%self%u = sscal * (uprime + dot_product(uprime,t) * t + tmp)
+        particle(ipart)%self%u(1:ndir) = sscal * (uprime(1:ndir) + sum(uprime(:)*t(:)) * t(1:ndir) + tmp(1:ndir))
       case default
         call mpistop("This geometry is not supported in mod_particle_Vay")
       end select
