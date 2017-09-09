@@ -1786,7 +1786,7 @@ contains
        end if
        ! m1
        tmp(ixO^S)=tmp(ixO^S)*x(ixO^S,1) &
-                  *(block%surfaceC1(ixO^S)-block%surfaceC1(h1x^S))/block%dvolume(ixO^S)
+                  *(block%surfaceC(ixO^S,1)-block%surfaceC(h1x^S,1))/block%dvolume(ixO^S)
        if(ndir>1) then
          do idir=2,ndir
            tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2/wCT(ixO^S,rho_)-wCT(ixO^S,mag(idir))**2
@@ -1807,7 +1807,7 @@ contains
        end if
        ! This will make hydrostatic p=const an exact solution
        w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S) &
-            *(block%surfaceC2(ixO^S)-block%surfaceC2(h2x^S)) &
+            *(block%surfaceC(ixO^S,2)-block%surfaceC(h2x^S,2)) &
             /block%dvolume(ixO^S)
        tmp(ixO^S)=-(wCT(ixO^S,mom(1))*wCT(ixO^S,mom(2))/wCT(ixO^S,rho_) &
             -wCT(ixO^S,mag(1))*wCT(ixO^S,mag(2)))
@@ -2067,12 +2067,12 @@ contains
        else
          do ix1=ixFmax1,ixFmin1,-1
            w(ix1-1,ixFmin2:ixFmax2,mag(1))=( (w(ix1+1,ixFmin2:ixFmax2,mag(1))+&
-             w(ix1,ixFmin2:ixFmax2,mag(1)))*block%surfaceC1(ix1,ixFmin2:ixFmax2)&
+             w(ix1,ixFmin2:ixFmax2,mag(1)))*block%surfaceC(ix1,ixFmin2:ixFmax2,1)&
            +(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2:ixFmax2)&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,2)&
            -(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2-1:ixFmax2-1) )&
-            /block%surfaceC1(ix1-1,ixFmin2:ixFmax2)-w(ix1,ixFmin2:ixFmax2,mag(1))
+             block%surfaceC(ix1,ixFmin2-1:ixFmax2-1,2) )&
+            /block%surfaceC(ix1-1,ixFmin2:ixFmax2,1)-w(ix1,ixFmin2:ixFmax2,mag(1))
          end do
        end if
        }
@@ -2099,20 +2099,20 @@ contains
            w(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))=&
           ( (w(ix1+1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1)))*&
-             block%surfaceC1(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,1)&
            +(w(ix1,ixFmin2+1:ixFmax2+1,ixFmin3:ixFmax3,mag(2))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,2)&
            -(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2))+&
              w(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,2)&
            +(w(ix1,ixFmin2:ixFmax2,ixFmin3+1:ixFmax3+1,mag(3))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3)))*&
-             block%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,3)&
            -(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,mag(3)))*&
-             block%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1) )&
-            /block%surfaceC1(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)-&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,3) )&
+            /block%surfaceC(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,1)-&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))
          end do
        end if
@@ -2135,12 +2135,12 @@ contains
        else
          do ix1=ixFmin1,ixFmax1
            w(ix1+1,ixFmin2:ixFmax2,mag(1))=( (w(ix1-1,ixFmin2:ixFmax2,mag(1))+&
-             w(ix1,ixFmin2:ixFmax2,mag(1)))*block%surfaceC1(ix1-1,ixFmin2:ixFmax2)&
+             w(ix1,ixFmin2:ixFmax2,mag(1)))*block%surfaceC(ix1-1,ixFmin2:ixFmax2,1)&
            -(w(ix1,ixFmin2+1:ixFmax2+1,mag(2))+w(ix1,ixFmin2:ixFmax2,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2:ixFmax2)&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,2)&
            +(w(ix1,ixFmin2:ixFmax2,mag(2))+w(ix1,ixFmin2-1:ixFmax2-1,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2-1:ixFmax2-1) )&
-            /block%surfaceC1(ix1,ixFmin2:ixFmax2)-w(ix1,ixFmin2:ixFmax2,mag(1))
+             block%surfaceC(ix1,ixFmin2-1:ixFmax2-1,2) )&
+            /block%surfaceC(ix1,ixFmin2:ixFmax2,1)-w(ix1,ixFmin2:ixFmax2,mag(1))
          end do
        end if
        }
@@ -2167,20 +2167,20 @@ contains
            w(ix1+1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))=&
           ( (w(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1)))*&
-             block%surfaceC1(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1-1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,1)&
            -(w(ix1,ixFmin2+1:ixFmax2+1,ixFmin3:ixFmax3,mag(2))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,2)&
            +(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(2))+&
              w(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,mag(2)))*&
-             block%surfaceC2(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1,ixFmin2-1:ixFmax2-1,ixFmin3:ixFmax3,2)&
            -(w(ix1,ixFmin2:ixFmax2,ixFmin3+1:ixFmax3+1,mag(3))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3)))*&
-             block%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,3)&
            +(w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(3))+&
              w(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,mag(3)))*&
-             block%surfaceC3(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1) )&
-            /block%surfaceC1(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3)-&
+             block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3-1:ixFmax3-1,3) )&
+            /block%surfaceC(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,1)-&
              w(ix1,ixFmin2:ixFmax2,ixFmin3:ixFmax3,mag(1))
          end do
        end if
@@ -2203,12 +2203,12 @@ contains
        else
          do ix2=ixFmax2,ixFmin2,-1
            w(ixFmin1:ixFmax1,ix2-1,mag(2))=( (w(ixFmin1:ixFmax1,ix2+1,mag(2))+&
-             w(ixFmin1:ixFmax1,ix2,mag(2)))*block%surfaceC2(ixFmin1:ixFmax1,ix2)&
+             w(ixFmin1:ixFmax1,ix2,mag(2)))*block%surfaceC(ixFmin1:ixFmax1,ix2,2)&
            +(w(ixFmin1+1:ixFmax1+1,ix2,mag(1))+w(ixFmin1:ixFmax1,ix2,mag(1)))*&
-             block%surfaceC1(ixFmin1:ixFmax1,ix2)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,1)&
            -(w(ixFmin1:ixFmax1,ix2,mag(1))+w(ixFmin1-1:ixFmax1-1,ix2,mag(1)))*&
-             block%surfaceC1(ixFmin1-1:ixFmax1-1,ix2) )&
-            /block%surfaceC2(ixFmin1:ixFmax1,ix2-1)-w(ixFmin1:ixFmax1,ix2,mag(2))
+             block%surfaceC(ixFmin1-1:ixFmax1-1,ix2,1) )&
+            /block%surfaceC(ixFmin1:ixFmax1,ix2-1,2)-w(ixFmin1:ixFmax1,ix2,mag(2))
          end do
        end if
        }
@@ -2235,20 +2235,20 @@ contains
            w(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,mag(2))=&
           ( (w(ixFmin1:ixFmax1,ix2+1,ixFmin3:ixFmax3,mag(2))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2)))*&
-             block%surfaceC2(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,2)&
            +(w(ixFmin1+1:ixFmax1+1,ix2,ixFmin3:ixFmax3,mag(1))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1)))*&
-             block%surfaceC1(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,1)&
            -(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1))+&
              w(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,mag(1)))*&
-             block%surfaceC1(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,1)&
            +(w(ixFmin1:ixFmax1,ix2,ixFmin3+1:ixFmax3+1,mag(3))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3)))*&
-             block%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,3)&
            -(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,mag(3)))*&
-             block%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1) )&
-            /block%surfaceC2(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3)-&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,3) )&
+            /block%surfaceC(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,2)-&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2))
          end do
        end if
@@ -2271,12 +2271,12 @@ contains
        else
          do ix2=ixFmin2,ixFmax2
            w(ixFmin1:ixFmax1,ix2+1,mag(2))=( (w(ixFmin1:ixFmax1,ix2-1,mag(2))+&
-             w(ixFmin1:ixFmax1,ix2,mag(2)))*block%surfaceC2(ixFmin1:ixFmax1,ix2-1)&
+             w(ixFmin1:ixFmax1,ix2,mag(2)))*block%surfaceC(ixFmin1:ixFmax1,ix2-1,2)&
            -(w(ixFmin1+1:ixFmax1+1,ix2,mag(1))+w(ixFmin1:ixFmax1,ix2,mag(1)))*&
-             block%surfaceC1(ixFmin1:ixFmax1,ix2)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,1)&
            +(w(ixFmin1:ixFmax1,ix2,mag(1))+w(ixFmin1-1:ixFmax1-1,ix2,mag(1)))*&
-             block%surfaceC1(ixFmin1-1:ixFmax1-1,ix2) )&
-            /block%surfaceC2(ixFmin1:ixFmax1,ix2)-w(ixFmin1:ixFmax1,ix2,mag(2))
+             block%surfaceC(ixFmin1-1:ixFmax1-1,ix2,1) )&
+            /block%surfaceC(ixFmin1:ixFmax1,ix2,2)-w(ixFmin1:ixFmax1,ix2,mag(2))
          end do
        end if
        }
@@ -2303,20 +2303,20 @@ contains
            w(ixFmin1:ixFmax1,ix2+1,ixFmin3:ixFmax3,mag(2))=&
           ( (w(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,mag(2))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2)))*&
-             block%surfaceC2(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2-1,ixFmin3:ixFmax3,2)&
            -(w(ixFmin1+1:ixFmax1+1,ix2,ixFmin3:ixFmax3,mag(1))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1)))*&
-             block%surfaceC1(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,1)&
            +(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(1))+&
              w(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,mag(1)))*&
-             block%surfaceC1(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1-1:ixFmax1-1,ix2,ixFmin3:ixFmax3,1)&
            -(w(ixFmin1:ixFmax1,ix2,ixFmin3+1:ixFmax3+1,mag(3))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3)))*&
-             block%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,3)&
            +(w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(3))+&
              w(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,mag(3)))*&
-             block%surfaceC3(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1) )&
-            /block%surfaceC2(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3)-&
+             block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3-1:ixFmax3-1,3) )&
+            /block%surfaceC(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,2)-&
              w(ixFmin1:ixFmax1,ix2,ixFmin3:ixFmax3,mag(2))
          end do
        end if
@@ -2347,20 +2347,20 @@ contains
            w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,mag(3))=&
           ( (w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3+1,mag(3))+&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3)))*&
-             block%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,3)&
            +(w(ixFmin1+1:ixFmax1+1,ixFmin2:ixFmax2,ix3,mag(1))+&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1)))*&
-             block%surfaceC1(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,1)&
            -(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1))+&
              w(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,mag(1)))*&
-             block%surfaceC1(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3)&
+             block%surfaceC(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,1)&
            +(w(ixFmin1:ixFmax1,ixFmin2+1:ixFmax2+1,ix3,mag(2))+&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2)))*&
-             block%surfaceC2(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,2)&
            -(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2))+&
              w(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,mag(2)))*&
-             block%surfaceC2(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3) )&
-            /block%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1)-&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,2) )&
+            /block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,3)-&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if
@@ -2389,20 +2389,20 @@ contains
            w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3+1,mag(3))=&
           ( (w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,mag(3))+&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3)))*&
-             block%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1)&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3-1,3)&
            -(w(ixFmin1+1:ixFmax1+1,ixFmin2:ixFmax2,ix3,mag(1))+&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1)))*&
-             block%surfaceC1(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,1)&
            +(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(1))+&
              w(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,mag(1)))*&
-             block%surfaceC1(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3)&
+             block%surfaceC(ixFmin1-1:ixFmax1-1,ixFmin2:ixFmax2,ix3,1)&
            -(w(ixFmin1:ixFmax1,ixFmin2+1:ixFmax2+1,ix3,mag(2))+&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2)))*&
-             block%surfaceC2(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,2)&
            +(w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(2))+&
              w(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,mag(2)))*&
-             block%surfaceC2(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3) )&
-            /block%surfaceC3(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3)-&
+             block%surfaceC(ixFmin1:ixFmax1,ixFmin2-1:ixFmax2-1,ix3,2) )&
+            /block%surfaceC(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,3)-&
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if

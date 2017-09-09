@@ -67,12 +67,9 @@ contains
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
                   (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
-             select case (idims)
-                {case (^D)
-                fC(ix^S,iw,^D)=-qdt*block%surfaceC^D(ix^S) * (fpL(ix^S,iw) + fmR(ix^S,iw))
-                wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
-             end select
+             fC(ix^S,iw,idims)=-qdt*block%surfaceC(ix^S,idims) * (fpL(ix^S,iw) + fmR(ix^S,iw))
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))/block%dvolume(ixO^S)
           end if
        end do ! iw loop
 
@@ -210,12 +207,9 @@ contains
              fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
-             select case (idims)
-                {case (^D)
-                fC(ixC^S,iw,^D)=-qdt*block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
-                w(ixO^S,iw)=w(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
-             end select
+             fC(ixC^S,iw,idims)=-qdt*block%surfaceC(ixC^S,idims)*fC(ixC^S,iw,idims)
+             w(ixO^S,iw)=w(ixO^S,iw)+ &
+                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))/block%dvolume(ixO^S)
           end if
        end do    !next iw
     end do       !next idims
@@ -311,12 +305,9 @@ contains
              ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)+f_(i-1))-f_(i-2)]/12
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
-             select case (idims)
-                {case (^D)
-                fC(ixC^S,iw,^D)=-qdt*block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
-                w(ixO^S,iw)=w(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
-             end select
+             fC(ixC^S,iw,idims)=-qdt*block%surfaceC(ixC^S,idims)*fC(ixC^S,iw,idims)
+             w(ixO^S,iw)=w(ixO^S,iw)+ &
+                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))/block%dvolume(ixO^S)
           end if
        end do    !next iw
     end do       !next idims
