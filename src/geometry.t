@@ -129,8 +129,8 @@ else
 end if
 
 ! allocate geometric info
-allocate(pw(igrid)%surfaceC^D(ixmin^D-1:ixmax^D^D%ix^S), &
-         pw(igrid)%surface^D(ixmin^D-1:ixmax^D^D%ix^S), &
+allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
+         pw(igrid)%surface(ixG^T,1:ndim), &
          pw(igrid)%dvolume(ixGext^S), &
          pw(igrid)%xg(ixGext^S,1:ndim),&
          pw(igrid)%dx(ixGext^S,1:ndim))
@@ -173,7 +173,7 @@ subroutine putgridgeo(igrid)
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
-deallocate(pw(igrid)%surfaceC^D,pw(igrid)%surface^D,&
+deallocate(pw(igrid)%surfaceC,pw(igrid)%surface,&
      pw(igrid)%dvolume,pw(igrid)%dx,pw(igrid)%xg,pw(igrid)%dvolumecoarse)
 
 end subroutine putgridgeo
@@ -201,18 +201,18 @@ case ("slabstretch")
    pw(igrid)%dvolumep(ixGext^S)=drs(ixGext^S){^DE&*dx^DE }
    if (need_only_volume) return
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC1(ixC^S)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
-   pw(igrid)%surface1(ixC^S) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   pw(igrid)%surfaceC(ixC^S,1)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
+   pw(igrid)%surface(ixC^S,1) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
+   pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S)}{^IFTHREED*dx3}
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surface2(ixC^S)=drs(ixC^S)}{^IFTHREED*dx3}
+   pw(igrid)%surface(ixC^S,2)=drs(ixC^S)}{^IFTHREED*dx3}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC3(ixC^S)=drs(ixC^S)*dx2
-   pw(igrid)%surface3(ixC^S)=drs(ixC^S)*dx2}
+   pw(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2
+   pw(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2}
    pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
    ^DE&pw(igrid)%dx(ixGext^S,^DE)=dx^DE;
 
@@ -256,66 +256,66 @@ case ("spherical")
 
    if(stretched_grid) then
      if(typespherical==0) then
-       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
+       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
                 *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
      else
-       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
+       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
                 *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
      endif
 
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
+     pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
                 *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
 
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
+     pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2}
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S)&
+     pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
                 *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
 
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2}
+     pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2}
 
      pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
    else
      if(typespherical==0) then
-       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
+       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
                 *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
      else
-       pw(igrid)%surfaceC1(ixC^S)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
+       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
                 *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
      endif
 
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1 &
+     pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*dx1 &
                 *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
 
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2}
+     pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*dx1*dx2}
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1 &
+     pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*dx1 &
                 *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
 
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2}
+     pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*dx1*dx2}
 
      pw(igrid)%dx(ixGext^S,1)=dx1
    end if
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    if(typespherical==0) then
-       pw(igrid)%surface1(ixC^S)=x(ixC^S,1)**2 {^NOONED &
+       pw(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
               *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
    else
-      pw(igrid)%surface1(ixC^S)=x(ixC^S,1)**2 {^NOONED &
+      pw(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
               *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
    endif
    {^NOONED pw(igrid)%dx(ixGext^S,2)=x(ixGext^S,1)*dx2}
@@ -343,51 +343,49 @@ case ("cylindrical")
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    if(stretched_grid) then
-     pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
+     pw(igrid)%surfaceC(ixC^S,1)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-     if (phi_==2) pw(igrid)%surfaceC2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+     if (z_==2) pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+     if (phi_==2) pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3}}
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-     if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=drs(ixC^S)*dx2}
+     if (z_==3) pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2
+     if (phi_==3) pw(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2}
 
      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-     !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
-     pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
+     pw(igrid)%surface(ixC^S,1)=dabs(x(ixC^S,1)){^DE&*dx^DE }
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-     if (phi_==2) pw(igrid)%surface2(ixC^S)=drs(ixC^S){^IFTHREED*dx3}}
+     if (z_==2) pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
+     if (phi_==2) pw(igrid)%surface(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3}}
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*drs(ixC^S)*dx2
-     if (phi_==3) pw(igrid)%surface3(ixC^S)=drs(ixC^S)*dx2}
+     if (z_==3) pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2
+     if (phi_==3) pw(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2}
 
      pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
    else
-     pw(igrid)%surfaceC1(ixC^S)=dabs(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
+     pw(igrid)%surfaceC(ixC^S,1)=dabs(x(ixC^S,1)+half*dx1){^DE&*dx^DE }
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     if (z_==2) pw(igrid)%surfaceC2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-     if (phi_ == 2) pw(igrid)%surfaceC2(ixC^S)=dx1{^IFTHREED*dx3}}
+     if (z_==2) pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+     if (phi_ == 2) pw(igrid)%surfaceC(ixC^S,2)=dx1{^IFTHREED*dx3}}
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     if (z_==3) pw(igrid)%surfaceC3(ixC^S)=x(ixC^S,1)*dx1*dx2
-     if (phi_==3) pw(igrid)%surfaceC3(ixC^S)=dx1*dx2}
+     if (z_==3) pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*dx1*dx2
+     if (phi_==3) pw(igrid)%surfaceC(ixC^S,3)=dx1*dx2}
 
      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-     !!pw(igrid)%surface1(ixC^S)=x(ixC^S,1){^DE&*dx^DE }
-     pw(igrid)%surface1(ixC^S)=dabs(x(ixC^S,1)){^DE&*dx^DE }
+     pw(igrid)%surface(ixC^S,1)=dabs(x(ixC^S,1)){^DE&*dx^DE }
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-     if (z_==2) pw(igrid)%surface2(ixC^S)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
-     if (phi_==2) pw(igrid)%surface2(ixC^S)=dx1{^IFTHREED*dx3}}
+     if (z_==2) pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*dx1{^IFTHREED*dx3}
+     if (phi_==2) pw(igrid)%surface(ixC^S,2)=dx1{^IFTHREED*dx3}}
      {^IFTHREED
      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-     if (z_==3) pw(igrid)%surface3(ixC^S)=x(ixC^S,1)*dx1*dx2
-     if (phi_==3) pw(igrid)%surface3(ixC^S)=dx1*dx2}
+     if (z_==3) pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*dx1*dx2
+     if (phi_==3) pw(igrid)%surface(ixC^S,3)=dx1*dx2}
 
      pw(igrid)%dx(ixGext^S,1)=dx1
    end if
@@ -438,18 +436,56 @@ else
    hx^L=ix^L-kr(idir,^D);
    ixCmin^D=hxmin^D;ixCmax^D=ixmax^D;
    jxC^L=ixC^L+kr(idir,^D);
-   select case(idir)
-   {case(^D)
-      qC(ixC^S)=block%surfaceC^D(ixC^S)*half*(q(ixC^S)+q(jxC^S))
-      gradq(ix^S)=(qC(ix^S)-qC(hx^S))/block%dvolume(ix^S)
-      ! Substract difference divergence and gradient
-      !gradq(ix^S)=gradq(ix^S)-q(ix^S) &
-      !               *(block%surfaceC^D(ix^S)-block%surfaceC^D(hx^S)) &
-      !              /block%dvolume(ix^S) \}
-   end select
+   qC(ixC^S)=block%surfaceC(ixC^S,idir)*half*(q(ixC^S)+q(jxC^S))
+   gradq(ix^S)=(qC(ix^S)-qC(hx^S))/block%dvolume(ix^S)
 end if
 
 end subroutine gradient
+!=============================================================================
+subroutine gradient_s(q,ixI^L,ixO^L,idims,gradq)
+
+! Calculate gradient of a scalar q within ixL in direction idir
+
+use mod_global_parameters
+
+integer :: ixI^L, ixO^L, idims
+double precision :: q(ixI^S), gradq(ixI^S)
+
+double precision :: qC(ixI^S),qpoint(ixI^S),qface(ixI^S),invdx
+integer :: ixA^L, ixB^L, ixC^L, jxC^L, ix^D
+
+!-----------------------------------------------------------------------------
+
+invdx=1.d0/dxlevel(idims)
+! ixC is cell-corner index
+ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
+if (slab) then
+  ! b unit vector at cell corner
+  qpoint=0.d0
+  {do ix^DB=0,1\}
+    ixAmin^D=ixCmin^D+ix^D;
+    ixAmax^D=ixCmax^D+ix^D;
+    qpoint(ixC^S)=qpoint(ixC^S)+q(ixA^S)
+  {end do\}
+  qpoint(ixC^S)=qpoint(ixC^S)*0.5d0**ndim
+  ! values at cell face
+  qface=0.d0
+  ixB^L=ixO^L-kr(idims,^D);
+  ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+  ixB^L=ixA^L;
+  {do ix^DB=0,1 \}
+     if({ ix^D==0 .and. ^D==idims | .or.}) then
+       ixBmin^D=ixAmin^D-ix^D; 
+       ixBmax^D=ixAmax^D-ix^D; 
+       qface(ixA^S)=qface(ixA^S)+qpoint(ixB^S)
+     end if
+  {end do\}
+  qface(ixA^S)=qface(ixA^S)*0.5d0**(ndim-1)
+  ixB^L=ixO^L-kr(idims,^D);
+  gradq(ixO^S)=invdx*(qface(ixO^S)-qface(ixB^S))
+end if
+
+end subroutine gradient_s
 !=============================================================================
 subroutine gradientS(q,ixI^L,ix^L,idir,gradq)
 
@@ -538,11 +574,8 @@ else
      hxO^L=ixO^L-kr(idims,^D);
      ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
      jxC^L=ixC^L+kr(idims,^D);
-     select case(idims)
-     {case(^D)
-        qC(ixC^S)=block%surfaceC^D(ixC^S)*half*(qvec(ixC^S,idims)+qvec(jxC^S,idims))
-        divq(ixO^S)=divq(ixO^S)+qC(ixO^S)-qC(hxO^S) \}
-      end select
+     qC(ixC^S)=block%surfaceC(ixC^S,idims)*half*(qvec(ixC^S,idims)+qvec(jxC^S,idims))
+     divq(ixO^S)=divq(ixO^S)+qC(ixO^S)-qC(hxO^S)
   end do
   divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
 end if
@@ -558,7 +591,7 @@ use mod_global_parameters
 
 integer :: ixI^L,ixO^L,idirmin,ix^L,idir,jdir,kdir,hxO^L,jxO^L,ndir0,idirmin0
 double precision :: qvec(ixI^S,1:ndir0),curlvec(ixI^S,idirmin0:3), invdx(1:ndim)
-double precision :: tmp(ixI^S),tmp2(ixI^S),surface(ixI^S),mydx(ixI^S){#IFDEF FOURTHORDER , gxO^L, kxO^L}
+double precision :: tmp(ixI^S),tmp2(ixI^S),mydx(ixI^S){#IFDEF FOURTHORDER , gxO^L, kxO^L}
 !-----------------------------------------------------------------------------
 {#IFNDEF FOURTHORDER
 ix^L=ixO^L^LADD1;
@@ -701,12 +734,9 @@ do idims=1,ndim
    if (slab) then
      divq(ixO^S)=divq(ixO^S)+half*(qR(ixO^S)-qL(hxO^S))*invdx(idims)
    else
-     select case(idims)
-     {case(^D)
-        qR(ixC^S)=block%surfaceC^D(ixC^S)*qR(ixC^S)
-        qL(ixC^S)=block%surfaceC^D(ixC^S)*qL(ixC^S)
-        divq(ixO^S)=divq(ixO^S)+qR(ixO^S)-qL(hxO^S) \}
-      end select
+     qR(ixC^S)=block%surfaceC(ixC^S,idims)*qR(ixC^S)
+     qL(ixC^S)=block%surfaceC(ixC^S,idims)*qL(ixC^S)
+     divq(ixO^S)=divq(ixO^S)+qR(ixO^S)-qL(hxO^S)
    end if
 end do
 if(.not.slab) divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
@@ -932,3 +962,55 @@ else
 end if
 end subroutine locate_in_table
 !=============================================================================
+subroutine divvector_s(qvec,ixI^L,ixO^L,divq)
+
+! Calculate divergence of a vector qvec within ixL
+
+use mod_global_parameters
+
+integer :: ixI^L,ixO^L
+double precision :: qvec(ixI^S,1:ndir), divq(ixI^S)
+
+double precision :: qC(ixI^S), invdx(1:ndim)
+double precision :: qpoint(ixI^S,1:ndim),qface(ixI^S,1:ndim)
+integer :: ixA^L, ixB^L, ixC^L, idims, ix^L,ix^D
+
+ix^L=ixO^L^LADD1;
+if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
+   call mpistop("Error in divvector: Non-conforming input limits")
+invdx=1.d0/dxlevel
+divq(ixO^S)=zero
+! ixC is cell-corner index
+ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
+if (slab) then
+  ! b unit vector at cell corner
+  qpoint=0.d0
+  {do ix^DB=0,1\}
+    ixAmin^D=ixCmin^D+ix^D;
+    ixAmax^D=ixCmax^D+ix^D;
+    qpoint(ixC^S,1:ndim)=qpoint(ixC^S,1:ndim)+qvec(ixA^S,1:ndim)
+  {end do\}
+  qpoint(ixC^S,1:ndim)=qpoint(ixC^S,1:ndim)*0.5d0**ndim
+  ! values at cell face
+  qface=0.d0
+  do idims=1,ndim
+    ixB^L=ixO^L-kr(idims,^D);
+    ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+    ixB^L=ixA^L;
+    {do ix^DB=0,1 \}
+       if({ ix^D==0 .and. ^D==idims | .or.}) then
+         ixBmin^D=ixAmin^D-ix^D; 
+         ixBmax^D=ixAmax^D-ix^D; 
+         qface(ixA^S,idims)=qface(ixA^S,idims)+qpoint(ixB^S,idims)
+       end if
+    {end do\}
+    qface(ixA^S,idims)=qface(ixA^S,idims)*0.5d0**(ndim-1)
+  end do
+  divq=0.d0
+  do idims=1,ndim
+    ixB^L=ixO^L-kr(idims,^D);
+    divq(ixO^S)=divq(ixO^S)+invdx(idims)*(qface(ixO^S,idims)-qface(ixB^S,idims))
+  end do
+end if
+
+end subroutine divvector_s

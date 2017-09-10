@@ -65,12 +65,9 @@ contains
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idim)* &
                   (fLC(ixO^S, iw)-fRC(hxO^S, iw))
           else
-             select case (idim)
-                {case (^D)
-                wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/block%dvolume(ixO^S) &
-                     *(block%surfaceC^D(ixO^S)*fLC(ixO^S, iw) &
-                     -block%surfaceC^D(hxO^S)*fRC(hxO^S, iw))\}
-             end select
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/block%dvolume(ixO^S) &
+                  *(block%surfaceC(ixO^S,idim)*fLC(ixO^S, iw) &
+                  -block%surfaceC(hxO^S,idim)*fRC(hxO^S, iw))
           end if
        end do
     end do ! next idim
@@ -229,12 +226,9 @@ contains
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
          if (slab) then
-            fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
+           fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
          else
-            select case (idim)
-               {case (^D)
-               fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
-            end select
+           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S, iw)
          end if
       end do
     end subroutine get_Riemann_flux_tvdmu
@@ -256,12 +250,9 @@ contains
          end if
 
          if (slab) then
-            fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
+           fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
          else
-            select case (idim)
-               {case (^D)
-               fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
-            end select
+           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S, iw)
          end if
 
       end do ! Next iw
@@ -272,11 +263,11 @@ contains
       double precision :: fac(ixC^S), div(ixC^S)
 
       where(cminC(ixC^S) >= zero)
-         patchf(ixC^S) = -2
+        patchf(ixC^S) = -2
       elsewhere(cmaxC(ixC^S) <= zero)
-         patchf(ixC^S) =  2
+        patchf(ixC^S) =  2
       elsewhere
-         patchf(ixC^S) =  1
+        patchf(ixC^S) =  1
       endwhere
 
       fac = tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)
@@ -301,12 +292,9 @@ contains
          endif
 
          if (slab) then
-            fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
+           fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
          else
-            select case (idim)
-               {case (^D)
-               fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S, iw)\}
-            end select
+           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S, iw)
          end if
 
       end do ! Next iw
@@ -363,12 +351,9 @@ contains
          end if
 
          if (slab) then
-            fC(ixC^S,iw,idim)=fLC(ixC^S,iw)
+           fC(ixC^S,iw,idim)=fLC(ixC^S,iw)
          else
-            select case (idim)
-               {case (^D)
-               fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fLC(ixC^S,iw)\}
-            end select
+           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S,iw)
          end if
 
       end do ! Next iw
@@ -391,15 +376,13 @@ contains
       f2L=0.d0
       ip1=idim
       ip3=3
-      call mhd_get_v(wRC,x,ixI^L,ixC^L,vRC)
-      call mhd_get_v(wLC,x,ixI^L,ixC^L,vLC)
+      vRC(ixC^S,:)=wRp(ixC^S,mom(:))
+      vLC(ixC^S,:)=wLp(ixC^S,mom(:))
       Bx(ixC^S)=0.5d0*(wRC(ixC^S,mag(ip1))+wLC(ixC^S,mag(ip1)))
       suR(ixC^S)=(cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,rho_)
       suL(ixC^S)=(cminC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,rho_)
-      call mhd_get_pthermal(wRC,x,ixI^L,ixC^L,ptR)
-      call mhd_get_pthermal(wLC,x,ixI^L,ixC^L,ptL)
-      ptR(ixC^S)=ptR(ixC^S)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
-      ptL(ixC^S)=ptL(ixC^S)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
+      ptR(ixC^S)=wRp(ixC^S,e_)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
+      ptL(ixC^S)=wLp(ixC^S,e_)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
       ! equation (38)
       sm(ixC^S)=(suR(ixC^S)*vRC(ixC^S,ip1)-suL(ixC^S)*vLC(ixC^S,ip1)-&
                  ptR(ixC^S)+ptL(ixC^S))/(suR(ixC^S)-suL(ixC^S))
@@ -525,10 +508,7 @@ contains
           fC(ixC^S,iw,ip1)=fRC(ixC^S,iw)
         end where
         if(.not.slab) then
-          select case (ip1)
-            {case (^D)
-            fC(ixC^S,iw,^D)=block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)\}
-          end select
+          fC(ixC^S,iw,ip1)=block%surfaceC(ixC^S,ip1)*fC(ixC^S,iw,ip1)
         end if
       end do
 
