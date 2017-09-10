@@ -24,6 +24,7 @@
         xprobmax2     = 3.0d6 !1.0d12  !2.0d1
         xprobmin3     = -3.0d9 !-1.0d12 !-2.0d11
         xprobmax3     = 3.0d9 !1.0d12  !2.0d11 
+        max_blocks    = 10000
 /
 
  &my_list
