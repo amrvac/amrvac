@@ -411,12 +411,15 @@ contains
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
-
     if (typeboundspeed/='cmaxmean') then
-      tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
-      tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
-      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
+      ! This implements formula (10.52) from "Riemann Solvers and Numerical
+      ! Methods for Fluid Dynamics" by Toro.
+
+      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
+      tmp3(ixO^S)=1.d0/(sqrt(wLp(ixO^S,rho_))+sqrt(wRp(ixO^S,rho_)))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
+
       if(hd_energy) then
         csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
         csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
@@ -424,33 +427,43 @@ contains
         csoundL(ixO^S)=hd_gamma*hd_adiab*wLp(ixO^S,rho_)**(hd_gamma-one)
         csoundR(ixO^S)=hd_gamma*hd_adiab*wRp(ixO^S,rho_)**(hd_gamma-one)
       end if
-      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S))*tmp3(ixO^S)+&
-       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
-       (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
-      dmean(ixO^S)=dsqrt(dmean(ixO^S))
+
+      dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
+           tmp3(ixO^S) + 0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2 * &
+           (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
+
+      dmean(ixO^S)=sqrt(dmean(ixO^S))
       if(present(cmin)) then
         cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
         cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
       else
-        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
+        cmax(ixO^S)=abs(umean(ixO^S))+dmean(ixO^S)
       end if
-      if(hd_dust) wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+
+      if (hd_dust) then
+        wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+        call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
+      end if
+
     else
+
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
-      csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
+      csoundR(ixO^S) = sqrt(csoundR(ixO^S))
+
       if(present(cmin)) then
         cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
         cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
       else
-        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+      end if
+
+      if (hd_dust) then
+        call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
       end if
     end if
 
-    if (hd_dust) then
-      call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
-    end if
   end subroutine hd_get_cbounds
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.

@@ -363,14 +363,14 @@ contains
     if(unit_velocity==0) then
       unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
       unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-      unit_velocity=dsqrt(unit_pressure/unit_density)
-      unit_magneticfield=dsqrt(miu0*unit_pressure)
+      unit_velocity=sqrt(unit_pressure/unit_density)
+      unit_magneticfield=sqrt(miu0*unit_pressure)
       unit_time=unit_length/unit_velocity
     else
       unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
       unit_pressure=unit_density*unit_velocity**2
       unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
-      unit_magneticfield=dsqrt(miu0*unit_pressure)
+      unit_magneticfield=sqrt(miu0*unit_pressure)
       unit_time=unit_length/unit_velocity
     end if
 
@@ -580,21 +580,24 @@ contains
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
     if (typeboundspeed/='cmaxmean') then
-      tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
-      tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
-      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
+      ! This implements formula (10.52) from "Riemann Solvers and Numerical
+      ! Methods for Fluid Dynamics" by Toro.
+
+      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
+      tmp3(ixO^S)=1.d0/(sqrt(wLp(ixO^S,rho_))+sqrt(wRp(ixO^S,rho_)))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
       call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
       dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)*tmp3(ixO^S)+&
        0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
        (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
-      dmean(ixO^S)=dsqrt(dmean(ixO^S))
+      dmean(ixO^S)=sqrt(dmean(ixO^S))
       if(present(cmin)) then
         cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
         cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
       else
-        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
+        cmax(ixO^S)=abs(umean(ixO^S))+dmean(ixO^S)
       end if
     else
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
@@ -604,7 +607,7 @@ contains
         cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
         cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
       else
-        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
     end if
 
@@ -1029,7 +1032,7 @@ contains
       end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
-      if (dabs(mhd_eta)>smalldouble)then
+      if (abs(mhd_eta)>smalldouble)then
         if (.not.slab) call mpistop("no resistivity in non-slab geometry")
         active = .true.
         if (compactres)then

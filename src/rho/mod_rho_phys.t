@@ -128,13 +128,16 @@ contains
     double precision, intent(inout) :: cmax(ixI^S)
     double precision, intent(inout), optional :: cmin(ixI^S)
 
-    double precision :: wmean(ixI^S,nw)
+    ! If get_v depends on w, the first argument should be some average over the
+    ! left and right state
+    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax)
 
-    wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-    call rho_get_v(wmean, x, ixI^L, ixO^L, idim, cmax)
-
-    if(present(cmin)) cmin(ixO^S) = min(cmax(ixO^S), zero)
-    cmax(ixO^S) = max(cmax(ixO^S), zero)
+    if (present(cmin)) then
+       cmin(ixO^S) = min(cmax(ixO^S), zero)
+       cmax(ixO^S) = max(cmax(ixO^S), zero)
+    else
+       cmax(ixO^S) = maxval(abs(cmax(ixO^S)))
+    end if
 
   end subroutine rho_get_cbounds
 
