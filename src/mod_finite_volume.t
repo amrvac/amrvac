@@ -595,8 +595,8 @@ contains
     if(needprim)then
        call phys_to_conserved(ixI^L,ixI^L,w,x)
     endif
-    wLC=wLp
-    wRC=wRp
+    wLC(ixL^S,1:nw)=wLp(ixL^S,1:nw)
+    wRC(ixR^S,1:nw)=wRp(ixR^S,1:nw)
     call phys_to_conserved(ixI^L,ixL^L,wLC,x)
     call phys_to_conserved(ixI^L,ixR^L,wRC,x)
 
