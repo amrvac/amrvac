@@ -437,7 +437,7 @@ contains
     
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
-    double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qe,Binv,minq,maxq,Bnorm
+    double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
     double precision :: alpha,dxinv(ndim)
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
@@ -629,19 +629,20 @@ contains
         minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
         maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
         ! eq (19)
-        qd=0.d0
+        qdd=0.d0
         {do ix^DB=0,1 \}
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixCmin^D+ix^D;
              ixBmax^D=ixCmax^D+ix^D;
-             qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
+             qdd(ixC^S)=qdd(ixC^S)+gradT(ixB^S,idims)
            end if
         {end do\}
         ! temperature gradient at cell corner
-        qd(ixC^S)=qd(ixC^S)*0.5d0**(ndim-1)
+        qdd(ixC^S)=qdd(ixC^S)*0.5d0**(ndim-1)
         ! eq (21)
         qe=0.d0
         {do ix^DB=0,1 \}
+           qd(ixC^S)=qdd(ixC^S)
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixAmin^D-ix^D;
              ixBmax^D=ixAmax^D-ix^D;
