@@ -35,11 +35,30 @@ contains
   end subroutine initonegrid_usr
 
   elemental function solution(x, t) result(val)
+    use mod_global_parameters
     real(dp), intent(in) :: x, t
-    real(dp)             :: val
+    real(dp)             :: val, xrel
     real(dp), parameter  :: pi = acos(-1.0_dp)
 
-    val = sin(2 * pi * (x - rho_v(1) * t))
+    select case(iprob)
+       case default
+          val = sin(2 * pi * (x - rho_v(1) * t))
+       case (2)
+          val = sin(2 * pi * (x - rho_v(1) * t))**2
+       case (3)
+          xrel = x - rho_v(1) * t
+          xrel = modulo(xrel, xprobmax1)
+
+          if (xrel > 0.1_dp .and. xrel < 0.3_dp) then
+             val = 1.0_dp
+          else if (xrel > 0.7 .and. xrel < 0.9) then
+             val = 1 - 10 * abs(xrel - 0.8_dp)
+          else
+             val = 0.0_dp
+          end if
+       case (4)
+          val = sin(2 * pi * (x - rho_v(1) * t))**8
+       end select
   end function solution
 
   subroutine print_error()
