@@ -176,6 +176,7 @@ contains
        ! of the gradients.
        if (present(ldw)) then
           ! Cada Left variant
+          ! Compute theta, but avoid division by zero
           tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
           tmp2(ixO^S)=(2+tmp(ixO^S))*third
           ldw(ixO^S)= max(zero,min(tmp2(ixO^S), &
