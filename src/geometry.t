@@ -971,7 +971,7 @@ use mod_global_parameters
 integer :: ixI^L,ixO^L
 double precision :: qvec(ixI^S,1:ndir), divq(ixI^S)
 
-double precision :: qC(ixI^S), invdx(1:ndim)
+double precision :: invdx(1:ndim)
 double precision :: qpoint(ixI^S,1:ndim),qface(ixI^S,1:ndim)
 integer :: ixA^L, ixB^L, ixC^L, idims, ix^L,ix^D
 
@@ -983,7 +983,7 @@ divq(ixO^S)=zero
 ! ixC is cell-corner index
 ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
 if (slab) then
-  ! b unit vector at cell corner
+  ! vector at cell corner
   qpoint=0.d0
   {do ix^DB=0,1\}
     ixAmin^D=ixCmin^D+ix^D;
@@ -1011,6 +1011,16 @@ if (slab) then
     ixB^L=ixO^L-kr(idims,^D);
     divq(ixO^S)=divq(ixO^S)+invdx(idims)*(qface(ixO^S,idims)-qface(ixB^S,idims))
   end do
+else
+  divq=0.d0
+  do idims=1,ndim
+    ixB^L=ixO^L-kr(idims,^D);
+    ixCmin^D=ixBmin^D;ixCmax^D=ixOmax^D;
+    ixA^L=ixC^L+kr(idims,^D);
+    qface(ixC^S,idims)=block%surfaceC(ixC^S,idims)*half*(qvec(ixC^S,idims)+qvec(ixA^S,idims))
+    divq(ixO^S)=divq(ixO^S)+qface(ixO^S,idims)-qface(ixB^S,idims)
+  end do
+  divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
 end if
 
 end subroutine divvector_s
