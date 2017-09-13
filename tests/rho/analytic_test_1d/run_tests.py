@@ -7,7 +7,7 @@ import sys
 limiters = ['minmod' , 'woodward', 'mcbeta', 'superbee', 'albada',
             'koren', 'vanleer', 'cada', 'cada3', 'mp5']
 
-flux_schemes = ['tvdlf', 'tvdmu', 'hll', 'hllc']
+flux_schemes = ['hll']
 
 time_integrators = ['twostep', 'twostep_trapezoidal', 'threestep',
                     'fourstep', 'ssprk54', 'ssprk43', 'rk4', 'jameson']
@@ -34,7 +34,7 @@ for fs in flux_schemes:
                 f.write(' limiter = "{}"\n'.format(lim))
                 f.write('/\n')
 
-            res = check_output(["./amrvac", "-i", "amrvac.par", "this_scheme.par"])
+            res = check_output(["./amrvac", "-i", "amrvac.par", "this_scheme.par"]).decode(encoding="utf-8")
             mobj = re.search(r'time -- RMSE:  0.10000000E\+01\s+(\S*)', res, re.MULTILINE)
             error = float(mobj.group(1))
             this_result = [fs, ti, lim, error]

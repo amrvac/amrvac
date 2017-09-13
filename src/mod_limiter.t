@@ -195,46 +195,41 @@ contains
                cadgamma)))) * dwC(hxO^S)
        end if
     case (limiter_cada3)
-       tmp(ixO^S)=sign(one,dwC(ixO^S))
        rdelinv=one/(cadradius*dxlevel(idims))**2
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
 
        if (present(ldw)) then
-          ldwA(ixO^S)=(two*dwC(ixO^S)+dwC(hxO^S))*third
-          ldwB(ixO^S)=tmp(ixO^S)* &
-               max(zero,min((two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-               max(-cadalfa*tmp(ixO^S)*dwC(hxO^S),                     &
-               min(cadbeta*tmp(ixO^S)*dwC(hxO^S),                  &
-               (two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-               cadgamma*dabs(dwC(ixO^S))))))
+          tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
+          ldwA(ixO^S)=(two+tmp(ixO^S))*third
+          ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
           where(tmpeta(ixO^S)<=one-cadepsilon)
              ldw(ixO^S)=ldwA(ixO^S)
           elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
              ldw(ixO^S)=ldwB(ixO^S)
           elsewhere
-             tmp(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-             ldw(ixO^S)=half*( (one-tmp(ixO^S))*ldwA(ixO^S) &
-                  +(one+tmp(ixO^S))*ldwB(ixO^S))
+             tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
+             ldw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
+                  +(one+tmp2(ixO^S))*ldwB(ixO^S))
           endwhere
+          ldw(ixO^S)=ldw(ixO^S) * dwC(ixO^S)
        end if
 
        if (present(rdw)) then
-          ldwA(ixO^S)=(two*dwC(hxO^S)+dwC(ixO^S))*third
-          ldwB(ixO^S)=tmp(ixO^S)* &
-               max(zero,min((two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-               max(-cadalfa*dabs(dwC(ixO^S)),                     &
-               min(cadbeta*dabs(dwC(ixO^S)),                  &
-               (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-               cadgamma*tmp(ixO^S)*dwC(hxO^S)))))
+          tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S) + sign(eps, dwC(hxO^S)))
+          ldwA(ixO^S)=(two+tmp(ixO^S))*third
+          ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
           where(tmpeta(ixO^S)<=one-cadepsilon)
              rdw(ixO^S)=ldwA(ixO^S)
           elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
              rdw(ixO^S)=ldwB(ixO^S)
           elsewhere
-             tmp(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-             rdw(ixO^S)=half*( (one-tmp(ixO^S))*ldwA(ixO^S) &
-                  +(one+tmp(ixO^S))*ldwB(ixO^S))
+             tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
+             rdw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
+                  +(one+tmp2(ixO^S))*ldwB(ixO^S))
           endwhere
+          rdw(ixO^S)=rdw(ixO^S) * dwC(hxO^S)
        end if
 
     case default
