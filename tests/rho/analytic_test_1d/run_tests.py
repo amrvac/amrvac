@@ -5,12 +5,12 @@ import re
 import sys
 
 limiters = ['minmod' , 'woodward', 'mcbeta', 'superbee', 'albada',
-            'koren', 'vanleer', 'cada', 'cada3']
+            'koren', 'vanleer', 'cada', 'cada3', 'mp5']
 
 flux_schemes = ['tvdlf', 'tvdmu', 'hll', 'hllc']
 
 time_integrators = ['twostep', 'twostep_trapezoidal', 'threestep',
-                    'fourstep', 'ssprk54', 'rk4', 'jameson']
+                    'fourstep', 'ssprk54', 'ssprk43', 'rk4', 'jameson']
 
 all_results = []
 
@@ -35,7 +35,7 @@ for fs in flux_schemes:
                 f.write('/\n')
 
             res = check_output(["./amrvac", "-i", "amrvac.par", "this_scheme.par"])
-            mobj = re.search(r'time -- RMSE:\s*0.100\S*\s*(\S*)', res, re.MULTILINE)
+            mobj = re.search(r'time -- RMSE:  0.10000000E\+01\s+(\S*)', res, re.MULTILINE)
             error = float(mobj.group(1))
             this_result = [fs, ti, lim, error]
             all_results.append(this_result)
