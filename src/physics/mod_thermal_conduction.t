@@ -753,7 +753,7 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
     
     double precision :: dxinv(1:ndim),mf(ixI^S,1:ndir)
-    double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2inv(ixI^S)
+    double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2(ixI^S)
     double precision :: dtdiff_tcond, dtdiff_tsat
     integer          :: idim,idir,ix^D
 
@@ -767,7 +767,7 @@ contains
     if(tc_constant) then
       tmp(ixO^S)=tc_k_para
     else
-      tmp(ixO^S)=tc_k_para*dsqrt(Te(ixO^S)**5)
+      tmp(ixO^S)=tc_k_para*dsqrt(Te(ixO^S)**5)/w(ixO^S,rho_)
     end if
     
     ! B
@@ -777,30 +777,25 @@ contains
       mf(ixO^S,:)=w(ixO^S,mag(:))
     end if
     ! B^-2
-    B2inv(ixO^S)=sum(mf(ixO^S,:)**2,dim=ndim+1)
-    where(B2inv(ixO^S)/=0.d0)
-      B2inv(ixO^S)=1.d0/B2inv(ixO^S)
+    B2(ixO^S)=sum(mf(ixO^S,:)**2,dim=ndim+1)
+    ! B_i**2/B**2
+    where(B2(ixO^S)/=0.d0)
+      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/B2(ixO^S);
+    elsewhere
+      ^D&mf(ixO^S,^D)=1.d0;
     end where
 
+    if(tc_saturate) B2(ixO^S)=22.d0*dsqrt(Te(ixO^S))
+
     do idim=1,ndim
-      tmp(ixO^S)=tmp(ixO^S)*dxinv(idim)
-      ! B_i**2/B**2
-      where(B2inv(ixO^S)/=0.d0)
-        tmp2(ixO^S)=mf(ixO^S,idim)**2*B2inv(ixO^S)
-      elsewhere
-        tmp2(ixO^S)=1.d0
-      end where
-      tmp(ixO^S)=tmp(ixO^S)*tmp2(ixO^S)
+      tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
       if(tc_saturate) then
-        Te(ixO^S)=5.5d0*w(ixO^S,rho_)*dsqrt(Te(ixO^S))*dxinv(idim)
-        where(tmp(ixO^S)>Te(ixO^S))
-          tmp(ixO^S)=Te(ixO^S)
+        where(tmp2(ixO^S)>B2(ixO^S))
+          tmp2(ixO^S)=B2(ixO^S)
         end where
       end if
-      !(gamma-1)*tc_k_para_i/rho
-      tmp(ixO^S)=(tc_gamma-one)*tmp(ixO^S)/w(ixO^S,rho_)
       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-      dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*dxinv(idim))
+      dtdiff_tcond=tc_dtpar/(tc_gamma-1.d0)/maxval(tmp2(ixO^S)*dxinv(idim)**2)
       ! limit the time step
       dtnew=min(dtnew,dtdiff_tcond)
     end do
