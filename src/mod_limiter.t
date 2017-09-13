@@ -82,12 +82,13 @@ contains
     integer, intent(in) :: typelim
     !> Result using left-limiter (same as right for symmetric)
     double precision, intent(out), optional :: ldw(ixI^S)
-    !> Result using right-limiter (same as right for symmetric)
+    !> Result using right-limiter (same as left for symmetric)
     double precision, intent(out), optional :: rdw(ixI^S)
 
     double precision :: tmp(ixI^S), tmp2(ixI^S)
     integer :: ixO^L, hxO^L
     double precision, parameter :: qsmall=1.d-12, qsmall2=2.d-12
+    double precision, parameter :: eps = sqrt(epsilon(1.0d0))
 
     ! cada limiter parameter values
     double precision, parameter :: cadalfa=0.5d0, cadbeta=2.0d0, cadgamma=1.6d0
@@ -101,19 +102,30 @@ contains
     ixOmin^D=ixCmin^D+kr(idims,^D); ixOmax^D=ixCmax^D;
     hxO^L=ixO^L-kr(idims,^D);
 
+    ! About the notation: the conventional argument theta (the ratio of slopes)
+    ! would be given by dwC(ixO^S)/dwC(hxO^S). However, in the end one
+    ! multiplies phi(theta) by dwC(hxO^S), which is incorporated in the
+    ! equations below. The minmod limiter can for example be written as:
+    ! A:
+    ! max(0.0d0, min(1.0d0, dwC(ixO^S)/dwC(hxO^S))) * dwC(hxO^S)
+    ! B:
+    ! tmp(ixO^S)*max(0.0d0,min(abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
+    ! where tmp(ixO^S)=sign(1.0d0,dwC(ixO^S))
+
     select case (typelim)
     case (limiter_minmod)
        ! Minmod limiter eq(3.51e) and (eq.3.38e) with omega=1
-       tmp(ixO^S)=sign(one,dwC(ixO^S))
-       tmp(ixO^S)=tmp(ixO^S)* &
-            max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
+       ! tmp(ixO^S)=sign(one,dwC(ixO^S))
+       ! tmp(ixO^S)=tmp(ixO^S)* &
+       !      max(zero,min(abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
+       tmp(ixO^S) = max(0.0d0, min(1.0d0, dwC(ixO^S)/dwC(hxO^S))) * dwC(hxO^S)
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
     case (limiter_woodward)
        ! Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
        tmp(ixO^S)=sign(one,dwC(ixO^S))
-       tmp(ixO^S)=two*tmp(ixO^S)* &
-            max(zero,min(dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S),&
+       tmp(ixO^S)=2*tmp(ixO^S)* &
+            max(zero,min(abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*quarter*(dwC(hxO^S)+dwC(ixO^S))))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
@@ -121,7 +133,7 @@ contains
        ! Woodward and Collela limiter, with factor beta
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
-            max(zero,min(mcbeta*dabs(dwC(ixO^S)),mcbeta*tmp(ixO^S)*dwC(hxO^S),&
+            max(zero,min(mcbeta*abs(dwC(ixO^S)),mcbeta*tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*half*(dwC(hxO^S)+dwC(ixO^S))))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
@@ -129,13 +141,13 @@ contains
        ! Roes superbee limiter (eq.3.51i)
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
-            max(zero,min(two*dabs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)),&
-            min(dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S)))
+            max(zero,min(2*abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)),&
+            min(abs(dwC(ixO^S)),2*tmp(ixO^S)*dwC(hxO^S)))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
     case (limiter_vanleer)
        ! van Leer limiter (eq 3.51f), but a missing delta2=1.D-12 is added
-       tmp(ixO^S)=two*max(dwC(hxO^S)*dwC(ixO^S),zero) &
+       tmp(ixO^S)=2*max(dwC(hxO^S)*dwC(ixO^S),zero) &
             /(dwC(ixO^S)+dwC(hxO^S)+qsmall)
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
@@ -148,36 +160,38 @@ contains
        if (present(rdw)) rdw = tmp
     case (limiter_koren)
        tmp(ixO^S)=sign(one,dwC(ixO^S))
-       tmp2(ixO^S)=min(two*dabs(dwC(ixO^S)),two*tmp(ixO^S)*dwC(hxO^S))
+       tmp2(ixO^S)=min(2*abs(dwC(ixO^S)),2*tmp(ixO^S)*dwC(hxO^S))
        if (present(ldw)) then
           ldw(ixO^S)=tmp(ixO^S)* &
                max(zero,min(tmp2(ixO^S),&
-               (dwC(hxO^S)*tmp(ixO^S)+two*dabs(dwC(ixO^S)))*third))
+               (dwC(hxO^S)*tmp(ixO^S)+2*abs(dwC(ixO^S)))*third))
        end if
        if (present(rdw)) then
           rdw(ixO^S)=tmp(ixO^S)* &
-               max(zero,min(tmp2(ixO^S),&
-               (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third))
+                max(zero,min(tmp2(ixO^S),&
+               (2*dwC(hxO^S)*tmp(ixO^S)+abs(dwC(ixO^S)))*third))
        end if
     case (limiter_cada)
-       tmp(ixO^S)=sign(one,dwC(ixO^S))
-       if (present(rdw)) then
-          ! Cada Right variant
-          rdw(ixO^S)=tmp(ixO^S)* &
-               max(zero,min((two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-               max(-cadalfa*dabs(dwC(ixO^S)),                     &
-               min(cadbeta*dabs(dwC(ixO^S)),                  &
-               (two*dwC(hxO^S)*tmp(ixO^S)+dabs(dwC(ixO^S)))*third, &
-               cadgamma*tmp(ixO^S)*dwC(hxO^S)))))
-       end if
+       ! This limiter has been rewritten in the usual form, and uses a division
+       ! of the gradients.
        if (present(ldw)) then
           ! Cada Left variant
-          ldw(ixO^S)=tmp(ixO^S)* &
-               max(zero,min((two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-               max(-cadalfa*tmp(ixO^S)*dwC(hxO^S),                     &
-               min(cadbeta*tmp(ixO^S)*dwC(hxO^S),                  &
-               (two*dabs(dwC(ixO^S))+tmp(ixO^S)*dwC(hxO^S))*third, &
-               cadgamma*dabs(dwC(ixO^S))))))
+          tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
+          tmp2(ixO^S)=(2+tmp(ixO^S))*third
+          ldw(ixO^S)= max(zero,min(tmp2(ixO^S), &
+               max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), tmp2(ixO^S), &
+               cadgamma)))) * dwC(ixO^S)
+       end if
+
+       if (present(rdw)) then
+          ! Cada Right variant
+          tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S) + sign(eps, dwC(hxO^S)))
+          tmp2(ixO^S)=(2+tmp(ixO^S))*third
+          rdw(ixO^S)= max(zero,min(tmp2(ixO^S), &
+               max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), tmp2(ixO^S), &
+               cadgamma)))) * dwC(hxO^S)
        end if
     case (limiter_cada3)
        tmp(ixO^S)=sign(one,dwC(ixO^S))
