@@ -15,7 +15,6 @@
  /
 
  &methodlist
-        fixprocess=T
         time_integrator = 'threestep'
         flux_scheme = 'tvdlf'
         limiter='cada'

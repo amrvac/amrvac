@@ -26,6 +26,9 @@ all: amrvac
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
 include $(AMRVAC_DIR)/arch/rules.make
 
+# Optionally include a local user makefile
+-include local.make
+
 # Where to find amrvac.t
 vpath %.t $(SRC_DIR)
 
@@ -42,7 +45,7 @@ $(LIB_AMRVAC): force
 
 clean:
 	@echo 'Cleaning local objects ("make allclean" cleans libamrvac)'
-	$(RM) amrvac amrvac.o mod_usr.o mod_usr.f mod_usr.mod
+	$(RM) amrvac amrvac.o mod_usr.o mod_usr.mod
 
 # Also clean the library
 allclean: clean

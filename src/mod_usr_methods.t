@@ -22,7 +22,7 @@ module mod_usr_methods
   procedure(add_aux_names), pointer   :: usr_add_aux_names    => null()
   procedure(special_convert), pointer :: usr_special_convert  => null()
 
-  ! Called every time step
+  ! Called at the beginning of every time step (after determining dt)
   procedure(process_grid), pointer    :: usr_process_grid     => null()
   procedure(process_global), pointer  :: usr_process_global   => null()
 
