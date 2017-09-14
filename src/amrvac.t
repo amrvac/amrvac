@@ -6,7 +6,7 @@ program amrvac
   use mod_global_parameters
   use mod_input_output
   use mod_physics, only: phys_check_params
-  use mod_usr_methods, only: usr_before_main_loop
+  use mod_usr_methods
   use mod_ghostcells_update
   use mod_usr
   use mod_initialize
@@ -173,7 +173,13 @@ contains
     ncells_update=0
     time_evol : do
        call setdt()
-       if(fixprocess) call process(it,global_time)
+
+       ! Optionally call a user method that can modify the grid variables at the
+       ! beginning of a time step
+       if (associated(usr_process_grid) .or. &
+            associated(usr_process_global)) then
+          call process(it,global_time)
+       end if
 
        timeio0=MPI_WTIME()
 

@@ -16,7 +16,6 @@
  /
 
  &methodlist
-        fixprocess=T
         time_integrator = 'threestep'
         flux_scheme = 'hll'
         limiter='vanleer'

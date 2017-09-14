@@ -142,7 +142,7 @@ contains
          tvdlfeps,&
          small_temperature,small_pressure,small_density,typegrad,typediv,&
          nxdiffusehllc,typespherical,&
-         fixprocess,flathllc, &
+         flathllc, &
          x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage, solve_internal_e
 
@@ -199,7 +199,6 @@ contains
     ptmass = zero
 
     ! defaults for specific options
-    fixprocess = .false.
     typegrad   = 'central'
     typediv    = 'central'
 

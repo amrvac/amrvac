@@ -228,11 +228,6 @@ module mod_global_parameters
   !> If true, rebuild the AMR grid upon restarting
   logical :: resetgrid
 
-  !> Call the process subroutine before the writing of a snapshot, and following
-  !> the determination of the timestep constraint by means of CFL and other
-  !> restrictions
-  logical :: fixprocess
-
   !> If collapse(DIM) is true, generate output integrated over DIM
   logical :: collapse(ndim)
 
