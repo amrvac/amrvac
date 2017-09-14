@@ -1,73 +1,48 @@
 # Variable names
 
-This document describes how variable names are constructed in the source files
-of MPI-AMRVAC. This was done rigorously in VAC, and in MPI-AMRVAC we have kept
-most of the naming conventions, but introduced new structure to handle the AMR
-grid hierarchy. The patterns starting with **^** are expanded by the VACPP
-preprocessor. The meaning of some tokens is given below.
+## Dimensions, Directions, and Limits
+
+name | description
+---|---
+ndim	| number of spatial dimensions (1, 2, 3)
+^D	| expands to 1,..,ndim
+^ND	| expands to the value of ndim
+ndir	| number of vector dimensions (1, 2, 3)
+^LIM	| expands to min,max
+^L	| expands to min1,min2,min3,max1,max2,max3
+^S	| expands to min1:max1,min2:max2,min3:max3
 
 ## Differential Equations and Physical Quantities
 
-    pw(igrid)%w  	:	w	- conservative flow variables
-    pwold(igrid)%w	:	w       - possibly at previous time step
-    pwres(igrid)%w	:	residual- relative change in w
-    px(igrid)%x	:	x	- spatial variables
-    
-    fC	- flux, defined at cell edges
-    
-    t	- time
-    it	- integer time counter
+name | description
+---|---
+`pw(igrid)%%w`    |	w - conservative flow variables
+`pw(igrid)%%wold` |	w at beginning of current time step
+`pw(igrid)%%x`    |	x - spatial variables
+global_time	| time
+it | integer time counter
+
+Indices of variables in w-array:
+
+name | description
+---|---
+rho_	| density
+e_ | energy density
+p_ | pressure (primitive form of e_, same index)
+mom(1:ndir) | momentum density
+mag(1:ndir)	| magnetic field
+
+## Coordinate system
+
     r_	- R   direction for polar or cylindrical symmetry
     phi_    - PHI direction for polar or cylindrical symmetry
     z_      - Z   direction for polar or cylindrical symmetry
-    
-    rho	- density
-    p	- pressure
-    pthermal- thermal pressure
-    ptotal  - total pressure including magnetic pressure
-    v       - velocity
-    csound  - sound speed
-    b	- magnetic field
-    divb	- divergence of B
-    current - current density
-    res     - resistivity
-    eta     - resistivity coefficient
-    
-    a	- dimensionless propagation speed or eigen value
-    il	- index for characteristic variables or eigen values
-    *W_	- index name for characteristic waves
-    jump	- jump of characteristic variables
-    roe	- Roe's or just arithmetic average in Roe solver
-    phi	- the limiter function for characteristic variable
-    
-    zero	- 0.D0
-    one	- 1.D0
-    two	- 2.D0
-    half	- 0.5D0
-    quarter - 0.25D0
+
+## Constants
+
     dpi     - the value of pi (double precision)
-    
     smalldouble -a small number above machine precision
     bigdouble   -a very large number
-
-## Dimensions, Directions, and Limits
-
-    dim	- dimension or direction
-    ^D	- expands to 1,..,ndim
-    ^ND	- expands to the value of ndim
-    dir	- direction (of vector variables)
-    ^C	- expands to 1,..,ndir (Component)
-    ^NC	- expands to the value of ndir
-    *min	- minimum of * (expected, or actual)
-    *max	- maximum of * (expected, or actual)
-    ^LIM	- expands to min,max
-    ^L	- expands to min1,min2,min3,max1,max2,max3
-    ^S	- expands to min1:max1,min2:max2,min3:max3
-    *lo	- lowest  value of * (enforced by array boundaries)
-    *hi	- highest value of * (enforced by array boundaries)
-    ^LLIM	- expands to lo,hi
-    ^LL	- expands to lo1,lo2,lo3,hi1,hi2,hi3
-    ^T	- expands to lo1:hi1,lo2:hi2,lo3:hi3
 
 ## General Tokens
 
