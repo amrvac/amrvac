@@ -431,10 +431,14 @@ contains
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+    double precision                :: gam(ixO^S)
 
     if (typeboundspeed/='cmaxmean') then
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
+
+      ! TODO: which state to use for gamma here?
+      call hd_get_gamma(wRC, ixI^L, ixO^L, gam)
 
       tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
       tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
@@ -442,11 +446,11 @@ contains
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
 
       if(hd_energy) then
-        csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
-        csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
+        csoundL(ixO^S)=gam*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
+        csoundR(ixO^S)=gam*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
       else
-        csoundL(ixO^S)=hd_gamma*hd_adiab*wLp(ixO^S,rho_)**(hd_gamma-one)
-        csoundR(ixO^S)=hd_gamma*hd_adiab*wRp(ixO^S,rho_)**(hd_gamma-one)
+        csoundL(ixO^S)=gam*hd_adiab*wLp(ixO^S,rho_)**(gam-one)
+        csoundR(ixO^S)=gam*hd_adiab*wRp(ixO^S,rho_)**(gam-one)
       end if
 
       dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
@@ -468,7 +472,7 @@ contains
 
     else
 
-      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      wmean(ixO^S,1:nw)=0.5d0*(wLC(ixO^S,1:nw)+wRC(ixO^S,1:nw))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
       csoundR(ixO^S) = sqrt(csoundR(ixO^S))
@@ -581,11 +585,13 @@ contains
     double precision, intent(out)   :: f(ixI^S, nwflux)
     double precision                :: pth(ixO^S)
     integer                         :: idir, itr
+    double precision                :: gam(ixO^S)
 
     if (hd_energy) then
        pth(ixO^S) = w(ixO^S,p_)
     else
-       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+       call hd_get_gamma(wC, ixI^L, ixO^L, gam)
+       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**gam
     end if
 
     f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)

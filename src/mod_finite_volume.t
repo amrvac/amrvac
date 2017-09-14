@@ -50,8 +50,8 @@ contains
        ! wLC is to the left of ixO, wRC is to the right of wCT.
        hxO^L=ixO^L-kr(idim,^D);
 
-       wRp(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
-       wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
+       wRp(hxO^S,1:nw)=wprim(ixO^S,1:nw)
+       wLp(ixO^S,1:nw)=wprim(ixO^S,1:nw)
 
        call reconstruct_LR(ixI^L,ixO^L,hxO^L,idim,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
 
@@ -196,6 +196,8 @@ contains
           fC(ixI^S,1:nwflux,idim)=dxinv(idim)*fC(ixI^S,1:nwflux,idim)
           wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
                + (fC(ixO^S,1:nwflux,idim)-fC(hxO^S,1:nwflux,idim))
+          ! TODO: currently copy other variables in total range
+          wnew(ixI^S,nwflux+1:nw) = wCT(ixI^S,nwflux+1:nw)
        else
           inv_volume = 1.0d0/block%dvolume(ixO^S)
           fC(ixI^S,1:nwflux,idim)=-qdt*fC(ixI^S,1:nwflux,idim)

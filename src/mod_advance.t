@@ -27,7 +27,7 @@ contains
     ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pw(igrid)%wold(ixG^T,1:nwflux+nwaux)=pw(igrid)%w(ixG^T,1:nwflux+nwaux)
+       pw(igrid)%wold(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
     end do
     !$OMP END PARALLEL DO
 
