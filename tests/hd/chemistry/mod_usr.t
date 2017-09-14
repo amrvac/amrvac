@@ -10,6 +10,7 @@ module mod_usr
   double precision :: density_right = 1.0d0
 
   integer :: i_gamma
+  integer :: i_temperature
 
 contains
 
@@ -29,8 +30,9 @@ contains
     prim_wnames(tracer(1)) = "H2"
     prim_wnames(tracer(2)) = "O2"
 
-    ! Add gamma variable
+    ! Add own variables
     i_gamma = var_set_extravar("gamma", "gamma")
+    i_temperature = var_set_extravar("temperature", "temperature")
 
   end subroutine usr_init
 
@@ -40,7 +42,9 @@ contains
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
+    ! Gamma also needs to be set in ghostcells, because 
     w(ixI^S, i_gamma) = hd_gamma - global_time * 0.1
+    w(ixI^S, i_temperature) = sin(x(ixI^S, 1) * x(ixI^S, 2))
   end subroutine set_gamma
 
   subroutine get_gamma(w, ixI^L, ixO^L, gam)
