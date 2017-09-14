@@ -18,7 +18,8 @@
 /
 
  &methodlist
-   time_integrator     = 'twostep_trapezoidal'
+   fixprocess = .true.
+   time_integrator     = 'twostep'
    flux_scheme       = 20*'tvdlf'
    limiter    = 20*'koren'
    source_split_usr = .true.

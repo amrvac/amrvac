@@ -9,29 +9,51 @@ module mod_usr
   double precision :: density_left = 0.8d0
   double precision :: density_right = 1.0d0
 
+  integer :: i_gamma
+
 contains
 
   subroutine usr_init()
     use mod_usr_methods
+    use mod_variables
 
     usr_init_one_grid => initonegrid_usr
     usr_source        => do_reactions
-    hd_usr_gamma      => set_gamma
+    usr_process_grid  => set_gamma
+    hd_usr_gamma      => get_gamma
 
     call set_coordinate_system("Cartesian_2D")
     call hd_activate()
 
+    ! Rename tracers
+    prim_wnames(tracer(1)) = "H2"
+    prim_wnames(tracer(2)) = "O2"
+
+    ! Add gamma variable
+    i_gamma = var_set_extravar("gamma", "gamma")
+
   end subroutine usr_init
 
-  subroutine set_gamma(w, ixI^L, ixO^L, gam)
+  subroutine set_gamma(igrid,level,ixI^L,ixO^L,qt,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: igrid,level,ixI^L,ixO^L
+    double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    w(ixI^S, i_gamma) = hd_gamma - global_time * 0.1
+  end subroutine set_gamma
+
+  subroutine get_gamma(w, ixI^L, ixO^L, gam)
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision, intent(out) :: gam(ixO^S)
 
-    ! Set gamma to demonstrate the functionality; no physical meaning here
-    gam(ixO^S) = 1 + w(ixO^S, tracer(1))/(1 + w(ixO^S, tracer(2)))
-  end subroutine set_gamma
+    if (minval(w(ixO^S, i_gamma)) < maxval(w(ixO^S, i_gamma))) &
+         error stop "gamma problem"
+
+    gam(ixO^S) = w(ixO^S, i_gamma)
+  end subroutine get_gamma
 
   !> Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
   !> iw=iwmin...iwmax.  wCT is at time qCT
@@ -69,13 +91,15 @@ contains
 
     ! Pressure
     if (hd_energy) then
-       w(ixO^S,e_) = 1.0d0 * w(ixO^S,rho_)
+       w(ixO^S,e_) = 0.1d0 * w(ixO^S,rho_)
     end if
 
     ! Set chemical species (as tracers)
     do n = 1, hd_n_tracer
        w(ixO^S, tracer(n)) = w(ixO^S,rho_) / n
     end do
+
+    w(ixI^S, i_gamma) = hd_gamma
 
     call hd_to_conserved(ixI^L, ixO^L, w, x)
   end subroutine initonegrid_usr
