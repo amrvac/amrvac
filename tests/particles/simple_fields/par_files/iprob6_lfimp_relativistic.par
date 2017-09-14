@@ -1,0 +1,33 @@
+ &filelist
+        base_filename = '_lfimp6_relativistic'
+ /
+
+ &particles_list
+        physics_type_particles='lfimp'
+        npayload=2
+	const_dt_particles = 5.0d-7
+	dtsave_particles = 1.0d-5
+ /
+
+ &stoplist
+        time_max = 6.28318530717958d0
+ /
+
+ &meshlist
+        iprob = 6
+        domain_nx1    = 16
+        domain_nx2    = 16
+        domain_nx3    = 16
+        xprobmin1     = -2.0d8 !-1.0d12 !-2.0d1
+        xprobmax1     = 2.0d8 !1.0d12  !2.0d1
+        xprobmin2     = -2.0d8 !-1.0d12 !-2.0d1
+        xprobmax2     = 2.0d8 !1.0d12  !2.0d1
+        xprobmin3     = -2.0d13 !-1.0d12 !-2.0d11
+        xprobmax3     = 2.0d13 !1.0d12  !2.0d11
+ /
+
+ &my_list
+        x0 = -2.1197468047d4, 0.0d0, 0.0d0 !B0=1d6 x0=gamma*v0/B0
+        v0 = 0.0d0, 2.1197468047d8, 2.1197468047d8 !gamma=100, for gamma=10: 1.0d4, 2.9828972928d8
+ /
+

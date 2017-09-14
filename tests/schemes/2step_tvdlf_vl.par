@@ -1,0 +1,14 @@
+ &filelist
+        base_filename  = '_2step_tvdlf_vl'
+ /
+
+ &methodlist
+        time_integrator  = 'twostep'
+        flux_scheme    = 20*'tvdlf'
+        typepred1    = 20*'hancock'
+        limiter = 20*'vanleer'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

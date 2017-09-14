@@ -461,8 +461,8 @@ contains
       call cross(drift1,drift7,uedotgraduedrift)
       uedotgraduedrift_abs = sqrt(sum(uedotgraduedrift(:)**2))
 
-      momentumpar1 = m*gamma*vpar**2*sum(ue(:)*bdotgradb(:))
-      momentumpar2 = m*gamma*vpar*sum(ue(:)*uedotgradb(:))
+      momentumpar1 = m*gamma*vpar*sum(ue(:)*bdotgradb(:))
+      momentumpar2 = m*gamma*sum(ue(:)*uedotgradb(:))
       momentumpar3 = q*epar
       momentumpar4 = -(Mr/gamma)*sum(bhat(:)*gradkappaB(:))
 

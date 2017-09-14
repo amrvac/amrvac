@@ -239,8 +239,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       block=>pw(igrid)
-      typelimiter=limiter(node(plevel_,igrid))
-      typegradlimiter=gradient_limiter(node(plevel_,igrid))
+      typelimiter=type_limiter(node(plevel_,igrid))
+      typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       call evolve_step1(igrid,cmut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,pw(igrid)%w,&
                         pw(igrid)%x,pw(igrid)%w3)
@@ -282,8 +282,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           block=>pw(igrid)
-          typelimiter=limiter(node(plevel_,igrid))
-          typegradlimiter=gradient_limiter(node(plevel_,igrid))
+          typelimiter=type_limiter(node(plevel_,igrid))
+          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,&
                             pw(igrid)%w2,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)
@@ -302,8 +302,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           block=>pw(igrid)
-          typelimiter=limiter(node(plevel_,igrid))
-          typegradlimiter=gradient_limiter(node(plevel_,igrid))
+          typelimiter=type_limiter(node(plevel_,igrid))
+          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w2,&
                             pw(igrid)%w1,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)
@@ -437,7 +437,7 @@ contains
     
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
-    double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qe,Binv,minq,maxq,Bnorm
+    double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
     double precision :: alpha,dxinv(ndim)
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
@@ -487,8 +487,6 @@ contains
     Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
     where(Binv(ix^S)/=0.d0)
       Binv(ix^S)=1.d0/Binv(ix^S)
-    elsewhere
-      Binv(ix^S)=0.d0
     end where
     ! b unit vector: magnetic field direction vector
     do idims=1,ndim
@@ -587,11 +585,11 @@ contains
              if({ ix^D==0 .and. ^D==idims | .or.}) then
                ixBmin^D=ixAmin^D-ix^D;
                ixBmax^D=ixAmax^D-ix^D;
-               Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)+Bc(ixB^S,1:ndim)
+               Bcf(ixA^S,idims)=Bcf(ixA^S,idims)+Bc(ixB^S,idims)
              end if
           {end do\}
           ! averaged b at face centers
-          Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)*0.5d0**(ndim-1)
+          Bcf(ixA^S,idims)=Bcf(ixA^S,idims)*0.5d0**(ndim-1)
           ixB^L=ixA^L+kr(idims,^D);
           qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
@@ -631,19 +629,20 @@ contains
         minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
         maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
         ! eq (19)
-        qd=0.d0
+        qdd=0.d0
         {do ix^DB=0,1 \}
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixCmin^D+ix^D;
              ixBmax^D=ixCmax^D+ix^D;
-             qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
+             qdd(ixC^S)=qdd(ixC^S)+gradT(ixB^S,idims)
            end if
         {end do\}
         ! temperature gradient at cell corner
-        qd(ixC^S)=qd(ixC^S)*0.5d0**(ndim-1)
+        qdd(ixC^S)=qdd(ixC^S)*0.5d0**(ndim-1)
         ! eq (21)
         qe=0.d0
         {do ix^DB=0,1 \}
+           qd(ixC^S)=qdd(ixC^S)
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixAmin^D-ix^D;
              ixBmax^D=ixAmax^D-ix^D;
@@ -681,8 +680,8 @@ contains
           qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
-              !write(*,*) 'it',it,' ratio=',qvec(ix^D,idims)/qd(ix^D),' TC saturated at ',&
-              !x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
+        !      write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
+        !      x(ix^D,:),' rho',w(ix^D,rho_),' Te',Te(ix^D)
               qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
             end if
          {end do\}
@@ -754,7 +753,7 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
     
     double precision :: dxinv(1:ndim),mf(ixI^S,1:ndir)
-    double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2inv(ixI^S)
+    double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2(ixI^S)
     double precision :: dtdiff_tcond, dtdiff_tsat
     integer          :: idim,idir,ix^D
 
@@ -768,45 +767,37 @@ contains
     if(tc_constant) then
       tmp(ixO^S)=tc_k_para
     else
-      tmp(ixO^S)=tc_k_para*dsqrt(Te(ixO^S)**5)
+      tmp(ixO^S)=tc_k_para*dsqrt(Te(ixO^S)**5)/w(ixO^S,rho_)
     end if
-    !(gamma-1)*tc_k_para_i/rho
-    tmp(ixO^S)=(tc_gamma-one)*tmp(ixO^S)/w(ixO^S,rho_)
     
     ! B
     if(B0field) then
-      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))+block%B0(ixO^S,1:ndir,0)
+      mf(ixO^S,:)=w(ixO^S,mag(:))+block%B0(ixO^S,:,0)
     else
-      mf(ixO^S,1:ndir)=w(ixO^S,mag(1):mag(ndir))
+      mf(ixO^S,:)=w(ixO^S,mag(:))
     end if
     ! B^-2
-    B2inv=0.d0
-    do idir=1,ndir
-      B2inv(ixO^S)=B2inv(ixO^S)+mf(ixO^S,idir)**2
-    end do
-    where(B2inv(ixO^S)/=0.d0)
-      B2inv(ixO^S)=1.d0/B2inv(ixO^S)
+    B2(ixO^S)=sum(mf(ixO^S,:)**2,dim=ndim+1)
+    ! B_i**2/B**2
+    where(B2(ixO^S)/=0.d0)
+      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/B2(ixO^S);
+    elsewhere
+      ^D&mf(ixO^S,^D)=1.d0;
     end where
 
+    if(tc_saturate) B2(ixO^S)=22.d0*dsqrt(Te(ixO^S))
+
     do idim=1,ndim
-       ! B_i**2/B**2
-       where(B2inv(ixO^S)/=0.d0)
-         tmp2(ixO^S)=mf(ixO^S,idim)**2*B2inv(ixO^S)
-       elsewhere
-         tmp2(ixO^S)=1.d0
-       end where
-       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-       dtdiff_tcond=tc_dtpar/maxval(tmp(ixO^S)*tmp2(ixO^S)*dxinv(idim)**2)
-       if(tc_saturate) then
-         ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
-         ! with an empirical coefficient dx_idim
-         dtdiff_tsat=tc_dtpar/maxval((tc_gamma-1.d0)*dsqrt(Te(ixO^S))*&
-                     5.d0*dxinv(idim)**2)
-         ! choose the slower flux (bigger time step) between classic and saturated
-         dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
-       end if
-       ! limit the time step
-       dtnew=min(dtnew,dtdiff_tcond)
+      tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
+      if(tc_saturate) then
+        where(tmp2(ixO^S)>B2(ixO^S))
+          tmp2(ixO^S)=B2(ixO^S)
+        end where
+      end if
+      ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+      dtdiff_tcond=tc_dtpar/(tc_gamma-1.d0)/maxval(tmp2(ixO^S)*dxinv(idim)**2)
+      ! limit the time step
+      dtnew=min(dtnew,dtdiff_tcond)
     end do
     dtnew=dtnew/dble(ndim)
   

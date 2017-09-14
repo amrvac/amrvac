@@ -77,7 +77,6 @@
         typedivbfix='glm1'
         mhd_energy=.false.
         mhd_adiab=1.0d0
-        mhd_glm=.true.
         Busr=10.d0
  /
 

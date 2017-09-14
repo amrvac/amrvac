@@ -25,19 +25,15 @@ contains
     double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
 
     double precision, dimension(ixI^S,1:nwflux)                      :: fCT
-    double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL
+    double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL, wprim
     double precision, dimension(ixI^S)                               :: v
-    double precision                                                 :: dxinv(1:ndim), dxdims
+    double precision                                                 :: dxinv(1:ndim)
     logical                                                          :: transport
     integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L, ixCR^L
 
     ^D&dxinv(^D)=-qdt/dx^D;
     do idims= idim^LIM
 
-       select case (idims)
-          {case (^D) 
-          dxdims = dx^D\}
-       end select
        block%iw0=idims
 
        ! Get fluxes for the whole grid (mesh+nghostcells)
@@ -51,7 +47,9 @@ contains
        {^D& ixCRmin^D = ixCmin^D + kr(idims,^D)*phys_wider_stencil\}
        {^D& ixCRmax^D = ixCmax^D - kr(idims,^D)*phys_wider_stencil\}
 
-       call phys_get_flux(wCT,x,ixG^LL,ixCR^L,idims,fCT)
+       wprim=wCT
+       call phys_to_primitive(ixG^LL,ixCR^L,wprim,x)
+       call phys_get_flux(wCT,wprim,x,ixG^LL,ixCR^L,idims,fCT)
 
        do iw=1,nwflux
           ! Lax-Friedrich splitting:
@@ -60,8 +58,8 @@ contains
        end do ! iw loop
 
        ! now do the reconstruction of fp and fm:
-       call reconstructL(ixI^L,ix^L,idims,fp,fpL,dxdims)
-       call reconstructR(ixI^L,ix^L,idims,fm,fmR,dxdims)
+       call reconstructL(ixI^L,ix^L,idims,fp,fpL)
+       call reconstructR(ixI^L,ix^L,idims,fm,fmR)
 
        do iw=1,nwflux
           if (slab) then
@@ -69,12 +67,9 @@ contains
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
                   (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
-             select case (idims)
-                {case (^D)
-                fC(ix^S,iw,^D)=-qdt*block%surfaceC^D(ix^S) * (fpL(ix^S,iw) + fmR(ix^S,iw))
-                wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
-             end select
+             fC(ix^S,iw,idims)=-qdt*block%surfaceC(ix^S,idims) * (fpL(ix^S,iw) + fmR(ix^S,iw))
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))/block%dvolume(ixO^S)
           end if
        end do ! iw loop
 
@@ -84,25 +79,23 @@ contains
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
-
   end subroutine fd
 
-  subroutine reconstructL(ixI^L,iL^L,idims,w,wLC,dxdims)
+  subroutine reconstructL(ixI^L,iL^L,idims,w,wLC)
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
 
     integer, intent(in)             :: ixI^L, iL^L, idims
-    double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
+    double precision, intent(in)    :: w(ixI^S,1:nw)
 
     double precision, intent(out)   :: wLC(ixI^S,1:nw) 
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
-    character(len=std_len)          :: qtypelimiter
 
     select case (typelimiter)
-    case ('mp5')
+    case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
     case default 
 
@@ -118,11 +111,7 @@ contains
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          qtypelimiter=typelimiter
-          if(typelimiter=='koren') qtypelimiter='korenL'
-          if(typelimiter=='cada')  qtypelimiter='cadaL'
-          if(typelimiter=='cada3') qtypelimiter='cada3L'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims,qtypelimiter)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw=ldw)
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
        end do
@@ -130,22 +119,21 @@ contains
 
   end subroutine reconstructL
 
-  subroutine reconstructR(ixI^L,iL^L,idims,w,wRC,dxdims)
+  subroutine reconstructR(ixI^L,iL^L,idims,w,wRC)
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
 
     integer, intent(in)             :: ixI^L, iL^L, idims
-    double precision, intent(in)    :: w(ixI^S,1:nw), dxdims
+    double precision, intent(in)    :: w(ixI^S,1:nw)
 
     double precision, intent(out)   :: wRC(ixI^S,1:nw) 
 
-    double precision                :: ldw(ixI^S), dwC(ixI^S)
+    double precision                :: rdw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
-    character(len=std_len)          :: qtypelimiter
 
     select case (typelimiter)
-    case ('mp5')
+    case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
     case default 
 
@@ -160,14 +148,9 @@ contains
 
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,rdw=rdw)
 
-          qtypelimiter=typelimiter
-          if(typelimiter=='koren') qtypelimiter='korenR'
-          if(typelimiter=='cada')  qtypelimiter='cadaR'
-          if(typelimiter=='cada3') qtypelimiter='cada3R'
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,ldw,dxdims,qtypelimiter)
-
-          wRC(iL^S,iw)=wRC(iL^S,iw)-half*ldw(jxR^S)
+          wRC(iL^S,iw)=wRC(iL^S,iw)-half*rdw(jxR^S)
        end do
     end select
 
@@ -186,7 +169,7 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D
-    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw), wprim(ixI^S,1:nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
@@ -204,6 +187,9 @@ contains
        call mpistop("Error in CentDiff: Non-conforming input limits")
     end if
 
+    wprim=wCT
+    call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+
     ^D&dxinv(^D)=-qdt/dx^D;
 
     ! Add fluxes to w
@@ -212,7 +198,7 @@ contains
        jxC^L=ixC^L+kr(idims,^D); 
        hxO^L=ixO^L-kr(idims,^D);
 
-       call phys_get_flux(wCT,x,ixI^L,ix^L,idims,f)
+       call phys_get_flux(wCT,wprim,x,ixI^L,ix^L,idims,f)
 
        do iw=1,nwflux
           ! Center flux to interface
@@ -221,12 +207,9 @@ contains
              fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
-             select case (idims)
-                {case (^D)
-                fC(ixC^S,iw,^D)=-qdt*block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
-                w(ixO^S,iw)=w(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
-             end select
+             fC(ixC^S,iw,idims)=-qdt*block%surfaceC(ixC^S,idims)*fC(ixC^S,iw,idims)
+             w(ixO^S,iw)=w(ixO^S,iw)+ &
+                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))/block%dvolume(ixO^S)
           end if
        end do    !next iw
     end do       !next idims
@@ -245,7 +228,7 @@ contains
     ! wCT contains the time centered variables at time qtC for flux and source.
     ! w is the old value at qt on input and the new value at qt+qdt on output.
     use mod_physics
-    use mod_finite_volume, only: upwindLR
+    use mod_finite_volume, only: reconstruct_LR
     use mod_global_parameters
     use mod_source, only: addsource2
 
@@ -258,9 +241,11 @@ contains
     double precision :: v(ixI^S,ndim), f(ixI^S, nwflux)
 
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
+    ! left and right constructed status in primitive form, needed for better performance
+    double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
 
-    double precision :: dxinv(1:ndim), dxdim
+    double precision :: dxinv(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
     logical :: transport, new_cmax, patchw(ixI^S)
 
@@ -296,8 +281,7 @@ contains
        wRC(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
        wLC(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
 
-       dxdim=-qdt/dxinv(idims)
-       call upwindLR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,x,.false.,dxdim)
+       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
 
        ! Calculate velocities from upwinded values
        call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
@@ -305,7 +289,7 @@ contains
        ! now take the maximum of left and right states
        vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
 
-       call phys_get_flux(wCT,x,ixI^L,ix^L,idims,f)
+       call phys_get_flux(wCT,wprim,x,ixI^L,ix^L,idims,f)
 
        do iw=1,nwflux
           ! Center flux to interface
@@ -321,12 +305,9 @@ contains
              ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)+f_(i-1))-f_(i-2)]/12
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
-             select case (idims)
-                {case (^D)
-                fC(ixC^S,iw,^D)=-qdt*block%surfaceC^D(ixC^S)*fC(ixC^S,iw,^D)
-                w(ixO^S,iw)=w(ixO^S,iw)+ &
-                     (fC(ixO^S,iw,^D)-fC(hxO^S,iw,^D))/block%dvolume(ixO^S)\}
-             end select
+             fC(ixC^S,iw,idims)=-qdt*block%surfaceC(ixC^S,idims)*fC(ixC^S,iw,idims)
+             w(ixO^S,iw)=w(ixO^S,iw)+ &
+                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))/block%dvolume(ixO^S)
           end if
        end do    !next iw
     end do       !next idims

@@ -66,6 +66,26 @@ contains
     end if
   end function var_set_fluxvar
 
+  !> Set extra variable, which is not advected and has no boundary conditions.
+  !> This has to be done after defining flux variables.
+  function var_set_extravar(name_cons, name_prim, ix) result(iw)
+    character(len=*), intent(in)  :: name_cons, name_prim
+    integer, intent(in), optional :: ix
+    integer                       :: iw
+
+    nwextra = nwextra + 1
+    nw      = nw + 1
+    iw      = nw
+
+    if (.not. present(ix)) then
+      prim_wnames(iw) = name_cons
+      cons_wnames(iw) = name_prim
+    else
+      write(cons_wnames(iw),"(A,I0)") name_cons, ix
+      write(prim_wnames(iw),"(A,I0)") name_prim, ix
+    end if
+  end function var_set_extravar
+
   !> Set density variable
   function var_set_rho() result(iw)
     integer :: iw

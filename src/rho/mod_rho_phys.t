@@ -57,6 +57,7 @@ contains
 
     physics_type = "rho"
     phys_energy  = .false.
+    phys_req_diagonal = .false.
 
     rho_ = var_set_rho()
 
@@ -118,21 +119,25 @@ contains
 
   end subroutine rho_get_cmax
 
-  subroutine rho_get_cbounds(wLC, wRC, x, ixI^L, ixO^L, idim, cmax, cmin)
+  subroutine rho_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S,nw)
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout) :: cmin(ixI^S)
+    double precision, intent(inout), optional :: cmin(ixI^S)
 
-    double precision :: wmean(ixI^S,nw)
+    ! If get_v depends on w, the first argument should be some average over the
+    ! left and right state
+    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax)
 
-    wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-    call rho_get_v(wmean, x, ixI^L, ixO^L, idim, cmax)
-
-    cmin(ixO^S) = min(cmax(ixO^S), zero)
-    cmax(ixO^S) = max(cmax(ixO^S), zero)
+    if (present(cmin)) then
+       cmin(ixO^S) = min(cmax(ixO^S), zero)
+       cmax(ixO^S) = max(cmax(ixO^S), zero)
+    else
+       cmax(ixO^S) = maxval(abs(cmax(ixO^S)))
+    end if
 
   end subroutine rho_get_cbounds
 
@@ -147,14 +152,16 @@ contains
   end subroutine rho_get_dt
 
   ! There is nothing to add to the transport flux in the transport equation
-  subroutine rho_get_flux(w, x, ixI^L, ixO^L, idim, f)
+  subroutine rho_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, idim
-    double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
+    double precision, intent(in)    :: wC(ixI^S, 1:nw)
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(in)    :: x(ixI^S, 1:^ND)
     double precision, intent(out)   :: f(ixI^S, nwflux)
     double precision                :: v(ixI^S)
 
-    call rho_get_v(w, x, ixI^L, ixO^L, idim, v)
+    call rho_get_v(wC, x, ixI^L, ixO^L, idim, v)
 
     f(ixO^S, rho_) = w(ixO^S, rho_) * v(ixO^S)
   end subroutine rho_get_flux

@@ -1,0 +1,11 @@
+1. Figure out the cell center position of the very first cell in the simulation space (ie not a ghost cell)
+2. Feed this information in the compute_solution_for_any_gamma.f90 file along with :
+  - the number of cells
+  - the inner and outer radii
+  - the adiabatic index (for gamma=1, take 1.00001d0)
+  - whether we work with a stretched grid or not
+3. Then, compile and run to produce iniState.dat, the initial state.
+   It also provides the rho values in the outer ghost cells, to be copied in the mod_usr.t file
+4. Give in mod_usr.t the position of the very first cell (see 1.) along with the values in the outer ghost cells (see 3.)
+
+Experiment with different adiabatic indexes, different resolution, with or without stretching, with or without AMR, etc

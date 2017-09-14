@@ -50,9 +50,9 @@ module mod_physicaldata
       !> Volumes of a cell, pointer
       double precision, dimension(:^D&), pointer :: dvolumep => Null()
       !> Areas of cell-center surfaces
-      double precision, dimension(:^D&), allocatable :: surface^D
+      double precision, dimension(:^D&,:), allocatable :: surface
       !> Areas of cell-face surfaces
-      double precision, dimension(:^D&), allocatable :: surfaceC^D
+      double precision, dimension(:^D&,:), allocatable :: surfaceC
    end type walloc
 
 {^NOONED
@@ -82,9 +82,9 @@ module mod_physicaldata
       !> Volumes of a cell, pointer
       double precision, dimension(:^DE&), pointer :: dvolumep => Null()
       !> Areas of cell-center surfaces 
-      double precision, dimension(:^DE&), allocatable :: surface^DE
+      double precision, dimension(:^DE&,:), allocatable :: surface
       !> Areas of cell-face surfaces
-      double precision, dimension(:^DE&), allocatable :: surfaceC^DE
+      double precision, dimension(:^DE&,:), allocatable :: surfaceC
    end type walloc_sub
 }
 {^IFONED

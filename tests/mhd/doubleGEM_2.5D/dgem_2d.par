@@ -61,6 +61,5 @@
  /
 
  &mhd_list
-        mhd_glm=.true.
         typedivbfix='glm1'
  /

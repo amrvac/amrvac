@@ -42,8 +42,8 @@ contains
     call initialize_amrvac()    ! So that we have settings available
 
     if (use_analytic_field) then
-      if (physics_type_particles /= 'Lorentz') &
-           call mpistop('Analytic fields only supported with Lorentz')
+      if (physics_type_particles /= 'Lorentz' .and. physics_type_particles /= 'Vay' .and. physics_type_particles /= 'HC') &
+           call mpistop('Analytic fields only supported with Boris, HC or Vay schemes')
       usr_particle_analytic => get_analytic_field
     end if
 
@@ -157,7 +157,8 @@ contains
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
       ! x is in cm
-      B = 1.0d2 * [-x(1) * x(3), -x(2) * x(3), 1.0d4 + x(3)**2] * 1.0d-4
+      !B = [-x(1) * x(3), -x(2) * x(3), 1.0d4 + x(3)**2] * 1.0d-4
+      B = 1.0d6 * [-x(1) * x(3), -x(2) * x(3), 1.0d18 + x(3)**2] * 1.0d-18
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
@@ -171,9 +172,10 @@ contains
       E = 0.0d0
       B = [x(2), x(1), 0.0d0] * 1d-2
     case (9)
-      ! electromagnetic two-body problem
-      E = -1.0d0*const_c * 0.1d0*[x(1), x(2), 0.0d0] / &
-           (x(1)**2 + x(2)**2 + x(3)**2)**(5.0d0/2.0d0)
+      ! electromagnetic two-body problem. x is in cm 
+      ! Q=-1 (attracting central electron surrounded by positron)
+      E = -1.0d0 * 1.0d14 * [x(1), x(2), 0.0d0] / &
+           (x(1)**2 + x(2)**2 + x(3)**2)**(3.0d0/2.0d0)
       B = [0.0d0, 0.0d0, 0.0d0]
     case default
       call mpistop("Unknown value for iprob")

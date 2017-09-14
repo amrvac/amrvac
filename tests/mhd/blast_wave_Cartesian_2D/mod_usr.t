@@ -82,7 +82,7 @@ contains
     double precision                   :: w(ixI^S,nw+nwauxio)
     double precision                   :: normconv(0:nw+nwauxio)
 
-    double precision                   :: tmp(ixI^S) 
+    double precision                   :: tmp(ixI^S), bvec(ixI^S,1:ndir)
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
@@ -95,7 +95,8 @@ contains
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     endif
     ! output divB1
-    call get_divb(w,ixI^L,ixO^L,tmp)
+    bvec(ixI^S,:)=w(ixI^S,mag(:))
+    call divvector_s(bvec,ixI^L,ixO^L,tmp)
     w(ixO^S,nw+3)=tmp(ixO^S)
     
   end subroutine specialvar_output

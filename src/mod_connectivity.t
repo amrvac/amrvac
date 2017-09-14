@@ -4,6 +4,11 @@ module mod_connectivity
    implicit none
    save
 
+   integer, parameter :: neighbor_boundary = 1
+   integer, parameter :: neighbor_coarse = 2
+   integer, parameter :: neighbor_sibling = 3
+   integer, parameter :: neighbor_fine = 4
+
    integer, dimension(:,:^D&,:), allocatable :: neighbor
    integer, dimension(:,:^D&,:), allocatable :: neighbor_child
    integer, dimension(:^D&,:), allocatable :: neighbor_type

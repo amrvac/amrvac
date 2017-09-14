@@ -17,9 +17,8 @@ contains
   !> Advance all the grids over one time step, including all sources
   subroutine advance(iit)
     use mod_global_parameters
-    use mod_thermal_conduction
     use mod_particles, only: handle_particles
-    use mod_source, only: addsource_all
+    use mod_source, only: add_split_source
 
     integer, intent(in) :: iit
 
@@ -35,11 +34,9 @@ contains
     {#IFDEF RAY
     call update_rays
     }
-    ! add thermal conduction
-    if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
 
     ! split source addition
-    call addsource_all(.true.)
+    call add_split_source(prior=.true.)
 
     firstsweep=.true.
     if (dimsplit) then
@@ -63,11 +60,8 @@ contains
        call advect(1,ndim)
     end if
 
-    ! add thermal conduction
-    if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
-
     ! split source addition
-    call addsource_all(.false.)
+    call add_split_source(prior=.false.)
 
     if(use_particles) call handle_particles
 
@@ -320,6 +314,7 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
+    use mod_physics, only: phys_req_diagonal
 
     integer, intent(in) :: idim^LIM
     integer, intent(in) :: a !< Compute fluxes based on this w
@@ -384,7 +379,7 @@ contains
 
     ! For all grids: fill ghost cells
     qdt = dtfactor*dt
-    call getbc(qt+qdt,qdt,0,nwflux+nwaux)
+    call getbc(qt+qdt,qdt,0,nwflux+nwaux, phys_req_diagonal)
 
   end subroutine advect1
 
@@ -410,8 +405,8 @@ contains
     end if
 
     block=>pw(igrid)
-    typelimiter=limiter(node(plevel_,igrid))
-    typegradlimiter=gradient_limiter(node(plevel_,igrid))
+    typelimiter=type_limiter(node(plevel_,igrid))
+    typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
     fC=0.d0
 
@@ -496,8 +491,8 @@ contains
        ! next few lines ensure correct usage of routines like divvector etc
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        block=>pw(igrid)
-       typelimiter=limiter(node(plevel_,igrid))
-       typegradlimiter=gradient_limiter(node(plevel_,igrid))
+       typelimiter=type_limiter(node(plevel_,igrid))
+       typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
        if (associated(usr_process_grid)) then
           call usr_process_grid(igrid,level,ixG^LL,ixM^LL, &

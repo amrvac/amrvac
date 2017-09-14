@@ -45,8 +45,3 @@
         mass = 1.0d0 !1.0d-3 !1 in cgs !proton1.6726219d-27 !electron 9.10938356d-31 	
 /
 
- &particles_list
-        dtsave_particles = 1.0d2
-        const_dt_particles = 5.0d-1
-/
-
