@@ -425,11 +425,6 @@ contains
         G0(ixO^S) = max(x(ixO^S, 1)*length_convert_factor, smalldouble)
       case( 'cylindrical' )
         G0(ixO^S) = max(dsqrt(sum(x(ixO^S,:)**2,dim=ndim+1))*length_convert_factor, smalldouble)
-      case( 'slab' )
-        {^IFTHREED
-        G0(ixO^S) = max(dsqrt((x(ixO^S, 1)-x1ptms)**2 + (x(ixO^S, 2)-x2ptms)**2  &
-             + (x(ixO^S, 3)-x3ptms)**2)*length_convert_factor, smalldouble)
-        }
       end select
 
       G0(ixO^S) = 2.1d4*(dust_stellar_luminosity/1.0d8)*((3.0857d17/G0(ixO^S))**2)

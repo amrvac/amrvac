@@ -6,6 +6,9 @@ module mod_limiter
   implicit none
   public
 
+  !> radius of the asymptotic region [0.001, 10], larger means more accurate in smooth
+  !> region but more overshooting at discontinuities
+  double precision :: cada3_radius
   integer, parameter :: limiter_minmod = 1
   integer, parameter :: limiter_woodward = 2
   integer, parameter :: limiter_mcbeta = 3
@@ -90,12 +93,14 @@ contains
     double precision, parameter :: qsmall=1.d-12, qsmall2=2.d-12
     double precision, parameter :: eps = sqrt(epsilon(1.0d0))
 
+    ! mcbeta limiter parameter value
+    double precision, parameter :: c_mcbeta=1.4d0
     ! cada limiter parameter values
     double precision, parameter :: cadalfa=0.5d0, cadbeta=2.0d0, cadgamma=1.6d0
     ! full third order cada limiter
     double precision :: rdelinv
     double precision :: ldwA(ixI^S),ldwB(ixI^S),tmpeta(ixI^S)
-    double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cadradius=0.1d0
+    double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cada3_radius=0.1d0
     !-----------------------------------------------------------------------------
 
     ! Contract indices in idim for output.
@@ -133,7 +138,7 @@ contains
        ! Woodward and Collela limiter, with factor beta
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
-            max(zero,min(mcbeta*abs(dwC(ixO^S)),mcbeta*tmp(ixO^S)*dwC(hxO^S),&
+            max(zero,min(c_mcbeta*abs(dwC(ixO^S)),c_mcbeta*tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*half*(dwC(hxO^S)+dwC(ixO^S))))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
@@ -195,7 +200,7 @@ contains
                cadgamma)))) * dwC(hxO^S)
        end if
     case (limiter_cada3)
-       rdelinv=one/(cadradius*dxlevel(idims))**2
+       rdelinv=one/(cada3_radius*dxlevel(idims))**2
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
 
        if (present(ldw)) then

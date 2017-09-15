@@ -157,10 +157,6 @@ module mod_global_parameters
   !> positions of the minimum and maximum surfaces for each dimension
   double precision  :: xprob^L
 
-  !> For transform variables and save selected data
-  !> number of w in the transformed data
-  integer :: nwtf
-
   !> Kronecker delta tensor
   integer :: kr(3,3)
 
@@ -346,7 +342,7 @@ module mod_global_parameters
 
   integer                       :: refine_criterion,nxdiffusehllc,typespherical
   double precision, allocatable :: entropycoef(:)
-  double precision              :: tvdlfeps, mcbeta
+  double precision              :: tvdlfeps
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh,flatppm
   !> Use split or unsplit way to add user's source terms, default: unsplit
@@ -364,10 +360,6 @@ module mod_global_parameters
   logical, allocatable :: writelevel(:)
   double precision :: writespshift(ndim,2)
   integer          :: level_io, level_io_min, level_io_max
-
-
-  ! Gravity related parameters
-  double precision ::  x1ptms,x2ptms,x3ptms,ptmass
 
   ! Boundary region parameters
 

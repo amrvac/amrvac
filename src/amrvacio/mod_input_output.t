@@ -135,7 +135,7 @@ contains
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,&
          flux_scheme,typepred1,&
-         limiter,mcbeta,gradient_limiter,&
+         limiter,gradient_limiter,cada3_radius,&
          flatcd,flatsh,flatppm,&
          loglimit,typelimited,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
@@ -143,7 +143,6 @@ contains
          small_temperature,small_pressure,small_density,typegrad,typediv,&
          nxdiffusehllc,typespherical,&
          flathllc, &
-         x1ptms,x2ptms,x3ptms,ptmass,nwtf, &
          small_values_method, small_values_daverage, solve_internal_e
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
@@ -190,13 +189,6 @@ contains
     typeboundary(:, :) = undefined
 
     internalboundary   = .false.
-
-    ! defaults for parameters for optional pointgrav module (van Marle)
-    ! --> set here mass to zero, coordinates to zero
-    x1ptms = zero
-    x2ptms = zero
-    x3ptms = zero
-    ptmass = zero
 
     ! defaults for specific options
     typegrad   = 'central'
@@ -300,8 +292,6 @@ contains
     ditsave_custom    = biginteger
 
     typefilelog = 'default'
-    ! defaults for number of w in the transformed data
-    nwtf        = 0
 
     ! defaults for input
     firstprocess  = .false.
@@ -323,7 +313,11 @@ contains
     dimsplit        = .false.
     typedimsplit    = 'default'
     typelimited     = 'predictor'
-    mcbeta          = 1.4d0
+    if(physics_type=='mhd') then
+      cada3_radius  = 0.5d0
+    else
+      cada3_radius  = 0.1d0
+    end if
     typetvd         = 'roe'
     typeboundspeed       = 'cmaxmean'
     source_split_usr= .false.

@@ -718,11 +718,6 @@ contains
        lf(ixO^S)=two*signf(ixO^S)* &
             max(zero,min(dabs(f(ixO^S)),signf(ixO^S)*f(ixB^S),&
             signf(ixO^S)*quarter*(f(ixB^S)+f(ixO^S))))
-     case ('mcbeta')
-       ! Woodward and Collela limiter, with factor beta
-       lf(ixO^S)=signf(ixO^S)* &
-            max(zero,min(mcbeta*dabs(f(ixO^S)),mcbeta*signf(ixO^S)*f(ixB^S),&
-            signf(ixO^S)*half*(f(ixB^S)+f(ixO^S))))
      case ('superbee')
        ! Roes superbee limiter (eq.3.51i)
        lf(ixO^S)=signf(ixO^S)* &

@@ -827,9 +827,6 @@ contains
                  case('woodward')
                    slope(iw,idims)=two*signR*max(zero,min(dabs(slopeR), &
                                       signR*slopeL,signR*half*slopeC))
-                 case('mcbeta')
-                   slope(iw,idims)=signR*max(zero,min(mcbeta*dabs(slopeR), &
-                                      mcbeta*signR*slopeL,signR*slopeC))
                  case('koren')
                    slope(iw,idims)=signR*max(zero,min(two*signR*slopeL, &
                     (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
