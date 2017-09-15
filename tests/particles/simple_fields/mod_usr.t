@@ -13,6 +13,9 @@ module mod_usr
   ! Initial velocity (in m/s)
   double precision :: v0(3) = [0.0d0, 0.0d0, 0.0d0]
 
+  ! Maxwellian velocity (per component vx, vy, vz)
+  double precision :: maxwellian_velocity = 0.0d0
+
   double precision, parameter :: not_used_value = -1.0d20
   double precision :: force_E0(3) = [not_used_value, 0.0d0, 0.0d0]
   double precision :: force_B0(3) = [not_used_value, 0.0d0, 0.0d0]
@@ -56,7 +59,7 @@ contains
     integer                      :: n
 
     namelist /my_list/ charge, mass, x0, v0, use_analytic_field, force_E0, &
-         force_B0
+         force_B0, maxwellian_velocity
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -162,11 +165,11 @@ contains
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
-      ! x is in cm, this corresponds to B = 1 T at 1 m
-      B = 1d6 * [3d0 * x(1) * x(3), &
+      ! x is in cm, this corresponds to B = 10 T at 1 m
+      B = 10 * 1d6 * [3d0 * x(1) * x(3), &
            3d0 * x(2) * x(3), &
            2d0 * x(3)**2 - x(1)**2 - x(2)**2] / &
-           (x(1)**2 + x(2)**2 + x(3)**2)**(5.0d0/2.0d0)
+           (x(1)**2 + x(2)**2 + x(3)**2)**2.5d0
     case (8)
       ! X-null point
       E = 0.0d0
@@ -191,6 +194,7 @@ contains
   subroutine get_particle(x, v, q, m, ipart, n_particles, iprob)
     double precision, intent(out) :: x(3), v(3), q, m
     integer, intent(in)           :: ipart, iprob, n_particles
+    double precision              :: tmp_vec(4)
 
     q = charge
     m = mass
@@ -200,6 +204,12 @@ contains
     select case (iprob)
     case (5)
        v = (v0 * ipart) / n_particles
+    case (4)
+       ! Add Maxwellian velocity. Random numbers come in pairs of two
+       tmp_vec(1:2) = rng%two_normals()
+       tmp_vec(3:4) = rng%two_normals()
+       v = v0 + tmp_vec(1:3) * maxwellian_velocity
+       print *, ipart, v
     case default
        v = v0
     end select
