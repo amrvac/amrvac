@@ -109,21 +109,6 @@ call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
 call MPI_TYPE_COMMIT(type_block_io,ierrmpi)
 size_block_io={nx^D*}*nw*size_double
 
-if(nwtf>0) then
-  ^D&sizes(^D)=ixGhi^D;
-  sizes(ndim+1)=nwtf
-  ^D&subsizes(^D)=nx^D;
-  subsizes(ndim+1)=nwtf
-  ^D&start(^D)=ixMlo^D-1;
-  start(ndim+1)=0
-  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                                type_block_io_tf,ierrmpi)
-  call MPI_TYPE_COMMIT(type_block_io_tf,ierrmpi)
-  
-  size_block_io_tf={nx^D*}*nwtf*size_double
-endif
-
 ^D&sizes(^D)=ixMhi^D-ixMlo^D+1;
 sizes(ndim+1)=^ND
 ^D&subsizes(^D)=sizes(^D);

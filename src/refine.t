@@ -155,9 +155,6 @@ ixCgmax^D=ixComax^D+el\
          case('woodward')
            slope(iw,idim)=two*signR*max(zero,min(dabs(slopeR), &
                               signR*slopeL,signR*half*slopeC))
-         case('mcbeta')
-           slope(iw,idim)=signR*max(zero,min(mcbeta*dabs(slopeR), &
-                              mcbeta*signR*slopeL,signR*slopeC))
          case('koren')
            slope(iw,idim)=signR*max(zero,min(two*signR*slopeL, &
             (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
@@ -243,9 +240,6 @@ invdxCo^D=1.d0/dxCo^D;
          case('woodward')
            slope(iw,idim)=two*signR*max(zero,min(dabs(slopeR), &
                               signR*slopeL,signR*half*slopeC))
-         case('mcbeta')
-           slope(iw,idim)=signR*max(zero,min(mcbeta*dabs(slopeR), &
-                              mcbeta*signR*slopeL,signR*slopeC))
          case('koren')
            slope(iw,idim)=signR*max(zero,min(two*signR*slopeL, &
             (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
