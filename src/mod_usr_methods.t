@@ -17,6 +17,7 @@ module mod_usr_methods
 
   ! Output related
   procedure(p_no_args), pointer       :: usr_print_log        => null()
+  procedure(p_no_args), pointer       :: usr_write_analysis   => null()
   procedure(transform_w), pointer     :: usr_transform_w      => null()
   procedure(aux_output), pointer      :: usr_aux_output       => null()
   procedure(add_aux_names), pointer   :: usr_add_aux_names    => null()
