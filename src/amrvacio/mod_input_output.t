@@ -894,7 +894,7 @@ contains
 
   subroutine saveamrfile(ifile)
 
-    use mod_usr_methods, only: usr_print_log
+    use mod_usr_methods, only: usr_print_log, usr_write_analysis
     use mod_global_parameters
     use mod_particles, only: write_particles_snapshot
     integer:: ifile
@@ -930,7 +930,9 @@ contains
           call mpistop("Error in SaveFile: Unknown typefilelog")
        end select
     case (fileanalysis_)
-       call write_analysis
+       if (associated(usr_write_analysis)) then
+          call usr_write_analysis()
+       end if
     case default
        write(*,*) 'No save method is defined for ifile=',ifile
        call mpistop("")
