@@ -1,3 +1,0 @@
-$AMRVAC_DIR/setup.pl -d=23 -phi=3 -z=2 -g=12,12 -p=srmhd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
-
-Sets up a bow-shock PWN with ISM impacting on the PWN at Mach 30.  Also evolves the electron distribution injected at the termination shock.  Created for Maxim Lyutikov's proposal.  

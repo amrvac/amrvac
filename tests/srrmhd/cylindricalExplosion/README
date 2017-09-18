@@ -1,6 +1,0 @@
-This is a 2D test for a cylindrical explosion in resistive relativistic MHD.
-Setup as in Komissarov (2007): http://adsabs.harvard.edu/abs/2007MNRAS.382..995K.
-
-$AMRVAC_DIR/setup.pl -d=23 -phi=0 -z=0 -g=14,14 -p=srrmhd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
-
-The .png images can be compared to figure 6 of Komissarov (2007).
