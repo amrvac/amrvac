@@ -35,6 +35,7 @@ collapse.o: mod_physics.o
 comm_lib.o: mod_ghostcells_update.o
 convert.o: mod_limiter.o
 convert.o: mod_physics.o
+convert.o: mod_ghostcells_update.o
 geometry.o: mod_limiter.o
 geometry.o: mod_ppm.o
 magnetofriction.o: mod_input_output.o

@@ -167,11 +167,21 @@ contains
       write(*, '(A10,A12,A12,A12)') 'it', 'time', 'dt', 'wc-time(s)'
     end if
 
+    ! output initial state
+    timeio0=MPI_WTIME()
+    do ifile=nfile,1,-1
+      if(timetosave(ifile)) call saveamrfile(ifile)
+    end do
+    timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
+
     timeloop0=MPI_WTIME()
     time_bc=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
+
     time_evol : do
+
+       ! set time step
        call setdt()
 
        ! Optionally call a user method that can modify the grid variables at the
@@ -181,39 +191,10 @@ contains
           call process(it,global_time)
        end if
 
-       timeio0=MPI_WTIME()
-
-       if (timeio0 - time_last_print > time_between_print) then
-         time_last_print = timeio0
-         if (mype == 0) then
-           write(*, '(I10,ES12.3,ES12.3,ES12.3)') it, global_time, dt, timeio0 - time_in
-         end if
-       end if
-
-       do ifile=nfile,1,-1
-         if(timetosave(ifile)) call saveamrfile(ifile)
-       end do
-
-       ! save a snapshot when a file name 'savenow' is present
-       if (mype==0) inquire(file='savenow',exist=save_now)
-       if (npe>1) call MPI_BCAST(save_now,1,MPI_LOGICAL,0,icomm,ierrmpi)
-
-       if (save_now) then
-          if(mype==0) write(*,'(a,i7,a,i7,a,es12.4)') ' save a snapshot No.',&
-               snapshotnext,' at it=',it,' global_time=',global_time
-          call saveamrfile(1)
-          call saveamrfile(2)
-          call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
-       endif
-       timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
-
-       ! exit time loop criteria
-       if (it>=itmax) exit time_evol
-       if (global_time>=time_max) exit time_evol
-
+       ! solving equations
        call advance(it)
 
-       ! if met unphysical values, save the last good status and crash the run
+       ! if met unphysical values, output the last good status and stop the run
        call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
        if (crashall) then
          do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -225,7 +206,7 @@ contains
          call MPI_ABORT(icomm, iigrid, ierrmpi)
        end if
 
-       ! resetting of tree BEFORE IO and setdt
+       ! update AMR mesh and tree
        timegr0=MPI_WTIME()
        if(ditregrid>1) then
           if(fixcount<ditregrid) then
@@ -239,6 +220,7 @@ contains
        endif
        timegr_tot=timegr_tot+(MPI_WTIME()-timegr0)
 
+       ! update time variables
        it = it + 1
        global_time = global_time + dt
 
@@ -247,7 +229,41 @@ contains
           itmin=0
           itsavelast(:)=0
        end if
+
+       ! count updated cells
        ncells_update=ncells_update+ncells_block*nleafs_active
+
+       timeio0=MPI_WTIME()
+
+       if (timeio0 - time_last_print > time_between_print) then
+         time_last_print = timeio0
+         if (mype == 0) then
+           write(*, '(I10,ES12.3,ES12.3,ES12.3)') it, global_time, dt, timeio0 - time_in
+         end if
+       end if
+
+       ! output data
+       do ifile=nfile,1,-1
+         if(timetosave(ifile)) call saveamrfile(ifile)
+       end do
+
+       ! output a snapshot when user write a file named 'savenow' in the same
+       ! folder as the executable amrvac
+       if (mype==0) inquire(file='savenow',exist=save_now)
+       if (npe>1) call MPI_BCAST(save_now,1,MPI_LOGICAL,0,icomm,ierrmpi)
+
+       if (save_now) then
+          if(mype==0) write(*,'(a,i7,a,i7,a,es12.4)') ' save a snapshot No.',&
+               snapshotnext,' at it=',it,' global_time=',global_time
+          call saveamrfile(1)
+          call saveamrfile(2)
+          call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
+       endif
+       timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
+
+       ! exit time loop if time is up
+       if (it>=itmax .or. global_time>=time_max) exit time_evol
+
     end do time_evol
 
     timeloop=MPI_WTIME()-timeloop0
@@ -264,6 +280,7 @@ contains
        write(*,'(a,es12.3 )')' Cells_updated / cpu / sec  : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
     end if
 
+    ! output end state
     timeio0=MPI_WTIME()
     do ifile=nfile,1,-1
        if(itsavelast(ifile)<it)call saveamrfile(ifile)
