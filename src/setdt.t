@@ -59,8 +59,8 @@ if (dtmin_mype<dtmin) then
    call mpistop("too small timestep")
 end if
 
-if (slowsteps>it-itmin+1) then
-   factor=one-(one-dble(it-itmin+1)/dble(slowsteps))**2
+if (slowsteps>it-it_init+1) then
+   factor=one-(one-dble(it-it_init+1)/dble(slowsteps))**2
    dtmin_mype=dtmin_mype*factor
 end if
 

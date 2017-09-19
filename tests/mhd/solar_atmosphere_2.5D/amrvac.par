@@ -29,7 +29,7 @@
         dtmin=1.D-7
         time_max=60.d0
  /
-        itmax=300
+        it_max=300
         time_reset=.true.
 
  &methodlist

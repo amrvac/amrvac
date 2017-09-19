@@ -202,7 +202,7 @@ contains
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
-    !! output the plasma beta p*2/B**2
+    ! output the plasma beta p*2/B**2
     if(B0field)then
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum((w(ixO^S,mag(:))+&
                     block%B0(ixO^S,:,0))**2,dim=ndim+1)
@@ -236,6 +236,12 @@ contains
     w(ixO^S,nw+7)=qvec(ixO^S,1)
     w(ixO^S,nw+8)=qvec(ixO^S,2)
     w(ixO^S,nw+9)=qvec(ixO^S,3)
+    ! output the Alfven speed
+    if(B0field)then
+      w(ixO^S,nw+10)=sqrt(sum((w(ixO^S,mag(:))+block%B0(ixO^S,:,0))**2,dim=ndim+1)/w(ixO^S,rho_))
+    else
+      w(ixO^S,nw+10)=sqrt(sum(w(ixO^S,mag(:))**2,dim=ndim+1)/w(ixO^S,rho_))
+    endif
 
   end subroutine specialvar_output
 
@@ -244,7 +250,7 @@ contains
     use mod_global_parameters
     character(len=*) :: varnames
 
-    varnames='Te beta divb j1 j2 j3 L1 L2 L3'
+    varnames='Te beta divb j1 j2 j3 L1 L2 L3 Alfven'
 
   end subroutine specialvarnames_output
 
@@ -327,18 +333,13 @@ contains
           dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
         else
           dvolume(ixM^T)=pw(igrid)%dvolume(ixM^T)
-          dsurface(ixM^T)= ^D&pw(igrid)%surfaceC^D(ixM^T)+
+          dsurface(ixM^T)= sum(pw(igrid)%surfaceC(ixM^T,:),dim=ndim+1)
           do idims=1,ndim
             hxM^LL=ixM^LL-kr(idims,^D);
-            select case(idims)
-            {case(^D)
-               dsurface(ixM^T)=dsurface(ixM^T)+pw(igrid)%surfaceC^D(hxM^T) \}
-            end select
+            dsurface(ixM^T)=dsurface(ixM^T)+pw(igrid)%surfaceC(hxM^T,idims)
           end do
         end if
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-        typelimiter=limiter(node(plevel_,igrid))
-        typegradlimiter=gradient_limiter(node(plevel_,igrid))
         patchwi(ixG^T)=.false.
         select case(region)
         case('cropped')

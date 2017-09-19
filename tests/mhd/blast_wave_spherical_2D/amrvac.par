@@ -17,7 +17,7 @@
  &stoplist
         time_max=0.15d0
  /
-        itmax=1
+        it_max=1
 
  &methodlist
         time_integrator='threestep'

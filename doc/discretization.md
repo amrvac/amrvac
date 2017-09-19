@@ -123,7 +123,7 @@ applied in the predictor and full step.
 
 For the multistep RK4 integration scheme, the same **typefull1** method is
 used in each substep for **istep=1..nstep**. Full timesteps are counted by
-**itmin &lt;= it &lt;= itmax**, while the physical time is **t &lt;= tmax**.
+**it_init &lt;= it &lt;= it_max**, while the physical time is **global_time &lt;= time_max**.
 
 # Grid and Mesh {#disc-grid}
 

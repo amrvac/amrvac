@@ -72,24 +72,24 @@ _3_. We use itsave to demand a slice output for the zero-iteration.
 The stoplist should look like the following,
 
      &stoplist;
-            itreset=.true.
-            itmax=0
+            reset_it=.true.
+            it_max=0
     /
 
 where we reset the iteration counter (so that _itsave(1,3)=0_ will output
-slice data) and stop the code immediately after the IO (_itmax=0_).
+slice data) and stop the code immediately after the IO (_it_max=0_).
 
 The code can then be started with
 
-    amrvac -restart 10 -i slices.par -slice 10 -if datamr/data
+    amrvac -i slices.par -slice 10 -if datamr/data0010.dat
 
-which will take the output _datamr/data0010.dat_ (-restart 10, -if
-datamr/data) to create new slices with index 10 (-slice 10). The par-file is
+which will take the output _datamr/data0010.dat_ 
+to create new slices with index 10 (-slice 10). The par-file is
 the newly created slices.par (-i slices.par) so that the default used to run
 the code can be left untouched. It is a simple exercise in shell scripting to
 run along all output-files in one go. For example with the BASH:
 
-    for i in {0..10}; do ./amrvac -restart $i -i slices.par -slice $i -if datamr/data; done
+    for i in {0..10}; do printf -v j "%04d" $i; ./amrvac -i slices.par -slice $i -if datamr/data$j.dat; done
 
 ## ASCII output
 

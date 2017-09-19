@@ -116,7 +116,7 @@ contains
     integer :: windex
 
     namelist /filelist/ base_filename,restart_from_file, &
-         typefilelog,firstprocess,resetgrid,snapshotnext, &
+         typefilelog,firstprocess,reset_grid,snapshotnext, &
          convert,convert_type,saveprim,&
          nwauxio,nocartesian, w_write,writelevel,&
          writespshift,length_convert_factor, w_convert_factor, &
@@ -129,7 +129,7 @@ contains
          dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
          ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
 
-    namelist /stoplist/ itmax,time_max,dtmin,global_time,it,restart_reset_time
+    namelist /stoplist/ it_init,time_init,it_max,time_max,dtmin,reset_it,reset_time
 
     namelist /methodlist/ time_integrator, &
          source_split_usr,typesourcesplit,&
@@ -253,7 +253,9 @@ contains
     qst                         = bigdouble
 
     ! IO defaults
-    itmax         = biginteger
+    it_init       = 0
+    it_max        = biginteger
+    time_init     = 0.d0
     time_max      = bigdouble
     dtmin         = 1.0d-10
     nslices       = 0
@@ -294,9 +296,10 @@ contains
     typefilelog = 'default'
 
     ! defaults for input
+    reset_time = .false.
+    reset_it = .false.
     firstprocess  = .false.
-    resetgrid     = .false.
-    restart_reset_time = .false.
+    reset_grid     = .false.
     base_filename   = 'data'
     snapshotini = -1
     snapshotnext = -1
@@ -446,7 +449,7 @@ contains
       i = len_trim(restart_from_file) - 7
       read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
       if (io_state == 0 .and. snapshotnext==-1) snapshotnext = snapshotini + 1
-      if(restart_reset_time) snapshotnext=0
+      if(reset_time .or. reset_it) snapshotnext=0
     else
       snapshotnext=0
       if (firstprocess) &
@@ -505,8 +508,8 @@ contains
             'Slice ', islice,' direction',slicedir(islice),'too small, should be [',1,ndim,']'
     end do
 
-    if(itmax==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
-         'Warning in read_par_files: itmax or time_max not given!'
+    if(it_max==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
+         'Warning in read_par_files: it_max or time_max not given!'
 
     do level=1,nlevelshi
        !if(flux_scheme(level)=='tvdlf1'.and.time_integrator=='twostep') &

@@ -63,25 +63,25 @@ than _4_. We use itsave to demand a collapse output for the zero-iteration.
 The stoplist should look as follows:
 
      &stoplist;
-            itreset          = .true.
-            itmax            = 0
+            reset_it         = .true.
+            it_max            = 0
     /
 
 where we reset the iteration counter (so that _itsave(1,4)=0_ will output
-collapsed data) and stop the code immediately after the IO (_itmax=0_).
+collapsed data) and stop the code immediately after the IO (_it_max=0_).
 
 The code can then be started with
 
-    amrvac -restart 10 -i collapse.par -collapse 10 -if datamr/data
+    amrvac -i collapse.par -collapse 10 -if datamr/data0010.dat
 
-which will take the output _datamr/data0010.dat_ (-restart 10, -if
-datamr/data) to create new collapsed view with index 10 (-collapse 10). The
-par-file is the newly created collapse.par (-i collapse.par) so that the
-default used to run the code can be left untouched. It is a simple exercise in
+which will take the output _datamr/data0010.dat_ to create new collapsed view 
+with index 10 (-collapse 10). The par-file is the newly created collapse.par 
+(-i collapse.par) so that the default used to run the code can be left 
+untouched. It is a simple exercise in
 shell scripting to run along all output-files in one go. For example with the
 BASH:
 
-    for i in {0..10}; do ./amrvac -restart $i -i collapse.par -collapse $i -if datamr/data; done
+    for i in {0..10}; do printf -v j "%04d" $i; ./amrvac -i collapse.par -collapse $i -if datamr/data$j.dat; done
 
 # ASCII output
 

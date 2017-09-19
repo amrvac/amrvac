@@ -194,6 +194,9 @@ module mod_global_parameters
   !> The global simulation time
   double precision :: global_time
 
+  !> Start time for the simulation
+  double precision :: time_init
+
   !> End time for the simulation
   double precision :: time_max
 
@@ -216,13 +219,16 @@ module mod_global_parameters
 
   !> If true, reset iteration count and global_time to original values, and
   !> start writing snapshots at index 0
-  logical :: restart_reset_time
+  logical :: reset_time
+
+  !> If true, reset iteration count to 0
+  logical :: reset_it
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
 
   !> If true, rebuild the AMR grid upon restarting
-  logical :: resetgrid
+  logical :: reset_grid
 
   !> If collapse(DIM) is true, generate output integrated over DIM
   logical :: collapse(ndim)
@@ -231,10 +237,10 @@ module mod_global_parameters
   integer :: it
 
   !> Stop the simulation after this many time steps have been taken
-  integer :: itmax
+  integer :: it_max
 
-  !> \todo Why do we need itmin?
-  integer :: itmin
+  !> initial iteration count
+  integer :: it_init
 
   !> If > 1, then in the first slowsteps-1 time steps dt is reduced
   !> by a factor \f$ 1 - (1- step/slowsteps)^2 \f$

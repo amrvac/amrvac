@@ -56,14 +56,10 @@ contains
     ! allocate mesh for particles
     if(use_particles) allocate(gridvars(max_blocks))
 
-    ! set time, time counter
-    if(.not. restart_reset_time) then
-       global_time  = zero
-       it           = 0
-    end if
+    it=it_init
+    global_time=time_init
 
     dt=zero
-    itmin=0
 
     ! set all dt to zero
     dt_grid(1:max_blocks)=zero

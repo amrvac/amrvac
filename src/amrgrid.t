@@ -30,7 +30,7 @@ subroutine settree
 
      call amr_coarsen_refine
      
-     if (.not.resetgrid) then
+     if (.not.reset_grid) then
        ! if no finer level grids created: exit
        if (levmax/=levnew) exit
      end if

@@ -13,8 +13,7 @@ program amrvac
   use mod_particles
   use mod_fix_conserve
 
-  integer          :: itin
-  double precision :: time0, time_in, tin
+  double precision :: time0, time_in
 
   call comm_start()
 
@@ -33,21 +32,26 @@ program amrvac
   if (restart_from_file /= undefined) then
      ! restart from previous file or dat file conversion
      ! get input data from previous AMRVAC run
-     itin=it
-     tin=global_time
-
-     {#IFDEF RAY
-     call init_rays
-     }
 
      ! read in dat file
      call read_snapshot()
+
+     if (reset_time) then
+       ! reset it and global time to original value
+       it           = it_init
+       global_time  = time_init
+     end if
+
+     if (reset_it) then
+       ! reset it to original value
+       it           = it_init
+     end if
 
      ! modify initial condition
      if (firstprocess) call modify_IC
 
      ! reset AMR grid
-     if (resetgrid) call settree
+     if (reset_grid) call settree
 
      ! select active grids
      call selectgrids
@@ -74,16 +78,7 @@ program amrvac
         stop
      end if
 
-     if (restart_reset_time) then
-       ! reset it and global_time to original values
-       it           = itin
-       global_time  = tin
-     end if
-
   else
-     {#IFDEF RAY
-     call init_rays
-     }
 
      ! form and initialize all grids at level one
      call initlevelone
@@ -155,7 +150,6 @@ contains
        itsavelast(ifile)=it
     end do
 
-    itmin=it
     ! the next two are used to keep track of the performance during runtime:
     itTimeLast=it
     timeLast=MPI_WTIME()
@@ -167,6 +161,7 @@ contains
       write(*, '(A10,A12,A12,A12)') 'it', 'time', 'dt', 'wc-time(s)'
     end if
 
+    timeloop0=MPI_WTIME()
     ! output initial state
     timeio0=MPI_WTIME()
     do ifile=nfile,1,-1
@@ -174,12 +169,14 @@ contains
     end do
     timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
-    timeloop0=MPI_WTIME()
     time_bc=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
 
     time_evol : do
+
+       ! exit time loop if time is up
+       if (it>=it_max .or. global_time>=time_max) exit time_evol
 
        ! set time step
        call setdt()
@@ -225,8 +222,7 @@ contains
        global_time = global_time + dt
 
        if(it>9000000)then
-          it = slowsteps+10
-          itmin=0
+          it = slowsteps+it_init
           itsavelast(:)=0
        end if
 
@@ -260,9 +256,6 @@ contains
           call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
        endif
        timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
-
-       ! exit time loop if time is up
-       if (it>=itmax .or. global_time>=time_max) exit time_evol
 
     end do time_evol
 

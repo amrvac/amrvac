@@ -77,7 +77,7 @@ double precision,dimension(0:nw+nwauxio),intent(in):: normconv
 character(len=1024) :: filename, outfilehead, line
 logical             :: fileopen
 integer                                           :: iw
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 integer, dimension(ndim)                          :: myshape
 {^NOONED
 integer                                           :: ix^DM
@@ -156,7 +156,7 @@ double precision,dimension(0:nw+nwauxio),intent(in):: normconv
 character(len=1024) :: filename, outfilehead, line
 logical             :: fileopen
 integer                                           :: iw
-character(len=10) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 integer, dimension(ndim)                          :: myshape
 {^NOONED
 integer                                           :: ix^DM

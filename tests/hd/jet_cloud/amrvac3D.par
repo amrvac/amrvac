@@ -23,7 +23,7 @@
 
  &stoplist
         dtmin=1.D-9
-        itmax=100
+        it_max=100
  /
         time_max=6.0d0
 

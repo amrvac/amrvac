@@ -31,8 +31,11 @@ my %simple_replacements = (
     qr/\bsmallT\b/ => "small_temperature",
     qr/(?<!['.])\bt\b/ => "global_time", # Prevent 't and .t from matching
     qr/\btmax\b/ => "time_max",
-    qr/\btreset\b/ => "restart_reset_time",
+    qr/\bitmax\b/ => "it_max",
+    qr/\btreset\b/ => "reset_time",
+    qr/\bitreset\b/ => "reset_it",
     qr/\btmaxexact\b/ => "time_max_exact",
+    qr/\bresetgrid\b/ => "reset_grid",
     qr/\btypeadvance\b/ => "time_integrator",
     qr/\btypefull1\b/ => "flux_scheme",
     qr/\btypegradlimiter1\b/ => "gradient_limiter",
@@ -122,6 +125,7 @@ my %par_file_replacements = (
     qr/tsave\(4\)/ => "tsave_collapsed",
     qr/tsave\(5\)/ => "tsave_custom",
     qr/\btypetvdlf\b/ => "typeboundspeed",
+    qr/\bitmax\b/ => "it_max",
     );
 
 # List of regular expressions and associated warnings

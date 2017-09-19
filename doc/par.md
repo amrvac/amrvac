@@ -248,15 +248,16 @@ output is always saved after the stop condition has been fulfilled. If
 ## Stoplist {#par_stoplist}
 
     &stoplist
-    	itmax =INTEGER
+    	it_max =INTEGER
     	time_max =DOUBLE
     	dtmin =DOUBLE
-    	it =INTEGER
-    	global_time =DOUBLE
-    	restart_reset_time =F | T
+    	it_init =INTEGER
+    	time_init =DOUBLE
+    	reset_time =F | T
+    	reset_it   =F | T
     /
 
-You may use an upper limit `itmax` for the number of timesteps and/or the
+You may use an upper limit `it_max` for the number of timesteps and/or the
 physical time, `time_max`. 
 
 Numerical or physical instabilities may produce huge changes or very small
@@ -266,12 +267,13 @@ step, which is useful when `dt` is determined from the `courantpar`
 parameter. If a run stops due to `dt &lt; dtmin`, a warning message is
 printed.
 
-You have to specify at least one of `time_max, itmax`. AMRVAC stops execution
-when any of the limits are exceeded. The initial time value `global_time` and integer
-time step counter `it` values can be specified here. However, when a restart
-is performed from a previous .dat file, the values in that file will be used
-unless you enforce their reset to zeros or the values specified here by 
-activating the logicals `restart_reset_time=T`.
+You have to specify at least one of `time_max, it_max`. AMRVAC stops execution
+when any of the limits are exceeded. The initial time value `time_init` and integer
+time step counter `it_init` values, which are zero by default, can be specified 
+here. However, when a restart is performed from a previous .dat file, the values 
+in that file will be used unless you reset them to their inital values by 
+set `reset_time=T`. If you want only reset iteration count 
+without changing time, set `reset_it=T`.
 
 ## Methodlist {#par_methodlist}
 
