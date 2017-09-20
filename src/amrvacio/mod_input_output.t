@@ -24,6 +24,7 @@ contains
   subroutine read_arguments()
     use mod_kracken
     use mod_global_parameters
+    use mod_slice, only: slicenext
 
     integer                          :: len, ier, n
     integer, parameter               :: max_files = 20 ! Maximum number of par files
@@ -79,7 +80,7 @@ contains
 
     !> \todo Document these command line options
     slicenext    = iget('cmd_slice')
-    collapseNext = iget('cmd_collapse')
+    collapsenext = iget('cmd_collapse')
     convert      = lget('cmd_convert') ! -convert present?
 
   end subroutine read_arguments
@@ -90,6 +91,7 @@ contains
     use mod_physics, only: physics_type
     use mod_small_values
     use mod_limiter
+    use mod_slice
 
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
@@ -121,7 +123,7 @@ contains
          nwauxio,nocartesian, w_write,writelevel,&
          writespshift,length_convert_factor, w_convert_factor, &
          time_convert_factor,level_io,level_io_min, level_io_max, &
-         autoconvert,sliceascii,slicenext,collapseNext,collapse_type
+         autoconvert,slice_type,slicenext,collapsenext,collapse_type
 
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
          slicecoord,collapse,collapseLevel, time_between_print, &
@@ -208,6 +210,7 @@ contains
     saveprim                 = .false.
     autoconvert              = .false.
     convert_type             = 'vtuBCCmpi'
+    slice_type               = 'vtuCC'
     collapse_type            = 'vti'
     allocate(w_write(nw))
     w_write(1:nw)             = .true.
@@ -261,7 +264,6 @@ contains
     nslices       = 0
     collapse      = .false.
     collapseLevel = 1
-    sliceascii    = .false.
     time_between_print = 30.0d0 ! Print status every 30 seconds
 
     do ifile=1,nfile
@@ -322,7 +324,7 @@ contains
       cada3_radius  = 0.1d0
     end if
     typetvd         = 'roe'
-    typeboundspeed       = 'cmaxmean'
+    typeboundspeed  = 'cmaxmean'
     source_split_usr= .false.
     time_integrator = 'twostep'
     solve_internal_e= .false.
@@ -512,21 +514,9 @@ contains
          'Warning in read_par_files: it_max or time_max not given!'
 
     do level=1,nlevelshi
-       !if(flux_scheme(level)=='tvdlf1'.and.time_integrator=='twostep') &
-       !   call mpistop(" tvdlf1 is onestep method, reset time_integrator=onestep!")
-       !if(flux_scheme(level)=='hll1'.and.time_integrator=='twostep') &
-       !   call mpistop(" hll1 is onestep method, reset time_integrator=onestep!")
-       !if(flux_scheme(level)=='hllc1'.and.time_integrator=='twostep') &
-       !   call mpistop(" hllc1 is onestep method, reset time_integrator=onestep!")
-       !if(flux_scheme(level)=='hllcd1'.and.time_integrator=='twostep') &
-       !   call mpistop(" hllcd1 is onestep method, reset time_integrator=onestep!")
-       !if(flux_scheme(level)=='tvdmu1'.and.time_integrator=='twostep') &
-       !   call mpistop(" tvdmu1 is onestep method, reset time_integrator=onestep!")
-       if(flux_scheme(level)=='tvd'.and.time_integrator=='twostep') &
-            call mpistop(" tvd is onestep method, reset time_integrator=onestep!")
-       if(flux_scheme(level)=='tvd1'.and.time_integrator=='twostep') &
-            call mpistop(" tvd1 is onestep method, reset time_integrator=onestep!")
-       if(flux_scheme(level)=='tvd'.or.flux_scheme(level)=='tvd1')then
+       if(flux_scheme(level)=='tvd'.and.time_integrator/='onestep') &
+            call mpistop(" tvd is onestep method, reset time_integrator='onestep'")
+       if(flux_scheme(level)=='tvd')then
           if(mype==0.and.(.not.dimsplit)) write(unitterm,*) &
                'Warning: setting dimsplit=T for tvd, as used for level=',level
           dimsplit=.true.
@@ -552,8 +542,7 @@ contains
              typepred1(level)='hllcd'
           case ('hlld')
              typepred1(level)='hlld'
-          case ('tvdlf1','tvdmu1','tvd1','tvd','hll1','hllc1', &
-               'hlld1','hllcd1','hlldd1','nul','source')
+          case ('nul','source')
              typepred1(level)='nul'
           case default
              call mpistop("No default predictor for this full step")
@@ -631,18 +620,10 @@ contains
        type_gradient_limiter(level) = limiter_type(gradient_limiter(level))
     end do
 
-    !if (any(limiter(1:nlevelshi)== 'ppm')&
-    !     .and.(flatsh.and.physics_type=='rho')) then
-    !   call mpistop(" PPM with flatsh=.true. can not be used with physics_type='rho'!")
-    !end if
-    !if (any(limiter(1:nlevelshi)== 'ppm')&
-    !     .and.(flatsh.and.physics_type=='hdadiab')) then
-    !   call mpistop(" PPM with flatsh=.true. can not be used with physics_type='hdadiab'!")
-    !end if
-    !if (any(limiter(1:nlevelshi)== 'ppm')&
-    !     .and.(flatcd.and.physics_type=='hdadiab')) then
-    !   call mpistop(" PPM with flatcd=.true. can not be used with physics_type='hdadiab'!")
-    !end if
+    if (any(limiter(1:nlevelshi)== 'ppm')&
+         .and.(flatsh.and.physics_type=='rho')) then
+       call mpistop(" PPM with flatsh=.true. can not be used with physics_type='rho'!")
+    end if
 
     ! Copy boundary conditions to typeboundary, which is used internally
     {
@@ -823,13 +804,6 @@ contains
        end select
     end do
 
-    !! Warn when too few blocks at start of simulation
-    !if (mype.eq.0 .and. restart_from_file /= undefined .and. &
-    !     {^D& floor(dble(domain_nx^D)/dble(block_nx^D)) |*} .lt. npe) then
-    !   call mpistop('Need at least as many blocks on level 1 as cores to initialize!')
-    !end if
-
-
     if (mype==0) then
        write(unitterm, '(A30,I0)') 'slicenext: ', slicenext
        write(unitterm, '(A30,I0)') 'collapsenext: ', collapsenext
@@ -894,6 +868,7 @@ contains
     use mod_usr_methods, only: usr_print_log, usr_write_analysis
     use mod_global_parameters
     use mod_particles, only: write_particles_snapshot
+    use mod_slice, only: write_slice
     integer:: ifile
 
     select case (ifile)

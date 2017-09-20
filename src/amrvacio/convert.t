@@ -50,7 +50,7 @@ end select
 
 end subroutine generate_plotfile
 !=============================================================================
-subroutine calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+subroutine calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                      ixC^L,ixCC^L,first)
 
 ! this subroutine computes both corner as well as cell-centered values
@@ -66,6 +66,8 @@ use mod_limiter
 use mod_physics, only: physics_type, phys_to_primitive
 
 integer, intent(in) :: qunit, igrid
+double precision, intent(in), dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, intent(in), dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 integer :: ixC^L,ixCC^L
 logical, intent(in) :: first
 
@@ -76,8 +78,6 @@ double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
 
 double precision :: ldw(ixG^T), dwC(ixG^T)
-double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
-double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC
 double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
@@ -86,8 +86,8 @@ integer :: nxCC^D,idims,jxC^L,iwe
 integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
 logical, save :: subfirst=.true.
 !-----------------------------------------------------------------------------
-! following only for allowing compiler to go through with debug on
-
+ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D; ! Corner indices
+ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D; ! Center indices
 
 saveigrid=igrid
 nx^D=ixMhi^D-ixMlo^D+1;
@@ -96,30 +96,6 @@ dx^D=dx(^D,level);
 
 normconv(0) = length_convert_factor
 normconv(1:nw) = w_convert_factor
-
-! coordinates of cell centers
-nxCC^D=nx^D;
-ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
-{do ix=ixCCmin^D,ixCCmax^D
-   xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
-end do\}
-if(stretched_grid) then
-  do ix=ixCCmin1,ixCCmax1
-    xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
-  enddo
-end if
-
-! coordinates of cell corners
-nxC^D=nx^D+1;
-ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
-{do ix=ixCmin^D,ixCmax^D
-   xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
-end do\}
-if(stretched_grid) then
-  do ix=ixCmin1,ixCmax1
-    xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
-  enddo
-end if
 
 w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
 
@@ -170,6 +146,7 @@ endif
 if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),pw(igrid)%x)
 
 if(allocated(pw(igrid)%B0)) then
+! B0+B1 split handled here
   if(.not.saveprim.and.phys_energy) then
     w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(pw(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
           + sum(w(ixG^T,iw_mag(:))*pw(igrid)%B0(ixG^T,:,0),dim=ndim+1)
@@ -177,7 +154,7 @@ if(allocated(pw(igrid)%B0)) then
   w(ixG^T,iw_mag(:))=w(ixG^T,iw_mag(:))+pw(igrid)%B0(ixG^T,:,0)
 end if
 ! compute the cell-center values for w first
-! cell center values obtained from mere copy, while B0+B1 split handled here
+! cell center values obtained from mere copy
 wCC(ixCC^S,:)=w(ixCC^S,:)
 
 ! compute the corner values for w now by averaging
@@ -800,6 +777,8 @@ integer, intent(in) :: qunit
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
@@ -960,7 +939,8 @@ end if
 
 ! write out variable values
 do iigrid=1,igridstail; igrid=igrids(iigrid);
-  call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,ixC^L,ixCC^L,.true.)
+  call calc_x(igrid,xC,xCC)
+  call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,ixC^L,ixCC^L,.true.)
   select case(convert_type)
   case('idl')
     ! write out corner coordinates and (averaged) corner values
@@ -1000,6 +980,8 @@ double precision :: x_TEC(ndim), w_TEC(nw+nwauxio)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
@@ -1071,7 +1053,8 @@ if(convert_type=='tecline') then
 
    igonlevel=0
    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,ixC^L,ixCC^L,.true.)
+      call calc_x(igrid,xC,xCC)
+      call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,ixC^L,ixCC^L,.true.)
           {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
             x_TEC(1:ndim)=xCC_TMP(ix^D,1:ndim)*normconv(0)
             w_TEC(1:nw+nwauxio)=wCC_TMP(ix^D,1:nw+nwauxio)*normconv(1:nw+nwauxio)
@@ -1102,7 +1085,8 @@ do level=levmin,levmax
          {^IFONED 'FELINESEG'}{^IFTWOD 'FEQUADRILATERAL'}{^IFTHREED 'FEBRICK'}
        do iigrid=1,igridstail; igrid=igrids(iigrid);
          if (node(plevel_,igrid)/=level) cycle
-         call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+         call calc_x(igrid,xC,xCC)
+         call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                         ixC^L,ixCC^L,.true.)
          {do ix^DB=ixCmin^DB,ixCmax^DB\}
             x_TEC(1:ndim)=xC_TMP(ix^D,1:ndim)*normconv(0)
@@ -1145,7 +1129,8 @@ do level=levmin,levmax
          first=(idim==1) 
          do iigrid=1,igridstail; igrid=igrids(iigrid);
             if (node(plevel_,igrid)/=level) cycle
-            call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+            call calc_x(igrid,xC,xCC)
+            call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                            ixC^L,ixCC^L,first)
             write(qunit,fmt="(100(e14.6))") xC_TMP(ixC^S,idim)*normconv(0)
          enddo
@@ -1153,7 +1138,8 @@ do level=levmin,levmax
        do iw=1,nw+nwauxio
          do iigrid=1,igridstail; igrid=igrids(iigrid);
             if (node(plevel_,igrid)/=level) cycle
-            call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+            call calc_x(igrid,xC,xCC)
+            call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                            ixC^L,ixCC^L,.true.)
             write(qunit,fmt="(100(e14.6))") wCC_TMP(ixCC^S,iw)*normconv(iw)
          enddo
@@ -1261,6 +1247,8 @@ double precision ::  x_VTK(1:3)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
@@ -1325,7 +1313,8 @@ do level=levmin,levmax
     if (({rnode(rpxmin^D_,igrid)>=xprobmin^D+(xprobmax^D-xprobmin^D)&
           *writespshift(^D,1)|.and.}).and.({rnode(rpxmax^D_,igrid)&
          <=xprobmax^D-(xprobmax^D-xprobmin^D)*writespshift(^D,2)|.and.})) then
-      call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+      call calc_x(igrid,xC,xCC)
+      call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                      ixC^L,ixCC^L,.true.)
       select case(convert_type)
        case('vtu')
@@ -1438,6 +1427,8 @@ double precision ::  x_VTK(1:3)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio):: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)  :: wCC_TMP
@@ -1491,7 +1482,8 @@ if (mype /= 0) then
  do Morton_no=Morton_start(mype),Morton_stop(mype)
    if(.not. Morton_aim(Morton_no)) cycle
    igrid=sfc_to_igrid(Morton_no)
-   call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+   call calc_x(igrid,xC,xCC)
+   call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                      ixC^L,ixCC^L,.true.)
    itag=Morton_no
    call MPI_SEND(xC_TMP,1,type_block_xc_io, 0,itag,icomm,ierrmpi)
@@ -1707,7 +1699,8 @@ else
  do Morton_no=Morton_start(0),Morton_stop(0)
    if(.not. Morton_aim(Morton_no)) cycle
    igrid=sfc_to_igrid(Morton_no)
-   call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+   call calc_x(igrid,xC,xCC)
+   call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                   ixC^L,ixCC^L,.true.)
    do iw=1,nw+nwauxio
          if(iw<=nw) then 
@@ -2155,6 +2148,8 @@ integer, intent(in) ::    qunit
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP,xC_TMP_recv
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP,xCC_TMP_recv
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP,wC_TMP_recv
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP,wCC_TMP_recv
@@ -2211,7 +2206,8 @@ if (mype /= 0) then
  do Morton_no=Morton_start(mype),Morton_stop(mype)
    if(.not. Morton_aim(Morton_no)) cycle
    igrid=sfc_to_igrid(Morton_no)
-   call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+   call calc_x(igrid,xC,xCC)
+   call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                      ixC^L,ixCC^L,.true.)
    tree%node => igrid_to_node(igrid, mype)%node
    {^D& ig^D = tree%node%ig^D; }
@@ -2271,7 +2267,8 @@ do Morton_no=Morton_start(0),Morton_stop(0)
    igrid=sfc_to_igrid(Morton_no)
    tree%node => igrid_to_node(igrid, 0)%node
    {^D& ig^D = tree%node%ig^D; }
-   call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+   call calc_x(igrid,xC,xCC)
+   call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
         ixC^L,ixCC^L,.true.)
    call write_vti(qunit,ixG^LL,ixC^L,ixCC^L,ig^D,&
         nx^D,normconv,wnamei,wC_TMP,wCC_TMP)   
@@ -2321,6 +2318,8 @@ integer, intent(in) ::    qunit
 double precision, dimension(0:nw+nwauxio)                   :: normconv
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim)         :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)           :: xCC_TMP
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim)         :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)           :: xCC
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
 character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
@@ -2382,7 +2381,8 @@ do level=levmin,levmax
          <=xprobmax^D-(xprobmax^D-xprobmin^D)*writespshift(^D,2)|.and.})
     if (.not.conv_grid) cycle
 
-    call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+    call calc_x(igrid,xC,xCC)
+    call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
          ixC^L,ixCC^L,.true.)
 
     call write_vtk(qunit,ixG^LL,ixC^L,ixCC^L,igrid,nc,np,nx^D,nxC^D,&
@@ -2418,6 +2418,8 @@ double precision ::  x_VTK(1:3)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP,xC_TMP_recv
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP,xCC_TMP_recv
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP,wC_TMP_recv
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP,wCC_TMP_recv
@@ -2506,7 +2508,8 @@ do level=levmin,levmax
     end if
     if (.not.conv_grid) cycle
 
-    call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+    call calc_x(igrid,xC,xCC)
+    call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                      ixC^L,ixCC^L,.true.)
 
     if (mype/=0) then
@@ -2859,6 +2862,8 @@ double precision :: x_TEC(ndim), w_TEC(nw+nwauxio)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP,xC_TMP_recv
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP,xCC_TMP_recv
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP,wC_TMP_recv
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP,wCC_TMP_recv
@@ -2948,7 +2953,8 @@ if(convert_type=='teclinempi') then
    igonlevel=0
    do Morton_no=Morton_start(mype),Morton_stop(mype)
       igrid = sfc_to_igrid(Morton_no)
-      call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,ixC^L,ixCC^L,.true.)
+      call calc_x(igrid,xC,xCC)
+      call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,ixC^L,ixCC^L,.true.)
       if (mype==0) then
        {do ix^DB=ixCCmin^DB,ixCCmax^DB\}
             x_TEC(1:ndim)=xCC_TMP(ix^D,1:ndim)*normconv(0)
@@ -3023,7 +3029,8 @@ do level=levmin,levmax
            call MPI_SEND(node(plevel_,igrid),1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
          end if
          if (node(plevel_,igrid)/=level) cycle
-         call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+         call calc_x(igrid,xC,xCC)
+         call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                         ixC^L,ixCC^L,.true.)
          if (mype/=0) then
             itag=Morton_no
@@ -3090,7 +3097,8 @@ do level=levmin,levmax
           end if
           if (node(plevel_,igrid)/=level) cycle
 
-          call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+          call calc_x(igrid,xC,xCC)
+          call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                            ixC^L,ixCC^L,first)
           if (mype/=0)then
             ind_send=(/ ixC^L /)
@@ -3116,7 +3124,8 @@ do level=levmin,levmax
          end if
          if (node(plevel_,igrid)/=level) cycle
 
-         call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+         call calc_x(igrid,xC,xCC)
+         call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                            ixC^L,ixCC^L,.true.)
             
          if (mype/=0)then
@@ -3323,6 +3332,8 @@ double precision ::  x_VTK(1:3)
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
 
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
@@ -3515,7 +3526,8 @@ do level=levmin,levmax
       if (({rnode(rpxmin^D_,igrid)>=xprobmin^D+(xprobmax^D-xprobmin^D)&
           *writespshift(^D,1)|.and.}).and.({rnode(rpxmax^D_,igrid)&
          <=xprobmax^D-(xprobmax^D-xprobmin^D)*writespshift(^D,2)|.and.})) then
-        call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+        call calc_x(igrid,xC,xCC)
+        call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                        ixC^L,ixCC^L,.true.)
         do iw=1,nw
           if(.not.w_write(iw))cycle
@@ -3594,4 +3606,41 @@ write(qunit,'(a)')'</VTKFile>'
 close(qunit)
 
 end subroutine punstructuredvtkB_mpi
+!=============================================================================
+subroutine calc_x(igrid,xC,xCC)
+  use mod_global_parameters
+
+  integer, intent(in)               :: igrid
+  double precision, intent(out)     :: xC(ixMlo^D-1:ixMhi^D,ndim)
+  double precision, intent(out)     :: xCC(ixMlo^D:ixMhi^D,ndim)
+  ! .. local ..
+  integer                           :: ixC^L, ixCC^L, ix, level
+  double precision                  :: dx^D
+
+  level=node(plevel_,igrid)
+  dx^D=dx(^D,level);
+
+  ! coordinates of cell centers
+  ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
+  {do ix=ixCCmin^D,ixCCmax^D
+  xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
+  end do\}
+  if(stretched_grid) then
+    do ix=ixCCmin1,ixCCmax1
+    xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
+    enddo
+  end if
+
+  ! coordinates of cell corners
+  ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
+  {do ix=ixCmin^D,ixCmax^D
+  xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
+  end do\}
+  if(stretched_grid) then
+    do ix=ixCmin1,ixCmax1
+    xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
+    enddo
+  end if
+
+end subroutine calc_x
 !=============================================================================

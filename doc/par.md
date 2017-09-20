@@ -56,6 +56,8 @@ firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
 resetgrid | logical | F | If true, rebuild the AMR grid upon restarting
 convert | logical | F | If true and filenameini and snapshotini are given, convert snapshots to other file formats
 convert_type | string | vtuBCCmpi | Which format to use when converting, options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,  tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
+slice_type | string | vtu | Which format to use when slicing, options are: csv, dat, vtu, vtuCC
+collapse_type | string | vti | Which format to use when slicing, options are: csv, vti
 autoconvert | logical | F | If true, already convert to output format during the run
 sliceascii | logical | F | If true, enable ASCII output of @ref slices.md
 saveprim | logical | F | If true, convert from conservative to primitive variables in output

@@ -162,24 +162,45 @@ contains
     end if
 
     timeloop0=MPI_WTIME()
-    ! output initial state
-    timeio0=MPI_WTIME()
-    do ifile=nfile,1,-1
-      if(timetosave(ifile)) call saveamrfile(ifile)
-    end do
-    timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
-
     time_bc=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
 
     time_evol : do
 
-       ! exit time loop if time is up
-       if (it>=it_max .or. global_time>=time_max) exit time_evol
-
        ! set time step
        call setdt()
+
+       timeio0=MPI_WTIME()
+
+       if (timeio0 - time_last_print > time_between_print) then
+         time_last_print = timeio0
+         if (mype == 0) then
+           write(*, '(I10,ES12.3,ES12.3,ES12.3)') it, global_time, dt, timeio0 - time_in
+         end if
+       end if
+
+       ! output data
+       do ifile=nfile,1,-1
+         if(timetosave(ifile)) call saveamrfile(ifile)
+       end do
+
+       ! output a snapshot when user write a file named 'savenow' in the same
+       ! folder as the executable amrvac
+       if (mype==0) inquire(file='savenow',exist=save_now)
+       if (npe>1) call MPI_BCAST(save_now,1,MPI_LOGICAL,0,icomm,ierrmpi)
+
+       if (save_now) then
+          if(mype==0) write(*,'(a,i7,a,i7,a,es12.4)') ' save a snapshot No.',&
+               snapshotnext,' at it=',it,' global_time=',global_time
+          call saveamrfile(1)
+          call saveamrfile(2)
+          call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
+       endif
+       timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
+
+       ! exit time loop if time is up
+       if (it>=it_max .or. global_time>=time_max) exit time_evol
 
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step
@@ -229,33 +250,6 @@ contains
        ! count updated cells
        ncells_update=ncells_update+ncells_block*nleafs_active
 
-       timeio0=MPI_WTIME()
-
-       if (timeio0 - time_last_print > time_between_print) then
-         time_last_print = timeio0
-         if (mype == 0) then
-           write(*, '(I10,ES12.3,ES12.3,ES12.3)') it, global_time, dt, timeio0 - time_in
-         end if
-       end if
-
-       ! output data
-       do ifile=nfile,1,-1
-         if(timetosave(ifile)) call saveamrfile(ifile)
-       end do
-
-       ! output a snapshot when user write a file named 'savenow' in the same
-       ! folder as the executable amrvac
-       if (mype==0) inquire(file='savenow',exist=save_now)
-       if (npe>1) call MPI_BCAST(save_now,1,MPI_LOGICAL,0,icomm,ierrmpi)
-
-       if (save_now) then
-          if(mype==0) write(*,'(a,i7,a,i7,a,es12.4)') ' save a snapshot No.',&
-               snapshotnext,' at it=',it,' global_time=',global_time
-          call saveamrfile(1)
-          call saveamrfile(2)
-          call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
-       endif
-       timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
     end do time_evol
 
@@ -315,6 +309,7 @@ contains
        oksave=.true.
        isavet(ifile)=isavet(ifile)+1
     end if
+
     if (global_time>=tsavelast(ifile)+dtsave(ifile)-smalldouble)then
        oksave=.true.
        n_saves(ifile) = n_saves(ifile) + 1

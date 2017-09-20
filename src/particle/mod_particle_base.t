@@ -970,6 +970,7 @@ contains
 
   subroutine find_particle_ipe(x,igrid_particle,ipe_particle)
     use mod_forest, only: tree_node_ptr, tree_root
+    use mod_slice, only: get_igslice
     use mod_global_parameters
 
     double precision, intent(in) :: x(ndir)

@@ -32,6 +32,7 @@ amrgrid.o: mod_fix_conserve.o
 amrgrid.o: mod_ghostcells_update.o
 coarsen.o: mod_physics.o
 collapse.o: mod_physics.o
+collapse.o: mod_slice.o
 comm_lib.o: mod_ghostcells_update.o
 convert.o: mod_limiter.o
 convert.o: mod_physics.o
@@ -87,6 +88,7 @@ mod_input_output.o: mod_kracken.o
 mod_input_output.o: mod_limiter.o
 mod_input_output.o: mod_particles.o
 mod_input_output.o: mod_physics.o
+mod_input_output.o: mod_slice.o
 mod_input_output.o: mod_small_values.o
 mod_input_output.o: mod_timing.o
 mod_limiter.o: mod_mp5.o
@@ -117,6 +119,7 @@ mod_particle_advect.o: mod_particle_base.o
 mod_particle_base.o: mod_physics.o
 mod_particle_base.o: mod_random.o
 mod_particle_base.o: mod_timing.o
+mod_particle_base.o: mod_slice.o
 mod_particle_gca.o: mod_odeint.o
 mod_particle_gca.o: mod_particle_base.o
 mod_particle_lfimp.o: mod_particle_base.o
@@ -139,6 +142,9 @@ mod_rho.o: mod_rho_roe.o
 mod_rho_phys.o: mod_physics.o
 mod_rho_roe.o: mod_physics_roe.o
 mod_rho_roe.o: mod_rho_phys.o
+mod_slice.o: mod_basic_types.o
+mod_slice.o: mod_global_parameters.o
+mod_slice.o: mod_forest.o
 mod_source.o: mod_ghostcells_update.o
 mod_source.o: mod_physics.o
 mod_source.o: mod_thermal_conduction.o

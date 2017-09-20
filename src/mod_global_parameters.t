@@ -44,7 +44,6 @@ module mod_global_parameters
   integer :: type_block_io, size_block_io, size_block
   !> MPI IO type for transformed data excluding ghost cells
   integer :: type_block_io_tf, size_block_io_tf
-  integer :: type_subblock_io, type_subblock_x_io
   integer :: type_block_xc_io,type_block_xcc_io
   integer :: type_block_wc_io,type_block_wcc_io
   integer :: itag
@@ -52,7 +51,7 @@ module mod_global_parameters
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
 
-  integer :: snapshotnext, slice, slicenext, collapseNext, icollapse
+  integer :: snapshotnext, collapseNext, icollapse
 
   logical, allocatable, dimension(:^D&) :: patchfalse
 
@@ -102,9 +101,6 @@ module mod_global_parameters
   !> Names of the output methods
   character(len=40), parameter  :: output_names(nfile) = &
        ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
-
-  !> Maximum number of slices
-  integer, parameter :: nslicemax=1000
 
   !> Unit for standard input
   integer, parameter :: unitstdin=5
@@ -212,9 +208,6 @@ module mod_global_parameters
   !> Repeatedly save output of type N when dtsave(N) simulation time has passed
   double precision :: dtsave(nfile)
 
-  !> Slice coordinates, see @ref slices.md
-  double precision :: slicecoord(nslicemax)
-
   double precision :: time_between_print
 
   !> If true, reset iteration count and global_time to original values, and
@@ -260,12 +253,6 @@ module mod_global_parameters
 
   !> \todo Move to amrvac.t
   integer :: isaveit(nfile)
-
-  !> Number of slices to output
-  integer :: nslices
-
-  !> The slice direction for each slice
-  integer :: slicedir(nslicemax)
 
   !> The level at which to produce line-integrated / collapsed output
   integer :: collapseLevel
@@ -399,9 +386,6 @@ module mod_global_parameters
 
   !> Resume from the snapshot with this index
   integer :: snapshotini
-
-  !> If true, enable ASCII output of slices
-  logical :: sliceascii
 
   !> If true and restart_from_file is given, convert snapshots to
   !> other file formats

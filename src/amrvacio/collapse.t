@@ -10,7 +10,7 @@ integer :: idir
 logical, save :: firstcollapse=.true.
 !-----------------------------------------------------------------------------
 if (firstcollapse) then
-   icollapse=collapseNext
+   icollapse=collapsenext
    firstcollapse=.false.
 end if
 
@@ -23,6 +23,7 @@ end subroutine write_collapsed
 !=============================================================================
 subroutine put_collapse(dir)
 use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
+use mod_slice, only:alloc_subnode, dealloc_subnode
 use mod_global_parameters
 integer, intent(in)                               :: dir
 ! .. local ..

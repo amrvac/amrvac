@@ -65,10 +65,14 @@ module mod_physicaldata
       logical :: e_is_internal=.false.
       !> Variables, normally center
       double precision, dimension(:^DE&,:), allocatable :: w
+      !> Variables for the cornerpositions on the slice 
+      double precision, dimension(:^DE&,:), allocatable :: wC
       !> Variables, normally center, one level coarser representative
       double precision, dimension(:^DE&,:), allocatable :: wcoarse
       !> Cell-center positions
       double precision, dimension(:^DE&,:), allocatable :: x
+      !> Corner positions on the slice
+      double precision, dimension(:^DE&,:), allocatable :: xC
       !> Cell-center positions, one level coarser representative
       double precision, dimension(:^DE&,:), allocatable :: xcoarse
       !> Cell-center positions for non-Cartesian coordinates
@@ -97,10 +101,14 @@ module mod_physicaldata
       logical :: e_is_internal=.false.
       !> Variables, normally center
       double precision, dimension(:), allocatable :: w
+      !> Variables for the cornerpositions on the slice 
+      double precision, dimension(:), allocatable :: wC
       !> Variables, normally center, one level coarser representative
       double precision, dimension(:), allocatable :: wcoarse
       !> Cell-center positions
       double precision, dimension(:), allocatable :: x
+      !> Corner positions on the slice
+      double precision, dimension(:), allocatable :: xC
       !> Cell-center positions, one level coarser representative
       double precision, dimension(:), allocatable :: xcoarse
    end type walloc_sub

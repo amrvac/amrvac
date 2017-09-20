@@ -1,8 +1,8 @@
 !setup.pl -d=3
  &filelist
-        base_filename='lfr_3db'
+        base_filename='lfr_3dc'
         saveprim=.true.
-        convert_type='vtuBmpi'
+        convert_type='usermpi'
         autoconvert=.true.
         nwauxio=9
  /
@@ -15,7 +15,7 @@
  /
 
  &stoplist
-        time_max=1.d0
+        time_max=5.d0
 /
 
  &methodlist
@@ -45,9 +45,9 @@
         block_nx1=16
         block_nx2=16
         block_nx3=16
-        domain_nx1=128
-        domain_nx2=128
-        domain_nx3=128
+        domain_nx1=64
+        domain_nx2=64
+        domain_nx3=64
         xprobmin1=-3.d0
         xprobmax1=3.d0
         xprobmin2=-3.d0
@@ -63,5 +63,5 @@
 
  &mhd_list
         Busr=10.d0
-        B0field=.true.
+        B0field=.false.
  /
