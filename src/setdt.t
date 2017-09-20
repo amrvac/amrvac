@@ -64,24 +64,8 @@ if (slowsteps>it-it_init+1) then
    dtmin_mype=dtmin_mype*factor
 end if
 
-if( stepflag<1.and.mype==0) then
-   if(any(dtsave(1:nfile)<dtmin_mype )) then
-      write(unitterm,1001) dtmin_mype, dtsave(1:nfile)
-      stepflag = 1     
-   endif
-endif   
 
 dtmin_mype=min(dtmin_mype,time_max-global_time)
-
-if(any(dtsave(1:nfile)<bigdouble).or.any(tsave(isavet(1:nfile),1:nfile)<bigdouble))then
-   dtmax = minval((int(global_time/dtsave(1:nfile))+1)*dtsave(1:nfile))-global_time
-   do ifile=1,nfile
-      dtmax = min(tsave(isavet(ifile),ifile)-global_time,dtmax)
-   end do
-   if(dtmax<dtmin_mype .and. dtmax > smalldouble)then 
-     dtmin_mype=min(dtmin_mype,dtmax)
-   end if      
-end if
 
 if (dtpar<=zero) then
    call MPI_ALLREDUCE(dtmin_mype,dt,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
@@ -89,7 +73,26 @@ if (dtpar<=zero) then
 else
    dt=dtmin_mype
 end if
-   
+
+if(any(dtsave(1:nfile)<bigdouble).or.any(tsave(isavet(1:nfile),1:nfile)<bigdouble))then
+   dtmax = minval(ceiling(global_time/dtsave(1:nfile))*dtsave(1:nfile))-global_time
+   do ifile=1,nfile
+      dtmax = min(tsave(isavet(ifile),ifile)-global_time,dtmax)
+   end do
+   if(dtmax > smalldouble)then 
+     dt=min(dt,dtmax)
+   else
+     ! dtmax=0 means dtsave is divisible by global_time
+     dt=min(dt,minval(dtsave(1:nfile)))
+   end if      
+end if
+
+if(mype==0) then
+  if(any(dtsave(1:nfile)<dt)) then
+    write(unitterm,*) 'Warning: timesteps: ',dt,' exceeding output intervals ', dtsave(1:nfile)
+  endif
+endif   
+
 ! estimate time step of thermal conduction
 if(associated(phys_getdt_heatconduct)) then
    dtmin_mype=bigdouble
@@ -141,8 +144,6 @@ end do
 ! so does GLM: 
 if(need_global_cmax) call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
      MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
-
-1001 format(' Warning: timesteps: ',1x,1pe12.5,' exceeding output intervals ',2(1x,1pe12.5))
 
 contains
 
