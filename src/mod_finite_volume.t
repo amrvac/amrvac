@@ -364,7 +364,7 @@ contains
       use mod_mhd_phys
       implicit none
       double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L
-      double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L
+      double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L,f2R,f2L
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
       double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp 
       double precision, dimension(ixI^S,ndir) :: vRC, vLC
@@ -372,15 +372,13 @@ contains
 
       f1R=0.d0
       f1L=0.d0
+      f2R=0.d0
+      f2L=0.d0
       ip1=idim
       ip3=3
       vRC(ixC^S,:)=wRp(ixC^S,mom(:))
       vLC(ixC^S,:)=wLp(ixC^S,mom(:))
-      ! estimate normal magnetic field at cell interfaces
       Bx(ixC^S)=0.5d0*(wRC(ixC^S,mag(ip1))+wLC(ixC^S,mag(ip1)))
-      ! set normal magnetic field at cell interfaces to be continuous, crucial for stability
-      wRC(ixC^S,mag(ip1))=Bx(ixC^S)
-      wLC(ixC^S,mag(ip1))=Bx(ixC^S)
       suR(ixC^S)=(cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,rho_)
       suL(ixC^S)=(cminC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,rho_)
       ptR(ixC^S)=wRp(ixC^S,e_)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
@@ -485,20 +483,25 @@ contains
       end do
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        if(iw==mag(ip1)) then
-          fC(ixC^S,iw,ip1)=0.d0
-          cycle
-        end if
+        !if(iw==mag(ip1)) then
+        !  if(flux_type(idim, iw) == flux_tvdlf) &
+        !    fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
+        !         max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
+        !         (wRC(ixC^S,iw) - wLC(ixC^S,iw)))
+        !  cycle
+        !end if
         f1L(ixC^S,iw)=fLC(ixC^S,iw)+cminC(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
         f1R(ixC^S,iw)=fRC(ixC^S,iw)+cmaxC(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
+        f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
+        f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
         where(cminC(ixC^S)>0.d0)
           fC(ixC^S,iw,ip1)=fLC(ixC^S,iw)
-        else where(s1L(ixC^S)>=0.d0)
+        else where(s1L(ixC^S)>0.d0)
           fC(ixC^S,iw,ip1)=f1L(ixC^S,iw)
-        else where(sm(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
-        else where(s1R(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
+        else where(sm(ixC^S)>0.d0)
+          fC(ixC^S,iw,ip1)=f2L(ixC^S,iw)
+        else where(s1R(ixC^S)>0.d0)
+          fC(ixC^S,iw,ip1)=f2R(ixC^S,iw)
         else where(cmaxC(ixC^S)>=0.d0)
           fC(ixC^S,iw,ip1)=f1R(ixC^S,iw)
         else where(cmaxC(ixC^S)<0.d0)
