@@ -443,7 +443,11 @@ contains
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ! coefficient of limiting on normal component
-    alpha=0.75d0
+    if(ndim<3) then
+      alpha=0.75d0
+    else
+      alpha=0.85d0
+    end if
     ix^L=ixO^L^LADD1;
 
     dxinv=1.d0/dxlevel
@@ -677,7 +681,7 @@ contains
           ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
           ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
           ixB^L=ixA^L+kr(idims,^D);
-          qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
+          qd(ixA^S)=2.75d0*(w(ixA^S,rho_)+w(ixB^S,rho_))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
         !      write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
