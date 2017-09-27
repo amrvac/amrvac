@@ -243,8 +243,8 @@ contains
     refine_criterion               = 3
     allocate(w_refine_weight(nw+1))
     w_refine_weight                    = 0.d0
-    allocate(logflag(nw))
-    logflag(1:nw)               = .false.
+    allocate(logflag(nw+1))
+    logflag                     = .false.
     allocate(amr_wavefilter(nlevelshi))
     amr_wavefilter(1:nlevelshi) = 1.0d-2
     tfixgrid                    = bigdouble
