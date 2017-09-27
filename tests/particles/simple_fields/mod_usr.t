@@ -204,6 +204,9 @@ contains
     select case (iprob)
     case (5)
        v = (v0 * ipart) / n_particles
+    case (7)
+       v = v0
+       q = (charge * ipart) / n_particles
     case (4)
        ! Add Maxwellian velocity. Random numbers come in pairs of two
        tmp_vec(1:2) = rng%two_normals()
