@@ -101,6 +101,7 @@ my %par_file_replacements = (
     qr/ *\bconduction\b *=.*\n/ => "", # Remove conduction = ... lines
     qr/ *TCsaturate *=.*\n/ => "", # Remove TCsaturate = ... lines
     qr/ *fixprocess *=.*\n/ => "", # Remove fixprocess= ... lines
+    qr/ *sliceascii *=.*\n/ => "", # Remove sliceascii= ... lines
     qr/ *w_for_refine\(1\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(2\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(3\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
