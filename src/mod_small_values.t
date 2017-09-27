@@ -33,6 +33,7 @@ contains
            " encountered when call ", subname
       write(*,*) "Iteration: ", it, " Time: ", global_time
       write(*,*) "Location: ", x({ix_bad(^D)}, :)
+      write(*,*) "Cell number: ", ix_bad(:)
       write(*,*) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
       write(*,*) "Saving status at the previous time step"
       crash=.true.
