@@ -33,6 +33,7 @@ my %simple_replacements = (
     qr/\btmax\b/ => "time_max",
     qr/\bitmax\b/ => "it_max",
     qr/\btreset\b/ => "reset_time",
+    qr/\brestart_reset_time\b/ => "reset_time",
     qr/\bitreset\b/ => "reset_it",
     qr/\btmaxexact\b/ => "time_max_exact",
     qr/\bresetgrid\b/ => "reset_grid",
@@ -99,6 +100,7 @@ my %par_file_replacements = (
     qr/ *nflatgetaux *=.*\n/ => "", # Remove nflatgetaux = ... lines
     qr/ *\bconduction\b *=.*\n/ => "", # Remove conduction = ... lines
     qr/ *TCsaturate *=.*\n/ => "", # Remove TCsaturate = ... lines
+    qr/ *fixprocess *=.*\n/ => "", # Remove fixprocess= ... lines
     qr/ *w_for_refine\(1\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(2\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(3\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
