@@ -194,7 +194,7 @@ contains
   subroutine get_particle(x, v, q, m, ipart, n_particles, iprob)
     double precision, intent(out) :: x(3), v(3), q, m
     integer, intent(in)           :: ipart, iprob, n_particles
-    double precision              :: tmp_vec(4)
+    double precision              :: tmp_vec(4), phi
 
     q = charge
     m = mass
@@ -202,17 +202,22 @@ contains
     x = x0
 
     select case (iprob)
-    case (5)
-       v = (v0 * ipart) / n_particles
-    case (7)
-       v = v0
-       q = (charge * ipart) / n_particles
     case (4)
        ! Add Maxwellian velocity. Random numbers come in pairs of two
        tmp_vec(1:2) = rng%two_normals()
        tmp_vec(3:4) = rng%two_normals()
        v = v0 + tmp_vec(1:3) * maxwellian_velocity
        print *, ipart, v
+    case (5)
+       v = (v0 * ipart) / n_particles
+    case (7)
+       v = v0
+       q = (charge * ipart) / n_particles
+    case (8)
+       ! Distribute over circle, velocity inwards. Avoid pi/4.
+       phi = ((ipart+0.125d0) * 2 * acos(-1.0d0)) / n_particles
+       x = norm2(x0) * [cos(phi), sin(phi), 0.0d0]
+       v = -x * norm2(v0)/norm2(x0)
     case default
        v = v0
     end select

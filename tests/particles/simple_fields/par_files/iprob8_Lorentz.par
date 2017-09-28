@@ -5,10 +5,14 @@
  &particles_list
         physics_type_particles='Lorentz'
         npayload=1
+        num_particles=500
+        write_ensemble = t
+        write_individual = t
+        dtsave_particles = 1.0d-1
  /
 
  &stoplist
-        time_max = 31.41592653589793 ! 10 * pi
+        time_max = 30.
  /
 
  &meshlist
@@ -26,6 +30,6 @@
 
  &my_list
         x0 = 1.0d0, 0.0d0, 0.0d0
-        v0 = 0.5d0, 0.5d0, 0.0d0
+        v0 = 0.1d0, 0.0d0, 0.0d0
  /
 

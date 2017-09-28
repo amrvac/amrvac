@@ -5,17 +5,24 @@
  &particles_list
         physics_type_particles='gca'
         npayload=14
+        num_particles=500
+        write_ensemble = t
+        write_individual = t
+        dtsave_particles = 1.0d-1
  /
 
  &stoplist
-        time_max = 31.41592653589793 ! 10 * pi
+        time_max = 30.
  /
 
  &meshlist
         iprob = 8
-        domain_nx1    = 16
-        domain_nx2    = 16
+        domain_nx1    = 64
+        domain_nx2    = 64
         domain_nx3    = 16
+        block_nx1 = 64
+        block_nx2 = 64
+        block_nx3 = 16
         xprobmin1     = -500.0d0
         xprobmax1     = 500.0d0
         xprobmin2     = -500.0d0
@@ -26,6 +33,6 @@
 
  &my_list
         x0 = 1.0d0, 0.0d0, 0.0d0
-        v0 = 0.5d0, 0.5d0, 0.0d0
+        v0 = 0.1d0, 0.0d0, 0.0d0
  /
 
