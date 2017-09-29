@@ -213,6 +213,10 @@ contains
     case (7)
        v = v0
        q = (charge * ipart) / n_particles
+       if (physics_type_particles /= 'gca') then
+          ! Assume B = 10 T, and v_x = 0 initially
+          x(1) = x(1) + abs(v(2)) * m / (q * 10.0d0)
+       end if
     case (8)
        ! Distribute over circle, velocity inwards. Avoid pi/4.
        phi = ((ipart+0.125d0) * 2 * acos(-1.0d0)) / n_particles
