@@ -4,6 +4,7 @@
 
  &particles_list
         physics_type_particles='Lorentz'
+        num_particles=10
         npayload=1
  /
 
@@ -25,7 +26,9 @@
  /
 
  &my_list
-        x0 = 0.5d0, 0.5d0, 0.0d0
-        v0 = 1.0d0, 1.0d0, 1.0d0
+        x0 = 1.0d0, 0.0d0, 0.0d0
+        v0 = 0.0d0, 1.0d0, 0.5d0
+        charge = 10.0
  /
+
 

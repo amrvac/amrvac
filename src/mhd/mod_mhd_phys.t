@@ -307,6 +307,7 @@ contains
     ! Initialize particles module
     if(mhd_particles) then
       call particles_init()
+      phys_req_diagonal = .true.
     end if
 
     if (mhd_glm) then
