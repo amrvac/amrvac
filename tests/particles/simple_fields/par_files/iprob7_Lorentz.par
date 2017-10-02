@@ -6,6 +6,7 @@
         physics_type_particles='Lorentz'
         num_particles=10
         npayload=1
+        const_dt_particles=5d-4
  /
 
  &stoplist
@@ -14,9 +15,12 @@
 
  &meshlist
         iprob = 7
-        domain_nx1    = 128
-        domain_nx2    = 128
-        domain_nx3    = 128
+        domain_nx1    = 256
+        domain_nx2    = 256
+        domain_nx3    = 256
+        block_nx1 = 64
+        block_nx2 = 64
+        block_nx3 = 64
         xprobmin1     = -150.0d0
         xprobmax1     = 150.0d0
         xprobmin2     = -150.0d0
