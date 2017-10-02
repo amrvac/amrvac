@@ -1,21 +1,21 @@
-!> Vay particle mover (improvement of Boris method)
-module mod_particle_Vay
+!> Higuera-Cary particle mover (improvement of Boris method)
+module mod_particle_HC
   use mod_particle_base
 
   implicit none
 
   private
 
-  public :: Vay_init
+  public :: HC_init
 
 contains
 
-  subroutine Vay_init()
+  subroutine HC_init()
     use mod_global_parameters
     integer :: idir, nwx
 
-    if (physics_type/='mhd') call mpistop("Vay mover need magnetic field!")
-    if (ndir/=3) call mpistop("Vay mover need ndir=3!")
+    if (physics_type/='mhd') call mpistop("HC mover need magnetic field!")
+    if (ndir/=3) call mpistop("HC mover need ndir=3!")
 
     dtsave_particles = dtsave_particles*unit_time
     ngridvars        = ndir*2
@@ -36,11 +36,11 @@ contains
     integrator_velocity_factor = const_c
 
     particles_fill_gridvars => fill_gridvars_default
-    particles_integrate     => Vay_integrate_particles
-  end subroutine Vay_init
+    particles_integrate     => HC_integrate_particles
+  end subroutine HC_init
 
   !> Relativistic Boris scheme
-  subroutine Vay_integrate_particles(end_time)
+  subroutine HC_integrate_particles(end_time)
     use mod_global_parameters
     double precision, intent(in)      :: end_time
     integer                           :: ipart, iipart
@@ -53,7 +53,7 @@ contains
       q     = particle(ipart)%self%q
       m     = particle(ipart)%self%m
 
-      dt_p = Vay_get_particle_dt(particle(ipart), end_time)
+      dt_p = HC_get_particle_dt(particle(ipart), end_time)
       particle(ipart)%self%dt = dt_p
 
       ! Push particle over half time step
@@ -73,7 +73,7 @@ contains
 
         ! CARTESIAN COORDINATES
       case('slab')
-        ! Vay mover
+        ! HC mover
         uhalf(1:ndir) = particle(ipart)%self%u(1:ndir) + &
              q * dt_p /(2.0d0 * m * const_c) * e(1:ndir)
 
@@ -92,7 +92,7 @@ contains
         particle(ipart)%self%u(1:ndir) = uprime(1:ndir) &
              + q * dt_p /(2.0d0 * m * const_c) * e(1:ndir) + tmp(1:ndir)
       case default
-        call mpistop("This geometry is not supported in mod_particle_Vay")
+        call mpistop("This geometry is not supported in mod_particle_HC")
       end select
 
       call get_lfac(particle(ipart)%self%u,lfac)
@@ -131,9 +131,9 @@ contains
 
     end do ! ipart loop
 
-  end subroutine Vay_integrate_particles
+  end subroutine HC_integrate_particles
 
-  function Vay_get_particle_dt(partp, end_time) result(dt_p)
+  function HC_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
     type(particle_ptr), intent(in)   :: partp
     double precision, intent(in)     :: end_time
@@ -187,6 +187,6 @@ contains
     ! Make sure we don't advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%t, dt_p)
 
-  end function Vay_get_particle_dt
+  end function HC_get_particle_dt
 
-end module mod_particle_Vay
+end module mod_particle_HC

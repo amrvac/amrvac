@@ -6,6 +6,7 @@ module mod_particles
   use mod_particle_gca
   use mod_particle_Vay
   use mod_particle_lfimp
+  use mod_particle_HC
 
   implicit none
 
@@ -29,11 +30,13 @@ contains
       call lfimp_init()
     case('Vay')
       call Vay_init()
+    case('HC')
+      call HC_init()
     case default
       if (mype == 0) then
         print *, "Unknown physics_type_particles", &
              trim(physics_type_particles)
-        print *, "Options are: advect, gca, Lorentz, lfimp, Vay"
+        print *, "Options are: advect, gca, Lorentz, lfimp, Vay, HC"
         call mpistop("Unknown physics_type_particles")
       end if
     end select
@@ -53,7 +56,7 @@ contains
     select case(physics_type_particles)
     case('advect')
       call advect_create_particles()
-    case('Lorentz', 'Vay')
+    case('Lorentz', 'Vay', 'HC')
       ! The Vay mover can use the same routine
       call Lorentz_create_particles()
     case('gca')
