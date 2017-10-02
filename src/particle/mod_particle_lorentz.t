@@ -1,5 +1,5 @@
 !> Relativistic Boris scheme
-module mod_particle_Lorentz
+module mod_particle_lorentz
   use mod_particle_base
 
   private
@@ -359,4 +359,4 @@ contains
 
   end function Lorentz_get_particle_dt
 
-end module mod_particle_Lorentz
+end module mod_particle_lorentz

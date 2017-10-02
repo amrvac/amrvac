@@ -2,11 +2,11 @@
 module mod_particles
   use mod_particle_base
   use mod_particle_advect
-  use mod_particle_Lorentz
+  use mod_particle_lorentz
   use mod_particle_gca
-  use mod_particle_Vay
+  use mod_particle_vay
   use mod_particle_lfimp
-  use mod_particle_HC
+  use mod_particle_hc
 
   implicit none
 

@@ -1,5 +1,5 @@
 !> Higuera-Cary particle mover (improvement of Boris method)
-module mod_particle_HC
+module mod_particle_hc
   use mod_particle_base
 
   implicit none
@@ -189,4 +189,4 @@ contains
 
   end function HC_get_particle_dt
 
-end module mod_particle_HC
+end module mod_particle_hc

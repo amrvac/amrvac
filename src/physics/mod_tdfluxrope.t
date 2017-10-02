@@ -1,4 +1,4 @@
-module mod_TDfluxrope
+module mod_tdfluxrope
   implicit none
   double precision :: d_TD99,L_TD99,R_TD99,a_TD99,q_TD99,Izero_TD99,Li_TD99
   double precision :: p_Bt_ratio
@@ -394,4 +394,4 @@ contains
         if (p.le.0.) rj=a*(b*rj+3.*(rcx-rf(xt,yt,zt)))
         return
         end function rj
-end module mod_TDfluxrope
+end module mod_tdfluxrope

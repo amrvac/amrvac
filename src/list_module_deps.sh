@@ -36,8 +36,8 @@ deps=$(echo "$deps" | sed 's/ *: */:/')
 # Replace extension
 deps=$(echo "$deps" | sed 's/[.]t/.o/')
 
-# Replace 'use mod_xxx' by ' mod_xxx.o'
-deps=$(echo "$deps" | sed 's/use \(.*\)$/ \1.o/')
+# Replace 'use mod_xxx' by ' mod_xxx.mod'
+deps=$(echo "$deps" | sed 's/use \(.*\)$/ \1.mod/')
 
 # Sort lines and remove duplicates
 deps=$(echo "$deps" | sort -u)

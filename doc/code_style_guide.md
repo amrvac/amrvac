@@ -52,7 +52,7 @@ Subroutine to update AMR grid | `resettree` | `update_amr_grid`
 
 A list of further naming guidelines:
 * Use lowercase for Fortran constructs (`do`, `if` etc.)
-* Use lowercase for the names you define
+* Use lowercase for the names you define (also of modules)
 * Separate words with underscores (`read_snapshot` instead of `readSnapshot`)
 * Give source files meaningful names
 * Don't use Fortran keywords as names

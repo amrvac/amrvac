@@ -1,5 +1,5 @@
 !> Vay particle mover (improvement of Boris method)
-module mod_particle_Vay
+module mod_particle_vay
   use mod_particle_base
 
   implicit none
@@ -188,4 +188,4 @@ contains
 
   end function Vay_get_particle_dt
 
-end module mod_particle_Vay
+end module mod_particle_vay

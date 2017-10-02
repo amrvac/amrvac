@@ -3,9 +3,14 @@ VACPP := $(AMRVAC_DIR)/src/vacpp.pl
 # Disable built-in make rules
 .SUFFIXES:
 
-# How to compile modules
-mod_%.o mod_%.mod: mod_%.f
+# How to compile modules into object files
+mod_%.o: mod_%.f
 	$(F90) $(F90FLAGS) -c $< -o $@ $(addprefix -I,$(INC_DIRS))
+
+# How to get .mod files from modules. Modules are automatically updated, and
+# only need to be explicitly generated when they were manually removed.
+mod_%.mod: mod_%.f mod_%.o
+	@test -f $@ || $(F90) $(F90FLAGS) -c $(@:.mod=.f) -o $(@:.mod=.o) $(addprefix -I,$(INC_DIRS))
 
 # How to generate object files
 %.o: %.f
