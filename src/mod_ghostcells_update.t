@@ -720,8 +720,7 @@ contains
       end subroutine bc_recv_prolong
 
       subroutine bc_prolong
-        use mod_physics, only: phys_convert_before_prolong, &
-             phys_convert_after_prolong
+        use mod_physics, only: phys_to_primitive, phys_to_conserved
 
         integer :: ixFi^L,ixCo^L,ii^D
         double precision :: dxFi^D, dxCo^D, xFimin^D, xComin^D, invdxCo^D
@@ -745,7 +744,7 @@ contains
         ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
         ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
 
-        call phys_convert_before_prolong(ixCoG^L,ixCo^L,&
+        if(prolongprimitive) call phys_to_primitive(ixCoG^L,ixCo^L,&
              pw(igrid)%wcoarse,pw(igrid)%xcoarse)
 
         select case (typeghostfill)
@@ -760,14 +759,14 @@ contains
            call mpistop("")
         end select
 
-        call phys_convert_after_prolong(ixCoG^L,ixCo^L,&
+        if(prolongprimitive) call phys_to_conserved(ixCoG^L,ixCo^L,&
              pw(igrid)%wcoarse,pw(igrid)%xcoarse)
 
       end subroutine bc_prolong
 
       subroutine interpolation_linear(ixFi^L,dxFi^D,xFimin^D, &
                                       dxCo^D,invdxCo^D,xComin^D)
-        use mod_physics, only: phys_convert_after_prolong
+        use mod_physics, only: phys_to_conserved
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 
@@ -812,7 +811,7 @@ contains
               hxCo^D=ixCo^D-kr(^D,idims)\
               jxCo^D=ixCo^D+kr(^D,idims)\
         
-              do iw=nwstart+1,nwstart+nwbc
+              do iw=1,nw
                  slopeL=pw(igrid)%wcoarse(ixCo^D,iw)-pw(igrid)%wcoarse(hxCo^D,iw)
                  slopeR=pw(igrid)%wcoarse(jxCo^D,iw)-pw(igrid)%wcoarse(ixCo^D,iw)
                  slopeC=half*(slopeR+slopeL)
@@ -838,18 +837,18 @@ contains
            end do
         
            ! Interpolate from coarse cell using limited slopes
-           pw(igrid)%wb(ixFi^D,nwstart+1:nwstart+nwbc)=pw(igrid)%wcoarse(ixCo^D,nwstart+1:&
-             nwstart+nwbc)+{(slope(nwstart+1:nwstart+nwbc,^D)*eta^D)+}
+           pw(igrid)%wb(ixFi^D,1:nw)=pw(igrid)%wcoarse(ixCo^D,1:nw)+&
+             {(slope(1:nw,^D)*eta^D)+}
         
         {end do\}
         
-        call phys_convert_after_prolong(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
+        if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
       
       end subroutine interpolation_linear
 
       subroutine interpolation_copy(ixFi^L,dxFi^D,xFimin^D, &
                                     dxCo^D,invdxCo^D,xComin^D)
-        use mod_physics, only: phys_convert_after_prolong
+        use mod_physics, only: phys_to_conserved
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 
@@ -864,17 +863,17 @@ contains
            ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
         
            ! Copy from coarse cell
-           pw(igrid)%wb(ixFi^D,nwstart+1:nwstart+nwbc)=pw(igrid)%wcoarse(ixCo^D,nwstart+1:nwstart+nwbc)
+           pw(igrid)%wb(ixFi^D,1:nw)=pw(igrid)%wcoarse(ixCo^D,1:nw)
         
         {end do\}
         
-        call phys_convert_after_prolong(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
+        if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
       
       end subroutine interpolation_copy
 
       subroutine interpolation_unlimit(ixFi^L,dxFi^D,xFimin^D, &
                                        dxCo^D,invdxCo^D,xComin^D)
-        use mod_physics, only: phys_convert_after_prolong
+        use mod_physics, only: phys_to_conserved
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D, dxCo^D,invdxCo^D, xComin^D
 
@@ -910,15 +909,15 @@ contains
         
               ! get centered slope
               slope(nwstart+1:nwstart+nwbc,idims)=half*(pw(igrid)%wcoarse(jxCo^D,&
-                nwstart+1:nwstart+nwbc)-pw(igrid)%wcoarse(hxCo^D,nwstart+1:nwstart+nwbc))
+                1:nw)-pw(igrid)%wcoarse(hxCo^D,1:nw))
            end do
         
            ! Interpolate from coarse cell using centered slopes
-           pw(igrid)%wb(ixFi^D,nwstart+1:nwstart+nwbc)=pw(igrid)%wcoarse(ixCo^D,nwstart+1:&
-             nwstart+nwbc)+{(slope(nwstart+1:nwstart+nwbc,^D)*eta^D)+}
+           pw(igrid)%wb(ixFi^D,1:nw)=pw(igrid)%wcoarse(ixCo^D,1:nw)+&
+             {(slope(1:nw,^D)*eta^D)+}
         {end do\}
         
-        call phys_convert_after_prolong(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
+        if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
       
       end subroutine interpolation_unlimit
 

@@ -32,8 +32,7 @@ call dealloc_node(igrid)
 end subroutine refine_grid
 !=============================================================================
 subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
-  use mod_physics, only: phys_convert_before_prolong, &
-       phys_convert_after_prolong
+  use mod_physics, only: phys_to_primitive, phys_to_conserved
   use mod_global_parameters
 
   integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
@@ -41,8 +40,7 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
 
   integer :: ix^L, ichild, ixCo^L, ic^D
   double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
-  !-----------------------------------------------------------------------------
-  ! TODO: discuss/clean commented code below
+
   if (prolongation_method=="linear") then
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      {#IFDEF EVOLVINGBOUNDARY
@@ -55,7 +53,7 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
      ix^L=ixM^LL^LADD1;
      }
 
-     call phys_convert_before_prolong(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
+     if(prolongprimitive) call phys_to_primitive(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
 
      xComin^D=rnode(rpxmin^D_,igrid)\
      dxCo^D=rnode(rpdx^D_,igrid)\
@@ -91,14 +89,8 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   end if
   {end do\}
 
-  if (prolongation_method=="linear") then
-     call phys_convert_after_prolong(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
-     ! TODO: clean this up
-     !    if (amrentropy) then
-     !       call rhos_to_e(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
-     !    else if (prolongprimitive) then
-     !       call conserve(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x,patchfalse)
-     !    end if
+  if (prolongation_method=="linear" .and. prolongprimitive) then
+     call phys_to_conserved(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
   end if
 
 end subroutine prolong_grid
@@ -106,7 +98,7 @@ end subroutine prolong_grid
 subroutine prolong_2ab(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
 ! interpolate children blocks including ghost cells
 
-use mod_physics, only: phys_convert_after_prolong
+use mod_physics, only: phys_to_conserved
 use mod_global_parameters
 
 integer, intent(in) :: ixCo^L, igridFi
@@ -188,13 +180,13 @@ ixCgmax^D=ixComax^D+el\
    {end do\}
 {end do\}
 
-call phys_convert_after_prolong(ixG^LL,ixM^LL,wFi,xFi)
+if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,xFi)
 
 end subroutine prolong_2ab
 !=============================================================================
 subroutine prolong_2nd(wCo,xCo,ixCo^L,wFi,xFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridFi)
 
-use mod_physics, only: phys_convert_after_prolong
+use mod_physics, only: phys_to_conserved
 use mod_global_parameters
 
 integer, intent(in) :: ixCo^L, igridFi
@@ -272,7 +264,7 @@ invdxCo^D=1.d0/dxCo^D;
    {end do\}
 {end do\}
 
-call phys_convert_after_prolong(ixG^LL,ixM^LL,wFi,xFi)
+if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,xFi)
 
 end subroutine prolong_2nd
 !=============================================================================

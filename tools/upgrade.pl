@@ -102,6 +102,8 @@ my %par_file_replacements = (
     qr/ *TCsaturate *=.*\n/ => "", # Remove TCsaturate = ... lines
     qr/ *fixprocess *=.*\n/ => "", # Remove fixprocess= ... lines
     qr/ *sliceascii *=.*\n/ => "", # Remove sliceascii= ... lines
+    qr/ *restrictprimitive *=.*\n/ => "", # Remove restrictprimitive= ... lines
+    qr/ *amrentropy*=.*\n/ => "", # Remove amrentropy= ... lines
     qr/ *w_for_refine\(1\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(2\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(3\) *=.*\n/ => "", # Remove w_for_refine*= ... lines

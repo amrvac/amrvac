@@ -1678,7 +1678,6 @@ contains
     double precision, intent(in)       :: w(ixI^S,1:nw)
     double precision                   :: divb(ixI^S)
 
-    double precision                   :: bvec(ixI^S,1:ndir), surface(ixI^S),volume(ixI^S)
     integer :: ixA^L
 
     call get_divb(w,ixI^L,ixO^L,divb)
@@ -1688,7 +1687,7 @@ contains
       ixAmin^D=ixOmin^D-1;
       ixAmax^D=ixOmax^D-1;
       divb(ixO^S)=abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))*&
-      block%volume(ixO^S)/(sum(block%surfaceC(ixO^S,:),dim=ndim+1)+sum(block%surfaceC(ixA^S,:),dim=ndim+1))
+      block%dvolume(ixO^S)/(sum(block%surfaceC(ixO^S,:),dim=ndim+1)+sum(block%surfaceC(ixA^S,:),dim=ndim+1))
     end if
 
   end subroutine get_normalized_divb

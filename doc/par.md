@@ -747,7 +747,6 @@ second order is desired).
      iprob= INTEGER
      prolongprimitive= F | T
      coarsenprimitive= F | T
-     restrictprimitive= F | T
      typeprolonglimit= 'default' | 'minmod' | 'woodward' | 'mcbeta' | 'koren'
      tfixgrid= DOUBLE
      itfixgrid= INTEGER
@@ -849,17 +848,14 @@ executable code, the integer switch `iprob` is provided. It is meant to be
 used only in the user-written subroutines, for switching between e.g. multiple
 initial conditions for the same executable.
 
-### prolongprimitive, coarsenprimitive, restrictprimitive, amrentropy {#par_prolongprim}
+### prolongprimitive, coarsenprimitive {#par_prolongprim}
 
 It is possible to enforce the code to use primitive variables when coarsening
-grid information (restriction), or filling new finer level grids
+grid information (coarsen), or filling new finer level grids
 (prolongation). They are then used instead of the conservative variables,
 which may not be a wise choice, but is perhaps better behaved with respect to
 positivity of pressure etc. This is activated seperately for prolongation by
-`prolongprimitive=T`, and for restriction by `restrictprimitive=T`. Also
-in the Richardson error estimation process (when used), a coarsened grid is
-created and this can be filled using the primitive variables when
-`coarsenprimitive=T`. Again, this is to be used with care.
+`prolongprimitive=T`, and for coarsen by `coarsenprimitive=T`. 
 
 The parameters `tfixgrid, itfixgrid` are available to fix the AMR
 hierarchical grid from a certain time onwards (tfixgrid) or iteration (the it-

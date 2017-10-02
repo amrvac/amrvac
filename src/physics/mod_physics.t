@@ -36,10 +36,6 @@ module mod_physics
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
-  procedure(sub_convert), pointer         :: phys_convert_before_prolong => null()
-  procedure(sub_convert), pointer         :: phys_convert_after_prolong  => null()
-  procedure(sub_convert), pointer         :: phys_convert_before_coarsen => null()
-  procedure(sub_convert), pointer         :: phys_convert_after_coarsen  => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
@@ -183,18 +179,6 @@ contains
     if (.not. associated(phys_to_primitive)) &
          call mpistop("Error: phys_to_primitive not defined")
 
-    if (.not. associated(phys_convert_before_prolong)) &
-         phys_convert_before_prolong => dummy_convert
-
-    if (.not. associated(phys_convert_after_prolong)) &
-         phys_convert_after_prolong => dummy_convert
-
-    if (.not. associated(phys_convert_before_coarsen)) &
-         phys_convert_before_coarsen => dummy_convert
-
-    if (.not. associated(phys_convert_after_coarsen)) &
-         phys_convert_after_coarsen => dummy_convert
-
     if (.not. associated(phys_modify_wLR)) &
          phys_modify_wLR => dummy_modify_wLR
 
@@ -238,13 +222,6 @@ contains
 
   subroutine dummy_check_params
   end subroutine dummy_check_params
-
-  subroutine dummy_convert(ixI^L, ixO^L, w, x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:^ND)
-  end subroutine dummy_convert
 
   subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
     use mod_global_parameters

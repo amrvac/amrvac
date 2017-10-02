@@ -49,9 +49,6 @@
         xprobmin2=0.d0
         xprobmax2=2.d0
  /
-        ditregrid=2
-        typeprolonglimit='koren'
-        amrentropy= T
 
  &paramlist
         typecourant='maxsum'
