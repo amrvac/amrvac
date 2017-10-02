@@ -542,7 +542,7 @@ contains
              typepred1(level)='hllcd'
           case ('hlld')
              typepred1(level)='hlld'
-          case ('nul','source')
+          case ('nul','source','tvd')
              typepred1(level)='nul'
           case default
              call mpistop("No default predictor for this full step")

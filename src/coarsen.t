@@ -76,7 +76,7 @@ subroutine coarsen_grid(wFi,xFi,ixFiG^L,ixFi^L,wCo,xCo,ixCoG^L,ixCo^L,&
                         igridFi,igridCo)
 
 use mod_global_parameters
-use mod_physics
+use mod_physics, only: phys_to_primitive, phys_to_conserved
 
 integer, intent(in) :: ixFiG^L, ixFi^L, ixCoG^L, ixCo^L, igridFi, igridCo
 double precision, intent(inout) :: wFi(ixFiG^S,1:nw), xFi(ixFiG^S,1:ndim)
@@ -87,12 +87,7 @@ double precision :: CoFiratio
 !-----------------------------------------------------------------------------
 ! coarsen by 2 in every direction - conservatively
 
-! if (amrentropy) then
-!    call e_to_rhos(ixFiG^L,ixFi^L,wFi,xFi)
-! else if (coarsenprim) then
-!    call primitive(ixFiG^L,ixFi^L,wFi,xFi)
-! end if
-call phys_convert_before_coarsen(ixFiG^L,ixFi^L,wFi,xFi)
+if(coarsenprimitive) call phys_to_primitive(ixFiG^L,ixFi^L,wFi,xFi)
 
 if (slab) then
    CoFiratio=one/dble(2**ndim)
@@ -124,14 +119,10 @@ else
    end if
 end if
 
-call phys_convert_after_coarsen(ixFiG^L,ixFi^L,wFi,xFi)
-! if (amrentropy) then
-!    if (keepFi) call rhos_to_e(ixFiG^L,ixFi^L,wFi,xFi)
-!    call rhos_to_e(ixCoG^L,ixCo^L,wCo,xCo)
-! else if (coarsenprim) then
-!    if (keepFi) call conserve(ixFiG^L,ixFi^L,wFi,xFi,patchfalse)
-!    call conserve(ixCoG^L,ixCo^L,wCo,xCo,patchfalse)
-! end if
+if(coarsenprimitive) then
+  call phys_to_conserved(ixFiG^L,ixFi^L,wFi,xFi)
+  call phys_to_conserved(ixCoG^L,ixCo^L,wCo,xCo)
+end if
 
 end subroutine coarsen_grid
 !=============================================================================

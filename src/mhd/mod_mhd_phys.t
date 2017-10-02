@@ -1648,9 +1648,8 @@ contains
 
   end subroutine add_source_linde
 
+  !> Calculate div B within ixO
   subroutine get_divb(w,ixI^L,ixO^L,divb)
-
-    ! Calculate div B within ixO
 
     use mod_global_parameters
 
@@ -1669,6 +1668,29 @@ contains
       call divvectorS(bvec,ixI^L,ixO^L,divb)
     end select
   end subroutine get_divb
+
+  !> get dimensionless div B = divB * volume / area / |B|
+  subroutine get_normalized_divb(w,ixI^L,ixO^L,divb)
+
+    use mod_global_parameters
+
+    integer, intent(in)                :: ixI^L, ixO^L
+    double precision, intent(in)       :: w(ixI^S,1:nw)
+    double precision                   :: divb(ixI^S)
+
+    integer :: ixA^L
+
+    call get_divb(w,ixI^L,ixO^L,divb)
+    if(slab) then
+      divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))/sum(1.d0/dxlevel(:))
+    else
+      ixAmin^D=ixOmin^D-1;
+      ixAmax^D=ixOmax^D-1;
+      divb(ixO^S)=abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))*&
+      block%dvolume(ixO^S)/(sum(block%surfaceC(ixO^S,:),dim=ndim+1)+sum(block%surfaceC(ixA^S,:),dim=ndim+1))
+    end if
+
+  end subroutine get_normalized_divb
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
   !> make sure that dxlevel(^D) is set correctly.
