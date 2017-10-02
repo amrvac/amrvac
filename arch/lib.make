@@ -40,4 +40,4 @@ clean:
 	$(RM) *.o *.mod *.f $(LIB_AMRVAC)
 
 # INCLUDES are always compiled before FOBJECTS
-$(FOBJECTS:.t=.o): $(INCLUDES:.t=.o)
+$(FOBJECTS:.t=.o): $(INCLUDES:.t=.mod)
