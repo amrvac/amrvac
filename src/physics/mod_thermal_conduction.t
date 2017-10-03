@@ -491,6 +491,8 @@ contains
     Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
     where(Binv(ix^S)/=0.d0)
       Binv(ix^S)=1.d0/Binv(ix^S)
+    elsewhere
+      Binv(ix^S)=bigdouble
     end where
     ! b unit vector: magnetic field direction vector
     do idims=1,ndim
@@ -535,7 +537,12 @@ contains
         {end do\}
         ! cell corner conductivity: k_parallel-k_perpendicular
         ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
-        ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
+        where(ke(ixC^S)<ka(ixC^S))
+          ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
+        elsewhere
+          ka(ixC^S)=0.d0
+          ke(ixC^S)=ka(ixC^S)
+        end where
       end if
     end if
     ! T gradient at cell faces
