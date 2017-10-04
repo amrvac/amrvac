@@ -119,6 +119,7 @@ module mod_mhd_phys
   public :: mhd_get_csound2
   public :: get_divb
   public :: get_current
+  public :: get_normalized_divb
 
 contains
 
@@ -1669,16 +1670,16 @@ contains
     end select
   end subroutine get_divb
 
-  !> get dimensionless div B = divB * volume / area / |B|
+  !> get dimensionless div B = |divB| * volume / area / |B|
   subroutine get_normalized_divb(w,ixI^L,ixO^L,divb)
 
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: w(ixI^S,1:nw)
-    double precision                   :: divb(ixI^S)
+    double precision                   :: divb(ixI^S), dsurface(ixI^S)
 
-    integer :: ixA^L
+    integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
     if(slab) then
@@ -1686,8 +1687,13 @@ contains
     else
       ixAmin^D=ixOmin^D-1;
       ixAmax^D=ixOmax^D-1;
+      dsurface(ixO^S)= sum(block%surfaceC(ixO^S,:),dim=ndim+1)
+      do idims=1,ndim
+        ixA^L=ixO^L-kr(idims,^D);
+        dsurface(ixO^S)=dsurface(ixO^S)+block%surfaceC(ixA^S,idims)
+      end do
       divb(ixO^S)=abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))*&
-      block%dvolume(ixO^S)/(sum(block%surfaceC(ixO^S,:),dim=ndim+1)+sum(block%surfaceC(ixA^S,:),dim=ndim+1))
+      block%dvolume(ixO^S)/dsurface(ixO^S)
     end if
 
   end subroutine get_normalized_divb
