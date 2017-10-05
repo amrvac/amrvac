@@ -9,7 +9,7 @@
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuCCmpi'
-        nwauxio=1
+        nwauxio=3
  /
 
  &savelist

@@ -52,9 +52,9 @@ epstocode = w_convert_factor(epsinf_)  / (UNIT_DENSITY*UNIT_LENGTH**3.0D0*UNIT_V
 ! Obtain co-moving magnetic field:
 ! using the invariant Bdash^2 = B^2-E^2
 b2(ixO^S)     = {^C&w(ixO^S,b^C_)**2.0d0|+}
-e2(ixO^S) = (w(ixO^S,b2_)*w(ixO^S,u3_)/w(ixO^S,lfac_) - w(ixO^S,b3_)*w(ixO^S,u2_)/w(ixO^S,lfac_))**2.0d0 &
-     + (w(ixO^S,b3_)*w(ixO^S,u1_)/w(ixO^S,lfac_) - w(ixO^S,b1_)*w(ixO^S,u3_)/w(ixO^S,lfac_))**2.0d0 &
-     + (w(ixO^S,b1_)*w(ixO^S,u2_)/w(ixO^S,lfac_) - w(ixO^S,b2_)*w(ixO^S,u1_)/w(ixO^S,lfac_))**2.0d0
+e2(ixO^S) = (w(ixO^S,mag(2))*w(ixO^S,u3_)/w(ixO^S,lfac_) - w(ixO^S,mag(3))*w(ixO^S,u2_)/w(ixO^S,lfac_))**2.0d0 &
+     + (w(ixO^S,mag(3))*w(ixO^S,u1_)/w(ixO^S,lfac_) - w(ixO^S,mag(1))*w(ixO^S,u3_)/w(ixO^S,lfac_))**2.0d0 &
+     + (w(ixO^S,mag(1))*w(ixO^S,u2_)/w(ixO^S,lfac_) - w(ixO^S,mag(2))*w(ixO^S,u1_)/w(ixO^S,lfac_))**2.0d0
 bdash2(ixO^S) = b2(ixO^S) - e2(ixO^S)
 
 ! Store the primitive cutoff energy:
@@ -121,9 +121,9 @@ call primitiven(ixG^L,ix^L,w,patchw)
 ! Obtain co-moving magnetic field:
 ! using the invariant Bdash^2 = B^2-E^2
 b2(ix^S)     = {^C&w(ix^S,b^C_)**2.0d0|+}
-e2(ix^S) = (w(ix^S,b2_)*w(ix^S,u3_)/w(ix^S,lfac_) - w(ix^S,b3_)*w(ix^S,u2_)/w(ix^S,lfac_))**2.0d0 &
-     + (w(ix^S,b3_)*w(ix^S,u1_)/w(ix^S,lfac_) - w(ix^S,b1_)*w(ix^S,u3_)/w(ix^S,lfac_))**2.0d0 &
-     + (w(ix^S,b1_)*w(ix^S,u2_)/w(ix^S,lfac_) - w(ix^S,b2_)*w(ix^S,u1_)/w(ix^S,lfac_))**2.0d0
+e2(ix^S) = (w(ix^S,mag(2))*w(ix^S,u3_)/w(ix^S,lfac_) - w(ix^S,mag(3))*w(ix^S,u2_)/w(ix^S,lfac_))**2.0d0 &
+     + (w(ix^S,mag(3))*w(ix^S,u1_)/w(ix^S,lfac_) - w(ix^S,mag(1))*w(ix^S,u3_)/w(ix^S,lfac_))**2.0d0 &
+     + (w(ix^S,mag(1))*w(ix^S,u2_)/w(ix^S,lfac_) - w(ix^S,mag(2))*w(ix^S,u1_)/w(ix^S,lfac_))**2.0d0
 bdash2(ix^S) = b2(ix^S) - e2(ix^S)
 
 ! Store the primitive cutoff energy:

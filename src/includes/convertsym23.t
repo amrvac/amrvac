@@ -49,7 +49,7 @@ end if
 inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
-  write(filename,'(a,a,i4.4,a)') TRIM(filenameout),"3D",snapshotini,".vtu"
+  write(filename,'(a,a,i4.4,a)') TRIM(base_filename),"3D",snapshotini,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown',form='formatted')
 endif
@@ -64,7 +64,7 @@ write(qunit,'(a)')'<UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,'(f10.2)') real(t*normt)
+write(qunit,'(f10.2)') real(global_time*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -74,7 +74,7 @@ nxC1=nx1+1;nxC2=nx2+1;nxC3=nx3+1;
 nc=nx1*nx2*nx3
 np=nxC1*nxC2*nxC3
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 zgridsc=2.d0
 zlengsc=2.d0*zgridsc
@@ -118,7 +118,7 @@ do level=levmin,levmax
              '" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<PointData>'
           do iw=1,nw
-             if(iw<=nw.and.(.not.writew(iw)))cycle
+             if(iw<=nw.and.(.not.w_write(iw)))cycle
 
              write(qunit,'(a,a,a)')'<DataArray type="Float64" Name="',&
                 TRIM(wnamei(iw)),'" format="ascii">'
@@ -161,7 +161,7 @@ do level=levmin,levmax
              '" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<CellData>'
           do iw=1,nw
-             if(iw<=nw.and.(.not.writew(iw)))cycle
+             if(iw<=nw.and.(.not.w_write(iw)))cycle
 
              write(qunit,'(a,a,a)')'<DataArray type="Float64" Name="',&
                 TRIM(wnamei(iw)),'" format="ascii">'
@@ -292,7 +292,7 @@ end if
 inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
-  write(filename,'(a,a,i4.4,a)') TRIM(filenameout),"3D",snapshotini,".vtu"
+  write(filename,'(a,a,i4.4,a)') TRIM(base_filename),"3D",snapshotini,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown',form='formatted')
 endif
@@ -307,7 +307,7 @@ write(qunit,'(a)')'<UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,'(f10.2)') real(t*normt)
+write(qunit,'(f10.2)') real(global_time*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -317,7 +317,7 @@ nxC1=nx1+1;nxC2=nx2+1;nxC3=nx3+1;
 nc=nx1*nx2*nx3
 np=nxC1*nxC2*nxC3
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 zgridsc=2.d0
 zlengsc=2.d0*zgridsc
@@ -360,7 +360,7 @@ do level=levmin,levmax
              '" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<PointData>'
           do iw=1,nw
-             if(iw<=nw.and.(.not.writew(iw)))cycle
+             if(iw<=nw.and.(.not.w_write(iw)))cycle
 
              write(qunit,'(a,a,a)')'<DataArray type="Float64" Name="',&
                 TRIM(wnamei(iw)),'" format="ascii">'
@@ -403,7 +403,7 @@ do level=levmin,levmax
              '" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<CellData>'
           do iw=1,nw
-             if(iw<=nw.and.(.not.writew(iw)))cycle
+             if(iw<=nw.and.(.not.w_write(iw)))cycle
 
              write(qunit,'(a,a,a)')'<DataArray type="Float64" Name="',&
                 TRIM(wnamei(iw)),'" format="ascii">'
@@ -481,7 +481,7 @@ do level=levmin,levmax
              '" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<PointData>'
           do iw=1,nw
-            if(iw<=nw.and.(.not.writew(iw)))cycle
+            if(iw<=nw.and.(.not.w_write(iw)))cycle
             if(iw==2 .or. iw==4 .or. iw==7) then
              wC_TMP(ixCmin1:ixCmax1,ixCmin2:ixCmax2,ixCmin3:ixCmax3,iw)=&
              -wC_TMP(ixCmin1:ixCmax1,ixCmin2:ixCmax2,ixCmin3:ixCmax3,iw)
@@ -528,7 +528,7 @@ do level=levmin,levmax
              '" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<CellData>'
           do iw=1,nw
-            if(iw<=nw.and.(.not.writew(iw)))cycle
+            if(iw<=nw.and.(.not.w_write(iw)))cycle
             if(iw==2 .or. iw==4 .or. iw==7) then
              wCC_TMP(ixCCmin1:ixCCmax1,ixCCmin2:ixCCmax2,ixCCmin3:ixCCmax3,iw)=&
             -wCC_TMP(ixCCmin1:ixCCmax1,ixCCmin2:ixCCmax2,ixCCmin3:ixCCmax3,iw)
@@ -673,7 +673,7 @@ size_int=size_length
 inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
-  write(filename,'(a,a,i4.4,a)') TRIM(filenameout),"3D",snapshotini,".vtu"
+  write(filename,'(a,a,i4.4,a)') TRIM(base_filename),"3D",snapshotini,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown')
 endif
@@ -687,7 +687,7 @@ write(qunit,'(a)')'<UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,'(f10.2)') real(t*normt)
+write(qunit,'(f10.2)') real(global_time*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -704,7 +704,7 @@ length_coords=3*length
 length_conn=2**3*size_int*nc
 length_offsets=nc*size_int
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 zgridsc=2.d0
 zlengsc=2.d0*zgridsc
@@ -731,7 +731,7 @@ do level=levmin,levmax
             '" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<PointData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')'<DataArray type="Float32" Name="',&
                TRIM(wnamei(iw)), '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
@@ -760,7 +760,7 @@ do level=levmin,levmax
             '" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<CellData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')'<DataArray type="Float32" Name="',&
                TRIM(wnamei(iw)), '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
@@ -854,7 +854,7 @@ do level=levmin,levmax
            ixCmin1,ixCmin2,ixCmin3,ixCmax1,ixCmax2,ixCmax3,ixCCmin1,ixCCmin2,&
            ixCCmin3,ixCCmax1,ixCCmax2,ixCCmax3,.true.,i3grid,d3grid,w,zlength,zgridsc)
         do iw=1,nw
-          if(.not.writew(iw))cycle
+          if(.not.w_write(iw))cycle
           select case(userconvert_type)
             case('vtuB23')
               write(qunit) length
@@ -1006,7 +1006,7 @@ size_int=size_length
 inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
-  write(filename,'(a,a,i4.4,a)') TRIM(filenameout),"3D",snapshotini,".vtu"
+  write(filename,'(a,a,i4.4,a)') TRIM(base_filename),"3D",snapshotini,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown')
 endif
@@ -1020,7 +1020,7 @@ write(qunit,'(a)')'<UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,'(f10.2)') real(t*normt)
+write(qunit,'(f10.2)') real(global_time*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -1037,7 +1037,7 @@ length_coords=3*length
 length_conn=2**3*size_int*nc
 length_offsets=nc*size_int
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 zlengsc=4.d0
 zgridsc=2.d0
@@ -1065,7 +1065,7 @@ do level=levmin,levmax
             '" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<PointData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')'<DataArray type="Float32" Name="',&
                TRIM(wnamei(iw)), '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
@@ -1094,7 +1094,7 @@ do level=levmin,levmax
             '" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<CellData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')'<DataArray type="Float32" Name="',&
                TRIM(wnamei(iw)), '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
@@ -1152,7 +1152,7 @@ do level=levmin,levmax
             '" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<PointData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')'<DataArray type="Float32" Name="',&
                TRIM(wnamei(iw)), '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
@@ -1181,7 +1181,7 @@ do level=levmin,levmax
             '" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<CellData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')'<DataArray type="Float32" Name="',&
                TRIM(wnamei(iw)), '" format="appended" offset="',offset,'">'
             write(qunit,'(a)')'</DataArray>'
@@ -1276,7 +1276,7 @@ do level=levmin,levmax
            ixCCmin3,ixCCmax1,ixCCmax2,ixCCmax3,.true.,i3grid,d3grid,w,zlength,zgridsc)
         !! original domain ----------------------------------start 
         do iw=1,nw
-          if(.not.writew(iw))cycle
+          if(.not.w_write(iw))cycle
           select case(userconvert_type)
             case('vtuBsym23')
               write(qunit) length
@@ -1353,7 +1353,7 @@ do level=levmin,levmax
         !! original domain ----------------------------------end 
         !! symetric/asymetric mirror domain -----------------start
         do iw=1,nw
-          if(.not.writew(iw))cycle
+          if(.not.w_write(iw))cycle
           if(iw==2 .or. iw==4 .or. iw==7) then
            wC_TMP(ixCmin1:ixCmax1,ixCmin2:ixCmax2,ixCmin3:ixCmax3,iw)=&
            -wC_TMP(ixCmin1:ixCmax1,ixCmin2:ixCmax2,ixCmin3:ixCmax3,iw)
@@ -1504,9 +1504,9 @@ logical, save :: subfirst=.true.
 {#IFDEF ENERGY
 iwe=e_
 }
-iwb1=b1_
-iwb2=b2_
-iwb3=b2_+1
+iwb1=mag(1)
+iwb2=mag(2)
+iwb3=mag(2)+1
 
 nx1=ixMhi1-ixMlo1+1;nx2=ixMhi2-ixMlo2+1;nx3=ixMhi1-ixMlo1+1;
 level=node(plevel_,igrid)
@@ -1517,13 +1517,13 @@ if(saveprim) then
   normconv(0) = length_convert_factor
   normconv(1:nw) = w_convert_factor
 else
-  normconv(0)=normvar(0)
+  normconv(0)=length_convert_factor
   ! assuming density
-  normconv(1)=normvar(1)
+  normconv(1)=w_convert_factor(1)
   ! assuming momentum=density*velocity
-  if (nw>=2) normconv(2:2+3)=normvar(1)*normvar(2:2+3)
+  if (nw>=2) normconv(2:2+3)=w_convert_factor(1)*w_convert_factor(2:2+3)
   ! assuming energy/pressure and magnetic field
-  if (nw>=2+3) normconv(2+3:nw)=normvar(2+3:nw)
+  if (nw>=2+3) normconv(2+3:nw)=w_convert_factor(2+3:nw)
 end if
 
 ! coordinates of cell centers
@@ -1568,40 +1568,40 @@ if (nwextra>0) then
  do idims=1,3
   select case(idims)
    case(1)
-     jxCmin1=ixGhi1+1-dixB;jxCmin2=ixGlo2;jxCmin3=ixGlo1;
+     jxCmin1=ixGhi1+1-nghostcells;jxCmin2=ixGlo2;jxCmin3=ixGlo1;
      jxCmax1=ixGhi1;jxCmax2=ixGhi2;jxCmax3=ixGhi1;
      do ix1=jxCmin1,jxCmax1
          w(ix1,jxCmin2:jxCmax2,jxCmin3:jxCmax3,nw-nwextra+1:nw) = w(jxCmin1&
             -1,jxCmin2:jxCmax2,jxCmin3:jxCmax3,nw-nwextra+1:nw)
      end do
      jxCmin1=ixGlo1;jxCmin2=ixGlo2;jxCmin3=ixGlo1;
-     jxCmax1=ixGlo1-1+dixB;jxCmax2=ixGhi2;jxCmax3=ixGhi1;
+     jxCmax1=ixGlo1-1+nghostcells;jxCmax2=ixGhi2;jxCmax3=ixGhi1;
      do ix1=jxCmin1,jxCmax1
          w(ix1,jxCmin2:jxCmax2,jxCmin3:jxCmax3,nw-nwextra+1:nw) = w(jxCmax1&
             +1,jxCmin2:jxCmax2,jxCmin3:jxCmax3,nw-nwextra+1:nw)
      end do
    case(2)
-     jxCmin1=ixGlo1;jxCmin2=ixGhi2+1-dixB;jxCmin3=ixGlo1;
+     jxCmin1=ixGlo1;jxCmin2=ixGhi2+1-nghostcells;jxCmin3=ixGlo1;
      jxCmax1=ixGhi1;jxCmax2=ixGhi2;jxCmax3=ixGhi1;
      do ix2=jxCmin2,jxCmax2
          w(jxCmin1:jxCmax1,ix2,jxCmin3:jxCmax3,nw-nwextra+1:nw) &
             = w(jxCmin1:jxCmax1,jxCmin2-1,jxCmin3:jxCmax3,nw-nwextra+1:nw)
      end do
      jxCmin1=ixGlo1;jxCmin2=ixGlo2;jxCmin3=ixGlo1;
-     jxCmax1=ixGhi1;jxCmax2=ixGlo2-1+dixB;jxCmax3=ixGhi1;
+     jxCmax1=ixGhi1;jxCmax2=ixGlo2-1+nghostcells;jxCmax3=ixGhi1;
      do ix2=jxCmin2,jxCmax2
          w(jxCmin1:jxCmax1,ix2,jxCmin3:jxCmax3,nw-nwextra+1:nw) &
             = w(jxCmin1:jxCmax1,jxCmax2+1,jxCmin3:jxCmax3,nw-nwextra+1:nw)
      end do
    case(3)
-     jxCmin1=ixGlo1;jxCmin2=ixGlo2;jxCmin3=ixGhi1+1-dixB;
+     jxCmin1=ixGlo1;jxCmin2=ixGlo2;jxCmin3=ixGhi1+1-nghostcells;
      jxCmax1=ixGhi1;jxCmax2=ixGhi2;jxCmax3=ixGhi1;
      do ix3=jxCmin3,jxCmax3
          w(jxCmin1:jxCmax1,jxCmin2:jxCmax2,ix3,nw-nwextra+1:nw) &
             = w(jxCmin1:jxCmax1,jxCmin2:jxCmax2,jxCmin3-1,nw-nwextra+1:nw)
      end do
      jxCmin1=ixGlo1;jxCmin2=ixGlo2;jxCmin3=ixGlo1;
-     jxCmax1=ixGhi1;jxCmax2=ixGhi2;jxCmax3=ixGlo1-1+dixB;
+     jxCmax1=ixGhi1;jxCmax2=ixGhi2;jxCmax3=ixGlo1-1+nghostcells;
      do ix3=jxCmin3,jxCmax3
          w(jxCmin1:jxCmax1,jxCmin2:jxCmax2,ix3,nw-nwextra+1:nw) &
             = w(jxCmin1:jxCmax1,jxCmin2:jxCmax2,jxCmax3+1,nw-nwextra+1:nw)
@@ -1611,13 +1611,13 @@ if (nwextra>0) then
 end if
 ! next lines needed when specialvar_output uses gradients
 ! and later on when dwlimiter2 is used 
-typelimiter=typelimiter1(node(plevel_,igrid))
-typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+typelimiter=limiter(node(plevel_,igrid))
+typegradlimiter=gradient_limiter(node(plevel_,igrid))
 if(nwauxio>0)then
   ! auxiliary io variables can be computed and added by user
   ! next few lines ensure correct usage of routines like divvector etc
   dxlevel(1)=rnode(rpdx1_,igrid);dxlevel(2)=rnode(rpdx2_,igrid)
-  if (.not.slab) mygeo => pgeo(igrid)
+  if (.not.slab) block => pgeo(igrid)
   if (B0field) then
     myB0_cell => pB0_cell(igrid)
     myB0      => pB0_cell(igrid)
@@ -1814,11 +1814,11 @@ if(saveprim)then
 endif
 !!! store current
 ! qvec(ixImin1:ixImax1,ixImin2:ixImax2,ixImin3:ixImax3,1)=w(ixImin1:ixImax1,&
-!    ixImin2:ixImax2,ixImin3:ixImax3,b1_)
+!    ixImin2:ixImax2,ixImin3:ixImax3,mag(1))
 ! qvec(ixImin1:ixImax1,ixImin2:ixImax2,ixImin3:ixImax3,2)=w(ixImin1:ixImax1,&
-!    ixImin2:ixImax2,ixImin3:ixImax3,b2_)
+!    ixImin2:ixImax2,ixImin3:ixImax3,mag(2))
 ! qvec(ixImin1:ixImax1,ixImin2:ixImax2,ixImin3:ixImax3,3)=w(ixImin1:ixImax1,&
-!    ixImin2:ixImax2,ixImin3:ixImax3,b3_);
+!    ixImin2:ixImax2,ixImin3:ixImax3,mag(3));
 !call curlvector3D(qvec,ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,ixOmin1,&
 !   ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3,curlvec,idirmin,1,ndir)
 !w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,nw+2)=curlvec&
@@ -1833,7 +1833,7 @@ subroutine unstructuredvtkBsym(qunit,userconvert_type)
 
 ! output for vtu format to paraview, binary version output
 ! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using normvar-array
+! allows renormalizing using w_convert_factor-array
 
 use mod_global_parameters
 
@@ -1880,7 +1880,7 @@ size_int=size_length
 inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
   ! generate filename 
-  write(filename,'(a,i4.4,a)') TRIM(filenameout),snapshotini,".vtu"
+  write(filename,'(a,i4.4,a)') TRIM(base_filename),snapshotini,".vtu"
   ! Open the file for the header part
   open(qunit,file=filename,status='unknown')
 endif
@@ -1895,7 +1895,7 @@ write(qunit,'(a)')'<UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                    'NumberOfTuples="1" format="ascii">'
-write(qunit,'(f10.2)') real(t*normt)
+write(qunit,'(f10.2)') real(global_time*time_convert_factor)
 write(qunit,'(a)')'</DataArray>'
 write(qunit,'(a)')'</FieldData>'
 
@@ -1912,7 +1912,7 @@ length_coords=3*length
 length_conn=2**^ND*size_int*nc
 length_offsets=nc*size_int
 
-! Note: using the writew, writelevel, writespshift
+! Note: using the w_write, writelevel, writespshift
 ! we can clip parts of the grid away, select variables, levels etc.
 do level=levmin,levmax
  if (writelevel(level)) then
@@ -1930,7 +1930,7 @@ do level=levmin,levmax
             '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<PointData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                 '" format="appended" offset="',offset,'">'
@@ -1960,7 +1960,7 @@ do level=levmin,levmax
             '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
          write(qunit,'(a)')'<CellData>'
          do iw=1,nw
-            if(.not.writew(iw))cycle
+            if(.not.w_write(iw))cycle
             write(qunit,'(a,a,a,i16,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                 '" format="appended" offset="',offset,'">'
@@ -2016,7 +2016,7 @@ do level=levmin,levmax
              '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<PointData>'
           do iw=1,nw
-             if(.not.writew(iw))cycle
+             if(.not.w_write(iw))cycle
              write(qunit,'(a,a,a,i16,a)')&
                  '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                  '" format="appended" offset="',offset,'">'
@@ -2046,7 +2046,7 @@ do level=levmin,levmax
              '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<CellData>'
           do iw=1,nw
-             if(.not.writew(iw))cycle
+             if(.not.w_write(iw))cycle
              write(qunit,'(a,a,a,i16,a)')&
                  '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
                  '" format="appended" offset="',offset,'">'
@@ -2120,7 +2120,7 @@ do level=levmin,levmax
         call calc_grid(qunit,igrid,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                        ixC^L,ixCC^L,.true.)
         do iw=1,nw
-          if(.not.writew(iw))cycle
+          if(.not.w_write(iw))cycle
           select case(userconvert_type)
             case('vtuBsym')
               write(qunit) length
@@ -2188,7 +2188,7 @@ do level=levmin,levmax
         !! symmetry axis/plane x=0 mirrored part ----------------------------start
        if(userconvert_type=='vtuBsym' .or. userconvert_type=='vtuBCCsym') then
         do iw=1,nw
-          if(.not.writew(iw))cycle
+          if(.not.w_write(iw))cycle
           if(ndir==1) then
            if(iw==2) then
             wC_TMP(ixC^S,iw)=-wC_TMP(ixC^S,iw)
@@ -2335,7 +2335,7 @@ subroutine oneblocksym(qunit,userconvert_type)
 ! the data will be all on selected level level_io
 
 ! this version should work for any dimension
-! only writes writew selected 1:nw variables, also nwauxio
+! only writes w_write selected 1:nw variables, also nwauxio
 ! may use saveprim to switch to primitives
 ! this version can not work on multiple CPUs
 ! does not renormalize variables
@@ -2378,14 +2378,14 @@ if(npe>1)then
  call mpistop('npe>1, oneblocksym')
 end if
 
-! only variables selected by writew will be written out
+! only variables selected by w_write will be written out
 normconv(0:nw+nwauxio)=one
 normconv(0) = length_convert_factor
 normconv(1:nw) = w_convert_factor
-writenw=count(writew(1:nw))+nwauxio
+writenw=count(w_write(1:nw))+nwauxio
 iiw=0
 do iw =1,nw
- if (.not.writew(iw))cycle
+ if (.not.w_write(iw))cycle
  iiw=iiw+1
  iwrite(iiw)=iw
 end do
@@ -2429,7 +2429,7 @@ Master_cpu_open : if (mype == 0) then
    ! generate filename
     filenr=snapshotini
     if (.not.convert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".blk"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    select case(userconvert_type)
     case("oneblocksym")
      open(qunit,file=filename,status='unknown')
@@ -2447,7 +2447,7 @@ Master_cpu_open : if (mype == 0) then
                    ng1(level_io)*(ixMhi1-ixMlo1+1)*2,ng2(level_io)*(ixMhi2-ixMlo2+1),&
                    ng3(level_io)*(ixMhi3-ixMlo3+1)
 }
-     write(qunit,*) t*normt
+     write(qunit,*) global_time*time_convert_factor
     case("oneblocksymB")
      open(qunit,file=filename,form='unformatted',status='unknown')
      write(qunit) outfilehead
@@ -2464,7 +2464,7 @@ Master_cpu_open : if (mype == 0) then
                    ng1(level_io)*(ixMhi1-ixMlo1+1)*2,ng2(level_io)*(ixMhi2-ixMlo2+1),&
                    ng3(level_io)*(ixMhi3-ixMlo3+1)
 }
-     write(qunit) t*normt
+     write(qunit) global_time*time_convert_factor
    end select
  end if
 end if Master_cpu_open
@@ -2475,10 +2475,10 @@ do ig3=1,ng3(level_io)}
    do ig2=1,ng2(level_io)}
        do ig1=1,ng1(level_io)
          igrid=ig_to_igrid(ig^D,mype)
-         typelimiter=typelimiter1(node(plevel_,igrid))
-         typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+         typelimiter=limiter(node(plevel_,igrid))
+         typegradlimiter=gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         if (.not.slab) mygeo => pgeo(igrid)
+         if (.not.slab) block => pgeo(igrid)
          if (B0field) then
            myB0_cell => pB0_cell(igrid)
            myB0      => pB0_cell(igrid)
@@ -2614,7 +2614,7 @@ subroutine oneblocksym23(qunit,userconvert_type)
 ! the data will be all on selected level level_io
 
 ! this version should work for any dimension
-! only writes writew selected 1:nw variables, also nwauxio
+! only writes w_write selected 1:nw variables, also nwauxio
 ! may use saveprim to switch to primitives
 ! this version can not work on multiple CPUs
 ! does not renormalize variables
@@ -2662,14 +2662,14 @@ if(ndim/=2) then
   if(mype==0) print *,'oneblocksym23 is only used in 2D'
   call mpistop('ndim/=2,oneblocksym23')
 end if
-! only variables selected by writew will be written out
+! only variables selected by w_write will be written out
 normconv(0:nw+nwauxio)=one
 normconv(0) = length_convert_factor
 normconv(1:nw) = w_convert_factor
-writenw=count(writew(1:nw))+nwauxio
+writenw=count(w_write(1:nw))+nwauxio
 iiw=0
 do iw =1,nw
- if (.not.writew(iw))cycle
+ if (.not.w_write(iw))cycle
  iiw=iiw+1
  iwrite(iiw)=iw
 end do
@@ -2713,7 +2713,7 @@ Master_cpu_open : if (mype == 0) then
    ! generate filename
     filenr=snapshotini
     if (.not.convert) filenr=snapshot-1
-   write(filename,'(a,i4.4,a)') TRIM(filenameout),filenr,".blk"
+   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".blk"
    select case(userconvert_type)
     case("oneblocksym23")
      open(qunit,file=filename,status='unknown')
@@ -2721,14 +2721,14 @@ Master_cpu_open : if (mype == 0) then
      write(qunit,*)( {^D&(ixMhi^D-ixMlo^D+1)*})*(Morton_stop(npe-1)-Morton_start(0)+1)*&
        2*(ixMhi1-ixMlo1+1)*nblock3,ng1(level_io)*(ixMhi1-ixMlo1+1)*2,ng2(level_io)*&
        (ixMhi2-ixMlo2+1),nblock3*(ixMhi1-ixMlo1+1)
-     write(qunit,*)t*normt
+     write(qunit,*)global_time*time_convert_factor
     case("oneblocksym23B")
      open(qunit,file=filename,form='unformatted',status='unknown')
      write(qunit) outfilehead
      write(qunit)( {^D&(ixMhi^D-ixMlo^D+1)*})*(Morton_stop(npe-1)-Morton_start(0)+1)*&
        2*(ixMhi1-ixMlo1+1)*nblock3,ng1(level_io)*(ixMhi1-ixMlo1+1)*2,ng2(level_io)*&
        (ixMhi2-ixMlo2+1),nblock3*(ixMhi1-ixMlo1+1)
-     write(qunit)t*normt
+     write(qunit)global_time*time_convert_factor
    end select
  end if
 end if Master_cpu_open
@@ -2736,10 +2736,10 @@ end if Master_cpu_open
 do ig2=1,ng2(level_io)
     do ig1=1,ng1(level_io)
       igrid=ig_to_igrid(ig^D,mype)
-      typelimiter=typelimiter1(node(plevel_,igrid))
-      typegradlimiter=typegradlimiter1(node(plevel_,igrid))
+      typelimiter=limiter(node(plevel_,igrid))
+      typegradlimiter=gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      if (.not.slab) mygeo => pgeo(igrid)
+      if (.not.slab) block => pgeo(igrid)
       if (B0field) then
         myB0_cell => pB0_cell(igrid)
         myB0      => pB0_cell(igrid)
@@ -2778,13 +2778,13 @@ do ig3=1,nblock3
                  write(qunit,fmt="(100(e14.6))") &
                   xprobmin1-px(igrid)%x(ix^D,1)*normconv(0),&
                   px(igrid)%x(ix^D,2)*normconv(0),&
-                  dble(ig3-1)*lblock3+(dble(ix3-dixB)-0.5d0)*dx3,&
+                  dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3,&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblocksym23B")
                  write(qunit) &
                   real(xprobmin1-px(igrid)%x(ix^D,1)*normconv(0)),&
                   real(px(igrid)%x(ix^D,2)*normconv(0)),&
-                  real(dble(ig3-1)*lblock3+(dble(ix3-dixB)-0.5d0)*dx3),&
+                  real(dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
            end if Master_write
@@ -2804,11 +2804,11 @@ do ig3=1,nblock3
                case("oneblocksym23")
                  write(qunit,fmt="(100(e14.6))") &
                   px(igrid)%x(ix^D,1:2)*normconv(0),&
-                  dble(ig3-1)*lblock3+(dble(ix3-dixB)-0.5d0)*dx3,&
+                  dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3,&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblocksym23B")
                  write(qunit) real(px(igrid)%x(ix^D,1:2)*normconv(0)),&
-                  real(dble(ig3-1)*lblock3+(dble(ix3-dixB)-0.5d0)*dx3),&
+                  real(dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
            end if

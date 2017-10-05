@@ -8,7 +8,7 @@ module mod_ghostcells_update
   end type wbuffer
 
   ! A switch of update physical boundary or not
-  logical :: bcphys=.true.
+  logical, public :: bcphys=.true.
   integer :: ixM^L, ixCoG^L, ixCoM^L
 
   !> The number of interleaving sending buffers for ghost cells

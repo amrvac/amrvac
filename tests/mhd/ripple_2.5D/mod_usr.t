@@ -53,11 +53,22 @@ contains
     double precision                   :: w(ixI^S,nw+nwauxio)
     double precision                   :: normconv(0:nw+nwauxio)
 
-    double precision                   :: tmp(ixI^S)
+    double precision                   :: tmp(ixI^S), bvec(ixI^S,1:ndir)
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
+    ! output the plasma beta p*2/B**2
+    if(B0field)then
+      w(ixO^S,nw+2)=tmp(ixO^S)*two/sum((w(ixO^S,mag(:))+&
+                    block%B0(ixO^S,:,0))**2,dim=ndim+1)
+    else
+      w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+    endif
+    ! output divB1
+    bvec(ixI^S,:)=w(ixI^S,mag(:))
+    call divvector(bvec,ixI^L,ixO^L,tmp)
+    w(ixO^S,nw+3)=tmp(ixO^S)
 
   end subroutine specialvar_output
 
@@ -66,7 +77,7 @@ contains
     use mod_global_parameters
     character(len=*) :: varnames
 
-    varnames='Te'
+    varnames='Te beta divb'
 
   end subroutine specialvarnames_output
 

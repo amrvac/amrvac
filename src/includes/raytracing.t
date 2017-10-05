@@ -1414,7 +1414,7 @@ end select
 {^IFTWOD    write(11,*) 'VARIABLES = X,Y,Z,RHO,V1,V2,V3,P,U1' }
    
     do iray = 1,nrays
-       write(11, '(a,i4,a,i4a,1pe12.5,a)' ) 'ZONE T= "',iray,'",I=',npointsmax(iray) ,',SOLUTIONTIME=',t*normt,',F=POINT'
+       write(11, '(a,i4,a,i4a,1pe12.5,a)' ) 'ZONE T= "',iray,'",I=',npointsmax(iray) ,',SOLUTIONTIME=',global_time*time_convert_factor,',F=POINT'
        do ipoint = 1,npointsmax(iray)
           write(11,1001) {^D&xraypoint(iray,ipoint,^D)},wraypoint(iray,ipoint,1:nw)*w_convert_factor(1:nw) &
 	                 ,uraypoint(iray,ipoint,1:nu)

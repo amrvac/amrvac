@@ -14,16 +14,19 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_radiative_cooling = .false.
 
   !> Whether viscosity is added
-  logical, public, protected              :: mhd_viscosity= .false.
+  logical, public, protected              :: mhd_viscosity = .false.
 
   !> Whether gravity is added
-  logical, public, protected              :: mhd_gravity= .false.
+  logical, public, protected              :: mhd_gravity = .false.
 
   !> Whether Hall-MHD is used
   logical, public, protected              :: mhd_Hall = .false.
 
   !> Whether particles module is added
   logical, public, protected              :: mhd_particles = .false.
+
+  !> Whether magnetofriction is added
+  logical, public, protected              :: mhd_magnetofriction = .false.
 
   !> Whether MHD-GLM is used
   logical, public, protected              :: mhd_glm = .false.
@@ -130,7 +133,7 @@ contains
     integer                      :: n
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
-      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm_Cr, &
+      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm_Cr, mhd_magnetofriction,&
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
       divbwave, He_abundance, SI_unit, B0field, B0field_forcefree, Bdip, Bquad, Boct, &
@@ -169,6 +172,7 @@ contains
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
     use mod_particles, only: particles_init
+    use mod_magnetofriction, only: magnetofriction_init
     use mod_physics
 
     integer :: itr, idir
@@ -309,6 +313,12 @@ contains
     if(mhd_particles) then
       call particles_init()
       phys_req_diagonal = .true.
+    end if
+
+    ! initialize magnetofriction module
+    if (mhd_magnetofriction) then
+      phys_req_diagonal = .true.
+      call magnetofriction_init()
     end if
 
     if (mhd_glm) then

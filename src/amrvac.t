@@ -105,11 +105,11 @@ program amrvac
      print*,'-------------------------------------------------------------------------------'
   end if
 
+  time_advance=.true.
+
   ! an interface to allow user to do special things before the main loop
   if (associated(usr_before_main_loop)) &
        call usr_before_main_loop()
-
-  time_advance=.true.
 
   ! do time integration of all grids on all levels
   call timeintegration()

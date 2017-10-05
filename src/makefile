@@ -93,6 +93,11 @@ mod_input_output.o: mod_small_values.mod
 mod_input_output.o: mod_timing.mod
 mod_limiter.o: mod_mp5.mod
 mod_limiter.o: mod_ppm.mod
+mod_magnetofriction.o: mod_fix_conserve.mod
+mod_magnetofriction.o: mod_ghostcells_update.mod
+mod_magnetofriction.o: mod_input_output.mod
+mod_magnetofriction.o: mod_mhd.mod
+mod_magnetofriction.o: mod_limiter.mod
 mod_mhd_hllc.o: mod_mhd_phys.mod
 mod_mhd_hllc.o: mod_physics_hllc.mod
 mod_mhd.o: mod_mhd_hllc.mod

@@ -94,7 +94,7 @@ r2i(ix^S,1:ndim)=dabs(r2i(ix^S,1:ndim))
 
 do idims=1,ndim
    if (.not.slab) then
-      tmp(ix^S)     = mygeo%dx(ix^S,idims)/(min(smalldouble, ptmass*r2i(ix^S,idims)))
+      tmp(ix^S)     = block%dx(ix^S,idims)/(min(smalldouble, ptmass*r2i(ix^S,idims)))
       dtgrav(idims) = minval(tmp(ix^S))
    else
       dtgrav(idims) = minval(one/(ptmass*r2i(ix^S,idims)*dxinv(idims)))

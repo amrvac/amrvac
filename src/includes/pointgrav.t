@@ -35,28 +35,28 @@ if (ptmass == zero) return
 call getgvector(ixI^L,ixO^L,x,r2i)
 
 w(ixO^S,e_) =  w(ixO^S,e_)    &
-            - qdt *ptmass*wCT(ixO^S,m1_)*r2i(ixO^S,1)   
+            - qdt *ptmass*wCT(ixO^S,mom(1))*r2i(ixO^S,1)   
 {^NOONED
 w(ixO^S,e_) =  w(ixO^S,e_)    &
-            - qdt *ptmass*wCT(ixO^S,m2_)*r2i(ixO^S,2)
+            - qdt *ptmass*wCT(ixO^S,mom(2))*r2i(ixO^S,2)
 }
 {^IFTHREED
 w(ixO^S,e_) =  w(ixO^S,e_)  &
-             - qdt *ptmass*wCT(ixO^S,m3_)*r2i(ixO^S,3)
+             - qdt *ptmass*wCT(ixO^S,mom(3))*r2i(ixO^S,3)
 }
 
 !
 !  Update momentum
 !
 
-w(ixO^S,m1_) =  w(ixO^S,m1_)  &
+w(ixO^S,mom(1)) =  w(ixO^S,mom(1))  &
              - qdt *ptmass*wCT(ixO^S,rho_)*r2i(ixO^S,1)
 {^NOONED
-w(ixO^S,m2_) =  w(ixO^S,m2_)  &
+w(ixO^S,mom(2)) =  w(ixO^S,mom(2))  &
              - qdt *ptmass*wCT(ixO^S,rho_)*r2i(ixO^S,2)
 }
 {^IFTHREED
-w(ixO^S,m3_) =  w(ixO^S,m3_)  &
+w(ixO^S,mom(3)) =  w(ixO^S,mom(3))  &
              - qdt *ptmass*wCT(ixO^S,rho_)*r2i(ixO^S,3)
 }
 
@@ -94,7 +94,7 @@ r2i(ix^S,1:ndim)=dabs(r2i(ix^S,1:ndim))
 
 do idims=1,ndim
    if (.not.slab) then
-      tmp(ix^S)     = mygeo%dx(ix^S,idims)/(min(smalldouble, ptmass*r2i(ix^S,idims)))
+      tmp(ix^S)     = block%dx(ix^S,idims)/(min(smalldouble, ptmass*r2i(ix^S,idims)))
       dtgrav(idims) = minval(tmp(ix^S))
    else
       dtgrav(idims) = minval(one/(ptmass*r2i(ix^S,idims)*dxinv(idims)))
