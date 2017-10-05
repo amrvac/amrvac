@@ -202,12 +202,12 @@ contains
     logical :: evenstep
 
     ! point bc mpi datatype to partial type for thermalconduction
-    type_send_srl=>type_send_srl_p
-    type_recv_srl=>type_recv_srl_p
-    type_send_r=>type_send_r_p
-    type_recv_r=>type_recv_r_p
-    type_send_p=>type_send_p_p
-    type_recv_p=>type_recv_p_p 
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1 
     ! create bc mpi datatype for ghostcells update
     if(first) then
       call create_bc_mpi_datatype(e_-1,1)

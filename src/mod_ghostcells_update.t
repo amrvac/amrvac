@@ -35,8 +35,10 @@ module mod_ghostcells_update
   ! energy). Furthermore _r_ stands for restrict, _p_ for prolongation.
   integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_f, type_recv_srl_f, type_send_r_f
   integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_f, type_send_p_f, type_recv_p_f
-  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_p, type_recv_srl_p, type_send_r_p
-  integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_p, type_send_p_p, type_recv_p_p
+  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_p1, type_recv_srl_p1, type_send_r_p1
+  integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_p1, type_send_p_p1, type_recv_p_p1
+  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_p2, type_recv_srl_p2, type_send_r_p2
+  integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_p2, type_send_p_p2, type_recv_p_p2
   integer, dimension(:^D&,:^D&), pointer :: type_send_srl, type_recv_srl, type_send_r
   integer, dimension(:^D&,:^D&), pointer :: type_recv_r, type_send_p, type_recv_p
 

@@ -24,15 +24,30 @@
 !>    mf_cdivb=0.1 ! divb cleaning coefficient controls diffusion speed of divb
 !>   /
 module mod_magnetofriction
-  use mod_mhd
   implicit none
 
+  !> stability coefficient controls numerical stability
   double precision :: mf_cc
+  !> frictional velocity coefficient
   double precision :: mf_cy
+  !> divb cleaning coefficient controls diffusion speed of divb
   double precision :: mf_cdivb
+  !> time in magnetofriction process
   double precision :: tmf
+  !> maximal speed for fd scheme
   double precision :: cmax_mype
+  !> maximal speed for fd scheme
   double precision :: cmax_global
+
+  !> Index of the density (in the w array)
+  integer, private, protected              :: rho_
+
+  !> Indices of the momentum density
+  integer, allocatable, private, protected :: mom(:)
+
+  !> Indices of the magnetic field
+  integer, allocatable, private, protected :: mag(:)
+
   integer :: mf_ditsave
   integer :: mf_it_max
   logical :: mf_advance
@@ -60,6 +75,12 @@ contains
     use mod_global_parameters
     use mod_usr_methods, only: usr_before_main_loop 
 
+    rho_=iw_rho
+    allocate(mom(ndir))
+    mom=iw_mom
+    allocate(mag(ndir))
+    mag=iw_mag
+
     mf_it_max=60000 ! set the maximum iteration number
     mf_ditsave=20000 ! set iteration interval for data output
     mf_cc=0.3d0    ! stability coefficient controls numerical stability
@@ -74,6 +95,7 @@ contains
 
   subroutine magnetofriction
     use mod_global_parameters
+    use mod_physics
     use mod_ghostcells_update
     use mod_input_output
 
@@ -100,15 +122,33 @@ contains
       call saveamrfile(2)
     end if
     mf_advance=.true.
+    ! point bc mpi datatype to partial type for magnetic field
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1 
+    ! create bc mpi datatype for ghostcells update
+    call create_bc_mpi_datatype(mag(1)-1,ndir)
+    ! point bc mpi datatype to partial type for velocity field
+    type_send_srl=>type_send_srl_p2
+    type_recv_srl=>type_recv_srl_p2
+    type_send_r=>type_send_r_p2
+    type_recv_r=>type_recv_r_p2
+    type_send_p=>type_send_p_p2
+    type_recv_p=>type_recv_p_p2 
+    ! create bc mpi datatype for ghostcells update
+    call create_bc_mpi_datatype(mom(1)-1,ndir)
     ! convert conservative variables to primitive ones which are used during MF
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       call mhd_to_primitive(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+       call phys_to_primitive(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
     end do
     ! calculate magnetofrictional velocity
     call mf_velocity_update(dtfff)
     ! update velocity in ghost cells
     bcphys=.false.
-    call getbc(tmf,0.d0,1,ndir)
+    call getbc(tmf,0.d0,mom(1)-1,ndir)
     bcphys=.true.
     ! calculate initial values of metrics
     if(i==0) then
@@ -137,29 +177,6 @@ contains
       ! =======
       call advectmf(1,ndim,tmf,dtfff)
     
-      ! clean divergence of magnetic field 
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        block=>pw(igrid)
-        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-        {do i^DB=-1,1\}
-           if (i^D==0|.and.) cycle
-           if (neighbor_type(i^D,igrid)==2 .or. neighbor_type(i^D,igrid)==4) then
-              leveljump(i^D)=.true.
-           else
-              leveljump(i^D)=.false.
-           end if
-        {end do\}
-        call divbclean(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dtfff)
-      end do
-      ! update B in ghost cells
-      call getbc(tmf+dtfff,dtfff,mag(1)-1,ndir)
-      ! calculate magnetofrictional velocity
-      call mf_velocity_update(dtfff)
-      ! update velocity in ghost cells
-      bcphys=.false.
-      call getbc(tmf+dtfff,dtfff,1,ndir)
-      bcphys=.true.
-    
       i=i+1
       tmf=tmf+dtfff
       if(mod(i,10)==0) then
@@ -171,13 +188,13 @@ contains
         it=i
         global_time=tmf
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call mhd_to_conserved(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+          call phys_to_conserved(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
         end do
         mf_advance=.false.
         call saveamrfile(1)
         call saveamrfile(2)
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-           call mhd_to_primitive(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+           call phys_to_primitive(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
         end do
         mf_advance=.true.
         if(mype==0) then
@@ -202,10 +219,18 @@ contains
         exit
       end if
     enddo
+    ! point bc mpi data type back to full type for MHD
+    type_send_srl=>type_send_srl_f
+    type_recv_srl=>type_recv_srl_f
+    type_send_r=>type_send_r_f
+    type_recv_r=>type_recv_r_f
+    type_send_p=>type_send_p_f
+    type_recv_p=>type_recv_p_f
+    bcphys=.true.
     ! set velocity back to zero and convert primitive variables back to conservative ones
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        pw(igrid)%w(ixG^T,mom(:))=zero
-       call mhd_to_conserved(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+       call phys_to_conserved(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
     end do
     global_time=tmpt
     it=tmpit
@@ -574,8 +599,7 @@ contains
 
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       allocate (pw(igrid)%w1(ixG^T,1:nw))
-       pw(igrid)%w1=pw(igrid)%w
+      pw(igrid)%w1=pw(igrid)%w
     end do
     
     istep=0
@@ -632,7 +656,7 @@ contains
     character(len=*), intent(in) :: method(nlevelshi)
 
     double precision :: qdt
-    integer :: iigrid, igrid, level
+    integer :: iigrid, igrid, level, i^D
     logical :: setigrid
 
     istep=istep+1
@@ -660,6 +684,15 @@ contains
          pw(igrid)%wb=>pw(igrid)%w2
        end select
 
+       {do i^DB=-1,1\}
+          if (i^D==0|.and.) cycle
+          if (neighbor_type(i^D,igrid)==2 .or. neighbor_type(i^D,igrid)==4) then
+             leveljump(i^D)=.true.
+          else
+             leveljump(i^D)=.false.
+          end if
+       {end do\}
+
        call process1_gridmf(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
                        pw(igrid)%wa,qt,pw(igrid)%wb,pw(igrid)%wold)
     end do
@@ -672,13 +705,27 @@ contains
       call sendflux(idim^LIM)
       call fix_conserve(idim^LIM,mag(1),mag(ndir))
     end if
+    ! point bc mpi datatype to partial type for magnetic field
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1 
     ! update B in ghost cells
     call getbc(qt+qdt,qdt,mag(1)-1,ndir)
     ! calculate magnetofrictional velocity
     call mf_velocity_update(qdt)
+    ! point bc mpi datatype to partial type for velocity field
+    type_send_srl=>type_send_srl_p2
+    type_recv_srl=>type_recv_srl_p2
+    type_send_r=>type_send_r_p2
+    type_recv_r=>type_recv_r_p2
+    type_send_p=>type_send_p_p2
+    type_recv_p=>type_recv_p_p2 
     ! update magnetofrictional velocity in ghost cells
     bcphys=.false.
-    call getbc(qt+qdt,qdt,1,ndir)
+    call getbc(qt+qdt,qdt,mom(1)-1,ndir)
     bcphys=.true.
 
   end subroutine advect1mf
@@ -898,6 +945,7 @@ contains
     end do ! Next idims
     
     if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
+    call divbclean(qdt,ixI^L,ixO^L,wCT,wnew,x)
   
   end subroutine tvdlfmf
 
@@ -1013,6 +1061,7 @@ contains
     end do !idims loop
 
     if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
+    call divbclean(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
   end subroutine fdmf
 
@@ -1170,6 +1219,7 @@ contains
     end do       !next idims
 
     if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
+    call divbclean(qdt,ixI^L,ixO^L,wCT,w,x)
 
   end subroutine centdiff4mf
 
@@ -1223,19 +1273,19 @@ contains
 
   end subroutine getcmaxfff
 
-  subroutine divbclean(ixI^L,ixO^L,w,x,qdt)
-    ! Add Janhunen's and Linde's divB related sources to w
+  !> Clean divergence of magnetic field by Janhunen's and Linde's source terms 
+  subroutine divbclean(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: x(ixI^S,1:ndim),qdt
+    double precision, intent(in)    :: x(ixI^S,1:ndim),wCT(ixI^S,1:nw),qdt
     double precision, intent(inout) :: w(ixI^S,1:nw)
     integer :: idims, ix^L, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S),bdivb(ixI^S,1:ndir)
 
     ! Calculate div B
     ix^L=ixO^L^LADD1;
-    call get_divb(w,ixI^L,ix^L,divb)
+    call get_divb(wCT,ixI^L,ix^L,divb)
     ! for AMR stability, retreat one cell layer from the boarders of level jump
     ixp^L=ixO^L;
     !do idims=1,ndim
@@ -1332,5 +1382,50 @@ contains
     end select
   
   end subroutine addgeometrymf
+
+  !> Calculate idirmin and the idirmin:3 components of the common current array
+  !> make sure that dxlevel(^D) is set correctly.
+  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
+    use mod_global_parameters
+
+    integer :: idirmin0
+    integer :: ixO^L, idirmin, ixI^L
+    double precision :: w(ixI^S,1:nw)
+    integer :: idir
+
+    ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
+    double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+
+    idirmin0 = 7-2*ndir
+
+    bvec(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+
+    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+
+    if(B0field) current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+&
+        block%J0(ixO^S,idirmin0:3)
+
+  end subroutine get_current
+
+  !> Calculate div B within ixO
+  subroutine get_divb(w,ixI^L,ixO^L,divb)
+
+    use mod_global_parameters
+
+    integer, intent(in)                :: ixI^L, ixO^L
+    double precision, intent(in)       :: w(ixI^S,1:nw)
+    double precision                   :: divb(ixI^S)
+
+    double precision                   :: bvec(ixI^S,1:ndir)
+
+    bvec(ixI^S,:)=w(ixI^S,mag(:))
+
+    select case(typediv)
+    case("central")
+      call divvector(bvec,ixI^L,ixO^L,divb)
+    case("limited")
+      call divvectorS(bvec,ixI^L,ixO^L,divb)
+    end select
+  end subroutine get_divb
 
 end module mod_magnetofriction
