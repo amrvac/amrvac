@@ -8,69 +8,54 @@
 !=====================================================
 
  &filelist
-        filenamelog='movstarO'
-        filenameout='movstarO'
-        primnames='rho v1 v2 p'
+        base_filename='movstarO'
 	autoconvert = .true.
 	saveprim=.true.
 	convert_type='vtuBCCmpi'
-        typeparIO=-1
         nwauxio=2
 /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        ditsave(1)= 100
-        dtsave(2)= 1.0D-1
+        ditsave_log= 100
+        dtsave_dat= 1.0D-1
 	
 /
  &stoplist
-       tmax = 5.0D0
+       time_max = 5.0D0
        dtmin= 1.0d-10
  /
 
  &methodlist
-        wnames      = 'rho m1 m2 e'
-        fileheadout = 'movstar_hd22'
-        typeadvance = 'ssprk54'
-        typefull1   = 13*'tvdlf'
-        typelimiter1= 13*'minmod'
-	typeaxial   = 'cylindrical'
-        loglimit(1) = .true.
+        time_integrator = 'ssprk54'
+        flux_scheme   = 20*'tvdlf'
+        limiter= 20*'minmod'
+	        loglimit(1) = .true.
         loglimit(4) = .true.
-	useprimitive= .true.
-        dimsplit    = .false.
+	        dimsplit    = .false.
 	ncool       = 10000
 	coolmethod  = 'exact'
 	coolcurve   = 'SPEX_DM'
 	Tfix        = .true.
-        ssplituser=.false.
-        fixsmall=.true.
-        strictsmall=.false.
-        strictgetaux=.false.
-        nflatgetaux=2
-        smallp=1.0d-16
-        smallrho=1.0d-14
+        small_pressure=1.0d-16
+        small_density=1.0d-14
  /
 
  &boundlist
-        dixB=    2
-        typeB=   'symm','asymm','symm','symm',4*'cont',
+        typeboundary=   'symm','asymm','symm','symm',4*'cont',
 		 4*'limitinflow',4*'special'
         ratebdflux=0.01d0
  /
 
- &amrlist
-	errorestimate=3
-        mxnest=4
-	flags(5)=1
-	flags(1)=5
-	wflags(1)=1.0d0
-	tol = 13*0.1d0
-	tolratio = 13*0.125D0
-	nxlone1=100
-        nxlone2=100
+ &meshlist
+	refine_criterion=3
+        refine_max_level=4
+			w_refine_weight(1)=1.0d0
+	refine_threshold = 20*0.1d0
+	derefine_ratio = 20*0.125D0
+	domain_nx1=100
+        domain_nx2=100
 	xprobmin1=0.0D0
 	xprobmax1=5.0d0
 	xprobmin2=-2.5D0

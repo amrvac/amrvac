@@ -8,23 +8,24 @@ completed.
 # The VAC problem
 
 Traditionally, the first test problem is the VAC advection located in
-`$AMRVAC_DIR/tests/rho/vac`. Two files are present in this folder:
+`amrvac/tests/rho/vac`. Two files are present in this folder:
 
 * `mod_usr.t`: the user code for this problem (defining e.g. initial conditions)
 * `amrvac.par`: a text file with settings
 
 # Compilation {#vac_compilation}
 
-In the VAC test folder, run the setup script with:
+In the vac test folder, run the setup script with:
 
-    $AMRVAC_DIR/setup.pl -d=2
+    setup.pl -d=2
 
-This will copy a makefile to the current folder, and set the problem dimension
-to two. To select different compiler settings (present in `$AMRVAC_DIR/arch/`)
+This will copy a makefile to the current folder, set the problem dimension
+to two, and use the default compiler settings, which is gfortran with openMPI.
+To select different compiler settings (present in `amrvac/arch/`)
 you could for example use:
 
-    $AMRVAC_DIR/setup.pl -d=2 -arch=intel
-    $AMRVAC_DIR/setup.pl -d=2 -arch=debug
+    setup.pl -d=2 -arch=intel
+    setup.pl -d=2 -arch=debug
 
 You can also edit the `makefile` directly.
 
@@ -33,9 +34,9 @@ Then its time to compile the code:
     make -j 4
 
 This will perform a parallel compilation using 4 cores. First, the AMRVAC
-library is compiled in `$AMRVAC_DIR/lib/` if it is not available already. This
+library is compiled in `amrvac/lib/` if it is not available already. This
 is the generic part of AMRVAC that does not depend on your user code. Then your
-user code is also compiled, and a binary called `amrvac` is produced.
+user code is also compiled, and an executable binary file called `amrvac` is produced.
 
 There are a couple useful commands to know about:
 

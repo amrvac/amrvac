@@ -22,7 +22,7 @@ probably best to look at a couple of them and pick one you like, for example:
 * https://git-scm.com/docs/gittutorial
 * http://rogerdudler.github.io/git-guide/
 
-You can ask for access to the MPI-AMRVAC Gitlab repository so that you can
+You can ask for access to the MPI-AMRVAC Github repository so that you can
 `push` your changes to it. You can also clone the repository and/or file a merge
 request.
 

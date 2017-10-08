@@ -10,10 +10,10 @@
 ! For setup in 2D use:
 !$AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=2 -g=14,14 -p=hd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
 
-INCLUDE:amrvacnul/specialimpl.t
-INCLUDE:amrvacnul/usrflags.t
+
+
 INCLUDE:amrvacnul/correctaux_usr.t
-INCLUDE:amrvacmodules/cooling.t
+
 !=============================================================================
 subroutine initglobaldata_usr
 
@@ -62,30 +62,30 @@ end select
 != Above this line nothing is normalized
 !==========================================================================
 
-normvar(0)    = 3.0857D18
-normvar(rho_) = 10.0**(-25)
-normvar(v1_)  = 1.0d7
-{^NOONEC normvar(v2_)    = normvar(v1_)}
-normvar(p_)   = normvar(rho_)*normvar(v1_)*normvar(v1_)
-normt         = normvar(0)/normvar(v1_)
+length_convert_factor    = 3.0857D18
+w_convert_factor(rho_) = 10.0**(-25)
+w_convert_factor(mom(1))  = 1.0d7
+{^NOONEC w_convert_factor(mom(2))    = w_convert_factor(mom(1))}
+w_convert_factor(p_)   = w_convert_factor(rho_)*w_convert_factor(mom(1))*w_convert_factor(mom(1))
+time_convert_factor         = length_convert_factor/w_convert_factor(mom(1))
 
-eqpar(Rstar_) = eqpar(Rstar_) / normvar(0)
-eqpar(Tscale_) = (1.0D0/(normvar(v1_)**2.0d0)) &
+eqpar(Rstar_) = eqpar(Rstar_) / length_convert_factor
+eqpar(Tscale_) = (1.0D0/(w_convert_factor(mom(1))**2.0d0)) &
                * kboltz/mhydro
-eqpar(Lscale_) =  normvar(rho_)*normt/((mhydro*normvar(v1_))**2.0)
+eqpar(Lscale_) =  w_convert_factor(rho_)*time_convert_factor/((mhydro*w_convert_factor(mom(1)))**2.0)
 eqpar(Mue_) = 1.0D0
 
 if(mype == 0) then
    fileid = 11
    write(filename,"(a,a)") TRIM(filenamelog),".scale"
    open(fileid,file=filename, status='unknown')
-   write(fileid,1004) 'normt:        ', normt
-   write(fileid,1004) 'normvar(0):   ', normvar(0)
-   write(fileid,1004) 'normvar(v1_): ', normvar(v1_)
-   write(fileid,1004) 'normvar(rho_):', normvar(rho_)    
-   write(fileid,1004) 'normvar(p_):  ', normvar(p_)    
+   write(fileid,1004) 'time_convert_factor:        ', time_convert_factor
+   write(fileid,1004) 'length_convert_factor:   ', length_convert_factor
+   write(fileid,1004) 'w_convert_factor(mom(1)): ', w_convert_factor(mom(1))
+   write(fileid,1004) 'w_convert_factor(rho_):', w_convert_factor(rho_)    
+   write(fileid,1004) 'w_convert_factor(p_):  ', w_convert_factor(p_)    
    write(fileid,*) 
-   write(fileid,1004) 'accel         ', normvar(v1_)*normvar(v1_)/normvar(0)
+   write(fileid,1004) 'accel         ', w_convert_factor(mom(1))*w_convert_factor(mom(1))/length_convert_factor
    write(fileid,*)
    write(fileid,1002) 1.0d0/eqpar(Tscale_)
    write(fileid,1003) eqpar(Lscale_)
@@ -125,18 +125,18 @@ cosTh(ix^S) = x(ix^S,2)/rad(ix^S)
 sinTh(ix^S) = x(ix^S,1)/rad(ix^S)
 
 where ( rad(ix^S)>= eqpar(Rwind_) ) 
-      w(ix^S,rho_) = eqpar(rhoISM_)/normvar(rho_)
-      w(ix^S,v1_)  = zero
+      w(ix^S,rho_) = eqpar(rhoISM_)/w_convert_factor(rho_)
+      w(ix^S,mom(1))  = zero
 {^NOONEC                      
-       w(ix^S,v2_)  = -eqpar(vISM_)  /  normvar(v2_)
+       w(ix^S,mom(2))  = -eqpar(vISM_)  /  w_convert_factor(mom(2))
 }
       w(ix^S,p_)   = w(ix^S,rho_)*eqpar(Tism_)*eqpar(Tscale_)
    elsewhere
-      w(ix^S,rho_) = eqpar(Mdot1_)/(4.0D0*dpi*eqpar(vwind1_) * (rad(ix^S)*normvar(0))**2 ) &
-                   / normvar(rho_)
-      w(ix^S,v1_)  = (eqpar(vwind1_) /normvar(v1_)) * sinTh(ix^S)
+      w(ix^S,rho_) = eqpar(Mdot1_)/(4.0D0*dpi*eqpar(vwind1_) * (rad(ix^S)*length_convert_factor)**2 ) &
+                   / w_convert_factor(rho_)
+      w(ix^S,mom(1))  = (eqpar(vwind1_) /w_convert_factor(mom(1))) * sinTh(ix^S)
 {^NOONEC
-      w(ix^S,v2_)  = (eqpar(vwind1_) /normvar(v2_)) * cosTh(ix^S)
+      w(ix^S,mom(2))  = (eqpar(vwind1_) /w_convert_factor(mom(2))) * cosTh(ix^S)
 }
       w(ix^S,p_)     =  w(ix^S,rho_)*eqpar(Twind1_)* eqpar(Tscale_)
 end where
@@ -162,9 +162,9 @@ logical :: patchw(ixG^T)
  
 select case(iB)
 case(4)
-      w(ixO^S,rho_)   = eqpar(rhoISM_)/normvar(rho_)
-      w(ixO^S,v1_)    = zero
-      w(ixO^S,v2_)    = -eqpar(vISM_)/normvar(v2_)
+      w(ixO^S,rho_)   = eqpar(rhoISM_)/w_convert_factor(rho_)
+      w(ixO^S,mom(1))    = zero
+      w(ixO^S,mom(2))    = -eqpar(vISM_)/w_convert_factor(mom(2))
       w(ixO^S,p_)   = w(ixO^S,rho_)*eqpar(TISM_)*eqpar(Tscale_)
       patchw(ixO^S)=.false.
       call conserve(ixG^L,ixO^L,w,x,patchw)
@@ -195,11 +195,11 @@ cosTh(ixO^S) = x(ixO^S,2)/rad(ixO^S)
 sinTh(ixO^S) = x(ixO^S,1)/rad(ixO^S)
 
 where ( rad(ixO^S)< Rw ) 
-      w(ixO^S,rho_)  = eqpar(Mdot1_)/(4.0D0*dpi*eqpar(vwind1_)* (rad(ixO^S)*normvar(0))**2 ) &
-                      / normvar(rho_)
-      w(ixO^S,m1_)   = (eqpar(vwind1_) /normvar(v1_)) *sinTh(ixO^S)*w(ixO^S,rho_)
+      w(ixO^S,rho_)  = eqpar(Mdot1_)/(4.0D0*dpi*eqpar(vwind1_)* (rad(ixO^S)*length_convert_factor)**2 ) &
+                      / w_convert_factor(rho_)
+      w(ixO^S,mom(1))   = (eqpar(vwind1_) /w_convert_factor(mom(1))) *sinTh(ixO^S)*w(ixO^S,rho_)
 {^NOONEC
-      w(ixO^S,m2_)   = (eqpar(vwind1_) /normvar(v1_)) *cosTh(ixO^S)*w(ixO^S,rho_)
+      w(ixO^S,mom(2))   = (eqpar(vwind1_) /w_convert_factor(mom(1))) *cosTh(ixO^S)*w(ixO^S,rho_)
 }
       w(ixO^S,e_)    = w(ixO^S,rho_)*eqpar(Twind1_)*eqpar(Tscale_)/(eqpar(gamma_)-one)+ &
            half*(^C&w(ixO^S,m^C_)**2.0d0+)/w(ixO^S,rho_)
@@ -272,7 +272,7 @@ if(iprob==-1)then
   w(ixO^S,nw+1)=dlog10(wloc(ixO^S,rho_))
   w(ixO^S,nw+2)=tmp(ixO^S)/wloc(ixO^S,rho_)
 else
-  w(ixO^S,nw+1)=dlog10(wloc(ixO^S,rho_)*normvar(rho_))
+  w(ixO^S,nw+1)=dlog10(wloc(ixO^S,rho_)*w_convert_factor(rho_))
   ! output the temperature p/rho
   w(ixO^S,nw+2)=(tmp(ixO^S)/wloc(ixO^S,rho_))/eqpar(Tscale_)
 endif
@@ -289,10 +289,10 @@ use mod_global_parameters
 
 if(iprob==-1)then
   primnames= TRIM(primnames)//' '//'logrhoN TN'
-  wnames=TRIM(wnames)//' '//'logrhoN TN'
+  w_names=TRIM(w_names)//' '//'logrhoN TN'
 else
   primnames= TRIM(primnames)//' '//'logrho T'
-  wnames=TRIM(wnames)//' '//'logrho T'
+  w_names=TRIM(w_names)//' '//'logrho T'
 endif
 
 end subroutine specialvarnames_output
@@ -335,7 +335,7 @@ double precision, intent(out):: var(ixG^T)
 !-----------------------------------------------------------------------------
 
 if (iflag >nw+1)call mpistop(' iflag error')
-var(ixI^S) = dsqrt(w(ixI^S,m1_)**2 + w(ixI^S,m2_)**2 )/w(ixI^S,rho_)
+var(ixI^S) = dsqrt(w(ixI^S,mom(1))**2 + w(ixI^S,mom(2))**2 )/w(ixI^S,rho_)
 
 end subroutine specialvarforerrest
 !=============================================================================

@@ -19,16 +19,14 @@ To install in `~/codes/amrvac`:
     cd ~/codes
     git clone https://github.com/amrvac/amrvac.git
 
-# Setting AMRVAC_DIR {#install}
+# Setting path {#install}
 
-To use MPI-AMRVAC, the `$AMRVAC_DIR` environment variable has to point to the
-installation directory. To do so using bash, you should add the following entry
-to your `~/.bashrc` file (or perhaps `~/.bash_profile`):
+To use MPI-AMRVAC, the installation directory has to be added to the command searching path. 
+To do so using bash, you should add the following entry
+to your `~/.bashrc` file (or perhaps `~/.profile` in mac OS):
 
-    # Set AMRVAC_DIR
-    export AMRVAC_DIR=$HOME/codes/amrvac
+    PATH="$PATH:$HOME/codes/amrvac:$HOME/codes/amrvac/tools"
 
-You can then open a new shell, or source the file with
+You can then activate the setting by source the file, or close and open a new terminal shell, 
 
     source ~/.bashrc
-

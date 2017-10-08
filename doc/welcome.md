@@ -43,7 +43,7 @@ conditions, and for source terms or special boundary conditions when needed.
 
 # Current development {#current_develop}
 
-MPI-ARMVAC is currently maintained and further developed by members of
+MPI-AMRVAC is currently maintained and further developed by members of
 the
 [Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA).
 
