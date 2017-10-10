@@ -13,7 +13,6 @@ on [amrvac.org](http://amrvac.org/).
 * @ref installation.md
 * @ref getting_started.md
 * @ref contributing.md
-* [List of tests](@ref test)
 * @ref publications.md
 * @ref acknowledgments.md
 * @ref todo

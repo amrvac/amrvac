@@ -22,7 +22,7 @@ parameter files and user modules have been provided.
 * [Equations](equations.md) The equations and parameters in the existing
 physics modules. How to create a new physics module.
 * [User files](amrvacusr.md) How to create a new problem, specify initial
-  conditions and customize AMRVAC.
+  conditions and customize functionalities.
 
 # Discretization and AMR related matter {#discretization}
 
