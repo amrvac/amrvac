@@ -4,12 +4,11 @@
 # AMRVAC PreProcessor (Based on vacpp.pl by Gabor Toth)
 #
 # Translates the dimension independent notation to Fortran 90 by expanding
-# the Loop Annotation SYntax (LASY). Also translates COMMON, INCLUDE:
+# the Loop Annotation SYntax (LASY).
 #
-# Usage: make file.f                           # Called by the Makefile
-#        vacpp.pl -d=23 -p=rho -               # Interactive
-#        vacpp.pl file.t > file.f              # Translation
-#        vacpp.pl -maxlen=72 file.t > file.f   # Limit line length
+# Usage: vacpp.pl -d=2                              # Interactive
+#        vacpp.pl -d=2 file.t > file.f              # Translation
+#        vacpp.pl -d=2 -maxlen=72 file.t > file.f   # Limit line length
 #############################################################################
 use Cwd;
 

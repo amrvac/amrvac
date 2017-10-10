@@ -7,8 +7,8 @@
 MPI-AMRVAC is in use on Mac laptops, Unix desktops, and modern supercomputing
 facilities. The following software is required:
 
-* An MPI library, e.g. OpenMPI or MPICH
 * A Fortran compiler, e.g. gfortran or ifort
+* An MPI library, e.g. OpenMPI or intel MPI
 * `perl` for the [VACPP](vacpp.md) preprocessor (standard on Unix-based platforms)
 * `git` to download and update the code
 
@@ -22,7 +22,7 @@ To install in `~/codes/amrvac`:
 # Setting path {#install}
 
 To use MPI-AMRVAC, the installation directory has to be added to the command searching path. 
-To do so using bash, you should add the following entry
+To do so using bash, you should add the following line
 to your `~/.bashrc` file (or perhaps `~/.profile` in mac OS):
 
     PATH="$PATH:$HOME/codes/amrvac:$HOME/codes/amrvac/tools"

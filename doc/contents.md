@@ -1,4 +1,4 @@
-# Contents {#doc-contents}
+# Code Contents {#doc-contents}
 
 [TOC]
 
@@ -18,9 +18,9 @@ financial support.
 
 * [Command line](commandline.md)      Help on command-line parameters.
 * [Examples](examples.md) Description of various example simulations for which
-parameter files and AMRVACUSR modules have been provided.
+parameter files and user modules have been provided.
 * [Equations](equations.md) The equations and parameters in the existing
-AMRVACPHYS modules. How to create a new AMRVACPHYS module.
+physics modules. How to create a new physics module.
 * [User files](amrvacusr.md) How to create a new problem, specify initial
   conditions and customize AMRVAC.
 
@@ -42,7 +42,7 @@ for MPI-AMRVAC.
 * [Auxiliary variables for MPI-AMRVAC](mpiamrvac_nw.md) Description of the
 intended use for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
 
-# Special Sources {#special_sources}
+# Additional Physics {#special_sources}
 
 * [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction. 
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling. 
