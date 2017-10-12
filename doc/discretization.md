@@ -16,23 +16,21 @@ form
 where w is a vector of **iw=1..nw** flow variables, **F_i** are fluxes in
 **idim=1..ndim** directions for each **w**, and **S** is the source including
 all terms which are not described by **F_i**. The flux and source terms
-together are denoted by **R**. (The name of the equation is also known by a
-character string parameter **typephys** in **src/EQUATION/amrvacpar.t**). The
-discretization is of a finite volume kind, where cell-centered quantities
-represent cell-averaged densities for conservative variables.
+together are denoted by **R**. The discretization is of a finite volume kind, 
+where cell-centered quantities represent cell-averaged densities for 
+conservative variables.
 
 # Dimensional and Source Splitting {#disc-splitting}
 
 Some methods were originally designed to handle 1D problems, they may be best
 applied to multidimensional problems by splitting the equation for the
 derivatives of the flux, and solving the split equations in subsequent sweeps.
-All these strategies are handled in the _advance.t_ module.
+All these strategies are handled in the _mod_advance.t_ module.
 
 For a forward Euler time integration scheme the above equation can be
 discretised in time as
 
-     n+1                        n
-    w    = [I+dt*(Fx+Fy+Fz+S)] w
+    w^(n+1)    = [I+dt*(Fx+Fy+Fz+S)] w^n
 
 where Fx, Fy, and Fz are short notations for the dF_i/dx_i terms for 3D.
 
@@ -52,8 +50,8 @@ at all, hence **dimsplit=F** (which implies **typedimsplit='unsplit'**).
 The source terms S may also be separated from the fluxes F. A reason to use
 split source terms may arise, when the sources are stiff, or unstable for an
 explicit evaluation. For steady state evolutions, one would typically use
-unsplit sources and no dimensional splitting at all. Splitting sources from
-fluxes is achieved by **sourcesplit=T**. How sources are then added depends on
+unsplit sources and no dimensional splitting at all. Splitting user sources from
+fluxes is achieved by **source_split_usr=T**. How sources are then added depends on
 **typesourcesplit**, which can be any of 4 pre-implemented combinations.
 
 Setting **typesourcesplit='sfs'** results in
@@ -69,8 +67,7 @@ for the dimensionally unsplit case, and
 for the dimensionally split case. To achieve second order time accuracy, the
 numerical representation of the source term **S** should be second order
 accurate in time. In case of special source terms written by the user, this
-may be achieved by implementing e.g. a trapezoidal scheme in the
-**specialsource** subroutine.
+may be achieved by implementing in the pointed **usr_source** subroutine.
 
 However a simple second order Runge-Kutta evaluation is already built in.
 Setting **typesourcesplit='ssfss'** gives the following evaluation for **w_S =
@@ -81,7 +78,7 @@ Setting **typesourcesplit='ssfss'** gives the following evaluation for **w_S =
 
 both at the beginning and at the end of the time step, otherwise the default
 **w_S = w + dt/2 S(w)** is used. Other choices for **typesourcesplit** are
-**'sf', 'ssf'**. Note that the default is **sourcesplit=F**.
+**'sf', 'ssf'**.
 
 # Time Discretization {#disc-time}
 
@@ -96,12 +93,12 @@ arise in the equations above depending on the number of dimensions and on the
 dimensional and source splitting parameters.
 
 There are many options to evaluate **w_R=[I+dt*R] w**, it is determined by the
-value of the **typeadvance** parameter with the following options:
+value of the **time_integrator** parameter with the following examples:
 
-    w_R = w + dt*R(w)                     'onestep'
+    w_R = w + dt*R(w)                 'onestep'
 
-    w_1 = w + dt/2*R'(w)                  'twostep'  (predictor step)
-    w_R = w + dt  *R (w_1)                           (corrector step)
+    w_1 = w + dt/2*R1(w)               'twostep'  (predictor step)
+    w_R = w + dt  *R(w_1)                        (corrector step)
 
     w_1 = w + dt/2*R(w)	              'fourstep' (classical RK4)
     w_2 = w + dt/2*R(w_1)
@@ -110,41 +107,43 @@ value of the **typeadvance** parameter with the following options:
     w   = w + dt/6*[R(w_1)+2*R(w_2)+2*R(w_3)+R(w_4)]
 
 RK4 is fourth order accurate. Not all schemes can be combined with all
-options, infact the TVD scheme should use **typeadvance='onestep'**, while the
+options, infact the TVD scheme should use **time_integrator='onestep'**, while the
 other temporally second order methods TVDLF, TVD-MUSCL, HLL, HLLC can use
-**typeadvance='twostep'** or **typeadvance='fourstep'**.
+**time_integrator='twostep'** or **time_integrator='fourstep'**.
 
-Since in the twostep method the **R'** spatial discretization in the first
+Since in the twostep method the **R1** spatial discretization in the first
 _predictor_ step can be different from **R** of the second _corrector_ step,
 the twostep time integration is a predictor-corrector type scheme. In the
-parameter file, the arrays **typepred1** and **typefull1** (which need to be
+parameter file, the arrays **typepred1** and **flux_scheme** (which need to be
 specified for each AMR grid level up to **nlevelshi**), determine the method
 applied in the predictor and full step.
 
-For the multistep RK4 integration scheme, the same **typefull1** method is
+For the multistep RK4 integration scheme, the same **flux_scheme** method is
 used in each substep for **istep=1..nstep**. Full timesteps are counted by
 **it_init &lt;= it &lt;= it_max**, while the physical time is **global_time &lt;= time_max**.
 
 # Grid and Mesh {#disc-grid}
 
 The grid is a 1, 2 or 3D grid, either Cartesian, cylindrical (to which polar
-belongs), or spherical. The coordinates of the grid points are represented by
-the array **x**, usually interpreted as Cartesian coordinates X, Y, and Z,
-except for cylindrical or polar grid, when they contain R, PHI, and Z instead
-(the order for PHI and Z can be selected through the **setamrvac -z= -phi=**
-flags), and in spherical they always contain r, theta, phi (in that order).
+belongs), or spherical, which is selected by call `set_coordinate_system` 
+in `usr_init` subroutine of `mod_usr.t`. See [coordinate system](axial.md) for 
+more information.
+ The coordinates of the grid points are represented by
+the array **x**, usually interpreted for Cartesian coordinates as x, y, and z;
+for cylindrical as r, z, and phi; for polar grid as r, phi, and z;
+for spherical grid as r, theta, and phi. 
 Other useful cell-related quantities calculated from **x**, like distance
 between cell interfaces, volume, surface, and surface normal, are also
 computed, and this happens in the _geometry.t_ module, specifically in the
 _fillgeo_ subroutine. They are stored in the structures
-_pgeo(igrid)%surfaceC^D_, _pgeo(igrid)%surface^D_, _pgeo(igrid)%dvolume_ and
-_pgeo(igrid)%dx_.
+_pw(igrid)%surfaceC(ixG^T,^D)_, _pw(igrid)%surface(ixG^T,^D)_,
+ _pw(igrid)%dvolume_ and _pw(igrid)%dx_.
 
 The spatial indices of these arrays, denoted by the dimension independent
 [syntax](source.md), have varying ranges, depending on their use (as cell
-centered, or cell surface quantities). Remember that the _setamrvac -g=_ sets
-the grid plus ghost cell extent, whose width is set by _dixB_. This defines
-the total grid extent
+centered, or cell surface quantities). Remember that 
+number of physical cells (by _block_nx^D_) plus number of ghostcells 
+(by _nghostcells_) gives the total grid extent:
 
     ixGlo^D:ixGhi^D = ixG^T
 
@@ -155,14 +154,14 @@ boundaries, is denoted as
 
 The mesh is defined as the grid without boundary layers:
 
-    ixMmin^D,ixMmax^D = ixGmin^D+dixB,ixGmax^D-dixB
+    ixMmin^D,ixMmax^D = ixGmin^D+nglostcells,ixGmax^D-nglostcells
 
 or in a shorter notation
 
-    ixM^L = ixG^L^LSUBdixB^L
+    ixM^L = ixG^L^LSUBnglostcells^L
 
-The ghost cells are updated by the subroutine **getbc**. When a file is read
-or saved by MPI-AMRVAC, the ghost cells are not included.
+The ghost cells are updated by the subroutine `getbc` in `mod_ghostcells_update.t`. 
+When a file is read or saved by MPI-AMRVAC, the ghost cells are usually not included.
 
 You may run the [VACPP](vacpp.md) preprocessor interactively to see how the
 above expressions are translated for a given number of dimensions.
@@ -178,9 +177,9 @@ ixmax2, ixmin3, ixmax3_, order. The regions overlap at the corner ghost cells.
 
 The boundary methods are applied to each boundary region from **iB=1** to
 **nB** and for each variable from **iw=1** to **nw** according to the
-descriptor string **typeB(iw,iB)**. An exception is made for the **special**
-type variables, they are called _after_ the other variables have been
-extrapolated into the boundary region.
+descriptor string **typeboundary(iw,iB)**. An exception is made for the **special**
+type variables, where all variables should be provided somehow in conservative format
+by users in pointed `usr_special_bc` subroutine in `mod_usr.t`.
 
 Please note that the boundary itself is at the interface between the real and
 ghost cells, therefore setting the velocity to 0 in the ghost cell will not
@@ -194,9 +193,9 @@ boundary type should be used.
 
 Internal boundaries can be used to overwrite the domain variables with
 specified values. Internally, these are assigned before the ghost-cells and
-external boundaries are applied (in subroutine _get_bc_). The user can provide
+external boundaries are applied (in subroutine `get_bc`). The user can provide
 conditions on the conserved variables depending on location or time in the
-subroutine _bc_int_ which is defaulted in _amrvacnul.specialbound.t_. To
+pointed `usr_internal_bc` subroutine. To
 activate internal boundaries, the switch
 
     internalboundary=.true.
