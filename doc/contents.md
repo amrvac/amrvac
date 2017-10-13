@@ -4,10 +4,8 @@
 
 # Introduction for new users {#intro_new_users}
 
-* [Features](features.md) An overview of the main features of the Message
-Passing Interface - Adaptive Mesh Refinement - Versatile Advection Code.
-* [Getting Started](getting_started.md) How to install the Message Passing
-Interface - Adaptive Mesh Refinement - Versatile Advection Code and run your
+* [Features](features.md) An overview of the main features of MPI-AMRVAC. 
+* [Getting Started](getting_started.md) How to install MPI-AMRVAC and run your
 first test problem.
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
 financial support.
@@ -16,31 +14,26 @@ financial support.
 
 # General {#general}
 
-* [Command line](commandline.md)      Help on command-line parameters.
+* [Command line](commandline.md) Help on command-line parameters.
 * [Examples](examples.md) Description of various example simulations for which
 parameter files and user modules have been provided.
-* [Equations](equations.md) The equations and parameters in the existing
-physics modules. How to create a new physics module.
+* [Equations](equations.md) The equations and parameters in physics modules.
 * [User files](amrvacusr.md) How to create a new problem, specify initial
   conditions and customize functionalities.
+* [Parameters](par.md) Description of all parameters in "amrvac.par" parameter file.
+* [Auxiliary variables](mpiamrvac_nw.md) Description of the intended use 
+  for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
 
-# Discretization and AMR related matter {#discretization}
+# Discretization methods and AMR strategy {#discretization}
 
 * [Discretization](discretization.md) The equation and its discretization, the
 basic variables, the structure of the grid, boundaries, ghost cells.
-* [Using polar/cylindrical/spherical coordinates](axial.md) Some information on
-simulations using non-Cartesian grids
 * [Methods](methods.md) Properties of the discretization methods like TVDLF,
 TVDMU, TVD, HLL, ...
 * [AMR aspects](amrstructure.md) Some essential info on global parameters and
 the data structures for the block-tree AMR.
-
-# Parameters {#parameters}
-
-* [Parameters for AMRVAC](par.md) Description of the "amrvac.par" parameter file
-for MPI-AMRVAC.
-* [Auxiliary variables for MPI-AMRVAC](mpiamrvac_nw.md) Description of the
-intended use for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
+* [Using polar/cylindrical/spherical coordinates](axial.md) Some information on
+simulations using non-Cartesian grids
 
 # Additional Physics {#special_sources}
 
@@ -55,20 +48,18 @@ which is translated to F90 by the VACPP preprocessor.
 files.
 * [VACPP](vacpp.md) Making and running the VACPP preprocessor itself.
 
-# IO and postprocessing {#io}
+# IO and data analysis {#io}
 
-* [File format](fileformat.md) Description of the MPI-AMRVAC data file format
-***.dat**.
+* [File format](fileformat.md) Description of the format of MPI-AMRVAC data file (.dat).
+* [Converting data files for visualization](convert.md) Brief notes on how to
+convert to IDL(.out), DX (openDX), Tecplot (.plt), and VTK (.vtu) data files.
 * [Slices](slices.md) How to output hypersurfaces (slices) for restart or
 visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
 visualisation and analysis (e.g. column densities)
 * [Analysis routine](analysis.md) Using the run-time analysis routine
-* [Converting data files for visualization](convert.md) Brief notes on how to
-convert to IDL, DX (openDX), Native Tecplot (*.plt), and VTK (*.vtu) data files
-(the latter for paraview visualization).
 
-**Postprocessing tools**
+**Data analysis tools**
 
 * [IDL](idl.md)
 * [Python](python/index.md) \todo Include python documentation here

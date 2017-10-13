@@ -63,6 +63,22 @@ Simulation output in `.vtu` (VTK unstructured) format can directly be
 visualized [Paraview](http://www.paraview.org/)
 or [Visit](https://wci.llnl.gov/simulation/computer-codes/visit).
 
-Visualization or analysis of the results can also be done **a posteriori**, by
+Visualization or analysis of the results can also be done by
 converting `.dat` files to e.g., IDL, openDX, Tecplot, or VTK native formats.
 This requires the same amrvac executable used to run the simulation.
+Using a csh scipt tool `aiconvert` in amrvac/tools folder, users can convert
+to a format defined by **convert_type** parameter in the _filelist_ of a input 
+par file:
+
+    aiconvert
+
+to convert all `.dat` files related to amrvac.par file, or
+
+    aiconvert 10 20
+
+from snapshot 10 to 20, or
+
+    aiconvert YOUR.par 0 20
+
+to convert snapshot 0 to 20 related to YOUR.par file.
+You can find more information at [convert](@ref convert.md) page.

@@ -78,22 +78,22 @@ schemes. A non exhaustive list is given by:
 
 Name | Description
 ---|---
-cd | Central difference
+cd4 | 4th order central difference scheme
 tvdlf | MUSCL type TVD-Lax-Friedrich
-tvdlf1 | First order TVD-Lax-Friedrich
 tvdmu | TVD-MUSCL with Hancock predictor
-tvdmu1 | First order upwind scheme
 tvd | One-step temporally 2nd order TVD
-tvd1 | One-step temporally 1st order TVD
+hll | Harten-Lax-van Leer (HLL) solver
+hllc| Harten-Lax-van Leer-Contact (HLLC) solver
+hlld| Harten-Lax-van Leer-Discontinuities (HLLD) solver
 fd | conservative finite differences, up to fifth order with MP5 reconstruction
 
 In multidimensional MHD calculations the divergence of the magnetic field may
 become significantly different from zero. This may cause numerical instability
 or inaccurate results. There are several source-term options to fix this
-problem. E.g., **Powell's** non-conservative source terms, which are
-proportional to **div B**, can be used to stabilize, and to improve the
+problem. E.g., Powell non-conservative source terms, which are
+proportional to div B, can be used to stabilize, and to improve the
 accuracy for any of the methods. We have also provide several variants of
-**Dedner's** GLM scheme.
+Dedner GLM scheme.
 
 See [methods](methods.md) for a more detailed description.
 
