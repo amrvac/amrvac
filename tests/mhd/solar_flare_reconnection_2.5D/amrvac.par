@@ -1,0 +1,73 @@
+!setup.pl -d=2
+ &filelist
+        base_filename='solar_flare_2da'
+        convert_type='vtuBCCmpi'
+        autoconvert=.true.
+        nwauxio=8
+        saveprim=.true.
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.01d0
+        dtsave_dat=0.01d0
+ /
+
+ &stoplist
+        time_max=1.0d0
+ /
+
+ &methodlist
+        time_integrator='twostep'
+        flux_scheme=20*'hll'
+        limiter= 20*'vanleer'
+        small_pressure=1.0d-14
+        small_density=1.0d-14
+ /
+
+ &boundlist
+        typeboundary_min1=8*'cont'
+        typeboundary_max1=8*'cont'
+        typeboundary_min2=8*'special'
+        typeboundary_max2=8*'cont'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=4
+        block_nx1=16
+        block_nx2=16
+        domain_nx1=128
+        domain_nx2=128
+        w_refine_weight(1)=0.2d0
+        w_refine_weight(7)=0.4d0
+        w_refine_weight(9)=0.4d0
+        xprobmin1=-10.d0
+        xprobmax1=10.d0
+        xprobmin2=0.d0
+        xprobmax2=20.d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.6d0
+ /
+
+ &mhd_list
+        mhd_thermal_conduction=.true.
+        mhd_radiative_cooling=.false.
+        mhd_gravity=.false.
+        mhd_energy=.true.
+        typedivbfix='lindepowel'
+        boundary_divbfix(3)=.false.
+        B0field=.true.
+        B0field_forcefree=.true.
+        Busr=50.d0
+        He_abundance=0.d0
+        mhd_eta=-0.1d0
+ /
+
+ &tc_list
+        tc_dtpar=0.2d0
+ /
