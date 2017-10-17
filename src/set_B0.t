@@ -44,13 +44,7 @@ subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
      }
   end select
   
-  if (dabs(Busr)/=zero) then
-     if (.not. associated(usr_set_B0)) then
-        call mpistop("usr_set_B0 not defined")
-     else
-        call usr_set_B0(ixI^L,ix^L,x,wB0)
-     end if
-  end if
+  if (associated(usr_set_B0)) call usr_set_B0(ixI^L,ix^L,x,wB0)
 
 end subroutine set_B0_cell
 

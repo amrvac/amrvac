@@ -1,47 +1,50 @@
-!#############################################################################
-! AMRVAC module pfss.t -- potential field source surface model
-! PURPOSE : to extrapolate global potential magnetic field of the sun from
-!           synoptic magnetograms
-! 2013.11.04 Developed by S. Moschou and C. Xia
-! 2014.04.01 Allow to change source surface (C. Xia)
-! PRECONDITIONS: 
-!  1. 3D spherical coordinates
-!  2. A synoptic magnetogram in a binary file contains nphi, ntheta, 
-!     theta(ntheta), phi(nphi), B_r(nphi,ntheta) succesively.
-!  3. nphi, ntheta are long integers and other arrays are double precision.
-!     theta contains  decreasing radians with increasing indice (Pi to 0) 
-!     phi contains increasing radians with increasing indice (0 to 2*Pi)
-! USAGE:
-!   example for a magnetogram with name 'mdicr2020.dat':
-!
-!   subroutine initglobaldata_usr
-!     ...
-!     R_0=1.d0 ! dimensionless Solar radius (default 1.0)
-!     R_s=2.5d0 ! dimensionless radius of source surface (default 2.5)
-!     lmax=120     ! use a fixed value instead of the value determined by the 
-!                    resolution of input magnetogram
-!     trunc=.true. ! use less spherical harmonics at larger distances
-!     call harm_coef('mdicr2020.dat')
-!   end subroutine initglobaldata_usr
-!
-!   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-!     ...
-!     double precision :: bpf(ixG^T,3)
-!     ...
-!     call pfss(ixG^L,ix^L,bpf,x)
-!     w(ix^S,mag(1):mag(3))=bpf(ix^S,1:3)
-!
-!   end subroutine initonegrid_usr
+!> module mod_pfss.t -- potential field source surface model
+!> PURPOSE : to extrapolate global potential magnetic field of the sun from
+!>           synoptic magnetograms
+!> 2013.11.04 Developed by S. Moschou and C. Xia
+!> 2014.04.01 Allow to change source surface (C. Xia)
+!> PRECONDITIONS: 
+!>  1. 3D spherical coordinates
+!>  2. A synoptic magnetogram in a binary file contains nphi, ntheta, 
+!>     theta(ntheta), phi(nphi), B_r(nphi,ntheta) succesively.
+!>  3. nphi, ntheta are long integers and other arrays are double precision.
+!>     theta contains  decreasing radians with increasing indice (Pi to 0) 
+!>     phi contains increasing radians with increasing indice (0 to 2*Pi)
+!> USAGE:
+!>   example for a magnetogram with name 'mdicr2020.dat':
+!>
+!>   subroutine initglobaldata_usr
+!>     ...
+!>     R_0=1.d0 ! dimensionless Solar radius (default 1.0)
+!>     R_s=2.5d0 ! dimensionless radius of source surface (default 2.5)
+!>     lmax=120     ! use a fixed value instead of the value determined by the 
+!>                    resolution of input magnetogram
+!>     trunc=.true. ! use less spherical harmonics at larger distances
+!>     call harm_coef('mdicr2020.dat')
+!>   end subroutine initglobaldata_usr
+!>
+!>   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
+!>     ...
+!>     double precision :: bpf(ixI^S,1:ndir)
+!>     ...
+!>     call pfss(ixI^L,ixO^L,bpf,x)
+!>     w(ix^S,mag(:))=bpf(ix^S,:)
+!>
+!>   end subroutine initonegrid_usr
 module mod_pfss
-
   implicit none
-  double complex, allocatable, save :: flm(:,:),Alm(:,:),Blm(:,:)
-  double precision, allocatable, save :: Rlm(:,:), xrg(:)
-  double precision, save :: R_s=2.5d0, R_0=1.d0
-  integer, save :: lmax=0
-  integer, allocatable, save :: lmaxarray(:)
-  logical, save :: trunc=.false.
+  private
+
+  double complex, allocatable :: flm(:,:),Alm(:,:),Blm(:,:)
+  double precision, allocatable :: Rlm(:,:), xrg(:)
+  double precision, public :: R_s=2.5d0, R_0=1.d0
+  integer, allocatable :: lmaxarray(:)
+  integer, public :: lmax=0
+  logical, public :: trunc=.false.
  
+  public :: harm_coef
+  public :: pfss
+  
 contains
 
   subroutine harm_coef(mapname)

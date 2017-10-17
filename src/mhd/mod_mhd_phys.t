@@ -1689,11 +1689,13 @@ contains
     double precision, intent(in)       :: w(ixI^S,1:nw)
     double precision                   :: divb(ixI^S), dsurface(ixI^S)
 
+    double precision :: B2(ixO^S)
     integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
+    B2(ixO^S)=mhd_mag_en_all(w,ixI^L,ixO^L)
     if(slab) then
-      divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))/sum(1.d0/dxlevel(:))
+      divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(B2(ixO^S))/sum(1.d0/dxlevel(:))
     else
       ixAmin^D=ixOmin^D-1;
       ixAmax^D=ixOmax^D-1;
@@ -1702,9 +1704,14 @@ contains
         ixA^L=ixO^L-kr(idims,^D);
         dsurface(ixO^S)=dsurface(ixO^S)+block%surfaceC(ixA^S,idims)
       end do
-      divb(ixO^S)=abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))*&
+      divb(ixO^S)=abs(divb(ixO^S))/sqrt(B2(ixO^S))*&
       block%dvolume(ixO^S)/dsurface(ixO^S)
     end if
+
+    ! where magnetic field vanishes, div B = 0
+    where(B2(ixO^S)<=smalldouble)
+      divb(ixO^S)=0.d0
+    end where
 
   end subroutine get_normalized_divb
 
