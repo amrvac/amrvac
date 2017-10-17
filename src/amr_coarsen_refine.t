@@ -60,7 +60,11 @@ if (isend>0) call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
 do ipe=0,npe-1
    do igrid=1,max_blocks
       if (coarsen(igrid,ipe)) then
-         if (ipe==mype) call dealloc_node(igrid)
+         !if (ipe==mype) call dealloc_node(igrid) ! do not deallocate node
+         ! memory preventing fragmentization of system memory as a result
+         ! of frequent allocating and deallocating memory
+
+         ! put the node (igrid number) into unused.
          call putnode(igrid,ipe)
          coarsen(igrid,ipe)=.false.
       end if

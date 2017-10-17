@@ -26,7 +26,7 @@ else
 end if
 
 ! remove solution space of igrid
-call dealloc_node(igrid)
+!call dealloc_node(igrid)
 
 end subroutine refine_grid
 !=============================================================================

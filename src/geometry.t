@@ -117,23 +117,28 @@ use mod_global_parameters
 
 integer, intent(in) :: igrid
 
-integer :: ix^L, ixCoG^L, ixCoM^L, ixCo^L, ixCoCoG^L, ixGext^L
+integer :: ixCoG^L, ixGext^L, ixGextCo^L
 double precision :: xmin^D, dx^D
 !-----------------------------------------------------------------------------
-!ix^L=ixM^LL^LADD1;
-ix^L=ixG^LL^LSUB1;
+
+ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+nghostcells;
 if (2*int(nghostcells/2)==nghostcells) then
-   ixGext^L=ixG^LL;
+  ixGext^L=ixG^LL;
+  ixGextCo^L=ixCoG^L;
 else
-   ixGext^L=ixG^LL^LADD1;
+  ixGext^L=ixG^LL^LADD1;
+  ixGextCo^L=ixCoG^L^LADD1;
 end if
 
-! allocate geometric info
-allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
-         pw(igrid)%surface(ixG^T,1:ndim), &
-         pw(igrid)%dvolume(ixGext^S), &
-         pw(igrid)%xg(ixGext^S,1:ndim),&
-         pw(igrid)%dx(ixGext^S,1:ndim))
+if(.not. allocated(pw(igrid)%surfaceC)) then
+  ! allocate geometric info
+  allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
+           pw(igrid)%surface(ixG^T,1:ndim), &
+           pw(igrid)%dvolume(ixGext^S), &
+           pw(igrid)%xg(ixGext^S,1:ndim),&
+           pw(igrid)%dx(ixGext^S,1:ndim),&
+           pw(igrid)%dvolumecoarse(ixGextCo^S))
+end if
 
 dx^D=rnode(rpdx^D_,igrid);
 xmin^D=rnode(rpxmin^D_,igrid);
@@ -146,16 +151,7 @@ end if
 pw(igrid)%dvolumep=>pw(igrid)%dvolume
 call fillgeo(igrid,ixG^LL,ixGext^L,xmin^D,dx^D,.false.)
 
-ixCoGmin^D=1; ixCoGmax^D=ixGhi^D/2+nghostcells;
-if(2*int(nghostcells/2)==nghostcells) then
-  ixGext^L=ixCoG^L;
-else
-  ixGext^L=ixCoG^L^LADD1;
-end if
-
-allocate(pw(igrid)%dvolumecoarse(ixGext^S))
-
-dx^D=two*rnode(rpdx^D_,igrid);
+dx^D=2.d0*rnode(rpdx^D_,igrid);
 
 if(stretched_grid) then
   logG=logGs(node(plevel_,igrid)-1)
@@ -163,7 +159,7 @@ if(stretched_grid) then
 end if
 
 pw(igrid)%dvolumep=>pw(igrid)%dvolumecoarse
-call fillgeo(igrid,ixCoG^L,ixGext^L,xmin^D,dx^D,.true.)
+call fillgeo(igrid,ixCoG^L,ixGextCo^L,xmin^D,dx^D,.true.)
 
 end subroutine getgridgeo
 !=============================================================================

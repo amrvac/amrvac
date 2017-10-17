@@ -56,19 +56,45 @@ double precision :: rXmin^D, dx^D
 ixCoGmin^D=1;
 ixCoGmax^D=ixGhi^D/2+nghostcells;
 
-! initialize solution space
-allocate(pw(igrid)%w(ixG^T,1:nw), &
-         pw(igrid)%wold(ixG^T,1:nw), &
-         pw(igrid)%w1(ixG^T,1:nw), &
-         pw(igrid)%wcoarse(ixCoG^S,1:nw))
-pw(igrid)%w(ixG^T,1:nw)=0.d0
-pw(igrid)%wold(ixG^T,1:nw)=0.d0
-pw(igrid)%w1(ixG^T,1:nw)=0.d0
-pw(igrid)%wcoarse(ixCoG^S,1:nw)=0.d0
+if(.not. allocated(pw(igrid)%w)) then
+  
+  ! initialize solution space
+  allocate(pw(igrid)%w(ixG^T,1:nw), &
+           pw(igrid)%wold(ixG^T,1:nw), &
+           pw(igrid)%w1(ixG^T,1:nw), &
+           pw(igrid)%wcoarse(ixCoG^S,1:nw))
+  
+  ! wio for visualization data
+  allocate(pw(igrid)%wio(ixG^T,1:nw+nwauxio))
+  
+  ! allocate temperary solution space
+  select case (time_integrator)
+  case("threestep","fourstep","jameson","twostep_trapezoidal")
+    allocate(pw(igrid)%w2(ixG^T,1:nw))
+  case("rk4","ssprk43")
+    allocate(pw(igrid)%w2(ixG^T,1:nw))
+    allocate(pw(igrid)%w3(ixG^T,1:nw))
+  case("ssprk54")
+    allocate(pw(igrid)%w2(ixG^T,1:nw))
+    allocate(pw(igrid)%w3(ixG^T,1:nw))
+    allocate(pw(igrid)%w4(ixG^T,1:nw))
+  end select
+  
+  ! allocate coordinates
+  allocate(pw(igrid)%x(ixG^T,1:ndim), &
+           pw(igrid)%xcoarse(ixCoG^S,1:ndim))
+end if
+
+pw(igrid)%w=0.d0
+pw(igrid)%wold=0.d0
+pw(igrid)%w1=0.d0
+pw(igrid)%wcoarse=0.d0
 pw(igrid)%igrid=igrid
+pw(igrid)%wio=0.d0
 
 ! wb is w by default
 pw(igrid)%wb=>pw(igrid)%w
+
 
 ! block pointer to current block
 block=>pw(igrid)
@@ -76,28 +102,6 @@ block=>pw(igrid)
 if(phys_energy .and. solve_internal_e) then
   block%e_is_internal=.true.
 endif
-
-! wio for visualization data
-allocate(pw(igrid)%wio(ixG^T,1:nw+nwauxio))
-pw(igrid)%wio=0.d0
-
-! allocate temperary solution space
-select case (time_integrator)
-case("threestep","fourstep","jameson","twostep_trapezoidal")
-  allocate(pw(igrid)%w2(ixG^T,1:nw))
-case("rk4","ssprk43")
-  allocate(pw(igrid)%w2(ixG^T,1:nw))
-  allocate(pw(igrid)%w3(ixG^T,1:nw))
-case("ssprk54")
-  allocate(pw(igrid)%w2(ixG^T,1:nw))
-  allocate(pw(igrid)%w3(ixG^T,1:nw))
-  allocate(pw(igrid)%w4(ixG^T,1:nw))
-end select
-
-! initialize coordinates
-allocate(pw(igrid)%x(ixG^T,1:ndim), &
-         pw(igrid)%xcoarse(ixCoG^S,1:ndim))
-
 
 ! set level information
 level=igrid_to_node(igrid,mype)%node%level

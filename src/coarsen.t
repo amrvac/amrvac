@@ -20,10 +20,10 @@ if (.not. active) then
       {do ic^DB=1,2\}
       igridFi=child_igrid(ic^D)
       ipeFi=child_ipe(ic^D)
-      if (ipeFi==mype) then
-         ! remove solution space of child      
-         call dealloc_node(igridFi)
-      end if
+      !if (ipeFi==mype) then
+      !   ! remove solution space of child      
+      !   call dealloc_node(igridFi)
+      !end if
       {end do\}
       
    end if
@@ -47,7 +47,7 @@ end if
                      ixCo^L,igridFi,igrid)
 
          ! remove solution space of child
-         call dealloc_node(igridFi)
+         !call dealloc_node(igridFi)
       else
          ixCoGmin^D=1;
          ixCoGmax^D=ixGhi^D/2+nghostcells;

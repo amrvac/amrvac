@@ -111,8 +111,10 @@ subroutine alloc_B0_grid(igrid)
 
   integer, intent(in) :: igrid
 
-  allocate(pw(igrid)%B0(ixG^T,1:ndir,0:ndim))
-  allocate(pw(igrid)%J0(ixG^T,7-2*ndir:3))
+  if(.not. allocated(pw(igrid)%B0)) then
+    allocate(pw(igrid)%B0(ixG^T,1:ndir,0:ndim))
+    allocate(pw(igrid)%J0(ixG^T,7-2*ndir:3))
+  end if
 
 end subroutine alloc_B0_grid
 

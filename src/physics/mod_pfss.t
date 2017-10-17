@@ -43,7 +43,9 @@ module mod_pfss
   logical, public :: trunc=.false.
  
   public :: harm_coef
+{^IFTHREED
   public :: pfss
+}
   
 contains
 

@@ -50,7 +50,7 @@ do ipe=0,npe-1; do Morton_no=Morton_start(ipe),Morton_stop(ipe)
    send_ipe=sfc(2,Morton_no)
 
    if (recv_ipe/=send_ipe) then
-      if (send_ipe==mype) call dealloc_node(send_igrid)
+      !if (send_ipe==mype) call dealloc_node(send_igrid)
       call putnode(send_igrid,send_ipe)
    end if
 end do; end do
