@@ -5,12 +5,12 @@ module mod_physicaldata
    type walloc
       !> ID of a grid block
       integer :: igrid=-1
-      !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
-      integer :: iwpos=0
       !> location of w0-array, 0: cell center, ^D : cell interface in dimension ^D
       integer :: iw0=0
       !> Is e is internal energy or total energy
       logical :: e_is_internal=.false.
+      !> If it face a physical boundary
+      logical :: is_physical_boundary(2*^ND)
       !> Variables, normally center
       double precision, dimension(:^D&,:), allocatable :: w
       !> Variables, normally center, temperary state for multi-step scheme
@@ -59,8 +59,6 @@ module mod_physicaldata
    type walloc_sub
       !> ID of a grid block
       integer :: igrid=-1
-      !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
-      integer :: iwpos=0
       !> Is w in primitive state or not
       logical :: e_is_internal=.false.
       !> Variables, normally center
@@ -95,8 +93,6 @@ module mod_physicaldata
    type walloc_sub
       !> ID of a grid block
       integer :: igrid=-1
-      !> location of w-array, 0: cell center, ^D : cell interface in dimension ^D
-      integer :: iwpos=0
       !> Is w in primitive state or not
       logical :: e_is_internal=.false.
       !> Variables, normally center

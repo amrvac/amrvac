@@ -1121,12 +1121,11 @@ contains
 
     logical, parameter :: save_physical_boundary = .false. ! TODO
     integer            :: iib^D
-    logical            :: isphysbound
 
     n_ghost(:) = 0
 
     if (save_physical_boundary) then
-      call identifyphysbound(igrid,isphysbound,iib^D)
+      call identifyphysbound(igrid,iib^D)
       {
       if (iib^D == 1) then
         n_ghost(ndim+1:) = nghostcells ! Include ghost cells on upper boundary

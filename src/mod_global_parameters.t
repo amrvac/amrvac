@@ -53,8 +53,6 @@ module mod_global_parameters
 
   integer :: snapshotnext, collapseNext, icollapse
 
-  logical, allocatable, dimension(:^D&) :: patchfalse
-
   !> split potential or linear force-free magnetic field as background B0 field
   logical :: B0field=.false.
   !> amplitude of background dipolar, quadrupolar, octupolar, user's field

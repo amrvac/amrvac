@@ -50,7 +50,7 @@ use mod_global_parameters
 
 integer, intent(in) :: igrid
 
-integer :: level, ig^D, ixCoG^L, ixCoCoG^L, ix
+integer :: level, ig^D, ign^D, ixCoG^L, ixCoCoG^L, ix, i^D
 double precision :: rXmin^D, dx^D
 !-----------------------------------------------------------------------------
 ixCoGmin^D=1;
@@ -149,20 +149,44 @@ if(stretched_grid) then
   end do
 end if
 
-! find the blocks on the boundaries
-if ({rnode(rpxmin^D_,igrid)-dx(^D,level)<xprobmin^D|.or.}.or.&
-    {rnode(rpxmax^D_,igrid)+dx(^D,level)>xprobmax^D|.or.}) then
-   phyboundblock(igrid)=.true.
-else
-   phyboundblock(igrid)=.false.
-end if
-
 if (.not.slab) call getgridgeo(igrid)
 
 if (B0field) then
    ! initialize background non-evolving solution
    call alloc_B0_grid(igrid)
    call set_B0_grid(igrid)
+end if
+
+! find the blocks on the boundaries
+pw(igrid)%is_physical_boundary=.false.
+{
+do i^D=-1,1
+  if(i^D==0) cycle
+  ign^D=ig^D+i^D
+  ! blocks at periodic boundary have neighbors in the physical domain
+  ! thus threated at internal blocks with no physical boundary
+  if (periodB(^D)) ign^D=1+modulo(ign^D-1,ng^D(level))
+  if (ign^D > ng^D(level)) then
+     if(phi_ > 0 .and. poleB(2,^D)) then
+       ! if at a pole, the boundary is not physical boundary
+       pw(igrid)%is_physical_boundary(2*^D)=.false.
+     else
+       pw(igrid)%is_physical_boundary(2*^D)=.true.
+     end if
+  else if (ign^D < 1) then
+     if(phi_ > 0 .and. poleB(1,^D)) then
+       ! if at a pole, the boundary is not physical boundary
+       pw(igrid)%is_physical_boundary(2*^D-1)=.false.
+     else
+       pw(igrid)%is_physical_boundary(2*^D-1)=.true.
+     end if
+  end if
+end do
+\}
+if(any(pw(igrid)%is_physical_boundary)) then
+  phyboundblock(igrid)=.true.
+else
+  phyboundblock(igrid)=.false.
 end if
 
 end subroutine alloc_node

@@ -105,10 +105,6 @@ contains
     poleB=.false.
     if (.not.slab) call set_pole
 
-    ! on each processor, create for later use a default patch array
-    allocate(patchfalse(ixG^T))
-    patchfalse(ixG^T)=.false.
-
     ! initialize connectivity data
     igridstail=0
 

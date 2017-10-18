@@ -244,9 +244,9 @@ contains
     integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
     integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
     ! store physical boundary indicating index
-    integer :: idphyb(ndim,igrids(igridstail)),bindex(ndim)
+    integer :: idphyb(ndim,max_blocks),bindex(ndim)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco,iB
-    logical  :: isphysbound, req_diagonal
+    logical  :: req_diagonal
     type(wbuffer) :: pwbuf(npwbuf)
 
     double precision :: time_bcin
@@ -293,9 +293,8 @@ contains
             do iside=1,2
                i^D=kr(^D,idims)*(2*iside-3);
                if (aperiodB(idims)) then 
-                  call physbound(i^D,igrid,isphysbound)
                   if (neighbor_type(i^D,igrid) /= neighbor_boundary .and. &
-                       .not. isphysbound) cycle
+                       .not. pw(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
                else 
                   if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
                end if
@@ -326,7 +325,7 @@ contains
     ! receiving ghost-cell values from sibling blocks and finer neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
-       call identifyphysbound(igrid,isphysbound,iib^D)   
+       call identifyphysbound(igrid,iib^D)   
        ^D&idphyb(^D,igrid)=iib^D;
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
@@ -347,13 +346,12 @@ contains
        block=>pw(igrid)
 
        ! Used stored data to identify physical boundaries
-       isphysbound = any(idphyb(1:ndim,igrid) /= 0)
        ^D&iib^D=idphyb(^D,igrid);
 
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     {#IFDEF EVOLVINGBOUNDARY
-          if(isphysbound) then
+          if(phyboundblock(igrid)) then
             ! coarsen finer ghost cells at physical boundaries
             ixCoMmin^D=ixCoGmin^D+nghostcellsco;
             ixCoMmax^D=ixCoGmax^D-nghostcellsco;
@@ -544,7 +542,7 @@ contains
 
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
-        if(isphysbound) then
+        if(phyboundblock(igrid)) then
           ! filling physical boundary ghost cells of a coarser representative block for
           ! sending swap region with width of nghostcells to its coarser neighbor
           do idims=1,ndim
@@ -1008,7 +1006,7 @@ contains
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           saveigrid=igrid
           block=>pw(igrid)
-          call identifyphysbound(igrid,isphysbound,iib^D)   
+          call identifyphysbound(igrid,iib^D)   
              
           {do i^DB=-1,1\}
              if (skip_direction([ i^D ])) cycle
@@ -1022,63 +1020,24 @@ contains
 
   end subroutine getbc
 
-  subroutine physbound(i^D,igrid,isphysbound)
-    use mod_forest
-    use mod_global_parameters
-    
-    integer, intent(in)  :: i^D, igrid
-    logical, intent(out) :: isphysbound
-    type(tree_node_ptr)  :: tree
-    integer              :: level, ig^D, ign^D
-
-    isphysbound = .false.
-    
-    tree%node => igrid_to_node(igrid,mype)%node
-    level = tree%node%level
-    {ig^D = tree%node%ig^D; }
-    
-    {ign^D = ig^D + i^D; }
-    if ({ign^D .gt. ng^D(level) .or. ign^D .lt. 1|.or.}) isphysbound = .true.
-  
-  end subroutine physbound
-
-  subroutine identifyphysbound(igrid,isphysbound,iib^D)
-    use mod_forest
+  subroutine identifyphysbound(igrid,iib^D)
     use mod_global_parameters
 
     integer, intent(in)  :: igrid
-    logical, intent(out) :: isphysbound
-    integer              :: i^D,level, ig^D, ign^D, iib^D,ipole
+    integer, intent(out) :: iib^D
 
-    isphysbound = .false.
-    ipole=0
-
-    level = node(plevel_,igrid)
-    {ig^D = node(pig^D_,igrid);}
-    iib^D=0;
-    {do i^DB=-1,1\}
-       if (i^D==0|.and.) cycle
-       if (phi_ > 0) then
-         if (neighbor_pole(i^D,igrid)>0) then
-           ipole=neighbor_pole(i^D,igrid)
-         end if
-       end if
-    {end do\}
     {
-    do i^D=-1,1
-      ign^D=ig^D+i^D
-      ! blocks at periodic boundary have neighbors in the physical domain
-      ! thus threated at internal blocks with no physical boundary
-      if (periodB(^D)) ign^D=1+modulo(ign^D-1,ng^D(level))
-      if (ign^D .gt. ng^D(level)) then
-         iib^D=1
-      else if (ign^D .lt. 1) then
-         iib^D=-1
-      end if
-      if(ipole==^D) iib^D=0
-    end do
+    if(pw(igrid)%is_physical_boundary(2*^D) .and. &
+       pw(igrid)%is_physical_boundary(2*^D-1)) then
+      iib^D=2
+    else if(pw(igrid)%is_physical_boundary(2*^D-1)) then
+      iib^D=-1
+    else if(pw(igrid)%is_physical_boundary(2*^D)) then
+      iib^D=1
+    else
+      iib^D=0
+    end if
     \}
-    if ({iib^D/=0|.or.}) isphysbound = .true.
 
   end subroutine identifyphysbound
 
