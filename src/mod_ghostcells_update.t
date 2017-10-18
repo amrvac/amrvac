@@ -16,7 +16,7 @@ module mod_ghostcells_update
 
   ! index ranges to send (S) to sibling blocks, receive (R) from 
   ! sibling blocks, send restricted (r) ghost cells to coarser blocks 
-  integer, dimension(-1:1,-1:1) :: ixS_srl_^L, ixR_srl_^L, ixS_r_^L
+  integer, dimension(-1:2,-1:1) :: ixS_srl_^L, ixR_srl_^L, ixS_r_^L
 
   ! index ranges to receive restriced ghost cells from finer blocks, 
   ! send prolongated (p) ghost cells to finer blocks, receive prolongated 
@@ -26,18 +26,22 @@ module mod_ghostcells_update
   ! MPI derived datatype to send and receive subarrays of ghost cells to
   ! neighbor blocks in a different processor.
   !
-  ! The first index goes from -1:1, where -1 is used when a block touches the
+  ! The first index goes from -1:2, where -1 is used when a block touches the
   ! lower boundary, 1 when a block touches an upper boundary, and 0 a situation
-  ! away from boundary conditions.
+  ! away from boundary conditions, 2 when a block touched both lower and upper
+  ! boundary
   !
   ! There are two variants, _f indicates that all flux variables are filled,
-  ! whereas _p means that part of the variables is filled (currently used for
-  ! energy). Furthermore _r_ stands for restrict, _p_ for prolongation.
-  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_f, type_recv_srl_f, type_send_r_f
+  ! whereas _p means that part of the variables is filled 
+  ! Furthermore _r_ stands for restrict, _p_ for prolongation.
+  integer, dimension(-1:2^D&,-1:1^D&), target :: type_send_srl_f, type_recv_srl_f
+  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_r_f
   integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_f, type_send_p_f, type_recv_p_f
-  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_p1, type_recv_srl_p1, type_send_r_p1
+  integer, dimension(-1:2^D&,-1:1^D&), target :: type_send_srl_p1, type_recv_srl_p1
+  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_r_p1
   integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_p1, type_send_p_p1, type_recv_p_p1
-  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_srl_p2, type_recv_srl_p2, type_send_r_p2
+  integer, dimension(-1:2^D&,-1:1^D&), target :: type_send_srl_p2, type_recv_srl_p2
+  integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_r_p2
   integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_p2, type_send_p_p2, type_recv_p_p2
   integer, dimension(:^D&,:^D&), pointer :: type_send_srl, type_recv_srl, type_send_r
   integer, dimension(:^D&,:^D&), pointer :: type_recv_r, type_send_p, type_recv_p
@@ -55,7 +59,7 @@ contains
     ixCoGmin^D=1;
     ixCoGmax^D=ixGmax^D/2+nghostcells;
     ixCoM^L=ixCoG^L^LSUBnghostcells;
-    
+
     nx^D=ixMmax^D-ixMmin^D+1;
     nxCo^D=nx^D/2;
     
@@ -82,39 +86,43 @@ contains
     ! i= 1 means subregion prepared for the neighbor at its maximum side 
     {
     ixS_srl_min^D(:,-1)=ixMmin^D
-    ixS_srl_min^D(:, 0)=ixMmin^D
     ixS_srl_min^D(:, 1)=ixMmax^D+1-nghostcells
     ixS_srl_max^D(:,-1)=ixMmin^D-1+nghostcells
-    ixS_srl_max^D(:, 0)=ixMmax^D
     ixS_srl_max^D(:, 1)=ixMmax^D
     
     ixS_srl_min^D(-1,0)=1
+    ixS_srl_min^D( 0,0)=ixMmin^D
     ixS_srl_min^D( 1,0)=ixMmin^D
+    ixS_srl_min^D( 2,0)=1
     ixS_srl_max^D(-1,0)=ixMmax^D
+    ixS_srl_max^D( 0,0)=ixMmax^D
     ixS_srl_max^D( 1,0)=ixGmax^D
+    ixS_srl_max^D( 2,0)=ixGmax^D
      
     ixR_srl_min^D(:,-1)=1
-    ixR_srl_min^D(:, 0)=ixMmin^D
     ixR_srl_min^D(:, 1)=ixMmax^D+1
     ixR_srl_max^D(:,-1)=nghostcells
-    ixR_srl_max^D(:, 0)=ixMmax^D
     ixR_srl_max^D(:, 1)=ixGmax^D
     
     ixR_srl_min^D(-1,0)=1
+    ixR_srl_min^D( 0,0)=ixMmin^D
     ixR_srl_min^D( 1,0)=ixMmin^D
+    ixR_srl_min^D( 2,0)=1
     ixR_srl_max^D(-1,0)=ixMmax^D
+    ixR_srl_max^D( 0,0)=ixMmax^D
     ixR_srl_max^D( 1,0)=ixGmax^D
+    ixR_srl_max^D( 2,0)=ixGmax^D
     
     ixS_r_min^D(:,-1)=ixCoMmin^D
-    ixS_r_min^D(:, 0)=ixCoMmin^D
     ixS_r_min^D(:, 1)=ixCoMmax^D+1-nghostcells
     ixS_r_max^D(:,-1)=ixCoMmin^D-1+nghostcells
-    ixS_r_max^D(:, 0)=ixCoMmax^D
     ixS_r_max^D(:, 1)=ixCoMmax^D
     
     ixS_r_min^D(-1,0)=1
+    ixS_r_min^D( 0,0)=ixCoMmin^D
     ixS_r_min^D( 1,0)=ixCoMmin^D
     ixS_r_max^D(-1,0)=ixCoMmax^D
+    ixS_r_max^D( 0,0)=ixCoMmax^D
     ixS_r_max^D( 1,0)=ixCoGmax^D
     
     ixR_r_min^D(:, 0)=1
@@ -125,12 +133,12 @@ contains
     ixR_r_max^D(:, 1)=ixMmin^D-1+nxCo^D
     ixR_r_max^D(:, 2)=ixMmax^D
     ixR_r_max^D(:, 3)=ixGmax^D
-    
+
     ixR_r_min^D(-1,1)=1
     ixR_r_max^D(-1,1)=ixMmin^D-1+nxCo^D
     ixR_r_min^D( 1,2)=ixMmin^D+nxCo^D
     ixR_r_max^D( 1,2)=ixGmax^D
-    
+
     ixS_p_min^D(:, 0)=ixMmin^D-(interpolation_order-1)
     ixS_p_min^D(:, 1)=ixMmin^D-(interpolation_order-1)
     ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-nghostcellsCo-(interpolation_order-1)
@@ -139,12 +147,12 @@ contains
     ixS_p_max^D(:, 1)=ixMmin^D-1+nxCo^D+nghostcellsCo+(interpolation_order-1)
     ixS_p_max^D(:, 2)=ixMmax^D+(interpolation_order-1)
     ixS_p_max^D(:, 3)=ixMmax^D+(interpolation_order-1)
-    
+
     ixS_p_min^D(-1,1)=1
     ixS_p_max^D(-1,1)=ixMmin^D-1+nxCo^D+nghostcellsCo+(interpolation_order-1)
     ixS_p_min^D( 1,2)=ixMmin^D+nxCo^D-nghostcellsCo-(interpolation_order-1)
     ixS_p_max^D( 1,2)=ixGmax^D
-    
+
     ixR_p_min^D(:, 0)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
     ixR_p_min^D(:, 1)=ixCoMmin^D-(interpolation_order-1)
     ixR_p_min^D(:, 2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
@@ -153,7 +161,7 @@ contains
     ixR_p_max^D(:, 1)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
     ixR_p_max^D(:, 2)=ixCoMmax^D+(interpolation_order-1)
     ixR_p_max^D(:, 3)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
-    
+
     ixR_p_min^D(-1,1)=1
     ixR_p_max^D(-1,1)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
     ixR_p_min^D( 1,2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
@@ -169,10 +177,11 @@ contains
     integer :: i^D, ic^D, inc^D, iib^D
 
     {do i^DB=-1,1\}
-      {do iib^DB=-1,1\}
-         if (i^D==0|.and.) cycle
+      if (i^D==0|.and.) cycle
+      {do iib^DB=-1,2\}
          call get_bc_comm_type(type_send_srl(iib^D,i^D),ixS_srl_^L(iib^D,i^D),ixG^LL,nwstart,nwbc)
          call get_bc_comm_type(type_recv_srl(iib^D,i^D),ixR_srl_^L(iib^D,i^D),ixG^LL,nwstart,nwbc)
+         if (iib^D==2|.or.) cycle
          call get_bc_comm_type(type_send_r(iib^D,i^D),  ixS_r_^L(iib^D,i^D),ixCoG^L,nwstart,nwbc)
          {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
             inc^DB=2*i^DB+ic^DB\}
@@ -212,11 +221,12 @@ contains
     integer :: i^D, ic^D, inc^D, iib^D
 
     {do i^DB=-1,1\}
-       {do iib^DB=-1,1\}
-           if (i^D==0|.and.) cycle
+       if (i^D==0|.and.) cycle
+       {do iib^DB=-1,2\}
            call MPI_TYPE_FREE(type_send_srl(iib^D,i^D),ierrmpi)
            call MPI_TYPE_FREE(type_recv_srl(iib^D,i^D),ierrmpi)
            if (levmin==levmax) cycle
+           if (iib^D==2|.or.) cycle
            call MPI_TYPE_FREE(type_send_r(iib^D,i^D),ierrmpi)
            {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
               inc^DB=2*i^DB+ic^DB\}
@@ -466,7 +476,6 @@ contains
     end do
     deallocate(sendstatus,sendrequest)
 
-    !> @todo Implement generic interface for modifying ghost cells
      ! modify normal component of magnetic field to fix divB=0 
     if(bcphys .and. physics_type=='mhd' .and. ndim>1) call phys_boundary_adjust()
     
