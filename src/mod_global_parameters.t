@@ -401,7 +401,7 @@ module mod_global_parameters
   !> Which format to use when converting
   !>
   !> Options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,
-  !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, vtuBmpi, vtuBCCmpi, pvtumpi, pvtuCCmpi, 
+  !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, vtuBmpi, vtuBCCmpi, pvtumpi, pvtuCCmpi,
   !> pvtuBmpi, pvtuBCCmpi, tecline, teclinempi, onegrid
   character(len=std_len) :: convert_type
 
@@ -468,13 +468,13 @@ module mod_global_parameters
   type fluxalloc
      double precision, dimension(:^D&,:), pointer:: flux => null()
   end type fluxalloc
-  !> store flux to fix conservation 
+  !> store flux to fix conservation
   type(fluxalloc), dimension(:,:,:), allocatable :: pflux
 
   !> Number of cells as buffer zone
-  !> \todo is it necessary? 
+  !> \todo is it necessary?
   integer :: nbufferx^D
- 
+
   !> The maximum number of grid blocks in a processor
   integer :: max_blocks
 
@@ -515,6 +515,10 @@ module mod_global_parameters
   !> Solve polytropic process instead of solving total energy
   logical :: solve_internal_e=.false.
 
+  !> Enable to strictly conserve the angular momentum
+  !> (works both in cylindrical and spherical coordinates)
+  logical :: angmomfix=.false.
+  
   !> Use particles module or not
   logical :: use_particles=.false.
 

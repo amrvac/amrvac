@@ -145,7 +145,8 @@ contains
          small_temperature,small_pressure,small_density,typegrad,typediv,&
          nxdiffusehllc,typespherical,&
          flathllc, &
-         small_values_method, small_values_daverage, solve_internal_e
+         small_values_method, small_values_daverage, solve_internal_e,&
+         angmomfix
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L, save_physical_boundary
@@ -176,7 +177,7 @@ contains
     ! defaults for boundary treatments
     typeghostfill = 'linear'
 
-    ! default number of ghost-cell layers at each boundary of a block  
+    ! default number of ghost-cell layers at each boundary of a block
     nghostcells = 2
 
     ! Allocate boundary conditions arrays in new and old style
@@ -206,7 +207,7 @@ contains
 
     ! defaults for convert behavior
 
-    ! store the -if value from argument in command line 
+    ! store the -if value from argument in command line
     restart_from_file_arg    = restart_from_file
     nwauxio                  = 0
     nocartesian              = .false.
@@ -331,6 +332,7 @@ contains
     source_split_usr= .false.
     time_integrator = 'twostep'
     solve_internal_e= .false.
+    angmomfix       = .false.
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))
@@ -1024,7 +1026,7 @@ contains
     nw_found=ibuf(1)
     if (nw /= ibuf(1)) then
       write(*,*) "nw=",nw," and nw found in restart file=",ibuf(1)
-      write(*,*) "Please be aware of changes in w at restart." 
+      write(*,*) "Please be aware of changes in w at restart."
       !call mpistop("currently, changing nw at restart is not allowed")
     end if
 

@@ -100,6 +100,56 @@ contains
     call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine hd_write_info
 
+  !> Add fluxes in an angular momentum conserving way
+  subroutine hd_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
+    use mod_global_parameters
+    double precision, intent(in)       :: x(ixI^S,1:ndim)
+    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
+    integer, intent(in)                :: ixI^L, ixO^L
+    integer, intent(in)                :: idim
+    integer                            :: hxO^L, kxC^L, iw
+    double precision                   :: inv_volume(ixI^S)
+
+    ! shifted indexes
+    hxO^L=ixO^L-kr(idim,^D);
+    ! all the indexes
+    kxCmin^D=hxOmin^D;
+    kxCmax^D=ixOmax^D;
+
+    inv_volume = 1.0d0/block%dvolume(ixO^S)
+
+    select case(typeaxial)
+    case ("cylindrical")
+      do iw=1,nwflux
+        if (idim==r_ .and. iw==iw_mom(phi_)) then
+          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+               (inv_volume/x(ixO^S,r_))
+        else
+          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+                inv_volume
+        endif
+      enddo
+    case ("spherical")
+      do iw=1,nwflux
+        if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
+          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+               (inv_volume/x(ixO^S,r_))
+        elseif (idim==2  .and. iw==iw_mom(phi_)) then
+          fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*dsin(x(kxC^S,2)+half*block%dx(kxC^S,2)) ! (x(4,3,1)-x(3,3,1)))
+          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+               (inv_volume/dsin(x(ixO^S,2)))
+        else
+          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+                inv_volume
+        endif
+      enddo
+
+    end select
+
+  end subroutine hd_angmomfix
+
   !> Initialize the module
   subroutine hd_phys_init()
     use mod_global_parameters
@@ -401,9 +451,9 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative left and right status
-    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw) 
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
     ! primitive left and right status
-    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw) 
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
     double precision, intent(inout), optional :: cmin(ixI^S)
@@ -592,7 +642,6 @@ contains
   !> not ndim. Eg, they are the same in 2.5D and in 3D, for any geometry.
   !>
   !> Ileyk : to do :
-  !>     - give the possibility to set angmomfix=.true.
   !>     - address the source term for the dust
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
@@ -606,7 +655,6 @@ contains
     double precision :: tmp(ixI^S),tmp1(ixI^S)
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
-    logical                         :: angmomfix = .false.
 
     mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
 
@@ -622,12 +670,8 @@ contains
          ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
          if(.not. angmomfix) then
            tmp(ixO^S)=-wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_)
-         else
-           tmp(ixO^S)=0.d0
+           w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
          end if
-         ! no geometrical source term if angular momentum conserving form of
-         ! the equations
-         w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
        else
          ! s[mr]=2pthermal/radius
          w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
@@ -657,7 +701,7 @@ contains
 
        if(ndir==3) then
          ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         if(.not. angmomfix) then 
+         if(.not. angmomfix) then
            tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)&
                       -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3)))/wCT(ixO^S,rho_)/tan(x(ixO^S,2))
            w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
@@ -708,7 +752,7 @@ contains
     use mod_global_parameters
     use mod_dust, only: dust_get_dt
     use mod_radiative_cooling, only: cooling_get_dt
-    use mod_viscosity, only: viscosity_get_dt 
+    use mod_viscosity, only: viscosity_get_dt
     use mod_gravity, only: gravity_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L

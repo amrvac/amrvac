@@ -3,7 +3,7 @@ module mod_finite_volume
   implicit none
   private
 
-  public :: finite_volume 
+  public :: finite_volume
   public :: hancock
   public :: reconstruct_LR
 
@@ -197,13 +197,18 @@ contains
           wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
                + (fC(ixO^S,1:nwflux,idim)-fC(hxO^S,1:nwflux,idim))
        else
-          inv_volume = 1.0d0/block%dvolume(ixO^S)
           fC(ixI^S,1:nwflux,idim)=-qdt*fC(ixI^S,1:nwflux,idim)
-
-          do iw = 1, nwflux
-             wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+          if (.not. angmomfix) then ! default case
+            inv_volume = 1.0d0/block%dvolume(ixO^S)
+            do iw=1,nwflux
+              wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
                   inv_volume
-          end do
+            enddo
+          else
+            ! If angular momentum conserving way to solve the equations,
+            ! some fluxes additions need to be treated specifically
+            call phys_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
+          endif
        end if
 
        ! For the MUSCL scheme apply the characteristic based limiter
@@ -366,7 +371,7 @@ contains
       double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L
       double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
-      double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp 
+      double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp
       double precision, dimension(ixI^S,ndir) :: vRC, vLC
       integer :: ip1,ip2,ip3,idir
 
