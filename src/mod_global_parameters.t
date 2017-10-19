@@ -363,6 +363,9 @@ module mod_global_parameters
   !> True for dimensions with aperiodic boundaries
   logical :: aperiodB(ndim)
 
+  !> True for save physical boundary cells in dat files
+  logical :: save_physical_boundary
+
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
   character(len=std_len), allocatable :: typeboundary(:, :)

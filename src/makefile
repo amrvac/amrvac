@@ -83,7 +83,6 @@ mod_hd_roe.o: mod_tvd.mod
 mod_initialize.o: mod_ghostcells_update.mod
 mod_initialize.o: mod_input_output.mod
 mod_initialize.o: mod_physics.mod
-mod_input_output.o: mod_ghostcells_update.mod
 mod_input_output.o: mod_kracken.mod
 mod_input_output.o: mod_limiter.mod
 mod_input_output.o: mod_particles.mod

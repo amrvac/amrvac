@@ -148,7 +148,7 @@ contains
          small_values_method, small_values_daverage, solve_internal_e
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
-         internalboundary, typeboundary_^L
+         internalboundary, typeboundary_^L, save_physical_boundary
 
     namelist /meshlist/ refine_max_level,nbufferx^D,refine_threshold,&
          derefine_ratio, refine_criterion, stretched_grid, qst, &
@@ -189,6 +189,9 @@ contains
 
     allocate(typeboundary(nwflux, 2 * ndim))
     typeboundary(:, :) = undefined
+
+    ! not save physical boundary in dat files by default
+    save_physical_boundary = .false.
 
     internalboundary   = .false.
 
@@ -1108,7 +1111,6 @@ contains
   !> and on which sides)
   subroutine block_shape_io(igrid, n_ghost, ixO^L, n_values)
     use mod_global_parameters
-    use mod_ghostcells_update, only: identifyphysbound
 
     integer, intent(in) :: igrid
     !> nghost(1:ndim) contains the number of ghost cells on the block's minimum
@@ -1119,20 +1121,17 @@ contains
     !> Number of cells/values in output
     integer, intent(out) :: n_values
 
-    logical, parameter :: save_physical_boundary = .false. ! TODO
-    integer            :: iib^D
+    integer            :: idim
 
     n_ghost(:) = 0
 
-    if (save_physical_boundary) then
-      call identifyphysbound(igrid,iib^D)
-      {
-      if (iib^D == 1) then
-        n_ghost(ndim+1:) = nghostcells ! Include ghost cells on upper boundary
-      else if (iib^D == -1) then
-        n_ghost(1:ndim) = nghostcells ! Include ghost cells on lower boundary
-      end if
-      \}
+    if(save_physical_boundary) then
+      do idim=1,ndim
+        ! Include ghost cells on lower boundary
+        if(pw(igrid)%is_physical_boundary(2*idim-1)) n_ghost(idim)=nghostcells
+        ! Include ghost cells on upper boundary
+        if(pw(igrid)%is_physical_boundary(2*idim)) n_ghost(ndim+idim)=nghostcells
+      end do
     end if
 
     {ixOmin^D = ixMlo^D + n_ghost(^D)\}
