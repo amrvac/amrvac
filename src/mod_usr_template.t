@@ -13,7 +13,11 @@ contains
 
   !> This routine should set user methods, and activate the physics module
   subroutine usr_init()
+    use mod_global_parameters
     use mod_usr_methods
+
+    ! Choose coordinate system as 2D Cartesian with three components for vectors
+    call set_coordinate_system("Cartesian_2.5D")
 
     ! A routine for initial conditions is always required
     usr_init_one_grid => initial_conditions
@@ -21,20 +25,26 @@ contains
     ! Specify other user routines, for a list see mod_usr_methods.t
     ! ...
 
+    ! Choose independent normalization units if using dimensionless variables.
+    unit_length        = 1.d9 ! cm
+    unit_temperature   = 1.d6 ! K
+    unit_numberdensity = 1.d9 ! cm^-3
+
     ! Active the physics module
     call hd_activate()
+
   end subroutine usr_init
 
   !> A routine for specifying initial conditions
-  subroutine initial_conditions(ixG^L, ix^L, w, x)
+  subroutine initial_conditions(ixI^L, ixO^L, w, x)
     use mod_global_parameters
 
-    integer, intent(in)             :: ixG^L, ix^L
-    double precision, intent(in)    :: x(ixG^S, ndim)
-    double precision, intent(inout) :: w(ixG^S, nw)
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
 
     ! Set initial values for w
-    ! w(ix^S, :) = ...
+    ! w(ixO^S, rho_) = ...
 
   end subroutine initial_conditions
 

@@ -12,8 +12,8 @@ Thermal conductivity is Spitzer conductivity for fully ionize plasma
 
 Thermal conduction equation is solved seperately in an operator-split fasion from
 the (M)HD equations. An explicit update and super time stepping time integrator is
-used to achieve second order accuracy in time. Central difference discretization for
-spatial derivatives is adopted.
+used to achieve second order accuracy in time. (Slope limited) symmetric scheme is used
+for discretization.
 
 # Practical use
 
@@ -25,10 +25,10 @@ In order to add thermal conduction to a simulation, the user has to do the follo
      in mod_usr.t, subroutine usr_init(), add 
            unit_length=<your length unit>
            unit_numberdensity=<your number density unit>
-           unit_velocity=<your velocity unit>
            unit_temperature=<your temperature unit>
+           unit_velocity=<your velocity unit>
        before call (m)hd_activate()
-  3. You can add the name list for thermal conduction, tc_list, in which parameters tc_perpendicular, 
+  3. You can add the name list for thermal conduction, tc_list, in par file, where parameters tc_perpendicular, 
      tc_saturate, tc_dtpar can be modified. tc_perpendicular=.true. will add conduction flux
      perpendicular to magnetic field, which is not considered by default. tc_saturate=.true. to consider
      saturation effect of thermal conduction, which is the default choice. tc_dtpar=0.9/0.45/0.3 is the 
