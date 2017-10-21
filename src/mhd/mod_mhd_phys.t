@@ -32,7 +32,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_glm = .false.
 
   !> TODO: describe and set value
-  double precision, public                :: mhd_glm_Cr = -0.2d0
+  double precision, public                :: mhd_glm_Cr = 0.5d0
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
@@ -276,7 +276,7 @@ contains
     phys_write_info      => mhd_write_info
 
     ! Whether diagonal ghost cells are required for the physics
-    if(type_divb <6) phys_req_diagonal = .false.
+    if(type_divb <6) phys_req_diagonal = .true.
 
     ! derive units from basic units
     call mhd_physical_units()
@@ -762,133 +762,6 @@ contains
   end subroutine mhd_get_p_total
 
   !> Calculate fluxes within ixO^L.
-  subroutine mhd_get_flux_cons(w,x,ixI^L,ixO^L,idim,f)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L, idim
-    double precision, intent(in) :: w(ixI^S,nw)
-    double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision,intent(out) :: f(ixI^S,nwflux)
-
-    double precision             :: ptotal(ixI^S),tmp(ixI^S), v(ixI^S,ndir)
-    double precision, allocatable:: vHall(:^D&,:)
-    integer                      :: idirmin, iw, idir
-
-    call mhd_get_v(w,x,ixI^L,ixO^L,v)
-
-    if (mhd_Hall) then
-      allocate(vHall(ixI^S,1:ndir))
-      call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
-    end if
-
-    if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
-
-    call mhd_get_p_total(w,x,ixI^L,ixO^L,ptotal)
-
-    ! Get flux of density
-    f(ixO^S,rho_)=v(ixO^S,idim)*w(ixO^S,rho_)
-
-    ! Get flux of tracer
-    do iw=1,mhd_n_tracer
-      f(ixO^S,tracer(iw))=v(ixO^S,idim)*w(ixO^S,tracer(iw))
-    end do
-
-    ! Get flux of momentum
-    ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
-    do idir=1,ndir
-      if(idim==idir) then
-        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
-        if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
-      else
-        f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
-      end if
-      if (B0field) then
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
-             -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
-             -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
-      end if
-      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+v(ixO^S,idim)*w(ixO^S,mom(idir))
-    end do
-
-    ! Get flux of energy
-    ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
-    if (mhd_energy) then
-       if (block%e_is_internal) then
-          f(ixO^S,e_)=v(ixO^S,idim)*w(ixO^S,e_)
-          if (mhd_Hall) then
-             call mpistop("solve pthermal not designed for Hall MHD")
-          endif
-       else
-          f(ixO^S,e_)=v(ixO^S,idim)*(w(ixO^S,e_)+ptotal(ixO^S))- &
-             w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*v(ixO^S,:),dim=ndim+1)
-
-          if (B0field) then
-             f(ixO^S,e_) = f(ixO^S,e_) &
-                + v(ixO^S,idim) * tmp(ixO^S) &
-                - sum(v(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
-          end if
-
-          if (mhd_Hall) then
-          ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
-             if (mhd_etah>zero) then
-                f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
-                   sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
-                   - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
-                if (B0field) then
-                   f(ixO^S,e_) = f(ixO^S,e_) &
-                      + vHall(ixO^S,idim) * tmp(ixO^S) &
-                      - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
-                end if
-             end if
-          end if
-       end if
-    end if
-
-    ! compute flux of magnetic field
-    ! f_i[b_k]=v_i*b_k-v_k*b_i
-    do idir=1,ndir
-      if (idim==idir) then
-        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
-        if (mhd_glm) then
-           f(ixO^S,mag(idir))=w(ixO^S,psi_)
-        else
-           f(ixO^S,mag(idir))=zero
-        end if
-      else
-        f(ixO^S,mag(idir))=v(ixO^S,idim)*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*v(ixO^S,idir)
-
-        if (B0field) then
-          f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
-                +v(ixO^S,idim)*block%B0(ixO^S,idir,idim)&
-                -v(ixO^S,idir)*block%B0(ixO^S,idim,idim)
-        end if
-
-        if (mhd_Hall) then
-          ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
-          if (mhd_etah>zero) then
-            if (B0field) then
-              f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-                   - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+block%B0(ixO^S,idim,idim)) &
-                   + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idim))
-            else
-              f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-                   - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
-                   + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
-            end if
-          end if
-        end if
-
-      end if
-    end do
-
-    if (mhd_glm) then
-      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
-      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
-    end if
-
-  end subroutine mhd_get_flux_cons
-
-  !> Calculate fluxes within ixO^L.
   subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
 
@@ -1095,7 +968,6 @@ contains
         end select
       end if
       }
-
     end if
 
     if(mhd_radiative_cooling) then
@@ -1426,7 +1298,8 @@ contains
       w(ixO^S,psi_) = abs(mhd_glm_Cr)*wCT(ixO^S,psi_)
     else
       ! implicit update of psi variable
-      w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
+      !w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
+      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_Cr/minval(dxlevel(:)))*w(ixO^S,psi_)
     end if
 
     ! gradient of Psi
@@ -1476,7 +1349,8 @@ contains
       w(ixO^S,psi_) = abs(mhd_glm_Cr)*wCT(ixO^S,psi_)
     else
       ! implicit update of psi variable
-      w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
+      !w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
+      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_Cr/minval(dxlevel(:)))*w(ixO^S,psi_)
     end if
 
     ! gradient of Psi
@@ -1532,7 +1406,7 @@ contains
       w(ixO^S,psi_) = abs(mhd_glm_Cr)*w(ixO^S,psi_)
     else
       ! implicit update of psi variable
-      w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*w(ixO^S,psi_)
+      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_Cr/minval(dxlevel(:)))*w(ixO^S,psi_)
     end if
 
   end subroutine add_source_glm3
@@ -2037,9 +1911,9 @@ contains
     dPsi(ixO^S) = wRC(ixO^S,psi_) - wLC(ixO^S,psi_)
 
     wLC(ixO^S,mag(idir))   = 0.5d0 * (wRC(ixO^S,mag(idir)) + wLC(ixO^S,mag(idir))) &
-         - half/cmax_global * dPsi(ixO^S)
+         - 0.5d0/cmax_global * dPsi(ixO^S)
     wLC(ixO^S,psi_)       = 0.5d0 * (wRC(ixO^S,psi_) + wLC(ixO^S,psi_)) &
-         - half*cmax_global * dB(ixO^S)
+         - 0.5d0*cmax_global * dB(ixO^S)
 
     wRC(ixO^S,mag(idir)) = wLC(ixO^S,mag(idir))
     wRC(ixO^S,psi_) = wLC(ixO^S,psi_)

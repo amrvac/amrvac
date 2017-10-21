@@ -276,7 +276,7 @@ contains
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=1,nwflux
          if (flux_type(idim, iw) == flux_tvdlf) then
-            fLC(ixC^S, iw) = half*((fLC(ixC^S, iw) + fRC(ixC^S, iw)) &
+            fLC(ixC^S, iw) = half*(fLC(ixC^S, iw) + fRC(ixC^S, iw) &
                  -tvdlfeps*max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
                  (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
          else
@@ -482,13 +482,13 @@ contains
       end do
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        !if(iw==mag(ip1)) then
-        !  !fC(ixC^S,iw,ip1)=0.d0
-        !  fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
-        !       max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
-        !       (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-        !  cycle
-        !end if
+        if (flux_type(idim, iw) == flux_tvdlf) then
+          fC(ixC^S,iw,ip1)=0.5d0*(fLC(ixC^S,iw) + fRC(ixC^S,iw))
+          !fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
+          !     max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
+          !     (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+          cycle
+        end if
         f1L(ixC^S,iw)=fLC(ixC^S,iw)+cminC(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
         f1R(ixC^S,iw)=fRC(ixC^S,iw)+cmaxC(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
         where(cminC(ixC^S)>0.d0)
