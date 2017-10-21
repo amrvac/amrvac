@@ -165,6 +165,69 @@ contains
     call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine mhd_write_info
 
+  subroutine mhd_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
+    use mod_global_parameters
+    double precision, intent(in)       :: x(ixI^S,1:ndim)
+    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
+    integer, intent(in)                :: ixI^L, ixO^L
+    integer, intent(in)                :: idim
+    integer                            :: hxO^L, kxC^L, iw
+    double precision                   :: inv_volume(ixI^S)
+
+    call mpistop("to do")
+    ! ! shifted indexes
+    ! hxO^L=ixO^L-kr(idim,^D);
+    ! ! all the indexes
+    ! kxCmin^D=hxOmin^D;
+    ! kxCmax^D=ixOmax^D;
+    !
+    ! inv_volume = 1.0d0/block%dvolume(ixO^S)
+    !
+    ! select case(typeaxial)
+    ! case ("cylindrical")
+    !   do iw=1,nwflux
+    !     if (idim==r_ .and. iw==iw_mom(phi_)) then
+    !       fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+    !            (inv_volume/x(ixO^S,r_))
+    !     else
+    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+    !             inv_volume
+    !     endif
+    !   enddo
+    ! case ("spherical")
+    !   do iw=1,nwflux
+    !     if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
+    !       fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+    !            (inv_volume/x(ixO^S,r_))
+    !     elseif (idim==2  .and. iw==iw_mom(phi_)) then
+    !       fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*dsin(x(kxC^S,2)+half*block%dx(kxC^S,2)) ! (x(4,3,1)-x(3,3,1)))
+    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+    !            (inv_volume/dsin(x(ixO^S,2)))
+    !     else
+    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+    !             inv_volume
+    !     endif
+    !   enddo
+    !
+    !   ! if (idim==r_) then
+    !   !   fC(kxC^S,iw_mom(phi_),idim)= fC(kxC^S,iw_mom(phi_),idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+    !   !   fC(kxC^S,iw_mom(phi_),idim)= fC(kxC^S,iw_mom(phi_),idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+    !   !   wnew(ixO^S,iw_mom(phi_))=wnew(ixO^S,iw_mom(phi_)) + (fC(ixO^S,iw_mom(phi_),idim)-fC(hxO^S,iw_mom(phi_),idim)) * &
+    !   !        (inv_volume/x(ixO^S,r_))
+    !   !
+    !   ! elseif (idim==2) then
+    !   !   fC(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,iw,idim)=fC(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,iw,idim)*dsin(x(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,2)+half*block%dx(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,2)) ! (x(4,3,1)-x(3,3,1)))
+    !   !   fC(ixO^S,iw,idim)=fC(ixO^S,iw,idim)*dsin(x(ixO^S,2)+half*block%dx(ixO^S,2)) ! (x(4,3,1)-x(3,3,1)))
+    !   !   wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+    !   !        (inv_volume/dsin(x(ixO^S,2)))
+    !   ! endif
+    !
+    ! end select
+
+  end subroutine mhd_angmomfix
+
   subroutine mhd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
@@ -274,6 +337,7 @@ contains
     phys_get_pthermal    => mhd_get_pthermal
     phys_boundary_adjust => mhd_boundary_adjust
     phys_write_info      => mhd_write_info
+    phys_angmomfix       => mhd_angmomfix
 
     ! Whether diagonal ghost cells are required for the physics
     if(type_divb <6) phys_req_diagonal = .true.
@@ -412,7 +476,7 @@ contains
               mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
            where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
          end if
-       end if  
+       end if
     end if
   end subroutine mhd_check_w
 
@@ -1563,13 +1627,11 @@ contains
     double precision, intent(in)       :: w(ixI^S,1:nw)
     double precision                   :: divb(ixI^S), dsurface(ixI^S)
 
-    double precision :: B2(ixO^S)
     integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
-    B2(ixO^S)=mhd_mag_en_all(w,ixI^L,ixO^L)
     if(slab) then
-      divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(B2(ixO^S))/sum(1.d0/dxlevel(:))
+      divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))/sum(1.d0/dxlevel(:))
     else
       ixAmin^D=ixOmin^D-1;
       ixAmax^D=ixOmax^D-1;
@@ -1578,14 +1640,9 @@ contains
         ixA^L=ixO^L-kr(idims,^D);
         dsurface(ixO^S)=dsurface(ixO^S)+block%surfaceC(ixA^S,idims)
       end do
-      divb(ixO^S)=abs(divb(ixO^S))/sqrt(B2(ixO^S))*&
+      divb(ixO^S)=abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))*&
       block%dvolume(ixO^S)/dsurface(ixO^S)
     end if
-
-    ! where magnetic field vanishes, div B = 0
-    where(B2(ixO^S)<=smalldouble)
-      divb(ixO^S)=0.d0
-    end where
 
   end subroutine get_normalized_divb
 
@@ -1618,7 +1675,7 @@ contains
     use mod_global_parameters
     use mod_usr_methods
     use mod_radiative_cooling, only: cooling_get_dt
-    use mod_viscosity, only: viscosity_get_dt 
+    use mod_viscosity, only: viscosity_get_dt
     use mod_gravity, only: gravity_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L
@@ -1674,7 +1731,6 @@ contains
 
     integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
     double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
-    logical          :: angmomfix=.false.
 
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
@@ -1684,6 +1740,9 @@ contains
 
     select case (typeaxial)
     case ('cylindrical')
+      if (angmomfix) then
+        call mpistop("angmomfix not implemented yet in MHD")
+      endif
        call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
        if(phi_>0) then
          w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*(tmp(ixO^S)-&
@@ -1761,7 +1820,7 @@ contains
        w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
        }
 
-       if(ndir==3) then 
+       if(ndir==3) then
          ! m3
          if(.not.angmomfix) then
            tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mom(1))/wCT(ixO^S,rho_) &
@@ -1777,6 +1836,8 @@ contains
                    *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
            end if
            w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+         else
+           call mpistop("angmomfix not implemented yet in MHD")
          end if
          ! b3
          tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
@@ -1922,7 +1983,7 @@ contains
 
   subroutine mhd_boundary_adjust
     use mod_global_parameters
-    integer :: iB, idim, iside, iigrid, igrid 
+    integer :: iB, idim, iside, iigrid, igrid
     integer :: ixG^L, ixO^L, i^D
 
     ixG^L=ixG^LL;
@@ -2334,7 +2395,7 @@ contains
      case default
        call mpistop("Special boundary is not defined for this region")
     end select
-  
+
    end subroutine fixdivB_boundary
 
 end module mod_mhd_phys

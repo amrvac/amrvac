@@ -48,6 +48,7 @@ module mod_physics
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
   procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust        => null()
   procedure(sub_write_info), pointer      :: phys_write_info             => null()
+  procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
 
   abstract interface
 
@@ -152,6 +153,14 @@ module mod_physics
        integer, intent(in) :: file_handle
      end subroutine sub_write_info
 
+     subroutine sub_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
+       use mod_global_parameters
+       integer, intent(in)                :: ixI^L, ixO^L
+       double precision, intent(in)       :: x(ixI^S,1:ndim)
+       double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim), wnew(ixI^S,1:nw)
+       integer, intent(in)                :: idim
+     end subroutine sub_angmomfix
+
   end interface
 
 contains
@@ -214,6 +223,9 @@ contains
 
     if (.not. associated(phys_write_info)) &
          phys_write_info => dummy_write_info
+
+    if (.not. associated(phys_angmomfix)) &
+         phys_angmomfix => dummy_angmomfix
 
   end subroutine phys_check
 
@@ -293,4 +305,12 @@ contains
     call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
   end subroutine dummy_write_info
 
+  subroutine dummy_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
+    use mod_global_parameters
+    double precision, intent(in)       :: x(ixI^S,1:ndim)
+    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim), wnew(ixI^S,1:nw)
+    integer, intent(in)                :: ixI^L, ixO^L
+    integer, intent(in)                :: idim
+  end subroutine dummy_angmomfix
+  
 end module mod_physics

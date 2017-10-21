@@ -14,17 +14,19 @@ facilities. The following software is required:
 
 # Getting the code {#get_code}
 
-To install in `~/codes/amrvac`:
+To install the code in fold `~/codes/amrvac`:
 
     cd ~/codes
     git clone https://github.com/amrvac/amrvac.git
 
 # Setting path {#install}
 
-To use MPI-AMRVAC, the installation directory has to be added to the command searching path. 
+To use MPI-AMRVAC, the installation directory must be exported as an envirenment 
+parameter AMRVAC_DIR and can be added to the command searching path for robustness.
 To do so using bash, you should add the following line
 to your `~/.bashrc` file (or perhaps `~/.profile` in mac OS):
 
+    export AMRVAC_DIR=$HOME/codes/amrvac
     PATH="$PATH:$HOME/codes/amrvac:$HOME/codes/amrvac/tools"
 
 You can then activate the setting by source the file, or close and open a new terminal shell, 
