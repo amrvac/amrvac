@@ -19,7 +19,7 @@ commercial package [Tecplot](http://www.tecplot.com/), or the _*.dx_ format
 for the opensource package [openDX](http://www.opendx.org/). We also provide
 possibilities to convert to a format _*.out_ suitable for Idl, for which some
 automated macro's can be made in analogy with those used for the [Versatile
-Advection Code ](http://grid.engin.umich.edu/~gtoth/VAC), but be forewarned
+Advection Code ](http://www-personal.umich.edu/~gtoth), but be forewarned
 that 3D (and even 2D) AMR data for Idl will require you to program your own
 macro's. Also, **this info will not explain you how to use the mentioned
 software for visualization, but just explain how to do the conversion.**
@@ -83,8 +83,8 @@ _convert_type='vtuBCC'_ indicates that the data is exactly as the code
 interprets and updates the values, namely as cell-centered quantities. 
 
 Realizing that you typically want to convert multiple data files, you can do
-this by repeating the above as many times as here are _*.dat_ files, by
-raising/changing the _restart_from_file_ identifier. Since you typicallly want to
+this by repeating the above as many times as there are _*.dat_ files, by
+raising/changing the _restart_from_file_ identifier. Since you typically want to
 convert all data files between a minimum and maximum number of similarly named
 files, the script **aiconvert** is added. If you have a line
 `PATH="$AMRVAC_DIR:$AMRVAC_DIR/tools:./:$PATH"` in `~/.bash_profile` (or
@@ -148,7 +148,7 @@ write operation on suitable file systems is sped up significantly. In a
 visualization software, only the _*.pvtu_ files need to be imported and also
 the reading process is sped up in case of parallel visualization.
 
-You can again use aiconvert as expained above, and type in the number
+You can again use aiconvert as explained above, and type in the number
 of processors to use by answering a popup question:
 
     How many processors do you want to use? (default=1) 4
@@ -194,7 +194,7 @@ reading in the data in _paraview_, which reports whether data is cell data
 from cell centered (or cell data) to cell corner (or point data) types can
 also be achieved in paraview itself, with the filter _Cell data to Point
 data_. There may be subtle differences between the way MPI-AMRVAC does this
-nterpolation, and the way it happens internally to paraview, so we provide
+interpolation, and the way it happens internally to paraview, so we provide
 both options as output _*.vtu_ files. Similar observations hold for the
 Tecplot format.
 
@@ -219,7 +219,7 @@ for the physics module at hand, in the integer _nwauxio_. Correspondingly that
 many variables, you should then compute and store in the _w(*,nw+1)_ ...
 _w(*,nw+nwauxio)_ entries, in the user-written subroutine _ specialvar_output_
 (as defined in _mod_usr_methods.t_). The names for these variables then
-need to be provided in the corresponding _specialvarnames_output_ subroutine.i
+need to be provided in the corresponding _specialvarnames_output_ subroutine.
 This feature is very useful, for the same reason as above: you can let the 
 code compute gradients of scalar fields, divergence of vector quantities, curls 
 of vectors, etc, using the precoded subroutines for that purpose found in _geometry.t_.
@@ -272,75 +272,7 @@ as there are levels, while on on multiple CPUs, there will be a number of
 zones up to the number of levels times the number of CPUs (or less, when some
 level does not exist on a certain CPU).
 
-### _convert_type='idl'_ or _convert_type='idlCC'_
-
-This will do the conversion to _*.out_ files, which are a generalization of
-the [Versatile Advection Code ](http://grid.engin.umich.edu/~gtoth/VAC) output
-files. For those VAC-style files, extensive macro's are provided with the VAC
-code itself, allowing for fairly interactive visualization of quantities, or
-computation of derived quantities etc. The Idl macro's that allow to read
-_*.out_ files converted with MPI-AMRVAC, and that use similar commands as for
-VAC files, are downloadable [here as a single gzipped tar
-file](allidlmacros.tar.gz). It contains the hidden, to be adjusted file
-_.idlrc_, and the directories _Idl_ and _Idl_amr_, with macro's inside.
-However, they only allow a very limited visualization, with some (possibly
-incomplete and inaccurate) [description here](idl.md), fine for 1D and
-little for 2D runs, but with no support for 3D data analysis. This would mean
-you need to write your own Idl macro's, after you fully understand what
-dataformat is actually stored in a _*.out_ file. For that, just study the
-source code in _convert.t_.
-
-The Idl conversion does not work in parallel, it can handle the addition of
-extra IO variables (_nwauxio_), and allows to renormalize the data using the
-_normt_ and _normvar_ array, in case you directly want to have dimensional
-quantities available. An additional script provided is the **doidlcat**
-script, which basically concatenates all requested _*.out_ files in a single
-file, that can be used with the (few) Idl macro's above. Its intended use for
-the 2D advection example would be
-
-    aiconvert 0 20
-    doidlcat vaclogo 0 20 1
-
-The first line creates the 21 files _vaclogo0000.out_ till
-_vaclogo0020.out_ (assuming you edited the par-file and
-indicated the proper _convert_type_ for idl), while the next line then gathers
-them all in a single _vaclogoall.out_ file, ready for Idl
-visualization with VAC-like macro's, like _.r getpict_, _.r plotfunc_ or _.r
-animate_. The 3 integer parameters to **doidlcat** indicate the first and last
-snapshot number, and a skiprate. If the latter is different from 1, you
-include every so many files in the concatenation.
-
-### _convert_type='dx'__
-
-This (heritage) output format is suited for openDX conversion.
-
 ### onegrid(mpi), oneblock(B), ...
 
 Extra possibilities to allow creation of a single uniform grid level output.
 Please inspect the workings in _convert.t_.
-
-## Endianness {#endianness}
-
-Our _*.dat_ files contain the data in binary format. This is in principle
-exchangeable between different platforms, with the possible exception for big
-endian or little endian type machines (these differ in the ordering of bytes
-for integers and reals). E.g. IBM SP platforms have different endianness than
-the VIC3 cluster at K.U.Leuven. In that sense, you may need to do conversion
-on the same (type) platform than you used for running the code.
-
-For the binary _.vtu_ files, the endianness can be provided in the xml header
-and vtu readers like paraview will then interprete the data correctly. The
-default endianness of _.vtu_ files is little endian. To switch to big endian,
-simply add the line
-
-    #define BIGENDIAN
-
-to the _definitions.h_ file.
-
-There can be solutions on the machine at hand, using the _assign_ command
-(whose syntax you will need to get info on). We would also like to hear if
-anyone knows about a way to specify the endianness of the output in
-MPI/Fortran itself, independent of the platform. Using Fortran compilers like
-gfortran and intel fortran, it is now possible to output .dat data files in
-the other endian, e. g. big endian, with a parameter endian_swap=.true. in the
-filelist section of the parameter file.

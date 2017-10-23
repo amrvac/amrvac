@@ -6,7 +6,7 @@ collaboration with [Rony Keppens](http://perswww.kuleuven.be/~u0016541) at
 the
 [Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA) at
 K.U.Leuven. The code has some heritage (in the solver part) to
-the [Versatile Advection Code ](http://grid.engin.umich.edu/~gtoth/VAC) or VAC,
+the [Versatile Advection Code ](http://www-personal.umich.edu/~gtoth) or VAC,
 initiated by Gabor Toth at the Astronomical Institute at Utrecht in November
 1994, with help from Rony Keppens since 1996.
 

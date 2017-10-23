@@ -14,8 +14,6 @@ else if(.not. phys_req_diagonal) then
 end if
 
 select case(convert_type)
-  case('idl','idlCC')
-   call valout_idl(unitconvert)
   case('tecplot','tecplotCC','tecline')
    call tecplot(unitconvert)
   case('tecplotmpi','tecplotCCmpi','teclinempi')
@@ -32,8 +30,6 @@ select case(convert_type)
    call punstructuredvtkB_mpi(unitconvert)
   case('vtimpi','vtiCCmpi')
    call ImageDataVtk_mpi(unitconvert)
-  case('dx')
-   call valout_dx(unitconvert)
   case('onegrid','onegridmpi')
    call onegrid(unitconvert)
   case('oneblock','oneblockB')
@@ -762,203 +758,6 @@ endif
 if(mype==0) close(qunit)
 end subroutine onegrid 
 !============================================================================
-subroutine valout_idl(qunit)
-
-! output for idl macros from (amr)vac
-! not parallel, uses calc_grid to compute nwauxio variables
-! allows renormalizing using convert factors
-
-! binary output format
-
-use mod_forest, only: nleafs
-use mod_global_parameters
-
-integer, intent(in) :: qunit
-
-double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
-double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
-double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
-double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
-
-double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
-double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
-
-character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-character(len=1024) :: outfilehead
-
-logical :: fileopen
-integer :: iigrid,igrid,nx^D,nxC^D,ixC^L,ixCC^L,iw
-character(len=80) :: filename
-integer :: filenr
-
-!!! length mismatch possible
-character(len=80) :: tmpnames
-
-double precision:: rnode_IDL(rnodehi), normconv(0:nw+nwauxio)
-!-----------------------------------------------------------------------------
-
-if(npe>1)then
- if(mype==0) PRINT *,'valoutidl as yet to be parallelized'
- call mpistop('npe>1, valoutidl')
-end if
-
-if(nw/=count(w_write(1:nw)))then
- if(mype==0) PRINT *,'valoutidl does not use w_write=F'
- call mpistop('w_write, valoutidl')
-end if
-
-inquire(qunit,opened=fileopen)
-if (.not.fileopen) then
-   ! generate filename
-    filenr=snapshotini
-    if (autoconvert) filenr=snapshotnext
-   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".out"
-   open(qunit,file=filename,status='unknown',form='unformatted')
-end if
-
-! Jannis: have removed neqpar here
-! write(qunit)it,global_time*time_convert_factor,ndim,neqpar+nspecialpar,nw+nwauxio
-write(qunit)it,global_time*time_convert_factor,ndim,nw+nwauxio
-
-nx^D=ixMhi^D-ixMlo^D+1;
-select case(convert_type)
-  case('idl')
-    ! store cell corner quantities, involves averaging to corners
-    nxC^D=nx^D+1;
-  case('idlCC')
-    ! store cell center quantities, do not average to corners
-    nxC^D=nx^D;
-  case default
-   call mpistop("Error in valout_idl: Unknown convert_type")
-end select
-
-call getheadernames(wnamei,xandwnamei,outfilehead)
-
-! Jannis: have removed eqpar here
-! for idl output: add the eqparnames, note the length mismatch!!!
-! tmpnames=TRIM(outfilehead)//' '//TRIM(eqparname)//' '//TRIM(specialparname)
-
-! use -nleafs to indicate amr grid
-if (nleafs==1 .and. refine_max_level==1) then
-  write(qunit) nxC^D
-  ! write(qunit)eqpar
-  write(qunit)tmpnames
-else
-  rnode_IDL=0.d0
-  write(qunit) ^D&-nleafs
-  ! write(qunit) eqpar
-  write(qunit)tmpnames
-  ! write out individual grid sizes, grid level, and corners
-  do iigrid=1,igridstail; igrid=igrids(iigrid);
-     write(qunit) nxC^D
-     write(qunit) node(plevel_,igrid)
-     select case (typeaxial)
-      case ("slab","slabstretch")
-      {rnode_IDL(rpxmin1_:rpxmin^ND_)=rnode(rpxmin1_:rpxmin^ND_,igrid)};
-      {rnode_IDL(rpxmax1_:rpxmax^ND_)=rnode(rpxmax1_:rpxmax^ND_,igrid)}; 
-      case ("cylindrical")
-      {^IFONED
-       rnode_IDL(rpxmin1_)=rnode(rpxmin1_,igrid)
-       rnode_IDL(rpxmax1_)=rnode(rpxmax1_,igrid)}
-      {^IFTWOD
-       select case (phi_)
-          case (2) 
-        rnode_IDL(rpxmin1_)=rnode(rpxmin1_,igrid)*cos(rnode(rpxmin2_,igrid))
-        rnode_IDL(rpxmax1_)=rnode(rpxmax1_,igrid)*cos(rnode(rpxmax2_,igrid))
-        rnode_IDL(rpxmin2_)=rnode(rpxmin1_,igrid)*sin(rnode(rpxmin2_,igrid))
-        rnode_IDL(rpxmax2_)=rnode(rpxmax1_,igrid)*sin(rnode(rpxmax2_,igrid))
-        ! next avoids that IDL clips off part of the domain at circle edges
-        if(sin(rnode(rpxmin2_,igrid))*sin(rnode(rpxmax2_,igrid))< zero)then
-         if(cos(rnode(rpxmin2_,igrid))>zero)then
-           rnode_IDL(rpxmin1_)=rnode(rpxmin1_,igrid)
-           rnode_IDL(rpxmax1_)=rnode(rpxmax1_,igrid)
-         else
-           rnode_IDL(rpxmin1_)=-rnode(rpxmax1_,igrid)
-           rnode_IDL(rpxmax1_)=rnode(rpxmin1_,igrid)
-         endif
-        endif
-        if(cos(rnode(rpxmin2_,igrid))*cos(rnode(rpxmax2_,igrid))< zero)then
-         if(sin(rnode(rpxmin2_,igrid))>zero)then
-           rnode_IDL(rpxmin2_)=rnode(rpxmin1_,igrid)
-           rnode_IDL(rpxmax2_)=rnode(rpxmax1_,igrid)
-         else
-           rnode_IDL(rpxmin2_)=-rnode(rpxmax1_,igrid)
-           rnode_IDL(rpxmax2_)=rnode(rpxmin1_,igrid)
-         endif
-        endif
-          case default
-      {rnode_IDL(rpxmin1_:rpxmin^ND_)=rnode(rpxmin1_:rpxmin^ND_,igrid)};
-      {rnode_IDL(rpxmax1_:rpxmax^ND_)=rnode(rpxmax1_:rpxmax^ND_,igrid)}; 
-       end select}
-      {^IFTHREED
-        rnode_IDL(rpxmin1_)=rnode(rpxmin1_,igrid)*cos(rnode(rpxmin2_,igrid))
-        rnode_IDL(rpxmax1_)=rnode(rpxmax1_,igrid)*cos(rnode(rpxmax2_,igrid))
-        rnode_IDL(rpxmin2_)=rnode(rpxmin1_,igrid)*sin(rnode(rpxmin2_,igrid))
-        rnode_IDL(rpxmax2_)=rnode(rpxmax1_,igrid)*sin(rnode(rpxmax2_,igrid))
-        rnode_IDL(rpxmin3_)=rnode(rpxmin3_,igrid)
-        rnode_IDL(rpxmax3_)=rnode(rpxmax3_,igrid)
-        if(sin(rnode(rpxmin2_,igrid))*sin(rnode(rpxmax2_,igrid))< zero)then
-         if(cos(rnode(rpxmin2_,igrid))>zero)then
-           rnode_IDL(rpxmin1_)=rnode(rpxmin1_,igrid)
-           rnode_IDL(rpxmax1_)=rnode(rpxmax1_,igrid)
-         else
-           rnode_IDL(rpxmin1_)=-rnode(rpxmax1_,igrid)
-           rnode_IDL(rpxmax1_)=rnode(rpxmin1_,igrid)
-         endif
-        endif
-        if(cos(rnode(rpxmin2_,igrid))*cos(rnode(rpxmax2_,igrid))< zero)then
-         if(sin(rnode(rpxmin2_,igrid))>zero)then
-           rnode_IDL(rpxmin2_)=rnode(rpxmin1_,igrid)
-           rnode_IDL(rpxmax2_)=rnode(rpxmax1_,igrid)
-         else
-           rnode_IDL(rpxmin2_)=-rnode(rpxmax1_,igrid)
-           rnode_IDL(rpxmax2_)=rnode(rpxmin1_,igrid)
-         endif
-        endif}
-      case ("spherical")
-       rnode_IDL(rpxmin1_)=rnode(rpxmin1_,igrid) &
-         {^NOONED*sin(rnode(rpxmin2_,igrid))}{^IFTHREED*cos(rnode(rpxmin3_,igrid))}
-       rnode_IDL(rpxmax1_)=rnode(rpxmax1_,igrid) &
-         {^NOONED*sin(rnode(rpxmax2_,igrid))}{^IFTHREED*cos(rnode(rpxmax3_,igrid))}
-       {^IFTWOD
-       rnode_IDL(rpxmin2_)=rnode(rpxmin1_,igrid)*cos(rnode(rpxmin2_,igrid))
-       rnode_IDL(rpxmax2_)=rnode(rpxmax1_,igrid)*cos(rnode(rpxmax2_,igrid))}
-       {^IFTHREED
-       rnode_IDL(rpxmin2_)=rnode(rpxmin1_,igrid) &
-                *sin(rnode(rpxmin2_,igrid))*sin(rnode(rpxmin3_,igrid))
-       rnode_IDL(rpxmax2_)=rnode(rpxmax1_,igrid) &
-                *sin(rnode(rpxmax2_,igrid))*sin(rnode(rpxmax3_,igrid))
-       rnode_IDL(rpxmin3_)=rnode(rpxmin1_,igrid)*cos(rnode(rpxmin2_,igrid))
-       rnode_IDL(rpxmax3_)=rnode(rpxmax1_,igrid)*cos(rnode(rpxmax2_,igrid))}
-     end select 
-     normconv(0)=length_convert_factor
-     write(qunit) {rnode_IDL(rpxmin^D_)*normconv(0)}, &
-          {rnode_IDL(rpxmax^D_)*normconv(0)}
-  end do
-end if
-
-! write out variable values
-do iigrid=1,igridstail; igrid=igrids(iigrid);
-  call calc_x(igrid,xC,xCC)
-  call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,ixC^L,ixCC^L,.true.)
-  select case(convert_type)
-  case('idl')
-    ! write out corner coordinates and (averaged) corner values
-    write(qunit) xC_TMP(ixC^S,1:ndim)*normconv(0)
-    do iw=1,nw+nwauxio
-      write(qunit) wC_TMP(ixC^S,iw)*normconv(iw)
-    end do
-  case('idlCC')
-    ! write out cell center coordinates and cell center values
-    write(qunit) xCC_TMP(ixCC^S,1:ndim)*normconv(0)
-    do iw=1,nw+nwauxio
-      write(qunit) wCC_TMP(ixCC^S,iw)*normconv(iw)
-    end do
-  end select 
-end do
-
-end subroutine valout_idl
-!=============================================================================
 subroutine tecplot(qunit)
 
 ! output for tecplot (ASCII format)
@@ -1286,8 +1085,7 @@ call getheadernames(wnamei,xandwnamei,outfilehead)
 ! generate xml header
 write(qunit,'(a)')'<?xml version="1.0"?>'
 write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
-{#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
-{#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
+write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
 write(qunit,'(a)')'<UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
@@ -1513,8 +1311,7 @@ else
  ! generate xml header
  write(qunit,'(a)')'<?xml version="1.0"?>'
  write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
- {#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
- {#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
+ write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
  write(qunit,'(a)')'<UnstructuredGrid>'
  write(qunit,'(a)')'<FieldData>'
  write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
@@ -1878,259 +1675,6 @@ nxC^D=nx^D+1;
 
 end subroutine save_connvtk
 !=============================================================================
-subroutine valout_dx(qunit)
-
-!
-!  Numberings in DX start at zero.
-!  Array ordering becomes row-major (C/DX style).
-!
-use mod_global_parameters
-use mod_physics, only: physics_type
-
-integer, intent(in) :: qunit
-
-integer :: iigrid, igrid, level, ngrids, nx^D
-
-integer,parameter::     size_byte   = 1
-integer,parameter::     size_recsep = 4
-character(len=5) ::     byteorder
-
-character(len=80)::     filename
-character(len=80)::     name,physics,scanstring
-integer          ::     filenr
-
-integer::               underscore_position
-integer::               iw, space_position, max_name_len
-integer::               offset
-integer::               nummeshpoints
-integer::               firstgridonlevel,lastgridonlevel
-integer::               NumGridsOnLevel(1:nlevelshi)
-
-integer,parameter ::    byte=selected_int_kind(1)
-
-character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-character(len=1024) :: outfilehead
-
-character(LEN=10)    :: dummy_date,dummy_time,dummy_zone
-integer,dimension(8) :: DateAndTime
-!-----------------------------------------------------------------------------
-if(npe>1)then
- if(mype==0) PRINT *,'valoutdx not parallel'
- call mpistop('npe>1, valoutdx')
-end if
-
-if(nw/=count(w_write(1:nw)))then
- if(mype==0) PRINT *,'valoutdx does not use w_write=F'
- call mpistop('w_write, valoutdx')
-end if
-
-if(saveprim)then
- if(mype==0) PRINT *,'valoutdx does not use saveprim=T'
- call mpistop('saveprim, valoutdx')
-end if
-
-if(nwauxio>0)then
- if(mype==0) PRINT *,'valoutdx does not use nwauxio>0'
- call mpistop('nwauxio>0, valoutdx')
-end if
-
-if (B0field) call mpistop("No B0 field implemented in dx plotfile")
-
-nx^D=ixGhi^D-2*nghostcells;
-
-byteorder = 'lsb'
-   ! generate filename    
-   filenr=snapshotini
-   if (autoconvert) filenr=snapshotnext
-   write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".plt"
-
-call date_and_time(dummy_date,dummy_time,dummy_zone,DateAndTime)
-
-! Open the file for the header part, ascii data
-open(qunit,file=filename,status='unknown',form='formatted')
-
-write(qunit,'(a)') '### AMRVAC datafile for simulation '
-write(qunit,'(a,i02,a,i02,a,i4,a,i02,a,i02)') '### Generated on ', &
-     DateAndTime(3),'/',DateAndTime(2),'/',DateAndTime(1), &
-     ' at ',DateAndTime(5),'h',DateAndTime(6)
-
-call getheadernames(wnamei,xandwnamei,outfilehead)
-
-offset = 0
-ngrids = 0
-do level=levmin,levmax
-   NumGridsOnLevel(level)=0
-   firstgridonlevel = ngrids
-   write(qunit,'(a,i3.3)') '# start level',level
-   do iigrid=1,igridstail; igrid=igrids(iigrid);
-      if (node(plevel_,igrid)/=level) cycle
-      NumGridsOnLevel(level)=NumGridsOnLevel(level)+1
-      ngrids = ngrids+1
-      write(qunit,'(a,i5.5)') '# start grid ',ngrids-1
-      !
-      ! write positions object
-      !
-      write(qunit,'(a,i5.5,a,3(x,i11))') 'object "pos',ngrids-1, &
-                  '" class gridpositions counts ',{nx^D+1}
-      write(qunit,'(a,3(x,f25.16))') '  origin ',{rnode(rpxmin^D_,igrid)*length_convert_factor}
-      {^IFONED 
-      write(qunit,'(a,x,f25.16)') '  delta  ',rnode(rpdx1_,igrid)*length_convert_factor
-      \}
-      {^IFTWOD
-      write(qunit,'(a,2(x,f25.16))') '  delta  ',rnode(rpdx1_,igrid)*length_convert_factor,0.0d0
-      write(qunit,'(a,2(x,f25.16))') '  delta  ',0.0d0,rnode(rpdx2_,igrid)*length_convert_factor
-      \}
-      {^IFTHREED 
-      write(qunit,'(a,3(x,f25.16))') '  delta  ',rnode(rpdx1_,igrid)*length_convert_factor,0.0d0,0.0d0
-      write(qunit,'(a,3(x,f25.16))') '  delta  ',0.0d0,rnode(rpdx2_,igrid)*length_convert_factor,0.0d0
-      write(qunit,'(a,3(x,f25.16))') '  delta  ',0.0d0,0.0d0,rnode(rpdx3_,igrid)*length_convert_factor
-      \}
-      write(qunit,'(a)') 'attribute "dep" string "positions" '
-      write(qunit,'(a)') '#'
-      !
-      ! write connections object
-      !
-      write(qunit,'(a,i5.5,a,3(x,i11))') 'object "con',ngrids-1, &
-                  '" class gridconnections counts ',{nx^D+1}
-      {^IFONED 
-        write(qunit,'(a)') 'attribute "element type" string "lines" '
-      \}
-      {^IFTWOD 
-        write(qunit,'(a)') 'attribute "element type" string "quads" '
-      \}
-      {^IFTHREED 
-        write(qunit,'(a)') 'attribute "element type" string "cubes" '
-      \}
-      write(qunit,'(a)') 'attribute "ref" string "positions" '
-      write(qunit,'(a)') '#'
-      !      
-      ! write data object (header info)
-      !
-      nummeshpoints={nx^D*}
-      offset = offset + size_recsep
-
-      write(qunit,'(a,i5.5,a,i3,a,x,i11,2a,x,i11)') &
-           'object "dat',                            ngrids-1, &
-           '" class array type double rank 1 shape ',nw+nwauxio, &
-           ' items ',                                nummeshpoints, &
-           byteorder, 'binary data ',                offset
-      offset = offset + (nw+nwauxio)*nummeshpoints*size_double + size_recsep
-      write(qunit,'(a)') 'attribute "dep" string "connections" '
-      write(qunit,'(a)') '#'
-      !
-      ! write field object
-      !
-      write(qunit,'(a,i5.5,a)') 'object ',ngrids-1,' class field'
-      write(qunit,'(a,i5.5,a)') '  component "positions" value "pos', &
-                                ngrids-1,'"'
-      write(qunit,'(a,i5.5,a)') '  component "connections" value "con', &
-                                ngrids-1,'"'
-      write(qunit,'(a,i5.5,a)') '  component "data" value "dat', &
-                                ngrids-1,'"'
-      write(qunit,'(a,i5.5)') '  attribute "refinement level" number ',level
-      write(qunit,'(a,i5.5)') '# end grid ',ngrids-1
-   end do
-
-   lastgridonlevel=ngrids-1
-
-   write(qunit,'(a)') '#'
-   write(qunit,'(a,i3.3,a,i5.5,a)') '# end level',level, &
-                           ' (',NumGridsOnLevel(level),' grids)'
-end do
-write(qunit,'(a)') '#'
-!
-! eqpar array
-!
-! Jannis: have removed eqpar here
-! write(qunit,'(a,x,i11,a)') &
-!   'object "eqpararray" class array type float items ', &
-!   neqpar+nspecialpar,' data follows'
-! write(qunit,'(f24.12)') eqpar
-! write(qunit,'(a)') '#'
-!
-! # grids on level
-!
-write(qunit,'(a,x,i11,a)') &
-  'object "ngridsonlevarray" class array type int items ', &
-  levmax-levmin+1,' data follows'
-write(qunit,'(100(x,i11))') NumGridsOnLevel(levmin:levmax)
-write(qunit,'(a)') '#'
-!
-! w_names array
-!
-write(qunit,'(a,x,i11,a)') &
-  'object "wnamesarray" class array type string rank 1 shape 80 items ', &
-  nw+nwauxio,' data follows'
-do iw=1,nw+nwauxio
-   write(qunit,'(a,a,a)', advance='no') ' "',TRIM(wnamei(iw)),'"'
-enddo
-write(qunit,'(a)') ' '
-write(qunit,'(a)') '#'
-
-!
-! Top level group with all attributes
-!
-write(qunit,'(a)') 'object "default" class multigrid'
-do igrid=1,ngrids
-   write(qunit,'(a,i5,a,i5.5,a)') 'member ',igrid-1,' value ',igrid-1
-end do
-write(qunit,'(3a)')  'attribute "physics"  string "',TRIM(physics_type),'"'
-write(qunit,'(a,x,i11)') 'attribute "ndim"     number ',ndim
-write(qunit,'(a,x,i11)') 'attribute "ndir"     number ',ndir
-write(qunit,'(a,x,i11)') 'attribute "nw"       number ',nw+nwauxio
-write(qunit,'(a,x,i11)') 'attribute "timestep" number ',it
-write(qunit,'(a,f25.16)')'attribute "time"     number ',global_time *time_convert_factor
-! Jannis: have removed eqpar here
-! write(qunit,'(a)')   'attribute "eqpar"    value "eqpararray"'
-write(qunit,'(a)')   'attribute "ngrids"   value "ngridsonlevarray"'
-write(qunit,'(a)')   'attribute "cons_wnames"   value "wnamesarray"'
-write(qunit,'(a)') '#'
-
-! denote the end of the header section
-write(qunit,'(a,i5.5)') '# end header section'
-write(qunit,'(a)') 'end'
-
-close(qunit)
-! now for the binary part...
-open(qunit,file=filename,status='unknown', &
-           form='unformatted',position='append')
-
-ngrids=0
-offset = 0
-do level=levmin,levmax
-   do iigrid=1,igridstail; igrid=igrids(iigrid);
-      if (node(plevel_,igrid)/=level) cycle
-      ngrids = ngrids+1
-      nummeshpoints={nx^D*}
-      offset = offset + size_recsep
-      ! write data array
-      call varout_dx_condep(qunit,pw(igrid)%w,ixG^LL)
-      offset = offset + (nw+nwauxio)*nummeshpoints*size_double + size_recsep
-   end do
-end do
-
-close(qunit)
-
-end subroutine valout_dx
-!============================================================================
-subroutine varout_dx_condep(qunit,w,ixG^L)
-
-use mod_global_parameters
-
-integer, intent(in) :: qunit, ixG^L
-double precision, intent(in) :: w(ixG^S,1:nw)
-
-integer :: ixM^L, ix^D, iw
-!-----------------------------------------------------------------------------
-ixM^L=ixG^L^LSUBnghostcells;
-
-! We write the arrays in row-major order (C/DX style) for the spatial indices
-write(qunit) ({(|}w(ix^D,iw)*w_convert_factor(iw),iw=1,nw),{ix^DB=ixMmin^DB,ixMmax^DB)}
-
-end subroutine varout_dx_condep
-
-
-!============================================================================
 subroutine ImageDataVtk_mpi(qunit)
 
 ! output for vti format to paraview, non-binary version output
@@ -2250,8 +1794,7 @@ wholeExtent = 0
 ! generate xml header
 write(qunit,'(a)')'<?xml version="1.0"?>'
 write(qunit,'(a)',advance='no') '<VTKFile type="ImageData"'
-{#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
-{#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
+write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
 write(qunit,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',&
      origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'
  write(qunit,'(a)')'<FieldData>'
@@ -2348,8 +1891,7 @@ endif
 ! generate xml header
 write(qunit,'(a)')'<?xml version="1.0"?>'
 write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
-{#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
-{#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
+write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
 write(qunit,'(a)')'  <UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
@@ -2454,8 +1996,7 @@ if (mype==0) then
  ! generate xml header
  write(qunit,'(a)')'<?xml version="1.0"?>'
  write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
-{#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
-{#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
+ write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
  write(qunit,'(a)')'<UnstructuredGrid>'
  write(qunit,'(a)')'<FieldData>'
  write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
@@ -2797,8 +2338,7 @@ end do
 ! generate xml header
 write(qunit,'(a)')'<?xml version="1.0"?>'
 write(qunit,'(a)',advance='no') '<VTKFile type="PUnstructuredGrid"'
-{#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
-{#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
+write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
 write(qunit,'(a)')'  <PUnstructuredGrid GhostLevel="0">'
 ! Either celldata or pointdata:
 write(qunit,'(a,a,a,a,a)')&
@@ -3373,8 +2913,7 @@ endif
 ! generate xml header
 write(qunit,'(a)')'<?xml version="1.0"?>'
 write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
-{#IFDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="BigEndian">'}
-{#IFNDEF BIGENDIAN write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'}
+write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
 write(qunit,'(a)')'  <UnstructuredGrid>'
 write(qunit,'(a)')'<FieldData>'
 write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
