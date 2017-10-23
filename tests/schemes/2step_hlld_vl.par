@@ -1,5 +1,5 @@
  &filelist
-        base_filename  = '_2step_tvdlf_vl'
+        base_filename  = '_2step_hlld_vl'
  /
 
  &methodlist
@@ -10,4 +10,8 @@
 
  &paramlist
         courantpar = 0.9
+ /
+
+ &mhd_list
+        typedivbfix='glm3'
  /

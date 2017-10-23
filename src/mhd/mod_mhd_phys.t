@@ -28,11 +28,12 @@ module mod_mhd_phys
   !> Whether magnetofriction is added
   logical, public, protected              :: mhd_magnetofriction = .false.
 
-  !> Whether MHD-GLM is used
+  !> Whether GLM-MHD is used
   logical, public, protected              :: mhd_glm = .false.
 
-  !> TODO: describe and set value
-  double precision, public                :: mhd_glm_Cr = 0.5d0
+  !> GLM-MHD parameter: ratio of the diffusive and advective time scales for div b 
+  !> taking values within [0, 1]
+  double precision, public                :: mhd_glm_alpha = 0.5d0
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
@@ -133,7 +134,7 @@ contains
     integer                      :: n
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
-      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm_Cr, mhd_magnetofriction,&
+      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm_alpha, mhd_magnetofriction,&
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
       divbwave, He_abundance, SI_unit, B0field, B0field_forcefree, Bdip, Bquad, Boct, &
@@ -245,6 +246,7 @@ contains
     physics_type = "mhd"
     phys_energy=mhd_energy
     use_particles=mhd_particles
+    if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
     case ('none')
       type_divb=0
@@ -1357,13 +1359,13 @@ contains
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
 
-    ! Psi = Psi - qdt Ch^2/Cp^2 Psi
-    if (mhd_glm_Cr < zero) then
-      w(ixO^S,psi_) = abs(mhd_glm_Cr)*wCT(ixO^S,psi_)
+    ! dPsi/dt =  - Ch^2/Cp^2 Psi
+    if (mhd_glm_alpha < zero) then
+      w(ixO^S,psi_) = abs(mhd_glm_alpha)*wCT(ixO^S,psi_)
     else
-      ! implicit update of psi variable
-      !w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
-      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_Cr/minval(dxlevel(:)))*w(ixO^S,psi_)
+      ! implicit update of Psi variable
+      ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
+      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
     end if
 
     ! gradient of Psi
@@ -1408,13 +1410,13 @@ contains
     ! calculate velocity
     call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
 
-    ! Psi = Psi - qdt Ch^2/Cp^2 Psi
-    if (mhd_glm_Cr < zero) then
-      w(ixO^S,psi_) = abs(mhd_glm_Cr)*wCT(ixO^S,psi_)
+    ! dPsi/dt =  - Ch^2/Cp^2 Psi
+    if (mhd_glm_alpha < zero) then
+      w(ixO^S,psi_) = abs(mhd_glm_alpha)*wCT(ixO^S,psi_)
     else
-      ! implicit update of psi variable
-      !w(ixO^S,psi_) = dexp(-qdt*(cmax_global/mhd_glm_Cr))*wCT(ixO^S,psi_)
-      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_Cr/minval(dxlevel(:)))*w(ixO^S,psi_)
+      ! implicit update of Psi variable
+      ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
+      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
     end if
 
     ! gradient of Psi
@@ -1465,12 +1467,13 @@ contains
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    ! Psi = Psi - qdt Ch^2/Cp^2 Psi
-    if (mhd_glm_Cr < zero) then
-      w(ixO^S,psi_) = abs(mhd_glm_Cr)*w(ixO^S,psi_)
+    ! dPsi/dt =  - Ch^2/Cp^2 Psi
+    if (mhd_glm_alpha < zero) then
+      w(ixO^S,psi_) = abs(mhd_glm_alpha)*w(ixO^S,psi_)
     else
-      ! implicit update of psi variable
-      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_Cr/minval(dxlevel(:)))*w(ixO^S,psi_)
+      ! implicit update of Psi variable
+      ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
+      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
     end if
 
   end subroutine add_source_glm3

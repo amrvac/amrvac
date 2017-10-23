@@ -88,9 +88,12 @@ contains
     
     call get_divb(w,ixI^L,ixO^L,divb)
     w(ixO^S,nw+1)=divb(ixO^S)
+
+    call get_normalized_divb(w,ixI^L,ixO^L,divb)
+    w(ixO^S,nw+2)=divb(ixO^S)
     
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    w(ixO^S,nw+2)=current(ixO^S,3)
+    w(ixO^S,nw+3)=current(ixO^S,3)
 
   end subroutine specialvar_output
 
@@ -98,7 +101,7 @@ contains
     use mod_global_parameters
     character(len=*) :: varnames
 
-    varnames='divb jz'
+    varnames='divb divbnorm jz'
 
   end subroutine specialvarnames_output
 

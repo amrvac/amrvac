@@ -3,7 +3,7 @@
         typefilelog='regression_test'
         autoconvert=.true.
         saveprim=.true.
-        nwauxio=2
+        nwauxio=3
  /
 
  &savelist

@@ -11,3 +11,7 @@
  &paramlist
         courantpar = 0.9
  /
+
+ &mhd_list
+        typedivbfix='glm3'
+ /

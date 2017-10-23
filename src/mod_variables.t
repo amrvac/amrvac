@@ -7,6 +7,9 @@ module mod_variables
   !> Number of flux variables
   integer           :: nwflux = 0
 
+  !> Number of flux variables which need user to specify boundary type
+  integer           :: nwfluxbc = 0
+
   !> Number of auxiliary variables
   integer           :: nwaux = 0
 
@@ -91,6 +94,7 @@ contains
     integer :: iw
 
     nwflux              = nwflux + 1
+    nwfluxbc            = nwfluxbc + 1
     nw                  = nw + 1
     iw_rho              = nwflux
     iw                  = nwflux
@@ -109,6 +113,7 @@ contains
 
     do idir = 1, ndir
       nwflux       = nwflux + 1
+      nwfluxbc     = nwfluxbc + 1
       nw           = nw + 1
       iw_mom(idir) = nwflux
       iw(idir)     = nwflux
@@ -122,6 +127,7 @@ contains
     integer :: iw
 
     nwflux              = nwflux + 1
+    nwfluxbc            = nwfluxbc + 1
     nw                  = nw + 1
     iw_e                = nwflux
     iw                  = nwflux
@@ -140,6 +146,7 @@ contains
 
     do idir = 1, ndir
       nwflux       = nwflux + 1
+      nwfluxbc     = nwfluxbc + 1
       nw           = nw + 1
       iw_mag(idir) = nwflux
       iw(idir)     = nwflux

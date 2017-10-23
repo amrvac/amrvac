@@ -2,7 +2,7 @@
         base_filename='rotor_2d'
         autoconvert=.true.
         saveprim=.true.
-        nwauxio=2
+        nwauxio=3
  /
 
  &savelist

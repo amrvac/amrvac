@@ -588,11 +588,13 @@ These are only used when one or more dustspecies is used for HD.
      prolongation_method= 'linear' | 'other'
     /
 
-The boundary types have to be defined for each **conserved variable** at each
-physical edge of the grid, i.e. for 2D hydrodynamics they are in the order:
-rho,m1,m2,e at the left boundary; rho,m1,m2,e at the right; rho,m1,m2,e at the
-bottom; finally rho,m1,m2,e at the top boundary. The order is always, unless
-explicitly stated, xmin, xmax, ymin, ymax, zmin, and zmax. The general
+The boundary types have to be defined for each **conserved variable**, except for 
+psi (in GLM-MHD) and tracer fluids, at each physical edge of the grid. For 2D hydrodynamics they are:
+rho,m1,m2,e at the left boundary (typeboundary_min1); rho,m1,m2,e at the right 
+(typeboundary_max1); rho,m1,m2,e at the bottom (typeboundary_min2); rho,m1,m2,e 
+at the top boundary (typeboundary_max2). Boundary types of psi (in GLM-MHD) and 
+tracer fluids are automatically set to be the same as boundary type of density 
+by default. The general
 subroutine devoted to the treatment of boundary conditions (either customized
 by the user or not, internal or external to the simulation space, polar or not)
 is _get_bc_ and the main files concerned are _mod_ghostcells_update.t_ and
@@ -662,14 +664,7 @@ this component when a rotation of pi is performed within the plane orthogonal
 to the pole. In cylindrical coordinates, it means that the radial and vertical
 components should be symmetric while the orthoradial component is antisymmetric.
 In spherical coordinates, it means that the radial component is symmetric while
-the two remaining components are antisymmetric. Any other boundary condition at
-the pole than symm or asymm results in the error message "Boundary condition at
-pole should be symm or asymm".
-
-The case of periodic boundaries can be handled with setting 'periodic' for all
-variables at both boundaries that make up a periodic pair. Hence triple
-periodic in 3D MHD where 8 variables are at play means setting
-_typeboundary=8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic',8*'periodic'_.
+the two remaining components are antisymmetric.
 For 3D cylindrical and spherical grid computations, the singular polar axis is
 trivially handled using a so-called pi-periodic boundary treatment, where
 periodicity across the pole comes from the grid cell diagonally across the
@@ -677,9 +672,21 @@ pole, i.e. displaced over pi instead of 2 pi. These are automatically
 recognized from the coordinate setting, and the corresponding range in angle
 phi must span 2 pi for cylindrical, and theta must then start at zero (to
 include the north pole) and/or end at pi (for the south pole) for spherical
-grids. The user just needs to set the typeboundary as if the singular axis is a
-symmetry boundary (using symm and asymm combinations) or use, e.g., 
-typeboundary_min2='pole' and/or typeboundary_max2='pole'.
+grids. The user just needs to set the typeboundary as typeboundary_min2=8*'pole' 
+and/or typeboundary_max2=8*'pole' in 3D spherical coordinates or typeboundary_min1=8*'pole'
+in cylindrical/polar coordinates, or use symmetry boundary (using symm and asymm combinations). 
+
+The case of periodic boundaries can be handled with setting 'periodic' for all
+variables at both boundaries that make up a periodic pair. Hence triple
+periodic in 3D MHD where 8 variables are at play means setting
+
+    typeboundary_min1=8*'periodic'
+    typeboundary_max1=8*'periodic'
+    typeboundary_min2=8*'periodic'
+    typeboundary_max2=8*'periodic'
+    typeboundary_min3=8*'periodic'
+    typeboundary_max3=8*'periodic'
+
 
 The possibility exists to put a boundary condition mimicking zero
 across the computational boundary, by selecting _typeboundary='noinflow'_
@@ -699,7 +706,7 @@ thus the subroutine may use the updated values of the other variables. The
 order of the variables is fixed by the equation module chosen, i.e. _rho m1 m2
 m3 e b1 b2 b3_ for 3D MHD. It is suggested to set all typeboundary entries 
 for a certain boundary region to `special`  to consistently fill the
-boundary info in a user-defined manner.
+boundary info for all variables in a user-defined manner.
 
 Internal boundaries can be used to overwrite the domain variables with
 specified values through _usr_internal_bc_ subroutine. This is activated with the switch `internalboundary=T`.

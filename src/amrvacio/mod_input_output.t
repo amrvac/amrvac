@@ -182,8 +182,8 @@ contains
 
     ! Allocate boundary conditions arrays in new and old style
     {
-    allocate(typeboundary_min^D(nwflux))
-    allocate(typeboundary_max^D(nwflux))
+    allocate(typeboundary_min^D(nwfluxbc))
+    allocate(typeboundary_max^D(nwfluxbc))
     typeboundary_min^D = undefined
     typeboundary_max^D = undefined
     }
@@ -633,13 +633,20 @@ contains
     ! Copy boundary conditions to typeboundary, which is used internally
     {
     if (any(typeboundary_min^D /= undefined)) then
-      typeboundary(:, 2*^D-1) = typeboundary_min^D
+      typeboundary(1:nwfluxbc, 2*^D-1) = typeboundary_min^D(1:nwfluxbc)
     end if
 
     if (any(typeboundary_max^D /= undefined)) then
-      typeboundary(:, 2*^D) = typeboundary_max^D
+      typeboundary(1:nwfluxbc, 2*^D) = typeboundary_max^D(1:nwfluxbc)
     end if
     }
+
+    ! psi, tracers take the same boundary type as density
+    if(nwfluxbc<nwflux) then
+      do iw=nwfluxbc+1,nwflux
+        typeboundary(iw,:)=typeboundary(1,:)
+      end do
+    end if
 
     if (any(typeboundary == undefined)) then
       call mpistop("Not all boundary conditions have been defined")

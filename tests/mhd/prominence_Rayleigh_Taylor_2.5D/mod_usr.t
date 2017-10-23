@@ -296,9 +296,9 @@ contains
 
     select case(iB)
     case(3)
-      w(ixO^S,mag(1))=bb1
-      w(ixO^S,mag(3))=bb3
-      w(ixO^S,mag(2))=zero
+      do ix2=ixOmax2,ixOmin2,-1
+        w(ix2^%2ixO^S,mag(:))=w(ixOmax2+1^%2ixO^S,mag(:))
+      enddo
       if(mhd_n_tracer>0) then
         {^IFTWOD
         do ix2=ixOmax2,ixOmin2,-1
@@ -322,6 +322,7 @@ contains
           w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,psi_)=w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,psi_)
         enddo
         }
+        w(ixO^S,psi_)=0.d0
       end if
     
        {^IFTWOD
@@ -465,6 +466,9 @@ contains
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     ! output the plasma beta p*2/B**2
     w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+    ! output normalized divb
+    call get_normalized_divb(w,ixI^L,ixO^L,tmp)
+    w(ixO^S,nw+3)=tmp(ixO^S)
 
   end subroutine specialvar_output
 
@@ -472,7 +476,7 @@ contains
     use mod_global_parameters
     character(len=*) :: varnames
 
-    varnames='T beta'
+    varnames='T beta divbnm'
 
   end subroutine specialvarnames_output
 

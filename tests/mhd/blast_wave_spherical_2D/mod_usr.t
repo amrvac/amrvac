@@ -105,6 +105,7 @@ contains
                     (-w(ix1+2^%1ixO^S,mag(:))&
                +4.0d0*w(ix1+1^%1ixO^S,mag(:)))
       enddo
+      if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ixInt^L=ixO^L;
@@ -122,6 +123,7 @@ contains
                     (-w(ix1-2^%1ixO^S,mag(:))&
                +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
       enddo
+      if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       ixInt^L=ixO^L;
@@ -139,6 +141,7 @@ contains
                     (-w(ix2+2^%2ixO^S,mag(:))&
                +4.0d0*w(ix2+1^%2ixO^S,mag(:)))
       enddo
+      if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixInt^L=ixO^L;
@@ -156,6 +159,7 @@ contains
                     (-w(ix2-2^%2ixO^S,mag(:))&
                +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
       enddo
+      if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
