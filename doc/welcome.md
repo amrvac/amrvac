@@ -57,4 +57,4 @@ The changes in the new version are:
   now an AMRVAC library
 * The focus of MPI-AMRVAC is now on non-relativistic hydro- and
   magnetohydrodynamics
-* Many smaller improvements the physics modules
+* Many smaller improvements to the physics modules
