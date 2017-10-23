@@ -80,7 +80,8 @@
         mhd_gravity=.true.
         typedivbfix='linde'
         Busr=20.d0
-        B0field=.true.
+        B0field=.false.
+        boundary_divbfix(3)=.false.
  /
 
  &tc_list

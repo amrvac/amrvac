@@ -4,9 +4,9 @@
 
 # Introduction for new users {#intro_new_users}
 
+* [Installation](installation.md) How to install MPI-AMRVAC
+* [Getting Started](getting_started.md) How to run your first test problem.
 * [Features](features.md) An overview of the main features of MPI-AMRVAC. 
-* [Getting Started](getting_started.md) How to install MPI-AMRVAC and run your
-first test problem.
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
 financial support.
 * [FAQ](faq.md) Frequently asked questions.
@@ -14,15 +14,15 @@ financial support.
 
 # General {#general}
 
-* [Command line](commandline.md) Help on command-line parameters.
-* [Examples](examples.md) Description of various example simulations for which
-parameter files and user modules have been provided.
 * [Equations](equations.md) The equations and parameters in physics modules.
 * [User files](amrvacusr.md) How to create a new problem, specify initial
   conditions and customize functionalities.
 * [Parameters](par.md) Description of all parameters in "amrvac.par" parameter file.
 * [Auxiliary variables](mpiamrvac_nw.md) Description of the intended use 
   for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
+* [Command line](commandline.md) Help on command-line parameters.
+* [Examples](examples.md) Description of various example simulations for which
+  parameter files and user modules have been provided.
 
 # Discretization methods and AMR strategy {#discretization}
 
