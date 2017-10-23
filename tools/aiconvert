@@ -68,7 +68,7 @@ if($#argv == 1 || $#argv == 2) then
   echo "parfilename given is" $fname
 endif
 # count the number of data to be converted
-set linedata=`sed 's/[[:space:]]//g' $fname | sed -n '/\&filelist/,$ {/^base_filename/=}'`
+set linedata=`sed 's/[[:space:]]//g' $fname | sed -n -e '/\&filelist/,$ {' -e '/^base_filename/=' -e '}'`
 set linedata=`echo $linedata | awk '{print $1}'`
 set dataname=`sed -n "$linedata p;$linedata q" $fname | awk -F\' '{print $2}'`
 set datacount=`ls $dataname????.dat | grep -c '.dat'`
@@ -78,8 +78,8 @@ if($datacount < 1 ) then
 endif
 #  determine convert number range of data files
 if($#argv == 0)then
-  set startind=`ls $dataname????.dat | sed -n '1p' | awk '{v=length($0)-7;print substr($0,v,4)}' | sed 's/^0*\+//'`
-  set stopind=`ls $dataname????.dat | sed -n '$p' | awk '{v=length($0)-7;print substr($0,v,4)}' | sed 's/^0\+//'`
+  set startind=`ls $dataname????.dat | sed -n '1p' | awk '{v=length($0)-7;print substr($0,v,4)}' | sed -E 's/^0*\+//'`
+  set stopind=`ls $dataname????.dat | sed -n '$p' | awk '{v=length($0)-7;print substr($0,v,4)}' | sed -E 's/^0\+//'`
   if($startind == '') @ startind=0
  else if($#argv == 1)then
   @ startind=$argv[1]
@@ -140,7 +140,7 @@ else
  set ii=1
  while ($ii <= "$datacount")
    echo "################ Converting "$ii"/"$datacount" ################"
-   set indx=`ls $dataname????.dat | sed -n "$ii p" | awk '{v=length($0)-7;print substr($0,v,4)}' | sed 's/^0*\+//'`
+   set indx=`ls $dataname????.dat | sed -n "$ii p" | awk '{v=length($0)-7;print substr($0,v,4)}' | sed -E 's/^0*\+//'`
    if($indx == '') @ indx=0
    if (-e $fname ) then
     set numdat=`printf "%04d\n" $indx`
