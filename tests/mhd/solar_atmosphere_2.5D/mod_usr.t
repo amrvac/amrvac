@@ -144,6 +144,9 @@ contains
       w(ixO^S,mag(2))= B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))
       w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
     endif
+
+    if(mhd_glm) w(ixO^S,psi_)=0.d0
+
     call phys_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
@@ -181,6 +184,7 @@ contains
         w(ixOmin1:ixOmax1,ix2,rho_)=rbc(ix2)
         w(ixOmin1:ixOmax1,ix2,p_)=pbc(ix2)
       enddo
+      if(mhd_glm) w(ixO^S,psi_)=0.d0
       call phys_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixInt^L=ixO^L;
@@ -208,6 +212,7 @@ contains
                     (-w(ixOmin1:ixOmax1,ix2-2,mag(:))&
                +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(:)))
       enddo
+      if(mhd_glm) w(ixO^S,psi_)=0.d0
       call phys_to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")

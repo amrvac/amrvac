@@ -140,11 +140,9 @@ else
  set ii=1
  while ($ii <= "$datacount")
    echo "################ Converting "$ii"/"$datacount" ################"
-   set indx=`ls $dataname????.dat | sed -n "$ii p" | awk '{v=length($0)-7;print substr($0,v,4)}' | sed -E 's/^0*\+//'`
-   if($indx == '') @ indx=0
+   set indx=`ls $dataname????.dat | sed -n "$ii p" | awk '{v=length($0)-7;print substr($0,v,4)}'`
    if (-e $fname ) then
-    set numdat=`printf "%04d\n" $indx`
-    set numdat="$numdat.dat"
+    set numdat="$indx.dat"
     mpirun -np $npe amrvac -i $fname -if "$dataname$numdat" -convert
    endif
    @ ii++

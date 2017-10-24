@@ -610,7 +610,7 @@ module mod_radiative_cooling
       ncool=4000
       coolcurve='JCcorona'
       coolmethod='exact'
-      cfrac=1.d0
+      cfrac=0.1d0
       tlow=bigdouble
       Tfix=.false.
 
@@ -977,42 +977,30 @@ module mod_radiative_cooling
 
       if(qsourcesplit .eqv. rc_split) then
         active = .true.
-        call radcool(qdt,ixI^L,ixO^L,wCT,w,x)
+        select case(coolmethod)
+        case ('explicit1')
+          if(mype==0)then
+            if(it==1) then
+              write(*,*)'Fully explicit cooling is not completely safe in this version'
+              write(*,*)'PROCEED WITH CAUTION!'
+            endif
+          endif
+          call cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x)
+        case ('explicit2')
+          call cool_explicit2(qdt,ixI^L,ixO^L,wCT,w,x)
+        case ('semiimplicit')
+          call cool_semiimplicit(qdt,ixI^L,ixO^L,wCT,w,x)
+        case ('implicit')   
+          call cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x)   
+        case ('exact')   
+          call cool_exact(qdt,ixI^L,ixO^L,wCT,w,x)
+        case default
+          call mpistop("This cooling method is unknown")
+        end select
         if( Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
 
     end subroutine radiative_cooling_add_source
-
-    subroutine radcool(qdt,ixI^L,ixO^L,wCT,w,x)
-    !  selects cooling method
-      use mod_global_parameters
-
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt,   x(ixI^S,1:ndim),wCT(ixI^S,1:nw)
-      double precision, intent(inout) :: w(ixI^S,1:nw)
-
-      select case(coolmethod)
-      case ('explicit1')
-        if(mype==0)then
-          if(it==1) then
-            write(*,*)'Fully explicit cooling is not completely safe in this version'
-            write(*,*)'PROCEED WITH CAUTION!'
-          endif
-        endif
-        call cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('explicit2')
-        call cool_explicit2(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('semiimplicit')
-        call cool_semiimplicit(qdt,ixI^L,ixO^L,wCT,w,x)
-      case ('implicit')   
-        call cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x)   
-      case ('exact')   
-        call cool_exact(qdt,ixI^L,ixO^L,wCT,w,x)
-      case default
-        call mpistop("This cooling method is unknown")
-      end select
-    
-    end subroutine radcool
 
     subroutine floortemperature(qdt,ixI^L,ixO^L,wCT,w,x)
     !  Force minimum temperature to a fixed temperature
