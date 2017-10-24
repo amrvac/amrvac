@@ -40,13 +40,8 @@ variation of these _1:nwflux_ variables.
 When for the physics module at hand, one has _nwaux>0_, the slots in the _w_-
 array corresponding to _nwflux+1:nwflux+nwaux_ contain so-called auxiliary
 variables. They can be computed directly from instantaneous local values of
-the flux _1:nwflux_ variables. In the physics modules for _srhd, srmhd_ (special
-relativistic modules), these local auxiliaries are useful to store pressure or
-Lorentz factor values, which in principle are computable from the set of
-conservative variables at any time. As a costly non-linear iterative (Newton-
-Raphson) procedure is involved, it pays off in computing time to have
-corresponding auxiliary variables available when e.g. fluxes have to be
-defined/added in _get_flux_ and so on. These local auxiliary variables are all
+the flux _1:nwflux_ variables. 
+These local auxiliary variables are all
 to be computed in the _getaux_ subroutine in the physics module.
 Since they are to be used for facilitating flux specifications, they also 
 need to be known in the ghost cells. This is taken
@@ -55,7 +50,7 @@ that they are thus computed from local (ghostcell) values from conservative
 variables (themselves computed according to their boundary type), so that we
 do not need to specify a boundary type for the _nwflux+1:nwflux+nwaux_
 variables.  The local auxiliaries can in fact also be used to trigger 
-refinement or coarsening.
+refinement or coarsening. The current (Newtonian) physics modules of AMRVAC have no real use for these auxiliary variables.
 
 ## nwextra {#nwextra}
 

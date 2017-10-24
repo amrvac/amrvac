@@ -12,7 +12,7 @@ source files, and also provides explanation to the most common expressions. A
 brief summary at the end is provided as a quick reference guide.
 
 A more general and possibly more enlightening description of the source language
-can be found in a paper on the [LASY Preprocessor](http://www- personal.umich.edu/~gtoth/Papers/lasy.html).
+can be found in a paper on the [LASY Preprocessor](http://www-personal.umich.edu/~gtoth/Papers/lasy.html).
 
 # Structure {#structure}
 
@@ -22,58 +22,28 @@ Modules are simply sets of subroutines and functions that belong together and
 they are put in a single file.
 
 The main program is in the file **amrvac.t** and all time-advancing actually
-happens in **advance.t**. Input and output routines are in **amrio.t** and
-also in the postprocess conversion part collected in **convert.t**.
-Subroutines likely to be modified by the user are to be collected in
-**amrvacusr.t**. This is actually a symbolic link, set by the **setamrvac
--u=PROBLEM** perl script, and it then will point to the corresponding
-**usr/amrvacusr.t.PROBLEM** file. Similarly, user-specific parameters can be
-added, for which the symbolic link **amrvacusrpar.t** will point to
-**usr/amrvacusrpar.t.PROBLEM**, in case the latter exists (otherwise, it will
-keep pointing to **usr/amrvacusrpar.t.nul**). This way the user(s) may compile
-MPI-AMRVAC for specific problems differing in the AMRVACUSR module only. **In
-this module, you must at the very minimum define all global parameters and
+happens in **mod_advance.t**. Input and output routines are in the **amrvacio** directory which also contains the postprocess conversion part collected in **convert.t**.
+Subroutines likely to be modified by the user are to be collected in the **mod_usr.t** module.
+In this module, you must at the very minimum define all global parameters and
 provide initial conditions for all (conserved) variables on the grid, by
-copying in the _amrvacnul.specialini.t_ and give meaningful prescriptions for
-the subroutines _initglobaldata_usr_ and _initonegrid_usr_.**
+following the template provided in **mod_usr_template.t**.
 
 Independence of equations is ensured by putting all flow variables in a single
 array **w**, and the variables are distinguished by their named indices, e.g.
 **w(ix1,ix2,rho_)** would read **rho(ix1,ix2)** in a typical code designed for
 a single equation. Here **rho_** is an integer parameter defined in the
-AMRVACPAR module in the **amrvacpar.t** symbolic link, which is linked to the
-specific **amrvacpar.t.EQUATION** file (this setting is done by the
-**setamrvac -p=EQUATION** script). Thus the AMRVACPAR module contains the
-EQUATION dependent parameters. The **amrvacusrpar.t** link to a
-**usr/amrvacusrpar.t.PROBLEM** file contains the extra PROBLEM dependent
-equation parameters.
+**mod_rho_phys.t** module.
 
-AMRVACDEF contains the rest of the parameters and the common variables.
-**amrvacpar.t** and **amrvacusrpar.t** are in fact included into
-**amrvacdef.t**, which is in turn included into many subroutines and
-functions.
+The physics modules have several variants, and they are found in the corresponding subdirectories called **rho** for advection, **hd** for hydro (plus dust) and **mhd** for MHD.
+All physics modules are available in the library version of AMRVAC, and the user has to active the module of choice for the application in mind.
 
-The AMRVACPHYS module has several variants, **amrvacphys.t** is a link to one
-of the **amrvacphys.t.EQUATION** files. This module contains all important
-equation dependent subroutines, as well as equation dependent subroutines
-which are used by the different algorithms in MPI-AMRVAC.
-
-The spatial discretization of the equations algorithms are divided into the
-TVDLF, TVD, CD, and PPM modules. CD contains the simple Central Differencing
-scheme. This is only used as a base step for other schemes. The TVDLF, TVD-
-MUSCL, HLL, HLLC schemes are all in **tvdlf.t**, with an equation dependent
-part possibly in **amrvacphys.EQUATIONhllc.t**, and the one step TVD scheme is
-in the **tvd.t** module, with again an equation dependent part possibly in
-**amrvacphys.EQUATIONroe.t**, where the Roe solver info is then shared with
-the TVD-MUSCL scheme.
+The spatial discretization of the equations algorithms are spread over the
+modules **mod_finite_volume.t**, **mod_finite_difference.t**, **mod_tvd.t** where limiter implementations are obtained from **mod_mp5.t** **mod_ppm.t** **mod_limiter.t**.
 
 The explicit temporal discretizations are in the main advancing module
-**advance.t**.
+**mod_advance.t**.
 
-Finally the AMRINI module takes care of actually calling the _initonegrid_usr_
-subroutine, and allows to use the same subroutine to modify initial conditions
-read in from a pre-existing _*.dat_ file. The info on the grid related
-quantities is all in the **geometry.t** module.
+The info on the grid related quantities is all in the **geometry.t** module.
 
 # Syntax {#syntax}
 
@@ -373,7 +343,7 @@ the edge of the mesh:
 
 ####
 
-  4. Special features: switches, include files, common variables
+  4. Special features: dimensional switches
 
 Depending on the actual use of MPI-AMRVAC some subroutines may or may not be
 present, so something where you really need to use a 1D construct is best
@@ -387,82 +357,9 @@ may be needed only in 2D, and the **^NOONED**, **^IFTWOD** etc. switches are
 then used to make a part of the code conditional on the value of the NDIM
 parameter.
 
-Another way of switching between different versions of some part of the code
-is including a file **filename.t** which can be a link to the particular
-realization. The following expression, placed to the beginning of the line,
-
-        INCLUDE:filename
-
-will be replaced by the content of the file. Include files can be nested. The
-INCLUDE: statement is often combined with conditional pattern(s). There is a
-restriction, which follows from the simple syntax rules: two conditional
-patterns can only be combined if their initial letters differ.
-
-Having a powerful preprocessor one is tempted to eliminate all the annoying
-repetitions inherent in the restricted Fortran 90 syntax. Variables in common
-blocks have to be defined twice, once giving their type, and once listing them
-in the common blocks. It would be very convenient to give them a **COMMON**
-attribute in the type declaration and that's exactly what VACPP lets you do if
-you insert 'COMMON,' to the beginning of the line:
-
-        COMMON, INTEGER:: a(10),b
-    COMMON, LOGICAL:: l
-    COMMON, INTEGER:: c(20)
-
-    -->
-
-    INTEGER:: a,b
-    LOGICAL:: l
-    INTEGER:: c
-    COMMON /INTE/  a(10),b, c(20)
-    COMMON /LOGI/  l
-
-The dimensions are stripped from the array declarations, and they are declared
-in the **COMMON /NAME/** blocks collected at the end of the file. The
-**/NAME/** is the first four letters of the type, thus only variables of
-identical types get into the same common block, which avoids alignment
-problems.
-
 ## Summary
 
-####
-
-  1. Modules
-
-         Program name: amrvac
-
-    * * *
-
-     Modules:      AMRVAC            |               AMRINI
-
-                                   AMRIO and CONVERT
-
-                                   AMRVACUSR.PROBLEM
-
-                                   AMRVACUSRPAR.PROBLEM
-
-                                   AMRVACDEF
-
-                                   AMRVACPAR.EQUATION
-
-                                   AMRVACPHYS.EQUATION
-
-                   AMRVACPHYS.EQUATION   |
-                                         |
-                   CD                    |
-                                         |
-                   TVDLF                 |
-                                         |
-                   TVD                   |
-                                         |
-                   AMRGRID               |		GEOMETRY
-                                         |
-
-    * * *
-
-####
-
-  2. VACPP Patterns
+  1. VACPP Patterns
 
 We assume NDIM=2 and NDIR=3, so you may try this interactively with **vacpp.pl
 -d=23 -**. For a full list of defined patterns read the **&amp;patdef**
@@ -538,11 +435,5 @@ definitions in **vacpp.pl**.
     {^IFTWOD text}        --> text or '' (depending on ndim being equal to 2)
 
     {^NOONED text}        --> '' or text (depending on ndim being equal to 1}
-
-    INCLUDE:filename      --> content_of_file
-
-    COMMON, REAL:: c(20)  --> REAL:: c
-    text                      text
-                              COMMON /REAL/ c(20)
 
     * * *

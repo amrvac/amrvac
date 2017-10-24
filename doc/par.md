@@ -55,7 +55,7 @@ slicenext | integer | 0 | Start index for writing slices
 firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
 resetgrid | logical | F | If true, rebuild the AMR grid upon restarting
 convert | logical | F | If true and filenameini and snapshotini are given, convert snapshots to other file formats
-convert_type | string | vtuBCCmpi | Which format to use when converting, options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,  tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
+convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
 slice_type | string | vtu | Which format to use when slicing, options are: csv, dat, vtu, vtuCC
 collapse_type | string | vti | Which format to use when slicing, options are: csv, vti
 autoconvert | logical | F | If true, already convert to output format during the run
@@ -127,23 +127,14 @@ You can overrule this default behavior by setting `nocartesian=T`. (note:
 for tecplot format, the coordinate labels are then corrected in the converted
 file as well).
 
-The only variable that then further matters is `convert_type`. Selecting
-_'idl'_ will generate a corresponding 'base_filenamexxxx.out' file, which
-is stored in binary and can be handled with the Idl macros. For type
-'tecplot', a corresponding `base_filenamexxxx.plt` file will be
+The only variable that then further matters is `convert_type`.
+For type 'tecplot', a corresponding `base_filenamexxxx.plt` file will be
 generated, which is an ASCII file that stores the cell corner locations and
 corner values for the conserved variables, to be handled with Tecplot. The
 'onegrid' conversion type is just useful in 1D AMR runs, to generate a
 single block file (extension '.blk'). Also particular to 1D data, and for
 TecPlot purposes alone, is the 'tecline' option. This can also be done in
 parallel mode, where it is called 'teclinempi'.
-
-The type 'dx', will generate a Data Explorer file 'base_filenamexxxx.dx',
-which can be used with the free [DX visualization software](www.opendx.org).
-When `convert_type='dx'`, there is the additional `dxfiletype` variable. The dx
-filetype stores in binary format, and stores cell center coordinates and values.
-The binary format for dx files can differ from machine to machine, but will be
-one of 'lsb' or 'msb' (for last or most significant bit order, respectively).
 
 For visualization using [Paraview](www.paraview.org), the option to convert to
 `convert_type='vtu'` can be used. For both _vtu_ and _tecplot_ formats, there
@@ -164,8 +155,8 @@ subroutine _usr_special_convert_ whose default interface is provided in the
 _mod_usr_methods.t_ module. You can there compute variables that are not
 in your simulation or data file, and store them in the extra slots
 _nw+1:nw+nwauxio_ of the _w_ variable. For consistency, you should also then
-add meaningfull names to a string to identify the auxiolary variables,
-This has to be done in the associated subroutine _usr_add_aux_names_.
+add meaningfull names to a string to identify the auxiliary variables,
+this has to be done in the associated subroutine _usr_add_aux_names_.
 
 The output values are normally given in code units, i.e. in the dimensionless
 values used throughout the computation (in the initial condition, we always
@@ -273,8 +264,8 @@ You have to specify at least one of `time_max, it_max`. AMRVAC stops execution
 when any of the limits are exceeded. The initial time value `time_init` and integer
 time step counter `it_init` values, which are zero by default, can be specified 
 here. However, when a restart is performed from a previous .dat file, the values 
-in that file will be used unless you reset them to their inital values by 
-set `reset_time=T`. If you want only reset iteration count 
+in that file will be used unless you reset them to their initial values by 
+setting `reset_time=T`. If you want only to reset the iteration count 
 without changing time, set `reset_it=T`.
 
 ## Methodlist {#par_methodlist}
@@ -369,7 +360,7 @@ _typelimited='original'_. These higher order time integration methods can be
 most useful in conjunction with higher order spatial discretizations.
 See also [discretization](discretization.md).
 
-The array `flux_scheme` defines a scheme to calculate flux at cell interfaces
+The array `flux_scheme` defines a scheme to calculate the flux at cell interfaces using the chosen
 [method](methods.md) (like hll based approximate Riemann solver) per activated grid level
 (and on each level, all variables use the same discretization). In total,
 _nlevelshi_ methods must be specified, by default _nlevelshi=20_ and these are
@@ -407,8 +398,8 @@ typediv=limited) is selected. It is thus only used in the gradientS
 
 The `typelimited` variable tells the TVD type methods what w should be used as
 a basis for the limited reconstruction. By default, the `original` value is used in 1D and
-for dimensional splitting, while for dimensionally unsplit multidimensional
-case (dimsplit=F), uses the `predictor` value from.
+for dimensional splitting, while the dimensionally unsplit multidimensional
+case (dimsplit=F) uses the `predictor` value.
 
 When having a gravitational stratification, one might benefit from performing linear
 reconstruction on the primitive variables log10(rho) and/or log10(p). This can
@@ -440,7 +431,7 @@ more robust. For Yee entropyfix the minimum characteristic speed (normalized
 by dt/dx) can be set for each characteristic wave using the `entropycoef`
 array.
 
-### Different TVD varians {#par_tvdvariants}
+### Different TVD variants {#par_tvdvariants}
 
 Both `tvd` and `tvdlf` have a few variants, these can be set in the
 strings `typetvd` and `typeboundspeed`, with defaults 'roe' and 'cmaxmean',
@@ -467,7 +458,7 @@ When using the HLLC scheme variants, for HD, MHD there is an
 optional additional flattening in case the characteristic speed at the contact
 is near zero. This is activated by setting `flathllc=T` (its default is
 false). One can also solve some potential noise problems in the HLLC by
-swithcing to the HLLCD variant, a kind of mix between HLLC and TVDLF. The
+switching to the HLLCD variant, a kind of mix between HLLC and TVDLF. The
 TVDLF is then used in a user-controlled region around a point where there is a
 sign change in flux, whose width is set by `nxdiffusehllc` (an integer which
 is 0 by default).
@@ -476,7 +467,7 @@ is 0 by default).
 
 Special sources, if any, can be added in a split or unsplit way according to the
 logical variables `source_split_usr` The default value is false meaning these sources are added
-in a unplit way by default. The split sources are added according to
+in an unsplit way by default. The split sources are added according to
 `typesourcesplit`. The meaning of the different options for
 `typesourcesplit` is described in
 [discretization](@ref disc-splitting). Under default
@@ -497,16 +488,16 @@ code crash. For HD and MHD modules this can be monitored
 or even cured by the handle_small_values subroutines. 
 The control parameters `small_density, small_pressure, small_temperature` play a role here:
 they can be set to small positive values but not negative values, while their default is 0. If 
-`small_temperature` is positve, `small_pressure` is overwritten by the product of 
+`small_temperature` is positive, `small_pressure` is overwritten by the product of 
 `small_pressure` and `small_temperature`.
 
 The actual treatment involves the _small_values_method_ parameter: Its default value
-'error' causes a full stop when the handle_small_values subroutine in the physics 
+'error' causes a full stop in the handle_small_values subroutine in the physics 
 modules. In this way, you can use it for debugging purposes, to spot from where the actual
 negative pressure and unphysical value gets introduced. If it is somehow unavoidable in
 your simulations, then you may rerun with a recovery process turned on as
 follows.  When _small_values_method='replace'_, the parameters small_pressure, small_density 
-are used to replace any unphysical value and set momenton to be 0, as encoded in 
+are used to replace any unphysical value and set momentum to be 0, as encoded in 
 `mod_small_values.t`. When you select _small_values_method='average'_, any unphysical value
 is replaced by averaging from a user-controlled environment about the faulty cells.
 The width of this environment is set by the integer _small_values_daverage_.
@@ -701,7 +692,7 @@ momentum to zero.
 The `special` type is to be used for setting fixed values, or any time
 dependent or other more complicated boundary conditions, and results in a call
 to the `usr_special_bc` subroutine which has to be provided by the user in
-the mod_usr.t module (@ref #amrvacusr_specialbound). The variables with
+the _mod_usr.t_ module. The variables with
 `special` boundary type are updated last within a given boundary region,
 thus the subroutine may use the updated values of the other variables. The
 order of the variables is fixed by the equation module chosen, i.e. _rho m1 m2
@@ -838,11 +829,11 @@ throughout.
 In the comparison involving the above selected variables, when the total error
 exceeds the value set by `refine_threshold`, the grid is triggered for refining.
 Reversely, if the error drops below `derefine_ratio * refine_threshold`, the 
-grid is coarsened.  `The user must always set a (problem dependent) value for 
+grid is coarsened.  The user must always set a (problem dependent) value for 
 `refine_threshold` (below 1), while the default value for 
 derefine_ratio=1.0d0/8.0d0 has shown to be a rather
 generally useful value. You can set threshold values that differ per
-refinement level. `
+refinement level. 
 
 When subroutine _usr_refine_threshold_ is registered, user can use it to 
 modify refine_threshold depending on location of interest. For example, increase
