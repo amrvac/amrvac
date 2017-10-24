@@ -594,7 +594,8 @@ rho,m1,m2,e at the left boundary (typeboundary_min1); rho,m1,m2,e at the right
 (typeboundary_max1); rho,m1,m2,e at the bottom (typeboundary_min2); rho,m1,m2,e 
 at the top boundary (typeboundary_max2). Boundary types of psi (in GLM-MHD) and 
 tracer fluids are automatically set to be the same as boundary type of density 
-by default. The general
+by default. Boundary types of dust density and dust momentum still must be set
+manually by user, if dust module is activated. The general
 subroutine devoted to the treatment of boundary conditions (either customized
 by the user or not, internal or external to the simulation space, polar or not)
 is _get_bc_ and the main files concerned are _mod_ghostcells_update.t_ and

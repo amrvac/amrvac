@@ -52,7 +52,7 @@ files.
 
 * [File format](fileformat.md) Description of the format of MPI-AMRVAC data file (.dat).
 * [Converting data files for visualization](convert.md) Brief notes on how to
-convert to IDL(.out), DX (openDX), Tecplot (.plt), and VTK (.vtu) data files.
+convert to Tecplot (.plt), and VTK (.vtu) data files.
 * [Slices](slices.md) How to output hypersurfaces (slices) for restart or
 visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
@@ -61,5 +61,4 @@ visualisation and analysis (e.g. column densities)
 
 **Data analysis tools**
 
-* [IDL](idl.md)
 * [Python](python/index.md) \todo Include python documentation here
