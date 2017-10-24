@@ -7,7 +7,7 @@ direction (collapsing), yielding e.g. column densities. For this purpose
 AMRVAC can output line integrals of the simulation variables (plus user-
 specified variables) during runtime.
 The current implementation is efficient as we take advantage of the grid
-structure; however only collapsing along cooridnate directions is currently
+structure; however only collapsing along coordinate directions is currently
 possible (which is often sufficient). The user can freely specify the
 resolution (collapseLevel) of the resulting output data. No re-gridding of the
 domain is required, higher levels on the output grid are filled with flat
@@ -48,7 +48,7 @@ This should be kept in mind for visualization.
 To collapse existing _*.dat_ files, the simulation can be restarted from a
 given output time and the code can be brought to a halt after zero iterations.
 This is entirely analoguous to the method for [slicing](slices.md) _*.dat_
-files and done in the following way: its best to create a new _*.par_ file
+files and done in the following way: it is best to create a new _*.par_ file
 (e.g. collapse.par) and clear the savelist from any output to filetypes other
 than _4_. We use itsave to demand a collapse output for the zero-iteration.
 

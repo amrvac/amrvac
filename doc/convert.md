@@ -15,13 +15,8 @@ platform). The many possibilities include conversion to _*.vtu_ (VTK
 unformatted data format) directly readable by
 [Paraview](http://www.paraview.org/) (or
 [ViSiT](https://wci.llnl.gov/codes/visit/)), to _*.plt_ format for the
-commercial package [Tecplot](http://www.tecplot.com/), or the _*.dx_ format
-for the opensource package [openDX](http://www.opendx.org/). We also provide
-possibilities to convert to a format _*.out_ suitable for Idl, for which some
-automated macro's can be made in analogy with those used for the [Versatile
-Advection Code ](http://www-personal.umich.edu/~gtoth), but be forewarned
-that 3D (and even 2D) AMR data for Idl will require you to program your own
-macro's. Also, **this info will not explain you how to use the mentioned
+commercial package [Tecplot](http://www.tecplot.com/).
+Also, **this info will not explain you how to use the mentioned
 software for visualization, but just explain how to do the conversion.**
 Furthermore, this part of the code is subject to continuous change and
 improvement, and we welcome extra contributions.
