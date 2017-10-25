@@ -15,13 +15,6 @@ module mod_global_parameters
 
   character(len=*), parameter :: undefined = 'undefined'
 
-  integer :: ixM^LL
-
-  integer, dimension(:), allocatable :: ng^D
-  double precision, dimension(:), allocatable :: dg^D
-
-  logical :: slab
-
   !> @todo Move mpi related variables to e.g. mod_comm
 
   !> The number of MPI tasks
@@ -37,46 +30,152 @@ module mod_global_parameters
   !> @todo Make local
   integer :: ierrmpi
 
+  !> MPI file handle for logfile
   integer :: log_fh
-  !> MPI IO type for block including ghost cells
-  integer :: type_block, type_coarse_block, type_sub_block(2^D&)
-  !> MPI IO type for block excluding ghost cells
-  integer :: type_block_io, size_block_io, size_block
-  !> MPI IO type for transformed data excluding ghost cells
+  !> MPI type for block including ghost cells and its size
+  integer :: type_block, size_block
+  !> MPI type for block coarsened by 2, and for its children blocks
+  integer :: type_coarse_block, type_sub_block(2^D&)
+  !> MPI type for IO: block excluding ghost cells
+  integer :: type_block_io, size_block_io
+  !> MPI type for IO: transformed data excluding ghost cells
   integer :: type_block_io_tf, size_block_io_tf
+  !> MPI type for IO: cell corner (xc) or cell center (xcc) coordinates
   integer :: type_block_xc_io,type_block_xcc_io
+  !> MPI type for IO: cell corner (wc) or cell center (wcc) variables
   integer :: type_block_wc_io,type_block_wcc_io
-  integer :: itag
-  integer :: irecv, isend
+
+  integer :: itag, irecv, isend
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
 
-  integer :: snapshotnext, collapseNext, icollapse
+  ! geometry and domain setups 
 
-  !> split potential or linear force-free magnetic field as background B0 field
-  logical :: B0field=.false.
-  !> amplitude of background dipolar, quadrupolar, octupolar, user's field
-  double precision :: Bdip=0.d0
-  double precision :: Bquad=0.d0
-  double precision :: Boct=0.d0
-  double precision :: Busr=0.d0
+  !> the mesh range (within a block with ghost cells)
+  integer :: ixM^LL
+
+  !> minimum and maximum domain boundaries for each dimension
+  double precision  :: xprob^L
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
   integer :: r_ = -1
-
   integer :: phi_ = -1
-
   integer :: z_ = -1
-
-  !> Indices for cylindrical coordinates FOR INDEXING, always positive
-  !> \todo Check whether these are still needed
-  ! integer, parameter :: pphi_=^PPHI, zz_=^ZZ
 
   !> Number of spatial dimensions for grid variables
   integer, parameter :: ndim=^ND
 
-  !> Number of spatial dimensions for vector variables
+  !> Number of spatial dimensions (components) for vector variables
   integer :: ndir=ndim
+
+  logical :: slab
+
+  !> number of grid blocks in domain per dimension, in array over levels
+  integer, dimension(:), allocatable :: ng^D
+  !> extent of grid blocks in domain per dimension, in array over levels
+  double precision, dimension(:), allocatable :: dg^D
+
+  !> number of cells for each dimension in level-one mesh
+  integer :: domain_nx^D
+
+  !> number of cells for each dimension in grid block excluding ghostcells
+  integer :: block_nx^D
+
+  !> Lower index of grid block arrays (always 1)
+  integer, parameter :: {ixGlo^D = 1|, }
+
+  !> Upper index of grid block arrays
+  integer :: ixGhi^D
+
+  !> Number of ghost cells surrounding a grid
+  integer :: nghostcells
+
+  !> Stretching factor for log stretch grid, cell size = logG * cell-center position
+  double precision :: logG
+  !> Stretching factor for log stretch grid, r_i = qst * r_i-1
+  double precision :: qst
+  !> Store stretching factors for each AMR level
+  double precision, allocatable :: logGs(:), qsts(:)
+  !> Switch to use stretched grid
+  logical :: stretched_grid=.false.
+
+  !> grid hierarchy info (level and grid indices)
+  integer, parameter :: nodehi=^ND+1
+  integer, parameter :: plevel_=1
+  integer, parameter :: pig^D_=plevel_+^D
+
+  integer, allocatable :: node(:,:)
+  integer, allocatable :: node_sub(:,:)
+
+  !> grid location info (corner coordinates and grid spacing)
+  integer, parameter :: rnodehi=3*^ND
+  integer, parameter :: rpxmin0_=0
+  integer, parameter :: rpxmin^D_=rpxmin0_+^D
+  integer, parameter :: rpxmax0_=^ND
+  integer, parameter :: rpxmax^D_=rpxmax0_+^D
+  integer, parameter :: rpdx^D_=2*^ND+^D
+
+  !> Corner coordinates
+  double precision, allocatable :: rnode(:,:)
+  double precision, allocatable :: rnode_sub(:,:)
+
+  double precision, allocatable :: dx(:,:)
+  double precision :: dxlevel(ndim)
+
+  ! IO related quantities
+
+  !> Maximum number of saves that can be defined by tsave or itsave
+  integer, parameter :: nsavehi=100
+
+  !> Number of output methods
+  integer, parameter :: nfile         = 5
+
+  !> Names of the output methods
+  character(len=40), parameter  :: output_names(nfile) = &
+       ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
+
+  !> If collapse(DIM) is true, generate output integrated over DIM
+  logical :: collapse(ndim)
+
+  !> Save output of type N on times tsave(:, N)
+  double precision :: tsave(nsavehi,nfile)
+
+  !> \todo Move tsavelast to amrvac.t
+  double precision :: tsavelast(nfile)
+
+  !> Repeatedly save output of type N when dtsave(N) simulation time has passed
+  double precision :: dtsave(nfile)
+
+  !> Save output of type N on iterations itsave(:, N)
+  integer :: itsave(nsavehi,nfile)
+
+  !> \todo remove itsavelast?
+  integer :: itsavelast(nfile)
+
+  !> Repeatedly save output of type N when ditsave(N) time steps have passed
+  integer :: ditsave(nfile)
+
+  !> \todo Move to amrvac.t
+  integer :: isavet(nfile)
+
+  !> \todo Move to amrvac.t
+  integer :: isaveit(nfile)
+
+  !> The level at which to produce line-integrated / collapsed output
+  integer :: collapseLevel
+
+  !> Number of saved files of each type
+  !> \todo Move to mod_input_output
+  integer :: n_saves(1:nfile)
+
+  !> to monitor timeintegration loop at given wall-clock time intervals
+  double precision :: time_between_print
+
+  !> accumulated wall-clock time spent on boundary conditions
+  double precision :: time_bc
+
+  !> IO: snapshot and collapsed views output numbers/labels
+  integer :: snapshotnext, collapseNext, icollapse
 
   !> Constant indicating log output
   integer, parameter :: filelog_      = 1
@@ -92,13 +191,6 @@ module mod_global_parameters
 
   !> Constant indicating analysis output (see @ref analysis.md)
   integer, parameter :: fileanalysis_ = 5
-
-  !> Number of output methods
-  integer, parameter :: nfile         = 5
-
-  !> Names of the output methods
-  character(len=40), parameter  :: output_names(nfile) = &
-       ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
 
   !> Unit for standard input
   integer, parameter :: unitstdin=5
@@ -116,6 +208,68 @@ module mod_global_parameters
   integer, parameter :: unitsnapshot=12
   integer, parameter :: unitcollapse=13
   integer, parameter :: unitanalysis=14
+
+  !> Number of auxiliary variables that are only included in output
+  integer :: nwauxio
+
+  !> IO switches for conversion
+  logical          :: nocartesian
+  logical, allocatable :: w_write(:)
+  logical, allocatable :: writelevel(:)
+  double precision :: writespshift(ndim,2)
+  integer          :: level_io, level_io_min, level_io_max
+
+  !> Which par files are used as input
+  character(len=std_len), allocatable :: par_files(:)
+
+  !> Base file name for simulation output, which will be followed by a number
+  character(len=std_len) :: base_filename
+
+  !> If not 'unavailable', resume from snapshot with this base file name
+  character(len=std_len) :: restart_from_file
+
+  !> Which type of log to write: 'normal', 'special', 'regression_test'
+  character(len=std_len) :: typefilelog
+
+  !> Resume from the snapshot with this index
+  integer :: snapshotini
+
+  !> If true and restart_from_file is given, convert snapshots to
+  !> other file formats
+  logical                :: convert
+
+  !> If true, already convert to output format during the run
+  logical                :: autoconvert
+
+  !> If true, convert from conservative to primitive variables in output
+  logical                :: saveprim
+
+  !> Which format to use when converting
+  !>
+  !> Options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, 
+  !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, vtuBmpi, vtuBCCmpi, pvtumpi, pvtuCCmpi,
+  !> pvtuBmpi, pvtuBCCmpi, tecline, teclinempi, onegrid
+  character(len=std_len) :: convert_type
+
+  character(len=std_len) :: collapse_type
+
+  !> Conversion factors the primitive variables
+  double precision, allocatable :: w_convert_factor(:)
+
+  double precision :: length_convert_factor
+
+  !> Conversion factor for time unit
+  double precision       :: time_convert_factor
+
+  integer                :: saveigrid
+
+  !> Stores the memory and load imbalance, used in printlog
+  double precision       :: Xload, Xmemory
+
+  !> Save a snapshot before crash a run met unphysical values
+  logical :: crash=.false.
+
+  ! Physics factors
 
   !> Physical scaling factor for length
   double precision :: unit_length=1.d0
@@ -141,21 +295,95 @@ module mod_global_parameters
   !> Physical scaling factor for number density
   double precision :: unit_numberdensity=1.d0
 
-  !> Elapsed time for evaluate the performance
-  real :: time_elapsed=0.0
+  !> error handling
+  double precision       :: small_temperature,small_pressure,small_density
+
+  !> split potential or linear force-free magnetic field as background B0 field
+  logical :: B0field=.false.
+  !> amplitude of background dipolar, quadrupolar, octupolar, user's field
+  double precision :: Bdip=0.d0
+  double precision :: Bquad=0.d0
+  double precision :: Boct=0.d0
+  double precision :: Busr=0.d0
+
+  !> Use SI units (.true.) or use cgs units (.false.)
+  logical              :: SI_unit=.false.
+
+  !> Solve energy equation or not
+  logical :: phys_energy=.true.
+
+  !> Solve polytropic process instead of solving total energy
+  logical :: solve_internal_e=.false.
+
+  !> Enable to strictly conserve the angular momentum
+  !> (works both in cylindrical and spherical coordinates)
+  logical :: angmomfix=.false.
+  
+  !> Use particles module or not
+  logical :: use_particles=.false.
+
+  ! AMR switches
+
+  !> The maximum number of grid blocks in a processor
+  integer :: max_blocks
+
+  !> The maximum number of levels in the grid refinement
+  integer, parameter :: nlevelshi = 20
+
+  !> Maximal number of AMR levels
+  integer :: refine_max_level
 
   !> Weights of variables used to calculate error for mesh refinement
   double precision, allocatable :: w_refine_weight(:)
 
+  !> Fix the AMR grid after this time
+  double precision :: tfixgrid
+
+  !> Fix the AMR grid after this many time steps
+  integer :: itfixgrid
+
+  !> Reconstruct the AMR grid once every ditregrid iteration(s)
+  integer :: ditregrid
+
+  !> refinement: lohner estimate wavefilter setting
+  double precision, allocatable :: amr_wavefilter(:)
+
+  integer                       :: refine_criterion
+  logical                       :: prolongprimitive
+  logical                       :: coarsenprimitive
+
+  !> Error tolerance for refinement decision
+  double precision, allocatable :: refine_threshold(:)
+  double precision, allocatable :: derefine_ratio(:)
+
+  !> If true, rebuild the AMR grid upon restarting
+  logical :: reset_grid
+
+  !> Number of cells as buffer zone
+  !> \todo is it necessary?
+  integer :: nbufferx^D
+
+  integer :: levmin
+  integer :: levmax
+  integer :: levmax_sub
+
+  ! Miscellaneous 
+
+  !> problem switch allowing different setups in same usr_mod.t
   integer           :: iprob
-  !> positions of the minimum and maximum surfaces for each dimension
-  double precision  :: xprob^L
 
   !> Kronecker delta tensor
   integer :: kr(3,3)
 
   !> Levi-Civita tensor
   integer :: lvc(3,3,3)
+
+  ! Time integration aspects 
+
+  double precision :: dt
+  double precision, allocatable :: dt_grid(:)
+
+  logical :: time_advance
 
   !> The Courant (CFL) number used for the simulation
   double precision :: courantpar
@@ -176,15 +404,6 @@ module mod_global_parameters
   !> \f$ dt < dtdiffpar \times dx^2/eta \f$
   double precision :: dtdiffpar
 
-  !> Under construction
-  !> \todo Remove time_accurate?
-  logical :: time_accurate
-
-  ! Time parameters
-
-  !> Maximum number of saves that can be defined by tsave or itsave
-  integer, parameter :: nsavehi=100
-
   !> The global simulation time
   double precision :: global_time
 
@@ -197,17 +416,6 @@ module mod_global_parameters
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
 
-  !> Save output of type N on times tsave(:, N)
-  double precision :: tsave(nsavehi,nfile)
-
-  !> \todo Move tsavelast to amrvac.t
-  double precision :: tsavelast(nfile)
-
-  !> Repeatedly save output of type N when dtsave(N) simulation time has passed
-  double precision :: dtsave(nfile)
-
-  double precision :: time_between_print
-
   !> If true, reset iteration count and global_time to original values, and
   !> start writing snapshots at index 0
   logical :: reset_time
@@ -217,12 +425,6 @@ module mod_global_parameters
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
-
-  !> If true, rebuild the AMR grid upon restarting
-  logical :: reset_grid
-
-  !> If collapse(DIM) is true, generate output integrated over DIM
-  logical :: collapse(ndim)
 
   !> Number of time steps taken
   integer :: it
@@ -237,47 +439,13 @@ module mod_global_parameters
   !> by a factor \f$ 1 - (1- step/slowsteps)^2 \f$
   integer :: slowsteps
 
-  !> Save output of type N on iterations itsave(:, N)
-  integer :: itsave(nsavehi,nfile)
-
-  !> \todo remove itsavelast?
-  integer :: itsavelast(nfile)
-
-  !> Repeatedly save output of type N when ditsave(N) time steps have passed
-  integer :: ditsave(nfile)
-
-  !> \todo Move to amrvac.t
-  integer :: isavet(nfile)
-
-  !> \todo Move to amrvac.t
-  integer :: isaveit(nfile)
-
-  !> The level at which to produce line-integrated / collapsed output
-  integer :: collapseLevel
-
-  !> Number of saved files of each type
-  !> \todo Move to mod_input_output
-  integer :: n_saves(1:nfile)
-
-  !> Fix the AMR grid after this time
-  double precision :: tfixgrid
-
-  !> Fix the AMR grid after this many time steps
-  integer :: itfixgrid
-
-  !> Reconstruct the AMR grid once every ditregrid iteration(s)
-  integer :: ditregrid
-
-  !> Number of auxiliary variables that are only included in the output
-  integer :: nwauxio
+  ! Method switches
 
   !> Index of the sub-step in a multi-step time integrator
   integer :: istep
 
   !> How many sub-steps the time integrator takes
   integer :: nstep
-
-  ! Method switches
 
   !> Which time integrator to use
   character(len=std_len) :: time_integrator
@@ -297,7 +465,7 @@ module mod_global_parameters
   !> Which spatial discretization to use (per grid level)
   character(len=std_len), allocatable :: flux_scheme(:)
 
-  !> The spatial dicretization to use for the predictor step when using a two
+  !> The spatial dicretization for the predictor step when using a two
   !> step method
   character(len=std_len), allocatable :: typepred1(:)
 
@@ -331,7 +499,7 @@ module mod_global_parameters
   character(len=std_len) :: typeaxial='default'
   character(len=std_len) :: typepoly
 
-  integer                       :: refine_criterion,nxdiffusehllc,typespherical
+  integer                       :: nxdiffusehllc,typespherical
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps
   logical, allocatable          :: loglimit(:), logflag(:)
@@ -339,18 +507,14 @@ module mod_global_parameters
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
   logical                       :: dimsplit
-  logical                       :: prolongprimitive
-  logical                       :: coarsenprimitive
 
-  double precision       :: small_temperature,small_pressure,small_density
-  double precision, allocatable :: amr_wavefilter(:)
   character(len=std_len) :: typediv,typegrad
 
-  logical          :: nocartesian
-  logical, allocatable :: w_write(:)
-  logical, allocatable :: writelevel(:)
-  double precision :: writespshift(ndim,2)
-  integer          :: level_io, level_io_min, level_io_max
+  !> global fastest wave speed needed in fd scheme and glm method
+  double precision :: cmax_global
+
+  !> need global maximal wave speed
+  logical :: need_global_cmax=.false.
 
   ! Boundary region parameters
 
@@ -373,97 +537,9 @@ module mod_global_parameters
   character(len=std_len) :: typeghostfill='linear',prolongation_method
   logical :: internalboundary
 
-  !> Which par files are used as input
-  character(len=std_len), allocatable :: par_files(:)
-
-  !> Base file name for simulation output, which will be followed by a number
-  character(len=std_len) :: base_filename
-
-  !> If not 'unavailable', resume from snapshot with this base file name
-  character(len=std_len) :: restart_from_file
-
-  !> Which type of log to write: 'normal', 'special', 'regression_test'
-  character(len=std_len) :: typefilelog
-
-  !> Resume from the snapshot with this index
-  integer :: snapshotini
-
-  !> If true and restart_from_file is given, convert snapshots to
-  !> other file formats
-  logical                :: convert
-
-  !> If true, already convert to output format during the run
-  logical                :: autoconvert
-
-  !> If true, convert from conservative to primitive variables in output
-  logical                :: saveprim
-
-  !> Which format to use when converting
-  !>
-  !> Options are: idl, tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, dx,
-  !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, vtuBmpi, vtuBCCmpi, pvtumpi, pvtuCCmpi,
-  !> pvtuBmpi, pvtuBCCmpi, tecline, teclinempi, onegrid
-  character(len=std_len) :: convert_type
-
-  !> Data Explorer file endianness ('msb' or 'lsb' for last or most significant
-  !> bit order)
-  character(len=std_len) :: dxfiletype
-
-  character(len=std_len) :: collapse_type
-
-  !> Conversion factors the primitive variables
-  double precision, allocatable :: w_convert_factor(:)
-
-  double precision :: length_convert_factor
-
-  !> Conversion factor for time unit
-  double precision       :: time_convert_factor
-
-  integer                :: saveigrid
-
-  ! Stores the memory and load imbalance, to be used in printlog:
-  double precision       :: Xload, Xmemory
-
-  double precision :: time_bc
-
-  !> Stretching factor for log stretch grid, cell size = logG * cell-center position
-  double precision :: logG
-  !> Stretching factor for log stretch grid, r_i = qst * r_i-1
-  double precision :: qst
-  !> Store stretching factors for each AMR level
-  double precision, allocatable :: logGs(:), qsts(:)
-  !> Switch to use stretched grid
-  logical :: stretched_grid=.false.
-
-  integer, parameter :: nodehi=^ND+1
-  integer, parameter :: plevel_=1
-  integer, parameter :: pig^D_=plevel_+^D
-
-  integer, parameter :: rnodehi=3*^ND
-  integer, parameter :: rpxmin0_=0
-  integer, parameter :: rpxmin^D_=rpxmin0_+^D
-  integer, parameter :: rpxmax0_=^ND
-  integer, parameter :: rpxmax^D_=rpxmax0_+^D
-  integer, parameter :: rpdx^D_=2*^ND+^D
-
   ! parameters for bc_phys
   integer, parameter :: ismin^D=-1+2*^D
   integer, parameter :: ismax^D=2*^D
-
-  !> Corner coordinates
-  double precision, allocatable :: rnode(:,:)
-  double precision, allocatable :: rnode_sub(:,:)
-
-  !> Error tolerance for refinement decision
-  double precision, allocatable :: refine_threshold(:)
-  double precision, allocatable :: derefine_ratio(:)
-  double precision, allocatable :: dx(:,:)
-  double precision :: dt
-  double precision, allocatable :: dt_grid(:)
-  double precision :: dxlevel(ndim)
-
-  integer, allocatable :: node(:,:)
-  integer, allocatable :: node_sub(:,:)
 
   type fluxalloc
      double precision, dimension(:^D&,:), pointer:: flux => null()
@@ -471,65 +547,7 @@ module mod_global_parameters
   !> store flux to fix conservation
   type(fluxalloc), dimension(:,:,:), allocatable :: pflux
 
-  !> Number of cells as buffer zone
-  !> \todo is it necessary?
-  integer :: nbufferx^D
-
-  !> The maximum number of grid blocks in a processor
-  integer :: max_blocks
-
-  !> The maximum number of levels in the grid refinement
-  integer, parameter :: nlevelshi = 20
-
-  !> Maximal number of AMR levels
-  integer :: refine_max_level
-
-  !> number of cells for each dimension in level-one mesh
-  integer :: domain_nx^D
-
-  !> number of cells for each dimension in grid block excluding ghostcells
-  integer :: block_nx^D
-
-  !> Lower index of grid block arrays (always 1)
-  integer, parameter :: {ixGlo^D = 1|, }
-
-  !> Upper index of grid block arrays
-  integer :: ixGhi^D
-
-  !> Number of ghost cells surrounding a grid
-  integer :: nghostcells
-  integer :: levmin
-  integer :: levmax
-  integer :: levmax_sub
-
-  logical :: skipfinestep
   logical, allocatable :: phyboundblock(:)
-  logical :: time_advance
-
-  !> Use SI units (.true.) or use cgs units (.false.)
-  logical              :: SI_unit=.false.
-
-  !> Solve energy equation or not
-  logical :: phys_energy=.true.
-
-  !> Solve polytropic process instead of solving total energy
-  logical :: solve_internal_e=.false.
-
-  !> Enable to strictly conserve the angular momentum
-  !> (works both in cylindrical and spherical coordinates)
-  logical :: angmomfix=.false.
-  
-  !> Use particles module or not
-  logical :: use_particles=.false.
-
-  !> Save a snapshot before crash a run met unphysical values
-  logical :: crash=.false.
-
-  ! global fastest wave speed needed in fd scheme and glm method
-  double precision :: cmax_global
-
-  !> need global maximal wave speed
-  logical :: need_global_cmax=.false.
 
   !$OMP THREADPRIVATE(dxlevel,logG,qst)
   !$OMP THREADPRIVATE(saveigrid)

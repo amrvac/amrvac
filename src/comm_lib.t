@@ -54,7 +54,6 @@ subroutine init_comm_types
 use mod_global_parameters
 
 integer, dimension(ndim+1) :: sizes, subsizes, start
-!integer :: i^D, ic^D, nx^D, nxCo^D, size_double
 integer :: i^D, ic^D, nx^D, nxCo^D, nxG^D
 !-----------------------------------------------------------------------------
 nx^D=ixMhi^D-ixMlo^D+1;
