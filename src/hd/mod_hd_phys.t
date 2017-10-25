@@ -188,7 +188,7 @@ contains
 
     ! Set starting index of tracers
     do itr = 1, hd_n_tracer
-       tracer(itr) = var_set_fluxvar("trc", "trp", itr)
+       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
     phys_get_dt          => hd_get_dt

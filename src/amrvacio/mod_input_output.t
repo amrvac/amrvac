@@ -642,9 +642,14 @@ contains
     }
 
     ! psi, tracers take the same boundary type as density
-    if(nwfluxbc<nwflux) then
-      do iw=nwfluxbc+1,nwflux
-        typeboundary(iw,:)=typeboundary(1,:)
+    !
+    ! TODO (Jannis): we can later generalize this by letting physics module
+    ! pre-define some boundary conditions in a fixed-size array (since we don't
+    ! know nwflux yet), so that other variables can also copy the b.c. for
+    ! momentum or energy equations.
+    if (nwfluxbc<nwflux) then
+      do iw = nwfluxbc+1, nwflux
+        typeboundary(iw,:) = typeboundary(iw_rho, :)
       end do
     end if
 
