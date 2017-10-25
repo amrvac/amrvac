@@ -1148,7 +1148,7 @@ contains
       end do
     end if
 
-    {ixOmin^D = ixMlo^D + n_ghost(^D)\}
+    {ixOmin^D = ixMlo^D - n_ghost(^D)\}
     {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
 
     n_values = count_ix(ixO^L) * nw
