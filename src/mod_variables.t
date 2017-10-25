@@ -51,14 +51,21 @@ module mod_variables
 contains
 
   !> Set generic flux variable
-  function var_set_fluxvar(name_cons, name_prim, ix) result(iw)
-    character(len=*), intent(in)  :: name_cons, name_prim
-    integer, intent(in), optional :: ix
+  function var_set_fluxvar(name_cons, name_prim, ix, need_bc) result(iw)
+    character(len=*), intent(in)  :: name_cons !< Conservative name
+    character(len=*), intent(in)  :: name_prim !< Primitive name
+    integer, intent(in), optional :: ix        !< Optional index (to make var1, var2, ...)
+    logical, intent(in), optional :: need_bc   !< Require boundary condition (default: true)
     integer                       :: iw
+    logical                       :: add_bc
 
     nwflux = nwflux + 1
     nw     = nw + 1
     iw     = nwflux
+
+    add_bc = .true.
+    if (present(need_bc)) add_bc = need_bc
+    if (add_bc) nwfluxbc = nwfluxbc + 1
 
     if (.not. present(ix)) then
       prim_wnames(nwflux) = name_cons

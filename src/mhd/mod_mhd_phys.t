@@ -297,7 +297,7 @@ contains
     mag(:) = var_set_bfield(ndir)
 
     if (mhd_glm) then
-      psi_ = var_set_fluxvar('psi', 'psi')
+      psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
     else
       psi_ = -1
     end if
@@ -306,7 +306,7 @@ contains
 
     ! Set starting index of tracers
     do itr = 1, mhd_n_tracer
-      tracer(itr) = var_set_fluxvar("trc", "trp", itr)
+      tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
     nvector      = 2 ! No. vector vars
