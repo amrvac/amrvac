@@ -120,10 +120,9 @@ contains
     select case (typelim)
     case (limiter_minmod)
        ! Minmod limiter eq(3.51e) and (eq.3.38e) with omega=1
-       ! tmp(ixO^S)=sign(one,dwC(ixO^S))
-       ! tmp(ixO^S)=tmp(ixO^S)* &
-       !      max(zero,min(abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
-       tmp(ixO^S) = max(0.0d0, min(1.0d0, dwC(ixO^S)/dwC(hxO^S))) * dwC(hxO^S)
+       tmp(ixO^S)=sign(one,dwC(ixO^S))
+       tmp(ixO^S)=tmp(ixO^S)* &
+            max(zero,min(abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
        if (present(ldw)) ldw = tmp
        if (present(rdw)) rdw = tmp
     case (limiter_woodward)
