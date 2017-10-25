@@ -21,7 +21,7 @@ To install the code in fold `~/codes/amrvac`:
 
 # Setting path {#install}
 
-To use MPI-AMRVAC, the installation directory must be exported as an envirenment 
+To use MPI-AMRVAC, the installation directory must be exported as an environment 
 parameter AMRVAC_DIR and can be added to the command searching path for robustness.
 To do so using bash, you should add the following line
 to your `~/.bashrc` file (or perhaps `~/.profile` in mac OS):

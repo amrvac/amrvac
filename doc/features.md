@@ -92,7 +92,7 @@ become significantly different from zero. This may cause numerical instability
 or inaccurate results. There are several source-term options to fix this
 problem. E.g., Powell non-conservative source terms, which are
 proportional to div B, can be used to stabilize, and to improve the
-accuracy for any of the methods. We have also provide several variants of
+accuracy for any of the methods. We also provide several variants of the
 Dedner GLM scheme.
 
 See [methods](methods.md) for a more detailed description.

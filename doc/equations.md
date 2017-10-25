@@ -4,13 +4,13 @@
 
 # List of physics modules {#eq_list_physics}
 
-This document describes the implemented equations implemented.
-Information about use defined source terms are in [user module](amrvacusr.md). In
+This document describes the equations implemented.
+Information about user defined source terms are in [user module](amrvacusr.md). In
 principle, the code handles anything of generic form
 
 ![](figmovdir/eq.general.gif)
 
-The code is configured to use the specified equation with activating it in 
+The code is configured to use the specified set of equations by activating it in 
 the usr_init subroutine of user module "mod_usr.t"
 
     subroutine usr_init()
@@ -19,7 +19,7 @@ the usr_init subroutine of user module "mod_usr.t"
     end subroutine usr_init
 
 
-where EQUATION is one of the implemented physics modules (rho,hd,mhd,srmhd,...),
+where EQUATION is one of the implemented physics modules (rho,hd,mhd),
 see below.
 
 ## Transport Equation: rho {#eq_rho}
@@ -71,11 +71,11 @@ and for point gravity
 Note how the gravitational constant and the non-dimensionalization is taken
 into the parameters _M_point_ and its location _x_point_.
 
-To do adiabatic hydrodynamics just add in hd_list of parameter file
+To do adiabatic hydrodynamics (i.e. solve the hydro set without energy equation added) just add in hd_list of parameter file
 
     hd_energy=.false.
 
-Includes the equations for pressureless dust and the Shallow Water equations
+This special case includes the equations for pressureless dust and the Shallow Water equations, and writes generally as
 
 ![](figmovdir/eq.hdadiab.gif)
 
@@ -145,14 +145,14 @@ is polytropic.
 # Divergence B source treatments {#eq_divB_fix}
 
 Both the classical and the special relativistic MHD module can deal with
-solneoidal magnetic field corrections through source term treatments.
+solenoidal magnetic field corrections through source term treatments.
 Traditionally, these can be written as
 
 ![](figmovdir/eq.divb.gif)
 
 Terms proportional to **div B** are [Powell`s fix](methods.md) for
 the numerical problems related to the divergence of the magnetic field. They
-are used only in more than 1D. For relativistic MHD (and/or for classical), we
+are used only in more than 1D. We can also
 just take the term along in the induction equation, known as Janhunen`s
 approach. Another option is to use the diffusive (parabolic) approach, with
 the parameter _C_d_ of order unity (up to 2). Alternatively, there are several

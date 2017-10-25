@@ -29,7 +29,7 @@ you could for example use:
 
 You can also edit the `makefile` directly.
 
-Then its time to compile the code:
+Then it is time to compile the code:
 
     make -j 4
 
@@ -38,7 +38,7 @@ library is compiled in `amrvac/lib/` if it is not available already. This
 is the generic part of AMRVAC that does not depend on your user code. Then your
 user code is also compiled, and an executable binary file called `amrvac` is produced.
 
-There are a couple useful commands to know about:
+There are a couple of useful commands to know about:
 
     make clean        # clean the local object files
     make ARCH=debug   # do a debug build (extra error checking)
@@ -55,8 +55,6 @@ This will run amrvac with parameter-file amrvac.par. Then you have several new
 files ending in `.dat`, `.vtu` and one `.log` file. The `.dat` files are used
 for restarts and the `.vtu` files contain the output data to be visualized.
 
-For more information about command line parameters
-
 # Visualization {#visualization}
 
 Simulation output in `.vtu` (VTK unstructured) format can directly be
@@ -64,10 +62,10 @@ visualized [Paraview](http://www.paraview.org/)
 or [Visit](https://wci.llnl.gov/simulation/computer-codes/visit).
 
 Visualization or analysis of the results can also be done by
-converting `.dat` files to e.g., IDL, openDX, Tecplot, or VTK native formats.
+converting `.dat` files to e.g., Tecplot, or VTK native formats.
 This requires the same amrvac executable used to run the simulation.
-Using a csh scipt tool `aiconvert` in amrvac/tools folder, users can convert
-to a format defined by **convert_type** parameter in the _filelist_ of a input 
+Using a csh script tool `aiconvert` in amrvac/tools folder, users can convert
+to a format defined by **convert_type** parameter in the _filelist_ of an input 
 par file:
 
     aiconvert
