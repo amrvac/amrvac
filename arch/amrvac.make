@@ -18,7 +18,7 @@ INC_DIRS := $(LIB_DIR)
 LIB_DIRS := $(LIB_DIR)
 LIBS := amrvac
 
-.PHONY: all clean force
+.PHONY: all clean allclean force
 
 all: amrvac
 
