@@ -128,7 +128,7 @@ contains
 
   subroutine timeintegration()
     use mod_timing
-    use mod_advance, only: advance, process
+    use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active
     use mod_global_parameters
     use mod_input_output, only: saveamrfile
@@ -171,6 +171,13 @@ contains
        ! set time step
        call setdt()
 
+       ! Optionally call a user method that can modify the grid variables at the
+       ! beginning of a time step
+       if (associated(usr_process_grid) .or. &
+            associated(usr_process_global)) then
+          call process(it,global_time)
+       end if
+
        timeio0=MPI_WTIME()
 
        if (timeio0 - time_last_print > time_between_print) then
@@ -202,13 +209,6 @@ contains
        ! exit time loop if time is up
        if (it>=it_max .or. global_time>=time_max) exit time_evol
 
-       ! Optionally call a user method that can modify the grid variables at the
-       ! beginning of a time step
-       if (associated(usr_process_grid) .or. &
-            associated(usr_process_global)) then
-          call process(it,global_time)
-       end if
-
        ! solving equations
        call advance(it)
 
@@ -222,6 +222,13 @@ contains
          call saveamrfile(2)
          if(mype==0) write(*,*) "Error: small value encountered, run crash."
          call MPI_ABORT(icomm, iigrid, ierrmpi)
+       end if
+
+       ! Optionally call a user method that can modify the grid variables at the
+       ! end of a time step: this is for two-way coupling to PIC, e.g.
+       if (associated(usr_process_adv_grid) .or. &
+            associated(usr_process_adv_global)) then
+          call process_advanced(it,global_time)
        end if
 
        ! update AMR mesh and tree

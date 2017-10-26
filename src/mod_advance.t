@@ -11,6 +11,7 @@ module mod_advance
 
   public :: advance
   public :: process
+  public :: process_advanced
 
 contains
 
@@ -472,6 +473,9 @@ contains
 
   end subroutine advect1_grid
 
+  !> process is a user entry in time loop, before output and advance
+  !>         allows to modify solution, add extra variables, etc.
+  !> Warning: CFL dt already determined (and is not recomputed)! 
   subroutine process(iit,qt)
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters
@@ -501,5 +505,40 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine process
+
+  !> process_advanced is user entry in time loop, just after advance
+  !>           allows to modify solution, add extra variables, etc.
+  !>           added for handling two-way coupled PIC-MHD
+  !> Warning: w is now at t^(n+1), global time and iteration at t^n, it^n
+  subroutine process_advanced(iit,qt)
+    use mod_usr_methods, only: usr_process_adv_grid, &
+                               usr_process_adv_global
+    use mod_global_parameters
+    ! .. scalars ..
+    integer,intent(in)          :: iit
+    double precision, intent(in):: qt
+
+    integer:: iigrid, igrid,level
+
+    if (associated(usr_process_adv_global)) then
+       call usr_process_adv_global(iit,qt)
+    end if
+
+    !$OMP PARALLEL DO PRIVATE(igrid,level)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       level=node(plevel_,igrid)
+       ! next few lines ensure correct usage of routines like divvector etc
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+       block=>pw(igrid)
+       typelimiter=type_limiter(node(plevel_,igrid))
+       typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+
+       if (associated(usr_process_adv_grid)) then
+          call usr_process_adv_grid(igrid,level,ixG^LL,ixM^LL, &
+               qt,pw(igrid)%w,pw(igrid)%x)
+       end if
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine process_advanced
 
 end module mod_advance

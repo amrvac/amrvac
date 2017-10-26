@@ -27,6 +27,10 @@ module mod_usr_methods
   procedure(process_grid), pointer    :: usr_process_grid     => null()
   procedure(process_global), pointer  :: usr_process_global   => null()
 
+  ! Called every time step just after advance (with w^(n+1), it^n, t^n)
+  procedure(process_adv_grid), pointer   :: usr_process_adv_grid   => null()
+  procedure(process_adv_global), pointer :: usr_process_adv_global => null()
+
   ! Called before the start of the simulation
   procedure(p_no_args), pointer       :: usr_before_main_loop => null()
 
@@ -110,6 +114,21 @@ module mod_usr_methods
        integer, intent(in)          :: iit
        double precision, intent(in) :: qt
      end subroutine process_global
+
+     !> for processing after the advance (PIC-MHD, e.g.)
+     subroutine process_adv_grid(igrid,level,ixI^L,ixO^L,qt,w,x)
+       use mod_global_parameters
+       integer, intent(in)             :: igrid,level,ixI^L,ixO^L
+       double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,1:nw)
+     end subroutine process_adv_grid
+
+     !> for processing after the advance (PIC-MHD, e.g.)
+     subroutine process_adv_global(iit,qt)
+       use mod_global_parameters
+       integer, intent(in)          :: iit
+       double precision, intent(in) :: qt
+     end subroutine process_adv_global
 
      !> this subroutine can be used in convert, to add auxiliary variables to the
      !> converted output file, for further analysis using tecplot, paraview, ....
