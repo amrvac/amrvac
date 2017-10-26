@@ -296,18 +296,22 @@ module mod_global_parameters
   double precision :: unit_numberdensity=1.d0
 
   !> error handling
-  double precision       :: small_temperature,small_pressure,small_density
+  double precision :: small_temperature,small_pressure,small_density
 
-  !> split potential or linear force-free magnetic field as background B0 field
-  logical :: B0field=.false.
   !> amplitude of background dipolar, quadrupolar, octupolar, user's field
   double precision :: Bdip=0.d0
   double precision :: Bquad=0.d0
   double precision :: Boct=0.d0
   double precision :: Busr=0.d0
 
+  !> check and optionally fix unphysical small values (density, gas pressure)
+  logical :: check_small_values=.false.
+
+  !> split potential or linear force-free magnetic field as background B0 field
+  logical :: B0field=.false.
+
   !> Use SI units (.true.) or use cgs units (.false.)
-  logical              :: SI_unit=.false.
+  logical :: SI_unit=.false.
 
   !> Solve energy equation or not
   logical :: phys_energy=.true.

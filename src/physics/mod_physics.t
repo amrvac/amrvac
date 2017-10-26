@@ -49,6 +49,7 @@ module mod_physics
   procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust        => null()
   procedure(sub_write_info), pointer      :: phys_write_info             => null()
   procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
+  procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
 
   abstract interface
 
@@ -161,6 +162,16 @@ module mod_physics
        integer, intent(in)                :: idim
      end subroutine sub_angmomfix
 
+     subroutine sub_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+       use mod_global_parameters
+       use mod_small_values
+       logical, intent(in)             :: primitive
+       integer, intent(in)             :: ixI^L,ixO^L
+       double precision, intent(inout) :: w(ixI^S,1:nw)
+       double precision, intent(in)    :: x(ixI^S,1:ndim)
+       character(len=*), intent(in)    :: subname
+     end subroutine sub_small_values
+
   end interface
 
 contains
@@ -226,6 +237,9 @@ contains
 
     if (.not. associated(phys_angmomfix)) &
          phys_angmomfix => dummy_angmomfix
+
+    if (.not. associated(phys_handle_small_values)) &
+         phys_handle_small_values => dummy_small_values
 
   end subroutine phys_check
 
@@ -312,5 +326,15 @@ contains
     integer, intent(in)                :: ixI^L, ixO^L
     integer, intent(in)                :: idim
   end subroutine dummy_angmomfix
+
+  subroutine dummy_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+    use mod_global_parameters
+    use mod_small_values
+    logical, intent(in)             :: primitive
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    character(len=*), intent(in)    :: subname
+  end subroutine dummy_small_values
   
 end module mod_physics

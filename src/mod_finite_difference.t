@@ -79,6 +79,9 @@ contains
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
+    ! check and optionally correct unphysical values
+    call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'fd')
+
   end subroutine fd
 
   subroutine reconstructL(ixI^L,iL^L,idims,w,wLC)
@@ -218,6 +221,9 @@ contains
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
 
+    ! check and optionally correct unphysical values
+    call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff')
+
   end subroutine centdiff
 
   subroutine centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
@@ -316,6 +322,9 @@ contains
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
+
+    ! check and optionally correct unphysical values
+    call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff4')
 
   end subroutine centdiff4
 

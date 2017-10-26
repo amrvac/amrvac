@@ -326,20 +326,21 @@ contains
     end do
     if(mhd_glm .and. ndim>1) flux_type(:,psi_)=flux_tvdlf
 
-    phys_get_dt          => mhd_get_dt
-    phys_get_cmax        => mhd_get_cmax
-    phys_get_cbounds     => mhd_get_cbounds
-    phys_get_flux        => mhd_get_flux
-    phys_add_source_geom => mhd_add_source_geom
-    phys_add_source      => mhd_add_source
-    phys_to_conserved    => mhd_to_conserved
-    phys_to_primitive    => mhd_to_primitive
-    phys_check_params    => mhd_check_params
-    phys_check_w         => mhd_check_w
-    phys_get_pthermal    => mhd_get_pthermal
-    phys_boundary_adjust => mhd_boundary_adjust
-    phys_write_info      => mhd_write_info
-    phys_angmomfix       => mhd_angmomfix
+    phys_get_dt              => mhd_get_dt
+    phys_get_cmax            => mhd_get_cmax
+    phys_get_cbounds         => mhd_get_cbounds
+    phys_get_flux            => mhd_get_flux
+    phys_add_source_geom     => mhd_add_source_geom
+    phys_add_source          => mhd_add_source
+    phys_to_conserved        => mhd_to_conserved
+    phys_to_primitive        => mhd_to_primitive
+    phys_check_params        => mhd_check_params
+    phys_check_w             => mhd_check_w
+    phys_get_pthermal        => mhd_get_pthermal
+    phys_boundary_adjust     => mhd_boundary_adjust
+    phys_write_info          => mhd_write_info
+    phys_angmomfix           => mhd_angmomfix
+    phys_handle_small_values => mhd_handle_small_values
 
     ! Whether diagonal ghost cells are required for the physics
     if(type_divb <6) phys_req_diagonal = .true.
@@ -503,7 +504,7 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
 
-    call handle_small_values(.false., w, x, ixI^L, ixO^L,'mhd_to_conserved')
+    if (check_small_values) call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L,'mhd_to_conserved')
   end subroutine mhd_to_conserved
 
   !> Transform conservative variables into primitive ones
@@ -533,10 +534,10 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
-    call handle_small_values(.true., w, x, ixI^L, ixO^L,'mhd_to_primitive')
+    if (check_small_values) call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L,'mhd_to_primitive')
   end subroutine mhd_to_primitive
 
-  subroutine handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+  subroutine mhd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
     use mod_small_values
     logical, intent(in)             :: primitive
@@ -575,7 +576,7 @@ contains
           call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
        end select
     end if
-  end subroutine handle_small_values
+  end subroutine mhd_handle_small_values
 
   !> Convert energy to entropy
   subroutine e_to_rhos(ixI^L,ixO^L,w,x)
@@ -1117,7 +1118,7 @@ contains
       end if
     end if
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_B0')
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_B0')
 
   end subroutine add_source_B0split
 
@@ -1229,8 +1230,9 @@ contains
           tmp(ixO^S)=tmp(ixO^S)+current(ixO^S,idir)**2
        end do
        w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
-       call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
     end if
+
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
 
   end subroutine add_source_res1
 
@@ -1283,8 +1285,9 @@ contains
       ! de1/dt= eta J^2 - B1 dot curl(eta J)
       w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
         sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
-      call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
     end if
+
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
 
   end subroutine add_source_res2
 
@@ -1339,8 +1342,10 @@ contains
       tmp(ixO^S)=zero
       call divvector(tmpvec2,ixI^L,ixO^L,tmp)
       w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
-      call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
     end if
+
+    if (check_small_values)  call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
+
   end subroutine add_source_hyperres
 
   subroutine add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -1387,7 +1392,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm1')
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm1')
 
   end subroutine add_source_glm1
 
@@ -1453,7 +1458,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm2')
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm2')
 
   end subroutine add_source_glm2
 
@@ -1510,7 +1515,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
 
   end subroutine add_source_powel
 
@@ -1533,7 +1538,7 @@ contains
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)*divb(ixO^S)
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
 
   end subroutine add_source_janhunen
 
@@ -1596,7 +1601,7 @@ contains
        end if
     end do
 
-    call handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
 
   end subroutine add_source_linde
 

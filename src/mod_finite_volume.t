@@ -77,6 +77,9 @@ contains
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
+    ! check and optionally correct unphysical values
+    call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+
   end subroutine hancock
 
   !> finite volume method
@@ -222,6 +225,9 @@ contains
 
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+
+    ! check and optionally correct unphysical values
+    call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
 
   contains
 

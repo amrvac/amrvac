@@ -191,18 +191,19 @@ contains
        tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
-    phys_get_dt          => hd_get_dt
-    phys_get_cmax        => hd_get_cmax
-    phys_get_cbounds     => hd_get_cbounds
-    phys_get_flux        => hd_get_flux
-    phys_add_source_geom => hd_add_source_geom
-    phys_add_source      => hd_add_source
-    phys_to_conserved    => hd_to_conserved
-    phys_to_primitive    => hd_to_primitive
-    phys_check_params    => hd_check_params
-    phys_check_w         => hd_check_w
-    phys_get_pthermal    => hd_get_pthermal
-    phys_write_info      => hd_write_info
+    phys_get_dt              => hd_get_dt
+    phys_get_cmax            => hd_get_cmax
+    phys_get_cbounds         => hd_get_cbounds
+    phys_get_flux            => hd_get_flux
+    phys_add_source_geom     => hd_add_source_geom
+    phys_add_source          => hd_add_source
+    phys_to_conserved        => hd_to_conserved
+    phys_to_primitive        => hd_to_primitive
+    phys_check_params        => hd_check_params
+    phys_check_w             => hd_check_w
+    phys_get_pthermal        => hd_get_pthermal
+    phys_write_info          => hd_write_info
+    phys_handle_small_values => hd_handle_small_values
 
     ! Whether diagonal ghost cells are required for the physics
     phys_req_diagonal = .false.
@@ -346,7 +347,7 @@ contains
       call dust_to_conserved(ixI^L, ixO^L, w, x)
     end if
 
-    call handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
+    if (check_small_values) call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
 
   end subroutine hd_to_conserved
 
@@ -378,7 +379,7 @@ contains
       call dust_to_primitive(ixI^L, ixO^L, w, x)
     end if
 
-    call handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
+    if (check_small_values) call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
 
   end subroutine hd_to_primitive
 
@@ -804,7 +805,7 @@ contains
     inv_rho = 1.0d0 / w(ixO^S, rho_)
   end function hd_inv_rho
 
-  subroutine handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+  subroutine hd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
     use mod_small_values
     logical, intent(in)             :: primitive
@@ -844,6 +845,6 @@ contains
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
     end if
-  end subroutine handle_small_values
+  end subroutine hd_handle_small_values
 
 end module mod_hd_phys

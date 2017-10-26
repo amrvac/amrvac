@@ -138,15 +138,14 @@ contains
          dimsplit,typedimsplit,&
          flux_scheme,typepred1,&
          limiter,gradient_limiter,cada3_radius,&
-         flatcd,flatsh,flatppm,&
          loglimit,typelimited,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
-         tvdlfeps,&
-         small_temperature,small_pressure,small_density,typegrad,typediv,&
-         nxdiffusehllc,typespherical,&
-         flathllc, &
-         small_values_method, small_values_daverage, solve_internal_e,&
-         angmomfix
+         typegrad,typediv,&
+         nxdiffusehllc,typespherical, flathllc, tvdlfeps,&
+         flatcd,flatsh,flatppm,&
+         small_temperature,small_pressure,small_density, &
+         small_values_method, small_values_daverage, check_small_values, &
+         solve_internal_e, angmomfix
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L, save_physical_boundary
