@@ -1,4 +1,5 @@
 !=============================================================================
+!> Do all local error estimation which determines (de)refinement
 subroutine errest
  
 use mod_forest, only: refine, buffer
@@ -28,7 +29,6 @@ case (2)
       call lohner_orig_grid(igrid)
    end do
 !$OMP END PARALLEL DO
-
 case (3)
    ! Error estimation is based on Lohner's scheme
 !$OMP PARALLEL DO PRIVATE(igrid)
@@ -36,9 +36,6 @@ case (3)
       call lohner_grid(igrid)
    end do
 !$OMP END PARALLEL DO
-
-
-
 case default
    call mpistop("Unknown error estimator")
 end select
@@ -378,7 +375,7 @@ my_coarsen  = 0
 if (time_advance) then
    qt=global_time+dt
 else
-   if (refine_criterion==2) then
+   if (refine_criterion==1) then
       qt=global_time+dt
    else
       qt=global_time

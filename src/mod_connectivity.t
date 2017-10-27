@@ -16,18 +16,22 @@ module mod_connectivity
    logical, dimension(-1:1^D&) :: leveljump
    integer, dimension(:^D&,:), allocatable :: neighbor_pole
 
+   ! grid number array per processor
    integer, dimension(:), allocatable :: igrids
    integer, dimension(:), allocatable :: igrids_active
    integer, dimension(:), allocatable :: igrids_passive
+   ! number of grids on current processor
    integer :: igridstail
    integer :: igridstail_active
    integer :: igridstail_passive
 
    integer, dimension(^ND) :: nrecv_fc, nsend_fc
 
+   ! MPI receive-send pairs for boundary conditions
+   ! srl: same refinement level; r: restrict; p: prolong
    integer :: nrecv_bc_srl, nsend_bc_srl, &
-                    nrecv_bc_r, nsend_bc_r, &
-                    nrecv_bc_p, nsend_bc_p
+              nrecv_bc_r, nsend_bc_r, &
+              nrecv_bc_p, nsend_bc_p
 !$OMP THREADPRIVATE(leveljump)
 
 end module mod_connectivity

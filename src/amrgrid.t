@@ -13,14 +13,15 @@ subroutine settree
   if (refine_max_level == 1) return
 
   do levnew=2,refine_max_level
-     if(refine_criterion==2) then
+     ! advanced needed for refinement based on comparing w_n, w_n-1
+     if(refine_criterion==1) then
        call setdt
        call advance(0)
      end if
 
      call errest
 
-     if(refine_criterion==2) then
+     if(refine_criterion==1) then
        do iigrid=1,igridstail; igrid=igrids(iigrid);
          pw(igrid)%w1 = pw(igrid)%wold
          pw(igrid)%wold = pw(igrid)%w
@@ -38,21 +39,24 @@ subroutine settree
 
 end subroutine settree
 
+!> reset AMR and (de)allocate boundary flux storage at level changes
 subroutine resettree
   use mod_global_parameters
   use mod_fix_conserve
 
   if (levmax>levmin) call deallocateBflux
 
-        call errest
+  call errest
 
-        call amr_coarsen_refine
+  call amr_coarsen_refine
 
   ! set up boundary flux conservation arrays
   if (levmax>levmin) call allocateBflux
 
 end subroutine resettree
 
+!> Force the tree to desired level(s) from level_io(_min/_max)
+!> used for conversion to vtk output
 subroutine resettree_convert
   use mod_global_parameters
   use mod_ghostcells_update
