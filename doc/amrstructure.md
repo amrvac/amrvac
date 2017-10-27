@@ -50,18 +50,21 @@ procedure involves 3 steps:
     (3) if any point has this error exceeding a user-set threshold _refine_threshold(l)_, refine this block (and ensure proper nesting);
     (4) if all points have their error below a user-set fraction of the threshold _derefine_ratio(l)_ used in the previous step, coarsen the block (for l>1).
 
-The local error estimator can be one of three options, selected by
-_refine_criterion_, each possibly augmented with user-defined criteria. Any of
-these estimators use a user-selected subset of the conserved or auxiliary
+The local error estimator can be one of four options, selected by
+_refine_criterion_, each possibly augmented with user-defined criteria. For _refine_criterion=0_, only refinement based on _usr_refine_grid_ is active. Any of
+the other 3 estimators use a user-selected subset of the conserved or auxiliary
 variables (or even variables that are computed dynamically at the time of
-regridding), through the formula ![](figmovdir/error1.gif) The indices
-included are user-identified with the _w_refine_weight_ array, where the sum of
- weights of all variables should equal to 1. Estimated error is a weighted sum
-of contributions from variables of non-zero weight.
+regridding), through the formula ![](figmovdir/error1.gif) 
+
+The indices included are user-identified with the _w_refine_weight_ array, where the sum of
+ weights of all variables should equal to 1. The estimated error is a weighted sum
+of contributions from all variables with non-zero weight.
 
 For _refine_criterion=1_, a local comparison merely employs the availability of
 the t^{n-1} and t^n solution vectors. It estimates the local relative variable
-errors as ![](figmovdir/error3.gif) This is obviously computationally cheaper,
+errors as ![](figmovdir/error3.gif) 
+
+This is obviously computationally cheaper,
 but has the disadvantage that it in essence uses historical info, which may be
 insufficient for rapidly moving, strong shock cases. In our experience, 
 local error estimators work satisfactorily on a variety of test
@@ -70,17 +73,18 @@ point flagged for refinement in this manner. This zone sets the buffer width
 in numbers of grid cells (per dimension) _nbufferx1,..._ about flagged grid
 cells.
 
-For _refine_criterion=2_, is the original Lohner [R. Lohner, An adaptive finite element
+For _refine_criterion=2_ or _refine_criterion=3_, we select a Lohner type [R. Lohner, An adaptive finite element
 scheme for transient problems in CFD, Comp. Meth. App. Mech. Eng. 61, 323
-(1987)] prescription as adjusted in the PARAMESH library or the FLASH3 code.
+(1987)] prescription as also used in the PARAMESH library or the FLASH3 code.
 In our experience, it does not require any of the buffering just discussed,
 and is computationally efficient as it employs only instantaneous values from
 t^n. It in essence discretizes a weighted second derivative in each grid
-point. In formulae, ![](figmovdir/error4.gif) where the operators mean a
-central difference and a sum, per dimension. The wave file parameter is set
-per level, and defaults as _amr_wavefilter(1:nlevelshi)=1.0d-2_.
+point. 
 
-For _refine_criterion=3_, is a modified Lohner prescription.
+The _refine_criterion=3_ is also Lohner prescription, which writes in formulae as ![](figmovdir/error4.gif) 
+
+where the operators mean a central difference and a sum, per dimension. The wave filter parameter is set per level, and defaults as _amr_wavefilter(1:nlevelshi)=1.0d-2_.
+
 
 ## Data structures
 
