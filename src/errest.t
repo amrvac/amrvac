@@ -239,7 +239,7 @@ do iflag=1,nw+1
                      + dabs(dlog10(pw(igrid)%w(hx^S,iflag)))
         else
           dp(ix^S)=pw(igrid)%w(jx^S,iflag)-pw(igrid)%w(ix^S,iflag)
-          dp(ix^S)=pw(igrid)%w(ix^S,iflag)-pw(igrid)%w(hx^S,iflag)
+          dm(ix^S)=pw(igrid)%w(ix^S,iflag)-pw(igrid)%w(hx^S,iflag)
           dref(ixM^T)=dabs(pw(igrid)%w(jx^S,iflag))+2.0d0*dabs(pw(igrid)%w(ixM^T,iflag)) &
                       +dabs(pw(igrid)%w(hx^S,iflag))
         end if
