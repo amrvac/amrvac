@@ -143,6 +143,7 @@ mod_physics.o: mod_small_values.mod
 mod_physics.o: mod_physics_hllc.mod
 mod_physics.o: mod_physics_ppm.mod
 mod_physics.o: mod_physics_roe.mod
+mod_physics.o: mod_small_values.mod
 mod_ppm.o: mod_physics.mod
 mod_radiative_cooling.o: mod_physics.mod
 mod_rho.o: mod_rho_phys.mod

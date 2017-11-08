@@ -305,7 +305,7 @@ without changing time, set `reset_it=T`.
     small_pressure= DOUBLE
     small_values_method='error' | 'replace' | 'average'
     small_values_daverage=1
-    fixprocess= F | T
+    check_small_values= F | T
 
     typedivbfix= 'powel' | 'janhunen' | 'linde' | 'glm1' | 'glm2' | 'glm3'
     divbwave= T | F
@@ -485,11 +485,13 @@ described in [methods](methods.md).
 
 Negative pressure or density caused by the numerical approximations can make the
 code crash. For HD and MHD modules this can be monitored
-or even cured by the handle_small_values subroutines. 
+or even cured by the handle_small_values subroutines in each substep of iteration. 
 The control parameters `small_density, small_pressure, small_temperature` play a role here:
 they can be set to small positive values but not negative values, while their default is 0. If 
 `small_temperature` is positive, `small_pressure` is overwritten by the product of 
-`small_pressure` and `small_temperature`.
+`small_pressure` and `small_temperature`. If `check_small_values` is set to .true.,
+additional check for small values will be triggered in phys_to_primitive, phys_to_conserved,
+and source terms such as resistive terms in MHD.
 
 The actual treatment involves the _small_values_method_ parameter: Its default value
 'error' causes a full stop in the handle_small_values subroutine in the physics 
@@ -503,7 +505,7 @@ is replaced by averaging from a user-controlled environment about the faulty cel
 The width of this environment is set by the integer _small_values_daverage_.
 
 ### Special process {#par_process}
-When set _fixprocess=.true._, user controlled special process can be added to 
+User controlled special process can be added to 
 each iteration. Subroutine usr_process_grid can be registered in 
 mod_usr.t to process for each grid. Subroutine usr_process_global can be registered
 in mod_usr.t to do global process. For example, you can do computations of
