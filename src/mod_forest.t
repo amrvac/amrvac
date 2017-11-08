@@ -34,13 +34,13 @@ module mod_forest
    !> The tail pointer of the linked list per refinement level
    type(tree_node_ptr), dimension(:), allocatable, save :: level_tail
 
-   !> Array to go from a Morton number to an igrid and proccesor index. Sfc(1:3,
+   !> Array to go from a Morton number to an igrid and processor index. Sfc(1:3,
    !> MN) contains [igrid, ipe, active], where MN is a morton number and active
    !> is 0 or 1.
    integer, dimension(:,:), allocatable, save :: sfc
 
-   !> Space filling curve for level 1 grid. sfc_iglevel1(:, MN) gives ig^D (the
-   !> spatial index of the grid)
+   !> Space filling curve for level 1 grid. sfc_iglevel1(^D, MN) gives ig^D (the
+   !> spatial index of the grid) 
    integer, dimension(:,:), allocatable, save :: sfc_iglevel1
 
    !> iglevel1_sfc(ig^D) gives the Morton number for grid ig^D
@@ -63,6 +63,7 @@ module mod_forest
 
    integer, dimension(:), allocatable, save :: Morton_sub_start, Morton_sub_stop
 
+   !> AMR flags and grids-in-use identifier per processor (igrid,ipe) 
    logical, dimension(:,:), allocatable, save :: coarsen, refine, buffer, igrid_inuse
 
    !> Number of parent blocks

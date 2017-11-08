@@ -104,7 +104,57 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(out) :: v(ixI^S)
 
-    v(ixO^S) = rho_v(idim)
+    select case (typeaxial)
+    case ("cylindrical")
+       {^IFONED 
+       call mpistop("advection in 1D cylindrical not available")
+       }
+       {^IFTWOD 
+       ! advection in 2D cylindrical: polar grid: to v_R, v_varphi
+       select case (idim)
+       case (1) ! radial velocity
+          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))+rho_v(2)*dsin(x(ixO^S,2))
+       case (2) ! v_varphi
+          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2))+rho_v(2)*dcos(x(ixO^S,2))
+       end select
+       }
+       {^IFTHREED
+       ! advection in 3D cylindrical: convert to v_R, v_Z, v_varphi
+       select case (idim)
+       case (1) ! v_R velocity
+          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,3))+rho_v(2)*dsin(x(ixO^S,3))
+       case (2) ! v_Z velocity
+          v(ixO^S) = rho_v(3)
+       case (3) ! v_varphi velocity
+          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3))+rho_v(2)*dcos(x(ixO^S,3))
+       end select
+       }
+    case ("spherical")
+       {^IFONED 
+       call mpistop("advection in 1D spherical not available")
+       }
+       {^IFTWOD 
+       call mpistop("advection in 2D spherical not available")
+       }
+       {^IFTHREED
+       ! advection in 3D spherical: convert to v_r, v_theta, v_phi
+       select case (idim)
+       case (1) ! radial velocity
+          v(ixO^S) = rho_v(1)*dsin(x(ixO^S,2))*dcos(x(ixO^S,3)) &
+                    +rho_v(2)*dsin(x(ixO^S,2))*dsin(x(ixO^S,3)) &
+                    +rho_v(3)*dcos(x(ixO^S,3)) 
+       case (2) ! theta velocity
+          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))*dcos(x(ixO^S,3)) &
+                    +rho_v(2)*dcos(x(ixO^S,2))*dsin(x(ixO^S,3)) &
+                    -rho_v(3)*dsin(x(ixO^S,3)) 
+       case (3) ! phi velocity
+          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3)) &
+                    +rho_v(2)*dcos(x(ixO^S,3)) 
+       end select
+       }
+    case default
+       v(ixO^S) = rho_v(idim)
+    end select
   end subroutine rho_get_v
 
   subroutine rho_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)

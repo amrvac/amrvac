@@ -139,6 +139,7 @@ mod_particles.o: mod_particle_lorentz.mod
 mod_particles.o: mod_particle_vay.mod
 mod_particles.o: mod_timing.mod
 mod_particle_vay.o: mod_particle_base.mod
+mod_physics.o: mod_small_values.mod
 mod_physics.o: mod_physics_hllc.mod
 mod_physics.o: mod_physics_ppm.mod
 mod_physics.o: mod_physics_roe.mod

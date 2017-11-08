@@ -682,6 +682,7 @@ contains
           windex=1
         end if
         typeboundary(:,2*idim-1)='symm'
+        if(physics_type/='rho') then
         select case(typeaxial)
         case('cylindrical')
           typeboundary(phi_+1,2*idim-1)='asymm'
@@ -690,8 +691,9 @@ contains
           typeboundary(3:ndir+1,2*idim-1)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)='asymm'
         case default
-          call mpistop('Pole is in cylinrical, polar, spherical coordinates!')
+          call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
         end select
+        end if
       end if
       if(any(typeboundary(:,2*idim)=='pole')) then
         if(any(typeboundary(:,2*idim)/='pole')) typeboundary(:,2*idim)='pole'
@@ -701,6 +703,7 @@ contains
           windex=1
         end if
         typeboundary(:,2*idim)='symm'
+        if(physics_type/='rho') then
         select case(typeaxial)
         case('cylindrical')
           typeboundary(phi_+1,2*idim)='asymm'
@@ -709,8 +712,9 @@ contains
           typeboundary(3:ndir+1,2*idim)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)='asymm'
         case default
-          call mpistop('Pole is in cylinrical, polar, spherical coordinates!')
+          call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
         end select
+        end if
       end if
     end do
     }
