@@ -1894,4 +1894,60 @@ contains
 
   end subroutine get_volume_average_func
 
+  !> Compute global maxima of iw variables over the leaves of the grid.
+  subroutine get_global_maxima(wmax)
+    use mod_global_parameters
+
+    double precision, intent(out) :: wmax(nw)  !< The global maxima
+
+    integer                       :: iigrid, igrid, iw
+    double precision              :: wmax_mype(nw),wmax_recv(nw)
+
+    wmax_mype(1:nw) = -bigdouble
+
+    ! Loop over all the grids
+    do iigrid = 1, igridstail
+       igrid = igrids(iigrid)
+       do iw = 1, nw
+          wmax_mype(iw)=max(wmax_mype(iw),maxval(pw(igrid)%w(ixM^T,iw)))
+       end do
+    end do
+
+    ! Make the information available on all tasks
+    call MPI_ALLREDUCE(wmax_mype, wmax_recv, nw, MPI_DOUBLE_PRECISION, &
+         MPI_MAX, icomm, ierrmpi)
+
+    wmax(1:nw)=wmax_recv(1:nw)
+
+  end subroutine get_global_maxima
+
+  !> Compute global minima of iw variables over the leaves of the grid.
+  subroutine get_global_minima(wmin)
+    use mod_global_parameters
+
+    double precision, intent(out) :: wmin(nw)  !< The global maxima
+
+    integer                       :: iigrid, igrid, iw
+    double precision              :: wmin_mype(nw),wmin_recv(nw)
+
+    wmin_mype(1:nw) = bigdouble
+
+    ! Loop over all the grids
+    do iigrid = 1, igridstail
+       igrid = igrids(iigrid)
+       do iw = 1, nw
+          wmin_mype(iw)=min(wmin_mype(iw),minval(pw(igrid)%w(ixM^T,iw)))
+       end do
+    end do
+
+    ! Make the information available on all tasks
+    call MPI_ALLREDUCE(wmin_mype, wmin_recv, nw, MPI_DOUBLE_PRECISION, &
+         MPI_MIN, icomm, ierrmpi)
+
+    wmin(1:nw)=wmin_recv(1:nw)
+
+  end subroutine get_global_minima
+
+
+
 end module mod_input_output
