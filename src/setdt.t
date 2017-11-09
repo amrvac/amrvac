@@ -11,10 +11,7 @@ integer :: iigrid, igrid, ncycle, ncycle2, ifile
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
 double precision :: dtmax, dxmin, cmax_mype
-integer,save :: stepflag
 !----------------------------------------------------------------------------
-
-if(it==0) stepflag = 0
 
 if (dtpar<=zero) then
    dtmin_mype=bigdouble
