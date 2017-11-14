@@ -55,7 +55,7 @@ contains
     smalla(ix^S)= -one
     ! The velocity is independent of w in the transport equation,
     ! but it may depend on the location
-    call rho_get_v(wL, x, ixG^LL, ixC^L, idim, v)
+    call rho_get_v(wL, x, ixG^LL, ixC^L, idim, v, .true.)
 
     a(ix^S)=(v(jx^S)+v(ix^S))/2
 

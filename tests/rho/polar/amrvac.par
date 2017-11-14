@@ -1,4 +1,4 @@
-! setup.pl -d=3
+! setup.pl -d=2
  &filelist
 	base_filename='unif_in_circle'
         autoconvert=.true.
@@ -10,15 +10,14 @@
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        ditsave_log=10
-        ditsave_dat=100
+        ditsave_log=100
+        dtsave_dat=0.05d0
         time_between_print=600.0d0
  /
 
  &stoplist
-        it_max=1000
- /
         time_max=0.75d0
+ /
 
  &methodlist
         time_integrator='threestep'
@@ -27,7 +26,7 @@
  /
 
  &boundlist
-        typeboundary_min1='cont'
+        typeboundary_min1='pole'
         typeboundary_max1='cont'
         typeboundary_min2='periodic'
         typeboundary_max2='periodic'
@@ -35,16 +34,16 @@
 
  &meshlist
         refine_criterion=3
-        refine_max_level=1
+        refine_max_level=4
         block_nx1=10
         block_nx2=10
         domain_nx1=100
         domain_nx2=100
-        xprobmin1=0.1d0
+        xprobmin1=0.d0
         xprobmax1=1.d0
         xprobmin2=0.d0
         xprobmax2=1.d0
-        iprob=1
+        iprob=2
  /
 
  &paramlist

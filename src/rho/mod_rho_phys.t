@@ -98,11 +98,14 @@ contains
     ! Do nothing (primitive and conservative are equal for rho module)
   end subroutine rho_to_primitive
 
-  subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v)
+  subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v, centered)
     use mod_global_parameters
+    logical, intent(in)           :: centered
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(out) :: v(ixI^S)
+
+    double precision :: dtheta, halfdtheta, invdtheta
 
     select case (typeaxial)
     case ("cylindrical")
@@ -111,12 +114,26 @@ contains
        }
        {^IFTWOD 
        ! advection in 2D cylindrical: polar grid: to v_R, v_varphi
-       select case (idim)
-       case (1) ! radial velocity
-          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))+rho_v(2)*dsin(x(ixO^S,2))
-       case (2) ! v_varphi
-          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2))+rho_v(2)*dcos(x(ixO^S,2))
-       end select
+       if(centered)then
+           select case (idim)
+             case (1) ! radial velocity
+                v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))+rho_v(2)*dsin(x(ixO^S,2))
+             case (2) ! v_varphi
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2))+rho_v(2)*dcos(x(ixO^S,2))
+           end select
+       else
+           ! assumed uniform in theta
+           dtheta=x(ixOmin1,ixOmin2+1,2)-x(ixOmin1,ixOmin2,2)
+           halfdtheta=0.5d0*dtheta
+           invdtheta=1.0d0/dtheta
+           select case (idim)
+             case (1) ! radial velocity
+                v(ixO^S) =( rho_v(1)*( dsin(x(ixO^S,2)+halfdtheta)-dsin(x(ixO^S,2)-halfdtheta)) &
+                           +rho_v(2)*(-dcos(x(ixO^S,2)+halfdtheta)+dcos(x(ixO^S,2)-halfdtheta)))*invdtheta
+             case (2) ! v_varphi
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2)+halfdtheta)+rho_v(2)*dcos(x(ixO^S,2)+halfdtheta)
+           end select
+       endif
        }
        {^IFTHREED
        ! advection in 3D cylindrical: convert to v_R, v_Z, v_varphi
@@ -163,7 +180,7 @@ contains
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(inout)           :: cmax(ixI^S)
 
-    call rho_get_v(w, x, ixI^L, ixO^L, idim, cmax)
+    call rho_get_v(w, x, ixI^L, ixO^L, idim, cmax, .true.)
 
     cmax(ixO^S) = abs(cmax(ixO^S))
 
@@ -180,7 +197,7 @@ contains
 
     ! If get_v depends on w, the first argument should be some average over the
     ! left and right state
-    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax)
+    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax, .false.)
 
     if (present(cmin)) then
        cmin(ixO^S) = min(cmax(ixO^S), zero)
@@ -211,7 +228,7 @@ contains
     double precision, intent(out)   :: f(ixI^S, nwflux)
     double precision                :: v(ixI^S)
 
-    call rho_get_v(wC, x, ixI^L, ixO^L, idim, v)
+    call rho_get_v(wC, x, ixI^L, ixO^L, idim, v, .false.)
 
     f(ixO^S, rho_) = w(ixO^S, rho_) * v(ixO^S)
   end subroutine rho_get_flux
