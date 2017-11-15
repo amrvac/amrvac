@@ -115,36 +115,52 @@ contains
        {^IFTWOD 
        ! advection in 2D cylindrical: polar grid: to v_R, v_varphi
        if(centered)then
-           select case (idim)
+          select case (idim)
              case (1) ! radial velocity
                 v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))+rho_v(2)*dsin(x(ixO^S,2))
              case (2) ! v_varphi
                 v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2))+rho_v(2)*dcos(x(ixO^S,2))
-           end select
+          end select
        else
-           ! assumed uniform in theta
-           dtheta=x(ixOmin1,ixOmin2+1,2)-x(ixOmin1,ixOmin2,2)
-           halfdtheta=0.5d0*dtheta
-           invdtheta=1.0d0/dtheta
-           select case (idim)
+          ! assumed uniform in varphi=theta
+          dtheta=x(ixOmin1,ixOmin2+1,2)-x(ixOmin1,ixOmin2,2)
+          halfdtheta=0.5d0*dtheta
+          invdtheta=1.0d0/dtheta
+          select case (idim)
              case (1) ! radial velocity
                 v(ixO^S) =( rho_v(1)*( dsin(x(ixO^S,2)+halfdtheta)-dsin(x(ixO^S,2)-halfdtheta)) &
                            +rho_v(2)*(-dcos(x(ixO^S,2)+halfdtheta)+dcos(x(ixO^S,2)-halfdtheta)))*invdtheta
              case (2) ! v_varphi
                 v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2)+halfdtheta)+rho_v(2)*dcos(x(ixO^S,2)+halfdtheta)
-           end select
+          end select
        endif
        }
        {^IFTHREED
        ! advection in 3D cylindrical: convert to v_R, v_Z, v_varphi
-       select case (idim)
-       case (1) ! v_R velocity
-          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,3))+rho_v(2)*dsin(x(ixO^S,3))
-       case (2) ! v_Z velocity
-          v(ixO^S) = rho_v(3)
-       case (3) ! v_varphi velocity
-          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3))+rho_v(2)*dcos(x(ixO^S,3))
-       end select
+       if(centered)then
+          select case (idim)
+             case (1) ! v_R velocity
+                v(ixO^S) = rho_v(1)*dcos(x(ixO^S,3))+rho_v(2)*dsin(x(ixO^S,3))
+             case (2) ! v_Z velocity
+                v(ixO^S) = rho_v(3)
+             case (3) ! v_varphi velocity
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3))+rho_v(2)*dcos(x(ixO^S,3))
+          end select
+       else
+          ! assumed uniform in varphi=theta
+          dtheta=x(ixOmin1,ixOmin2,ixOmin3+1,3)-x(ixOmin1,ixOmin2,ixOmin3,3)
+          halfdtheta=0.5d0*dtheta
+          invdtheta=1.0d0/dtheta
+          select case (idim)
+             case (1) ! radial velocity
+                v(ixO^S) =( rho_v(1)*( dsin(x(ixO^S,3)+halfdtheta)-dsin(x(ixO^S,3)-halfdtheta)) &
+                           +rho_v(2)*(-dcos(x(ixO^S,3)+halfdtheta)+dcos(x(ixO^S,3)-halfdtheta)))*invdtheta
+             case (2) ! v_Z velocity
+                v(ixO^S) = rho_v(3)
+             case (3) ! v_varphi
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3)+halfdtheta)+rho_v(2)*dcos(x(ixO^S,3)+halfdtheta)
+          end select
+       endif
        }
     case ("spherical")
        {^IFONED 
