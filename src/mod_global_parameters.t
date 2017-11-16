@@ -503,7 +503,7 @@ module mod_global_parameters
   character(len=std_len) :: typeaxial='default'
   character(len=std_len) :: typepoly
 
-  integer                       :: nxdiffusehllc,typespherical
+  integer                       :: nxdiffusehllc
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps
   logical, allocatable          :: loglimit(:), logflag(:)

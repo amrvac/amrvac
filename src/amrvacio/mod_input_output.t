@@ -141,7 +141,7 @@ contains
          loglimit,typelimited,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,&
-         nxdiffusehllc,typespherical, flathllc, tvdlfeps,&
+         nxdiffusehllc, flathllc, tvdlfeps,&
          flatcd,flatsh,flatppm,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
@@ -314,7 +314,6 @@ contains
     tvdlfeps        = one
     nxdiffusehllc   = 0
     flathllc        = .false.
-    typespherical   = 1
     slowsteps       = -1
     courantpar      = 0.8d0
     typecourant     = 'maxsum'

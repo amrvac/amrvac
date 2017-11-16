@@ -226,22 +226,12 @@ case ("spherical")
         x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
      end do
      drs(ixGext^S)=x(ixGext^S,1)*logG
-     if(typespherical==0) then
-       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+drs(ixGext^S)**2/12.0d0)*&
+     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+drs(ixGext^S)**2/12.0d0)*&
                  drs(ixGext^S){^NOONED &
                 *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
-     else
-       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*drs(ixGext^S){^NOONED &
-                *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
-     endif
    else
-     if(typespherical==0) then
-       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+dx1**2/12.0d0)*dx1 {^NOONED &
+     pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2+dx1**2/12.0d0)*dx1 {^NOONED &
                 *two*dabs(dsin(x(ixGext^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
-     else
-       pw(igrid)%dvolumep(ixGext^S)=(x(ixGext^S,1)**2)*dx1 {^NOONED &
-                *dabs(dsin(x(ixGext^S,2)))*dx2}{^IFTHREED*dx3}
-     endif
    end if
 
    if (need_only_volume) return
@@ -251,13 +241,8 @@ case ("spherical")
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
 
    if(stretched_grid) then
-     if(typespherical==0) then
-       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
+     pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
                 *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
-     else
-       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
-                *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
-     endif
 
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
@@ -278,13 +263,8 @@ case ("spherical")
 
      pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
    else
-     if(typespherical==0) then
-       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
+     pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
                 *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
-     else
-       pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*dx1)**2 {^NOONED &
-                *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
-     endif
 
      {^NOONED
      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
@@ -307,13 +287,8 @@ case ("spherical")
    end if
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   if(typespherical==0) then
-       pw(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
+   pw(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
               *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
-   else
-      pw(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
-              *dsin(x(ixC^S,2))*dx2}{^IFTHREED*dx3}
-   endif
    {^NOONED pw(igrid)%dx(ixGext^S,2)=x(ixGext^S,1)*dx2}
    {^IFTHREED pw(igrid)%dx(ixGext^S,3)=x(ixGext^S,1)*dsin(x(ixGext^S,2))*dx3}
 
