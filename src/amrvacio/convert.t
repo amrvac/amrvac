@@ -3165,9 +3165,15 @@ subroutine calc_x(igrid,xC,xCC)
   xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
   end do\}
   if(stretched_grid) then
-    do ix=ixCCmin1,ixCCmax1
-    xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
-    enddo
+    if(slab_stretched) then
+      do ix=ixCCmin^ND,ixCCmax^ND
+      xCC(ix^%{^ND}ixCC^S,^ND)=rnode(rpxmin^ND_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin^ND)
+      enddo
+    else
+      do ix=ixCCmin1,ixCCmax1
+      xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
+      enddo
+    end if
   end if
 
   ! coordinates of cell corners
@@ -3176,9 +3182,15 @@ subroutine calc_x(igrid,xC,xCC)
   xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
   end do\}
   if(stretched_grid) then
-    do ix=ixCmin1,ixCmax1
-    xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
-    enddo
+    if(slab_stretched) then
+      do ix=ixCmin^ND,ixCmax^ND
+      xC(ix^%{^ND}ixC^S,^ND)=rnode(rpxmin^ND_,igrid)*qsts(level)**(ix-ixCmin^ND)
+      enddo
+    else
+      do ix=ixCmin1,ixCmax1
+      xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
+      enddo
+    end if
   end if
 
 end subroutine calc_x

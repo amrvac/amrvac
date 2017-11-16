@@ -68,7 +68,11 @@ module mod_global_parameters
   !> Number of spatial dimensions (components) for vector variables
   integer :: ndir=ndim
 
+  !> Cartesian geometry or not
   logical :: slab
+
+  !> Stretched Cartesian geometry or not
+  logical :: slab_stretched
 
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D

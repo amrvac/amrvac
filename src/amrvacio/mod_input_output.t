@@ -591,6 +591,7 @@ contains
       if(stretched_grid) then
         typeaxial="slabstretch"
         slab=.false.
+        slab_stretched=.true.
       else
         slab=.true.
       end if
@@ -745,15 +746,27 @@ contains
 
     if(stretched_grid) then
       if(slab) call mpistop("Wrong geometry for stretched grid!")
-      if(xprobmin1==0) call mpistop("Stretched grid needs xprobmin1 > 0")
       allocate(logGs(0:nlevelshi),qsts(0:nlevelshi))
-      if (qst/=bigdouble) then
-         xprobmax1=xprobmin1*qst**domain_nx1
-         if(mype==0) write(*,*) 'xprobmax1 is computed for given domain_nx1 and qst:', xprobmax1
-      else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
-         qst=(xprobmax1/xprobmin1)**(1.d0/dble(domain_nx1))
-         logG=2.d0*(qst-1.d0)/(qst+1.d0)
-         if(mype==0) write(*,*) 'logG and qst computed from xprobmax1: ', logG, qst
+      if(slab_stretched) then
+        if(xprobmin^ND==0) call mpistop("Stretched grid needs xprobmin^ND > 0")
+        if (qst/=bigdouble) then
+           xprobmax^ND=xprobmin^ND*qst**domain_nx^ND
+           if(mype==0) write(*,*) 'xprobmax^ND is computed for given domain_nx^ND and qst:', xprobmax^ND
+        else if (qst==bigdouble .and. xprobmax^ND/=bigdouble) then
+           qst=(xprobmax^ND/xprobmin^ND)**(1.d0/dble(domain_nx^ND))
+           logG=2.d0*(qst-1.d0)/(qst+1.d0)
+           if(mype==0) write(*,*) 'logG and qst computed from xprobmax^ND: ', logG, qst
+        end if
+      else
+        if(xprobmin1==0) call mpistop("Stretched grid needs xprobmin1 > 0")
+        if (qst/=bigdouble) then
+           xprobmax1=xprobmin1*qst**domain_nx1
+           if(mype==0) write(*,*) 'xprobmax1 is computed for given domain_nx1 and qst:', xprobmax1
+        else if (qst==bigdouble .and. xprobmax1/=bigdouble) then
+           qst=(xprobmax1/xprobmin1)**(1.d0/dble(domain_nx1))
+           logG=2.d0*(qst-1.d0)/(qst+1.d0)
+           if(mype==0) write(*,*) 'logG and qst computed from xprobmax1: ', logG, qst
+        end if
       end if
     end if
 

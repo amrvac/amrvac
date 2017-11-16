@@ -190,27 +190,38 @@ ix^L=ixG^L^LSUB1;
 
 select case (typeaxial)
 case ("slabstretch")
-   do ix = ixGext^LIM1
-      x(ix,ixGext^SE,1)=(xmin1/(one-half*logG))*qst**(ix-nghostcells-1)
+   do ix = ixGext^LIM^ND
+      x(ix^%{^ND}ixGext^S,^ND)=(xmin^ND/(one-half*logG))*qst**(ix-nghostcells-1)
    end do
-   drs(ixGext^S)=x(ixGext^S,1)*logG
-   pw(igrid)%dvolumep(ixGext^S)=drs(ixGext^S){^DE&*dx^DE }
+   drs(ixGext^S)=x(ixGext^S,^ND)*logG
+   pw(igrid)%dvolumep(ixGext^S)=drs(ixGext^S){^DM&*dx^DM }
    if (need_only_volume) return
+   {^IFONED
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,1)={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
-   pw(igrid)%surface(ixC^S,1) ={^IFONED one}{^NOONED dx2}{^IFTHREED*dx3}
-   {^NOONED
+   pw(igrid)%surfaceC(ixC^S,1)=1.d0
+   pw(igrid)%surface(ixC^S,1) =1.d0
+   }
+   {^IFTWOD
+   ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
+   pw(igrid)%surfaceC(ixC^S,1)=drs(ixC^S)
+   pw(igrid)%surface(ixC^S,1) =drs(ixC^S)
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S)}{^IFTHREED*dx3}
-   {^NOONED
-   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surface(ixC^S,2)=drs(ixC^S)}{^IFTHREED*dx3}
+   pw(igrid)%surfaceC(ixC^S,2)=dx1
+   pw(igrid)%surface(ixC^S,2)=dx1
+   }
    {^IFTHREED
+   ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
+   pw(igrid)%surfaceC(ixC^S,1)=dx2*drs(ixC^S)
+   pw(igrid)%surface(ixC^S,1)=pw(igrid)%surfaceC(ixC^S,1)
+   ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
+   pw(igrid)%surfaceC(ixC^S,2)=dx1*drs(ixC^S)
+   pw(igrid)%surface(ixC^S,2)=pw(igrid)%surfaceC(ixC^S,2)
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2
-   pw(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2}
-   pw(igrid)%dx(ixGext^S,1)=drs(ixGext^S)
-   ^DE&pw(igrid)%dx(ixGext^S,^DE)=dx^DE;
+   pw(igrid)%surfaceC(ixC^S,3)=dx1*dx2
+   pw(igrid)%surface(ixC^S,3)=pw(igrid)%surfaceC(ixC^S,3)
+   }
+   pw(igrid)%dx(ixGext^S,^ND)=drs(ixGext^S)
+   ^DM&pw(igrid)%dx(ixGext^S,^DM)=dx^DM;
 
 case ("spherical")
    do idims=1,min(ndim,2)
