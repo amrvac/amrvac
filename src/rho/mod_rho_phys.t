@@ -98,11 +98,18 @@ contains
     ! Do nothing (primitive and conservative are equal for rho module)
   end subroutine rho_to_primitive
 
-  subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v)
+  subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v, centered)
     use mod_global_parameters
+    logical, intent(in)           :: centered
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(out) :: v(ixI^S)
+
+    double precision :: dtheta, dphi, halfdtheta, halfdphi, invdtheta, invdphi
+    {^IFTHREED
+    double precision :: appcosphi(ixI^S), appsinphi(ixI^S), &
+                        appcosthe(ixI^S), appsinthe(ixI^S)
+    }
 
     select case (typeaxial)
     case ("cylindrical")
@@ -111,23 +118,59 @@ contains
        }
        {^IFTWOD 
        ! advection in 2D cylindrical: polar grid: to v_R, v_varphi
-       select case (idim)
-       case (1) ! radial velocity
-          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))+rho_v(2)*dsin(x(ixO^S,2))
-       case (2) ! v_varphi
-          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2))+rho_v(2)*dcos(x(ixO^S,2))
-       end select
+       if(centered)then
+          select case (idim)
+             case (1) ! radial velocity
+                v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))+rho_v(2)*dsin(x(ixO^S,2))
+             case (2) ! v_varphi
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2))+rho_v(2)*dcos(x(ixO^S,2))
+          end select
+       else
+          ! assumed uniform in varphi=theta
+          dtheta=x(ixOmin1,ixOmin2+1,2)-x(ixOmin1,ixOmin2,2)
+          halfdtheta=0.5d0*dtheta
+          invdtheta=1.0d0/dtheta
+          select case (idim)
+             case (1) ! radial velocity
+                v(ixO^S) =( rho_v(1)*( dsin(x(ixO^S,2)+halfdtheta) &
+                                      -dsin(x(ixO^S,2)-halfdtheta)) &
+                           +rho_v(2)*(-dcos(x(ixO^S,2)+halfdtheta) &
+                                      +dcos(x(ixO^S,2)-halfdtheta)))*invdtheta
+             case (2) ! v_varphi
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,2)+halfdtheta) &
+                          +rho_v(2)*dcos(x(ixO^S,2)+halfdtheta)
+          end select
+       endif
        }
        {^IFTHREED
        ! advection in 3D cylindrical: convert to v_R, v_Z, v_varphi
-       select case (idim)
-       case (1) ! v_R velocity
-          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,3))+rho_v(2)*dsin(x(ixO^S,3))
-       case (2) ! v_Z velocity
-          v(ixO^S) = rho_v(3)
-       case (3) ! v_varphi velocity
-          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3))+rho_v(2)*dcos(x(ixO^S,3))
-       end select
+       if(centered)then
+          select case (idim)
+             case (1) ! v_R velocity
+                v(ixO^S) = rho_v(1)*dcos(x(ixO^S,3))+rho_v(2)*dsin(x(ixO^S,3))
+             case (2) ! v_Z velocity
+                v(ixO^S) = rho_v(3)
+             case (3) ! v_varphi velocity
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3))+rho_v(2)*dcos(x(ixO^S,3))
+          end select
+       else
+          ! assumed uniform in varphi=theta
+          dtheta=x(ixOmin1,ixOmin2,ixOmin3+1,3)-x(ixOmin1,ixOmin2,ixOmin3,3)
+          halfdtheta=0.5d0*dtheta
+          invdtheta=1.0d0/dtheta
+          select case (idim)
+             case (1) ! radial velocity
+                v(ixO^S) =( rho_v(1)*( dsin(x(ixO^S,3)+halfdtheta) &
+                                      -dsin(x(ixO^S,3)-halfdtheta)) &
+                           +rho_v(2)*(-dcos(x(ixO^S,3)+halfdtheta) &
+                                      +dcos(x(ixO^S,3)-halfdtheta)))*invdtheta
+             case (2) ! v_Z velocity
+                v(ixO^S) = rho_v(3)
+             case (3) ! v_varphi
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3)+halfdtheta) &
+                          +rho_v(2)*dcos(x(ixO^S,3)+halfdtheta)
+          end select
+       endif
        }
     case ("spherical")
        {^IFONED 
@@ -138,19 +181,57 @@ contains
        }
        {^IFTHREED
        ! advection in 3D spherical: convert to v_r, v_theta, v_phi
-       select case (idim)
-       case (1) ! radial velocity
-          v(ixO^S) = rho_v(1)*dsin(x(ixO^S,2))*dcos(x(ixO^S,3)) &
-                    +rho_v(2)*dsin(x(ixO^S,2))*dsin(x(ixO^S,3)) &
-                    +rho_v(3)*dcos(x(ixO^S,3)) 
-       case (2) ! theta velocity
-          v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))*dcos(x(ixO^S,3)) &
-                    +rho_v(2)*dcos(x(ixO^S,2))*dsin(x(ixO^S,3)) &
-                    -rho_v(3)*dsin(x(ixO^S,3)) 
-       case (3) ! phi velocity
-          v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3)) &
-                    +rho_v(2)*dcos(x(ixO^S,3)) 
-       end select
+       if(centered)then
+          select case (idim)
+             case (1) ! radial velocity
+                v(ixO^S) = rho_v(1)*dsin(x(ixO^S,2))*dcos(x(ixO^S,3)) &
+                          +rho_v(2)*dsin(x(ixO^S,2))*dsin(x(ixO^S,3)) &
+                          +rho_v(3)*dcos(x(ixO^S,2)) 
+             case (2) ! theta velocity
+                v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2))*dcos(x(ixO^S,3)) &
+                          +rho_v(2)*dcos(x(ixO^S,2))*dsin(x(ixO^S,3)) &
+                          -rho_v(3)*dsin(x(ixO^S,2)) 
+             case (3) ! phi velocity
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3)) &
+                          +rho_v(2)*dcos(x(ixO^S,3)) 
+          end select
+       else
+          ! assumed uniform in theta and phi
+          dtheta=x(ixOmin1,ixOmin2+1,ixOmin3,2)-x(ixOmin1,ixOmin2,ixOmin3,2)
+          dphi=x(ixOmin1,ixOmin2,ixOmin3+1,3)-x(ixOmin1,ixOmin2,ixOmin3,3)
+          halfdtheta=0.5d0*dtheta
+          halfdphi=0.5d0*dphi
+          invdtheta=1.0d0/dtheta
+          invdphi=1.0d0/dphi
+          select case (idim)
+             case (1) ! radial velocity
+                appcosphi(ixO^S)=( dsin(x(ixO^S,3)+halfdphi) &
+                                  -dsin(x(ixO^S,3)-halfdphi))*invdphi 
+                appsinphi(ixO^S)=(-dcos(x(ixO^S,3)+halfdphi) &
+                                  +dcos(x(ixO^S,3)-halfdphi))*invdphi 
+                appcosthe(ixO^S)=(dsin(x(ixO^S,2)+halfdtheta)**2 &
+                                 -dsin(x(ixO^S,2)-halfdtheta)**2) &
+                          /(4.0d0*dabs(dsin(x(ixO^S,2)))*dsin(halfdtheta))
+                appsinthe(ixO^S)= &
+                           (-dsin(x(ixO^S,2)+halfdtheta)*dcos(x(ixO^S,2)+halfdtheta)  & 
+                            +dsin(x(ixO^S,2)-halfdtheta)*dcos(x(ixO^S,2)-halfdtheta)  & 
+                            +dtheta)/(4.0d0*dabs(dsin(x(ixO^S,2)))*dsin(halfdtheta))
+                v(ixO^S) = rho_v(1)*appsinthe(ixO^S)*appcosphi(ixO^S) &
+                          +rho_v(2)*appsinthe(ixO^S)*appsinphi(ixO^S) &
+                          +rho_v(3)*appcosthe(ixO^S) 
+             case (2) ! theta velocity
+                appcosphi(ixO^S)=( dsin(x(ixO^S,3)+halfdphi) &
+                                  -dsin(x(ixO^S,3)-halfdphi))*invdphi 
+                appsinphi(ixO^S)=(-dcos(x(ixO^S,3)+halfdphi) &
+                                  +dcos(x(ixO^S,3)-halfdphi))*invdphi 
+                v(ixO^S) = rho_v(1)*dcos(x(ixO^S,2)+halfdtheta)*appcosphi(ixO^S) &
+                          +rho_v(2)*dcos(x(ixO^S,2)+halfdtheta)*appsinphi(ixO^S) &
+                          -rho_v(3)*dsin(x(ixO^S,2)+halfdtheta) 
+             case (3) ! phi velocity
+                v(ixO^S) =-rho_v(1)*dsin(x(ixO^S,3)+halfdphi) &
+                          +rho_v(2)*dcos(x(ixO^S,3)+halfdphi) 
+          end select
+       endif
        }
     case default
        v(ixO^S) = rho_v(idim)
@@ -163,7 +244,7 @@ contains
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:^ND)
     double precision, intent(inout)           :: cmax(ixI^S)
 
-    call rho_get_v(w, x, ixI^L, ixO^L, idim, cmax)
+    call rho_get_v(w, x, ixI^L, ixO^L, idim, cmax, .true.)
 
     cmax(ixO^S) = abs(cmax(ixO^S))
 
@@ -180,7 +261,7 @@ contains
 
     ! If get_v depends on w, the first argument should be some average over the
     ! left and right state
-    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax)
+    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax, .false.)
 
     if (present(cmin)) then
        cmin(ixO^S) = min(cmax(ixO^S), zero)
@@ -211,7 +292,7 @@ contains
     double precision, intent(out)   :: f(ixI^S, nwflux)
     double precision                :: v(ixI^S)
 
-    call rho_get_v(wC, x, ixI^L, ixO^L, idim, v)
+    call rho_get_v(wC, x, ixI^L, ixO^L, idim, v, .false.)
 
     f(ixO^S, rho_) = w(ixO^S, rho_) * v(ixO^S)
   end subroutine rho_get_flux

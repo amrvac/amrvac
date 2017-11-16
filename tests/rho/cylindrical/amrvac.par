@@ -1,17 +1,16 @@
-! setup.pl -d=2
+! setup.pl -d=3
  &filelist
-	base_filename='unif_in_circle'
+	base_filename='spheres_in_cyl'
         autoconvert=.true.
-	convert_type='vtuBCCmpi'
+	convert_type='vtuBmpi'
         typefilelog='special'
-
  /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
         ditsave_log=100
-        dtsave_dat=0.05d0
+        dtsave_dat=0.1d0
         time_between_print=600.0d0
  /
 
@@ -28,21 +27,27 @@
  &boundlist
         typeboundary_min1='pole'
         typeboundary_max1='cont'
-        typeboundary_min2='periodic'
-        typeboundary_max2='periodic'
+        typeboundary_min2='cont'
+        typeboundary_max2='cont'
+        typeboundary_min3='periodic'
+        typeboundary_max3='periodic'
  / 
 
  &meshlist
         refine_criterion=3
-        refine_max_level=4
+        refine_max_level=3
         block_nx1=10
         block_nx2=10
-        domain_nx1=100
-        domain_nx2=100
-        xprobmin1=0.d0
+        block_nx3=10
+        domain_nx1=40
+        domain_nx2=40
+        domain_nx3=40
+        xprobmin1=0.0d0
         xprobmax1=1.d0
-        xprobmin2=0.d0
-        xprobmax2=1.d0
+        xprobmin2=-0.5d0
+        xprobmax2= 0.5d0
+        xprobmin3=0.d0
+        xprobmax3=1.d0
         iprob=2
  /
 
@@ -52,6 +57,6 @@
  /
  
   &rho_list
-        rho_v = -1.0, 2.0
+        rho_v = 0.1, -1.0, -1.0
  /
 

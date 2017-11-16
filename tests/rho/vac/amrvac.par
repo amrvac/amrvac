@@ -7,6 +7,7 @@
         base_filename='vaclogo'
     	convert_type='vtuBCCmpi'
         autoconvert=T
+        typefilelog='special'
  /
 
  &savelist
@@ -40,7 +41,6 @@
         block_nx2=10
         domain_nx1=50
         domain_nx2=50
-        iprob=3
         xprobmin1=0.0d0
         xprobmax1=1.0d0
         xprobmin2=0.0d0
