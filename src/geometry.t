@@ -72,7 +72,7 @@ subroutine set_pole
   case ("spherical") {^IFTHREED
     ! For spherical grid, check whether phi-direction is periodic
     if(periodB(ndim)) then
-      if(phi_/=3) call mpistop("phi_ shoule be 3 in 3D spherical coord!")
+      if(phi_/=3) call mpistop("phi_ should be 3 in 3D spherical coord!")
       if(mod(ng3(1),2)/=0) &
         call mpistop("Number of meshes in phi-direction should be even!")
       if(abs(xprobmin2)<smalldouble) then
