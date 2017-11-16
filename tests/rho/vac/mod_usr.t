@@ -3,166 +3,179 @@ module mod_usr
 
   implicit none
 
+  integer :: i_sol,i_err
+
 contains
 
   subroutine usr_init()
     use mod_usr_methods
+    use mod_variables
 
     usr_init_one_grid => initonegrid_usr
+    usr_process_grid => store_sol_err
+    usr_print_log => print_min_max
 
+    call set_coordinate_system("Cartesian_2D")
     call rho_activate()
 
+    i_sol = var_set_extravar("solution", "solution")
+    i_err = var_set_extravar("error", "error")
   end subroutine usr_init
 
-  subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-
+  subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid 
+    use mod_global_parameters
+    use mod_physics
 
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: rhoprofile(ixI^S)
+    logical, save:: first=.true.
+
+    if (first) then
+       if (mype==0) then
+          if(ndim==2)then
+             print *,'advection of VAC logo in 2D periodic box'
+          else
+             call mpistop("VAC logo advection is 2D, setup.pl -d=2")
+          endif
+       end if
+       first=.false.
+    end if
+    call set_density_profile(ixI^L,ixO^L,0.0d0,x,rhoprofile)
+    w(ixO^S,rho_)=rhoprofile(ixO^S)
+
+  end subroutine initonegrid_usr
+
+  subroutine set_density_profile(ixI^L,ixO^L,qt,x,rhoprofile)
     use mod_global_parameters
 
-    integer, intent(in) :: ixG^L, ix^L
-    double precision, intent(in) :: x(ixG^S,1:ndim)
-    double precision, intent(inout) :: w(ixG^S,1:nw)
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: qt,x(ixI^S,1:ndim)
+    double precision, intent(out) :: rhoprofile(ixI^S)
 
-    double precision:: rr2(ix^S)
-    double precision:: rhoflat,rhosquare,slocx^D,slocxmid^D,widthhalf
-
-    logical::          maskv(ix^S),maska(ix^S),maskc(ix^S)
-    double precision :: radius, xcircle^D
+    logical::          maskv(ixI^S),maska(ixI^S),maskc(ixI^S)
+    double precision:: rhoflat,rhosquare, xshift(ixI^S,1:ndim)
     double precision:: xc1,yc1,xa1,xa2,ya1,ya2,xb1,xb2,yb1,yb2,xc2,yc2, &
          rad,rad2,alp,nsig
     !----------------------------------------------------------------------------
 
     rhoflat  = 0.5d0 
     rhosquare= 2.0d0 
+    {^IFONED   call mpistop("problem is 2D!") }
+    {^IFTHREED call mpistop("problem is 2D!") }
+    {^IFTWOD
+     ! account for periodicity, at least during one cycle....
+     xshift(ixO^S,1)=x(ixO^S,1)-rho_v(1)*qt
+     xshift(ixO^S,2)=x(ixO^S,2)-rho_v(2)*qt
+     ! when v_x,v_y positive
+     maskv(ixO^S)=(xshift(ixO^S,1)<xprobmin1)
+     where(maskv(ixO^S)) xshift(ixO^S,1)=x(ixO^S,1)-rho_v(1)*qt+(xprobmax1-xprobmin1)
+     maskv(ixO^S)=(xshift(ixO^S,2)<xprobmin2)
+     where(maskv(ixO^S)) xshift(ixO^S,2)=x(ixO^S,2)-rho_v(2)*qt+(xprobmax2-xprobmin2)
+     ! when v_x,v_y negative
+     maskv(ixO^S)=(xshift(ixO^S,1)>xprobmax1)
+     where(maskv(ixO^S)) xshift(ixO^S,1)=x(ixO^S,1)-rho_v(1)*qt-(xprobmax1-xprobmin1)
+     maskv(ixO^S)=(xshift(ixO^S,2)>xprobmax2)
+     where(maskv(ixO^S)) xshift(ixO^S,2)=x(ixO^S,2)-rho_v(2)*qt-(xprobmax2-xprobmin2)
+     xc1=0.25d0
+     yc1=0.50d0
+     rad=0.23d0
+     rad2=0.13d0
+     alp=dpi/3.0d0
+     xa1=xc1
+     ya1=yc1-rad
+     xa2=xc1-rad*cos(alp)
+     ya2=yc1+rad*sin(alp)
+     xb1=xa1
+     yb1=ya1
+     xb2=xc1+rad*cos(alp)
+     yb2=yc1+rad*sin(alp)
+     xc2=xc1
+     yc2=ya2+sqrt(rad2**2-(xa2-xc2)**2)
+     maskv(ixO^S)= ((xshift(ixO^S,1)-xc1)**2+(xshift(ixO^S,2)-yc1)**2 <= rad**2) &
+          .and.(xshift(ixO^S,2)>= (ya2-ya1)*(xshift(ixO^S,1)-xa1)/(xa2-xa1)+ya1) & 
+          .and.(xshift(ixO^S,2)>= (yb2-yb1)*(xshift(ixO^S,1)-xb1)/(xb2-xb1)+yb1) & 
+          .and.((xshift(ixO^S,1)-xc2)**2+(xshift(ixO^S,2)-yc2)**2 > rad2**2) 
+     xc1=0.45d0
+     yc1=0.475d0
+     xa1=xc1
+     ya1=yc1+rad
+     xa2=xc1-rad*cos(alp)
+     ya2=yc1-rad*sin(alp)
+     xb1=xa1
+     yb1=ya1
+     xb2=xc1+rad*cos(alp)
+     yb2=yc1-rad*sin(alp)
+     xc2=xc1
+     yc2=ya2-sqrt(rad2**2-(xa2-xc2)**2)
+     maska(ixO^S)= ((xshift(ixO^S,1)-xc1)**2+(xshift(ixO^S,2)-yc1)**2 <= rad**2) &
+            .and.(xshift(ixO^S,2)<= (ya2-ya1)*(xshift(ixO^S,1)-xa1)/(xa2-xa1)+ya1) & 
+            .and.(xshift(ixO^S,2)<= (yb2-yb1)*(xshift(ixO^S,1)-xb1)/(xb2-xb1)+yb1) & 
+            .and.((xshift(ixO^S,1)-xc2)**2+(xshift(ixO^S,2)-yc2)**2 > rad2**2) 
+     xc1=0.75d0
+     yc1=0.50d0
+     alp=half*dpi-alp
+     xa1=xc1-rad
+     ya1=yc1
+     xa2=xc1+rad*cos(alp)
+     ya2=yc1+rad*sin(alp)
+     xb1=xa1
+     yb1=ya1
+     xb2=xc1+rad*cos(alp)
+     yb2=yc1-rad*sin(alp)
+     yc2=yc1
+     xc2=xa2+sqrt(rad2**2-(ya2-yc2)**2)
+     maskc(ixO^S)= ((xshift(ixO^S,1)-xc1)**2+(xshift(ixO^S,2)-yc1)**2 <= rad**2) &
+            .and.(xshift(ixO^S,2)<= (ya2-ya1)*(xshift(ixO^S,1)-xa1)/(xa2-xa1)+ya1) & 
+            .and.(xshift(ixO^S,2)>= (yb2-yb1)*(xshift(ixO^S,1)-xb1)/(xb2-xb1)+yb1) & 
+            .and.((xshift(ixO^S,1)-xc2)**2+(xshift(ixO^S,2)-yc2)**2 > rad2**2) 
+     where(maskv(ixO^S).or.maska(ixO^S).or.maskc(ixO^S))
+        rhoprofile(ixO^S)     = rhosquare
+     elsewhere
+        rhoprofile(ixO^S)     = rhoflat
+     endwhere
+     }
 
-    ! iprob=1 is a pure 1D Riemann problem, solvable in 1D, 2D, 3D
-    if (iprob==1) then
-       slocx^D=0.2d0;
-       where({^D&x(ix^S,^D)<=slocx^D|.and.})
-          w(ix^S,rho_)     = rhosquare
-       elsewhere
-          w(ix^S,rho_)     = rhoflat
-       endwhere
-    else if (iprob==2) then
-       slocxmid^D=xprobmin^D+half*(xprobmax^D-xprobmin^D);
-       widthhalf=0.1d0
-       where({^D&((x(ix^S,^D)>slocxmid^D-widthhalf).and.&
-            (x(ix^S,^D)<slocxmid^D+widthhalf))|.and.})
-          w(ix^S,rho_)     = rhosquare
-       elsewhere
-          w(ix^S,rho_)     = rhoflat
-       endwhere
-    else if (iprob==3) then
-       {^IFONED call mpistop("iprob=3 is 2D!") }
-       {^IFTHREED call mpistop("iprob=3 is 2D!") }
-       {^IFTWOD
-       xc1=0.25d0
-       yc1=0.50d0
-       rad=0.23d0
-       rad2=0.13d0
-       alp=dpi/3.0d0
-       xa1=xc1
-       ya1=yc1-rad
-       xa2=xc1-rad*cos(alp)
-       ya2=yc1+rad*sin(alp)
-       xb1=xa1
-       yb1=ya1
-       xb2=xc1+rad*cos(alp)
-       yb2=yc1+rad*sin(alp)
-       xc2=xc1
-       yc2=ya2+sqrt(rad2**2-(xa2-xc2)**2)
-       maskv(ix^S)= ((x(ix^S,1)-xc1)**2+(x(ix^S,2)-yc1)**2 <= rad**2) &
-            .and.(x(ix^S,2)>= (ya2-ya1)*(x(ix^S,1)-xa1)/(xa2-xa1)+ya1) & 
-            .and.(x(ix^S,2)>= (yb2-yb1)*(x(ix^S,1)-xb1)/(xb2-xb1)+yb1) & 
-            .and.((x(ix^S,1)-xc2)**2+(x(ix^S,2)-yc2)**2 > rad2**2) 
-       xc1=0.45d0
-       yc1=0.475d0
-       xa1=xc1
-       ya1=yc1+rad
-       xa2=xc1-rad*cos(alp)
-       ya2=yc1-rad*sin(alp)
-       xb1=xa1
-       yb1=ya1
-       xb2=xc1+rad*cos(alp)
-       yb2=yc1-rad*sin(alp)
-       xc2=xc1
-       yc2=ya2-sqrt(rad2**2-(xa2-xc2)**2)
-       maska(ix^S)= ((x(ix^S,1)-xc1)**2+(x(ix^S,2)-yc1)**2 <= rad**2) &
-            .and.(x(ix^S,2)<= (ya2-ya1)*(x(ix^S,1)-xa1)/(xa2-xa1)+ya1) & 
-            .and.(x(ix^S,2)<= (yb2-yb1)*(x(ix^S,1)-xb1)/(xb2-xb1)+yb1) & 
-            .and.((x(ix^S,1)-xc2)**2+(x(ix^S,2)-yc2)**2 > rad2**2) 
-       xc1=0.75d0
-       yc1=0.50d0
-       alp=half*dpi-alp
-       xa1=xc1-rad
-       ya1=yc1
-       xa2=xc1+rad*cos(alp)
-       ya2=yc1+rad*sin(alp)
-       xb1=xa1
-       yb1=ya1
-       xb2=xc1+rad*cos(alp)
-       yb2=yc1-rad*sin(alp)
-       yc2=yc1
-       xc2=xa2+sqrt(rad2**2-(ya2-yc2)**2)
-       maskc(ix^S)= ((x(ix^S,1)-xc1)**2+(x(ix^S,2)-yc1)**2 <= rad**2) &
-            .and.(x(ix^S,2)<= (ya2-ya1)*(x(ix^S,1)-xa1)/(xa2-xa1)+ya1) & 
-            .and.(x(ix^S,2)>= (yb2-yb1)*(x(ix^S,1)-xb1)/(xb2-xb1)+yb1) & 
-            .and.((x(ix^S,1)-xc2)**2+(x(ix^S,2)-yc2)**2 > rad2**2) 
-       where(maskv(ix^S).or.maska(ix^S).or.maskc(ix^S))
-          w(ix^S,rho_)     = rhosquare
-       elsewhere
-          w(ix^S,rho_)     = rhoflat
-       endwhere
-       }
-    else if (iprob==4) then
-       {^IFONED call mpistop("iprob=4 is 2D!") }
-       {^IFTHREED call mpistop("iprob=4 is 2D!") }
-       {^IFTWOD
-       xc1=0.5d0
-       yc1=0.5d0
-       rad=0.1d0
-       rhosquare=0.6d0
-       rhoflat=0.5d0
-       maska(ix^S)=((x(ix^S,1)-xc1)**2+(x(ix^S,2)-yc1)**2 <= rad**2)
-       where(maska(ix^S))
-          w(ix^S,rho_)     = rhosquare+ &
-               (rhoflat-rhosquare)*(x(ix^S,1)-xc1)**2/rad**2 + &
-               (rhoflat-rhosquare)*(x(ix^S,2)-yc1)**2/rad**2  
-       elsewhere
-          w(ix^S,rho_)     = rhoflat
-       endwhere
-       }
-    else if (iprob==5) then
-       {^IFONED call mpistop("iprob=5 is 2D!") }
-       {^IFTHREED call mpistop("iprob=5 is 2D!") }
-       {^IFTWOD
-       xc1=0.5d0
-       yc1=0.5d0
-       rad=0.1d0
-       nsig=two
-       rhosquare=2.0d0
-       maska(ix^S)=((x(ix^S,1)-xc1)**2+(x(ix^S,2)-yc1)**2<=(nsig*rad)**2)
-       rr2(ix^S)=(x(ix^S,1)-xc1)**2+(x(ix^S,2)-yc1)**2
-       where(maska(ix^S))
-          w(ix^S,rho_)     = rhosquare*exp(-rr2(ix^S)/rad**2) 
-       elsewhere
-          w(ix^S,rho_)     = rhosquare*exp(-nsig**2)
-       endwhere
-       }
-    else if (iprob==6) then
-       radius = 0.2d0
-       xcircle^D=zero;
-       where(radius**2> ^D&(x(ix^S,^D)-xcircle^D)**2+ )
-          w(ix^S,rho_)     = rhosquare
-       elsewhere
-          w(ix^S,rho_)     = rhoflat
-       endwhere
-    else
-       call mpistop("iprob not available!")
+  end subroutine set_density_profile
+
+  subroutine store_sol_err(igrid,level,ixI^L,ixO^L,qt,w,x)
+    use mod_global_parameters
+
+    integer, intent(in)             :: igrid,level,ixI^L,ixO^L
+    double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: rhoprofile(ixI^S)
+
+    call set_density_profile(ixI^L,ixO^L,qt,x,rhoprofile)
+    w(ixO^S,i_sol) = rhoprofile(ixO^S)
+    w(ixO^S,i_err) = dabs(w(ixO^S,rho_) - w(ixO^S,i_sol))
+  end subroutine store_sol_err
+
+  subroutine print_min_max()
+    use mod_global_parameters
+    use mod_input_output, only: get_global_minima, get_global_maxima, &
+                                get_volume_average
+    double precision   :: minvals(nw),maxvals(nw)
+
+    integer :: iw
+    double precision :: modes(nw,2), volume
+
+    call get_global_minima(minvals)
+    call get_global_maxima(maxvals)
+    call get_volume_average(1,modes(:,1),volume)
+    call get_volume_average(2,modes(:,2),volume)
+
+    if (mype == 0) then
+       write(*, "(A,4E16.8,A,3E16.8)") " time + rho min-max-tot:", &
+              global_time, minvals(rho_), maxvals(rho_), modes(rho_,1), &
+             " Error: Linf-L1-L2:", &
+              maxvals(i_err),modes(i_err,1),dsqrt(modes(i_err,2))
     end if
-
-  end subroutine initonegrid_usr
+  end subroutine print_min_max
 
 end module mod_usr
 
