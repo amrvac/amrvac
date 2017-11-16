@@ -93,13 +93,23 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
        end select
      end do
      if(stretched_grid) then
-       do ix = ixCmin1,ixCmax1
-         if(xshift1==0.d0) then
-           xC(ix^%1ixC^S,1)=xmin1*qst**(ix-nghostcells)
-         else
-           xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-nghostcells-1)
-         end if
-       end do
+       if(slab_stretched) then
+         do ix = ixCmin^ND,ixCmax^ND
+           if(xshift^ND==0.d0) then
+             xC(ix^%{^ND}ixC^S,^ND)=xmin^ND*qst**(ix-nghostcells)
+           else
+             xC(ix^%{^ND}ixC^S,^ND)=xmin^ND/(one-half*logG)*qst**(ix-nghostcells-1)
+           end if
+         end do
+       else
+         do ix = ixCmin1,ixCmax1
+           if(xshift1==0.d0) then
+             xC(ix^%1ixC^S,1)=xmin1*qst**(ix-nghostcells)
+           else
+             xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-nghostcells-1)
+           end if
+         end do
+       end if
      end if
      call set_B0_cell(pw(igrid)%B0(:^D&,:,idims),xC,ixI^L,ixC^L)
   end do

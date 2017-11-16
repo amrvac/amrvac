@@ -749,8 +749,13 @@ contains
           logG=logGs(node(plevel_,igrid))
           qstl=qsts(node(plevel_,igrid)-1)
           logGl=logGs(node(plevel_,igrid)-1)
-          xFimin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
-          xComin1=rnode(rpxmin1_,igrid)*qstl**(-nghostcells)
+          if(slab_stretched) then
+            xFimin^ND=rnode(rpxmin^ND_,igrid)*qst**(-nghostcells)
+            xComin^ND=rnode(rpxmin^ND_,igrid)*qstl**(-nghostcells)
+          else
+            xFimin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
+            xComin1=rnode(rpxmin1_,igrid)*qstl**(-nghostcells)
+          end if
         end if
 
         ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
@@ -805,11 +810,19 @@ contains
            ! cell-centered coordinate for coarse cell
            xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB\}
            if(stretched_grid) then
-             xFi1=xFimin1/(one-half*logG)*qst**(ixFi1-1)
-             do ixCo1=1,ixCoGmax1
-               xCo1=xComin1/(one-half*logGl)*qstl**(ixCo1-1)
-               if(dabs(xFi1-xCo1)<half*logGl*xCo1) exit
-             end do
+             if(slab_stretched) then
+               xFi^ND=xFimin^ND/(one-half*logG)*qst**(ixFi^ND-1)
+               do ixCo^ND=1,ixCoGmax^ND
+                 xCo^ND=xComin^ND/(one-half*logGl)*qstl**(ixCo^ND-1)
+                 if(dabs(xFi^ND-xCo^ND)<half*logGl*xCo^ND) exit
+               end do
+             else
+               xFi1=xFimin1/(one-half*logG)*qst**(ixFi1-1)
+               do ixCo1=1,ixCoGmax1
+                 xCo1=xComin1/(one-half*logGl)*qstl**(ixCo1-1)
+                 if(dabs(xFi1-xCo1)<half*logGl*xCo1) exit
+               end do
+             end if
            end if
            ! normalized distance between fine/coarse cell center
            ! in coarse cell: ranges from -0.5 to 0.5 in each direction
@@ -822,8 +835,15 @@ contains
                    *two*(one-block%dvolume(ixFi^DD) &
                    /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
              if(stretched_grid) then
-               eta1=(xFi1-xCo1)/(logGl*xCo1)*two*(one-block%dvolume(ixFi^D) &
-                   /sum(block%dvolume(ix1:ix1+1^%1ixFi^D))) 
+               if(slab_stretched) then
+                 eta^ND=(xFi^ND-xCo^ND)/(logGl*xCo^ND) &
+                     *two*(one-block%dvolume(ixFi^D) &
+                     /sum(block%dvolume({ix^ND}:{ix^ND}+1^%{^ND}ixFi^D))) 
+               else
+                 eta1=(xFi1-xCo1)/(logGl*xCo1) &
+                     *two*(one-block%dvolume(ixFi^D) &
+                     /sum(block%dvolume(ix1:ix1+1^%1ixFi^D))) 
+               end if
              end if
            end if
         

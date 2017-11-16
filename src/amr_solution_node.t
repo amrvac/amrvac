@@ -132,19 +132,35 @@ end do\}
 if(stretched_grid) then
   logG=logGs(level)
   qst=qsts(level)
-  rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
-  rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
-  ! fix possible out of bound due to precision
-  if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
-  do ix=ixGlo1,ixGhi1
-    pw(igrid)%x(ix^%1ixG^T,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
-  end do
-  rnode(rpdx1_,igrid)=minval(pw(igrid)%x(ixG^T,1)*logG)
-  logG=logGs(level-1)
-  qst=qsts(level-1)
-  do ix=ixCoGmin1,ixCoGmax1
-    pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
-  end do
+  if(slab_stretched) then
+    rnode(rpxmin^ND_,igrid)=xprobmin^ND*qst**((ixMhi^ND-ixMlo^ND+1)*(ig^ND-1))
+    rnode(rpxmax^ND_,igrid)=xprobmin^ND*qst**((ixMhi^ND-ixMlo^ND+1)* ig^ND)
+    ! fix possible out of bound due to precision
+    if(rnode(rpxmax^ND_,igrid)>xprobmax^ND) rnode(rpxmax^ND_,igrid)=xprobmax^ND
+    do ix=ixGlo^ND,ixGhi^ND
+      pw(igrid)%x(ix^%{^ND}ixG^T,^ND)=rnode(rpxmin^ND_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
+    end do
+    rnode(rpdx^ND_,igrid)=minval(pw(igrid)%x(ixG^T,^ND)*logG)
+    logG=logGs(level-1)
+    qst=qsts(level-1)
+    do ix=ixCoGmin^ND,ixCoGmax^ND
+      pw(igrid)%xcoarse(ix^%{^ND}ixCoG^S,1)=rnode(rpxmin{^ND}_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
+    end do
+  else
+    rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
+    rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
+    ! fix possible out of bound due to precision
+    if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
+    do ix=ixGlo1,ixGhi1
+      pw(igrid)%x(ix^%1ixG^T,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
+    end do
+    rnode(rpdx1_,igrid)=minval(pw(igrid)%x(ixG^T,1)*logG)
+    logG=logGs(level-1)
+    qst=qsts(level-1)
+    do ix=ixCoGmin1,ixCoGmax1
+      pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
+    end do
+  end if
 end if
 
 if (.not.slab) call getgridgeo(igrid)

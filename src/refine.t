@@ -125,7 +125,13 @@ ixCgmax^D=ixComax^D+el\
    xCo^DB=xComin^DB+(dble(ixCo^DB-nghostcells)-half)*dxCo^DB
 
    ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
-   if(stretched_grid) xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
+   if(stretched_grid) then
+     if(slab_stretched) then
+       xCo^ND=xComin^ND/(one-half*logG)*qst**(ixCo^ND-nghostcells-1)
+     else
+       xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
+     end if
+   end if
 
    do idim=1,ndim
       hxCo^D=ixCo^D-kr(^D,idim)\
@@ -159,7 +165,13 @@ ixCgmax^D=ixComax^D+el\
       if (ixFi^DB==0) cycle
       ! cell-centered coordinates of fine grid point
       xFi^DB=xFimin^DB+(dble(ix^DB-nghostcells)-half)*dxFi^DB\}
-      if(stretched_grid) xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
+      if(stretched_grid) then
+        if(slab_stretched) then
+          xFi^ND=xFimin^ND/(one-half*logGh)*qsth**(ixFi^ND-nghostcells-1)
+        else
+          xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
+        end if
+      end if
 
       ! normalized distance between fine/coarse cell center
       ! in coarse cell: ranges from -0.5 to 0.5 in each direction
@@ -170,9 +182,17 @@ ixCgmax^D=ixComax^D+el\
         {eta^D=(xFi^D-xCo^D)*invdxCo^D &
               *two*(one-pw(igridFi)%dvolume(ix^DD) &
               /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
-        if(stretched_grid) eta1=(xFi1-xCo1)/(logG*xCo1) &
+        if(stretched_grid) then
+          if(slab_stretched) then
+             eta^ND=(xFi^ND-xCo^ND)/(logG*xCo^ND) &
+              *two*(one-pw(igridFi)%dvolume(ix^D) &
+              /sum(pw(igridFi)%dvolume({ixFi^ND}:{ixFi^ND}+1^%{^ND}ix^D)))
+          else
+             eta1=(xFi1-xCo1)/(logG*xCo1) &
               *two*(one-pw(igridFi)%dvolume(ix^D) &
               /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
+          end if
+        end if
       end if
       wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
                             + {(slope(1:nw,^D)*eta^D)+}
@@ -210,7 +230,13 @@ invdxCo^D=1.d0/dxCo^D;
    xCo^DB=xComin^DB+(dble(ixCo^DB-nghostcells)-half)*dxCo^DB
 
    ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
-   if(stretched_grid) xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
+   if(stretched_grid) then
+     if(slab) then
+       xCo^ND=xComin^ND/(one-half*logG)*qst**(ixCo^ND-nghostcells-1)
+     else
+       xCo1=xComin1/(one-half*logG)*qst**(ixCo1-nghostcells-1)
+     end if
+   end if
 
    do idim=1,ndim
       hxCo^D=ixCo^D-kr(^D,idim)\
@@ -243,7 +269,13 @@ invdxCo^D=1.d0/dxCo^D;
    {do ix^DB=ixFi^DB,ixFi^DB+1
       ! cell-centered coordinates of fine grid point
       xFi^DB=xFimin^DB+(dble(ix^DB-nghostcells)-half)*dxFi^DB\}
-      if(stretched_grid) xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
+      if(stretched_grid) then
+        if(slab_stretched) then
+          xFi^ND=xFimin^ND/(one-half*logGh)*qsth**(ixFi^ND-nghostcells-1)
+        else
+          xFi1=xFimin1/(one-half*logGh)*qsth**(ixFi1-nghostcells-1)
+        end if
+      end if
 
       ! normalized distance between fine/coarse cell center
       ! in coarse cell: ranges from -0.5 to 0.5 in each direction
@@ -254,9 +286,17 @@ invdxCo^D=1.d0/dxCo^D;
         {eta^D=(xFi^D-xCo^D)*invdxCo^D &
               *two*(one-pw(igridFi)%dvolume(ix^DD) &
               /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
-        if(stretched_grid) eta1=(xFi1-xCo1)/(logG*xCo1) &
+        if(stretched_grid) then
+          if(slab_stretched) then
+             eta^ND=(xFi^ND-xCo^ND)/(logG*xCo^ND) &
+              *two*(one-pw(igridFi)%dvolume(ix^D) &
+              /sum(pw(igridFi)%dvolume({ixFi^ND}:{ixFi^ND}+1^%{^ND}ix^D)))
+          else
+             eta1=(xFi1-xCo1)/(logG*xCo1) &
               *two*(one-pw(igridFi)%dvolume(ix^D) &
               /sum(pw(igridFi)%dvolume(ixFi1:ixFi1+1^%1ix^D)))
+          end if
+        end if
       end if
       wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
                             + {(slope(1:nw,^D)*eta^D)+}
