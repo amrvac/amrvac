@@ -1566,8 +1566,8 @@ contains
       particle(ipart)%igrid = -1
       particle(ipart)%ipe   = -1
       if(time_advance) then
-        write(*,*), particle(ipart)%self%t, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
-        write(*,*), particle(ipart)%self%t, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
+        write(*,*) particle(ipart)%self%t, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
+        write(*,*) particle(ipart)%self%t, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
       endif
       deallocate(particle(ipart)%self)
       deallocate(particle(ipart)%payload)

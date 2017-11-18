@@ -1,8 +1,8 @@
 module mod_usr
   use mod_rho
   implicit none
-  double precision, allocatable, save :: myBC1(:,:,:), myBC2(:,:,:) ! add a dim if hd (for rho, p, v1...)
-  integer :: time_old_bc, time_next_bc ! only integer time allowed between snapshots (& dt cst)
+  double precision, allocatable, save :: myBC(:,:,:,:) ! coord - coord - time - level
+  integer :: time_old_bc, time_next_bc ! integer time allowed between snapshots (& dt cst)
   character(len=50) :: filename_bc_old, filename_bc_next
 
 contains
@@ -21,58 +21,47 @@ contains
 
   end subroutine usr_init
 
+  character(len=20) function str(k)
+       !   "Convert an integer to string."
+       integer, intent(in) :: k
+       write (str, *) k
+       str = adjustl(str)
+  end function str
+
   subroutine initglobaldata_usr
     use mod_global_parameters
-    integer :: i, j
-    character(len=2) :: t0, t1
+    integer :: i, j, ilev
 
-    allocate(myBC1(domain_nx2,domain_nx3,2))
-    allocate(myBC2(2*domain_nx2,2*domain_nx3,2))
+    ! inflow from x minimal boundary
+    allocate(myBC(domain_nx2*2**(refine_max_level-1),domain_nx3*2**(refine_max_level-1),2,refine_max_level))
+    myBC(:,:,:,:)=0.0d0
     time_old_bc =0
     time_next_bc=1
     write (filename_bc_old,'(I2.2)') time_old_bc
     write (filename_bc_next,'(I2.2)') time_next_bc
     filename_bc_old ='bc_t'//trim(filename_bc_old)
     filename_bc_next='bc_t'//trim(filename_bc_next)
-    ! 1st time snapshot / 1st lvl of AMR
-    open(42,file='bc/'//trim(filename_bc_old)//'_AMR1.dat')
-    do i=1,domain_nx2
-       do j=1,domain_nx3
-          read(42,*) myBC1(i,j,1)
+    do ilev=1,refine_max_level 
+       ! 1st time snapshot 
+       open(42,file='bc/'//trim(filename_bc_old)//'_AMR'//trim(str(ilev))//'.dat')
+        ! has to adjust according to dimension!!!
+       do i=1,domain_nx2*(2**(ilev-1))
+          do j=1,domain_nx3*(2**(ilev-1))
+             read(42,*) myBC(i,j,1,ilev)
+          enddo
        enddo
+      close(42)
+      ! 2nd time snapshot 
+      open(42,file='bc/'//trim(filename_bc_next)//'_AMR'//trim(str(ilev))//'.dat')
+      do i=1,domain_nx2*(2**(ilev-1))
+          do j=1,domain_nx3*(2**(ilev-1))
+             read(42,*) myBC(i,j,2,ilev)
+          enddo
+      enddo
+      close(42)
     enddo
-    close(42)
-    ! 1st time snapshot / 2nd lvl of AMR
-    open(42,file='bc/'//trim(filename_bc_old)//'_AMR2.dat')
-    do i=1,domain_nx2*2
-       do j=1,domain_nx3*2
-          read(42,*) myBC2(i,j,1)
-       enddo
-    enddo
-    close(42)
-    ! 2nd time snapshot / 1st lvl of AMR
-    open(42,file='bc/'//trim(filename_bc_next)//'_AMR1.dat')
-    do i=1,domain_nx2
-       do j=1,domain_nx3
-          read(42,*) myBC1(i,j,2)
-       enddo
-    enddo
-    close(42)
-    ! 2nd time snapshot / 2nd lvl of AMR
-    open(42,file='bc/'//trim(filename_bc_next)//'_AMR2.dat')
-    do i=1,domain_nx2*2
-       do j=1,domain_nx3*2
-          read(42,*) myBC2(i,j,2)
-       enddo
-    enddo
-    close(42)
-
-    ! to verify orientation of the indexes
-!!$    print*, myBC1(1,2), myBC1(2,2)
-!!$    print*, myBC1(1,1), myBC1(2,1)
-!!$    print*, ' '
-!!$    print*, myBC2(1,2), myBC2(2,2)
-!!$    print*, myBC2(1,1), myBC2(2,1)
+    !! can check for time-independent part here: for up to t=1 then fixed
+    myBC(:,:,2,1:refine_max_level)=myBC(:,:,1,1:refine_max_level) 
 
   end subroutine initglobaldata_usr
 
@@ -90,7 +79,7 @@ contains
 
   end subroutine initonegrid_usr
 
- ! special boundary types, user defined
+  ! special boundary types, user defined
   ! user must assign conservative variables in bounderies
   subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
     use mod_global_parameters
@@ -99,63 +88,33 @@ contains
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
-    logical :: patchw(ixG^T)
-    double precision:: rinlet(ixG^T)
-
-    integer :: ig2tmp, ig3tmp, lvl
+    integer :: ig^D, lvl, ix1, ix^L
+    double precision :: dx2ratio
 
     select case(iB)
     case(1)
-       ! === Left boundary ===!
-       lvl=int(1.01*(((xprobmax2-xprobmin2)/real(domain_nx2))/(x(ixOmin1,ixOmin2+1,ixOmin3,2)-x(ixOmin1,ixOmin2,ixOmin3,2))))
-!       print*, lvl
-!!$       print*, dxlevel(1), dxlevel(2), dxlevel(3)
-!!$       print*, x(ixOmin1+1,ixOmin2,ixOmin3,1)-x(ixOmin1,ixOmin2,ixOmin3,1)
-!!$       print*, x(ixOmin1,ixOmin2+1,ixOmin3,2)-x(ixOmin1,ixOmin2,ixOmin3,2)
-!!$       print*, x(ixOmin1,ixOmin2,ixOmin3+1,3)-x(ixOmin1,ixOmin2,ixOmin3,3)
-       ig2tmp=1+int((x(ixOmin1,ixOmin2,ixOmin3,2)-xprobmin2)/((xprobmax2-xprobmin2)/(real(domain_nx2)/real(block_nx2/(2**(lvl-1))))))
-       ig3tmp=1+int((x(ixOmin1,ixOmin2,ixOmin3,3)-xprobmin3)/((xprobmax3-xprobmin3)/(real(domain_nx3)/real(block_nx3/(2**(lvl-1))))))
+       ! === Left inflow boundary ===!
+       dx2ratio=dx(2,1)/(x(ixOmin1,ixOmin2+1,ixOmin3,2)-x(ixOmin1,ixOmin2,ixOmin3,2))
+       lvl=1+nint(dlog(dx2ratio)/dlog(2.0d0)) 
+       ^D&ig^D=1+floor((x(ixOmin1,ixOmin2,ixOmin3,^D)-xprobmin^D)/(dx(^D,lvl)*block_nx^D))\
+       !print *,'**********************'
+       !print *,lvl,(x(ixOmin1,ixOmin2+1,ixOmin3,2)-x(ixOmin1,ixOmin2,ixOmin3,2))
+       !print *,lvl,dx(2,1),dx(2,1)/(x(ixOmin1,ixOmin2+1,ixOmin3,2)-x(ixOmin1,ixOmin2,ixOmin3,2)),dxlevel(2)
+       ! note: can not use dxlevel here, may not conform due to coarse bc call
+       ^D&ixmin^D=(ig^D-1)*block_nx^D+ixOmin^D-nghostcells\
+       ^D&ixmax^D=(ig^D-1)*block_nx^D+ixOmax^D-nghostcells\
+       !print *,ixmin2,ixmax2,ixmin3,ixmax3
+       !print *,ixOmin1,ixOmax1,ixOmin2,ixOmax2,ixOmin3,ixOmax3
+       ! note: may not be entire block size to be filled!!!
+       !!if(ixOmax2-ixOmin2+1/=block_nx2.or.ixOmax3-ixOmin3+1/=block_nx3) call mpistop('mismatch')
        ! Linear interpolation between 2 successive time snapshots
-       if (lvl==1) then          
-          w(ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)=&
-               myBC1(ixGmin2+(ig2tmp-1)*block_nx2:ixGmax2-2*nghostcells+(ig2tmp-1)*block_nx2,&
-                     ixGmin3+(ig3tmp-1)*block_nx3:ixGmax3-2*nghostcells+(ig3tmp-1)*block_nx3,1)+&
+       do ix1=ixOmin1,ixOmax1
+          w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)=&
+               myBC(ixmin2:ixmax2,ixmin3:ixmax3,1,lvl)+&
                      ((qt-time_old_bc)/(time_next_bc-time_old_bc))*&
-              (myBC1(ixGmin2+(ig2tmp-1)*block_nx2:ixGmax2-2*nghostcells+(ig2tmp-1)*block_nx2,&
-                     ixGmin3+(ig3tmp-1)*block_nx3:ixGmax3-2*nghostcells+(ig3tmp-1)*block_nx3,2)-&
-               myBC1(ixGmin2+(ig2tmp-1)*block_nx2:ixGmax2-2*nghostcells+(ig2tmp-1)*block_nx2,&
-                     ixGmin3+(ig3tmp-1)*block_nx3:ixGmax3-2*nghostcells+(ig3tmp-1)*block_nx3,1))
-       elseif (lvl==2) then
-          w(ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)=&
-               myBC2(ixGmin2+(ig2tmp-1)*block_nx2:ixGmax2-2*nghostcells+(ig2tmp-1)*block_nx2,&
-                     ixGmin3+(ig3tmp-1)*block_nx3:ixGmax3-2*nghostcells+(ig3tmp-1)*block_nx3,1)+&
-                     ((qt-time_old_bc)/(time_next_bc-time_old_bc))*&
-              (myBC2(ixGmin2+(ig2tmp-1)*block_nx2:ixGmax2-2*nghostcells+(ig2tmp-1)*block_nx2,&
-                     ixGmin3+(ig3tmp-1)*block_nx3:ixGmax3-2*nghostcells+(ig3tmp-1)*block_nx3,2)-&
-               myBC2(ixGmin2+(ig2tmp-1)*block_nx2:ixGmax2-2*nghostcells+(ig2tmp-1)*block_nx2,&
-                     ixGmin3+(ig3tmp-1)*block_nx3:ixGmax3-2*nghostcells+(ig3tmp-1)*block_nx3,1))
-
-!!$       elseif (lvl==3) then
-!!$       w(ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)=myBC1(ixGmin2+(ig2tmp-1)*block_nx2:ixGmax2-2*nghostcells+(ig2tmp-1)*block_nx2,ixGmin3+(ig3tmp-1)*block_nx3:ixGmax3-2*nghostcells+(ig3tmp-1)*block_nx3)
-       endif
-       !print*, ixOmin2-nghostcells, ixOmin2, ixOmax2-nghostcells, ixOmax2
-       !print*, ixGmin2-nghostcells, ixGmin2, ixGmax2-nghostcells, ixGmax2
-          
-
-       !w(ixOmin1,:,:,rho_)=w(ixOmax1,:,:,rho_)
-!!$       where (x(ixO^S,2)>zero .and. x(ixO^S,3)>zero)
-!!$          w(ixO^S,rho_) = 0.5d0
-!!$       endwhere
-!!$       where (x(ixO^S,2)<zero .and. x(ixO^S,3)>zero)
-!!$          w(ixO^S,rho_) = one     
-!!$       endwhere     
-!!$       where (x(ixO^S,2)>zero .and. x(ixO^S,3)<zero)
-!!$          w(ixO^S,rho_) = 1.5d0
-!!$       endwhere
-!!$       where (x(ixO^S,2)<zero .and. x(ixO^S,3)<zero)
-!!$          w(ixO^S,rho_) = two
-!!$       endwhere
-
+              (myBC(ixmin2:ixmax2,ixmin3:ixmax3,2,lvl)-&
+               myBC(ixmin2:ixmax2,ixmin3:ixmax3,1,lvl))
+       enddo
     case default
        call mpistop('boundary not defined')
     end select
@@ -179,7 +138,7 @@ contains
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
 
-    ! So as we can test the code with different levels of refinment enforced
+    ! test with different levels of refinement enforced
     if (all(x(ix^S,2) < zero) .and. all(x(ix^S,3)>zero)) then
        refine=-1
     else
@@ -197,13 +156,11 @@ contains
     
     integer, intent(in)          :: iit
     double precision, intent(in) :: qt
-    integer :: dt_bc, i, j
+    integer :: dt_bc, i, j,ilev
 
     if (qt>time_next_bc) then
-
        ! The snapshot called "next" becomes "old" 
-       myBC1(:,:,1)=myBC1(:,:,2)
-       myBC2(:,:,1)=myBC2(:,:,2)
+       myBC(:,:,1,1:refine_max_level)=myBC(:,:,2,1:refine_max_level)
        dt_bc=time_next_bc-time_old_bc ! to save dt, CONSTANT
        time_old_bc=time_next_bc
        filename_bc_old=filename_bc_next
@@ -211,23 +168,17 @@ contains
        time_next_bc=time_old_bc+dt_bc
        write (filename_bc_next,'(I2.2)') time_next_bc
        filename_bc_next='bc_t'//trim(filename_bc_next)
-       ! 2nd time snapshot / 1st lvl of AMR
-       open(42,file='bc/'//trim(filename_bc_next)//'_AMR1.dat')
-       do i=1,domain_nx2
-          do j=1,domain_nx3
-             read(42,*) myBC1(i,j,2)
+       do ilev=1,refine_max_level 
+          ! next time snapshot 
+          open(42,file='bc/'//trim(filename_bc_next)//'_AMR'//trim(str(ilev))//'.dat')
+          ! has to adjust according to dimension!!!
+          do i=1,domain_nx2*2**(ilev-1)
+             do j=1,domain_nx3*2**(ilev-1)
+               read(42,*) myBC(i,j,2,ilev)
+             enddo
           enddo
+          close(42)
        enddo
-       close(42)
-       ! 2nd time snapshot / 2nd lvl of AMR
-       open(42,file='bc/'//trim(filename_bc_next)//'_AMR2.dat')
-       do i=1,domain_nx2*2
-          do j=1,domain_nx3*2
-             read(42,*) myBC2(i,j,2)
-          enddo
-       enddo
-       close(42)        
-
     endif
 
   end subroutine process_global_usr

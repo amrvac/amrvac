@@ -1,6 +1,5 @@
 &filelist
-        base_filename='data/ball_3d'
-        typefilelog='regression_test'
+        base_filename='bc_fromfiles_3d'
     	convert_type='vtuBCCmpi'
         autoconvert=T
 /
@@ -8,20 +7,21 @@
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave_log=1.0d-2
-        dtsave_dat=1.0d0
+        ditsave_log=1
+        ditsave_dat=10
  /
 
  &stoplist
-        time_max=25.d0
+        it_max=500
  /
 
  &methodlist
-        fixprocess=.true.
+        time_integrator=  'ssprk54'
+        flux_scheme =    20*'fd'
+        limiter= 20*'mp5'
  /
 
  &boundlist
-        nghostcells=   3
         typeboundary_min1 = 'special'
         typeboundary_max1 = 'noinflow'
         typeboundary_min2 = 'periodic'
@@ -29,9 +29,13 @@
         typeboundary_min3 = 'periodic'
         typeboundary_max3 = 'periodic'
  /
+        typeboundary_min2 = 'cont'
+        typeboundary_max2 = 'cont'
+        typeboundary_min3 = 'cont'
+        typeboundary_max3 = 'cont'
 
  &meshlist
-        refine_max_level=2
+        refine_max_level=3
         refine_threshold=20*0.1d0
         block_nx1=10
         block_nx2=10
