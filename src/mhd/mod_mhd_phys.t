@@ -851,7 +851,11 @@ contains
 
     if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
 
-    ptotal=w(ixO^S,p_)+0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+    if(mhd_energy) then
+      ptotal=w(ixO^S,p_)+0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+    else
+      ptotal(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma+0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+    end if
 
     ! Get flux of density
     f(ixO^S,rho_)=w(ixO^S,mom(idim))*w(ixO^S,rho_)
