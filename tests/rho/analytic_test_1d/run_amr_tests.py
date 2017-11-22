@@ -38,9 +38,25 @@ for fs in flux_schemes:
                     f.write(' refine_max_level = {}\n'.format(lev))
                     f.write('/\n')
 
-                res = check_output(["./amrvac", "-i", "amrvac.par", "this_scheme.par"]).decode(encoding="utf-8")
-                mobj = re.search(r'time -- RMSE:  0.10000000E\+01\s+(\S*)', res, re.MULTILINE)
-                error = float(mobj.group(1))
+                try:
+                    res = check_output(["./amrvac", "-i", "amrvac.par",
+                                        "this_scheme.par"])
+                    res = res.decode(encoding="utf-8")
+                except CalledProcessError as e:
+                    print("\nAMRVAC returned an error")
+                    print(e.output)
+                    sys.exit(1)
+
+                # Catch line before "Total timeloop took"
+                mobj = re.search(r'^(.*)$\n^\s*Total timeloop took',
+                                 res, re.MULTILINE)
+
+                # Split the string which contains the errors
+                errors = mobj.group(1).split()
+
+                # Extract the two-norm
+                error = float(errors[-2])
+
                 this_result = [fs, ti, lim, lev, error]
                 all_results.append(this_result)
                 n_done += 1
