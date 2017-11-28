@@ -57,7 +57,9 @@ contains
     ixG^L=ixG^LL;
     ixM^L=ixG^L^LSUBnghostcells;
     ixCoGmin^D=1;
-    ixCoGmax^D=ixGmax^D/2+nghostcells;
+    !ixCoGmax^D=ixGmax^D/2+nghostcells;
+    ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
+
     ixCoM^L=ixCoG^L^LSUBnghostcells;
 
     nx^D=ixMmax^D-ixMmin^D+1;
@@ -742,27 +744,22 @@ contains
         dxCo^D=two*dxFi^D;
         invdxCo^D=1.d0/dxCo^D;
 
+        ! compute the enlarged grid lower left corner coordinates
+        ! these are true coordinates for an equidistant grid, 
+        ! but we can temporarily also use them for getting indices 
+        ! in stretched grids
         xFimin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxFi^D;
         xComin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxCo^D;
-        if(stretched_grid) then
-          qst=qsts(node(plevel_,igrid))
-          logG=logGs(node(plevel_,igrid))
-          qstl=qsts(node(plevel_,igrid)-1)
-          logGl=logGs(node(plevel_,igrid)-1)
-          if(slab_stretched) then
-            xFimin^ND=rnode(rpxmin^ND_,igrid)*qst**(-nghostcells)
-            xComin^ND=rnode(rpxmin^ND_,igrid)*qstl**(-nghostcells)
-          else
-            xFimin1=rnode(rpxmin1_,igrid)*qst**(-nghostcells)
-            xComin1=rnode(rpxmin1_,igrid)*qstl**(-nghostcells)
-          end if
-        end if
 
-        ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
-        ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
-
-        if(prolongprimitive) call phys_to_primitive(ixCoG^L,ixCo^L,&
+        if(prolongprimitive) then
+           ! following line again assumes equidistant grid, but 
+           ! just computes indices, so also ok for stretched case
+           ! TO CHECK: previously had +1-1 and +1+1 here: needed? Changed to +1 always
+           ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1;
+           ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1;
+           call phys_to_primitive(ixCoG^L,ixCo^L,&
              pw(igrid)%wcoarse,pw(igrid)%xcoarse)
+        endif
 
         select case (typeghostfill)
         case ("linear")
@@ -791,6 +788,7 @@ contains
         double precision :: xCo^D, xFi^D, eta^D
         double precision :: slopeL, slopeR, slopeC, signC, signR
         double precision :: slope(1:nw,ndim)
+        double precision :: local_invdxCo^D
 
         if(prolongprimitive) then
           nwmin=1
@@ -802,28 +800,23 @@ contains
 
         {do ixFi^DB = ixFi^LIM^DB
            ! cell-centered coordinates of fine grid point
+           ! here we temporarily use an equidistant grid
            xFi^DB=xFimin^DB+(dble(ixFi^DB)-half)*dxFi^DB
         
            ! indices of coarse cell which contains the fine cell
-           ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1
+           ! since we computed lower left corner earlier 
+           ! in equidistant fashion: also ok for stretched case
+           ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
         
-           ! cell-centered coordinate for coarse cell
-           xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB\}
-           if(stretched_grid) then
-             if(slab_stretched) then
-               xFi^ND=xFimin^ND/(one-half*logG)*qst**(ixFi^ND-1)
-               do ixCo^ND=1,ixCoGmax^ND
-                 xCo^ND=xComin^ND/(one-half*logGl)*qstl**(ixCo^ND-1)
-                 if(dabs(xFi^ND-xCo^ND)<half*logGl*xCo^ND) exit
-               end do
-             else
-               xFi1=xFimin1/(one-half*logG)*qst**(ixFi1-1)
-               do ixCo1=1,ixCoGmax1
-                 xCo1=xComin1/(one-half*logGl)*qstl**(ixCo1-1)
-                 if(dabs(xFi1-xCo1)<half*logGl*xCo1) exit
-               end do
-             end if
-           end if
+           ! actual cell-centered coordinates of fine grid point
+           ^D&xFi^D=block%x({ixFi^DD},^D)\
+           ! actual cell-centered coordinates of coarse grid point
+           ^D&xCo^D=block%xcoarse({ixCo^DD},^D)\
+
+           if(.not.slab) then
+              ^D&local_invdxCo^D=1.d0/block%dxcoarse({ixCo^DD},^D)\
+           endif
+
            ! normalized distance between fine/coarse cell center
            ! in coarse cell: ranges from -0.5 to 0.5 in each direction
            ! (origin is coarse cell center)
@@ -831,20 +824,9 @@ contains
              eta^D=(xFi^D-xCo^D)*invdxCo^D;
            else
              ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
-             {eta^D=(xFi^D-xCo^D)*invdxCo^D &
+             {eta^D=(xFi^D-xCo^D)*local_invdxCo^D &
                    *two*(one-block%dvolume(ixFi^DD) &
                    /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
-             if(stretched_grid) then
-               if(slab_stretched) then
-                 eta^ND=(xFi^ND-xCo^ND)/(logGl*xCo^ND) &
-                     *two*(one-block%dvolume(ixFi^D) &
-                     /sum(block%dvolume({ix^ND}:{ix^ND}+1^%{^ND}ixFi^D))) 
-               else
-                 eta1=(xFi1-xCo1)/(logGl*xCo1) &
-                     *two*(one-block%dvolume(ixFi^D) &
-                     /sum(block%dvolume(ix1:ix1+1^%1ixFi^D))) 
-               end if
-             end if
            end if
         
            do idims=1,ndim
@@ -908,6 +890,7 @@ contains
            xFi^DB=xFimin^DB+(dble(ixFi^DB)-half)*dxFi^DB
         
            ! indices of coarse cell which contains the fine cell
+           ! note: this also works for stretched grids
            ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
         
            ! Copy from coarse cell
@@ -928,6 +911,7 @@ contains
         integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idims, nwmin, nwmax
         double precision :: xCo^D, xFi^D, eta^D
         double precision :: slope(1:nw,ndim)
+        double precision :: local_invdxCo^D
 
         if(prolongprimitive) then
           nwmin=1
@@ -942,10 +926,16 @@ contains
            xFi^DB=xFimin^DB+(dble(ixFi^DB)-half)*dxFi^DB
         
            ! indices of coarse cell which contains the fine cell
-           ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1
-        
-           ! cell-centered coordinate for coarse cell
-           xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB\}
+           ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
+
+           ! actual cell-centered coordinates of fine grid point
+           ^D&xFi^D=block%x({ixFi^DD},^D)\
+           ! actual cell-centered coordinates of coarse grid point
+           ^D&xCo^D=block%xcoarse({ixCo^DD},^D)\
+
+           if(.not.slab) then
+              ^D&local_invdxCo^D=1.d0/block%dxcoarse({ixCo^DD},^D)\
+           endif
         
            ! normalized distance between fine/coarse cell center
            ! in coarse cell: ranges from -0.5 to 0.5 in each direction
@@ -954,7 +944,7 @@ contains
               eta^D=(xFi^D-xCo^D)*invdxCo^D;
            else
               ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
-              {eta^D=(xFi^D-xCo^D)*invdxCo^D &
+              {eta^D=(xFi^D-xCo^D)*local_invdxCo^D &
                     *two*(one-block%dvolume(ixFi^DD) &
                     /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
            end if

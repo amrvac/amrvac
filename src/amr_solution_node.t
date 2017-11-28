@@ -51,10 +51,13 @@ use mod_global_parameters
 integer, intent(in) :: igrid
 
 integer :: level, ig^D, ign^D, ixCoG^L, ixCoCoG^L, ix, i^D
+integer :: imin, imax, index, ig1Co, ig{^ND}Co, ixshift
 double precision :: rXmin^D, dx^D
+logical, save:: first=.true.
 !-----------------------------------------------------------------------------
 ixCoGmin^D=1;
-ixCoGmax^D=ixGhi^D/2+nghostcells;
+!ixCoGmax^D=ixGhi^D/2+nghostcells;
+ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
 
 if(.not. allocated(pw(igrid)%w)) then
   
@@ -114,6 +117,7 @@ node(plevel_,igrid)=level
 ^D&rnode(rpdx^D_,igrid)=dx(^D,level)\
 dxlevel(:)=dx(:,level)
 
+! uniform cartesian case as well as all unstretched coordinates
 ! determine the minimal and maximal corners
 ^D&rnode(rpxmin^D_,igrid)=xprobmin^D+dble(ig^D-1)*dg^D(level)\
 ^D&rnode(rpxmax^D_,igrid)=xprobmax^D-dble(ng^D(level)-ig^D)*dg^D(level)\
@@ -130,38 +134,70 @@ end do\}
 end do\}
 
 if(stretched_grid) then
-  logG=logGs(level)
-  qst=qsts(level)
-  if(slab_stretched) then
-    rnode(rpxmin^ND_,igrid)=xprobmin^ND*qst**((ixMhi^ND-ixMlo^ND+1)*(ig^ND-1))
-    rnode(rpxmax^ND_,igrid)=xprobmin^ND*qst**((ixMhi^ND-ixMlo^ND+1)* ig^ND)
+  if(slab_stretched)then
+    ! cartesian and last coordinate stretching
+    imin=(ig^ND-1)*block_nx^ND+1
+    imax=ig^ND*block_nx^ND
+    rnode(rpxmin^ND_,igrid)=xprobmin^ND+dxfirst_1mq(level) &
+                 *(1.0d0-qstretch(level)**(imin-1))
+    rnode(rpxmax^ND_,igrid)=xprobmin^ND+dxfirst_1mq(level) &
+                 *(1.0d0-qstretch(level)**imax)
     ! fix possible out of bound due to precision
-    if(rnode(rpxmax^ND_,igrid)>xprobmax^ND) rnode(rpxmax^ND_,igrid)=xprobmax^ND
+    if(rnode(rpxmax^ND_,igrid)>xprobmax^ND) then
+       if(first) then
+          write(*,*) 'Warning: edge beyond domain?',igrid,imax,rnode(rpxmax^ND_,igrid)
+          first=.false.
+       endif
+       rnode(rpxmax^ND_,igrid)=xprobmax^ND
+    endif
+    ixshift=(ig^ND-1)*block_nx^ND-nghostcells
     do ix=ixGlo^ND,ixGhi^ND
-      pw(igrid)%x(ix^%{^ND}ixG^T,^ND)=rnode(rpxmin^ND_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
-    end do
-    rnode(rpdx^ND_,igrid)=minval(pw(igrid)%x(ixG^T,^ND)*logG)
-    logG=logGs(level-1)
-    qst=qsts(level-1)
+      index=ixshift+ix
+      pw(igrid)%x(ix^%{^ND}ixG^T,^ND)=xprobmin^ND+dxfirst_1mq(level)&
+                                *(1.0d0-qstretch(level)**(index-1)) &
+                   + 0.5d0*dxfirst(level)*qstretch(level)**(index-1)
+    enddo
+    ig{^ND}Co=(ig^ND-1)/2
+    ixshift=ig{^ND}Co*block_nx^ND+(1-mod(ig{^ND},2))*block_nx^ND/2-nghostcells
     do ix=ixCoGmin^ND,ixCoGmax^ND
-      pw(igrid)%xcoarse(ix^%{^ND}ixCoG^S,1)=rnode(rpxmin{^ND}_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
+      index=ixshift+ix
+      pw(igrid)%xcoarse(ix^%{^ND}ixCoG^S,^ND)=xprobmin^ND+dxfirst_1mq(level-1)&
+                                         *(1.0d0-qstretch(level-1)**(index-1)) &
+                  + 0.5d0*dxfirst(level)*qstretch(level-1)**(index-1)
     end do
   else
-    rnode(rpxmin1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*(ig1-1))
-    rnode(rpxmax1_,igrid)=xprobmin1*qst**((ixMhi1-ixMlo1+1)*ig1)
+    ! cylindrical/spherical and radial stretching
+    imin=(ig1-1)*block_nx1+1
+    imax=ig1*block_nx1
+    rnode(rpxmin1_,igrid)=xprobmin1+dxfirst_1mq(level) &
+                 *(1.0d0-qstretch(level)**(imin-1))
+    rnode(rpxmax1_,igrid)=xprobmin1+dxfirst_1mq(level) &
+                 *(1.0d0-qstretch(level)**imax)
     ! fix possible out of bound due to precision
-    if(rnode(rpxmax1_,igrid)>xprobmax1) rnode(rpxmax1_,igrid)=xprobmax1
+    if(rnode(rpxmax1_,igrid)>xprobmax1) then
+       if(first) then
+          write(*,*) 'Warning: edge beyond domain?',igrid,imax,rnode(rpxmax1_,igrid)
+          first=.false.
+       endif
+       rnode(rpxmax1_,igrid)=xprobmax1
+    endif
+    ixshift=(ig1-1)*block_nx1-nghostcells
     do ix=ixGlo1,ixGhi1
-      pw(igrid)%x(ix^%1ixG^T,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
-    end do
-    rnode(rpdx1_,igrid)=minval(pw(igrid)%x(ixG^T,1)*logG)
-    logG=logGs(level-1)
-    qst=qsts(level-1)
+      index=ixshift+ix
+      pw(igrid)%x(ix^%1ixG^T,1)=xprobmin1+dxfirst_1mq(level)&
+                           *(1.0d0-qstretch(level)**(index-1)) &
+                  + 0.5d0*dxfirst(level)*qstretch(level)**(index-1)
+    enddo
+    ig1Co=(ig1-1)/2
+    ixshift=ig1Co*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
     do ix=ixCoGmin1,ixCoGmax1
-      pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=rnode(rpxmin1_,igrid)/(one-half*logG)*qst**(ix-1-nghostcells)
+      index=ixshift+ix
+      pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=xprobmin1+dxfirst_1mq(level-1)&
+                                *(1.0d0-qstretch(level-1)**(index-1)) &
+                  + 0.5d0*dxfirst(level)*qstretch(level-1)**(index-1)
     end do
-  end if
-end if
+  endif
+endif
 
 if (.not.slab) call getgridgeo(igrid)
 

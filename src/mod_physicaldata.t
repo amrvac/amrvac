@@ -11,15 +11,15 @@ module mod_physicaldata
       logical :: e_is_internal=.false.
       !> If it face a physical boundary
       logical :: is_physical_boundary(2*^ND)
-      !> Variables, normally center
+      !> Variables, normally cell center conservative values
       double precision, dimension(:^D&,:), allocatable :: w
-      !> Variables, normally center, temperary state for multi-step scheme
+      !> Variables, normally center, temporary state for multi-step scheme
       double precision, dimension(:^D&,:), allocatable :: w1
-      !> Variables, normally center, temperary state for multi-step scheme
+      !> Variables, normally center, temporary state for multi-step scheme
       double precision, dimension(:^D&,:), allocatable :: w2
-      !> Variables, normally center, temperary state for multi-step scheme
+      !> Variables, normally center, temporary state for multi-step scheme
       double precision, dimension(:^D&,:), allocatable :: w3
-      !> Variables, normally center, temperary state for multi-step scheme
+      !> Variables, normally center, temporary state for multi-step scheme
       double precision, dimension(:^D&,:), allocatable :: w4
       !> Variables, normally center, pointer of reference state
       double precision, dimension(:^D&,:), pointer :: wa => Null()
@@ -29,7 +29,7 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), allocatable :: wold
       !> Variables, normally center, for visualization data
       double precision, dimension(:^D&,:), allocatable :: wio
-      !> Variables, normally center, one level coarser representative
+      !> Variables, normally center, one level coarser representation
       double precision, dimension(:^D&,:), allocatable :: wcoarse
       !> Time-independent magnetic field at cell center and cell interface
       double precision, dimension(:^D&,:,:), allocatable :: B0
@@ -37,18 +37,23 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), allocatable :: J0
       !> Cell-center positions
       double precision, dimension(:^D&,:), allocatable :: x
-      !> Cell-center positions, one level coarser representative
+      !> Cell-center positions, one level coarser 
       double precision, dimension(:^D&,:), allocatable :: xcoarse
-      !> Cell-center positions for non-Cartesian coordinates
-      double precision, dimension(:^D&,:), allocatable :: xg
       !> Cell sizes
       double precision, dimension(:^D&,:), allocatable :: dx
+      !> Cell sizes, one level coarser
+      double precision, dimension(:^D&,:), allocatable :: dxcoarse
       !> Volumes of a cell
       double precision, dimension(:^D&), allocatable :: dvolume
       !> Volumes of a cell, one level coarser representative
       double precision, dimension(:^D&), allocatable :: dvolumecoarse
+      !> Pointers below are used to switch between fine/coarse 
       !> Volumes of a cell, pointer
       double precision, dimension(:^D&), pointer :: dvolumep => Null()
+      !> Cell-center positions, pointer
+      double precision, dimension(:^D&,:), pointer :: xCCp => Null()
+      !> Cell sizes, pointer
+      double precision, dimension(:^D&,:), pointer :: dxp => Null()
       !> Areas of cell-center surfaces
       double precision, dimension(:^D&,:), allocatable :: surface
       !> Areas of cell-face surfaces
@@ -73,16 +78,20 @@ module mod_physicaldata
       double precision, dimension(:^DE&,:), allocatable :: xC
       !> Cell-center positions, one level coarser representative
       double precision, dimension(:^DE&,:), allocatable :: xcoarse
-      !> Cell-center positions for non-Cartesian coordinates
-      double precision, dimension(:^DE&,:), allocatable :: xg
       !> Cell sizes
       double precision, dimension(:^DE&,:), allocatable :: dx
+      !> Cell sizes, one level coarser
+      double precision, dimension(:^D&,:), allocatable :: dxcoarse
       !> Volumes of a cell
       double precision, dimension(:^DE&), allocatable :: dvolume
       !> Volumes of a cell, one level coarser representative
       double precision, dimension(:^DE&), allocatable :: dvolumecoarse
       !> Volumes of a cell, pointer
       double precision, dimension(:^DE&), pointer :: dvolumep => Null()
+      !> Cell-center positions, pointer
+      double precision, dimension(:^D&,:), pointer :: xCCp => Null()
+      !> Cell sizes, pointer
+      double precision, dimension(:^D&,:), pointer :: dxp => Null()
       !> Areas of cell-center surfaces 
       double precision, dimension(:^DE&,:), allocatable :: surface
       !> Areas of cell-face surfaces

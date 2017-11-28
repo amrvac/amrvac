@@ -14,6 +14,7 @@ contains
     usr_init_one_grid => initonegrid_usr
     usr_process_grid => store_sol_err
     usr_print_log => print_min_max
+    usr_refine_grid    => specialrefine_grid
 
     call set_coordinate_system("polar_2D")
     call rho_activate()
@@ -137,6 +138,33 @@ contains
               maxvals(i_err),modes(i_err,1),dsqrt(modes(i_err,2))
     end if
   end subroutine print_min_max
+
+  subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
+    ! Enforce additional refinement or coarsening
+    ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
+    ! you must set consistent values for integers refine/coarsen:
+    ! refine = -1 enforce to not refine
+    ! refine =  0 doesn't enforce anything
+    ! refine =  1 enforce refinement
+    ! coarsen = -1 enforce to not coarsen
+    ! coarsen =  0 doesn't enforce anything
+    ! coarsen =  1 enforce coarsen
+    use mod_global_parameters
+
+    integer, intent(in) :: igrid, level, ixG^L, ix^L
+    double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
+    integer, intent(inout) :: refine, coarsen
+
+    ! test with different levels of refinement enforced
+    if (all(x(ix^S,2) < dpi/4.0d0) .and. all(x(ix^S,1)>0.5d0)) then
+       refine=1
+   !! else
+   !!    refine=-1
+    endif
+
+  end subroutine specialrefine_grid
+
+
 
 end module mod_usr
 

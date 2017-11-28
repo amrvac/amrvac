@@ -3154,6 +3154,7 @@ subroutine calc_x(igrid,xC,xCC)
   double precision, intent(out)     :: xCC(ixMlo^D:ixMhi^D,ndim)
   ! .. local ..
   integer                           :: ixC^L, ixCC^L, ix, level
+  integer                           :: ig^D, index
   double precision                  :: dx^D
 
   level=node(plevel_,igrid)
@@ -3162,36 +3163,16 @@ subroutine calc_x(igrid,xC,xCC)
   ! coordinates of cell centers
   ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
   {do ix=ixCCmin^D,ixCCmax^D
-  xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
+  !!xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
+  xCC(ix^D%ixCC^S,^D)=pw(igrid)%x(ix^D%ixCC^S,^D)
   end do\}
-  if(stretched_grid) then
-    if(slab_stretched) then
-      do ix=ixCCmin^ND,ixCCmax^ND
-      xCC(ix^%{^ND}ixCC^S,^ND)=rnode(rpxmin^ND_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin^ND)
-      enddo
-    else
-      do ix=ixCCmin1,ixCCmax1
-      xCC(ix^%1ixCC^S,1)=rnode(rpxmin1_,igrid)/(one-half*logGs(level))*qsts(level)**(ix-ixCCmin1)
-      enddo
-    end if
-  end if
 
   ! coordinates of cell corners
   ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
   {do ix=ixCmin^D,ixCmax^D
-  xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
+  !!xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
+  xC(ix^D%ixC^S,^D)=pw(igrid)%x(ix^D%ixC^S,^D)+0.5d0*pw(igrid)%dx(ix^D%ixC^S,^D)
   end do\}
-  if(stretched_grid) then
-    if(slab_stretched) then
-      do ix=ixCmin^ND,ixCmax^ND
-      xC(ix^%{^ND}ixC^S,^ND)=rnode(rpxmin^ND_,igrid)*qsts(level)**(ix-ixCmin^ND)
-      enddo
-    else
-      do ix=ixCmin1,ixCmax1
-      xC(ix^%1ixC^S,1)=rnode(rpxmin1_,igrid)*qsts(level)**(ix-ixCmin1)
-      enddo
-    end if
-  end if
 
 end subroutine calc_x
 !=============================================================================

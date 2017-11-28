@@ -1,11 +1,12 @@
 ! setup.pl -d=2
  &filelist
-	base_filename='unif_in_circle'
+	base_filename='circle_in_circle'
         autoconvert=.true.
-	convert_type='vtuBCCmpi'
+	convert_type='vtuBmpi'
         typefilelog='special'
 
  /
+	convert_type='vtuBCCmpi'
 
  &savelist
         itsave(1,1)=0
@@ -16,7 +17,7 @@
  /
 
  &stoplist
-        time_max=0.75d0
+        time_max=0.5d0
  /
 
  &methodlist

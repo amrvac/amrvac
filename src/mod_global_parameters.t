@@ -71,9 +71,6 @@ module mod_global_parameters
   !> Cartesian geometry or not
   logical :: slab
 
-  !> Stretched Cartesian geometry or not
-  logical :: slab_stretched
-
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D
   !> extent of grid blocks in domain per dimension, in array over levels
@@ -94,14 +91,16 @@ module mod_global_parameters
   !> Number of ghost cells surrounding a grid
   integer :: nghostcells
 
-  !> Stretching factor for log stretch grid, cell size = logG * cell-center position
-  double precision :: logG
-  !> Stretching factor for log stretch grid, r_i = qst * r_i-1
-  double precision :: qst
-  !> Store stretching factors for each AMR level
-  double precision, allocatable :: logGs(:), qsts(:)
   !> Switch to use stretched grid
   logical :: stretched_grid=.false.
+  !> Stretched Cartesian geometry or not
+  logical :: slab_stretched
+  !> Switch to set stretched dimension
+  logical :: stretched_dim(ndim)
+  !> stretch factor between cells at AMR level 1
+  double precision :: qstretch_baselevel
+  !> Stretching factors and first cell size for each AMR level
+  double precision, allocatable :: qstretch(:), dxfirst(:), dxfirst_1mq(:)
 
   !> grid hierarchy info (level and grid indices)
   integer, parameter :: nodehi=^ND+1

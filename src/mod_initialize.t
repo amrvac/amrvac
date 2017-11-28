@@ -146,19 +146,6 @@ contains
     nullify(tree_root(ig^D)%node)
     {end do\}
 
-    if(stretched_grid) then
-      logGs(1)=logG
-      qsts(1)=qst
-      qsts(0)=qst**2
-      logGs(0)=2.d0*(qsts(0)-1.d0)/(qsts(0)+1.d0)
-      if(refine_max_level>1) then
-         do level=2,refine_max_level
-            qsts(level)=dsqrt(qsts(level-1))
-            logGs(level)=2.d0*(qsts(level)-1.d0)/(qsts(level)+1.d0) 
-         end do
-      end if
-    end if
-
     ! define index ranges and MPI send/receive derived datatype for ghost-cell swap
     call init_bc()
     type_send_srl=>type_send_srl_f

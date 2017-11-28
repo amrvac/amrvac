@@ -5,7 +5,7 @@ subroutine set_B0_grid(igrid)
 
   call set_B0_cell(pw(igrid)%B0(:^D&,:,0),pw(igrid)%x,ixG^LL,ixG^LL)
   call set_J0_cell(igrid,pw(igrid)%J0,ixG^LL,ixM^LL^LADD1)
-  call set_B0_face(igrid,pw(igrid)%x,ixG^LL,ixM^LL)
+  call set_B0_face(igrid,pw(igrid)%x,pw(igrid)%dx,ixG^LL,ixM^LL)
 
 end subroutine set_B0_grid
 
@@ -65,52 +65,37 @@ subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
 
 end subroutine set_J0_cell
 
-subroutine set_B0_face(igrid,x,ixI^L,ix^L)
+subroutine set_B0_face(igrid,x,delx,ixI^L,ix^L)
   use mod_global_parameters
 
   integer, intent(in) :: igrid, ixI^L, ix^L
-  double precision, intent(in) :: x(ixI^S,1:ndim)
+  double precision, intent(in) :: x(ixI^S,1:ndim), delx(ixI^S,1:ndim)
 
-  double precision :: xC(ixI^S,1:ndim),dx^D,xmin^D,xshift^D
+  double precision :: xC(ixI^S,1:ndim),xmin^D,xshift^D
   integer :: idims, ixC^L, ix, idims2
 
-  dx^D=rnode(rpdx^D_,igrid);
+  !!dx^D=rnode(rpdx^D_,igrid);
   xmin^D=rnode(rpxmin^D_,igrid);
-  if(stretched_grid) then
-    logG=logGs(node(plevel_,igrid))
-    qst=qsts(node(plevel_,igrid))
-  end if
 
+  if(stretched_grid)then
+     !TO CHECK: can probably use the x coordinate array directly, and substract dx/2 part
+     call mpistop("This is still to be verified for stretched grid")
+  endif
   do idims=1,ndim
      ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
+     ! always xshift=0 or 1/2
      xshift^D=half*(one-kr(^D,idims));
      do idims2=1,ndim
        select case(idims2)
        {case(^D)
          do ix = ixC^LIM^D
-           xC(ix^D%ixC^S,^D)=xmin^D+(dble(ix-nghostcells)-xshift^D)*dx^D
+           ! xshift=half: this is the cell center coordinate
+           ! xshift=0: this is the cell edge i+1/2 coordinate
+           !!xC(ix^D%ixC^S,^D)=xmin^D+(dble(ix-nghostcells)-xshift^D)*dx^D
+           xC(ix^D%ixC^S,^D)=x(ix^D%ixC^S,^D)+(half-xshift^D)*delx(ix^D%ixC^S,^D)
          end do\}
        end select
      end do
-     if(stretched_grid) then
-       if(slab_stretched) then
-         do ix = ixCmin^ND,ixCmax^ND
-           if(xshift^ND==0.d0) then
-             xC(ix^%{^ND}ixC^S,^ND)=xmin^ND*qst**(ix-nghostcells)
-           else
-             xC(ix^%{^ND}ixC^S,^ND)=xmin^ND/(one-half*logG)*qst**(ix-nghostcells-1)
-           end if
-         end do
-       else
-         do ix = ixCmin1,ixCmax1
-           if(xshift1==0.d0) then
-             xC(ix^%1ixC^S,1)=xmin1*qst**(ix-nghostcells)
-           else
-             xC(ix^%1ixC^S,1)=xmin1/(one-half*logG)*qst**(ix-nghostcells-1)
-           end if
-         end do
-       end if
-     end if
      call set_B0_cell(pw(igrid)%B0(:^D&,:,idims),xC,ixI^L,ixC^L)
   end do
 
