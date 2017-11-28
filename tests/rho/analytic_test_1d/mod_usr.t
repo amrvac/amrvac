@@ -63,14 +63,17 @@ contains
 
   subroutine print_error()
     use mod_global_parameters
-    use mod_input_output, only: get_volume_average
+    use mod_input_output, only: get_volume_average, get_global_maxima
     double precision   :: modes(nw, 2), volume
+    double precision   :: maxvals(nw)
 
+    call get_global_maxima(maxvals)
     call get_volume_average(1, modes(:, 1), volume)
     call get_volume_average(2, modes(:, 2), volume)
 
     if (mype == 0) then
-       write(*, "(A,2E16.8)") " time -- RMSE:", global_time, sqrt(modes(i_err, 2))
+       write(*, "(A,4E14.6)") " t err_1 err_2 err_inf:", global_time, &
+            modes(i_err, 1), sqrt(modes(i_err, 2)), maxvals(i_err)
     end if
   end subroutine print_error
 
@@ -81,7 +84,7 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     w(ixO^S,i_sol) = solution(x(ixO^S, 1), qt)
-    w(ixO^S,i_err) = w(ixO^S,rho_) - w(ixO^S,i_sol)
+    w(ixO^S,i_err) = abs(w(ixO^S,rho_) - w(ixO^S,i_sol))
   end subroutine set_error
 
 end module mod_usr
