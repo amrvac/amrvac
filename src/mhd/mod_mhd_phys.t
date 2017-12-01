@@ -2047,7 +2047,7 @@ contains
     select case(iB)
      case(1)
        ! 2nd order CD for divB=0 to set normal B component better
-       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1+1
@@ -2113,9 +2113,9 @@ contains
          end do
        end if
        }
-       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(2)
-       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1-1
        ixFmax1=ixOmax1-1
@@ -2181,9 +2181,9 @@ contains
          end do
        end if
        }
-       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(3)
-       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
@@ -2249,9 +2249,9 @@ contains
          end do
        end if
        }
-       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(4)
-       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
@@ -2317,10 +2317,10 @@ contains
          end do
        end if
        }
-       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      {^IFTHREED
      case(5)
-       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
@@ -2360,9 +2360,9 @@ contains
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if
-       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(6)
-       if(.not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
@@ -2402,7 +2402,7 @@ contains
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if
-       if(.not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      }
      case default
        call mpistop("Special boundary is not defined for this region")
