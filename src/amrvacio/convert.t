@@ -3153,7 +3153,7 @@ subroutine calc_x(igrid,xC,xCC)
   double precision, intent(out)     :: xC(ixMlo^D-1:ixMhi^D,ndim)
   double precision, intent(out)     :: xCC(ixMlo^D:ixMhi^D,ndim)
   ! .. local ..
-  integer                           :: ixC^L, ix, level
+  integer                           :: ixC^L, idims, level
 
   level=node(plevel_,igrid)
 
@@ -3162,18 +3162,15 @@ subroutine calc_x(igrid,xC,xCC)
 
   ! coordinates of cell corners
   ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
-  {do ix=ixCmin^D,ixCmax^D
-     xC(ix^D%ixC^S,^D)=pw(igrid)%x(ix^D%ixC^S,^D)+0.5d0*dx(^D,level)
-  end do\}
+  do idims=1,ndim
+    xC(ixC^S,idims)=pw(igrid)%x(ixC^S,idims)+0.5d0*dx(idims,level)
+  end do
+  ! rewrite the stretched coordinate
   if(stretched_grid) then
     if(slab_stretched) then
-      do ix=ixCmin^ND,ixCmax^ND
-        xC(ix^%{^ND}ixC^S,^ND)=pw(igrid)%x(ix^%{^ND}ixC^S,^ND)+0.5d0*pw(igrid)%dx(ix^%{^ND}ixC^S,^ND)
-      end do
+      xC(ixC^S,^ND)=pw(igrid)%x(ixC^S,^ND)+0.5d0*pw(igrid)%dx(ixC^S,^ND)
     else
-      do ix=ixCmin1,ixCmax1
-        xC(ix^%1ixC^S,1)=pw(igrid)%x(ix^%1ixC^S,1)+0.5d0*pw(igrid)%dx(ix^%1ixC^S,1)
-      end do
+      xC(ixC^S,1)=pw(igrid)%x(ixC^S,1)+0.5d0*pw(igrid)%dx(ixC^S,1)
     end if
   end if
 

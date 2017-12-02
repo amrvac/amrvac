@@ -5,7 +5,7 @@ subroutine set_B0_grid(igrid)
 
   call set_B0_cell(pw(igrid)%B0(:^D&,:,0),pw(igrid)%x,ixG^LL,ixG^LL)
   call set_J0_cell(igrid,pw(igrid)%J0,ixG^LL,ixM^LL^LADD1)
-  call set_B0_face(igrid,pw(igrid)%x,pw(igrid)%dx,ixG^LL,ixM^LL)
+  call set_B0_face(igrid,pw(igrid)%x,ixG^LL,ixM^LL)
 
 end subroutine set_B0_grid
 
@@ -65,37 +65,30 @@ subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
 
 end subroutine set_J0_cell
 
-subroutine set_B0_face(igrid,x,delx,ixI^L,ix^L)
+subroutine set_B0_face(igrid,x,ixI^L,ix^L)
   use mod_global_parameters
 
   integer, intent(in) :: igrid, ixI^L, ix^L
-  double precision, intent(in) :: x(ixI^S,1:ndim), delx(ixI^S,1:ndim)
+  double precision, intent(in) :: x(ixI^S,1:ndim)
 
-  double precision :: xC(ixI^S,1:ndim),xmin^D,xshift^D
-  integer :: idims, ixC^L, ix, idims2
+  double precision :: xC(ixI^S,1:ndim),dxu(ndim),xshift(ndim)
+  integer :: idims, ixC^L, idims2
 
-  !!dx^D=rnode(rpdx^D_,igrid);
-  xmin^D=rnode(rpxmin^D_,igrid);
+  ^D&dxu(^D)=rnode(rpdx^D_,igrid);
 
-  if(stretched_grid)then
-     !TO CHECK: can probably use the x coordinate array directly, and substract dx/2 part
-     call mpistop("This is still to be verified for stretched grid")
-  endif
   do idims=1,ndim
      ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
-     ! always xshift=0 or 1/2
-     xshift^D=half*(one-kr(^D,idims));
+     xshift(1:ndim)=half*(one-kr(1:ndim,idims))
      do idims2=1,ndim
-       select case(idims2)
-       {case(^D)
-         do ix = ixC^LIM^D
-           ! xshift=half: this is the cell center coordinate
-           ! xshift=0: this is the cell edge i+1/2 coordinate
-           !!xC(ix^D%ixC^S,^D)=xmin^D+(dble(ix-nghostcells)-xshift^D)*dx^D
-           xC(ix^D%ixC^S,^D)=x(ix^D%ixC^S,^D)+(half-xshift^D)*delx(ix^D%ixC^S,^D)
-         end do\}
-       end select
+       xC(ixC^S,idims2)=x(ixC^S,idims2)+(half-xshift(idims2))*dxu(idims2)
      end do
+     if(stretched_grid) then
+       if(slab_stretched.and.idims==^ND) then
+         xC(ixC^S,^ND)=x(ixC^S,^ND)+0.5d0*pw(igrid)%dx(ixC^S,^ND)
+       else if(.not.slab_stretched.and.idims==1) then
+         xC(ixC^S,1)=x(ixC^S,1)+0.5d0*pw(igrid)%dx(ixC^S,1)
+       end if
+     end if
      call set_B0_cell(pw(igrid)%B0(:^D&,:,idims),xC,ixI^L,ixC^L)
   end do
 
