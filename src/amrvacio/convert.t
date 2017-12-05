@@ -3164,15 +3164,20 @@ subroutine calc_x(igrid,xC,xCC)
   ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
   {do ix=ixCCmin^D,ixCCmax^D
   !!xCC(ix^D%ixCC^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-ixCCmin^D)+half)*dx^D
-  xCC(ix^D%ixCC^S,^D)=pw(igrid)%x(ix^D%ixCC^S,^D)
+    xCC(ix^D%ixCC^S,^D)=pw(igrid)%x(ix^D%ixCC^S,^D)
   end do\}
 
   ! coordinates of cell corners
   ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
-  {do ix=ixCmin^D,ixCmax^D
-  !!xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
-  xC(ix^D%ixC^S,^D)=pw(igrid)%x(ix^D%ixC^S,^D)+0.5d0*pw(igrid)%dx(ix^D%ixC^S,^D)
-  end do\}
+  if(slab)then
+    {do ix=ixCmin^D,ixCmax^D
+     xC(ix^D%ixC^S,^D)=rnode(rpxmin^D_,igrid)+dble(ix-ixCmin^D)*dx^D
+    end do\}
+  else
+    {do ix=ixCmin^D,ixCmax^D
+     xC(ix^D%ixC^S,^D)=pw(igrid)%x(ix^D%ixC^S,^D)+0.5d0*pw(igrid)%dx(ix^D%ixC^S,^D)
+    end do\}
+  endif
 
 end subroutine calc_x
 !=============================================================================

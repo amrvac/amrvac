@@ -163,7 +163,7 @@ if(stretched_grid) then
       index=ixshift+ix
       pw(igrid)%xcoarse(ix^%{^ND}ixCoG^S,^ND)=xprobmin^ND+dxfirst_1mq(level-1)&
                                          *(1.0d0-qstretch(level-1)**(index-1)) &
-                  + 0.5d0*dxfirst(level)*qstretch(level-1)**(index-1)
+                  + 0.5d0*dxfirst(level-1)*qstretch(level-1)**(index-1)
     end do
   else
     ! cylindrical/spherical and radial stretching
@@ -194,7 +194,7 @@ if(stretched_grid) then
       index=ixshift+ix
       pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=xprobmin1+dxfirst_1mq(level-1)&
                                 *(1.0d0-qstretch(level-1)**(index-1)) &
-                  + 0.5d0*dxfirst(level)*qstretch(level-1)**(index-1)
+                  + 0.5d0*dxfirst(level-1)*qstretch(level-1)**(index-1)
     end do
   endif
 endif

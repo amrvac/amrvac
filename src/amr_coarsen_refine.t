@@ -82,7 +82,7 @@ do ipe=0,npe-1
 
          call refine_tree_leaf(igridFi,ipeFi,igrid,ipe,active)
 
-         if (ipe==mype) call refine_grid(igridFi,ipeFi,igrid,ipe,active)
+         if (ipe==mype) call refine_grids(igridFi,ipeFi,igrid,ipe,active)
 
          ! refinement done
          call putnode(igrid,ipe)

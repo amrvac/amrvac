@@ -5,7 +5,7 @@ subroutine set_B0_grid(igrid)
 
   call set_B0_cell(pw(igrid)%B0(:^D&,:,0),pw(igrid)%x,ixG^LL,ixG^LL)
   call set_J0_cell(igrid,pw(igrid)%J0,ixG^LL,ixM^LL^LADD1)
-  call set_B0_face(igrid,pw(igrid)%x,pw(igrid)%dx,ixG^LL,ixM^LL)
+  call set_B0_face(igrid,pw(igrid)%x,ixG^LL,ixM^LL)
 
 end subroutine set_B0_grid
 
@@ -65,22 +65,22 @@ subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
 
 end subroutine set_J0_cell
 
-subroutine set_B0_face(igrid,x,delx,ixI^L,ix^L)
+subroutine set_B0_face(igrid,x,ixI^L,ix^L)
   use mod_global_parameters
 
   integer, intent(in) :: igrid, ixI^L, ix^L
-  double precision, intent(in) :: x(ixI^S,1:ndim), delx(ixI^S,1:ndim)
+  double precision, intent(in) :: x(ixI^S,1:ndim)
 
-  double precision :: xC(ixI^S,1:ndim),xmin^D,xshift^D
+  double precision :: delx(ixI^S,1:ndim)
+  double precision :: xC(ixI^S,1:ndim),xshift^D
   integer :: idims, ixC^L, ix, idims2
 
-  !!dx^D=rnode(rpdx^D_,igrid);
-  xmin^D=rnode(rpxmin^D_,igrid);
-
-  if(stretched_grid)then
-     !TO CHECK: can probably use the x coordinate array directly, and substract dx/2 part
-     call mpistop("This is still to be verified for stretched grid")
+  if(slab)then
+   ^D&delx(ixI^S,^D)=rnode(rpdx^D_,igrid)\
+  else
+   delx(ixI^S,1:ndim)=pw(igrid)%dx(ixI^S,1:ndim)
   endif
+
   do idims=1,ndim
      ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
      ! always xshift=0 or 1/2

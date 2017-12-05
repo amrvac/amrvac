@@ -1,5 +1,5 @@
 !=============================================================================
-subroutine refine_grid(child_igrid,child_ipe,igrid,ipe,active)
+subroutine refine_grids(child_igrid,child_ipe,igrid,ipe,active)
 
 use mod_global_parameters
 
@@ -28,7 +28,7 @@ end if
 ! remove solution space of igrid
 !call dealloc_node(igrid)
 
-end subroutine refine_grid
+end subroutine refine_grids
 !=============================================================================
 subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   use mod_physics, only: phys_to_primitive, phys_to_conserved
@@ -61,8 +61,8 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   {do ic^DB=1,2\}
   ichild=child_igrid(ic^D)
 
-  ixComin^D=ixMlo^D+(ic^D-1)*(ixMhi^D-ixMlo^D+1)/2\
-  ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2\
+  ixComin^D=ixMlo^D+(ic^D-1)*block_nx^D/2\
+  ixComax^D=ixMhi^D+(ic^D-2)*block_nx^D/2\
 
   if (prolongation_method=="linear") then
      xFimin^D=rnode(rpxmin^D_,ichild)\
@@ -114,7 +114,7 @@ invdxCo^D=1.d0/dxCo^D;
 el=ceiling(real(nghostcells)/2.)
 ixCgmin^D=ixComin^D-el\
 ixCgmax^D=ixComax^D+el\
-if(stretched_grid) call mpistop("to be adjusted for stretched grids: prolong_2ab")
+call mpistop("to be adjusted for stretched grids: prolong_2ab")
 {do ixCo^DB = ixCg^LIM^DB
    ! cell-centered coordinates of coarse grid point
    xCo^DB=xComin^DB+(dble(ixCo^DB-nghostcells)-half)*dxCo^DB
@@ -161,8 +161,9 @@ if(stretched_grid) call mpistop("to be adjusted for stretched grids: prolong_2ab
       if(slab) then
         eta^D=(xFi^D-xCo^D)*invdxCo^D;
       else
-        {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-              *two*(one-pw(igridFi)%dvolume(ix^DD) &
+        {eta^D=0.5d0*sign(one,xFi^D-xCo^D)*(one-pw(igridFi)%dvolume(ix^DD) &
+        !{eta^D=(xFi^D-xCo^D)*invdxCo^D &
+        !      *two*(one-pw(igridFi)%dvolume(ix^DD) &
               /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
       end if
       wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
@@ -185,19 +186,16 @@ double precision, intent(in) :: wCo(ixG^T,nw), xCo(ixG^T,1:ndim), xFi(ixG^T,1:nd
 double precision, intent(inout) :: wFi(ixG^T,nw)
 
 integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idim, iw
-integer :: ixFi^L
 double precision :: slopeL, slopeR, slopeC, signC, signR
 double precision :: slope(nw,ndim)
-double precision :: xCo^D, xFi^D, eta^D, invdxCo^D
+double precision :: eta^D
+!double precision :: xCo^D, xFi^D, invdxCo^D
 !-----------------------------------------------------------------------------
-invdxCo^D=1.d0/dxCo^D;
+!invdxCo^D=1.d0/dxCo^D;
 {do ixCo^DB = ixCo^LIM^DB
-   ! grid index in finer child block
+   ! lower left grid index in finer child block
    ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}
 
-   ! cell-centered coordinates of coarse grid point
-   ^D&xCo^D=xCo({ixCo^DD},^D)\
-   
    do idim=1,ndim
       hxCo^D=ixCo^D-kr(^D,idim)\
       jxCo^D=ixCo^D+kr(^D,idim)\
@@ -226,27 +224,31 @@ invdxCo^D=1.d0/dxCo^D;
          end select
       end do
    end do
-   if(.not.slab) then
-     ^D&invdxCo^D=1.d0/pw(igridCo)%dx(ixCo^DD,^D)\
-   endif
+   ! cell-centered coordinates of coarse grid point
+   !^D&xCo^D=xCo({ixCo^DD},^D)\
+   !if(.not.slab) then
+   !  ^D&invdxCo^D=1.d0/pw(igridCo)%dx(ixCo^DD,^D)\
+   !endif
    {do ix^DB=ixFi^DB,ixFi^DB+1 \}
       ! cell-centered coordinates of fine grid point
-      ^D&xFi^D=xFi({ix^DD},^D)\
-
-      ! normalized distance between fine/coarse cell center
-      ! in coarse cell: ranges from -0.5 to 0.5 in each direction
-      ! (origin is coarse cell center)
+      !^D&xFi^D=xFi({ix^DD},^D)\
       if(slab) then
-        eta^D=(xFi^D-xCo^D)*invdxCo^D;
+        ! normalized distance between fine/coarse cell center
+        ! in coarse cell: ranges from -0.5 to 0.5 in each direction
+        ! (origin is coarse cell center)
+        ! hence this is +1/4 or -1/4 on cartesian mesh
+        !eta^D=(xFi^D-xCo^D)*invdxCo^D;
+        eta^D=0.5d0*(dble(ix^D-ixFi^D)-0.5d0);
       else
-        {eta^D=(xFi^D-xCo^D)*invdxCo^D &
-              *two*(one-pw(igridFi)%dvolume(ix^DD) &
-              /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD))) \}
+        {! forefactor is -0.5d0 when ix=ixFi and +0.5d0 for ixFi+1
+        eta^D=(dble(ix^D-ixFi^D)-0.5d0)*(one-pw(igridFi)%dvolume(ix^DD) &
+              /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD)))  \}
       end if
       wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
                             + {(slope(1:nw,^D)*eta^D)+}
    {end do\}
 {end do\}
+
 
 if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,xFi)
 
