@@ -32,6 +32,8 @@ module mod_magnetofriction
   double precision :: mf_cy
   !> divb cleaning coefficient controls diffusion speed of divb
   double precision :: mf_cdivb
+  !> TVDLF dissipation coefficient controls the dissipation term
+  double precision :: mf_tvdlfeps
   !> time in magnetofriction process
   double precision :: tmf
   !> maximal speed for fd scheme
@@ -60,8 +62,9 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /mf_list/ mf_ditsave, mf_it_max, mf_cc, mf_cy, mf_cdivb
+    namelist /mf_list/ mf_ditsave, mf_it_max, mf_cc, mf_cy, mf_cdivb, mf_tvdlfeps
 
+    mf_tvdlfeps=1.d0
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
        read(unitpar, mf_list, end=111)
@@ -147,9 +150,7 @@ contains
     ! calculate magnetofrictional velocity
     call mf_velocity_update(dtfff)
     ! update velocity in ghost cells
-    bcphys=.false.
     call getbc(tmf,0.d0,mom(1)-1,ndir)
-    bcphys=.true.
     ! calculate initial values of metrics
     if(i==0) then
       call metrics
@@ -176,6 +177,12 @@ contains
       ! evolve
       ! =======
       call advectmf(1,ndim,tmf,dtfff)
+
+      if(i>=10000)  mf_tvdlfeps = 0.9998d0 * mf_tvdlfeps
+      !if(i<=60000) then
+      !  mf_cy=1.0001d0*mf_cy
+      !  mf_cy = min(1.0d0,mf_cy)
+      !end if
     
       i=i+1
       tmf=tmf+dtfff
@@ -226,7 +233,6 @@ contains
     type_recv_r=>type_recv_r_f
     type_send_p=>type_send_p_f
     type_recv_p=>type_recv_p_f
-    bcphys=.true.
     ! set velocity back to zero and convert primitive variables back to conservative ones
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        pw(igrid)%w(ixG^T,mom(:))=zero
@@ -299,7 +305,7 @@ contains
 
         {xOmin^D = xprobmin^D + 0.05d0*(xprobmax^D-xprobmin^D)\}
         {xOmax^D = xprobmax^D - 0.05d0*(xprobmax^D-xprobmin^D)\}
-        if(slab) then
+        if(slab.or.slab_stretched) then
           xOmin^ND = xprobmin^ND
         else
           xOmin1 = xprobmin1
@@ -473,7 +479,8 @@ contains
     double precision, intent(in)  :: x(ixI^S,1:ndim)
     double precision, intent(out) :: vhatmaxgrid
     
-    double precision              :: current(ixI^S,7-2*ndir:3),tmp(ixI^S),dxhm
+    double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S),dxhm
+    double precision :: dxhms(ixO^S)
     integer :: idirmin,idir,jdir,kdir
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)
@@ -499,11 +506,18 @@ contains
     else
       tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)         ! |B|**2
     endif
-    
-    dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-    do idir=1,ndir
-      w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))/tmp(ixO^S)
-    end do
+
+    if(slab) then
+      dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))/tmp(ixO^S)
+      end do
+    else
+      dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%dx(ixO^S,:),dim=ndim+1)
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))/tmp(ixO^S)
+      end do
+    end if
     vhatmaxgrid=maxval(sqrt(sum(w(ixO^S,mom(:))**2,dim=ndim+1)))
   
   end subroutine vhat
@@ -515,70 +529,59 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim),qdt,qvmax
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: dxhm,disbd(5),bfzone^D
-    integer :: ix^D
+    double precision :: dxhm,disbd(6),bfzone^D
+    double precision :: dxhms(ixO^S)
+    integer :: ix^D, idir
     logical :: buffer
 
-    dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-    dxhm=mf_cc*mf_cy/qvmax*dxhm/qdt
-    ! dxhm=mf_cc*mf_cy/qvmax
-    w(ixO^S,mom(:))=w(ixO^S,mom(:))*dxhm
-    buffer=.true.
-{^IFTHREED
-    if (buffer) then
-      bfzone1=0.05d0*(xprobmax1-xprobmin1)
-      bfzone2=0.05d0*(xprobmax2-xprobmin2)
-      bfzone3=0.05d0*(xprobmax3-xprobmin3)
-      if(slab) then
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-           disbd(1)=x(ix^D,1)-(xprobmin1+0.5d0*dxlevel(1))
-           disbd(2)=(xprobmax1-0.5d0*dxlevel(1))-x(ix^D,1)
-           disbd(3)=x(ix^D,2)-(xprobmin2+0.5d0*dxlevel(2))
-           disbd(4)=(xprobmax2-0.5d0*dxlevel(2))-x(ix^D,2)
-           disbd(5)=(xprobmax3-0.5d0*dxlevel(3))-x(ix^D,3)
-    
-           if(disbd(1)<bfzone1) then
-             w(ix^D,mom(:))=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(2)<bfzone1) then
-             w(ix^D,mom(:))=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(3)<bfzone2) then
-             w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(4)<bfzone2) then
-             w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(5)<bfzone3) then
-             w(ix^D,mom(:))=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,mom(:))
-           endif
-        {end do\}
-      else
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-           disbd(2)=(xprobmax1-0.5d0*dxlevel(1))-x(ix^D,1)
-           disbd(3)=x(ix^D,2)-(xprobmin2+0.5d0*dxlevel(2))
-           disbd(4)=(xprobmax2-0.5d0*dxlevel(2))-x(ix^D,2)
-           disbd(5)=(xprobmax3-0.5d0*dxlevel(3))-x(ix^D,3)
-           disbd(1)=x(ix^D,3)-(xprobmin3+0.5d0*dxlevel(3))
-    
-           if(disbd(2)<bfzone1) then
-             w(ix^D,mom(:))=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(3)<bfzone2) then
-             w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(4)<bfzone2) then
-             w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(5)<bfzone3) then
-             w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(5))/bfzone3)**2)*w(ix^D,mom(:))
-           endif
-           if(disbd(1)<bfzone3) then
-             w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(1))/bfzone3)**2)*w(ix^D,mom(:))
-           endif
-        {end do\}
-      end if
+    if(slab) then
+      dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+      dxhm=mf_cc*mf_cy/qvmax*dxhm/qdt
+      ! dxhm=mf_cc*mf_cy/qvmax
+      w(ixO^S,mom(:))=w(ixO^S,mom(:))*dxhm
+    else
+      dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%dx(ixO^S,:),dim=ndim+1)
+      dxhms(ixO^S)=mf_cc*mf_cy/qvmax*dxhms(ixO^S)/qdt
+      ! dxhm=mf_cc*mf_cy/qvmax
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=w(ixO^S,mom(idir))*dxhms(ixO^S)
+      end do
     end if
+
+{^IFTHREED
+    bfzone1=0.05d0*(xprobmax1-xprobmin1)
+    bfzone2=0.05d0*(xprobmax2-xprobmin2)
+    bfzone3=0.05d0*(xprobmax3-xprobmin3)
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       disbd(1)=x(ix^D,1)-xprobmin1
+       disbd(2)=xprobmax1-x(ix^D,1)
+       disbd(3)=x(ix^D,2)-xprobmin2
+       disbd(4)=xprobmax2-x(ix^D,2)
+       disbd(5)=x(ix^D,3)-xprobmin1
+       disbd(6)=xprobmax3-x(ix^D,3)
+
+       if(typeaxial=='slab'.or.typeaxial=='slabstretch') then
+         if(disbd(1)<bfzone1) then
+           w(ix^D,mom(:))=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,mom(:))
+         endif
+       else
+         if(disbd(5)<bfzone3) then
+           w(ix^D,mom(:))=(1.d0-((bfzone3-disbd(5))/bfzone3)**2)*w(ix^D,mom(:))
+         endif
+       end if
+       if(disbd(2)<bfzone1) then
+         w(ix^D,mom(:))=(1.d0-((bfzone1-disbd(2))/bfzone1)**2)*w(ix^D,mom(:))
+       endif
+       if(disbd(3)<bfzone2) then
+         w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(3))/bfzone2)**2)*w(ix^D,mom(:))
+       endif
+       if(disbd(4)<bfzone2) then
+         w(ix^D,mom(:))=(1.d0-((bfzone2-disbd(4))/bfzone2)**2)*w(ix^D,mom(:))
+       endif
+       if(disbd(6)<bfzone3) then
+         w(ix^D,mom(:))=(1.d0-((bfzone3-disbd(6))/bfzone3)**2)*w(ix^D,mom(:))
+       endif
+    {end do\}
 }
   end subroutine frictional_velocity
 
@@ -724,9 +727,7 @@ contains
     type_send_p=>type_send_p_p2
     type_recv_p=>type_recv_p_p2 
     ! update magnetofrictional velocity in ghost cells
-    bcphys=.false.
     call getbc(qt+qdt,qdt,mom(1)-1,ndir)
-    bcphys=.true.
 
   end subroutine advect1mf
 
@@ -913,7 +914,7 @@ contains
     
           ! Add TVDLF dissipation to the flux
           if (idir==idims) then
-            fLC(ixC^S)=fLC(ixC^S)-tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,mag(idir))-wLC(ixC^S,mag(idir)))
+            fLC(ixC^S)=fLC(ixC^S)-mf_tvdlfeps*tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,mag(idir))-wLC(ixC^S,mag(idir)))
           end if
           if (slab) then
             fC(ixC^S,idir,idims)=fLC(ixC^S)
@@ -1038,8 +1039,8 @@ contains
        do idir=1,ndir
           call getfluxmf(wCT,x,ixG^LL,ixCR^L,idir,idims,fCT)
           ! Lax-Friedrich splitting:
-          fp(ixCR^S,mag(idir)) = half * (fCT(ixCR^S) + tvdlfeps * cmax_global * wCT(ixCR^S,mag(idir)))
-          fm(ixCR^S,mag(idir)) = half * (fCT(ixCR^S) - tvdlfeps * cmax_global * wCT(ixCR^S,mag(idir)))
+          fp(ixCR^S,mag(idir)) = half * (fCT(ixCR^S) + mf_tvdlfeps * tvdlfeps * cmax_global * wCT(ixCR^S,mag(idir)))
+          fm(ixCR^S,mag(idir)) = half * (fCT(ixCR^S) - mf_tvdlfeps * tvdlfeps * cmax_global * wCT(ixCR^S,mag(idir)))
        end do ! iw loop
       
        ! now do the reconstruction of fp and fm:
@@ -1203,7 +1204,7 @@ contains
           ! add rempel dissipative flux, only second order version for now
           ! one could gradually reduce the dissipative flux to improve solutions 
           ! for computing steady states (Keppens et al. 2012, JCP)
-          fC(ixC^S,idir,idims)=fC(ixC^S,idir,idims)-tvdlfeps*half*vLC(ixC^S) &
+          fC(ixC^S,idir,idims)=fC(ixC^S,idir,idims)-mf_tvdlfeps*tvdlfeps*half*vLC(ixC^S) &
                                          *(wRC(ixC^S,mag(idir))-wLC(ixC^S,mag(idir)))
     
           if (slab) then
@@ -1318,8 +1319,7 @@ contains
                           /(^D&1.0d0/block%dx(ixp^S,^D)**2+)
        end if
        ! B_idim += eta*grad_idim(divb)
-       w(ixp^S,mag(idims))=w(ixp^S,mag(idims))+&
-             graddivb(ixp^S)-qdt*w(ixp^S,mom(idims))*divb(ixp^S)
+       w(ixp^S,mag(idims))=w(ixp^S,mag(idims))+graddivb(ixp^S)
     end do
 
   end subroutine divbclean

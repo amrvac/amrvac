@@ -584,7 +584,7 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
          tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
 }
         case('slabstretch')
-         if(jdir==1) then
+         if(jdir==^ND) then
            call gradient(tmp,ixI^L,ixO^L,jdir,tmp2)
          else
            tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
