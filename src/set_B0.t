@@ -78,22 +78,24 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
   if(slab)then
    ^D&delx(ixI^S,^D)=rnode(rpdx^D_,igrid)\
   else
+   ! for all non-cartesian and stretched coordinate(s)
    delx(ixI^S,1:ndim)=pw(igrid)%dx(ixI^S,1:ndim)
   endif
 
   do idims=1,ndim
      ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
-     xshift(1:ndim)=half*(one-kr(1:ndim,idims))
+     ! always xshift=0 or 1/2
+     xshift^D=half*(one-kr(^D,idims));
      do idims2=1,ndim
-       xC(ixC^S,idims2)=x(ixC^S,idims2)+(half-xshift(idims2))*dxu(idims2)
+       select case(idims2)
+       {case(^D)
+         do ix = ixC^LIM^D
+           ! xshift=half: this is the cell center coordinate
+           ! xshift=0: this is the cell edge i+1/2 coordinate
+           xC(ix^D%ixC^S,^D)=x(ix^D%ixC^S,^D)+(half-xshift^D)*delx(ix^D%ixC^S,^D)
+         end do\}
+       end select
      end do
-     if(stretched_grid) then
-       if(slab_stretched.and.idims==^ND) then
-         xC(ixC^S,^ND)=x(ixC^S,^ND)+0.5d0*pw(igrid)%dx(ixC^S,^ND)
-       else if(.not.slab_stretched.and.idims==1) then
-         xC(ixC^S,1)=x(ixC^S,1)+0.5d0*pw(igrid)%dx(ixC^S,1)
-       end if
-     end if
      call set_B0_cell(pw(igrid)%B0(:^D&,:,idims),xC,ixI^L,ixC^L)
   end do
 
