@@ -173,35 +173,86 @@ double precision, intent(in) :: xmin^D, dx^D
 logical, intent(in) :: need_only_volume
 
 integer :: idims, ix, ix^L, ixC^L
-integer :: level, ig^D, ig1Co, index, ixshift, ig{^ND}Co
+integer :: level, ig^D, igCo^D, index, ixshift
 double precision :: x(ixG^S,ndim), drs(ixG^S)
+double precision :: ddrs(ixG^S,ndim)
+
+integer :: itheta
+double precision :: aval, cval
+double precision, allocatable :: dtheta(:), theta(:), sumdtheta(:), &
+                                dthetacoarse(:), sumdthetacoarse(:)
 !-----------------------------------------------------------------------------
 ix^L=ixG^L^LSUB1;
 
 select case (typeaxial)
 case ("slabstretch")
-   ! this case stretches the final ndim direction in a cartesian grid
-  
-   ! grid level and global index for filling the grid itself
    level=node(plevel_,igrid)
    ^D&ig^D=node(pig^D_,igrid)\
-   ! when filling the coarse grid (through need_only_volume) then adjust
-   if(need_only_volume)then
-      level=level-1
-      ig{^ND}Co=(ig^ND-1)/2
-      ixshift=ig{^ND}Co*block_nx^ND+(1-mod(ig{^ND},2))*block_nx^ND/2-nghostcells
+   {if (stretched_dim(^D)) then
+      ! grid level and global index for filling the grid itself
+      level=node(plevel_,igrid)
+      ! when filling the coarse grid (through need_only_volume) then adjust
+      if(need_only_volume)then
+         level=level-1
+         igCo^D=(ig^D-1)/2
+         ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
+      else
+         ixshift=(ig^D-1)*block_nx^D-nghostcells
+      endif
+      do ix = ixG^LIM^D
+         index=ixshift+ix
+         ddrs(ix^D%ixG^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
+      end do
    else
-      ixshift=(ig^ND-1)*block_nx^ND-nghostcells
-   endif
-   do ix = ixG^LIM^ND
-      index=ixshift+ix
-      drs(ix^%{^ND}ixG^S)=dxfirst(level)*qstretch(level)**(index-1)
-   end do
+      ddrs(ixG^S,^D)=dx^D
+   endif \}
+   {if (stretched_symm_dim(^D)) then
+    allocate(theta(1:block_nx^D*ng^D(level)))
+    allocate(dtheta(1:block_nx^D*ng^D(level)))
+    allocate(sumdtheta(1:block_nx^D*ng^D(level)))
+    allocate(dthetacoarse(1:block_nx^D*ng^D(level)/2))
+    allocate(sumdthetacoarse(1:block_nx^D*ng^D(level)/2))
+    dtheta(1)=dxfirst(level,^D)
+    theta(1)=dxfirst(level,^D)*0.5d0
+    sumdtheta(1)=0.0d0
+    do itheta=2,block_nx^D*ng^D(level)
+       aval=3.0d0*dsin(theta(itheta-1))*dsin(dtheta(itheta-1)*0.5d0) &
+             +dcos(theta(itheta-1))*dcos(dtheta(itheta-1)*0.5d0)
+       cval=dsin(theta(itheta-1)+dtheta(itheta-1)*0.5d0)
+       dtheta(itheta)=acos(-aval*dsqrt(1.0d0-cval**2)+cval*dsqrt(1.0d0-aval**2))
+       theta(itheta)=theta(itheta-1)+dtheta(itheta-1)*0.5d0+dtheta(itheta)*0.5d0
+       sumdtheta(itheta)=sumdtheta(itheta-1)+dtheta(itheta-1)
+    enddo
+    dthetacoarse(1)=dtheta(1)+dtheta(2)
+    sumdthetacoarse(1)=0.0d0
+    do itheta=2,block_nx^D*ng^D(level)/2
+       dthetacoarse(itheta)=dtheta(2*itheta-1)+dtheta(2*itheta)
+       sumdthetacoarse(itheta)=sumdthetacoarse(itheta-1)+dthetacoarse(itheta-1)
+    enddo
+    if(need_only_volume)then
+       igCo^D=(ig^D-1)/2
+       ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
+       do ix = ixG^LIM^D
+         index=ixshift+ix
+         pw(igrid)%dxp(ix^D%ixG^S,^D)=(xprobmax^D-xprobmin^D)*dthetacoarse(index)/dpi 
+       end do
+    else
+       ixshift=(ig^D-1)*block_nx^D-nghostcells
+       do ix = ixG^LIM^D
+         index=ixshift+ix
+         pw(igrid)%dxp(ix^D%ixG^S,^D)=(xprobmax^D-xprobmin^D)*dtheta(index)/dpi 
+       enddo
+    endif
+    deallocate(theta)
+    deallocate(dtheta)
+    deallocate(sumdtheta)
+    deallocate(dthetacoarse)
+    deallocate(sumdthetacoarse)
+   endif \}
 
-   pw(igrid)%dvolumep(ixG^S)=drs(ixG^S){^DM&*dx^DM }
+   pw(igrid)%dvolumep(ixG^S)= {^D&ddrs(ixG^S,^D)|*}
 
-   pw(igrid)%dxp(ixG^S,^ND)=drs(ixG^S)
-   ^DM&pw(igrid)%dxp(ixG^S,^DM)=dx^DM;
+   pw(igrid)%dxp(ixG^S,1:ndim)=ddrs(ixG^S,1:ndim)
 
    if (need_only_volume) return
 
@@ -212,21 +263,21 @@ case ("slabstretch")
    }
    {^IFTWOD
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,1)=drs(ixC^S)
-   pw(igrid)%surface(ixC^S,1) =drs(ixC^S)
+   pw(igrid)%surfaceC(ixC^S,1)=ddrs(ixC^S,2)
+   pw(igrid)%surface(ixC^S,1) =ddrs(ixC^S,2)
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,2)=dx1
-   pw(igrid)%surface(ixC^S,2)=dx1
+   pw(igrid)%surfaceC(ixC^S,2)=ddrs(ixC^S,1)
+   pw(igrid)%surface(ixC^S,2)=ddrs(ixC^S,1)
    }
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,1)=dx2*drs(ixC^S)
+   pw(igrid)%surfaceC(ixC^S,1)= ddrs(ixC^S,2)*ddrs(ixC^S,3)
    pw(igrid)%surface(ixC^S,1)=pw(igrid)%surfaceC(ixC^S,1)
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,2)=dx1*drs(ixC^S)
+   pw(igrid)%surfaceC(ixC^S,2)= ddrs(ixC^S,1)*ddrs(ixC^S,3)
    pw(igrid)%surface(ixC^S,2)=pw(igrid)%surfaceC(ixC^S,2)
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,3)=dx1*dx2
+   pw(igrid)%surfaceC(ixC^S,3)= ddrs(ixC^S,1)*ddrs(ixC^S,2)
    pw(igrid)%surface(ixC^S,3)=pw(igrid)%surfaceC(ixC^S,3)
    }
 
@@ -242,14 +293,14 @@ case ("spherical")
      ! when filling the coarse grid (through need_only_volume) then adjust
      if(need_only_volume)then
         level=level-1
-        ig1Co=(ig1-1)/2
-        ixshift=ig1Co*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
+        igCo1=(ig1-1)/2
+        ixshift=igCo1*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
      else
         ixshift=(ig1-1)*block_nx1-nghostcells
      endif
      do ix = ixG^LIM1
         index=ixshift+ix
-        drs(ix,ixG^SE)=dxfirst(level)*qstretch(level)**(index-1)
+        drs(ix,ixG^SE)=dxfirst(level,1)*qstretch(level,1)**(index-1)
      end do
    else
      drs(ixG^S)=dx1
@@ -301,14 +352,14 @@ case ("cylindrical")
      ! when filling the coarse grid (through need_only_volume) then adjust
      if(need_only_volume)then
         level=level-1
-        ig1Co=(ig1-1)/2
-        ixshift=ig1Co*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
+        igCo1=(ig1-1)/2
+        ixshift=igCo1*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
      else
         ixshift=(ig1-1)*block_nx1-nghostcells
      endif
      do ix = ixG^LIM1
        index=ixshift+ix
-       drs(ix,ixG^SE)=dxfirst(level)*qstretch(level)**(index-1)
+       drs(ix,ixG^SE)=dxfirst(level,1)*qstretch(level,1)**(index-1)
      end do
    else
      drs(ixG^S)=dx1

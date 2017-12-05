@@ -803,7 +803,6 @@ contains
           nwmax=nwtail
         end if
 
-        !!print *,'doing ghost prolongation in range=',ixFi^L
         {do ixFi^DB = ixFi^LIM^DB
            ! cell-centered coordinates of fine grid point
            ! here we temporarily use an equidistant grid
@@ -819,32 +818,29 @@ contains
            !   ^D&local_invdxCo^D=1.d0/block%dxcoarse({ixCo^DD},^D)\
            !endif
 
-           ! normalized distance between fine/coarse cell center
-           ! in coarse cell: ranges from -0.5 to 0.5 in each direction
-           ! (origin is coarse cell center)
            if(slab) then
              ! actual cell-centered coordinates of fine grid point
              ^D&xFi^D=block%x({ixFi^DD},^D)\
              ! actual cell-centered coordinates of coarse grid point
              ^D&xCo^D=block%xcoarse({ixCo^DD},^D)\
+             ! normalized distance between fine/coarse cell center
+             ! in coarse cell: ranges from -0.5 to 0.5 in each direction
+             ! (origin is coarse cell center)
              ! this is essentially +1/4 or -1/4 on cartesian mesh
              eta^D=(xFi^D-xCo^D)*invdxCo^D;
            else
              select case(icase)
               case(0)
-               !!print *,'even number of ghostcells',nghostcells,icase
              {! here we assume an even number of ghostcells!!!
              ixshift^D=2*(mod(ixFi^D,2)-1)+1
              if(ixshift^D>0.0d0)then
                 ! oneven fine grid points
                 eta^D=-0.5d0*(one-block%dvolume(ixFi^DD) &
                   /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD))) 
-                !!if(ixFi^D==ixGhi^D)call mpistop("oh no!")
              else
                 ! even fine grid points
                 eta^D=+0.5d0*(one-block%dvolume(ixFi^DD) &
                   /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD))) 
-                !!if(ixFi^D==ixGlo^D)call mpistop("oh no!")
              endif\}
               case(1)
              {! here we assume an odd number of ghostcells!!!

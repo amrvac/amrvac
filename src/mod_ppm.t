@@ -68,13 +68,8 @@ contains
     ! Eq. 66, Miller and Colella 2002, JCP 183, 26
     qLC(ixO^S)=qLC(ixO^S)+half*dqC(ixO^S)&
          +(ldq(ixO^S)-ldq(ixR^S))/6.0d0
-    if (flatppm)then
-       qRC(ixL^S)=qRC(ixLL^S)+(half*dqC(ixL^S)&
-            +(ldq(ixL^S)-ldq(ixO^S))/6.0d0)
-    else
-       qRC(ixL^S)=qRC(ixL^S) -(half*dqC(ixL^S)&
-            +(ldq(ixL^S)-ldq(ixO^S))/6.0d0)
-    endif
+    qRC(ixL^S)=qRC(ixL^S) -(half*dqC(ixL^S)&
+        -(ldq(ixL^S)-ldq(ixO^S))/6.0d0)
 
     ! make sure that min wCT(i)<wLC(i)<wCT(i+1) same for wRC(i)
     call extremaq(ixI^L,kxC^L,qCT,1,qMax,qMin)
@@ -172,13 +167,8 @@ contains
     ! Eq. 66,  Miller and Colella 2002, JCP 183, 26 
     wLC(ixO^S,1:nwflux)=wLC(ixO^S,1:nwflux)+half*dwC(ixO^S,1:nwflux)&
          +(ldw(ixO^S,1:nwflux)-ldw(ixR^S,1:nwflux))/6.0d0
-    if(flatppm)then 
-       wRC(ixL^S,1:nwflux)=wRC(ixLL^S,1:nwflux)+half*dwC(ixL^S,1:nwflux)&
-            +(ldw(ixL^S,1:nwflux)-ldw(ixO^S,1:nwflux))/6.0d0
-    else
-       wRC(ixL^S,1:nwflux)=wRC(ixL^S,1:nwflux)-(half*dwC(ixL^S,1:nwflux)&
-            +(ldw(ixL^S,1:nwflux)-ldw(ixO^S,1:nwflux))/6.0d0)
-    endif
+    wRC(ixL^S,1:nwflux)=wRC(ixL^S,1:nwflux)-(half*dwC(ixL^S,1:nwflux)&
+         +(ldw(ixL^S,1:nwflux)-ldw(ixO^S,1:nwflux))/6.0d0)
 
     ! make sure that min wCT(i)<wLC(i)<wCT(i+1) same for wRC(i)
     call extremaw(ixI^L,kxC^L,wCT,1,wMax,wMin)

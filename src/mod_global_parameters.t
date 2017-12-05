@@ -97,10 +97,12 @@ module mod_global_parameters
   logical :: slab_stretched
   !> Switch to set stretched dimension
   logical :: stretched_dim(ndim)
-  !> stretch factor between cells at AMR level 1
-  double precision :: qstretch_baselevel
-  !> Stretching factors and first cell size for each AMR level
-  double precision, allocatable :: qstretch(:), dxfirst(:), dxfirst_1mq(:)
+  !> Switch to set symmetrically stretched dimension
+  logical :: stretched_symm_dim(ndim)
+  !> stretch factor between cells at AMR level 1, per dimension
+  double precision :: qstretch_baselevel(ndim)
+  !> Stretching factors and first cell size for each AMR level and dimension
+  double precision, allocatable :: qstretch(:,:), dxfirst(:,:), dxfirst_1mq(:,:)
 
   !> grid hierarchy info (level and grid indices)
   integer, parameter :: nodehi=^ND+1
@@ -510,7 +512,7 @@ module mod_global_parameters
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps
   logical, allocatable          :: loglimit(:), logflag(:)
-  logical                       :: flathllc,flatcd,flatsh,flatppm
+  logical                       :: flathllc,flatcd,flatsh
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
   logical                       :: dimsplit

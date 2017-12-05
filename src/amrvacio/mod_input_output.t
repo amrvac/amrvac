@@ -153,7 +153,7 @@ contains
 
     namelist /meshlist/ refine_max_level,nbufferx^D,refine_threshold,&
          derefine_ratio, refine_criterion, stretched_grid, stretched_dim, &
-         qstretch_baselevel, &
+         qstretch_baselevel, stretched_symm_dim, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight, prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
@@ -259,7 +259,8 @@ contains
     ! using stretched grid: not by default
     stretched_grid = .false.
     stretched_dim(1:ndim)=.false.
-    qstretch_baselevel = bigdouble
+    stretched_symm_dim(1:ndim)=.false.
+    qstretch_baselevel(1:ndim) = bigdouble
 
     ! IO defaults
     it_init       = 0
@@ -773,60 +774,55 @@ contains
     endif
  
     if(stretched_grid) then
-       allocate(qstretch(0:nlevelshi),dxfirst(0:nlevelshi),dxfirst_1mq(0:nlevelshi)) 
-       if(qstretch_baselevel<1.0d0.or.qstretch_baselevel==bigdouble) then 
-          if(mype==0) then
-             write(*,*) 'stretched grid needs finite qstretch_baselevel>1'
-             write(*,*) 'will try default value for qstretch_baselevel'
-          endif
-          if(slab_stretched) then
-             if(xprobmin^ND>smalldouble)then
-                qstretch_baselevel=(xprobmax^ND/xprobmin^ND)**(1.d0/dble(domain_nx^ND))
-             else
-                call mpistop("can not set qstretch_baselevel automatically")
+       allocate(qstretch(0:nlevelshi,1:ndim),dxfirst(0:nlevelshi,1:ndim),dxfirst_1mq(0:nlevelshi,1:ndim)) 
+       qstretch(0:nlevelshi,1:ndim)=0.0d0
+       dxfirst(0:nlevelshi,1:ndim)=0.0d0
+       {if(stretched_dim(^D)) then
+           ! first some sanity checks 
+           if(qstretch_baselevel(^D)<1.0d0.or.qstretch_baselevel(^D)==bigdouble) then 
+             if(mype==0) then
+               write(*,*) 'stretched grid needs finite qstretch_baselevel>1'
+               write(*,*) 'will try default value for qstretch_baselevel in dimension', ^D
              endif
-          else
-             if(xprobmin1>smalldouble)then
-                qstretch_baselevel=(xprobmax1/xprobmin1)**(1.d0/dble(domain_nx1))
+             if(xprobmin^D>smalldouble)then
+               qstretch_baselevel(^D)=(xprobmax^D/xprobmin^D)**(1.d0/dble(domain_nx^D))
              else
-                call mpistop("can not set qstretch_baselevel automatically")
+               call mpistop("can not set qstretch_baselevel automatically")
              endif
-          endif
-       endif
-       qstretch(1)=qstretch_baselevel
-       if(slab_stretched) then
-          if(mod(block_nx^ND,2)==1) &
-             call mpistop("stretched grid needs even block size block_nxND")
-          if(mod(domain_nx^ND,block_nx^ND)/=0) &
-             call mpistop("block size for ND must divide domain size")
-          if(mod(domain_nx^ND/block_nx^ND,2)/=0) &
-             call mpistop("number level 1 blocks in ND must be even")
-          dxfirst(1)=(xprobmax^ND-xprobmin^ND) &
-                *(1.0d0-qstretch(1))/(1.0d0-qstretch(1)**domain_nx^ND)
-       else
-          if(mod(block_nx1,2)==1) &
-             call mpistop("stretched grid needs even block size block_nx1")
-          if(mod(domain_nx1,block_nx1)/=0) &
-             call mpistop("block size must divide domain size")
-          if(mod(domain_nx1/block_nx1,2)/=0) &
-             call mpistop("number level 1 blocks must be even")
-          dxfirst(1)=(xprobmax1-xprobmin1) &
-                *(1.0d0-qstretch(1))/(1.0d0-qstretch(1)**domain_nx1)
-       endif
-       qstretch(0)=qstretch(1)**2
-       dxfirst(0)=dxfirst(1)*(1.0d0+qstretch(1))
-       if(refine_max_level>1)then
-          do ilev=2,refine_max_level
-             qstretch(ilev)=dsqrt(qstretch(ilev-1))
-             dxfirst(ilev)=dxfirst(ilev-1)/(1.0d0+dsqrt(qstretch(ilev-1)))
-          enddo
-       endif
-       dxfirst_1mq(0:refine_max_level)=dxfirst(0:refine_max_level) &
-                              /(1.0d0-qstretch(0:refine_max_level))
-       if(mype==0) then
-          write(*,*) 'Using stretched grid with qs=',qstretch(0:refine_max_level)
-          write(*,*) '        and first cell sizes=',dxfirst(0:refine_max_level)
-       endif
+           endif
+           qstretch(1,^D)=qstretch_baselevel(^D)
+           if(mod(block_nx^D,2)==1) &
+             call mpistop("stretched grid needs even block size block_nxD")
+           if(mod(domain_nx^D,block_nx^D)/=0) &
+             call mpistop("block size for D must divide domain size")
+           if(mod(domain_nx^D/block_nx^D,2)/=0) &
+             call mpistop("number level 1 blocks in D must be even")
+           dxfirst(1,^D)=(xprobmax^D-xprobmin^D) &
+                *(1.0d0-qstretch(1,^D))/(1.0d0-qstretch(1,^D)**domain_nx^D)
+           qstretch(0,^D)=qstretch(1,^D)**2
+           dxfirst(0,^D)=dxfirst(1,^D)*(1.0d0+qstretch(1,^D))
+           if(refine_max_level>1)then
+              do ilev=2,refine_max_level
+                 qstretch(ilev,^D)=dsqrt(qstretch(ilev-1,^D))
+                 dxfirst(ilev,^D)=dxfirst(ilev-1,^D)/(1.0d0+dsqrt(qstretch(ilev-1,^D)))
+              enddo
+           endif
+        endif \}
+        dxfirst_1mq(0:refine_max_level,1:ndim)=dxfirst(0:refine_max_level,1:ndim) &
+                              /(1.0d0-qstretch(0:refine_max_level,1:ndim))
+        if(mype==0) then
+           {if(stretched_dim(^D)) then
+              write(*,*) 'Stretched dimension ', ^D
+              write(*,*) 'Using stretched grid with qs=',qstretch(0:refine_max_level,^D)
+              write(*,*) '        and first cell sizes=',dxfirst(0:refine_max_level,^D)
+           endif\}
+        end if
+       {if(stretched_symm_dim(^D)) then
+           if(mype==0) then
+               write(*,*) 'will apply symmetric stretch in dimension', ^D
+           endif
+           call mpistop("HERE: to compute for each level the dxfirst(level,idim)")
+        endif \}
     end if
 
     if(sum(w_refine_weight(:))==0) w_refine_weight(1) = 1.d0

@@ -51,9 +51,14 @@ use mod_global_parameters
 integer, intent(in) :: igrid
 
 integer :: level, ig^D, ign^D, ixCoG^L, ixCoCoG^L, ix, i^D
-integer :: imin, imax, index, ig1Co, ig{^ND}Co, ixshift
+integer :: imin, imax, index, igCo^D, ixshift
 double precision :: rXmin^D, dx^D
-logical, save:: first=.true.
+logical, save:: first(1:ndim)=.true.
+
+integer :: itheta
+double precision :: aval, cval
+double precision, allocatable :: dtheta(:), theta(:), sumdtheta(:), &
+                                dthetacoarse(:), sumdthetacoarse(:)
 !-----------------------------------------------------------------------------
 ixCoGmin^D=1;
 !ixCoGmax^D=ixGhi^D/2+nghostcells;
@@ -134,69 +139,91 @@ end do\}
 end do\}
 
 if(stretched_grid) then
-  if(slab_stretched)then
-    ! cartesian and last coordinate stretching
-    imin=(ig^ND-1)*block_nx^ND+1
-    imax=ig^ND*block_nx^ND
-    rnode(rpxmin^ND_,igrid)=xprobmin^ND+dxfirst_1mq(level) &
-                 *(1.0d0-qstretch(level)**(imin-1))
-    rnode(rpxmax^ND_,igrid)=xprobmin^ND+dxfirst_1mq(level) &
-                 *(1.0d0-qstretch(level)**imax)
+  {if(stretched_dim(^D))then
+    imin=(ig^D-1)*block_nx^D+1
+    imax=ig^D*block_nx^D
+    rnode(rpxmin^D_,igrid)=xprobmin^D+dxfirst_1mq(level,^D) &
+                 *(1.0d0-qstretch(level,^D)**(imin-1))
+    rnode(rpxmax^D_,igrid)=xprobmin^D+dxfirst_1mq(level,^D) &
+                 *(1.0d0-qstretch(level,^D)**imax)
     ! fix possible out of bound due to precision
-    if(rnode(rpxmax^ND_,igrid)>xprobmax^ND) then
-       if(first) then
-          write(*,*) 'Warning: edge beyond domain?',igrid,imax,rnode(rpxmax^ND_,igrid)
-          first=.false.
+    if(rnode(rpxmax^D_,igrid)>xprobmax^D) then
+       if(first(^D)) then
+          write(*,*) 'Warning: edge beyond domain?', ^D,igrid,imax,rnode(rpxmax^D_,igrid)
+          first(^D)=.false.
        endif
-       rnode(rpxmax^ND_,igrid)=xprobmax^ND
+       rnode(rpxmax^D_,igrid)=xprobmax^D
     endif
-    ixshift=(ig^ND-1)*block_nx^ND-nghostcells
-    do ix=ixGlo^ND,ixGhi^ND
+    ixshift=(ig^D-1)*block_nx^D-nghostcells
+    do ix=ixGlo^D,ixGhi^D
       index=ixshift+ix
-      pw(igrid)%x(ix^%{^ND}ixG^T,^ND)=xprobmin^ND+dxfirst_1mq(level)&
-                                *(1.0d0-qstretch(level)**(index-1)) &
-                   + 0.5d0*dxfirst(level)*qstretch(level)**(index-1)
+      pw(igrid)%x(ix^D%ixG^T,^D)=xprobmin^D+dxfirst_1mq(level,^D)&
+                                *(1.0d0-qstretch(level,^D)**(index-1)) &
+                   + 0.5d0*dxfirst(level,^D)*qstretch(level,^D)**(index-1)
     enddo
-    ig{^ND}Co=(ig^ND-1)/2
-    ixshift=ig{^ND}Co*block_nx^ND+(1-mod(ig{^ND},2))*block_nx^ND/2-nghostcells
-    do ix=ixCoGmin^ND,ixCoGmax^ND
+    igCo^D=(ig^D-1)/2
+    ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
+    do ix=ixCoGmin^D,ixCoGmax^D
       index=ixshift+ix
-      pw(igrid)%xcoarse(ix^%{^ND}ixCoG^S,^ND)=xprobmin^ND+dxfirst_1mq(level-1)&
-                                         *(1.0d0-qstretch(level-1)**(index-1)) &
-                  + 0.5d0*dxfirst(level-1)*qstretch(level-1)**(index-1)
+      pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=xprobmin^D+dxfirst_1mq(level-1,^D)&
+                                         *(1.0d0-qstretch(level-1,^D)**(index-1)) &
+                  + 0.5d0*dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
     end do
-  else
-    ! cylindrical/spherical and radial stretching
-    imin=(ig1-1)*block_nx1+1
-    imax=ig1*block_nx1
-    rnode(rpxmin1_,igrid)=xprobmin1+dxfirst_1mq(level) &
-                 *(1.0d0-qstretch(level)**(imin-1))
-    rnode(rpxmax1_,igrid)=xprobmin1+dxfirst_1mq(level) &
-                 *(1.0d0-qstretch(level)**imax)
+   endif\}
+  {if(stretched_symm_dim(^D))then
+    allocate(theta(1:block_nx^D*ng^D(level)))
+    allocate(dtheta(1:block_nx^D*ng^D(level)))
+    allocate(sumdtheta(1:block_nx^D*ng^D(level)))
+    allocate(dthetacoarse(1:block_nx^D*ng^D(level)/2))
+    allocate(sumdthetacoarse(1:block_nx^D*ng^D(level)/2))
+    dtheta(1)=dxfirst(level,^D)
+    theta(1)=dxfirst(level,^D)*0.5d0
+    sumdtheta(1)=0.0d0
+    do itheta=2,block_nx^D*ng^D(level)
+       aval=3.0d0*dsin(theta(itheta-1))*dsin(dtheta(itheta-1)*0.5d0) &
+             +dcos(theta(itheta-1))*dcos(dtheta(itheta-1)*0.5d0)
+       cval=dsin(theta(itheta-1)+dtheta(itheta-1)*0.5d0)
+       dtheta(itheta)=acos(-aval*dsqrt(1.0d0-cval**2)+cval*dsqrt(1.0d0-aval**2))
+       theta(itheta)=theta(itheta-1)+dtheta(itheta-1)*0.5d0+dtheta(itheta)*0.5d0
+       sumdtheta(itheta)=sumdtheta(itheta-1)+dtheta(itheta-1)
+    enddo
+    dthetacoarse(1)=dtheta(1)+dtheta(2)
+    sumdthetacoarse(1)=0.0d0
+    do itheta=2,block_nx^D*ng^D(level)/2
+       dthetacoarse(itheta)=dtheta(2*itheta-1)+dtheta(2*itheta)
+       sumdthetacoarse(itheta)=sumdthetacoarse(itheta-1)+dthetacoarse(itheta-1)
+    enddo
+    imin=(ig^D-1)*block_nx^D+1
+    imax=ig^D*block_nx^D
+    rnode(rpxmin^D_,igrid)=xprobmin^D+(xprobmax^D-xprobmin^D)*sumdtheta(imin)/dpi
+    rnode(rpxmax^D_,igrid)=xprobmin^D+(xprobmax^D-xprobmin^D)*(sumdtheta(imax)+dtheta(imax))/dpi
     ! fix possible out of bound due to precision
-    if(rnode(rpxmax1_,igrid)>xprobmax1) then
-       if(first) then
-          write(*,*) 'Warning: edge beyond domain?',igrid,imax,rnode(rpxmax1_,igrid)
-          first=.false.
+    if(rnode(rpxmax^D_,igrid)>xprobmax^D) then
+       if(first(^D)) then
+          write(*,*) 'Warning: edge beyond domain?', ^D,igrid,imax,rnode(rpxmax^D_,igrid)
+          first(^D)=.false.
        endif
-       rnode(rpxmax1_,igrid)=xprobmax1
+       rnode(rpxmax^D_,igrid)=xprobmax^D
     endif
-    ixshift=(ig1-1)*block_nx1-nghostcells
-    do ix=ixGlo1,ixGhi1
+    ixshift=(ig^D-1)*block_nx^D-nghostcells
+    do ix=ixGlo^D,ixGhi^D
       index=ixshift+ix
-      pw(igrid)%x(ix^%1ixG^T,1)=xprobmin1+dxfirst_1mq(level)&
-                           *(1.0d0-qstretch(level)**(index-1)) &
-                  + 0.5d0*dxfirst(level)*qstretch(level)**(index-1)
+      pw(igrid)%x(ix^D%ixG^T,^D)=xprobmin^D+(xprobmax^D-xprobmin^D)*sumdtheta(index)/dpi &
+                   + 0.5d0*dtheta(index)
     enddo
-    ig1Co=(ig1-1)/2
-    ixshift=ig1Co*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
-    do ix=ixCoGmin1,ixCoGmax1
+    igCo^D=(ig^D-1)/2
+    ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
+    do ix=ixCoGmin^D,ixCoGmax^D
       index=ixshift+ix
-      pw(igrid)%xcoarse(ix^%1ixCoG^S,1)=xprobmin1+dxfirst_1mq(level-1)&
-                                *(1.0d0-qstretch(level-1)**(index-1)) &
-                  + 0.5d0*dxfirst(level-1)*qstretch(level-1)**(index-1)
+      pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=xprobmin^D+(xprobmax^D-xprobmin^D)*sumdthetacoarse(index)/dpi &
+                   + 0.5d0*dthetacoarse(index)
     end do
-  endif
+    deallocate(theta)
+    deallocate(dtheta)
+    deallocate(sumdtheta)
+    deallocate(dthetacoarse)
+    deallocate(sumdthetacoarse)
+   endif\}
 endif
 
 if (.not.slab) call getgridgeo(igrid)
