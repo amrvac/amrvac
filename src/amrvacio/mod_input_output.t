@@ -143,7 +143,7 @@ contains
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,&
          nxdiffusehllc, flathllc, tvdlfeps,&
-         flatcd,flatsh,flatppm,&
+         flatcd,flatsh,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
          solve_internal_e, angmomfix
@@ -347,7 +347,6 @@ contains
 
     flatcd          = .false.
     flatsh          = .false.
-    flatppm         = .true.
     typesourcesplit = 'sfs'
     allocate(loglimit(nw))
     loglimit(1:nw)  = .false.
