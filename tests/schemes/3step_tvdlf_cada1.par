@@ -1,0 +1,13 @@
+ &filelist
+        base_filename  = '_3step_tvdlf_cada1'
+ /
+
+ &methodlist
+        time_integrator  = 'threestep'
+        flux_scheme    = 20*'tvdlf'
+        limiter = 20*'cada'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /
