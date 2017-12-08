@@ -92,7 +92,7 @@ module mod_global_parameters
   integer :: nghostcells
 
   !> Switch to use stretched grid
-  logical :: stretched_grid=.false.
+  logical :: stretched_grid
   !> Stretched Cartesian geometry or not
   logical :: slab_stretched
   !> Switch to set stretched dimension
@@ -100,9 +100,18 @@ module mod_global_parameters
   !> Switch to set symmetrically stretched dimension
   logical :: stretched_symm_dim(ndim)
   !> stretch factor between cells at AMR level 1, per dimension
-  double precision :: qstretch_baselevel(ndim)
+  double precision ::  qstretch_baselevel(ndim)
+  !> (even) number of (symmetrically) stretched 
+  !> blocks at AMR level 1, per dimension
+  integer ::  nstretchedblocks_baselevel(ndim)
+  !> (even) number of (symmetrically) stretched blocks per level and dimension
+  integer, allocatable ::  nstretchedblocks(:,:)
+  !> physical extent of stretched border in symmetric stretching
+  !> must be smaller than (xprobmax-xprobmin)/2
+  double precision :: xstretch^D
   !> Stretching factors and first cell size for each AMR level and dimension
-  double precision, allocatable :: qstretch(:,:), dxfirst(:,:), dxfirst_1mq(:,:)
+  double precision, allocatable :: qstretch(:,:), dxfirst(:,:),  &
+                                   dxfirst_1mq(:,:), dxmid(:,:)
 
   !> grid hierarchy info (level and grid indices)
   integer, parameter :: nodehi=^ND+1

@@ -116,46 +116,22 @@ subroutine getgridgeo(igrid)
 use mod_global_parameters
 
 integer, intent(in) :: igrid
-
-integer :: ixCoG^L
-double precision :: xmin^D, dx^D
 !-----------------------------------------------------------------------------
-
-ixCoGmin^D=1; 
-!ixCoGmax^D=ixGhi^D/2+nghostcells;
-ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
 
 if(.not. allocated(pw(igrid)%surfaceC)) then
   ! allocate geometric info
   allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
-           pw(igrid)%surface(ixG^T,1:ndim), &
-           pw(igrid)%dvolume(ixG^T), &
-           pw(igrid)%dx(ixG^T,1:ndim),&
-           pw(igrid)%dxcoarse(ixCoG^S,1:ndim), &
-           pw(igrid)%dvolumecoarse(ixCoG^S))
+           pw(igrid)%surface(ixG^T,1:ndim))
 end if
 
-dx^D=rnode(rpdx^D_,igrid);
-xmin^D=rnode(rpxmin^D_,igrid);
-
-! first fill the grid itself
-pw(igrid)%dvolumep=>pw(igrid)%dvolume
-pw(igrid)%dxp=>pw(igrid)%dx
-pw(igrid)%xCCp=>pw(igrid)%x
-call fillgeo(igrid,ixG^LL,xmin^D,dx^D,.false.)
-
-! then fill its coarse representation
-dx^D=2.d0*rnode(rpdx^D_,igrid);
-pw(igrid)%dvolumep=>pw(igrid)%dvolumecoarse
-pw(igrid)%dxp=>pw(igrid)%dxcoarse
-pw(igrid)%xCCp=>pw(igrid)%xcoarse
-call fillgeo(igrid,ixCoG^L,xmin^D,dx^D,.true.)
+! fill the grid itself
+call fillgeo(igrid,ixG^LL)
 
 end subroutine getgridgeo
 !=============================================================================
 subroutine putgridgeo(igrid)
 
-  use mod_global_parameters
+use mod_global_parameters
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
@@ -164,97 +140,24 @@ deallocate(pw(igrid)%surfaceC,pw(igrid)%surface,&
 
 end subroutine putgridgeo
 !=============================================================================
-subroutine fillgeo(igrid,ixG^L,xmin^D,dx^D,need_only_volume)
+subroutine fillgeo(igrid,ixG^L)
 
 use mod_global_parameters
 
 integer, intent(in) :: igrid, ixG^L
-double precision, intent(in) :: xmin^D, dx^D
-logical, intent(in) :: need_only_volume
 
-integer :: idims, ix, ix^L, ixC^L
-integer :: level, ig^D, igCo^D, index, ixshift
-double precision :: x(ixG^S,ndim), drs(ixG^S)
-double precision :: ddrs(ixG^S,ndim)
-
-integer :: itheta
-double precision :: aval, cval
-double precision, allocatable :: dtheta(:), theta(:), sumdtheta(:), &
-                                dthetacoarse(:), sumdthetacoarse(:)
+integer :: ix^L, ixC^L
+double precision :: x(ixG^S,ndim), drs(ixG^S), dx2(ixG^S), dx3(ixG^S)
 !-----------------------------------------------------------------------------
 ix^L=ixG^L^LSUB1;
 
 select case (typeaxial)
 case ("slabstretch")
-   level=node(plevel_,igrid)
-   ^D&ig^D=node(pig^D_,igrid)\
-   {if (stretched_dim(^D)) then
-      ! grid level and global index for filling the grid itself
-      level=node(plevel_,igrid)
-      ! when filling the coarse grid (through need_only_volume) then adjust
-      if(need_only_volume)then
-         level=level-1
-         igCo^D=(ig^D-1)/2
-         ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
-      else
-         ixshift=(ig^D-1)*block_nx^D-nghostcells
-      endif
-      do ix = ixG^LIM^D
-         index=ixshift+ix
-         ddrs(ix^D%ixG^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
-      end do
-   else
-      ddrs(ixG^S,^D)=dx^D
-   endif \}
-   {if (stretched_symm_dim(^D)) then
-    allocate(theta(1:block_nx^D*ng^D(level)))
-    allocate(dtheta(1:block_nx^D*ng^D(level)))
-    allocate(sumdtheta(1:block_nx^D*ng^D(level)))
-    allocate(dthetacoarse(1:block_nx^D*ng^D(level)/2))
-    allocate(sumdthetacoarse(1:block_nx^D*ng^D(level)/2))
-    dtheta(1)=dxfirst(level,^D)
-    theta(1)=dxfirst(level,^D)*0.5d0
-    sumdtheta(1)=0.0d0
-    do itheta=2,block_nx^D*ng^D(level)
-       aval=3.0d0*dsin(theta(itheta-1))*dsin(dtheta(itheta-1)*0.5d0) &
-             +dcos(theta(itheta-1))*dcos(dtheta(itheta-1)*0.5d0)
-       cval=dsin(theta(itheta-1)+dtheta(itheta-1)*0.5d0)
-       dtheta(itheta)=acos(-aval*dsqrt(1.0d0-cval**2)+cval*dsqrt(1.0d0-aval**2))
-       theta(itheta)=theta(itheta-1)+dtheta(itheta-1)*0.5d0+dtheta(itheta)*0.5d0
-       sumdtheta(itheta)=sumdtheta(itheta-1)+dtheta(itheta-1)
-    enddo
-    dthetacoarse(1)=dtheta(1)+dtheta(2)
-    sumdthetacoarse(1)=0.0d0
-    do itheta=2,block_nx^D*ng^D(level)/2
-       dthetacoarse(itheta)=dtheta(2*itheta-1)+dtheta(2*itheta)
-       sumdthetacoarse(itheta)=sumdthetacoarse(itheta-1)+dthetacoarse(itheta-1)
-    enddo
-    if(need_only_volume)then
-       igCo^D=(ig^D-1)/2
-       ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
-       do ix = ixG^LIM^D
-         index=ixshift+ix
-         pw(igrid)%dxp(ix^D%ixG^S,^D)=(xprobmax^D-xprobmin^D)*dthetacoarse(index)/dpi 
-       end do
-    else
-       ixshift=(ig^D-1)*block_nx^D-nghostcells
-       do ix = ixG^LIM^D
-         index=ixshift+ix
-         pw(igrid)%dxp(ix^D%ixG^S,^D)=(xprobmax^D-xprobmin^D)*dtheta(index)/dpi 
-       enddo
-    endif
-    deallocate(theta)
-    deallocate(dtheta)
-    deallocate(sumdtheta)
-    deallocate(dthetacoarse)
-    deallocate(sumdthetacoarse)
-   endif \}
-
-   pw(igrid)%dvolumep(ixG^S)= {^D&ddrs(ixG^S,^D)|*}
-
-   pw(igrid)%dxp(ixG^S,1:ndim)=ddrs(ixG^S,1:ndim)
-
-   if (need_only_volume) return
+   drs(ixG^S)=pw(igrid)%dx(ixG^S,1)
+   {^NOONED
+   dx2(ixG^S)=pw(igrid)%dx(ixG^S,2)}
+   {^IFTHREED
+   dx3(ixG^S)=pw(igrid)%dx(ixG^S,3)}
 
    {^IFONED
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
@@ -263,147 +166,90 @@ case ("slabstretch")
    }
    {^IFTWOD
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,1)=ddrs(ixC^S,2)
-   pw(igrid)%surface(ixC^S,1) =ddrs(ixC^S,2)
+   pw(igrid)%surfaceC(ixC^S,1)=dx2(ixC^S)
+   pw(igrid)%surface(ixC^S,1) =dx2(ixC^S)
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,2)=ddrs(ixC^S,1)
-   pw(igrid)%surface(ixC^S,2)=ddrs(ixC^S,1)
+   pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S)
+   pw(igrid)%surface(ixC^S,2)=drs(ixC^S)
    }
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,1)= ddrs(ixC^S,2)*ddrs(ixC^S,3)
+   pw(igrid)%surfaceC(ixC^S,1)= dx2(ixC^S)*dx3(ixC^S)
    pw(igrid)%surface(ixC^S,1)=pw(igrid)%surfaceC(ixC^S,1)
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,2)= ddrs(ixC^S,1)*ddrs(ixC^S,3)
+   pw(igrid)%surfaceC(ixC^S,2)= drs(ixC^S)*dx3(ixC^S)
    pw(igrid)%surface(ixC^S,2)=pw(igrid)%surfaceC(ixC^S,2)
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,3)= ddrs(ixC^S,1)*ddrs(ixC^S,2)
+   pw(igrid)%surfaceC(ixC^S,3)= drs(ixC^S)*dx2(ixC^S)
    pw(igrid)%surface(ixC^S,3)=pw(igrid)%surfaceC(ixC^S,3)
    }
 
 case ("spherical")
-   x(ixG^S,1)=pw(igrid)%xCCp(ixG^S,1)
+   x(ixG^S,1)=pw(igrid)%x(ixG^S,1)
    {^NOONED
-   x(ixG^S,2)=pw(igrid)%xCCp(ixG^S,2)}
-   ! spherical grid stretches the radial (first) coordinate
-   if(stretched_grid) then
-     ! grid level and global index for filling the grid itself
-     level=node(plevel_,igrid)
-     ^D&ig^D=node(pig^D_,igrid)\
-     ! when filling the coarse grid (through need_only_volume) then adjust
-     if(need_only_volume)then
-        level=level-1
-        igCo1=(ig1-1)/2
-        ixshift=igCo1*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
-     else
-        ixshift=(ig1-1)*block_nx1-nghostcells
-     endif
-     do ix = ixG^LIM1
-        index=ixshift+ix
-        drs(ix,ixG^SE)=dxfirst(level,1)*qstretch(level,1)**(index-1)
-     end do
-   else
-     drs(ixG^S)=dx1
-   end if
+   x(ixG^S,2)=pw(igrid)%x(ixG^S,2)}
 
-   pw(igrid)%dvolumep(ixG^S)=(x(ixG^S,1)**2+drs(ixG^S)**2/12.0d0)*&
-                 drs(ixG^S){^NOONED &
-                *two*dabs(dsin(x(ixG^S,2)))*dsin(half*dx2)}{^IFTHREED*dx3}
-
-   pw(igrid)%dxp(ixG^S,1)=drs(ixG^S)
-   {^NOONED pw(igrid)%dxp(ixG^S,2)=x(ixG^S,1)*dx2}
-   {^IFTHREED pw(igrid)%dxp(ixG^S,3)=x(ixG^S,1)*dsin(x(ixG^S,2))*dx3}
-
-   if (need_only_volume) return
+   drs(ixG^S)=pw(igrid)%dx(ixG^S,1)
+   {^NOONED
+   dx2(ixG^S)=pw(igrid)%dx(ixG^S,2)}
+   {^IFTHREED
+   dx3(ixG^S)=pw(igrid)%dx(ixG^S,3)}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
 
    pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
-                *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
+                *two*dsin(x(ixC^S,2))*dsin(half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
 
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
    pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
-                *dsin(x(ixC^S,2)+half*dx2)}{^IFTHREED*dx3}
+                *dsin(x(ixC^S,2)+half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
 
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2}
+   pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
    pw(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
-              *two*dsin(x(ixC^S,2))*dsin(half*dx2)}{^IFTHREED*dx3}
+              *two*dsin(x(ixC^S,2))*dsin(half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
    pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
-                *dsin(x(ixC^S,2))}{^IFTHREED*dx3}
+                *dsin(x(ixC^S,2))}{^IFTHREED*dx3(ixC^S)}
 
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2}
+   pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
 
 case ("cylindrical")
-   x(ixG^S,1)=pw(igrid)%xCCp(ixG^S,1)
-   ! cylindrical grid stretches the radial (first) coordinate
-   if(stretched_grid) then
-     ! this is the grid level and global index, when filling the grid itself
-     level=node(plevel_,igrid)
-     ^D&ig^D=node(pig^D_,igrid)\
-     ! when filling the coarse grid (through need_only_volume) then adjust
-     if(need_only_volume)then
-        level=level-1
-        igCo1=(ig1-1)/2
-        ixshift=igCo1*block_nx1+(1-mod(ig1,2))*block_nx1/2-nghostcells
-     else
-        ixshift=(ig1-1)*block_nx1-nghostcells
-     endif
-     do ix = ixG^LIM1
-       index=ixshift+ix
-       drs(ix,ixG^SE)=dxfirst(level,1)*qstretch(level,1)**(index-1)
-     end do
-   else
-     drs(ixG^S)=dx1
-   end if
-
-   pw(igrid)%dvolumep(ixG^S)=dabs(x(ixG^S,1))*drs(ixG^S){^DE&*dx^DE }
-   ! following is also equivalent to the above
-   !pw(igrid)%dvolumep(ixG^S)=dabs(half*&
-   !       ((x(ixG^S,1)+half*drs(ixG^S))**2-&
-   !        (x(ixG^S,1)-half*drs(ixG^S))**2)){^DE&*dx^DE }
-
-   pw(igrid)%dxp(ixG^S,1)=drs(ixG^S)
-
-   if (z_ > 0) then
-     {^DE&if (^DE==z_) pw(igrid)%dxp(ixG^S,^DE)=dx^DE\}
-   end if
-
-   if (phi_ > 0) then
-     {if (^DE==phi_) pw(igrid)%dxp(ixG^S,^DE)=x(ixG^S,1)*dx^DE\}
-   end if
-
-   if (need_only_volume) return
+   x(ixG^S,1)=pw(igrid)%x(ixG^S,1)
+   drs(ixG^S)=pw(igrid)%dx(ixG^S,1)
+   {^NOONED
+   dx2(ixG^S)=pw(igrid)%dx(ixG^S,2)}
+   {^IFTHREED
+   dx3(ixG^S)=pw(igrid)%dx(ixG^S,3)}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surfaceC(ixC^S,1)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE }
+   pw(igrid)%surfaceC(ixC^S,1)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE(ixC^S) }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (phi_==2) pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3}}
+   if (z_==2) pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
+   if (phi_==2) pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (phi_==3) pw(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2}
+   if (z_==3) pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
+   if (phi_==3) pw(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
 
    ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-   pw(igrid)%surface(ixC^S,1)=dabs(x(ixC^S,1)){^DE&*dx^DE }
+   pw(igrid)%surface(ixC^S,1)=dabs(x(ixC^S,1)){^DE&*dx^DE(ixC^S) }
    {^NOONED
    ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-   if (z_==2) pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3}
-   if (phi_==2) pw(igrid)%surface(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3}}
+   if (z_==2) pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
+   if (phi_==2) pw(igrid)%surface(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
    {^IFTHREED
    ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-   if (z_==3) pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2
-   if (phi_==3) pw(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2}
+   if (z_==3) pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
+   if (phi_==3) pw(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
 
 case default
    call mpistop("Sorry, typeaxial unknown")

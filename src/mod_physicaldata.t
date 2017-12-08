@@ -47,13 +47,6 @@ module mod_physicaldata
       double precision, dimension(:^D&), allocatable :: dvolume
       !> Volumes of a cell, one level coarser representative
       double precision, dimension(:^D&), allocatable :: dvolumecoarse
-      !> Pointers below are used to switch between fine/coarse 
-      !> Volumes of a cell, pointer
-      double precision, dimension(:^D&), pointer :: dvolumep => Null()
-      !> Cell-center positions, pointer
-      double precision, dimension(:^D&,:), pointer :: xCCp => Null()
-      !> Cell sizes, pointer
-      double precision, dimension(:^D&,:), pointer :: dxp => Null()
       !> Areas of cell-center surfaces
       double precision, dimension(:^D&,:), allocatable :: surface
       !> Areas of cell-face surfaces

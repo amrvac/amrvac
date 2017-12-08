@@ -50,15 +50,9 @@ use mod_global_parameters
 
 integer, intent(in) :: igrid
 
-integer :: level, ig^D, ign^D, ixCoG^L, ixCoCoG^L, ix, i^D
-integer :: imin, imax, index, igCo^D, ixshift
-double precision :: rXmin^D, dx^D
-logical, save:: first(1:ndim)=.true.
-
-integer :: itheta
-double precision :: aval, cval
-double precision, allocatable :: dtheta(:), theta(:), sumdtheta(:), &
-                                dthetacoarse(:), sumdthetacoarse(:)
+integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
+integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
+double precision :: rXmin^D, dx^D, summeddx, sizeuniformpart^D
 !-----------------------------------------------------------------------------
 ixCoGmin^D=1;
 !ixCoGmax^D=ixGhi^D/2+nghostcells;
@@ -91,6 +85,12 @@ if(.not. allocated(pw(igrid)%w)) then
   ! allocate coordinates
   allocate(pw(igrid)%x(ixG^T,1:ndim), &
            pw(igrid)%xcoarse(ixCoG^S,1:ndim))
+  if(.not.slab)then
+      allocate(pw(igrid)%dx(ixG^T,1:ndim), &
+               pw(igrid)%dxcoarse(ixCoG^S,1:ndim))
+      allocate(pw(igrid)%dvolume(ixG^T), &
+               pw(igrid)%dvolumecoarse(ixCoG^S))
+  endif
 end if
 
 pw(igrid)%w=0.d0
@@ -138,95 +138,261 @@ end do\}
    pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
 end do\}
 
+if (.not.slab) then
+  ^D&pw(igrid)%dx(ixG^T,^D)=rnode(rpdx^D_,igrid);
+  ^D&pw(igrid)%dxcoarse(ixCoG^S,^D)=2.0d0*rnode(rpdx^D_,igrid);
+endif
+
 if(stretched_grid) then
   {if(stretched_dim(^D))then
-    imin=(ig^D-1)*block_nx^D+1
+    imin=(ig^D-1)*block_nx^D
     imax=ig^D*block_nx^D
     rnode(rpxmin^D_,igrid)=xprobmin^D+dxfirst_1mq(level,^D) &
-                 *(1.0d0-qstretch(level,^D)**(imin-1))
+                 *(1.0d0-qstretch(level,^D)**imin)
     rnode(rpxmax^D_,igrid)=xprobmin^D+dxfirst_1mq(level,^D) &
                  *(1.0d0-qstretch(level,^D)**imax)
     ! fix possible out of bound due to precision
-    if(rnode(rpxmax^D_,igrid)>xprobmax^D) then
-       if(first(^D)) then
-          write(*,*) 'Warning: edge beyond domain?', ^D,igrid,imax,rnode(rpxmax^D_,igrid)
-          first(^D)=.false.
-       endif
-       rnode(rpxmax^D_,igrid)=xprobmax^D
-    endif
+    if(rnode(rpxmax^D_,igrid)>xprobmax^D) rnode(rpxmax^D_,igrid)=xprobmax^D
     ixshift=(ig^D-1)*block_nx^D-nghostcells
     do ix=ixGlo^D,ixGhi^D
       index=ixshift+ix
-      pw(igrid)%x(ix^D%ixG^T,^D)=xprobmin^D+dxfirst_1mq(level,^D)&
-                                *(1.0d0-qstretch(level,^D)**(index-1)) &
-                   + 0.5d0*dxfirst(level,^D)*qstretch(level,^D)**(index-1)
+      pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
     enddo
     igCo^D=(ig^D-1)/2
-    ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
+    ixshift=igCo^D*block_nx^D+(1-modulo(ig^D,2))*block_nx^D/2-nghostcells
     do ix=ixCoGmin^D,ixCoGmax^D
       index=ixshift+ix
+      pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
       pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=xprobmin^D+dxfirst_1mq(level-1,^D)&
                                          *(1.0d0-qstretch(level-1,^D)**(index-1)) &
                   + 0.5d0*dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
     end do
+    ! now that dx and grid boundaries are known: fill cell centers
+    ifirst=nghostcells+1
+    ! first fill the mesh
+    summeddx=0.0d0
+    do ix=ixMlo^D,ixMhi^D
+       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+    enddo
+    ! then ghost cells to left
+    summeddx=0.0d0
+    do ix=nghostcells,1,-1
+       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+    enddo
+    ! then ghost cells to right
+    summeddx=0.0d0
+    do ix=ixGhi^D-nghostcells+1,ixGhi^D
+       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+    enddo
    endif\}
   {if(stretched_symm_dim(^D))then
-    allocate(theta(1:block_nx^D*ng^D(level)))
-    allocate(dtheta(1:block_nx^D*ng^D(level)))
-    allocate(sumdtheta(1:block_nx^D*ng^D(level)))
-    allocate(dthetacoarse(1:block_nx^D*ng^D(level)/2))
-    allocate(sumdthetacoarse(1:block_nx^D*ng^D(level)/2))
-    dtheta(1)=dxfirst(level,^D)
-    theta(1)=dxfirst(level,^D)*0.5d0
-    sumdtheta(1)=0.0d0
-    do itheta=2,block_nx^D*ng^D(level)
-       aval=3.0d0*dsin(theta(itheta-1))*dsin(dtheta(itheta-1)*0.5d0) &
-             +dcos(theta(itheta-1))*dcos(dtheta(itheta-1)*0.5d0)
-       cval=dsin(theta(itheta-1)+dtheta(itheta-1)*0.5d0)
-       dtheta(itheta)=acos(-aval*dsqrt(1.0d0-cval**2)+cval*dsqrt(1.0d0-aval**2))
-       theta(itheta)=theta(itheta-1)+dtheta(itheta-1)*0.5d0+dtheta(itheta)*0.5d0
-       sumdtheta(itheta)=sumdtheta(itheta-1)+dtheta(itheta-1)
-    enddo
-    dthetacoarse(1)=dtheta(1)+dtheta(2)
-    sumdthetacoarse(1)=0.0d0
-    do itheta=2,block_nx^D*ng^D(level)/2
-       dthetacoarse(itheta)=dtheta(2*itheta-1)+dtheta(2*itheta)
-       sumdthetacoarse(itheta)=sumdthetacoarse(itheta-1)+dthetacoarse(itheta-1)
-    enddo
-    imin=(ig^D-1)*block_nx^D+1
-    imax=ig^D*block_nx^D
-    rnode(rpxmin^D_,igrid)=xprobmin^D+(xprobmax^D-xprobmin^D)*sumdtheta(imin)/dpi
-    rnode(rpxmax^D_,igrid)=xprobmin^D+(xprobmax^D-xprobmin^D)*(sumdtheta(imax)+dtheta(imax))/dpi
-    ! fix possible out of bound due to precision
-    if(rnode(rpxmax^D_,igrid)>xprobmax^D) then
-       if(first(^D)) then
-          write(*,*) 'Warning: edge beyond domain?', ^D,igrid,imax,rnode(rpxmax^D_,igrid)
-          first(^D)=.false.
-       endif
-       rnode(rpxmax^D_,igrid)=xprobmax^D
+    ! here we distinguish three kinds of grid blocks
+    ! depending on their ig-index, set per level 
+    !      the first n_stretchedblocks/2  will stretch to the left
+    !      the middle ntotal-n_stretchedblocks will be uniform
+    !      the last  n_stretchedblocks/2  will stretch to the right
+    if(ig^D<=nstretchedblocks(level,^D)/2)then
+      ! stretch to the left
+      offset=block_nx^D*nstretchedblocks(level,^D)/2
+      imin=(ig^D-1)*block_nx^D
+      imax=ig^D*block_nx^D
+      rnode(rpxmin^D_,igrid)=xprobmin^D+xstretch^D-dxfirst_1mq(level,^D) &
+                                 *(1.0d0-qstretch(level,^D)**(offset-imin))
+      rnode(rpxmax^D_,igrid)=xprobmin^D+xstretch^D-dxfirst_1mq(level,^D) &
+                                 *(1.0d0-qstretch(level,^D)**(offset-imax))
+      ixshift=(ig^D-1)*block_nx^D-nghostcells
+      do ix=ixGlo^D,ixGhi^D
+         index=ixshift+ix
+         pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(offset-index)
+      enddo
+      ixshift=(nstretchedblocks(level,^D)/2-ig^D)*(block_nx^D/2)+block_nx^D/2+nghostcells
+      do ix=ixCoGmin^D,ixCoGmax^D
+         index=ixshift-ix
+         pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**index
+      enddo
+      ! last block: to modify ghost cells!!!
+      if(ig^D==nstretchedblocks(level,^D)/2)then
+        if(ng^D(level)==nstretchedblocks(level,^D))then
+           ! if middle blocks do not exist then use symmetry
+           do ix=ixGhi^D-nghostcells+1,ixGhi^D
+              pw(igrid)%dx(ix^D%ixG^T,^D)= &
+              pw(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixG^T,^D)
+           enddo
+           do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
+              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)= &
+              pw(igrid)%dxcoarse(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
+           enddo
+        else
+           ! if middle blocks exist then use same as middle blocks: 
+           do ix=ixGhi^D-nghostcells+1,ixGhi^D
+              pw(igrid)%dx(ix^D%ixG^T,^D)=dxmid(level,^D)
+           enddo
+           do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
+              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
+           enddo
+        endif
+      endif
+      ! first block: make ghost cells symmetric (to allow periodicity)
+      if(ig^D==1)then
+         do ix=1,nghostcells
+            pw(igrid)%dx(ix^D%ixG^T,^D)=pw(igrid)%dx(2*nghostcells+1-ix^D%ixG^T,^D)
+            pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=pw(igrid)%dxcoarse(2*nghostcells+1-ix^D%ixCoG^S,^D)
+         enddo
+      endif
+    else 
+      if (ig^D<=ng^D(level)-nstretchedblocks(level,^D)/2) then
+         ! keep uniform
+         pw(igrid)%dx(ixG^T,^D)=dxmid(level,^D)
+         pw(igrid)%dxcoarse(ixCoG^S,^D)=dxmid(level-1,^D)
+         rnode(rpxmin^D_,igrid)=xprobmin^D+xstretch^D+(ig^D-nstretchedblocks(level,^D)/2-1)*block_nx^D*dxmid(level,^D)
+         rnode(rpxmax^D_,igrid)=xprobmin^D+xstretch^D+(ig^D-nstretchedblocks(level,^D)/2)  *block_nx^D*dxmid(level,^D)
+         ! first and last block: to modify the ghost cells!!!
+         if(ig^D==nstretchedblocks(level,^D)/2+1)then
+            do ix=1,nghostcells
+               pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(nghostcells-ix)
+               pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(nghostcells-ix)
+            enddo
+         endif
+         if(ig^D==ng^D(level)-nstretchedblocks(level,^D))then
+            do ix=ixGhi^D-nghostcells+1,ixGhi^D
+              pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
+            enddo
+            do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
+              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(ix-ixCoGmax^D+nghostcells-1)
+            enddo
+         endif
+      else
+         ! stretch to the right
+         offset=block_nx^D*(ng^D(level)-nstretchedblocks(level,^D)/2)
+         sizeuniformpart^D=dxfirst(1,^D)*(domain_nx^D-nstretchedblocks_baselevel(^D)*block_nx^D)
+         imin=(ig^D-1)*block_nx^D-offset
+         imax=ig^D*block_nx^D-offset
+         rnode(rpxmin^D_,igrid)=xprobmin^D+xstretch^D+sizeuniformpart^D+dxfirst_1mq(level,^D) &
+                                 *(1.0d0-qstretch(level,^D)**imin)
+         rnode(rpxmax^D_,igrid)=xprobmin^D+xstretch^D+sizeuniformpart^D+dxfirst_1mq(level,^D) &
+                                 *(1.0d0-qstretch(level,^D)**imax)
+         if(rnode(rpxmax^D_,igrid)>xprobmax^D) rnode(rpxmax^D_,igrid)=xprobmax^D
+         ixshift=(ig^D-1)*block_nx^D-nghostcells-offset
+         do ix=ixGlo^D,ixGhi^D
+            index=ixshift+ix
+            pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
+         enddo
+         ixshift=(ig^D+nstretchedblocks(level,^D)/2-ng^D(level)-1)*(block_nx^D/2)-nghostcells
+         do ix=ixCoGmin^D,ixCoGmax^D
+            index=ixshift+ix
+            pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
+         enddo
+         ! first block: modify ghost cells!!!
+         if(ig^D==ng^D(level)-nstretchedblocks(level,^D)+1)then
+            if(ng^D(level)==nstretchedblocks(level,^D))then
+               ! if middle blocks do not exist then use symmetry
+               do ix=1,nghostcells
+                  pw(igrid)%dx(ix^D%ixG^T,^D)=pw(igrid)%dx(2*nghostcells+1-ix^D%ixG^T,^D)
+                  pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=pw(igrid)%dxcoarse(2*nghostcells+1-ix^D%ixCoG^S,^D)
+               enddo
+            else
+               ! if middle blocks exist then use same as middle blocks: 
+               do ix=1,nghostcells
+                  pw(igrid)%dx(ix^D%ixG^T,^D)=dxmid(level,^D)
+                  pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
+               enddo
+            endif
+         endif
+         ! last block: make ghost cells symmetric (to allow periodicity)
+         if(ig^D==ng^D(level))then
+            do ix=ixGhi^D-nghostcells+1,ixGhi^D
+               pw(igrid)%dx(ix^D%ixG^T,^D)=pw(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixG^T,^D)
+            enddo
+           do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
+              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=pw(igrid)%dxcoarse(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
+           enddo
+         endif
+      endif
     endif
-    ixshift=(ig^D-1)*block_nx^D-nghostcells
-    do ix=ixGlo^D,ixGhi^D
-      index=ixshift+ix
-      pw(igrid)%x(ix^D%ixG^T,^D)=xprobmin^D+(xprobmax^D-xprobmin^D)*sumdtheta(index)/dpi &
-                   + 0.5d0*dtheta(index)
+    ! now that dx and grid boundaries are known: fill cell centers
+    ifirst=nghostcells+1
+    ! first fill the mesh
+    summeddx=0.0d0
+    do ix=ixMlo^D,ixMhi^D
+       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
     enddo
-    igCo^D=(ig^D-1)/2
-    ixshift=igCo^D*block_nx^D+(1-mod(ig^D,2))*block_nx^D/2-nghostcells
-    do ix=ixCoGmin^D,ixCoGmax^D
-      index=ixshift+ix
-      pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=xprobmin^D+(xprobmax^D-xprobmin^D)*sumdthetacoarse(index)/dpi &
-                   + 0.5d0*dthetacoarse(index)
-    end do
-    deallocate(theta)
-    deallocate(dtheta)
-    deallocate(sumdtheta)
-    deallocate(dthetacoarse)
-    deallocate(sumdthetacoarse)
+    ! then ghost cells to left
+    summeddx=0.0d0
+    do ix=nghostcells,1,-1
+       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+    enddo
+    ! then ghost cells to right
+    summeddx=0.0d0
+    do ix=ixGhi^D-nghostcells+1,ixGhi^D
+       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+    enddo
+    ! and next for the caorse representation
+    ! first fill the mesh
+    summeddx=0.0d0
+    do ix=nghostcells+1,ixCoGmax^D-nghostcells
+       pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)
+       summeddx=summeddx+pw(igrid)%dxcoarse(ix^D%ifirst,^D)
+    enddo
+    ! then ghost cells to left
+    summeddx=0.0d0
+    do ix=nghostcells,1,-1
+       pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)
+       summeddx=summeddx+pw(igrid)%dxcoarse(ix^D%ifirst,^D)
+    enddo
+    ! then ghost cells to right
+    summeddx=0.0d0
+    do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
+       pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)
+       summeddx=summeddx+pw(igrid)%dxcoarse(ix^D%ifirst,^D)
+    enddo
    endif\}
 endif
 
-if (.not.slab) call getgridgeo(igrid)
+if (.not.slab) then
+   call getgridgeo(igrid)
+   select case (typeaxial)
+      case ("slabstretch")
+         pw(igrid)%dvolume(ixG^T)= {^D&pw(igrid)%dx(ixG^T,^D)|*}
+         pw(igrid)%dvolumecoarse(ixCoG^S)= {^D&pw(igrid)%dxcoarse(ixCoG^S,^D)|*}
+      case ("spherical")
+         pw(igrid)%dvolume(ixG^T)=(pw(igrid)%x(ixG^T,1)**2 &
+                                   +pw(igrid)%dx(ixG^T,1)**2/12.0d0)*&
+                 pw(igrid)%dx(ixG^T,1){^NOONED &
+                *two*dabs(dsin(pw(igrid)%x(ixG^T,2))) &
+                *dsin(half*pw(igrid)%dx(ixG^T,2))}{^IFTHREED*pw(igrid)%dx(ixG^T,3)}
+         pw(igrid)%dvolumecoarse(ixCoG^S)=(pw(igrid)%xcoarse(ixCoG^S,1)**2 &
+                                          +pw(igrid)%dxcoarse(ixCoG^S,1)**2/12.0d0)*&
+                 pw(igrid)%dxcoarse(ixCoG^S,1){^NOONED &
+                *two*dabs(dsin(pw(igrid)%xcoarse(ixCoG^S,2))) &
+                *dsin(half*pw(igrid)%dxcoarse(ixCoG^S,2))}{^IFTHREED*pw(igrid)%dxcoarse(ixCoG^S,3)}
+         {^NOONED pw(igrid)%dx(ixG^T,2)=pw(igrid)%x(ixG^T,1)*pw(igrid)%dx(ixG^T,2)}
+         {^IFTHREED pw(igrid)%dx(ixG^T,3)= &
+                  pw(igrid)%x(ixG^T,1)*dsin(pw(igrid)%x(ixG^T,2))*pw(igrid)%dx(ixG^T,3)}
+         {^NOONED pw(igrid)%dxcoarse(ixCoG^S,2)= &
+                  pw(igrid)%xcoarse(ixCoG^S,1)*pw(igrid)%dxcoarse(ixCoG^S,2)}
+         {^IFTHREED pw(igrid)%dxcoarse(ixCoG^S,3)= &
+           pw(igrid)%xcoarse(ixCoG^S,1)*dsin(pw(igrid)%xcoarse(ixCoG^S,2))*pw(igrid)%dxcoarse(ixCoG^S,3)}
+      case ("cylindrical")
+         pw(igrid)%dvolume(ixG^T)=dabs(pw(igrid)%x(ixG^T,1)) &
+              *pw(igrid)%dx(ixG^T,1){^DE&*pw(igrid)%dx(ixG^T,^DE) }
+         pw(igrid)%dvolumecoarse(ixCoG^S)=dabs(pw(igrid)%xcoarse(ixCoG^S,1)) &
+              *pw(igrid)%dxcoarse(ixCoG^S,1){^DE&*pw(igrid)%dxcoarse(ixCoG^S,^DE) }
+         if (phi_ > 0) then
+           {if (^DE==phi_) pw(igrid)%dx(ixG^T,^DE)= &
+                    pw(igrid)%x(ixG^T,1)*pw(igrid)%dx(ixG^T,^DE)\}
+           {if (^DE==phi_) pw(igrid)%dxcoarse(ixCoG^S,^DE)= &
+                    pw(igrid)%xcoarse(ixCoG^S,1)*pw(igrid)%dxcoarse(ixCoG^S,^DE)\}
+         end if
+      case default
+         call mpistop("Sorry, typeaxial unknown")
+      end select
+endif
 
 if (B0field) then
    ! initialize background non-evolving solution
