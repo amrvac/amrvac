@@ -20,19 +20,20 @@ LOG_CMP := $(AMRVAC_DIR)/tools/fortran/compare_logs
 NUM_PROCS ?= 4
 
 # force is a dummy to force re-running tests
-.PHONY: all force
+.PHONY: all clean force
 
 all: $(TESTS)
+
+clean:
+	$(RM) $(TESTS) amrvac
 
 # Include architecture and compilation rules for the compare_log utility
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
 include $(AMRVAC_DIR)/arch/rules.make
 
-$(TESTS): $(LOG_CMP)
-
-%.log: amrvac force
+%.log: $(LOG_CMP) amrvac force
 	@$(RM) $@		# Remove log to prevent pass when aborted
-	@mpirun -np $(NUM_PROCS) ./amrvac -i $(PARS) > run.log
+	@mpirun -np $(NUM_PROCS) ./amrvac -i $(filter %.par,$^) > run.log
 	@if $(LOG_CMP) 1.0e-5 1.0e-8 $@ correct_output/$@ ; \
 	then echo "PASSED $@" ; \
 	else echo "** FAILED ** $@" ; \

@@ -1,0 +1,13 @@
+ &filelist
+        base_filename  = '_3step_hll_ppm'
+ /
+
+ &methodlist
+        time_integrator  = 'threestep'
+        flux_scheme =    20*'hll'
+        limiter=  20*'ppm'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

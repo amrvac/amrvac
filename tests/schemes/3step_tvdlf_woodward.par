@@ -1,0 +1,13 @@
+ &filelist
+        base_filename  = '_3step_tvdlf_woodward'
+ /
+
+ &methodlist
+        time_integrator  = 'threestep'
+        flux_scheme    = 20*'tvdlf'
+        limiter = 20*'woodward'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /
