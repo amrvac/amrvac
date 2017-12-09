@@ -107,7 +107,6 @@ module mod_global_parameters
   !> (even) number of (symmetrically) stretched blocks per level and dimension
   integer, allocatable ::  nstretchedblocks(:,:)
   !> physical extent of stretched border in symmetric stretching
-  !> must be smaller than (xprobmax-xprobmin)/2
   double precision :: xstretch^D
   !> Stretching factors and first cell size for each AMR level and dimension
   double precision, allocatable :: qstretch(:,:), dxfirst(:,:),  &
@@ -567,7 +566,7 @@ module mod_global_parameters
 
   logical, allocatable :: phyboundblock(:)
 
-  !$OMP THREADPRIVATE(dxlevel,logG,qst)
+  !$OMP THREADPRIVATE(dxlevel)
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)
 end module mod_global_parameters

@@ -111,24 +111,6 @@ subroutine set_pole
 
 end subroutine set_pole
 !=============================================================================
-subroutine getgridgeo(igrid)
-
-use mod_global_parameters
-
-integer, intent(in) :: igrid
-!-----------------------------------------------------------------------------
-
-if(.not. allocated(pw(igrid)%surfaceC)) then
-  ! allocate geometric info
-  allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
-           pw(igrid)%surface(ixG^T,1:ndim))
-end if
-
-! fill the grid itself
-call fillgeo(igrid,ixG^LL)
-
-end subroutine getgridgeo
-!=============================================================================
 subroutine putgridgeo(igrid)
 
 use mod_global_parameters

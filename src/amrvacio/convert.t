@@ -126,9 +126,6 @@ if(nwauxio>0)then
   ! next few lines ensure correct usage of routines like divvector etc
   ! default (no) normalization for auxiliary variables
   normconv(nw+1:nw+nwauxio)=one
-  ! maybe need for restriction to ixG^LL^LSUB1 ??
-  !call usr_aux_output(ixG^LL,ixG^LL,w,pw(igrid)%x,normconv)
-  !call usr_aux_output(ixG^LL,ixG^LL^LSUB1,w,pw(igrid)%x,normconv)
 
   if (.not. associated(usr_aux_output)) then
      call mpistop("usr_aux_output not defined")

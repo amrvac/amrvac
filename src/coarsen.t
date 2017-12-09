@@ -83,7 +83,6 @@ double precision, intent(inout) :: wFi(ixFiG^S,1:nw), xFi(ixFiG^S,1:ndim)
 double precision,intent(inout) :: wCo(ixCoG^S,1:nw), xCo(ixCoG^S,1:ndim)
 
 integer :: ixCo^D, ixFi^D, iw
-integer :: ig1, ig1Co,ixshift,igrid
 double precision :: CoFiratio
 !-----------------------------------------------------------------------------
 ! coarsen by 2 in every direction - conservatively
@@ -106,13 +105,13 @@ else
            wCo(ixCo^D,iw)= &
                sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
               /pw(igridCo)%dvolumecoarse(ixCo^D)
-        if(dabs(sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
-               -pw(igridCo)%dvolumecoarse(ixCo^D))>smalldouble) then
-    print *,'mismatching volumes: Co',ixCo^D, 'for fine', ixFi^D
-    print *,' fine volumes:' ,sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1))
-    print *,' coarse volume:' ,pw(igridCo)%dvolumecoarse(ixCo^D)
-    call mpistop("mismatch volume")
-   endif
+!        if(dabs(sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
+!               -pw(igridCo)%dvolumecoarse(ixCo^D))>smalldouble) then
+!    print *,'mismatching volumes: Co',ixCo^D, 'for fine', ixFi^D
+!    print *,' fine volumes:' ,sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1))
+!    print *,' coarse volume:' ,pw(igridCo)%dvolumecoarse(ixCo^D)
+!    call mpistop("mismatch volume")
+!   endif
         {end do\}
      end do
    else
@@ -122,13 +121,13 @@ else
            wCo(ixCo^D,iw)= &
                sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
               /pw(igridCo)%dvolume(ixCo^D)
-        if(dabs(sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
-               -pw(igridCo)%dvolume(ixCo^D))>smalldouble) then
-    print *,'mismatching volumes: Co',ixCo^D, 'for fine', ixFi^D
-    print *,' fine volumes:' ,sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1))
-    print *,'      volume:' ,pw(igridCo)%dvolume(ixCo^D)
-    call mpistop("mismatch volume")
-   endif
+!        if(dabs(sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
+!               -pw(igridCo)%dvolume(ixCo^D))>smalldouble) then
+!    print *,'mismatching volumes: Co',ixCo^D, 'for fine', ixFi^D
+!    print *,' fine volumes:' ,sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1))
+!    print *,'      volume:' ,pw(igridCo)%dvolume(ixCo^D)
+!    call mpistop("mismatch volume")
+!   endif
         {end do\}
      end do
    end if

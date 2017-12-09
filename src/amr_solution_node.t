@@ -90,6 +90,8 @@ if(.not. allocated(pw(igrid)%w)) then
                pw(igrid)%dxcoarse(ixCoG^S,1:ndim))
       allocate(pw(igrid)%dvolume(ixG^T), &
                pw(igrid)%dvolumecoarse(ixCoG^S))
+      allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
+               pw(igrid)%surface(ixG^T,1:ndim))
   endif
 end if
 
@@ -203,6 +205,8 @@ if(stretched_grid) then
                                  *(1.0d0-qstretch(level,^D)**(offset-imin))
       rnode(rpxmax^D_,igrid)=xprobmin^D+xstretch^D-dxfirst_1mq(level,^D) &
                                  *(1.0d0-qstretch(level,^D)**(offset-imax))
+      ! fix possible out of bound due to precision
+      if(rnode(rpxmin^D_,igrid)<xprobmin^D) rnode(rpxmin^D_,igrid)=xprobmin^D
       ixshift=(ig^D-1)*block_nx^D-nghostcells
       do ix=ixGlo^D,ixGhi^D
          index=ixshift+ix
@@ -267,13 +271,14 @@ if(stretched_grid) then
       else
          ! stretch to the right
          offset=block_nx^D*(ng^D(level)-nstretchedblocks(level,^D)/2)
-         sizeuniformpart^D=dxfirst(1,^D)*(domain_nx^D-nstretchedblocks_baselevel(^D)*block_nx^D)
+         sizeuniformpart^D=dxmid(1,^D)*(domain_nx^D-nstretchedblocks_baselevel(^D)*block_nx^D)
          imin=(ig^D-1)*block_nx^D-offset
          imax=ig^D*block_nx^D-offset
          rnode(rpxmin^D_,igrid)=xprobmin^D+xstretch^D+sizeuniformpart^D+dxfirst_1mq(level,^D) &
                                  *(1.0d0-qstretch(level,^D)**imin)
          rnode(rpxmax^D_,igrid)=xprobmin^D+xstretch^D+sizeuniformpart^D+dxfirst_1mq(level,^D) &
                                  *(1.0d0-qstretch(level,^D)**imax)
+         ! fix possible out of bound due to precision
          if(rnode(rpxmax^D_,igrid)>xprobmax^D) rnode(rpxmax^D_,igrid)=xprobmax^D
          ixshift=(ig^D-1)*block_nx^D-nghostcells-offset
          do ix=ixGlo^D,ixGhi^D
@@ -332,7 +337,7 @@ if(stretched_grid) then
        pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
        summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
     enddo
-    ! and next for the caorse representation
+    ! and next for the coarse representation
     ! first fill the mesh
     summeddx=0.0d0
     do ix=nghostcells+1,ixCoGmax^D-nghostcells
@@ -355,7 +360,7 @@ if(stretched_grid) then
 endif
 
 if (.not.slab) then
-   call getgridgeo(igrid)
+   call fillgeo(igrid,ixG^LL)
    select case (typeaxial)
       case ("slabstretch")
          pw(igrid)%dvolume(ixG^T)= {^D&pw(igrid)%dx(ixG^T,^D)|*}

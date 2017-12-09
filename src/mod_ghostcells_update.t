@@ -263,7 +263,6 @@ contains
 
     double precision :: time_bcin
     ! Stretching grid parameters for coarsened block of the current block
-    double precision :: logGl,qstl
 
     nwhead=nwstart+1
     nwtail=nwstart+nwbc
