@@ -167,8 +167,9 @@ contains
     ! Eq. 66,  Miller and Colella 2002, JCP 183, 26 
     wLC(ixO^S,1:nwflux)=wLC(ixO^S,1:nwflux)+half*dwC(ixO^S,1:nwflux)&
          +(ldw(ixO^S,1:nwflux)-ldw(ixR^S,1:nwflux))/6.0d0
+
     wRC(ixL^S,1:nwflux)=wRC(ixL^S,1:nwflux)-(half*dwC(ixL^S,1:nwflux)&
-         +(ldw(ixL^S,1:nwflux)-ldw(ixO^S,1:nwflux))/6.0d0)
+         -(ldw(ixL^S,1:nwflux)-ldw(ixO^S,1:nwflux))/6.0d0)
 
     ! make sure that min wCT(i)<wLC(i)<wCT(i+1) same for wRC(i)
     call extremaw(ixI^L,kxC^L,wCT,1,wMax,wMin)

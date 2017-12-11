@@ -123,45 +123,45 @@ contains
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)))
-       if (present(ldw)) ldw = tmp
-       if (present(rdw)) rdw = tmp
+       if (present(ldw)) ldw(ixO^S) = tmp(ixO^S)
+       if (present(rdw)) rdw(ixO^S) = tmp(ixO^S)
     case (limiter_woodward)
        ! Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=2*tmp(ixO^S)* &
             max(zero,min(abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*quarter*(dwC(hxO^S)+dwC(ixO^S))))
-       if (present(ldw)) ldw = tmp
-       if (present(rdw)) rdw = tmp
+       if (present(ldw)) ldw(ixO^S) = tmp(ixO^S)
+       if (present(rdw)) rdw(ixO^S) = tmp(ixO^S)
     case (limiter_mcbeta)
        ! Woodward and Collela limiter, with factor beta
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(c_mcbeta*abs(dwC(ixO^S)),c_mcbeta*tmp(ixO^S)*dwC(hxO^S),&
             tmp(ixO^S)*half*(dwC(hxO^S)+dwC(ixO^S))))
-       if (present(ldw)) ldw = tmp
-       if (present(rdw)) rdw = tmp
+       if (present(ldw)) ldw(ixO^S) = tmp(ixO^S)
+       if (present(rdw)) rdw(ixO^S) = tmp(ixO^S)
     case (limiter_superbee)
        ! Roes superbee limiter (eq.3.51i)
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp(ixO^S)=tmp(ixO^S)* &
             max(zero,min(2*abs(dwC(ixO^S)),tmp(ixO^S)*dwC(hxO^S)),&
             min(abs(dwC(ixO^S)),2*tmp(ixO^S)*dwC(hxO^S)))
-       if (present(ldw)) ldw = tmp
-       if (present(rdw)) rdw = tmp
+       if (present(ldw)) ldw(ixO^S) = tmp(ixO^S)
+       if (present(rdw)) rdw(ixO^S) = tmp(ixO^S)
     case (limiter_vanleer)
        ! van Leer limiter (eq 3.51f), but a missing delta2=1.D-12 is added
        tmp(ixO^S)=2*max(dwC(hxO^S)*dwC(ixO^S),zero) &
             /(dwC(ixO^S)+dwC(hxO^S)+qsmall)
-       if (present(ldw)) ldw = tmp
-       if (present(rdw)) rdw = tmp
+       if (present(ldw)) ldw(ixO^S) = tmp(ixO^S)
+       if (present(rdw)) rdw(ixO^S) = tmp(ixO^S)
     case (limiter_albada)
        ! Albada limiter (eq.3.51g) with delta2=1D.-12
        tmp(ixO^S)=(dwC(hxO^S)*(dwC(ixO^S)**2+qsmall)&
             +dwC(ixO^S)*(dwC(hxO^S)**2+qsmall))&
             /(dwC(ixO^S)**2+dwC(hxO^S)**2+qsmall2)
-       if (present(ldw)) ldw = tmp
-       if (present(rdw)) rdw = tmp
+       if (present(ldw)) ldw(ixO^S) = tmp(ixO^S)
+       if (present(rdw)) rdw(ixO^S) = tmp(ixO^S)
     case (limiter_koren)
        tmp(ixO^S)=sign(one,dwC(ixO^S))
        tmp2(ixO^S)=min(2*abs(dwC(ixO^S)),2*tmp(ixO^S)*dwC(hxO^S))
