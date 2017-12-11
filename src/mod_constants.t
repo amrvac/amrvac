@@ -46,6 +46,25 @@ module mod_constants
   !> Permeability in SI
   double precision, parameter :: miu0_SI = 1.2566370614d-6 ! H m^-1
 
+  !> Astronomical unit in SI
+  real(dp), parameter :: au_SI =  1.495978707e11_dp ! m
+
+  !> Astronomical unit in cgs
+  real(dp), parameter :: au_cgs =  1.495978707e13_dp ! cm
+
+  !> Day
+  real(dp), parameter :: day = 8.64e4_dp ! s
+
+  !> Year
+  real(dp), parameter :: year = 3.1556926e7_dp ! s
+
+  !> Solar mass in SI
+  real(dp), parameter :: mSun_SI = 1.9891e30_dp ! kg
+
+  !> Solar mass in cgs
+  real(dp), parameter :: mSun_cgs = 1.9891e33_dp ! g
+
+
   double precision, PARAMETER :: const_c     = 2.99792458d10   ! cm s^-1           ; Speed of light
   double precision, PARAMETER :: const_me    = 9.1093897d-28   ! g                 ; Electron mass
   double precision, PARAMETER :: const_mp    = 1.672621777d-24 ! g                 ; Proton mass
