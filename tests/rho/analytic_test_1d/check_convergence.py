@@ -130,7 +130,7 @@ if __name__ == '__main__':
         plt.xlabel('Grid points')
         plt.legend(loc='lower left')
         plt.xlim([nx_list[0]*0.9, nx_list[-1]*1.1])
-        plt.savefig("test.pdf")
+        plt.savefig(p.fig)
         print('\nSaved figure {}'.format(p.fig))
     else:
         # Output text to screen
