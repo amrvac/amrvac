@@ -11,6 +11,9 @@ module mod_constants
   !> A very large real number
   double precision, parameter :: bigdouble = 1.D+99
 
+  !> double precision
+  integer, parameter:: dp=kind(0.d0)
+
   !> A very large integer
   integer, parameter :: biginteger = 10000000
 
