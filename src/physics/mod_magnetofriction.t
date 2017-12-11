@@ -29,11 +29,11 @@ module mod_magnetofriction
   !> stability coefficient controls numerical stability
   double precision :: mf_cc
   !> frictional velocity coefficient
-  double precision :: mf_cy
+  double precision :: mf_cy, mf_cy_max
   !> divb cleaning coefficient controls diffusion speed of divb
   double precision :: mf_cdivb
   !> TVDLF dissipation coefficient controls the dissipation term
-  double precision :: mf_tvdlfeps
+  double precision :: mf_tvdlfeps, mf_tvdlfeps_min
   !> time in magnetofriction process
   double precision :: tmf
   !> maximal speed for fd scheme
@@ -62,9 +62,8 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /mf_list/ mf_ditsave, mf_it_max, mf_cc, mf_cy, mf_cdivb, mf_tvdlfeps
+    namelist /mf_list/ mf_ditsave, mf_it_max, mf_cc, mf_cy, mf_cy_max, mf_cdivb, mf_tvdlfeps_min
 
-    mf_tvdlfeps=1.d0
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
        read(unitpar, mf_list, end=111)
@@ -84,11 +83,14 @@ contains
     allocate(mag(ndir))
     mag=iw_mag
 
-    mf_it_max=60000 ! set the maximum iteration number
+    mf_it_max=60000  ! set the maximum iteration number
     mf_ditsave=20000 ! set iteration interval for data output
-    mf_cc=0.3d0    ! stability coefficient controls numerical stability
-    mf_cy=0.2d0    ! frictional velocity coefficient
-    mf_cdivb=0.1d0 ! divb cleaning coefficient controls diffusion speed of divb
+    mf_cc=0.3d0      ! stability coefficient controls numerical stability
+    mf_cy=0.2d0      ! frictional velocity coefficient. The default value is mf_cy itself.
+    mf_cy_max=mf_cy  ! maximum of the frictional velocity coefficient
+    mf_cdivb=0.1d0   ! divb cleaning coefficient controls diffusion speed of divb
+    mf_tvdlfeps=1.d0 ! coefficient to control the TVDLF dissipation
+    mf_tvdlfeps_min = mf_tvdlfeps ! minimum of the TVDLF dissipation coefficient
 
     call mf_params_read(par_files)
 
@@ -170,19 +172,22 @@ contains
       end do
       call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                          icomm,ierrmpi)
-      call MPI_ALLREDUCE(cmax_mype,cmax_global,1,MPI_DOUBLE_PRECISION,MPI_MAX,&
-                         icomm,ierrmpi)
+      call MPI_ALLREDUCE(cmax_mype,cmax_global,1,MPI_DOUBLE_PRECISION,&
+                 MPI_MAX,icomm,ierrmpi)
     
       ! =======
       ! evolve
       ! =======
       call advectmf(1,ndim,tmf,dtfff)
 
-      if(i>=10000)  mf_tvdlfeps = 0.9998d0 * mf_tvdlfeps
-      !if(i<=60000) then
-      !  mf_cy=1.0001d0*mf_cy
-      !  mf_cy = min(1.0d0,mf_cy)
-      !end if
+      if(i>=10000)  then
+        mf_tvdlfeps = 0.9998d0 * mf_tvdlfeps
+        mf_tvdlfeps = max(mf_tvdlfeps_min,mf_tvdlfeps)
+      end if
+      if(i<=60000) then
+        mf_cy=1.0001d0*mf_cy
+        mf_cy = min(mf_cy_max,mf_cy)
+      end if
     
       i=i+1
       tmf=tmf+dtfff
@@ -233,6 +238,7 @@ contains
     type_recv_r=>type_recv_r_f
     type_send_p=>type_send_p_f
     type_recv_p=>type_recv_p_f
+    bcphys=.true.
     ! set velocity back to zero and convert primitive variables back to conservative ones
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        pw(igrid)%w(ixG^T,mom(:))=zero
@@ -277,8 +283,8 @@ contains
           sum_l_ipe   = sum_l_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
             pw(igrid)%x,4,patchwi)
         end do
-        call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
-           icomm,ierrmpi)
+        call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,&
+           MPI_SUM,icomm,ierrmpi)
         call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
            icomm,ierrmpi)
         call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
@@ -287,9 +293,11 @@ contains
            icomm,ierrmpi)
         call MPI_ALLREDUCE(volumepe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
            icomm,ierrmpi)
-        ! sin of the j weighted mean angle between current and magnetic field
+        ! current- and volume-weighted average of the sine of the angle 
+        ! between the magnetic field B and the current density J
         cwsin_theta_new = sum_jbb/sum_j
-        ! mean normalized divergence of magnetic field
+        ! volume-weighted average of the absolute value of the fractional 
+        ! magnetic flux change
         f_i = f_i/volume
         sum_j=sum_j/volume
         sum_l=sum_l/volume
@@ -305,7 +313,7 @@ contains
 
         {xOmin^D = xprobmin^D + 0.05d0*(xprobmax^D-xprobmin^D)\}
         {xOmax^D = xprobmax^D - 0.05d0*(xprobmax^D-xprobmin^D)\}
-        if(slab.or.slab_stretched) then
+        if(slab .or. slab_stretched) then
           xOmin^ND = xprobmin^ND
         else
           xOmin1 = xprobmin1
@@ -337,13 +345,15 @@ contains
             amode=ior(amode,MPI_MODE_APPEND)
             call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
             logmfopened=.true.
-            filehead="itmf,<f_i>,<CW sin theta>,<Current>,<Lorenz force>"
+            filehead="  itmf,  dt,  <f_i>,  <CW sin theta>,  <Current>,  <Lorenz force>"
             call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                                 MPI_CHARACTER,status,ierrmpi)
             call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,status,ierrmpi)
           end if
           line=''
           write(datastr,'(i6,a)') i,','
+          line=trim(line)//trim(datastr)
+          write(datastr,'(es13.6,a)') dtfff,','
           line=trim(line)//trim(datastr)
           write(datastr,'(es13.6,a)') f_i,','
           line=trim(line)//trim(datastr)
@@ -372,7 +382,7 @@ contains
         integral_grid_mf=0.d0
         select case(iw)
          case(1)
-          ! Sum(|JxB|/|B|)
+          ! Sum(dvolume*|JxB|/|B|)
           if(B0field) then
             bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
           else
@@ -397,7 +407,7 @@ contains
                                sum(bvec(ix^D,:)**2))*dvolume(ix^D)
           {end do\}
          case(2)
-          ! Sum(|J|)
+          ! Sum(dvolume*|J|)
           call get_current(w,ixI^L,ixO^L,idirmin,current)
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
              if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+sqrt(sum(current(ix^D,:)**2))*&
@@ -405,6 +415,7 @@ contains
           {end do\}
          case(3)
           ! f_i solenoidal property of B: (dvolume |div B|)/(dsurface |B|)
+          ! Sum(dvolume*f_i)
           if(B0field) then
             bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
           else
@@ -1151,7 +1162,7 @@ contains
     double precision, intent(in) :: qdt, qtC, qt, dx^D
     double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw), wold(ixI^S,1:nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision :: fC(ixI^S,1:ndir,1:ndim)
 
     double precision :: v(ixI^S,ndim), f(ixI^S)
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
@@ -1216,7 +1227,7 @@ contains
              w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+ &
                   (fC(ixO^S,idir,idims)-fC(hxO^S,idir,idims))/block%dvolume(ixO^S)
           end if
-       end do    !next iw
+       end do    !next idir
     end do       !next idims
 
     if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -1319,7 +1330,12 @@ contains
                           /(^D&1.0d0/block%dx(ixp^S,^D)**2+)
        end if
        ! B_idim += eta*grad_idim(divb)
-       w(ixp^S,mag(idims))=w(ixp^S,mag(idims))+graddivb(ixp^S)
+       ! with Janhunen's term
+       !w(ixp^S,mag(idims))=w(ixp^S,mag(idims))+&
+       !      graddivb(ixp^S)-qdt*w(ixp^S,mom(idims))*divb(ixp^S)
+       ! without Janjunen's term
+       w(ixp^S,mag(idims))=w(ixp^S,mag(idims))+&
+             graddivb(ixp^S)
     end do
 
   end subroutine divbclean
