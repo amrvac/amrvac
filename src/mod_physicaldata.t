@@ -79,12 +79,6 @@ module mod_physicaldata
       double precision, dimension(:^DE&), allocatable :: dvolume
       !> Volumes of a cell, one level coarser representative
       double precision, dimension(:^DE&), allocatable :: dvolumecoarse
-      !> Volumes of a cell, pointer
-      double precision, dimension(:^DE&), pointer :: dvolumep => Null()
-      !> Cell-center positions, pointer
-      double precision, dimension(:^D&,:), pointer :: xCCp => Null()
-      !> Cell sizes, pointer
-      double precision, dimension(:^D&,:), pointer :: dxp => Null()
       !> Areas of cell-center surfaces 
       double precision, dimension(:^DE&,:), allocatable :: surface
       !> Areas of cell-face surfaces

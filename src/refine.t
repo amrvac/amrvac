@@ -209,6 +209,8 @@ double precision :: eta^D
          signR=sign(one,slopeR)
          signC=sign(one,slopeC)
          select case(typeprolonglimit)
+         case('unlimit')
+           slope(iw,idim)=slopeC
          case('minmod')
            slope(iw,idim)=signR*max(zero,min(dabs(slopeR), &
                                              signR*slopeL))
