@@ -68,17 +68,16 @@ contains
     select case (typeghostfill)
     case ("copy")
        interpolation_order=1
-    case ("linear","unlimit")
+    case ("linear")
        interpolation_order=2
     case default
-       interpolation_order=2
        write (unitterm,*) "Undefined typeghostfill ",typeghostfill
-       call mpistop("")
+       call mpistop("Undefined typeghostfill")
     end select
     nghostcellsCo=int((nghostcells+1)/2)
     
     if (nghostcellsCo+interpolation_order-1>nghostcells) then
-       call mpistop("interpolation order for prolongation in getbc to high")
+       call mpistop("interpolation order for prolongation in getbc too high")
     end if
     
     ! (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
@@ -767,11 +766,9 @@ contains
            call interpolation_linear(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
         case ("copy")
            call interpolation_copy(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
-        case ("unlimit")
-           call interpolation_unlimit(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
         case default
            write (unitterm,*) "Undefined typeghostfill ",typeghostfill
-           call mpistop("")
+           call mpistop("Undefined typeghostfill")
         end select
 
         if(prolongprimitive) call phys_to_conserved(ixCoG^L,ixCo^L,&
@@ -790,9 +787,10 @@ contains
         double precision :: slopeL, slopeR, slopeC, signC, signR
         double precision :: slope(1:nw,ndim)
         !!double precision :: local_invdxCo^D
-        integer :: ixshift^D, icase
+        double precision :: signedfactorhalf^D
+        !integer :: ixshift^D, icase
 
-        icase=mod(nghostcells,2)
+        !icase=mod(nghostcells,2)
 
         if(prolongprimitive) then
           nwmin=1
@@ -810,8 +808,11 @@ contains
            ! indices of coarse cell which contains the fine cell
            ! since we computed lower left corner earlier 
            ! in equidistant fashion: also ok for stretched case
-           ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
+           ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1
         
+           ! cell-centered coordinates of coarse grid point
+           ! here we temporarily use an equidistant grid
+           xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB \}
 
            !if(.not.slab) then
            !   ^D&local_invdxCo^D=1.d0/block%dxcoarse({ixCo^DD},^D)\
@@ -819,48 +820,53 @@ contains
 
            if(slab) then
              ! actual cell-centered coordinates of fine grid point
-             ^D&xFi^D=block%x({ixFi^DD},^D)\
+             !!^D&xFi^D=block%x({ixFi^DD},^D)\
              ! actual cell-centered coordinates of coarse grid point
-             ^D&xCo^D=block%xcoarse({ixCo^DD},^D)\
+             !!^D&xCo^D=block%xcoarse({ixCo^DD},^D)\
              ! normalized distance between fine/coarse cell center
              ! in coarse cell: ranges from -0.5 to 0.5 in each direction
              ! (origin is coarse cell center)
              ! this is essentially +1/4 or -1/4 on cartesian mesh
              eta^D=(xFi^D-xCo^D)*invdxCo^D;
            else
-             select case(icase)
-              case(0)
-             {! here we assume an even number of ghostcells!!!
-             ixshift^D=2*(mod(ixFi^D,2)-1)+1
-             if(ixshift^D>0.0d0)then
-                ! oneven fine grid points
-                eta^D=-0.5d0*(one-block%dvolume(ixFi^DD) &
-                  /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD))) 
-             else
-                ! even fine grid points
-                eta^D=+0.5d0*(one-block%dvolume(ixFi^DD) &
-                  /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD))) 
-             endif\}
-              case(1)
-             {! here we assume an odd number of ghostcells!!!
-             ixshift^D=2*(mod(ixFi^D,2)-1)+1
-             if(ixshift^D>0.0d0)then
-                ! oneven fine grid points
-                eta^D=+0.5d0*(one-block%dvolume(ixFi^DD) &
-                  /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD))) 
-                if(ixFi^D==ixGlo^D)call mpistop("oh no!")
-             else
-                ! even fine grid points
-                eta^D=-0.5d0*(one-block%dvolume(ixFi^DD) &
-                  /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD))) 
-                if(ixFi^D==ixGhi^D)call mpistop("oh no!")
-             endif\}
-              case default
-               call mpistop("no such case")
-             end select
-
-             !ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
-             !{eta^D=(xFi^D-xCo^D)*local_invdxCo^D &
+             !select case(icase)
+             ! case(0)
+             !{! here we assume an even number of ghostcells!!!
+             !ixshift^D=2*(mod(ixFi^D,2)-1)+1
+             !if(ixshift^D>0.0d0)then
+             !   ! oneven fine grid points
+             !   eta^D=-0.5d0*(one-block%dvolume(ixFi^DD) &
+             !     /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD))) 
+             !else
+             !   ! even fine grid points
+             !   eta^D=+0.5d0*(one-block%dvolume(ixFi^DD) &
+             !     /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD))) 
+             !endif\}
+             ! case(1)
+             !{! here we assume an odd number of ghostcells!!!
+             !ixshift^D=2*(mod(ixFi^D,2)-1)+1
+             !if(ixshift^D>0.0d0)then
+             !   ! oneven fine grid points
+             !   eta^D=+0.5d0*(one-block%dvolume(ixFi^DD) &
+             !     /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD))) 
+             !else
+             !   ! even fine grid points
+             !   eta^D=-0.5d0*(one-block%dvolume(ixFi^DD) &
+             !     /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD))) 
+             !endif\}
+             ! case default
+             !  call mpistop("no such case")
+             !end select
+             ! the different cases for even/uneven number of ghost cells 
+             ! are automatically handled using the relative index to ixMlo
+             ! as well as the pseudo-coordinates xFi and xCo 
+             ! these latter differ from actual cell centers when stretching is used
+             ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
+             {signedfactorhalf^D=(xFi^D-xCo^D)*invdxCo^D*two
+              if(dabs(signedfactorhalf^D**2-1.0d0/4.0d0)>smalldouble) call mpistop("error in bc_prolong")
+              eta^D=signedfactorhalf^D*(one-block%dvolume(ixFi^DD) &
+                   /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
+             !{eta^D=(xFi^D-xCo^D)*invdxCo^D &
              !      *two*(one-block%dvolume(ixFi^DD) &
              !      /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
            end if
@@ -878,6 +884,8 @@ contains
                  signR=sign(one,slopeR)
                  signC=sign(one,slopeC)
                  select case(typeprolonglimit)
+                 case('unlimit')
+                   slope(iw,idims)=slopeC
                  case('minmod')
                    slope(iw,idims)=signR*max(zero,min(dabs(slopeR), &
                                                      signR*slopeL))
@@ -937,73 +945,6 @@ contains
         if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
       
       end subroutine interpolation_copy
-
-      subroutine interpolation_unlimit(ixFi^L,dxFi^D,xFimin^D, &
-                                       dxCo^D,invdxCo^D,xComin^D)
-        use mod_physics, only: phys_to_conserved
-        integer, intent(in) :: ixFi^L
-        double precision, intent(in) :: dxFi^D, xFimin^D, dxCo^D,invdxCo^D, xComin^D
-
-        integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idims, nwmin, nwmax
-        double precision :: xCo^D, xFi^D, eta^D
-        double precision :: slope(1:nw,ndim)
-        double precision :: local_invdxCo^D
-
-        if(prolongprimitive) then
-          nwmin=1
-          nwmax=nw
-        else
-          nwmin=nwhead
-          nwmax=nwtail
-        end if
-
-        call mpistop("todo")
-        {do ixFi^DB = ixFi^LIM^DB
-           ! cell-centered coordinates of fine grid point
-           xFi^DB=xFimin^DB+(dble(ixFi^DB)-half)*dxFi^DB
-        
-           ! indices of coarse cell which contains the fine cell
-           ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
-
-           ! actual cell-centered coordinates of fine grid point
-           ^D&xFi^D=block%x({ixFi^DD},^D)\
-           ! actual cell-centered coordinates of coarse grid point
-           ^D&xCo^D=block%xcoarse({ixCo^DD},^D)\
-
-           if(.not.slab) then
-              ^D&local_invdxCo^D=1.d0/block%dxcoarse({ixCo^DD},^D)\
-           endif
-        
-           ! normalized distance between fine/coarse cell center
-           ! in coarse cell: ranges from -0.5 to 0.5 in each direction
-           ! (origin is coarse cell center)
-           if (slab) then
-              eta^D=(xFi^D-xCo^D)*invdxCo^D;
-           else
-              ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
-              {eta^D=0.5d0*sign(one,xFi^D-xCo^D)*(one-block%dvolume(ixFi^DD) &
-              !{eta^D=(xFi^D-xCo^D)*local_invdxCo^D &
-              !      *two*(one-block%dvolume(ixFi^DD) &
-                    /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
-           end if
-        
-           do idims=1,ndim
-              hxCo^D=ixCo^D-kr(^D,idims)\
-              jxCo^D=ixCo^D+kr(^D,idims)\
-        
-              ! get centered slope
-              slope(nwmin:nwmax,idims)=half*(pw(igrid)%wcoarse(jxCo^D,&
-                1:nw)-pw(igrid)%wcoarse(hxCo^D,1:nw))
-           end do
-        
-           ! Interpolate from coarse cell using centered slopes
-           pw(igrid)%wb(ixFi^D,nwmin:nwmax)=pw(igrid)%wcoarse(ixCo^D,nwmin:nwmax)+&
-             {(slope(nwmin:nwmax,^D)*eta^D)+}
-        {end do\}
-        
-        if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,pw(igrid)%wb,pw(igrid)%x)
-      
-      end subroutine interpolation_unlimit
 
       subroutine pole_copy(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L)
       
