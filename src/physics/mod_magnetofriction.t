@@ -1,5 +1,5 @@
 !> module mod_magnetofriction.t
-!> Purpose: use magnetofrictional method to relax 3D magnetic field to 
+!> Purpose: use magnetofrictional method to relax 3D magnetic field to
 !>          force-free field
 !> 01.04.2016 developed by Chun Xia and Yang Guo
 !> 04.10.2017 modulized by Chun Xia
@@ -11,7 +11,7 @@
 !>    limiter= 13*'koren' ! or 'vanleer','cada3','mp5' so on
 !>   /
 !>   &meshlist
-!>    ditregrid=20 ! set iteration interval for adjusting AMR 
+!>    ditregrid=20 ! set iteration interval for adjusting AMR
 !>   /
 !>   &mhd_list
 !>    mhd_magnetofriction=.true.
@@ -75,7 +75,7 @@ contains
   !> Initialize the module
   subroutine magnetofriction_init()
     use mod_global_parameters
-    use mod_usr_methods, only: usr_before_main_loop 
+    use mod_usr_methods, only: usr_before_main_loop
 
     rho_=iw_rho
     allocate(mom(ndir))
@@ -133,7 +133,7 @@ contains
     type_send_r=>type_send_r_p1
     type_recv_r=>type_recv_r_p1
     type_send_p=>type_send_p_p1
-    type_recv_p=>type_recv_p_p1 
+    type_recv_p=>type_recv_p_p1
     ! create bc mpi datatype for ghostcells update
     call create_bc_mpi_datatype(mag(1)-1,ndir)
     ! point bc mpi datatype to partial type for velocity field
@@ -142,7 +142,7 @@ contains
     type_send_r=>type_send_r_p2
     type_recv_r=>type_recv_r_p2
     type_send_p=>type_send_p_p2
-    type_recv_p=>type_recv_p_p2 
+    type_recv_p=>type_recv_p_p2
     ! create bc mpi datatype for ghostcells update
     call create_bc_mpi_datatype(mom(1)-1,ndir)
     ! convert conservative variables to primitive ones which are used during MF
@@ -156,7 +156,7 @@ contains
     ! calculate initial values of metrics
     if(i==0) then
       call metrics
-      call printlog_mf 
+      call printlog_mf
     end if
     ! magnetofrictional loops
     do
@@ -174,7 +174,7 @@ contains
                          icomm,ierrmpi)
       call MPI_ALLREDUCE(cmax_mype,cmax_global,1,MPI_DOUBLE_PRECISION,&
                  MPI_MAX,icomm,ierrmpi)
-    
+
       ! =======
       ! evolve
       ! =======
@@ -188,7 +188,7 @@ contains
         mf_cy=1.0001d0*mf_cy
         mf_cy = min(mf_cy_max,mf_cy)
       end if
-    
+
       i=i+1
       tmf=tmf+dtfff
       if(mod(i,10)==0) then
@@ -226,7 +226,7 @@ contains
         end if
         if(mype==0) then
           write (*,*) 'Reach maximum iteration step!'
-          write (*,*) 'The total iteration step is:', i   
+          write (*,*) 'The total iteration step is:', i
         end if
         exit
       end if
@@ -293,10 +293,10 @@ contains
            icomm,ierrmpi)
         call MPI_ALLREDUCE(volumepe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
            icomm,ierrmpi)
-        ! current- and volume-weighted average of the sine of the angle 
+        ! current- and volume-weighted average of the sine of the angle
         ! between the magnetic field B and the current density J
         cwsin_theta_new = sum_jbb/sum_j
-        ! volume-weighted average of the absolute value of the fractional 
+        ! volume-weighted average of the absolute value of the fractional
         ! magnetic flux change
         f_i = f_i/volume
         sum_j=sum_j/volume
@@ -401,7 +401,7 @@ contains
                 endif
              endif
           enddo; enddo; enddo
-          
+
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
              if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+sqrt(sum(qvec(ix^D,:)**2)/&
                                sum(bvec(ix^D,:)**2))*dvolume(ix^D)
@@ -446,7 +446,7 @@ contains
                 endif
              endif
           enddo; enddo; enddo
-          
+
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
              if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+sqrt(sum(qvec(ix^D,:)**2))*dvolume(ix^D)
           {end do\}
@@ -459,7 +459,7 @@ contains
   subroutine mf_velocity_update(dtfff)
     use mod_global_parameters
 
-    double precision, intent(in) :: dtfff 
+    double precision, intent(in) :: dtfff
     integer :: i,iigrid, igrid
     double precision :: vhatmax,vhatmax_pe,vhatmaxgrid
 
@@ -478,18 +478,18 @@ contains
       ! calculate frictional velocity
       call frictional_velocity(pw(igrid)%w,pw(igrid)%x,ixG^LL,ixM^LL,vhatmax,dtfff)
     end do
-    
+
   end subroutine mf_velocity_update
 
   subroutine vhat(w,x,ixI^L,ixO^L,vhatmaxgrid)
-    ! Calculate v_hat 
+    ! Calculate v_hat
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(inout)  :: w(ixI^S,nw)
     double precision, intent(in)  :: x(ixI^S,1:ndim)
     double precision, intent(out) :: vhatmaxgrid
-    
+
     double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S),dxhm
     double precision :: dxhms(ixO^S)
     integer :: idirmin,idir,jdir,kdir
@@ -511,7 +511,7 @@ contains
           endif
        endif
     enddo; enddo; enddo
-    
+
     if(B0field) then
       tmp(ixO^S)=sum((w(ixO^S,mag(:))+block%b0(ixO^S,:,0))**2,dim=ndim+1)  ! |B|**2
     else
@@ -530,7 +530,7 @@ contains
       end do
     end if
     vhatmaxgrid=maxval(sqrt(sum(w(ixO^S,mom(:))**2,dim=ndim+1)))
-  
+
   end subroutine vhat
 
   subroutine frictional_velocity(w,x,ixI^L,ixO^L,qvmax,qdt)
@@ -615,9 +615,9 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       pw(igrid)%w1=pw(igrid)%w
     end do
-    
+
     istep=0
-    
+
     select case (time_integrator)
      case ("onestep")
        call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,1,qt,0)
@@ -631,16 +631,16 @@ contains
      case ("threestep")
        ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
        call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,0,qt,1)
-    
+
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           pw(igrid)%w2(ixG^T,1:nwflux)=0.75d0*pw(igrid)%w(ixG^T,1:nwflux)+0.25d0*&
                pw(igrid)%w1(ixG^T,1:nwflux)
           if (nw>nwflux) pw(igrid)%w2(ixG^T,nwflux+1:nw) = &
                pw(igrid)%w(ixG^T,nwflux+1:nw)
        end do
-    
+
        call advect1mf(flux_scheme,qdt,0.25d0,idim^LIM,qt+qdt,1,qt+dt*0.25d0,2)
-    
+
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           pw(igrid)%w(ixG^T,1:nwflux)=1.0d0/3.0d0*pw(igrid)%w(ixG^T,1:nwflux)+&
                2.0d0/3.0d0*pw(igrid)%w2(ixG^T,1:nwflux)
@@ -674,7 +674,7 @@ contains
     logical :: setigrid
 
     istep=istep+1
-    
+
     ! loop over all grids to arrive at equivalent
     qdt=dtfactor*dtin
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -710,8 +710,8 @@ contains
        call process1_gridmf(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
                        pw(igrid)%wa,qt,pw(igrid)%wb,pw(igrid)%wold)
     end do
-    
-    ! opedit: Send flux for all grids, expects sends for all 
+
+    ! opedit: Send flux for all grids, expects sends for all
     ! nsend_fc(^D), set in connectivity.t.
 
     if (fix_conserve_at_step) then
@@ -725,7 +725,7 @@ contains
     type_send_r=>type_send_r_p1
     type_recv_r=>type_recv_r_p1
     type_send_p=>type_send_p_p1
-    type_recv_p=>type_recv_p_p1 
+    type_recv_p=>type_recv_p_p1
     ! update B in ghost cells
     call getbc(qt+qdt,qdt,mag(1)-1,ndir)
     ! calculate magnetofrictional velocity
@@ -736,7 +736,7 @@ contains
     type_send_r=>type_send_r_p2
     type_recv_r=>type_recv_r_p2
     type_send_p=>type_send_p_p2
-    type_recv_p=>type_recv_p_p2 
+    type_recv_p=>type_recv_p_p2
     ! update magnetofrictional velocity in ghost cells
     call getbc(qt+qdt,qdt,mom(1)-1,ndir)
 
@@ -761,18 +761,18 @@ contains
 
     typelimiter=type_limiter(node(plevel_,igrid))
     typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-    
+
     ixO^L=ixG^L^LSUBnghostcells;
     select case (method)
      case ("cd4")
        !================================
        ! 4th order central difference
-       !================================ 
+       !================================
        call centdiff4mf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,pw(igrid)%x)
      case ("tvdlf")
        !================================
        ! TVDLF
-       !================================ 
+       !================================
        call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,pw(igrid)%x)
      case ('hancock')
        ! hancock predict (first) step for twostep tvdlf and tvdmu scheme
@@ -780,7 +780,7 @@ contains
      case ("fd")
        !================================
        ! finite difference
-       !================================ 
+       !================================
        call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,pw(igrid)%x)
     case default
        if(mype==0) write(unitterm,*)'Error in advect1_gridmf:',method,' is not there!'
@@ -794,7 +794,7 @@ contains
   end subroutine process1_gridmf
 
   subroutine upwindLRmf(ixI^L,ixL^L,ixR^L,idim,w,wCT,wLC,wRC,x)
-    ! Determine the upwinded wLC(ixL) and wRC(ixR) from w. 
+    ! Determine the upwinded wLC(ixL) and wRC(ixR) from w.
     ! the wCT is only used when PPM is exploited.
     use mod_global_parameters
     use mod_limiter
@@ -862,7 +862,7 @@ contains
               -w(ixO^S,mom(idir))*block%B0(ixO^S,idim,idim)
       end if
     end if
-  
+
   end subroutine getfluxmf
 
   subroutine tvdlfmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
@@ -875,7 +875,7 @@ contains
     double precision, dimension(ixI^S,1:ndim), intent(in) ::  x
     double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
     double precision, dimension(ixI^S,1:ndir,1:ndim)        :: fC
-    
+
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC, wmean
     double precision, dimension(ixI^S)      :: fLC, fRC
     double precision, dimension(ixI^S)      :: cmaxC
@@ -890,7 +890,7 @@ contains
     end do
     if (ixI^L^LTix^L|.or.|.or.) &
        call mpistop("Error in tvdlfmf: Nonconforming input limits")
-    
+
     ^D&dxinv(^D)=-qdt/dx^D;
     fC=0.d0
     do idims= idim^LIM
@@ -899,7 +899,7 @@ contains
        hxO^L=ixO^L-kr(idims,^D);
        ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
        ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
-       ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2 
+       ! Calculate wRC=uR_{j+1/2} and wLC=uL_j+1/2
        jxC^L=ixC^L+kr(idims,^D);
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
@@ -922,7 +922,7 @@ contains
           call getfluxmf(wRC,x,ixG^LL,ixC^L,idir,idims,fRC)
           ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
           fLC(ixC^S)=half*(fLC(ixC^S)+fRC(ixC^S))
-    
+
           ! Add TVDLF dissipation to the flux
           if (idir==idims) then
             fLC(ixC^S)=fLC(ixC^S)-mf_tvdlfeps*tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,mag(idir))-wLC(ixC^S,mag(idir)))
@@ -953,12 +953,12 @@ contains
                   inv_volume
           end do
        end if
-    
+
     end do ! Next idims
-    
+
     if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call divbclean(qdt,ixI^L,ixO^L,wCT,wnew,x)
-  
+
   end subroutine tvdlfmf
 
   subroutine hancockmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
@@ -985,7 +985,7 @@ contains
     end do
     if (ixI^L^LTix^L|.or.|.or.) &
        call mpistop("Error in Hancockmf: Nonconforming input limits")
-    
+
     ^D&dxinv(^D)=-qdt/dx^D;
     do idims= idim^LIM
        block%iw0=idims
@@ -993,12 +993,12 @@ contains
        ! First copy all variables, then upwind wLC and wRC.
        ! wLC is to the left of ixO, wRC is to the right of wCT.
        hxO^L=ixO^L-kr(idims,^D);
-    
+
        wRC(hxO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
        wLC(ixO^S,1:nwflux)=wCT(ixO^S,1:nwflux)
-    
+
        call upwindLRmf(ixI^L,ixO^L,hxO^L,idims,wCT,wCT,wLC,wRC,x)
-    
+
        ! Advect mag(idir)
        do idir=1,ndir
           ! Calculate the fLC and fRC fluxes
@@ -1053,11 +1053,11 @@ contains
           fp(ixCR^S,mag(idir)) = half * (fCT(ixCR^S) + mf_tvdlfeps * tvdlfeps * cmax_global * wCT(ixCR^S,mag(idir)))
           fm(ixCR^S,mag(idir)) = half * (fCT(ixCR^S) - mf_tvdlfeps * tvdlfeps * cmax_global * wCT(ixCR^S,mag(idir)))
        end do ! iw loop
-      
+
        ! now do the reconstruction of fp and fm:
        call reconstructLmf(ixI^L,ix^L,idims,fp,fpL)
        call reconstructRmf(ixI^L,ix^L,idims,fm,fmR)
-    
+
        do idir=1,ndir
           if (slab) then
              fC(ix^S,idir,idims) = dxinv(idims) * (fpL(ix^S,mag(idir)) + fmR(ix^S,mag(idir)))
@@ -1084,7 +1084,7 @@ contains
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
 
-    double precision, intent(out)   :: wLC(ixI^S,1:nw) 
+    double precision, intent(out)   :: wLC(ixI^S,1:nw)
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
@@ -1092,7 +1092,7 @@ contains
     select case (typelimiter)
     case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
-    case default 
+    case default
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
 
@@ -1121,7 +1121,7 @@ contains
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
 
-    double precision, intent(out)   :: wRC(ixI^S,1:nw) 
+    double precision, intent(out)   :: wRC(ixI^S,1:nw)
 
     double precision                :: rdw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
@@ -1129,7 +1129,7 @@ contains
     select case (typelimiter)
     case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
-    case default 
+    case default
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
@@ -1152,7 +1152,7 @@ contains
 
   subroutine centdiff4mf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
     ! Advance the flow variables from global_time to global_time+qdt within ixO^L by
-    ! fourth order centered differencing in space 
+    ! fourth order centered differencing in space
     ! for the dw/dt+dF_i(w)/dx_i=S type equation.
     ! wCT contains the time centered variables at time qtC for flux and source.
     ! w is the old value at qt on input and the new value at qt+qdt on output.
@@ -1184,7 +1184,7 @@ contains
 
     ! Add fluxes to w
     do idims= idim^LIM
-       block%iw0=idims 
+       block%iw0=idims
        ix^L=ixO^L^LADD2*kr(idims,^D);
        hxO^L=ixO^L-kr(idims,^D);
 
@@ -1199,7 +1199,7 @@ contains
        wLC(kkxC^S,1:nwflux)=wCT(kkxC^S,1:nwflux)
 
        call upwindLRmf(ixI^L,ixC^L,ixC^L,idims,wCT,wCT,wLC,wRC,x)
-    
+
        ! Calculate velocities from upwinded values
        call getcmaxfff(wLC,ixG^LL,ixC^L,idims,cmaxLC)
        call getcmaxfff(wRC,ixG^LL,ixC^L,idims,cmaxRC)
@@ -1213,11 +1213,11 @@ contains
           ! f_i+1/2= (-f_(i+2) +7 f_(i+1) + 7 f_i - f_(i-1))/12
           fC(ixC^S,idir,idims)=(-f(kxC^S)+7.0d0*(f(jxC^S)+f(ixC^S))-f(hxC^S))/12.0d0
           ! add rempel dissipative flux, only second order version for now
-          ! one could gradually reduce the dissipative flux to improve solutions 
+          ! one could gradually reduce the dissipative flux to improve solutions
           ! for computing steady states (Keppens et al. 2012, JCP)
           fC(ixC^S,idir,idims)=fC(ixC^S,idir,idims)-mf_tvdlfeps*tvdlfeps*half*vLC(ixC^S) &
                                          *(wRC(ixC^S,mag(idir))-wLC(ixC^S,mag(idir)))
-    
+
           if (slab) then
              fC(ixC^S,idir,idims)=dxinv(idims)*fC(ixC^S,idir,idims)
              ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)+f_(i-1))-f_(i-2)]/12
@@ -1285,7 +1285,7 @@ contains
 
   end subroutine getcmaxfff
 
-  !> Clean divergence of magnetic field by Janhunen's and Linde's source terms 
+  !> Clean divergence of magnetic field by Janhunen's and Linde's source terms
   subroutine divbclean(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
 
@@ -1355,7 +1355,7 @@ contains
 
     mr_=mom(1); mphi_=mom(1)-1+phi_  ! Polar var. names
     br_=mag(1); bphi_=mag(1)-1+phi_
-    
+
     select case (typeaxial)
     case ('cylindrical')
       if(phi_>0) then
@@ -1396,7 +1396,7 @@ contains
         w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
       end if
     end select
-  
+
   end subroutine addgeometrymf
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
