@@ -64,6 +64,12 @@ module mod_constants
   !> Solar mass in cgs
   real(dp), parameter :: mSun_cgs = 1.9891e33_dp ! g
 
+  !> Gravitational constant in SI
+  real(dp), parameter :: grav_SI = 6.67408e-11_dp	! m^3 kg^-1 s^-2
+
+  !> Gravitational constant in cgs
+  real(dp), parameter :: grav_cgs = 6.67408e-8_dp	! cm^3 g^-1 s^-2
+
 
   double precision, PARAMETER :: const_c     = 2.99792458d10   ! cm s^-1           ; Speed of light
   double precision, PARAMETER :: const_me    = 9.1093897d-28   ! g                 ; Electron mass
