@@ -23,7 +23,7 @@ module mod_variables
   integer, dimension(:), allocatable :: iw_vector
 
   !> Maximum number of variables
-  integer, parameter :: max_nw = 50
+  integer, parameter :: max_nw = 100
 
   !> Primitive variable names
   character(len=name_len) :: prim_wnames(max_nw)
