@@ -6,26 +6,27 @@
    convert_type     = 'vtuBCCmpi'
    saveprim         = .true.
    nocartesian      = .true. ! to avoid nullifying values below smalldouble
+   nwauxio          = 9
  /
 
  &savelist
-   itsave(1,1)=0
-   itsave(1,2)=0
-   ditsave_log      = 20
-   dtsave_dat       = 20.*day
+   itsave(1,1)  = 0
+   itsave(1,2)  = 0
+   ditsave_log  = 20
+   dtsave_dat   = 20.*day
 /
 
  &stoplist
-   time_max            = 3.0d3*day
+   time_max = 3.0d3*day
 /
 
  &methodlist
-   typeaxial = 'slab'
-   time_integrator     = 'ssprk54'
-   flux_scheme       = 20*'tvdlf'
-   limiter    = 20*'koren'
+   typeaxial        = 'slab'
+   time_integrator  = 'ssprk54'
+   flux_scheme      = 20*'tvdlf'
+   limiter          = 20*'koren'
    source_split_usr = .true.
-   typesourcesplit = 'sfs'
+   typesourcesplit  = 'sf'
 /
 
  &boundlist
@@ -38,11 +39,11 @@
    refine_max_level = 1
    block_nx1        = 16
    domain_nx1       = 64
-   xprobmin1       = 1.0d0*au_SI
-   xprobmax1       = 1.0d1*au_SI
+   xprobmin1        = 1.0d0*au_SI
+   xprobmax1        = 1.0d1*au_SI
  /
 
  &hd_list
    hd_n_tracer = 70
-   hd_gravity = .true.
+   hd_gravity  = .true.
  /

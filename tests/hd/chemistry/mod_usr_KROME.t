@@ -45,7 +45,6 @@ contains
     use mod_global_parameters
     use krome_main
     use krome_user
-    use krome_user_commons
 
     ! Choose coordinate system as 1D Cartesian
     ! NOTE: not necessary when typeaxial is defined in .par file
@@ -63,7 +62,8 @@ contains
     usr_gravity       => gravitation_acceleration
     usr_get_dt        => pulsation_get_dt
     usr_source        => chemical_evolution
-
+    usr_add_aux_names => additional_output_names
+    usr_aux_output    => additional_output
     ! Specify other user routines, for a list see mod_usr_methods.t
     ! ...
 
@@ -302,7 +302,6 @@ contains
     use mod_global_parameters
     use krome_main
     use krome_user
-    use krome_user_commons
     integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)    :: qdt, qtC, qt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -349,6 +348,51 @@ contains
     {enddo^D&\}
 
   end subroutine chemical_evolution
+
+
+  !TODO: doesn't this need 'intent(out)' ??
+  subroutine additional_output(ixI^L,ixO^L,w,x,normconv)
+    use mod_global_parameters
+    use krome_user
+    integer, intent(in)          :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision             :: w(ixI^S,nw+nwauxio)
+    double precision             :: normconv(0:nw+nwauxio)
+
+    real(dp) :: mass_fractions(1:hd_n_tracer)
+
+    !loop over all grid cells
+    {do ix^DB = ixO^LIM^DB\}
+
+        mass_fractions(:) = krome_n2x(w(ix^D, tracer(:), w(ix^D,rho_)*1.0e-3_dp)
+        cooling_rates(:) = krome_get_cooling_array(w(ix^D, tracer(:)),w(ix^D, temperature))
+        heating_rates(:) = krome_get_heating_array(w(ix^D, tracer(:)),w(ix^D, temperature))
+
+        w(ix^D,nw+1)= sum(mfracs(:))
+        w(ix^D,nw+2)= krome_get_mu(w(ix^D, tracer(:)))
+        w(ix^D,nw+3) = cooling_rates(krome_idx_cool_h2)
+        w(ix^D,nw+4) = cooling_rates(krome_idx_cool_atomic)
+        w(ix^D,nw+5) = cooling_rates(krome_idx_cool_z)
+        w(ix^D,nw+6) = cooling_rates(krome_idx_cool_compton)
+        w(ix^D,nw+7) = cooling_rates(krome_idx_cool_cont)
+        w(ix^D,nw+8) = cooling_rates(krome_idx_cool_co)
+        w(ix^D,nw+9) = heating_rates(krome_idx_heat_chem)
+
+    {enddo^D&\}
+
+  end subroutine additional_output
+
+
+  !> Add names for the auxiliary variables space-separated
+  !TODO: doesn't this need 'intent(inout)' ??
+  subroutine additional_output_names(varnames)
+    use mod_global_parameters
+    character(len=*) :: varnames
+
+    varnames = 'ntot mu coolH2 coolAtom coolZ coolCIE coolCO heatChem heatCR'
+
+
+  end subroutine additional_output_names
 
 
 
