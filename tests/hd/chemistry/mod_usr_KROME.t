@@ -33,6 +33,7 @@ module mod_usr
    - Fe_init - Si_init - Mg_init - Na_init - P_init - F_init  ! mass fraction
 
   ! Local variables indices
+  ! TODO: make them also public, protected????
   integer :: gamma
   integer :: temperature
 
@@ -47,6 +48,7 @@ contains
     use krome_user_commons
 
     ! Choose coordinate system as 1D Cartesian
+    ! NOTE: not necessary when typeaxial is defined in .par file
     call set_coordinate_system("Cartesian_1D")
     ! Initialize krome
     call krome_init()
@@ -60,6 +62,7 @@ contains
     special_bc        => special_boundary
     usr_gravity       => gravitation_acceleration
     usr_get_dt        => pulsation_get_dt
+    usr_source        => chemical_evolution
 
     ! Specify other user routines, for a list see mod_usr_methods.t
     ! ...
@@ -292,6 +295,61 @@ contains
     dtnew = pulsation_period * 1e-2_dp
 
   end subroutine pulsation_get_dt
+
+  !> Calculate w(iw)=w(iw)+qdt*SOURCE[wCT,qtC,x] within ixO for all indices
+  !> iw=iwmin...iwmax.  wCT is at time qCT
+  subroutine chemical_evolution(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+    use mod_global_parameters
+    use krome_main
+    use krome_user
+    use krome_user_commons
+    integer, intent(in)             :: ixI^L, ixO^L, iw^LIM
+    double precision, intent(in)    :: qdt, qtC, qt
+    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    integer :: ix^D
+    real(dp) :: temperature_local
+    real(dp) :: tracer_local(1:hd_n_tracer)
+    real(dp) :: mu_old, mu_new
+    real(dp) :: delta_energy !< change in energy due to new chemical composition
+    real(dp) :: delta_tracer(1:hd_n_tracer) !< change in chemical composition
+    ! if we have soure splitting also AFTER flux calculations (e.g. 'sfs')
+    ! then we need another call to 'calculate_local_variables'
+    ! but this is not a 'usr_process_grid'
+
+    !> loop over all grid cells
+    {do ix^DB = ixO^LIM^DB\}
+
+      !TODO: is it better/faster to define an old and new local variable instead
+      ! of calling the w-array and wCT-array?
+      tracer_local = wCT(ix^D, tracer(:))
+      temperature_local = wCT(ix^D, temperature)
+      mu_old = krome_get_mu(tracer_local(:))
+
+      !> update tracers and temperature by solving chemistry over qdt
+      !> returns updated values for input
+      call krome(tracer_local(:), temperature_local, qdt)
+
+      ! update local variables
+      w(ix^D, gamma) = krome_get_gamma(tracer_local(:), temperature_local)
+      w(ix^D, temperature) = temperature_local
+      mu_new = krome_get_mu(tracer_local(:))
+
+      !delta =  new - old
+      delta_tracer = tracer_local - wCT(ix^D, tracer(:))
+      delta_energy = wCT(ix^D, rho_) * kB_SI/mp_SI * &
+                ( temperature_local/(mu_new * (w(ix^D, gamma) - 1.0_dp) ) &
+                - wCT(ix^D, temperature)/(mu_old * (wCT(ix^D, gamma)) - 1.0_dp))
+
+      !w(iw) = w(iw) + delta_w
+      w(ix^D, tracer(:)) = w(ix^D, tracer(:)) + delta_tracer
+      w(ix^D, e_) = w(ix^D, e_) + delta_energy
+
+    {enddo^D&\}
+
+  end subroutine chemical_evolution
+
 
 
 
