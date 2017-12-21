@@ -952,6 +952,8 @@ do level=levmin,levmax
 end do
 {^IFONED endif}
 
+close(qunit)
+
 end subroutine tecplot
 !=============================================================================
 subroutine save_conntec(qunit,igrid,igonlevel)
