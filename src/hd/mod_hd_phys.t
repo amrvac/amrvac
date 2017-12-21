@@ -122,9 +122,9 @@ contains
     case ("cylindrical")
       do iw=1,nwflux
         if (idim==r_ .and. iw==iw_mom(phi_)) then
-          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,idim))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/x(ixO^S,r_))
+               (inv_volume/x(ixO^S,idim))
         else
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
                 inv_volume
@@ -133,13 +133,13 @@ contains
     case ("spherical")
       do iw=1,nwflux
         if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
-          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
+          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/x(ixO^S,r_))
+               (inv_volume/x(ixO^S,idim))
         elseif (idim==2  .and. iw==iw_mom(phi_)) then
-          fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*dsin(x(kxC^S,2)+half*block%dx(kxC^S,2)) ! (x(4,3,1)-x(3,3,1)))
+          fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*sin(x(kxC^S,idim)+half*block%dx(kxC^S,idim)) ! (x(4,3,1)-x(3,3,1)))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/dsin(x(ixO^S,2)))
+               (inv_volume/sin(x(ixO^S,idim)))
         else
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
                 inv_volume
