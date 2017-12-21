@@ -281,7 +281,6 @@ without changing time, set `reset_it=T`.
     loglimit= nw logicals, all false by default
     flatsh = F | T
     flatcd = F | T
-    flatppm= T | F
     mcbeta= DOUBLE
 
     typeentropy= 'nul','powell','harten','ratio','yee'
@@ -577,7 +576,7 @@ These are only used when one or more dustspecies is used for HD.
      typeboundary_min^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      typeboundary_max^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      internalboundary = F | T
-     typeghostfill= 'linear' | 'copy' | 'unlimit'
+     typeghostfill= 'linear' | 'copy' 
      prolongation_method= 'linear' | 'other'
     /
 
@@ -748,7 +747,7 @@ second order is desired).
      iprob= INTEGER
      prolongprimitive= F | T
      coarsenprimitive= F | T
-     typeprolonglimit= 'default' | 'minmod' | 'woodward' | 'mcbeta' | 'koren'
+     typeprolonglimit= 'default' | 'minmod' | 'woodward' | 'koren' | 'unlimit'
      tfixgrid= DOUBLE
      itfixgrid= INTEGER
      ditregrid= INTEGER
