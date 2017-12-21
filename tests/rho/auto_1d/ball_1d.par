@@ -1,7 +1,7 @@
 !=====================================================
 !> Project : Advection test
 !>   Doing discontinuous 1D ball on periodic domain
-!> $AMRVAC_DIR/setup.pl -d=11 -g=16 -p=rho
+!> $AMRVAC_DIR/setup.pl -d=1
 !=====================================================
 
  &filelist
