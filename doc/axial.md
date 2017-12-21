@@ -16,12 +16,23 @@ special versions:
 A user can specify the coordinate system by calling `set_coordinate_system` in 
 his/her `usr_init()` routine. Here are some examples:
 
+    call set_coordinate_system("Cartesian")
+    call set_coordinate_system("Cartesian_1D")
+    call set_coordinate_system("Cartesian_1.5D")
+    call set_coordinate_system("Cartesian_1.75D")
     call set_coordinate_system("Cartesian_2D")
     call set_coordinate_system("Cartesian_2.5D")
     call set_coordinate_system("Cartesian_3D")
+    call set_coordinate_system("cylindrical")
     call set_coordinate_system("cylindrical_2D")
+    call set_coordinate_system("cylindrical_3D")
+    call set_coordinate_system("cylindrical_2.5D")
     call set_coordinate_system("polar_2D")
+    call set_coordinate_system("polar_2.5D")
+    call set_coordinate_system("polar_3D")
+    call set_coordinate_system("spherical_2D")
     call set_coordinate_system("spherical_2.5D")
+    call set_coordinate_system("spherical_3D")
 
 The code should print an error when you select an option that is unavailable.
 
