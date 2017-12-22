@@ -407,7 +407,7 @@ the corresponding component in the _w_ array (for density, this is thus
 _iw=1_).
 
 When using PPM as a limiter, minor differences can be obtained using the
-switches flatppm, flatcd, flatsh. The last two are meant to minimize potential
+switches flatcd and flatsh. These are meant to minimize potential
 ripples around contact discontuinities (flatcd) or shocks (flatsh), but one
 should first try without these flattenings (default behavior). PPM is actually
 only used in a quadratic reconstruction from center to edge, requires the use

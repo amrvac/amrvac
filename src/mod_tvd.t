@@ -75,24 +75,36 @@ contains
        call phys_get_eigenjump(wL,wR,wroeC,x,ixIC^L,il,idims,smallaC,adtdxC,jumpC,workroe)
 
        ! Normalize the eigenvalue "a" (and its limit "smalla" if needed):
-       adtdxC(ixIC^S)=adtdxC(ixIC^S)*dxinv(idims)
-       if (typeentropy(il)=='harten' .or. typeentropy(il)=='powell')&
+       if (slab) then
+          adtdxC(ixIC^S)=adtdxC(ixIC^S)*dxinv(idims)
+          if (typeentropy(il)=='harten' .or. typeentropy(il)=='powell')&
             smallaC(ixIC^S)=smallaC(ixIC^S)*dxinv(idims)
+       else
+          adtdxC(ixIC^S)=adtdxC(ixIC^S)*qdt*block%surfaceC(ixIC^S,idims)*&
+             2.0d0/(block%dvolume(ixIC^S)+block%dvolume(jxIC^S))
+          if (typeentropy(il)=='harten' .or. typeentropy(il)=='powell')&
+            smallaC(ixIC^S)=smallaC(ixIC^S)*qdt*block%surfaceC(ixIC^S,idims)*&
+             2.0d0/(block%dvolume(ixIC^S)+block%dvolume(jxIC^S))
+       endif
 
        ! Calculate the flux limiter function phi
        call getphi(method,jumpC,adtdxC,smallaC,ixI^L,ixIC^L,ixC^L,il,idims,phiC)
-
-       if (.not.slab) call mpistop("geometry need still be implemented in tvd")
 
        !Add R(iw,il)*phiC(il) to each variable iw in wnew
        do iw=1,nwflux
           call phys_rtimes(phiC,wroeC,ixC^L,iw,il,idims,rphiC,workroe)
 
-          rphiC(ixC^S)=rphiC(ixC^S)*half
-
-          fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)+rphiC(ixC^S)
-
-          wnew(ixO^S,iw)=wnew(ixO^S,iw)+rphiC(ixO^S)-rphiC(hxO^S)
+          if (slab) then
+             rphiC(ixC^S)=rphiC(ixC^S)*half
+             fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)+rphiC(ixC^S)
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+rphiC(ixO^S)-rphiC(hxO^S)
+          else
+             rphiC(ixC^S)=rphiC(ixC^S)*quarter* &
+                   (block%dvolume(ixC^S)+block%dvolume(jxC^S))
+             fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)+rphiC(ixC^S)
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+(rphiC(ixO^S)-rphiC(hxO^S)) &
+                                            /block%dvolume(ixO^S)
+          endif
        end do  !iw
     end do     !il
 
