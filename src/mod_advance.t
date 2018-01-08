@@ -485,21 +485,19 @@ contains
        call usr_process_global(iit,qt)
     end if
 
-    !$OMP PARALLEL DO PRIVATE(igrid,level)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       level=node(plevel_,igrid)
-       ! next few lines ensure correct usage of routines like divvector etc
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       block=>pw(igrid)
-       typelimiter=type_limiter(node(plevel_,igrid))
-       typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-
-       if (associated(usr_process_grid)) then
-          call usr_process_grid(igrid,level,ixG^LL,ixM^LL, &
-               qt,pw(igrid)%w,pw(igrid)%x)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    if (associated(usr_process_grid)) then
+      !$OMP PARALLEL DO PRIVATE(igrid,level)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+         level=node(plevel_,igrid)
+         ! next few lines ensure correct usage of routines like divvector etc
+         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+         block=>pw(igrid)
+         typelimiter=type_limiter(node(plevel_,igrid))
+         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+         call usr_process_grid(igrid,level,ixG^LL,ixM^LL,qt,pw(igrid)%w,pw(igrid)%x)
+      end do
+      !$OMP END PARALLEL DO
+    end if
   end subroutine process
 
   !> process_advanced is user entry in time loop, just after advance

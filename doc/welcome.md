@@ -40,11 +40,11 @@ extension of new features to existing applications. MPI-AMRVAC is not a
 fool-proof black-box design. A user needs to write subroutines for initial
 conditions, and for source terms or special boundary conditions when needed.
 
-# Current development {#current_develop}
+# Development {#current_develop}
 
-MPI-AMRVAC is currently maintained and further developed by members of
-the
-[Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA).
+MPI-AMRVAC is developed and maintained by a research team led by professor 
+[Rony Keppens](https://perswww.kuleuven.be/~u0016541/) in 
+[Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA), KU Leuven.
 
 In 2016-2017 a large modernization effort was started
 by [Chun Xia](https://wis.kuleuven.be/CmPA/current-members/00086290)
