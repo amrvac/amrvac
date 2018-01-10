@@ -77,9 +77,6 @@ call amr_Morton_order()
 !!$   end do
 !!$end if
 
-! Update space filling curve
-call amr_Morton_order()
-
 contains
 !=============================================================================
 ! internal procedures
