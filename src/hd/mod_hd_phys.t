@@ -184,12 +184,6 @@ contains
        p_ = -1
     end if
 
-    allocate(tracer(hd_n_tracer))
-
-    ! Set starting index of tracers
-    do itr = 1, hd_n_tracer
-       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
-    end do
 
     phys_get_dt              => hd_get_dt
     phys_get_cmax            => hd_get_cmax
@@ -212,6 +206,13 @@ contains
     call hd_physical_units()
 
     if (hd_dust) call dust_init(rho_, mom(:), e_)
+
+    allocate(tracer(hd_n_tracer))
+
+    ! Set starting index of tracers
+    do itr = 1, hd_n_tracer
+       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
+    end do
 
     ! initialize thermal conduction module
     if (hd_thermal_conduction) then
