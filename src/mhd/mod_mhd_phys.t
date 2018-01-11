@@ -343,7 +343,7 @@ contains
     phys_handle_small_values => mhd_handle_small_values
 
     ! Whether diagonal ghost cells are required for the physics
-    if(type_divb <6) phys_req_diagonal = .true.
+    if(type_divb <6) phys_req_diagonal = .false.
 
     ! derive units from basic units
     call mhd_physical_units()
