@@ -8,7 +8,7 @@
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuCCmpi'
-        nwauxio=1
+        nwauxio=3
  /
         restart_from_file='ripple'
         snapshotnext=20
@@ -45,7 +45,7 @@
         refine_max_level=3
         refine_threshold=20*0.2d0
         derefine_ratio=20*0.125d0
-        w_refine_weight(1)=0.3d0
+        w_refine_weight(1)=0.4d0
         w_refine_weight(2)=0.2d0
         w_refine_weight(3)=0.2d0
         w_refine_weight(4)=0.2d0

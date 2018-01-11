@@ -25,9 +25,13 @@ do ipe=0,npe-1; do Morton_no=Morton_start(ipe),Morton_stop(ipe)
    send_ipe=sfc(2,Morton_no)
 
    if (recv_ipe/=send_ipe) then
+      ! get an igrid number for the new node in recv_ipe processor
       recv_igrid=getnode(recv_ipe)
+      ! update node igrid and ipe on the tree
       call change_ipe_tree_leaf(recv_igrid,recv_ipe,send_igrid,send_ipe)
+      ! receive physical data of the new node in recv_ipe processor
       if (recv_ipe==mype) call lb_recv
+      ! send physical data of the old node in send_ipe processor
       if (send_ipe==mype) call lb_send
    end if
    if (recv_ipe==mype) then
