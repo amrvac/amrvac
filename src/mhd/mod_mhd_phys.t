@@ -412,7 +412,6 @@ contains
 
     ! after user parameter setting
     gamma_1=mhd_gamma-1.d0
-    inv_gamma_1=1.d0/gamma_1
 
     if (.not. mhd_energy) then
        if (mhd_gamma <= 0.0d0) call mpistop ("Error: mhd_gamma <= 0")
@@ -421,6 +420,7 @@ contains
     else
        if (mhd_gamma <= 0.0d0 .or. mhd_gamma == 1.0d0) &
             call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
+       inv_gamma_1=1.d0/gamma_1
        small_e = small_pressure * inv_gamma_1
     end if
 
