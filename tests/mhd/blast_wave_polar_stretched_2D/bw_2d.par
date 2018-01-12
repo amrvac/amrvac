@@ -44,6 +44,7 @@
         xprobmax2=1.d0
         stretched_grid=.true.
  /
+        stretched_dim(1)=.true.
 
  &paramlist
         typecourant='maxsum'

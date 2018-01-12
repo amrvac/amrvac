@@ -759,6 +759,10 @@ contains
     endif
  
     if(stretched_grid) then
+       ! if no stretched dimension is set in par file, choose the first dimension 
+       if(.not.any(stretched_dim(:)) .and. .not.any(stretched_symm_dim(:))) then
+         stretched_dim(1)=.true.
+       end if
        allocate(qstretch(0:nlevelshi,1:ndim),dxfirst(0:nlevelshi,1:ndim),&
              dxfirst_1mq(0:nlevelshi,1:ndim),dxmid(0:nlevelshi,1:ndim)) 
        allocate(nstretchedblocks(1:nlevelshi,1:ndim))
