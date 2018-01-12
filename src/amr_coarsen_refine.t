@@ -91,6 +91,12 @@ do ipe=0,npe-1
    end do
 end do
 
+! A crash occurs in later MPI_WAITALL when initial condition comsumes too 
+! much time to filling new blocks with both gfortran and intel fortran compiler.
+! This barrier cure this problem
+!TODO to find the reason
+if(.not.time_advance) call MPI_BARRIER(icomm,ierrmpi)
+
 call get_level_range
 
 ! Update sfc array: igrid and ipe info in space filling curve
