@@ -1,8 +1,0 @@
- &filelist
-        filenamelog  = '_2048'
-        filenameout  = '_2048'
- /
-
- &amrlist
-        nxlone1=2048
- /

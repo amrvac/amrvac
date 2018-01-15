@@ -1,8 +1,0 @@
- &filelist
-        filenamelog  = '_64'
-        filenameout  = '_64'
- /
-
- &amrlist
-        nxlone1=64
- /

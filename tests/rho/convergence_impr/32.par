@@ -1,8 +1,0 @@
- &filelist
-        filenamelog  = '_32'
-        filenameout  = '_32'
- /
-
- &amrlist
-        nxlone1=32
- /
