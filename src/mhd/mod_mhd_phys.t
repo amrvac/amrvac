@@ -245,6 +245,8 @@ contains
 
     physics_type = "mhd"
     phys_energy=mhd_energy
+    ! set default gamma for polytropic/isothermal process
+    if(.not.mhd_energy) mhd_gamma=1.d0
     use_particles=mhd_particles
     if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
