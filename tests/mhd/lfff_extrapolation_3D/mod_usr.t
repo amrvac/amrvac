@@ -7,8 +7,7 @@ module mod_usr
   double precision, allocatable, save :: vbc(:,:,:,:),vbt(:,:,:,:)
   integer, save :: nxbc^D,ngl
   ! some global parameters
-  double precision :: usr_grav,SRadius,rhob,Tiso,tdstop,lalpha,llift
-  logical, save :: firstusrglobaldata=.true.
+  double precision :: usr_grav,SRadius,rhob,Tiso,tdstop,lalpha,llift,startpos^D
 
 contains
 
@@ -53,14 +52,13 @@ contains
     llift=0.4d0
     ! time for bottom driving
     tdstop=70.d0
- 
-      if(mype==0) then
-        write(*,*)'Simulating 3D flux rope formation for quiescent prominences'
-      endif
-     ! prepare magnetogram at bottom
-     call init_b_fff_usr(70,50)
-     ! initiate user's bottom boundary
-     call init_usr_bc
+    if(mype==0) then
+      write(*,*)'Simulating 3D flux rope formation for quiescent prominences'
+    endif
+    ! prepare magnetogram at bottom
+    call init_b_fff_usr(70,50)
+    ! initiate user's bottom boundary
+    call init_usr_bc
   end subroutine initglobaldata_usr
  
   subroutine init_b_fff_usr(qnx1,qnx2)
@@ -274,6 +272,9 @@ contains
     deallocate(x2bc)
     deallocate(tmp)
     call MPI_BARRIER(icomm,ierrmpi)
+    ! start position of the global bottom boundary layer
+    startpos^D=xprobmin^D-dble(nghostcells)*dx(^D,refine_max_level);\
+
   end subroutine init_usr_bc
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
@@ -305,9 +306,8 @@ contains
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision :: ft,tfstop,tramp1,tramp2,coeffrho,vlimit,vsign
-    double precision :: delxdely,delxdelz,delydelx,delydelz,delzdelx,delzdely
-    double precision :: xlen^D,dxa^D,startpos^D
-    integer :: ix^D,ixIM^L,ixbc^D,af
+    double precision :: xlen^D
+    integer :: ix^D,ixbc^D
 
     select case(iB)
     case(1)
@@ -322,18 +322,6 @@ contains
                    (-w(ix1+2,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)) &
              +4.0d0*w(ix1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)))
       enddo
-      !! reset normal B component to fulfill divB=0
-      !delxdely=dxlevel(1)/dxlevel(2)
-      !delxdelz=dxlevel(1)/dxlevel(3)
-      !do ix1=ixOmax1,ixOmin1,-1
-      !do ix2=ixOmin2+1,ixOmax2-1
-      !do ix3=ixOmin3+1,ixOmax3-1
-      !  w(ix1,ix2,ix3,mag(1))=w(ix1+2,ix2,ix3,mag(1)) &
-      !    +delxdely*(w(ix1+1,ix2+1,ix3,mag(2))-w(ix1+1,ix2-1,ix3,mag(2)))&
-      !    +delxdelz*(w(ix1+1,ix2,ix3+1,mag(3))-w(ix1+1,ix2,ix3-1,mag(3)))
-      !enddo
-      !enddo
-      !enddo
       call phys_to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       do ix1=ixOmin1,ixOmax1
@@ -347,19 +335,7 @@ contains
                    (-w(ix1-2,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)) &
               +4.0d0*w(ix1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)))
       enddo
-      !! reset normal B component to fulfill divB=0
-      !delxdely=dxlevel(1)/dxlevel(2)
-      !delxdelz=dxlevel(1)/dxlevel(3)
-      !do ix1=ixOmin1,ixOmax1
-      !do ix2=ixOmin2+1,ixOmax2-1
-      !do ix3=ixOmin3+1,ixOmax3-1
-      !  w(ix1,ix2,ix3,mag(1))=w(ix1-2,ix2,ix3,mag(1)) &
-      !    -delxdely*(w(ix1-1,ix2+1,ix3,mag(2))-w(ix1-1,ix2-1,ix3,mag(2)))&
-      !    -delxdelz*(w(ix1-1,ix2,ix3+1,mag(3))-w(ix1-1,ix2,ix3-1,mag(3)))
-      !enddo
-      !enddo
-      !enddo
-      !call phys_to_conserved(ixI^L,ixO^L,w,x)
+      call phys_to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmax2+1^%2ixO^S,rho_)
@@ -372,19 +348,7 @@ contains
                    (-w(ixOmin1:ixOmax1,ix2+2,ixOmin3:ixOmax3,mag(1):mag(3)) &
               +4.0d0*w(ixOmin1:ixOmax1,ix2+1,ixOmin3:ixOmax3,mag(1):mag(3)))
       enddo
-      !! reset normal B component to fulfill divB=0
-      !delydelx=dxlevel(2)/dxlevel(1)
-      !delydelz=dxlevel(2)/dxlevel(3)
-      !do ix2=ixOmax2,ixOmin2,-1
-      !do ix1=ixOmin1+1,ixOmax1-1
-      !do ix3=ixOmin3+1,ixOmax3-1
-      !  w(ix1,ix2,ix3,mag(2))=w(ix1,ix2+2,ix3,mag(2)) &
-      !    +delydelx*(w(ix1+1,ix2+1,ix3,mag(1))-w(ix1-1,ix2+1,ix3,mag(1)))&
-      !    +delydelz*(w(ix1,ix2+1,ix3+1,mag(3))-w(ix1,ix2+1,ix3-1,mag(3)))
-      !enddo
-      !enddo
-      !enddo
-      !call phys_to_conserved(ixI^L,ixO^L,w,x)
+      call phys_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmin2-1^%2ixO^S,rho_)
@@ -397,19 +361,7 @@ contains
                    (-w(ixOmin1:ixOmax1,ix2-2,ixOmin3:ixOmax3,mag(1):mag(3)) &
               +4.0d0*w(ixOmin1:ixOmax1,ix2-1,ixOmin3:ixOmax3,mag(1):mag(3)))
       enddo
-      !! reset normal B component to fulfill divB=0
-      !delydelx=dxlevel(2)/dxlevel(1)
-      !delydelz=dxlevel(2)/dxlevel(3)
-      !do ix2=ixOmin2,ixOmax2
-      !do ix1=ixOmin1+1,ixOmax1-1
-      !do ix3=ixOmin3+1,ixOmax3-1
-      !  w(ix1,ix2,ix3,mag(2))=w(ix1,ix2-2,ix3,mag(2)) &
-      !    -delydelx*(w(ix1+1,ix2-1,ix3,mag(1))-w(ix1-1,ix2-1,ix3,mag(1)))&
-      !    -delydelz*(w(ix1,ix2-1,ix3+1,mag(3))-w(ix1,ix2-1,ix3-1,mag(3)))
-      !enddo
-      !enddo
-      !enddo
-      !call phys_to_conserved(ixI^L,ixO^L,w,x)
+      call phys_to_conserved(ixI^L,ixO^L,w,x)
     case(5)
       tramp1=10.d0
       tramp2=10.d0
@@ -423,50 +375,21 @@ contains
       else
         ft=0.d0
       endif
-      dxa^D=dx(^D,refine_max_level);
-      af=nint(dxlevel(3)/dxa3)
-      startpos^D=xprobmin^D-dble(ngl)*dxa^D;\
-      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        xlen^D=x({ix^D,},^D)-startpos^D;\
-        if(af>=2) then 
-          w(ix^D,mom(1):mom(2))=0.d0
-!          cf=af/2
-!          ixbc1=(nint(xlen1/dxa1))
-!          ixbc2=(nint(xlen2/dxa2))
-!          if(ixbc1<cf) ixbc1=cf
-!          if(ixbc1>nxbc1-cf) ixbc1=nxbc1-cf
-!          if(ixbc2<cf) ixbc2=cf
-!          if(ixbc2>nxbc1-cf) ixbc2=nxbc2-cf
-!          w(ix^D,mom(1))=ft1*sum(vbt(ixbc1-cf+1:ixbc1+cf,ixbc2-cf+1:ixbc2+cf,ngl,1))/&
-!                         dble(size(vbt(ixbc1-cf+1:ixbc1+cf,ixbc2-cf+1:ixbc2+cf,ngl,1)))
-!          w(ix^D,mom(2))=ft2*sum(vbt(ixbc1-cf+1:ixbc1+cf,ixbc2-cf+1:ixbc2+cf,ngl,2))/&
-!                         dble(size(vbt(ixbc1-cf+1:ixbc1+cf,ixbc2-cf+1:ixbc2+cf,ngl,2)))
-        else
-          ixbc1=abs(nint(xlen1/dxa1))
-          ixbc2=abs(nint(xlen2/dxa2))
-          w(ix^D,mom(1))=ft*vbt(ixbc1,ixbc2,ngl,1)
-          w(ix^D,mom(2))=ft*vbt(ixbc1,ixbc2,ngl,2)
-        endif
-        w(ix^D,mom(3))=0.d0
-      {end do\}
+      if(node(plevel_,saveigrid)<refine_max_level) then
+        w(ixO^S,mom(:))=0.d0
+      else
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+           xlen^D=x({ix^D,},^D)-startpos^D;\
+           ixbc^D=ceiling(xlen^D/dx(^D,refine_max_level))\
+           w(ix^D,mom(:))=ft*vbt(ixbc^D,:)
+        {end do\}
+      end if
       do ix3=ixOmax3,ixOmin3,-1
         w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,mag(1):mag(3))=(1.0d0/11.0d0)* &
              ( +2.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+3,mag(1):mag(3)) &
                -9.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+2,mag(1):mag(3)) &
               +18.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+1,mag(1):mag(3)))
       enddo
-      !! reset normal B component to fulfill divB=0
-      !delzdelx=dxlevel(3)/dxlevel(1)
-      !delzdely=dxlevel(3)/dxlevel(2)
-      !do ix3=ixOmax3,ixOmin3,-1
-      !do ix1=ixOmin1+1,ixOmax1-1
-      !do ix2=ixOmin2+1,ixOmax2-1
-      !  w(ix1,ix2,ix3,mag(3))=w(ix1,ix2,ix3+2,mag(3)) &
-      !    +delzdelx*(w(ix1+1,ix2,ix3+1,mag(1))-w(ix1-1,ix2,ix3+1,mag(1)))&
-      !    +delzdely*(w(ix1,ix2+1,ix3+1,mag(2))-w(ix1,ix2-1,ix3+1,mag(2)))
-      !enddo
-      !enddo
-      !enddo
       coeffrho=usr_grav*SRadius**2/Tiso
       w(ixO^S,rho_)=rhob*dexp(coeffrho*(1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
       call phys_to_conserved(ixI^L,ixO^L,w,x)
@@ -481,18 +404,6 @@ contains
                 -9.d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3-2,mag(1):mag(3)) &
                +18.d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3-1,mag(1):mag(3)))
       enddo
-      !! 2nd order CD for divB=0 to set normal B component better
-      !delzdelx=dxlevel(3)/dxlevel(1)
-      !delzdely=dxlevel(3)/dxlevel(2)
-      !do ix3=ixOmin3,ixOmax3
-      !do ix1=ixOmin1+1,ixOmax1-1
-      !do ix2=ixOmin2+1,ixOmax2-1
-      !  w(ix1,ix2,ix3,mag(3))=w(ix1,ix2,ix3-2,mag(3)) &
-      !    -delzdelx*(w(ix1+1,ix2,ix3-1,mag(1))-w(ix1-1,ix2,ix3-1,mag(1)))&
-      !    -delzdely*(w(ix1,ix2+1,ix3-1,mag(2))-w(ix1,ix2-1,ix3-1,mag(2)))
-      !enddo
-      !enddo
-      !enddo
       do ix3=ixOmin3,ixOmax3
         w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,mom(1):mom(3))=(1.0d0/11.0d0)* &
              ( +2.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3-3,mom(1):mom(3)) &
@@ -567,8 +478,8 @@ contains
     ! output Alfven wave speed B/sqrt(rho)
     w(ixO^S,nw+1)=dsqrt(B2(ixO^S)/w(ixO^S,rho_))
     ! output divB1
-    call divvector(Btotal,ixI^L,ixO^L,divb)
-    w(ixO^S,nw+2)=0.5d0*divb(ixO^S)/dsqrt(B2(ixO^S))/(^D&1.0d0/dxlevel(^D)+)
+    call get_normalized_divb(w,ixI^L,ixO^L,divb)
+    w(ixO^S,nw+2)=divb(ixO^S)
     ! output the plasma beta p*2/B**2
     w(ixO^S,nw+3)=w(ixO^S,rho_)*Tiso*two/B2(ixO^S)
     ! store current
