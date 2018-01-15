@@ -196,10 +196,6 @@ corresponds to _Equation (38)_ of this paper. The option 'glm3' adds no
 additional sources to the MHD system. We recommend the option
 'glm1'. For example: in your par-file,
 
-    &boundlist
-    typeboundary_min1= 8*'special','cont'
-    typeboundary_max1= 8*'speical','cont'
-    ...
     &mhd_list
     typedivbfix='glm1'
     ...
@@ -208,7 +204,7 @@ in your `mod_usr.t`, add
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
 
-in subroutine `usr_init_one_grid`.
+in subroutine `usr_init_one_grid` and ( subroutine `usr_special_bc` if exists).
 
 #### Combined fix: typedivbfix='lindejanhunen' or 'lindepowel'
 

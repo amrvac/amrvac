@@ -1,15 +1,12 @@
-SETUP_FLAGS := -d=33
+SETUP_FLAGS := -d=3
 SCHEME_DIR := ../../schemes
-TESTS := rc_3d_2step_tvdlf_mm.log rc_3d_2step_tvdmu_al.log		\
-rc_3d_3step_hll_cada.log rc_3d_4step_hll_mc.log rc_3d_4step_hllc_ko.log	\
-rc_3d_rk4_tvdlf_cada.log rc_3d_3step_hlld_cada.log
+SCHEMES := 2step_tvdlf_mm 2step_tvdmu_al 3step_hll_cada 4step_hll_mc \
+4step_hllc_ko rk4_tvdlf_cada 3step_hlld_cada
 
-rc_3d_2step_tvdlf_mm.log: rc_3d.par $(SCHEME_DIR)/2step_tvdlf_mm.par
-rc_3d_2step_tvdmu_al.log: rc_3d.par $(SCHEME_DIR)/2step_tvdmu_al.par
-rc_3d_3step_hll_cada.log: rc_3d.par $(SCHEME_DIR)/3step_hll_cada.par
-rc_3d_3step_hlld_cada.log: rc_3d.par $(SCHEME_DIR)/3step_hlld_cada.par
-rc_3d_4step_hll_mc.log: rc_3d.par $(SCHEME_DIR)/4step_hll_mc.par
-rc_3d_4step_hllc_ko.log: rc_3d.par $(SCHEME_DIR)/4step_hllc_ko.par
-rc_3d_rk4_tvdlf_cada.log: rc_3d.par $(SCHEME_DIR)/rk4_tvdlf_cada.par
+TESTS := $(SCHEMES:%=rc_3d_%.log)
 
 include ../../test_rules.make
+
+# Generate dependency rules for the tests
+$(foreach s, $(SCHEMES),\
+	$(eval $(s:%=rc_3d_%.log): rc_3d.par $(SCHEME_DIR)/$(s).par))
