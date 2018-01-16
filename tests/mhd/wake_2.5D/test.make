@@ -1,15 +1,12 @@
 SETUP_FLAGS := -d=2
 SCHEME_DIR := ../../schemes
-TESTS := wake_2d_2step_tvdlf_mm.log wake_2d_2step_tvdmu_al.log		\
-wake_2d_3step_hll_cada.log wake_2d_4step_hll_mc.log wake_2d_4step_hllc_ko.log	\
-wake_2d_rk4_tvdlf_cada.log wake_2d_3step_hlld_cada.log
+SCHEMES := 2step_tvdlf_mm 2step_tvdmu_al 3step_hll_cada 4step_hll_mc \
+4step_hllc_ko rk4_tvdlf_cada 3step_hlld_cada
 
-wake_2d_2step_tvdlf_mm.log: wake_2d.par $(SCHEME_DIR)/2step_tvdlf_mm.par
-wake_2d_2step_tvdmu_al.log: wake_2d.par $(SCHEME_DIR)/2step_tvdmu_al.par
-wake_2d_3step_hll_cada.log: wake_2d.par $(SCHEME_DIR)/3step_hll_cada.par
-wake_2d_3step_hlld_cada.log: wake_2d.par $(SCHEME_DIR)/3step_hlld_cada.par
-wake_2d_4step_hll_mc.log: wake_2d.par $(SCHEME_DIR)/4step_hll_mc.par
-wake_2d_4step_hllc_ko.log: wake_2d.par $(SCHEME_DIR)/4step_hllc_ko.par
-wake_2d_rk4_tvdlf_cada.log: wake_2d.par $(SCHEME_DIR)/rk4_tvdlf_cada.par
+TESTS := $(SCHEMES:%=wake_2d_%.log)
 
 include ../../test_rules.make
+
+# Generate dependency rules for the tests
+$(foreach s, $(SCHEMES),\
+	$(eval $(s:%=wake_2d_%.log): wake_2d.par $(SCHEME_DIR)/$(s).par))
