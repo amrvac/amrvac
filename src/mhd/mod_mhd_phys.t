@@ -31,6 +31,9 @@ module mod_mhd_phys
   !> Whether GLM-MHD is used
   logical, public, protected              :: mhd_glm = .false.
 
+  !> Whether divB cleaning sources are added splitting from fluid solver
+  logical, public, protected              :: source_split_divb = .false.
+
   !> GLM-MHD parameter: ratio of the diffusive and advective time scales for div b 
   !> taking values within [0, 1]
   double precision, public                :: mhd_glm_alpha = 0.5d0
@@ -136,9 +139,9 @@ contains
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_glm_alpha, mhd_magnetofriction,&
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
-      mhd_viscosity, mhd_4th_order, typedivbfix, divbdiff, typedivbdiff, compactres, &
-      divbwave, He_abundance, SI_unit, B0field, B0field_forcefree, Bdip, Bquad, Boct, &
-      Busr,mhd_particles, boundary_divbfix
+      mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
+      typedivbdiff, compactres, divbwave, He_abundance, SI_unit, B0field,&
+      B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles, boundary_divbfix
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -1004,44 +1007,79 @@ contains
         active = .true.
         call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
-      {^NOONED
-      if(istep==nstep) then
-        ! Sources related to div B
-        select case (type_divb)
-        case (0)
-          ! Do nothing
-        case (1)
-          active = .true.
-          call add_source_glm1(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case (2)
-          active = .true.
-          call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case (3)
-          active = .true.
-          call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case (4)
-          active = .true.
-          call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case (5)
-          active = .true.
-          call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case (6)
-          active = .true.
-          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case (7)
-          active = .true.
-          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-          call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case (8)
-          active = .true.
-          call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-          call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        case default
-          call mpistop('Unknown divB fix')
-        end select
-      end if
-      }
     end if
+
+      {^NOONED
+    if(.not.source_split_divb .and. .not.qsourcesplit .and. istep==nstep) then
+      ! Sources related to div B
+      select case (type_divb)
+      case (0)
+        ! Do nothing
+      case (1)
+        active = .true.
+        call add_source_glm1(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (2)
+        active = .true.
+        call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (3)
+        active = .true.
+        call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (4)
+        active = .true.
+        call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (5)
+        active = .true.
+        call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (6)
+        active = .true.
+        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (7)
+        active = .true.
+        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (8)
+        active = .true.
+        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case default
+        call mpistop('Unknown divB fix')
+      end select
+    else if(source_split_divb .and. qsourcesplit) then
+      ! Sources related to div B
+      select case (type_divb)
+      case (0)
+        ! Do nothing
+      case (1)
+        active = .true.
+        call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (2)
+        active = .true.
+        call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (3)
+        active = .true.
+        call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (4)
+        active = .true.
+        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (5)
+        active = .true.
+        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (6)
+        active = .true.
+        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (7)
+        active = .true.
+        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (8)
+        active = .true.
+        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+      case default
+        call mpistop('Unknown divB fix')
+      end select
+    end if
+    }
 
     if(mhd_radiative_cooling) then
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
