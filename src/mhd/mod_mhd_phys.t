@@ -2028,6 +2028,16 @@ contains
                       ixOmax^DD=ixGmin^D-1+nghostcells^D%ixOmax^DD=ixGmax^DD;
                    end if \}
                 end select
+                ! MF nonlinear force-free B field extrapolation needs normal B
+                ! to be fixed value (from vector magnetograms) in the first
+                ! ghost cells
+                if(mhd_magnetofriction) then
+                  if(slab .or. slab_stretched) then
+                    if(idim==^ND.and.iside==1) ixOmax^ND=nghostcells-1
+                  else
+                    if(idim==1.and.iside==1) ixOmax1=nghostcells-1
+                  end if
+                end if
                 call fixdivB_boundary(ixG^L,ixO^L,pw(igrid)%wb,pw(igrid)%x,iB)
               end if
            end do
