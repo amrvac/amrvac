@@ -39,6 +39,7 @@ simulations using non-Cartesian grids
 
 * [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction. 
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling. 
+* [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
 # Source Code {#source_code}
 
