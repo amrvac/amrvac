@@ -1,14 +1,12 @@
 SETUP_FLAGS := -d=3
 SCHEME_DIR := ../../schemes
-TESTS := ti_3d_2step_tvdlf_mm.log ti_3d_2step_tvdmu_al.log		\
-ti_3d_3step_hll_cada.log ti_3d_4step_hll_mc.log ti_3d_4step_hllc_ko.log	\
-ti_3d_rk4_tvdlf_cada.log
+SCHEMES := 2step_tvdlf_mm 2step_tvdmu_al 3step_hll_cada 4step_hll_mc \
+4step_hllc_ko rk4_tvdlf_cada
 
-ti_3d_2step_tvdlf_mm.log: ti_3d.par $(SCHEME_DIR)/2step_tvdlf_mm.par
-ti_3d_2step_tvdmu_al.log: ti_3d.par $(SCHEME_DIR)/2step_tvdmu_al.par
-ti_3d_3step_hll_cada.log: ti_3d.par $(SCHEME_DIR)/3step_hll_cada.par
-ti_3d_4step_hll_mc.log: ti_3d.par $(SCHEME_DIR)/4step_hll_mc.par
-ti_3d_4step_hllc_ko.log: ti_3d.par $(SCHEME_DIR)/4step_hllc_ko.par
-ti_3d_rk4_tvdlf_cada.log: ti_3d.par $(SCHEME_DIR)/rk4_tvdlf_cada.par
+TESTS := $(SCHEMES:%=ti_3d_%.log)
 
 include ../../test_rules.make
+
+# Generate dependency rules for the tests
+$(foreach s, $(SCHEMES),\
+	$(eval $(s:%=ti_3d_%.log): ti_3d.par $(SCHEME_DIR)/$(s).par))

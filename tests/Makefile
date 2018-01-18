@@ -22,7 +22,8 @@ mhd/radiative_cooling_3D mhd/blast_wave_polar_stretched_2D			\
 mhd/tilt_instability_2D mhd/doubleGEM_2.5D mhd/Longcope_Strauss_2D		\
 mhd/blast_wave_cylindrical_3D mhd/blast_wave_spherical_stretched_3D		\
 mhd/convection_2D mhd/Kelvin_Helmholtz_3D mhd/ring_thermal_conduction_2D	\
-mhd/ring_thermal_conduction_3D mhd/solar_flare_reconnection_2.5D
+mhd/ring_thermal_conduction_3D mhd/solar_flare_reconnection_2.5D                \
+mhd/lfff_extrapolation_3D mhd/tilt_instability_3D mhd/Low_flux_rope_3D
 
 TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS)
 

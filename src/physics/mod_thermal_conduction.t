@@ -572,7 +572,7 @@ contains
       do idims=1,ndim
         ! TC flux at cell corner
         gradT(ixC^S,idims)=ka(ixC^S)*Bc(ixC^S,idims)*qd(ixC^S)
-        if(tc_perpendicular) gradT(ixC^S,idims)=gradT(ixC^S,idims)+kef(ixC^S)*qvec(ixC^S,idims)
+        if(tc_perpendicular) gradT(ixC^S,idims)=gradT(ixC^S,idims)+ke(ixC^S)*qvec(ixC^S,idims)
       end do
       ! TC flux at cell face
       qvec=0.d0

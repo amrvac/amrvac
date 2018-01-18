@@ -7,11 +7,11 @@
 /
 
  &savelist
-        dtsave_log    = 1.d-3
+        dtsave_log    = 1.d-4
  /
 
  &stoplist
-        time_max     = 5.d-2
+        time_max     = 1.d-3
  /
 
  &methodlist
@@ -37,9 +37,9 @@
         w_refine_weight(7)=0.3d0
         refine_threshold=1*0.2d0
         derefine_ratio=1*0.1d0
-        domain_nx1       = 64
-        domain_nx2       = 64
-        domain_nx3       = 48
+        domain_nx1       = 32
+        domain_nx2       = 32
+        domain_nx3       = 16
         xprobmin1     = -3.0d0
         xprobmax1     = 3.0d0
         xprobmin2     = -3.0d0

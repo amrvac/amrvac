@@ -1,30 +1,21 @@
 !$AMRVAC_DIR/setup.pl -d=3
 
  &filelist
-        base_filename='lfffa'
+        base_filename='lfff_3d'
+        typefilelog='regression_test'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBmpi'
         nwauxio=6
  /  
-        restart_from_file='lfffa0000.dat'
-        snapshotnext=1
-        convert=.true.
 
  &savelist
-        itsave(1,1)=0
-        itsave(1,2)=0
-        ditsave_log=1
+        ditsave_log= 1
  /
-        dtsave_dat=2.d0
-        ditsave_dat=100
 
  &stoplist
-        dtmin=1.D-6
-        it_max=1
+        it_max=5
  /
-        time_max=60.d0
-        time_reset=.true.
 
  &methodlist
         time_integrator='threestep'
@@ -52,12 +43,12 @@
         w_refine_weight(5)=0.2d0
         w_refine_weight(6)=0.2d0
         w_refine_weight(7)=0.2d0
-        block_nx1=10
-        block_nx2=10
-        block_nx3=10
-        domain_nx1=150
-        domain_nx2=100
-        domain_nx3=100
+        block_nx1=16
+        block_nx2=16
+        block_nx3=16
+        domain_nx1=48
+        domain_nx2=32
+        domain_nx3=32
         xprobmin1=-18.d0
         xprobmax1=18.d0
         xprobmin2=-12.d0

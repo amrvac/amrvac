@@ -64,6 +64,7 @@ module mod_radiative_cooling
   double precision, allocatable :: tcool(:), Lcool(:), dLdtcool(:)
   double precision, allocatable :: Yc(:), invYc(:)
   double precision  :: Tref, Lref, tcoolmin,tcoolmax
+  double precision  :: lgtcoolmin, lgtcoolmax, lgstep
   
   integer          :: n_DM      , n_MB      , n_MLcosmol &
                     , n_MLwc    , n_MLsolar1, n_SPEX     &
@@ -846,7 +847,11 @@ module mod_radiative_cooling
       ! smaller value for lowest temperatures from cooling table and user's choice
       if (tlow==bigdouble) tlow=tcoolmin
       tcoolmax       = tcool(ncool)
-      
+     
+      lgtcoolmin = dlog10(tcoolmin)
+      lgtcoolmax = dlog10(tcoolmax)
+      lgstep = (lgtcoolmax-lgtcoolmin) * 1.d0 / (ncool-1)
+ 
       dLdtcool(1)     = (Lcool(2)-Lcool(1))/(tcool(2)-tcool(1))
       dLdtcool(ncool) = (Lcool(ncool)-Lcool(ncool-1))/(tcool(ncool)-tcool(ncool-1))
       
@@ -1393,28 +1398,35 @@ module mod_radiative_cooling
       double precision, intent(OUT) :: Lpoint
       integer :: ipoint
       integer :: jl,jc,jh
+      double precision :: lgtp
 
-      if (tpoint == tcoolmin) then
-        Lpoint = Lcool(1)
-      else if (tpoint == tcoolmax) then
-        Lpoint = Lcool(ncool)
-      else
-        jl=0
-        jh=ncool+1  
-        do
-          if (jh-jl <= 1) exit
-          jc=(jh+jl)/2
-          if (tpoint >= tcool(jc)) then
-              jl=jc
-          else
-              jh=jc
-          end if
-        end do
-        ! Linear interpolation to obtain correct cooling
-        Lpoint = Lcool(jl)+ (tpoint-tcool(jl)) &
-                  * (Lcool(jl+1)-Lcool(jl)) &
-                  / (tcool(jl+1)-tcool(jl))
-      end if
+      lgtp = dlog10(tpoint)
+      jl = int((lgtp - lgtcoolmin) / lgstep) + 1
+      Lpoint = Lcool(jl)+ (tpoint-tcool(jl)) &
+                * (Lcool(jl+1)-Lcool(jl)) &
+                / (tcool(jl+1)-tcool(jl))
+
+!      if (tpoint == tcoolmin) then
+!        Lpoint = Lcool(1)
+!      else if (tpoint == tcoolmax) then
+!        Lpoint = Lcool(ncool)
+!      else
+!        jl=0
+!        jh=ncool+1  
+!        do
+!          if (jh-jl <= 1) exit
+!          jc=(jh+jl)/2
+!          if (tpoint >= tcool(jc)) then
+!              jl=jc
+!          else
+!              jh=jc
+!          end if
+!        end do
+!        ! Linear interpolation to obtain correct cooling
+!        Lpoint = Lcool(jl)+ (tpoint-tcool(jl)) &
+!                  * (Lcool(jl+1)-Lcool(jl)) &
+!                  / (tcool(jl+1)-tcool(jl))
+!      end if
     
     end subroutine findL
 
@@ -1428,30 +1440,37 @@ module mod_radiative_cooling
       double precision, intent(OUT) :: Ypoint
       integer :: ipoint
       integer :: jl,jc,jh
+      double precision :: lgtp
+
+      lgtp = dlog10(tpoint)
+      jl = int((lgtp - lgtcoolmin) / lgstep) + 1
+      Ypoint = Yc(jl)+ (tpoint-tcool(jl)) &
+                * (Yc(jl+1)-Yc(jl)) &
+                / (tcool(jl+1)-tcool(jl))
       
-      integer i
-      
-      if (tpoint == tcoolmin) then
-        Ypoint = Yc(1)
-      else if (tpoint == tcoolmax) then
-        Ypoint = Yc(ncool)
-      else
-        jl=0
-        jh=ncool+1  
-        do
-          if (jh-jl <= 1) exit
-          jc=(jh+jl)/2
-          if (tpoint >= tcool(jc)) then
-             jl=jc
-          else
-             jh=jc
-          end if
-        end do
-        ! Linear interpolation to obtain correct value
-        Ypoint = Yc(jl)+ (tpoint-tcool(jl)) &
-                  * (Yc(jl+1)-Yc(jl)) &
-                  / (tcool(jl+1)-tcool(jl))
-      end if
+  !    integer i
+  !    
+  !    if (tpoint == tcoolmin) then
+  !      Ypoint = Yc(1)
+  !    else if (tpoint == tcoolmax) then
+  !      Ypoint = Yc(ncool)
+  !    else
+  !      jl=0
+  !      jh=ncool+1  
+  !      do
+  !        if (jh-jl <= 1) exit
+  !        jc=(jh+jl)/2
+  !        if (tpoint >= tcool(jc)) then
+  !           jl=jc
+  !        else
+  !           jh=jc
+  !        end if
+  !      end do
+  !      ! Linear interpolation to obtain correct value
+  !      Ypoint = Yc(jl)+ (tpoint-tcool(jl)) &
+  !                * (Yc(jl+1)-Yc(jl)) &
+  !                / (tcool(jl+1)-tcool(jl))
+  !    end if
     
     end subroutine findY
 
@@ -1466,7 +1485,6 @@ module mod_radiative_cooling
       double precision, intent(IN) :: Ypoint
       integer :: ipoint
       integer :: jl,jc,jh
-      
       integer i
 
       if (Ypoint >= Yc(1)) then
@@ -1490,7 +1508,6 @@ module mod_radiative_cooling
                   * (tcool(jl+1)-tcool(jl)) &
                   / (Yc(jl+1)-Yc(jl))
       end if
-    
     end subroutine findT
 
     subroutine finddLdt (tpoint,dLpoint)
@@ -1503,29 +1520,35 @@ module mod_radiative_cooling
       double precision, intent(OUT) :: dLpoint
       integer :: ipoint
       integer :: jl,jc,jh
+      double precision :: lgtp
 
-      if (tpoint == tcoolmin) then
-        dLpoint = dLdtcool(1)
-      else if (tpoint == tcoolmax) then
-        dLpoint = dLdtcool(ncool)
-      else
-        jl=0
-        jh=ncool+1  
-        do
-          if (jh-jl <= 1) exit
-          jc=(jh+jl)/2
-          if (tpoint >= tcool(jc)) then
-              jl=jc
-          else
-              jh=jc
-          end if
-        end do
-        ! Linear interpolation to obtain correct cooling derivative
-        dLpoint = dLdtcool(jl)+ (tpoint-tcool(jl)) &
-                  * (dLdtcool(jl+1)-dLdtcool(jl)) &
-                  / (tcool(jl+1)-tcool(jl))
-      end if
-    
+      lgtp = dlog10(tpoint)
+      jl = int((lgtp - lgtcoolmin) / lgstep) + 1
+      dLpoint = dLdtcool(jl)+ (tpoint-tcool(jl)) &
+                * (dLdtcool(jl+1)-dLdtcool(jl)) &
+                / (tcool(jl+1)-tcool(jl))
+
+!      if (tpoint == tcoolmin) then
+!        dLpoint = dLdtcool(1)
+!      else if (tpoint == tcoolmax) then
+!        dLpoint = dLdtcool(ncool)
+!      else
+!        jl=0
+!        jh=ncool+1  
+!        do
+!          if (jh-jl <= 1) exit
+!          jc=(jh+jl)/2
+!          if (tpoint >= tcool(jc)) then
+!              jl=jc
+!          else
+!              jh=jc
+!          end if
+!        end do
+!        ! Linear interpolation to obtain correct cooling derivative
+!        dLpoint = dLdtcool(jl)+ (tpoint-tcool(jl)) &
+!                  * (dLdtcool(jl+1)-dLdtcool(jl)) &
+!                  / (tcool(jl+1)-tcool(jl))
+!      end if
     end subroutine finddLdt
 
 end module mod_radiative_cooling
