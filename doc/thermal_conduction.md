@@ -23,11 +23,13 @@ In order to add thermal conduction to a simulation, the user has to do the follo
      problems or add mhd_thermal_conduction=.true. in the mhd_list for MHD ones.
   2. In the mod_usr.t, specify normalization units for length, number density, temperature (or velocity).
      in mod_usr.t, subroutine usr_init(), add 
+
            unit_length=<your length unit>
            unit_numberdensity=<your number density unit>
            unit_temperature=<your temperature unit>
            unit_velocity=<your velocity unit>
-       before call (m)hd_activate()
+
+     before call (m)hd_activate()
   3. You can add the name list for thermal conduction, tc_list, in par file, where parameters tc_perpendicular, 
      tc_saturate, tc_dtpar can be modified. tc_perpendicular=.true. will add conduction flux
      perpendicular to magnetic field, which is not considered by default. tc_saturate=.true. to consider
