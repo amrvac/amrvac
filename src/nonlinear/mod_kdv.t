@@ -1,10 +1,15 @@
 !> Module for including kdv source term in simulations
-!> adds -\sum_i \partial_iii \rho over dimensions i
+!> adds -\delta^2*\sum_i \partial_iii \rho over dimensions i
 module mod_kdv
   implicit none
 
   !> source split or not
   logical :: kdv_split= .false.
+  !> forefactor \delta^2 of \partial_iii term
+  double precision :: kdv_delta = 1.0d0
+  !> switch for second order [1] or fourth order [2] central FD for \partial_iii
+  !> Note: fourth order needs nghostcells>=3, all assume equidistant grid
+  integer :: kdv_order = 1
 
 contains
   !> Read this module's parameters from a file
@@ -13,7 +18,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /kdv_list/ kdv_split
+    namelist /kdv_list/ kdv_split, kdv_delta, kdv_order
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -49,21 +54,39 @@ contains
     if(qsourcesplit .eqv. kdv_split) then
       active = .true.
       skdv(ixO^S)=zero
-      do idir=1,ndim
-       ! The source is based on the time centered wCT
-       lx^L=ixO^L+3*kr(idir,^D);
-       kx^L=ixO^L+2*kr(idir,^D);
-       jx^L=ixO^L+kr(idir,^D);
-       hx^L=ixO^L-kr(idir,^D);
-       gx^L=ixO^L-2*kr(idir,^D);
-       fx^L=ixO^L-3*kr(idir,^D);
-       ! centered difference evaluation for -\partial_xxx \rho
-       ! warning: needs 3 ghostcells, assumes equidistant grid
-       skdv(ixO^S)=skdv(ixO^S)+(-wCT(lx^S,iw_rho)+8.0d0*wCT(kx^S,iw_rho)-13.0d0*wCT(jx^S,iw_rho) &
+      select case(kdv_order)
+        case(1)
+          do idir=1,ndim
+             ! The source is based on the time centered wCT
+             kx^L=ixO^L+2*kr(idir,^D);
+             jx^L=ixO^L+kr(idir,^D);
+             hx^L=ixO^L-kr(idir,^D);
+             gx^L=ixO^L-2*kr(idir,^D);
+             ! 2nd order centered difference for -\partial_xxx \rho
+             ! warning: needs 2 ghostcells, equidistant grid
+             skdv(ixO^S)=skdv(ixO^S)+(wCT(kx^S,iw_rho)-2.0d0*wCT(jx^S,iw_rho) &
+                                     +2.0d0*wCT(hx^S,iw_rho)-wCT(gx^S,iw_rho)) &
+                                    /(2.0d0 *dxlevel(idir)**3)
+          enddo
+        case(2)
+          do idir=1,ndim
+             ! The source is based on the time centered wCT
+             lx^L=ixO^L+3*kr(idir,^D);
+             kx^L=ixO^L+2*kr(idir,^D);
+             jx^L=ixO^L+kr(idir,^D);
+             hx^L=ixO^L-kr(idir,^D);
+             gx^L=ixO^L-2*kr(idir,^D);
+             fx^L=ixO^L-3*kr(idir,^D);
+             ! 4th order centered difference for -\partial_xxx \rho
+             ! warning: needs 3 ghostcells, equidistant grid
+             skdv(ixO^S)=skdv(ixO^S)+(-wCT(lx^S,iw_rho)+8.0d0*wCT(kx^S,iw_rho)-13.0d0*wCT(jx^S,iw_rho) &
                            +13.0d0*wCT(hx^S,iw_rho)-8.0d0*wCT(gx^S,iw_rho)+wCT(fx^S,iw_rho)) &
                           /(8.0d0 *dxlevel(idir)**3)
-      enddo
-      w(ixO^S,iw_rho) = w(ixO^S,iw_rho) - qdt*skdv(ixO^S)
+          enddo
+        case default
+          call mpistop('undefined kdv_order parameter: see mod_kdv.t')
+      end select
+      w(ixO^S,iw_rho) = w(ixO^S,iw_rho) - qdt*kdv_delta**2*skdv(ixO^S)
     end if
 
   end subroutine kdv_add_source
