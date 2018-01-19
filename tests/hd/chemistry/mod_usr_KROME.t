@@ -1,4 +1,4 @@
-chem_star(!> This is a template for a new user problem
+!> This is a template for a new user problem
 module mod_usr
 
   ! Include a physics module
@@ -46,6 +46,8 @@ contains
     use krome_main
     use krome_user
 
+    character(len=16) :: species(krome_nmols)
+
     ! Choose coordinate system as 1D Cartesian
     ! NOTE: not necessary when typeaxial is defined in .par file
     call set_coordinate_system("Cartesian_1D")
@@ -75,13 +77,12 @@ contains
     call hd_activate()
 
     ! get names of all species (incl dummy's of krome)
-    character(len=16) :: species(krome_nmols)
     species = krome_get_names()
+
     ! Rename tracers
     do idx = 1, hd_n_tracer
-      prim_wnames(tracer(idx)) = species(idx)
+       prim_wnames(tracer(idx)) = species(idx)
     end do
-
 
   end subroutine usr_init
 
@@ -192,15 +193,11 @@ contains
       ! calculate mean molecular weight (tracer in cgs)
     	mu(ix^D) = krome_get_mu( w(ix^D, tracer(:) ) )
 
-    {enddo^D&\}
+      ! calculate temperature
+      w(ix^D, temperature) = (e_internal(ix^D) / w(ix^D, rho_) ) &
+           * ( w(ix^D, gamma) - 1.0_dp ) * mu(ix^D)) &
+           * ( mp_SI / kB_SI )
 
-    ! calculate temperature
-    w(ixI^S, temperature) = (e_internal(ixI^S) / w(ixI^S, rho_) ) &
-                        * ( w(ixI^S, gamma) - 1.0_dp ) * mu(ixI^S)) &
-                        * ( mp_SI / kB_SI )
-
-    ! loop over all cells
-    {do ix^DB = ixI^LIM^DB\}
       ! calculate gamma (tracer in cgs)
       w(ix^D, gamma) = krome_get_gamma( w(ix^D, tracer(:)), w(ix^D, temperature))
 
@@ -394,7 +391,13 @@ contains
 
   end subroutine additional_output_names
 
+  subroutine krome_modify_wLR(wLC, wLp, wRC, wRp, ixI^L, ixO^L, idir)
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixO^L, idir
+    double precision, intent(inout)    :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
 
-
+    print *, "Hello"
+  end subroutine krome_modify_wLR
 
 end module mod_usr
