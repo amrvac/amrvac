@@ -40,7 +40,7 @@ contains
   ! Eight-wave MHD Riemann solver. See Powell, Notes on the eigensystem, Gombosi
   ! Calculate the wroe average of primitive variables in wL and wR, assignment:
   ! rho -> sqrho, m -> v, e -> p, B_idim -> B_idim, B_idir -> beta_idir
-  ! Calculate also alpha_f,alpha_s,c_f,c_s,csound2,dp,rhodv
+  ! Calculate also alpha_f,alpha_s,c_f,c_s,csound2,dpr,rhodv
   !
   ! wL,wR,wroe are all interface centered quantities
   subroutine mhd_average(wL,wR,x,ix^L,idim,wroe,workroe)
@@ -61,17 +61,17 @@ contains
   ! Eight-wave MHD Riemann solver. See Powell, Notes on the eigensystem, Gombosi
   ! Calculate the wroe average of primitive variables in wL and wR, assignment:
   ! rho -> sqrho, m -> v, e -> p, B_idim -> B_idim, B_idir -> beta_idir
-  ! Calculate also alpha_f,alpha_s,c_f,c_s,csound2,dp,rhodv
+  ! Calculate also alpha_f,alpha_s,c_f,c_s,csound2,dpr,rhodv
   !
   ! wL,wR,wroe are all interface centered quantities
-  subroutine average2(wL,wR,x,ix^L,idim,wroe,cfast,cslow,afast,aslow,csound2,dp, &
+  subroutine average2(wL,wR,x,ix^L,idim,wroe,cfast,cslow,afast,aslow,csound2,dpr, &
        rhodv,tmp)
     use mod_global_parameters
 
     integer                               :: ix^L,idim,idir,jdir,iw
     double precision, dimension(ixG^T,nw) :: wL,wR,wroe
     double precision, intent(in)          :: x(ixG^T,1:ndim)
-    double precision, dimension(ixG^T)    :: cfast,cslow,afast,aslow,csound2,dp, &
+    double precision, dimension(ixG^T)    :: cfast,cslow,afast,aslow,csound2,dpr, &
          rhodv,tmp
 
     if (ndir==1) call mpistop("MHD with d=11 is the same as HD")
@@ -88,10 +88,10 @@ contains
 
     if(mhd_energy) then
       wroe(ix^S,e_)=half*(afast(ix^S)+aslow(ix^S))
-      ! dp=pR-pL
-      dp(ix^S)=aslow(ix^S)-afast(ix^S)
+      ! dpr=pR-pL
+      dpr(ix^S)=aslow(ix^S)-afast(ix^S)
     else
-      dp(ix^S)=aslow(ix^S)-afast(ix^S)
+      dpr(ix^S)=aslow(ix^S)-afast(ix^S)
     end if
 
     !CONSERVATIVE rho*dv_idim=dm_idim-v_idim*drho
@@ -168,7 +168,7 @@ contains
   ! The eigenvalues and the l=r**(-1) matrix is calculated from wroe.
   ! jump(il)=Sum_il l(il,iw)*(wR(iw)-wL(iw)), where w are the conservative
   ! variables. However part of the summation is done in advance and saved into
-  ! bdv,bdb,dp and dv variables. "smalla" contains a lower limit for "a" to be
+  ! bdv,bdb,dpr and dv variables. "smalla" contains a lower limit for "a" to be
   ! used in the entropy fix.
   !
   ! All the variables are centered on the cell interface, thus the 
@@ -195,13 +195,13 @@ contains
   ! The eigenvalues and the l=r**(-1) matrix is calculated from wroe.
   ! jump(il)=Sum_il l(il,iw)*(wR(iw)-wL(iw)), where w are the conservative
   ! variables. However part of the summation is done in advance and saved into
-  ! bdv,bdb,dp and dv variables. "smalla" contains a lower limit for "a" to be
+  ! bdv,bdb,dpr and dv variables. "smalla" contains a lower limit for "a" to be
   ! used in the entropy fix.
   !
   ! All the variables are centered on the cell interface, thus the 
   ! "*C" notation is omitted for sake of brevity.
   subroutine geteigenjump2(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump, &
-       cfast,cslow,afast,aslow,csound2,dp,rhodv,bdv,bdb,cs2L,cs2R,cs2ca2L,cs2ca2R)
+       cfast,cslow,afast,aslow,csound2,dpr,rhodv,bdv,bdb,cs2L,cs2R,cs2ca2L,cs2ca2R)
     use mod_global_parameters
     use mod_tvd
 
@@ -209,7 +209,7 @@ contains
     double precision, dimension(ixG^T,nw) :: wL,wR,wroe
     double precision, intent(in)          :: x(ixG^T,1:ndim)
     double precision, dimension(ixG^T)    :: smalla,a,jump
-    double precision, dimension(ixG^T)    :: cfast,cslow,afast,aslow,csound2,dp,rhodv
+    double precision, dimension(ixG^T)    :: cfast,cslow,afast,aslow,csound2,dpr,rhodv
     double precision, dimension(ixG^T)    :: bdv,bdb
     double precision, dimension(ixG^T)    :: aL,aR,cs2L,cs2R,cs2ca2L,cs2ca2R
 
@@ -248,26 +248,26 @@ contains
     case(fastRW_)
        a(ix^S)=wroe(ix^S,mom(idim))+cfast(ix^S)
        jump(ix^S)=half/csound2(ix^S)*(&
-            afast(ix^S)*(+cfast(ix^S)*rhodv(ix^S)+dp(ix^S))&
+            afast(ix^S)*(+cfast(ix^S)*rhodv(ix^S)+dpr(ix^S))&
             +aslow(ix^S)*(-cslow(ix^S)*bdv(ix^S)+bdb(ix^S)))
     case(fastLW_)
        a(ix^S)=wroe(ix^S,mom(idim))-cfast(ix^S)
        jump(ix^S)=half/csound2(ix^S)*(&
-            afast(ix^S)*(-cfast(ix^S)*rhodv(ix^S)+dp(ix^S))&
+            afast(ix^S)*(-cfast(ix^S)*rhodv(ix^S)+dpr(ix^S))&
             +aslow(ix^S)*(+cslow(ix^S)*bdv(ix^S)+bdb(ix^S)))
     case(slowRW_)
        a(ix^S)=wroe(ix^S,mom(idim))+cslow(ix^S)
        jump(ix^S)=half/csound2(ix^S)*(&
-            aslow(ix^S)*(+cslow(ix^S)*rhodv(ix^S)+dp(ix^S))&
+            aslow(ix^S)*(+cslow(ix^S)*rhodv(ix^S)+dpr(ix^S))&
             +afast(ix^S)*(+cfast(ix^S)*bdv(ix^S)-bdb(ix^S)))
     case(slowLW_)
        a(ix^S)=wroe(ix^S,mom(idim))-cslow(ix^S)
        jump(ix^S)=half/csound2(ix^S)*(&
-            aslow(ix^S)*(-cslow(ix^S)*rhodv(ix^S)+dp(ix^S))&
+            aslow(ix^S)*(-cslow(ix^S)*rhodv(ix^S)+dpr(ix^S))&
             +afast(ix^S)*(-cfast(ix^S)*bdv(ix^S)-bdb(ix^S)))
     case(entroW_)
        a(ix^S)=wroe(ix^S,mom(idim))
-       jump(ix^S)=wR(ix^S,rho_)-wL(ix^S,rho_)-dp(ix^S)/csound2(ix^S)
+       jump(ix^S)=wR(ix^S,rho_)-wL(ix^S,rho_)-dpr(ix^S)/csound2(ix^S)
     case(diverW_)
        if(divbwave)then
           a(ix^S)=wroe(ix^S,mom(idim))
@@ -359,13 +359,13 @@ contains
 
   ! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe
   subroutine rtimes2(q,wroe,ix^L,iw,il,idim,rq, &
-       cfast,cslow,afast,aslow,csound2,dp,rhodv,bv,v2a2)
+       cfast,cslow,afast,aslow,csound2,dpr,rhodv,bv,v2a2)
     use mod_global_parameters
 
     integer                            :: ix^L,iw,il,idim,idir,jdir
     double precision                   :: wroe(ixG^T,nw)
     double precision, dimension(ixG^T) :: q,rq
-    double precision, dimension(ixG^T) :: cfast,cslow,afast,aslow,csound2,dp,rhodv
+    double precision, dimension(ixG^T) :: cfast,cslow,afast,aslow,csound2,dpr,rhodv
     double precision, dimension(ixG^T) :: bv,v2a2
 
     idir=idim+1-ndir*(idim/ndir)

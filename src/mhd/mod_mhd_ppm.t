@@ -15,17 +15,17 @@ contains
     phys_ppm_flatsh => mhd_ppm_flatsh
   end subroutine mhd_ppm_init
 
-  subroutine mhd_ppm_flatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
+  subroutine mhd_ppm_flatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dpr)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L,ixO^L,ixL^L,ixR^L
     double precision, intent(in)    :: w(ixI^S,nw),d2w(ixI^S,1:nwflux)
-    double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
+    double precision, intent(inout) :: drho(ixI^S),dpr(ixI^S)
 
     if(mhd_energy) then
       drho(ixO^S) =mhd_gamma*dabs(d2w(ixO^S,rho_))&
            /min(w(ixL^S,rho_),w(ixR^S,rho_))
-      dp(ixO^S) = dabs(d2w(ixO^S,p_))/min(w(ixL^S,p_),w(ixR^S,p_))
+      dpr(ixO^S) = dabs(d2w(ixO^S,p_))/min(w(ixL^S,p_),w(ixR^S,p_))
     else
       call mpistop("PPM with flatcd=.true. can not be used without energy equation!")
     end if
@@ -33,13 +33,13 @@ contains
 
   ! based on Mignone and Miller and Collela 2002
   ! PPM flattening at shocks: we use total pressure and not thermal pressure
-  subroutine mhd_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
+  subroutine mhd_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dpr,dv)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
     integer, intent(in)             :: idims
     double precision, intent(in)    :: w(ixI^S,nw)
-    double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
+    double precision, intent(inout) :: drho(ixI^S),dpr(ixI^S),dv(ixI^S)
     double precision                :: ptot(ixI^S)
 
     if(mhd_energy) then
@@ -53,11 +53,11 @@ contains
       end where
 
       !  eq. B76, page 48, Miller and Collela 2002, JCP 183, 26
-      !  use "dp" to save squared sound speed, assume primitive in w
-      dp(ixO^S)=(mhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
+      !  use "dpr" to save squared sound speed, assume primitive in w
+      dpr(ixO^S)=(mhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
 
-      dp(ixO^S)  = dabs(ptot(ixR^S)-ptot(ixL^S))&
-           /(w(ixO^S,rho_)*dp(ixO^S))
+      dpr(ixO^S)  = dabs(ptot(ixR^S)-ptot(ixL^S))&
+           /(w(ixO^S,rho_)*dpr(ixO^S))
       ! recycle ptot to store v
       ptot(ixI^S)= w(ixI^S,mom(idims))
       call gradient(ptot,ixI^L,ixO^L,idims,dv)

@@ -12,7 +12,7 @@ module mod_constants
   double precision, parameter :: bigdouble = 1.D+99
 
   !> double precision
-  integer, parameter:: dp=kind(0.d0)
+  integer, parameter :: dp=kind(0.d0)
 
   !> A very large integer
   integer, parameter :: biginteger = 10000000
@@ -65,10 +65,10 @@ module mod_constants
   real(dp), parameter :: mSun_cgs = 1.9891e33_dp ! g
 
   !> Gravitational constant in SI
-  real(dp), parameter :: grav_SI = 6.67408e-11_dp	! m^3 kg^-1 s^-2
+  real(dp), parameter :: grav_SI = 6.67408e-11_dp ! m^3 kg^-1 s^-2
 
   !> Gravitational constant in cgs
-  real(dp), parameter :: grav_cgs = 6.67408e-8_dp	! cm^3 g^-1 s^-2
+  real(dp), parameter :: grav_cgs = 6.67408e-8_dp ! cm^3 g^-1 s^-2
 
 
   double precision, PARAMETER :: const_c     = 2.99792458d10   ! cm s^-1           ; Speed of light

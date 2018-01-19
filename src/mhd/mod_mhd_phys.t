@@ -1981,9 +1981,11 @@ contains
   !> Gives the Riemann solution on the interface
   !> for the normal B component and Psi in the GLM-MHD system.
   !> 23/04/2013 Oliver Porth
-  subroutine glmSolve(wLC,wRC,ixI^L,ixO^L,idir)
+  subroutine glmSolve(wLC,wLp,wRC,wRp,wCT,ixI^L,ixO^L,idir)
     use mod_global_parameters
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw)
     integer, intent(in)             :: ixI^L, ixO^L, idir
     double precision                :: dB(ixI^S), dPsi(ixI^S)
 

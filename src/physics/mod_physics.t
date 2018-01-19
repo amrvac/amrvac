@@ -69,10 +69,12 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
      end subroutine sub_convert
 
-     subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+     subroutine sub_modify_wLR(wLC, wLp, wRC, wRp, wCT, ixI^L, ixO^L, idir)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idir
+       double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
        double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+       double precision, intent(in)    :: wCT(ixI^S,1:nw)
      end subroutine sub_modify_wLR
 
      subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
@@ -246,10 +248,12 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
   end subroutine dummy_convert
 
-  subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+  subroutine dummy_modify_wLR(wLC, wLp, wRC, wRp, wCT, ixI^L, ixO^L, idir)
     use mod_global_parameters
-    integer, intent(in)                :: ixI^L, ixO^L, idir
-    double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw)
   end subroutine dummy_modify_wLR
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
