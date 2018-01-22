@@ -154,7 +154,7 @@ boundaries, is denoted as
 
 The mesh is defined as the grid without boundary layers:
 
-    ixMmin^D,ixMmax^D = ixGmin^D+nglostcells,ixGmax^D-nglostcells
+    ixMlo^D,ixMhi^D = ixGlo^D+nglostcells,ixGhi^D-nglostcells
 
 or in a shorter notation
 
