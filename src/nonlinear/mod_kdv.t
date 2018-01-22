@@ -101,6 +101,7 @@ contains
 
     double precision :: dxarr(ndim)
 
+    !> \todo check and relax the time step constraint
     ^D&dxarr(^D)=dx^D;
     dtnew=dtdiffpar*minval(dxarr(1:ndim))**3
 
