@@ -154,11 +154,11 @@ boundaries, is denoted as
 
 The mesh is defined as the grid without boundary layers:
 
-    ixMlo^D,ixMhi^D = ixGlo^D+nglostcells,ixGhi^D-nglostcells
+    ixMlo^D,ixMhi^D = ixGlo^D+nghostcells,ixGhi^D-nghostcells
 
-or in a shorter notation
+or equivalently as ixMmin^D,ixMmax^D, or in a shorter notation
 
-    ixM^L = ixG^L^LSUBnglostcells^L
+    ixM^L = ixG^L^LSUBnghostcells^L
 
 The ghost cells are updated by the subroutine `getbc` in `mod_ghostcells_update.t`. 
 When a file is read or saved by MPI-AMRVAC, the ghost cells are usually not included.

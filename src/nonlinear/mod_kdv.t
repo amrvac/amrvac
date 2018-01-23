@@ -99,11 +99,14 @@ contains
     double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
     double precision, intent(inout) :: dtnew
 
-    double precision :: dxarr(ndim)
+    double precision :: dxarr(ndim), max_sinefactor
 
-    !> \todo check and relax the time step constraint
+    !> Time step constraint for leap-frog time stepping combined with central 2nd order FD 
+    !> see e.g. Chun-Te Lee et al, Journal of Mathematics Research vol. 9, no.4, 2017
+    !> ISSN 1916-9795
     ^D&dxarr(^D)=dx^D;
-    dtnew=dtdiffpar*minval(dxarr(1:ndim))**3
+    max_sinefactor=3.0d0*dsqrt(3.0d0)/2.0d0
+    dtnew=dtdiffpar*minval(dxarr(1:ndim))**3/(max_sinefactor*kdv_delta**2)
 
   end subroutine kdv_get_dt
 

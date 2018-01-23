@@ -1866,7 +1866,7 @@ contains
   end subroutine printlog_regression_test
 
   !> Compute mean(w**power) over the leaves of the grid. The first mode
-  !> (power=1) corresponds to to the mean, the second to the mean squared values
+  !> (power=1) corresponds to the mean, the second to the mean squared values
   !> and so on.
   subroutine get_volume_average(power, mode, volume)
     use mod_global_parameters
