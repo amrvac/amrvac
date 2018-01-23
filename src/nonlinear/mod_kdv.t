@@ -1,14 +1,14 @@
 !> Module for including kdv source term in simulations
-!> adds -\delta^2*\sum_i \partial_iii \rho over dimensions i
+!> adds \f$-\delta^2*\sum_i \partial_{iii} \rho \f$ over dimensions i
 module mod_kdv
   implicit none
 
   !> source split or not
   logical :: kdv_split= .false.
-  !> forefactor \delta^2 of \partial_iii term
+  !> forefactor \f$ \delta^2\f$  of \f$ \partial_{iii} \f$ term
   double precision :: kdv_delta = 1.0d0
-  !> switch for second order [1] or fourth order [2] central FD for \partial_iii
-  !> Note: fourth order needs nghostcells>=3, all assume equidistant grid
+  !> switch for second order [1] or fourth order [2] central FD for \f$ \partial_{iii}\f$
+  !> Note: fourth order needs 3 nghostcells, all assume equidistant grid
   integer :: kdv_order = 1
 
 contains
@@ -62,7 +62,7 @@ contains
              jx^L=ixO^L+kr(idir,^D);
              hx^L=ixO^L-kr(idir,^D);
              gx^L=ixO^L-2*kr(idir,^D);
-             ! 2nd order centered difference for -\partial_xxx \rho
+             ! 2nd order centered difference for -\partial_xxx \rho 
              ! warning: needs 2 ghostcells, equidistant grid
              skdv(ixO^S)=skdv(ixO^S)+(wCT(kx^S,iw_rho)-2.0d0*wCT(jx^S,iw_rho) &
                                      +2.0d0*wCT(hx^S,iw_rho)-wCT(gx^S,iw_rho)) &
@@ -77,7 +77,7 @@ contains
              hx^L=ixO^L-kr(idir,^D);
              gx^L=ixO^L-2*kr(idir,^D);
              fx^L=ixO^L-3*kr(idir,^D);
-             ! 4th order centered difference for -\partial_xxx \rho
+             ! 4th order centered difference for -\partial_xxx \rho 
              ! warning: needs 3 ghostcells, equidistant grid
              skdv(ixO^S)=skdv(ixO^S)+(-wCT(lx^S,iw_rho)+8.0d0*wCT(kx^S,iw_rho)-13.0d0*wCT(jx^S,iw_rho) &
                            +13.0d0*wCT(hx^S,iw_rho)-8.0d0*wCT(gx^S,iw_rho)+wCT(fx^S,iw_rho)) &

@@ -38,6 +38,19 @@ The parameters rho_v in the rho_list of amrvac.par file
 For a linear scalar equation the Riemann solver is trivial, thus all TVD type
 methods give identical results.
 
+## Scalar Nonlinear Equation: nonlinear {#eq_nonlinear}
+
+    call nonlinear_activate()
+
+This module contains various instances of a scalar nonlinear equation, including the inviscid Burgers, inviscid nonconvex equation, as well as a possibility to handle the Korteweg-de Vries equation. It allows testing of truly nonlinear (shock steepening and formation) phenomena, in 1D to multi-D, or to test how source additions are best combined with flux prescriptions and discretizations. The equation implemented in \f$N_d\f$ dimensions is
+
+    \f$  \frac{\partial \rho}{\partial t} + \nabla \cdot \mathbf{F}(\rho,\mathbf{x},t) = -\delta^2 \sum_{i=1}^{N_d} \frac{\partial^3 \rho}{\partial x_i^3} \f$
+
+where the RHS is activated through the _mod_kdv.t_ module. The actual flux expression can be chosen (depending on the parameter `nonlinear_flux_type`) to be one of
+\f$   \mathbf{F}^{\mathrm{burgers}}  =  \frac{1}{2}{\rho^2}\mathbf{v}_0  \f$ or
+\f$  \mathbf{F}^{\mathrm{nonconvex}}  =  {\rho^3}\mathbf{v}_0 \f$
+where we introduced \f$\mathbf{v}_0=\sum_{i=1}^{N_d} \hat{\mathbf{e}}_i\f$
+
 ## Hydrodynamics: hd {#eq_hd}
 
     call hd_activate()
