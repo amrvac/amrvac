@@ -3,34 +3,35 @@ module mod_usr
 
   ! Include a physics module
   use mod_hd
+  use mod_constants
 
   implicit none
 
   ! Custom variables can be defined here
   ! ...
   ! Hydrodynamic variables
-  real(dp) :: temperature_star = 2.5e3_dp ! in Kelvin
-  real(dp) :: radius_star = au_SI ! in AU
-  real(dp) :: mass_star = mSun_SI ! in kg
-  real(dp) :: density_star = 1.e-6_dp ! in kg
-  real(dp) :: pulsation_period = 300._dp * day ! in s
-  real(dp) :: pulsation_amplitude = 2.5e3_dp ! in m/s
+  real(dp), parameter :: temperature_star = 2.5e3_dp ! in Kelvin
+  real(dp), parameter :: radius_star = au_SI ! in AU
+  real(dp), parameter :: mass_star = mSun_SI ! in kg
+  real(dp), parameter :: density_star = 1.e-6_dp ! in kg
+  real(dp), parameter :: pulsation_period = 300._dp * day ! in s
+  real(dp), parameter :: pulsation_amplitude = 2.5e3_dp ! in m/s
 
   ! Chemistry variables
-  real(dp) :: cosmic_ray_rate = 1.36e-17_dp ! in s^-1
-  real(dp) :: He_init = 3.11e-1_dp ! mass fraction
-  real(dp) :: C_init = 2.63e-3_dp ! mass fraction
-  real(dp) :: N_init = 1.52e-3_dp ! mass fraction
-  real(dp) :: O_init = 9.60e-3_dp ! mass fraction
-  real(dp) :: S_init = 3.97e-4_dp ! mass fraction
-  real(dp) :: Fe_init = 1.17e-3_dp ! mass fraction
-  real(dp) :: Si_init = 6.54e-4_dp ! mass fraction
-  real(dp) :: Mg_init = 5.16e-4_dp ! mass fraction
-  real(dp) :: Na_init = 3.38e-5_dp ! mass fraction
-  real(dp) :: P_init = 8.17e-6_dp ! mass fraction
-  real(dp) :: F_init = 4.06e-7_dp ! mass fraction
-  real(dp) :: H_init = 1.0_dp - He_init - C_init - N_init - O_init - S_init &
-   - Fe_init - Si_init - Mg_init - Na_init - P_init - F_init  ! mass fraction
+  real(dp), parameter :: cosmic_ray_rate = 1.36e-17_dp ! in s^-1
+  real(dp), parameter :: He_init = 3.11e-1_dp ! mass fraction
+  real(dp), parameter :: C_init = 2.63e-3_dp ! mass fraction
+  real(dp), parameter :: N_init = 1.52e-3_dp ! mass fraction
+  real(dp), parameter :: O_init = 9.60e-3_dp ! mass fraction
+  real(dp), parameter :: S_init = 3.97e-4_dp ! mass fraction
+  real(dp), parameter :: Fe_init = 1.17e-3_dp ! mass fraction
+  real(dp), parameter :: Si_init = 6.54e-4_dp ! mass fraction
+  real(dp), parameter :: Mg_init = 5.16e-4_dp ! mass fraction
+  real(dp), parameter :: Na_init = 3.38e-5_dp ! mass fraction
+  real(dp), parameter :: P_init = 8.17e-6_dp ! mass fraction
+  real(dp), parameter :: F_init = 4.06e-7_dp ! mass fraction
+  real(dp), parameter :: H_init = 1.0_dp - He_init - C_init - N_init - O_init - S_init &
+  - Fe_init - Si_init - Mg_init - Na_init - P_init - F_init! mass fraction
 
   ! Local variables indices
   ! TODO: make them also public, protected????
@@ -47,6 +48,7 @@ contains
     use krome_user
 
     character(len=16) :: species(krome_nmols)
+    integer :: idx
 
     ! Choose coordinate system as 1D Cartesian
     ! NOTE: not necessary when typeaxial is defined in .par file
@@ -60,7 +62,7 @@ contains
     usr_init_one_grid => initial_conditions
     hd_usr_gamma      => get_gamma
     usr_process_grid  => calculate_local_variables
-    special_bc        => special_boundary
+    usr_special_bc        => special_boundary
     usr_gravity       => gravitation_acceleration
     usr_get_dt        => pulsation_get_dt
     usr_source        => chemical_evolution
@@ -143,7 +145,7 @@ contains
     mu_init = krome_get_mu( w(ixImin1, tracer(:)) )
 
     ! initial pressure profile
-    w(ixI^S, p_)	= w(ixI^S, rho_) * temperature_init(ixI^S) &
+    w(ixI^S, p_) = w(ixI^S, rho_) * temperature_init(ixI^S) &
                   * kB_SI /( mu_init * mp_SI )
 
     call hd_to_conserved(ixI^L, ixO^L, w, x)
@@ -191,11 +193,11 @@ contains
     ! loop over all cells
     {do ix^DB = ixI^LIM^DB\}
       ! calculate mean molecular weight (tracer in cgs)
-    	mu(ix^D) = krome_get_mu( w(ix^D, tracer(:) ) )
+      mu(ix^D) = krome_get_mu( w(ix^D, tracer(:) ) )
 
       ! calculate temperature
       w(ix^D, temperature) = (e_internal(ix^D) / w(ix^D, rho_) ) &
-           * ( w(ix^D, gamma) - 1.0_dp ) * mu(ix^D)) &
+           * ( w(ix^D, gamma) - 1.0_dp ) * mu(ix^D)&
            * ( mp_SI / kB_SI )
 
       ! calculate gamma (tracer in cgs)
@@ -213,7 +215,8 @@ contains
     double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    real(dp) :: mu_star
+    real(dp) :: mu_bc, temperature_bc(ixI^S)
+    integer :: ix^D
 
     ! density at boundary
     w(ixI^S, rho_) = density_star
@@ -222,7 +225,7 @@ contains
     ! velocity at boundary
     w(ixI^S, mom(:) ) = 0.0_dp
     w(ixI^S, mom(1) ) = pulsation_amplitude * &
-                    dsin( 2.0_dpr * dpi * qt / pulsation_period )
+                    dsin( 2.0_dp * dpi * qt / pulsation_period )
 
     ! set all number densities to zero
     w(ixI^S, tracer(:)) = 0.0_dp
@@ -256,7 +259,7 @@ contains
     mu_bc = krome_get_mu( w(ixImin1, tracer(:)) )
 
     ! initial pressure profile
-    w(ixI^S, p_)	= w(ixI^S, rho_) * temperature_init(ixI^S) &
+    w(ixI^S, p_)  = w(ixI^S, rho_) * temperature_bc(ixI^S) &
                   * kB_SI /( mu_bc * mp_SI )
 
     call hd_to_conserved(ixI^L, ixO^L, w, x)
@@ -357,23 +360,25 @@ contains
     double precision             :: normconv(0:nw+nwauxio)
 
     real(dp) :: mass_fractions(1:hd_n_tracer)
+    real(dp) :: cooling_rates(krome_ncools), heating_rates(krome_nheats)
+    integer :: ix^D
+
 
     !loop over all grid cells
     {do ix^DB = ixO^LIM^DB\}
 
-        mass_fractions(:) = krome_n2x(w(ix^D, tracer(:), w(ix^D,rho_)*1.0e-3_dp)
+        mass_fractions(:) = krome_n2x(w(ix^D, tracer(:)), w(ix^D,rho_)*1.0e-3_dp)
         cooling_rates(:) = krome_get_cooling_array(w(ix^D, tracer(:)),w(ix^D, temperature))
         heating_rates(:) = krome_get_heating_array(w(ix^D, tracer(:)),w(ix^D, temperature))
 
-        w(ix^D,nw+1)= sum(mfracs(:))
+        w(ix^D,nw+1)= sum(mass_fractions(:))
         w(ix^D,nw+2)= krome_get_mu(w(ix^D, tracer(:)))
         w(ix^D,nw+3) = cooling_rates(krome_idx_cool_h2)
         w(ix^D,nw+4) = cooling_rates(krome_idx_cool_atomic)
         w(ix^D,nw+5) = cooling_rates(krome_idx_cool_z)
-        w(ix^D,nw+6) = cooling_rates(krome_idx_cool_compton)
-        w(ix^D,nw+7) = cooling_rates(krome_idx_cool_cont)
-        w(ix^D,nw+8) = cooling_rates(krome_idx_cool_co)
-        w(ix^D,nw+9) = heating_rates(krome_idx_heat_chem)
+        w(ix^D,nw+6) = cooling_rates(krome_idx_cool_cie)
+        w(ix^D,nw+7) = cooling_rates(krome_idx_cool_co)
+        w(ix^D,nw+8) = heating_rates(krome_idx_heat_chem)
 
     {enddo^D&\}
 

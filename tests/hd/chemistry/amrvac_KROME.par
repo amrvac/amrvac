@@ -1,12 +1,12 @@
 !setup.pl -d=2
 
  &filelist
-   base_filename    = 'output/chem'
+   base_filename    = './output/'
    autoconvert      = .true.
    convert_type     = 'vtuBCCmpi'
    saveprim         = .true.
    nocartesian      = .true. ! to avoid nullifying values below smalldouble
-   nwauxio          = 9
+   nwauxio          = 8
  /
 
  &savelist
