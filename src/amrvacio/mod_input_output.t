@@ -753,8 +753,9 @@ contains
     if (any(block_nx_vec < 4) .or. any(mod(block_nx_vec, 2) == 1)) &
          call mpistop('Block size (block_nx^D) has to be even and >= 4')
 
-    if (any([ domain_nx^D/block_nx^D ] == 1)) &
-         call mpistop('TODO: there is a bug when domain_nx^D/block_nx^D == 1')
+    if (any([ domain_nx^D/block_nx^D ] == 1) .and. mype == 0) then
+       print *, "TODO: possible bug when domain_nx^D/block_nx^D == 1"
+    end if
 
     { if(mod(domain_nx^D,block_nx^D)/=0) &
        call mpistop('Grid (domain_nx^D) and block (block_nx^D) must be consistent') \}
