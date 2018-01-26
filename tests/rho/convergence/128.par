@@ -1,8 +1,0 @@
- &filelist
-        base_filename  = '_128'
- /
-
- &meshlist
-        domain_nx1=128
-        block_nx1=16
- /
