@@ -96,7 +96,7 @@ contains
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
     integer          :: iB, isave, iw, level, idim, islice
-    integer          :: nx_vec(^ND)
+    integer          :: nx_vec(^ND), block_nx_vec(^ND)
     integer          :: my_unit, iostate
     integer          :: ilev
     double precision :: dx_vec(^ND)
@@ -744,11 +744,17 @@ contains
     ! full block size including ghostcells
     {ixGhi^D = block_nx^D + 2*nghostcells\}
 
-
     nx_vec = [{domain_nx^D|, }]
+    block_nx_vec = [{block_nx^D|, }]
 
-    if (any(nx_vec < 2) .or. any(mod(nx_vec, 2) == 1)) &
-         call mpistop('Grid size (domain_nx^D) has to be even and positive')
+    if (any(nx_vec < 4) .or. any(mod(nx_vec, 2) == 1)) &
+         call mpistop('Grid size (domain_nx^D) has to be even and >= 4')
+
+    if (any(block_nx_vec < 4) .or. any(mod(block_nx_vec, 2) == 1)) &
+         call mpistop('Block size (block_nx^D) has to be even and >= 4')
+
+    if (any([ domain_nx^D/block_nx^D ] == 1)) &
+         call mpistop('TODO: there is a bug when domain_nx^D/block_nx^D == 1')
 
     { if(mod(domain_nx^D,block_nx^D)/=0) &
        call mpistop('Grid (domain_nx^D) and block (block_nx^D) must be consistent') \}
