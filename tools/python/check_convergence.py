@@ -13,8 +13,11 @@ def get_args():
         description="""Tool to run convergence tests with MPI-AMRVAC, by increasing the grid
         resolution. Flux schemes, time integrators and limiters can be compared
         (simultaneously). Without the -fig argument, the program outputs the
-        errors. The program requires a suitable amrvac.par file to be present.""",
+        errors. The program requires a suitable par-file to be present.""",
         epilog='Example: ./check_convergence.py -limiters superbee koren -fig test.pdf')
+
+    p.add_argument('-par', type=str, default='amrvac.par',
+                   help='Which par files to use')
 
     p.add_argument('-limiters', type=str, nargs='+', default=['koren'],
                    help='Which limiter(s) to include')
@@ -77,15 +80,18 @@ if __name__ == '__main__':
                        f.write('/\n')
                        f.write('&meshlist\n')
                        f.write(' domain_nx1 = {}\n'.format(nx))
+                       f.write(' block_nx1 = {}\n'.format(p.nxlow))
                        if p.dim > 1:
                            f.write(' domain_nx2 = {}\n'.format(nx))
+                           f.write(' block_nx2 = {}\n'.format(p.nxlow))
                        if p.dim > 2:
                            f.write(' domain_nx3 = {}\n'.format(nx))
+                           f.write(' block_nx3 = {}\n'.format(p.nxlow))
                        f.write(' iprob = {}\n'.format(p.iprob))
                        f.write('/\n')
 
                     try:
-                        res = check_output(["./amrvac", "-i", "amrvac.par",
+                        res = check_output(["./amrvac", "-i", p.par,
                                             "this_scheme.par"])
                         res = res.decode(encoding="utf-8")
                     except CalledProcessError as e:
