@@ -1,9 +1,9 @@
 !setup.pl -d=2
 
  &filelist
-   base_filename    = './output/'
+   base_filename    = './out/'
    autoconvert      = .true.
-   convert_type     = 'vtuBCCmpi'
+   convert_type     = 'vtuCCmpi'
    saveprim         = .true.
    nocartesian      = .true. ! to avoid nullifying values below smalldouble
    nwauxio          = 8
@@ -13,15 +13,15 @@
    itsave(1,1)  = 0
    itsave(1,2)  = 0
    ditsave_log  = 20
-   dtsave_dat   = 20.*day
+   dtsave_dat   = 1728000!20.*8.64d4!*day
 /
 
  &stoplist
-   time_max = 3.0d3*day
+   time_max = 259200000!3.0d3*8.64d4!*day
 /
 
  &methodlist
-   typeaxial        = 'slab'
+   !typeaxial        = 'slab'
    time_integrator  = 'ssprk54'
    flux_scheme      = 20*'tvdlf'
    limiter          = 20*'koren'
@@ -39,8 +39,8 @@
    refine_max_level = 1
    block_nx1        = 16
    domain_nx1       = 64
-   xprobmin1        = 1.0d0*au_SI
-   xprobmax1        = 1.0d1*au_SI
+   xprobmin1        = 1.495978707d11!*au_SI
+   xprobmax1        = 1.495978707d12!*au_SI
  /
 
  &hd_list

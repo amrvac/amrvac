@@ -38,12 +38,15 @@ module mod_usr
   integer :: gamma
   integer :: temperature
 
+
 contains
 
   !> This routine should set user methods, and activate the physics module
   subroutine usr_init()
     use mod_usr_methods
     use mod_global_parameters
+    use mod_variables
+
     use krome_main
     use krome_user
 
@@ -62,7 +65,7 @@ contains
     usr_init_one_grid => initial_conditions
     hd_usr_gamma      => get_gamma
     usr_process_grid  => calculate_local_variables
-    usr_special_bc        => special_boundary
+    usr_special_bc    => special_boundary
     usr_gravity       => gravitation_acceleration
     usr_get_dt        => pulsation_get_dt
     usr_source        => chemical_evolution
@@ -71,16 +74,15 @@ contains
     ! Specify other user routines, for a list see mod_usr_methods.t
     ! ...
 
-    ! Add own variables
-    gamma = var_set_extravar("gamma", "gamma")
-    temperature = var_set_extravar("temperature", "temperature")
-
     ! Active the physics module
     call hd_activate()
 
+    ! Add own variables
     ! get names of all species (incl dummy's of krome)
     species = krome_get_names()
 
+    gamma = var_set_extravar("gamma", "gamma")
+    temperature = var_set_extravar("temperature", "temperature")
     ! Rename tracers
     do idx = 1, hd_n_tracer
        prim_wnames(tracer(idx)) = species(idx)
@@ -106,9 +108,9 @@ contains
     alpha = 10.0_dp
     beta = 0.5_dp
     ! initial density profile
-    w(ixI^S, rho_) = density_star * ( x(ixI^S,1) )**( -alpha )
+    w(ixI^S, rho_) = density_star * ( x(ixI^S,1)/au_SI )**( -alpha )
     ! initial temperature profile
-    temperature_init(ixI^S) = temperature_star * ( x(ixI^S,1) )**( -beta )
+    temperature_init(ixI^S) = temperature_star * ( x(ixI^S,1)/au_SI )**( -beta )
     ! initial velocity profile
     w(ixI^S, mom(:) ) = 0.0_dp
 
@@ -147,7 +149,6 @@ contains
     ! initial pressure profile
     w(ixI^S, p_) = w(ixI^S, rho_) * temperature_init(ixI^S) &
                   * kB_SI /( mu_init * mp_SI )
-
     call hd_to_conserved(ixI^L, ixO^L, w, x)
 
   end subroutine initial_conditions
@@ -188,7 +189,7 @@ contains
 
     ! get internal energy
     ! TODO: this can be implemented in mod_hd_phys just like hd_kin_en
-    e_internal(ixI^S) = w(ixI^S,e_) - hd_kin_en(w, ixI^L, ixO^L)
+    e_internal(ixI^S) = w(ixI^S,e_) - hd_kin_en(w, ixI^L, ixI^L)
 
     ! loop over all cells
     {do ix^DB = ixI^LIM^DB\}
@@ -196,10 +197,9 @@ contains
       mu(ix^D) = krome_get_mu( w(ix^D, tracer(:) ) )
 
       ! calculate temperature
-      w(ix^D, temperature) = (e_internal(ix^D) / w(ix^D, rho_) ) &
-           * ( w(ix^D, gamma) - 1.0_dp ) * mu(ix^D)&
-           * ( mp_SI / kB_SI )
-
+      w(ix^D, temperature) = (e_internal(ix^D) / w(ix^D, rho_) )&
+          * (w (ix^D, gamma) - 1.0_dp) * mu(ix^D)&
+          * (mp_SI/kB_SI)
       ! calculate gamma (tracer in cgs)
       w(ix^D, gamma) = krome_get_gamma( w(ix^D, tracer(:)), w(ix^D, temperature))
 
@@ -219,32 +219,31 @@ contains
     integer :: ix^D
 
     ! density at boundary
-    w(ixI^S, rho_) = density_star
+    w(ixO^S, rho_) = density_star
     ! temperature at boundary
-    temperature_bc(ixI^S) = temperature_star
+    temperature_bc(ixO^S) = temperature_star
     ! velocity at boundary
-    w(ixI^S, mom(:) ) = 0.0_dp
-    w(ixI^S, mom(1) ) = pulsation_amplitude * &
+    w(ixO^S, mom(:) ) = 0.0_dp
+    w(ixO^S, mom(1) ) = pulsation_amplitude * &
                     dsin( 2.0_dp * dpi * qt / pulsation_period )
-
     ! set all number densities to zero
-    w(ixI^S, tracer(:)) = 0.0_dp
+    w(ixO^S, tracer(:)) = 0.0_dp
     ! set initial mass fractions
-    w(ixI^S, tracer(krome_idx_H)) = H_init
-    w(ixI^S, tracer(krome_idx_HE)) = He_init
-    w(ixI^S, tracer(krome_idx_C)) = C_init
-    w(ixI^S, tracer(krome_idx_N)) = N_init
-    w(ixI^S, tracer(krome_idx_O)) = O_init
-    w(ixI^S, tracer(krome_idx_S)) = S_init
-    w(ixI^S, tracer(krome_idx_FE)) = Fe_init
-    w(ixI^S, tracer(krome_idx_SI)) = Si_init
-    w(ixI^S, tracer(krome_idx_MG)) = Mg_init
-    w(ixI^S, tracer(krome_idx_NA)) = Na_init
-    w(ixI^S, tracer(krome_idx_P)) = P_init
-    w(ixI^S, tracer(krome_idx_F)) = F_init
+    w(ixO^S, tracer(krome_idx_H)) = H_init
+    w(ixO^S, tracer(krome_idx_HE)) = He_init
+    w(ixO^S, tracer(krome_idx_C)) = C_init
+    w(ixO^S, tracer(krome_idx_N)) = N_init
+    w(ixO^S, tracer(krome_idx_O)) = O_init
+    w(ixO^S, tracer(krome_idx_S)) = S_init
+    w(ixO^S, tracer(krome_idx_FE)) = Fe_init
+    w(ixO^S, tracer(krome_idx_SI)) = Si_init
+    w(ixO^S, tracer(krome_idx_MG)) = Mg_init
+    w(ixO^S, tracer(krome_idx_NA)) = Na_init
+    w(ixO^S, tracer(krome_idx_P)) = P_init
+    w(ixO^S, tracer(krome_idx_F)) = F_init
 
     ! loop over all cells
-    {do ix^DB = ixI^LIM^DB\}
+    {do ix^DB = ixO^LIM^DB\}
 
       ! convert to number densities (in cgs)
       w(ix^D, tracer(:)) = krome_x2n( w(ix^D, tracer(:)), w(ix^D, rho_)*1.e-3_dp )
@@ -256,10 +255,10 @@ contains
     ! get mean molecular weight
     ! is everywhere the same due one initial composition
     ! TODO: make space dependent if initial composition is as well
-    mu_bc = krome_get_mu( w(ixImin1, tracer(:)) )
+    mu_bc = krome_get_mu( w(ixOmin1, tracer(:)) )
 
     ! initial pressure profile
-    w(ixI^S, p_)  = w(ixI^S, rho_) * temperature_bc(ixI^S) &
+    w(ixO^S, p_)  = w(ixO^S, rho_) * temperature_bc(ixO^S) &
                   * kB_SI /( mu_bc * mp_SI )
 
     call hd_to_conserved(ixI^L, ixO^L, w, x)
@@ -356,7 +355,7 @@ contains
     use krome_user
     integer, intent(in)          :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision             :: w(ixI^S,nw+nwauxio)
+    double precision             :: w(ixI^S,1:nw+nwauxio)
     double precision             :: normconv(0:nw+nwauxio)
 
     real(dp) :: mass_fractions(1:hd_n_tracer)
