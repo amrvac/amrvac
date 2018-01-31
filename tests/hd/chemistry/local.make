@@ -1,9 +1,20 @@
-.PHONY: build_krome
+.PHONY: clean_krome
 
-build_krome:
-	cd $(KROME_DIR)
-	$(KROME_DIR)/krome -test=hello -compact
-	cd -
-	$(MAKE) -C build gfortran
+KROME_DIR := $(HOME)/git/krome
+PROJECT_NAME := hdchem
+KROME_BUILD_DIR := $(KROME_DIR)/build_$(PROJECT_NAME)
 
-amrvac.o: build/krome_all.o build/krome_user_commons.o  build/opkda1.o  build/opkda2.o  build/opkdmain.o
+INC_DIRS += $(KROME_BUILD_DIR)
+
+KOBJS := krome_all.o krome_user_commons.o opkda1.o opkda2.o opkdmain.o
+KROME_OBJS := $(addprefix $(KROME_BUILD_DIR)/, $(KOBJS))
+
+$(KROME_OBJS):
+	cd $(KROME_DIR) && ./krome -test=hello -project=$(PROJECT_NAME) -compact
+	$(MAKE) -C $(KROME_BUILD_DIR) gfortran
+
+clean_krome:
+	$(MAKE) -C $(KROME_BUILD_DIR) clean
+
+# Only build KROME_OBJS when they do not exist
+amrvac.o: | $(KROME_OBJS)
