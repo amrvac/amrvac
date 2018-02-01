@@ -1039,11 +1039,12 @@ contains
   end subroutine saveamrfile
 
   !> Standard method for creating a new output file
-  subroutine create_output_file(fh, ix, extension)
+  subroutine create_output_file(fh, ix, extension, suffix)
     use mod_global_parameters
     integer, intent(out)         :: fh !< File handle
     integer, intent(in)          :: ix !< Index of file
     character(len=*), intent(in) :: extension !< Extension of file
+    character(len=*), intent(in), optional :: suffix !< Optional suffix
     character(len=std_len)       :: filename
     integer :: amode
 
@@ -1051,7 +1052,12 @@ contains
       call mpistop("Number of output files is limited to 10000 (0...9999)")
     end if
 
-    write(filename,"(a,i4.4,a)") trim(base_filename), ix, extension
+    if (present(suffix)) then
+       write(filename,"(a,a,i4.4,a)") trim(base_filename), &
+            trim(suffix), ix, extension
+    else
+       write(filename,"(a,i4.4,a)") trim(base_filename), ix, extension
+    end if
 
     ! MPI cannot easily replace existing files
     open(unit=unitsnapshot,file=filename,status='replace')
