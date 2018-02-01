@@ -100,8 +100,9 @@ contains
     call get_volume_average(2, modes(:, 2), volume)
 
     if (mype == 0) then
-       write(*, "(A,4E14.6)") " t err_1 err_2 err_inf:", global_time, &
-            modes(i_err_r, 1), sqrt(modes(i_err_r, 2)), maxvals(i_err_r)
+       write(*, "(A,7E14.6)") " CONVTEST (t rho_1 rho_2 rho_inf p_1 p_2 p_inf):", global_time, &
+            modes(i_err_r, 1), sqrt(modes(i_err_r, 2)), maxvals(i_err_r), &
+            modes(i_err_p, 1), sqrt(modes(i_err_p, 2)), maxvals(i_err_p)
     end if
   end subroutine print_error
 
