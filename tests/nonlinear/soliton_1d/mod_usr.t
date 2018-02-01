@@ -73,7 +73,7 @@ contains
     call get_volume_average(2, modes(:, 2), volume)
 
     if (mype == 0) then
-       write(*, "(A,4E14.6)") " t err_1 err_2 err_inf:", global_time, &
+       write(*, "(A,4E14.6)") " CONV_TEST (t,err_1,err_2,err_inf):", global_time, &
             modes(i_err, 1), sqrt(modes(i_err, 2)), maxvals(i_err)
     end if
   end subroutine print_error
