@@ -123,7 +123,7 @@ if __name__ == '__main__':
                     names = line[i0+1:i1].lstrip()
                     names = re.split(r'[ ,\t\n]+', names)
                     i0 = line.find(':')
-                    vals = line[i0+1:-1].lstrip()
+                    vals = line[i0+1:].lstrip()
                     vals = re.split(r'[ ,\t\n]+', vals)
                     vals = map(float, vals)
 
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         print('\nSaved figure {}'.format(p.fig))
     else:
         # Output text to screen
-        print("\n{}-norm for nx = {}\n".format(p.norm, nx_list))
+        print("\n{} error for nx = {}\n".format(p.var, nx_list))
         for res in all_results:
             errs = ' '.join(['{:10.3e}'.format(err) for err in res[3]])
             print("{:s}: {}".format('-'.join(res[0:3]), errs))
