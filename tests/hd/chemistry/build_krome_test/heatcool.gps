@@ -1,0 +1,48 @@
+#This file is a script to initialize the heating and cooling index in krome gnuplot
+
+
+if(!exists("nkrome_heatcool")) print "ERROR: first you must set the column-offset nkrome_heatcool"
+krome_idx_cool_h2 = 1 + nkrome_heatcool
+krome_idx_cool_h2gp = 2 + nkrome_heatcool
+krome_idx_cool_atomic = 3 + nkrome_heatcool
+krome_idx_cool_cen = 3 + nkrome_heatcool
+krome_idx_cool_hd = 4 + nkrome_heatcool
+krome_idx_cool_metal = 5 + nkrome_heatcool
+krome_idx_cool_z = 5 + nkrome_heatcool
+krome_idx_cool_dh = 6 + nkrome_heatcool
+krome_idx_cool_enthalpic = 6 + nkrome_heatcool
+krome_idx_cool_dust = 7 + nkrome_heatcool
+krome_idx_cool_compton = 8 + nkrome_heatcool
+krome_idx_cool_cie = 9 + nkrome_heatcool
+krome_idx_cool_cont = 10 + nkrome_heatcool
+krome_idx_cool_continuum = 10 + nkrome_heatcool
+krome_idx_cool_expansion = 11 + nkrome_heatcool
+krome_idx_cool_exp = 11 + nkrome_heatcool
+krome_idx_cool_ff = 12 + nkrome_heatcool
+krome_idx_cool_bss = 12 + nkrome_heatcool
+krome_idx_cool_custom = 13 + nkrome_heatcool
+krome_idx_cool_co = 14 + nkrome_heatcool
+krome_idx_cool_zcie = 15 + nkrome_heatcool
+krome_idx_cool_zcienouv = 16 + nkrome_heatcool
+krome_idx_cool_zextend = 17 + nkrome_heatcool
+krome_idx_cool_gh = 18 + nkrome_heatcool
+krome_ncools = 18 + nkrome_heatcool
+krome_idx_heat_chem = 1 + nkrome_heatcool
+krome_idx_heat_compress = 2 + nkrome_heatcool
+krome_idx_heat_compr = 2 + nkrome_heatcool
+krome_idx_heat_photo = 3 + nkrome_heatcool
+krome_idx_heat_dh = 4 + nkrome_heatcool
+krome_idx_heat_enthalpic = 4 + nkrome_heatcool
+krome_idx_heat_av = 5 + nkrome_heatcool
+krome_idx_heat_photoav = 5 + nkrome_heatcool
+krome_idx_heat_cr = 6 + nkrome_heatcool
+krome_idx_heat_dust = 7 + nkrome_heatcool
+krome_idx_heat_xray = 8 + nkrome_heatcool
+krome_idx_heat_viscous = 9 + nkrome_heatcool
+krome_idx_heat_visc = 9 + nkrome_heatcool
+krome_idx_heat_custom = 10 + nkrome_heatcool
+krome_idx_heat_zcie = 11 + nkrome_heatcool
+krome_nheats = 11 + nkrome_heatcool
+print "All variables set as e.g. krome_idx_cool_H2"
+print "plot 'your_file' u 1:krome_idx_cool_H2"
+print " the offset is nkrome_heatcool=",nkrome_heatcool

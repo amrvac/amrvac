@@ -1,0 +1,1 @@
+./krome -options=/home/jels/codes/krome_models/OptionsUCL_CIE_Ripamonti.txt -project krome_test -n=/media/jels/Elements/IvS/KROME/networks/Reduced_TimeDep/UMIST_manEx_TDR_1e-7Bis_noHejjNaH.ntw -compact -cooling=ATOMIC,CHEM,H2,CIE,Z,CI,CII,OI,OII,SiI,FeI,FeII,SiII,CO -heating=CHEM -H2opacity=RIPAMONTI -gamma=VIB -noSinkCheck -noRecCheck -noTlimits -useN -conserveLin

@@ -1,0 +1,884 @@
+#This file contains index list and other info
+
+
+#********************************
+# Species list with their indexes
+1	E	krome_idx_E
+2	O-	krome_idx_Ok
+3	H-	krome_idx_Hk
+4	S-	krome_idx_Sk
+5	C-	krome_idx_Ck
+6	H	krome_idx_H
+7	HE	krome_idx_HE
+8	C	krome_idx_C
+9	NO	krome_idx_NO
+10	CO	krome_idx_CO
+11	N	krome_idx_N
+12	O2	krome_idx_O2
+13	S	krome_idx_S
+14	SO	krome_idx_SO
+15	O	krome_idx_O
+16	H2	krome_idx_H2
+17	SI	krome_idx_SI
+18	OH	krome_idx_OH
+19	HS	krome_idx_HS
+20	NS	krome_idx_NS
+21	H2S	krome_idx_H2S
+22	FE	krome_idx_FE
+23	CS	krome_idx_CS
+24	CN	krome_idx_CN
+25	S2	krome_idx_S2
+26	NA	krome_idx_NA
+27	F	krome_idx_F
+28	HF	krome_idx_HF
+29	CH	krome_idx_CH
+30	SO2	krome_idx_SO2
+31	C2	krome_idx_C2
+32	N2	krome_idx_N2
+33	CH2	krome_idx_CH2
+34	NH	krome_idx_NH
+35	HCN	krome_idx_HCN
+36	CO2	krome_idx_CO2
+37	SIO	krome_idx_SIO
+38	SIO2	krome_idx_SIO2
+39	NH2	krome_idx_NH2
+40	OCN	krome_idx_OCN
+41	MG	krome_idx_MG
+42	P	krome_idx_P
+43	HCO	krome_idx_HCO
+44	H2O	krome_idx_H2O
+45	OCS	krome_idx_OCS
+46	PN	krome_idx_PN
+47	PO	krome_idx_PO
+48	HE+	krome_idx_HEj
+49	H+	krome_idx_Hj
+50	NH+	krome_idx_NHj
+51	HS+	krome_idx_HSj
+52	S+	krome_idx_Sj
+53	SI+	krome_idx_SIj
+54	OH+	krome_idx_OHj
+55	HEH+	krome_idx_HEHj
+56	H2+	krome_idx_H2j
+57	FE+	krome_idx_FEj
+58	SIH+	krome_idx_SIHj
+59	NA+	krome_idx_NAj
+60	HCO+	krome_idx_HCOj
+61	CH+	krome_idx_CHj
+62	O+	krome_idx_Oj
+63	MG+	krome_idx_MGj
+64	SIO+	krome_idx_SIOj
+65	P+	krome_idx_Pj
+66	SIF+	krome_idx_SIFj
+67	C+	krome_idx_Cj
+68	N+	krome_idx_Nj
+69	CO+	krome_idx_COj
+70	F+	krome_idx_Fj
+71	CR	krome_idx_CR
+72	g	krome_idx_g
+73	Tgas	krome_idx_Tgas
+74	dummy	krome_idx_dummy
+
+#Note: the first 70 variables above should be used
+# as framework code passive scalars, while the last 4
+# are employed inside KROME.
+
+
+#********************************
+# Species in a Python list of strings
+["E", "O-", "H-", "S-", "C-", "H", "HE", "C", "NO", "CO", \
+ "N", "O2", "S", "SO", "O", "H2", "SI", "OH", "HS", "NS", \
+ "H2S", "FE", "CS", "CN", "S2", "NA", "F", "HF", "CH", "SO2", \
+ "C2", "N2", "CH2", "NH", "HCN", "CO2", "SIO", "SIO2", "NH2", "OCN", \
+ "MG", "P", "HCO", "H2O", "OCS", "PN", "PO", "HE+", "H+", "NH+", \
+ "HS+", "S+", "SI+", "OH+", "HEH+", "H2+", "FE+", "SIH+", "NA+", "HCO+", \
+ "CH+", "O+", "MG+", "SIO+", "P+", "SIF+", "C+", "N+", "CO+", "F+", \
+ "CR", "g", "Tgas", "dummy", ]
+
+
+#********************************
+#useful parameters
+krome_nrea           = 255  !number of reactions
+krome_nmols          = 70   !number of chemical species
+krome_nspec          = 74   !number of species including Tgas,CR,...
+krome_ndust          = 0    !number of dust bins (total)
+krome_ndustTypes     = 0    !number of dust types
+krome_nPhotoBins     = 0    !number of radiation bins
+krome_nPhotoRates    = 0    !number of photochemical reactions
+
+
+#********************************
+#list of reactions (including with multiple limits)
+1	H + HE+ -> HE + H+
+2	C + NO -> CO + N
+3	NH+ + E -> N + H
+4	HE+ + E -> HE
+5	O2 + S -> SO + O
+6	H + HS+ -> S+ + H2
+7	H+ + SI -> SI+ + H
+8	H+ + OH -> OH+ + H
+9	N + HS -> NS + H
+10	HE+ + SI -> SI+ + HE
+11	H + HEH+ -> HE + H2+
+12	H2 + HS -> H2S + H
+13	O + E -> O-
+14	S+ + FE -> FE+ + S
+15	H + SI+ -> SIH+
+16	H + NS -> HS + N
+17	N + CS -> S + CN
+18	H + S2 -> HS + S
+19	NA + S+ -> S + NA+
+20	OH + F -> HF + O
+21	H + SO -> S + OH
+22	H- + NA+ -> H + NA
+23	CH + S -> CS + H
+24	H- + FE+ -> H + FE
+25	HEH+ + E -> HE + H
+26	H2 + O2 -> OH + OH
+27	OH + S -> SO + H
+28	H + O2 -> O + O + H
+29	H+ + E -> H
+30	H + NO -> OH + N
+31	O + SO2 -> SO + O2
+32	H2+ + HE -> HEH+ + H
+33	H + H2 -> H + H + H
+34	C + CS -> S + C2
+35	N + NO -> N2 + O
+36	H + CO -> OH + C
+37	H2 + F -> HF + H
+38	H + CH2 -> CH + H2
+39	O + O -> O2
+40	H + NH -> N + H2
+41	NH + O -> OH + N
+42	H2 + CH -> CH2 + H
+43	H + HCN -> CN + H2
+44	OH + CO -> CO2 + H
+45	NH + O -> NO + H
+46	C + CO -> C2 + O
+47	C + CN -> C2 + N
+48	N + NH -> N2 + H
+49	SI + O2 -> SIO + O
+50	H + O- -> OH + E
+51	OH + SIO -> SIO2 + H
+52	C + HCO+ -> CO + CH+
+53	H + NH2 -> NH + H2
+54	H2 + C -> CH + H
+55	H2 + O+ -> OH+ + H
+56	H + OCN -> OH + CN
+57	H + E -> H-
+58	H2+ + O -> OH+ + H
+59	MG + S+ -> S + MG+
+60	N + O2 -> NO + O
+61	H+ + H -> H2+
+62	H + HS -> S + H2
+63	O- + MG+ -> O + MG
+64	MG+ + E -> MG
+65	H- + H+ -> H + H
+66	H- + S+ -> H + S
+67	H + OH -> O + H + H
+68	O+ + FE -> FE+ + O
+69	H- + N -> NH + E
+70	H + NO -> O + NH
+71	SI + HCO+ -> SIH+ + CO
+72	O + CN -> NO + C
+73	H- + O+ -> H + O
+74	O+ + E -> O
+75	H2 + C -> CH2
+76	H + S- -> HS + E
+77	OH + CS -> CO + HS
+78	NA + FE+ -> FE + NA+
+79	SIO+ + FE -> FE+ + SIO
+80	C + SO -> CS + O
+81	OH + SI+ -> SIO+ + H
+82	O + CS -> SO + C
+83	H + O -> OH
+84	H+ + P -> P+ + H
+85	CN + S -> NS + C
+86	O + HS -> S + OH
+87	OH+ + E -> O + H
+88	H + C -> CH
+89	SI + CO -> SIO + C
+90	C + HS -> CS + H
+91	H2 + S -> HS + H
+92	H + CH -> C + H2
+93	H + O2 -> OH + O
+94	N + SO -> NS + O
+95	H + HCO -> CO + H2
+96	OH + CN -> HCN + O
+97	O + SIO+ -> O2 + SI+
+98	CH + O -> OH + C
+99	CH + S -> HS + C
+100	HF + SI+ -> SIF+ + H
+101	C + NO -> CN + O
+102	H2+ + E -> H + H
+103	H + H2O -> OH + H + H
+104	H2 + NH -> NH2 + H
+105	C + NH -> N + CH
+106	C + N2 -> CN + N
+107	H2 + E -> H + H + E
+108	H + CH -> C + H + H
+109	SIF+ + E -> SI + F
+110	H + SIH+ -> SI+ + H2
+111	C+ + MG -> MG+ + C
+112	C + O -> CO
+113	CN + O2 -> OCN + O
+114	NH + S -> NS + H
+115	SIO+ + E -> SI + O
+116	O + HCN -> CO + NH
+117	H2 + N -> NH + H
+118	O + HCN -> CN + OH
+119	SI + S+ -> S + SI+
+120	O + OH -> O2 + H
+121	C+ + SI -> SI+ + C
+122	O + SO -> S + O2
+123	SI + NO -> SIO + N
+124	C+ + FE -> FE+ + C
+125	S + SO2 -> SO + SO
+126	MG + SIO+ -> SIO + MG+
+127	O + HCN -> OCN + H
+128	N + CN -> N2 + C
+129	H- + C -> CH + E
+130	MG + SI+ -> SI + MG+
+131	CH + N -> NH + C
+132	NA + SI+ -> SI + NA+
+133	C- + H+ -> C + H
+134	SI + CO2 -> SIO + CO
+135	H + OCS -> HS + CO
+136	SI+ + FE -> FE+ + SI
+137	S + E -> S-
+138	HCO+ + FE -> FE+ + HCO
+139	P+ + E -> P
+140	H+ + SIO -> SIO+ + H
+141	O + HS -> SO + H
+142	FE+ + E -> FE
+143	SI + P+ -> P + SI+
+144	H+ + MG -> MG+ + H
+145	H- + SI+ -> H + SI
+146	H + H2O -> OH + H2
+147	OH + OH -> H2O + O
+148	OH + SO -> SO2 + H
+149	H2 + OH -> H2O + H
+150	H + OCN -> HCN + O
+151	N + C2 -> CN + C
+152	C + CH -> C2 + H
+153	H + C2 -> CH + C
+154	H + OCN -> NH + CO
+155	N + OH -> O + NH
+156	N + SIO+ -> NO + SI+
+157	C + E -> C-
+158	NH + S -> HS + N
+159	H2 + O -> OH + H
+160	O + CS -> S + CO
+161	OH + H2S -> HS + H2O
+162	C + NH -> CN + H
+163	H + H2S -> HS + H2
+164	MG + HCO+ -> HCO + MG+
+165	CH + N -> CN + H
+166	C + C -> C2
+167	H+ + S -> S+ + H
+168	O + C2 -> CO + C
+169	C + OH -> O + CH
+170	H + C- -> CH + E
+171	C + HS -> S + CH
+172	H+ + FE -> FE+ + H
+173	C + N -> CN
+174	OH + CS -> H + OCS
+175	N + CO2 -> NO + CO
+176	H + CO2 -> CO + OH
+177	C2 + S -> CS + C
+178	H2 + S+ -> HS+ + H
+179	N + HS -> S + NH
+180	O + N2 -> NO + N
+181	CH + O -> CO + H
+182	H + O+ -> O + H+
+183	N + OH -> NO + H
+184	H+ + O -> O+ + H
+185	H + SO -> HS + O
+186	O + SI -> SIO
+187	S+ + E -> S
+188	HS + HS -> H2S + S
+189	C + SO2 -> CO + SO
+190	NA+ + E -> NA
+191	S + HS -> S2 + H
+192	H- + H -> H2 + E
+193	C + SO -> S + CO
+194	H + CH+ -> C+ + H2
+195	NA + MG+ -> MG + NA+
+196	H + H2+ -> H2 + H+
+197	SI+ + E -> SI
+198	C + NS -> S + CN
+199	O- + H+ -> O + H
+200	CH + O -> HCO+ + E
+201	SIH+ + E -> SI + H
+202	C + SIO+ -> SI+ + CO
+203	H- + O -> OH + E
+204	C + OH -> CO + H
+205	OH + SI -> SIO + H
+206	H2+ + C -> CH+ + H
+207	C + S -> CS
+208	H + OH -> O + H2
+209	CH+ + E -> C + H
+210	O- + FE+ -> O + FE
+211	N + SO -> S + NO
+212	O + NS -> S + NO
+213	O + H2O -> OH + OH
+214	H- + MG+ -> H + MG
+215	H2 + CN -> HCN + H
+216	C + O2 -> CO + O
+217	H + NS -> S + NH
+218	O + CN -> CO + N
+219	OH + CN -> OCN + H
+220	H + E -> H+ + E + E
+221	HE + E -> HE+ + E + E
+222	H2 + H+ -> H2+ + H
+223	H2 + E -> H + H-
+224	H- + E -> H + E + E
+225	H- + H -> H + H + E
+226	H- + H+ -> H2+ + E
+227	H + H + H -> H2 + H
+228	H2 + H + H -> H2 + H2
+229	H + H + HE -> H2 + HE
+230	H+ + NA -> NA+ + H
+231	H2 -> H+ + H-
+232	C -> C+ + E
+233	H -> H+ + E
+234	N -> N+ + E
+235	CO -> CO+ + E
+236	H2 -> H+ + H + E
+237	H2 -> H + H
+238	HE -> HE+ + E
+239	O -> O+ + E
+240	H2 -> H2+ + E
+241	N2 -> N + N
+242	CO -> C + O
+243	C+ + E -> C
+244	N+ + E -> N
+245	CO+ + E -> O + C
+246	HE+ + SIO2 -> O2 + SI+ + HE
+247	H+ + NH -> NH+ + H
+248	HS+ + E -> S + H
+249	HCO+ + E -> CO + H
+250	HE+ + HF -> F+ + H + HE
+251	H2 + F+ -> H2+ + F
+252	N + PN -> P + N2
+253	N + PO -> PN + O
+254	P + O2 -> PO + O
+255	N + PO -> P + NO
+
+
+#********************************
+#list of reactions (without multiple limits)
+1	C + N -> CN
+2	O + CS -> SO + C
+3	FE+ + E -> FE
+4	H + HS+ -> S+ + H2
+5	H + NS -> HS + N
+6	O -> O+ + E
+7	C + NO -> CN + O
+8	HE+ + HF -> F+ + H + HE
+9	O + SO -> S + O2
+10	P+ + E -> P
+11	S + E -> S-
+12	O + NS -> S + NO
+13	H + NH2 -> NH + H2
+14	NH + S -> HS + N
+15	H + H + H -> H2 + H
+16	N + PO -> PN + O
+17	C + O2 -> CO + O
+18	H + SO -> HS + O
+19	O+ + E -> O
+20	H2 + O2 -> OH + OH
+21	CH + O -> OH + C
+22	NA + MG+ -> MG + NA+
+23	O + C2 -> CO + C
+24	SI + P+ -> P + SI+
+25	H2 + H + H -> H2 + H2
+26	N + SO -> NS + O
+27	H- + E -> H + E + E
+28	HE + E -> HE+ + E + E
+29	H + H2O -> OH + H + H
+30	SI + O2 -> SIO + O
+31	C + O -> CO
+32	NH+ + E -> N + H
+33	H + O2 -> OH + O
+34	O- + MG+ -> O + MG
+35	H2 + E -> H + H-
+36	H2 + NH -> NH2 + H
+37	NA + FE+ -> FE + NA+
+38	OH + SO -> SO2 + H
+39	C + S -> CS
+40	C + NH -> N + CH
+41	CH + N -> NH + C
+42	H + OCN -> HCN + O
+43	CO -> CO+ + E
+44	O + HCN -> CN + OH
+45	H + O -> OH
+46	S + SO2 -> SO + SO
+47	H2 + CH -> CH2 + H
+48	H+ + MG -> MG+ + H
+49	CH + S -> HS + C
+50	SI+ + E -> SI
+51	C + NS -> S + CN
+52	OH + CO -> CO2 + H
+53	H- + H+ -> H + H
+54	H + S2 -> HS + S
+55	H- + N -> NH + E
+56	CH + O -> CO + H
+57	SI + CO2 -> SIO + CO
+58	H + OCN -> NH + CO
+59	OH + SI -> SIO + H
+60	OH + SIO -> SIO2 + H
+61	O + SI -> SIO
+62	NA + SI+ -> SI + NA+
+63	NH + O -> OH + N
+64	H + S- -> HS + E
+65	H+ + SIO -> SIO+ + H
+66	NA + S+ -> S + NA+
+67	C + HS -> CS + H
+68	H + HEH+ -> HE + H2+
+69	N + SO -> S + NO
+70	H + OH -> O + H + H
+71	S+ + E -> S
+72	C2 + S -> CS + C
+73	H- + FE+ -> H + FE
+74	S + HS -> S2 + H
+75	CH + S -> CS + H
+76	H+ + E -> H
+77	OH+ + E -> O + H
+78	H + CH2 -> CH + H2
+79	CH + O -> HCO+ + E
+80	H + O2 -> O + O + H
+81	SIO+ + FE -> FE+ + SIO
+82	H2 -> H + H
+83	O + HS -> SO + H
+84	H+ + SI -> SI+ + H
+85	H + HS -> S + H2
+86	O + H2O -> OH + OH
+87	HCO+ + FE -> FE+ + HCO
+88	N + HS -> S + NH
+89	C + HCO+ -> CO + CH+
+90	H + SO -> S + OH
+91	H + H2 -> H + H + H
+92	SIO+ + E -> SI + O
+93	CO -> C + O
+94	C + HS -> S + CH
+95	H2+ + C -> CH+ + H
+96	O + HCN -> OCN + H
+97	N + O2 -> NO + O
+98	H- + NA+ -> H + NA
+99	H2 + CN -> HCN + H
+100	H2 -> H2+ + E
+101	H+ + OH -> OH+ + H
+102	H- + O+ -> H + O
+103	H2 + O+ -> OH+ + H
+104	N + CO2 -> NO + CO
+105	C + CH -> C2 + H
+106	O- + H+ -> O + H
+107	H+ + S -> S+ + H
+108	OH + F -> HF + O
+109	H + E -> H-
+110	O + CN -> CO + N
+111	C+ + MG -> MG+ + C
+112	H2 + H+ -> H2+ + H
+113	HE+ + E -> HE
+114	HF + SI+ -> SIF+ + H
+115	C + N2 -> CN + N
+116	H+ + NA -> NA+ + H
+117	H2 + HS -> H2S + H
+118	H2 + C -> CH + H
+119	SI + HCO+ -> SIH+ + CO
+120	H + NS -> S + NH
+121	SIH+ + E -> SI + H
+122	MG + SI+ -> SI + MG+
+123	H + E -> H+ + E + E
+124	OH + SI+ -> SIO+ + H
+125	O+ + FE -> FE+ + O
+126	C+ + FE -> FE+ + C
+127	OH + S -> SO + H
+128	H + NH -> N + H2
+129	H2 + S -> HS + H
+130	H + O+ -> O + H+
+131	HE -> HE+ + E
+132	H + CH+ -> C+ + H2
+133	H + H2S -> HS + H2
+134	N + NO -> N2 + O
+135	HEH+ + E -> HE + H
+136	N + SIO+ -> NO + SI+
+137	O + N2 -> NO + N
+138	MG + S+ -> S + MG+
+139	SI + S+ -> S + SI+
+140	H + NO -> O + NH
+141	OH + CS -> CO + HS
+142	C + NO -> CO + N
+143	H + CH -> C + H2
+144	H2 + F+ -> H2+ + F
+145	O + CS -> S + CO
+146	N + NH -> N2 + H
+147	CN + O2 -> OCN + O
+148	H + H2O -> OH + H2
+149	H2 + N -> NH + H
+150	O + HS -> S + OH
+151	H- + MG+ -> H + MG
+152	H + C2 -> CH + C
+153	H- + H -> H + H + E
+154	SI+ + FE -> FE+ + SI
+155	C + SIO+ -> SI+ + CO
+156	H + CO -> OH + C
+157	C + E -> C-
+158	C + C -> C2
+159	H2+ + HE -> HEH+ + H
+160	H + HCO -> CO + H2
+161	H + H2+ -> H2 + H+
+162	H2 + S+ -> HS+ + H
+163	H+ + O -> O+ + H
+164	N + PN -> P + N2
+165	CN + S -> NS + C
+166	MG + SIO+ -> SIO + MG+
+167	HE+ + SI -> SI+ + HE
+168	H + O- -> OH + E
+169	OH + CN -> HCN + O
+170	H + OCN -> OH + CN
+171	N2 -> N + N
+172	H2 + E -> H + H + E
+173	C+ + SI -> SI+ + C
+174	CO+ + E -> O + C
+175	O + E -> O-
+176	H+ + FE -> FE+ + H
+177	H + C -> CH
+178	H- + S+ -> H + S
+179	H- + H+ -> H2+ + E
+180	O + SIO+ -> O2 + SI+
+181	H + SIH+ -> SI+ + H2
+182	O + CN -> NO + C
+183	O2 + S -> SO + O
+184	H+ + NH -> NH+ + H
+185	H + CO2 -> CO + OH
+186	MG + HCO+ -> HCO + MG+
+187	NA+ + E -> NA
+188	CH+ + E -> C + H
+189	H- + C -> CH + E
+190	O + SO2 -> SO + O2
+191	HE+ + SIO2 -> O2 + SI+ + HE
+192	H + OCS -> HS + CO
+193	OH + CS -> H + OCS
+194	C + CS -> S + C2
+195	C + SO -> CS + O
+196	H- + O -> OH + E
+197	H -> H+ + E
+198	O + HCN -> CO + NH
+199	N + HS -> NS + H
+200	N + PO -> P + NO
+201	MG+ + E -> MG
+202	C + CN -> C2 + N
+203	H + NO -> OH + N
+204	N + C2 -> CN + C
+205	SI + NO -> SIO + N
+206	O- + FE+ -> O + FE
+207	H2+ + E -> H + H
+208	C+ + E -> C
+209	HS+ + E -> S + H
+210	O + O -> O2
+211	SI + CO -> SIO + C
+212	N + CS -> S + CN
+213	H2+ + O -> OH+ + H
+214	SIF+ + E -> SI + F
+215	HS + HS -> H2S + S
+216	C -> C+ + E
+217	H + CH -> C + H + H
+218	H + SI+ -> SIH+
+219	OH + H2S -> HS + H2O
+220	NH + O -> NO + H
+221	C + OH -> O + CH
+222	H + H + HE -> H2 + HE
+223	C- + H+ -> C + H
+224	N+ + E -> N
+225	O + OH -> O2 + H
+226	N + OH -> O + NH
+227	C + CO -> C2 + O
+228	N + CN -> N2 + C
+229	H+ + H -> H2+
+230	H + HE+ -> HE + H+
+231	C + NH -> CN + H
+232	H2 -> H+ + H + E
+233	C + SO -> S + CO
+234	OH + OH -> H2O + O
+235	C + SO2 -> CO + SO
+236	NH + S -> NS + H
+237	S+ + FE -> FE+ + S
+238	N + OH -> NO + H
+239	OH + CN -> OCN + H
+240	H2 + F -> HF + H
+241	H+ + P -> P+ + H
+242	P + O2 -> PO + O
+243	H2 + C -> CH2
+244	CH + N -> CN + H
+245	H- + H -> H2 + E
+246	C + OH -> CO + H
+247	HCO+ + E -> CO + H
+248	H + OH -> O + H2
+249	H2 + OH -> H2O + H
+250	H + HCN -> CN + H2
+251	H + C- -> CH + E
+252	H2 + O -> OH + H
+253	H2 -> H+ + H-
+254	H- + SI+ -> H + SI
+255	N -> N+ + E
+
+
+#********************************
+#list of reactions (LaTeX format)
+#Table columns format {llllllclllll}
+ 1 & H & + & HE$^+$ & & & $\to$ & HE & + & H$^+$ & + & \\
+ 2 & C & + & NO & & & $\to$ & CO & + & N & + & \\
+ 3 & NH$^+$ & + & e$^-$ & & & $\to$ & N & + & H & + & \\
+ 4 & HE$^+$ & + & e$^-$ & & & $\to$ & HE & & & + & \\
+ 5 & O$_2$ & + & S & & & $\to$ & SO & + & O & + & \\
+ 6 & H & + & HS$^+$ & & & $\to$ & S$^+$ & + & H$_2$ & + & \\
+ 7 & H$^+$ & + & SI & & & $\to$ & SI$^+$ & + & H & + & \\
+ 8 & H$^+$ & + & OH & & & $\to$ & OH$^+$ & + & H & + & \\
+ 9 & N & + & HS & & & $\to$ & NS & + & H & + & \\
+ 10 & HE$^+$ & + & SI & & & $\to$ & SI$^+$ & + & HE & + & \\
+ 11 & H & + & HEH$^+$ & & & $\to$ & HE & + & H$_2$$^+$ & + & \\
+ 12 & H$_2$ & + & HS & & & $\to$ & H$_2$S & + & H & + & \\
+ 13 & O & + & e$^-$ & & & $\to$ & O$^-$ & & & + & \\
+ 14 & S$^+$ & + & FE & & & $\to$ & FE$^+$ & + & S & + & \\
+ 15 & H & + & SI$^+$ & & & $\to$ & SIH$^+$ & & & + & \\
+ 16 & H & + & NS & & & $\to$ & HS & + & N & + & \\
+ 17 & N & + & CS & & & $\to$ & S & + & CN & + & \\
+ 18 & H & + & S$_2$ & & & $\to$ & HS & + & S & + & \\
+ 19 & NA & + & S$^+$ & & & $\to$ & S & + & NA$^+$ & + & \\
+ 20 & OH & + & F & & & $\to$ & HF & + & O & + & \\
+ 21 & H & + & SO & & & $\to$ & S & + & OH & + & \\
+ 22 & H$^-$ & + & NA$^+$ & & & $\to$ & H & + & NA & + & \\
+ 23 & CH & + & S & & & $\to$ & CS & + & H & + & \\
+ 24 & H$^-$ & + & FE$^+$ & & & $\to$ & H & + & FE & + & \\
+ 25 & HEH$^+$ & + & e$^-$ & & & $\to$ & HE & + & H & + & \\
+ 26 & H$_2$ & + & O$_2$ & & & $\to$ & OH & + & OH & + & \\
+ 27 & OH & + & S & & & $\to$ & SO & + & H & + & \\
+ 28 & H & + & O$_2$ & & & $\to$ & O & + & O & + & H\\
+ 29 & H$^+$ & + & e$^-$ & & & $\to$ & H & & & + & \\
+ 30 & H & + & NO & & & $\to$ & OH & + & N & + & \\
+ 31 & O & + & SO$_2$ & & & $\to$ & SO & + & O$_2$ & + & \\
+ 32 & H$_2$$^+$ & + & HE & & & $\to$ & HEH$^+$ & + & H & + & \\
+ 33 & H & + & H$_2$ & & & $\to$ & H & + & H & + & H\\
+ 34 & C & + & CS & & & $\to$ & S & + & C$_2$ & + & \\
+ 35 & N & + & NO & & & $\to$ & N$_2$ & + & O & + & \\
+ 36 & H & + & CO & & & $\to$ & OH & + & C & + & \\
+ 37 & H$_2$ & + & F & & & $\to$ & HF & + & H & + & \\
+ 38 & H & + & CH$_2$ & & & $\to$ & CH & + & H$_2$ & + & \\
+ 39 & O & + & O & & & $\to$ & O$_2$ & & & + & \\
+ 40 & H & + & NH & & & $\to$ & N & + & H$_2$ & + & \\
+ 41 & NH & + & O & & & $\to$ & OH & + & N & + & \\
+ 42 & H$_2$ & + & CH & & & $\to$ & CH$_2$ & + & H & + & \\
+ 43 & H & + & HCN & & & $\to$ & CN & + & H$_2$ & + & \\
+ 44 & OH & + & CO & & & $\to$ & CO$_2$ & + & H & + & \\
+ 45 & NH & + & O & & & $\to$ & NO & + & H & + & \\
+ 46 & C & + & CO & & & $\to$ & C$_2$ & + & O & + & \\
+ 47 & C & + & CN & & & $\to$ & C$_2$ & + & N & + & \\
+ 48 & N & + & NH & & & $\to$ & N$_2$ & + & H & + & \\
+ 49 & SI & + & O$_2$ & & & $\to$ & SIO & + & O & + & \\
+ 50 & H & + & O$^-$ & & & $\to$ & OH & + & e$^-$ & + & \\
+ 51 & OH & + & SIO & & & $\to$ & SIO$_2$ & + & H & + & \\
+ 52 & C & + & HCO$^+$ & & & $\to$ & CO & + & CH$^+$ & + & \\
+ 53 & H & + & NH$_2$ & & & $\to$ & NH & + & H$_2$ & + & \\
+ 54 & H$_2$ & + & C & & & $\to$ & CH & + & H & + & \\
+ 55 & H$_2$ & + & O$^+$ & & & $\to$ & OH$^+$ & + & H & + & \\
+ 56 & H & + & OCN & & & $\to$ & OH & + & CN & + & \\
+ 57 & H & + & e$^-$ & & & $\to$ & H$^-$ & & & + & \\
+ 58 & H$_2$$^+$ & + & O & & & $\to$ & OH$^+$ & + & H & + & \\
+ 59 & MG & + & S$^+$ & & & $\to$ & S & + & MG$^+$ & + & \\
+ 60 & N & + & O$_2$ & & & $\to$ & NO & + & O & + & \\
+ 61 & H$^+$ & + & H & & & $\to$ & H$_2$$^+$ & & & + & \\
+ 62 & H & + & HS & & & $\to$ & S & + & H$_2$ & + & \\
+ 63 & O$^-$ & + & MG$^+$ & & & $\to$ & O & + & MG & + & \\
+ 64 & MG$^+$ & + & e$^-$ & & & $\to$ & MG & & & + & \\
+ 65 & H$^-$ & + & H$^+$ & & & $\to$ & H & + & H & + & \\
+ 66 & H$^-$ & + & S$^+$ & & & $\to$ & H & + & S & + & \\
+ 67 & H & + & OH & & & $\to$ & O & + & H & + & H\\
+ 68 & O$^+$ & + & FE & & & $\to$ & FE$^+$ & + & O & + & \\
+ 69 & H$^-$ & + & N & & & $\to$ & NH & + & e$^-$ & + & \\
+ 70 & H & + & NO & & & $\to$ & O & + & NH & + & \\
+ 71 & SI & + & HCO$^+$ & & & $\to$ & SIH$^+$ & + & CO & + & \\
+ 72 & O & + & CN & & & $\to$ & NO & + & C & + & \\
+ 73 & H$^-$ & + & O$^+$ & & & $\to$ & H & + & O & + & \\
+ 74 & O$^+$ & + & e$^-$ & & & $\to$ & O & & & + & \\
+ 75 & H$_2$ & + & C & & & $\to$ & CH$_2$ & & & + & \\
+ 76 & H & + & S$^-$ & & & $\to$ & HS & + & e$^-$ & + & \\
+ 77 & OH & + & CS & & & $\to$ & CO & + & HS & + & \\
+ 78 & NA & + & FE$^+$ & & & $\to$ & FE & + & NA$^+$ & + & \\
+ 79 & SIO$^+$ & + & FE & & & $\to$ & FE$^+$ & + & SIO & + & \\
+ 80 & C & + & SO & & & $\to$ & CS & + & O & + & \\
+ 81 & OH & + & SI$^+$ & & & $\to$ & SIO$^+$ & + & H & + & \\
+ 82 & O & + & CS & & & $\to$ & SO & + & C & + & \\
+ 83 & H & + & O & & & $\to$ & OH & & & + & \\
+ 84 & H$^+$ & + & P & & & $\to$ & P$^+$ & + & H & + & \\
+ 85 & CN & + & S & & & $\to$ & NS & + & C & + & \\
+ 86 & O & + & HS & & & $\to$ & S & + & OH & + & \\
+ 87 & OH$^+$ & + & e$^-$ & & & $\to$ & O & + & H & + & \\
+ 88 & H & + & C & & & $\to$ & CH & & & + & \\
+ 89 & SI & + & CO & & & $\to$ & SIO & + & C & + & \\
+ 90 & C & + & HS & & & $\to$ & CS & + & H & + & \\
+ 91 & H$_2$ & + & S & & & $\to$ & HS & + & H & + & \\
+ 92 & H & + & CH & & & $\to$ & C & + & H$_2$ & + & \\
+ 93 & H & + & O$_2$ & & & $\to$ & OH & + & O & + & \\
+ 94 & N & + & SO & & & $\to$ & NS & + & O & + & \\
+ 95 & H & + & HCO & & & $\to$ & CO & + & H$_2$ & + & \\
+ 96 & OH & + & CN & & & $\to$ & HCN & + & O & + & \\
+ 97 & O & + & SIO$^+$ & & & $\to$ & O$_2$ & + & SI$^+$ & + & \\
+ 98 & CH & + & O & & & $\to$ & OH & + & C & + & \\
+ 99 & CH & + & S & & & $\to$ & HS & + & C & + & \\
+ 100 & HF & + & SI$^+$ & & & $\to$ & SIF$^+$ & + & H & + & \\
+ 101 & C & + & NO & & & $\to$ & CN & + & O & + & \\
+ 102 & H$_2$$^+$ & + & e$^-$ & & & $\to$ & H & + & H & + & \\
+ 103 & H & + & H$_2$O & & & $\to$ & OH & + & H & + & H\\
+ 104 & H$_2$ & + & NH & & & $\to$ & NH$_2$ & + & H & + & \\
+ 105 & C & + & NH & & & $\to$ & N & + & CH & + & \\
+ 106 & C & + & N$_2$ & & & $\to$ & CN & + & N & + & \\
+ 107 & H$_2$ & + & e$^-$ & & & $\to$ & H & + & H & + & e$^-$\\
+ 108 & H & + & CH & & & $\to$ & C & + & H & + & H\\
+ 109 & SIF$^+$ & + & e$^-$ & & & $\to$ & SI & + & F & + & \\
+ 110 & H & + & SIH$^+$ & & & $\to$ & SI$^+$ & + & H$_2$ & + & \\
+ 111 & C$^+$ & + & MG & & & $\to$ & MG$^+$ & + & C & + & \\
+ 112 & C & + & O & & & $\to$ & CO & & & + & \\
+ 113 & CN & + & O$_2$ & & & $\to$ & OCN & + & O & + & \\
+ 114 & NH & + & S & & & $\to$ & NS & + & H & + & \\
+ 115 & SIO$^+$ & + & e$^-$ & & & $\to$ & SI & + & O & + & \\
+ 116 & O & + & HCN & & & $\to$ & CO & + & NH & + & \\
+ 117 & H$_2$ & + & N & & & $\to$ & NH & + & H & + & \\
+ 118 & O & + & HCN & & & $\to$ & CN & + & OH & + & \\
+ 119 & SI & + & S$^+$ & & & $\to$ & S & + & SI$^+$ & + & \\
+ 120 & O & + & OH & & & $\to$ & O$_2$ & + & H & + & \\
+ 121 & C$^+$ & + & SI & & & $\to$ & SI$^+$ & + & C & + & \\
+ 122 & O & + & SO & & & $\to$ & S & + & O$_2$ & + & \\
+ 123 & SI & + & NO & & & $\to$ & SIO & + & N & + & \\
+ 124 & C$^+$ & + & FE & & & $\to$ & FE$^+$ & + & C & + & \\
+ 125 & S & + & SO$_2$ & & & $\to$ & SO & + & SO & + & \\
+ 126 & MG & + & SIO$^+$ & & & $\to$ & SIO & + & MG$^+$ & + & \\
+ 127 & O & + & HCN & & & $\to$ & OCN & + & H & + & \\
+ 128 & N & + & CN & & & $\to$ & N$_2$ & + & C & + & \\
+ 129 & H$^-$ & + & C & & & $\to$ & CH & + & e$^-$ & + & \\
+ 130 & MG & + & SI$^+$ & & & $\to$ & SI & + & MG$^+$ & + & \\
+ 131 & CH & + & N & & & $\to$ & NH & + & C & + & \\
+ 132 & NA & + & SI$^+$ & & & $\to$ & SI & + & NA$^+$ & + & \\
+ 133 & C$^-$ & + & H$^+$ & & & $\to$ & C & + & H & + & \\
+ 134 & SI & + & CO$_2$ & & & $\to$ & SIO & + & CO & + & \\
+ 135 & H & + & OCS & & & $\to$ & HS & + & CO & + & \\
+ 136 & SI$^+$ & + & FE & & & $\to$ & FE$^+$ & + & SI & + & \\
+ 137 & S & + & e$^-$ & & & $\to$ & S$^-$ & & & + & \\
+ 138 & HCO$^+$ & + & FE & & & $\to$ & FE$^+$ & + & HCO & + & \\
+ 139 & P$^+$ & + & e$^-$ & & & $\to$ & P & & & + & \\
+ 140 & H$^+$ & + & SIO & & & $\to$ & SIO$^+$ & + & H & + & \\
+ 141 & O & + & HS & & & $\to$ & SO & + & H & + & \\
+ 142 & FE$^+$ & + & e$^-$ & & & $\to$ & FE & & & + & \\
+ 143 & SI & + & P$^+$ & & & $\to$ & P & + & SI$^+$ & + & \\
+ 144 & H$^+$ & + & MG & & & $\to$ & MG$^+$ & + & H & + & \\
+ 145 & H$^-$ & + & SI$^+$ & & & $\to$ & H & + & SI & + & \\
+ 146 & H & + & H$_2$O & & & $\to$ & OH & + & H$_2$ & + & \\
+ 147 & OH & + & OH & & & $\to$ & H$_2$O & + & O & + & \\
+ 148 & OH & + & SO & & & $\to$ & SO$_2$ & + & H & + & \\
+ 149 & H$_2$ & + & OH & & & $\to$ & H$_2$O & + & H & + & \\
+ 150 & H & + & OCN & & & $\to$ & HCN & + & O & + & \\
+ 151 & N & + & C$_2$ & & & $\to$ & CN & + & C & + & \\
+ 152 & C & + & CH & & & $\to$ & C$_2$ & + & H & + & \\
+ 153 & H & + & C$_2$ & & & $\to$ & CH & + & C & + & \\
+ 154 & H & + & OCN & & & $\to$ & NH & + & CO & + & \\
+ 155 & N & + & OH & & & $\to$ & O & + & NH & + & \\
+ 156 & N & + & SIO$^+$ & & & $\to$ & NO & + & SI$^+$ & + & \\
+ 157 & C & + & e$^-$ & & & $\to$ & C$^-$ & & & + & \\
+ 158 & NH & + & S & & & $\to$ & HS & + & N & + & \\
+ 159 & H$_2$ & + & O & & & $\to$ & OH & + & H & + & \\
+ 160 & O & + & CS & & & $\to$ & S & + & CO & + & \\
+ 161 & OH & + & H$_2$S & & & $\to$ & HS & + & H$_2$O & + & \\
+ 162 & C & + & NH & & & $\to$ & CN & + & H & + & \\
+ 163 & H & + & H$_2$S & & & $\to$ & HS & + & H$_2$ & + & \\
+ 164 & MG & + & HCO$^+$ & & & $\to$ & HCO & + & MG$^+$ & + & \\
+ 165 & CH & + & N & & & $\to$ & CN & + & H & + & \\
+ 166 & C & + & C & & & $\to$ & C$_2$ & & & + & \\
+ 167 & H$^+$ & + & S & & & $\to$ & S$^+$ & + & H & + & \\
+ 168 & O & + & C$_2$ & & & $\to$ & CO & + & C & + & \\
+ 169 & C & + & OH & & & $\to$ & O & + & CH & + & \\
+ 170 & H & + & C$^-$ & & & $\to$ & CH & + & e$^-$ & + & \\
+ 171 & C & + & HS & & & $\to$ & S & + & CH & + & \\
+ 172 & H$^+$ & + & FE & & & $\to$ & FE$^+$ & + & H & + & \\
+ 173 & C & + & N & & & $\to$ & CN & & & + & \\
+ 174 & OH & + & CS & & & $\to$ & H & + & OCS & + & \\
+ 175 & N & + & CO$_2$ & & & $\to$ & NO & + & CO & + & \\
+ 176 & H & + & CO$_2$ & & & $\to$ & CO & + & OH & + & \\
+ 177 & C$_2$ & + & S & & & $\to$ & CS & + & C & + & \\
+ 178 & H$_2$ & + & S$^+$ & & & $\to$ & HS$^+$ & + & H & + & \\
+ 179 & N & + & HS & & & $\to$ & S & + & NH & + & \\
+ 180 & O & + & N$_2$ & & & $\to$ & NO & + & N & + & \\
+ 181 & CH & + & O & & & $\to$ & CO & + & H & + & \\
+ 182 & H & + & O$^+$ & & & $\to$ & O & + & H$^+$ & + & \\
+ 183 & N & + & OH & & & $\to$ & NO & + & H & + & \\
+ 184 & H$^+$ & + & O & & & $\to$ & O$^+$ & + & H & + & \\
+ 185 & H & + & SO & & & $\to$ & HS & + & O & + & \\
+ 186 & O & + & SI & & & $\to$ & SIO & & & + & \\
+ 187 & S$^+$ & + & e$^-$ & & & $\to$ & S & & & + & \\
+ 188 & HS & + & HS & & & $\to$ & H$_2$S & + & S & + & \\
+ 189 & C & + & SO$_2$ & & & $\to$ & CO & + & SO & + & \\
+ 190 & NA$^+$ & + & e$^-$ & & & $\to$ & NA & & & + & \\
+ 191 & S & + & HS & & & $\to$ & S$_2$ & + & H & + & \\
+ 192 & H$^-$ & + & H & & & $\to$ & H$_2$ & + & e$^-$ & + & \\
+ 193 & C & + & SO & & & $\to$ & S & + & CO & + & \\
+ 194 & H & + & CH$^+$ & & & $\to$ & C$^+$ & + & H$_2$ & + & \\
+ 195 & NA & + & MG$^+$ & & & $\to$ & MG & + & NA$^+$ & + & \\
+ 196 & H & + & H$_2$$^+$ & & & $\to$ & H$_2$ & + & H$^+$ & + & \\
+ 197 & SI$^+$ & + & e$^-$ & & & $\to$ & SI & & & + & \\
+ 198 & C & + & NS & & & $\to$ & S & + & CN & + & \\
+ 199 & O$^-$ & + & H$^+$ & & & $\to$ & O & + & H & + & \\
+ 200 & CH & + & O & & & $\to$ & HCO$^+$ & + & e$^-$ & + & \\
+ 201 & SIH$^+$ & + & e$^-$ & & & $\to$ & SI & + & H & + & \\
+ 202 & C & + & SIO$^+$ & & & $\to$ & SI$^+$ & + & CO & + & \\
+ 203 & H$^-$ & + & O & & & $\to$ & OH & + & e$^-$ & + & \\
+ 204 & C & + & OH & & & $\to$ & CO & + & H & + & \\
+ 205 & OH & + & SI & & & $\to$ & SIO & + & H & + & \\
+ 206 & H$_2$$^+$ & + & C & & & $\to$ & CH$^+$ & + & H & + & \\
+ 207 & C & + & S & & & $\to$ & CS & & & + & \\
+ 208 & H & + & OH & & & $\to$ & O & + & H$_2$ & + & \\
+ 209 & CH$^+$ & + & e$^-$ & & & $\to$ & C & + & H & + & \\
+ 210 & O$^-$ & + & FE$^+$ & & & $\to$ & O & + & FE & + & \\
+ 211 & N & + & SO & & & $\to$ & S & + & NO & + & \\
+ 212 & O & + & NS & & & $\to$ & S & + & NO & + & \\
+ 213 & O & + & H$_2$O & & & $\to$ & OH & + & OH & + & \\
+ 214 & H$^-$ & + & MG$^+$ & & & $\to$ & H & + & MG & + & \\
+ 215 & H$_2$ & + & CN & & & $\to$ & HCN & + & H & + & \\
+ 216 & C & + & O$_2$ & & & $\to$ & CO & + & O & + & \\
+ 217 & H & + & NS & & & $\to$ & S & + & NH & + & \\
+ 218 & O & + & CN & & & $\to$ & CO & + & N & + & \\
+ 219 & OH & + & CN & & & $\to$ & OCN & + & H & + & \\
+ 220 & H & + & e$^-$ & & & $\to$ & H$^+$ & + & e$^-$ & + & e$^-$\\
+ 221 & HE & + & e$^-$ & & & $\to$ & HE$^+$ & + & e$^-$ & + & e$^-$\\
+ 222 & H$_2$ & + & H$^+$ & & & $\to$ & H$_2$$^+$ & + & H & + & \\
+ 223 & H$_2$ & + & e$^-$ & & & $\to$ & H & + & H$^-$ & + & \\
+ 224 & H$^-$ & + & e$^-$ & & & $\to$ & H & + & e$^-$ & + & e$^-$\\
+ 225 & H$^-$ & + & H & & & $\to$ & H & + & H & + & e$^-$\\
+ 226 & H$^-$ & + & H$^+$ & & & $\to$ & H$_2$$^+$ & + & e$^-$ & + & \\
+ 227 & H & + & H & + & H & $\to$ & H$_2$ & + & H & + & \\
+ 228 & H$_2$ & + & H & + & H & $\to$ & H$_2$ & + & H$_2$ & + & \\
+ 229 & H & + & H & + & HE & $\to$ & H$_2$ & + & HE & + & \\
+ 230 & H$^+$ & + & NA & & & $\to$ & NA$^+$ & + & H & + & \\
+ 231 & H$_2$ & & & + &  & $\to$ & H$^+$ & + & H$^-$ & + & \\
+ 232 & C & & & + &  & $\to$ & C$^+$ & + & e$^-$ & + & \\
+ 233 & H & & & + &  & $\to$ & H$^+$ & + & e$^-$ & + & \\
+ 234 & N & & & + &  & $\to$ & N$^+$ & + & e$^-$ & + & \\
+ 235 & CO & & & + &  & $\to$ & CO$^+$ & + & e$^-$ & + & \\
+ 236 & H$_2$ & & & + &  & $\to$ & H$^+$ & + & H & + & e$^-$\\
+ 237 & H$_2$ & & & + &  & $\to$ & H & + & H & + & \\
+ 238 & HE & & & + &  & $\to$ & HE$^+$ & + & e$^-$ & + & \\
+ 239 & O & & & + &  & $\to$ & O$^+$ & + & e$^-$ & + & \\
+ 240 & H$_2$ & & & + &  & $\to$ & H$_2$$^+$ & + & e$^-$ & + & \\
+ 241 & N$_2$ & & & + &  & $\to$ & N & + & N & + & \\
+ 242 & CO & & & + &  & $\to$ & C & + & O & + & \\
+ 243 & C$^+$ & + & e$^-$ & & & $\to$ & C & & & + & \\
+ 244 & N$^+$ & + & e$^-$ & & & $\to$ & N & & & + & \\
+ 245 & CO$^+$ & + & e$^-$ & & & $\to$ & O & + & C & + & \\
+ 246 & HE$^+$ & + & SIO$_2$ & & & $\to$ & O$_2$ & + & SI$^+$ & + & HE\\
+ 247 & H$^+$ & + & NH & & & $\to$ & NH$^+$ & + & H & + & \\
+ 248 & HS$^+$ & + & e$^-$ & & & $\to$ & S & + & H & + & \\
+ 249 & HCO$^+$ & + & e$^-$ & & & $\to$ & CO & + & H & + & \\
+ 250 & HE$^+$ & + & HF & & & $\to$ & F$^+$ & + & H & + & HE\\
+ 251 & H$_2$ & + & F$^+$ & & & $\to$ & H$_2$$^+$ & + & F & + & \\
+ 252 & N & + & PN & & & $\to$ & P & + & N$_2$ & + & \\
+ 253 & N & + & PO & & & $\to$ & PN & + & O & + & \\
+ 254 & P & + & O$_2$ & & & $\to$ & PO & + & O & + & \\
+ 255 & N & + & PO & & & $\to$ & P & + & NO & + & \\
