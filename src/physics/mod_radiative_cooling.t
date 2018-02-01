@@ -923,7 +923,7 @@ module mod_radiative_cooling
     
     end subroutine cooling_get_dt
 
-    subroutine getvar_cooling(ixI^L,ixO^L,w,x,coolrate,normconv)
+    subroutine getvar_cooling(ixI^L,ixO^L,w,x,coolrate)
     !
     ! Create extra variable to show cooling rate in the output
     ! Uses a simple explicit scheme. 
@@ -933,8 +933,7 @@ module mod_radiative_cooling
       
       integer, intent(in)          :: ixI^L,ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
-      double precision             :: w(ixI^S,nw+nwauxio)
-      double precision             :: normconv(0:nw+nwauxio)
+      double precision             :: w(ixI^S,1:nw)
       double precision, intent(out):: coolrate(ixI^S)
       
       double precision :: etherm(ixI^S)
