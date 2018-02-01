@@ -305,12 +305,13 @@ contains
     double precision                   :: normconv(0:nw+nwauxio)
 
     double precision :: pth(ixI^S),B2(ixI^S),tmp2(ixI^S),dRdT(ixI^S)
-    double precision :: ens(ixI^S),divb(ixI^S)
+    double precision :: ens(ixI^S),divb(ixI^S),wlocal(ixI^S,1:nw)
     double precision :: Btotal(ixI^S,1:ndir),curlvec(ixI^S,1:ndir)
     integer :: idirmin,idir,ix^D
 
+    wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
-    call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call phys_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
     do idir=1,ndir
@@ -332,10 +333,10 @@ contains
     ! output the plasma beta p*2/B**2
     w(ixO^S,nw+4)=pth(ixO^S)*two/B2(ixO^S)
     ! output heating rate
-    call getbQ(ens,ixI^L,ixO^L,global_time,w,x)
+    call getbQ(ens,ixI^L,ixO^L,global_time,wlocal,x)
     w(ixO^S,nw+5)=ens(ixO^S)
     ! store the cooling rate 
-    if(mhd_radiative_cooling)call getvar_cooling(ixI^L,ixO^L,w,x,ens,normconv)
+    if(mhd_radiative_cooling)call getvar_cooling(ixI^L,ixO^L,wlocal,x,ens)
     w(ixO^S,nw+6)=ens(ixO^S)
 
     ! store current

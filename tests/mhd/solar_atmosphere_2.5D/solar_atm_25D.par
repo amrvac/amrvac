@@ -25,7 +25,7 @@
 
  &stoplist
         dtmin=1.D-7
-        it_max=100
+        it_max=10
  /
         time_max=80.d0
         time_reset=.true.

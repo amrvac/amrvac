@@ -1,7 +1,12 @@
 SETUP_FLAGS := -d=2
-TESTS := solar_atm_25D.log solar_atm_B0split.log
+SCHEME_DIR := ../../schemes
+SCHEMES := 2step_tvdlf_mm 3step_hll_cada 3step_hlld_cada 4step_hll_mc \
+4step_hllc_ko rk4_tvdlf_cada ssprk54_hlld_mp5 B0split
 
-solar_atm_25D.log: solar_atm_25D.par
-solar_atm_B0split.log: solar_atm_B0split.par
+TESTS := $(SCHEMES:%=solar_atm_25D_%.log)
 
 include ../../test_rules.make
+
+# Generate dependency rules for the tests
+$(foreach s, $(SCHEMES),\
+	$(eval $(s:%=solar_atm_25D_%.log): solar_atm_25D.par $(SCHEME_DIR)/$(s).par))
