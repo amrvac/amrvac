@@ -1,5 +1,4 @@
-! setup.pl -d=33
-! test thermal conduction in a central hot ball
+!> test isotropic thermal conduction from a central hot ball
 module mod_usr
   use mod_hd
   implicit none
@@ -16,30 +15,31 @@ contains
 
     usr_init_one_grid => initonegrid_usr
 
+    call set_coordinate_system("Cartesian_2D")
+
     call hd_activate()
 
   end subroutine usr_init
 
-  subroutine initonegrid_usr(ixG^L,ix^L,w,x)
+  subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     use mod_global_parameters
-    use mod_physics
 
-    integer, intent(in)             :: ixG^L,ix^L
-    double precision, intent(in)    :: x(ixG^S,1:ndim)
-    double precision, intent(inout) :: w(ixG^S,1:nw)
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
 
     ! set all velocity to zero
-    w(ixG^S, mom(:)) = zero
+    w(ixO^S, mom(:)) = zero
     ! uniform pressure
-    w(ixG^S,p_)   =2.d0
+    w(ixO^S,p_)   =2.d0
     ! hot central circular spot with uniform pressure
-    where((^D&x(ixG^S,^D)**2+) .lt. 0.25d0**2)
-     w(ixG^S,rho_) =1.d0
+    where((^D&x(ixO^S,^D)**2+) .lt. 0.25d0**2)
+     w(ixO^S,rho_) =1.d0
     elsewhere
-     w(ixG^S,rho_) =10.d0
+     w(ixO^S,rho_) =10.d0
     endwhere
 
-    call phys_to_conserved(ixG^L,ixG^L,w,x)
+    call hd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
