@@ -463,55 +463,48 @@ do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
          tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
 }
         case('slabstretch')
-         if(jdir==^ND) then
-           call gradient(tmp,ixI^L,ixO^L,jdir,tmp2)
-         else
-           tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
-         end if
+         tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,jdir)-block%x(hxO^S,jdir))
         case('spherical')
          select case(jdir)
             case(1)
              tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
-             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/(block%x(ixO^S,1)*block%dx(ixO^S,1))
-   {^NOONED case(2)
-             mydx(ixO^S)=block%dx(ixO^S,2)
-             if(idir==1) then
-                tmp(ixI^S)=tmp(ixI^S)*dsin(block%x(ixI^S,2))
-                mydx(ixO^S)=dsin(block%x(ixO^S,2))*mydx(ixO^S)
-             endif
-             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)}
- {^IFTHREED case(3)
-             tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,3)}
+             tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,1)-block%x(hxO^S,1))*block%x(ixO^S,1))
+{^NOONED    case(2)
+             if(idir==1) tmp(ixI^S)=tmp(ixI^S)*dsin(block%x(ixI^S,2))
+             tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
+             if(idir==1) tmp2(ixO^S)=tmp2(ixO^S)/dsin(block%x(ixO^S,2))
+}
+{^IFTHREED  case(3)
+             tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,3)-block%x(hxO^S,3))*block%x(ixO^S,1)*dsin(block%x(ixO^S,2)))
+}
          end select
         case('cylindrical')
          if(z_==3) then
            select case(jdir)
               case(1)
-               mydx(ixO^S)=block%dx(ixO^S,1)
-               if(idir==3) then
-                  tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
-                  mydx(ixO^S)=block%x(ixO^S,1)*mydx(ixO^S)
-               endif
-               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)
-     {^NOONED case(2)
-               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,2)}
-   {^IFTHREED case(3)
-               tmp2(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,3)}
+               if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
+               tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
+               if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1)
+{^NOONED      case(2)
+               tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
+}
+{^IFTHREED    case(3)
+               tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,3)-block%x(hxO^S,3))
+}
            end select
          end if
          if(phi_==3) then
            select case(jdir)
               case(1)
-               mydx(ixO^S)=block%dx(ixO^S,1)
-               if(idir==2) then
-                  tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
-                  mydx(ixO^S)=block%x(ixO^S,1)*mydx(ixO^S)
-               endif
-               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/mydx(ixO^S)
-     {^NOONED case(2)
-               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,2)}
-   {^IFTHREED case(3)
-               tmp2(ixO^S)=-half*(tmp(jxO^S)-tmp(hxO^S))/block%dx(ixO^S,3)}
+               if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
+               tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
+               if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1)
+{^NOONED      case(2)
+               tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,2)-block%x(hxO^S,2))
+}
+{^IFTHREED    case(3)
+               tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,3)-block%x(hxO^S,3))*block%x(ixO^S,1))
+}
            end select
          end if
       end select
