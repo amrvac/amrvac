@@ -994,13 +994,8 @@ contains
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (abs(mhd_eta)>smalldouble)then
-        if (.not.slab) call mpistop("no resistivity in non-slab geometry")
         active = .true.
-        if (compactres)then
-          call add_source_res1(qdt,ixI^L,ixO^L,wCT,w,x)
-        else
-          call add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
-        end if
+        call add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
 
       if (mhd_eta_hyper>0.d0)then
