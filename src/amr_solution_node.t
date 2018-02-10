@@ -102,7 +102,8 @@ if(.not. allocated(pw(igrid)%w)) then
            pw(igrid)%xcoarse(ixCoG^S,1:ndim))
   if(.not.slab)then
       allocate(pw(igrid)%dx(ixGext^S,1:ndim), &
-               pw(igrid)%dxcoarse(ixCoG^S,1:ndim))
+               pw(igrid)%dxcoarse(ixCoG^S,1:ndim),&
+               pw(igrid)%ds(ixGext^S,1:ndim))
       allocate(pw(igrid)%dvolume(ixGext^S), &
                pw(igrid)%dvolumecoarse(ixCoG^S))
       allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
@@ -445,6 +446,7 @@ if (.not.slab) then
       case ("slabstretch")
          pw(igrid)%dvolume(ixGext^S)= {^D&pw(igrid)%dx(ixGext^S,^D)|*}
          pw(igrid)%dvolumecoarse(ixCoG^S)= {^D&pw(igrid)%dxcoarse(ixCoG^S,^D)|*}
+         pw(igrid)%ds(ixGext^S,1:ndim)=pw(igrid)%dx(ixGext^S,1:ndim)
       case ("spherical")
          pw(igrid)%dvolume(ixGext^S)=(xext(ixGext^S,1)**2 &
                                    +pw(igrid)%dx(ixGext^S,1)**2/12.0d0)*&
@@ -456,23 +458,19 @@ if (.not.slab) then
                  pw(igrid)%dxcoarse(ixCoG^S,1){^NOONED &
                 *two*dabs(dsin(pw(igrid)%xcoarse(ixCoG^S,2))) &
                 *dsin(half*pw(igrid)%dxcoarse(ixCoG^S,2))}{^IFTHREED*pw(igrid)%dxcoarse(ixCoG^S,3)}
-         {^NOONED pw(igrid)%dx(ixGext^S,2)=xext(ixGext^S,1)*pw(igrid)%dx(ixGext^S,2)}
-         {^IFTHREED pw(igrid)%dx(ixGext^S,3)= &
+         pw(igrid)%ds(ixGext^S,1)=pw(igrid)%dx(ixGext^S,1)
+         {^NOONED pw(igrid)%ds(ixGext^S,2)=xext(ixGext^S,1)*pw(igrid)%dx(ixGext^S,2)}
+         {^IFTHREED pw(igrid)%ds(ixGext^S,3)= &
                   xext(ixGext^S,1)*dsin(xext(ixGext^S,2))*pw(igrid)%dx(ixGext^S,3)}
-         {^NOONED pw(igrid)%dxcoarse(ixCoG^S,2)= &
-                  pw(igrid)%xcoarse(ixCoG^S,1)*pw(igrid)%dxcoarse(ixCoG^S,2)}
-         {^IFTHREED pw(igrid)%dxcoarse(ixCoG^S,3)= &
-           pw(igrid)%xcoarse(ixCoG^S,1)*dsin(pw(igrid)%xcoarse(ixCoG^S,2))*pw(igrid)%dxcoarse(ixCoG^S,3)}
       case ("cylindrical")
          pw(igrid)%dvolume(ixGext^S)=dabs(xext(ixGext^S,1)) &
               *pw(igrid)%dx(ixGext^S,1){^DE&*pw(igrid)%dx(ixGext^S,^DE) }
          pw(igrid)%dvolumecoarse(ixCoG^S)=dabs(pw(igrid)%xcoarse(ixCoG^S,1)) &
               *pw(igrid)%dxcoarse(ixCoG^S,1){^DE&*pw(igrid)%dxcoarse(ixCoG^S,^DE) }
+         pw(igrid)%ds(ixGext^S,1)=pw(igrid)%dx(ixGext^S,1)
          if (phi_ > 0) then
-           {if (^DE==phi_) pw(igrid)%dx(ixGext^S,^DE)= &
+           {if (^DE==phi_) pw(igrid)%ds(ixGext^S,^DE)= &
                     xext(ixGext^S,1)*pw(igrid)%dx(ixGext^S,^DE)\}
-           {if (^DE==phi_) pw(igrid)%dxcoarse(ixCoG^S,^DE)= &
-                    pw(igrid)%xcoarse(ixCoG^S,1)*pw(igrid)%dxcoarse(ixCoG^S,^DE)\}
          end if
       case default
          call mpistop("Sorry, typeaxial unknown")

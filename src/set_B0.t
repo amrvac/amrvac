@@ -80,19 +80,6 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
   else
    ! for all non-cartesian and stretched coordinate(s)
    delx(ixI^S,1:ndim)=pw(igrid)%dx(ixI^S,1:ndim)
-   ! for cylindrical/spherical: need the dtheta/dphi in radians
-   select case (typeaxial)
-      case ("spherical")
-        {^NOONED   delx(ixI^S,2)=pw(igrid)%dx(ixI^S,2)/pw(igrid)%x(ixI^S,1)}
-        {^IFTHREED delx(ixI^S,3)= pw(igrid)%dx(ixI^S,3) &
-                  /(pw(igrid)%x(ixI^S,1)*dsin(pw(igrid)%x(ixI^S,2))) }
-      case ("cylindrical")
-        if (phi_ > 0) then
-          delx(ixI^S,phi_)=pw(igrid)%dx(ixI^S,phi_)/pw(igrid)%x(ixI^S,1)
-        endif
-      case default
-         ! nothing to do for slab stretched case
-   end select
   endif
 
   do idims=1,ndim

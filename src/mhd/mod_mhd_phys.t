@@ -1409,7 +1409,11 @@ contains
     else
       ! implicit update of Psi variable
       ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
-      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
+      if(slab) then
+        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
+      else
+        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(block%ds(ixO^S,:),dim=ndim+1))*w(ixO^S,psi_)
+      end if
     end if
 
     ! gradient of Psi
@@ -1460,7 +1464,11 @@ contains
     else
       ! implicit update of Psi variable
       ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
-      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
+      if(slab) then
+        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
+      else
+        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(block%ds(ixO^S,:),dim=ndim+1))*w(ixO^S,psi_)
+      end if
     end if
 
     ! gradient of Psi
@@ -1517,7 +1525,11 @@ contains
     else
       ! implicit update of Psi variable
       ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
-      w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
+      if(slab) then
+        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
+      else
+        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(block%ds(ixO^S,:),dim=ndim+1))*w(ixO^S,psi_)
+      end if
     end if
 
   end subroutine add_source_glm3
@@ -1629,7 +1641,7 @@ contains
           graddivb(ixp^S)=graddivb(ixp^S)*divbdiff/(^D&1.0d0/dxlevel(^D)**2+)
        else
           graddivb(ixp^S)=graddivb(ixp^S)*divbdiff &
-                          /(^D&1.0d0/block%dx(ixp^S,^D)**2+)
+                          /(^D&1.0d0/block%ds(ixp^S,^D)**2+)
        end if
 
        w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
@@ -1745,13 +1757,22 @@ contains
        call usr_special_resistivity(w,ixI^L,ixO^L,idirmin,x,current,eta)
        dtnew=bigdouble
        do idim=1,ndim
-          dtnew=min(dtnew,&
-               dtdiffpar/(smalldouble+maxval(eta(ixO^S)/dxarr(idim)**2)))
+         if(slab) then
+           dtnew=min(dtnew,&
+                dtdiffpar/(smalldouble+maxval(eta(ixO^S)/dxarr(idim)**2)))
+         else
+           dtnew=min(dtnew,&
+                dtdiffpar/(smalldouble+maxval(eta(ixO^S)/block%ds(ixO^S,idim)**2)))
+         end if 
        end do
     end if
 
-    if (mhd_eta_hyper>zero)then
-       dtnew=min(dtdiffpar*minval(dxarr(1:ndim))**4/mhd_eta_hyper,dtnew)
+    if(mhd_eta_hyper>zero) then
+      if(slab) then
+        dtnew=min(dtdiffpar*minval(dxarr(1:ndim))**4/mhd_eta_hyper,dtnew)
+      else
+        dtnew=min(dtdiffpar*minval(block%ds(ixO^S,1:ndim))**4/mhd_eta_hyper,dtnew)
+      end if
     end if
 
     if(mhd_radiative_cooling) then
@@ -2002,7 +2023,12 @@ contains
        bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%B0(ixO^S,1:ndir,block%iw0))**2))
     end if
 
-    dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
+    if(slab) then
+      dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
+    else
+      dthall=dtdiffpar*minval(block%ds(ixO^S,1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
+    end if
+
   end subroutine mhd_getdt_Hall
 
   !> This implements eq. (42) in Dedner et al. 2002 JcP 175

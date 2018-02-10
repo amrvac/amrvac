@@ -117,8 +117,8 @@ use mod_global_parameters
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------
-deallocate(pw(igrid)%surfaceC,pw(igrid)%surface,&
-     pw(igrid)%dvolume,pw(igrid)%dx,pw(igrid)%dxcoarse,pw(igrid)%dvolumecoarse)
+deallocate(pw(igrid)%surfaceC,pw(igrid)%surface,pw(igrid)%dvolume,pw(igrid)%dx,&
+ pw(igrid)%dxcoarse,pw(igrid)%ds,pw(igrid)%dvolumecoarse)
 
 end subroutine putgridgeo
 !=============================================================================
@@ -239,40 +239,49 @@ end select
 
 end subroutine fillgeo
 !=============================================================================
-subroutine gradient(q,ixI^L,ix^L,idir,gradq)
+subroutine gradient(q,ixI^L,ixO^L,idir,gradq)
 
 ! Calculate gradient of a scalar q within ixL in direction idir
 
 use mod_global_parameters
 
-integer :: ixI^L, ix^L, idir
+integer :: ixI^L, ixO^L, idir
 double precision :: q(ixI^S), gradq(ixI^S)
 
-double precision :: qC(ixI^S),invdx
-integer :: jx^L, hx^L, ixC^L, jxC^L {#IFDEF FOURTHORDER , lx^L, kx^L}
+integer :: jxO^L, hxO^L
 
 !-----------------------------------------------------------------------------
 
-invdx=1.d0/dxlevel(idir)
-if (slab) then
-{#IFNDEF FOURTHORDER
-   jx^L=ix^L+kr(idir,^D);
-   hx^L=ix^L-kr(idir,^D);
-   gradq(ix^S) = half*(q(jx^S)-q(hx^S))*invdx
-}{#IFDEF FOURTHORDER
-   lx^L=ix^L+2*kr(idir,^D);
-   jx^L=ix^L+kr(idir,^D);
-   hx^L=ix^L-kr(idir,^D);
-   kx^L=ix^L-2*kr(idir,^D);
-   gradq(ix^S) = (-q(lx^S) + 8.0d0 * q(jx^S) - 8.0d0 * q(hx^S) + q(kx^S)) &
-        /(12.0d0 * dxlevel(idir))
-}
+hxO^L=ixO^L-kr(idir,^D);
+jxO^L=ixO^L+kr(idir,^D);
+if(slab) then
+  gradq(ixO^S)=half*(q(jxO^S)-q(hxO^S))/dxlevel(idir)
 else
-   hx^L=ix^L-kr(idir,^D);
-   ixCmin^D=hxmin^D;ixCmax^D=ixmax^D;
-   jxC^L=ixC^L+kr(idir,^D);
-   qC(ixC^S)=block%surfaceC(ixC^S,idir)*half*(q(ixC^S)+q(jxC^S))
-   gradq(ix^S)=(qC(ix^S)-qC(hx^S))/block%dvolume(ix^S)
+  select case(typeaxial)
+    case('slabstretch')
+      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(block%x(jxO^S,idir)-block%x(hxO^S,idir))
+    case('spherical')
+      select case(idir)
+        case(1)
+          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,1)-block%x(hxO^S,1)))
+{^NOONED
+        case(2)
+          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
+}
+{^IFTHREED
+        case(3)
+          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,3)-block%x(hxO^S,3))*block%x(ixO^S,1)*dsin(block%x(ixO^S,2)))
+}
+      end select
+    case('cylindrical')
+      if(idir==r_) then
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(block%x(jxO^S,r_)-block%x(hxO^S,r_))
+      else if(idir==phi_) then
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,phi_)-block%x(hxO^S,phi_))*block%x(ixO^S,r_))
+      else
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(block%x(jxO^S,z_)-block%x(hxO^S,z_))
+      end if
+  end select
 end if
 
 end subroutine gradient

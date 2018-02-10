@@ -172,7 +172,7 @@ contains
      call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
      if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
      if (.not.slab) then
-        tmp(ixO^S)=cmax(ixO^S)/block%dx(ixO^S,idims)
+        tmp(ixO^S)=cmax(ixO^S)/block%ds(ixO^S,idims)
         cmaxtot(ixO^S)=cmaxtot(ixO^S)+tmp(ixO^S)
         courantmax=max(courantmax,maxval(tmp(ixO^S)))
      else

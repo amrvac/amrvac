@@ -3153,8 +3153,6 @@ subroutine calc_x(igrid,xC,xCC)
   double precision, intent(out)     :: xCC(ixMlo^D:ixMhi^D,ndim)
   ! .. local ..
   integer                           :: ixC^L, idims, level, ix
-  double precision :: delx(ixMlo^D-1:ixMhi^D,1:ndim)
-
 
   level=node(plevel_,igrid)
 
@@ -3168,24 +3166,9 @@ subroutine calc_x(igrid,xC,xCC)
        xC(ixC^S,idims)=pw(igrid)%x(ixC^S,idims)+0.5d0*dx(idims,level)
      end do
   else
-     ! for all non-cartesian and stretched coordinate(s)
-     delx(ixC^S,1:ndim)=pw(igrid)%dx(ixC^S,1:ndim)
-     ! for cylindrical/spherical: need the dtheta/dphi in radians
-     select case (typeaxial)
-      case ("spherical")
-        {^NOONED   delx(ixC^S,2)=pw(igrid)%dx(ixC^S,2)/pw(igrid)%x(ixC^S,1)}
-        {^IFTHREED delx(ixC^S,3)= pw(igrid)%dx(ixC^S,3) &
-                  /(pw(igrid)%x(ixC^S,1)*dsin(pw(igrid)%x(ixC^S,2)))}
-      case ("cylindrical")
-        if (phi_ > 0) then
-          delx(ixC^S,phi_)=pw(igrid)%dx(ixC^S,phi_)/pw(igrid)%x(ixC^S,1)
-        endif
-      case default
-         ! nothing to do for slab stretched case
-     end select
      ! for any non-cartesian or stretched coordinate (allow multiple stretched directions)
      {do ix=ixCmin^D,ixCmax^D
-       xC(ix^D%ixC^S,^D)=pw(igrid)%x(ix^D%ixC^S,^D)+0.5d0*delx(ix^D%ixC^S,^D)
+       xC(ix^D%ixC^S,^D)=pw(igrid)%x(ix^D%ixC^S,^D)+0.5d0*pw(igrid)%dx(ix^D%ixC^S,^D)
      end do\}
   endif
 

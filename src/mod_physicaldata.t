@@ -39,10 +39,12 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), allocatable :: x
       !> Cell-center positions, one level coarser 
       double precision, dimension(:^D&,:), allocatable :: xcoarse
-      !> Cell sizes
+      !> Cell sizes in coordinate units
       double precision, dimension(:^D&,:), allocatable :: dx
-      !> Cell sizes, one level coarser
+      !> Cell sizes in coordinate units, one level coarser
       double precision, dimension(:^D&,:), allocatable :: dxcoarse
+      !> Cell sizes in length unit
+      double precision, dimension(:^D&,:), allocatable :: ds
       !> Volumes of a cell
       double precision, dimension(:^D&), allocatable :: dvolume
       !> Volumes of a cell, one level coarser representative
@@ -75,6 +77,8 @@ module mod_physicaldata
       double precision, dimension(:^DE&,:), allocatable :: dx
       !> Cell sizes, one level coarser
       double precision, dimension(:^D&,:), allocatable :: dxcoarse
+      !> Cell sizes in length unit
+      double precision, dimension(:^D&,:), allocatable :: ds
       !> Volumes of a cell
       double precision, dimension(:^DE&), allocatable :: dvolume
       !> Volumes of a cell, one level coarser representative
