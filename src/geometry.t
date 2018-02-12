@@ -588,7 +588,7 @@ else
                 else
                   tmp(ixC^S)=0.5d0*(qvec(ixC^S,jdir)+qvec(jxC^S,jdir))
                 end if
-                curlvec(ixO^S,idir)=(tmp(ixO^S)-tmp(hxO^S))*block%dx(ixO^S,1)/block%surface(ixO^S,idir)
+                curlvec(ixO^S,idir)=(tmp(ixO^S)-tmp(hxO^S))*block%dx(ixO^S,1)
                 !! integral along 3rd dimension
                 hxO^L=ixO^L-kr(jdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
@@ -602,7 +602,8 @@ else
                 end if
                 ! 1st coordinate at cell interface along 1st dimension
                 xC(ixC^S)=block%x(ixC^S,jdir)+0.5d0*block%dx(ixC^S,jdir)
-                curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+(xC(hxO^S)*tmp(hxO^S)-xC(ixO^S)*tmp(ixO^S))/(block%x(ixO^S,jdir)*block%dx(ixO^S,jdir))
+                curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(xC(hxO^S)*tmp(hxO^S)-xC(ixO^S)*tmp(ixO^S))*&
+                  dsin(block%x(ixO^S,idir))*block%dx(ixO^S,kdir))/block%surface(ixO^S,idir)
               end if
             case(3)
               if(jdir<kdir) then
