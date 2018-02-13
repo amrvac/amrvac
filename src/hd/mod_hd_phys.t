@@ -198,6 +198,7 @@ contains
     phys_get_pthermal        => hd_get_pthermal
     phys_write_info          => hd_write_info
     phys_handle_small_values => hd_handle_small_values
+    phys_angmomfix           => hd_angmomfix
 
     ! Whether diagonal ghost cells are required for the physics
     phys_req_diagonal = .false.
@@ -229,7 +230,7 @@ contains
     end if
 
     ! Initialize viscosity module
-    if (hd_viscosity) call viscosity_init()
+    if (hd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
 
     ! Initialize gravity module
     if (hd_gravity) call gravity_init()
@@ -596,6 +597,7 @@ contains
   subroutine hd_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
+    use mod_viscosity, only: visc_get_flux_prim ! viscInDiv
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative w
@@ -652,6 +654,7 @@ contains
   !>     - address the source term for the dust
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
+    use mod_viscosity, only: visc_add_source_geom ! viscInDiv
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
@@ -716,6 +719,8 @@ contains
        end if
        }
     end select
+
+    if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
   end subroutine hd_add_source_geom
 
