@@ -48,6 +48,7 @@ which is translated to F90 by the VACPP preprocessor.
 * [Variable Names](varnames.md) How variable names are formed in the source
 files.
 * [VACPP](vacpp.md) Making and running the VACPP preprocessor itself.
+* [Compilation](compilation.md) Info on compilation, debugging and adding libraries
 
 # IO and data analysis {#io}
 
