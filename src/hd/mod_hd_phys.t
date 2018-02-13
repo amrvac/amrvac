@@ -636,6 +636,11 @@ contains
       call dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
     end if
 
+    ! Viscosity fluxes - viscInDiv
+    if (hd_viscosity) then
+      call visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
+    endif
+
   end subroutine hd_get_flux
 
   !> Add geometrical source terms to w
