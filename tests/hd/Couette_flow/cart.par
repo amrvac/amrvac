@@ -1,0 +1,68 @@
+!setup.pl -d=2
+
+ &filelist
+   base_filename    = 'output/cart_T_HR_'
+   autoconvert      = T
+   nwauxio          = 1
+   convert_type     = 'vtuBCCmpi'
+   saveprim         = F
+ /
+
+ &savelist
+   itsave(1,1)      = 0
+   itsave(1,2)      = 0
+   ditsave_log      = 100
+   !ditsave_dat       = 1 ! 1.d-1
+/
+
+ &stoplist
+   !it_max = 1
+   !time_max            = 2.d0
+/
+
+ &methodlist
+   time_integrator     = 'fourstep'
+   flux_scheme         = 13*'hll'
+   limiter    = 13*'koren'
+/
+
+ &boundlist
+  typeboundary_min1 = 3*'cont'
+  typeboundary_max1 = 3*'noinflow'
+  typeboundary_min2 = 3*'special'
+  typeboundary_max2 = 3*'special'
+  nghostcells = 3
+/
+
+ &meshlist
+   !refine_criterion   = 3
+   !refine_max_level   = 1
+   block_nx1        = 16
+   block_nx2        = 16
+   domain_nx1         = 32
+   domain_nx2         = 32
+   xprobmin1       = 0.0d0
+   xprobmax1       = 2.0d0
+   xprobmin2       = 0.0d0
+   xprobmax2       = 1.0d0
+ /
+
+ &hd_list
+  hd_energy = F
+  hd_viscosity = T
+ /
+
+&paramlist
+  courantpar = 0.8d0
+/
+
+&vc_list
+  !vc_mu = 0.2d0
+  viscInDiv = T
+/
+
+&my_list
+  Reynolds = 1.d1 ! 1.d-5
+  IC = 1
+/
+
