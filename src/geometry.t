@@ -67,7 +67,7 @@ end subroutine set_coordinate_system
 subroutine set_pole
 
   use mod_global_parameters
-  
+
   select case (typeaxial)
   case ("spherical") {^IFTHREED
     ! For spherical grid, check whether phi-direction is periodic
@@ -286,6 +286,38 @@ end if
 
 end subroutine gradient
 !=============================================================================
+subroutine grad(q,ixI^L,ix^L,idir,x,gradq)
+
+! Compute the true gradient of a scalar q within ixL in direction idir ie :
+!  - in cylindrical : d_/dr , (1/r)*d_/dth , d_/dz
+!  - in spherical   : d_/dr , (1/r)*d_/dth , (1/rsinth)*d_/dphi
+
+use mod_global_parameters
+
+integer :: ixI^L, ix^L, idir
+double precision :: q(ixI^S), gradq(ixI^S)
+double precision, intent(in) :: x(ixI^S,1:ndim)
+
+integer :: jx^L, hx^L
+
+!-----------------------------------------------------------------------------
+
+jx^L=ix^L+kr(idir,^D);
+hx^L=ix^L-kr(idir,^D);
+gradq(ix^S)=(q(jx^S)-q(hx^S))/(x(jx^S,idir)-x(hx^S,idir))
+select case (typeaxial)
+case('slab') ! nothing to do
+case('cylindrical')
+  if (idir==phi_) gradq(ix^S)=gradq(ix^S)/ x(ix^S,r_)
+case('spherical')
+  if (idir==2   ) gradq(ix^S)=gradq(ix^S)/ x(ix^S,r_)
+  if (idir==phi_) gradq(ix^S)=gradq(ix^S)/(x(ix^S,r_)*dsin(x(ix^S,2)))
+case default
+  call mpistop('Unknown geometry')
+end select
+
+end subroutine grad
+!=============================================================================
 subroutine gradient_s(q,ixI^L,ixO^L,idims,gradq)
 
 ! Calculate gradient of a scalar q within ixL in direction idir
@@ -319,8 +351,8 @@ if (slab) then
   ixB^L=ixA^L;
   {do ix^DB=0,1 \}
      if({ ix^D==0 .and. ^D==idims | .or.}) then
-       ixBmin^D=ixAmin^D-ix^D; 
-       ixBmax^D=ixAmax^D-ix^D; 
+       ixBmin^D=ixAmin^D-ix^D;
+       ixBmax^D=ixAmax^D-ix^D;
        qface(ixA^S)=qface(ixA^S)+qpoint(ixB^S)
      end if
   {end do\}
@@ -421,7 +453,7 @@ else
      ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
      jxC^L=ixC^L+kr(idims,^D);
      if(stretched_dim(idims)) then
-       ! linear interpolation at cell interface along stretched dimension 
+       ! linear interpolation at cell interface along stretched dimension
        qC(ixC^S)=block%surfaceC(ixC^S,idims)*(qvec(ixC^S,idims)+0.5d0*block%dx(ixC^S,idims)*&
         (qvec(jxC^S,idims)-qvec(ixC^S,idims))/(block%x(jxC^S,idims)-block%x(ixC^S,idims)))
      else
@@ -433,7 +465,7 @@ else
 end if
 
 
-end subroutine divvector 
+end subroutine divvector
 !=============================================================================
 subroutine curlvector(qvec,ixI^L,ixO^L,curlvec,idirmin,idirmin0,ndir0)
 
@@ -490,7 +522,7 @@ else
                 !! integral along 2nd dimension
                 hxO^L=ixO^L-kr(kdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                jxC^L=ixC^L+kr(kdir,^D);                
+                jxC^L=ixC^L+kr(kdir,^D);
                 ! qvec(2) at cell interface along 3rd dimension
                 tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                  (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
@@ -503,7 +535,7 @@ else
                 !! integral along 1st dimension
                 hxO^L=ixO^L-kr(kdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                jxC^L=ixC^L+kr(kdir,^D);                
+                jxC^L=ixC^L+kr(kdir,^D);
                 ! qvec(1) at cell interface along 3rd dimension
                 tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                  (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
@@ -524,7 +556,7 @@ else
                 !! integral along 1st dimension
                 hxO^L=ixO^L-kr(kdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                jxC^L=ixC^L+kr(kdir,^D);                
+                jxC^L=ixC^L+kr(kdir,^D);
                 ! qvec(1) at cell interface along 2nd dimension
                 tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                  (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
@@ -563,7 +595,7 @@ else
                 !! integral along 2nd dimension
                 hxO^L=ixO^L-kr(kdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                jxC^L=ixC^L+kr(kdir,^D);                
+                jxC^L=ixC^L+kr(kdir,^D);
                 ! qvec(2) at cell interface along 3rd dimension
                 if(stretched_dim(kdir)) then
                   tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
@@ -580,7 +612,7 @@ else
                 !! integral along 1st dimension
                 hxO^L=ixO^L-kr(kdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                jxC^L=ixC^L+kr(kdir,^D);                
+                jxC^L=ixC^L+kr(kdir,^D);
                 ! qvec(1) at cell interface along 3rd dimension
                 if(stretched_dim(kdir)) then
                   tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
@@ -611,7 +643,7 @@ else
                 !! integral along 1st dimension
                 hxO^L=ixO^L-kr(kdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                jxC^L=ixC^L+kr(kdir,^D);                
+                jxC^L=ixC^L+kr(kdir,^D);
                 ! qvec(1) at cell interface along 2nd dimension
                 if(stretched_dim(kdir)) then
                   tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
@@ -735,7 +767,7 @@ else
   enddo; enddo; enddo;
 end if
 
-end subroutine curlvector 
+end subroutine curlvector
 !=============================================================================
 subroutine divvectorS(qvec,ixI^L,ixO^L,divq)
 
@@ -816,7 +848,7 @@ integer,intent(in)           :: nshift
 
 double precision, intent(out) :: qMax(ixI^S),qMin(ixI^S)
 
-integer           :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j 
+integer           :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
 !-------------------------------------------------------------------------
 do ishift=1,nshift
  idims=1
@@ -1049,8 +1081,8 @@ if (slab) then
     ixB^L=ixA^L;
     {do ix^DB=0,1 \}
        if({ ix^D==0 .and. ^D==idims | .or.}) then
-         ixBmin^D=ixAmin^D-ix^D; 
-         ixBmax^D=ixAmax^D-ix^D; 
+         ixBmin^D=ixAmin^D-ix^D;
+         ixBmax^D=ixAmax^D-ix^D;
          qface(ixA^S,idims)=qface(ixA^S,idims)+qpoint(ixB^S,idims)
        end if
     {end do\}

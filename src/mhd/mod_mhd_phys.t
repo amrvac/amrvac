@@ -34,7 +34,7 @@ module mod_mhd_phys
   !> Whether divB cleaning sources are added splitting from fluid solver
   logical, public, protected              :: source_split_divb = .false.
 
-  !> GLM-MHD parameter: ratio of the diffusive and advective time scales for div b 
+  !> GLM-MHD parameter: ratio of the diffusive and advective time scales for div b
   !> taking values within [0, 1]
   double precision, public                :: mhd_glm_alpha = 0.5d0
 
@@ -372,9 +372,7 @@ contains
     end if
 
     ! Initialize viscosity module
-    if(mhd_viscosity) then
-      call viscosity_init()
-    end if
+    if (mhd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
 
     ! Initialize gravity module
     if(mhd_gravity) then
@@ -1763,7 +1761,7 @@ contains
          else
            dtnew=min(dtnew,&
                 dtdiffpar/(smalldouble+maxval(eta(ixO^S)/block%ds(ixO^S,idim)**2)))
-         end if 
+         end if
        end do
     end if
 

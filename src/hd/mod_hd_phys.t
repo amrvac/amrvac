@@ -640,7 +640,7 @@ contains
 
     ! Viscosity fluxes - viscInDiv
     if (hd_viscosity) then
-      call visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
+      call visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f, hd_energy)
     endif
 
   end subroutine hd_get_flux

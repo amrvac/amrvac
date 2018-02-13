@@ -258,12 +258,13 @@ contains
   ! Rq : we work with primitive w variables here
   ! Rq : ixO^L is already extended by 1 unit in the direction we work on
 
-  subroutine visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
+  subroutine visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f, energy)
   use mod_global_parameters
 
   integer, intent(in)             :: ixI^L, ixO^L, idim
   double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
   double precision, intent(inout) :: f(ixI^S, nwflux)
+  logical, intent(in) :: energy
   integer                         :: idir, i
   double precision :: v(ixI^S,1:ndir)
 
@@ -488,7 +489,7 @@ contains
       call divvector(v,ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
-      w(ixO^S,mr_)=w(ixO^S,mr_)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      w(ixO^S,1)=w(ixO^S,1)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       if (.not. angmomfix) then
         ! rth tensor term - - -
         vv(ixI^S)=v(ixI^S,1) ! v_r
@@ -498,7 +499,7 @@ contains
         call grad(vv,ixI^L,ixO^L,1,x,tmp1) ! d_r
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
         ! s[mphi]=+rth/radius
-        w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        w(ixO^S,2)=w(ixO^S,2)+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       endif
     case ("spherical")
       ! get the velocity components
@@ -514,7 +515,7 @@ contains
       call divvector(v,ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
-      w(ixO^S,mr_)=w(ixO^S,mr_)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      w(ixO^S,1)=w(ixO^S,1)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       ! phiphi tensor term - - -
       ! 1st the cross grad term
       vv(ixI^S)=v(ixI^S,3) ! v_ph
@@ -523,7 +524,7 @@ contains
       ! 2nd the divergence
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-phiphi/radius
-      w(ixO^S,mr_)=w(ixO^S,mr_)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      w(ixO^S,1)=w(ixO^S,1)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       ! s[mth]=-cotanth*phiphi/radius
       w(ixO^S,2  )=w(ixO^S,2  )-qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
       if (.not. angmomfix) then

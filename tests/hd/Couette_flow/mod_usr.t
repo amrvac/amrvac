@@ -73,7 +73,7 @@ contains
     ! with a polytropic assumption
     hd_adiab = one / Mach**two
 
-    if (hd_energy .or. hd_gamma/=one) call mpistop("This is not the classic Couette flow")
+    if (hd_energy) call mpistop("This is not the classic Couette flow")
 
   end subroutine initglobaldata_usr
 
