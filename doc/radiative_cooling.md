@@ -15,6 +15,7 @@ following:
 
    or in hd
 
+
     &hd_list
        hd_radiative_cooling=.true.
     /

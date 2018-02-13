@@ -5,10 +5,16 @@
 # Introduction {#par_intro}
 
 This document describes the usage of a `.par` parameter (input) file for MPI-AMRVAC.
-Note that the default parameter values are set in `amrvacio/mod_input_output.t`, look at
-subroutine `read_par_files` for details.
+Parameters are grouped in namelists according to their functionalities. The namelists
+have physics-independent class and physics-dependent class. The physics-independent class
+includes filelist, savelist, stoplist, methodlist, boundlist, meshlist, and paramlist. 
+The default parameter values in these namelists are set in `src/amrvacio/mod_input_output.t`,
+look at subroutine `read_par_files` for details. The physics-dependent class includes 
+rho_list or hd_list or mhd_list, rc_list, tc_list, dust_list, vc_list, grav_list, and mf_list.
+See <phys>_read_params subroutine in src/<phys>/mod_<phys>_phys.t and <func>_params_read subroutine
+in src/physics/mod_<func>.t for more details.
 
-# Namelists {#par_namelists}
+## An example for a namelist
 
 The parameter file consists of a sequence of namelists, which look like this:
 
@@ -37,6 +43,8 @@ choices are indicated by `|`. The first choice is the default value. Only the
 parameters different from default need to be set. Names that should be replaced
 are in capital letters. The `...` indicates optional extra elements for arrays,
 or extra words in strings.
+
+# Physics-independent Namelists {#par_pidnamelists}
 
 ## Filelist {#par_filelist}
 
@@ -273,17 +281,17 @@ without changing time, set `reset_it=T`.
     &methodlist
 
     time_integrator='twostep' | 'onestep' | 'threestep' | 'rk4' | 'fourstep' | 'ssprk43' | 'ssprk54'
-    flux_scheme=nlevelshi strings from: 'tvdlf','hll','hllc','hllcd','tvdmu','tvd','cd','fd','hll1','hllc1','hllcd1','tvd1','tvdlf1','tvdmu1','source','nul'
-    typepred1=nlevelshi strings from: 'default','hancock','tvdlf','hll','hllc','tvdmu','cd','fd','nul'
+    flux_scheme=nlevelshi strings from: 'hll'|'hllc'|'hlld','hllcd'|'tvdlf'|'tvdmu'|'tvd'|'cd'|'fd'|'source'|'nul'
+    typepred1=nlevelshi strings from: 'default'|'hancock'|'tvdlf'|'hll'|'hllc'|'tvdmu'|'cd'|'fd'|'nul'
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
     gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
-    typelimited='original' | 'previous' | 'predictor'
+    typelimited= 'previous' | 'predictor'
     loglimit= nw logicals, all false by default
     flatsh = F | T
     flatcd = F | T
     mcbeta= DOUBLE
 
-    typeentropy= 'nul','powell','harten','ratio','yee'
+    typeentropy= 'nul'|'powell'|'harten'|'ratio'|'yee'
     entropycoef= DOUBLE, DOUBLE, DOUBLE, ....
 
     typetvd= 'roe' | 'yee' | 'harten' | 'sweby'
@@ -306,37 +314,8 @@ without changing time, set `reset_it=T`.
     small_values_daverage=1
     check_small_values= F | T
 
-    typedivbfix= 'powel' | 'janhunen' | 'linde' | 'glm1' | 'glm2' | 'glm3'
-    divbwave= T | F
-    divbdiff= DOUBLE
-    typedivbdiff= 'all' | 'ind'
-
-    B0field= F | T
-    Bdip= DOUBLE
-    Bquad= DOUBLE
-    Boct= DOUBLE
-    Busr= DOUBLE
-    compactres= F | T
-
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
-
-    ncool= INTEGER
-    cmulti = INTEGER
-    coolmethod= ' '
-    coolcurve= ' '
-    Tfix= F | T
-
-    ptmass= DOUBLE
-    x1ptms= DOUBLE
-    x2ptms= DOUBLE
-    x3ptms= DOUBLE
-
-    dustmethod= 'Kwok','sticking','linear','none'
-    dustzero = T|F
-    dustspecies = 'graphite','silicate'
-    dusttemp = 'constant','ism','stellar'
-    small_densityd = DOUBLE
 
     /
 
@@ -511,39 +490,6 @@ in mod_usr.t to do global process. For example, you can do computations of
 non-local auxiliary variables (like the divergence of some vector fields, time integrals
 etc).
 
-### Magnetic field divergence fixes {#par_divbfix}
-
-Depending on `typedivbfix`, sources proportionate to the numerical monopole
-errors are added, in a source-split way, to momemtum, energy, and induction equation 
-(the 'powel' type), or to the induction equation alone (the 'janhunen' type). 
-The `divbwave` switch is effective for the Riemann type solvers for multi-D MHD only. 
-The default true value corresponds to Powell divergence wave which stabilizes the Riemann solver.
-
-Another source term strategy for monopole error control is to do parabolic
-cleaning, i.e. add source terms which diffuse the local error at the maximal
-rate still compliant with the CFL limit on the time step. This is activated
-when `divbdiff` is set to a positive number, which should be less than 2,
-and again comes in various flavors depending on which equations receive source
-terms. The choice where only the induction equation gets modified, i.e.
-`typedivbdiff='ind'` can be used.
-
-For MHD, we implemented the possibility to use a splitting strategy following
-Tanaka, where a time-invariant background magnetic field is handled
-exactly, so that one solves for perturbed magnetic field components instead.
-This field is taken into account when `B0field=T`, and the magnitude of this
-field is controlled using the variables `Bdip, Bquad, Boct, Busr`. The first
-three are pre-implemented formulae for a dipole, quadrupole and octupole field
-in spherical coordinates only (the parameters set the strength of the dipole,
-quadrupole and octupole field). This is coded up in the module _set_B0.t_.
-This same module calls in addition the _usr_set_B0_ subroutine when
-`Busr` is non-zero, where it then should be used to quantify an additional
-time-independent field. This latter can be used for cartesian or
-cylindrical coordinates as well. User can possibly prescibe analytic current in 
-_usr_set_J0_ subroutine to significantly increase accuracy.
-
-Resistive source terms for MHD can use a compact non-conservative formulation
-of resistive source terms, by setting compactres=T. The default
-`compactres=F` setting is normally preferred.
 
 The `typegrad` can be selected to switch from simple centered differencing
 on the cell center values, to limited reconstruction followed by differencing
@@ -909,3 +855,128 @@ according to the
 formula, where `step=1..slowsteps-1`. This reduction can help to avoid
 problems resulting from numerically unfavourable initial conditions, e.g. very
 sharp discontinuities. It is normally inactive with a default value -1.
+
+# Physics-dependent Namelists {#par_pdpnamelists}
+
+## rho list
+
+    &rho_list
+      rho_v= ndim doubles for advection velocity
+    /
+
+## nonlinear list
+
+   &nonlinear_list
+     nonlinear_flux_type= INTEGER
+     kdv_source_term= F | T
+   /
+
+## HD list
+
+    &hd_list
+      hd_energy= T | F
+      hd_n_tracer= INTEGER
+      hd_gamma= DOUBLE 
+      hd_adiab= DOUBLE
+      hd_dust= F | T
+      hd_thermal_conduction= F | T
+      hd_radiative_cooling= F | T
+      hd_gravity= F | T
+      hd_viscosity= F | T
+      hd_particles= F | T
+      He_abundance= DOUBLE from 0 to 1
+      SI_unit= F | T
+    /
+
+## MHD list
+
+    &mhd_list
+     mhd_energy= T | F
+     mhd_n_tracer= INTEGER
+     mhd_gamma= DOUBLE 
+     mhd_adiab= DOUBLE
+     mhd_eta= DOUBLE
+     mhd_eta_hyper= DOUBLE
+     mhd_etah= DOUBLE 
+     mhd_glm_alpha= DOUBLE
+     mhd_magnetofriction= F | T
+     mhd_thermal_conduction= F | T
+     mhd_radiative_cooling= F | T
+     mhd_Hall= F | T
+     mhd_gravity= F | T
+     mhd_viscosity= F | T
+     mhd_particles= F | T
+     mhd_4th_order= F | T
+     typedivbfix= 'linde'|'lindejanhunen'|'lindepowel'|'powel'|'glm1'|'glm2'|'glm3'|'none'
+     source_split_divb= F | T
+     boundary_divbfix= 2*ndim logicals, all false by default
+     divbdiff= DOUBLE between 0 and 2
+     typedivbdiff= 'all' | 'ind'
+     divbwave= T | F
+     B0field= F | T
+     B0field_forcefree= T | F
+     Bdip= DOUBLE
+     Bquad= DOUBLE
+     Boct= DOUBLE
+     Busr= DOUBLE
+     He_abundance= DOUBLE from 0 to 1
+     SI_unit= F | T
+    /
+
+### Magnetic field divergence fixes {#par_divbfix}
+
+Depending on `typedivbfix`, sources proportionate to the numerical monopole
+errors are added, in a source-split way, to momemtum, energy, and induction equation 
+(the 'powel' type), or to the induction equation alone (the 'janhunen' type). 
+The `divbwave` switch is effective for the Riemann type solvers for multi-D MHD only. 
+The default true value corresponds to Powell divergence wave which stabilizes the Riemann solver.
+
+Another source term strategy for monopole error control is choose 'linde' type
+ to do parabolic cleaning, i.e. add source terms which diffuse the local error at the maximal
+rate still compliant with the CFL limit on the time step. This is activated
+when `divbdiff` is set to a positive number, which should be less than 2,
+and again comes in various flavors depending on which equations receive source
+terms. The choice where only the induction equation gets modified, i.e.
+`typedivbdiff='ind'` can be used. Choose 'lindejanhunen' or 'lindepowel' to combine these 
+two cleaning methods.
+
+GLM-MHD mixed hyperbolic and parabolic dampening of the divB error
+using an additional scalar variable _Psi_ (need an addition of the name and
+boundary condition type in your par-file). The algorithm is described by
+Dedner et al. in _Journal of Computational Physics 175, 645-673 (2002)
+doi:10.1006/jcph.2001.6961_. The three versions differ in the source terms 
+taken along. Thus 'glm1' corresponds 
+to _Equation (24)_ of Dedner et al and 'glm2'
+corresponds to _Equation (38)_ of this paper. The option 'glm3' adds no
+additional sources to the MHD system. We recommend the option
+'glm1'. For example: in your par-file,
+
+    &mhd_list
+    typedivbfix='glm1'
+    ...
+
+in your `mod_usr.t`, add
+
+    if(mhd_glm) w(ixO^S,psi_)=0.d0
+
+in subroutine `usr_init_one_grid` and ( subroutine `usr_special_bc` if exists).
+Potential bug: with a pole boundary in cylindrical and spherical coordinates, GLM methods
+crash your run with negative pressure.
+
+### Magnetic field splitting strategy {#par_MFS}
+
+For MHD, we implemented the possibility to use a splitting strategy following
+Tanaka, where a time-invariant background magnetic field is handled
+exactly, so that one solves for perturbed magnetic field components instead.
+This field is taken into account when `B0field=T`, and the magnitude of this
+field is controlled using the variables `Bdip, Bquad, Boct, Busr`. The first
+three are pre-implemented formulae for a dipole, quadrupole and octupole field
+in spherical coordinates only (the parameters set the strength of the dipole,
+quadrupole and octupole field). This is coded up in the module _set_B0.t_.
+This same module calls in addition the _usr_set_B0_ subroutine when
+`Busr` is non-zero, where it then should be used to quantify an additional
+time-independent field. This latter can be used for cartesian or
+cylindrical coordinates as well. User can possibly prescibe analytic current in 
+_usr_set_J0_ subroutine to significantly increase accuracy. Choose 
+`B0field_forcefree=T` when your background magnetic field is forcefree for better
+efficiency and accuracy.
