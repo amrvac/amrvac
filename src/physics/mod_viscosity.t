@@ -360,7 +360,6 @@ contains
     if (idim==1) then
       ! rr (normal, simply 2 * dr vr)
       v(ixI^S)=w(ixI^S,mom(1)) ! v_r
-      print*, idim, mom(1), ndir
       call grad(v,ixI^L,ixO^L,1,x,tmp) ! d_r
       cross(ixI^S,1)=two*tmp(ixI^S)
       !rth
@@ -489,7 +488,7 @@ contains
       call divvector(v,ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
-      w(ixO^S,1)=w(ixO^S,1)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       if (.not. angmomfix) then
         ! rth tensor term - - -
         vv(ixI^S)=v(ixI^S,1) ! v_r
@@ -499,7 +498,7 @@ contains
         call grad(vv,ixI^L,ixO^L,1,x,tmp1) ! d_r
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
         ! s[mphi]=+rth/radius
-        w(ixO^S,2)=w(ixO^S,2)+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       endif
     case ("spherical")
       ! get the velocity components
@@ -515,7 +514,7 @@ contains
       call divvector(v,ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
-      w(ixO^S,1)=w(ixO^S,1)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       ! phiphi tensor term - - -
       ! 1st the cross grad term
       vv(ixI^S)=v(ixI^S,3) ! v_ph
@@ -524,9 +523,9 @@ contains
       ! 2nd the divergence
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-phiphi/radius
-      w(ixO^S,1)=w(ixO^S,1)-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       ! s[mth]=-cotanth*phiphi/radius
-      w(ixO^S,2  )=w(ixO^S,2  )-qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+      w(ixO^S,mom(2))=w(ixO^S,mom(2))-qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
       if (.not. angmomfix) then
         ! rth tensor term - - -
         vv(ixI^S)=v(ixI^S,1) ! v_r
@@ -535,7 +534,7 @@ contains
         call grad(vv,ixI^L,ixO^L,1,x,tmp1) ! d_r
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
         ! s[mth]=+rth/radius
-        w(ixO^S,2  )=w(ixO^S,2  )+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
         ! rphi tensor term - - -
         vv(ixI^S)=v(ixI^S,1) ! v_r
         call grad(vv,ixI^L,ixO^L,3,x,tmp) ! d_phi (rq : contains 1/rsin(th))
@@ -543,7 +542,7 @@ contains
         call grad(vv,ixI^L,ixO^L,1,x,tmp1) ! d_r
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
         ! s[mphi]=+rphi/radius
-        w(ixO^S,3  )=w(ixO^S,3  )+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
         ! phith tensor term - - -
         vv(ixI^S)=v(ixI^S,2) ! v_th
         call grad(vv,ixI^L,ixO^L,3,x,tmp) ! d_phi
@@ -551,7 +550,7 @@ contains
         call grad(vv,ixI^L,ixO^L,2,x,tmp1) ! d_th
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*dsin(x(ixO^S,2))
         ! s[mphi]=+cotanth*phith/radius
-        w(ixO^S,3  )=w(ixO^S,3  )+qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+        w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
       endif
     case default
       call mpistop("no viscous geometrical source term implemented for this geometry")
