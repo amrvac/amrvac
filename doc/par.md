@@ -490,7 +490,6 @@ in mod_usr.t to do global process. For example, you can do computations of
 non-local auxiliary variables (like the divergence of some vector fields, time integrals
 etc).
 
-
 The `typegrad` can be selected to switch from simple centered differencing
 on the cell center values, to limited reconstruction followed by differencing
 when computing gradients. They call either of _gradient_ ('central') or
@@ -498,22 +497,6 @@ _gradientS_ ('limited') subroutines that are themselves found in the
 _geometry.t_ module. Similarly, a switch for the divergence of a vector is the
 `typediv` switch. When the 'limited' variant is used, one must set the 
 corresponding gradient_limiter array to select a limiter (per level).
-
-### ncool, cmulti, coolmethod, coolcurve, Tfix
-
-These are only used in combination with a cooling module for HD and MHD, as
-developed by AJ van Marle, described in
-[mpiamrvac_radcool.md](mpiamrvac_radcool.md).
-
-### ptmass, x1ptms,x2ptms,x3ptms
-
-These are only used in combination with an optional point gravity module for
-HD and MHD, as developed by AJ van Marle, described in
-[mpiamrvac_pointgrav.md](mpiamrvac_pointgrav.md).
-
-### dustmethod, dustzero,dustspecies,dusttemp,small_densityd
-
-These are only used when one or more dustspecies is used for HD.
 
 ## Boundlist {#par_boundlist}
 
@@ -558,8 +541,6 @@ instance, in a two dimensional hydrodynamical simulation space
 (_ndir=3_) and an energy equation, if the
 bottom boundary is a plane of symmetry, the upper boundary is opened and the
 lateral boundaries are periodic, we would write :
-
-##
 
     &boundlist
      typeboundary_min1= 5*'periodic'
@@ -858,20 +839,21 @@ sharp discontinuities. It is normally inactive with a default value -1.
 
 # Physics-dependent Namelists {#par_pdpnamelists}
 
-## rho list
+## rho list {#par_rholist}
 
     &rho_list
       rho_v= ndim doubles for advection velocity
     /
 
-## nonlinear list
 
-   &nonlinear_list
-     nonlinear_flux_type= INTEGER
-     kdv_source_term= F | T
-   /
+## nonlinear list {#par_nonlinearlist}
 
-## HD list
+    &nonlinear_list
+      nonlinear_flux_type= INTEGER
+      kdv_source_term= F | T
+    /
+
+## HD list {#par_hdlist}
 
     &hd_list
       hd_energy= T | F
@@ -888,7 +870,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
       SI_unit= F | T
     /
 
-## MHD list
+## MHD list {#par_mhdlist}
 
     &mhd_list
      mhd_energy= T | F
