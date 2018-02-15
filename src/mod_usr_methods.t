@@ -39,6 +39,9 @@ module mod_usr_methods
   procedure(get_dt), pointer          :: usr_get_dt           => null()
   procedure(phys_gravity), pointer    :: usr_gravity          => null()
 
+  ! Usr defined space varying viscosity
+  procedure(phys_visco), pointer      :: usr_setvisco         => null()
+  
   ! Refinement related procedures
   procedure(refine_grid), pointer     :: usr_refine_grid      => null()
   procedure(var_for_errest), pointer  :: usr_var_for_errest   => null()
@@ -81,10 +84,10 @@ module mod_usr_methods
 
      !> internal boundary, user defined
      !
-     !> This subroutine can be used to artificially overwrite ALL conservative 
+     !> This subroutine can be used to artificially overwrite ALL conservative
      !> variables in a user-selected region of the mesh, and thereby act as
      !> an internal boundary region. It is called just before external (ghost cell)
-     !> boundary regions will be set by the BC selection. Here, you could e.g. 
+     !> boundary regions will be set by the BC selection. Here, you could e.g.
      !> want to introduce an extra variable (nwextra, to be distinguished from nwaux)
      !> which can be used to identify the internal boundary region location.
      !> Its effect should always be local as it acts on the mesh.
@@ -106,7 +109,7 @@ module mod_usr_methods
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine process_grid
 
-     !> This subroutine is called at the beginning of each time step 
+     !> This subroutine is called at the beginning of each time step
      !> by each processor. No communication is specified, so the user
      !> has to implement MPI routines if information has to be shared
      subroutine process_global(iit,qt)
@@ -134,7 +137,7 @@ module mod_usr_methods
      !> converted output file, for further analysis using tecplot, paraview, ....
      !> these auxiliary values need to be stored in the nw+1:nw+nwauxio slots
      !
-     !> the array normconv can be filled in the (nw+1:nw+nwauxio) range with 
+     !> the array normconv can be filled in the (nw+1:nw+nwauxio) range with
      !> corresponding normalization values (default value 1)
      subroutine aux_output(ixI^L,ixO^L,w,x,normconv)
        use mod_global_parameters
@@ -179,6 +182,15 @@ module mod_usr_methods
        double precision, intent(in)    :: wCT(ixI^S,1:nw)
        double precision, intent(out)   :: gravity_field(ixI^S,ndim)
      end subroutine phys_gravity
+
+     !>Calculation anormal viscosity depending on space
+     subroutine phys_visco(ixI^L,ixO^L,x,w,mu)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: x(ixI^S,1:ndim)
+       double precision, intent(in)    :: w(ixI^S,1:nw)
+       double precision, intent(out)   :: mu(ixI^S)
+     end subroutine phys_visco
 
      !> Set the "eta" array for resistive MHD based on w or the
      !> "current" variable which has components between idirmin and 3.

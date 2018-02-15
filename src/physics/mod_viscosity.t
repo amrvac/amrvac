@@ -55,11 +55,15 @@ contains
   !> Initialize the module
   subroutine viscosity_init(phys_wider_stencil,phys_req_diagonal)
     use mod_global_parameters
+    use mod_usr_methods, only: usr_setvisco
     integer, intent(inout) :: phys_wider_stencil
     logical, intent(inout) :: phys_req_diagonal
     integer :: nwx,idir
 
     call vc_params_read(par_files)
+
+    ! Sanity check : vc_mu never used if user computed viscosity
+    if (associated(usr_setvisco) .and. vc_mu/=one) call mpistop("Viscosity computed internally : no need for vc_mu")
 
     ! Determine flux variables
     nwx = 1                  ! rho (density)
@@ -85,6 +89,7 @@ contains
        energy,qsourcesplit,active)
   ! Add viscosity source to w within ixO
     use mod_global_parameters
+    use mod_usr_methods, only: usr_setvisco
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -159,7 +164,15 @@ contains
       enddo; enddo;
 
       ! Multiply lambda with viscosity coefficient and dt
-      lambda(ix^S,1:ndir,1:ndir)=lambda(ix^S,1:ndir,1:ndir)*vc_mu*qdt
+      if (.not. associated(usr_setvisco)) then
+        lambda(ix^S,1:ndir,1:ndir)=lambda(ix^S,1:ndir,1:ndir)*vc_mu*qdt
+      else
+        call usr_setvisco(ixI^L,ix^L,x,wCT,tmp2) ! output over ix
+        tmp2(ix^S)=tmp2(ix^S)*qdt
+        do idim=1,ndim; do idir=1,ndir
+          lambda(ix^S,idim,idir)=lambda(ix^S,idim,idir)*tmp2(ix^S)
+        enddo; enddo;
+      endif
 
       !calculate div v term through trace action separately
       ! rq : it is safe to use the trace rather than compute the divergence
@@ -229,6 +242,7 @@ contains
   ! Check diffusion time limit for dt < dtdiffpar * dx**2 / (mu/rho)
 
   use mod_global_parameters
+  use mod_usr_methods, only: usr_setvisco
 
   integer, intent(in) :: ixI^L, ixO^L
   double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
@@ -240,12 +254,17 @@ contains
   integer:: idim
 
   ! Calculate the kinematic viscosity tmp=mu/rho
+  if (.not. associated(usr_setvisco)) then
+    tmp(ixO^S)=vc_mu/w(ixO^S,rho_)
+  else
+    call usr_setvisco(ixI^L,ixO^L,x,w,tmp) ! output over ixO to get it only in simulation space here
+    tmp(ixO^S)=tmp(ixO^S)/w(ixO^S,rho_)
+  endif
 
-  tmp(ixO^S)=vc_mu/w(ixO^S,rho_)
-
-  ^D&dxinv2(^D)=one/dx^D**2;
+  ! ^D&dxinv2(^D)=one/dx^D**2;
   do idim=1,ndim
-     dtdiff_visc=dtdiffpar/maxval(tmp(ixO^S)*dxinv2(idim))
+     dtdiff_visc=dtdiffpar*minval(block%dx(ixO^S,idim)**two/tmp(ixO^S),MASK=tmp(ixO^S)>smalldouble)
+     ! dtdiff_visc=dtdiffpar/maxval(tmp(ixO^S)*dxinv2(idim))
      ! limit the time step
      dtnew=min(dtnew,dtdiff_visc)
   enddo
@@ -260,6 +279,7 @@ contains
 
   subroutine visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f, energy)
   use mod_global_parameters
+  use mod_usr_methods, only: usr_setvisco
 
   integer, intent(in)             :: ixI^L, ixO^L, idim
   double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
@@ -270,7 +290,7 @@ contains
 
   double precision                :: divergence(ixI^S)
 
-  double precision:: lambda(ixI^S,ndir) !, tmp(ixI^S) !gradV(ixI^S,ndir,ndir)
+  double precision:: lambda(ixI^S,ndir), mu(ixI^S) !gradV(ixI^S,ndir,ndir)
 
   if (.not. viscInDiv) return
 
@@ -283,10 +303,18 @@ contains
   lambda(ixO^S,idim) = lambda(ixO^S,idim) - (2.d0/3.d0) * divergence(ixO^S)
 
   ! Compute the idim-th row of the viscous stress tensor
-  do idir = 1, ndir
-    f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) - vc_mu * lambda(ixO^S,idir)
-    if (energy) f(ixO^S, e_) = f(ixO^S, e_) - vc_mu * lambda(ixO^S,idir) * v(ixI^S,idir)
-  enddo
+  if (.not. associated(usr_setvisco)) then
+    do idir = 1, ndir
+      f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) - vc_mu * lambda(ixO^S,idir)
+      if (energy) f(ixO^S, e_) = f(ixO^S, e_) - vc_mu * lambda(ixO^S,idir) * v(ixI^S,idir)
+    enddo
+  else
+    call usr_setvisco(ixI^L,ixO^L,x,w,mu) ! output over ixO
+    do idir = 1, ndir
+      f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) - mu(ixO^S) * lambda(ixO^S,idir)
+      if (energy) f(ixO^S, e_) = f(ixO^S, e_) - mu(ixO^S) * lambda(ixO^S,idir) * v(ixI^S,idir)
+    enddo
+  endif
 
   end subroutine visc_get_flux_prim
 
@@ -459,6 +487,8 @@ contains
 
   subroutine visc_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
+    use mod_usr_methods, only: usr_setvisco
+
     ! w and wCT conservative variables here
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
@@ -467,7 +497,7 @@ contains
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
     double precision :: v(ixI^S,1:ndir), vv(ixI^S), divergence(ixI^S)
-    double precision :: tmp(ixI^S),tmp1(ixI^S)
+    double precision :: tmp(ixI^S),tmp1(ixI^S), mu(ixI^S)
     integer          :: i
 
     if (.not. viscInDiv) return
@@ -475,6 +505,10 @@ contains
     select case (typeaxial)
     case ("slab") ! do nothing
     case ("cylindrical")
+      ! Preliminary computation of spatial dependent viscosity if required
+      if (associated(usr_setvisco)) then
+        call usr_setvisco(ixI^L,ixO^L,x,wCT,mu) ! output over ixO
+      endif
       ! get the velocity components
       do i=1,ndir
        v(ixI^S,i)=wCT(ixI^S,mom(i))/wCT(ixI^S,rho_)
@@ -488,7 +522,11 @@ contains
       call divvector(v,ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
-      w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      if (.not. associated(usr_setvisco)) then
+        w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      else
+        w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*mu(ixO^S)*tmp(ixO^S)/x(ixO^S,1)
+      endif
       if (.not. angmomfix) then
         ! rth tensor term - - -
         vv(ixI^S)=v(ixI^S,1) ! v_r
@@ -498,9 +536,17 @@ contains
         call grad(vv,ixI^L,ixO^L,1,x,tmp1) ! d_r
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
         ! s[mphi]=+rth/radius
-        w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        if (.not. associated(usr_setvisco)) then
+          w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        else
+          w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*mu(ixO^S)*tmp(ixO^S)/x(ixO^S,1)
+        endif
       endif
     case ("spherical")
+      ! Preliminary computation of spatial dependent viscosity if required
+      if (associated(usr_setvisco)) then
+        call usr_setvisco(ixI^L,ixO^L,x,wCT,mu) ! output over ixO
+      endif
       ! get the velocity components
       do i=1,ndir
        v(ixI^S,i)=wCT(ixI^S,mom(i))/wCT(ixI^S,rho_)
@@ -514,7 +560,11 @@ contains
       call divvector(v,ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
-      w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      if (.not. associated(usr_setvisco)) then
+        w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      else
+        w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*mu(ixO^S)*tmp(ixO^S)/x(ixO^S,1)
+      endif
       ! phiphi tensor term - - -
       ! 1st the cross grad term
       vv(ixI^S)=v(ixI^S,3) ! v_ph
@@ -523,9 +573,17 @@ contains
       ! 2nd the divergence
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-phiphi/radius
-      w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      if (.not. associated(usr_setvisco)) then
+        w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+      else
+        w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*mu(ixO^S)*tmp(ixO^S)/x(ixO^S,1)
+      endif
       ! s[mth]=-cotanth*phiphi/radius
-      w(ixO^S,mom(2))=w(ixO^S,mom(2))-qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+      if (.not. associated(usr_setvisco)) then
+        w(ixO^S,mom(2))=w(ixO^S,mom(2))-qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+      else
+        w(ixO^S,mom(2))=w(ixO^S,mom(2))-qdt*mu(ixO^S)*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+      endif
       if (.not. angmomfix) then
         ! rth tensor term - - -
         vv(ixI^S)=v(ixI^S,1) ! v_r
@@ -534,7 +592,11 @@ contains
         call grad(vv,ixI^L,ixO^L,1,x,tmp1) ! d_r
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
         ! s[mth]=+rth/radius
-        w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        if (.not. associated(usr_setvisco)) then
+          w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        else
+          w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*mu(ixO^S)*tmp(ixO^S)/x(ixO^S,1)
+        endif
         ! rphi tensor term - - -
         vv(ixI^S)=v(ixI^S,1) ! v_r
         call grad(vv,ixI^L,ixO^L,3,x,tmp) ! d_phi (rq : contains 1/rsin(th))
@@ -542,7 +604,11 @@ contains
         call grad(vv,ixI^L,ixO^L,1,x,tmp1) ! d_r
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
         ! s[mphi]=+rphi/radius
-        w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        if (.not. associated(usr_setvisco)) then
+          w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
+        else
+          w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*mu(ixO^S)*tmp(ixO^S)/x(ixO^S,1)
+        endif
         ! phith tensor term - - -
         vv(ixI^S)=v(ixI^S,2) ! v_th
         call grad(vv,ixI^L,ixO^L,3,x,tmp) ! d_phi
@@ -550,7 +616,11 @@ contains
         call grad(vv,ixI^L,ixO^L,2,x,tmp1) ! d_th
         tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*dsin(x(ixO^S,2))
         ! s[mphi]=+cotanth*phith/radius
-        w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+        if (.not. associated(usr_setvisco)) then
+          w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+        else
+          w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*mu(ixO^S)*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
+        endif
       endif
     case default
       call mpistop("no viscous geometrical source term implemented for this geometry")
