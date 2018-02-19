@@ -141,7 +141,7 @@ contains
           if     (idim==r_  .and. (idir==2 .or. idir==phi_)) then
             tmp(ixI^S) = tmp(ixI^S)/x(ixI^S,1)
           elseif (idim==2  .and. idir==phi_) then
-            tmp2(ixI^S)=tmp2(ixI^S)/dsin(x(ixI^S,2))
+            tmp(ixI^S)=tmp(ixI^S)/dsin(x(ixI^S,2))
           endif
         endif
         call grad(tmp,ixI^L,ix^L,idim,x,tmp2)
@@ -162,6 +162,9 @@ contains
         lambda(ix^S,idim,idir)= lambda(ix^S,idim,idir)+ tmp2(ix^S)
         lambda(ix^S,idir,idim)= lambda(ix^S,idir,idim)+ tmp2(ix^S)
       enddo; enddo;
+      ! Corrections by Heloise Meheut for ndim /= ndir
+      if (typeaxial=='cylindrical' .and. phi_>ndim .and. ndim/=ndir) lambda(ix^S,phi_,phi_) = 2.d0*v(ix^S,r_)/x(ix^S,1)
+      if (typeaxial=='spherical'   .and. phi_==3   .and. ndim/=ndir) lambda(ix^S,phi_,phi_) = 2.d0*(v(ix^S,r_)/x(ix^S,1)+v(ix^S,2)/(x(ix^S,1)*dsin(x(ix^S,2))))
 
       ! Multiply lambda with viscosity coefficient and dt
       if (.not. associated(usr_setvisco)) then
@@ -169,7 +172,7 @@ contains
       else
         call usr_setvisco(ixI^L,ix^L,x,wCT,tmp2) ! output over ix
         tmp2(ix^S)=tmp2(ix^S)*qdt
-        do idim=1,ndim; do idir=1,ndir
+        do idim=1,ndir; do idir=1,ndir
           lambda(ix^S,idim,idir)=lambda(ix^S,idim,idir)*tmp2(ix^S)
         enddo; enddo;
       endif
