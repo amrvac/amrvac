@@ -889,7 +889,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_viscosity= F | T
      mhd_particles= F | T
      mhd_4th_order= F | T
-     typedivbfix= 'linde'|'lindejanhunen'|'lindepowel'|'powel'|'glm1'|'glm2'|'glm3'|'none'
+     typedivbfix= 'linde'|'powel'|'glm1'|'glm2'|'glm3'|'lindejanhunen'|'lindepowel'|'lindeglm'|'none'
      source_split_divb= F | T
      boundary_divbfix= 2*ndim logicals, all false by default
      divbdiff= DOUBLE between 0 and 2
@@ -919,8 +919,7 @@ rate still compliant with the CFL limit on the time step. This is activated
 when `divbdiff` is set to a positive number, which should be less than 2,
 and again comes in various flavors depending on which equations receive source
 terms. The choice where only the induction equation gets modified, i.e.
-`typedivbdiff='ind'` can be used. Choose 'lindejanhunen' or 'lindepowel' to combine these 
-two cleaning methods.
+`typedivbdiff='ind'` can be used. 
 
 GLM-MHD mixed hyperbolic and parabolic dampening of the divB error
 using an additional scalar variable _Psi_ (need an addition of the name and
@@ -944,6 +943,8 @@ in your `mod_usr.t`, add
 in subroutine `usr_init_one_grid` and ( subroutine `usr_special_bc` if exists).
 Potential bug: with a pole boundary in cylindrical and spherical coordinates, GLM methods
 crash your run with negative pressure.
+
+Choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb cleaning.
 
 ### Magnetic field splitting strategy {#par_MFS}
 

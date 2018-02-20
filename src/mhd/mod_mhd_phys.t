@@ -277,6 +277,10 @@ contains
       type_divb=7
     case ('lindepowel')
       type_divb=8
+    case ('lindeglm')
+      mhd_glm=.true.
+      need_global_cmax=.true.
+      type_divb=9
     case default
       call mpistop('Unknown divB fix')
     end select
@@ -1034,6 +1038,10 @@ contains
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
         call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+      case (9)
+        active = .true.
+        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
       case default
         call mpistop('Unknown divB fix')
       end select
