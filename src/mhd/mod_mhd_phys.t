@@ -1076,6 +1076,10 @@ contains
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (9)
+        active = .true.
+        call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
       case default
         call mpistop('Unknown divB fix')
       end select
