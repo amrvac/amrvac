@@ -4,7 +4,7 @@
 
         level_io=1
  &filelist
-        base_filename='ripple'
+        base_filename='rippleb'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuCCmpi'
@@ -49,8 +49,8 @@
         w_refine_weight(2)=0.2d0
         w_refine_weight(3)=0.2d0
         w_refine_weight(4)=0.2d0
-        block_nx1=16
-        block_nx2=16
+        block_nx1=8
+        block_nx2=8
         domain_nx1=64
         domain_nx2=64
         iprob=1
