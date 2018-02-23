@@ -94,9 +94,8 @@ contains
     else
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     endif
-    ! output divB1
-    bvec(ixI^S,:)=w(ixI^S,mag(:))
-    call divvector_s(bvec,ixI^L,ixO^L,tmp)
+    ! output divB
+    call get_normalized_divb(w,ixI^L,ixO^L,tmp)
     w(ixO^S,nw+3)=tmp(ixO^S)
     
   end subroutine specialvar_output
