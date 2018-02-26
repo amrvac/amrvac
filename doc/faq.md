@@ -82,13 +82,13 @@ If you want to change the data during the simulation, in principle you do not ne
 
 2. usr_process_global
 
-or even immeditaely after the advance:
+or immediately after the advance step:
 
 3. usr_process_adv_grid
 
 4. usr_process_adv_global
 
-or if it just at restart, then use
+or just once, at restart (and after reading in a .dat file), then use
 
 5. usr_before_main_loop
 
