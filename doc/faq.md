@@ -72,3 +72,28 @@ with `my_parameter_1` and `my_parameter_2` to be defined at the very beginning o
 	my_parameter_2    = 1.d0
 /
 ```
+## I'm looking for a way to translate some .blk files (using `convert_type= 'onegrid'`) back into standard output `.dat` that I can use to restart a simulation. My goal is to be able to change my data mid-simulation through another program.
+
+The idea of the `onegrid` option for conversion is that a hierarchical block AMR grid (as stored in the `.dat` files) can be saved to an equivalent uniform grid representation at a user-chosen level (combine `level_io` with `onegrid`). You then can use any software you like to handle uniform grid data. Converting back to the .dat format is then impossible. However, you can write a user-routine to read in the uniform data, and then use it to restart a similar uniform-grid (no AMR, just domain decomposed) simulation. The `.dat` files are all that is needed to do restarts.
+
+If you want to change the data during the simulation, in principle you do not need another program to do that. For that purpose, we provide the generic subroutines
+
+1. usr_process_grid
+
+2. usr_process_global
+
+or even immeditaely after the advance:
+
+3. usr_process_adv_grid
+
+4. usr_process_adv_global
+
+or if it just at restart, then use
+
+5. usr_before_main_loop
+
+which allows you to modify things during runtime (of course, it should make physical sense). See their interface in _mod_usr_methods.t_.
+
+## Is there a way to save (and visualize) the data in the boundary ghost cells?
+
+The logical variable `save_physical_boundary` can be set to true, which enforces the `.dat` files to also contain the ghost cell information for physical boundaries (i.e., those beyond the left or right edge of the domain, in each direction). You can use this file (like any other `.dat` file, to restart, and this helps if you want to use saved boundary info in your boundary value handling. However, all our present conversion options (like e.g. to `.vtu` files) do not store this extra info, and you can therefore not use them for visualizing the ghost cell info. For that, you will need to handle the `.dat` files directly, e.g. using python.
