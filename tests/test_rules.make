@@ -25,7 +25,7 @@ NUM_PROCS ?= 4
 all: $(TESTS)
 
 clean:
-	$(RM) $(TESTS) amrvac makefile
+	$(RM) $(TESTS) amrvac makefile *.vtu *.dat *.log *.f *.mod
 
 # Include architecture and compilation rules for the compare_log utility
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
