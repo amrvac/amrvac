@@ -27,7 +27,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: rbs,xc^D,xcc^D
+    double precision :: rbs, xc^D, xcc^D
     double precision :: xcart(ixI^S,1:ndim)
     logical, save:: first=.true.
 
