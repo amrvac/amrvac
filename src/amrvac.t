@@ -237,11 +237,11 @@ contains
           if(fixcount<ditregrid) then
              fixcount=fixcount+1
           else
-             if (refine_max_level>1 .and. .not.(fixgrid(0))) call resettree
+             if (refine_max_level>1 .and. .not.(fixgrid())) call resettree
              fixcount=1
           endif
        else
-          if (refine_max_level>1 .and. .not.(fixgrid(0))) call resettree
+          if (refine_max_level>1 .and. .not.(fixgrid())) call resettree
        endif
        timegr_tot=timegr_tot+(MPI_WTIME()-timegr0)
 
@@ -333,10 +333,8 @@ contains
 
   !> Return true if the AMR grid should not be adapted any more. This is
   !> controlled by tfixgrid or itfixgrid. Other conditions may be included.
-  !> @todo Fix dummy argument?
-  logical function fixgrid(dummy)
+  logical function fixgrid()
     use mod_global_parameters
-    integer :: dummy              !< Unused dummy argument
 
     fixgrid= (global_time>=tfixgrid .or. it>=itfixgrid)
   end function fixgrid
