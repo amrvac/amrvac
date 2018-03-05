@@ -819,6 +819,7 @@ else
           case default
             call mpistop("Sorry, typeaxial unknown in curlvector")
         end select
+        if(idir<idirmin)idirmin=idir
       endif
     enddo; enddo; enddo;
   end if
