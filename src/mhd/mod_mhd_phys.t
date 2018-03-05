@@ -110,6 +110,9 @@ module mod_mhd_phys
   !> To control divB=0 fix for boundary
   logical, public, protected :: boundary_divbfix(2*^ND)=.true.
 
+  !> To skip * layer of ghost cells during divB=0 fix for boundary
+  integer, public, protected :: boundary_divbfix_skip(2*^ND)=0
+
   !> B0 field is force-free
   logical, public, protected :: B0field_forcefree=.true.
 
@@ -141,7 +144,8 @@ contains
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, compactres, divbwave, He_abundance, SI_unit, B0field,&
-      B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles, boundary_divbfix
+      B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
+      boundary_divbfix, boundary_divbfix_skip
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -2097,16 +2101,11 @@ contains
                       ixOmax^DD=ixGmin^D-1+nghostcells^D%ixOmax^DD=ixGmax^DD;
                    end if \}
                 end select
-                ! MF nonlinear force-free B field extrapolation needs normal B
-                ! to be fixed value (from vector magnetograms) in the first
-                ! ghost cells
-                if(mhd_magnetofriction) then
-                  if(slab .or. slab_stretched) then
-                    if(idim==^ND.and.iside==1) ixOmax^ND=nghostcells-1
-                  else
-                    if(idim==1.and.iside==1) ixOmax1=nghostcells-1
-                  end if
-                end if
+                ! MF nonlinear force-free B field extrapolation and data driven
+                ! require normal B of the first ghost cell layer to be untouched by
+                ! fixdivB=0 process, set boundary_divbfix_skip(iB)=1 in par file
+                if(iside==1) ixOmax^D=ixOmax^D-boundary_divbfix_skip(2*^D-1);
+                if(iside==2) ixOmin^D=ixOmin^D+boundary_divbfix_skip(2*^D);
                 call fixdivB_boundary(ixG^L,ixO^L,pw(igrid)%wb,pw(igrid)%x,iB)
               end if
            end do
