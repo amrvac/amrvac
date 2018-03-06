@@ -2089,23 +2089,21 @@ contains
               iB=(idim-1)*2+iside
               if(.not.boundary_divbfix(iB)) cycle
               if(any(typeboundary(:,iB)=="special")) then
+                ! MF nonlinear force-free B field extrapolation and data driven
+                ! require normal B of the first ghost cell layer to be untouched by
+                ! fixdivB=0 process, set boundary_divbfix_skip(iB)=1 in par file
                 select case (idim)
                 {case (^D)
                    if (iside==2) then
                       ! maximal boundary
-                      ixOmin^DD=ixGmax^D+1-nghostcells^D%ixOmin^DD=ixGmin^DD;
+                      ixOmin^DD=ixGmax^D+1-nghostcells+boundary_divbfix_skip(2*^D)^D%ixOmin^DD=ixGmin^DD;
                       ixOmax^DD=ixGmax^DD;
                    else
                       ! minimal boundary
                       ixOmin^DD=ixGmin^DD;
-                      ixOmax^DD=ixGmin^D-1+nghostcells^D%ixOmax^DD=ixGmax^DD;
+                      ixOmax^DD=ixGmin^D-1+nghostcells-boundary_divbfix_skip(2*^D-1)^D%ixOmax^DD=ixGmax^DD;
                    end if \}
                 end select
-                ! MF nonlinear force-free B field extrapolation and data driven
-                ! require normal B of the first ghost cell layer to be untouched by
-                ! fixdivB=0 process, set boundary_divbfix_skip(iB)=1 in par file
-                if(iside==1) ixOmax^D=ixOmax^D-boundary_divbfix_skip(2*^D-1);
-                if(iside==2) ixOmin^D=ixOmin^D+boundary_divbfix_skip(2*^D);
                 call fixdivB_boundary(ixG^L,ixO^L,pw(igrid)%wb,pw(igrid)%x,iB)
               end if
            end do
