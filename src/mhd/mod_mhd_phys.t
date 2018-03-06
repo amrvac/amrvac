@@ -119,6 +119,18 @@ module mod_mhd_phys
   !> gamma minus one and its inverse
   double precision :: gamma_1, inv_gamma_1
 
+  ! DivB cleaning methods
+  integer, parameter :: divb_none          = 0
+  integer, parameter :: divb_glm1          = 1
+  integer, parameter :: divb_glm2          = 2
+  integer, parameter :: divb_glm3          = 3
+  integer, parameter :: divb_powel         = 4
+  integer, parameter :: divb_janhunen      = 5
+  integer, parameter :: divb_linde         = 6
+  integer, parameter :: divb_lindejanhunen = 7
+  integer, parameter :: divb_lindepowel    = 8
+  integer, parameter :: divb_lindeglm      = 9
+
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -258,33 +270,33 @@ contains
     if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
     case ('none')
-      type_divb=0
+      type_divb = divb_none
     case ('glm1')
-      mhd_glm=.true.
-      need_global_cmax=.true.
-      type_divb=1
+       mhd_glm          = .true.
+       need_global_cmax = .true.
+       type_divb        = divb_glm1
     case ('glm2')
-      mhd_glm=.true.
-      need_global_cmax=.true.
-      type_divb=2
+       mhd_glm          = .true.
+       need_global_cmax = .true.
+       type_divb        = divb_glm2
     case ('glm3')
-      mhd_glm=.true.
-      need_global_cmax=.true.
-      type_divb=3
+       mhd_glm          = .true.
+       need_global_cmax = .true.
+       type_divb        = divb_glm3
     case ('powel', 'powell')
-      type_divb=4
+       type_divb = divb_powel
     case ('janhunen')
-      type_divb=5
+       type_divb = divb_janhunen
     case ('linde')
-      type_divb=6
+       type_divb = divb_linde
     case ('lindejanhunen')
-      type_divb=7
+       type_divb = divb_lindejanhunen
     case ('lindepowel')
-      type_divb=8
+       type_divb = divb_lindepowel
     case ('lindeglm')
-      mhd_glm=.true.
-      need_global_cmax=.true.
-      type_divb=9
+       mhd_glm          = .true.
+       need_global_cmax = .true.
+       type_divb        = divb_lindeglm
     case default
       call mpistop('Unknown divB fix')
     end select
@@ -356,7 +368,7 @@ contains
     phys_handle_small_values => mhd_handle_small_values
 
     ! Whether diagonal ghost cells are required for the physics
-    if(type_divb <6) phys_req_diagonal = .false.
+    if(type_divb < divb_linde) phys_req_diagonal = .false.
 
     ! derive units from basic units
     call mhd_physical_units()
@@ -1014,35 +1026,35 @@ contains
     if(.not.source_split_divb .and. .not.qsourcesplit .and. istep==nstep) then
       ! Sources related to div B
       select case (type_divb)
-      case (0)
+      case (divb_none)
         ! Do nothing
-      case (1)
+      case (divb_glm1)
         active = .true.
         call add_source_glm1(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (2)
+      case (divb_glm2)
         active = .true.
         call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (3)
+      case (divb_glm3)
         active = .true.
         call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (4)
+      case (divb_powel)
         active = .true.
         call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (5)
+      case (divb_janhunen)
         active = .true.
         call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (6)
+      case (divb_linde)
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (7)
+      case (divb_lindejanhunen)
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
         call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (8)
+      case (divb_lindepowel)
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
         call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (9)
+      case (divb_lindeglm)
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
         call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
@@ -1052,35 +1064,35 @@ contains
     else if(source_split_divb .and. qsourcesplit) then
       ! Sources related to div B
       select case (type_divb)
-      case (0)
+      case (divb_none)
         ! Do nothing
-      case (1)
+      case (divb_glm1)
         active = .true.
         call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (2)
+      case (divb_glm2)
         active = .true.
         call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (3)
+      case (divb_glm3)
         active = .true.
         call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (4)
+      case (divb_powel)
         active = .true.
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (5)
+      case (divb_janhunen)
         active = .true.
         call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (6)
+      case (divb_linde)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (7)
+      case (divb_lindejanhunen)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (8)
+      case (divb_lindepowel)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (9)
+      case (divb_lindeglm)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
