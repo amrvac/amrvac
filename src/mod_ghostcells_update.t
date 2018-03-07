@@ -50,6 +50,7 @@ contains
 
   subroutine init_bc()
     use mod_global_parameters 
+    use mod_physics, only: phys_req_diagonal
 
     integer :: nghostcellsCo, interpolation_order
     integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, iib^D
@@ -149,9 +150,16 @@ contains
     ixS_p_max^D(:, 2)=ixMmax^D+(interpolation_order-1)
     ixS_p_max^D(:, 3)=ixMmax^D+(interpolation_order-1)
 
+    if(.not.phys_req_diagonal) then
+      ! exclude ghost-cell region when diagonal cells are unknown
+      ixS_p_min^D(:, 0)=ixMmin^D
+      ixS_p_max^D(:, 3)=ixMmax^D
+      ixS_p_max^D(:, 1)=ixMmin^D-1+nxCo^D+(interpolation_order-1)
+      ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-(interpolation_order-1)
+    end if
+
+    ! extend index range to physical boundary
     ixS_p_min^D(-1,1)=1
-    ixS_p_max^D(-1,1)=ixMmin^D-1+nxCo^D+nghostcellsCo+(interpolation_order-1)
-    ixS_p_min^D( 1,2)=ixMmin^D+nxCo^D-nghostcellsCo-(interpolation_order-1)
     ixS_p_max^D( 1,2)=ixGmax^D
 
     ixR_p_min^D(:, 0)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
@@ -163,9 +171,15 @@ contains
     ixR_p_max^D(:, 2)=ixCoMmax^D+(interpolation_order-1)
     ixR_p_max^D(:, 3)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
 
+    if(.not.phys_req_diagonal) then
+      ixR_p_max^D(:, 0)=nghostcells
+      ixR_p_min^D(:, 3)=ixCoMmax^D+1
+      ixR_p_max^D(:, 1)=ixCoMmax^D+(interpolation_order-1)
+      ixR_p_min^D(:, 2)=ixCoMmin^D-(interpolation_order-1)
+    end if
+
+    ! extend index range to physical boundary
     ixR_p_min^D(-1,1)=1
-    ixR_p_max^D(-1,1)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
-    ixR_p_min^D( 1,2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
     ixR_p_max^D( 1,2)=ixCoGmax^D
     \}
 
