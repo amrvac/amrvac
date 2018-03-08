@@ -173,7 +173,7 @@ contains
         ! Spitzer thermal conductivity with cgs units
         tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
         ! thermal conductivity perpendicular to magnetic field
-        tc_k_perp=4.d-26*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*tc_k_para
+        tc_k_perp=4.d-10*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*tc_k_para
       end if
     else
       tc_constant=.true.
