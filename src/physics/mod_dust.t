@@ -51,7 +51,7 @@ module mod_dust
   !> This can be turned off for testing purposes
   logical :: dust_backreaction = .true.
 
-  !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear',or 'none'.
+  !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear', 'Stokes' or 'none'.
   character(len=std_len) :: dust_method = 'Kwok'
 
   !> Can be 'graphite' or 'silicate', affects the dust temperature
@@ -148,13 +148,13 @@ contains
        end if
     end if
 
-    if (any(dust_size < 0.0d0) & dust_method \= 'Stokes') &
+    if (any(dust_size < 0.0d0) .and. dust_method /= 'Stokes') &
          call mpistop("Dust error: any(dust_size < 0) or not set")
 
-    if (any(dust_density < 0.0d0) & dust_method \= 'Stokes') &
+    if (any(dust_density < 0.0d0) .and. dust_method /= 'Stokes') &
          call mpistop("Dust error: any(dust_density < 0) or not set")
 
-    if (any(dust_stokes < 0.d0) & dust_method = 'Stokes') &
+    if (any(dust_stokes < 0.d0) .and. dust_method == 'Stokes') &
          call mpistop("Dust error: any(dust_stokes < 0) or not set")
   end subroutine dust_check_params
 
@@ -640,7 +640,7 @@ contains
 
       do n = 1, dust_n_species
         where(w(ixO^S, dust_rho(n))>dust_min_rho)
-          tstop(ixO^S)  = dust_stoker(n)*w(ixO^S, gas_rho_)/ &
+          tstop(ixO^S)  = dust_stokes(n)*w(ixO^S, gas_rho_)/ &
                (w(ixO^S, dust_rho(n)) + w(ixO^S, gas_rho_))
         else where
           tstop(ixO^S) = bigdouble
