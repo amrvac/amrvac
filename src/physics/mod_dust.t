@@ -26,6 +26,9 @@ module mod_dust
   !> Size of each dust species
   double precision, allocatable, public :: dust_size(:)
 
+  !> Stokes number of each dust species (for dust_method = Stokes)
+  double precision, allocatable, public :: dust_stokes(:)
+
   !> Internal density of each dust species
   double precision, allocatable, public :: dust_density(:)
 
@@ -90,8 +93,10 @@ contains
 
     allocate(dust_size(dust_n_species))
     allocate(dust_density(dust_n_species))
+    allocate(dust_stokes(dust_n_species))
     dust_size(:) = -1.0d0
     dust_density(:) = -1.0d0
+    dust_stokes(:) = -1.d0
 
     allocate(dust_rho(dust_n_species))
     allocate(dust_mom(ndir, dust_n_species))
@@ -143,11 +148,14 @@ contains
        end if
     end if
 
-    if (any(dust_size < 0.0d0)) &
+    if (any(dust_size < 0.0d0) & dust_method \= 'Stokes') &
          call mpistop("Dust error: any(dust_size < 0) or not set")
 
-    if (any(dust_density < 0.0d0)) &
+    if (any(dust_density < 0.0d0) & dust_method \= 'Stokes') &
          call mpistop("Dust error: any(dust_density < 0) or not set")
+
+    if (any(dust_stokes < 0.d0) & dust_method = 'Stokes') &
+         call mpistop("Dust error: any(dust_stokes < 0) or not set")
   end subroutine dust_check_params
 
   subroutine dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -357,7 +365,25 @@ contains
           fdrag(ixO^S, idir,n) = fd(ixO^S)
         end do
       end do
-    case('none')
+   case ('Stokes') ! linear in deltav and constant Stokes number
+      !This is similar to Youdin & Johansen, 2007
+
+      do idir = 1, ndir
+        do n = 1, dust_n_species
+          where(w(ixO^S, dust_rho(n)) > dust_min_rho)
+            vdust(ixO^S)  = w(ixO^S, dust_mom(idir, n)) / w(ixO^S, dust_rho(n))
+            deltav(ixO^S) = (vgas(ixO^S, idir)-vdust(ixO^S))
+
+            ! dust_stokes is Stokes numbers for the dust species
+            fd(ixO^S)     = w(ixO^S, dust_rho(n))/dust_stokes(n)
+            fd(ixO^S)     = -fd(ixO^S)* deltav(ixO^S)
+          elsewhere
+            fd(ixO^S) = 0.0d0
+          end where
+          fdrag(ixO^S, idir, n) = fd(ixO^S)
+        end do
+      end do
+   case('none')
       fdrag(ixO^S, :, :) = 0.0d0
     case default
       call mpistop( "=== This dust method has not been implemented===" )
@@ -609,7 +635,22 @@ contains
       end do
 
       dtnew = min(minval(dtdiffpar*dtdust(:)), dtnew)
-    case('none')
+    case( 'Stokes' )
+      dtdust(:) = bigdouble
+
+      do n = 1, dust_n_species
+        where(w(ixO^S, dust_rho(n))>dust_min_rho)
+          tstop(ixO^S)  = dust_stoker(n)*w(ixO^S, gas_rho_)/ &
+               (w(ixO^S, dust_rho(n)) + w(ixO^S, gas_rho_))
+        else where
+          tstop(ixO^S) = bigdouble
+        end where
+
+        dtdust(n) = min(minval(tstop(ixO^S)), dtdust(n))
+     end do
+
+      dtnew = min(minval(dtdiffpar*dtdust(:)), dtnew)
+   case('none')
       ! no dust timestep
     case default
       call mpistop( "=== This dust method has not been implemented===" )
