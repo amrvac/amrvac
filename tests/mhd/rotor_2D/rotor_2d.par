@@ -49,4 +49,5 @@
 
  &mhd_list
         mhd_gamma=1.4d0
+        typedivbfix='powel'
  /

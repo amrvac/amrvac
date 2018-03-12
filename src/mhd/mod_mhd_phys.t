@@ -1628,12 +1628,22 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     integer :: idim, idir, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S)
-
+    logical, dimension(-1:1^D&) :: leveljump
 
     ! Calculate div B
     ixp^L=ixO^L^LADD1;
     call get_divb(wCT,ixI^L,ixp^L,divb)
+
     ! for AMR stability, retreat one cell layer from the boarders of level jump
+    {do i^DB=-1,1\}
+      if(i^D==0|.and.) cycle
+      if(neighbor_type(i^D,saveigrid)==2 .or. neighbor_type(i^D,saveigrid)==4) then
+        leveljump(i^D)=.true.
+      else
+        leveljump(i^D)=.false.
+      end if
+    {end do\}
+
     ixp^L=ixO^L;
     do idim=1,ndim
       select case(idim)

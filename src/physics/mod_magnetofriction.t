@@ -698,15 +698,6 @@ contains
          pw(igrid)%wb=>pw(igrid)%w2
        end select
 
-       {do i^DB=-1,1\}
-          if (i^D==0|.and.) cycle
-          if (neighbor_type(i^D,igrid)==2 .or. neighbor_type(i^D,igrid)==4) then
-             leveljump(i^D)=.true.
-          else
-             leveljump(i^D)=.false.
-          end if
-       {end do\}
-
        call process1_gridmf(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
                        pw(igrid)%wa,qt,pw(igrid)%wb,pw(igrid)%wold)
     end do
@@ -1298,24 +1289,8 @@ contains
     ! Calculate div B
     ix^L=ixO^L^LADD1;
     call get_divb(wCT,ixI^L,ix^L,divb)
-    ! for AMR stability, retreat one cell layer from the boarders of level jump
+
     ixp^L=ixO^L;
-    !do idims=1,ndim
-    !  select case(idims)
-    !   {case(^D)
-    !      do iside=1,2
-    !        i^DD=kr(^DD,^D)*(2*iside-3);
-    !        if(leveljump(i^DD)) then
-    !          if(iside==1) then
-    !            ixpmin^D=ixOmin^D-i^D
-    !          else
-    !            ixpmax^D=ixOmax^D-i^D
-    !          end if
-    !        end if
-    !      end do
-    !   \}
-    !  end select
-    !end do
 
     ! Add Linde's diffusive terms
     do idims=1,ndim

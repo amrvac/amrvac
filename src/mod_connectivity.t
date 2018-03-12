@@ -13,7 +13,6 @@ module mod_connectivity
    integer, dimension(:,:^D&,:), allocatable :: neighbor_child
    integer, dimension(:^D&,:), allocatable :: neighbor_type
    logical, dimension(:^D&,:), allocatable :: neighbor_active
-   logical, dimension(-1:1^D&) :: leveljump
    integer, dimension(:^D&,:), allocatable :: neighbor_pole
 
    ! grid number array per processor

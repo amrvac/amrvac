@@ -38,14 +38,6 @@ contains
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        qdt=dt_grid(igrid)
        block=>pw(igrid)
-       {do i^DB=-1,1\}
-       if (i^D==0|.and.) cycle
-       if (neighbor_type(i^D,igrid)==2 .or. neighbor_type(i^D,igrid)==4) then
-          leveljump(i^D)=.true.
-       else
-          leveljump(i^D)=.false.
-       end if
-       {end do\}
        call addsource1_grid(igrid,qdt,qt,pw(igrid)%w,src_active)
     end do
     !$OMP END PARALLEL DO
