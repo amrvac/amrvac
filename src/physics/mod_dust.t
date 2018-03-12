@@ -135,23 +135,24 @@ contains
   end subroutine dust_read_params
 
   subroutine dust_check_params()
-    if (gas_mu <= 0.0d0) call mpistop ("Dust error: gas_mu (molecular weight)"//&
-         "negative or not set")
-
-    if (dust_temperature_type == "constant") then
-       if (dust_temperature < 0.0d0) then
-          call mpistop("Dust error: dust_temperature < 0 or not set")
-       end if
-    else if (dust_temperature_type == "stellar") then
-       if (dust_stellar_luminosity < 0.0d0) then
-          call mpistop("Dust error: dust_stellar_luminosity < 0 or not set")
+    if (gas_mu <= 0.0d0 .and. (dust_method == 'Kwok' .or. dust_method == 'sticking')) &
+         call mpistop ("Dust error: gas_mu (molecular weight) negative or not set")
+    if (dust_method == 'sticking') then
+       if (dust_temperature_type == "constant") then
+          if (dust_temperature < 0.0d0) then
+             call mpistop("Dust error: dust_temperature < 0 or not set")
+          end if
+       else if (dust_temperature_type == "stellar") then
+          if (dust_stellar_luminosity < 0.0d0) then
+             call mpistop("Dust error: dust_stellar_luminosity < 0 or not set")
+          end if
        end if
     end if
 
-    if (any(dust_size < 0.0d0) .and. dust_method /= 'Stokes') &
+    if (any(dust_size < 0.0d0) .and. dust_method /= 'Stokes' .and. dust_method /= 'none') &
          call mpistop("Dust error: any(dust_size < 0) or not set")
 
-    if (any(dust_density < 0.0d0) .and. dust_method /= 'Stokes') &
+    if (any(dust_density < 0.0d0) .and. dust_method /= 'Stokes' .and. dust_method /= 'none') &
          call mpistop("Dust error: any(dust_density < 0) or not set")
 
     if (any(dust_stokes < 0.d0) .and. dust_method == 'Stokes') &
