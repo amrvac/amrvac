@@ -31,10 +31,10 @@
  &meshlist
         refine_max_level=1
         refine_threshold=20*0.1d0
-        block_nx1=10
-        domain_nx1=600
-        xprobmin1=-30.0d0
-        xprobmax1=30.0d0
+        block_nx1=16
+        domain_nx1=64
+        xprobmin1=-5.0d0
+        xprobmax1=25.0d0
         iprob=3
  /
 

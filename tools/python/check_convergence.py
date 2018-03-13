@@ -125,7 +125,8 @@ if __name__ == '__main__':
                     i0 = line.find(':')
                     vals = line[i0+1:].lstrip()
                     vals = re.split(r'[ ,\t\n]+', vals)
-                    vals = map(float, vals)
+                    # vals = map(float, vals)
+                    vals = list(map(float, vals))
 
                     try:
                         i0 = names.index(p.var)
@@ -152,8 +153,10 @@ if __name__ == '__main__':
         mean_val = 0.0
         for res in all_results:
             lbl = '-'.join(res[0:3])
-            line, = plt.loglog(nx_list, res[3], linestyle=linestyle.next(),
-                               marker=marker.next(), label=lbl)
+            # line, = plt.loglog(nx_list, res[3], linestyle=linestyle.next(),
+            #                   marker=marker.next(), label=lbl)
+            line, = plt.loglog(nx_list, res[3], linestyle=next(linestyle),
+                               marker=next(marker), label=lbl)
             mean_val = mean_val + res[3][0] / len(all_results)
 
         for pp in p.powers:
