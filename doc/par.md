@@ -506,7 +506,7 @@ corresponding gradient_limiter array to select a limiter (per level).
      typeboundary_max^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      internalboundary = F | T
      typeghostfill= 'linear' | 'copy' 
-     prolongation_method= 'linear' | 'other'
+     prolongation_method= 'linear' | 'other' (no interpolation)
     /
 
 The boundary types have to be defined for each **conserved variable**, except for 
