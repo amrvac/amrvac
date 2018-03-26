@@ -6,14 +6,19 @@ subroutine amr_coarsen_refine
 use mod_forest
 use mod_global_parameters
 use mod_ghostcells_update
+use mod_usr_methods, only: usr_after_refine
 
 integer :: iigrid, igrid, ipe, igridCo, ipeCo, level, ic^D
 integer, dimension(2^D&) :: igridFi, ipeFi
+integer :: n_coarsen, n_refine
 type(tree_node_ptr) :: tree, sibling
 logical             :: active
 integer, external :: getnode
 !-----------------------------------------------------------------------------
 call proper_nesting
+
+n_coarsen = count(coarsen(:, :))
+n_refine = count(refine(:, :))
 
 ! to save memory: first coarsen then refine
 irecv=0
@@ -119,6 +124,10 @@ if (time_advance) then
    call getbc(global_time+dt,0.d0,0,nwflux+nwaux)
 else
    call getbc(global_time,0.d0,0,nwflux+nwaux)
+end if
+
+if (associated(usr_after_refine)) then
+   call usr_after_refine(n_coarsen, n_refine)
 end if
 
 end subroutine amr_coarsen_refine

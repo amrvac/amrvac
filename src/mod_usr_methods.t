@@ -60,6 +60,9 @@ module mod_usr_methods
   procedure(particle_fields), pointer   :: usr_particle_fields   => null()
   procedure(particle_analytic), pointer :: usr_particle_analytic => null()
 
+  ! Called after the mesh has been adjuste
+  procedure(after_refine), pointer      :: usr_after_refine => null()
+
   abstract interface
 
      subroutine p_no_args()
@@ -316,6 +319,11 @@ module mod_usr_methods
        double precision, intent(in)  :: tloc
        double precision, intent(out) :: vec(ndir)
      end subroutine particle_analytic
+
+     subroutine after_refine(n_coarsen, n_refine)
+       integer, intent(in) :: n_coarsen
+       integer, intent(in) :: n_refine
+     end subroutine after_refine
 
   end interface
 

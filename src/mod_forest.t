@@ -13,6 +13,9 @@ module mod_forest
       integer :: level !< Refinement level
       integer :: igrid !< Index of grid on processor's grid-array
       integer :: ipe   !< On which processor the grid is stored
+      !> Extra integer, not set by default. Is used to go from pointer to array
+      !> for coupling with a multigrid solver.
+      integer :: id
       logical :: leaf !< Is the grid a leaf (no further refinement)
       logical :: active
       type(tree_node_ptr) :: parent !< Pointer to parent grid
