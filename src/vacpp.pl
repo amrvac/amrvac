@@ -26,7 +26,7 @@ Optional options:
 Examples:
 
     # Interactive usage
-    vacpp.pl -d=2
+    vacpp.pl -d=2 -
 
     # File translation
     vacpp.pl -d=2 file.t > file.f

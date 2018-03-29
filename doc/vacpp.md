@@ -25,3 +25,9 @@ You may use **vacpp.pl** for translation directly
 You may change the maximum line length to e.g. 72 directly on the command line
 
     vacpp.pl -d=2 -maxlen=72 FILENAME.t > FILENAME.f
+
+You can call vacpp.pl interactively with
+
+    vacpp.pl -d=2 -
+
+and then type a line of code to see how it is translated.
