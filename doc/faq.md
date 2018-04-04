@@ -99,3 +99,15 @@ which allows you to modify things during runtime (of course, it should make phys
 ## Is there a way to save (and visualize) the data in the boundary ghost cells? {#faq-show-ghost-cells}
 
 The logical variable `save_physical_boundary` can be set to true, which enforces the `.dat` files to also contain the ghost cell information for physical boundaries (i.e., those beyond the left or right edge of the domain, in each direction). You can use this file (like any other `.dat` file, to restart, and this helps if you want to use saved boundary info in your boundary value handling. However, all our present conversion options (like e.g. to `.vtu` files) do not store this extra info, and you can therefore not use them for visualizing the ghost cell info. For that, you will need to handle the `.dat` files directly, e.g. using python.
+
+## I get an error: mpi.mod was created by a different version of GNU Fortran
+
+This means that your MPI library was compiled with a different version of
+`gfortran` (and `GCC`) than you are using now. If you run on a cluster, contact
+their support and ask them to fix it.
+
+If you encounter this problem on your own machine, you can try to:
+
+1. Change compilers: Use the version of gfortran that MPI was compiled with
+2. Reinstall your MPI library, or install a different one (e.g. MPICH or OpenMPI), which is then hopefully compiled with the right version of GCC/gfortran.
+3. Install an operating system with working package management, e.g. Debian ;)
