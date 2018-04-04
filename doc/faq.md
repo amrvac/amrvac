@@ -1,10 +1,12 @@
 # Frequently Asked Questions
 
-# List of questions
+[TOC]
+
+# List of questions {#faq-list}
 
 Below you can find a list of frequently asked questions and answers.
 
-## Is there a mailinglist?
+## Is there a mailinglist? {#faq-mailinglist}
 
 Yes, we now have a mailinglist, which is used to:
 
@@ -17,7 +19,7 @@ by [subscribing](https://ls.kuleuven.be/cgi-bin/wa?SUBED1=AMRVACUSERS&A=1). Then
 you will be able to send and receive mails
 from <mailto:amrvacusers@ls.kuleuven.be>.
 
-## I am a user of old MPI-AMRVAC. How can I switch to MPI-AMRVAC 2.0?
+## I am a user of old MPI-AMRVAC. How can I switch to MPI-AMRVAC 2.0? {#faq-to-2.0}
 
 MPI-AMRVAC 2.0 is quite different from its previous version. Names of many files, 
 subroutines, and parameters are changed. Many subroutines and modules are reorganized.
@@ -39,7 +41,7 @@ MPI-AMRVAC 2.0.
 5. Go through [getting started](getting_started.md) to learn the new way to compile and run your application. Note that the `definitions.h` file
    is not used anymore to turn on special functionalities and can be deleted.
 
-## Is there a way I can define my own paramaters somewhere in mod_usr.t and configure them through `amrvac.par` ?
+## Is there a way I can define my own paramaters somewhere in mod_usr.t and configure them through `amrvac.par` ? {#faq-own-parameters}
 
 Indeed, there is a quick and time-saving way to read your own parameters without having to give an explicit value in the usr file and recompile each time. Instead, add this in your usr file : 
 
@@ -72,7 +74,7 @@ with `my_parameter_1` and `my_parameter_2` to be defined at the very beginning o
 	my_parameter_2    = 1.d0
 /
 ```
-## I'm looking for a way to translate some .blk files (using `convert_type= 'onegrid'`) back into standard output `.dat` that I can use to restart a simulation. My goal is to be able to change my data mid-simulation through another program.
+## I'm looking for a way to translate some .blk files (using `convert_type= 'onegrid'`) back into standard output `.dat` that I can use to restart a simulation. My goal is to be able to change my data mid-simulation through another program. {#faq-blk-to-dat}
 
 The idea of the `onegrid` option for conversion is that a hierarchical block AMR grid (as stored in the `.dat` files) can be saved to an equivalent uniform grid representation at a user-chosen level (combine `level_io` with `onegrid`). You then can use any software you like to handle uniform grid data. Converting back to the .dat format is then impossible. However, you can write a user-routine to read in the uniform data, and then use it to restart a similar uniform-grid (no AMR, just domain decomposed) simulation. The `.dat` files are all that is needed to do restarts.
 
@@ -94,6 +96,6 @@ or just once, at restart (and after reading in a .dat file), then use
 
 which allows you to modify things during runtime (of course, it should make physical sense). See their interface in _mod_usr_methods.t_.
 
-## Is there a way to save (and visualize) the data in the boundary ghost cells?
+## Is there a way to save (and visualize) the data in the boundary ghost cells? {#faq-show-ghost-cells}
 
 The logical variable `save_physical_boundary` can be set to true, which enforces the `.dat` files to also contain the ghost cell information for physical boundaries (i.e., those beyond the left or right edge of the domain, in each direction). You can use this file (like any other `.dat` file, to restart, and this helps if you want to use saved boundary info in your boundary value handling. However, all our present conversion options (like e.g. to `.vtu` files) do not store this extra info, and you can therefore not use them for visualizing the ghost cell info. For that, you will need to handle the `.dat` files directly, e.g. using python.

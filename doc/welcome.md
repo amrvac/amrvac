@@ -12,10 +12,11 @@ on [amrvac.org](http://amrvac.org/).
 
 * @ref installation.md
 * @ref getting_started.md
+* @ref par.md
+* @ref faq.md
 * @ref contributing.md
 * @ref publications.md
 * @ref acknowledgments.md
-* @ref todo
 * [**Recent changes**](https://github.com/amrvac/amrvac/commits/master)
 
 # MPI-AMRVAC aims {#aims}
