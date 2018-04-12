@@ -30,20 +30,19 @@ contains
     use mod_global_parameters
 
     character(len=20) :: printsettingformat  
-    double precision :: rhocorona
     double precision :: Itube, Nt_TD99
     
     printsettingformat='(1x,A20,ES15.7,A30)'
     if(mype==0) then
-      write(*,*),"Dimensionless units:"
-      write(*,printsettingformat),"unit_length ",unit_length,"(cm)"
-      write(*,printsettingformat),"unit_velocity ",unit_velocity,"(cm s^-1)"
-      write(*,printsettingformat),"unit_density ",unit_density,"(g cm^-3)"
-      write(*,*),"Deduced dimensionless units:"
-      write(*,printsettingformat),"unit_time ",unit_time,"(s)"
-      write(*,printsettingformat),"unit_pressure ",unit_pressure,"(Ba = g cm^-1 s^-2)"
-      write(*,printsettingformat),"Temperature unit",unit_temperature,"(K)"
-      write(*,printsettingformat),"unit_magneticfield ",unit_magneticfield,"(G=g^{1/2} cm^{-1/2} s^-1)"
+      write(*,*) "Dimensionless units:"
+      write(*,printsettingformat) "unit_length ",unit_length,"(cm)"
+      write(*,printsettingformat) "unit_velocity ",unit_velocity,"(cm s^-1)"
+      write(*,printsettingformat) "unit_density ",unit_density,"(g cm^-3)"
+      write(*,*) "Deduced dimensionless units:"
+      write(*,printsettingformat) "unit_time ",unit_time,"(s)"
+      write(*,printsettingformat) "unit_pressure ",unit_pressure,"(Ba = g cm^-1 s^-2)"
+      write(*,printsettingformat) "Temperature unit",unit_temperature,"(K)"
+      write(*,printsettingformat) "unit_magneticfield ",unit_magneticfield,"(G=g^{1/2} cm^{-1/2} s^-1)"
     end if
     
     Li_TD99=5.0d-1
@@ -107,24 +106,24 @@ contains
 
     Nt_TD99=abs(Itube/Izero_TD99)*R_TD99**2/a_TD99**2
     if(mype==0) then
-      Write(*,*),"Additional units:"
-      Write(*,printsettingformat),"for line current I0 ",(unit_magneticfield*unit_length*const_c),"(statampere)"
-      Write(*,printsettingformat),"for magnetic charge q ",unit_magneticfield*unit_length**2,"(G cm^2)"
+      Write(*,*) "Additional units:"
+      Write(*,printsettingformat) "for line current I0 ",(unit_magneticfield*unit_length*const_c),"(statampere)"
+      Write(*,printsettingformat) "for magnetic charge q ",unit_magneticfield*unit_length**2,"(G cm^2)"
       printsettingformat='(1x,A7,ES15.7)'
-      write(*,*),"Dimensionless setup parameters of magnetic structure:"
-      write(*,printsettingformat), 'd ',d_TD99
-      write(*,printsettingformat), 'L ',L_TD99
-      write(*,printsettingformat), 'R ',R_TD99
-      write(*,printsettingformat), 'a ',a_TD99
-      write(*,printsettingformat), 'Li ',Li_TD99
-      write(*,printsettingformat), 'Izero ',Izero_TD99
-      write(*,printsettingformat), 'q ',q_TD99
-      write(*,printsettingformat), 'I tube ',Itube
-      write(*,printsettingformat), 'N turns',Nt_TD99
-      write(*,*),"Dimensionless setup parameters of solar atmopshere:"
-      write(*,*), "uniform T and rho, without gravity stratification" 
-      write(*,printsettingformat),'T corona', tcorona
-      write(*,printsettingformat),'rho corona', rhocorona
+      write(*,*) "Dimensionless setup parameters of magnetic structure:"
+      write(*,printsettingformat) 'd ',d_TD99
+      write(*,printsettingformat) 'L ',L_TD99
+      write(*,printsettingformat) 'R ',R_TD99
+      write(*,printsettingformat) 'a ',a_TD99
+      write(*,printsettingformat) 'Li ',Li_TD99
+      write(*,printsettingformat) 'Izero ',Izero_TD99
+      write(*,printsettingformat) 'q ',q_TD99
+      write(*,printsettingformat) 'I tube ',Itube
+      write(*,printsettingformat) 'N turns',Nt_TD99
+      write(*,*) "Dimensionless setup parameters of solar atmopshere:"
+      write(*,*)  "uniform T and rho, without gravity stratification" 
+      write(*,printsettingformat) 'T corona', tcorona
+      write(*,printsettingformat) 'rho corona', rhocorona
     endif
 
   end subroutine initglobaldata_usr

@@ -21,23 +21,22 @@
  &savelist
         itsave(1,1)   = 0
         itsave(1,2)   = 0
-        ditsave_log    = 100
-        dtsave_dat     = 2.0d-1
+        ditsave_log    = 10
+        ditsave_dat    = 100
  /
  
- &stoplist
         time_max          = 40.0d0
-        itmax=0
+ &stoplist
+        it_max          = 400
  /
  
  &methodlist
-        time_integrator   = 'threestep'
+        time_integrator   = 'ssprk54'
         flux_scheme     = 20*'hll'
-        limiter  = 20*'cada3'
+        limiter  = 20*'minmod'
  /
 
  &boundlist
-        internalboundary = .true.
         typeboundary_min1 = 8*'special'
         typeboundary_min2 = 8*'special'
         typeboundary_min3 = 8*'special'
@@ -48,7 +47,7 @@
 
  &meshlist
         refine_criterion = 3
-        refine_max_level = 4
+        refine_max_level = 3
         w_refine_weight(6)=0.2d0
         w_refine_weight(7)=0.6d0
         w_refine_weight(8)=0.2d0
@@ -69,7 +68,8 @@
  /
 
  &paramlist
-        courantpar    = 0.8d0
+        slowsteps     = 50
+        courantpar    = 0.4d0
  /
 
  $mhd_list
