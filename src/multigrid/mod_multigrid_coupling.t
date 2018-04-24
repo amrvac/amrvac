@@ -27,9 +27,6 @@ contains
     if (any([ block_nx^D ] /= block_nx1)) &
          error stop "Multigrid requires all block_nx to be equal"
 
-    if (any(abs(dx(2:,1) - dx(1,1)) > smalldouble)) &
-         error stop "Multigrid requires all dx(1:ndim) to be equal"
-
     call mg_comm_init(mg)
     call mg_tree_from_amrvac(mg)
   end subroutine mg_setup_multigrid
@@ -193,7 +190,7 @@ contains
     ! Estimate number of finer blocks
     n_finer = nparents+nleafs
 
-    call mg_build_rectangle(mg, [ domain_nx^D ], block_nx1, dx(1,1), &
+    call mg_build_rectangle(mg, [ domain_nx^D ], block_nx1, dx(:,1), &
          [ xprobmin^D ], periodB, n_finer)
 
     mg%highest_lvl = levmax
