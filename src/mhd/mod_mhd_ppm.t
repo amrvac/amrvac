@@ -35,6 +35,7 @@ contains
   ! PPM flattening at shocks: we use total pressure and not thermal pressure
   subroutine mhd_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
     integer, intent(in)             :: idims

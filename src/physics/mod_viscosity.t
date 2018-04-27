@@ -85,6 +85,7 @@ contains
        energy,qsourcesplit,active)
   ! Add viscosity source to w within ixO
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -268,7 +269,7 @@ contains
 
   subroutine visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f, energy)
     use mod_global_parameters
-
+    use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
     double precision, intent(inout) :: f(ixI^S, nwflux)
@@ -302,6 +303,7 @@ contains
   ! CYLINDRICAL AND SPHERICAL )
   subroutine get_crossgrad(ixI^L,ixO^L,x,w,idim,cross)
   use mod_global_parameters
+  use mod_geometry
   integer, intent(in)             :: ixI^L, ixO^L, idim
   double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
   double precision, intent(out)   :: cross(ixI^S,ndir)
@@ -454,6 +456,7 @@ contains
 
   subroutine cart_cross_grad(ixI^L,ixO^L,x,w,idim,cross)
   use mod_global_parameters
+  use mod_geometry
   integer, intent(in)             :: ixI^L, ixO^L, idim
   double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
   double precision, intent(out)   :: cross(ixI^S,ndir)
@@ -475,6 +478,7 @@ contains
 
   subroutine visc_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
+    use mod_geometry
     ! w and wCT conservative variables here
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)

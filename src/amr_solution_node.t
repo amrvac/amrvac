@@ -47,6 +47,7 @@ end subroutine putnode
 subroutine alloc_node(igrid)
 use mod_forest
 use mod_global_parameters
+use mod_geometry
 
 integer, intent(in) :: igrid
 
@@ -521,6 +522,7 @@ end subroutine alloc_node
 subroutine dealloc_node(igrid)
 
 use mod_global_parameters
+use mod_geometry
 
 integer, intent(in) :: igrid
 !-----------------------------------------------------------------------------

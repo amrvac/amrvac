@@ -51,6 +51,7 @@ end subroutine set_B0_cell
 subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
   use mod_usr_methods, only: usr_set_J0
   use mod_global_parameters
+  use mod_geometry
 
   integer, intent(in):: igrid,ixI^L,ix^L
   double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:3)

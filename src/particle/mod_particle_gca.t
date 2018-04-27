@@ -169,6 +169,7 @@ contains
   subroutine gca_fill_gridvars
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_fields
+    use mod_geometry
 
     integer                                   :: igrid, iigrid, idir, idim
     double precision, dimension(ixG^T,1:ndir) :: beta

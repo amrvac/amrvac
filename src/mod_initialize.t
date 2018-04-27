@@ -40,6 +40,7 @@ contains
     use mod_forest
     use mod_global_parameters
     use mod_ghostcells_update
+    use mod_geometry
 
     integer :: igrid, level, ipe, ig^D
     logical :: ok

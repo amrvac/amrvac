@@ -282,4 +282,161 @@ contains
 
   end subroutine PPMlimiter
 
+  subroutine extremaq(ixI^L,ixO^L,q,nshift,qMax,qMin)
+
+    use mod_global_parameters
+
+    integer,intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in) :: q(ixI^S)
+    integer,intent(in)           :: nshift
+
+    double precision, intent(out) :: qMax(ixI^S),qMin(ixI^S)
+
+    integer           :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
+    !-------------------------------------------------------------------------
+    do ishift=1,nshift
+      idims=1
+      ixsR^L=ixO^L+ishift*kr(idims,^D);
+      ixsL^L=ixO^L-ishift*kr(idims,^D);
+      if (ishift==1) then
+        qMax(ixO^S)=max(q(ixO^S),q(ixsR^S),q(ixsL^S))
+        qMin(ixO^S)=min(q(ixO^S),q(ixsR^S),q(ixsL^S))
+      else
+        qMax(ixO^S)=max(qMax(ixO^S),q(ixsR^S),q(ixsL^S))
+        qMin(ixO^S)=min(qMin(ixO^S),q(ixsR^S),q(ixsL^S))
+      end if
+      {^NOONED
+      idims=1
+      jdims=idims+1
+      do i=-1,1
+        ixs^L=ixO^L+i*ishift*kr(idims,^D);
+        ixsR^L=ixs^L+ishift*kr(jdims,^D);
+        ixsL^L=ixs^L-ishift*kr(jdims,^D);
+        qMax(ixO^S)=max(qMax(ixO^S),q(ixsR^S),q(ixsL^S))
+        qMin(ixO^S)=min(qMin(ixO^S),q(ixsR^S),q(ixsL^S))
+      end do
+      }
+      {^IFTHREED
+      idims=1
+      jdims=idims+1
+      kdims=jdims+1
+      do i=-1,1
+        ixs^L=ixO^L+i*ishift*kr(idims,^D);
+        do j=-1,1
+          ixs^L=ixO^L+j*ishift*kr(jdims,^D);
+          ixsR^L=ixs^L+ishift*kr(kdims,^D);
+          ixsL^L=ixs^L-ishift*kr(kdims,^D);
+          qMax(ixO^S)=max(qMax(ixO^S),q(ixsR^S),q(ixsL^S))
+          qMin(ixO^S)=min(qMin(ixO^S),q(ixsR^S),q(ixsL^S))
+        end do
+      end do
+      }
+    enddo
+
+  end subroutine  extremaq
+
+  subroutine extremaa(ixI^L,ixO^L,a,nshift,aMin)
+    use mod_global_parameters
+
+    integer,intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in) :: a(ixI^S)
+    integer,intent(in)           :: nshift
+
+    double precision, intent(out) :: aMin(ixI^S)
+
+    integer          :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
+    !-------------------------------------------------------------------------
+    do ishift=1,nshift
+      idims=1
+      ixsR^L=ixO^L+ishift*kr(idims,^D);
+      ixsL^L=ixO^L-ishift*kr(idims,^D);
+      aMin(ixO^S)=min(a(ixsR^S),a(ixO^S),a(ixsL^S))
+      {^NOONED
+      idims=1
+      jdims=idims+1
+      do i=-1,1
+        ixs^L=ixO^L+i*ishift*kr(idims,^D);
+        ixsR^L=ixs^L+ishift*kr(jdims,^D);
+        ixsL^L=ixs^L-ishift*kr(jdims,^D);
+        aMin(ixO^S)=min(aMin(ixO^S),a(ixsR^S),a(ixsL^S))
+      end do
+      }
+      {^IFTHREED
+      idims=1
+      jdims=idims+1
+      kdims=jdims+1
+      do i=-1,1
+        ixs^L=ixO^L+i*ishift*kr(idims,^D);
+        do j=-1,1
+          ixs^L=ixO^L+j*ishift*kr(jdims,^D);
+          ixsR^L=ixs^L+ishift*kr(kdims,^D);
+          ixsL^L=ixs^L-ishift*kr(kdims,^D);
+          aMin(ixO^S)=min(aMin(ixO^S),a(ixsR^S),a(ixsL^S))
+        end do
+      end do
+      }
+    end do
+
+  end subroutine extremaa
+
+  subroutine extremaw(ixI^L,ixO^L,w,nshift,wMax,wMin)
+    use mod_global_parameters
+
+    integer,intent(in)            :: ixI^L,ixO^L
+    double precision, intent(in)  :: w(ixI^S,1:nw)
+    integer,intent(in)            :: nshift
+
+    double precision, intent(out) :: wMax(ixI^S,1:nwflux),wMin(ixI^S,1:nwflux)
+
+    integer          :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
+    !-------------------------------------------------------------------------
+    do ishift=1,nshift
+      idims=1
+      ixsR^L=ixO^L+ishift*kr(idims,^D);
+      ixsL^L=ixO^L-ishift*kr(idims,^D);
+      if (ishift==1) then
+        wMax(ixO^S,1:nwflux)= &
+             max(w(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+        wMin(ixO^S,1:nwflux)= &
+             min(w(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+      else
+        wMax(ixO^S,1:nwflux)= &
+             max(wMax(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+        wMin(ixO^S,1:nwflux)= &
+             min(wMin(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+      end if
+      {^NOONED
+      idims=1
+      jdims=idims+1
+      do i=-1,1
+        ixs^L=ixO^L+i*ishift*kr(idims,^D);
+        ixsR^L=ixs^L+ishift*kr(jdims,^D);
+        ixsL^L=ixs^L-ishift*kr(jdims,^D);
+        wMax(ixO^S,1:nwflux)= &
+             max(wMax(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+        wMin(ixO^S,1:nwflux)= &
+             min(wMin(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+      end do
+      }
+      {^IFTHREED
+      idims=1
+      jdims=idims+1
+      kdims=jdims+1
+      do i=-1,1
+        ixs^L=ixO^L+i*ishift*kr(idims,^D);
+        do j=-1,1
+          ixs^L=ixO^L+j*ishift*kr(jdims,^D);
+          ixsR^L=ixs^L+ishift*kr(kdims,^D);
+          ixsL^L=ixs^L-ishift*kr(kdims,^D);
+          wMax(ixO^S,1:nwflux)= &
+               max(wMax(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+          wMin(ixO^S,1:nwflux)= &
+               min(wMin(ixO^S,1:nwflux),w(ixsR^S,1:nwflux),w(ixsL^S,1:nwflux))
+        end do
+      end do
+      }
+    enddo
+
+  end subroutine  extremaw
+
 end module mod_ppm

@@ -369,6 +369,7 @@ contains
       end subroutine printlog_mf
 
       function integral_grid_mf(ixI^L,ixO^L,w,x,iw,patchwi)
+        use mod_geometry
 
         integer, intent(in)                :: ixI^L,ixO^L,iw
         double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -1279,6 +1280,7 @@ contains
   !> Clean divergence of magnetic field by Janhunen's and Linde's source terms
   subroutine divbclean(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim),wCT(ixI^S,1:nw),qdt
@@ -1378,6 +1380,7 @@ contains
   !> make sure that dxlevel(^D) is set correctly.
   subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
     use mod_global_parameters
+    use mod_geometry
 
     integer :: idirmin0
     integer :: ixO^L, idirmin, ixI^L
@@ -1400,7 +1403,7 @@ contains
 
   !> Calculate div B within ixO
   subroutine get_divb(w,ixI^L,ixO^L,divb)
-
+    use mod_geometry
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L

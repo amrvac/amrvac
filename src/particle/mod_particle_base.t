@@ -379,6 +379,7 @@ contains
   !> make sure that dxlevel(^D) is set correctly.
   subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
     use mod_global_parameters
+    use mod_geometry
 
     integer :: idirmin0
     integer :: ixO^L, idirmin, ixI^L

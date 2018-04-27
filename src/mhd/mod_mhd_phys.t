@@ -1121,6 +1121,7 @@ contains
 
   subroutine internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1194,6 +1195,7 @@ contains
   subroutine add_source_res1(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_usr_methods
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1306,6 +1308,7 @@ contains
   subroutine add_source_res2(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_usr_methods
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1360,6 +1363,8 @@ contains
   !> Uses 9 point stencil (4 neighbours) in each direction.
   subroutine add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
+    use mod_geometry
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1418,6 +1423,7 @@ contains
     ! corresponding to Dedner JCP 2002, 175, 645 _equation 24_
     ! giving the EGLM-MHD scheme
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -1470,6 +1476,7 @@ contains
     ! corresponding to Dedner JCP 2002, 175, 645 _equation 38_
     ! giving the non conservative EGLM-MHD scheme.
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -1622,6 +1629,7 @@ contains
   subroutine add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add Linde's divB related sources to wnew within ixO
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -1696,6 +1704,7 @@ contains
   subroutine get_divb(w,ixI^L,ixO^L,divb)
 
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: w(ixI^S,1:nw)
@@ -1745,6 +1754,7 @@ contains
   !> make sure that dxlevel(^D) is set correctly.
   subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
     use mod_global_parameters
+    use mod_geometry
 
     integer :: idirmin0
     integer :: ixO^L, idirmin, ixI^L
