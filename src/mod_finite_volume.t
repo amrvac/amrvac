@@ -141,6 +141,10 @@ contains
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idim,^D);
        kxR^L=kxC^L+kr(idim,^D);
 
+       ! wRp and wLp are defined at the same locations, and will correspond to
+       ! the left and right reconstructed values at a cell face. Their indexing
+       ! is similar to cell-centered values, but in direction idim they are
+       ! shifted half a cell towards the 'lower' direction.
        wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
        wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
 

@@ -350,42 +350,54 @@ else
 end if
 
 end subroutine gradientS
-!=============================================================================
-subroutine divvector(qvec,ixI^L,ixO^L,divq)
 
-! Calculate divergence of a vector qvec within ixL
-
+!> Calculate divergence of a vector qvec within ixL
+subroutine divvector(qvec,ixI^L,ixO^L,divq, fourthorder)
 use mod_global_parameters
+integer, intent(in)             :: ixI^L,ixO^L
+double precision, intent(in)    :: qvec(ixI^S,1:ndir)
+double precision, intent(inout) :: divq(ixI^S)
+logical, intent(in), optional   :: fourthorder !< Default: false
+logical                         :: use_4th_order
+double precision                :: qC(ixI^S), invdx(1:ndim)
+integer                         :: jxO^L, hxO^L, ixC^L, jxC^L
+integer                         :: idims, ix^L, gxO^L, kxO^L
 
-integer :: ixI^L,ixO^L
-double precision :: qvec(ixI^S,1:ndir), divq(ixI^S)
+use_4th_order = .false.
+if (present(fourthorder)) use_4th_order = fourthorder
 
-double precision :: qC(ixI^S), invdx(1:ndim)
-integer :: jxO^L, hxO^L, ixC^L, jxC^L, idims, ix^L {#IFDEF FOURTHORDER , gxO^L, kxO^L}
-!-----------------------------------------------------------------------------
-{#IFNDEF FOURTHORDER
-ix^L=ixO^L^LADD1;
-}{#IFDEF FOURTHORDER
-ix^L=ixO^L^LADD2;
-}
+if (use_4th_order) then
+  if (.not. slab) &
+       call mpistop("divvector: 4th order only supported for slab geometry")
+  ix^L=ixO^L^LADD2;
+else                            ! Second order
+  ix^L=ixO^L^LADD1;
+end if
+
 if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
-   call mpistop("Error in divvector: Non-conforming input limits")
+     call mpistop("Error in divvector: Non-conforming input limits")
+
 invdx=1.d0/dxlevel
-divq(ixO^S)=zero
+divq(ixO^S)=0.0d0
+
 if (slab) then
   do idims=1,ndim
-{#IFNDEF FOURTHORDER
-     jxO^L=ixO^L+kr(idims,^D);
-     hxO^L=ixO^L-kr(idims,^D);
-     divq(ixO^S)=divq(ixO^S)+half*(qvec(jxO^S,idims)-qvec(hxO^S,idims))*invdx(idims)
-}{#IFDEF FOURTHORDER
-     kxO^L=ixO^L+2*kr(idims,^D);
-     jxO^L=ixO^L+kr(idims,^D);
-     hxO^L=ixO^L-kr(idims,^D);
-     gxO^L=ixO^L-2*kr(idims,^D);
-     divq(ixO^S)=divq(ixO^S)+&
-          (-qvec(kxO^S,idims) + 8.0d0 * qvec(jxO^S,idims) - 8.0d0 * qvec(hxO^S,idims) + qvec(gxO^S,idims))/(12.0d0 * dxlevel(idims))
-}
+    if (.not. use_4th_order) then
+      ! Use second order scheme
+      jxO^L=ixO^L+kr(idims,^D);
+      hxO^L=ixO^L-kr(idims,^D);
+      divq(ixO^S)=divq(ixO^S)+half*(qvec(jxO^S,idims) &
+           - qvec(hxO^S,idims))*invdx(idims)
+    else
+      ! Use fourth order scheme
+      kxO^L=ixO^L+2*kr(idims,^D);
+      jxO^L=ixO^L+kr(idims,^D);
+      hxO^L=ixO^L-kr(idims,^D);
+      gxO^L=ixO^L-2*kr(idims,^D);
+      divq(ixO^S)=divq(ixO^S)+&
+           (-qvec(kxO^S,idims) + 8.0d0 * qvec(jxO^S,idims) - 8.0d0 * &
+           qvec(hxO^S,idims) + qvec(gxO^S,idims))/(12.0d0 * dxlevel(idims))
+    end if
   end do
 else
   do idims=1,ndim
