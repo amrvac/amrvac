@@ -258,7 +258,7 @@ contains
       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
       qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
     else
-      call PPMlimitervar(ixG^LL,ixM^LL,idir,q,q,qL,qR)
+      call PPMlimitervar(ixI^L,ixO^L,idir,q,q,qL,qR)
     endif
 
     if(slab) then
@@ -360,9 +360,9 @@ contains
     use mod_ppm
 
     integer, intent(in)                :: ixI^L,ixO^L
-    double precision, intent(in)       :: qvec(ixG^T,1:ndir)
-    double precision, intent(inout)    :: divq(ixG^T)
-    double precision, dimension(ixG^T) :: qL,qR,dqC,ldq,rdq
+    double precision, intent(in)       :: qvec(ixI^S,1:ndir)
+    double precision, intent(inout)    :: divq(ixI^S)
+    double precision, dimension(ixI^S) :: qL,qR,dqC,ldq,rdq
 
     double precision :: invdx(1:ndim)
     integer          :: hxO^L,ixC^L,jxC^L,idims,ix^L,gxC^L,hxC^L
@@ -389,7 +389,7 @@ contains
         qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
       else
         dqC(ixI^S)=qvec(ixI^S,idims)
-        call PPMlimitervar(ixG^LL,ixM^LL,idims,dqC,dqC,qL,qR)
+        call PPMlimitervar(ixI^L,ixO^L,idims,dqC,dqC,qL,qR)
       endif
 
       if (slab) then
