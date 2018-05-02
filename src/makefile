@@ -1,7 +1,7 @@
 ################# Definitions for source files #############################
 INCLUDES = mod_global_parameters.t mod_usr_methods.t mod_forest.t	\
 mod_physicaldata.o mod_connectivity.t mod_constants.t mod_variables.t	\
-mod_basic_types.t
+mod_basic_types.t mod_amrvac.t
 
 FOBJECTS = mod_advance.t setdt.t amrini.t amr_solution_node.t errest.t		\
 amrgrid.t mod_finite_volume.t mod_tvd.t mod_finite_difference.t load_balance.t	\
@@ -46,6 +46,7 @@ mod_advance.o: mod_particles.mod
 mod_advance.o: mod_physics.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
+mod_amrvac.o: mod_geometry.mod
 mod_dust.o: mod_physics.mod
 mod_finite_difference.o: mod_finite_volume.mod
 mod_finite_difference.o: mod_limiter.mod
@@ -63,6 +64,7 @@ mod_ghostcells_update.o: mod_physics.mod
 mod_global_parameters.o: mod_basic_types.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
+mod_hd.o: mod_amrvac.mod
 mod_hd.o: mod_hd_hllc.mod
 mod_hd.o: mod_hd_phys.mod
 mod_hd.o: mod_hd_ppm.mod
@@ -102,6 +104,7 @@ mod_magnetofriction.o: mod_limiter.mod
 mod_magnetofriction.o: mod_physics.mod
 mod_mhd_hllc.o: mod_mhd_phys.mod
 mod_mhd_hllc.o: mod_physics_hllc.mod
+mod_mhd.o: mod_amrvac.mod
 mod_mhd.o: mod_mhd_hllc.mod
 mod_mhd.o: mod_mhd_phys.mod
 mod_mhd.o: mod_mhd_ppm.mod
@@ -122,6 +125,7 @@ mod_mhd_roe.o: mod_mhd_phys.mod
 mod_mhd_roe.o: mod_physics_roe.mod
 mod_mhd_roe.o: mod_tvd.mod
 mod_mp5.o: mod_physics.mod
+mod_nonlinear.o: mod_amrvac.mod
 mod_nonlinear.o: mod_nonlinear_phys.mod
 mod_nonlinear.o: mod_nonlinear_roe.mod
 mod_nonlinear_phys.o: mod_kdv.mod
@@ -156,6 +160,7 @@ mod_physics.o: mod_physics_roe.mod
 mod_physics.o: mod_small_values.mod
 mod_ppm.o: mod_physics.mod
 mod_radiative_cooling.o: mod_physics.mod
+mod_rho.o: mod_amrvac.mod
 mod_rho.o: mod_rho_phys.mod
 mod_rho.o: mod_rho_roe.mod
 mod_rho_phys.o: mod_physics.mod

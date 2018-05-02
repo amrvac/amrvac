@@ -5,6 +5,72 @@ module mod_geometry
 
 contains
 
+  !> Set the coordinate system to be used
+  subroutine set_coordinate_system(geom)
+    use mod_global_parameters
+    character(len=*), intent(in) :: geom !< Name of the coordinate system
+
+    select case (geom)
+    case ("Cartesian","Cartesian_1D","Cartesian_2D","Cartesian_3D")
+      ndir = ndim
+      typeaxial='slab'
+    case ("Cartesian_1.5D")
+      if (ndim /= 1) call mpistop("Geometry Cartesian_1.5D but ndim /= 1")
+      typeaxial='slab'
+      ndir = 2
+    case ("Cartesian_1.75D")
+      if (ndim /= 1) call mpistop("Geometry Cartesian_1.75D but ndim /= 1")
+      typeaxial='slab'
+      ndir = 3
+    case ("Cartesian_2.5D")
+      if (ndim /= 2) call mpistop("Geometry Cartesian_2.5D but ndim /= 2")
+      typeaxial='slab'
+      ndir = 3
+    case ("cylindrical","cylindrical_2D","cylindrical_3D")
+      ndir = ndim
+      r_   = 1
+      z_   = 2
+      if(ndir==3) phi_ = 3
+      typeaxial='cylindrical'
+    case ("cylindrical_2.5D")
+      if (ndim /= 2) call mpistop("Geometry cylindrical_2.5D but ndim /= 2")
+      ndir = 3
+      r_   = 1
+      z_   = 2
+      phi_ = 3
+      typeaxial='cylindrical'
+    case ("polar","polar_2D","polar_3D")
+      ndir = ndim
+      r_   = 1
+      phi_ = 2
+      if(ndir==3) z_ = 3
+      typeaxial='cylindrical'
+    case ("polar_2.5D")
+      if (ndim /= 2) call mpistop("Geometry polar_2.5D but ndim /= 2")
+      ndir = 3
+      r_   = 1
+      phi_ = 2
+      z_   = 3
+      typeaxial='cylindrical'
+    case ("spherical","spherical_2D","spherical_3D")
+      ndir = ndim
+      r_   = 1
+      if(ndir==3) phi_ = 3
+      z_   = -1
+      typeaxial='spherical'
+    case ("spherical_2.5D")
+      if (ndim /= 2) &
+           call mpistop("Geometry spherical_2.5D requires ndim == 2")
+      ndir = 3
+      r_   = 1
+      phi_ = 3
+      z_   = -1
+      typeaxial='spherical'
+    case default
+      call mpistop("Unknown geometry specified")
+    end select
+  end subroutine set_coordinate_system
+
   subroutine set_pole
     use mod_global_parameters
 

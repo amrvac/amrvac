@@ -4,6 +4,8 @@ module mod_nonlinear
   use mod_nonlinear_phys
   use mod_nonlinear_roe
 
+  use mod_amrvac
+
   implicit none
   public
 

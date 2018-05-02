@@ -3,6 +3,8 @@ module mod_rho
   use mod_rho_phys
   use mod_rho_roe
 
+  use mod_amrvac
+
   implicit none
   public
 

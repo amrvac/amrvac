@@ -5,6 +5,8 @@ module mod_hd
   use mod_hd_roe
   use mod_hd_ppm
 
+  use mod_amrvac
+
   implicit none
   public
 

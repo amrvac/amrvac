@@ -4,6 +4,8 @@ module mod_mhd
   use mod_mhd_roe
   use mod_mhd_ppm
 
+  use mod_amrvac
+
   implicit none
   public
 
