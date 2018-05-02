@@ -10,7 +10,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
     use mod_variables
 
     usr_init_one_grid => initonegrid_usr
@@ -25,8 +24,6 @@ contains
   end subroutine usr_init
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -36,7 +33,6 @@ contains
   end subroutine initonegrid_usr
 
   elemental function solution(x, t) result(val)
-    use mod_global_parameters
     real(dp), intent(in) :: x, t
     real(dp)             :: val, xrel
     real(dp), parameter  :: pi = acos(-1.0_dp)
@@ -89,7 +85,6 @@ contains
   end function solution
 
   subroutine print_error()
-    use mod_global_parameters
     use mod_input_output, only: get_volume_average, get_global_maxima
     double precision   :: modes(nw, 2), volume
     double precision   :: maxvals(nw)
@@ -105,7 +100,6 @@ contains
   end subroutine print_error
 
   subroutine set_error(igrid,level,ixI^L,ixO^L,qt,w,x)
-    use mod_global_parameters
     integer, intent(in)             :: igrid,level,ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)

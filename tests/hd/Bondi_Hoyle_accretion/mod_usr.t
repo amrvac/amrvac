@@ -6,8 +6,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
-
     call set_coordinate_system('spherical_2D')
 
     usr_set_parameters=> initglobaldata_usr
@@ -23,8 +21,6 @@ contains
 
   subroutine initglobaldata_usr
     
-    use mod_global_parameters
-    
     hd_gamma=5.d0/3.d0
     mach=4.d0
     vel=one
@@ -39,8 +35,6 @@ contains
 
     ! initialize one grid 
 
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -53,8 +47,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine pt_grav_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in) :: qdt, qtC, qt
@@ -70,8 +62,6 @@ contains
 
   subroutine get_dt_pt_grav(w,ixG^L,ix^L,dtnew,dx^D,x)
 
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
     double precision, intent(in) :: w(ixG^S,1:nw)
@@ -85,8 +75,6 @@ contains
   subroutine specialbound_usr(qt,ixG^L,ixB^L,iB,w,x)
 
     ! special boundary types, user defined
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L, ixB^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
@@ -124,8 +112,6 @@ contains
   end subroutine specialbound_usr
 
   subroutine intern_bc(level,qt,ixI^L,ixO^L,w,x)
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixI^L,ixO^L,level
     double precision, intent(in) :: qt

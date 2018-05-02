@@ -6,9 +6,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     usr_set_parameters=> initglobaldata_usr
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
@@ -21,8 +18,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    use mod_global_parameters
-
     select case(iprob)
      case(1)
       mhd_eta=5.0d-3
@@ -49,8 +44,6 @@ contains
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
   ! initialize one grid
-  use mod_global_parameters
-
   integer, intent(in) :: ixG^L,ix^L
   double precision, intent(in) :: x(ixG^S,1:ndim)
   double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -144,8 +137,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -190,9 +181,7 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='jz schlier curlvz divb'
 
   end subroutine specialvarnames_output

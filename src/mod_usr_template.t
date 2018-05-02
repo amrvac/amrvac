@@ -13,8 +13,6 @@ contains
 
   !> This routine should set user methods, and activate the physics module
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
 
     ! Choose coordinate system as 2D Cartesian with three components for vectors
     call set_coordinate_system("Cartesian_2.5D")
@@ -37,7 +35,6 @@ contains
 
   !> A routine for specifying initial conditions
   subroutine initial_conditions(ixI^L, ixO^L, w, x)
-    use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)

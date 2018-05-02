@@ -13,8 +13,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
     character(len=30) :: geometry
 
     usr_set_parameters => initglobaldata_usr
@@ -35,7 +33,6 @@ contains
 
   !> Read parameters from a file
   subroutine params_read(files)
-    use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
@@ -51,9 +48,7 @@ contains
 
 
   subroutine initglobaldata_usr
-    use mod_global_parameters
     double precision :: vc_tau, Mach=1.d0 ! fiducial value of the Mach # (see below)
-
     v0     = one ! default value
     rho0   = one ! default value
     vc_mu  = 1.d0 / Reynolds ! ( rho0 * v0 * (xprobmax2-xprobmin2) ) / Reynolds
@@ -78,8 +73,6 @@ contains
   end subroutine initglobaldata_usr
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -110,8 +103,6 @@ contains
 
   ! Top boundary sheared, bottom fixed
   subroutine my_bounds(qt,ixG^L,ixB^L,iB,w,x)
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L, ixB^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
@@ -179,7 +170,6 @@ contains
   end subroutine my_bounds
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-  use mod_global_parameters
   use mod_physics
   integer, intent(in)                :: ixI^L,ixO^L
   double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -197,16 +187,12 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='divV'
 
   end subroutine specialvarnames_output
 
   subroutine no_vr(level,qt,ixI^L,ixO^L,w,x)
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixI^L,ixO^L,level
     double precision, intent(in) :: qt

@@ -6,9 +6,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     unit_length        = 1.d9                                         ! cm
     unit_temperature   = 1.d6                                         ! K
     unit_numberdensity = 1.d9                                         ! cm^-3
@@ -22,8 +19,6 @@ contains
   end subroutine usr_init
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)

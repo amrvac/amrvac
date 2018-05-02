@@ -26,8 +26,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
     use mod_initialize
 
     unit_length        = 1.d0
@@ -54,7 +52,6 @@ contains
 
   !> Read parameters from a file
   subroutine params_read(files)
-    use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
@@ -71,8 +68,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -105,7 +100,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine generate_particles(n_particles, x, v, q, m, follow)
-    use mod_global_parameters
     use mod_particles
     integer, intent(in)           :: n_particles
     double precision, intent(out) :: x(3, n_particles)
@@ -131,7 +125,6 @@ contains
 
   ! Return field at location x (in SI units: Tesla, V/m)
   subroutine get_field(x, E, B)
-    use mod_global_parameters
     double precision, intent(in)  :: x(3)
     double precision, intent(out) :: E(3), B(3)
 
@@ -228,7 +221,6 @@ contains
   end subroutine get_particle
 
   subroutine set_custom_field(w, x, E_field, B_field)
-    use mod_global_parameters
     double precision, intent(in)  :: w(ixG^T,nw)
     double precision, intent(in)  :: x(ixG^T,ndim)
     double precision, intent(out) :: E_field(ixG^T, ndir)
@@ -253,7 +245,6 @@ contains
   end subroutine set_custom_field
 
   subroutine get_analytic_field(ix, x, tloc, vec)
-    use mod_global_parameters
     integer, intent(in)           :: ix(ndir) !< Indices in gridvars
     double precision, intent(in)  :: x(ndir)
     double precision, intent(in)  :: tloc

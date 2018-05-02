@@ -8,9 +8,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     unit_length        = 1.d9                                         ! cm
     unit_temperature   = 1.d6                                         ! K
     unit_numberdensity = 1.d9                                         ! cm^-3
@@ -27,8 +24,6 @@ contains
   end subroutine usr_init
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -68,8 +63,6 @@ contains
   ! these auxiliary values need to be stored in the nw+1:nw+nwauxio slots
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -90,24 +83,18 @@ contains
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='L'
 
   end subroutine specialvarnames_output
 
   subroutine userspecialconvert(qunitconvert)
-    use mod_global_parameters
     integer, intent(in) :: qunitconvert
-
     call spatial_integral
 
   end subroutine userspecialconvert
 
   subroutine spatial_integral
-    use mod_global_parameters
-
     double precision :: dvolume(ixG^T), timephy,xmom,ymom
     double precision, allocatable :: integral_ipe(:), integral_w(:)
 
@@ -180,8 +167,6 @@ contains
   end subroutine spatial_integral
 
   double precision function integral_grid(ixI^L,ixO^L,w,x,dvolume,intval,patchwi)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L,intval
     double precision, intent(in)       :: x(ixI^S,1:ndim),dvolume(ixI^S)
     double precision, intent(in)       :: w(ixI^S,nw)
@@ -229,7 +214,6 @@ contains
   end function integral_grid
 
   subroutine usrprocess_global(iit,qt)
-    use mod_global_parameters
     integer, intent(in)          :: iit
     double precision, intent(in) :: qt
 
@@ -254,8 +238,6 @@ contains
   end subroutine usrprocess_global
 
   logical function timetosaveusr(ifile)
-    use mod_global_parameters
-
     integer:: ifile
     logical:: oksave
 
@@ -270,7 +252,6 @@ contains
   end function timetosaveusr
 
   subroutine usrprocess_grid(ixI^L,ixO^L,qt,w,x,integral)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)

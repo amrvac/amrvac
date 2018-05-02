@@ -11,7 +11,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
 
     call set_coordinate_system("Cartesian_2D")
 
@@ -22,9 +21,7 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    use mod_global_parameters
     use mod_dust
-
     double precision :: r(0:dust_n_species)
     double precision :: dsdust(dust_n_species)
     integer          :: i
@@ -83,9 +80,7 @@ contains
 
   ! initialize one grid
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-    use mod_global_parameters
     use mod_dust
-
     integer, intent(in)             :: ixG^L, ix^L
     double precision, intent(in)    :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)

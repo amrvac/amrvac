@@ -5,9 +5,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     usr_init_one_grid => initonegrid_usr
 
     call set_coordinate_system("Cartesian_2.5D")
@@ -18,8 +15,6 @@ contains
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L,ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -75,8 +70,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine rotate(ixG^L,ix^L,v,vrot,alpha,beta)
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L,ix^L
     double precision, intent(in) :: v(ixG^S,1:3)
     double precision, intent(out) :: vrot(ixG^S,1:3)

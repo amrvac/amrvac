@@ -12,9 +12,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     call set_coordinate_system("Cartesian_3D")
  
     unit_length        = 1.d9 ! cm
@@ -33,8 +30,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr()
-    use mod_global_parameters
-
     ! solar gravity
     usr_grav=-2.74d4*unit_length/unit_velocity**2  
     ! magnetic field strength at the bottom
@@ -62,7 +57,6 @@ contains
   end subroutine initglobaldata_usr
  
   subroutine init_b_fff_usr(qnx1,qnx2)
-    use mod_global_parameters
     double precision :: dxm1,dxm2,delx1,delx2,xo1,xo2,yo1,yo2,coB,xoff,yoff
     double precision :: gzonex,gzoney,yrangeh
     integer :: i1,i2,qnx1,qnx2
@@ -118,7 +112,6 @@ contains
 
   subroutine init_usr_bc
   ! prepare fixed bottom boundary condition at highest resolution
-    use mod_global_parameters
     double precision, allocatable :: tmp(:,:,:),bre(:,:,:)
     double precision, allocatable :: x1bc(:),x2bc(:)
     double precision :: spc,vmax,rhobb,coeffrho,vdr
@@ -279,7 +272,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -300,7 +292,6 @@ contains
 
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
-    use mod_global_parameters
     use mod_physics
     integer, intent(in) :: ixO^L, iB, ixI^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
@@ -425,7 +416,6 @@ contains
   end subroutine specialbound_usr
 
   subroutine getggrav(ggrid,ixI^L,ixO^L,x)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: ggrid(ixI^S)
@@ -434,7 +424,6 @@ contains
   end subroutine
 
   subroutine gravity(ixI^L,ixO^L,wCT,x,gravity_field)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(in)    :: wCT(ixI^S,1:nw)
@@ -449,8 +438,6 @@ contains
   subroutine special_refine_grid(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
   ! Enforce additional refinement or coarsening
   ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixI^L, ixO^L
     double precision, intent(in) :: qt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
@@ -463,7 +450,6 @@ contains
   end subroutine special_refine_grid
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-    use mod_global_parameters
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -501,9 +487,7 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='Alfv divB beta j1 j2 j3'
   end subroutine specialvarnames_output
 

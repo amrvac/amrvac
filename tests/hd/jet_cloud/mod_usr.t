@@ -32,7 +32,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
 
     usr_init_one_grid => initonegrid_usr
     usr_special_bc => specialbound_usr
@@ -43,8 +42,6 @@ contains
 
   ! initialize one grid
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L,ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -105,8 +102,6 @@ contains
   ! special boundary types, user defined
   ! user must assign conservative variables in bounderies
   subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ixO^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)

@@ -5,9 +5,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     usr_init_one_grid => initonegrid_usr
     usr_special_bc    => specialbound_usr
     usr_aux_output    => specialvar_output
@@ -21,8 +18,6 @@ contains
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -120,8 +115,6 @@ contains
 
   subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ixO^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -239,8 +232,6 @@ contains
     ! coarsen = -1 enforce to not coarsen
     ! coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
@@ -257,8 +248,6 @@ contains
     ! these auxiliary values need to be stored in the nw+1:nw+nwauxio slots
     ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with 
     ! corresponding normalization values (default value 1)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -275,9 +264,7 @@ contains
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the varnames/primnames string
-  use mod_global_parameters
   character(len=*) :: varnames 
-
   varnames='jz'
 
   end subroutine specialvarnames_output

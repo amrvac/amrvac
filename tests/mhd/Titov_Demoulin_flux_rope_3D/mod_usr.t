@@ -7,9 +7,6 @@ module mod_usr
 contains                                
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     call set_coordinate_system("Cartesian_3D")
  
     unit_length        = 5.d9 ! cm
@@ -27,8 +24,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    use mod_global_parameters
-
     character(len=20) :: printsettingformat  
     double precision :: Itube, Nt_TD99
     
@@ -130,8 +125,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
-    
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -229,8 +222,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L, iB
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -367,8 +358,6 @@ contains
     ! coarsen = -1 enforce to not coarsen
     ! coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-    use mod_global_parameters
-    
     integer, intent(in) :: igrid, level, ixI^L, ixO^L
     double precision, intent(in) :: qt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
@@ -416,8 +405,6 @@ contains
   end subroutine specialrefine_grid
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -459,9 +446,7 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
     character(len=*) varnames
-
     varnames='T j divb safq j1 j2 j3'
 
   end subroutine specialvarnames_output

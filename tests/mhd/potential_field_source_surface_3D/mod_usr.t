@@ -7,9 +7,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
-    use mod_global_parameters
-
     unit_length=6.955d10 !cm
     unit_numberdensity=1.d9 !cm^-3
     unit_temperature=1.d6 !K
@@ -26,8 +23,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr 
-    use mod_global_parameters
-
     usr_grav=-2.74d4*unit_length/unit_velocity**2
 
     ! base density and temperature
@@ -42,8 +37,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     !initialize one grid within ixI^L
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -90,7 +83,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine gravity(ixI^L,ixO^L,wCT,x,gravity_field)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(in)    :: wCT(ixI^S,1:nw)
@@ -104,8 +96,6 @@ contains
   end subroutine gravity
 
   subroutine getggrav(ggrid,ixI^L,ixO^L,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(out) :: ggrid(ixI^S)
@@ -120,8 +110,6 @@ contains
   end subroutine getggrav
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -135,8 +123,6 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
-
     character(len=*) varnames
 
     varnames='br bth bph'

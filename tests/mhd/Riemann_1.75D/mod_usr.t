@@ -5,9 +5,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     usr_set_parameters=> initglobaldata_usr
     usr_init_one_grid => initonegrid_usr
 
@@ -17,8 +14,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    use mod_global_parameters
-
     select case(iprob)
      case(21)
        mhd_gamma=2.0d0
@@ -28,8 +23,6 @@ contains
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
     ! initialize one grid 
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L,ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)

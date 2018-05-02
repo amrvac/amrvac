@@ -5,9 +5,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
@@ -20,8 +17,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -57,8 +52,6 @@ contains
     !
     ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with 
     ! corresponding normalization values (default value 1)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -77,9 +70,7 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='divb jz'
 
   end subroutine specialvarnames_output

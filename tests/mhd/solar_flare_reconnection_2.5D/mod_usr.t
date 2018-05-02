@@ -6,9 +6,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     call set_coordinate_system("Cartesian_2.5D")
 
     unit_length        = 1.d9 ! cm
@@ -40,7 +37,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -72,7 +68,6 @@ contains
 
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
-    use mod_global_parameters
     integer, intent(in) :: ixO^L, iB, ixI^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -162,7 +157,6 @@ contains
   end subroutine specialbound_usr
 
   subroutine p_for_errest(ixI^L,ixO^L,iflag,w,x,var)
-    use mod_global_parameters
     integer, intent(in)           :: ixI^L,ixO^L,iflag
     double precision, intent(in)  :: w(ixI^S,1:nw),x(ixI^S,1:ndim)
     double precision, intent(out) :: var(ixI^S)
@@ -178,7 +172,6 @@ contains
   !
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
-    use mod_global_parameters
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -217,15 +210,12 @@ contains
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='Te Alfv divB beta j1 j2 j3 eta'
   end subroutine specialvarnames_output
 
   subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
   ! Here add a time-independent background magnetic field
-    use mod_global_parameters
     integer, intent(in)           :: ixI^L,ixO^L
     double precision, intent(in)  :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: wB0(ixI^S,1:ndir)
@@ -238,7 +228,6 @@ contains
 
   subroutine specialset_J0(ixI^L,ixO^L,x,wJ0)
   ! Here add a time-independent background current density 
-    use mod_global_parameters
     integer, intent(in)           :: ixI^L,ixO^L
     double precision, intent(in)  :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:ndir)
@@ -252,7 +241,6 @@ contains
   subroutine special_eta(w,ixI^L,ixO^L,idirmin,x,current,eta)
     ! Set the common "eta" array for resistive MHD based on w or the
     ! "current" variable which has components between idirmin and 3.
-    use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L, idirmin
     double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
     double precision :: current(ixI^S,7-2*ndir:3), eta(ixI^S)
@@ -289,7 +277,6 @@ contains
     end subroutine special_eta
 
   subroutine usrspecial_convert(qunitconvert)
-    use mod_global_parameters
     integer, intent(in) :: qunitconvert
     character(len=20):: userconvert_type
   
@@ -297,8 +284,6 @@ contains
   end subroutine usrspecial_convert
 
   subroutine spatial_integral_w
-    use mod_global_parameters
-
     double precision :: dvolume(ixG^T), dsurface(ixG^T),timephy,dvone
     double precision, allocatable :: integral_ipe(:), integral_w(:)
 
@@ -384,8 +369,6 @@ contains
   end subroutine spatial_integral_w
 
   subroutine mask_grid(ixI^L,ixO^L,w,x,patchwi,cellcount)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -409,8 +392,6 @@ contains
   end subroutine mask_grid
 
   function integral_grid(ixI^L,ixO^L,w,x,dvolume,dsurface,intval,patchwi)
-    use mod_global_parameters
-    
     integer, intent(in)                :: ixI^L,ixO^L,intval
     double precision, intent(in)       :: x(ixI^S,1:ndim),dvolume(ixG^T),dsurface(ixG^T)
     double precision, intent(in)       :: w(ixI^S,nw)

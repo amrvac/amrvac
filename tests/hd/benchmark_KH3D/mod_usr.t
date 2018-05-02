@@ -14,9 +14,7 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
 
-    usr_init_one_grid => initonegrid_usr
     call set_coordinate_system("Cartesian_3D")
 
     call hd_activate()
@@ -24,8 +22,6 @@ contains
   end subroutine usr_init
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in)             :: ixG^L, ix^L
     double precision, intent(in)    :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)

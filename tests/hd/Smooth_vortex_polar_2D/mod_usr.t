@@ -11,8 +11,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
     use mod_variables
 
     usr_init_one_grid => SV_init_one_grid
@@ -31,8 +29,6 @@ contains
 
   ! Initialize one grid
   subroutine SV_init_one_grid(ixG^L,ix^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -57,7 +53,6 @@ contains
   end subroutine SV_init_one_grid
 
   elemental function p_solution(rad) result(val)
-    use mod_global_parameters
     real(dp), intent(in) :: rad
     real(dp)             :: val
     real(dp) :: p0
@@ -67,7 +62,6 @@ contains
   end function p_solution
 
   elemental function vphi_solution(rad) result(val)
-    use mod_global_parameters
     real(dp), intent(in) :: rad
     real(dp)             :: val
 
@@ -76,7 +70,6 @@ contains
   end function vphi_solution
 
   subroutine set_error(igrid,level,ixI^L,ixO^L,qt,w,x)
-    use mod_global_parameters
     integer, intent(in)             :: igrid,level,ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -89,9 +82,7 @@ contains
   end subroutine set_error
 
   subroutine print_error()
-    use mod_global_parameters
     use mod_input_output, only: get_volume_average, get_global_maxima
-
     double precision   :: modes(nw, 2), volume
     double precision   :: maxvals(nw)
 
@@ -116,8 +107,6 @@ contains
     ! coarsen = -1 enforce to not coarsen
     ! coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen

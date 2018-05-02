@@ -10,9 +10,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     call set_coordinate_system("Cartesian_2.5D")
 
     unit_length        = 1.d9                                         ! cm
@@ -33,8 +30,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr()
-    use mod_global_parameters
-
     heatunit=unit_pressure/unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
 
     usr_grav=-2.74d4*unit_length/unit_velocity**2 ! solar gravity
@@ -53,8 +48,6 @@ contains
 
   subroutine inithdstatic
   !! initialize the table in a vertical line through the global domain
-    use mod_global_parameters
-    
     integer :: j,na,nb,ibc
     double precision, allocatable :: Ta(:),gg(:)
     double precision:: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,Ttr,Fc,invT,kappa
@@ -113,8 +106,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -152,8 +143,6 @@ contains
 
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
-    use mod_global_parameters
-
     integer, intent(in) :: ixO^L, iB, ixI^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -219,7 +208,6 @@ contains
   end subroutine specialbound_usr
 
   subroutine gravity(ixI^L,ixO^L,wCT,x,gravity_field)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(in)    :: wCT(ixI^S,1:nw)
@@ -234,7 +222,6 @@ contains
   end subroutine gravity
 
   subroutine getggrav(ggrid,ixI^L,ixO^L,x)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: ggrid(ixI^S)
@@ -243,8 +230,6 @@ contains
   end subroutine
 
   subroutine special_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in) :: qdt, qtC, qt
     double precision, intent(in) :: x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -260,8 +245,6 @@ contains
 
   subroutine getbQ(bQgrid,ixI^L,ixO^L,qt,w,x)
   ! calculate background heating bQ
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim), w(ixI^S,1:nw)
 
@@ -274,8 +257,6 @@ contains
   subroutine special_refine_grid(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
   ! Enforce additional refinement or coarsening
   ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixI^L, ixO^L
     double precision, intent(in) :: qt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
@@ -294,9 +275,7 @@ contains
   ! these auxiliary values need to be stored in the nw+1:nw+nwauxio slots
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
-    use mod_global_parameters
     use mod_radiative_cooling
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -347,9 +326,7 @@ contains
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='Te Alfv divB beta bQ rad j1 j2 j3'
 
   end subroutine specialvarnames_output
@@ -357,8 +334,6 @@ contains
   subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
   ! Here add a steady (time-independent) potential or 
   ! linear force-free background field
-    use mod_global_parameters
-
     integer, intent(in)           :: ixI^L,ixO^L
     double precision, intent(in)  :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: wB0(ixI^S,1:ndir)

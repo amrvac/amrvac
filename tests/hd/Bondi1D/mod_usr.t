@@ -6,7 +6,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
 
     call set_coordinate_system('spherical')
 
@@ -24,8 +23,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-
-    use mod_global_parameters
 
     ! hd_gamma=5.d0/3.d0
     ! hd_adiab=one/hd_gamma
@@ -51,7 +48,6 @@ contains
 
     ! initialize one grid
 
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -98,8 +94,6 @@ contains
 
   subroutine pt_grav_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in) :: qdt, qtC, qt
     double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -111,8 +105,6 @@ contains
   end subroutine pt_grav_source
 
   subroutine get_dt_pt_grav(w,ixG^L,ix^L,dtnew,dx^D,x)
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: dx^D, x(ixG^S,1:ndim)
@@ -127,8 +119,6 @@ contains
   subroutine specialbound_usr(qt,ixG^L,ixB^L,iB,w,x)
 
     ! special boundary types, user defined
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L, ixB^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
@@ -218,8 +208,6 @@ contains
     ! coarsen = -1 enforce to not coarsen
     ! coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
@@ -233,8 +221,6 @@ contains
   end subroutine specialrefine_grid
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-  use mod_global_parameters
-
   integer, intent(in)                :: ixI^L,ixO^L
   double precision, intent(in)       :: x(ixI^S,1:ndim)
   double precision                   :: w(ixI^S,nw+nwauxio)
@@ -247,9 +233,7 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='Mach Mdot Berny'
 
   end subroutine specialvarnames_output

@@ -5,9 +5,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
@@ -20,8 +17,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid 
-    use mod_global_parameters
-    
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -111,8 +106,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -127,15 +120,12 @@ contains
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
     character(len=*) :: varnames
-
     varnames='divB'
 
   end subroutine specialvarnames_output
 
   subroutine transformw(ixI^L,ixO^L,nw_in,w_in,x,w_out)
-    use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L, nw_in
     double precision, intent(in)  :: w_in(ixI^S,1:nw_in)
     double precision, intent(in)  :: x(ixI^S, 1:ndim)

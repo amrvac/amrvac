@@ -8,9 +8,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     call set_coordinate_system("Cartesian")
 
     usr_set_parameters  => initglobaldata_usr
@@ -25,8 +22,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    use mod_global_parameters
-
     integer:: mpoly
     double precision:: zeta0,rhat,sigma,zz0,qchand
     double precision:: gamma, qchi, qmpoly, eta2
@@ -122,8 +117,6 @@ contains
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L,ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -178,8 +171,6 @@ contains
 
   subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
-    use mod_global_parameters
-
     integer, intent(in) :: ixO^L, iB, ixG^L
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -333,7 +324,6 @@ contains
 
   ! Calculate gravitational acceleration in each dimension
   subroutine gravity(ixI^L,ixO^L,wCT,x,gravity_field)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(in)    :: wCT(ixI^S,1:nw)
@@ -347,8 +337,6 @@ contains
   subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
     ! Enforce additional refinement or coarsening
     ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ix^L, ixG^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
@@ -367,8 +355,6 @@ contains
     !
     ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
     ! corresponding normalization values (default value 1)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -395,9 +381,7 @@ contains
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
-  use mod_global_parameters
   character(len=*) :: varnames
-
   varnames='Te B divB beta j3'
 
   end subroutine specialvarnames_output

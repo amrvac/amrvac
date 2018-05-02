@@ -6,7 +6,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
 
     usr_init_one_grid => rm1d_init_one_grid
 
@@ -17,8 +16,6 @@ contains
 
   ! Initialize one grid
   subroutine rm1d_init_one_grid(ixG^L,ix^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)

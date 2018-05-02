@@ -6,7 +6,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
 
     usr_set_parameters=> initglobaldata_usr
     usr_init_one_grid => initonegrid_usr
@@ -19,8 +18,6 @@ contains
 
   subroutine initglobaldata_usr
     
-    use mod_global_parameters
-    
     hd_gamma=1.4d0
     rhoj=hd_gamma
     eta=10.d0
@@ -31,8 +28,6 @@ contains
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
 
     ! initialize one grid 
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
@@ -57,8 +52,6 @@ contains
   subroutine specialbound_usr(qt,ixG^L,ixB^L,iB,w,x)
 
     ! special boundary types, user defined
-
-    use mod_global_parameters
 
     integer, intent(in) :: ixG^L, ixB^L, iB
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
@@ -103,8 +96,6 @@ contains
     ! coarsen = -1 enforce to not coarsen
     ! coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-
-    use mod_global_parameters
 
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)

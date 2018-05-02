@@ -7,9 +7,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
-
     usr_set_parameters=> initglobaldata_usr
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
@@ -22,8 +19,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    use mod_global_parameters
-
     sheetl=1.0d0
     rhorat=0.1d0
     BB0=1.0d0
@@ -59,8 +54,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_global_parameters
-    
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -127,8 +120,6 @@ contains
   subroutine specialrefine_grid(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
     ! Enforce additional refinement or coarsening
     ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixI^L, ixO^L
     double precision, intent(in) :: qt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
@@ -153,8 +144,6 @@ contains
   !
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
-    use mod_global_parameters
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
@@ -200,9 +189,7 @@ contains
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables to be concatenated with the primnames/w_names string
-    use mod_global_parameters
     character(len=*) :: varnames
-    
     varnames='jz schlier curlvz'
 
   end subroutine specialvarnames_output

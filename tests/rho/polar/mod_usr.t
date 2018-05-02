@@ -8,7 +8,6 @@ module mod_usr
 contains
 
   subroutine usr_init()
-    use mod_usr_methods
     use mod_variables
 
     usr_init_one_grid => initonegrid_usr
@@ -25,9 +24,7 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
-    use mod_global_parameters
     use mod_physics
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -56,8 +53,6 @@ contains
   end subroutine initonegrid_usr
 
   subroutine set_density_profile(ixI^L,ixO^L,qt,x,rhoprofile)
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: qt,x(ixI^S,1:ndim)
     double precision, intent(out) :: rhoprofile(ixI^S)
@@ -104,8 +99,6 @@ contains
   end subroutine set_density_profile
 
   subroutine store_sol_err(igrid,level,ixI^L,ixO^L,qt,w,x)
-    use mod_global_parameters
-
     integer, intent(in)             :: igrid,level,ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -118,7 +111,6 @@ contains
   end subroutine store_sol_err
 
   subroutine print_min_max()
-    use mod_global_parameters
     use mod_input_output, only: get_global_minima, get_global_maxima, &
                                 get_volume_average
     double precision   :: minvals(nw),maxvals(nw)
@@ -149,8 +141,6 @@ contains
     ! coarsen = -1 enforce to not coarsen
     ! coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen

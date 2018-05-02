@@ -13,7 +13,6 @@ contains
 
   !> Read this module's parameters from a file
   subroutine usr_params_read(files)
-    use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
@@ -28,8 +27,6 @@ contains
   end subroutine usr_params_read
 
   subroutine usr_init()
-    use mod_global_parameters
-    use mod_usr_methods
     use mod_variables
 
     call usr_params_read(par_files)
@@ -50,8 +47,6 @@ contains
 
   ! Initialize one grid
   subroutine GC_init_one_grid(ixG^L,ix^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
@@ -79,7 +74,6 @@ contains
   end subroutine GC_init_one_grid
 
   elemental function p_solution(x, y, xc, yc) result(val)
-    use mod_global_parameters
     real(dp), intent(in) :: x, y, xc, yc
     real(dp)             :: val
     real(dp) :: p0,rad
@@ -98,7 +92,6 @@ contains
   end function p_solution
 
   elemental function vphi_solution(x, y, xc, yc) result(val)
-    use mod_global_parameters
     real(dp), intent(in) :: x, y, xc, yc
     real(dp)             :: val
     real(dp) :: rad
@@ -116,7 +109,6 @@ contains
   end function vphi_solution
 
   subroutine set_error(igrid,level,ixI^L,ixO^L,qt,w,x)
-    use mod_global_parameters
     integer, intent(in)             :: igrid,level,ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -152,7 +144,6 @@ contains
   end subroutine set_error
 
   subroutine print_error()
-    use mod_global_parameters
     use mod_input_output, only: get_volume_average
     double precision   :: modes(nw, 2), volume
 
@@ -175,8 +166,6 @@ contains
     ! coarsen = -1 enforce to not coarsen
     ! coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-    use mod_global_parameters
-
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
