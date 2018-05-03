@@ -32,6 +32,10 @@ vpath %.t $(SRC_DIRS)
 
 OBJECTS := $(FOBJECTS:.t=.o) $(INCLUDES:.t=.o)
 
+ifneq ($(NDIM), 1)
+include $(AMRVAC_DIR)/external_libs/octree-mg/coupling_amrvac/coupling.make
+endif
+
 $(LIB_AMRVAC): $(OBJECTS)
 	$(RM) $@
 	$(AR) rcs $@ $^
