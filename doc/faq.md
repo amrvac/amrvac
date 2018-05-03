@@ -126,3 +126,27 @@ If you encounter this problem on your own machine, you can try to:
 1. Change compilers: Use the version of gfortran that MPI was compiled with
 2. Reinstall your MPI library, or install a different one (e.g. MPICH or OpenMPI), which is then hopefully compiled with the right version of GCC/gfortran.
 3. Install an operating system with working package management, e.g. Debian ;)
+
+# Can the MHD module handle Hall-MHD? {#faq-hall-mhd}
+
+The MPI-AMRVAC code has Hall-MHD included, as detailed in some of our publications, e.g. in the method paper 
+
+* `MPI-AMRVAC for Solar and Astrophysics', O. Porth, C. Xia, T. Hendrix, S.P. Moschou, & R. Keppens, 2014, ApJS 214,4 [doi:10.1088/0067-0049/214/1/4](http://dx.doi.org/10.1088/0067-0049/214/1/4)
+
+or also in the Kelvin-Helmholtz related application paper 
+
+* `On the influence of environmental parameters on mixing and reconnection caused by the Kelvin-Helmholtz instability at the magnetopause', M.H.J. Leroy & R. Keppens, 2017, PoP 24, 012906 (15pp), [doi:10.1063/1.4974758](http://dx.doi.org/10.1063/1.4974758)
+
+The implementation details are given in the first reference (Porth et al.), and although it works properly on several tests and applications, we note that the time step constraint of our explicit implementation may become prohibitive for particular applications. We just limit the CFL according to \f$\Delta t < \Delta x/ c_w\f$, with time step and spatial step linked by the speed \f$c_w\f$, but in that speed we set \f$c_w= |v|+\max(c_{fast}, \eta_h B/\rho * k_{max})\f$ and \f$k_{max}\f$ is the maximal wavenumber we can represent (i.e. linked to \f$\Delta x\f$). The dispersive nature of the Hall-MHD system may then make \f$\Delta t\f$ going like \f$\Delta x^2\f$, and this limits the current implementation.
+
+In the new version MPI-AMRVAC 2.0, the Hall effect is included when setting the following in the `mhd_list` namelist part
+
+```{fortran}
+&mhd_list
+      mhd_Hall=.true.
+      mhd_etah=  .... (some positive number, quantifying the hall parameter)
+/
+```
+
+In the same namelist, the optional logical `mhd_4th_order=.true.`
+implies a 4th order evaluation for currents, default it is only second order. In any case, you may also need to activate an additional ghost cell layer (or 2 for 4th-order evaluations), through setting appropriately the parameter `nghostcells`.
