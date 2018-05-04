@@ -8,16 +8,9 @@ Below you can find a list of frequently asked questions and answers.
 
 # Is there a mailinglist? {#faq-mailinglist}
 
-Yes, we now have a mailinglist, which is used to:
+Yes, we have a mailinglist that you can send questions to: <mailto:amrvacusers@ls.kuleuven.be>
 
-* Keep you updated on important (bug)fixes
-* Announce new features or changes
-* Post general questions
-
-You can join the mailing-list
-by [subscribing](https://ls.kuleuven.be/cgi-bin/wa?SUBED1=AMRVACUSERS&A=1). Then
-you will be able to send and receive mails
-from <mailto:amrvacusers@ls.kuleuven.be>.
+You can join the mailing-list by [subscribing](https://ls.kuleuven.be/cgi-bin/wa?SUBED1=AMRVACUSERS&A=1), so that you will be informed about important changes or (bug)fixes. You can also search the [mailing list archive](https://ls.kuleuven.be/cgi-bin/wa?A0=AMRVACUSERS).
 
 # I am a user of old MPI-AMRVAC. How can I switch to MPI-AMRVAC 2.0? {#faq-new-version}
 
@@ -55,6 +48,20 @@ typelimiter1 | limiter
 fix_small | check_small_values
 strictsmall, strictgetaux | Removed
 typedivbfix | Has been moved to `mhd_list`, see @ref par.MD
+
+# Variable names in AMRVAC 2.0 {#faq-varnames}
+
+Here are some of the variable names that were changed. Note that e.g. `v1_` en `m1_` were also identical in older version of AMRVAC, as they refer to the same variable (but in primitive/conservative form).
+
+Old name | New name
+---|---
+`m1_` | mom(1)
+`m2_` | mom(2)
+`v1_` | mom(1)
+`b1_` | mag(1)
+`tr1_` | tracer(1)
+
+The variables `e_` (or equivalently, `p_`) and `rho_` have the same name.
 
 # Is there a way I can define my own paramaters somewhere in mod_usr.t and configure them through `amrvac.par` ? {#faq-own-parameters}
 
