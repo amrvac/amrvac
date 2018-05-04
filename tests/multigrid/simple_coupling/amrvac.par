@@ -1,0 +1,55 @@
+ &filelist
+        base_filename='test'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.05d0
+        dtsave_dat=0.05d0
+ /
+
+ &stoplist
+        time_max=1.0d0
+ /
+
+ &methodlist
+        time_integrator=  'threestep'
+        flux_scheme =    20*'tvdlf'
+        limiter= 20*'koren'
+ /
+
+ &boundlist
+        ! typeboundary_min1='asymm'
+        ! typeboundary_max1='asymm'
+        ! typeboundary_min2='asymm'
+        ! typeboundary_max2='asymm'
+        typeboundary_min1='periodic'
+        typeboundary_max1='periodic'
+        typeboundary_min2='periodic'
+        typeboundary_max2='periodic'
+ /
+
+ &meshlist
+        refine_max_level=4
+        refine_threshold=20*0.1d1
+        block_nx1=8
+        block_nx2=8
+        domain_nx1=32
+        domain_nx2=32
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /
+
+ &paramlist
+       courantpar=0.8d0
+ /
+
+ &rho_list
+        rho_v = 0.0,0.0
+ /
+ 
