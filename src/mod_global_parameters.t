@@ -341,6 +341,9 @@ module mod_global_parameters
   !> Use particles module or not
   logical :: use_particles=.false.
 
+  !> Use multigrid (only available in 2D and 3D)
+  logical :: use_multigrid = .false.
+
   ! AMR switches
 
   !> The maximum number of grid blocks in a processor

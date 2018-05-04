@@ -57,3 +57,7 @@ allclean: clean
 amrvac: mod_usr.o amrvac.o
 amrvac.o mod_usr.o: $(LIB_AMRVAC)
 amrvac.o: mod_usr.o
+
+ifneq ($(NDIM), 1)
+mod_usr.o: mod_multigrid_coupling.mod
+endif
