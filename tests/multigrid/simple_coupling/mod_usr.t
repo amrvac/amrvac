@@ -20,7 +20,6 @@ contains
     use_multigrid = .true.
     usr_process_global => compute_phi
 
-    mg%n_extra_vars = 1
     mg%operator_type = mg_vlaplacian
     mg_after_new_tree => set_epsilon
 
@@ -48,22 +47,16 @@ contains
          sin(2 * pi * x(ix^S, 2))
 
     ! Set variable coefficient (should be smooth)
-    w(ix^S, my_eps) = 2 + &
-         cos(2 * pi * x(ix^S, 1)) * &
-         cos(2 * pi * x(ix^S, 2))
+    ! w(ix^S, my_eps) = 2 + &
+    !      cos(2 * pi * x(ix^S, 1)) * &
+    !      cos(2 * pi * x(ix^S, 2))
+    w(ix^S, my_eps) = exp(10*x(ix^S, 1))
   end subroutine initial_conditions
 
   subroutine set_epsilon()
-    integer :: tmp(num_neighbors)
-    call mg_copy_to_tree_gc(my_eps, mg_iveps)
+    call mg_copy_to_tree(my_eps, mg_iveps)
     call mg_restrict(mg, mg_iveps)
-
-    ! Have to set boundary conditions for epsilon (because the scheme uses
-    ! epsilon in ghost cells)
-    tmp = mg%bc(:)%bc_type
-    mg%bc(:)%bc_type = bc_neumann
     call mg_fill_ghost_cells(mg, mg_iveps)
-    mg%bc(:)%bc_type = tmp
   end subroutine set_epsilon
 
   subroutine compute_phi(iit,qt)
