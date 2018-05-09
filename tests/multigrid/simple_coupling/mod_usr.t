@@ -54,9 +54,7 @@ contains
   end subroutine initial_conditions
 
   subroutine set_epsilon()
-    call mg_copy_to_tree(my_eps, mg_iveps)
-    call mg_restrict(mg, mg_iveps)
-    call mg_fill_ghost_cells(mg, mg_iveps)
+    call mg_copy_to_tree(my_eps, mg_iveps, .true., .true.)
   end subroutine set_epsilon
 
   subroutine compute_phi(iit,qt)

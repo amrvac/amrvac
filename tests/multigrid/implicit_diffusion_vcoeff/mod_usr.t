@@ -5,6 +5,7 @@ module mod_usr
   implicit none
 
   integer             :: i_sol
+  integer             :: i_eps
   integer             :: i_err
   real(dp), parameter :: pi = acos(-1.0_dp)
   real(dp), parameter :: diffusion_coeff = 0.2_dp
@@ -20,10 +21,11 @@ contains
     usr_init_one_grid => initial_conditions
 
     use_multigrid = .true.
-    phys_global_source => diffuse_density_crank_nicolson
+    phys_global_source => diffuse_density
     usr_process_grid => set_error
+    mg_after_new_tree => set_epsilon
 
-    mg%operator_type = mg_helmholtz
+    mg%operator_type = mg_vhelmholtz
     mg%bc(:, mg_iphi)%bc_type = bc_neumann
     mg%bc(:, mg_iphi)%bc_value = 0.0d0
 
@@ -32,6 +34,7 @@ contains
 
     i_sol = var_set_extravar("sol", "sol")
     i_err = var_set_extravar("err", "err")
+    i_eps = var_set_extravar("eps", "eps")
 
   end subroutine usr_init
 
@@ -42,6 +45,7 @@ contains
     double precision, intent(inout) :: w(ixG^S, 1:nw)
 
     w(ix^S, rho_) = solution(x(ix^S, 1), x(ix^S, 2), 0.0d0)
+    w(ix^S, i_eps) = diffusion_coeff + 1.0 * x(ix^S, 1)
 
   end subroutine initial_conditions
 
@@ -84,8 +88,8 @@ contains
     double precision             :: max_res
 
     call mg_copy_to_tree(rho_, mg_iphi, .true., .true.)
-    call helmholtz_set_lambda(1/(qdt * diffusion_coeff))
-    call set_rhs(-1/(qdt * diffusion_coeff))
+    call vhelmholtz_set_lambda(1/qdt)
+    call set_rhs(-1/qdt)
 
     call mg_fas_vcycle(mg)
     call mg_fas_vcycle(mg, max_res=max_res)
@@ -127,10 +131,10 @@ contains
     double precision             :: max_res
 
     call mg_copy_to_tree(rho_, mg_iphi, .true., .true.)
-    call helmholtz_set_lambda(0.0d0)
+    call vhelmholtz_set_lambda(0.0d0)
     call mg_apply_op(mg, mg_irhs)
-    call helmholtz_set_lambda(2/(qdt * diffusion_coeff))
-    call set_rhs_cn(-2/(qdt * diffusion_coeff))
+    call vhelmholtz_set_lambda(2/qdt)
+    call set_rhs_cn(-2/qdt)
 
     call mg_fas_vcycle(mg)
     call mg_fas_vcycle(mg, max_res=max_res)
@@ -148,6 +152,10 @@ contains
     w(ixO^S,i_sol) = solution(x(ixO^S, 1), x(ixO^S, 2), qt)
     w(ixO^S,i_err) = abs(w(ixO^S,rho_) - w(ixO^S,i_sol))
   end subroutine set_error
+
+  subroutine set_epsilon()
+    call mg_copy_to_tree(i_eps, mg_iveps, .true., .true.)
+  end subroutine set_epsilon
 
 end module mod_usr
 
