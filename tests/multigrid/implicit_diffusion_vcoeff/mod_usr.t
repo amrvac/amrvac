@@ -58,91 +58,19 @@ contains
          exp(-sum((2 * pi * solution_modes)**2) * diffusion_coeff * t)
   end function solution
 
-  subroutine set_rhs(fac)
-    use mod_global_parameters
-    use mod_forest
-    double precision, intent(in) :: fac
-    integer                  :: iigrid, igrid, id
-    integer                  :: nc, lvl
-    type(tree_node), pointer :: pnode
-    real(dp)                 :: divb(ixG^T)
-
-    if (.not. mg%is_allocated) &
-         error stop "multigrid tree not allocated yet"
-
-    do iigrid = 1, igridstail
-       igrid =  igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-
-       mg%boxes(id)%cc(1:nc, 1:nc, mg_irhs) = pw(igrid)%w(ixM^T, rho_) * fac
-    end do
-  end subroutine set_rhs
-
   subroutine diffuse_density(qdt, qt, active)
+    use m_diffusion
     double precision, intent(in) :: qdt
     double precision, intent(in) :: qt
     logical, intent(inout)       :: active
     double precision             :: max_res
 
-    call mg_copy_to_tree(rho_, mg_iphi, .true., .true.)
-    call vhelmholtz_set_lambda(1/qdt)
-    call set_rhs(-1/qdt)
-
-    call mg_fas_vcycle(mg)
-    call mg_fas_vcycle(mg, max_res=max_res)
-    if (mype == 0) print *, it, "max residu:", max_res
-
+    call mg_copy_to_tree(rho_, mg_iphi, .false., .false.)
+    call diffusion_solve_vcoeff(mg, qdt, 1, 1d-4)
     call mg_copy_from_tree(mg_iphi, rho_)
+
     active = .true.
   end subroutine diffuse_density
-
-  subroutine set_rhs_cn(fac)
-    use mod_global_parameters
-    use mod_forest
-    double precision, intent(in) :: fac
-    integer                  :: iigrid, igrid, id
-    integer                  :: nc, lvl
-    type(tree_node), pointer :: pnode
-    real(dp)                 :: divb(ixG^T)
-
-    if (.not. mg%is_allocated) &
-         error stop "multigrid tree not allocated yet"
-
-    do iigrid = 1, igridstail
-       igrid =  igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-
-       mg%boxes(id)%cc(1:nc, 1:nc, mg_irhs) = &
-            -mg%boxes(id)%cc(1:nc, 1:nc, mg_irhs) + &
-            pw(igrid)%w(ixM^T, rho_) * fac
-    end do
-  end subroutine set_rhs_cn
-
-  subroutine diffuse_density_crank_nicolson(qdt, qt, active)
-    double precision, intent(in) :: qdt
-    double precision, intent(in) :: qt
-    logical, intent(inout)       :: active
-    double precision             :: max_res
-
-    call mg_copy_to_tree(rho_, mg_iphi, .true., .true.)
-    call vhelmholtz_set_lambda(0.0d0)
-    call mg_apply_op(mg, mg_irhs)
-    call vhelmholtz_set_lambda(2/qdt)
-    call set_rhs_cn(-2/qdt)
-
-    call mg_fas_vcycle(mg)
-    call mg_fas_vcycle(mg, max_res=max_res)
-    if (mype == 0) print *, it, "max residu:", max_res
-
-    call mg_copy_from_tree(mg_iphi, rho_)
-    active = .true.
-  end subroutine diffuse_density_crank_nicolson
 
   subroutine set_error(igrid,level,ixI^L,ixO^L,qt,w,x)
     integer, intent(in)             :: igrid,level,ixI^L,ixO^L
