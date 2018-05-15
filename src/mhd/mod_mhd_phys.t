@@ -89,6 +89,9 @@ module mod_mhd_phys
   !> Method type to clean divergence of B
   character(len=std_len) :: typedivbfix  = 'linde'
 
+  !> Whether divB is computed with a fourth order approximation
+  logical :: mhd_divb_4thorder = .false.
+
   !> Method type in a integer for good performance
   integer :: type_divb
 
@@ -121,6 +124,7 @@ module mod_mhd_phys
 
   ! DivB cleaning methods
   integer, parameter :: divb_none          = 0
+  integer, parameter :: divb_multigrid     = -1
   integer, parameter :: divb_glm1          = 1
   integer, parameter :: divb_glm2          = 2
   integer, parameter :: divb_glm3          = 3
@@ -130,6 +134,7 @@ module mod_mhd_phys
   integer, parameter :: divb_lindejanhunen = 7
   integer, parameter :: divb_lindepowel    = 8
   integer, parameter :: divb_lindeglm      = 9
+
 
   ! Public methods
   public :: mhd_phys_init
@@ -257,6 +262,9 @@ contains
     use mod_particles, only: particles_init
     use mod_magnetofriction, only: magnetofriction_init
     use mod_physics
+    {^NOONED
+    use mod_multigrid_coupling
+    }
 
     integer :: itr, idir
 
@@ -270,7 +278,15 @@ contains
     if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
     case ('none')
-      type_divb = divb_none
+       type_divb = divb_none
+    {^NOONED
+    case ('multigrid')
+       type_divb = divb_multigrid
+       use_multigrid = .true.
+       mg%operator_type = mg_laplacian
+       mhd_divb_4thorder = .true.
+       phys_global_source => mhd_clean_divb_multigrid
+    }
     case ('glm1')
        mhd_glm          = .true.
        need_global_cmax = .true.
@@ -1058,6 +1074,8 @@ contains
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
         call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+     case (divb_multigrid)
+        continue ! Do nothing
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1096,6 +1114,8 @@ contains
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
+     case (divb_multigrid)
+        continue ! Do nothing
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1433,7 +1453,7 @@ contains
     double precision :: gradPsi(ixI^S)
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb)
+    call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
     ! dPsi/dt =  - Ch^2/Cp^2 Psi
     if (mhd_glm_alpha < zero) then
@@ -1486,7 +1506,7 @@ contains
     double precision :: gradPsi(ixI^S)
 
     ! calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb)
+    call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
     ! calculate velocity
     call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
@@ -1578,7 +1598,7 @@ contains
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb)
+    call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
     ! calculate velocity
     call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
@@ -1615,7 +1635,7 @@ contains
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb)
+    call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
     ! b = b - qdt v * div b
     do idir=1,ndir
@@ -1640,7 +1660,7 @@ contains
 
     ! Calculate div B
     ixp^L=ixO^L^LADD1;
-    call get_divb(wCT,ixI^L,ixp^L,divb)
+    call get_divb(wCT,ixI^L,ixp^L,divb, mhd_divb_4thorder)
 
     ! for AMR stability, retreat one cell layer from the boarders of level jump
     {do i^DB=-1,1\}
@@ -1701,14 +1721,15 @@ contains
   end subroutine add_source_linde
 
   !> Calculate div B within ixO
-  subroutine get_divb(w,ixI^L,ixO^L,divb)
+  subroutine get_divb(w,ixI^L,ixO^L,divb, fourthorder)
 
     use mod_global_parameters
     use mod_geometry
 
-    integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: w(ixI^S,1:nw)
-    double precision                   :: divb(ixI^S)
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: w(ixI^S,1:nw)
+    double precision, intent(inout) :: divb(ixI^S)
+    logical, intent(in), optional   :: fourthorder
 
     double precision                   :: bvec(ixI^S,1:ndir)
 
@@ -1716,7 +1737,7 @@ contains
 
     select case(typediv)
     case("central")
-      call divvector(bvec,ixI^L,ixO^L,divb)
+      call divvector(bvec,ixI^L,ixO^L,divb,fourthorder)
     case("limited")
       call divvectorS(bvec,ixI^L,ixO^L,divb)
     end select
@@ -2518,6 +2539,101 @@ contains
        call mpistop("Special boundary is not defined for this region")
     end select
 
-   end subroutine fixdivB_boundary
+  end subroutine fixdivB_boundary
+
+  {^NOONED
+  subroutine mhd_clean_divb_multigrid(qdt, qt, active)
+    use mod_forest
+    use mod_multigrid_coupling
+    use mod_global_parameters
+    use mod_geometry
+    double precision, intent(in) :: qdt    !< Current time step
+    double precision, intent(in) :: qt     !< Current time
+    logical, intent(inout)       :: active !< Output if the source is active
+    integer                      :: iigrid, igrid, id
+    integer                      :: n, nc, lvl, ix^L, i^D, idim
+    type(tree_node), pointer     :: pnode
+    double precision             :: tmp(ixG^T), grad(ixG^T, ndim)
+    double precision             :: grad_vec(ndim), B_old(ndim), B_new(ndim)
+    double precision             :: en_diff, res
+    double precision, parameter  :: max_residual = 1d-3
+    integer, parameter           :: max_its      = 10
+
+    mg%operator_type = mg_laplacian
+
+    ! Set boundary conditions
+    do n = 1, 2*ndim
+       idim = (n+1)/2
+       select case (typeboundary(mag(idim), n))
+       case ('symm')
+          mg%bc(n, mg_iphi)%bc_type = bc_neumann
+          mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+       case ('asymm')
+          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
+          mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+       case ('cont')
+          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
+          mg%bc(n, mg_iphi)%bc_value = 0.0_dp ! Not needed
+       case ('periodic')
+          ! Nothing to do here
+       case default
+          print *, "divb_multigrid: unknown b.c.: ", &
+               trim(typeboundary(mag(idim), n))
+          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
+          mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+       end select
+    end do
+
+    ix^L=ixM^LL^LADD1;
+
+    ! Store divergence of B as right-hand side
+    do iigrid = 1, igridstail
+       igrid =  igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+
+       call get_divb(pw(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
+            mhd_divb_4thorder)
+       mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
+    end do
+
+    ! Solve laplacian(phi) = divB
+    do n = 1, max_its
+       call mg_fas_vcycle(mg, max_res=res)
+       if (res < max_residual) exit
+    end do
+
+    ! Correct the magnetic field
+    do iigrid = 1, igridstail
+       igrid = igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       block => pw(igrid)       ! Gradient expects this
+       id    =  pnode%id
+
+       ! Compute the gradient of phi
+       tmp(ix^S) = mg%boxes(id)%cc({:,}, mg_iphi)
+       do idim = 1, ndim
+          call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
+       end do
+
+       ! Apply the correction per cell
+       {do i^DB = ixMlo^DB, ixMhi^DB\}
+       grad_vec = grad(i^D, :)
+       B_old    = pw(igrid)%w(i^D, mag(:))
+       B_new    = B_old - grad_vec(:)
+       en_diff  = 0.5_dp * (sum(B_new**2) - sum(B_old**2))
+
+       ! Keep pressure the same
+       pw(igrid)%w(i^D, e_)     = pw(igrid)%w(i^D, e_) + en_diff
+       pw(igrid)%w(i^D, mag(:)) = B_new
+       {end do\}
+    end do
+
+    active = .true.
+
+  end subroutine mhd_clean_divb_multigrid
+  }
 
 end module mod_mhd_phys
