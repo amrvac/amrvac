@@ -9,7 +9,7 @@
         itsave(1,1)   = 0
         itsave(1,2)   = 0
         ditsave_log   = 10
-        dtsave_dat    = 2e2
+        dtsave_dat    = 0.1
  /
 
  &stoplist
@@ -32,12 +32,12 @@
  &meshlist
         iprob = 1
         refine_criterion = 3
-        refine_max_level = 1
+        refine_max_level = 2
     	refine_threshold = 20*0.4d0
         w_refine_weight(1)=0.5d0
         w_refine_weight(4)=0.5d0
-        domain_nx1    = 128
-        domain_nx2    = 128
+        domain_nx1    = 64
+        domain_nx2    = 64
         xprobmin1     = -0.5d0
         xprobmax1     = 0.5d0
         xprobmin2     = -0.5d0
@@ -49,11 +49,5 @@
  /
 
  &mhd_list
-        ! typedivbfix   = 'glm1'
-        typedivbfix   = 'none'
- /
-
- &my_list
-        use_mg = .true.
-        ! use_mg = .false.
+        typedivbfix   = 'multigrid'
  /
