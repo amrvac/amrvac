@@ -23,7 +23,7 @@ contains
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     integer, intent(in)          :: w_flag(ixI^S)
-    integer                      :: ix_bad(ndim)
+    integer                      :: ix_bad(ndim), iw
     character(len=*), intent(in) :: subname
 
     ix_bad = maxloc(w_flag(ixO^S)) + [ ixOmin^D-1 ]
@@ -34,7 +34,10 @@ contains
       write(*,*) "Iteration: ", it, " Time: ", global_time
       write(*,*) "Location: ", x({ix_bad(^D)}, :)
       write(*,*) "Cell number: ", ix_bad(:)
-      write(*,*) "w(1:nw): ", w({ix_bad(^D)}, 1:nw)
+      do iw = 1, nw
+         write(*, '(A20,A,E14.7)'), trim(cons_wnames(iw)), ": ", &
+              w({ix_bad(^D)}, iw)
+      end do
       write(*,*) "Saving status at the previous time step"
       crash=.true.
     end if
