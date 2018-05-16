@@ -2551,11 +2551,10 @@ contains
     double precision, intent(in) :: qt     !< Current time
     logical, intent(inout)       :: active !< Output if the source is active
     integer                      :: iigrid, igrid, id
-    integer                      :: n, nc, lvl, ix^L, i^D, idim
+    integer                      :: n, nc, lvl, ix^L, idim
     type(tree_node), pointer     :: pnode
     double precision             :: tmp(ixG^T), grad(ixG^T, ndim)
-    double precision             :: grad_vec(ndim), B_old(ndim), B_new(ndim)
-    double precision             :: en_diff, res
+    double precision             :: res
     double precision, parameter  :: max_residual = 1d-3
     integer, parameter           :: max_its      = 10
 
@@ -2577,7 +2576,7 @@ contains
        case ('periodic')
           ! Nothing to do here
        case default
-          print *, "divb_multigrid: unknown b.c.: ", &
+          print *, "divb_multigrid warning: unknown b.c.: ", &
                trim(typeboundary(mag(idim), n))
           mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
@@ -2594,6 +2593,10 @@ contains
        lvl   =  mg%boxes(id)%lvl
        nc    =  mg%box_size_lvl(lvl)
 
+       ! Geometry subroutines expect this to be set
+       block => pw(igrid)
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+
        call get_divb(pw(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
             mhd_divb_4thorder)
        mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
@@ -2605,12 +2608,17 @@ contains
        if (res < max_residual) exit
     end do
 
+    if (res > max_residual) call mpistop("divb_multigrid: no convergence")
+
     ! Correct the magnetic field
     do iigrid = 1, igridstail
        igrid = igrids(iigrid);
        pnode => igrid_to_node(igrid, mype)%node
-       block => pw(igrid)       ! Gradient expects this
        id    =  pnode%id
+
+       ! Geometry subroutines expect this to be set
+       block => pw(igrid)
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        ! Compute the gradient of phi
        tmp(ix^S) = mg%boxes(id)%cc({:,}, mg_iphi)
@@ -2618,17 +2626,23 @@ contains
           call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
        end do
 
-       ! Apply the correction per cell
-       {do i^DB = ixMlo^DB, ixMhi^DB\}
-       grad_vec = grad(i^D, :)
-       B_old    = pw(igrid)%w(i^D, mag(:))
-       B_new    = B_old - grad_vec(:)
-       en_diff  = 0.5_dp * (sum(B_new**2) - sum(B_old**2))
+       ! Apply the correction B* = B - gradient(phi)
+       tmp(ixM^T) = sum(pw(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
+       pw(igrid)%w(ixM^T, mag(1:ndim)) = &
+            pw(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
 
-       ! Keep pressure the same
-       pw(igrid)%w(i^D, e_)     = pw(igrid)%w(i^D, e_) + en_diff
-       pw(igrid)%w(i^D, mag(:)) = B_new
-       {end do\}
+       ! Determine magnetic energy difference
+       tmp(ixM^T) = 0.5_dp * (sum(pw(igrid)%w(ixM^T, &
+            mag(1:ndim))**2, dim=ndim+1) - tmp(ixM^T))
+
+       if (mhd_energy) then
+          ! Keep thermal pressure the same
+          pw(igrid)%w(ixM^T, e_) = pw(igrid)%w(ixM^T, e_) + tmp(ixM^T)
+
+          ! Possible alternative: keep total pressure the same
+          ! pw(igrid)%w(ixM^T, e_)     = pw(igrid)%w(ixM^T, e_) + &
+          !      (mhd_gamma-2) * inv_gamma_1 * tmp(ixM^T)
+       end if
     end do
 
     active = .true.
