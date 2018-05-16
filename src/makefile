@@ -27,6 +27,7 @@ mod_usr_methods.o: mod_global_parameters.mod
 ############################################################################
 
 amr_coarsen_refine.o: mod_ghostcells_update.mod
+amr_coarsen_refine.o: mod_multigrid_coupling.mod
 amrgrid.o: mod_advance.mod
 amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
@@ -112,6 +113,7 @@ mod_mhd.o: mod_mhd_roe.mod
 mod_mhd_phys.o: mod_geometry.mod
 mod_mhd_phys.o: mod_gravity.mod
 mod_mhd_phys.o: mod_magnetofriction.mod
+mod_mhd_phys.o: mod_multigrid_coupling.mod
 mod_mhd_phys.o: mod_particles.mod
 mod_mhd_phys.o: mod_physics.mod
 mod_mhd_phys.o: mod_radiative_cooling.mod

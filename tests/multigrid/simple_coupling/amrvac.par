@@ -22,19 +22,19 @@
  /
 
  &boundlist
-        typeboundary_min1='asymm'
-        typeboundary_max1='asymm'
-        typeboundary_min2='asymm'
-        typeboundary_max2='asymm'
-        ! typeboundary_min1='periodic'
-        ! typeboundary_max1='periodic'
-        ! typeboundary_min2='periodic'
-        ! typeboundary_max2='periodic'
+        ! typeboundary_min1='asymm'
+        ! typeboundary_max1='asymm'
+        ! typeboundary_min2='asymm'
+        ! typeboundary_max2='asymm'
+        typeboundary_min1='periodic'
+        typeboundary_max1='periodic'
+        typeboundary_min2='periodic'
+        typeboundary_max2='periodic'
  /
 
  &meshlist
-        refine_max_level=4
-        refine_threshold=20*0.1d1
+        refine_max_level=5
+        refine_threshold=20*1.0
         block_nx1=8
         block_nx2=8
         domain_nx1=32
