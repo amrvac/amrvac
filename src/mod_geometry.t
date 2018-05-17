@@ -403,7 +403,7 @@ contains
         hxO^L=ixO^L-kr(idims,^D);
         ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
         jxC^L=ixC^L+kr(idims,^D);
-        if(stretched_dim(idims)) then
+        if(stretched_dim(idims).or.stretched_symm_dim(idims)) then
           ! linear interpolation at cell interface along stretched dimension
           qC(ixC^S)=block%surfaceC(ixC^S,idims)*(qvec(ixC^S,idims)+0.5d0*block%dx(ixC^S,idims)*&
                (qvec(jxC^S,idims)-qvec(ixC^S,idims))/(block%x(jxC^S,idims)-block%x(ixC^S,idims)))
@@ -471,7 +471,10 @@ contains
   end subroutine divvectorS
 
   !> Calculate curl of a vector qvec within ixL
-  !> Using Stokes' theorem for non-Cartesian grids
+  !> Options to 
+  !>        employ standard second order CD evaluations
+  !>        use Gauss theorem for non-Cartesian grids
+  !>        use Stokes theorem for non-Cartesian grids
   subroutine curlvector(qvec,ixI^L,ixO^L,curlvec,idirmin,idirmin0,ndir0)
     use mod_global_parameters
 
@@ -487,20 +490,22 @@ contains
     !-----------------------------------------------------------------------------
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
-    ! Curl can have components (idirmin0:3)
+    ! Curl can have components (idirmin:3)
     ! Determine exact value of idirmin while doing the loop.
 
     idirmin=4
     curlvec(ixO^S,idirmin0:3)=zero
 
-    if(slab) then
+    if(slab) then ! Cartesian case
       invdx=1.d0/dxlevel
       do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
         if(lvc(idir,jdir,kdir)/=0)then
           tmp(ixI^S)=qvec(ixI^S,kdir)
           hxO^L=ixO^L-kr(jdir,^D);
           jxO^L=ixO^L+kr(jdir,^D);
+          ! second order centered differencing 
           tmp(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
+          !> \todo allow for 4th order CD evaluation here as well
           if(lvc(idir,jdir,kdir)==1)then
             curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp(ixO^S)
           else
@@ -509,19 +514,65 @@ contains
           if(idir<idirmin)idirmin=idir
         endif
       enddo; enddo; enddo;
-    else
-      if(.false.) then
+      return
+    endif
+    
+    ! all non-Cartesian cases 
+    select case(typeaxial)
+      case('slabstretch') ! stretched Cartesian grids
         do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
           if(lvc(idir,jdir,kdir)/=0)then
-            tmp(ixI^S)=qvec(ixI^S,kdir)
-            hxO^L=ixO^L-kr(jdir,^D);
-            jxO^L=ixO^L+kr(jdir,^D);
-            select case(typeaxial)
-            case('slabstretch')
-              tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,jdir)-block%x(hxO^S,jdir))
-            case('spherical')
-              select case(jdir)
-              case(1)
+            select case(typecurl) 
+              case('central') 
+                tmp(ixI^S)=qvec(ixI^S,kdir)
+                hxO^L=ixO^L-kr(jdir,^D);
+                jxO^L=ixO^L+kr(jdir,^D);
+                ! second order centered differencing 
+                tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,jdir)-block%x(hxO^S,jdir))
+              case('Gaussbased') 
+                hxO^L=ixO^L-kr(jdir,^D);
+                ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
+                jxC^L=ixC^L+kr(jdir,^D);
+                tmp(ixC^S)=block%surfaceC(ixC^S,jdir)*(qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
+                       (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir)))
+                tmp2(ixO^S)=(tmp(ixO^S)-tmp(hxO^S))/block%dvolume(ixO^S)
+              case('Stokesbased') 
+                hxO^L=ixO^L-kr(jdir,^D);
+                ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
+                jxC^L=ixC^L+kr(jdir,^D);
+                if(kdir<=ndim)then
+                  tmp(ixC^S)=block%ds(ixO^S,kdir)*(qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
+                       (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir)))
+                else
+                  tmp(ixC^S)=(qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
+                       (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir)))
+                endif
+                if(idir<=ndim)then
+                  tmp2(ixO^S)=(tmp(ixO^S)-tmp(hxO^S))/block%surface(ixO^S,idir)
+                else ! essentially for 2.5D case, idir=3 and jdir,kdir<=2
+                  tmp2(ixO^S)=(tmp(ixO^S)-tmp(hxO^S))/(block%ds(ixO^S,jdir)*block%ds(ixO^S,kdir))
+                endif
+              case default
+                call mpistop('no such curl evaluator')
+            end select
+            if(lvc(idir,jdir,kdir)==1)then
+              curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp2(ixO^S)
+            else
+              curlvec(ixO^S,idir)=curlvec(ixO^S,idir)-tmp2(ixO^S)
+            endif
+            if(idir<idirmin)idirmin=idir
+          endif
+        enddo; enddo; enddo;
+      case('spherical') ! possibly stretched spherical grids
+        do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
+          if(lvc(idir,jdir,kdir)/=0)then
+            select case(typecurl) 
+              case('central') 
+                tmp(ixI^S)=qvec(ixI^S,kdir)
+                hxO^L=ixO^L-kr(jdir,^D);
+                jxO^L=ixO^L+kr(jdir,^D);
+                select case(jdir)
+                case(1)
                 tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,1)-block%x(hxO^S,1))*block%x(ixO^S,1))
                 {^NOONED    case(2)
@@ -532,36 +583,13 @@ contains
                 {^IFTHREED  case(3)
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,3)-block%x(hxO^S,3))*block%x(ixO^S,1)*dsin(block%x(ixO^S,2)))
                 }
-              end select
-            case('cylindrical')
-              if(z_==3) then
-                select case(jdir)
-                case(1)
-                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
-                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
-                  if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1)
-                  {^NOONED      case(2)
-                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
-                  }
-                  {^IFTHREED    case(3)
-                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,3)-block%x(hxO^S,3))
-                  }
                 end select
-              end if
-              if(phi_==3) then
-                select case(jdir)
-                case(1)
-                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
-                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
-                  if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1)
-                  {^NOONED      case(2)
-                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,2)-block%x(hxO^S,2))
-                  }
-                  {^IFTHREED    case(3)
-                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,3)-block%x(hxO^S,3))*block%x(ixO^S,1))
-                  }
-                end select
-              end if
+              case('Gaussbased') 
+                call mpistop('no such curl evaluator')
+              case('Stokesbased') 
+                call mpistop('no such curl evaluator')
+              case default
+                call mpistop('no such curl evaluator')
             end select
             if(lvc(idir,jdir,kdir)==1)then
               curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp2(ixO^S)
@@ -571,76 +599,75 @@ contains
             if(idir<idirmin)idirmin=idir
           endif
         enddo; enddo; enddo;
-      else
+      case('cylindrical') ! possibly stretched cylindrical grids
         do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
           if(lvc(idir,jdir,kdir)/=0)then
+            select case(typecurl) 
+              case('central') 
+                tmp(ixI^S)=qvec(ixI^S,kdir)
+                hxO^L=ixO^L-kr(jdir,^D);
+                jxO^L=ixO^L+kr(jdir,^D);
+                if(z_==3) then 
+                  ! Case Polar_2.5D or Polar_3D, i.e. R,phi,Z
+                  select case(jdir)
+                  case(1)
+                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
+                  ! computes d(R V_phi)/dR or d V_Z/dR
+                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
+                  if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1) ! (1/R)*d(R V_phi)/dR 
+                  {^NOONED      case(2)
+                  ! handles (1/R)d V_Z/dphi or (1/R)d V_R/dphi
+                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
+                  }
+                  {^IFTHREED    case(3)
+                  ! handles d V_phi/dZ or d V_R/dZ
+                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,3)-block%x(hxO^S,3))
+                  }
+                  end select
+                end if
+                if(phi_==3) then
+                  ! Case Cylindrical_2.5D or Cylindrical_3D, i.e. R,Z,phi
+                  select case(jdir)
+                  case(1)
+                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
+                  ! computes d(R V_phi)/dR or d V_Z/dR
+                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1)) 
+                  if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1) ! (1/R)*d(R V_phi)/dR
+                  {^NOONED      case(2)
+                  ! handles d V_phi/dZ or d V_R/dZ
+                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,2)-block%x(hxO^S,2))
+                  }
+                  {^IFTHREED    case(3)
+                  ! handles (1/R)d V_Z/dphi or (1/R)d V_R/dphi
+                  tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,3)-block%x(hxO^S,3))*block%x(ixO^S,1))
+                  }
+                  end select
+                end if
+             case('Gaussbased') 
+               call mpistop('no such curl evaluator')
+             case('Stokesbased') 
+               call mpistop('no such curl evaluator')
+             case default
+               call mpistop('no such curl evaluator')
+            end select
+            if(lvc(idir,jdir,kdir)==1)then
+              curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp2(ixO^S)
+            else
+              curlvec(ixO^S,idir)=curlvec(ixO^S,idir)-tmp2(ixO^S)
+            endif
+            if(idir<idirmin)idirmin=idir
+          endif
+        enddo; enddo; enddo;
+    end select
+
+
+! FROM HERE ON TO INCORPORATE ABOVE as stokes
+!   allow also for stretched_symm_dim options
+
+     if(.false.)then
+       do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
+          if(lvc(idir,jdir,kdir)/=0)then
             select case(typeaxial)
-            case('slabstretch')
-              select case(idir)
-              case(1)
-                if(jdir<kdir) then
-                  ! idir=1,jdir=2,kdir=3
-                  !! integral along 3rd dimension
-                  hxO^L=ixO^L-kr(jdir,^D);
-                  ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                  jxC^L=ixC^L+kr(jdir,^D);
-                  ! qvec(3) at cell interface along 2nd dimension
-                  tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
-                       (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
-                  curlvec(ixO^S,idir)=(tmp(ixO^S)-tmp(hxO^S))*block%dx(ixO^S,kdir)
-                  !! integral along 2nd dimension
-                  hxO^L=ixO^L-kr(kdir,^D);
-                  ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                  jxC^L=ixC^L+kr(kdir,^D);
-                  ! qvec(2) at cell interface along 3rd dimension
-                  tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
-                       (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
-                  curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(tmp(hxO^S)-tmp(ixO^S))*block%dx(ixO^S,jdir))&
-                       /block%surface(ixO^S,idir)
-                end if
-              case(2)
-                if(jdir<kdir) then
-                  ! idir=2,jdir=1,kdir=3
-                  !! integral along 1st dimension
-                  hxO^L=ixO^L-kr(kdir,^D);
-                  ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                  jxC^L=ixC^L+kr(kdir,^D);
-                  ! qvec(1) at cell interface along 3rd dimension
-                  tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
-                       (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
-                  curlvec(ixO^S,idir)=(tmp(ixO^S)-tmp(hxO^S))*block%dx(ixO^S,jdir)
-                  !! integral along 3rd dimension
-                  hxO^L=ixO^L-kr(jdir,^D);
-                  ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                  jxC^L=ixC^L+kr(jdir,^D);
-                  ! qvec(3) at cell interface along 1st dimension
-                  tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
-                       (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
-                  curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(tmp(hxO^S)-tmp(ixO^S))*block%dx(ixO^S,kdir))&
-                       /block%surface(ixO^S,idir)
-                end if
-              case(3)
-                if(jdir<kdir) then
-                  ! idir=3,jdir=1,kdir=2
-                  !! integral along 1st dimension
-                  hxO^L=ixO^L-kr(kdir,^D);
-                  ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                  jxC^L=ixC^L+kr(kdir,^D);
-                  ! qvec(1) at cell interface along 2nd dimension
-                  tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
-                       (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
-                  curlvec(ixO^S,idir)=(tmp(hxO^S)-tmp(ixO^S))*block%dx(ixO^S,jdir)
-                  !! integral along 2nd dimension
-                  hxO^L=ixO^L-kr(jdir,^D);
-                  ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
-                  jxC^L=ixC^L+kr(jdir,^D);
-                  ! qvec(2) at cell interface along 1st dimension
-                  tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
-                       (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
-                  curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(tmp(ixO^S)-tmp(hxO^S))*block%dx(ixO^S,kdir))&
-                       /block%surface(ixO^S,idir)
-                end if
-              end select
             case('spherical')
               select case(idir)
               case(1)
@@ -834,9 +861,8 @@ contains
             end select
             if(idir<idirmin)idirmin=idir
           endif
-        enddo; enddo; enddo;
-      end if
-    end if
+      enddo; enddo; enddo;
+    endif
 
   end subroutine curlvector
 

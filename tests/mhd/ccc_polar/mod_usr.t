@@ -1,17 +1,16 @@
-!> Advection of a current-carrying cylinder
+!> Equilibrium setups of a current-carrying cylinder
 ! implemented a choice between three 1D cylindrical equilibria,
-! embedded in a uniform, (un)magnetized medium, advected at constant speed
-! This tests Galilean invariance, among other things.
+! embedded in a uniform, (un)magnetized medium
+! This tests our implementation of current evaluations (typecurl), among other things.
 module mod_usr
   use mod_mhd
 
   implicit none
 
   ! Input values for 
-  !    uniform advection velocity: Mach, theta0, phi0
   !    choice of equilibrium: equilibrium_version
   !    dimensionless parameters: beta1, qfac1, Rvacs, drat, invbext
-  double precision :: Mach, theta0, phi0, beta1, qfac1, Rvacs, drat, invbext
+  double precision :: beta1, qfac1, Rvacs, drat, invbext
   double precision :: pr01, Bz0, rho0, Jfac0, Lz
   character(len=std_len) :: equilibrium_version
 
@@ -26,7 +25,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /usr_list/ Mach, theta0, phi0, beta1, qfac1,  &
+    namelist /usr_list/ beta1, qfac1,  &
                  Rvacs, drat, invbext, equilibrium_version
 
     do n = 1, size(files)
@@ -35,9 +34,6 @@ contains
 111    close(unitpar)
     end do
 
-    ! convert degrees to radians
-    theta0=theta0*2.0d0*dpi/360.0d0
-    phi0=phi0*2.0d0*dpi/360.0d0
     equilibrium_version=trim(equilibrium_version)
     
   end subroutine usr_params_read
@@ -55,8 +51,8 @@ contains
     usr_aux_output      => specialvar_output
     usr_add_aux_names   => specialvarnames_output
 
-    {^IFTWOD call set_coordinate_system("Cartesian_2.5D") }
-    {^IFTHREED call set_coordinate_system("Cartesian_3D")  }
+    {^IFTWOD call set_coordinate_system("polar_2.5D") }
+    {^IFTHREED call set_coordinate_system("polar_3D")  }
 
     call mhd_activate()
 
@@ -80,7 +76,7 @@ contains
     Lz=(xprobmax3-xprobmin3)
     }
     {^IFTWOD
-    Lz=(xprobmax1-xprobmin1)
+    Lz=xprobmax1
     }
     if(mype==0) then
       write(*,*) "Equilibrium chosen:", equilibrium_version
@@ -148,37 +144,27 @@ contains
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
     
-    double precision :: rr(ixG^S),bphi(ixG^S),cosphi(ixG^S),sinphi(ixG^S)
-    double precision :: xmid^D
-
     {^IFONED   call mpistop("This is a multi-D MHD problem, in 2.5D or 3D") }
 
-    ^D&xmid^D=xprobmin^D+0.5d0*(xprobmax^D-xprobmin^D);
     {^NOONED
-    rr(ix^S)=dsqrt( (x(ix^S,1)-xmid1)**2+(x(ix^S,2)-xmid2)**2 )
-    w(ix^S,rho_) = rho_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
-    w(ix^S,e_)   = p_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
-    bphi(ix^S)   = bphi_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
-    sinphi(ix^S)=(x(ix^S,2)-xmid2)/rr(ix^S)
-    cosphi(ix^S)=(x(ix^S,1)-xmid1)/rr(ix^S)
-    w(ix^S,mag(1)) = -bphi(ix^S)*sinphi(ix^S)
-    w(ix^S,mag(2)) = +bphi(ix^S)*cosphi(ix^S)
-    w(ix^S,mag(3)) = bz_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
-    w(ix^S,mom(1)) = Mach*dsin(theta0)*dcos(phi0)
-    w(ix^S,mom(2)) = Mach*dsin(theta0)*dsin(phi0)
-    w(ix^S,mom(3)) = Mach*dcos(theta0)
+    w(ix^S,rho_) = rho_solution(x(ix^S, 1))
+    w(ix^S,e_)   = p_solution(x(ix^S, 1))
+    w(ix^S,mag(1)) = 0.0d0
+    w(ix^S,mag(2)) = bphi_solution(x(ix^S, 1))
+    w(ix^S,mag(3)) = bz_solution(x(ix^S, 1))
+    w(ix^S,mom(1)) = 0.0d0
+    w(ix^S,mom(2)) = 0.0d0
+    w(ix^S,mom(3)) = 0.0d0
     }
 
     call mhd_to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine CCC_init_one_grid
 
-  elemental function p_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function p_solution(rad) result(val)
+    real(dp), intent(in) :: rad
     real(dp)             :: val
-    real(dp) :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
     if(rad<1.0d0)then
        select case(equilibrium_version)
          case('TokamakCurrent')
@@ -196,12 +182,10 @@ contains
 
   end function p_solution
 
-  elemental function rho_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function rho_solution(rad) result(val)
+    real(dp), intent(in) :: rad
     real(dp)             :: val
-    real(dp) :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
     if(rad<1.0d0)then
        val=rho0*(1.0d0-(1.0d0-drat)*rad**2)
     else
@@ -210,12 +194,10 @@ contains
 
   end function rho_solution
 
-  elemental function bphi_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function bphi_solution(rad) result(val)
+    real(dp), intent(in) :: rad
     real(dp)             :: val
-    real(dp) :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
     if(rad<1.0d0)then
        select case(equilibrium_version)
          case('TokamakCurrent')
@@ -231,12 +213,10 @@ contains
 
   end function bphi_solution
 
-  elemental function bz_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function bz_solution(rad) result(val)
+    real(dp), intent(in) :: rad
     real(dp)             :: val
-    real(dp) :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
     if(rad<1.0d0)then
        select case(equilibrium_version)
          case('TokamakCurrent')
@@ -262,40 +242,18 @@ contains
     integer, intent(in)             :: igrid,level,ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: ic1,ic2
-    double precision:: xmid^D, rr(ixI^S), xshift^D, v01, v02
 
     w(ixO^S,i_sol_r) =1.0d0
     w(ixO^S,i_sol_p) =1.0d0/mhd_gamma
     w(ixO^S,i_sol_b) =dsqrt(invbext*2.0d0/mhd_gamma)
     w(ixO^S,i_totp)  =1.0d0/mhd_gamma
-    v01= Mach*dsin(theta0)*dcos(phi0)
-    v02= Mach*dsin(theta0)*dsin(phi0)
     {^NOONED
-    ! determine centers of all 9 potentially overlapping circles
-    if(v01>=0.0d0)then
-       xshift1=v01*qt-floor(qt*v01/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-    else
-       xshift1=v01*qt+floor(qt*dabs(v01)/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-    endif
-    if(v02>=0.0d0)then
-       xshift2=v02*qt-floor(qt*v02/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-    else
-       xshift2=v02*qt+floor(qt*dabs(v02)/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-    endif
-    do ic1=-1,1
-      xmid1=xprobmin1+(ic1+0.5d0)*(xprobmax1-xprobmin1)+xshift1;
-      do ic2=-1,1
-         xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
-         rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
-         where(rr(ixO^S)<1.0d0)
-           w(ixO^S,i_sol_p) = p_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)
-           w(ixO^S,i_sol_r) = rho_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)
-           w(ixO^S,i_sol_b) = dsqrt(bz_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)**2 &
-                                  +bphi_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)**2)
-         endwhere
-      enddo
-    enddo
+    where(x(ixO^S,1)<1.0d0)
+      w(ixO^S,i_sol_p) = p_solution(x(ixO^S, 1))
+      w(ixO^S,i_sol_r) = rho_solution(x(ixO^S, 1))
+      w(ixO^S,i_sol_b) = dsqrt(  bz_solution(x(ixO^S, 1))**2 &
+                              +bphi_solution(x(ixO^S, 1))**2)
+    endwhere
     }
     w(ixO^S,i_err_r) = w(ixO^S,rho_) - w(ixO^S,i_sol_r)
     call mhd_to_primitive(ixI^L,ixO^L,w,x)
@@ -337,14 +295,9 @@ contains
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
-    double precision:: xmid^D, rr(ixG^S)
 
-    ^D&xmid^D=xprobmin^D+0.5d0*(xprobmax^D-xprobmin^D);
-    {^NOONED
-    rr(ix^S)=dsqrt( (x(ix^S,1)-xmid1)**2+(x(ix^S,2)-xmid2)**2 )
-    }
     ! test with different levels of refinement enforced
-    if (qt<smalldouble.and.any((rr(ix^S)<1.1d0).and.(rr(ix^S)>0.9d0))) then
+    if (qt<smalldouble.and.any((x(ix^S,1)<1.1d0).and.(x(ix^S,1)>0.9d0))) then
        refine=1
     endif
 

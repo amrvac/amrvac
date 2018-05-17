@@ -142,7 +142,7 @@ contains
          limiter,gradient_limiter,cada3_radius,&
          loglimit,typelimited,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
-         typegrad,typediv,&
+         typegrad,typediv,typecurl,&
          nxdiffusehllc, flathllc, tvdlfeps,&
          flatcd,flatsh,&
          small_temperature,small_pressure,small_density, &
@@ -202,6 +202,7 @@ contains
     ! defaults for specific options
     typegrad   = 'central'
     typediv    = 'central'
+    typecurl   = 'central'
 
     ! defaults for smallest physical values allowed
     small_temperature = 0.d0
