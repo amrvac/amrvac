@@ -469,7 +469,7 @@ if (.not.slab) then
          pw(igrid)%dvolumecoarse(ixCoG^S)=dabs(pw(igrid)%xcoarse(ixCoG^S,1)) &
               *pw(igrid)%dxcoarse(ixCoG^S,1){^DE&*pw(igrid)%dxcoarse(ixCoG^S,^DE) }
          pw(igrid)%ds(ixGext^S,r_)=pw(igrid)%dx(ixGext^S,r_)
-         if(z_>0) pw(igrid)%ds(ixGext^S,z_)=pw(igrid)%dx(ixGext^S,z_)
+         if(z_>0.and.z_<=ndim) pw(igrid)%ds(ixGext^S,z_)=pw(igrid)%dx(ixGext^S,z_)
          if (phi_ > 0) then
            {if (^DE==phi_) pw(igrid)%ds(ixGext^S,^DE)= &
                     xext(ixGext^S,1)*pw(igrid)%dx(ixGext^S,^DE)\}

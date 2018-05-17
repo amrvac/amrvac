@@ -14,12 +14,12 @@
         itsave(1,1)=0
         itsave(1,2)=0
         dtsave_log=0.05          ! For the log
-        dtsave_dat=0.05          ! For dat/vtu output
+        ditsave_dat=5          ! For dat/vtu output
  /
 
  &stoplist
         dtmin=1.0d-6
-        it_max=1
+        it_max=100
  /
 
  &methodlist
@@ -44,7 +44,7 @@
         nstretchedblocks_baselevel(2)=10
         qstretch_baselevel(1)=1.03
         qstretch_baselevel(2)=1.03
-        refine_max_level=1
+        refine_max_level=3
         domain_nx1=100
         domain_nx2=100
         block_nx1=10
