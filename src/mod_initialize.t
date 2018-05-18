@@ -16,6 +16,7 @@ contains
     use mod_input_output
     use mod_physics, only: phys_check, phys_check_params
     use mod_usr_methods, only: usr_set_parameters
+    use mod_bc_data, only: bc_data_init
 
     if (initialized_already) return
 
@@ -26,6 +27,9 @@ contains
     call read_par_files()
     call initialize_vars()
     call init_comm_types()
+
+    ! Possibly load boundary condition data
+    call bc_data_init()
 
     if(associated(usr_set_parameters)) call usr_set_parameters()
 

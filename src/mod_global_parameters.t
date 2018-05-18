@@ -530,7 +530,7 @@ module mod_global_parameters
   logical                       :: source_split_usr
   logical                       :: dimsplit
 
-  character(len=std_len) :: typediv,typegrad
+  character(len=std_len) :: typediv,typegrad,typecurl
 
   !> global fastest wave speed needed in fd scheme and glm method
   double precision :: cmax_global

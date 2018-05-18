@@ -1,6 +1,7 @@
 !=============================================================================
 subroutine bc_phys(iside,idims,time,qdt,w,x,ixG^L,ixB^L)
 use mod_usr_methods, only: usr_special_bc
+use mod_bc_data, only: bc_data_set
 use mod_global_parameters
 
 integer, intent(in) :: iside, idims, ixG^L,ixB^L
@@ -40,7 +41,7 @@ select case (idims)
                   w(ix^D^D%ixI^S,iw) = w(ixImin^D-1^D%ixI^S,iw)
               end do
             end if
-         case ("special")
+         case ("special", "bc_data")
             ! skip it here, do AFTER all normal type boundaries are set
          case ("character")
             ! skip it here, do AFTER all normal type boundaries are set
@@ -80,7 +81,7 @@ select case (idims)
                  w(ix^D^D%ixI^S,iw) = w(ixImax^D+1^D%ixI^S,iw)
                end do
             end if
-         case ("special")
+         case ("special", "bc_data")
             ! skip it here, do AFTER all normal type boundaries are set
          case ("character")
             ! skip it here, do AFTER all normal type boundaries are set
@@ -104,6 +105,10 @@ if (any(typeboundary(1:nwflux+nwaux,iB)=="special")) then
    if (.not. associated(usr_special_bc)) &
         call mpistop("usr_special_bc not defined")
    call usr_special_bc(time,ixG^L,ixI^L,iB,w,x)
+end if
+
+if (any(typeboundary(1:nwflux+nwaux,iB)=="bc_data")) then
+   call bc_data_set(time,ixG^L,ixI^L,iB,w,x)
 end if
 
 {#IFDEF EVOLVINGBOUNDARY
