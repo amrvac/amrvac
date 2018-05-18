@@ -20,7 +20,7 @@ contains
     usr_init_one_grid => initial_conditions
 
     use_multigrid = .true.
-    phys_global_source => diffuse_density_crank_nicolson
+    phys_global_source => diffuse_density
     usr_process_grid => set_error
 
     mg%operator_type = mg_helmholtz
