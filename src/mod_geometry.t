@@ -612,8 +612,10 @@ contains
             enddo; enddo;
             ! geometric terms 
             if(idir==2.and.phi_>0) curlvec(ixO^S,2)=curlvec(ixO^S,2)+qvec(ixO^S,phi_)/block%x(ixO^S,r_)
+            {^NOONED
             if(idir==phi_) curlvec(ixO^S,phi_)=curlvec(ixO^S,phi_)-qvec(ixO^S,2)/block%x(ixO^S,r_) &
                  +qvec(ixO^S,r_)*dcos(block%x(ixO^S,2))/(block%x(ixO^S,r_)*dsin(block%x(ixO^S,2)))
+            }
             enddo; 
           case('Stokesbased') 
             if(ndim<3) call mpistop("Stokesbased for 3D spherical only")
@@ -729,8 +731,8 @@ contains
                 tmp(ixI^S)=qvec(ixI^S,kdir)
                 hxO^L=ixO^L-kr(jdir,^D);
                 jxO^L=ixO^L+kr(jdir,^D);
-                if(z_==3) then 
-                  ! Case Polar_2.5D or Polar_3D, i.e. R,phi,Z
+                if(z_==3.or.z_==-1) then 
+                  ! Case Polar_2D, Polar_2.5D or Polar_3D, i.e. R,phi,Z
                   select case(jdir)
                   case(1)
                   if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
@@ -747,8 +749,8 @@ contains
                   }
                   end select
                 end if
-                if(phi_==3) then
-                  ! Case Cylindrical_2.5D or Cylindrical_3D, i.e. R,Z,phi
+                if(phi_==3.or.phi_==-1) then
+                  ! Case Cylindrical_2D, Cylindrical_2.5D or Cylindrical_3D, i.e. R,Z,phi
                   select case(jdir)
                   case(1)
                   if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
@@ -774,6 +776,7 @@ contains
               endif
             enddo; enddo; enddo;
           case('Gaussbased') ! works for any dimensionality, polar/cylindrical
+            if(ndim<2) call mpistop("Gaussbased for 2D, 2.5D or 3D polar or cylindrical only")
             do idir=idirmin0,3; 
             do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
@@ -793,7 +796,14 @@ contains
             enddo; enddo;
             ! geometric term from d e_R/d phi= e_phi for unit vectors e_R, e_phi
             !       but minus sign appears due to R,Z,phi ordering (?)
-            if(idir==phi_.and.z_>0) curlvec(ixO^S,phi_)=curlvec(ixO^S,phi_)-qvec(ixO^S,z_)/block%x(ixO^S,r_)
+            ! note that in cylindrical 2D (RZ), phi_ is -1
+            ! note that in polar 2D     (Rphi), z_ is -1
+            if((idir==phi_.or.(phi_==-1.and.idir==3)).and.z_>0) then
+              ! cylindrical
+              if(  z_==2) curlvec(ixO^S,idir)=curlvec(ixO^S,idir)-qvec(ixO^S,z_)/block%x(ixO^S,r_)
+              ! polar
+              if(phi_==2) curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+qvec(ixO^S,z_)/block%x(ixO^S,r_)
+            endif
             enddo; 
           case('Stokesbased') ! works for 3D
             if(ndim<3) call mpistop("Stokesbased for 3D cylindrical only")
