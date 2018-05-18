@@ -8,7 +8,7 @@ amrgrid.t mod_finite_volume.t mod_tvd.t mod_finite_difference.t load_balance.t	\
 connectivity.t boundary_conditions.t comm_lib.t forest.t amr_neighbors.t	\
 amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t mod_geometry.t	\
 mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t mod_limiter.t	\
-mod_fix_conserve.t mod_source.t mod_initialize.t mod_amrvac.t
+mod_fix_conserve.t mod_source.t mod_initialize.t mod_amrvac.t mod_bc_data.t mod_lookup_table.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -31,6 +31,7 @@ amrgrid.o: mod_advance.mod
 amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
 amr_solution_node.o: mod_geometry.mod
+boundary_conditions.o: mod_bc_data.mod
 coarsen.o: mod_physics.mod
 collapse.o: mod_physics.mod
 collapse.o: mod_slice.mod
@@ -47,6 +48,7 @@ mod_advance.o: mod_physics.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
 mod_amrvac.o: mod_geometry.mod
+mod_bc_data.o: mod_lookup_table.mod
 mod_dust.o: mod_physics.mod
 mod_finite_difference.o: mod_finite_volume.mod
 mod_finite_difference.o: mod_limiter.mod
@@ -83,6 +85,7 @@ mod_hd_ppm.o: mod_physics_ppm.mod
 mod_hd_roe.o: mod_hd_phys.mod
 mod_hd_roe.o: mod_physics_roe.mod
 mod_hd_roe.o: mod_tvd.mod
+mod_initialize.o: mod_bc_data.mod
 mod_initialize.o: mod_geometry.mod
 mod_initialize.o: mod_ghostcells_update.mod
 mod_initialize.o: mod_input_output.mod
@@ -109,6 +112,16 @@ mod_mhd.o: mod_mhd_hllc.mod
 mod_mhd.o: mod_mhd_phys.mod
 mod_mhd.o: mod_mhd_ppm.mod
 mod_mhd.o: mod_mhd_roe.mod
+mod_mhd_phys.bak.o: mod_geometry.mod
+mod_mhd_phys.bak.o: mod_gravity.mod
+mod_mhd_phys.bak.o: mod_magnetofriction.mod
+mod_mhd_phys.bak.o: mod_multigrid_coupling.mod
+mod_mhd_phys.bak.o: mod_particles.mod
+mod_mhd_phys.bak.o: mod_physics.mod
+mod_mhd_phys.bak.o: mod_radiative_cooling.mod
+mod_mhd_phys.bak.o: mod_small_values.mod
+mod_mhd_phys.bak.o: mod_thermal_conduction.mod
+mod_mhd_phys.bak.o: mod_viscosity.mod
 mod_mhd_phys.o: mod_geometry.mod
 mod_mhd_phys.o: mod_gravity.mod
 mod_mhd_phys.o: mod_magnetofriction.mod
