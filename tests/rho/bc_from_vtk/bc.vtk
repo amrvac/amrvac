@@ -1,0 +1,12 @@
+# vtk DataFile Version 2.0
+Boundary condition example
+ASCII
+DATASET STRUCTURED_POINTS
+DIMENSIONS 5 2 1
+SPACING 0.25 1.0 1.0
+ORIGIN 0 0 0
+POINT_DATA 10
+SCALARS bc_data float 1
+LOOKUP_TABLE default
+1 2 3 4 5 6 7 8 9 10
+
