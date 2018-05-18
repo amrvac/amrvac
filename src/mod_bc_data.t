@@ -48,10 +48,8 @@ contains
        do iw = 1, nwfluxbc
           bc_name = typeboundary(iw, ib)
           if (bc_name(1:4) == "vtk:") then
-             n_bc = n_bc + 1
 
-             ! Format should be vtk:filename
-             if (i == 0) call mpistop("Invalid format for VTK boundary data")
+             n_bc               = n_bc + 1
              fname              = bc_name(5:)
              bc_data_ix(iw, ib) = n_bc
 
@@ -103,7 +101,7 @@ contains
     double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision                :: time(ixO^S), tmp(ixO^S)
-    integer                         :: i, ix, di, iw, n_bc
+    integer                         :: i, ix, iw, n_bc
 
     if (bc_data_time_varying) time = qt
 
@@ -127,18 +125,16 @@ contains
 
           if (iB == 1) then
              ix = ixOmax1+1
-             di = 1
           else
              ix = ixOmin1-1
-             di = -1
           end if
 
-          ! Approximate boundary value by setting a linear gradient through the
-          ! cell face
+          ! Approximate boundary value by linear interpolation to first ghost
+          ! cell, rest of ghost cells contains the same value
           do i = 0, ixOmax1-ixOmin1
              w(ixOmin1+i, ixOmin2:ixOmax2, iw) = &
                   2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
-                  w(ix+i*di, ixOmin2:ixOmax2, iw)
+                  w(ix, ixOmin2:ixOmax2, iw)
           end do
        end do
     case (3, 4)
@@ -159,10 +155,8 @@ contains
 
           if (iB == 3) then
              ix = ixOmax2+1
-             di = 1
           else
              ix = ixOmin2-1
-             di = -1
           end if
 
           ! Approximate boundary value by linear interpolation to first ghost
@@ -170,7 +164,7 @@ contains
           do i = 0, ixOmax2-ixOmin2
              w(ixOmin1:ixOmax1, ixOmin2+i, iw) = &
                   2 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
-                  w(ixOmin1:ixOmax1, ix+i*di, iw)
+                  w(ixOmin1:ixOmax1, ix, iw)
           end do
        end do
     case default
@@ -200,10 +194,8 @@ contains
 
           if (iB == 1) then
              ix = ixOmax1+1
-             di = 1
           else
              ix = ixOmin1-1
-             di = -1
           end if
 
           ! Approximate boundary value by linear interpolation to first ghost
@@ -211,7 +203,7 @@ contains
           do i = 0, ixOmax1-ixOmin1
              w(ixOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
                   2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
-                  w(ix+i*di, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
+                  w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
           end do
        end do
     case (3, 4)
@@ -234,10 +226,8 @@ contains
 
           if (iB == 3) then
              ix = ixOmax2+1
-             di = 1
           else
              ix = ixOmin2-1
-             di = -1
           end if
 
           ! Approximate boundary value by linear interpolation to first ghost
@@ -245,7 +235,7 @@ contains
           do i = 0, ixOmax2-ixOmin2
              w(ixOmin1:ixOmax1, ixOmin2+i, ixOmin3:ixOmax3, iw) = &
                   2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
-                  w(ixOmin1:ixOmax1, ix+i*di, ixOmin3:ixOmax3, iw)
+                  w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
           end do
        end do
     case (5, 6)
@@ -268,10 +258,8 @@ contains
 
           if (iB == 5) then
              ix = ixOmax3+1
-             di = 1
           else
              ix = ixOmin3-1
-             di = -1
           end if
 
           ! Approximate boundary value by linear interpolation to first ghost
@@ -279,7 +267,7 @@ contains
           do i = 0, ixOmax3-ixOmin3
              w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3+i, iw) = &
                   2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
-                  w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix+i*di, iw)
+                  w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
           end do
        end do
     case default
