@@ -76,11 +76,16 @@ module mod_usr_methods
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine init_one_grid
 
-     !> special boundary types, user defined user must assign conservative
-     !> variables in bounderies
+     !> special boundary types, users must assign conservative
+     !> variables in boundaries
      subroutine special_bc(qt,ixI^L,ixO^L,iB,w,x)
        use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L, iB
+       !> Shape of input arrays
+       integer, intent(in)             :: ixI^L
+       !> Region where boundary values have to be set
+       integer, intent(in)             :: ixO^L
+       !> Integer indicating direction of boundary
+       integer, intent(in)             :: iB
        double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine special_bc
