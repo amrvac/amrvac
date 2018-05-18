@@ -21,13 +21,15 @@ module mod_bc_data
   type(LT3_t) :: lt_3d(max_boundary_conds)
 
   !> Whether boundary condition data is time varying
-  logical :: bc_data_time_varying = .false.
+  logical, public, protected :: bc_data_time_varying = .false.
 
   !> Integer array for indexing lookup tables per variable per direction
-  integer, allocatable :: bc_data_ix(:, :)
+  integer, public, protected, allocatable :: bc_data_ix(:, :)
 
   public :: bc_data_init
   public :: bc_data_set
+  public :: bc_data_get_2d
+  public :: bc_data_get_3d
 
 contains
 
@@ -94,16 +96,38 @@ contains
 
   end subroutine bc_data_init
 
+  elemental function bc_data_get_3d(n_bc, x1, x2, qt) result(val)
+    integer, intent(in)          :: n_bc
+    double precision, intent(in) :: x1, x2, qt
+    double precision             :: val
+
+    if (bc_data_time_varying) then
+       val = LT3_get_col(lt_3d(n_bc), 1, x1, x2, qt)
+    else
+       val = LT2_get_col(lt_2d(n_bc), 1, x1, x2)
+    end if
+  end function bc_data_get_3d
+
+  elemental function bc_data_get_2d(n_bc, x1, qt) result(val)
+    integer, intent(in)          :: n_bc
+    double precision, intent(in) :: x1, qt
+    double precision             :: val
+
+    if (bc_data_time_varying) then
+       val = LT2_get_col(lt_2d(n_bc), 1, x1, qt)
+    else
+       val = LT_get_col(lt_1d(n_bc), 1, x1)
+    end if
+  end function bc_data_get_2d
+
   !> Set boundary conditions according to user data
   subroutine bc_data_set(qt,ixI^L,ixO^L,iB,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, iB
     double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: time(ixO^S), tmp(ixO^S)
+    double precision                :: tmp(ixO^S)
     integer                         :: i, ix, iw, n_bc
-
-    if (bc_data_time_varying) time = qt
 
     {^IFTWOD
     select case (iB)
@@ -112,16 +136,8 @@ contains
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
-          if (bc_data_time_varying) then
-             tmp(ixOmin1, ixOmin2:ixOmax2) = &
-                  LT2_get_col(lt_2d(n_bc), 1, &
-                  x(ixOmin1, ixOmin2:ixOmax2, 2), &
-                  time(ixOmin1, ixOmin2:ixOmax2))
-          else
-             tmp(ixOmin1, ixOmin2:ixOmax2) = &
-                  LT_get_col(lt_1d(n_bc), 1, &
-                  x(ixOmin1, ixOmin2:ixOmax2, 2))
-          end if
+          tmp(ixOmin1, ixOmin2:ixOmax2) = bc_data_get_2d(n_bc, &
+                  x(ixOmin1, ixOmin2:ixOmax2, 2), qt)
 
           if (iB == 1) then
              ix = ixOmax1+1
@@ -142,16 +158,8 @@ contains
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
-          if (bc_data_time_varying) then
-             tmp(ixOmin1:ixOmax1, ixOmin2) = &
-                  LT2_get_col(lt_2d(n_bc), 1, &
-                  x(ixOmin1:ixOmax1, ixOmin2, 1), &
-                  time(ixOmin1:ixOmax1, ixOmin2))
-          else
-             tmp(ixOmin1:ixOmax1, ixOmin2) = &
-                  LT_get_col(lt_1d(n_bc), 1, &
-                  x(ixOmin1:ixOmax1, ixOmin2, 1))
-          end if
+          tmp(ixOmin1:ixOmax1, ixOmin2) = bc_data_get_2d(n_bc, &
+                  x(ixOmin1:ixOmax1, ixOmin2, 1), qt)
 
           if (iB == 3) then
              ix = ixOmax2+1
@@ -179,18 +187,9 @@ contains
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
-          if (bc_data_time_varying) then
-             tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) = &
-                  LT3_get_col(lt_3d(n_bc), 1, &
-                  x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 2), &
-                  x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 3), &
-                  time(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3))
-          else
-             tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) = &
-                  LT2_get_col(lt_2d(n_bc), 1, &
-                  x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 2), &
-                  x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 3))
-          end if
+          tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) = bc_data_get_3d(n_bc, &
+               x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 2), &
+               x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 3), qt)
 
           if (iB == 1) then
              ix = ixOmax1+1
@@ -211,18 +210,9 @@ contains
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
-          if (bc_data_time_varying) then
-             tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) = &
-                  LT3_get_col(lt_3d(n_bc), 1, &
+          tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) = bc_data_get_3d(n_bc, &
                   x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 1), &
-                  x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 3), &
-                  time(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3))
-          else
-             tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) = &
-                  LT2_get_col(lt_2d(n_bc), 1, &
-                  x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 1), &
-                  x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 3))
-          end if
+                  x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 3), qt)
 
           if (iB == 3) then
              ix = ixOmax2+1
@@ -243,18 +233,9 @@ contains
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
-          if (bc_data_time_varying) then
-             tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) = &
-                  LT3_get_col(lt_3d(n_bc), 1, &
+          tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) = bc_data_get_3d(n_bc, &
                   x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 1), &
-                  x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 2), &
-                  time(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3))
-          else
-             tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) = &
-                  LT2_get_col(lt_2d(n_bc), 1, &
-                  x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 1), &
-                  x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 2))
-          end if
+                  x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 2), qt)
 
           if (iB == 5) then
              ix = ixOmax3+1
