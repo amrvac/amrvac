@@ -90,7 +90,7 @@ module mod_mhd_phys
   character(len=std_len) :: typedivbfix  = 'linde'
 
   !> Whether divB is computed with a fourth order approximation
-  logical :: mhd_divb_4thorder = .false.
+  logical, public :: mhd_divb_4thorder = .false.
 
   !> Method type in a integer for good performance
   integer :: type_divb
@@ -2565,14 +2565,20 @@ contains
        idim = (n+1)/2
        select case (typeboundary(mag(idim), n))
        case ('symm')
-          mg%bc(n, mg_iphi)%bc_type = bc_neumann
+          ! d/dx B = 0, take phi = 0
+          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('asymm')
-          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
+          ! B = 0, so grad(phi) = 0
+          mg%bc(n, mg_iphi)%bc_type = bc_neumann
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('cont')
           mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
-          mg%bc(n, mg_iphi)%bc_value = 0.0_dp ! Not needed
+          mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+       case ('special')
+          ! Assume Dirichlet boundary conditions, derivative zero
+          mg%bc(n, mg_iphi)%bc_type = bc_neumann
+          mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('periodic')
           ! Nothing to do here
        case default
