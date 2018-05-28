@@ -314,6 +314,11 @@ contains
   subroutine print_error()
     use mod_input_output, only: get_volume_average
     double precision   :: modes(nw, 2), volume
+    double precision :: divb(ixG^T),sumdivb
+    character(len=100):: filename
+    character(len=1024) :: line, datastr
+    integer :: iigrid, igrid
+    logical :: alive
 
     call get_volume_average(1, modes(:, 1), volume)
     call get_volume_average(2, modes(:, 2), volume)
@@ -322,6 +327,34 @@ contains
        write(*, "(A,4E16.8)") " CONVTEST (t,rho_2,p_2,b_2):",  &
            global_time, sqrt(modes(i_err_r, 2)), sqrt(modes(i_err_p, 2)), sqrt(modes(i_err_b, 2))
     end if
+    ! get normalized divb
+    sumdivb=0.d0
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call get_normalized_divb(pw(igrid)%w,ixG^LL,ixM^LL,divb)
+      sumdivb=sumdivb+sum(divb(ixM^T))
+    end do
+    if(mype==0) then
+      write(filename,"(a,a)") TRIM(base_filename),"errors.csv"
+      inquire(file=filename,exist=alive)
+      if(alive) then
+        open(unit=21,file=filename,form='formatted',status='old',access='append')
+      else
+        open(unit=21,file=filename,form='formatted',status='new')
+        write(21,'(a)') 'time, rho error, p error, b error, divbsum' 
+      endif
+      write(datastr,'(es11.4, 2a)') global_time,', '
+      line=datastr
+      write(datastr,"(es12.5, 2a)") sqrt(modes(i_err_r, 2)),', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5, 2a)") sqrt(modes(i_err_p, 2)),', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5, 2a)") sqrt(modes(i_err_b, 2)),', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5)") sumdivb
+      line = trim(line)//trim(datastr)
+      write(21,'(a)') trim(line)
+      close(21)
+    endif
   end subroutine print_error
 
   subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)

@@ -123,13 +123,12 @@ module mod_mhd_phys
   integer, parameter :: divb_none          = 0
   integer, parameter :: divb_glm1          = 1
   integer, parameter :: divb_glm2          = 2
-  integer, parameter :: divb_glm3          = 3
-  integer, parameter :: divb_powel         = 4
-  integer, parameter :: divb_janhunen      = 5
-  integer, parameter :: divb_linde         = 6
-  integer, parameter :: divb_lindejanhunen = 7
-  integer, parameter :: divb_lindepowel    = 8
-  integer, parameter :: divb_lindeglm      = 9
+  integer, parameter :: divb_powel         = 3
+  integer, parameter :: divb_janhunen      = 4
+  integer, parameter :: divb_linde         = 5
+  integer, parameter :: divb_lindejanhunen = 6
+  integer, parameter :: divb_lindepowel    = 7
+  integer, parameter :: divb_lindeglm      = 8
 
   ! Public methods
   public :: mhd_phys_init
@@ -272,31 +271,29 @@ contains
     case ('none')
       type_divb = divb_none
     case ('glm1')
-       mhd_glm          = .true.
-       need_global_cmax = .true.
-       type_divb        = divb_glm1
+      mhd_glm          = .true.
+      need_global_cmax = .true.
+      type_divb        = divb_glm1
     case ('glm2')
-       mhd_glm          = .true.
-       need_global_cmax = .true.
-       type_divb        = divb_glm2
-    case ('glm3')
-       mhd_glm          = .true.
-       need_global_cmax = .true.
-       type_divb        = divb_glm3
+      mhd_glm          = .true.
+      need_global_cmax = .true.
+      need_global_vmax = .true.
+      type_divb        = divb_glm2
     case ('powel', 'powell')
-       type_divb = divb_powel
+      type_divb = divb_powel
     case ('janhunen')
-       type_divb = divb_janhunen
+      type_divb = divb_janhunen
     case ('linde')
-       type_divb = divb_linde
+      type_divb = divb_linde
     case ('lindejanhunen')
-       type_divb = divb_lindejanhunen
+      type_divb = divb_lindejanhunen
     case ('lindepowel')
-       type_divb = divb_lindepowel
+      type_divb = divb_lindepowel
     case ('lindeglm')
-       mhd_glm          = .true.
-       need_global_cmax = .true.
-       type_divb        = divb_lindeglm
+      mhd_glm          = .true.
+      need_global_cmax = .true.
+      need_global_vmax = .true.
+      type_divb        = divb_lindeglm
     case default
       call mpistop('Unknown divB fix')
     end select
@@ -355,6 +352,7 @@ contains
     phys_get_cmax            => mhd_get_cmax
     phys_get_cbounds         => mhd_get_cbounds
     phys_get_flux            => mhd_get_flux
+    phys_get_v_idim          => mhd_get_v_idim
     phys_add_source_geom     => mhd_add_source_geom
     phys_add_source          => mhd_add_source
     phys_to_conserved        => mhd_to_conserved
@@ -406,15 +404,15 @@ contains
     end if
 
     ! initialize magnetofriction module
-    if (mhd_magnetofriction) then
+    if(mhd_magnetofriction) then
       phys_req_diagonal = .true.
       call magnetofriction_init()
     end if
 
-    if (mhd_glm) then
-       ! Solve the Riemann problem for the linear 2x2 system for normal
-       ! B-field and GLM_Psi according to Dedner 2002:
-       phys_modify_wLR => glmSolve
+    if(type_divb==divb_glm1) then
+      ! Solve the Riemann problem for the linear 2x2 system for normal
+      ! B-field and GLM_Psi according to Dedner 2002:
+      phys_modify_wLR => glmSolve
     end if
 
     ! For Hall, we need one more reconstructed layer since currents are computed
@@ -498,8 +496,10 @@ contains
            where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
          else
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
-           tmp(ixO^S)=gamma_1*(w(ixO^S,e_) - &
-              mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
+           tmp(ixO^S)=w(ixO^S,e_) - &
+              mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L)
+           if(mhd_glm) tmp(ixO^S)=tmp(ixO^S)-0.5d0*w(ixO^S,psi_)**2
+           tmp(ixO^S)=gamma_1*tmp(ixO^S)
            where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
          end if
        end if
@@ -520,6 +520,7 @@ contains
       if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + &
         0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_) + &
         mhd_mag_en(w, ixI^L, ixO^L)
+      if(type_divb==divb_glm2) w(ixO^S,e_)=w(ixO^S,e_) + 0.5d0*w(ixO^S,psi_)**2
     end if
 
     ! Convert velocity to momentum
@@ -542,14 +543,15 @@ contains
     inv_rho = 1.0d0 / w(ixO^S, rho_)
 
     if (mhd_energy) then
-      if(block%e_is_internal) then
-        w(ixO^S, p_) = gamma_1*w(ixO^S, e_)
-      else
-       ! Calculate pressure = (gamma-1) * (e-0.5*(2ek+2eb))
-        w(ixO^S, p_) = gamma_1*(w(ixO^S, e_) &
+      ! Calculate pressure = (gamma-1) * (e-ek-eb)
+      if(.not.block%e_is_internal) then
+        w(ixO^S, p_) = w(ixO^S, e_) &
               - mhd_kin_en(w, ixI^L, ixO^L, inv_rho) &
-              - mhd_mag_en(w, ixI^L, ixO^L))
+              - mhd_mag_en(w, ixI^L, ixO^L)
+      ! Calculate pressure = (gamma-1) * (e-ek-eb-epsi)
+        if(type_divb==divb_glm2) w(ixO^S, p_)=w(ixO^S, p_)-0.5d0*w(ixO^S,psi_)**2
       end if
+      w(ixO^S, p_) = gamma_1*w(ixO^S, p_)
     end if
 
     ! Convert momentum to velocity
@@ -652,6 +654,18 @@ contains
     end do
 
   end subroutine mhd_get_v
+
+  !> Calculate v component
+  subroutine mhd_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
+    use mod_global_parameters
+
+    integer, intent(in)           :: ixI^L, ixO^L, idim
+    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
+    double precision, intent(out) :: v(ixI^S)
+
+    v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S,rho_)
+
+  end subroutine mhd_get_v_idim
 
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
   subroutine mhd_get_cmax(w,x,ixI^L,ixO^L,idim,cmax)
@@ -917,6 +931,10 @@ contains
           f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_) + ptotal(ixO^S))- &
              w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
 
+          if(type_divb==divb_glm2) then
+            f(ixO^S,e_) = f(ixO^S,e_) + vmax_global*w(ixO^S,psi_)*w(ixO^S,mag(idim))
+          end if
+
           if (B0field) then
              f(ixO^S,e_) = f(ixO^S,e_) &
                 + w(ixO^S,mom(idim)) * tmp(ixO^S) &
@@ -945,7 +963,11 @@ contains
       if (idim==idir) then
         ! f_i[b_i] should be exactly 0, so we do not use the transport flux
         if (mhd_glm) then
-           f(ixO^S,mag(idir))=w(ixO^S,psi_)
+           if(type_divb==divb_glm1) then
+             f(ixO^S,mag(idir))=w(ixO^S,psi_)
+           else
+             f(ixO^S,mag(idir))=vmax_global*w(ixO^S,psi_)
+           end if
         else
            f(ixO^S,mag(idir))=zero
         end if
@@ -977,8 +999,13 @@ contains
     end do
 
     if (mhd_glm) then
-      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
-      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+      if(type_divb==divb_glm1) then
+        !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+        f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+      else
+        !f_i[psi]=Ch*b_{i} Eq. 3.16e Derigs et al 2018 JCP, 364, 420 
+        f(ixO^S,psi_)  = vmax_global*w(ixO^S,mag(idim))
+      end if
     end if
 
   end subroutine mhd_get_flux
@@ -1034,9 +1061,6 @@ contains
       case (divb_glm2)
         active = .true.
         call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-      case (divb_glm3)
-        active = .true.
-        call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
       case (divb_powel)
         active = .true.
         call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
@@ -1057,7 +1081,7 @@ contains
       case (divb_lindeglm)
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        call add_source_glm3(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1071,10 +1095,7 @@ contains
         call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
       case (divb_glm2)
         active = .true.
-        call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (divb_glm3)
-        active = .true.
-        call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
       case (divb_powel)
         active = .true.
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -1095,7 +1116,7 @@ contains
       case (divb_lindeglm)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1473,17 +1494,16 @@ contains
 
   subroutine add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add divB related sources to w within ixO
-    ! corresponding to Dedner JCP 2002, 175, 645 _equation 38_
-    ! giving the non conservative EGLM-MHD scheme.
+    ! corresponding to Eq. 3.17 Derigs et al 2018 JCP, 364, 420
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision:: divb(ixI^S),v(ixI^S,1:ndir)
     integer          :: idim,idir
-    double precision :: gradPsi(ixI^S)
+    double precision :: gradPsi(ixI^S,ndim), Bf(ixI^S,1:ndir)
 
     ! calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb)
@@ -1491,81 +1511,46 @@ contains
     ! calculate velocity
     call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
 
-    ! dPsi/dt =  - Ch^2/Cp^2 Psi
-    if (mhd_glm_alpha < zero) then
-      w(ixO^S,psi_) = abs(mhd_glm_alpha)*wCT(ixO^S,psi_)
-    else
-      ! implicit update of Psi variable
-      ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
-      if(slab) then
-        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
-      else
-        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(block%ds(ixO^S,:),dim=ndim+1))*w(ixO^S,psi_)
-      end if
-    end if
-
     ! gradient of Psi
     do idim=1,ndim
        select case(typegrad)
        case("central")
-         call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
+         call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi(ixI^S,idim))
        case("limited")
-         call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
+         call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi(ixI^S,idim))
        end select
-
-      ! Psi=Psi - qdt (v . grad(Psi))
-      w(ixO^S,psi_) = w(ixO^S,psi_)-qdt*v(ixO^S,idim)*gradPsi(ixO^S)
-
-      if (mhd_energy .and. .not.block%e_is_internal) then
-      ! e  = e  - qdt (b . grad(Psi))
-        w(ixO^S,e_) = w(ixO^S,e_)&
-             -qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
-      end if
     end do
 
-    if (mhd_energy .and. .not.block%e_is_internal) then
-    ! e = e - qdt (v . b) * div b
-       w(ixO^S,e_)=w(ixO^S,e_) - qdt * divb(ixO^S) * &
-            sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)
+    if(B0field) then
+      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,0)
+    else
+      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))
     end if
-    ! b = b - qdt v * div b
+
+    if (mhd_energy .and. .not.block%e_is_internal) then
+       ! e = e - qdt ( (v . b) * div b + (grad psi . v) * psi)
+       w(ixO^S,e_)=w(ixO^S,e_) - qdt * (divb(ixO^S) * &
+            sum(v(ixO^S,:)*Bf(ixO^S,:),dim=ndim+1) + wCT(ixO^S,psi_)*&
+            sum(v(ixO^S,1:ndim)*gradPsi(ixO^S,1:ndim),dim=ndim+1))
+    end if
+
+    ! b_i = b_i - qdt * v_i * div b
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
     end do
 
-    ! m = m - qdt b div b
+    ! m_i = m_i - qdt * b_i * div b
     do idir=1,ndir
-      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
+      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*Bf(ixO^S,idir)*divb(ixO^S)
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm2')
+    ! psi = psi - qdt * (v . grad(psi) + alpha * psi)
+    w(ixO^S,psi_) = w(ixO^S,psi_)-qdt*(sum(v(ixO^S,1:ndim)*gradPsi(ixO^S,1:ndim),dim=ndim+1)+&
+      vmax_global/0.18d0*wCT(ixO^S,psi_))
+
+    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm')
 
   end subroutine add_source_glm2
-
-  subroutine add_source_glm3(qdt,ixI^L,ixO^L,wCT,w,x)
-    ! Add divB related sources to w within ixO
-    ! corresponding to Dedner JCP 2002, 175, 645 _equation (1a), (1b), (4), (1d), 19
-    ! conservative hyperbolic mixed GLM-MHD with no additional source terms.
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    ! dPsi/dt =  - Ch^2/Cp^2 Psi
-    if (mhd_glm_alpha < zero) then
-      w(ixO^S,psi_) = abs(mhd_glm_alpha)*w(ixO^S,psi_)
-    else
-      ! implicit update of Psi variable
-      ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
-      if(slab) then
-        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
-      else
-        w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(block%ds(ixO^S,:),dim=ndim+1))*w(ixO^S,psi_)
-      end if
-    end if
-
-  end subroutine add_source_glm3
 
   !> Add divB related sources to w within ixO corresponding to Powel
   subroutine add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)

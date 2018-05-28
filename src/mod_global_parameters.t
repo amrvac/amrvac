@@ -532,8 +532,14 @@ module mod_global_parameters
   !> global fastest wave speed needed in fd scheme and glm method
   double precision :: cmax_global
 
+  !> global fastest flow speed needed in glm method
+  double precision :: vmax_global
+
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
+
+  !> need global maximal flow speed
+  logical :: need_global_vmax=.false.
 
   ! Boundary region parameters
 

@@ -72,6 +72,7 @@ contains
     phys_get_cmax        => rho_get_cmax
     phys_get_cbounds     => rho_get_cbounds
     phys_get_flux        => rho_get_flux
+    phys_get_v_idim      => rho_get_v_idim
     phys_add_source_geom => rho_add_source_geom
     phys_to_conserved    => rho_to_conserved
     phys_to_primitive    => rho_to_primitive
@@ -237,6 +238,18 @@ contains
        v(ixO^S) = rho_v(idim)
     end select
   end subroutine rho_get_v
+
+  !> Calculate simple v component
+  subroutine rho_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
+    use mod_global_parameters
+
+    integer, intent(in)           :: ixI^L, ixO^L, idim
+    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
+    double precision, intent(out) :: v(ixI^S)
+
+    v(ixO^S) = rho_v(idim)
+
+  end subroutine rho_get_v_idim
 
   subroutine rho_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
