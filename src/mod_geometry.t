@@ -486,7 +486,7 @@ contains
 
     integer          :: ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
     double precision :: invdx(1:ndim)
-    double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S)
+    double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
     !-----------------------------------------------------------------------------
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
@@ -618,7 +618,7 @@ contains
             }
             enddo; 
           case('Stokesbased') 
-            if(ndim<3) call mpistop("Stokesbased for 3D spherical only")
+            !if(ndim<3) call mpistop("Stokesbased for 3D spherical only")
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
              if(lvc(idir,jdir,kdir)/=0)then
               select case(idir)
@@ -713,8 +713,13 @@ contains
                   end if
                   ! 1st coordinate at cell interface along 1st dimension
                   xC(ixC^S)=block%x(ixC^S,jdir)+0.5d0*block%dx(ixC^S,jdir)
+                  if(ndim==3) then
+                    surface(ixO^S)=block%surface(ixO^S,idir)
+                  else
+                    surface(ixO^S)=block%x(ixO^S,jdir)*block%dx(ixO^S,kdir)*block%dx(ixO^S,jdir)
+                  end if
                   curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(xC(ixO^S)*tmp(ixO^S)-xC(hxO^S)*tmp(hxO^S))*block%dx(ixO^S,kdir))&
-                       /block%surface(ixO^S,idir)
+                       /surface(ixO^S)
                 end if
               end select
               if(idir<idirmin)idirmin=idir
@@ -805,8 +810,8 @@ contains
               if(phi_==2) curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+qvec(ixO^S,z_)/block%x(ixO^S,r_)
             endif
             enddo; 
-          case('Stokesbased') ! works for 3D
-            if(ndim<3) call mpistop("Stokesbased for 3D cylindrical only")
+          case('Stokesbased')
+            !if(ndim<3) call mpistop("Stokesbased for 3D cylindrical only")
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
                if(idir==r_) then
@@ -864,8 +869,13 @@ contains
                   else
                     tmp(ixC^S)=0.5d0*(qvec(ixC^S,kdir)+qvec(jxC^S,kdir))
                   end if
+                  if(ndim==3) then
+                    surface(ixO^S)=block%surface(ixO^S,idir)
+                  else
+                    surface(ixO^S)=block%dx(ixO^S,jdir)*block%dx(ixO^S,kdir)
+                  end if
                   curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(tmp(hxO^S)-tmp(ixO^S))*block%dx(ixO^S,kdir))&
-                       /block%surface(ixO^S,idir)
+                       /surface(ixO^S)
                 end if
                else ! idir==z_
                 if(jdir<kdir) then
@@ -895,8 +905,13 @@ contains
                   end if
                   ! r coordinate at cell interface along r dimension
                   xC(ixC^S)=block%x(ixC^S,jdir)+0.5d0*block%dx(ixC^S,jdir)
+                  if(ndim==3) then
+                    surface(ixO^S)=block%surface(ixO^S,idir)
+                  else
+                    surface(ixO^S)=block%x(ixO^S,jdir)*block%dx(ixO^S,kdir)*block%dx(ixO^S,jdir)
+                  end if
                   curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(xC(ixO^S)*tmp(ixO^S)-xC(hxO^S)*tmp(hxO^S))*block%dx(ixO^S,kdir))&
-                       /block%surface(ixO^S,idir)
+                       /surface(ixO^S)
                 end if
                end if
                if(idir<idirmin)idirmin=idir
