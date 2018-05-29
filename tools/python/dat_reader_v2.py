@@ -9,6 +9,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+# from __future__ import unicode_literals
 
 import argparse
 import struct
@@ -19,6 +20,7 @@ import sys
 size_logical = 4
 size_int = 4
 size_double = 8
+name_len = 16
 
 # For un-aligned data, use '=' (for aligned data set to '')
 align = '='
@@ -52,7 +54,7 @@ def get_header(dat):
     h['xmax'] = np.array(
         struct.unpack(fmt, dat.read(struct.calcsize(fmt))))
 
-    # Read domain and block size (in number of cells) 
+    # Read domain and block size (in number of cells)
     fmt = align + h['ndim'] * 'i'
     h['domain_nx'] = np.array(
         struct.unpack(fmt, dat.read(struct.calcsize(fmt))))
@@ -62,32 +64,34 @@ def get_header(dat):
     # Read w_names
     w_names = []
     for i in range(h['nw']):
-        fmt = align + 16 * 'c'
+        fmt = align + name_len * 'c'
         hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
-        w_names.append(''.join(hdr).strip())
+        w_names.append(b''.join(hdr).strip().decode())
     h['w_names'] = w_names
 
     # Read physics type
-    fmt = align + 16 * 'c'
+    fmt = align + name_len * 'c'
     hdr = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
-    h['physics_type'] = ''.join(hdr).strip()
+    h['physics_type'] = b''.join(hdr).strip().decode()
 
     # Read number of physics-defined parameters
     fmt = align + 'i'
-    n_pars, = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    [n_pars] = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
     # First physics-parameter values are given, then their names
     fmt = align + n_pars * 'd'
     vals = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
-    fmt = align + n_pars * 16 * 'c'
+
+    fmt = align + n_pars * name_len * 'c'
     names = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
     # Split and join the name strings (from one character array)
-    names = [''.join(names[i:i+16]).strip() for i in range(0, len(names), 16)]
+    names = [b''.join(names[i:i+name_len]).strip().decode()
+             for i in range(0, len(names), name_len)]
 
     # Store the values corresponding to the names
     for val, name in zip(vals, names):
         h[name] = val
-
+    print(h)
     return h
 
 def get_block_data(dat):
