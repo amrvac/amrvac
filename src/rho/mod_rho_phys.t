@@ -39,7 +39,7 @@ contains
     integer                             :: er
     integer                             :: idim
 
-    call MPI_FILE_WRITE(fh, n_par, ^ND, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
 
     do idim=1,ndim
       write(names(idim),'(a,i1)') "v",idim
