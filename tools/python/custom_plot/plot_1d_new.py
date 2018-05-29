@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # Author: Jannis Teunissen
+# Modified by: ??
 # This file should work in both Python 2 and 3
 
 from __future__ import absolute_import
