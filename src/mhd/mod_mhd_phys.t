@@ -2566,25 +2566,25 @@ contains
        select case (typeboundary(mag(idim), n))
        case ('symm')
           ! d/dx B = 0, take phi = 0
-          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
+          mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('asymm')
           ! B = 0, so grad(phi) = 0
-          mg%bc(n, mg_iphi)%bc_type = bc_neumann
+          mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('cont')
-          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
+          mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('special')
           ! Assume Dirichlet boundary conditions, derivative zero
-          mg%bc(n, mg_iphi)%bc_type = bc_neumann
+          mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('periodic')
           ! Nothing to do here
        case default
           print *, "divb_multigrid warning: unknown b.c.: ", &
                trim(typeboundary(mag(idim), n))
-          mg%bc(n, mg_iphi)%bc_type = bc_dirichlet
+          mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        end select
     end do
