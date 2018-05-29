@@ -1,26 +1,52 @@
 # Writing a custom analysis subroutine
 
-This is a subroutine which can be scheduled freely to derive quantities of
-interest from the entire grid.
+# Introduction
 
-## Setup in par file
+Users can write a subroutine to freely derive (and print or store) quantities of
+interest from the entire grid. To activate this functionality, set the following
+in your `usr_init` routine:
+
+```{fortran}
+subroutine usr_init()
+  ...
+  usr_write_analysis => my_analysis
+  ...
+end subroutine usr_init
+```
+
+# Setup in par file
 
 Similar to the other IO-mechanisms, analysis is scheduled within the savelist:
 
      &savelist;
-            itsave(1,5)      = 0
-            ditsave(5)       = 1
+            dtsave_custom = 0.1 ! Save every 0.1 time units
+            ditsave_custom = 10 ! Save every 10 iterations
     /
 
-The above example makes sure write_analysis is called every iteration.
+# write_analysis subroutine
 
-## write_analysis subroutine
+The user-defined analysis subroutine takes no arguments. It operates on the
+lowest abstraction level of MPI-AMRVAC so that the user has the flexibility to
+loop over the the SFC and freely perform integrals over the grid-functions,
+similar to the `printlog_special`. A special file-unit is reserved for the IO:
+`unitanalysis`. This should be used for any IO performed by this routine.
 
-The file _$AMRVAC_DIR/src/amrvacio/analysis.t_ contains the subroutine
-_write_analysis_. To use it, simply copy this file into the working directory
-and modify. This routine is on the lowest abstraction level of _MPI-AMRVAC_
-such that the user has the flexibility to loop over the the SFC and freely
-perform integrals over the grid-functions, similar to the _printlog_special_.
-A special file-unit is reserved for the IO: _unitanalysis_. This should be
-used for any IO performed by this routine.
+# Example of analysis routine
 
+```{fortran}
+subroutine my_analysis()
+  double precision :: tmp, wmax
+  integer          :: iigrid, igrid, ierrmpi
+
+  tmp = 0
+  do iigrid = 1, igridstail
+    igrid = igrids(iigrid)
+    tmp = max(tmp, maxval(pw(igrid)%w(ixM^T, rho_)))
+  end do
+
+  call MPI_ALLREDUCE(tmp, wmax, 1, MPI_DOUBLE_PRECISION, &
+       MPI_MAX, icomm, ierrmpi)
+
+  print *, mype, global_time, "maximum density is", wmax
+end subroutine my_analysis
+```
