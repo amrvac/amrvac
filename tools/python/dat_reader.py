@@ -91,7 +91,6 @@ def get_header(dat):
     # Store the values corresponding to the names
     for val, name in zip(vals, names):
         h[name] = val
-    print(h)
     return h
 
 def get_block_data(dat):
