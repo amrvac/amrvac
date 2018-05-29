@@ -32,7 +32,7 @@ def get_header(dat):
     h = {}
 
     fmt = align + 'i'
-    h['version'] = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    [h['version']] = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
 
     if h['version'] < 3:
         print("Unsupported .dat file version: ", h['version'])
@@ -96,7 +96,7 @@ def get_block_data(dat):
     """
 
     dat.seek(0)
-    h = get_header(args.dat_file)
+    h = get_header(dat)
     nw = h['nw']
     block_nx = np.array(h['block_nx'])
     domain_nx = np.array(h['domain_nx'])
@@ -155,8 +155,8 @@ def get_uniform_data(dat):
     grid. Argument 'dat' should be a file opened in binary mode.
     """
 
-    h = get_header(args.dat_file)
-    blocks = get_block_data(args.dat_file)
+    h = get_header(dat)
+    blocks = get_block_data(dat)
 
     # Check if grid is uniformly refined
     refined_nx = 2**(h['levmax']-1) * h['domain_nx']
