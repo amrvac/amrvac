@@ -5,7 +5,9 @@
  /
 
  &savelist
-        dtsave_dat=0.05d0
+ dtsave_dat=0.05d0
+ itsave(1, 2) = 0
+ ! dtsave_log = 0.05d0
  /
 
  &stoplist
@@ -13,7 +15,7 @@
  /
 
  &methodlist
-        time_integrator=  'threestep'
+        time_integrator=  'onestep'
         flux_scheme = 20*'tvdlf'
         limiter= 20*'koren'
  /
@@ -28,11 +30,11 @@
  /
 
  &meshlist
-        refine_max_level=3
+        refine_max_level=1
         refine_threshold=20*1.0
-        domain_nx1=32
-        domain_nx2=32
-        domain_nx3=32
+        domain_nx1=64
+        domain_nx2=64
+        domain_nx3=64
         xprobmin1=-0.5d0
         xprobmax1=0.5d0
         xprobmin2=-0.5d0

@@ -7,11 +7,15 @@ module mod_usr
   integer             :: i_rhs
   integer             :: i_phi
   integer             :: i_err
+  integer             :: i_res
   real(dp), parameter :: pi = acos(-1.0_dp)
 
-  double precision, parameter :: gauss_ampl      = 1.0d1
-  double precision, parameter :: gauss_sigma     = 1.0d-1
-  integer, parameter          :: cos_modes(ndim) = [1, 2, 3]
+  double precision, parameter :: gauss_ampl           = 10.0d0
+  double precision, parameter :: gauss_sigma          = 0.1d0
+  double precision, parameter :: cos_ampl             = 1.0d0
+  double precision, parameter :: cos_modes(ndim)      = [0.5d0, 1.0d0, 1.5d0]
+  character(len=10)           :: multigrid_cycle_name = 'fmg'
+  character(len=10)           :: refine_type = 'corner'
 
 contains
 
@@ -23,7 +27,6 @@ contains
 
     use_multigrid = .true.
     usr_process_global => compute_phi
-    usr_process_grid => set_error
     usr_refine_grid => my_refine
 
     call set_coordinate_system("Cartesian_2D")
@@ -32,10 +35,15 @@ contains
     i_phi = var_set_extravar("phi", "phi")
     i_rhs = var_set_extravar("rhs", "rhs")
     i_err = var_set_extravar("err", "err")
+    i_res = var_set_extravar("res", "res")
 
     do n = 1, mg_num_neighbors
        mg%bc(n, mg_iphi)%boundary_cond => my_bc
     end do
+
+    mg%smoother_type = mg_smoother_gsrb
+    mg%n_cycle_down = 2
+    mg%n_cycle_up = 2
   end subroutine usr_init
 
   subroutine initial_conditions(ixG^L, ix^L, w,x)
@@ -58,7 +66,7 @@ contains
     val = gauss_ampl * exp(-sum(r**2))
 
     r = [ x^D ] * 2 * pi * cos_modes
-    val = val + cos(sum(r))
+    val = val + cos_ampl * cos(sum(r))
   end function solution
 
   elemental function rhs(x^D) result(val)
@@ -70,7 +78,7 @@ contains
          (sum(r**2) - 0.5_dp * ndim) * exp(-sum(r**2))
 
     r = [ x^D ] * 2 * pi * cos_modes
-    val = val - 4 * pi**2 * sum(cos_modes**2) * cos(sum(r))
+    val = val - 4 * cos_ampl * pi**2 * sum(cos_modes**2) * cos(sum(r))
   end function rhs
 
   !> To fill ghost cells near physical boundaries
@@ -89,24 +97,40 @@ contains
   end subroutine my_bc
 
   subroutine compute_phi(iit,qt)
+    use mod_input_output
     integer, intent(in)          :: iit
     double precision, intent(in) :: qt
-    integer                      :: id
-    double precision             :: max_res
+    integer                      :: id, iigrid, igrid
+    double precision             :: max_res, wmax(nw), modes(nw), vol
 
-    call mg_copy_to_tree(i_rhs, mg_irhs, .false., .false.)
-    call mg_fas_fmg(mg, .true., max_res)
-    ! call mg_fas_vcycle(mg, max_res=max_res)
-    if (mype == 0) print *, it, "max residu:", max_res
+    if (iit == 0) then
+       call mg_copy_to_tree(i_rhs, mg_irhs, .false., .false.)
+    end if
+
+    if (multigrid_cycle_name == 'fmg') then
+       call mg_fas_fmg(mg, .true., max_res)
+    else
+       call mg_fas_vcycle(mg, max_res=max_res)
+    end if
+
     call mg_copy_from_tree(mg_iphi, i_phi)
+    call mg_copy_from_tree(mg_ires, i_res)
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       call set_error(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+    end do
+
+    call get_global_maxima(wmax)
+    call get_volume_average(2, modes, vol)
+    if (mype == 0) print *, "CONV", it, max_res, wmax(i_err), sqrt(modes(i_err)), sqrt(modes(i_res))
   end subroutine compute_phi
 
-  subroutine set_error(igrid,level,ixI^L,ixO^L,qt,w,x)
-    integer, intent(in)             :: igrid,level,ixI^L,ixO^L
-    double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
+  subroutine set_error(ixI^L,ixO^L,w,x)
+    integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    w(ixO^S, i_err) = w(ixO^S, i_phi) - w(ixO^S, rho_)
+    w(ixO^S, i_err) = abs(w(ixO^S, i_phi) - w(ixO^S, rho_))
   end subroutine set_error
 
   subroutine my_refine(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
@@ -117,15 +141,29 @@ contains
 
     refine = 0
     coarsen = 0
-    if (all(x(ixO^S, 1) <= 0.1d0) .and. &
-         all(x(ixO^S, 2) <= 0.1d0) .and. &
-         all(x(ixO^S, 3) <= 0.1d0)) then
-       refine = 1
-       coarsen = -1
-    else
-       refine = -1
-       coarsen = -1
-    end if
+
+    select case (refine_type)
+    case ('corner')
+       if (any(abs(x(ixO^S, 1) + 0.25d0) <= 0.1d0) .and. &
+            any(abs(x(ixO^S, 2) + 0.25d0) <= 0.1d0) .and. &
+            any(abs(x(ixO^S, 3) + 0.25d0) <= 0.1d0)) then
+          refine = 1
+          coarsen = -1
+       else
+          refine = -1
+          coarsen = -1
+       end if
+    case ('center')
+       if (any(abs(x(ixO^S, 1)) <= 0.1d0) .and. &
+            any(abs(x(ixO^S, 2)) <= 0.1d0) .and. &
+            any(abs(x(ixO^S, 3)) <= 0.1d0)) then
+          refine = 1
+          coarsen = -1
+       else
+          refine = -1
+          coarsen = -1
+       end if
+    end select
   end subroutine my_refine
 
 end module mod_usr
