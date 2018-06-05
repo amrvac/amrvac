@@ -28,6 +28,12 @@ module mod_mhd_phys
   !> Whether magnetofriction is added
   logical, public, protected              :: mhd_magnetofriction = .false.
 
+  !> Whether Boris' approximation is used
+  logical, public, protected              :: mhd_boris_approx = .false.
+
+  !> Speed of light for Boris' approximation (have to adjust according to code units)
+  double precision, public, protected     :: mhd_boris_c = 3d8
+
   !> Whether GLM-MHD is used
   logical, public, protected              :: mhd_glm = .false.
 
@@ -156,7 +162,7 @@ contains
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
-      boundary_divbfix, boundary_divbfix_skip
+      boundary_divbfix, boundary_divbfix_skip, mhd_boris_approx, mhd_boris_c
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -364,6 +370,12 @@ contains
     phys_write_info          => mhd_write_info
     phys_angmomfix           => mhd_angmomfix
     phys_handle_small_values => mhd_handle_small_values
+
+    if (mhd_boris_approx) then
+      do idir = 1, ndir
+        phys_iw_methods(mom(idir))%inv_capacity => mhd_gamma2_alfven
+      end do
+    end if
 
     ! Whether diagonal ghost cells are required for the physics
     if(type_divb < divb_linde) phys_req_diagonal = .false.
@@ -757,6 +769,9 @@ contains
 
     if (.not. MHD_Hall) then
        csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
+       if (mhd_boris_approx) then
+          csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
+       end if
     else
        ! take the Hall velocity into account:
        ! most simple estimate, high k limit:
@@ -800,6 +815,9 @@ contains
 
     if (.not. MHD_Hall) then
        csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
+       if (mhd_boris_approx) then
+          csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
+       end if
     else
        ! take the Hall velocity into account:
        ! most simple estimate, high k limit:
@@ -1969,6 +1987,32 @@ contains
       mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
     end if
   end function mhd_mag_en_all
+
+  !> Compute 1/sqrt(1+v_A^2/c^2) for Boris' approximation, where v_A is the
+  !> Alfven velocity
+  function mhd_gamma_alfven(w, ixI^L, ixO^L) result(gamma_A)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision              :: gamma_A(ixO^S)
+
+    ! Compute the inverse of sqrt(1 + B^2/(rho * c^2))
+    gamma_A(ixO^S) = 1.0d0 / sqrt(1.0d0 + mhd_mag_en_all(w, ixI^L, ixO^L) / &
+         (w(ixO^S, rho_) * mhd_boris_c**2))
+  end function mhd_gamma_alfven
+
+  !> Compute 1/(1+v_A^2/c^2) for Boris' approximation, where v_A is the Alfven
+  !> velocity
+  subroutine mhd_gamma2_alfven(w, ixI^L, ixO^L, out)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision, intent(out) :: out(ixO^S)
+
+    ! Compute the inverse of 1 + B^2/(rho * c^2)
+    out = 1.0d0 / (1.0d0 + mhd_mag_en_all(w, ixI^L, ixO^L) / &
+         (w(ixO^S, rho_) * mhd_boris_c**2))
+  end subroutine mhd_gamma2_alfven
 
   !> Compute full magnetic field by direction
   function mhd_mag_i_all(w, ixI^L, ixO^L,idir) result(mgf)

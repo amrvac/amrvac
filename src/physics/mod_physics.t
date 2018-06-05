@@ -2,7 +2,7 @@
 !> pointers for the various supported routines. An actual physics module has to
 !> set these pointers to its implementation of these routines.
 module mod_physics
-  use mod_global_parameters, only: name_len
+  use mod_global_parameters, only: name_len, max_nw
   use mod_physics_hllc
   use mod_physics_roe
   use mod_physics_ppm
@@ -32,6 +32,15 @@ module mod_physics
   !> Indicates dissipation should be omitted
   integer, parameter   :: flux_no_dissipation = 2
 
+  !> Type for special methods defined per variable
+  type iw_methods
+    integer :: test
+    !> If this is set, use the routine as a capacity function when adding fluxes
+    procedure(sub_get_var), pointer, nopass :: inv_capacity => null()
+  end type iw_methods
+
+  !> Special methods defined per variable
+  type(iw_methods) :: phys_iw_methods(max_nw)
 
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
@@ -182,7 +191,13 @@ module mod_physics
        character(len=*), intent(in)    :: subname
      end subroutine sub_small_values
 
-  end interface
+     subroutine sub_get_var(w, ixI^L, ixO^L, out)
+       use mod_global_parameters
+       integer, intent(in)           :: ixI^L, ixO^L
+       double precision, intent(in)  :: w(ixI^S, nw)
+       double precision, intent(out) :: out(ixO^S)
+     end subroutine sub_get_var
+   end interface
 
 contains
 

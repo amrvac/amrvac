@@ -27,6 +27,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
+    double precision, dimension(ixO^S)      :: inv_volume
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision :: dxinv(1:ndim)
     integer :: idim, iw, ix^L, hxO^L
@@ -61,13 +62,26 @@ contains
 
        ! Advect w(iw)
        do iw=1,nwflux
-          if (slab) then
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idim)* &
+         if (slab) then
+           if (associated(phys_iw_methods(iw)%inv_capacity)) then
+             call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idim) * inv_volume * &
                   (fLC(ixO^S, iw)-fRC(hxO^S, iw))
+            else
+              wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idim)* &
+                   (fLC(ixO^S, iw)-fRC(hxO^S, iw))
+            end if
           else
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/block%dvolume(ixO^S) &
-                  *(block%surfaceC(ixO^S,idim)*fLC(ixO^S, iw) &
-                  -block%surfaceC(hxO^S,idim)*fRC(hxO^S, iw))
+            if (associated(phys_iw_methods(iw)%inv_capacity)) then
+              call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+            else
+              inv_volume = 1.0d0
+            end if
+            inv_volume = inv_volume/block%dvolume(ixO^S)
+
+            wnew(ixO^S,iw)=wnew(ixO^S,iw) - qdt * inv_volume &
+                 *(block%surfaceC(ixO^S,idim)*fLC(ixO^S, iw) &
+                 -block%surfaceC(hxO^S,idim)*fRC(hxO^S, iw))
           end if
        end do
     end do ! next idim
@@ -201,12 +215,27 @@ contains
        ! Multiply the fluxes by -dt/dx since Flux fixing expects this
        if (slab) then
           fC(ixI^S,1:nwflux,idim)=dxinv(idim)*fC(ixI^S,1:nwflux,idim)
-          wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
-               + (fC(ixO^S,1:nwflux,idim)-fC(hxO^S,1:nwflux,idim))
-       else
+
+          do iw = 1, nwflux
+            if (associated(phys_iw_methods(iw)%inv_capacity)) then
+              call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+              wnew(ixO^S,iw)=wnew(ixO^S,iw) + inv_volume * &
+                   (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim))
+            else
+              wnew(ixO^S,iw)=wnew(ixO^S,iw) &
+                   + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim))
+            end if
+          end do
+        else
           fC(ixI^S,1:nwflux,idim)=-qdt*fC(ixI^S,1:nwflux,idim)
           if (.not. angmomfix) then ! default case
-            inv_volume = 1.0d0/block%dvolume(ixO^S)
+            if (associated(phys_iw_methods(iw)%inv_capacity)) then
+              call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+            else
+              inv_volume = 1.0d0
+            end if
+            inv_volume = inv_volume/block%dvolume(ixO^S)
+
             do iw=1,nwflux
               wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
                   inv_volume
