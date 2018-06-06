@@ -707,7 +707,7 @@ contains
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
-    if (typeboundspeed/='cmaxmean') then
+    if (typeboundspeed/='cmaxmean' .and. .not. mhd_boris_approx) then
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
 
