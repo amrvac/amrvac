@@ -87,9 +87,25 @@ contains
     end do ! next idim
     block%iw0=0
 
+    do iw = 1, nwflux
+      if (associated(phys_iw_methods(iw)%inv_capacity)) then
+        ! Copy state before adding source terms
+        wprim(ixO^S, iw) = wnew(ixO^S, iw)
+      end if
+    end do
+
     if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+
+    ! If there are capacity functions, now correct the added source terms
+    do iw = 1, nwflux
+      if (associated(phys_iw_methods(iw)%inv_capacity)) then
+        call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+        wnew(ixO^S, iw) = wprim(ixO^S, iw) + inv_volume * &
+             (wnew(ixO^S, iw) - wprim(ixO^S, iw))
+      end if
+    end do
 
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
