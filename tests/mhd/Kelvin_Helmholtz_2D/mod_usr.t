@@ -9,6 +9,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_transform_w   => transformw
+    usr_print_log => print_error
 
     call set_coordinate_system('Cartesian')
     call mhd_activate()
@@ -140,5 +141,37 @@ contains
     endwhere
 
   end subroutine transformw
+
+  subroutine print_error()
+    double precision   :: modes(nw, 2), volume
+    double precision :: divb(ixG^T),sumdivb
+    character(len=100):: filename
+    character(len=1024) :: line, datastr
+    integer :: iigrid, igrid
+    logical :: alive
+
+    ! get normalized divb
+    sumdivb=0.d0
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call get_normalized_divb(pw(igrid)%w,ixG^LL,ixM^LL,divb)
+      sumdivb=sumdivb+sum(divb(ixM^T))
+    end do
+    if(mype==0) then
+      write(filename,"(a,a)") TRIM(base_filename),"errors.csv"
+      inquire(file=filename,exist=alive)
+      if(alive) then
+        open(unit=21,file=filename,form='formatted',status='old',access='append')
+      else
+        open(unit=21,file=filename,form='formatted',status='new')
+        write(21,'(a)') 'time, divbsum' 
+      endif
+      write(datastr,'(es12.5, 2a)') global_time,', '
+      line=datastr
+      write(datastr,"(es12.5)") sumdivb
+      line = trim(line)//trim(datastr)
+      write(21,'(a)') trim(line)
+      close(21)
+    endif
+  end subroutine print_error
 
 end module mod_usr

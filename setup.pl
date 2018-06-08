@@ -55,8 +55,8 @@ if (!$ENV{AMRVAC_DIR}) {
     exit;
 }
 
-# Get these files if they do not exist already
-copy_if_not_present("makefile", "arch", "amrvac.make");
+# Copy makefile
+copy_file("makefile", "arch", "amrvac.make");
 
 if ($ndim) {
     replace_regexp_file("makefile", qr/NDIM\s*[:?]?=.*/, "NDIM := $ndim");
@@ -87,9 +87,19 @@ unless (-e("mod_usr.t") || -e("mod_usr.f")) {
     replace_regexp_file("mod_usr.t", qr/_hd/, "_"."$phys");
 }
 
+sub copy_file {
+    my ( $filename, $location, $local_name ) = @_;
+
+    if (!defined($local_name)) {
+        $local_name = $filename;
+    }
+
+    print "Getting $filename from $location/$local_name\n";
+    my $output = `cp $ENV{AMRVAC_DIR}/$location/$local_name $filename`;
+}
 
 # Copy a file if it doesn't exist yet
-# Usage: copy_if_not_present(filename, source directory)
+# Usage: copy_file(filename, source directory)
 # Optionally, a local filename can be specified as third argument
 sub copy_if_not_present {
     my ( $filename, $location, $local_name ) = @_;

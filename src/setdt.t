@@ -3,14 +3,14 @@
 !>         dtpar<=0 --> determine CFL limited timestep 
 subroutine setdt()
 use mod_global_parameters
-use mod_physics, only: phys_get_dt, phys_get_aux
+use mod_physics
 use mod_usr_methods, only: usr_get_dt
 use mod_thermal_conduction
 
-integer :: iigrid, igrid, ncycle, ncycle2, ifile
+integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
 double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
-double precision :: dtmax, dxmin, cmax_mype
+double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
 !----------------------------------------------------------------------------
 
 if (dtpar<=zero) then
@@ -141,6 +141,19 @@ end do
 ! so does GLM: 
 if(need_global_cmax) call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
      MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
+! some scheme need maximal speed of flow
+if(need_global_vmax) then
+  cmax_mype=0.d0
+  do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+     do idim=1,ndim
+       call phys_get_v_idim(pw(igrid)%w,pw(igrid)%x,ixG^LL,ixM^LL,idim,v)
+       cmax_mype=max(cmax_mype,maxval(abs(v(ixM^T))))
+     end do
+  end do
+  call MPI_ALLREDUCE(cmax_mype,vmax_global,1,&
+     MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
+  vmax_global=cmax_global-vmax_global
+end if
 
 contains
 

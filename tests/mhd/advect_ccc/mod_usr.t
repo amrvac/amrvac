@@ -51,6 +51,7 @@ contains
     usr_init_one_grid => CCC_init_one_grid
     usr_process_grid => set_error
     usr_print_log => print_error
+    usr_write_analysis => analyze_forces_on_grid
     usr_refine_grid    => specialrefine_grid
     usr_aux_output      => specialvar_output
     usr_add_aux_names   => specialvarnames_output
@@ -167,6 +168,13 @@ contains
     w(ix^S,mom(1)) = Mach*dsin(theta0)*dcos(phi0)
     w(ix^S,mom(2)) = Mach*dsin(theta0)*dsin(phi0)
     w(ix^S,mom(3)) = Mach*dcos(theta0)
+    w(ix^S,tracer(1))=0.0d0
+    where(rr(ix^S)<0.99d0)
+      w(ix^S,tracer(1))=1.0d0
+    endwhere
+    where((rr(ix^S)>0.99d0).and.(rr(ix^S)<1.01d0))
+      w(ix^S,tracer(1))=0.5d0
+    endwhere
     }
 
     call mhd_to_conserved(ixG^L,ix^L,w,x)
@@ -314,14 +322,82 @@ contains
   subroutine print_error()
     use mod_input_output, only: get_volume_average
     double precision   :: modes(nw, 2), volume
+    double precision :: divb(ixG^T),sumdivb_mype,sumdivb
+    double precision :: current(ixG^T,7-2*ndir:3),Jval(ixG^T)
+    double precision :: jmax_mype,jmax,jmin_mype,jmin
+    character(len=100):: filename
+    character(len=1024) :: line, datastr
+    integer :: iigrid, igrid, idirmin
+    logical :: alive
 
     call get_volume_average(1, modes(:, 1), volume)
     call get_volume_average(2, modes(:, 2), volume)
 
-    if (mype == 0) then
-       write(*, "(A,4E16.8)") " CONVTEST (t,rho_2,p_2,b_2):",  &
-           global_time, sqrt(modes(i_err_r, 2)), sqrt(modes(i_err_p, 2)), sqrt(modes(i_err_b, 2))
-    end if
+    !if (mype == 0) then
+    !   write(*, "(A,4E16.8)") " CONVTEST (t,rho_2,p_2,b_2):",  &
+    !       global_time, sqrt(modes(i_err_r, 2)), sqrt(modes(i_err_p, 2)), sqrt(modes(i_err_b, 2))
+    !end if
+
+    ! get divb (not normalized since also unmagnetized regions present), 
+    ! first sum over all grids per processor
+    sumdivb_mype=0.0d0
+    ! Get maximal and mimimal current value
+    jmax_mype = -bigdouble
+    jmin_mype = bigdouble
+    ! Loop over all the grids local to processor
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       saveigrid=igrid
+       block=>pw(igrid)
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+       call get_divb(pw(igrid)%w,ixG^LL,ixM^LL,divb)
+       sumdivb_mype=sumdivb_mype+sum(dabs(divb(ixM^T)))
+       call get_current(pw(igrid)%w,ixG^LL,ixM^LL,idirmin,current)
+       Jval(ixM^T)=dsqrt( current(ixM^T,1)**2+current(ixM^T,2)**2+current(ixM^T,3)**2 )
+       !jmax_mype=max(jmax_mype,maxval(Jval(ixM^T)))
+       jmax_mype=max(jmax_mype,maxval(current(ixM^T,3)))
+       jmin_mype=min(jmin_mype,minval(Jval(ixM^T)))
+    end do
+    ! now add up all contributions from all processors
+    ! only reduce to mype=0 processor, used for output
+    call MPI_REDUCE(sumdivb_mype,sumdivb,1,MPI_DOUBLE_PRECISION, &
+                 MPI_SUM,0,icomm,ierrmpi)
+    call MPI_REDUCE(jmax_mype, jmax, 1, MPI_DOUBLE_PRECISION, &
+         MPI_MAX, 0, icomm, ierrmpi)
+    call MPI_REDUCE(jmin_mype, jmin, 1, MPI_DOUBLE_PRECISION, &
+         MPI_MIN, 0, icomm, ierrmpi)
+    ! divide by total domain volume
+    {^IFTWOD
+    sumdivb=sumdivb/((xprobmax1-xprobmin1)*(xprobmax2-xprobmin2)) }
+    {^IFTHREED
+    sumdivb=sumdivb/((xprobmax1-xprobmin1)*(xprobmax2-xprobmin2)*(xprobmax3-xprobmin3)) }
+ 
+    if(mype==0) then
+      write(filename,"(a,a,a)") TRIM(base_filename),'_'//TRIM(typedivbfix)//'_',"errors.csv"
+      inquire(file=filename,exist=alive)
+      if(alive) then
+        open(unit=21,file=filename,form='formatted',status='old',access='append')
+      else
+        open(unit=21,file=filename,form='formatted',status='new')
+        write(21,'(a)') 'time, rho error, p error, b error, divbsum, jmax, jmin' 
+      endif
+      write(datastr,'(es11.4, 2a)') global_time,', '
+      line=datastr
+      write(datastr,"(es12.5, 2a)") sqrt(modes(i_err_r, 2)),', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5, 2a)") sqrt(modes(i_err_p, 2)),', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5, 2a)") sqrt(modes(i_err_b, 2)),', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5, 2a)") sumdivb,', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5, 2a)") jmax,', '
+      line = trim(line)//trim(datastr)
+      write(datastr,"(es12.5)") jmin
+      line = trim(line)//trim(datastr)
+      write(21,'(a)') trim(line)
+      close(21)
+    endif
+
   end subroutine print_error
 
   subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
@@ -362,10 +438,12 @@ contains
     double precision                   :: w(ixI^S,nw+nwauxio)
     double precision                   :: normconv(0:nw+nwauxio)
 
-    double precision :: pth(ixI^S),B2(ixI^S)
-    double precision :: divb(ixI^S),wlocal(ixI^S,1:nw)
-    double precision :: Btotal(ixI^S,1:ndir),curlvec(ixI^S,1:ndir)
+    double precision :: qt
+    double precision :: wlocal(ixI^S,1:nw)
+    double precision :: curlvec(ixI^S,1:ndir)
     integer :: idirmin,idir
+    integer :: ic1,ic2
+    double precision:: xmid^D, rr(ixI^S), xshift^D, v01, v02
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! store current
@@ -373,6 +451,37 @@ contains
     do idir=1,ndir
       w(ixO^S,nw+idir)=curlvec(ixO^S,idir)
     end do
+    ! test the mask: should be following the fluxtube
+    w(ixO^S,nw+4)=0.0d0
+    qt=global_time
+    v01= Mach*dsin(theta0)*dcos(phi0)
+    v02= Mach*dsin(theta0)*dsin(phi0)
+    {^NOONED
+    ! determine centers of all 9 potentially overlapping circles
+    if(v01>=0.0d0)then
+       xshift1=v01*qt-floor(qt*v01/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
+    else
+       xshift1=v01*qt+floor(qt*dabs(v01)/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
+    endif
+    if(v02>=0.0d0)then
+       xshift2=v02*qt-floor(qt*v02/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
+    else
+       xshift2=v02*qt+floor(qt*dabs(v02)/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
+    endif
+    do ic1=-1,1
+      xmid1=xprobmin1+(ic1+0.5d0)*(xprobmax1-xprobmin1)+xshift1;
+      do ic2=-1,1
+         xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
+         rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
+         where(rr(ixO^S)<0.95d0)
+             w(ixO^S,nw+4)=1.0d0
+         endwhere
+         where(rr(ixO^S)>0.95d0.and.rr(ixO^S)<1.05d0)
+             w(ixO^S,nw+4)=0.5d0
+         endwhere
+      enddo
+    enddo
+    }
 
   end subroutine specialvar_output
 
@@ -380,8 +489,222 @@ contains
     ! newly added variables need to be concatenated with the w_names/primnames string
     character(len=*) :: varnames
 
-    varnames='j1 j2 j3'
+    varnames='j1 j2 j3 mask'
 
   end subroutine specialvarnames_output
+
+  subroutine analyze_forces_on_grid()
+  ! all analysis is handled in compute_integrated_quantities
+  ! here we ensure that the data is in primitive variables
+    integer :: iigrid, igrid
+
+    ! first switch all grids (with ghost cells) to primitive variables
+    do iigrid=1,igridstail; igrid=igrids(iigrid)
+       call mhd_to_primitive(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+    end do
+
+    call compute_integrated_quantities   
+
+    ! end with switching all back to conservative variables
+    do iigrid=1,igridstail; igrid=igrids(iigrid)
+       call mhd_to_conserved(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+    end do
+
+  end subroutine analyze_forces_on_grid
+
+  subroutine compute_integrated_quantities
+  ! here we do analysis on the whole grid tree: 
+  ! output is written to the ***analysis.int file
+  integer :: nregions, nintegrals, ireg, intval, iigrid, igrid, idim, idirmin
+  character(len=std_len), allocatable :: region_name(:)
+  character(len=std_len) :: fstring
+  double precision, allocatable :: integral_ipe(:,:),integral_w(:,:)
+  double precision :: pgrad(ixG^T,1:3), tmp(ixG^T), dvolume(ixG^T), curlvec(ixG^T,1:ndir)
+  logical :: alive
+  character(len=100):: filename
+
+  
+   ! identify region within, at edge, or outside fluxtube, or full domain
+   nregions=4
+   allocate(region_name(nregions))
+   region_name(1)='inside'
+   region_name(2)='edge'
+   region_name(3)='outside'
+   region_name(4)='domain'
+   ! number of integrals to compute
+   nintegrals=4
+   ! format for 4 integrals to report, with time (so 5 DP)
+   fstring='(5(es12.4))'
+   allocate(integral_ipe(nregions,nintegrals),integral_w(nregions,nintegrals))
+   integral_ipe=0.d0
+   integral_w=0.d0
+
+   ! Loop over all the grids
+   do iigrid = 1, igridstail
+      igrid = igrids(iigrid)
+      saveigrid=igrid
+      block=>pw(igrid)
+      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+      ! Determine the volume of the grid cells
+      if (slab) then
+         dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
+      else
+         dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
+      end if
+       
+      call get_current(pw(igrid)%w,ixG^LL,ixM^LL,idirmin,curlvec)
+
+      ! pressure gradient
+      do idim=1,ndim
+        select case(typegrad)
+        case("central")
+          call gradient(pw(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
+        case("limited")
+          call gradientS(pw(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
+        end select
+        pgrad(ixM^T,idim) = tmp(ixM^T)
+      end do
+      if(ndim==2)pgrad(ixM^T,3) =0.0d0
+
+      do intval=1,nintegrals
+         do ireg=1,nregions
+              integral_ipe(ireg,intval)=integral_ipe(ireg,intval)+ &
+                integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,curlvec,pgrad,pw(igrid)%x,dvolume,ireg,intval)
+         enddo
+      enddo 
+   enddo
+   call MPI_ALLREDUCE(integral_ipe,integral_w,nregions*nintegrals,MPI_DOUBLE_PRECISION, &
+       MPI_SUM,icomm,ierrmpi)
+ 
+   if(mype==0) then
+       do ireg=1,nregions
+          write(filename,"(a,a,a,a)") TRIM(base_filename),'_'//TRIM(region_name(ireg)), &
+                                  '_'//TRIM(typedivbfix)//'_',"analysis.int"
+          inquire(file=filename,exist=alive)
+          if(alive) then
+            open(unit=21,file=filename,form='formatted',status='old',access='append')
+          else
+            open(unit=21,file=filename,form='formatted',status='new')
+          endif
+          fstring=TRIM(fstring)
+          write(21,fstring) global_time,integral_w(ireg,1:nintegrals)
+          close(21)
+       enddo
+   endif
+
+   deallocate(integral_ipe,integral_w)
+   deallocate(region_name)
+
+ end subroutine compute_integrated_quantities
+
+ function integral_grid(ixI^L,ixO^L,w,Jvec,pgrad,x,dvolume,ireg,intval)
+
+  ! note: on entry, we have primitives in w vector, 
+  !     and current in Jvec, and pressure gradient in pgrad
+  !  we will quantify
+  !  1)total volume of region
+  !  2)magnitude of JxB force in regions identified by mask
+  !  3)magnitude of (JxB-grad p) force in regions identified by mask
+  !  4)inverse plasma beta in regions identified by mask
+
+  integer, intent(in)                :: ixI^L,ixO^L,ireg,intval
+  double precision, intent(in)       :: x(ixI^S,1:ndim),dvolume(ixI^S)
+  double precision, intent(in)       :: w(ixI^S,1:nw),Jvec(ixI^S,1:ndir),pgrad(ixI^S,1:3)
+
+  logical :: patchw(ixI^S)
+  double precision :: mask(ixI^S)
+  double precision :: qt, xmid^D, rr(ixI^S), xshift^D, v01, v02
+  double precision :: integral_grid,Bf(ixI^S,1:ndir),JcrosB(ixI^S,1:3),totforce(ixI^S)
+  integer :: ix^D,ic1,ic2
+
+  mask(ixO^S)=0.0d0
+  qt=global_time
+  v01= Mach*dsin(theta0)*dcos(phi0)
+  v02= Mach*dsin(theta0)*dsin(phi0)
+  {^NOONED
+  ! determine centers of all 9 potentially overlapping circles
+  if(v01>=0.0d0)then
+     xshift1=v01*qt-floor(qt*v01/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
+  else
+     xshift1=v01*qt+floor(qt*dabs(v01)/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
+  endif
+  if(v02>=0.0d0)then
+     xshift2=v02*qt-floor(qt*v02/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
+  else
+     xshift2=v02*qt+floor(qt*dabs(v02)/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
+  endif
+  do ic1=-1,1
+     xmid1=xprobmin1+(ic1+0.5d0)*(xprobmax1-xprobmin1)+xshift1;
+     do ic2=-1,1
+        xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
+        rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
+        where(rr(ixO^S)<0.95d0)
+           mask(ixO^S)=1.0d0
+        endwhere
+        where(rr(ixO^S)>0.95d0.and.rr(ixO^S)<1.05d0)
+           mask(ixO^S)=0.5d0
+        endwhere
+     enddo
+  enddo
+  }
+  ! mask the region of interest
+  select case(ireg)
+    case (1) ! inside
+      patchw(ixO^S)=(mask(ixO^S)>0.95d0)
+    case (2) ! edge
+      patchw(ixO^S)=((mask(ixO^S)<=0.95d0).and.(mask(ixO^S)>=0.05d0))
+    case (3) ! outside
+      patchw(ixO^S)=(mask(ixO^S)<0.05d0)
+    case (4) ! full domain
+      patchw(ixO^S)=.true.
+  end select
+
+  integral_grid=0.d0
+  select case(intval)
+     case(1)
+       ! volume integration
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if(patchw(ix^D)) integral_grid=integral_grid+dvolume(ix^D)
+       {end do\}
+     case(2)
+       ! Lorentz force
+       ! magnetic field
+       Bf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+
+       JcrosB(ixI^S,1)=Jvec(ixI^S,2)*Bf(ixI^S,3)-Jvec(ixI^S,3)*Bf(ixI^S,2)
+       JcrosB(ixI^S,2)=Jvec(ixI^S,3)*Bf(ixI^S,1)-Jvec(ixI^S,1)*Bf(ixI^S,3)
+       JcrosB(ixI^S,3)=Jvec(ixI^S,1)*Bf(ixI^S,2)-Jvec(ixI^S,2)*Bf(ixI^S,1)
+
+       totforce(ixI^S)=dsqrt( JcrosB(ixI^S,1)**2+JcrosB(ixI^S,2)**2+JcrosB(ixI^S,3)**2 )
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchw(ix^D)) integral_grid=integral_grid+totforce(ix^D)*dvolume(ix^D)
+       {end do\}
+     case(3)
+       ! Lorentz force and pressure gradient
+       ! magnetic field
+       Bf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+
+       JcrosB(ixI^S,1)=Jvec(ixI^S,2)*Bf(ixI^S,3)-Jvec(ixI^S,3)*Bf(ixI^S,2)
+       JcrosB(ixI^S,2)=Jvec(ixI^S,3)*Bf(ixI^S,1)-Jvec(ixI^S,1)*Bf(ixI^S,3)
+       JcrosB(ixI^S,3)=Jvec(ixI^S,1)*Bf(ixI^S,2)-Jvec(ixI^S,2)*Bf(ixI^S,1)
+
+       totforce(ixI^S)=dsqrt(  (JcrosB(ixI^S,1)-pgrad(ixI^S,1))**2  &
+                              +(JcrosB(ixI^S,2)-pgrad(ixI^S,2))**2  &
+                              +(JcrosB(ixI^S,3)-pgrad(ixI^S,3))**2 )
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchw(ix^D)) integral_grid=integral_grid+totforce(ix^D)*dvolume(ix^D)
+       {end do\}
+     case(4)
+       ! inverse plasma beta integration
+       Bf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if(patchw(ix^D)) integral_grid=integral_grid+ &
+                (Bf(ix^D,1)**2+Bf(ix^D,2)**2+Bf(ix^D,3)**2)/(two*w(ix^D,p_))*dvolume(ix^D)
+       {end do\}
+      case default
+        call mpistop("intval not defined")
+    end select
+    return
+  end function integral_grid
 
 end module mod_usr

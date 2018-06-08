@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Utility to run convergence tests with MPI-AMRVAC 2.0
+# TODO: document
+
 from subprocess import check_output, CalledProcessError
 import re
 import numpy as np

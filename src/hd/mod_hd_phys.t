@@ -189,6 +189,7 @@ contains
     phys_get_cmax            => hd_get_cmax
     phys_get_cbounds         => hd_get_cbounds
     phys_get_flux            => hd_get_flux
+    phys_get_v_idim          => hd_get_v
     phys_add_source_geom     => hd_add_source_geom
     phys_add_source          => hd_add_source
     phys_to_conserved        => hd_to_conserved

@@ -1275,8 +1275,6 @@ contains
     integer                       :: file_handle, igrid, Morton_no, iwrite
     integer                       :: ipe, ix_buffer(2*ndim+1), n_values
     integer                       :: ixO^L, n_ghost(2*ndim)
-    integer, allocatable          :: block_ig(:, :), block_lvl(:)
-    integer, allocatable          :: block_offset(:)
     integer                       :: iorecvstatus(MPI_STATUS_SIZE)
     integer                       :: ioastatus(MPI_STATUS_SIZE)
     integer                       :: igrecvstatus(MPI_STATUS_SIZE)
@@ -1286,6 +1284,10 @@ contains
     integer(kind=MPI_OFFSET_KIND) :: offset_block_data
     integer(kind=MPI_OFFSET_KIND) :: offset_offsets
     double precision, allocatable :: w_buffer(:)
+
+    integer, allocatable                       :: block_ig(:, :)
+    integer, allocatable                       :: block_lvl(:)
+    integer(kind=MPI_OFFSET_KIND), allocatable :: block_offset(:)
 
     call MPI_BARRIER(icomm, ierrmpi)
 
@@ -1333,18 +1335,21 @@ contains
       ! Block offsets are currently unknown, but will be overwritten later
       call MPI_File_get_position(file_handle, offset_offsets, ierrmpi)
       call MPI_FILE_WRITE(file_handle, block_offset(1:nleafs), nleafs, &
-           MPI_INTEGER, istatus, ierrmpi)
+           MPI_OFFSET, istatus, ierrmpi)
 
       call MPI_File_get_position(file_handle, offset_block_data, ierrmpi)
 
       ! Check whether data was written as expected
       if (offset_block_data - offset_tree_info /= &
            (nleafs + nparents) * size_logical + &
-           nleafs * ((2+ndim) * size_int)) then
-        call mpistop("Unexpected difference in offsets when writing .dat file")
+           nleafs * ((1+ndim) * size_int + 2 * size_int)) then
+        if (mype == 0) then
+          print *, "Warning: MPI_OFFSET type /= 8 bytes"
+          print *, "This *could* cause problems when reading .dat files"
+        end if
       end if
 
-      block_offset(1) = int(offset_block_data)
+      block_offset(1) = offset_block_data
       iwrite = 0
     end if
 
@@ -1381,7 +1386,8 @@ contains
              n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
 
         ! Set offset of next block
-        block_offset(iwrite+1) = block_offset(iwrite) + n_values * size_double + &
+        block_offset(iwrite+1) = block_offset(iwrite) + &
+             int(n_values, MPI_OFFSET_KIND) * size_double + &
              2 * ndim * size_int
       end if
     end do
@@ -1406,7 +1412,8 @@ contains
              n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
 
           ! Set offset of next block
-          block_offset(iwrite+1) = block_offset(iwrite) + n_values * size_double + &
+          block_offset(iwrite+1) = block_offset(iwrite) + &
+               int(n_values, MPI_OFFSET_KIND) * size_double + &
                2 * ndim * size_int
         end do
       end do
@@ -1414,7 +1421,7 @@ contains
       ! Write block offsets (now we know them)
       call MPI_FILE_SEEK(file_handle, offset_offsets, MPI_SEEK_SET, ierrmpi)
       call MPI_FILE_WRITE(file_handle, block_offset(1:nleafs), nleafs, &
-           MPI_INTEGER, istatus, ierrmpi)
+           MPI_OFFSET, istatus, ierrmpi)
 
       ! Write header again, now with correct offsets
       call MPI_FILE_SEEK(file_handle, 0_MPI_OFFSET_KIND, MPI_SEEK_SET, ierrmpi)
