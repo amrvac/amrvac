@@ -90,7 +90,7 @@ module mod_mhd_phys
   character(len=std_len), public, protected :: typedivbfix  = 'linde'
 
   !> Whether divB is computed with a fourth order approximation
-  logical, public :: mhd_divb_4thorder = .false.
+  logical, public, protected :: mhd_divb_4thorder = .false.
 
   !> Method type in a integer for good performance
   integer :: type_divb
@@ -161,7 +161,7 @@ contains
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
-      boundary_divbfix, boundary_divbfix_skip
+      boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -283,7 +283,6 @@ contains
        type_divb = divb_multigrid
        use_multigrid = .true.
        mg%operator_type = mg_laplacian
-       mhd_divb_4thorder = .true.
        phys_global_source => mhd_clean_divb_multigrid
     }
     case ('glm1')
