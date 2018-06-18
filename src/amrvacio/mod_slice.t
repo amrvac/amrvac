@@ -64,7 +64,11 @@ contains
     if (ndim==1) then
        nwexpand = nwauxio
     else
-       nwexpand = 0
+       if(slice_type/='dat')then
+          nwexpand = nwauxio
+       else
+          nwexpand = 0
+       endif
     end if
 
     ! Do a last consistency check:
@@ -858,7 +862,11 @@ contains
     if (ndim==1) then
        nwexpand = nwauxio
     else
-       nwexpand = 0
+       if(slice_type/='dat')then
+          nwexpand = nwauxio
+       else
+          nwexpand = 0
+       endif
     end if
     call alloc_subnode(jgrid,dir,nwexpand)
     call fill_subnode_info(igrid,jgrid,dir)
