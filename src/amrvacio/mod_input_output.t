@@ -999,6 +999,7 @@ contains
     use mod_global_parameters
     use mod_particles, only: write_particles_snapshot
     use mod_slice, only: write_slice
+    use mod_collapse, only: write_collapsed
     integer:: ifile
 
     select case (ifile)

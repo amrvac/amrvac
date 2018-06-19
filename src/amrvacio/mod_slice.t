@@ -1,4 +1,4 @@
-!> Writes D-1 slice .dat file with proper Morton order and vti file 
+!> Writes D-1 slice, can do so in various formats, depending on slice_type
 module mod_slice
   use mod_basic_types
   implicit none
@@ -25,7 +25,7 @@ contains
 
   subroutine write_slice
     use mod_global_parameters
-    ! Writes a D-1 slice .dat-file with proper Morton order 
+    ! Writes a D-1 slice 
     ! by Oliver Porth
     ! 22.Nov 2011
     integer :: islice
@@ -40,10 +40,12 @@ contains
   subroutine put_slice(dir,xslice)
     use mod_forest, only: Morton_sub_start, Morton_sub_stop
     use mod_global_parameters
-    ! Writes a D-1 slice .dat-file with proper Morton order 
-    ! For ONED simulations, the output will be appended to one csv-file per slice
-    ! In the latter two cases, the slices are sensitive to the saveprim switch
-    ! Thus csv-files with primitive variables are obtained.  
+    ! Writes a D-1 slice 
+    ! For ONED simulations, output will be appended to one csv-file per slice
+    ! slices are sensitive to the saveprim switch and 
+    ! can contain auxiliary io variables (nwauxio)
+    ! Thus csv or vtu(CC)-files with primitive variables are obtained.  
+    ! when slice_type='dat', we save a D-1 dat file for potential restarts
     ! by Oliver Porth
     ! 22.Nov 2011
     integer, intent(in) :: dir
@@ -208,6 +210,7 @@ contains
 
     subroutine put_slice_vtu
 
+      use mod_calculate_xw
       character(len=1024) :: filename, xlabel
       character(len=79)   :: xxlabel
       logical             :: fileopen
@@ -417,6 +420,7 @@ contains
 
     subroutine put_slice_csv
 
+      use mod_calculate_xw
       character(len=1024)           :: filename, xlabel
       character(len=79)             :: xxlabel
       logical                       :: fileopen
@@ -610,6 +614,7 @@ contains
 
     subroutine put_slice_zerod
 
+      use mod_calculate_xw
       integer::  iw
       character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024) :: outfilehead
@@ -841,6 +846,7 @@ contains
 
   subroutine fill_subnode(igrid,active,jgrid,dir,xslice,normconv)
     use mod_global_parameters
+    use mod_calculate_xw
     integer, intent(in)                                       :: igrid, dir
     integer, intent(inout)                                    :: jgrid
     logical, intent(in)                                       :: active
