@@ -33,7 +33,19 @@ vpath %.t $(SRC_DIRS)
 OBJECTS := $(FOBJECTS:.t=.o) $(INCLUDES:.t=.o)
 
 # Include multigrid coupling
-include $(AMRVAC_DIR)/external_libs/octree-mg/coupling_amrvac/coupling.make
+ifneq ($(NDIM), 1)
+LIBOMGDIR := $(AMRVAC_DIR)/external_libs/octree-mg
+
+vpath %.f90 $(LIBOMGDIR)/src
+
+ifeq ($(NDIM), 3)
+vpath %.f90 $(LIBOMGDIR)/poisson_3d_fft
+include $(LIBOMGDIR)/poisson_3d_fft/definitions.make
+endif
+
+include $(LIBOMGDIR)/src/definitions.make
+include $(LIBOMGDIR)/makerules.make
+endif
 
 $(LIB_AMRVAC): $(OBJECTS)
 	$(RM) $@
