@@ -7,7 +7,7 @@
 This is the documentation for the development version of MPI-AMRVAC. The code is
 available on [Github](https://github.com/amrvac/amrvac), and the documentation
 on [amrvac.org](http://amrvac.org/). If you have questions about MPI-AMRVAC,
-please send them to the mailing list: <mailto:amrvacusers@ls.kuleuven.be>, which you
+please send them to the mailing list: <mailto:amrvacusers@ls.kuleuven.be>, which you can also
 [subscribe to](https://ls.kuleuven.be/cgi-bin/wa?SUBED1=AMRVACUSERS&A=1) and
 [search](https://ls.kuleuven.be/cgi-bin/wa?A0=AMRVACUSERS).
 
