@@ -200,16 +200,100 @@ contains
 
     double precision :: R(ixI^S),Z(ixI^S),hlpphi(ixI^S),hlpR(ixI^S)
     double precision :: cosphi(ixI^S),sinphi(ixI^S),scale,Bphi(ixI^S)
-    integer :: ix3, ixOInt^L, imode, idims
+    integer :: ix1, ix2, ix3, ixOInt^L, imode, idims
 
     double precision :: psi(ixI^S),tmp(ixI^S)
 
 
     select case(iB)
-    ! special bottom (Z=0) boundary
-    ! fixing all profiles within Rjet
-    ! (a)symmetry beyond Rjet
+    case(1)
+      ! extrapolate all primitives continuously
+      ! switch internal zone above boundary zone to primitive variables
+      ixOInt^L=ixO^L;
+      ixOIntmin1=ixOmax1+1
+      ixOIntmax1=ixOmax1+1
+      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      do ix1 = ixOmin1,ixOmax1
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)  = w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(2))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(2))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(3))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(3))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,e_)    = w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,e_)
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(2))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(2))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))
+      enddo
+      ! switch to conservative variables in internal zone
+      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      ! switch to conservative variables in ghost cells
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    case(2)
+      ! extrapolate all primitives continuously
+      ! switch internal zone above boundary zone to primitive variables
+      ixOInt^L=ixO^L;
+      ixOIntmin1=ixOmin1-1
+      ixOIntmax1=ixOmin1-1
+      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      do ix1 = ixOmin1,ixOmax1
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)  = w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(2))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(2))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(3))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(3))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,e_)    = w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,e_)
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(2))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(2))
+         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))
+      enddo
+      ! switch to conservative variables in internal zone
+      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      ! switch to conservative variables in ghost cells
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    case(3)
+      ! extrapolate all primitives continuously
+      ! switch internal zone above boundary zone to primitive variables
+      ixOInt^L=ixO^L;
+      ixOIntmin2=ixOmax2+1
+      ixOIntmax2=ixOmax2+1
+      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      do ix2 = ixOmin2,ixOmax2
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)  = w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,rho_)
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(1))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mom(1))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(2))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mom(2))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(3))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mom(3))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,e_)    = w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,e_)
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(1))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mag(1))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(2))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mag(2))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(3))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mag(3))
+      enddo
+      ! switch to conservative variables in internal zone
+      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      ! switch to conservative variables in ghost cells
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    case(4)
+      ! extrapolate all primitives continuously
+      ! switch internal zone above boundary zone to primitive variables
+      ixOInt^L=ixO^L;
+      ixOIntmin2=ixOmin2-1
+      ixOIntmax2=ixOmin2-1
+      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      do ix2 = ixOmin2,ixOmax2
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)  = w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,rho_)
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(1))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mom(1))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(2))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mom(2))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(3))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mom(3))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,e_)    = w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,e_)
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(1))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mag(1))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(2))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mag(2))
+         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(3))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mag(3))
+      enddo
+      ! switch to conservative variables in internal zone
+      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      ! switch to conservative variables in ghost cells
+      call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(5)
+      ! special bottom (Z=0) boundary
+      ! fixing all profiles within Rjet
+      ! (a)symmetry beyond Rjet
       ! assume (0,0) in middle of x-y domain
       ! range to ixI for later perturbation
       R(ixI^S)=dsqrt(x(ixI^S,1)**2+x(ixI^S,2)**2)
@@ -334,18 +418,12 @@ contains
        if(level>3) then
          refine=-1
          coarsen=1
-       else if (level == 3) then
-         refine=1
-         coarsen=0
        endif
     endif
     if(any(Z(ix^S) >= 20.0d0))then
        if(level>3) then
          refine=-1
          coarsen=1
-       else if (level == 3) then
-         refine=1
-         coarsen=0
        endif
     endif
 
