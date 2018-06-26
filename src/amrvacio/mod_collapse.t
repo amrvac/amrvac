@@ -589,11 +589,12 @@ case (2)
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo2,ixMhi2
-         pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
-              pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
-              + wCC_TMP(ixMlo1:ixMhi1,ix,1:nw+nwauxio) * &
+         pw_sub(jgrid)%w(ixMlo1:ixMhi1,iw) = &
+              pw_sub(jgrid)%w(ixMlo1:ixMhi1,iw) &
+              + wCC_TMP(ixMlo1:ixMhi1,ix,iw) * &
               pw(igrid)%dx(ixMlo1:ixMhi1,ix,2)
       end do
+    end do
   end if
   pw_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
        pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
