@@ -17,7 +17,6 @@ use mod_global_parameters
 integer :: idir
 logical, save :: firstcollapse=.true.
 !-----------------------------------------------------------------------------
-if(.not.slab) call mpistop("collapse only for slab cartesian cases")
 
 if (firstcollapse) then
    icollapse=collapsenext
@@ -40,6 +39,7 @@ integer, intent(in)                               :: dir
 integer                                           :: jgrid, igrid, Morton_no
 double precision,dimension(0:nw+nwauxio)          :: normconv 
 !-----------------------------------------------------------------------------
+if(.not.slab) call mpistop("collapse only for slab cartesian cases")
 
 call allocate_collapsed(dir)
 
