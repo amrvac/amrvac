@@ -3,9 +3,16 @@
 ! (http://dx.doi.org/10.1016/j.jcp.2004.11.016).
 module mod_usr
   use mod_mhd
-  use mod_multigrid_coupling
 
   implicit none
+
+  ! Amplitude of vector potential
+  double precision, parameter :: A0 = 1.0d-3
+
+  ! Radius of field loop
+  double precision, parameter :: R0 = 0.3d0
+
+  integer :: i_divb, i_Bx_err, i_By_err
 
 contains
 
@@ -15,71 +22,96 @@ contains
     use mod_physics
 
     usr_init_one_grid => initonegrid_usr
-    usr_aux_output    => specialvar_output
-    usr_add_aux_names => specialvarnames_output
-    usr_refine_grid => my_refine
+    usr_modify_output => set_output_vars
+    usr_refine_grid   => my_refine
 
-    call set_coordinate_system('Cartesian')
+    call set_coordinate_system('Cartesian_2D')
     call mhd_activate()
 
+    i_divb = var_set_extravar("divb", "divb")
+    i_Bx_err = var_set_extravar("Bx_err", "Bx_err")
+    i_By_err = var_set_extravar("By_err", "By_err")
   end subroutine usr_init
 
+  ! initialize one grid
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
-    ! initialize one grid
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: v0
-    double precision, parameter     :: A0 = 1.0d-3
+    double precision                :: v0(ndim)
+    double precision                :: bfield(ixO^S, ndir)
 
     select case (iprob)
     case (1)
-       v0 = 1.0
+       v0(:) = [2.0d0, 1.0d0]
     case (2)
-       v0 = 0.0
+       v0(:) = [0.0d0, 0.0d0]
     case default
        call mpistop("Invalid iprob")
     end select
 
-    w(ixO^S,rho_) = 1.0d0       ! Density
-    w(ixO^S,mom(1))= v0 * 2     ! Vx
-    w(ixO^S,mom(2))= v0         ! Vy
-    w(ixO^S,e_)   = 1.0d0       ! Pressure
-
-    where (x(ixO^S,1)**2 + x(ixO^S,2)**2 < 0.3d0**2)
-       w(ixO^S,mag(1))= A0 * x(ixO^S,2)/sqrt(x(ixO^S,1)**2 + x(ixO^S,2)**2)
-       w(ixO^S,mag(2))= -A0 * x(ixO^S,1)/sqrt(x(ixO^S,1)**2 + x(ixO^S,2)**2)
-    elsewhere
-       w(ixO^S,mag(1))= 0.0d0
-       w(ixO^S,mag(2))= 0.0d0
-    end where
+    w(ixO^S,rho_)   = 1.0d0 ! Density
+    w(ixO^S,mom(1)) = v0(1) ! Vx
+    w(ixO^S,mom(2)) = v0(2) ! Vy
+    w(ixO^S,e_)     = 1.0d0 ! Pressure
+    call bfield_solution(ixI^L, ixO^L, x, v0, 0.0d0, bfield)
+    w(ixO^S, mag(:)) = bfield
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
-  subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
+  subroutine bfield_solution(ixI^L, ixO^L, x, v, t, bfield)
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(in)    :: v(ndim), t
+    double precision, intent(inout) :: bfield(ixO^S,ndir)
+    double precision                :: x1(ixO^S), x2(ixO^S)
+
+    ! Determine coordinates modulo domain size
+    x1 = x(ixO^S,1) - v(1) * t - xprobmin1
+    x1 = xprobmin1 + modulo(x1, xprobmax1-xprobmin1)
+    x2 = x(ixO^S,2) - v(2) * t - xprobmin2
+    x2 = xprobmin2 + modulo(x2, xprobmax2-xprobmin2)
+
+    where (x1**2 + x2**2 < R0**2)
+       bfield(ixO^S, 1) = A0 * x2/sqrt(x1**2 + x2**2)
+       bfield(ixO^S, 2) = -A0 * x1/sqrt(x1**2 + x2**2)
+    elsewhere
+       bfield(ixO^S, 1) = 0.0d0
+       bfield(ixO^S, 2) = 0.0d0
+    end where
+
+  end subroutine bfield_solution
+
+  subroutine set_output_vars(ixI^L,ixO^L,qt,w,x)
     use mod_global_parameters
 
-    integer, intent(in)                :: ixI^L,ixO^L
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-    double precision                   :: w(ixI^S,nw+nwauxio)
-    double precision                   :: normconv(0:nw+nwauxio)
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,nw)
+    double precision                :: divb(ixI^S)
+    double precision                :: v0(ndim)
+    double precision                :: bfield(ixO^S, ndir)
 
-    double precision :: divb(ixI^S)
+    select case (iprob)
+    case (1)
+       v0(:) = [2.0d0, 1.0d0]
+    case (2)
+       v0(:) = [0.0d0, 0.0d0]
+    case default
+       call mpistop("Invalid iprob")
+    end select
 
     ! output divB1
     call get_divb(w,ixI^L,ixO^L,divb)
-    w(ixO^S,nw+1)=divb(ixO^S)
+    w(ixO^S,i_divB)=divb(ixO^S)
 
-  end subroutine specialvar_output
+    call bfield_solution(ixI^L, ixO^L, x, v0, qt, bfield)
 
-  subroutine specialvarnames_output(varnames)
-    use mod_global_parameters
-    character(len=*) :: varnames
-
-    varnames='divb'
-  end subroutine specialvarnames_output
+    w(ixO^S,i_Bx_err) = w(ixO^S, mag(1)) - bfield(ixO^S, 1)
+    w(ixO^S,i_By_err) = w(ixO^S, mag(2)) - bfield(ixO^S, 2)
+  end subroutine set_output_vars
 
   ! Refine left half of the domain, to test divB methods with refinement
   subroutine my_refine(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)

@@ -1,7 +1,6 @@
  &filelist
         autoconvert   = T
         saveprim      = T
-        nwauxio       = 1
         base_filename = 'output/fl_2d'
  /
 
