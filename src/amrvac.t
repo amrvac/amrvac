@@ -144,7 +144,7 @@ contains
 
     integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
     integer(kind=8) ncells_update
-    logical :: save_now, crashall
+    logical :: save_now, crashall, save_file(nfile)
     double precision :: time_last_print
 
     time_in=MPI_WTIME()
@@ -195,9 +195,23 @@ contains
          end if
        end if
 
+       ! Check if output needs to be written
+       do ifile=nfile,1,-1
+         save_file(ifile) = timetosave(ifile)
+       end do
+
+       ! Users can modify or set variables before output is written
+       if (any(save_file) .and. associated(usr_modify_output)) then
+         do iigrid=1,igridstail; igrid=igrids(iigrid);
+           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+           block=>pw(igrid)
+           call usr_modify_output(ixG^LL,ixM^LL,global_time,pw(igrid)%w,pw(igrid)%x)
+         end do
+       end if
+
        ! output data
        do ifile=nfile,1,-1
-         if(timetosave(ifile)) call saveamrfile(ifile)
+         if (save_file(ifile)) call saveamrfile(ifile)
        end do
 
        ! output a snapshot when user write a file named 'savenow' in the same
