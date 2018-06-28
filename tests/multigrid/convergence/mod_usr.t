@@ -29,7 +29,7 @@ contains
     usr_process_global => compute_phi
     usr_refine_grid => my_refine
 
-    call set_coordinate_system("Cartesian_2D")
+    call set_coordinate_system("Cartesian_3D")
     call rho_activate()
 
     i_phi = var_set_extravar("phi", "phi")
@@ -62,7 +62,7 @@ contains
     double precision, intent(in) :: x^D
     double precision             :: val, r(ndim)
 
-    r = [ x^D ] / gauss_sigma
+    r = ([ x^D ] - gauss_r0) / gauss_sigma
     val = gauss_ampl * exp(-sum(r**2))
 
     r = [ x^D ] * 2 * pi * cos_modes
@@ -73,7 +73,7 @@ contains
     double precision, intent(in) :: x^D
     double precision             :: val, r(ndim)
 
-    r = [ x^D ] / gauss_sigma
+    r = ([ x^D ] - gauss_r0) / gauss_sigma
     val = gauss_ampl * 4/gauss_sigma**2 * &
          (sum(r**2) - 0.5_dp * ndim) * exp(-sum(r**2))
 
@@ -105,6 +105,7 @@ contains
 
     if (iit == 0) then
        call mg_copy_to_tree(i_rhs, mg_irhs, .false., .false.)
+       call mg_phi_bc_store(mg)
     end if
 
     if (multigrid_cycle_name == 'fmg') then

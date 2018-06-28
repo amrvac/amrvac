@@ -7,11 +7,12 @@
  &savelist
  dtsave_dat=0.05d0
  itsave(1, 2) = 0
- ! dtsave_log = 0.05d0
+ itsave(1, 1) = 0
+ dtsave_log = 0.05d0
  /
 
  &stoplist
-        time_max=1.0d0
+        time_max=0.1d0
  /
 
  &methodlist
@@ -30,11 +31,11 @@
  /
 
  &meshlist
-        refine_max_level=3
+        refine_max_level=1
         refine_threshold=20*1.0
-        domain_nx1=64
-        domain_nx2=64
-        domain_nx3=64
+        domain_nx1=128
+        domain_nx2=128
+        domain_nx3=128
         xprobmin1=-0.5d0
         xprobmax1=0.5d0
         xprobmin2=-0.5d0
@@ -51,3 +52,8 @@
         rho_v = 0.0,0.0,0.0
  /
 
+ &usr_list
+ fft_frac_unknowns = 0.15d0
+ gauss_sigma = 0.1d0
+ gauss_r0 = 0.0d0 0.0d0 0.0d0
+ /

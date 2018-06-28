@@ -27,7 +27,7 @@ contains
     use mod_bc_data
     integer :: i
 
-    mg%bc(:, mg_iphi)%bc_type = mg_bc_neumann
+    mg%bc(:, mg_iphi)%bc_type = mg_bc_dirichlet
 
     do i = 1, 2 * ndim
        if (bc_data_ix(rho_, i) /= -1) then
@@ -83,6 +83,10 @@ contains
     double precision, intent(in) :: qt
     integer                      :: id
     double precision             :: max_res
+
+    if (iit == 0) then
+       call mg_phi_bc_store(mg)
+    end if
 
     ! call mg_copy_to_tree(i_rhs, mg_irhs, .false., .false.)
     call mg_fas_fmg(mg, .true., max_res)
