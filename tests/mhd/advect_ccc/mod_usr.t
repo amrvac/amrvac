@@ -18,6 +18,9 @@ module mod_usr
   integer, parameter :: dp = kind(0.0d0)
   integer :: i_err_p, i_err_r, i_err_b
   integer :: i_sol_p, i_sol_r, i_sol_b, i_totp
+  integer :: i_divb
+
+  double precision, parameter :: mask_halfwidth = 0.1d0
 
 contains
 
@@ -27,7 +30,7 @@ contains
     integer                      :: n
 
     namelist /usr_list/ Mach, theta0, phi0, beta1, qfac1,  &
-                 Rvacs, drat, invbext, equilibrium_version
+         Rvacs, drat, invbext, equilibrium_version
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -49,7 +52,6 @@ contains
 
     usr_set_parameters  => initglobaldata_usr
     usr_init_one_grid => CCC_init_one_grid
-    usr_process_grid => set_error
     usr_print_log => print_error
     usr_write_analysis => analyze_forces_on_grid
     usr_refine_grid    => specialrefine_grid
@@ -68,6 +70,7 @@ contains
     i_err_b = var_set_extravar("b_error", "b_error")
     i_sol_b = var_set_extravar("b_solution", "b_solution")
     i_totp  = var_set_extravar("totp", "totp")
+    i_divb  = var_set_extravar("divb", "divb")
 
   end subroutine usr_init
 
@@ -265,9 +268,8 @@ contains
 
   end function bz_solution
 
-
-  subroutine set_error(igrid,level,ixI^L,ixO^L,qt,w,x)
-    integer, intent(in)             :: igrid,level,ixI^L,ixO^L
+  subroutine set_error(ixI^L,ixO^L,qt,w,x)
+    integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     integer :: ic1,ic2
@@ -328,15 +330,7 @@ contains
     character(len=100):: filename
     character(len=1024) :: line, datastr
     integer :: iigrid, igrid, idirmin
-    logical :: alive
-
-    call get_volume_average(1, modes(:, 1), volume)
-    call get_volume_average(2, modes(:, 2), volume)
-
-    !if (mype == 0) then
-    !   write(*, "(A,4E16.8)") " CONVTEST (t,rho_2,p_2,b_2):",  &
-    !       global_time, sqrt(modes(i_err_r, 2)), sqrt(modes(i_err_p, 2)), sqrt(modes(i_err_b, 2))
-    !end if
+    logical :: first_time = .true.
 
     ! get divb (not normalized since also unmagnetized regions present), 
     ! first sum over all grids per processor
@@ -349,6 +343,8 @@ contains
        saveigrid=igrid
        block=>pw(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+
+       call set_error(ixG^LL,ixM^LL,global_time,pw(igrid)%w, pw(igrid)%x)
        call get_divb(pw(igrid)%w,ixG^LL,ixM^LL,divb)
        sumdivb_mype=sumdivb_mype+sum(dabs(divb(ixM^T)))
        call get_current(pw(igrid)%w,ixG^LL,ixM^LL,idirmin,current)
@@ -357,6 +353,10 @@ contains
        jmax_mype=max(jmax_mype,maxval(current(ixM^T,3)))
        jmin_mype=min(jmin_mype,minval(Jval(ixM^T)))
     end do
+
+    call get_volume_average(1, modes(:, 1), volume)
+    call get_volume_average(2, modes(:, 2), volume)
+
     ! now add up all contributions from all processors
     ! only reduce to mype=0 processor, used for output
     call MPI_REDUCE(sumdivb_mype,sumdivb,1,MPI_DOUBLE_PRECISION, &
@@ -372,13 +372,14 @@ contains
     sumdivb=sumdivb/((xprobmax1-xprobmin1)*(xprobmax2-xprobmin2)*(xprobmax3-xprobmin3)) }
  
     if(mype==0) then
-      write(filename,"(a,a,a)") TRIM(base_filename),'_'//TRIM(typedivbfix)//'_',"errors.csv"
-      inquire(file=filename,exist=alive)
-      if(alive) then
-        open(unit=21,file=filename,form='formatted',status='old',access='append')
+      filename = trim(base_filename) // '_errors.csv'
+
+      if(first_time) then
+        open(unit=21,file=filename,form='formatted')
+        write(21,'(a)') 'time, rho-error, p-error, b-error, divbsum, jmax, jmin' 
+        first_time = .false.
       else
-        open(unit=21,file=filename,form='formatted',status='new')
-        write(21,'(a)') 'time, rho error, p error, b error, divbsum, jmax, jmin' 
+        open(unit=21,file=filename,form='formatted',status='old',access='append')
       endif
       write(datastr,'(es11.4, 2a)') global_time,', '
       line=datastr
@@ -441,6 +442,7 @@ contains
     double precision :: qt
     double precision :: wlocal(ixI^S,1:nw)
     double precision :: curlvec(ixI^S,1:ndir)
+    double precision :: divb(ixI^S)
     integer :: idirmin,idir
     integer :: ic1,ic2
     double precision:: xmid^D, rr(ixI^S), xshift^D, v01, v02
@@ -473,15 +475,22 @@ contains
       do ic2=-1,1
          xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
          rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
-         where(rr(ixO^S)<0.95d0)
+         where(rr(ixO^S)< 1.0d0 - mask_halfwidth)
              w(ixO^S,nw+4)=1.0d0
          endwhere
-         where(rr(ixO^S)>0.95d0.and.rr(ixO^S)<1.05d0)
+         where(rr(ixO^S) > 1.0d0 - mask_halfwidth .and. &
+              rr(ixO^S) < 1.0d0 + mask_halfwidth)
              w(ixO^S,nw+4)=0.5d0
          endwhere
       enddo
     enddo
     }
+
+    ! output divB
+    call get_divb(w,ixI^L,ixO^L,divb)
+    w(ixO^S,i_divb)=divb(ixO^S)
+
+    call set_error(ixI^L,ixO^L,global_time,w,x)
 
   end subroutine specialvar_output
 
@@ -520,7 +529,7 @@ contains
   character(len=std_len) :: fstring
   double precision, allocatable :: integral_ipe(:,:),integral_w(:,:)
   double precision :: pgrad(ixG^T,1:3), tmp(ixG^T), dvolume(ixG^T), curlvec(ixG^T,1:ndir)
-  logical :: alive
+  logical :: first_time = .true.
   character(len=100):: filename
 
   
@@ -578,18 +587,19 @@ contains
  
    if(mype==0) then
        do ireg=1,nregions
-          write(filename,"(a,a,a,a)") TRIM(base_filename),'_'//TRIM(region_name(ireg)), &
-                                  '_'//TRIM(typedivbfix)//'_',"analysis.int"
-          inquire(file=filename,exist=alive)
-          if(alive) then
-            open(unit=21,file=filename,form='formatted',status='old',access='append')
+          write(filename,"(a,a,a)") TRIM(base_filename),'_'//TRIM(region_name(ireg)), &
+                                  "_analysis.int"
+          if(first_time) then
+            open(unit=21,file=filename,form='formatted')
+            write(unit=21, fmt=*) "time volume lorentz lorentz-pressure inv-beta"
           else
-            open(unit=21,file=filename,form='formatted',status='new')
-          endif
-          fstring=TRIM(fstring)
+            open(unit=21,file=filename,form='formatted',status='old',access='append')
+          end if
+
           write(21,fstring) global_time,integral_w(ireg,1:nintegrals)
           close(21)
        enddo
+       first_time = .false.
    endif
 
    deallocate(integral_ipe,integral_w)
@@ -638,10 +648,11 @@ contains
      do ic2=-1,1
         xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
         rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
-        where(rr(ixO^S)<0.95d0)
+        where(rr(ixO^S) < 1.0d0 - mask_halfwidth)
            mask(ixO^S)=1.0d0
         endwhere
-        where(rr(ixO^S)>0.95d0.and.rr(ixO^S)<1.05d0)
+        where(rr(ixO^S) > 1.0d0 - mask_halfwidth .and. &
+             rr(ixO^S) < 1.0d0 + mask_halfwidth)
            mask(ixO^S)=0.5d0
         endwhere
      enddo
@@ -671,32 +682,32 @@ contains
        ! magnetic field
        Bf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
 
-       JcrosB(ixI^S,1)=Jvec(ixI^S,2)*Bf(ixI^S,3)-Jvec(ixI^S,3)*Bf(ixI^S,2)
-       JcrosB(ixI^S,2)=Jvec(ixI^S,3)*Bf(ixI^S,1)-Jvec(ixI^S,1)*Bf(ixI^S,3)
-       JcrosB(ixI^S,3)=Jvec(ixI^S,1)*Bf(ixI^S,2)-Jvec(ixI^S,2)*Bf(ixI^S,1)
+       JcrosB(ixO^S,1)=Jvec(ixO^S,2)*Bf(ixO^S,3)-Jvec(ixO^S,3)*Bf(ixO^S,2)
+       JcrosB(ixO^S,2)=Jvec(ixO^S,3)*Bf(ixO^S,1)-Jvec(ixO^S,1)*Bf(ixO^S,3)
+       JcrosB(ixO^S,3)=Jvec(ixO^S,1)*Bf(ixO^S,2)-Jvec(ixO^S,2)*Bf(ixO^S,1)
 
-       totforce(ixI^S)=dsqrt( JcrosB(ixI^S,1)**2+JcrosB(ixI^S,2)**2+JcrosB(ixI^S,3)**2 )
+       totforce(ixO^S)=dsqrt( JcrosB(ixO^S,1)**2+JcrosB(ixO^S,2)**2+JcrosB(ixO^S,3)**2 )
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
          if(patchw(ix^D)) integral_grid=integral_grid+totforce(ix^D)*dvolume(ix^D)
        {end do\}
      case(3)
        ! Lorentz force and pressure gradient
        ! magnetic field
-       Bf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+       Bf(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
 
-       JcrosB(ixI^S,1)=Jvec(ixI^S,2)*Bf(ixI^S,3)-Jvec(ixI^S,3)*Bf(ixI^S,2)
-       JcrosB(ixI^S,2)=Jvec(ixI^S,3)*Bf(ixI^S,1)-Jvec(ixI^S,1)*Bf(ixI^S,3)
-       JcrosB(ixI^S,3)=Jvec(ixI^S,1)*Bf(ixI^S,2)-Jvec(ixI^S,2)*Bf(ixI^S,1)
+       JcrosB(ixO^S,1)=Jvec(ixO^S,2)*Bf(ixO^S,3)-Jvec(ixO^S,3)*Bf(ixO^S,2)
+       JcrosB(ixO^S,2)=Jvec(ixO^S,3)*Bf(ixO^S,1)-Jvec(ixO^S,1)*Bf(ixO^S,3)
+       JcrosB(ixO^S,3)=Jvec(ixO^S,1)*Bf(ixO^S,2)-Jvec(ixO^S,2)*Bf(ixO^S,1)
 
-       totforce(ixI^S)=dsqrt(  (JcrosB(ixI^S,1)-pgrad(ixI^S,1))**2  &
-                              +(JcrosB(ixI^S,2)-pgrad(ixI^S,2))**2  &
-                              +(JcrosB(ixI^S,3)-pgrad(ixI^S,3))**2 )
+       totforce(ixO^S)=dsqrt(  (JcrosB(ixO^S,1)-pgrad(ixO^S,1))**2  &
+                              +(JcrosB(ixO^S,2)-pgrad(ixO^S,2))**2  &
+                              +(JcrosB(ixO^S,3)-pgrad(ixO^S,3))**2 )
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
          if(patchw(ix^D)) integral_grid=integral_grid+totforce(ix^D)*dvolume(ix^D)
        {end do\}
      case(4)
        ! inverse plasma beta integration
-       Bf(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+       Bf(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
           if(patchw(ix^D)) integral_grid=integral_grid+ &
                 (Bf(ix^D,1)**2+Bf(ix^D,2)**2+Bf(ix^D,3)**2)/(two*w(ix^D,p_))*dvolume(ix^D)
