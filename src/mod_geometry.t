@@ -811,7 +811,7 @@ contains
             endif
             enddo; 
           case('Stokesbased')
-            !if(ndim<3) call mpistop("Stokesbased for 3D cylindrical only")
+            if(ndim<3) call mpistop("Stokesbased for 3D cylindrical only")
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
                if(idir==r_) then
@@ -869,13 +869,8 @@ contains
                   else
                     tmp(ixC^S)=0.5d0*(qvec(ixC^S,kdir)+qvec(jxC^S,kdir))
                   end if
-                  if(ndim==3) then
-                    surface(ixO^S)=block%surface(ixO^S,idir)
-                  else
-                    surface(ixO^S)=block%dx(ixO^S,jdir)*block%dx(ixO^S,kdir)
-                  end if
                   curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(tmp(hxO^S)-tmp(ixO^S))*block%dx(ixO^S,kdir))&
-                       /surface(ixO^S)
+                       /block%surface(ixO^S,idir)
                 end if
                else ! idir==z_
                 if(jdir<kdir) then
@@ -905,13 +900,8 @@ contains
                   end if
                   ! r coordinate at cell interface along r dimension
                   xC(ixC^S)=block%x(ixC^S,jdir)+0.5d0*block%dx(ixC^S,jdir)
-                  if(ndim==3) then
-                    surface(ixO^S)=block%surface(ixO^S,idir)
-                  else
-                    surface(ixO^S)=block%x(ixO^S,jdir)*block%dx(ixO^S,kdir)*block%dx(ixO^S,jdir)
-                  end if
                   curlvec(ixO^S,idir)=(curlvec(ixO^S,idir)+(xC(ixO^S)*tmp(ixO^S)-xC(hxO^S)*tmp(hxO^S))*block%dx(ixO^S,kdir))&
-                       /surface(ixO^S)
+                       /block%surface(ixO^S,idir)
                 end if
                end if
                if(idir<idirmin)idirmin=idir

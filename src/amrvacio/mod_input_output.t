@@ -457,11 +457,17 @@ contains
       restart_from_file=restart_from_file_arg
 
     if (restart_from_file /= undefined) then
-      ! Parse index in restart_from_file string (e.g. basename0000.dat)
-      i = len_trim(restart_from_file) - 7
-      read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
-      if (io_state == 0 .and. snapshotnext==-1) snapshotnext = snapshotini + 1
-      if(reset_time .or. reset_it) snapshotnext=0
+      ! Only modify snapshotnext if the user hasn't specified it
+      if (snapshotnext == -1) then
+        snapshotnext = 0
+
+        ! Try to parse index in restart_from_file string (e.g. basename0000.dat)
+        i = len_trim(restart_from_file) - 7
+        read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
+        if (io_state == 0) snapshotnext = snapshotini + 1
+
+        if (reset_time .or. reset_it) snapshotnext = 0
+      end if
     else
       snapshotnext=0
       if (firstprocess) &
@@ -993,6 +999,7 @@ contains
     use mod_global_parameters
     use mod_particles, only: write_particles_snapshot
     use mod_slice, only: write_slice
+    use mod_collapse, only: write_collapsed
     integer:: ifile
 
     select case (ifile)

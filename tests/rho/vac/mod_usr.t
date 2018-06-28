@@ -148,7 +148,7 @@ contains
     w(ixO^S,i_err) = dabs(w(ixO^S,rho_) - w(ixO^S,i_sol))
   end subroutine store_sol_err
 
-  subroutine print_min_max()
+  subroutine print_min_max
     use mod_input_output, only: get_global_minima, get_global_maxima, &
                                 get_volume_average
     double precision   :: minvals(nw),maxvals(nw)
