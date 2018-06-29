@@ -12,7 +12,7 @@ module mod_usr
   ! Radius of field loop
   double precision, parameter :: R0 = 0.3d0
 
-  integer :: i_divb, i_Bx_err, i_By_err
+  integer :: i_divb_2, i_divb_4, i_B_err
 
 contains
 
@@ -28,9 +28,9 @@ contains
     call set_coordinate_system('Cartesian_2D')
     call mhd_activate()
 
-    i_divb = var_set_extravar("divb", "divb")
-    i_Bx_err = var_set_extravar("Bx_err", "Bx_err")
-    i_By_err = var_set_extravar("By_err", "By_err")
+    i_divb_2 = var_set_extravar("divb-2", "divb-2")
+    i_divb_4 = var_set_extravar("divb-4", "divb-4")
+    i_B_err = var_set_extravar("B_err", "B_err")
   end subroutine usr_init
 
   ! initialize one grid
@@ -103,14 +103,19 @@ contains
        call mpistop("Invalid iprob")
     end select
 
-    ! output divB1
-    call get_divb(w,ixI^L,ixO^L,divb)
-    w(ixO^S,i_divB)=divb(ixO^S)
+    ! output divB second order
+    call get_divb(w,ixI^L,ixO^L,divb, .false.)
+    w(ixO^S,i_divb_2)=divb(ixO^S)
+
+    ! output divB fourth order
+    call get_divb(w,ixI^L,ixO^L,divb, .true.)
+    w(ixO^S,i_divb_4)=divb(ixO^S)
 
     call bfield_solution(ixI^L, ixO^L, x, v0, qt, bfield)
 
-    w(ixO^S,i_Bx_err) = w(ixO^S, mag(1)) - bfield(ixO^S, 1)
-    w(ixO^S,i_By_err) = w(ixO^S, mag(2)) - bfield(ixO^S, 2)
+    w(ixO^S,i_B_err) = sqrt( &
+         (w(ixO^S, mag(1)) - bfield(ixO^S, 1))**2 + &
+         (w(ixO^S, mag(2)) - bfield(ixO^S, 2))**2)
   end subroutine set_output_vars
 
   ! Refine left half of the domain, to test divB methods with refinement

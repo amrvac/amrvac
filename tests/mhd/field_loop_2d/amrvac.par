@@ -2,23 +2,24 @@
         autoconvert   = T
         saveprim      = T
         base_filename = 'output/fl_2d'
+        typefilelog = 'regression_test'
  /
 
  &savelist
         itsave(1,1)   = 0
         itsave(1,2)   = 0
-        ditsave_log   = 10
-        dtsave_dat    = 0.1
+        dtsave_log    = 0.1
+        dtsave_dat    = 0.5
  /
 
  &stoplist
-        time_max      = 2.0
+        time_max      = 10.0
  /
 
  &methodlist
         time_integrator = 'threestep'
         flux_scheme     = 20*'hll'
-        limiter  = 20*'cada3'
+        limiter  = 20*'cada'
  /
 
  &boundlist
@@ -35,8 +36,8 @@
     	refine_threshold = 20*0.4d0
         w_refine_weight(1)=0.5d0
         w_refine_weight(4)=0.5d0
-        domain_nx1    = 64
-        domain_nx2    = 64
+        domain_nx1    = 128
+        domain_nx2    = 128
         xprobmin1     = -0.5d0
         xprobmax1     = 0.5d0
         xprobmin2     = -0.5d0

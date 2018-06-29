@@ -3,7 +3,7 @@
  &filelist
         saveprim=T
         autoconvert=T
-	convert_type='vtuBCCmpi'
+	convert_type='vtuBmpi'
         base_filename='output/CCC_GH2D'  ! Base file name for dat/vtu output
         typefilelog='special'
         nwauxio=4
@@ -13,14 +13,14 @@
         itsave(1,1)=0
         itsave(1,2)=0
         itsave(1,5)=0
-        dtsave_log=1.0          ! For the log
-        dtsave_dat=1.0          ! For dat/vtu output
-        dtsave_custom=1.0
+        dtsave_log=1.7888543819998318440e-01          ! For the log
+        dtsave_dat=8.9442719099991592202e+00          ! For dat/vtu output
+        dtsave_custom=1.7888543819998318440e-01
  /
 
  &stoplist
         dtmin=1.0d-6
-        time_max=100.0d0
+        time_max=1.7888543819998318440e+01
  /
 
  &methodlist
@@ -50,7 +50,7 @@
 
  &paramlist
         typecourant='maxsum'
-        courantpar=0.9d0
+        courantpar=0.7d0
         slowsteps=10
  /
 
@@ -62,7 +62,7 @@
 
  &usr_list
         Mach=0.5d0
-        phi0=45.0d0
+        phi0=26.56505117707799 ! atan(1/2)
         theta0=90.0d0
         equilibrium_version='GoldHoyle'
         drat=0.05d0

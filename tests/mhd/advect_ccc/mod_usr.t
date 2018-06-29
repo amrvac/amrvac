@@ -7,13 +7,19 @@ module mod_usr
 
   implicit none
 
-  ! Input values for 
+  ! Input values for
   !    uniform advection velocity: Mach, theta0, phi0
   !    choice of equilibrium: equilibrium_version
   !    dimensionless parameters: beta1, qfac1, Rvacs, drat, invbext
   double precision :: Mach, theta0, phi0, beta1, qfac1, Rvacs, drat, invbext
   double precision :: pr01, Bz0, rho0, Jfac0, Lz
   character(len=std_len) :: equilibrium_version
+
+  ! The initial center of the cylinder
+  double precision :: xmid^D
+
+  ! Velocity
+  double precision :: v01, v02
 
   integer, parameter :: dp = kind(0.0d0)
   integer :: i_err_p, i_err_r, i_err_b
@@ -42,7 +48,7 @@ contains
     theta0=theta0*2.0d0*dpi/360.0d0
     phi0=phi0*2.0d0*dpi/360.0d0
     equilibrium_version=trim(equilibrium_version)
-    
+
   end subroutine usr_params_read
 
   subroutine usr_init()
@@ -78,8 +84,13 @@ contains
     character(len=20) :: printsettingformat
     double precision :: rootfac, alfa
 
+    ^D&xmid^D=xprobmin^D+0.5d0*(xprobmax^D-xprobmin^D);
+
+    v01= Mach*dsin(theta0)*dcos(phi0)
+    v02= Mach*dsin(theta0)*dsin(phi0)
+
     printsettingformat='(1x,A50,ES15.7,A7)'
-    
+
     {^IFTHREED
     Lz=(xprobmax3-xprobmin3)
     }
@@ -99,7 +110,7 @@ contains
     select case(equilibrium_version)
        case('TokamakCurrent')
           pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
-          Jfac0=6.0d0*dsqrt(2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/dsqrt(1.0d0+(Lz*qfac1/dpi)**2)
+          Jfac0=6.0d0*sqrt(2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/sqrt(1.0d0+(Lz*qfac1/dpi)**2)
           rootfac=2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)-Jfac0**2/36.0d0
           if (rootfac<smalldouble) then
              if(mype==0)then
@@ -109,11 +120,11 @@ contains
              endif
              call mpistop("inconsistent parameters for TC")
           endif
-          Bz0=dsqrt(rootfac)
+          Bz0=sqrt(rootfac)
           rho0=Bz0**2/Rvacs**2
        case('Sakanaka')
           pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
-          Jfac0=dsqrt(200.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/dsqrt(1.0d0+(Lz*qfac1/dpi)**2)
+          Jfac0=sqrt(200.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/sqrt(1.0d0+(Lz*qfac1/dpi)**2)
           alfa=-12.0d0+40.0d0/3.0d0-125.0d0/8.0d0+63.0d0/5.0d0+18.0d0/7.0d0-9.0d0/16.0d0+1.0d0/18.0d0
           rootfac=Jfac0**2*(alfa/5.0d0+(Lz*qfac1/(10.0d0*dpi))**2)-2.0d0*pr01*(dexp(4.0d0)-1.0d0)
           if (rootfac<smalldouble) then
@@ -125,12 +136,12 @@ contains
              endif
              call mpistop("inconsistent parameters for Sakanaka")
           endif
-          Bz0=dsqrt(rootfac)
+          Bz0=sqrt(rootfac)
           rho0=Bz0**2/Rvacs**2
        case('GoldHoyle')
           pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
           Jfac0=dpi/(Lz*qfac1)
-          Bz0=dsqrt(2.0d0*(1.0d0+invbext)*(1.0d0+Jfac0**2)/((beta1+1.0d0)*mhd_gamma))
+          Bz0=sqrt(2.0d0*(1.0d0+invbext)*(1.0d0+Jfac0**2)/((beta1+1.0d0)*mhd_gamma))
           rho0=Bz0**2/Rvacs**2
        case default
           call mpistop("Unknown equilibrium, choose TokamakCurrent, Sakanaka or GoldHoyle")
@@ -142,6 +153,8 @@ contains
       write(*,printsettingformat) "density at r=0 ",rho0," output"
       write(*,printsettingformat) "axial B field at r=0 ",Bz0," output"
       write(*,printsettingformat) "current value ",Jfac0," output"
+      write(*,printsettingformat) "v_x ", v01," output"
+      write(*,printsettingformat) "v_y ", v02," output"
     end if
 
   end subroutine initglobaldata_usr
@@ -151,23 +164,21 @@ contains
     integer, intent(in) :: ixG^L, ix^L
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
-    
+
     double precision :: rr(ixG^S),bphi(ixG^S),cosphi(ixG^S),sinphi(ixG^S)
-    double precision :: xmid^D
 
     {^IFONED   call mpistop("This is a multi-D MHD problem, in 2.5D or 3D") }
 
-    ^D&xmid^D=xprobmin^D+0.5d0*(xprobmax^D-xprobmin^D);
     {^NOONED
-    rr(ix^S)=dsqrt( (x(ix^S,1)-xmid1)**2+(x(ix^S,2)-xmid2)**2 )
-    w(ix^S,rho_) = rho_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
-    w(ix^S,e_)   = p_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
-    bphi(ix^S)   = bphi_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
+    rr(ix^S)=sqrt( (x(ix^S,1)-xmid1)**2+(x(ix^S,2)-xmid2)**2 )
+    w(ix^S,rho_) = rho_solution(x(ix^S, 1)-xmid1, x(ix^S, 2)-xmid2)
+    w(ix^S,e_)   = p_solution(x(ix^S, 1)-xmid1, x(ix^S, 2)-xmid2)
+    bphi(ix^S)   = bphi_solution(x(ix^S, 1)-xmid1, x(ix^S, 2)-xmid2)
     sinphi(ix^S)=(x(ix^S,2)-xmid2)/rr(ix^S)
     cosphi(ix^S)=(x(ix^S,1)-xmid1)/rr(ix^S)
     w(ix^S,mag(1)) = -bphi(ix^S)*sinphi(ix^S)
     w(ix^S,mag(2)) = +bphi(ix^S)*cosphi(ix^S)
-    w(ix^S,mag(3)) = bz_solution(x(ix^S, 1), x(ix^S, 2), xmid1, xmid2)
+    w(ix^S,mag(3)) = bz_solution(x(ix^S, 1)-xmid1, x(ix^S, 2)-xmid2)
     w(ix^S,mom(1)) = Mach*dsin(theta0)*dcos(phi0)
     w(ix^S,mom(2)) = Mach*dsin(theta0)*dsin(phi0)
     w(ix^S,mom(3)) = Mach*dcos(theta0)
@@ -184,12 +195,12 @@ contains
 
   end subroutine CCC_init_one_grid
 
-  elemental function p_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function p_solution(x, y) result(val)
+    real(dp), intent(in) :: x, y
     real(dp)             :: val
-    real(dp) :: rad
+    real(dp)             :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
+    rad=sqrt(x**2+y**2)
     if(rad<1.0d0)then
        select case(equilibrium_version)
          case('TokamakCurrent')
@@ -207,12 +218,12 @@ contains
 
   end function p_solution
 
-  elemental function rho_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function rho_solution(x, y) result(val)
+    real(dp), intent(in) :: x, y
     real(dp)             :: val
-    real(dp) :: rad
+    real(dp)             :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
+    rad=sqrt(x**2+y**2)
     if(rad<1.0d0)then
        val=rho0*(1.0d0-(1.0d0-drat)*rad**2)
     else
@@ -221,12 +232,12 @@ contains
 
   end function rho_solution
 
-  elemental function bphi_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function bphi_solution(x, y) result(val)
+    real(dp), intent(in) :: x, y
     real(dp)             :: val
-    real(dp) :: rad
+    real(dp)             :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
+    rad=sqrt(x**2+y**2)
     if(rad<1.0d0)then
        select case(equilibrium_version)
          case('TokamakCurrent')
@@ -242,18 +253,64 @@ contains
 
   end function bphi_solution
 
-  elemental function bz_solution(x, y, xc, yc) result(val)
-    real(dp), intent(in) :: x, y, xc, yc
+  elemental function bx_solution(x, y) result(val)
+    real(dp), intent(in) :: x, y
+    real(dp)             :: val
+    real(dp)             :: rad, sinphi
+
+    rad=max(epsilon(1.0d0), sqrt(x**2+y**2))
+    sinphi=y/rad
+
+    if(rad<1.0d0)then
+       select case(equilibrium_version)
+         case('TokamakCurrent')
+          val=Jfac0*rad*(3.0d0-3.0d0*rad**2+rad**4)/6.0d0
+         case('Sakanaka')
+          val=Jfac0*(5.0d0*rad-10.d0*rad**3+10.0d0*rad**5-5.0d0*rad**7+rad**9)/10.0d0
+         case('GoldHoyle')
+          val=Jfac0*rad*Bz0/(1.0d0+(Jfac0*rad)**2)
+       end select
+    else
+      val=0.0d0
+    endif
+    val = -val * sinphi
+  end function bx_solution
+
+  elemental function by_solution(x, y) result(val)
+    real(dp), intent(in) :: x, y
+    real(dp)             :: val
+    real(dp)             :: rad, cosphi
+
+    rad=max(epsilon(1.0d0), sqrt(x**2+y**2))
+    cosphi=x/rad
+
+    if(rad<1.0d0)then
+       select case(equilibrium_version)
+         case('TokamakCurrent')
+          val=Jfac0*rad*(3.0d0-3.0d0*rad**2+rad**4)/6.0d0
+         case('Sakanaka')
+          val=Jfac0*(5.0d0*rad-10.d0*rad**3+10.0d0*rad**5-5.0d0*rad**7+rad**9)/10.0d0
+         case('GoldHoyle')
+          val=Jfac0*rad*Bz0/(1.0d0+(Jfac0*rad)**2)
+       end select
+    else
+      val=0.0d0
+    endif
+    val = val * cosphi
+  end function by_solution
+
+  elemental function bz_solution(x, y) result(val)
+    real(dp), intent(in) :: x, y
     real(dp)             :: val
     real(dp) :: rad
 
-    rad=dsqrt((x-xc)**2+(y-yc)**2)
+    rad=sqrt(x**2+y**2)
     if(rad<1.0d0)then
        select case(equilibrium_version)
          case('TokamakCurrent')
           val=Bz0
          case('Sakanaka')
-          val=dsqrt(Bz0**2-0.2d0*Jfac0**2*(5.0d0*rad**2/2.0d0 &
+          val=sqrt(Bz0**2-0.2d0*Jfac0**2*(5.0d0*rad**2/2.0d0 &
                   -15.0d0*rad**4/2.0d0+40.0d0*rad**6/3.0d0   &
                  -125.0d0*rad**8/8.0d0+63.0d0*rad**10/5.0d0 &
                  -7.0d0*rad**12+18.0d0*rad**14/7.0d0        &
@@ -263,7 +320,7 @@ contains
           val=Bz0/(1.0d0+(Jfac0*rad)**2)
        end select
     else
-      val=dsqrt(invbext*2.0d0/mhd_gamma)
+      val=sqrt(invbext*2.0d0/mhd_gamma)
     endif
 
   end function bz_solution
@@ -273,39 +330,27 @@ contains
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     integer :: ic1,ic2
-    double precision:: xmid^D, rr(ixI^S), xshift^D, v01, v02
+    double precision :: rr(ixI^S)
+    double precision :: x1(ixO^S), x2(ixO^S)
 
     w(ixO^S,i_sol_r) =1.0d0
     w(ixO^S,i_sol_p) =1.0d0/mhd_gamma
-    w(ixO^S,i_sol_b) =dsqrt(invbext*2.0d0/mhd_gamma)
+    w(ixO^S,i_sol_b) =sqrt(invbext*2.0d0/mhd_gamma)
     w(ixO^S,i_totp)  =1.0d0/mhd_gamma
-    v01= Mach*dsin(theta0)*dcos(phi0)
-    v02= Mach*dsin(theta0)*dsin(phi0)
+
     {^NOONED
-    ! determine centers of all 9 potentially overlapping circles
-    if(v01>=0.0d0)then
-       xshift1=v01*qt-floor(qt*v01/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-    else
-       xshift1=v01*qt+floor(qt*dabs(v01)/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-    endif
-    if(v02>=0.0d0)then
-       xshift2=v02*qt-floor(qt*v02/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-    else
-       xshift2=v02*qt+floor(qt*dabs(v02)/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-    endif
-    do ic1=-1,1
-      xmid1=xprobmin1+(ic1+0.5d0)*(xprobmax1-xprobmin1)+xshift1;
-      do ic2=-1,1
-         xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
-         rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
-         where(rr(ixO^S)<1.0d0)
-           w(ixO^S,i_sol_p) = p_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)
-           w(ixO^S,i_sol_r) = rho_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)
-           w(ixO^S,i_sol_b) = dsqrt(bz_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)**2 &
-                                  +bphi_solution(x(ixO^S, 1), x(ixO^S, 2),xmid1,xmid2)**2)
-         endwhere
-      enddo
-    enddo
+    x1 = x(ixO^S,1) - v01 * qt - xprobmin1
+    x1 = xprobmin1 + modulo(x1, xprobmax1-xprobmin1) - xmid1
+    x2 = x(ixO^S,2) - v02 * qt - xprobmin2
+    x2 = xprobmin2 + modulo(x2, xprobmax2-xprobmin2) - xmid2
+
+    rr(ixO^S) = sqrt(x1**2 + x2**2)
+    where(rr(ixO^S)<1.0d0)
+       w(ixO^S,i_sol_p) = p_solution(x1, x2)
+       w(ixO^S,i_sol_r) = rho_solution(x1, x2)
+       w(ixO^S,i_sol_b) = sqrt(bz_solution(x1, x2)**2 &
+            + bphi_solution(x1, x2)**2)
+    endwhere
     }
     w(ixO^S,i_err_r) = w(ixO^S,rho_) - w(ixO^S,i_sol_r)
     call mhd_to_primitive(ixI^L,ixO^L,w,x)
@@ -316,8 +361,10 @@ contains
     }
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
     {^NOONED
-    w(ixO^S,i_err_b) = dsqrt( w(ixO^S,mag(1))**2+w(ixO^S,mag(2))**2+w(ixO^S,mag(3))**2 ) &
-                          - w(ixO^S,i_sol_b)
+    w(ixO^S,i_err_b) = sqrt( &
+         (w(ixO^S,mag(1)) - bx_solution(x1, x2))**2 + &
+         (w(ixO^S,mag(2)) - by_solution(x1, x2))**2 + &
+         (w(ixO^S,mag(3)) - bz_solution(x1, x2))**2)
     }
   end subroutine set_error
 
@@ -332,7 +379,7 @@ contains
     integer :: iigrid, igrid, idirmin
     logical :: first_time = .true.
 
-    ! get divb (not normalized since also unmagnetized regions present), 
+    ! get divb (not normalized since also unmagnetized regions present),
     ! first sum over all grids per processor
     sumdivb_mype=0.0d0
     ! Get maximal and mimimal current value
@@ -348,7 +395,7 @@ contains
        call get_divb(pw(igrid)%w,ixG^LL,ixM^LL,divb)
        sumdivb_mype=sumdivb_mype+sum(dabs(divb(ixM^T)))
        call get_current(pw(igrid)%w,ixG^LL,ixM^LL,idirmin,current)
-       Jval(ixM^T)=dsqrt( current(ixM^T,1)**2+current(ixM^T,2)**2+current(ixM^T,3)**2 )
+       Jval(ixM^T)=sqrt( current(ixM^T,1)**2+current(ixM^T,2)**2+current(ixM^T,3)**2 )
        !jmax_mype=max(jmax_mype,maxval(Jval(ixM^T)))
        jmax_mype=max(jmax_mype,maxval(current(ixM^T,3)))
        jmin_mype=min(jmin_mype,minval(Jval(ixM^T)))
@@ -370,13 +417,13 @@ contains
     sumdivb=sumdivb/((xprobmax1-xprobmin1)*(xprobmax2-xprobmin2)) }
     {^IFTHREED
     sumdivb=sumdivb/((xprobmax1-xprobmin1)*(xprobmax2-xprobmin2)*(xprobmax3-xprobmin3)) }
- 
+
     if(mype==0) then
       filename = trim(base_filename) // '_errors.csv'
 
       if(first_time) then
         open(unit=21,file=filename,form='formatted')
-        write(21,'(a)') 'time, rho-error, p-error, b-error, divbsum, jmax, jmin' 
+        write(21,'(a)') 'time, rho-error, p-error, b-error, divbsum, jmax, jmin'
         first_time = .false.
       else
         open(unit=21,file=filename,form='formatted',status='old',access='append')
@@ -414,11 +461,10 @@ contains
     integer, intent(in) :: igrid, level, ixG^L, ix^L
     double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
-    double precision:: xmid^D, rr(ixG^S)
+    double precision:: rr(ixG^S)
 
-    ^D&xmid^D=xprobmin^D+0.5d0*(xprobmax^D-xprobmin^D);
     {^NOONED
-    rr(ix^S)=dsqrt( (x(ix^S,1)-xmid1)**2+(x(ix^S,2)-xmid2)**2 )
+    rr(ix^S)=sqrt( (x(ix^S,1)-xmid1)**2+(x(ix^S,2)-xmid2)**2 )
     }
     ! test with different levels of refinement enforced
     if (qt<smalldouble.and.any((rr(ix^S)<1.1d0).and.(rr(ix^S)>0.9d0))) then
@@ -445,7 +491,8 @@ contains
     double precision :: divb(ixI^S)
     integer :: idirmin,idir
     integer :: ic1,ic2
-    double precision:: xmid^D, rr(ixI^S), xshift^D, v01, v02
+    double precision:: rr(ixI^S)
+    double precision :: x1(ixO^S), x2(ixO^S)
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! store current
@@ -456,34 +503,20 @@ contains
     ! test the mask: should be following the fluxtube
     w(ixO^S,nw+4)=0.0d0
     qt=global_time
-    v01= Mach*dsin(theta0)*dcos(phi0)
-    v02= Mach*dsin(theta0)*dsin(phi0)
+
     {^NOONED
-    ! determine centers of all 9 potentially overlapping circles
-    if(v01>=0.0d0)then
-       xshift1=v01*qt-floor(qt*v01/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-    else
-       xshift1=v01*qt+floor(qt*dabs(v01)/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-    endif
-    if(v02>=0.0d0)then
-       xshift2=v02*qt-floor(qt*v02/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-    else
-       xshift2=v02*qt+floor(qt*dabs(v02)/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-    endif
-    do ic1=-1,1
-      xmid1=xprobmin1+(ic1+0.5d0)*(xprobmax1-xprobmin1)+xshift1;
-      do ic2=-1,1
-         xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
-         rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
-         where(rr(ixO^S)< 1.0d0 - mask_halfwidth)
-             w(ixO^S,nw+4)=1.0d0
-         endwhere
-         where(rr(ixO^S) > 1.0d0 - mask_halfwidth .and. &
-              rr(ixO^S) < 1.0d0 + mask_halfwidth)
-             w(ixO^S,nw+4)=0.5d0
-         endwhere
-      enddo
-    enddo
+    x1 = x(ixO^S,1) - v01 * qt - xprobmin1
+    x1 = xprobmin1 + modulo(x1, xprobmax1-xprobmin1) - xmid1
+    x2 = x(ixO^S,2) - v02 * qt - xprobmin2
+    x2 = xprobmin2 + modulo(x2, xprobmax2-xprobmin2) - xmid2
+    rr(ixO^S)=sqrt(x1**2 + x2**2)
+    where(rr(ixO^S)< 1.0d0 - mask_halfwidth)
+       w(ixO^S,nw+4)=1.0d0
+    endwhere
+    where(rr(ixO^S) > 1.0d0 - mask_halfwidth .and. &
+         rr(ixO^S) < 1.0d0 + mask_halfwidth)
+       w(ixO^S,nw+4)=0.5d0
+    endwhere
     }
 
     ! output divB
@@ -512,7 +545,7 @@ contains
        call mhd_to_primitive(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
     end do
 
-    call compute_integrated_quantities   
+    call compute_integrated_quantities
 
     ! end with switching all back to conservative variables
     do iigrid=1,igridstail; igrid=igrids(iigrid)
@@ -522,7 +555,7 @@ contains
   end subroutine analyze_forces_on_grid
 
   subroutine compute_integrated_quantities
-  ! here we do analysis on the whole grid tree: 
+  ! here we do analysis on the whole grid tree:
   ! output is written to the ***analysis.int file
   integer :: nregions, nintegrals, ireg, intval, iigrid, igrid, idim, idirmin
   character(len=std_len), allocatable :: region_name(:)
@@ -532,7 +565,7 @@ contains
   logical :: first_time = .true.
   character(len=100):: filename
 
-  
+
    ! identify region within, at edge, or outside fluxtube, or full domain
    nregions=4
    allocate(region_name(nregions))
@@ -560,7 +593,7 @@ contains
       else
          dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
       end if
-       
+
       call get_current(pw(igrid)%w,ixG^LL,ixM^LL,idirmin,curlvec)
 
       ! pressure gradient
@@ -580,11 +613,11 @@ contains
               integral_ipe(ireg,intval)=integral_ipe(ireg,intval)+ &
                 integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,curlvec,pgrad,pw(igrid)%x,dvolume,ireg,intval)
          enddo
-      enddo 
+      enddo
    enddo
    call MPI_ALLREDUCE(integral_ipe,integral_w,nregions*nintegrals,MPI_DOUBLE_PRECISION, &
        MPI_SUM,icomm,ierrmpi)
- 
+
    if(mype==0) then
        do ireg=1,nregions
           write(filename,"(a,a,a)") TRIM(base_filename),'_'//TRIM(region_name(ireg)), &
@@ -609,7 +642,7 @@ contains
 
  function integral_grid(ixI^L,ixO^L,w,Jvec,pgrad,x,dvolume,ireg,intval)
 
-  ! note: on entry, we have primitives in w vector, 
+  ! note: on entry, we have primitives in w vector,
   !     and current in Jvec, and pressure gradient in pgrad
   !  we will quantify
   !  1)total volume of region
@@ -623,40 +656,27 @@ contains
 
   logical :: patchw(ixI^S)
   double precision :: mask(ixI^S)
-  double precision :: qt, xmid^D, rr(ixI^S), xshift^D, v01, v02
+  double precision :: qt, rr(ixI^S)
   double precision :: integral_grid,Bf(ixI^S,1:ndir),JcrosB(ixI^S,1:3),totforce(ixI^S)
   integer :: ix^D,ic1,ic2
+  double precision :: x1(ixO^S), x2(ixO^S)
 
   mask(ixO^S)=0.0d0
   qt=global_time
-  v01= Mach*dsin(theta0)*dcos(phi0)
-  v02= Mach*dsin(theta0)*dsin(phi0)
+
   {^NOONED
-  ! determine centers of all 9 potentially overlapping circles
-  if(v01>=0.0d0)then
-     xshift1=v01*qt-floor(qt*v01/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-  else
-     xshift1=v01*qt+floor(qt*dabs(v01)/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
-  endif
-  if(v02>=0.0d0)then
-     xshift2=v02*qt-floor(qt*v02/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-  else
-     xshift2=v02*qt+floor(qt*dabs(v02)/(xprobmax2-xprobmin2))*(xprobmax2-xprobmin2)
-  endif
-  do ic1=-1,1
-     xmid1=xprobmin1+(ic1+0.5d0)*(xprobmax1-xprobmin1)+xshift1;
-     do ic2=-1,1
-        xmid2=xprobmin2+(ic2+0.5d0)*(xprobmax2-xprobmin2)+xshift2;
-        rr(ixO^S)=dsqrt( (x(ixO^S,1)-xmid1)**2+(x(ixO^S,2)-xmid2)**2 )
-        where(rr(ixO^S) < 1.0d0 - mask_halfwidth)
-           mask(ixO^S)=1.0d0
-        endwhere
-        where(rr(ixO^S) > 1.0d0 - mask_halfwidth .and. &
-             rr(ixO^S) < 1.0d0 + mask_halfwidth)
-           mask(ixO^S)=0.5d0
-        endwhere
-     enddo
-  enddo
+  x1 = x(ixO^S,1) - v01 * qt - xprobmin1
+  x1 = xprobmin1 + modulo(x1, xprobmax1-xprobmin1) - xmid1
+  x2 = x(ixO^S,2) - v02 * qt - xprobmin2
+  x2 = xprobmin2 + modulo(x2, xprobmax2-xprobmin2) - xmid2
+  rr(ixO^S)=sqrt(x1**2 + x2**2)
+  where(rr(ixO^S) < 1.0d0 - mask_halfwidth)
+     mask(ixO^S)=1.0d0
+  endwhere
+  where(rr(ixO^S) > 1.0d0 - mask_halfwidth .and. &
+       rr(ixO^S) < 1.0d0 + mask_halfwidth)
+     mask(ixO^S)=0.5d0
+  endwhere
   }
   ! mask the region of interest
   select case(ireg)
@@ -686,7 +706,7 @@ contains
        JcrosB(ixO^S,2)=Jvec(ixO^S,3)*Bf(ixO^S,1)-Jvec(ixO^S,1)*Bf(ixO^S,3)
        JcrosB(ixO^S,3)=Jvec(ixO^S,1)*Bf(ixO^S,2)-Jvec(ixO^S,2)*Bf(ixO^S,1)
 
-       totforce(ixO^S)=dsqrt( JcrosB(ixO^S,1)**2+JcrosB(ixO^S,2)**2+JcrosB(ixO^S,3)**2 )
+       totforce(ixO^S)=sqrt( JcrosB(ixO^S,1)**2+JcrosB(ixO^S,2)**2+JcrosB(ixO^S,3)**2 )
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
          if(patchw(ix^D)) integral_grid=integral_grid+totforce(ix^D)*dvolume(ix^D)
        {end do\}
@@ -699,7 +719,7 @@ contains
        JcrosB(ixO^S,2)=Jvec(ixO^S,3)*Bf(ixO^S,1)-Jvec(ixO^S,1)*Bf(ixO^S,3)
        JcrosB(ixO^S,3)=Jvec(ixO^S,1)*Bf(ixO^S,2)-Jvec(ixO^S,2)*Bf(ixO^S,1)
 
-       totforce(ixO^S)=dsqrt(  (JcrosB(ixO^S,1)-pgrad(ixO^S,1))**2  &
+       totforce(ixO^S)=sqrt(  (JcrosB(ixO^S,1)-pgrad(ixO^S,1))**2  &
                               +(JcrosB(ixO^S,2)-pgrad(ixO^S,2))**2  &
                               +(JcrosB(ixO^S,3)-pgrad(ixO^S,3))**2 )
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
