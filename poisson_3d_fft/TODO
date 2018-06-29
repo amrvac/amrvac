@@ -1,0 +1,11 @@
+This is a TODO list, to do not forget things that can be added to this bundle.
+They are not sorted by priority:
+
+1) For XC terms, the spin-polarized case is completely absent.
+2) There is no treatment of the GGA XC for the non-free BC cases
+2b)The gradient of the density is calculated only for free BC
+3) The calculation of the kernel for surfaces BC can be cleaned up by hard coding 
+   the coefficients of the high order integration (minor change)
+3b)The allocations for calculating the surface kernel can be reduced by creating a
+   unique workarray for green and green1 in the calculates_green_opt routine
+4) Wires
