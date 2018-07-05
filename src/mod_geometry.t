@@ -403,7 +403,7 @@ contains
         hxO^L=ixO^L-kr(idims,^D);
         ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
         jxC^L=ixC^L+kr(idims,^D);
-        if(stretched_dim(idims).or.stretched_symm_dim(idims)) then
+        if(stretched_dim(idims) .and. stretch_uncentered) then
           ! linear interpolation at cell interface along stretched dimension
           qC(ixC^S)=block%surfaceC(ixC^S,idims)*(qvec(ixC^S,idims)+0.5d0*block%dx(ixC^S,idims)*&
                (qvec(jxC^S,idims)-qvec(ixC^S,idims))/(block%x(jxC^S,idims)-block%x(ixC^S,idims)))
@@ -630,7 +630,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(jdir,^D);
                   ! qvec(3) at cell interface along 2nd dimension
-                  if(stretched_dim(jdir).or.stretched_symm_dim(jdir)) then
+                  if(stretched_dim(jdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                          (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
                   else
@@ -645,7 +645,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(kdir,^D);
                   ! qvec(2) at cell interface along 3rd dimension
-                  if(stretched_dim(kdir).or.stretched_symm_dim(kdir)) then
+                  if(stretched_dim(kdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                          (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
                   else
@@ -662,7 +662,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(kdir,^D);
                   ! qvec(1) at cell interface along 3rd dimension
-                  if(stretched_dim(kdir).or.stretched_symm_dim(kdir)) then
+                  if(stretched_dim(kdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                          (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
                   else
@@ -674,7 +674,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(jdir,^D);
                   ! qvec(3) at cell interface along 1st dimension
-                  if(stretched_dim(jdir).or.stretched_symm_dim(jdir)) then
+                  if(stretched_dim(jdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                          (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
                   else
@@ -693,7 +693,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(kdir,^D);
                   ! qvec(1) at cell interface along 2nd dimension
-                  if(stretched_dim(kdir).or.stretched_symm_dim(kdir)) then
+                  if(stretched_dim(kdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                          (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
                   else
@@ -705,7 +705,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(jdir,^D);
                   ! qvec(2) at cell interface along 1st dimension
-                  if(stretched_dim(jdir).or.stretched_symm_dim(jdir)) then
+                  if(stretched_dim(jdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                          (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
                   else
@@ -822,7 +822,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(jdir,^D);
                   ! qvec(z) at cell interface along phi dimension
-                  if(stretched_dim(jdir).or.stretched_symm_dim(jdir)) then
+                  if(stretched_dim(jdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                          (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
                   else
@@ -834,7 +834,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(kdir,^D);
                   ! qvec(phi) at cell interface along z dimension
-                  if(stretched_dim(kdir).or.stretched_symm_dim(kdir)) then
+                  if(stretched_dim(kdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                          (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
                   else
@@ -851,7 +851,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(kdir,^D);
                   ! qvec(r) at cell interface along z dimension
-                  if(stretched_dim(kdir).or.stretched_symm_dim(kdir)) then
+                  if(stretched_dim(kdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                          (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
                   else
@@ -863,7 +863,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(jdir,^D);
                   ! qvec(z) at cell interface along r dimension
-                  if(stretched_dim(jdir).or.stretched_symm_dim(jdir)) then
+                  if(stretched_dim(jdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                          (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
                   else
@@ -880,7 +880,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(kdir,^D);
                   ! qvec(r) at cell interface along phi dimension
-                  if(stretched_dim(kdir).or.stretched_symm_dim(kdir)) then
+                  if(stretched_dim(kdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,jdir)+0.5d0*block%dx(ixC^S,kdir)*&
                          (qvec(jxC^S,jdir)-qvec(ixC^S,jdir))/(block%x(jxC^S,kdir)-block%x(ixC^S,kdir))
                   else
@@ -892,7 +892,7 @@ contains
                   ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                   jxC^L=ixC^L+kr(jdir,^D);
                   ! qvec(phi) at cell interface along r dimension
-                  if(stretched_dim(jdir).or.stretched_symm_dim(jdir)) then
+                  if(stretched_dim(jdir) .and. stretch_uncentered) then
                     tmp(ixC^S)=qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                          (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir))
                   else

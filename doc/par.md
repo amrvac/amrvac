@@ -678,9 +678,8 @@ second order is desired).
      tfixgrid= DOUBLE
      itfixgrid= INTEGER
      ditregrid= INTEGER
-     stretched_grid= F | T
-     stretched_dim= ndim LOGICAL values
-     stretched_symm_dim= ndim LOGICAL values
+     stretch_dim= ndim STRING values ('uni','symm','none')
+     stretch_uncentered = F | T
      qstretch_baselevel= DOUBLE
      nstretchedblocks_baselevel= INTEGER
     /
@@ -798,10 +797,25 @@ optimal for all times.The parameter `ditregrid` is introduced to reconstruct
 the whole AMR grids once every ditregrid iteration(s) instead of regridding
 once in every iteration by default.
 
-### stretched_grid, stretched_dim, qstretch_baselevel, stretched_symm_dim, nstretchedblocks_baselevel {#par_stretched}
+### `stretch_dim`, `stretch_uncentered` `qstretch_baselevel`, `nstretchedblocks_baselevel` {#par_stretched}
 
-We allow stretching of the grid, in combination with any coordinate system (cartesian/polar/cylindrical/spherical) you choose. You activate grid stretching by setting `stretched_grid=T`. You then have to decide which dimension(s) you wish to stretch, and for each dimension you can choose between unidirectional stretching, where the grid cells change by a constant factor from cell to cell. The factor for the lowest refinement level can be set by setting `qstretch_baselevel=1.01` (typical values are 1.01 to 1.05 or so, although any number larger than 1 is possible). Unidirectional stretching in the second dimension is thus activated by `stretched_dim(2)=T`. Another possibility is to use symmetric stretching, which is e.g. useful for setting up periodic domain problems or so. Then you select `stretched_symm_dim(2)=T` to make the second direction stretched symmetrically. You then specify how many blocks you want to have unstretched (uniform) in the middle. E.g., you may have set up 8 blocks in dimension 2 at level 1, and then you can ask nstretchedblocks_baselevel=2,4,6 or 8. Stretching can be useful for the radial coordinate in polar/spherical/cylindrical, or you can set the angle theta in 3D spherical to be stretched symmetrically, to leverage the CFL condition.
+We allow stretching of the grid, in combination with any coordinate system (cartesian/polar/cylindrical/spherical) you choose. You activate grid stretching by setting `stretch_dim(1:ndim)`, for example for the second dimension:
 
+    stretch_dim(2) = 'none' | 'uni' | 'symm'
+
+* 'none' means don't stretch this dimension, which is the default.
+* 'uni' means unidirectional stretching, where the grid cells change by a constant factor from cell to cell. The factor for the lowest refinement level can be set by setting `qstretch_baselevel=1.01` (typical values are 1.01 to 1.05 or so, although any number larger than 1 is possible). 
+* 'symm' means symmetric stretching, which is e.g. useful for setting up periodic domain problems or so. You then specify how many blocks you want to have unstretched (uniform) in the middle. E.g., you may have set up 8 blocks along a dimension at level 1, and then you can ask nstretchedblocks_baselevel=2,4,6 or 8. 
+
+Stretching can be useful for the radial coordinate in polar/spherical/cylindrical, or you can set the angle theta in 3D spherical to be stretched symmetrically, to leverage the CFL condition.
+
+The parameter `stretch_uncentered` (default: true) controls whether
+`mod_geometry.t` routines such as `divvector()` take into account that a cell
+face is not between stretched cell-centers. However, this is not yet taken into
+account in the reconstruction and symm/asymm boundary conditions, which may lead
+to issues, which can sometimes be avoided by setting `stretch_uncentered` to false.
+
+**Note**: the old syntax `stretched_grid=T` was equivalent to `stretch_dim(1) = 'uni'`
 
 ## Paramlist {#par_paramlist}
 
