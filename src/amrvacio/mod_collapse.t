@@ -226,7 +226,7 @@ spacing=zero
 wholeExtent=0
 myshape = shape(collapsedData)
 {^IFONED
-lenght = size_single
+length = size_single
 }
 {^NOONED
 length = ^DM&myshape(^DM)*
