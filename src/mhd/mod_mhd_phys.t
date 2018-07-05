@@ -93,7 +93,7 @@ module mod_mhd_phys
   integer :: nwwave=8
 
   !> Method type to clean divergence of B
-  character(len=std_len) :: typedivbfix  = 'linde'
+  character(len=std_len), public, protected :: typedivbfix  = 'linde'
 
   !> Method type in a integer for good performance
   integer :: type_divb

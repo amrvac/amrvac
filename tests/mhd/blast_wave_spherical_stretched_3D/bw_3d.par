@@ -48,7 +48,7 @@
         xprobmax2=0.5d0
         xprobmin3=0.d0
         xprobmax3=1.d0
-        stretched_grid=.true.
+        stretch_dim(1)='uni'
  /
 
  &paramlist

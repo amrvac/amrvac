@@ -1,3 +1,11 @@
+!> Collapses D-dimensional output to D-1 view by line-of-sight integration
+! for now: only for non-stretched cartesian cases, with LOS along coordinate
+! writes out as either csv or vti file (collapse_type)
+module mod_collapse
+  use mod_global_parameters
+  implicit none
+
+contains
 !=============================================================================
 subroutine write_collapsed
 use mod_global_parameters
@@ -9,6 +17,7 @@ use mod_global_parameters
 integer :: idir
 logical, save :: firstcollapse=.true.
 !-----------------------------------------------------------------------------
+
 if (firstcollapse) then
    icollapse=collapsenext
    firstcollapse=.false.
@@ -30,6 +39,7 @@ integer, intent(in)                               :: dir
 integer                                           :: jgrid, igrid, Morton_no
 double precision,dimension(0:nw+nwauxio)          :: normconv 
 !-----------------------------------------------------------------------------
+if(.not.slab) call mpistop("collapse only for slab cartesian cases")
 
 call allocate_collapsed(dir)
 
@@ -73,6 +83,7 @@ end subroutine put_collapse
 !=============================================================================
 subroutine output_collapsed_csv(dir,normconv)
 use mod_global_parameters
+use mod_calculate_xw
 integer, intent(in)                               :: dir
 double precision,dimension(0:nw+nwauxio),intent(in):: normconv 
 character(len=1024) :: filename, outfilehead, line
@@ -85,6 +96,7 @@ integer                                           :: ix^DM
 double precision                                  :: dxdim^DM, xdim^LIM^DM
 }
 !-----------------------------------------------------------------------------
+
 if (mype==0) then
 
 ! Get coordinates:
@@ -140,6 +152,7 @@ end select
    myshape = shape(collapsedData)
 {^NOONED
 {^DM& do ix^DMB = 1,myshape(^DMB)\}
+   ! following assumes uniform cartesian grid
    write(unitcollapse,'(200(1pe20.12))') &
         {^DM& dxdim^DM*dble(ix^DM)+xdimmin^DM}, &
         (collapsedData(ix^DM,iw)*normconv(iw),iw=1,nw+nwauxio)
@@ -152,6 +165,7 @@ end subroutine output_collapsed_csv
 !=============================================================================
 subroutine output_collapsed_vti(dir,normconv)
 use mod_global_parameters
+use mod_calculate_xw
 integer, intent(in)                               :: dir
 double precision,dimension(0:nw+nwauxio),intent(in):: normconv 
 character(len=1024) :: filename, outfilehead, line
@@ -211,6 +225,9 @@ origin=0
 spacing=zero
 wholeExtent=0
 myshape = shape(collapsedData)
+{^IFONED
+length = size_single
+}
 {^NOONED
 length = ^DM&myshape(^DM)*
 length = length*size_single
@@ -234,6 +251,7 @@ write(unitcollapse,'(a)')'<?xml version="1.0"?>'
 write(unitcollapse,'(a)',advance='no') '<VTKFile type="ImageData"'
 {#IFDEF BIGENDIAN write(unitcollapse,'(a)')' version="0.1" byte_order="BigEndian">'}
 {#IFNDEF BIGENDIAN write(unitcollapse,'(a)')' version="0.1" byte_order="LittleEndian">'}
+! following corresponds to uniform cartesian grid
 write(unitcollapse,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',&
      origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'
 write(unitcollapse,'(a)')'<FieldData>'
@@ -272,10 +290,17 @@ do iw=1,nw+nwauxio
   if(iw<=nw) then 
     if(.not.w_write(iw)) cycle
   endif
-{#IFNDEF D1
-   write(unitcollapse) length
-   write(unitcollapse) {^DM&(|}real(collapsedData(ix^DM,iw)*normconv(iw)),{ix^DM=1,myshape(^DM))}
-}
+  write(unitcollapse) length
+  {^IFONED
+  write(unitcollapse) real(collapsedData(iw)*normconv(iw))
+  }
+  {^IFTWOD
+  write(unitcollapse) (real(collapsedData(ix1,iw)*normconv(iw)),ix1=1,myshape(1))
+  }
+  {^IFTHREED
+  write(unitcollapse) ((real(collapsedData(ix1,ix2,iw)*normconv(iw)),ix1=1,&
+   myshape(1)),ix2=1,myshape(2))
+  }
 enddo
 
 close(unitcollapse)
@@ -352,11 +377,12 @@ level = tree%node%level
 ! number of cells per grid.
 nx^D=ixMhi^D-ixMlo^D+1;
 
+! assumes uniform cartesian grid with factor 2 refinement per dimension
 {^D&
-if (level .gt. collapseLevel) then
+if (level > collapseLevel) then
    ig^Dtargetmin = int(dble(ig^D-1)/2.0d0**(level-collapseLevel))+1
    ig^Dtargetmax = ig^Dtargetmin
-else if (level .lt. collapseLevel) then
+else if (level < collapseLevel) then
    ig^Dtargetmin = int(2.0d0**(collapseLevel-level))*(ig^D-1)+1
    ig^Dtargetmax = int(2.0d0**(collapseLevel-level))*ig^D
 else
@@ -394,7 +420,7 @@ case default
    call mpistop("slice direction not clear in integrate_subnode")
 end select
 
-if (level .ge. collapseLevel) then
+if (level >= collapseLevel) then
    do ix1orig = ixMdimlo1,ixMdimhi1
       do ix2orig = ixMdimlo2,ixMdimhi2
 {^DM& ix^DM = int(dble(ix^DMorig-nghostcells+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
@@ -424,7 +450,7 @@ case default
    call mpistop("slice direction not clear in integrate_subnode")
 end select
 
-if (level .ge. collapseLevel) then
+if (level >= collapseLevel) then
    do ix1orig = ixMdimlo1,ixMdimhi1
 {^DM& ix^DM = int(dble(ix^DMorig-nghostcells+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
          collapsedData(ix1,1:nw+nwauxio) = collapsedData(ix1,1:nw+nwauxio) &
@@ -448,53 +474,26 @@ subroutine collapse_subnode(igrid,jgrid,dir,normconv)
   use mod_usr_methods, only: usr_aux_output
   use mod_global_parameters
   use mod_physics, only: phys_to_primitive
+  use mod_calculate_xw
 
 integer, intent(in) :: igrid, jgrid, dir
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
 ! .. local ..
 integer                :: ix, iw
 double precision       :: dx^D
-double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim)       :: xC_TMP, xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)         :: xCC_TMP, xCC
+double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio) :: wC_TMP
+double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)   :: wCC_TMP
+integer                :: ixC^L, ixCC^L
 !-----------------------------------------------------------------------------
 pw_sub(jgrid)%w=zero
 dx^D=rnode(rpdx^D_,igrid);
 
-w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
-if(saveprim) then 
-   call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
-   normconv(0) = length_convert_factor
-   normconv(1:nw) = w_convert_factor
-else
-  normconv(0:nw)=one
-end if
+call calc_x(igrid,xC,xCC)
+call calc_grid(unitslice,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+         ixC^L,ixCC^L,.true.)
 
-if(nwauxio>0)then
-! auxiliary io variables can be computed and added by user
-typelimiter=type_limiter(node(plevel_,igrid))
-typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  block=>pw(igrid)
-  ! default (no) normalization for auxiliary variables
-  normconv(nw+1:nw+nwauxio)=one
-
-  if (.not. associated(usr_aux_output)) then
-     call mpistop("usr_aux_output not defined")
-  else
-     call usr_aux_output(ixG^LL,ixM^LL,w,pw(igrid)%x,normconv)
-  end if
-endif
-
-!> @todo Fix this later
-! {^IFMHDPHYS
-! if (B0field) w(ixM^T,mag(1):b0_+ndir) = w(ixM^T,mag(1):b0_+ndir) + pB0_cell(igrid)%w(ixM^T,1:ndir)
-! {#IFDEF ENERGY
-! if((.not.saveprim) .and. B0field) then
-!    w(ixM^T,e_)=w(ixM^T,e_) &
-!            +half*( ^C&pB0_cell(igrid)%w(ixM^T,b^C_-b0_)**2+ ) &
-!            + ( ^C&w(ixM^T,b^C_)*pB0_cell(igrid)%w(ixM^T,b^C_-b0_)+ )
-! endif
-! }
-! }
 {^IFTHREED
 select case (dir)
 case (1)
@@ -502,14 +501,14 @@ case (1)
     do ix=ixMlo1,ixMhi1
       pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) = &
            pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) &
-           + w(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) * dx1
+           + wCC_TMP(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) * dx1
     end do
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo1,ixMhi1
         pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) = &
              pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) &
-             + w(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) * &
+             + wCC_TMP(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) * &
              pw(igrid)%dx(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1)
       end do
     end do
@@ -517,21 +516,43 @@ case (1)
   pw_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
        pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
 case (2)
-  do ix=ixMlo2,ixMhi2
-     pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
-          pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
-          + w(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,1:nw+nwauxio) * dx2
-  end do
+  if(slab) then
+    do ix=ixMlo2,ixMhi2
+       pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
+            pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
+            + wCC_TMP(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,1:nw+nwauxio) * dx2
+    end do
+  else
+    do iw=1,nw+nwauxio
+      do ix=ixMlo2,ixMhi2
+         pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,iw) = &
+              pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,iw) &
+              + wCC_TMP(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,iw) * &
+             pw(igrid)%dx(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,2)
+      end do
+    end do
+  endif
   pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
        pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
 case (3)
-  do ix=ixMlo3,ixMhi3
-     pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
-          pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
-          + w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,1:nw+nwauxio) * dx3
-  end do
-     pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
-          pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
+  if(slab) then
+    do ix=ixMlo3,ixMhi3
+       pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
+            pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
+            + wCC_TMP(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,1:nw+nwauxio) * dx3
+    end do
+  else
+    do iw=1,nw+nwauxio
+      do ix=ixMlo3,ixMhi3
+         pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,iw) = &
+              pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,iw) &
+              + wCC_TMP(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,iw) * &
+             pw(igrid)%dx(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,3)
+      end do
+    end do
+  endif
+  pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
+       pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
 case default
    print*, 'subnode, dir: ', dir
    call mpistop("slice direction not clear in collapse_subnode")
@@ -544,25 +565,37 @@ case (1)
     do ix=ixMlo1,ixMhi1
       pw_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) = &
            pw_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) &
-           + w(ix,ixMlo2:ixMhi2,1:nw+nwauxio) * dx1
+           + wCC_TMP(ix,ixMlo2:ixMhi2,1:nw+nwauxio) * dx1
     end do
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo1,ixMhi1
         pw_sub(jgrid)%w(ixMlo2:ixMhi2,iw) = &
              pw_sub(jgrid)%w(ixMlo2:ixMhi2,iw) &
-             + w(ix,ixMlo2:ixMhi2,iw) * pw(igrid)%dx(ix,ixMlo2:ixMhi2,1)
+             + wCC_TMP(ix,ixMlo2:ixMhi2,iw) * &
+              pw(igrid)%dx(ix,ixMlo2:ixMhi2,1)
       end do
     end do
   end if
   pw_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
        pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
 case (2)
-  do ix=ixMlo2,ixMhi2
-     pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
-          pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
-          + w(ixMlo1:ixMhi1,ix,1:nw+nwauxio) * dx2
-  end do
+  if(slab) then
+    do ix=ixMlo2,ixMhi2
+       pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
+            pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
+            + wCC_TMP(ixMlo1:ixMhi1,ix,1:nw+nwauxio) * dx2
+    end do
+  else
+    do iw=1,nw+nwauxio
+      do ix=ixMlo2,ixMhi2
+         pw_sub(jgrid)%w(ixMlo1:ixMhi1,iw) = &
+              pw_sub(jgrid)%w(ixMlo1:ixMhi1,iw) &
+              + wCC_TMP(ixMlo1:ixMhi1,ix,iw) * &
+              pw(igrid)%dx(ixMlo1:ixMhi1,ix,2)
+      end do
+    end do
+  end if
   pw_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
        pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
 case default
@@ -572,12 +605,12 @@ end select
 {^IFONED   
 if(slab) then
   do ix=ixMlo1,ixMhi1
-     pw_sub(jgrid)%w(1:nw+nwauxio) = pw_sub(jgrid)%w(1:nw+nwauxio) + w(ix,1:nw+nwauxio) * dx1
+     pw_sub(jgrid)%w(1:nw+nwauxio) = pw_sub(jgrid)%w(1:nw+nwauxio) + wCC_TMP(ix,1:nw+nwauxio) * dx1
   end do
 else
   do iw=1,nw+nwauxio
     do ix=ixMlo1,ixMhi1
-      pw_sub(jgrid)%w(iw) = pw_sub(jgrid)%w(iw) + w(ix,iw) * pw(igrid)%dx(ix,1)
+      pw_sub(jgrid)%w(iw) = pw_sub(jgrid)%w(iw) + wCC_TMP(ix,iw) * pw(igrid)%dx(ix,1)
     end do
   end do
 end if
@@ -586,3 +619,4 @@ pw_sub(jgrid)%x(1:ndim) = pw(igrid)%x(ixMlo1,1:ndim)
 
 end subroutine collapse_subnode
 !=============================================================================
+end module mod_collapse

@@ -21,6 +21,7 @@ module mod_usr_methods
   procedure(transform_w), pointer     :: usr_transform_w      => null()
   procedure(aux_output), pointer      :: usr_aux_output       => null()
   procedure(add_aux_names), pointer   :: usr_add_aux_names    => null()
+  procedure(sub_modify_io), pointer   :: usr_modify_output    => null()
   procedure(special_convert), pointer :: usr_special_convert  => null()
 
   ! Called at the beginning of every time step (after determining dt)
@@ -111,6 +112,15 @@ module mod_usr_methods
        double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine process_grid
+
+     !> If defined, this routine is called before writing output, and it can
+     !> set/modify the variables in the w array.
+     subroutine sub_modify_io(ixI^L,ixO^L,qt,w,x)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L,ixO^L
+       double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,1:nw)
+     end subroutine sub_modify_io
 
      !> This subroutine is called at the beginning of each time step
      !> by each processor. No communication is specified, so the user

@@ -7,70 +7,6 @@ probably good to put your name next to your suggestions (as I have done below).
 
 # Major improvements or suggestions
 
-## Documentation
-
-**Jannis**: The source code currently has very little documentation. I've already started to
-use Doxygen to document the source code extensively (as was done for the python
-tools). The work comes down to:
-
-* Bring the manual (the html files have been converted to markdown) up to date
-* Document what a subroutine/function does (if it is non-trivial)
-* Document non-trivial parts of code / algorithms
-* Document the important variables and parameters
-* Document the contents and purpose of modules
-* Document important examples
-
-Doxygen can currently not parse those files that were only intended to be
-included (because they are not valid Fortran by themselves). This conversion is
-discussed elsewhere on this page.
-
-## Automated tests
-
-**Jannis**: We should have some basic tests in place to reduce the number of regressions
-(bugs) that we introduce when changing the code. After a change, these tests
-should compile and run, and their output should match previously checked
-*correct* values.
-
-As of now, I'm not sure what kinds of tests we should include, and whether we
-already have them. Some ideas:
-  * Perhaps we can run some programs through valgrind to detect memory problems,
-    although I'm not sure how well this works with MPI
-  * We could include a number of basic tests; for example to individually test
-    the mesh refinement procedure, the time integration procedures, the
-    convergence of the hyperbolic solvers etc.
-  * Run all tests in *debuging* mode, i.e., compiled with all relevant
-    error-checking and warnings enabled. For example, with `gfortran` you can
-    use finit-real=snan to initialize all reals with a signalling `NaN`.
-
-## HPC aspects
-
-**Jannis**: A number of things that caught my eye thus far are listed below
-
-### Fixed number of grids and levels
-
-There seems to be a fixed upper bound on the number of grids (`ngridshi`) and
-levels (`nlevelshi`). There are a number of problems with such fixed bounds:
-
-  * You have to manually set them to a sensible number for your application
-  * One cannot easily change the grid/domain size (which affects the mesh
-    adaptivity) without also changing them
-  * There is currently a lot of code like this:
-
-        do igrid = 1, ngridshi
-
-        allocate(recvstatus(MPI_STATUS_SIZE,ngridshi))
-
-    which run slower when you increase `ngridshi`, regardless of the number of
-    grids in use.
-
-### Global grid structure
-
-The grid topology/connectivity is currently known on all processors. Would it
-make sense to use a distributed approach, where each processor only knows about
-its own grid and its connection to other processors? Then you have to implement
-some sort of parallel sort algorithm for the load balancing, I believe reading
-about this in a paper on the Dendro code.
-
 ### Hybrid OpenMP/MPI
 
 Scattered throughout the code there are OpenMP statements. Is the potential
@@ -105,37 +41,6 @@ is likely to be a significant issue on current systems: different
 implementations have widely differing performance characteristics*
 
 Therefore I would suggest we focus on a pure MPI approach for the time being.
-
-## Division of the code into modules
-
-**Jannis**: I suggest we convert the physics modules to actual Fortran modules.
-They could each define the variables and parameters that they need, and come
-with a custom initialization routine.
-
-The use of modules would have several advantages:
-  * You can more easily use multiple modules
-  * The modules can use/extend each other
-  * Constants, variables and parameters can be localized and documented in
- modules, reducing the number of global variables
-  * Modules are standard Fortran, so Doxygen and other tools can parse them
-
-A change to modules could significantly affect how users generate their code
-(although we could keep it backwards-compatible). We should therefore carefully
-think about the (future) structure of MPI-AMRVAC. Some of the points that need
-to be addressed are:
-
-  * Do we want to give users the flexibility to combine physics modules? For
-    example, when I add a multigrid solver, that could be used for various
-    purposes. Perhaps we can define a *hierarchy of modules*, so that higher
-    ones 'know' how to include lower ones.
-  * How much code do we want to automatically generate with the setup script?
-    Now it does quite a lot for the user.
-  * Do we want to give different names to the routines in the modules and use
-    e.g., function pointers?
-
-When we *modernize* the code to use modules, we could also think about
-(re)defining a couple of basic data structures. For example, I think a single
-mesh block would seem a natural data structure in MPI-AMRVAC.
 
 ## Code standards
 
@@ -281,52 +186,11 @@ with Paraview/VTK developers.
 
 # Minor improvements
 
-## Commit messages, branches
-
-**Jannis**: How do we organize our work? Do we use our own branches on the central
-repository, which we at appropriate times merge into `master`?
-
-And how do we communicate the changes we make to the developers and users of
-MPI-AMRVAC? For the developers it makes sense to (at least) write informative
-commit messages, so that we can see what we are working on and why somebody has
-changed something.
-
-For the user we could activate the mailing list again? We can also list
-important changes on a webpage. There is already a changelog file included in
-Doxygen.
-
-## A code license
-
-**Jannis**: As of now, it's not clear to me what the license of MPI-AMRVAC is, which could
-be an issue for external users. The longer we wait, the harder it will be to get
-all the contributors to agree on a license. Some suggestions:
-
-  * GNU copyleft licenses: GPLv2 or GPLv3
-  * MIT license (very liberal)
-  * BSD license (have to choose clause, non-copyleft)
-
 ## Syntax of input files
 
 **Jannis**: Perhaps we could switch to free-form input files with documentation included,
 instead of the namelists that are currently used. I have some experience with
 this, see https://github.com/jannisteunissen/fortran_config
-
-## Mailing list
-
-**Jannis**: The mailing list seems pretty inactive (I could find only 3 messages).
-Do we want to put some effort into this? As of now, the mailing list is not
-accessible for outside people it seems.
-
-  * Pros: people receive news automatically, we can summarize the important
-    things for the users
-  * Cons: people hardly read mail, new people will not get old messages, what
-    about the people not on the list?
-
-## Optionally include boundary ghost cells in output
-
-Suggested by **Utzi Utz**: Since numerical or physical 'problems' often start
-near a boundary, it would be good to optionally include the boundary ghost cells
-in the output, for debugging purposes.
 
 ## More flexible initialization
 

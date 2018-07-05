@@ -37,9 +37,8 @@
  /
 
  &meshlist
-        stretched_grid=.true.
-        stretched_symm_dim(1)=.true.
-        stretched_symm_dim(2)=.true.
+        stretch_dim(1)='symm'
+        stretch_dim(2)='symm'
         nstretchedblocks_baselevel(1)=6
         nstretchedblocks_baselevel(2)=10
         qstretch_baselevel(1)=1.03

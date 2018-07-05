@@ -93,17 +93,22 @@ module mod_global_parameters
   !> Number of ghost cells surrounding a grid
   integer :: nghostcells
 
-  !> Switch to use stretched grid
-  logical :: stretched_grid
+  integer, parameter :: stretch_none = 0 !< No stretching
+  integer, parameter :: stretch_uni  = 1 !< Unidirectional stretching from a side
+  integer, parameter :: stretch_symm = 2 !< Symmetric stretching around the center
+
+  !> If true, adjust mod_geometry routines to account for grid stretching (but
+  !> the flux computation will not)
+  logical :: stretch_uncentered
   !> Stretched Cartesian geometry or not
   logical :: slab_stretched
-  !> Switch to set stretched dimension
+  !> True if a dimension is stretched
   logical :: stretched_dim(ndim)
-  !> Switch to set symmetrically stretched dimension
-  logical :: stretched_symm_dim(ndim)
+  !> What kind of stretching is used per dimension
+  integer :: stretch_type(ndim)
   !> stretch factor between cells at AMR level 1, per dimension
   double precision ::  qstretch_baselevel(ndim)
-  !> (even) number of (symmetrically) stretched 
+  !> (even) number of (symmetrically) stretched
   !> blocks at AMR level 1, per dimension
   integer ::  nstretchedblocks_baselevel(ndim)
   !> (even) number of (symmetrically) stretched blocks per level and dimension

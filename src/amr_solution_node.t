@@ -167,8 +167,8 @@ if (.not.slab) then
   end do\}
 endif
 
-if(stretched_grid) then
-  {if(stretched_dim(^D))then
+if(any(stretched_dim)) then
+  {if(stretch_type(^D) == stretch_uni)then
     imin=(ig^D-1)*block_nx^D
     imax=ig^D*block_nx^D
     rnode(rpxmin^D_,igrid)=xprobmin^D+dxfirst_1mq(level,^D) &
@@ -238,7 +238,7 @@ if(stretched_grid) then
         call mpistop("no such case")
     end select
    endif\}
-  {if(stretched_symm_dim(^D))then
+  {if(stretch_type(^D) == stretch_symm)then
     ! here we distinguish three kinds of grid blocks
     ! depending on their ig-index, set per level 
     !      the first n_stretchedblocks/2  will stretch to the left

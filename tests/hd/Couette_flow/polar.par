@@ -46,8 +46,7 @@
    block_nx2        = 8
    domain_nx1         = 192
    domain_nx2         = 16
-   stretched_grid   = T
-   stretched_dim(1) = T
+   stretched_dim(1)=.true.
    xprobmin1       = 1.0d-1
    xprobmax1       = 20.0d0
    xprobmin2       = 0.0d0

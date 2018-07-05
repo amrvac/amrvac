@@ -109,6 +109,7 @@ contains
          typeboundary_min^D, typeboundary_max^D
     character(len=std_len), allocatable :: limiter(:)
     character(len=std_len), allocatable :: gradient_limiter(:)
+    character(len=name_len) :: stretch_dim(ndim)
 
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
@@ -154,7 +155,7 @@ contains
 
     namelist /meshlist/ refine_max_level,nbufferx^D,refine_threshold,&
          derefine_ratio, refine_criterion, &
-         stretched_grid, stretched_dim, stretched_symm_dim, &
+         stretch_dim, stretch_uncentered, &
          qstretch_baselevel, nstretchedblocks_baselevel, &
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight, prolongprimitive,coarsenprimitive, &
@@ -259,10 +260,9 @@ contains
     itfixgrid                   = biginteger
     ditregrid                   = 1
 
-    ! using stretched grid: not by default
-    stretched_grid = .false.
-    stretched_dim(1:ndim)=.false.
-    stretched_symm_dim(1:ndim)=.false.
+    ! Grid stretching defaults
+    stretch_uncentered = .true.
+    stretch_dim(1:ndim) = undefined
     qstretch_baselevel(1:ndim) = bigdouble
     nstretchedblocks_baselevel(1:ndim)=0
 
@@ -457,11 +457,17 @@ contains
       restart_from_file=restart_from_file_arg
 
     if (restart_from_file /= undefined) then
-      ! Parse index in restart_from_file string (e.g. basename0000.dat)
-      i = len_trim(restart_from_file) - 7
-      read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
-      if (io_state == 0 .and. snapshotnext==-1) snapshotnext = snapshotini + 1
-      if(reset_time .or. reset_it) snapshotnext=0
+      ! Only modify snapshotnext if the user hasn't specified it
+      if (snapshotnext == -1) then
+        snapshotnext = 0
+
+        ! Try to parse index in restart_from_file string (e.g. basename0000.dat)
+        i = len_trim(restart_from_file) - 7
+        read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
+        if (io_state == 0) snapshotnext = snapshotini + 1
+
+        if (reset_time .or. reset_it) snapshotnext = 0
+      end if
     else
       snapshotnext=0
       if (firstprocess) &
@@ -578,6 +584,24 @@ contains
        call mpistop("Unknown time_integrator")
     end select
 
+    do i = 1, ndim
+       select case (stretch_dim(i))
+       case (undefined, 'none')
+          stretch_type(i) = stretch_none
+          stretched_dim(i) = .false.
+       case ('uni')
+          stretch_type(i) = stretch_uni
+          stretched_dim(i) = .true.
+       case ('symm', 'symmetric')
+          stretch_type(i) = stretch_symm
+          stretched_dim(i) = .true.
+       case default
+          stretch_type(i) = stretch_none
+          stretched_dim(i) = .false.
+          if (mype == 0) print *, 'Got stretch_type = ', stretch_type(i)
+          call mpistop('Unknown stretch type')
+       end select
+    end do
 
     ! Harmonize the parameters for dimensional splitting and source splitting
     if(typedimsplit   =='default'.and.     dimsplit)   typedimsplit='xyyx'
@@ -594,7 +618,7 @@ contains
     end if
 
     if(typeaxial=="slab") then
-      if(stretched_grid) then
+      if(any(stretched_dim)) then
         typeaxial="slabstretch"
         slab=.false.
         slab_stretched=.true.
@@ -765,19 +789,15 @@ contains
        write(unitterm,*)'Error: refine_max_level',refine_max_level,'>nlevelshi ',nlevelshi
        call mpistop("Reset nlevelshi and recompile!")
     endif
- 
-    if(stretched_grid) then
-       ! if no stretched dimension is set in par file, choose the first dimension 
-       if(.not.any(stretched_dim(:)) .and. .not.any(stretched_symm_dim(:))) then
-         stretched_dim(1)=.true.
-       end if
+
+    if (any(stretched_dim)) then
        allocate(qstretch(0:nlevelshi,1:ndim),dxfirst(0:nlevelshi,1:ndim),&
              dxfirst_1mq(0:nlevelshi,1:ndim),dxmid(0:nlevelshi,1:ndim)) 
        allocate(nstretchedblocks(1:nlevelshi,1:ndim))
        qstretch(0:nlevelshi,1:ndim)=0.0d0
        dxfirst(0:nlevelshi,1:ndim)=0.0d0
        nstretchedblocks(1:nlevelshi,1:ndim)=0
-       {if(stretched_dim(^D)) then
+       {if (stretch_type(^D) == stretch_uni) then
            ! first some sanity checks 
            if(qstretch_baselevel(^D)<1.0d0.or.qstretch_baselevel(^D)==bigdouble) then 
              if(mype==0) then
@@ -808,13 +828,13 @@ contains
            endif
         endif \}
         if(mype==0) then
-           {if(stretched_dim(^D)) then
+           {if(stretch_type(^D) == stretch_uni) then
               write(*,*) 'Stretched dimension ', ^D
               write(*,*) 'Using stretched grid with qs=',qstretch(0:refine_max_level,^D)
               write(*,*) '        and first cell sizes=',dxfirst(0:refine_max_level,^D)
            endif\}
         end if
-       {if(stretched_symm_dim(^D)) then
+       {if(stretch_type(^D) == stretch_symm) then
            if(mype==0) then
                write(*,*) 'will apply symmetric stretch in dimension', ^D
            endif
@@ -993,6 +1013,7 @@ contains
     use mod_global_parameters
     use mod_particles, only: write_particles_snapshot
     use mod_slice, only: write_slice
+    use mod_collapse, only: write_collapsed
     integer:: ifile
 
     select case (ifile)
