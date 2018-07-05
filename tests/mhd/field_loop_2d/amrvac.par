@@ -45,7 +45,7 @@
  /
 
  &paramlist
-        courantpar    = 0.7d0
+        courantpar = 0.50d0
  /
 
  &mhd_list

@@ -12,6 +12,9 @@ module mod_usr
   ! Radius of field loop
   double precision, parameter :: R0 = 0.3d0
 
+  ! Initialize as numerical gradient from a vector potential
+  logical, parameter :: init_from_vectorpot = .true.
+
   integer :: i_divb_2, i_divb_4, i_B_err
 
 contains
@@ -41,7 +44,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision                :: v0(ndim)
-    double precision                :: bfield(ixO^S, ndir)
+    double precision                :: bfield(ixI^S, ndir)
 
     select case (iprob)
     case (1)
@@ -56,8 +59,10 @@ contains
     w(ixO^S,mom(1)) = v0(1) ! Vx
     w(ixO^S,mom(2)) = v0(2) ! Vy
     w(ixO^S,e_)     = 1.0d0 ! Pressure
+
     call bfield_solution(ixI^L, ixO^L, x, v0, 0.0d0, bfield)
-    w(ixO^S, mag(:)) = bfield
+
+    w(ixO^S, mag(:)) = bfield(ixO^S, :)
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
@@ -65,7 +70,36 @@ contains
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(in)    :: v(ndim), t
-    double precision, intent(inout) :: bfield(ixO^S,ndir)
+    double precision, intent(inout) :: bfield(ixI^S,ndir)
+    double precision                :: x1(ixO^S), x2(ixO^S)
+    double precision                :: Az(ixI^S)
+
+    if (init_from_vectorpot) then
+       call vectorpot_z(ixI^L, ixI^L, x, v, t, Az)
+       call gradient(Az, ixI^L, ixO^L, 2, bfield(ixI^S, 1))
+       call gradient(Az, ixI^L, ixO^L, 1, bfield(ixI^S, 2))
+       bfield(ixO^S, 2) = -bfield(ixO^S, 2)
+    else
+       ! Determine coordinates modulo domain size
+       x1 = x(ixO^S,1) - v(1) * t - xprobmin1
+       x1 = xprobmin1 + modulo(x1, xprobmax1-xprobmin1)
+       x2 = x(ixO^S,2) - v(2) * t - xprobmin2
+       x2 = xprobmin2 + modulo(x2, xprobmax2-xprobmin2)
+      where (x1**2 + x2**2 < R0**2)
+        bfield(ixO^S, 1) = -A0 * x2/sqrt(x1**2 + x2**2)
+        bfield(ixO^S, 2) = A0 * x1/sqrt(x1**2 + x2**2)
+      elsewhere
+        bfield(ixO^S, 1) = 0.0d0
+        bfield(ixO^S, 2) = 0.0d0
+      end where
+    end if
+  end subroutine bfield_solution
+
+  subroutine vectorpot_z(ixI^L, ixO^L, x, v, t, Az)
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(in)    :: v(ndim), t
+    double precision, intent(inout) :: Az(ixO^S)
     double precision                :: x1(ixO^S), x2(ixO^S)
 
     ! Determine coordinates modulo domain size
@@ -75,14 +109,11 @@ contains
     x2 = xprobmin2 + modulo(x2, xprobmax2-xprobmin2)
 
     where (x1**2 + x2**2 < R0**2)
-       bfield(ixO^S, 1) = A0 * x2/sqrt(x1**2 + x2**2)
-       bfield(ixO^S, 2) = -A0 * x1/sqrt(x1**2 + x2**2)
+       Az(ixO^S) = A0 * (R0 - sqrt(x1**2 + x2**2))
     elsewhere
-       bfield(ixO^S, 1) = 0.0d0
-       bfield(ixO^S, 2) = 0.0d0
+       Az(ixO^S) = 0.0d0
     end where
-
-  end subroutine bfield_solution
+  end subroutine vectorpot_z
 
   subroutine set_output_vars(ixI^L,ixO^L,qt,w,x)
     use mod_global_parameters
@@ -92,7 +123,7 @@ contains
     double precision, intent(inout) :: w(ixI^S,nw)
     double precision                :: divb(ixI^S)
     double precision                :: v0(ndim)
-    double precision                :: bfield(ixO^S, ndir)
+    double precision                :: bfield(ixI^S, ndir)
 
     select case (iprob)
     case (1)
