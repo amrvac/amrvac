@@ -529,12 +529,8 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: csound2(ixI^S)
 
-    if(hd_energy) then
-      call hd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
-      csound2(ixO^S)=hd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
-    else
-      csound2(ixO^S)=hd_gamma*hd_adiab*w(ixO^S,rho_)**(hd_gamma-one)
-    end if
+    call hd_get_pthermal(w, x, ixI^L, ixO^L, csound2)
+    csound2(ixO^S) = hd_gamma * csound2(ixO^S) / w(ixO^S, rho_)
   end subroutine hd_get_csound2
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
