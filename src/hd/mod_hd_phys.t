@@ -474,13 +474,8 @@ contains
       tmp3(ixO^S)=1.d0/(sqrt(wLp(ixO^S,rho_))+sqrt(wRp(ixO^S,rho_)))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
 
-      if(hd_energy) then
-        csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
-        csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
-      else
-        csoundL(ixO^S)=hd_gamma*hd_adiab*wLp(ixO^S,rho_)**(hd_gamma-one)
-        csoundR(ixO^S)=hd_gamma*hd_adiab*wRp(ixO^S,rho_)**(hd_gamma-one)
-      end if
+      call hd_get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
+      call hd_get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
 
       dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
            tmp3(ixO^S) + 0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2 * &
