@@ -477,7 +477,7 @@ contains
         end do
 
         call get_3d_dragforce(ixI^L, ixO^L, wCT, x, fdrag, ptherm, vgas)
-        fdrag = fdrag * qdt
+        fdrag(ixO^S, 1:ndir, 1:dust_n_species) = fdrag(ixO^S, 1:ndir, 1:dust_n_species) * qdt
 
         do idir = 1, ndir
 
