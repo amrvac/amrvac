@@ -689,15 +689,15 @@ contains
           end if
           if (phi_ > 0) then
              source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
-             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
+             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
              ! s[mphi]=(-mphi*mr/rho)/radius
              if(.not. angmomfix) then
                 source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, 1)
+                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
              end if
           else
              ! s[mr]=2pthermal/radius
-             w(ixO^S,mr_) = w(ixO^S,mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
+             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
           end if
        end do
     case ("spherical")
