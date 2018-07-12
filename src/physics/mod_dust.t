@@ -460,8 +460,8 @@ contains
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
 
-    double precision :: ptherm(ixI^S), vgas(ixI^S, ndir)
-    double precision :: fdrag(ixI^S, ndir, dust_n_species)
+    double precision :: ptherm(ixI^S), vgas(ixI^S, 1:ndir)
+    double precision :: fdrag(ixI^S, 1:ndir, 1:dust_n_species)
     integer          :: n, idir
 
     select case( TRIM(dust_method) )
