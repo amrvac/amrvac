@@ -45,6 +45,9 @@ module mod_dust
   !> TODO: 1. Introduce this generically in advance, 2: document
   logical :: dust_source_split = .false.
 
+  !> This can be turned off for testing purposes
+  logical :: dust_backreaction = .true.
+
   !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear',or 'none'.
   character(len=std_len) :: dust_method = 'Kwok'
 
@@ -114,7 +117,7 @@ contains
 
     namelist /dust_list/ dust_n_species, dust_min_rho, gas_mu, dust_method, &
          dust_small_to_zero, dust_source_split, dust_temperature, &
-         dust_temperature_type
+         dust_temperature_type, dust_backreaction
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -482,8 +485,10 @@ contains
         do idir = 1, ndir
 
           do n = 1, dust_n_species
-            w(ixO^S, gas_mom(idir))  = w(ixO^S, gas_mom(idir)) + &
-                 fdrag(ixO^S, idir, n)
+            if (dust_backreaction) then
+               w(ixO^S, gas_mom(idir))  = w(ixO^S, gas_mom(idir)) + &
+                    fdrag(ixO^S, idir, n)
+            end if
 
             if (gas_e_ > 0) then
               w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + (wCT(ixO^S, gas_mom(idir)) / &
