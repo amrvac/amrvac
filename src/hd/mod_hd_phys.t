@@ -671,14 +671,15 @@ contains
     mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
 
     if (hd_dust) n_fluids = 1 + dust_n_species
+
     select case (typeaxial)
     case ("cylindrical")
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
           if (ifluid .eq. 0) then !gas
              irho  = rho_
-             mr_   = mom(1)
-             mphi_ = mom(1) - 1 + phi_
+             mr_   = mom(r_)
+             mphi_ = mom(phi_)
              call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
           else !dust
              irho  = dust_rho(ifluid)
@@ -690,8 +691,6 @@ contains
              source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
              ! s[mphi]=(-mphi*mr/rho)/radius
-             ! Ileyk : beware the index permutation : mphi=2 if -phi=2 (2.5D
-             ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
              if(.not. angmomfix) then
                 source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
                 w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, 1)
