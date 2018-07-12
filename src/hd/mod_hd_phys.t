@@ -705,7 +705,9 @@ contains
           end if
        end do
     case ("spherical")
-       ! Clement : case (hd_dust == .true.) not implemented yet
+       if (hd_dust) then
+          call mpistop("Dust geom source terms not implemented yet with spherical geometries")
+       end if
        mr_   = mom(r_)
        mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
