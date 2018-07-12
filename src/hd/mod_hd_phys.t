@@ -674,7 +674,7 @@ contains
     case ("cylindrical")
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
-          if (ifluid .eq. 0) then
+          if (ifluid == 0) then
              ! gas
              irho  = rho_
              mr_   = mom(r_)
