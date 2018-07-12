@@ -460,8 +460,8 @@ contains
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
 
-    double precision :: ptherm(ixI^S), vgas(ixI^S, ndir)
-    double precision :: fdrag(ixI^S, ndir, dust_n_species)
+    double precision :: ptherm(ixI^S), vgas(ixI^S, 1:ndir)
+    double precision :: fdrag(ixI^S, 1:ndir, 1:dust_n_species)
     integer          :: n, idir
 
     select case( TRIM(dust_method) )
@@ -477,7 +477,7 @@ contains
         end do
 
         call get_3d_dragforce(ixI^L, ixO^L, wCT, x, fdrag, ptherm, vgas)
-        fdrag = fdrag * qdt
+        fdrag(ixO^S, 1:ndir, 1:dust_n_species) = fdrag(ixO^S, 1:ndir, 1:dust_n_species) * qdt
 
         do idir = 1, ndir
 
