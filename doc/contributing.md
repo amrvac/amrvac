@@ -31,6 +31,67 @@ threshold. Alternative, you can run tests for individual physics modules:
     ...
 
 
+## Adding tests {#contrib-adding-tests}
+
+To add new tests, you need:
+
+* A `mod_usr.t` or `mod_usr.f` file
+* A suitable `.par` file so that your simulation runs quickly (in say 1 to 10 seconds)
+* A file `test.make` following the template below
+
+These files should be place in the corresponding physics folder, e.g. `tests/hd`
+for hydro problems. Assuming your `.par` file is called `my_test.par`, it should contain the following options in its filelist (see @ref par.md):
+
+    base_filename='my_test'
+    typefilelog='regression_test'
+
+You can then use the following template for the `test.make` file:
+
+    # Template for test.make files
+
+    # Name of .par file you want to use
+    PAR_FILE := my_test.par
+
+    # Base file name as set in the .par file
+    BASE_NAME := my_test
+
+    # Change to -d=2 or -d=3 for 2D/3D problems
+    SETUP_FLAGS := -d=1
+
+    # This directory contains combinations of numerical schemes that you can use
+    SCHEME_DIR := ../../schemes
+
+    # Which of the schemes you want to use for your test
+    SCHEMES := 2step_tvdlf_mm 3step_hll_cada 3step_hll_vl 3step_hll_ppm
+
+    # Define the targets for the makefile, which are the log files produced by your
+    # program.
+    TESTS := $(SCHEMES:%=$(BASE_NAME)_%.log)
+
+    # Include rules on how to compile and run the tests
+    include ../../test_rules.make
+
+    # Generate dependency rules for the tests, which are used to run them
+    $(foreach s, $(SCHEMES),\
+        $(eval $(s:%=$(BASE_NAME)_%.log): $(PAR_FILE) $(SCHEME_DIR)/$(s).par))
+
+Of course, you can change `my_test` in the above files to something more
+meaningful, e.g. `hd_dust_2d`. Now you can compile and run your tests with:
+
+    make -f test.make
+
+They should all fail the first time, but there should now be log files of the
+"regression_test" type, which contain the volume averages of the variables and
+the variables squared over time. If you are happy with the results, store them
+in a folder called `correct_output`:
+
+    mkdir correct_output
+    cp *.log correct_output/
+
+Now `make -f test.make` should pass. You can then add your test folder to the
+corresponding directory in `tests/Makefile` file, so that the test is
+automatically performed. Finally, commit and push your changes.
+
 # Style guide {#contrib-style}
 
 To steadily improve MPI-AMRVAC, it would be good if new contributions take into
