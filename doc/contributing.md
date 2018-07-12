@@ -6,10 +6,38 @@
 
 This page describes how you can contribute code and documentation to MPI-AMRVAC.
 
+# Testing your changes {#contrib-testing}
+
+Having made some changes, the first thing you can check is whether the AMRVAC library still compiles. To compile the 1D, 2D and 3D version of the library in parallel with 8 jobs, you can run:
+
+    cd lib
+    make -j 8
+
+If you have added new files, you might have to update dependencies in the makefiles, see @ref addmodule.md.
+
+It is important test your changes by running MPI-AMRVAC's test suite. This is done as
+follows:
+
+    cd tests
+    make all
+
+This will run programs in 1D, 2D and 3D and compare their output to previously
+stored results, and report errors when differences are larger than some
+threshold. Alternative, you can run tests for individual physics modules:
+
+    cd tests
+    make rho
+    make hd
+    ...
+
+
 # Style guide {#contrib-style}
 
-To steadily improve MPI-AMRVAC, we ask that new code contributions take into
-account our [style guide](code_style_guide.md).
+To steadily improve MPI-AMRVAC, it would be good if new contributions take into
+account our [style guide](code_style_guide.md). Most importantly:
+
+* Choose meaningful names for variables, functions etc.
+* For non-trivial blocks of code or routines: describe what they are supposed to do
 
 # Working with git {#contrib-git}
 
