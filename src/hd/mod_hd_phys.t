@@ -668,7 +668,6 @@ contains
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
     integer :: irho, ifluid, n_fluids = 1
-    mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
 
     if (hd_dust) n_fluids = 1 + dust_n_species
 
@@ -676,12 +675,14 @@ contains
     case ("cylindrical")
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
-          if (ifluid .eq. 0) then !gas
+          if (ifluid .eq. 0) then
+             ! gas
              irho  = rho_
              mr_   = mom(r_)
              mphi_ = mom(phi_)
              call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
-          else !dust
+          else
+             ! dust : no pressure
              irho  = dust_rho(ifluid)
              mr_   = dust_mom(ifluid, r_)
              mphi_ = dust_mom(ifluid, phi_)
@@ -701,6 +702,9 @@ contains
           end if
        end do
     case ("spherical")
+       ! Clement : case (hd_dust == .true.) not implemented yet
+       mr_   = mom(r_)
+       mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
        call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp1)
