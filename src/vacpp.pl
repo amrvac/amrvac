@@ -550,8 +550,8 @@ sub format90 {
    return($line) if length($line)<=$maxlen;
 
    if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
-        $line =~ /\/\/ *& *$/) {
-       # Don't break OpenMP, print and //&
+        $line =~ /\/\/ *& *$/ || $line =~ /error stop/) {
+       # Don't break lines with OpenMP, print, //&, error stop
        return ($line);
    }
 
