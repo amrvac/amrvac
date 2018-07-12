@@ -652,7 +652,7 @@ contains
   !> not ndim. Eg, they are the same in 2.5D and in 3D, for any geometry.
   !>
   !> Ileyk : to do :
-  !>     - address the source term for the dust
+  !>     - address the source term for the dust in case (typeaxial == 'spherical')
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
