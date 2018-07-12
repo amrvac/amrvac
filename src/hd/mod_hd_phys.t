@@ -707,32 +707,36 @@ contains
        mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
-       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp1)
-       tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
-            *(block%surfaceC(ixO^S,1)-block%surfaceC(h1x^S,1)) &
+       call hd_get_pthermal(wCT, x, ixI^L, ixO^L, tmp1)
+       tmp(ixO^S) = tmp1(ixO^S) * x(ixO^S, 1) &
+            *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
-       if(ndir>1) then
-         do idir=2,ndir
-           tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2/wCT(ixO^S,rho_)
+       if (ndir > 1) then
+         do idir = 2, ndir
+           tmp(ixO^S) = tmp(ixO^S) + wCT(ixO^S, mom(idir))**2 / wCT(ixO^S, rho_)
          end do
        end if
-       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+       w(ixO^S, mr_) = w(ixO^S, mr_) + qdt*tmp(ixO^S) / x(ixO^S, 1)
 
        {^NOONED
        ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
-       tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
-            *(block%surfaceC(ixO^S,2)-block%surfaceC(h2x^S,2)) &
-            /block%dvolume(ixO^S)
-       if(ndir==3) tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_))/tan(x(ixO^S,2))
-       if (.not. angmomfix) tmp(ixO^S)=tmp(ixO^S)-(wCT(ixO^S,mom(2))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)
-       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       tmp(ixO^S) = tmp1(ixO^S) * x(ixO^S, 1) &
+            * (block%surfaceC(ixO^S, 2)-block%surfaceC(h2x^S, 2)) &
+            / block%dvolume(ixO^S)
+       if (ndir == 3) then
+          tmp(ixO^S) = tmp(ixO^S) + (wCT(ixO^S, mom(3))**2 / wCT(ixO^S, rho_)) / tan(x(ixO^S, 2))
+       end if
+       if (.not. angmomfix) then
+          tmp(ixO^S) = tmp(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
+       end if
+       w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * tmp(ixO^S) / x(ixO^S, 1)
 
-       if(ndir==3) then
+       if (ndir == 3) then
          ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         if(.not. angmomfix) then
-           tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)&
-                      -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3)))/wCT(ixO^S,rho_)/tan(x(ixO^S,2))
-           w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+         if (.not. angmomfix) then
+           tmp(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
+                      - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
+           w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * tmp(ixO^S) / x(ixO^S, 1)
          end if
        end if
        }
