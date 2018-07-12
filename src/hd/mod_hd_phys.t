@@ -666,9 +666,13 @@ contains
     double precision :: pth(ixI^S), source(ixI^S)
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
-    integer :: irho, ifluid, n_fluids = 1
+    integer :: irho, ifluid, n_fluids
 
-    if (hd_dust) n_fluids = 1 + dust_n_species
+    if (hd_dust) then
+       n_fluids = 1 + dust_n_species
+    else
+       n_fluids = 1
+    end if
 
     select case (typeaxial)
     case ("cylindrical")
