@@ -656,7 +656,7 @@ contains
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
-    use mod_dust, only: dust_mom, dust_rho
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
@@ -670,6 +670,7 @@ contains
     integer :: irho, ifluid, n_fluids = 1
     mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
 
+    if (hd_dust) n_fluids = 1 + dust_n_species
     select case (typeaxial)
     case ("cylindrical")
        do ifluid = 0, n_fluids-1
@@ -679,7 +680,7 @@ contains
              mr_   = mom(1)
              mphi_ = mom(1) - 1 + phi_
              call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
-          else
+          else !dust
              irho  = dust_rho(ifluid)
              mr_   = dust_mom(ifluid, r_)
              mphi_ = dust_mom(ifluid, phi_)
