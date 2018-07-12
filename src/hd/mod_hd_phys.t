@@ -673,19 +673,19 @@ contains
     case ("cylindrical")
        ! s[mr]=(pthermal+mphi**2/rho)/radius
        call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-       if(phi_>0) then
-         tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
-         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+       if (phi_ > 0) then
+         tmp(ixO^S) = tmp(ixO^S) + wCT(ixO^S,mphi_)**2 / wCT(ixO^S,rho_)
+         w(ixO^S,mr_) = w(ixO^S,mr_) + qdt*tmp(ixO^S) / x(ixO^S,1)
          ! s[mphi]=(-mphi*mr/rho)/radius
          ! Ileyk : beware the index permutation : mphi=2 if -phi=2 (2.5D
          ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
          if(.not. angmomfix) then
-           tmp(ixO^S)=-wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_)
-           w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+           tmp(ixO^S) = -wCT(ixO^S,mphi_) * wCT(ixO^S,mr_) / wCT(ixO^S,rho_)
+           w(ixO^S,mphi_) = w(ixO^S,mphi_) + qdt*tmp(ixO^S) / x(ixO^S,1)
          end if
        else
          ! s[mr]=2pthermal/radius
-         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+         w(ixO^S,mr_) = w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
        end if
     case ("spherical")
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
