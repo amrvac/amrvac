@@ -656,7 +656,7 @@ contains
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
-
+    use mod_dust, only: dust_mom, dust_rho
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
@@ -667,27 +667,39 @@ contains
     double precision :: source(ixI^S)
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
-
+    integer :: irho, ifluid, n_fluids = 1
     mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
 
     select case (typeaxial)
     case ("cylindrical")
-       ! s[mr]=(pthermal+mphi**2/rho)/radius
-       call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
-       if (phi_ > 0) then
-         source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, rho_)
-         w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
-         ! s[mphi]=(-mphi*mr/rho)/radius
-         ! Ileyk : beware the index permutation : mphi=2 if -phi=2 (2.5D
-         ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
-         if(.not. angmomfix) then
-           source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, rho_)
-           w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, 1)
-         end if
-       else
-         ! s[mr]=2pthermal/radius
-         w(ixO^S,mr_) = w(ixO^S,mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
-       end if
+       do ifluid = 0, n_fluids-1
+          ! s[mr]=(pthermal+mphi**2/rho)/radius
+          if (ifluid .eq. 0) then !gas
+             irho  = rho_
+             mr_   = mom(1)
+             mphi_ = mom(1) - 1 + phi_
+             call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
+          else
+             irho  = dust_rho(ifluid)
+             mr_   = dust_mom(ifluid, r_)
+             mphi_ = dust_mom(ifluid, phi_)
+             source(ixI^S) = zero
+          end if
+          if (phi_ > 0) then
+             source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
+             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
+             ! s[mphi]=(-mphi*mr/rho)/radius
+             ! Ileyk : beware the index permutation : mphi=2 if -phi=2 (2.5D
+             ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
+             if(.not. angmomfix) then
+                source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
+                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, 1)
+             end if
+          else
+             ! s[mr]=2pthermal/radius
+             w(ixO^S,mr_) = w(ixO^S,mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
+          end if
+       end do
     case ("spherical")
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
