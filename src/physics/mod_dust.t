@@ -472,7 +472,7 @@ contains
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
 
-    double precision :: ptherm(ixI^S), vgas(ixI^S, 1:ndir), gravity_field(ixI^S, 1:ndir)
+    double precision :: ptherm(ixI^S), vgas(ixI^S, 1:ndir), gravity_field(ixI^S, 1:ndim)
     double precision :: fdrag(ixI^S, 1:ndir, 1:dust_n_species)
     integer          :: n, idir, idim
 
