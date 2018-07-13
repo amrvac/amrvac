@@ -73,6 +73,8 @@ contains
 
   subroutine dust_init(g_rho, g_mom, g_energy)
     use mod_global_parameters
+    use mod_gravity, only: gravity_init
+
     integer, intent(in) :: g_rho
     integer, intent(in) :: g_mom(ndir)
     integer, intent(in) :: g_energy ! Negative value if not present
