@@ -656,14 +656,14 @@ contains
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
-    use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero, dust_min_rho
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
-    double precision :: pth(ixI^S), source(ixI^S)
+    double precision :: pth(ixI^S), source(ixI^S), minrho
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
     integer :: irho, ifluid, n_fluids
@@ -684,20 +684,26 @@ contains
              mr_   = mom(r_)
              mphi_ = mom(phi_)
              call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
+             minrho = 0.0d0
           else
              ! dust : no pressure
              irho  = dust_rho(ifluid)
              mr_   = dust_mom(r_, ifluid)
              mphi_ = dust_mom(phi_, ifluid)
              source(ixI^S) = zero
+             minrho = dust_min_rho
           end if
           if (phi_ > 0) then
-             source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
-             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+             where (wCT(ixO^S, irho) > minrho)
+                source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
+                w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+             end where
              ! s[mphi]=(-mphi*mr/rho)/radius
              if(.not. angmomfix) then
-                source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+                where (wCT(ixO^S, irho) > minrho)
+                   source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
+                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+                end where
              end if
           else
              ! s[mr]=2pthermal/radius

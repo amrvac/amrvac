@@ -40,7 +40,7 @@ module mod_dust
   logical, public, protected :: dust_small_to_zero = .false.
 
   !> Minimum dust density
-  double precision :: dust_min_rho = -1.0d0
+  double precision, public, protected :: dust_min_rho = -1.0d0
 
   !> TODO: 1. Introduce this generically in advance, 2: document
   logical :: dust_source_split = .false.
