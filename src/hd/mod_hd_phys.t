@@ -687,8 +687,8 @@ contains
           else
              ! dust : no pressure
              irho  = dust_rho(ifluid)
-             mr_   = dust_mom(ifluid, r_)
-             mphi_ = dust_mom(ifluid, phi_)
+             mr_   = dust_mom(r_, ifluid)
+             mphi_ = dust_mom(phi_, ifluid)
              source(ixI^S) = zero
           end if
           if (phi_ > 0) then
