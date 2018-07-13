@@ -4,6 +4,8 @@ doc/html/*
 *.vti
 *.out
 *.log
+*.mod
+*.o
 *amrvac
 *.amrvac.log.shfp.*
 *F90sources
@@ -19,3 +21,7 @@ doc/html/*
 /lib/1d_*
 /lib/2d_*
 /lib/3d_*
+*~
+*\#
+*__pycache__/
+*.pyc
