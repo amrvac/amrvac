@@ -755,9 +755,10 @@ contains
   subroutine hd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
-    use mod_dust, only: dust_add_source
+    use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
     use mod_viscosity, only: viscosity_add_source
-    use mod_gravity, only: gravity_add_source
+    use mod_usr_methods, only: usr_gravity
+    use mod_gravity, only: gravity_add_source, grav_split
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -765,6 +766,9 @@ contains
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
+
+    double precision :: gravity_field(ixI^S, 1:ndim)
+    integer :: idust, idim
 
     if(hd_dust) then
       call dust_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
@@ -780,9 +784,21 @@ contains
            hd_energy,qsourcesplit,active)
     end if
 
-    if(hd_gravity) then
+    if (hd_gravity) then
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
            hd_energy,qsourcesplit,active)
+
+      if (hd_dust .and. qsourcesplit .eqv. grav_split) then
+         active = .true.
+
+         call usr_gravity(ixI^L, ixO^L, wCT, x, gravity_field)
+         do idust = 1, dust_n_species
+            do idim = 1, ndim
+               w(ixO^S, dust_mom(idim, idust)) = w(ixO^S, dust_mom(idim, idust)) &
+                    + qdt * gravity_field(ixO^S, idim) * wCT(ixO^S, dust_rho(idust))
+            end do
+         end do
+      end if
     end if
 
   end subroutine hd_add_source
