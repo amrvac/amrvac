@@ -48,6 +48,9 @@ module mod_dust
   !> This can be turned off for testing purposes
   logical :: dust_backreaction = .true.
 
+  !> Add source terms from gravity field to dust's equation of motion
+  logical :: dust_gravity = .false.
+
   !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear',or 'none'.
   character(len=std_len) :: dust_method = 'Kwok'
 
@@ -73,6 +76,8 @@ contains
 
   subroutine dust_init(g_rho, g_mom, g_energy)
     use mod_global_parameters
+    use mod_gravity, only: gravity_init
+
     integer, intent(in) :: g_rho
     integer, intent(in) :: g_mom(ndir)
     integer, intent(in) :: g_energy ! Negative value if not present
@@ -107,6 +112,9 @@ contains
       end do
     end do
 
+    ! Initialize gravity module
+    if (dust_gravity) call gravity_init()
+
   end subroutine dust_init
 
   !> Read this module"s parameters from a file
@@ -117,7 +125,7 @@ contains
 
     namelist /dust_list/ dust_n_species, dust_min_rho, gas_mu, dust_method, &
          dust_small_to_zero, dust_source_split, dust_temperature, &
-         dust_temperature_type, dust_backreaction
+         dust_temperature_type, dust_backreaction, dust_gravity
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -455,6 +463,7 @@ contains
   !> w[iw]= w[iw]+qdt*S[wCT,  x] where S is the source based on wCT within ixO
   subroutine dust_add_source(qdt, ixI^L, ixO^L, wCT,w, x, qsourcesplit, active)
     use mod_global_parameters
+    use mod_usr_methods, only: usr_gravity
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -463,9 +472,9 @@ contains
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
 
-    double precision :: ptherm(ixI^S), vgas(ixI^S, 1:ndir)
+    double precision :: ptherm(ixI^S), vgas(ixI^S, 1:ndir), gravity_field(ixI^S, 1:ndir)
     double precision :: fdrag(ixI^S, 1:ndir, 1:dust_n_species)
-    integer          :: n, idir
+    integer          :: n, idir, idim
 
     select case( TRIM(dust_method) )
     case( 'none' )
@@ -505,6 +514,23 @@ contains
         end if
       endif
     end select
+
+    if (dust_gravity) then
+       if (.not. associated(usr_gravity)) then
+          call mpistop("Error : using dust_gravity without a gravity field")
+       end if
+       if (qsourcesplit .eqv. grav_split) then
+          active = .true.
+
+          call usr_gravity(ixI^L, ixO^L, wCT, x, gravity_field)
+          do n = 1, dust_n_species
+             do idim = 1, ndim
+                w(ixO^S, dust_mom(idim, n)) = w(ixO^S, dust_mom(idim, n)) &
+                     + qdt * gravity_field(ixO^S, idim) * wCT(ixO^S, dust_rho(n))
+             end do
+          end do
+       end if
+    end if
 
   end subroutine dust_add_source
 
