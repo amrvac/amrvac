@@ -37,7 +37,7 @@ module mod_dust
   double precision :: dust_stellar_luminosity = -1.0d0
 
   !> Set small dust densities to zero to avoid numerical problems
-  logical :: dust_small_to_zero = .false.
+  logical, public, protected :: dust_small_to_zero = .false.
 
   !> Minimum dust density
   double precision :: dust_min_rho = -1.0d0
@@ -68,6 +68,7 @@ module mod_dust
   public :: dust_to_conserved
   public :: dust_to_primitive
   public :: dust_check_params
+  public :: set_dusttozero
 
 contains
 

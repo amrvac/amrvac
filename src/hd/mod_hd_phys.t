@@ -656,7 +656,7 @@ contains
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
-    use mod_dust, only: dust_n_species, dust_mom, dust_rho
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
@@ -747,6 +747,10 @@ contains
        }
     end select
 
+    if (hd_dust .and. dust_small_to_zero) then
+       call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
+    end if
+
     if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
   end subroutine hd_add_source_geom
@@ -759,6 +763,7 @@ contains
     use mod_viscosity, only: viscosity_add_source
     use mod_usr_methods, only: usr_gravity
     use mod_gravity, only: gravity_add_source, grav_split
+    use mod_dust, only: dust_small_to_zero, set_dusttozero
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -798,6 +803,9 @@ contains
                     + qdt * gravity_field(ixO^S, idim) * wCT(ixO^S, dust_rho(idust))
             end do
          end do
+         if (dust_small_to_zero) then
+            call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
+         end if
       end if
     end if
 
