@@ -262,7 +262,7 @@ contains
 
     if (.not. hd_energy) then
        if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
-       if (hd_adiab <= 0.0d0) call mpistop ("Error: hd_adiab <= 0")
+       if (hd_adiab < 0.0d0) call mpistop  ("Error: hd_adiab < 0")
        small_pressure= hd_adiab*small_density**hd_gamma
     else
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
