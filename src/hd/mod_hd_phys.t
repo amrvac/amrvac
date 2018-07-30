@@ -542,7 +542,7 @@ contains
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw)
+    double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: pth(ixI^S)
 
@@ -607,13 +607,13 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixO^S)
+    double precision                :: pth(ixI^S)
     integer                         :: idir, itr
 
     if (hd_energy) then
        pth(ixO^S) = w(ixO^S,p_)
     else
-       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+       call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     end if
 
     f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
