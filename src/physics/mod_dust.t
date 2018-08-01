@@ -26,6 +26,9 @@ module mod_dust
   !> Size of each dust species
   double precision, allocatable, public :: dust_size(:)
 
+  !> Stokes number of each dust species (for dust_method = Stokes)
+  double precision, allocatable, public :: dust_stokes(:)
+
   !> Internal density of each dust species
   double precision, allocatable, public :: dust_density(:)
 
@@ -48,7 +51,7 @@ module mod_dust
   !> This can be turned off for testing purposes
   logical :: dust_backreaction = .true.
 
-  !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear',or 'none'.
+  !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear', 'Stokes' or 'none'.
   character(len=std_len) :: dust_method = 'Kwok'
 
   !> Can be 'graphite' or 'silicate', affects the dust temperature
@@ -90,8 +93,10 @@ contains
 
     allocate(dust_size(dust_n_species))
     allocate(dust_density(dust_n_species))
+    allocate(dust_stokes(dust_n_species))
     dust_size(:) = -1.0d0
     dust_density(:) = -1.0d0
+    dust_stokes(:) = -1.d0
 
     allocate(dust_rho(dust_n_species))
     allocate(dust_mom(ndir, dust_n_species))
@@ -130,24 +135,34 @@ contains
   end subroutine dust_read_params
 
   subroutine dust_check_params()
-    if (gas_mu <= 0.0d0) call mpistop ("Dust error: gas_mu (molecular weight)"//&
-         "negative or not set")
-
-    if (dust_temperature_type == "constant") then
-       if (dust_temperature < 0.0d0) then
-          call mpistop("Dust error: dust_temperature < 0 or not set")
-       end if
-    else if (dust_temperature_type == "stellar") then
-       if (dust_stellar_luminosity < 0.0d0) then
-          call mpistop("Dust error: dust_stellar_luminosity < 0 or not set")
+    if (gas_mu <= 0.0d0 .and. (dust_method == 'Kwok' .or. dust_method == 'sticking')) &
+         call mpistop ("Dust error: gas_mu (molecular weight) negative or not set")
+    if (dust_method == 'sticking') then
+       if (dust_temperature_type == "constant") then
+          if (dust_temperature < 0.0d0) then
+             call mpistop("Dust error: dust_temperature < 0 or not set")
+          end if
+       else if (dust_temperature_type == "stellar") then
+          if (dust_stellar_luminosity < 0.0d0) then
+             call mpistop("Dust error: dust_stellar_luminosity < 0 or not set")
+          end if
        end if
     end if
 
-    if (any(dust_size < 0.0d0)) &
-         call mpistop("Dust error: any(dust_size < 0) or not set")
-
-    if (any(dust_density < 0.0d0)) &
-         call mpistop("Dust error: any(dust_density < 0) or not set")
+    if (dust_method == 'none') then
+       if (any(dust_stokes < 0.d0) &
+            .and. (any(dust_size < 0.0d0) .or. any(dust_density < 0.0d0))) then
+          call mpistop("With dust_method=='none', you must set either"// &
+               "(dust_density, dust_size) or dust_stokes")
+       end if
+    else if (dust_method == 'Stokes' .and. any(dust_stokes < 0.d0)) then
+         call mpistop("Dust error: any(dust_stokes < 0) or not set")
+    else
+       if (any(dust_size < 0.0d0)) &
+            call mpistop("Dust error: any(dust_size < 0) or not set")
+       if (any(dust_density < 0.0d0)) &
+            call mpistop("Dust error: any(dust_density < 0) or not set")
+    end if
   end subroutine dust_check_params
 
   subroutine dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -357,7 +372,25 @@ contains
           fdrag(ixO^S, idir,n) = fd(ixO^S)
         end do
       end do
-    case('none')
+   case ('Stokes') ! linear in deltav and constant Stokes number
+      !This is similar to Youdin & Johansen, 2007
+
+      do idir = 1, ndir
+        do n = 1, dust_n_species
+          where(w(ixO^S, dust_rho(n)) > dust_min_rho)
+            vdust(ixO^S)  = w(ixO^S, dust_mom(idir, n)) / w(ixO^S, dust_rho(n))
+            deltav(ixO^S) = (vgas(ixO^S, idir)-vdust(ixO^S))
+
+            ! dust_stokes is Stokes numbers for the dust species
+            fd(ixO^S)     = w(ixO^S, dust_rho(n))/dust_stokes(n)
+            fd(ixO^S)     = -fd(ixO^S)* deltav(ixO^S)
+          elsewhere
+            fd(ixO^S) = 0.0d0
+          end where
+          fdrag(ixO^S, idir, n) = fd(ixO^S)
+        end do
+      end do
+   case('none')
       fdrag(ixO^S, :, :) = 0.0d0
     case default
       call mpistop( "=== This dust method has not been implemented===" )
@@ -609,7 +642,22 @@ contains
       end do
 
       dtnew = min(minval(dtdiffpar*dtdust(:)), dtnew)
-    case('none')
+    case( 'Stokes' )
+      dtdust(:) = bigdouble
+
+      do n = 1, dust_n_species
+        where(w(ixO^S, dust_rho(n))>dust_min_rho)
+          tstop(ixO^S)  = dust_stokes(n)*w(ixO^S, gas_rho_)/ &
+               (w(ixO^S, dust_rho(n)) + w(ixO^S, gas_rho_))
+        else where
+          tstop(ixO^S) = bigdouble
+        end where
+
+        dtdust(n) = min(minval(tstop(ixO^S)), dtdust(n))
+     end do
+
+      dtnew = min(minval(dtdiffpar*dtdust(:)), dtnew)
+   case('none')
       ! no dust timestep
     case default
       call mpistop( "=== This dust method has not been implemented===" )
