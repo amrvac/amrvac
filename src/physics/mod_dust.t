@@ -149,14 +149,20 @@ contains
        end if
     end if
 
-    if (any(dust_size < 0.0d0) .and. dust_method /= 'Stokes' .and. dust_method /= 'none') &
-         call mpistop("Dust error: any(dust_size < 0) or not set")
-
-    if (any(dust_density < 0.0d0) .and. dust_method /= 'Stokes' .and. dust_method /= 'none') &
-         call mpistop("Dust error: any(dust_density < 0) or not set")
-
-    if (any(dust_stokes < 0.d0) .and. dust_method == 'Stokes') &
+    if (dust_method == 'none') then
+       if (any(dust_stokes < 0.d0) &
+            .and. (any(dust_size < 0.0d0) .or. any(dust_density < 0.0d0))) then
+          call mpistop("With dust_method=='none', you must set either"// &
+               "(dust_density, dust_size) or dust_stokes")
+       end if
+    else if (dust_method == 'Stokes' .and. any(dust_stokes < 0.d0)) then
          call mpistop("Dust error: any(dust_stokes < 0) or not set")
+    else
+       if (any(dust_size < 0.0d0)) &
+            call mpistop("Dust error: any(dust_size < 0) or not set")
+       if (any(dust_density < 0.0d0)) &
+            call mpistop("Dust error: any(dust_density < 0) or not set")
+    end if
   end subroutine dust_check_params
 
   subroutine dust_to_conserved(ixI^L, ixO^L, w, x)
