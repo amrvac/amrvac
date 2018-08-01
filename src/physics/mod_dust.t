@@ -155,8 +155,9 @@ contains
           call mpistop("With dust_method=='none', you must set either"// &
                "(dust_density, dust_size) or dust_stokes")
        end if
-    else if (dust_method == 'Stokes' .and. any(dust_stokes < 0.d0)) then
-         call mpistop("Dust error: any(dust_stokes < 0) or not set")
+    else if (dust_method == 'Stokes') then
+       if (any(dust_stokes < 0.d0)) &
+            call mpistop("Dust error: any(dust_stokes < 0) or not set")
     else
        if (any(dust_size < 0.0d0)) &
             call mpistop("Dust error: any(dust_size < 0) or not set")
