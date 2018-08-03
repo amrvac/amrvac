@@ -116,7 +116,7 @@ contains
     kxCmin^D=hxOmin^D;
     kxCmax^D=ixOmax^D;
 
-    inv_volume = 1.0d0/block%dvolume(ixO^S)
+    inv_volume(ixO^S) = 1.0d0/block%dvolume(ixO^S)
 
     select case(typeaxial)
     case ("cylindrical")
@@ -124,10 +124,10 @@ contains
         if (idim==r_ .and. iw==iw_mom(phi_)) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,idim))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/x(ixO^S,idim))
+               (inv_volume(ixO^S)/x(ixO^S,idim))
         else
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume
+                inv_volume(ixO^S)
         endif
       enddo
     case ("spherical")
@@ -135,14 +135,14 @@ contains
         if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/x(ixO^S,idim))
+               (inv_volume(ixO^S)/x(ixO^S,idim))
         elseif (idim==2  .and. iw==iw_mom(phi_)) then
           fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*sin(x(kxC^S,idim)+half*block%dx(kxC^S,idim)) ! (x(4,3,1)-x(3,3,1)))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/sin(x(ixO^S,idim)))
+               (inv_volume(ixO^S)/sin(x(ixO^S,idim)))
         else
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume
+                inv_volume(ixO^S)
         endif
       enddo
 
