@@ -103,12 +103,15 @@ contains
   !> Add fluxes in an angular momentum conserving way
   subroutine hd_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
     use mod_global_parameters
+    use mod_dust, only: dust_n_species, dust_mom
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
     integer, intent(in)                :: ixI^L, ixO^L
     integer, intent(in)                :: idim
     integer                            :: hxO^L, kxC^L, iw
     double precision                   :: inv_volume(ixI^S)
+
+    logical isangmom
 
     ! shifted indexes
     hxO^L=ixO^L-kr(idim,^D);
@@ -120,8 +123,11 @@ contains
 
     select case(typeaxial)
     case ("cylindrical")
-      do iw=1,nwflux
-        if (idim==r_ .and. iw==iw_mom(phi_)) then
+       do iw=1,nwflux
+        isangmom = (iw==iw_mom(phi_))
+        if (hd_dust) &
+             isangmom = (isangmom .or. any(dust_mom(phi_,1:dust_n_species) == iw))
+        if (idim==r_ .and. isangmom) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,idim))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
                (inv_volume(ixO^S)/x(ixO^S,idim))
@@ -130,7 +136,10 @@ contains
                 inv_volume(ixO^S)
         endif
       enddo
-    case ("spherical")
+     case ("spherical")
+      if (hd_dust) &
+        call mpistop("Error: hd_angmomfix is not implemented &\\
+        &with dust and typeaxial=='sperical'")
       do iw=1,nwflux
         if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
