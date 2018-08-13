@@ -1,0 +1,39 @@
+# /!\ travis-ci does not have a fortran build config
+# we will use a solution based on
+# https://github.com/ScottWales/fortran-build-testing/blob/master/.travis.yml
+
+language: c
+
+env:
+    global:
+        - FC=gfortran-4.8
+        - OMPI_FC=${FC}
+
+install:
+    - sudo apt-add-repository --yes ppa:ubuntu-toolchain-r/test
+    - sudo apt-get update
+    - sudo apt-get install gcc-4.8 gfortran-4.8 libgomp1 openmpi-bin libopenmpi-dev
+
+    # Use the current stable version (2.1.0)
+    # See http://sourceforge.net/p/pfunit/mailman/message/31811969
+    - git clone --depth 1 --branch pfunit_2.1.0 git://git.code.sf.net/p/pfunit/code pfunit-code
+    - make -C pfunit-code MPI=yes OPENMP=yes
+    - make install -C pfunit-code INSTALL_DIR=../pfunit
+
+cache:
+  paths:
+  untracked: true
+
+before_script:
+  - export AMRVAC_DIR=$(pwd) 
+  - export ARCH=default
+  - cd tests/
+
+jobs:
+    include:
+    - script: bash test_runner.sh hd
+    - script: bash test_runner.sh mhd
+    - script: bash test_runner.sh rho
+    # not set up yet (missing a makefile in tests/particles/ and in tests/nonlinear/)
+    #- script: bash test_runner.sh nonlinear
+    #- script: bash test_runner.sh particle
