@@ -11,7 +11,7 @@ env:
 
 install:
     - sudo apt-get update
-    - sudo apt-get install gfortran-4.8 libopenmpi-dev
+    - sudo apt-get install gfortran-4.8 openmpi-bin libopenmpi-dev
 
 cache:
   paths:
@@ -30,6 +30,3 @@ jobs:
     # not set up yet (missing a makefile in tests/particles/ and in tests/nonlinear/)
     #- script: bash test_runner.sh nonlinear
     #- script: bash test_runner.sh particle
-
-after_failure:
-    - grep "FAILED" *.out
