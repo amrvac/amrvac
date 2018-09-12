@@ -35,6 +35,10 @@ character(len=16) :: physics_type
 integer           :: n_params
 double precision  :: parameters(n_params)
 character(len=16) :: parameter_names(n_params)
+! Indexes for file output (for restarting)
+integer           :: snapshotnext
+integer           :: slicenext
+integer           :: collapsenext
 ! Future implementations will put geometry info below
 ```
 
