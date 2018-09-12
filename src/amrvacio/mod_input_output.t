@@ -33,6 +33,7 @@ contains
     integer                          :: iterm(max_files)
     character(len=max_files*std_len) :: all_par_files
     character(len=std_len)           :: tmp_files(max_files)
+    logical                          :: resume
 
     if (mype == 0) then
        print *, '-----------------------------------------------------------------------------'
@@ -48,7 +49,8 @@ contains
 
     ! Specify the options and their default values
     call kracken('cmd','-i amrvac.par -if ' // undefined // &
-         ' -slice 0 -collapse 0 --help .false. -convert .false.')
+         ' -slice 0 -collapse 0 --help .false. -convert .false.' // &
+         ' -resume .false.')
 
     ! Get the par file(s)
     call retrev('cmd_i', all_par_files, len, ier)
@@ -60,6 +62,7 @@ contains
           print *, 'mpirun -np 4 ./amrvac -i file.par [file2.par ...]'
           print *, ''
           print *, 'Optional arguments:'
+          print *, '-resume              Resume previous run'
           print *, '-convert             Convert snapshot files'
           print *, '-if file0001.dat     Use this snapshot to restart from'
           print *, ''
@@ -82,6 +85,7 @@ contains
     slicenext    = iget('cmd_slice')
     collapsenext = iget('cmd_collapse')
     convert      = lget('cmd_convert') ! -convert present?
+    resume_previous_run = lget('cmd_resume') ! -resume present?
 
   end subroutine read_arguments
 
@@ -455,6 +459,18 @@ contains
     ! restart filename from command line overwrites the one in par file
     if(restart_from_file_arg /= undefined) &
       restart_from_file=restart_from_file_arg
+
+    if (resume_previous_run) then
+      ! Find first snapshot that does not exist
+      do i = 0, 9999
+        if (.not. snapshot_exists(i)) exit
+      end do
+
+      if (i == 0) call mpistop("No snapshots found to resume from")
+
+      ! Set file name to restart from
+      write(restart_from_file, "(a,i4.4,a)") trim(base_filename), i-1, ".dat"
+    end if
 
     if (restart_from_file /= undefined) then
       ! Only modify snapshotnext if the user hasn't specified it
@@ -1095,6 +1111,16 @@ contains
     end if
 
   end subroutine create_output_file
+
+  ! Check if a snapshot exists
+  logical function snapshot_exists(ix)
+    use mod_global_parameters
+    integer, intent(in)    :: ix !< Index of snapshot
+    character(len=std_len) :: filename
+
+    write(filename, "(a,i4.4,a)") trim(base_filename), ix, ".dat"
+    inquire(file=trim(filename), exist=snapshot_exists)
+  end function snapshot_exists
 
   !> Write header for a snapshot
   subroutine snapshot_write_header(fh, offset_tree, offset_block)
