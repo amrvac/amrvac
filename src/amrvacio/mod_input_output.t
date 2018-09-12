@@ -479,7 +479,9 @@ contains
     end if
 
     if (restart_from_file == undefined) then
-      snapshotnext=0
+      snapshotnext = 0
+      slicenext    = 0
+      collapsenext = 0
       if (firstprocess) &
            call mpistop("Please restart from a snapshot when firstprocess=T")
       if (convert) &
