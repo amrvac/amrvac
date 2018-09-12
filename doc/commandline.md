@@ -15,12 +15,12 @@ parameters is available through:
 Note that settings from later par files override earlier ones. Par files can
 contain only the namelists to which they make changes.
 
-## Resume the previous simulation (which has not finished yet)
+## Resume a previous simulation (which has not finished yet)
 
     mpirun -np 4 ./amrvac -i settings.par -resume
 
-This will automatically look for the last snapshot (`.dat.`) file and resume
-from it.
+This will automatically look for the last snapshot (`.dat`) file and resume from
+it.
 
 ## Restart a previous simulation
 

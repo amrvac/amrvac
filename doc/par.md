@@ -5,14 +5,40 @@
 # Introduction {#par_intro}
 
 This document describes the usage of a `.par` parameter (input) file for MPI-AMRVAC.
+For a list of command line options, see @ref commandline.md.
+
 Parameters are grouped in namelists according to their functionalities. The namelists
-have physics-independent class and physics-dependent class. The physics-independent class
-includes filelist, savelist, stoplist, methodlist, boundlist, meshlist, and paramlist. 
-The default parameter values in these namelists are set in `src/amrvacio/mod_input_output.t`,
-look at subroutine `read_par_files` for details. The physics-dependent class includes 
-rho_list or hd_list or mhd_list, rc_list, tc_list, dust_list, vc_list, grav_list, and mf_list.
-See <phys>_read_params subroutine in src/<phys>/mod_<phys>_phys.t and <func>_params_read subroutine
-in src/physics/mod_<func>.t for more details.
+have physics-independent class and physics-dependent class. The physics-independent class includes:
+
+* @ref par_filelist Name and type of files to save (or read)
+* @ref par_savelist When to save data
+* @ref par_stoplist When to stop the simulation
+* @ref par_methodlist Which numerical methods to use (e.g., flux scheme, time integrator, limiter)
+* @ref par_boundlist Boundary conditions
+* @ref par_meshlist Mesh-related settings (e.g. domain size, refinement)
+* @ref par_paramlist Time-step parameters
+
+The default parameter values in these namelists are set in
+`src/amrvacio/mod_input_output.t`, look at the subroutine `read_par_files` for
+details.
+
+The physics-dependent namelists include:
+
+* @ref par_rholist (see also `mod_rho_phys`)
+* @ref par_nonlinearlist (see also `mod_nonlinear_phys`)
+* @ref par_hdlist (see also `mod_hd_phys`)
+* @ref par_mhdlist (see also `mod_mhd_phys`)
+
+Further namelist are used to control optional modules. Most of these lists are
+not documented here, but the parameters are described in the corresponding
+modules:
+
+* `rc_list` (radiative cooling, see `mod_magnetofriction`)
+* `tc_list` (thermal conduction, see `mod_thermal_conduction`)
+* `dust_list` (dust, see `mod_dust`)
+* `vc_list` (viscosity, see `mod_viscosity`)
+* `grav_list` (gravity, see `mod_gravity`)
+* `mf_list` (magnetofriction, see `mod_magnetofriction`)
 
 ## An example for a namelist
 
