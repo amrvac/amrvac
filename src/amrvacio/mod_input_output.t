@@ -1872,8 +1872,11 @@ contains
           line = trim(line) // " 'Active_Blocks/Core' 'Wct Per Code Time [s]'"
           line = trim(line) // " 'TimeToFinish [hrs]'"
 
-          call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
-               len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
+          ! Only write header if not restarting
+          if (restart_from_file == undefined) then
+            call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
+                 len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
+          end if
        end if
 
        ! Construct the line to be added to the log
