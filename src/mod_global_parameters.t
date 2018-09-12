@@ -254,6 +254,9 @@ module mod_global_parameters
   !> Resume from the snapshot with this index
   integer :: snapshotini
 
+  !> If true, restart a previous run from the latest snapshot
+  logical :: resume_previous_run
+
   !> If true and restart_from_file is given, convert snapshots to
   !> other file formats
   logical                :: convert
