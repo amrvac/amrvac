@@ -45,6 +45,12 @@ contains
       phi_ = 2
       if(ndir==3) z_ = 3
       typeaxial='cylindrical'
+    case ("polar_1.5D")
+       if (ndim /= 1) call mpistop("Geometry polar_1.5D but ndim /= 1")
+       ndir = 2
+       r_   = 1
+       phi_ = 2
+       typeaxial='cylindrical'
     case ("polar_2.5D")
       if (ndim /= 2) call mpistop("Geometry polar_2.5D but ndim /= 2")
       ndir = 3

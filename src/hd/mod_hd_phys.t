@@ -103,6 +103,7 @@ contains
   !> Add fluxes in an angular momentum conserving way
   subroutine hd_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
     use mod_global_parameters
+    use mod_dust, only: dust_n_species, dust_mom
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
     integer, intent(in)                :: ixI^L, ixO^L
@@ -110,39 +111,47 @@ contains
     integer                            :: hxO^L, kxC^L, iw
     double precision                   :: inv_volume(ixI^S)
 
+    logical isangmom
+
     ! shifted indexes
     hxO^L=ixO^L-kr(idim,^D);
     ! all the indexes
     kxCmin^D=hxOmin^D;
     kxCmax^D=ixOmax^D;
 
-    inv_volume = 1.0d0/block%dvolume(ixO^S)
+    inv_volume(ixO^S) = 1.0d0/block%dvolume(ixO^S)
 
     select case(typeaxial)
     case ("cylindrical")
-      do iw=1,nwflux
-        if (idim==r_ .and. iw==iw_mom(phi_)) then
+       do iw=1,nwflux
+        isangmom = (iw==iw_mom(phi_))
+        if (hd_dust) &
+             isangmom = (isangmom .or. any(dust_mom(phi_,1:dust_n_species) == iw))
+        if (idim==r_ .and. isangmom) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,idim))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/x(ixO^S,idim))
+               (inv_volume(ixO^S)/x(ixO^S,idim))
         else
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume
+                inv_volume(ixO^S)
         endif
       enddo
-    case ("spherical")
+     case ("spherical")
+      if (hd_dust) &
+        call mpistop("Error: hd_angmomfix is not implemented &\\
+        &with dust and typeaxial=='sperical'")
       do iw=1,nwflux
         if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/x(ixO^S,idim))
+               (inv_volume(ixO^S)/x(ixO^S,idim))
         elseif (idim==2  .and. iw==iw_mom(phi_)) then
           fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*sin(x(kxC^S,idim)+half*block%dx(kxC^S,idim)) ! (x(4,3,1)-x(3,3,1)))
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume/sin(x(ixO^S,idim)))
+               (inv_volume(ixO^S)/sin(x(ixO^S,idim)))
         else
           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume
+                inv_volume(ixO^S)
         endif
       enddo
 
@@ -262,7 +271,7 @@ contains
 
     if (.not. hd_energy) then
        if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
-       if (hd_adiab <= 0.0d0) call mpistop ("Error: hd_adiab <= 0")
+       if (hd_adiab < 0.0d0) call mpistop  ("Error: hd_adiab < 0")
        small_pressure= hd_adiab*small_density**hd_gamma
     else
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
@@ -542,7 +551,7 @@ contains
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw)
+    double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: pth(ixI^S)
 
@@ -607,13 +616,13 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixO^S)
+    double precision                :: pth(ixI^S)
     integer                         :: idir, itr
 
     if (hd_energy) then
        pth(ixO^S) = w(ixO^S,p_)
     else
-       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+       call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     end if
 
     f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
@@ -652,74 +661,110 @@ contains
   !> not ndim. Eg, they are the same in 2.5D and in 3D, for any geometry.
   !>
   !> Ileyk : to do :
-  !>     - address the source term for the dust
+  !>     - address the source term for the dust in case (typeaxial == 'spherical')
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
-
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero, dust_min_rho
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
-    double precision :: tmp(ixI^S),tmp1(ixI^S)
+    double precision :: pth(ixI^S), source(ixI^S), minrho
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
+    integer :: irho, ifluid, n_fluids
 
-    mr_=mom(1); mphi_=mom(1)-1+phi_ ! Polar var. names
+    if (hd_dust) then
+       n_fluids = 1 + dust_n_species
+    else
+       n_fluids = 1
+    end if
 
     select case (typeaxial)
     case ("cylindrical")
-       ! s[mr]=(pthermal+mphi**2/rho)/radius
-       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp)
-       if(phi_>0) then
-         tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_)
-         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-         ! s[mphi]=(-mphi*mr/rho)/radius
-         ! Ileyk : beware the index permutation : mphi=2 if -phi=2 (2.5D
-         ! (r,theta) grids) BUT mphi=3 if -phi=3 (for 2.5D (r,z) grids)
-         if(.not. angmomfix) then
-           tmp(ixO^S)=-wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_)
-           w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-         end if
-       else
-         ! s[mr]=2pthermal/radius
-         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
-       end if
+       do ifluid = 0, n_fluids-1
+          ! s[mr]=(pthermal+mphi**2/rho)/radius
+          if (ifluid == 0) then
+             ! gas
+             irho  = rho_
+             mr_   = mom(r_)
+             mphi_ = mom(phi_)
+             call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
+             minrho = 0.0d0
+          else
+             ! dust : no pressure
+             irho  = dust_rho(ifluid)
+             mr_   = dust_mom(r_, ifluid)
+             mphi_ = dust_mom(phi_, ifluid)
+             source(ixI^S) = zero
+             minrho = dust_min_rho
+          end if
+          if (phi_ > 0) then
+             where (wCT(ixO^S, irho) > minrho)
+                source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
+                w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+             end where
+             ! s[mphi]=(-mphi*mr/rho)/radius
+             if(.not. angmomfix) then
+                where (wCT(ixO^S, irho) > minrho)
+                   source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
+                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+                end where
+             end if
+          else
+             ! s[mr]=2pthermal/radius
+             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+          end if
+       end do
     case ("spherical")
+       if (hd_dust) then
+          call mpistop("Dust geom source terms not implemented yet with spherical geometries")
+       end if
+       mr_   = mom(r_)
+       mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
-       call hd_get_pthermal(wCT,x,ixI^L,ixO^L,tmp1)
-       tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
-            *(block%surfaceC(ixO^S,1)-block%surfaceC(h1x^S,1)) &
+       call hd_get_pthermal(wCT, x, ixI^L, ixO^L, pth)
+       source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
+            *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
-       if(ndir>1) then
-         do idir=2,ndir
-           tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2/wCT(ixO^S,rho_)
+       if (ndir > 1) then
+         do idir = 2, ndir
+           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))**2 / wCT(ixO^S, rho_)
          end do
        end if
-       w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*tmp(ixO^S)/x(ixO^S,1)
+       w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        {^NOONED
        ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
-       tmp(ixO^S)=tmp1(ixO^S)*x(ixO^S,1) &
-            *(block%surfaceC(ixO^S,2)-block%surfaceC(h2x^S,2)) &
-            /block%dvolume(ixO^S)
-       if(ndir==3) tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2/wCT(ixO^S,rho_))/tan(x(ixO^S,2))
-       if (.not. angmomfix) tmp(ixO^S)=tmp(ixO^S)-(wCT(ixO^S,mom(2))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)
-       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
+       source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
+            * (block%surfaceC(ixO^S, 2) - block%surfaceC(h2x^S, 2)) &
+            / block%dvolume(ixO^S)
+       if (ndir == 3) then
+          source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))**2 / wCT(ixO^S, rho_)) / tan(x(ixO^S, 2))
+       end if
+       if (.not. angmomfix) then
+          source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
+       end if
+       w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
-       if(ndir==3) then
+       if (ndir == 3) then
          ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         if(.not. angmomfix) then
-           tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mr_))/wCT(ixO^S,rho_)&
-                      -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3)))/wCT(ixO^S,rho_)/tan(x(ixO^S,2))
-           w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+         if (.not. angmomfix) then
+           source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
+                      - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
+           w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
          end if
        end if
        }
     end select
+
+    if (hd_dust .and. dust_small_to_zero) then
+       call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
+    end if
 
     if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
@@ -729,9 +774,11 @@ contains
   subroutine hd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
-    use mod_dust, only: dust_add_source
+    use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
     use mod_viscosity, only: viscosity_add_source
-    use mod_gravity, only: gravity_add_source
+    use mod_usr_methods, only: usr_gravity
+    use mod_gravity, only: gravity_add_source, grav_split
+    use mod_dust, only: dust_small_to_zero, set_dusttozero
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -739,6 +786,9 @@ contains
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
+
+    double precision :: gravity_field(ixI^S, 1:ndim)
+    integer :: idust, idim
 
     if(hd_dust) then
       call dust_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
@@ -754,9 +804,24 @@ contains
            hd_energy,qsourcesplit,active)
     end if
 
-    if(hd_gravity) then
+    if (hd_gravity) then
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
            hd_energy,qsourcesplit,active)
+
+      if (hd_dust .and. qsourcesplit .eqv. grav_split) then
+         active = .true.
+
+         call usr_gravity(ixI^L, ixO^L, wCT, x, gravity_field)
+         do idust = 1, dust_n_species
+            do idim = 1, ndim
+               w(ixO^S, dust_mom(idim, idust)) = w(ixO^S, dust_mom(idim, idust)) &
+                    + qdt * gravity_field(ixO^S, idim) * wCT(ixO^S, dust_rho(idust))
+            end do
+         end do
+         if (dust_small_to_zero) then
+            call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
+         end if
+      end if
     end if
 
   end subroutine hd_add_source
