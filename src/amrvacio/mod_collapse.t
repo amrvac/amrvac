@@ -19,7 +19,6 @@ logical, save :: firstcollapse=.true.
 !-----------------------------------------------------------------------------
 
 if (firstcollapse) then
-   icollapse=collapsenext
    firstcollapse=.false.
 end if
 
@@ -27,7 +26,7 @@ do idir=1, ndim
    if (collapse(idir)) call put_collapse(idir)
 end do
 
-icollapse=icollapse+1
+collapsenext=collapsenext+1
 end subroutine write_collapsed
 !=============================================================================
 subroutine put_collapse(dir)
@@ -137,7 +136,8 @@ end select
  inquire(unitcollapse,opened=fileopen)
  if(.not.fileopen)then
       ! generate filename: 
-      write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_l',collapseLevel,'_n',icollapse,'.csv'
+      write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") trim(base_filename) // '_d', &
+           dir,'_l',collapseLevel,'_n',collapsenext,'.csv'
       open(unitcollapse,file=filename,status='unknown',form='formatted')
    end if
    ! get and write the header: 
@@ -240,7 +240,7 @@ length = length*size_single
  if(.not.fileopen)then
       ! generate filename: 
     write(filename,"(a,i1.1,a,i1.1,a,i4.4,a)") trim(base_filename)//'_d',dir,&
-         '_l',collapseLevel,'_n',icollapse,'.vti'
+         '_l',collapseLevel,'_n',collapsenext,'.vti'
       open(unitcollapse,file=filename,status='unknown',form='formatted')
  end if
 ! get the header: 

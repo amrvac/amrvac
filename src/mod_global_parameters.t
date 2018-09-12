@@ -195,7 +195,7 @@ module mod_global_parameters
   double precision :: time_bc
 
   !> IO: snapshot and collapsed views output numbers/labels
-  integer :: snapshotnext, collapseNext, icollapse
+  integer :: snapshotnext, collapsenext
 
   !> Constant indicating log output
   integer, parameter :: filelog_      = 1
