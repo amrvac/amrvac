@@ -467,15 +467,27 @@ contains
       restart_from_file=restart_from_file_arg
 
     if (resume_previous_run) then
-      ! Find first snapshot that does not exist
-      do i = 0, 9999
-        if (.not. snapshot_exists(i)) exit
-      end do
+      ! Root process will search snapshot
+      if (mype == 0) then
+         do i = -1, 9998
+            ! Check if the next snapshot is missing
+            if (.not. snapshot_exists(i+1)) exit
+         end do
 
-      if (i == 0) call mpistop("No snapshots found to resume from")
+         if (i == -1) then
+            ! If initial data is missing (e.g. moved due to lack of space),
+            ! search file with highest index
+            do i = 9999, 0, -1
+               if (snapshot_exists(i)) exit
+            end do
+         end if
+      end if
+      call MPI_BCAST(i, 1, MPI_INTEGER, 0, icomm, ierrmpi)
+
+      if (i == -1) call mpistop("No snapshots found to resume from")
 
       ! Set file name to restart from
-      write(restart_from_file, "(a,i4.4,a)") trim(base_filename), i-1, ".dat"
+      write(restart_from_file, "(a,i4.4,a)") trim(base_filename), i, ".dat"
     end if
 
     if (restart_from_file == undefined) then
