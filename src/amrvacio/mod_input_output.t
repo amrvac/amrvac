@@ -99,7 +99,7 @@ contains
   !> Read in the user-supplied parameter-file
   subroutine read_par_files()
     use mod_global_parameters
-    use mod_physics, only: physics_type
+    use mod_physics, only: physics_type, phys_wider_stencil
     use mod_small_values
     use mod_limiter
     use mod_slice
@@ -773,6 +773,9 @@ contains
     if(any(limiter(1:nlevelshi)=='ppm')) then
       nghostcells=4
     end if
+
+    ! If a wider stencil is used, extend the number of ghost cells
+    nghostcells = nghostcells + phys_wider_stencil
 
     select case (typeaxial)
        {^NOONED

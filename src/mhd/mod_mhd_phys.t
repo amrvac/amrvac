@@ -419,6 +419,7 @@ contains
     ! in getflux: assuming one additional ghost layer (two for FOURTHORDER) was
     ! added in nghostcells.
     if (mhd_hall) then
+       phys_req_diagonal = .true.
        if (mhd_4th_order) then
           phys_wider_stencil = 2
        else
