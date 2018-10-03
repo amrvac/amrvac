@@ -2509,7 +2509,7 @@ endif
 inquire(qunit,opened=fileopen)
 if(.not.fileopen)then
    ! generate filename 
-   filenr=snapshotini
+   filenr=snapshotnext-1
    if (autoconvert) filenr=snapshotnext
    ! Open the file for the header part
    write(pfilename,'(a,i4.4,a,i4.4,a)') TRIM(base_filename),filenr,"p",mype,".vtu"

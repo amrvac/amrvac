@@ -5,10 +5,10 @@ module mod_input_output
   public
 
   !> Version number of the .dat file output
-  integer, parameter :: version_number = 3
+  integer, parameter :: version_number = 4
 
   !> List of compatible versions
-  integer, parameter :: compatible_versions(1) = [3]
+  integer, parameter :: compatible_versions(*) = [3, 4]
 
   !> number of w found in dat files
   integer :: nw_found
@@ -33,6 +33,7 @@ contains
     integer                          :: iterm(max_files)
     character(len=max_files*std_len) :: all_par_files
     character(len=std_len)           :: tmp_files(max_files)
+    logical                          :: resume
 
     if (mype == 0) then
        print *, '-----------------------------------------------------------------------------'
@@ -48,7 +49,8 @@ contains
 
     ! Specify the options and their default values
     call kracken('cmd','-i amrvac.par -if ' // undefined // &
-         ' -slice 0 -collapse 0 --help .false. -convert .false.')
+         ' -slicenext -1 -collapsenext -1 -snapshotnext -1' // &
+         ' --help .false. -convert .false. -resume .false.')
 
     ! Get the par file(s)
     call retrev('cmd_i', all_par_files, len, ier)
@@ -58,13 +60,20 @@ contains
        if (mype == 0) then
           print *, 'Usage example:'
           print *, 'mpirun -np 4 ./amrvac -i file.par [file2.par ...]'
+          print *, '         (later .par files override earlier ones)'
           print *, ''
           print *, 'Optional arguments:'
           print *, '-convert             Convert snapshot files'
           print *, '-if file0001.dat     Use this snapshot to restart from'
+          print *, '                     (you can modify e.g. output names)'
+          print *, '-resume              Automatically resume previous run'
+          print *, '                     (useful for long runs on HPC systems)'
+          print *, '-snapshotnext N      Manual index for next snapshot'
+          print *, '-slicenext N         Manual index for next slice output'
+          print *, '-collapsenext N      Manual index for next collapsed output'
           print *, ''
-          print *, 'Note: later parameter files override earlier ones.'
        end if
+       call MPI_FINALIZE(ierrmpi)
        stop
     end if
 
@@ -79,16 +88,18 @@ contains
     call retrev('cmd_if', restart_from_file, len, ier)
 
     !> \todo Document these command line options
-    slicenext    = iget('cmd_slice')
-    collapsenext = iget('cmd_collapse')
-    convert      = lget('cmd_convert') ! -convert present?
+    slicenext           = iget('cmd_slicenext')
+    collapsenext        = iget('cmd_collapsenext')
+    snapshotnext        = iget('cmd_snapshotnext')
+    convert             = lget('cmd_convert') ! -convert present?
+    resume_previous_run = lget('cmd_resume')  ! -resume present?
 
   end subroutine read_arguments
 
   !> Read in the user-supplied parameter-file
   subroutine read_par_files()
     use mod_global_parameters
-    use mod_physics, only: physics_type
+    use mod_physics, only: physics_type, phys_wider_stencil
     use mod_small_values
     use mod_limiter
     use mod_slice
@@ -314,8 +325,6 @@ contains
     firstprocess  = .false.
     reset_grid     = .false.
     base_filename   = 'data'
-    snapshotini = -1
-    snapshotnext = -1
 
     ! Defaults for discretization methods
     typeaverage     = 'default'
@@ -456,26 +465,38 @@ contains
     if(restart_from_file_arg /= undefined) &
       restart_from_file=restart_from_file_arg
 
-    if (restart_from_file /= undefined) then
-      ! Only modify snapshotnext if the user hasn't specified it
-      if (snapshotnext == -1) then
-        snapshotnext = 0
+    if (resume_previous_run) then
+      ! Root process will search snapshot
+      if (mype == 0) then
+         do i = -1, 9998
+            ! Check if the next snapshot is missing
+            if (.not. snapshot_exists(i+1)) exit
+         end do
 
-        ! Try to parse index in restart_from_file string (e.g. basename0000.dat)
-        i = len_trim(restart_from_file) - 7
-        read(restart_from_file(i:i+3), '(I4)', iostat=io_state) snapshotini
-        if (io_state == 0) snapshotnext = snapshotini + 1
-
-        if (reset_time .or. reset_it) snapshotnext = 0
+         if (i == -1) then
+            ! If initial data is missing (e.g. moved due to lack of space),
+            ! search file with highest index
+            do i = 9999, 0, -1
+               if (snapshot_exists(i)) exit
+            end do
+         end if
       end if
-    else
-      snapshotnext=0
+      call MPI_BCAST(i, 1, MPI_INTEGER, 0, icomm, ierrmpi)
+
+      if (i == -1) call mpistop("No snapshots found to resume from")
+
+      ! Set file name to restart from
+      write(restart_from_file, "(a,i4.4,a)") trim(base_filename), i, ".dat"
+    end if
+
+    if (restart_from_file == undefined) then
+      snapshotnext = 0
+      slicenext    = 0
+      collapsenext = 0
       if (firstprocess) &
            call mpistop("Please restart from a snapshot when firstprocess=T")
-      if (convert) then
-        convert = .false.
-        write(uniterr,*) 'Change convert to .false. for a new run!'
-      end if
+      if (convert) &
+           call mpistop('Change convert to .false. for a new run!')
     end if
 
     if (small_pressure < 0.d0) call mpistop("small_pressure should be positive.")
@@ -753,6 +774,9 @@ contains
       nghostcells=4
     end if
 
+    ! If a wider stencil is used, extend the number of ghost cells
+    nghostcells = nghostcells + phys_wider_stencil
+
     select case (typeaxial)
        {^NOONED
     case ("spherical")
@@ -949,9 +973,7 @@ contains
     end do
 
     if (mype==0) then
-       write(unitterm, '(A30,I0)') 'slicenext: ', slicenext
-       write(unitterm, '(A30,I0)') 'collapsenext: ', collapsenext
-       write(unitterm, '(A30,A,A)')  'restart_from_file: ', ' ', trim(restart_from_file)
+       write(unitterm, '(A30,A,A)') 'restart_from_file: ', ' ', trim(restart_from_file)
        write(unitterm, '(A30,L1)') 'converting: ', convert
        write(unitterm, '(A)') ''
     endif
@@ -1096,11 +1118,31 @@ contains
 
   end subroutine create_output_file
 
+  ! Check if a snapshot exists
+  logical function snapshot_exists(ix)
+    use mod_global_parameters
+    integer, intent(in)    :: ix !< Index of snapshot
+    character(len=std_len) :: filename
+
+    write(filename, "(a,i4.4,a)") trim(base_filename), ix, ".dat"
+    inquire(file=trim(filename), exist=snapshot_exists)
+  end function snapshot_exists
+
+  integer function get_snapshot_index(filename)
+    character(len=*), intent(in) :: filename
+    integer                      :: i
+
+    ! Try to parse index in restart_from_file string (e.g. basename0000.dat)
+    i = len_trim(filename) - 7
+    read(filename(i:i+3), '(I4)') get_snapshot_index
+  end function get_snapshot_index
+
   !> Write header for a snapshot
   subroutine snapshot_write_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_physics
     use mod_global_parameters
+    use mod_slice, only: slicenext
     integer, intent(in)                       :: fh           !< File handle
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_tree  !< Offset of tree info
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_block !< Offset of block data
@@ -1137,25 +1179,41 @@ contains
 
     ! Physics related information
     call MPI_FILE_WRITE(fh, physics_type, name_len, MPI_CHARACTER, st, er)
+
+    ! Format:
+    ! integer :: n_par
+    ! double precision :: values(n_par)
+    ! character(n_par * name_len) :: names
     call phys_write_info(fh)
+
+    ! Write snapshotnext etc., which is useful for restarting.
+    ! Note we add one, since snapshotnext is updated *after* this procedure 
+    call MPI_FILE_WRITE(fh, snapshotnext+1, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, slicenext, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, collapsenext, 1, MPI_INTEGER, st, er)
 
   end subroutine snapshot_write_header
 
   subroutine snapshot_read_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_global_parameters
+    use mod_physics, only: physics_type
+    use mod_slice, only: slicenext
     integer, intent(in)                   :: fh           !< File handle
     integer(MPI_OFFSET_KIND), intent(out) :: offset_tree  !< Offset of tree info
     integer(MPI_OFFSET_KIND), intent(out) :: offset_block !< Offset of block data
+    integer                               :: i, version
     integer                               :: ibuf(ndim), iw
     double precision                      :: rbuf(ndim)
     integer, dimension(MPI_STATUS_SIZE)   :: st
-    character(len=10), allocatable        :: var_names(:)
-    integer                               :: er
+    character(len=name_len), allocatable  :: var_names(:), param_names(:)
+    double precision, allocatable         :: params(:)
+    character(len=name_len)               :: phys_name
+    integer                               :: er, n_par, tmp_int
 
     ! Version number
-    call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
-    if (all(compatible_versions /= ibuf(1))) then
+    call MPI_FILE_READ(fh, version, 1, MPI_INTEGER, st, er)
+    if (all(compatible_versions /= version)) then
       call mpistop("Incompatible file version (maybe old format?)")
     end if
 
@@ -1240,11 +1298,49 @@ contains
       call mpistop("change block_nx^D in par file")
     end if
 
-    ! w_names (not used here)
-    allocate(var_names(nw_found))
-    do iw = 1, nw_found
-      call MPI_FILE_READ(fh, var_names(iw), 10, MPI_CHARACTER, st, er)
-    end do
+    ! From version 4 onwards, the later parts of the header must be present
+    if (version > 3) then
+      ! w_names (not used here)
+      allocate(var_names(nw_found))
+      do iw = 1, nw_found
+        call MPI_FILE_READ(fh, var_names(iw), name_len, MPI_CHARACTER, st, er)
+      end do
+
+      ! Physics related information
+      call MPI_FILE_READ(fh, phys_name, name_len, MPI_CHARACTER, st, er)
+
+      if (phys_name /= physics_type) then
+        call mpistop("Cannot restart with a different physics type")
+      end if
+
+      call MPI_FILE_READ(fh, n_par, 1, MPI_INTEGER, st, er)
+      allocate(params(n_par))
+      allocate(param_names(n_par))
+      call MPI_FILE_READ(fh, params, n_par, MPI_DOUBLE_PRECISION, st, er)
+      call MPI_FILE_READ(fh, param_names, name_len * n_par, MPI_CHARACTER, st, er)
+
+      ! Read snapshotnext etc. for restarting
+      call MPI_FILE_READ(fh, tmp_int, 1, MPI_INTEGER, st, er)
+
+      ! Only set snapshotnext if the user hasn't specified it
+      if (snapshotnext == -1) snapshotnext = tmp_int
+
+      call MPI_FILE_READ(fh, tmp_int, 1, MPI_INTEGER, st, er)
+      if (slicenext == -1) slicenext = tmp_int
+
+      call MPI_FILE_READ(fh, tmp_int, 1, MPI_INTEGER, st, er)
+      if (collapsenext == -1) collapsenext = tmp_int
+    else
+      ! Guess snapshotnext from file name if not set
+      if (snapshotnext == -1) &
+           snapshotnext = get_snapshot_index(trim(restart_from_file)) + 1
+      ! Set slicenext and collapsenext if not set
+      if (slicenext == -1) slicenext = 0
+      if (collapsenext == -1) collapsenext = 0
+    end if
+
+    ! Still used in convert
+    snapshotini = snapshotnext-1
 
   end subroutine snapshot_read_header
 
@@ -1462,6 +1558,7 @@ contains
     use mod_usr_methods, only: usr_transform_w
     use mod_forest
     use mod_global_parameters
+    use mod_slice, only: slicenext
 
     integer                       :: ix_buffer(2*ndim+1), n_values
     integer                       :: ixO^L
@@ -1491,6 +1588,17 @@ contains
       if (mype == 0) print *, "Unknown version, trying old snapshot reader..."
       call MPI_FILE_CLOSE(file_handle,ierrmpi)
       call read_snapshot_old()
+
+      ! Guess snapshotnext from file name if not set
+      if (snapshotnext == -1) &
+           snapshotnext = get_snapshot_index(trim(restart_from_file)) + 1
+      ! Set slicenext and collapsenext if not set
+      if (slicenext == -1) slicenext = 0
+      if (collapsenext == -1) collapsenext = 0
+
+      ! Still used in convert
+      snapshotini = snapshotnext-1
+
       return ! Leave this routine
     else if (mype == 0) then
       call MPI_FILE_SEEK(file_handle, 0_MPI_OFFSET_KIND, MPI_SEEK_SET, ierrmpi)
@@ -1504,6 +1612,10 @@ contains
     call MPI_BCAST(nparents,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(it,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(global_time,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+
+    call MPI_BCAST(snapshotnext,1,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(slicenext,1,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(collapsenext,1,MPI_INTEGER,0,icomm,ierrmpi)
 
     ! Allocate send/receive buffer
     n_values = count_ix(ixG^LL) * nw_found
@@ -1846,8 +1958,11 @@ contains
           line = trim(line) // " 'Active_Blocks/Core' 'Wct Per Code Time [s]'"
           line = trim(line) // " 'TimeToFinish [hrs]'"
 
-          call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
-               len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
+          ! Only write header if not restarting
+          if (restart_from_file == undefined) then
+            call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
+                 len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
+          end if
        end if
 
        ! Construct the line to be added to the log

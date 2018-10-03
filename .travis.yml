@@ -1,0 +1,32 @@
+# /!\ travis-ci does not have a fortran build config
+# we will use a solution based on
+# https://github.com/ScottWales/fortran-build-testing/blob/master/.travis.yml
+
+language: c
+
+env:
+    global:
+        - FC=gfortran-4.8
+        - OMPI_FC=${FC}
+
+install:
+    - sudo apt-get update
+    - sudo apt-get install gfortran-4.8 openmpi-bin libopenmpi-dev
+
+cache:
+  paths:
+  untracked: true
+
+before_script:
+  - export AMRVAC_DIR=$(pwd)
+  - export ARCH=default
+  - cd tests/
+
+jobs:
+    include:
+    - script: bash test_runner.sh hd
+    - script: bash test_runner.sh mhd
+    - script: bash test_runner.sh rho
+    # not set up yet (missing a makefile in tests/particles/ and in tests/nonlinear/)
+    #- script: bash test_runner.sh nonlinear
+    #- script: bash test_runner.sh particle
