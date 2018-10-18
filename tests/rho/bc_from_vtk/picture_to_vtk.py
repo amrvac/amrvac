@@ -17,8 +17,7 @@ img = Image.open(args.picture).convert('LA')
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
 # Determine shape of data
-picture_data  = np.asarray(img)
-picture_shape = picture_data.shape
+picture_shape = img.size
 
 # Get scalar greyscale data
 scalar_data = img.getdata(band=0)
@@ -33,8 +32,8 @@ SPACING 1.0 1.0 1.0
 ORIGIN 0 0 0
 POINT_DATA {}
 SCALARS bc_data float 1
-LOOKUP_TABLE default""".format(picture_shape[1],
-                               picture_shape[0],
+LOOKUP_TABLE default""".format(picture_shape[0],
+                               picture_shape[1],
                                picture_shape[0] * picture_shape[1])
 
 # Save output
