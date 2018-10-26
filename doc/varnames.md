@@ -11,6 +11,7 @@ ndir	| number of vector components (1, 2, 3)
 ^LIM	| expands to min,max
 ^L	| expands to min1,min2,min3,max1,max2,max3
 ^S	| expands to min1:max1,min2:max2,min3:max3
+^T  | expands to lo1:hi1,lo2:hi2,lo3:hi3
 
 ## Differential Equations and Physical Quantities
 
@@ -19,8 +20,10 @@ name | description
 `pw(igrid)%%w`    |	w - conservative variables
 `pw(igrid)%%wold` |	w at beginning of current time step
 `pw(igrid)%%x`    |	x - spatial variables
+`pw(igrid)%%wCT`  | fixed w to compute source terms and other terms from (so that the order in which they are added does not matter)
 global_time	| time
 it | integer counter of temporal iterations
+qdt | the time step to be used in a subroutine/function
 
 ## Indices of variables in w array:
 
