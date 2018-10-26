@@ -174,7 +174,6 @@ module mod_physics
 
      subroutine sub_small_values(primitive, w, x, ixI^L, ixO^L, subname)
        use mod_global_parameters
-       use mod_small_values
        logical, intent(in)             :: primitive
        integer, intent(in)             :: ixI^L,ixO^L
        double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -339,7 +338,6 @@ contains
 
   subroutine dummy_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
-    use mod_small_values
     logical, intent(in)             :: primitive
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(inout) :: w(ixI^S,1:nw)

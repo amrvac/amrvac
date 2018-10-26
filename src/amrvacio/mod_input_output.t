@@ -159,7 +159,8 @@ contains
          flatcd,flatsh,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
-         solve_internal_e, angmomfix
+         solve_internal_e, angmomfix, small_values_fix_iw, &
+         small_values_use_primitive
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L, save_physical_boundary
@@ -220,6 +221,9 @@ contains
     small_temperature = 0.d0
     small_pressure    = 0.d0
     small_density     = 0.d0
+
+    allocate(small_values_fix_iw(nw))
+    small_values_fix_iw(:) = .true.
 
     ! defaults for convert behavior
 

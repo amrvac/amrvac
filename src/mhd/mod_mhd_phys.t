@@ -515,6 +515,10 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: idir, itr
 
+    if (check_small_values .and. small_values_use_primitive) then
+      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
+    end if
+
     if (mhd_energy) then
        ! Calculate total energy from pressure, kinetic and magnetic energy
        w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
@@ -529,7 +533,9 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L,'mhd_to_conserved')
+    if (check_small_values .and. .not. small_values_use_primitive) then
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
+    end if
   end subroutine mhd_to_conserved
 
   !> Transform conservative variables into primitive ones
@@ -540,6 +546,10 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision                :: inv_rho(ixO^S)
     integer                         :: itr, idir
+
+    if (check_small_values .and. .not. small_values_use_primitive) then
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
+    end if
 
     inv_rho = 1.0d0 / w(ixO^S, rho_)
 
@@ -560,7 +570,9 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L,'mhd_to_primitive')
+    if (check_small_values .and. small_values_use_primitive) then
+      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
+    end if
   end subroutine mhd_to_primitive
 
   subroutine mhd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
@@ -580,27 +592,36 @@ contains
     call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if (any(flag(ixO^S) /= 0)) then
-       select case (small_values_method)
-       case ("replace")
+      select case (small_values_method)
+      case ("replace")
+        if (small_values_fix_iw(rho_)) then
           where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
+        end if
 
-          do idir = 1, ndir
-             where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
-          end do
-
-          if (mhd_energy) then
-             if(primitive) then
-               smallone = small_pressure
-             else
-               smallone = small_e
-             end if
-             where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
+        do idir = 1, ndir
+          if (small_values_fix_iw(mom(idir))) then
+            where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
           end if
-       case ("average")
-          call small_values_average(ixI^L, ixO^L, w, x, flag)
-       case default
-          call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
-       end select
+        end do
+
+        if (mhd_energy) then
+          if (small_values_fix_iw(e_)) then
+            if(primitive) then
+              where(flag(ixO^S) /= 0) w(ixO^S,e_) = small_pressure
+            else
+              where(flag(ixO^S) /= 0)
+                w(ixO^S,e_) = small_e + 0.5d0 * &
+                     sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_) + &
+                     mhd_mag_en(w, ixI^L, ixO^L)
+              end where
+            end if
+          end if
+        end if
+      case ("average")
+        call small_values_average(ixI^L, ixO^L, w, x, flag)
+      case default
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+      end select
     end if
   end subroutine mhd_handle_small_values
 

@@ -343,6 +343,10 @@ contains
     double precision                :: invgam
     integer                         :: idir, itr
 
+    if (check_small_values .and. small_values_use_primitive) then
+      call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
+    end if
+
     if (hd_energy) then
        invgam = 1.d0/(hd_gamma - 1.0d0)
        ! Calculate total energy from pressure and kinetic energy
@@ -359,8 +363,9 @@ contains
       call dust_to_conserved(ixI^L, ixO^L, w, x)
     end if
 
-    if (check_small_values) call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
-
+    if (check_small_values .and. .not. small_values_use_primitive) then
+      call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
+    end if
   end subroutine hd_to_conserved
 
   !> Transform conservative variables into primitive ones
@@ -372,6 +377,10 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: itr, idir
     double precision                :: inv_rho(ixO^S)
+
+    if (check_small_values .and. .not. small_values_use_primitive) then
+      call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_primitive')
+    end if
 
     inv_rho = 1.0d0 / w(ixO^S, rho_)
 
@@ -391,7 +400,9 @@ contains
       call dust_to_primitive(ixI^L, ixO^L, w, x)
     end if
 
-    if (check_small_values) call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
+    if (check_small_values .and. small_values_use_primitive) then
+      call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
+    end if
 
   end subroutine hd_to_primitive
 
@@ -901,23 +912,31 @@ contains
     if (any(flag(ixO^S) /= 0)) then
       select case (small_values_method)
       case ("replace")
-        where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
+        if (small_values_fix_iw(rho_)) then
+          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
+        end if
 
         do idir = 1, ndir
-          where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
+          if (small_values_fix_iw(mom(idir))) then
+            where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
+          end if
         end do
 
         if (hd_energy) then
-          if(primitive) then
-            smallone = small_pressure
-          else
-            smallone = small_e
+          if (small_values_fix_iw(e_)) then
+            if(primitive) then
+              where(flag(ixO^S) /= 0) w(ixO^S,e_) = small_pressure
+            else
+              where(flag(ixO^S) /= 0)
+                ! Add kinetic energy
+                w(ixO^S,e_) = small_e + 0.5d0 * &
+                     sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
+              end where
+            end if
           end if
-          where(flag(ixO^S) /= 0) w(ixO^S,e_) = smallone
         end if
       case ("average")
         call small_values_average(ixI^L, ixO^L, w, x, flag)
-
       case default
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
