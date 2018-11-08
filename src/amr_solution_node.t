@@ -110,6 +110,10 @@ if(.not. allocated(pw(igrid)%w)) then
       allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
                pw(igrid)%surface(ixG^T,1:ndim))
   endif
+  ! if using stagger grid
+  if(stagger_grid) then
+    allocate(pw(igrid)%ws(ixGs^T,1:nws))
+  end if
 end if
 
 pw(igrid)%w=0.d0
@@ -118,10 +122,10 @@ pw(igrid)%w1=0.d0
 pw(igrid)%wcoarse=0.d0
 pw(igrid)%igrid=igrid
 pw(igrid)%wio=0.d0
+if(stagger_grid) pw(igrid)%ws=0.d0
 
 ! wb is w by default
 pw(igrid)%wb=>pw(igrid)%w
-
 
 ! block pointer to current block
 block=>pw(igrid)

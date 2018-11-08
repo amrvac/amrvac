@@ -31,6 +31,10 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), allocatable :: wio
       !> Variables, normally center, one level coarser representation
       double precision, dimension(:^D&,:), allocatable :: wcoarse
+      !> Variables, staggered cell face  values
+      double precision, dimension(:^D&,:), allocatable :: ws
+      !> Variables, staggered cell center values
+      double precision, dimension(:^D&,:), allocatable :: wsc
       !> Time-independent magnetic field at cell center and cell interface
       double precision, dimension(:^D&,:,:), allocatable :: B0
       !> Time-independent electric current density at cell center

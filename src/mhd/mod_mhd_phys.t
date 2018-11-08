@@ -498,7 +498,7 @@ contains
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
            tmp(ixO^S)=w(ixO^S,e_) - &
               mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L)
-           if(mhd_glm) tmp(ixO^S)=tmp(ixO^S)-0.5d0*w(ixO^S,psi_)**2
+           if(type_divb==divb_glm2) tmp(ixO^S)=tmp(ixO^S)-0.5d0*w(ixO^S,psi_)**2
            tmp(ixO^S)=gamma_1*tmp(ixO^S)
            where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
          end if
