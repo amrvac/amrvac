@@ -1,147 +1,148 @@
-!=============================================================================
-! amrvacusr.t.jetCloudInteraction
-!=============================================================================
-! Deflection of a jet by a cloud
-! Variation/Simplification of De Gouveia del Pino, E., ApJ 526, 862-873 (1999)
-!   original paper: 3D SPH simulations of adiabatic versus cooling jets 
-!                          into gravitationally stratified isothermal cloud
-!   our approximation: adiabatic HD, 2D to 3D, non-isothermal (pressure-matched) 
-!                          cloud, single tracer added to jet
-!
-! For setup in 2D use: 
-!$AMRVAC_DIR/setup.pl -d=22 -phi=0 -z=0 -g=16,16    -p=hd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
-! For setup in 3D use: 
-!$AMRVAC_DIR/setup.pl -d=33 -phi=0 -z=0 -g=16,16,16 -p=hd -eos=default -nf=1 -ndust=0 -u=nul -arch=default
-
 module mod_usr
   use mod_hd
-
   implicit none
-
-  ! jet to cloud density ratio parameter
-  double precision :: beta_ = 0.04d0
-  ! jet to ambient density contrast
-  double precision :: eta_  = 3.0d0
-  ! ambient sound speed (normalized)
-  double precision :: ca_   = 1.0d0
-  ! jet Mach number
-  double precision :: Ma_   = 12.0d0
-  ! cloud to jet radii ratio
-  double precision :: rc_   = 1.5d0
+  double precision  :: beta, eta_jet, ca, mach, rc
 
 contains
 
   subroutine usr_init()
-
-    usr_init_one_grid => initonegrid_usr
-    usr_special_bc => specialbound_usr
+  
+    call set_coordinate_system("Cartesian_2D")
+    
+    !unit_length        = 1.0d15  ! cm
+    !unit_temperature   = 1.0d6   ! K
+    !unit_numberdensity = 1.0d12  ! cm-3
+    
+    usr_set_parameters  => initglobaldata_usr
+    usr_init_one_grid   => initonegrid_usr
+    usr_special_bc      => specialbound_usr
+    usr_aux_output      => extra_var_output
+    usr_add_aux_names   => extra_var_names_output
 
     call hd_activate()
 
   end subroutine usr_init
+  
+  subroutine initglobaldata_usr
+  
+    ! jet to cloud density ratio parameter
+    beta    = 0.04d0
+    ! jet to ambient density
+    eta_jet = 3.00d0
+    ! ambient sound speed
+    ca      = 1.00d0
+    ! jet Mach number, leave this <= 10 for timestep stability
+    mach    = 10.0d0
+    ! cloud to jet radii ratio
+    rc      = 1.5d0
+    
+  end subroutine initglobaldata_usr
 
-  ! initialize one grid
-  subroutine initonegrid_usr(ixG^L,ix^L,w,x)
+  subroutine initonegrid_usr(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
 
-    integer, intent(in) :: ixG^L,ix^L
-    double precision, intent(in) :: x(ixG^S,1:ndim)
-    double precision, intent(inout) :: w(ixG^S,1:nw)
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: w(ixI^S, 1:nw)
 
-    double precision:: rinlet(ixG^T)
-    double precision:: rcloud(ixG^T)
+    double precision                :: rinlet(ixI^S), rcloud(ixI^S)
+    double precision                :: xc, yc, zc, sigma
 
-    DOUBLE PRECISION :: xc,yc,zc,sigma
-    !----------------------------------------------------------------------------
-    {^IFTWOD
-    rinlet(ix^S)=abs(x(ix^S,2))
-    }
-    {^IFTHREED
-    rinlet(ix^S)=dsqrt(x(ix^S,2)**2+x(ix^S,3)**2)
-    }
 
-    where(rinlet(ix^S)<=1.0d0 .and. abs(x(ix^S,1)-xprobmin1)<=2.5d0)
-       !=== Set Jet ===!
-       w(ix^S,rho_) = 1.0d0
-       w(ix^S,mom(1))  = Ma_*ca_
-       w(ix^S,mom(2))  = 0.0d0
-       {^IFTHREED
-       w(ix^S,mom(3))=0.0d0
-       }
-       w(ix^S,e_)   = ca_**2/(hd_gamma*eta_)
-       w(ix^S, tracer(1)) = 100.0d0
+    rinlet(ixO^S) = abs(x(ixO^S, 2))
+
+    where(rinlet(ixO^S) <= 1.0d0 .and. abs(x(ixO^S, 1) - xprobmin1) <= 2.5d0)
+       ! configure jet
+       w(ixO^S, rho_)   = 1.0d0
+       w(ixO^S, mom(1)) = mach * ca
+       w(ixO^S, mom(2)) = 0.0d0
+       w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
     elsewhere
-       !=== Set Ambient ===!
-       w(ix^S,rho_) = 1.0d0/eta_
-       w(ix^S,mom(1))=0.0d0
-       w(ix^S,mom(2))=0.0d0
-       {^IFTHREED
-       w(ix^S,mom(3))=0.0d0
-       }
-       w(ix^S,e_)   = ca_**2/(hd_gamma*eta_)
-       w(ix^S,tracer(1)) = 0.0d0
+       ! configure ambient medium
+       w(ixO^S, rho_)   = 1.0d0 / eta_jet
+       w(ixO^S, mom(1)) = 0.0d0
+       w(ixO^S, mom(2)) = 0.0d0
+       w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
     endwhere
 
+    ! configure cloud, coordinates xc, yc, zc
+    xc    = 0.0d0
+    yc    = 1.2d0
+    zc    = 0.0d0
+    sigma = 0.75d0 * rc ! Gaussian width
 
-    !=== Set Cloud ===!
-    ! cloud coordinates xc,yc,zc
-    xc = 0.0d0;yc = 1.2d0;zc = 0.0d0;sigma=0.75d0*rc_
+    rcloud(ixO^S) = (x(ixO^S, 1) - xc)**2 + (x(ixO^S, 2) - yc)**2
 
-    rcloud(ix^S)=(x(ix^S,1)-xc)**2+(x(ix^S,2)-yc)**2
-    {^IFTHREED
-    rcloud(ix^S)= rcloud(ix^S) + (x(ix^S,3)-zc)**2
-    }
-
-    where(dsqrt(rcloud(ix^S))<=rc_)
-       w(ix^S,rho_) = 1.0d0/eta_ + (1.0d0/(beta_**2))*dexp(-rcloud(ix^S)/(sigma*sigma))
+    where(sqrt(rcloud(ixO^S)) <= rc)
+       w(ixO^S, rho_) = 1.0d0/eta_jet + (1.0d0/(beta**2)) * exp(-rcloud(ixO^S) / (sigma*sigma))
     endwhere
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call hd_to_conserved(ixI^L, ixO^L, w, x)
 
   end subroutine initonegrid_usr
 
-  ! special boundary types, user defined
-  ! user must assign conservative variables in bounderies
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
-    integer, intent(in) :: ixG^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
-    double precision, intent(inout) :: w(ixG^S,1:nw)
+  subroutine specialbound_usr(qt, ixI^L, ixO^L, iB, w, x)
+    integer, intent(in)             :: ixI^L, ixO^L, iB
+    double precision, intent(in)    :: qt, x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: w(ixI^S, 1:nw)
 
-    logical :: patchw(ixG^T)
-    double precision:: rinlet(ixG^T)
+    double precision                :: rinlet(ixI^S)
+    logical                         :: patchw(ixI^S)
+
 
     select case(iB)
     case(1)
-       ! === Left boundary ===!
+       ! left boundary
 
-       {^IFTWOD
-       rinlet(ixO^S)=abs(x(ixO^S,2))
-       }
-       {^IFTHREED
-       rinlet(ixO^S)=dsqrt(x(ixO^S,2)**2+x(ixO^S,3)**2)
-       }
+       rinlet(ixO^S) = abs(x(ixO^S, 2))
 
-       where(rinlet(ixO^S)<1.0d0)
-          w(ixO^S,rho_) = 1.0d0
-          w(ixO^S,mom(1))  = Ma_*ca_
-          w(ixO^S,mom(2))  = 0.0d0
-          w(ixO^S,e_)   = ca_**2/(hd_gamma*eta_)
-          w(ixO^S,tracer(1)) = 100.0d0
+       where(rinlet(ixO^S) < 1.0d0)
+          w(ixO^S, rho_)   = 1.0d0
+          w(ixO^S, mom(1)) = mach * ca
+          w(ixO^S, mom(2)) = 0.0d0
+          w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
        elsewhere
-          w(ixO^S,rho_) = 1.0d0/eta_
-          w(ixO^S,mom(1))  = 0.0d0
-          w(ixO^S,mom(2))  = 0.0d0
-          w(ixO^S,e_)   = ca_**2/(hd_gamma*eta_)
-          w(ixO^S,tracer(1)) = 0.0d0
+          w(ixO^S, rho_)   = 1.0d0/eta_jet
+          w(ixO^S, mom(1)) = 0.0d0
+          w(ixO^S, mom(2)) = 0.0d0
+          w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
        endwhere
-       {^IFTHREED
-       w(ixO^S,mom(3))=0.0d0
-       }
 
-       call hd_to_conserved(ixG^L,ixO^L,w,x)
+
+       call hd_to_conserved(ixI^L, ixO^L, w, x)
     case default
        call mpistop('boundary not defined')
     end select
 
   end subroutine specialbound_usr
+  
+  subroutine extra_var_output(ixI^L, ixO^L, w, x, normconv)
+    use mod_physics
+    use mod_global_parameters
+    use mod_radiative_cooling
+    integer, intent(in)              :: ixI^L, ixO^L
+    double precision, intent(in)     :: x(ixI^S, 1:ndim)
+    double precision                 :: w(ixI^S, nw+nwauxio), wlocal(ixI^S, 1:nw)
+    double precision                 :: normconv(0:nw+nwauxio)
+
+    double precision                 :: pth(ixI^S)
+    
+    wlocal(ixI^S, 1:nw) = w(ixI^S, 1:nw)
+
+    ! store temperature
+    call phys_get_pthermal(wlocal, x, ixI^L, ixO^L, pth)
+    w(ixO^S, nw+1) = pth(ixO^S) / w(ixO^S, rho_)
+
+    
+  end subroutine extra_var_output
+  
+  subroutine extra_var_names_output(varnames)
+    character(len=*)  :: varnames
+    
+    varnames = "temperature"
+    
+  end subroutine extra_var_names_output
+    
+    
 
 end module mod_usr
