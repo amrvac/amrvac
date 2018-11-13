@@ -74,57 +74,45 @@ select case(icase)
      call mpistop("no such case")
 end select
 
-if(.not. allocated(pw(igrid)%w)) then
+if(.not. allocated(ps(igrid)%w)) then
   
-  ! initialize solution space
-  allocate(pw(igrid)%w(ixG^T,1:nw), &
-           pw(igrid)%wold(ixG^T,1:nw), &
-           pw(igrid)%w1(ixG^T,1:nw), &
-           pw(igrid)%wcoarse(ixCoG^S,1:nw))
-  
-  ! wio for visualization data
-  allocate(pw(igrid)%wio(ixG^T,1:nw+nwauxio))
-  
+  ! allocate arrays for solution and space
+  call alloc_state(ps(igrid), ixG^LL, ixGext^L, .true.)
+  ! allocate arrays for old solution
+  call alloc_state(pso(igrid), ixG^LL, ixGext^L, .false.)
+  ! allocate arrays for temp solution 1
+  call alloc_state(ps1(igrid), ixG^LL, ixGext^L, .false.)
+  ! allocate arrays for one level coarser solution
+  call alloc_state(psc(igrid), ixCoG^L, ixCoG^L, .true.)
+
   ! allocate temperary solution space
   select case (time_integrator)
   case("threestep","fourstep","jameson","twostep_trapezoidal")
-    allocate(pw(igrid)%w2(ixG^T,1:nw))
+    call alloc_state(ps2(igrid), ixG^LL, ixGext^L, .false.)
   case("rk4","ssprk43")
-    allocate(pw(igrid)%w2(ixG^T,1:nw))
-    allocate(pw(igrid)%w3(ixG^T,1:nw))
+    call alloc_state(ps2(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(ps3(igrid), ixG^LL, ixGext^L, .false.)
   case("ssprk54")
-    allocate(pw(igrid)%w2(ixG^T,1:nw))
-    allocate(pw(igrid)%w3(ixG^T,1:nw))
-    allocate(pw(igrid)%w4(ixG^T,1:nw))
+    call alloc_state(ps2(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(ps3(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(ps4(igrid), ixG^LL, ixGext^L, .false.)
   end select
-  
-  ! allocate coordinates
-  allocate(pw(igrid)%x(ixG^T,1:ndim), &
-           pw(igrid)%xcoarse(ixCoG^S,1:ndim))
-  if(.not.slab)then
-      allocate(pw(igrid)%dx(ixGext^S,1:ndim), &
-               pw(igrid)%dxcoarse(ixCoG^S,1:ndim),&
-               pw(igrid)%ds(ixGext^S,1:ndim))
-      allocate(pw(igrid)%dvolume(ixGext^S), &
-               pw(igrid)%dvolumecoarse(ixCoG^S))
-      allocate(pw(igrid)%surfaceC(ixG^T,1:ndim), &
-               pw(igrid)%surface(ixG^T,1:ndim))
-  endif
 end if
 
-pw(igrid)%w=0.d0
-pw(igrid)%wold=0.d0
-pw(igrid)%w1=0.d0
-pw(igrid)%wcoarse=0.d0
-pw(igrid)%igrid=igrid
-pw(igrid)%wio=0.d0
+ps(igrid)%w=0.d0
+ps1(igrid)%w=0.d0
+psc(igrid)%w=0.d0
+ps(igrid)%igrid=igrid
 
-! wb is w by default
-pw(igrid)%wb=>pw(igrid)%w
+if(stagger_grid) then
+  ps(igrid)%ws=0.d0
+  ps1(igrid)%ws=0.d0
+  psc(igrid)%ws=0.d0
+end if
 
 
 ! block pointer to current block
-block=>pw(igrid)
+block=>ps(igrid)
 
 if(phys_energy .and. solve_internal_e) then
   block%e_is_internal=.true.
@@ -149,17 +137,17 @@ dxlevel(:)=dx(:,level)
 ^D&dx^D=rnode(rpdx^D_,igrid)\
 ^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
 {do ix=ixGlo^D,ixGhi^D
-   pw(igrid)%x(ix^D%ixG^T,^D)=rXmin^D+(dble(ix)-half)*dx^D
+   ps(igrid)%x(ix^D%ixG^T,^D)=rXmin^D+(dble(ix)-half)*dx^D
 end do\}
 ^D&dx^D=2.0d0*rnode(rpdx^D_,igrid)\
 ^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
 {do ix=ixCoGmin^D,ixCoGmax^D
-   pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
+   psc(igrid)%x(ix^D%ixCoG^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
 end do\}
 
 if (.not.slab) then
-  ^D&pw(igrid)%dx(ixGext^S,^D)=rnode(rpdx^D_,igrid);
-  ^D&pw(igrid)%dxcoarse(ixCoG^S,^D)=2.0d0*rnode(rpdx^D_,igrid);
+  ^D&ps(igrid)%dx(ixGext^S,^D)=rnode(rpdx^D_,igrid);
+  ^D&psc(igrid)%dx(ixCoG^S,^D)=2.0d0*rnode(rpdx^D_,igrid);
   ^D&dx^D=rnode(rpdx^D_,igrid)\
   ^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
   {do ix=ixGextmin^D,ixGextmax^D
@@ -180,14 +168,14 @@ if(any(stretched_dim)) then
     ixshift=(ig^D-1)*block_nx^D-nghostcells
     do ix=ixGextmin^D,ixGextmax^D
       index=ixshift+ix
-      pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
+      ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
     enddo
     igCo^D=(ig^D-1)/2
     ixshift=igCo^D*block_nx^D+(1-modulo(ig^D,2))*block_nx^D/2-nghostcells
     do ix=ixCoGmin^D,ixCoGmax^D
       index=ixshift+ix
-      pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
-      pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=xprobmin^D+dxfirst_1mq(level-1,^D)&
+      psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
+      psc(igrid)%x(ix^D%ixCoG^S,^D)=xprobmin^D+dxfirst_1mq(level-1,^D)&
                                          *(1.0d0-qstretch(level-1,^D)**(index-1)) &
                   + 0.5d0*dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
     end do
@@ -196,43 +184,43 @@ if(any(stretched_dim)) then
     ! first fill the mesh
     summeddx=0.0d0
     do ix=ixMlo^D,ixMhi^D
-       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
-       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
     enddo
     ! then ghost cells to left
     summeddx=0.0d0
     do ix=nghostcells,1,-1
-       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
-       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*ps(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
     enddo
     ! then ghost cells to right
     summeddx=0.0d0
     do ix=ixGhi^D-nghostcells+1,ixGhi^D
-       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
-       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
     enddo
     select case(icase)
       case(0)
         ! if even number of ghost cells: xext is just copy of local x
-        xext(ixGext^S,^D)=pw(igrid)%x(ixGext^S,^D)
+        xext(ixGext^S,^D)=ps(igrid)%x(ixGext^S,^D)
       case(1)
         ! if uneven number of ghost cells: extra layer left/right
         summeddx=0.0d0
         do ix=ixMlo^D,ixMhi^D
-          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixGext^S,^D)
-         summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixGext^S,^D)
+         summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
         enddo
         ! then ghost cells to left
         summeddx=0.0d0
         do ix=nghostcells,ixGextmin^D,-1
-          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dx(ix^D%ixGext^S,^D)
-          summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*ps(igrid)%dx(ix^D%ixGext^S,^D)
+          summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
         enddo
        ! then ghost cells to right
        summeddx=0.0d0
        do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-          xext(ix^D%ixGext^S,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixGext^S,^D)
-          summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+          xext(ix^D%ixGext^S,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixGext^S,^D)
+          summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
        enddo
       case default
         call mpistop("no such case")
@@ -258,66 +246,66 @@ if(any(stretched_dim)) then
       ixshift=(ig^D-1)*block_nx^D-nghostcells
       do ix=ixGextmin^D,ixGextmax^D
          index=ixshift+ix
-         pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(offset-index)
+         ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(offset-index)
       enddo
       ixshift=(nstretchedblocks(level,^D)/2-ig^D)*(block_nx^D/2)+block_nx^D/2+nghostcells
       do ix=ixCoGmin^D,ixCoGmax^D
          index=ixshift-ix
-         pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**index
+         psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**index
       enddo
       ! last block: to modify ghost cells!!!
       if(ig^D==nstretchedblocks(level,^D)/2)then
         if(ng^D(level)==nstretchedblocks(level,^D))then
            ! if middle blocks do not exist then use symmetry
            do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-              pw(igrid)%dx(ix^D%ixG^T,^D)= &
-              pw(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixG^T,^D)
+              ps(igrid)%dx(ix^D%ixG^T,^D)= &
+              ps(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixG^T,^D)
            enddo
            do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
-              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)= &
-              pw(igrid)%dxcoarse(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
+              psc(igrid)%dx(ix^D%ixCoG^S,^D)= &
+              psc(igrid)%dx(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
            enddo
         else
            ! if middle blocks exist then use same as middle blocks: 
            do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-              pw(igrid)%dx(ix^D%ixG^T,^D)=dxmid(level,^D)
+              ps(igrid)%dx(ix^D%ixG^T,^D)=dxmid(level,^D)
            enddo
            do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
-              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
+              psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
            enddo
         endif
       endif
       ! first block: make ghost cells symmetric (to allow periodicity)
       if(ig^D==1)then
          do ix=ixGextmin^D,nghostcells
-            pw(igrid)%dx(ix^D%ixGext^S,^D)=pw(igrid)%dx(2*nghostcells+1-ix^D%ixGext^S,^D)
+            ps(igrid)%dx(ix^D%ixGext^S,^D)=ps(igrid)%dx(2*nghostcells+1-ix^D%ixGext^S,^D)
          enddo
          do ix=1,nghostcells
-            pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=pw(igrid)%dxcoarse(2*nghostcells+1-ix^D%ixCoG^S,^D)
+            psc(igrid)%dx(ix^D%ixCoG^S,^D)=psc(igrid)%dx(2*nghostcells+1-ix^D%ixCoG^S,^D)
          enddo
       endif
     else 
       if (ig^D<=ng^D(level)-nstretchedblocks(level,^D)/2) then
          ! keep uniform
-         pw(igrid)%dx(ixGext^S,^D)=dxmid(level,^D)
-         pw(igrid)%dxcoarse(ixCoG^S,^D)=dxmid(level-1,^D)
+         ps(igrid)%dx(ixGext^S,^D)=dxmid(level,^D)
+         psc(igrid)%dx(ixCoG^S,^D)=dxmid(level-1,^D)
          rnode(rpxmin^D_,igrid)=xprobmin^D+xstretch^D+(ig^D-nstretchedblocks(level,^D)/2-1)*block_nx^D*dxmid(level,^D)
          rnode(rpxmax^D_,igrid)=xprobmin^D+xstretch^D+(ig^D-nstretchedblocks(level,^D)/2)  *block_nx^D*dxmid(level,^D)
          ! first and last block: to modify the ghost cells!!!
          if(ig^D==nstretchedblocks(level,^D)/2+1)then
             do ix=ixGextmin^D,nghostcells
-               pw(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(nghostcells-ix)
+               ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(nghostcells-ix)
             enddo
             do ix=1,nghostcells
-               pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(nghostcells-ix)
+               psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(nghostcells-ix)
             enddo
          endif
          if(ig^D==ng^D(level)-nstretchedblocks(level,^D))then
             do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-              pw(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
+              ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
             enddo
             do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
-              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(ix-ixCoGmax^D+nghostcells-1)
+              psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(ix-ixCoGmax^D+nghostcells-1)
             enddo
          endif
       else
@@ -335,40 +323,40 @@ if(any(stretched_dim)) then
          ixshift=(ig^D-1)*block_nx^D-nghostcells-offset
          do ix=ixGextmin^D,ixGextmax^D
             index=ixshift+ix
-            pw(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
+            ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
          enddo
          ixshift=(ig^D+nstretchedblocks(level,^D)/2-ng^D(level)-1)*(block_nx^D/2)-nghostcells
          do ix=ixCoGmin^D,ixCoGmax^D
             index=ixshift+ix
-            pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
+            psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
          enddo
          ! first block: modify ghost cells!!!
          if(ig^D==ng^D(level)-nstretchedblocks(level,^D)+1)then
             if(ng^D(level)==nstretchedblocks(level,^D))then
                ! if middle blocks do not exist then use symmetry
                do ix=ixGextmin^D,nghostcells
-                  pw(igrid)%dx(ix^D%ixGext^S,^D)=pw(igrid)%dx(2*nghostcells+1-ix^D%ixGext^S,^D)
+                  ps(igrid)%dx(ix^D%ixGext^S,^D)=ps(igrid)%dx(2*nghostcells+1-ix^D%ixGext^S,^D)
                enddo
                do ix=1,nghostcells
-                  pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=pw(igrid)%dxcoarse(2*nghostcells+1-ix^D%ixCoG^S,^D)
+                  psc(igrid)%dx(ix^D%ixCoG^S,^D)=psc(igrid)%dx(2*nghostcells+1-ix^D%ixCoG^S,^D)
                enddo
             else
                ! if middle blocks exist then use same as middle blocks: 
                do ix=ixGextmin^D,nghostcells
-                  pw(igrid)%dx(ix^D%ixGext^S,^D)=dxmid(level,^D)
+                  ps(igrid)%dx(ix^D%ixGext^S,^D)=dxmid(level,^D)
                enddo
                do ix=1,nghostcells
-                  pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
+                  psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
                enddo
             endif
          endif
          ! last block: make ghost cells symmetric (to allow periodicity)
          if(ig^D==ng^D(level))then
             do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-               pw(igrid)%dx(ix^D%ixGext^S,^D)=pw(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixGext^S,^D)
+               ps(igrid)%dx(ix^D%ixGext^S,^D)=ps(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixGext^S,^D)
             enddo
            do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
-              pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)=pw(igrid)%dxcoarse(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
+              psc(igrid)%dx(ix^D%ixCoG^S,^D)=psc(igrid)%dx(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
            enddo
          endif
       endif
@@ -378,62 +366,62 @@ if(any(stretched_dim)) then
     ! first fill the mesh
     summeddx=0.0d0
     do ix=ixMlo^D,ixMhi^D
-       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
-       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
     enddo
     ! then ghost cells to left
     summeddx=0.0d0
     do ix=nghostcells,1,-1
-       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
-       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*ps(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
     enddo
     ! then ghost cells to right
     summeddx=0.0d0
     do ix=ixGhi^D-nghostcells+1,ixGhi^D
-       pw(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixG^T,^D)
-       summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixG^T,^D)
+       summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
     enddo
     ! and next for the coarse representation
     ! first fill the mesh
     summeddx=0.0d0
     do ix=nghostcells+1,ixCoGmax^D-nghostcells
-       pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)
-       summeddx=summeddx+pw(igrid)%dxcoarse(ix^D%ifirst,^D)
+       psc(igrid)%x(ix^D%ixCoG^S,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*psc(igrid)%dx(ix^D%ixCoG^S,^D)
+       summeddx=summeddx+psc(igrid)%dx(ix^D%ifirst,^D)
     enddo
     ! then ghost cells to left
     summeddx=0.0d0
     do ix=nghostcells,1,-1
-       pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)
-       summeddx=summeddx+pw(igrid)%dxcoarse(ix^D%ifirst,^D)
+       psc(igrid)%x(ix^D%ixCoG^S,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*psc(igrid)%dx(ix^D%ixCoG^S,^D)
+       summeddx=summeddx+psc(igrid)%dx(ix^D%ifirst,^D)
     enddo
     ! then ghost cells to right
     summeddx=0.0d0
     do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
-       pw(igrid)%xcoarse(ix^D%ixCoG^S,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dxcoarse(ix^D%ixCoG^S,^D)
-       summeddx=summeddx+pw(igrid)%dxcoarse(ix^D%ifirst,^D)
+       psc(igrid)%x(ix^D%ixCoG^S,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*psc(igrid)%dx(ix^D%ixCoG^S,^D)
+       summeddx=summeddx+psc(igrid)%dx(ix^D%ifirst,^D)
     enddo
     select case(icase)
       case(0)
         ! if even number of ghost cells: xext is just copy of local x
-        xext(ixGext^S,^D)=pw(igrid)%x(ixGext^S,^D)
+        xext(ixGext^S,^D)=ps(igrid)%x(ixGext^S,^D)
       case(1)
         ! if uneven number of ghost cells: extra layer left/right
         summeddx=0.0d0
         do ix=ixMlo^D,ixMhi^D
-          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixGext^S,^D)
-         summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixGext^S,^D)
+         summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
         enddo
         ! then ghost cells to left
         summeddx=0.0d0
         do ix=nghostcells,ixGextmin^D,-1
-          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*pw(igrid)%dx(ix^D%ixGext^S,^D)
-          summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+          xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)-summeddx-0.5d0*ps(igrid)%dx(ix^D%ixGext^S,^D)
+          summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
         enddo
        ! then ghost cells to right
        summeddx=0.0d0
        do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-          xext(ix^D%ixGext^S,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*pw(igrid)%dx(ix^D%ixGext^S,^D)
-          summeddx=summeddx+pw(igrid)%dx(ix^D%ifirst,^D)
+          xext(ix^D%ixGext^S,^D)=rnode(rpxmax^D_,igrid)+summeddx+0.5d0*ps(igrid)%dx(ix^D%ixGext^S,^D)
+          summeddx=summeddx+ps(igrid)%dx(ix^D%ifirst,^D)
        enddo
       case default
         call mpistop("no such case")
@@ -445,34 +433,34 @@ if (.not.slab) then
    call fillgeo(igrid,ixG^LL)
    select case (typeaxial)
       case ("slabstretch")
-         pw(igrid)%dvolume(ixGext^S)= {^D&pw(igrid)%dx(ixGext^S,^D)|*}
-         pw(igrid)%dvolumecoarse(ixCoG^S)= {^D&pw(igrid)%dxcoarse(ixCoG^S,^D)|*}
-         pw(igrid)%ds(ixGext^S,1:ndim)=pw(igrid)%dx(ixGext^S,1:ndim)
+         ps(igrid)%dvolume(ixGext^S)= {^D&ps(igrid)%dx(ixGext^S,^D)|*}
+         psc(igrid)%dvolume(ixCoG^S)= {^D&psc(igrid)%dx(ixCoG^S,^D)|*}
+         ps(igrid)%ds(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       case ("spherical")
-         pw(igrid)%dvolume(ixGext^S)=(xext(ixGext^S,1)**2 &
-                                   +pw(igrid)%dx(ixGext^S,1)**2/12.0d0)*&
-                 pw(igrid)%dx(ixGext^S,1){^NOONED &
+         ps(igrid)%dvolume(ixGext^S)=(xext(ixGext^S,1)**2 &
+                                   +ps(igrid)%dx(ixGext^S,1)**2/12.0d0)*&
+                 ps(igrid)%dx(ixGext^S,1){^NOONED &
                 *two*dabs(dsin(xext(ixGext^S,2))) &
-                *dsin(half*pw(igrid)%dx(ixGext^S,2))}{^IFTHREED*pw(igrid)%dx(ixGext^S,3)}
-         pw(igrid)%dvolumecoarse(ixCoG^S)=(pw(igrid)%xcoarse(ixCoG^S,1)**2 &
-                                          +pw(igrid)%dxcoarse(ixCoG^S,1)**2/12.0d0)*&
-                 pw(igrid)%dxcoarse(ixCoG^S,1){^NOONED &
-                *two*dabs(dsin(pw(igrid)%xcoarse(ixCoG^S,2))) &
-                *dsin(half*pw(igrid)%dxcoarse(ixCoG^S,2))}{^IFTHREED*pw(igrid)%dxcoarse(ixCoG^S,3)}
-         pw(igrid)%ds(ixGext^S,1)=pw(igrid)%dx(ixGext^S,1)
-         {^NOONED pw(igrid)%ds(ixGext^S,2)=xext(ixGext^S,1)*pw(igrid)%dx(ixGext^S,2)}
-         {^IFTHREED pw(igrid)%ds(ixGext^S,3)= &
-                  xext(ixGext^S,1)*dsin(xext(ixGext^S,2))*pw(igrid)%dx(ixGext^S,3)}
+                *dsin(half*ps(igrid)%dx(ixGext^S,2))}{^IFTHREED*ps(igrid)%dx(ixGext^S,3)}
+         psc(igrid)%dvolume(ixCoG^S)=(psc(igrid)%x(ixCoG^S,1)**2 &
+                                          +psc(igrid)%dx(ixCoG^S,1)**2/12.0d0)*&
+                 psc(igrid)%dx(ixCoG^S,1){^NOONED &
+                *two*dabs(dsin(psc(igrid)%x(ixCoG^S,2))) &
+                *dsin(half*psc(igrid)%dx(ixCoG^S,2))}{^IFTHREED*psc(igrid)%dx(ixCoG^S,3)}
+         ps(igrid)%ds(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
+         {^NOONED ps(igrid)%ds(ixGext^S,2)=xext(ixGext^S,1)*ps(igrid)%dx(ixGext^S,2)}
+         {^IFTHREED ps(igrid)%ds(ixGext^S,3)= &
+                  xext(ixGext^S,1)*dsin(xext(ixGext^S,2))*ps(igrid)%dx(ixGext^S,3)}
       case ("cylindrical")
-         pw(igrid)%dvolume(ixGext^S)=dabs(xext(ixGext^S,1)) &
-              *pw(igrid)%dx(ixGext^S,1){^DE&*pw(igrid)%dx(ixGext^S,^DE) }
-         pw(igrid)%dvolumecoarse(ixCoG^S)=dabs(pw(igrid)%xcoarse(ixCoG^S,1)) &
-              *pw(igrid)%dxcoarse(ixCoG^S,1){^DE&*pw(igrid)%dxcoarse(ixCoG^S,^DE) }
-         pw(igrid)%ds(ixGext^S,r_)=pw(igrid)%dx(ixGext^S,r_)
-         if(z_>0.and.z_<=ndim) pw(igrid)%ds(ixGext^S,z_)=pw(igrid)%dx(ixGext^S,z_)
+         ps(igrid)%dvolume(ixGext^S)=dabs(xext(ixGext^S,1)) &
+              *ps(igrid)%dx(ixGext^S,1){^DE&*ps(igrid)%dx(ixGext^S,^DE) }
+         psc(igrid)%dvolume(ixCoG^S)=dabs(psc(igrid)%x(ixCoG^S,1)) &
+              *psc(igrid)%dx(ixCoG^S,1){^DE&*psc(igrid)%dx(ixCoG^S,^DE) }
+         ps(igrid)%ds(ixGext^S,r_)=ps(igrid)%dx(ixGext^S,r_)
+         if(z_>0.and.z_<=ndim) ps(igrid)%ds(ixGext^S,z_)=ps(igrid)%dx(ixGext^S,z_)
          if (phi_ > 0) then
-           {if (^DE==phi_) pw(igrid)%ds(ixGext^S,^DE)= &
-                    xext(ixGext^S,1)*pw(igrid)%dx(ixGext^S,^DE)\}
+           {if (^DE==phi_) ps(igrid)%ds(ixGext^S,^DE)= &
+                    xext(ixGext^S,1)*ps(igrid)%dx(ixGext^S,^DE)\}
          end if
       case default
          call mpistop("Sorry, typeaxial unknown")
@@ -486,7 +474,7 @@ if (B0field) then
 end if
 
 ! find the blocks on the boundaries
-pw(igrid)%is_physical_boundary=.false.
+ps(igrid)%is_physical_boundary=.false.
 {
 do i^D=-1,1
   if(i^D==0) cycle
@@ -497,27 +485,73 @@ do i^D=-1,1
   if (ign^D > ng^D(level)) then
      if(phi_ > 0 .and. poleB(2,^D)) then
        ! if at a pole, the boundary is not physical boundary
-       pw(igrid)%is_physical_boundary(2*^D)=.false.
+       ps(igrid)%is_physical_boundary(2*^D)=.false.
      else
-       pw(igrid)%is_physical_boundary(2*^D)=.true.
+       ps(igrid)%is_physical_boundary(2*^D)=.true.
      end if
   else if (ign^D < 1) then
      if(phi_ > 0 .and. poleB(1,^D)) then
        ! if at a pole, the boundary is not physical boundary
-       pw(igrid)%is_physical_boundary(2*^D-1)=.false.
+       ps(igrid)%is_physical_boundary(2*^D-1)=.false.
      else
-       pw(igrid)%is_physical_boundary(2*^D-1)=.true.
+       ps(igrid)%is_physical_boundary(2*^D-1)=.true.
      end if
   end if
 end do
 \}
-if(any(pw(igrid)%is_physical_boundary)) then
+if(any(ps(igrid)%is_physical_boundary)) then
   phyboundblock(igrid)=.true.
 else
   phyboundblock(igrid)=.false.
 end if
 
 end subroutine alloc_node
+!=============================================================================
+subroutine alloc_state(s, ixG^L, ixGext^L, need_x)
+use mod_global_parameters
+use mod_geometry
+type(state) :: s
+integer, intent(in) :: ixG^L, ixGext^L
+logical, intent(in) :: need_x
+integer             :: ixGs^L
+!-----------------------------------------------------------------------------
+allocate(s%w(ixG^S,1:nw))
+if(stagger_grid) then
+  {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
+  allocate(s%ws(ixGs^S,1:nws))
+end if
+if(need_x) then
+  ! allocate coordinates
+  allocate(s%x(ixG^S,1:ndim))
+  if(.not.slab)then
+    allocate(s%dx(ixGext^S,1:ndim), &
+             s%ds(ixGext^S,1:ndim))
+    allocate(s%dvolume(ixGext^S))
+    allocate(s%surfaceC(ixG^S,1:ndim), &
+             s%surface(ixG^S,1:ndim))
+  endif
+end if
+end subroutine alloc_state
+!=============================================================================
+subroutine dealloc_state(s,need_x)
+use mod_global_parameters
+type(state) :: s
+logical, intent(in) :: need_x
+!-----------------------------------------------------------------------------
+deallocate(s%w)
+if(stagger_grid) then
+  deallocate(s%ws)
+end if
+if(need_x) then
+  ! deallocate coordinates
+  deallocate(s%x)
+  if(.not.slab)then
+    deallocate(s%dx,s%ds)
+    deallocate(s%dvolume)
+    deallocate(s%surfaceC,s%surface)
+  endif
+end if
+end subroutine dealloc_state
 !=============================================================================
 subroutine dealloc_node(igrid)
 
@@ -530,25 +564,22 @@ if (igrid==0) then
    call mpistop("trying to delete a non-existing grid in dealloc_node")
 end if
 
-deallocate(pw(igrid)%w,pw(igrid)%w1,pw(igrid)%x)
-deallocate(pw(igrid)%wcoarse,pw(igrid)%xcoarse)
-deallocate(pw(igrid)%wold,pw(igrid)%wio)
+call dealloc_state(ps(igrid),.true.)
+call dealloc_state(ps1(igrid),.false.)
+call dealloc_state(psc(igrid),.false.)
+call dealloc_state(pso(igrid),.false.)
 ! deallocate temperary solution space
 select case (time_integrator)
 case("threestep","fourstep","jameson","twostep_trapezoidal")
-  deallocate(pw(igrid)%w2)
+  call dealloc_state(ps2(igrid),.false.)
 case("rk4","ssprk43")
-  deallocate(pw(igrid)%w2)
-  deallocate(pw(igrid)%w3)
+  call dealloc_state(ps2(igrid),.false.)
+  call dealloc_state(ps3(igrid),.false.)
 case("ssprk54")
-  deallocate(pw(igrid)%w2)
-  deallocate(pw(igrid)%w3)
-  deallocate(pw(igrid)%w4)
+  call dealloc_state(ps2(igrid),.false.)
+  call dealloc_state(ps3(igrid),.false.)
+  call dealloc_state(ps4(igrid),.false.)
 end select
-if(allocated(pw(igrid)%w2)) deallocate(pw(igrid)%w2)
-if(allocated(pw(igrid)%w3)) deallocate(pw(igrid)%w3)
-
-if (.not.slab) call putgridgeo(igrid)
 
 if (B0field) call dealloc_B0_grid(igrid)
 

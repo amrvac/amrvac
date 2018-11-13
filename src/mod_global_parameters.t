@@ -90,6 +90,12 @@ module mod_global_parameters
   !> Upper index of grid block arrays
   integer :: ixGhi^D
 
+  !> Lower index of stagger grid block arrays (always 0)
+  integer, parameter :: {ixGslo^D = 1|, }
+
+  !> Upper index of stagger grid block arrays
+  integer :: ixGshi^D
+
   !> Number of ghost cells surrounding a grid
   integer :: nghostcells
 
@@ -391,6 +397,8 @@ module mod_global_parameters
 
   !> If true, rebuild the AMR grid upon restarting
   logical :: reset_grid
+  !> True for using stagger grid
+  logical :: stagger_grid=.false.
 
   !> Number of cells as buffer zone
   !> \todo is it necessary?

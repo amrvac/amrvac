@@ -796,6 +796,7 @@ contains
 
     ! full block size including ghostcells
     {ixGhi^D = block_nx^D + 2*nghostcells\}
+    {ixGshi^D = ixGhi^D\}
 
     nx_vec = [{domain_nx^D|, }]
     block_nx_vec = [{block_nx^D|, }]
@@ -1195,6 +1196,8 @@ contains
     call MPI_FILE_WRITE(fh, snapshotnext+1, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, slicenext, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, collapsenext, 1, MPI_INTEGER, st, er)
+    ! Write stagger grid mark
+    call MPI_FILE_WRITE(fh, stagger_grid, 1, MPI_LOGICAL, st, er)
 
   end subroutine snapshot_write_header
 
@@ -1214,6 +1217,7 @@ contains
     double precision, allocatable         :: params(:)
     character(len=name_len)               :: phys_name
     integer                               :: er, n_par, tmp_int
+    logical                               :: stagger_mark_dat
 
     ! Version number
     call MPI_FILE_READ(fh, version, 1, MPI_INTEGER, st, er)
@@ -1346,6 +1350,14 @@ contains
     ! Still used in convert
     snapshotini = snapshotnext-1
 
+    if (version > 4) then
+      call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
+      if (stagger_grid .neqv. stagger_mark_dat) then
+        write(*,*) "Error: stagger grid flag differs from restart data:", stagger_mark_dat
+        call mpistop("change parameter to use stagger grid")
+      end if
+    end if
+
   end subroutine snapshot_read_header
 
   !> Compute number of elements in index range
@@ -1376,9 +1388,9 @@ contains
     if(save_physical_boundary) then
       do idim=1,ndim
         ! Include ghost cells on lower boundary
-        if(pw(igrid)%is_physical_boundary(2*idim-1)) n_ghost(idim)=nghostcells
+        if(ps(igrid)%is_physical_boundary(2*idim-1)) n_ghost(idim)=nghostcells
         ! Include ghost cells on upper boundary
-        if(pw(igrid)%is_physical_boundary(2*idim)) n_ghost(ndim+idim)=nghostcells
+        if(ps(igrid)%is_physical_boundary(2*idim)) n_ghost(ndim+idim)=nghostcells
       end do
     end if
 
@@ -1386,6 +1398,9 @@ contains
     {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
 
     n_values = count_ix(ixO^L) * nw
+    if(stagger_grid) then
+      n_values=n_values+ product([ ixOmax^D ] - [ ixOmin^D ] + 2)*nws
+    end if
   end subroutine block_shape_io
 
   subroutine write_snapshot
@@ -1395,7 +1410,7 @@ contains
 
     integer                       :: file_handle, igrid, Morton_no, iwrite
     integer                       :: ipe, ix_buffer(2*ndim+1), n_values
-    integer                       :: ixO^L, n_ghost(2*ndim)
+    integer                       :: ixO^L, n_ghost(2*ndim), n_values_stagger
     integer                       :: iorecvstatus(MPI_STATUS_SIZE)
     integer                       :: ioastatus(MPI_STATUS_SIZE)
     integer                       :: igrecvstatus(MPI_STATUS_SIZE)
@@ -1414,6 +1429,9 @@ contains
 
     ! Allocate send/receive buffer
     n_values = count_ix(ixG^LL) * nw
+    if(stagger_grid) then
+      n_values = n_values + count_ix(ixGs^LL) * nws
+    end if
     allocate(w_buffer(n_values))
 
     ! Allocate arrays with information about grid blocks
@@ -1484,15 +1502,23 @@ contains
         ! which might be used in getaux
         saveigrid=igrid
         ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
-        block=>pw(igrid)
-        call phys_get_aux(.true., pw(igrid)%w, pw(igrid)%x, ixG^LL, &
+        block=>ps(igrid)
+        call phys_get_aux(.true., ps(igrid)%w, ps(igrid)%x, ixG^LL, &
              ixM^LL^LADD1, "write_snapshot")
       endif
 
       call block_shape_io(igrid, n_ghost, ixO^L, n_values)
       ix_buffer(1) = n_values
       ix_buffer(2:) = n_ghost
-      w_buffer(1:n_values) = pack(pw(igrid)%w(ixO^S, 1:nw), .true.)
+      if(stagger_grid) then
+        n_values_stagger = n_values - product([ ixOmax^D ] - [ ixOmin^D ] + 2)*nws
+        w_buffer(1:n_values_stagger) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
+        {ixOmin^D = ixMlo^D - n_ghost(^D) - 1\}
+        {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
+        w_buffer(n_values_stagger+1:n_values) = pack(ps(igrid)%ws(ixO^S, 1:nws), .true.)
+      else
+        w_buffer(1:n_values) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
+      end if
 
       if (mype /= 0) then
         call MPI_SEND(ix_buffer, 2*ndim+1, &
@@ -1564,8 +1590,8 @@ contains
     use mod_global_parameters
     use mod_slice, only: slicenext
 
-    integer                       :: ix_buffer(2*ndim+1), n_values
-    integer                       :: ixO^L
+    integer                       :: ix_buffer(2*ndim+1), n_values, n_values_stagger
+    integer                       :: ixO^L, ixOs^L
     integer                       :: file_handle, amode, igrid, Morton_no, iread
     integer                       :: istatus(MPI_STATUS_SIZE)
     integer                       :: iorecvstatus(MPI_STATUS_SIZE)
@@ -1574,7 +1600,7 @@ contains
     integer(MPI_OFFSET_KIND)      :: offset_tree_info
     integer(MPI_OFFSET_KIND)      :: offset_block_data
     double precision, allocatable :: w_buffer(:)
-    double precision, dimension(:^D&,:), allocatable :: w
+    double precision, dimension(:^D&,:), allocatable :: w, ws
 
     if (mype==0) then
       inquire(file=trim(restart_from_file), exist=fexist)
@@ -1623,6 +1649,10 @@ contains
 
     ! Allocate send/receive buffer
     n_values = count_ix(ixG^LL) * nw_found
+    if(stagger_grid) then
+      n_values = n_values + count_ix(ixGs^LL) * nws
+      allocate(ws(ixGs^T,1:nws))
+    end if
     allocate(w_buffer(n_values))
     allocate(w(ixG^T,1:nw_found))
 
@@ -1653,31 +1683,44 @@ contains
                MPI_INTEGER, istatus,ierrmpi)
 
           ! Construct ixO^L array from number of ghost cells
-          {ixOmin^D = ixMlo^D + ix_buffer(^D)\}
+          {ixOmin^D = ixMlo^D - ix_buffer(^D)\}
           {ixOmax^D = ixMhi^D + ix_buffer(ndim+^D)\}
           n_values = count_ix(ixO^L) * nw_found
+          if(stagger_grid) then
+            {ixOsmin^D = ixOmin^D - 1\}
+            {ixOsmax^D = ixOmax^D\}
+            n_values_stagger = n_values
+            n_values = n_values + count_ix(ixOs^L) * nws
+          end if
 
           call MPI_FILE_READ(file_handle, w_buffer, n_values, &
                MPI_DOUBLE_PRECISION, istatus, ierrmpi)
 
           if (mype == ipe) then ! Root task
             igrid=sfc_to_igrid(Morton_no)
-            w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
-                 shape(w(ixO^S, 1:nw_found)))
+            if(stagger_grid) then
+              w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
+                   shape(w(ixO^S, 1:nw_found)))
+              ps(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
+                   shape(ws(ixOs^S, 1:nws)))
+            else 
+              w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
+                   shape(w(ixO^S, 1:nw_found)))
+            end if
             if (nw_found<nw) then
               if (associated(usr_transform_w)) then
-                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
               else
-                pw(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
+                ps(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
               end if
             else if (nw_found>nw) then
               if (associated(usr_transform_w)) then
-                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
               else
-                pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+                ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
               end if
             else
-              pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+              ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
             end if
           else
             call MPI_SEND([ ixO^L, n_values ], 2*ndim+1, &
@@ -1705,22 +1748,32 @@ contains
         call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION,&
              0, itag, icomm, iorecvstatus, ierrmpi)
 
-        w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
-             shape(w(ixO^S, 1:nw_found)))
+        if(stagger_grid) then
+          n_values_stagger = n_values - count_ix(ixO^L) * nw_found
+          {ixOsmin^D = ixOmin^D - 1\}
+          {ixOsmax^D = ixOmax^D\}
+          w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
+               shape(w(ixO^S, 1:nw_found)))
+          ps(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
+               shape(ws(ixOs^S, 1:nws)))
+        else
+          w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
+               shape(w(ixO^S, 1:nw_found)))
+        end if
         if (nw_found<nw) then
           if (associated(usr_transform_w)) then
-            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
           else
-            pw(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
+            ps(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
           end if
         else if (nw_found>nw) then
           if (associated(usr_transform_w)) then
-            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
           else
-            pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+            ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
           end if
         else
-          pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+          ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
         end if
       end do
     end if
@@ -1832,7 +1885,7 @@ contains
         iread=iread+1
         offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
              *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-        call MPI_FILE_READ_AT(fh,offset,pw(igrid)%w,1,type_block_io, &
+        call MPI_FILE_READ_AT(fh,offset,ps(igrid)%w,1,type_block_io, &
              istatus,ierrmpi)
       end do
       if (npe>1) then
@@ -1857,7 +1910,7 @@ contains
         igrid=sfc_to_igrid(Morton_no)
         itag=Morton_no
         inrecv=inrecv+1
-        call MPI_RECV(pw(igrid)%w,1,type_block_io,0,itag,icomm,&
+        call MPI_RECV(ps(igrid)%w,1,type_block_io,0,itag,icomm,&
              iorecvstatus(:,inrecv),ierrmpi)
       end do
       deallocate(iorecvstatus)
@@ -2050,7 +2103,7 @@ contains
        if (slab) then
           dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
        else
-          dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
+          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
        end if
 
        ! Store total volume in last element
@@ -2059,7 +2112,7 @@ contains
        ! Compute the modes of the cell-centered variables, weighted by volume
        do iw = 1, nw
           wsum(iw) = wsum(iw) + &
-               sum(dvolume(ixM^T)*pw(igrid)%w(ixM^T,iw)**power)
+               sum(dvolume(ixM^T)*ps(igrid)%w(ixM^T,iw)**power)
        end do
     end do
 
@@ -2128,7 +2181,7 @@ contains
        if (slab) then
           dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
        else
-          dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
+          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
        end if
 
        ! Store total volume in last element
@@ -2137,7 +2190,7 @@ contains
        ! Compute the modes of the cell-centered variables, weighted by volume
        {do i^D = ixMlo^D, ixMhi^D\}
        wsum(1) = wsum(1) + dvolume(i^D) * &
-            func(pw(igrid)%w(i^D, :), nw)
+            func(ps(igrid)%w(i^D, :), nw)
        {end do\}
     end do
 
@@ -2166,7 +2219,7 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
        do iw = 1, nw
-          wmax_mype(iw)=max(wmax_mype(iw),maxval(pw(igrid)%w(ixM^T,iw)))
+          wmax_mype(iw)=max(wmax_mype(iw),maxval(ps(igrid)%w(ixM^T,iw)))
        end do
     end do
 
@@ -2193,7 +2246,7 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
        do iw = 1, nw
-          wmin_mype(iw)=min(wmin_mype(iw),minval(pw(igrid)%w(ixM^T,iw)))
+          wmin_mype(iw)=min(wmin_mype(iw),minval(ps(igrid)%w(ixM^T,iw)))
        end do
     end do
 

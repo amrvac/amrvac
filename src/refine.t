@@ -52,7 +52,7 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
      ix^L=ixM^LL^LADD1;
      }
 
-     if(prolongprimitive) call phys_to_primitive(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
+     if(prolongprimitive) call phys_to_primitive(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
 
      xComin^D=rnode(rpxmin^D_,igrid)\
      dxCo^D=rnode(rpdx^D_,igrid)\
@@ -67,15 +67,15 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   if (prolongation_method=="linear") then
      xFimin^D=rnode(rpxmin^D_,ichild)\
      dxFi^D=rnode(rpdx^D_,ichild)\
-     call prolong_2nd(pw(igrid)%w,pw(igrid)%x,ixCo^L,pw(ichild)%w,pw(ichild)%x, &
+     call prolong_2nd(ps(igrid)%w,ps(igrid)%x,ixCo^L,ps(ichild)%w,ps(ichild)%x, &
           dxCo^D,xComin^D,dxFi^D,xFimin^D,igrid,ichild)
   else
-     call prolong_1st(pw(igrid)%w,ixCo^L,pw(ichild)%w,pw(ichild)%x)
+     call prolong_1st(ps(igrid)%w,ixCo^L,ps(ichild)%w,ps(ichild)%x)
   end if
   {end do\}
 
   if (prolongation_method=="linear" .and. prolongprimitive) then
-     call phys_to_conserved(ixG^LL,ix^L,pw(igrid)%w,pw(igrid)%x)
+     call phys_to_conserved(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
   end if
 
 end subroutine prolong_grid
@@ -141,7 +141,7 @@ end if
    ! cell-centered coordinates of coarse grid point
    !^D&xCo^D=xCo({ixCo^DD},^D)\
    !if(.not.slab) then
-   !  ^D&invdxCo^D=1.d0/pw(igridCo)%dx(ixCo^DD,^D)\
+   !  ^D&invdxCo^D=1.d0/ps(igridCo)%dx(ixCo^DD,^D)\
    !endif
    {do ix^DB=ixFi^DB,ixFi^DB+1 \}
       ! cell-centered coordinates of fine grid point
@@ -155,8 +155,8 @@ end if
         eta^D=0.5d0*(dble(ix^D-ixFi^D)-0.5d0);
       else
         {! forefactor is -0.5d0 when ix=ixFi and +0.5d0 for ixFi+1
-        eta^D=(dble(ix^D-ixFi^D)-0.5d0)*(one-pw(igridFi)%dvolume(ix^DD) &
-              /sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD)))  \}
+        eta^D=(dble(ix^D-ixFi^D)-0.5d0)*(one-ps(igridFi)%dvolume(ix^DD) &
+              /sum(ps(igridFi)%dvolume(ixFi^D:ixFi^D+1^D%ix^DD)))  \}
       end if
       wFi(ix^D,1:nw) = wCo(ixCo^D,1:nw) &
                             + {(slope(1:nw,^D)*eta^D)+}

@@ -425,14 +425,14 @@ if (level >= collapseLevel) then
       do ix2orig = ixMdimlo2,ixMdimhi2
 {^DM& ix^DM = int(dble(ix^DMorig-nghostcells+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
          collapsedData(ix1,ix2,1:nw+nwauxio) = collapsedData(ix1,ix2,1:nw+nwauxio) &
-              + pw_sub(jgrid)%w(ix1orig,ix2orig,1:nw+nwauxio) / 2.0d0**(2*(level-collapseLevel))
+              + ps_sub(jgrid)%w(ix1orig,ix2orig,1:nw+nwauxio) / 2.0d0**(2*(level-collapseLevel))
       end do
    end do
 else
 {^DM&
    do ix^DM = idim^DMtargetmin,idim^DMtargetmax\}
  {^DM& ix^DMorig = int(dble(ix^DM-idim^DMtargetmin)/2.0d0**(collapseLevel-level))+1+nghostcells \}
- collapsedData(ix1,ix2,1:nw+nwauxio) = collapsedData(ix1,ix2,1:nw+nwauxio) + pw_sub(jgrid)%w(ix1orig,ix2orig,1:nw+nwauxio)
+ collapsedData(ix1,ix2,1:nw+nwauxio) = collapsedData(ix1,ix2,1:nw+nwauxio) + ps_sub(jgrid)%w(ix1orig,ix2orig,1:nw+nwauxio)
  {^DM& enddo\}
 end if
 }
@@ -454,18 +454,18 @@ if (level >= collapseLevel) then
    do ix1orig = ixMdimlo1,ixMdimhi1
 {^DM& ix^DM = int(dble(ix^DMorig-nghostcells+igdim^DM-1)*2.0d0**(collapseLevel-level))+1\}
          collapsedData(ix1,1:nw+nwauxio) = collapsedData(ix1,1:nw+nwauxio) &
-              + pw_sub(jgrid)%w(ix1orig,1:nw+nwauxio) / 2.0d0**(level-collapseLevel)
+              + ps_sub(jgrid)%w(ix1orig,1:nw+nwauxio) / 2.0d0**(level-collapseLevel)
    end do
 else
 {^DM&
    do ix^DM = idim^DMtargetmin,idim^DMtargetmax\}
  {^DM& ix^DMorig = int(dble(ix^DM-idim^DMtargetmin)/2.0d0**(collapseLevel-level))+1+nghostcells \}
- collapsedData(ix1,1:nw+nwauxio) = collapsedData(ix1,1:nw+nwauxio) + pw_sub(jgrid)%w(ix1orig,1:nw+nwauxio)
+ collapsedData(ix1,1:nw+nwauxio) = collapsedData(ix1,1:nw+nwauxio) + ps_sub(jgrid)%w(ix1orig,1:nw+nwauxio)
  {^DM& enddo\}
 end if
 }
 {^IFONED
-collapsedData(1:nw+nwauxio) = collapsedData(1:nw+nwauxio) + pw_sub(jgrid)%w(1:nw+nwauxio)
+collapsedData(1:nw+nwauxio) = collapsedData(1:nw+nwauxio) + ps_sub(jgrid)%w(1:nw+nwauxio)
 }
 
 end subroutine integrate_subnode
@@ -487,7 +487,7 @@ double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio) :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)   :: wCC_TMP
 integer                :: ixC^L, ixCC^L
 !-----------------------------------------------------------------------------
-pw_sub(jgrid)%w=zero
+ps_sub(jgrid)%w=zero
 dx^D=rnode(rpdx^D_,igrid);
 
 call calc_x(igrid,xC,xCC)
@@ -499,60 +499,60 @@ select case (dir)
 case (1)
   if(slab) then
     do ix=ixMlo1,ixMhi1
-      pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) = &
-           pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) &
+      ps_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) = &
+           ps_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) &
            + wCC_TMP(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) * dx1
     end do
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo1,ixMhi1
-        pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) = &
-             pw_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) &
+        ps_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) = &
+             ps_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) &
              + wCC_TMP(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,iw) * &
-             pw(igrid)%dx(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1)
+             ps(igrid)%dx(ix,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1)
       end do
     end do
   end if
-  pw_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
-       pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
+  ps_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
+       ps(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
 case (2)
   if(slab) then
     do ix=ixMlo2,ixMhi2
-       pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
-            pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
+       ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
+            ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
             + wCC_TMP(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,1:nw+nwauxio) * dx2
     end do
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo2,ixMhi2
-         pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,iw) = &
-              pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,iw) &
+         ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,iw) = &
+              ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,iw) &
               + wCC_TMP(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,iw) * &
-             pw(igrid)%dx(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,2)
+             ps(igrid)%dx(ixMlo1:ixMhi1,ix,ixMlo3:ixMhi3,2)
       end do
     end do
   endif
-  pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
-       pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
+  ps_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
+       ps(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
 case (3)
   if(slab) then
     do ix=ixMlo3,ixMhi3
-       pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
-            pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
+       ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
+            ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
             + wCC_TMP(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,1:nw+nwauxio) * dx3
     end do
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo3,ixMhi3
-         pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,iw) = &
-              pw_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,iw) &
+         ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,iw) = &
+              ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,iw) &
               + wCC_TMP(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,iw) * &
-             pw(igrid)%dx(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,3)
+             ps(igrid)%dx(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ix,3)
       end do
     end do
   endif
-  pw_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
-       pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
+  ps_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:ndim) = &
+       ps(igrid)%x(ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3,1:ndim) 
 case default
    print*, 'subnode, dir: ', dir
    call mpistop("slice direction not clear in collapse_subnode")
@@ -563,41 +563,41 @@ select case (dir)
 case (1)
   if(slab) then
     do ix=ixMlo1,ixMhi1
-      pw_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) = &
-           pw_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) &
+      ps_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) = &
+           ps_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) &
            + wCC_TMP(ix,ixMlo2:ixMhi2,1:nw+nwauxio) * dx1
     end do
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo1,ixMhi1
-        pw_sub(jgrid)%w(ixMlo2:ixMhi2,iw) = &
-             pw_sub(jgrid)%w(ixMlo2:ixMhi2,iw) &
+        ps_sub(jgrid)%w(ixMlo2:ixMhi2,iw) = &
+             ps_sub(jgrid)%w(ixMlo2:ixMhi2,iw) &
              + wCC_TMP(ix,ixMlo2:ixMhi2,iw) * &
-              pw(igrid)%dx(ix,ixMlo2:ixMhi2,1)
+              ps(igrid)%dx(ix,ixMlo2:ixMhi2,1)
       end do
     end do
   end if
-  pw_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
-       pw(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
+  ps_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
+       ps(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
 case (2)
   if(slab) then
     do ix=ixMlo2,ixMhi2
-       pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
-            pw_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
+       ps_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
+            ps_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
             + wCC_TMP(ixMlo1:ixMhi1,ix,1:nw+nwauxio) * dx2
     end do
   else
     do iw=1,nw+nwauxio
       do ix=ixMlo2,ixMhi2
-         pw_sub(jgrid)%w(ixMlo1:ixMhi1,iw) = &
-              pw_sub(jgrid)%w(ixMlo1:ixMhi1,iw) &
+         ps_sub(jgrid)%w(ixMlo1:ixMhi1,iw) = &
+              ps_sub(jgrid)%w(ixMlo1:ixMhi1,iw) &
               + wCC_TMP(ixMlo1:ixMhi1,ix,iw) * &
-              pw(igrid)%dx(ixMlo1:ixMhi1,ix,2)
+              ps(igrid)%dx(ixMlo1:ixMhi1,ix,2)
       end do
     end do
   end if
-  pw_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
-       pw(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
+  ps_sub(jgrid)%x(ixMlo1:ixMhi1,1:ndim) = &
+       ps(igrid)%x(ixMlo1:ixMhi1,ixMlo2,1:ndim) 
 case default
    call mpistop("slice direction not clear in collapse_subnode")
 end select
@@ -605,16 +605,16 @@ end select
 {^IFONED   
 if(slab) then
   do ix=ixMlo1,ixMhi1
-     pw_sub(jgrid)%w(1:nw+nwauxio) = pw_sub(jgrid)%w(1:nw+nwauxio) + wCC_TMP(ix,1:nw+nwauxio) * dx1
+     ps_sub(jgrid)%w(1:nw+nwauxio) = ps_sub(jgrid)%w(1:nw+nwauxio) + wCC_TMP(ix,1:nw+nwauxio) * dx1
   end do
 else
   do iw=1,nw+nwauxio
     do ix=ixMlo1,ixMhi1
-      pw_sub(jgrid)%w(iw) = pw_sub(jgrid)%w(iw) + wCC_TMP(ix,iw) * pw(igrid)%dx(ix,1)
+      ps_sub(jgrid)%w(iw) = ps_sub(jgrid)%w(iw) + wCC_TMP(ix,iw) * ps(igrid)%dx(ix,1)
     end do
   end do
 end if
-pw_sub(jgrid)%x(1:ndim) = pw(igrid)%x(ixMlo1,1:ndim)
+ps_sub(jgrid)%x(1:ndim) = ps(igrid)%x(ixMlo1,1:ndim)
 }
 
 end subroutine collapse_subnode

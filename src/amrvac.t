@@ -57,7 +57,7 @@ program amrvac
      call selectgrids
 
      ! update ghost cells
-     call getbc(global_time,0.d0,0,nwflux+nwaux)
+     call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
 
      if(use_particles) then
        call read_particles_snapshot
@@ -87,7 +87,7 @@ program amrvac
      call selectgrids
 
      ! update ghost cells
-     call getbc(global_time,0.d0,0,nwflux+nwaux)
+     call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
 
      ! set up and initialize finer level grids, if needed
      call settree
@@ -196,8 +196,8 @@ contains
        if (any(save_file) .and. associated(usr_modify_output)) then
          do iigrid=1,igridstail; igrid=igrids(iigrid);
            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-           block=>pw(igrid)
-           call usr_modify_output(ixG^LL,ixM^LL,global_time,pw(igrid)%w,pw(igrid)%x)
+           block=>ps(igrid)
+           call usr_modify_output(ixG^LL,ixM^LL,global_time,ps(igrid)%w,ps(igrid)%x)
          end do
        end if
 
@@ -230,7 +230,7 @@ contains
        call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
        if (crashall) then
          do iigrid=1,igridstail; igrid=igrids(iigrid);
-           pw(igrid)%w=pw(igrid)%wold
+           ps(igrid)%w=pso(igrid)%w
          end do
          call saveamrfile(1)
          call saveamrfile(2)

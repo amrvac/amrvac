@@ -76,7 +76,7 @@ call amr_Morton_order()
 !!$      if (sfc(2,Morton_no)/=mype) then
 !!$         igrid=sfc_to_igrid(Morton_no)
 !!$         saveigrid=igrid
-!!$         call getaux(.true.,pw(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,"load_balance")
+!!$         call getaux(.true.,ps(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,"load_balance")
 !!$      end if
 !!$   end do
 !!$end if
@@ -93,14 +93,14 @@ itag=recv_igrid
 irecv=irecv+1
 {#IFDEF EVOLVINGBOUNDARY
 if (phyboundblock(recv_igrid)) then
-   call MPI_IRECV(pw(recv_igrid)%w,1,type_block,send_ipe,itag, &
+   call MPI_IRECV(ps(recv_igrid)%w,1,type_block,send_ipe,itag, &
                   icomm,recvrequest(irecv),ierrmpi)
 else
-   call MPI_IRECV(pw(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
+   call MPI_IRECV(ps(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
                   icomm,recvrequest(irecv),ierrmpi)
 end if
 }{#IFNDEF EVOLVINGBOUNDARY
-call MPI_IRECV(pw(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
+call MPI_IRECV(ps(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
                icomm,recvrequest(irecv),ierrmpi)
 }
 
@@ -112,14 +112,14 @@ itag=recv_igrid
 isend=isend+1
 {#IFDEF EVOLVINGBOUNDARY
 if (phyboundblock(send_igrid)) then
-   call MPI_ISEND(pw(send_igrid)%w,1,type_block,recv_ipe,itag, &
+   call MPI_ISEND(ps(send_igrid)%w,1,type_block,recv_ipe,itag, &
                   icomm,sendrequest(isend),ierrmpi)
 else
-   call MPI_ISEND(pw(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
+   call MPI_ISEND(ps(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
                   icomm,sendrequest(isend),ierrmpi)
 end if
 }{#IFNDEF EVOLVINGBOUNDARY
-call MPI_ISEND(pw(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
+call MPI_ISEND(ps(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
                icomm,sendrequest(isend),ierrmpi)
 }
 

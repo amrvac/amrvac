@@ -49,8 +49,14 @@ contains
     integer :: igrid, level, ipe, ig^D
     logical :: ok
 
-    allocate(pw(max_blocks))
-    allocate(pw_sub(max_blocks))
+    allocate(ps(max_blocks))
+    allocate(ps1(max_blocks))
+    allocate(ps2(max_blocks))
+    allocate(ps3(max_blocks))
+    allocate(ps4(max_blocks))
+    allocate(pso(max_blocks))
+    allocate(psc(max_blocks))
+    allocate(ps_sub(max_blocks))
     allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))
     allocate(neighbor_type(-1:1^D&,max_blocks),neighbor_active(-1:1^D&,max_blocks))
     if (phi_ > 0) allocate(neighbor_pole(-1:1^D&,max_blocks))

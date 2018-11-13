@@ -43,7 +43,7 @@ end if
          ixComin^D=ixMlo^D+(ic^D-1)*(ixMhi^D-ixMlo^D+1)/2;
          ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2;
 
-         call coarsen_grid(pw(igridFi)%w,pw(igridFi)%x,ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,ixG^LL, &
+         call coarsen_grid(ps(igridFi)%w,ps(igridFi)%x,ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ixG^LL, &
                      ixCo^L,igridFi,igrid)
 
          ! remove solution space of child
@@ -52,19 +52,19 @@ end if
          ixCoGmin^D=1;
          ixCoGmax^D=ixGhi^D/2+nghostcells;
          ixCoM^L=ixCoG^L^LSUBnghostcells;
-         call coarsen_grid(pw(igridFi)%w,pw(igridFi)%x,ixG^LL,ixM^LL,pw(igridFi)%wcoarse,pw(igridFi)%xcoarse, &
+         call coarsen_grid(ps(igridFi)%w,ps(igridFi)%x,ixG^LL,ixM^LL,psc(igridFi)%w,psc(igridFi)%x, &
                            ixCoG^L,ixCoM^L,igridFi,igridFi)
 
          itag=ipeFi*max_blocks+igridFi
          isend=isend+1
-         call MPI_ISEND(pw(igridFi)%wcoarse,1,type_coarse_block,ipe,itag, &
+         call MPI_ISEND(psc(igridFi)%w,1,type_coarse_block,ipe,itag, &
                         icomm,sendrequest(isend),ierrmpi)
       end if
    else
       if (ipe==mype) then
          itag=ipeFi*max_blocks+igridFi
          irecv=irecv+1
-         call MPI_IRECV(pw(igrid)%w,1,type_sub_block(ic^D),ipeFi,itag, &
+         call MPI_IRECV(ps(igrid)%w,1,type_sub_block(ic^D),ipeFi,itag, &
                         icomm,recvrequest(irecv),ierrmpi)
       end if
    end if
@@ -103,13 +103,13 @@ else
         {do ixCo^DB = ixCo^LIM^DB
            ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixFimin^DB\}
            wCo(ixCo^D,iw)= &
-               sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
-              /pw(igridCo)%dvolumecoarse(ixCo^D)
-!        if(dabs(sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
-!               -pw(igridCo)%dvolumecoarse(ixCo^D))>smalldouble) then
+               sum(ps(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
+              /psc(igridCo)%dvolume(ixCo^D)
+!        if(dabs(sum(ps(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
+!               -psc(igridCo)%dvolume(ixCo^D))>smalldouble) then
 !    print *,'mismatching volumes: Co',ixCo^D, 'for fine', ixFi^D
-!    print *,' fine volumes:' ,sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1))
-!    print *,' coarse volume:' ,pw(igridCo)%dvolumecoarse(ixCo^D)
+!    print *,' fine volumes:' ,sum(ps(igridFi)%dvolume(ixFi^D:ixFi^D+1))
+!    print *,' coarse volume:' ,psc(igridCo)%dvolume(ixCo^D)
 !    call mpistop("mismatch volume")
 !   endif
         {end do\}
@@ -119,13 +119,13 @@ else
         {do ixCo^DB = ixCo^LIM^DB
            ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixFimin^DB\}
            wCo(ixCo^D,iw)= &
-               sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
-              /pw(igridCo)%dvolume(ixCo^D)
-!        if(dabs(sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
-!               -pw(igridCo)%dvolume(ixCo^D))>smalldouble) then
+               sum(ps(igridFi)%dvolume(ixFi^D:ixFi^D+1)*wFi(ixFi^D:ixFi^D+1,iw)) &
+              /ps(igridCo)%dvolume(ixCo^D)
+!        if(dabs(sum(ps(igridFi)%dvolume(ixFi^D:ixFi^D+1)) &
+!               -ps(igridCo)%dvolume(ixCo^D))>smalldouble) then
 !    print *,'mismatching volumes: Co',ixCo^D, 'for fine', ixFi^D
-!    print *,' fine volumes:' ,sum(pw(igridFi)%dvolume(ixFi^D:ixFi^D+1))
-!    print *,'      volume:' ,pw(igridCo)%dvolume(ixCo^D)
+!    print *,' fine volumes:' ,sum(ps(igridFi)%dvolume(ixFi^D:ixFi^D+1))
+!    print *,'      volume:' ,ps(igridCo)%dvolume(ixCo^D)
 !    call mpistop("mismatch volume")
 !   endif
         {end do\}

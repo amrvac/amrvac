@@ -349,7 +349,7 @@ contains
 
         ! linear interpolation:
         {
-        if (pw(igrid_working)%x({ic^DD},^D) .lt. y(^D)) then
+        if (ps(igrid_working)%x({ic^DD},^D) .lt. y(^D)) then
            ic1^D = ic^D
         else
            ic1^D = ic^D -1

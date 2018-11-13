@@ -153,7 +153,7 @@ contains
     ! get normalized divb
     sumdivb=0.d0
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call get_normalized_divb(pw(igrid)%w,ixG^LL,ixM^LL,divb)
+      call get_normalized_divb(ps(igrid)%w,ixG^LL,ixM^LL,divb)
       sumdivb=sumdivb+sum(divb(ixM^T))
     end do
     if(mype==0) then

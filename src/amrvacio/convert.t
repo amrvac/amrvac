@@ -10,7 +10,7 @@ if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_i
 if(level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) then 
    call resettree_convert
 else if(.not. phys_req_diagonal) then
-   call getbc(global_time,0.d0,0,nwflux+nwaux)
+   call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
 end if
 
 select case(convert_type)
@@ -150,14 +150,14 @@ end do
 do iigrid=1,igridstail; igrid=igrids(iigrid)
    if(.not.writeblk(igrid)) cycle
    ncells=ncells+ncellg
-   pw(igrid)%wio(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+   ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
    if (nwauxio > 0) then
       if (.not. associated(usr_aux_output)) then
          call mpistop("usr_aux_output not defined")
       else
          call usr_aux_output(ixG^LL,ixM^LL^LADD1, &
-              pw(igrid)%wio,pw(igrid)%x,normconv)
+              ps1(igrid)%w,ps(igrid)%x,normconv)
       end if
    end if
 end do
@@ -165,21 +165,21 @@ end do
 if (saveprim) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
     if (.not.writeblk(igrid)) cycle
-    call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,pw(igrid)%wio,pw(igrid)%x)
-    if (allocated(pw(igrid)%B0)) then
+    call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,ps1(igrid)%w,ps(igrid)%x)
+    if (allocated(ps(igrid)%B0)) then
       ! add background magnetic field B0 to B
-      pw(igrid)%wio(ixG^T,iw_mag(:))=pw(igrid)%wio(ixG^T,iw_mag(:))+pw(igrid)%B0(ixG^T,:,0)
+      ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
     end if
   end do
 else
   do iigrid=1,igridstail; igrid=igrids(iigrid)
     if (.not.writeblk(igrid)) cycle
-    if (allocated(pw(igrid)%B0)) then
+    if (allocated(ps(igrid)%B0)) then
       ! add background magnetic field B0 to B
       if(phys_energy) &
-        pw(igrid)%wio(ixG^T,iw_e)=pw(igrid)%wio(ixG^T,iw_e)+0.5d0*sum(pw(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
-            + sum(pw(igrid)%wio(ixG^T,iw_mag(:))*pw(igrid)%B0(ixG^T,:,0),dim=ndim+1)
-      pw(igrid)%wio(ixG^T,iw_mag(:))=pw(igrid)%wio(ixG^T,iw_mag(:))+pw(igrid)%B0(ixG^T,:,0)
+        ps1(igrid)%w(ixG^T,iw_e)=ps1(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+            + sum(ps1(igrid)%w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
+      ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
     end if
   end do
 end if
@@ -222,11 +222,11 @@ do ig3=1,ng3(level_io)
              select case(convert_type)
                case("oneblock")
                  write(qunit,fmt="(100(e14.6))") &
-                  pw(igrid)%x(ix^D,1:ndim)*normconv(0),&
-                  (pw(igrid)%wio(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
+                  ps(igrid)%x(ix^D,1:ndim)*normconv(0),&
+                  (ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblockB")
-                 write(qunit) real(pw(igrid)%x(ix^D,1:ndim)*normconv(0)),&
-                  (real(pw(igrid)%wio(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
+                 write(qunit) real(ps(igrid)%x(ix^D,1:ndim)*normconv(0)),&
+                  (real(ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
            end if Master_write
          end do
@@ -303,20 +303,20 @@ end if Master_cpu_open
 
 do Morton_no=Morton_start(mype),Morton_stop(mype)
   igrid=sfc_to_igrid(Morton_no)
-  if(saveprim) call phys_to_primitive(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+  if(saveprim) call phys_to_primitive(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
   if (mype/=0)then
       itag=Morton_no
       call MPI_SEND(igrid,1,MPI_INTEGER, 0,itag,icomm,ierrmpi)
-      call MPI_SEND(pw(igrid)%x,1,type_block_xcc_io, 0,itag,icomm,ierrmpi)
+      call MPI_SEND(ps(igrid)%x,1,type_block_xcc_io, 0,itag,icomm,ierrmpi)
       itag=igrid
-      call MPI_SEND(pw(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
+      call MPI_SEND(ps(igrid)%w,1,type_block_io, 0,itag,icomm,ierrmpi)
   else
    {do ix^DB=ixMlo^DB,ixMhi^DB\}
       do iw=1,nw
-        if( dabs(pw(igrid)%w(ix^D,iw)) < 1.0d-32 ) pw(igrid)%w(ix^D,iw) = zero
+        if( dabs(ps(igrid)%w(ix^D,iw)) < 1.0d-32 ) ps(igrid)%w(ix^D,iw) = zero
       enddo
-       write(qunit,fmt="(100(e14.6))") pw(igrid)%x(ix^D,1:ndim)&
-                                     ,pw(igrid)%w(ix^D,1:nw)
+       write(qunit,fmt="(100(e14.6))") ps(igrid)%x(ix^D,1:ndim)&
+                                     ,ps(igrid)%w(ix^D,1:nw)
    {end do\}
   end if
 end do   
@@ -334,7 +334,7 @@ Manycpu : if (npe>1) then
          call MPI_RECV(w_recv,1,type_block_io, ipe,itag,icomm,intstatus(:,1),ierrmpi)
          {do ix^DB=ixMlo^DB,ixMhi^DB\}
             do iw=1,nw
-              if( dabs(pw(igrid)%w(ix^D,iw)) < smalldouble ) pw(igrid)%w(ix^D,iw) = zero
+              if( dabs(ps(igrid)%w(ix^D,iw)) < smalldouble ) ps(igrid)%w(ix^D,iw) = zero
             enddo
             write(qunit,fmt="(100(e14.6))") x_recv(ix^D,1:ndim)&
                                             ,w_recv(ix^D,1:nw)

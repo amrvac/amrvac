@@ -19,7 +19,7 @@ case (1)
    ! differences
 !$OMP PARALLEL DO PRIVATE(igrid)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call compare1_grid(igrid,pw(igrid)%wold,pw(igrid)%w)
+      call compare1_grid(igrid,pso(igrid)%w,ps(igrid)%w)
    end do
 !$OMP END PARALLEL DO
 case (2)
@@ -49,7 +49,7 @@ if (nbufferx^D/=0|.or.) then
 end if
 !$OMP PARALLEL DO PRIVATE(igrid)
 do iigrid=1,igridstail; igrid=igrids(iigrid);
-   call forcedrefine_grid(igrid,pw(igrid)%w)
+   call forcedrefine_grid(igrid,ps(igrid)%w)
 end do
 !$OMP END PARALLEL DO
 
@@ -79,13 +79,13 @@ subroutine lohner_grid(igrid)
 
   error=zero
 
-  w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+  w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
   if(B0field) then
     if(phys_energy) &
-      w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(pw(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
-                      + sum(w(ixG^T,iw_mag(:))*pw(igrid)%B0(ixG^T,:,0),dim=ndim+1)
-    w(ixG^T,iw_mag(:))=w(ixG^T,iw_mag(:))+pw(igrid)%B0(ixG^T,:,0)
+      w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+                      + sum(w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
+    w(ixG^T,iw_mag(:))=w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
   end if
 
   do iflag=1,nw+1
@@ -97,7 +97,7 @@ subroutine lohner_grid(igrid)
         if (.not. associated(usr_var_for_errest)) then
            call mpistop("usr_var_for_errest not defined")
         else
-           call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,pw(igrid)%x,tmp1)
+           call usr_var_for_errest(ixG^LL,ixG^LL,iflag,ps(igrid)%w,ps(igrid)%x,tmp1)
         end if
      end if
 
@@ -179,7 +179,7 @@ subroutine lohner_grid(igrid)
   
      if (associated(usr_refine_threshold)) then
         wtol(1:nw)   = w(ix^D,1:nw)
-        xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
+        xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
         call usr_refine_threshold(wtol, xtol, threshold, global_time)
      end if
   
@@ -223,7 +223,7 @@ do iflag=1,nw+1
       if (.not. associated(usr_var_for_errest)) then
          call mpistop("usr_var_for_errest not defined")
       else
-         call usr_var_for_errest(ixG^LL,ixG^LL,iflag,pw(igrid)%w,pw(igrid)%x,tmp1)
+         call usr_var_for_errest(ixG^LL,ixG^LL,iflag,ps(igrid)%w,ps(igrid)%x,tmp1)
       end if
    end if
 
@@ -232,16 +232,16 @@ do iflag=1,nw+1
       jx^L=ix^L+kr(^D,idims);
       if (iflag<=nw) then
         if (logflag(iflag)) then
-          dp(ix^S)=dlog10(pw(igrid)%w(jx^S,iflag))-dlog10(pw(igrid)%w(ix^S,iflag))
-          dm(ix^S)=dlog10(pw(igrid)%w(ix^S,iflag))-dlog10(pw(igrid)%w(hx^S,iflag))
-          dref(ixM^T)=dabs(dlog10(pw(igrid)%w(jx^S,iflag)))&
-                     + 2.0d0 * dabs(dlog10(pw(igrid)%w(ixM^T,iflag))) &
-                     + dabs(dlog10(pw(igrid)%w(hx^S,iflag)))
+          dp(ix^S)=dlog10(ps(igrid)%w(jx^S,iflag))-dlog10(ps(igrid)%w(ix^S,iflag))
+          dm(ix^S)=dlog10(ps(igrid)%w(ix^S,iflag))-dlog10(ps(igrid)%w(hx^S,iflag))
+          dref(ixM^T)=dabs(dlog10(ps(igrid)%w(jx^S,iflag)))&
+                     + 2.0d0 * dabs(dlog10(ps(igrid)%w(ixM^T,iflag))) &
+                     + dabs(dlog10(ps(igrid)%w(hx^S,iflag)))
         else
-          dp(ix^S)=pw(igrid)%w(jx^S,iflag)-pw(igrid)%w(ix^S,iflag)
-          dm(ix^S)=pw(igrid)%w(ix^S,iflag)-pw(igrid)%w(hx^S,iflag)
-          dref(ixM^T)=dabs(pw(igrid)%w(jx^S,iflag))+2.0d0*dabs(pw(igrid)%w(ixM^T,iflag)) &
-                      +dabs(pw(igrid)%w(hx^S,iflag))
+          dp(ix^S)=ps(igrid)%w(jx^S,iflag)-ps(igrid)%w(ix^S,iflag)
+          dm(ix^S)=ps(igrid)%w(ix^S,iflag)-ps(igrid)%w(hx^S,iflag)
+          dref(ixM^T)=dabs(ps(igrid)%w(jx^S,iflag))+2.0d0*dabs(ps(igrid)%w(ixM^T,iflag)) &
+                      +dabs(ps(igrid)%w(hx^S,iflag))
         end if
       else
         if (logflag(iflag)) then
@@ -274,8 +274,8 @@ threshold=refine_threshold(level)
 {do ix^DB=ixMlo^DB,ixMhi^DB\}
 
    if (associated(usr_refine_threshold)) then
-      wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
-      xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
+      wtol(1:nw)   = ps(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
       call usr_refine_threshold(wtol, xtol, threshold, global_time)
    end if
 
@@ -332,8 +332,8 @@ threshold=refine_threshold(level)
    end do
 
    if (associated(usr_refine_threshold)) then
-      wtol(1:nw)   = pw(igrid)%w(ix^D,1:nw)
-      xtol(1:ndim) = pw(igrid)%x(ix^D,1:ndim)
+      wtol(1:nw)   = ps(igrid)%w(ix^D,1:nw)
+      xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
       call usr_refine_threshold(wtol, xtol, threshold, global_time)
    end if
 
@@ -383,7 +383,7 @@ else
 end if
 
 if (associated(usr_refine_grid)) then
-   call usr_refine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,pw(igrid)%x, &
+   call usr_refine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,ps(igrid)%x, &
         my_refine,my_coarsen)
 end if
 

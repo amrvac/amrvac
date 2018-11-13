@@ -98,11 +98,11 @@ contains
 
 {^IFTWOD
        mg%boxes(id)%cc(1:nc, 1:nc, iw_to) = &
-            pw(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, iw_from)
+            ps(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, iw_from)
 }
 {^IFTHREED
        mg%boxes(id)%cc(1:nc, 1:nc, 1:nc, iw_to) = &
-            pw(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, ixMlo3:ixMhi3, iw_from)
+            ps(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, ixMlo3:ixMhi3, iw_from)
 }
     end do
   end subroutine mg_copy_to_tree
@@ -128,11 +128,11 @@ contains
        nc    =  mg%box_size_lvl(lvl)
 
 {^IFTWOD
-       pw(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, iw_to) = &
+       ps(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, iw_to) = &
             mg%boxes(id)%cc(1:nc, 1:nc, iw_from)
 }
 {^IFTHREED
-       pw(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, ixMlo3:ixMhi3, iw_to) = &
+       ps(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, ixMlo3:ixMhi3, iw_to) = &
             mg%boxes(id)%cc(1:nc, 1:nc, 1:nc, iw_from)
 }
     end do
@@ -160,11 +160,11 @@ contains
        nc    =  mg%box_size_lvl(lvl)
 
 {^IFTWOD
-       pw(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
+       ps(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
             mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_from)
 }
 {^IFTHREED
-       pw(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+       ps(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
             ixMlo3-1:ixMhi3+1, iw_to) = &
             mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_from)
 }
