@@ -347,11 +347,11 @@ contains
     ! Loop over all the grids local to processor
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
-       block=>pw(igrid)
+       block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       call get_divb(pw(igrid)%w,ixG^LL,ixM^LL,divb)
+       call get_divb(ps(igrid)%w,ixG^LL,ixM^LL,divb)
        sumdivb_mype=sumdivb_mype+sum(dabs(divb(ixM^T)))
-       call get_current(pw(igrid)%w,ixG^LL,ixM^LL,idirmin,current)
+       call get_current(ps(igrid)%w,ixG^LL,ixM^LL,idirmin,current)
        Jval(ixM^T)=dsqrt( current(ixM^T,1)**2+current(ixM^T,2)**2+current(ixM^T,3)**2 )
        !jmax_mype=max(jmax_mype,maxval(Jval(ixM^T)))
        jmax_mype=max(jmax_mype,maxval(current(ixM^T,3)))
@@ -500,14 +500,14 @@ contains
 
     ! first switch all grids (with ghost cells) to primitive variables
     do iigrid=1,igridstail; igrid=igrids(iigrid)
-       call mhd_to_primitive(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+       call mhd_to_primitive(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
     end do
 
     call compute_integrated_quantities   
 
     ! end with switching all back to conservative variables
     do iigrid=1,igridstail; igrid=igrids(iigrid)
-       call mhd_to_conserved(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+       call mhd_to_conserved(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
     end do
 
   end subroutine analyze_forces_on_grid
@@ -543,24 +543,24 @@ contains
    do iigrid = 1, igridstail
       igrid = igrids(iigrid)
       saveigrid=igrid
-      block=>pw(igrid)
+      block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       ! Determine the volume of the grid cells
       if (slab) then
          dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
       else
-         dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
+         dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
       end if
        
-      call get_current(pw(igrid)%w,ixG^LL,ixM^LL,idirmin,curlvec)
+      call get_current(ps(igrid)%w,ixG^LL,ixM^LL,idirmin,curlvec)
 
       ! pressure gradient
       do idim=1,ndim
         select case(typegrad)
         case("central")
-          call gradient(pw(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
+          call gradient(ps(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
         case("limited")
-          call gradientS(pw(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
+          call gradientS(ps(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
         end select
         pgrad(ixM^T,idim) = tmp(ixM^T)
       end do
@@ -569,7 +569,7 @@ contains
       do intval=1,nintegrals
          do ireg=1,nregions
               integral_ipe(ireg,intval)=integral_ipe(ireg,intval)+ &
-                integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,curlvec,pgrad,pw(igrid)%x,dvolume,ireg,intval)
+                integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,curlvec,pgrad,ps(igrid)%x,dvolume,ireg,intval)
          enddo
       enddo 
    enddo

@@ -10,20 +10,21 @@ module mod_tvd
 
 contains
 
-  subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,w,qt,wnew,fC,dx^D,x)
+  subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,s,qt,snew,fC,dx^D,x)
     use mod_global_parameters
 
     character(len=*), intent(in) :: method
     double precision, intent(in) :: qdt, qt, dx^D
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,nw) :: w, wnew
+    type(state) :: s, snew
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
     integer :: idims, ixIC^L, jxIC^L
     double precision, dimension(ixI^S,nw) :: wR, wL
-    !-----------------------------------------------------------------------------
 
+    associate(w=>s%w,wnew=>snew%w)
     do idims= idim^LIM
        ixICmax^D=ixOmax^D+kr(idims,^D); ixICmin^D=ixOmin^D-2*kr(idims,^D);
        wL(ixIC^S,1:nw)=w(ixIC^S,1:nw)
@@ -31,7 +32,7 @@ contains
        wR(ixIC^S,1:nw)=w(jxIC^S,1:nw)
        call tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dx^D)
     end do
-
+    end associate
   end subroutine tvdlimit
 
   subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dx^D)

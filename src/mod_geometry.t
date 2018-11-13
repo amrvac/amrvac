@@ -129,8 +129,8 @@ contains
     use mod_global_parameters
     integer, intent(in) :: igrid
 
-    deallocate(pw(igrid)%surfaceC,pw(igrid)%surface,pw(igrid)%dvolume,pw(igrid)%dx,&
-         pw(igrid)%dxcoarse,pw(igrid)%ds,pw(igrid)%dvolumecoarse)
+    deallocate(ps(igrid)%surfaceC,ps(igrid)%surface,ps(igrid)%dvolume,ps(igrid)%dx,&
+         psc(igrid)%dx,ps(igrid)%ds,psc(igrid)%dvolume)
 
   end subroutine putgridgeo
 
@@ -146,103 +146,103 @@ contains
 
     select case (typeaxial)
     case ("slabstretch")
-      drs(ixG^S)=pw(igrid)%dx(ixG^S,1)
+      drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
       {^NOONED
-      dx2(ixG^S)=pw(igrid)%dx(ixG^S,2)}
+      dx2(ixG^S)=ps(igrid)%dx(ixG^S,2)}
       {^IFTHREED
-      dx3(ixG^S)=pw(igrid)%dx(ixG^S,3)}
+      dx3(ixG^S)=ps(igrid)%dx(ixG^S,3)}
 
       {^IFONED
       ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,1)=1.d0
-      pw(igrid)%surface(ixC^S,1) =1.d0
+      ps(igrid)%surfaceC(ixC^S,1)=1.d0
+      ps(igrid)%surface(ixC^S,1) =1.d0
       }
       {^IFTWOD
       ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,1)=dx2(ixC^S)
-      pw(igrid)%surface(ixC^S,1) =dx2(ixC^S)
+      ps(igrid)%surfaceC(ixC^S,1)=dx2(ixC^S)
+      ps(igrid)%surface(ixC^S,1) =dx2(ixC^S)
       ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S)
-      pw(igrid)%surface(ixC^S,2)=drs(ixC^S)
+      ps(igrid)%surfaceC(ixC^S,2)=drs(ixC^S)
+      ps(igrid)%surface(ixC^S,2)=drs(ixC^S)
       }
       {^IFTHREED
       ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,1)= dx2(ixC^S)*dx3(ixC^S)
-      pw(igrid)%surface(ixC^S,1)=pw(igrid)%surfaceC(ixC^S,1)
+      ps(igrid)%surfaceC(ixC^S,1)= dx2(ixC^S)*dx3(ixC^S)
+      ps(igrid)%surface(ixC^S,1)=ps(igrid)%surfaceC(ixC^S,1)
       ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,2)= drs(ixC^S)*dx3(ixC^S)
-      pw(igrid)%surface(ixC^S,2)=pw(igrid)%surfaceC(ixC^S,2)
+      ps(igrid)%surfaceC(ixC^S,2)= drs(ixC^S)*dx3(ixC^S)
+      ps(igrid)%surface(ixC^S,2)=ps(igrid)%surfaceC(ixC^S,2)
       ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,3)= drs(ixC^S)*dx2(ixC^S)
-      pw(igrid)%surface(ixC^S,3)=pw(igrid)%surfaceC(ixC^S,3)
+      ps(igrid)%surfaceC(ixC^S,3)= drs(ixC^S)*dx2(ixC^S)
+      ps(igrid)%surface(ixC^S,3)=ps(igrid)%surfaceC(ixC^S,3)
       }
 
     case ("spherical")
-      x(ixG^S,1)=pw(igrid)%x(ixG^S,1)
+      x(ixG^S,1)=ps(igrid)%x(ixG^S,1)
       {^NOONED
-      x(ixG^S,2)=pw(igrid)%x(ixG^S,2)}
+      x(ixG^S,2)=ps(igrid)%x(ixG^S,2)}
 
-      drs(ixG^S)=pw(igrid)%dx(ixG^S,1)
+      drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
       {^NOONED
-      dx2(ixG^S)=pw(igrid)%dx(ixG^S,2)}
+      dx2(ixG^S)=ps(igrid)%dx(ixG^S,2)}
       {^IFTHREED
-      dx3(ixG^S)=pw(igrid)%dx(ixG^S,3)}
+      dx3(ixG^S)=ps(igrid)%dx(ixG^S,3)}
 
       ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
 
-      pw(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
+      ps(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
            *two*dsin(x(ixC^S,2))*dsin(half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
 
       {^NOONED
       ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
+      ps(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
            *dsin(x(ixC^S,2)+half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
 
       {^IFTHREED
       ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
+      ps(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
 
       ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      pw(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
+      ps(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
            *two*dsin(x(ixC^S,2))*dsin(half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
       {^NOONED
       ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
+      ps(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
            *dsin(x(ixC^S,2))}{^IFTHREED*dx3(ixC^S)}
 
       {^IFTHREED
       ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
+      ps(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
 
     case ("cylindrical")
-      x(ixG^S,1)=pw(igrid)%x(ixG^S,1)
-      drs(ixG^S)=pw(igrid)%dx(ixG^S,1)
+      x(ixG^S,1)=ps(igrid)%x(ixG^S,1)
+      drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
       {^NOONED
-      dx2(ixG^S)=pw(igrid)%dx(ixG^S,2)}
+      dx2(ixG^S)=ps(igrid)%dx(ixG^S,2)}
       {^IFTHREED
-      dx3(ixG^S)=pw(igrid)%dx(ixG^S,3)}
+      dx3(ixG^S)=ps(igrid)%dx(ixG^S,3)}
 
       ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      pw(igrid)%surfaceC(ixC^S,1)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE(ixC^S) }
+      ps(igrid)%surfaceC(ixC^S,1)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE(ixC^S) }
       {^NOONED
       ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      if (z_==2) pw(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
-      if (phi_==2) pw(igrid)%surfaceC(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
+      if (z_==2) ps(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
+      if (phi_==2) ps(igrid)%surfaceC(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
       {^IFTHREED
       ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      if (z_==3) pw(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
-      if (phi_==3) pw(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
+      if (z_==3) ps(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
+      if (phi_==3) ps(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
 
       ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      pw(igrid)%surface(ixC^S,1)=dabs(x(ixC^S,1)){^DE&*dx^DE(ixC^S) }
+      ps(igrid)%surface(ixC^S,1)=dabs(x(ixC^S,1)){^DE&*dx^DE(ixC^S) }
       {^NOONED
       ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      if (z_==2) pw(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
-      if (phi_==2) pw(igrid)%surface(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
+      if (z_==2) ps(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
+      if (phi_==2) ps(igrid)%surface(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
       {^IFTHREED
       ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      if (z_==3) pw(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
-      if (phi_==3) pw(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
+      if (z_==3) ps(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
+      if (phi_==3) ps(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
 
     case default
       call mpistop("Sorry, typeaxial unknown")

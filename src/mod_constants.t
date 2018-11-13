@@ -20,7 +20,7 @@ module mod_constants
   double precision, parameter :: two     = 2.0d0
   double precision, parameter :: half    = 0.5d0
   double precision, parameter :: quarter = 0.25d0
-  double precision, parameter :: third   = 1/3.0d0
+  double precision, parameter :: third   = 1.d0/3.0d0
 
   !> Pi
   double precision, parameter :: dpi=3.141592653589793238462643383279502884197169399375105d0

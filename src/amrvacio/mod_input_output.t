@@ -1381,9 +1381,9 @@ contains
     if(save_physical_boundary) then
       do idim=1,ndim
         ! Include ghost cells on lower boundary
-        if(pw(igrid)%is_physical_boundary(2*idim-1)) n_ghost(idim)=nghostcells
+        if(ps(igrid)%is_physical_boundary(2*idim-1)) n_ghost(idim)=nghostcells
         ! Include ghost cells on upper boundary
-        if(pw(igrid)%is_physical_boundary(2*idim)) n_ghost(ndim+idim)=nghostcells
+        if(ps(igrid)%is_physical_boundary(2*idim)) n_ghost(ndim+idim)=nghostcells
       end do
     end if
 
@@ -1495,8 +1495,8 @@ contains
         ! which might be used in getaux
         saveigrid=igrid
         ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
-        block=>pw(igrid)
-        call phys_get_aux(.true., pw(igrid)%w, pw(igrid)%x, ixG^LL, &
+        block=>ps(igrid)
+        call phys_get_aux(.true., ps(igrid)%w, ps(igrid)%x, ixG^LL, &
              ixM^LL^LADD1, "write_snapshot")
       endif
 
@@ -1505,12 +1505,12 @@ contains
       ix_buffer(2:) = n_ghost
       if(stagger_grid) then
         n_values_stagger = n_values - product([ ixOmax^D ] - [ ixOmin^D ] + 2)*nws
-        w_buffer(1:n_values_stagger) = pack(pw(igrid)%w(ixO^S, 1:nw), .true.)
+        w_buffer(1:n_values_stagger) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
         {ixOmin^D = ixMlo^D - n_ghost(^D) - 1\}
         {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
-        w_buffer(n_values_stagger+1:n_values) = pack(pw(igrid)%ws(ixO^S, 1:nws), .true.)
+        w_buffer(n_values_stagger+1:n_values) = pack(ps(igrid)%ws(ixO^S, 1:nws), .true.)
       else
-        w_buffer(1:n_values) = pack(pw(igrid)%w(ixO^S, 1:nw), .true.)
+        w_buffer(1:n_values) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
       end if
 
       if (mype /= 0) then
@@ -1694,7 +1694,7 @@ contains
             if(stagger_grid) then
               w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
                    shape(w(ixO^S, 1:nw_found)))
-              pw(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
+              ps(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
                    shape(ws(ixOs^S, 1:nws)))
             else 
               w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
@@ -1702,18 +1702,18 @@ contains
             end if
             if (nw_found<nw) then
               if (associated(usr_transform_w)) then
-                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
               else
-                pw(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
+                ps(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
               end if
             else if (nw_found>nw) then
               if (associated(usr_transform_w)) then
-                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+                call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
               else
-                pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+                ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
               end if
             else
-              pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+              ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
             end if
           else
             call MPI_SEND([ ixO^L, n_values ], 2*ndim+1, &
@@ -1747,7 +1747,7 @@ contains
           {ixOsmax^D = ixOmax^D\}
           w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
                shape(w(ixO^S, 1:nw_found)))
-          pw(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
+          ps(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
                shape(ws(ixOs^S, 1:nws)))
         else
           w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values), &
@@ -1755,18 +1755,18 @@ contains
         end if
         if (nw_found<nw) then
           if (associated(usr_transform_w)) then
-            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
           else
-            pw(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
+            ps(igrid)%w(ixO^S,1:nw_found)=w(ixO^S,1:nw_found)
           end if
         else if (nw_found>nw) then
           if (associated(usr_transform_w)) then
-            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,pw(igrid)%x,pw(igrid)%w)
+            call usr_transform_w(ixG^LL,ixM^LL,nw_found,w,ps(igrid)%x,ps(igrid)%w)
           else
-            pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+            ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
           end if
         else
-          pw(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
+          ps(igrid)%w(ixO^S,1:nw)=w(ixO^S,1:nw)
         end if
       end do
     end if
@@ -1878,7 +1878,7 @@ contains
         iread=iread+1
         offset=int(size_block_io,kind=MPI_OFFSET_KIND) &
              *int(Morton_no-1,kind=MPI_OFFSET_KIND)
-        call MPI_FILE_READ_AT(fh,offset,pw(igrid)%w,1,type_block_io, &
+        call MPI_FILE_READ_AT(fh,offset,ps(igrid)%w,1,type_block_io, &
              istatus,ierrmpi)
       end do
       if (npe>1) then
@@ -1903,7 +1903,7 @@ contains
         igrid=sfc_to_igrid(Morton_no)
         itag=Morton_no
         inrecv=inrecv+1
-        call MPI_RECV(pw(igrid)%w,1,type_block_io,0,itag,icomm,&
+        call MPI_RECV(ps(igrid)%w,1,type_block_io,0,itag,icomm,&
              iorecvstatus(:,inrecv),ierrmpi)
       end do
       deallocate(iorecvstatus)
@@ -2096,7 +2096,7 @@ contains
        if (slab) then
           dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
        else
-          dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
+          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
        end if
 
        ! Store total volume in last element
@@ -2105,7 +2105,7 @@ contains
        ! Compute the modes of the cell-centered variables, weighted by volume
        do iw = 1, nw
           wsum(iw) = wsum(iw) + &
-               sum(dvolume(ixM^T)*pw(igrid)%w(ixM^T,iw)**power)
+               sum(dvolume(ixM^T)*ps(igrid)%w(ixM^T,iw)**power)
        end do
     end do
 
@@ -2174,7 +2174,7 @@ contains
        if (slab) then
           dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
        else
-          dvolume(ixM^T) = pw(igrid)%dvolume(ixM^T)
+          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
        end if
 
        ! Store total volume in last element
@@ -2183,7 +2183,7 @@ contains
        ! Compute the modes of the cell-centered variables, weighted by volume
        {do i^D = ixMlo^D, ixMhi^D\}
        wsum(1) = wsum(1) + dvolume(i^D) * &
-            func(pw(igrid)%w(i^D, :), nw)
+            func(ps(igrid)%w(i^D, :), nw)
        {end do\}
     end do
 
@@ -2212,7 +2212,7 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
        do iw = 1, nw
-          wmax_mype(iw)=max(wmax_mype(iw),maxval(pw(igrid)%w(ixM^T,iw)))
+          wmax_mype(iw)=max(wmax_mype(iw),maxval(ps(igrid)%w(ixM^T,iw)))
        end do
     end do
 
@@ -2239,7 +2239,7 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
        do iw = 1, nw
-          wmin_mype(iw)=min(wmin_mype(iw),minval(pw(igrid)%w(ixM^T,iw)))
+          wmin_mype(iw)=min(wmin_mype(iw),minval(ps(igrid)%w(ixM^T,iw)))
        end do
     end do
 

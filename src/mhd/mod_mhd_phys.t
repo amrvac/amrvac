@@ -1057,31 +1057,31 @@ contains
         ! Do nothing
       case (divb_glm1)
         active = .true.
-        call add_source_glm1(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_glm1(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_glm2)
         active = .true.
-        call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_glm2(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_powel)
         active = .true.
-        call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_powel(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_janhunen)
         active = .true.
-        call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_janhunen(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_linde)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_lindejanhunen)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        call add_source_janhunen(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_janhunen(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_lindepowel)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        call add_source_powel(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_powel(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_lindeglm)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
-        call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_glm2(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1095,7 +1095,7 @@ contains
         call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
       case (divb_glm2)
         active = .true.
-        call add_source_glm2(dt,ixI^L,ixO^L,pw(saveigrid)%wold,w,x)
+        call add_source_glm2(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_powel)
         active = .true.
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -2094,7 +2094,7 @@ contains
      do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
         saveigrid=igrid
-        block=>pw(igrid)
+        block=>ps(igrid)
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         do idim=1,ndim
            ! to avoid using as yet unknown corner info in more than 1D, we
@@ -2121,7 +2121,7 @@ contains
                       ixOmax^DD=ixGmin^D-1+nghostcells-boundary_divbfix_skip(2*^D-1)^D%ixOmax^DD=ixGmax^DD;
                    end if \}
                 end select
-                call fixdivB_boundary(ixG^L,ixO^L,pw(igrid)%wb,pw(igrid)%x,iB)
+                call fixdivB_boundary(ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x,iB)
               end if
            end do
         end do

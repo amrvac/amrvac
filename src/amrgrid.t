@@ -23,9 +23,9 @@ subroutine settree
 
      if(refine_criterion==1) then
        do iigrid=1,igridstail; igrid=igrids(iigrid);
-         pw(igrid)%w1 = pw(igrid)%wold
-         pw(igrid)%wold = pw(igrid)%w
-         pw(igrid)%w = pw(igrid)%w1
+         ps1(igrid)%w = pso(igrid)%w
+         pso(igrid)%w = ps(igrid)%w
+         ps(igrid)%w = ps1(igrid)%w
        end do
      end if
 
@@ -71,9 +71,9 @@ subroutine resettree_convert
   end if
 
   do while(levmin<my_levmin.or.levmax>my_levmax)
-   call getbc(global_time,0.d0,0,nwflux+nwaux)
+   call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      call forcedrefine_grid_io(igrid,pw(igrid)%w)
+      call forcedrefine_grid_io(igrid,ps(igrid)%w)
    end do
 
    call amr_coarsen_refine

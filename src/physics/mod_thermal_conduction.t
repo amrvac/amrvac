@@ -209,11 +209,11 @@ contains
     fix_conserve_at_step = time_advance .and. levmax>levmin
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      if(.not. allocated(pw(igrid)%w2)) allocate(pw(igrid)%w2(ixG^T,1:nw))
-      if(.not. allocated(pw(igrid)%w3)) allocate(pw(igrid)%w3(ixG^T,1:nw))
-      pw(igrid)%w1=pw(igrid)%w
-      pw(igrid)%w2=pw(igrid)%w
-      pw(igrid)%w3=pw(igrid)%w
+      if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
+      if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
+      ps1(igrid)%w=ps(igrid)%w
+      ps2(igrid)%w=ps(igrid)%w
+      ps3(igrid)%w=ps(igrid)%w
     end do
     
     allocate(bj(0:s))
@@ -229,27 +229,25 @@ contains
     
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      block=>pw(igrid)
+      block=>ps(igrid)
       typelimiter=type_limiter(node(plevel_,igrid))
       typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      call evolve_step1(igrid,cmut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,pw(igrid)%w,&
-                        pw(igrid)%x,pw(igrid)%w3)
-      pw(igrid)%wb=>pw(igrid)%w1
+      call evolve_step1(igrid,cmut,dt_tc,ixG^LL,ixM^LL,ps1(igrid)%w,ps(igrid)%w,&
+                        ps(igrid)%x,ps3(igrid)%w)
     end do
     !$OMP END PARALLEL DO
     ! fix conservation of AMR grid by replacing flux from finer neighbors
     if (fix_conserve_at_step) then
       call recvflux(1,ndim)
       call sendflux(1,ndim)
-      call fix_conserve(1,ndim,e_,1)
+      call fix_conserve(ps1,1,ndim,e_,1)
     end if
     bcphys=.false.
-    call getbc(global_time,0.d0,e_-1,1)
+    call getbc(global_time,0.d0,ps1,e_-1,1)
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        pw(igrid)%w(ixG^T,e_)=pw(igrid)%w1(ixG^T,e_)
-        pw(igrid)%wb=>pw(igrid)%w
+        ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
       end do
       ! point bc mpi data type back to full type for (M)HD
       type_send_srl=>type_send_srl_f
@@ -272,54 +270,50 @@ contains
       if(evenstep) then
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          block=>pw(igrid)
+          block=>ps(igrid)
           typelimiter=type_limiter(node(plevel_,igrid))
           typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w1,&
-                            pw(igrid)%w2,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)
-          pw(igrid)%wb=>pw(igrid)%w2
+          call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,ps1(igrid)%w,&
+                            ps2(igrid)%w,ps(igrid)%w,ps(igrid)%x,ps3(igrid)%w)
         end do
     !$OMP END PARALLEL DO
         ! fix conservation of AMR grid by replacing flux from finer neighbors
         if (fix_conserve_at_step) then
           call recvflux(1,ndim)
           call sendflux(1,ndim)
-          call fix_conserve(1,ndim,e_,1)
+          call fix_conserve(ps2,1,ndim,e_,1)
         end if
-        call getbc(global_time,0.d0,e_-1,1)
+        call getbc(global_time,0.d0,ps2,e_-1,1)
         evenstep=.false.
       else
     !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          block=>pw(igrid)
+          block=>ps(igrid)
           typelimiter=type_limiter(node(plevel_,igrid))
           typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,pw(igrid)%w2,&
-                            pw(igrid)%w1,pw(igrid)%w,pw(igrid)%x,pw(igrid)%w3)
-          pw(igrid)%wb=>pw(igrid)%w1
+          call evolve_stepj(igrid,cmu,cmut,cnu,cnut,dt_tc,ixG^LL,ixM^LL,ps2(igrid)%w,&
+                            ps1(igrid)%w,ps(igrid)%w,ps(igrid)%x,ps3(igrid)%w)
         end do
     !$OMP END PARALLEL DO
         ! fix conservation of AMR grid by replacing flux from finer neighbors
         if (fix_conserve_at_step) then
           call recvflux(1,ndim)
           call sendflux(1,ndim)
-          call fix_conserve(1,ndim,e_,1)
+          call fix_conserve(ps1,1,ndim,e_,1)
         end if
-        call getbc(global_time,0.d0,e_-1,1)
+        call getbc(global_time,0.d0,ps1,e_-1,1)
         evenstep=.true.
       end if 
     end do
     if(evenstep) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        pw(igrid)%w(ixG^T,e_)=pw(igrid)%w1(ixG^T,e_)
-        pw(igrid)%wb=>pw(igrid)%w
+        ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
       end do 
     else
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        pw(igrid)%w(ixG^T,e_)=pw(igrid)%w2(ixG^T,e_)
-        pw(igrid)%wb=>pw(igrid)%w
+        ps(igrid)%w(ixG^T,e_)=ps2(igrid)%w(ixG^T,e_)
       end do 
     end if
     deallocate(bj)

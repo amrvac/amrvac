@@ -307,24 +307,24 @@ contains
       end select
       ncellpe=0 
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        block=>pw(igrid)
+        block=>ps(igrid)
         if(slab) then
           dvone={rnode(rpdx^D_,igrid)|*}
           dvolume(ixM^T)=dvone
           dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
         else
-          dvolume(ixM^T)=pw(igrid)%dvolume(ixM^T)
-          dsurface(ixM^T)= sum(pw(igrid)%surfaceC(ixM^T,:),dim=ndim+1)
+          dvolume(ixM^T)=ps(igrid)%dvolume(ixM^T)
+          dsurface(ixM^T)= sum(ps(igrid)%surfaceC(ixM^T,:),dim=ndim+1)
           do idims=1,ndim
             hxM^LL=ixM^LL-kr(idims,^D);
-            dsurface(ixM^T)=dsurface(ixM^T)+pw(igrid)%surfaceC(hxM^T,idims)
+            dsurface(ixM^T)=dsurface(ixM^T)+ps(igrid)%surfaceC(hxM^T,idims)
           end do
         end if
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         patchwi(ixG^T)=.false.
         select case(region)
         case('cropped')
-           call mask_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,patchwi,ncellpe)
+           call mask_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,patchwi,ncellpe)
         case('fulldomain')
            patchwi(ixM^T)=.true.
            ncellpe=ncellpe+{nx^D*}
@@ -332,11 +332,11 @@ contains
            call mpistop("region not defined")
         end select
         integral_ipe(1)=integral_ipe(1)+ &
-                  integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,dsurface,4,patchwi)
+                  integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,dsurface,4,patchwi)
         integral_ipe(2)=integral_ipe(2)+ &
-                  integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,dsurface,5,patchwi)
+                  integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,dsurface,5,patchwi)
         integral_ipe(3)=integral_ipe(3)+ &
-                  integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,dsurface,6,patchwi)
+                  integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,dsurface,6,patchwi)
       end do
       call MPI_ALLREDUCE(integral_ipe,integral_w,ni,MPI_DOUBLE_PRECISION,&
                            MPI_SUM,icomm,ierrmpi)

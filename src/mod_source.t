@@ -37,13 +37,13 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid,qdt,i^D)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        qdt=dt_grid(igrid)
-       block=>pw(igrid)
-       call addsource1_grid(igrid,qdt,qt,pw(igrid)%w,src_active)
+       block=>ps(igrid)
+       call addsource1_grid(igrid,qdt,qt,ps(igrid)%w,src_active)
     end do
     !$OMP END PARALLEL DO
 
     if (src_active) then
-       call getbc(qt,0.d0,0,nwflux+nwaux, phys_req_diagonal)
+       call getbc(qt,0.d0,ps,0,nwflux+nwaux, phys_req_diagonal)
     end if
 
   end subroutine add_split_source
@@ -70,20 +70,20 @@ contains
     select case (typesourcesplit)
     case ('sf')
        call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
-            pw(igrid)%x,.true.,src_active)
+            ps(igrid)%x,.true.,src_active)
     case ('sfs')
        call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
-       pw(igrid)%x,.true.,src_active)
+       ps(igrid)%x,.true.,src_active)
     case ('ssf')
        call addsource2(qdt/2,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,&
-            pw(igrid)%x,.true.,src_active)
+            ps(igrid)%x,.true.,src_active)
        call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
-            pw(igrid)%x,.true.,src_active)
+            ps(igrid)%x,.true.,src_active)
     case ('ssfss')
        call addsource2(qdt/4,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,&
-            pw(igrid)%x,.true.,src_active)
+            ps(igrid)%x,.true.,src_active)
        call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
-            pw(igrid)%x,.true.,src_active)
+            ps(igrid)%x,.true.,src_active)
     case default
        write(unitterm,*)'No such typesourcesplit=',typesourcesplit
        call mpistop("Error: Unknown typesourcesplit!")

@@ -102,8 +102,8 @@ neighbor_active = .true.
 !     Just for output and testing: 
 !      ixO^L=ixG^LL^LSUBnghostcells;      
 !      do iigrid=1,igridstail; igrid=igrids(iigrid);        
-!         pw(igrid)%w(ixO^S,flg_) = dble(isafety(igrid,mype))
-!         pw(igrid)%w(ixO^S,cpu_) = dble(mype)
+!         ps(igrid)%w(ixO^S,flg_) = dble(isafety(igrid,mype))
+!         ps(igrid)%w(ixO^S,cpu_) = dble(mype)
 !      end do
 
       contains
@@ -249,7 +249,7 @@ integer function igrid_active(igrid)
   igrid_active = -1
 
   if (associated(usr_flag_grid)) then
-     call usr_flag_grid(global_time,ixG^LL,ixO^L,pw(igrid)%w,pw(igrid)%x,igrid_active)
+     call usr_flag_grid(global_time,ixG^LL,ixO^L,ps(igrid)%w,ps(igrid)%x,igrid_active)
   end if
 
 end function igrid_active
