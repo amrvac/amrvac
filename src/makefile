@@ -63,6 +63,7 @@ mod_finite_volume.o: mod_mhd_phys.mod
 mod_finite_volume.o: mod_physics.mod
 mod_finite_volume.o: mod_source.mod
 mod_finite_volume.o: mod_tvd.mod
+mod_finite_volume.o: mod_usr_methods.mod
 mod_geometry.o: mod_limiter.mod
 mod_geometry.o: mod_ppm.mod
 mod_ghostcells_update.o: mod_physics.mod

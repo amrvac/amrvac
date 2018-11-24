@@ -91,6 +91,7 @@ contains
     use mod_global_parameters
     use mod_tvd, only:tvdlimit2
     use mod_source, only: addsource2
+    use mod_usr_methods
 
     character(len=*), intent(in)                          :: method
     double precision, intent(in)                          :: qdt, qtC, qt, dx^D
@@ -199,6 +200,8 @@ contains
        case default
          call mpistop('unkown Riemann flux')
        end select
+
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idim,fC)
 
     end do ! Next idim
     block%iw0=0

@@ -890,6 +890,7 @@ contains
   !> Calculate fluxes within ixO^L.
   subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
+    use mod_usr_methods
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
     ! conservative w
