@@ -73,6 +73,14 @@ program amrvac
         if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
              .and. convert_type .ne. 'user')  &
              call mpistop("non-mpi conversion only uses 1 cpu")
+
+        ! Optionally call a user method that can modify the grid variables
+        ! before saving the converted data
+        if (associated(usr_process_grid) .or. &
+             associated(usr_process_global)) then
+           call process(it,global_time)
+        end if
+
         call generate_plotfile
         call comm_finalize
         stop
