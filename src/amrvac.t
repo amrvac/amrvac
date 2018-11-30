@@ -12,6 +12,7 @@ program amrvac
   use mod_initialize
   use mod_particles
   use mod_fix_conserve
+  use mod_advance, only: process
 
   double precision :: time0, time_in
 
