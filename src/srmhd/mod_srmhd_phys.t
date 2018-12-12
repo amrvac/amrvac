@@ -469,7 +469,7 @@ contains
     use mod_global_parameters
 
     ! after user parameter setting
-    gamma_1=srmhd_gamma-1.0_dp
+    gamma_1=srmhd_gamma-1.0d0
     inv_gamma_1=1.d0/gamma_1
     gamma_to_gamma_1=srmhd_gamma/gamma_1
     if (.not. srmhd_energy) then
@@ -558,7 +558,7 @@ contains
 
 
     sqrU(ixO^S)    = sum(w(ixO^S, mom(:))**2, dim=ndim+1)
-    w(ixO^S,lfac_) = dsqrt(1.0_dp+sqrU(ixO^S))
+    w(ixO^S,lfac_) = dsqrt(1.0d0+sqrU(ixO^S))
     sqrV=sqrU/w(ixO^S,lfac_)
     ! fill the auxiliary variable xi and density D
     call srmhd_get_enthalpy(ixO^L,w(ixO^S,rho_),w(ixO^S,p_),rhoh)
@@ -579,14 +579,14 @@ contains
 
     cond_energy : if (srmhd_energy) then
        ! re-use sqrU=v^2 B^2 - (v.B)^2
-       sqrU(ixO^S) = B2(ixO^S)*sqrV(ixO^S)-VdotB(ixO^S)**2.0_dp
+       sqrU(ixO^S) = B2(ixO^S)*sqrV(ixO^S)-VdotB(ixO^S)**2.0d0
        ! sqrU should positive
-       where(sqrU(ixO^S)<0.0_dp) flag_error(ixO^S)=e_
+       where(sqrU(ixO^S)<0.0d0) flag_error(ixO^S)=e_
        ! re-use sqrV=xi - p -D
        sqrV(ixO^S) = w(ixO^S,xi_) - w(ixO^S,p_) - w(ixO^S,d_)
-       where(sqrV(ixO^S)<0.0_dp) flag_error(ixO^S)=e_
+       where(sqrV(ixO^S)<0.0d0) flag_error(ixO^S)=e_
        ! E = xi - p +(B^2+v^2 B^2 - (v.B)^2)/2- D
-       w(ixO^S,e_)=sqrV(ixO^S) +0.5_dp*(B2(ixO^S) + sqrU(ixO^S))
+       w(ixO^S,e_)=sqrV(ixO^S) +0.5d0*(B2(ixO^S) + sqrU(ixO^S))
       !if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + x
       if(type_divb==divb_glm2) w(ixO^S,e_)=w(ixO^S,e_) &
                       + 0.5d0*w(ixO^S,psi_)**2
@@ -2054,8 +2054,8 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mge(ixO^S)
 
-    mge = sum(w(ixO^S, mag(:))**2_dp, dim=ndim+1)
-    mge = 0.5_dp*(mge(ixO^S)+ mge(ixO^S)*sum(w(ixO^S, mom(:))**2_dp&
+    mge = sum(w(ixO^S, mag(:))**2.0d0, dim=ndim+1)
+    mge = 0.5d0*(mge(ixO^S)+ mge(ixO^S)*sum(w(ixO^S, mom(:))**2.0d0&
            , dim=ndim+1)/w(ixO^S,lfac_)&
           +sum(w(ixO^S, mag(:))*w(ixO^S, mom(:))))/w(ixO^S,lfac_)
   end function srmhd_mag_en_primitive

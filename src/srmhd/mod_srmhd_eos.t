@@ -19,7 +19,7 @@ module mod_srmhd_eos
     if(srmhd_eos) then
      E_th = p*inv_gamma_1
      E    = E_th+&
-                   dsqrt(E_Th**2.0_dp+rho**2.0_dp)
+                   dsqrt(E_Th**2.0d0+rho**2.0d0)
      rhoh = 0.5d0*((srmhd_gamma+1.0d0) * E-&
                gamma_1* rho*(rho/E))
     else
