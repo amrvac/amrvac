@@ -33,6 +33,9 @@ deps=$(echo "$deps" | sed 's/^.*[/]//')
 # Fix spacing around ':'
 deps=$(echo "$deps" | sed 's/ *: */:/')
 
+# Remove spacing at end of lines
+deps=$(echo "$deps" | sed 's/ *$//')
+
 # Replace extension
 deps=$(echo "$deps" | sed 's/[.]t/.o/')
 
