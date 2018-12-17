@@ -20,7 +20,9 @@ cache:
 before_script:
   - export AMRVAC_DIR=$(pwd)
   - export ARCH=default
-  - cd tests/
+  - cd $AMRVAC_DIR/lib
+  - make clean
+  - cd $AMRVAC_DIR/tests
 
 jobs:
     include:
