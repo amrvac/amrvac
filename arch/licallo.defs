@@ -1,0 +1,6 @@
+F90=mpiifort
+FFLAGS = -c
+F90FLAGS = -free -implicitnone -O2 -xSSE4.2  
+##F90FLAGS = -O3 -mcmodel medium -shared-intel -xSSE4.2 -FR -implicitnone -heap-arrays
+LINK= $(F90) $(F90FLAGS) 
+
