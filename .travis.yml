@@ -15,7 +15,7 @@ install:
 
 cache:
   paths:
-  untracked: true
+  untracked: false
 
 before_script:
   - export AMRVAC_DIR=$(pwd)
