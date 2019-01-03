@@ -63,4 +63,7 @@ visualisation and analysis (e.g. column densities)
 
 **Data analysis tools**
 
+* [Ray-Tracing Algorithm](raytracing.md) Python script to generate H-alpha views for
+any given .dat file.
+
 * [Python](python/index.md) \todo Include python documentation here
