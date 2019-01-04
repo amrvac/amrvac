@@ -36,10 +36,10 @@
     	refine_threshold = 20*0.4d0
         w_refine_weight(1)=0.5d0
         w_refine_weight(4)=0.5d0
-        domain_nx1    = 128
+        domain_nx1    = 256
         domain_nx2    = 128
-        xprobmin1     = -0.5d0
-        xprobmax1     = 0.5d0
+        xprobmin1     = -1.0d0
+        xprobmax1     = 1.0d0
         xprobmin2     = -0.5d0
         xprobmax2     = 0.5d0
  /
