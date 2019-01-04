@@ -355,6 +355,7 @@ def get_amr_data(dat):
     print_regrid_amount(blocks, max_lvl)
     
     counter = 0
+    print_tools.progress(counter, len(blocks), status='-- iterating over blocks...')
     for b in blocks:
         
         block_lvl = b['lvl']

@@ -21,8 +21,9 @@ def gaussian(temp):
     """
     #Microturbulence
     ksi = 5*1e5 #cm/s
-    
-    nu_0 = units.c / (6562.8 * 1e-7)        #s-1
+
+    #H-alpha wavelength is 6562.8 Angstrom
+    nu_0 = units.c / (6562.8 * 1e-8)        #s-1
     
     delta_nu  = 0
     
