@@ -44,6 +44,7 @@ contains
     use mod_forest
     use mod_global_parameters
     use mod_ghostcells_update
+    use mod_fix_conserve, only: pflux
     use mod_geometry
 
     integer :: igrid, level, ipe, ig^D
@@ -59,7 +60,7 @@ contains
     allocate(ps_sub(max_blocks))
     allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))
     allocate(neighbor_type(-1:1^D&,max_blocks),neighbor_active(-1:1^D&,max_blocks))
-    if (phi_ > 0) allocate(neighbor_pole(-1:1^D&,max_blocks))
+    allocate(neighbor_pole(-1:1^D&,max_blocks))
     allocate(igrids(max_blocks),igrids_active(max_blocks),igrids_passive(max_blocks))
     allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks),dt_grid(max_blocks))
     allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
@@ -74,6 +75,9 @@ contains
 
     ! set all dt to zero
     dt_grid(1:max_blocks)=zero
+
+    ! no poles initially
+    neighbor_pole=0
 
     ! check resolution
     if ({mod(ixGhi^D,2)/=0|.or.}) then

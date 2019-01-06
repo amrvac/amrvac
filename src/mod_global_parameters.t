@@ -577,6 +577,9 @@ module mod_global_parameters
   !> True for save physical boundary cells in dat files
   logical :: save_physical_boundary
 
+  !> True if a block has any physical boundary
+  logical, allocatable :: phyboundblock(:)
+
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
   character(len=std_len), allocatable :: typeboundary(:, :)
@@ -587,14 +590,6 @@ module mod_global_parameters
   ! parameters for bc_phys
   integer, parameter :: ismin^D=-1+2*^D
   integer, parameter :: ismax^D=2*^D
-
-  type fluxalloc
-     double precision, dimension(:^D&,:), pointer:: flux => null()
-  end type fluxalloc
-  !> store flux to fix conservation
-  type(fluxalloc), dimension(:,:,:), allocatable :: pflux
-
-  logical, allocatable :: phyboundblock(:)
 
   !$OMP THREADPRIVATE(dxlevel)
   !$OMP THREADPRIVATE(saveigrid)

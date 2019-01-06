@@ -25,6 +25,8 @@ module mod_connectivity
    integer :: igridstail_passive
 
    integer, dimension(^ND) :: nrecv_fc, nsend_fc
+   ! cc for corner coarse
+   integer, dimension(^ND) :: nrecv_cc, nsend_cc
 
    ! MPI receive-send pairs for boundary conditions
    ! srl: same refinement level; r: restrict; p: prolong

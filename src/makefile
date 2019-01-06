@@ -89,6 +89,7 @@ mod_hd_roe.o: mod_hd_phys.mod
 mod_hd_roe.o: mod_physics_roe.mod
 mod_hd_roe.o: mod_tvd.mod
 mod_initialize.o: mod_bc_data.mod
+mod_initialize.o: mod_fix_conserve.mod
 mod_initialize.o: mod_geometry.mod
 mod_initialize.o: mod_ghostcells_update.mod
 mod_initialize.o: mod_input_output.mod

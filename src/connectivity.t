@@ -52,11 +52,14 @@ integer :: iside, idim, ic^D, inc^D, ih^D, icdim
 type(tree_node_ptr) :: tree, my_neighbor, child
 logical, dimension(^ND) :: pole
 logical :: nopole
+! Variables to detect special corners for stagger grid
+integer :: idir,pi^D, mi^D, ph^D, mh^D, ipe_neighbor
 !-----------------------------------------------------------------------------
 nrecv_bc_srl=0; nsend_bc_srl=0
 nrecv_bc_r=0; nsend_bc_r=0
 nrecv_bc_p=0; nsend_bc_p=0
 nrecv_fc=0; nsend_fc=0
+if(stagger_grid) nrecv_cc=0; nsend_cc=0
 
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    tree%node => igrid_to_node(igrid,mype)%node
@@ -161,6 +164,79 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 
       end if
    {end do\}
+
+   if(stagger_grid) then
+   !Now all the neighbour information is known.
+   !Check if there are special corners that need to be communicated
+   !To determine whether to send/receive, we must check three neighbours
+    {do i^DB=-1,1\}
+       if ({abs(i^D)+}==1) then
+         if (neighbor_pole(i^D,igrid)/=0) cycle
+        ! Assign value to idim and iside
+        {if (i^D/=0) then
+            idim=^D
+            iside=int((i^D+3)/2)
+         end if\}
+         ! Fine block surrounded by coarse blocks
+         if (neighbor_type(i^D,igrid)==2) then
+           do idir=idim+1,ndim
+             pi^D=i^D+kr(idir,^D);
+             mi^D=i^D-kr(idir,^D);
+             ph^D=pi^D-kr(idim,^D)*(2*iside-3);
+             mh^D=mi^D-kr(idim,^D)*(2*iside-3);
+
+             if (neighbor_type(pi^D,igrid)==2.and.&
+                 neighbor_type(ph^D,igrid)==2.and.&
+                 mype/=neighbor(2,pi^D,igrid).and.&
+                 neighbor_pole(pi^D,igrid)==0) then
+                nsend_cc(idim) = nsend_cc(idim) + 1
+             end if
+
+             if (neighbor_type(mi^D,igrid)==2.and.&
+                 neighbor_type(mh^D,igrid)==2.and.&
+                 mype/=neighbor(2,mi^D,igrid).and.&
+                 neighbor_pole(mi^D,igrid)==0) then
+                nsend_cc(idim) = nsend_cc(idim) + 1
+             end if
+           end do
+         end if
+         ! Coarse block diagonal to fine block(s)
+         if (neighbor_type(i^D,igrid)==3) then
+           do idir=idim+1,ndim
+             pi^D=i^D+kr(idir,^D);
+             mi^D=i^D-kr(idir,^D);
+             ph^D=pi^D-kr(idim,^D)*(2*iside-3);
+             mh^D=mi^D-kr(idim,^D)*(2*iside-3);
+
+             if (neighbor_type(pi^D,igrid)==4.and.&
+                 neighbor_type(ph^D,igrid)==3.and.&
+                 neighbor_pole(pi^D,igrid)==0) then
+              ! Loop on children (several in 3D)
+              {do ic^DB=1+int((1-pi^DB)/2),2-int((1+pi^DB)/2)
+                  inc^DB=2*pi^DB+ic^DB\}
+                 if (mype.ne.neighbor_child(2,inc^D,igrid)) then
+                   nrecv_cc(idim) = nrecv_cc(idim) + 1
+                 end if
+              {end do\}
+             end if
+
+             if (neighbor_type(mi^D,igrid)==4.and.&
+                 neighbor_type(mh^D,igrid)==3.and.&
+                 neighbor_pole(mi^D,igrid)==0) then
+              ! Loop on children (several in 3D)
+              {do ic^DB=1+int((1-mi^DB)/2),2-int((1+mi^DB)/2)
+                  inc^DB=2*mi^DB+ic^DB\}
+                 if (mype.ne.neighbor_child(2,inc^D,igrid)) then
+                   nrecv_cc(idim) = nrecv_cc(idim) + 1
+                 end if
+              {end do\}
+             end if
+           end do
+         end if
+       end if
+    {end do\}
+   end if
+
 end do
 
 end subroutine build_connectivity
