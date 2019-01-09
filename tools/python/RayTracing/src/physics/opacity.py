@@ -1,62 +1,71 @@
 """
 Created on 7 Dec 2018
 
-Module to integrate the absorption coefficient kappa along the line of sight.
-Works in 1d, 2d and 3d, along any of the given coordinate axes.
+Module to calculate the opacity for the H-alpha views. This opacity is then integrated along
+the line of sight. Works in 1d, 2d and 3d, along any of the given coordinate axes.
 @note: At the moment, only integration along one of the coordinate axes is supported.
 
 @author: Niels Claes
 """
 
-from physics import absorption_coeff
+from maths import integration
+from physics import ionization
+from physics import unit_normalizations as units
+import settings
 import numpy as np
 
-def integrate_los(data, kappa, axis):
+
+def gaussian(temp):
     """
-    Method to integrate the absorption coefficient matrix along a given axis.
+    Calculates absorption line profile using Gaussian broadening.
+    Equations used are (5) and (6) in paper.
+    @param temp: Temperature, in Kelvin
+              Type is np.ndarray of dimension ndim.
+    @return: Gaussian function for H-alpha absorption line profile.
+             Type is np.ndarray of dimension ndim, units = seconds
+    """
+    # Microturbulence
+    ksi = 5 * 1e5  # cm/s
+
+    # H-alpha wavelength is 6562.8 Angstrom
+    nu_0 = units.c / (6562.8 * 1e-8)  # s-1
+
+    delta_nu = 0
+
+    delta_nuD = (nu_0 / units.c) * np.sqrt(2 * units.k_B * temp / units.m_p + ksi ** 2)
+
+    phi_nu = 1.0 / (np.sqrt(np.pi) * delta_nuD) * np.exp(-delta_nu / delta_nuD) ** 2
+
+    return phi_nu
+
+
+def get_kappa(data):
+    """
+    Calculates the absorption coefficient for the H-alpha line using
+    equation (4) from paper.
     @param data: Reduced data object.
-    @param kappa: The absorption coefficient.
-                  Type is np.ndarray of dimension ndim
-    @param axis:  (String) Axis along which kappa is integrated, this is the line of sight.
-                  Default is x.
-    @return: Integrated absorption coefficient (opacity) along the required line of sight.
-             Type is np.ndarray of dimension ndim
-    @note: For a 3D matrix in numpy, axes are labelled as:
-           - axis = 0 means depth  (x)
-           - axis = 1 means height (y), (0,0) is top left corner
-           - axis = 2 means width  (z)
-           This can be checked through
-           a = np.ones((3,5,7))
-           x0 = np.sum(a,axis=0)
-           x1 = np.sum(a,axis=1)
-           x2 = np.sum(a,axis=2)
+    @return: Absorption coefficient for H-alpha line (in cgs)
+             Type is np.ndarray of dimension ndim.
     """
-    print("Integrating matrix along line of sight (%s-axis)" % axis)
-    if axis == "x":
-        tau = np.zeros_like(kappa[0, :, :])
-        #Iterate over indices of y-z plane
-        for i, j in np.ndindex(tau.shape):
-            col = kappa[:, i, j]
-            integrated_col = np.trapz(col, data._x)
-            coords = (i, j)
-            tau[coords] = integrated_col
-        return tau
-    elif axis == "y":
-        tau = np.zeros_like(kappa[:, 0, :])
-        for i, j in np.ndindex(tau.shape):
-            col = kappa[i, :, j]
-            integrated_col = np.trapz(col, data._y)
-            coords = (i, j)
-            tau[coords] = integrated_col
-        return tau
-    else:
-        tau   = np.zeros_like(kappa[:, :, 0])
-        for i, j in np.ndindex(tau.shape):
-            col = kappa[i, j, :]
-            integrated_col = np.trapz(col, data._z)
-            coords = (i, j)
-            tau[coords] = integrated_col
-        return tau
+    # Dimensionalize relevant variables
+    temp = data.T * units.unit_temperature  # K
+    pg   = data.p * units.unit_pressure  # dyn cm-2
+
+    # Retrieve ionization degree and parameter f from data
+    ion, f = ionization.get_i_f(data, settings.altitude)
+
+    # Get number density of electrons using (10) from paper
+    n_e = pg / ((1 + 1.1 / ion) * units.k_B * temp)  # cm-3
+
+    # Calculate n2 from ne^2 = f*n2
+    n2 = n_e ** 2 / f  # cm-3
+
+    f23 = 0.6407  # Oscillator strength H-alpha (dimensionless)
+
+    # Calculate absorption coefficient using (4) from paper
+    kappa = (np.pi * units.ec ** 2 / (units.m_e * units.c)) * f23 * n2 * gaussian(temp)
+
+    return kappa
     
 
 def get_opacity(data, axis):
@@ -69,12 +78,12 @@ def get_opacity(data, axis):
              Type is np.ndarray of dimension 2
     """
     #Retrieve absorption coefficient
-    kappa = absorption_coeff.get_kappa(data)
+    kappa = get_kappa(data)
     
     #If 1D or 2D, simply return the grid itself
     if not data._ndim == 3:
         return kappa
     else:
-        return integrate_los(data, kappa, axis)
+        return integration.integrate_los(data, kappa, axis)
         
         

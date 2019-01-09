@@ -114,16 +114,22 @@ def get_i_f(data, altitude=20000):
     #Re-dimensionalize temperature and pressure       
     temp = data.T * units.unit_temperature
     pg   = data.p * units.unit_pressure    
-    
-    #See if data is already stored to disk:
-    filen = print_tools.trim_filename(settings.filename)
-    if os.path.isfile("interpolated_files/ion_" + filen + ".npy") and os.path.isfile("interpolated_files/f_param_" + filen + ".npy"):
-        print("Interpolated data already exists -- loading files.")
-        print("    Loading Numpy files...")
-        ion = np.load("interpolated_files/ion_" + filen + ".npy")
-        f = np.load("interpolated_files/f_param_" + filen + ".npy")
-        print("    Done.")
-        return ion, f*1e16
+
+    # Prevent double loading during the same run
+    if data.ion is not None and data.f_param is not None:
+        return data.ion, data.f_param
+    else:
+        #See if data is already stored to disk:
+        filen = print_tools.trim_filename(settings.filename)
+        if os.path.isfile("interpolated_files/ion_" + filen + ".npy") and os.path.isfile("interpolated_files/f_param_" + filen + ".npy"):
+            print("Interpolated data already exists -- loading files.")
+            print("    Loading Numpy files...")
+            ion = np.load("interpolated_files/ion_" + filen + ".npy")
+            f = np.load("interpolated_files/f_param_" + filen + ".npy")
+            print("    Done.")
+            data.ion = ion
+            data.f_param = f*1e16
+            return ion, f*1e16
 
     #Create matrix of same size of input
     ion = np.zeros_like(temp)
@@ -159,7 +165,7 @@ def get_i_f(data, altitude=20000):
         if ctr % 250 == 0:
             print_tools.progress(idx[-1], tot_points, '-- interpolating...')  
         it.iternext()
-    print_tools.progress(tot_points, tot_points, '-- interpolating...')
+    print_tools.progress(tot_points, tot_points, '-- completed...')
     print("\n")
 
     # save Numpy arrays for easy acces later on

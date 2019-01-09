@@ -21,6 +21,12 @@ def trim_filename(filename):
         return ""
     
 def progress(count, total, status=''):
+    """
+    Prints a simple progress bar.
+    @param count: Current count of the calculation.
+    @param total: Total count of the calculation.
+    @param status: (String) Text to print next to the progress bar
+    """
     bar_len = 50
     filled_len = int(round(bar_len * count / float(total)))
 

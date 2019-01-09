@@ -1,11 +1,37 @@
 """
 Created 4 Dec 2018
 
-Module to read in MPI-AMRVAC data (.dat files) for 1D, 2D and 3D.
+Module to read in MPI-AMRVAC data (.dat files) for 1D, 2D and 3D. Currently implemented methods are:
+== BASIC METHODS ==
+- get_header        : Reads the header from an MPI-AMRVAC 2.0 snapshot.
+- get_block_data    : Returns an array with block data from a snapshot.
+
+==FOR UNIFORM GRID DATA==
+- get_uniform_data  : Reads in the block data for a uniformely refined grid and returns
+                      the raw data as a dictionary.
+
+==FOR NONUNIFORM GRID DATA==
+- interpolate_block_1d : Interpolates a single 1D block to the maximum refinement level over the grid.
+- interpolate_block_2d : Interpolates a single 2D block to the maximum refinement level over the grid.
+- interpolate_block_3d : Interpolates a single 3D block to the maximum refinement level over the grid.
+- print_regrid_amount  : Prints the total amount of blocks in the grid + the amount needing regridding.
+- get_amr_data         : Interpolates the blocks to the maximum refinement level, returns the raw data.
+                         Method optimized to run on a single CPU.
+- save_regridded_data  : Method to save the regridded raw data as Numpy .npy files which can be loaded in later.
+- increment_progress_mp: Small method to track progress when using multiple cores.
+- multiprocessing_init : Initialization method for the multiprocessing module. Defines global variables
+                         that can be accessed across multiple cores, which is not the case for settings.py variables.
+- get_amr_data_multiprocessing(dat): Similar to get_amr_data, except this method is optimized for usage
+                                     with the multiprocessing module. Performs regridding of multiple blocks
+                                     simultaneously using parallelization.
+- methods with _unpack(): The parallelization routine uses multiprocessing.starmap(), which is only supported from
+                          Python 3.3 onwards. The _unpack() routines are used for compatibility with Python 2,
+                          these unpack the multiple arguments which are otherwise passed on to starmap().
+                          Now map() is used instead.
 
 @author: Jannis Teunissen (original)
 @author: Niels Claes (modifications)
-         Last edit: 02 January 2019
+         Last edit: 07 January 2019
 
 """
 
@@ -17,10 +43,10 @@ from __future__ import print_function
 import struct
 import numpy as np
 import os, sys
-import itertools
 import scipy.interpolate as interp
 import print_tools
 import settings
+import multiprocessing
 
 # Size of basic types (in bytes)
 size_logical = 4
@@ -207,6 +233,11 @@ def interpolate_block_1d(b, hdr):
     """
     block_lvl = b['lvl']
     max_lvl   = hdr['levmax']
+    # Check for multiprocessing method
+    if block_lvl == max_lvl:
+        increment_progress_mp()
+        return b
+
     grid_diff = 2**(max_lvl - block_lvl)
     lvl1_block_width = hdr['block_nx']
     
@@ -220,6 +251,9 @@ def interpolate_block_1d(b, hdr):
         block_result = block_spline(np.linspace(0, b[:, cons_var].size-1, regrid_x))
         
         b_interpolated[:, cons_var] = block_result
+
+    if mp_activated.value:
+        increment_progress_mp()
     
     return b_interpolated
 
@@ -249,6 +283,11 @@ def interpolate_block_2d(b, hdr):
     """
     block_lvl = b['lvl']
     max_lvl   = hdr['levmax']
+    # Check for multiprocessing method
+    if block_lvl == max_lvl:
+        increment_progress_mp()
+        return b
+
     grid_diff = 2**(max_lvl - block_lvl)
     lvl1_block_width = hdr['block_nx']
     
@@ -261,7 +300,7 @@ def interpolate_block_2d(b, hdr):
     b_interpolated = np.zeros([regrid_x, regrid_y, hdr['nw']])
     
     for cons_var in range(0, hdr['nw']):
-        vals = np.reshape(b['w'][:, :, cons_var], (nb_elements))
+        vals = np.reshape(b['w'][:, :, cons_var], nb_elements)
         pts  = np.array(  [[i, j] for i in np.linspace(0, 1, curr_x) for j in np.linspace(0, 1, curr_y)]  )
         
         grid_x, grid_y = np.mgrid[0:1:regrid_x*1j, 0:1:regrid_y*1j]
@@ -269,6 +308,9 @@ def interpolate_block_2d(b, hdr):
         grid_interpolated = interp.griddata(pts, vals, (grid_x, grid_y), method="linear")
         
         b_interpolated[:, :, cons_var] = grid_interpolated
+
+    if mp_activated.value:
+        increment_progress_mp()
 
     return b_interpolated
 
@@ -288,6 +330,11 @@ def interpolate_block_3d(b, hdr):
     """
     block_lvl = b['lvl']
     max_lvl   = hdr['levmax']
+    # Check for multiprocessing method
+    if block_lvl == max_lvl:
+        increment_progress_mp()
+        return b
+
     grid_diff = 2**(max_lvl - block_lvl)
     lvl1_block_width = hdr['block_nx']
     
@@ -302,7 +349,7 @@ def interpolate_block_3d(b, hdr):
     b_interpolated = np.zeros([regrid_x, regrid_y, regrid_z, hdr['nw']])
     
     for cons_var in range(0, hdr['nw']):
-        vals = np.reshape(b['w'][:, :, :, cons_var], (nb_elements))
+        vals = np.reshape(b['w'][:, :, :, cons_var], nb_elements)
         pts  = np.array(  [[i, j, k] for i in np.linspace(0, 1, curr_x)
                                      for j in np.linspace(0, 1, curr_y)
                                      for k in np.linspace(0, 1, curr_z)]   )
@@ -311,6 +358,9 @@ def interpolate_block_3d(b, hdr):
         grid_interpolated = interp.griddata(pts, vals, (grid_x, grid_y, grid_z), method='linear')
         
         b_interpolated[:, :, :, cons_var] = grid_interpolated
+
+    if mp_activated.value:
+        increment_progress_mp()
     
     return b_interpolated
 
@@ -318,7 +368,7 @@ def interpolate_block_3d(b, hdr):
 def print_regrid_amount(blocks, max_lvl):
     """
     Simple routine to count number of blocks in file and checks
-    how many need regridding. For printing purposes only.
+    how many need regridding.
     @param blocks: List of blocks, output from get_block_data
     @param max_lvl: Maximum refinement level in the grid
     """
@@ -328,7 +378,6 @@ def print_regrid_amount(blocks, max_lvl):
         if not b['lvl'] == max_lvl:
             block_regrid_needed += 1
     print("    Number of blocks needing regridding: %s" % block_regrid_needed)
-    return
 
     
 def get_amr_data(dat):
@@ -353,6 +402,10 @@ def get_amr_data(dat):
     max_lvl    = h['levmax']
     #Get amount of blocks that need regridding
     print_regrid_amount(blocks, max_lvl)
+
+    # No multiprocessing, so set mp_activated to False
+    mp_bool = multiprocessing.Value("i", False)
+    multiprocessing_init(0, mp_bool, len(blocks))
     
     counter = 0
     print_tools.progress(counter, len(blocks), status='-- iterating over blocks...')
@@ -378,7 +431,7 @@ def get_amr_data(dat):
         elif h['ndim'] == 2:
             idx0 = min_idx * h['block_nx']
             if block_lvl == max_lvl:
-                #Then only 1 coordinate tuple in list
+                #block is on finest level, return block
                 idx1 = idx0 + h['block_nx']
                 d[idx0[0]:idx1[0], idx0[1]:idx1[1], :] = b['w']
             else:
@@ -420,4 +473,155 @@ def save_regridded_data(regrid_data):
     return
 
 
+def increment_progress_mp():
+    """
+    Small method to increment progress when using multiple processors
+    """
+    progress.value += 1
+    if progress.value % 10 == 0 or progress.value == total.value:
+        print_tools.progress(progress.value, total.value, status='-- iterating over blocks...')
+    return
+
+
+def interpolate_block_1d_unpack(args):
+    """
+    1D block interpolation unpacking function for multiprocessing PY2 compatibility.
+    @param args: (Iterable) Arguments for function call
+    @return: Function call with unpacked arguments
+    """
+    return interpolate_block_1d(*args)
+
+
+def interpolate_block_2d_unpack(args):
+    """
+    2D block interpolation unpacking function for multiprocessing PY2 compatibility.
+    @param args: (Iterable) Arguments for function call
+    @return: Function call with unpacked arguments
+    """
+    return interpolate_block_2d(*args)
+
+
+def interpolate_block_3d_unpack(args):
+    """
+    3D block interpolation unpacking function for multiprocessing PY2 compatibility.
+    @param args: (Iterable) Arguments for function call
+    @return: Function call with unpacked arguments
+    """
+    return interpolate_block_3d(*args)
+
+
+def multiprocessing_init(t, mp_bool, total_blocks):
+    """
+    Initialization method for multiprocessing progress tracking. Also create a
+    boolean value as variables defined in other modules are read as their
+    default values during multiprocessing, even when redefined.
+    @param t: Multiprocessing.Value object at initialization of worker Pool
+    @param mp_bool: (Boolean) True if multiprocessing is called, False otherwise
+    @param total_blocks: (int) Total number of blocks, used to calculate progress
+    """
+    global progress, mp_activated, total
+    progress = t
+    mp_activated = mp_bool
+    total = total_blocks
+
+
+def get_amr_data_multiprocessing(dat):
+    """
+    Method to regrid entire mesh using the multiprocessing module.
+    Same principle as the get_amr_data() method, except now each block that
+    needs regridding is passed on to one of the multiple processors in use.
+    @param dat: .dat file, opened in binary mode.
+    @return: Dictionary containing grid data.
+    """
+    # Perform version check
+    PY2 = sys.version_info[0] == 2
+
+    h = get_header(dat)
+    blocks = get_block_data(dat)
+
+    refined_nx = 2 ** (h['levmax'] - 1) * h['domain_nx']
+    domain_shape = np.append(refined_nx, h['nw'])
+    d = np.zeros(domain_shape, order='F')
+
+    max_lvl = h['levmax']
+    # Get amount of blocks that need regridding
+    print_regrid_amount(blocks, max_lvl)
+
+    # Create multiprocessing iterable
+    block_iterable = [(b, h) for b in blocks]
+    # Create variable for multiprocess progress tracking
+    init_progress = multiprocessing.Value("i", 0)
+    mp_bool = multiprocessing.Value("i", True)
+    total_blocks = multiprocessing.Value("i", len(blocks))
+
+    #Initialize multiprocessing pool
+    pool = multiprocessing.Pool(initializer=multiprocessing_init,
+                                initargs=[init_progress, mp_bool, total_blocks],
+                                processes=settings.nb_of_procs)
+
+    print_tools.progress(0, 100, status='-- iterating over blocks...')
+    #The aray blocks_regridded contains the data for each regridded block
+    #@note: pool.(star)map obeys the array order during parallelization, i.e.
+    #       blocks_regridded[i] equals the calculation for blocks[i]
+    if h['ndim'] == 1:
+        if PY2:
+            blocks_regridded = np.array(pool.map(interpolate_block_1d_unpack, block_iterable))
+        else:
+            blocks_regridded = np.array(pool.starmap(interpolate_block_1d, block_iterable))
+    elif h['ndim'] == 2:
+        if PY2:
+            blocks_regridded = np.array(pool.map(interpolate_block_2d_unpack, block_iterable))
+        else:
+            blocks_regridded = np.array(pool.starmap(interpolate_block_2d, block_iterable))
+    else:
+        if PY2:
+            blocks_regridded = np.array(pool.map(interpolate_block_3d_unpack, block_iterable))
+        else:
+            blocks_regridded = np.array(pool.starmap(interpolate_block_3d, block_iterable))
+    pool.close()
+    pool.join()
+    print_tools.progress(100, 100, status='-- completed.')
+    print("\n")
+
+    # Fill arrays with regridded data
+    for i in range(len(blocks)):
+        b = blocks[i]
+        block_lvl = b['lvl']
+        block_idx = b['ix']
+
+        grid_diff = 2 ** (max_lvl - block_lvl)
+
+        max_idx = block_idx * grid_diff
+        min_idx = max_idx - grid_diff
+
+        idx0 = min_idx * h['block_nx']
+
+        if h['ndim'] == 1:
+            if block_lvl == max_lvl:
+                idx1 = idx0 + h['block_nx']
+                d[idx0[0]:idx1[0], :] = b['w']
+            else:
+                idx1 = idx0 + (h['block_nx'] * grid_diff)
+                d[idx0[0]:idx1[0], :] = blocks_regridded[i]
+
+        elif h['ndim'] == 2:
+            if block_lvl == max_lvl:
+                idx1 = idx0 + h['block_nx']
+                d[idx0[0]:idx1[0], idx0[1]:idx1[1], :] = b['w']
+            else:
+                idx1 = idx0 + (h['block_nx'] * grid_diff)
+                d[idx0[0]:idx1[0], idx0[1]:idx1[1], :] = blocks_regridded[i]
+        elif h['ndim'] == 3:
+            if block_lvl == max_lvl:
+                idx1 = idx0 + h['block_nx']
+                d[idx0[0]:idx1[0], idx0[1]:idx1[1], idx0[2]:idx1[2], :] = b['w']
+            else:
+                idx1 = idx0 + (h['block_nx'] * grid_diff)
+                d[idx0[0]:idx1[0], idx0[1]:idx1[1], idx0[2]:idx1[2], :] = blocks_regridded[i]
+        else:
+            raise IOError("Unknown number of dimensions %s" % h['ndim'])
+
+    save_regridded_data(d)
+
+    return d
 

@@ -21,8 +21,32 @@ altitude                = 20000  # km
 #Can be filament or prominence
 type_simulation         = "prominence"
 
-theta = np.pi / 5   # angle between x-y plane and z-axis 
-phi   = np.pi / 3   # angle from x-axis towards y-axis
+# angle between x-y plane and z-axis
+theta = np.pi / 5
+# angle from x-axis towards y-axis
+phi   = np.pi / 3
+
+# Line of sight.
+line_of_sight = "z"
+# Plot on logscale or not.
+logscale = True
+# Color map to use when plotting.
+cmap = "Reds"
+
+#Calculate H-alpha view.
+halpha = True
+
+#Calculate Faraday effect.
+faraday = True
+faraday_lambda = 460  # nm (blue visible)
 
 #Save files or not. Default = True
 saveFiles = True
+
+#Use multiprocessing to interpolate blocks.
+multiple_procs = False
+# Number of processors
+nb_of_procs    = 4
+
+#Whether or not to plot magnetic field lines.
+plot_Blines = True

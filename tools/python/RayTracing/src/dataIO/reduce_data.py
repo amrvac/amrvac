@@ -5,8 +5,7 @@ Created on 5 Dec 2018
 
 Class to extract all data from header and raw data file.
 Creates Instance variables for easy use later on.
-Initialize by calling data = SetData(hdr, data_raw)
-Retrieve variables by calling their getters, eg. rho = data.get_rho()
+Initialize by calling data = ProcessData(dat_file).
 """
 
 from dataIO import dat_reader
@@ -39,7 +38,12 @@ class ProcessData(object):
                 raw_data = np.load(fn)
             else:
                 # Data not found, initiate regridding
-                raw_data = dat_reader.get_amr_data(file)
+                if settings.multiple_procs:
+                    print("    Regridding data using parallelization, number of procs = %s" % settings.nb_of_procs)
+                    raw_data = dat_reader.get_amr_data_multiprocessing(file)
+                else:
+                    raw_data = dat_reader.get_amr_data(file)
+
                 print("    Regridding done.")
         print("Processing data...")
         
@@ -64,6 +68,8 @@ class ProcessData(object):
 
         self._wnames = hdr["w_names"]
         self._physics_type = hdr["physics_type"]
+        if self._physics_type == "hd":
+            settings.plot_Blines = False
         self._gamma = hdr["gamma"]
         
         #Initialize primitive and conservative variables.
@@ -81,6 +87,10 @@ class ProcessData(object):
         self.v2   = None
         self.v3   = None
         self.T    = None
+
+        #Ionization degree etc, prevent double loading.
+        self.ion    = None
+        self.fparam = None
         
         #Define conservative variables
         self._setConservativeVariables(raw_data)
