@@ -23,7 +23,7 @@ before_script:
   - cd $AMRVAC_DIR/lib
   - make clean
   - cd $AMRVAC_DIR/src
-  - ./update_dependencies.sh -dry_run || { echo "Hey, did you forget to update dependencies in the makefile ?"; exit 1 }
+  - ./update_dependencies.sh --verbose || exit 1
   - cd $AMRVAC_DIR/tests
 
 jobs:
