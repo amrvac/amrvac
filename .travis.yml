@@ -22,6 +22,8 @@ before_script:
   - export ARCH=default
   - cd $AMRVAC_DIR/lib
   - make clean
+  - cd $AMRVAC_DIR/src
+  - ./update_dependencies.sh -dry_run || { echo "Hey, did you forget to update dependencies in the makefile ?"; exit 1 }
   - cd $AMRVAC_DIR/tests
 
 jobs:
