@@ -22,7 +22,7 @@ before_script:
   - export ARCH=default
   - cd $AMRVAC_DIR/lib
   - make clean
-  - cd $AMRVAC_DIR/testsarstarst
+  - cd $AMRVAC_DIR/tests
 
 jobs:
     include:
