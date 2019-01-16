@@ -28,8 +28,9 @@ which currently prints:
 
     mpirun -np 4 ./amrvac -i file1.par file2.par
 
-Note that settings from later par files override earlier ones. Par files do not
-need to contain all the namelists (see @ref par.md).
+Note that settings from later par files override earlier ones. There is one
+exception to this: `base_filename`, for which the values are concatenated. Par
+files do not need to contain all the namelists (see @ref par.md).
 
 ## Resume a previous simulation (which has not finished yet)
 
