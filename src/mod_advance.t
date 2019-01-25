@@ -6,7 +6,7 @@ module mod_advance
 
   logical :: firstsweep, lastsweep
 
-  !> Whether to conserve fluxes at the current partial step
+  !> Whether to conserve fluxes at the current sub-step
   logical :: fix_conserve_at_step = .true.
 
   public :: advance
@@ -346,7 +346,7 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
-    use mod_physics, only: phys_req_diagonal
+    use mod_physics
 
     integer, intent(in) :: idim^LIM
     type(state) :: psa(max_blocks) !< Compute fluxes based on this state
@@ -384,9 +384,18 @@ contains
       call fix_conserve(psb,idim^LIM,1,nwflux)
     end if
 
+    if(stagger_grid) then
+      ! Now fill the cell-center values for the staggered variables
+      !$OMP PARALLEL DO PRIVATE(igrid)
+      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+        call phys_face_to_center(ixG^LL,igrid,psb(igrid))
+      end do
+      !$OMP END PARALLEL DO
+    end if
+
     ! For all grids: fill ghost cells
     qdt = dtfactor*dt
-    call getbc(qt+qdt,qdt,psb,0,nwflux+nwaux, phys_req_diagonal)
+    call getbc(qt+qdt,qdt,psb,0,nwflux+nwaux,phys_req_diagonal)
 
   end subroutine advect1
 
@@ -427,7 +436,8 @@ contains
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
     if (fix_conserve_at_step) then
-      call storeflux(igrid,fC,idim^LIM,nwflux)
+      call store_flux(igrid,fC,idim^LIM,nwflux)
+      if(stagger_grid) call store_edge(igrid,ixG^L,fE,idim^LIM)
     end if
 
   end subroutine process1_grid

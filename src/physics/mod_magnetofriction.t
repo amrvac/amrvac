@@ -763,7 +763,7 @@ contains
     end select
 
     if (fix_conserve_at_step) then
-      call storeflux(igrid,fC,idim^LIM,ndir)
+      call store_flux(igrid,fC,idim^LIM,ndir)
     end if
 
   end subroutine process1_gridmf

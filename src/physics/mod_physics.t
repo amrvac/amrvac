@@ -51,6 +51,7 @@ module mod_physics
   procedure(sub_write_info), pointer      :: phys_write_info             => null()
   procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
   procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
+  procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
 
   abstract interface
 
@@ -181,6 +182,13 @@ module mod_physics
        character(len=*), intent(in)    :: subname
      end subroutine sub_small_values
 
+     subroutine sub_face_to_center(ixO^L,igrid,s)
+       use mod_global_parameters
+       ! Non-staggered interpolation range
+       integer, intent(in)             :: ixO^L, igrid
+       type(state)                     :: s
+     end subroutine sub_face_to_center
+
   end interface
 
 contains
@@ -249,6 +257,9 @@ contains
 
     if (.not. associated(phys_handle_small_values)) &
          phys_handle_small_values => dummy_small_values
+
+    if (.not. associated(phys_face_to_center)) &
+         phys_face_to_center => dummy_face_to_center
 
   end subroutine phys_check
 
@@ -345,4 +356,11 @@ contains
     character(len=*), intent(in)    :: subname
   end subroutine dummy_small_values
   
+  subroutine dummy_face_to_center(ixO^L,igrid,s)
+    use mod_global_parameters
+    ! Non-staggered interpolation range
+    integer, intent(in)             :: ixO^L, igrid
+    type(state)                     :: s
+  end subroutine dummy_face_to_center
+
 end module mod_physics

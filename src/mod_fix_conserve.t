@@ -31,8 +31,10 @@ module mod_fix_conserve
   public :: deallocateBflux
   public :: sendflux
   public :: recvflux
-  public :: storeflux
+  public :: store_flux
+  public :: store_edge
   public :: fix_conserve
+  public :: fix_edges
 
  contains
 
@@ -472,9 +474,11 @@ module mod_fix_conserve
        call MPI_WAITALL(nsend,fc_sendreq,fc_sendstat,ierrmpi)
      end if
 
+     if(stagger_grid) call fix_edges(psb,idim^LIM)
+
    end subroutine fix_conserve
 
-   subroutine storeflux(igrid,fC,idim^LIM,nwfluxin)
+   subroutine store_flux(igrid,fC,idim^LIM,nwfluxin)
      use mod_global_parameters
 
      integer, intent(in)          :: igrid, idim^LIM, nwfluxin
@@ -525,7 +529,133 @@ module mod_fix_conserve
        end select
      end do
 
-   end subroutine storeflux
+   end subroutine store_flux
+
+   subroutine store_edge(igrid,ixI^L,fE,idim^LIM)
+     use mod_global_parameters
+     
+     integer, intent(in)          :: igrid, ixI^L, idim^LIM
+     double precision, intent(in) :: fE(ixI^S,1:ndir)
+     
+     integer :: idims, idir, iside, i^D
+     integer :: pi^D, mi^D, ph^D, mh^D ! To detect corners
+     integer :: ixMc^L
+
+     do idims = idim^LIM  !loop over face directions
+       !! Loop over block faces
+       do iside=1,2 
+         i^D=kr(^D,idims)*(2*iside-3);
+         if (neighbor_pole(i^D,igrid)/=0) cycle
+         select case (neighbor_type(i^D,igrid))
+         case (neighbor_fine)
+           ! The neighbour is finer
+           ! Face direction, side (left or right), restrict ==ired?, fE
+           call flux_to_edge(igrid,ixI^L,idims,iside,.false.,fE)
+         case(neighbor_coarse)
+           ! The neighbour is coarser
+           call flux_to_edge(igrid,ixI^L,idims,iside,.true.,fE)
+         case(neighbor_sibling)
+           ! If the neighbour is at the same level,
+           ! check if there are corners
+           ! If there is any corner, store the fluxes from that side
+           do idir=idims+1,ndim
+             pi^D=i^D+kr(idir,^D);
+             mi^D=i^D-kr(idir,^D);
+             ph^D=pi^D-kr(idims,^D)*(2*iside-3);
+             mh^D=mi^D-kr(idims,^D)*(2*iside-3);
+             if (neighbor_type(pi^D,igrid)==4&
+               .and.neighbor_type(ph^D,igrid)==3) then
+               call flux_to_edge(igrid,ixI^L,idims,iside,.false.,fE)
+             end if
+             if (neighbor_type(mi^D,igrid)==4&
+               .and.neighbor_type(mh^D,igrid)==3) then
+               call flux_to_edge(igrid,ixI^L,idims,iside,.false.,fE)
+             end if
+           end do
+         end select
+       end do
+     end do
+
+   end subroutine store_edge
+
+   subroutine flux_to_edge(igrid,ixI^L,idims,iside,restrict,fE)
+     use mod_global_parameters
+
+     integer                      :: igrid,ixI^L,idims,iside
+     logical                      :: restrict
+     double precision, intent(in) :: fE(ixI^S,1:ndir)
+
+     integer                      :: idir1,idir2
+     integer                      :: ixE^L,ixF^L{^IFTHREED, jxF^L,}, nx^D,nxCo^D
+
+     nx^D=ixMhi^D-ixMlo^D+1;
+     nxCo^D=nx^D/2;
+     ! ixE are the indices on the 'edge' array.
+     ! ixF are the indices on the 'fE' array
+     ! jxF are indices advanced to perform the flux restriction (sum) in 3D
+     ! A line integral of the electric field on the coarse side
+     ! lies over two edges on the fine side. So, in 3D we restrict by summing
+     ! over two cells on the fine side.
+
+     do idir1=1,ndim-1
+      {^IFTHREED ! 3D: rotate indices among 1 and 2 to save space 
+       idir2=mod(idir1+idims-1,3)+1}
+      {^IFTWOD ! Assign the only field component (3) to the only index (1)
+       idir2=3}
+
+       if (restrict) then
+         ! Set up indices for restriction
+         ixFmin^D=ixMlo^D-1+kr(^D,idir2);
+         ixFmax^D=ixMhi^D-kr(^D,idir2);
+         {^IFTHREED
+         jxF^L=ixF^L+kr(^D,idir2);}
+
+         ixEmin^D=0+kr(^D,idir2);
+         ixEmax^D=nxCo^D;
+         select case(idims)
+        {case(^D)
+           ixEmin^D=1;ixEmax^D=1;
+           select case(iside)
+           case(1)
+             ixFmax^D=ixFmin^D
+             {^IFTHREEDjxFmax^D=ixFmin^D}
+           case(2)
+             ixFmin^D=ixFmax^D
+             {^IFTHREEDjxFmin^D=ixFmax^D}
+           end select
+        \}
+         end select
+
+       pflux(iside,idims,igrid)%edge(ixE^S,idir1)=&
+         fE(ixFmin^D:ixFmax^D:2,idir2){^IFTHREED +&
+         fE(jxFmin^D:jxFmax^D:2,idir2)};
+
+       else
+         ! Set up indices for copying 
+         ixFmin^D=ixMlo^D-1+kr(^D,idir2);
+         ixFmax^D=ixMhi^D;
+         ixEmin^D=0+kr(^D,idir2);
+         ixEmax^D=nx^D;
+
+         select case(idims)
+        {case(^D)
+           ixEmin^D=1;ixEmax^D=1;
+           select case(iside)
+           case(1)
+             ixFmax^D=ixFmin^D
+           case(2)
+             ixFmin^D=ixFmax^D
+           end select
+        \}
+         end select
+
+         pflux(iside,idims,igrid)%edge(ixE^S,idir1)=fE(ixF^S,idir2)
+
+       end if
+
+     end do
+
+   end subroutine flux_to_edge
 
    subroutine sendflux(idim^LIM)
      use mod_global_parameters
@@ -640,5 +770,412 @@ module mod_fix_conserve
        end do
      end do
    end subroutine sendflux
+
+   subroutine fix_edges(psuse,idim^LIM)
+     use mod_global_parameters
+
+     type(state) :: psuse(max_blocks)
+     integer, intent(in) :: idim^LIM
+
+     integer :: iigrid, igrid, idims, iside, iotherside, i^D, ic^D, inc^D, ixMc^L
+     integer :: nbuf, ibufnext
+     integer :: ibufnext_cc
+     integer :: pi^D, mi^D, ph^D, mh^D ! To detect corners
+     integer :: ixE^L(1:ndir), ixtE^L, ixF^L(1:ndim), ixfE^L(1:ndir)
+     integer :: nx^D, idir, ix, ipe_neighbor, ineighbor
+     logical :: pcorner(1:ndim),mcorner(1:ndim)
+
+     if (nrecv_ct>0) then
+        call MPI_WAITALL(nrecv_ct,cc_recvreq,cc_recvstat,ierrmpi)
+     end if
+
+     ! Initialise buffer counter again
+     ibuf=1
+     ibuf_cc=1
+     do iigrid=1,igridstail; igrid=igrids(iigrid);
+       do idims= idim^LIM
+         do iside=1,2
+           i^D=kr(^D,idims)*(2*iside-3);
+           if (neighbor_pole(i^D,igrid)/=0) cycle
+           select case(neighbor_type(i^D,igrid))
+           case(neighbor_fine)
+             ! The first neighbour is finer
+             if (.not.neighbor_active(i^D,igrid).or.&
+                 .not.neighbor_active(0^D&,igrid) ) then
+               {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
+                  inc^DB=2*i^DB+ic^DB\}
+                  ipe_neighbor=neighbor_child(2,inc^D,igrid)
+                  !! When the neighbour is in a different process
+                  if (ipe_neighbor/=mype) then
+                     ibufnext=ibuf+isize(idims)
+                     ibuf=ibufnext
+                     end if
+               {end do\}
+                cycle
+             end if
+
+             ! Check if there are corners
+             pcorner=.false.
+             mcorner=.false.
+             do idir=1,ndim
+               pi^D=i^D+kr(idir,^D);
+               mi^D=i^D-kr(idir,^D);
+               ph^D=pi^D-kr(idims,^D)*(2*iside-3);
+               mh^D=mi^D-kr(idims,^D)*(2*iside-3);
+               if (neighbor_type(ph^D,igrid)==neighbor_fine) pcorner(idir)=.true.
+               if (neighbor_type(mh^D,igrid)==neighbor_fine) mcorner(idir)=.true.
+             end do
+             ! Calculate indices range
+             call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.false.,.false.,0^D&,pcorner,mcorner)
+             ! Remove coarse part of circulation
+             call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid),igrid)
+             ! Add fine part of the circulation
+            {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
+               inc^DB=2*i^DB+ic^DB\}
+               ineighbor=neighbor_child(1,inc^D,igrid)
+               ipe_neighbor=neighbor_child(2,inc^D,igrid)
+               iotherside=3-iside
+               nx^D=(ixMhi^D-ixMlo^D+1)/2;
+               call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.true.,.false.,inc^D,pcorner,mcorner)
+               if (ipe_neighbor==mype) then
+                 call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid),igrid)
+               else
+                 ibufnext=ibuf+isize(idims)
+                 call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,&
+                   reshape(source=recvbuffer(ibufnext-isize_stg(idims):ibufnext-1),&
+                   shape=(/ ixtEmax^D-ixtEmin^D+1 ,^ND-1 /)),&
+                   idims,iside,.true.,psuse(igrid),igrid)
+                 ibuf=ibufnext
+               end if
+            {end do\}
+
+           case(neighbor_sibling)
+             ! The first neighbour is at the same level
+             ! Check if there are corners
+             do idir=idims+1,ndim
+               pcorner=.false.
+               mcorner=.false.
+               pi^D=i^D+kr(idir,^D);
+               mi^D=i^D-kr(idir,^D);
+               ph^D=pi^D-kr(idims,^D)*(2*iside-3);
+               mh^D=mi^D-kr(idims,^D)*(2*iside-3);
+               if (neighbor_type(pi^D,igrid)==neighbor_fine&
+                 .and.neighbor_type(ph^D,igrid)==neighbor_sibling&
+                 .and.neighbor_pole(pi^D,igrid)==0) then
+                 pcorner(idir)=.true.
+                 ! Remove coarse part
+                 ! Set indices
+                 call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.false.,.true.,0^D&,pcorner,mcorner)
+                 ! Remove
+                 call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid),igrid)
+                 ! Add fine part
+                 ! Find relative position of finer grid
+                {^IFTHREED do ix=1,2}
+                 inc^D=kr(idims,^D)*3*(iside-1)+3*kr(idir,^D){^IFTHREED+kr(6-idir-idims,^D)*ix};
+                 ineighbor=neighbor_child(1,inc^D,igrid)
+                 ipe_neighbor=neighbor_child(2,inc^D,igrid)
+                 iotherside=3-iside
+                 ! Set indices
+                 call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.true.,.true.,inc^D,pcorner,mcorner)
+                 ! add
+                 if (ipe_neighbor==mype) then
+                   call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid),igrid)
+                 else
+                   ibufnext_cc=ibuf_cc+isize_stg(idims)
+                   call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,&
+                     reshape(source=recvbuffer_cc(ibuf_cc:ibufnext_cc-1),&
+                     shape=(/ ixtEmax^D-ixtEmin^D+1 ,^ND-1 /)),&
+                     idims,iside,.true.,psuse(igrid),igrid)
+                   ibuf_cc=ibufnext_cc
+                 end if
+                {^IFTHREED end do}
+               ! Set CoCorner to false again for next step
+                 pcorner(idir)=.false.
+                 !call div_staggered(ixI^L,psuse(igrid))
+               end if
+
+               if (neighbor_type(mi^D,igrid)==neighbor_fine&
+                 .and.neighbor_type(mh^D,igrid)==neighbor_sibling&
+                 .and.neighbor_pole(mi^D,igrid)==0) then
+                   mcorner(idir)=.true.
+                   ! Remove coarse part
+                   ! Set indices
+                   call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.false.,.true.,0^D&,pcorner,mcorner)
+                   ! Remove
+                   call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid),igrid)
+                   ! Add fine part
+                   ! Find relative position of finer grid
+                  {^IFTHREED do ix=1,2}
+                   inc^D=kr(idims,^D)*3*(iside-1){^IFTHREED+kr(6-idir-idims,^D)*ix};
+                   ineighbor=neighbor_child(1,inc^D,igrid)
+                   ipe_neighbor=neighbor_child(2,inc^D,igrid)
+                   iotherside=3-iside
+                   ! Set indices
+                   call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.true.,.true.,inc^D,pcorner,mcorner)
+                   ! add
+                   if (ipe_neighbor==mype) then
+                     call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid),igrid)
+                   else
+                     ibufnext_cc=ibuf_cc+isize_stg(idims)
+                     call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,&
+                       reshape(source=recvbuffer_cc(ibuf_cc:ibufnext_cc-1),&
+                       shape=(/ ixtEmax^D-ixtEmin^D+1 ,^ND-1 /)),&
+                       idims,iside,.true.,psuse(igrid),igrid)
+                     ibuf_cc=ibufnext_cc
+                   end if
+                  {^IFTHREED end do}
+                 ! Set CoCorner to false again for next step
+                  mcorner(idir)=.false.
+               end if
+             end do
+           end select
+         end do
+       end do
+     end do
+
+     if (nsend_ct>0) call MPI_WAITALL(nsend_ct,cc_sendreq,cc_sendstat,ierrmpi)
+
+   end subroutine fix_edges
+
+   !> This routine sets the indexes for the correction
+   !> of the circulation according to several different
+   !> cases, as grids located in different cpus,
+   !> presence of corners, and different relative locations
+   !> of the fine grid respect to the coarse one
+   subroutine set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,add,CoCorner,inc^D,pcorner,mcorner)
+     use mod_global_parameters
+     
+     integer,intent(in)    :: igrid,idims,iside,inc^D
+     logical,intent(in)    :: add,CoCorner
+     logical,intent(inout) :: pcorner(1:ndim),mcorner(1:ndim)
+     integer,intent(out)   :: ixF^L(1:ndim),ixtE^L,ixE^L(1:ndir),ixfE^L(1:ndir) ! Indices for faces and edges
+     integer               :: icor^D,idim1,idir,nx^D,middle^D
+     integer               :: ixtfE^L
+
+     ! ixF -> Indices for the _F_aces, and
+     ! depends on the field component
+     ! ixtE -> are the _t_otal range of the 'edge' array
+     ! ixE -> are the ranges of the edge array,
+     ! depending on the component
+     ! ixfE -> are the ranges of the fE array (3D),
+     ! and also depend on the component
+
+     ! ... General ...
+     ! Assign indices for the size of the E field array
+
+     ixtfEmin^D=ixMlo^D-1;
+     ixtfEmax^D=ixMhi^D;
+
+     if(add) then
+       nx^D=(ixMhi^D-ixMlo^D+1)/2;
+     else
+       nx^D=ixMhi^D-ixMlo^D+1;
+     end if
+
+     do idim1=1,ndim
+       ixtEmin^D=0;
+       ixtEmax^D=nx^D;
+       select case(idims)
+       {case(^D)
+         ixtEmin^D=1;ixtEmax^D=1;
+         if (iside==1) ixtfEmax^D=ixtfEmin^D;
+         if (iside==2) ixtfEmin^D=ixtfEmax^D;
+       \}
+       end select
+     end do
+
+     ! Assign indices, considering only the face
+     ! (idims and iside)
+     do idim1=1,ndim
+       ixFmin^D(idim1)=ixMlo^D-kr(idim1,^D);
+       ixFmax^D(idim1)=ixMhi^D;
+       select case(idims)
+       {case(^D)
+          select case(iside)
+          case(1)
+          ixFmax^D(idim1)=ixFmin^D(idim1)
+          case(2)
+          ixFmin^D(idim1)=ixFmax^D(idim1)
+          end select
+       \}
+       end select
+     end do
+     ! ... Relative position ...
+     ! Restrict range using relative position
+     if(add) then
+       middle^D=(ixMhi^D+ixMlo^D)/2;
+       {
+       if(inc^D==1) then
+         ixFmax^D(:)=middle^D
+         ixtfEmax^D=middle^D
+       end if
+       if(inc^D==2) then
+         ixFmin^D(:)=middle^D+1
+         ixtfEmin^D=middle^D
+       end if
+       \}
+     end if
+     ! ... Adjust ranges of edges according to direction ...
+     do idim1=1,ndir
+       ixfEmax^D(idim1)=ixtfEmax^D;
+       ixEmax^D(idim1)=ixtEmax^D;
+       ixfEmin^D(idim1)=ixtfEmin^D+kr(idim1,^D);
+       ixEmin^D(idim1)=ixtEmin^D+kr(idim1,^D);
+     end do
+     ! ... Corners ...
+     ! 'Coarse' corners
+     if (CoCorner) then
+       do idim1=idims+1,ndim
+         if (pcorner(idim1)) then
+           do idir=1,ndir !Index arrays have size ndim
+             if (idir==6-idim1-idims) then
+              !!! Something here has to change
+              !!! Array ixfE must have size ndir, while
+              !!! ixE must have size ndim
+              {if (^D==idim1) then
+                 ixfEmin^D(idir)=ixfEmax^D(idir)
+                 if (add) then
+                   ixEmax^D(idir) =ixEmin^D(idir)
+                 else
+                   ixEmin^D(idir) =ixEmax^D(idir)
+                 end if
+               end if\}
+             else
+               ixEmin^D(idir)=1;
+               ixEmax^D(idir)=0;
+               ixfEmin^D(idir)=1;
+               ixfEmax^D(idir)=0;
+             end if
+           end do
+         end if
+         if (mcorner(idim1)) then
+           do idir=1,ndir
+             if (idir==6-idim1-idims) then
+              {if (^D==idim1) then
+                 ixfEmax^D(idir)=ixfEmin^D(idir)
+                 if (add) then
+                   ixEmin^D(idir) =ixEmax^D(idir)
+                 else
+                   ixEmax^D(idir) =ixEmin^D(idir)
+                 end if
+               end if\}
+             else
+               ixEmin^D(idir)=1;
+               ixEmax^D(idir)=0;
+               ixfEmin^D(idir)=1;
+               ixfEmax^D(idir)=0;
+             end if
+           end do
+         end if
+       end do
+     else
+     ! Other kinds of corners
+     ! Crop ranges to account for corners
+     ! When the fine fluxes are added, we consider 
+     ! whether they come from the same cpu or from
+     ! a different one, in order to minimise the 
+     ! amount of communication
+     ! Case for different processors still not implemented!!!
+      {if((idims.gt.^D).and.pcorner(^D)) then
+         if((.not.add).or.(inc^D==2)) then
+           !ixFmax^DD(:)=ixFmax^DD(:)-kr(^D,^DD);
+           do idir=1,ndir
+             if ((idir==idims).or.(idir==^D)) cycle
+               ixfEmax^D(idir)=ixfEmax^D(idir)-1
+               ixEmax^D(idir)=ixEmax^D(idir)-1
+           end do
+         end if
+       end if\}
+      {if((idims.gt.^D).and.mcorner(^D)) then
+         if((.not.add).or.(inc^D==1)) then
+           !ixFmin^DD(:)=ixFmin^DD(:)+kr(^D,^DD);
+           do idir=1,ndir
+             if ((idir==idims).or.(idir==^D)) cycle
+               ixfEmin^D(idir)=ixfEmin^D(idir)+1
+               ixEmin^D(idir)=ixEmin^D(idir)+1
+           end do
+         end if
+       end if\}
+     end if
+
+   end subroutine set_ix_circ
+
+   subroutine add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,edge,idims,iside,add,s,igrid)
+     use mod_global_parameters
+
+     type(state)        :: s
+     integer,intent(in) :: idims,iside,igrid
+     integer            :: ixF^L(1:ndim),ixtE^L,ixE^L(1:ndir),ixfE^L(1:ndir)
+     double precision   :: edge(ixtE^S,1:ndim-1)
+     logical,intent(in) :: add
+
+     integer            :: idim1,idim2,idir,middle^D
+     integer            :: ixfEC^L,ixEC^L
+     double precision   :: fE(ixG^T,1:ndir) !!!!!!!!
+     double precision   :: circ(ixG^T,1:ndim) !!!!!!!!
+     integer            :: ix^L,hx^L,ixC^L,hxC^L ! Indices for edges
+
+     ! ixF -> Indices for the faces, depends on the field component
+     ! ixE -> Total range for the edges
+     ! ixfE -> Edges in fE (3D) array
+     ! ix,hx,ixC,hxC -> Auxiliary indices
+     ! Assign quantities stored ad edges to make it as similar as 
+     ! possible to the routine updatefaces.
+     fE(:^D&,:)=zero
+     do idim1=1,ndim-1
+       {^IFTHREED ! 3D: rotate indices (see routine flux_to_edge)
+       idir=mod(idim1+idims-1,3)+1}
+       {^IFTWOD   ! 2D: move E back to directon 3
+       idir=3}
+       ixfEC^L=ixfE^L(idir);
+       ixEC^L=ixE^L(idir);
+       fE(ixfEC^S,idir)=edge(ixEC^S,idim1)
+     end do
+
+     ! Calculate part of circulation needed
+     circ=zero
+     do idim1=1,ndim
+        do idim2=1,ndim
+           do idir=1,ndir
+             if (lvc(idim1,idim2,idir)==0) cycle
+             ! Assemble indices
+             ixC^L=ixF^L(idim1);
+             hxC^L=ixC^L-kr(idim2,^D);
+             if(idim1==idims) then
+               circ(ixC^S,idim1)=circ(ixC^S,idim1)+lvc(idim1,idim2,idir)&
+                                 *(fE(ixC^S,idir)-fE(hxC^S,idir))
+             else
+               select case(iside)
+               case(2)
+                 circ(ixC^S,idim1)=circ(ixC^S,idim1)+lvc(idim1,idim2,idir)*fE(ixC^S,idir)
+               case(1)
+                 circ(ixC^S,idim1)=circ(ixC^S,idim1)-lvc(idim1,idim2,idir)*fE(hxC^S,idir)
+               end select
+             end if
+           end do
+        end do
+     end do
+
+     ! Divide circulation by surface and add
+     do idim1=1,ndim
+        ixC^L=ixF^L(idim1);
+        select case(idim1)
+        {case(^D)
+          where(ps(igrid)%surfaceC(ixC^S,^D)>1.0d-9*ps(igrid)%dvolume(ixC^S))
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)/ps(igrid)%surfaceC(ixC^S,^D)
+          elsewhere
+            circ(ixC^S,idim1)=zero
+          end where
+        \}
+         end select
+        ! Add/subtract to field at face
+        if (add) then
+          s%ws(ixC^S,idim1)=s%ws(ixC^S,idim1)-circ(ixC^S,idim1)
+        else
+          s%ws(ixC^S,idim1)=s%ws(ixC^S,idim1)+circ(ixC^S,idim1)
+        end if
+     end do
+
+   end subroutine add_sub_circ
 
 end module mod_fix_conserve

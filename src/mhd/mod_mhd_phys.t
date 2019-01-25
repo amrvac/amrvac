@@ -129,6 +129,7 @@ module mod_mhd_phys
   integer, parameter :: divb_lindejanhunen = 6
   integer, parameter :: divb_lindepowel    = 7
   integer, parameter :: divb_lindeglm      = 8
+  integer, parameter :: divb_ct            = 9
 
   ! Public methods
   public :: mhd_phys_init
@@ -294,6 +295,9 @@ contains
       need_global_cmax = .true.
       need_global_vmax = .true.
       type_divb        = divb_lindeglm
+    case ('ct')
+      type_divb = divb_ct
+      stagger_grid = .true.
     case default
       call mpistop('Unknown divB fix')
     end select
@@ -330,6 +334,9 @@ contains
     do itr = 1, mhd_n_tracer
       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
+
+    ! determine number of stagger variables
+    if(stagger_grid) nws=ndir
 
     nvector      = 2 ! No. vector vars
     allocate(iw_vector(nvector))
@@ -413,6 +420,9 @@ contains
       ! Solve the Riemann problem for the linear 2x2 system for normal
       ! B-field and GLM_Psi according to Dedner 2002:
       phys_modify_wLR => glmSolve
+    else if(type_divb==divb_ct) then
+      ! to fill cell-center values with cell-face values
+      phys_face_to_center => mhd_face_to_center
     end if
 
     ! For Hall, we need one more reconstructed layer since currents are computed
@@ -2527,5 +2537,34 @@ contains
     end select
 
    end subroutine fixdivB_boundary
+
+   subroutine mhd_face_to_center(ixO^L,igrid,s)
+     use mod_global_parameters
+     ! Non-staggered interpolation range
+     integer, intent(in)                :: ixO^L,igrid
+     type(state)                        :: s
+     integer                            :: hxO^L, idim
+
+     do idim=1,ndim
+        ! Displace index to the left
+        ! Even if ixI^L is the full size of the w arrays, this is ok
+        ! because the staggered arrays have an additional place to the left.
+        hxO^L=ixO^L-kr(idim,^D);
+        ! Interpolate to cell barycentre using arithmetic average
+        ! This might be done better later, to make the method less diffusive.
+        select case(idim)
+         {case(^D)
+            if(slab) then
+              s%w(ixO^S,mag(idim))=half*(s%ws(ixO^S,idim)+s%ws(hxO^S,idim))
+            else
+              s%w(ixO^S,mag(idim))=half*ps(igrid)%dx(ixO^S,idim)/ps(igrid)%dvolume(ixO^S)*&
+                (s%ws(ixO^S,idim)*ps(igrid)%surfaceC(ixO^S,^D)+&
+                 s%ws(hxO^S,idim)*ps(igrid)%surfaceC(hxO^S,^D))
+            end if
+         \}
+        end select
+     end do
+
+   end subroutine mhd_face_to_center
 
 end module mod_mhd_phys

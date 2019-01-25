@@ -348,7 +348,7 @@ contains
     
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
-      call storeflux(igrid,fC,1,ndim,1)
+      call store_flux(igrid,fC,1,ndim,1)
     end if
 
   end subroutine evolve_stepj
@@ -403,7 +403,7 @@ contains
 
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
-      call storeflux(igrid,fC,1,ndim,1)
+      call store_flux(igrid,fC,1,ndim,1)
     end if
   
   end subroutine evolve_step1
