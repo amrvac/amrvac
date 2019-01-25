@@ -22,6 +22,8 @@ before_script:
   - export ARCH=default
   - cd $AMRVAC_DIR/lib
   - make clean
+  - cd $AMRVAC_DIR/src
+  - ./update_dependencies.sh --verbose || exit 1
   - cd $AMRVAC_DIR/tests
 
 jobs:
