@@ -19,9 +19,9 @@ def gaussian(temp):
     """
     Calculates absorption line profile using Gaussian broadening.
     Equations used are (5) and (6) in paper.
-    @param temp: Temperature, in Kelvin
+    :param temp: Temperature, in Kelvin
               Type is np.ndarray of dimension ndim.
-    @return: Gaussian function for H-alpha absorption line profile.
+    :return: Gaussian function for H-alpha absorption line profile.
              Type is np.ndarray of dimension ndim, units = seconds
     """
     # Microturbulence
@@ -43,8 +43,8 @@ def get_kappa(data):
     """
     Calculates the absorption coefficient for the H-alpha line using
     equation (4) from paper.
-    @param data: Reduced data object.
-    @return: Absorption coefficient for H-alpha line (in cgs)
+    :param data: Reduced data object.
+    :return: Absorption coefficient for H-alpha line (in cgs)
              Type is np.ndarray of dimension ndim.
     """
     # Dimensionalize relevant variables
@@ -71,9 +71,9 @@ def get_kappa(data):
 def get_opacity(data, axis):
     """
     Returns the opacity along the line of sight.
-    @param data: Reduced data object
-    @param axis: (String) Line of sight, default = x
-    @return: - Opacity interpolated from input if ndim < 3
+    :param data: Reduced data object
+    :param axis: (String) Line of sight, default = x
+    :return: - Opacity interpolated from input if ndim < 3
              - Integrated opacity along line of sight if ndim == 3
              Type is np.ndarray of dimension 2
     """

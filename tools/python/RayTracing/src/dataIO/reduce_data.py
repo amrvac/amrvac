@@ -20,7 +20,7 @@ class ProcessData(object):
     def __init__(self, file):
         """
         Initializes Class instance.
-        @param file: .dat file, opened in binary mode.
+        :param file: .dat file, opened in binary mode.
         """ 
         print("Reading %s" % settings.filename)
         hdr = dat_reader.get_header(file)
@@ -108,8 +108,8 @@ class ProcessData(object):
         """
         Extracts conservative variables from raw data array and
         defines them as Class Instance variables. Works for 1D, 2D and 3D.
-        @param raw_data: Raw data (type np.ndarray) from .dat file
-        @raise ValueError: When number of dimensions is not 1, 2 or 3.
+        :param raw_data: Raw data (type np.ndarray) from .dat file
+        :raise ValueError: When number of dimensions is not 1, 2 or 3.
         """
         #Extract variables in 1D
         if self._ndim == 1:

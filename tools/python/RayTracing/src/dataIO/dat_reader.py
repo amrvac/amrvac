@@ -61,8 +61,8 @@ align = '='
 def get_header(dat): 
     """
     Reads header from MPI-AMRVAC 2.0 snapshot.
-    @param dat: .dat file opened in binary mode.
-    @return: Dictionary containing header data from snapshot.
+    :param dat: .dat file opened in binary mode.
+    :return: Dictionary containing header data from snapshot.
     """
 
     dat.seek(0)
@@ -130,8 +130,8 @@ def get_header(dat):
 def get_block_data(dat):
     """
     Reads block data from an MPI-AMRVAC 2.0 snapshot.
-    @param dat: .dat file opened in binary mode.
-    @return: Dictionary containing block data.
+    :param dat: .dat file opened in binary mode.
+    :return: Dictionary containing block data.
     """
 
     dat.seek(0)
@@ -190,9 +190,9 @@ def get_uniform_data(dat):
     """
     Reads block data from an MPI-AMRVAC 2.0 snapshot
     and returns the data as a dictionary. Assumes a uniformely refined grid.
-    @param dat: .dat file opened in binary mode.
-    @return: Dictionary containing grid data
-    @raise IOError: If data is not uniformly refined.
+    :param dat: .dat file opened in binary mode.
+    :return: Dictionary containing grid data
+    :raise IOError: If data is not uniformly refined.
     """
     h = get_header(dat)
     blocks = get_block_data(dat)
@@ -202,6 +202,7 @@ def get_uniform_data(dat):
     nleafs_uniform = np.prod(refined_nx/h['block_nx'])
 
     if h['nleafs'] == nleafs_uniform:
+        print("Data is uniformely refined.")
         domain_shape = np.append(refined_nx, h['nw'])
         d = np.zeros(domain_shape, order='F')
 
@@ -223,9 +224,9 @@ def interpolate_block_1d(b, hdr):
     Interpolates a 1-dimensional block to a new 1D-array, depending
     on the current block level and the maximum refinement level of the snapshot.
     This information is contained in the header and block dictionary from get_block_data().
-    @param b: Current block
-    @param hdr: Header of the current snapshot.
-    @return: Block interpolated to the new required 1D block dimension according to the difference
+    :param b: Current block
+    :param hdr: Header of the current snapshot.
+    :return: Block interpolated to the new required 1D block dimension according to the difference
              in mesh refinement.
              Type is np.ndarray of shape (nx,nw) where nx is the number of gridpoints
              at maximum refinement level, and nw is the number of conservative variables
@@ -273,9 +274,9 @@ def interpolate_block_2d(b, hdr):
         3) Regridding is performed for each conservative variable, using scipy.interpolate.griddata
         4) The new interpolated block is returned, the appropriate indices to fill the regridded matrix
            are calculated in get_amr_data() before calling this method. 
-    @param b: Current block
-    @param hdr: The header from the current snapshot.
-    @return: Block interpolated to the new required 2D block dimension according to the difference in
+    :param b: Current block
+    :param hdr: The header from the current snapshot.
+    :return: Block interpolated to the new required 2D block dimension according to the difference in
              mesh refinement.
              Type is np.ndarray of shape (nx, ny, nw) where nx and ny are the number of gridpoints
              in each direction at maximum refinement level, and nw is the number of conservative variables
@@ -320,9 +321,9 @@ def interpolate_block_3d(b, hdr):
     Interpolates a 3-dimensional block to a new 3D-matrix, depending
     on the current block level and the maximum refinement level of the snapshot.
     This information is contained in the header and block dictionary from get_block_data().
-    @param b: Current block
-    @param hdr: The header from the current snapshot.
-    @return: Block interpolated to the new required 3D block dimension according to the difference in
+    :param b: Current block
+    :param hdr: The header from the current snapshot.
+    :return: Block interpolated to the new required 3D block dimension according to the difference in
              mesh refinement.
              Type is np.ndarray of shape (nx, ny, nz, nw) where nx, ny and nz are the number of gridpoints
              in each direction at maximum refinement level, and nw is the number of conservative variables
@@ -369,8 +370,8 @@ def print_regrid_amount(blocks, max_lvl):
     """
     Simple routine to count number of blocks in file and checks
     how many need regridding.
-    @param blocks: List of blocks, output from get_block_data
-    @param max_lvl: Maximum refinement level in the grid
+    :param blocks: List of blocks, output from get_block_data
+    :param max_lvl: Maximum refinement level in the grid
     """
     block_regrid_needed = 0
     print("    Number of blocks in file:", len(blocks))
@@ -387,9 +388,9 @@ def get_amr_data(dat):
     This method calculates the maximum refinement level present in the grid, and regrids
     the entire mesh to this level. Blocks at a higher level than the maximum are refined using
     linear interpolation.
-    @param dat: .dat file, opened in binary mode.
-    @return: Dictionary containing grid data.
-    @raise IOError: If number of dimensions in the header is not equal to 1, 2 or 3 for some reason.
+    :param dat: .dat file, opened in binary mode.
+    :return: Dictionary containing grid data.
+    :raise IOError: If number of dimensions in the header is not equal to 1, 2 or 3 for some reason.
     """
     h = get_header(dat)
     blocks = get_block_data(dat)
@@ -462,7 +463,7 @@ def get_amr_data(dat):
 def save_regridded_data(regrid_data):
     """
     Saves the regridded data as a Numpy file.
-    @param regrid_data: The regridded data, output from get_amr_data().
+    :param regrid_data: The regridded data, output from get_amr_data().
     """
     if settings.saveFiles:
         if not os.path.isdir("dat_files"):
@@ -486,8 +487,8 @@ def increment_progress_mp():
 def interpolate_block_1d_unpack(args):
     """
     1D block interpolation unpacking function for multiprocessing PY2 compatibility.
-    @param args: (Iterable) Arguments for function call
-    @return: Function call with unpacked arguments
+    :param args: (Iterable) Arguments for function call
+    :return: Function call with unpacked arguments
     """
     return interpolate_block_1d(*args)
 
@@ -495,8 +496,8 @@ def interpolate_block_1d_unpack(args):
 def interpolate_block_2d_unpack(args):
     """
     2D block interpolation unpacking function for multiprocessing PY2 compatibility.
-    @param args: (Iterable) Arguments for function call
-    @return: Function call with unpacked arguments
+    :param args: (Iterable) Arguments for function call
+    :return: Function call with unpacked arguments
     """
     return interpolate_block_2d(*args)
 
@@ -504,8 +505,8 @@ def interpolate_block_2d_unpack(args):
 def interpolate_block_3d_unpack(args):
     """
     3D block interpolation unpacking function for multiprocessing PY2 compatibility.
-    @param args: (Iterable) Arguments for function call
-    @return: Function call with unpacked arguments
+    :param args: (Iterable) Arguments for function call
+    :return: Function call with unpacked arguments
     """
     return interpolate_block_3d(*args)
 
@@ -515,9 +516,9 @@ def multiprocessing_init(t, mp_bool, total_blocks):
     Initialization method for multiprocessing progress tracking. Also create a
     boolean value as variables defined in other modules are read as their
     default values during multiprocessing, even when redefined.
-    @param t: Multiprocessing.Value object at initialization of worker Pool
-    @param mp_bool: (Boolean) True if multiprocessing is called, False otherwise
-    @param total_blocks: (int) Total number of blocks, used to calculate progress
+    :param t: Multiprocessing.Value object at initialization of worker Pool
+    :param mp_bool: (Boolean) True if multiprocessing is called, False otherwise
+    :param total_blocks: (int) Total number of blocks, used to calculate progress
     """
     global progress, mp_activated, total
     progress = t
@@ -530,8 +531,8 @@ def get_amr_data_multiprocessing(dat):
     Method to regrid entire mesh using the multiprocessing module.
     Same principle as the get_amr_data() method, except now each block that
     needs regridding is passed on to one of the multiple processors in use.
-    @param dat: .dat file, opened in binary mode.
-    @return: Dictionary containing grid data.
+    :param dat: .dat file, opened in binary mode.
+    :return: Dictionary containing grid data.
     """
     # Perform version check
     PY2 = sys.version_info[0] == 2
@@ -561,7 +562,7 @@ def get_amr_data_multiprocessing(dat):
 
     print_tools.progress(0, 100, status='-- iterating over blocks...')
     #The aray blocks_regridded contains the data for each regridded block
-    #@note: pool.(star)map obeys the array order during parallelization, i.e.
+    #:note: pool.(star)map obeys the array order during parallelization, i.e.
     #       blocks_regridded[i] equals the calculation for blocks[i]
     if h['ndim'] == 1:
         if PY2:

@@ -66,9 +66,9 @@ f_30k = np.asarray([[4.5, 4.0, 3.5, 3.4, 3.4],
 def _round_to_base(nb, base):
     """
     Method to round a given number to the nearest base
-    @param nb: (int/dble) Number to round
-    @param base: (int) Base to round to
-    @return: Number rounded to given base as integer
+    :param nb: (int/dble) Number to round
+    :param base: (int) Base to round to
+    :return: Number rounded to given base as integer
     """
     return int(base * round(float(nb)/base))
 
@@ -76,11 +76,11 @@ def _round_to_base(nb, base):
 def get_i_f(data, altitude=20000):
     """
     Returns the degree of ionization for each datapoint in the given input.
-    @param data: Reduced data object.
-    @param altitude: Altitude at which to evaluate (in km).
+    :param data: Reduced data object.
+    :param altitude: Altitude at which to evaluate (in km).
                      Default is 20000, otherwise rounded to nearest base 1e4 integer.
                      Type is double or integer
-    @return: i | Degree of ionization at each data point of the input matrix.
+    :return: i | Degree of ionization at each data point of the input matrix.
                  Type is np.ndarray of dimension ndim.
              f | f-value at each data point of the input matrix,
                  multiplied by 1e16 (see table in paper).
@@ -113,7 +113,7 @@ def get_i_f(data, altitude=20000):
         
     #Re-dimensionalize temperature and pressure       
     temp = data.T * units.unit_temperature
-    pg   = data.p * units.unit_pressure    
+    pg   = data.p * units.unit_pressure
 
     # Prevent double loading during the same run
     if data.ion is not None and data.f_param is not None:
@@ -163,9 +163,9 @@ def get_i_f(data, altitude=20000):
         ctr += 1
         #Print out progress
         if ctr % 250 == 0:
-            print_tools.progress(idx[-1], tot_points, '-- interpolating...')  
+            print_tools.progress(idx[-1], tot_points, '-- interpolating...')
         it.iternext()
-    print_tools.progress(tot_points, tot_points, '-- completed...')
+    print_tools.progress(tot_points, tot_points, '-- completed.')
     print("\n")
 
     # save Numpy arrays for easy acces later on
@@ -175,6 +175,9 @@ def get_i_f(data, altitude=20000):
         print("Interpolated arrays saved to")
         print("    interpolated_files/ion_" + filen + ".npy")
         print("    interpolated_files/f_param_" + filen + ".npy")
+
+    data.ion = ion
+    data.f_param = f * 1e16
         
     # Parameter f is tabulated in units of 10^16 cm-3
     return ion, f*1e16

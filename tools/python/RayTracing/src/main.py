@@ -39,6 +39,7 @@ Last update on 09 Jan 2019
 
 from dataIO.reduce_data import ProcessData
 from views import h_alpha_view, faraday_view
+from animations import animate_series
 import settings
 import os, time
 import matplotlib.pyplot as plt
@@ -59,57 +60,63 @@ if __name__ == '__main__':
                                                                    'expensive tasks (interpolation and regridding).')
     args = parser.parse_args()
 
+
+    time_start = time.time()
+
     # ====================================================
     # ===============   INITIALIZATIONS   ================
     # ====================================================
-    # Check if .dat file is given as command line argument    
-    if args.dat_file is not None:
-        dat_file = args.dat_file
-        settings.filename = dat_file.name
+    # First check if animations are required before loading in data
+    if settings.create_animation:
+        animate_series.generate_animation()
+
     else:
-        dat_file = open(settings.filename, 'rb')
-        
-    # Check for optional save argument
-    if args.disable_save:
-        settings.saveFiles = False
-        print("Saving of files is disabled.")
-    else:
-        # Create save directory
-        if not os.path.isdir("interpolated_files"):
-            os.mkdir("interpolated_files")
+        # Check if .dat file is given as command line argument
+        if args.dat_file is not None:
+            dat_file = args.dat_file
+            settings.filename = dat_file.name
+        else:
+            dat_file = open(settings.filename, 'rb')
 
-    # Check if multiprocessing needs to be activated
-    if args.number_of_procs is not None:
-        if not args.number_of_procs == 1:
-            print("entered")
-            settings.multiple_procs = True
-            # Check if supplied numer is greater than available processors
-            if args.number_of_procs > multiprocessing.cpu_count():
-                settings.nb_of_procs = multiprocessing.cpu_count()
-            else:
-                settings.nb_of_procs = args.number_of_procs
-            print("Multiprocessing enabled.")
-    time_start = time.time()
+        # Check for optional save argument
+        if args.disable_save:
+            settings.saveFiles = False
+            print("Saving of files is disabled.")
+        else:
+            # Create save directory
+            if not os.path.isdir("interpolated_files"):
+                os.mkdir("interpolated_files")
 
-
-
-
-    # ====================================================
-    # ================   PROCESSING   ====================
-    # ====================================================
-    # Create data object
-    data = ProcessData(dat_file)
+        # Check if multiprocessing needs to be activated
+        if args.number_of_procs is not None:
+            if not args.number_of_procs == 1:
+                print("entered")
+                settings.multiple_procs = True
+                # Check if supplied numer is greater than available processors
+                if args.number_of_procs > multiprocessing.cpu_count():
+                    settings.nb_of_procs = multiprocessing.cpu_count()
+                else:
+                    settings.nb_of_procs = args.number_of_procs
+                print("Multiprocessing enabled.")
 
 
 
+        # ====================================================
+        # ================   PROCESSING   ====================
+        # ====================================================
+        # Create data object
+        data = ProcessData(dat_file)
 
-    # ====================================================
-    # =================   PLOTTING   =====================
-    # ====================================================
-    if settings.halpha:
-        h_alpha_view.plot_h_alpha(data)
-    if settings.faraday:
-        faraday_view.plot_faraday(data)
+
+
+
+        # ====================================================
+        # =================   PLOTTING   =====================
+        # ====================================================
+        if settings.halpha:
+            h_alpha_view.plot_h_alpha(data)
+        if settings.faraday:
+            faraday_view.plot_faraday(data)
 
 
     time_end = time.time() - time_start
