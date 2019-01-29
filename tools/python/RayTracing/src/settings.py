@@ -10,22 +10,22 @@ In the latter case the value defined here is overruled.
 import numpy as np
 
 
-filename = "dat_files/x3slow_500kk_spexdm0048.dat"
-#filename = "dat_files/3D_x3slow0443.dat"
-#filename = "dat_files/bw_3d0003.dat"
-#filename = "dat_files/ot_2d0002.dat"
-#filename = "dat_files/x3slow_HR_500kk_spexdm0044.dat"
+filename = "PATH_TO_DATFILE"
+
 
 # ========== NORMALIZATION SETTINGS ==========
 # User defined normalizations
 unit_length             = 1e9    # cm
 unit_temperature        = 1e6    # K
 unit_numberdensity      = 1e9    # cm-3
+
+
+# ========== USER PARAMETERS ==========
+# Altitude above the solar disk
 altitude                = 20000  # km
-
-#Can be filament or prominence
+#Type of simulation, 'filament' or 'prominence'
 type_simulation         = "prominence"
-
+# These are only needed when plot_Blines = True
 # angle between x-y plane and z-axis
 theta = np.pi / 5
 # angle from x-axis towards y-axis
@@ -36,18 +36,15 @@ phi   = np.pi / 3
 # Create animated views
 create_animation = True
 # Folder containing .dat files
-folderpath = "D:/School/PhD/Amrvac simulations/cluster_runs/k6pi_05MK"
+folderpath = "PATH_TO_FOLDER"
 # Starting index
-animate_start = 84
+animate_start = 0
 # Stopping index
-animate_end   = 93
+animate_end   = 100
 # Overwrite .png files or not
 overwrite_png = True
 # Duration of each frame in seconds
-frame_duration = 1.0
-
-
-# ========== REMOVAL SETTINGS ==========
+frame_duration = 0.2
 # Remove .png files (confirmation will be asked)
 remove_pngfiles = False
 # Remove .npy files after finishing (confirmation will be asked)
@@ -56,15 +53,15 @@ remove_npyfiles = False
 
 # ========== PLOTTING SETTINGS ==========
 # Line of sight.
-line_of_sight = "z"
+line_of_sight = "y"
 # Plot on logscale or not.
-logscale_halpha  = True
+logscale_halpha  = False
 logscale_faraday = False
 # Color map to use when plotting.
 cmap_halpha  = "Reds_r"
 cmap_faraday = "jet"
-#Whether or not to plot magnetic field lines.
-plot_Blines = True
+# Whether or not to plot magnetic field lines.
+plot_Blines = False
 
 
 # ========== FONT SIZES AND FORMATTING ==========

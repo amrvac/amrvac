@@ -94,7 +94,7 @@ def check_existence(filename):
 def create_gif(images, duration=None):
     """
     Creates a .gif file from a given list of image paths.
-    :param images: Sorted list containig the filepaths to the desired images.
+    :param images: Sorted list containing the filepaths to the desired images.
     :param duration: Duration of each frame, in seconds.
     """
     if duration is None:
