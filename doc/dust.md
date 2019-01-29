@@ -7,35 +7,51 @@ mpi-amrvac.
 
 # Physics
 
-Dust in mpi-amrvac is treated as a pressureless gas that coexists with the
-actual gas. Dust and gas are linked through a dragforce that is calculated
-based on the phsyical characteristics of the gas and the dust grains according
-to Kwok 1975,page 584 (between eqn 8 and 9), but with several options for the
-sticking coefficient. The interaction between dust and gas is considered
-purely kinetic, without the influence of magnetic fields. It is possible to
-combine multiple dust species in a single simulation. This approach dust not
-take into account the interaction between different dust species, which will
-simply ignore each other's presence. Neither does it take into account the
-ability of grains of a single species to interpenetrate. A collision between
-two dust flows of the same dust species will therefore result in a sharp
-feature that is not physical as the dust is brought to a stop by the
-collision. For these reasons dust+gas simulations should be treated with
-caution.
+Dust in mpi-amrvac is treated as a pressureless fluid that coexists with the
+actual gas. Dust and gas are coupled by a dragforce. It is calculated
+based on the phsyical characteristics of gas and dust grains according
+to Kwok 1975,page 584 (between eqn 8 and 9).
+
+The sticking coefficient can be set according to dedicated parameters.
+
+The interaction between dust and gas is considered purely kinetic,
+without the influence of magnetic fields.
+
+It is possible to combine multiple dust species in a single
+simulation, although there's no direct interaction (collisions,
+fractionation, coagulation) between them.
+
+Because particle collisions are not taken into account (e.g. dusty
+fluids are pressureless), a shock happening in a dusty flow will
+result in unphysical sharp features as dust is brought to a stop.
+For these reasons dust+gas simulations should be treated with caution.
 
 # Numerics
 
 Currently the only physics module that allows for the presence of dust is HD,
-due to the lack of a clear formulation of the coupling between dust and
+for a lack of a clear formulation of the coupling between dust and
 magnetic fields. Each dust species has its own continuity and momentum
-equation, but lacks an energy equation because of the lack of a pressure
-equivalent. During each timestep the dragforce between dust and gas is
+equation, but lacks an energy equation because there isn't a pressure
+equivalent.
+During each timestep the dragforce between dust and gas is
 calculated as a local value and applied to the momentum equations of both dust
-and gas. It is also taken into account when calculating the size fo teh next
+and gas. It is also taken into account when calculating the size fo the next
 timestep in order to guarantee numerical stability.
+
+Optionnaly, one can make this gas/dust coupling asymetric or remove it completly:
+
+- ``&dust_list: dust_method = none`` simply remove the coupling
+- ``&dust_list: backreaction`` (default is `.true.`) controls the
+  application of drag forces to gas this can be useful for simple
+  physics tests in the limit of very small dust to gas ratios
+
 
 # Practical use
 
 In order to add dust to a simulation, the user has to do the following:
+
+# THIS IS HEAVILY DEPRECATED, WILL BE REWRITTEN
+
 
   1. In definitions.h remove the line #undefine DUST
   2. recompile with $AMRVACDIR/setup.pl -p=hd -ndust=#, with # the number of dustspecies
