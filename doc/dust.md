@@ -93,7 +93,7 @@ dust_density(1:dust_n_species) = 1d0
 
 Furthermore, note that using dust requires `ndir` additional boundary
 conditions. In addition, even if setting `&hd_list: use_energy=False`
-(which is usually the `ndir+2` numered field), youw will need to set a
+(which is usually the `ndir+2` numered field), you will need to set a
 boundary condition for energy, as the code will start looking for dust
 boundaries from the `ndir+3` boundary condition.
 
