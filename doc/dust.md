@@ -91,12 +91,10 @@ dust_size(1:dust_n_species)    = 1d0
 dust_density(1:dust_n_species) = 1d0
 ```
 
-Furthermore, note that using dust requires `ndir` additional boundary
-conditions. In addition, even if setting `&hd_list: use_energy=False`
-(which is usually the `ndir+2` numered field), you will need to set a
-boundary condition for energy, as the code will start looking for dust
-boundaries from the `ndir+3` boundary condition.
-
+Furthermore, note that using dust requires `ndir+2` additional
+boundary conditions per dust species in each `typeboundary_xxxx` line 
+of the parfile, or only `ndir+1` if you set 
+`hd_list:hd_energy=.false.`.
 
 Finally, you'll need to initialize densities and momenta for each dust
 fluid.  This is a minimal working example of this, implemented as part
