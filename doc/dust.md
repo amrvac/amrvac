@@ -96,7 +96,6 @@ conditions. In addition, even if setting `&hd_list: use_energy=False`
 (which is usually the `ndir+2` numered field), youw will need to set a
 boundary condition for energy, as the code will start looking for dust
 boundaries from the `ndir+3` boundary condition.
-*(note to Jannis: this could be considered a bug ?)*
 
 
 Finally, you'll need to initialize densities and momenta for each dust
