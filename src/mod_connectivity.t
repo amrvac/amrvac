@@ -28,11 +28,6 @@ module mod_connectivity
    ! cc for corner coarse
    integer, dimension(^ND) :: nrecv_cc, nsend_cc
 
-   ! MPI receive-send pairs for boundary conditions
-   ! srl: same refinement level; r: restrict; p: prolong
-   integer :: nrecv_bc_srl, nsend_bc_srl, &
-              nrecv_bc_r, nsend_bc_r, &
-              nrecv_bc_p, nsend_bc_p
 !$OMP THREADPRIVATE(leveljump)
 
 end module mod_connectivity

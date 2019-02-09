@@ -11,8 +11,13 @@ module mod_ghostcells_update
   logical, public :: bcphys=.true.
   integer :: ixM^L, ixCoG^L, ixCoM^L
 
-  !> The number of interleaving sending buffers for ghost cells
+  ! The number of interleaving sending buffers for ghost cells
   integer, parameter :: npwbuf=2
+
+  ! The first index goes from -1:2, where -1 is used when a block touches the
+  ! lower boundary, 1 when a block touches an upper boundary, and 0 a situation
+  ! away from boundary conditions, 2 when a block touched both lower and upper
+  ! boundary
 
   ! index ranges to send (S) to sibling blocks, receive (R) from 
   ! sibling blocks, send restricted (r) ghost cells to coarser blocks 
@@ -23,13 +28,60 @@ module mod_ghostcells_update
   ! ghost from coarser blocks
   integer, dimension(-1:1, 0:3) :: ixR_r_^L, ixS_p_^L, ixR_p_^L
 
+  integer, dimension(^ND,-1:1) :: ixS_srl_stg_^L, ixR_srl_stg_^L
+  integer, dimension(^ND,-1:1) :: ixS_r_stg_^L
+  integer, dimension(^ND,0:3)  :: ixS_p_stg_^L, ixR_p_stg_^L
+  integer, dimension(^ND,0:3)  :: ixR_r_stg_^L
+
+  ! number of MPI receive-send pairs, srl: same refinement level; r: restrict; p: prolong
+  integer :: nrecv_bc_srl, nsend_bc_srl, nrecv_bc_r, nsend_bc_r, nrecv_bc_p, nsend_bc_p
+
+  ! total size of buffer arrays
+  integer :: nbuff_bc_recv_srl, nbuff_bc_send_srl, nbuff_bc_recv_r, nbuff_bc_send_r, nbuff_bc_recv_p, nbuff_bc_send_p
+
+  ! sizes to send and receive for siblings
+  integer, dimension(-1:1^D&) :: sizes_srl_send, sizes_srl_recv
+
+  ! total sizes = cell-center normal flux + stagger-grid flux of send and receive
+  integer, dimension(-1:1^D&) :: sizes_srl_send_total, sizes_srl_recv_total
+
+  ! sizes of buffer arrays for stagger-grid variable
+  integer, dimension(^ND,-1:1^D&) :: sizes_srl_send_stg, sizes_srl_recv_stg
+
+  integer, dimension(:), allocatable :: recvrequest_srl, sendrequest_srl
+  integer, dimension(:,:), allocatable :: recvstatus_srl, sendstatus_srl
+ 
+  ! buffer arrays for send and receive of siblings
+  double precision, dimension(:), allocatable :: recvbuffer_srl, sendbuffer_srl
+
+  integer, dimension(:), allocatable :: recvrequest_r, sendrequest_r
+  integer, dimension(:,:), allocatable :: recvstatus_r, sendstatus_r
+
+  ! buffer arrays for send and receive in restriction
+  double precision, dimension(:), allocatable :: recvbuffer_r, sendbuffer_r
+
+  ! sizes to allocate buffer arrays for send and receive for restriction
+  integer, dimension(-1:1^D&)     :: sizes_r_send
+  integer, dimension(0:3^D&)      :: sizes_r_recv
+  integer, dimension(^ND,-1:1^D&) :: sizes_r_send_stg
+  integer, dimension(^ND,0:3^D&)  :: sizes_r_recv_stg
+  integer, dimension(-1:1^D&)     :: sizes_r_send_total
+  integer, dimension(0:3^D&)      :: sizes_r_recv_total
+
+
+  integer, dimension(0:3^D&)      :: sizes_p_send, sizes_p_recv
+  integer, dimension(^ND,0:3^D&)  :: sizes_p_send_stg, sizes_p_recv_stg
+  integer, dimension(0:3^D&)      :: sizes_p_send_total, sizes_p_recv_total
+
+  integer, dimension(:), allocatable :: recvrequest_p, sendrequest_p
+  integer, dimension(:,:), allocatable :: recvstatus_p, sendstatus_p
+
+  double precision, dimension(:), allocatable :: recvbuffer_p, sendbuffer_p
+  ! index pointer for buffer arrays as a start for a segment
+  integer :: ibuf_start
+
   ! MPI derived datatype to send and receive subarrays of ghost cells to
   ! neighbor blocks in a different processor.
-  !
-  ! The first index goes from -1:2, where -1 is used when a block touches the
-  ! lower boundary, 1 when a block touches an upper boundary, and 0 a situation
-  ! away from boundary conditions, 2 when a block touched both lower and upper
-  ! boundary
   !
   ! There are two variants, _f indicates that all flux variables are filled,
   ! whereas _p means that part of the variables is filled 
@@ -53,7 +105,7 @@ contains
     use mod_physics, only: phys_req_diagonal
 
     integer :: nghostcellsCo, interpolation_order
-    integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, iib^D
+    integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, idir
 
     ixG^L=ixG^LL;
     ixM^L=ixG^L^LSUBnghostcells;
@@ -81,11 +133,93 @@ contains
        call mpistop("interpolation order for prolongation in getbc too high")
     end if
     
+    if (stagger_grid) then
+      ! Staggered (face-allocated) variables
+      do idir=1,ndim
+      { ixS_srl_stg_min^D(idir,-1)=ixMmin^D-kr(idir,^D)
+        ixS_srl_stg_max^D(idir,-1)=ixMmin^D-1+nghostcells
+        ixS_srl_stg_min^D(idir,0) =ixMmin^D-kr(idir,^D)
+        ixS_srl_stg_max^D(idir,0) =ixMmax^D
+        ixS_srl_stg_min^D(idir,1) =ixMmax^D-nghostcells+1-kr(idir,^D)
+        ixS_srl_stg_max^D(idir,1) =ixMmax^D
+        
+        ixR_srl_stg_min^D(idir,-1)=1-kr(idir,^D)
+        ixR_srl_stg_max^D(idir,-1)=nghostcells
+        ixR_srl_stg_min^D(idir,0) =ixMmin^D-kr(idir,^D)
+        ixR_srl_stg_max^D(idir,0) =ixMmax^D
+        ixR_srl_stg_min^D(idir,1) =ixMmax^D+1-kr(idir,^D)
+        ixR_srl_stg_max^D(idir,1) =ixGmax^D
+
+        ixS_r_stg_min^D(idir,-1)=ixCoMmin^D-kr(idir,^D)
+        ixS_r_stg_max^D(idir,-1)=ixCoMmin^D-1+nghostcells
+        ixS_r_stg_min^D(idir,0) =ixCoMmin^D-kr(idir,^D)
+        ixS_r_stg_max^D(idir,0) =ixCoMmax^D
+        ixS_r_stg_min^D(idir,1) =ixCoMmax^D+1-nghostcells-kr(idir,^D)
+        ixS_r_stg_max^D(idir,1) =ixCoMmax^D
+ 
+        ixR_r_stg_min^D(idir,0)=1-kr(idir,^D)
+        ixR_r_stg_max^D(idir,0)=nghostcells
+        ixR_r_stg_min^D(idir,1)=ixMmin^D-kr(idir,^D)
+        ixR_r_stg_max^D(idir,1)=ixMmin^D-1+nxCo^D
+        ixR_r_stg_min^D(idir,2)=ixMmin^D+nxCo^D-kr(idir,^D)
+        ixR_r_stg_max^D(idir,2)=ixMmax^D
+        ixR_r_stg_min^D(idir,3)=ixMmax^D+1-kr(idir,^D)
+        ixR_r_stg_max^D(idir,3)=ixGmax^D
+        \}
+       {if (idir==^D) then
+          ! Parallel components
+          {
+          ixS_p_stg_min^D(idir,0)=ixMmin^D-1 ! -1 to make redundant 
+          ixS_p_stg_max^D(idir,0)=ixMmin^D-1+nghostcellsCo
+          ixS_p_stg_min^D(idir,1)=ixMmin^D-1 ! -1 to make redundant 
+          ixS_p_stg_max^D(idir,1)=ixMmin^D-1+nxCo^D+nghostcellsCo
+          ixS_p_stg_min^D(idir,2)=ixMmax^D-nxCo^D-nghostcellsCo
+          ixS_p_stg_max^D(idir,2)=ixMmax^D
+          ixS_p_stg_min^D(idir,3)=ixMmax^D-nghostcellsCo
+          ixS_p_stg_max^D(idir,3)=ixMmax^D
+
+          ixR_p_stg_min^D(idir,0)=ixCoMmin^D-1-nghostcellsCo
+          ixR_p_stg_max^D(idir,0)=ixCoMmin^D-1
+          ixR_p_stg_min^D(idir,1)=ixCoMmin^D-1 ! -1 to make redundant 
+          ixR_p_stg_max^D(idir,1)=ixCoMmax^D+nghostcellsCo
+          ixR_p_stg_min^D(idir,2)=ixCoMmin^D-1-nghostcellsCo
+          ixR_p_stg_max^D(idir,2)=ixCoMmax^D
+          ixR_p_stg_min^D(idir,3)=ixCoMmax^D+1-1 ! -1 to make redundant 
+          ixR_p_stg_max^D(idir,3)=ixCoMmax^D+nghostcellsCo
+          \}
+        else
+          {
+          ! Perpendicular component
+          ixS_p_stg_min^D(idir,0)=ixMmin^D
+          ixS_p_stg_max^D(idir,0)=ixMmin^D-1+nghostcellsCo+(interpolation_order-1)
+          ixS_p_stg_min^D(idir,1)=ixMmin^D
+          ixS_p_stg_max^D(idir,1)=ixMmin^D-1+nxCo^D+nghostcellsCo+(interpolation_order-1)
+          ixS_p_stg_min^D(idir,2)=ixMmax^D+1-nxCo^D-nghostcellsCo-(interpolation_order-1)
+          ixS_p_stg_max^D(idir,2)=ixMmax^D
+          ixS_p_stg_min^D(idir,3)=ixMmax^D+1-nghostcellsCo-(interpolation_order-1)
+          ixS_p_stg_max^D(idir,3)=ixMmax^D
+ 
+          ixR_p_stg_min^D(idir,0)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
+          ixR_p_stg_max^D(idir,0)=ixCoMmin^D-1
+          ixR_p_stg_min^D(idir,1)=ixCoMmin^D
+          ixR_p_stg_max^D(idir,1)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
+          ixR_p_stg_min^D(idir,2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
+          ixR_p_stg_max^D(idir,2)=ixCoMmax^D
+          ixR_p_stg_min^D(idir,3)=ixCoMmax^D+1
+          ixR_p_stg_max^D(idir,3)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
+          \}
+        end if
+        }
+      end do
+    end if
+
     ! (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
     ! iib=-1 means it is at the minimum side of a physical boundary  
     ! iib= 1 means it is at the maximum side of a physical boundary  
     ! i=-1 means subregion prepared for the neighbor at its minimum side 
     ! i= 1 means subregion prepared for the neighbor at its maximum side 
+
+    ! index limits for siblings
     {
     ixS_srl_min^D(:,-1)=ixMmin^D
     ixS_srl_min^D(:, 1)=ixMmax^D+1-nghostcells
@@ -114,7 +248,10 @@ contains
     ixR_srl_max^D( 0,0)=ixMmax^D
     ixR_srl_max^D( 1,0)=ixGmax^D
     ixR_srl_max^D( 2,0)=ixGmax^D
-    
+    \}
+
+    ! index limits for restrict
+    { 
     ixS_r_min^D(:,-1)=ixCoMmin^D
     ixS_r_min^D(:, 1)=ixCoMmax^D+1-nghostcells
     ixS_r_max^D(:,-1)=ixCoMmin^D-1+nghostcells
@@ -140,7 +277,10 @@ contains
     ixR_r_max^D(-1,1)=ixMmin^D-1+nxCo^D
     ixR_r_min^D( 1,2)=ixMmin^D+nxCo^D
     ixR_r_max^D( 1,2)=ixGmax^D
+    \}
 
+    ! index limits for prolong
+    {
     ixS_p_min^D(:, 0)=ixMmin^D-(interpolation_order-1)
     ixS_p_min^D(:, 1)=ixMmin^D-(interpolation_order-1)
     ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-nghostcellsCo-(interpolation_order-1)
@@ -172,6 +312,7 @@ contains
     ixR_p_max^D(:, 3)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
 
     if(.not.phys_req_diagonal) then
+      ! exclude ghost-cell region when diagonal cells are unknown
       ixR_p_max^D(:, 0)=nghostcells
       ixR_p_min^D(:, 3)=ixCoMmax^D+1
       ixR_p_max^D(:, 1)=ixCoMmax^D+(interpolation_order-1)
@@ -182,6 +323,61 @@ contains
     ixR_p_min^D(-1,1)=1
     ixR_p_max^D( 1,2)=ixCoGmax^D
     \}
+
+    ! calculate sizes for buffer arrays for siblings
+    {do i^DB=-1,1\}
+      sizes_srl_send(i^D)=(nwflux+nwaux)*{(ixS_srl_max^D(2,i^D)-ixS_srl_min^D(2,i^D)+1)|*}
+      sizes_srl_recv(i^D)=(nwflux+nwaux)*{(ixR_srl_max^D(2,i^D)-ixR_srl_min^D(2,i^D)+1)|*}
+      sizes_srl_send_total(i^D)=sizes_srl_send(i^D)
+      sizes_srl_recv_total(i^D)=sizes_srl_recv(i^D)
+      if(stagger_grid) then
+        ! Staggered (face-allocated) variables
+        do idir=1,ndim
+          sizes_srl_send_stg(idir,i^D)={(ixS_srl_stg_max^D(idir,i^D)-ixS_srl_stg_min^D(idir,i^D)+1)|*}
+          sizes_srl_recv_stg(idir,i^D)={(ixR_srl_stg_max^D(idir,i^D)-ixR_srl_stg_min^D(idir,i^D)+1)|*}
+          sizes_srl_send_total(i^D)=sizes_srl_send_total(i^D)+sizes_srl_send_stg(idir,i^D)
+          sizes_srl_recv_total(i^D)=sizes_srl_recv_total(i^D)+sizes_srl_recv_stg(idir,i^D)
+        end do
+      end if
+    {end do\}
+
+    ! Sizes for multi-resolution communications
+    {do i^DB=-1,1\}
+       ! Cell-centred variables
+       sizes_r_send(i^D)=(nwflux+nwaux)*{(ixS_r_max^D(2,i^D)-ixS_r_min^D(2,i^D)+1)|*}
+       sizes_r_send_total(i^D)=sizes_r_send(i^D)
+       if(stagger_grid) then
+         ! Staggered (face-allocated) variables
+         do idir=1,ndim
+           sizes_r_send_stg(idir,i^D)={(ixS_r_stg_max^D(idir,i^D)-ixS_r_stg_min^D(idir,i^D)+1)|*}
+           sizes_r_send_total(i^D)=sizes_r_send_total(i^D)+sizes_r_send_stg(idir,i^D)
+         end do
+       end if
+    {end do\}
+
+    {do i^DB=0,3\}
+       ! Cell-centred variables
+       sizes_r_recv(i^D)=(nwflux+nwaux)*{(ixR_r_max^D(1,i^D)-ixR_r_min^D(1,i^D)+1)|*}
+       sizes_p_send(i^D)=(nwflux+nwaux)*{(ixS_p_max^D(1,i^D)-ixS_p_min^D(1,i^D)+1)|*}
+       sizes_p_recv(i^D)=(nwflux+nwaux)*{(ixR_p_max^D(1,i^D)-ixR_p_min^D(1,i^D)+1)|*}
+
+       sizes_r_recv_total(i^D)=sizes_r_recv(i^D)
+       sizes_p_send_total(i^D)=sizes_p_send(i^D)
+       sizes_p_recv_total(i^D)=sizes_p_recv(i^D)
+    
+       if (stagger_grid) then
+       ! Staggered (face-allocated) variables
+         do idir=1,^ND
+           sizes_r_recv_stg(idir,i^D)={(ixR_r_stg_max^D(idir,i^D)-ixR_r_stg_min^D(idir,i^D)+1)|*}
+           sizes_p_send_stg(idir,i^D)={(ixS_p_stg_max^D(idir,i^D)-ixS_p_stg_min^D(idir,i^D)+1)|*}
+           sizes_p_recv_stg(idir,i^D)={(ixR_p_stg_max^D(idir,i^D)-ixR_p_stg_min^D(idir,i^D)+1)|*}
+           sizes_r_recv_total(i^D)=sizes_r_recv_total(i^D)+sizes_r_recv_stg(idir,i^D)
+           sizes_p_send_total(i^D)=sizes_p_send_total(i^D)+sizes_p_send_stg(idir,i^D)
+           sizes_p_recv_total(i^D)=sizes_p_recv_total(i^D)+sizes_p_recv_stg(idir,i^D)
+         end do
+       end if
+
+    {end do\}
 
   end subroutine init_bc
 

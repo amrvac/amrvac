@@ -46,6 +46,7 @@ end subroutine getigrids
 subroutine build_connectivity
 use mod_forest
 use mod_global_parameters
+use mod_ghostcells_update
 
 integer :: iigrid, igrid, i^D, my_neighbor_type
 integer :: iside, idim, ic^D, inc^D, ih^D, icdim
@@ -86,8 +87,12 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
             if (my_neighbor%node%ipe/=mype) then
                ic^D=1+modulo(tree%node%ig^D-1,2);
                if ({(i^D==0.or.i^D==2*ic^D-3)|.and.}) then
-                  nrecv_bc_p=nrecv_bc_p+1
-                  nsend_bc_r=nsend_bc_r+1
+                 nrecv_bc_p=nrecv_bc_p+1
+                 nsend_bc_r=nsend_bc_r+1
+                 nbuff_bc_send_r=nbuff_bc_send_r+sizes_r_send_total(i^D)
+                 ! This is the local index of the prolonged ghost zone
+                 inc^D=ic^D+i^D;
+                 nbuff_bc_recv_p=nbuff_bc_recv_p+sizes_p_recv_total(inc^D)
                end if
             end if
          ! same refinement level
@@ -95,13 +100,17 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
             neighbor(1,i^D,igrid)=my_neighbor%node%igrid
             neighbor(2,i^D,igrid)=my_neighbor%node%ipe
             if (my_neighbor%node%ipe/=mype) then
-               nrecv_bc_srl=nrecv_bc_srl+1
-               nsend_bc_srl=nsend_bc_srl+1
+              nrecv_bc_srl=nrecv_bc_srl+1
+              nsend_bc_srl=nsend_bc_srl+1
+              nbuff_bc_send_srl=nbuff_bc_send_srl+sizes_srl_send_total(i^D)
+              nbuff_bc_recv_srl=nbuff_bc_recv_srl+sizes_srl_recv_total(i^D)
             end if
          ! coarse-fine transition
          case (neighbor_fine)
             neighbor(1,i^D,igrid)=0
             neighbor(2,i^D,igrid)=-1
+            ! Loop over the local indices of children ic^D
+            ! and calculate local indices of ghost zone inc^D.
             {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
                inc^DB=2*i^DB+ic^DB
                if (pole(^DB)) then
@@ -113,8 +122,10 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
                neighbor_child(1,inc^D,igrid)=child%node%igrid
                neighbor_child(2,inc^D,igrid)=child%node%ipe
                if (child%node%ipe/=mype) then
-                  nrecv_bc_r=nrecv_bc_r+1
-                  nsend_bc_p=nsend_bc_p+1
+                 nrecv_bc_r=nrecv_bc_r+1
+                 nsend_bc_p=nsend_bc_p+1
+                 nbuff_bc_send_p=nbuff_bc_send_p+sizes_p_send_total(inc^D)
+                 nbuff_bc_recv_r=nbuff_bc_recv_r+sizes_r_recv_total(inc^D)
                end if
             {end do\}
          end select
@@ -239,5 +250,118 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
 
 end do
 
+! allocate space for recieve buffer for siblings ghost cell filling
+if (nrecv_bc_srl>0) then
+  if (allocated(recvbuffer_srl)) then
+    if (nbuff_bc_recv_srl /= size(recvbuffer_srl)) then
+      deallocate(recvbuffer_srl)
+      allocate(recvbuffer_srl(nbuff_bc_recv_srl))
+    end if
+  else
+    allocate(recvbuffer_srl(nbuff_bc_recv_srl))
+  end if
+  if (allocated(recvstatus_srl)) then
+    deallocate(recvstatus_srl,recvrequest_srl)
+    allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
+  else
+    allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
+  end if
+  recvrequest_srl=MPI_REQUEST_NULL
+end if
+
+! allocate space for send buffer for siblings ghost cell filling
+if (nsend_bc_srl>0) then
+  if (allocated(sendbuffer_srl)) then
+    if (nbuff_bc_send_srl /= size(sendbuffer_srl)) then
+      deallocate(sendbuffer_srl)
+      allocate(sendbuffer_srl(nbuff_bc_send_srl))
+    end if
+  else
+    allocate(sendbuffer_srl(nbuff_bc_send_srl))
+  end if
+  if (allocated(sendstatus_srl)) then
+    deallocate(sendstatus_srl,sendrequest_srl)
+    allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
+  else
+    allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
+  end if
+  sendrequest_srl=MPI_REQUEST_NULL
+end if
+
+! allocate space for recieve buffer for restrict ghost cell filling
+if (nrecv_bc_r>0) then
+  if (allocated(recvbuffer_r)) then
+    if (nbuff_bc_recv_r /= size(recvbuffer_r)) then
+      deallocate(recvbuffer_r)
+      allocate(recvbuffer_r(nbuff_bc_recv_r))
+    end if
+  else
+    allocate(recvbuffer_r(nbuff_bc_recv_r))
+  end if
+  if (allocated(recvstatus_r)) then
+    deallocate(recvstatus_r,recvrequest_r)
+    allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
+  else
+    allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
+  end if
+  recvrequest_r=MPI_REQUEST_NULL
+end if
+
+! allocate space for send buffer for restrict ghost cell filling
+if (nsend_bc_r>0) then
+  if (allocated(sendbuffer_r)) then
+    if (nbuff_bc_send_r /= size(sendbuffer_r)) then
+      deallocate(sendbuffer_r)
+      allocate(sendbuffer_r(nbuff_bc_send_r))
+    end if
+  else
+    allocate(sendbuffer_r(nbuff_bc_send_r))
+  end if
+  if (allocated(sendstatus_r)) then
+    deallocate(sendstatus_r,sendrequest_r)
+    allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
+  else
+    allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
+  end if
+  sendrequest_r=MPI_REQUEST_NULL
+end if
+
+! allocate space for recieve buffer for prolong ghost cell filling
+if (nrecv_bc_p>0) then
+  if (allocated(recvbuffer_p)) then
+    if (nbuff_bc_recv_p /= size(recvbuffer_p)) then
+      deallocate(recvbuffer_p)
+      allocate(recvbuffer_p(nbuff_bc_recv_p))
+    end if
+  else
+    allocate(recvbuffer_p(nbuff_bc_recv_p))
+  end if
+  if (allocated(recvstatus_p)) then
+    deallocate(recvstatus_p,recvrequest_p)
+    allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
+  else
+    allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
+  end if
+  recvrequest_p=MPI_REQUEST_NULL
+end if
+
+! allocate space for send buffer for restrict ghost cell filling
+if (nsend_bc_p>0) then
+  if (allocated(sendbuffer_p)) then
+    if (nbuff_bc_send_p /= size(sendbuffer_p)) then
+      deallocate(sendbuffer_p)
+      allocate(sendbuffer_p(nbuff_bc_send_p))
+    end if
+  else
+    allocate(sendbuffer_p(nbuff_bc_send_p))
+  end if
+  if (allocated(sendstatus_p)) then
+    deallocate(sendstatus_p,sendrequest_p)
+    allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
+  else
+    allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
+  end if
+  sendrequest_p=MPI_REQUEST_NULL
+end if
+
 end subroutine build_connectivity
-!=============================================================================
