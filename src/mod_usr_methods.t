@@ -350,8 +350,8 @@ module mod_usr_methods
        !if(idim==3) then
        !  if(block%is_physical_boundary(idim*2-1)) then
        !    do idir=1,ndir
-       !       fC(ixOmin3^%3ixC^S,mag(idir),idim)=vobs(ixOmin3+1^%3ixC^S,idim)*bobs(ixOmin3+1^%3ixC^S,idir)-vobs(ixOmin3+1^%3ixC^S,idir)*bobs(ixOmin3+1^%3ixC^S,idim)
-       !    end if
+       !       fC(ixCmin3^%3ixC^S,mag(idir),idim)=vobs(ixCmin3+1^%3ixC^S,idim)*bobs(ixCmin3+1^%3ixC^S,idir)-vobs(ixCmin3+1^%3ixC^S,idir)*bobs(ixCmin3+1^%3ixC^S,idim)
+       !    end do
        !  end if
        !end if
      end subroutine set_flux
