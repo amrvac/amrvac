@@ -245,7 +245,7 @@ contains
     offsets(6) = offsets(5) + size_double * blocklengths(5)
     offsets(7) = offsets(6) + size_double * blocklengths(6)
 
-    call MPI_TYPE_STRUCT(8,blocklengths,offsets,oldtypes,type_particle,ierrmpi)
+    call MPI_TYPE_CREATE_STRUCT(8,blocklengths,offsets,oldtypes,type_particle,ierrmpi)
     call MPI_TYPE_COMMIT(type_particle,ierrmpi)
 
   end subroutine init_particles_com
