@@ -16,10 +16,11 @@ program amrvac
 
   double precision :: time0, time_in
 
+  time0 = MPI_WTIME()
+
   call comm_start()
 
   time_advance = .false.
-  time0        = MPI_WTIME()
   time_bc      = zero
 
   ! read command line arguments first
@@ -146,7 +147,7 @@ contains
     integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
     integer(kind=8) ncells_update
     logical :: save_now, crashall, save_file(nfile)
-    double precision :: time_last_print
+    double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
 
     time_in=MPI_WTIME()
     time_last_print = -bigdouble
@@ -155,8 +156,13 @@ contains
     n_saves(filelog_:fileout_) = snapshotini
 
     do ifile=nfile,1,-1
-       tsavelast(ifile)=global_time
-       itsavelast(ifile)=it
+       if(resume_previous_run) then
+         tsavelast(ifile)=aint((global_time+smalldouble)/dtsave(ifile))*dtsave(ifile)
+         itsavelast(ifile)=it/ditsave(ifile)*ditsave(ifile)
+       else
+         tsavelast(ifile)=global_time
+         itsavelast(ifile)=it
+       end if
     end do
 
     ! the next two are used to keep track of the performance during runtime:
@@ -172,11 +178,13 @@ contains
 
     timeloop0=MPI_WTIME()
     time_bc=0.d0
+    time_write=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
 
     time_evol : do
 
+       time_before_advance=MPI_WTIME()
        ! set time step
        call setdt()
 
@@ -201,19 +209,26 @@ contains
          save_file(ifile) = timetosave(ifile)
        end do
 
-       ! Users can modify or set variables before output is written
-       if (any(save_file) .and. associated(usr_modify_output)) then
-         do iigrid=1,igridstail; igrid=igrids(iigrid);
-           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-           block=>ps(igrid)
-           call usr_modify_output(ixG^LL,ixM^LL,global_time,ps(igrid)%w,ps(igrid)%x)
+       ! output data
+       if (any(save_file)) then
+         if(associated(usr_modify_output)) then
+           ! Users can modify or set variables before output is written
+           do iigrid=1,igridstail; igrid=igrids(iigrid);
+             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+             block=>ps(igrid)
+             call usr_modify_output(ixG^LL,ixM^LL,global_time,ps(igrid)%w,ps(igrid)%x)
+           end do
+         end if
+         time_write=0.d0
+         do ifile=nfile,1,-1
+           if (save_file(ifile)) then
+             time_write0=MPI_WTIME()
+             call saveamrfile(ifile)
+             time_write=time_write+MPI_WTIME()-time_write0
+           end if
          end do
        end if
 
-       ! output data
-       do ifile=nfile,1,-1
-         if (save_file(ifile)) call saveamrfile(ifile)
-       end do
 
        ! output a snapshot when user write a file named 'savenow' in the same
        ! folder as the executable amrvac
@@ -227,10 +242,11 @@ contains
           call saveamrfile(2)
           call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
        endif
-       timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
+       timeio_tot=timeio_tot+MPI_WTIME()-timeio0
 
+       pass_wall_time=MPI_WTIME()-time0+dt_loop+time_write >=wall_time_max
        ! exit time loop if time is up
-       if (it>=it_max .or. global_time>=time_max) exit time_evol
+       if (it>=it_max .or. global_time>=time_max .or. pass_wall_time) exit time_evol
 
        ! solving equations
        call advance(it)
@@ -280,7 +296,8 @@ contains
        ! count updated cells
        ncells_update=ncells_update+ncells_block*nleafs_active
 
-
+       ! time lapses in one loop
+       dt_loop=MPI_WTIME()-time_before_advance
     end do time_evol
 
     timeloop=MPI_WTIME()-timeloop0

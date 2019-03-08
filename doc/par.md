@@ -33,7 +33,7 @@ Further namelist are used to control optional modules. Most of these lists are
 not documented here, but the parameters are described in the corresponding
 modules:
 
-* `rc_list` (radiative cooling, see `mod_magnetofriction`)
+* `rc_list` (radiative cooling, see `mod_radiative_cooling`)
 * `tc_list` (thermal conduction, see `mod_thermal_conduction`)
 * `dust_list` (dust, see `mod_dust`)
 * `vc_list` (viscosity, see `mod_viscosity`)
@@ -277,15 +277,27 @@ output is always saved after the stop condition has been fulfilled. If
     &stoplist
     	it_max =INTEGER
     	time_max =DOUBLE
+    	wall_time_max =DOUBLE
     	dtmin =DOUBLE
     	it_init =INTEGER
     	time_init =DOUBLE
     	reset_time =F | T
     	reset_it   =F | T
     /
+name | type | default | description
+---|---|---|---
+`it_max` | integer | `biginteger` | a run ends when the number of time steps reaches it
+`time_max` | double | `bigdouble` | a run ends when the physical time reaches it
+`wall_time_max` | double | `bigdouble` | a run ends when the wall time reaches it (in hours)
+`dtmin` | double | `bigdouble` | a run stops when time step falls smaller than it
+`it_init` | integer | 0 | set the initial number of time steps when start a new run
+`time_init` | double | 0 | set the initial time when start a new run
+`reset_time` | logical | F | when restart from a previous run, reset the time to the initial one if it is T
+`reset_it` | logical | F | when restart from a previous run, reset the number of time steps to the initial one if it is T
 
-You may use an upper limit `it_max` for the number of timesteps and/or the
-physical time, `time_max`. 
+You may use an upper limit `it_max` for the number of timesteps, and/or the
+physical time `time_max`, and/or the wall time 'wall_time_max' to end a run.
+The wall time means wall clock time recording real-world time.
 
 Numerical or physical instabilities may produce huge changes or very small
 time steps depending on the way `dt` is determined. These breakdowns can be

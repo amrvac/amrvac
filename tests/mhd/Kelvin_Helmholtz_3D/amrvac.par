@@ -10,19 +10,22 @@
  &filelist
         base_filename = 'kh_3D'
         saveprim      = T
-        autoconvert   = T
  /
+        autoconvert   = T
 
  &savelist
         itsave(1,1)   = 0
         itsave(1,2)   = 0
         ditsave_log   = 10
-        dtsave_dat    = 0.05
+        ditsave_dat   = 20
  /
+        dtsave_dat    = 0.05
 
  &stoplist
-        time_max  = 0.2d0
+        it_max=80
+        wall_time_max=0.005d0
  /
+        time_max  = 0.2d0
 
  &methodlist
         time_integrator   = 'threestep'

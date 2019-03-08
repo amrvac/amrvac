@@ -454,6 +454,9 @@ module mod_global_parameters
   !> End time for the simulation
   double precision :: time_max
 
+  !> Ending wall time (in hours) for the simulation
+  double precision :: wall_time_max
+
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
 
@@ -466,6 +469,9 @@ module mod_global_parameters
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
+
+  !> If true, wall time is up, modify snapshotnext for later overwrite
+  logical :: pass_wall_time
 
   !> Number of time steps taken
   integer :: it

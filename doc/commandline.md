@@ -38,7 +38,11 @@ files do not need to contain all the namelists (see @ref par.md).
 
 This will automatically look for the last available snapshot (`.dat`) file and
 resume from it. Note that the indices for the next output files are
-automatically set.
+automatically set. If the simulation was ended normally reaching wall time limit
+(see parameter `wall_time_max` to reach time limit of jobs on HPC systems), the
+resumed run will keep the previous output (time) cadence and overwrite the 
+snapshot file from which the run resumed, so that the whole data series keep
+the same pace as if it was never stopped and resumed.
 
 ## Restart a previous simulation from a specific snapshot
 
