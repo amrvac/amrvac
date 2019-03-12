@@ -140,7 +140,7 @@ contains
             tmp(ixI^S) = tmp(ixI^S)/x(ixI^S,1)
 {^NOONED
           elseif (idim==2  .and. idir==phi_) then
-            tmp2(ixI^S)=tmp2(ixI^S)/dsin(x(ixI^S,2))
+            tmp(ixI^S)=tmp(ixI^S)/dsin(x(ixI^S,2))
 }
           endif
         endif
