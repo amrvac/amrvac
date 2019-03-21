@@ -322,6 +322,11 @@ contains
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
 
+    if (stagger_grid) then
+      ! set the beginning index of the staggered variables
+      iw_s0=mag(1)-1
+    end if
+
     if (mhd_glm) then
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
     else

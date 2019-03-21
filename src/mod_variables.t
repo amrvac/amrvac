@@ -51,6 +51,9 @@ module mod_variables
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
 
+  !> Indices of the previous w of the staggered variables
+  integer :: iw_s0 = 0
+
 contains
 
   !> Set generic flux variable

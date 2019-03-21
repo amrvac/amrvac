@@ -91,7 +91,7 @@ module mod_global_parameters
   integer :: ixGhi^D
 
   !> Lower index of stagger grid block arrays (always 0)
-  integer, parameter :: {ixGslo^D = 1|, }
+  integer, parameter :: {ixGslo^D = 0|, }
 
   !> Upper index of stagger grid block arrays
   integer :: ixGshi^D

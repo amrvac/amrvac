@@ -7,6 +7,8 @@ module mod_ghostcells_update
     double precision, dimension(:^D&,:), allocatable :: w
   end type wbuffer
 
+  type(wbuffer) :: pole_buf, pole_buf_stg
+
   ! A switch of update physical boundary or not
   logical, public :: bcphys=.true.
   integer :: ixM^L, ixCoG^L, ixCoM^L
@@ -39,6 +41,12 @@ module mod_ghostcells_update
   ! total size of buffer arrays
   integer :: nbuff_bc_recv_srl, nbuff_bc_send_srl, nbuff_bc_recv_r, nbuff_bc_send_r, nbuff_bc_recv_p, nbuff_bc_send_p
 
+  ! record index position of buffer arrays
+  integer :: ibuf_send_srl, ibuf_recv_srl, ibuf_send_r, ibuf_recv_r, ibuf_send_p, ibuf_recv_p
+
+  ! count of times of send and receive
+  integer :: isend_srl, irecv_srl, isend_r, irecv_r, isend_p, irecv_p
+
   ! sizes to send and receive for siblings
   integer, dimension(-1:1^D&) :: sizes_srl_send, sizes_srl_recv
 
@@ -51,7 +59,7 @@ module mod_ghostcells_update
   integer, dimension(:), allocatable :: recvrequest_srl, sendrequest_srl
   integer, dimension(:,:), allocatable :: recvstatus_srl, sendstatus_srl
  
-  ! buffer arrays for send and receive of siblings
+  ! buffer arrays for send and receive of siblings, allocate in build_connectivity
   double precision, dimension(:), allocatable :: recvbuffer_srl, sendbuffer_srl
 
   integer, dimension(:), allocatable :: recvrequest_r, sendrequest_r
@@ -78,7 +86,10 @@ module mod_ghostcells_update
 
   double precision, dimension(:), allocatable :: recvbuffer_p, sendbuffer_p
   ! index pointer for buffer arrays as a start for a segment
-  integer :: ibuf_start
+  integer :: ibuf_start, ibuf_next
+
+  ! shapes of reshape
+  integer, dimension(1) :: shapes
 
   ! MPI derived datatype to send and receive subarrays of ghost cells to
   ! neighbor blocks in a different processor.
@@ -117,7 +128,7 @@ contains
 
     nx^D=ixMmax^D-ixMmin^D+1;
     nxCo^D=nx^D/2;
-    
+
     select case (typeghostfill)
     case ("copy")
        interpolation_order=1
@@ -128,12 +139,14 @@ contains
        call mpistop("Undefined typeghostfill")
     end select
     nghostcellsCo=int((nghostcells+1)/2)
-    
+
     if (nghostcellsCo+interpolation_order-1>nghostcells) then
        call mpistop("interpolation order for prolongation in getbc too high")
     end if
     
+    allocate(pole_buf%w(ixG^T,1:nwflux+nwaux))
     if (stagger_grid) then
+      allocate(pole_buf_stg%w(ixGs^T,nws))
       ! Staggered (face-allocated) variables
       do idir=1,ndim
       { ixS_srl_stg_min^D(idir,-1)=ixMmin^D-kr(idir,^D)
@@ -464,7 +477,7 @@ contains
     integer :: iigrid, igrid, ineighbor, ipe_neighbor
     integer :: nrecvs, nsends, isizes
     integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
-    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D
+    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir
     ! store physical boundary indicating index
     integer :: idphyb(ndim,max_blocks),bindex(ndim)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco,iB
@@ -524,18 +537,71 @@ contains
          end do
       end do
     end if
-    
+
     ! default : no singular axis
     ipole=0
-    
+
+    irecv_srl=0
+    isend_srl=0
+    isend_buf=0
+    ipwbuf=1
+
+    ! receiving ghost-cell values from sibling blocks at another cpu
+    ibuf_recv_srl=1
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       call identifyphysbound(ps(igrid),iib^D)
+       ^D&idphyb(^D,igrid)=iib^D;
+       {do i^DB=-1,1\}
+          if (skip_direction([ i^D ])) cycle
+          if(neighbor_type(i^D,igrid)==neighbor_sibling) call bc_recv_srl
+       {end do\}
+    end do
+
+    ! sending ghost-cell values to sibling blocks at another cpu
+    ibuf_send_srl=1
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       ! Used stored data to identify physical boundaries
+       ^D&iib^D=idphyb(^D,igrid);
+       {do i^DB=-1,1\}
+          if (skip_direction([ i^D ])) cycle
+          if(neighbor_type(i^D,igrid)==neighbor_sibling) call bc_send_srl
+       {end do\}
+    end do
+
+    if (nrecv_bc_srl>0) then
+      call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
+    end if
+    if (nsend_bc_srl>0) then
+      call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
+    end if
+
+    ! unpack the received data to fill ghost cells
+    ibuf_recv_srl=1
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         if(neighbor_type(i^D,igrid)==neighbor_sibling) call bc_fill_srl
+      {end do\}
+    end do
+
+    !do ipwbuf=1,npwbuf
+    !   if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
+    !end do
+
+    irecv_r=0
+    isend_r=0
+
+    ipole=0
+
     irecv=0
     isend=0
     isend_buf=0
     ipwbuf=1
-    ! total number of times to call MPI_IRECV in each processor between sibling blocks or from finer neighbors
-    nrecvs=nrecv_bc_srl+nrecv_bc_r
-    ! total number of times to call MPI_ISEND in each processor between sibling blocks or to coarser neighors
-    nsends=nsend_bc_srl+nsend_bc_r
+    ! total number of times to call MPI_IRECV in each processor from finer neighbors
+    nrecvs=nrecv_bc_r
+    ! total number of times to call MPI_ISEND in each processor to coarser neighors
+    nsends=nsend_bc_r
 
     allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
     recvrequest=MPI_REQUEST_NULL
@@ -543,7 +609,9 @@ contains
     allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
     sendrequest=MPI_REQUEST_NULL
 
-    ! receiving ghost-cell values from sibling blocks and finer neighbors
+    ibuf_send_r=1
+    ibuf_recv_r=1
+    ! receiving ghost-cell values from finer neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
        call identifyphysbound(ps(igrid),iib^D)   
@@ -552,15 +620,13 @@ contains
           if (skip_direction([ i^D ])) cycle
           my_neighbor_type=neighbor_type(i^D,igrid)
           select case (my_neighbor_type)
-          case (neighbor_sibling)
-             call bc_recv_srl
           case (neighbor_fine)
              call bc_recv_restrict
           end select
        {end do\}
     end do
-    
-    ! sending ghost-cell values to sibling blocks and coarser neighbors
+
+    ! sending ghost-cell values coarser neighbors
     nghostcellsco=ceiling(nghostcells*0.5d0)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
@@ -586,7 +652,7 @@ contains
           call coarsen_grid(psb(igrid)%w,ps(igrid)%x,ixG^L,ixM^L,psc(igrid)%w,psc(igrid)%x,&
                             ixCoG^L,ixCoM^L,igrid,igrid)
        end if
-    
+
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
           if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
@@ -594,19 +660,10 @@ contains
           select case (my_neighbor_type)
           case (neighbor_coarse)
              call bc_send_restrict
-          case (neighbor_sibling)
-             call bc_send_srl
           end select
        {end do\}
     end do
-    
-    !if (irecv/=nrecvs) then
-    !   call mpistop("number of recvs in phase1 in amr_ghostcells is incorrect")
-    !end if
-    !if (isend/=nsends) then
-    !   call mpistop("number of sends in phase1 in amr_ghostcells is incorrect")
-    !end if
-    
+
     call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
     deallocate(recvstatus,recvrequest)
 
@@ -630,6 +687,8 @@ contains
     allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
     sendrequest=MPI_REQUEST_NULL
 
+    ibuf_send_p=1
+    ibuf_recv_p=1
     ! receiving ghost-cell values from coarser neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        saveigrid=igrid
@@ -696,6 +755,7 @@ contains
     
     contains
 
+      !> skip corner if corner ghost cells are not used
       logical function skip_direction(dir)
         integer, intent(in) :: dir(^ND)
 
@@ -708,53 +768,193 @@ contains
         end if
       end function skip_direction
 
-      !> Send to sibling at same refinement level
+      !> Receive from sibling at same refinement level
+      subroutine bc_recv_srl
+
+        ipe_neighbor=neighbor(2,i^D,igrid)
+        if (ipe_neighbor/=mype) then
+           sizes_srl_recv(i^D)=nwbc*{(ixR_srl_max^D(iib^D,i^D)-ixR_srl_min^D(iib^D,i^D)+1)|*}
+           if(stagger_grid) then
+             sizes_srl_recv_total(i^D)=sizes_srl_recv(i^D)+sum(sizes_srl_recv_stg(:,i^D))
+           else
+             sizes_srl_recv_total(i^D)=sizes_srl_recv(i^D)
+           end if
+           irecv_srl=irecv_srl+1
+           itag=(3**^ND+4**^ND)*(igrid-1)+{(i^D+1)*3**(^D-1)+}
+           call MPI_IRECV(recvbuffer_srl(ibuf_recv_srl),sizes_srl_recv_total(i^D),MPI_DOUBLE_PRECISION, &
+                          ipe_neighbor,itag,icomm,recvrequest_srl(irecv_srl),ierrmpi)
+           ibuf_recv_srl=ibuf_recv_srl+sizes_srl_recv_total(i^D)
+        end if
+
+      end subroutine bc_recv_srl
+
+      !> Send data to sibling blocks at another cpu
       subroutine bc_send_srl
 
         ineighbor=neighbor(1,i^D,igrid)
         ipe_neighbor=neighbor(2,i^D,igrid)
+        ipole=neighbor_pole(i^D,igrid)
 
-        if (ipole==0) then
-           n_i^D=-i^D;
-           if (ipe_neighbor==mype) then
-              ixS^L=ixS_srl_^L(iib^D,i^D);
-              ixR^L=ixR_srl_^L(iib^D,n_i^D);
-              psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
-                  psb(igrid)%w(ixS^S,nwhead:nwtail)
-           else
-              isend=isend+1
-              itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
-              call MPI_ISEND(psb(igrid)%w,1,type_send_srl(iib^D,i^D), &
-                             ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
-           end if
-        else
-           ixS^L=ixS_srl_^L(iib^D,i^D);
-           select case (ipole)
-           {case (^D)
-              n_i^D=i^D^D%n_i^DD=-i^DD;\}
-           end select
-           if (ipe_neighbor==mype) then
-              ixR^L=ixR_srl_^L(iib^D,n_i^D);
-              call pole_copy(psb(ineighbor)%w,ixG^L,ixR^L,psb(igrid)%w,ixG^L,ixS^L)
-           else
-              if (isend_buf(ipwbuf)/=0) then
-                 call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                               sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
-                 deallocate(pwbuf(ipwbuf)%w)
-              end if
-              allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-              call pole_buf(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^L,ixS^L)
-              isend=isend+1
-              isend_buf(ipwbuf)=isend
-              itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
-              isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
-              call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
-                             ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
-              ipwbuf=1+modulo(ipwbuf,npwbuf)
-           end if
+        if (ipe_neighbor/=mype) then
+          select case (ipole)
+           case (0) ! No pole
+             n_i^D=-i^D;
+          {case (^D)
+             n_i^D=i^D^D%n_i^DD=-i^DD;\}
+          end select
+          ixS^L=ixS_srl_^L(iib^D,i^D);
+          sizes_srl_send(i^D)=nwbc*{(ixS_srl_max^D(iib^D,i^D)-ixS_srl_min^D(iib^D,i^D)+1)|*}
+          ibuf_next=ibuf_send_srl+sizes_srl_send(i^D)
+          shapes=(/sizes_srl_send(i^D)/)
+          sendbuffer_srl(ibuf_send_srl:ibuf_next-1)=reshape(psb(igrid)%w(ixS^S,nwhead:nwtail),shapes)
+          ibuf_start=ibuf_next
+          if(stagger_grid) then
+            do idir=1,ndim
+              ixS^L=ixS_srl_stg_^L(idir,i^D);
+              ibuf_next=ibuf_start+sizes_srl_send_stg(idir,i^D)
+              shapes=(/sizes_srl_send_stg(idir,i^D)/)
+              sendbuffer_srl(ibuf_start:ibuf_next-1)=&
+                reshape(psb(igrid)%ws(ixS^S,idir),shapes)
+              ibuf_start=ibuf_next
+            end do
+          end if
+          itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
+          isend_srl=isend_srl+1
+          call MPI_ISEND(sendbuffer_srl(ibuf_send_srl),ibuf_next-ibuf_send_srl,MPI_DOUBLE_PRECISION, &
+                         ipe_neighbor,itag,icomm,sendrequest_srl(isend_srl),ierrmpi)
+          ibuf_send_srl=ibuf_next
         end if
 
       end subroutine bc_send_srl
+
+      !> fill siblings ghost cells with received data
+      subroutine bc_fill_srl
+        double precision :: tmp(ixGs^T)
+        integer :: ixS^L,ixR^L,n_i^D,ixSsync^L,ixRsync^L
+        integer :: idir, idirect 
+
+        ineighbor=neighbor(1,i^D,igrid)
+        ipe_neighbor=neighbor(2,i^D,igrid)
+        ipole=neighbor_pole(i^D,igrid)
+        idirect={abs(i^D)|+}
+
+        !! Now the special treatment of the pole is done here, at the receive step
+        if (ipole==0) then    
+          n_i^D=-i^D;
+          ixR^L=ixR_srl_^L(iib^D,i^D);
+          ixS^L=ixS_srl_^L(iib^D,n_i^D);
+
+          if (ipe_neighbor==mype) then
+            psb(igrid)%w(ixR^S,nwhead:nwtail)=psb(ineighbor)%w(ixS^S,nwhead:nwtail)
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixS^L=ixS_srl_stg_^L(idir,n_i^D);
+                ixR^L=ixR_srl_stg_^L(idir,i^D);
+                if (idirect == 1) then
+                  call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L) ! Overwrites ixR, ixS
+                  psb(igrid)%ws(ixRsync^S,idir) = half*(psb(igrid)%ws(ixRsync^S,idir)+psb(ineighbor)%ws(ixSsync^S,idir))
+                end if
+                psb(igrid)%ws(ixR^S,idir) = psb(ineighbor)%ws(ixS^S,idir)
+              end do
+            end if
+          else
+            !! Unpack the buffer and fill the ghost cells
+            sizes_srl_recv(i^D)=nwbc*{(ixR_srl_max^D(iib^D,i^D)-ixR_srl_min^D(iib^D,i^D)+1)|*}
+            ibuf_next=ibuf_recv_srl+sizes_srl_recv(i^D)
+            psb(igrid)%w(ixR^S,nwhead:nwtail)=reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),shape=shape(psb(igrid)%w(ixR^S,nwhead:nwtail)))
+            ibuf_recv_srl=ibuf_next
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixS^L=ixS_srl_stg_^L(idir,n_i^D);
+                ixR^L=ixR_srl_stg_^L(idir,i^D);
+                ibuf_next=ibuf_recv_srl+sizes_srl_recv_stg(idir,i^D)
+                tmp(ixS^S) = reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),shape=shape(psb(igrid)%ws(ixS^S,idir)))       
+                if (idirect == 1) then
+                   ! ixR ixS maybe changed
+                   call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L) ! Overwrites ixR, ixS
+                   psb(igrid)%ws(ixRsync^S,idir) = half*(tmp(ixSsync^S) + psb(igrid)%ws(ixRsync^S,idir))
+                end if
+                psb(igrid)%ws(ixR^S,idir) = tmp(ixS^S)
+                ibuf_recv_srl=ibuf_next
+              end do
+            end if
+          end if
+
+        else ! There is a pole
+          select case (ipole)
+          {case (^D)
+             n_i^D=i^D^D%n_i^DD=-i^DD;\}
+          end select
+          ixR^L=ixR_srl_^L(iib^D,i^D);
+          ixS^L=ixS_srl_^L(iib^D,n_i^D);
+        
+          if (ipe_neighbor==mype) then
+            !! Fill ghost cells
+            call pole_copy(psb(igrid)%w,ixG^L,ixR^L,psb(ineighbor)%w,ixG^L,ixS^L)
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixR^L=ixR_srl_stg_^L(idir,i^D);
+                ixS^L=ixS_srl_stg_^L(idir,n_i^D);
+                !! Fill ghost cells
+                call pole_copy_stg(psb(igrid)%ws,ixR^L,psb(ineighbor)%ws,ixS^L,idir)
+              end do
+            end if
+          else
+            !! Unpack the buffer and fill an auxiliary array
+            sizes_srl_recv(i^D)=nwbc*{(ixR_srl_max^D(iib^D,i^D)-ixR_srl_min^D(iib^D,i^D)+1)|*}
+            ibuf_next=ibuf_recv_srl+sizes_srl_recv(i^D)
+            pole_buf%w=zero
+            pole_buf%w(ixS^S,nwhead:nwtail)=reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),&
+                     shape=shape(psb(igrid)%w(ixS^S,nwhead:nwtail)))
+            ibuf_recv_srl=ibuf_next
+         
+            !! Fill ghost cells
+            call pole_copy(psb(igrid)%w,ixG^L,ixR^L,pole_buf%w,ixG^L,ixS^L)
+        
+            if(stagger_grid) then
+              pole_buf_stg%w=zero
+              do idir=1,ndim
+                ixR^L=ixR_srl_stg_^L(idir,i^D);
+                ixS^L=ixS_srl_stg_^L(idir,n_i^D);
+                ibuf_next=ibuf_recv_srl+sizes_srl_recv_stg(idir,i^D)
+                pole_buf_stg%w(ixS^S,idir)=reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),&
+                  shape=shape(psb(igrid)%ws(ixS^S,idir)))
+                ibuf_recv_srl=ibuf_next
+                call pole_copy_stg(psb(igrid)%ws,ixR^L,pole_buf_stg%w,ixS^L,idir)
+              end do
+            end if
+          end if
+        end if
+      
+      end subroutine bc_fill_srl
+
+      subroutine indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L)
+        integer, intent(in)       :: i^D,idir
+        integer, intent(inout)    :: ixR^L,ixS^L
+        integer, intent(out)      :: ixRsync^L,ixSsync^L
+      
+        ixRsync^L=ixR^L;
+        ixSsync^L=ixS^L;
+        
+        {
+        if (i^D == -1 .and. idir == ^D) then
+           ixRsyncmin^D = ixRmax^D
+           ixRsyncmax^D = ixRmax^D
+           ixSsyncmin^D = ixSmax^D
+           ixSsyncmax^D = ixSmax^D
+           ixRmax^D = ixRmax^D - 1
+           ixSmax^D = ixSmax^D - 1
+        else if (i^D == 1 .and. idir == ^D) then
+           ixRsyncmin^D = ixRmin^D
+           ixRsyncmax^D = ixRmin^D
+           ixSsyncmin^D = ixSmin^D
+           ixSsyncmax^D = ixSmin^D
+           ixRmin^D = ixRmin^D + 1
+           ixSmin^D = ixSmin^D + 1
+        end if
+        \}
+
+      end subroutine indices_for_syncing
 
       !> Send to coarser neighbor
       subroutine bc_send_restrict
@@ -830,7 +1030,7 @@ contains
                  deallocate(pwbuf(ipwbuf)%w)
               end if
               allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-              call pole_buf(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psc(igrid)%w,ixCoG^L,ixS^L)
+              call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psc(igrid)%w,ixCoG^L,ixS^L)
               isend=isend+1
               isend_buf(ipwbuf)=isend
               itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -882,7 +1082,7 @@ contains
                     deallocate(pwbuf(ipwbuf)%w)
                  end if
                  allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-                 call pole_buf(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^L,ixS^L)
+                 call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^L,ixS^L)
                  isend=isend+1
                  isend_buf(ipwbuf)=isend
                  itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -895,19 +1095,6 @@ contains
         {end do\}
 
       end subroutine bc_send_prolong
-
-      !> Receive from sibling at same refinement level
-      subroutine bc_recv_srl
-
-        ipe_neighbor=neighbor(2,i^D,igrid)
-        if (ipe_neighbor/=mype) then
-           irecv=irecv+1
-           itag=(3**^ND+4**^ND)*(igrid-1)+{(i^D+1)*3**(^D-1)+}
-           call MPI_IRECV(psb(igrid)%w,1,type_recv_srl(iib^D,i^D), &
-                          ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)
-        end if
-
-      end subroutine bc_recv_srl
 
       !> Receive from fine neighbor
       subroutine bc_recv_restrict
@@ -1162,7 +1349,7 @@ contains
         integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
         double precision :: wrecv(ixIR^S,1:nw), wsend(ixIS^S,1:nw)
 
-        integer :: iw, iB
+        integer :: iw
 
         select case (ipole)
         {case (^D)
@@ -1182,12 +1369,34 @@ contains
       
       end subroutine pole_copy
 
-      subroutine pole_buf(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L)
+      subroutine pole_copy_stg(wrecv,ixR^L,wsend,ixS^L,idir)
+      
+        integer, intent(in) :: ixR^L,ixS^L,idir
+        double precision :: wrecv(ixGs^T,1:nws), wsend(ixGs^T,1:nws)
+
+        select case (ipole)
+        {case (^D)
+           iside=int((i^D+3)/2)
+           iB=2*(^D-1)+iside
+           select case (typeboundary(iw_s0+idir,iB))
+           case ("symm")
+             wrecv(ixR^S,idir) = wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,idir)
+           case ("asymm")
+             wrecv(ixR^S,idir) =-wsend(ixSmax^D:ixSmin^D:-1^D%ixS^S,idir)
+           case default
+             call mpistop("Pole boundary condition should be symm or asymm")
+           end select
+         \}
+        end select
+
+      end subroutine pole_copy_stg
+
+      subroutine pole_buffer(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L)
       
         integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
         double precision :: wrecv(ixIR^S,nwhead:nwtail), wsend(ixIS^S,1:nw)
 
-        integer :: iw, iB
+        integer :: iw
 
         select case (ipole)
         {case (^D)
@@ -1205,7 +1414,7 @@ contains
            end do \}
         end select
       
-      end subroutine pole_buf
+      end subroutine pole_buffer
 
       subroutine fix_auxiliary
         use mod_physics, only: phys_get_aux
@@ -1214,8 +1423,8 @@ contains
 
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           saveigrid=igrid
-          block=>ps(igrid)
-          call identifyphysbound(ps(igrid),iib^D)   
+          block=>psb(igrid)
+          call identifyphysbound(psb(igrid),iib^D)   
              
           {do i^DB=-1,1\}
              if (skip_direction([ i^D ])) cycle

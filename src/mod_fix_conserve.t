@@ -15,7 +15,7 @@ module mod_fix_conserve
   integer, dimension(:), allocatable   :: fc_recvreq, fc_sendreq
   integer, dimension(:,:), allocatable :: fc_recvstat, fc_sendstat
   integer, dimension(^ND), save        :: isize
-  integer                              :: ibuf, ibuf_send
+  integer                              :: ibuf, ibuf_send, isend, irecv
   ! ct for corner total
   integer, save                        :: nrecv_ct, nsend_ct
   ! buffer for corner coarse
