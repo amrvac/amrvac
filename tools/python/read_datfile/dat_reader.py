@@ -14,9 +14,8 @@ Module to read in MPI-AMRVAC data (.dat files) for 1D, 2D and 3D. Currently impl
 - interpolate_block_1d : Interpolates a single 1D block to the maximum refinement level over the grid.
 - interpolate_block_2d : Interpolates a single 2D block to the maximum refinement level over the grid.
 - interpolate_block_3d : Interpolates a single 3D block to the maximum refinement level over the grid.
+- progress             : Contains variables to track the progress during regridding.
 - print_regrid_amount  : Prints the total amount of blocks in the grid + the amount needing regridding.
-- get_amr_data         : Interpolates the blocks to the maximum refinement level, returns the raw data.
-                         Method optimized to run on a single CPU.
 - save_regridded_data  : Method to save the regridded raw data as Numpy .npy files which can be loaded in later.
 - increment_progress_mp: Small method to track progress when using multiple cores.
 - multiprocessing_init : Initialization method for the multiprocessing module. Defines global variables
@@ -31,7 +30,7 @@ Module to read in MPI-AMRVAC data (.dat files) for 1D, 2D and 3D. Currently impl
 
 @author: Jannis Teunissen (original)
 @author: Niels Claes (modifications)
-         Last edit: 07 January 2019
+         Last edit: 28 January 2019
 
 """
 
@@ -44,8 +43,6 @@ import struct
 import numpy as np
 import os, sys
 import scipy.interpolate as interp
-import print_tools
-import settings
 import multiprocessing
 
 # Size of basic types (in bytes)
@@ -138,9 +135,6 @@ def get_block_data(dat):
     h = get_header(dat)
     nw = h['nw']
     block_nx = np.array(h['block_nx'])
-    domain_nx = np.array(h['domain_nx'])
-    xmax = np.array(h['xmax'])
-    xmin = np.array(h['xmin'])
     nleafs = h['nleafs']
     nparents = h['nparents']
     
@@ -366,6 +360,23 @@ def interpolate_block_3d(b, hdr):
     return b_interpolated
 
 
+def progressbar(count, total, status=''):
+    """
+    Prints a simple progress bar.
+    :param count: Current count of the calculation.
+    :param total: Total count of the calculation.
+    :param status: (String) Text to print next to the progress bar
+    """
+    bar_len = 50
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '#' * filled_len + ' ' * (bar_len - filled_len)
+
+    sys.stdout.write('\r    [%s] %s%s %s' % (bar, percents, '%', status))
+    sys.stdout.flush()
+
+
 def print_regrid_amount(blocks, max_lvl):
     """
     Simple routine to count number of blocks in file and checks
@@ -380,107 +391,32 @@ def print_regrid_amount(blocks, max_lvl):
             block_regrid_needed += 1
     print("    Number of blocks needing regridding: %s" % block_regrid_needed)
 
-    
-def get_amr_data(dat):
+def trim_filename(filename):
     """
-    Returns a uniform grid in the case the mesh is not uniformely refined, hence
-    when the method call to get_uniform_data() throws an IOError.
-    This method calculates the maximum refinement level present in the grid, and regrids
-    the entire mesh to this level. Blocks at a higher level than the maximum are refined using
-    linear interpolation.
-    :param dat: .dat file, opened in binary mode.
-    :return: Dictionary containing grid data.
-    :raise IOError: If number of dimensions in the header is not equal to 1, 2 or 3 for some reason.
+    Returns name of snapshot, used to save and load interpolated data.
+    Assumes filenames ending in MPI-AMRVAC format 0000.dat
     """
-    h = get_header(dat)
-    blocks = get_block_data(dat)
-    
-    refined_nx = 2**(h['levmax'] - 1) * h['domain_nx']
-    #Perform regridding to finest level
-    domain_shape = np.append(refined_nx, h['nw'])
-    d = np.zeros(domain_shape, order='F')
-    
-    max_lvl    = h['levmax']
-    #Get amount of blocks that need regridding
-    print_regrid_amount(blocks, max_lvl)
+    try:
+        for c in range(len(filename)-1, -1, -1):
+            if filename[c] == '/':
+                return filename[c+1:-4]
+        return filename[::-4]
+    except ValueError:
+        return filename
 
-    # No multiprocessing, so set mp_activated to False
-    mp_bool = multiprocessing.Value("i", False)
-    multiprocessing_init(0, mp_bool, len(blocks))
-    
-    counter = 0
-    print_tools.progress(counter, len(blocks), status='-- iterating over blocks...')
-    for b in blocks:
-        
-        block_lvl = b['lvl']
-        block_idx = b['ix']
-        
-        grid_diff = 2**(max_lvl - block_lvl)
-        
-        max_idx = block_idx * grid_diff
-        min_idx = max_idx - grid_diff
 
-        if h['ndim'] == 1:
-            idx0 = min_idx * h['block_nx']
-            if block_lvl == max_lvl:
-                idx1 = idx0 + h['block_nx']
-                d[idx0[0]:idx1[0], :] = b['w']
-            else:
-                idx1 = idx0 + (h['block_nx'] * grid_diff)
-                d[idx0[0]:idx1[0], :] = interpolate_block_1d(b, h)
-                
-        elif h['ndim'] == 2:
-            idx0 = min_idx * h['block_nx']
-            if block_lvl == max_lvl:
-                #block is on finest level, return block
-                idx1 = idx0 + h['block_nx']
-                d[idx0[0]:idx1[0], idx0[1]:idx1[1], :] = b['w']
-            else:
-                #block is not on finest level, so interpolate
-                idx1 = idx0 + (h['block_nx'] * grid_diff)
-                d[idx0[0]:idx1[0], idx0[1]:idx1[1], :] = interpolate_block_2d(b, h)
-                
-        elif h['ndim'] == 3:
-            idx0 = min_idx * h['block_nx']
-            if block_lvl == max_lvl:
-                idx1 = idx0 + h['block_nx']
-                d[idx0[0]:idx1[0], idx0[1]:idx1[1], idx0[2]:idx1[2], :] = b['w']
-            else:
-                idx1 = idx0 + (h['block_nx'] * grid_diff)
-                d[idx0[0]:idx1[0], idx0[1]:idx1[1], idx0[2]:idx1[2], :] = interpolate_block_3d(b, h)
-        else:
-            raise IOError("Unknown number of dimensions %s" % h['ndim'])
-        
-        counter += 1
-        if counter % 10 == 0 or counter == len(blocks):
-            print_tools.progress(counter, len(blocks), status='-- iterating over blocks...')
-    print("\n")
-            
-    save_regridded_data(d)
-    
-    return d    
 
-def save_regridded_data(regrid_data):
+def save_regridded_data(regrid_data, filename):
     """
     Saves the regridded data as a Numpy file.
     :param regrid_data: The regridded data, output from get_amr_data().
+    :param filename: Name of the .dat file, used to create new saved name.
     """
-    if settings.saveFiles:
-        if not os.path.isdir("dat_files"):
-            os.mkdir("dat_files")
-        fn = 'dat_files/' + print_tools.trim_filename(settings.filename) + "_regridded_dat"
-        np.save(fn, regrid_data)
-        print("Regridded data saved to %s.npy" % fn)
-    return
-
-
-def increment_progress_mp():
-    """
-    Small method to increment progress when using multiple processors
-    """
-    progress.value += 1
-    if progress.value % 10 == 0 or progress.value == total.value:
-        print_tools.progress(progress.value, total.value, status='-- iterating over blocks...')
+    if not os.path.isdir("dat_files"):
+        os.mkdir("dat_files")
+    fn = 'dat_files/' + trim_filename(filename) + "_regridded_dat"
+    np.save(fn, regrid_data)
+    print("Regridded data saved to %s.npy" % fn)
     return
 
 
@@ -511,27 +447,39 @@ def interpolate_block_3d_unpack(args):
     return interpolate_block_3d(*args)
 
 
-def multiprocessing_init(t, mp_bool, total_blocks):
+def increment_progress_mp():
+    """
+    Small method to increment progress when using multiple processors
+    """
+    progress.value += 1
+    if progress.value % 10 == 0 or progress.value == total_blocks.value:
+        progressbar(progress.value, total_blocks.value, status='-- iterating over blocks...')
+    return
+
+
+def multiprocessing_init(t, mp_bool, nb_blocks):
     """
     Initialization method for multiprocessing progress tracking. Also create a
     boolean value as variables defined in other modules are read as their
     default values during multiprocessing, even when redefined.
     :param t: Multiprocessing.Value object at initialization of worker Pool
     :param mp_bool: (Boolean) True if multiprocessing is called, False otherwise
-    :param total_blocks: (int) Total number of blocks, used to calculate progress
+    :param nb_blocks: (int) Total number of blocks, used to calculate progress
     """
-    global progress, mp_activated, total
+    global progress, mp_activated, total_blocks
     progress = t
     mp_activated = mp_bool
-    total = total_blocks
+    total_blocks = nb_blocks
 
 
-def get_amr_data_multiprocessing(dat):
+def get_amr_data_multiprocessing(dat, filename, nbprocs):
     """
     Method to regrid entire mesh using the multiprocessing module.
     Same principle as the get_amr_data() method, except now each block that
     needs regridding is passed on to one of the multiple processors in use.
     :param dat: .dat file, opened in binary mode.
+    :param filename: Name of the .dat file.
+    :param nbprocs: Amount of processors to use.
     :return: Dictionary containing grid data.
     """
     # Perform version check
@@ -553,14 +501,14 @@ def get_amr_data_multiprocessing(dat):
     # Create variable for multiprocess progress tracking
     init_progress = multiprocessing.Value("i", 0)
     mp_bool = multiprocessing.Value("i", True)
-    total_blocks = multiprocessing.Value("i", len(blocks))
+    nb_blocks = multiprocessing.Value("i", len(blocks))
 
     #Initialize multiprocessing pool
     pool = multiprocessing.Pool(initializer=multiprocessing_init,
-                                initargs=[init_progress, mp_bool, total_blocks],
-                                processes=settings.nb_of_procs)
+                                initargs=[init_progress, mp_bool, nb_blocks],
+                                processes=nbprocs)
 
-    print_tools.progress(0, 100, status='-- iterating over blocks...')
+    progressbar(0, 100, status='-- iterating over blocks...')
     #The aray blocks_regridded contains the data for each regridded block
     #:note: pool.(star)map obeys the array order during parallelization, i.e.
     #       blocks_regridded[i] equals the calculation for blocks[i]
@@ -581,7 +529,7 @@ def get_amr_data_multiprocessing(dat):
             blocks_regridded = np.array(pool.starmap(interpolate_block_3d, block_iterable))
     pool.close()
     pool.join()
-    print_tools.progress(100, 100, status='-- completed.')
+    progressbar(100, 100, status='-- completed.')
     print("\n")
 
     # Fill arrays with regridded data
@@ -622,7 +570,7 @@ def get_amr_data_multiprocessing(dat):
         else:
             raise IOError("Unknown number of dimensions %s" % h['ndim'])
 
-    save_regridded_data(d)
+    save_regridded_data(d, filename)
 
     return d
 

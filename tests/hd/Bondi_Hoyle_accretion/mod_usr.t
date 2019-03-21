@@ -1,7 +1,7 @@
 module mod_usr
   use mod_hd
   implicit none
-  double precision :: mach, rho0, vel, Racc, gm, pini, pw
+  double precision :: mach, rho0, vel, Racc, gm, pini
 
 contains
 

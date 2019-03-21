@@ -1,28 +1,28 @@
 """
-Created on 5 Dec 2018
-
-@author: Niels Claes
-
 Class to extract all data from header and raw data file.
 Creates Instance variables for easy use later on.
 Initialize by calling data = ProcessData(dat_file).
+
+Created on 5 Dec 2018
+
+@author: Niels Claes
 """
 
-from dataIO import dat_reader
-from physics import conversions
+import dat_reader
 import numpy as np
-import sys, os
-import settings
-import print_tools
+import os
+import multiprocessing
+import conversions
 
 class ProcessData(object):
 
-    def __init__(self, file):
+    def __init__(self, filename, nbprocs=None):
         """
         Initializes Class instance.
-        :param file: .dat file, opened in binary mode.
-        """ 
-        print("Reading %s" % settings.filename)
+        :param filename: Name of the .dat file to be opened.
+        :param nbprocs: Number of processors to use
+        """
+        file = open(filename, "rb")
         hdr = dat_reader.get_header(file)
         
         # Obtain raw data
@@ -32,18 +32,17 @@ class ProcessData(object):
         except IOError:
             print("    Data is not uniformely refined, performing regridding to finest level")
             # Check if data already regridded and saved:
-            fn = "dat_files/" + print_tools.trim_filename(settings.filename) + "_regridded_dat.npy"
+            fn = "dat_files/{}_regridded_dat.npy".format(dat_reader.trim_filename(filename))
             if os.path.isfile(fn):
                 print("    Regridded data already exists -- loading files.")
                 raw_data = np.load(fn)
             else:
+                avail_procs = multiprocessing.cpu_count()
                 # Data not found, initiate regridding
-                if settings.multiple_procs:
-                    print("    Regridding data using parallelization, number of procs = %s" % settings.nb_of_procs)
-                    raw_data = dat_reader.get_amr_data_multiprocessing(file)
-                else:
-                    raw_data = dat_reader.get_amr_data(file)
-
+                if nbprocs is None or nbprocs > avail_procs:
+                    nbprocs = avail_procs
+                print("    Regridding data using parallelization, number of procs = {}".format(nbprocs))
+                raw_data = dat_reader.get_amr_data_multiprocessing(file, filename, nbprocs)
                 print("    Regridding done.")
         print("Processing data...")
         
@@ -68,8 +67,6 @@ class ProcessData(object):
 
         self._wnames = hdr["w_names"]
         self._physics_type = hdr["physics_type"]
-        if self._physics_type == "hd":
-            settings.plot_Blines = False
         self._gamma = hdr["gamma"]
         
         #Initialize primitive and conservative variables.
@@ -87,10 +84,6 @@ class ProcessData(object):
         self.v2   = None
         self.v3   = None
         self.T    = None
-
-        #Ionization degree etc, prevent double loading.
-        self.ion    = None
-        self.fparam = None
         
         #Define conservative variables
         self._setConservativeVariables(raw_data)
@@ -181,7 +174,7 @@ class ProcessData(object):
             self._nz = self.rho.shape[2]
             self._dz = float(self._zmax - self._zmin) / self._nz
             self._z  = np.linspace(self._zmin, self._zmax, self._nz)
-            
-        
+
+
 
         

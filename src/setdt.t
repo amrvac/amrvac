@@ -50,10 +50,10 @@ else
 end if
 
 if (dtmin_mype<dtmin) then
-   write(unitterm,*)"Warning: Time step too small!", dtmin_mype
-   write(unitterm,*)"on processor:", mype
-   write(unitterm,*)"at time:", global_time," step:", it
-   call mpistop("too small timestep")
+   write(unitterm,*)"Error: Time step too small!", dtmin_mype
+   write(unitterm,*)"on processor:", mype, "at time:", global_time," step:", it
+   write(unitterm,*)"Lower limit of time step:", dtmin
+   crash=.true.
 end if
 
 if (slowsteps>it-it_init+1) then

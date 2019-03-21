@@ -145,7 +145,8 @@ contains
          dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
          ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
 
-    namelist /stoplist/ it_init,time_init,it_max,time_max,dtmin,reset_it,reset_time
+    namelist /stoplist/ it_init,time_init,it_max,time_max,dtmin,reset_it,reset_time,&
+         wall_time_max
 
     namelist /methodlist/ time_integrator, &
          source_split_usr,typesourcesplit,&
@@ -286,6 +287,7 @@ contains
     it_max        = biginteger
     time_init     = 0.d0
     time_max      = bigdouble
+    wall_time_max = bigdouble
     dtmin         = 1.0d-10
     nslices       = 0
     collapse      = .false.
@@ -487,10 +489,13 @@ contains
       end if
       call MPI_BCAST(i, 1, MPI_INTEGER, 0, icomm, ierrmpi)
 
-      if (i == -1) call mpistop("No snapshots found to resume from")
-
-      ! Set file name to restart from
-      write(restart_from_file, "(a,i4.4,a)") trim(base_filename), i, ".dat"
+      if (i == -1) then
+        if(mype==0) write(*,*) "No snapshots found to resume from, start a new run..."
+      else
+      !call mpistop("No snapshots found to resume from")
+        ! Set file name to restart from
+        write(restart_from_file, "(a,i4.4,a)") trim(base_filename), i, ".dat"
+      end if
     end if
 
     if (restart_from_file == undefined) then
@@ -527,6 +532,8 @@ contains
     if (ditsave_slice < bigdouble) ditsave(3) = ditsave_slice
     if (ditsave_collapsed < bigdouble) ditsave(4) = ditsave_collapsed
     if (ditsave_custom < bigdouble) ditsave(5) = ditsave_custom
+    ! convert hours to seconds for ending wall time
+    if (wall_time_max < bigdouble) wall_time_max=wall_time_max*3600.d0
 
     if (mype == 0) then
        write(unitterm, *) ''
@@ -1193,7 +1200,11 @@ contains
 
     ! Write snapshotnext etc., which is useful for restarting.
     ! Note we add one, since snapshotnext is updated *after* this procedure 
-    call MPI_FILE_WRITE(fh, snapshotnext+1, 1, MPI_INTEGER, st, er)
+    if(pass_wall_time) then
+      call MPI_FILE_WRITE(fh, snapshotnext, 1, MPI_INTEGER, st, er)
+    else
+      call MPI_FILE_WRITE(fh, snapshotnext+1, 1, MPI_INTEGER, st, er)
+    end if
     call MPI_FILE_WRITE(fh, slicenext, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, collapsenext, 1, MPI_INTEGER, st, er)
     ! Write stagger grid mark

@@ -27,8 +27,10 @@ def integrate_los(data, matrix, axis):
            x0 = np.sum(a,axis=0)
            x1 = np.sum(a,axis=1)
            x2 = np.sum(a,axis=2)
+    @note: - X integration: visual is from outside axis to origin, z is upwards, y is to the right
+           - Y integration: visual is from origin to outside axis, z is upwards, x is to the right
+           - Z integration: visual is from outside axis to origin, y is upwards, x is to the right
     """
-    print("Integrating matrix along line of sight (%s-axis)" % axis)
     if axis == "x":
         tau = np.zeros_like(matrix[0, :, :])
         #Iterate over indices of y-z plane

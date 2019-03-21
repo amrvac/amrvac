@@ -12,20 +12,19 @@ def trim_filename(filename):
     Assumes filenames ending in MPI-AMRVAC format 0000.dat
     """
     try:
-        filenumber = int(filename[-8:-4])
         for c in range(len(filename)-1, -1, -1):
             if filename[c] == '/':
                 return filename[c+1:-4]
         return filename[::-4]
     except ValueError:
-        return ""
+        return filename
     
 def progress(count, total, status=''):
     """
     Prints a simple progress bar.
-    @param count: Current count of the calculation.
-    @param total: Total count of the calculation.
-    @param status: (String) Text to print next to the progress bar
+    :param count: Current count of the calculation.
+    :param total: Total count of the calculation.
+    :param status: (String) Text to print next to the progress bar
     """
     bar_len = 50
     filled_len = int(round(bar_len * count / float(total)))
