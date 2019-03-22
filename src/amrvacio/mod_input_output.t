@@ -304,6 +304,10 @@ contains
       isavet(ifile)  = 1          ! index for saves by global_time
       isaveit(ifile) = 1          ! index for saves by it
     end do
+    ! save(output) initial log info in log file by default
+    itsave(1,1)=0
+    ! save(output) initial state in dat file by default
+    itsave(1,2)=0
 
     tsave_log       = bigdouble
     tsave_dat       = bigdouble
