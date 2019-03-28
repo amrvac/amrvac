@@ -37,11 +37,8 @@ end subroutine comm_start
 
 !> Finalize (or shutdown) the MPI environment
 subroutine comm_finalize
-
   use mod_global_parameters
-  use mod_ghostcells_update
 
-  call put_bc_comm_types
   call MPI_BARRIER(MPI_COMM_WORLD,ierrmpi)
   call MPI_FINALIZE(ierrmpi)
 

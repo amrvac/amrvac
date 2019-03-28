@@ -702,14 +702,14 @@ contains
              ! gas
              irho  = rho_
              mr_   = mom(r_)
-             mphi_ = mom(phi_)
+             if(phi_>0) mphi_ = mom(phi_)
              call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
              minrho = 0.0d0
           else
              ! dust : no pressure
              irho  = dust_rho(ifluid)
              mr_   = dust_mom(r_, ifluid)
-             mphi_ = dust_mom(phi_, ifluid)
+             if(phi_>0) mphi_ = dust_mom(phi_, ifluid)
              source(ixI^S) = zero
              minrho = dust_min_rho
           end if
@@ -735,7 +735,7 @@ contains
           call mpistop("Dust geom source terms not implemented yet with spherical geometries")
        end if
        mr_   = mom(r_)
-       mphi_ = mom(phi_)
+       if(phi_>0) mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
        call hd_get_pthermal(wCT, x, ixI^L, ixO^L, pth)

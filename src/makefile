@@ -34,7 +34,6 @@ amrgrid.o: mod_ghostcells_update.mod
 amr_solution_node.o: mod_geometry.mod
 boundary_conditions.o: mod_bc_data.mod
 coarsen.o: mod_physics.mod
-comm_lib.o: mod_ghostcells_update.mod
 connectivity.o: mod_ghostcells_update.mod
 convert.o: mod_calculate_xw.mod
 convert.o: mod_ghostcells_update.mod

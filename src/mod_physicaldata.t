@@ -99,6 +99,8 @@ module mod_physicaldata
    end type grid_field
    !> Block pointer for using current block
    type(state), pointer :: block
+   !> buffer for pole boundary
+   type(state) :: pole_buf
 
    !> array of physical states for all blocks on my processor
    type(state), dimension(:), allocatable, target :: ps
