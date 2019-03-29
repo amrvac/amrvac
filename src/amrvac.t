@@ -16,10 +16,10 @@ program amrvac
 
   double precision :: time0, time_in
 
-  time0 = MPI_WTIME()
 
   call comm_start()
 
+  time0 = MPI_WTIME()
   time_advance = .false.
   time_bc      = zero
 

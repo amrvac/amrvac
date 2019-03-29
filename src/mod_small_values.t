@@ -34,7 +34,7 @@ contains
       write(*,*) "Location: ", x({ix_bad(^D)}, :)
       write(*,*) "Cell number: ", ix_bad(:)
       do iw = 1, nw
-         write(*, '(A20,A,E14.7)'), trim(cons_wnames(iw)), ": ", &
+         write(*, '(A20,A,E14.7)') trim(cons_wnames(iw)), ": ", &
               w({ix_bad(^D)}, iw)
       end do
       write(*,*) "Saving status at the previous time step"
