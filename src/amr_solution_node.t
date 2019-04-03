@@ -516,9 +516,11 @@ logical, intent(in) :: need_x
 integer             :: ixGs^L
 !-----------------------------------------------------------------------------
 allocate(s%w(ixG^S,1:nw))
+s%ixG^L=ixG^L;
 if(stagger_grid) then
   {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
   allocate(s%ws(ixGs^S,1:nws))
+  s%ixGs^L=ixGs^L;
 end if
 if(need_x) then
   ! allocate coordinates

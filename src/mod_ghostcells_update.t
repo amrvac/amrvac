@@ -391,7 +391,7 @@ contains
     ! store physical boundary indicating index
     integer :: idphyb(ndim,max_blocks),bindex(ndim)
     integer :: nghostcellsco,iB
-    logical  :: req_diagonal
+    logical  :: req_diagonal, NeedProlong(-1:1^D&)
 
     nwhead=nwstart+1
     nwtail=nwstart+nwbc
@@ -572,10 +572,58 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        block=>ps(igrid)
        ^D&iib^D=idphyb(^D,igrid);
-       {do i^DB=-1,1\}
-          if (skip_direction([ i^D ])) cycle
-          if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_prolong
-       {end do\}
+       if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
+         NeedProlong=.false.
+         {do i^DB=-1,1\}
+            if(skip_direction([ i^D ])) cycle
+            if(neighbor_type(i^D,igrid)==neighbor_coarse) then
+              call bc_prolong
+              NeedProlong(i^D)=.true.
+            end if
+         {end do\}
+         if(stagger_grid) then
+           ! Ghost cell prolongation for staggered variables
+           ! must be done in a specific order.
+           ! First the first neighbours, which have 2 indices=0 in 3D
+           ! or one index=0 in 2D
+           do idim=1,ndim
+             i^D=0;
+             select case(idim)
+            {case(^D)
+               do i^D=-1,1,2
+                 if (NeedProlong(i^DD)) call bc_prolong_stg(NeedProlong)
+               end do
+             \}
+             end select
+           end do
+           ! Then the second neighbours which have 1 index=0 in 3D
+           ! (Only in 3D)
+           {^IFTHREED
+           i1=0;
+           do i2=-1,1,2
+             do i3=-1,1,2
+               if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+             end do
+           end do
+           i2=0;
+           do i3=-1,1,2
+             do i1=-1,1,2
+               if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+             end do
+           end do
+           i3=0;
+           do i1=-1,1,2
+             do i2=-1,1,2
+               if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+             end do
+           end do
+           }
+           ! Finally, the corners, that have no index=0
+          {do i^D=-1,1,2\}
+             if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+          {end do\}
+         end if
+       end if
     end do
 
      ! modify normal component of magnetic field to fix divB=0 
@@ -1211,6 +1259,41 @@ contains
              psc(igrid)%w,psc(igrid)%x)
 
       end subroutine bc_prolong
+
+      subroutine bc_prolong_stg(NeedProlong)
+        use mod_amr_fct
+        logical,dimension(-1:1^D&) :: NeedProlong
+        logical                    :: fine_^Lin
+        integer                    :: ixFi^L,ixCo^L
+        double precision           :: dxFi^D,dxCo^D,xFimin^D,xComin^D,invdxCo^D
+        ! Check what is already at the desired level
+        fine_^Lin=.false.;
+        {
+        if(i^D.gt.-1) fine_min^Din=.not.NeedProlong(i^DD-kr(^D,^DD))
+        if(i^D.lt.1)  fine_max^Din=.not.NeedProlong(i^DD+kr(^D,^DD))
+        \}
+
+        ixFi^L=ixR_srl_^L(i^D);
+
+        dxFi^D=rnode(rpdx^D_,igrid);
+        dxCo^D=two*dxFi^D;
+        invdxCo^D=1.d0/dxCo^D;
+
+        xFimin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxFi^D;
+        xComin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxCo^D;
+
+        ! moved the physical boundary filling here, to only fill the
+        ! part needed
+
+        ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
+        ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
+
+        call prolong_2nd_stg(psc(igrid),ps(igrid),ixCo^L,ixFi^L,dxCo^D,xComin^D,dxFi^D,xFimin^D,.true.,fine_^Lin)
+
+        ! The current region has already been refined, so it doesn t need to be prolonged again
+         NeedProlong(i^D)=.false. 
+
+      end subroutine bc_prolong_stg
 
       subroutine interpolation_linear(ixFi^L,dxFi^D,xFimin^D, &
                                       dxCo^D,invdxCo^D,xComin^D)
