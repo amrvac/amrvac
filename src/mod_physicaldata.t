@@ -5,6 +5,10 @@ module mod_physicaldata
    type state
       !> ID of a grid block
       integer :: igrid=-1
+      !> index range of block array in cell centers
+      integer :: ixG^L
+      !> index range of block array in cell faces
+      integer :: ixGs^L
       !> location of w0-array, 0: cell center, ^D : cell interface in dimension ^D
       integer :: iw0=0
       !> Is e is internal energy or total energy
@@ -24,17 +28,17 @@ module mod_physicaldata
       !> Time-independent electric current density at cell center
       double precision, dimension(:^D&,:), allocatable :: J0
       !> Cell-center positions
-      double precision, dimension(:^D&,:), allocatable :: x
+      double precision, dimension(:^D&,:), pointer :: x=>Null()
       !> Cell sizes in coordinate units
-      double precision, dimension(:^D&,:), allocatable :: dx
+      double precision, dimension(:^D&,:), pointer :: dx=>Null()
       !> Cell sizes in length unit
-      double precision, dimension(:^D&,:), allocatable :: ds
+      double precision, dimension(:^D&,:), pointer :: ds=>Null()
       !> Volumes of a cell
-      double precision, dimension(:^D&), allocatable :: dvolume
+      double precision, dimension(:^D&), pointer :: dvolume=>Null()
       !> Areas of cell-center surfaces
-      double precision, dimension(:^D&,:), allocatable :: surface
+      double precision, dimension(:^D&,:), pointer :: surface=>Null()
       !> Areas of cell-face surfaces
-      double precision, dimension(:^D&,:), allocatable :: surfaceC
+      double precision, dimension(:^D&,:), pointer :: surfaceC=>Null()
    end type state
 
 {^NOONED
