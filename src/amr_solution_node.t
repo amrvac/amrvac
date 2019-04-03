@@ -77,25 +77,25 @@ end select
 if(.not. allocated(ps(igrid)%w)) then
   
   ! allocate arrays for solution and space
-  call alloc_state(ps(igrid), ixG^LL, ixGext^L, .true.)
+  call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
   ! allocate arrays for old solution
-  call alloc_state(pso(igrid), ixG^LL, ixGext^L, .false.)
+  call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
   ! allocate arrays for temp solution 1
-  call alloc_state(ps1(igrid), ixG^LL, ixGext^L, .false.)
+  call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
   ! allocate arrays for one level coarser solution
-  call alloc_state(psc(igrid), ixCoG^L, ixCoG^L, .true.)
+  call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
 
   ! allocate temperary solution space
   select case (time_integrator)
   case("threestep","fourstep","jameson","twostep_trapezoidal")
-    call alloc_state(ps2(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
   case("rk4","ssprk43")
-    call alloc_state(ps2(igrid), ixG^LL, ixGext^L, .false.)
-    call alloc_state(ps3(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
   case("ssprk54")
-    call alloc_state(ps2(igrid), ixG^LL, ixGext^L, .false.)
-    call alloc_state(ps3(igrid), ixG^LL, ixGext^L, .false.)
-    call alloc_state(ps4(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
   end select
 end if
 
@@ -507,11 +507,11 @@ end if
 
 end subroutine alloc_node
 !=============================================================================
-subroutine alloc_state(s, ixG^L, ixGext^L, need_x)
+subroutine alloc_state(igrid, s, ixG^L, ixGext^L, need_x)
 use mod_global_parameters
 use mod_geometry
 type(state) :: s
-integer, intent(in) :: ixG^L, ixGext^L
+integer, intent(in) :: igrid, ixG^L, ixGext^L
 logical, intent(in) :: need_x
 integer             :: ixGs^L
 !-----------------------------------------------------------------------------
@@ -530,11 +530,20 @@ if(need_x) then
     allocate(s%surfaceC(ixG^S,1:ndim), &
              s%surface(ixG^S,1:ndim))
   endif
+else
+  ! share x info with ps states to save memory
+  s%x=>ps(igrid)%x
+  s%dx=>ps(igrid)%dx
+  s%ds=>ps(igrid)%ds
+  s%dvolume=>ps(igrid)%dvolume
+  s%surfaceC=>ps(igrid)%surfaceC
+  s%surface=>ps(igrid)%surface
 end if
 end subroutine alloc_state
 !=============================================================================
-subroutine dealloc_state(s,need_x)
+subroutine dealloc_state(igrid, s,need_x)
 use mod_global_parameters
+integer, intent(in) :: igrid
 type(state) :: s
 logical, intent(in) :: need_x
 !-----------------------------------------------------------------------------
@@ -550,6 +559,8 @@ if(need_x) then
     deallocate(s%dvolume)
     deallocate(s%surfaceC,s%surface)
   endif
+else
+  nullify(s%x,s%dx,s%ds,s%dvolume,s%surfaceC,s%surface)
 end if
 end subroutine dealloc_state
 !=============================================================================
@@ -564,21 +575,21 @@ if (igrid==0) then
    call mpistop("trying to delete a non-existing grid in dealloc_node")
 end if
 
-call dealloc_state(ps(igrid),.true.)
-call dealloc_state(ps1(igrid),.false.)
-call dealloc_state(psc(igrid),.false.)
-call dealloc_state(pso(igrid),.false.)
+call dealloc_state(igrid, ps(igrid),.true.)
+call dealloc_state(igrid, ps1(igrid),.false.)
+call dealloc_state(igrid, psc(igrid),.false.)
+call dealloc_state(igrid, pso(igrid),.false.)
 ! deallocate temperary solution space
 select case (time_integrator)
 case("threestep","fourstep","jameson","twostep_trapezoidal")
-  call dealloc_state(ps2(igrid),.false.)
+  call dealloc_state(igrid, ps2(igrid),.false.)
 case("rk4","ssprk43")
-  call dealloc_state(ps2(igrid),.false.)
-  call dealloc_state(ps3(igrid),.false.)
+  call dealloc_state(igrid, ps2(igrid),.false.)
+  call dealloc_state(igrid, ps3(igrid),.false.)
 case("ssprk54")
-  call dealloc_state(ps2(igrid),.false.)
-  call dealloc_state(ps3(igrid),.false.)
-  call dealloc_state(ps4(igrid),.false.)
+  call dealloc_state(igrid, ps2(igrid),.false.)
+  call dealloc_state(igrid, ps3(igrid),.false.)
+  call dealloc_state(igrid, ps4(igrid),.false.)
 end select
 
 if (B0field) call dealloc_B0_grid(igrid)
