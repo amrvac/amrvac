@@ -506,7 +506,7 @@ contains
            call mpistop("Please restart from a snapshot when firstprocess=T")
       if (convert) &
            call mpistop('Change convert to .false. for a new run!')
-    else if(itsave(1,1)==0.or.itsave(1,2)==0) then
+    else if(itsave(1,1)==0.or.itsave(1,2)==0.and..not.reset_time) then
       ! to avoid output initial state again after restart from the initial state
       itsave(1,1:2)=biginteger
     end if
