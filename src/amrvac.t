@@ -38,6 +38,9 @@ program amrvac
      ! read in dat file
      call read_snapshot()
 
+     ! avoid output it=0 state when restart from it=0 state 
+     if(it==0.and.itsave(1,1)==0.or.itsave(1,2)==0) itsave(1,1:2)=biginteger
+
      if (reset_time) then
        ! reset it and global time to original value
        it           = it_init
