@@ -15,7 +15,7 @@ module mod_fix_conserve
   integer, dimension(:), allocatable   :: fc_recvreq, fc_sendreq
   integer, dimension(:,:), allocatable :: fc_recvstat, fc_sendstat
   integer, dimension(^ND), save        :: isize
-  integer                              :: ibuf, ibuf_send, isend, irecv
+  integer                              :: ibuf, ibuf_send
   ! ct for corner total
   integer, save                        :: nrecv_ct, nsend_ct
   ! buffer for corner coarse
@@ -24,7 +24,7 @@ module mod_fix_conserve
   integer, dimension(:,:), allocatable :: cc_recvstat, cc_sendstat
   integer, dimension(^ND), save        :: isize_stg
   integer                              :: ibuf_cc, ibuf_cc_send
-  integer                              :: itag_cc, isend_cc
+  integer                              :: itag_cc, isend_cc, irecv_cc
 
   public :: init_comm_fix_conserve
   public :: allocateBflux
@@ -213,7 +213,7 @@ module mod_fix_conserve
        if (nrecv_ct>0) then
          cc_recvreq=MPI_REQUEST_NULL
          ibuf_cc=1
-         irecv=0
+         irecv_cc=0
 
          do iigrid=1,igridstail; igrid=igrids(iigrid);
            do idims= idim^LIM
@@ -240,11 +240,11 @@ module mod_fix_conserve
                         inc^DB=2*pi^DB+ic^DB\}
                         ipe_neighbor=neighbor_child(2,inc^D,igrid)
                        if (mype/=ipe_neighbor) then
-                         irecv=irecv+1
+                         irecv_cc=irecv_cc+1
                          itag_cc=4**^ND*(igrid-1)+{inc^D*4**(^D-1)+}
                          call MPI_IRECV(recvbuffer_cc(ibuf_cc),isize_stg(idims),&
                                         MPI_DOUBLE_PRECISION,ipe_neighbor,itag_cc,&
-                                        icomm,cc_recvreq(irecv),ierrmpi)
+                                        icomm,cc_recvreq(irecv_cc),ierrmpi)
                          ibuf_cc=ibuf_cc+isize_stg(idims)
                        end if
                     {end do\}
@@ -258,11 +258,11 @@ module mod_fix_conserve
                         inc^DB=2*mi^DB+ic^DB\}
                        ipe_neighbor=neighbor_child(2,inc^D,igrid)
                        if (mype/=ipe_neighbor) then
-                         irecv=irecv+1
+                         irecv_cc=irecv_cc+1
                          itag_cc=4**^ND*(igrid-1)+{inc^D*4**(^D-1)+}
                          call MPI_IRECV(recvbuffer_cc(ibuf_cc),isize_stg(idims),&
                                         MPI_DOUBLE_PRECISION,ipe_neighbor,itag_cc,&
-                                        icomm,cc_recvreq(irecv),ierrmpi)
+                                        icomm,cc_recvreq(irecv_cc),ierrmpi)
                          ibuf_cc=ibuf_cc+isize_stg(idims)
                        end if
                     {end do\}

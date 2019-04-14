@@ -17,6 +17,10 @@ end if
 
 irecv=0
 isend=0
+if(stagger_grid) then
+  irecv_stg=0
+  isend_stg=0
+end if
 
 do ipe=0,npe-1; do Morton_no=Morton_start(ipe),Morton_stop(ipe)
    recv_ipe=ipe
@@ -45,6 +49,10 @@ end do; end do
 
 if (irecv>0) call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
 if (isend>0) call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
+if(stagger_grid) then
+  if (irecv_stg>0) call MPI_WAITALL(irecv_stg,recvrequest_stg,recvstatus_stg,ierrmpi)
+  if (isend_stg>0) call MPI_WAITALL(isend_stg,sendrequest_stg,sendstatus_stg,ierrmpi)
+end if
 
 ! post processing
 do ipe=0,npe-1; do Morton_no=Morton_start(ipe),Morton_stop(ipe)
@@ -71,16 +79,6 @@ call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
 ! Update sfc array: igrid and ipe info in space filling curve
 call amr_Morton_order()
 
-!!$if (nwaux>0) then
-!!$   do Morton_no=Morton_start(mype),Morton_stop(mype)
-!!$      if (sfc(2,Morton_no)/=mype) then
-!!$         igrid=sfc_to_igrid(Morton_no)
-!!$         saveigrid=igrid
-!!$         call getaux(.true.,ps(igrid)%w,px(igrid)%x,ixG^LL,ixM^LL,"load_balance")
-!!$      end if
-!!$   end do
-!!$end if
-
 contains
 !=============================================================================
 ! internal procedures
@@ -103,6 +101,12 @@ end if
 call MPI_IRECV(ps(recv_igrid)%w,1,type_block_io,send_ipe,itag, &
                icomm,recvrequest(irecv),ierrmpi)
 }
+if(stagger_grid) then
+  itag_stg=recv_igrid+max_blocks
+  irecv_stg=irecv_stg+1
+  call MPI_IRECV(ps(recv_igrid)%ws,1,type_block_io_stg,send_ipe,itag_stg, &
+       icomm,recvrequest_stg(irecv_stg),ierrmpi)
+end if
 
 end subroutine lb_recv
 !=============================================================================
@@ -122,6 +126,12 @@ end if
 call MPI_ISEND(ps(send_igrid)%w,1,type_block_io,recv_ipe,itag, &
                icomm,sendrequest(isend),ierrmpi)
 }
+if(stagger_grid) then
+  itag=recv_igrid+max_blocks
+  isend_stg=isend_stg+1
+  call MPI_ISEND(ps(send_igrid)%ws,1,type_block_io_stg,recv_ipe,itag_stg, &
+                 icomm,sendrequest_stg(isend_stg),ierrmpi)
+end if
 
 end subroutine lb_send
 !=============================================================================

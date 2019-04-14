@@ -38,18 +38,25 @@ module mod_global_parameters
   integer :: type_block, size_block
   !> MPI type for block coarsened by 2, and for its children blocks
   integer :: type_coarse_block, type_sub_block(2^D&)
+  !> MPI type for staggered block coarsened by 2, and for its children blocks
+  integer :: type_coarse_block_stg(^ND,2^D&), type_sub_block_stg(^ND,2^D&)
   !> MPI type for IO: block excluding ghost cells
   integer :: type_block_io, size_block_io
-  !> MPI type for IO: transformed data excluding ghost cells
-  integer :: type_block_io_tf, size_block_io_tf
+  !> MPI type for IO of staggered variables
+  integer :: type_block_io_stg, size_block_io_stg
   !> MPI type for IO: cell corner (xc) or cell center (xcc) coordinates
   integer :: type_block_xc_io,type_block_xcc_io
   !> MPI type for IO: cell corner (wc) or cell center (wcc) variables
   integer :: type_block_wc_io,type_block_wcc_io
 
+  !> MPI recv send variables for AMR
   integer :: itag, irecv, isend
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
+  !> MPI recv send variables for staggered-variable AMR
+  integer :: itag_stg, irecv_stg, isend_stg
+  integer, dimension(:), allocatable, save :: recvrequest_stg, sendrequest_stg
+  integer, dimension(:,:), allocatable, save :: recvstatus_stg, sendstatus_stg
 
   ! geometry and domain setups 
 

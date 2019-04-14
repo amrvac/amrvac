@@ -32,7 +32,7 @@ contains
     integer   :: ixLL^L,ixL^L,ixO^L,ixR^L,ixRR^L
     integer   :: hxL^L,hxC^L,hxR^L
     integer   :: kxLL^L,kxL^L,kxC^L,kxR^L,kxRR^L
-    !--------------------------------------------------------------------------
+
     ixOmin^D=ixmin^D-kr(idims,^D);ixOmax^D=ixmax^D+kr(idims,^D);!ixO[ixMmin1-1,ixMmax1+1]
     ixL^L=ixO^L-kr(idims,^D);                                   !ixL[ixMmin1-2,ixMmax1]
     ixLL^L=ixL^L-kr(idims,^D);                                  !ixLL[ixMmin1-3,ixMmax1-1]
@@ -132,7 +132,7 @@ contains
     double precision, parameter :: betamin=0.75d0, betamax=0.85d0,&
          Zmin=0.25d0, Zmax=0.75d0,&
          eta1=20.0d0,eta2=0.05d0,eps=0.01d0,kappa=0.1d0
-    !--------------------------------------------------------------------------
+
     ixOmin^D=ixmin^D-kr(idims,^D);ixOmax^D=ixmax^D+kr(idims,^D);!ixO[ixMmin1-1,ixMmax1+1]
     ixL^L=ixO^L-kr(idims,^D);                                   !ixL[ixMmin1-2,ixMmax1]
     ixLL^L=ixL^L-kr(idims,^D);                                  !ixLL[ixMmin1-3,ixMmax1-1]
@@ -293,7 +293,7 @@ contains
     double precision, intent(out) :: qMax(ixI^S),qMin(ixI^S)
 
     integer           :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
-    !-------------------------------------------------------------------------
+
     do ishift=1,nshift
       idims=1
       ixsR^L=ixO^L+ishift*kr(idims,^D);
@@ -345,7 +345,7 @@ contains
     double precision, intent(out) :: aMin(ixI^S)
 
     integer          :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
-    !-------------------------------------------------------------------------
+
     do ishift=1,nshift
       idims=1
       ixsR^L=ixO^L+ishift*kr(idims,^D);
@@ -389,7 +389,7 @@ contains
     double precision, intent(out) :: wMax(ixI^S,1:nwflux),wMin(ixI^S,1:nwflux)
 
     integer          :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
-    !-------------------------------------------------------------------------
+
     do ishift=1,nshift
       idims=1
       ixsR^L=ixO^L+ishift*kr(idims,^D);

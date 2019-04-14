@@ -45,6 +45,7 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve, only: pflux
+    use mod_amr_fct, only: pface, fine_neighbors, old_neighbor
     use mod_geometry
 
     integer :: igrid, level, ipe, ig^D
@@ -67,6 +68,10 @@ contains
     allocate(pflux(2,^ND,max_blocks))
     ! allocate mesh for particles
     if(use_particles) allocate(gridvars(max_blocks))
+    if(stagger_grid) then
+      allocate(pface(2,^ND,max_blocks),fine_neighbors(2^D&,^ND,max_blocks))
+      allocate(old_neighbor(2,-1:1^D,max_blocks))
+    end if
 
     it=it_init
     global_time=time_init

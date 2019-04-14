@@ -34,7 +34,6 @@ subroutine comm_start
 
 end subroutine comm_start
 
-
 !> Finalize (or shutdown) the MPI environment
 subroutine comm_finalize
   use mod_global_parameters
@@ -44,113 +43,155 @@ subroutine comm_finalize
 
 end subroutine comm_finalize
 
-
 !> Create and store the MPI types that will be used for parallel communication
 subroutine init_comm_types
+  use mod_global_parameters
 
-use mod_global_parameters
+  integer, dimension(ndim+1) :: sizes, subsizes, start
+  integer :: i^D, ic^D, nx^D, nxCo^D, nxG^D, idir
 
-integer, dimension(ndim+1) :: sizes, subsizes, start
-integer :: i^D, ic^D, nx^D, nxCo^D, nxG^D
-!-----------------------------------------------------------------------------
-nx^D=ixMhi^D-ixMlo^D+1;
-nxG^D=ixGhi^D-ixGlo^D+1;
-nxCo^D=nx^D/2;
+  nx^D=ixMhi^D-ixMlo^D+1;
+  nxG^D=ixGhi^D-ixGlo^D+1;
+  nxCo^D=nx^D/2;
 
-^D&sizes(^D)=ixGhi^D;
-sizes(ndim+1)=nw
-^D&subsizes(^D)=nxG^D;
-subsizes(ndim+1)=nw
-^D&start(^D)=ixGlo^D-1;
-start(ndim+1)=0
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                              MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                              type_block,ierrmpi)
-call MPI_TYPE_COMMIT(type_block,ierrmpi)
-size_block={nxG^D*}*nw*size_double
+  ^D&sizes(^D)=ixGhi^D;
+  sizes(ndim+1)=nw
+  ^D&subsizes(^D)=nxG^D;
+  subsizes(ndim+1)=nw
+  ^D&start(^D)=ixGlo^D-1;
+  start(ndim+1)=0
+  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                type_block,ierrmpi)
+  call MPI_TYPE_COMMIT(type_block,ierrmpi)
+  size_block={nxG^D*}*nw*size_double
 
-^D&sizes(^D)=ixGhi^D/2+nghostcells;
-sizes(ndim+1)=nw
-^D&subsizes(^D)=nxCo^D;
-subsizes(ndim+1)=nw
-^D&start(^D)=ixMlo^D-1;
-start(ndim+1)=0
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                              MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                              type_coarse_block,ierrmpi)
-call MPI_TYPE_COMMIT(type_coarse_block,ierrmpi)
+  ^D&sizes(^D)=ixGhi^D/2+nghostcells;
+  sizes(ndim+1)=nw
+  ^D&subsizes(^D)=nxCo^D;
+  subsizes(ndim+1)=nw
+  ^D&start(^D)=ixMlo^D-1;
+  start(ndim+1)=0
+  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                type_coarse_block,ierrmpi)
+  call MPI_TYPE_COMMIT(type_coarse_block,ierrmpi)
 
-^D&sizes(^D)=ixGhi^D;
-sizes(ndim+1)=nw
-{do ic^DB=1,2\}
-   ^D&subsizes(^D)=nxCo^D;
-   subsizes(ndim+1)=nw
-   ^D&start(^D)=ixMlo^D-1+(ic^D-1)*nxCo^D;
-   start(ndim+1)=0
-   call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                                 MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                                 type_sub_block(ic^D),ierrmpi)
-   call MPI_TYPE_COMMIT(type_sub_block(ic^D),ierrmpi)
-{end do\}
+  if(stagger_grid) then
+    ^D&sizes(^D)=ixGhi^D+1;
+    sizes(ndim+1)=nws
+    ^D&subsizes(^D)=nx^D+1;
+    subsizes(ndim+1)=nws
+    ^D&start(^D)=ixMlo^D-1;
+    start(ndim+1)=0
+    call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                  MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                  type_block_io_stg,ierrmpi)
+    call MPI_TYPE_COMMIT(type_block_io_stg,ierrmpi)
+    size_block_io_stg={(nx^D+1)*}*nws*size_double
 
-^D&sizes(^D)=ixGhi^D;
-sizes(ndim+1)=nw
-^D&subsizes(^D)=nx^D;
-subsizes(ndim+1)=nw
-^D&start(^D)=ixMlo^D-1;
-start(ndim+1)=0
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                              MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                              type_block_io,ierrmpi)
-call MPI_TYPE_COMMIT(type_block_io,ierrmpi)
-size_block_io={nx^D*}*nw*size_double
+    ^D&sizes(^D)=ixGhi^D/2+nghostcells+1;
+    sizes(ndim+1)=nws
+   {do ic^DB=1,2\}
+      do idir=1,ndim
+        ^D&subsizes(^D)=nxCo^D+kr(ic^D,1)*kr(idir,^D);
+        subsizes(ndim+1)=1
+        ^D&start(^D)=ixMlo^D-kr(ic^D,1)*kr(idir,^D);
+        start(ndim+1)=idir-1
 
-^D&sizes(^D)=ixMhi^D-ixMlo^D+1;
-sizes(ndim+1)=^ND
-^D&subsizes(^D)=sizes(^D);
-subsizes(ndim+1)=^ND
-^D&start(^D)=0;
-start(ndim+1)=0
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                              MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                              type_block_xcc_io,ierrmpi)
-call MPI_TYPE_COMMIT(type_block_xcc_io,ierrmpi)
+        call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                      MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                      type_coarse_block_stg(idir,ic^D),ierrmpi)
+        call MPI_TYPE_COMMIT(type_coarse_block_stg(idir,ic^D),ierrmpi)
+      end do
+   {end do\}
 
-^D&sizes(^D)=ixMhi^D-ixMlo^D+2;
-sizes(ndim+1)=^ND
-^D&subsizes(^D)=sizes(^D);
-subsizes(ndim+1)=^ND
-^D&start(^D)=0;
-start(ndim+1)=0
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                              MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                              type_block_xc_io,ierrmpi)
-call MPI_TYPE_COMMIT(type_block_xc_io,ierrmpi)
+    ^D&sizes(^D)=ixGhi^D+1;
+    sizes(ndim+1)=nws
+   {do ic^DB=1,2\}
+      do idir=1,^ND
+        ^D&subsizes(^D)=nxCo^D+kr(ic^D,1)*kr(idir,^D);
+        subsizes(ndim+1)=1
+        ^D&start(^D)=ixMlo^D-kr(ic^D,1)*kr(idir,^D)+(ic^D-1)*nxCo^D;
+        start(ndim+1)=idir-1
+        call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                      MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                      type_sub_block_stg(idir,ic^D),ierrmpi)
+        call MPI_TYPE_COMMIT(type_sub_block_stg(idir,ic^D),ierrmpi)
+      end do
+   {end do\}
+  end if
 
-^D&sizes(^D)=ixMhi^D-ixMlo^D+1;
-sizes(ndim+1)=nw+nwauxio
-^D&subsizes(^D)=sizes(^D);
-subsizes(ndim+1)=nw+nwauxio
-^D&start(^D)=0;
-start(ndim+1)=0
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                              MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                              type_block_wcc_io,ierrmpi)
-call MPI_TYPE_COMMIT(type_block_wcc_io,ierrmpi)
+  ^D&sizes(^D)=ixGhi^D;
+  sizes(ndim+1)=nw
+  {do ic^DB=1,2\}
+     ^D&subsizes(^D)=nxCo^D;
+     subsizes(ndim+1)=nw
+     ^D&start(^D)=ixMlo^D-1+(ic^D-1)*nxCo^D;
+     start(ndim+1)=0
+     call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                   MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                   type_sub_block(ic^D),ierrmpi)
+     call MPI_TYPE_COMMIT(type_sub_block(ic^D),ierrmpi)
+  {end do\}
 
-^D&sizes(^D)=ixMhi^D-ixMlo^D+2;
-sizes(ndim+1)=nw+nwauxio
-^D&subsizes(^D)=sizes(^D);
-subsizes(ndim+1)=nw+nwauxio
-^D&start(^D)=0;
-start(ndim+1)=0
-call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
-                              MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
-                              type_block_wc_io,ierrmpi)
-call MPI_TYPE_COMMIT(type_block_wc_io,ierrmpi)
+  ^D&sizes(^D)=ixGhi^D;
+  sizes(ndim+1)=nw
+  ^D&subsizes(^D)=nx^D;
+  subsizes(ndim+1)=nw
+  ^D&start(^D)=ixMlo^D-1;
+  start(ndim+1)=0
+  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                type_block_io,ierrmpi)
+  call MPI_TYPE_COMMIT(type_block_io,ierrmpi)
+  size_block_io={nx^D*}*nw*size_double
+
+  ^D&sizes(^D)=ixMhi^D-ixMlo^D+1;
+  sizes(ndim+1)=^ND
+  ^D&subsizes(^D)=sizes(^D);
+  subsizes(ndim+1)=^ND
+  ^D&start(^D)=0;
+  start(ndim+1)=0
+  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                type_block_xcc_io,ierrmpi)
+  call MPI_TYPE_COMMIT(type_block_xcc_io,ierrmpi)
+
+  ^D&sizes(^D)=ixMhi^D-ixMlo^D+2;
+  sizes(ndim+1)=^ND
+  ^D&subsizes(^D)=sizes(^D);
+  subsizes(ndim+1)=^ND
+  ^D&start(^D)=0;
+  start(ndim+1)=0
+  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                type_block_xc_io,ierrmpi)
+  call MPI_TYPE_COMMIT(type_block_xc_io,ierrmpi)
+
+  ^D&sizes(^D)=ixMhi^D-ixMlo^D+1;
+  sizes(ndim+1)=nw+nwauxio
+  ^D&subsizes(^D)=sizes(^D);
+  subsizes(ndim+1)=nw+nwauxio
+  ^D&start(^D)=0;
+  start(ndim+1)=0
+  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                type_block_wcc_io,ierrmpi)
+  call MPI_TYPE_COMMIT(type_block_wcc_io,ierrmpi)
+
+  ^D&sizes(^D)=ixMhi^D-ixMlo^D+2;
+  sizes(ndim+1)=nw+nwauxio
+  ^D&subsizes(^D)=sizes(^D);
+  subsizes(ndim+1)=nw+nwauxio
+  ^D&start(^D)=0;
+  start(ndim+1)=0
+  call MPI_TYPE_CREATE_SUBARRAY(ndim+1,sizes,subsizes,start, &
+                                MPI_ORDER_FORTRAN,MPI_DOUBLE_PRECISION, &
+                                type_block_wc_io,ierrmpi)
+  call MPI_TYPE_COMMIT(type_block_wc_io,ierrmpi)
 
 end subroutine init_comm_types
-
 
 !> Exit MPI-AMRVAC with an error message
 subroutine mpistop(message)

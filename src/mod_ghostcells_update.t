@@ -504,8 +504,7 @@ contains
        ! Used stored data to identify physical boundaries
        ^D&iib^D=idphyb(^D,igrid);
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
-          call coarsen_grid(psb(igrid)%w,ps(igrid)%x,ixG^L,ixM^L,psc(igrid)%w,psc(igrid)%x,&
-                            ixCoG^L,ixCoM^L,igrid,igrid)
+          call coarsen_grid(psb(igrid),ixG^L,ixM^L,psc(igrid),ixCoG^L,ixCoM^L)
          {do i^DB=-1,1\}
             if (skip_direction([ i^D ])) cycle
             if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_send_restrict
@@ -586,9 +585,9 @@ contains
            ! must be done in a specific order.
            ! First the first neighbours, which have 2 indices=0 in 3D
            ! or one index=0 in 2D
-           do idim=1,ndim
+           do idims=1,ndim
              i^D=0;
-             select case(idim)
+             select case(idims)
             {case(^D)
                do i^D=-1,1,2
                  if (NeedProlong(i^DD)) call bc_prolong_stg(NeedProlong)
@@ -1269,18 +1268,18 @@ contains
         ! Check what is already at the desired level
         fine_^Lin=.false.;
         {
-        if(i^D.gt.-1) fine_min^Din=.not.NeedProlong(i^DD-kr(^D,^DD))
-        if(i^D.lt.1)  fine_max^Din=.not.NeedProlong(i^DD+kr(^D,^DD))
+        if(i^D>-1) fine_min^Din=.not.NeedProlong(i^DD-kr(^D,^DD))
+        if(i^D<1)  fine_max^Din=.not.NeedProlong(i^DD+kr(^D,^DD))
         \}
 
-        ixFi^L=ixR_srl_^L(i^D);
+        ixFi^L=ixR_srl_^L(iib^D,i^D);
 
         dxFi^D=rnode(rpdx^D_,igrid);
         dxCo^D=two*dxFi^D;
         invdxCo^D=1.d0/dxCo^D;
 
-        xFimin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxFi^D;
-        xComin^D=rnode(rpxmin^D_,igrid)-dble(dixB)*dxCo^D;
+        xFimin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxFi^D;
+        xComin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxCo^D;
 
         ! moved the physical boundary filling here, to only fill the
         ! part needed

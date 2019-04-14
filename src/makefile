@@ -8,7 +8,8 @@ amrgrid.t mod_finite_volume.t mod_tvd.t mod_finite_difference.t load_balance.t	\
 connectivity.t boundary_conditions.t comm_lib.t forest.t amr_neighbors.t	\
 amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t mod_geometry.t	\
 mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t mod_limiter.t	\
-mod_fix_conserve.t mod_source.t mod_initialize.t mod_amrvac.t mod_bc_data.t mod_lookup_table.t
+mod_fix_conserve.t mod_source.t mod_initialize.t mod_amrvac.t mod_bc_data.t 	\
+mod_lookup_table.t mod_amr_fct.t mod_constrained_transport.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -33,6 +34,7 @@ amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
 amr_solution_node.o: mod_geometry.mod
 boundary_conditions.o: mod_bc_data.mod
+coarsen.o: mod_constrained_transport.mod
 coarsen.o: mod_physics.mod
 connectivity.o: mod_ghostcells_update.mod
 convert.o: mod_calculate_xw.mod
@@ -47,12 +49,17 @@ mod_advance.o: mod_physics.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
 mod_amrvac.o: mod_geometry.mod
+mod_amr_fct.o: mod_constrained_transport.mod
+mod_amr_fct.o: mod_forest.mod
 mod_bc_data.o: mod_lookup_table.mod
 mod_calculate_xw.o: mod_limiter.mod
 mod_calculate_xw.o: mod_physics.mod
 mod_collapse.o: mod_calculate_xw.mod
 mod_collapse.o: mod_physics.mod
 mod_collapse.o: mod_slice.mod
+mod_constrained_transport.o: mod_fix_conserve.mod
+mod_constrained_transport.o: mod_limiter.mod
+mod_constrained_transport.o: mod_usr_methods.mod
 mod_dust.o: mod_physics.mod
 mod_finite_difference.o: mod_finite_volume.mod
 mod_finite_difference.o: mod_limiter.mod
@@ -66,8 +73,8 @@ mod_finite_volume.o: mod_source.mod
 mod_finite_volume.o: mod_tvd.mod
 mod_geometry.o: mod_limiter.mod
 mod_geometry.o: mod_ppm.mod
+mod_ghostcells_update.o: mod_amr_fct.mod
 mod_ghostcells_update.o: mod_physics.mod
-mod_global_parameters.o: mod_basic_types.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
 mod_hd.o: mod_amrvac.mod
@@ -89,6 +96,7 @@ mod_hd_ppm.o: mod_physics_ppm.mod
 mod_hd_roe.o: mod_hd_phys.mod
 mod_hd_roe.o: mod_physics_roe.mod
 mod_hd_roe.o: mod_tvd.mod
+mod_initialize.o: mod_amr_fct.mod
 mod_initialize.o: mod_bc_data.mod
 mod_initialize.o: mod_fix_conserve.mod
 mod_initialize.o: mod_geometry.mod
