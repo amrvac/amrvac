@@ -15,12 +15,12 @@ contains
   !> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBnghostcells
   !> one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
   !> on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
-  subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,snew,dx^D,x)
+  subroutine hancock(qdt,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,snew,dx^D,x)
     use mod_physics
     use mod_global_parameters
     use mod_source, only: addsource2
 
-    integer, intent(in) :: ixI^L, ixO^L, idim^LIM
+    integer, intent(in) :: ixI^L, ixO^L, idims^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
     type(state) :: sCT, snew
 
@@ -29,13 +29,13 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision :: dxinv(1:ndim)
-    integer :: idim, iw, ix^L, hxO^L
+    integer :: idims, iw, ix^L, hxO^L
 
     associate(wCT=>sCT%w,wnew=>snew%w)
-    ! Expand limits in each idim direction in which fluxes are added
+    ! Expand limits in each idims direction in which fluxes are added
     ix^L=ixO^L;
-    do idim= idim^LIM
-       ix^L=ix^L^LADDkr(idim,^D);
+    do idims= idims^LIM
+       ix^L=ix^L^LADDkr(idims,^D);
     end do
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in Hancock: Nonconforming input limits")
@@ -44,38 +44,38 @@ contains
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
-    do idim= idim^LIM
-       block%iw0=idim
+    do idims= idims^LIM
+       block%iw0=idims
        ! Calculate w_j+g_j/2 and w_j-g_j/2
        ! First copy all variables, then upwind wLC and wRC.
        ! wLC is to the left of ixO, wRC is to the right of wCT.
-       hxO^L=ixO^L-kr(idim,^D);
+       hxO^L=ixO^L-kr(idims,^D);
 
        wRp(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
        wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
-       call reconstruct_LR(ixI^L,ixO^L,hxO^L,idim,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+       call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
 
        ! Calculate the fLC and fRC fluxes
-       call phys_get_flux(wRC,wRp,x,ixI^L,hxO^L,idim,fRC)
-       call phys_get_flux(wLC,wLp,x,ixI^L,ixO^L,idim,fLC)
+       call phys_get_flux(wRC,wRp,x,ixI^L,hxO^L,idims,fRC)
+       call phys_get_flux(wLC,wLp,x,ixI^L,ixO^L,idims,fLC)
 
        ! Advect w(iw)
        do iw=1,nwflux
           if (slab) then
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idim)* &
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
                   (fLC(ixO^S, iw)-fRC(hxO^S, iw))
           else
              wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/block%dvolume(ixO^S) &
-                  *(block%surfaceC(ixO^S,idim)*fLC(ixO^S, iw) &
-                  -block%surfaceC(hxO^S,idim)*fRC(hxO^S, iw))
+                  *(block%surfaceC(ixO^S,idims)*fLC(ixO^S, iw) &
+                  -block%surfaceC(hxO^S,idims)*fRC(hxO^S, iw))
           end if
        end do
-    end do ! next idim
+    end do ! next idims
     block%iw0=0
 
-    if (.not.slab.and.idimmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
-    call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
+    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
     ! check and optionally correct unphysical values
@@ -84,7 +84,7 @@ contains
   end subroutine hancock
 
   !> finite volume method
-  subroutine finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM, &
+  subroutine finite_volume(method,qdt,ixI^L,ixO^L,idims^LIM, &
        qtC,sCT,qt,snew,sold,fC,fE,dx^D,x)
 
     use mod_physics
@@ -92,10 +92,11 @@ contains
     use mod_tvd, only:tvdlimit2
     use mod_source, only: addsource2
     use mod_usr_methods
+    use mod_constrained_transport
 
     character(len=*), intent(in)                          :: method
     double precision, intent(in)                          :: qdt, qtC, qt, dx^D
-    integer, intent(in)                                   :: ixI^L, ixO^L, idim^LIM
+    integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) ::  x
     type(state)                                           :: sCT, snew, sold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
@@ -107,7 +108,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
-    double precision, dimension(ixI^S, nwflux) :: fLC, fRC
+    double precision, dimension(ixI^S,1:nwflux) :: fLC, fRC
     double precision, dimension(ixI^S)      :: cmaxC
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(ixO^S)      :: inv_volume
@@ -117,20 +118,20 @@ contains
     double precision, dimension(ixI^S,ndim)   :: cbarmin,cbarmax                                                                              
     integer                                 :: idimE,idimN
     integer, dimension(ixI^S)               :: patchf
-    integer :: idim, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
+    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
 
     associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
     staggered : associate(wCTs=>sCT%ws, wnews=>snew%ws, wolds=>sold%ws)
-    if (idimmax>idimmin .and. typelimited=='original')&
+    if (idimsmax>idimsmin .and. typelimited=='original')&
          call mpistop("Error in fv: Unsplit dim. and original is limited")
 
     fC=0.d0
 
-    ! The flux calculation contracts by one in the idim direction it is applied.
+    ! The flux calculation contracts by one in the idims direction it is applied.
     ! The limiter contracts the same directions by one more, so expand ixO by 2.
     ix^L=ixO^L;
-    do idim= idim^LIM
-       ix^L=ix^L^LADD2*kr(idim,^D);
+    do idims= idims^LIM
+       ix^L=ix^L^LADD2*kr(idims,^D);
     end do
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in fv : Nonconforming input limits")
@@ -139,50 +140,83 @@ contains
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
-    do idim= idim^LIM
-       ! use interface value of w0 at idim
-       block%iw0=idim
+    do idims= idims^LIM
+       ! use interface value of w0 at idims
+       block%iw0=idims
 
-       hxO^L=ixO^L-kr(idim,^D);
-       ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
-       ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
+       hxO^L=ixO^L-kr(idims,^D);
 
-       kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idim,^D);
-       kxR^L=kxC^L+kr(idim,^D);
+       kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+       kxR^L=kxC^L+kr(idims,^D);
+
+       if(stagger_grid) then
+         ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
+         ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
+       else
+         ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+       end if
 
        ! wRp and wLp are defined at the same locations, and will correspond to
        ! the left and right reconstructed values at a cell face. Their indexing
-       ! is similar to cell-centered values, but in direction idim they are
+       ! is similar to cell-centered values, but in direction idims they are
        ! shifted half a cell towards the 'lower' direction.
        wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
        wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
 
        ! Determine stencil size
-       {ixCRmin^D = ixCmin^D - phys_wider_stencil\}
-       {ixCRmax^D = ixCmax^D + phys_wider_stencil\}
+       {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
+       {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
        ! apply limited reconstruction for left and right status at cell interfaces
        select case (typelimited)
        case ('previous')
-          call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idim,wold,wprim,wLC,wRC,wLp,wRp,x,.true.)
+         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,wLp,wRp,x,.true.)
        case ('predictor')
-          call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idim,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+
+         if(stagger_grid) then
+           wLC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
+           wRC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
+           wLp(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
+           wRp(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
+         end if
        case default
-          call mpistop("Error in reconstruction: no such base for limiter")
+         call mpistop("Error in reconstruction: no such base for limiter")
        end select
 
        ! special modification of left and right status before flux evaluation
-       call phys_modify_wLR(wLp, wRp, ixI^L, ixC^L, idim)
+       call phys_modify_wLR(wLp, wRp, ixI^L, ixC^L, idims)
 
        ! evaluate physical fluxes according to reconstructed status
-       call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idim,fLC)
-       call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idim,fRC)
+       call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
+       call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
 
        ! estimating bounds for the minimum and maximum signal velocities
        if(method=='tvdlf'.or.method=='tvdmu') then
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idim,cmaxC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC)
        else
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idim,cmaxC,cminC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
+       end if
+
+       if(stagger_grid) then
+         ! Store magnitude of characteristics
+         cbarmin(ixC^S,idims)=max(-cminC(ixC^S),zero)
+         cbarmax(ixC^S,idims)=max( cmaxC(ixC^S),zero)
+
+         idimN=mod(idims,ndir)+1 ! 'Next' direction
+         idimE=mod(idims+1,ndir)+1 ! Electric field direction
+         ! Store velocities
+         call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idimN,vbarLC(ixI^S,idims,1))
+         call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idimN,vbarRC(ixI^S,idims,1))
+         vbarC(ixC^S,idims,1)=(cbarmax(ixC^S,idims)*vbarLC(ixC^S,idims,1) &
+              +cbarmin(ixC^S,idims)*vbarRC(ixC^S,idims,1))&
+              /(cbarmax(ixC^S,idims) + cbarmin(ixC^S,idims))
+
+         call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idimE,vbarLC(ixI^S,idims,2))
+         call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idimE,vbarRC(ixI^S,idims,2))
+         vbarC(ixC^S,idims,2)=(cbarmax(ixC^S,idims)*vbarLC(ixC^S,idims,2) &
+              +cbarmin(ixC^S,idims)*vbarRC(ixC^S,idims,2))&
+              /(cbarmax(ixC^S,idims) + cbarmin(ixC^S,idims))
        end if
 
        ! use approximate Riemann solver to get flux at interfaces
@@ -201,44 +235,48 @@ contains
          call mpistop('unkown Riemann flux')
        end select
 
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idim,fC)
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
 
-    end do ! Next idim
+    end do ! Next idims
     block%iw0=0
 
-    do idim= idim^LIM
-       hxO^L=ixO^L-kr(idim,^D);
+    if(stagger_grid) call update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,snew)
+
+    do idims= idims^LIM
+       hxO^L=ixO^L-kr(idims,^D);
 
        ! Multiply the fluxes by -dt/dx since Flux fixing expects this
        if (slab) then
-          fC(ixI^S,1:nwflux,idim)=dxinv(idim)*fC(ixI^S,1:nwflux,idim)
+          fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
           wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
-               + (fC(ixO^S,1:nwflux,idim)-fC(hxO^S,1:nwflux,idim))
+               + (fC(ixO^S,1:nwflux,idims)-fC(hxO^S,1:nwflux,idims))
        else
-          fC(ixI^S,1:nwflux,idim)=-qdt*fC(ixI^S,1:nwflux,idim)
+          fC(ixI^S,1:nwflux,idims)=-qdt*fC(ixI^S,1:nwflux,idims)
           if (.not. angmomfix) then ! default case
             inv_volume = 1.0d0/block%dvolume(ixO^S)
             do iw=1,nwflux
-              wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
+              wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
                   inv_volume
             enddo
           else
             ! If angular momentum conserving way to solve the equations,
             ! some fluxes additions need to be treated specifically
-            call phys_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
+            call phys_angmomfix(fC,x,wnew,ixI^L,ixO^L,idims)
           endif
        end if
 
        ! For the MUSCL scheme apply the characteristic based limiter
        if (method=='tvdmu') &
-            call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idim,wLC,wRC,wnew,x,fC,dx^D)
+            call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dx^D)
 
-    end do ! Next idim
+    end do ! Next idims
 
-    if (.not.slab.and.idimmin==1) &
+    if(stagger_grid) call faces2centers(ixO^L,snew)
+
+    if (.not.slab.and.idimsmin==1) &
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
-    call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim), &
+    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
     ! check and optionally correct unphysical values
@@ -254,9 +292,9 @@ contains
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
          if (slab) then
-           fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
+           fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
          else
-           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S, iw)
+           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
          end if
       end do
     end subroutine get_Riemann_flux_tvdmu
@@ -273,14 +311,14 @@ contains
          fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
 
          ! Add TVDLF dissipation to the flux
-         if (flux_type(idim, iw) /= flux_no_dissipation) then
+         if (flux_type(idims, iw) /= flux_no_dissipation) then
             fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
          end if
 
          if (slab) then
-           fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
+           fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
          else
-           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S, iw)
+           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
          end if
 
       end do ! Next iw
@@ -303,7 +341,7 @@ contains
 
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=1,nwflux
-         if (flux_type(idim, iw) == flux_tvdlf) then
+         if (flux_type(idims, iw) == flux_tvdlf) then
             fLC(ixC^S, iw) = half*(fLC(ixC^S, iw) + fRC(ixC^S, iw) &
                  -tvdlfeps*max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
                  (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
@@ -320,9 +358,9 @@ contains
          endif
 
          if (slab) then
-           fC(ixC^S,iw,idim)=fLC(ixC^S, iw)
+           fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
          else
-           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S, iw)
+           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
          end if
 
       end do ! Next iw
@@ -341,22 +379,22 @@ contains
       endwhere
       ! Use more diffusive scheme, is actually TVDLF and selected by patchf=4
       if(method=='hllcd') &
-           call phys_diffuse_hllcd(ixI^L,ixC^L,idim,wLC,wRC,fLC,fRC,patchf)
+           call phys_diffuse_hllcd(ixI^L,ixC^L,idims,wLC,wRC,fLC,fRC,patchf)
 
       !---- calculate speed lambda at CD ----!
       if(any(patchf(ixC^S)==1)) &
-           call phys_get_lCD(wLC,wRC,fLC,fRC,cminC,cmaxC,idim,ixI^L,ixC^L, &
+           call phys_get_lCD(wLC,wRC,fLC,fRC,cminC,cmaxC,idims,ixI^L,ixC^L, &
            whll,Fhll,lambdaCD,patchf)
 
       ! now patchf may be -1 or 1 due to phys_get_lCD
       if(any(abs(patchf(ixC^S))== 1))then
          !======== flux at intermediate state ========!
          call phys_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,&
-              cminC,cmaxC,ixI^L,ixC^L,idim,fCD)
+              cminC,cmaxC,ixI^L,ixC^L,idims,fCD)
       endif ! Calculate the CD flux
 
       do iw=1,nwflux
-         if (flux_type(idim, iw) == flux_tvdlf) then
+         if (flux_type(idims, iw) == flux_tvdlf) then
             fLC(ixC^S,iw) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
                  max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
                  (wRC(ixC^S,iw) - wLC(ixC^S,iw)))
@@ -379,9 +417,9 @@ contains
          end if
 
          if (slab) then
-           fC(ixC^S,iw,idim)=fLC(ixC^S,iw)
+           fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
          else
-           fC(ixC^S,iw,idim)=block%surfaceC(ixC^S,idim)*fLC(ixC^S,iw)
+           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S,iw)
          end if
 
       end do ! Next iw
@@ -400,7 +438,7 @@ contains
 
       f1R=0.d0
       f1L=0.d0
-      ip1=idim
+      ip1=idims
       ip3=3
       vRC(ixC^S,:)=wRp(ixC^S,mom(:))
       vLC(ixC^S,:)=wLp(ixC^S,mom(:))
@@ -510,7 +548,7 @@ contains
       end do
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        if (flux_type(idim, iw) == flux_tvdlf) then
+        if (flux_type(idims, iw) == flux_tvdlf) then
           fC(ixC^S,iw,ip1)=0.5d0*(fLC(ixC^S,iw) + fRC(ixC^S,iw))
           !fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
           !     max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
@@ -543,12 +581,12 @@ contains
 
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
-  subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idim,w,wCT,wLC,wRC,wLp,wRp,x,needprim)
+  subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,wLp,wRp,x,needprim)
     use mod_physics
     use mod_global_parameters
     use mod_limiter
 
-    integer, intent(in) :: ixI^L, ixL^L, ixR^L, idim
+    integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
     logical, intent(in) :: needprim
     double precision, dimension(ixI^S,1:nw) :: w, wCT
     ! left and right constructed status in conservative form
@@ -567,13 +605,13 @@ contains
     end if
 
     if (typelimiter == limiter_mp5) then
-       call MP5limiter(ixI^L,ixL^L,idim,w,wLp,wRp)
+       call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
     else if (typelimiter == limiter_ppm) then
-       call PPMlimiter(ixI^L,ixM^LL,idim,w,wCT,wLp,wRp)
+       call PPMlimiter(ixI^L,ixM^LL,idims,w,wCT,wLp,wRp)
     else
-       jxR^L=ixR^L+kr(idim,^D);
-       ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idim,^D);
-       jxC^L=ixC^L+kr(idim,^D);
+       jxR^L=ixR^L+kr(idims,^D);
+       ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
+       jxC^L=ixC^L+kr(idims,^D);
 
        do iw=1,nwflux
           if (loglimit(iw)) then
@@ -585,7 +623,7 @@ contains
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
           ! limit flux from left and/or right
-          call dwlimiter2(dwC,ixI^L,ixC^L,idim,typelimiter,ldw,rdw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw,rdw)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
 

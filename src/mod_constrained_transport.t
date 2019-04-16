@@ -323,11 +323,7 @@ contains
   end subroutine updatefaces
 
   !> update faces UCT2
-  subroutine updatefacesuct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,s)
-    !{^IFCOORDCKS
-    !! This is for excision, we can do this more generally later
-    !use mod_metric, only: coordpar !, rcut_
-    !}
+  subroutine update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,s)
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
@@ -492,7 +488,7 @@ contains
     end do
 
     end associate
-  end subroutine updatefacesuct2
+  end subroutine update_faces_uct2
 
   !> update faces UCT2 av
   subroutine updatefacesuct2av(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fC,fE,s)

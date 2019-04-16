@@ -743,6 +743,7 @@ contains
             psb(igrid)%w(ixR^S,nwhead:nwtail)=reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),shape=shape(psb(igrid)%w(ixR^S,nwhead:nwtail)))
             ibuf_recv_srl=ibuf_next
             if(stagger_grid) then
+              n_i^D=-i^D;
               do idir=1,ndim
                 ixS^L=ixS_srl_stg_^L(idir,n_i^D);
                 ixR^L=ixR_srl_stg_^L(idir,i^D);

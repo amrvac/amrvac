@@ -66,6 +66,7 @@ mod_finite_difference.o: mod_limiter.mod
 mod_finite_difference.o: mod_mp5.mod
 mod_finite_difference.o: mod_physics.mod
 mod_finite_difference.o: mod_source.mod
+mod_finite_volume.o: mod_constrained_transport.mod
 mod_finite_volume.o: mod_limiter.mod
 mod_finite_volume.o: mod_mhd_phys.mod
 mod_finite_volume.o: mod_physics.mod
@@ -197,6 +198,7 @@ mod_usr_template.o: mod_hd.mod
 mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
 raytracing.o: mod_raytracing.mod
+refine.o: mod_amr_fct.mod
 refine.o: mod_physics.mod
 set_B0.o: mod_geometry.mod
 setdt.o: mod_physics.mod

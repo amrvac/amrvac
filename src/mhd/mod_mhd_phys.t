@@ -136,6 +136,7 @@ module mod_mhd_phys
   public :: mhd_kin_en
   public :: mhd_get_pthermal
   public :: mhd_get_v
+  public :: mhd_get_v_idim
   public :: mhd_to_conserved
   public :: mhd_to_primitive
   public :: mhd_get_csound2
