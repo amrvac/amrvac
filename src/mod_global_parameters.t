@@ -80,6 +80,9 @@ module mod_global_parameters
   !> Cartesian geometry or not
   logical :: slab
 
+  !> uniform Cartesian geometry or not (stretched Cartesian)
+  logical :: slab_uniform
+
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D
   !> extent of grid blocks in domain per dimension, in array over levels
@@ -113,8 +116,6 @@ module mod_global_parameters
   !> If true, adjust mod_geometry routines to account for grid stretching (but
   !> the flux computation will not)
   logical :: stretch_uncentered
-  !> Stretched Cartesian geometry or not
-  logical :: slab_stretched
   !> True if a dimension is stretched
   logical :: stretched_dim(ndim)
   !> What kind of stretching is used per dimension
@@ -550,7 +551,6 @@ module mod_global_parameters
 
   character(len=std_len) :: typeaverage
   character(len=std_len) :: typedimsplit
-  character(len=std_len) :: typeaxial='default'
   character(len=std_len) :: typepoly
 
   integer                       :: nxdiffusehllc

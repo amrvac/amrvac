@@ -62,7 +62,7 @@ contains
 
        ! Advect w(iw)
        do iw=1,nwflux
-          if (slab) then
+          if (slab_uniform) then
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
                   (fLC(ixO^S, iw)-fRC(hxO^S, iw))
           else
@@ -246,7 +246,7 @@ contains
        hxO^L=ixO^L-kr(idims,^D);
 
        ! Multiply the fluxes by -dt/dx since Flux fixing expects this
-       if (slab) then
+       if (slab_uniform) then
           fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
           wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
                + (fC(ixO^S,1:nwflux,idims)-fC(hxO^S,1:nwflux,idims))
@@ -291,7 +291,7 @@ contains
       do iw=1,nwflux
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-         if (slab) then
+         if (slab_uniform) then
            fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
          else
            fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
@@ -315,7 +315,7 @@ contains
             fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
          end if
 
-         if (slab) then
+         if (slab_uniform) then
            fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
          else
            fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
@@ -357,7 +357,7 @@ contains
             endwhere
          endif
 
-         if (slab) then
+         if (slab_uniform) then
            fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
          else
            fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
@@ -416,7 +416,7 @@ contains
             endwhere
          end if
 
-         if (slab) then
+         if (slab_uniform) then
            fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
          else
            fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S,iw)
@@ -570,7 +570,7 @@ contains
         else where(cmaxC(ixC^S)<0.d0)
           fC(ixC^S,iw,ip1)=fRC(ixC^S,iw)
         end where
-        if(.not.slab) then
+        if(.not.slab_uniform) then
           fC(ixC^S,iw,ip1)=block%surfaceC(ixC^S,ip1)*fC(ixC^S,iw,ip1)
         end if
       end do

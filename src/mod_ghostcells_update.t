@@ -1290,7 +1290,7 @@ contains
 
         call prolong_2nd_stg(psc(igrid),ps(igrid),ixCo^L,ixFi^L,dxCo^D,xComin^D,dxFi^D,xFimin^D,.true.,fine_^Lin)
 
-        ! The current region has already been refined, so it doesn t need to be prolonged again
+        ! The current region has already been refined, so it doesn global_time need to be prolonged again
          NeedProlong(i^D)=.false. 
 
       end subroutine bc_prolong_stg
@@ -1298,6 +1298,7 @@ contains
       subroutine interpolation_linear(ixFi^L,dxFi^D,xFimin^D, &
                                       dxCo^D,invdxCo^D,xComin^D)
         use mod_physics, only: phys_to_conserved
+        use mod_geometry
         integer, intent(in) :: ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 
@@ -1333,11 +1334,9 @@ contains
            ! here we temporarily use an equidistant grid
            xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB \}
 
-           !if(.not.slab) then
-           !   ^D&local_invdxCo^D=1.d0/psc(igrid)%dx({ixCo^DD},^D)\
-           !endif
+           ! ^D&local_invdxCo^D=1.d0/psc(igrid)%dx({ixCo^DD},^D)\
 
-           if(slab) then
+           if(coordinate==Cartesian) then
              ! actual cell-centered coordinates of fine grid point
              !!^D&xFi^D=block%x({ixFi^DD},^D)\
              ! actual cell-centered coordinates of coarse grid point

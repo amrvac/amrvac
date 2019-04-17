@@ -97,7 +97,7 @@ subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
 
   if(coarsenprimitive) call phys_to_primitive(ixFiG^L,ixFi^L,wFi,sFi%x)
 
-  if(slab) then
+  if(slab_uniform) then
     CoFiratio=one/dble(2**ndim)
     do iw=1,nw
        {do ixCo^DB = ixCo^LIM^DB

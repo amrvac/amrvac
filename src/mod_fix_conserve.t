@@ -356,7 +356,7 @@ module mod_fix_conserve
      double precision :: CoFiratio
 
      nw1=nw0-1+nwfluxin
-     if (slab) then
+     if (slab_uniform) then
        ! The flux is divided by volume of fine cell. We need, however,
        ! to divide by volume of coarse cell => muliply by volume ratio
        CoFiratio=one/dble(2**ndim)
@@ -405,7 +405,7 @@ module mod_fix_conserve
              end select
 
              ! remove coarse flux
-             if (slab) then
+             if (slab_uniform) then
                psb(igrid)%w(ix^D%ixM^T,nw0:nw1) &
                     = psb(igrid)%w(ix^D%ixM^T,nw0:nw1) &
                     -pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwfluxin)
@@ -427,7 +427,7 @@ module mod_fix_conserve
                ixmax^D=ix^D%ixmax^DD=ixmin^DD-1+nxCo^DD;
                if (ipe_neighbor==mype) then
                  iotherside=3-iside
-                 if (slab) then
+                 if (slab_uniform) then
                    psb(igrid)%w(ix^S,nw0:nw1) &
                         = psb(igrid)%w(ix^S,nw0:nw1) &
                         + pflux(iotherside,^D,ineighbor)%flux(:^DD&,1:nwfluxin)&
@@ -440,7 +440,7 @@ module mod_fix_conserve
                    end do
                  end if
                else
-                 if (slab) then
+                 if (slab_uniform) then
                    ibufnext=ibuf+isize(^D)
                    if(stagger_grid) ibufnext=ibufnext-isize_stg(^D)
                    psb(igrid)%w(ix^S,nw0:nw1) &

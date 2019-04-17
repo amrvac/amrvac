@@ -76,7 +76,7 @@ contains
         allocate(particle(n)%self)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%t      = 0.0d0
+        particle(n)%self%time      = 0.0d0
         particle(n)%self%dt     = 0.0d0
         particle(n)%self%x = 0.d0
         particle(n)%self%x(:) = x(:,n)
@@ -149,7 +149,7 @@ contains
 
       igrid                   = particle(ipart)%igrid
       igrid_working           = igrid
-      tloc                    = particle(ipart)%self%t
+      tloc                    = particle(ipart)%self%time
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
       tlocnew                 = tloc+dt_p
 
@@ -178,7 +178,7 @@ contains
       particle(ipart)%self%u(1:ndir) = v(1:ndir)
 
       ! Time update
-      particle(ipart)%self%t = tlocnew
+      particle(ipart)%self%time = tlocnew
 
       ! Update payload
       if (.not. associated(usr_update_payload)) then
@@ -227,6 +227,7 @@ contains
 
   pure function advect_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
+    use mod_geometry
     type(particle_ptr), intent(in) :: partp
     double precision, intent(in)   :: end_time
     double precision               :: dt_p
@@ -243,11 +244,11 @@ contains
     v(1:ndir)=abs(partp%self%u(1:ndir))
 
     ! convert to angular velocity:
-    if(typeaxial =='cylindrical'.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
+    if(coordinate ==cylindrical.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
 
     dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
 
-    if(typeaxial =='cylindrical'.and.phi_>0) then
+    if(coordinate ==cylindrical.and.phi_>0) then
       ! phi-momentum leads to radial velocity:
       if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
            sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
@@ -261,7 +262,7 @@ contains
     dt_p = dt_cfl
 
     ! Make sure we don't advance beyond end_time
-    call limit_dt_endtime(end_time - partp%self%t, dt_p)
+    call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function advect_get_particle_dt
 

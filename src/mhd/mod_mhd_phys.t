@@ -196,56 +196,6 @@ contains
     double precision                   :: inv_volume(ixI^S)
 
     call mpistop("to do")
-    ! ! shifted indexes
-    ! hxO^L=ixO^L-kr(idim,^D);
-    ! ! all the indexes
-    ! kxCmin^D=hxOmin^D;
-    ! kxCmax^D=ixOmax^D;
-    !
-    ! inv_volume = 1.0d0/block%dvolume(ixO^S)
-    !
-    ! select case(typeaxial)
-    ! case ("cylindrical")
-    !   do iw=1,nwflux
-    !     if (idim==r_ .and. iw==iw_mom(phi_)) then
-    !       fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
-    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-    !            (inv_volume/x(ixO^S,r_))
-    !     else
-    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-    !             inv_volume
-    !     endif
-    !   enddo
-    ! case ("spherical")
-    !   do iw=1,nwflux
-    !     if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
-    !       fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
-    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-    !            (inv_volume/x(ixO^S,r_))
-    !     elseif (idim==2  .and. iw==iw_mom(phi_)) then
-    !       fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*dsin(x(kxC^S,2)+half*block%dx(kxC^S,2)) ! (x(4,3,1)-x(3,3,1)))
-    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-    !            (inv_volume/dsin(x(ixO^S,2)))
-    !     else
-    !       wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-    !             inv_volume
-    !     endif
-    !   enddo
-    !
-    !   ! if (idim==r_) then
-    !   !   fC(kxC^S,iw_mom(phi_),idim)= fC(kxC^S,iw_mom(phi_),idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
-    !   !   fC(kxC^S,iw_mom(phi_),idim)= fC(kxC^S,iw_mom(phi_),idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,r_))
-    !   !   wnew(ixO^S,iw_mom(phi_))=wnew(ixO^S,iw_mom(phi_)) + (fC(ixO^S,iw_mom(phi_),idim)-fC(hxO^S,iw_mom(phi_),idim)) * &
-    !   !        (inv_volume/x(ixO^S,r_))
-    !   !
-    !   ! elseif (idim==2) then
-    !   !   fC(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,iw,idim)=fC(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,iw,idim)*dsin(x(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,2)+half*block%dx(hxOmin1:hxOmax1,hxOmin2,hxOmin3:hxOmax3,2)) ! (x(4,3,1)-x(3,3,1)))
-    !   !   fC(ixO^S,iw,idim)=fC(ixO^S,iw,idim)*dsin(x(ixO^S,2)+half*block%dx(ixO^S,2)) ! (x(4,3,1)-x(3,3,1)))
-    !   !   wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-    !   !        (inv_volume/dsin(x(ixO^S,2)))
-    !   ! endif
-    !
-    ! end select
 
   end subroutine mhd_angmomfix
 
@@ -1121,6 +1071,8 @@ contains
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
         call add_source_glm2(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+      case (divb_ct)
+        ! Do nothing
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1156,6 +1108,8 @@ contains
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
         call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
+      case (divb_ct)
+        ! Do nothing
       case default
         call mpistop('Unknown divB fix')
       end select
@@ -1501,7 +1455,7 @@ contains
     else
       ! implicit update of Psi variable
       ! equation (27) in Mignone 2010 J. Com. Phys. 229, 2117
-      if(slab) then
+      if(slab_uniform) then
         w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(dxlevel(:)))*w(ixO^S,psi_)
       else
         w(ixO^S,psi_) = dexp(-qdt*cmax_global*mhd_glm_alpha/minval(block%ds(ixO^S,:),dim=ndim+1))*w(ixO^S,psi_)
@@ -1705,7 +1659,7 @@ contains
        end select
 
        ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
-       if (slab) then
+       if (slab_uniform) then
           graddivb(ixp^S)=graddivb(ixp^S)*divbdiff/(^D&1.0d0/dxlevel(^D)**2+)
        else
           graddivb(ixp^S)=graddivb(ixp^S)*divbdiff &
@@ -1758,7 +1712,7 @@ contains
     integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
-    if(slab) then
+    if(slab_uniform) then
       divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))/sum(1.d0/dxlevel(:))
     else
       ixAmin^D=ixOmin^D-1;
@@ -1827,7 +1781,7 @@ contains
        call usr_special_resistivity(w,ixI^L,ixO^L,idirmin,x,current,eta)
        dtnew=bigdouble
        do idim=1,ndim
-         if(slab) then
+         if(slab_uniform) then
            dtnew=min(dtnew,&
                 dtdiffpar/(smalldouble+maxval(eta(ixO^S)/dxarr(idim)**2)))
          else
@@ -1838,7 +1792,7 @@ contains
     end if
 
     if(mhd_eta_hyper>zero) then
-      if(slab) then
+      if(slab_uniform) then
         dtnew=min(dtdiffpar*minval(dxarr(1:ndim))**4/mhd_eta_hyper,dtnew)
       else
         dtnew=min(dtdiffpar*minval(block%ds(ixO^S,1:ndim))**4/mhd_eta_hyper,dtnew)
@@ -1862,6 +1816,7 @@ contains
   ! Add geometrical source terms to w
   subroutine mhd_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
@@ -1876,8 +1831,8 @@ contains
     mr_=mom(1); mphi_=mom(1)-1+phi_  ! Polar var. names
     br_=mag(1); bphi_=mag(1)-1+phi_
 
-    select case (typeaxial)
-    case ('cylindrical')
+    select case (coordinate)
+    case (cylindrical)
       if (angmomfix) then
         call mpistop("angmomfix not implemented yet in MHD")
       endif
@@ -1896,7 +1851,7 @@ contains
          w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*tmp(ixO^S)
        end if
        if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
-    case ('spherical')
+    case (spherical)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
        tmp(ixO^S)=tmp1(ixO^S)
@@ -2093,7 +2048,7 @@ contains
        bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%B0(ixO^S,1:ndir,block%iw0))**2))
     end if
 
-    if(slab) then
+    if(slab_uniform) then
       dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
     else
       dthall=dtdiffpar*minval(block%ds(ixO^S,1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
@@ -2187,7 +2142,7 @@ contains
        ixFmax1=ixOmax1+1
        ixFmin2=ixOmin2+1
        ixFmax2=ixOmax2-1
-       if(slab) then
+       if(slab_uniform) then
          dx1x2=dxlevel(1)/dxlevel(2)
          do ix1=ixFmax1,ixFmin1,-1
            w(ix1-1,ixFmin2:ixFmax2,mag(1))=w(ix1+1,ixFmin2:ixFmax2,mag(1)) &
@@ -2213,7 +2168,7 @@ contains
        ixFmax2=ixOmax2-1
        ixFmin3=ixOmin3+1
        ixFmax3=ixOmax3-1
-       if(slab) then
+       if(slab_uniform) then
          dx1x2=dxlevel(1)/dxlevel(2)
          dx1x3=dxlevel(1)/dxlevel(3)
          do ix1=ixFmax1,ixFmin1,-1
@@ -2255,7 +2210,7 @@ contains
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
        ixFmax2=ixOmax2-1
-       if(slab) then
+       if(slab_uniform) then
          dx1x2=dxlevel(1)/dxlevel(2)
          do ix1=ixFmin1,ixFmax1
            w(ix1+1,ixFmin2:ixFmax2,mag(1))=w(ix1-1,ixFmin2:ixFmax2,mag(1)) &
@@ -2281,7 +2236,7 @@ contains
        ixFmax2=ixOmax2-1
        ixFmin3=ixOmin3+1
        ixFmax3=ixOmax3-1
-       if(slab) then
+       if(slab_uniform) then
          dx1x2=dxlevel(1)/dxlevel(2)
          dx1x3=dxlevel(1)/dxlevel(3)
          do ix1=ixFmin1,ixFmax1
@@ -2323,7 +2278,7 @@ contains
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
        ixFmax2=ixOmax2+1
-       if(slab) then
+       if(slab_uniform) then
          dx2x1=dxlevel(2)/dxlevel(1)
          do ix2=ixFmax2,ixFmin2,-1
            w(ixFmin1:ixFmax1,ix2-1,mag(2))=w(ixFmin1:ixFmax1,ix2+1,mag(2)) &
@@ -2349,7 +2304,7 @@ contains
        ixFmax3=ixOmax3-1
        ixFmin2=ixOmin2+1
        ixFmax2=ixOmax2+1
-       if(slab) then
+       if(slab_uniform) then
          dx2x1=dxlevel(2)/dxlevel(1)
          dx2x3=dxlevel(2)/dxlevel(3)
          do ix2=ixFmax2,ixFmin2,-1
@@ -2391,7 +2346,7 @@ contains
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2-1
        ixFmax2=ixOmax2-1
-       if(slab) then
+       if(slab_uniform) then
          dx2x1=dxlevel(2)/dxlevel(1)
          do ix2=ixFmin2,ixFmax2
            w(ixFmin1:ixFmax1,ix2+1,mag(2))=w(ixFmin1:ixFmax1,ix2-1,mag(2)) &
@@ -2417,7 +2372,7 @@ contains
        ixFmax3=ixOmax3-1
        ixFmin2=ixOmin2-1
        ixFmax2=ixOmax2-1
-       if(slab) then
+       if(slab_uniform) then
          dx2x1=dxlevel(2)/dxlevel(1)
          dx2x3=dxlevel(2)/dxlevel(3)
          do ix2=ixFmin2,ixFmax2
@@ -2461,7 +2416,7 @@ contains
        ixFmax2=ixOmax2-1
        ixFmin3=ixOmin3+1
        ixFmax3=ixOmax3+1
-       if(slab) then
+       if(slab_uniform) then
          dx3x1=dxlevel(3)/dxlevel(1)
          dx3x2=dxlevel(3)/dxlevel(2)
          do ix3=ixFmax3,ixFmin3,-1
@@ -2503,7 +2458,7 @@ contains
        ixFmax2=ixOmax2-1
        ixFmin3=ixOmin3-1
        ixFmax3=ixOmax3-1
-       if(slab) then
+       if(slab_uniform) then
          dx3x1=dxlevel(3)/dxlevel(1)
          dx3x2=dxlevel(3)/dxlevel(2)
          do ix3=ixFmin3,ixFmax3
@@ -2558,17 +2513,13 @@ contains
         hxO^L=ixO^L-kr(idim,^D);
         ! Interpolate to cell barycentre using arithmetic average
         ! This might be done better later, to make the method less diffusive.
-        select case(idim)
-         {case(^D)
-            if(slab) then
-              s%w(ixO^S,mag(idim))=half*(s%ws(ixO^S,idim)+s%ws(hxO^S,idim))
-            else
-              s%w(ixO^S,mag(idim))=half*ps(igrid)%dx(ixO^S,idim)/ps(igrid)%dvolume(ixO^S)*&
-                (s%ws(ixO^S,idim)*ps(igrid)%surfaceC(ixO^S,^D)+&
-                 s%ws(hxO^S,idim)*ps(igrid)%surfaceC(hxO^S,^D))
-            end if
-         \}
-        end select
+        if(slab_uniform) then
+          s%w(ixO^S,mag(idim))=half*(s%ws(ixO^S,idim)+s%ws(hxO^S,idim))
+        else
+          s%w(ixO^S,mag(idim))=half*ps(igrid)%dx(ixO^S,idim)/ps(igrid)%dvolume(ixO^S)*&
+            (s%ws(ixO^S,idim)*ps(igrid)%surfaceC(ixO^S,idim)+&
+             s%ws(hxO^S,idim)*ps(igrid)%surfaceC(hxO^S,idim))
+        end if
      end do
 
    end subroutine mhd_face_to_center

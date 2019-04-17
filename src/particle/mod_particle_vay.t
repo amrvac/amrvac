@@ -42,11 +42,12 @@ contains
   !> Relativistic Boris scheme
   subroutine Vay_integrate_particles(end_time)
     use mod_global_parameters
+    use mod_geometry
     double precision, intent(in)      :: end_time
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
     double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
-    double precision, dimension(ndir) :: uhalf, tau, uprime, ustar, t
+    double precision, dimension(ndir) :: uhalf, tau, uprime, ustar, tl
     double precision                  :: lfacprime, sscal, sigma
     do iipart=1,nparticles_active_on_mype
       ipart = particles_active_on_mype(iipart);
@@ -64,15 +65,15 @@ contains
 
       ! Get E, B at new position
       call get_vec(bp, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%t,b)
+           particle(ipart)%self%x,particle(ipart)%self%time,b)
       call get_vec(ep, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%t,e)
+           particle(ipart)%self%x,particle(ipart)%self%time,e)
 
       ! 'Kick' particle (update velocity)
-      select case(typeaxial)
+      select case(coordinate)
 
         ! CARTESIAN COORDINATES
-      case('slab')
+      case(Cartesian,Cartesian_stretched)
         ! Vay mover
         call cross(particle(ipart)%self%u,b,tmp)
         uhalf(1:ndir) = particle(ipart)%self%u(1:ndir) + &
@@ -86,10 +87,10 @@ contains
         lfac = sqrt((sigma + sqrt(sigma**2 &
              + 4.d0 * (sum(tau(:)*tau(:)) + sum(ustar(:)*ustar(:))))) / 2.d0)
 
-        t(1:ndir) = tau(1:ndir) / lfac
-        sscal = 1.d0 / (1.d0 + sum(t(:)*t(:)))
-        call cross(uprime,t,tmp)
-        particle(ipart)%self%u(1:ndir) = sscal * (uprime(1:ndir) + sum(uprime(:)*t(:)) * t(1:ndir) + tmp(1:ndir))
+        tl(1:ndir) = tau(1:ndir) / lfac
+        sscal = 1.d0 / (1.d0 + sum(tl(:)*tl(:)))
+        call cross(uprime,tl,tmp)
+        particle(ipart)%self%u(1:ndir) = sscal * (uprime(1:ndir) + sum(uprime(:)*tl(:)) * tl(1:ndir) + tmp(1:ndir))
       case default
         call mpistop("This geometry is not supported in mod_particle_Vay")
       end select
@@ -102,13 +103,13 @@ contains
            * const_c / unit_length
 
       ! Time update
-      particle(ipart)%self%t = particle(ipart)%self%t + dt_p
+      particle(ipart)%self%time = particle(ipart)%self%time + dt_p
 
       ! Payload update
       if (npayload > 0) then
         ! current gyroradius
         call get_vec(bp, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%t,b)
+           particle(ipart)%self%x,particle(ipart)%self%time,b)
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
         particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
@@ -134,6 +135,7 @@ contains
 
   function Vay_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
+    use mod_geometry
     type(particle_ptr), intent(in)   :: partp
     double precision, intent(in)     :: end_time
     double precision                 :: dt_p
@@ -148,7 +150,7 @@ contains
       return
     end if
 
-    call get_vec(bp, partp%igrid,partp%self%x,partp%self%t,b)
+    call get_vec(bp, partp%igrid,partp%self%x,partp%self%time,b)
     absb = sqrt(sum(b(:)**2))
     call get_lfac(partp%self%u,lfac)
 
@@ -157,14 +159,14 @@ contains
     v(:) = abs(const_c * partp%self%u(:) / lfac)
 
     ! convert to angular velocity:
-    if(typeaxial =='cylindrical'.and.phi_>0) then
+    if(coordinate ==cylindrical.and.phi_>0) then
       v(phi_) = abs(v(phi_)/partp%self%x(r_))
     end if
 
     dt_cfl = min(bigdouble, &
          {rnode(rpdx^D_,partp%igrid)/max(v(^D), smalldouble)})
 
-    if(typeaxial =='cylindrical'.and.phi_>0) then
+    if(coordinate ==cylindrical.and.phi_>0) then
       ! phi-momentum leads to radial velocity:
       if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
            sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
@@ -184,7 +186,7 @@ contains
     dt_p = min(dt_p, dt_cfl)*unit_length
 
     ! Make sure we don't advance beyond end_time
-    call limit_dt_endtime(end_time - partp%self%t, dt_p)
+    call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function Vay_get_particle_dt
 

@@ -21,7 +21,7 @@ contains
     if (ndim /= mg_ndim) &
          error stop "Multigrid module was compiled for different ndim"
 
-    if (typeaxial /= "slab") &
+    if (.not.slab) &
          error stop "Multigrid only supports slab geometry"
 
     if (any([ block_nx^D ] /= block_nx1)) &

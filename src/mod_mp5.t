@@ -441,7 +441,7 @@ contains
 
   !> MP5 limiter from Suresh & Huynh 1997
   !> Following the convention of Mignone et al. 2010.
-  !> Needs at least three ghost cells.  Set dixB=3.
+  !> Needs at least three ghost cells.  Set nghostcells=3.
   subroutine MP5limitervar(ixI^L,iL^L,idims,w,wLC,wRC)
 
     use mod_global_parameters

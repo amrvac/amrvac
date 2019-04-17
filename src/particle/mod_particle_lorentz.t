@@ -83,7 +83,7 @@ contains
         particle(n)%self%m      = m(n)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%t      = 0.0d0
+        particle(n)%self%time      = 0.0d0
         particle(n)%self%dt     = 0.0d0
 
         ! initialise payloads for Lorentz module
@@ -97,6 +97,7 @@ contains
   !> Relativistic Boris scheme
   subroutine Lorentz_integrate_particles(end_time)
     use mod_global_parameters
+    use mod_geometry
     double precision, intent(in)      :: end_time
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
@@ -118,15 +119,15 @@ contains
 
       ! Get E, B at new position
       call get_vec(bp, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%t,b)
+           particle(ipart)%self%x,particle(ipart)%self%time,b)
       call get_vec(ep, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%t,e)
+           particle(ipart)%self%x,particle(ipart)%self%time,e)
 
       ! 'Kick' particle (update velocity)
-      select case(typeaxial)
+      select case(coordinate)
 
         ! CARTESIAN COORDINATES
-      case('slab')
+      case(Cartesian,Cartesian_stretched)
         ! Momentum update
         emom = q * e * dt_p /(2.0d0 * m * const_c)
         if(losses) then
@@ -166,7 +167,7 @@ contains
         ! Update the velocity
         particle(ipart)%self%u = uplus + emom + radmom
 
-      case ('cylindrical')
+      case (cylindrical)
 
         !  Momentum update
         emom = q * e * dt_p /(2.0d0 * m * const_c)
@@ -252,13 +253,13 @@ contains
            * const_c / unit_length
 
       ! Time update
-      particle(ipart)%self%t = particle(ipart)%self%t + dt_p
+      particle(ipart)%self%time = particle(ipart)%self%time + dt_p
 
       ! Payload update
       if (npayload > 0) then
         ! current gyroradius
         call get_vec(bp, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%t,b)
+           particle(ipart)%self%x,particle(ipart)%self%time,b)
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
         particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
@@ -282,22 +283,22 @@ contains
 
   contains
 
-    subroutine get_t(b,lfac,dt,q,m,t)
+    subroutine get_t(b,lfac,dt,q,m,time)
       implicit none
       double precision, dimension(ndir), intent(in)      :: b
       double precision, intent(in)                      :: lfac, dt, q, m
-      double precision, dimension(ndir), intent(out)     :: t
+      double precision, dimension(ndir), intent(out)     :: time
 
-      t = q * b * dt / (2.0d0 * lfac * m * const_c)
+      time = q * b * dt / (2.0d0 * lfac * m * const_c)
 
     end subroutine get_t
 
-    subroutine get_s(t,s)
+    subroutine get_s(time,s)
       implicit none
-      double precision, dimension(ndir), intent(in)   :: t
+      double precision, dimension(ndir), intent(in)   :: time
       double precision, dimension(ndir), intent(out)  :: s
 
-      s = 2.0d0 * t / (1.0d0+sum(t(:)**2))
+      s = 2.0d0 * time / (1.0d0+sum(time(:)**2))
 
     end subroutine get_s
 
@@ -305,6 +306,7 @@ contains
 
   function Lorentz_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
+    use mod_geometry
     type(particle_ptr), intent(in)   :: partp
     double precision, intent(in)     :: end_time
     double precision                 :: dt_p
@@ -319,7 +321,7 @@ contains
       return
     end if
 
-    call get_vec(bp, partp%igrid,partp%self%x,partp%self%t,b)
+    call get_vec(bp, partp%igrid,partp%self%x,partp%self%time,b)
     absb = sqrt(sum(b(:)**2))
     call get_lfac(partp%self%u,lfac)
 
@@ -328,14 +330,14 @@ contains
     v(:) = abs(const_c * partp%self%u(:) / lfac)
 
     ! convert to angular velocity:
-    if(typeaxial =='cylindrical'.and.phi_>0) then
+    if(coordinate ==cylindrical.and.phi_>0) then
       v(phi_) = abs(v(phi_)/partp%self%x(r_))
     end if
 
     dt_cfl = min(bigdouble, &
          {rnode(rpdx^D_,partp%igrid)/max(v(^D), smalldouble)})
 
-    if(typeaxial =='cylindrical'.and.phi_>0) then
+    if(coordinate ==cylindrical.and.phi_>0) then
       ! phi-momentum leads to radial velocity:
       if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
            sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
@@ -355,7 +357,7 @@ contains
     dt_p = min(dt_p, dt_cfl)*unit_length
 
     ! Make sure we don't advance beyond end_time
-    call limit_dt_endtime(end_time - partp%self%t, dt_p)
+    call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function Lorentz_get_particle_dt
 

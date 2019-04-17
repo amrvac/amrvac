@@ -272,7 +272,7 @@ contains
             -(fC(ixC^S,iwdim2,idim1)+fC(ixCp^S,iwdim2,idim1))&
             /dxlevel(idim2))
 
-            if (typeaxial/='slab') then
+            if (.not.slab) then
               where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
                 fE(ixC^S,idir)=zero
               end where
@@ -390,16 +390,16 @@ contains
    !   select case(idim1)
    ! { case(^D)
    !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       mygeo%mSurface^D %sqrtgamma(ixC^S)+&
-   !       mygeo%mSurface^D %sqrtgamma(ixCp^S))
+   !       block%mSurface^D %sqrtgamma(ixC^S)+&
+   !       block%mSurface^D %sqrtgamma(ixCp^S))
    ! \}
    !   end select
    !   
    !   select case(idim2)
    ! { case(^D)
    !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       mygeo%mSurface^D %sqrtgamma(ixC^S)+&
-   !       mygeo%mSurface^D %sqrtgamma(jxC^S))
+   !       block%mSurface^D %sqrtgamma(ixC^S)+&
+   !       block%mSurface^D %sqrtgamma(jxC^S))
    ! \}
    !   end select
 
@@ -446,7 +446,7 @@ contains
                    /(cp(ixC^S,2) + cm(ixC^S,2)) &
                    )
 
-      if (typeaxial/='slab') then
+      if (.not.slab) then
         where(abs(x(ixC^S,r_)+half*dxlevel(r_)).lt.1.0d-9)
           fE(ixC^S,idir)=zero
         end where
@@ -562,16 +562,16 @@ contains
   !    select case(idim1)
   !  { case(^D)
   !      sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-  !        mygeo%mSurface^D %sqrtgamma(ixC^S)+&
-  !        mygeo%mSurface^D %sqrtgamma(ixCp^S))
+  !        block%mSurface^D %sqrtgamma(ixC^S)+&
+  !        block%mSurface^D %sqrtgamma(ixCp^S))
   !  \}
   !    end select
   !    
   !    select case(idim2)
   !  { case(^D)
   !      sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-  !        mygeo%mSurface^D %sqrtgamma(ixC^S)+&
-  !        mygeo%mSurface^D %sqrtgamma(jxC^S))
+  !        block%mSurface^D %sqrtgamma(ixC^S)+&
+  !        block%mSurface^D %sqrtgamma(jxC^S))
   !  \}
   !    end select
 
@@ -619,7 +619,7 @@ contains
                    )
 
       
-      if (typeaxial/='slab') then
+      if (.not.slab) then
         where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
           fE(ixC^S,idir)=zero
         end where
@@ -808,16 +808,16 @@ contains
    !   select case(idim1)
    ! { case(^D)
    !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       mygeo%mSurface^D %sqrtgamma(ixC^S)+&
-   !       mygeo%mSurface^D %sqrtgamma(ixCp^S))
+   !       block%mSurface^D %sqrtgamma(ixC^S)+&
+   !       block%mSurface^D %sqrtgamma(ixCp^S))
    ! \}
    !   end select
       
    !   select case(idim2)
    ! { case(^D)
    !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       mygeo%mSurface^D %sqrtgamma(ixC^S)+&
-   !       mygeo%mSurface^D %sqrtgamma(jxC^S))
+   !       block%mSurface^D %sqrtgamma(ixC^S)+&
+   !       block%mSurface^D %sqrtgamma(jxC^S))
    ! \}
    !   end select
 
@@ -882,7 +882,7 @@ contains
        -(cp(ixC^S,2)*cm(ixC^S,2)*(btilR(ixC^S,idim1)-btilL(ixC^S,idim1)))/&
          (cp(ixC^S,2) + cm(ixC^S,2)))
 
-      if (typeaxial/='slab') then
+      if (.not.slab) then
         where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
           fE(ixC^S,idir)=zero
         end where

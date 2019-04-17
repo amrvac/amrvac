@@ -124,10 +124,10 @@ contains
         particle(n)%self%m      = m(n)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%t      = 0.0d0
+        particle(n)%self%time      = 0.0d0
         particle(n)%self%dt     = 0.0d0
 
-        call get_vec(bp, igrid_particle, x(:, n), particle(n)%self%t, B)
+        call get_vec(bp, igrid_particle, x(:, n), particle(n)%self%time, B)
 
         Bnorm = norm2(B(:))
         vnorm = norm2(v(:, n))
@@ -306,7 +306,7 @@ contains
 
       igrid_working           = particle(ipart)%igrid
       ipart_working           = particle(ipart)%self%index
-      tloc                    = particle(ipart)%self%t
+      tloc                    = particle(ipart)%self%time
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
 
       ! Adaptive stepwidth RK4:
@@ -320,7 +320,7 @@ contains
       ! timestep after euler integration
       ytmp=y
 
-      call derivs_gca(particle(ipart)%self%t,y,dydt)
+      call derivs_gca(particle(ipart)%self%time,y,dydt)
 
       ! make an Euler step with the proposed timestep:
       ! factor to ensure we capture all particles near the internal ghost cells.
@@ -500,7 +500,7 @@ contains
       end if
 
       ! Time update
-      particle(ipart)%self%t = particle(ipart)%self%t + dt_p
+      particle(ipart)%self%time = particle(ipart)%self%time + dt_p
 
     end do
 
@@ -646,7 +646,7 @@ contains
 
     igrid_working = partp%igrid
     ipart_working = partp%self%index
-    dt_tmp = (end_time - partp%self%t)
+    dt_tmp = (end_time - partp%self%time)
     if(dt_tmp .le. 0.0d0) dt_tmp = smalldouble
     ! make sure we step only one cell at a time, first check CFL at current location
     ! then we make an Euler step to the new location and check the new CFL
@@ -660,7 +660,7 @@ contains
     ytmp=y
     !y(ndir+3) = partp%self%u(3) ! Lorentz factor of guiding centre
 
-    call derivs_gca(partp%self%t,y,dydt)
+    call derivs_gca(partp%self%time,y,dydt)
     v0(1:ndir) = dydt(1:ndir)
     ap0        = dydt(ndir+1)
 
@@ -686,8 +686,8 @@ contains
       y(1:ndir+2) = ytmp(1:ndir+2)
     end if
 
-    call derivs_gca_rk(partp%self%t+dt_euler,y,dydt)
-    !call derivs_gca(partp%self%t+dt_euler,y,dydt)
+    call derivs_gca_rk(partp%self%time+dt_euler,y,dydt)
+    !call derivs_gca(partp%self%time+dt_euler,y,dydt)
 
     v1(1:ndir) = dydt(1:ndir)
     ap1        = dydt(ndir+1)
@@ -725,7 +725,7 @@ contains
     dt_p = dt_tmp
 
     ! Make sure we don't advance beyond end_time
-    call limit_dt_endtime(end_time - partp%self%t, dt_p)
+    call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function gca_get_particle_dt
 

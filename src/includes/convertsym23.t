@@ -97,13 +97,13 @@ do level=levmin,levmax
       !  extra layer around mesh only needed when storing corner values and averaging
       if(saveprim) then
        call primitive(ixGlo1,ixGlo2,ixGhi1,ixGhi2,&
-        ixGlo1,ixGlo2,ixGhi1,ixGhi2,pw(igrid)%w,px(igrid)%x)
+        ixGlo1,ixGlo2,ixGhi1,ixGhi2,ps(igrid)%w,ps(igrid)%x)
       endif
       ! using array w so that new output auxiliaries can be calculated by the user
       ! extend 2D data to 3D insuring variables are independent on the third coordinate
       {^IFTWOD
       do ix3=ixGlo1,ixGhi1
-       w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=pw(igrid)%w(ixGlo1:ixGhi1,&
+       w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=ps(igrid)%w(ixGlo1:ixGhi1,&
          ixGlo2:ixGhi2,1:nw)
       end do
       \}
@@ -340,12 +340,12 @@ do level=levmin,levmax
       !  extra layer around mesh only needed when storing corner values and averaging
       if(saveprim) then
        call primitive(ixGlo1,ixGlo2,ixGhi1,ixGhi2,&
-        ixGlo1,ixGlo2,ixGhi1,ixGhi2,pw(igrid)%w,px(igrid)%x)
+        ixGlo1,ixGlo2,ixGhi1,ixGhi2,ps(igrid)%w,ps(igrid)%x)
       endif
       ! using array w so that new output auxiliaries can be calculated by the user
       ! extend 2D data to 3D insuring variables are independent on the third coordinate
       do ix3=ixGlo1,ixGhi1
-       w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=pw(igrid)%w(ixGlo1:ixGhi1,&
+       w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=ps(igrid)%w(ixGlo1:ixGhi1,&
          ixGlo2:ixGhi2,1:nw)
       end do
       do i3grid=1,n3grid
@@ -841,12 +841,12 @@ do level=levmin,levmax
        !  extra layer around mesh only needed when storing corner values and averaging
        if(saveprim) then
         call primitive(ixGlo1,ixGlo2,ixGhi1,ixGhi2,&
-         ixGlo1,ixGlo2,ixGhi1,ixGhi2,pw(igrid)%w,px(igrid)%x)
+         ixGlo1,ixGlo2,ixGhi1,ixGhi2,ps(igrid)%w,ps(igrid)%x)
        endif
        ! using array w so that new output auxiliaries can be calculated by the user
        ! extend 2D data to 3D insuring variables are independent on the third coordinate
        do ix3=ixGlo1,ixGhi1
-        w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=pw(igrid)%w(ixGlo1:ixGhi1,&
+        w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=ps(igrid)%w(ixGlo1:ixGhi1,&
           ixGlo2:ixGhi2,1:nw)
        end do
        do i3grid=1,n3grid !subcycles
@@ -1262,12 +1262,12 @@ do level=levmin,levmax
        !  extra layer around mesh only needed when storing corner values and averaging
        if(saveprim) then
         call primitive(ixGlo1,ixGlo2,ixGhi1,ixGhi2,&
-         ixGlo1,ixGlo2,ixGhi1,ixGhi2,pw(igrid)%w,px(igrid)%x)
+         ixGlo1,ixGlo2,ixGhi1,ixGhi2,ps(igrid)%w,ps(igrid)%x)
        endif
        ! using array w so that new output auxiliaries can be calculated by the user
        ! extend 2D data to 3D insuring variables are independent on the third coordinate
        do ix3=ixGlo1,ixGhi1
-        w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=pw(igrid)%w(ixGlo1:ixGhi1,&
+        w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ix3,1:nw)=ps(igrid)%w(ixGlo1:ixGhi1,&
           ixGlo2:ixGhi2,1:nw)
        end do
        do i3grid=1,n3grid !subcycles
@@ -1617,7 +1617,6 @@ if(nwauxio>0)then
   ! auxiliary io variables can be computed and added by user
   ! next few lines ensure correct usage of routines like divvector etc
   dxlevel(1)=rnode(rpdx1_,igrid);dxlevel(2)=rnode(rpdx2_,igrid)
-  if (.not.slab) block => pgeo(igrid)
   if (B0field) then
     myB0_cell => pB0_cell(igrid)
     myB0      => pB0_cell(igrid)
@@ -1674,7 +1673,7 @@ endif
 }
 ! compute the corner values for w now by averaging
 !=================================================
-if(typeaxial=='slab')then
+if(slab_uniform)then
    ! for slab symmetry: no geometrical info required
    do iw=1,nw+nwauxio
       if (B0field.and.iw>b0_.and.iw<=b0_+ndir) then
@@ -2412,12 +2411,12 @@ call getheadernames(wnamei,xandwnamei,outfilehead)
 
 if (saveprim) then
  do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call primitive(ixG^LL,ixG^LL^LSUB1,pw(igrid)%w,px(igrid)%x)
+  call primitive(ixG^LL,ixG^LL^LSUB1,ps(igrid)%w,ps(igrid)%x)
  end do
 else
  if (nwaux>0) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
-   call getaux(.true.,pw(igrid)%w,ixG^LL,ixG^LL^LSUB1,"oneblocksym")
+   call getaux(.true.,ps(igrid)%w,ixG^LL,ixG^LL^LSUB1,"oneblocksym")
   end do
  end if
 end if
@@ -2478,17 +2477,11 @@ do ig3=1,ng3(level_io)}
          typelimiter=limiter(node(plevel_,igrid))
          typegradlimiter=gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         if (.not.slab) block => pgeo(igrid)
-         if (B0field) then
-           myB0_cell => pB0_cell(igrid)
-           myB0      => pB0_cell(igrid)
-           {^D&myB0_face^D => pB0_face^D(igrid)\}
-         end if
          ! default (no) normalization for auxiliary variables
          allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
-         pwio(igrid)%w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+         pwio(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
          if(nwauxio>=1)then
-            call specialvar_output(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x,normconv)
+            call specialvar_output(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,ps(igrid)%x,normconv)
          endif
          where(dabs(pwio(igrid)%w(ixG^T,1:nw+nwauxio))<smalldouble**2)
             pwio(igrid)%w(ixG^T,1:nw+nwauxio)=zero
@@ -2521,34 +2514,34 @@ do ig3=1,ng3(level_io)
                case("oneblocksym")
 {^IFONED
                  write(qunit,fmt="(100(e14.6))") &
-                  xprobmin1-px(igrid)%x(ix^D,1)*normconv(0),&
+                  xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0),&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
 }
 {^IFTWOD
                  write(qunit,fmt="(100(e14.6))") &
-                  xprobmin1-px(igrid)%x(ix^D,1)*normconv(0),&
-                  px(igrid)%x(ix^D,2)*normconv(0),&
+                  xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0),&
+                  ps(igrid)%x(ix^D,2)*normconv(0),&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
 }
 {^IFTHREED
                  write(qunit,fmt="(100(e14.6))") &
-                  xprobmin1-px(igrid)%x(ix^D,1)*normconv(0),&
-                  px(igrid)%x(ix^D,2)*normconv(0),px(igrid)%x(ix^D,3)*normconv(0),&
+                  xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0),&
+                  ps(igrid)%x(ix^D,2)*normconv(0),ps(igrid)%x(ix^D,3)*normconv(0),&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
 }
                case("oneblocksymB")
 {^IFONED
-                 write(qunit) real(xprobmin1-px(igrid)%x(ix^D,1)*normconv(0)),&
+                 write(qunit) real(xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0)),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
 }
 {^IFTWOD
-                 write(qunit) real(xprobmin1-px(igrid)%x(ix^D,1)*normconv(0)),&
-                  real(px(igrid)%x(ix^D,2)*normconv(0)),&
+                 write(qunit) real(xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0)),&
+                  real(ps(igrid)%x(ix^D,2)*normconv(0)),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
 }
 {^IFTHREED
-                 write(qunit) real(xprobmin1-px(igrid)%x(ix^D,1)*normconv(0)),&
-                  real(px(igrid)%x(ix^D,2)*normconv(0)),real(px(igrid)%x(ix^D,3)*normconv(0)),&
+                 write(qunit) real(xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0)),&
+                  real(ps(igrid)%x(ix^D,2)*normconv(0)),real(ps(igrid)%x(ix^D,3)*normconv(0)),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
 }
              end select
@@ -2568,10 +2561,10 @@ do ig3=1,ng3(level_io)
              select case(userconvert_type)
                case("oneblocksym")
                  write(qunit,fmt="(100(e14.6))") &
-                  px(igrid)%x(ix^D,1:ndim)*normconv(0),&
+                  ps(igrid)%x(ix^D,1:ndim)*normconv(0),&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblocksymB")
-                 write(qunit) real(px(igrid)%x(ix^D,1:ndim)*normconv(0)),&
+                 write(qunit) real(ps(igrid)%x(ix^D,1:ndim)*normconv(0)),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
            end if
@@ -2602,7 +2595,7 @@ close(qunit)
 if (saveprim) then
  patchw(ixG^T)=.false.
  do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call conserve(ixG^LL,ixG^LL^LSUB1,pw(igrid)%w,px(igrid)%x,patchw)
+  call conserve(ixG^LL,ixG^LL^LSUB1,ps(igrid)%w,ps(igrid)%x,patchw)
  end do
 endif
 
@@ -2696,12 +2689,12 @@ call getheadernames(wnamei,xandwnamei,outfilehead)
 
 if (saveprim) then
  do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call primitive(ixG^LL,ixG^LL^LSUB1,pw(igrid)%w,px(igrid)%x)
+  call primitive(ixG^LL,ixG^LL^LSUB1,ps(igrid)%w,ps(igrid)%x)
  end do
 else
  if (nwaux>0) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
-   call getaux(.true.,pw(igrid)%w,ixG^LL,ixG^LL^LSUB1,"oneblocksym")
+   call getaux(.true.,ps(igrid)%w,ixG^LL,ixG^LL^LSUB1,"oneblocksym")
   end do
  end if
 end if
@@ -2739,17 +2732,11 @@ do ig2=1,ng2(level_io)
       typelimiter=limiter(node(plevel_,igrid))
       typegradlimiter=gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      if (.not.slab) block => pgeo(igrid)
-      if (B0field) then
-        myB0_cell => pB0_cell(igrid)
-        myB0      => pB0_cell(igrid)
-        {^D&myB0_face^D => pB0_face^D(igrid)\}
-      end if
       ! default (no) normalization for auxiliary variables
       allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
-      pwio(igrid)%w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+      pwio(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
       if(nwauxio>=1)then
-         call specialvar_output(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,px(igrid)%x,normconv)
+         call specialvar_output(ixG^LL,ixG^LL^LSUB1,pwio(igrid)%w,ps(igrid)%x,normconv)
       endif
       where(dabs(pwio(igrid)%w(ixG^T,1:nw+nwauxio))<smalldouble**2)
          pwio(igrid)%w(ixG^T,1:nw+nwauxio)=zero
@@ -2776,14 +2763,14 @@ do ig3=1,nblock3
              select case(userconvert_type)
                case("oneblocksym23")
                  write(qunit,fmt="(100(e14.6))") &
-                  xprobmin1-px(igrid)%x(ix^D,1)*normconv(0),&
-                  px(igrid)%x(ix^D,2)*normconv(0),&
+                  xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0),&
+                  ps(igrid)%x(ix^D,2)*normconv(0),&
                   dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3,&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblocksym23B")
                  write(qunit) &
-                  real(xprobmin1-px(igrid)%x(ix^D,1)*normconv(0)),&
-                  real(px(igrid)%x(ix^D,2)*normconv(0)),&
+                  real(xprobmin1-ps(igrid)%x(ix^D,1)*normconv(0)),&
+                  real(ps(igrid)%x(ix^D,2)*normconv(0)),&
                   real(dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
@@ -2803,11 +2790,11 @@ do ig3=1,nblock3
              select case(userconvert_type)
                case("oneblocksym23")
                  write(qunit,fmt="(100(e14.6))") &
-                  px(igrid)%x(ix^D,1:2)*normconv(0),&
+                  ps(igrid)%x(ix^D,1:2)*normconv(0),&
                   dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3,&
                   (pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblocksym23B")
-                 write(qunit) real(px(igrid)%x(ix^D,1:2)*normconv(0)),&
+                 write(qunit) real(ps(igrid)%x(ix^D,1:2)*normconv(0)),&
                   real(dble(ig3-1)*lblock3+(dble(ix3-nghostcells)-0.5d0)*dx3),&
                   (real(pwio(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
@@ -2837,7 +2824,7 @@ close(qunit)
 if (saveprim) then
  patchw(ixG^T)=.false.
  do iigrid=1,igridstail; igrid=igrids(iigrid)
-  call conserve(ixG^LL,ixG^LL^LSUB1,pw(igrid)%w,px(igrid)%x,patchw)
+  call conserve(ixG^LL,ixG^LL^LSUB1,ps(igrid)%w,ps(igrid)%x,patchw)
  end do
 endif
 

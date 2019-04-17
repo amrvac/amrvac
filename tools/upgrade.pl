@@ -78,6 +78,11 @@ my %simple_replacements = (
     qr/INCLUDE:amrvacnul\/specialimpl.t/ => "",
     qr/INCLUDE:amrvacnul\/speciallog.t/ => "",
     qr/INCLUDE:amrvacnul\/specialsource.t/ => "",
+    qr/\btypeaxial\b/ => "coordinate",
+    qr/"spherical"/ => "spherical",
+    qr/'spherical'/ => "spherical",
+    qr/"cylindrical"/ => "cylindrical",
+    qr/'cylindrical'/ => "cylindrical",
     );
 
 # Replace words only used in par files (pattern => replacement)

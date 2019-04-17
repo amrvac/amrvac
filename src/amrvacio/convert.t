@@ -402,7 +402,7 @@ if(nw/=count(w_write(1:nw)))then
 end if
 
 if(nocartesian)then
- if(mype==0) PRINT *,'tecplot with nocartesian and typeaxial=',typeaxial
+ if(mype==0) PRINT *,'tecplot with nocartesian'
 endif
 
 inquire(qunit,opened=fileopen)
@@ -2030,7 +2030,7 @@ if(nw/=count(w_write(1:nw)))then
 end if
 
 if(nocartesian)then
- if(mype==0) PRINT *,'tecplot_mpi with nocartesian and typeaxial=',typeaxial
+ if(mype==0) PRINT *,'tecplot_mpi with nocartesian'
 endif
 
 Master_cpu_open : if (mype == 0) then

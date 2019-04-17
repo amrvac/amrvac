@@ -523,7 +523,7 @@ contains
   !> process_advanced is user entry in time loop, just after advance
   !>           allows to modify solution, add extra variables, etc.
   !>           added for handling two-way coupled PIC-MHD
-  !> Warning: w is now at t^(n+1), global time and iteration at t^n, it^n
+  !> Warning: w is now at global_time^(n+1), global time and iteration at global_time^n, it^n
   subroutine process_advanced(iit,qt)
     use mod_usr_methods, only: usr_process_adv_grid, &
                                usr_process_adv_global

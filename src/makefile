@@ -32,6 +32,7 @@ amr_coarsen_refine.o: mod_ghostcells_update.mod
 amrgrid.o: mod_advance.mod
 amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
+amr_neighbors.o: mod_geometry.mod
 amr_solution_node.o: mod_geometry.mod
 boundary_conditions.o: mod_bc_data.mod
 coarsen.o: mod_constrained_transport.mod
@@ -52,6 +53,7 @@ mod_amrvac.o: mod_geometry.mod
 mod_amr_fct.o: mod_constrained_transport.mod
 mod_amr_fct.o: mod_forest.mod
 mod_bc_data.o: mod_lookup_table.mod
+mod_calculate_xw.o: mod_geometry.mod
 mod_calculate_xw.o: mod_limiter.mod
 mod_calculate_xw.o: mod_physics.mod
 mod_collapse.o: mod_calculate_xw.mod
@@ -60,6 +62,7 @@ mod_collapse.o: mod_slice.mod
 mod_constrained_transport.o: mod_fix_conserve.mod
 mod_constrained_transport.o: mod_limiter.mod
 mod_constrained_transport.o: mod_usr_methods.mod
+mod_dust.o: mod_geometry.mod
 mod_dust.o: mod_physics.mod
 mod_finite_difference.o: mod_finite_volume.mod
 mod_finite_difference.o: mod_limiter.mod
@@ -75,6 +78,7 @@ mod_finite_volume.o: mod_tvd.mod
 mod_geometry.o: mod_limiter.mod
 mod_geometry.o: mod_ppm.mod
 mod_ghostcells_update.o: mod_amr_fct.mod
+mod_ghostcells_update.o: mod_geometry.mod
 mod_ghostcells_update.o: mod_physics.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
@@ -84,6 +88,7 @@ mod_hd.o: mod_hd_phys.mod
 mod_hd.o: mod_hd_ppm.mod
 mod_hd.o: mod_hd_roe.mod
 mod_hd_phys.o: mod_dust.mod
+mod_hd_phys.o: mod_geometry.mod
 mod_hd_phys.o: mod_gravity.mod
 mod_hd_phys.o: mod_particles.mod
 mod_hd_phys.o: mod_physics.mod
@@ -105,6 +110,7 @@ mod_initialize.o: mod_ghostcells_update.mod
 mod_initialize.o: mod_input_output.mod
 mod_initialize.o: mod_physics.mod
 mod_input_output.o: mod_collapse.mod
+mod_input_output.o: mod_geometry.mod
 mod_input_output.o: mod_kracken.mod
 mod_input_output.o: mod_limiter.mod
 mod_input_output.o: mod_particles.mod
@@ -150,6 +156,7 @@ mod_nonlinear_phys.o: mod_kdv.mod
 mod_nonlinear_phys.o: mod_physics.mod
 mod_nonlinear_roe.o: mod_nonlinear_phys.mod
 mod_nonlinear_roe.o: mod_physics_roe.mod
+mod_particle_advect.o: mod_geometry.mod
 mod_particle_advect.o: mod_odeint.mod
 mod_particle_advect.o: mod_particle_base.mod
 mod_particle_base.o: mod_geometry.mod
@@ -160,8 +167,10 @@ mod_particle_base.o: mod_timing.mod
 mod_particle_gca.o: mod_geometry.mod
 mod_particle_gca.o: mod_odeint.mod
 mod_particle_gca.o: mod_particle_base.mod
+mod_particle_hc.o: mod_geometry.mod
 mod_particle_hc.o: mod_particle_base.mod
 mod_particle_lfimp.o: mod_particle_base.mod
+mod_particle_lorentz.o: mod_geometry.mod
 mod_particle_lorentz.o: mod_particle_base.mod
 mod_particles.o: mod_particle_advect.mod
 mod_particles.o: mod_particle_base.mod
@@ -171,6 +180,7 @@ mod_particles.o: mod_particle_lfimp.mod
 mod_particles.o: mod_particle_lorentz.mod
 mod_particles.o: mod_particle_vay.mod
 mod_particles.o: mod_timing.mod
+mod_particle_vay.o: mod_geometry.mod
 mod_particle_vay.o: mod_particle_base.mod
 mod_physics.o: mod_physics_hllc.mod
 mod_physics.o: mod_physics_ppm.mod
@@ -180,6 +190,7 @@ mod_radiative_cooling.o: mod_physics.mod
 mod_rho.o: mod_amrvac.mod
 mod_rho.o: mod_rho_phys.mod
 mod_rho.o: mod_rho_roe.mod
+mod_rho_phys.o: mod_geometry.mod
 mod_rho_phys.o: mod_physics.mod
 mod_rho_roe.o: mod_physics_roe.mod
 mod_rho_roe.o: mod_rho_phys.mod

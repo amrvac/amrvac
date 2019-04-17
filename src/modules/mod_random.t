@@ -78,23 +78,23 @@ contains
   subroutine jump(self)
     class(rng_t), intent(inout) :: self
     integer                     :: i, b
-    integer(i8)                 :: t(2), dummy
+    integer(i8)                 :: global_time(2), dummy
 
     ! The signed equivalent of the unsigned constants
     integer(i8), parameter      :: jmp_c(2) = &
          (/-4707382666127344949_i8, -2852180941702784734_i8/)
 
-    t = 0
+    global_time = 0
     do i = 1, 2
        do b = 0, 63
           if (iand(jmp_c(i), shiftl(1_i8, b)) /= 0) then
-             t = ieor(t, self%s)
+             global_time = ieor(global_time, self%s)
           end if
           dummy = self%next()
        end do
     end do
 
-    self%s = t
+    self%s = global_time
   end subroutine jump
 
   !> Return 4-byte integer
@@ -218,13 +218,13 @@ contains
   function next(self) result(res)
     class(rng_t), intent(inout) :: self
     integer(i8)                 :: res
-    integer(i8)                 :: t(2)
+    integer(i8)                 :: global_time(2)
 
-    t         = self%s
-    res       = t(1) + t(2)
-    t(2)      = ieor(t(1), t(2))
-    self%s(1) = ieor(ieor(rotl(t(1), 55), t(2)), shiftl(t(2), 14))
-    self%s(2) = rotl(t(2), 36)
+    global_time         = self%s
+    res       = global_time(1) + global_time(2)
+    global_time(2)      = ieor(global_time(1), global_time(2))
+    self%s(1) = ieor(ieor(rotl(global_time(1), 55), global_time(2)), shiftl(global_time(2), 14))
+    self%s(2) = rotl(global_time(2), 36)
   end function next
 
   !> Helper function for next()

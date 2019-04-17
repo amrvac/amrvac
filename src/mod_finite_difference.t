@@ -64,7 +64,7 @@ contains
        call reconstructR(ixI^L,ix^L,idims,fm,fmR)
 
        do iw=1,nwflux
-          if (slab) then
+          if (slab_uniform) then
              fC(ix^S,iw,idims) = dxinv(idims) * (fpL(ix^S,iw) + fmR(ix^S,iw))
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
                   (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
@@ -210,7 +210,7 @@ contains
        do iw=1,nwflux
           ! Center flux to interface
           fC(ixC^S,iw,idims)=half*(f(ixC^S, iw)+f(jxC^S, iw))
-          if (slab) then
+          if (slab_uniform) then
              fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
@@ -312,7 +312,7 @@ contains
           fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-half*vLC(ixC^S) &
                *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
 
-          if (slab) then
+          if (slab_uniform) then
              fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
              ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)-f_(i-1))+f_(i-2)]/12
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))

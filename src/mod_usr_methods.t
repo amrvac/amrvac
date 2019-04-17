@@ -28,7 +28,7 @@ module mod_usr_methods
   procedure(process_grid), pointer    :: usr_process_grid     => null()
   procedure(process_global), pointer  :: usr_process_global   => null()
 
-  ! Called every time step just after advance (with w^(n+1), it^n, t^n)
+  ! Called every time step just after advance (with w^(n+1), it^n, global_time^n)
   procedure(process_adv_grid), pointer   :: usr_process_adv_grid   => null()
   procedure(process_adv_global), pointer :: usr_process_adv_global => null()
 

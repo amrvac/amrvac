@@ -723,10 +723,8 @@ integer          :: iray,ipoint
  call primitive_rays
  
  do iray=minrayp(mype),maxrayp(mype)
-    select case( typeaxial )
-!    case( 'slab' )
-!      rray(1:npoints) = dsqrt({^D&(xraypoint(iray,1:npoints,^D)**2)+})
-    case( 'spherical' )
+    select case( coordinate )
+    case( spherical )
       select case( TRIM(raysource) )
       case( 'x1dir' )
           rray(1:npoints) = dabs(xraypoint(iray,1:npoints,1))

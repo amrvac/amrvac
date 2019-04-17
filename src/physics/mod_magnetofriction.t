@@ -235,18 +235,11 @@ contains
         volumepe=0.d0
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           block=>ps(igrid)
-          if(slab) then
-            dvone={rnode(rpdx^D_,igrid)|*}
-            dvolume(ixM^T)=dvone
-            dsurface(ixM^T)=two*(^D&dvone/rnode(rpdx^D_,igrid)+)
-          else
-            dvolume(ixM^T)=block%dvolume(ixM^T)
-            dsurface(ixM^T)= sum(block%surfaceC(ixM^T,:),dim=ndim+1)
-            do idims=1,ndim
-              hxM^LL=ixM^LL-kr(idims,^D);
-              dsurface(ixM^T)=dsurface(ixM^T)+block%surfaceC(hxM^T,idims)
-            end do
-          end if
+          dvolume(ixM^T)=block%dvolume(ixM^T)
+          do idims=1,ndim
+            hxM^LL=ixM^LL-kr(idims,^D);
+            dsurface(ixM^T)=dsurface(ixM^T)+block%surfaceC(hxM^T,idims)
+          end do
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           call mask_inner(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
           sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
@@ -288,7 +281,7 @@ contains
 
         {xOmin^D = xprobmin^D + 0.05d0*(xprobmax^D-xprobmin^D)\}
         {xOmax^D = xprobmax^D - 0.05d0*(xprobmax^D-xprobmin^D)\}
-        if(slab .or. slab_stretched) then
+        if(slab) then
           xOmin^ND = xprobmin^ND
         else
           xOmin1 = xprobmin1
@@ -494,7 +487,7 @@ contains
       tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)         ! |B|**2
     endif
 
-    if(slab) then
+    if(slab_uniform) then
       dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
       do idir=1,ndir
         w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))/tmp(ixO^S)
@@ -521,7 +514,7 @@ contains
     integer :: ix^D, idir
     logical :: buffer
 
-    if(slab) then
+    if(slab_uniform) then
       dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
       dxhm=mf_cc*mf_cy/qvmax*dxhm/qdt
       ! dxhm=mf_cc*mf_cy/qvmax
@@ -547,7 +540,7 @@ contains
        disbd(5)=x(ix^D,3)-xprobmin1
        disbd(6)=xprobmax3-x(ix^D,3)
 
-       if(typeaxial=='slab'.or.typeaxial=='slabstretch') then
+       if(slab) then
          if(disbd(1)<bfzone1) then
            w(ix^D,mom(:))=(1.d0-((bfzone1-disbd(1))/bfzone1)**2)*w(ix^D,mom(:))
          endif
@@ -863,7 +856,7 @@ contains
           if (idir==idims) then
             fLC(ixC^S)=fLC(ixC^S)-mf_tvdlfeps*tvdlfeps*cmaxC(ixC^S)*half*(wRC(ixC^S,mag(idir))-wLC(ixC^S,mag(idir)))
           end if
-          if (slab) then
+          if (slab_uniform) then
             fC(ixC^S,idir,idims)=fLC(ixC^S)
           else
             fC(ixC^S,idir,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S)
@@ -876,7 +869,7 @@ contains
     do idims= idim^LIM
        hxO^L=ixO^L-kr(idims,^D);
        ! Multiply the fluxes by -dt/dx since Flux fixing expects this
-       if (slab) then
+       if (slab_uniform) then
           fC(ixI^S,:,idims)=dxinv(idims)*fC(ixI^S,:,idims)
           wnew(ixO^S,mag(:))=wnew(ixO^S,mag(:)) &
                + (fC(ixO^S,:,idims)-fC(hxO^S,:,idims))
@@ -941,7 +934,7 @@ contains
           call getfluxmf(wRC,x,ixI^L,hxO^L,idir,idims,fRC)
           call getfluxmf(wLC,x,ixI^L,ixO^L,idir,idims,fLC)
 
-          if (slab) then
+          if (slab_uniform) then
              wnew(ixO^S,mag(idir))=wnew(ixO^S,mag(idir))+dxinv(idims)* &
                               (fLC(ixO^S)-fRC(hxO^S))
           else
@@ -995,7 +988,7 @@ contains
        call reconstructRmf(ixI^L,ix^L,idims,fm,fmR)
 
        do idir=1,ndir
-          if (slab) then
+          if (slab_uniform) then
              fC(ix^S,idir,idims) = dxinv(idims) * (fpL(ix^S,mag(idir)) + fmR(ix^S,mag(idir)))
              wnew(ixO^S,mag(idir))=wnew(ixO^S,mag(idir))+ &
                   (fC(ixO^S,idir,idims)-fC(hxO^S,idir,idims))
@@ -1154,7 +1147,7 @@ contains
           fC(ixC^S,idir,idims)=fC(ixC^S,idir,idims)-mf_tvdlfeps*tvdlfeps*half*vLC(ixC^S) &
                                          *(wRC(ixC^S,mag(idir))-wLC(ixC^S,mag(idir)))
 
-          if (slab) then
+          if (slab_uniform) then
              fC(ixC^S,idir,idims)=dxinv(idims)*fC(ixC^S,idir,idims)
              ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)+f_(i-1))-f_(i-2)]/12
              w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+(fC(ixO^S,idir,idims)-fC(hxO^S,idir,idims))
@@ -1190,7 +1183,7 @@ contains
     do idims=1,ndim
        call getcmaxfff(w,ixI^L,ixO^L,idims,cmax)
        cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
-       if (.not.slab) then
+       if (.not.slab_uniform) then
           tmp(ixO^S)=cmax(ixO^S)/block%dx(ixO^S,idims)
           courantmax=max(courantmax,maxval(tmp(ixO^S)))
        else
@@ -1244,7 +1237,7 @@ contains
        call gradient(divb,ixI^L,ixp^L,idims,graddivb)
 
        ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
-       if (slab) then
+       if (slab_uniform) then
           graddivb(ixp^S)=graddivb(ixp^S)*mf_cdivb/(^D&1.0d0/dxlevel(^D)**2+)
        else
           graddivb(ixp^S)=graddivb(ixp^S)*mf_cdivb &
@@ -1264,6 +1257,7 @@ contains
   subroutine addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add geometrical source terms to w
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
@@ -1277,15 +1271,15 @@ contains
     mr_=mom(1); mphi_=mom(1)-1+phi_  ! Polar var. names
     br_=mag(1); bphi_=mag(1)-1+phi_
 
-    select case (typeaxial)
-    case ('cylindrical')
+    select case (coordinate)
+    case (cylindrical)
       if(phi_>0) then
         ! s[Bphi]=(Bphi*vr-Br*vphi)/radius
         tmp(ixO^S)=(wCT(ixO^S,bphi_)*wCT(ixO^S,mom(1)) &
                    -wCT(ixO^S,br_)*wCT(ixO^S,mom(3)))
         w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt*tmp(ixO^S)/x(ixO^S,1)
       end if
-    case ('spherical')
+    case (spherical)
     {^NOONED
       ! s[b2]=(vr*Btheta-vtheta*Br)/r
       !       + cot(theta)*psi/r

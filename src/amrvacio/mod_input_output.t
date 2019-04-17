@@ -103,6 +103,7 @@ contains
     use mod_small_values
     use mod_limiter
     use mod_slice
+    use mod_geometry
 
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
@@ -643,8 +644,8 @@ contains
     if(typedimsplit   =='default'.and..not.dimsplit)   typedimsplit='unsplit'
     dimsplit   = typedimsplit   /='unsplit'
 
-    if(typeaxial=='default') then
-      typeaxial='slab'
+    if(coordinate==-1) then
+      coordinate=Cartesian
       if(mype==0) then
         write(*,*) 'Warning: coordinate system is not specified!'
         write(*,*) 'call set_coordinate_system in usr_init in mod_usr.t'
@@ -652,19 +653,19 @@ contains
       end if
     end if
 
-    if(typeaxial=="slab") then
+    if(coordinate==Cartesian) then
+      slab=.true.
+      slab_uniform=.true.
       if(any(stretched_dim)) then
-        typeaxial="slabstretch"
-        slab=.false.
-        slab_stretched=.true.
-      else
-        slab=.true.
+        coordinate=Cartesian_stretched
+        slab_uniform=.false.
       end if
     else
       slab=.false.
+      slab_uniform=.false.
     end if
 
-    if(typeaxial=='spherical') then
+    if(coordinate==spherical) then
       if(dimsplit) then
         if(mype==0)print *,'Warning: spherical symmetry needs dimsplit=F, resetting'
         dimsplit=.false.
@@ -744,11 +745,11 @@ contains
         end if
         typeboundary(:,2*idim-1)='symm'
         if(physics_type/='rho') then
-        select case(typeaxial)
-        case('cylindrical')
+        select case(coordinate)
+        case(cylindrical)
           typeboundary(phi_+1,2*idim-1)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim-1)='asymm'
-        case('spherical')
+        case(spherical)
           typeboundary(3:ndir+1,2*idim-1)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)='asymm'
         case default
@@ -765,11 +766,11 @@ contains
         end if
         typeboundary(:,2*idim)='symm'
         if(physics_type/='rho') then
-        select case(typeaxial)
-        case('cylindrical')
+        select case(coordinate)
+        case(cylindrical)
           typeboundary(phi_+1,2*idim)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim)='asymm'
-        case('spherical')
+        case(spherical)
           typeboundary(3:ndir+1,2*idim)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)='asymm'
         case default
@@ -791,12 +792,12 @@ contains
     ! If a wider stencil is used, extend the number of ghost cells
     nghostcells = nghostcells + phys_wider_stencil
 
-    select case (typeaxial)
+    select case (coordinate)
        {^NOONED
-    case ("spherical")
+    case (spherical)
        xprob^LIM^DE=xprob^LIM^DE*two*dpi;
        \}
-    case ("cylindrical")
+    case (cylindrical)
        {
        if (^D==phi_) then
           xprob^LIM^D=xprob^LIM^D*two*dpi;
@@ -2104,7 +2105,6 @@ contains
     double precision, intent(out) :: volume    !< The total grid volume
     integer                       :: iigrid, igrid, iw
     double precision              :: wsum(nw+1)
-    double precision              :: dvolume(ixG^T)
     double precision              :: dsum_recv(1:nw+1)
 
     wsum(:) = 0
@@ -2113,20 +2113,13 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
 
-       ! Determine the volume of the grid cells
-       if (slab) then
-          dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
-       else
-          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
-       end if
-
        ! Store total volume in last element
-       wsum(nw+1) = wsum(nw+1) + sum(dvolume(ixM^T))
+       wsum(nw+1) = wsum(nw+1) + sum(ps(igrid)%dvolume(ixM^T))
 
        ! Compute the modes of the cell-centered variables, weighted by volume
        do iw = 1, nw
           wsum(iw) = wsum(iw) + &
-               sum(dvolume(ixM^T)*ps(igrid)%w(ixM^T,iw)**power)
+               sum(ps(igrid)%dvolume(ixM^T)*ps(igrid)%w(ixM^T,iw)**power)
        end do
     end do
 
@@ -2182,7 +2175,6 @@ contains
     double precision, intent(out) :: volume    !< The total grid volume
     integer                       :: iigrid, igrid, i^D
     double precision              :: wsum(2)
-    double precision              :: dvolume(ixG^T)
     double precision              :: dsum_recv(2)
 
     wsum(:) = 0
@@ -2191,19 +2183,12 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
 
-       ! Determine the volume of the grid cells
-       if (slab) then
-          dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
-       else
-          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
-       end if
-
        ! Store total volume in last element
-       wsum(2) = wsum(2) + sum(dvolume(ixM^T))
+       wsum(2) = wsum(2) + sum(ps(igrid)%dvolume(ixM^T))
 
        ! Compute the modes of the cell-centered variables, weighted by volume
        {do i^D = ixMlo^D, ixMhi^D\}
-       wsum(1) = wsum(1) + dvolume(i^D) * &
+       wsum(1) = wsum(1) + ps(igrid)%dvolume(i^D) * &
             func(ps(igrid)%w(i^D, :), nw)
        {end do\}
     end do

@@ -83,7 +83,7 @@ contains
         particle(n)%self%m      = m(n)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%t      = 0.0d0
+        particle(n)%self%time      = 0.0d0
         particle(n)%self%dt     = 0.0d0
 
         ! initialise payloads for lfimp module
@@ -102,7 +102,7 @@ contains
     double precision                  :: lfac, q, m, dt_p
     double precision, dimension(ndir) :: b, e, vbar, pnp, pkp, xbar, dpkp, tmp
     double precision, dimension(ndir) :: dxb, dyb, dzb, dxe, dye, dze, C1, C2, Fk
-    double precision                  :: abserrx, abserry, abserrz, tol, J11, J12, J13, J21, J22, J23, J31, J32, J33, Det, lfack
+    double precision                  :: abserrx, abserry, abserrz, tolera, J11, J12, J13, J21, J22, J23, J31, J32, J33, Det, lfack
     double precision                  :: iJ11, iJ12, iJ13, iJ21, iJ22, iJ23, iJ31, iJ32, iJ33
 
     do iipart=1,nparticles_active_on_mype
@@ -121,10 +121,10 @@ contains
       abserrx=1.
       abserrz=1.
       abserry=1.
-      tol=1.d-14
+      tolera=1.d-14
 
       nk=0
-      do while((abserrx>tol .or. abserry>tol .or. abserrz>tol) .and. nk <10)
+      do while((abserrx>tolera .or. abserry>tolera .or. abserrz>tolera) .and. nk <10)
 
       ! START OF THE NONLINEAR CYCLE
       ! Push particle over half time step
@@ -139,9 +139,9 @@ contains
 
       ! Get E, B at new position
       call get_vec(bp, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,b)
+           xbar,particle(ipart)%self%time,b)
       call get_vec(ep, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,e)
+           xbar,particle(ipart)%self%time,e)
 
       ! Compute residual vector
       Fk(1) = pkp(1) - pnp(1) - q * dt_p /(m * const_c) * (e(1) + vbar(2) * b(3) - vbar(3) * b(2))
@@ -150,17 +150,17 @@ contains
 
       ! Get specially derived E, B at new position
       call get_dervec(ep, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,dxe,1)
+           xbar,particle(ipart)%self%time,dxe,1)
       call get_dervec(ep, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,dye,2)
+           xbar,particle(ipart)%self%time,dye,2)
       call get_dervec(ep, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,dze,3)
+           xbar,particle(ipart)%self%time,dze,3)
       call get_dervec(bp, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,dxb,1)
+           xbar,particle(ipart)%self%time,dxb,1)
       call get_dervec(bp, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,dyb,2)
+           xbar,particle(ipart)%self%time,dyb,2)
       call get_dervec(bp, particle(ipart)%igrid, &
-           xbar,particle(ipart)%self%t,dzb,3)
+           xbar,particle(ipart)%self%time,dzb,3)
 
       ! Compute auxiliary coefficients
       C1(1:ndim) = (lfack + lfac - pkp(1:ndim) / lfack * (pkp(1:ndim) + pnp(1:ndim))) / (lfack + lfac)**2
@@ -266,14 +266,14 @@ contains
       call get_lfac(particle(ipart)%self%u,lfac)
 
       ! Time update
-      particle(ipart)%self%t = particle(ipart)%self%t + dt_p
-      !write(*,*) particle(ipart)%self%t
+      particle(ipart)%self%time = particle(ipart)%self%time + dt_p
+      !write(*,*) particle(ipart)%self%time
 
       ! Payload update
       if (npayload > 0) then
         ! current gyroradius
         call get_vec(bp, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%t,b)
+           particle(ipart)%self%x,particle(ipart)%self%time,b)
         call cross(particle(ipart)%self%u,b,tmp)
         tmp = tmp / sqrt(sum(b(:)**2))
         particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
@@ -316,7 +316,7 @@ contains
     end if
 
     ! Make sure we don't advance beyond end_time
-    call limit_dt_endtime(end_time - partp%self%t, dt_p)
+    call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function lfimp_get_particle_dt
 

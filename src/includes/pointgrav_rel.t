@@ -134,8 +134,8 @@ double precision, allocatable :: rst(:^D&), rct(:^D&)
 allocate(r2(ixO^S))
 
 
-select case (typeaxial)
-case('slab')
+select case (coordinate)
+case(Cartesian,Cartesian_stretched)
 {^IFONED   
    r2(ixO^S) = (x(ixO^S,1)-x1ptms)**2
 }      
@@ -161,7 +161,7 @@ case('slab')
                 / (r2(ixO^S) * sqrt(r2(ixO^S)) + smalldouble)
 }		 
 
-case('cylindrical')
+case(cylindrical)
 {^IFONED   
    r2(ixO^S)    = (x(ixO^S,r_)-x1ptms)**2   
    r2i(ixO^S,1) = one / (r2(ixO^S) + smalldouble)
@@ -202,7 +202,7 @@ case('cylindrical')
 }
 
 
-case('spherical')
+case(spherical)
    rstptms = x1ptms * sin(x2ptms)
    rctptms = x1ptms * cos(x2ptms)
    

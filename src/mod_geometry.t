@@ -3,6 +3,12 @@ module mod_geometry
   implicit none
   public
 
+  integer :: coordinate=-1
+  integer, parameter :: Cartesian          = 0
+  integer, parameter :: Cartesian_stretched= 1
+  integer, parameter :: cylindrical        = 2
+  integer, parameter :: spherical          = 3
+
 contains
 
   !> Set the coordinate system to be used
@@ -13,57 +19,57 @@ contains
     select case (geom)
     case ("Cartesian","Cartesian_1D","Cartesian_2D","Cartesian_3D")
       ndir = ndim
-      typeaxial='slab'
+      coordinate=Cartesian
     case ("Cartesian_1.5D")
       if (ndim /= 1) call mpistop("Geometry Cartesian_1.5D but ndim /= 1")
-      typeaxial='slab'
+      coordinate=Cartesian
       ndir = 2
     case ("Cartesian_1.75D")
       if (ndim /= 1) call mpistop("Geometry Cartesian_1.75D but ndim /= 1")
-      typeaxial='slab'
+      coordinate=Cartesian
       ndir = 3
     case ("Cartesian_2.5D")
       if (ndim /= 2) call mpistop("Geometry Cartesian_2.5D but ndim /= 2")
-      typeaxial='slab'
+      coordinate=Cartesian
       ndir = 3
     case ("cylindrical","cylindrical_2D","cylindrical_3D")
       ndir = ndim
       r_   = 1
       z_   = 2
       if(ndir==3) phi_ = 3
-      typeaxial='cylindrical'
+      coordinate=cylindrical
     case ("cylindrical_2.5D")
       if (ndim /= 2) call mpistop("Geometry cylindrical_2.5D but ndim /= 2")
       ndir = 3
       r_   = 1
       z_   = 2
       phi_ = 3
-      typeaxial='cylindrical'
+      coordinate=cylindrical
     case ("polar","polar_2D","polar_3D")
       ndir = ndim
       r_   = 1
       phi_ = 2
       if(ndir==3) z_ = 3
-      typeaxial='cylindrical'
+      coordinate=cylindrical
     case ("polar_1.5D")
        if (ndim /= 1) call mpistop("Geometry polar_1.5D but ndim /= 1")
        ndir = 2
        r_   = 1
        phi_ = 2
-       typeaxial='cylindrical'
+       coordinate=cylindrical
     case ("polar_2.5D")
       if (ndim /= 2) call mpistop("Geometry polar_2.5D but ndim /= 2")
       ndir = 3
       r_   = 1
       phi_ = 2
       z_   = 3
-      typeaxial='cylindrical'
+      coordinate=cylindrical
     case ("spherical","spherical_2D","spherical_3D")
       ndir = ndim
       r_   = 1
       if(ndir==3) phi_ = 3
       z_   = -1
-      typeaxial='spherical'
+      coordinate=spherical
     case ("spherical_2.5D")
       if (ndim /= 2) &
            call mpistop("Geometry spherical_2.5D requires ndim == 2")
@@ -71,7 +77,7 @@ contains
       r_   = 1
       phi_ = 3
       z_   = -1
-      typeaxial='spherical'
+      coordinate=spherical
     case default
       call mpistop("Unknown geometry specified")
     end select
@@ -80,8 +86,8 @@ contains
   subroutine set_pole
     use mod_global_parameters
 
-    select case (typeaxial)
-    case ("spherical") {^IFTHREED
+    select case (coordinate)
+    case (spherical) {^IFTHREED
       ! For spherical grid, check whether phi-direction is periodic
       if(periodB(ndim)) then
         if(phi_/=3) call mpistop("phi_ should be 3 in 3D spherical coord!")
@@ -102,7 +108,7 @@ contains
           if(mype==0) write(unitterm,*) "There is no southpole!"
         end if
       end if}
-    case ("cylindrical")
+    case (cylindrical)
       {
       if (^D == phi_ .and. periodB(^D)) then
         if(mod(ng^D(1),2)/=0) then
@@ -134,18 +140,19 @@ contains
 
   end subroutine putgridgeo
 
-  subroutine fillgeo(igrid,ixG^L)
+  !> calculate area of surfaces of cells
+  subroutine get_surface_area(igrid,ixG^L)
     use mod_global_parameters
 
     integer, intent(in) :: igrid, ixG^L
 
     integer :: ix^L, ixC^L
     double precision :: x(ixG^S,ndim), drs(ixG^S), dx2(ixG^S), dx3(ixG^S)
-    !-----------------------------------------------------------------------------
+
     ix^L=ixG^L^LSUB1;
 
-    select case (typeaxial)
-    case ("slabstretch")
+    select case (coordinate)
+    case (Cartesian,Cartesian_stretched)
       drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
       {^NOONED
       dx2(ixG^S)=ps(igrid)%dx(ixG^S,2)}
@@ -176,8 +183,7 @@ contains
       ps(igrid)%surfaceC(ixC^S,3)= drs(ixC^S)*dx2(ixC^S)
       ps(igrid)%surface(ixC^S,3)=ps(igrid)%surfaceC(ixC^S,3)
       }
-
-    case ("spherical")
+    case (spherical)
       x(ixG^S,1)=ps(igrid)%x(ixG^S,1)
       {^NOONED
       x(ixG^S,2)=ps(igrid)%x(ixG^S,2)}
@@ -214,7 +220,7 @@ contains
       ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
       ps(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
 
-    case ("cylindrical")
+    case (cylindrical)
       x(ixG^S,1)=ps(igrid)%x(ixG^S,1)
       drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
       {^NOONED
@@ -245,10 +251,10 @@ contains
       if (phi_==3) ps(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
 
     case default
-      call mpistop("Sorry, typeaxial unknown")
+      call mpistop("Sorry, coordinate unknown")
     end select
 
-  end subroutine fillgeo
+  end subroutine get_surface_area
 
   !> Calculate gradient of a scalar q within ixL in direction idir
   subroutine gradient(q,ixI^L,ixO^L,idir,gradq)
@@ -264,35 +270,33 @@ contains
 
     hxO^L=ixO^L-kr(idir,^D);
     jxO^L=ixO^L+kr(idir,^D);
-    if(slab) then
+    select case(coordinate)
+    case(Cartesian)
       gradq(ixO^S)=half*(q(jxO^S)-q(hxO^S))/dxlevel(idir)
-    else
-      select case(typeaxial)
-      case('slabstretch')
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
-      case('spherical')
-        select case(idir)
-        case(1)
-          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,1)-x(hxO^S,1)))
-          {^NOONED
-        case(2)
-          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,2)-x(hxO^S,2))*x(ixO^S,1))
-          }
-          {^IFTHREED
-        case(3)
-          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,3)-x(hxO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)))
-          }
-        end select
-      case('cylindrical')
-        if(idir==phi_) then
-          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,phi_)-x(hxO^S,phi_))*x(ixO^S,r_))
-        else
-          gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
-        end if
-      case default
-        call mpistop('Unknown geometry')
+    case(Cartesian_stretched)
+      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+    case(spherical)
+      select case(idir)
+      case(1)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,1)-x(hxO^S,1)))
+        {^NOONED
+      case(2)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,2)-x(hxO^S,2))*x(ixO^S,1))
+        }
+        {^IFTHREED
+      case(3)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,3)-x(hxO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)))
+        }
       end select
-    end if
+    case(cylindrical)
+      if(idir==phi_) then
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,phi_)-x(hxO^S,phi_))*x(ixO^S,r_))
+      else
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+      end if
+    case default
+      call mpistop('Unknown geometry')
+    end select
 
   end subroutine gradient
 
@@ -333,24 +337,25 @@ contains
       call PPMlimitervar(ixI^L,ixO^L,idir,q,q,qL,qR)
     endif
 
-    if(slab) then
-      gradq(ixO^S)=half*(qR(ixO^S)-qL(hxO^S))*invdx
-    else
+    select case(coordinate)
+    case(Cartesian)
+      gradq(ixO^S)=(qR(ixO^S)-qL(hxO^S))*invdx
+    case(Cartesian_stretched)
       gradq(ixO^S)=(qR(ixO^S)-qL(hxO^S))/block%dx(ixO^S,idir)
-      select case(typeaxial)
-      case('spherical')
-        select case(idir)
-        case(2)
-          gradq(ixO^S)=gradq(ixO^S)/x(ixO^S,1)
-          {^IFTHREED
-        case(3)
-          gradq(ixO^S)=gradq(ixO^S)/(x(ixO^S,1)*dsin(x(ixO^S,2)))
-          }
-        end select
-      case('cylindrical')
-        if(idir==phi_) gradq(ixO^S)=gradq(ixO^S)/x(ixO^S,1)
+    case(spherical)
+      gradq(ixO^S)=(qR(ixO^S)-qL(hxO^S))/block%dx(ixO^S,idir)
+      select case(idir)
+      case(2)
+        gradq(ixO^S)=gradq(ixO^S)/x(ixO^S,1)
+        {^IFTHREED
+      case(3)
+        gradq(ixO^S)=gradq(ixO^S)/(x(ixO^S,1)*dsin(x(ixO^S,2)))
+        }
       end select
-    end if
+    case(cylindrical)
+      gradq(ixO^S)=(qR(ixO^S)-qL(hxO^S))/block%dx(ixO^S,idir)
+      if(idir==phi_) gradq(ixO^S)=gradq(ixO^S)/x(ixO^S,1)
+    end select
 
   end subroutine gradientS
 
@@ -370,7 +375,7 @@ contains
     if (present(fourthorder)) use_4th_order = fourthorder
 
     if (use_4th_order) then
-      if (.not. slab) &
+      if (.not. slab_uniform) &
            call mpistop("divvector: 4th order only supported for slab geometry")
       ! Fourth order, stencil width is two
       ix^L=ixO^L^LADD2;
@@ -385,7 +390,7 @@ contains
     invdx=1.d0/dxlevel
     divq(ixO^S)=0.0d0
 
-    if (slab) then
+    if (slab_uniform) then
       do idims=1,ndim
         if (.not. use_4th_order) then
           ! Use second order scheme
@@ -464,7 +469,7 @@ contains
         call PPMlimitervar(ixI^L,ixO^L,idims,dqC,dqC,qL,qR)
       endif
 
-      if (slab) then
+      if (slab_uniform) then
         divq(ixO^S)=divq(ixO^S)+half*(qR(ixO^S)-qL(hxO^S))*invdx(idims)
       else
         qR(ixC^S)=block%surfaceC(ixC^S,idims)*qR(ixC^S)
@@ -472,7 +477,7 @@ contains
         divq(ixO^S)=divq(ixO^S)+qR(ixO^S)-qL(hxO^S)
       end if
     end do
-    if(.not.slab) divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
+    if(.not.slab_uniform) divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
 
   end subroutine divvectorS
 
@@ -493,7 +498,6 @@ contains
     integer          :: ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
-    !-----------------------------------------------------------------------------
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
     ! Curl can have components (idirmin:3)
@@ -502,30 +506,27 @@ contains
     idirmin=4
     curlvec(ixO^S,idirmin0:3)=zero
 
-    if(slab) then ! Cartesian case
-      invdx=1.d0/dxlevel
-      do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
-        if(lvc(idir,jdir,kdir)/=0)then
-          tmp(ixI^S)=qvec(ixI^S,kdir)
-          hxO^L=ixO^L-kr(jdir,^D);
-          jxO^L=ixO^L+kr(jdir,^D);
-          ! second order centered differencing 
-          tmp(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
-          !> \todo allow for 4th order CD evaluation here as well
-          if(lvc(idir,jdir,kdir)==1)then
-            curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp(ixO^S)
-          else
-            curlvec(ixO^S,idir)=curlvec(ixO^S,idir)-tmp(ixO^S)
-          endif
-          if(idir<idirmin)idirmin=idir
-        endif
-      enddo; enddo; enddo;
-      return
-    endif
-    
     ! all non-Cartesian cases 
-    select case(typeaxial)
-      case('slabstretch') ! stretched Cartesian grids
+    select case(coordinate)
+      case(Cartesian) ! Cartesian grids
+        invdx=1.d0/dxlevel
+        do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
+          if(lvc(idir,jdir,kdir)/=0)then
+            tmp(ixI^S)=qvec(ixI^S,kdir)
+            hxO^L=ixO^L-kr(jdir,^D);
+            jxO^L=ixO^L+kr(jdir,^D);
+            ! second order centered differencing 
+            tmp(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
+            !> \todo allow for 4th order CD evaluation here as well
+            if(lvc(idir,jdir,kdir)==1)then
+              curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp(ixO^S)
+            else
+              curlvec(ixO^S,idir)=curlvec(ixO^S,idir)-tmp(ixO^S)
+            endif
+            if(idir<idirmin)idirmin=idir
+          endif
+        enddo; enddo; enddo;
+      case(Cartesian_stretched) ! stretched Cartesian grids
         do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
           if(lvc(idir,jdir,kdir)/=0)then
             select case(typecurl) 
@@ -569,7 +570,7 @@ contains
             if(idir<idirmin)idirmin=idir
           endif
         enddo; enddo; enddo;
-      case('spherical') ! possibly stretched spherical grids
+      case(spherical) ! possibly stretched spherical grids
         select case(typecurl) 
           case('central') ! ok for any dimensionality
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
@@ -734,7 +735,7 @@ contains
           case default
             call mpistop('no such curl evaluator')
         end select
-      case('cylindrical') ! possibly stretched cylindrical grids
+      case(cylindrical) ! possibly stretched cylindrical grids
         select case(typecurl) 
           case('central')  ! works for any dimensionality, polar/cylindrical
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
