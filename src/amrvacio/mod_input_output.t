@@ -621,7 +621,7 @@ contains
        case (undefined, 'none')
           stretch_type(i) = stretch_none
           stretched_dim(i) = .false.
-       case ('uni')
+       case ('uni','uniform')
           stretch_type(i) = stretch_uni
           stretched_dim(i) = .true.
        case ('symm', 'symmetric')

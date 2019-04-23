@@ -184,6 +184,7 @@ contains
     time_write=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
+    dt_loop=0.d0
 
     time_evol : do
 
@@ -247,7 +248,7 @@ contains
        endif
        timeio_tot=timeio_tot+MPI_WTIME()-timeio0
 
-       pass_wall_time=MPI_WTIME()-time0+dt_loop+2.d0*time_write >=wall_time_max
+       pass_wall_time=MPI_WTIME()-time0+dt_loop+3.d0*time_write >=wall_time_max
        ! exit time loop if time is up
        if (it>=it_max .or. global_time>=time_max .or. pass_wall_time) exit time_evol
 
