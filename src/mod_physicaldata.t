@@ -14,7 +14,7 @@ module mod_physicaldata
       !> Is e is internal energy or total energy
       logical :: e_is_internal=.false.
       !> If it face a physical boundary
-      logical :: is_physical_boundary(2*^ND)
+      logical, dimension(:), pointer :: is_physical_boundary(:) =>Null()
       !> Variables, normally cell center conservative values
       double precision, dimension(:^D&,:), allocatable :: w
       !> Variables, cell face values

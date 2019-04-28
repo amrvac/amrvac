@@ -78,12 +78,12 @@ subroutine alloc_node(igrid)
     
     ! allocate arrays for solution and space
     call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
+    ! allocate arrays for one level coarser solution
+    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
     ! allocate arrays for old solution
     call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
     ! allocate arrays for temp solution 1
     call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
-    ! allocate arrays for one level coarser solution
-    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
 
     ! allocate temperary solution space
     select case (time_integrator)
@@ -533,6 +533,8 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     allocate(s%dvolume(ixGext^S))
     allocate(s%surfaceC(ixG^S,1:ndim), &
              s%surface(ixG^S,1:ndim))
+    ! allocate physical boundary flag
+    allocate(s%is_physical_boundary(2*ndim))
   else
     ! use spatial info on ps states to save memory
     s%x=>ps(igrid)%x
@@ -541,6 +543,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     s%dvolume=>ps(igrid)%dvolume
     s%surfaceC=>ps(igrid)%surfaceC
     s%surface=>ps(igrid)%surface
+    s%is_physical_boundary=>ps(igrid)%is_physical_boundary
   end if
 end subroutine alloc_state
 

@@ -16,20 +16,26 @@ module mod_ghostcells_update
   ! index ranges to send (S) to sibling blocks, receive (R) from sibling blocks
   integer, dimension(-1:2,-1:1) :: ixS_srl_^L, ixR_srl_^L
 
+  ! index ranges of staggered variables to send (S) to sibling blocks, receive (R) from sibling blocks
+  integer, dimension(^ND,-1:1) :: ixS_srl_stg_^L, ixR_srl_stg_^L
+
   ! index ranges to send (S) restricted (r) ghost cells to coarser blocks 
   integer, dimension(-1:1,-1:1) :: ixS_r_^L
+
+  ! index ranges of staggered variables to send (S) restricted (r) ghost cells to coarser blocks 
+  integer, dimension(^ND,-1:1) :: ixS_r_stg_^L
 
   ! index ranges to receive restriced ghost cells from finer blocks 
   integer, dimension(-1:1, 0:3) :: ixR_r_^L
 
-  ! send prolongated (p) ghost cells to finer blocks, receive prolongated 
-  ! ghost from coarser blocks
+  ! index ranges of staggered variables to receive restriced ghost cells from finer blocks 
+  integer, dimension(^ND,0:3)  :: ixR_r_stg_^L
+
+  ! send prolongated (p) ghost cells to finer blocks, receive prolongated from coarser blocks
   integer, dimension(-1:1, 0:3) :: ixS_p_^L, ixR_p_^L
 
-  integer, dimension(^ND,-1:1) :: ixS_srl_stg_^L, ixR_srl_stg_^L
-  integer, dimension(^ND,-1:1) :: ixS_r_stg_^L
+  ! send prolongated (p) staggered ghost cells to finer blocks, receive prolongated from coarser blocks
   integer, dimension(^ND,0:3)  :: ixS_p_stg_^L, ixR_p_stg_^L
-  integer, dimension(^ND,0:3)  :: ixR_r_stg_^L
 
   ! number of MPI receive-send pairs, srl: same refinement level; r: restrict; p: prolong
   integer :: nrecv_bc_srl, nsend_bc_srl, nrecv_bc_r, nsend_bc_r, nrecv_bc_p, nsend_bc_p
@@ -96,12 +102,12 @@ contains
     integer :: nghostcellsCo, interpolation_order
     integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, idir
 
+    ! block array index extents
     ixG^L=ixG^LL;
     ixM^L=ixG^L^LSUBnghostcells;
+    ! coarse block array index extents
     ixCoGmin^D=1;
-    !ixCoGmax^D=ixGmax^D/2+nghostcells;
     ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
-
     ixCoM^L=ixCoG^L^LSUBnghostcells;
 
     nx^D=ixMmax^D-ixMmin^D+1;
@@ -410,7 +416,7 @@ contains
       do iigrid=1,igridstail; igrid=igrids(iigrid);
          if(.not.phyboundblock(igrid)) cycle
          saveigrid=igrid
-         block=>ps(igrid)
+         block=>psb(igrid)
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          do idims=1,ndim
             ! to avoid using as yet unknown corner info in more than 1D, we
@@ -438,7 +444,7 @@ contains
                else 
                   if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
                end if
-               call bc_phys(iside,idims,time,qdt,psb(igrid)%w,ps(igrid)%x,ixG^L,ixB^L)
+               call bc_phys(iside,idims,time,qdt,psb(igrid)%w,psb(igrid)%x,ixG^L,ixB^L)
             end do
          end do
       end do
@@ -569,7 +575,7 @@ contains
 
     ! do prolongation on the ghost-cell values received from coarser neighbors 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       block=>ps(igrid)
+       block=>psb(igrid)
        ^D&iib^D=idphyb(^D,igrid);
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
          NeedProlong=.false.
@@ -730,6 +736,7 @@ contains
                 ixS^L=ixS_srl_stg_^L(idir,n_i^D);
                 ixR^L=ixR_srl_stg_^L(idir,i^D);
                 if (idirect == 1) then
+                  ! use the same value at the face shared by two neighors
                   call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L) ! Overwrites ixR, ixS
                   psb(igrid)%ws(ixRsync^S,idir) = half*(psb(igrid)%ws(ixRsync^S,idir)+psb(ineighbor)%ws(ixSsync^S,idir))
                 end if
@@ -1288,7 +1295,7 @@ contains
         ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
         ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
 
-        call prolong_2nd_stg(psc(igrid),ps(igrid),ixCo^L,ixFi^L,dxCo^D,xComin^D,dxFi^D,xFimin^D,.true.,fine_^Lin)
+        call prolong_2nd_stg(psc(igrid),psb(igrid),ixCo^L,ixFi^L,dxCo^D,xComin^D,dxFi^D,xFimin^D,.true.,fine_^Lin)
 
         ! The current region has already been refined, so it doesn global_time need to be prolonged again
          NeedProlong(i^D)=.false. 
@@ -1544,11 +1551,11 @@ contains
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           saveigrid=igrid
           block=>psb(igrid)
-          call identifyphysbound(psb(igrid),iib^D)   
+          call identifyphysbound(ps(igrid),iib^D)   
           {do i^DB=-1,1\}
              if (skip_direction([ i^D ])) cycle
              ix^L=ixR_srl_^L(iib^D,i^D);
-             call phys_get_aux(.true.,psb(igrid)%w,ps(igrid)%x,ixG^L,ix^L,"bc")
+             call phys_get_aux(.true.,psb(igrid)%w,psb(igrid)%x,ixG^L,ix^L,"bc")
           {end do\}
         end do
       

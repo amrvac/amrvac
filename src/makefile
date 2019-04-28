@@ -41,6 +41,7 @@ connectivity.o: mod_ghostcells_update.mod
 convert.o: mod_calculate_xw.mod
 convert.o: mod_ghostcells_update.mod
 convert.o: mod_physics.mod
+mod_advance.o: mod_constrained_transport.mod
 mod_advance.o: mod_finite_difference.mod
 mod_advance.o: mod_finite_volume.mod
 mod_advance.o: mod_fix_conserve.mod

@@ -150,10 +150,11 @@ contains
        kxR^L=kxC^L+kr(idims,^D);
 
        if(stagger_grid) then
+          ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+!         ixCmax^D=ixOmax^D+1-kr(idims,^D); ixCmin^D=hxOmin^D-1+kr(idims,^D);
+       else
          ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
          ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
-       else
-         ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
        end if
 
        ! wRp and wLp are defined at the same locations, and will correspond to
@@ -170,10 +171,16 @@ contains
        ! apply limited reconstruction for left and right status at cell interfaces
        select case (typelimited)
        case ('previous')
+         call phys_to_primitive(ixI^L,ixI^L,wold,x)
          call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,wLp,wRp,x,.true.)
+         if(stagger_grid) then
+           wLC(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
+           wRC(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
+           wLp(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
+           wRp(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
+         end if
        case ('predictor')
          call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
-
          if(stagger_grid) then
            wLC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
            wRC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
@@ -241,6 +248,7 @@ contains
     block%iw0=0
 
     if(stagger_grid) call update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,snew)
+    !if(stagger_grid) call updatefaces(ixI^L,ixO^L,qdt,fC,fE,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);

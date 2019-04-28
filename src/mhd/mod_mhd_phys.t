@@ -292,7 +292,7 @@ contains
     end do
 
     ! determine number of stagger variables
-    if(stagger_grid) nws=ndir
+    if(stagger_grid) nws=ndim
 
     nvector      = 2 ! No. vector vars
     allocate(iw_vector(nvector))
@@ -683,10 +683,19 @@ contains
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
-    if (typeboundspeed/='cmaxmean') then
+    if (typeboundspeed=='cmaxmean') then
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
+      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
+      if(present(cmin)) then
+        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      else
+        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+      end if
+    else
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
-
       tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
       tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
       tmp3(ixO^S)=1.d0/(sqrt(wLp(ixO^S,rho_))+sqrt(wRp(ixO^S,rho_)))
@@ -702,16 +711,6 @@ contains
         cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
       else
         cmax(ixO^S)=abs(umean(ixO^S))+dmean(ixO^S)
-      end if
-    else
-      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
-      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
-      if(present(cmin)) then
-        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
-      else
-        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
     end if
 
@@ -1689,15 +1688,63 @@ contains
     double precision                   :: divb(ixI^S)
 
     double precision                   :: bvec(ixI^S,1:ndir)
+    double precision                   :: divb_corner(ixI^S), sign
+    double precision                   :: aux_vol(ixI^S)
+    integer                            :: ixC^L, idir, ic^D, ix^L
 
     bvec(ixI^S,:)=w(ixI^S,mag(:))
 
-    select case(typediv)
-    case("central")
-      call divvector(bvec,ixI^L,ixO^L,divb)
-    case("limited")
-      call divvectorS(bvec,ixI^L,ixO^L,divb)
-    end select
+    if(stagger_grid) then
+      ! Use the FCT (larger stencil) formula for divB:
+      ! For fct, we calculate the divB on the corners according to Toth (2000), 
+      ! eq. (27) and average to the cell centers for output.
+      {ixCmax^D=ixOmax^D;}
+      {ixCmin^D=ixOmin^D-1;} ! Extend range by one
+      ! Get the corner-centered divb:
+      divb_corner(ixC^S) = zero
+      aux_vol(ixC^S) = zero
+      do idir = 1, ndim ! idir is the component of the field to consider (j)
+       {do ic^DB=0,1\}
+          {ix^L=ixC^L+ic^D;}
+          select case(idir)
+          {^D&   
+          case(^D)
+            sign = dble(ic^D*2 - 1)
+          \}
+          end select
+
+          if (slab_uniform) then
+            divb_corner(ixC^S) = divb_corner(ixC^S) &
+                 + sign * bvec(ix^S,idir)/dxlevel(idir)
+          else
+            divb_corner(ixC^S) = divb_corner(ixC^S) &
+                 + sign * block%dvolume(ix^S) * bvec(ix^S,idir)/dxlevel(idir)
+            aux_vol(ixC^S) = aux_vol(ixC^S) + block%dvolume(ix^S)
+          end if
+       {end do\}
+      end do
+
+      if(slab_uniform) then
+        divb_corner(ixC^S) = divb_corner(ixC^S) / 2.0d0**(ndim-1)
+      else
+        divb_corner(ixC^S) = 2.0d0 * ndim * divb_corner(ixC^S) / aux_vol(ixC^S)
+      end if
+
+      ! Now average back to the cell centers:
+      divb(ixO^S) = zero
+      {do ic^DB=-1,0\}
+        {ixC^L=ixO^L+ic^D;}
+        divb(ixO^S) = divb(ixO^S) + divb_corner(ixC^S)
+      {end do\}
+      divb(ixO^S) = divb(ixO^S) / 2.0d0**ndim
+    else
+      select case(typediv)
+      case("central")
+        call divvector(bvec,ixI^L,ixO^L,divb)
+      case("limited")
+        call divvectorS(bvec,ixI^L,ixO^L,divb)
+      end select
+    end if
   end subroutine get_divb
 
   !> get dimensionless div B = |divB| * volume / area / |B|

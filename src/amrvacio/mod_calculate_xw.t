@@ -36,7 +36,6 @@ contains
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC
     double precision, dimension(ixG^T,1:nw+nwauxio)   :: w
-    double precision :: dx^D
     integer :: nxCC^D,idims,jxC^L,iwe
     integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
     logical, save :: subfirst=.true.
@@ -47,11 +46,10 @@ contains
     saveigrid=igrid
     nx^D=ixMhi^D-ixMlo^D+1;
     level=node(plevel_,igrid)
-    dx^D=dx(^D,level);
 
     normconv(0) = length_convert_factor
     normconv(1:nw) = w_convert_factor
-
+    block=>ps(igrid)
     w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
     if (nwextra>0) then

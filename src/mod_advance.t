@@ -347,6 +347,7 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
+    use mod_constrained_transport
 
     integer, intent(in) :: idim^LIM
     type(state) :: psa(max_blocks) !< Compute fluxes based on this state
@@ -388,7 +389,7 @@ contains
       ! Now fill the cell-center values for the staggered variables
       !$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-        call phys_face_to_center(ixG^LL,igrid,psb(igrid))
+        call faces2centers(ixG^LL,psb(igrid))
       end do
       !$OMP END PARALLEL DO
     end if
@@ -400,20 +401,20 @@ contains
   end subroutine advect1
 
   !> Prepare to advance a single grid over one partial time step
-  subroutine process1_grid(method,igrid,qdt,ixG^L,idim^LIM,qtC,sCT,qt,s,sold)
+  subroutine process1_grid(method,igrid,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold)
     use mod_global_parameters
     use mod_fix_conserve
 
     character(len=*), intent(in) :: method
-    integer, intent(in) :: igrid, ixG^L, idim^LIM
+    integer, intent(in) :: igrid, ixI^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt
     type(state)                  :: sCT, s, sold
 
     double precision :: dx^D
     ! cell face flux
-    double precision :: fC(ixG^S,1:nwflux,1:ndim)
+    double precision :: fC(ixI^S,1:nwflux,1:ndim)
     ! cell edge flux
-    double precision :: fE(ixG^S,1:ndir)
+    double precision :: fE(ixI^S,1:ndir)
 
     dx^D=rnode(rpdx^D_,igrid);
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -423,9 +424,7 @@ contains
     typelimiter=type_limiter(node(plevel_,igrid))
     typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
-    fC=0.d0
-
-    call advect1_grid(method,qdt,ixG^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
+    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
          ps(igrid)%x)
 
 
@@ -437,7 +436,7 @@ contains
     ! coincides with a coarse/fine interface.
     if (fix_conserve_at_step) then
       call store_flux(igrid,fC,idim^LIM,nwflux)
-      if(stagger_grid) call store_edge(igrid,ixG^L,fE,idim^LIM)
+      if(stagger_grid) call store_edge(igrid,ixI^L,fE,idim^LIM)
     end if
 
   end subroutine process1_grid

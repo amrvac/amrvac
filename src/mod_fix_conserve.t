@@ -305,7 +305,8 @@ module mod_fix_conserve
          case(neighbor_sibling)
            if(stagger_grid) then
              idim=^D
-             do idir=idim+1,ndim
+             !do idir=idim+1,ndim
+             do idir=min(idim+1,ndim),ndim
                pi^DD=i^DD+kr(idir,^DD);
                mi^DD=i^DD-kr(idir,^DD);
                ph^DD=pi^DD-kr(^D,^DD)*(2*iside-3);

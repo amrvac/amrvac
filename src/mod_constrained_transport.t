@@ -260,7 +260,7 @@ contains
       iwdim1 = iw_mag(idim1)
       do idim2=1,ndim
         iwdim2 = iw_mag(idim2)
-        do idir=1,ndir ! Direction of line integral
+        do idir=7-2*ndim,ndir ! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ! Assemble indices
@@ -404,19 +404,19 @@ contains
    !   end select
 
       ! Reconstruct transverse transport velocities
-      call rec(ixI^L,ixC^L,idim2,vbarC(ixI^S,idim1,1),&
+      call reconstruct(ixI^L,ixC^L,idim2,vbarC(ixI^S,idim1,1),&
                vtilL(ixI^S,2),vtilR(ixI^S,2))
 
-      call rec(ixI^L,ixC^L,idim1,vbarC(ixI^S,idim2,2),&
+      call reconstruct(ixI^L,ixC^L,idim1,vbarC(ixI^S,idim2,2),&
                vtilL(ixI^S,1),vtilR(ixI^S,1))
 
       ! Reconstruct magnetic fields
-      ! Eventhough the arrays are larger, rec works with
+      ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
-      call rec(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
+      call reconstruct(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
 
-      call rec(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
+      call reconstruct(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
                btilL(ixI^S,idim2),btilR(ixI^S,idim2))
 
       ! Take the maximum characteristic
@@ -427,7 +427,7 @@ contains
       cm(ixC^S,2)=max(cbarmin(jxC^S,idim2),cbarmin(ixC^S,idim2))
       cp(ixC^S,2)=max(cbarmax(jxC^S,idim2),cbarmax(ixC^S,idim2))
      
-      ! Calculate elctric field
+      ! Calculate eletric field
       if (idir <= ndim) then
          dxidir = dxlevel(idir)
       else
@@ -456,7 +456,7 @@ contains
 
     circ(ixI^S,1:ndim)=zero
 
-    ! Calculate circulation on each face
+    ! Calculate circulation on each face: interal(fE dot dl)
 
     do idim1=1,ndim ! Coordinate perpendicular to face 
       ixCmax^D=ixOmax^D;
@@ -576,19 +576,19 @@ contains
   !    end select
 
       ! Reconstruct transverse transport velocities
-      call rec(ixI^L,ixC^L,idim2,vbarC(ixI^S,idim1,1),&
+      call reconstruct(ixI^L,ixC^L,idim2,vbarC(ixI^S,idim1,1),&
                vtilL(ixI^S,2),vtilR(ixI^S,2))
 
-      call rec(ixI^L,ixC^L,idim1,vbarC(ixI^S,idim2,2),&
+      call reconstruct(ixI^L,ixC^L,idim1,vbarC(ixI^S,idim2,2),&
                vtilL(ixI^S,1),vtilR(ixI^S,1))
 
       ! Reconstruct magnetic fields
-      ! Eventhough the arrays are larger, rec works with
+      ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
-      call rec(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
+      call reconstruct(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
 
-      call rec(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
+      call reconstruct(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
                btilL(ixI^S,idim2),btilR(ixI^S,idim2))
 
       ! Take the maximum characteristic
@@ -822,22 +822,22 @@ contains
    !   end select
 
       ! Reconstruct velocities
-      call rec(ixI^L,ixC^L,idim2,vbarLC(ixI^S,idir,1),&
+      call reconstruct(ixI^L,ixC^L,idim2,vbarLC(ixI^S,idir,1),&
                vtilLL(ixI^S,1),vtilLR(ixI^S,1)) 
-      call rec(ixI^L,ixC^L,idim2,vbarRC(ixI^S,idir,1),&
+      call reconstruct(ixI^L,ixC^L,idim2,vbarRC(ixI^S,idir,1),&
                vtilRL(ixI^S,1),vtilRR(ixI^S,1))
 
-      call rec(ixI^L,ixC^L,idim2,vbarLC(ixI^S,idir,2),&
+      call reconstruct(ixI^L,ixC^L,idim2,vbarLC(ixI^S,idir,2),&
                vtilLL(ixI^S,2),vtilLR(ixI^S,2)) 
-      call rec(ixI^L,ixC^L,idim2,vbarRC(ixI^S,idir,2),&
+      call reconstruct(ixI^L,ixC^L,idim2,vbarRC(ixI^S,idir,2),&
                vtilRL(ixI^S,2),vtilRR(ixI^S,2))
 
       ! Reconstruct magnetic fields
-      ! Eventhough the arrays are larger, rec works with
+      ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
-      call rec(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
+      call reconstruct(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
-      call rec(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
+      call reconstruct(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
                btilL(ixI^S,idim2),btilR(ixI^S,idim2))
 
       ! Take the maximum characteristic
@@ -1058,7 +1058,7 @@ contains
 
   !> Reconstruct scalar q within ixO^L to 1/2 dx in direction idir
   !> Return both left and right reconstructed values 
-  subroutine rec(ixI^L,ixC^L,idir,q,qL,qR)
+  subroutine reconstruct(ixI^L,ixC^L,idir,q,qL,qR)
     use mod_limiter
     use mod_global_parameters
 
@@ -1102,6 +1102,6 @@ contains
        qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
     end select
 
-  end subroutine rec
+  end subroutine reconstruct
 
 end module mod_constrained_transport

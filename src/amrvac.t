@@ -13,6 +13,7 @@ program amrvac
   use mod_particles
   use mod_fix_conserve
   use mod_advance, only: process
+  use mod_constrained_transport
 
   double precision :: time0, time_in
 
@@ -102,6 +103,8 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
+     if(stagger_grid .and. levmax>levmin) call recalculateB
+
      if (use_particles) call particles_create()
 
   end if
@@ -181,6 +184,7 @@ contains
     time_write=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
+    dt_loop=0.d0
 
     time_evol : do
 
