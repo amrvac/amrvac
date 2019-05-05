@@ -114,23 +114,24 @@ subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
             /sCo%dvolume(ixCo^D)
       {end do\}
     end do
-    if(stagger_grid) then
-      do iw=1,nws
-        ! Start one layer before
-        {do ixCo^DB = ixComin^DB-kr(^DB,iw),ixComax^DB
-           ixFi^DB=2*(ixCo^DB-ixComin^DB+kr(^DB,iw))+ixFimin^DB-kr(^DB,iw)\}
-           ! This if statement catches the axis where surface is zero:
-           if (sCo%surfaceC(ixCo^D,iw)>1.0d-9*sCo%dvolume(ixCo^D)) then ! Normal case
-             wCos(ixCo^D,iw)=sum(sFi%surfaceC(ixFi^D:ixFi^D+1-kr(iw,^D),iw)*wFis(ixFi^D:ixFi^D+1-kr(iw,^D),iw)) &
-                  /sCo%surfaceC(ixCo^D,iw)
-           else ! On axis
-             wCos(ixCo^D,iw)=zero
-           end if
-        {end do\}
-      end do
-      ! average to fill cell-centred values
-      call faces2centers(ixCo^L,sCo)
-    end if
+  end if
+
+  if(stagger_grid) then
+    do iw=1,nws
+      ! Start one layer before
+      {do ixCo^DB = ixComin^DB-kr(^DB,iw),ixComax^DB
+         ixFi^DB=2*(ixCo^DB-ixComin^DB+kr(^DB,iw))+ixFimin^DB-kr(^DB,iw)\}
+         ! This if statement catches the axis where surface is zero:
+         if (sCo%surfaceC(ixCo^D,iw)>1.0d-9*sCo%dvolume(ixCo^D)) then ! Normal case
+           wCos(ixCo^D,iw)=sum(sFi%surfaceC(ixFi^D:ixFi^D+1-kr(iw,^D),iw)*wFis(ixFi^D:ixFi^D+1-kr(iw,^D),iw)) &
+                /sCo%surfaceC(ixCo^D,iw)
+         else ! On axis
+           wCos(ixCo^D,iw)=zero
+         end if
+      {end do\}
+    end do
+    ! average to fill cell-centred values
+    call faces2centers(ixCo^L,sCo)
   end if
 
   if(coarsenprimitive) then

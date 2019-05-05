@@ -43,15 +43,17 @@ end subroutine settree
 subroutine resettree
   use mod_global_parameters
   use mod_fix_conserve
+  use mod_amr_fct
 
-  if (levmax>levmin) call deallocateBflux
+  if(levmax>levmin) call deallocateBflux
+  if(stagger_grid) call deallocateBfaces
 
   call errest
 
   call amr_coarsen_refine
 
   ! set up boundary flux conservation arrays
-  if (levmax>levmin) call allocateBflux
+  if(levmax>levmin) call allocateBflux
 
 end subroutine resettree
 

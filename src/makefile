@@ -30,9 +30,11 @@ mod_usr_methods.o: mod_global_parameters.mod
 
 amr_coarsen_refine.o: mod_ghostcells_update.mod
 amrgrid.o: mod_advance.mod
+amrgrid.o: mod_amr_fct.mod
 amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
 amr_neighbors.o: mod_geometry.mod
+amr_solution_node.o: mod_forest.mod
 amr_solution_node.o: mod_geometry.mod
 boundary_conditions.o: mod_bc_data.mod
 coarsen.o: mod_constrained_transport.mod

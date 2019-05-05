@@ -87,12 +87,6 @@ module mod_ghostcells_update
   integer, dimension(0:3^D&)      :: sizes_p_send_total, sizes_p_recv_total
   integer, dimension(^ND,0:3^D&)  :: sizes_p_send_stg, sizes_p_recv_stg
 
-  ! index pointer for buffer arrays as a start for a segment
-  integer :: ibuf_start, ibuf_next
-
-  ! shapes of reshape
-  integer, dimension(1) :: shapes
-
 contains
 
   subroutine init_bc()
@@ -398,6 +392,10 @@ contains
     integer :: idphyb(ndim,max_blocks),bindex(ndim)
     integer :: nghostcellsco,iB
     logical  :: req_diagonal, NeedProlong(-1:1^D&)
+    ! index pointer for buffer arrays as a start for a segment
+    integer :: ibuf_start, ibuf_next
+    ! shapes of reshape
+    integer, dimension(1) :: shapes
 
     nwhead=nwstart+1
     nwtail=nwstart+nwbc
@@ -1297,8 +1295,8 @@ contains
 
         call prolong_2nd_stg(psc(igrid),psb(igrid),ixCo^L,ixFi^L,dxCo^D,xComin^D,dxFi^D,xFimin^D,.true.,fine_^Lin)
 
-        ! The current region has already been refined, so it doesn global_time need to be prolonged again
-         NeedProlong(i^D)=.false. 
+        ! The current region has already been refined, so it does not need to be prolonged again
+        NeedProlong(i^D)=.false. 
 
       end subroutine bc_prolong_stg
 

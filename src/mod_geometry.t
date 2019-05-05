@@ -141,114 +141,93 @@ contains
   end subroutine putgridgeo
 
   !> calculate area of surfaces of cells
-  subroutine get_surface_area(igrid,ixG^L)
+  subroutine get_surface_area(s,ixG^L)
     use mod_global_parameters
 
-    integer, intent(in) :: igrid, ixG^L
+    type(state) :: s
+    integer, intent(in) :: ixG^L
 
-    integer :: ix^L, ixC^L
     double precision :: x(ixG^S,ndim), drs(ixG^S), dx2(ixG^S), dx3(ixG^S)
-
-    ix^L=ixG^L^LSUB1;
 
     select case (coordinate)
     case (Cartesian,Cartesian_stretched)
-      drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
+      drs(ixG^S)=s%dx(ixG^S,1)
       {^NOONED
-      dx2(ixG^S)=ps(igrid)%dx(ixG^S,2)}
+      dx2(ixG^S)=s%dx(ixG^S,2)}
       {^IFTHREED
-      dx3(ixG^S)=ps(igrid)%dx(ixG^S,3)}
+      dx3(ixG^S)=s%dx(ixG^S,3)}
 
       {^IFONED
-      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,1)=1.d0
-      ps(igrid)%surface(ixC^S,1) =1.d0
+      s%surfaceC(ixG^S,1)=1.d0
+      s%surface(ixG^S,1) =1.d0
       }
       {^IFTWOD
-      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,1)=dx2(ixC^S)
-      ps(igrid)%surface(ixC^S,1) =dx2(ixC^S)
-      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,2)=drs(ixC^S)
-      ps(igrid)%surface(ixC^S,2)=drs(ixC^S)
+      s%surfaceC(ixG^S,1)=dx2(ixG^S)
+      s%surfaceC(ixG^S,2)=drs(ixG^S)
+      s%surface(ixG^S,1) =dx2(ixG^S)
+      s%surface(ixG^S,2)=drs(ixG^S)
       }
       {^IFTHREED
-      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,1)= dx2(ixC^S)*dx3(ixC^S)
-      ps(igrid)%surface(ixC^S,1)=ps(igrid)%surfaceC(ixC^S,1)
-      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,2)= drs(ixC^S)*dx3(ixC^S)
-      ps(igrid)%surface(ixC^S,2)=ps(igrid)%surfaceC(ixC^S,2)
-      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,3)= drs(ixC^S)*dx2(ixC^S)
-      ps(igrid)%surface(ixC^S,3)=ps(igrid)%surfaceC(ixC^S,3)
+      s%surfaceC(ixG^S,1)= dx2(ixG^S)*dx3(ixG^S)
+      s%surfaceC(ixG^S,2)= drs(ixG^S)*dx3(ixG^S)
+      s%surfaceC(ixG^S,3)= drs(ixG^S)*dx2(ixG^S)
+      s%surface(ixG^S,1)=s%surfaceC(ixG^S,1)
+      s%surface(ixG^S,2)=s%surfaceC(ixG^S,2)
+      s%surface(ixG^S,3)=s%surfaceC(ixG^S,3)
       }
     case (spherical)
-      x(ixG^S,1)=ps(igrid)%x(ixG^S,1)
+      x(ixG^S,1)=s%x(ixG^S,1)
       {^NOONED
-      x(ixG^S,2)=ps(igrid)%x(ixG^S,2)}
+      x(ixG^S,2)=s%x(ixG^S,2)}
 
-      drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
+      drs(ixG^S)=s%dx(ixG^S,1)
       {^NOONED
-      dx2(ixG^S)=ps(igrid)%dx(ixG^S,2)}
+      dx2(ixG^S)=s%dx(ixG^S,2)}
       {^IFTHREED
-      dx3(ixG^S)=ps(igrid)%dx(ixG^S,3)}
+      dx3(ixG^S)=s%dx(ixG^S,3)}
 
-      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-
-      ps(igrid)%surfaceC(ixC^S,1)=(x(ixC^S,1)+half*drs(ixC^S))**2 {^NOONED &
-           *two*dsin(x(ixC^S,2))*dsin(half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
+      s%surfaceC(ixG^S,1)=(x(ixG^S,1)+half*drs(ixG^S))**2 {^NOONED &
+           *two*dsin(x(ixG^S,2))*dsin(half*dx2(ixG^S))}{^IFTHREED*dx3(ixG^S)}
 
       {^NOONED
-      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
-           *dsin(x(ixC^S,2)+half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
+      s%surfaceC(ixG^S,2)=x(ixG^S,1)*drs(ixG^S)&
+           *dsin(x(ixG^S,2)+half*dx2(ixG^S))}{^IFTHREED*dx3(ixG^S)}
 
       {^IFTHREED
-      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
+      s%surfaceC(ixG^S,3)=x(ixG^S,1)*drs(ixG^S)*dx2(ixG^S)}
 
-      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      ps(igrid)%surface(ixC^S,1)=x(ixC^S,1)**2 {^NOONED &
-           *two*dsin(x(ixC^S,2))*dsin(half*dx2(ixC^S))}{^IFTHREED*dx3(ixC^S)}
+      s%surface(ixG^S,1)=x(ixG^S,1)**2 {^NOONED &
+           *two*dsin(x(ixG^S,2))*dsin(half*dx2(ixG^S))}{^IFTHREED*dx3(ixG^S)}
       {^NOONED
-      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      ps(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S)&
-           *dsin(x(ixC^S,2))}{^IFTHREED*dx3(ixC^S)}
+      s%surface(ixG^S,2)=x(ixG^S,1)*drs(ixG^S)&
+           *dsin(x(ixG^S,2))}{^IFTHREED*dx3(ixG^S)}
 
       {^IFTHREED
-      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      ps(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)}
+      s%surface(ixG^S,3)=x(ixG^S,1)*drs(ixG^S)*dx2(ixG^S)}
 
     case (cylindrical)
-      x(ixG^S,1)=ps(igrid)%x(ixG^S,1)
-      drs(ixG^S)=ps(igrid)%dx(ixG^S,1)
+      x(ixG^S,1)=s%x(ixG^S,1)
+      drs(ixG^S)=s%dx(ixG^S,1)
       {^NOONED
-      dx2(ixG^S)=ps(igrid)%dx(ixG^S,2)}
+      dx2(ixG^S)=s%dx(ixG^S,2)}
       {^IFTHREED
-      dx3(ixG^S)=ps(igrid)%dx(ixG^S,3)}
+      dx3(ixG^S)=s%dx(ixG^S,3)}
 
-      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      ps(igrid)%surfaceC(ixC^S,1)=dabs(x(ixC^S,1)+half*drs(ixC^S)){^DE&*dx^DE(ixC^S) }
+      s%surfaceC(ixG^S,1)=dabs(x(ixG^S,1)+half*drs(ixG^S)){^DE&*dx^DE(ixG^S) }
       {^NOONED
-      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      if (z_==2) ps(igrid)%surfaceC(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
-      if (phi_==2) ps(igrid)%surfaceC(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
+      if (z_==2) s%surfaceC(ixG^S,2)=x(ixG^S,1)*drs(ixG^S){^IFTHREED*dx3(ixG^S)}
+      if (phi_==2) s%surfaceC(ixG^S,2)=drs(ixG^S){^IFTHREED*dx3(ixG^S)}}
       {^IFTHREED
-      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      if (z_==3) ps(igrid)%surfaceC(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
-      if (phi_==3) ps(igrid)%surfaceC(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
+      if (z_==3) s%surfaceC(ixG^S,3)=x(ixG^S,1)*drs(ixG^S)*dx2(ixG^S)
+      if (phi_==3) s%surfaceC(ixG^S,3)=drs(ixG^S)*dx2(ixG^S)}
 
-      ixCmin^D=ixmin^D-kr(^D,1); ixCmax^D=ixmax^D;
-      ps(igrid)%surface(ixC^S,1)=dabs(x(ixC^S,1)){^DE&*dx^DE(ixC^S) }
+      s%surface(ixG^S,1)=dabs(x(ixG^S,1)){^DE&*dx^DE(ixG^S) }
       {^NOONED
-      ixCmin^D=ixmin^D-kr(^D,2); ixCmax^D=ixmax^D;
-      if (z_==2) ps(igrid)%surface(ixC^S,2)=x(ixC^S,1)*drs(ixC^S){^IFTHREED*dx3(ixC^S)}
-      if (phi_==2) ps(igrid)%surface(ixC^S,2)=drs(ixC^S){^IFTHREED*dx3(ixC^S)}}
+      if (z_==2) s%surface(ixG^S,2)=x(ixG^S,1)*drs(ixG^S){^IFTHREED*dx3(ixG^S)}
+      if (phi_==2) s%surface(ixG^S,2)=drs(ixG^S){^IFTHREED*dx3(ixG^S)}}
       {^IFTHREED
-      ixCmin^D=ixmin^D-kr(^D,3); ixCmax^D=ixmax^D;
-      if (z_==3) ps(igrid)%surface(ixC^S,3)=x(ixC^S,1)*drs(ixC^S)*dx2(ixC^S)
-      if (phi_==3) ps(igrid)%surface(ixC^S,3)=drs(ixC^S)*dx2(ixC^S)}
+      if (z_==3) s%surface(ixG^S,3)=x(ixG^S,1)*drs(ixG^S)*dx2(ixG^S)
+      if (phi_==3) s%surface(ixG^S,3)=drs(ixG^S)*dx2(ixG^S)}
 
     case default
       call mpistop("Sorry, coordinate unknown")

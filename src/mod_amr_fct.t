@@ -81,8 +81,8 @@ contains
 
     fine_^L=.false.;
 
-    {if(present(fine_min^Din))fine_min^D=fine_min^Din;}
-    {if(present(fine_max^Din))fine_max^D=fine_max^Din;}
+    {if(present(fine_min^Din)) fine_min^D=fine_min^Din;}
+    {if(present(fine_max^Din)) fine_max^D=fine_max^Din;}
 
     ! When filling ghost cells, ixFi^L are given.
     ! When refining the block, ixCo^L are given.
@@ -136,11 +136,7 @@ contains
         ixFisE^L=ixFisV^L(idim1)^LADD2*(1-kr(idim1,^D));
       end if
       ! Convert fine fields to fluxes
-      select case(idim1)
-     {case(^D)
-        bfluxFi(ixFisE^S,idim1)=wFis(ixFisE^S,^D)*sFi%surfaceC(ixFisE^S,^D)
-     \}
-      end select
+      bfluxFi(ixFisE^S,idim1)=wFis(ixFisE^S,idim1)*sFi%surfaceC(ixFisE^S,idim1)
       {^IFTWOD
       idim2=1+mod(idim1,2)
       }
@@ -155,12 +151,11 @@ contains
         {^IFTHREED 
         ixFisC^L=ixFisC^L+ix3*kr(idim3,^D);
         }
-        bfluxCo(ixCosE^S,idim1)=bfluxCo(ixCosE^S,idim1)&
-       +bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)
+        bfluxCo(ixCosE^S,idim1)=bfluxCo(ixCosE^S,idim1)+bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)
      {end do^DE&\}
     end do
 
-    ! Omit indices for already refined edge, if any
+    ! Omit indices for already refined face, if any
     {
     if (fine_min^D) then
       ixCosVmin^D(^D)=ixCosVmin^D(^D)+1
@@ -176,7 +171,7 @@ contains
       ixCosE^L=ixCosV^L(idim1);
       ! Omit part already refined
       {
-      if (^D.ne.idim1) then
+      if (^D/=idim1) then
         if ((.not.fine_min^D).or.(.not.ghost)) then
          ixCosEmin^D=ixCosVmin^D(idim1)-1
         end if
@@ -186,12 +181,7 @@ contains
       end if
       \}
       ! Fill coarse flux array from coarse field
-      select case(idim1)
-     {case(^D)
-        bfluxCo(ixCosE^S,^D)=wCos(ixCosE^S,^D)*sCo%surfaceC(ixCosE^S,^D)
-     \}
-      end select
-
+      bfluxCo(ixCosE^S,idim1)=wCos(ixCosE^S,idim1)*sCo%surfaceC(ixCosE^S,idim1)
     end do
     ! Finished filling coarse flux array
 
@@ -224,15 +214,11 @@ contains
            if(lvc(idim1,idim2,idim3)<1) cycle
            do ix2=0,1
              do ix3=0,1
-               {ixFisCmin^D=ixFisVmin^D(idim1)&
-                +ix2*kr(^D,idim2)+ix3*kr(^D,idim3);}
-               {ixFisCmax^D=ixFisVmax^D(idim1)&
-                +ix2*kr(^D,idim2)+ix3*kr(^D,idim3);}
-                bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)=quarter*bfluxCo(ixCos^S,idim1)
-                bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)=bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)&
-                  +quarter*(2*ix2-1)*slopes(ixCos^S,idim2)
-                bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)=bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)&
-                  +quarter*(2*ix3-1)*slopes(ixCos^S,idim3)
+              {ixFisCmin^D=ixFisVmin^D(idim1)+ix2*kr(^D,idim2)+ix3*kr(^D,idim3);}
+              {ixFisCmax^D=ixFisVmax^D(idim1)+ix2*kr(^D,idim2)+ix3*kr(^D,idim3);}
+               bfluxFi(ixFisCmin^D:ixFisCmax^D:2,idim1)=quarter*bfluxCo(ixCos^S,idim1)&
+                 +quarter*(2*ix2-1)*slopes(ixCos^S,idim2)&
+                 +quarter*(2*ix3-1)*slopes(ixCos^S,idim3)
              end do
            end do
          end do
@@ -246,7 +232,7 @@ contains
     do idim1=1,ndim
       do idim2=1,ndim
         do idim3=1,ndim
-          if (lvc(idim1,idim2,idim3).lt.1) cycle
+          if (lvc(idim1,idim2,idim3)<1) cycle
           ! Set up indices
           hxFi^L=ixFi^L-kr(idim1,^D);
           jxFi^L=ixFi^L+kr(idim1,^D);
@@ -292,7 +278,7 @@ contains
             + abs(bfluxFi(ijjxFimin^D:ijjxFimax^D:2,idim3))
 
           sigma(ixCo^S,idim1)=sigmau(ixCo^S)+sigmad(ixCo^S)
-          where(sigma(ixCo^S,idim1).ne.zero)
+          where(sigma(ixCo^S,idim1)/=zero)
             sigma(ixCo^S,idim1)=abs(sigmau(ixCo^S)-sigmad(ixCo^S))/sigma(ixCo^S,idim1)
           elsewhere
             sigma(ixCo^S,idim1)=zero
@@ -303,10 +289,10 @@ contains
     end do
 
     ! Directional bias for Toth-Roe prolongation
-    do idim1=1, ndim
-      do idim2=1, ndim
-        do idim3=1, ndim
-          if (lvc(idim1,idim2,idim3).lt.1) cycle
+    do idim1=1,ndim
+      do idim2=1,ndim
+        do idim3=1,ndim
+          if (lvc(idim1,idim2,idim3)<1) cycle
     !       Nonlinear
     !        alpha(ixCo^S,idim1)=sigma(ixCo^S,idim2)-sigma(ixCo^S,idim3)
     !       Homogeneous
@@ -430,17 +416,13 @@ contains
 
     ! Go back to magnetic fields
     do idim1=1,ndim
-       ixFisCmax^D=ixFimax^D;
-       ixFisCmin^D=ixFimin^D-kr(^D,idim1);
-       select case(idim1)
-       {case(^D)
-        where(sFi%surfaceC(ixFisC^S,^D).ne.zero)
-          wFis(ixFisC^S,^D)=bfluxFi(ixFisC^S,^D)/sFi%surfaceC(ixFisC^S,^D)
-        elsewhere
-          wFis(ixFisC^S,^D)=zero
-        end where
-       }
-       end select
+      ixFisCmax^D=ixFimax^D;
+      ixFisCmin^D=ixFimin^D-kr(^D,idim1);
+      where(sFi%surfaceC(ixFisC^S,idim1)/=zero)
+        wFis(ixFisC^S,idim1)=bfluxFi(ixFisC^S,idim1)/sFi%surfaceC(ixFisC^S,idim1)
+      elsewhere
+        wFis(ixFisC^S,idim1)=zero
+      end where
     end do
 
     call faces2centers(ixFi^L,sFi)
@@ -672,7 +654,7 @@ contains
     {do ic^DB=1,2\}
       old_neighbor(:,:^D&,child_igrid(ic^D))=-1
      {do iside=1,2
-        if (ic^D.eq.iside) then
+        if (ic^D==iside) then
           i^DD=kr(^DD,^D)*(2*iside-3);
           old_neighbor(1,i^DD,child_igrid(ic^DD))=&
              fine_neighbors(ic^DD,^D,igrid)%igrid
