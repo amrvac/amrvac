@@ -1692,52 +1692,16 @@ contains
     double precision                   :: aux_vol(ixI^S)
     integer                            :: ixC^L, idir, ic^D, ix^L
 
-    bvec(ixI^S,:)=w(ixI^S,mag(:))
-
     if(stagger_grid) then
-      ! Use the FCT (larger stencil) formula for divB:
-      ! For fct, we calculate the divB on the corners according to Toth (2000), 
-      ! eq. (27) and average to the cell centers for output.
-      {ixCmax^D=ixOmax^D;}
-      {ixCmin^D=ixOmin^D-1;} ! Extend range by one
-      ! Get the corner-centered divb:
-      divb_corner(ixC^S) = zero
-      aux_vol(ixC^S) = zero
-      do idir = 1, ndim ! idir is the component of the field to consider (j)
-       {do ic^DB=0,1\}
-          {ix^L=ixC^L+ic^D;}
-          select case(idir)
-          {^D&   
-          case(^D)
-            sign = dble(ic^D*2 - 1)
-          \}
-          end select
-
-          if (slab_uniform) then
-            divb_corner(ixC^S) = divb_corner(ixC^S) &
-                 + sign * bvec(ix^S,idir)/dxlevel(idir)
-          else
-            divb_corner(ixC^S) = divb_corner(ixC^S) &
-                 + sign * block%dvolume(ix^S) * bvec(ix^S,idir)/dxlevel(idir)
-            aux_vol(ixC^S) = aux_vol(ixC^S) + block%dvolume(ix^S)
-          end if
-       {end do\}
+      divb=0.d0
+      do idir=1,ndim
+        ixC^L=ixO^L-kr(idir,^D);
+        divb(ixO^S)=divb(ixO^S)+block%ws(ixO^S,idir)*block%surfaceC(ixO^S,idir)-&
+                                block%ws(ixC^S,idir)*block%surfaceC(ixC^S,idir)
       end do
-
-      if(slab_uniform) then
-        divb_corner(ixC^S) = divb_corner(ixC^S) / 2.0d0**(ndim-1)
-      else
-        divb_corner(ixC^S) = 2.0d0 * ndim * divb_corner(ixC^S) / aux_vol(ixC^S)
-      end if
-
-      ! Now average back to the cell centers:
-      divb(ixO^S) = zero
-      {do ic^DB=-1,0\}
-        {ixC^L=ixO^L+ic^D;}
-        divb(ixO^S) = divb(ixO^S) + divb_corner(ixC^S)
-      {end do\}
-      divb(ixO^S) = divb(ixO^S) / 2.0d0**ndim
+      divb(ixO^S)=divb(ixO^S)/block%dvolume(ixO^S)
     else
+      bvec(ixI^S,:)=w(ixI^S,mag(:))
       select case(typediv)
       case("central")
         call divvector(bvec,ixI^L,ixO^L,divb)
@@ -1745,6 +1709,7 @@ contains
         call divvectorS(bvec,ixI^L,ixO^L,divb)
       end select
     end if
+
   end subroutine get_divb
 
   !> get dimensionless div B = |divB| * volume / area / |B|

@@ -951,10 +951,10 @@ contains
 
     integer                            :: ixC^L, hxC^L, ixCp^L, ixCm^L, hxO^L, idim, idim1, idim2, idir
     double precision                   :: xC(ixI^S,1:ndim)
-    double precision                   :: circ(ixI^S,1:ndim), dxidir
+    double precision                   :: circ(ixI^S,1:ndim), dxidir(ixI^S)
 
-    A(:^D&,:)=zero
-    ws(:^D&,:)=zero
+    A=zero
+    ws=zero
 
     {ixCmax^D=ixOmax^D;}
     {ixCmin^D=ixOmin^D-1;} ! Extend range by one
@@ -962,9 +962,7 @@ contains
       do idim=1,ndim
         ! Get edge coordinates
         if (idim/=idir) then
-          {ixCp^L=ixC^L+kr(idim,^D);}
-          {ixCm^L=ixC^L-kr(idim,^D);}
-          xC(ixC^S,idim) = half * (x(ixCp^S,idim) + x(ixC^S,idim))
+          xC(ixC^S,idim)=x(ixC^S,idim)+half*block%dx(ixC^S,idim)
         else
           xC(ixC^S,idim)=x(ixC^S,idim)
         end if
@@ -987,33 +985,29 @@ contains
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
         do idir=1,ndir ! Direction of line integral
+          if(lvc(idim1,idim2,idir)==0) cycle
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
           if (idir <= ndim) then
-            dxidir = dxlevel(idir)
+            dxidir(ixC^S) = block%ds(ixC^S,idir)
           else
-            dxidir = 1.0d0
+            dxidir(ixC^S) = 1.0d0
           end if
           circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)*dxidir &
+                           +lvc(idim1,idim2,idir)*dxidir(ixC^S) &
                            *(A(ixC^S,idir)&
                             -A(hxC^S,idir))
         end do
       end do
     end do
 
-    ! Set NaN to zero (should not occur)
-    where(circ/=circ)
-       circ=zero
-    end where
-
     ! Divide by the area of the face to get B
     do idim1=1,ndim
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
-      where(ps(saveigrid)%surfaceC(ixC^S,idim1) > 1.0d-9*ps(saveigrid)%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/ps(saveigrid)%surfaceC(ixC^S,idim1)
+      where(block%surfaceC(ixC^S,idim1) > 1.0d-9*block%dvolume(ixC^S))
+        circ(ixC^S,idim1)=circ(ixC^S,idim1)/block%surfaceC(ixC^S,idim1)
       elsewhere
         circ(ixC^S,idim1)=zero
       end where
