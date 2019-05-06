@@ -37,6 +37,7 @@ amr_neighbors.o: mod_geometry.mod
 amr_solution_node.o: mod_forest.mod
 amr_solution_node.o: mod_geometry.mod
 boundary_conditions.o: mod_bc_data.mod
+boundary_conditions.o: mod_constrained_transport.mod
 coarsen.o: mod_constrained_transport.mod
 coarsen.o: mod_physics.mod
 connectivity.o: mod_ghostcells_update.mod

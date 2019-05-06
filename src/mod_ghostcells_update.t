@@ -442,7 +442,7 @@ contains
                else 
                   if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
                end if
-               call bc_phys(iside,idims,time,qdt,psb(igrid)%w,psb(igrid)%x,ixG^L,ixB^L)
+               call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^L,ixB^L)
             end do
          end do
       end do
@@ -903,8 +903,7 @@ contains
                 ii^D=kr(^D,idims)*(2*iside-3);
                 if ({abs(i^D)==1.and.abs(ii^D)==1|.or.}) cycle
                 if (neighbor_type(ii^D,igrid)/=neighbor_boundary) cycle
-                call bc_phys(iside,idims,time,0.d0,psc(igrid)%w,&
-                       psc(igrid)%x,ixCoG^L,ixB^L)
+                call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoG^L,ixB^L)
              end do
           end do
         end if

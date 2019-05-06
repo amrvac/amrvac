@@ -31,8 +31,10 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), pointer :: x=>Null()
       !> Cell sizes in coordinate units
       double precision, dimension(:^D&,:), pointer :: dx=>Null()
-      !> Cell sizes in length unit
+      !> Cell sizes at cell center in length unit
       double precision, dimension(:^D&,:), pointer :: ds=>Null()
+      !> Cell sizes at cell face in length unit
+      double precision, dimension(:^D&,:), pointer :: dsC=>Null()
       !> Volumes of a cell
       double precision, dimension(:^D&), pointer :: dvolume=>Null()
       !> Areas of cell-center surfaces

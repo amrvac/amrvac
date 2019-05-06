@@ -436,11 +436,13 @@ subroutine alloc_node(igrid)
     case (Cartesian)
       ps(igrid)%dvolume(ixGext^S)= {^D&rnode(rpdx^D_,igrid)|*}
       ps(igrid)%ds(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
+      ps(igrid)%dsC(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       psc(igrid)%dvolume(ixCoG^S)= {^D&2.d0*rnode(rpdx^D_,igrid)|*}
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
     case (Cartesian_stretched)
       ps(igrid)%dvolume(ixGext^S)= {^D&ps(igrid)%dx(ixGext^S,^D)|*}
       ps(igrid)%ds(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
+      ps(igrid)%dsC(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       psc(igrid)%dvolume(ixCoG^S)= {^D&psc(igrid)%dx(ixCoG^S,^D)|*}
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
     case (spherical)
@@ -455,19 +457,28 @@ subroutine alloc_node(igrid)
              *two*dabs(dsin(psc(igrid)%x(ixCoG^S,2))) &
              *dsin(half*psc(igrid)%dx(ixCoG^S,2))}{^IFTHREED*psc(igrid)%dx(ixCoG^S,3)}
       ps(igrid)%ds(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
-      {^NOONED ps(igrid)%ds(ixGext^S,2)=xext(ixGext^S,1)*ps(igrid)%dx(ixGext^S,2)}
-      {^IFTHREED ps(igrid)%ds(ixGext^S,3)= &
-               xext(ixGext^S,1)*dsin(xext(ixGext^S,2))*ps(igrid)%dx(ixGext^S,3)}
+      {^NOONED   ps(igrid)%ds(ixGext^S,2)=xext(ixGext^S,1)*ps(igrid)%dx(ixGext^S,2)}
+      {^IFTHREED ps(igrid)%ds(ixGext^S,3)=xext(ixGext^S,1)*dsin(xext(ixGext^S,2))*&
+                                          ps(igrid)%dx(ixGext^S,3)}
+      ps(igrid)%dsC(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
+      {^NOONED   ps(igrid)%dsC(ixGext^S,2)=(xext(ixGext^S,1)+half*ps(igrid)%dx(ixGext^S,1))*&
+                                          ps(igrid)%dx(ixGext^S,2)}
+      {^IFTHREED ps(igrid)%dsC(ixGext^S,3)=(xext(ixGext^S,1)+half*ps(igrid)%dx(ixGext^S,1))*&
+                                          dsin(xext(ixGext^S,2))*ps(igrid)%dx(ixGext^S,3)}
     case (cylindrical)
       ps(igrid)%dvolume(ixGext^S)=dabs(xext(ixGext^S,1)) &
            *ps(igrid)%dx(ixGext^S,1){^DE&*ps(igrid)%dx(ixGext^S,^DE) }
       psc(igrid)%dvolume(ixCoG^S)=dabs(psc(igrid)%x(ixCoG^S,1)) &
            *psc(igrid)%dx(ixCoG^S,1){^DE&*psc(igrid)%dx(ixCoG^S,^DE) }
       ps(igrid)%ds(ixGext^S,r_)=ps(igrid)%dx(ixGext^S,r_)
-      if(z_>0.and.z_<=ndim) ps(igrid)%ds(ixGext^S,z_)=ps(igrid)%dx(ixGext^S,z_)
-      if (phi_ > 0) then
-        {if (^DE==phi_) ps(igrid)%ds(ixGext^S,^DE)= &
-                 xext(ixGext^S,1)*ps(igrid)%dx(ixGext^S,^DE)\}
+      if(z_>0.and.z_<=ndim) then
+        ps(igrid)%ds(ixGext^S,z_)=ps(igrid)%dx(ixGext^S,z_)
+        ps(igrid)%dsC(ixGext^S,z_)=ps(igrid)%dx(ixGext^S,z_)
+      end if
+      if(phi_>0.and.phi_<=ndim) then
+        ps(igrid)%ds(ixGext^S,phi_)=xext(ixGext^S,1)*ps(igrid)%dx(ixGext^S,phi_)
+        ps(igrid)%dsC(ixGext^S,phi_)=(xext(ixGext^S,1)+&
+                   half*ps(igrid)%dx(ixGext^S,1))*ps(igrid)%dx(ixGext^S,phi_)
       end if
     case default
       call mpistop("Sorry, coordinate unknown")
@@ -533,7 +544,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     ! allocate coordinates
     allocate(s%x(ixG^S,1:ndim))
     allocate(s%dx(ixGext^S,1:ndim), &
-               s%ds(ixGext^S,1:ndim))
+               s%ds(ixGext^S,1:ndim),s%dsC(ixGext^S,1:ndim))
     allocate(s%dvolume(ixGext^S))
     allocate(s%surfaceC(ixG^S,1:ndim), &
              s%surface(ixG^S,1:ndim))
@@ -544,6 +555,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     s%x=>ps(igrid)%x
     s%dx=>ps(igrid)%dx
     s%ds=>ps(igrid)%ds
+    s%dsC=>ps(igrid)%dsC
     s%dvolume=>ps(igrid)%dvolume
     s%surfaceC=>ps(igrid)%surfaceC
     s%surface=>ps(igrid)%surface

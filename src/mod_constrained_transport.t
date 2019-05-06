@@ -990,7 +990,7 @@ contains
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
           if (idir <= ndim) then
-            dxidir(ixC^S) = block%ds(ixC^S,idir)
+            dxidir(ixC^S) = block%dsC(ixC^S,idir)
           else
             dxidir(ixC^S) = 1.0d0
           end if

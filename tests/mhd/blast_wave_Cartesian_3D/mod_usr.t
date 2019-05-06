@@ -10,6 +10,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_set_B0        => specialset_B0
+    usr_init_vector_potential=>initvecpot_usr
 
     call set_coordinate_system("Cartesian")
     call mhd_activate()
@@ -18,6 +19,7 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
+    use mod_constrained_transport
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -40,6 +42,9 @@ contains
     endwhere
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
+    else if(stagger_grid) then
+      call b_from_vectorpotential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      call faces2centers(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
@@ -51,6 +56,24 @@ contains
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the edges
+    ! used by b_from_vectorpotential()
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    if (idir==3) then
+      A(ixC^S) = 2.d0*xC(ixC^S,2)
+    else if(idir==2) then 
+      A(ixC^S) = xC(ixC^S,3)
+    else
+      A(ixC^S) = xC(ixC^S,3)
+    end if
+
+  end subroutine initvecpot_usr
 
   subroutine get_B(ixI^L,ixO^L,B,x)
     integer, intent(in) :: ixI^L, ixO^L
