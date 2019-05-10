@@ -1,6 +1,7 @@
 !> Build up AMR
 subroutine settree
   use mod_global_parameters
+  use mod_fix_conserve
   use mod_advance, only: advance
 
   ! create and initialize grids on all levels > 1. On entry, all
@@ -36,6 +37,9 @@ subroutine settree
        if (levmax/=levnew) exit
      end if
   end do
+
+  ! set up boundary flux conservation arrays
+  if(levmax>levmin) call allocateBflux
 
 end subroutine settree
 

@@ -33,6 +33,7 @@ amrgrid.o: mod_advance.mod
 amrgrid.o: mod_amr_fct.mod
 amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
+amrini.o: mod_ghostcells_update.mod
 amr_neighbors.o: mod_geometry.mod
 amr_solution_node.o: mod_forest.mod
 amr_solution_node.o: mod_geometry.mod

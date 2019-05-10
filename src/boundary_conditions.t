@@ -11,9 +11,9 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
   double precision :: wtmp(ixG^S,1:nwflux)
 
   integer :: idir, is
-  integer :: ixIs^L,hxI^L,jxI^L
+  integer :: ixOs^L,hxO^L,jxO^L
   double precision :: Q(ixG^S),Qp(ixG^S) 
-  integer :: iw, iB, ix^D, ixI^L, ixM^L, nghostcellsi,iib^D
+  integer :: iw, iB, ix^D, ixO^L, ixM^L, nghostcellsi,iib^D
   logical  :: isphysbound
 
   associate(x=>s%x,w=>s%w,ws=>s%ws)
@@ -22,27 +22,27 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
      if (iside==2) then
         ! maximal boundary
         iB=ismax^D
-        ixImin^DD=ixBmax^D+1-nghostcells^D%ixImin^DD=ixBmin^DD;
-        ixImax^DD=ixBmax^DD;
+        ixOmin^DD=ixBmax^D+1-nghostcells^D%ixOmin^DD=ixBmin^DD;
+        ixOmax^DD=ixBmax^DD;
         ! cont/symm/asymm types
         do iw=1,nwflux+nwaux
            select case (typeboundary(iw,iB))
            case ("symm")
-              w(ixI^S,iw) = w(ixImin^D-1:ixImin^D-nghostcells:-1^D%ixI^S,iw)
+              w(ixO^S,iw) = w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,iw)
            case ("asymm")
-              w(ixI^S,iw) =-w(ixImin^D-1:ixImin^D-nghostcells:-1^D%ixI^S,iw)
+              w(ixO^S,iw) =-w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,iw)
            case ("cont")
-              do ix^D=ixImin^D,ixImax^D
-                 w(ix^D^D%ixI^S,iw) = w(ixImin^D-1^D%ixI^S,iw)
+              do ix^D=ixOmin^D,ixOmax^D
+                 w(ix^D^D%ixO^S,iw) = w(ixOmin^D-1^D%ixO^S,iw)
               end do
            case("noinflow")
               if (iw==1+^D)then
-                do ix^D=ixImin^D,ixImax^D
-                    w(ix^D^D%ixI^S,iw) = max(w(ixImin^D-1^D%ixI^S,iw),zero)
+                do ix^D=ixOmin^D,ixOmax^D
+                    w(ix^D^D%ixO^S,iw) = max(w(ixOmin^D-1^D%ixO^S,iw),zero)
                 end do
               else
-                do ix^D=ixImin^D,ixImax^D
-                    w(ix^D^D%ixI^S,iw) = w(ixImin^D-1^D%ixI^S,iw)
+                do ix^D=ixOmin^D,ixOmax^D
+                    w(ix^D^D%ixO^S,iw) = w(ixOmin^D-1^D%ixO^S,iw)
                 end do
               end if
            case ("special", "bc_data")
@@ -51,7 +51,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
               ! skip it here, do AFTER all normal type boundaries are set
            case ("aperiodic")
               !this just multiplies the variables with (-), they have been set from neighbors just like periodic.
-              w(ixI^S,iw) = - w(ixI^S,iw)
+              w(ixO^S,iw) = - w(ixO^S,iw)
            case ("periodic")
   !            call mpistop("periodic bc info should come from neighbors")
            case default
@@ -63,16 +63,16 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
           do idir=1,nws
           ! At this stage, extrapolation is applied only to the tangential components
             if(idir==^D) cycle 
-            ixIsmax^DD=ixImax^DD;
-            ixIsmin^DD=ixImin^DD-kr(^DD,idir);
+            ixOsmax^DD=ixOmax^DD;
+            ixOsmin^DD=ixOmin^DD-kr(^DD,idir);
             select case(typeboundary(iw_mag(idir),iB))
             case ("symm")
-              ws(ixIs^S,idir) = ws(ixIsmin^D-1:ixIsmin^D-nghostcells:-1^D%ixIs^S,idir)
+              ws(ixOs^S,idir) = ws(ixOsmin^D-1:ixOsmin^D-nghostcells:-1^D%ixOs^S,idir)
             case ("asymm")
-              ws(ixIs^S,idir) =-ws(ixIsmin^D-1:ixIsmin^D-nghostcells:-1^D%ixIs^S,idir)
+              ws(ixOs^S,idir) =-ws(ixOsmin^D-1:ixOsmin^D-nghostcells:-1^D%ixOs^S,idir)
             case ("cont")
-              do ix^D=ixIsmin^D,ixIsmax^D
-                 ws(ix^D^D%ixIs^S,idir) = ws(ixIsmin^D-1^D%ixIs^S,idir)
+              do ix^D=ixOsmin^D,ixOsmax^D
+                 ws(ix^D^D%ixOs^S,idir) = ws(ixOsmin^D-1^D%ixOs^S,idir)
               end do
             case ("periodic")
             case ("special")
@@ -88,68 +88,68 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
           do idir=1,nws
             ! Consider only normal direction
             if (idir/=^D) cycle
-            ixIs^L=ixI^L;
-            hxI^L=ixI^L-nghostcells*kr(^DD,^D);
+            ixOs^L=ixO^L;
+            hxO^L=ixO^L-nghostcells*kr(^DD,^D);
             ! Calculate divergence and partial divergence
-            call div_staggered(hxI^L,s,Q(hxI^S))
+            call div_staggered(hxO^L,s,Q(hxO^S))
             select case(typeboundary(iw_mag(idir),iB))
             case("symm")
-              ws(ixIs^S,idir)=zero
+              ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixI^L,s,Qp(ixI^S))
-                ws(ixIsmin^D+ix^D^D%ixIs^S,idir)=&
-                  (Q(hxImax^D-ix^D^D%hxI^S)*s%dvolume(hxImax^D-ix^D^D%hxI^S)&
-                 -Qp(ixImin^D+ix^D^D%ixI^S)*s%dvolume(ixImin^D+ix^D^D%ixI^S))&
-                  /s%surfaceC(ixIsmin^D+ix^D^D%ixIs^S,^D)
+                call div_staggered(ixO^L,s,Qp(ixO^S))
+                ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
+                  (Q(hxOmax^D-ix^D^D%hxO^S)*s%dvolume(hxOmax^D-ix^D^D%hxO^S)&
+                 -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
+                  /s%surfaceC(ixOsmin^D+ix^D^D%ixOs^S,^D)
               end do
             case("asymm")
-              ws(ixIs^S,idir)=zero
+              ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixI^L,s,Qp(ixI^S))
-                ws(ixIsmin^D+ix^D^D%ixIs^S,idir)=&
-                 (-Q(hxImax^D-ix^D^D%hxI^S)*s%dvolume(hxImax^D-ix^D^D%hxI^S)&
-                 -Qp(ixImin^D+ix^D^D%ixI^S)*s%dvolume(ixImin^D+ix^D^D%ixI^S))&
-                  /s%surfaceC(ixIsmin^D+ix^D^D%ixIs^S,^D)
+                call div_staggered(ixO^L,s,Qp(ixO^S))
+                ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
+                 (-Q(hxOmax^D-ix^D^D%hxO^S)*s%dvolume(hxOmax^D-ix^D^D%hxO^S)&
+                 -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
+                  /s%surfaceC(ixOsmin^D+ix^D^D%ixOs^S,^D)
               end do
             case("cont")
-              ws(ixIs^S,idir)=zero
+              ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixI^L,s,Qp(ixI^S))
-                ws(ixIsmin^D+ix^D^D%ixIs^S,idir)=&
-                  (Q(hxImax^D^D%hxI^S)*s%dvolume(hxImax^D^D%hxI^S)&
-                 -Qp(ixImin^D+ix^D^D%ixI^S)*s%dvolume(ixImin^D+ix^D^D%ixI^S))&
-                  /s%surfaceC(ixIsmin^D+ix^D^D%ixIs^S,^D)
+                call div_staggered(ixO^L,s,Qp(ixO^S))
+                ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
+                  (Q(hxOmax^D^D%hxO^S)*s%dvolume(hxOmax^D^D%hxO^S)&
+                 -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
+                  /s%surfaceC(ixOsmin^D+ix^D^D%ixOs^S,^D)
               end do
             case("periodic")
             end select
           end do
           ! Fill cell averages
-          call faces2centers(ixI^L,s)
+          call faces2centers(ixO^L,s)
         end if
      else
         ! minimal boundary
         iB=ismin^D
-        ixImin^DD=ixBmin^DD;
-        ixImax^DD=ixBmin^D-1+nghostcells^D%ixImax^DD=ixBmax^DD;
+        ixOmin^DD=ixBmin^DD;
+        ixOmax^DD=ixBmin^D-1+nghostcells^D%ixOmax^DD=ixBmax^DD;
         ! cont/symm/asymm types
         do iw=1,nwflux+nwaux
            select case (typeboundary(iw,iB))
            case ("symm")
-              w(ixI^S,iw) = w(ixImax^D+nghostcells:ixImax^D+1:-1^D%ixI^S,iw)
+              w(ixO^S,iw) = w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
            case ("asymm")
-              w(ixI^S,iw) =-w(ixImax^D+nghostcells:ixImax^D+1:-1^D%ixI^S,iw)
+              w(ixO^S,iw) =-w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
            case ("cont")
-              do ix^D=ixImin^D,ixImax^D
-                 w(ix^D^D%ixI^S,iw) = w(ixImax^D+1^D%ixI^S,iw)
+              do ix^D=ixOmin^D,ixOmax^D
+                 w(ix^D^D%ixO^S,iw) = w(ixOmax^D+1^D%ixO^S,iw)
               end do
            case("noinflow")
               if (iw==1+^D)then
-                 do ix^D=ixImin^D,ixImax^D
-                   w(ix^D^D%ixI^S,iw) = min(w(ixImax^D+1^D%ixI^S,iw),zero)
+                 do ix^D=ixOmin^D,ixOmax^D
+                   w(ix^D^D%ixO^S,iw) = min(w(ixOmax^D+1^D%ixO^S,iw),zero)
                  end do
               else
-                 do ix^D=ixImin^D,ixImax^D
-                   w(ix^D^D%ixI^S,iw) = w(ixImax^D+1^D%ixI^S,iw)
+                 do ix^D=ixOmin^D,ixOmax^D
+                   w(ix^D^D%ixO^S,iw) = w(ixOmax^D+1^D%ixO^S,iw)
                  end do
               end if
            case ("special", "bc_data")
@@ -158,7 +158,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
               ! skip it here, do AFTER all normal type boundaries are set
            case ("aperiodic")
               !this just multiplies the variables with (-), they have been set from neighbors just like periodic.
-              w(ixI^S,iw) = - w(ixI^S,iw)
+              w(ixO^S,iw) = - w(ixO^S,iw)
            case ("periodic")
   !            call mpistop("periodic bc info should come from neighbors")
            case default
@@ -170,16 +170,16 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
           do idir=1,nws
           ! At this stage, extrapolation is applied only to the tangential components
             if(idir==^D) cycle 
-            ixIsmax^DD=ixImax^DD;
-            ixIsmin^DD=ixImin^DD-kr(^DD,idir);
+            ixOsmax^DD=ixOmax^DD;
+            ixOsmin^DD=ixOmin^DD-kr(^DD,idir);
             select case(typeboundary(iw_mag(idir),iB))
             case ("symm")
-              ws(ixIs^S,idir) = ws(ixIsmax^D+nghostcells:ixIsmax^D+1:-1^D%ixIs^S,idir)
+              ws(ixOs^S,idir) = ws(ixOsmax^D+nghostcells:ixOsmax^D+1:-1^D%ixOs^S,idir)
             case ("asymm")
-              ws(ixIs^S,idir) =-ws(ixIsmax^D+nghostcells:ixIsmax^D+1:-1^D%ixIs^S,idir)
+              ws(ixOs^S,idir) =-ws(ixOsmax^D+nghostcells:ixOsmax^D+1:-1^D%ixOs^S,idir)
             case ("cont")
-              do ix^D=ixIsmin^D,ixIsmax^D
-                 ws(ix^D^D%ixIs^S,idir) = ws(ixIsmax^D+1^D%ixIs^S,idir)
+              do ix^D=ixOsmin^D,ixOsmax^D
+                 ws(ix^D^D%ixOs^S,idir) = ws(ixOsmax^D+1^D%ixOs^S,idir)
               end do
             case ("periodic")
             case ("special")
@@ -195,58 +195,57 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
           do idir=1,nws
             ! Consider only normal direction
             if (idir/=^D) cycle
-            ixIs^L=ixI^L-kr(^DD,^D);
-            jxI^L=ixI^L+nghostcells*kr(^DD,^D);
+            ixOs^L=ixO^L-kr(^DD,^D);
+            jxO^L=ixO^L+nghostcells*kr(^DD,^D);
             ! Calculate divergence and partial divergence
-            call div_staggered(jxI^L,s,Q(jxI^S))
+            call div_staggered(jxO^L,s,Q(jxO^S))
             select case(typeboundary(iw_mag(idir),iB))
             case("symm")
-              ws(ixIs^S,idir)=zero
+              ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixI^L,s,Qp(ixI^S))
-                ws(ixIsmax^D-ix^D^D%ixIs^S,idir)=&
-                 -(Q(jxImin^D+ix^D^D%jxI^S)*s%dvolume(jxImin^D+ix^D^D%jxI^S)&
-                 -Qp(ixImax^D-ix^D^D%ixI^S)*s%dvolume(ixImax^D-ix^D^D%ixI^S))&
-                  /s%surfaceC(ixIsmax^D-ix^D^D%ixIs^S,^D)
+                call div_staggered(ixO^L,s,Qp(ixO^S))
+                ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
+                 -(Q(jxOmin^D+ix^D^D%jxO^S)*s%dvolume(jxOmin^D+ix^D^D%jxO^S)&
+                 -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
+                  /s%surfaceC(ixOsmax^D-ix^D^D%ixOs^S,^D)
               end do
             case("asymm")
-              ws(ixIs^S,idir)=zero
+              ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixI^L,s,Qp(ixI^S))
-                ws(ixIsmax^D-ix^D^D%ixIs^S,idir)=&
-                 -(-Q(jxImin^D+ix^D^D%jxI^S)*s%dvolume(jxImin^D+ix^D^D%jxI^S)&
-                 -Qp(ixImax^D-ix^D^D%ixI^S)*s%dvolume(ixImax^D-ix^D^D%ixI^S))&
-                  /s%surfaceC(ixIsmax^D-ix^D^D%ixIs^S,^D)
+                call div_staggered(ixO^L,s,Qp(ixO^S))
+                ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
+                 -(-Q(jxOmin^D+ix^D^D%jxO^S)*s%dvolume(jxOmin^D+ix^D^D%jxO^S)&
+                 -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
+                  /s%surfaceC(ixOsmax^D-ix^D^D%ixOs^S,^D)
               end do
             case("cont")
-              ws(ixIs^S,idir)=zero
+              ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixI^L,s,Qp(ixI^S))
-                ws(ixIsmax^D-ix^D^D%ixIs^S,idir)=&
-                 -(Q(jxImin^D^D%hxI^S)*s%dvolume(jxImin^D^D%hxI^S)&
-                 -Qp(ixImax^D-ix^D^D%ixI^S)*s%dvolume(ixImax^D-ix^D^D%ixI^S))&
-                  /s%surfaceC(ixIsmax^D-ix^D^D%ixIs^S,^D)
+                call div_staggered(ixO^L,s,Qp(ixO^S))
+                ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
+                 -(Q(jxOmin^D^D%jxO^S)*s%dvolume(jxOmin^D^D%jxO^S)&
+                 -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
+                  /s%surfaceC(ixOsmax^D-ix^D^D%ixOs^S,^D)
               end do
             case("periodic")
             end select
           end do
           ! Fill cell averages
-          call faces2centers(ixI^L,s)
+          call faces2centers(ixO^L,s)
         end if
      end if \}
   end select
 
-  ! do special case AFTER all normal cases are set
-  !do iw=1,nwflux+nwaux
-  ! opedit: iw==0 since this breaks fewest of setups.
+  ! do user defined special boundary conditions
   if (any(typeboundary(1:nwflux+nwaux,iB)=="special")) then
      if (.not. associated(usr_special_bc)) &
           call mpistop("usr_special_bc not defined")
-     call usr_special_bc(time,ixG^L,ixI^L,iB,w,x)
+     call usr_special_bc(time,ixG^L,ixO^L,iB,w,x)
   end if
 
+  ! fill boundary conditions from external data vtk files
   if (any(typeboundary(1:nwflux+nwaux,iB)=="bc_data")) then
-     call bc_data_set(time,ixG^L,ixI^L,iB,w,x)
+     call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
   end if
 
   {#IFDEF EVOLVINGBOUNDARY
@@ -261,35 +260,35 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
     {case (^D)
        if (iside==2) then
           ! maximal boundary
-          ixImin^DD=ixGmax^D+1-nghostcellsi^D%ixImin^DD=ixBmin^DD;
-          ixImax^DD=ixBmax^DD;
-          if(all(w(ixI^S,1:nwflux)==0.d0)) then
-            do ix^D=ixImin^D,ixImax^D
-               w(ix^D^D%ixI^S,1:nwflux) = w(ixImin^D-1^D%ixI^S,1:nwflux)
+          ixOmin^DD=ixGmax^D+1-nghostcellsi^D%ixOmin^DD=ixBmin^DD;
+          ixOmax^DD=ixBmax^DD;
+          if(all(w(ixO^S,1:nwflux)==0.d0)) then
+            do ix^D=ixOmin^D,ixOmax^D
+               w(ix^D^D%ixO^S,1:nwflux) = w(ixOmin^D-1^D%ixO^S,1:nwflux)
             end do
           end if
           if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
-            ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
-            ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
+            ixOmin^DD=ixOmin^D^D%ixOmin^DD=ixMmin^DD;
+            ixOmax^DD=ixOmax^D^D%ixOmax^DD=ixMmax^DD;
             wtmp(ixG^S,1:nw)=pso(saveigrid)%w(ixG^S,1:nw)
-            call characteristic_project(idims,iside,ixG^L,ixI^L,wtmp,x,dxlevel,qdt)
-            w(ixI^S,1:nwflux)=wtmp(ixI^S,1:nwflux)
+            call characteristic_project(idims,iside,ixG^L,ixO^L,wtmp,x,dxlevel,qdt)
+            w(ixO^S,1:nwflux)=wtmp(ixO^S,1:nwflux)
           end if
        else
           ! minimal boundary
-          ixImin^DD=ixBmin^DD;
-          ixImax^DD=ixGmin^D-1+nghostcellsi^D%ixImax^DD=ixBmax^DD;
-          if(all(w(ixI^S,1:nwflux)==0.d0)) then
-            do ix^D=ixImin^D,ixImax^D
-               w(ix^D^D%ixI^S,1:nwflux) = w(ixImax^D+1^D%ixI^S,1:nwflux)
+          ixOmin^DD=ixBmin^DD;
+          ixOmax^DD=ixGmin^D-1+nghostcellsi^D%ixOmax^DD=ixBmax^DD;
+          if(all(w(ixO^S,1:nwflux)==0.d0)) then
+            do ix^D=ixOmin^D,ixOmax^D
+               w(ix^D^D%ixO^S,1:nwflux) = w(ixOmax^D+1^D%ixO^S,1:nwflux)
             end do
           end if
           if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
-            ixImin^DD=ixImin^D^D%ixImin^DD=ixMmin^DD;
-            ixImax^DD=ixImax^D^D%ixImax^DD=ixMmax^DD;
+            ixOmin^DD=ixOmin^D^D%ixOmin^DD=ixMmin^DD;
+            ixOmax^DD=ixOmax^D^D%ixOmax^DD=ixMmax^DD;
             wtmp(ixG^S,1:nw)=pso(saveigrid)%w(ixG^S,1:nw)
-            call characteristic_project(idims,iside,ixG^L,ixI^L,wtmp,x,dxlevel,qdt)
-            w(ixI^S,1:nwflux)=wtmp(ixI^S,1:nwflux)
+            call characteristic_project(idims,iside,ixG^L,ixO^L,wtmp,x,dxlevel,qdt)
+            w(ixO^S,1:nwflux)=wtmp(ixO^S,1:nwflux)
           end if
        end if \}
     end select

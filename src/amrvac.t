@@ -54,7 +54,12 @@ program amrvac
      if (firstprocess) call modify_IC
 
      ! reset AMR grid
-     if (reset_grid) call settree
+     if (reset_grid) then
+       call settree
+     else
+       ! set up boundary flux conservation arrays
+       if (levmax>levmin) call allocateBflux
+     end if
 
      ! select active grids
      call selectgrids
@@ -94,23 +99,18 @@ program amrvac
      ! form and initialize all grids at level one
      call initlevelone
 
-     ! select active grids
-     call selectgrids
-
-     ! update ghost cells
-     call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
-
      ! set up and initialize finer level grids, if needed
      call settree
 
-     if(stagger_grid .and. levmax>levmin) call recalculateB
+     !{^IFTHREED if(stagger_grid .and. levmax>levmin) call recalculateB}
+
+     ! select active grids
+     call selectgrids
 
      if (use_particles) call particles_create()
 
   end if
 
-  ! set up boundary flux conservation arrays
-  if (levmax>levmin) call allocateBflux
 
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'

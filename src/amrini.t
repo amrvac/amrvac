@@ -1,6 +1,7 @@
 !> Generate and initialize all grids at the coarsest level (level one)
 subroutine initlevelone
   use mod_global_parameters
+  use mod_ghostcells_update
 
   integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
 
@@ -27,6 +28,9 @@ subroutine initlevelone
   call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
                      MPI_SUM,icomm,ierrmpi)
   }
+
+  ! update ghost cells
+  call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
 
 end subroutine initlevelone
 
