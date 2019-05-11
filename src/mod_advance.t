@@ -383,6 +383,7 @@ contains
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
       call fix_conserve(psb,idim^LIM,1,nwflux)
+      if(stagger_grid) call fix_edges(psb,idim^LIM)
     end if
 
     if(stagger_grid) then

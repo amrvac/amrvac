@@ -127,6 +127,24 @@ contains
       call saveamrfile(2)
     end if
     mf_advance=.true.
+    ! point bc mpi datatype to partial type for magnetic field
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1
+    ! create bc mpi datatype for ghostcells update
+    call create_bc_mpi_datatype(mag(1)-1,ndir)
+    ! point bc mpi datatype to partial type for velocity field
+    type_send_srl=>type_send_srl_p2
+    type_recv_srl=>type_recv_srl_p2
+    type_send_r=>type_send_r_p2
+    type_recv_r=>type_recv_r_p2
+    type_send_p=>type_send_p_p2
+    type_recv_p=>type_recv_p_p2
+    ! create bc mpi datatype for ghostcells update
+    call create_bc_mpi_datatype(mom(1)-1,ndir)
     ! convert conservative variables to primitive ones which are used during MF
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        call phys_to_primitive(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
@@ -213,6 +231,13 @@ contains
         exit
       end if
     enddo
+    ! point bc mpi data type back to full type for MHD
+    type_send_srl=>type_send_srl_f
+    type_recv_srl=>type_recv_srl_f
+    type_send_r=>type_send_r_f
+    type_recv_r=>type_recv_r_f
+    type_send_p=>type_send_p_f
+    type_recv_p=>type_recv_p_f
     bcphys=.true.
     ! set velocity back to zero and convert primitive variables back to conservative ones
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -662,10 +687,24 @@ contains
       call sendflux(idim^LIM)
       call fix_conserve(psb,idim^LIM,mag(1),mag(ndir))
     end if
+    ! point bc mpi datatype to partial type for magnetic field
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1
     ! update B in ghost cells
     call getbc(qt+qdt,qdt,psb,mag(1)-1,ndir)
     ! calculate magnetofrictional velocity
     call mf_velocity_update(qdt)
+    ! point bc mpi datatype to partial type for velocity field
+    type_send_srl=>type_send_srl_p2
+    type_recv_srl=>type_recv_srl_p2
+    type_send_r=>type_send_r_p2
+    type_recv_r=>type_recv_r_p2
+    type_send_p=>type_send_p_p2
+    type_recv_p=>type_recv_p_p2
     ! update magnetofrictional velocity in ghost cells
     call getbc(qt+qdt,qdt,psb,mom(1)-1,ndir)
 

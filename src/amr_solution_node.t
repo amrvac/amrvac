@@ -535,8 +535,8 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
 
   allocate(s%w(ixG^S,1:nw))
   s%ixG^L=ixG^L;
+  {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
   if(stagger_grid) then
-    {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
     allocate(s%ws(ixGs^S,1:nws))
     s%ixGs^L=ixGs^L;
   end if
@@ -546,7 +546,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     allocate(s%dx(ixGext^S,1:ndim), &
                s%ds(ixGext^S,1:ndim),s%dsC(ixGext^S,1:ndim))
     allocate(s%dvolume(ixGext^S))
-    allocate(s%surfaceC(ixG^S,1:ndim), &
+    allocate(s%surfaceC(ixGs^S,1:ndim), &
              s%surface(ixG^S,1:ndim))
     ! allocate physical boundary flag
     allocate(s%is_physical_boundary(2*ndim))

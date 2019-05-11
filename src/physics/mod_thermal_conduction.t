@@ -69,6 +69,9 @@ module mod_thermal_conduction
   !> Consider thermal conduction saturation effect (.true.) or not (.false.)
   logical, private :: tc_saturate=.true.
 
+  !> Logical switch for prepare mpi datatype only once
+  logical, private :: first=.true.
+
   !> Logical switch for test constant conductivity
   logical, private :: tc_constant=.false.
 
@@ -189,6 +192,19 @@ contains
     integer:: iigrid, igrid,j
     logical :: evenstep
 
+    ! point bc mpi datatype to partial type for thermalconduction
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1 
+    ! create bc mpi datatype for ghostcells update
+    if(first) then
+      call create_bc_mpi_datatype(e_-1,1)
+      first=.false.
+    end if
+
     call init_comm_fix_conserve(1,ndim,1)
     fix_conserve_at_step = time_advance .and. levmax>levmin
 
@@ -233,6 +249,13 @@ contains
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
       end do
+      ! point bc mpi data type back to full type for (M)HD
+      type_send_srl=>type_send_srl_f
+      type_recv_srl=>type_recv_srl_f
+      type_send_r=>type_send_r_f
+      type_recv_r=>type_recv_r_f
+      type_send_p=>type_send_p_f
+      type_recv_p=>type_recv_p_f
       bcphys=.true.
       deallocate(bj)
       return
@@ -294,7 +317,13 @@ contains
       end do 
     end if
     deallocate(bj)
-
+    ! point bc mpi data type back to full type for (M)HD
+    type_send_srl=>type_send_srl_f
+    type_recv_srl=>type_recv_srl_f
+    type_send_r=>type_send_r_f
+    type_recv_r=>type_recv_r_f
+    type_send_p=>type_send_p_f
+    type_recv_p=>type_recv_p_f
     bcphys=.true.
   
   end subroutine do_thermal_conduction

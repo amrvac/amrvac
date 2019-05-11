@@ -166,8 +166,15 @@ contains
     nullify(tree_root(ig^D)%node)
     {end do\}
 
-    ! define index ranges for ghost-cell swap
+    ! define index ranges and MPI send/receive derived datatype for ghost-cell swap
     call init_bc()
+    type_send_srl=>type_send_srl_f
+    type_recv_srl=>type_recv_srl_f
+    type_send_r=>type_send_r_f
+    type_recv_r=>type_recv_r_f
+    type_send_p=>type_send_p_f
+    type_recv_p=>type_recv_p_f
+    call create_bc_mpi_datatype(0,nwflux+nwaux)
 
   end subroutine initialize_vars
 

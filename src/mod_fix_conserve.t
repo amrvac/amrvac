@@ -192,16 +192,16 @@ module mod_fix_conserve
 
              if (neighbor_type(i^D,igrid)/=4) cycle
              {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
-             inc^DB=2*i^DB+ic^DB\}
-             ipe_neighbor=neighbor_child(2,inc^D,igrid)
-             if (ipe_neighbor/=mype) then
-               irecv=irecv+1
-               itag=4**^ND*(igrid-1)+{inc^D*4**(^D-1)+}
-               call MPI_IRECV(recvbuffer(ibuf),isize(idims), &
-                    MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
-                    icomm,fc_recvreq(irecv),ierrmpi)
-               ibuf=ibuf+isize(idims)
-             end if
+               inc^DB=2*i^DB+ic^DB\}
+               ipe_neighbor=neighbor_child(2,inc^D,igrid)
+               if (ipe_neighbor/=mype) then
+                 irecv=irecv+1
+                 itag=4**^ND*(igrid-1)+{inc^D*4**(^D-1)+}
+                 call MPI_IRECV(recvbuffer(ibuf),isize(idims), &
+                      MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
+                      icomm,fc_recvreq(irecv),ierrmpi)
+                 ibuf=ibuf+isize(idims)
+               end if
              {end do\}
            end do
          end do
@@ -237,8 +237,8 @@ module mod_fix_conserve
                        neighbor_pole(pi^D,igrid)==0) then
                       ! Loop on children (several in 3D)
                     {do ic^DB=1+int((1-pi^DB)/2),2-int((1+pi^DB)/2)
-                        inc^DB=2*pi^DB+ic^DB\}
-                        ipe_neighbor=neighbor_child(2,inc^D,igrid)
+                       inc^DB=2*pi^DB+ic^DB\}
+                       ipe_neighbor=neighbor_child(2,inc^D,igrid)
                        if (mype/=ipe_neighbor) then
                          irecv_cc=irecv_cc+1
                          itag_cc=4**^ND*(igrid-1)+{inc^D*4**(^D-1)+}
@@ -277,6 +277,120 @@ module mod_fix_conserve
 
    end subroutine recvflux
 
+   subroutine sendflux(idim^LIM)
+     use mod_global_parameters
+
+     integer, intent(in) :: idim^LIM
+
+     integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw
+     integer :: ineighbor, ipe_neighbor, igrid, iigrid, ibuf_send_next
+     integer :: idir, ibuf_cc_send_next, pi^D, ph^D, mi^D, mh^D
+
+     fc_sendreq = MPI_REQUEST_NULL
+     isend      = 0
+     ibuf_send  = 1
+     if(stagger_grid) then
+       cc_sendreq=MPI_REQUEST_NULL
+       isend_cc=0
+       ibuf_cc_send=1
+     end if
+
+     do iigrid=1,igridstail; igrid=igrids(iigrid);
+       do idims = idim^LIM
+         select case (idims)
+        {case (^D)
+           do iside=1,2
+             i^DD=kr(^DD,^D)*(2*iside-3);
+
+             if (neighbor_pole(i^DD,igrid)/=0) cycle
+
+             if (neighbor_type(i^DD,igrid)==neighbor_coarse) then
+               ! send flux to coarser neighbor
+               ineighbor=neighbor(1,i^DD,igrid)
+               ipe_neighbor=neighbor(2,i^DD,igrid)
+               if (ipe_neighbor/=mype) then
+                 ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
+                 inc^D=-2*i^D+ic^D^D%inc^DD=ic^DD;
+                 itag=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
+                 isend=isend+1
+
+                 ibuf_send_next=ibuf_send+isize(^D)
+                 if(stagger_grid) then
+                   sendbuffer(ibuf_send:ibuf_send_next-isize_stg(^D)-1)=&
+                   reshape(pflux(iside,^D,igrid)%flux,(/isize(^D)-isize_stg(^D)/))
+
+                   sendbuffer(ibuf_send_next-isize_stg(^D):ibuf_send_next-1)=&
+                   reshape(pflux(iside,^D,igrid)%edge,(/isize_stg(^D)/))
+                 else
+                   sendbuffer(ibuf_send:ibuf_send_next-1)=&
+                   reshape(pflux(iside,^D,igrid)%flux,(/isize(^D)/))
+                 end if
+                 call MPI_ISEND(sendbuffer(ibuf_send),isize(^D), &
+                      MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
+                      icomm,fc_sendreq(isend),ierrmpi)
+                 ibuf_send=ibuf_send_next
+               end if
+
+               if(stagger_grid) then
+                 ! If we are in a fine block surrounded by coarse blocks
+                 do idir=idims+1,ndim
+                   pi^DD=i^DD+kr(idir,^DD);
+                   mi^DD=i^DD-kr(idir,^DD);
+                   ph^DD=pi^DD-kr(idims,^DD)*(2*iside-3);
+                   mh^DD=mi^DD-kr(idims,^DD)*(2*iside-3);
+
+                   if (neighbor_type(pi^DD,igrid)==2.and.&
+                       neighbor_type(ph^DD,igrid)==2.and.&
+                       mype/=neighbor(2,pi^DD,igrid).and.&
+                       neighbor_pole(pi^DD,igrid)==0) then
+                     ! Get relative position in the grid for tags
+                     ineighbor=neighbor(1,pi^DD,igrid)
+                     ipe_neighbor=neighbor(2,pi^DD,igrid)
+                     ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
+                     inc^DD=-2*pi^DD+ic^DD;
+                     itag_cc=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
+                     ! Reshape to buffer and send
+                     isend_cc=isend_cc+1
+                     ibuf_cc_send_next=ibuf_cc_send+isize_stg(^D)
+                     sendbuffer_cc(ibuf_cc_send:ibuf_cc_send_next-1)=&
+                     reshape(pflux(iside,^D,igrid)%edge,shape=(/isize_stg(^D)/))
+                     call MPI_ISEND(sendbuffer_cc(ibuf_cc_send),isize_stg(^D),&
+                                    MPI_DOUBLE_PRECISION,ipe_neighbor,itag_cc,&
+                                    icomm,cc_sendreq(isend_cc),ierrmpi)
+                     ibuf_cc_send=ibuf_cc_send_next
+                   end if
+       
+                   if (neighbor_type(mi^DD,igrid)==2.and.&
+                       neighbor_type(mh^DD,igrid)==2.and.&
+                       mype/=neighbor(2,mi^DD,igrid).and.&
+                       neighbor_pole(mi^DD,igrid)==0) then
+                     ! Get relative position in the grid for tags
+                     ineighbor=neighbor(1,mi^DD,igrid)
+                     ipe_neighbor=neighbor(2,mi^DD,igrid)
+                     ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
+                     inc^DD=-2*pi^DD+ic^DD;
+                     inc^DD=-2*mi^DD+ic^DD;
+                     itag_cc=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
+                     ! Reshape to buffer and send
+                     isend_cc=isend_cc+1
+                     ibuf_cc_send_next=ibuf_cc_send+isize_stg(^D)
+                     sendbuffer_cc(ibuf_cc_send:ibuf_cc_send_next-1)=&
+                     reshape(pflux(iside,^D,igrid)%edge,shape=(/isize_stg(^D)/))
+                     call MPI_ISEND(sendbuffer_cc(ibuf_cc_send),isize_stg(^D),&
+                                    MPI_DOUBLE_PRECISION,ipe_neighbor,itag_cc,&
+                                    icomm,cc_sendreq(isend_cc),ierrmpi)
+                     ibuf_cc_send=ibuf_cc_send_next
+                   end if
+                 end do
+               end if ! end if stagger grid
+
+             end if
+           end do\}
+         end select
+       end do
+     end do
+   end subroutine sendflux
+
    subroutine allocateBflux
      use mod_global_parameters
 
@@ -305,8 +419,8 @@ module mod_fix_conserve
          case(neighbor_sibling)
            if(stagger_grid) then
              idim=^D
-             !do idir=idim+1,ndim
-             do idir=min(idim+1,ndim),ndim
+             do idir=idim+1,ndim
+             !do idir=min(idim+1,ndim),ndim
                pi^DD=i^DD+kr(idir,^DD);
                mi^DD=i^DD-kr(idir,^DD);
                ph^DD=pi^DD-kr(^D,^DD)*(2*iside-3);
@@ -450,19 +564,20 @@ module mod_fix_conserve
                         shape=shape(psb(igrid)%w(ix^S,nw0:nw1)))
                    ibuf=ibuf+isize(^D)
                  else
+                   ibufnext=ibuf+isize(^D)
                    if(stagger_grid) then
                      nbuf=(isize(^D)-isize_stg(^D))/nwfluxin
                    else
                      nbuf=isize(^D)/nwfluxin
                    end if
                    do iw=nw0,nw1
-                     ibufnext=ibuf+nbuf
                      psb(igrid)%w(ix^S,iw)=psb(igrid)%w(ix^S,iw) &
                           +reshape(source=recvbuffer(ibuf:ibufnext-1), &
                           shape=shape(psb(igrid)%w(ix^S,iw))) &
                           /ps(igrid)%dvolume(ix^S)
-                     ibuf=ibufnext
+                     ibuf=ibuf+nbuf
                    end do
+                   ibuf=ibufnext
                  end if
                end if
             {end do\}
@@ -474,8 +589,6 @@ module mod_fix_conserve
      if (nsend>0) then
        call MPI_WAITALL(nsend,fc_sendreq,fc_sendstat,ierrmpi)
      end if
-
-     if(stagger_grid) call fix_edges(psb,idim^LIM)
 
    end subroutine fix_conserve
 
@@ -510,19 +623,19 @@ module mod_fix_conserve
              select case (iside)
              case (1)
                do iw=1,nwfluxin
-                 {do ixCo^DDB=1,nxCo^DDB\}
-                 ix^D=nghostcells^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
-                 pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
-                      = {^NOONEDsum}(fC(ix^D^D%ix^DD:ix^DD+1,iw,^D))
-                 {end do\}
+                {do ixCo^DDB=1,nxCo^DDB\}
+                   ix^D=nghostcells^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
+                   pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
+                        = {^NOONEDsum}(fC(ix^D^D%ix^DD:ix^DD+1,iw,^D))
+                {end do\}
                end do
              case (2)
                do iw=1,nwfluxin
-                 {do ixCo^DDB=1,nxCo^DDB\}
-                 ix^D=ixMhi^D^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
-                 pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
-                      =-{^NOONEDsum}(fC(ix^D^D%ix^DD:ix^DD+1,iw,^D))
-                 {end do\}
+                {do ixCo^DDB=1,nxCo^DDB\}
+                   ix^D=ixMhi^D^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
+                   pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
+                        =-{^NOONEDsum}(fC(ix^D^D%ix^DD:ix^DD+1,iw,^D))
+                {end do\}
                end do
              end select
            end select
@@ -658,120 +771,6 @@ module mod_fix_conserve
 
    end subroutine flux_to_edge
 
-   subroutine sendflux(idim^LIM)
-     use mod_global_parameters
-
-     integer, intent(in) :: idim^LIM
-
-     integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw
-     integer :: ineighbor, ipe_neighbor, igrid, iigrid, ibuf_send_next
-     integer :: idir, ibuf_cc_send_next, pi^D, ph^D, mi^D, mh^D
-
-     fc_sendreq = MPI_REQUEST_NULL
-     isend      = 0
-     ibuf_send  = 1
-     if(stagger_grid) then
-       cc_sendreq=MPI_REQUEST_NULL
-       isend_cc=0
-       ibuf_cc_send=1
-     end if
-
-     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       do idims = idim^LIM
-         select case (idims)
-        {case (^D)
-           do iside=1,2
-             i^DD=kr(^DD,^D)*(2*iside-3);
-
-             if (neighbor_pole(i^DD,igrid)/=0) cycle
-
-             if (neighbor_type(i^DD,igrid)==neighbor_coarse) then
-               ! send flux to coarser neighbor
-               ineighbor=neighbor(1,i^DD,igrid)
-               ipe_neighbor=neighbor(2,i^DD,igrid)
-               if (ipe_neighbor/=mype) then
-                 ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
-                 inc^D=-2*i^D+ic^D^D%inc^DD=ic^DD;
-                 itag=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
-                 isend=isend+1
-
-                 ibuf_send_next=ibuf_send+isize(^D)
-                 if(stagger_grid) then
-                   sendbuffer(ibuf_send:ibuf_send_next-isize_stg(^D)-1)=&
-                   reshape(pflux(iside,^D,igrid)%flux,(/isize(^D)-isize_stg(^D)/))
-
-                   sendbuffer(ibuf_send_next-isize_stg(^D):ibuf_send_next-1)=&
-                   reshape(pflux(iside,^D,igrid)%edge,(/isize_stg(^D)/))
-                 else
-                   sendbuffer(ibuf_send:ibuf_send_next-1)=&
-                   reshape(pflux(iside,^D,igrid)%flux,(/isize(^D)/))
-                 end if
-                 call MPI_ISEND(sendbuffer(ibuf_send),isize(^D), &
-                      MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
-                      icomm,fc_sendreq(isend),ierrmpi)
-                 ibuf_send=ibuf_send_next
-               end if
-
-               if(stagger_grid) then
-                 ! If we are in a fine block surrounded by coarse blocks
-                 do idir=idims+1,ndim
-                   pi^DD=i^DD+kr(idir,^DD);
-                   mi^DD=i^DD-kr(idir,^DD);
-                   ph^DD=pi^DD-kr(idims,^DD)*(2*iside-3);
-                   mh^DD=mi^DD-kr(idims,^DD)*(2*iside-3);
-
-                   if (neighbor_type(pi^DD,igrid)==2.and.&
-                       neighbor_type(ph^DD,igrid)==2.and.&
-                       mype/=neighbor(2,pi^DD,igrid).and.&
-                       neighbor_pole(pi^DD,igrid)==0) then
-                     ! Get relative position in the grid for tags
-                     ineighbor=neighbor(1,pi^DD,igrid)
-                     ipe_neighbor=neighbor(2,pi^DD,igrid)
-                     ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
-                     inc^DD=-2*pi^DD+ic^DD;
-                     itag_cc=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
-                     ! Reshape to buffer and send
-                     isend_cc=isend_cc+1
-                     ibuf_cc_send_next=ibuf_cc_send+isize_stg(^D)
-                     sendbuffer_cc(ibuf_cc_send:ibuf_cc_send_next-1)=&
-                     reshape(pflux(iside,^D,igrid)%edge,shape=(/isize_stg(^D)/))
-                     call MPI_ISEND(sendbuffer_cc(ibuf_cc_send),isize_stg(^D),&
-                                    MPI_DOUBLE_PRECISION,ipe_neighbor,itag_cc,&
-                                    icomm,cc_sendreq(isend_cc),ierrmpi)
-                     ibuf_cc_send=ibuf_cc_send_next
-                   end if
-       
-                   if (neighbor_type(mi^DD,igrid)==2.and.&
-                       neighbor_type(mh^DD,igrid)==2.and.&
-                       mype/=neighbor(2,mi^DD,igrid).and.&
-                       neighbor_pole(mi^DD,igrid)==0) then
-                     ! Get relative position in the grid for tags
-                     ineighbor=neighbor(1,mi^DD,igrid)
-                     ipe_neighbor=neighbor(2,mi^DD,igrid)
-                     ic^DD=1+modulo(node(pig^DD_,igrid)-1,2);
-                     inc^DD=-2*pi^DD+ic^DD;
-                     inc^DD=-2*mi^DD+ic^DD;
-                     itag_cc=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
-                     ! Reshape to buffer and send
-                     isend_cc=isend_cc+1
-                     ibuf_cc_send_next=ibuf_cc_send+isize_stg(^D)
-                     sendbuffer_cc(ibuf_cc_send:ibuf_cc_send_next-1)=&
-                     reshape(pflux(iside,^D,igrid)%edge,shape=(/isize_stg(^D)/))
-                     call MPI_ISEND(sendbuffer_cc(ibuf_cc_send),isize_stg(^D),&
-                                    MPI_DOUBLE_PRECISION,ipe_neighbor,itag_cc,&
-                                    icomm,cc_sendreq(isend_cc),ierrmpi)
-                     ibuf_cc_send=ibuf_cc_send_next
-                   end if
-                 end do
-               end if ! end if stagger grid
-
-             end if
-           end do\}
-         end select
-       end do
-     end do
-   end subroutine sendflux
-
    subroutine fix_edges(psuse,idim^LIM)
      use mod_global_parameters
 
@@ -829,7 +828,7 @@ module mod_fix_conserve
              ! Calculate indices range
              call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.false.,.false.,0^D&,pcorner,mcorner)
              ! Remove coarse part of circulation
-             call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid),igrid)
+             call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid))
              ! Add fine part of the circulation
             {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
                inc^DB=2*i^DB+ic^DB\}
@@ -839,13 +838,13 @@ module mod_fix_conserve
                nx^D=(ixMhi^D-ixMlo^D+1)/2;
                call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.true.,.false.,inc^D,pcorner,mcorner)
                if (ipe_neighbor==mype) then
-                 call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid),igrid)
+                 call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid))
                else
                  ibufnext=ibuf+isize(idims)
                  call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,&
                    reshape(source=recvbuffer(ibufnext-isize_stg(idims):ibufnext-1),&
                    shape=(/ ixtEmax^D-ixtEmin^D+1 ,^ND-1 /)),&
-                   idims,iside,.true.,psuse(igrid),igrid)
+                   idims,iside,.true.,psuse(igrid))
                  ibuf=ibufnext
                end if
             {end do\}
@@ -868,10 +867,10 @@ module mod_fix_conserve
                  ! Set indices
                  call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.false.,.true.,0^D&,pcorner,mcorner)
                  ! Remove
-                 call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid),igrid)
+                 call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid))
                  ! Add fine part
                  ! Find relative position of finer grid
-                {^IFTHREED do ix=1,2}
+      {^IFTHREED do ix=1,2}
                  inc^D=kr(idims,^D)*3*(iside-1)+3*kr(idir,^D){^IFTHREED+kr(6-idir-idims,^D)*ix};
                  ineighbor=neighbor_child(1,inc^D,igrid)
                  ipe_neighbor=neighbor_child(2,inc^D,igrid)
@@ -880,16 +879,16 @@ module mod_fix_conserve
                  call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.true.,.true.,inc^D,pcorner,mcorner)
                  ! add
                  if (ipe_neighbor==mype) then
-                   call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid),igrid)
+                   call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid))
                  else
                    ibufnext_cc=ibuf_cc+isize_stg(idims)
                    call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,&
                      reshape(source=recvbuffer_cc(ibuf_cc:ibufnext_cc-1),&
                      shape=(/ ixtEmax^D-ixtEmin^D+1 ,^ND-1 /)),&
-                     idims,iside,.true.,psuse(igrid),igrid)
+                     idims,iside,.true.,psuse(igrid))
                    ibuf_cc=ibufnext_cc
                  end if
-                {^IFTHREED end do}
+      {^IFTHREED end do}
                ! Set CoCorner to false again for next step
                  pcorner(idir)=.false.
                  !call div_staggered(ixI^L,psuse(igrid))
@@ -903,10 +902,10 @@ module mod_fix_conserve
                    ! Set indices
                    call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.false.,.true.,0^D&,pcorner,mcorner)
                    ! Remove
-                   call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid),igrid)
+                   call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iside,idims,igrid)%edge,idims,iside,.false.,psuse(igrid))
                    ! Add fine part
                    ! Find relative position of finer grid
-                  {^IFTHREED do ix=1,2}
+        {^IFTHREED do ix=1,2}
                    inc^D=kr(idims,^D)*3*(iside-1){^IFTHREED+kr(6-idir-idims,^D)*ix};
                    ineighbor=neighbor_child(1,inc^D,igrid)
                    ipe_neighbor=neighbor_child(2,inc^D,igrid)
@@ -915,16 +914,16 @@ module mod_fix_conserve
                    call set_ix_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,igrid,idims,iside,.true.,.true.,inc^D,pcorner,mcorner)
                    ! add
                    if (ipe_neighbor==mype) then
-                     call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid),igrid)
+                     call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,pflux(iotherside,idims,ineighbor)%edge,idims,iside,.true.,psuse(igrid))
                    else
                      ibufnext_cc=ibuf_cc+isize_stg(idims)
                      call add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,&
                        reshape(source=recvbuffer_cc(ibuf_cc:ibufnext_cc-1),&
                        shape=(/ ixtEmax^D-ixtEmin^D+1 ,^ND-1 /)),&
-                       idims,iside,.true.,psuse(igrid),igrid)
+                       idims,iside,.true.,psuse(igrid))
                      ibuf_cc=ibufnext_cc
                    end if
-                  {^IFTHREED end do}
+        {^IFTHREED end do}
                  ! Set CoCorner to false again for next step
                   mcorner(idir)=.false.
                end if
@@ -1087,7 +1086,7 @@ module mod_fix_conserve
            end do
          end if
        end if\}
-      {if((idims.gt.^D).and.mcorner(^D)) then
+      {if((idims>^D).and.mcorner(^D)) then
          if((.not.add).or.(inc^D==1)) then
            !ixFmin^DD(:)=ixFmin^DD(:)+kr(^D,^DD);
            do idir=1,ndir
@@ -1101,11 +1100,11 @@ module mod_fix_conserve
 
    end subroutine set_ix_circ
 
-   subroutine add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,edge,idims,iside,add,s,igrid)
+   subroutine add_sub_circ(ixF^L,ixtE^L,ixE^L,ixfE^L,edge,idims,iside,add,s)
      use mod_global_parameters
 
      type(state)        :: s
-     integer,intent(in) :: idims,iside,igrid
+     integer,intent(in) :: idims,iside
      integer            :: ixF^L(1:ndim),ixtE^L,ixE^L(1:ndir),ixfE^L(1:ndir)
      double precision   :: edge(ixtE^S,1:ndim-1)
      logical,intent(in) :: add
@@ -1160,15 +1159,11 @@ module mod_fix_conserve
      ! Divide circulation by surface and add
      do idim1=1,ndim
         ixC^L=ixF^L(idim1);
-        select case(idim1)
-        {case(^D)
-          where(ps(igrid)%surfaceC(ixC^S,^D)>1.0d-9*ps(igrid)%dvolume(ixC^S))
-            circ(ixC^S,idim1)=circ(ixC^S,idim1)/ps(igrid)%surfaceC(ixC^S,^D)
-          elsewhere
-            circ(ixC^S,idim1)=zero
-          end where
-        \}
-         end select
+        where(s%surfaceC(ixC^S,idim1)>1.0d-9*s%dvolume(ixC^S))
+          circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
+        elsewhere
+          circ(ixC^S,idim1)=zero
+        end where
         ! Add/subtract to field at face
         if (add) then
           s%ws(ixC^S,idim1)=s%ws(ixC^S,idim1)-circ(ixC^S,idim1)
