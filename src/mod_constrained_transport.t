@@ -85,7 +85,7 @@ contains
 
     ! This is important only in 3D
     do idir=1,ndim
-       fE(:^D&,idir) =-A(:^D&,idir)*dxlevel(idir)
+       fE(ixI^S,idir) =-A(ixI^S,idir)*dxlevel(idir)
     end do
 
     end associate
@@ -972,8 +972,8 @@ contains
     end do
 
     ! Set NaN to zero (can happen e.g. on axis):
-    where(A(ixG^T,1:ndir)/=A(ixG^T,1:ndir))
-       A(ixG^T,1:ndir)=zero
+    where(A(ixI^S,1:ndir)/=A(ixI^S,1:ndir))
+       A(ixI^S,1:ndir)=zero
     end where
 
     ! Take the curl of the vector potential 

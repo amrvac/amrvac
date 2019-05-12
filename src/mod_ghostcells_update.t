@@ -491,7 +491,7 @@ contains
                else 
                   if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
                end if
-               call bc_phys(iside,idims,time,qdt,psb(igrid)%w,ps(igrid)%x,ixG^L,ixB^L)
+               call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^L,ixB^L)
             end do
          end do
       end do
@@ -917,6 +917,8 @@ contains
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
         if(phyboundblock(igrid)) then
+          ! to use block in physical boundary setup for coarse representative
+          block=>psc(igrid)
           ! filling physical boundary ghost cells of a coarser representative block for
           ! sending swap region with width of nghostcells to its coarser neighbor
           do idims=1,ndim
@@ -946,8 +948,7 @@ contains
                 ii^D=kr(^D,idims)*(2*iside-3);
                 if ({abs(i^D)==1.and.abs(ii^D)==1|.or.}) cycle
                 if (neighbor_type(ii^D,igrid)/=neighbor_boundary) cycle
-                call bc_phys(iside,idims,time,0.d0,psc(igrid)%w,&
-                       psc(igrid)%x,ixCoG^L,ixB^L)
+                call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoG^L,ixB^L)
              end do
           end do
         end if
