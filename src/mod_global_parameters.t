@@ -162,7 +162,7 @@ module mod_global_parameters
   integer, parameter :: nsavehi=100
 
   !> Number of output methods
-  integer, parameter :: nfile         = 5
+  integer, parameter :: nfile = 5
 
   !> Names of the output methods
   character(len=40), parameter  :: output_names(nfile) = &
@@ -201,6 +201,9 @@ module mod_global_parameters
   !> Number of saved files of each type
   !> \todo Move to mod_input_output
   integer :: n_saves(1:nfile)
+
+  !> whether or not to save an output file
+  logical :: save_file(nfile)
 
   !> to monitor timeintegration loop at given wall-clock time intervals
   double precision :: time_between_print

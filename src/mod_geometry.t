@@ -201,10 +201,10 @@ contains
       }
 
       {^IFONED
-      s%surfaceC(0,1)=(x(1,1)-half*drs(1))**2
+      s%surfaceC(0,1)=dabs(x(1,1)-half*drs(1))**2
       }
       {^IFTWOD
-      s%surfaceC(0,ixGmin2:ixGmax2,1)=(x(1,ixGmin2:ixGmax2,1)-half*drs(1,&
+      s%surfaceC(0,ixGmin2:ixGmax2,1)=dabs(x(1,ixGmin2:ixGmax2,1)-half*drs(1,&
          ixGmin2:ixGmax2))**2*two*dsin(x(1,ixGmin2:ixGmax2,2))*dsin(half*dx2(1,&
          ixGmin2:ixGmax2))
       s%surfaceC(ixGmin1:ixGmax1,0,2)=x(ixGmin1:ixGmax1,1,&
@@ -212,7 +212,7 @@ contains
          2)-half*dx2(ixGmin1:ixGmax1,1))
       }
       {^IFTHREED
-      s%surfaceC(0,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1)=(x(1,ixGmin2:ixGmax2,&
+      s%surfaceC(0,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1)=dabs(x(1,ixGmin2:ixGmax2,&
          ixGmin3:ixGmax3,1)-half*drs(1,ixGmin2:ixGmax2,&
          ixGmin3:ixGmax3))**2*two*dsin(x(1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
          2))*dsin(half*dx2(1,ixGmin2:ixGmax2,ixGmin3:ixGmax3))*dx3(1,&

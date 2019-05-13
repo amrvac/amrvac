@@ -323,10 +323,12 @@ contains
     phys_check_params        => mhd_check_params
     phys_check_w             => mhd_check_w
     phys_get_pthermal        => mhd_get_pthermal
-    phys_boundary_adjust     => mhd_boundary_adjust
     phys_write_info          => mhd_write_info
     phys_angmomfix           => mhd_angmomfix
     phys_handle_small_values => mhd_handle_small_values
+
+    ! if using ct stagger grid, boundary divb=0 is not done here
+    if(.not.stagger_grid .and. ndim>1) phys_boundary_adjust => mhd_boundary_adjust
 
     ! Whether diagonal ghost cells are required for the physics
     if(type_divb < divb_linde) phys_req_diagonal = .false.
