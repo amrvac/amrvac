@@ -1764,7 +1764,7 @@ contains
              0, itag, icomm, iorecvstatus, ierrmpi)
 
         if(stagger_grid) then
-          n_values_stagger = n_values - count_ix(ixO^L) * nw_found
+          n_values_stagger = count_ix(ixO^L) * nw_found
           {ixOsmin^D = ixOmin^D - 1\}
           {ixOsmax^D = ixOmax^D\}
           w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
