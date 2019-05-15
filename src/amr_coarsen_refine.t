@@ -32,8 +32,6 @@ subroutine amr_coarsen_refine
   sendrequest=MPI_REQUEST_NULL
 
   if(stagger_grid) then
-    irecv_stg=0
-    isend_stg=0
     allocate(recvstatus_stg(MPI_STATUS_SIZE,max_blocks*^ND),recvrequest_stg(max_blocks*^ND), &
            sendstatus_stg(MPI_STATUS_SIZE,max_blocks*^ND),sendrequest_stg(max_blocks*^ND))
     recvrequest_stg=MPI_REQUEST_NULL
@@ -70,11 +68,13 @@ subroutine amr_coarsen_refine
      end do
   end do
 
-  if (irecv>0) call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
-  if (isend>0) call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
-  if(stagger_grid) then
-    if (irecv_stg>0) call MPI_WAITALL(irecv_stg,recvrequest_stg,recvstatus_stg,ierrmpi)
-    if (isend_stg>0) call MPI_WAITALL(isend_stg,sendrequest_stg,sendstatus_stg,ierrmpi)
+  if (irecv>0) then
+    call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
+    if(stagger_grid) call MPI_WAITALL(irecv,recvrequest_stg,recvstatus_stg,ierrmpi)
+  end if
+  if (isend>0) then
+    call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
+    if(stagger_grid) call MPI_WAITALL(isend,sendrequest_stg,sendstatus_stg,ierrmpi)
   end if
 
   ! non-local coarsening done

@@ -111,7 +111,11 @@ contains
     double precision :: f_i_ipe,f_i,volumepe,volume,tmpt,time_in
     double precision, external :: integral_grid
     integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf,tmpit,i^D
-    logical :: patchwi(ixG^T)
+    logical :: patchwi(ixG^T), stagger_flag=.false.
+
+    ! not do fix conserve and getbc for staggered values if stagger is used
+    stagger_flag=stagger_grid
+    stagger_grid=.false.
 
     time_in=MPI_WTIME()
     if(mype==0) write(*,*) 'Evolving to force-free field using magnetofricitonal method...'
@@ -248,6 +252,8 @@ contains
     it=tmpit
     if (mype==0) call MPI_FILE_CLOSE(fhmf,ierrmpi)
     mf_advance=.false.
+    ! restore stagger_grid value
+    stagger_grid=stagger_flag
     if(mype==0) write(*,*) 'Magnetofriction phase took : ',MPI_WTIME()-time_in,' sec'
     contains
 

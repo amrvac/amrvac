@@ -593,8 +593,6 @@ contains
     !end if
     
     call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
-    deallocate(recvstatus,recvrequest)
-
     call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
 
     if(stagger_grid) then
@@ -602,10 +600,8 @@ contains
         call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
         call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
       end if
-      if(nrecv_bc_r>0) then
-        call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
-        call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
-      end if
+        call MPI_WAITALL(irecv_r,recvrequest_r,recvstatus_r,ierrmpi)
+        call MPI_WAITALL(isend_r,sendrequest_r,sendstatus_r,ierrmpi)
       ! unpack the received data to fill ghost cells
       ibuf_recv_srl=1
       ibuf_recv_r=1
@@ -626,6 +622,7 @@ contains
     do ipwbuf=1,npwbuf
        if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
     end do
+    deallocate(recvstatus,recvrequest)
     deallocate(sendstatus,sendrequest)
 
     irecv=0

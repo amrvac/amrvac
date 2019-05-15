@@ -190,7 +190,11 @@ contains
     double precision :: omega1,cmu,cmut,cnu,cnut
     double precision, allocatable :: bj(:)
     integer:: iigrid, igrid,j
-    logical :: evenstep
+    logical :: evenstep, stagger_flag=.false.
+
+    ! not do fix conserve and getbc for staggered values if stagger is used
+    stagger_flag=stagger_grid
+    stagger_grid=.false.
 
     ! point bc mpi datatype to partial type for thermalconduction
     type_send_srl=>type_send_srl_p1
@@ -325,6 +329,9 @@ contains
     type_send_p=>type_send_p_f
     type_recv_p=>type_recv_p_f
     bcphys=.true.
+
+    ! restore stagger_grid value
+    stagger_grid=stagger_flag
   
   end subroutine do_thermal_conduction
 

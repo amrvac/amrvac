@@ -129,7 +129,7 @@ contains
     zk(ixO^S)=x(ixO^S,3)-xprobmin3+zshift
     cos_az(ixO^S)=dcos(alpha*zk(ixO^S))
     sin_az(ixO^S)=dsin(alpha*zk(ixO^S))
-    ! 5 loops, for each grid integrate over x and y of Bz0
+    ! looping Bz0 pixels
     do ixp2=1,nx2
       do ixp1=1,nx1
         bigr(ixO^S)=dsqrt((x(ixO^S,1)-xa1(ixp1))**2+&
@@ -142,8 +142,17 @@ contains
         where(bigr/=0.d0)
           bigr=1.d0/bigr
         end where
-        g=(zk*cos_ar/r-cos_az)*bigr
-        dgdz=(cos_ar*(1.d0/r-zk**2/r3)-alpha*zk**2*sin_ar/r2+alpha*sin_az)*bigr
+        where(r/=0.d0)
+          r=1.d0/r
+        end where
+        where(r2/=0.d0)
+          r2=1.d0/r2
+        end where
+        where(r3/=0.d0)
+          r3=1.d0/r3
+        end where
+        g=(zk*cos_ar*r-cos_az)*bigr
+        dgdz=(cos_ar*(r-zk**2*r3)-alpha*zk**2*sin_ar*r2+alpha*sin_az)*bigr
         do idim=1,ndim
           if(present(idir).and.idim/=idir) cycle
           select case(idim)
@@ -154,8 +163,8 @@ contains
             Bf(ixO^S,2)=Bf(ixO^S,2)+Bz0(ixp1,ixp2)*((x(ixO^S,2)-xa2(ixp2))*dgdz(ixO^S)&
                      -alpha*g(ixO^S)*(x(ixO^S,1)-xa1(ixp1)))*bigr(ixO^S)
           case(3)
-            Bf(ixO^S,3)=Bf(ixO^S,3)+Bz0(ixp1,ixp2)*(zk(ixO^S)*cos_ar(ixO^S)/r3(ixO^S)+alpha*&
-                                        zk(ixO^S)*sin_ar(ixO^S)/r2(ixO^S))
+            Bf(ixO^S,3)=Bf(ixO^S,3)+Bz0(ixp1,ixp2)*(zk(ixO^S)*cos_ar(ixO^S)*r3(ixO^S)+alpha*&
+                                        zk(ixO^S)*sin_ar(ixO^S)*r2(ixO^S))
           end select
         end do
       end do

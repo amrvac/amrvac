@@ -25,6 +25,7 @@ contains
     usr_set_B0          => specialset_B0
     usr_aux_output      => specialvar_output
     usr_add_aux_names   => specialvarnames_output 
+    usr_init_vector_potential=>initvecpot_usr
 
     call mhd_activate()
   end subroutine usr_init
@@ -106,6 +107,7 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
+    use mod_constrained_transport
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -129,27 +131,49 @@ contains
     w(ixO^S,mom(:))=zero
     if(B0field) then
       w(ixO^S,mag(:))=zero
+    else if(stagger_grid) then
+      call b_from_vectorpotential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      call faces2centers(ixO^L,block)
+      w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
     else
       w(ixO^S,mag(1))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
       w(ixO^S,mag(2))= B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))
       w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
     endif
 
-    if(mhd_glm) w(ixO^S,psi_)=0.d0
-
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the edges
+    ! used by b_from_vectorpotential()
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    if (idir==3) then
+      A(ixC^S) = B0/ly*dcos(kx*xC(ixC^S,1))*dexp(-ly*xC(ixC^S,2))*dcos(theta)
+    else
+      A(ixC^S) = 0.d0
+    end if
+
+  end subroutine initvecpot_usr
+
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+    use mod_constrained_transport
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
-    double precision :: delydelx
-    integer :: ix^D,idir,ixInt^L
+    double precision :: Q(ixI^S),Qp(ixI^S)
+    double precision :: A(ixGs^T,1:ndir) 
+    double precision :: xC(ixGs^T,1:ndim),dxc(ixGs^T,1:ndim),circ(ixGs^T,1:ndim)
+    double precision :: dxidir(ixGs^T)
+    integer :: ix^D,ixOs^L,ixC^L,hxC^L,jxO^L,idir,idim,idim1,idim2
 
     select case(iB)
     case(3)
@@ -161,6 +185,80 @@ contains
       !! fixed b1 b2 b3
       if(iprob==0 .or. B0field) then
         w(ixO^S,mag(:))=0.d0
+      else if(stagger_grid) then
+        do idir=1,nws
+          if(idir==2) cycle
+          ixOsmax^D=ixOmax^D;
+          ixOsmin^D=ixOmin^D-kr(^D,idir);
+          do ix2=ixOsmax2,ixOsmin2,-1
+             block%ws(ix2^%2ixOs^S,idir)=1.d0/3.d0*&
+                   (-block%ws(ix2+2^%2ixOs^S,idir)&
+               +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
+          end do
+        end do
+        ixOs^L=ixO^L-kr(2,^D);
+        jxO^L=ixO^L+nghostcells*kr(2,^D);
+        block%ws(ixOs^S,2)=zero
+        call div_staggered(jxO^L,block,Q(jxO^S))
+        do ix2=ixOsmax2,ixOsmin2,-1
+          call div_staggered(ixO^L,block,Qp(ixO^S))
+          block%ws(ix2^%2ixOs^S,2)=&
+           -(Q(jxOmin2^%2jxO^S)*block%dvolume(jxOmin2^%2jxO^S)&
+           -Qp(ix2+1^%2ixO^S)*block%dvolume(ix2+1^%2ixO^S))&
+            /block%surfaceC(ix2^%2ixOs^S,2)
+        end do
+        call faces2centers(ixO^L,block)
+        w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
+        !ixCmax^D=ixOmax^D;
+        !ixCmin^D=ixOmin^D-1;
+        !xC(ixO^S,:)=x(ixO^S,:)
+        !dxc(ixO^S,:)=block%dx(ixO^S,:)
+        !^D&dxc(ixOmin^D-1^D%ixO^S,:)=dxc(ixOmin^D^D%ixO^S,:)\
+        !dxc(^D&ixOmin^D-1,:)=dxc(^D&ixOmin^D,:)
+        !^D&xC(ixOmin^D-1^D%ixO^S,:)=xC(ixOmin^D^D%ixO^S,:)\
+        !^D&xC(ixOmin^D-1^D%ixO^S,^D)=xC(ixOmin^D^D%ixO^S,^D)-dxc(ixOmin^D^D%ixO^S,^D)\
+        !xC(^D&ixOmin^D-1,:)=xC(^D&ixOmin^D,:)-dxc(^D&ixOmin^D,:)
+        !do idim=1,ndim
+        !  if(idim/=idir) then
+        !    xC(ixC^S,idim)=xC(ixC^S,idim)+dxc(ixC^S,idim)
+        !  end if
+        !end do
+        !! Initialise vector potential at the edge
+        !do idir=7-2*ndim,ndir
+        !  call initvecpot_usr(ixGs^LL, ixC^L, xC, A(:^D&,idir), idir)
+        !end do
+        !! Take the curl of the vector potential 
+        !circ = zero
+        !! Calculate circulation on each face
+        !do idim1=1,ndim ! Coordinate perpendicular to face 
+        !  ixCmax^D=ixOmax^D;
+        !  ixCmin^D=ixOmin^D-kr(idim1,^D);
+        !  do idim2=1,ndim
+        !    do idir=1,ndir ! Direction of line integral
+        !      if(lvc(idim1,idim2,idir)==0) cycle
+        !      ! Assemble indices
+        !      hxC^L=ixC^L-kr(idim2,^D);
+        !      ! Add line integrals in direction idir
+        !      if (idir <= ndim) then
+        !        dxidir(ixC^S) = block%dsC(ixC^S,idir)
+        !      else
+        !        dxidir(ixC^S) = 1.0d0
+        !      end if
+        !      circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+        !                       +lvc(idim1,idim2,idir)*dxidir(ixC^S) &
+        !                       *(A(ixC^S,idir)&
+        !                        -A(hxC^S,idir))
+        !    end do
+        !  end do
+        !end do
+        !! Divide by the area of the face to get B
+        !do idim1=1,ndim
+        !  ixCmax^D=ixOmax^D;
+        !  ixCmin^D=ixOmin^D-kr(idim1,^D);
+        !  circ(ixC^S,idim1)=circ(ixC^S,idim1)/block%surfaceC(ixC^S,idim1)
+        !  block%ws(ixC^S,idim1) = circ(ixC^S,idim1)
+        !end do
+        !call faces2centers(ixO^L,block)
       else
         w(ixO^S,mag(1))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
         w(ixO^S,mag(2))= B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))
@@ -171,14 +269,13 @@ contains
         w(ixOmin1:ixOmax1,ix2,rho_)=rbc(ix2)
         w(ixOmin1:ixOmax1,ix2,p_)=pbc(ix2)
       enddo
-      if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
-      ixInt^L=ixO^L;
-      ixIntmin2=ixOmin2-1;ixIntmax2=ixOmin2-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
-      ixIntmin2=ixOmin2-1;ixIntmax2=ixOmax2;
-      call getggrav(ggrid,ixI^L,ixInt^L,x)
+      ixOs^L=ixO^L;
+      ixOsmin2=ixOmin2-1;ixOsmax2=ixOmin2-1;
+      call mhd_get_pthermal(w,x,ixI^L,ixOs^L,pth)
+      ixOsmin2=ixOmin2-1;ixOsmax2=ixOmax2;
+      call getggrav(ggrid,ixI^L,ixOs^L,x)
       !> fill pth, rho ghost layers according to gravity stratification
       invT(ixOmin2-1^%2ixO^S)=w(ixOmin2-1^%2ixO^S,rho_)/pth(ixOmin2-1^%2ixO^S)
       tmp=0.d0
@@ -194,12 +291,41 @@ contains
                      /w(ixOmin1:ixOmax1,ixOmin2-1:ixOmin2-nghostcells:-1,rho_)
       end do
       !> zero normal gradient extrapolation
-      do ix2=ixOmin2,ixOmax2
-        w(ixOmin1:ixOmax1,ix2,mag(:))=(1.0d0/3.0d0)* &
-                    (-w(ixOmin1:ixOmax1,ix2-2,mag(:))&
-               +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(:)))
-      enddo
-      if(mhd_glm) w(ixO^S,psi_)=0.d0
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==2) cycle
+          ixOsmax^D=ixOmax^D;
+          ixOsmin^D=ixOmin^D-kr(^D,idir);
+          do ix2=ixOsmin2,ixOsmax2
+             block%ws(ix2^%2ixOs^S,idir)=1.d0/3.d0*&
+                   (-block%ws(ix2-2^%2ixOs^S,idir)&
+               +4.d0*block%ws(ix2-1^%2ixOs^S,idir))
+          end do
+        end do
+        ixOs^L=ixO^L;
+        jxO^L=ixO^L-nghostcells*kr(2,^D);
+        block%ws(ixOs^S,2)=zero
+        call div_staggered(jxO^L,block,Q(jxO^S))
+        do ix2=ixOsmin2,ixOsmax2
+          call div_staggered(ixO^L,block,Qp(ixO^S))
+          block%ws(ix2^%2ixOs^S,2)=&
+            (Q(jxOmax2^%2jxO^S)*block%dvolume(jxOmax2^%2jxO^S)&
+           -Qp(ix2^%2ixO^S)*block%dvolume(ix2^%2ixO^S))&
+            /block%surfaceC(ix2^%2ixOs^S,2)
+        end do
+        call faces2centers(ixO^L,block)
+        do ix2=ixOmin2,ixOmax2
+          w(ixOmin1:ixOmax1,ix2,mag(3))=(1.0d0/3.0d0)* &
+                      (-w(ixOmin1:ixOmax1,ix2-2,mag(3))&
+                 +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(3)))
+        enddo
+      else
+        do ix2=ixOmin2,ixOmax2
+          w(ixOmin1:ixOmax1,ix2,mag(:))=(1.0d0/3.0d0)* &
+                      (-w(ixOmin1:ixOmax1,ix2-2,mag(:))&
+                 +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(:)))
+        enddo
+      end if
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")

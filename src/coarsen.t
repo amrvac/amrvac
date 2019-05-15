@@ -53,9 +53,8 @@ subroutine coarsen_grid_siblings(igrid,ipe,child_igrid,child_ipe,active)
            if(stagger_grid) then
              do idir=1,ndim
                itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
-               isend_stg=isend_stg+1
                call MPI_ISEND(psc(igridFi)%ws,1,type_coarse_block_stg(idir,ic^D),ipe,itag_stg, &
-                            icomm,sendrequest_stg(isend_stg),ierrmpi)
+                            icomm,sendrequest_stg(isend),ierrmpi)
              end do
            end if
         end if
@@ -68,9 +67,8 @@ subroutine coarsen_grid_siblings(igrid,ipe,child_igrid,child_ipe,active)
            if(stagger_grid) then
              do idir=1,ndim
                itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
-               irecv_stg=irecv_stg+1
                call MPI_IRECV(ps(igrid)%ws,1,type_sub_block_stg(idir,ic^D),ipeFi,itag_stg, &
-                              icomm,recvrequest_stg(irecv_stg),ierrmpi)
+                              icomm,recvrequest_stg(irecv),ierrmpi)
              end do
            end if
         end if

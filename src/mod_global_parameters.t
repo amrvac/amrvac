@@ -54,9 +54,9 @@ module mod_global_parameters
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
   !> MPI recv send variables for staggered-variable AMR
-  integer :: itag_stg, irecv_stg, isend_stg
-  integer, dimension(:), allocatable, save :: recvrequest_stg, sendrequest_stg
-  integer, dimension(:,:), allocatable, save :: recvstatus_stg, sendstatus_stg
+  integer :: itag_stg
+  integer, dimension(:), allocatable :: recvrequest_stg, sendrequest_stg
+  integer, dimension(:,:), allocatable :: recvstatus_stg, sendstatus_stg
 
   ! geometry and domain setups 
 
