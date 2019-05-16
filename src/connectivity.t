@@ -250,118 +250,106 @@ subroutine build_connectivity
 
   if(stagger_grid) then
     ! allocate space for recieve buffer for siblings ghost cell filling
-    if (nrecv_bc_srl>0) then
-      if (allocated(recvbuffer_srl)) then
-        if (nbuff_bc_recv_srl /= size(recvbuffer_srl)) then
-          deallocate(recvbuffer_srl)
-          allocate(recvbuffer_srl(nbuff_bc_recv_srl))
-        end if
-      else
+    if (allocated(recvbuffer_srl)) then
+      if (nbuff_bc_recv_srl /= size(recvbuffer_srl)) then
+        deallocate(recvbuffer_srl)
         allocate(recvbuffer_srl(nbuff_bc_recv_srl))
       end if
-      if (allocated(recvstatus_srl)) then
-        deallocate(recvstatus_srl,recvrequest_srl)
-        allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
-      else
-        allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
-      end if
-      recvrequest_srl=MPI_REQUEST_NULL
+    else
+      allocate(recvbuffer_srl(nbuff_bc_recv_srl))
     end if
+    if (allocated(recvstatus_srl)) then
+      deallocate(recvstatus_srl,recvrequest_srl)
+      allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
+    else
+      allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
+    end if
+    recvrequest_srl=MPI_REQUEST_NULL
 
     ! allocate space for send buffer for siblings ghost cell filling
-    if (nsend_bc_srl>0) then
-      if (allocated(sendbuffer_srl)) then
-        if (nbuff_bc_send_srl /= size(sendbuffer_srl)) then
-          deallocate(sendbuffer_srl)
-          allocate(sendbuffer_srl(nbuff_bc_send_srl))
-        end if
-      else
+    if (allocated(sendbuffer_srl)) then
+      if (nbuff_bc_send_srl /= size(sendbuffer_srl)) then
+        deallocate(sendbuffer_srl)
         allocate(sendbuffer_srl(nbuff_bc_send_srl))
       end if
-      if (allocated(sendstatus_srl)) then
-        deallocate(sendstatus_srl,sendrequest_srl)
-        allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
-      else
-        allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
-      end if
-      sendrequest_srl=MPI_REQUEST_NULL
+    else
+      allocate(sendbuffer_srl(nbuff_bc_send_srl))
     end if
+    if (allocated(sendstatus_srl)) then
+      deallocate(sendstatus_srl,sendrequest_srl)
+      allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
+    else
+      allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
+    end if
+    sendrequest_srl=MPI_REQUEST_NULL
 
     ! allocate space for recieve buffer for restrict ghost cell filling
-    if (nrecv_bc_r>0) then
-      if (allocated(recvbuffer_r)) then
-        if (nbuff_bc_recv_r /= size(recvbuffer_r)) then
-          deallocate(recvbuffer_r)
-          allocate(recvbuffer_r(nbuff_bc_recv_r))
-        end if
-      else
+    if (allocated(recvbuffer_r)) then
+      if (nbuff_bc_recv_r /= size(recvbuffer_r)) then
+        deallocate(recvbuffer_r)
         allocate(recvbuffer_r(nbuff_bc_recv_r))
       end if
-      if (allocated(recvstatus_r)) then
-        deallocate(recvstatus_r,recvrequest_r)
-        allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
-      else
-        allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
-      end if
-      recvrequest_r=MPI_REQUEST_NULL
+    else
+      allocate(recvbuffer_r(nbuff_bc_recv_r))
     end if
+    if (allocated(recvstatus_r)) then
+      deallocate(recvstatus_r,recvrequest_r)
+      allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
+    else
+      allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
+    end if
+    recvrequest_r=MPI_REQUEST_NULL
 
     ! allocate space for send buffer for restrict ghost cell filling
-    if (nsend_bc_r>0) then
-      if (allocated(sendbuffer_r)) then
-        if (nbuff_bc_send_r /= size(sendbuffer_r)) then
-          deallocate(sendbuffer_r)
-          allocate(sendbuffer_r(nbuff_bc_send_r))
-        end if
-      else
+    if (allocated(sendbuffer_r)) then
+      if (nbuff_bc_send_r /= size(sendbuffer_r)) then
+        deallocate(sendbuffer_r)
         allocate(sendbuffer_r(nbuff_bc_send_r))
       end if
-      if (allocated(sendstatus_r)) then
-        deallocate(sendstatus_r,sendrequest_r)
-        allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
-      else
-        allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
-      end if
-      sendrequest_r=MPI_REQUEST_NULL
+    else
+      allocate(sendbuffer_r(nbuff_bc_send_r))
     end if
+    if (allocated(sendstatus_r)) then
+      deallocate(sendstatus_r,sendrequest_r)
+      allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
+    else
+      allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
+    end if
+    sendrequest_r=MPI_REQUEST_NULL
 
     ! allocate space for recieve buffer for prolong ghost cell filling
-    if (nrecv_bc_p>0) then
-      if (allocated(recvbuffer_p)) then
-        if (nbuff_bc_recv_p /= size(recvbuffer_p)) then
-          deallocate(recvbuffer_p)
-          allocate(recvbuffer_p(nbuff_bc_recv_p))
-        end if
-      else
+    if (allocated(recvbuffer_p)) then
+      if (nbuff_bc_recv_p /= size(recvbuffer_p)) then
+        deallocate(recvbuffer_p)
         allocate(recvbuffer_p(nbuff_bc_recv_p))
       end if
-      if (allocated(recvstatus_p)) then
-        deallocate(recvstatus_p,recvrequest_p)
-        allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
-      else
-        allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
-      end if
-      recvrequest_p=MPI_REQUEST_NULL
+    else
+      allocate(recvbuffer_p(nbuff_bc_recv_p))
     end if
+    if (allocated(recvstatus_p)) then
+      deallocate(recvstatus_p,recvrequest_p)
+      allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
+    else
+      allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
+    end if
+    recvrequest_p=MPI_REQUEST_NULL
 
     ! allocate space for send buffer for restrict ghost cell filling
-    if (nsend_bc_p>0) then
-      if (allocated(sendbuffer_p)) then
-        if (nbuff_bc_send_p /= size(sendbuffer_p)) then
-          deallocate(sendbuffer_p)
-          allocate(sendbuffer_p(nbuff_bc_send_p))
-        end if
-      else
+    if (allocated(sendbuffer_p)) then
+      if (nbuff_bc_send_p /= size(sendbuffer_p)) then
+        deallocate(sendbuffer_p)
         allocate(sendbuffer_p(nbuff_bc_send_p))
       end if
-      if (allocated(sendstatus_p)) then
-        deallocate(sendstatus_p,sendrequest_p)
-        allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
-      else
-        allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
-      end if
-      sendrequest_p=MPI_REQUEST_NULL
+    else
+      allocate(sendbuffer_p(nbuff_bc_send_p))
     end if
+    if (allocated(sendstatus_p)) then
+      deallocate(sendstatus_p,sendrequest_p)
+      allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
+    else
+      allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
+    end if
+    sendrequest_p=MPI_REQUEST_NULL
   end if
 
 end subroutine build_connectivity

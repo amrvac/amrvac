@@ -596,12 +596,10 @@ contains
     call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
 
     if(stagger_grid) then
-      if(nrecv_bc_srl>0) then
-        call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
-        call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
-      end if
-        call MPI_WAITALL(irecv_r,recvrequest_r,recvstatus_r,ierrmpi)
-        call MPI_WAITALL(isend_r,sendrequest_r,sendstatus_r,ierrmpi)
+      call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
+      call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
+      call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
+      call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
       ! unpack the received data to fill ghost cells
       ibuf_recv_srl=1
       ibuf_recv_r=1
@@ -678,10 +676,8 @@ contains
     deallocate(sendstatus,sendrequest)
 
     if(stagger_grid) then
-      if(nrecv_bc_p>0) then
-        call MPI_WAITALL(nrecv_bc_p,recvrequest_p,recvstatus_p,ierrmpi)
-        call MPI_WAITALL(nsend_bc_p,sendrequest_p,sendstatus_p,ierrmpi)
-      end if
+      call MPI_WAITALL(nrecv_bc_p,recvrequest_p,recvstatus_p,ierrmpi)
+      call MPI_WAITALL(nsend_bc_p,sendrequest_p,sendstatus_p,ierrmpi)
 
       ! fill coarser representative after receipt
       ibuf_recv_p=1
