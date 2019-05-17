@@ -692,7 +692,7 @@ contains
     if (fix_conserve_at_step) then
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
-      call fix_conserve(psb,idim^LIM,mag(1),mag(ndir))
+      call fix_conserve(psb,idim^LIM,mag(1),ndir)
     end if
     ! point bc mpi datatype to partial type for magnetic field
     type_send_srl=>type_send_srl_p1
