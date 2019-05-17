@@ -111,15 +111,6 @@ module mod_fix_conserve
        allocate(fc_recvstat(MPI_STATUS_SIZE,nrecv), fc_recvreq(nrecv))
      end if
 
-     if (allocated(sendbuffer)) then
-       if (sendsize /= size(sendbuffer)) then
-         deallocate(sendbuffer)
-         allocate(sendbuffer(sendsize))
-       end if
-     else
-       allocate(sendbuffer(sendsize))
-     end if
-
      if (allocated(fc_sendreq)) then
        if (nsend /= size(fc_sendreq)) then
          deallocate(fc_sendreq, fc_sendstat)
@@ -130,6 +121,16 @@ module mod_fix_conserve
      end if
 
      if(stagger_grid) then
+
+       if (allocated(sendbuffer)) then
+         if (sendsize /= size(sendbuffer)) then
+           deallocate(sendbuffer)
+           allocate(sendbuffer(sendsize))
+         end if
+       else
+         allocate(sendbuffer(sendsize))
+       end if
+
        if (allocated(recvbuffer_cc)) then
          if (recvsize_cc /= size(recvbuffer_cc)) then
            deallocate(recvbuffer_cc)
@@ -288,8 +289,8 @@ module mod_fix_conserve
 
      fc_sendreq = MPI_REQUEST_NULL
      isend      = 0
-     ibuf_send  = 1
      if(stagger_grid) then
+       ibuf_send  = 1
        cc_sendreq=MPI_REQUEST_NULL
        isend_cc=0
        ibuf_cc_send=1
@@ -314,21 +315,22 @@ module mod_fix_conserve
                  itag=4**^ND*(ineighbor-1)+{inc^DD*4**(^DD-1)+}
                  isend=isend+1
 
-                 ibuf_send_next=ibuf_send+isize(^D)
                  if(stagger_grid) then
+                   ibuf_send_next=ibuf_send+isize(^D)
                    sendbuffer(ibuf_send:ibuf_send_next-isize_stg(^D)-1)=&
                    reshape(pflux(iside,^D,igrid)%flux,(/isize(^D)-isize_stg(^D)/))
 
                    sendbuffer(ibuf_send_next-isize_stg(^D):ibuf_send_next-1)=&
                    reshape(pflux(iside,^D,igrid)%edge,(/isize_stg(^D)/))
+                   call MPI_ISEND(sendbuffer(ibuf_send),isize(^D), &
+                        MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
+                        icomm,fc_sendreq(isend),ierrmpi)
+                   ibuf_send=ibuf_send_next
                  else
-                   sendbuffer(ibuf_send:ibuf_send_next-1)=&
-                   reshape(pflux(iside,^D,igrid)%flux,(/isize(^D)/))
+                   call MPI_ISEND(pflux(iside,^D,igrid)%flux,isize(^D), &
+                        MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
+                        icomm,fc_sendreq(isend),ierrmpi)
                  end if
-                 call MPI_ISEND(sendbuffer(ibuf_send),isize(^D), &
-                      MPI_DOUBLE_PRECISION,ipe_neighbor,itag, &
-                      icomm,fc_sendreq(isend),ierrmpi)
-                 ibuf_send=ibuf_send_next
                end if
 
                if(stagger_grid) then

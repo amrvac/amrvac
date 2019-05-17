@@ -1413,9 +1413,7 @@ contains
     {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
 
     n_values = count_ix(ixO^L) * nw
-    if(stagger_grid) then
-      n_values=n_values+ product([ ixOmax^D ] - [ ixOmin^D ] + 2)*nws
-    end if
+
   end subroutine block_shape_io
 
   subroutine write_snapshot
@@ -1425,7 +1423,8 @@ contains
 
     integer                       :: file_handle, igrid, Morton_no, iwrite
     integer                       :: ipe, ix_buffer(2*ndim+1), n_values
-    integer                       :: ixO^L, n_ghost(2*ndim), n_values_stagger
+    integer                       :: ixO^L, n_ghost(2*ndim)
+    integer                       :: ixOs^L,n_values_stagger
     integer                       :: iorecvstatus(MPI_STATUS_SIZE)
     integer                       :: ioastatus(MPI_STATUS_SIZE)
     integer                       :: igrecvstatus(MPI_STATUS_SIZE)
@@ -1523,17 +1522,18 @@ contains
       endif
 
       call block_shape_io(igrid, n_ghost, ixO^L, n_values)
-      ix_buffer(1) = n_values
-      ix_buffer(2:) = n_ghost
       if(stagger_grid) then
-        n_values_stagger = n_values - product([ ixOmax^D ] - [ ixOmin^D ] + 2)*nws
-        w_buffer(1:n_values_stagger) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
-        {ixOmin^D = ixMlo^D - n_ghost(^D) - 1\}
-        {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
-        w_buffer(n_values_stagger+1:n_values) = pack(ps(igrid)%ws(ixO^S, 1:nws), .true.)
+        w_buffer(1:n_values) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
+        {ixOsmin^D = ixOmin^D -1\}
+        {ixOsmax^D = ixOmax^D \}
+        n_values_stagger= count_ix(ixOs^L)*nws
+        w_buffer(n_values+1:n_values+n_values_stagger) = pack(ps(igrid)%ws(ixOs^S, 1:nws), .true.)
+        n_values=n_values+n_values_stagger
       else
         w_buffer(1:n_values) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
       end if
+      ix_buffer(1) = n_values
+      ix_buffer(2:) = n_ghost
 
       if (mype /= 0) then
         call MPI_SEND(ix_buffer, 2*ndim+1, &

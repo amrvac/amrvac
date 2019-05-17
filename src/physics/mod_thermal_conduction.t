@@ -190,7 +190,7 @@ contains
     double precision :: omega1,cmu,cmut,cnu,cnut
     double precision, allocatable :: bj(:)
     integer:: iigrid, igrid,j
-    logical :: evenstep, stagger_flag=.false.
+    logical :: evenstep, stagger_flag
 
     ! not do fix conserve and getbc for staggered values if stagger is used
     stagger_flag=stagger_grid
@@ -261,6 +261,7 @@ contains
       type_send_p=>type_send_p_f
       type_recv_p=>type_recv_p_f
       bcphys=.true.
+      stagger_grid=stagger_flag
       deallocate(bj)
       return
     endif
