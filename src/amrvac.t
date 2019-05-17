@@ -39,6 +39,9 @@ program amrvac
      ! read in dat file
      call read_snapshot()
 
+     ! avoid output it=0 state when restart from it=0 state 
+     if(it==0.and.itsave(1,1)==0.or.itsave(1,2)==0) itsave(1,1:2)=biginteger
+
      if (reset_time) then
        ! reset it and global time to original value
        it           = it_init
@@ -248,7 +251,7 @@ contains
        endif
        timeio_tot=timeio_tot+MPI_WTIME()-timeio0
 
-       pass_wall_time=MPI_WTIME()-time0+dt_loop+2.d0*time_write >=wall_time_max
+       pass_wall_time=MPI_WTIME()-time0+dt_loop+3.d0*time_write >=wall_time_max
 
        ! exit time loop if time is up
        if (it>=it_max .or. global_time>=time_max .or. pass_wall_time) exit time_evol

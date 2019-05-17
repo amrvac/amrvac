@@ -353,7 +353,7 @@ module mod_global_parameters
   !> Whether to apply small value fixes to certain variables
   logical, allocatable :: small_values_fix_iw(:)
 
-  !> split potential or linear force-free magnetic field as background B0 field
+  !> split magnetic field as background B0 field
   logical :: B0field=.false.
 
   !> Use SI units (.true.) or use cgs units (.false.)
