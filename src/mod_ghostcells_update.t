@@ -386,7 +386,7 @@ contains
     ^D&subsize(^D)=ixmax^D-ixmin^D+1;
     subsize(ndim+1)=nwbc
     ^D&start(^D)=ixmin^D-1;
-    start(ndim+1)=nwstart
+    start(ndim+1)=nwstart-1
     
     call MPI_TYPE_CREATE_SUBARRAY(ndim+1,fullsize,subsize,start,MPI_ORDER_FORTRAN, &
                                   MPI_DOUBLE_PRECISION,comm_type,ierrmpi)
@@ -424,7 +424,7 @@ contains
 
     double precision, intent(in)      :: time, qdt
     type(state), target               :: psb(max_blocks)
-    integer, intent(in)               :: nwstart ! Fill from nwstart+1
+    integer, intent(in)               :: nwstart ! Fill from nwstart
     integer, intent(in)               :: nwbc    ! Number of variables to fill
     logical, intent(in), optional     :: req_diag ! If false, skip diagonal ghost cells
 
@@ -446,8 +446,8 @@ contains
 
     ! Stretching grid parameters for coarsened block of the current block
 
-    nwhead=nwstart+1
-    nwtail=nwstart+nwbc
+    nwhead=nwstart
+    nwtail=nwstart+nwbc-1
 
     req_diagonal = .true.
     if (present(req_diag)) req_diagonal = req_diag

@@ -30,7 +30,7 @@ subroutine initlevelone
   }
 
   ! update ghost cells
-  call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
+  call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
 
 end subroutine initlevelone
 

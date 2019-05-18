@@ -205,7 +205,7 @@ contains
     type_recv_p=>type_recv_p_p1 
     ! create bc mpi datatype for ghostcells update
     if(first) then
-      call create_bc_mpi_datatype(e_-1,1)
+      call create_bc_mpi_datatype(e_,1)
       first=.false.
     end if
 
@@ -248,7 +248,7 @@ contains
       call fix_conserve(ps1,1,ndim,e_,1)
     end if
     bcphys=.false.
-    call getbc(global_time,0.d0,ps1,e_-1,1)
+    call getbc(global_time,0.d0,ps1,e_,1)
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
@@ -289,7 +289,7 @@ contains
           call sendflux(1,ndim)
           call fix_conserve(ps2,1,ndim,e_,1)
         end if
-        call getbc(global_time,0.d0,ps2,e_-1,1)
+        call getbc(global_time,0.d0,ps2,e_,1)
         evenstep=.false.
       else
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -308,7 +308,7 @@ contains
           call sendflux(1,ndim)
           call fix_conserve(ps1,1,ndim,e_,1)
         end if
-        call getbc(global_time,0.d0,ps1,e_-1,1)
+        call getbc(global_time,0.d0,ps1,e_,1)
         evenstep=.true.
       end if 
     end do

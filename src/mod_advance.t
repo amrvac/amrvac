@@ -397,7 +397,7 @@ contains
 
     ! For all grids: fill ghost cells
     qdt = dtfactor*dt
-    call getbc(qt+qdt,qdt,psb,0,nwflux+nwaux,phys_req_diagonal)
+    call getbc(qt+qdt,qdt,psb,1,nwflux+nwaux,phys_req_diagonal)
 
   end subroutine advect1
 

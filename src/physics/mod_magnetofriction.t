@@ -111,7 +111,7 @@ contains
     double precision :: f_i_ipe,f_i,volumepe,volume,tmpt,time_in
     double precision, external :: integral_grid
     integer :: i,iigrid, igrid, idims,ix^D,hxM^LL,fhmf,tmpit,i^D
-    logical :: patchwi(ixG^T), stagger_flag=.false.
+    logical :: patchwi(ixG^T), stagger_flag
 
     ! not do fix conserve and getbc for staggered values if stagger is used
     stagger_flag=stagger_grid
@@ -156,7 +156,7 @@ contains
     ! calculate magnetofrictional velocity
     call mf_velocity_update(dtfff)
     ! update velocity in ghost cells
-    call getbc(tmf,0.d0,ps,mom(1)-1,ndir)
+    call getbc(tmf,0.d0,ps,mom(1),ndir)
     ! calculate initial values of metrics
     if(i==0) then
       call metrics
@@ -701,7 +701,7 @@ contains
     type_send_p=>type_send_p_p1
     type_recv_p=>type_recv_p_p1
     ! update B in ghost cells
-    call getbc(qt+qdt,qdt,psb,mag(1)-1,ndir)
+    call getbc(qt+qdt,qdt,psb,mag(1),ndir)
     ! calculate magnetofrictional velocity
     call mf_velocity_update(qdt)
     ! point bc mpi datatype to partial type for velocity field
@@ -712,7 +712,7 @@ contains
     type_send_p=>type_send_p_p2
     type_recv_p=>type_recv_p_p2
     ! update magnetofrictional velocity in ghost cells
-    call getbc(qt+qdt,qdt,psb,mom(1)-1,ndir)
+    call getbc(qt+qdt,qdt,psb,mom(1),ndir)
 
   end subroutine advect1mf
 
