@@ -108,7 +108,7 @@ contains
       hxO^L=ixO^L-kr(idim,^D);
       ! Interpolate to cell barycentre using arithmetic average
       ! This might be done better later, to make the method less diffusive.
-      w(ixO^S,iw_mag(idim))=(half*s%dx(ixO^S,idim)/s%dvolume(ixO^S))*&
+      w(ixO^S,iw_mag(idim))=half/s%surface(ixO^S,idim)*&
         (ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
         +ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))
     end do
@@ -338,13 +338,11 @@ contains
     double precision                   :: vtilR(ixI^S,2)
     double precision                   :: btilL(s%ixGs^S,ndim)
     double precision                   :: btilR(s%ixGs^S,ndim)
-    double precision                   :: sqrtg(s%ixGs^S)
     double precision                   :: cp(ixI^S,2)
     double precision                   :: cm(ixI^S,2)
-    integer                            :: ixGs^L
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
-    double precision                   :: circ(ixI^S,1:ndim), dxidir
+    double precision                   :: circ(ixI^S,1:ndim), dxidir(ixI^S)
     integer                            :: i^D
 
     associate(bfaces=>s%ws,x=>s%x)
@@ -352,8 +350,6 @@ contains
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
-
-    ixGs^L=s%ixGs^L;
 
     ! Loop over components of electric field
 
@@ -383,26 +379,6 @@ contains
       jxC^L=ixC^L+kr(idim1,^D);
       ixCp^L=ixC^L+kr(idim2,^D);
 
-      ! Interpolate sqrt gamma to the edges
-
-      sqrtg(ixC^S)=1.d0
-
-   !   select case(idim1)
-   ! { case(^D)
-   !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       block%mSurface^D %sqrtgamma(ixC^S)+&
-   !       block%mSurface^D %sqrtgamma(ixCp^S))
-   ! \}
-   !   end select
-   !   
-   !   select case(idim2)
-   ! { case(^D)
-   !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       block%mSurface^D %sqrtgamma(ixC^S)+&
-   !       block%mSurface^D %sqrtgamma(jxC^S))
-   ! \}
-   !   end select
-
       ! Reconstruct transverse transport velocities
       call reconstruct(ixI^L,ixC^L,idim2,vbarC(ixI^S,idim1,1),&
                vtilL(ixI^S,2),vtilR(ixI^S,2))
@@ -429,22 +405,20 @@ contains
      
       ! Calculate eletric field
       if (idir <= ndim) then
-         dxidir = dxlevel(idir)
+         dxidir(ixC^S) = s%dsC(ixC^S,idir)
       else
          dxidir = 1.0d0
       end if
 
-      fE(ixC^S,idir)=qdt * dxidir * &
-                   sqrtg(ixC^S) * (&
-                   -(cp(ixC^S,1)*vtilL(ixC^S,1)*btilL(ixC^S,idim2) &
+      fE(ixC^S,idir)=qdt * dxidir(ixC^S) * &
+                  (-(cp(ixC^S,1)*vtilL(ixC^S,1)*btilL(ixC^S,idim2) &
                    + cm(ixC^S,1)*vtilR(ixC^S,1)*btilR(ixC^S,idim2) &
                    -cp(ixC^S,1)*cm(ixC^S,1)*(btilR(ixC^S,idim2)-btilL(ixC^S,idim2)))&
                    /(cp(ixC^S,1) + cm(ixC^S,1)) &
                    +(cp(ixC^S,2)*vtilL(ixC^S,2)*btilL(ixC^S,idim1) &
                    + cm(ixC^S,2)*vtilR(ixC^S,2)*btilR(ixC^S,idim1) &
                    -cp(ixC^S,2)*cm(ixC^S,2)*(btilR(ixC^S,idim1)-btilL(ixC^S,idim1)))&
-                   /(cp(ixC^S,2) + cm(ixC^S,2)) &
-                   )
+                   /(cp(ixC^S,2) + cm(ixC^S,2)) )
 
       if (.not.slab) then
         where(abs(x(ixC^S,r_)+half*dxlevel(r_)).lt.1.0d-9)
@@ -951,7 +925,7 @@ contains
 
     integer                            :: ixC^L, hxC^L, ixCp^L, ixCm^L, hxO^L, idim, idim1, idim2, idir
     double precision                   :: xC(ixI^S,1:ndim)
-    double precision                   :: circ(ixI^S,1:ndim), dxidir(ixI^S)
+    double precision                   :: circ(ixI^S,1:ndim)
 
     A=zero
     ws=zero
@@ -976,6 +950,11 @@ contains
        A(ixI^S,1:ndir)=zero
     end where
 
+    ! sub integrals A ds
+    if(ndir<=ndim) then
+      A(ixC^S,1:ndir)=A(ixC^S,1:ndir)*block%dsC(ixC^S,1:ndir)
+    end if
+
     ! Take the curl of the vector potential 
     circ(:^D&,:) = zero
 
@@ -989,14 +968,9 @@ contains
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
-          if (idir <= ndim) then
-            dxidir(ixC^S) = block%dsC(ixC^S,idir)
-          else
-            dxidir(ixC^S) = 1.0d0
-          end if
           circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)*dxidir(ixC^S) &
-                           *(A(ixC^S,idir)&
+                           +lvc(idim1,idim2,idir)* &
+                            (A(ixC^S,idir)&
                             -A(hxC^S,idir))
         end do
       end do
@@ -1006,10 +980,10 @@ contains
     do idim1=1,ndim
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
-      where(block%surfaceC(ixC^S,idim1) > 1.0d-9*block%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/block%surfaceC(ixC^S,idim1)
-      elsewhere
+      where(block%surfaceC(ixC^S,idim1)==0)
         circ(ixC^S,idim1)=zero
+      elsewhere
+        circ(ixC^S,idim1)=circ(ixC^S,idim1)/block%surfaceC(ixC^S,idim1)
       end where
       ws(ixC^S,idim1) = circ(ixC^S,idim1)
     end do

@@ -464,13 +464,15 @@ subroutine alloc_node(igrid)
       {^NOONED   ps(igrid)%dsC(ixGext^S,2)=(xext(ixGext^S,1)+half*ps(igrid)%dx(ixGext^S,1))*&
                                           ps(igrid)%dx(ixGext^S,2)}
       {^IFTHREED ps(igrid)%dsC(ixGext^S,3)=(xext(ixGext^S,1)+half*ps(igrid)%dx(ixGext^S,1))*&
-                                          dsin(xext(ixGext^S,2))*ps(igrid)%dx(ixGext^S,3)}
+                                       dsin(xext(ixGext^S,2)+half*ps(igrid)%dx(ixGext^S,2))*&
+                                       ps(igrid)%dx(ixGext^S,3)}
     case (cylindrical)
       ps(igrid)%dvolume(ixGext^S)=dabs(xext(ixGext^S,1)) &
            *ps(igrid)%dx(ixGext^S,1){^DE&*ps(igrid)%dx(ixGext^S,^DE) }
       psc(igrid)%dvolume(ixCoG^S)=dabs(psc(igrid)%x(ixCoG^S,1)) &
            *psc(igrid)%dx(ixCoG^S,1){^DE&*psc(igrid)%dx(ixCoG^S,^DE) }
       ps(igrid)%ds(ixGext^S,r_)=ps(igrid)%dx(ixGext^S,r_)
+      ps(igrid)%dsC(ixGext^S,r_)=ps(igrid)%dx(ixGext^S,r_)
       if(z_>0.and.z_<=ndim) then
         ps(igrid)%ds(ixGext^S,z_)=ps(igrid)%dx(ixGext^S,z_)
         ps(igrid)%dsC(ixGext^S,z_)=ps(igrid)%dx(ixGext^S,z_)

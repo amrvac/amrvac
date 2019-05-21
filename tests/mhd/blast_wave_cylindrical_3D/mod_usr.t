@@ -61,8 +61,6 @@ contains
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
     end if
 
-    if(mhd_glm) w(ixO^S,psi_)=0.d0
-
     call phys_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
@@ -76,11 +74,7 @@ contains
     double precision, intent(out)      :: A(ixI^S)
 
     if (idir==2) then
-      A(ixC^S)=Busr*xC(ixC^S,1)*(sin(xC(ixC^S,3))-cos(xC(ixC^S,3)))
-    else if(idir==1) then 
-      A(ixC^S)=0.d0
-    else
-      A(ixC^S)=0.d0
+      A(ixC^S)=-Busr*xC(ixC^S,1)*(dsin(xC(ixC^S,3))-dcos(xC(ixC^S,3)))
     end if
 
   end subroutine initvecpot_usr
