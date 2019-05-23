@@ -205,6 +205,7 @@ mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_physics.mod
 mod_source.o: mod_thermal_conduction.mod
 mod_thermal_conduction.o: mod_fix_conserve.mod
+mod_thermal_conduction.o: mod_geometry.mod
 mod_thermal_conduction.o: mod_ghostcells_update.mod
 mod_thermal_conduction.o: mod_physics.mod
 mod_thermal_conduction.o: mod_small_values.mod

@@ -543,8 +543,8 @@ contains
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
-      ixA^L=ixB^L+kr(idims,^D);
-      gradT(ixB^S,idims)=(Te(ixA^S)-Te(ixB^S))*dxinv(idims)
+      call gradientC(Te,ixI^L,ixB^L,idims,minq)
+      gradT(ixB^S,idims)=minq(ixB^S)
     end do
     if(tc_slope_limiter=='no') then
       ! calculate thermal conduction flux with symmetric scheme
@@ -693,13 +693,64 @@ contains
     end if
 
     qd=0.d0
-    do idims=1,ndim
-      qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
-      ixB^L=ixO^L-kr(idims,^D);
-      qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
-    end do
+    if(slab_uniform) then
+      do idims=1,ndim
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+(qvec(ixO^S,idims)-qvec(ixB^S,idims))*dxinv(idims)
+      end do
+    else
+      do idims=1,ndim
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)*block%surfaceC(ixO^S,idims)-qvec(ixB^S,idims)*block%surfaceC(ixB^S,idims)
+      end do
+      qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
+    end if
     
   end subroutine mhd_get_heatconduct
+
+  !> Calculate gradient of a scalar q at cell interfaces in direction idir
+  subroutine gradientC(q,ixI^L,ixO^L,idir,gradq)
+    use mod_global_parameters
+    use mod_geometry
+
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: q(ixI^S)
+    double precision, intent(inout) :: gradq(ixI^S)
+    integer                         :: jxO^L
+
+    associate(x=>block%x)
+
+    jxO^L=ixO^L+kr(idir,^D);
+    select case(coordinate)
+    case(Cartesian)
+      gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/dxlevel(idir)
+    case(Cartesian_stretched)
+      gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/(x(jxO^S,idir)-x(ixO^S,idir))
+    case(spherical)
+      select case(idir)
+      case(1)
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/(x(jxO^S,1)-x(ixO^S,1))
+        {^NOONED
+      case(2)
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/( (x(jxO^S,2)-x(ixO^S,2))*x(ixO^S,1) )
+        }
+        {^IFTHREED
+      case(3)
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/( (x(jxO^S,3)-x(ixO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)) )
+        }
+      end select
+    case(cylindrical)
+      if(idir==phi_) then
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/((x(jxO^S,phi_)-x(ixO^S,phi_))*x(ixO^S,r_))
+      else
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/(x(jxO^S,idir)-x(ixO^S,idir))
+      end if
+    case default
+      call mpistop('Unknown geometry')
+    end select
+
+    end associate
+  end subroutine gradientC
 
   function slope_limiter(f,ixI^L,ixO^L,idims,pm) result(lf)
     use mod_global_parameters
@@ -855,8 +906,8 @@ contains
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
-      ixA^L=ixB^L+kr(idims,^D);
-      gradT(ixB^S,idims)=(Te(ixA^S)-Te(ixB^S))*dxinv(idims)
+      call gradientC(Te,ixI^L,ixB^L,idims,ke)
+      gradT(ixB^S,idims)=ke(ixB^S)
     end do
     ! calculate thermal conduction flux with symmetric scheme
     do idims=1,ndim
@@ -926,11 +977,18 @@ contains
     end do
 
     qd=0.d0
-    do idims=1,ndim
-      qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
-      ixB^L=ixO^L-kr(idims,^D);
-      qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
-    end do
+    if(slab_uniform) then
+      do idims=1,ndim
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+(qvec(ixO^S,idims)-qvec(ixB^S,idims))*dxinv(idims)
+      end do
+    else
+      do idims=1,ndim
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)*block%surfaceC(ixO^S,idims)-qvec(ixB^S,idims)*block%surfaceC(ixB^S,idims)
+      end do
+      qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
+    end if
 
   end subroutine hd_get_heatconduct
 
