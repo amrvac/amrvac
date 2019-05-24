@@ -686,8 +686,9 @@ contains
 
     qd=0.d0
     do idims=1,ndim
+      qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
       ixB^L=ixO^L-kr(idims,^D);
-      qd(ixO^S)=qd(ixO^S)+(qvec(ixO^S,idims)-qvec(ixB^S,idims))*dxinv(idims)
+      qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
     end do
     
   end subroutine mhd_get_heatconduct
@@ -918,8 +919,9 @@ contains
 
     qd=0.d0
     do idims=1,ndim
+      qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
       ixB^L=ixO^L-kr(idims,^D);
-      qd(ixO^S)=qd(ixO^S)+(qvec(ixO^S,idims)-qvec(ixB^S,idims))*dxinv(idims)
+      qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
     end do
 
   end subroutine hd_get_heatconduct
