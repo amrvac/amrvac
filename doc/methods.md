@@ -16,10 +16,12 @@ Xia, T. Hendrix, S. P. Moschou and R. Keppens ApJS.
 The acronyms TVD, TVDLF, and TVD-MUSCL stand for Total Variation Diminishing,
 TVD Lax-Friedrich, and TVD Monotonic Upwind Scheme for Conservation Laws,
 respectively. Then, depending on the physics module selected, you also have
-HLL and HLLC schemes, which are due to harten Lax, van Leer, with the HLLC
+HLL, HLLC, and HLLD schemes, which are due to harten Lax, van Leer, with the HLLC
 variant including a treatment for the Contact discontinuity, as e.g. described
 for Euler gas dynamics in _E.F. Toro, Riemann solvers and numerical methods
-for fluid dynamics (Berlin, Springer-Verlag, 1997)_.
+for fluid dynamics (Berlin, Springer-Verlag, 1997)_, and with the HLLD variant
+for MHD including multiple discontinuities, which was invented by Miyoshi and
+Kusano in _Journal of Computational Physics, 208, 315-344 (2005)_.
 
 Not all methods are available or meaningfull for all physics modules. In fact,
 we have the following combinations typically:
@@ -27,8 +29,8 @@ we have the following combinations typically:
     Physics   Schemes
     --------------------------------------------------------------------------
     rho       TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
-    hd        TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
-    mhd       TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD, HLLD
+    HD        TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
+    MHD       TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD, HLLD
 
 Also, the method can be selected per AMR grid level, but one can not combine
 different stepsize methods (hence, TVD is the only second order onestep
@@ -124,7 +126,7 @@ The entropy fix for the Riemann solver is given by the **typeentropy** array,
 it has the same meaning as for the TVD-MUSCL method, and for MHD, the
 divergence B problem should also be taken care of.
 
-## HLL and HLLC schemes
+## HLL HLLC and HLLD schemes
 
 The TVDLF scheme hence uses minimal info on the wave speeds, and in
 combination with AMR and its inherent robustness due to its diffusive nature,
@@ -158,6 +160,13 @@ evaluated after the cell-center values have been reconstructed to the cell
 edges. User can select one of the following methods by select **typedivbfix**
 and related parameters in _mhd_list_ of par file.
 
+#### constrained transport fix: typedivbfix='ct'
+
+The upwind constrained transport method (Londrillo and Zanna 2004 JCP), 
+using staggered grid for magnetic field, can preserve initial div B to round off
+errors and only works with finite volume schemes. Namely, it currently does not 
+work with the FD scheme.
+
 #### Powell fix: typedivbfix='powel'
 
 For multidimensional MHD calculations the non-conservative form of the [MHD
@@ -183,28 +192,13 @@ You can also use the diffusive (parabolic) approach, see the
 identified by `divbdiff=1`, but it is recommended for many multi-D MHD
 applications.
 
-#### Dedner fix: typedivbfix='glm1', 'glm2', or 'glm3'
+#### Dedner fix: typedivbfix='glm1' or 'glm2'
 
-This implements the mixed hyperbolic and parabolic dampening of the divB error
-using an additional scalar variable _Psi_ (need an addition of the name and
-boundary condition type in your par-file). The algorithm is described by
-Dedner et al. in _Journal of Computational Physics 175, 645-673 (2002)
-doi:10.1006/jcph.2001.6961_. The three versions differ in the source terms 
-taken along. Thus 'glm1' corresponds 
-to _Equation (24)_ of Dedner et al and 'glm2'
-corresponds to _Equation (38)_ of this paper. The option 'glm3' adds no
-additional sources to the MHD system. We recommend the option
-'glm1'. For example: in your par-file,
-
-    &mhd_list
-    typedivbfix='glm1'
-    ...
-
-in your `mod_usr.t`, add
-
-    if(mhd_glm) w(ixO^S,psi_)=0.d0
-
-in subroutine `usr_init_one_grid` and ( subroutine `usr_special_bc` if exists).
+This implements the mixed hyperbolic propagating and parabolic dampening of divB
+using an additional scalar variable _Psi_. The algorithm of 'glm1' is described by
+Dedner et al. as _Equation (24)_ in _Journal of Computational Physics 175, 645-673 (2002)
+doi:10.1006/jcph.2001.6961_. The 'glm2' is described by Derigs et al. in
+_Journal of Computational Physics 361, 420-467 (2018)_.
 
 #### Combined fix: typedivbfix='lindejanhunen' or 'lindepowel'
 
