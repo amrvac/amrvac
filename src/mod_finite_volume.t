@@ -259,10 +259,10 @@ contains
           wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
                + (fC(ixO^S,1:nwflux,idims)-fC(hxO^S,1:nwflux,idims))
        else
-          fC(ixI^S,1:nwflux,idims)=-qdt*fC(ixI^S,1:nwflux,idims)
           if (.not. angmomfix) then ! default case
             inv_volume = 1.0d0/block%dvolume(ixO^S)
             do iw=1,nwflux
+              fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
               wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
                   inv_volume
             enddo
@@ -299,11 +299,7 @@ contains
       do iw=1,nwflux
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-         if (slab_uniform) then
-           fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
-         else
-           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
-         end if
+         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
       end do
     end subroutine get_Riemann_flux_tvdmu
 
@@ -323,12 +319,7 @@ contains
             fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
          end if
 
-         if (slab_uniform) then
-           fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
-         else
-           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
-         end if
-
+         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
       end do ! Next iw
     end subroutine get_Riemann_flux_tvdlf
 
@@ -365,11 +356,7 @@ contains
             endwhere
          endif
 
-         if (slab_uniform) then
-           fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
-         else
-           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S, iw)
-         end if
+         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
 
       end do ! Next iw
     end subroutine get_Riemann_flux_hll
@@ -424,11 +411,7 @@ contains
             endwhere
          end if
 
-         if (slab_uniform) then
-           fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
-         else
-           fC(ixC^S,iw,idims)=block%surfaceC(ixC^S,idims)*fLC(ixC^S,iw)
-         end if
+         fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
 
       end do ! Next iw
     end subroutine get_Riemann_flux_hllc
@@ -578,9 +561,6 @@ contains
         else where(cmaxC(ixC^S)<0.d0)
           fC(ixC^S,iw,ip1)=fRC(ixC^S,iw)
         end where
-        if(.not.slab_uniform) then
-          fC(ixC^S,iw,ip1)=block%surfaceC(ixC^S,ip1)*fC(ixC^S,iw,ip1)
-        end if
       end do
 
     end subroutine get_Riemann_flux_hlld
@@ -642,24 +622,6 @@ contains
           end if
        end do
 
-       !! TODO: does this actually help? if not, remove
-       !call phys_check_w(.true., ixI^L, ixL^L, wLtmp, flagL)
-       !call phys_check_w(.true., ixI^L, ixR^L, wRtmp, flagR)
-
-       !do iw=1,nwflux
-       !   where (flagL(ixL^S) == 0 .and. flagR(ixR^S) == 0)
-       !      wLC(ixL^S,iw)=wLtmp(ixL^S,iw)
-       !      wRC(ixR^S,iw)=wRtmp(ixR^S,iw)
-       !   end where
-
-       !   ! Elsewhere, we still need to convert back when using loglimit
-       !   if (loglimit(iw)) then
-       !      where (flagL(ixL^S) /= 0 .or. flagR(ixR^S) /= 0)
-       !         wLC(ixL^S,iw)=10.0d0**wLC(ixL^S,iw)
-       !         wRC(ixR^S,iw)=10.0d0**wRC(ixR^S,iw)
-       !      end where
-       !   end if
-       !enddo
     endif
 
     ! Transform w,wL,wR back to conservative variables

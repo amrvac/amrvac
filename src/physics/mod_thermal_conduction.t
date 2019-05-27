@@ -333,7 +333,7 @@ contains
 
     ! restore stagger_grid value
     stagger_grid=stagger_flag
-  
+
   end subroutine do_thermal_conduction
 
   subroutine evolve_stepj(igrid,qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,wold)
@@ -695,13 +695,15 @@ contains
     qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
+        qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
         ixB^L=ixO^L-kr(idims,^D);
-        qd(ixO^S)=qd(ixO^S)+(qvec(ixO^S,idims)-qvec(ixB^S,idims))*dxinv(idims)
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
       end do
     else
       do idims=1,ndim
+        qvec(ix^S,idims)=qvec(ix^S,idims)*block%surfaceC(ix^S,idims)
         ixB^L=ixO^L-kr(idims,^D);
-        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)*block%surfaceC(ixO^S,idims)-qvec(ixB^S,idims)*block%surfaceC(ixB^S,idims)
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
       end do
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
@@ -979,13 +981,15 @@ contains
     qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
+        qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
         ixB^L=ixO^L-kr(idims,^D);
-        qd(ixO^S)=qd(ixO^S)+(qvec(ixO^S,idims)-qvec(ixB^S,idims))*dxinv(idims)
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
       end do
     else
       do idims=1,ndim
+        qvec(ix^S,idims)=qvec(ix^S,idims)*block%surfaceC(ix^S,idims)
         ixB^L=ixO^L-kr(idims,^D);
-        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)*block%surfaceC(ixO^S,idims)-qvec(ixB^S,idims)*block%surfaceC(ixB^S,idims)
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
       end do
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
