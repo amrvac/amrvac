@@ -213,6 +213,12 @@ contains
          idimN=mod(idims,ndir)+1 ! 'Next' direction
          idimE=mod(idims+1,ndir)+1 ! Electric field direction
          ! Store velocities
+         !if(idims<=2*ndim-3) then
+         !  call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idims,vbarLC(ixI^S,idimE,1))
+         !  call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idims,vbarRC(ixI^S,idimE,1))
+         !  call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idimN,vbarLC(ixI^S,idimE,2))
+         !  call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idimN,vbarRC(ixI^S,idimE,2))
+         !end if
          call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idimN,vbarLC(ixI^S,idims,1))
          call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idimN,vbarRC(ixI^S,idims,1))
          vbarC(ixC^S,idims,1)=(cbarmax(ixC^S,idims)*vbarLC(ixC^S,idims,1) &
@@ -247,8 +253,9 @@ contains
     end do ! Next idims
     block%iw0=0
 
-    if(stagger_grid) call update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,snew)
-    !if(stagger_grid) call updatefaces(ixI^L,ixO^L,qdt,fC,fE,snew)
+    if(stagger_grid) call update_faces(ixI^L,ixO^L,qdt,fC,fE,snew)
+    !if(stagger_grid) call update_faces_uct1(ixI^L,ixO^L,qdt,vbarRC,vbarLC,cbarmin,cbarmax,fE,snew)
+    !if(stagger_grid) call update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);

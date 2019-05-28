@@ -232,7 +232,7 @@ contains
   end subroutine div_staggered
 
   !> update faces
-  subroutine updatefaces(ixI^L,ixO^L,qdt,fC,fE,s)
+  subroutine update_faces(ixI^L,ixO^L,qdt,fC,fE,s)
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
@@ -241,8 +241,7 @@ contains
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,1:ndir)
 
-    integer                            :: ix^L(1:ndim)
-    integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
+    integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2,i,j,k
     double precision                   :: circ(ixI^S,1:ndim)
 
@@ -265,12 +264,17 @@ contains
           if (lvc(idim1,idim2,idir)==1) then
             ! Assemble indices
             jxC^L=ixC^L+kr(idim1,^D);
-            ixCp^L=ixC^L+kr(idim2,^D);
+            hxC^L=ixC^L+kr(idim2,^D);
             ! Interpolate to edges
-            fE(ixC^S,idir)=qdt*quarter*((fC(ixC^S,iwdim1,idim2)&
-            +fC(jxC^S,iwdim1,idim2))/dxlevel(idim1)&
-            -(fC(ixC^S,iwdim2,idim1)+fC(ixCp^S,iwdim2,idim1))&
-            /dxlevel(idim2))
+            if(idir<=ndim) then
+              fE(ixC^S,idir)=qdt*quarter*s%dsC(ixC^S,idir)*&
+              (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
+              -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
+            else
+              fE(ixC^S,idir)=qdt*quarter*&
+              (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
+              -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
+            end if
 
             if (.not.slab) then
               where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
@@ -300,15 +304,10 @@ contains
       end do
     end do
 
-    ! Decrease bottom limit by one
-    do idim1=1, ndim
-      ixmax^D(idim1)=ixOmax^D;ixmin^D=ixOmin^D-1;!-kr(^D,idim1);
-    end do
-
     ! Divide by the area of the face to get dB/dt
-
     do idim1=1,ndim
-      ixC^L=ix^L(idim1);
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D-kr(idim1,^D);
       where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
         circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       elsewhere
@@ -320,7 +319,7 @@ contains
 
     end associate
 
-  end subroutine updatefaces
+  end subroutine update_faces
 
   !> update faces UCT2
   subroutine update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,s)
@@ -712,7 +711,7 @@ contains
   end subroutine updatefacesuct2av
 
   !> update faces UCT1
-  subroutine updatefacesuct1(ixI^L,ixO^L,qdt,vbarRC,vbarLC,cbarmin,cbarmax,fE,s)
+  subroutine update_faces_uct1(ixI^L,ixO^L,qdt,vbarRC,vbarLC,cbarmin,cbarmax,fE,s)
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
@@ -730,25 +729,21 @@ contains
     double precision                   :: vtilLR(ixI^S,2)
     double precision                   :: btilL(s%ixGs^S,ndim)
     double precision                   :: btilR(s%ixGs^S,ndim)
-    double precision                   :: sqrtg(s%ixGs^S)
     double precision                   :: cp(ixI^S,2)
     double precision                   :: cm(ixI^S,2)
     double precision                   :: ELL(ixI^S)
     double precision                   :: ELR(ixI^S)
     double precision                   :: ERL(ixI^S)
     double precision                   :: ERR(ixI^S)
-    integer                            :: ixGs^L
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
-    double precision                   :: circ(ixI^S,1:ndim), dxidir
+    double precision                   :: circ(ixI^S,1:ndim), dxidir(ixI^S)
 
     associate(bfaces=>s%ws,x=>s%x)
 
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
-
-    ixGs^L=s%ixGs^L;
 
     ! Loop over components of electric field
 
@@ -774,26 +769,6 @@ contains
 
       jxC^L=ixC^L+kr(idim1,^D);
       ixCp^L=ixC^L+kr(idim2,^D);
-
-      ! Interpolate sqrt gamma to the edges
-
-      sqrtg(ixC^S)=1.d0
-
-   !   select case(idim1)
-   ! { case(^D)
-   !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       block%mSurface^D %sqrtgamma(ixC^S)+&
-   !       block%mSurface^D %sqrtgamma(ixCp^S))
-   ! \}
-   !   end select
-      
-   !   select case(idim2)
-   ! { case(^D)
-   !     sqrtg(ixC^S)=sqrtg(ixC^S)+quarter*(&
-   !       block%mSurface^D %sqrtgamma(ixC^S)+&
-   !       block%mSurface^D %sqrtgamma(jxC^S))
-   ! \}
-   !   end select
 
       ! Reconstruct velocities
       call reconstruct(ixI^L,ixC^L,idim2,vbarLC(ixI^S,idir,1),&
@@ -834,16 +809,15 @@ contains
       ERR(ixC^S)= vtilRR(ixC^S,2)*btilR(ixC^S,idim1)&
            -vtilRR(ixC^S,1)*btilR(ixC^S,idim2)
 
-      ! For 3D, use interval
+      ! Calculate eletric field
       if (idir <= ndim) then
-         dxidir = dxlevel(idir)
+         dxidir(ixC^S) = s%dsC(ixC^S,idir)
       else
          dxidir = 1.0d0
       end if
-      
+
       ! Calculate elctric field
-      fE(ixC^S,idir)=qdt * dxidir * &
-       sqrtg(ixC^S) * (&
+      fE(ixC^S,idir)=qdt * dxidir(ixC^S) * (&
        (cp(ixC^S,1)*cp(ixC^S,2)*ELL(ixC^S)&
        +cp(ixC^S,1)*cm(ixC^S,2)*ELR(ixC^S)&
        +cm(ixC^S,1)*cp(ixC^S,2)*ERL(ixC^S)&
@@ -898,7 +872,7 @@ contains
     end do
 
     end associate
-  end subroutine updatefacesuct1
+  end subroutine update_faces_uct1
 
   !> calculate magnetic field from vector potential
   subroutine b_from_vectorpotential(ixIs^L, ixI^L, ixO^L, ws, x)
