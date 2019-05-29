@@ -209,56 +209,6 @@ contains
         end do
         call faces2centers(ixO^L,block)
         w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
-        !ixCmax^D=ixOmax^D;
-        !ixCmin^D=ixOmin^D-1;
-        !xC(ixO^S,:)=x(ixO^S,:)
-        !dxc(ixO^S,:)=block%dx(ixO^S,:)
-        !^D&dxc(ixOmin^D-1^D%ixO^S,:)=dxc(ixOmin^D^D%ixO^S,:)\
-        !dxc(^D&ixOmin^D-1,:)=dxc(^D&ixOmin^D,:)
-        !^D&xC(ixOmin^D-1^D%ixO^S,:)=xC(ixOmin^D^D%ixO^S,:)\
-        !^D&xC(ixOmin^D-1^D%ixO^S,^D)=xC(ixOmin^D^D%ixO^S,^D)-dxc(ixOmin^D^D%ixO^S,^D)\
-        !xC(^D&ixOmin^D-1,:)=xC(^D&ixOmin^D,:)-dxc(^D&ixOmin^D,:)
-        !do idim=1,ndim
-        !  if(idim/=idir) then
-        !    xC(ixC^S,idim)=xC(ixC^S,idim)+dxc(ixC^S,idim)
-        !  end if
-        !end do
-        !! Initialise vector potential at the edge
-        !do idir=7-2*ndim,ndir
-        !  call initvecpot_usr(ixGs^LL, ixC^L, xC, A(:^D&,idir), idir)
-        !end do
-        !! Take the curl of the vector potential 
-        !circ = zero
-        !! Calculate circulation on each face
-        !do idim1=1,ndim ! Coordinate perpendicular to face 
-        !  ixCmax^D=ixOmax^D;
-        !  ixCmin^D=ixOmin^D-kr(idim1,^D);
-        !  do idim2=1,ndim
-        !    do idir=1,ndir ! Direction of line integral
-        !      if(lvc(idim1,idim2,idir)==0) cycle
-        !      ! Assemble indices
-        !      hxC^L=ixC^L-kr(idim2,^D);
-        !      ! Add line integrals in direction idir
-        !      if (idir <= ndim) then
-        !        dxidir(ixC^S) = block%dsC(ixC^S,idir)
-        !      else
-        !        dxidir(ixC^S) = 1.0d0
-        !      end if
-        !      circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-        !                       +lvc(idim1,idim2,idir)*dxidir(ixC^S) &
-        !                       *(A(ixC^S,idir)&
-        !                        -A(hxC^S,idir))
-        !    end do
-        !  end do
-        !end do
-        !! Divide by the area of the face to get B
-        !do idim1=1,ndim
-        !  ixCmax^D=ixOmax^D;
-        !  ixCmin^D=ixOmin^D-kr(idim1,^D);
-        !  circ(ixC^S,idim1)=circ(ixC^S,idim1)/block%surfaceC(ixC^S,idim1)
-        !  block%ws(ixC^S,idim1) = circ(ixC^S,idim1)
-        !end do
-        !call faces2centers(ixO^L,block)
       else
         w(ixO^S,mag(1))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
         w(ixO^S,mag(2))= B0*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))

@@ -321,6 +321,163 @@ contains
 
   end subroutine update_faces
 
+  !> update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509
+  subroutine update_faces_contact(ixI^L,ixO^L,qdt,wp,vnorm,fC,fE,s)
+    use mod_global_parameters
+
+    integer, intent(in)                :: ixI^L, ixO^L
+    double precision, intent(in)       :: qdt
+    ! cell-center primitive variables
+    double precision, intent(in)       :: wp(ixI^S,1:nw)
+    ! cell-face normal-component velocity
+    double precision, intent(in)       :: vnorm(ixI^S,1:ndim)
+    type(state)                        :: s
+    double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+
+    integer                            :: hxC^L,ixC^L,jxC^L,ixA^L
+    integer                            :: idim1,idim2,idir,iwdim1,iwdim2,i,j,k
+    double precision                   :: circ(ixI^S,1:ndim)
+    ! electric field at cell centers
+    double precision                   :: ECC(ixI^S,1:ndir)
+    ! gradient of E at left and right side of a cell face
+    double precision                   :: EL(ixI^S),ER(ixI^S)
+    ! gradient of E at left and right side of a cell corner
+    double precision                   :: ELC(ixI^S),ERC(ixI^S)
+
+    associate(bfaces=>s%ws,x=>s%x)
+
+    ! Calculate contribution to FEM of each edge,
+    ! that is, estimate value of line integral of
+    ! electric field in the positive idir direction.
+    ixCmax^D=ixOmax^D;
+    ixCmin^D=ixOmin^D-1;
+
+    ECC=0.d0
+    ! Calculate electric field at cell centers
+    do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,ndir
+      if(lvc(idim1,idim2,idir)==1)then
+         ECC(ixI^S,idir)=ECC(ixI^S,idir)+wp(ixI^S,iw_mag(idim1))*wp(ixI^S,iw_mom(idim2))
+      else if(lvc(idim1,idim2,idir)==-1) then
+         ECC(ixI^S,idir)=ECC(ixI^S,idir)-wp(ixI^S,iw_mag(idim1))*wp(ixI^S,iw_mom(idim2))
+      endif
+    enddo; enddo; enddo
+
+    fE(ixI^S,1:ndir)=zero
+
+    do idim1=1,ndim 
+      iwdim1 = iw_mag(idim1)
+      do idim2=1,ndim
+        iwdim2 = iw_mag(idim2)
+        do idir=7-2*ndim,ndir ! Direction of line integral
+          ! Allow only even permutations
+          if (lvc(idim1,idim2,idir)==1) then
+            ! Assemble indices
+            jxC^L=ixC^L+kr(idim1,^D);
+            hxC^L=ixC^L+kr(idim2,^D);
+            ! average cell-face electric field to cell edges
+            fE(ixC^S,idir)=quarter*&
+            (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
+            -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
+
+            ! add slope in idim2 direction
+            ixAmin^D=ixCmin^D;
+            ixAmax^D=ixCmax^D+kr(idim1,^D);
+            EL(ixA^S)=fC(ixA^S,iwdim1,idim2)-ECC(ixA^S,idir)
+            hxC^L=ixA^L+kr(idim2,^D);
+            ER(ixA^S)=fC(ixA^S,iwdim1,idim2)-ECC(hxC^S,idir)
+            where(vnorm(ixC^S,idim1)>0.d0)
+              ELC(ixC^S)=EL(ixC^S)
+            else where(vnorm(ixC^S,idim1)<0.d0)
+              ELC(ixC^S)=EL(jxC^S)
+            else where
+              ELC(ixC^S)=0.5d0*(EL(ixC^S)+EL(jxC^S))
+            end where
+            hxC^L=ixC^L+kr(idim2,^D);
+            where(vnorm(hxC^S,idim1)>0.d0)
+              ERC(ixC^S)=ER(ixC^S)
+            else where(vnorm(hxC^S,idim1)<0.d0)
+              ERC(ixC^S)=ER(jxC^S)
+            else where
+              ERC(ixC^S)=0.5d0*(ER(ixC^S)+ER(jxC^S))
+            end where
+            fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
+
+            ! add slope in idim1 direction
+            jxC^L=ixC^L+kr(idim2,^D);
+            ixAmin^D=ixCmin^D;
+            ixAmax^D=ixCmax^D+kr(idim2,^D);
+            EL(ixA^S)=-fC(ixA^S,iwdim2,idim1)-ECC(ixA^S,idir)
+            hxC^L=ixA^L+kr(idim1,^D);
+            ER(ixA^S)=-fC(ixA^S,iwdim2,idim1)-ECC(hxC^S,idir)
+            where(vnorm(ixC^S,idim2)>0.d0)
+              ELC(ixC^S)=EL(ixC^S)
+            else where(vnorm(ixC^S,idim2)<0.d0)
+              ELC(ixC^S)=EL(jxC^S)
+            else where
+              ELC(ixC^S)=0.5d0*(EL(ixC^S)+EL(jxC^S))
+            end where
+            hxC^L=ixC^L+kr(idim1,^D);
+            where(vnorm(hxC^S,idim2)>0.d0)
+              ERC(ixC^S)=ER(ixC^S)
+            else where(vnorm(hxC^S,idim2)<0.d0)
+              ERC(ixC^S)=ER(jxC^S)
+            else where
+              ERC(ixC^S)=0.5d0*(ER(ixC^S)+ER(jxC^S))
+            end where
+            fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
+
+            ! times time step and edge length 
+            if(idir<=ndim) then
+              fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
+            else
+              fE(ixC^S,idir)=fE(ixC^S,idir)*qdt
+            end if
+            if (.not.slab) then
+              where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
+                fE(ixC^S,idir)=zero
+              end where
+            end if
+          end if
+        end do
+      end do
+    end do
+
+    circ(ixI^S,1:ndim)=zero
+
+    ! Calculate circulation on each face
+
+    do idim1=1,ndim ! Coordinate perpendicular to face 
+      do idim2=1,ndim
+        do idir=1,ndir ! Direction of line integral
+          ! Assemble indices
+          hxC^L=ixC^L-kr(idim2,^D);
+          ! Add line integrals in direction idir
+          circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                           +lvc(idim1,idim2,idir)&
+                           *(fE(ixC^S,idir)&
+                            -fE(hxC^S,idir))
+        end do
+      end do
+    end do
+
+    ! Divide by the area of the face to get dB/dt
+    do idim1=1,ndim
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D-kr(idim1,^D);
+      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
+        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
+      elsewhere
+        circ(ixC^S,idim1)=zero
+      end where
+      ! Time update
+      bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
+    end do
+
+    end associate
+
+  end subroutine update_faces_contact
+
   !> update faces UCT2
   subroutine update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,s)
     use mod_global_parameters

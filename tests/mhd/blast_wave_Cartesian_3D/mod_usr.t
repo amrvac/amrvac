@@ -66,11 +66,11 @@ contains
     double precision, intent(out)      :: A(ixI^S)
 
     if (idir==3) then
-      A(ixC^S) = 2.d0*xC(ixC^S,2)
+      A(ixC^S) = Busr*xC(ixC^S,2)
     else if(idir==2) then 
-      A(ixC^S) = xC(ixC^S,3)
+      A(ixC^S) = Busr*xC(ixC^S,1)
     else
-      A(ixC^S) = xC(ixC^S,3)
+      A(ixC^S) = Busr*xC(ixC^S,3)
     end if
 
   end subroutine initvecpot_usr
