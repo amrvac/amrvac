@@ -365,6 +365,7 @@ contains
 
     fE(ixI^S,1:ndir)=zero
 
+    ! evaluate electric field along cell edges according to equation (41)
     do idim1=1,ndim 
       iwdim1 = iw_mag(idim1)
       do idim2=1,ndim
@@ -380,7 +381,7 @@ contains
             (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
             -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
 
-            ! add slope in idim2 direction
+            ! add slope in idim2 direction from equation (50)
             ixAmin^D=ixCmin^D;
             ixAmax^D=ixCmax^D+kr(idim1,^D);
             EL(ixA^S)=fC(ixA^S,iwdim1,idim2)-ECC(ixA^S,idir)
@@ -403,7 +404,7 @@ contains
             end where
             fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
 
-            ! add slope in idim1 direction
+            ! add slope in idim1 direction from equation (50)
             jxC^L=ixC^L+kr(idim2,^D);
             ixAmin^D=ixCmin^D;
             ixAmax^D=ixCmax^D+kr(idim2,^D);

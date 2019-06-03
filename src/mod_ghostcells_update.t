@@ -139,7 +139,6 @@ contains
        call mpistop("interpolation order for prolongation in getbc too high")
     end if
 
-    allocate(pole_buf%w(ixG^T,1:nwflux+nwaux))
     ! (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
     ! iib=-1 means it is at the minimum side of a physical boundary  
     ! iib= 1 means it is at the maximum side of a physical boundary  
@@ -147,44 +146,25 @@ contains
     ! i= 1 means subregion prepared for the neighbor at its maximum side 
     {
     ixS_srl_min^D(:,-1)=ixMmin^D
+    ixS_srl_min^D(:, 0)=ixMmin^D
     ixS_srl_min^D(:, 1)=ixMmax^D+1-nghostcells
     ixS_srl_max^D(:,-1)=ixMmin^D-1+nghostcells
+    ixS_srl_max^D(:, 0)=ixMmax^D
     ixS_srl_max^D(:, 1)=ixMmax^D
-    
-    ixS_srl_min^D(-1,0)=1
-    ixS_srl_min^D( 0,0)=ixMmin^D
-    ixS_srl_min^D( 1,0)=ixMmin^D
-    ixS_srl_min^D( 2,0)=1
-    ixS_srl_max^D(-1,0)=ixMmax^D
-    ixS_srl_max^D( 0,0)=ixMmax^D
-    ixS_srl_max^D( 1,0)=ixGmax^D
-    ixS_srl_max^D( 2,0)=ixGmax^D
      
     ixR_srl_min^D(:,-1)=1
+    ixR_srl_min^D(:, 0)=ixMmin^D
     ixR_srl_min^D(:, 1)=ixMmax^D+1
     ixR_srl_max^D(:,-1)=nghostcells
+    ixR_srl_max^D(:, 0)=ixMmax^D
     ixR_srl_max^D(:, 1)=ixGmax^D
     
-    ixR_srl_min^D(-1,0)=1
-    ixR_srl_min^D( 0,0)=ixMmin^D
-    ixR_srl_min^D( 1,0)=ixMmin^D
-    ixR_srl_min^D( 2,0)=1
-    ixR_srl_max^D(-1,0)=ixMmax^D
-    ixR_srl_max^D( 0,0)=ixMmax^D
-    ixR_srl_max^D( 1,0)=ixGmax^D
-    ixR_srl_max^D( 2,0)=ixGmax^D
-    
     ixS_r_min^D(:,-1)=ixCoMmin^D
+    ixS_r_min^D(:, 0)=ixCoMmin^D
     ixS_r_min^D(:, 1)=ixCoMmax^D+1-nghostcells
     ixS_r_max^D(:,-1)=ixCoMmin^D-1+nghostcells
+    ixS_r_max^D(:, 0)=ixCoMmax^D
     ixS_r_max^D(:, 1)=ixCoMmax^D
-    
-    ixS_r_min^D(-1,0)=1
-    ixS_r_min^D( 0,0)=ixCoMmin^D
-    ixS_r_min^D( 1,0)=ixCoMmin^D
-    ixS_r_max^D(-1,0)=ixCoMmax^D
-    ixS_r_max^D( 0,0)=ixCoMmax^D
-    ixS_r_max^D( 1,0)=ixCoGmax^D
     
     ixR_r_min^D(:, 0)=1
     ixR_r_min^D(:, 1)=ixMmin^D
@@ -194,11 +174,6 @@ contains
     ixR_r_max^D(:, 1)=ixMmin^D-1+nxCo^D
     ixR_r_max^D(:, 2)=ixMmax^D
     ixR_r_max^D(:, 3)=ixGmax^D
-
-    ixR_r_min^D(-1,1)=1
-    ixR_r_max^D(-1,1)=ixMmin^D-1+nxCo^D
-    ixR_r_min^D( 1,2)=ixMmin^D+nxCo^D
-    ixR_r_max^D( 1,2)=ixGmax^D
 
     ixS_p_min^D(:, 0)=ixMmin^D-(interpolation_order-1)
     ixS_p_min^D(:, 1)=ixMmin^D-(interpolation_order-1)
@@ -217,10 +192,6 @@ contains
       ixS_p_min^D(:, 2)=ixMmin^D+nxCo^D-(interpolation_order-1)
     end if
 
-    ! extend index range to physical boundary
-    ixS_p_min^D(-1,1)=1
-    ixS_p_max^D( 1,2)=ixGmax^D
-
     ixR_p_min^D(:, 0)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
     ixR_p_min^D(:, 1)=ixCoMmin^D-(interpolation_order-1)
     ixR_p_min^D(:, 2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
@@ -237,9 +208,6 @@ contains
       ixR_p_min^D(:, 2)=ixCoMmin^D-(interpolation_order-1)
     end if
 
-    ! extend index range to physical boundary
-    ixR_p_min^D(-1,1)=1
-    ixR_p_max^D( 1,2)=ixCoGmax^D
     \}
 
     if (stagger_grid) then
@@ -345,6 +313,39 @@ contains
            sizes_p_send_total(i^D)=sum(sizes_p_send_stg(:,i^D))
            sizes_p_recv_total(i^D)=sum(sizes_p_recv_stg(:,i^D))
       {end do\}
+    else
+      ! extend index range to physical boundary
+      {
+      ixS_srl_min^D(-1,0)=1
+      ixS_srl_min^D( 1,0)=ixMmin^D
+      ixS_srl_min^D( 2,0)=1
+      ixS_srl_max^D(-1,0)=ixMmax^D
+      ixS_srl_max^D( 1,0)=ixGmax^D
+      ixS_srl_max^D( 2,0)=ixGmax^D
+       
+      ixR_srl_min^D(-1,0)=1
+      ixR_srl_min^D( 1,0)=ixMmin^D
+      ixR_srl_min^D( 2,0)=1
+      ixR_srl_max^D(-1,0)=ixMmax^D
+      ixR_srl_max^D( 1,0)=ixGmax^D
+      ixR_srl_max^D( 2,0)=ixGmax^D
+      
+      ixS_r_min^D(-1,0)=1
+      ixS_r_min^D( 1,0)=ixCoMmin^D
+      ixS_r_max^D(-1,0)=ixCoMmax^D
+      ixS_r_max^D( 1,0)=ixCoGmax^D
+      
+      ixR_r_min^D(-1,1)=1
+      ixR_r_max^D(-1,1)=ixMmin^D-1+nxCo^D
+      ixR_r_min^D( 1,2)=ixMmin^D+nxCo^D
+      ixR_r_max^D( 1,2)=ixGmax^D
+
+      ixS_p_min^D(-1,1)=1
+      ixS_p_max^D( 1,2)=ixGmax^D
+
+      ixR_p_min^D(-1,1)=1
+      ixR_p_max^D( 1,2)=ixCoGmax^D
+      \}
     end if
     
   end subroutine init_bc
