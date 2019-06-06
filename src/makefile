@@ -193,3 +193,4 @@ refine.o: mod_physics.mod
 set_B0.o: mod_geometry.mod
 setdt.o: mod_physics.mod
 setdt.o: mod_thermal_conduction.mod
+mod_thermal_emission.o: mod_mhd.mod
