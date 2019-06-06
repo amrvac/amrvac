@@ -213,14 +213,6 @@ mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
 new_init_particles.o: mod_gridvars.mod
 new_init_particles.o: mod_particles.mod
-newmod_thermal_conduction.o: mod_fix_conserve.mod
-newmod_thermal_conduction.o: mod_geometry.mod
-newmod_thermal_conduction.o: mod_ghostcells_update.mod
-newmod_thermal_conduction.o: mod_physics.mod
-newmod_thermal_conduction.o: mod_small_values.mod
-oldmod_ghostcells_update.o: mod_amr_fct.mod
-oldmod_ghostcells_update.o: mod_geometry.mod
-oldmod_ghostcells_update.o: mod_physics.mod
 raytracing.o: mod_raytracing.mod
 refine.o: mod_physics.mod
 set_B0.o: mod_geometry.mod
