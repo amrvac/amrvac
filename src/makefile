@@ -37,6 +37,15 @@ amrini.o: mod_ghostcells_update.mod
 amr_neighbors.o: mod_geometry.mod
 amr_solution_node.o: mod_forest.mod
 amr_solution_node.o: mod_geometry.mod
+amrvac.o: mod_advance.mod
+amrvac.o: mod_fix_conserve.mod
+amrvac.o: mod_ghostcells_update.mod
+amrvac.o: mod_initialize.mod
+amrvac.o: mod_input_output.mod
+amrvac.o: mod_particles.mod
+amrvac.o: mod_physics.mod
+amrvac.o: mod_timing.mod
+amrvac.o: mod_usr.mod
 boundary_conditions.o: mod_bc_data.mod
 boundary_conditions.o: mod_constrained_transport.mod
 coarsen.o: mod_constrained_transport.mod
@@ -209,6 +218,7 @@ mod_thermal_conduction.o: mod_geometry.mod
 mod_thermal_conduction.o: mod_ghostcells_update.mod
 mod_thermal_conduction.o: mod_physics.mod
 mod_thermal_conduction.o: mod_small_values.mod
+mod_thermal_emission.o: mod_mhd.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
