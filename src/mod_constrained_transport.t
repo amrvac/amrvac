@@ -429,11 +429,7 @@ contains
             fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
 
             ! times time step and edge length 
-            if(idir<=ndim) then
-              fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
-            else
-              fE(ixC^S,idir)=fE(ixC^S,idir)*qdt
-            end if
+            fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
             if (.not.slab) then
               where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
                 fE(ixC^S,idir)=zero
@@ -1083,9 +1079,7 @@ contains
     end where
 
     ! sub integrals A ds
-    if(ndir<=ndim) then
-      A(ixC^S,1:ndir)=A(ixC^S,1:ndir)*block%dsC(ixC^S,1:ndir)
-    end if
+    A(ixC^S,1:ndir)=A(ixC^S,1:ndir)*block%dsC(ixC^S,1:ndir)
 
     ! Take the curl of the vector potential 
     circ(:^D&,:) = zero
