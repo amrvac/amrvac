@@ -244,7 +244,7 @@ name | type | default | description
 ---|---|---|---
 `ditsave_log` | integer | `biginteger` | Repeatedly save information in a log file when `ditsave_log` time steps have passed
 `dtsave_dat` | double | `bigdouble` | Repeatedly save dat files when `dtsave_dat` simulation time has passed
-`itsave(SAVEINDEX,FILEINDEX)` | integer | 1 | Save on these time steps
+`itsave(SAVEINDEX,FILEINDEX)` | integer | biginteger | Save on these time steps
 `tsave(SAVEINDEX,FILEINDEX)` | double | `bigdouble` | Save on these times
 `nslices` | integer | 0 | Number of slices
 `slicedir(INTEGER)` | integer | - | Slice direction, see @ref slices.md

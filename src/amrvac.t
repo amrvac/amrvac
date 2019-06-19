@@ -39,13 +39,15 @@ program amrvac
      ! read in dat file
      call read_snapshot()
 
-     ! overwrite it=0 snapshot when restart from it=0 state 
-     if(it==0.and.itsave(1,1)==0.or.itsave(1,2)==0) snapshotnext=snapshotnext-1
+     ! rewrite it=0 snapshot when restart from it=0 state 
+     if(it==0.and.itsave(1,2)==0) snapshotnext=snapshotnext-1
 
      if (reset_time) then
        ! reset it and global time to original value
        it           = it_init
        global_time  = time_init
+       ! reset snapshot number
+       snapshotnext=0
      end if
 
      if (reset_it) then
