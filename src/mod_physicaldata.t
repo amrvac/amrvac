@@ -24,9 +24,9 @@ module mod_physicaldata
       !> Variables, cell corner values
       double precision, dimension(:^D&,:), allocatable :: wc
       !> Time-independent magnetic field at cell center and cell interface
-      double precision, dimension(:^D&,:,:), allocatable :: B0
+      double precision, dimension(:^D&,:,:), pointer :: B0=>Null()
       !> Time-independent electric current density at cell center
-      double precision, dimension(:^D&,:), allocatable :: J0
+      double precision, dimension(:^D&,:), pointer :: J0=>Null()
       !> Cell-center positions
       double precision, dimension(:^D&,:), pointer :: x=>Null()
       !> Cell sizes in coordinate units

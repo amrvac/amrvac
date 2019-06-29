@@ -356,7 +356,6 @@ contains
 
     associate(bfaces=>s%ws,x=>s%x,dx=>s%dx,w=>s%w,wCT=>block0%w,ws=>block%ws)
 
-
     ECC=0.d0
     ! Calculate electric field at cell centers
     do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,ndir
@@ -400,7 +399,7 @@ contains
         call curlvector(wCT(ixI^S,iw_mag(:)),ixI^L,ixO^L,jcc,idirmin,7-2*ndir,ndir)
         call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
         ! calcuate eta on cell edges
-        do idir=7-2*ndim,3
+        do idir=7-2*ndim,ndir
           ixCmax^D=ixOmax^D;
           ixCmin^D=ixOmin^D+kr(idir,^D)-1;
           jcc(ixC^S,idir)=0.d0
@@ -504,8 +503,9 @@ contains
     circ(ixI^S,1:ndim)=zero
 
     ! Calculate circulation on each face
-
     do idim1=1,ndim ! Coordinate perpendicular to face 
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
         do idir=1,ndir ! Direction of line integral
           ! Assemble indices
@@ -517,10 +517,7 @@ contains
                             -fE(hxC^S,idir))
         end do
       end do
-    end do
-
-    ! Divide by the area of the face to get dB/dt
-    do idim1=1,ndim
+      ! Divide by the area of the face to get dB/dt
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
@@ -528,7 +525,7 @@ contains
       elsewhere
         circ(ixC^S,idim1)=zero
       end where
-      ! Time update
+      ! Time update cell-face magnetic field component
       bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
     end do
 

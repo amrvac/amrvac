@@ -497,11 +497,8 @@ subroutine alloc_node(igrid)
       call mpistop("Sorry, coordinate unknown")
   end select
 
-  if (B0field) then
-     ! initialize background non-evolving solution
-     call alloc_B0_grid(igrid)
-     call set_B0_grid(igrid)
-  end if
+  ! initialize background non-evolving solution
+  if (B0field) call set_B0_grid(igrid)
 
   ! find the blocks on the boundaries
   ps(igrid)%is_physical_boundary=.false.
@@ -563,6 +560,10 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
              s%surface(ixG^S,1:ndim))
     ! allocate physical boundary flag
     allocate(s%is_physical_boundary(2*ndim))
+    if(B0field) then
+      allocate(s%B0(ixG^S,1:ndir,0:ndim))
+      allocate(s%J0(ixG^S,7-2*ndir:3))
+    end if
   else
     ! use spatial info on ps states to save memory
     s%x=>ps(igrid)%x
@@ -573,6 +574,10 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     s%surfaceC=>ps(igrid)%surfaceC
     s%surface=>ps(igrid)%surface
     s%is_physical_boundary=>ps(igrid)%is_physical_boundary
+    if(B0field) then
+      s%B0=>ps(igrid)%B0
+      s%J0=>ps(igrid)%J0
+    end if
   end if
 end subroutine alloc_state
 
@@ -592,8 +597,13 @@ subroutine dealloc_state(igrid, s,dealloc_x)
     deallocate(s%dx,s%ds)
     deallocate(s%dvolume)
     deallocate(s%surfaceC,s%surface)
+    if(B0field) then
+      deallocate(s%B0)
+      deallocate(s%J0)
+    end if
   else
     nullify(s%x,s%dx,s%ds,s%dvolume,s%surfaceC,s%surface)
+    if(B0field) nullify(s%B0,s%J0)
   end if
 end subroutine dealloc_state
 
@@ -623,7 +633,5 @@ subroutine dealloc_node(igrid)
     call dealloc_state(igrid, ps3(igrid),.false.)
     call dealloc_state(igrid, ps4(igrid),.false.)
   end select
-
-  if (B0field) call dealloc_B0_grid(igrid)
 
 end subroutine dealloc_node

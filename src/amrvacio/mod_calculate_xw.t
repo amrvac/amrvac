@@ -95,7 +95,7 @@ contains
     !  extra layer around mesh only needed when storing corner values and averaging
     if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),ps(igrid)%x)
 
-    if(allocated(ps(igrid)%B0)) then
+    if(B0field) then
     ! B0+B1 split handled here
       if(.not.saveprim.and.phys_energy) then
         w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &

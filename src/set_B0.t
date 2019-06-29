@@ -102,25 +102,3 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
   end do
 
 end subroutine set_B0_face
-
-subroutine alloc_B0_grid(igrid)
-  use mod_global_parameters
-
-  integer, intent(in) :: igrid
-
-  if(.not. allocated(ps(igrid)%B0)) then
-    allocate(ps(igrid)%B0(ixG^T,1:ndir,0:ndim))
-    allocate(ps(igrid)%J0(ixG^T,7-2*ndir:3))
-  end if
-
-end subroutine alloc_B0_grid
-
-subroutine dealloc_B0_grid(igrid)
-  use mod_global_parameters
-
-  integer, intent(in) :: igrid
-
-  deallocate(ps(igrid)%B0)
-  deallocate(ps(igrid)%J0)
-
-end subroutine dealloc_B0_grid

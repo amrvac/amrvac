@@ -166,7 +166,7 @@ if (saveprim) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
     if (.not.writeblk(igrid)) cycle
     call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,ps1(igrid)%w,ps(igrid)%x)
-    if (allocated(ps(igrid)%B0)) then
+    if(B0field) then
       ! add background magnetic field B0 to B
       ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
     end if
@@ -174,7 +174,7 @@ if (saveprim) then
 else
   do iigrid=1,igridstail; igrid=igrids(iigrid)
     if (.not.writeblk(igrid)) cycle
-    if (allocated(ps(igrid)%B0)) then
+    if (B0field) then
       ! add background magnetic field B0 to B
       if(phys_energy) &
         ps1(igrid)%w(ixG^T,iw_e)=ps1(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
