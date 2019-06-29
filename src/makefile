@@ -73,7 +73,7 @@ mod_calculate_xw.o: mod_physics.mod
 mod_collapse.o: mod_calculate_xw.mod
 mod_collapse.o: mod_physics.mod
 mod_collapse.o: mod_slice.mod
-mod_constrained_transport.o: mod_fix_conserve.mod
+mod_constrained_transport.o: mod_geometry.mod
 mod_constrained_transport.o: mod_limiter.mod
 mod_dust.o: mod_geometry.mod
 mod_dust.o: mod_physics.mod

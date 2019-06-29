@@ -607,6 +607,9 @@ module mod_global_parameters
   integer, parameter :: ismin^D=-1+2*^D
   integer, parameter :: ismax^D=2*^D
 
+  ! coefficient for physics
+  double precision :: phys_eta
+
   !$OMP THREADPRIVATE(dxlevel)
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

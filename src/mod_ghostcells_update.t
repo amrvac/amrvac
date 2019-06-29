@@ -419,6 +419,7 @@ contains
   
   end subroutine put_bc_comm_types
 
+  !> do update ghost cells of all blocks including physical boundaries
   subroutine getbc(time,qdt,psb,nwstart,nwbc,req_diag)
     use mod_global_parameters
     use mod_physics

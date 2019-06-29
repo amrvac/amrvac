@@ -116,7 +116,9 @@ contains
     double precision, dimension(ixI^S,1:ndir,2) :: vbarC                                                                                      
     double precision, dimension(ixI^S,1:ndir,2) :: vbarLC,vbarRC                                                                              
     ! cell-face velocity from left and right reconstruction
-    double precision, dimension(ixI^S,1:ndim) :: vLC,vRC                                                                              
+    double precision, dimension(ixI^S,1:ndim) :: vLC,vRC
+    ! cell-face location coordinates
+    double precision, dimension(ixI^S,1:ndim) :: xi
     double precision, dimension(ixI^S,ndim)   :: cbarmin,cbarmax                                                                              
     integer                                 :: idimE,idimN
     integer, dimension(ixI^S)               :: patchf
@@ -170,11 +172,15 @@ contains
        {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
        {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
+       ! get cell-face coordinates
+       xi=x
+       xi(ixI^S,idims)=xi(ixI^S,idims)+0.5d0*sCT%dx(ixI^S,idims)
+
        ! apply limited reconstruction for left and right status at cell interfaces
        select case (typelimited)
        case ('previous')
          call phys_to_primitive(ixI^L,ixI^L,wold,x)
-         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,wLp,wRp,x,.true.)
+         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,wLp,wRp,xi,.true.)
          if(stagger_grid) then
            wLC(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
            wRC(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
@@ -182,7 +188,7 @@ contains
            wRp(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
          end if
        case ('predictor')
-         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,xi,.false.)
          if(stagger_grid) then
            wLC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
            wRC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
@@ -197,14 +203,14 @@ contains
        call phys_modify_wLR(wLp, wRp, ixI^L, ixC^L, idims)
 
        ! evaluate physical fluxes according to reconstructed status
-       call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
-       call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
+       call phys_get_flux(wLC,wLp,xi,ixI^L,ixC^L,idims,fLC)
+       call phys_get_flux(wRC,wRp,xi,ixI^L,ixC^L,idims,fRC)
 
        ! estimating bounds for the minimum and maximum signal velocities
        if(method=='tvdlf'.or.method=='tvdmu') then
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC)
        else
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 
        if(stagger_grid) then

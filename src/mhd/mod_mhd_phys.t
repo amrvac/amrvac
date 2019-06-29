@@ -165,6 +165,8 @@ contains
        read(unitpar, mhd_list, end=111)
 111    close(unitpar)
     end do
+ 
+    phys_eta=mhd_eta
 
   end subroutine mhd_read_params
 
@@ -858,6 +860,7 @@ contains
   subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
     use mod_usr_methods
+    use mod_geometry
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
     ! conservative w
@@ -867,9 +870,9 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: ptotal(ixO^S),tmp(ixI^S)
+    double precision             :: ptotal(ixO^S),tmp(ixI^S),current(ixI^S,7-2*ndir:3),eta(ixI^S)
     double precision, allocatable:: vHall(:^D&,:)
-    integer                      :: idirmin, iw, idir
+    integer                      :: idirmin, iw, idir, jdir, kdir
 
     if (mhd_Hall) then
       allocate(vHall(ixI^S,1:ndir))
@@ -944,6 +947,7 @@ contains
                 end if
              end if
           end if
+
        end if
     end if
 
@@ -1329,13 +1333,11 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: ixA^L,idir,jdir,kdir,idirmin,iw,idim,idirmin1
-
-    double precision :: tmp(ixI^S),tmp2(ixI^S)
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S),curlj(ixI^S,1:3)
     double precision :: tmpvec(ixI^S,1:3)
+    integer :: ixA^L,idir,idirmin,idirmin1
 
     ixA^L=ixO^L^LADD2;
 
@@ -1355,13 +1357,18 @@ contains
 
     ! dB/dt= -curl(J*eta), thus B_i=B_i-eps_ijk d_j Jeta_k
     tmpvec(ixA^S,1:ndir)=zero
-    do jdir=idirmin,3
-       tmpvec(ixA^S,jdir)=current(ixA^S,jdir)*eta(ixA^S)
+    do idir=idirmin,3
+       tmpvec(ixA^S,idir)=current(ixA^S,idir)*eta(ixA^S)
     end do
     call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
-    do idir=1,ndir
-      w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-qdt*curlj(ixO^S,idir)
-    end do
+    if(stagger_grid) then
+      ! if 2.5D
+      if(ndir==3) w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
+    else
+      do idir=1,ndir
+        w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-qdt*curlj(ixO^S,idir)
+      end do
+    end if
 
     if(mhd_energy) then
       ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)

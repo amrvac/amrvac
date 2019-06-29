@@ -350,8 +350,8 @@ contains
     use mod_constrained_transport
 
     integer, intent(in) :: idim^LIM
-    type(state) :: psa(max_blocks) !< Compute fluxes based on this state
-    type(state) :: psb(max_blocks) !< Update solution on this state
+    type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
+    type(state), target :: psb(max_blocks) !< Update solution on this state
     double precision, intent(in) :: dtfactor !< Advance over dtfactor * dt
     double precision, intent(in) :: qtC
     double precision, intent(in) :: qt
@@ -409,7 +409,7 @@ contains
     character(len=*), intent(in) :: method
     integer, intent(in) :: igrid, ixI^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt
-    type(state)                  :: sCT, s, sold
+    type(state), target          :: sCT, s, sold
 
     double precision :: dx^D
     ! cell face flux
@@ -421,7 +421,8 @@ contains
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     saveigrid=igrid
 
-    block=>ps(igrid)
+    block0=>sCT
+    block=>s
     typelimiter=type_limiter(node(plevel_,igrid))
     typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
@@ -455,7 +456,7 @@ contains
     character(len=*), intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
-    type(state)                  :: sCT, s, sold
+    type(state), target          :: sCT, s, sold
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     double precision :: fE(ixI^S,1:ndir)
 

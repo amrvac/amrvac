@@ -3,93 +3,93 @@ module mod_constrained_transport
   public
 
 contains
-  !> re-calculate the magnetic field from the vector potential in a completely
-  !> divergency free way
-  subroutine recalculateB
-    use mod_global_parameters
-    use mod_fix_conserve
-
-    integer :: igrid,iigrid
-
-    call init_comm_fix_conserve(1,ndim,^ND)
-
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ! Make zero the magnetic fluxes
-       ! Fake advance, storing electric fields at edges
-       call fake_advance(igrid,1,^ND,ps(igrid))
-
-    end do
-    !$OMP END PARALLEL DO
-
-    ! Do correction
-    call recvflux(1,ndim)
-    call sendflux(1,ndim)
-    call fix_conserve(ps,1,ndim,1,^ND)
-
-    call fix_edges(ps,1,^ND)
-
-    ! Now we fill the centers for the staggered variables
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       call faces2centers(ixG^LL,ps(igrid))
-    end do
-    !$OMP END PARALLEL DO
-  end subroutine recalculateB
-
-  !> fake advance a step to calculate magnetic field
-  subroutine fake_advance(igrid,idim^LIM,s)
-    use mod_global_parameters
-    use mod_fix_conserve
-
-    integer       :: igrid,idim^LIM
-    type(state)   :: s
-
-    double precision             :: dx^D
-    double precision             :: fC(ixG^T,1:nwflux,1:ndim)
-    double precision             :: fE(ixG^T,1:ndir)
-
-    dx^D=rnode(rpdx^D_,igrid);
-    !call set_tmpGlobals(igrid)
-
-    call fake_update(ixG^LL,s,fC,fE,dx^D)
-
-    call store_flux(igrid,fC,idim^LIM,^ND)
-    call store_edge(igrid,ixG^LL,fE,idim^LIM) 
-
-  end subroutine fake_advance
-
-  !>fake update magnetic field from vector potential
-  subroutine fake_update(ixI^L,s,fC,fE,dx^D)
-    use mod_global_parameters
-
-    integer       :: ixI^L
-    type(state)   :: s
-    double precision             :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision             :: fE(ixI^S,1:ndir)
-    double precision             :: dx^D
-
-    integer                            :: ixIs^L,ixO^L,idir
-    double precision                   :: xC(ixI^S,1:ndim), A(ixI^S,1:ndir)
-    double precision                   :: circ(ixI^S,1:ndim), dxidir
-
-    associate(ws=>s%ws,x=>s%x)
-
-    A(:^D&,:)=zero
-    ws(:^D&,:)=zero
-
-    ixIs^L=s%ixGs^L;
-    ixO^L=ixI^L^LSUBnghostcells;
-
-    call b_from_vectorpotentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
-
-    ! This is important only in 3D
-    do idir=1,ndim
-       fE(ixI^S,idir) =-A(ixI^S,idir)*dxlevel(idir)
-    end do
-
-    end associate
-  end subroutine fake_update
+!  !> re-calculate the magnetic field from the vector potential in a completely
+!  !> divergency free way
+!  subroutine recalculateB
+!    use mod_global_parameters
+!    use mod_fix_conserve
+!
+!    integer :: igrid,iigrid
+!
+!    call init_comm_fix_conserve(1,ndim,^ND)
+!
+!    !$OMP PARALLEL DO PRIVATE(igrid)
+!    do iigrid=1,igridstail; igrid=igrids(iigrid);
+!       ! Make zero the magnetic fluxes
+!       ! Fake advance, storing electric fields at edges
+!       call fake_advance(igrid,1,^ND,ps(igrid))
+!
+!    end do
+!    !$OMP END PARALLEL DO
+!
+!    ! Do correction
+!    call recvflux(1,ndim)
+!    call sendflux(1,ndim)
+!    call fix_conserve(ps,1,ndim,1,^ND)
+!
+!    call fix_edges(ps,1,^ND)
+!
+!    ! Now we fill the centers for the staggered variables
+!    !$OMP PARALLEL DO PRIVATE(igrid)
+!    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+!       call faces2centers(ixG^LL,ps(igrid))
+!    end do
+!    !$OMP END PARALLEL DO
+!  end subroutine recalculateB
+!
+!  !> fake advance a step to calculate magnetic field
+!  subroutine fake_advance(igrid,idim^LIM,s)
+!    use mod_global_parameters
+!    use mod_fix_conserve
+!
+!    integer       :: igrid,idim^LIM
+!    type(state)   :: s
+!
+!    double precision             :: dx^D
+!    double precision             :: fC(ixG^T,1:nwflux,1:ndim)
+!    double precision             :: fE(ixG^T,1:ndir)
+!
+!    dx^D=rnode(rpdx^D_,igrid);
+!    !call set_tmpGlobals(igrid)
+!
+!    call fake_update(ixG^LL,s,fC,fE,dx^D)
+!
+!    call store_flux(igrid,fC,idim^LIM,^ND)
+!    call store_edge(igrid,ixG^LL,fE,idim^LIM) 
+!
+!  end subroutine fake_advance
+!
+!  !>fake update magnetic field from vector potential
+!  subroutine fake_update(ixI^L,s,fC,fE,dx^D)
+!    use mod_global_parameters
+!
+!    integer       :: ixI^L
+!    type(state)   :: s
+!    double precision             :: fC(ixI^S,1:nwflux,1:ndim)
+!    double precision             :: fE(ixI^S,1:ndir)
+!    double precision             :: dx^D
+!
+!    integer                            :: ixIs^L,ixO^L,idir
+!    double precision                   :: xC(ixI^S,1:ndim), A(ixI^S,1:ndir)
+!    double precision                   :: circ(ixI^S,1:ndim), dxidir
+!
+!    associate(ws=>s%ws,x=>s%x)
+!
+!    A(:^D&,:)=zero
+!    ws(:^D&,:)=zero
+!
+!    ixIs^L=s%ixGs^L;
+!    ixO^L=ixI^L^LSUBnghostcells;
+!
+!    call b_from_vectorpotentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
+!
+!    ! This is important only in 3D
+!    do idir=1,ndim
+!       fE(ixI^S,idir) =-A(ixI^S,idir)*dxlevel(idir)
+!    end do
+!
+!    end associate
+!  end subroutine fake_update
 
   !> calculate cell-center values from face-center values
   subroutine faces2centers(ixO^L,s)
@@ -266,15 +266,9 @@ contains
             jxC^L=ixC^L+kr(idim1,^D);
             hxC^L=ixC^L+kr(idim2,^D);
             ! Interpolate to edges
-            if(idir<=ndim) then
-              fE(ixC^S,idir)=qdt*quarter*s%dsC(ixC^S,idir)*&
-              (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
-              -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
-            else
-              fE(ixC^S,idir)=qdt*quarter*&
-              (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
-              -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
-            end if
+            fE(ixC^S,idir)=qdt*quarter*s%dsC(ixC^S,idir)*&
+            (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
+            -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
 
             if (.not.slab) then
               where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
@@ -324,6 +318,8 @@ contains
   !> update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509
   subroutine update_faces_contact(ixI^L,ixO^L,qdt,wp,vnorm,fC,fE,s)
     use mod_global_parameters
+    use mod_usr_methods
+    use mod_geometry
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
@@ -335,7 +331,7 @@ contains
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,1:ndir)
 
-    integer                            :: hxC^L,ixC^L,jxC^L,ixA^L
+    integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2,i,j,k
     double precision                   :: circ(ixI^S,1:ndim)
     ! electric field at cell centers
@@ -344,14 +340,22 @@ contains
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
     double precision                   :: ELC(ixI^S),ERC(ixI^S)
+    ! current on cell edges and cell centers
+    double precision :: jce(ixI^S,7-2*ndim:3),jcc(ixI^S,7-2*ndir:3)
+    ! location at cell edges
+    double precision :: xC(ixI^S,1:ndim)
+    ! resistivity
+    double precision :: eta(ixI^S)
+    double precision :: curlj(ixI^S,1:3)
+    double precision :: gradi(ixGs^T)
+    ! location at cell faces
+    double precision :: xs(ixGs^T,1:ndim)
+    ! current at cell faces
+    double precision :: js1(ixGs^T,7-2*ndim:3),js2(ixGs^T,7-2*ndim:3)
+    integer :: idirmin,ix^D
 
-    associate(bfaces=>s%ws,x=>s%x)
+    associate(bfaces=>s%ws,x=>s%x,dx=>s%dx,w=>s%w,wCT=>block0%w,ws=>block%ws)
 
-    ! Calculate contribution to FEM of each edge,
-    ! that is, estimate value of line integral of
-    ! electric field in the positive idir direction.
-    ixCmax^D=ixOmax^D;
-    ixCmin^D=ixOmin^D-1;
 
     ECC=0.d0
     ! Calculate electric field at cell centers
@@ -363,8 +367,60 @@ contains
       endif
     enddo; enddo; enddo
 
-    fE(ixI^S,1:ndir)=zero
+    ! if there is resistivity
+    if(phys_eta/=zero) then
+      ! calculate current density at cell edges
+      jce=0.d0
+      do idim1=1,ndim 
+        do idim2=1,ndim
+          do idir=7-2*ndim,ndir
+            if (lvc(idim1,idim2,idir)==0) cycle
+            ixCmax^D=ixOmax^D;
+            ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+            ixBmax^D=ixCmax^D-kr(idir,^D)+1;
+            ixBmin^D=ixCmin^D;
+            ! current at transverse faces
+            xs(ixB^S,:)=x(ixB^S,:)
+            xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
+            if (lvc(idim1,idim2,idir)==1) then
+              call gradientx(ws(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
+              jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
+            else
+              call gradientx(ws(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
+              jce(ixC^S,idir)=jce(ixC^S,idir)-gradi(ixC^S)
+            end if
+          end do
+        end do
+      end do
+      ! get resistivity
+      if(phys_eta>zero)then
+        jce(ixC^S,:)=jce(ixC^S,:)*phys_eta
+      else
+        ixA^L=ixO^L^LADD1;
+        call curlvector(wCT(ixI^S,iw_mag(:)),ixI^L,ixO^L,jcc,idirmin,7-2*ndir,ndir)
+        call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
+        ! calcuate eta on cell edges
+        do idir=7-2*ndim,3
+          ixCmax^D=ixOmax^D;
+          ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+          jcc(ixC^S,idir)=0.d0
+         {do ix^DB=0,1\}
+            if({ ix^D==1 .and. ^D==idir | .or.}) cycle
+            ixAmin^D=ixCmin^D+ix^D;
+            ixAmax^D=ixCmax^D+ix^D;
+            jcc(ixC^S,idir)=jcc(ixC^S,idir)+eta(ixA^S)
+         {end do\}
+          jcc(ixC^S,idir)=jcc(ixC^S,idir)*0.25d0
+          jce(ixC^S,idir)=jce(ixC^S,idir)*jcc(ixC^S,idir)
+        enddo
+      end if
 
+    end if
+
+    ! Calculate contribution to FEM of each edge,
+    ! that is, estimate value of line integral of
+    ! electric field in the positive idir direction.
+    fE(ixI^S,1:ndir)=zero
     ! evaluate electric field along cell edges according to equation (41)
     do idim1=1,ndim 
       iwdim1 = iw_mag(idim1)
@@ -373,6 +429,8 @@ contains
         do idir=7-2*ndim,ndir ! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
+            ixCmax^D=ixOmax^D;
+            ixCmin^D=ixOmin^D+kr(idir,^D)-1;
             ! Assemble indices
             jxC^L=ixC^L+kr(idim1,^D);
             hxC^L=ixC^L+kr(idim2,^D);
@@ -427,6 +485,9 @@ contains
               ERC(ixC^S)=0.5d0*(ER(ixC^S)+ER(jxC^S))
             end where
             fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
+
+            ! add current componen of electric field at cell edges E=vxB+eta J
+            if(phys_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
 
             ! times time step and edge length 
             fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
@@ -1100,12 +1161,7 @@ contains
                             -A(hxC^S,idir))
         end do
       end do
-    end do
-
-    ! Divide by the area of the face to get B
-    do idim1=1,ndim
-      ixCmax^D=ixOmax^D;
-      ixCmin^D=ixOmin^D-kr(idim1,^D);
+      ! Divide by the area of the face to get B
       where(block%surfaceC(ixC^S,idim1)==0)
         circ(ixC^S,idim1)=zero
       elsewhere
