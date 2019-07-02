@@ -46,8 +46,11 @@ contains
   !       and is meant for use in the python tools
     use mod_global_parameters
     integer, intent(in)                 :: fh
+    integer, dimension(MPI_STATUS_SIZE) :: st
+    integer                             :: er
 
-
+    ! Write zero parameters
+    call MPI_FILE_WRITE(fh, 0, 1, MPI_INTEGER, st, er)
 
   end subroutine nonlinear_write_info
 
