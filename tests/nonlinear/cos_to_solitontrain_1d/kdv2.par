@@ -13,7 +13,7 @@
  /
 
  &stoplist
-        time_max=1.0d0
+        time_max=50.0d0
  /
 
  &methodlist

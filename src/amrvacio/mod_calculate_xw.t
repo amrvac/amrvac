@@ -53,7 +53,7 @@ dx^D=dx(^D,level);
 normconv(0) = length_convert_factor
 normconv(1:nw) = w_convert_factor
 
-w(ixG^T,1:nw)=pw(igrid)%w(ixG^T,1:nw)
+w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
 if (nwextra>0) then
  ! here we actually fill the ghost layers for the nwextra variables using 
@@ -80,7 +80,7 @@ end if
 typelimiter=type_limiter(node(plevel_,igrid))
 typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-block=>pw(igrid)
+block=>ps(igrid)
 if(nwauxio>0)then
   ! auxiliary io variables can be computed and added by user
   ! next few lines ensure correct usage of routines like divvector etc
@@ -90,21 +90,21 @@ if(nwauxio>0)then
   if (.not. associated(usr_aux_output)) then
      call mpistop("usr_aux_output not defined")
   else
-     call usr_aux_output(ixG^LL,ixM^LL^LADD1,w,pw(igrid)%x,normconv)
+     call usr_aux_output(ixG^LL,ixM^LL^LADD1,w,ps(igrid)%x,normconv)
   end if
 endif
 
 ! In case primitives to be saved: use primitive subroutine
 !  extra layer around mesh only needed when storing corner values and averaging
-if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),pw(igrid)%x)
+if(saveprim.and.first) call phys_to_primitive(ixG^LL,ixM^LL^LADD1,w(ixG^T,1:nw),ps(igrid)%x)
 
-if(allocated(pw(igrid)%B0)) then
+if(allocated(ps(igrid)%B0)) then
 ! B0+B1 split handled here
   if(.not.saveprim.and.phys_energy) then
-    w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(pw(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
-          + sum(w(ixG^T,iw_mag(:))*pw(igrid)%B0(ixG^T,:,0),dim=ndim+1)
+    w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+          + sum(w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
   end if
-  w(ixG^T,iw_mag(:))=w(ixG^T,iw_mag(:))+pw(igrid)%B0(ixG^T,:,0)
+  w(ixG^T,iw_mag(:))=w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
 end if
 ! compute the cell-center values for w first
 ! cell center values obtained from mere copy
@@ -122,8 +122,8 @@ if(slab) then
 else
    do iw=1,nw+nwauxio
      {do ix^DB=ixCmin^DB,ixCmax^DB\}
-       wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw)*pw(igrid)%dvolume(ix^D:ix^D+1)) &
-                /sum(pw(igrid)%dvolume(ix^D:ix^D+1))
+       wC(ix^D,iw)=sum(w(ix^D:ix^D+1,iw)*ps(igrid)%dvolume(ix^D:ix^D+1)) &
+                /sum(ps(igrid)%dvolume(ix^D:ix^D+1))
      {end do\}
    end do
 endif
@@ -425,18 +425,18 @@ subroutine calc_x(igrid,xC,xCC)
   level=node(plevel_,igrid)
 
   ! coordinates of cell centers
-  xCC(ixM^T,:)=pw(igrid)%x(ixM^T,:)
+  xCC(ixM^T,:)=ps(igrid)%x(ixM^T,:)
 
   ! coordinates of cell corners
   ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
   if(slab)then
      do idims=1,ndim
-       xC(ixC^S,idims)=pw(igrid)%x(ixC^S,idims)+0.5d0*dx(idims,level)
+       xC(ixC^S,idims)=ps(igrid)%x(ixC^S,idims)+0.5d0*dx(idims,level)
      end do
   else
      ! for any non-cartesian or stretched coordinate (allow multiple stretched directions)
      {do ix=ixCmin^D,ixCmax^D
-       xC(ix^D%ixC^S,^D)=pw(igrid)%x(ix^D%ixC^S,^D)+0.5d0*pw(igrid)%dx(ix^D%ixC^S,^D)
+       xC(ix^D%ixC^S,^D)=ps(igrid)%x(ix^D%ixC^S,^D)+0.5d0*ps(igrid)%dx(ix^D%ixC^S,^D)
      end do\}
   endif
 

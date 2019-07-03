@@ -113,7 +113,7 @@ contains
     integral_w(5)=bigdouble
     
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      block=>pw(igrid)
+      block=>ps(igrid)
       if(slab) then
         dvolume(ixM^T)={rnode(rpdx^D_,igrid)|*}
       else
@@ -122,15 +122,15 @@ contains
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       patchwi(ixM^T)=.true.
       integral_ipe(1)=integral_ipe(1)+ &
-                integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,1,patchwi)
+                integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,1,patchwi)
       integral_ipe(2)=integral_ipe(2)+ &
-                integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,2,patchwi)
+                integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,2,patchwi)
       integral_ipe(3)=max(integral_ipe(3), &
-                integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,3,patchwi))
+                integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,3,patchwi))
       integral_ipe(4)=max(integral_ipe(4), &
-                integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,4,patchwi))
+                integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,4,patchwi))
       integral_ipe(5)=min(integral_ipe(5), &
-                integral_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x,dvolume,5,patchwi))
+                integral_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,dvolume,5,patchwi))
     end do
     call MPI_ALLREDUCE(integral_ipe(1:2),integral_w(1:2),2,MPI_DOUBLE_PRECISION,&
                          MPI_SUM,icomm,ierrmpi)
@@ -223,8 +223,8 @@ contains
     integral_ipe=0.d0
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       block=>pw(igrid)
-       call usrprocess_grid(ixG^LL,ixM^LL,qt,pw(igrid)%w,pw(igrid)%x,integral_g)
+       block=>ps(igrid)
+       call usrprocess_grid(ixG^LL,ixM^LL,qt,ps(igrid)%w,ps(igrid)%x,integral_g)
        integral_ipe=integral_ipe+integral_g
     end do
     call MPI_ALLREDUCE(integral_ipe,integral_g,2,MPI_DOUBLE_PRECISION,&

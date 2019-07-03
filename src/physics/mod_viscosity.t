@@ -83,7 +83,9 @@ contains
 
   subroutine viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
        energy,qsourcesplit,active)
-  ! Add viscosity source to w within ixO
+  ! Add viscosity source in isotropic Newtonian fluids to w within ixO
+  ! neglecting bulk viscosity
+  ! dm/dt= +div(mu*[d_j v_i+d_i v_j]-(2*mu/3)* div v * kr)
     use mod_global_parameters
     use mod_geometry
 
@@ -138,7 +140,7 @@ contains
             tmp(ixI^S) = tmp(ixI^S)/x(ixI^S,1)
 {^NOONED
           elseif (idim==2  .and. idir==phi_) then
-            tmp2(ixI^S)=tmp2(ixI^S)/dsin(x(ixI^S,2))
+            tmp(ixI^S)=tmp(ixI^S)/dsin(x(ixI^S,2))
 }
           endif
         endif

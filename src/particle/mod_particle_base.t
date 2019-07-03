@@ -315,20 +315,20 @@ contains
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (associated(usr_particle_fields)) then
-        call usr_particle_fields(pw(igrid)%w, pw(igrid)%x, E, B)
+        call usr_particle_fields(ps(igrid)%w, ps(igrid)%x, E, B)
         gridvars(igrid)%w(ixG^T,ep(:)) = E
         gridvars(igrid)%w(ixG^T,bp(:)) = B
       else
-        call fields_from_mhd(igrid, pw(igrid)%w, gridvars(igrid)%w)
+        call fields_from_mhd(igrid, ps(igrid)%w, gridvars(igrid)%w)
       end if
 
       if (time_advance) then
         if (associated(usr_particle_fields)) then
-          call usr_particle_fields(pw(igrid)%wold, pw(igrid)%x, E, B)
+          call usr_particle_fields(pso(igrid)%w, ps(igrid)%x, E, B)
           gridvars(igrid)%wold(ixG^T,ep(:)) = E
           gridvars(igrid)%wold(ixG^T,bp(:)) = B
         else
-          call fields_from_mhd(igrid, pw(igrid)%wold, gridvars(igrid)%wold)
+          call fields_from_mhd(igrid, pso(igrid)%w, gridvars(igrid)%wold)
         end if
       end if
     end do
@@ -349,7 +349,7 @@ contains
     w(ixG^T,1:nw) = w_mhd(ixG^T,1:nw)
     w_part(ixG^T,1:ngridvars) = 0.0d0
 
-    call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+    call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
 
     ! fill with magnetic field:
     w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
@@ -535,14 +535,14 @@ contains
     else if (.not.time_advance) then
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
-             pw(igrid)%x(ixG^T,1:ndim),x,vec(idir))
+             ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
     else
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ix(idir)), &
-             pw(igrid)%x(ixG^T,1:ndim),x,vec1(idir))
+             ps(igrid)%x(ixG^T,1:ndim),x,vec1(idir))
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
-             pw(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
+             ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
       end do
       td = (tloc/unit_time - global_time) / dt
       vec(:) = vec1(:) * (1.0d0 - td) + vec2(:) * td
@@ -1021,7 +1021,7 @@ contains
     double precision    :: x(ndim), grid_rmin(ndim), grid_rmax(ndim)
 
     ! First check if the igrid is still there
-    if (.not. allocated(pw(igrid)%w)) then
+    if (.not. allocated(ps(igrid)%w)) then
       particle_in_igrid = .false.
     else
       grid_rmin         = [ {rnode(rpxmin^D_,igrid)} ]

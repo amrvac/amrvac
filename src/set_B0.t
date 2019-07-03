@@ -3,9 +3,9 @@ subroutine set_B0_grid(igrid)
 
   integer, intent(in) :: igrid
 
-  call set_B0_cell(pw(igrid)%B0(:^D&,:,0),pw(igrid)%x,ixG^LL,ixG^LL)
-  call set_J0_cell(igrid,pw(igrid)%J0,ixG^LL,ixM^LL^LADD1)
-  call set_B0_face(igrid,pw(igrid)%x,ixG^LL,ixM^LL)
+  call set_B0_cell(ps(igrid)%B0(:^D&,:,0),ps(igrid)%x,ixG^LL,ixG^LL)
+  call set_J0_cell(igrid,ps(igrid)%J0,ixG^LL,ixM^LL^LADD1)
+  call set_B0_face(igrid,ps(igrid)%x,ixG^LL,ixM^LL)
 
 end subroutine set_B0_grid
 
@@ -58,10 +58,10 @@ subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
   integer :: idirmin0, idirmin
 
   if(associated(usr_set_J0)) then
-    call usr_set_J0(ixI^L,ix^L,pw(igrid)%x,wJ0)
+    call usr_set_J0(ixI^L,ix^L,ps(igrid)%x,wJ0)
   else
     idirmin0 = 7-2*ndir
-    call curlvector(pw(igrid)%B0(:^D&,:,0),ixI^L,ix^L,wJ0,idirmin,idirmin0,ndir)
+    call curlvector(ps(igrid)%B0(:^D&,:,0),ixI^L,ix^L,wJ0,idirmin,idirmin0,ndir)
   end if
 
 end subroutine set_J0_cell
@@ -80,7 +80,7 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
    ^D&delx(ixI^S,^D)=rnode(rpdx^D_,igrid)\
   else
    ! for all non-cartesian and stretched coordinate(s)
-   delx(ixI^S,1:ndim)=pw(igrid)%dx(ixI^S,1:ndim)
+   delx(ixI^S,1:ndim)=ps(igrid)%dx(ixI^S,1:ndim)
   endif
 
   do idims=1,ndim
@@ -97,7 +97,7 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
          end do\}
        end select
      end do
-     call set_B0_cell(pw(igrid)%B0(:^D&,:,idims),xC,ixI^L,ixC^L)
+     call set_B0_cell(ps(igrid)%B0(:^D&,:,idims),xC,ixI^L,ixC^L)
   end do
 
 end subroutine set_B0_face
@@ -107,9 +107,9 @@ subroutine alloc_B0_grid(igrid)
 
   integer, intent(in) :: igrid
 
-  if(.not. allocated(pw(igrid)%B0)) then
-    allocate(pw(igrid)%B0(ixG^T,1:ndir,0:ndim))
-    allocate(pw(igrid)%J0(ixG^T,7-2*ndir:3))
+  if(.not. allocated(ps(igrid)%B0)) then
+    allocate(ps(igrid)%B0(ixG^T,1:ndir,0:ndim))
+    allocate(ps(igrid)%J0(ixG^T,7-2*ndir:3))
   end if
 
 end subroutine alloc_B0_grid
@@ -119,7 +119,7 @@ subroutine dealloc_B0_grid(igrid)
 
   integer, intent(in) :: igrid
 
-  deallocate(pw(igrid)%B0)
-  deallocate(pw(igrid)%J0)
+  deallocate(ps(igrid)%B0)
+  deallocate(ps(igrid)%J0)
 
 end subroutine dealloc_B0_grid

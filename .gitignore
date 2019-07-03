@@ -25,3 +25,5 @@ doc/html/*
 *\#
 *__pycache__/
 *.pyc
+.idea/
+*.npy

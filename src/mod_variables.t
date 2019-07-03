@@ -19,6 +19,9 @@ module mod_variables
   !> Total number of variables
   integer           :: nw = 0
 
+  !> Total number of stagger variables
+  integer           :: nws = 0
+
   !> Number of vector variables (used for writing output)
   integer           :: nvector = 0
 

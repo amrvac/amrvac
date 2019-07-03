@@ -64,6 +64,9 @@ module mod_usr_methods
   ! Called after the mesh has been adjuste
   procedure(after_refine), pointer      :: usr_after_refine => null()
 
+  ! allow user to explicitly set flux at cell interfaces for finite volume scheme
+  procedure(set_flux), pointer      :: usr_set_flux => null()
+
   abstract interface
 
      subroutine p_no_args()
@@ -339,6 +342,24 @@ module mod_usr_methods
        integer, intent(in) :: n_coarsen
        integer, intent(in) :: n_refine
      end subroutine after_refine
+
+     !> allow user to explicitly set flux at cell interfaces for finite volume scheme
+     subroutine set_flux(ixI^L,ixC^L,idim,fC)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixC^L, idim
+       ! face-center flux
+       double precision,intent(inout) :: fC(ixI^S,1:nwflux,1:ndim)
+       ! For example, to set flux at bottom boundary in a 3D box for induction equation
+       ! vobs and bobs are interpolated data from original observational data for data-driven application
+       !integer :: idir
+       !if(idim==3) then
+       !  if(block%is_physical_boundary(idim*2-1)) then
+       !    do idir=1,ndir
+       !       fC(ixCmin3^%3ixC^S,mag(idir),idim)=vobs(ixCmin3+1^%3ixC^S,idim)*bobs(ixCmin3+1^%3ixC^S,idir)-vobs(ixCmin3+1^%3ixC^S,idir)*bobs(ixCmin3+1^%3ixC^S,idim)
+       !    end do
+       !  end if
+       !end if
+     end subroutine set_flux
 
   end interface
 

@@ -966,7 +966,75 @@ module mod_radiative_cooling
       {enddo^D&\}
     
     end subroutine getvar_cooling
-
+    
+    subroutine getvar_cooling_exact(qdt, ixI^L, ixO^L, wCT, w, x, coolrate)
+    !
+    ! Calculates cooling rate using the exact cooling method,
+    ! for usage in eg. source_terms subroutine.
+    ! The TEF must be known, so this routine can only be used
+    ! together with the "exact" cooling method.
+      use mod_global_parameters
+    
+      integer, intent(in)           :: ixI^L, ixO^L
+      double precision, intent(in)  :: qdt, x(ixI^S, 1:ndim), wCT(ixI^S, 1:nw)
+      double precision              :: w(ixI^S, 1:nw)
+      double precision, intent(out) :: coolrate(ixI^S)
+    
+      double precision              :: y1, y2, l1, l2, tc
+      double precision              :: plocal, rholocal, tlocal1, tlocal2, invgam
+      double precision              :: ptherm(ixI^S), pnew(ixI^S)
+      double precision              :: emin, Lmax, fact
+    
+      integer                       :: ix^D
+      
+      ! Check cooling method
+      if( coolmethod /= 'exact') then
+         call mpistop("Subroutine getvar_cooling_exact needs the exact cooling method")
+      endif
+    
+      call phys_get_pthermal(wCT, x, ixI^L, ixO^L, ptherm)
+      call phys_get_pthermal(w, x, ixI^L, ixO^L, pnew)
+    
+      fact   = lref*qdt/tref
+      invgam = 1.d0/(rc_gamma-1.d0)
+    
+      {do ix^DB = ixO^LIM^DB\}
+         plocal   = ptherm(ix^D)
+         rholocal = wCT(ix^D, rho_)
+         tlocal1  = max(plocal/rholocal, smalldouble)
+       
+         emin     = w(ix^D, rho_) * tlow * invgam
+         lmax     = max(zero, ( pnew(ix^D)*invgam - emin ) / qdt)
+       
+         ! No cooling if temperature is below floor level.
+         ! Assuming Bremmstrahlung if temperature is higher than maximum.
+         if( tlocal1 <= tcoolmin) then
+            l1 = zero
+         else if( tlocal1 >= tcoolmax ) then
+            l1 = lcool(ncool) * sqrt(tlocal1 / tcoolmax)
+            l1 = l1 * (rholocal**2)
+            l1 = min(l1, lmax)
+         else
+            call findl(tlocal1, l1)
+            call findy(tlocal1, y1)
+            tc   = tlocal1 * invgam / (rholocal * l1)
+            y2   = y1 + (tlocal1 * fact) / (l1 * tc)
+            call findt(tlocal2, y2)
+          
+            if( tlocal2 <= tcoolmin ) then
+               l1 = lmax
+            else
+               l1 = (tlocal1 - tlocal2) * invgam / (rholocal * qdt)
+            endif
+            
+            l1 = l1 * (rholocal**2)
+            l1 = min(l1, lmax)
+         endif
+         coolrate(ix^D) = l1
+      {enddo^D&\}
+      
+    end subroutine getvar_cooling_exact
+    
     subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
          qsourcesplit,active)
 

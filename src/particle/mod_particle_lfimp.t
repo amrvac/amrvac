@@ -343,14 +343,14 @@ contains
     if (.not.time_advance) then
       do idir=1,ndir
         call derinterpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
-             pw(igrid)%x(ixG^T,1:ndim),x,vec(idir),dir)
+             ps(igrid)%x(ixG^T,1:ndim),x,vec(idir),dir)
       end do
     else
       do idir=1,ndir
         call derinterpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ix(idir)), &
-             pw(igrid)%x(ixG^T,1:ndim),x,vec1(idir),dir)
+             ps(igrid)%x(ixG^T,1:ndim),x,vec1(idir),dir)
         call derinterpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
-             pw(igrid)%x(ixG^T,1:ndim),x,vec2(idir),dir)
+             ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir),dir)
       end do
       td = (tloc/unit_time - global_time) / dt
       vec(:) = vec1(:) * (1.0d0 - td) + vec2(:) * td

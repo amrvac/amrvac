@@ -128,40 +128,39 @@ the numbers **1..NDIM**. During the code development it became obvious that
 the preprocessor can be used for many other things than repeated indices for
 the dimensions. The first new application is the components for vector
 variables, which run from 1 to NDIR, and in general 1&lt;=NDIM&lt;=NDIR&lt;=3.
-The **^C** (mnemonic: Component as opposed to **^D** for Dimension) pattern is
-thus replaced by **1..NDIR**. When more than one pattern is found in a loop,
+When more than one pattern is found in a loop,
 the first one determines the number of repetitions, and only patterns with the
 same first letter are replaced by their substitutes.
 
-Look at the following typical case construct for NDIM=2 and NDIR=2:
+Look at the following typical case construct for NDIM=2:
 
     select case(iw)
-      {case(m^C_)
-         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,m^C_) \ }
+      {case(mom(^D))
+         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,mom(^D)) \ }
     end select
 
     -->
 
     select case(iw)
-      case(m1_)
-         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,m1_)
-      case(m2_)
-         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,m2_)
+      case(mom(1))
+         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,mom(1))
+      case(mom(2))
+         mom(ixmin^D:ixmax^D)=w(ixmin^D:ixmax^D,mom(2))
     end select
 
     -->
 
     select case(iw)
-      case(m1_)
+      case(mom(1))
          mom(ixmin1:ixmax1,ixmin2:ixmax2)=&
-            w(ixmin1:ixmax1,ixmin2:ixmax2,m1_)
-      case(m2_)
+            w(ixmin1:ixmax1,ixmin2:ixmax2,mom(1))
+      case(mom(2))
          mom(ixmin1:ixmax1,ixmin2:ixmax2)=&
-            w(ixmin1:ixmax1,ixmin2:ixmax2,m2_)
+            w(ixmin1:ixmax1,ixmin2:ixmax2,mom(2))
     end select
 
-Notice that the preprocessor first expanded the loop for the first **^C**
-pattern and substituted **^C** in the third index of the **w** array but the
+Notice that the preprocessor first expanded the loop for the first **^D**
+pattern and substituted **^D** in the third index of the **w** array but the
 other indices with the **^D** patterns were left alone. In the second
 iteration the loops with **^D** patterns were expanded. The resulting lines
 may become extremely long, thus the preprocessor breaks them into continuation
@@ -255,18 +254,9 @@ NDIM nested do loops:
         enddo^D&;     -->    enddo;enddo;
 
 Obviously the **^D** pattern would not work here: **enddo^D; --&gt;
-enddo1;enddo2;**. For scalar products of vector variables the **^C&amp;** is
-used at the head of the loops to tell VACPP that first the **^C** patterns
-should be expanded. For example calculate the magnetic pressure from the
-**pb=0.5*B.B** formula:
-
-        pb(ix^S)=0.5*(^C&w(ix^S,b^C_)**2+)   -->
-
-    pb(ixmin1:ixmax1)=0.5*(w(ixmin1:ixmax1,b1_)**2+w(ixmin1:ixmax1,b2_)**2)
-
-for NDIM=1, NDIR=2. The interpretation of the original code is easiest by
-thinking of **^C&amp;** as the index for the loop and of the **+** at the end
-as the operator applied for the elements.
+enddo1;enddo2;**. For scalar products of vector variables the **^D&amp;** is
+used at the head of the loops to tell VACPP that first the **^D** patterns
+should be expanded.
 
 ####
 
@@ -361,8 +351,8 @@ parameter.
 
   1. VACPP Patterns
 
-We assume NDIM=2 and NDIR=3, so you may try this interactively with **vacpp.pl
--d=23 -**. For a full list of defined patterns read the **&amp;patdef**
+We assume NDIM=2, so you may try this interactively with **vacpp.pl
+-d=2**. For a full list of defined patterns read the **&amp;patdef**
 definitions in **vacpp.pl**.
 
         Pattern   Substitutes                              Mnemonic
@@ -407,30 +397,11 @@ definitions in **vacpp.pl**.
 
     call subr(w,ix^L)     --> call subr(w,ixmin1,ixmin2,ixmax1,ixmax2)
 
-    pb(ix^S)=half*&       --> pb(ixmin1:ixmax1,ixmin2:ixmax2)=half*&
-    (^C&w(ix^S,b^C_)**2+)     (w(ixmin1:ixmax1,ixmin2:ixmax2,b1_)**2+&
-                               w(ixmin1:ixmax1,ixmin2:ixmax2,b2_)**2+&
-                               w(ixmin1:ixmax1,ixmin2:ixmax2,b3_)**2)
-
     ixI^L=ix^L^LADD1;     --> ixImin1=ixmin1-1;ixImin2=ixmin2-1;
                               ixImax1=ixmax1+1;ixImax2=ixmax2+1;
 
     jx^L=ix^L+kr(2,^D);   --> jxmin1=ixmin1+kr(2,1);jxmin2=ixmin2+kr(2,2);
                               jxmax1=ixmax1+kr(2,1);jxmax2=ixmax2+kr(2,2);
-
-    select case(iw)       --> select case(iw)
-    {case(m^C_)               case(m1_)
-      a(ix^S)=w(ix^S,m^C_)\ }    a(ixmin1:ixmax1,ixmin2:ixmax2)=&
-    end select                     w(ixmin1:ixmax1,ixmin2:ixmax2,m1_)
-                              case(m2_)
-                                a(ixmin1:ixmax1,ixmin2:ixmax2)=&
-                                   w(ixmin1:ixmax1,ixmin2:ixmax2,m2_)
-                              case(m3_)
-                                a(ixmin1:ixmax1,ixmin2:ixmax2)=&
-                                   w(ixmin1:ixmax1,ixmin2:ixmax2,m3_)
-                              end select
-
-    {^IFTVD text}         --> text or '' (depending on the TVD module being on)
 
     {^IFTWOD text}        --> text or '' (depending on ndim being equal to 2)
 

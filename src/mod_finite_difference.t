@@ -11,7 +11,7 @@ module mod_finite_difference
 contains
 
   subroutine fd(method,qdt,ixI^L,ixO^L,idim^LIM, &
-       qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+       qtC,sCT,qt,snew,sold,fC,dx^D,x)
     use mod_physics
     use mod_source, only: addsource2
     use mod_global_parameters
@@ -21,7 +21,7 @@ contains
     integer, intent(in)                                              :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in)            :: x
 
-    double precision, dimension(ixI^S,1:nw), intent(inout)           :: wCT, wnew, wold
+    type(state)                                                      :: sCT, snew, sold
     double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
 
     double precision, dimension(ixI^S,1:nwflux)                      :: fCT
@@ -30,6 +30,8 @@ contains
     double precision                                                 :: dxinv(1:ndim)
     logical                                                          :: transport
     integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L, ixCR^L
+
+    associate(wCT=>sCT%w,wnew=>snew%w,wold=>sold%w)
 
     ^D&dxinv(^D)=-qdt/dx^D;
     do idims= idim^LIM
@@ -81,7 +83,7 @@ contains
 
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'fd')
-
+    end associate
   end subroutine fd
 
   subroutine reconstructL(ixI^L,iL^L,idims,w,wLC)
@@ -159,7 +161,7 @@ contains
 
   end subroutine reconstructR
 
-  subroutine centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
+  subroutine centdiff(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,dx^D,x)
 
     ! Advance the iws flow variables from global_time to global_time+qdt within ixO^L by centered 
     ! differencing in space the dw/dt+dF_i(w)/dx_i=S type equation. 
@@ -172,7 +174,8 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D
-    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw), wprim(ixI^S,1:nw)
+    double precision :: wprim(ixI^S,1:nw)
+    type(state)      :: sCT, s
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
@@ -181,6 +184,7 @@ contains
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L
     logical :: transport
 
+    associate(wCT=>sCT%w,w=>s%w)
     ! An extra layer is needed in each direction for which fluxes are added.
     ix^L=ixO^L;
     do idims= idim^LIM
@@ -223,10 +227,11 @@ contains
 
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff')
-
+    
+    end associate
   end subroutine centdiff
 
-  subroutine centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
+  subroutine centdiff4(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,dx^D,x)
 
     ! Advance the flow variables from global_time to global_time+qdt within ixO^L by
     ! fourth order centered differencing in space 
@@ -240,7 +245,7 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D
-    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    type(state)      :: sCT, s
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
 
@@ -255,6 +260,7 @@ contains
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
     logical :: transport, new_cmax, patchw(ixI^S)
 
+    associate(wCT=>sCT%w,w=>s%w)
     ! two extra layers are needed in each direction for which fluxes are added.
     ix^L=ixO^L;
     do idims= idim^LIM
@@ -325,7 +331,7 @@ contains
 
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff4')
-
+    end associate
   end subroutine centdiff4
 
 end module mod_finite_difference

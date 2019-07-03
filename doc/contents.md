@@ -39,6 +39,7 @@ simulations using non-Cartesian grids
 
 * [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction. 
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling. 
+* [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
 # Source Code {#source_code}
@@ -62,5 +63,8 @@ visualisation and analysis (e.g. column densities)
 * [Analysis routine](analysis.md) Using the run-time analysis routine
 
 **Data analysis tools**
+
+* [Ray-Tracing Algorithm](raytracing.md) Python script to generate H-alpha views for any given .dat file.
+* [Reader for .dat files](dat_reader.md) Script to read in MPI-AMRVAC `.dat` files for data analysis with Python.
 
 * [Python](python/index.md) \todo Include python documentation here

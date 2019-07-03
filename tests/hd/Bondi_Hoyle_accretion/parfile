@@ -4,7 +4,7 @@
 
  &filelist
         base_filename='./output/log_'
-        saveprim=T
+        saveprim=F
         autoconvert=T
         convert_type='vtuBCCmpi'
 /
@@ -59,7 +59,7 @@
 
  &meshlist
         refine_max_level=2
-        stretched_grid=T
+        stretch_dim(1)='uni'
         domain_nx1=48
         domain_nx2=32
         block_nx1=8

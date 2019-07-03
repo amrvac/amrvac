@@ -90,6 +90,12 @@ module mod_global_parameters
   !> Upper index of grid block arrays
   integer :: ixGhi^D
 
+  !> Lower index of stagger grid block arrays (always 0)
+  integer, parameter :: {ixGslo^D = 1|, }
+
+  !> Upper index of stagger grid block arrays
+  integer :: ixGshi^D
+
   !> Number of ghost cells surrounding a grid
   integer :: nghostcells
 
@@ -330,7 +336,13 @@ module mod_global_parameters
   !> check and optionally fix unphysical small values (density, gas pressure)
   logical :: check_small_values=.false.
 
-  !> split potential or linear force-free magnetic field as background B0 field
+  !> Use primitive variables when correcting small values
+  logical :: small_values_use_primitive=.false.
+
+  !> Whether to apply small value fixes to certain variables
+  logical, allocatable :: small_values_fix_iw(:)
+
+  !> split magnetic field as background B0 field
   logical :: B0field=.false.
 
   !> Use SI units (.true.) or use cgs units (.false.)
@@ -388,6 +400,8 @@ module mod_global_parameters
 
   !> If true, rebuild the AMR grid upon restarting
   logical :: reset_grid
+  !> True for using stagger grid
+  logical :: stagger_grid=.false.
 
   !> Number of cells as buffer zone
   !> \todo is it necessary?
@@ -443,6 +457,9 @@ module mod_global_parameters
   !> End time for the simulation
   double precision :: time_max
 
+  !> Ending wall time (in hours) for the simulation
+  double precision :: wall_time_max
+
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
 
@@ -455,6 +472,9 @@ module mod_global_parameters
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
+
+  !> If true, wall time is up, modify snapshotnext for later overwrite
+  logical :: pass_wall_time
 
   !> Number of time steps taken
   integer :: it

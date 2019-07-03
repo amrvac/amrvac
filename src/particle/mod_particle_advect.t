@@ -80,19 +80,19 @@ contains
         particle(n)%self%dt     = 0.0d0
         particle(n)%self%x = 0.d0
         particle(n)%self%x(:) = x(:,n)
-        w=pw(igrid)%w
-        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+        w=ps(igrid)%w
+        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,&
-               w(ixG^T,iw_mom(idir)),pw(igrid)%x,x(:,n),v(idir,n))
+               w(ixG^T,iw_mom(idir)),ps(igrid)%x,x(:,n),v(idir,n))
         end do
         particle(n)%self%u(:) = 0.d0
         particle(n)%self%u(1:ndir) = v(1:ndir,n)
         allocate(particle(n)%payload(npayload))
         if (.not. associated(usr_update_payload)) then
-          call advect_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x(:,n),payload,npayload,0.d0)
+          call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),payload,npayload,0.d0)
         else
-          call usr_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x(:,n),payload,npayload,0.d0)
+          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),payload,npayload,0.d0)
         end if
         particle(n)%payload=payload
       end if
@@ -112,15 +112,15 @@ contains
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
-      w(ixG^T,1:nw) = pw(igrid)%w(ixG^T,1:nw)
-      call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+      w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
+      call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
       ! fill with velocity:
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
 
       if(time_advance) then
         gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
-        w(ixG^T,1:nw) = pw(igrid)%wold(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,w,pw(igrid)%x)
+        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
+        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
         gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
       end if
 
@@ -182,9 +182,9 @@ contains
 
       ! Update payload
       if (.not. associated(usr_update_payload)) then
-        call advect_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x,payload,npayload,tlocnew)
+        call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,payload,npayload,tlocnew)
       else
-        call usr_update_payload(igrid,pw(igrid)%w,pw(igrid)%wold,pw(igrid)%x,x,payload,npayload,tlocnew)
+        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,payload,npayload,tlocnew)
       end if
       particle(ipart)%payload = payload
 
@@ -279,14 +279,14 @@ contains
     if(.not.time_advance) then
       do ivar=ibeg,iend
         iloc = ivar-ibeg+1
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,var(iloc))
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),ps(igrid)%x(ixG^T,1:ndim),x,var(iloc))
       end do
     else
       td = (tloc - global_time) / dt
       do ivar=ibeg,iend
         iloc = ivar-ibeg+1
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),pw(igrid)%x(ixG^T,1:ndim),x,e2(iloc))
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),ps(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),ps(igrid)%x(ixG^T,1:ndim),x,e2(iloc))
         var(iloc) = e1(iloc) * (1.0d0 - td) + e2(iloc) * td
       end do
     end if

@@ -15,14 +15,14 @@ contains
   !> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBnghostcells
   !> one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
   !> on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
-  subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,dx^D,x)
+  subroutine hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,snew,dx^D,x)
     use mod_physics
     use mod_global_parameters
     use mod_source, only: addsource2
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S,1:nw), wnew(ixI^S,1:nw)
+    type(state) :: sCT, snew
 
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
@@ -31,6 +31,7 @@ contains
     double precision :: dxinv(1:ndim)
     integer :: idim, iw, ix^L, hxO^L
 
+    associate(wCT=>sCT%w,wnew=>snew%w)
     ! Expand limits in each idim direction in which fluxes are added
     ix^L=ixO^L;
     do idim= idim^LIM
@@ -79,24 +80,26 @@ contains
 
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
-
+    end associate
   end subroutine hancock
 
   !> finite volume method
   subroutine finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM, &
-       qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+       qtC,sCT,qt,snew,sold,fC,fE,dx^D,x)
 
     use mod_physics
     use mod_global_parameters
     use mod_tvd, only:tvdlimit2
     use mod_source, only: addsource2
+    use mod_usr_methods
 
-    character(len=*), intent(in)                         :: method
-    double precision, intent(in)                         :: qdt, qtC, qt, dx^D
-    integer, intent(in)                                  :: ixI^L, ixO^L, idim^LIM
+    character(len=*), intent(in)                          :: method
+    double precision, intent(in)                          :: qdt, qtC, qt, dx^D
+    integer, intent(in)                                   :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) ::  x
-    double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
-    double precision, dimension(ixI^S,1:nwflux,1:ndim)  :: fC
+    type(state)                                           :: sCT, snew, sold
+    double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
+    double precision, dimension(ixI^S,1:ndir)             :: fE
 
     ! primitive w at cell center
     double precision, dimension(ixI^S,1:nw) :: wprim
@@ -109,9 +112,15 @@ contains
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv
+    double precision, dimension(ixI^S,1:ndir,2) :: vbarC                                                                                      
+    double precision, dimension(ixI^S,1:ndir,2) :: vbarLC,vbarRC                                                                              
+    double precision, dimension(ixI^S,ndim)   :: cbarmin,cbarmax                                                                              
+    integer                                 :: idimE,idimN
     integer, dimension(ixI^S)               :: patchf
     integer :: idim, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
 
+    associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
+    staggered : associate(wCTs=>sCT%ws, wnews=>snew%ws, wolds=>sold%ws)
     if (idimmax>idimmin .and. typelimited=='original')&
          call mpistop("Error in fv: Unsplit dim. and original is limited")
 
@@ -192,6 +201,8 @@ contains
          call mpistop('unkown Riemann flux')
        end select
 
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idim,fC)
+
     end do ! Next idim
     block%iw0=0
 
@@ -233,6 +244,8 @@ contains
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
 
+  end associate staggered
+  end associate
   contains
 
     subroutine get_Riemann_flux_tvdmu()

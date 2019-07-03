@@ -45,11 +45,11 @@ use mod_global_parameters
 integer, intent(in) :: igrid
 
 !----------------------------------------------------------------------------
-pw(igrid)%w(ixG^T,1:nw)=zero
+ps(igrid)%w(ixG^T,1:nw)=zero
 
 saveigrid=igrid
 ! in case gradient routine used in initial condition, ensure geometry known
-block=>pw(igrid)
+block=>ps(igrid)
 ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 typelimiter=type_limiter(node(plevel_,igrid))
 typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
@@ -57,7 +57,7 @@ typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 if (.not. associated(usr_init_one_grid)) then
    call mpistop("usr_init_one_grid not defined")
 else
-   call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+   call usr_init_one_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
 end if
 
 end subroutine initial_condition
@@ -71,7 +71,7 @@ integer :: iigrid, igrid
 !-----------------------------------------------------------------------------
 do iigrid=1,igridstail; igrid=igrids(iigrid);
    saveigrid=igrid
-   block=>pw(igrid)
+   block=>ps(igrid)
    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
    typelimiter=type_limiter(node(plevel_,igrid))
    typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
@@ -79,7 +79,7 @@ do iigrid=1,igridstail; igrid=igrids(iigrid);
    if (.not. associated(usr_init_one_grid)) then
       call mpistop("usr_init_one_grid not defined")
    else
-      call usr_init_one_grid(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+      call usr_init_one_grid(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
    end if
 end do
 

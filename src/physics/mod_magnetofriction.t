@@ -147,12 +147,12 @@ contains
     call create_bc_mpi_datatype(mom(1)-1,ndir)
     ! convert conservative variables to primitive ones which are used during MF
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       call phys_to_primitive(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+       call phys_to_primitive(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
     end do
     ! calculate magnetofrictional velocity
     call mf_velocity_update(dtfff)
     ! update velocity in ghost cells
-    call getbc(tmf,0.d0,mom(1)-1,ndir)
+    call getbc(tmf,0.d0,ps,mom(1)-1,ndir)
     ! calculate initial values of metrics
     if(i==0) then
       call metrics
@@ -164,10 +164,10 @@ contains
       dtfff_pe=bigdouble
       cmax_mype=zero
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        block=>pw(igrid)
-        pw(igrid)%wold(ixG^T,mag(:))=pw(igrid)%w(ixG^T,mag(:))
+        block=>ps(igrid)
+        pso(igrid)%w(ixG^T,mag(:))=ps(igrid)%w(ixG^T,mag(:))
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-        call getdtfff_courant(pw(igrid)%w,pw(igrid)%x,ixG^LL,ixM^LL,dtnew)
+        call getdtfff_courant(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,dtnew)
         dtfff_pe=min(dtfff_pe,dtnew)
       end do
       call MPI_ALLREDUCE(dtfff_pe,dtfff,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
@@ -200,13 +200,13 @@ contains
         it=i
         global_time=tmf
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call phys_to_conserved(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+          call phys_to_conserved(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do
         mf_advance=.false.
         call saveamrfile(1)
         call saveamrfile(2)
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-           call phys_to_primitive(ixG^LL,ixG^LL,pw(igrid)%w,pw(igrid)%x)
+           call phys_to_primitive(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do
         mf_advance=.true.
         if(mype==0) then
@@ -241,8 +241,8 @@ contains
     bcphys=.true.
     ! set velocity back to zero and convert primitive variables back to conservative ones
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pw(igrid)%w(ixG^T,mom(:))=zero
-       call phys_to_conserved(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+       ps(igrid)%w(ixG^T,mom(:))=zero
+       call phys_to_conserved(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
     end do
     global_time=tmpt
     it=tmpit
@@ -259,7 +259,7 @@ contains
         f_i_ipe = 0.d0
         volumepe=0.d0
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          block=>pw(igrid)
+          block=>ps(igrid)
           if(slab) then
             dvone={rnode(rpdx^D_,igrid)|*}
             dvolume(ixM^T)=dvone
@@ -273,15 +273,15 @@ contains
             end do
           end if
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          call mask_inner(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
-          sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
-            pw(igrid)%x,1,patchwi)
-          sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
-            pw(igrid)%x,2,patchwi)
-          f_i_ipe=f_i_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
-            pw(igrid)%x,3,patchwi)
-          sum_l_ipe   = sum_l_ipe+integral_grid_mf(ixG^LL,ixM^LL,pw(igrid)%w,&
-            pw(igrid)%x,4,patchwi)
+          call mask_inner(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
+          sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+            ps(igrid)%x,1,patchwi)
+          sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+            ps(igrid)%x,2,patchwi)
+          f_i_ipe=f_i_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+            ps(igrid)%x,3,patchwi)
+          sum_l_ipe   = sum_l_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+            ps(igrid)%x,4,patchwi)
         end do
         call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,&
            MPI_SUM,icomm,ierrmpi)
@@ -466,18 +466,18 @@ contains
 
     vhatmax_pe=smalldouble
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      block=>pw(igrid)
+      block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      call vhat(pw(igrid)%w,pw(igrid)%x,ixG^LL,ixM^LL,vhatmaxgrid)
+      call vhat(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,vhatmaxgrid)
       vhatmax_pe=max(vhatmax_pe,vhatmaxgrid)
     end do
     call MPI_ALLREDUCE(vhatmax_pe,vhatmax,1,MPI_DOUBLE_PRECISION,MPI_MAX, &
                            icomm,ierrmpi)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      block=>pw(igrid)
+      block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       ! calculate frictional velocity
-      call frictional_velocity(pw(igrid)%w,pw(igrid)%x,ixG^LL,ixM^LL,vhatmax,dtfff)
+      call frictional_velocity(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,vhatmax,dtfff)
     end do
 
   end subroutine mf_velocity_update
@@ -614,40 +614,40 @@ contains
 
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      pw(igrid)%w1=pw(igrid)%w
+      ps1(igrid)%w=ps(igrid)%w
     end do
 
     istep=0
 
     select case (time_integrator)
      case ("onestep")
-       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,1,qt,0)
+       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,ps1,qt,ps)
      case ("twostep")
        ! predictor step
        fix_conserve_at_step = .false.
-       call advect1mf(typepred1,qdt,half,idim^LIM,qt,0,qt,1)
+       call advect1mf(typepred1,qdt,half,idim^LIM,qt,ps,qt,ps1)
        ! corrector step
        fix_conserve_at_step = mf_advance .and. levmax>levmin
-       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt+half*qdt,1,qt,0)
+       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt+half*qdt,ps1,qt,ps)
      case ("threestep")
        ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
-       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,0,qt,1)
+       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,ps,qt,ps1)
 
        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          pw(igrid)%w2(ixG^T,1:nwflux)=0.75d0*pw(igrid)%w(ixG^T,1:nwflux)+0.25d0*&
-               pw(igrid)%w1(ixG^T,1:nwflux)
-          if (nw>nwflux) pw(igrid)%w2(ixG^T,nwflux+1:nw) = &
-               pw(igrid)%w(ixG^T,nwflux+1:nw)
+          ps2(igrid)%w(ixG^T,1:nwflux)=0.75d0*ps(igrid)%w(ixG^T,1:nwflux)+0.25d0*&
+               ps1(igrid)%w(ixG^T,1:nwflux)
+          if (nw>nwflux) ps2(igrid)%w(ixG^T,nwflux+1:nw) = &
+               ps(igrid)%w(ixG^T,nwflux+1:nw)
        end do
 
-       call advect1mf(flux_scheme,qdt,0.25d0,idim^LIM,qt+qdt,1,qt+dt*0.25d0,2)
+       call advect1mf(flux_scheme,qdt,0.25d0,idim^LIM,qt+qdt,ps1,qt+dt*0.25d0,ps2)
 
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          pw(igrid)%w(ixG^T,1:nwflux)=1.0d0/3.0d0*pw(igrid)%w(ixG^T,1:nwflux)+&
-               2.0d0/3.0d0*pw(igrid)%w2(ixG^T,1:nwflux)
+          ps(igrid)%w(ixG^T,1:nwflux)=1.0d0/3.0d0*ps(igrid)%w(ixG^T,1:nwflux)+&
+               2.0d0/3.0d0*ps2(igrid)%w(ixG^T,1:nwflux)
        end do
 
-       call advect1mf(flux_scheme,qdt,2.0d0/3.0d0,idim^LIM,qt+qdt/2.0d0,2,qt+qdt/3.0d0,0)
+       call advect1mf(flux_scheme,qdt,2.0d0/3.0d0,idim^LIM,qt+qdt/2.0d0,ps2,qt+qdt/3.0d0,ps)
      case default
        write(unitterm,*) "time_integrator=",time_integrator
        write(unitterm,*) "Error in advectmf: Unknown time integration method"
@@ -656,7 +656,7 @@ contains
 
   end subroutine advectmf
 
-  subroutine advect1mf(method,dtin,dtfactor,idim^LIM,qtC,a,qt,b)
+  subroutine advect1mf(method,dtin,dtfactor,idim^LIM,qtC,psa,qt,psb)
     ! Integrate all grids by one partial step
     ! This subroutine is equivalent to VAC's `advect1', but does
     ! the advection for all grids
@@ -665,8 +665,8 @@ contains
     use mod_fix_conserve
 
     integer, intent(in) :: idim^LIM
-    integer, intent(in) :: a ! Compute fluxes based on this w
-    integer, intent(in) :: b ! update on this w
+    type(state) :: psa(max_blocks)! Compute fluxes based on this state
+    type(state) :: psb(max_blocks) ! update on this state
     double precision, intent(in) :: dtin,dtfactor, qtC, qt
     character(len=*), intent(in) :: method(nlevelshi)
 
@@ -679,28 +679,11 @@ contains
     ! loop over all grids to arrive at equivalent
     qdt=dtfactor*dtin
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       block=>pw(igrid)
+       block=>ps(igrid)
        level=node(plevel_,igrid)
-       select case(a)
-       case(0)
-         pw(igrid)%wa=>pw(igrid)%w
-       case(1)
-         pw(igrid)%wa=>pw(igrid)%w1
-       case(2)
-         pw(igrid)%wa=>pw(igrid)%w2
-       end select
-
-       select case(b)
-       case(0)
-         pw(igrid)%wb=>pw(igrid)%w
-       case(1)
-         pw(igrid)%wb=>pw(igrid)%w1
-       case(2)
-         pw(igrid)%wb=>pw(igrid)%w2
-       end select
 
        call process1_gridmf(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
-                       pw(igrid)%wa,qt,pw(igrid)%wb,pw(igrid)%wold)
+                       psa(igrid)%w,qt,psb(igrid)%w,pso(igrid)%w)
     end do
 
     ! opedit: Send flux for all grids, expects sends for all
@@ -709,7 +692,7 @@ contains
     if (fix_conserve_at_step) then
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
-      call fix_conserve(idim^LIM,mag(1),mag(ndir))
+      call fix_conserve(psb,idim^LIM,mag(1),ndir)
     end if
     ! point bc mpi datatype to partial type for magnetic field
     type_send_srl=>type_send_srl_p1
@@ -719,7 +702,7 @@ contains
     type_send_p=>type_send_p_p1
     type_recv_p=>type_recv_p_p1
     ! update B in ghost cells
-    call getbc(qt+qdt,qdt,mag(1)-1,ndir)
+    call getbc(qt+qdt,qdt,psb,mag(1)-1,ndir)
     ! calculate magnetofrictional velocity
     call mf_velocity_update(qdt)
     ! point bc mpi datatype to partial type for velocity field
@@ -730,7 +713,7 @@ contains
     type_send_p=>type_send_p_p2
     type_recv_p=>type_recv_p_p2
     ! update magnetofrictional velocity in ghost cells
-    call getbc(qt+qdt,qdt,mom(1)-1,ndir)
+    call getbc(qt+qdt,qdt,psb,mom(1)-1,ndir)
 
   end subroutine advect1mf
 
@@ -760,20 +743,20 @@ contains
        !================================
        ! 4th order central difference
        !================================
-       call centdiff4mf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,pw(igrid)%x)
+       call centdiff4mf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
      case ("tvdlf")
        !================================
        ! TVDLF
        !================================
-       call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,pw(igrid)%x)
+       call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
      case ('hancock')
        ! hancock predict (first) step for twostep tvdlf and tvdmu scheme
-       call hancockmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,dx^D,pw(igrid)%x)
+       call hancockmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,dx^D,ps(igrid)%x)
      case ("fd")
        !================================
        ! finite difference
        !================================
-       call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,pw(igrid)%x)
+       call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
     case default
        if(mype==0) write(unitterm,*)'Error in advect1_gridmf:',method,' is not there!'
        call mpistop("The scheme is not implemented.")
