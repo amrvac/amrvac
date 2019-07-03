@@ -24,7 +24,7 @@ contains
     usr_process_grid => set_error
 
     mg%operator_type = mg_helmholtz
-    mg%bc(:, mg_iphi)%bc_type = bc_neumann
+    mg%bc(:, mg_iphi)%bc_type = mg_bc_neumann
     mg%bc(:, mg_iphi)%bc_value = 0.0d0
 
     call set_coordinate_system("Cartesian_2D")
@@ -55,7 +55,6 @@ contains
   end function solution
 
   subroutine diffuse_density(qdt, qt, active)
-    use m_diffusion
     double precision, intent(in) :: qdt
     double precision, intent(in) :: qt
     logical, intent(inout)       :: active
