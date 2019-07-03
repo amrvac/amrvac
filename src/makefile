@@ -43,6 +43,7 @@ amrvac.o: mod_fix_conserve.mod
 amrvac.o: mod_ghostcells_update.mod
 amrvac.o: mod_initialize.mod
 amrvac.o: mod_input_output.mod
+amrvac.o: mod_multigrid_coupling.mod
 amrvac.o: mod_particles.mod
 amrvac.o: mod_physics.mod
 amrvac.o: mod_timing.mod
