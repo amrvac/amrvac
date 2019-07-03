@@ -14,8 +14,9 @@ module mod_usr
   double precision, parameter :: gauss_sigma          = 0.1d0
   double precision, parameter :: cos_ampl             = 1.0d0
   double precision, parameter :: cos_modes(ndim)      = [0.5d0, 1.0d0, 1.5d0]
+  double precision, parameter :: gauss_r0(ndim)       = [0.0d0, 0.0d0, 0.0d0]
   character(len=10)           :: multigrid_cycle_name = 'fmg'
-  character(len=10)           :: refine_type = 'corner'
+  character(len=10)           :: refine_type = 'center'
 
 contains
 
@@ -118,7 +119,7 @@ contains
     call mg_copy_from_tree(mg_ires, i_res)
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       call set_error(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+       call set_error(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
     end do
 
     call get_global_maxima(wmax)
