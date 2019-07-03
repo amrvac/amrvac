@@ -37,7 +37,13 @@ end module mod_multigrid_coupling
 }
 {^NOONED
 module mod_multigrid_coupling
-  use m_octree_mg
+  {^IFTWOD
+  use m_octree_mg_2d
+  }
+  {^IFTHREED
+  use m_octree_mg_3d
+  }
+
 
   implicit none
   public
