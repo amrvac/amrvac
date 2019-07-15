@@ -63,6 +63,7 @@ contains
           print *, '         (later .par files override earlier ones)'
           print *, ''
           print *, 'Optional arguments:'
+          print *, '-resume              Resume previous run'
           print *, '-convert             Convert snapshot files'
           print *, '-if file0001.dat     Use this snapshot to restart from'
           print *, '                     (you can modify e.g. output names)'

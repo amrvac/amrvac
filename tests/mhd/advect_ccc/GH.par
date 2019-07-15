@@ -3,28 +3,30 @@
  &filelist
         saveprim=T
         autoconvert=T
-	convert_type='vtuBCCmpi'
-        base_filename='CCC_GH2D'  ! Base file name for dat/vtu output
+	convert_type='vtuBmpi'
+        base_filename='output/CCC_GH2D'  ! Base file name for dat/vtu output
         typefilelog='special'
+        nwauxio=4
 /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave_log=0.05          ! For the log
-        dtsave_dat=0.05          ! For dat/vtu output
+        itsave(1,5)=0
+        dtsave_log=1.7888543819998318440e-01          ! For the log
+        dtsave_dat=8.9442719099991592202e+00          ! For dat/vtu output
+        dtsave_custom=1.7888543819998318440e-01
  /
 
  &stoplist
         dtmin=1.0d-6
-        time_max=20.0d0
+        time_max=1.7888543819998318440e+01
  /
 
  &methodlist
         time_integrator=  'threestep'
         flux_scheme=20*'hll'
-        limiter=20*'woodward'
-
+        limiter=20*'cada'
  /
 
  &boundlist
@@ -35,11 +37,11 @@
  /
 
  &meshlist
-        refine_max_level=3
-        domain_nx1=50
-        domain_nx2=50
-        block_nx1=10
-        block_nx2=10
+        refine_max_level=1
+        domain_nx1=64
+        domain_nx2=64
+        block_nx1=16
+        block_nx2=16
         xprobmin1=-2.0d0
         xprobmax1=2.0d0
         xprobmin2=-2.0d0
@@ -48,18 +50,19 @@
 
  &paramlist
         typecourant='maxsum'
-        courantpar=0.9d0
+        courantpar=0.7d0
         slowsteps=10
  /
 
  &mhd_list
         mhd_energy = .true.
         typedivbfix = 'linde'
+        mhd_n_tracer = 1
  /
 
  &usr_list
         Mach=0.5d0
-        phi0=45.0d0
+        phi0=26.56505117707799 ! atan(1/2)
         theta0=90.0d0
         equilibrium_version='GoldHoyle'
         drat=0.05d0

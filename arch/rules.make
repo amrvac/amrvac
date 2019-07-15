@@ -11,6 +11,8 @@ mod_%.o: mod_%.f
 # only need to be explicitly generated when they were manually removed.
 mod_%.mod: mod_%.f mod_%.o
 	@test -f $@ || $(F90) $(F90FLAGS) -c $(@:.mod=.f) -o $(@:.mod=.o) $(addprefix -I,$(INC_DIRS))
+m_%.mod: m_%.f m_%.o
+	@test -f $@ || $(F90) $(F90FLAGS) -c $(@:.mod=.f) -o $(@:.mod=.o) $(addprefix -I,$(INC_DIRS))
 
 # How to generate object files
 %.o: %.f

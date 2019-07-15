@@ -9,7 +9,7 @@ connectivity.t boundary_conditions.t comm_lib.t forest.t amr_neighbors.t	\
 amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t mod_geometry.t	\
 mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t mod_limiter.t	\
 mod_fix_conserve.t mod_source.t mod_initialize.t mod_amrvac.t mod_bc_data.t 	\
-mod_lookup_table.t mod_amr_fct.t mod_constrained_transport.t
+mod_lookup_table.t mod_amr_fct.t mod_constrained_transport.t mod_multigrid_coupling.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -23,6 +23,17 @@ mod_global_parameters.o: mod_basic_types.mod
 mod_variables.o: mod_basic_types.mod
 mod_usr_methods.o: mod_global_parameters.mod
 
+# Multigrid is only used in 2D and 3D. Due to the m_ prefix, the update_dependencies.sh script ignores these dependencies.
+ifeq ($(NDIM), 2)
+FOBJECTS += m_octree_mg_2d.t
+mod_multigrid_coupling.o: m_octree_mg_2d.mod
+endif
+
+ifeq ($(NDIM), 3)
+FOBJECTS += m_octree_mg_3d.t
+mod_multigrid_coupling.o: m_octree_mg_3d.mod
+endif
+
 # Update this file by running ./update_dependencies.sh in the src folder
 # Don't change the text below or the script will break
 #
@@ -30,6 +41,7 @@ mod_usr_methods.o: mod_global_parameters.mod
 
 amr_coarsen_refine.o: mod_amr_fct.mod
 amr_coarsen_refine.o: mod_ghostcells_update.mod
+amr_coarsen_refine.o: mod_multigrid_coupling.mod
 amrgrid.o: mod_advance.mod
 amrgrid.o: mod_amr_fct.mod
 amrgrid.o: mod_fix_conserve.mod
@@ -43,6 +55,7 @@ amrvac.o: mod_fix_conserve.mod
 amrvac.o: mod_ghostcells_update.mod
 amrvac.o: mod_initialize.mod
 amrvac.o: mod_input_output.mod
+amrvac.o: mod_multigrid_coupling.mod
 amrvac.o: mod_particles.mod
 amrvac.o: mod_physics.mod
 amrvac.o: mod_timing.mod
@@ -149,6 +162,7 @@ mod_mhd.o: mod_mhd_roe.mod
 mod_mhd_phys.o: mod_geometry.mod
 mod_mhd_phys.o: mod_gravity.mod
 mod_mhd_phys.o: mod_magnetofriction.mod
+mod_mhd_phys.o: mod_multigrid_coupling.mod
 mod_mhd_phys.o: mod_particles.mod
 mod_mhd_phys.o: mod_physics.mod
 mod_mhd_phys.o: mod_radiative_cooling.mod
@@ -162,6 +176,7 @@ mod_mhd_roe.o: mod_mhd_phys.mod
 mod_mhd_roe.o: mod_physics_roe.mod
 mod_mhd_roe.o: mod_tvd.mod
 mod_mp5.o: mod_physics.mod
+mod_multigrid_coupling.o: mod_geometry.mod
 mod_nonlinear.o: mod_amrvac.mod
 mod_nonlinear.o: mod_nonlinear_phys.mod
 mod_nonlinear.o: mod_nonlinear_roe.mod

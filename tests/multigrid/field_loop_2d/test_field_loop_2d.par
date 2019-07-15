@@ -1,0 +1,52 @@
+ &filelist
+        base_filename='test_field_loop_2d'
+        typefilelog='regression_test'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+        saveprim      = T
+        nwauxio       = 1
+ /
+
+ &savelist
+        dtsave_log    = 0.1
+ /
+
+ &stoplist
+        time_max      = 2.0
+ /
+
+ &methodlist
+        time_integrator = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+ /
+
+ &boundlist
+        typeboundary_min1  = 6*'periodic'
+        typeboundary_min2  = 6*'periodic'
+        typeboundary_max1  = 6*'periodic'
+        typeboundary_max2  = 6*'periodic'
+ /
+
+ &meshlist
+        iprob = 1
+        refine_criterion = 3
+        refine_max_level = 2
+    	refine_threshold = 20*0.4d0
+        w_refine_weight(1)=0.5d0
+        w_refine_weight(4)=0.5d0
+        domain_nx1    = 32
+        domain_nx2    = 32
+        xprobmin1     = -0.5d0
+        xprobmax1     = 0.5d0
+        xprobmin2     = -0.5d0
+        xprobmax2     = 0.5d0
+ /
+
+ &paramlist
+        courantpar    = 0.7d0
+ /
+
+ &mhd_list
+        typedivbfix   = 'multigrid'
+ /

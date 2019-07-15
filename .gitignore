@@ -27,3 +27,4 @@ doc/html/*
 *.pyc
 .idea/
 *.npy
+/src/new_makefile

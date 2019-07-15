@@ -13,7 +13,7 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_thermal_conduction, only: phys_thermal_conduction
-    use mod_physics, only: phys_req_diagonal
+    use mod_physics, only: phys_req_diagonal, phys_global_source
 
     logical, intent(in) :: prior
 
@@ -34,6 +34,7 @@ contains
     else
        qt=global_time+dt
     end if
+
     !$OMP PARALLEL DO PRIVATE(igrid,qdt,i^D)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        qdt=dt_grid(igrid)
@@ -41,6 +42,10 @@ contains
        call addsource1_grid(igrid,qdt,qt,ps(igrid)%w,src_active)
     end do
     !$OMP END PARALLEL DO
+
+    if (.not. prior .and. associated(phys_global_source)) then
+       call phys_global_source(dt, qt, src_active)
+    end if
 
     if (src_active) then
        call getbc(qt,0.d0,ps,1,nwflux+nwaux,phys_req_diagonal)

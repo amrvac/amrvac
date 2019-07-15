@@ -15,6 +15,10 @@ program amrvac
   use mod_advance, only: process
   use mod_constrained_transport
 
+  {^NOONED
+  use mod_multigrid_coupling
+  }
+
   double precision :: time0, time_in
 
 
@@ -124,6 +128,10 @@ program amrvac
   end if
 
   time_advance=.true.
+
+  {^NOONED
+  if (use_multigrid) call mg_setup_multigrid()
+  }
 
   ! an interface to allow user to do special things before the main loop
   if (associated(usr_before_main_loop)) &

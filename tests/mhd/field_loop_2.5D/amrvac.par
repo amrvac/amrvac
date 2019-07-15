@@ -7,18 +7,18 @@
  &savelist
         itsave(1,1)   = 0
         itsave(1,2)   = 0
-        ditsave_log   = 10
-        dtsave_dat    = 0.1
+        dtsave_log    = 0.1
+        dtsave_dat    = 0.5
  /
 
  &stoplist
-        time_max      = 2.0
+        time_max      = 10.0
  /
 
  &methodlist
         time_integrator = 'threestep'
         flux_scheme     = 20*'hll'
-        limiter  = 20*'cada3'
+        limiter  = 20*'cada'
  /
 
  &boundlist
@@ -44,7 +44,7 @@
  /
 
  &paramlist
-        courantpar    = 0.7d0
+        courantpar = 0.50d0
  /
 
  &mhd_list

@@ -265,9 +265,6 @@ sub definepatterns{
    &patdef('IFONED'	,$ndim==1		);
    &patdef('IFTWOD'	,$ndim==2		);
    &patdef('IFTHREED'	,$ndim==3		);
-   &patdef('IF_NOT_1D'	,$ndim!=1		);
-   &patdef('IF_NOT_2D'	,$ndim!=2		);
-   &patdef('IF_NOT_3D'	,$ndim!=3		);
    # &patdef('IFONEC'     ,$ndir==1               );
    # &patdef('IFTWOC'	,$ndir==2		);
    # &patdef('IFTHREEC'	,$ndir==3		);
@@ -553,8 +550,8 @@ sub format90 {
    return($line) if length($line)<=$maxlen;
 
    if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
-        $line =~ /\/\/ *& *$/) {
-       # Don't break OpenMP, print and //&
+        $line =~ /\/\/ *& *$/ || $line =~ /error stop/) {
+       # Don't break lines with OpenMP, print, //&, error stop
        return ($line);
    }
 

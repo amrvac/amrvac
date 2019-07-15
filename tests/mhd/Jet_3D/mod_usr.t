@@ -414,7 +414,7 @@ contains
        endif
     endif
 
-    if(all(R(ix^S) >= 13.0d0))then
+    if(any(R(ix^S) >= 8.0d0))then
        if(level>3) then
          refine=-1
          coarsen=1

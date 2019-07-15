@@ -28,7 +28,10 @@ mhd/ring_thermal_conduction_3D mhd/solar_flare_reconnection_2.5D                
 mhd/lfff_extrapolation_3D mhd/tilt_instability_3D mhd/Low_flux_rope_3D          \
 mhd/field_loop_2.5D mhd/solar_wind_2.5D
 
-TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS)
+MG_DIRS := multigrid/convergence_2d multigrid/convergence_3d	\
+multigrid/field_loop_2d multigrid/implicit_diffusion
+
+TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS) $(MG_DIRS)
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
@@ -39,6 +42,7 @@ all: rho hd mhd
 rho: $(RHO_DIRS)
 hd: $(HD_DIRS)
 mhd: $(MHD_DIRS)
+mg: $(MG_DIRS)
 
 $(TEST_DIRS):
 	@$(MAKE) -C $@ -f test.make
