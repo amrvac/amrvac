@@ -27,6 +27,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
+    double precision, dimension(ixO^S)      :: inv_volume
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision :: dxinv(1:ndim)
     integer :: idims, iw, ix^L, hxO^L
@@ -45,38 +46,67 @@ contains
 
     ^D&dxinv(^D)=-qdt/dx^D;
     do idims= idims^LIM
-       block%iw0=idims
-       ! Calculate w_j+g_j/2 and w_j-g_j/2
-       ! First copy all variables, then upwind wLC and wRC.
-       ! wLC is to the left of ixO, wRC is to the right of wCT.
-       hxO^L=ixO^L-kr(idims,^D);
+      block%iw0=idims
+      ! Calculate w_j+g_j/2 and w_j-g_j/2
+      ! First copy all variables, then upwind wLC and wRC.
+      ! wLC is to the left of ixO, wRC is to the right of wCT.
+      hxO^L=ixO^L-kr(idims,^D);
 
-       wRp(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
-       wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
+      wRp(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
+      wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
-       call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+      call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
 
-       ! Calculate the fLC and fRC fluxes
-       call phys_get_flux(wRC,wRp,x,ixI^L,hxO^L,idims,fRC)
-       call phys_get_flux(wLC,wLp,x,ixI^L,ixO^L,idims,fLC)
+      ! Calculate the fLC and fRC fluxes
+      call phys_get_flux(wRC,wRp,x,ixI^L,hxO^L,idims,fRC)
+      call phys_get_flux(wLC,wLp,x,ixI^L,ixO^L,idims,fLC)
 
-       ! Advect w(iw)
-       do iw=1,nwflux
-          if (slab_uniform) then
+      ! Advect w(iw)
+      do iw=1,nwflux
+        if (slab_uniform) then
+          if (associated(phys_iw_methods(iw)%inv_capacity)) then
+            call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims) * inv_volume * &
+                 (fLC(ixO^S, iw)-fRC(hxO^S, iw))
+           else
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
                   (fLC(ixO^S, iw)-fRC(hxO^S, iw))
+           end if
+        else
+          if (associated(phys_iw_methods(iw)%inv_capacity)) then
+            call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
           else
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)-qdt/block%dvolume(ixO^S) &
-                  *(block%surfaceC(ixO^S,idims)*fLC(ixO^S, iw) &
-                  -block%surfaceC(hxO^S,idims)*fRC(hxO^S, iw))
+            inv_volume = 1.0d0
           end if
-       end do
+          inv_volume = inv_volume/block%dvolume(ixO^S)
+
+          wnew(ixO^S,iw)=wnew(ixO^S,iw) - qdt * inv_volume &
+               *(block%surfaceC(ixO^S,idims)*fLC(ixO^S, iw) &
+               -block%surfaceC(hxO^S,idims)*fRC(hxO^S, iw))
+        end if
+      end do
     end do ! next idims
     block%iw0=0
+
+    do iw = 1, nwflux
+      if (associated(phys_iw_methods(iw)%inv_capacity)) then
+        ! Copy state before adding source terms
+        wprim(ixO^S, iw) = wnew(ixO^S, iw)
+      end if
+    end do
 
     if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+
+    ! If there are capacity functions, now correct the added source terms
+    do iw = 1, nwflux
+      if (associated(phys_iw_methods(iw)%inv_capacity)) then
+        call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+        wnew(ixO^S, iw) = wprim(ixO^S, iw) + inv_volume * &
+             (wnew(ixO^S, iw) - wprim(ixO^S, iw))
+      end if
+    end do
 
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
@@ -276,11 +306,26 @@ contains
        ! Multiply the fluxes by -dt/dx since Flux fixing expects this
        if (slab_uniform) then
           fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
-          wnew(ixO^S,1:nwflux)=wnew(ixO^S,1:nwflux) &
-               + (fC(ixO^S,1:nwflux,idims)-fC(hxO^S,1:nwflux,idims))
-       else
+
+          do iw = 1, nwflux
+            if (associated(phys_iw_methods(iw)%inv_capacity)) then
+              call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+              wnew(ixO^S,iw)=wnew(ixO^S,iw) + inv_volume * &
+                   (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+            else
+              wnew(ixO^S,iw)=wnew(ixO^S,iw) &
+                   + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+            end if
+          end do
+        else
           if (.not. angmomfix) then ! default case
-            inv_volume = 1.0d0/block%dvolume(ixO^S)
+            if (associated(phys_iw_methods(iw)%inv_capacity)) then
+              call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+            else
+              inv_volume = 1.0d0
+            end if
+            inv_volume = inv_volume/block%dvolume(ixO^S)
+
             do iw=1,nwflux
               fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
               wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &

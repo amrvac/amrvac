@@ -2,7 +2,7 @@
 !> pointers for the various supported routines. An actual physics module has to
 !> set these pointers to its implementation of these routines.
 module mod_physics
-  use mod_global_parameters, only: name_len
+  use mod_global_parameters, only: name_len, max_nw
   use mod_physics_hllc
   use mod_physics_roe
   use mod_physics_ppm
@@ -32,6 +32,16 @@ module mod_physics
   !> Indicates dissipation should be omitted
   integer, parameter   :: flux_no_dissipation = 2
 
+  !> Type for special methods defined per variable
+  type iw_methods
+    integer :: test
+    !> If this is set, use the routine as a capacity function when adding fluxes
+    procedure(sub_get_var), pointer, nopass :: inv_capacity => null()
+  end type iw_methods
+
+  !> Special methods defined per variable
+  type(iw_methods) :: phys_iw_methods(max_nw)
+
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
@@ -51,7 +61,6 @@ module mod_physics
   procedure(sub_write_info), pointer      :: phys_write_info             => null()
   procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
   procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
-  procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
 
   abstract interface
 
@@ -189,14 +198,13 @@ module mod_physics
        character(len=*), intent(in)    :: subname
      end subroutine sub_small_values
 
-     subroutine sub_face_to_center(ixO^L,igrid,s)
+     subroutine sub_get_var(w, ixI^L, ixO^L, out)
        use mod_global_parameters
-       ! Non-staggered interpolation range
-       integer, intent(in)             :: ixO^L, igrid
-       type(state)                     :: s
-     end subroutine sub_face_to_center
-
-  end interface
+       integer, intent(in)           :: ixI^L, ixO^L
+       double precision, intent(in)  :: w(ixI^S, nw)
+       double precision, intent(out) :: out(ixO^S)
+     end subroutine sub_get_var
+   end interface
 
 contains
 
@@ -264,9 +272,6 @@ contains
 
     if (.not. associated(phys_handle_small_values)) &
          phys_handle_small_values => dummy_small_values
-
-    if (.not. associated(phys_face_to_center)) &
-         phys_face_to_center => dummy_face_to_center
 
   end subroutine phys_check
 
@@ -363,11 +368,4 @@ contains
     character(len=*), intent(in)    :: subname
   end subroutine dummy_small_values
   
-  subroutine dummy_face_to_center(ixO^L,igrid,s)
-    use mod_global_parameters
-    ! Non-staggered interpolation range
-    integer, intent(in)             :: ixO^L, igrid
-    type(state)                     :: s
-  end subroutine dummy_face_to_center
-
 end module mod_physics
