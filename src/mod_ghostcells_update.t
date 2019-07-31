@@ -1069,11 +1069,11 @@ contains
             do idir=1,ndim
               ixS^L=ixS_srl_stg_^L(idir,n_i^D);
               ixR^L=ixR_srl_stg_^L(idir,i^D);
-              if (idirect == 1) then
-                ! use the same value at the face shared by two neighors
-                call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L)
-                psb(igrid)%ws(ixRsync^S,idir) = half*(psb(igrid)%ws(ixRsync^S,idir)+psb(ineighbor)%ws(ixSsync^S,idir))
-              end if
+              !if (idirect == 1) then
+              !  ! use the same value at the face shared by two neighors
+              !  call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L)
+              !  psb(igrid)%ws(ixRsync^S,idir) = half*(psb(igrid)%ws(ixRsync^S,idir)+psb(ineighbor)%ws(ixSsync^S,idir))
+              !end if
               psb(igrid)%ws(ixR^S,idir) = psb(ineighbor)%ws(ixS^S,idir)
             end do
           else
