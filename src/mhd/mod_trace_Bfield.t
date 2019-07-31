@@ -6,9 +6,9 @@
 !> We can use subroutine trace_Bfield to trace a magnetic field line.
 !> The location of a point in this field line need to be provided at
 !> xf(1,:), and then the subroutine will calculate and return the 
-!> locations of some other points in this field line. The locations,
-!> density and magnetic field components will be recorded to xf, Npf,
-!> Bvf, repectively.
+!> locations of some other points in this field line. The locations and
+!> the plasma parameter of the points will be return. Parameters are 
+!> recorded in wB
 !> 
 !> numP is the number of points we wants to return. Sometimes field
 !> lines can go out of the simulation box. It means that only some of 
@@ -29,13 +29,13 @@ module mod_trace_Bfield
 
   contains
 
-    subroutine trace_Bfield(xf,Npf,Bvf,dL,dirct,numP,numRT,forward)
+    subroutine trace_Bfield(xf,wB,dL,dirct,numP,numRT,forward)
       ! trace a field line
       use mod_usr_methods
       use mod_global_parameters
 
       integer :: numP,numRT,dirct
-      double precision :: xf(numP,ndim),Npf(numP),Bvf(numP,ndim)
+      double precision :: xf(numP,ndim),wB(numP,nw)
       double precision :: dL
       logical :: forward
 
@@ -95,15 +95,14 @@ module mod_trace_Bfield
           if (mype==ipe_now) then
             igrid=igrid_now
             ! find next point in this field line and get density of current point
-            call find_next(igrid,xf(j,:),xf(j+1,:),Npf(j),Bvf(j,:),dL,dirct,forward)
+            call find_next(igrid,xf(j,:),xf(j+1,:),wB(j,:),dL,dirct,forward)
             ! check the pe of next point
             call check_next(igrid,igrid_next,ipe_next,xf(j+1,:),newpe)
           endif
 
           call MPI_BCAST(newpe,1,MPI_LOGICAL,mainpe,icomm,ierrmpi)
           call MPI_BCAST(xf(j+1,:),ndim,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
-          call MPI_BCAST(Npf(j),1,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
-          call MPI_BCAST(Bvf(j,:),ndim,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
+          call MPI_BCAST(wB(j,:),nw,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
 
           ! check whether or next point is inside simulation box.
           indomain=0
@@ -137,30 +136,30 @@ module mod_trace_Bfield
       if (numRT==numP) then
         mainpe=ipe_now
         if (mype==ipe_now) then
-          call find_next(igrid_now,xf(numRT,:),xtemp,Npf(numRT),Bvf(numRT,:), &
+          call find_next(igrid_now,xf(numRT,:),xtemp,wB(numRT,:), &
                          dL,dirct,forward)
         endif
-        call MPI_BCAST(Npf(numRT),1,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
+        call MPI_BCAST(wB(numRT,:),nw,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
       endif
 
     end subroutine trace_Bfield
 
-    subroutine find_next(igrid,xf0,xf1,Np0,Bv0,dL,dirct,forward)
+    subroutine find_next(igrid,xf0,xf1,wB0,dL,dirct,forward)
       !find next point
       use mod_usr_methods
       use mod_global_parameters
       use mod_forest
 
       integer :: igrid,dirct
-      double precision :: xf0(ndim),xf1(ndim),Bv0(ndim)
-      double precision :: Np0,dL
+      double precision :: xf0(ndim),xf1(ndim),wB0(nw)
+      double precision :: dL
       logical :: forward
 
       integer          :: ixO^L,ixO^D,j
       double precision :: dxf(ndim)
       double precision :: dxb^D,xb^L,xd^D
       integer          :: ixb^D,ix^D,ixbl^D
-      double precision :: Bnear(0:1^D&,ndim),Nnear(0:1^D&)
+      double precision :: wBnear(0:1^D&,nw)
       double precision :: Bx(ndim),factor(0:1^D&)
       double precision :: Btotal,maxft,Bp
 
@@ -174,37 +173,45 @@ module mod_trace_Bfield
       ^D&ixbl^D=floor((xf0(^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
       ^D&xd^D=(xf0(^D)-ps(igrid)%x(ixbl^DD,^D))/dxb^D\
 
-      ! interpolation
+      ! nearby B field for interpolation
       if (B0field) then
         {do ix^DB=0,1\}
           do j=1,ndim
-            Bnear(ix^D,j)=ps(igrid)%w(ixbl^D+ix^D,mag(j))+&
+            wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))+&
                           ps(igrid)%B0(ixbl^D+ix^D,j,0)
           enddo
-          Nnear(ix^D)=ps(igrid)%w(ixbl^D+ix^D,rho_)
         {enddo\}
       else
         {do ix^DB=0,1\}
           do j=1,ndim
-            Bnear(ix^D,j)=ps(igrid)%w(ixbl^D+ix^D,mag(j))
+            wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))
           enddo
-          Nnear(ix^D)=ps(igrid)%w(ixbl^D+ix^D,rho_)
         {enddo\}
       endif
 
+      ! other parameter for intepolation
+      {do ix^DB=0,1\}
+        do j=1,nw
+          if (j<mag(1) .or. j>mag(ndim)) then
+            wBnear(ix^D,j)=ps(igrid)%w(ixbl^D+ix^D,j)
+          endif
+        enddo
+      {enddo\}
+
+      ! interpolation factor
       {do ix^D=0,1\}
         factor(ix^D)={abs(1-ix^D-xd^D)*}
       {enddo\}
 
       ! do interpolation to get local magnetic field
       Bx=0
-      Np0=0
+      wB0=0
       {do ix^DB=0,1\}
-        {Bx(^DB)=Bx(^DB)+Bnear(ix^DD,^DB)*factor(ix^DD)\}
-        Np0=Np0+Nnear(ix^D)*factor(ix^D)
+        {Bx(^DB)=Bx(^DB)+wBnear(ix^DD,mag(^DB))*factor(ix^DD)\}
+        do j=1,nw
+          wB0(j)=wB0(j)+wBnear(ix^D,j)*factor(ix^D)
+        enddo
       {enddo\}
-      Np0=Np0*unit_numberdensity
-      Bv0=Bx
 
       ! local magnetic field strength
       Btotal=0.0d0
@@ -220,11 +227,11 @@ module mod_trace_Bfield
           ! local B equls the B of the closest point
           Bp=0
           do j=1,ndim
-            Bp=Bp+(Bnear(ix^D,j))**2
+            Bp=Bp+(wBnear(ix^D,mag(j)))**2
           enddo
 
           if (factor(ix^D)>=maxft .and. Bp/=0) then
-            Bx(:)=Bnear(ix^D,:)
+            Bx(:)=wBnear(ix^D,mag(:))
           endif
           Btotal=Bp
         {enddo\}
