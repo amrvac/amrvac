@@ -6,12 +6,12 @@ language: c
 
 env:
     global:
-        - FC=gfortran-4.8
+        - FC=gfortran
         - OMPI_FC=${FC}
 
 install:
     - sudo apt-get update
-    - sudo apt-get install gfortran-4.8 openmpi-bin libopenmpi-dev
+    - sudo apt-get install gfortran openmpi-bin libopenmpi-dev
 
 cache:
   paths:
