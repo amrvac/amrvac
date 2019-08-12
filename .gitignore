@@ -16,6 +16,8 @@ doc/html/*
 /tests/hd/*/makefile
 /tests/mhd/*/makefile
 /tests/rho/*/makefile
+/tests/multigrid/*/makefile
+/tests/rd/*/makefile
 /tools/fortran/compare_logs
 /tests/*/*/mod_usr.f
 /lib/1d_*
