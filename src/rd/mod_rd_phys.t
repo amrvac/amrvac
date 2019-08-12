@@ -7,18 +7,28 @@ module mod_rd_phys
   integer, protected, public :: u_ = 1
   integer, protected, public :: v_ = 2
 
-  character(len=20)  :: equation_type   = "schnakenberg"
+  integer            :: equation_type   = 1
+  integer, parameter :: eq_gray_scott   = 1
+  integer, parameter :: eq_schnakenberg = 2
 
-  double precision, protected :: D1 = 0.05d0
-  double precision, protected :: D2 = 1.0d0
+  !> Diffusion coefficient for first species (u)
+  double precision, public, protected :: D1 = 0.05d0
+  !> Diffusion coefficient for second species (v)
+  double precision, public, protected :: D2 = 1.0d0
 
-  double precision, protected :: sb_alpha = 0.1305d0
-  double precision, protected :: sb_beta  = 0.7695d0
-  double precision, protected :: sb_kappa = 100.0d0
+  !> Parameter for Schnakenberg model
+  double precision, public, protected :: sb_alpha = 0.1305d0
+  !> Parameter for Schnakenberg model
+  double precision, public, protected :: sb_beta  = 0.7695d0
+  !> Parameter for Schnakenberg model
+  double precision, public, protected :: sb_kappa = 100.0d0
 
-  double precision, protected :: gs_F = 0.046d0
-  double precision, protected :: gs_k = 0.063d0
+  !> Parameter for Gray-Scott model
+  double precision, public, protected :: gs_F = 0.046d0
+  !> Parameter for Gray-Scott model
+  double precision, public, protected :: gs_k = 0.063d0
 
+  !> Whether to handle the source term in split fashion
   logical :: rd_source_split = .false.
 
   ! Public methods
@@ -30,14 +40,27 @@ contains
     use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
     integer                      :: n
+    character(len=20)            :: equation_name
 
-    namelist /rd_list/ D1, D2, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k
+    namelist /rd_list/ D1, D2, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
+         equation_name
+
+    equation_name = "gray-scott"
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
        read(unitpar, rd_list, end=111)
 111    close(unitpar)
     end do
+
+    select case (equation_name)
+    case ("gray-scott")
+       equation_type = eq_gray_scott
+    case ("schnakenberg")
+       equation_type = eq_schnakenberg
+    case default
+       call mpistop("Unknown equation_name (not gray-scott or schnakenberg)")
+    end select
 
   end subroutine rd_params_read
 
@@ -140,7 +163,9 @@ contains
     double precision, intent(inout) :: dtnew
 
     ! dt < dx^2 / (2 * ndim * diffusion_coeff)
-    dtnew = minval([ dx^D ])**2 / (2 * ndim * max(D1, D2))
+    dtnew = 0.9d0 * minval([ dx^D ])**2 / (2 * ndim * max(D1, D2))
+
+    ! TODO: set time step for reactions
   end subroutine rd_get_dt
 
   ! There is nothing to add to the transport flux in the transport equation
@@ -171,16 +196,31 @@ contains
        call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, u_), lpl_u)
        call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, v_), lpl_v)
 
-       w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u - &
-            wCT(ixO^S, u_) * wCT(ixO^S, v_)**2 + &
-            gs_F * (1 - wCT(ixO^S, u_)))
-       w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v + &
-            wCT(ixO^S, u_) * wCT(ixO^S, v_)**2 - &
-            (gs_F + gs_k) * wCT(ixO^S, v_))
+       select case (equation_type)
+       case (eq_gray_scott)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u - &
+               wCT(ixO^S, u_) * wCT(ixO^S, v_)**2 + &
+               gs_F * (1 - wCT(ixO^S, u_)))
+          w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v + &
+               wCT(ixO^S, u_) * wCT(ixO^S, v_)**2 - &
+               (gs_F + gs_k) * wCT(ixO^S, v_))
+       case (eq_schnakenberg)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
+               + sb_kappa * (sb_alpha - wCT(ixO^S, u_) + &
+               wCT(ixO^S, u_)**2 * wCT(ixO^S, v_)))
+          w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
+               + sb_kappa * (sb_beta - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_)))
+       case default
+          call mpistop("Unknown equation type")
+       end select
+
        active = .true.
     end if
+
   end subroutine rd_add_source
 
+  !> Compute the Laplacian using a standard second order scheme. For now this
+  !> method only works in slab geometries.
   subroutine rd_laplacian(ixI^L,ixO^L,var,lpl)
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L
