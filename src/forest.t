@@ -90,18 +90,23 @@ end subroutine level1_Morton_order
 integer(kind=8) function mortonEncode(ig^D,ndim)
 use iso_fortran_env, only : int64
 implicit none
-integer(kind=4) :: i,ig^D,ndim
-integer(kind=8) :: answer
+integer(kind=4), intent(in) :: ig^D,ndim
+integer(kind=4) :: i
+integer(kind=8) :: answer, lg^D
+
+! Create a 64-bit version of ig^D
+lg^D=ig^D;
 answer = 0
+
 do i=0,64/ndim
   {^IFONED answer=ig1}
   {^IFTWOD
-   answer=ior(answer,ior(ishft(iand(ig1,ishft(1_int64,i)),i),&
-          ishft(iand(ig2,ishft(1_int64,i)),i+1)))
+   answer=ior(answer,ior(ishft(iand(lg1,ishft(1_int64,i)),i),&
+          ishft(iand(lg2,ishft(1_int64,i)),i+1)))
   \}
   {^IFTHREED
-   answer=ior(answer,ior(ishft(iand(ig1,ishft(1_int64,i)),2*i),ior(ishft(&
-   iand(ig2,ishft(1_int64,i)),2*i+1),ishft(iand(ig3,ishft(1_int64,i)),2*i+2))))
+   answer=ior(answer,ior(ishft(iand(lg1,ishft(1_int64,i)),2*i),ior(ishft(&
+   iand(lg2,ishft(1_int64,i)),2*i+1),ishft(iand(lg3,ishft(1_int64,i)),2*i+2))))
   \}
 end do
 mortonEncode=answer
