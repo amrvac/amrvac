@@ -31,6 +31,9 @@ module mod_rd_phys
   !> Whether to handle the source term in split fashion
   logical :: rd_source_split = .false.
 
+  !> How to handle diffusion terms
+  character(len=20) :: rd_diffusion_method = "explicit"
+
   ! Public methods
   public :: rd_phys_init
 
@@ -43,7 +46,7 @@ contains
     character(len=20)            :: equation_name
 
     namelist /rd_list/ D1, D2, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
-         equation_name
+         equation_name, rd_diffusion_method
 
     equation_name = "gray-scott"
 
@@ -79,6 +82,7 @@ contains
   subroutine rd_phys_init()
     use mod_global_parameters
     use mod_physics
+    use mod_multigrid_coupling
 
     call rd_params_read(par_files)
 
@@ -100,14 +104,57 @@ contains
     phys_write_info   => rd_write_info
     phys_check_params => rd_check_params
 
+    select case (rd_diffusion_method)
+    case ("explicit")
+    case ("split")
+       use_multigrid = .true.
+       phys_global_source => rd_implicit_diffusion
+    case ("imex")
+       use_multigrid = .true.
+       phys_global_source => rd_implicit_diffusion
+    case default
+       call mpistop("Unknown rd_diffusion_method")
+    end select
+
   end subroutine rd_phys_init
 
   subroutine rd_check_params
+    use mod_multigrid_coupling
     use mod_global_parameters
+    integer :: n, idim
 
     if (any(flux_scheme /= "source")) then
        call mpistop("mod_rd requires flux_scheme = source")
     end if
+
+    if (use_multigrid) then
+       ! Set boundary conditions for the multigrid solver
+       do n = 1, 2*ndim
+          idim = (n+1)/2
+          select case (typeboundary(u_, n))
+          case ('symm')
+             ! d/dx u = 0
+             mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
+             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+          case ('asymm')
+             ! u = 0
+             mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
+             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+          case ('cont')
+             ! d/dx u = 0
+             mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
+             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+          case ('periodic')
+             ! Nothing to do here
+          case default
+             print *, "divb_multigrid warning: unknown b.c.: ", &
+                  trim(typeboundary(u_, n))
+             mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
+             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+          end select
+       end do
+    end if
+
   end subroutine rd_check_params
 
   subroutine rd_to_conserved(ixI^L, ixO^L, w, x)
@@ -162,10 +209,27 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(inout) :: dtnew
 
-    ! dt < dx^2 / (2 * ndim * diffusion_coeff)
-    dtnew = 0.9d0 * minval([ dx^D ])**2 / (2 * ndim * max(D1, D2))
+    select case (rd_diffusion_method)
+    case ("explicit")
+       ! dt < dx^2 / (2 * ndim * diffusion_coeff)
+       dtnew = 0.9d0 * minval([ dx^D ])**2 / (2 * ndim * max(D1, D2))
+    case ("split", "imex")
+       dtnew = bigdouble
+    end select
 
-    ! TODO: set time step for reactions
+    ! Set time step for reactions
+    select case (equation_type)
+    case (eq_gray_scott)
+       dtnew = min(dtnew, 1.0d0/maxval(w(ixO^S, v_))**2, &
+            1.0d0/maxval(w(ixO^S, v_) * w(ixO^S, u_)), &
+            1.0d0/gs_F)
+    case (eq_schnakenberg)
+       dtnew = min(dtnew, 1.0d0/(sb_kappa * maxval(w(ixO^S, v_))**2), &
+            1.0d0/(sb_kappa * maxval(w(ixO^S, v_) * w(ixO^S, u_))))
+    case default
+       call mpistop("Unknown equation type")
+    end select
+
   end subroutine rd_get_dt
 
   ! There is nothing to add to the transport flux in the transport equation
@@ -193,8 +257,13 @@ contains
     logical, intent(inout)          :: active
 
     if (qsourcesplit .eqv. rd_source_split) then
-       call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, u_), lpl_u)
-       call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, v_), lpl_v)
+       if (rd_diffusion_method == "explicit") then
+          call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, u_), lpl_u)
+          call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, v_), lpl_v)
+       else
+          lpl_u = 0.0d0
+          lpl_v = 0.0d0
+       end if
 
        select case (equation_type)
        case (eq_gray_scott)
@@ -243,5 +312,98 @@ contains
        call mpistop("rd_laplacian not implemented in this geometry")
     end if
   end subroutine rd_laplacian
+
+  subroutine rd_implicit_diffusion(qdt, qt, active)
+    use mod_forest
+    use mod_multigrid_coupling
+    use mod_global_parameters
+
+    double precision, intent(in) :: qdt    !< Current time step
+    double precision, intent(in) :: qt     !< Current time
+    logical, intent(inout)       :: active !< Output if the source is active
+    integer                      :: iigrid, igrid, id
+    integer                      :: n, nc, lvl, ix^L, idim
+    type(tree_node), pointer     :: pnode
+    double precision             :: max_residual
+
+    ! Avoid setting a very restrictive limit to the residual when the time step
+    ! is small (as the operator is ~ 1/(D * qdt))
+    if (qdt < 1d-10) return
+
+    max_residual = 1d-7/qdt
+
+    call mg_copy_to_tree(u_, mg_iphi, .false., .false.)
+    call diffusion_solve(mg, qdt, D1, 1, max_residual)
+    call mg_copy_from_tree(mg_iphi, u_)
+
+    call mg_copy_to_tree(v_, mg_iphi, .false., .false.)
+    call diffusion_solve(mg, qdt, D2, 1, max_residual)
+    call mg_copy_from_tree(mg_iphi, v_)
+
+    ! ix^L=ixM^LL^LADD1;
+
+    ! ! Store divergence of B as right-hand side
+    ! do iigrid = 1, igridstail
+    !    igrid =  igrids(iigrid);
+    !    pnode => igrid_to_node(igrid, mype)%node
+    !    id    =  pnode%id
+    !    lvl   =  mg%boxes(id)%lvl
+    !    nc    =  mg%box_size_lvl(lvl)
+
+    !    ! Geometry subroutines expect this to be set
+    !    block => ps(igrid)
+    !    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+
+    !    call get_divb(ps(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
+    !         mhd_divb_4thorder)
+    !    mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
+    ! end do
+
+    ! ! Solve laplacian(phi) = divB
+    ! do n = 1, max_its
+    !    call mg_fas_vcycle(mg, max_res=res)
+    !    if (res < max_residual) exit
+    ! end do
+
+    ! if (res > max_residual) call mpistop("divb_multigrid: no convergence")
+
+    ! ! Correct the magnetic field
+    ! do iigrid = 1, igridstail
+    !    igrid = igrids(iigrid);
+    !    pnode => igrid_to_node(igrid, mype)%node
+    !    id    =  pnode%id
+
+    !    ! Geometry subroutines expect this to be set
+    !    block => ps(igrid)
+    !    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+
+    !    ! Compute the gradient of phi
+    !    tmp(ix^S) = mg%boxes(id)%cc({:,}, mg_iphi)
+    !    do idim = 1, ndim
+    !       call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
+    !    end do
+
+    !    ! Apply the correction B* = B - gradient(phi)
+    !    tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
+    !    ps(igrid)%w(ixM^T, mag(1:ndim)) = &
+    !         ps(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
+
+    !    ! Determine magnetic energy difference
+    !    tmp(ixM^T) = 0.5_dp * (sum(ps(igrid)%w(ixM^T, &
+    !         mag(1:ndim))**2, dim=ndim+1) - tmp(ixM^T))
+
+    !    if (mhd_energy) then
+    !       ! Keep thermal pressure the same
+    !       ps(igrid)%w(ixM^T, e_) = ps(igrid)%w(ixM^T, e_) + tmp(ixM^T)
+
+    !       ! Possible alternative: keep total pressure the same
+    !       ! ps(igrid)%w(ixM^T, e_)     = ps(igrid)%w(ixM^T, e_) + &
+    !       !      (mhd_gamma-2) * inv_gamma_1 * tmp(ixM^T)
+    !    end if
+    ! end do
+
+    active = .true.
+
+  end subroutine rd_implicit_diffusion
 
 end module mod_rd_phys

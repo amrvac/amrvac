@@ -49,11 +49,12 @@
  &paramlist
        courantpar=0.8d0
        typecourant='minimum'
-       ! dtpar=5.0d-6
+       dtpar=1.0d-3
  /
 
  &rd_list
        D1 = 0.05d0
        D2 = 1.0d0
        equation_name = "schnakenberg"
+       rd_diffusion_method = "split"
  /
