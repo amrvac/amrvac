@@ -20,8 +20,10 @@ cache:
 before_script:
   - export AMRVAC_DIR=$(pwd)
   - export ARCH=default
+  - export NUM_PROCS=2          # we have 2 cores
   - cd $AMRVAC_DIR/lib
   - make clean
+  - make -j || exit 1
   - cd $AMRVAC_DIR/src
   - ./update_dependencies.sh --verbose || exit 1
   - cd $AMRVAC_DIR/tests
