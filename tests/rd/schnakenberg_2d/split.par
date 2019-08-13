@@ -4,7 +4,7 @@
 !=====================================================
 
  &filelist
-        base_filename='schnakenberg_'
+        base_filename='output/schnakenberg_split_'
     	convert_type='vtuBCCmpi'
         autoconvert=T
  /
@@ -49,7 +49,7 @@
  &paramlist
        courantpar=0.8d0
        typecourant='minimum'
-       dtpar=1.0d-3
+       dtpar=5.0d-4
  /
 
  &rd_list
