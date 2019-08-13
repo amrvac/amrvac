@@ -136,19 +136,26 @@ contains
   end subroutine mg_update_refinement
 
   !> Copy a variable to the multigrid tree, including a layer of ghost cells
-  subroutine mg_copy_to_tree(iw_from, iw_to, restrict, restrict_gc)
+  subroutine mg_copy_to_tree(iw_from, iw_to, restrict, restrict_gc, factor)
     use mod_global_parameters
     use mod_forest
-    integer, intent(in)      :: iw_from    !< Variable to use as right-hand side
-    integer, intent(in)      :: iw_to      !< Copy to this variable
-    logical, intent(in)      :: restrict   !< Restrict variable on multigrid tree
-    logical, intent(in)      :: restrict_gc !< Fill ghost cells after restrict
-    integer                  :: iigrid, igrid, id
-    integer                  :: nc, lvl
-    type(tree_node), pointer :: pnode
+    integer, intent(in)            :: iw_from     !< Variable to use as right-hand side
+    integer, intent(in)            :: iw_to       !< Copy to this variable
+    logical, intent(in), optional  :: restrict    !< Restrict variable on multigrid tree
+    logical, intent(in), optional  :: restrict_gc !< Fill ghost cells after restrict
+    real(dp), intent(in), optional :: factor      !< out = factor * in
+    integer                        :: iigrid, igrid, id
+    integer                        :: nc, lvl
+    type(tree_node), pointer       :: pnode
+    real(dp)                       :: fac
+    logical                        :: do_restrict, do_gc
 
     if (.not. mg%is_allocated) &
          error stop "mg_copy_to_tree: tree not allocated yet"
+
+    fac = 1.0_dp; if (present(factor)) fac = factor
+    do_restrict = .false.; if (present(restrict)) do_restrict = restrict
+    do_gc = .false.; if (present(restrict_gc)) do_gc = restrict_gc
 
     do iigrid = 1, igridstail
        igrid =  igrids(iigrid);
@@ -159,19 +166,19 @@ contains
 
        ! Include one layer of ghost cells on grid leaves
        {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = &
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
             ps(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
        }
        {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = &
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
             ps(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
             ixMlo3-1:ixMhi3+1, iw_from)
        }
     end do
 
-    if (restrict) then
+    if (do_restrict) then
        call mg_restrict(mg, iw_to)
-       if (restrict_gc) call mg_fill_ghost_cells(mg, iw_to)
+       if (do_gc) call mg_fill_ghost_cells(mg, iw_to)
     end if
 
   end subroutine mg_copy_to_tree
