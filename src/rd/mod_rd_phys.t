@@ -1,4 +1,12 @@
 !> Reaction-diffusion module (physics routines)
+!>
+!> Two types of reaction-diffusion systems are included: a Gray-Scott model and
+!> a model credited to Schnakenberg 1979. For the latter, defaults settings are
+!> taken from section 4.4 (p. 401) of "Time-dependent advection diffusion
+!> reaction systems" by Hundsdorfer & Verwer. An Imex method from the same
+!> chapter (eq. IV 4.12) is implemented to handle the stiff diffusion terms.
+!>
+!> The diffusion terms can also be solved using operator splitting.
 module mod_rd_phys
 
   implicit none
@@ -112,7 +120,7 @@ contains
        if (ndim == 1) call mpistop("multigrid not available in 1d")
     case ("imex")
        use_multigrid = .true.
-       phys_global_source => rd_implicit_diffusion
+       phys_global_source => rd_imex_diffusion
        if (ndim == 1) call mpistop("multigrid not available in 1d")
     case default
        call mpistop("Unknown rd_diffusion_method")
@@ -127,6 +135,11 @@ contains
 
     if (any(flux_scheme /= "source")) then
        call mpistop("mod_rd requires flux_scheme = source")
+    end if
+
+    if (rd_diffusion_method == "imex" .and. time_integrator /= "onestep") then
+       print *, "time_integrator = ", time_integrator
+       call mpistop("imex requires time_integrater = onestep")
     end if
 
     {^NOONED
@@ -259,6 +272,8 @@ contains
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
 
+    if (rd_diffusion_method == "imex") return
+
     if (qsourcesplit .eqv. rd_source_split) then
        if (rd_diffusion_method == "explicit") then
           call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, u_), lpl_u)
@@ -316,6 +331,7 @@ contains
     end if
   end subroutine rd_laplacian
 
+  !> Solve for diffusion implicitly
   subroutine rd_implicit_diffusion(qdt, qt, active)
     use mod_forest
     use mod_multigrid_coupling
@@ -336,79 +352,152 @@ contains
     max_residual = 1d-7/qdt
 
     {^NOONED
-    call mg_copy_to_tree(u_, mg_iphi, .false., .false.)
+    call mg_copy_to_tree(u_, mg_iphi)
     call diffusion_solve(mg, qdt, D1, 1, max_residual)
     call mg_copy_from_tree(mg_iphi, u_)
 
-    call mg_copy_to_tree(v_, mg_iphi, .false., .false.)
+    call mg_copy_to_tree(v_, mg_iphi)
     call diffusion_solve(mg, qdt, D2, 1, max_residual)
     call mg_copy_from_tree(mg_iphi, v_)
     }
-
-    ! ix^L=ixM^LL^LADD1;
-
-    ! ! Store divergence of B as right-hand side
-    ! do iigrid = 1, igridstail
-    !    igrid =  igrids(iigrid);
-    !    pnode => igrid_to_node(igrid, mype)%node
-    !    id    =  pnode%id
-    !    lvl   =  mg%boxes(id)%lvl
-    !    nc    =  mg%box_size_lvl(lvl)
-
-    !    ! Geometry subroutines expect this to be set
-    !    block => ps(igrid)
-    !    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-    !    call get_divb(ps(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
-    !         mhd_divb_4thorder)
-    !    mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
-    ! end do
-
-    ! ! Solve laplacian(phi) = divB
-    ! do n = 1, max_its
-    !    call mg_fas_vcycle(mg, max_res=res)
-    !    if (res < max_residual) exit
-    ! end do
-
-    ! if (res > max_residual) call mpistop("divb_multigrid: no convergence")
-
-    ! ! Correct the magnetic field
-    ! do iigrid = 1, igridstail
-    !    igrid = igrids(iigrid);
-    !    pnode => igrid_to_node(igrid, mype)%node
-    !    id    =  pnode%id
-
-    !    ! Geometry subroutines expect this to be set
-    !    block => ps(igrid)
-    !    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-    !    ! Compute the gradient of phi
-    !    tmp(ix^S) = mg%boxes(id)%cc({:,}, mg_iphi)
-    !    do idim = 1, ndim
-    !       call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
-    !    end do
-
-    !    ! Apply the correction B* = B - gradient(phi)
-    !    tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
-    !    ps(igrid)%w(ixM^T, mag(1:ndim)) = &
-    !         ps(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
-
-    !    ! Determine magnetic energy difference
-    !    tmp(ixM^T) = 0.5_dp * (sum(ps(igrid)%w(ixM^T, &
-    !         mag(1:ndim))**2, dim=ndim+1) - tmp(ixM^T))
-
-    !    if (mhd_energy) then
-    !       ! Keep thermal pressure the same
-    !       ps(igrid)%w(ixM^T, e_) = ps(igrid)%w(ixM^T, e_) + tmp(ixM^T)
-
-    !       ! Possible alternative: keep total pressure the same
-    !       ! ps(igrid)%w(ixM^T, e_)     = ps(igrid)%w(ixM^T, e_) + &
-    !       !      (mhd_gamma-2) * inv_gamma_1 * tmp(ixM^T)
-    !    end if
-    ! end do
-
     active = .true.
 
   end subroutine rd_implicit_diffusion
+
+  !> This implements an IMEX scheme to advance the solution in time in a pretty
+  !> hacky way, by implementing the full scheme in one global source term.
+  !>
+  !> The IMEX method is described in Chapter IV eq. (4.12) of the
+  !> Hundsdorfer-Verwer book. It is a combination of the implicit and explicit
+  !> trapezoidal rule.
+  subroutine rd_imex_diffusion(qdt, qt, active)
+    use mod_forest
+    use mod_multigrid_coupling
+    use mod_global_parameters
+
+    double precision, intent(in) :: qdt    !< Current time step
+    double precision, intent(in) :: qt     !< Current time
+    logical, intent(inout)       :: active !< Output if the source is active
+    integer                      :: iigrid, igrid, id
+    integer                      :: n, nc, lvl, ix^L, idim
+    type(tree_node), pointer     :: pnode
+    double precision             :: res, max_residual, lambda
+
+    ! Avoid setting a very restrictive limit to the residual when the time step
+    ! is small (as the operator is ~ 1/(D * qdt))
+    if (qdt < 1d-10) return
+
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+       call rd_imex_step1(qdt, ixG^LL, ixM^LL, ps(igrid)%w)
+    end do
+
+    max_residual = 1d-7/qdt
+
+    {^NOONED
+    ! First handle the u variable
+    nc               = mg%box_size
+    mg%operator_type = mg_helmholtz
+    call mg_set_methods(mg)
+
+    lambda           = 1/(0.5d0 * qdt * D1)
+    call helmholtz_set_lambda(lambda)
+    call mg_copy_to_tree(u_, mg_irhs, factor=-lambda)
+    call mg_copy_to_tree(u_, mg_iphi)
+    do n = 1, 10
+       call mg_fas_fmg(mg, .true., max_res=res)
+       if (res < max_residual) exit
+    end do
+    call mg_copy_from_tree_gc(mg_iphi, u_)
+
+    lambda = 1/(0.5d0 * qdt * D2)
+    call helmholtz_set_lambda(lambda)
+    call mg_copy_to_tree(v_, mg_irhs, factor=-lambda)
+    call mg_copy_to_tree(v_, mg_iphi)
+    do n = 1, 10
+       call mg_fas_fmg(mg, .true., max_res=res)
+       if (res < max_residual) exit
+    end do
+    call mg_copy_from_tree_gc(mg_iphi, v_)
+    }
+
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+       call rd_imex_step2(qdt, ixG^LL, ixM^LL, ps(igrid)%w, pso(igrid)%w)
+    end do
+
+    active = .true.
+  end subroutine rd_imex_diffusion
+
+  !> First step, w = w + dt * F0 + 0.5 * dt * F1
+  subroutine rd_imex_step1(qdt, ixI^L, ixO^L, w)
+    use mod_global_parameters
+    double precision, intent(in)    :: qdt
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, 1:nw)
+    double precision                :: u(ixI^S), v(ixI^S)
+    double precision                :: lpl_u(ixO^S), lpl_v(ixO^S)
+
+    u = w(ixI^S, u_)
+    v = w(ixI^S, v_)
+
+    call rd_laplacian(ixI^L, ixO^L, u, lpl_u)
+    call rd_laplacian(ixI^L, ixO^L, v, lpl_v)
+
+    select case (equation_type)
+    case (eq_gray_scott)
+       w(ixO^S, u_) = w(ixO^S, u_) + qdt * (0.5d0 * D1 * lpl_u - &
+            u(ixO^S) * v(ixO^S)**2 + gs_F * (1 - u(ixO^S)))
+       w(ixO^S, v_) = w(ixO^S, v_) + qdt * (0.5d0 * D2 * lpl_v + &
+            u(ixO^S) * v(ixO^S)**2 - (gs_F + gs_k) * v(ixO^S))
+    case (eq_schnakenberg)
+       w(ixO^S, u_) = w(ixO^S, u_) + qdt * (0.5d0 * D1 * lpl_u &
+            + sb_kappa * (sb_alpha - u(ixO^S) + u(ixO^S)**2 * v(ixO^S)))
+       w(ixO^S, v_) = w(ixO^S, v_) + qdt * (0.5d0 * D2 * lpl_v &
+            + sb_kappa * (sb_beta - u(ixO^S)**2 * v(ixO^S)))
+    case default
+       call mpistop("Unknown equation type")
+    end select
+  end subroutine rd_imex_step1
+
+  !> Second step, w1 = w0 + dt * 0.5 * (F(w0) + F(w1))
+  subroutine rd_imex_step2(qdt, ixI^L, ixO^L, w1, w0)
+    use mod_global_parameters
+    double precision, intent(in)    :: qdt
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w1(ixI^S, 1:nw)
+    double precision, intent(in)    :: w0(ixI^S, 1:nw)
+    double precision                :: lpl_u(ixO^S), lpl_v(ixO^S)
+    double precision                :: du(ixO^S), dv(ixO^S)
+
+    call rd_laplacian(ixI^L, ixO^L, &
+         0.5d0 * (w1(ixI^S, u_) + w0(ixI^S, u_)), lpl_u)
+    call rd_laplacian(ixI^L, ixO^L, &
+         0.5d0 * (w1(ixI^S, v_) + w0(ixI^S, v_)), lpl_v)
+
+    select case (equation_type)
+    case (eq_gray_scott)
+       du = 0.5d0 * qdt * (&
+            -w1(ixO^S, u_) * w1(ixO^S, v_)**2 + gs_F * (1 - w1(ixO^S, u_)) &
+            -w0(ixO^S, u_) * w0(ixO^S, v_)**2 + gs_F * (1 - w0(ixO^S, u_)))
+       dv = 0.5d0 * qdt * (&
+            w0(ixO^S, u_) * w0(ixO^S, v_)**2 - (gs_F + gs_k) * w0(ixO^S, v_) + &
+            w1(ixO^S, u_) * w1(ixO^S, v_)**2 - (gs_F + gs_k) * w1(ixO^S, v_))
+       w1(ixO^S, u_) = w0(ixO^S, u_) + du + qdt * D1 * lpl_u
+       w1(ixO^S, v_) = w0(ixO^S, v_) + dv + qdt * D2 * lpl_v
+    case (eq_schnakenberg)
+       du = 0.5d0 * qdt * (&
+            sb_kappa * (sb_alpha - w0(ixO^S, u_) + &
+            w0(ixO^S, u_)**2 * w0(ixO^S, v_)) + &
+            sb_kappa * (sb_alpha - w1(ixO^S, u_) + &
+            w1(ixO^S, u_)**2 * w1(ixO^S, v_)))
+       dv = 0.5d0 *  qdt * (&
+            sb_kappa * (sb_beta - w0(ixO^S, u_)**2 * w0(ixO^S, v_)) + &
+            sb_kappa * (sb_beta - w1(ixO^S, u_)**2 * w1(ixO^S, v_)))
+       w1(ixO^S, u_) = w0(ixO^S, u_) + du + qdt * D1 * lpl_u
+       w1(ixO^S, v_) = w0(ixO^S, v_) + dv + qdt * D2 * lpl_v
+    case default
+       call mpistop("Unknown equation type")
+    end select
+
+  end subroutine rd_imex_step2
 
 end module mod_rd_phys
