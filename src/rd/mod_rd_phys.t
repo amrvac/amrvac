@@ -109,9 +109,11 @@ contains
     case ("split")
        use_multigrid = .true.
        phys_global_source => rd_implicit_diffusion
+       if (ndim == 1) call mpistop("multigrid not available in 1d")
     case ("imex")
        use_multigrid = .true.
        phys_global_source => rd_implicit_diffusion
+       if (ndim == 1) call mpistop("multigrid not available in 1d")
     case default
        call mpistop("Unknown rd_diffusion_method")
     end select
@@ -127,6 +129,7 @@ contains
        call mpistop("mod_rd requires flux_scheme = source")
     end if
 
+    {^NOONED
     if (use_multigrid) then
        ! Set boundary conditions for the multigrid solver
        do n = 1, 2*ndim
@@ -154,7 +157,7 @@ contains
           end select
        end do
     end if
-
+    }
   end subroutine rd_check_params
 
   subroutine rd_to_conserved(ixI^L, ixO^L, w, x)
@@ -332,6 +335,7 @@ contains
 
     max_residual = 1d-7/qdt
 
+    {^NOONED
     call mg_copy_to_tree(u_, mg_iphi, .false., .false.)
     call diffusion_solve(mg, qdt, D1, 1, max_residual)
     call mg_copy_from_tree(mg_iphi, u_)
@@ -339,6 +343,7 @@ contains
     call mg_copy_to_tree(v_, mg_iphi, .false., .false.)
     call diffusion_solve(mg, qdt, D2, 1, max_residual)
     call mg_copy_from_tree(mg_iphi, v_)
+    }
 
     ! ix^L=ixM^LL^LADD1;
 
