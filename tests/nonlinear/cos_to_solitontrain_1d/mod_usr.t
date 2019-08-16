@@ -1,6 +1,7 @@
 ! Initial condition for Zabusky and Kruskal PRL 1965 paper on solitons
 module mod_usr
   use mod_nonlinear
+  use mod_kdv, only : kdv_delta
 
   implicit none
 
@@ -40,10 +41,10 @@ contains
 
     if (mype == 0) then
        ! check on conservation of mass \int \rho dx 
-       !                          momentum \int \rho^2/2 dx 
-       !                      and energy \int [\rho^3/3+(d\rho/dx)^2 ]dx
+       !                          momentum \int \rho^2 dx 
+       !                      and energy \int [\rho^3/6-delta^2(d\rho/dx)^2/2 ]dx
        write(*, "(A,4E14.6)") " t mass momentum energy:", global_time, &
-            modes(rho_, 1), modes(rho_, 2)/2.0d0, modes(rho_, 3)/3.0d0+modes(drho_, 2)
+            modes(rho_, 1), modes(rho_, 2), modes(rho_, 3)/6.0d0-kdv_delta**2*modes(drho_, 2)/2.0d0
     end if
   end subroutine print_error
 
