@@ -23,6 +23,8 @@ def get_args():
     p.add_argument('var', type=str, help='Variable name')
     p.add_argument('-vtktype', type=str, default='unstructured',
                    choices=['unstructured'], help='Type of VTK data')
+    p.add_argument('-no_avg', action='store_true',
+                   help='Do not divide by number of cells')
     return p.parse_args()
 
 
@@ -44,7 +46,14 @@ datareader.Update()
 d_b = datareader.GetOutput()
 var_b = vtk_to_numpy(d_b.GetCellData().GetArray(args.var))
 
+norms = np.array([np.linalg.norm(var_a - var_b),
+                  np.linalg.norm(var_a - var_b, 1),
+                  np.linalg.norm(var_a - var_b, np.inf)])
+
+
+if not args.no_avg:
+    # Divide 2-norm and 1-norm by number of elements
+    norms[0:2] = norms[0:2] / var_a.size
+
 # Output 2-norm 1-norm inf-norm
-print(np.linalg.norm(var_a - var_b),
-      np.linalg.norm(var_a - var_b, 1),
-      np.linalg.norm(var_a - var_b, np.inf))
+print(' '.join(str(n) for n in norms))
