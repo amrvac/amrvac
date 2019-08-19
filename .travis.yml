@@ -34,6 +34,7 @@ jobs:
     - script: bash test_runner.sh mhd
     - script: bash test_runner.sh rho
     - script: bash test_runner.sh mg
+    - script: bash test_runner.sh rd
     # not set up yet (missing a makefile in tests/particles/ and in tests/nonlinear/)
     #- script: bash test_runner.sh nonlinear
     #- script: bash test_runner.sh particle
