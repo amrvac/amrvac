@@ -3003,7 +3003,8 @@ contains
     call check_methods(mg)
     if (timer_smoother == -1) call mg_add_timers(mg)
 
-    call mg_timer_start(mg%timers(timer_total_vcycle))
+    if (is_standalone) &
+         call mg_timer_start(mg%timers(timer_total_vcycle))
 
     if (mg%subtract_mean .and. .not. present(highest_lvl)) then
        ! Assume that this is a stand-alone call. For fully periodic solutions,
@@ -3076,7 +3077,8 @@ contains
        call subtract_mean(mg, mg_iphi, .true.)
     end if
 
-    call mg_timer_end(mg%timers(timer_total_vcycle))
+    if (is_standalone) &
+         call mg_timer_end(mg%timers(timer_total_vcycle))
   end subroutine mg_fas_vcycle
 
   subroutine subtract_mean(mg, iv, include_ghostcells)
