@@ -8,7 +8,7 @@
 !> xf(1,:), and then the subroutine will calculate and return the 
 !> locations of some other points in this field line. The locations and
 !> the plasma parameter of the points will be return. Parameters are 
-!> recorded in wB
+!> recorded in wB (rho, mom, e, B, current)
 !> 
 !> numP is the number of points we wants to return. Sometimes field
 !> lines can go out of the simulation box. It means that only some of 
@@ -35,7 +35,7 @@ module mod_trace_Bfield
       use mod_global_parameters
 
       integer :: numP,numRT,dirct
-      double precision :: xf(numP,ndim),wB(numP,nw)
+      double precision :: xf(numP,ndim),wB(numP,nw+ndir)
       double precision :: dL
       logical :: forward
 
@@ -102,7 +102,7 @@ module mod_trace_Bfield
 
           call MPI_BCAST(newpe,1,MPI_LOGICAL,mainpe,icomm,ierrmpi)
           call MPI_BCAST(xf(j+1,:),ndim,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
-          call MPI_BCAST(wB(j,:),nw,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
+          call MPI_BCAST(wB(j,:),nw+ndir,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
 
           ! check whether or next point is inside simulation box.
           indomain=0
@@ -139,7 +139,7 @@ module mod_trace_Bfield
           call find_next(igrid_now,xf(numRT,:),xtemp,wB(numRT,:), &
                          dL,dirct,forward)
         endif
-        call MPI_BCAST(wB(numRT,:),nw,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
+        call MPI_BCAST(wB(numRT,:),nw+ndir,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
       endif
 
     end subroutine trace_Bfield
@@ -151,7 +151,7 @@ module mod_trace_Bfield
       use mod_forest
 
       integer :: igrid,dirct
-      double precision :: xf0(ndim),xf1(ndim),wB0(nw)
+      double precision :: xf0(ndim),xf1(ndim),wB0(nw+ndir)
       double precision :: dL
       logical :: forward
 
@@ -159,10 +159,19 @@ module mod_trace_Bfield
       double precision :: dxf(ndim)
       double precision :: dxb^D,xb^L,xd^D
       integer          :: ixb^D,ix^D,ixbl^D
-      double precision :: wBnear(0:1^D&,nw)
+      double precision :: wBnear(0:1^D&,nw+ndir)
       double precision :: Bx(ndim),factor(0:1^D&)
       double precision :: Btotal,maxft,Bp
 
+      double precision :: current(ixg^T,7-2*ndir:3)
+      integer :: idirmin,ixI^L,idir,jdir,kdir
+      double precision :: dB(ndir,ndim),dxb(ndim)
+      integer :: hxO^L,jxO^L,nxO^L
+      double precision :: tmp(0:1^D&)
+
+
+      ^D&ixImin^D=ixglo^D\
+      ^D&ixImax^D=ixghi^D\
       ^D&ixOmin^D=ixmlo^D\
       ^D&ixOmax^D=ixmhi^D\
 
@@ -173,30 +182,65 @@ module mod_trace_Bfield
       ^D&ixbl^D=floor((xf0(^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
       ^D&xd^D=(xf0(^D)-ps(igrid)%x(ixbl^DD,^D))/dxb^D\
 
+      ! get current
+      !call get_current(ps(igrid)%w,ixI^L,ixO^L,idirmin,current)
+      current=0
+      idirmin=7-2*ndir
+      ^D&dxb(^D)=dxb^D\
+      wBnear=0
+
+
       ! nearby B field for interpolation
       if (B0field) then
         {do ix^DB=0,1\}
-          do j=1,ndim
+          do j=1,ndir
             wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))+&
                           ps(igrid)%B0(ixbl^D+ix^D,j,0)
           enddo
         {enddo\}
       else
         {do ix^DB=0,1\}
-          do j=1,ndim
+          do j=1,ndir
             wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))
           enddo
         {enddo\}
       endif
 
-      ! other parameter for intepolation
+      ! nearby current for interpolation
+      ^D&nxOmin^D=0\
+      ^D&nxOmax^D=1\
+      do idir=idirmin,3; do jdir=1,ndim; do kdir=1,ndir
+        if (lvc(idir,jdir,kdir)/=0) then
+          hxO^L=ixbl^D+nxO^L-kr(jdir,^D);
+          jxO^L=ixbl^D+nxO^L+kr(jdir,^D);
+          if (B0field) then
+            tmp(nxO^S)=half*(ps(igrid)%w(jxO^S,mag(kdir))+&
+                             ps(igrid)%B0(jxO^S,kdir,0)-&
+                             ps(igrid)%w(hxO^S,mag(kdir))-&
+                             ps(igrid)%B0(hxO^S,kdir,0))/dxb(jdir)
+          else
+            tmp(nxO^S)=half*(ps(igrid)%w(jxO^S,mag(kdir))-&
+                            ps(igrid)%w(hxO^S,mag(kdir)))/dxb(jdir)
+          endif  
+
+          if (lvc(idir,jdir,kdir)==1) then
+            wBnear(nxO^S,nw+idir)=wBnear(nxO^S,nw+idir)+tmp(nxO^S)
+          else
+            wBnear(nxO^S,nw+idir)=wBnear(nxO^S,nw+idir)-tmp(nxO^S)
+          endif
+        endif
+      enddo; enddo; enddo
+
+
+      ! other parameter for interpolation
       {do ix^DB=0,1\}
         do j=1,nw
-          if (j<mag(1) .or. j>mag(ndim)) then
+          if (j<mag(1) .or. j>mag(ndir)) then
             wBnear(ix^D,j)=ps(igrid)%w(ixbl^D+ix^D,j)
           endif
         enddo
       {enddo\}
+
 
       ! interpolation factor
       {do ix^D=0,1\}
@@ -208,10 +252,11 @@ module mod_trace_Bfield
       wB0=0
       {do ix^DB=0,1\}
         {Bx(^DB)=Bx(^DB)+wBnear(ix^DD,mag(^DB))*factor(ix^DD)\}
-        do j=1,nw
+        do j=1,nw+ndir
           wB0(j)=wB0(j)+wBnear(ix^D,j)*factor(ix^D)
         enddo
       {enddo\}
+
 
       ! local magnetic field strength
       Btotal=0.0d0
