@@ -224,6 +224,7 @@ contains
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(inout) :: dtnew
+    double precision                :: maxrate
 
     select case (rd_diffusion_method)
     case ("explicit")
@@ -233,15 +234,17 @@ contains
        dtnew = bigdouble
     end select
 
-    ! Set time step for reactions
+    ! Estimate time step for reactions
     select case (equation_type)
     case (eq_gray_scott)
-       dtnew = min(dtnew, 1.0d0/maxval(w(ixO^S, v_))**2, &
-            1.0d0/maxval(w(ixO^S, v_) * w(ixO^S, u_)), &
-            1.0d0/gs_F)
+       maxrate = max(maxval(w(ixO^S, v_))**2 + gs_F, &
+            maxval(w(ixO^S, v_) * w(ixO^S, u_)) - gs_F - gs_k)
+       dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_schnakenberg)
-       dtnew = min(dtnew, 1.0d0/(sb_kappa * maxval(w(ixO^S, v_))**2), &
-            1.0d0/(sb_kappa * maxval(w(ixO^S, v_) * w(ixO^S, u_))))
+       maxrate = max(maxval(abs(w(ixO^S, v_) * w(ixO^S, u_) - 1)), &
+            maxval(w(ixO^S, u_))**2)
+
+       dtnew = min(dtnew, 0.5d0/(sb_kappa * maxrate))
     case default
        call mpistop("Unknown equation type")
     end select
