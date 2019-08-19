@@ -406,8 +406,10 @@ contains
     call helmholtz_set_lambda(lambda)
     call mg_copy_to_tree(u_, mg_irhs, factor=-lambda)
     call mg_copy_to_tree(u_, mg_iphi)
+
+    call mg_fas_fmg(mg, .true., max_res=res)
     do n = 1, 10
-       call mg_fas_fmg(mg, .true., max_res=res)
+       call mg_fas_vcycle(mg, max_res=res)
        if (res < max_residual) exit
     end do
     call mg_copy_from_tree_gc(mg_iphi, u_)
@@ -416,8 +418,10 @@ contains
     call helmholtz_set_lambda(lambda)
     call mg_copy_to_tree(v_, mg_irhs, factor=-lambda)
     call mg_copy_to_tree(v_, mg_iphi)
+
+    call mg_fas_fmg(mg, .true., max_res=res)
     do n = 1, 10
-       call mg_fas_fmg(mg, .true., max_res=res)
+       call mg_fas_vcycle(mg, max_res=res)
        if (res < max_residual) exit
     end do
     call mg_copy_from_tree_gc(mg_iphi, v_)
