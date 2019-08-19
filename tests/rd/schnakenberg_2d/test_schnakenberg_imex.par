@@ -4,25 +4,21 @@
 !=====================================================
 
  &filelist
-        base_filename='output/schnakenberg_imex_'
-    	convert_type='vtuBCCmpi'
-        autoconvert=T
+        base_filename='test_schnakenberg_imex'
+        typefilelog='regression_test'
  /
 
  &savelist
-        dtsave_log=0.1d0
-        dtsave_dat=0.1d0
-        itsave(1,2)=0
+        dtsave_log=0.01d0
  /
 
  &stoplist
-        time_max=2.0d0
+        time_max=0.1d0
  /
 
  &methodlist
         time_integrator = 'onestep'
         flux_scheme = 20*'source'
-        limiter= 20*'mp5'
  /
 
  &boundlist
@@ -37,9 +33,8 @@
         refine_threshold=20*0.1d0
         block_nx1=16
         block_nx2=16
-        domain_nx1=256
-        domain_nx2=256
-        iprob=3
+        domain_nx1=128
+        domain_nx2=128
         xprobmin1=0.0d0
         xprobmax1=1.0d0
         xprobmin2=0.0d0

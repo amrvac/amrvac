@@ -4,7 +4,7 @@
 !=====================================================
 
  &filelist
-        base_filename='output/schnakenberg_imex_'
+        base_filename='output/schnakenberg_explicit_'
     	convert_type='vtuBCCmpi'
         autoconvert=T
  /
@@ -20,7 +20,7 @@
  /
 
  &methodlist
-        time_integrator = 'onestep'
+        time_integrator = 'threestep'
         flux_scheme = 20*'source'
         limiter= 20*'mp5'
  /
@@ -49,12 +49,12 @@
  &paramlist
        courantpar=0.8d0
        typecourant='minimum'
-       dtpar=2.0d-3
+       dtpar=3.0d-6
  /
 
  &rd_list
        D1 = 0.05d0
        D2 = 1.0d0
        equation_name = "schnakenberg"
-       rd_diffusion_method = "imex"
+       rd_diffusion_method = "explicit"
  /
