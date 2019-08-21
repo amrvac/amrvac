@@ -7,22 +7,22 @@
 !> The location of a point in this field line need to be provided at
 !> xf(1,:), and then the subroutine will calculate and return the 
 !> locations of some other points in this field line. The locations and
-!> the plasma parameter of the points will be return. Parameters are 
-!> recorded in wB (rho, mom, e, B, current)
+!> the plasma parameter of the points will be return. 
+!> wB(:,rho_): density
+!> wB(:,mom(:)): velocity
+!> wB(:,p_): pressure
+!> wB(:,mag(:)): magnetic field
+!> wB(:,nw+1:nw+ndir): current
 !> 
-!> numP is the number of points we wants to return. Sometimes field
-!> lines can go out of the simulation box. It means that only some of 
-!> the points are valid. numRT records that how many points are valid.
-!>
 !> The disctance between two adjacent points is determined by dL and dirct.
 !> For example, if dirct=1, the distance in x direction (dx) is a constant. 
 !> This works when 1<=dirct<=ndim. For the conditions that dirct<1 or
 !> dirct>ndim, dL=sqrt(dx^2+dy^2+dz^2).
 !>
-!> Parameter forward determines the direction we trace a field line.
-!> If forward is true, the tracing direction is parallel to the B field
-!> direction. If forward is false, the tracing direction is antiparallel
-!> to the B field direction.
+!> numP: the number of points we wants to return.
+!> numRT: how many points are valid.
+!> forward=true: tracing B field parallel
+!> forward=false: tracing B field antiparallel
 
 module mod_trace_Bfield
   use mod_mhd
@@ -168,6 +168,7 @@ module mod_trace_Bfield
       double precision :: dB(ndir,ndim),dxb(ndim)
       integer :: hxO^L,jxO^L,nxO^L
       double precision :: tmp(0:1^D&)
+      double precision :: ek,eb
 
 
       ^D&ixImin^D=ixglo^D\
@@ -182,8 +183,7 @@ module mod_trace_Bfield
       ^D&ixbl^D=floor((xf0(^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
       ^D&xd^D=(xf0(^D)-ps(igrid)%x(ixbl^DD,^D))/dxb^D\
 
-      ! get current
-      !call get_current(ps(igrid)%w,ixI^L,ixO^L,idirmin,current)
+
       current=0
       idirmin=7-2*ndir
       ^D&dxb(^D)=dxb^D\
@@ -200,11 +200,33 @@ module mod_trace_Bfield
         {enddo\}
       else
         {do ix^DB=0,1\}
+          wBnear(ix^D,e_)=ps(igrid)%w(ixbl^D+ix^D,e_)
           do j=1,ndir
             wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))
           enddo
         {enddo\}
       endif
+
+      ! nearby density and velocity for interpolation
+      {do ix^DB=0,1\}
+        wBnear(ix^D,rho_)=ps(igrid)%w(ixbl^D+ix^D,rho_)
+        do j=1,ndir
+          wBnear(ix^D,mom(j))=ps(igrid)%w(ixbl^D+ix^D,mom(j))/&
+                              ps(igrid)%w(ixbl^D+ix^D,rho_)
+        enddo
+      {enddo\}
+
+      ! nearby pressure for interpolation
+      {do ix^DB=0,1\}
+        wBnear(ix^D,p_)=ps(igrid)%w(ixbl^D+ix^D,e_)
+        do j=1,ndir
+          ek=0.5d0*(ps(igrid)%w(ixbl^D+ix^D,mom(j)))**2/&
+             ps(igrid)%w(ixbl^D+ix^D,rho_)
+          eb=0.5d0*ps(igrid)%w(ixbl^D+ix^D,mag(j))**2
+          wBnear(ix^D,p_)=wBnear(ix^D,p_)-ek-eb
+        enddo
+        wBnear(ix^D,p_)=wBnear(ix^D,p_)*(mhd_gamma-1)
+      {enddo\}
 
       ! nearby current for interpolation
       ^D&nxOmin^D=0\
@@ -230,16 +252,6 @@ module mod_trace_Bfield
           endif
         endif
       enddo; enddo; enddo
-
-
-      ! other parameter for interpolation
-      {do ix^DB=0,1\}
-        do j=1,nw
-          if (j<mag(1) .or. j>mag(ndir)) then
-            wBnear(ix^D,j)=ps(igrid)%w(ixbl^D+ix^D,j)
-          endif
-        enddo
-      {enddo\}
 
 
       ! interpolation factor
