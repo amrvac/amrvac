@@ -8,7 +8,7 @@ module mod_input_output
   integer, parameter :: version_number = 4
 
   !> List of compatible versions
-  integer, parameter :: compatible_versions(*) = [3, 4]
+  integer, parameter :: compatible_versions(2) = [3, 4]
 
   !> number of w found in dat files
   integer :: nw_found

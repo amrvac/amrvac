@@ -29,7 +29,7 @@ contains
 
     if (first) then
        if (mype==0) then
-          print *,'3D MHD blast wave in Cartesian coordinate'
+          print *,'MHD blast wave in Cartesian coordinate'
        end if
        first=.false.
     end if
@@ -96,20 +96,21 @@ contains
     double precision                   :: w(ixI^S,nw+nwauxio)
     double precision                   :: normconv(0:nw+nwauxio)
 
-    double precision                   :: tmp(ixI^S) 
+    double precision                   :: tmp(ixI^S),wlocal(ixI^S,1:nw)
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
+    call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
-    w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
+    w(ixO^S,nw+1)=tmp(ixO^S)/wlocal(ixO^S,rho_)
     !! output the plasma beta p*2/B**2
     if(B0field)then
-      w(ixO^S,nw+2)=tmp(ixO^S)*two/sum((w(ixO^S,mag(:))+&
+      w(ixO^S,nw+2)=tmp(ixO^S)*two/sum((wlocal(ixO^S,mag(:))+&
                     block%B0(ixO^S,:,0))**2,dim=ndim+1)
     else
-      w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+      w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(wlocal(ixO^S,mag(:))**2,dim=ndim+1)
     endif
     ! output divB1
-    call get_divb(w,ixI^L,ixO^L,tmp)
+    call get_divb(wlocal,ixI^L,ixO^L,tmp)
     w(ixO^S,nw+3)=tmp(ixO^S)
     
   end subroutine specialvar_output

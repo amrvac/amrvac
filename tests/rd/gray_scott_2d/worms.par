@@ -1,0 +1,61 @@
+!=====================================================
+! Project : Advection test: a VAC log
+!
+!=====================================================
+
+ &filelist
+        base_filename='output/worms_'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+ /
+
+ &savelist
+        dtsave_log=0.5d3
+        dtsave_dat=0.5d3
+        itsave(1,2)=0
+ /
+
+ &stoplist
+        time_max=2d4
+ /
+
+ &methodlist
+        time_integrator = 'twostep'
+        flux_scheme = 20*'source'
+        limiter= 20*'mp5'
+ /
+
+ &boundlist
+        typeboundary_min1=2*'periodic'
+        typeboundary_max1=2*'periodic'
+        typeboundary_min2=2*'periodic'
+        typeboundary_max2=2*'periodic'
+ /
+
+ &meshlist
+        refine_max_level=1
+        refine_threshold=20*0.1d0
+        block_nx1=16
+        block_nx2=16
+        domain_nx1=256
+        domain_nx2=256
+        iprob=3
+        xprobmin1=0.0d0
+        xprobmax1=2.5d0
+        xprobmin2=0.0d0
+        xprobmax2=2.5d0
+ /
+
+ &paramlist
+       courantpar=0.8d0
+       typecourant='minimum'
+       dtpar=0.5d0
+ /
+
+ &rd_list
+       equation_name = "gray-scott"
+       D1 = 2.0d-5
+       D2 = 1.0d-5
+       gs_F=0.058d0
+       gs_k=0.065d0
+ /

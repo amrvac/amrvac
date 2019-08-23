@@ -215,6 +215,10 @@ mod_physics.o: mod_physics_ppm.mod
 mod_physics.o: mod_physics_roe.mod
 mod_ppm.o: mod_physics.mod
 mod_radiative_cooling.o: mod_physics.mod
+mod_rd.o: mod_amrvac.mod
+mod_rd.o: mod_rd_phys.mod
+mod_rd_phys.o: mod_multigrid_coupling.mod
+mod_rd_phys.o: mod_physics.mod
 mod_rho.o: mod_amrvac.mod
 mod_rho.o: mod_rho_phys.mod
 mod_rho.o: mod_rho_roe.mod

@@ -352,6 +352,9 @@ contains
 
     if(use_particles) call time_spent_on_particles
 
+    {^NOONED
+    if (use_multigrid) call mg_timers_show(mg)
+    }
   end subroutine timeintegration
 
   !> Save times are defined by either tsave(isavet(ifile),ifile) or

@@ -6,12 +6,12 @@ language: c
 
 env:
     global:
-        - FC=gfortran-4.8
+        - FC=gfortran
         - OMPI_FC=${FC}
 
 install:
     - sudo apt-get update
-    - sudo apt-get install gfortran-4.8 openmpi-bin libopenmpi-dev
+    - sudo apt-get install gfortran openmpi-bin libopenmpi-dev
 
 cache:
   paths:
@@ -20,10 +20,12 @@ cache:
 before_script:
   - export AMRVAC_DIR=$(pwd)
   - export ARCH=default
-  - cd $AMRVAC_DIR/lib
-  - make clean
+  - export NUM_PROCS=2          # we have 2 cores
   - cd $AMRVAC_DIR/src
   - ./update_dependencies.sh --verbose || exit 1
+  - cd $AMRVAC_DIR/lib
+  - make clean
+  - make -j || exit 1
   - cd $AMRVAC_DIR/tests
 
 jobs:
@@ -32,6 +34,7 @@ jobs:
     - script: bash test_runner.sh mhd
     - script: bash test_runner.sh rho
     - script: bash test_runner.sh mg
+    - script: bash test_runner.sh rd
     # not set up yet (missing a makefile in tests/particles/ and in tests/nonlinear/)
     #- script: bash test_runner.sh nonlinear
     #- script: bash test_runner.sh particle
