@@ -5,13 +5,14 @@
 This is an overview of the option that allows users to model dust+gas
 flows in mpi-amrvac.
 
-The source code can be found in `src/mod_dust.t
+The source code can be found in `src/mod_dust.t`
+
 # Physics
 
 Dust in mpi-amrvac is treated as a pressureless fluid that coexists
 with the actual gas. Dust and gas are coupled by a dragforce. It is
 calculated based on the phsyical characteristics of gas and dust
-grains according to Kwok 1975,page 584 (between eqn 8 and 9).
+grains according to Kwok 1975, page 584 (between equations 8 and 9).
 
 The sticking coefficient can be set according to dedicated parameters.
 
@@ -19,7 +20,7 @@ The interaction between dust and gas is considered purely kinetic,
 without the influence of magnetic fields.
 
 It is possible to combine multiple dust species in a single
-simulation, although there's no direct interaction (collisions,
+simulation, although there is no direct interaction (collisions,
 fractionation, coagulation) between them.
 
 Because single-fluid collisions are not taken into account (i.e. dusty
@@ -70,7 +71,7 @@ None of these parameters can be omitted (but more are available)
 &dust_list
   dust_n_species = 1      ! number of dust fluids
   gas_mu = 1d0            ! molecular weight
-  dust_temperature = 1d0  ! which unit is this using ?
+  dust_temperature = 1d0
 /
 ```
 
@@ -86,7 +87,6 @@ grain sizes and intrinsec densities, in code units, for each "dusty
 fluid". For instance
 
 ```fortran
-! absurd values
 dust_size(1:dust_n_species)    = 1d0
 dust_density(1:dust_n_species) = 1d0
 ```
@@ -96,28 +96,25 @@ boundary conditions per dust species in each `typeboundary_xxxx` line
 of the parfile, or only `ndir+1` if you set 
 `hd_list:hd_energy=.false.`.
 
-Finally, you'll need to initialize densities and momenta for each dust
+Finally, you need to initialize densities and momenta for each dust
 fluid.  This is a minimal working example of this, implemented as part
 of `usr_init_one_grid`
 
 ```fortran
 integer :: n
 do n=1, dust_n_species
-  w(ixO^S, dust_rho(n))  = 0d0
+  w(ixO^S, dust_rho(n))  = 1d0
   w(ixO^S, dust_mom(:,n) = 0d0
 end do
 ```
 
-**warning** this example is a tricky way to initialize the dust
-density and only works if you define a positive non-zero value for
-`&dust_list: dust_min_rho` Otherwise, except numerical issues
-(zero-division into `NaNs`).
+In addition to the above minimal requirements, please note that some conversion factors
+can be defined to translate back to physical units.
+(`w_convert_factor(X)` for `X` in `rho_, mom(1, :),
+gas_e_, dust_rho(:), dust_mom(:)`)
 
-You need to define `w_convert_factor(X)` for `X` in `rho_, mom(1, :),
-gas_e_, dust_rho(:), dust_mom(:)` (maybe just the last two actually ?)
-
-`lenght_convert_factor` is used when `dust_temperature_type == ism,
-stellar`
+Also note that `lenght_convert_factor` is used when `dust_temperature_type == ism` or
+`stellar`.
 
 That should be enough for your code to compile *and* run.
 
