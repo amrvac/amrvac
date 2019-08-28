@@ -2,7 +2,7 @@
         autoconvert   = T
         saveprim      = T
         nwauxio       = 2
-        base_filename = 'ct_2d_ct'
+        base_filename = 'bt_2d_ct'
  /
 
  &savelist
@@ -51,5 +51,5 @@
  /
 
  &mhd_list
-        typedivbfix   = 'glm1'
+        typedivbfix   = 'ct'
  /

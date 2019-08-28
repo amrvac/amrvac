@@ -61,6 +61,7 @@ module mod_physics
   procedure(sub_write_info), pointer      :: phys_write_info             => null()
   procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
   procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
+  procedure(sub_update_faces), pointer    :: phys_update_faces           => null()
 
   abstract interface
 
@@ -204,6 +205,18 @@ module mod_physics
        double precision, intent(in)  :: w(ixI^S, nw)
        double precision, intent(out) :: out(ixO^S)
      end subroutine sub_get_var
+
+     subroutine sub_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+       use mod_global_parameters
+       integer, intent(in)                :: ixI^L, ixO^L
+       double precision, intent(in)       :: qdt
+       ! cell-center primitive variables
+       double precision, intent(in)       :: wprim(ixI^S,1:nw)
+       ! velocity structure
+       type(state)                        :: s
+       double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
+       double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+     end subroutine sub_update_faces
    end interface
 
 contains
@@ -272,6 +285,9 @@ contains
 
     if (.not. associated(phys_handle_small_values)) &
          phys_handle_small_values => dummy_small_values
+
+    if (.not. associated(phys_update_faces)) &
+         phys_update_faces => dummy_update_faces
 
   end subroutine phys_check
 
@@ -367,5 +383,16 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
   end subroutine dummy_small_values
+
+  subroutine dummy_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixO^L
+    double precision, intent(in)       :: qdt
+    ! cell-center primitive variables
+    double precision, intent(in)       :: wprim(ixI^S,1:nw)
+    type(state)                        :: s
+    double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+  end subroutine dummy_update_faces
   
 end module mod_physics

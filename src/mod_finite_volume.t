@@ -143,14 +143,8 @@ contains
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv
-    double precision, dimension(ixI^S,1:ndir,2) :: vbarC                                                                                      
-    double precision, dimension(ixI^S,1:ndir,2) :: vbarLC,vbarRC                                                                              
-    ! cell-face velocity from left and right reconstruction
-    double precision, dimension(ixI^S,1:ndim) :: vLC,vRC
     ! cell-face location coordinates
     double precision, dimension(ixI^S,1:ndim) :: xi
-    double precision, dimension(ixI^S,ndim)   :: cbarmin,cbarmax                                                                              
-    integer                                 :: idimE,idimN
     integer, dimension(ixI^S)               :: patchf
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
 
@@ -243,37 +237,6 @@ contains
          call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 
-       if(stagger_grid) then
-         vLC(ixC^S,idims)=wLp(ixC^S,iw_mom(idims))
-         vRC(ixC^S,idims)=wRp(ixC^S,iw_mom(idims))
-         ! get average normal velocity at cell faces
-         vLC(ixC^S,idims)=0.5d0*(vLC(ixC^S,idims)+vRC(ixC^S,idims))
-         ! Store magnitude of characteristics
-         !cbarmin(ixC^S,idims)=max(-cminC(ixC^S),zero)
-         !cbarmax(ixC^S,idims)=max( cmaxC(ixC^S),zero)
-
-         !idimN=mod(idims,ndir)+1 ! 'Next' direction
-         !idimE=mod(idims+1,ndir)+1 ! Electric field direction
-         ! Store velocities
-         !!if(idims<=2*ndim-3) then
-         !!  call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idims,vbarLC(ixI^S,idimE,1))
-         !!  call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idims,vbarRC(ixI^S,idimE,1))
-         !!  call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idimN,vbarLC(ixI^S,idimE,2))
-         !!  call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idimN,vbarRC(ixI^S,idimE,2))
-         !!end if
-         !call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idimN,vbarLC(ixI^S,idims,1))
-         !call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idimN,vbarRC(ixI^S,idims,1))
-         !vbarC(ixC^S,idims,1)=(cbarmax(ixC^S,idims)*vbarLC(ixC^S,idims,1) &
-         !     +cbarmin(ixC^S,idims)*vbarRC(ixC^S,idims,1))&
-         !     /(cbarmax(ixC^S,idims) + cbarmin(ixC^S,idims))
-
-         !call phys_get_v_idim(wLp,x,ixI^L,ixC^L,idimE,vbarLC(ixI^S,idims,2))
-         !call phys_get_v_idim(wRp,x,ixI^L,ixC^L,idimE,vbarRC(ixI^S,idims,2))
-         !vbarC(ixC^S,idims,2)=(cbarmax(ixC^S,idims)*vbarLC(ixC^S,idims,2) &
-         !     +cbarmin(ixC^S,idims)*vbarRC(ixC^S,idims,2))&
-         !     /(cbarmax(ixC^S,idims) + cbarmin(ixC^S,idims))
-       end if
-
        ! use approximate Riemann solver to get flux at interfaces
        select case(method)
        case('tvdmu')
@@ -295,10 +258,7 @@ contains
     end do ! Next idims
     block%iw0=0
 
-    !if(stagger_grid) call update_faces(ixI^L,ixO^L,qdt,fC,fE,snew)
-    if(stagger_grid) call update_faces_contact(ixI^L,ixO^L,qdt,wprim,vLC,fC,fE,snew)
-    !if(stagger_grid) call update_faces_uct1(ixI^L,ixO^L,qdt,vbarRC,vbarLC,cbarmin,cbarmax,fE,snew)
-    !if(stagger_grid) call update_faces_uct2(ixI^L,ixO^L,qdt,vbarC,cbarmin,cbarmax,fE,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
