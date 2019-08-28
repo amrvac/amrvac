@@ -184,7 +184,7 @@ contains
     if (mype==0) then
       write(*, '(A,ES9.2,A)') ' Start integrating, print status every ', &
            time_between_print, ' seconds'
-      write(*, '(A10,A12,A12,A12)') 'it', 'time', 'dt', 'wc-time(s)'
+      write(*, '(A4,A10,A12,A12,A12)') '  #', 'it', 'time', 'dt', 'wc-time(s)'
     end if
 
     timeloop0=MPI_WTIME()
@@ -212,7 +212,8 @@ contains
        if (timeio0 - time_last_print > time_between_print) then
          time_last_print = timeio0
          if (mype == 0) then
-           write(*, '(I10,ES12.3,ES12.3,ES12.3)') it, global_time, dt, timeio0 - time_in
+           write(*, '(A4,I10,ES12.3,ES12.3,ES12.3)') " #", &
+                it, global_time, dt, timeio0 - time_in
          end if
        end if
 
@@ -334,10 +335,11 @@ contains
     if (mype==0) call MPI_FILE_CLOSE(log_fh,ierrmpi)
     timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
-
     if (mype==0) then
        write(*,'(a,f12.3,a)')' Total time spent on IO     : ',timeio_tot,' sec'
        write(*,'(a,f12.3,a)')' Total timeintegration took : ',MPI_WTIME()-time_in,' sec'
+       write(*, '(A4,I10,ES12.3,ES12.3,ES12.3)') " #", &
+            it, global_time, dt, timeio0 - time_in
     end if
 
     {#IFDEF RAY
