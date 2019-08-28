@@ -158,6 +158,7 @@ module mod_mhd_phys
   public :: get_divb
   public :: get_current
   public :: get_normalized_divb
+  public :: mhd_mag_en_all
 
 contains
 
