@@ -55,7 +55,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     use mod_global_parameters
-    use mod_constrained_transport
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -81,8 +80,8 @@ contains
       w(ixO^S,mag(1))  = 0.0d0
       w(ixO^S,mag(2))  = 0.0d0
     else if(stagger_grid) then
-      call b_from_vectorpotential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
-      call faces2centers(ixO^L,block)
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
     else
       w(ixO^S,mag(1))=2.0d0*Busr*dcos(x(ixO^S,2))/x(ixO^S,1)**3
       w(ixO^S,mag(2))=Busr*dsin(x(ixO^S,2))/x(ixO^S,1)**3
@@ -138,7 +137,7 @@ contains
            block%ws(ix1^%1ixOs^S,2)=block%ws(ixOsmax1+1^%1ixOs^S,2)
          !  block%ws(ix1^%1ixOs^S,1)=block%ws(ixOsmax1+1^%1ixOs^S,1)*block%surfaceC(ixOsmax1+1^%1ixOs^S,1)/block%surfaceC(ix1^%1ixOs^S,1)
          end do
-         call faces2centers(ixO^L,block)
+         call mhd_face_to_center(ixO^L,block)
        end if
 
        ! Loop through ghost cells along boundary (in the theta direction)
@@ -228,7 +227,7 @@ contains
           block%ws(ix1^%1ixO^S,1)=block%ws(ixOmin1-1^%1ixO^S,1)*block%surfaceC(ixOmin1-1^%1ixO^S,1)/block%surfaceC(ix1^%1ixO^S,1)
           block%ws(ix1^%1ixO^S,2)=block%ws(ixOmin1-1^%1ixO^S,2)
         end do
-        call faces2centers(ixO^L,block)
+        call mhd_face_to_center(ixO^L,block)
       end if
 
       do ix1=ixOmin1,ixOmax1

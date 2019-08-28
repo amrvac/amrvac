@@ -16,6 +16,7 @@ contains
   subroutine recalculateB
     use mod_global_parameters
     use mod_fix_conserve
+    use mod_physics
 
     integer :: igrid,iigrid
 
@@ -40,7 +41,7 @@ contains
     ! Now we fill the centers for the staggered variables
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       call faces2centers(ixG^LL,ps(igrid))
+       call phys_face_to_center(ixG^LL,ps(igrid))
     end do
     !$OMP END PARALLEL DO
   end subroutine recalculateB
@@ -89,7 +90,7 @@ contains
     ixIs^L=s%ixGs^L;
     ixO^L=ixI^L^LSUBnghostcells;
 
-    call b_from_vectorpotentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
+    call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
 
     ! This is important only in 3D
     do idir=1,ndim
@@ -98,92 +99,6 @@ contains
 
     end associate
   end subroutine fake_update
-
-  !> calculate cell-center values from face-center values
-  subroutine faces2centers(ixO^L,s)
-    use mod_global_parameters
-    ! Non-staggered interpolation range
-    integer, intent(in)                :: ixO^L
-    type(state)                        :: s
-    integer                            :: hxO^L, idim
-
-    associate(w=>s%w, ws=>s%ws)
-
-    do idim=1,ndim
-      ! Displace index to the left
-      ! Even if ixI^L is the full size of the w arrays, this is ok
-      ! because the staggered arrays have an additional place to the left.
-      hxO^L=ixO^L-kr(idim,^D);
-      ! Interpolate to cell barycentre using arithmetic average
-      ! This might be done better later, to make the method less diffusive.
-      w(ixO^S,iw_mag(idim))=half/s%surface(ixO^S,idim)*&
-        (ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
-        +ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))
-    end do
-
-    end associate
-
-  end subroutine faces2centers
-
-  !> calculate cell-center values from face-center values in 4th order
-  subroutine faces2centers4(ixO^L,s)
-    use mod_global_parameters
-    ! Non-staggered interpolation range
-    integer, intent(in)                :: ixO^L
-    type(state)                        :: s
-
-    integer                            :: gxO^L, hxO^L, jxO^L, idim
-
-    associate(w=>s%w, ws=>s%ws)
-
-    do idim=1,ndim
-      gxO^L=ixO^L-2*kr(idim,^D);
-      hxO^L=ixO^L-kr(idim,^D);
-      jxO^L=ixO^L+kr(idim,^D);
-
-      ! Interpolate to cell barycentre using fourth order central formula
-      w(ixO^S,iw_mag(idim))=(0.0625d0/s%surface(ixO^S,idim))*&
-             ( -ws(gxO^S,idim)*s%surfaceC(gxO^S,idim) &
-         +9.0d0*ws(hxO^S,idim)*s%surfaceC(hxO^S,idim) &
-         +9.0d0*ws(ixO^S,idim)*s%surfaceC(ixO^S,idim) &
-               -ws(jxO^S,idim)*s%surfaceC(jxO^S,idim) )
-    end do
-
-    end associate
-
-  end subroutine faces2centers4
-
-  !> calculate cell-center values from face-center values in 6th order
-  subroutine faces2centers6(ixO^L,s)
-    use mod_global_parameters
-    ! Non-staggered interpolation range
-    integer, intent(in)                :: ixO^L
-    type(state)                        :: s
-
-    integer                            :: fxO^L, gxO^L, hxO^L, jxO^L, kxO^L, idim
-
-    associate(w=>s%w, ws=>s%ws)
-
-    do idim=1,ndim
-      fxO^L=ixO^L-3*kr(idim,^D);
-      gxO^L=ixO^L-2*kr(idim,^D);
-      hxO^L=ixO^L-kr(idim,^D);
-      jxO^L=ixO^L+kr(idim,^D);
-      kxO^L=ixO^L+2*kr(idim,^D);
-
-      ! Interpolate to cell barycentre using sixth order central formula
-      w(ixO^S,iw_mag(idim))=(0.00390625d0/s%surface(ixO^S,idim))* &
-         (  +3.0d0*ws(fxO^S,idim)*s%surfaceC(fxO^S,idim) &
-           -25.0d0*ws(gxO^S,idim)*s%surfaceC(gxO^S,idim) &
-          +150.0d0*ws(hxO^S,idim)*s%surfaceC(hxO^S,idim) &
-          +150.0d0*ws(ixO^S,idim)*s%surfaceC(ixO^S,idim) &
-           -25.0d0*ws(jxO^S,idim)*s%surfaceC(jxO^S,idim) &
-            +3.0d0*ws(kxO^S,idim)*s%surfaceC(kxO^S,idim) )
-    end do
-
-    end associate
-
-  end subroutine faces2centers6
 
   !> calculating the divergence of a face-allocated vector field.
   subroutine div_staggered(ixO^L,s,divv)
@@ -210,22 +125,8 @@ contains
 
   end subroutine div_staggered
 
-  !> calculate magnetic field from vector potential
-  subroutine b_from_vectorpotential(ixIs^L, ixI^L, ixO^L, ws, x)
-    use mod_global_parameters
-
-    integer, intent(in)                :: ixIs^L, ixI^L, ixO^L
-    double precision, intent(inout)    :: ws(ixIs^S,1:nws)
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-
-    double precision                   :: Adummy(ixI^S,1:ndir)
-
-    call b_from_vectorpotentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
-
-  end subroutine b_from_vectorpotential
-
   !> calculate magnetic field from vector potential A at cell edges
-  subroutine b_from_vectorpotentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
+  subroutine b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
     use mod_global_parameters
     use mod_usr_methods, only: usr_init_vector_potential
 
@@ -291,7 +192,7 @@ contains
       ws(ixC^S,idim1) = circ(ixC^S,idim1)
     end do
 
-  end subroutine b_from_vectorpotentialA
+  end subroutine b_from_vector_potentialA
 
   !> Reconstruct scalar q within ixO^L to 1/2 dx in direction idir
   !> Return both left and right reconstructed values 

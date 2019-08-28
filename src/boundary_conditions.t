@@ -3,6 +3,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
   use mod_usr_methods, only: usr_special_bc
   use mod_bc_data, only: bc_data_set
   use mod_global_parameters
+  use mod_physics
   use mod_constrained_transport
 
   integer, intent(in) :: iside, idims, ixG^L,ixB^L
@@ -124,7 +125,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             end select
           end do
           ! Fill cell averages
-          call faces2centers(ixO^L,s)
+          call phys_face_to_center(ixO^L,s)
         end if
      else
         ! minimal boundary
@@ -231,7 +232,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             end select
           end do
           ! Fill cell averages
-          call faces2centers(ixO^L,s)
+          call phys_face_to_center(ixO^L,s)
         end if
      end if \}
   end select

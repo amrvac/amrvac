@@ -293,7 +293,8 @@ contains
        wRp(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
        wLp(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
 
-       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+       ! apply limited reconstruction for left and right status at cell interfaces
+       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x)
 
        ! Calculate velocities from upwinded values
        call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)

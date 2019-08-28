@@ -347,7 +347,6 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
-    use mod_constrained_transport
 
     integer, intent(in) :: idim^LIM
     type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
@@ -390,7 +389,7 @@ contains
       ! Now fill the cell-center values for the staggered variables
       !$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-        call faces2centers(ixG^LL,psb(igrid))
+        call phys_face_to_center(ixG^LL,psb(igrid))
       end do
       !$OMP END PARALLEL DO
     end if

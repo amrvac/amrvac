@@ -18,8 +18,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_physics
-    use mod_constrained_transport
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -62,7 +60,7 @@ contains
         call get_B(ixI^L,ixC^L,Bloc,xcart)
         block%ws(ixC^S,idir)=Bloc(ixC^S,idir)
       end do
-      call faces2centers(ixO^L,block)
+      call mhd_face_to_center(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
@@ -70,7 +68,7 @@ contains
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 

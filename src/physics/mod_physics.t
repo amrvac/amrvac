@@ -62,6 +62,7 @@ module mod_physics
   procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
   procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
   procedure(sub_update_faces), pointer    :: phys_update_faces           => null()
+  procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
 
   abstract interface
 
@@ -79,10 +80,12 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
      end subroutine sub_convert
 
-     subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+     subroutine sub_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idir
        double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+       double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+       type(state)                     :: s
      end subroutine sub_modify_wLR
 
      subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
@@ -217,6 +220,13 @@ module mod_physics
        double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
        double precision, intent(inout)    :: fE(ixI^S,1:ndir)
      end subroutine sub_update_faces
+
+     subroutine sub_face_to_center(ixO^L,s)
+       use mod_global_parameters
+       integer, intent(in)                :: ixO^L
+       type(state)                        :: s
+     end subroutine sub_face_to_center
+
    end interface
 
 contains
@@ -289,6 +299,9 @@ contains
     if (.not. associated(phys_update_faces)) &
          phys_update_faces => dummy_update_faces
 
+    if (.not. associated(phys_face_to_center)) &
+         phys_face_to_center => dummy_face_to_center
+
   end subroutine phys_check
 
   subroutine dummy_init_params
@@ -297,10 +310,12 @@ contains
   subroutine dummy_check_params
   end subroutine dummy_check_params
 
-  subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+  subroutine dummy_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
     use mod_global_parameters
-    integer, intent(in)                :: ixI^L, ixO^L, idir
-    double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    type(state)                     :: s
   end subroutine dummy_modify_wLR
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
@@ -394,5 +409,11 @@ contains
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,1:ndir)
   end subroutine dummy_update_faces
+
+  subroutine dummy_face_to_center(ixO^L,s)
+    use mod_global_parameters
+    integer, intent(in)                :: ixO^L
+    type(state)                        :: s
+  end subroutine dummy_face_to_center
   
 end module mod_physics

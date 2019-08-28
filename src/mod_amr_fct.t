@@ -28,7 +28,7 @@ contains
   !> If DivF=f(x), a different algorithm must be used.
   subroutine prolong_2nd_stg(sCo,sFi,ixCo^Lin,ixFi^Lin,dxCo^D,xComin^D,dxFi^D,xFimin^D,ghost,fine_^Lin)
     use mod_global_parameters
-    use mod_constrained_transport, only: faces2centers
+    use mod_physics
 
     logical, intent(in)          :: ghost
     integer, intent(in)          :: ixCo^Lin, ixFi^Lin
@@ -425,7 +425,7 @@ contains
       end where
     end do
 
-    call faces2centers(ixFi^L,sFi)
+    call phys_face_to_center(ixFi^L,sFi)
 
     end associate
 

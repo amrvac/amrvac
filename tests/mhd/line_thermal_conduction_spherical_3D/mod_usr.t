@@ -18,8 +18,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_physics
-    use mod_constrained_transport
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -62,13 +60,13 @@ contains
         call get_B(ixI^L,ixC^L,Bloc,xcart)
         block%ws(ixC^S,idir)=Bloc(ixC^S,idir)
       end do
-      call faces2centers(ixO^L,block)
+      call mhd_face_to_center(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
     end if
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -92,8 +90,6 @@ contains
   !
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
-    use mod_physics
-    use mod_mhd_phys
 
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -102,7 +98,7 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     

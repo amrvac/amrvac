@@ -62,13 +62,12 @@ amrvac.o: mod_timing.mod
 amrvac.o: mod_usr.mod
 boundary_conditions.o: mod_bc_data.mod
 boundary_conditions.o: mod_constrained_transport.mod
-coarsen.o: mod_constrained_transport.mod
+boundary_conditions.o: mod_physics.mod
 coarsen.o: mod_physics.mod
 connectivity.o: mod_ghostcells_update.mod
 convert.o: mod_calculate_xw.mod
 convert.o: mod_ghostcells_update.mod
 convert.o: mod_physics.mod
-mod_advance.o: mod_constrained_transport.mod
 mod_advance.o: mod_finite_difference.mod
 mod_advance.o: mod_finite_volume.mod
 mod_advance.o: mod_fix_conserve.mod
@@ -77,7 +76,7 @@ mod_advance.o: mod_particles.mod
 mod_advance.o: mod_physics.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
-mod_amr_fct.o: mod_constrained_transport.mod
+mod_amr_fct.o: mod_physics.mod
 mod_amrvac.o: mod_geometry.mod
 mod_bc_data.o: mod_lookup_table.mod
 mod_calculate_xw.o: mod_geometry.mod
@@ -88,6 +87,7 @@ mod_collapse.o: mod_physics.mod
 mod_collapse.o: mod_slice.mod
 mod_constrained_transport.o: mod_fix_conserve.mod
 mod_constrained_transport.o: mod_limiter.mod
+mod_constrained_transport.o: mod_physics.mod
 mod_dust.o: mod_geometry.mod
 mod_dust.o: mod_physics.mod
 mod_finite_difference.o: mod_finite_volume.mod
@@ -95,7 +95,6 @@ mod_finite_difference.o: mod_limiter.mod
 mod_finite_difference.o: mod_mp5.mod
 mod_finite_difference.o: mod_physics.mod
 mod_finite_difference.o: mod_source.mod
-mod_finite_volume.o: mod_constrained_transport.mod
 mod_finite_volume.o: mod_limiter.mod
 mod_finite_volume.o: mod_mhd_phys.mod
 mod_finite_volume.o: mod_physics.mod

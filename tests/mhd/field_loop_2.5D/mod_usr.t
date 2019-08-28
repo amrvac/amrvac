@@ -39,9 +39,6 @@ contains
 
   ! initialize one grid
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    use mod_constrained_transport
-
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -62,8 +59,8 @@ contains
     w(ixO^S,mom(2)) = v0(2) ! Vy
     w(ixO^S,e_)     = 1.0d0 ! Pressure
     if(stagger_grid) then
-      call b_from_vectorpotential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
-      call faces2centers(ixO^L,block)
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
     else 
       call bfield_solution(ixI^L, ixO^L, x, v0, 0.0d0, bfield)
       w(ixO^S, mag(:)) = bfield(ixO^S, :)
@@ -74,7 +71,6 @@ contains
   subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
     ! initialize the vectorpotential on the edges
     ! used by b_from_vectorpotential()
-    use mod_global_parameters
     integer, intent(in)                :: ixI^L, ixC^L,idir
     double precision, intent(in)       :: xC(ixI^S,1:ndim)
     double precision, intent(out)      :: A(ixI^S)
@@ -142,7 +138,6 @@ contains
 
   subroutine set_output_vars(ixI^L,ixO^L,qt,w,x)
     use mod_global_parameters
-    use mod_constrained_transport
 
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
@@ -172,7 +167,7 @@ contains
     w(ixO^S,i_divb_4)=divb(ixO^S)
 
     if(stagger_grid) then
-      call b_from_vectorpotential(ixGs^LL,ixI^L,ixO^L,ws,x)
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,ws,x)
       do idim=1,ndim
         hxO^L=ixO^L-kr(idim,^D);
         bfield(ixO^S,idim)=half*(ws(ixO^S,idim)+ws(hxO^S,idim))

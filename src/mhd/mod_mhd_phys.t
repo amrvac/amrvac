@@ -154,9 +154,11 @@ module mod_mhd_phys
   public :: mhd_to_conserved
   public :: mhd_to_primitive
   public :: mhd_get_csound2
+  public :: mhd_face_to_center
   public :: get_divb
   public :: get_current
   public :: get_normalized_divb
+  public :: b_from_vector_potential
 
 contains
 
@@ -353,9 +355,15 @@ contains
     phys_angmomfix           => mhd_angmomfix
     phys_handle_small_values => mhd_handle_small_values
 
+    if(type_divb==divb_glm1) then
+      phys_modify_wLR => mhd_modify_wLR
+    end if
+
     ! if using ct stagger grid, boundary divb=0 is not done here
     if(stagger_grid) then
       phys_update_faces => mhd_update_faces
+      phys_face_to_center => mhd_face_to_center
+      phys_modify_wLR => mhd_modify_wLR
     else if(ndim>1) then
       phys_boundary_adjust => mhd_boundary_adjust
     end if
@@ -408,12 +416,6 @@ contains
     if(mhd_magnetofriction) then
       phys_req_diagonal = .true.
       call magnetofriction_init()
-    end if
-
-    if(type_divb==divb_glm1) then
-      ! Solve the Riemann problem for the linear 2x2 system for normal
-      ! B-field and GLM_Psi according to Dedner 2002:
-      phys_modify_wLR => glmSolve
     end if
 
     ! For Hall, we need one more reconstructed layer since currents are computed
@@ -1470,7 +1472,6 @@ contains
   subroutine add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
-    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1942,21 +1943,23 @@ contains
       if (angmomfix) then
         call mpistop("angmomfix not implemented yet in MHD")
       endif
-       call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
-       if(phi_>0) then
-         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*(tmp(ixO^S)-&
-                   wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_))
-         w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt/x(ixO^S,1)*(&
-                  -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_) &
-                  +wCT(ixO^S,bphi_)*wCT(ixO^S,br_))
-         w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt/x(ixO^S,1)*&
-                  (wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
-                  -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
-                  /wCT(ixO^S,rho_)
-       else
-         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*tmp(ixO^S)
-       end if
-       if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
+      call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
+      if(phi_>0) then
+        w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*(tmp(ixO^S)-&
+                  wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2/wCT(ixO^S,rho_))
+        w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt/x(ixO^S,1)*(&
+                 -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)/wCT(ixO^S,rho_) &
+                 +wCT(ixO^S,bphi_)*wCT(ixO^S,br_))
+        if(.not.stagger_grid) then
+          w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt/x(ixO^S,1)*&
+                   (wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
+                   -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
+                   /wCT(ixO^S,rho_)
+        end if
+      else
+        w(ixO^S,mr_)=w(ixO^S,mr_)+qdt/x(ixO^S,1)*tmp(ixO^S)
+      end if
+      if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
     case (spherical)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
@@ -2006,17 +2009,19 @@ contains
        end if
        w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
        ! b2
-       tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
-            -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_)
-       if(B0field) then
-         tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,2,0) &
-              -wCT(ixO^S,mom(2))*block%B0(ixO^S,1,0))/wCT(ixO^S,rho_)
+       if(.not.stagger_grid) then
+         tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
+              -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_)
+         if(B0field) then
+           tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,2,0) &
+                -wCT(ixO^S,mom(2))*block%B0(ixO^S,1,0))/wCT(ixO^S,rho_)
+         end if
+         if(mhd_glm) then
+           tmp(ixO^S)=tmp(ixO^S) &
+                + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
+         end if
+         w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
        end if
-       if(mhd_glm) then
-         tmp(ixO^S)=tmp(ixO^S) &
-              + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
-       end if
-       w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
        }
 
        if(ndir==3) then
@@ -2039,19 +2044,21 @@ contains
            call mpistop("angmomfix not implemented yet in MHD")
          end if
          ! b3
-         tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
-              -wCT(ixO^S,mom(3))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_) {^NOONED &
-              -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
-              -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
-              /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
-         if (B0field) then
-            tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,3,0) &
-                 -wCT(ixO^S,mom(3))*block%B0(ixO^S,1,0))/wCT(ixO^S,rho_){^NOONED &
-                 -(wCT(ixO^S,mom(3))*block%B0(ixO^S,2,0) &
-                 -wCT(ixO^S,mom(2))*block%B0(ixO^S,3,0))*dcos(x(ixO^S,2)) &
-                 /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
+         if(.not.stagger_grid) then
+           tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
+                -wCT(ixO^S,mom(3))*wCT(ixO^S,mag(1)))/wCT(ixO^S,rho_) {^NOONED &
+                -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
+                -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
+                /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
+           if (B0field) then
+              tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,3,0) &
+                   -wCT(ixO^S,mom(3))*block%B0(ixO^S,1,0))/wCT(ixO^S,rho_){^NOONED &
+                   -(wCT(ixO^S,mom(3))*block%B0(ixO^S,2,0) &
+                   -wCT(ixO^S,mom(2))*block%B0(ixO^S,3,0))*dcos(x(ixO^S,2)) &
+                   /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
+           end if
+           w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
          end if
-         w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
        end if
     end select
   end subroutine mhd_add_source_geom
@@ -2188,28 +2195,39 @@ contains
 
   end subroutine mhd_getdt_Hall
 
-  !> This implements eq. (42) in Dedner et al. 2002 JcP 175
-  !> Gives the Riemann solution on the interface
-  !> for the normal B component and Psi in the GLM-MHD system.
-  !> 23/04/2013 Oliver Porth
-  subroutine glmSolve(wLC,wRC,ixI^L,ixO^L,idir)
+  subroutine mhd_modify_wLR(ixI^L,ixO^L,wLC,wRC,wLp,wRp,s,idir)
     use mod_global_parameters
-    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    type(state)                     :: s
     double precision                :: dB(ixI^S), dPsi(ixI^S)
 
-    dB(ixO^S)   = wRC(ixO^S,mag(idir)) - wLC(ixO^S,mag(idir))
-    dPsi(ixO^S) = wRC(ixO^S,psi_) - wLC(ixO^S,psi_)
+    if(stagger_grid) then
+      wLC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
+      wRC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
+      wLp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
+      wRp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
+    else
+      ! Solve the Riemann problem for the linear 2x2 system for normal
+      ! B-field and GLM_Psi according to Dedner 2002:
+      ! This implements eq. (42) in Dedner et al. 2002 JcP 175
+      ! Gives the Riemann solution on the interface
+      ! for the normal B component and Psi in the GLM-MHD system.
+      ! 23/04/2013 Oliver Porth
+      dB(ixO^S)   = wRp(ixO^S,mag(idir)) - wLp(ixO^S,mag(idir))
+      dPsi(ixO^S) = wRp(ixO^S,psi_) - wLp(ixO^S,psi_)
 
-    wLC(ixO^S,mag(idir))   = 0.5d0 * (wRC(ixO^S,mag(idir)) + wLC(ixO^S,mag(idir))) &
-         - 0.5d0/cmax_global * dPsi(ixO^S)
-    wLC(ixO^S,psi_)       = 0.5d0 * (wRC(ixO^S,psi_) + wLC(ixO^S,psi_)) &
-         - 0.5d0*cmax_global * dB(ixO^S)
+      wLp(ixO^S,mag(idir))   = 0.5d0 * (wRp(ixO^S,mag(idir)) + wLp(ixO^S,mag(idir))) &
+           - 0.5d0/cmax_global * dPsi(ixO^S)
+      wLp(ixO^S,psi_)       = 0.5d0 * (wRp(ixO^S,psi_) + wLp(ixO^S,psi_)) &
+           - 0.5d0*cmax_global * dB(ixO^S)
 
-    wRC(ixO^S,mag(idir)) = wLC(ixO^S,mag(idir))
-    wRC(ixO^S,psi_) = wLC(ixO^S,psi_)
+      wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
+      wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
+    end if
 
-  end subroutine glmSolve
+  end subroutine mhd_modify_wLR
 
   subroutine mhd_boundary_adjust
     use mod_global_parameters
@@ -3213,5 +3231,80 @@ contains
 
     end associate
   end subroutine update_faces_hll
+
+  !> calculate cell-center values from face-center values
+  subroutine mhd_face_to_center(ixO^L,s)
+    use mod_global_parameters
+    ! Non-staggered interpolation range
+    integer, intent(in)                :: ixO^L
+    type(state)                        :: s
+
+    integer                            :: fxO^L, gxO^L, hxO^L, jxO^L, kxO^L, idim
+
+    associate(w=>s%w, ws=>s%ws)
+
+    ! calculate cell-center values from face-center values in 2nd order
+    do idim=1,ndim
+      ! Displace index to the left
+      ! Even if ixI^L is the full size of the w arrays, this is ok
+      ! because the staggered arrays have an additional place to the left.
+      hxO^L=ixO^L-kr(idim,^D);
+      ! Interpolate to cell barycentre using arithmetic average
+      ! This might be done better later, to make the method less diffusive.
+      w(ixO^S,iw_mag(idim))=half/s%surface(ixO^S,idim)*&
+        (ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
+        +ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))
+    end do
+
+    ! calculate cell-center values from face-center values in 4th order
+    !do idim=1,ndim
+    !  gxO^L=ixO^L-2*kr(idim,^D);
+    !  hxO^L=ixO^L-kr(idim,^D);
+    !  jxO^L=ixO^L+kr(idim,^D);
+
+    !  ! Interpolate to cell barycentre using fourth order central formula
+    !  w(ixO^S,iw_mag(idim))=(0.0625d0/s%surface(ixO^S,idim))*&
+    !         ( -ws(gxO^S,idim)*s%surfaceC(gxO^S,idim) &
+    !     +9.0d0*ws(hxO^S,idim)*s%surfaceC(hxO^S,idim) &
+    !     +9.0d0*ws(ixO^S,idim)*s%surfaceC(ixO^S,idim) &
+    !           -ws(jxO^S,idim)*s%surfaceC(jxO^S,idim) )
+    !end do
+
+    ! calculate cell-center values from face-center values in 6th order
+    !do idim=1,ndim
+    !  fxO^L=ixO^L-3*kr(idim,^D);
+    !  gxO^L=ixO^L-2*kr(idim,^D);
+    !  hxO^L=ixO^L-kr(idim,^D);
+    !  jxO^L=ixO^L+kr(idim,^D);
+    !  kxO^L=ixO^L+2*kr(idim,^D);
+
+    !  ! Interpolate to cell barycentre using sixth order central formula
+    !  w(ixO^S,iw_mag(idim))=(0.00390625d0/s%surface(ixO^S,idim))* &
+    !     (  +3.0d0*ws(fxO^S,idim)*s%surfaceC(fxO^S,idim) &
+    !       -25.0d0*ws(gxO^S,idim)*s%surfaceC(gxO^S,idim) &
+    !      +150.0d0*ws(hxO^S,idim)*s%surfaceC(hxO^S,idim) &
+    !      +150.0d0*ws(ixO^S,idim)*s%surfaceC(ixO^S,idim) &
+    !       -25.0d0*ws(jxO^S,idim)*s%surfaceC(jxO^S,idim) &
+    !        +3.0d0*ws(kxO^S,idim)*s%surfaceC(kxO^S,idim) )
+    !end do
+
+    end associate
+
+  end subroutine mhd_face_to_center
+
+  !> calculate magnetic field from vector potential
+  subroutine b_from_vector_potential(ixIs^L, ixI^L, ixO^L, ws, x)
+    use mod_global_parameters
+    use mod_constrained_transport
+
+    integer, intent(in)                :: ixIs^L, ixI^L, ixO^L
+    double precision, intent(inout)    :: ws(ixIs^S,1:nws)
+    double precision, intent(in)       :: x(ixI^S,1:ndim)
+
+    double precision                   :: Adummy(ixI^S,1:ndir)
+
+    call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
+
+  end subroutine b_from_vector_potential
 
 end module mod_mhd_phys

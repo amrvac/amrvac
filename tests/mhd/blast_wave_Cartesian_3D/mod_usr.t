@@ -19,7 +19,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_constrained_transport
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -43,8 +42,8 @@ contains
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
     else if(stagger_grid) then
-      call b_from_vectorpotential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
-      call faces2centers(ixO^L,block)
+      call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)

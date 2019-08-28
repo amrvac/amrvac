@@ -19,8 +19,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_constrained_transport
-    use mod_physics
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -54,14 +52,14 @@ contains
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
     else if(stagger_grid) then
-      call b_from_vectorpotential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
-      call faces2centers(ixO^L,block)
+      call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
     end if
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -97,8 +95,6 @@ contains
   !
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
-    use mod_physics
-    use mod_mhd_phys
 
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -107,7 +103,7 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     !! output the plasma beta p*2/B**2

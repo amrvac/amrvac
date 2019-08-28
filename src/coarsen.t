@@ -80,8 +80,7 @@ end subroutine coarsen_grid_siblings
 !> coarsen one grid to its coarser representative
 subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
   use mod_global_parameters
-  use mod_physics, only: phys_to_primitive, phys_to_conserved
-  use mod_constrained_transport, only: faces2centers
+  use mod_physics
 
   type(state), intent(inout)      :: sFi, sCo
   integer, intent(in) :: ixFiG^L, ixFi^L, ixCoG^L, ixCo^L
@@ -129,7 +128,7 @@ subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
       {end do\}
     end do
     ! average to fill cell-centred values
-    call faces2centers(ixCo^L,sCo)
+    call phys_face_to_center(ixCo^L,sCo)
   end if
 
   if(coarsenprimitive) then

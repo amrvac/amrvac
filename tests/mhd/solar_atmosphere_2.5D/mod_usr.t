@@ -132,8 +132,8 @@ contains
     if(B0field) then
       w(ixO^S,mag(:))=zero
     else if(stagger_grid) then
-      call b_from_vectorpotential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
-      call faces2centers(ixO^L,block)
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
       w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
     else
       w(ixO^S,mag(1))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
@@ -207,7 +207,7 @@ contains
            -Qp(ix2+1^%2ixO^S)*block%dvolume(ix2+1^%2ixO^S))&
             /block%surfaceC(ix2^%2ixOs^S,2)
         end do
-        call faces2centers(ixO^L,block)
+        call mhd_face_to_center(ixO^L,block)
         w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
       else
         w(ixO^S,mag(1))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dcos(theta)
@@ -263,7 +263,7 @@ contains
            -Qp(ix2^%2ixO^S)*block%dvolume(ix2^%2ixO^S))&
             /block%surfaceC(ix2^%2ixOs^S,2)
         end do
-        call faces2centers(ixO^L,block)
+        call mhd_face_to_center(ixO^L,block)
         do ix2=ixOmin2,ixOmax2
           w(ixOmin1:ixOmax1,ix2,mag(3))=(1.0d0/3.0d0)* &
                       (-w(ixOmin1:ixOmax1,ix2-2,mag(3))&

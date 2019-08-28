@@ -8,13 +8,13 @@
  &savelist
         itsave(1,1)   = 0
         itsave(1,2)   = 0
-        ditsave_log   = 1
-        dtsave_dat    = 0.003
+        dtsave_log    = 0.01
+        dtsave_dat    = 0.02
  /
         ditsave_dat   = 1
 
  &stoplist
-        time_max      = 0.033
+        time_max      = 0.2
  /
         it_max=20
 
@@ -55,4 +55,5 @@
 
  &mhd_list
         typedivbfix   = 'ct'
+        type_ct='average'
  /

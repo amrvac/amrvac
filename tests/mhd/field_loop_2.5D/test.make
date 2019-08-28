@@ -1,6 +1,6 @@
 SETUP_FLAGS := -d=2
 SCHEME_DIR := ../../schemes
-SCHEMES := 3step_hll_cada 3step_hlld_cada 3step_hll_cada_ct 3step_hlld_cada_ct
+SCHEMES := 3step_hll_cada 3step_hlld_cada 3step_hll_cada_ct 3step_hll_cada_ct_hll 3step_hll_cada_ct_average
 
 TESTS := $(SCHEMES:%=fl_2d_%.log)
 

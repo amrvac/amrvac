@@ -17,7 +17,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_constrained_transport
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -32,7 +31,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(1,^D);
       block%ws(ixC^S,1)=1.d0
-      call faces2centers(ixO^L,block)
+      call mhd_face_to_center(ixO^L,block)
     else
       w(ixO^S,mag(1))=1.d0
       w(ixO^S,mag(2))=0.d0

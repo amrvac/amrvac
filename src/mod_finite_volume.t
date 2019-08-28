@@ -55,7 +55,8 @@ contains
       wRp(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
       wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
-      call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+      ! apply limited reconstruction for left and right status at cell interfaces
+      call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wLC,wRC,wLp,wRp,x)
 
       ! Calculate the fLC and fRC fluxes
       call phys_get_flux(wRC,wRp,x,ixI^L,hxO^L,idims,fRC)
@@ -96,6 +97,7 @@ contains
     end do
 
     if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
+
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
@@ -122,7 +124,6 @@ contains
     use mod_tvd, only:tvdlimit2
     use mod_source, only: addsource2
     use mod_usr_methods
-    use mod_constrained_transport
 
     character(len=*), intent(in)                          :: method
     double precision, intent(in)                          :: qdt, qtC, qt, dx^D
@@ -178,8 +179,8 @@ contains
        kxR^L=kxC^L+kr(idims,^D);
 
        if(stagger_grid) then
+          ! ct needs all transverse cells
           ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
-!         ixCmax^D=ixOmax^D+1-kr(idims,^D); ixCmin^D=hxOmin^D-1+kr(idims,^D);
        else
          ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
          ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
@@ -201,30 +202,10 @@ contains
        xi(ixI^S,idims)=xi(ixI^S,idims)+0.5d0*sCT%dx(ixI^S,idims)
 
        ! apply limited reconstruction for left and right status at cell interfaces
-       select case (typelimited)
-       case ('previous')
-         call phys_to_primitive(ixI^L,ixI^L,wold,x)
-         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wold,wprim,wLC,wRC,wLp,wRp,xi,.true.)
-         if(stagger_grid) then
-           wLC(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
-           wRC(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
-           wLp(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
-           wRp(ixCR^S,iw_mag(idims))=wolds(ixCR^S,idims)
-         end if
-       case ('predictor')
-         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,xi,.false.)
-         if(stagger_grid) then
-           wLC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
-           wRC(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
-           wLp(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
-           wRp(ixCR^S,iw_mag(idims))=wCTs(ixCR^S,idims)
-         end if
-       case default
-         call mpistop("Error in reconstruction: no such base for limiter")
-       end select
+       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,xi)
 
        ! special modification of left and right status before flux evaluation
-       call phys_modify_wLR(wLp, wRp, ixI^L, ixC^L, idims)
+       call phys_modify_wLR(ixI^L,ixCR^L,wLC,wRC,wLp,wRp,sCT,idims)
 
        ! evaluate physical fluxes according to reconstructed status
        call phys_get_flux(wLC,wLp,xi,ixI^L,ixC^L,idims,fLC)
@@ -304,10 +285,10 @@ contains
 
     end do ! Next idims
 
-    if(stagger_grid) call faces2centers(ixO^L,snew)
-
     if (.not.slab.and.idimsmin==1) &
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
+
+    if(stagger_grid) call phys_face_to_center(ixO^L,snew)
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
@@ -594,14 +575,13 @@ contains
 
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
-  subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wCT,wLC,wRC,wLp,wRp,x,needprim)
+  subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x)
     use mod_physics
     use mod_global_parameters
     use mod_limiter
 
     integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
-    logical, intent(in) :: needprim
-    double precision, dimension(ixI^S,1:nw) :: w, wCT
+    double precision, dimension(ixI^S,1:nw) :: w
     ! left and right constructed status in conservative form
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     ! left and right constructed status in primitive form
@@ -610,17 +590,11 @@ contains
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
-    ! integer            :: flagL(ixI^S), flagR(ixI^S)
-
-    ! Transform w,wL,wR to primitive variables
-    if (needprim) then
-       call phys_to_primitive(ixI^L,ixI^L,w,x)
-    end if
 
     if (typelimiter == limiter_mp5) then
        call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
     else if (typelimiter == limiter_ppm) then
-       call PPMlimiter(ixI^L,ixM^LL,idims,w,wCT,wLp,wRp)
+       call PPMlimiter(ixI^L,ixM^LL,idims,w,w,wLp,wRp)
     else
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
@@ -649,10 +623,6 @@ contains
 
     endif
 
-    ! Transform w,wL,wR back to conservative variables
-    if(needprim)then
-       call phys_to_conserved(ixI^L,ixI^L,w,x)
-    endif
     wLC(ixL^S,1:nw)=wLp(ixL^S,1:nw)
     wRC(ixR^S,1:nw)=wRp(ixR^S,1:nw)
     call phys_to_conserved(ixI^L,ixL^L,wLC,x)
