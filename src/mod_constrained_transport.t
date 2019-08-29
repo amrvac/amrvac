@@ -17,6 +17,7 @@ contains
     use mod_global_parameters
     use mod_fix_conserve
     use mod_physics
+    use mod_ghostcells_update
 
     integer :: igrid,iigrid
 
@@ -41,9 +42,15 @@ contains
     ! Now we fill the centers for the staggered variables
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       call phys_face_to_center(ixG^LL,ps(igrid))
+       call phys_to_primitive(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
+       ! update cell center magnetic field
+       call phys_face_to_center(ixM^LL,ps(igrid))
+       call phys_to_conserved(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
     end do
     !$OMP END PARALLEL DO
+
+    call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+
   end subroutine recalculateB
 
   !> fake advance a step to calculate magnetic field
@@ -59,7 +66,6 @@ contains
     double precision             :: fE(ixG^T,1:ndir)
 
     dx^D=rnode(rpdx^D_,igrid);
-    !call set_tmpGlobals(igrid)
 
     call fake_update(ixG^LL,s,fC,fE,dx^D)
 
@@ -94,7 +100,7 @@ contains
 
     ! This is important only in 3D
     do idir=1,ndim
-       fE(ixI^S,idir) =-A(ixI^S,idir)*dxlevel(idir)
+       fE(ixI^S,idir) =-A(ixI^S,idir)*block%dsC(ixI^S,idir) 
     end do
 
     end associate

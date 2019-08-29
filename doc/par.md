@@ -949,6 +949,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_particles= F | T
      mhd_4th_order= F | T
      typedivbfix= 'linde'|'ct'|'glm1'|'glm2'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'none'
+     type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
      boundary_divbfix= 2*ndim logicals, all false by default
      divbdiff= DOUBLE between 0 and 2
@@ -966,13 +967,19 @@ sharp discontinuities. It is normally inactive with a default value -1.
 
 ### Magnetic field divergence fixes {#par_divbfix}
 
-The upwind constrained transport method by Gardiner and Stone in _Journal of 
-Computational Physics, 205, 509-539 (2005)_, 
-using staggered grid for magnetic field, can preserve initial div B to round off
-errors when **typedivbfix='ct'**. And it only works with TVDLF, HLL, HLLC, and HLLD schemes in the current implementation.
-Depending on `typedivbfix`, sources proportionate to the numerical monopole
-errors are added, in a source-split way, to momemtum, energy, and induction equation 
-(the 'powel' type), or to the induction equation alone (the 'janhunen' type). 
+The upwind constrained transport methods  **typedivbfix='ct'** by Gardiner and Stone in _Journal of 
+Computational Physics, 205, 509-539 (2005)_ **type_ct='uct_contact'** (default), or by
+Londrillo and Zanna, in _Journal of Computational Physics, 195, 17-48 (2004)_ 
+**type_ct='uct_hll'**, using staggered grid for magnetic field, can preserve 
+initial div B to round off errors. A simple non-upwinding version of ct 
+is through averaging electric fields from 
+neighbors **type_ct='average'**. And it only works with HLL, HLLC, and HLLD 
+schemes in the current implementation. Initial conditions and boundary conditions for
+magnetic field have to be given at corresponding cell faces instead, or vector potential 
+is given at corresponding cell edges, see examples: **tests/mhd/solar_atmosphere_2.5D**.
+In cell-center based magnetic fields, sources proportionate to the numerical monopole
+errors can be added, in a source-split way, to momemtum, energy, and induction equation 
+(the 'powel' type), or to the induction equation alone (the 'janhunen' type) for cleaning divB errors. 
 The `divbwave` switch is effective for the Riemann type solvers for multi-D MHD only. 
 The default true value corresponds to Powell divergence wave which stabilizes the Riemann solver.
 

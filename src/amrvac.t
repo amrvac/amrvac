@@ -111,7 +111,11 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
-     !{^IFTHREED if(stagger_grid .and. levmax>levmin) call recalculateB}
+     ! re-calculate magnetic field from the vector potential in a 
+     ! completely divergency free way for AMR mesh in 3D
+     {^IFTHREED if(stagger_grid .and. associated(usr_init_vector_potential) &
+      .and. levmax>levmin) call recalculateB
+     }
 
      ! select active grids
      call selectgrids

@@ -154,9 +154,13 @@ and related parameters in `mhd_list` of par file.
 #### constrained transport fix: typedivbfix='ct'
 
 The upwind constrained transport method by Gardiner and Stone in _Journal of 
-Computational Physics, 205, 509-539 (2005)_, 
+Computational Physics, 205, 509-539 (2005)_, **type_ct='uct_contact'** (default), 
+or by Londrillo and Zanna, in _Journal of Computational Physics, 195, 17-48 (2004)_ 
+**type_ct='uct_hll'**,
 using staggered grid for magnetic field, can preserve initial div B to round off
-errors. It only works with TVDLF, HLL, HLLC, and HLLD schemes in the current implementation.
+errors. A simple non-upwinding version of ct is through averaging electric 
+fields from neighbors **type_ct='average'**.
+It only works with HLL, HLLC, and HLLD schemes in the current implementation.
 
 #### Powell fix: typedivbfix='powel'
 
