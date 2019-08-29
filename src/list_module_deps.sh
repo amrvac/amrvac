@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # Get all occurrences of use mod_... in .t files
-deps="$(grep -r -e "^\s*use mod_" --include \*.t .)"
+# - The '.' is for Mac compatibility
+# - The 'sort' is to ensure the order is identical on different systems
+deps="$(grep -r -e "^\s*use mod_" --include \*.t . | sort)"
 
 # Remove the INCLUDES (are compiled first)
 deps=$(echo "$deps" | sed 's/use mod_global_parameters//')
