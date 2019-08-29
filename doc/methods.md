@@ -186,13 +186,11 @@ You can also use the diffusive (parabolic) approach, see the
 identified by `divbdiff=1`, but it is recommended for many multi-D MHD
 applications.
 
-#### Dedner fix: typedivbfix='glm1' or 'glm2'
+#### Dedner fix: typedivbfix='glm'
 
 This implements the mixed hyperbolic propagating and parabolic dampening of divB
-using an additional scalar variable _psi_. The algorithm of 'glm1' is described by
+using an additional scalar variable _psi_. The algorithm of 'glm' is described by
 Dedner et al. as _Equation (24)_ in _Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
-The 'glm2' is described by Derigs et al. in
-_Journal of Computational Physics 361, 420-467 (2018)_.
 
 #### Combined fix: typedivbfix='lindejanhunen' or 'lindepowel'
 

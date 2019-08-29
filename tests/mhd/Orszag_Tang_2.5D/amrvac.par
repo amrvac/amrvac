@@ -26,10 +26,10 @@
         solve_internal_e=.true.
 
  &boundlist
-        typeboundary_min1  = 8*'cont'
-        typeboundary_min2  = 8*'cont'
-        typeboundary_max1  = 8*'cont'
-        typeboundary_max2  = 8*'cont'
+        typeboundary_min1  = 8*'periodic'
+        typeboundary_min2  = 8*'periodic'
+        typeboundary_max1  = 8*'periodic'
+        typeboundary_max2  = 8*'periodic'
  /
 
  &meshlist

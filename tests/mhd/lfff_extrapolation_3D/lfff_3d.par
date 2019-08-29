@@ -65,7 +65,7 @@
 
  &mhd_list
         mhd_gravity=.true.
-        typedivbfix='glm1'
+        typedivbfix='glm'
         mhd_energy=.false.
         mhd_adiab=1.0d0
         Busr=10.d0

@@ -136,6 +136,7 @@ my %par_file_replacements = (
     qr/tsave\(5\)/ => "tsave_custom",
     qr/\btypetvdlf\b/ => "typeboundspeed",
     qr/\bitmax\b/ => "it_max",
+    qr/\bglm1\b/ => "glm",
     );
 
 # List of regular expressions and associated warnings

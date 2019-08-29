@@ -579,9 +579,6 @@ module mod_global_parameters
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
 
-  !> need global maximal flow speed
-  logical :: need_global_vmax=.false.
-
   ! Boundary region parameters
 
   !> True for dimensions with periodic boundaries

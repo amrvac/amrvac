@@ -140,19 +140,6 @@ subroutine setdt()
   ! so does GLM: 
   if(need_global_cmax) call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
        MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
-  ! some scheme need maximal speed of flow
-  if(need_global_vmax) then
-    cmax_mype=0.d0
-    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       do idim=1,ndim
-         call phys_get_v_idim(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,idim,v)
-         cmax_mype=max(cmax_mype,maxval(abs(v(ixM^T))))
-       end do
-    end do
-    call MPI_ALLREDUCE(cmax_mype,vmax_global,1,&
-       MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
-    vmax_global=cmax_global-vmax_global
-  end if
 
   contains
 

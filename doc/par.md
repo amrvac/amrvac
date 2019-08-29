@@ -948,7 +948,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_viscosity= F | T
      mhd_particles= F | T
      mhd_4th_order= F | T
-     typedivbfix= 'linde'|'ct'|'glm1'|'glm2'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'none'
+     typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
      boundary_divbfix= 2*ndim logicals, all false by default
@@ -992,11 +992,9 @@ terms. The choice where only the induction equation gets modified, i.e.
 `typedivbdiff='ind'` can be used. 
 
 GLM-MHD mixed hyperbolic and parabolic dampening of the divB error using an 
-additional scalar variable `Psi`.  The algorithm of 'glm1' is described by
+additional scalar variable `Psi`.  The algorithm of 'glm' is described by
 Dedner et al. as _Equation (24)_ in 
 _Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
-The 'glm2' is described by Derigs et al. in
-_Journal of Computational Physics 361, 420-467 (2018)_.
 You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb cleaning.
 
 ### Magnetic field splitting strategy {#par_MFS}

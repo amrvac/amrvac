@@ -134,15 +134,14 @@ module mod_mhd_phys
   ! DivB cleaning methods
   integer, parameter :: divb_none          = 0
   integer, parameter :: divb_multigrid     = -1
-  integer, parameter :: divb_glm1          = 1
-  integer, parameter :: divb_glm2          = 2
-  integer, parameter :: divb_powel         = 3
-  integer, parameter :: divb_janhunen      = 4
-  integer, parameter :: divb_linde         = 5
-  integer, parameter :: divb_lindejanhunen = 6
-  integer, parameter :: divb_lindepowel    = 7
-  integer, parameter :: divb_lindeglm      = 8
-  integer, parameter :: divb_ct            = 9
+  integer, parameter :: divb_glm           = 1
+  integer, parameter :: divb_powel         = 2
+  integer, parameter :: divb_janhunen      = 3
+  integer, parameter :: divb_linde         = 4
+  integer, parameter :: divb_lindejanhunen = 5
+  integer, parameter :: divb_lindepowel    = 6
+  integer, parameter :: divb_lindeglm      = 7
+  integer, parameter :: divb_ct            = 8
 
 
   ! Public methods
@@ -250,15 +249,10 @@ contains
        mg%operator_type = mg_laplacian
        phys_global_source => mhd_clean_divb_multigrid
     }
-    case ('glm1')
+    case ('glm')
       mhd_glm          = .true.
       need_global_cmax = .true.
-      type_divb        = divb_glm1
-    case ('glm2')
-      mhd_glm          = .true.
-      need_global_cmax = .true.
-      need_global_vmax = .true.
-      type_divb        = divb_glm2
+      type_divb        = divb_glm
     case ('powel', 'powell')
       type_divb = divb_powel
     case ('janhunen')
@@ -272,7 +266,6 @@ contains
     case ('lindeglm')
       mhd_glm          = .true.
       need_global_cmax = .true.
-      need_global_vmax = .true.
       type_divb        = divb_lindeglm
     case ('ct')
       type_divb = divb_ct
@@ -355,7 +348,7 @@ contains
     phys_angmomfix           => mhd_angmomfix
     phys_handle_small_values => mhd_handle_small_values
 
-    if(type_divb==divb_glm1) then
+    if(type_divb==divb_glm) then
       phys_modify_wLR => mhd_modify_wLR
     end if
 
@@ -502,7 +495,6 @@ contains
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
            tmp(ixO^S)=w(ixO^S,e_) - &
               mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L)
-           if(type_divb==divb_glm2) tmp(ixO^S)=tmp(ixO^S)-0.5d0*w(ixO^S,psi_)**2
            tmp(ixO^S)=gamma_1*tmp(ixO^S)
            where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
          end if
@@ -528,7 +520,6 @@ contains
       if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + &
         0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_) + &
         mhd_mag_en(w, ixI^L, ixO^L)
-      if(type_divb==divb_glm2) w(ixO^S,e_)=w(ixO^S,e_) + 0.5d0*w(ixO^S,psi_)**2
     end if
 
     ! Convert velocity to momentum
@@ -562,8 +553,6 @@ contains
         w(ixO^S, p_) = w(ixO^S, e_) &
               - mhd_kin_en(w, ixI^L, ixO^L, inv_rho) &
               - mhd_mag_en(w, ixI^L, ixO^L)
-      ! Calculate pressure = (gamma-1) * (e-ek-eb-epsi)
-        if(type_divb==divb_glm2) w(ixO^S, p_)=w(ixO^S, p_)-0.5d0*w(ixO^S,psi_)**2
       end if
       w(ixO^S, p_) = gamma_1*w(ixO^S, p_)
     end if
@@ -1006,10 +995,6 @@ contains
           f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_) + ptotal(ixO^S))- &
              w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
 
-          if(type_divb==divb_glm2) then
-            f(ixO^S,e_) = f(ixO^S,e_) + vmax_global*w(ixO^S,psi_)*w(ixO^S,mag(idim))
-          end if
-
           if (B0field) then
              f(ixO^S,e_) = f(ixO^S,e_) &
                 + w(ixO^S,mom(idim)) * tmp(ixO^S) &
@@ -1039,11 +1024,7 @@ contains
       if (idim==idir) then
         ! f_i[b_i] should be exactly 0, so we do not use the transport flux
         if (mhd_glm) then
-           if(type_divb==divb_glm1) then
-             f(ixO^S,mag(idir))=w(ixO^S,psi_)
-           else
-             f(ixO^S,mag(idir))=vmax_global*w(ixO^S,psi_)
-           end if
+           f(ixO^S,mag(idir))=w(ixO^S,psi_)
         else
            f(ixO^S,mag(idir))=zero
         end if
@@ -1075,13 +1056,8 @@ contains
     end do
 
     if (mhd_glm) then
-      if(type_divb==divb_glm1) then
-        !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
-        f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
-      else
-        !f_i[psi]=Ch*b_{i} Eq. 3.16e Derigs et al 2018 JCP, 364, 420 
-        f(ixO^S,psi_)  = vmax_global*w(ixO^S,mag(idim))
-      end if
+      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
   end subroutine mhd_get_flux
@@ -1131,12 +1107,9 @@ contains
       select case (type_divb)
       case (divb_none)
         ! Do nothing
-      case (divb_glm1)
+      case (divb_glm)
         active = .true.
-        call add_source_glm1(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
-      case (divb_glm2)
-        active = .true.
-        call add_source_glm2(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_glm(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_powel)
         active = .true.
         call add_source_powel(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
@@ -1157,7 +1130,7 @@ contains
       case (divb_lindeglm)
         active = .true.
         call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
-        call add_source_glm2(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_glm(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
       case (divb_ct)
         continue ! Do nothing
       case (divb_multigrid)
@@ -1170,12 +1143,9 @@ contains
       select case (type_divb)
       case (divb_none)
         ! Do nothing
-      case (divb_glm1)
+      case (divb_glm)
         active = .true.
-        call add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
-      case (divb_glm2)
-        active = .true.
-        call add_source_glm2(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_glm(qdt,ixI^L,ixO^L,wCT,w,x)
       case (divb_powel)
         active = .true.
         call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -1196,7 +1166,7 @@ contains
       case (divb_lindeglm)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_glm(qdt,ixI^L,ixO^L,wCT,w,x)
       case (divb_ct)
         continue ! Do nothing
       case (divb_multigrid)
@@ -1525,7 +1495,7 @@ contains
 
   end subroutine add_source_hyperres
 
-  subroutine add_source_glm1(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine add_source_glm(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add divB related sources to w within ixO
     ! corresponding to Dedner JCP 2002, 175, 645 _equation 24_
     ! giving the EGLM-MHD scheme
@@ -1574,69 +1544,9 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm1')
-
-  end subroutine add_source_glm1
-
-  subroutine add_source_glm2(qdt,ixI^L,ixO^L,wCT,w,x)
-    ! Add divB related sources to w within ixO
-    ! corresponding to Eq. 3.17 Derigs et al 2018 JCP, 364, 420
-    use mod_global_parameters
-    use mod_geometry
-
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision:: divb(ixI^S),v(ixI^S,1:ndir)
-    integer          :: idim,idir
-    double precision :: gradPsi(ixI^S,ndim), Bf(ixI^S,1:ndir)
-
-    ! calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
-
-    ! calculate velocity
-    call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
-
-    ! gradient of Psi
-    do idim=1,ndim
-       select case(typegrad)
-       case("central")
-         call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi(ixI^S,idim))
-       case("limited")
-         call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi(ixI^S,idim))
-       end select
-    end do
-
-    if(B0field) then
-      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,0)
-    else
-      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))
-    end if
-
-    if (mhd_energy .and. .not.block%e_is_internal) then
-       ! e = e - qdt ( (v . b) * div b + (grad psi . v) * psi)
-       w(ixO^S,e_)=w(ixO^S,e_) - qdt * (divb(ixO^S) * &
-            sum(v(ixO^S,:)*Bf(ixO^S,:),dim=ndim+1) + wCT(ixO^S,psi_)*&
-            sum(v(ixO^S,1:ndim)*gradPsi(ixO^S,1:ndim),dim=ndim+1))
-    end if
-
-    ! b_i = b_i - qdt * v_i * div b
-    do idir=1,ndir
-      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
-    end do
-
-    ! m_i = m_i - qdt * b_i * div b
-    do idir=1,ndir
-      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*Bf(ixO^S,idir)*divb(ixO^S)
-    end do
-
-    ! psi = psi - qdt * (v . grad(psi) + alpha * psi)
-    w(ixO^S,psi_) = w(ixO^S,psi_)-qdt*(sum(v(ixO^S,1:ndim)*gradPsi(ixO^S,1:ndim),dim=ndim+1)+&
-      vmax_global/0.18d0*wCT(ixO^S,psi_))
-
     if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm')
 
-  end subroutine add_source_glm2
+  end subroutine add_source_glm
 
   !> Add divB related sources to w within ixO corresponding to Powel
   subroutine add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)

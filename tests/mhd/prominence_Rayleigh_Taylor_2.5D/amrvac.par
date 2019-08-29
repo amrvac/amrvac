@@ -64,6 +64,6 @@
  
  &mhd_list
         mhd_n_tracer=1
-        typedivbfix='glm1'
+        typedivbfix='glm'
         mhd_gravity=.true.
  /
