@@ -151,8 +151,6 @@ contains
 
     associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
     staggered : associate(wCTs=>sCT%ws, wnews=>snew%ws, wolds=>sold%ws)
-    if (idimsmax>idimsmin .and. typelimited=='original')&
-         call mpistop("Error in fv: Unsplit dim. and original is limited")
 
     fC=0.d0
 

@@ -155,7 +155,7 @@ contains
          dimsplit,typedimsplit,&
          flux_scheme,typepred1,&
          limiter,gradient_limiter,cada3_radius,&
-         loglimit,typelimited,typeboundspeed, &
+         loglimit,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,typecurl,&
          nxdiffusehllc, flathllc, tvdlfeps,&
@@ -344,7 +344,6 @@ contains
     typecourant     = 'maxsum'
     dimsplit        = .false.
     typedimsplit    = 'default'
-    typelimited     = 'predictor'
     if(physics_type=='mhd') then
       cada3_radius  = 0.5d0
     else
@@ -671,14 +670,6 @@ contains
     end if
 
     if (ndim==1) dimsplit=.false.
-    if (.not.dimsplit.and.ndim>1) then
-       select case (time_integrator)
-       case ("ssprk54","ssprk43","fourstep", "rk4", "threestep", "twostep")
-          ! Runge-Kutta needs predictor
-          typelimited="predictor"
-          if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
-       end select
-    end if
 
     ! Type limiter is of integer type for performance
     allocate(type_limiter(nlevelshi))

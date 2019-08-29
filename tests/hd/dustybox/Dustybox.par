@@ -24,13 +24,12 @@
         dtmin=1.d-30
         time_max=1.0d0
  /
-        itmax=1000
+        it_max=1000
 
  &methodlist
         time_integrator=  'twostep'
         flux_scheme=    20*'tvdlf'
         limiter= 20*'woodward'
-        typelimited=  'previous'
         dimsplit=.false.
 	small_density  = 1.0d-12
         small_pressure    = 1.0d-12
@@ -43,11 +42,7 @@
 
  &meshlist
         refine_criterion=3
-        !w_for_refine(6)=1
-        !w_for_refine(1)=4
-        !w_for_refine(2)=2
-        !w_for_refine(3)=3
-        !w_refine_weight(1)=1.0d0
+        !        !        !        !        !w_refine_weight(1)=1.0d0
         !w_refine_weight(2)=0.1d0
         !w_refine_weight(3)=0.1d0
         refine_max_level=1

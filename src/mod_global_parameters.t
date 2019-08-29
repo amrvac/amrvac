@@ -511,14 +511,6 @@ module mod_global_parameters
   !> Which time integrator to use
   character(len=std_len) :: time_integrator
 
-  !> What should be used as a basis for the limiting in TVD methods. Options are
-  !> 'original', 'previous' and 'predictor'.
-  !>
-  !> By default, the original value is used in 1D and for dimensional splitting,
-  !> while for dimensionally unsplit multidimensional case (dimsplit=F), TVDLF
-  !> and TVD-MUSCL uses the previous value from wold for limiting.
-  character(len=std_len) :: typelimited
-
   !> How to apply dimensional splitting to the source terms, see
   !> @ref disretization.md
   character(len=std_len) :: typesourcesplit

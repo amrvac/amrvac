@@ -322,7 +322,6 @@ without changing time, set `reset_it=T`.
     typepred1=nlevelshi strings from: 'default'|'hancock'|'tvdlf'|'hll'|'hllc'|'tvdmu'|'cd'|'fd'|'nul'
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
     gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
-    typelimited= 'previous' | 'predictor'
     loglimit= nw logicals, all false by default
     flatsh = F | T
     flatcd = F | T
@@ -370,8 +369,8 @@ linear in the time step, which is good for getting a steady state, by setting
 `time_integrator='onestep'`.
 
 There is also a fourth order Runge-Kutta type method, when
-`time_integrator='fourstep'`. It can be used with _dimsplit=.true._ and
-_typelimited='original'_. These higher order time integration methods can be
+`time_integrator='fourstep'`. It can be used with _dimsplit=.true._.
+ These higher order time integration methods can be
 most useful in conjunction with higher order spatial discretizations.
 See also [discretization](discretization.md).
 
@@ -410,11 +409,6 @@ The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
 typediv=limited) is selected. It is thus only used in the gradientS
 (divvectorS) subroutines in geometry.t (and has effect for the MHD modules).
-
-The `typelimited` variable tells the TVD type methods what w should be used as
-a basis for the limited reconstruction. By default, the `original` value is used in 1D and
-for dimensional splitting, while the dimensionally unsplit multidimensional
-case (dimsplit=F) uses the `predictor` value.
 
 When having a gravitational stratification, one might benefit from performing linear
 reconstruction on the primitive variables log10(rho) and/or log10(p). This can
