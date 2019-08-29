@@ -81,8 +81,6 @@ my %simple_replacements = (
     qr/\btypeaxial\b/ => "coordinate",
     qr/"spherical"/ => "spherical",
     qr/'spherical'/ => "spherical",
-    qr/"cylindrical"/ => "cylindrical",
-    qr/'cylindrical'/ => "cylindrical",
     );
 
 # Replace words only used in par files (pattern => replacement)
@@ -137,6 +135,7 @@ my %par_file_replacements = (
     qr/\btypetvdlf\b/ => "typeboundspeed",
     qr/\bitmax\b/ => "it_max",
     qr/\bglm1\b/ => "glm",
+    qr/ *typelimited *=.*\n/ => "", # Remove typelimited= ... lines
     );
 
 # List of regular expressions and associated warnings

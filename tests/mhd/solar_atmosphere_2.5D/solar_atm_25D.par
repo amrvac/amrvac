@@ -34,7 +34,6 @@
         time_integrator=  'threestep'
         flux_scheme=    20*'hll'
         limiter= 20*'cada3'
-        typelimited='predictor'
         dimsplit=.false.
         small_pressure=1.0d-8
         small_density=1.0d-14

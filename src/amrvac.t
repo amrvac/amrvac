@@ -113,9 +113,9 @@ program amrvac
 
      ! re-calculate magnetic field from the vector potential in a 
      ! completely divergency free way for AMR mesh in 3D
-     {^IFTHREED if(stagger_grid .and. associated(usr_init_vector_potential) &
-      .and. levmax>levmin) call recalculateB
-     }
+     !{^IFTHREED if(stagger_grid .and. associated(usr_init_vector_potential) &
+     ! .and. levmax>levmin) call recalculateB
+     !}
 
      ! select active grids
      call selectgrids
