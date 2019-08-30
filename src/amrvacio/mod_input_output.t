@@ -1157,6 +1157,9 @@ contains
   end function get_snapshot_index
 
   !> Write header for a snapshot
+  !>
+  !> If you edit the header, don't forget to update: snapshot_write_header(),
+  !> snapshot_read_header(), doc/fileformat.md, tools/python/dat_reader.py
   subroutine snapshot_write_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_physics
@@ -1219,6 +1222,10 @@ contains
 
   end subroutine snapshot_write_header
 
+  !> Read header for a snapshot
+  !>
+  !> If you edit the header, don't forget to update: snapshot_write_header(),
+  !> snapshot_read_header(), doc/fileformat.md, tools/python/dat_reader.py
   subroutine snapshot_read_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_global_parameters

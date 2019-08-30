@@ -6,7 +6,7 @@ visualization. Note that restart is possible on a differing number of CPUs,
 and may suddenly allow more refinement levels. Also, note that the individual
 snapshots will typically have different lengths, as the number of grid blocks
 will vary dynamically. The data is saved in binary format (double precision).
-You can find the exact implementation in `src/mod_input_output.t`.
+You can find the exact implementation in `src/mod_input_output.t`, more specifically in `snapshot_write_header()` and `snapshot_read_header()`.
 
 A snapshot (`.dat` file) contains a header, mesh tree information, and block
 data, in the following order:
