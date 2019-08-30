@@ -30,7 +30,7 @@ import matplotlib.patches as mpp
 
 def streamplot(x, y, u, v, x_0=None, y_0=None, density=1, linewidth=1,
                color='k', cmap=None, norm=None, vmax=None, vmin=None,
-               arrowsize=1, INTEGRATOR='RK4'):
+               arrowsize=1, INTEGRATOR='RK4',alpha=1.):
     '''Draws streamlines of a vector flow.
 
     * x and y are 1d arrays defining an *evenly spaced* grid.
@@ -310,8 +310,8 @@ def streamplot(x, y, u, v, x_0=None, y_0=None, density=1, linewidth=1,
     ## Now we build up the trajectory set. I've found it best to look
     ## for blank==0 along the edges first, and work inwards.
     if (x_0==None and y_0==None):
-        for indent in range((max(NBX,NBY))/2):
-            for xi in range(max(NBX,NBY)-2*indent):
+        for indent in range(int((max(NBX,NBY))/2)):
+            for xi in range(int(max(NBX,NBY)-2*indent)):
                 traj(xi+indent, indent)
                 traj(xi+indent, NBY-1-indent)
                 traj(indent, xi+indent)
@@ -362,16 +362,17 @@ def streamplot(x, y, u, v, x_0=None, y_0=None, density=1, linewidth=1,
         else:
             args['color'] = color
             arrowcolor = color
+        args['alpha'] = alpha
         
         lc = matplotlib.collections.LineCollection\
              (segments, **args)
         pylab.gca().add_collection(lc)
             
         ## Add arrows half way along each trajectory.
-        n = len(tx)/2
+        n = int(len(tx)/2)
         p = mpp.FancyArrowPatch((tx[n],ty[n]), (tx[n+1],ty[n+1]),
                                 arrowstyle='->', lw=arrowlinewidth,
-                                mutation_scale=20*arrowsize, color=arrowcolor)
+                                mutation_scale=20*arrowsize, color=arrowcolor, alpha=alpha)
         pylab.gca().add_patch(p)
 
     pylab.xlim(x.min(), x.max())

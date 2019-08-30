@@ -6,6 +6,7 @@ from numpy import loadtxt as pylabload
 import numpy_support as ah
 import sys, time
 import struct
+#import piece2poly as he
 
 
 if sys.platform == "win32":
@@ -36,24 +37,35 @@ def extract(data,varname,attribute_mode='cell'):
         c2p.SetInput(data)
         pointdata=c2p.GetOutput()
         pointdata.Update()
-    	vtk_values = pointdata.GetPointData().GetScalars(varname)
+        vtk_values = pointdata.GetPointData().GetScalars(varname)
     else:
-        print "attribute_mode is either 'cell' or 'point'"
+        print("attribute_mode is either 'cell' or 'point'")
     
-    return (ah.vtk2array(vtk_values)).astype(np.float64)
+    return ah.vtk2array(vtk_values)
 
 #=============================================================================
 class load:
     """
     Loader class for vtu and pvtu files.
     """
-    def __init__(self,offset,get=1,file='data',type='vtu',mirrorPlane=None,silent=0):
+    def __init__(self,offset,get=1,file='data',type='vtu',mirrorPlane=None,
+                 rotateX=0,rotateY=0,rotateZ=0,
+                 scaleX=1,scaleY=1,scaleZ=1,
+                 silent=0):
         self.offset=offset
         self.filenameout = file
         self.type = type
         self.isLoaded = False
         self.mirrorPlane=mirrorPlane
         self.silent = silent
+        
+        self.rotateX = rotateX
+        self.rotateY = rotateY
+        self.rotateZ = rotateZ
+
+        self.scaleX = scaleX
+        self.scaleY = scaleY
+        self.scaleZ = scaleZ
 
         if type == 'vtu':
             self.filename=''.join([self.filenameout,repr(offset).zfill(4),'.vtu'])
@@ -65,10 +77,10 @@ class load:
             self.filename=''.join([self.filenameout,repr(offset).zfill(4),'.vti'])
             self.datareader = v.vtkXMLImageDataReader()
         else:
-            print 'Unknown filetype'
+            print('Unknown filetype')
             
-        if (self.silent == 0): print '========================================'
-        if (self.silent == 0): print  'loading file %s' % (self.filename)
+        if (self.silent == 0): print('========================================')
+        if (self.silent == 0): print('loading file %s' % (self.filename))
 
         if get != None:
             self.getAll()
@@ -82,6 +94,13 @@ class load:
         return self.time
 
 
+    def getVar(self,varname):
+        try:
+            exec("tmp=self.%s" % (varname))
+            return tmp
+        except AttributeError:
+            print("Unknown variable", varname)
+    
     def getData(self):
         self.datareader.SetFileName(self.filename)
         self.datareader.Update()
@@ -89,25 +108,44 @@ class load:
         self.ncells = self.data.GetNumberOfCells()
         self.isLoaded = True
 
+        if (self.rotateX != 0 or self.rotateY != 0 or self.rotateZ != 0
+            or self.scaleX != 1 or self.scaleY != 1 or self.scaleZ != 1):
+            transform = v.vtkTransform()
+            transform.RotateX(self.rotateX)
+            transform.RotateY(self.rotateY)
+            transform.RotateZ(self.rotateZ)
+            transform.Scale(self.scaleX, self.scaleY, self.scaleZ)
+            transfilter = v.vtkTransformFilter()
+            transfilter.SetTransform(transform)
+            transfilter.SetInputData(self.data)
+            self.data = transfilter.GetOutput()
+            transfilter.Update()
+
 
     def getPointData(self):
         self.getData()
         if self.data.GetPointData().GetNumberOfArrays() == 0:
             c2p = v.vtkCellDataToPointData()
-            c2p.SetInput(self.data)
+            # vtk 4,5:
+#            c2p.SetInput(self.data)
+            # vtk 6:
+            c2p.SetInputData(self.data)
             self.pointdata=c2p.GetOutput()
-            self.pointdata.Update()
+            # vtk 4,5:          
+#            self.pointdata.Update()
+            # vtk 6:
+            c2p.Update()
         else:
-            self.pointdata=self.data()
+            self.pointdata=self.data
 
 
     def getVars(self):
         nvars= self.data.GetCellData().GetNumberOfArrays()
         for i in range(nvars):
             varname = self.data.GetCellData().GetArrayName(i)
-            if (self.silent == 0): print  "Assigning variable:", varname
+            if (self.silent == 0): print("Assigning variable:", varname)
             vtk_values = self.data.GetCellData().GetArray(varname)
-            exec "self.%s = ah.vtk2array(vtk_values)[0:self.ncells]" % (varname)
+            exec("self.%s = ah.vtk2array(vtk_values)[0:self.ncells]" % (varname))
 
 
     def getVarnames(self):
@@ -130,7 +168,7 @@ class load:
             pts=ah.vtk2array(self.data.GetCell(icell).GetPoints().GetData())
             return np.array((pts[0][0],pts[1][0]))
         else: 
-            if (self.silent == 0): print  "Can handle only type 3 or type 8"
+            if (self.silent == 0): print("Can handle only type 3 or type 8")
         
 
     def getPointList(self):
@@ -143,7 +181,7 @@ class load:
             [self.xlist,self.ylist]
         except AttributeError:
             if self.data.GetCell(0).GetCellType() != 8 :
-                if (self.silent == 0): print  "Can handle pixel types only"
+                if (self.silent == 0): print("Can handle pixel types only")
                 pass
             self.xlist = []
             self.ylist = []
@@ -152,7 +190,7 @@ class load:
                 self.xlist.extend((pts[0][0],pts[1][0],pts[3][0],pts[2][0],None))
                 self.ylist.extend((pts[0][1],pts[1][1],pts[3][1],pts[2][1],None))
         tend = default_timer()
-        if (self.silent == 0): print  'Getting formatted pointlist time=%f sec' % (tend-tstart)
+        if (self.silent == 0): print('Getting formatted pointlist time=%f sec' % (tend-tstart))
         return [self.xlist,self.ylist]        
 
 
@@ -167,7 +205,7 @@ class load:
         try:
             self.centerpoints
         except AttributeError:
-            if self.getNdim() == 2 :
+            if self.getNdim() == 2 or self.getNdim() == 3:
                 self.centerpoints=np.empty((self.ncells,2))
                 for icell in range(self.ncells):
                     vert=self.getVert(icell)
@@ -180,7 +218,7 @@ class load:
                     self.centerpoints[icell]=vert.mean()
             tend = default_timer()
         if firstget:
-            if (self.silent == 0): print  'Getting cell center coordiantes time=%f sec' % (tend-tstart)
+            if (self.silent == 0): print('Getting cell center coordiantes time=%f sec' % (tend-tstart))
         return self.centerpoints
 
 
@@ -199,13 +237,13 @@ class load:
             self.surface
         except AttributeError:
             # Assuming cells are rectangles here.
-            surface=map(calcSurface,range(self.ncells))
+            surface=list(map(calcSurface,list(range(self.ncells))))
             self.surface=np.array(surface)
         tend = default_timer()
-        if (self.silent == 0): print  'Getting cell surface (assuming rectangles) time=%f sec' % (tend-tstart)
+        if (self.silent == 0): print('Getting cell surface (assuming rectangles) time=%f sec' % (tend-tstart))
         return self.surface
 
-    def getPieces(self):
+    def getPieces(self,nBWidth,nBHeight,nIgnore):
         tstart = default_timer()
         try:
             self.data
@@ -214,29 +252,88 @@ class load:
         try:
             [self.xBlockList,self.yBlockList]
         except AttributeError:
-            self.nblocks = self.data.GetMaximumNumberOfPieces()
-            self.data.SetUpdateNumberOfPieces(self.nblocks)
+
             self.xBlockList=[]
             self.yBlockList=[]
-            for i in range(self.nblocks):
-                self.data.SetUpdatePiece(i)
-                self.data.Update()
-                blockBounds = self.data.GetBounds()
-                self.xBlockList.extend((blockBounds[0],blockBounds[1],blockBounds[1],blockBounds[0],None))
-                self.yBlockList.extend((blockBounds[2],blockBounds[2],blockBounds[3],blockBounds[3],None))
-            self.data.SetUpdateNumberOfPieces(1)
-            self.data.SetUpdatePiece(0)
-            self.data.Update()
+
+            pts=self.getPoints()
+            nPoints = np.shape(pts)[0]
+
+            # Calculate number of blocks
+            
+            nBSize=(nBWidth+1)*(nBHeight+1)
+            
+            nBlocks=int(nPoints/nBSize)
+
+            # For all blocks, draw the perimeter
+            for iBlock in range(nBlocks):
+                start=iBlock*nBSize
+                end  =(iBlock+1)*nBSize-1
+                # Side 1
+                for i in range(start,start+nBWidth+1):
+                    self.xBlockList.append(pts[i][0])
+                    self.yBlockList.append(pts[i][1])
+                # Side 2
+                for i in range(start+nBWidth,end+1,nBWidth+1):
+                    self.xBlockList.append(pts[i][0])
+                    self.yBlockList.append(pts[i][1])
+                # Side 3
+                for i in range(end,end-nBWidth-1,-1):
+                    self.xBlockList.append(pts[i][0])
+                    self.yBlockList.append(pts[i][1])
+                # Side 4
+                for i in range(end-nBWidth,start-1,-nBWidth-1):
+                    self.xBlockList.append(pts[i][0])
+                    self.yBlockList.append(pts[i][1])
+            
+                self.xBlockList.append(None)
+                self.yBlockList.append(None)
+
+#############################################
+#
+#            self.nblocks = self.data.GetMaximumNumberOfPieces()
+#            self.data.SetUpdateNumberOfPieces(self.nblocks)
+#            self.xBlockList=[]
+#            self.yBlockList=[]
+#
+#            for i in range(nIgnore,self.nblocks):
+#                self.data.SetUpdatePiece(i)
+#                self.data.Update()
+#                pts = ah.vtk2array(self.data.GetPoints().GetData())
+#                nPoints = np.shape(pts)[0]
+#
+#                for i in range(nPoints):
+#                    if ((i < (nBWidth+1))or(i%(nBWidth+1)==nBWidth)):
+#                        self.xBlockList.append(pts[i][0])
+#                        self.yBlockList.append(pts[i][1])
+#                self.xBlockList.append(None)
+#                self.yBlockList.append(None)
+#                for i in range(nPoints):
+#                    if (i%(nBWidth+1)==0):
+#                        self.xBlockList.append(pts[i][0])
+#                        self.yBlockList.append(pts[i][1])
+#                self.xBlockList.append(None)
+#                self.yBlockList.append(None)
+#                for i in range(nPoints):
+#                    if (i>(nBWidth+1)*nBHeight):
+#                        self.xBlockList.append(pts[i][0])
+#                        self.yBlockList.append(pts[i][1])
+#                self.xBlockList.append(None)
+#                self.yBlockList.append(None)
+#
+#            self.data.SetUpdateNumberOfPieces(1)
+#            self.data.SetUpdatePiece(0)
+#            self.data.Update()
 
         tend = default_timer()
-        if (self.silent == 0): print  'Getting formatted blocklist time=%f sec' % (tend-tstart)
+        if (self.silent == 0): print('Getting formatted blocklist time=%f sec' % (tend-tstart))
         return [self.xBlockList,self.yBlockList]
 
     def showValues(self,icell):
-        if (self.silent == 0): print  '======================================================='
-        if (self.silent == 0): print  'icell= %d; x=%e; y=%e' % (icell,self.getCenterPoints()[icell,0],self.getCenterPoints()[icell,1])
+        if (self.silent == 0): print('=======================================================')
+        if (self.silent == 0): print('icell= %d; x=%e; y=%e' % (icell,self.getCenterPoints()[icell,0],self.getCenterPoints()[icell,1]))
         for varname in self.getVarnames():
-            exec "if (self.silent == 0): print  '%s =', self.%s[icell]" % (varname,varname)
+            exec("if (self.silent == 0): print  '%s =', self.%s[icell]" % (varname,varname))
 
 
     def getIcellByPoint(self,x,y):
@@ -270,11 +367,11 @@ class load:
         """
 
         vr=v.vtkReflectionFilter()
-        vr.SetInput(self.data)
+        vr.SetInputData(self.data)
         vr.SetPlane(self.mirrorPlane)
         self.data=vr.GetOutput()
         vr.Update()
-        self.data.Update()
+        #self.data.Update()
         self.ncells = self.data.GetNumberOfCells()
 
 
@@ -284,18 +381,19 @@ class load:
             im = CC[:,0] < 0
             var[im] = -var[im]
         else:
-            if (self.silent == 0): print  'reflection of this plane not yet implemented, sorry'
+            if (self.silent == 0): print('reflection of this plane not yet implemented, sorry')
 
         return var
 
 
     def getNdim(self):
+        smalldouble = 1e-10
         self.ndim = 3
-        if self.data.GetBounds()[1] - self.data.GetBounds()[0] == 0.:
+        if abs(self.data.GetBounds()[1] - self.data.GetBounds()[0]) <= smalldouble:
             self.ndim=self.ndim - 1
-        if self.data.GetBounds()[3] - self.data.GetBounds()[2] == 0.:
+        if abs(self.data.GetBounds()[3] - self.data.GetBounds()[2]) <= smalldouble:
             self.ndim=self.ndim - 1
-        if self.data.GetBounds()[5] - self.data.GetBounds()[4] == 0.:
+        if abs(self.data.GetBounds()[5] - self.data.GetBounds()[4]) <= smalldouble:
             self.ndim=self.ndim - 1
         return self.ndim
 
@@ -305,44 +403,54 @@ class load:
         
         self.getData()
         tdata = default_timer()
-        if (self.silent == 0): print  'Reading data time= %f sec' % (tdata-t0)
+        if (self.silent == 0): print('Reading data time= %f sec' % (tdata-t0))
 
         if self.mirrorPlane != None:
-            if (self.silent == 0): print  '========== Mirror about plane ',self.mirrorPlane,' ... ============'
+            if (self.silent == 0): print('========== Mirror about plane ',self.mirrorPlane,' ... ============')
             self.mirror()
 
 
-        if (self.silent == 0): print  '========== Initializing ... ============'
+        if (self.silent == 0): print('========== Initializing ... ============')
         
 
         self.getVars()
         tvars = default_timer()
-        if (self.silent == 0): print  'Getting vars time= %f sec' % (tvars-tdata)
+        if (self.silent == 0): print('Getting vars time= %f sec' % (tvars-tdata))
 
         self.getPoints()
         tpoints = default_timer()
-        if (self.silent == 0): print  'Getting points time= %f sec' % (tpoints-tvars)
+        if (self.silent == 0): print('Getting points time= %f sec' % (tpoints-tvars))
 
         self.getTime()
 
         tend = default_timer()
-        if (self.silent == 0): print  '========== Finished loading %d cells in %f sec, have a nice day! ===========' % (self.ncells, (tend-t0) )
+        if (self.silent == 0): print('========== Finished loading %d cells in %f sec, have a nice day! ===========' % (self.ncells, (tend-t0) ))
 
 #=============================================================================
 class loadvti(load):
     """Loader class for vti data"""
-    def __init__(self,offset,get=1,file='data',mirrorPlane=None,silent=0):
+    def __init__(self,offset,get=1,file='data',mirrorPlane=None,silent=0,
+                 rotateX=0,rotateY=0,rotateZ=0,
+                 scaleX=1,scaleY=1,scaleZ=1):
         self.offset=offset
         self.filenameout = file
         self.isLoaded = False
         self.mirrorPlane=mirrorPlane
         self.silent = silent
+        
+        self.rotateX = rotateX
+        self.rotateY = rotateY
+        self.rotateZ = rotateZ
+
+        self.scaleX = scaleX
+        self.scaleY = scaleY
+        self.scaleZ = scaleZ
 
         self.filename=''.join([self.filenameout,repr(offset).zfill(4),'.vti'])
         self.datareader = v.vtkXMLImageDataReader()
 
-        if (self.silent == 0): print  '========================================'
-        if (self.silent == 0): print  'loading file %s' % (self.filename)
+        if (self.silent == 0): print('========================================')
+        if (self.silent == 0): print('loading file %s' % (self.filename))
 
         if get != None:
             self.getAll()
@@ -377,15 +485,15 @@ class loadvti(load):
         nvars= self.data.GetCellData().GetNumberOfArrays()
         for i in range(nvars):
             varname = self.data.GetCellData().GetArrayName(i)
-            if (self.silent == 0): print  "Assigning variable:", varname
+            if (self.silent == 0): print("Assigning variable:", varname)
             #            vtk_values = self.pointdata.GetPointData().GetArray(varname)
             vtk_values = self.data.GetCellData().GetArray(varname)
             if self.getNdim() == 1:
-                exec "self.%s = ah.vtk2array(vtk_values)[0:self.ncells].reshape((self.nx),order='F')" % (varname)
+                exec("self.%s = ah.vtk2array(vtk_values)[0:self.ncells].reshape((self.nx),order='F')" % (varname))
             if self.getNdim() == 2:
-                exec "self.%s = ah.vtk2array(vtk_values)[0:self.ncells].reshape((self.nx,self.ny),order='F')" % (varname)
+                exec("self.%s = ah.vtk2array(vtk_values)[0:self.ncells].reshape((self.nx,self.ny),order='F')" % (varname))
             if self.getNdim() == 3:
-                exec "self.%s = ah.vtk2array(vtk_values)[0:self.ncells].reshape((self.nx,self.ny,self.nz),order='F')" % (varname)
+                exec("self.%s = ah.vtk2array(vtk_values)[0:self.ncells].reshape((self.nx,self.ny,self.nz),order='F')" % (varname))
 
 
     def getAll(self):
@@ -393,7 +501,7 @@ class loadvti(load):
         
         self.getData()
         tdata = default_timer()
-        if (self.silent == 0): print  'Reading data time= %f sec' % (tdata-t0)
+        if (self.silent == 0): print('Reading data time= %f sec' % (tdata-t0))
 
         self.getNdim()
 
@@ -402,26 +510,27 @@ class loadvti(load):
         self.getZ()
 
         if self.mirrorPlane != None:
-            if (self.silent == 0): print  '========== Mirror about plane ',self.mirrorPlane,' ... ============'
+            if (self.silent == 0): print('========== Mirror about plane ',self.mirrorPlane,' ... ============')
             self.mirror()
 
 
-        if (self.silent == 0): print  '========== Initializing ... ============'
+        if (self.silent == 0): print('========== Initializing ... ============')
         
 
         self.getVars()
         tvars = default_timer()
-        if (self.silent == 0): print  'Getting vars time= %f sec' % (tvars-tdata)
+        if (self.silent == 0): print('Getting vars time= %f sec' % (tvars-tdata))
         
         self.getTime()
 
         tend = default_timer()
-        if (self.silent == 0): print  '========== Finished loading %d cells in %f sec, have a nice day! ===========' % (self.ncells, (tend-t0) )
+        if (self.silent == 0): print('========== Finished loading %d cells in %f sec, have a nice day! ===========' % (self.ncells, (tend-t0) ))
 
 #=============================================================================
 class loadcsv():
     '''Load 1D comma separated list from a cut'''
-    def __init__(self,offset,get=1,file='data',dir=1,coord=0.):
+    def __init__(self,offset,get=1,file='data',dir=1,coord=0.,silent=0):
+        self.silent = silent
         self.offset=offset
         self.filenameout = file
         self.coord = coord
@@ -429,8 +538,8 @@ class loadcsv():
         self.isLoaded = False
         self.makefilename()
 
-        print '========================================'
-        print 'loading file %s' % (self.filename)
+        if (self.silent == 0): print('========================================')
+        if (self.silent == 0): print('loading file %s' % (self.filename))
 
         if get != None:
             self.getAll()
@@ -443,9 +552,9 @@ class loadcsv():
         if self.coord < 0. and abs(self.coord) >1.:
             self.filename = self.filenameout+'_d'+str(self.dir)+'_x-'+'0.'+number[1]+number[3]+'D+'+str(int(np.log10(abs(self.coord)))+1).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
         if self.coord > 0. and abs(self.coord) <=1.:
-            self.filename = self.filenameout+'_d'+str(self.dir)+'_x+'+'0.'+number[1]+number[3]+'D'+str(int(np.log10(abs(self.coord)))+1).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
+            self.filename = self.filenameout+'_d'+str(self.dir)+'_x+'+'0.'+number[1]+number[3]+'D+'+str(int(np.log10(abs(self.coord)))).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
         if self.coord < 0. and abs(self.coord) <=1.:
-            self.filename = self.filenameout+'_d'+str(self.dir)+'_x-'+'0.'+number[1]+number[3]+'D'+str(int(np.log10(abs(self.coord)))+1).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
+            self.filename = self.filenameout+'_d'+str(self.dir)+'_x-'+'0.'+number[1]+number[3]+'D+'+str(int(np.log10(abs(self.coord)))).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
         if self.coord == 0.:
             self.filename = self.filenameout+'_d'+str(self.dir)+'_x+'+'0.'+number[1]+number[3]+'D+'+str(0).zfill(2)+'_n'+str(self.offset).zfill(4)+'.csv'
 
@@ -461,20 +570,20 @@ class loadcsv():
     def getAll(self):
         t0 = default_timer()
         self.file = open(self.filename, 'r')
-        print '========== Initializing ... ============'
+        if (self.silent == 0): print('========== Initializing ... ============')
         self.getHeader()
         self.getData()
         self.file.close()
         tdata = default_timer()
-        print 'Reading data time= %f sec' % (tdata-t0)
+        if (self.silent == 0): print('Reading data time= %f sec' % (tdata-t0))
 
 
     def getData(self):
         i=0
         for var in self.header:
-            exec "self.%s = pylabload(self.filename,usecols=[i],skiprows=1, delimiter=',')" % (var)
+            exec("self.%s = pylabload(self.filename,usecols=[i],skiprows=1, delimiter=',')" % (var))
             i=i+1
-        exec "self.ncells = len(self.%s)" % (self.getHeader()[0])
+        exec("self.ncells = len(self.%s)" % (self.getHeader()[0]))
 
 #=============================================================================
 class particles():
@@ -619,7 +728,7 @@ class ensemble():
                                   'ipe':particle[ipe_].astype(np.int), 'iteration':particle[iteration_].astype(np.int), 'index':particle[index_].astype(np.int)})
 
         else:
-            print 'File inconsistent, assuming iteration counter overflow'
+            print('File inconsistent, assuming iteration counter overflow')
             for particle in x:
                 self.data.append({'t':particle[t_],  
                                   'dt':particle[dt_], 'x':np.array(particle[x1_:x1_+self.components]), 
@@ -637,7 +746,98 @@ class ensemble():
                 return particle
         return False
 #=============================================================================
-if __name__ == "__main__":
-    print("read.py is being run directly.")
-else:
-    print("read.py is being imported.")
+class postrad():
+    """Load binary postrad data"""
+
+    def __init__(self,offset,file='data',headersize=256,nvars=8):
+        self.offset=offset
+        self.filenameout = file
+        self.headersize = headersize
+        self.nvars =8
+
+        self.indices={'r':0,'theta':1,'phi':2,'rho':0,'vr':1,'vtheta':2,'vphi':3,'p':4,'br':5,'btheta':6,'bphi':7}
+
+        self.data=-1
+        self.grid=-1
+        self.header=-1
+
+        self.__makefilenames()
+        self.__openfiles()
+        self.__read()
+        self.__closefiles()
+        
+    def __makefilenames(self):
+        self.filename_vars = self.filenameout+str(self.offset).zfill(4)+'.blk'
+        self.filename_grid = self.filenameout+'_grid.blk'
+
+    def __openfiles(self):
+        self.file_vars = open(self.filename_vars,'rb')
+        self.file_grid = open(self.filename_grid,'rb')
+
+    def __closefiles(self):
+        self.file_vars.close()
+        self.file_grid.close()
+
+    def __read(self):
+        self.__read_header()
+        self.__set_dtype()
+        self.__read_grid()
+        self.__read_data()
+        
+    def __read_header(self):
+        file_vars = self.file_vars
+        file_vars.seek(0)
+        nr = struct.unpack('i',file_vars.read(4)) [0]
+        ntheta = struct.unpack('i',file_vars.read(4)) [0]
+        nphi = struct.unpack('i',file_vars.read(4)) [0]
+        t = struct.unpack('d',file_vars.read(8)) [0]
+        a = struct.unpack('d',file_vars.read(8)) [0]
+        r_in = struct.unpack('d',file_vars.read(8)) [0]
+        theta_in = struct.unpack('d',file_vars.read(8)) [0]
+        phi_in = struct.unpack('d',file_vars.read(8)) [0]
+        r_out = struct.unpack('d',file_vars.read(8)) [0]
+        theta_out = struct.unpack('d',file_vars.read(8)) [0]
+        phi_out = struct.unpack('d',file_vars.read(8)) [0]
+        gammahat = struct.unpack('d',file_vars.read(8)) [0]
+        #    hslope  = struct.unpack('d',file_vars.read(8)) [0]
+        hslope  = 0.25 # was incorrectly set in codeComparison files
+        imetric = struct.unpack('i',file_vars.read(4)) [0]
+        dummy = struct.unpack('i',file_vars.read(4)) [0]
+        dim = struct.unpack('i',file_vars.read(4)) [0]
+        isp = struct.unpack('i',self.file_vars.read(4)) [0]
+        if (isp == -1):
+            single_precision = True
+        else:
+            single_precision = False
+        
+        self.header = {'nr':nr, 'ntheta':ntheta, 'nphi':nphi,'t':t,'a':a,'r_in':r_in,'theta_in':theta_in,'phi_in':phi_in,'r_out':r_out,'theta_out':theta_out,'phi_out':phi_out,'gammahat':gammahat,'hslope':hslope,'imetric':imetric,'dim':dim,'single_precision':single_precision}
+    
+    def __set_dtype(self):
+        if (self.header['single_precision']):
+            self.__dtype_str = 'f'
+        else:
+            self.__dtype_str = 'd'
+
+    def __read_data(self):
+        file_vars = self.file_vars
+        header = self.header
+        file_vars.seek(self.headersize)
+            
+        len_bytes = header['nphi']*header['ntheta']*header['nr']*self.nvars
+        data = np.array(struct.unpack(self.__dtype_str*len_bytes,file_vars.read())).reshape(header['nphi'],header['ntheta'],header['nr'],self.nvars)
+        
+        self.data = data
+
+    def __read_grid(self):
+        file_grid = self.file_grid
+        header = self.header
+        file_grid.seek(0)
+        len_bytes = header['nphi']*header['ntheta']*header['nr']*3
+        data = np.array(struct.unpack(self.__dtype_str*len_bytes,file_grid.read())).reshape(header['nphi'],header['ntheta'],header['nr'],3)
+        
+        self.grid = data
+#=============================================================================
+#if __name__ == "__main__":
+#    print("read.py is being run directly.")
+#else:
+#    print("read.py is being imported.")
