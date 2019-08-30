@@ -61,6 +61,7 @@ visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
 visualisation and analysis (e.g. column densities)
 * [Analysis routine](analysis.md) Using the run-time analysis routine
+* [Python tools](python.md) Using Python tools to analyze data
 
 **Data analysis tools**
 

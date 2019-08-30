@@ -1,15 +1,16 @@
-Generates the mainpage. 
-\mainpage
+# Python tools
 
-This document describes the use of Python for plotting MPI-AMRVAC 1D and 2D simulation data.  *The Python tools were initiated by Oliver Porth.*  
+**Warning (Aug 2019): this document still needs to be updated!**
+
+# Introduction
+
+This document describes the use of Python for plotting MPI-AMRVAC 1D and 2D simulation data.  *The Python tools were initiated by Oliver Porth.*
 
 The Python macros are located in the directory `tools/python` and depend on [VTK](http://www.vtk.org)-bindings and the widespread [SciPy](http://www.scipy.org/) toolkit.
 
-\tableofcontents
+# Installation
 
-\section Installation
-
-\subsection distribution Python distribution
+## distribution Python distribution
 
 If you are a beginner at Python, we recommend using a pre-configured
 python-distribution such as
@@ -23,21 +24,21 @@ called [IPython](http://ipython.org/) for interactive use.
 
 You can verify your VTK installation by trying to
 `import vtk` in a Python session.  If VTK is installed properly, this
-should throw no error messages.  
+should throw no error messages.
 
 
-\subsection AMRVAC-Tools
+## AMRVAC-Tools
 The tools are installed by adding the directory `$AMRVAC_DIR/tools/python` to your python path. This can be done in a number of ways. Either you expand your `$PYTHONPATH` environment variable, e.g. on the bash shell:
 
 ~~~~~
 export PYTHONPATH = $AMRVAC_DIR/tools/python:$PYTHONPATH
-~~~~~ 
+~~~~~
 
 or you add a file *userpath.pth* in one of the folders existing in the search path already. The file simply contains
 
 ~~~~~
 youramrvacdir/tools/python
-~~~~~ 
+~~~~~
 
 where *youramrvacdir* has to be the resolved variable `$AMRVAC_DIR`,
 e.g. `/Users/Max/code/amrvac`. For example on a mac, you can add the
@@ -45,7 +46,7 @@ userpath.pth to the directory
 `/Library/Frameworks/Python.framework/Versions/Current/lib/python2.7/site-packages`
 or similar.
 
-\section reading Reading data
+# reading Reading data
 
 We currently support reading the **cell-centered** VTK file-types `.vtu, .pvtu, .vti` as
 well as binary particle `.dat` files and some ascii `.csv` files for
@@ -58,28 +59,28 @@ for different data.
 For interactive use with the terminal, cd to the directory containing your data and fire up ipython:
 ~~~~~
 ipython --pylab
-~~~~~ 
+~~~~~
 Import the reader and plotter classes:
 ~~~~~
 >>> import read,amrplot
 ~~~~~
-\subsection vtu vtu and pvtu files
+## vtu vtu and pvtu files
 
 This uses the class @ref read.load.
 
 Interactively load the data:
 ~~~~~
->>> d=read.load(offset,file='data',type='vtu')	
+>>> d=read.load(offset,file='data',type='vtu')
 ~~~~~
 which loads data'offset'.vtu, where offset is zero-padded to four
 digits (e.g. 0010). The data is contained in the instance `d`. Thus
 `d.rho` holds the numpy-array of the density, `d.v1` hols the first component of velocity (assuming your data is in primitive quantities and your velocity variable is called '`v1`') and so on. To load a different snapshot into the instance `e`, type
 ~~~~~
->>> e=read.load(DifferentOffset,file='data',type='vtu')	
+>>> e=read.load(DifferentOffset,file='data',type='vtu')
 ~~~~~
 In order to load a file ending in `.pvtu`, change the attribute of the optional parameter type to `type='pvtu'`. The default is currently `type='vtu'`.
 
-\subsection vti vti files
+## vti vti files
 
 This uses the class @ref read.loadvti.
 For uniform `.vti` files, you can use
@@ -88,29 +89,29 @@ For uniform `.vti` files, you can use
 ~~~~~
 
 
-\subsection particles Particle dat files
+## particles Particle dat files
 
-This uses the class @ref read.particles. Type 
+This uses the class @ref read.particles. Type
 ~~~~~
 >>> d=read.particles(offset,file='data')
 ~~~~~
 to import the particle snapshot data into python.
 
-\subsection ensemble Particle csv files
+## ensemble Particle csv files
 
 This uses the class @ref read.ensemble to load particle ensemble comma
 separated value files.  Type
 ~~~~~
 >>> d=read.ensemble(offset, file='data0000', npayload=1)
 ~~~~~
-to load file <code>data0000_ensemble</code><em>offset</em><code>.csv</code> where <em>offset</em> is zero
+to load file `data0000_ensemble`**offset**`.csv` where **offset** is zero
 padded to six digits.  `npayload` stands for the number of payload arrays in
 your data (default is one).  We have two running indices in
 the output files, where the first `data0000` describes the fluid
 snapshot (e.g. useful when adding particles to a frozen snaphot) and the second `offset` denotes
 the particle ensemble snapshot number.
 
-\subsection slice Slice csv files
+## slice Slice csv files
 
 To load a 1D slice in `.csv` format from a 2D simulation, you can use
 the class @ref read.loadcsv
@@ -118,18 +119,18 @@ the class @ref read.loadcsv
 >>> d=read.loadcsv(offset,get=1,file='data',dir=1,coord=0.)
 ~~~~~
 which loads file
-<code>data_d</code><em>dir</em><code>_x</code><em>coord</em>_n<em>offset</em><code>.csv</code>,
-e.g. `data_d1_x+0.00D00_n0000.csv`.  
+`data_d`**dir**`_x`**coord**_n**offset**`.csv`,
+e.g. `data_d1_x+0.00D00_n0000.csv`.
 
 
-\section plotting Plotting data
+# plotting Plotting data
 
-\subsection onedplots 1D plotting
+## onedplots 1D plotting
 
 Once the data is loaded into the instance `d`, you can access it with
 `d.varname` where `varname` is a variable name chosen in your
 AMRVAC parameter-file.  Pythons powerful introspectrion makes it real
-easy to see whats available in the data: just type `d.` and hit the *tab* key to see whats available.  
+easy to see whats available in the data: just type `d.` and hit the *tab* key to see whats available.
 For uniform data (`.vti`), the arithmetic center of the cells can
 be obtained via the command
 ~~~~~
@@ -152,14 +153,14 @@ that a plot would be obtained with
 >>> plot(d.x,d.rho,'k-+')
 ~~~~~
 
-\subsection twodplots 2D plotting
+## twodplots 2D plotting
 
 The module @ref amrplot contains plotting tools for 2D AMR data.
 These come in two flavours: the class @ref amrplot.polyplot to show
 each cell in one patch and the class @ref amrplot.rgplot to show data
 interpolated onto a uniform mesh.  Other than that, both classes offer the same
 functionality.  To display a 2D image of the density in your
-datastructure `d`, invoke a new instance 
+datastructure `d`, invoke a new instance
 ~~~~~
 >>> p1=amrplot.polyplot(d.rho,d)
 ~~~~~
@@ -175,7 +176,7 @@ which can be switched off by setting @ref amrplot.polyplot.blocks back to `None`
 
 The method @ref amrplot.polyplot.onkey allows you to inspect a location in your data: use the middle mouse button to mark a cell in your plotting window, then a pink crosshair will be displayed and the flow variables at chosen location are returned to the terminal.
 
-\subsubsection convenience Auxiliary functions
+### convenience Auxiliary functions
 
 Some auxiliary functions you might find useful:
 * @ref amrplot.line selects flow variables over a straight path across your 2D slice
@@ -183,11 +184,3 @@ Some auxiliary functions you might find useful:
 * @ref amrplot.contour overlays contours onto your plotting window
 * @ref amrplot.streamlines shows streamlines of a vector field
 * @ref amrplot.streamline plots a single streamline with given starting value
-
-\section doc Making this documentation
-
-This documentation is created using [doxypypy](https://github.com/Feneric/doxypypy) and the documentation system [Doxygen](http:www.doxygen.org).  Simply run
-~~~~~
-./makedoc
-~~~~~
-in the `$AMRVAC_DIR/tools/python` folder to re-generate the documentation.  
