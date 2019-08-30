@@ -65,9 +65,9 @@ visualisation and analysis (e.g. column densities)
 
 ## Python tools {#io-python}
 
-* [Python tools](python.md) Using Python tools to analyze data
 * [Ray-Tracing Algorithm](raytracing.md) Python script to generate H-alpha views for any given .dat file.
 * [Reader for .dat files](dat_reader.md) Script to read in MPI-AMRVAC `.dat` files for data analysis with Python.
+* [amrplot](python_amrplot.md) Using amrplot to analyze data
 
 # Meetings and workshops {#meetings}
 

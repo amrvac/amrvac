@@ -1,4 +1,4 @@
-# Python tools
+# Python amrplot
 
 **Warning (Aug 2019): this document still needs to be updated!**
 
@@ -6,38 +6,34 @@
 
 This document describes the use of Python for plotting MPI-AMRVAC 1D and 2D simulation data.  *The Python tools were initiated by Oliver Porth.*
 
-The Python macros are located in the directory `tools/python` and depend on [VTK](http://www.vtk.org)-bindings and the widespread [SciPy](http://www.scipy.org/) toolkit.
+The Python macros are located in the directory `tools/python/amrplot` and depend on [VTK](http://www.vtk.org)-bindings and the widespread [SciPy](http://www.scipy.org/) toolkit.
 
 # Installation
 
-## distribution Python distribution
+## Python distribution
 
-If you are a beginner at Python, we recommend using a pre-configured
-python-distribution such as
-[Enthought Canopy](https://store.enthought.com/#canopy-academic). Note
-that for VTK support you will need to sign up for the free academic
-version. This distribution comes with [SciPy](http://www.scipy.org/)
-which bundles essential numerical tools
-([numpy](http://www.numpy.org/)), a plotting backend
-([matplotlib](http://matplotlib.org/)) and a command-line interface
-called [IPython](http://ipython.org/) for interactive use.
+You'll need:
+
+* [SciPy](http://www.scipy.org/) which bundles essential numerical tools ([numpy](http://www.numpy.org/))
+* A plotting backend ([matplotlib](http://matplotlib.org/))
+* A command-line interface called [IPython](http://ipython.org/) for interactive use.
+* VTK Python bindings
 
 You can verify your VTK installation by trying to
 `import vtk` in a Python session.  If VTK is installed properly, this
-should throw no error messages.
-
+should throw no error messages. Otherwise, try e.g. `pip install vtk`.
 
 ## AMRVAC-Tools
-The tools are installed by adding the directory `$AMRVAC_DIR/tools/python` to your python path. This can be done in a number of ways. Either you expand your `$PYTHONPATH` environment variable, e.g. on the bash shell:
+The tools are installed by adding the directory `$AMRVAC_DIR/tools/python/amrplot` to your python path. This can be done in a number of ways. Either you expand your `$PYTHONPATH` environment variable, e.g. on the bash shell:
 
 ~~~~~
-export PYTHONPATH = $AMRVAC_DIR/tools/python:$PYTHONPATH
+export PYTHONPATH = $AMRVAC_DIR/tools/python/amrplot:$PYTHONPATH
 ~~~~~
 
 or you add a file *userpath.pth* in one of the folders existing in the search path already. The file simply contains
 
 ~~~~~
-youramrvacdir/tools/python
+youramrvacdir/tools/python/amrplot
 ~~~~~
 
 where *youramrvacdir* has to be the resolved variable `$AMRVAC_DIR`,
