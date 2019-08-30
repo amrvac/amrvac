@@ -29,8 +29,11 @@ double precision  :: xprobmin(ndim)
 double precision  :: xprobmax(ndim)
 integer           :: domain_nx(ndim)
 integer           :: block_nx(ndim)
+logical           :: periodic(ndim)
+character(len=16) :: geometry
 character(len=16) :: w_names(nw)
 character(len=16) :: physics_type
+logical           :: staggered
 ! The physics parameters, such as gamma
 integer           :: n_params
 double precision  :: parameters(n_params)
