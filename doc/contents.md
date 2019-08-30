@@ -61,11 +61,14 @@ visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
 visualisation and analysis (e.g. column densities)
 * [Analysis routine](analysis.md) Using the run-time analysis routine
+
+
+## Python tools {#io-python}
+
 * [Python tools](python.md) Using Python tools to analyze data
-
-**Data analysis tools**
-
 * [Ray-Tracing Algorithm](raytracing.md) Python script to generate H-alpha views for any given .dat file.
 * [Reader for .dat files](dat_reader.md) Script to read in MPI-AMRVAC `.dat` files for data analysis with Python.
 
-* [Python](python/index.md) \todo Include python documentation here
+# Meetings and workshops {#meetings}
+
+* [Meetings](meetings.md) A list of past and upcoming meetings related to MPI-AMRVAC
