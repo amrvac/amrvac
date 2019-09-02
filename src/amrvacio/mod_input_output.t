@@ -1198,7 +1198,8 @@ contains
     call MPI_FILE_WRITE(fh, periodB, ndim, MPI_LOGICAL, st, er)
 
     ! Geometry
-    call MPI_FILE_WRITE(fh, typeaxial(1:name_len), name_len, MPI_CHARACTER, st, er)
+    call MPI_FILE_WRITE(fh, geometry_name(1:name_len), &
+         name_len, MPI_CHARACTER, st, er)
 
     ! Write stagger grid mark
     call MPI_FILE_WRITE(fh, stagger_grid, 1, MPI_LOGICAL, st, er)
