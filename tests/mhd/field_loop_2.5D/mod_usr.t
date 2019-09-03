@@ -62,6 +62,7 @@ contains
       call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
       call mhd_face_to_center(ixO^L,block)
     else 
+      bfield=0.d0
       call bfield_solution(ixI^L, ixO^L, x, v0, 0.0d0, bfield)
       w(ixO^S, mag(:)) = bfield(ixO^S, :)
     end if
