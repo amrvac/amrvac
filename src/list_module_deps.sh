@@ -3,7 +3,7 @@
 # Get all occurrences of use mod_... in .t files
 # - The '.' is for Mac compatibility
 # - The 'sort' is to ensure the order is identical on different systems
-deps="$(grep -r -e "^\s*use mod_" --include \*.t . | sort)"
+deps="$(grep -r -e "^\s*use mod_" --include \*.t . | sort -f)"
 
 # Remove the INCLUDES (are compiled first)
 deps=$(echo "$deps" | sed 's/use mod_global_parameters//')

@@ -103,6 +103,10 @@ program amrvac
         stop
      end if
 
+     {^NOONED
+     if (use_multigrid) call mg_setup_multigrid()
+     }
+
   else
 
      ! form and initialize all grids at level one
@@ -111,11 +115,12 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
-     ! re-calculate magnetic field from the vector potential in a 
-     ! completely divergency free way for AMR mesh in 3D
-     !{^IFTHREED if(stagger_grid .and. associated(usr_init_vector_potential) &
-     ! .and. levmax>levmin) call recalculateB
-     !}
+     {^NOONED
+     if (use_multigrid) call mg_setup_multigrid()
+     }
+
+     ! improve initial condition
+     call improve_initial_condition()
 
      ! select active grids
      call selectgrids
@@ -132,10 +137,6 @@ program amrvac
   end if
 
   time_advance=.true.
-
-  {^NOONED
-  if (use_multigrid) call mg_setup_multigrid()
-  }
 
   ! an interface to allow user to do special things before the main loop
   if (associated(usr_before_main_loop)) &
