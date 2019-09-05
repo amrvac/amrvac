@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Make Linux sort order match mac OS X
+export LC_ALL=C
 # Get all occurrences of use mod_... in .t files
 # - The '.' is for Mac compatibility
 # - The 'sort' is to ensure the order is identical on different systems
