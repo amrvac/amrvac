@@ -1015,3 +1015,18 @@ cylindrical coordinates as well. User can possibly prescibe analytic current in
 _usr_set_J0_ subroutine to significantly increase accuracy. Choose 
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
+
+
+
+## Synthetic EUV emission {#par_euvlist}
+
+    &euv_list
+      filename_euv='EUV_1354_'
+      image= F | T
+      spectrum= F | T
+      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1394 | 1403 | 1338 | 1343 | 1397 | 1400 | 1401 | 1405 | 1349 | 1351
+      direction_LOS= 1 | 2 | 3
+      direction_slit= 1 | 2 | 3
+      location_slit=0.d0
+      resolution_euv= 'instrument' | 'data'
+    /
