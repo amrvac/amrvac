@@ -60,6 +60,7 @@ comm_lib.o: mod_ghostcells_update.mod
 convert.o: mod_calculate_xw.mod
 convert.o: mod_ghostcells_update.mod
 convert.o: mod_physics.mod
+convert.o: mod_thermal_emission.mod
 mod_advance.o: mod_finite_difference.mod
 mod_advance.o: mod_finite_volume.mod
 mod_advance.o: mod_fix_conserve.mod
