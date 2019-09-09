@@ -8,12 +8,6 @@
 ! subroutines: 
 ! get_EUV: get local EUV emission intensity (for 1d, 2d and 3d)
 ! get_SXR: get local Soft X-ray emission intensity (for 1d, 2d and 3d)
-! get_EUV_image : integrating emission flux along given light of sight (LOS)
-!                 and get 2d images of intensity and Doppler shift 
-!                 (for 3d data only)
-! get_EUV_spectra : integrating local emission spectral along given LOS and 
-!                   get a 2d wavelength-distance image, where distance is the
-!                   distance along given slit (for 3d data only)
 
 module mod_thermal_emission
   use mod_global_parameters
@@ -820,9 +814,6 @@ module mod_thermal_emission
     subroutine get_EUV_image(qunit)
       ! integrate emission flux along line of sight (LOS) 
       ! in a 3D simulation box and get a 2D EUV image
-      ! wavelength : wave length of the EUV line
-      ! dirc : direction of LOS. 1 -> -x; 2 -> -y; 3 -> -z
-      ! unit [DN cm^-4 s^-1]
 
       use mod_global_parameters
 
@@ -1429,12 +1420,6 @@ module mod_thermal_emission
     end subroutine write_image
 
     subroutine get_EUV_spectra(qunit)
-      ! wavelength -- wavelength of given EUV
-      ! dircL -- direction of the light of sight
-      ! dircS -- direction of the slit
-      ! loc -- location of the slit
-      ! teleRsl -- use (or not use) resolution of telescope
-      ! output 2d data: x--wavelength; y--distance along slit
       use mod_global_parameters
       use mod_usr_methods
 
