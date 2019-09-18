@@ -289,7 +289,7 @@ class load:
         if (self.silent == 0): print('=======================================================')
         if (self.silent == 0): print('icell= %d; x=%e; y=%e' % (icell,self.getCenterPoints()[icell,0],self.getCenterPoints()[icell,1]))
         for varname in self.getVarnames():
-            exec("if (self.silent == 0): print  '%s =', self.%s[icell]" % (varname,varname))
+            exec("if (self.silent == 0): print('{} = ', self.{}[icell])".format(varname,varname))
 
 
     def getIcellByPoint(self,x,y):

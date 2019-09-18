@@ -7,6 +7,8 @@ Class to load in MPI-AMRVAC .datfiles files.
 import sys, os
 import numpy as np
 import copy
+import matplotlib.pyplot as plt
+
 from amrvac_tools.datfiles.reading import datfile_utilities
 from amrvac_tools.datfiles.processing import regridding, process_data
 from amrvac_tools.datfiles.physics import physical_constants
@@ -24,6 +26,9 @@ class load_file():
         return synthetic.h_alpha(self, **kwargs)
     def faraday(self, **kwargs):
         return synthetic.faraday(self, **kwargs)
+    @staticmethod
+    def show():
+        plt.show()
 
     def __init__(self, filename):
         try:

@@ -1,6 +1,6 @@
 Adding the folder 'youramrvacdir/tools/python' to the Python path:
 
-Windows users: Start -> control panel -> 'edit the system environment variables' -> tab 'hardware' -> 'environment variables'
+Windows users: Start -> control panel -> 'edit the system environment variables' -> tab 'advanced' -> 'environment variables'
 	       search for PYTHONPATH (or create one if it is not already there) and add 'youramrvacdir/tools/python'.
 
 Mac & Linux users can add the following line to their PYTHONPATH in ~/.bashprofile (Mac) or ~/.bashrc (Linux)
