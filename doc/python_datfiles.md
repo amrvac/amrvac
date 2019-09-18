@@ -117,7 +117,7 @@ Everything described above (except for the synthetic views) is calculated using 
 in the dataset, it is important (and good practice) to correctly define the unit normalisations.
 The default unit system is `cgs`, which can be switched to `si` via  
 
-    `ds.units.cgs=False`
+    ds.units.cgs=False
 
 If `cgs` units are required, this can be omitted. Setting the normalisations is quite straightforward, and is done through
 

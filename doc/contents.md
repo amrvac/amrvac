@@ -65,7 +65,7 @@ visualisation and analysis (e.g. column densities).
 # Python tools {#io-python}
 * [Setting up](python_setup.md) What's needed to start using the tools.
 * [Reading dat files](python_datfiles.md) How to read the native .dat files.
-* [Reading vtu files](python_amrplot.md) How to read vtk-type files.
+* [Reading vtu files](python_vtkfiles.md) How to read vtk-type files.
 
 # Meetings and workshops {#meetings}
 

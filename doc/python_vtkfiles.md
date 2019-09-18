@@ -1,182 +1,132 @@
-# Python amrplot
+# Reading the vtk files
 
-**Warning (Aug 2019): this document still needs to be updated!**
+[TOC]
 
-# Introduction
+# Introduction {#introduction}
 
-This document describes the use of Python for plotting MPI-AMRVAC 1D and 2D simulation data.  *The Python tools were initiated by Oliver Porth.*
+This document describes the use of Python for plotting MPI-AMRVAC 1D and 2D simulation data using the `vtk` filetypes.
+All required packages and instructions on how to set up the tools folder are described in @ref python_setup.md.
+The vtk-file tools can be found in the folder `$AMRVAC_DIR/tools/python/vtkfiles`.
 
-The Python macros are located in the directory `tools/python/amrplot` and depend on [VTK](http://www.vtk.org)-bindings and the widespread [SciPy](http://www.scipy.org/) toolkit.
+# Reading datasets {#reading_vtk}
+Currently only the reading of **cell-centered** `vtk` file-types (`.vtu`, `.pvtu`, `.vti`) is supported,
+together with some ascii `.csv` files. Reading the data is handled in the file `read.py`, present in the `vtkfiles` subdirectory.
+This file contains various classes for different data.
 
-# Installation
+Reading the `vtk` files is best done using an interactive environment. Hence, navigate to your directory containing your data and
+fire up `IPython`:
 
-## Python distribution
+    ipython --pylab
 
-You'll need:
+Next, import the reading and plotting classes:
 
-* [SciPy](http://www.scipy.org/) which bundles essential numerical tools ([numpy](http://www.numpy.org/))
-* A plotting backend ([matplotlib](http://matplotlib.org/))
-* A command-line interface called [IPython](http://ipython.org/) for interactive use.
-* VTK Python bindings
+    from amrvac_tools.vtkfiles import read, amrplot
 
-You can verify your VTK installation by trying to
-`import vtk` in a Python session.  If VTK is installed properly, this
-should throw no error messages. Otherwise, try e.g. `pip install vtk`.
+## vtu and pvtu filetypes
+These filetypes use the class `read.load()`, loading the data can be done as follows:
 
-## AMRVAC-Tools
-The tools are installed by adding the directory `$AMRVAC_DIR/tools/python/amrplot` to your python path. This can be done in a number of ways. Either you expand your `$PYTHONPATH` environment variable, e.g. on the bash shell:
+    offset=15
+    ds = read.load(offset, file='KH', type='vtu')
 
-~~~~~
-export PYTHONPATH = $AMRVAC_DIR/tools/python/amrplot:$PYTHONPATH
-~~~~~
+which will read the file `KH0015.vtu`. The argument `offset` is zero-padded to four digits
+and is used to specify the file number. The argument `type` is either '`vtu`' (default) or `'pvtu'`,
+which is used to append the file extension and select the correct reading methods.
+The variables are contained in the instance `ds`, thus
 
-or you add a file *userpath.pth* in one of the folders existing in the search path already. The file simply contains
+    ds.rho
 
-~~~~~
-youramrvacdir/tools/python/amrplot
-~~~~~
+holds the Numpy array for the density, `ds.v1` holds the first component of the velocity
+(assuming the data is in primitive quantities and your velocity variable is called '`v1`') and so on.
+The available variables will be printed to the terminal when loading in the dataset.
+Different datasets can be loaded by supplying different offsets.
 
-where *youramrvacdir* has to be the resolved variable `$AMRVAC_DIR`,
-e.g. `/Users/Max/code/amrvac`. For example on a mac, you can add the
-userpath.pth to the directory
-`/Library/Frameworks/Python.framework/Versions/Current/lib/python2.7/site-packages`
-or similar.
+## vti filetypes
+This filetype uses the class `read.loadvti()`, loading the data can be done as follows:
 
-# reading Reading data
+    offset=15
+    ds = read.loadvti(offset, file='KH')
 
-We currently support reading the **cell-centered** VTK file-types `.vtu, .pvtu, .vti` as
-well as binary particle `.dat` files and some ascii `.csv` files for
-Python. This means that you can use the same files with e.g. Paraview
-or Visit. These can be created in parallel and during runtime (see
-also the section on data-file [conversion](../convert.html)). Reading
-data is handled in the file ready.py which provides various classes
-for different data.
+which in turn reads the file `KH0015.vti`. In this case no filetype has to be specified.
+Accessing the variables in these uniform `.vti` files is done in a similar way as described above,
+the available variables are again printed to the terminal when loading the dataset.
 
-For interactive use with the terminal, cd to the directory containing your data and fire up ipython:
-~~~~~
-ipython --pylab
-~~~~~
-Import the reader and plotter classes:
-~~~~~
->>> import read,amrplot
-~~~~~
-## vtu vtu and pvtu files
+## Particle csv files
+Loading particle ensemble csv (comma-separated-value) files uses the class `read.ensemble()`.
+To load the file `data_ensemble000015.csv`, one can do
 
-This uses the class @ref read.load.
+    offset=15
+    ds = read.ensemble(offset, file='data', npayload=1)
 
-Interactively load the data:
-~~~~~
->>> d=read.load(offset,file='data',type='vtu')
-~~~~~
-which loads data'offset'.vtu, where offset is zero-padded to four
-digits (e.g. 0010). The data is contained in the instance `d`. Thus
-`d.rho` holds the numpy-array of the density, `d.v1` hols the first component of velocity (assuming your data is in primitive quantities and your velocity variable is called '`v1`') and so on. To load a different snapshot into the instance `e`, type
-~~~~~
->>> e=read.load(DifferentOffset,file='data',type='vtu')
-~~~~~
-In order to load a file ending in `.pvtu`, change the attribute of the optional parameter type to `type='pvtu'`. The default is currently `type='vtu'`.
+In this case, `offset` is zero padded to six digits. The argument `npayload` stands for the
+number of payload arrays in the data (default is one).
 
-## vti vti files
-
-This uses the class @ref read.loadvti.
-For uniform `.vti` files, you can use
-~~~~~
->>> d=read.loadvti(offset,file='data')
-~~~~~
-
-
-## particles Particle dat files
-
-This uses the class @ref read.particles. Type
-~~~~~
->>> d=read.particles(offset,file='data')
-~~~~~
-to import the particle snapshot data into python.
-
-## ensemble Particle csv files
-
-This uses the class @ref read.ensemble to load particle ensemble comma
-separated value files.  Type
-~~~~~
->>> d=read.ensemble(offset, file='data0000', npayload=1)
-~~~~~
-to load file `data0000_ensemble`**offset**`.csv` where **offset** is zero
-padded to six digits.  `npayload` stands for the number of payload arrays in
-your data (default is one).  We have two running indices in
-the output files, where the first `data0000` describes the fluid
-snapshot (e.g. useful when adding particles to a frozen snaphot) and the second `offset` denotes
-the particle ensemble snapshot number.
-
-## slice Slice csv files
-
+## Slice csv files
 To load a 1D slice in `.csv` format from a 2D simulation, you can use
-the class @ref read.loadcsv
-~~~~~
->>> d=read.loadcsv(offset,get=1,file='data',dir=1,coord=0.)
-~~~~~
-which loads file
-`data_d`**dir**`_x`**coord**_n**offset**`.csv`,
-e.g. `data_d1_x+0.00D00_n0000.csv`.
 
+    offset=15
+    ds = read.loadcsv(offset, file='data', dir=1, coord=0.)
 
-# plotting Plotting data
+which loads in `data_d1_x+0.00D00_n0015.csv`. The argument `offset` refers to
+the last 4 digits of the filename, the argument `coord` translates to `0.00D00` and
+`dir=1` refers to the `d1` part of the filename (setting `dir=2` would mean `data_d2_x...`).
 
-## onedplots 1D plotting
+# Plotting data {#plotting_vtk}
+## 1D plotting
 
-Once the data is loaded into the instance `d`, you can access it with
-`d.varname` where `varname` is a variable name chosen in your
-AMRVAC parameter-file.  Pythons powerful introspectrion makes it real
-easy to see whats available in the data: just type `d.` and hit the *tab* key to see whats available.
-For uniform data (`.vti`), the arithmetic center of the cells can
-be obtained via the command
-~~~~~
->>> d.getCenterPoints()
-~~~~~
-see @ref read.load.getCenterPoints for implemetation details.  Thus
-you can make a simple 1D plot using matplotlib
-~~~~~
->>> plot(d.getCenterPoints(),d.rho,'k-+')
-~~~~~
-in solid ('`-`') black ('`k`') with '`+`' symbols.
-At this point `d.getCenterPoints()` and `d.rho` are simply numpy arrays so you can use all of
-[matplotlib](http://matplotlib.org/contents.html) for your plotting
-experience.
+Once the data is loaded into the instance `ds`, you can access it with
+`ds.varname` where `varname` is a variable name chosen in your
+AMRVAC parameter-file.  Pythons powerful introspection makes it really
+easy to see what is available in the data: just type `ds.` and hit the *tab* key to see the
+available variable names.
 
-For the structured `.vti` files, the attribute @ref
-read.loadvti.x (or .y or .z) denotes the cell center coordinate, such
-that a plot would be obtained with
-~~~~~
->>> plot(d.x,d.rho,'k-+')
-~~~~~
+For uniform data (`.vti`), the arithmetic centre of the cells can be obtained via the command
 
-## twodplots 2D plotting
+    ds.getCenterPoints()
 
-The module @ref amrplot contains plotting tools for 2D AMR data.
-These come in two flavours: the class @ref amrplot.polyplot to show
-each cell in one patch and the class @ref amrplot.rgplot to show data
-interpolated onto a uniform mesh.  Other than that, both classes offer the same
-functionality.  To display a 2D image of the density in your
-datastructure `d`, invoke a new instance
-~~~~~
->>> p1=amrplot.polyplot(d.rho,d)
-~~~~~
-which opens a new window containing your data.  Drawing a window for the first time might take a few seconds as a list of the cell patches has to be generated.  You can re-plot another quantity (e.g. temperature ~p/rho) in this window with the command
-~~~~~
->>> p1.show(d.p/d.rho,d)
-~~~~~
-@ref amrplot.polyplot has several convenient members, for example you can save your image to a file using @ref amrplot.polyplot.save which takes the filename as a parameter.  The AMR blocks can be displayed by setting the attribute
-~~~~~
->>> p1.blocks=1
-~~~~~
-which can be switched off by setting @ref amrplot.polyplot.blocks back to `None`.  You can fix the axis-range with the attributes @ref amrplot.polyplot.xrange and @ref amrplot.polyplot.yrange and fix the window zoom by setting @ref amrplot.polyplot.fixzoom to a value other than `None`.
+Hence, a simple 1D plot can be created using matplotlib by doing
 
-The method @ref amrplot.polyplot.onkey allows you to inspect a location in your data: use the middle mouse button to mark a cell in your plotting window, then a pink crosshair will be displayed and the flow variables at chosen location are returned to the terminal.
+    import matplotlib.pyplot as plt
+    plt.plot(ds.getCenterPoints(), d.rho)
+    plt.show()
 
-### convenience Auxiliary functions
+At this point, `ds.getCenterPoints()` and `ds.rho` are simple Numpy arrays, so you can use all of matplotlib for
+your plotting experience.
 
-Some auxiliary functions you might find useful:
-* @ref amrplot.line selects flow variables over a straight path across your 2D slice
-* @ref amrplot.velovect provides "velocity vectors" for a flow field
-* @ref amrplot.contour overlays contours onto your plotting window
-* @ref amrplot.streamlines shows streamlines of a vector field
-* @ref amrplot.streamline plots a single streamline with given starting value
+For the structured `.vti` files, the attribute `ds.x` (or `.y` or `.z`) denotes the cell centre coordinate, such
+that a plot can be obtained with
+
+    import matplotlib.pyplot as plt
+    plt.plot(ds.x, ds.rho)
+    plt.show()
+
+## 2D plotting
+The plotting of two-dimensional AMR data is also supported. These plotting tools come in two
+flavours:
+1. The class `amrplot.polyplot` to show each cell in one patch
+2. The class `amrplot.rgplot` to show data interpolated onto a uniform mesh
+
+Both classes offer the same functionality. In order to display a 2D image of the dataset `ds`, invoke a new instance
+
+    p1 = amrplot.polyplot(ds.rho, ds)
+
+This will open a new window, containing a plot of the requested data. Drawing the window for the first time might take a few seconds,
+as a list of the cell patches has to be generated. If all of this is done in interactive mode another quantity can be
+plotted using the same window (for example the temperature) with the command
+
+    p1.show(ds.p/ds.rho, ds)
+
+The class `amrplot.polyplot` has several convenient members. One example is `amrplot.polyplot.save`, which saves the image to a file and takes the filename as parameter.
+The axis ranges can be fixed with the attributes `p1.xrange` and `p1.yrange`, while the window zoom can be controlled by setting `p1.fixzoom` to a value other than `None`.
+Additionally there is a nice interactive feature when using `amrplot.polyplot`: if the middle mouse button is clicked to mark a cell in the plotting window, a pink crosshair
+will be displayed and all variables at the chosen location will be returned to the terminal. This may take a few seconds the first time this feature is executed,
+as the centerpoints must be calculated first.
+
+# Convenient auxiliary functions {#vtk_auxiliary}
+The class `amrplot` has some additional auxiliary functions which can be quite useful:
+* `amrplot.line`: selects variables over a straight path across a 2D slice
+* `amrplot.velovect`: provides velocity vectors for a flow field
+* `amrplot.contour`: overlays contours onto the plotting window
+* `amrplot.streamlines`: shows streamlines of a vector field
+* `amrplot.streamline`: plots a single streamline with given starting values
+
+See the respective methods and classes in `vtkfiles/amrplot` for more information.
