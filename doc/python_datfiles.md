@@ -16,7 +16,7 @@ This class contains various instances and methods linking to other classes and m
 keeping usage plain and simple with just one single import.
 To import the reader into your script (assuming you added the tools directory to your `PYTHONPATH`), use:
 
-    from amrvac_tools.reading import amrvac_reader
+    from amrvac_tools.datfiles.reading import amrvac_reader
 
 As an example, we will use the file `KH0015.dat`, which is the 2D MHD Cartesian Kelvin-Helmholtz problem from the tests folder.
 In order to read in this file, it is sufficient to type
@@ -55,7 +55,7 @@ this will default to two less than the number available. The optional argument `
 The default directory is `regridded_files`, which will be created in the same folder as the current script if it is not present.
 Subsequently, the reader will load this regridded data if the script is executed again.
 
-The data can then be accesses by calling the corresponding name in the `ad` dictionary, for example:
+The data can then be accessed by calling the corresponding name in the `ad` dictionary, for example:
 
     rho = ad['rho']
 
