@@ -86,7 +86,7 @@ For uniform data (`.vti`), the arithmetic centre of the cells can be obtained vi
 Hence, a simple 1D plot can be created using matplotlib by doing
 
     import matplotlib.pyplot as plt
-    plt.plot(ds.getCenterPoints(), d.rho)
+    plt.plot(ds.getCenterPoints(), ds.rho)
     plt.show()
 
 At this point, `ds.getCenterPoints()` and `ds.rho` are simple Numpy arrays, so you can use all of matplotlib for
