@@ -173,7 +173,7 @@ if (tree%node%leaf) then
    else 
       sfc(3,Morton_no)=0 
    end if
-   igrid_to_sfc(tree%node%igrid)=Morton_no
+   if(tree%node%ipe==mype) igrid_to_sfc(tree%node%igrid)=Morton_no
 else
    {do ic^DB=1,2\}
       call get_Morton_number(tree%node%child(ic^D))
