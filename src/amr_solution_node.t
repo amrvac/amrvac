@@ -54,7 +54,7 @@ subroutine alloc_node(igrid)
   integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
   integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
   integer:: icase, ixGext^L
-  double precision :: rXmin^D, dx^D, summeddx, sizeuniformpart^D
+  double precision :: dx^D, summeddx, sizeuniformpart^D
   double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
 
   ixCoGmin^D=1;
@@ -132,25 +132,28 @@ subroutine alloc_node(igrid)
   ! uniform cartesian case as well as all unstretched coordinates
   ! determine the minimal and maximal corners
   ^D&rnode(rpxmin^D_,igrid)=xprobmin^D+dble(ig^D-1)*dg^D(level)\
-  ^D&rnode(rpxmax^D_,igrid)=xprobmax^D-dble(ng^D(level)-ig^D)*dg^D(level)\
+  ^D&rnode(rpxmax^D_,igrid)=xprobmin^D+dble(ig^D)*dg^D(level)\
+!  ^D&rnode(rpxmax^D_,igrid)=xprobmax^D-dble(ng^D(level)-ig^D)*dg^D(level)\
 
   ^D&dx^D=rnode(rpdx^D_,igrid)\
-  ^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
- {do ix=ixGlo^D,ixGhi^D
-    ps(igrid)%x(ix^D%ixG^T,^D)=rXmin^D+(dble(ix)-half)*dx^D
+ {do ix=ixGlo^D,ixMhi^D-nghostcells
+    ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-nghostcells)-half)*dx^D
   end do\}
+ ! update overlap cells of neighboring blocks in the same way to get the same values
+ {do ix=ixMhi^D-nghostcells+1,ixGhi^D
+    ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmax^D_,igrid)+(dble(ix-ixMhi^D)-half)*dx^D
+  end do\}
+
   ^D&dx^D=2.0d0*rnode(rpdx^D_,igrid)\
-  ^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
  {do ix=ixCoGmin^D,ixCoGmax^D
-    psc(igrid)%x(ix^D%ixCoG^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
+    psc(igrid)%x(ix^D%ixCoG^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-nghostcells)-half)*dx^D
   end do\}
 
   ^D&ps(igrid)%dx(ixGext^S,^D)=rnode(rpdx^D_,igrid);
   ^D&psc(igrid)%dx(ixCoG^S,^D)=2.0d0*rnode(rpdx^D_,igrid);
   ^D&dx^D=rnode(rpdx^D_,igrid)\
-  ^D&rXmin^D=rnode(rpxmin^D_,igrid)-nghostcells*dx^D\
  {do ix=ixGextmin^D,ixGextmax^D
-    xext(ix^D%ixGext^S,^D)=rXmin^D+(dble(ix)-half)*dx^D
+    xext(ix^D%ixGext^S,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-nghostcells)-half)*dx^D
   end do\}
 
   if(any(stretched_dim)) then
