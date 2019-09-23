@@ -495,6 +495,7 @@ contains
   subroutine process(iit,qt)
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters
+    use mod_ghostcells_update
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -517,6 +518,7 @@ contains
          call usr_process_grid(igrid,level,ixG^LL,ixM^LL,qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
+      call getbc(qt,dt,ps,1,nwflux+nwaux)
     end if
   end subroutine process
 
@@ -528,6 +530,7 @@ contains
     use mod_usr_methods, only: usr_process_adv_grid, &
                                usr_process_adv_global
     use mod_global_parameters
+    use mod_ghostcells_update
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -538,21 +541,22 @@ contains
        call usr_process_adv_global(iit,qt)
     end if
 
-    !$OMP PARALLEL DO PRIVATE(igrid,level)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       level=node(plevel_,igrid)
-       ! next few lines ensure correct usage of routines like divvector etc
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       block=>ps(igrid)
-       typelimiter=type_limiter(node(plevel_,igrid))
-       typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+    if (associated(usr_process_adv_grid)) then
+      !$OMP PARALLEL DO PRIVATE(igrid,level)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+         level=node(plevel_,igrid)
+         ! next few lines ensure correct usage of routines like divvector etc
+         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+         block=>ps(igrid)
+         typelimiter=type_limiter(node(plevel_,igrid))
+         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
-       if (associated(usr_process_adv_grid)) then
-          call usr_process_adv_grid(igrid,level,ixG^LL,ixM^LL, &
-               qt,ps(igrid)%w,ps(igrid)%x)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+         call usr_process_adv_grid(igrid,level,ixG^LL,ixM^LL, &
+              qt,ps(igrid)%w,ps(igrid)%x)
+      end do
+      !$OMP END PARALLEL DO
+    call getbc(qt,dt,ps,1,nwflux+nwaux)
+    end if
   end subroutine process_advanced
 
 end module mod_advance

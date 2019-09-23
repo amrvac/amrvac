@@ -175,11 +175,11 @@ contains
 
   subroutine get_potential_field_potential(ixI^L,ixO^L,potential,x,zshift)
   ! PURPOSE: 
-  ! Calculation to determine linear FFF from the field on 
-  ! the lower boundary (Chiu and Hilton 1977 ApJ 212,873). 
+  ! Calculation scalar potential of potential field given
+  ! Bz at photosphere (Schmidt 1964 NASSP). 
   ! NOTE: Only works for Cartesian coordinates 
-  ! INPUT: Bf,x
-  ! OUTPUT: updated b in w 
+  ! INPUT: x,zshift
+  ! OUTPUT: potential
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
@@ -191,7 +191,7 @@ contains
 
     zk(ixO^S)=x(ixO^S,3)-xprobmin3+zshift
     potential=0.d0
-    ! looping Bz0 pixels
+    ! looping Bz0 pixels see equation (2)
     do ixp2=1,nx2
       do ixp1=1,nx1
         bigr(ixO^S)=dsqrt((x(ixO^S,1)-xa1(ixp1))**2+&

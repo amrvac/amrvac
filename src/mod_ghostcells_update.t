@@ -1069,10 +1069,11 @@ contains
             do idir=1,ndim
               ixS^L=ixS_srl_stg_^L(idir,n_i^D);
               ixR^L=ixR_srl_stg_^L(idir,i^D);
-              !if (idirect == 1) then
+              !if (idirect == 1 .and. qdt>0.d0) then
               !  ! use the same value at the face shared by two neighors
               !  call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L)
-              !  psb(igrid)%ws(ixRsync^S,idir) = half*(psb(igrid)%ws(ixRsync^S,idir)+psb(ineighbor)%ws(ixSsync^S,idir))
+              !   if({idir==^D .and. i^D /=0  | .or.}) write(*,*) it,'difference',maxval(abs(psb(igrid)%ws(ixRsync^S,idir)-psb(ineighbor)%ws(ixSsync^S,idir)))
+              !  !psb(igrid)%ws(ixRsync^S,idir) = half*(psb(igrid)%ws(ixRsync^S,idir)+psb(ineighbor)%ws(ixSsync^S,idir))
               !end if
               psb(igrid)%ws(ixR^S,idir) = psb(ineighbor)%ws(ixS^S,idir)
             end do
@@ -1084,11 +1085,12 @@ contains
               ixR^L=ixR_srl_stg_^L(idir,i^D);
               ibuf_next=ibuf_recv_srl+sizes_srl_recv_stg(idir,i^D)
               tmp(ixS^S) = reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),shape=shape(psb(igrid)%ws(ixS^S,idir)))       
-              if (idirect == 1) then
-                 ! ixR ixS maybe changed
-                 call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L) ! Overwrites ixR, ixS
-                 psb(igrid)%ws(ixRsync^S,idir) = half*(tmp(ixSsync^S) + psb(igrid)%ws(ixRsync^S,idir))
-              end if
+              !if (idirect == 1) then
+              !   ! ixR ixS maybe changed
+              !   call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L) ! Overwrites ixR, ixS
+              !   if(qdt==0) psb(igrid)%ws(ixRsync^S,idir) = half*(tmp(ixSsync^S) + psb(igrid)%ws(ixRsync^S,idir))
+              !   if({idir==^D .and. i^D /=0  | .or.}) write(*,*) it,'betweenpe',maxval(abs(psb(igrid)%ws(ixRsync^S,idir)-tmp(ixSsync^S)))
+              !end if
               psb(igrid)%ws(ixR^S,idir) = tmp(ixS^S)
               ibuf_recv_srl=ibuf_next
             end do

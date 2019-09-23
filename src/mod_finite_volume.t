@@ -150,7 +150,6 @@ contains
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
 
     associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
-    staggered : associate(wCTs=>sCT%ws, wnews=>snew%ws, wolds=>sold%ws)
 
     fC=0.d0
 
@@ -294,7 +293,6 @@ contains
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
 
-  end associate staggered
   end associate
   contains
 
