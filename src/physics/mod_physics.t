@@ -202,7 +202,7 @@ module mod_physics
        character(len=*), intent(in)    :: subname
      end subroutine sub_small_values
 
-     subroutine sub_get_var(w, ixI^L, ixO^L, out)
+     subroutine sub_get_var(ixI^L, ixO^L, w, out)
        use mod_global_parameters
        integer, intent(in)           :: ixI^L, ixO^L
        double precision, intent(in)  :: w(ixI^S, nw)

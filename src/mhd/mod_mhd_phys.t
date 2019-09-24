@@ -28,12 +28,6 @@ module mod_mhd_phys
   !> Whether magnetofriction is added
   logical, public, protected              :: mhd_magnetofriction = .false.
 
-  !> Whether Boris' approximation is used
-  logical, public, protected              :: mhd_boris_approx = .false.
-
-  !> Speed of light for Boris' approximation (have to adjust according to code units)
-  double precision, public, protected     :: mhd_boris_c = 3d8
-
   !> Whether GLM-MHD is used
   logical, public, protected              :: mhd_glm = .false.
 
@@ -43,6 +37,18 @@ module mod_mhd_phys
   !> GLM-MHD parameter: ratio of the diffusive and advective time scales for div b
   !> taking values within [0, 1]
   double precision, public                :: mhd_glm_alpha = 0.5d0
+
+  !> Use Boris approximation
+  character(len=20) :: mhd_boris_method = "none"
+
+  integer, parameter :: boris_none           = 0
+  integer, parameter :: boris_reduced_force  = 1
+  integer, parameter :: boris_simplification = 2
+  integer            :: mhd_boris_type       = boris_none
+
+  !> Speed of light for Boris' approximation. If negative, test changes to the
+  !> momentum equation with gamma_A = 1
+  double precision                        :: mhd_boris_c = 0.0d0
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
@@ -158,6 +164,7 @@ module mod_mhd_phys
   public :: get_current
   public :: get_normalized_divb
   public :: b_from_vector_potential
+  public :: mhd_mag_en_all
 
 contains
 
@@ -173,7 +180,8 @@ contains
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
-      boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, mhd_boris_approx, mhd_boris_c
+      boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, &
+      mhd_boris_method, mhd_boris_c
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -332,6 +340,20 @@ contains
     end do
     if(mhd_glm .and. ndim>1) flux_type(:,psi_)=flux_tvdlf
 
+    select case (mhd_boris_method)
+    case ("none")
+      mhd_boris_type = boris_none
+    case ("reduced_force")
+      mhd_boris_type = boris_reduced_force
+    case ("simplification")
+      mhd_boris_type = boris_simplification
+      do idir = 1, ndir
+        phys_iw_methods(mom(idir))%inv_capacity => mhd_gamma2_alfven
+      end do
+    case default
+      call mpistop("Unknown mhd_boris_method (none, reduced_force, simplification)")
+    end select
+
     phys_get_dt              => mhd_get_dt
     phys_get_cmax            => mhd_get_cmax
     phys_get_cbounds         => mhd_get_cbounds
@@ -359,12 +381,6 @@ contains
       phys_modify_wLR => mhd_modify_wLR
     else if(ndim>1) then
       phys_boundary_adjust => mhd_boundary_adjust
-    end if
-
-    if (mhd_boris_approx) then
-      do idir = 1, ndir
-        phys_iw_methods(mom(idir))%inv_capacity => mhd_gamma2_alfven
-      end do
     end if
 
     ! Whether diagonal ghost cells are required for the physics
@@ -440,6 +456,10 @@ contains
             call mpistop ("Error: mhd_gamma <= 0 or mhd_gamma == 1")
        inv_gamma_1=1.d0/gamma_1
        small_e = small_pressure * inv_gamma_1
+    end if
+
+    if (mhd_boris_type > 0 .and. abs(mhd_boris_c) <= 0.0d0) then
+      call mpistop("You have not specified mhd_boris_c")
     end if
 
   end subroutine mhd_check_params
@@ -793,17 +813,24 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixI^S)
     double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
-    double precision :: inv_rho(ixO^S)
+    double precision :: inv_rho(ixO^S), gamma2(ixO^S)
 
     inv_rho=1.d0/w(ixO^S,rho_)
 
+    if (mhd_boris_type == boris_reduced_force) then
+      call mhd_gamma2_alfven(ixI^L, ixO^L, w, gamma2)
+    else
+      gamma2 = 1.0d0
+    end if
+
     call mhd_get_csound2(w,x,ixI^L,ixO^L,csound)
     ! store |B|^2 in v
-    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
+    b2(ixO^S) = mhd_mag_en_all(w,ixI^L,ixO^L) * gamma2
+
     cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
     AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
          * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
-         * inv_rho
+         * inv_rho * gamma2
 
     where(AvMinCs2(ixO^S)<zero)
        AvMinCs2(ixO^S)=zero
@@ -813,7 +840,7 @@ contains
 
     if (.not. MHD_Hall) then
        csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
-       if (mhd_boris_approx) then
+       if (mhd_boris_type == boris_simplification) then
           csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
        end if
     else
@@ -835,9 +862,15 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixI^S)
     double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
-    double precision :: inv_rho(ixO^S)
+    double precision :: inv_rho(ixO^S), gamma_A2(ixO^S)
 
     inv_rho=1.d0/w(ixO^S,rho_)
+
+    if (mhd_boris_type == boris_reduced_force) then
+      call mhd_gamma2_alfven(ixI^L, ixO^L, w, gamma_A2)
+    else
+      gamma_A2 = 1.0d0
+    end if
 
     if(mhd_energy) then
       csound(ixO^S)=mhd_gamma*w(ixO^S,p_)*inv_rho
@@ -845,11 +878,11 @@ contains
       csound(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**gamma_1
     end if
     ! store |B|^2 in v
-    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
+    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L) * gamma_A2
     cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
     AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
          * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
-         * inv_rho
+         * inv_rho * gamma_A2
 
     where(AvMinCs2(ixO^S)<zero)
        AvMinCs2(ixO^S)=zero
@@ -859,7 +892,7 @@ contains
 
     if (.not. MHD_Hall) then
        csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
-       if (mhd_boris_approx) then
+       if (mhd_boris_type == boris_simplification) then
           csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
        end if
     else
@@ -941,7 +974,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: ptotal(ixO^S),tmp(ixI^S),current(ixI^S,7-2*ndir:3),eta(ixI^S)
+    double precision             :: pgas(ixO^S), ptotal(ixO^S),tmp(ixI^S)
     double precision, allocatable:: vHall(:^D&,:)
     integer                      :: idirmin, iw, idir, jdir, kdir
 
@@ -953,10 +986,12 @@ contains
     if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
 
     if(mhd_energy) then
-      ptotal=w(ixO^S,p_)+0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+      pgas=w(ixO^S,p_)
     else
-      ptotal(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma+0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+      pgas=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
+
+    ptotal = pgas + 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
 
     ! Get flux of density
     f(ixO^S,rho_)=w(ixO^S,mom(idim))*w(ixO^S,rho_)
@@ -968,20 +1003,32 @@ contains
 
     ! Get flux of momentum
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
-    do idir=1,ndir
-      if(idim==idir) then
-        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
-        if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
-      else
-        f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
-      end if
-      if (B0field) then
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
-             -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
-             -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
-      end if
-      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
-    end do
+    if (mhd_boris_type == boris_reduced_force) then
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir)) = pgas(ixO^S)
+        else
+          f(ixO^S,mom(idir)) = 0.0d0
+        end if
+        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+      end do
+    else
+      ! Normal case (no Boris approximation)
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+          if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
+        else
+          f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+        end if
+        if (B0field) then
+          f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
+               -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
+               -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
+        end if
+        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+      end do
+    end if
 
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
@@ -1192,7 +1239,98 @@ contains
            w,x,mhd_energy,qsourcesplit,active)
     end if
 
+    if (mhd_boris_type == boris_reduced_force) then
+      call boris_add_source(qdt,ixI^L,ixO^L,wCT,&
+           w,x,qsourcesplit,active)
+    end if
+
   end subroutine mhd_add_source
+
+  subroutine boris_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+       qsourcesplit,active)
+    use mod_global_parameters
+    use mod_usr_methods
+
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    logical, intent(in) :: qsourcesplit
+    logical, intent(inout) :: active
+
+    double precision :: JxB(ixI^S,3)
+    double precision :: gamma_A2(ixO^S)
+    integer          :: idir
+
+    ! Boris source term is always unsplit
+    if (qsourcesplit) return
+
+    call get_lorentz(ixI^L,ixO^L,w,JxB)
+    call mhd_gamma2_alfven(ixI^L, ixO^L, wCT, gamma_A2)
+
+    do idir = 1, ndir
+      w(ixO^S,mom(idir)) = w(ixO^S,mom(idir)) + &
+           qdt * gamma_A2 * JxB(ixO^S, idir)
+    end do
+
+  end subroutine boris_add_source
+
+  !> Compute the Lorentz force (JxB)
+  subroutine get_lorentz(ixI^L,ixO^L,w,JxB)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: w(ixI^S,1:nw)
+    double precision, intent(inout) :: JxB(ixI^S,3)
+    double precision                :: a(ixI^S,3), b(ixI^S,3)
+    integer                         :: idir, idirmin
+    ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
+    double precision :: current(ixI^S,7-2*ndir:3)
+
+    b=0.0d0
+    do idir = 1, ndir
+      b(ixO^S, idir) = mhd_mag_i_all(w, ixI^L, ixO^L,idir)
+    end do
+
+    ! store J current in a
+    call get_current(w,ixI^L,ixO^L,idirmin,current)
+
+    a=0.0d0
+    do idir=7-2*ndir,3
+      a(ixO^S,idir)=current(ixO^S,idir)
+    end do
+
+    call cross_product(ixI^L,ixO^L,a,b,JxB)
+  end subroutine get_lorentz
+
+  !> Compute 1/(1+v_A^2/c^2) for Boris' approximation, where v_A is the Alfven
+  !> velocity
+  subroutine mhd_gamma2_alfven(ixI^L, ixO^L, w, gamma_A2)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision, intent(out) :: gamma_A2(ixO^S)
+
+    if (mhd_boris_c < 0.0d0) then
+      ! Good for testing the non-conservative momentum treatment
+      gamma_A2 = 1.0d0
+    else
+      ! Compute the inverse of 1 + B^2/(rho * c^2)
+      gamma_A2 = 1.0d0 / (1.0d0 + mhd_mag_en_all(w, ixI^L, ixO^L) / &
+           (w(ixO^S, rho_) * mhd_boris_c**2))
+    end if
+  end subroutine mhd_gamma2_alfven
+
+  !> Compute 1/sqrt(1+v_A^2/c^2) for Boris' approximation, where v_A is the
+  !> Alfven velocity
+  function mhd_gamma_alfven(w, ixI^L, ixO^L) result(gamma_A)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision              :: gamma_A(ixO^S)
+
+    call mhd_gamma2_alfven(ixI^L, ixO^L, w, gamma_A)
+    gamma_A = sqrt(gamma_A)
+  end function mhd_gamma_alfven
 
   subroutine internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
@@ -1751,10 +1889,10 @@ contains
     use mod_global_parameters
     use mod_geometry
 
-    integer :: idirmin0
-    integer :: ixO^L, idirmin, ixI^L
-    double precision :: w(ixI^S,1:nw)
-    integer :: idir
+    integer, intent(in)  :: ixO^L, ixI^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    integer, intent(out) :: idirmin
+    integer :: idir, idirmin0
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
@@ -1986,32 +2124,6 @@ contains
       mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
     end if
   end function mhd_mag_en_all
-
-  !> Compute 1/sqrt(1+v_A^2/c^2) for Boris' approximation, where v_A is the
-  !> Alfven velocity
-  function mhd_gamma_alfven(w, ixI^L, ixO^L) result(gamma_A)
-    use mod_global_parameters
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: gamma_A(ixO^S)
-
-    ! Compute the inverse of sqrt(1 + B^2/(rho * c^2))
-    gamma_A(ixO^S) = 1.0d0 / sqrt(1.0d0 + mhd_mag_en_all(w, ixI^L, ixO^L) / &
-         (w(ixO^S, rho_) * mhd_boris_c**2))
-  end function mhd_gamma_alfven
-
-  !> Compute 1/(1+v_A^2/c^2) for Boris' approximation, where v_A is the Alfven
-  !> velocity
-  subroutine mhd_gamma2_alfven(w, ixI^L, ixO^L, out)
-    use mod_global_parameters
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision, intent(out) :: out(ixO^S)
-
-    ! Compute the inverse of 1 + B^2/(rho * c^2)
-    out = 1.0d0 / (1.0d0 + mhd_mag_en_all(w, ixI^L, ixO^L) / &
-         (w(ixO^S, rho_) * mhd_boris_c**2))
-  end subroutine mhd_gamma2_alfven
 
   !> Compute full magnetic field by direction
   function mhd_mag_i_all(w, ixI^L, ixO^L,idir) result(mgf)

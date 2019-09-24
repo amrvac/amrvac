@@ -66,7 +66,7 @@ contains
       do iw=1,nwflux
         if (slab_uniform) then
           if (associated(phys_iw_methods(iw)%inv_capacity)) then
-            call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+            call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
             wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims) * inv_volume * &
                  (fLC(ixO^S, iw)-fRC(hxO^S, iw))
            else
@@ -75,7 +75,7 @@ contains
            end if
         else
           if (associated(phys_iw_methods(iw)%inv_capacity)) then
-            call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+            call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
           else
             inv_volume = 1.0d0
           end if
@@ -104,7 +104,7 @@ contains
     ! If there are capacity functions, now correct the added source terms
     do iw = 1, nwflux
       if (associated(phys_iw_methods(iw)%inv_capacity)) then
-        call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+        call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
         wnew(ixO^S, iw) = wprim(ixO^S, iw) + inv_volume * &
              (wnew(ixO^S, iw) - wprim(ixO^S, iw))
       end if
@@ -247,7 +247,7 @@ contains
 
           do iw = 1, nwflux
             if (associated(phys_iw_methods(iw)%inv_capacity)) then
-              call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+              call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
               wnew(ixO^S,iw)=wnew(ixO^S,iw) + inv_volume * &
                    (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
             else
@@ -258,7 +258,7 @@ contains
         else
           if (.not. angmomfix) then ! default case
             if (associated(phys_iw_methods(iw)%inv_capacity)) then
-              call phys_iw_methods(iw)%inv_capacity(wnew, ixI^L, ixO^L, inv_volume)
+              call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
             else
               inv_volume = 1.0d0
             end if
