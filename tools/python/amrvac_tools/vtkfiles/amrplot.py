@@ -83,6 +83,8 @@ class polyplot():
         self.show(var=value,data=data,min=min,max=max)
         if self.filenameout is None:
             self.figure.canvas.mpl_connect('button_press_event', self.onkey)
+        else:
+            self.save(filenameout)
 
 
     def setValue(self,value,min=None,max=None):
