@@ -256,7 +256,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
 
-    double precision :: dxinv(1:ndim)
+    double precision :: dxinv(1:ndim), dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
     logical :: transport, new_cmax, patchw(ixI^S)
 
@@ -272,6 +272,7 @@ contains
     end if
 
     ^D&dxinv(^D)=-qdt/dx^D;
+    ^D&dxdim(^D)=dx^D;
 
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
@@ -294,7 +295,7 @@ contains
        wLp(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
 
        ! apply limited reconstruction for left and right status at cell interfaces
-       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x)
+       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
 
        ! Calculate velocities from upwinded values
        call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)

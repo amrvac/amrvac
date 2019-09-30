@@ -29,7 +29,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixO^S)      :: inv_volume
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
-    double precision :: dxinv(1:ndim)
+    double precision :: dxinv(1:ndim),dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L
 
     associate(wCT=>sCT%w,wnew=>snew%w)
@@ -45,6 +45,7 @@ contains
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
+    ^D&dxdim(^D)=dx^D;
     do idims= idims^LIM
       block%iw0=idims
       ! Calculate w_j+g_j/2 and w_j-g_j/2
@@ -56,7 +57,7 @@ contains
       wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
       ! apply limited reconstruction for left and right status at cell interfaces
-      call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wLC,wRC,wLp,wRp,x)
+      call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
 
       ! Calculate the fLC and fRC fluxes
       call phys_get_flux(wRC,wRp,x,ixI^L,hxO^L,idims,fRC)
@@ -143,7 +144,7 @@ contains
     double precision, dimension(ixI^S)      :: cmaxC
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(ixO^S)      :: inv_volume
-    double precision, dimension(1:ndim)     :: dxinv
+    double precision, dimension(1:ndim)     :: dxinv, dxdim
     ! cell-face location coordinates
     double precision, dimension(ixI^S,1:ndim) :: xi
     integer, dimension(ixI^S)               :: patchf
@@ -166,6 +167,7 @@ contains
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     ^D&dxinv(^D)=-qdt/dx^D;
+    ^D&dxdim(^D)=dx^D;
     do idims= idims^LIM
        ! use interface value of w0 at idims
        block%iw0=idims
@@ -199,7 +201,7 @@ contains
        xi(ixI^S,idims)=xi(ixI^S,idims)+0.5d0*sCT%dx(ixI^S,idims)
 
        ! apply limited reconstruction for left and right status at cell interfaces
-       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,xi)
+       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,xi,dxdim(idims))
 
        ! special modification of left and right status before flux evaluation
        call phys_modify_wLR(ixI^L,ixCR^L,wLC,wRC,wLp,wRp,sCT,idims)
@@ -571,12 +573,13 @@ contains
 
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
-  subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x)
+  subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
     use mod_physics
     use mod_global_parameters
     use mod_limiter
 
     integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
+    double precision, intent(in) :: dxdim
     double precision, dimension(ixI^S,1:nw) :: w
     ! left and right constructed status in conservative form
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
@@ -587,11 +590,26 @@ contains
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
 
-    if (typelimiter == limiter_mp5) then
+    select case (typelimiter)
+    case (limiter_mp5)
        call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
-    else if (typelimiter == limiter_ppm) then
+    case (limiter_ppm)
        call PPMlimiter(ixI^L,ixM^LL,idims,w,w,wLp,wRp)
-    else
+    case (limiter_wenojs3)
+       call WENOJS3limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
+    case (limiter_wenojs5i)
+       call WENOJS5limiter(ixI^L,ixL^L,idims,w,wLp,wRp,.false.)
+    case (limiter_wenojs5r)
+       call WENOJS5limiter(ixI^L,ixL^L,idims,w,wLp,wRp,.true.)
+    case (limiter_wenoz5i)
+       call WENOZ5limiter(ixI^L,ixL^L,idims,w,wLp,wRp,.false.)
+    case (limiter_wenoz5r)
+       call WENOZ5limiter(ixI^L,ixL^L,idims,w,wLp,wRp,.true.)
+    case (limiter_wenozp5i)
+       call WENOZP5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,.false.)
+    case (limiter_wenozp5r)
+       call WENOZP5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,.true.)
+    case default
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
@@ -616,8 +634,7 @@ contains
              wRp(ixR^S,iw)=10.0d0**wRp(ixR^S,iw)
           end if
        end do
-
-    endif
+    end select
 
     wLC(ixL^S,1:nw)=wLp(ixL^S,1:nw)
     wRC(ixR^S,1:nw)=wRp(ixR^S,1:nw)

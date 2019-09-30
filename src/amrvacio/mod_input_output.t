@@ -778,6 +778,27 @@ contains
       nghostcells=4
     end if
 
+    if(any(limiter(1:nlevelshi)=='wenojs5_i')) then
+      nghostcells=3
+    end if
+    if(any(limiter(1:nlevelshi)=='wenojs5_r')) then
+      nghostcells=3
+    end if
+ 
+    if(any(limiter(1:nlevelshi)=='wenoz5_i')) then
+      nghostcells=3
+    end if
+    if(any(limiter(1:nlevelshi)=='wenoz5_r')) then
+      nghostcells=3
+    end if
+ 
+    if(any(limiter(1:nlevelshi)=='wenozp5_i')) then
+      nghostcells=3
+    end if
+    if(any(limiter(1:nlevelshi)=='wenozp5_r')) then
+      nghostcells=3
+    end if
+
     ! If a wider stencil is used, extend the number of ghost cells
     nghostcells = nghostcells + phys_wider_stencil
 

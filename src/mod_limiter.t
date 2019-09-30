@@ -2,6 +2,7 @@
 module mod_limiter
   use mod_ppm
   use mod_mp5
+  use mod_weno
 
   implicit none
   public
@@ -21,6 +22,13 @@ module mod_limiter
   ! Special cases
   integer, parameter :: limiter_ppm = 10
   integer, parameter :: limiter_mp5 = 11
+  integer, parameter :: limiter_wenojs3  = 12
+  integer, parameter :: limiter_wenojs5i = 13
+  integer, parameter :: limiter_wenojs5r = 14
+  integer, parameter :: limiter_wenoz5i  = 15
+  integer, parameter :: limiter_wenoz5r  = 16
+  integer, parameter :: limiter_wenozp5i = 17
+  integer, parameter :: limiter_wenozp5r = 18
 
 contains
 
@@ -50,6 +58,21 @@ contains
        limiter_type = limiter_ppm
     case ('mp5')
        limiter_type = limiter_mp5
+    case ('wenojs3')
+       limiter_type = limiter_wenojs3
+    case ('wenojs5_i')
+       limiter_type = limiter_wenojs5i
+    case ('wenojs5_r')
+       limiter_type = limiter_wenojs5r
+    case ('wenoz5_i')
+       limiter_type = limiter_wenoz5i
+    case ('wenoz5_r')
+       limiter_type = limiter_wenoz5r
+    case ('wenozp5_i')
+       limiter_type = limiter_wenozp5i
+    case ('wenozp5_r')
+       limiter_type = limiter_wenozp5r
+
     case default
        limiter_type = -1
        write(*,*) 'Unknown limiter: ', namelim
