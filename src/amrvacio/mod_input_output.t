@@ -774,10 +774,6 @@ contains
       nghostcells=3
     end if
 
-    if(any(limiter(1:nlevelshi)=='ppm')) then
-      nghostcells=4
-    end if
-
     if(any(limiter(1:nlevelshi)=='wenojs5_i')) then
       nghostcells=3
     end if
@@ -797,6 +793,10 @@ contains
     end if
     if(any(limiter(1:nlevelshi)=='wenozp5_r')) then
       nghostcells=3
+    end if
+
+    if(any(limiter(1:nlevelshi)=='ppm')) then
+      nghostcells=4
     end if
 
     ! If a wider stencil is used, extend the number of ghost cells
