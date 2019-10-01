@@ -5,7 +5,7 @@ export LC_ALL=C
 # Get all occurrences of use mod_... in .t files
 # - The '.' is for Mac compatibility
 # - The 'sort' is to ensure the order is identical on different systems
-deps="$(grep -r -e "^\s*use mod_" --include \*.t . | sort -f)"
+deps="$(grep -r -e "^\s*use mod_" --include \*.t . | sort)"
 
 # Remove the INCLUDES (are compiled first)
 deps=$(echo "$deps" | sed 's/use mod_global_parameters//')
@@ -42,6 +42,9 @@ deps=$(echo "$deps" | sed 's/[.]t/.o/')
 
 # Replace 'use mod_xxx' by ' mod_xxx.mod'
 deps=$(echo "$deps" | sed 's/use \(.*\)$/ \1.mod/')
+
+# Remove lines with ^M without dependencies
+deps=$(echo "$deps" | sed 's/^.*:\r//')
 
 # Sort lines and remove duplicates
 deps=$(echo "$deps" | sort -u)
