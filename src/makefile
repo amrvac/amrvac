@@ -49,6 +49,7 @@ amrgrid.o: mod_advance.mod
 amrgrid.o: mod_amr_fct.mod
 amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
+amrini.o: mod_constrained_transport.mod
 amrini.o: mod_ghostcells_update.mod
 amrvac.o: mod_advance.mod
 amrvac.o: mod_constrained_transport.mod

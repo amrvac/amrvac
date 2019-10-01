@@ -27,6 +27,7 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ! Make zero the magnetic fluxes
        ! Fake advance, storing electric fields at edges
+       block=>ps(igrid)
        call fake_advance(igrid,1,^ND,ps(igrid))
 
     end do
@@ -96,11 +97,12 @@ contains
     ixIs^L=s%ixGs^L;
     ixO^L=ixI^L^LSUBnghostcells;
 
+    fC=0.d0
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
 
     ! This is important only in 3D
     do idir=1,ndim
-       fE(ixI^S,idir) =-A(ixI^S,idir)*block%dsC(ixI^S,idir) 
+       fE(ixI^S,idir) =-A(ixI^S,idir)
     end do
 
     end associate
@@ -232,11 +234,11 @@ contains
     case (limiter_mp5)
        call MP5limitervar(ixI^L,ixC^L,idir,q,qL,qR)
        
-!    case (limiter_weno5)
-!       call WENO5limitervar(ixI^L,ixC^L,idir,q,qL,qR)
-!       
-!    case (limiter_wenoZP)
-!       call WENOZPlimitervar(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR)
+    case (limiter_wenojs5r)
+       call WENOJS5limiter(ixI^L,ixC^L,idir,q,qL,qR,.true.)
+       
+    case (limiter_wenozp5r)
+       call WENOZP5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,.true.)
        
     case default
 

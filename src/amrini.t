@@ -86,12 +86,13 @@ end subroutine modify_IC
 subroutine improve_initial_condition()
   use mod_global_parameters
   use mod_usr_methods
+  use mod_constrained_transport
 
   ! re-calculate magnetic field from the vector potential in a 
   ! completely divergency free way for AMR mesh in 3D
-  !{^IFTHREED if(stagger_grid .and. associated(usr_init_vector_potential) &
-  ! .and. levmax>levmin) call recalculateB
-  !}
+  {^IFTHREED if(stagger_grid .and. associated(usr_init_vector_potential) &
+   .and. levmax>levmin) call recalculateB
+  }
   if(associated(usr_improve_initial_condition)) call usr_improve_initial_condition
 
 end subroutine improve_initial_condition
