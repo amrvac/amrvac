@@ -15,6 +15,8 @@ class _syntheticmain():
         if self.dataset.header['ndim'] == 1:
             print("synthetic views can only be created for 2D/3D data")
             sys.exit(1)
+        if self.dataset.isothermal:
+            raise NotImplemented("synthetic views can not be created for isothermal datasets")
 
         # initialise figure and axis
         fig = kwargs.get("fig", None)
@@ -40,9 +42,9 @@ class _syntheticmain():
         self.block_nx = self.dataset.header['block_nx']
         self.block_nx_int = self._reduce_list_to_2d(self.block_nx)
 
-    def _get_ne(self, block, block_fields, block_ion):
-        block_p = block[..., block_fields.index("p")] * self.dataset.units.unit_pressure
-        block_T = block[..., block_fields.index("T")] * self.dataset.units.unit_temperature
+    def _get_ne(self, block, block_ion):
+        block_p = block["p"] * self.dataset.units.unit_pressure
+        block_T = block["T"] * self.dataset.units.unit_temperature
         block_ne = block_p / ((1 + 1.1 / block_ion) * self.dataset.units.k_B * block_T)
         return block_ne
 
@@ -146,14 +148,14 @@ class h_alpha(_syntheticmain):
         for ileaf, offset in enumerate(self.dataset.block_offsets):
             block = datfile_utilities.get_single_block_data(self.dataset.file, offset, self.dataset.block_shape)
             # this adds the temperature and pressure to the block
-            block, block_fields = process_data.add_primitives_to_single_block(block, self.dataset)
+            block = process_data.create_data_dict(block, self.dataset.header)
             # interpolate ionisation and f parameter for each block
-            block_ion, block_fpar = ionisation.block_interpolate_ionisation_f(block, block_fields, self.dataset)
-            block_ne = super()._get_ne(block, block_fields, block_ion)
+            block_ion, block_fpar = ionisation.block_interpolate_ionisation_f(block, self.dataset)
+            block_ne = super()._get_ne(block, block_ion)
             n2 = block_ne**2 / (block_fpar * 1e16)              # parameter f is interpolated in units of 1e16 cm-3
             # calculate block opacity
             block_kappa = (np.pi * self.dataset.units.ec**2 / (self.dataset.units.m_e * self.dataset.units.c)) * \
-                            self.f23 * n2 * self._gaussian(block, block_fields)
+                            self.f23 * n2 * self._gaussian(block)
             # integrate block along line of sight to get opacity
             l_edge, r_edge = process_data.get_block_edges(ileaf, self.dataset)
             opacity = super()._integrate_block(block_kappa, l_edge, r_edge)
@@ -171,8 +173,8 @@ class h_alpha(_syntheticmain):
         # plot final result
         super()._plot_synthetic_view(view)
 
-    def _gaussian(self, block, block_fields):
-        block_T = block[..., block_fields.index("T")] * self.dataset.units.unit_temperature
+    def _gaussian(self, block):
+        block_T = block["T"] * self.dataset.units.unit_temperature
         ksi = 5 * 1e5  # microturbulence in cm/s
         nu_0 = self.dataset.units.c / (6562.8 * 1e-8)       # H-alpha wavelength is 6562.8 Angstrom
         delta_nu = 0
@@ -209,17 +211,17 @@ class faraday(_syntheticmain):
         for ileaf, offset in enumerate(self.dataset.block_offsets):
             block = datfile_utilities.get_single_block_data(self.dataset.file, offset, self.dataset.block_shape)
             # add pressure and temperature to block
-            block, block_fields = process_data.add_primitives_to_single_block(block, self.dataset)
-            block_ion, block_fpar = ionisation.block_interpolate_ionisation_f(block, block_fields, self.dataset)
-            block_ne = super()._get_ne(block, block_fields, block_ion)
+            block = process_data.create_data_dict(block, self.dataset.header)
+            block_ion, block_fpar = ionisation.block_interpolate_ionisation_f(block, self.dataset)
+            block_ne = super()._get_ne(block, block_ion)
             prefactor = self.dataset.units.ec**3 / (2*np.pi*self.dataset.units.m_e**2 * self.dataset.units.c**4)
             if self.line_of_sight == 'x':
-                b_idx = 'b1'
+                b_key = 'b1'
             elif self.line_of_sight == 'y':
-                b_idx = 'b2'
+                b_key = 'b2'
             else:
-                b_idx = 'b3'
-            b_para = block[..., block_fields.index(b_idx)] * self.dataset.units.unit_magneticfield
+                b_key = 'b3'
+            b_para = block[b_key] * self.dataset.units.unit_magneticfield
             l_edge, r_edge = process_data.get_block_edges(ileaf, self.dataset)
             fara_measure = super()._integrate_block(block_ne*b_para, l_edge, r_edge) * prefactor
             self.integrated_block_list.append(fara_measure)

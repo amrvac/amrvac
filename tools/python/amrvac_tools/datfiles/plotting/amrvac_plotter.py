@@ -22,11 +22,16 @@ class _plotsetup():
         else:
             self.fig = fig
             self.ax = ax
+        self.colorbar = None
 
 class amrplot(_plotsetup):
     def __init__(self, dataset, var, **kwargs):
         super().__init__(dataset, **kwargs)
         self.var = var
+        if not isinstance(var, str):
+            raise TypeError("'amrplot' takes the variable name as argument")
+        if self.var not in dataset.known_fields:
+            raise KeyError("Variable '{}' not in the list of known fields".format(self.var))
 
         # mesh-related parameters
         self.draw_mesh = kwargs.get("draw_mesh", False)
@@ -48,11 +53,10 @@ class amrplot(_plotsetup):
         for ileaf, offset in enumerate(self.dataset.block_offsets):
             l_edge, r_edge = process_data.get_block_edges(ileaf, self.dataset)
             block = datfile_utilities.get_single_block_data(self.dataset.file, offset, self.dataset.block_shape)
-            block, block_fields = process_data.add_primitives_to_single_block(block, self.dataset, add_velocities=True)
-            varidx = block_fields.index(self.var)
-            block_data = block[:, varidx]
+            block = process_data.create_data_dict(block, self.dataset.header)
             x = np.linspace(l_edge, r_edge, self.dataset.header['block_nx'])
-            self.ax.plot(x, block_data, '-k')
+            self.ax.plot(x, block[self.var], '-k')
+            self.ax.set_title(self.var)
 
     def plot_2d(self):
         varmin, varmax = self.dataset.get_extrema(self.var)
@@ -65,14 +69,10 @@ class amrplot(_plotsetup):
             l_edge, r_edge = process_data.get_block_edges(ileaf, self.dataset)
             # read in block data (contains all variables)
             block = datfile_utilities.get_single_block_data(self.dataset.file, offset, self.dataset.block_shape)
-            # add primitive variables to this block
-            block, block_fields = process_data.add_primitives_to_single_block(block, self.dataset, add_velocities=True)
-            # get index of variable to plot
-            varidx = block_fields.index(self.var)
-            block_data = block[:, :, varidx]
+            block = process_data.create_data_dict(block, self.dataset.header)
             x = np.linspace(l_edge[0], r_edge[0], self.dataset.header['block_nx'][0])
             y = np.linspace(l_edge[1], r_edge[1], self.dataset.header['block_nx'][1])
-            im = self.ax.pcolormesh(x, y, block_data.T, cmap=self.cmap, vmin=varmin, vmax=varmax, norm=norm)
+            im = self.ax.pcolormesh(x, y, block[self.var].T, cmap=self.cmap, vmin=varmin, vmax=varmax, norm=norm)
 
             # logic to draw the mesh
             if self.draw_mesh:
@@ -85,7 +85,8 @@ class amrplot(_plotsetup):
         self.ax.set_aspect('equal')
         divider = make_axes_locatable(self.ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
-        self.fig.colorbar(im, cax=cax)
+        self.colorbar = self.fig.colorbar(im, cax=cax)
+        self.ax.set_title(self.var)
         self.fig.tight_layout()
 
 
@@ -120,7 +121,7 @@ class rgplot(_plotsetup):
         self.ax.set_aspect('equal')
         divider = make_axes_locatable(self.ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
-        self.fig.colorbar(im, cax=cax)
+        self.colorbar = self.fig.colorbar(im, cax=cax)
         self.fig.tight_layout()
 
 

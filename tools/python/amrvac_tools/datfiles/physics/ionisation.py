@@ -15,10 +15,10 @@ def init_splines(altitude):
     spline_ion = RectBivariateSpline(ionisation_tables.T_table, ionisation_tables.pg_table, itable)
     spline_f = RectBivariateSpline(ionisation_tables.T_table, ionisation_tables.pg_table, ftable)
 
-def block_interpolate_ionisation_f(block, block_fields, dataset):
-    # Re-dimensionalise temperature and pressure. Use Ellipsis object (...) to fill in missing dimensions
-    temp = block[..., block_fields.index("T")]*dataset.units.unit_temperature
-    pg = block[..., block_fields.index("p")]*dataset.units.unit_pressure
+def block_interpolate_ionisation_f(block, dataset):
+    # Re-dimensionalise temperature and pressure
+    temp = block["T"]*dataset.units.unit_temperature
+    pg = block["p"]*dataset.units.unit_pressure
 
     # create empty matrices
     ion = np.zeros_like(temp)

@@ -1,8 +1,8 @@
 """
-Class to load in MPI-AMRVAC .datfiles files.
+Main class to load in MPI-AMRVAC native .dat files.
 
 @author: Niels Claes
-         Last edit: 14 August 2019
+         Last edit: 03 October 2019
 """
 import sys, os
 import numpy as np
@@ -49,12 +49,16 @@ class load_file():
         # setup basic attributes
         self.file = file
         self.header = datfile_utilities.get_header(file)
-        self._uniform = self._data_is_uniform()
         self.data_dict = None
+        self._uniform = self._data_is_uniform()
         self._regriddir = "regridded_files"
 
         # load field information, including primitive variables
         self.known_fields = self._get_known_fields()
+
+        # check if dataset is isothermal
+        self.isothermal = self._data_is_isothermal()
+        self.adiab_constant = 1
 
         # load blocktree information
         self.block_lvls, self.block_ixs, self.block_offsets = datfile_utilities.get_tree_info(file)
@@ -68,14 +72,19 @@ class load_file():
         """
         Prints the current snapshot info (obtained from the header) to the console.
         """
+        if self.isothermal:
+            info_isothermal = ' (isothermal) '
+        else:
+            info_isothermal = ''
         print("")
         print("[INFO] Current file      : {}".format(self._filename))
         print("[INFO] Datfile version   : {}".format(self.header["datfile_version"]))
         print("[INFO] Current time      : {}".format(self.header["time"]))
-        print("[INFO] Physics type      : {}".format(self.header["physics_type"]))
+        print("[INFO] Physics type      : {}".format(self.header["physics_type"] + info_isothermal))
         print("[INFO] Boundaries        : {} -> {}".format(self.header["xmin"],
                                                            self.header["xmax"]))
         print("[INFO] Max AMR level     : {}".format(self.header["levmax"]))
+        print("[INFO] Uniform mesh      : {}".format(self._uniform))
         print("[INFO] Block size        : {}".format(self.header["block_nx"]))
         print("[INFO] Number of blocks  : {}".format(len(self.block_offsets)))
         print("-" * 40)
@@ -103,7 +112,7 @@ class load_file():
         w_names = self.header["w_names"]
         xmax = self.header["xmax"]
         xmin = self.header["xmin"]
-        nx = np.asarray(self.data_dict.data[w_names[0]].shape)
+        nx = np.asarray(self.data_dict[w_names[0]].shape)
 
         coordinate_arrays = []
         for i in range(len(nx)):
@@ -122,10 +131,9 @@ class load_file():
             data = datfile_utilities.get_uniform_data(self.file, self.header)
         else:
             data = self._regrid_data(nbprocs, regriddir)
-        self.data_dict = process_data.create_amrvac_dict(data, self.header)
-        if self.header['physics_type'] == 'hd' or self.header['physics_type'] == 'mhd':
-            self.data_dict.add_primitives()
-        return self.data_dict.data
+        # create dictionary containing the data
+        self.data_dict = process_data.create_data_dict(data, self.header, self.adiab_constant)
+        return self.data_dict
 
     def get_time(self):
         """
@@ -134,10 +142,11 @@ class load_file():
         """
         return self.header["time"]
 
-    def get_extrema(self, var):
+    def get_extrema(self, var, print_result=False):
         """
         Returns the maximum and minimum value of the requested variable
         :param var: variable, see ds.known_fields which are available
+        :param print_result: if True, prints the extrema to the console
         :return: min, max of the given variable
         """
         if var not in self.known_fields:
@@ -146,12 +155,17 @@ class load_file():
         varmin = 1e99
         for offset in self.block_offsets:
             block = datfile_utilities.get_single_block_data(self.file, offset, self.block_shape)
-            block, block_fields = process_data.add_primitives_to_single_block(block, self, add_velocities=True)
-            varidx = block_fields.index(var)
-            varmax = np.maximum(varmax, np.max(block[..., varidx]))
-            varmin = np.minimum(varmin, np.min(block[..., varidx]))
-        print(">> minimum {}: {:2.3e}   |   maximum {}: {:2.3e}".format(var, varmin, var, varmax))
+            block = process_data.create_data_dict(block, self.header)
+            varmax = np.maximum(varmax, np.max(block[var]))
+            varmin = np.minimum(varmin, np.min(block[var]))
+        if print_result:
+            print(">> minimum {}: {:2.3e}   |   maximum {}: {:2.3e}".format(var, varmin, var, varmax))
         return varmin, varmax
+
+    def set_adiabatic_constant(self, adiab_cte):
+        if not self.isothermal:
+            print("[INFO] dataset is not isothermal, 'e' is present. Setting the adiabatic constant has no effect.")
+        self.adiab_constant = adiab_cte
 
 
 
@@ -167,6 +181,17 @@ class load_file():
         if not self.header["nleafs"] == nleafs_uniform:
             return False
         return True
+
+    def _data_is_isothermal(self):
+        """
+        Checks if the data is isothermal
+        :return: True if hd or mhd but no energy present
+        """
+        if (not 'e' in self.known_fields) and \
+           (self.header['physics_type'] == 'hd' or self.header['physics_type'] == 'mhd'):
+            return True
+        else:
+            return False
 
     def _check_regrid_directory(self, regriddir):
         """
@@ -239,9 +264,11 @@ class load_file():
         fields = copy.deepcopy(self.header['w_names'])
         if self.header['physics_type'] == 'hd' or self.header['physics_type'] == 'mhd':
             if self.header['ndim'] == 1:
-                fields += ['v1', 'p', 'T']
+                fields += ['v1', 'p']
             elif self.header['ndim'] == 2:
-                fields += ['v1', 'v2', 'p', 'T']
+                fields += ['v1', 'v2', 'p']
             else:
-                fields += ['v1', 'v2', 'v3', 'p', 'T']
+                fields += ['v1', 'v2', 'v3', 'p']
+            if 'e' in fields:
+                fields += ['T']
         return fields
