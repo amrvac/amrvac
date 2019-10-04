@@ -651,7 +651,7 @@ module mod_fix_conserve
      use mod_global_parameters
      
      integer, intent(in)          :: igrid, ixI^L, idim^LIM
-     double precision, intent(in) :: fE(ixI^S,1:ndir)
+     double precision, intent(in) :: fE(ixI^S,7-2*ndim:3)
      
      integer :: idims, idir, iside, i^D
      integer :: pi^D, mi^D, ph^D, mh^D ! To detect corners
@@ -699,7 +699,7 @@ module mod_fix_conserve
 
      integer                      :: igrid,ixI^L,idims,iside
      logical                      :: restrict
-     double precision, intent(in) :: fE(ixI^S,1:ndir)
+     double precision, intent(in) :: fE(ixI^S,7-2*ndim:3)
 
      integer                      :: idir1,idir2
      integer                      :: ixE^L,ixF^L{^IFTHREED, jxF^L,}, nx^D,nxCo^D
@@ -783,7 +783,7 @@ module mod_fix_conserve
      integer :: nbuf, ibufnext
      integer :: ibufnext_cc
      integer :: pi^D, mi^D, ph^D, mh^D ! To detect corners
-     integer :: ixE^L(1:ndir), ixtE^L, ixF^L(1:ndim), ixfE^L(1:ndir)
+     integer :: ixE^L(1:3), ixtE^L, ixF^L(1:ndim), ixfE^L(1:3)
      integer :: nx^D, idir, ix, ipe_neighbor, ineighbor
      logical :: pcorner(1:ndim),mcorner(1:ndim)
 
@@ -950,7 +950,7 @@ module mod_fix_conserve
      integer,intent(in)    :: igrid,idims,iside,inc^D
      logical,intent(in)    :: add,CoCorner
      logical,intent(inout) :: pcorner(1:ndim),mcorner(1:ndim)
-     integer,intent(out)   :: ixF^L(1:ndim),ixtE^L,ixE^L(1:ndir),ixfE^L(1:ndir) ! Indices for faces and edges
+     integer,intent(out)   :: ixF^L(1:ndim),ixtE^L,ixE^L(1:3),ixfE^L(1:3) ! Indices for faces and edges
      integer               :: icor^D,idim1,idir,nx^D,middle^D
      integer               :: ixtfE^L
 
@@ -1018,7 +1018,7 @@ module mod_fix_conserve
        \}
      end if
      ! ... Adjust ranges of edges according to direction ...
-     do idim1=1,ndir
+     do idim1=1,3
        ixfEmax^D(idim1)=ixtfEmax^D;
        ixEmax^D(idim1)=ixtEmax^D;
        ixfEmin^D(idim1)=ixtfEmin^D+kr(idim1,^D);
@@ -1029,10 +1029,10 @@ module mod_fix_conserve
      if (CoCorner) then
        do idim1=idims+1,ndim
          if (pcorner(idim1)) then
-           do idir=1,ndir !Index arrays have size ndim
+           do idir=1,3!Index arrays have size ndim
              if (idir==6-idim1-idims) then
               !!! Something here has to change
-              !!! Array ixfE must have size ndir, while
+              !!! Array ixfE must have size 3, while
               !!! ixE must have size ndim
               {if (^D==idim1) then
                  ixfEmin^D(idir)=ixfEmax^D(idir)
@@ -1051,7 +1051,7 @@ module mod_fix_conserve
            end do
          end if
          if (mcorner(idim1)) then
-           do idir=1,ndir
+           do idir=1,3
              if (idir==6-idim1-idims) then
               {if (^D==idim1) then
                  ixfEmax^D(idir)=ixfEmin^D(idir)
@@ -1081,7 +1081,7 @@ module mod_fix_conserve
       {if((idims.gt.^D).and.pcorner(^D)) then
          if((.not.add).or.(inc^D==2)) then
            !ixFmax^DD(:)=ixFmax^DD(:)-kr(^D,^DD);
-           do idir=1,ndir
+           do idir=1,3
              if ((idir==idims).or.(idir==^D)) cycle
                ixfEmax^D(idir)=ixfEmax^D(idir)-1
                ixEmax^D(idir)=ixEmax^D(idir)-1
@@ -1091,7 +1091,7 @@ module mod_fix_conserve
       {if((idims>^D).and.mcorner(^D)) then
          if((.not.add).or.(inc^D==1)) then
            !ixFmin^DD(:)=ixFmin^DD(:)+kr(^D,^DD);
-           do idir=1,ndir
+           do idir=1,3
              if ((idir==idims).or.(idir==^D)) cycle
                ixfEmin^D(idir)=ixfEmin^D(idir)+1
                ixEmin^D(idir)=ixEmin^D(idir)+1
@@ -1107,13 +1107,13 @@ module mod_fix_conserve
 
      type(state)        :: s
      integer,intent(in) :: idims,iside
-     integer            :: ixF^L(1:ndim),ixtE^L,ixE^L(1:ndir),ixfE^L(1:ndir)
+     integer            :: ixF^L(1:ndim),ixtE^L,ixE^L(1:3),ixfE^L(1:3)
      double precision   :: edge(ixtE^S,1:ndim-1)
      logical,intent(in) :: add
 
      integer            :: idim1,idim2,idir,middle^D
      integer            :: ixfEC^L,ixEC^L
-     double precision   :: fE(ixG^T,1:ndir) !!!!!!!!
+     double precision   :: fE(ixG^T,7-2*ndim:3) !!!!!!!!
      double precision   :: circ(ixG^T,1:ndim) !!!!!!!!
      integer            :: ix^L,hx^L,ixC^L,hxC^L ! Indices for edges
 
@@ -1138,7 +1138,7 @@ module mod_fix_conserve
      circ=zero
      do idim1=1,ndim
         do idim2=1,ndim
-           do idir=1,ndir
+           do idir=7-2*ndim,3
              if (lvc(idim1,idim2,idir)==0) cycle
              ! Assemble indices
              ixC^L=ixF^L(idim1);

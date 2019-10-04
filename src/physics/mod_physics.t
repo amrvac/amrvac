@@ -218,7 +218,7 @@ module mod_physics
        ! velocity structure
        type(state)                        :: s
        double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-       double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+       double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
      end subroutine sub_update_faces
 
      subroutine sub_face_to_center(ixO^L,s)
@@ -407,7 +407,7 @@ contains
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
     type(state)                        :: s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
   end subroutine dummy_update_faces
 
   subroutine dummy_face_to_center(ixO^L,s)

@@ -2,17 +2,20 @@ module mod_usr
   use mod_mhd
   implicit none
 
+  double precision:: b0
 contains
 
   subroutine usr_init()
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
+    usr_init_vector_potential=>initvecpot_usr
 
     call set_coordinate_system("Cartesian")
 
     call mhd_activate()
 
+    b0=1.0d0/sqrt(4.0d0*dpi)
   end subroutine usr_init
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
@@ -21,19 +24,23 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision:: rho0,p0,b0
+    double precision:: rho0,p0
     logical, save :: first=.true.
 
     rho0=25.0d0/36.0d0/dpi
     p0=5.0d0/12.0d0/dpi
-    b0=1.0d0/sqrt(4.0d0*dpi)
 
     w(ixO^S,rho_)=rho0
     w(ixO^S,mom(1))=-sin(2.0d0*dpi*x(ixO^S,2))
     w(ixO^S,mom(2))= sin(2.0d0*dpi*x(ixO^S,1))
     w(ixO^S,p_)=p0
-    w(ixO^S,mag(1))=-b0*sin(2.0d0*dpi*x(ixO^S,2))
-    w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
+    if(stagger_grid) then
+      call b_from_vector_potential(ps(saveigrid)%ixGs^L,ixI^L,ixO^L,ps(saveigrid)%ws,x)
+      call mhd_face_to_center(ixO^L,ps(saveigrid))
+    else
+      w(ixO^S,mag(1))=-b0*sin(2.0d0*dpi*x(ixO^S,2))
+      w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
+    end if
 
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
@@ -44,6 +51,22 @@ contains
     endif
 
   end subroutine initonegrid_usr
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the corners
+    ! used by b_from_vectorpotential()
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    if (idir.eq.3) then
+      A(ixC^S) = b0*0.5d0/dpi*(half*cos(4.d0*dpi*xC(ixC^S,1)) + cos(2.d0*dpi*xC(ixC^S,2)))
+    else 
+      A(ixC^S) = zero
+    end if
+
+  end subroutine initvecpot_usr
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
     ! this subroutine can be used in convert, to add auxiliary variables to the

@@ -414,7 +414,7 @@ contains
     ! cell face flux
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     ! cell edge flux
-    double precision :: fE(ixI^S,1:ndir)
+    double precision :: fE(ixI^S,7-2*ndim:3)
 
     dx^D=rnode(rpdx^D_,igrid);
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -457,7 +457,7 @@ contains
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
     type(state), target          :: sCT, s, sold
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision :: fE(ixI^S,1:ndir)
+    double precision :: fE(ixI^S,7-2*ndim:3)
 
     integer :: ixO^L
 

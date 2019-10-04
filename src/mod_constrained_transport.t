@@ -64,7 +64,7 @@ contains
 
     double precision             :: dx^D
     double precision             :: fC(ixG^T,1:nwflux,1:ndim)
-    double precision             :: fE(ixG^T,1:ndir)
+    double precision             :: fE(ixG^T,7-2*ndim:3)
 
     dx^D=rnode(rpdx^D_,igrid);
 
@@ -82,11 +82,11 @@ contains
     integer       :: ixI^L
     type(state)   :: s
     double precision             :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision             :: fE(ixI^S,1:ndir)
+    double precision             :: fE(ixI^S,7-2*ndim:3)
     double precision             :: dx^D
 
     integer                            :: ixIs^L,ixO^L,idir
-    double precision                   :: xC(ixI^S,1:ndim), A(ixI^S,1:ndir)
+    double precision                   :: xC(ixI^S,1:ndim), A(ixI^S,1:3)
     double precision                   :: circ(ixI^S,1:ndim), dxidir
 
     associate(ws=>s%ws,x=>s%x)
@@ -101,7 +101,7 @@ contains
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
 
     ! This is important only in 3D
-    do idir=1,ndim
+    do idir=7-2*ndim,3
        fE(ixI^S,idir) =-A(ixI^S,idir)
     end do
 
@@ -139,7 +139,7 @@ contains
     use mod_usr_methods, only: usr_init_vector_potential
 
     integer, intent(in)                :: ixIs^L, ixI^L, ixO^L
-    double precision, intent(inout)    :: ws(ixIs^S,1:nws),A(ixI^S,1:ndir)
+    double precision, intent(inout)    :: ws(ixIs^S,1:nws),A(ixI^S,1:3)
     double precision, intent(in)       :: x(ixI^S,1:ndim)
 
     integer                            :: ixC^L, hxC^L, ixCp^L, ixCm^L, hxO^L, idim, idim1, idim2, idir
@@ -151,7 +151,7 @@ contains
 
     {ixCmax^D=ixOmax^D;}
     {ixCmin^D=ixOmin^D-1;} ! Extend range by one
-    do idir=7-2*ndim,ndir
+    do idir=7-2*ndim,3
       do idim=1,ndim
         ! Get edge coordinates
         if (idim/=idir) then
@@ -165,8 +165,8 @@ contains
     end do
 
     ! Set NaN to zero (can happen e.g. on axis):
-    where(A(ixI^S,1:ndir)/=A(ixI^S,1:ndir))
-       A(ixI^S,1:ndir)=zero
+    where(A(ixI^S,:)/=A(ixI^S,:))
+       A(ixI^S,:)=zero
     end where
 
     ! sub integrals A ds
@@ -180,7 +180,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=1,ndir ! Direction of line integral
+        do idir=7-2*ndim,3 ! Direction of line integral
           if(lvc(idim1,idim2,idir)==0) cycle
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);

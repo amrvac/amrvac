@@ -45,7 +45,7 @@ contains
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
     if(first .and. mype==0 )then
-      write(*,*)'Doing 2D ideal MHD, Orszag Tang problem'
+      write(*,*)'Doing 2.5D ideal MHD, Orszag Tang problem'
       write(*,*)'rho - p - b:',rho0,p0,b0
       first=.false.
     endif

@@ -2795,7 +2795,7 @@ contains
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
     type(state)                        :: s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
     select case(type_ct)
     case('average')
@@ -2819,7 +2819,7 @@ contains
     double precision, intent(in)       :: qdt
     type(state)                        :: s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
     integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2,i,j,k
@@ -2833,13 +2833,13 @@ contains
     ixCmax^D=ixOmax^D;
     ixCmin^D=ixOmin^D-1;
 
-    fE(ixI^S,1:ndir)=zero
+    fE=zero
 
     do idim1=1,ndim 
       iwdim1 = iw_mag(idim1)
       do idim2=1,ndim
         iwdim2 = iw_mag(idim2)
-        do idir=7-2*ndim,ndir ! Direction of line integral
+        do idir=7-2*ndim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ! Assemble indices
@@ -2866,7 +2866,7 @@ contains
 
     do idim1=1,ndim ! Coordinate perpendicular to face 
       do idim2=1,ndim
-        do idir=1,ndir ! Direction of line integral
+        do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
@@ -2908,13 +2908,13 @@ contains
     double precision, intent(in)       :: wp(ixI^S,1:nw)
     type(state)                        :: s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
     integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2,i,j,k
     double precision                   :: circ(ixI^S,1:ndim)
     ! electric field at cell centers
-    double precision                   :: ECC(ixI^S,1:ndir)
+    double precision                   :: ECC(ixI^S,7-2*ndim:3)
     ! gradient of E at left and right side of a cell face
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
@@ -2938,7 +2938,7 @@ contains
 
     ECC=0.d0
     ! Calculate electric field at cell centers
-    do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,ndir
+    do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,3
       if(lvc(idim1,idim2,idir)==1)then
          ECC(ixI^S,idir)=ECC(ixI^S,idir)+wp(ixI^S,iw_mag(idim1))*wp(ixI^S,iw_mom(idim2))
       else if(lvc(idim1,idim2,idir)==-1) then
@@ -2952,7 +2952,7 @@ contains
       jce=0.d0
       do idim1=1,ndim 
         do idim2=1,ndim
-          do idir=7-2*ndim,ndir
+          do idir=7-2*ndim,3
             if (lvc(idim1,idim2,idir)==0) cycle
             ixCmax^D=ixOmax^D;
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
@@ -2976,10 +2976,10 @@ contains
         jce(ixC^S,:)=jce(ixC^S,:)*phys_eta
       else
         ixA^L=ixO^L^LADD1;
-        call curlvector(wCT(ixI^S,iw_mag(:)),ixI^L,ixO^L,jcc,idirmin,7-2*ndir,ndir)
+        call curlvector(wCT(ixI^S,iw_mag(:)),ixI^L,ixO^L,jcc,idirmin,7-2*ndir,3)
         call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
         ! calcuate eta on cell edges
-        do idir=7-2*ndim,ndir
+        do idir=7-2*ndim,3
           ixCmax^D=ixOmax^D;
           ixCmin^D=ixOmin^D+kr(idir,^D)-1;
           jcc(ixC^S,idir)=0.d0
@@ -2999,13 +2999,13 @@ contains
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
-    fE(ixI^S,1:ndir)=zero
+    fE=zero
     ! evaluate electric field along cell edges according to equation (41)
     do idim1=1,ndim 
       iwdim1 = iw_mag(idim1)
       do idim2=1,ndim
         iwdim2 = iw_mag(idim2)
-        do idir=7-2*ndim,ndir ! Direction of line integral
+        do idir=7-2*ndim,3 ! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
@@ -3087,7 +3087,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=1,ndir ! Direction of line integral
+        do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
@@ -3120,7 +3120,7 @@ contains
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
-    double precision, intent(inout)    :: fE(ixI^S,1:ndir)
+    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
     type(state)                        :: s
 
     double precision                   :: vtilL(ixI^S,2)
@@ -3147,9 +3147,9 @@ contains
     ! idim1: directions in which we already performed the reconstruction
     ! idim2: directions in which we perform the reconstruction
 
-    fE(ixI^S,1:ndir)=zero
+    fE=zero
 
-    do idir=7-2*ndim,ndir
+    do idir=7-2*ndim,3
       ! Indices
       ! idir: electric field component
       ! idim1: one surface
@@ -3163,8 +3163,8 @@ contains
       ixCmin^D=ixOmin^D-1+kr(idir,^D);
 
       ! Set indices and directions
-      idim1=mod(idir,ndir)+1
-      idim2=mod(idir+1,ndir)+1
+      idim1=mod(idir,3)+1
+      idim2=mod(idir+1,3)+1
 
       jxC^L=ixC^L+kr(idim1,^D);
       ixCp^L=ixC^L+kr(idim2,^D);
@@ -3226,7 +3226,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=1,ndir ! Direction of line integral
+        do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
@@ -3323,7 +3323,7 @@ contains
     double precision, intent(inout)    :: ws(ixIs^S,1:nws)
     double precision, intent(in)       :: x(ixI^S,1:ndim)
 
-    double precision                   :: Adummy(ixI^S,1:ndir)
+    double precision                   :: Adummy(ixI^S,1:3)
 
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
 

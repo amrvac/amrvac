@@ -132,7 +132,7 @@ contains
     double precision, dimension(ixI^S,1:ndim), intent(in) ::  x
     type(state)                                           :: sCT, snew, sold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
-    double precision, dimension(ixI^S,1:ndir)             :: fE
+    double precision, dimension(ixI^S,7-2*ndim:3)         :: fE
 
     ! primitive w at cell center
     double precision, dimension(ixI^S,1:nw) :: wprim

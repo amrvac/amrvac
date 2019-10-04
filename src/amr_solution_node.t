@@ -435,6 +435,7 @@ subroutine alloc_node(igrid)
   ! calculate area of cell surfaces for coarser representative block
   call get_surface_area(psc(igrid),ixCoG^L)
   ! calculate volume and distance of cells
+  ps(igrid)%dsC=1.d0
   select case (coordinate)
     case (Cartesian)
       ps(igrid)%dvolume(ixGext^S)= {^D&rnode(rpdx^D_,igrid)|*}
@@ -442,14 +443,12 @@ subroutine alloc_node(igrid)
       ps(igrid)%dsC(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       psc(igrid)%dvolume(ixCoG^S)= {^D&2.d0*rnode(rpdx^D_,igrid)|*}
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
-      if(ndir>ndim) ps(igrid)%dsC(ixGext^S,ndim+1:ndir)=1.d0
     case (Cartesian_stretched)
       ps(igrid)%dvolume(ixGext^S)= {^D&ps(igrid)%dx(ixGext^S,^D)|*}
       ps(igrid)%ds(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       ps(igrid)%dsC(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       psc(igrid)%dvolume(ixCoG^S)= {^D&psc(igrid)%dx(ixCoG^S,^D)|*}
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
-      if(ndir>ndim) ps(igrid)%dsC(ixGext^S,ndim+1:ndir)=1.d0
     case (spherical)
       ps(igrid)%dvolume(ixGext^S)=(xext(ixGext^S,1)**2 &
                                 +ps(igrid)%dx(ixGext^S,1)**2/12.0d0)*&
@@ -557,7 +556,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     ! allocate coordinates
     allocate(s%x(ixG^S,1:ndim))
     allocate(s%dx(ixGext^S,1:ndim), &
-               s%ds(ixGext^S,1:ndim),s%dsC(ixGext^S,1:ndir))
+               s%ds(ixGext^S,1:ndim),s%dsC(ixGext^S,1:3))
     allocate(s%dvolume(ixGext^S))
     allocate(s%surfaceC(ixGs^S,1:ndim), &
              s%surface(ixG^S,1:ndim))
