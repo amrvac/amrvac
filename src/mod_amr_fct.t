@@ -383,7 +383,7 @@ contains
                     +bfluxFi(jjjxFimin^D:jjjxFimax^D:2,idim3)
 
           bfluxFi(ixFimin^D:ixFimax^D:2,idim1)=&
-             half*(bfluxFi(hxFimin^D:ixFimax^D:2,idim1)+bfluxFi(jxFimin^D:ixFimax^D:2,idim1))&
+             half*(bfluxFi(hxFimin^D:hxFimax^D:2,idim1)+bfluxFi(jxFimin^D:jxFimax^D:2,idim1))&
              +6.25d-2*((3.d0+alpha(ixCo^S,idim2))*F1(ixCo^S)&
                       +(1.d0-alpha(ixCo^S,idim2))*F2(ixCo^S)&
                       +(3.d0-alpha(ixCo^S,idim3))*F3(ixCo^S)&

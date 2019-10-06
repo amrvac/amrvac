@@ -266,7 +266,7 @@ contains
        endif
        timeio_tot=timeio_tot+MPI_WTIME()-timeio0
 
-       pass_wall_time=MPI_WTIME()-time0+dt_loop+3.d0*time_write >=wall_time_max
+       pass_wall_time=MPI_WTIME()-time0+dt_loop+4.d0*time_write >=wall_time_max
 
        ! exit time loop if time is up
        if (it>=it_max .or. global_time>=time_max .or. pass_wall_time) exit time_evol

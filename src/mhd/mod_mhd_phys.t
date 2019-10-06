@@ -2726,6 +2726,7 @@ contains
     end do
 
     ix^L=ixM^LL^LADD1;
+    max_divb = 0.0d0
 
     ! Store divergence of B as right-hand side
     do iigrid = 1, igridstail
@@ -2742,6 +2743,7 @@ contains
        call get_divb(ps(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
             mhd_divb_4thorder)
        mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
+       max_divb = max(max_divb, maxval(abs(tmp(ixM^T))))
     end do
 
     ! Solve laplacian(phi) = divB
