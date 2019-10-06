@@ -107,7 +107,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
     ! initialize one grid
-    use mod_constrained_transport
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -162,7 +161,6 @@ contains
   end subroutine initvecpot_usr
 
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
-    use mod_constrained_transport
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
@@ -199,9 +197,9 @@ contains
         ixOs^L=ixO^L-kr(2,^D);
         jxO^L=ixO^L+nghostcells*kr(2,^D);
         block%ws(ixOs^S,2)=zero
-        call div_staggered(jxO^L,block,Q(jxO^S))
+        call get_divb(w,ixI^L,jxO^L,Q)
         do ix2=ixOsmax2,ixOsmin2,-1
-          call div_staggered(ixO^L,block,Qp(ixO^S))
+          call get_divb(w,ixI^L,ixO^L,Qp)
           block%ws(ix2^%2ixOs^S,2)=&
            -(Q(jxOmin2^%2jxO^S)*block%dvolume(jxOmin2^%2jxO^S)&
            -Qp(ix2+1^%2ixO^S)*block%dvolume(ix2+1^%2ixO^S))&
@@ -255,9 +253,9 @@ contains
         ixOs^L=ixO^L;
         jxO^L=ixO^L-nghostcells*kr(2,^D);
         block%ws(ixOs^S,2)=zero
-        call div_staggered(jxO^L,block,Q(jxO^S))
+        call get_divb(w,ixI^L,jxO^L,Q)
         do ix2=ixOsmin2,ixOsmax2
-          call div_staggered(ixO^L,block,Qp(ixO^S))
+          call get_divb(w,ixI^L,ixO^L,Qp)
           block%ws(ix2^%2ixOs^S,2)=&
             (Q(jxOmax2^%2jxO^S)*block%dvolume(jxOmax2^%2jxO^S)&
            -Qp(ix2^%2ixO^S)*block%dvolume(ix2^%2ixO^S))&

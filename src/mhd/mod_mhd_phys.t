@@ -165,6 +165,9 @@ module mod_mhd_phys
   public :: get_normalized_divb
   public :: b_from_vector_potential
   public :: mhd_mag_en_all
+  {^NOONED
+  public :: mhd_clean_divb_multigrid
+  }
 
 contains
 
@@ -2674,19 +2677,22 @@ contains
   {^NOONED
   subroutine mhd_clean_divb_multigrid(qdt, qt, active)
     use mod_forest
-    use mod_multigrid_coupling
     use mod_global_parameters
+    use mod_multigrid_coupling
     use mod_geometry
+
     double precision, intent(in) :: qdt    !< Current time step
     double precision, intent(in) :: qt     !< Current time
     logical, intent(inout)       :: active !< Output if the source is active
     integer                      :: iigrid, igrid, id
-    integer                      :: n, nc, lvl, ix^L, idim
+    integer                      :: n, nc, lvl, ix^L, ixC^L, idim
     type(tree_node), pointer     :: pnode
     double precision             :: tmp(ixG^T), grad(ixG^T, ndim)
     double precision             :: res
     double precision, parameter  :: max_residual = 1d-3
-    integer, parameter           :: max_its      = 10
+    double precision, parameter  :: residual_reduction = 1d-10
+    integer, parameter           :: max_its      = 50
+    double precision             :: residual_it(max_its), max_divb
 
     mg%operator_type = mg_laplacian
 
@@ -2739,12 +2745,35 @@ contains
     end do
 
     ! Solve laplacian(phi) = divB
-    do n = 1, max_its
-       call mg_fas_vcycle(mg, max_res=res)
-       if (res < max_residual) exit
-    end do
+    if(stagger_grid) then
+      call MPI_ALLREDUCE(MPI_IN_PLACE, max_divb, 1, MPI_DOUBLE_PRECISION, &
+           MPI_MAX, icomm, ierrmpi)
 
-    if (res > max_residual) call mpistop("divb_multigrid: no convergence")
+      if (mype == 0) print *, "Performing multigrid divB cleaning"
+      if (mype == 0) print *, "iteration vs residual"
+      ! Solve laplacian(phi) = divB
+      do n = 1, max_its
+         call mg_fas_fmg(mg, n>1, max_res=residual_it(n))
+         if (mype == 0) write(*, "(I4,E11.3)") n, residual_it(n)
+         if (residual_it(n) < residual_reduction * max_divb) exit
+      end do
+      if (mype == 0 .and. n > max_its) then
+         print *, "divb_multigrid warning: not fully converged"
+         print *, "current amplitude of divb: ", residual_it(max_its)
+         print *, "multigrid smallest grid: ", &
+              mg%domain_size_lvl(:, mg%lowest_lvl)
+         print *, "note: smallest grid ideally has <= 8 cells"
+         print *, "multigrid dx/dy/dz ratio: ", mg%dr(:, 1)/mg%dr(1, 1)
+         print *, "note: dx/dy/dz should be similar"
+      end if
+    else
+      do n = 1, max_its
+         call mg_fas_vcycle(mg, max_res=res)
+         if (res < max_residual) exit
+      end do
+      if (res > max_residual) call mpistop("divb_multigrid: no convergence")
+    end if
+
 
     ! Correct the magnetic field
     do iigrid = 1, igridstail
@@ -2758,14 +2787,24 @@ contains
 
        ! Compute the gradient of phi
        tmp(ix^S) = mg%boxes(id)%cc({:,}, mg_iphi)
-       do idim = 1, ndim
-          call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
-       end do
 
-       ! Apply the correction B* = B - gradient(phi)
-       tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
-       ps(igrid)%w(ixM^T, mag(1:ndim)) = &
-            ps(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
+       if(stagger_grid) then
+         do idim =1, ndim
+           ixCmin^D=ixMlo^D-kr(idim,^D);
+           ixCmax^D=ixMhi^D;
+           call gradientx(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim),.false.)
+           ps(igrid)%ws(ixC^S,idim)=ps(igrid)%ws(ixC^S,idim)-grad(ixC^S,idim)
+         end do
+         call mhd_face_to_center(ixM^LL,ps(igrid))
+       else
+         do idim = 1, ndim
+            call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
+         end do
+         ! Apply the correction B* = B - gradient(phi)
+         tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
+         ps(igrid)%w(ixM^T, mag(1:ndim)) = &
+              ps(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
+       end if
 
        ! Determine magnetic energy difference
        tmp(ixM^T) = 0.5_dp * (sum(ps(igrid)%w(ixM^T, &

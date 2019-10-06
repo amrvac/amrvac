@@ -82,17 +82,33 @@ subroutine modify_IC
 
 end subroutine modify_IC
 
+{^NOONED
 !> improve initial condition after initialization
 subroutine improve_initial_condition()
   use mod_global_parameters
   use mod_usr_methods
   use mod_constrained_transport
+  use mod_multigrid_coupling
+  use mod_mhd_phys
+  use mod_ghostcells_update
 
-  ! re-calculate magnetic field from the vector potential in a 
-  ! completely divergency free way for AMR mesh in 3D
-  {^IFTHREED if(stagger_grid .and. associated(usr_init_vector_potential) &
-   .and. levmax>levmin) call recalculateB
-  }
-  if(associated(usr_improve_initial_condition)) call usr_improve_initial_condition
+  logical :: active
+
+  if(associated(usr_improve_initial_condition)) then
+    call usr_improve_initial_condition
+  else if(stagger_grid) then
+    if(associated(usr_init_vector_potential)) then
+      ! re-calculate magnetic field from the vector potential in a 
+      ! completely divergency free way for AMR mesh in 3D
+      if(levmax>levmin.and.ndim==3) call recalculateB
+    else if(slab_uniform) then
+      ! Project out the divB using multigrid poisson solver 
+      ! if not initialised from vector potential
+      if(.not.use_multigrid) call mg_setup_multigrid()
+      call mhd_clean_divb_multigrid(global_time,0.d0,active)
+      call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+    end if
+  end if
 
 end subroutine improve_initial_condition
+}

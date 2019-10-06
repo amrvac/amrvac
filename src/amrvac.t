@@ -117,10 +117,10 @@ program amrvac
 
      {^NOONED
      if (use_multigrid) call mg_setup_multigrid()
-     }
 
      ! improve initial condition
      call improve_initial_condition()
+     }
 
      ! select active grids
      call selectgrids

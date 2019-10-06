@@ -4,7 +4,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
   use mod_bc_data, only: bc_data_set
   use mod_global_parameters
   use mod_physics
-  use mod_constrained_transport
+  use mod_mhd_phys, only: get_divb
 
   integer, intent(in) :: iside, idims, ixG^L,ixB^L
   double precision, intent(in) :: time,qdt
@@ -92,12 +92,12 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             ixOs^L=ixO^L;
             hxO^L=ixO^L-nghostcells*kr(^DD,^D);
             ! Calculate divergence and partial divergence
-            call div_staggered(hxO^L,s,Q(hxO^S))
+            call get_divb(s%w,ixG^L,hxO^L,Q)
             select case(typeboundary(iw_mag(idir),iB))
             case("symm")
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixO^L,s,Qp(ixO^S))
+                call get_divb(s%w,ixG^L,ixO^L,Qp)
                 ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
                   (Q(hxOmax^D-ix^D^D%hxO^S)*s%dvolume(hxOmax^D-ix^D^D%hxO^S)&
                  -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
@@ -106,7 +106,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             case("asymm")
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixO^L,s,Qp(ixO^S))
+                call get_divb(s%w,ixG^L,ixO^L,Qp)
                 ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
                  (-Q(hxOmax^D-ix^D^D%hxO^S)*s%dvolume(hxOmax^D-ix^D^D%hxO^S)&
                  -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
@@ -115,7 +115,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             case("cont")
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixO^L,s,Qp(ixO^S))
+                call get_divb(s%w,ixG^L,ixO^L,Qp)
                 ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
                   (Q(hxOmax^D^D%hxO^S)*s%dvolume(hxOmax^D^D%hxO^S)&
                  -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
@@ -199,12 +199,12 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             ixOs^L=ixO^L-kr(^DD,^D);
             jxO^L=ixO^L+nghostcells*kr(^DD,^D);
             ! Calculate divergence and partial divergence
-            call div_staggered(jxO^L,s,Q(jxO^S))
+            call get_divb(s%w,ixG^L,jxO^L,Q)
             select case(typeboundary(iw_mag(idir),iB))
             case("symm")
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixO^L,s,Qp(ixO^S))
+                call get_divb(s%w,ixG^L,ixO^L,Qp)
                 ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
                  -(Q(jxOmin^D+ix^D^D%jxO^S)*s%dvolume(jxOmin^D+ix^D^D%jxO^S)&
                  -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
@@ -213,7 +213,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             case("asymm")
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixO^L,s,Qp(ixO^S))
+                call get_divb(s%w,ixG^L,ixO^L,Qp)
                 ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
                  -(-Q(jxOmin^D+ix^D^D%jxO^S)*s%dvolume(jxOmin^D+ix^D^D%jxO^S)&
                  -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
@@ -222,7 +222,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             case("cont")
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
-                call div_staggered(ixO^L,s,Qp(ixO^S))
+                call get_divb(s%w,ixG^L,ixO^L,Qp)
                 ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
                  -(Q(jxOmin^D^D%jxO^S)*s%dvolume(jxOmin^D^D%jxO^S)&
                  -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&

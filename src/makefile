@@ -51,6 +51,8 @@ amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
 amrini.o: mod_constrained_transport.mod
 amrini.o: mod_ghostcells_update.mod
+amrini.o: mod_mhd_phys.mod
+amrini.o: mod_multigrid_coupling.mod
 amrvac.o: mod_advance.mod
 amrvac.o: mod_constrained_transport.mod
 amrvac.o: mod_fix_conserve.mod
@@ -63,7 +65,7 @@ amrvac.o: mod_physics.mod
 amrvac.o: mod_timing.mod
 amrvac.o: mod_usr.mod
 boundary_conditions.o: mod_bc_data.mod
-boundary_conditions.o: mod_constrained_transport.mod
+boundary_conditions.o: mod_mhd_phys.mod
 boundary_conditions.o: mod_physics.mod
 coarsen.o: mod_physics.mod
 connectivity.o: mod_ghostcells_update.mod
@@ -244,7 +246,7 @@ mod_thermal_emission.o: mod_mhd.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
-mod_usr_template.o: mod_hd.mod
+mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
 pointgrav.o: mod_geometry.mod

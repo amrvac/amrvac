@@ -108,31 +108,6 @@ contains
     end associate
   end subroutine fake_update
 
-  !> calculating the divergence of a face-allocated vector field.
-  subroutine div_staggered(ixO^L,s,divv)
-    use mod_global_parameters
-
-    integer, intent(in)           :: ixO^L
-    type(state)                   :: s
-    double precision              :: divv(ixO^S)
-
-    integer                       :: hxO^L,idim
-
-    divv=zero
-
-    do idim=1,ndim
-      ! Displace index to the left
-      ! Even if ixI^L is the full size of the w arrays, this is ok
-      ! because the staggered arrays have an additional place to the left.
-       hxO^L=ixO^L-kr(idim,^D);
-       ! Calculate divergence by taking differences of fluxes
-       divv(ixO^S)=divv(ixO^S)+(s%ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
-                               -s%ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))&
-                               /s%dvolume(ixO^S)
-    end do
-
-  end subroutine div_staggered
-
   !> calculate magnetic field from vector potential A at cell edges
   subroutine b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
     use mod_global_parameters

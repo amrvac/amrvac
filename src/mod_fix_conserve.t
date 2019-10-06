@@ -893,7 +893,6 @@ module mod_fix_conserve
       {^IFTHREED end do}
                ! Set CoCorner to false again for next step
                  pcorner(idir)=.false.
-                 !call div_staggered(ixI^L,psuse(igrid))
                end if
 
                if (neighbor_type(mi^D,igrid)==neighbor_fine&
