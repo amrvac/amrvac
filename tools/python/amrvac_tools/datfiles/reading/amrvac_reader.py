@@ -128,7 +128,7 @@ class load_file():
         if self.data_dict is not None:
             return self.data_dict
         if self._uniform:
-            data = datfile_utilities.get_uniform_data(self.file, self.header)
+            data = datfile_utilities.get_uniform_data(self)
         else:
             data = self._regrid_data(nbprocs, regriddir)
         # create dictionary containing the data
@@ -223,7 +223,7 @@ class load_file():
         try:
             data = self._load_regridded_data()
         except FileNotFoundError:
-            data = regridding.regrid_amr_data(self.file, self.header, nbprocs)
+            data = regridding.regrid_amr_data(self, nbprocs)
             self._save_regridded_data(data)
         return data
 
