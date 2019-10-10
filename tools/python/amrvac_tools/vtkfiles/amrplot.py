@@ -544,7 +544,7 @@ def plotoverline(var,data,x_pts,y_pts):
     for i in range(len(l.icells)):
         x.append(linecoords[i,0])
         y.append(linecoords[i,1])
-    exec('myvar=%s[l.icells]' % var)
+        exec('myvar.append(data.%s[l.icells[i]])' % var)
     x = np.array(x)
     y = np.array(y)
     s = np.sqrt(x**2+y**2)
