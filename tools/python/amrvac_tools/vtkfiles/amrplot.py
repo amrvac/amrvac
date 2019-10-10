@@ -498,23 +498,23 @@ class polyanim():
 class line():
     """returns array of cells on a given line"""
     
-    def __init__(self,data,alice,bob):
+    def __init__(self,data,x_pts,y_pts):
 
         self.data=data
-        self.alice=np.array(alice)
-        self.bob=np.array(bob)
+        self.x_pts=np.array(x_pts)
+        self.y_pts=np.array(y_pts)
         self.icells=[]
         self.n=np.empty(2)
-        self.n[0] = (self.bob[0]-self.alice[0])/np.sqrt((self.bob[0]-self.alice[0])**2+(self.bob[1]-self.alice[1])**2)
-        self.n[1] = (self.bob[1]-self.alice[1])/np.sqrt((self.bob[0]-self.alice[0])**2+(self.bob[1]-self.alice[1])**2)
+        self.n[0] = (self.y_pts[0]-self.x_pts[0])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
+        self.n[1] = (self.y_pts[1]-self.x_pts[1])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
         self.epsilon = 2.e-1
         self.stepmax=10000
 
     def run(self):
 
-        self.x=copy.deepcopy(self.alice)
+        self.x=copy.deepcopy(self.x_pts)
         i=0
-        while (self.n[0]*(self.bob[0]-self.x[0])+self.n[1]*(self.bob[1]-self.x[1]))>0 and i<self.stepmax:
+        while (self.n[0]*(self.y_pts[0]-self.x[0])+self.n[1]*(self.y_pts[1]-self.x[1]))>0 and i<self.stepmax:
             myIcell = self.data.getIcellByPoint(self.x[0],self.x[1])
             self.icells.append(myIcell)
             self.step(myIcell)
@@ -527,14 +527,14 @@ class line():
         delta = delta * (1.-self.epsilon)
         myIcell=icell
         while (myIcell == icell and
-               self.n[0]*(self.bob[0]-self.x[0])+self.n[1]*(self.bob[1]-self.x[1]))>0:
+               self.n[0]*(self.y_pts[0]-self.x[0])+self.n[1]*(self.y_pts[1]-self.x[1]))>0:
             myIcell=self.data.getIcellByPoint(self.x[0],self.x[1])
             self.x[0] = self.x[0] + delta * self.n[0]
             self.x[1] = self.x[1] + delta * self.n[1]
 
-def plotoverline(var,data,alice,bob):
+def plotoverline(var,data,x_pts,y_pts):
     fig=plt.figure()
-    l=line(data,alice,bob)
+    l=line(data,x_pts,y_pts)
     l.run()
 
     x=[]
@@ -544,7 +544,7 @@ def plotoverline(var,data,alice,bob):
     for i in range(len(l.icells)):
         x.append(linecoords[i,0])
         y.append(linecoords[i,1])
-    exec('myvar=%s[l.icells]' % var)
+        exec('myvar.append(data.%s[l.icells[i]])' % var)
     x = np.array(x)
     y = np.array(y)
     s = np.sqrt(x**2+y**2)
