@@ -152,67 +152,32 @@ def get_single_block_data(istream, byte_offset, block_shape):
     return block_data
 
 
-def get_blocks(istream):
+def get_blocks(dataset):
     """
-    Reads block data from an MPI-AMRVAC 2.0 snapshot.
-    :param istream   open datfile buffer in 'rb' mode
-    :return Dictionary containing block data.
+    Reads all block data from an MPI-AMRVAC 2.0 snapshot.
+    :param dataset   instance of 'amrvac_reader.load_file' class
+    :return list containing block data as dictionaries with level, morton index and data.
     """
-
-    istream.seek(0)
-    h = get_header(istream)
-    nw = h['nw']
-    block_nx = np.array(h['block_nx'])
-    nleafs = h['nleafs']
-    nparents = h['nparents']
-
-    # Read tree info. Skip 'leaf' array
-    istream.seek(h['offset_tree'] + (nleafs + nparents) * SIZE_LOGICAL)
-
-    # Read block levels
-    fmt = ALIGN + nleafs * 'i'
-    block_lvls = np.array(struct.unpack(fmt, istream.read(struct.calcsize(fmt))))
-
-    # Read block indices
-    fmt = ALIGN + nleafs * h['ndim'] * 'i'
-    block_ixs = np.reshape(
-        struct.unpack(fmt, istream.read(struct.calcsize(fmt))),
-        [nleafs, h['ndim']])
-
-    # Start reading data blocks
-    istream.seek(h['offset_blocks'])
-
     blocks = []
-
-    for i in range(nleafs):
-        lvl = block_lvls[i]
-        ix = block_ixs[i]
-
-        # Read number of ghost cells
-        fmt = ALIGN + h['ndim'] * 'i'
-        gc_lo = np.array(struct.unpack(fmt, istream.read(struct.calcsize(fmt))))
-        gc_hi = np.array(struct.unpack(fmt, istream.read(struct.calcsize(fmt))))
-
-        # Read actual data
-        block_shape = np.append(gc_lo + block_nx + gc_hi, nw)
-        fmt = ALIGN + np.prod(block_shape) * 'd'
-        d = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
-        w = np.reshape(d, block_shape, order='F')  # Fortran ordering
-
-        b = {"lvl": lvl, "ix": ix, "w": w}
+    for ileaf, offset in enumerate(dataset.block_offsets):
+        block = get_single_block_data(dataset.file, offset, dataset.block_shape)
+        lvl = dataset.block_lvls[ileaf]
+        ix = dataset.block_ixs[ileaf]
+        b = {'lvl': lvl, 'ix': ix, 'w': block}
         blocks.append(b)
 
     return blocks
 
 
-def get_uniform_data(istream, hdr):
+
+def get_uniform_data(dataset):
     """
     Retrieves the data for a uniform data set.
-    :param istream: .datfiles file, opened in binary mode.
-    :param hdr: The .datfiles file header.
+    :param dataset: instance of 'amrvac_reader.load_file' class
     :return The raw data as a NumPy array.
     """
-    blocks = get_blocks(istream)
+    blocks = get_blocks(dataset)
+    hdr = dataset.header
 
     refined_nx = 2 ** (hdr['levmax'] - 1) * hdr['domain_nx']
     domain_shape = np.append(refined_nx, hdr['nw'])

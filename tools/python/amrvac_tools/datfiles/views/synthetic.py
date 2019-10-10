@@ -43,6 +43,12 @@ class _syntheticmain():
         self.block_nx_int = self._reduce_list_to_2d(self.block_nx)
 
     def _get_ne(self, block, block_ion):
+        """
+        Returns the electron density of a single block, based on the interpolated ionisation values.
+        :param block: block to calculate the electron density
+        :param block_ion: interpolated ionisation values for 'block'
+        :return: electron densities as a numpy array with the same shape as 'block'
+        """
         block_p = block["p"] * self.dataset.units.unit_pressure
         block_T = block["T"] * self.dataset.units.unit_temperature
         block_ne = block_p / ((1 + 1.1 / block_ion) * self.dataset.units.k_B * block_T)
@@ -84,6 +90,11 @@ class _syntheticmain():
         return result
 
     def _reduce_list_to_2d(self, list_in):
+        """
+        Used for integrating the block. Converts a 3D array to 2D, depending on the line of sight.
+        :param list_in: list of length 2 or 3
+        :return: numpy array of dimension 2, if list_in is 2-dim as input it is returned
+        """
         if self.dataset.header['ndim'] == 2:
             return np.asarray(list_in)
 
@@ -96,6 +107,12 @@ class _syntheticmain():
         return array2d
 
     def _merge_integrated_blocks(self):
+        """
+        Merges all 2D integrated blocks into a single 2D array depending on their position in the Morton curve.
+        All 2D integrated blocks are regridded to the finest level available in the current list of blocks.
+        As only 2D matrices have to be regridded instead of 3D, this means a large speedup in runtime.
+        :return: 2D numpy array containing the merged integrated view
+        """
         self.integrated_block_list = np.asarray(self.integrated_block_list)
 
         # Initialise merged 2D matrix

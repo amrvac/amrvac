@@ -6,11 +6,10 @@ import numpy as np
 from amrvac_tools.datfiles.reading import datfile_utilities
 
 
-def regrid_amr_data(istream, hdr, nbprocs):
+def regrid_amr_data(dataset, nbprocs):
     """
     Retrieves the data for a non-uniform data set by performing regridding.
-    :param istream   open datfile buffer in 'rb' mode
-    :param hdr       the .datfiles file header.
+    :param dataset   instance of 'amrvac_reader.load_file' class.
     :param nbprocs   the number of processors to use when regridding.
     :return: The raw data as a NumPy array.
     """
@@ -24,7 +23,9 @@ def regrid_amr_data(istream, hdr, nbprocs):
         nbprocs = multiprocessing.cpu_count() - 2
     print("[INFO] Regridding using {} processors.".format(nbprocs))
 
-    blocks = datfile_utilities.get_blocks(istream)
+    hdr = dataset.header
+
+    blocks = datfile_utilities.get_blocks(dataset)
     refined_nx = 2 ** (hdr['levmax'] - 1) * hdr['domain_nx']
     domain_shape = np.append(refined_nx, hdr['nw'])
     d = np.zeros(domain_shape, order='F')
