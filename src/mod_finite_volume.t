@@ -609,6 +609,8 @@ contains
        call WENOZP5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,.false.)
     case (limiter_wenozp5r)
        call WENOZP5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,.true.)
+    case (limiter_venk)
+       call venklimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp) 
     case default
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);

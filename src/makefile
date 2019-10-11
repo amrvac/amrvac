@@ -8,9 +8,9 @@ amrgrid.t mod_finite_volume.t mod_tvd.t mod_finite_difference.t load_balance.t	\
 connectivity.t boundary_conditions.t comm_lib.t forest.t amr_neighbors.t	\
 amr_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t mod_geometry.t	\
 mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t mod_weno.t       \
-mod_limiter.t mod_fix_conserve.t mod_source.t mod_initialize.t mod_amrvac.t     \
-mod_bc_data.t mod_lookup_table.t mod_amr_fct.t mod_constrained_transport.t      \
-mod_multigrid_coupling.t
+mod_venk.t mod_limiter.t mod_fix_conserve.t mod_source.t mod_initialize.t       \
+mod_amrvac.t mod_bc_data.t mod_lookup_table.t mod_amr_fct.t                     \
+mod_constrained_transport.t mod_multigrid_coupling.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -150,6 +150,7 @@ mod_input_output.o: mod_small_values.mod
 mod_input_output.o: mod_timing.mod
 mod_limiter.o: mod_mp5.mod
 mod_limiter.o: mod_ppm.mod
+mod_limiter.o: mod_venk.mod
 mod_limiter.o: mod_weno.mod
 mod_magnetofriction.o: mod_fix_conserve.mod
 mod_magnetofriction.o: mod_geometry.mod
