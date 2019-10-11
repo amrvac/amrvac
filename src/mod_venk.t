@@ -97,7 +97,6 @@ contains
     endwhere
     !> (eq.3)
     phi(iM^S,1:nwflux) = min(phim(iM^S,1:nwflux),phip(iM^S,1:nwflux))
-    print*, deltap(5,1), deltam(5,1),phim(5,1), phip(5,1)
     !> (eq.5)
     wLC(iL^S,1:nwflux) = w(iL^S,1:nwflux) + 0.25d0 * (w(iLp^S,1:nwflux)-w(iLm^S,1:nwflux)) * phi(iL^S,1:nwflux)
     wRC(iL^S,1:nwflux) = w(iLp^S,1:nwflux) - 0.25d0 * (w(iLpp^S,1:nwflux)-w(iL^S,1:nwflux)) * phi(iLp^S,1:nwflux)
