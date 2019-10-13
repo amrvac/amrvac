@@ -179,6 +179,9 @@ contains
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
 
+    namelist /euvlist/ filename_euv,image,spectrum,wavelength,direction_LOS,&
+         direction_slit,location_slit,resolution_euv
+
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
 
@@ -446,7 +449,10 @@ contains
 106    rewind(unitpar)
        read(unitpar, paramlist, end=107)
 
-107    close(unitpar)
+107    rewind(unitpar)
+       read(unitpar, euvlist, end=108)
+
+108    close(unitpar)
 
        ! Append the log and file names given in the par files
        if (base_filename /= basename_prev) &

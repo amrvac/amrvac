@@ -1011,3 +1011,30 @@ cylindrical coordinates as well. User can possibly prescibe analytic current in
 _usr_set_J0_ subroutine to significantly increase accuracy. Choose 
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
+
+
+
+## Synthetic EUV emission {#par_euvlist}
+
+User can use this module to synthesize EUV emission based on the plasma parameters. 
+Two types of data can be generated with module: 2D image of given EUV line and the
+spectra of the line. The data will be outputed into two .vtu files. User can activate
+the systhesis by set 'image = .true.' or 'spectrum = .true.'. It works only when the
+simulation is 3D currently.
+
+User can specify the emission line, light of sight direction, slit dirction for spectral
+observation and the slit location via parameters 'wavelength', 'direction_LOS',
+'direction_slit', 'location_slit', respectively. User can choose the resolution of the 
+outputed image or spectra via 'resolution_euv'. The resolution will be changed to 
+instrument resolution (AIA or IRIS) by setting 'resolution_euv= `instrument`'.
+
+    &euv_list
+      filename_euv= CHARACTER
+      image= F | T
+      spectrum= F | T
+      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1394 | 1403 | 1338 | 1343 | 1397 | 1400 | 1401 | 1405 | 1349 | 1351
+      direction_LOS= 1 | 2 | 3
+      direction_slit= 1 | 2 | 3
+      location_slit= DOUBLE
+      resolution_euv= 'instrument' | 'data'
+    /

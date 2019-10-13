@@ -285,6 +285,17 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
+    select case (mhd_boris_method)
+    case ("none")
+      mhd_boris_type = boris_none
+    case ("reduced_force")
+      mhd_boris_type = boris_reduced_force
+    case ("simplification")
+      mhd_boris_type = boris_simplification
+    case default
+      call mpistop("Unknown mhd_boris_method (none, reduced_force, simplification)")
+    end select
+
     ! Determine flux variables
     rho_ = var_set_rho()
 
@@ -827,6 +838,7 @@ contains
     end if
 
     call mhd_get_csound2(w,x,ixI^L,ixO^L,csound)
+
     ! store |B|^2 in v
     b2(ixO^S) = mhd_mag_en_all(w,ixI^L,ixO^L) * gamma2
 
@@ -1323,7 +1335,7 @@ contains
     end if
   end subroutine mhd_gamma2_alfven
 
-  !> Compute 1/sqrt(1+v_A^2/c^2) for Boris' approximation, where v_A is the
+  !> Compute 1/sqrt(1+v_A^2/c^2) for Boris simplification, where v_A is the
   !> Alfven velocity
   function mhd_gamma_alfven(w, ixI^L, ixO^L) result(gamma_A)
     use mod_global_parameters

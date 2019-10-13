@@ -320,7 +320,6 @@ contains
     double precision             :: tmp(ixI^S)
 
     flag(ixO^S) = 0
-    where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
 
     if (hd_energy) then
        if (primitive) then
@@ -331,6 +330,8 @@ contains
           where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
        endif
     end if
+
+    where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
 
   end subroutine hd_check_w
 
@@ -915,12 +916,12 @@ contains
       select case (small_values_method)
       case ("replace")
         if (small_values_fix_iw(rho_)) then
-          where(flag(ixO^S) /= 0) w(ixO^S,rho_) = small_density
+          where(flag(ixO^S) == rho_) w(ixO^S,rho_) = small_density
         end if
 
         do idir = 1, ndir
           if (small_values_fix_iw(mom(idir))) then
-            where(flag(ixO^S) /= 0) w(ixO^S, mom(idir)) = 0.0d0
+            where(flag(ixO^S) == rho_) w(ixO^S, mom(idir)) = 0.0d0
           end if
         end do
 

@@ -66,19 +66,11 @@ contains
     call MPI_FILE_CLOSE(file_handle,ierrmpi)
     allocate(xa1(nx1))
     allocate(xa2(nx2))
-    xa1(nx1/2)=xc1
-    xa2(nx2/2)=xc2
-    do i=nx1/2+1,nx1
-      xa1(i)=xa1(nx1/2)+dble(i-nx1/2)*dxm1
+    do i=1,nx1 
+      xa1(i) = xc1 + (dble(i) - dble(nx1)/2.d0 - 0.5d0)*dxm1
     enddo
-    do i=nx1/2-1,1,-1
-      xa1(i)=xa1(nx1/2)+dble(i-nx1/2)*dxm1
-    enddo
-    do i=nx2/2+1,nx2
-      xa2(i)=xa2(nx2/2)+dble(i-nx2/2)*dxm2
-    enddo
-    do i=nx2/2-1,1,-1
-      xa2(i)=xa2(nx2/2)+dble(i-nx2/2)*dxm2
+    do i=1,nx2
+      xa2(i) = xc2 + (dble(i) - dble(nx2)/2.d0 - 0.5d0)*dxm2
     enddo
     ! declare and define global variables Lunit and Bunit to be your length unit in
     ! cm and magnetic strength unit in Gauss first

@@ -602,6 +602,24 @@ module mod_global_parameters
   ! coefficient for physics
   double precision :: phys_eta
 
+
+  !> Base file name for synthetic EUV emission output
+  character(len=std_len) :: filename_euv
+  !> output image
+  logical :: image=.false.
+  !> output spectrum
+  logical :: spectrum=.false.
+  ! wavelength for output
+  integer :: wavelength
+  !> direction of light of sight
+  integer :: direction_LOS=3
+  !> direction of slit (for spectrum)
+  integer :: direction_slit=2
+  !> location of the slit
+  double precision :: location_slit=0.d0
+  !> resolution of the output
+  character(len=std_len) :: resolution_euv='instrument'
+
   !$OMP THREADPRIVATE(dxlevel)
   !$OMP THREADPRIVATE(saveigrid)
   !$OMP THREADPRIVATE(typelimiter,typegradlimiter)

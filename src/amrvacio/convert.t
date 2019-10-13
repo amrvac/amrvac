@@ -4,6 +4,7 @@ use mod_usr_methods, only: usr_special_convert
 use mod_global_parameters
 use mod_ghostcells_update
 use mod_physics, only: phys_req_diagonal
+use mod_thermal_emission
 !-----------------------------------------------------------------------------
 
 if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
@@ -43,6 +44,13 @@ select case(convert_type)
   case default
    call mpistop("Error in generate_plotfile: Unknown convert_type")
 end select
+
+
+! output synthetic euv emission
+if (ndim==3) then
+  if (image) call get_EUV_image(unitconvert)
+  if (spectrum) call get_EUV_spectra(unitconvert)
+endif
 
 end subroutine generate_plotfile
 !=============================================================================

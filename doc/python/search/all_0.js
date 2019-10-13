@@ -1,4 +1,0 @@
-var searchData=
-[
-  ['_5f_5finit_5f_5f',['__init__',['../classread_1_1load.html#a8c43b9413ae649bc23ef1ff649b2cd32',1,'read.load.__init__()'],['../classread_1_1loadvti.html#a62f0cb202a1238fcd6e0043b2498d7bd',1,'read.loadvti.__init__()'],['../classread_1_1loadcsv.html#a5bec0e5f6fa7fb96fa85f37b2947517b',1,'read.loadcsv.__init__()'],['../classread_1_1particles.html#ab33d14b8bb4f58592adb28a17cb81627',1,'read.particles.__init__()'],['../classread_1_1ensemble.html#aca2969dfc2c707a1e2c57188311b8456',1,'read.ensemble.__init__()'],['../classamrplot_1_1polyplot.html#a3a9c6e6d0216516ea99a132e35e056b9',1,'amrplot.polyplot.__init__()'],['../classamrplot_1_1polyanim.html#a23544aa62d88997f902b36edafedceb1',1,'amrplot.polyanim.__init__()'],['../classamrplot_1_1line.html#ac61317e2517804da571eba781e4337d3',1,'amrplot.line.__init__()']]]
-];

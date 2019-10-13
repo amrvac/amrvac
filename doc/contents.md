@@ -4,9 +4,9 @@
 
 # Introduction for new users {#intro_new_users}
 
-* [Installation](installation.md) How to install MPI-AMRVAC
+* [Installation](installation.md) How to install MPI-AMRVAC.
 * [Getting Started](getting_started.md) How to run your first test problem.
-* [Features](features.md) An overview of the main features of MPI-AMRVAC. 
+* [Features](features.md) An overview of the main features of MPI-AMRVAC.
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
 financial support.
 * [FAQ](faq.md) Frequently asked questions.
@@ -18,7 +18,7 @@ financial support.
 * [User files](amrvacusr.md) How to create a new problem, specify initial
   conditions and customize functionalities.
 * [Parameters](par.md) Description of all parameters in "amrvac.par" parameter file.
-* [Auxiliary variables](mpiamrvac_nw.md) Description of the intended use 
+* [Auxiliary variables](mpiamrvac_nw.md) Description of the intended use
   for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
 * [Command line](commandline.md) Help on command-line parameters.
 * [Examples](examples.md) Description of various example simulations for which
@@ -29,16 +29,16 @@ financial support.
 * [Discretization](discretization.md) The equation and its discretization, the
 basic variables, the structure of the grid, boundaries, ghost cells.
 * [Methods](methods.md) Properties of the discretization methods like TVDLF,
-TVDMU, TVD, HLL, ...
+TVDMU, TVD, HLL...
 * [AMR aspects](amrstructure.md) Some essential info on global parameters and
 the data structures for the block-tree AMR.
 * [Using polar/cylindrical/spherical coordinates](axial.md) Some information on
-simulations using non-Cartesian grids
+simulations using non-Cartesian grids.
 
 # Additional Physics {#special_sources}
 
-* [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction. 
-* [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling. 
+* [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction.
+* [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
@@ -49,7 +49,7 @@ which is translated to F90 by the VACPP preprocessor.
 * [Variable Names](varnames.md) How variable names are formed in the source
 files.
 * [VACPP](vacpp.md) Making and running the VACPP preprocessor itself.
-* [Compilation](compilation.md) Info on compilation, debugging and adding libraries
+* [Compilation](compilation.md) Info on compilation, debugging and adding libraries.
 
 # IO and data analysis {#io}
 
@@ -59,12 +59,14 @@ convert to Tecplot (.plt), and VTK (.vtu) data files.
 * [Slices](slices.md) How to output hypersurfaces (slices) for restart or
 visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
-visualisation and analysis (e.g. column densities)
-* [Analysis routine](analysis.md) Using the run-time analysis routine
+visualisation and analysis (e.g. column densities).
+* [Analysis routine](analysis.md) Using the run-time analysis routine.
 
-**Data analysis tools**
+# Python tools {#io-python}
+* [Setting up](python_setup.md) What's needed to start using the tools.
+* [Reading dat files](python_datfiles.md) How to read the native .dat files.
+* [Reading vtu files](python_vtkfiles.md) How to read vtk-type files.
 
-* [Ray-Tracing Algorithm](raytracing.md) Python script to generate H-alpha views for any given .dat file.
-* [Reader for .dat files](dat_reader.md) Script to read in MPI-AMRVAC `.dat` files for data analysis with Python.
+# Meetings and workshops {#meetings}
 
-* [Python](python/index.md) \todo Include python documentation here
+* [Meetings](meetings.md) A list of past and upcoming meetings related to MPI-AMRVAC.

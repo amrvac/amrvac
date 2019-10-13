@@ -5,6 +5,8 @@ the current MPI-version MPI-AMRVAC (some, especially the older papers used
 previous variants of the code). Especially the first papers listed here are 
 specific to the current version.**
 
+* `A geometric multigrid library for quadtree/octree AMR grids coupled to MPI-AMRVAC', J. Teunissen and R. Keppens, 2019, CPC [doi](https://doi.org/10.1016/j.cpc.2019.106866) [arXiv](https://arxiv.org/abs/1901.11370).
+
 * `A comprehensive comparison of relativistic particle integrators', B. Ripperda, F. Bacchini, J. Teunissen, C. Xia, O. Porth, L. Sironi, G. Lapenta, &amp; R. Keppens, 2018, ApJS. [2017arXiv171009164R](http://adsabs.harvard.edu/abs/2017arXiv171009164R).
 
 * `MPI-AMRVAC 2.0 for Solar and Astrophysical Applications', C. Xia, J. Teunissen, I. El Mellah, E. Chane, &amp; R. Keppens, 2018, ApJS **234**, 30 [doi:10.3847/1538-4365/aaa6c8](https://doi.org/10.3847/1538-4365/aaa6c8).

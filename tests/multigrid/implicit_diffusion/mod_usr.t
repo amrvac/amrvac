@@ -23,7 +23,6 @@ contains
     phys_global_source => diffuse_density
     usr_process_grid => set_error
 
-    mg%operator_type = mg_helmholtz
     mg%bc(:, mg_iphi)%bc_type = mg_bc_neumann
     mg%bc(:, mg_iphi)%bc_value = 0.0d0
 
@@ -60,7 +59,7 @@ contains
     logical, intent(inout)       :: active
     double precision             :: max_res
 
-    call mg_copy_to_tree(rho_, mg_iphi, .false., .false.)
+    call mg_copy_to_tree(rho_, mg_iphi)
     call diffusion_solve(mg, qdt, diffusion_coeff, 1, 1d-4)
     call mg_copy_from_tree(mg_iphi, rho_)
     active = .true.
