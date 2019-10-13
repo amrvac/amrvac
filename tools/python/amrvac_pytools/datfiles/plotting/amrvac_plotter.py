@@ -3,11 +3,14 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from amrvac_tools.datfiles.reading import datfile_utilities
-from amrvac_tools.datfiles.processing import process_data
+from amrvac_pytools.datfiles.reading import datfile_utilities
+from amrvac_pytools.datfiles.processing import process_data
 
 
 class _plotsetup():
+    """
+    Parent class of amrplot and rgplot, contains the matplotlib figure initialisations and colormaps.
+    """
     def __init__(self, dataset, **kwargs):
         self.dataset = dataset
 
@@ -25,6 +28,9 @@ class _plotsetup():
         self.colorbar = None
 
 class amrplot(_plotsetup):
+    """
+    Plots AMR data for a variable in the known fields.
+    """
     def __init__(self, dataset, var, **kwargs):
         super().__init__(dataset, **kwargs)
         self.var = var
@@ -91,6 +97,9 @@ class amrplot(_plotsetup):
 
 
 class rgplot(_plotsetup):
+    """
+    Plots a variable from a regridded dataset, requires that load_all_data() is called first.
+    """
     def __init__(self, dataset, data, **kwargs):
         if dataset.data_dict is None:
             raise AttributeError("Make sure the regridded data is loaded when calling rgplot (ds.load_all_data)")

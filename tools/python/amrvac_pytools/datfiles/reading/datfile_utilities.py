@@ -2,7 +2,7 @@
 Module containing reading and processing methods for an MPI-AMRVAC .datfiles file.
 
 @author: Jannis Theunissen (original)
-         Niels Claes (extensions)
+         Clément Robert (extensions, modifications)
 """
 import struct
 import numpy as np

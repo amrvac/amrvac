@@ -3,13 +3,12 @@ import multiprocessing
 import scipy.interpolate as interp
 import numpy as np
 
-from amrvac_tools.datfiles.reading import datfile_utilities
-
+from amrvac_pytools.datfiles.reading import datfile_utilities
 
 def regrid_amr_data(dataset, nbprocs):
     """
     Retrieves the data for a non-uniform data set by performing regridding.
-    :param dataset   instance of 'amrvac_reader.load_file' class.
+    :param dataset   instance of 'amrvac_reader.load_datfile' class.
     :param nbprocs   the number of processors to use when regridding.
     :return: The raw data as a NumPy array.
     """
@@ -37,18 +36,18 @@ def regrid_amr_data(dataset, nbprocs):
     init_progress = multiprocessing.Value("i", 0)
     nb_blocks  = multiprocessing.Value("i", len(blocks))
 
-    print_progress(0, 100)
+    _print_progress(0, 100)
 
     # Initialize pool
-    pool = multiprocessing.Pool(initializer=mp_init,
+    pool = multiprocessing.Pool(initializer=_mp_init,
                                 initargs=[init_progress, nb_blocks],
                                 processes=nbprocs)
 
     # Execute multiprocessing pool
-    blocks_regridded = np.array(pool.starmap(interpolate_block, block_iterable))
+    blocks_regridded = np.array(pool.starmap(_interpolate_block, block_iterable))
     pool.close()
     pool.join()
-    print_progress(100, 100)
+    _print_progress(100, 100)
     print("")
 
     # fill arrays with regridded data
@@ -90,7 +89,7 @@ def regrid_amr_data(dataset, nbprocs):
     return d
 
 
-def print_progress(count, total):
+def _print_progress(count, total):
     """
     Small method to print the current progress.
     :param count: Number of blocks done.
@@ -99,16 +98,16 @@ def print_progress(count, total):
     percentage = round(100.0 * count / float(total), 1)
     print("Regridding...    {}%".format(percentage), end="\r")
 
-def add_progress():
+def _add_progress():
     """
     Adds progress to the multiprocessing variables
     """
     progress.value += 1
     if progress.value % 10 == 0:
-        print_progress(progress.value, total_blocks.value)
+        _print_progress(progress.value, total_blocks.value)
     return
 
-def mp_init(t, nb_blocks):
+def _mp_init(t, nb_blocks):
     """
     Initialiser method passed to the multiprocessing pool.
     :param t: progress
@@ -118,7 +117,7 @@ def mp_init(t, nb_blocks):
     progress = t
     total_blocks = nb_blocks
 
-def interpolate_block(b, hdr):
+def _interpolate_block(b, hdr):
     """
     Interpolates a given block to the maximum refinement level using flat interpolation.
     :param b: The block to refine.
@@ -128,7 +127,7 @@ def interpolate_block(b, hdr):
     block_lvl = b['lvl']
     max_lvl   = hdr['levmax']
     if block_lvl == max_lvl:
-        add_progress()
+        _add_progress()
         return b
     ndim = hdr['ndim']
     curr_width = hdr['block_nx']
@@ -163,10 +162,16 @@ def interpolate_block(b, hdr):
             grid_interpolated = interp.griddata(pts, vals, (grid_x, grid_y, grid_z), method="linear")
             b_interpolated[:, :, :, var] = grid_interpolated
 
-    add_progress()
+    _add_progress()
     return b_interpolated
 
 def regrid_2dmatrix(matrix, new_shape):
+    """
+    Regrids a 2D matrix to a new shape
+    :param matrix: original matrix to regrid
+    :param new_shape: new shape, in the same form as np.shape
+    :return: Numpy array containing the original matrix regridded to new_shape
+    """
     if matrix.shape == tuple(new_shape):
         return matrix
     nb_elements = np.prod(matrix.shape)

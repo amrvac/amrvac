@@ -6,7 +6,7 @@ from numpy import loadtxt as pylabload
 import sys, time
 import struct
 
-from amrvac_tools.vtkfiles import numpy_support as ah
+from amrvac_pytools.vtkfiles import numpy_support as ah
 
 
 if sys.platform == "win32":
@@ -44,7 +44,7 @@ def extract(data,varname,attribute_mode='cell'):
     return ah.vtk2array(vtk_values)
 
 #=============================================================================
-class load:
+class load_vtkfile():
     """
     Loader class for vtu and pvtu files.
     """
@@ -381,7 +381,7 @@ class load:
         if (self.silent == 0): print('========== Finished loading %d cells in %f sec, have a nice day! ===========' % (self.ncells, (tend-t0) ))
 
 #=============================================================================
-class loadvti(load):
+class loadvti(load_vtkfile):
     """Loader class for vti data"""
     def __init__(self,offset,get=1,file='data',mirrorPlane=None,silent=0,
                  rotateX=0,rotateY=0,rotateZ=0,

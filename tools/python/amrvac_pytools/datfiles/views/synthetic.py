@@ -3,12 +3,16 @@ import numpy as np
 import matplotlib.colors
 import matplotlib.pyplot as plt
 
-from amrvac_tools.datfiles.reading import datfile_utilities
-from amrvac_tools.datfiles.processing import regridding, process_data
-from amrvac_tools.datfiles.physics import ionisation
+from amrvac_pytools.datfiles.reading import datfile_utilities
+from amrvac_pytools.datfiles.processing import regridding, process_data
+from amrvac_pytools.datfiles.physics import ionisation
 
 
 class _syntheticmain():
+    """
+    Parent class of the h-alpha and faraday methods. Initialises the matplotlib figures and other attributes used
+    by children methods.
+    """
     def __init__(self, dataset, **kwargs):
         self.dataset = dataset
         self.dataset.units.check_default_units()
@@ -153,6 +157,9 @@ class _syntheticmain():
 
 
 class h_alpha(_syntheticmain):
+    """
+    Calculates a H-alpha synthetic image, based on a method described by Heinzel (2005).
+    """
     def __init__(self, dataset, **kwargs):
         print(">> Creating H-alpha view...")
 
@@ -210,6 +217,9 @@ class h_alpha(_syntheticmain):
 
 
 class faraday(_syntheticmain):
+    """
+    Calculates the Faraday rotation effect for a given dataset. Only for MHD.
+    """
     def __init__(self, dataset, **kwargs):
         print(">> Creating Faraday view...")
         if not dataset.header["physics_type"] == "mhd":
