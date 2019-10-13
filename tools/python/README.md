@@ -1,7 +1,7 @@
 # amrvac_pytools
 ## Installation
 
-This python package is regularly update, so we recommend installing it with "develop" arguments so that it does not need to be reinstalled with each update. This can be achieve in 3 distinct ways
+This python package is regularly updated, so we recommend installing it with "develop" arguments so that it does not need to be reinstalled with each update. This can be achieved in 3 distinct ways
 > *nb:* all methods require `cd amrvac_pytools-project` is executed beforehand
 
 - **recommended:** using `conda`
