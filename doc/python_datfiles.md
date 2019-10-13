@@ -14,14 +14,14 @@ The datfile tools can be found in the folder `$AMRVAC_DIR/tools/python/datfiles`
 All functionality is contained in the file `amrvac_reader.py`, present in the `datfiles/reading` subdirectory.
 This class contains various instances and methods linking to other classes and methods in different subdirectories,
 keeping usage plain and simple with just one single import.
-To import the reader into your script (assuming you added the tools directory to your `PYTHONPATH`), use:
+To import the reader into your script (assuming you installed `amrvac_pytools`):
 
-    from amrvac_tools.datfiles.reading import amrvac_reader
+    import amrvac_pytools as apt
 
 As an example, we will use the file `KH0015.dat`, which is the 2D MHD Cartesian Kelvin-Helmholtz problem from the tests folder.
 In order to read in this file, it is sufficient to type
 
-    ds = amrvac_reader.load_file('KH0015.dat')
+    ds = apt.load_datfile('KH0015.dat')
 
 It is necessary to stress that this command loads the **information** of the `.dat` file, **not** the actual data itself.
 This is especially useful to inspect large datasets or time series, without having to load the data into memory every time.
