@@ -5,10 +5,10 @@ module mod_input_output
   public
 
   !> Version number of the .dat file output
-  integer, parameter :: version_number = 4
+  integer, parameter :: version_number = 5
 
   !> List of compatible versions
-  integer, parameter :: compatible_versions(2) = [3, 4]
+  integer, parameter :: compatible_versions(3) = [3, 4, 5]
 
   !> number of w found in dat files
   integer :: nw_found
@@ -1157,6 +1157,9 @@ contains
   end function get_snapshot_index
 
   !> Write header for a snapshot
+  !>
+  !> If you edit the header, don't forget to update: snapshot_write_header(),
+  !> snapshot_read_header(), doc/fileformat.md, tools/python/dat_reader.py
   subroutine snapshot_write_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_physics
@@ -1190,11 +1193,20 @@ contains
          MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, [ block_nx^D ], ndim, &
          MPI_INTEGER, st, er)
+
+    ! Periodicity (assume all variables are periodic if one is)
+    call MPI_FILE_WRITE(fh, periodB, ndim, MPI_LOGICAL, st, er)
+
+    ! Geometry
+    call MPI_FILE_WRITE(fh, geometry_name(1:name_len), &
+         name_len, MPI_CHARACTER, st, er)
+
+    ! Write stagger grid mark
+    call MPI_FILE_WRITE(fh, stagger_grid, 1, MPI_LOGICAL, st, er)
+
     do iw = 1, nw
       call MPI_FILE_WRITE(fh, cons_wnames(iw), name_len, MPI_CHARACTER, st, er)
     end do
-
-    ! TODO: write geometry info
 
     ! Physics related information
     call MPI_FILE_WRITE(fh, physics_type, name_len, MPI_CHARACTER, st, er)
@@ -1214,11 +1226,13 @@ contains
     end if
     call MPI_FILE_WRITE(fh, slicenext, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, collapsenext, 1, MPI_INTEGER, st, er)
-    ! Write stagger grid mark
-    call MPI_FILE_WRITE(fh, stagger_grid, 1, MPI_LOGICAL, st, er)
 
   end subroutine snapshot_write_header
 
+  !> Read header for a snapshot
+  !>
+  !> If you edit the header, don't forget to update: snapshot_write_header(),
+  !> snapshot_read_header(), doc/fileformat.md, tools/python/dat_reader.py
   subroutine snapshot_read_header(fh, offset_tree, offset_block)
     use mod_forest
     use mod_global_parameters
@@ -1233,9 +1247,9 @@ contains
     integer, dimension(MPI_STATUS_SIZE)   :: st
     character(len=name_len), allocatable  :: var_names(:), param_names(:)
     double precision, allocatable         :: params(:)
-    character(len=name_len)               :: phys_name
+    character(len=name_len)               :: phys_name, geom_name
     integer                               :: er, n_par, tmp_int
-    logical                               :: stagger_mark_dat
+    logical                               :: stagger_mark_dat, periodic(ndim)
 
     ! Version number
     call MPI_FILE_READ(fh, version, 1, MPI_INTEGER, st, er)
@@ -1324,6 +1338,23 @@ contains
       call mpistop("change block_nx^D in par file")
     end if
 
+    ! From version 5, read more info about the grid
+    if (version > 4) then
+      call MPI_FILE_READ(fh, periodic, ndim, MPI_LOGICAL, st, er)
+      if (any(periodic .neqv. periodB)) &
+           call mpistop("change in periodicity in par file")
+
+      call MPI_FILE_READ(fh, geom_name, name_len, MPI_CHARACTER, st, er)
+      if (geom_name /= typeaxial) &
+           call mpistop("change in geometry in par file")
+
+      call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
+      if (stagger_grid .neqv. stagger_mark_dat) then
+        write(*,*) "Error: stagger grid flag differs from restart data:", stagger_mark_dat
+        call mpistop("change parameter to use stagger grid")
+      end if
+    end if
+
     ! From version 4 onwards, the later parts of the header must be present
     if (version > 3) then
       ! w_names (not used here)
@@ -1367,14 +1398,6 @@ contains
 
     ! Still used in convert
     snapshotini = snapshotnext-1
-
-    if (version > 4) then
-      call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
-      if (stagger_grid .neqv. stagger_mark_dat) then
-        write(*,*) "Error: stagger grid flag differs from restart data:", stagger_mark_dat
-        call mpistop("change parameter to use stagger grid")
-      end if
-    end if
 
   end subroutine snapshot_read_header
 
