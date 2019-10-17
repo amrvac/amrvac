@@ -87,9 +87,9 @@ def _get_ekin(data_dict, header):
 
     ekin = 0.5 * data_dict['m1']**2 / data_dict['rho']
     if ndim > 1:
-        ekin = ekin + 0.5 * data_dict['m2'] / data_dict['rho']
+        ekin = ekin + 0.5 * data_dict['m2']**2 / data_dict['rho']
     if ndim > 2:
-        ekin = ekin + 0.5 * data_dict['m3'] / data_dict['rho']
+        ekin = ekin + 0.5 * data_dict['m3']**2 / data_dict['rho']
     return ekin
 
 
