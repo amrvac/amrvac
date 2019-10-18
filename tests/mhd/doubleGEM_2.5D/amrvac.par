@@ -64,7 +64,7 @@
  /
 
  &mhd_list
-        typedivbfix='glm1'
+        typedivbfix='glm'
  /
         compactres=.true.
         mhd_eta=1.0d-3

@@ -497,7 +497,7 @@ call calc_grid(unitslice,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
 {^IFTHREED
 select case (dir)
 case (1)
-  if(slab) then
+  if(slab_uniform) then
     do ix=ixMlo1,ixMhi1
       ps_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) = &
            ps_sub(jgrid)%w(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:nw+nwauxio) &
@@ -516,7 +516,7 @@ case (1)
   ps_sub(jgrid)%x(ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim) = &
        ps(igrid)%x(ixMlo1,ixMlo2:ixMhi2,ixMlo3:ixMhi3,1:ndim)
 case (2)
-  if(slab) then
+  if(slab_uniform) then
     do ix=ixMlo2,ixMhi2
        ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) = &
             ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:nw+nwauxio) &
@@ -535,7 +535,7 @@ case (2)
   ps_sub(jgrid)%x(ixMlo1:ixMhi1,ixMlo3:ixMhi3,1:ndim) = &
        ps(igrid)%x(ixMlo1:ixMhi1,ixMlo2,ixMlo3:ixMhi3,1:ndim) 
 case (3)
-  if(slab) then
+  if(slab_uniform) then
     do ix=ixMlo3,ixMhi3
        ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) = &
             ps_sub(jgrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,1:nw+nwauxio) &
@@ -561,7 +561,7 @@ end select
 {^IFTWOD
 select case (dir)
 case (1)
-  if(slab) then
+  if(slab_uniform) then
     do ix=ixMlo1,ixMhi1
       ps_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) = &
            ps_sub(jgrid)%w(ixMlo2:ixMhi2,1:nw+nwauxio) &
@@ -580,7 +580,7 @@ case (1)
   ps_sub(jgrid)%x(ixMlo2:ixMhi2,1:ndim) = &
        ps(igrid)%x(ixMlo1,ixMlo2:ixMhi2,1:ndim)
 case (2)
-  if(slab) then
+  if(slab_uniform) then
     do ix=ixMlo2,ixMhi2
        ps_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) = &
             ps_sub(jgrid)%w(ixMlo1:ixMhi1,1:nw+nwauxio) &
@@ -603,7 +603,7 @@ case default
 end select
 }
 {^IFONED   
-if(slab) then
+if(slab_uniform) then
   do ix=ixMlo1,ixMhi1
      ps_sub(jgrid)%w(1:nw+nwauxio) = ps_sub(jgrid)%w(1:nw+nwauxio) + wCC_TMP(ix,1:nw+nwauxio) * dx1
   end do

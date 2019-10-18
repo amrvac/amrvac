@@ -10,6 +10,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_set_B0        => specialset_B0
+    usr_init_vector_potential=>initvecpot_usr
 
     call set_coordinate_system("cylindrical")
     call mhd_activate()
@@ -18,7 +19,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_physics
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -51,16 +51,31 @@ contains
     w(ixO^S,mom(:))=0.d0
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
+    else if(stagger_grid) then
+      call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
     end if
 
-    if(mhd_glm) w(ixO^S,psi_)=0.d0
-
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the edges
+    ! used by b_from_vectorpotential()
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    if (idir==2) then
+      A(ixC^S)=-Busr*xC(ixC^S,1)*(dsin(xC(ixC^S,3))-dcos(xC(ixC^S,3)))
+    end if
+
+  end subroutine initvecpot_usr
 
   subroutine get_B(ixI^L,ixO^L,B,x)
     integer, intent(in) :: ixI^L, ixO^L
@@ -80,8 +95,6 @@ contains
   !
   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
   ! corresponding normalization values (default value 1)
-    use mod_physics
-    use mod_mhd_phys
 
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: x(ixI^S,1:ndim)
@@ -90,7 +103,7 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     !! output the plasma beta p*2/B**2

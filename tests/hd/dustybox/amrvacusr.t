@@ -1,12 +1,12 @@
 !=============================================================================
 ! amrvacusr.t.KHDustM
 
-!INCLUDE:amrvacnul/specialini.t
-INCLUDE:amrvacnul/speciallog.t
-INCLUDE:amrvacnul/specialbound.t
-!INCLUDE:amrvacnul/specialsource.t
-INCLUDE:amrvacnul/specialimpl.t
-INCLUDE:amrvacnul/usrflags.t
+!
+
+
+!
+
+
 INCLUDE:amrvacnul/correctaux_usr.t
 !=============================================================================
 subroutine initglobaldata_usr
@@ -30,18 +30,18 @@ eqpar(rho1_) = 1.0d-20
 eqpar(vel1_) = 5.0d4
 eqpar(T1_)   = 1.0d2
 
-normvar(0)     = 1.0d18          ! normalization for distance
-normvar(rho_)  = 1.0d-21         ! normalization for rho
-normvar(v1_)   = 1.0d7            ! normalization for speed
+w_convert_factor(0)     = 1.0d18          ! normalization for distance
+w_convert_factor(rho_)  = 1.0d-21         ! normalization for rho
+w_convert_factor(mom(1))   = 1.0d7            ! normalization for speed
 
-normt          = normvar(0)/normvar(v1_)
-normvar(p_)    = normvar(rho_)*(normvar(v1_)**2)         
-{normvar(rhod^DS_)   = normvar(rho_)\}
-{^DS&{^C&normvar(v^Cd^DS_) = normvar(v^C_);}\}
+time_convert_factor          = w_convert_factor(0)/w_convert_factor(mom(1))
+w_convert_factor(p_)    = w_convert_factor(rho_)*(w_convert_factor(mom(1))**2)         
+{w_convert_factor(rhod^DS_)   = w_convert_factor(rho_)\}
+{^DS&{^C&w_convert_factor(v^Cd^DS_) = w_convert_factor(v^C_);}\}
 
-rhodust(1:^NDS) = rhodust(1:^NDS)/normvar(rhod1_)
-eqpar(min_ar_)  = eqpar(min_ar_)/normvar(0)
-eqpar(max_ar_)  = eqpar(max_ar_)/normvar(0)
+rhodust(1:^NDS) = rhodust(1:^NDS)/w_convert_factor(rhod1_)
+eqpar(min_ar_)  = eqpar(min_ar_)/w_convert_factor(0)
+eqpar(max_ar_)  = eqpar(max_ar_)/w_convert_factor(0)
 
 
 ! if not using "dustmethod='linear'", define rhodust(1:^NDS), 
@@ -106,11 +106,11 @@ double precision :: vsound
 
 
 
-w(ix^S,v1_)=0.0d0
-w(ix^S,rho_)=eqpar(rho1_)/normvar(rho_)
-w(ixG^S,p_)   = eqpar(rho1_)*(kbcgspar/(mhcgspar*eqpar(mu_)))*eqpar(T1_) / normvar(p_)
-{^DS&w(ixG^S,rhod^DS_)=0.01d0*eqpar(rho1_)/(normvar(rho_)*^NDS);}
-{^DS&w(ixG^S,v1d^DS_) = eqpar(vel1_)/normvar(v1_);}
+w(ix^S,mom(1))=0.0d0
+w(ix^S,rho_)=eqpar(rho1_)/w_convert_factor(rho_)
+w(ixG^S,p_)   = eqpar(rho1_)*(kboltzmann_cgs/(hydrogen_mass_cgs*eqpar(mu_)))*eqpar(T1_) / w_convert_factor(p_)
+{^DS&w(ixG^S,rhod^DS_)=0.01d0*eqpar(rho1_)/(w_convert_factor(rho_)*^NDS);}
+{^DS&w(ixG^S,v1d^DS_) = eqpar(vel1_)/w_convert_factor(mom(1));}
 
 
 }

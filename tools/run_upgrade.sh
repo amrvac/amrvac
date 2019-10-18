@@ -21,6 +21,15 @@ $AMRVAC_DIR/tools/upgrade.pl
 cd $AMRVAC_DIR/src/nonlinear
 $AMRVAC_DIR/tools/upgrade.pl
 
+cd $AMRVAC_DIR/src/particle
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/src/modules
+$AMRVAC_DIR/tools/upgrade.pl
+
+cd $AMRVAC_DIR/src/includes
+$AMRVAC_DIR/tools/upgrade.pl
+
 cd $AMRVAC_DIR/tests/schemes
 $AMRVAC_DIR/tools/upgrade.pl
 

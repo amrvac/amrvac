@@ -2,7 +2,7 @@
 !> pointers for the various supported routines. An actual physics module has to
 !> set these pointers to its implementation of these routines.
 module mod_physics
-  use mod_global_parameters, only: name_len
+  use mod_global_parameters, only: name_len, max_nw
   use mod_physics_hllc
   use mod_physics_roe
   use mod_physics_ppm
@@ -32,25 +32,37 @@ module mod_physics
   !> Indicates dissipation should be omitted
   integer, parameter   :: flux_no_dissipation = 2
 
-  procedure(sub_check_params), pointer    :: phys_check_params        => null()
-  procedure(sub_convert), pointer         :: phys_to_conserved        => null()
-  procedure(sub_convert), pointer         :: phys_to_primitive        => null()
-  procedure(sub_modify_wLR), pointer      :: phys_modify_wLR          => null()
-  procedure(sub_get_cmax), pointer        :: phys_get_cmax            => null()
-  procedure(sub_get_cbounds), pointer     :: phys_get_cbounds         => null()
-  procedure(sub_get_flux), pointer        :: phys_get_flux            => null()
-  procedure(sub_get_dt), pointer          :: phys_get_dt              => null()
-  procedure(sub_get_v_idim), pointer      :: phys_get_v_idim          => null()
-  procedure(sub_add_source_geom), pointer :: phys_add_source_geom     => null()
-  procedure(sub_add_source), pointer      :: phys_add_source          => null()
-  procedure(sub_global_source), pointer   :: phys_global_source       => null()
-  procedure(sub_get_aux), pointer         :: phys_get_aux             => null()
-  procedure(sub_check_w), pointer         :: phys_check_w             => null()
-  procedure(sub_get_pthermal), pointer    :: phys_get_pthermal        => null()
-  procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust     => null()
-  procedure(sub_write_info), pointer      :: phys_write_info          => null()
-  procedure(sub_angmomfix), pointer       :: phys_angmomfix           => null()
-  procedure(sub_small_values), pointer    :: phys_handle_small_values => null()
+  !> Type for special methods defined per variable
+  type iw_methods
+    integer :: test
+    !> If this is set, use the routine as a capacity function when adding fluxes
+    procedure(sub_get_var), pointer, nopass :: inv_capacity => null()
+  end type iw_methods
+
+  !> Special methods defined per variable
+  type(iw_methods) :: phys_iw_methods(max_nw)
+
+  procedure(sub_check_params), pointer    :: phys_check_params           => null()
+  procedure(sub_convert), pointer         :: phys_to_conserved           => null()
+  procedure(sub_convert), pointer         :: phys_to_primitive           => null()
+  procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
+  procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
+  procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
+  procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
+  procedure(sub_get_v_idim), pointer      :: phys_get_v_idim             => null()
+  procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
+  procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
+  procedure(sub_add_source), pointer      :: phys_add_source             => null()
+  procedure(sub_global_source), pointer   :: phys_global_source          => null()
+  procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
+  procedure(sub_check_w), pointer         :: phys_check_w                => null()
+  procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
+  procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust        => null()
+  procedure(sub_write_info), pointer      :: phys_write_info             => null()
+  procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
+  procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
+  procedure(sub_update_faces), pointer    :: phys_update_faces           => null()
+  procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
 
   abstract interface
 
@@ -68,10 +80,12 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
      end subroutine sub_convert
 
-     subroutine sub_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+     subroutine sub_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idir
        double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+       double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+       type(state)                     :: s
      end subroutine sub_modify_wLR
 
      subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
@@ -188,7 +202,32 @@ module mod_physics
        character(len=*), intent(in)    :: subname
      end subroutine sub_small_values
 
-  end interface
+     subroutine sub_get_var(ixI^L, ixO^L, w, out)
+       use mod_global_parameters
+       integer, intent(in)           :: ixI^L, ixO^L
+       double precision, intent(in)  :: w(ixI^S, nw)
+       double precision, intent(out) :: out(ixO^S)
+     end subroutine sub_get_var
+
+     subroutine sub_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+       use mod_global_parameters
+       integer, intent(in)                :: ixI^L, ixO^L
+       double precision, intent(in)       :: qdt
+       ! cell-center primitive variables
+       double precision, intent(in)       :: wprim(ixI^S,1:nw)
+       ! velocity structure
+       type(state)                        :: s
+       double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
+       double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+     end subroutine sub_update_faces
+
+     subroutine sub_face_to_center(ixO^L,s)
+       use mod_global_parameters
+       integer, intent(in)                :: ixO^L
+       type(state)                        :: s
+     end subroutine sub_face_to_center
+
+   end interface
 
 contains
 
@@ -257,6 +296,12 @@ contains
     if (.not. associated(phys_handle_small_values)) &
          phys_handle_small_values => dummy_small_values
 
+    if (.not. associated(phys_update_faces)) &
+         phys_update_faces => dummy_update_faces
+
+    if (.not. associated(phys_face_to_center)) &
+         phys_face_to_center => dummy_face_to_center
+
   end subroutine phys_check
 
   subroutine dummy_init_params
@@ -265,10 +310,12 @@ contains
   subroutine dummy_check_params
   end subroutine dummy_check_params
 
-  subroutine dummy_modify_wLR(wLC, wRC, ixI^L, ixO^L, idir)
+  subroutine dummy_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
     use mod_global_parameters
-    integer, intent(in)                :: ixI^L, ixO^L, idir
-    double precision, intent(inout)    :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    type(state)                     :: s
   end subroutine dummy_modify_wLR
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
@@ -351,5 +398,22 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
   end subroutine dummy_small_values
+
+  subroutine dummy_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixO^L
+    double precision, intent(in)       :: qdt
+    ! cell-center primitive variables
+    double precision, intent(in)       :: wprim(ixI^S,1:nw)
+    type(state)                        :: s
+    double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+  end subroutine dummy_update_faces
+
+  subroutine dummy_face_to_center(ixO^L,s)
+    use mod_global_parameters
+    integer, intent(in)                :: ixO^L
+    type(state)                        :: s
+  end subroutine dummy_face_to_center
   
 end module mod_physics

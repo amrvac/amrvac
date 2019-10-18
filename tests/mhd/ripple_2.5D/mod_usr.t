@@ -20,15 +20,23 @@ contains
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
+    integer :: ixC^L
 
     w(ixO^S,mom(1))=0.d0
     w(ixO^S,mom(2))=0.d0
     w(ixO^S,mom(3))=0.01d0*dexp(-(^D&x(ixO^S,^D)**2+)/1d-4)
     w(ixO^S,p_)    =1.d0+0.1*dexp(-(^D&x(ixO^S,^D)**2+)/1d-4)
     w(ixO^S,rho_)  =1.d0+0.1*dexp(-(^D&x(ixO^S,^D)**2+)/1d-4)
-    w(ixO^S,mag(1))=1.d0
-    w(ixO^S,mag(2))=0.d0
-    w(ixO^S,mag(3))=0.d0
+    if(stagger_grid) then
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D-kr(1,^D);
+      block%ws(ixC^S,1)=1.d0
+      call mhd_face_to_center(ixO^L,block)
+    else
+      w(ixO^S,mag(1))=1.d0
+      w(ixO^S,mag(2))=0.d0
+      w(ixO^S,mag(3))=0.d0
+    end if
     
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
   
@@ -46,7 +54,7 @@ contains
     double precision                   :: w(ixI^S,nw+nwauxio)
     double precision                   :: normconv(0:nw+nwauxio)
 
-    double precision                   :: tmp(ixI^S), bvec(ixI^S,1:ndir)
+    double precision                   :: tmp(ixI^S)
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature
@@ -59,8 +67,7 @@ contains
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     endif
     ! output divB1
-    bvec(ixI^S,:)=w(ixI^S,mag(:))
-    call divvector(bvec,ixI^L,ixO^L,tmp)
+    call get_divb(w,ixI^L,ixO^L,tmp)
     w(ixO^S,nw+3)=tmp(ixO^S)
 
   end subroutine specialvar_output

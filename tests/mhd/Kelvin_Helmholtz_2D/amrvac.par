@@ -31,7 +31,6 @@
         flux_scheme=    20*'hll'
         typepred1=    20*'hll'
         limiter= 20*'cada3'
-        typelimited ='predictor'
  /
  &boundlist
         typeboundary_min1 = 6*'periodic'

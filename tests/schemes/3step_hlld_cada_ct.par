@@ -1,0 +1,18 @@
+ &filelist
+        base_filename  = '_3step_hlld_cada_ct'
+ /
+
+ &methodlist
+        time_integrator  = 'threestep'
+        flux_scheme =    20*'hlld'
+        limiter=  20*'cada3'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /
+
+ &mhd_list
+        typedivbfix='ct'
+        B0field=.false.
+ /

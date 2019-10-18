@@ -101,6 +101,7 @@ contains
 
   subroutine rho_get_v(w, x, ixI^L, ixO^L, idim, v, centered)
     use mod_global_parameters
+    use mod_geometry
     logical, intent(in)           :: centered
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:^ND)
@@ -112,8 +113,8 @@ contains
                         appcosthe(ixI^S), appsinthe(ixI^S)
     }
 
-    select case (typeaxial)
-    case ("cylindrical")
+    select case (coordinate)
+    case (cylindrical)
        {^IFONED 
        call mpistop("advection in 1D cylindrical not available")
        }
@@ -173,7 +174,7 @@ contains
           end select
        endif
        }
-    case ("spherical")
+    case (spherical)
        {^IFONED 
        call mpistop("advection in 1D spherical not available")
        }

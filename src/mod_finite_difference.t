@@ -64,7 +64,7 @@ contains
        call reconstructR(ixI^L,ix^L,idims,fm,fmR)
 
        do iw=1,nwflux
-          if (slab) then
+          if (slab_uniform) then
              fC(ix^S,iw,idims) = dxinv(idims) * (fpL(ix^S,iw) + fmR(ix^S,iw))
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
                   (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
@@ -210,7 +210,7 @@ contains
        do iw=1,nwflux
           ! Center flux to interface
           fC(ixC^S,iw,idims)=half*(f(ixC^S, iw)+f(jxC^S, iw))
-          if (slab) then
+          if (slab_uniform) then
              fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
@@ -256,7 +256,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
 
-    double precision :: dxinv(1:ndim)
+    double precision :: dxinv(1:ndim), dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
     logical :: transport, new_cmax, patchw(ixI^S)
 
@@ -272,6 +272,7 @@ contains
     end if
 
     ^D&dxinv(^D)=-qdt/dx^D;
+    ^D&dxdim(^D)=dx^D;
 
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
@@ -293,7 +294,8 @@ contains
        wRp(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
        wLp(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
 
-       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wprim,wLC,wRC,wLp,wRp,x,.false.)
+       ! apply limited reconstruction for left and right status at cell interfaces
+       call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
 
        ! Calculate velocities from upwinded values
        call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
@@ -312,7 +314,7 @@ contains
           fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-half*vLC(ixC^S) &
                *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
 
-          if (slab) then
+          if (slab_uniform) then
              fC(ixC^S,iw,idims)=dxinv(idims)*fC(ixC^S,iw,idims)
              ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)-f_(i-1))+f_(i-2)]/12
              w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))

@@ -16,10 +16,12 @@ Xia, T. Hendrix, S. P. Moschou and R. Keppens ApJS.
 The acronyms TVD, TVDLF, and TVD-MUSCL stand for Total Variation Diminishing,
 TVD Lax-Friedrich, and TVD Monotonic Upwind Scheme for Conservation Laws,
 respectively. Then, depending on the physics module selected, you also have
-HLL and HLLC schemes, which are due to harten Lax, van Leer, with the HLLC
+HLL, HLLC, and HLLD schemes, which are due to harten Lax, van Leer, with the HLLC
 variant including a treatment for the Contact discontinuity, as e.g. described
 for Euler gas dynamics in _E.F. Toro, Riemann solvers and numerical methods
-for fluid dynamics (Berlin, Springer-Verlag, 1997)_.
+for fluid dynamics (Berlin, Springer-Verlag, 1997)_, and with the HLLD variant
+for MHD including multiple discontinuities, which was invented by Miyoshi and
+Kusano in _Journal of Computational Physics, 208, 315-344 (2005)_.
 
 Not all methods are available or meaningfull for all physics modules. In fact,
 we have the following combinations typically:
@@ -27,104 +29,17 @@ we have the following combinations typically:
     Physics   Schemes
     --------------------------------------------------------------------------
     rho       TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
-    hd        TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
-    mhd       TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD, HLLD
+    HD        TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
+    MHD    TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD, HLLD
 
 Also, the method can be selected per AMR grid level, but one can not combine
 different stepsize methods (hence, TVD is the only second order onestep
-method, while all others can be used with twostep or fourstep typeadvance
+method, while all others can be used with all steps time integrator
 setting). In MPI-AMRVAC, the **flux_scheme** is thus an array of strings, one
 string per level up to **nlevelshi**. Some more info follows on the various
 methods.
 
-## 2nd Order Central Difference Scheme: flux_scheme='cd',...
-
-The explicit central differencing schemes are not stable by themselves for
-advection dominated problems. The second order central difference scheme
-('cd') is used by the TVD scheme before the limiting is applied. Otherwise it
-is useful for testing a few time steps, since this scheme contains no
-artificial fluxes, thus comparison with analytic formulae is straightforward.
-It is straightforward to generalize this central difference approach to higher
-order accuracy, at the expense of introducing a wider stencil.
-
-## High order finite difference Scheme: flux_scheme='fd',...
-
-This implements conservative finite differences with global Lax-Friedrich flux
-splitting. It can be used with almost all limiters (exluding ppm) and yields
-high order accuracy in space. For second, third and fifth order reconstruction
-you can set e.g.: **limiter='koren'/'cada3'/'mp5'**.
-
-## TVDLF Scheme: flux_scheme='tvdlf'...
-
-The TVD Lax-Friedrich method is robust, in most cases there are no spurious
-oscillations, but it is somewhat more diffusive than other TVD or HLLC
-methods. Since it does not use a Riemann solver, it is usually faster than TVD
-or TVD-MUSCL.
-
-The Courant number should be less than 1, **courantpar=0.8** is recommended.
-Second order time discretization is best achieved by a Hancock predictor step,
-so the corresponding **typepred1='hancock'**.
-
-TVDLF can be used with **dimsplit=F**, it is also preferred for steady state
-calculations.
-
-The second order TVDLF scheme **flux_scheme='tvdlf'** uses limiters. There are
-many choices available: the 'minmod' limiter gives the smoothest result, the
-'woodward' limiter is sharper, and the 'superbee' limiter is probably too
-sharp. The **'woodward'** limiter is recommended, but note that the default is
-the most robust **limiter='minmod'**. The various options can be found
-in the `mod_finite_volume.t` module, in the subroutine `dwlimiter2`. The 
-slope limiting is performed on the primitive variables. 
-You can even employ limiting on logarithmically stretched
-variables (which should be positive, like a density or pressure), by setting
-the `loglimit` flags. You can also use third order accurate
-**limiter='ppm'**, but the code will run with a wider ghost
-cell region, namely **nghostcells=4**. A third order limiter without a need 
-to widen the ghost cell layers is the _'cada3'_ limiter (sometimes called LIMO3).
-
-## TVD-MUSCL Scheme: flux_scheme='tvdmu'...
-
-The TVD-MUSCL scheme is a two-step TVD algorithm using the same Hancock
-predictor step and upwinding as TVDLF, and a characteristic based Riemann
-solver similar to the TVD method. At the moment Riemann solvers are
-implemented for adiabatic hydrodynamics, hydrodynamics, and full MHD. 
-The scalar transport equation has a trivial Riemann solver. The scheme has 
-comparable resolution to the non-MUSCL TVD method.
-
-The Courant number should be less than 1, **courantpar=0.8** is recommended.
-
-TVD-MUSCL can be dimensionally split **dimsplit=T** or unsplit **dimsplit=F**. 
-The multistep Runge-Kutta schemes can be applied, such as **time_integrator='fourstep'**.
-
-Linear Riemann solvers can produce non-physical solutions. This can be
-eliminated by the use of an entropy fix, controlled by **typeentropy** and the
-**entropycoef**. The default is **typeentropy='nul'**. See the details for
-the entropy fixes in the respective `mod_PHYS_roe.t` files, as well as
-in the `mod_tvd.t` module.
-
-## TVD Scheme: flux_scheme='tvd',...
-
-The non-MUSCL TVD method with Roe approximate Riemann solver is one of the
-most accurate and efficient of the implemented schemes.
-
-There are a few variants of the TVD scheme, but the default is
-**typetvd='roe'**. Details are in the _mod_tvd.t _ module.
-
-This solver has to be dimensionally split, set **dimsplit=T**.
-
-The Courant number should be less than 1, **courantpar=0.8** is recommended.
-
-The same limiters can be used as for TVDLF and TVD MUSCL, but they are applied
-to the characteristic waves, rather than to the primitive variables. The
-order of the characteristic waves is defined in the **mod_PHYS_roe.t*** files.
-The **'woodward'** limiter is recommended, but note that the default is
-**limiter='minmod'**.
-
-The entropy fix for the Riemann solver is given by the **typeentropy** array,
-it has the same meaning as for the TVD-MUSCL method, and for MHD, the
-divergence B problem should also be taken care of.
-
-## HLL and HLLC schemes
+## HLL HLLC and HLLD schemes
 
 The TVDLF scheme hence uses minimal info on the wave speeds, and in
 combination with AMR and its inherent robustness due to its diffusive nature,
@@ -146,17 +61,106 @@ positivity (positive pressures and densities), the ability to capture isolated
 discontinuities, etc. For most physics modules, these HLL and HLLC variants are
 available too. The HLLD variant is only applicable for MHD.
 
+## TVDLF Scheme
+
+The TVD Lax-Friedrich method is robust, in most cases there are no spurious
+oscillations, but it is somewhat more diffusive than other TVD or HLLC
+methods. Since it does not use a Riemann solver, it is usually faster than TVD
+or TVD-MUSCL.
+The Courant number should be less than 1, **courantpar=0.8** is recommended.
+Second order time discretization is best achieved by a Hancock predictor step,
+so the corresponding **typepred1='hancock'**.
+TVDLF can be used with **dimsplit=F**, it is also preferred for steady state
+calculations.
+The second order TVDLF scheme **flux_scheme='tvdlf'** uses limiters. There are
+many choices available: the 'minmod' limiter gives the smoothest result, the
+'woodward' limiter is sharper, and the 'superbee' limiter is probably too
+sharp. The **'woodward'** limiter is recommended, but note that the default is
+the most robust **limiter='minmod'**. The various options can be found
+in the `mod_finite_volume.t` module, in the subroutine `dwlimiter2`. The 
+slope limiting is performed on the primitive variables. 
+You can even employ limiting on logarithmically stretched
+variables (which should be positive, like a density or pressure), by setting
+the `loglimit` flags. You can also use third order accurate
+**limiter='ppm'**, but the code will run with a wider ghost
+cell region, namely **nghostcells=4**. A third order limiter **'cada3'** 
+(also known as LIMO3) only needs **nghostcells=2** ghost cell layers .
+
+## TVD-MUSCL Scheme
+
+The TVD-MUSCL scheme  **flux_scheme='tvdmu'** is a two-step TVD algorithm using the same Hancock
+predictor step and upwinding as TVDLF, and a characteristic based Riemann
+solver similar to the TVD method. At the moment Riemann solvers are
+implemented for adiabatic hydrodynamics, hydrodynamics, and full MHD. 
+The scalar transport equation has a trivial Riemann solver. The scheme has 
+comparable resolution to the non-MUSCL TVD method.
+The Courant number should be less than 1, **courantpar=0.8** is recommended.
+TVD-MUSCL can be dimensionally split **dimsplit=T** or unsplit **dimsplit=F**. 
+The multistep Runge-Kutta schemes can be applied, such as **time_integrator='fourstep'**.
+Linear Riemann solvers can produce non-physical solutions. This can be
+eliminated by the use of an entropy fix, controlled by **typeentropy** and the
+**entropycoef**. The default is **typeentropy='nul'**. See the details for
+the entropy fixes in the respective `mod_PHYS_roe.t` files, as well as
+in the `mod_tvd.t` module.
+
+## TVD Scheme
+
+The non-MUSCL TVD method **flux_scheme='tvd'** with Roe approximate Riemann solver is one of the
+most accurate and efficient of the implemented schemes.
+There are a few variants of the TVD scheme, but the default is
+**typetvd='roe'**. Details are in the `mod_tvd.t` module.
+This solver has to be dimensionally split, set **dimsplit=T**.
+The Courant number should be less than 1, **courantpar=0.8** is recommended.
+The same limiters can be used as for TVDLF and TVD MUSCL, but they are applied
+to the characteristic waves, rather than to the primitive variables. The
+order of the characteristic waves is defined in the **mod_PHYS_roe.t** files.
+The **'woodward'** limiter is recommended, but note that the default is
+**'minmod'**.
+The entropy fix for the Riemann solver is given by the **typeentropy** array,
+it has the same meaning as for the TVD-MUSCL method, and for MHD, the
+divergence B problem should also be taken care of.
+
+## 2nd Order Central Difference Scheme
+
+The explicit central differencing schemes are not stable by themselves for
+advection dominated problems. The second order central difference scheme
+('cd') is used by the TVD scheme before the limiting is applied. Otherwise it
+is useful for testing a few time steps, since this scheme contains no
+artificial fluxes, thus comparison with analytic formulae is straightforward.
+It is straightforward to generalize this central difference approach to higher
+order accuracy, at the expense of introducing a wider stencil.
+
+## High order finite difference Scheme
+
+This scheme **flux_scheme='fd'** implements conservative finite differences 
+with global Lax-Friedrich flux splitting. It can be used with almost all 
+limiters (exluding ppm) and yields high order accuracy in space. For second, 
+third and fifth order reconstruction
+you can set e.g.: **limiter='koren'/'cada3'/'mp5'**.
+
+
 ## Maintaining the div B=0 Condition
 
 In multidimensional MHD the numerical conservation of divergence of magnetic field
 div B is not guaranteed by the standard TVD or HLL type schemes. This can lead to 
 inaccuracies as well as instablilities. For all the schemes below, you can 
-influence how to compute div B, by setting _typegrad_ and _typediv_, along with 
-_gradient_limiter_.
+influence how to compute div B, by setting **typegrad** and **typediv**, along with 
+**gradient_limiter**.
 This allows to select either a standard central difference evaluation, or one
 evaluated after the cell-center values have been reconstructed to the cell
 edges. User can select one of the following methods by select **typedivbfix**
-and related parameters in _mhd_list_ of par file.
+and related parameters in `mhd_list` of par file.
+
+#### constrained transport fix: typedivbfix='ct'
+
+The upwind constrained transport method by Gardiner and Stone in _Journal of 
+Computational Physics, 205, 509-539 (2005)_, **type_ct='uct_contact'** (default), 
+or by Londrillo and Zanna, in _Journal of Computational Physics, 195, 17-48 (2004)_ 
+**type_ct='uct_hll'**,
+using staggered grid for magnetic field, can preserve initial div B to round off
+errors. A simple non-upwinding version of ct is through averaging electric 
+fields from neighbors **type_ct='average'**.
+It only works with HLL, HLLC, and HLLD schemes in the current implementation.
 
 #### Powell fix: typedivbfix='powel'
 
@@ -165,7 +169,6 @@ equations](@ref eq_mhd) seems to produce better results than the usual
 conservative form. The idea is to include source terms proportional to div B
 into the momentum, energy and induction equations and to add a divergence wave
 for the Riemann solver.
-
 Powell scheme is fast, it stabilizes the Riemann solver, and improves
 results for TVDLF and similar type methods, but it is non-conservative, and
 div B is not kept close to zero. 
@@ -183,28 +186,11 @@ You can also use the diffusive (parabolic) approach, see the
 identified by `divbdiff=1`, but it is recommended for many multi-D MHD
 applications.
 
-#### Dedner fix: typedivbfix='glm1', 'glm2', or 'glm3'
+#### Dedner fix: typedivbfix='glm'
 
-This implements the mixed hyperbolic and parabolic dampening of the divB error
-using an additional scalar variable _Psi_ (need an addition of the name and
-boundary condition type in your par-file). The algorithm is described by
-Dedner et al. in _Journal of Computational Physics 175, 645-673 (2002)
-doi:10.1006/jcph.2001.6961_. The three versions differ in the source terms 
-taken along. Thus 'glm1' corresponds 
-to _Equation (24)_ of Dedner et al and 'glm2'
-corresponds to _Equation (38)_ of this paper. The option 'glm3' adds no
-additional sources to the MHD system. We recommend the option
-'glm1'. For example: in your par-file,
-
-    &mhd_list
-    typedivbfix='glm1'
-    ...
-
-in your `mod_usr.t`, add
-
-    if(mhd_glm) w(ixO^S,psi_)=0.d0
-
-in subroutine `usr_init_one_grid` and ( subroutine `usr_special_bc` if exists).
+This implements the mixed hyperbolic propagating and parabolic dampening of divB
+using an additional scalar variable _psi_. The algorithm of 'glm' is described by
+Dedner et al. as _Equation (24)_ in _Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
 
 #### Combined fix: typedivbfix='lindejanhunen' or 'lindepowel'
 

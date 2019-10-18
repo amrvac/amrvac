@@ -95,7 +95,7 @@ module mod_particle_base
     !> mass
     double precision :: m
     !> time
-    double precision :: t
+    double precision :: time
     !> time step
     double precision :: dt
     !> coordinates
@@ -579,17 +579,18 @@ contains
 
   subroutine cross(a,b,c)
     use mod_global_parameters
+    use mod_geometry
     double precision, dimension(ndir), intent(in)   :: a,b
     double precision, dimension(ndir), intent(out)  :: c
 
     ! ndir needs to be three for this to work!!!
     if(ndir==3) then
-      select case(typeaxial)
-      case('slab')
+      select case(coordinate)
+      case(Cartesian,Cartesian_stretched)
         c(1) = a(2)*b(3) - a(3)*b(2)
         c(2) = a(3)*b(1) - a(1)*b(3)
         c(3) = a(1)*b(2) - a(2)*b(1)
-      case ('cylindrical')
+      case (cylindrical)
         c(r_) = a(phi_)*b(z_) - a(z_)*b(phi_)
         c(phi_) = a(z_)*b(r_) - a(r_)*b(z_)
         c(z_) = a(r_)*b(phi_) - a(phi_)*b(r_)
@@ -767,7 +768,7 @@ contains
     read(unitparticles) particle(index)%self%follow
     read(unitparticles) particle(index)%self%q
     read(unitparticles) particle(index)%self%m
-    read(unitparticles) particle(index)%self%t
+    read(unitparticles) particle(index)%self%time
     read(unitparticles) particle(index)%self%dt
     read(unitparticles) particle(index)%self%x
     read(unitparticles) particle(index)%self%u
@@ -866,7 +867,7 @@ contains
     write(unitparticles) myparticle%follow
     write(unitparticles) myparticle%q
     write(unitparticles) myparticle%m
-    write(unitparticles) myparticle%t
+    write(unitparticles) myparticle%time
     write(unitparticles) myparticle%dt
     write(unitparticles) myparticle%x
     write(unitparticles) myparticle%u
@@ -883,7 +884,7 @@ contains
 
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
       if (particle(ipart)%self%follow) then
-        filename = make_particle_filename(particle(ipart)%self%t,particle(ipart)%self%index,'individual')
+        filename = make_particle_filename(particle(ipart)%self%time,particle(ipart)%self%index,'individual')
         open(unit=unitparticles,file=filename,status='replace')
         line=''
         do icomp=1, npayload
@@ -910,8 +911,8 @@ contains
 
     do iipart = 1, nparticles_on_mype
       ipart      = particles_on_mype(iipart);
-      activate   = (particle(ipart)%self%t < end_time)
-      t_min_mype = min(t_min_mype, particle(ipart)%self%t)
+      activate   = (particle(ipart)%self%time < end_time)
+      t_min_mype = min(t_min_mype, particle(ipart)%self%time)
 
       if (activate) then
         nparticles_active_on_mype = nparticles_active_on_mype + 1
@@ -1249,6 +1250,7 @@ contains
 
   subroutine output_particle(myparticle,payload,ipe,file_unit)
     use mod_global_parameters
+    use mod_geometry
 
     type(particle_t),intent(in)  :: myparticle
     double precision, intent(in) :: payload(npayload)
@@ -1258,20 +1260,21 @@ contains
     integer                      :: icomp
 
     ! normalize the position
-    if (typeaxial == 'slab') then
-      x = myparticle%x*length_convert_factor
-    else if (typeaxial == 'cylindrical') then
-      x(r_)   = myparticle%x(r_)*length_convert_factor
-      x(z_)   = myparticle%x(z_)*length_convert_factor
-      x(phi_) = myparticle%x(phi_)
-    else if (typeaxial == 'spherical') then
-      x(:) = myparticle%x(:)
-      x(1) = x(1)*length_convert_factor
-    end if
+    select case(coordinate)
+      case(Cartesian,Cartesian_stretched)
+        x = myparticle%x*length_convert_factor
+      case(cylindrical)
+        x(r_)   = myparticle%x(r_)*length_convert_factor
+        x(z_)   = myparticle%x(z_)*length_convert_factor
+        x(phi_) = myparticle%x(phi_)
+      case(spherical)
+        x(:) = myparticle%x(:)
+        x(1) = x(1)*length_convert_factor
+    end select
 
     u = myparticle%u(1:3) * integrator_velocity_factor
 
-    write(file_unit, csv_format) myparticle%t, myparticle%dt, x(1:3), &
+    write(file_unit, csv_format) myparticle%time, myparticle%dt, x(1:3), &
          u, payload(1:npayload), ipe, it_particles, &
          myparticle%index
 
@@ -1304,7 +1307,7 @@ contains
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
 
       ! first check if the particle should be destroyed (user defined criterion)
-      if ( .not.time_advance .and. particle(ipart)%self%t .gt. tmax_particles ) then
+      if ( .not.time_advance .and. particle(ipart)%self%time .gt. tmax_particles ) then
         destroy_n_particles_mype  = destroy_n_particles_mype + 1
         particle_index_to_be_destroyed(destroy_n_particles_mype) = ipart
         cycle
@@ -1567,8 +1570,8 @@ contains
       particle(ipart)%igrid = -1
       particle(ipart)%ipe   = -1
       if(time_advance) then
-        write(*,*) particle(ipart)%self%t, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
-        write(*,*) particle(ipart)%self%t, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
+        write(*,*) particle(ipart)%self%time, ': particle',ipart,' has left at it ',it_particles,' on pe', mype
+        write(*,*) particle(ipart)%self%time, ': particles remaining:',nparticles, '(total)', nparticles_on_mype-1, 'on pe', mype
       endif
       deallocate(particle(ipart)%self)
       deallocate(particle(ipart)%payload)

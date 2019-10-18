@@ -29,7 +29,6 @@
         time_integrator=  'threestep'
         flux_scheme=    20*'hll'
         limiter= 20*'koren'
-        typelimited='predictor'
         dimsplit=.false.
  /
 

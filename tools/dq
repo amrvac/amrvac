@@ -1,7 +1,12 @@
 #!/bin/csh -f
 #usage: dq
-#aim: to list data related to the current amrvac.par 
-set ful=`ls -l amrvac.par`
+#aim: to list data related to the current amrvac.par or argument xxx.par
+if($#argv == 0) then
+  set ful=`ls -l amrvac.par`
+endif
+if($#argv == 1) then
+  set ful=`ls -l $argv[1]`
+endif
 set fname=$ful[$#ful]
 if (-e $fname ) then
    goto step1

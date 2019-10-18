@@ -12,6 +12,7 @@ end subroutine set_B0_grid
 subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
   use mod_usr_methods, only: usr_set_B0
   use mod_global_parameters
+  use mod_geometry
   
   integer, intent(in):: ixI^L,ix^L
   double precision, intent(inout) :: wB0(ixI^S,1:ndir)
@@ -20,8 +21,8 @@ subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
   wB0(ix^S,1:ndir)=zero
 
   ! approximate cell-averaged B0 as cell-centered B0
-  select case (typeaxial)
-  case ("spherical")
+  select case (coordinate)
+  case (spherical)
      {^NOONED
      if (dabs(Bdip)>smalldouble) then
         wB0(ix^S,1)=2.0d0*Bdip*dcos(x(ix^S,2))/x(ix^S,1)**3
@@ -76,10 +77,10 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
   double precision :: xC(ixI^S,1:ndim),xshift^D
   integer :: idims, ixC^L, ix, idims2
 
-  if(slab)then
+  if(slab_uniform)then
    ^D&delx(ixI^S,^D)=rnode(rpdx^D_,igrid)\
   else
-   ! for all non-cartesian and stretched coordinate(s)
+   ! for all non-cartesian and stretched cartesian coordinates
    delx(ixI^S,1:ndim)=ps(igrid)%dx(ixI^S,1:ndim)
   endif
 
@@ -101,25 +102,3 @@ subroutine set_B0_face(igrid,x,ixI^L,ix^L)
   end do
 
 end subroutine set_B0_face
-
-subroutine alloc_B0_grid(igrid)
-  use mod_global_parameters
-
-  integer, intent(in) :: igrid
-
-  if(.not. allocated(ps(igrid)%B0)) then
-    allocate(ps(igrid)%B0(ixG^T,1:ndir,0:ndim))
-    allocate(ps(igrid)%J0(ixG^T,7-2*ndir:3))
-  end if
-
-end subroutine alloc_B0_grid
-
-subroutine dealloc_B0_grid(igrid)
-  use mod_global_parameters
-
-  integer, intent(in) :: igrid
-
-  deallocate(ps(igrid)%B0)
-  deallocate(ps(igrid)%J0)
-
-end subroutine dealloc_B0_grid

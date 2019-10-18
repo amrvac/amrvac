@@ -434,6 +434,7 @@ contains
   !> dust temperature in Kelvin
   subroutine get_tdust(w, x, ixI^L, ixO^L, Td)
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: x(ixI^S, 1:ndim)
@@ -459,10 +460,10 @@ contains
         call mpistop( "=== Dust species undetermined===" )
       end select
     case( 'stellar' )
-      select case( trim(typeaxial) )
-      case( 'spherical' )
+      select case(coordinate)
+      case(spherical)
         G0(ixO^S) = max(x(ixO^S, 1)*length_convert_factor, smalldouble)
-      case( 'cylindrical' )
+      case(cylindrical)
         G0(ixO^S) = max(dsqrt(sum(x(ixO^S,:)**2,dim=ndim+1))*length_convert_factor, smalldouble)
       end select
 

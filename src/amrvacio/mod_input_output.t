@@ -104,6 +104,7 @@ contains
     use mod_small_values
     use mod_limiter
     use mod_slice
+    use mod_geometry
 
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
@@ -154,7 +155,7 @@ contains
          dimsplit,typedimsplit,&
          flux_scheme,typepred1,&
          limiter,gradient_limiter,cada3_radius,&
-         loglimit,typelimited,typeboundspeed, &
+         loglimit,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,typecurl,&
          nxdiffusehllc, flathllc, tvdlfeps,&
@@ -346,7 +347,6 @@ contains
     typecourant     = 'maxsum'
     dimsplit        = .false.
     typedimsplit    = 'default'
-    typelimited     = 'predictor'
     if(physics_type=='mhd') then
       cada3_radius  = 0.5d0
     else
@@ -647,8 +647,8 @@ contains
     if(typedimsplit   =='default'.and..not.dimsplit)   typedimsplit='unsplit'
     dimsplit   = typedimsplit   /='unsplit'
 
-    if(typeaxial=='default') then
-      typeaxial='slab'
+    if(coordinate==-1) then
+      coordinate=Cartesian
       if(mype==0) then
         write(*,*) 'Warning: coordinate system is not specified!'
         write(*,*) 'call set_coordinate_system in usr_init in mod_usr.t'
@@ -656,19 +656,19 @@ contains
       end if
     end if
 
-    if(typeaxial=="slab") then
+    if(coordinate==Cartesian) then
+      slab=.true.
+      slab_uniform=.true.
       if(any(stretched_dim)) then
-        typeaxial="slabstretch"
-        slab=.false.
-        slab_stretched=.true.
-      else
-        slab=.true.
+        coordinate=Cartesian_stretched
+        slab_uniform=.false.
       end if
     else
       slab=.false.
+      slab_uniform=.false.
     end if
 
-    if(typeaxial=='spherical') then
+    if(coordinate==spherical) then
       if(dimsplit) then
         if(mype==0)print *,'Warning: spherical symmetry needs dimsplit=F, resetting'
         dimsplit=.false.
@@ -676,14 +676,6 @@ contains
     end if
 
     if (ndim==1) dimsplit=.false.
-    if (.not.dimsplit.and.ndim>1) then
-       select case (time_integrator)
-       case ("ssprk54","ssprk43","fourstep", "rk4", "threestep", "twostep")
-          ! Runge-Kutta needs predictor
-          typelimited="predictor"
-          if (mype==0) write(unitterm, '(A30,A)') 'typelimited: ', typelimited
-       end select
-    end if
 
     ! Type limiter is of integer type for performance
     allocate(type_limiter(nlevelshi))
@@ -748,11 +740,11 @@ contains
         end if
         typeboundary(:,2*idim-1)='symm'
         if(physics_type/='rho') then
-        select case(typeaxial)
-        case('cylindrical')
+        select case(coordinate)
+        case(cylindrical)
           typeboundary(phi_+1,2*idim-1)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim-1)='asymm'
-        case('spherical')
+        case(spherical)
           typeboundary(3:ndir+1,2*idim-1)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)='asymm'
         case default
@@ -769,11 +761,11 @@ contains
         end if
         typeboundary(:,2*idim)='symm'
         if(physics_type/='rho') then
-        select case(typeaxial)
-        case('cylindrical')
+        select case(coordinate)
+        case(cylindrical)
           typeboundary(phi_+1,2*idim)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim)='asymm'
-        case('spherical')
+        case(spherical)
           typeboundary(3:ndir+1,2*idim)='asymm'
           if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)='asymm'
         case default
@@ -788,6 +780,27 @@ contains
       nghostcells=3
     end if
 
+    if(any(limiter(1:nlevelshi)=='wenojs5_i')) then
+      nghostcells=3
+    end if
+    if(any(limiter(1:nlevelshi)=='wenojs5_r')) then
+      nghostcells=3
+    end if
+ 
+    if(any(limiter(1:nlevelshi)=='wenoz5_i')) then
+      nghostcells=3
+    end if
+    if(any(limiter(1:nlevelshi)=='wenoz5_r')) then
+      nghostcells=3
+    end if
+ 
+    if(any(limiter(1:nlevelshi)=='wenozp5_i')) then
+      nghostcells=3
+    end if
+    if(any(limiter(1:nlevelshi)=='wenozp5_r')) then
+      nghostcells=3
+    end if
+
     if(any(limiter(1:nlevelshi)=='ppm')) then
       nghostcells=4
     end if
@@ -795,12 +808,12 @@ contains
     ! If a wider stencil is used, extend the number of ghost cells
     nghostcells = nghostcells + phys_wider_stencil
 
-    select case (typeaxial)
+    select case (coordinate)
        {^NOONED
-    case ("spherical")
+    case (spherical)
        xprob^LIM^DE=xprob^LIM^DE*two*dpi;
        \}
-    case ("cylindrical")
+    case (cylindrical)
        {
        if (^D==phi_) then
           xprob^LIM^D=xprob^LIM^D*two*dpi;
@@ -1345,8 +1358,10 @@ contains
            call mpistop("change in periodicity in par file")
 
       call MPI_FILE_READ(fh, geom_name, name_len, MPI_CHARACTER, st, er)
-      if (geom_name /= typeaxial) &
-           call mpistop("change in geometry in par file")
+      if (geom_name /= geometry_name) then
+        write(*,*) "type of coordinates in data is: ", geom_name 
+        call mpistop("select the correct coordinates in mod_usr.t file")
+      end if
 
       call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
       if (stagger_grid .neqv. stagger_mark_dat) then
@@ -1439,9 +1454,7 @@ contains
     {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
 
     n_values = count_ix(ixO^L) * nw
-    if(stagger_grid) then
-      n_values=n_values+ product([ ixOmax^D ] - [ ixOmin^D ] + 2)*nws
-    end if
+
   end subroutine block_shape_io
 
   subroutine write_snapshot
@@ -1451,7 +1464,8 @@ contains
 
     integer                       :: file_handle, igrid, Morton_no, iwrite
     integer                       :: ipe, ix_buffer(2*ndim+1), n_values
-    integer                       :: ixO^L, n_ghost(2*ndim), n_values_stagger
+    integer                       :: ixO^L, n_ghost(2*ndim)
+    integer                       :: ixOs^L,n_values_stagger
     integer                       :: iorecvstatus(MPI_STATUS_SIZE)
     integer                       :: ioastatus(MPI_STATUS_SIZE)
     integer                       :: igrecvstatus(MPI_STATUS_SIZE)
@@ -1549,17 +1563,18 @@ contains
       endif
 
       call block_shape_io(igrid, n_ghost, ixO^L, n_values)
-      ix_buffer(1) = n_values
-      ix_buffer(2:) = n_ghost
       if(stagger_grid) then
-        n_values_stagger = n_values - product([ ixOmax^D ] - [ ixOmin^D ] + 2)*nws
-        w_buffer(1:n_values_stagger) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
-        {ixOmin^D = ixMlo^D - n_ghost(^D) - 1\}
-        {ixOmax^D = ixMhi^D + n_ghost(ndim+^D)\}
-        w_buffer(n_values_stagger+1:n_values) = pack(ps(igrid)%ws(ixO^S, 1:nws), .true.)
+        w_buffer(1:n_values) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
+        {ixOsmin^D = ixOmin^D -1\}
+        {ixOsmax^D = ixOmax^D \}
+        n_values_stagger= count_ix(ixOs^L)*nws
+        w_buffer(n_values+1:n_values+n_values_stagger) = pack(ps(igrid)%ws(ixOs^S, 1:nws), .true.)
+        n_values=n_values+n_values_stagger
       else
         w_buffer(1:n_values) = pack(ps(igrid)%w(ixO^S, 1:nw), .true.)
       end if
+      ix_buffer(1) = n_values
+      ix_buffer(2:) = n_ghost
 
       if (mype /= 0) then
         call MPI_SEND(ix_buffer, 2*ndim+1, &
@@ -1790,7 +1805,7 @@ contains
              0, itag, icomm, iorecvstatus, ierrmpi)
 
         if(stagger_grid) then
-          n_values_stagger = n_values - count_ix(ixO^L) * nw_found
+          n_values_stagger = count_ix(ixO^L) * nw_found
           {ixOsmin^D = ixOmin^D - 1\}
           {ixOsmax^D = ixOmax^D\}
           w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
@@ -2131,7 +2146,6 @@ contains
     double precision, intent(out) :: volume    !< The total grid volume
     integer                       :: iigrid, igrid, iw
     double precision              :: wsum(nw+1)
-    double precision              :: dvolume(ixG^T)
     double precision              :: dsum_recv(1:nw+1)
 
     wsum(:) = 0
@@ -2140,20 +2154,13 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
 
-       ! Determine the volume of the grid cells
-       if (slab) then
-          dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
-       else
-          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
-       end if
-
        ! Store total volume in last element
-       wsum(nw+1) = wsum(nw+1) + sum(dvolume(ixM^T))
+       wsum(nw+1) = wsum(nw+1) + sum(ps(igrid)%dvolume(ixM^T))
 
        ! Compute the modes of the cell-centered variables, weighted by volume
        do iw = 1, nw
           wsum(iw) = wsum(iw) + &
-               sum(dvolume(ixM^T)*ps(igrid)%w(ixM^T,iw)**power)
+               sum(ps(igrid)%dvolume(ixM^T)*ps(igrid)%w(ixM^T,iw)**power)
        end do
     end do
 
@@ -2209,7 +2216,6 @@ contains
     double precision, intent(out) :: volume    !< The total grid volume
     integer                       :: iigrid, igrid, i^D
     double precision              :: wsum(2)
-    double precision              :: dvolume(ixG^T)
     double precision              :: dsum_recv(2)
 
     wsum(:) = 0
@@ -2218,19 +2224,12 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
 
-       ! Determine the volume of the grid cells
-       if (slab) then
-          dvolume(ixM^T) = {rnode(rpdx^D_,igrid)|*}
-       else
-          dvolume(ixM^T) = ps(igrid)%dvolume(ixM^T)
-       end if
-
        ! Store total volume in last element
-       wsum(2) = wsum(2) + sum(dvolume(ixM^T))
+       wsum(2) = wsum(2) + sum(ps(igrid)%dvolume(ixM^T))
 
        ! Compute the modes of the cell-centered variables, weighted by volume
        {do i^D = ixMlo^D, ixMhi^D\}
-       wsum(1) = wsum(1) + dvolume(i^D) * &
+       wsum(1) = wsum(1) + ps(igrid)%dvolume(i^D) * &
             func(ps(igrid)%w(i^D, :), nw)
        {end do\}
     end do

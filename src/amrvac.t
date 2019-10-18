@@ -13,6 +13,7 @@ program amrvac
   use mod_particles
   use mod_fix_conserve
   use mod_advance, only: process
+  use mod_constrained_transport
 
   {^NOONED
   use mod_multigrid_coupling
@@ -42,13 +43,15 @@ program amrvac
      ! read in dat file
      call read_snapshot()
 
-     ! avoid output it=0 state when restart from it=0 state 
-     if(it==0.and.itsave(1,1)==0.or.itsave(1,2)==0) itsave(1,1:2)=biginteger
+     ! rewrite it=0 snapshot when restart from it=0 state 
+     if(it==0.and.itsave(1,2)==0) snapshotnext=snapshotnext-1
 
      if (reset_time) then
        ! reset it and global time to original value
        it           = it_init
        global_time  = time_init
+       ! reset snapshot number
+       snapshotnext=0
      end if
 
      if (reset_it) then
@@ -60,13 +63,18 @@ program amrvac
      if (firstprocess) call modify_IC
 
      ! reset AMR grid
-     if (reset_grid) call settree
+     if (reset_grid) then
+       call settree
+     else
+       ! set up boundary flux conservation arrays
+       if (levmax>levmin) call allocateBflux
+     end if
 
      ! select active grids
      call selectgrids
 
      ! update ghost cells
-     call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
+     call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
 
      if(use_particles) then
        call read_particles_snapshot
@@ -95,26 +103,32 @@ program amrvac
         stop
      end if
 
+     {^NOONED
+     if (use_multigrid) call mg_setup_multigrid()
+     }
+
   else
 
      ! form and initialize all grids at level one
      call initlevelone
 
-     ! select active grids
-     call selectgrids
-
-     ! update ghost cells
-     call getbc(global_time,0.d0,ps,0,nwflux+nwaux)
-
      ! set up and initialize finer level grids, if needed
      call settree
+
+     {^NOONED
+     if (use_multigrid) call mg_setup_multigrid()
+
+     ! improve initial condition
+     call improve_initial_condition()
+     }
+
+     ! select active grids
+     call selectgrids
 
      if (use_particles) call particles_create()
 
   end if
 
-  ! set up boundary flux conservation arrays
-  if (levmax>levmin) call allocateBflux
 
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
@@ -123,10 +137,6 @@ program amrvac
   end if
 
   time_advance=.true.
-
-  {^NOONED
-  if (use_multigrid) call mg_setup_multigrid()
-  }
 
   ! an interface to allow user to do special things before the main loop
   if (associated(usr_before_main_loop)) &
@@ -157,7 +167,7 @@ contains
 
     integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
     integer(kind=8) ncells_update
-    logical :: save_now, crashall, save_file(nfile)
+    logical :: save_now, crashall
     double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
 
     time_in=MPI_WTIME()
@@ -200,6 +210,11 @@ contains
        ! set time step
        call setdt()
 
+       ! Check if output needs to be written
+       do ifile=nfile,1,-1
+         save_file(ifile) = timetosave(ifile)
+       end do
+
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step
        if (associated(usr_process_grid) .or. &
@@ -216,11 +231,6 @@ contains
                 it, global_time, dt, timeio0 - time_in
          end if
        end if
-
-       ! Check if output needs to be written
-       do ifile=nfile,1,-1
-         save_file(ifile) = timetosave(ifile)
-       end do
 
        ! output data
        if (any(save_file)) then
@@ -257,7 +267,8 @@ contains
        endif
        timeio_tot=timeio_tot+MPI_WTIME()-timeio0
 
-       pass_wall_time=MPI_WTIME()-time0+dt_loop+3.d0*time_write >=wall_time_max
+       pass_wall_time=MPI_WTIME()-time0+dt_loop+4.d0*time_write >=wall_time_max
+
        ! exit time loop if time is up
        if (it>=it_max .or. global_time>=time_max .or. pass_wall_time) exit time_evol
 

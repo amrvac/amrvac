@@ -1,7 +1,12 @@
 #!/bin/csh -f
 # usage: tailvac
 # aim: to monitor .log file
-set ful=`ls -l amrvac.par`
+if($#argv == 0) then
+  set ful=`ls -l amrvac.par`
+endif
+if($#argv == 1) then
+  set ful=`ls -l $argv[1]`
+endif
 set fname=$ful[$#ful]
 if (-e $fname ) then
    goto step1
@@ -13,7 +18,7 @@ step1:
 set datadir=`grep "base_filename" $fname`
 set dataname=`echo $datadir | awk -F\' '{print $2}'`
 set datalog=$dataname".log"
-tail $1 $datalog
+tail $datalog
 echo
 done:
 exit 0

@@ -44,6 +44,8 @@ contains
     use mod_forest
     use mod_global_parameters
     use mod_ghostcells_update
+    use mod_fix_conserve, only: pflux
+    use mod_amr_fct, only: pface, fine_neighbors, old_neighbor
     use mod_geometry
 
     integer :: igrid, level, ipe, ig^D
@@ -59,13 +61,17 @@ contains
     allocate(ps_sub(max_blocks))
     allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))
     allocate(neighbor_type(-1:1^D&,max_blocks),neighbor_active(-1:1^D&,max_blocks))
-    if (phi_ > 0) allocate(neighbor_pole(-1:1^D&,max_blocks))
+    allocate(neighbor_pole(-1:1^D&,max_blocks))
     allocate(igrids(max_blocks),igrids_active(max_blocks),igrids_passive(max_blocks))
     allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks),dt_grid(max_blocks))
     allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
     allocate(pflux(2,^ND,max_blocks))
     ! allocate mesh for particles
     if(use_particles) allocate(gridvars(max_blocks))
+    if(stagger_grid) then
+      allocate(pface(2,^ND,max_blocks),fine_neighbors(2^D&,^ND,max_blocks))
+      allocate(old_neighbor(2,-1:1^D,max_blocks))
+    end if
 
     it=it_init
     global_time=time_init
@@ -74,6 +80,9 @@ contains
 
     ! set all dt to zero
     dt_grid(1:max_blocks)=zero
+
+    ! no poles initially
+    neighbor_pole=0
 
     ! check resolution
     if ({mod(ixGhi^D,2)/=0|.or.}) then
@@ -165,7 +174,7 @@ contains
     type_recv_r=>type_recv_r_f
     type_send_p=>type_send_p_f
     type_recv_p=>type_recv_p_f
-    call create_bc_mpi_datatype(0,nwflux+nwaux)
+    call create_bc_mpi_datatype(1,nwflux+nwaux)
 
   end subroutine initialize_vars
 

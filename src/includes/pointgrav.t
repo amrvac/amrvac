@@ -93,11 +93,11 @@ call getgvector(ixG^L,ix^L,x,r2i)
 r2i(ix^S,1:ndim)=dabs(r2i(ix^S,1:ndim))
 
 do idims=1,ndim
-   if (.not.slab) then
+   if (slab_uniform) then
+      dtgrav(idims) = minval(one/(ptmass*r2i(ix^S,idims)*dxinv(idims)))
+   else
       tmp(ix^S)     = block%dx(ix^S,idims)/(min(smalldouble, ptmass*r2i(ix^S,idims)))
       dtgrav(idims) = minval(tmp(ix^S))
-   else
-      dtgrav(idims) = minval(one/(ptmass*r2i(ix^S,idims)*dxinv(idims)))
    end if
 enddo
 
@@ -118,6 +118,7 @@ subroutine getgvector(ixI^L,ixO^L,x,r2i)
 
 
 use mod_global_parameters
+use mod_geometry
 
 integer, intent(in)           :: ixO^L,ixI^L
 double precision, intent(in)  :: x(ixI^S,1:ndim)
@@ -134,8 +135,8 @@ double precision, allocatable :: rst(:^D&), rct(:^D&)
 allocate(r2(ixO^S))
 
 
-select case (typeaxial)
-case('slab')
+select case (coordinate)
+case(Cartesian,Cartesian_stretched)
 {^IFONED   
    r2(ixO^S) = (x(ixO^S,1)-x1ptms)**2
 }      
@@ -156,12 +157,12 @@ case('slab')
    r2i(ixO^S,2) = (x(ixO^S,2)-x2ptms) &
                 / (r2(ixO^S) * sqrt(r2(ixO^S)) + smalldouble)
 }
-{^IFTHREED		 
+{^IFTHREED
    r2i(ixO^S,3) = (x(ixO^S,3)-x3ptms) &
                 / (r2(ixO^S) * sqrt(r2(ixO^S)) + smalldouble)
-}		 
+}
 
-case('cylindrical')
+case(cylindrical)
 {^IFONED   
    r2(ixO^S)    = (x(ixO^S,r_)-x1ptms)**2   
    r2i(ixO^S,1) = one / (r2(ixO^S) + smalldouble)
@@ -170,7 +171,7 @@ case('cylindrical')
    if(^PHI == 2) then
       r2(ixO^S)    = (x(ixO^S,r_)-x1ptms)**2 &
                    + two*x(ixO^S,r_)*x1ptms  &
-	           * (one -cos(x(ixO^S,2)-x2ptms))
+            * (one -cos(x(ixO^S,2)-x2ptms))
 
       r2i(ixO^S,1) = (x(ixO^S,r_)-x1ptms*cos(x(ixO^S,2)-x2ptms)) &
                    / (r2(ixO^S) * sqrt(r2(ixO^S)) + smalldouble)   
@@ -202,7 +203,7 @@ case('cylindrical')
 }
 
 
-case('spherical')
+case(spherical)
    rstptms = x1ptms * sin(x2ptms)
    rctptms = x1ptms * cos(x2ptms)
    

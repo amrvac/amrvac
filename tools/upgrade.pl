@@ -78,6 +78,9 @@ my %simple_replacements = (
     qr/INCLUDE:amrvacnul\/specialimpl.t/ => "",
     qr/INCLUDE:amrvacnul\/speciallog.t/ => "",
     qr/INCLUDE:amrvacnul\/specialsource.t/ => "",
+    qr/\btypeaxial\b/ => "coordinate",
+    qr/"spherical"/ => "spherical",
+    qr/'spherical'/ => "spherical",
     );
 
 # Replace words only used in par files (pattern => replacement)
@@ -131,6 +134,8 @@ my %par_file_replacements = (
     qr/tsave\(5\)/ => "tsave_custom",
     qr/\btypetvdlf\b/ => "typeboundspeed",
     qr/\bitmax\b/ => "it_max",
+    qr/\bglm1\b/ => "glm",
+    qr/ *typelimited *=.*\n/ => "", # Remove typelimited= ... lines
     );
 
 # List of regular expressions and associated warnings

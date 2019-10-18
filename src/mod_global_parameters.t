@@ -38,18 +38,25 @@ module mod_global_parameters
   integer :: type_block, size_block
   !> MPI type for block coarsened by 2, and for its children blocks
   integer :: type_coarse_block, type_sub_block(2^D&)
+  !> MPI type for staggered block coarsened by 2, and for its children blocks
+  integer :: type_coarse_block_stg(^ND,2^D&), type_sub_block_stg(^ND,2^D&)
   !> MPI type for IO: block excluding ghost cells
   integer :: type_block_io, size_block_io
-  !> MPI type for IO: transformed data excluding ghost cells
-  integer :: type_block_io_tf, size_block_io_tf
+  !> MPI type for IO of staggered variables
+  integer :: type_block_io_stg, size_block_io_stg
   !> MPI type for IO: cell corner (xc) or cell center (xcc) coordinates
   integer :: type_block_xc_io,type_block_xcc_io
   !> MPI type for IO: cell corner (wc) or cell center (wcc) variables
   integer :: type_block_wc_io,type_block_wcc_io
 
+  !> MPI recv send variables for AMR
   integer :: itag, irecv, isend
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
+  !> MPI recv send variables for staggered-variable AMR
+  integer :: itag_stg
+  integer, dimension(:), allocatable :: recvrequest_stg, sendrequest_stg
+  integer, dimension(:,:), allocatable :: recvstatus_stg, sendstatus_stg
 
   ! geometry and domain setups 
 
@@ -73,6 +80,9 @@ module mod_global_parameters
   !> Cartesian geometry or not
   logical :: slab
 
+  !> uniform Cartesian geometry or not (stretched Cartesian)
+  logical :: slab_uniform
+
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D
   !> extent of grid blocks in domain per dimension, in array over levels
@@ -91,7 +101,7 @@ module mod_global_parameters
   integer :: ixGhi^D
 
   !> Lower index of stagger grid block arrays (always 0)
-  integer, parameter :: {ixGslo^D = 1|, }
+  integer, parameter :: {ixGslo^D = 0|, }
 
   !> Upper index of stagger grid block arrays
   integer :: ixGshi^D
@@ -106,8 +116,6 @@ module mod_global_parameters
   !> If true, adjust mod_geometry routines to account for grid stretching (but
   !> the flux computation will not)
   logical :: stretch_uncentered
-  !> Stretched Cartesian geometry or not
-  logical :: slab_stretched
   !> True if a dimension is stretched
   logical :: stretched_dim(ndim)
   !> What kind of stretching is used per dimension
@@ -154,7 +162,7 @@ module mod_global_parameters
   integer, parameter :: nsavehi=100
 
   !> Number of output methods
-  integer, parameter :: nfile         = 5
+  integer, parameter :: nfile = 5
 
   !> Names of the output methods
   character(len=40), parameter  :: output_names(nfile) = &
@@ -193,6 +201,9 @@ module mod_global_parameters
   !> Number of saved files of each type
   !> \todo Move to mod_input_output
   integer :: n_saves(1:nfile)
+
+  !> whether or not to save an output file
+  logical :: save_file(nfile)
 
   !> to monitor timeintegration loop at given wall-clock time intervals
   double precision :: time_between_print
@@ -500,14 +511,6 @@ module mod_global_parameters
   !> Which time integrator to use
   character(len=std_len) :: time_integrator
 
-  !> What should be used as a basis for the limiting in TVD methods. Options are
-  !> 'original', 'previous' and 'predictor'.
-  !>
-  !> By default, the original value is used in 1D and for dimensional splitting,
-  !> while for dimensionally unsplit multidimensional case (dimsplit=F), TVDLF
-  !> and TVD-MUSCL uses the previous value from wold for limiting.
-  character(len=std_len) :: typelimited
-
   !> How to apply dimensional splitting to the source terms, see
   !> @ref disretization.md
   character(len=std_len) :: typesourcesplit
@@ -546,7 +549,6 @@ module mod_global_parameters
 
   character(len=std_len) :: typeaverage
   character(len=std_len) :: typedimsplit
-  character(len=std_len) :: typeaxial='default'
   character(len=std_len) :: geometry_name='default'
   character(len=std_len) :: typepoly
 
@@ -570,9 +572,6 @@ module mod_global_parameters
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
 
-  !> need global maximal flow speed
-  logical :: need_global_vmax=.false.
-
   ! Boundary region parameters
 
   !> True for dimensions with periodic boundaries
@@ -587,6 +586,9 @@ module mod_global_parameters
   !> True for save physical boundary cells in dat files
   logical :: save_physical_boundary
 
+  !> True if a block has any physical boundary
+  logical, allocatable :: phyboundblock(:)
+
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
   character(len=std_len), allocatable :: typeboundary(:, :)
@@ -598,13 +600,8 @@ module mod_global_parameters
   integer, parameter :: ismin^D=-1+2*^D
   integer, parameter :: ismax^D=2*^D
 
-  type fluxalloc
-     double precision, dimension(:^D&,:), pointer:: flux => null()
-  end type fluxalloc
-  !> store flux to fix conservation
-  type(fluxalloc), dimension(:,:,:), allocatable :: pflux
-
-  logical, allocatable :: phyboundblock(:)
+  ! coefficient for physics
+  double precision :: phys_eta
 
 
   !> Base file name for synthetic EUV emission output

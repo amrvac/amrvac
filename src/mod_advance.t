@@ -6,7 +6,7 @@ module mod_advance
 
   logical :: firstsweep, lastsweep
 
-  !> Whether to conserve fluxes at the current partial step
+  !> Whether to conserve fluxes at the current sub-step
   logical :: fix_conserve_at_step = .true.
 
   public :: advance
@@ -346,11 +346,11 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
-    use mod_physics, only: phys_req_diagonal
+    use mod_physics
 
     integer, intent(in) :: idim^LIM
-    type(state) :: psa(max_blocks) !< Compute fluxes based on this state
-    type(state) :: psb(max_blocks) !< Update solution on this state
+    type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
+    type(state), target :: psb(max_blocks) !< Update solution on this state
     double precision, intent(in) :: dtfactor !< Advance over dtfactor * dt
     double precision, intent(in) :: qtC
     double precision, intent(in) :: qt
@@ -382,41 +382,50 @@ contains
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
       call fix_conserve(psb,idim^LIM,1,nwflux)
+      if(stagger_grid) call fix_edges(psb,idim^LIM)
+    end if
+
+    if(stagger_grid) then
+      ! Now fill the cell-center values for the staggered variables
+      !$OMP PARALLEL DO PRIVATE(igrid)
+      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+        call phys_face_to_center(ixG^LL,psb(igrid))
+      end do
+      !$OMP END PARALLEL DO
     end if
 
     ! For all grids: fill ghost cells
     qdt = dtfactor*dt
-    call getbc(qt+qdt,qdt,psb,0,nwflux+nwaux, phys_req_diagonal)
+    call getbc(qt+qdt,qdt,psb,1,nwflux+nwaux,phys_req_diagonal)
 
   end subroutine advect1
 
   !> Prepare to advance a single grid over one partial time step
-  subroutine process1_grid(method,igrid,qdt,ixG^L,idim^LIM,qtC,sCT,qt,s,sold)
+  subroutine process1_grid(method,igrid,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold)
     use mod_global_parameters
     use mod_fix_conserve
 
     character(len=*), intent(in) :: method
-    integer, intent(in) :: igrid, ixG^L, idim^LIM
+    integer, intent(in) :: igrid, ixI^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt
-    type(state)                  :: sCT, s, sold
+    type(state), target          :: sCT, s, sold
 
     double precision :: dx^D
     ! cell face flux
-    double precision :: fC(ixG^S,1:nwflux,1:ndim)
+    double precision :: fC(ixI^S,1:nwflux,1:ndim)
     ! cell edge flux
-    double precision :: fE(ixG^S,1:ndir)
+    double precision :: fE(ixI^S,7-2*ndim:3)
 
     dx^D=rnode(rpdx^D_,igrid);
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     saveigrid=igrid
 
-    block=>ps(igrid)
+    block0=>sCT
+    block=>s
     typelimiter=type_limiter(node(plevel_,igrid))
     typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
-    fC=0.d0
-
-    call advect1_grid(method,qdt,ixG^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
+    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
          ps(igrid)%x)
 
 
@@ -427,7 +436,8 @@ contains
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
     if (fix_conserve_at_step) then
-      call storeflux(igrid,fC,idim^LIM,nwflux)
+      call store_flux(igrid,fC,idim^LIM,nwflux)
+      if(stagger_grid) call store_edge(igrid,ixI^L,fE,idim^LIM)
     end if
 
   end subroutine process1_grid
@@ -445,9 +455,9 @@ contains
     character(len=*), intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
-    type(state)                  :: sCT, s, sold
+    type(state), target          :: sCT, s, sold
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision :: fE(ixI^S,1:ndir)
+    double precision :: fE(ixI^S,7-2*ndim:3)
 
     integer :: ixO^L
 
@@ -485,6 +495,7 @@ contains
   subroutine process(iit,qt)
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters
+    use mod_ghostcells_update
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -507,17 +518,19 @@ contains
          call usr_process_grid(igrid,level,ixG^LL,ixM^LL,qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
+      call getbc(qt,dt,ps,1,nwflux+nwaux)
     end if
   end subroutine process
 
   !> process_advanced is user entry in time loop, just after advance
   !>           allows to modify solution, add extra variables, etc.
   !>           added for handling two-way coupled PIC-MHD
-  !> Warning: w is now at t^(n+1), global time and iteration at t^n, it^n
+  !> Warning: w is now at global_time^(n+1), global time and iteration at global_time^n, it^n
   subroutine process_advanced(iit,qt)
     use mod_usr_methods, only: usr_process_adv_grid, &
                                usr_process_adv_global
     use mod_global_parameters
+    use mod_ghostcells_update
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -528,21 +541,22 @@ contains
        call usr_process_adv_global(iit,qt)
     end if
 
-    !$OMP PARALLEL DO PRIVATE(igrid,level)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       level=node(plevel_,igrid)
-       ! next few lines ensure correct usage of routines like divvector etc
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       block=>ps(igrid)
-       typelimiter=type_limiter(node(plevel_,igrid))
-       typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+    if (associated(usr_process_adv_grid)) then
+      !$OMP PARALLEL DO PRIVATE(igrid,level)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+         level=node(plevel_,igrid)
+         ! next few lines ensure correct usage of routines like divvector etc
+         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+         block=>ps(igrid)
+         typelimiter=type_limiter(node(plevel_,igrid))
+         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
-       if (associated(usr_process_adv_grid)) then
-          call usr_process_adv_grid(igrid,level,ixG^LL,ixM^LL, &
-               qt,ps(igrid)%w,ps(igrid)%x)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+         call usr_process_adv_grid(igrid,level,ixG^LL,ixM^LL, &
+              qt,ps(igrid)%w,ps(igrid)%x)
+      end do
+      !$OMP END PARALLEL DO
+    call getbc(qt,dt,ps,1,nwflux+nwaux)
+    end if
   end subroutine process_advanced
 
 end module mod_advance

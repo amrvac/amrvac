@@ -76,7 +76,7 @@ contains
        call phys_get_eigenjump(wL,wR,wroeC,x,ixIC^L,il,idims,smallaC,adtdxC,jumpC,workroe)
 
        ! Normalize the eigenvalue "a" (and its limit "smalla" if needed):
-       if (slab) then
+       if (slab_uniform) then
           adtdxC(ixIC^S)=adtdxC(ixIC^S)*dxinv(idims)
           if (typeentropy(il)=='harten' .or. typeentropy(il)=='powell')&
             smallaC(ixIC^S)=smallaC(ixIC^S)*dxinv(idims)
@@ -95,7 +95,7 @@ contains
        do iw=1,nwflux
           call phys_rtimes(phiC,wroeC,ixC^L,iw,il,idims,rphiC,workroe)
 
-          if (slab) then
+          if (slab_uniform) then
              rphiC(ixC^S)=rphiC(ixC^S)*half
              fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)+rphiC(ixC^S)
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+rphiC(ixO^S)-rphiC(hxO^S)

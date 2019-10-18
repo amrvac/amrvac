@@ -190,7 +190,11 @@ contains
     double precision :: omega1,cmu,cmut,cnu,cnut
     double precision, allocatable :: bj(:)
     integer:: iigrid, igrid,j
-    logical :: evenstep
+    logical :: evenstep, stagger_flag
+
+    ! not do fix conserve and getbc for staggered values if stagger is used
+    stagger_flag=stagger_grid
+    stagger_grid=.false.
 
     ! point bc mpi datatype to partial type for thermalconduction
     type_send_srl=>type_send_srl_p1
@@ -201,7 +205,7 @@ contains
     type_recv_p=>type_recv_p_p1 
     ! create bc mpi datatype for ghostcells update
     if(first) then
-      call create_bc_mpi_datatype(e_-1,1)
+      call create_bc_mpi_datatype(e_,1)
       first=.false.
     end if
 
@@ -244,7 +248,7 @@ contains
       call fix_conserve(ps1,1,ndim,e_,1)
     end if
     bcphys=.false.
-    call getbc(global_time,0.d0,ps1,e_-1,1)
+    call getbc(global_time,0.d0,ps1,e_,1)
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
@@ -257,6 +261,7 @@ contains
       type_send_p=>type_send_p_f
       type_recv_p=>type_recv_p_f
       bcphys=.true.
+      stagger_grid=stagger_flag
       deallocate(bj)
       return
     endif
@@ -284,7 +289,7 @@ contains
           call sendflux(1,ndim)
           call fix_conserve(ps2,1,ndim,e_,1)
         end if
-        call getbc(global_time,0.d0,ps2,e_-1,1)
+        call getbc(global_time,0.d0,ps2,e_,1)
         evenstep=.false.
       else
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -303,7 +308,7 @@ contains
           call sendflux(1,ndim)
           call fix_conserve(ps1,1,ndim,e_,1)
         end if
-        call getbc(global_time,0.d0,ps1,e_-1,1)
+        call getbc(global_time,0.d0,ps1,e_,1)
         evenstep=.true.
       end if 
     end do
@@ -325,7 +330,10 @@ contains
     type_send_p=>type_send_p_f
     type_recv_p=>type_recv_p_f
     bcphys=.true.
-  
+
+    ! restore stagger_grid value
+    stagger_grid=stagger_flag
+
   end subroutine do_thermal_conduction
 
   subroutine evolve_stepj(igrid,qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,wold)
@@ -348,7 +356,7 @@ contains
     
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
-      call storeflux(igrid,fC,1,ndim,1)
+      call store_flux(igrid,fC,1,ndim,1)
     end if
 
   end subroutine evolve_stepj
@@ -403,7 +411,7 @@ contains
 
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
-      call storeflux(igrid,fC,1,ndim,1)
+      call store_flux(igrid,fC,1,ndim,1)
     end if
   
   end subroutine evolve_step1
@@ -535,8 +543,8 @@ contains
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
-      ixA^L=ixB^L+kr(idims,^D);
-      gradT(ixB^S,idims)=(Te(ixA^S)-Te(ixB^S))*dxinv(idims)
+      call gradientC(Te,ixI^L,ixB^L,idims,minq)
+      gradT(ixB^S,idims)=minq(ixB^S)
     end do
     if(tc_slope_limiter=='no') then
       ! calculate thermal conduction flux with symmetric scheme
@@ -685,13 +693,66 @@ contains
     end if
 
     qd=0.d0
-    do idims=1,ndim
-      qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
-      ixB^L=ixO^L-kr(idims,^D);
-      qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
-    end do
+    if(slab_uniform) then
+      do idims=1,ndim
+        qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
+      end do
+    else
+      do idims=1,ndim
+        qvec(ix^S,idims)=qvec(ix^S,idims)*block%surfaceC(ix^S,idims)
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
+      end do
+      qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
+    end if
     
   end subroutine mhd_get_heatconduct
+
+  !> Calculate gradient of a scalar q at cell interfaces in direction idir
+  subroutine gradientC(q,ixI^L,ixO^L,idir,gradq)
+    use mod_global_parameters
+    use mod_geometry
+
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: q(ixI^S)
+    double precision, intent(inout) :: gradq(ixI^S)
+    integer                         :: jxO^L
+
+    associate(x=>block%x)
+
+    jxO^L=ixO^L+kr(idir,^D);
+    select case(coordinate)
+    case(Cartesian)
+      gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/dxlevel(idir)
+    case(Cartesian_stretched)
+      gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/(x(jxO^S,idir)-x(ixO^S,idir))
+    case(spherical)
+      select case(idir)
+      case(1)
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/(x(jxO^S,1)-x(ixO^S,1))
+        {^NOONED
+      case(2)
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/( (x(jxO^S,2)-x(ixO^S,2))*x(ixO^S,1) )
+        }
+        {^IFTHREED
+      case(3)
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/( (x(jxO^S,3)-x(ixO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)) )
+        }
+      end select
+    case(cylindrical)
+      if(idir==phi_) then
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/((x(jxO^S,phi_)-x(ixO^S,phi_))*x(ixO^S,r_))
+      else
+        gradq(ixO^S)=(q(jxO^S)-q(ixO^S))/(x(jxO^S,idir)-x(ixO^S,idir))
+      end if
+    case default
+      call mpistop('Unknown geometry')
+    end select
+
+    end associate
+  end subroutine gradientC
 
   function slope_limiter(f,ixI^L,ixO^L,idims,pm) result(lf)
     use mod_global_parameters
@@ -847,8 +908,8 @@ contains
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
-      ixA^L=ixB^L+kr(idims,^D);
-      gradT(ixB^S,idims)=(Te(ixA^S)-Te(ixB^S))*dxinv(idims)
+      call gradientC(Te,ixI^L,ixB^L,idims,ke)
+      gradT(ixB^S,idims)=ke(ixB^S)
     end do
     ! calculate thermal conduction flux with symmetric scheme
     do idims=1,ndim
@@ -918,11 +979,20 @@ contains
     end do
 
     qd=0.d0
-    do idims=1,ndim
-      qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
-      ixB^L=ixO^L-kr(idims,^D);
-      qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
-    end do
+    if(slab_uniform) then
+      do idims=1,ndim
+        qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
+      end do
+    else
+      do idims=1,ndim
+        qvec(ix^S,idims)=qvec(ix^S,idims)*block%surfaceC(ix^S,idims)
+        ixB^L=ixO^L-kr(idims,^D);
+        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
+      end do
+      qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
+    end if
 
   end subroutine hd_get_heatconduct
 

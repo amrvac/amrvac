@@ -87,7 +87,7 @@ typefilelog | string | 'default' | Use 'regression_test' to do regression test a
 snapshotnext | integer | 0 | Start index for writing snapshots
 slicenext | integer | 0 | Start index for writing slices
 firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
-resetgrid | logical | F | If true, rebuild the AMR grid upon restarting
+reset_grid | logical | F | If true, rebuild the AMR grid upon restarting
 convert | logical | F | If true and filenameini and snapshotini are given, convert snapshots to other file formats
 convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
 slice_type | string | vtu | Which format to use when slicing, options are: csv, dat, vtu, vtuCC
@@ -113,17 +113,15 @@ By default, the logfile contains one line
 with a string that is meant to identify the coordinate names, the conserved
 variables (wnames) and other entries, and then follows a sequence of lines
 containing numbers: i.e. a single line per requested output time, containing the
-integer timestep counter _it_, the time _global_time_, the time step to be used in the
-next time advance _dt_, the domain integrated value of each conserved variable
+integer timestep counter `it`, the time `global_time`, the time step to be used in the
+next time advance `dt`, the domain integrated value of each conserved variable
 (nw real numbers, which allows to check perfect conservation across the grid
 tree when the boundary conditions imply it), the percentage of the domain
-covered by each allowed grid level (_refine_max_level_ real numbers between 0.0 and 1.0,
-with 1.0 indicating 100% coverage: when all _refine_max_level_ numbers are summed, we get
-1.0), and the number of grids per allowed grid level (hence, _refine_max_level_ integers).
-The logfile is by default saved as an ASCII file. 
-
-The order of saving snapshots, and regridding actions through the subroutine
-_resetgridtree_ is fixed: regrid happens after the advance by one timestep,
+covered by each allowed grid level (`refine_max_level` real numbers between 0.0 and 1.0,
+with 1.0 indicating 100% coverage: when all numbers are summed, we get
+1.0), and the number of grids per allowed grid level (hence, `refine_max_level` integers).
+The logfile is by default saved as an ASCII file.
+The order of saving snapshots, and regridding actions is fixed: regrid happens after the advance by one timestep,
 then regrid, then save the data. This has consequences for the optional
 variables beyond _nwflux_.
 
@@ -135,13 +133,14 @@ visualisation purposes. Such conversion of a single .dat file at a time is to be
 done with the same executable (or at least one compiled on a possibly different
  machine), on a single processor (i.e. using _mpirun
 -np 1 amrvac_). Only selected output types can be converted in parallel, namely
-those whose name contains _mpi_ as part of the _convert_type_ string. Currently,
-this includes the ASCII (binary) versions of _vtumpi_ (_vtuBmpi_) and _vtuCCmpi_
-(_vtuBCCmpi_) (corner versus cell center values), and similarly for tecplot 
-(_tecplotmpi_ or _tecplotCCmpi_). In addition, _pvtumpi_ (_pvtuBmpi_) and 
-_pvtuCCmpi_ (_pvtuBCCmpi_) are possible which will result in a _*.vtu_ file for each processor.
+those whose name contains 'mpi' as part of the `convert_type` string. Currently,
+this includes the ASCII (binary) versions of `vtumpi` (`vtuBmpi`) with values 
+located at cell corners and `vtuCCmpi` (`vtuBCCmpi`) with values at cell centers, 
+and similarly for tecplot (`tecplotmpi` or `tecplotCCmpi`). In addition, 
+`pvtumpi` (`pvtuBmpi`) and `pvtuCCmpi` (`pvtuBCCmpi`) result in parallel output
+with one `*.vtu` file for each processor and a header file from master processor.
 
-In this conversion mode, the idea is to set restart_from_file together 
+In this conversion mode, the idea is to set `restart_from_file` together 
 with `convert=T`. You can ask the code during
 conversion to change from conservative to primitive variable output by setting
 `saveprim=T`, and then the corresponding names for the primitive variables are
@@ -245,7 +244,7 @@ name | type | default | description
 ---|---|---|---
 `ditsave_log` | integer | `biginteger` | Repeatedly save information in a log file when `ditsave_log` time steps have passed
 `dtsave_dat` | double | `bigdouble` | Repeatedly save dat files when `dtsave_dat` simulation time has passed
-`itsave(SAVEINDEX,FILEINDEX)` | integer | 1 | Save on these time steps
+`itsave(SAVEINDEX,FILEINDEX)` | integer | biginteger | Save on these time steps
 `tsave(SAVEINDEX,FILEINDEX)` | double | `bigdouble` | Save on these times
 `nslices` | integer | 0 | Number of slices
 `slicedir(INTEGER)` | integer | - | Slice direction, see @ref slices.md
@@ -323,7 +322,6 @@ without changing time, set `reset_it=T`.
     typepred1=nlevelshi strings from: 'default'|'hancock'|'tvdlf'|'hll'|'hllc'|'tvdmu'|'cd'|'fd'|'nul'
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
     gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
-    typelimited= 'previous' | 'predictor'
     loglimit= nw logicals, all false by default
     flatsh = F | T
     flatcd = F | T
@@ -371,8 +369,8 @@ linear in the time step, which is good for getting a steady state, by setting
 `time_integrator='onestep'`.
 
 There is also a fourth order Runge-Kutta type method, when
-`time_integrator='fourstep'`. It can be used with _dimsplit=.true._ and
-_typelimited='original'_. These higher order time integration methods can be
+`time_integrator='fourstep'`. It can be used with _dimsplit=.true._.
+ These higher order time integration methods can be
 most useful in conjunction with higher order spatial discretizations.
 See also [discretization](discretization.md).
 
@@ -411,11 +409,6 @@ The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
 typediv=limited) is selected. It is thus only used in the gradientS
 (divvectorS) subroutines in geometry.t (and has effect for the MHD modules).
-
-The `typelimited` variable tells the TVD type methods what w should be used as
-a basis for the limited reconstruction. By default, the `original` value is used in 1D and
-for dimensional splitting, while the dimensionally unsplit multidimensional
-case (dimsplit=F) uses the `predictor` value.
 
 When having a gravitational stratification, one might benefit from performing linear
 reconstruction on the primitive variables log10(rho) and/or log10(p). This can
@@ -835,25 +828,33 @@ optimal for all times.The parameter `ditregrid` is introduced to reconstruct
 the whole AMR grids once every ditregrid iteration(s) instead of regridding
 once in every iteration by default.
 
-### `stretch_dim`, `stretch_uncentered` `qstretch_baselevel`, `nstretchedblocks_baselevel` {#par_stretched}
+### stretch_dim, stretch_uncentered, qstretch_baselevel, nstretchedblocks_baselevel {#par_stretched}
 
-We allow stretching of the grid, in combination with any coordinate system (cartesian/polar/cylindrical/spherical) you choose. You activate grid stretching by setting `stretch_dim(1:ndim)`, for example for the second dimension:
+We allow stretching of the grid, in combination with any coordinate system 
+(cartesian/polar/cylindrical/spherical) you choose. You activate grid stretching 
+by setting `stretch_dim(1:ndim)`, for example for the second dimension:
 
     stretch_dim(2) = 'none' | 'uni' | 'symm'
 
 * 'none' means don't stretch this dimension, which is the default.
-* 'uni' means unidirectional stretching, where the grid cells change by a constant factor from cell to cell. The factor for the lowest refinement level can be set by setting `qstretch_baselevel=1.01` (typical values are 1.01 to 1.05 or so, although any number larger than 1 is possible). 
-* 'symm' means symmetric stretching, which is e.g. useful for setting up periodic domain problems or so. You then specify how many blocks you want to have unstretched (uniform) in the middle. E.g., you may have set up 8 blocks along a dimension at level 1, and then you can ask nstretchedblocks_baselevel=2,4,6 or 8. 
+* 'uni' means unidirectional stretching, where the grid cells change by a 
+constant factor from cell to cell. The factor for the lowest refinement level 
+can be set by setting `qstretch_baselevel=1.01` (typical values are 1.01 to 1.05 
+or so, although any number larger than 1 is possible). 
+* 'symm' means symmetric stretching, which is e.g. useful for setting up 
+periodic domain problems or so. You then specify how many blocks you want to 
+have unstretched (uniform) in the middle. E.g., you may have set up 8 blocks 
+along a dimension at level 1, and then you can ask nstretchedblocks_baselevel=2,4,6 or 8. 
 
-Stretching can be useful for the radial coordinate in polar/spherical/cylindrical, or you can set the angle theta in 3D spherical to be stretched symmetrically, to leverage the CFL condition.
+Stretching can be useful for the radial coordinate in polar/spherical/cylindrical, 
+or you can set the angle theta in 3D spherical to be stretched symmetrically, 
+to leverage the CFL condition.
 
 The parameter `stretch_uncentered` (default: true) controls whether
 `mod_geometry.t` routines such as `divvector()` take into account that a cell
 face is not between stretched cell-centers. However, this is not yet taken into
 account in the reconstruction and symm/asymm boundary conditions, which may lead
 to issues, which can sometimes be avoided by setting `stretch_uncentered` to false.
-
-**Note**: the old syntax `stretched_grid=T` was equivalent to `stretch_dim(1) = 'uni'`
 
 ## Paramlist {#par_paramlist}
 
@@ -941,7 +942,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_viscosity= F | T
      mhd_particles= F | T
      mhd_4th_order= F | T
-     typedivbfix= 'linde'|'powel'|'glm1'|'glm2'|'glm3'|'lindejanhunen'|'lindepowel'|'lindeglm'|'none'
+     typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'none'
+     type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
      boundary_divbfix= 2*ndim logicals, all false by default
      divbdiff= DOUBLE between 0 and 2
@@ -959,9 +961,19 @@ sharp discontinuities. It is normally inactive with a default value -1.
 
 ### Magnetic field divergence fixes {#par_divbfix}
 
-Depending on `typedivbfix`, sources proportionate to the numerical monopole
-errors are added, in a source-split way, to momemtum, energy, and induction equation 
-(the 'powel' type), or to the induction equation alone (the 'janhunen' type). 
+The upwind constrained transport methods  **typedivbfix='ct'** by Gardiner and Stone in _Journal of 
+Computational Physics, 205, 509-539 (2005)_ **type_ct='uct_contact'** (default), or by
+Londrillo and Zanna, in _Journal of Computational Physics, 195, 17-48 (2004)_ 
+**type_ct='uct_hll'**, using staggered grid for magnetic field, can preserve 
+initial div B to round off errors. A simple non-upwinding version of ct 
+is through averaging electric fields from 
+neighbors **type_ct='average'**. And it only works with HLL, HLLC, and HLLD 
+schemes in the current implementation. Initial conditions and boundary conditions for
+magnetic field have to be given at corresponding cell faces instead, or vector potential 
+is given at corresponding cell edges, see examples: **tests/mhd/solar_atmosphere_2.5D**.
+In cell-center based magnetic fields, sources proportionate to the numerical monopole
+errors can be added, in a source-split way, to momemtum, energy, and induction equation 
+(the 'powel' type), or to the induction equation alone (the 'janhunen' type) for cleaning divB errors. 
 The `divbwave` switch is effective for the Riemann type solvers for multi-D MHD only. 
 The default true value corresponds to Powell divergence wave which stabilizes the Riemann solver.
 
@@ -973,38 +985,22 @@ and again comes in various flavors depending on which equations receive source
 terms. The choice where only the induction equation gets modified, i.e.
 `typedivbdiff='ind'` can be used. 
 
-GLM-MHD mixed hyperbolic and parabolic dampening of the divB error
-using an additional scalar variable _Psi_ (need an addition of the name and
-boundary condition type in your par-file). The algorithm is described by
-Dedner et al. in _Journal of Computational Physics 175, 645-673 (2002)
-doi:10.1006/jcph.2001.6961_. The three versions differ in the source terms 
-taken along. Thus 'glm1' corresponds 
-to _Equation (24)_ of Dedner et al and 'glm2'
-corresponds to _Equation (38)_ of this paper. The option 'glm3' adds no
-additional sources to the MHD system. We recommend the option
-'glm1'. For example: in your par-file,
-
-    &mhd_list
-    typedivbfix='glm1'
-    ...
-
-in your `mod_usr.t`, add
-
-    if(mhd_glm) w(ixO^S,psi_)=0.d0
-
-in subroutine `usr_init_one_grid` and ( subroutine `usr_special_bc` if exists).
-Potential bug: with a pole boundary in cylindrical and spherical coordinates, GLM methods
-crash your run with negative pressure.
-
-Choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb cleaning.
+GLM-MHD mixed hyperbolic and parabolic dampening of the divB error using an 
+additional scalar variable `Psi`.  The algorithm of 'glm' is described by
+Dedner et al. as _Equation (24)_ in 
+_Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
+You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb cleaning.
 
 ### Magnetic field splitting strategy {#par_MFS}
 
 For MHD, we implemented the possibility to use a splitting strategy following
 Tanaka, where a time-invariant background magnetic field is handled
 exactly, so that one solves for perturbed magnetic field components instead.
-This field is taken into account when `B0field=T`, and the magnitude of this
-field is controlled using the variables `Bdip, Bquad, Boct, Busr`. The first
+This method work only with HLL or TVDLF schemes and non CT divb cleaning methods 
+in the current implementation.
+The magnetic field splitting is activated by `B0field=T`, and the magnitude of 
+the background magnetic field can be controlled using the parameters 
+`Bdip, Bquad, Boct, Busr`. The first
 three are pre-implemented formulae for a dipole, quadrupole and octupole field
 in spherical coordinates only (the parameters set the strength of the dipole,
 quadrupole and octupole field). This is coded up in the module _set_B0.t_.

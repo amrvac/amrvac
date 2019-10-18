@@ -63,4 +63,5 @@
 
  &mhd_list
         Busr=1.d0
+        typedivbfix='ct'
  /

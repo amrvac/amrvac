@@ -27,8 +27,9 @@ contains
     usr_init_one_grid => initonegrid_usr
     usr_modify_output => set_output_vars
     usr_refine_grid   => my_refine
+    usr_init_vector_potential=>initvecpot_usr
 
-    call set_coordinate_system('Cartesian_2D')
+    call set_coordinate_system('Cartesian_2.5D')
     call mhd_activate()
 
     i_divb_2 = var_set_extravar("divb-2", "divb-2")
@@ -38,8 +39,6 @@ contains
 
   ! initialize one grid
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -59,12 +58,35 @@ contains
     w(ixO^S,mom(1)) = v0(1) ! Vx
     w(ixO^S,mom(2)) = v0(2) ! Vy
     w(ixO^S,e_)     = 1.0d0 ! Pressure
-
-    call bfield_solution(ixI^L, ixO^L, x, v0, 0.0d0, bfield)
-
-    w(ixO^S, mag(:)) = bfield(ixO^S, :)
+    if(stagger_grid) then
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
+    else 
+      bfield=0.d0
+      call bfield_solution(ixI^L, ixO^L, x, v0, 0.0d0, bfield)
+      w(ixO^S, mag(:)) = bfield(ixO^S, :)
+    end if
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the edges
+    ! used by b_from_vectorpotential()
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    double precision :: rx(ixC^S)
+
+    A(ixC^S) = 0.d0
+    if (idir==3) then
+      rx(ixC^S)=sqrt(xC(ixC^S,1)**2+xC(ixC^S,2)**2)
+      where(rx(ixC^S)<=R0)
+        A(ixC^S) = A0*(R0-rx(ixC^S))
+      end where
+    end if
+
+  end subroutine initvecpot_usr
 
   subroutine bfield_solution(ixI^L, ixO^L, x, v, t, bfield)
     integer, intent(in)             :: ixI^L,ixO^L
@@ -124,6 +146,9 @@ contains
     double precision                :: divb(ixI^S)
     double precision                :: v0(ndim)
     double precision                :: bfield(ixI^S, ndir)
+    double precision                :: ws(ixGs^T, nws)
+
+    integer :: idim,hxO^L
 
     select case (iprob)
     case (1)
@@ -142,7 +167,15 @@ contains
     call get_divb(w,ixI^L,ixO^L,divb, .true.)
     w(ixO^S,i_divb_4)=divb(ixO^S)
 
-    call bfield_solution(ixI^L, ixO^L, x, v0, qt, bfield)
+    if(stagger_grid) then
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,ws,x)
+      do idim=1,ndim
+        hxO^L=ixO^L-kr(idim,^D);
+        bfield(ixO^S,idim)=half*(ws(ixO^S,idim)+ws(hxO^S,idim))
+      end do
+    else
+      call bfield_solution(ixI^L, ixO^L, x, v0, qt, bfield)
+    end if
 
     w(ixO^S,i_B_err) = sqrt( &
          (w(ixO^S, mag(1)) - bfield(ixO^S, 1))**2 + &

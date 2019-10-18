@@ -65,6 +65,7 @@ contains
   !> Setup multigrid for usage
   subroutine mg_setup_multigrid()
     use mod_global_parameters
+    use mod_geometry
 
     if (ndim == 1) &
          error stop "Multigrid not available in 1D"
@@ -72,10 +73,10 @@ contains
     if (ndim /= mg_ndim) &
          error stop "Multigrid module was compiled for different ndim"
 
-    select case (typeaxial)
-    case ("slab")
+    select case (coordinate)
+    case (Cartesian)
        if (ndim == 1) error stop "Multigrid only support 2D, 3D"
-    case ("cylindrical")
+    case (cylindrical)
        if (ndim == 3) error stop "Multigrid does not support cylindrical 3D"
        mg%geometry_type = mg_cylindrical
     case default
