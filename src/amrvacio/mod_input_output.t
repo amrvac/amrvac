@@ -129,22 +129,26 @@ contains
          dtsave_collapsed, dtsave_custom
     integer :: ditsave_log, ditsave_dat, ditsave_slice, &
          ditsave_collapsed, ditsave_custom
+    double precision :: tsavestart_log, tsavestart_dat, tsavestart_slice, &
+         tsavestart_collapsed, tsavestart_custom
     integer :: windex, ipower
     double precision :: sizeuniformpart^D
 
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,reset_grid,snapshotnext, &
-         convert,convert_type,saveprim,&
+         convert,convert_type,saveprim,usr_filename,&
          nwauxio,nocartesian, w_write,writelevel,&
          writespshift,length_convert_factor, w_convert_factor, &
          time_convert_factor,level_io,level_io_min, level_io_max, &
          autoconvert,slice_type,slicenext,collapsenext,collapse_type
 
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
-         slicecoord,collapse,collapseLevel, time_between_print, &
+         slicecoord,collapse,collapseLevel, time_between_print,&
          tsave_log, tsave_dat, tsave_slice, tsave_collapsed, tsave_custom, &
          dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
-         ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom
+         ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom,&
+         tsavestart_log, tsavestart_dat, tsavestart_slice, tsavestart_collapsed,&
+         tsavestart_custom, tsavestart
 
     namelist /stoplist/ it_init,time_init,it_max,time_max,dtmin,reset_it,reset_time,&
          wall_time_max
@@ -194,6 +198,8 @@ contains
 
     ! default resolution of level-1 mesh (full domain)
     {domain_nx^D = 32\}
+
+
 
     ! defaults for boundary treatments
     typeghostfill = 'linear'
@@ -307,6 +313,7 @@ contains
       ditsave(ifile) = biginteger ! timesteps between saves
       isavet(ifile)  = 1          ! index for saves by global_time
       isaveit(ifile) = 1          ! index for saves by it
+      tsavestart(ifile) = 0.0d0
     end do
 
     tsave_log       = bigdouble
@@ -327,6 +334,12 @@ contains
     ditsave_collapsed = biginteger
     ditsave_custom    = biginteger
 
+    tsavestart_log       = bigdouble
+    tsavestart_dat       = bigdouble
+    tsavestart_slice     = bigdouble
+    tsavestart_collapsed = bigdouble
+    tsavestart_custom    = bigdouble
+
     typefilelog = 'default'
 
     ! defaults for input
@@ -335,6 +348,8 @@ contains
     firstprocess  = .false.
     reset_grid     = .false.
     base_filename   = 'data'
+    usr_filename    = ''
+
 
     ! Defaults for discretization methods
     typeaverage     = 'default'
@@ -534,6 +549,12 @@ contains
     if (dtsave_collapsed < bigdouble) dtsave(4) = dtsave_collapsed
     if (dtsave_custom < bigdouble) dtsave(5) = dtsave_custom
 
+    if (tsavestart_log < bigdouble) tsavestart(1) = tsavestart_log
+    if (tsavestart_dat < bigdouble) tsavestart(2) = tsavestart_dat
+    if (tsavestart_slice < bigdouble) tsavestart(3) = tsavestart_slice
+    if (tsavestart_collapsed < bigdouble) tsavestart(4) = tsavestart_collapsed
+    if (tsavestart_custom < bigdouble) tsavestart(5) = tsavestart_custom
+
     if (ditsave_log < bigdouble) ditsave(1) = ditsave_log
     if (ditsave_dat < bigdouble) ditsave(2) = ditsave_dat
     if (ditsave_slice < bigdouble) ditsave(3) = ditsave_slice
@@ -544,14 +565,14 @@ contains
 
     if (mype == 0) then
        write(unitterm, *) ''
-       write(unitterm, *) 'Output type | dtsave    | ditsave | itsave(1) | tsave(1)'
-       write(fmt_string, *) '(A12," | ",E9.3E2," | ",I6,"  | "'//&
+       write(unitterm, *) 'Output type | tsavestart |  dtsave   | ditsave | itsave(1) | tsave(1)'
+       write(fmt_string, *) '(A12," | ",E9.3E2,"  | ",E9.3E2," | ",I6,"  | "'//&
             ',I6, "    | ",E9.3E2)'
     end if
 
     do ifile = 1, nfile
        if (mype == 0) write(unitterm, fmt_string) trim(output_names(ifile)), &
-            dtsave(ifile), ditsave(ifile), itsave(1, ifile), tsave(1, ifile)
+            tsavestart(ifile), dtsave(ifile), ditsave(ifile), itsave(1, ifile), tsave(1, ifile)
     end do
 
     if (mype == 0) write(unitterm, *) ''

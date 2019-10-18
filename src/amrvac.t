@@ -355,6 +355,8 @@ contains
 
   !> Save times are defined by either tsave(isavet(ifile),ifile) or
   !> itsave(isaveit(ifile),ifile) or dtsave(ifile) or ditsave(ifile)
+  !> tsavestart(ifile) determines first start time. This only affects
+  !> read out times determined by dtsave(ifiles).
   !> Other conditions may be included.
   logical function timetosave(ifile)
     use mod_global_parameters
@@ -374,9 +376,11 @@ contains
        isavet(ifile)=isavet(ifile)+1
     end if
 
-    if (global_time>=tsavelast(ifile)+dtsave(ifile)-smalldouble)then
-       oksave=.true.
-       n_saves(ifile) = n_saves(ifile) + 1
+    if(global_time>=tsavestart(ifile)-smalldouble)then
+      if (global_time>=tsavelast(ifile)+dtsave(ifile)-smalldouble)then
+         oksave=.true.
+         n_saves(ifile) = n_saves(ifile) + 1
+      endif
     endif
 
     if (oksave) then
