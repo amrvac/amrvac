@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from scipy.interpolate import griddata
+from scipy.interpolate import interp1d
 import sys, time
 from matplotlib.ticker import MaxNLocator
 from scipy import ndimage
@@ -552,6 +553,57 @@ def plotoverline(var,data,x_pts,y_pts):
 
     return l
 
+
+def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
+           step_size, cmap = 'binary', orientation='vertical', min_value=None,
+           max_value = None):
+    # produces time distance plots.
+#    yi = np.linspace(y_pts[0], y_pts[-1], interpolations_pts, endpoint=True)
+
+    # This will floor your values. Could leads to errors
+    time_steps = (offsets[-1]-offsets[0])//step_size
+    if not isinstance(time_steps, int):
+        raise TypeError("'td_plot': time_steps needs to be an int")
+    td_plot_data = np.zeros((interpolations_pts, time_steps))
+    time_array = np.zeros(time_steps)
+    offsets = np.linspace(offsets[0], offsets[-1], time_steps, dtype='int')
+    for ti in range(len(offsets)):
+        x = []
+        y = []
+        myvar = []
+        distance = []
+        data = read.load(offsets[ti], file=filename, type=file_ext)
+        l = line(data, x_pts, y_pts)
+        l.run()
+        time_array[ti] = data.time
+        linecoords = data.getCenterPoints()[l.icells]
+        for i in range(len(l.icells)):
+            x.append(linecoords[i, 0])
+            y.append(linecoords[i, 1])
+            distance.append(np.sqrt((x[0]-x[i])**2+(y[0]-y[i])**2))
+            exec('myvar.append(data.%s[l.icells[i]])' % var)
+        # This is a bit of a fudge.
+        y[0], y[-1] = y_pts[0], y_pts[-1]
+        x[0], x[-1] = x_pts[0], x_pts[-1]
+#        distance = np.sqrt((x[0]-x[-1])**2+(y[0]-y[-1])**2)
+        distance_i = np.linspace(0, distance[-1],
+                                 interpolations_pts, endpoint=True)
+        interp_func = interp1d(distance, myvar, kind='linear')
+        td_plot_data[:, ti] = interp_func(distance_i)
+    time_mesh, y_mesh = np.meshgrid(time_array, distance_i)
+    plt.figure()
+    plt.pcolor(time_mesh, y_mesh, td_plot_data, cmap=cmap)
+#    plt.pcolor(time_mesh, y_mesh, np.flip(td_plot_data), cmap=cmap)
+    plt.colorbar(orientation=orientation)
+    if min_value and max_value is not None:
+        plt.clim(min_value, max_value)
+
+    plt.show()
+    return td_plot_data
+        
+
+        
+    
 
 #=============================================================================
 def velovect(u1,u2,d,nvect=None,scalevar=None,scale=100,color='k',ax=None,alpha=1.):
