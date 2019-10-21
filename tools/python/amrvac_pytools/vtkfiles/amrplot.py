@@ -495,61 +495,64 @@ class polyanim():
             self.polyplot.save(fo)
             plt.close()
 
-            
+
 class line():
     """returns array of cells on a given line"""
-    
-    def __init__(self,data,x_pts,y_pts):
 
-        self.data=data
-        self.x_pts=np.array(x_pts)
-        self.y_pts=np.array(y_pts)
-        self.icells=[]
-        self.n=np.empty(2)
+    def __init__(self, data, x_pts, y_pts):
+
+        self.data = data
+        self.x_pts = np.array(x_pts)
+        self.y_pts = np.array(y_pts)
+        self.icells = []
+        self.n = np.empty(2)
         self.n[0] = (self.y_pts[0]-self.x_pts[0])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
         self.n[1] = (self.y_pts[1]-self.x_pts[1])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
         self.epsilon = 2.e-1
-        self.stepmax=10000
+        self.stepmax = 10000
 
     def run(self):
 
-        self.x=copy.deepcopy(self.x_pts)
-        i=0
+        self.x = copy.deepcopy(self.x_pts)
+        i = 0
         while (self.n[0]*(self.y_pts[0]-self.x[0])+self.n[1]*(self.y_pts[1]-self.x[1]))>0 and i<self.stepmax:
-            myIcell = self.data.getIcellByPoint(self.x[0],self.x[1])
+            myIcell = self.data.getIcellByPoint(self.x[0], self.x[1])
             self.icells.append(myIcell)
             self.step(myIcell)
-            i=i+1
+            i = i+1
 
-    def step(self,icell):
-        centerpoints=self.data.getCenterPoints()
-        vert=self.data.getVert(icell)
-        delta = np.min([np.abs(vert[0][0]-vert[1][0]),np.abs(vert[0][1]-vert[3][1])])/2.
-        delta = delta * (1.-self.epsilon)
-        myIcell=icell
+    def step(self, icell):
+        centerpoints = self.data.getCenterPoints()
+        vert = self.data.getVert(icell)
+        delta = np.min([np.abs(vert[0][0]-vert[1][0]),
+                        np.abs(vert[0][1]-vert[3][1])])/2.
+        delta = delta*(1.-self.epsilon)
+        myIcell = icell
         while (myIcell == icell and
-               self.n[0]*(self.y_pts[0]-self.x[0])+self.n[1]*(self.y_pts[1]-self.x[1]))>0:
-            myIcell=self.data.getIcellByPoint(self.x[0],self.x[1])
+               self.n[0]*(self.y_pts[0]-self.x[0]) +
+               self.n[1]*(self.y_pts[1]-self.x[1])) > 0:
+            myIcell = self.data.getIcellByPoint(self.x[0], self.x[1])
             self.x[0] = self.x[0] + delta * self.n[0]
             self.x[1] = self.x[1] + delta * self.n[1]
 
-def plotoverline(var,data,x_pts,y_pts):
-    fig=plt.figure()
-    l=line(data,x_pts,y_pts)
+
+def plotoverline(var, data, x_pts, y_pts):
+    fig = plt.figure()
+    l = line(data, x_pts, y_pts)
     l.run()
 
-    x=[]
-    y=[]
-    myvar=[]
-    linecoords=data.getCenterPoints()[l.icells]
+    x = []
+    y = []
+    myvar = []
+    linecoords = data.getCenterPoints()[l.icells]
     for i in range(len(l.icells)):
-        x.append(linecoords[i,0])
-        y.append(linecoords[i,1])
+        x.append(linecoords[i, 0])
+        y.append(linecoords[i, 1])
         exec('myvar.append(data.%s[l.icells[i]])' % var)
     x = np.array(x)
     y = np.array(y)
     s = np.sqrt(x**2+y**2)
-    plt.plot(s,myvar,marker='+', linestyle='-')
+    plt.plot(s, myvar, marker='+', linestyle='-')
 
     return l
 
@@ -573,7 +576,7 @@ def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
         y = []
         myvar = []
         distance = []
-        data = read.load(offsets[ti], file=filename, type=file_ext)
+        data = read.load_vtkfile(offsets[ti], file=filename, type=file_ext)
         l = line(data, x_pts, y_pts)
         l.run()
         time_array[ti] = data.time
