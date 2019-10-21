@@ -506,8 +506,8 @@ class line():
         self.y_pts = np.array(y_pts)
         self.icells = []
         self.n = np.empty(2)
-        self.n[0] = (self.y_pts[0]-self.x_pts[0])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
-        self.n[1] = (self.y_pts[1]-self.x_pts[1])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
+        self.n[0] = (self.y_pts[0]-self.x_pts[0])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2 + (self.y_pts[1]-self.x_pts[1])**2)
+        self.n[1] = (self.y_pts[1]-self.x_pts[1])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2 + (self.y_pts[1]-self.x_pts[1])**2)
         self.epsilon = 2.e-1
         self.stepmax = 10000
 
@@ -515,7 +515,8 @@ class line():
 
         self.x = copy.deepcopy(self.x_pts)
         i = 0
-        while (self.n[0]*(self.y_pts[0]-self.x[0])+self.n[1]*(self.y_pts[1]-self.x[1]))>0 and i<self.stepmax:
+        while (self.n[0]*(self.y_pts[0]-self.x[0]) +
+               self.n[1]*(self.y_pts[1]-self.x[1])) > 0 and i < self.stepmax:
             myIcell = self.data.getIcellByPoint(self.x[0], self.x[1])
             self.icells.append(myIcell)
             self.step(myIcell)
@@ -559,7 +560,8 @@ def plotoverline(var, data, x_pts, y_pts):
 
 def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
            step_size, cmap='binary', orientation='vertical', min_value=None,
-           max_value=None):
+           max_value=None, x_label='time', y_label='distance',
+           fontsize=10, title=None):
     # produces time distance plots.
 
     # This will floor your values. Could leads to errors
@@ -594,8 +596,13 @@ def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
         interp_func = interp1d(distance, myvar, kind='linear')
         td_plot_data[:, ti] = interp_func(distance_i)
     time_mesh, y_mesh = np.meshgrid(time_array, distance_i)
-
+    
     plt.figure()
+
+    plt.xlabel(x_label, fontsize=fontsize)
+    plt.ylabel(y_label, fontsize=fontsize)
+    plt.title(title)
+
     plt.pcolor(time_mesh, y_mesh, td_plot_data, cmap=cmap)
     plt.colorbar(orientation=orientation)
 
