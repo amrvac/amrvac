@@ -20,13 +20,13 @@ fire up `IPython`:
 
 Next, import the reading and plotting classes:
 
-    from amrvac_tools.vtkfiles import read, amrplot
+    from amrvac_pytools.vtkfiles import read, amrplot
 
 ## vtu and pvtu filetypes
 These filetypes use the class `read.load()`, loading the data can be done as follows:
 
     offset=15
-    ds = read.load(offset, file='KH', type='vtu')
+    ds = read.load_vtkfile(offset, file='KH', type='vtu')
 
 which will read the file `KH0015.vtu`. The argument `offset` is zero-padded to four digits
 and is used to specify the file number. The argument `type` is either '`vtu`' (default) or `'pvtu'`,

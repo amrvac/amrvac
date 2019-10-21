@@ -1,6 +1,9 @@
 import numpy as np
 
 class constants():
+    """
+    Contains physical constants, both in SI and cgs units.
+    """
     def __init__(self, cgs):
         if cgs:
             self.R = 83144598.0             # erg / (K mol)
@@ -21,6 +24,10 @@ class constants():
 
 
 class units(constants):
+    """
+    Sets the unit normalisations for a given dataset. Initially at default values when loading in the dataset.
+    Correct physical values can be set by calling set_units.
+    """
     def __init__(self, header):
         self.cgs = header.get("cgs", True)
         self.unit_length = header.get("unit_length", 1.0)

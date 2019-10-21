@@ -10,6 +10,9 @@ contains
     use mod_global_parameters
     character(len=*), intent(in) :: geom !< Name of the coordinate system
 
+    ! Store the geometry name
+    geometry_name = geom
+
     select case (geom)
     case ("Cartesian","Cartesian_1D","Cartesian_2D","Cartesian_3D")
       ndir = ndim

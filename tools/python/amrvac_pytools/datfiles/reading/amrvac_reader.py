@@ -1,22 +1,24 @@
 """
 Main class to load in MPI-AMRVAC native .dat files.
 
-@author: Niels Claes
-         Last edit: 03 October 2019
+@author: Niels Claes    (niels.claes@kuleuven.be)
+@author: Clément Robert (clement.robert@oca.eu)
+
+         Last edit: 13 October 2019
 """
 import sys, os
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
 
-from amrvac_tools.datfiles.reading import datfile_utilities
-from amrvac_tools.datfiles.processing import regridding, process_data
-from amrvac_tools.datfiles.physics import physical_constants
-from amrvac_tools.datfiles.plotting import amrvac_plotter
-from amrvac_tools.datfiles.views import synthetic
+from amrvac_pytools.datfiles.reading import datfile_utilities
+from amrvac_pytools.datfiles.processing import regridding, process_data
+from amrvac_pytools.datfiles.physics import physical_constants
+from amrvac_pytools.datfiles.plotting import amrvac_plotter
+from amrvac_pytools.datfiles.views import synthetic
 
 
-class load_file():
+class load_datfile():
     # Following methods provide easy access to functionalities in other scripts
     def amrplot(self, var, **kwargs):
         return amrvac_plotter.amrplot(self, var, **kwargs)
@@ -33,10 +35,8 @@ class load_file():
     def __init__(self, filename):
         try:
             file = open(filename, "rb")
-        except IOError:
-            print("Unable to open {}".format(filename))
-            print("Is this an MPI-AMRVAC .datfiles file?")
-            sys.exit(1)
+        except:
+            raise FileNotFoundError("Unable to open '{}', is this an MPI-AMRVAC .dat file?".format(filename))
 
         self._filename = filename
         # Trim filename, assumes format .../.../filenameXXXX.datfiles
@@ -256,11 +256,19 @@ class load_file():
             raise FileNotFoundError
 
     def _check_datadict_exists(self):
+        """
+        Checks if the data dictionary is loaded.
+        :raises AttributeError  if self.data_dict is None
+        """
         if self.data_dict is None:
             print("[INFO] Dataset must be loaded to do this, call load_all_data() first.")
             raise AttributeError
 
     def _get_known_fields(self):
+        """
+        Retrieves the known fields for a given dataset.
+        :return: Regular list with the known fields as strings
+        """
         fields = copy.deepcopy(self.header['w_names'])
         if self.header['physics_type'] == 'hd' or self.header['physics_type'] == 'mhd':
             if self.header['ndim'] == 1:

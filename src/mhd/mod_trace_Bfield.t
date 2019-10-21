@@ -26,12 +26,12 @@ module mod_trace_Bfield
 
   contains
 
-  subroutine trace_Bfield(xf,wB,dL,numP,numRT,forward,wRT,interp)
+  subroutine trace_Bfield(xf,wB,dL,numP,numRT,forward,wRT,interp,ix1)
     ! trace a field line
     use mod_usr_methods
     use mod_global_parameters
 
-    integer :: numP,numRT
+    integer :: numP,numRT,ix1
     double precision :: xf(numP,ndim),wB(numP,nw+ndir)
     double precision :: dL
     logical :: forward,interp
@@ -44,7 +44,7 @@ module mod_trace_Bfield
     integer :: status(mpi_status_size)
     double precision :: xp_in(ndim),xp_out(ndim)
     integer :: ipoint_in,ipoint_out
-    double precision :: statusB(3+ndim)
+    double precision :: statusB(4+ndim)
     integer :: pe_record(numP),pe_grid(2)
     logical :: stopB
     double precision :: xf_send(numP,ndim),wB_send(numP,nw+ndir)
@@ -100,23 +100,27 @@ module mod_trace_Bfield
         igrid=igrid_now
 
         ! looking for points in one pe
-        call find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp)
+        call find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp,ix1)
         
-        call MPI_SEND(statusB,3+ndim,MPI_DOUBLE_PRECISION,mainpe,0,icomm,ierrmpi)
+        call MPI_SEND(statusB,4+ndim,MPI_DOUBLE_PRECISION,mainpe,0,icomm,ierrmpi)
       endif
 
       ! comunication
       if (mype==mainpe) then
-        call MPI_RECV(statusB,3+ndim,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,0,icomm,status,ierrmpi)
+        call MPI_RECV(statusB,4+ndim,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,0,icomm,status,ierrmpi)
       endif
-      call MPI_BCAST(statusB,3+ndim,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
+      call MPI_BCAST(statusB,4+ndim,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
 
       ! preparing for next step
       ipe_now=int(statusB(1))
       ipoint_out=int(statusB(2))
       igrid_now=int(statusB(3))
+      if (int(statusB(4))==1) then
+        stopB=.TRUE.
+        numRT=ipoint_out-1
+      endif
       do j=1,ndim
-        xf(ipoint_out,j)=statusB(3+j)
+        xf(ipoint_out,j)=statusB(4+j)
       enddo
 
       ! check whether or next point is inside simulation box.
@@ -125,7 +129,6 @@ module mod_trace_Bfield
       if (indomain/=ndim) then
         numRT=ipoint_out-1
         stopB=.TRUE.
-        !print *, xf(ipoint_out,:)
       endif
 
 
@@ -195,14 +198,14 @@ module mod_trace_Bfield
 
   end subroutine trace_Bfield
 
-  subroutine find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp)
+  subroutine find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp,ix1)
  
-    integer :: igrid,ipoint_in,numP
+    integer :: igrid,ipoint_in,numP,ix1
     double precision :: xf(numP,ndim),wB(numP,nw+ndir)
     double precision :: dL
     logical :: forward,interp
     logical :: wRT(nw+ndir)
-    double precision :: statusB(3+ndim)    
+    double precision :: statusB(4+ndim)    
 
     integer :: ipe_next,igrid_next,stopB,ip_in,ip_out
     logical :: newpe
@@ -215,22 +218,28 @@ module mod_trace_Bfield
 
       ! looking for points in given grid    
       if (interp) then
-        call find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT)
+        call find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT,ix1)
       else
         call find_points_nointerp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT)
       endif
 
       ip_in=ip_out
 
+      !if (ix1==519) print *, ip_out,numP
+
       ! when next point is out of given grid, find next grid  
       call find_next_grid(igrid,igrid_next,ipe_next,xf(ip_out,:),newpe)
+
+      if (ip_out>=numP) newpe=.TRUE.
 
       if (newpe) then
         statusB(1)=mype
         statusB(2)=ip_out
         statusB(3)=igrid
+        statusB(4)=0
+        if (ip_out>=numP) statusB(4)=1
         do j=1,ndim
-          statusB(3+j)=xf(ip_out,j)
+          statusB(4+j)=xf(ip_out,j)
         enddo
       endif
   
@@ -239,9 +248,9 @@ module mod_trace_Bfield
 
   end subroutine find_points_in_pe
 
-  subroutine find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT)
+  subroutine find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT,iFL)
 
-    integer :: igrid,ip_in,ip_out,numP
+    integer :: igrid,ip_in,ip_out,numP,iFL
     double precision :: xf(numP,ndim),wB(numP,nw+ndir)
     double precision :: dL
     logical :: forward
@@ -409,21 +418,19 @@ module mod_trace_Bfield
       do j=1,ndim
         xf(ip+1,j)=xf(ip,j)+dxf(j)
       enddo
+      ip_out=ip+1
 
-      !print *, ip,xf(ip,:)
 
       ! whether or not next point is in this block/grid
       inblock=0
       {if (xf(ip+1,^DB)>=xbmin^DB .and. xf(ip+1,^DB)<xbmax^DB) inblock=inblock+1\}
       if (inblock/=ndim) then
         ! exit loop if next point is not in this block
-        ip_out=ip+1
         exit MAINLOOP
       endif
 
     enddo MAINLOOP
 
-  
   end subroutine find_points_interp
 
   subroutine find_points_nointerp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT)
@@ -553,6 +560,7 @@ module mod_trace_Bfield
       do j=1,ndim
         xf(ip+1,j)=xf(ip,j)+dxf(j)
       enddo
+      ip_out=ip+1
 
 
       ! whether or not next point is in this block/grid
@@ -560,7 +568,6 @@ module mod_trace_Bfield
       {if (xf(ip+1,^DB)>=xbmin^DB .and. xf(ip+1,^DB)<xbmax^DB) inblock=inblock+1\}
       if (inblock/=ndim) then
         ! exit loop if next point is not in this block
-        ip_out=ip+1
         exit MAINLOOP
       endif
 
