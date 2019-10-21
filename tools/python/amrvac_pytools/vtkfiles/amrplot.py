@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from scipy.interpolate import griddata
-from scipy.interpolate import interp1d
 import sys, time
 from matplotlib.ticker import MaxNLocator
 from scipy import ndimage
@@ -13,7 +12,7 @@ from scipy import interpolate
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from copy import deepcopy
 
-from amrvac_pytools.vtkfiles import streamplot, read
+from amrvac_tools.vtkfiles import streamplot, read
 
 if sys.platform == "win32":
 # On Windows, the best timer is time.clock()
@@ -499,23 +498,23 @@ class polyanim():
 class line():
     """returns array of cells on a given line"""
     
-    def __init__(self,data,alice,bob):
+    def __init__(self,data,x_pts,y_pts):
 
         self.data=data
-        self.alice=np.array(alice)
-        self.bob=np.array(bob)
+        self.x_pts=np.array(x_pts)
+        self.y_pts=np.array(y_pts)
         self.icells=[]
         self.n=np.empty(2)
-        self.n[0] = (self.bob[0]-self.alice[0])/np.sqrt((self.bob[0]-self.alice[0])**2+(self.bob[1]-self.alice[1])**2)
-        self.n[1] = (self.bob[1]-self.alice[1])/np.sqrt((self.bob[0]-self.alice[0])**2+(self.bob[1]-self.alice[1])**2)
+        self.n[0] = (self.y_pts[0]-self.x_pts[0])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
+        self.n[1] = (self.y_pts[1]-self.x_pts[1])/np.sqrt((self.y_pts[0]-self.x_pts[0])**2+(self.y_pts[1]-self.x_pts[1])**2)
         self.epsilon = 2.e-1
         self.stepmax=10000
 
     def run(self):
 
-        self.x=copy.deepcopy(self.alice)
+        self.x=copy.deepcopy(self.x_pts)
         i=0
-        while (self.n[0]*(self.bob[0]-self.x[0])+self.n[1]*(self.bob[1]-self.x[1]))>0 and i<self.stepmax:
+        while (self.n[0]*(self.y_pts[0]-self.x[0])+self.n[1]*(self.y_pts[1]-self.x[1]))>0 and i<self.stepmax:
             myIcell = self.data.getIcellByPoint(self.x[0],self.x[1])
             self.icells.append(myIcell)
             self.step(myIcell)
@@ -528,14 +527,14 @@ class line():
         delta = delta * (1.-self.epsilon)
         myIcell=icell
         while (myIcell == icell and
-               self.n[0]*(self.bob[0]-self.x[0])+self.n[1]*(self.bob[1]-self.x[1]))>0:
+               self.n[0]*(self.y_pts[0]-self.x[0])+self.n[1]*(self.y_pts[1]-self.x[1]))>0:
             myIcell=self.data.getIcellByPoint(self.x[0],self.x[1])
             self.x[0] = self.x[0] + delta * self.n[0]
             self.x[1] = self.x[1] + delta * self.n[1]
 
-def plotoverline(var,data,alice,bob):
+def plotoverline(var,data,x_pts,y_pts):
     fig=plt.figure()
-    l=line(data,alice,bob)
+    l=line(data,x_pts,y_pts)
     l.run()
 
     x=[]
@@ -545,7 +544,7 @@ def plotoverline(var,data,alice,bob):
     for i in range(len(l.icells)):
         x.append(linecoords[i,0])
         y.append(linecoords[i,1])
-    exec('myvar=%s[l.icells]' % var)
+        exec('myvar.append(data.%s[l.icells[i]])' % var)
     x = np.array(x)
     y = np.array(y)
     s = np.sqrt(x**2+y**2)
@@ -553,57 +552,6 @@ def plotoverline(var,data,alice,bob):
 
     return l
 
-
-def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
-           step_size, cmap = 'binary', orientation='vertical', min_value=None,
-           max_value = None):
-    # produces time distance plots.
-#    yi = np.linspace(y_pts[0], y_pts[-1], interpolations_pts, endpoint=True)
-
-    # This will floor your values. Could leads to errors
-    time_steps = (offsets[-1]-offsets[0])//step_size
-    if not isinstance(time_steps, int):
-        raise TypeError("'td_plot': time_steps needs to be an int")
-    td_plot_data = np.zeros((interpolations_pts, time_steps))
-    time_array = np.zeros(time_steps)
-    offsets = np.linspace(offsets[0], offsets[-1], time_steps, dtype='int')
-    for ti in range(len(offsets)):
-        x = []
-        y = []
-        myvar = []
-        distance = []
-        data = read.load(offsets[ti], file=filename, type=file_ext)
-        l = line(data, x_pts, y_pts)
-        l.run()
-        time_array[ti] = data.time
-        linecoords = data.getCenterPoints()[l.icells]
-        for i in range(len(l.icells)):
-            x.append(linecoords[i, 0])
-            y.append(linecoords[i, 1])
-            distance.append(np.sqrt((x[0]-x[i])**2+(y[0]-y[i])**2))
-            exec('myvar.append(data.%s[l.icells[i]])' % var)
-        # This is a bit of a fudge.
-        y[0], y[-1] = y_pts[0], y_pts[-1]
-        x[0], x[-1] = x_pts[0], x_pts[-1]
-#        distance = np.sqrt((x[0]-x[-1])**2+(y[0]-y[-1])**2)
-        distance_i = np.linspace(0, distance[-1],
-                                 interpolations_pts, endpoint=True)
-        interp_func = interp1d(distance, myvar, kind='linear')
-        td_plot_data[:, ti] = interp_func(distance_i)
-    time_mesh, y_mesh = np.meshgrid(time_array, distance_i)
-    plt.figure()
-    plt.pcolor(time_mesh, y_mesh, td_plot_data, cmap=cmap)
-#    plt.pcolor(time_mesh, y_mesh, np.flip(td_plot_data), cmap=cmap)
-    plt.colorbar(orientation=orientation)
-    if min_value and max_value is not None:
-        plt.clim(min_value, max_value)
-
-    plt.show()
-    return td_plot_data
-        
-
-        
-    
 
 #=============================================================================
 def velovect(u1,u2,d,nvect=None,scalevar=None,scale=100,color='k',ax=None,alpha=1.):
