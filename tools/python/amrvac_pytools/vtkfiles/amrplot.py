@@ -12,7 +12,7 @@ from scipy import interpolate
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from copy import deepcopy
 
-from amrvac_tools.vtkfiles import streamplot, read
+from amrvac_pytools.vtkfiles import streamplot, read
 
 if sys.platform == "win32":
 # On Windows, the best timer is time.clock()
@@ -551,7 +551,6 @@ def plotoverline(var,data,x_pts,y_pts):
     plt.plot(s,myvar,marker='+',linestyle='-')
 
     return l
-
 
 #=============================================================================
 def velovect(u1,u2,d,nvect=None,scalevar=None,scale=100,color='k',ax=None,alpha=1.):
