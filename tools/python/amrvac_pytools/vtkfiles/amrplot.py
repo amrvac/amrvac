@@ -34,7 +34,8 @@ class polyplot():
                  orientation='vertical', right=True, fixzoom=None,
                  fixrange=None, fig=None, axis=None, title=None,
                  filenameout=None, clear=True, edgecolor='k',
-                 nancolor='magenta', smooth=0, swap=0, **kwargs):
+                 nancolor='magenta', smooth=0, swap=0, log_info=True,
+                 **kwargs):
 
         self.swap = swap
         self.nlevels = nlevels
@@ -69,6 +70,7 @@ class polyplot():
 
         self.xrange = xrange
         self.yrange = yrange
+        self.log_info = log_info
         if xrange is None:
             self.xrange = [data.getBounds()[0], data.getBounds()[1]]
         if yrange is None:
@@ -140,25 +142,26 @@ class polyplot():
 
     def info(self):
         """Print info to the console"""
-        print('=======================================================')
-        print('plotting range between %e and %e' % (self.min, self.max))
-        if self.fixzoom is None:
-            print('xrange = [%e,%e]     yrange = [%e,%e]' % (self.xrange[0],
-                  self.xrange[1], self.yrange[0], self.yrange[1]))
-        else:
-            print("""Fixing zoomlevel to \n xrange = [%e,%e]     yrange = [%e,%e]"""
-                  % (self.viewXrange[0], self.viewXrange[1],
-                     self.viewYrange[0], self.viewYrange[1]))
-        if self.nlevels <= 1:
-            print('Need more than one color-level, resetting nlevels')
-            self.nlevels = 256
-        print('colormap = %s; nlevels=%d; orientation=%s'
-              % (self.cmap, self.nlevels, self.orientation))
-        if self.grid is not None:
-            print('Also showing gridlines')
-        if self.blocks is not None:
-            print('Also showing blocks')
-        print('=======================================================')
+        if self.log_info is True:
+            print('=======================================================')
+            print('plotting range between %e and %e' % (self.min, self.max))
+            if self.fixzoom is None:
+                print('xrange = [%e,%e]    yrange = [%e,%e]' % (self.xrange[0],
+                      self.xrange[1], self.yrange[0], self.yrange[1]))
+            else:
+                print("""Fixing zoomlevel to \n xrange = [%e,%e]     yrange = [%e,%e]"""
+                      % (self.viewXrange[0], self.viewXrange[1],
+                         self.viewYrange[0], self.viewYrange[1]))
+            if self.nlevels <= 1:
+                print('Need more than one color-level, resetting nlevels')
+                self.nlevels = 256
+            print('colormap = %s; nlevels=%d; orientation=%s'
+                  % (self.cmap, self.nlevels, self.orientation))
+            if self.grid is not None:
+                print('Also showing gridlines')
+            if self.blocks is not None:
+                print('Also showing blocks')
+            print('=======================================================')
 
     def show(self, var=None, data=None, min=None, max=None, reset=None,
              fixrange=None, filenameout=None):
@@ -211,8 +214,9 @@ class polyplot():
 
         # Fill cells with special values
         if self.xlistspecial:  # If the list of special cells is not empty
-            print('WARNING: There are NaNs or Inftys, NaN color:',
-                  self.nancolor)
+            if self.log_info is True:
+                print('WARNING: There are NaNs or Inftys, NaN color:',
+                      self.nancolor)
             self.ax.fill(self.xlistspecial, self.ylistspecial,
                          facecolor=self.nancolor, closed=False,
                          edgecolor='none', antialiased=False, zorder=-10)
@@ -254,9 +258,10 @@ class polyplot():
         self.ax.yaxis.get_offset_text().set_fontsize(self.fontsize-2)
 
         tend = default_timer()
-        print('time for arranging the data= %f sec' % (tdata1-tdata0))
-        print('Execution time = %f sec' % (tend-t0))
-        print('=======================================================')
+        if self.log_info is True:
+            print('time for arranging the data= %f sec' % (tdata1-tdata0))
+            print('Execution time = %f sec' % (tend-t0))
+            print('=======================================================')
         if self.filenameout is None:
             plt.draw()
 
@@ -308,7 +313,8 @@ class polyplot():
         """Save the figure"""
         if filenameout is not None:
             self.filenameout = filenameout
-        print('saving plot to file %s' % (self.filenameout))
+        if self.log_info is True:
+            print('saving plot to file %s' % (self.filenameout))
         self.figure.set_size_inches((self.fig_w, self.fig_h))
         self.figure.savefig(self.filenameout, transparent=False, aa=True,
                             dpi=self.dpi, interpolation='bicubic',
