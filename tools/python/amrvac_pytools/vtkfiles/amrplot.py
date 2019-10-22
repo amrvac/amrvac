@@ -138,51 +138,54 @@ class polyplot():
         self.viewXrange = deepcopy(self.ax.xaxis.get_view_interval())
         self.viewYrange = deepcopy(self.ax.yaxis.get_view_interval())
 
-
     def info(self):
         """Print info to the console"""
         print('=======================================================')
-        print('plotting range between %e and %e' % (self.min,self.max))
+        print('plotting range between %e and %e' % (self.min, self.max))
         if self.fixzoom is None:
-            print('xrange = [%e,%e]     yrange = [%e,%e]' % (self.xrange[0],self.xrange[1],self.yrange[0],self.yrange[1]))
+            print('xrange = [%e,%e]     yrange = [%e,%e]' % (self.xrange[0],
+                  self.xrange[1], self.yrange[0], self.yrange[1]))
         else:
-            print("""Fixing zoomlevel to
-xrange = [%e,%e]     yrange = [%e,%e]""" % (
-                self.viewXrange[0],self.viewXrange[1],self.viewYrange[0],self.viewYrange[1]))
-        if self.nlevels<=1:
+            print("""Fixing zoomlevel to \n xrange = [%e,%e]     yrange = [%e,%e]"""
+                  % (self.viewXrange[0], self.viewXrange[1],
+                     self.viewYrange[0], self.viewYrange[1]))
+        if self.nlevels <= 1:
             print('Need more than one color-level, resetting nlevels')
-            self.nlevels=256
-        print('colormap = %s; nlevels=%d; orientation=%s' % (self.cmap,self.nlevels,self.orientation))
+            self.nlevels = 256
+        print('colormap = %s; nlevels=%d; orientation=%s'
+              % (self.cmap, self.nlevels, self.orientation))
         if self.grid is not None:
             print('Also showing gridlines')
         if self.blocks is not None:
             print('Also showing blocks')
         print('=======================================================')
-            
-    def show(self,var=None,data=None,min=None,max=None,reset=None,fixrange=None,filenameout=None):
+
+    def show(self, var=None, data=None, min=None, max=None, reset=None,
+             fixrange=None, filenameout=None):
         """Draw the plotting-window"""
         t0 = default_timer()
 
-        self.update(var=var,data=data,min=min,max=max,reset=reset,fixrange=fixrange,filenameout=filenameout)
+        self.update(var=var, data=data, min=min, max=max, reset=reset,
+                    fixrange=fixrange, filenameout=filenameout)
 
         if self.clear:
             self.figure.clf()
-            self.ax = self.figure.gca()     
+            self.ax = self.figure.gca()
         self.info()
-     
+
         colormap = plt.cm.get_cmap(self.cmap, self.nlevels)
 
-        valueRange=self.max-self.min
+        valueRange = self.max-self.min
         if valueRange == 0.:
             valueRange = 1
 
-        self.valueClip = np.clip(self.value,self.min,self.max)
+        self.valueClip = np.clip(self.value, self.min, self.max)
 
-        tdata0= default_timer()
+        tdata0 = default_timer()
         if (self.swap == 0):
-            [myxlist,myylist]=self.data.getPointList()
+            [myxlist, myylist] = self.data.getPointList()
         else:
-            [myylist,myxlist]=self.data.getPointList()
+            [myylist, myxlist] = self.data.getPointList()
         # List for regular cells with finite values (no infinitys or NaNs)
         self.xlist = [[] for i in range(self.nlevels)]
         self.ylist = [[] for i in range(self.nlevels)]
@@ -191,45 +194,53 @@ xrange = [%e,%e]     yrange = [%e,%e]""" % (
         self.xlistspecial = []
         self.ylistspecial = []
         for icell in range(self.data.ncells):
-             if ilevel[icell] > -1 and ilevel[icell]<self.nlevels:
-                  self.xlist[ilevel[icell]].extend(myxlist[5*icell:5*(icell+1)])
-                  self.ylist[ilevel[icell]].extend(myylist[5*icell:5*(icell+1)])
-             else:
-                  self.xlistspecial.extend(myxlist[5*icell:5*(icell+1)])
-                  self.ylistspecial.extend(myylist[5*icell:5*(icell+1)])
-        tdata1=default_timer()
+            if ilevel[icell] > -1 and ilevel[icell] < self.nlevels:
+                self.xlist[ilevel[icell]].extend(myxlist[5*icell:5*(icell+1)])
+                self.ylist[ilevel[icell]].extend(myylist[5*icell:5*(icell+1)])
+            else:
+                self.xlistspecial.extend(myxlist[5*icell:5*(icell+1)])
+                self.ylistspecial.extend(myylist[5*icell:5*(icell+1)])
+        tdata1 = default_timer()
 
         # Fill cells with finite values
         for ilevel in range(self.nlevels):
-            self.ax.fill(self.xlist[ilevel],self.ylist[ilevel],
-                     facecolor=colormap(ilevel/(self.nlevels-1.)), closed=False, edgecolor='none',antialiased=False,zorder=-10)
+            self.ax.fill(self.xlist[ilevel], self.ylist[ilevel],
+                         facecolor=colormap(ilevel/(self.nlevels-1.)),
+                         closed=False, edgecolor='none', antialiased=False,
+                         zorder=-10)
 
         # Fill cells with special values
-        if self.xlistspecial: # If the list of special cells is not empty
-            print('WARNING: There are NaNs or Inftys, NaN color:',self.nancolor)
-            self.ax.fill(self.xlistspecial,self.ylistspecial,
-                     facecolor=self.nancolor, closed=False, edgecolor='none',antialiased=False,zorder=-10)
+        if self.xlistspecial:  # If the list of special cells is not empty
+            print('WARNING: There are NaNs or Inftys, NaN color:',
+                  self.nancolor)
+            self.ax.fill(self.xlistspecial, self.ylistspecial,
+                         facecolor=self.nancolor, closed=False,
+                         edgecolor='none', antialiased=False, zorder=-10)
 
         if self.grid is not None:
-            self.ax.fill(myxlist,myylist, 
-                     facecolor='none', edgecolor=self.edgecolor,aa=True,linewidth=0.2,alpha=0.8)
+            self.ax.fill(myxlist, myylist, facecolor='none',
+                         edgecolor=self.edgecolor, aa=True, linewidth=0.2,
+                         alpha=0.8)
 
         if self.blocks is not None:
-            [myxBlockList,myyBlockList] = self.data.getPieces(self.blockWidth,self.blockHeight,self.nlevel1)
-            self.ax.fill(myxBlockList,myyBlockList, 
-                    facecolor='none', edgecolor=self.edgecolor,aa=True,linewidth=0.2,alpha=0.8)
+            [myxBlockList, myyBlockList] = self.data.getPieces(self.blockWidth,
+                                                               self.blockHeight,
+                                                               self.nlevel1)
+            self.ax.fill(myxBlockList, myyBlockList, facecolor='none',
+                         edgecolor=self.edgecolor, aa=True, linewidth=0.2,
+                         alpha=0.8)
 
         if self.orientation is not None:
             self.colorbar()
-        
+
         if self.fixzoom is None:
-            self.ax.set_xlim(self.xrange[0],self.xrange[1])
-            self.ax.set_ylim(self.yrange[0],self.yrange[1])
+            self.ax.set_xlim(self.xrange[0], self.xrange[1])
+            self.ax.set_ylim(self.yrange[0], self.yrange[1])
         else:
             self.ax.set_xlim(self.viewXrange)
             self.ax.set_ylim(self.viewYrange)
         self.ax.set_aspect('equal')
-# ticks:
+        # ticks:
         if self.maxXticks is not None:
             self.ax.xaxis.set_major_locator(MaxNLocator(self.maxXticks-1))
         if self.maxYticks is not None:
@@ -256,35 +267,35 @@ xrange = [%e,%e]     yrange = [%e,%e]""" % (
             self.ax.set_title(self.title, fontsize=8)
         plt.sca(self.ax)
 
-
-    def colorbar(self,cax=None):
+    def colorbar(self, cax=None):
         """Draw the colorbar.
         """
         colormap = plt.cm.get_cmap(self.cmap, self.nlevels)
         m = plt.cm.ScalarMappable(cmap=colormap)
         m.set_array(self.valueClip)
-        m.set_clim(vmin=self.min,vmax=self.max)
-        
+        m.set_clim(vmin=self.min, vmax=self.max)
+
         if cax is None:
             divider = make_axes_locatable(self.ax)
             if self.orientation == 'horizontal':
-                self.cax = divider.append_axes("bottom", self.cbarwidth, pad=self.cbarpad)
+                self.cax = divider.append_axes("bottom", self.cbarwidth,
+                                               pad=self.cbarpad)
             else:
                 if self.right:
                     self.cax = divider.append_axes("right", "4%", pad="6%")
                 else:
                     self.cax = divider.append_axes("left", "4%", pad="6%")
         else:
-            self.cax=cax
+            self.cax = cax
                     
-        self.cbar=self.figure.colorbar(m, orientation=self.orientation,cax=self.cax)
-                    
+        self.cbar = self.figure.colorbar(m, orientation=self.orientation,
+                                         cax=self.cax)
+
         self.cbar.solids.set_rasterized(True)
 
         if self.cbarticks is not None:
-            self.cbar.locator=MaxNLocator(nbins=self.cbarticks-1)
+            self.cbar.locator = MaxNLocator(nbins=self.cbarticks-1)
             self.cbar.update_ticks()
-
 
         for tick in self.cbar.ax.get_xticklabels():
             tick.set_fontsize(self.fontsize)
@@ -293,23 +304,24 @@ xrange = [%e,%e]     yrange = [%e,%e]""" % (
         self.cbar.ax.xaxis.get_offset_text().set_fontsize(self.fontsize-2)
         self.cbar.ax.yaxis.get_offset_text().set_fontsize(self.fontsize-2)
 
-    def save(self,filenameout=None):
+    def save(self, filenameout=None):
         """Save the figure"""
         if filenameout is not None:
-            self.filenameout=filenameout
+            self.filenameout = filenameout
         print('saving plot to file %s' % (self.filenameout))
-        self.figure.set_size_inches( (self.fig_w,self.fig_h) )
-        self.figure.savefig(self.filenameout, transparent=False,aa=True,dpi=self.dpi,interpolation='bicubic',bbox_inches='tight')
-        self.filenameout=None
+        self.figure.set_size_inches((self.fig_w, self.fig_h))
+        self.figure.savefig(self.filenameout, transparent=False, aa=True,
+                            dpi=self.dpi, interpolation='bicubic',
+                            bbox_inches='tight')
+        self.filenameout = None
 
-        
-    def onkey(self,event):
+    def onkey(self, event):
         """
-        Get data at mousepoint-location.  Press middle button at location to activate,
-        press outside of plotting range to remove cross-hair.
+        Get data at mousepoint-location.  Press middle button at location to
+        activate, press outside of plotting range to remove cross-hair.
         """
         try:
-            if event.button !=2:
+            if event.button != 2:
                 return True
         except AttributeError:
                 return True
@@ -320,8 +332,8 @@ xrange = [%e,%e]     yrange = [%e,%e]""" % (
             except:
                 return True
             return True
-       
-        icell=self.data.getIcellByPoint(event.xdata,event.ydata)
+
+        icell = self.data.getIcellByPoint(event.xdata, event.ydata)
         try:
             self.selection.pop(0).remove()
         except AttributeError:
@@ -330,16 +342,18 @@ xrange = [%e,%e]     yrange = [%e,%e]""" % (
             pass
         except IndexError:
             pass
-        self.selection=self.ax.plot(self.data.getCenterPoints()[icell,0],self.data.getCenterPoints()[icell,1],'m+', markersize=20,markeredgewidth=3)
+        self.selection = self.ax.plot(self.data.getCenterPoints()[icell, 0],
+                                      self.data.getCenterPoints()[icell, 1],
+                                      'm+', markersize=20, markeredgewidth=3)
         plt.show()
         self.data.showValues(icell)
-        print('value=%e' %(self.value[icell]))
+        print('value=%e' % (self.value[icell]))
         if self.value[icell] != self.valueClip[icell]:
             print('exceeding plot range')
         print('=======================================================')
 
 
-#=============================================================================
+# =============================================================================
 class rgplot(polyplot):
     """
     As polyplot, but use regridded data to display
