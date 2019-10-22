@@ -287,7 +287,7 @@ class polyplot():
                     self.cax = divider.append_axes("left", "4%", pad="6%")
         else:
             self.cax = cax
-                    
+
         self.cbar = self.figure.colorbar(m, orientation=self.orientation,
                                          cax=self.cax)
 
