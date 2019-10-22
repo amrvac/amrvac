@@ -16,123 +16,129 @@ from copy import deepcopy
 from amrvac_pytools.vtkfiles import streamplot, read
 
 if sys.platform == "win32":
-# On Windows, the best timer is time.clock()
+    # On Windows, the best timer is time.clock()
     default_timer = time.clock
 else:
-# On most other platforms the best timer is time.time()
-    default_timer = time.time     
+    # On most other platforms the best timer is time.time()
+    default_timer = time.time
 
-#=============================================================================
+
+# =============================================================================
 class polyplot():
 
     """Simple 2D plotter class using matplotlib, plots every cell in one patch"""
-    
-    def __init__(self,value,data,nlevels=256, grid=None, blocks=None, blockWidth = 8, blockHeight = 8, nlevel1=0,cmap='jet', min=None, max=None,
-                 xrange=None, yrange=None, orientation='vertical', right=True, fixzoom=None, fixrange=None, fig=None, axis=None,
-                 filenameout=None, clear=True,
-                 edgecolor='k',nancolor='magenta',smooth=0,
-                 swap=0,**kwargs):
 
-        self.swap=swap
-        self.nlevels=nlevels
+    def __init__(self, value, data, nlevels=256, grid=None, blocks=None,
+                 blockWidth=8, blockHeight=8, nlevel1=0, cmap='binary',
+                 min=None, max=None, xrange=None, yrange=None,
+                 orientation='vertical', right=True, fixzoom=None,
+                 fixrange=None, fig=None, axis=None, title=None,
+                 filenameout=None, clear=True, edgecolor='k',
+                 nancolor='magenta', smooth=0, swap=0, **kwargs):
+
+        self.swap = swap
+        self.nlevels = nlevels
         self.grid = grid
         self.blocks = blocks
         self.blockWidth = blockWidth
         self.blockHeight = blockHeight
         self.nlevel1 = nlevel1
-        self.cmap=cmap
-        self.orientation=orientation
-        self.right=right # If True, colorbar is at the right, if False it is at the left
-        self.cbarwidth=0.15
-        self.cbarpad=0.70
-        self.fixzoom=fixzoom
-        self.fixrange=fixrange
-        self.filenameout=filenameout
-        self.clear=clear # If True, the figure is cleared when initializing amrplot, preventing us e.g. for drawing on a different subplot.
+        self.cmap = cmap
+        self.orientation = orientation
+        self.right = right  # If True (False), colorbar is at the right (left).
+        self.cbarwidth = 0.15
+        self.cbarpad = 0.70
+        self.fixzoom = fixzoom
+        self.fixrange = fixrange
+        self.filenameout = filenameout
+        self.clear = clear
+        # If clear is True, the figure is cleared when initializing amrplot,
+        # preventing us e.g. for drawing on a different subplot.
 
-        self.fontsize=10
-        self.fig_w=2.5
-        self.fig_h=4
-        self.dpi=300
-        self.maxXticks=None
-        self.maxYticks=None
-        self.cbarticks=None
-        self.edgecolor=edgecolor
-        self.nancolor=nancolor
-        self.smooth=smooth
-            
-        self.xrange=xrange
-        self.yrange=yrange
+        self.title = title
+        self.fontsize = 10
+        self.fig_w = 2.5
+        self.fig_h = 4
+        self.dpi = 300
+        self.maxXticks = None
+        self.maxYticks = None
+        self.cbarticks = None
+        self.edgecolor = edgecolor
+        self.nancolor = nancolor
+        self.smooth = smooth
+
+        self.xrange = xrange
+        self.yrange = yrange
         if xrange is None:
-            self.xrange=[data.getBounds()[0],data.getBounds()[1]]
+            self.xrange = [data.getBounds()[0], data.getBounds()[1]]
         if yrange is None:
-            self.yrange=[data.getBounds()[2],data.getBounds()[3]]
+            self.yrange = [data.getBounds()[2], data.getBounds()[3]]
 
-        self.setValue(value,min=min,max=max)
+        self.setValue(value, min=min, max=max)
 
         # If a figure and axis were not given, create new ones
         if fig is None:
-            self.figure=plt.figure(figsize=(self.fig_w,self.fig_h),dpi=100)
+            self.figure = plt.figure(figsize=(self.fig_w, self.fig_h), dpi=100)
         else:
-            self.figure=fig
+            self.figure = fig
 
         if axis is None:
             self.ax = self.figure.gca()
         else:
             self.ax = axis
 
-        self.show(var=value,data=data,min=min,max=max)
+        self.show(var=value, data=data, min=min, max=max)
         if self.filenameout is None:
             self.figure.canvas.mpl_connect('button_press_event', self.onkey)
         else:
             self.save(filenameout)
 
-
-    def setValue(self,value,min=None,max=None):
+    def setValue(self, value, min=None, max=None):
         """Sets the min and max values of the data to saturate the display"""
-        self.value=value
-        self.min=min
-        self.max=max
-        if self.min==None:
-            self.min=value.min()
-        if self.max==None:
-            self.max=value.max()
+        self.value = value
+        self.min = min
+        self.max = max
+        if self.min is None:
+            self.min = value.min()
+        if self.max is None:
+            self.max = value.max()
 
-    def update(self,var=None,data=None,min=None,max=None,reset=None,fixrange=None,filenameout=None):
+    def update(self, var=None, data=None, min=None, max=None,
+               reset=None, fixrange=None, filenameout=None):
         """Prepare to re-draw the window, check if data was updated"""
         if var is not None:
-            newdata = np.any(var!=self.value)
+            newdata = np.any(var != self.value)
         else:
             newdata = False
 
         if newdata:
-            self.value=var
+            self.value = var
             if fixrange is None:
                 if min is None:
-                    self.min=self.value.min()
+                    self.min = self.value.min()
                 if max is None:
-                    self.max=self.value.max()
+                    self.max = self.value.max()
         if data is not None:
-            self.data=data
+            self.data = data
         if reset is not None:
-            self.min=self.value.min()
-            self.max=self.value.max()
+            self.min = self.value.min()
+            self.max = self.value.max()
         if min is not None:
             self.min = min
         if max is not None:
             self.max = max
-        
+
         if filenameout is not None:
-            self.filenameout=filenameout
-            self.figure.set_size_inches( (self.fig_w,self.fig_h) )
+            self.filenameout = filenameout
+            self.figure.set_size_inches((self.fig_w, self.fig_h))
 
         self.ax.set_rasterization_zorder(-9)
 
         # save the view for later:
-        self.viewXrange=deepcopy( self.ax.xaxis.get_view_interval() )
-        self.viewYrange=deepcopy( self.ax.yaxis.get_view_interval() )
+        self.viewXrange = deepcopy(self.ax.xaxis.get_view_interval())
+        self.viewYrange = deepcopy(self.ax.yaxis.get_view_interval())
 
-        
+
     def info(self):
         """Print info to the console"""
         print('=======================================================')
@@ -245,7 +251,10 @@ xrange = [%e,%e]     yrange = [%e,%e]""" % (
 
 # Make the main axis active:
         plt.sca(self.ax)
-
+        # plots title
+        if self.title is not None:
+            self.ax.set_title(self.title, fontsize=8)
+        plt.sca(self.ax)
 
 
     def colorbar(self,cax=None):
@@ -435,11 +444,10 @@ class rgplot(polyplot):
         if self.filenameout is None:
             plt.draw()
 
-# Make the main axis active:
+        # Make the main axis active:
         plt.sca(self.ax)
 
-
-#=============================================================================
+# =============================================================================
 class polyanim():
     """Animator class with polyplot"""
     
@@ -596,7 +604,7 @@ def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
         interp_func = interp1d(distance, myvar, kind='linear')
         td_plot_data[:, ti] = interp_func(distance_i)
     time_mesh, y_mesh = np.meshgrid(time_array, distance_i)
-    
+
     plt.figure()
 
     plt.xlabel(x_label, fontsize=fontsize)
