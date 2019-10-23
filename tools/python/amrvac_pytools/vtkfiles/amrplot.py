@@ -26,7 +26,9 @@ else:
 # =============================================================================
 class polyplot():
 
-    """Simple 2D plotter class using matplotlib, plots every cell in one patch"""
+    """
+    Simple 2D plotter class using matplotlib, plots every cell in one patch
+    """
 
     def __init__(self, value, data, nlevels=256, grid=None, blocks=None,
                  blockWidth=8, blockHeight=8, nlevel1=0, cmap='binary',
@@ -265,7 +267,7 @@ class polyplot():
         if self.filenameout is None:
             plt.draw()
 
-# Make the main axis active:
+        # Make the main axis active:
         plt.sca(self.ax)
         # plots title
         if self.title is not None:
@@ -364,85 +366,97 @@ class rgplot(polyplot):
     """
     As polyplot, but use regridded data to display
     """
-    
-    def show(self,var=None,data=None,min=None,max=None,reset=None,fixrange=None,filenameout=None):
+
+    def show(self, var=None, data=None, min=None, max=None, reset=None,
+             fixrange=None, filenameout=None):
         """Draw the plotting-window"""
 
         t0 = default_timer()
 
-        self.update(var=var,data=data,min=min,max=max,reset=reset,fixrange=fixrange,filenameout=filenameout)
+        self.update(var=var, data=data, min=min, max=max, reset=reset,
+                    fixrange=fixrange, filenameout=filenameout)
 
-        self.viewXrange=self.ax.xaxis.get_view_interval()
-        self.viewYrange=self.ax.yaxis.get_view_interval()
+        self.viewXrange = self.ax.xaxis.get_view_interval()
+        self.viewYrange = self.ax.yaxis.get_view_interval()
         self.figure.clf()
-        self.ax = self.figure.gca()        
+        self.ax = self.figure.gca()
         self.ax.set_rasterization_zorder(-9)
         self.info()
 
         if self.fixzoom is None:
-            self.ax.set_xlim(self.xrange[0],self.xrange[1])
-            self.ax.set_ylim(self.yrange[0],self.yrange[1])
+            self.ax.set_xlim(self.xrange[0], self.xrange[1])
+            self.ax.set_ylim(self.yrange[0], self.yrange[1])
         else:
             self.ax.set_xlim(self.viewXrange)
             self.ax.set_ylim(self.viewYrange)
         self.ax.set_aspect('equal')
 
-
-        valueRange=self.max-self.min
+        valueRange = self.max-self.min
         if valueRange == 0.:
             valueRange = 1
 
-        self.valueClip = np.clip(self.value,self.min,self.max)
+        self.valueClip = np.clip(self.value, self.min, self.max)
 
-# Now regrid and imshow:
-        tdata0= default_timer()
-        xrange=[self.ax.get_xlim()[0],self.ax.get_xlim()[1]]
-        yrange=[self.ax.get_ylim()[0],self.ax.get_ylim()[1]]
+        # Now regrid and imshow:
+        tdata0 = default_timer()
+        xrange = [self.ax.get_xlim()[0], self.ax.get_xlim()[1]]
+        yrange = [self.ax.get_ylim()[0], self.ax.get_ylim()[1]]
 
-        nregrid = [self.dpi*self.fig_w,self.dpi*self.fig_h]
+        nregrid = [self.dpi*self.fig_w, self.dpi*self.fig_h]
 
         if (self.swap == 0):
-            CC=self.data.getCenterPoints()
+            CC = self.data.getCenterPoints()
         else:
-            CC=self.data.getCenterPoints()[:,[1,0]]
-        tmp0=np.complex(0,nregrid[0])
-        tmp1=np.complex(0,nregrid[1])
-        grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0, yrange[0]:yrange[1]:tmp1]
+            CC = self.data.getCenterPoints()[:, [1, 0]]
+        tmp0 = np.complex(0, nregrid[0])
+        tmp1 = np.complex(0, nregrid[1])
+        grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0,
+                                  yrange[0]:yrange[1]:tmp1]
 
-# regrid with linear interpolation and fall back to nearest neighbor at NaN, which should just be the borders.
-        gridvar = griddata(CC, self.valueClip, (grid_x, grid_y), method='cubic',fill_value=float(np.NaN))
-        isnan=np.isnan(gridvar)
-        gridvar[isnan] = griddata(CC, self.value, (grid_x[isnan], grid_y[isnan]), method='nearest',fill_value=float(np.NaN))
+        # regrid with linear interpolation and fall back to nearest neighbor
+        # at NaN, which should just be the borders.
+        gridvar = griddata(CC, self.valueClip, (grid_x, grid_y),
+                           method='cubic', fill_value=float(np.NaN))
+        isnan = np.isnan(gridvar)
+        gridvar[isnan] = griddata(CC, self.value,
+                                  (grid_x[isnan], grid_y[isnan]),
+                                  method='nearest', fill_value=float(np.NaN))
 
-# smooth the data slightly:
+        # smooth the data slightly:
         gridvar = ndimage.gaussian_filter(gridvar, sigma=self.smooth)
 
         extent = xrange[0], xrange[1], yrange[0], yrange[1]
-        gridvarClip = np.clip(gridvar,self.min,self.max)
-        self.image=gridvarClip
-        tdata1=default_timer()
+        gridvarClip = np.clip(gridvar, self.min, self.max)
+        self.image = gridvarClip
+        tdata1 = default_timer()
 
-
-        im2 = self.ax.imshow(gridvarClip.transpose(), cmap=plt.cm.get_cmap(self.cmap, self.nlevels), interpolation='bicubic',extent=extent,origin='lower',zorder=-10)
+        im2 = self.ax.imshow(gridvarClip.transpose(),
+                             cmap=plt.cm.get_cmap(self.cmap, self.nlevels),
+                             interpolation='bicubic', extent=extent,
+                             origin='lower', zorder=-10)
         norm = colors.Normalize(vmin=self.min, vmax=self.max)
-        im2.set_norm(norm) 
+        im2.set_norm(norm)
 #        Q=velovect(self.data.u1,self.data.u2,self.data,nvect=[20,20],scale=30,fig=self)
 
         if self.grid is not None:
             if (self.swap == 0):
-                [myxlist,myylist]=self.data.getPointList()
+                [myxlist, myylist] = self.data.getPointList()
             else:
-                [myylist,myxlist]=self.data.getPointList()
-            self.ax.fill(myxlist,myylist, 
-                     facecolor='none', edgecolor=self.edgecolor,aa=True,linewidth=0.2,alpha=0.8)
+                [myylist, myxlist] = self.data.getPointList()
+            self.ax.fill(myxlist, myylist, facecolor='none',
+                         edgecolor=self.edgecolor, aa=True,
+                         linewidth=0.2, alpha=0.8)
 
         if self.blocks is not None:
-            [myxBlockList,myyBlockList] = self.data.getPieces(self.blockWidth,self.blockHeight,self.nlevel1)
-            self.ax.fill(myxBlockList,myyBlockList, 
-                    facecolor='none', edgecolor=self.edgecolor,aa=True,linewidth=0.4,alpha=0.5)
+            [myxBlockList, myyBlockList] = self.data.getPieces(self.blockWidth,
+                                                               self.blockHeight,
+                                                               self.nlevel1)
+            self.ax.fill(myxBlockList, myyBlockList, facecolor='none',
+                         edgecolor=self.edgecolor, aa=True,
+                         linewidth=0.4, alpha=0.5)
 
         if self.orientation is not None:
-            self.colorbar() 
+            self.colorbar()
 
 # ticks:
         if self.maxXticks is not None:
@@ -467,59 +481,59 @@ class rgplot(polyplot):
         # Make the main axis active:
         plt.sca(self.ax)
 
+
 # =============================================================================
 class polyanim():
     """Animator class with polyplot"""
-    
-    def __init__(self,offsets=None,filename='data',type='pvtu',function=None,
-                 nlevels=256, grid=None, cmap='jet',
-                 min=None, max=None,
-                 xrange=None, yrange=None, orientation='horizontal', filenameout='anim', **kwargs):
-        
-        self.nlevels=nlevels
+
+    def __init__(self, offsets=None, filename='data', type='pvtu',
+                 function=None, nlevels=256, grid=None, cmap='binary',
+                 min=None, max=None, xrange=None, yrange=None,
+                 orientation='horizontal', filenameout='anim', **kwargs):
+
+        self.nlevels = nlevels
         self.grid = grid
-        self.cmap=cmap
-        self.orientation=orientation
-        self.offsets=offsets
-        self.filename=filename
-        self.type=type
-        self.filenameout=filenameout
+        self.cmap = cmap
+        self.orientation = orientation
+        self.offsets = offsets
+        self.filename = filename
+        self.type = type
+        self.filenameout = filenameout
         if function is None:
             self.function = lambda x: x.rho
         else:
-            self.function=function
-            
-        self.xrange=xrange
-        self.yrange=yrange
-        self.min=min
-        self.max=max
+            self.function = function
+
+        self.xrange = xrange
+        self.yrange = yrange
+        self.min = min
+        self.max = max
 
     def setup(self):
-        data=read.load(self.offsets[0],file=self.filename,type=self.type)
+        # might need to change read var to read.load_vtkfile
+        data = read.load(self.offsets[0], file=self.filename, type=self.type)
 
         if self.xrange is None:
-            self.xrange=[data.getBounds()[0],data.getBounds()[1]]
+            self.xrange = [data.getBounds()[0], data.getBounds()[1]]
         if self.yrange is None:
-            self.yrange=[data.getBounds()[2],data.getBounds()[3]]
-            
+            self.yrange = [data.getBounds()[2], data.getBounds()[3]]
+
     def run(self):
         self.setup()
-        
-        offsets=np.arange(self.offsets[1]+1-self.offsets[0])+self.offsets[0]
+
+        offsets = np.arange(self.offsets[1]+1-self.offsets[0])+self.offsets[0]
         for offset in offsets:
-            fo=''.join([self.filenameout,str(offset).zfill(4),'.png'])
-            data=read.load(offset,file=self.filename,type=self.type)
-            
-#            exec ''.join(['var=',self.function])            
+            fo = ''.join([self.filenameout, str(offset).zfill(4), '.png'])
+            # might need to change read var to read.load_vtkfile
+            data = read.load(offset, file=self.filename, type=self.type)
+
             var = self.function(data)
-            self.polyplot = polyplot(var,data=data,
-                                     nlevels=self.nlevels,grid=self.grid,cmap=self.cmap,
+            self.polyplot = polyplot(var, data=data, nlevels=self.nlevels,
+                                     grid=self.grid, cmap=self.cmap,
                                      orientation=self.orientation,
-                                     xrange=self.xrange,yrange=self.yrange,
-                                     min=self.min,max=self.max,
-                                     filenameout=fo
-                                     
-                )
+                                     xrange=self.xrange, yrange=self.yrange,
+                                     min=self.min, max=self.max,
+                                     filenameout=fo)
             self.polyplot.save(fo)
             plt.close()
 
@@ -641,216 +655,237 @@ def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
     return td_plot_data
 
 
-#=============================================================================
-def velovect(u1,u2,d,nvect=None,scalevar=None,scale=100,color='k',ax=None,alpha=1.):
+# =============================================================================
+def velovect(u1, u2, d, nvect=None, scalevar=None, scale=100, color='k',
+             ax=None, alpha=1.):
     """Plots normalized velocity vectors"""
 
-    minvel=1e-40
+    minvel = 1e-40
 
     if ax is None:
-        ax=plt.gca()
+        ax = plt.gca()
 
-    CC=d.getCenterPoints()
-    n=np.sqrt(u1**2+u2**2)
+    CC = d.getCenterPoints()
+    n = np.sqrt(u1**2+u2**2)
     # remove zero velocity:
-    m=n<minvel
-    vr=np.ma.filled(np.ma.masked_array(u1/n,m),0.)
-    vz=np.ma.filled(np.ma.masked_array(u2/n,m),0.)
+    m = n < minvel
+    vr = np.ma.filled(np.ma.masked_array(u1/n, m), 0.)
+    vz = np.ma.filled(np.ma.masked_array(u2/n, m), 0.)
     if scalevar is not None:
         vr = vr*scalevar
         vz = vz*scalevar
     if nvect is None:
-        Q=ax.quiver(CC[:,0],CC[:,1],vr,vz,pivot='middle',width=1e-3,minlength=0.,scale=scale,
-                    headwidth=6,alpha=alpha)
+        Q = ax.quiver(CC[:, 0], CC[:, 1], vr, vz, pivot='middle', width=1e-3,
+                      minlength=0., scale=scale, headwidth=6, alpha=alpha)
     else:
         # regrid the data:
-        tmp0=np.complex(0,nvect[0])
-        tmp1=np.complex(0,nvect[1])
-        grid_r, grid_z = np.mgrid[ax.get_xlim()[0]:ax.get_xlim()[1]:tmp0, ax.get_ylim()[0]:ax.get_ylim()[1]:tmp1]
+        tmp0 = np.complex(0, nvect[0])
+        tmp1 = np.complex(0, nvect[1])
+        grid_r, grid_z = np.mgrid[ax.get_xlim()[0]:ax.get_xlim()[1]:tmp0,
+                                  ax.get_ylim()[0]:ax.get_ylim()[1]:tmp1]
         grid_vr = griddata(CC, vr, (grid_r, grid_z), method='nearest')
         grid_vz = griddata(CC, vz, (grid_r, grid_z), method='nearest')
-        Q=ax.quiver(grid_r,grid_z,grid_vr,grid_vz,pivot='middle',width=2e-3,minlength=minvel,scale=scale,
-                    headwidth=10,headlength=10,color=color,edgecolor=color,rasterized=True,alpha=alpha)
+        Q = ax.quiver(grid_r, grid_z, grid_vr, grid_vz, pivot='middle',
+                      width=2e-3, minlength=minvel, scale=scale, headwidth=10,
+                      headlength=10, color=color, edgecolor=color,
+                      rasterized=True, alpha=alpha)
 
     plt.draw()
-    return Q     
+    return Q
 
-#=============================================================================
-def contour(var,d,levels=None,nmax=600,colors='k',linestyles='solid',ax=None,linewidths=1,smooth=1.,alpha=1.):
+
+# =============================================================================
+def contour(var, d, levels=None, nmax=600, colors='k', linestyles='solid',
+            ax=None, linewidths=1, smooth=1., alpha=1.):
     if ax is None:
-        ax=plt.gca()
+        ax = plt.gca()
 
-    xrange=[ax.get_xlim()[0],ax.get_xlim()[1]]
-    yrange=[ax.get_ylim()[0],ax.get_ylim()[1]]
+    xrange = [ax.get_xlim()[0], ax.get_xlim()[1]]
+    yrange = [ax.get_ylim()[0], ax.get_ylim()[1]]
 
     # Aspect ratio:
-    r=(xrange[1]-xrange[0])/(yrange[1]-yrange[0])
-    if r<1:
-        ny=nmax
-        nx=int(r*nmax)
+    r = (xrange[1]-xrange[0])/(yrange[1]-yrange[0])
+    if r < 1:
+        ny = nmax
+        nx = int(r*nmax)
     else:
-        nx=nmax
-        ny=int(nmax/r)
-    nregrid = [nx,ny]
-    
-    CC=d.getCenterPoints()
-    tmp0=np.complex(0,nregrid[0])
-    tmp1=np.complex(0,nregrid[1])
-    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0, yrange[0]:yrange[1]:tmp1]
-    gridvar = griddata(CC, var, (grid_x, grid_y), method='linear')
-    isnan=np.isnan(gridvar)
-    gridvar[isnan] = griddata(CC, var, (grid_x[isnan], grid_y[isnan]), method='nearest')
+        nx = nmax
+        ny = int(nmax/r)
+    nregrid = [nx, ny]
 
-# smooth the data slightly:
+    CC = d.getCenterPoints()
+    tmp0 = np.complex(0, nregrid[0])
+    tmp1 = np.complex(0, nregrid[1])
+    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0,
+                              yrange[0]:yrange[1]:tmp1]
+    gridvar = griddata(CC, var, (grid_x, grid_y), method='linear')
+    isnan = np.isnan(gridvar)
+    gridvar[isnan] = griddata(CC, var, (grid_x[isnan], grid_y[isnan]),
+                              method='nearest')
+    # smooth the data slightly:
     blurred_gridvar = ndimage.gaussian_filter(gridvar, sigma=smooth)
 
-
     if levels is None:
-        cs = ax.contour(grid_x,grid_y,blurred_gridvar,16,alpha=alpha)
+        cs = ax.contour(grid_x, grid_y, blurred_gridvar, 16, alpha=alpha)
     else:
-        cs = ax.contour(grid_x,grid_y,blurred_gridvar,levels=levels,colors=colors,linestyles=linestyles,linewidths=linewidths,alpha=alpha)
-
+        cs = ax.contour(grid_x, grid_y, blurred_gridvar, levels=levels,
+                        colors=colors, linestyles=linestyles,
+                        linewidths=linewidths, alpha=alpha)
     plt.draw()
     return cs
 
-#=============================================================================
-def streamlines(u1,u2,d,x0=None,y0=None,nmax=600,density=1,fig=None,color='b',linewidth=1,arrowsize=1,alpha=1.,smooth=0):
-    """plots streamlines from a vector field.  Use density=[densx,densy] to control how close streamlines are allowed to get."""
-    if fig is None:
-        ax=plt.gca()
-    else:
-        ax=fig.ax
 
-    xrange=[ax.get_xlim()[0],ax.get_xlim()[1]]
-    yrange=[ax.get_ylim()[0],ax.get_ylim()[1]]
+# =============================================================================
+def streamlines(u1, u2, d, x0=None, y0=None, nmax=600, density=1, fig=None,
+                color='b', linewidth=1, arrowsize=1, alpha=1., smooth=0):
+    """plots streamlines from a vector field.  Use density=[densx,densy]
+       to control how close streamlines are allowed to get."""
+    if fig is None:
+        ax = plt.gca()
+    else:
+        ax = fig.ax
+
+    xrange = [ax.get_xlim()[0], ax.get_xlim()[1]]
+    yrange = [ax.get_ylim()[0], ax.get_ylim()[1]]
 
     if nmax == 600 and fig is not None:
-        nmax = fig.dpi * max([fig.fig_w,fig.fig_h])
-
+        nmax = fig.dpi*max([fig.fig_w, fig.fig_h])
 
     # Aspect ratio:
-    r=(xrange[1]-xrange[0])/(yrange[1]-yrange[0])
-    if r<1:
-        ny=nmax
-        nx=int(r*nmax)
+    r = (xrange[1]-xrange[0])/(yrange[1]-yrange[0])
+    if r < 1:
+        ny = nmax
+        nx = int(r*nmax)
     else:
-        nx=nmax
-        ny=int(nmax/r)
-    nregrid = [nx,ny]
+        nx = nmax
+        ny = int(nmax/r)
+    nregrid = [nx, ny]
     print(nregrid)
-    
-    CC=d.getCenterPoints()
-    tmp0=np.complex(0,nregrid[0])
-    tmp1=np.complex(0,nregrid[1])
-    x=np.linspace(xrange[0],xrange[1],nregrid[0])
-    y=np.linspace(yrange[0],yrange[1],nregrid[1])
-    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0, yrange[0]:yrange[1]:tmp1]
+
+    CC = d.getCenterPoints()
+    tmp0 = np.complex(0, nregrid[0])
+    tmp1 = np.complex(0, nregrid[1])
+    x = np.linspace(xrange[0], xrange[1], nregrid[0])
+    y = np.linspace(yrange[0], yrange[1], nregrid[1])
+    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0,
+                              yrange[0]:yrange[1]:tmp1]
 
     u = griddata(CC, u1, (grid_x, grid_y), method='linear')
     v = griddata(CC, u2, (grid_x, grid_y), method='linear')
-    uisnan=np.isnan(u)
-    visnan=np.isnan(v)
+    uisnan = np.isnan(u)
+    visnan = np.isnan(v)
     un = np.empty(np.shape(u))
     vn = np.empty(np.shape(v))
-    un[uisnan] = griddata(CC, u1, (grid_x[uisnan], grid_y[uisnan]), method='nearest')
-    vn[visnan] = griddata(CC, u2, (grid_x[visnan], grid_y[visnan]), method='nearest')
-    u[uisnan]=un[uisnan]
-    v[visnan]=vn[visnan]
+    un[uisnan] = griddata(CC, u1, (grid_x[uisnan], grid_y[uisnan]),
+                          method='nearest')
+    vn[visnan] = griddata(CC, u2, (grid_x[visnan], grid_y[visnan]),
+                          method='nearest')
+    u[uisnan] = un[uisnan]
+    v[visnan] = vn[visnan]
 
     if (smooth != 0):
         u = ndimage.gaussian_filter(u, sigma=smooth)
         v = ndimage.gaussian_filter(v, sigma=smooth)
 
     if (x0 is not None and y0 is not None):
-        for myx in zip(x0,y0):
-            streamplot.streamplot(x, y, u.transpose(), v.transpose(), x_0=myx[0],
-                       y_0=myx[1], density=density, linewidth=linewidth,
-                       INTEGRATOR='RK4', color=color, arrowsize=arrowsize,alpha=alpha)
+        for myx in zip(x0, y0):
+            streamplot.streamplot(x, y, u.transpose(), v.transpose(),
+                                  x_0=myx[0], y_0=myx[1], density=density,
+                                  linewidth=linewidth, INTEGRATOR='RK4',
+                                  color=color, arrowsize=arrowsize,
+                                  alpha=alpha)
     else:
         streamplot.streamplot(x, y, u.transpose(), v.transpose(),
-                   density=density, linewidth=linewidth,
-                   INTEGRATOR='RK4', color=color, arrowsize=arrowsize,alpha=alpha)
+                              density=density, linewidth=linewidth,
+                              INTEGRATOR='RK4', color=color,
+                              arrowsize=arrowsize, alpha=alpha)
 
-#=============================================================================
-def streamline(u1,u2,d,x1_0,x2_0,dl=1.,fig=None,nmax=600):
+
+# =============================================================================
+def streamline(u1, u2, d, x1_0, x2_0, dl=1., fig=None, nmax=600):
 
     if fig is None:
-        ax=plt.gca()
+        ax = plt.gca()
     else:
-        ax=fig.figure.gca()
+        ax = fig.figure.gca()
 
-    xrange=[ax.get_xlim()[0],ax.get_xlim()[1]]
-    yrange=[ax.get_ylim()[0],ax.get_ylim()[1]]
+    xrange = [ax.get_xlim()[0], ax.get_xlim()[1]]
+    yrange = [ax.get_ylim()[0], ax.get_ylim()[1]]
 
     if nmax == 600 and fig is not None:
-        nmax = fig.dpi * max([fig.fig_w,fig.fig_h])
-
+        nmax = fig.dpi * max([fig.fig_w, fig.fig_h])
 
     # Aspect ratio:
-    r=(xrange[1]-xrange[0])/(yrange[1]-yrange[0])
-    if r<1:
-        ny=nmax
-        nx=int(r*nmax)
+    r = (xrange[1]-xrange[0])/(yrange[1]-yrange[0])
+    if r < 1:
+        ny = nmax
+        nx = int(r*nmax)
     else:
-        nx=nmax
-        ny=int(nmax/r)
-    nregrid = [nx,ny]
+        nx = nmax
+        ny = int(nmax/r)
+    nregrid = [nx, ny]
 
-    CC=d.getCenterPoints()
-    tmp0=np.complex(0,nregrid[0])
-    tmp1=np.complex(0,nregrid[1])
-    x=np.linspace(xrange[0],xrange[1],nregrid[0])
-    y=np.linspace(yrange[0],yrange[1],nregrid[1])
-    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0, yrange[0]:yrange[1]:tmp1]
+    CC = d.getCenterPoints()
+    tmp0 = np.complex(0, nregrid[0])
+    tmp1 = np.complex(0, nregrid[1])
+    x = np.linspace(xrange[0], xrange[1], nregrid[0])
+    y = np.linspace(yrange[0], yrange[1], nregrid[1])
+    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0,
+                              yrange[0]:yrange[1]:tmp1]
 
     u = griddata(CC, u1, (grid_x, grid_y), method='linear')
     v = griddata(CC, u2, (grid_x, grid_y), method='linear')
-    uisnan=np.isnan(u)
-    visnan=np.isnan(v)
+    uisnan = np.isnan(u)
+    visnan = np.isnan(v)
     un = np.empty(np.shape(u))
     vn = np.empty(np.shape(v))
-    un[uisnan] = griddata(CC, u1, (grid_x[uisnan], grid_y[uisnan]), method='nearest')
-    vn[visnan] = griddata(CC, u2, (grid_x[visnan], grid_y[visnan]), method='nearest')
-    u[uisnan]=un[uisnan]
-    v[visnan]=vn[visnan]
-# Normalize:
-    mag=np.sqrt(u**2+v**2)
-    u=u/mag
-    v=v/mag
+    un[uisnan] = griddata(CC, u1, (grid_x[uisnan], grid_y[uisnan]),
+                          method='nearest')
+    vn[visnan] = griddata(CC, u2, (grid_x[visnan], grid_y[visnan]),
+                          method='nearest')
+    u[uisnan] = un[uisnan]
+    v[visnan] = vn[visnan]
+    # Normalize:
+    mag = np.sqrt(u**2+v**2)
+    u = u/mag
+    v = v/mag
 
     fu = interpolate.interp2d(grid_x, grid_y, u, kind='cubic')
     fv = interpolate.interp2d(grid_x, grid_y, v, kind='cubic')
-    x1=[x1_0]
-    x2=[x2_0]
+    x1 = [x1_0]
+    x2 = [x2_0]
     while(x1[-1] >= xrange[0] and x1[-1] <= xrange[1] and
-    x2[-1] >= yrange[0] and x2[-1] <= yrange[1]):
-        dt=dl
-        x1.append(x1[-1]+fu(x1[-1],x2[-1])*dt)
-        x2.append(x2[-1]+fv(x1[-1],x2[-1])*dt)
-    return [np.array(x1),np.array(x2)]
+          x2[-1] >= yrange[0] and x2[-1] <= yrange[1]):
+        dt = dl
+        x1.append(x1[-1]+fu(x1[-1], x2[-1])*dt)
+        x2.append(x2[-1]+fv(x1[-1], x2[-1])*dt)
+    return [np.array(x1), np.array(x2)]
 
-#=============================================================================
-def gridvar(var,d,xrange,yrange,nmax=600,smooth=0):
+
+# =============================================================================
+def gridvar(var, d, xrange, yrange, nmax=600, smooth=0):
 
     # Aspect ratio:
-    r=(xrange[1]-xrange[0])/(yrange[1]-yrange[0])
-    if r<1:
-        ny=nmax
-        nx=int(r*nmax)
+    r = (xrange[1]-xrange[0])/(yrange[1]-yrange[0])
+    if r < 1:
+        ny = nmax
+        nx = int(r*nmax)
     else:
-        nx=nmax
-        ny=int(nmax/r)
-    nregrid = [nx,ny]
-    
-    CC=d.getCenterPoints()
-    tmp0=np.complex(0,nregrid[0])
-    tmp1=np.complex(0,nregrid[1])
-    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0, yrange[0]:yrange[1]:tmp1]
+        nx = nmax
+        ny = int(nmax/r)
+    nregrid = [nx, ny]
+
+    CC = d.getCenterPoints()
+    tmp0 = np.complex(0, nregrid[0])
+    tmp1 = np.complex(0, nregrid[1])
+    grid_x, grid_y = np.mgrid[xrange[0]:xrange[1]:tmp0,
+                              yrange[0]:yrange[1]:tmp1]
     gridvar = griddata(CC, var, (grid_x, grid_y), method='linear')
-    isnan=np.isnan(gridvar)
-    gridvar[isnan] = griddata(CC, var, (grid_x[isnan], grid_y[isnan]), method='nearest')
+    isnan = np.isnan(gridvar)
+    gridvar[isnan] = griddata(CC, var, (grid_x[isnan], grid_y[isnan]),
+                              method='nearest')
 
 # smooth the data slightly:
     blurred_gridvar = ndimage.gaussian_filter(gridvar, sigma=smooth)
 
-    return blurred_gridvar,grid_x,grid_y
+    return blurred_gridvar, grid_x, grid_y
