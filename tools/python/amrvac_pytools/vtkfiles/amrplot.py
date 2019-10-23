@@ -510,8 +510,8 @@ class polyanim():
         self.max = max
 
     def setup(self):
-        # might need to change read var to read.load_vtkfile
-        data = read.load(self.offsets[0], file=self.filename, type=self.type)
+        data = read.load_vtkfile(self.offsets[0], file=self.filename,
+                                 type=self.type)
 
         if self.xrange is None:
             self.xrange = [data.getBounds()[0], data.getBounds()[1]]
@@ -524,8 +524,8 @@ class polyanim():
         offsets = np.arange(self.offsets[1]+1-self.offsets[0])+self.offsets[0]
         for offset in offsets:
             fo = ''.join([self.filenameout, str(offset).zfill(4), '.png'])
-            # might need to change read var to read.load_vtkfile
-            data = read.load(offset, file=self.filename, type=self.type)
+            data = read.load_vtkfile(offset, file=self.filename,
+                                     type=self.type)
 
             var = self.function(data)
             self.polyplot = polyplot(var, data=data, nlevels=self.nlevels,
