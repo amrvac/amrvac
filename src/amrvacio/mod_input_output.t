@@ -1345,7 +1345,7 @@ contains
            call mpistop("change in periodicity in par file")
 
       call MPI_FILE_READ(fh, geom_name, name_len, MPI_CHARACTER, st, er)
-      if (geom_name /= typeaxial) &
+      if (geom_name /= geometry_name(1:name_len)) &
            call mpistop("change in geometry in par file")
 
       call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
