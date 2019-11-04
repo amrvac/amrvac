@@ -18,13 +18,13 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_physics
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: rbs,xc^D,xcc^D
     double precision :: xcart(ixI^S,1:ndim),Bloc(ixI^S,ndir)
+    integer :: idir,ixC^L
     logical, save:: first=.true.
 
     if (first) then
@@ -51,6 +51,16 @@ contains
     w(ixO^S,mom(:))=0.d0
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
+    else if(stagger_grid) then
+      do idir=1,ndim
+        xcart=x
+        ixCmin^D=ixOmin^D-kr(idir,^D);
+        ixCmax^D=ixOmax^D;
+        xcart(ixC^S,idir)=x(ixC^S,idir)+half*block%dx(ixC^S,idir)
+        call get_B(ixI^L,ixC^L,Bloc,xcart)
+        block%ws(ixC^S,idir)=Bloc(ixC^S,idir)
+      end do
+      call mhd_face_to_center(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
@@ -58,7 +68,7 @@ contains
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
