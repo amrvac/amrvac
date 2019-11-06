@@ -209,14 +209,14 @@ module mod_physics
        double precision, intent(out) :: out(ixO^S)
      end subroutine sub_get_var
 
-     subroutine sub_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+     subroutine sub_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
        use mod_global_parameters
        integer, intent(in)                :: ixI^L, ixO^L
        double precision, intent(in)       :: qdt
        ! cell-center primitive variables
        double precision, intent(in)       :: wprim(ixI^S,1:nw)
        ! velocity structure
-       type(state)                        :: s
+       type(state)                        :: sCT, s
        double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
        double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
      end subroutine sub_update_faces
@@ -399,13 +399,13 @@ contains
     character(len=*), intent(in)    :: subname
   end subroutine dummy_small_values
 
-  subroutine dummy_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+  subroutine dummy_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
     use mod_global_parameters
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
-    type(state)                        :: s
+    type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
   end subroutine dummy_update_faces

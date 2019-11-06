@@ -73,6 +73,9 @@ module mod_usr_methods
   ! initialize vector potential on cell edges for magnetic field
   procedure(init_vector_potential), pointer :: usr_init_vector_potential => null()
 
+  ! allow user to change inductive electric field, especially for boundary driven applications
+  procedure(set_electric_field), pointer :: usr_set_electric_field => null()
+
   abstract interface
 
     subroutine p_no_args()
@@ -375,6 +378,39 @@ module mod_usr_methods
       double precision, intent(out)      :: A(ixI^S)
 
     end subroutine init_vector_potential
+
+    ! allow user to change inductive electric field, especially for boundary driven applications
+    subroutine set_electric_field(ixI^L,ixC^L,qdt,fE,s)
+      use mod_global_parameters
+      integer, intent(in)                :: ixI^L, ixC^L
+      double precision, intent(in)       :: qdt
+      type(state)                        :: s
+      double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+
+      !integer :: ixA^L
+      ! For example, to set inductive electric field at bottom boundary in a 3D box for induction equation
+      ! v and b are  from observational data for data-driven application
+
+      !associate(w=>s%w,ws=>s%ws)
+
+      !if(s%is_physical_boundary(5)) then
+      !  ixAmin^D=ixCmin^D;
+      !  ixAmax^D=ixCmax^D+1;
+      !  fE(nghostcells^%3ixA^S,1)=-ws(nghostcells^%3ixA^S,3)*w(nghostcells^%3ixA^S,mom(2))
+      !  fE(nghostcells^%3ixA^S,2)= ws(nghostcells^%3ixA^S,3)*w(nghostcells^%3ixA^S,mom(1))
+      !  ixAmin^D=ixCmin^D+kr(2,^D);
+      !  ixAmax^D=ixCmax^D+kr(2,^D);
+      !  fE(nghostcells^%3ixC^S,1)=0.5d0*(fE(nghostcells^%3ixC^S,1)+fE(nghostcells^%3ixA^S,1))*&
+      !                            qdt*s%dsC(nghostcells^%3ixC^S,1)
+      !  ixAmin^D=ixCmin^D+kr(1,^D);
+      !  ixAmax^D=ixCmax^D+kr(1,^D);
+      !  fE(nghostcells^%3ixC^S,2)=0.5d0*(fE(nghostcells^%3ixC^S,2)+fE(nghostcells^%3ixA^S,2))*&
+      !                            qdt*s%dsC(nghostcells^%3ixC^S,2)
+      !end if
+
+      !end associate
+
+    end subroutine set_electric_field
 
   end interface
 

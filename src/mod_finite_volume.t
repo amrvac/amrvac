@@ -238,7 +238,7 @@ contains
     end do ! Next idims
     block%iw0=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);

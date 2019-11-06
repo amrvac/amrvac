@@ -2839,24 +2839,24 @@ contains
   end subroutine mhd_clean_divb_multigrid
   }
 
-  subroutine mhd_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+  subroutine mhd_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
-    type(state)                        :: s
+    type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
     select case(type_ct)
     case('average')
-      call update_faces_average(ixI^L,ixO^L,qdt,fC,fE,s)
+      call update_faces_average(ixI^L,ixO^L,qdt,fC,fE,sCT,s)
     case('uct_contact')
-      call update_faces_contact(ixI^L,ixO^L,qdt,wprim,fC,fE,s)
+      call update_faces_contact(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
     case('uct_hll')
-      call update_faces_hll(ixI^L,ixO^L,qdt,fE,s)
+      call update_faces_hll(ixI^L,ixO^L,qdt,fE,sCT,s)
     case default
       call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
     end select
@@ -2864,13 +2864,14 @@ contains
   end subroutine mhd_update_faces
 
   !> get electric field though averaging neighors to update faces in CT
-  subroutine update_faces_average(ixI^L,ixO^L,qdt,fC,fE,s)
+  subroutine update_faces_average(ixI^L,ixO^L,qdt,fC,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
+    use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
-    type(state)                        :: s
+    type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
@@ -2913,6 +2914,10 @@ contains
       end do
     end do
 
+    ! allow user to change inductive electric field, especially for boundary driven applications
+    if(associated(usr_set_electric_field)) &
+      call usr_set_electric_field(ixI^L,ixC^L,qdt,fE,sCT)
+
     circ(ixI^S,1:ndim)=zero
 
     ! Calculate circulation on each face
@@ -2949,7 +2954,7 @@ contains
   end subroutine update_faces_average
 
   !> update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509
-  subroutine update_faces_contact(ixI^L,ixO^L,qdt,wp,fC,fE,s)
+  subroutine update_faces_contact(ixI^L,ixO^L,qdt,wp,fC,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
@@ -2959,7 +2964,7 @@ contains
     double precision, intent(in)       :: qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wp(ixI^S,1:nw)
-    type(state)                        :: s
+    type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
@@ -3133,6 +3138,10 @@ contains
       end do
     end do
 
+    ! allow user to change inductive electric field, especially for boundary driven applications
+    if(associated(usr_set_electric_field)) &
+      call usr_set_electric_field(ixI^L,ixC^L,qdt,fE,sCT)
+
     circ(ixI^S,1:ndim)=zero
 
     ! Calculate circulation on each face
@@ -3167,14 +3176,15 @@ contains
   end subroutine update_faces_contact
 
   !> update faces
-  subroutine update_faces_hll(ixI^L,ixO^L,qdt,fE,s)
+  subroutine update_faces_hll(ixI^L,ixO^L,qdt,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
+    use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
-    type(state)                        :: s
+    type(state)                        :: sCT, s
 
     double precision                   :: vtilL(ixI^S,2)
     double precision                   :: vtilR(ixI^S,2)
@@ -3270,6 +3280,10 @@ contains
       end if
 
     end do
+
+    ! allow user to change inductive electric field, especially for boundary driven applications
+    if(associated(usr_set_electric_field)) &
+      call usr_set_electric_field(ixI^L,ixC^L,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
