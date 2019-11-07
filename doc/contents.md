@@ -30,6 +30,7 @@ financial support.
 basic variables, the structure of the grid, boundaries, ghost cells.
 * [Methods](methods.md) Properties of the discretization methods like TVDLF,
 TVDMU, TVD, HLL...
+* [Slope limiters](limiter.md) Slope limiters for reconstruction to suppress spurious numerical oscillations
 * [AMR aspects](amrstructure.md) Some essential info on global parameters and
 the data structures for the block-tree AMR.
 * [Using polar/cylindrical/spherical coordinates](axial.md) Some information on

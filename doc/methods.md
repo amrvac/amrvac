@@ -153,14 +153,22 @@ and related parameters in `mhd_list` of par file.
 
 #### constrained transport fix: typedivbfix='ct'
 
-The upwind constrained transport method by Gardiner and Stone in _Journal of 
+The upwind constrained transport (CT) method by Gardiner and Stone in _Journal of 
 Computational Physics, 205, 509-539 (2005)_, **type_ct='uct_contact'** (default), 
-or by Londrillo and Zanna, in _Journal of Computational Physics, 195, 17-48 (2004)_ 
-**type_ct='uct_hll'**,
+or by Del Zanna, L., Zanotti, O., Bucciantini, N., & Londrillo, P. in _Astronomy & 
+Astrophysics , 473, 11 (2007)_  **type_ct='uct_hll'**,
 using staggered grid for magnetic field, can preserve initial div B to round off
 errors. A simple non-upwinding version of ct is through averaging electric 
 fields from neighbors **type_ct='average'**.
-It only works with HLL, HLLC, and HLLD schemes in the current implementation.
+It only works with HLL, HLLC, and HLLD Riemann flux schemes in the current 
+implementation. It works in Cartesian and non-Cartesian coordinates with or
+without grid stretching. 
+Initial conditions and boundary conditions for
+magnetic field have to be given at corresponding cell faces instead, or vector potential 
+is given at corresponding cell edges, see examples: **tests/mhd/solar_atmosphere_2.5D**.
+Note that when using AMR, the div B preserving prolongation for CT requires even
+number of ghost cell layers and odd number of ghost layers for some slope limiters, e.g.
+ mp5, is added by one to become even.
 
 #### Powell fix: typedivbfix='powel'
 
@@ -191,6 +199,11 @@ applications.
 This implements the mixed hyperbolic propagating and parabolic dampening of divB
 using an additional scalar variable _psi_. The algorithm of 'glm' is described by
 Dedner et al. as _Equation (24)_ in _Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
+
+#### projection fix: typedivbfix='multigrid'
+
+Projection scheme using multigrid Poisson solver by Teunissen and Keppens in 
+_Computer Physics Communications 245, 1068, (2019)_ can be use to remove div B part of B.
 
 #### Combined fix: typedivbfix='lindejanhunen' or 'lindepowel'
 

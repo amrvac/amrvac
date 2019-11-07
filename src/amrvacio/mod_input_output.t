@@ -808,6 +808,11 @@ contains
       nghostcells=4
     end if
 
+    ! prolongation in AMR for constrained transport MHD needs even number ghosts
+    if(stagger_grid .and. refine_max_level>1 .and. mod(nghostcells,2)/=0) then
+      nghostcells=nghostcells+1
+    end if
+
     ! If a wider stencil is used, extend the number of ghost cells
     nghostcells = nghostcells + phys_wider_stencil
 

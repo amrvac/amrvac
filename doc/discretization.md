@@ -106,10 +106,13 @@ value of the **time_integrator** parameter with the following examples:
     w_4 = w + dt/6*R(w_3)
     w   = w + dt/6*[R(w_1)+2*R(w_2)+2*R(w_3)+R(w_4)]
 
-RK4 is fourth order accurate. Not all schemes can be combined with all
+The time integrator RK4 is fourth order accurate. Not all schemes can be combined with all
 options, infact the TVD scheme should use **time_integrator='onestep'**, while the
 other temporally second order methods TVDLF, TVD-MUSCL, HLL, HLLC can use
-**time_integrator='twostep'** or **time_integrator='fourstep'**.
+**time_integrator='twostep'** or **time_integrator='twostep_trapezoidal'**.
+For consistency, the accuracy of time integrator should have the same order as slope
+limiter's accuracy. 3rd order accurate time integrators are 'threestep' and 'ssprk43'.
+4th order accurate time integrators include 'rk4', 'ssprk54', 'fourstep', and 'jameson'.
 
 Since in the twostep method the **R1** spatial discretization in the first
 _predictor_ step can be different from **R** of the second _corrector_ step,
