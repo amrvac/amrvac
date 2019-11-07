@@ -209,11 +209,11 @@ contains
     case (limiter_mp5)
        call MP5limitervar(ixI^L,ixC^L,idir,q,qL,qR)
        
-    case (limiter_wenojs5r)
-       call WENOJS5limiter(ixI^L,ixC^L,idir,q,qL,qR,.true.)
+    case (limiter_weno5)
+       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1)
        
-    case (limiter_wenozp5r)
-       call WENOZP5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,.true.)
+    case (limiter_wenozp5)
+       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,3)
        
     case default
 

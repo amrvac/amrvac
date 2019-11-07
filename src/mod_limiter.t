@@ -24,13 +24,13 @@ module mod_limiter
   ! Special cases
   integer, parameter :: limiter_ppm = 11
   integer, parameter :: limiter_mp5 = 12
-  integer, parameter :: limiter_wenojs3  = 13
-  integer, parameter :: limiter_wenojs5i = 14
-  integer, parameter :: limiter_wenojs5r = 15
-  integer, parameter :: limiter_wenoz5i  = 16
-  integer, parameter :: limiter_wenoz5r  = 17
-  integer, parameter :: limiter_wenozp5i = 18
-  integer, parameter :: limiter_wenozp5r = 19
+  integer, parameter :: limiter_weno3  = 13
+  integer, parameter :: limiter_weno5 = 14
+  integer, parameter :: limiter_wenoz5  = 15
+  integer, parameter :: limiter_wenozp5  = 16
+  integer, parameter :: limiter_weno7 = 17
+  integer, parameter :: limiter_mpweno7 = 18
+  integer, parameter :: limiter_exeno7 = 19
 
 contains
 
@@ -62,20 +62,20 @@ contains
        limiter_type = limiter_ppm
     case ('mp5')
        limiter_type = limiter_mp5
-    case ('wenojs3')
-       limiter_type = limiter_wenojs3
-    case ('wenojs5_i')
-       limiter_type = limiter_wenojs5i
-    case ('wenojs5_r')
-       limiter_type = limiter_wenojs5r
-    case ('wenoz5_i')
-       limiter_type = limiter_wenoz5i
-    case ('wenoz5_r')
-       limiter_type = limiter_wenoz5r
-    case ('wenozp5_i')
-       limiter_type = limiter_wenozp5i
-    case ('wenozp5_r')
-       limiter_type = limiter_wenozp5r
+    case ('weno3')
+       limiter_type = limiter_weno3
+    case ('weno5')
+       limiter_type = limiter_weno5
+    case ('wenoz5')
+       limiter_type = limiter_wenoz5
+    case ('wenozp5')
+       limiter_type = limiter_wenozp5
+    case ('weno7')
+       limiter_type = limiter_weno7
+    case ('mpweno7')
+       limiter_type = limiter_mpweno7
+    case ('exeno7')
+       limiter_type = limiter_exeno7
 
     case default
        limiter_type = -1

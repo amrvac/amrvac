@@ -780,28 +780,31 @@ contains
       nghostcells=3
     end if
 
-    if(any(limiter(1:nlevelshi)=='wenojs5_i')) then
-      nghostcells=3
-    end if
-    if(any(limiter(1:nlevelshi)=='wenojs5_r')) then
+    if(any(limiter(1:nlevelshi)=='weno5')) then
       nghostcells=3
     end if
  
-    if(any(limiter(1:nlevelshi)=='wenoz5_i')) then
-      nghostcells=3
-    end if
-    if(any(limiter(1:nlevelshi)=='wenoz5_r')) then
+    if(any(limiter(1:nlevelshi)=='wenoz5')) then
       nghostcells=3
     end if
  
-    if(any(limiter(1:nlevelshi)=='wenozp5_i')) then
-      nghostcells=3
-    end if
-    if(any(limiter(1:nlevelshi)=='wenozp5_r')) then
+    if(any(limiter(1:nlevelshi)=='wenozp5')) then
       nghostcells=3
     end if
 
     if(any(limiter(1:nlevelshi)=='ppm')) then
+      nghostcells=4
+    end if
+
+    if(any(limiter(1:nlevelshi)=='weno7')) then
+      nghostcells=4
+    end if
+
+    if(any(limiter(1:nlevelshi)=='mpweno7')) then
+      nghostcells=4
+    end if
+
+    if(any(limiter(1:nlevelshi)=='exeno7')) then
       nghostcells=4
     end if
 
