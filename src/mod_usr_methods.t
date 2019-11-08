@@ -380,20 +380,22 @@ module mod_usr_methods
     end subroutine init_vector_potential
 
     ! allow user to change inductive electric field, especially for boundary driven applications
-    subroutine set_electric_field(ixI^L,ixC^L,qdt,fE,s)
+    subroutine set_electric_field(ixI^L,ixO^L,qdt,fE,s)
       use mod_global_parameters
-      integer, intent(in)                :: ixI^L, ixC^L
+      integer, intent(in)                :: ixI^L, ixO^L
       double precision, intent(in)       :: qdt
       type(state)                        :: s
       double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
-      !integer :: ixA^L
+      !integer :: ixC^L,ixA^L
       ! For example, to set inductive electric field at bottom boundary in a 3D box for induction equation
       ! v and b are  from observational data for data-driven application
 
       !associate(w=>s%w,ws=>s%ws)
 
       !if(s%is_physical_boundary(5)) then
+      !  ixCmin^D=ixOmin^D-1;
+      !  ixCmax^D=ixOmax^D;
       !  ixAmin^D=ixCmin^D;
       !  ixAmax^D=ixCmax^D+1;
       !  fE(nghostcells^%3ixA^S,1)=-ws(nghostcells^%3ixA^S,3)*w(nghostcells^%3ixA^S,mom(2))

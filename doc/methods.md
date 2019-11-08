@@ -162,7 +162,7 @@ errors. A simple non-upwinding version of ct is through averaging electric
 fields from neighbors **type_ct='average'**.
 It only works with HLL, HLLC, and HLLD Riemann flux schemes in the current 
 implementation. It works in Cartesian and non-Cartesian coordinates with or
-without grid stretching. 
+without grid stretching. It works with finite non-zero resistivity. 
 Initial conditions and boundary conditions for
 magnetic field have to be given at corresponding cell faces instead, or vector potential 
 is given at corresponding cell edges, see examples: **tests/mhd/solar_atmosphere_2.5D**.

@@ -600,10 +600,6 @@ module mod_global_parameters
   integer, parameter :: ismin^D=-1+2*^D
   integer, parameter :: ismax^D=2*^D
 
-  ! coefficient for physics
-  double precision :: phys_eta
-
-
   !> Base file name for synthetic EUV emission output
   character(len=std_len) :: filename_euv
   !> output image

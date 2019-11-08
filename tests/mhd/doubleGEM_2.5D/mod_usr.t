@@ -12,6 +12,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_refine_grid   => specialrefine_grid
+    usr_init_vector_potential=>initvecpot_usr
 
     call set_coordinate_system("Cartesian_2.5D")
     call mhd_activate()
@@ -72,50 +73,96 @@ contains
     endif
     
     ! no initial velocity 
-    w(ixI^S,mom(1))  =zero
-    w(ixI^S,mom(2))  =zero
-    w(ixI^S,mom(3))  =zero
+    w(ixO^S,mom(1))  =zero
+    w(ixO^S,mom(2))  =zero
+    w(ixO^S,mom(3))  =zero
     
     xmid=xprobmin1+0.5d0*llx
     ysh1=xprobmin2+0.25d0*lly
     ysh2=xprobmin2+0.75d0*lly
     fkx=two*dpi/llx
     fky=two*dpi/lly
+
+    if(stagger_grid) then
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
+    else
+      ! set up the 1D equilibrium variation
+      w(ixI^S,mag(1))  =BB0*(-one+dtanh((x(ixI^S,2)-ysh1)/sheetl)  &
+                                      +dtanh((ysh2-x(ixI^S,2))/sheetl))
+      w(ixI^S,mag(2))  =zero
+      
+      ! add the perturbation
+      w(ixI^S,mag(1))= w(ixI^S,mag(1))-psi0bot*fky &
+                    *dcos(fkx*(x(ixI^S,1)-xmid))              &
+                    *(dsin(fky*(x(ixI^S,2)-ysh1))+two*(x(ixI^S,2)-ysh1)*dcos(fky*(x(ixI^S,2)-ysh1))) &
+                    *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh1)**2) &
+                               +psi0top*fky &
+                    *dcos(fkx*(x(ixI^S,1)-xmid))              &
+                    *(dsin(fky*(x(ixI^S,2)-ysh2))+two*(x(ixI^S,2)-ysh2)*dcos(fky*(x(ixI^S,2)-ysh2))) &
+                    *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh2)**2)
+      w(ixI^S,mag(2))= w(ixI^S,mag(2))+psi0bot*fkx &
+                    *dcos(fky*(x(ixI^S,2)-ysh1))              &
+                    *(dsin(fkx*(x(ixI^S,1)-xmid))+two*(x(ixI^S,1)-xmid)*dcos(fkx*(x(ixI^S,1)-xmid))) &
+                    *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh1)**2) &
+                               -psi0top*fkx &
+                    *dcos(fky*(x(ixI^S,2)-ysh2))              &
+                    *(dsin(fkx*(x(ixI^S,1)-xmid))+two*(x(ixI^S,1)-xmid)*dcos(fkx*(x(ixI^S,1)-xmid))) &
+                    *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh2)**2)
+    end if
+      
+    w(ixI^S,rho_)=(rhorat+one/(dcosh((x(ixI^S,2)-ysh1)/sheetl)**2) &
+                  +one/(dcosh((x(ixI^S,2)-ysh2)/sheetl)**2))
     
-    ! set up the 1D equilibrium variation
-    w(ixI^S,mag(1))  =BB0*(-one+dtanh((x(ixI^S,2)-ysh1)/sheetl)  &
-                                    +dtanh((ysh2-x(ixI^S,2))/sheetl))
-    w(ixI^S,mag(2))  =zero
-    w(ixI^S,mag(3))  =zero
+    w(ixO^S,mag(3))=zero
+
+    w(ixO^S,p_)=half*BB0**2*w(ixO^S,rho_)
     
-    ! add the perturbation
-    w(ixI^S,mag(1))= w(ixI^S,mag(1))-psi0bot*fky &
-                  *dcos(fkx*(x(ixI^S,1)-xmid))              &
-                  *(dsin(fky*(x(ixI^S,2)-ysh1))+two*(x(ixI^S,2)-ysh1)*dcos(fky*(x(ixI^S,2)-ysh1))) &
-                  *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh1)**2) &
-                             +psi0top*fky &
-                  *dcos(fkx*(x(ixI^S,1)-xmid))              &
-                  *(dsin(fky*(x(ixI^S,2)-ysh2))+two*(x(ixI^S,2)-ysh2)*dcos(fky*(x(ixI^S,2)-ysh2))) &
-                  *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh2)**2)
-    w(ixI^S,mag(2))= w(ixI^S,mag(2))+psi0bot*fkx &
-                  *dcos(fky*(x(ixI^S,2)-ysh1))              &
-                  *(dsin(fkx*(x(ixI^S,1)-xmid))+two*(x(ixI^S,1)-xmid)*dcos(fkx*(x(ixI^S,1)-xmid))) &
-                  *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh1)**2) &
-                             -psi0top*fkx &
-                  *dcos(fky*(x(ixI^S,2)-ysh2))              &
-                  *(dsin(fkx*(x(ixI^S,1)-xmid))+two*(x(ixI^S,1)-xmid)*dcos(fkx*(x(ixI^S,1)-xmid))) &
-                  *dexp(-fkx*(x(ixI^S,1)-xmid)**2-fky*(x(ixI^S,2)-ysh2)**2)
-    
-    w(ixI^S,rho_) =(rhorat+one/(dcosh((x(ixI^S,2)-ysh1)/sheetl)**2) &
-                                  +one/(dcosh((x(ixI^S,2)-ysh2)/sheetl)**2))
-    
-    w(ixI^S,p_)   =half*BB0**2*w(ixI^S,rho_)
-    
-    if(mhd_glm) w(ixI^S,psi_) =zero
-    
-    call mhd_to_conserved(ixI^L,ixI^L,w,x)
+    call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the corners
+    ! used by b_from_vectorpotential()
+    integer, intent(in)                :: ixI^L, ixC^L, idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    double precision                   :: xmid,ysh1,ysh2,fkx,fky
+
+    A = zero
+
+    xmid=xprobmin1+0.5d0*llx
+    ysh1=xprobmin2+0.25d0*lly
+    ysh2=xprobmin2+0.75d0*lly
+    fkx=two*dpi/llx
+    fky=two*dpi/lly
+
+    if (idir .eq. 3) then
+      A(ixC^S) = -BB0*(xC(ixC^S,2) - &
+      sheetl*log(cosh((xC(ixC^S,2)-ysh1)/sheetl)) + &
+      sheetl*log(cosh((ysh2-xC(ixC^S,2))/sheetl))) &
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)
+      !nasty implementation, do loop for every pinchpoint
+    end if
+
+  end subroutine initvecpot_usr
 
   subroutine specialrefine_grid(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
     ! Enforce additional refinement or coarsening

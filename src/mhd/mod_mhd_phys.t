@@ -192,8 +192,6 @@ contains
 111    close(unitpar)
     end do
  
-    phys_eta=mhd_eta
-
   end subroutine mhd_read_params
 
   !> Write this module's parameters to a snapsoht
@@ -2876,8 +2874,10 @@ contains
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
     integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
-    integer                            :: idim1,idim2,idir,iwdim1,iwdim2,i,j,k
+    integer                            :: idim1,idim2,idir,iwdim1,iwdim2
     double precision                   :: circ(ixI^S,1:ndim)
+    ! current on cell edges
+    double precision :: jce(ixI^S,7-2*ndim:3)
 
     associate(bfaces=>s%ws,x=>s%x)
 
@@ -2887,12 +2887,15 @@ contains
     ixCmax^D=ixOmax^D;
     ixCmin^D=ixOmin^D-1;
 
+    ! if there is resistivity, get eta J
+    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+
     fE=zero
 
     do idim1=1,ndim 
-      iwdim1 = iw_mag(idim1)
+      iwdim1 = mag(idim1)
       do idim2=1,ndim
-        iwdim2 = iw_mag(idim2)
+        iwdim2 = mag(idim2)
         do idir=7-2*ndim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
@@ -2900,9 +2903,13 @@ contains
             jxC^L=ixC^L+kr(idim1,^D);
             hxC^L=ixC^L+kr(idim2,^D);
             ! Interpolate to edges
-            fE(ixC^S,idir)=qdt*quarter*s%dsC(ixC^S,idir)*&
-            (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
-            -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
+            fE(ixC^S,idir)=quarter*(fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
+                                   -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
+
+            ! add current component of electric field at cell edges E=-vxB+eta J
+            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
+
+            fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
             if (.not.slab) then
               where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
@@ -2916,7 +2923,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixC^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
@@ -2958,7 +2965,6 @@ contains
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
-    use mod_geometry
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
@@ -2968,8 +2974,6 @@ contains
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
-    integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
-    integer                            :: idim1,idim2,idir,iwdim1,iwdim2,i,j,k
     double precision                   :: circ(ixI^S,1:ndim)
     ! electric field at cell centers
     double precision                   :: ECC(ixI^S,7-2*ndim:3)
@@ -2977,82 +2981,25 @@ contains
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
     double precision                   :: ELC(ixI^S),ERC(ixI^S)
-    ! current on cell edges and cell centers
-    double precision :: jce(ixI^S,7-2*ndim:3),jcc(ixI^S,7-2*ndir:3)
-    ! location at cell edges
-    double precision :: xC(ixI^S,1:ndim)
-    ! resistivity
-    double precision :: eta(ixI^S)
-    double precision :: curlj(ixI^S,1:3)
-    double precision :: gradi(ixGs^T)
-    ! location at cell faces
-    double precision :: xs(ixGs^T,1:ndim)
-    ! current at cell faces
-    double precision :: js1(ixGs^T,7-2*ndim:3),js2(ixGs^T,7-2*ndim:3)
-    integer :: idirmin,ix^D
+    ! current on cell edges
+    double precision                   :: jce(ixI^S,7-2*ndim:3)
+    integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
+    integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
-    associate(bfaces=>s%ws,x=>s%x,dx=>s%dx,w=>s%w,wCT=>block0%w,ws=>block%ws,&
-              vnorm=>vcts%vnorm)
+    associate(bfaces=>s%ws,x=>s%x,w=>s%w,vnorm=>vcts%vnorm)
 
     ECC=0.d0
     ! Calculate electric field at cell centers
     do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,3
       if(lvc(idim1,idim2,idir)==1)then
-         ECC(ixI^S,idir)=ECC(ixI^S,idir)+wp(ixI^S,iw_mag(idim1))*wp(ixI^S,iw_mom(idim2))
+         ECC(ixI^S,idir)=ECC(ixI^S,idir)+wp(ixI^S,mag(idim1))*wp(ixI^S,mom(idim2))
       else if(lvc(idim1,idim2,idir)==-1) then
-         ECC(ixI^S,idir)=ECC(ixI^S,idir)-wp(ixI^S,iw_mag(idim1))*wp(ixI^S,iw_mom(idim2))
+         ECC(ixI^S,idir)=ECC(ixI^S,idir)-wp(ixI^S,mag(idim1))*wp(ixI^S,mom(idim2))
       endif
     enddo; enddo; enddo
 
-    ! if there is resistivity
-    if(phys_eta/=zero) then
-      ! calculate current density at cell edges
-      jce=0.d0
-      do idim1=1,ndim 
-        do idim2=1,ndim
-          do idir=7-2*ndim,3
-            if (lvc(idim1,idim2,idir)==0) cycle
-            ixCmax^D=ixOmax^D;
-            ixCmin^D=ixOmin^D+kr(idir,^D)-1;
-            ixBmax^D=ixCmax^D-kr(idir,^D)+1;
-            ixBmin^D=ixCmin^D;
-            ! current at transverse faces
-            xs(ixB^S,:)=x(ixB^S,:)
-            xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
-            if (lvc(idim1,idim2,idir)==1) then
-              call gradientx(ws(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
-              jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
-            else
-              call gradientx(ws(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
-              jce(ixC^S,idir)=jce(ixC^S,idir)-gradi(ixC^S)
-            end if
-          end do
-        end do
-      end do
-      ! get resistivity
-      if(phys_eta>zero)then
-        jce(ixC^S,:)=jce(ixC^S,:)*phys_eta
-      else
-        ixA^L=ixO^L^LADD1;
-        call curlvector(wCT(ixI^S,iw_mag(:)),ixI^L,ixO^L,jcc,idirmin,7-2*ndir,3)
-        call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
-        ! calcuate eta on cell edges
-        do idir=7-2*ndim,3
-          ixCmax^D=ixOmax^D;
-          ixCmin^D=ixOmin^D+kr(idir,^D)-1;
-          jcc(ixC^S,idir)=0.d0
-         {do ix^DB=0,1\}
-            if({ ix^D==1 .and. ^D==idir | .or.}) cycle
-            ixAmin^D=ixCmin^D+ix^D;
-            ixAmax^D=ixCmax^D+ix^D;
-            jcc(ixC^S,idir)=jcc(ixC^S,idir)+eta(ixA^S)
-         {end do\}
-          jcc(ixC^S,idir)=jcc(ixC^S,idir)*0.25d0
-          jce(ixC^S,idir)=jce(ixC^S,idir)*jcc(ixC^S,idir)
-        enddo
-      end if
-
-    end if
+    ! if there is resistivity, get eta J
+    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
 
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
@@ -3060,9 +3007,9 @@ contains
     fE=zero
     ! evaluate electric field along cell edges according to equation (41)
     do idim1=1,ndim 
-      iwdim1 = iw_mag(idim1)
+      iwdim1 = mag(idim1)
       do idim2=1,ndim
-        iwdim2 = iw_mag(idim2)
+        iwdim2 = mag(idim2)
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
@@ -3123,8 +3070,8 @@ contains
             end where
             fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
 
-            ! add current componen of electric field at cell edges E=vxB+eta J
-            if(phys_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
+            ! add current component of electric field at cell edges E=-vxB+eta J
+            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
 
             ! times time step and edge length 
             fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
@@ -3140,7 +3087,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixC^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
@@ -3192,10 +3139,11 @@ contains
     double precision                   :: btilR(s%ixGs^S,ndim)
     double precision                   :: cp(ixI^S,2)
     double precision                   :: cm(ixI^S,2)
+    double precision                   :: circ(ixI^S,1:ndim)
+    ! current on cell edges
+    double precision                   :: jce(ixI^S,7-2*ndim:3)
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
-    double precision                   :: circ(ixI^S,1:ndim), dxidir(ixI^S)
-    integer                            :: i^D
 
     associate(bfaces=>s%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
       cbarmax=>vcts%cbarmax)
@@ -3209,6 +3157,9 @@ contains
     ! idir: electric field component we need to calculate
     ! idim1: directions in which we already performed the reconstruction
     ! idim2: directions in which we perform the reconstruction
+
+    ! if there is resistivity, get eta J
+    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
 
     fE=zero
 
@@ -3256,22 +3207,21 @@ contains
       cm(ixC^S,2)=max(cbarmin(jxC^S,idim2),cbarmin(ixC^S,idim2))
       cp(ixC^S,2)=max(cbarmax(jxC^S,idim2),cbarmax(ixC^S,idim2))
      
-      ! Calculate eletric field
-      if (idir <= ndim) then
-         dxidir(ixC^S) = s%dsC(ixC^S,idir)
-      else
-         dxidir = 1.0d0
-      end if
 
-      fE(ixC^S,idir)=qdt * dxidir(ixC^S) * &
-                  (-(cp(ixC^S,1)*vtilL(ixC^S,1)*btilL(ixC^S,idim2) &
-                   + cm(ixC^S,1)*vtilR(ixC^S,1)*btilR(ixC^S,idim2) &
-                   -cp(ixC^S,1)*cm(ixC^S,1)*(btilR(ixC^S,idim2)-btilL(ixC^S,idim2)))&
-                   /(cp(ixC^S,1) + cm(ixC^S,1)) &
-                   +(cp(ixC^S,2)*vtilL(ixC^S,2)*btilL(ixC^S,idim1) &
-                   + cm(ixC^S,2)*vtilR(ixC^S,2)*btilR(ixC^S,idim1) &
-                   -cp(ixC^S,2)*cm(ixC^S,2)*(btilR(ixC^S,idim1)-btilL(ixC^S,idim1)))&
-                   /(cp(ixC^S,2) + cm(ixC^S,2)) )
+      ! Calculate eletric field
+      fE(ixC^S,idir)=-(cp(ixC^S,1)*vtilL(ixC^S,1)*btilL(ixC^S,idim2) &
+                     + cm(ixC^S,1)*vtilR(ixC^S,1)*btilR(ixC^S,idim2) &
+                     - cp(ixC^S,1)*cm(ixC^S,1)*(btilR(ixC^S,idim2)-btilL(ixC^S,idim2)))&
+                     /(cp(ixC^S,1)+cm(ixC^S,1)) &
+                     +(cp(ixC^S,2)*vtilL(ixC^S,2)*btilL(ixC^S,idim1) &
+                     + cm(ixC^S,2)*vtilR(ixC^S,2)*btilR(ixC^S,idim1) &
+                     - cp(ixC^S,2)*cm(ixC^S,2)*(btilR(ixC^S,idim1)-btilL(ixC^S,idim1)))&
+                     /(cp(ixC^S,2)+cm(ixC^S,2))
+
+      ! add current component of electric field at cell edges E=-vxB+eta J
+      if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
+
+      fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
       if (.not.slab) then
         where(abs(x(ixC^S,r_)+half*dxlevel(r_)).lt.1.0d-9)
@@ -3283,7 +3233,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixC^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
@@ -3321,6 +3271,75 @@ contains
     end associate
   end subroutine update_faces_hll
 
+  !> calculate eta J at cell edges
+  subroutine get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+    use mod_global_parameters
+    use mod_usr_methods
+    use mod_geometry
+
+    integer, intent(in)                :: ixI^L, ixO^L
+    type(state), intent(in)            :: sCT, s
+    ! current on cell edges
+    double precision :: jce(ixI^S,7-2*ndim:3)
+
+    ! current on cell centers
+    double precision :: jcc(ixI^S,7-2*ndim:3)
+    ! location at cell faces
+    double precision :: xs(ixGs^T,1:ndim)
+    ! resistivity
+    double precision :: eta(ixI^S)
+    double precision :: gradi(ixGs^T)
+    integer :: ix^D,ixC^L,ixA^L,ixB^L,idir,idirmin,idim1,idim2
+
+    associate(x=>s%x,dx=>s%dx,w=>s%w,wCT=>sCT%w,wCTs=>sCT%ws)
+    ! calculate current density at cell edges
+    jce=0.d0
+    do idim1=1,ndim 
+      do idim2=1,ndim
+        do idir=7-2*ndim,3
+          if (lvc(idim1,idim2,idir)==0) cycle
+          ixCmax^D=ixOmax^D;
+          ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+          ixBmax^D=ixCmax^D-kr(idir,^D)+1;
+          ixBmin^D=ixCmin^D;
+          ! current at transverse faces
+          xs(ixB^S,:)=x(ixB^S,:)
+          xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
+          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
+          if (lvc(idim1,idim2,idir)==1) then
+            jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
+          else
+            jce(ixC^S,idir)=jce(ixC^S,idir)-gradi(ixC^S)
+          end if
+        end do
+      end do
+    end do
+    ! get resistivity
+    if(mhd_eta>zero)then
+      jce(ixC^S,:)=jce(ixC^S,:)*mhd_eta
+    else
+      ixA^L=ixO^L^LADD1;
+      call get_current(wCT,ixI^L,ixO^L,idirmin,jcc)
+      call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
+      ! calcuate eta on cell edges
+      do idir=7-2*ndim,3
+        ixCmax^D=ixOmax^D;
+        ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+        jcc(ixC^S,idir)=0.d0
+       {do ix^DB=0,1\}
+          if({ ix^D==1 .and. ^D==idir | .or.}) cycle
+          ixAmin^D=ixCmin^D+ix^D;
+          ixAmax^D=ixCmax^D+ix^D;
+          jcc(ixC^S,idir)=jcc(ixC^S,idir)+eta(ixA^S)
+       {end do\}
+        jcc(ixC^S,idir)=jcc(ixC^S,idir)*0.25d0
+        jce(ixC^S,idir)=jce(ixC^S,idir)*jcc(ixC^S,idir)
+      enddo
+    end if
+
+    end associate
+  end subroutine get_resistive_electric_field
+
   !> calculate cell-center values from face-center values
   subroutine mhd_face_to_center(ixO^L,s)
     use mod_global_parameters
@@ -3340,7 +3359,7 @@ contains
       hxO^L=ixO^L-kr(idim,^D);
       ! Interpolate to cell barycentre using arithmetic average
       ! This might be done better later, to make the method less diffusive.
-      w(ixO^S,iw_mag(idim))=half/s%surface(ixO^S,idim)*&
+      w(ixO^S,mag(idim))=half/s%surface(ixO^S,idim)*&
         (ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
         +ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))
     end do
@@ -3352,7 +3371,7 @@ contains
     !  jxO^L=ixO^L+kr(idim,^D);
 
     !  ! Interpolate to cell barycentre using fourth order central formula
-    !  w(ixO^S,iw_mag(idim))=(0.0625d0/s%surface(ixO^S,idim))*&
+    !  w(ixO^S,mag(idim))=(0.0625d0/s%surface(ixO^S,idim))*&
     !         ( -ws(gxO^S,idim)*s%surfaceC(gxO^S,idim) &
     !     +9.0d0*ws(hxO^S,idim)*s%surfaceC(hxO^S,idim) &
     !     +9.0d0*ws(ixO^S,idim)*s%surfaceC(ixO^S,idim) &
@@ -3368,7 +3387,7 @@ contains
     !  kxO^L=ixO^L+2*kr(idim,^D);
 
     !  ! Interpolate to cell barycentre using sixth order central formula
-    !  w(ixO^S,iw_mag(idim))=(0.00390625d0/s%surface(ixO^S,idim))* &
+    !  w(ixO^S,mag(idim))=(0.00390625d0/s%surface(ixO^S,idim))* &
     !     (  +3.0d0*ws(fxO^S,idim)*s%surfaceC(fxO^S,idim) &
     !       -25.0d0*ws(gxO^S,idim)*s%surfaceC(gxO^S,idim) &
     !      +150.0d0*ws(hxO^S,idim)*s%surfaceC(hxO^S,idim) &
