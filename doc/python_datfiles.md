@@ -46,7 +46,7 @@ The method `ds.get_extrema(var)` returns the minimum and maximum value of the re
 ## Working with the data
 In order to load the entire dataset into memory, one can use the method
 
-    ad = ds.load_all_data(nbprocs=None, regriddir=None)
+    ad = ds.load_all_data()
 
 Most likely the dataset will contain multiple levels of AMR, such that loading this into one single Numpy array is not trivial. Instead, a regridding is performed to the
 finest block level over the grid, and all blocks are regridded to this level using flat interpolation. This operation is parallelised using Pythons `multiprocessing` module,
@@ -79,7 +79,7 @@ Finally, calling `ds.show()` shows all created figures in separate windows.
 ## Example
 The following code snippet produces the figure shown below.
 
-    ds = amrvac_reader.load_file('KH0015.dat')
+    ds = apt.load_datfile('KH0015.dat')
     p = ds.amrplot('rho', draw_mesh=True, mesh_linewidth=0.5, mesh_color='white',
                    mesh_linestyle='solid', mesh_opacity=0.8)
     p.ax.set_title("Density plot")
@@ -90,9 +90,29 @@ When assigning the plot to the variable `p`, we can retrieve the matplotlib figu
 transferring full control of the figure to the user. The colorbar can be retrieved by `p.colorbar`.
 Plotting on a logarithmic scale is supported for both `rgplot` and `amrplot`, by supplying the argument `logscale=True`.
 As shown below, setting `draw_mesh=True` plots the overlaying AMR mesh. The linewidth, color, linestyle and opacity of the mesh are also specified, and can take in
-default matplotlib values. The colormap can be chosen by supplying the `cmap` argument, the default is `jet`.
+default `matplotlib` values. The colormap can be chosen by supplying the `cmap` argument, the default is `jet`.
 
 ![](figmovdir/example_py_datreader.png)
+
+Both `rgplot` and `amrplot` create new `matplotlib` figure and axis instances that are used for plotting. However, both methods accept a figure and axis instance as extra argument,
+which will then be used instead. This is useful in for example plotting multiple snapshots on a single figure using subplots, like the example below shows.
+
+    import matplotlib.pyplot as plt
+    
+    fig, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+    ad = ds.load_all_data()
+    p1 = ds.amrplot('rho', fig=fig, ax=ax[0], draw_mesh=True, mesh_color='white', 
+                     mesh_opacity=0.4, mesh_linewidth=1)
+    p2 = ds.rgplot(ad['p'], fig=fig, ax=ax[1], cmap='Greens')
+
+    p1.colorbar.set_label("density")
+    p2.colorbar.set_label("pressure")
+    p1.ax.set_title("density plot with mesh overlay")
+    p2.ax.set_title("pressure plot")
+
+    fig.tight_layout()
+    plt.show()
 
 # Synthetic views {#synthetic_dat}
 The python tools also include a ray-tracing algorithm along one of the coordinate axes to create synthetic views. Currently two types are supported, the

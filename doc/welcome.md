@@ -46,14 +46,13 @@ conditions, and for source terms or special boundary conditions when needed.
 
 # Development {#current_develop}
 
-MPI-AMRVAC is developed and maintained by a research team led by professor 
-[Rony Keppens](https://perswww.kuleuven.be/~u0016541/) in 
+MPI-AMRVAC is developed and maintained by an international team led by professor 
+[Rony Keppens](https://perswww.kuleuven.be/~u0016541/) from 
 [Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA), KU Leuven.
 
-In 2016-2017 a large modernization effort was started
-by [Chun Xia](https://wis.kuleuven.be/CmPA/current-members/00086290)
-and [Jannis Teunissen](http://teunissen.net/), who are the current maintainers.
-The changes in the new version are:
+In 2016-2017, a large modernization was completed by Chun Xia and 
+[Jannis Teunissen](http://teunissen.net/) marked with version 2.0 with 
+important changes as following:
 
 * Automatic regression tests were added
 * The preprocessor is only used for the problem dimension (1D, 2D, or 3D)
@@ -62,3 +61,8 @@ The changes in the new version are:
 * The focus of MPI-AMRVAC is now on non-relativistic hydro- and
   magnetohydrodynamics
 * Many smaller improvements to the physics modules
+
+From 2018, more developers have joined in to comtribute in various aspects. They are
+ Yuhao Zhou, Niels Claes, Wenzhi Ruan, Clement Rober, and Ileyk El Mellah. Great ideas
+and important help have been received from Oliver Porth (main developer of MPI-AMRVAC v1.0), 
+ and Hector Olivares, who are the developers of the sister code BHAC.

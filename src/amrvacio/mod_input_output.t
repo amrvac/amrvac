@@ -1366,7 +1366,8 @@ contains
            call mpistop("change in periodicity in par file")
 
       call MPI_FILE_READ(fh, geom_name, name_len, MPI_CHARACTER, st, er)
-      if (geom_name /= geometry_name) then
+
+      if (geom_name /= geometry_name(1:name_len)) then
         write(*,*) "type of coordinates in data is: ", geom_name 
         call mpistop("select the correct coordinates in mod_usr.t file")
       end if
