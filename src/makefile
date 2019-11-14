@@ -251,9 +251,7 @@ mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
 mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
-mod_venk.o:
 mod_viscosity.o: mod_geometry.mod
-mod_weno.o:
 pointgrav.o: mod_geometry.mod
 raytracing.o: mod_raytracing.mod
 refine.o: mod_amr_fct.mod
