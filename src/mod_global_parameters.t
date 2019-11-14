@@ -168,6 +168,9 @@ module mod_global_parameters
   character(len=40), parameter  :: output_names(nfile) = &
        ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
 
+  !> User parameter file
+  character(len=std_len)   :: usr_filename 
+
   !> If collapse(DIM) is true, generate output integrated over DIM
   logical :: collapse(ndim)
 
@@ -194,6 +197,9 @@ module mod_global_parameters
 
   !> \todo Move to amrvac.t
   integer :: isaveit(nfile)
+
+  !> Start of read out (not counting specified read outs)
+  double precision :: tsavestart(nfile)
 
   !> The level at which to produce line-integrated / collapsed output
   integer :: collapseLevel
