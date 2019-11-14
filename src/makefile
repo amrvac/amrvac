@@ -236,6 +236,7 @@ mod_rho_roe.o: mod_physics_roe.mod
 mod_rho_roe.o: mod_rho_phys.mod
 mod_slice.o: mod_basic_types.mod
 mod_slice.o: mod_calculate_xw.mod
+mod_solar_atmosphere.o: mod_interpolation.mod
 mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_physics.mod
 mod_source.o: mod_thermal_conduction.mod
@@ -250,7 +251,9 @@ mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
 mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
+mod_venk.o:
 mod_viscosity.o: mod_geometry.mod
+mod_weno.o:
 pointgrav.o: mod_geometry.mod
 raytracing.o: mod_raytracing.mod
 refine.o: mod_amr_fct.mod
