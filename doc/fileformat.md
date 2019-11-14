@@ -75,7 +75,7 @@ Version 1 contained the following information
         nx^D
         domain_nx^D
         xprobmin^D
-        xprobmax^D\}
+        xprobmax^D
         nleafs
         levmax
         ndim
@@ -101,4 +101,4 @@ it defaults to `.false.` but is set to `.true.` if at least one
 quantity is using a periodic boundary condition in the corresponding
 direction. This change was motivated by improving the (upcoming)
 compatibility with `yt`.  In prevision of MPI-AMRVAC 2.2, the
-`stagered` flag was also added.
+`staggered` flag was also added.

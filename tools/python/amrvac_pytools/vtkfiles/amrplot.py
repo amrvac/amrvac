@@ -655,6 +655,7 @@ def tdplot(var, filename, file_ext, x_pts, y_pts, interpolations_pts, offsets,
     return td_plot_data
 
 
+
 # =============================================================================
 def velovect(u1, u2, d, nvect=None, scalevar=None, scale=100, color='k',
              ax=None, alpha=1.):
