@@ -1567,14 +1567,13 @@ contains
     do idir=idirmin,3
        tmpvec(ixA^S,idir)=current(ixA^S,idir)*eta(ixA^S)
     end do
+    curlj=0.d0
     call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
-    if(stagger_grid) then
+    if(stagger_grid.and.ndim==2.and.ndir==3) then
       ! if 2.5D
-      if(ndir==3) w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
+      w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
     else
-      do idir=1,ndir
-        w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-qdt*curlj(ixO^S,idir)
-      end do
+      w(ixO^S,mag(1:ndir)) = w(ixO^S,mag(1:ndir))-qdt*curlj(ixO^S,1:ndir)
     end if
 
     if(mhd_energy) then
