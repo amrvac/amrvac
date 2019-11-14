@@ -11,7 +11,7 @@
 
 module mod_thermal_emission
   use mod_global_parameters
-  use mod_mhd
+  use mod_physics
 
   implicit none
 
@@ -738,9 +738,9 @@ module mod_thermal_emission
       end select
 
 
-      call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)*unit_temperature
-      Ne(ixO^S)=w(ixO^S,rho_)*unit_numberdensity
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
+      Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
       flux(ixO^S)=Ne(ixO^S)**2
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -787,9 +787,9 @@ module mod_thermal_emission
       dE=0.1
       numE=floor((Eu-El)/dE)
 
-      call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)*unit_temperature
-      Ne(ixO^S)=w(ixO^S,rho_)*unit_numberdensity
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
+      Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
       kbT(ixO^S)=kb*Te(ixO^S)*unit_temperature/keV
       flux(ixO^S)=0.0d0
       EM(ixO^S)=(I0*(Ne(ixO^S))**2)
@@ -1037,7 +1037,7 @@ module mod_thermal_emission
 
       ! get local EUV flux and velocity
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      v(ixO^S)=ps(igrid)%w(ixO^S,mom(direction_LOS))/ps(igrid)%w(ixO^S,rho_)
+      v(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
 
       ! integrate for different direction
       select case(direction_LOS)
@@ -1666,10 +1666,10 @@ module mod_thermal_emission
 
 
       ! get emission and plasma parameters
-      call mhd_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/ps(igrid)%w(ixO^S,rho_)*unit_temperature
+      call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=pth(ixO^S)/ps(igrid)%w(ixO^S,iw_rho)*unit_temperature
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      ve(ixO^S)=ps(igrid)%w(ixO^S,mom(direction_LOS))/ps(igrid)%w(ixO^S,rho_)
+      ve(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
       dpl(ixO^S)=-ve(ixO^S)*unit_v
       vth2(ixO^S)=2*kB*Te(ixO^S)/mi/1.0e6   ! thermal width [km/s]
 

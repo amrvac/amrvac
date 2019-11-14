@@ -245,7 +245,7 @@ mod_thermal_conduction.o: mod_geometry.mod
 mod_thermal_conduction.o: mod_ghostcells_update.mod
 mod_thermal_conduction.o: mod_physics.mod
 mod_thermal_conduction.o: mod_small_values.mod
-mod_thermal_emission.o: mod_mhd.mod
+mod_thermal_emission.o: mod_physics.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
