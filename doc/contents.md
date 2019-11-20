@@ -67,6 +67,7 @@ visualisation and analysis (e.g. column densities).
 * [Setting up](python_setup.md) What's needed to start using the tools.
 * [Reading dat files](python_datfiles.md) How to read the native .dat files.
 * [Reading vtu files](python_vtkfiles.md) How to read vtk-type files.
+* [Analysis with YT](python_yt_usage.md) Analysis of native .dat files and much more with the yt package.
 
 # Meetings and workshops {#meetings}
 
