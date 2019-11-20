@@ -62,7 +62,7 @@ important changes as following:
   magnetohydrodynamics
 * Many smaller improvements to the physics modules
 
-From 2018, more developers have joined in to comtribute in various aspects. They are
- Yuhao Zhou, Niels Claes, Wenzhi Ruan, Clement Rober, and Ileyk El Mellah. Great ideas
+From 2018, more developers have joined in to contribute in various aspects. They are
+ Yuhao Zhou, Niels Claes, Wenzhi Ruan, Clément Robert and Ileyk El Mellah. Great ideas
 and important help have been received from Oliver Porth (main developer of MPI-AMRVAC v1.0), 
  and Hector Olivares, who are the developers of the sister code BHAC.
