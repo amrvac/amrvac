@@ -3304,7 +3304,7 @@ contains
           ! current at transverse faces
           xs(ixB^S,:)=x(ixB^S,:)
           xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
-          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
+          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.true.)
           if (lvc(idim1,idim2,idir)==1) then
             jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
           else

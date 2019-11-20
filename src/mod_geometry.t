@@ -328,26 +328,32 @@ contains
 
   end subroutine gradient
 
-  !> Calculate gradient of a scalar q within ixL in direction idir
-  subroutine gradientx(q,x,ixI^L,ixO^L,idir,gradq,central_difference)
+  !> Calculate gradient of a scalar q in direction idir at cell interfaces
+  subroutine gradientx(q,x,ixI^L,ixO^L,idir,gradq,fourth_order)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, idir
     double precision, intent(in)    :: q(ixI^S), x(ixI^S,1:ndim)
     double precision, intent(inout) :: gradq(ixI^S)
-    logical, intent(in)             :: central_difference 
-    integer                         :: jxO^L, hxO^L
+    logical, intent(in)             :: fourth_order
+    integer                         :: jxO^L, hxO^L, kxO^L
 
-    if(central_difference) then
+    if(fourth_order) then
+      ! Fourth order, stencil width is two
+      kxO^L=ixO^L^LADD2;
+      if(ixImin^D>kxOmin^D.or.ixImax^D<kxOmax^D|.or.) &
+           call mpistop("Error in gradientx: Non-conforming input limits")
       hxO^L=ixO^L-kr(idir,^D);
+      jxO^L=ixO^L+kr(idir,^D);
+      kxO^L=ixO^L+kr(idir,^D)*2;
     else
       hxO^L=ixO^L;
     end if
     jxO^L=ixO^L+kr(idir,^D);
     select case(coordinate)
     case(Cartesian)
-      if(central_difference) then
-        gradq(ixO^S)=half*(q(jxO^S)-q(hxO^S))/dxlevel(idir)
+      if(fourth_order) then
+        gradq(ixO^S)=(27.d0*(q(jxO^S)-q(ixO^S))-q(kxO^S)+q(hxO^S))/24.d0/dxlevel(idir)
       else
         gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/dxlevel(idir)
       end if

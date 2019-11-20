@@ -143,22 +143,24 @@ contains
       A(ixC^S) = -BB0*(xC(ixC^S,2) - &
       sheetl*log(cosh((xC(ixC^S,2)-ysh1)/sheetl)) + &
       sheetl*log(cosh((ysh2-xC(ixC^S,2))/sheetl))) &
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
-      + psi0bot*cos(fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
-      - psi0top*cos(fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)
+      + psi0bot*cos(fkx*(xC(ixC^S,1)-( 0.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-( 0.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      - psi0top*cos(fkx*(xC(ixC^S,1)-( 0.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-( 0.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-( 1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-( 1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-( 1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-( 1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-( 3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-( 3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-( 3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-( 3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-( 5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-( 5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-( 5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-( 5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-( 7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-( 7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-( 7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-( 7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-1.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-3.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-5.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)&
+      !+ psi0bot*cos(fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh1))*exp(-fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh1)**2)&
+      !- psi0top*cos(fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0)))*cos(fky*(xC(ixC^S,2)-ysh2))*exp(-fkx*(xC(ixC^S,1)-(-7.d0*llx)/(16.d0))**2-fky*(xC(ixC^S,2)-ysh2)**2)
       !nasty implementation, do loop for every pinchpoint
     end if
 
