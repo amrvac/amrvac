@@ -17,7 +17,14 @@ The most efficient ways to get in touch with us are either
 
 ## Installing yt {#yt_installation}
 
-The [yt website](https://yt-project.org/doc/installing.html#getting-yt) has detailed instructions on how to install the `yt` package. Installation is possible through `conda`, `pip`, or building from source.
+The [yt website](https://yt-project.org) has detailed instructions on how to install the `yt` package. As of right now the only way to use the AMRVAC frontend is building [from source](https://yt-project.org/doc/installing.html#installing-yt-from-source).
+It's recommended to use `-e` as well, so you can immediately pull updates from the repository. Required dependencies are `Numpy` and `Cython`.
+
+    pip install numpy cython
+    git clone https://github.com/yt-project/yt
+    cd yt
+    git checkout master
+    pip install -e .
 
 ## Current limitations & unsupported features {#limitations}
 
@@ -79,7 +86,6 @@ Some additional information about the dataset can be retrieved through
     # create a slice parallel to the yz-plane, in the middle of the x-range
     p = yt.SlicePlot(ds, 'x', "density")
     p.set_log('density', False)
-    p.set_cmap('density', 'viridis')
 
     # Draw a velocity vector every 30 pixels.
     p.annotate_velocity(factor = 30)
@@ -97,7 +103,6 @@ Some additional information about the dataset can be retrieved through
 For those of you that are always struggling with decently drawing magnetic field lines or streamlines, `yt` has a very nice feature for this based on the method of Line Integral Convolution (LIC). More information can be found in the `yt` docs and in [this blog](https://blog.yt-project.org/post/LineIntegralConvolution/), but we've given an example below.
 
     p2 = yt.SlicePlot(ds, 'x', 'density')
-    p2.set_cmap("density", "viridis")
     p2.set_log('density', False)
     p2.annotate_line_integral_convolution('velocity_y', 'velocity_z', lim=(0.4, 0.7))
 
@@ -176,7 +181,6 @@ It's quite important to mention that `override_geometry` takes priority, _even i
 
     p = yt.SlicePlot(ds2, 'phi', 'density')
     p.set_log('density', False)
-    p.set_cmap('density', 'viridis')
 
 <img src="../figmovdir/yt_loading11.png" width="100%"/>
 
@@ -195,7 +199,7 @@ It's quite important to mention that `override_geometry` takes priority, _even i
 
     p3 = yt.SlicePlot(ds, 'x', 'velocity_squared')
     p3.set_log('velocity_squared', False)
-    p3.set_cmap('velocity_squared', 'viridis')
+    p3.set_cmap('velocity_squared', 'Blues')
 
 <img src="../figmovdir/yt_loading12.png" width="99%"/>
 
