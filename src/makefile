@@ -116,6 +116,7 @@ mod_hd.o: mod_hd_hllc.mod
 mod_hd.o: mod_hd_phys.mod
 mod_hd.o: mod_hd_ppm.mod
 mod_hd.o: mod_hd_roe.mod
+mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
 mod_hd_phys.o: mod_dust.mod
@@ -124,6 +125,7 @@ mod_hd_phys.o: mod_gravity.mod
 mod_hd_phys.o: mod_particles.mod
 mod_hd_phys.o: mod_physics.mod
 mod_hd_phys.o: mod_radiative_cooling.mod
+mod_hd_phys.o: mod_rotating_frame.mod
 mod_hd_phys.o: mod_small_values.mod
 mod_hd_phys.o: mod_thermal_conduction.mod
 mod_hd_phys.o: mod_viscosity.mod
