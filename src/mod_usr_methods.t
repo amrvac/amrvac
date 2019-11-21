@@ -43,9 +43,16 @@ module mod_usr_methods
   procedure(get_dt), pointer          :: usr_get_dt           => null()
   procedure(phys_gravity), pointer    :: usr_gravity          => null()
 
+  ! Usr defined dust drag force
+  procedure(phys_dust_get_dt), pointer :: usr_dust_get_dt     => null()
+  procedure(phys_dust_get_3d_dragforce), pointer :: usr_get_3d_dragforce => null()
+
   ! Usr defined space varying viscosity
   procedure(phys_visco), pointer      :: usr_setvisco         => null()
   
+  ! Usr defined thermal pressure for hydro & energy=.False.
+  procedure(hd_pthermal), pointer     :: usr_set_pthermal     => null()
+
   ! Refinement related procedures
   procedure(refine_grid), pointer     :: usr_refine_grid      => null()
   procedure(var_for_errest), pointer  :: usr_var_for_errest   => null()
@@ -212,6 +219,26 @@ module mod_usr_methods
       double precision, intent(out)   :: gravity_field(ixI^S,ndim)
     end subroutine phys_gravity
 
+    !> Calculate the 3d drag force of gas onto dust
+    subroutine phys_dust_get_3d_dragforce(ixI^L, ixO^L, w, x, fdrag, ptherm, vgas,dust_n_species)
+      use mod_global_parameters
+      integer, intent(in)             :: ixI^L, ixO^L, dust_n_species
+      double precision, intent(in)    :: x(ixI^S, 1:ndim)
+      double precision, intent(in)    :: w(ixI^S, 1:nw)
+      double precision, intent(out)   :: &
+           fdrag(ixI^S, 1:ndir, 1:dust_n_species)
+      double precision, intent(in)    :: ptherm(ixI^S), vgas(ixI^S, ndir)
+    end subroutine phys_dust_get_3d_dragforce
+
+    !> Calculate the time step associated with the usr drag force
+    subroutine phys_dust_get_dt(w, ixI^L, ixO^L, dtdust, dx^D, x, dust_n_species)
+      use mod_global_parameters
+      integer, intent(in)             :: ixI^L, ixO^L, dust_n_species
+      double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim)
+      double precision, intent(in)    :: w(ixI^S,1:nw)
+      double precision, intent(inout) :: dtdust(1:dust_n_species)
+    end subroutine phys_dust_get_dt
+
     !>Calculation anormal viscosity depending on space
     subroutine phys_visco(ixI^L,ixO^L,x,w,mu)
       use mod_global_parameters
@@ -220,6 +247,15 @@ module mod_usr_methods
       double precision, intent(in)    :: w(ixI^S,1:nw)
       double precision, intent(out)   :: mu(ixI^S)
     end subroutine phys_visco
+
+    !>Calculation anormal pressure for hd & energy=.False.
+    subroutine hd_pthermal(w,x,ixI^L,ixO^L,pth)
+      use mod_global_parameters
+      integer, intent(in)             :: ixI^L, ixO^L
+      double precision, intent(in)    :: x(ixI^S,1:ndim)
+      double precision, intent(in)    :: w(ixI^S,1:nw)
+      double precision, intent(out)   :: pth(ixI^S)
+    end subroutine hd_pthermal
 
     !> Set the "eta" array for resistive MHD based on w or the
     !> "current" variable which has components between idirmin and 3.
