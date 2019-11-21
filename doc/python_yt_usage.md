@@ -2,7 +2,7 @@
 
 [TOC]
 
-# Introduction {#introduction}
+# Introduction {#yt_introduction}
 
 The release of AMRVAC 2.2 included minor changes in the datfile format, in order to improve compatibility with [`yt`](https://yt-project.org), an open-source Python package for analysing and visualising volumetric data. `yt` supports AMR meshes and can handle discrete or sampled data such as particles. It's query-based so that it can handle larger-than-RAM datasets and makes uses of [Cython](https://cython.org) for speed-up and C-interoperability.
 
@@ -10,12 +10,16 @@ The main goal of this webpage is to show off some of yt's functionality and poss
 
 The `yt` frontend for AMRVAC was developed by Clément Robert and Niels Claes (who are also the current maintainers). The actual pull request for the frontend, including it in the main `yt` repository, was accepted on the 13th of November, 2019.
 
-Because the frontend is brand new, we would greatly appreciate any feedback or issues that you encounter.
+Because the frontend is brand new (and hence currently in beta), we would greatly appreciate any feedback or issues that you encounter.
 The most efficient ways to get in touch with us are either
 - [reporting issues on github](https://github.com/yt-project/yt/issues)
 - [joining yt's Slackspace](https://yt-project.org/doc/help/index.html#go-on-slack-or-irc-to-ask-a-question) (join channels #help and #amrvac)
 
-### Current limitations & unsupported features
+## Installing yt {#yt_installation}
+
+The [yt website](https://yt-project.org/doc/installing.html#getting-yt) has detailed instructions on how to install the `yt` package. Installation is possible through `conda`, `pip`, or building from source.
+
+## Current limitations & unsupported features {#limitations}
 
 - If dust fields are present (e.g. rhod1, md1...) they will be detected by `yt` but no units are currently attached to them.
 - `yt` supports particle data, but this has not (yet) been implemented in the AMRVAC frontend. This might come later.
@@ -32,7 +36,7 @@ After this, loading an MPI-AMRVAC datafile is as easy as doing
 
     ds = yt.load('KH_2d0016.dat')
 
-<img src="yt_loading01.png" width="99%"/>
+<img src="../figmovdir/yt_loading01.png" width="99%"/>
 
 
 ### Additional arguments when loading
@@ -43,14 +47,14 @@ AMRVAC always uses dimensionless quantities, `yt` however re-dimensionalises eve
 
     ds = yt.load('KH_2d0016.dat', unit_system='mks')
 
-<img src="yt_loading02.png" width="99%"/>
+<img src="../figmovdir/yt_loading02.png" width="99%"/>
 
 As no unit system is ever attached to the datfile itself overrides have to be provided by the user if normalisations were specified in the `mod_usr.t` file. This is done through the parameter `units_override`. More information can be found [on the website](https://yt-project.org/docs/dev/examining/loading_data.html), an example is given below.
 
     overrides = dict(length_unit=(1e9, 'cm'), temperature_unit=(1e6, 'K'))
     ds = yt.load('KH_2d0016.dat', units_override=overrides)
 
-<img src="yt_loading03.png" width="99%"/>
+<img src="../figmovdir/yt_loading03.png" width="99%"/>
 
 For this small demo we will be using one of the datasets from the 3D Cartesian blastwave found in the MHD tests folder, done with version 2.2 of the code. Note that `yt` can actually handle older versions of the datfiles as well. As can be seen below an info message is printed to the console stating that the geometry parameter has been found. For older versions this will be a warning instead, notifying the user that no geometry flag was found and 'Cartesian' is used as a default. The parameter `geometry_override` always has to be used for geometries other than Cartesian in older datfile versions. The warning will disappear starting from datfile version 5 onwards.
 
@@ -58,14 +62,14 @@ The blastwave simulation was done using the constrained transport method `ct` to
 
     ds = yt.load('blastwave_3d_cart0003.dat')
 
-<img src="yt_loading04.png" width="99%"/>
+<img src="../figmovdir/yt_loading04.png" width="99%"/>
 
 Note that `yt` prints information about the dataset when loading, such as the time and domain edges of the current snapshot (in code units). When loading multiple files it may be convenient to reduce or even turn off the info and/or warning messages. Doing this is very straightforward, and more information about that can be found [here](https://yt-project.org/doc/faq/index.html#how-can-i-change-yt-s-log-level).
 Some additional information about the dataset can be retrieved through
 
     ds.print_stats()
 
-<img src="yt_grids.png" width="99%"/>
+<img src="../figmovdir/yt_grids.png" width="99%"/>
 
 
 # Creating slices, and much more {#slices}
@@ -83,23 +87,23 @@ Some additional information about the dataset can be retrieved through
     # overplot density contours
     p.annotate_contour("density", ncont=5, label=False, plot_args={"colors": "red", "linewidths": 2})
 
-<img src="yt_loading05.png" width="99%"/>
+<img src="../figmovdir/yt_loading05.png" width="99%"/>
 
-<img src="yt_slice_vectors.png" width="99%"/>
+<img src="../figmovdir/yt_slice_vectors.png" width="99%"/>
 
 
 ## An example of the 'much more' {#slicesmore}
 
-For those of you that are always struggling with decently drawing magnetic field lines or streamlines, `yt` has a very nice feature for this based on the method of Line Integral Convolution (LIC). More information can be found in the `yt` docs and in [this blog](https://blog.yt-project.org), but we've given an example below.
+For those of you that are always struggling with decently drawing magnetic field lines or streamlines, `yt` has a very nice feature for this based on the method of Line Integral Convolution (LIC). More information can be found in the `yt` docs and in [this blog](https://blog.yt-project.org/post/LineIntegralConvolution/), but we've given an example below.
 
     p2 = yt.SlicePlot(ds, 'x', 'density')
     p2.set_cmap("density", "viridis")
     p2.set_log('density', False)
     p2.annotate_line_integral_convolution('velocity_y', 'velocity_z', lim=(0.4, 0.7))
 
-<img src="yt_loading06.png" width="99%"/>
+<img src="../figmovdir/yt_loading06.png" width="99%"/>
 
-<img src="yt_slice_streamlines.png" width="99%"/>
+<img src="../figmovdir/yt_slice_streamlines.png" width="99%"/>
 
 
 # Isocontours exactly how you want them {#isocontours}
@@ -114,13 +118,13 @@ The example below shows how to create an isocontour of one of the fields, in thi
     # Create a sphere centered around the smallest density point, radius 0.5 code lengths
     sphere = ds.sphere("min", (0.5, "code_length"))
 
-<img src="yt_loading07.png" width="99%"/>
+<img src="../figmovdir/yt_loading07.png" width="99%"/>
 
     # isodensity surface in this sphere
     surface = ds.surface(sphere, "density", 1e-24)
     colors = yt.apply_colormap(np.log10(surface["density"]), cmap_name="Greys")
 
-<img src="yt_loading08.png" width="99%"/>
+<img src="../figmovdir/yt_loading08.png" width="99%"/>
 
     p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 
@@ -132,7 +136,7 @@ The example below shows how to create an isocontour of one of the fields, in thi
     ax.add_collection(p3dc)
     ax.auto_scale_xyz([0.5, 1.5], [0.5, 1.5], [0.5, 1.5])
 
-<img src="yt_isocontour.png" width="40%"/>
+<img src="../figmovdir/yt_isocontour.png" width="40%"/>
 
 
 For larger datasets this process is very slow as soon as `Poly3DCollection` is called. `Matplotlib` is great for 2D plotting, but really lacks performance to render high-resolution 3D datasets in real time. However, the isocontours calculated here (`surface` above) can be easily exported to [obj format](https://en.wikipedia.org/wiki/Wavefront_.obj_file), such that it can be imported straight away in applications like [Blender](https://www.blender.org) or [SketchFab](https://sketchfab.com), specifically tailored for these kind of problems. This allows you interact with renderings, create beautiful animations of your data and much more. The [yt docs](https://yt-project.org/docs/dev/visualizing/sketchfab.html#surfaces) have some nice example scripts and demos.
@@ -155,9 +159,9 @@ In the example below we create a simple volume rendering of the 3D blastwave dat
     sc.annotate_axes(alpha = 1)                   # plot axes system as well
     sc.annotate_domain(ds, color=[1, 1, 1, 0.5])  # draws box in colors [R, G, B, alpha]
 
-<img src="yt_loading09.png" width="99%"/>
+<img src="../figmovdir/yt_loading09.png" width="99%"/>
 
-<img src="yt_volumerendering.png" width="50%"/>
+<img src="../figmovdir/yt_volumerendering.png" width="50%"/>
 
 
 # Loading a dataset with a different geometry
@@ -168,15 +172,15 @@ It's quite important to mention that `override_geometry` takes priority, _even i
 
     ds2 = yt.load('bw_spherical_3D0003.dat', geometry_override='spherical')
 
-<img src="yt_loading10.png" width="99%"/>
+<img src="../figmovdir/yt_loading10.png" width="99%"/>
 
     p = yt.SlicePlot(ds2, 'phi', 'density')
     p.set_log('density', False)
     p.set_cmap('density', 'viridis')
 
-<img src="yt_loading11.png" width="100%"/>
+<img src="../figmovdir/yt_loading11.png" width="100%"/>
 
-<img src="yt_sphericalslice.png" width="75%"/>
+<img src="../figmovdir/yt_sphericalslice.png" width="75%"/>
 
 
 # Defining your own fields {#custom_fields}
@@ -193,6 +197,19 @@ It's quite important to mention that `override_geometry` takes priority, _even i
     p3.set_log('velocity_squared', False)
     p3.set_cmap('velocity_squared', 'viridis')
 
-<img src="yt_loading12.png" width="99%"/>
+<img src="../figmovdir/yt_loading12.png" width="99%"/>
 
-<img src="yt_customfield.png" width="99%"/>
+<img src="../figmovdir/yt_customfield.png" width="99%"/>
+
+In addition, it is possible to inspect all the fields known by `yt` that are in the datfile, simply through
+
+    print(ds.field_list)
+
+<img src="../figmovdir/yt_field_list.png" width="99%"/>
+
+
+Furthermore, it is also possible to inspect all fields `yt` _thinks_ it knows based on the fields already present in the dataset. This list is quite extended, though, and it also includes all custom-defined fields as well (hence, the field `(gas, velocity_squared)` we just defined will also be present in this list).
+
+    print(ds.derived_field_list)
+
+<img src="../figmovdir/yt_derived_field_list.png" width="99%"/>
