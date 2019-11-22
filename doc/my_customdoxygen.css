@@ -11,3 +11,7 @@ h6 { font-size: 0.67em; }
     margin-right: auto;
     max-width: 960px;
 }
+
+img {
+  max-width: 99%;
+}
