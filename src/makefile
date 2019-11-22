@@ -116,7 +116,6 @@ mod_hd.o: mod_hd_hllc.mod
 mod_hd.o: mod_hd_phys.mod
 mod_hd.o: mod_hd_ppm.mod
 mod_hd.o: mod_hd_roe.mod
-mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
 mod_hd_phys.o: mod_dust.mod
@@ -236,6 +235,7 @@ mod_rho_phys.o: mod_geometry.mod
 mod_rho_phys.o: mod_physics.mod
 mod_rho_roe.o: mod_physics_roe.mod
 mod_rho_roe.o: mod_rho_phys.mod
+mod_rotating_frame.o: mod_geometry.mod
 mod_slice.o: mod_basic_types.mod
 mod_slice.o: mod_calculate_xw.mod
 mod_solar_atmosphere.o: mod_interpolation.mod
