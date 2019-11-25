@@ -26,9 +26,6 @@ module mod_dust
   !> Size of each dust species
   double precision, allocatable, public :: dust_size(:)
 
-  !> Stokes number of each dust species (for dust_method = Stokes)
-  double precision, allocatable, public :: dust_stokes(:)
-
   !> Internal density of each dust species
   double precision, allocatable, public :: dust_density(:)
 
@@ -51,8 +48,8 @@ module mod_dust
   !> This can be turned off for testing purposes
   logical :: dust_backreaction = .true.
 
-  !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear', 'Stokes' or 'none'.
-  character(len=std_len) :: dust_method = 'Kwok'
+  !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear', 'usr' or 'none'.
+  character(len=std_len), public, protected :: dust_method = 'Kwok'
 
   !> Can be 'graphite' or 'silicate', affects the dust temperature
   character(len=std_len) :: dust_species = 'graphite'
@@ -93,10 +90,8 @@ contains
 
     allocate(dust_size(dust_n_species))
     allocate(dust_density(dust_n_species))
-    allocate(dust_stokes(dust_n_species))
     dust_size(:) = -1.0d0
     dust_density(:) = -1.0d0
-    dust_stokes(:) = -1.d0
 
     allocate(dust_rho(dust_n_species))
     allocate(dust_mom(ndir, dust_n_species))
@@ -135,6 +130,8 @@ contains
   end subroutine dust_read_params
 
   subroutine dust_check_params()
+    use mod_usr_methods, only: usr_get_3d_dragforce,usr_dust_get_dt
+    use mod_global_parameters, only : mype
     if (gas_mu <= 0.0d0 .and. (dust_method == 'Kwok' .or. dust_method == 'sticking')) &
          call mpistop ("Dust error: gas_mu (molecular weight) negative or not set")
     if (dust_method == 'sticking') then
@@ -150,14 +147,13 @@ contains
     end if
 
     if (dust_method == 'none') then
-       if (any(dust_stokes < 0.d0) &
-            .and. (any(dust_size < 0.0d0) .or. any(dust_density < 0.0d0))) then
-          call mpistop("With dust_method=='none', you must set either"// &
-               "(dust_density, dust_size) or dust_stokes")
+       if ( (any(dust_size < 0.0d0) .or. any(dust_density < 0.0d0))) then
+          call mpistop("With dust_method=='none', you must set "// &
+               "(dust_density, dust_size)")
        end if
-    else if (dust_method == 'Stokes') then
-       if (any(dust_stokes < 0.d0)) &
-            call mpistop("Dust error: any(dust_stokes < 0) or not set")
+    else if (dust_method == 'usr') then
+       if (.not. associated(usr_get_3d_dragforce) .or. .not. associated(usr_dust_get_dt)) &
+            call mpistop("Dust error:usr_get_3d_dragforce not defined")
     else
        if (any(dust_size < 0.0d0)) &
             call mpistop("Dust error: any(dust_size < 0) or not set")
@@ -297,11 +293,11 @@ contains
     end do
   end subroutine set_dusttozero
 
-  ! Calculate drag force based on Epstein's or Stokes' law
+  ! Calculate drag force based on Epstein's law
   ! From Kwok 1975, page 584 (between eqn 8 and 9)
   subroutine get_3d_dragforce(ixI^L, ixO^L, w, x, fdrag, ptherm, vgas)
     use mod_global_parameters
-
+    use mod_usr_methods, only: usr_get_3d_dragforce
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(in)    :: w(ixI^S, 1:nw)
@@ -373,24 +369,8 @@ contains
           fdrag(ixO^S, idir,n) = fd(ixO^S)
         end do
       end do
-   case ('Stokes') ! linear in deltav and constant Stokes number
-      !This is similar to Youdin & Johansen, 2007
-
-      do idir = 1, ndir
-        do n = 1, dust_n_species
-          where(w(ixO^S, dust_rho(n)) > dust_min_rho)
-            vdust(ixO^S)  = w(ixO^S, dust_mom(idir, n)) / w(ixO^S, dust_rho(n))
-            deltav(ixO^S) = (vgas(ixO^S, idir)-vdust(ixO^S))
-
-            ! dust_stokes is Stokes numbers for the dust species
-            fd(ixO^S)     = w(ixO^S, dust_rho(n))/dust_stokes(n)
-            fd(ixO^S)     = -fd(ixO^S)* deltav(ixO^S)
-          elsewhere
-            fd(ixO^S) = 0.0d0
-          end where
-          fdrag(ixO^S, idir, n) = fd(ixO^S)
-        end do
-      end do
+   case('usr')
+      call usr_get_3d_dragforce(ixI^L, ixO^L, w, x, fdrag, ptherm, vgas, dust_n_species)
    case('none')
       fdrag(ixO^S, :, :) = 0.0d0
     case default
@@ -548,7 +528,7 @@ contains
   !> Get dt related to dust and gas stopping time (Laibe 2011)
   subroutine dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
-
+    use mod_usr_methods, only: usr_dust_get_dt
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
     double precision, intent(in)    :: w(ixI^S, 1:nw)
@@ -556,7 +536,7 @@ contains
 
     double precision                :: ptherm(ixI^S), vgas(ixI^S, ndir)
     double precision, dimension(1:dust_n_species)        :: dtdust
-    double precision, dimension(ixI^S)         :: vt2, deltav, tstop, vdust
+    double precision, dimension(ixI^S)         :: vt2, deltav, tstop, vdust, OmegaK
     double precision, dimension(ixI^S, 1:dust_n_species) :: alpha_T
     double precision                           :: K
     integer                                    :: n, idir
@@ -573,9 +553,15 @@ contains
       vt2(ixO^S) = 3.0d0*ptherm(ixO^S)/w(ixO^S, gas_rho_)
 
       ! Tgas, mu = mean molecular weight
-      ptherm(ixO^S) = ( ptherm(ixO^S) * w_convert_factor(gas_e_) * &
-           mH_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
-           w_convert_factor(gas_rho_)*kB_cgs)
+
+      ! Clement Robert:
+      ! I commented those lines because ptherm doesn't seem to be used after this
+      ! and this creates an incompatibility with the case hd_energy=.false.
+      ! note that the same is true for the 'sticking' case.
+      !
+      ! ptherm(ixO^S) = ( ptherm(ixO^S) * w_convert_factor(gas_e_) * &
+      !      mH_cgs*gas_mu) / (w(ixO^S, gas_rho_) * &
+      !      w_convert_factor(gas_rho_)*kB_cgs)
 
       do idir = 1, ndir
         do n = 1, dust_n_species
@@ -644,20 +630,9 @@ contains
       end do
 
       dtnew = min(minval(dtdiffpar*dtdust(:)), dtnew)
-    case( 'Stokes' )
+   case('usr')
       dtdust(:) = bigdouble
-
-      do n = 1, dust_n_species
-        where(w(ixO^S, dust_rho(n))>dust_min_rho)
-          tstop(ixO^S)  = dust_stokes(n)*w(ixO^S, gas_rho_)/ &
-               (w(ixO^S, dust_rho(n)) + w(ixO^S, gas_rho_))
-        else where
-          tstop(ixO^S) = bigdouble
-        end where
-
-        dtdust(n) = min(minval(tstop(ixO^S)), dtdust(n))
-     end do
-
+      call usr_dust_get_dt(w, ixI^L, ixO^L, dtdust, dx^D, x, dust_n_species)
       dtnew = min(minval(dtdiffpar*dtdust(:)), dtnew)
    case('none')
       ! no dust timestep

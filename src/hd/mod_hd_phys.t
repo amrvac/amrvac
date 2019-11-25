@@ -25,6 +25,9 @@ module mod_hd_phys
   !> Whether particles module is added
   logical, public, protected              :: hd_particles = .false.
 
+  !> Whether rotating frame is activated
+  logical, public, protected              :: hd_rotating_frame = .false.
+  
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
@@ -59,8 +62,11 @@ module mod_hd_phys
   public :: hd_phys_init
   public :: hd_kin_en
   public :: hd_get_pthermal
+  public :: hd_get_csound2
   public :: hd_to_conserved
   public :: hd_to_primitive
+  public :: hd_check_params
+  public :: hd_check_w
 
 contains
 
@@ -72,7 +78,7 @@ contains
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit, hd_particles
+    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -169,6 +175,7 @@ contains
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
     use mod_particles, only: particles_init
+    use mod_rotating_frame, only:rotating_frame_init
     use mod_physics
 
     integer :: itr, idir
@@ -246,6 +253,9 @@ contains
     ! Initialize gravity module
     if (hd_gravity) call gravity_init()
 
+    ! Initialize rotating_frame module
+    if (hd_rotating_frame) call rotating_frame_init()
+    
     ! Initialize particles module
     if (hd_particles) then
        call particles_init()
@@ -500,8 +510,10 @@ contains
         csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
         csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
       else
-        csoundL(ixO^S)=hd_gamma*hd_adiab*wLp(ixO^S,rho_)**(hd_gamma-one)
-        csoundR(ixO^S)=hd_gamma*hd_adiab*wRp(ixO^S,rho_)**(hd_gamma-one)
+        call hd_get_csound2(wLp,x,ixI^L,ixO^L,csoundL)
+        csoundL(ixO^S) = sqrt(csoundL(ixO^S))
+        call hd_get_csound2(wRp,x,ixI^L,ixO^L,csoundR)
+        csoundR(ixO^S) = sqrt(csoundR(ixO^S))
       end if
 
       dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
@@ -551,17 +563,15 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: csound2(ixI^S)
 
-    if(hd_energy) then
-      call hd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
-      csound2(ixO^S)=hd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
-    else
-      csound2(ixO^S)=hd_gamma*hd_adiab*w(ixO^S,rho_)**(hd_gamma-one)
-    end if
+    call hd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
+    csound2(ixO^S)=hd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
+    
   end subroutine hd_get_csound2
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
+    use mod_usr_methods, only: usr_set_pthermal
 
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, 1:nw)
@@ -572,7 +582,11 @@ contains
        pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
             hd_kin_en(w, ixI^L, ixO^L))
     else
-       pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+       if (.not. associated(usr_set_pthermal)) then
+          pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+       else
+          call usr_set_pthermal(w,x,ixI^L,ixO^L,pth)
+       end if
     end if
 
   end subroutine hd_get_pthermal
@@ -581,11 +595,12 @@ contains
   subroutine hd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux
+    use mod_rotating_frame, only: rotating_frame_velocity
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixI^S), v(ixI^S)
+    double precision                :: pth(ixI^S), v(ixI^S),frame_vel(ixI^S)
     integer                         :: idir, itr
 
     call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
@@ -595,7 +610,11 @@ contains
 
     ! Momentum flux is v_i*m_i, +p in direction idim
     do idir = 1, ndir
-      f(ixO^S, mom(idir)) = v(ixO^S) * w(ixO^S, mom(idir))
+       f(ixO^S, mom(idir)) = v(ixO^S) * w(ixO^S, mom(idir))
+       if (hd_rotating_frame .and. angmomfix .and. idir==phi_) then
+          call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
+          f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + v(ixO^S) * frame_vel(ixO^S)*w(ixO^S,rho_)
+       end if
     end do
 
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
@@ -621,6 +640,7 @@ contains
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
     use mod_viscosity, only: visc_get_flux_prim ! viscInDiv
+    use mod_rotating_frame, only: rotating_frame_velocity
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative w
@@ -629,7 +649,7 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixI^S)
+    double precision                :: pth(ixI^S),frame_vel(ixI^S)
     integer                         :: idir, itr
 
     if (hd_energy) then
@@ -642,7 +662,13 @@ contains
 
     ! Momentum flux is v_i*m_i, +p in direction idim
     do idir = 1, ndir
-      f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
+       f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
+       if (hd_rotating_frame .and. angmomfix .and. idir==phi_) then
+          call mpistop("hd_rotating_frame not implemented yet with angmomfix")
+          !One have to compute the frame velocity on cell edge (but we don't know if right of left edge here!!!)
+          call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
+          f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + w(ixO^S,mom(idim))* wC(ixO^S, rho_) * frame_vel(ixO^S)
+       end if
     end do
 
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
@@ -678,6 +704,7 @@ contains
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
+    use mod_rotating_frame, only: rotating_frame_add_source
     use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero, dust_min_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
@@ -725,7 +752,7 @@ contains
              if(.not. angmomfix) then
                 where (wCT(ixO^S, irho) > minrho)
                    source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_) 
                 end where
              end if
           else
@@ -782,6 +809,13 @@ contains
 
     if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
+    if (hd_rotating_frame) then
+       if (hd_dust) then
+          call mpistop("Rotating frame not implemented yet with dust")
+       else
+          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,W,x)
+       end if
+    end if
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
@@ -837,7 +871,7 @@ contains
          end if
       end if
     end if
-
+    
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
@@ -868,7 +902,7 @@ contains
 
     if(hd_gravity) then
       call gravity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
-    end if
+   end if
 
   end subroutine hd_get_dt
 

@@ -381,8 +381,8 @@ contains
 
     select case (typeaverage)
     case ('arithmetic')
-       csound(ix^S)=sqrt(hd_adiab*hd_gamma*&
-            wroe(ix^S,rho_)**(hd_gamma-one))
+       call hd_get_pthermal(wroe,x,ixG^LL,ix^L,csound)
+       csound(ix^S) = sqrt(hd_gamma*csound(ix^S)/wroe(ix^S,rho_))
        ! This is the original simple Roe-solver
        if (il == soundRW_) then
           a(ix^S)=wroe(ix^S,mom(idim))+csound(ix^S)
@@ -402,12 +402,14 @@ contains
                +(wR(ix^S,mom(idir))-wL(ix^S,mom(idir)))
        end if
     case ('roe','default')
+       call hd_get_pthermal(wroe,x,ixG^LL,ix^L,csound)
+       call hd_get_pthermal(wL,x,ixG^LL,ix^L,tmp)
+       call hd_get_pthermal(wR,x,ixG^LL,ix^L,tmp2)
        where(abs(wL(ix^S,rho_)-wR(ix^S,rho_))<=qsmall*(wL(ix^S,rho_)+wR(ix^S,rho_)))
-          csound(ix^S)=sqrt(hd_adiab*hd_gamma*&
-               wroe(ix^S,rho_)**(hd_gamma-one))
+          csound(ix^S) = sqrt(hd_gamma*csound/wroe(ix^S,rho_))
        elsewhere
-          csound(ix^S)=sqrt(hd_adiab*(wR(ix^S,rho_)**hd_gamma-&
-               wL(ix^S,rho_)**hd_gamma)/(wR(ix^S,rho_)-wL(ix^S,rho_)))
+          csound(ix^S) =  sqrt(hd_gamma*(tmp2(ix^S)-tmp(ix^S))/&
+               (wR(ix^S,rho_)-wL(ix^S,rho_)))
        end where
        ! This is the Roe solver by Glaister
        ! based on P. Glaister JCP 93, 477-480 (1991)
@@ -439,15 +441,19 @@ contains
     case('harten','powell')
        ! Based on Harten & Hyman JCP 50, 235 and Zeeuw & Powell JCP 104,56
        if (il == soundRW_) then
+          call hd_get_pthermal(wL,x,ixG^LL,ix^L,tmp)
           tmp(ix^S) =wL(ix^S,mom(idim))/wL(ix^S,rho_)&
-               + sqrt(hd_adiab*hd_gamma*wL(ix^S,rho_)**(hd_gamma-one))
+               + sqrt(hd_gamma*tmp(ix^S)/wL(ix^S,rho_))
+          call hd_get_pthermal(wR,x,ixG^LL,ix^L,tmp2)
           tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)&
-               + sqrt(hd_adiab*hd_gamma*wR(ix^S,rho_)**(hd_gamma-one))
+               + sqrt(hd_gamma*tmp2(ix^S)/wR(ix^S,rho_))
        else if (il == soundLW_) then
+          call hd_get_pthermal(wL,x,ixG^LL,ix^L,tmp)
           tmp(ix^S) =wL(ix^S,mom(idim))/wL(ix^S,rho_)&
-               - sqrt(hd_adiab*hd_gamma*wL(ix^S,rho_)**(hd_gamma-one))
+               - sqrt(hd_gamma*tmp(ix^S)/wL(ix^S,rho_))
+          call hd_get_pthermal(wR,x,ixG^LL,ix^L,tmp2)
           tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)&
-               - sqrt(hd_adiab*hd_gamma*wR(ix^S,rho_)**(hd_gamma-one))
+               - sqrt(hd_gamma*tmp2(ix^S)/wR(ix^S,rho_))
        else
           tmp(ix^S) =wL(ix^S,mom(idim))/wL(ix^S,rho_)
           tmp2(ix^S)=wR(ix^S,mom(idim))/wR(ix^S,rho_)
