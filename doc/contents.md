@@ -55,6 +55,7 @@ files.
 # IO and data analysis {#io}
 
 * [File format](fileformat.md) Description of the format of MPI-AMRVAC data file (.dat).
+* [Visualisation and analysis in Python with yt](yt_usage.md) without data conversion (beta).
 * [Converting data files for visualization](convert.md) Brief notes on how to
 convert to Tecplot (.plt), and VTK (.vtu) data files.
 * [Slices](slices.md) How to output hypersurfaces (slices) for restart or
@@ -67,7 +68,6 @@ visualisation and analysis (e.g. column densities).
 * [Setting up](python_setup.md) What's needed to start using the tools.
 * [Reading dat files](python_datfiles.md) How to read the native .dat files.
 * [Reading vtu files](python_vtkfiles.md) How to read vtk-type files.
-* [Analysis with YT](python_yt_usage.md) Analysis of native .dat files and much more with the yt package.
 
 # Meetings and workshops {#meetings}
 
