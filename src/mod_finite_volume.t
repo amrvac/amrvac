@@ -119,7 +119,6 @@ contains
   !> finite volume method
   subroutine finite_volume(method,qdt,ixI^L,ixO^L,idims^LIM, &
        qtC,sCT,qt,snew,sold,fC,fE,dx^D,x)
-
     use mod_physics
     use mod_global_parameters
     use mod_tvd, only:tvdlimit2
@@ -257,7 +256,7 @@ contains
                    + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
             end if
           end do
-        else
+       else
           if (.not. angmomfix) then ! default case
             if (associated(phys_iw_methods(iw)%inv_capacity)) then
               call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)

@@ -600,6 +600,15 @@ contains
        if(flux_scheme(level)=='hlld'.and.physics_type/='mhd') &
           call mpistop("Cannot use hlld flux if not using MHD physics!")
 
+       if(flux_scheme(level)=='hllc'.and.physics_type=='mf') &
+          call mpistop("Cannot use hllc flux if using magnetofriction physics!")
+
+       if(flux_scheme(level)=='tvd'.and.physics_type=='mf') &
+          call mpistop("Cannot use tvd flux if using magnetofriction physics!")
+
+       if(flux_scheme(level)=='tvdmu'.and.physics_type=='mf') &
+          call mpistop("Cannot use tvdmu flux if using magnetofriction physics!")
+
        if (typepred1(level)=='default') then
           select case (flux_scheme(level))
           case ('cd')

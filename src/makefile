@@ -160,6 +160,13 @@ mod_magnetofriction.o: mod_ghostcells_update.mod
 mod_magnetofriction.o: mod_input_output.mod
 mod_magnetofriction.o: mod_limiter.mod
 mod_magnetofriction.o: mod_physics.mod
+mod_mf.o: mod_amrvac.mod
+mod_mf.o: mod_mf_phys.mod
+mod_mf_phys.o: mod_constrained_transport.mod
+mod_mf_phys.o: mod_geometry.mod
+mod_mf_phys.o: mod_multigrid_coupling.mod
+mod_mf_phys.o: mod_physics.mod
+mod_mf_phys.o: mod_small_values.mod
 mod_mhd.o: mod_amrvac.mod
 mod_mhd.o: mod_mhd_hllc.mod
 mod_mhd.o: mod_mhd_phys.mod

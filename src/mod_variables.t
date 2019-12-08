@@ -51,9 +51,6 @@ module mod_variables
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
 
-  !> Indices of the previous w of the staggered variables
-  integer :: iw_s0 = 0
-
 contains
 
   !> Set generic flux variable
@@ -83,7 +80,7 @@ contains
   end function var_set_fluxvar
 
   !> Set extra variable, which is not advected and has no boundary conditions.
-  !> This has to be done after defining flux variables.
+  !> This has to be done after defining flux variables and auxiliary variables.
   function var_set_extravar(name_cons, name_prim, ix) result(iw)
     character(len=*), intent(in)  :: name_cons, name_prim
     integer, intent(in), optional :: ix
@@ -101,6 +98,26 @@ contains
       write(prim_wnames(iw),"(A,I0)") name_prim, ix
     end if
   end function var_set_extravar
+
+  !> Set auxiliary variable, which is not advected but has boundary conditions.
+  !> This has to be done after defining flux variables.
+  function var_set_auxvar(name_cons, name_prim, ix) result(iw)
+    character(len=*), intent(in)  :: name_cons, name_prim
+    integer, intent(in), optional :: ix
+    integer                       :: iw
+
+    nwaux   = nwaux + 1
+    nw      = nw + 1
+    iw      = nw
+
+    if (.not. present(ix)) then
+      prim_wnames(iw) = name_cons
+      cons_wnames(iw) = name_prim
+    else
+      write(cons_wnames(iw),"(A,I0)") name_cons, ix
+      write(prim_wnames(iw),"(A,I0)") name_prim, ix
+    end if
+  end function var_set_auxvar
 
   !> Set density variable
   function var_set_rho() result(iw)
