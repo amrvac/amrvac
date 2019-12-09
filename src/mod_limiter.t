@@ -25,12 +25,13 @@ module mod_limiter
   integer, parameter :: limiter_ppm = 11
   integer, parameter :: limiter_mp5 = 12
   integer, parameter :: limiter_weno3  = 13
-  integer, parameter :: limiter_weno5 = 14
-  integer, parameter :: limiter_wenoz5  = 15
-  integer, parameter :: limiter_wenozp5  = 16
-  integer, parameter :: limiter_weno7 = 17
-  integer, parameter :: limiter_mpweno7 = 18
-  integer, parameter :: limiter_exeno7 = 19
+  integer, parameter :: limiter_wenoyc3  = 14
+  integer, parameter :: limiter_weno5 = 15
+  integer, parameter :: limiter_wenoz5  = 16
+  integer, parameter :: limiter_wenozp5  = 17
+  integer, parameter :: limiter_weno7 = 18
+  integer, parameter :: limiter_mpweno7 = 19
+  integer, parameter :: limiter_exeno7 = 20
 
 contains
 
@@ -64,6 +65,8 @@ contains
        limiter_type = limiter_mp5
     case ('weno3')
        limiter_type = limiter_weno3
+    case ('wenoyc3')
+       limiter_type = limiter_wenoyc3
     case ('weno5')
        limiter_type = limiter_weno5
     case ('wenoz5')
