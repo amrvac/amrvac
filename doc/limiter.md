@@ -9,11 +9,12 @@ That might be why sometimes they are not so reliable.
 AMRVAC provide tens of limiters to reconstruct data at cell face.
 Most of them are applied for finite volume methods.
 Therefore, take care when using them in combination with finite difference schemes, especially for asymmetric ones.
+And, be careful when choosing limiters when you are using stretching grids because some of the limiters only suitable for uniform grids.
 Most limiters in mod_limiter.t could be found in Reference [1].
 
 In the current version, limiters could be chosen from the following 19 presets.
 
-'minmod', 'superbee': MINMOD and SUPERBEE are both classic second-order symmetric TVD limiters. They could be found in most text books or review papers, for example, Reference [1-3]. MINMOD, a.k.a. MINBEE or MINA, might be the most diffusive limiter. While SUPERBEE, or sometimes known as SUPERA, is a little bit sharp compared with other second-order limiters. Another similar limiter in the same family is ULTRABEE, which is not implemneted in our code.
+'minmod', 'superbee': MINMOD and SUPERBEE are both classic second-order symmetric TVD limiters. They could be found in most text books or review papers, for example, Reference [1-3]. MINMOD, a.k.a. MINBEE or MINA, might be the most diffusive limiter and thus suitable for testing codes or modules. While SUPERBEE, or sometimes known as SUPERA, is a little bit sharp compared with other second-order limiters. Another similar limiter in the same family is ULTRABEE, which is not implemneted in our code.
 
 'woodward': WOODWARD, a.k.a. double MINMOD limiter or MONOTONIZED CENTRAL(MC) limiter, is also a second-order symmetric TVD limiter which could be found in Reference [4-5]. Should play a better balance than MINMOD and SUPERBEE.
 
@@ -25,7 +26,7 @@ In the current version, limiters could be chosen from the following 19 presets.
 
 'koren': A third-order asymmetric TVD limiter. See Reference [8] for details. Cost less resource than CADA3 but more diffusive as a third-order limiter.
 
-'cada', 'cada3': Second-order and third-order asymmetric TVD limiter proposed in Reference [9], a.k.a. LIMO or LIMO3. For the third-order one, it seems to perform better than KOREN limiter as shown in Reference [9]. Thus, this limiter is recommended for when choosing third-order limiters.
+'cada', 'cada3': Second-order and third-order asymmetric limiter proposed in Reference [9], a.k.a. LIMO or LIMO3. They are designed to simplify the complex TVD limiter created by Artebrant and Schroll. However, itself is not strictly TVD any more. Related parameters are chosen as -0.5, 2.0, 1.6 as recommended in their paper. As a third-order limiter, it perform better than KOREN limiter as shown in Reference [9]. Thus, this limiter is recommended for when choosing third-order limiters.
 
 'venk': The famous VENKATAKRISHNAN limiter is popular in unstructured meshes. It is a little bit similar with the VANALBADA limiter, see Reference [10] for details. This limiter is claimed to keep a better balance between accuracy and oscillations, and thus can provide some more details than other second-order limtiters. The parameter K, as mentioned in their paper, is set to be 0.3. Other values like 1 or 10 are also widely used in other literatures.
 
@@ -39,9 +40,9 @@ In the current version, limiters could be chosen from the following 19 presets.
 
 'wenozp5': fifth-order WENO-Z+ scheme, see Reference [18] for details. An improved version of WENO-Z.
 
-'mpweno7': seventh-order MP-WENO scheme. It is basically a combination of MP5 and WENO scheme to preserve the MP property in the results of, especially high-order WENO schemes, namely seventh-order of even higher. The advantage might be that it is more stable than WENO7. However, it shows two drawbacks in the tests, one is this shceme is time-comsuming, and another is the result is more diffusive, which is a straighforward result from the design of this scheme. Thus, if WENO5 or WENO7 could be used properly in your case, MPWENO7 is not recommeneded.
+'mpweno7': seventh-order MP-WENO scheme, see Reference [19]. It is basically a combination of MP5 and WENO scheme to preserve the MP property in the results of, especially high-order WENO schemes, namely seventh-order of even higher. The advantage might be that it is more stable than WENO7. However, it shows two drawbacks in the tests, one is this shceme is time-comsuming, and another is the result is more diffusive, which is a straighforward result from the design of this scheme. Maybe efficiency could be improved here, but anyway, if WENO5 or WENO7 could be used properly in your case, MPWENO7 is not recommeneded.
 
-'exeno7': seventh-order extended ENO scheme, also a variation of ENO scheme. It is based on the idea of Targeted ENO or TENO scheme which uses the smoothness measurement in the WENO scheme as a shock detector. But right now the this scheme is only used for tests because the choice of the crucial parameter C_T is still under testing. See Reference [19] for details.
+'exeno7': seventh-order extended ENO scheme, also a variation of ENO scheme. It is based on the idea of Targeted ENO or TENO scheme which uses the smoothness measurement in the WENO scheme as a shock detector. But right now the this scheme is only used for tests because the choice of the crucial parameter C_T is still under testing. See Reference [20] for details.
 
 References
 1. Yee, H., 1989, A Class of High-Resolution Explicit and Implicit Shock-Capturing Methods.
