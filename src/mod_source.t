@@ -96,11 +96,9 @@ contains
 
   end subroutine addsource1_grid
 
+  !> Add source within ixO for iws: w=w+qdt*S[wCT]
   subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,&
        w,x,qsourcesplit,src_active)
-
-    ! Add source within ixO for iws: w=w+qdt*S[wCT]
-
     use mod_global_parameters
     use mod_physics, only: phys_add_source
     use mod_usr_methods, only: usr_source
@@ -115,16 +113,19 @@ contains
     logical                          :: tmp_active
 
     tmp_active = .false.
+
+    ! physics defined sources, typically explicitly added,
+    ! along with geometrical source additions
+    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,tmp_active)
+
     ! user defined sources, typically explicitly added
     if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source)) then
        tmp_active = .true.
        call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     end if
 
-    ! physics defined sources, typically explicitly added,
-    ! along with geometrical source additions
-    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,tmp_active)
     if (present(src_active)) src_active = src_active .or. tmp_active
+
   end subroutine addsource2
 
 end module mod_source

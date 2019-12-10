@@ -1,4 +1,4 @@
-!> Magneto-hydrodynamics module
+!> Magnetofriction module
 module mod_mf_phys
   use mod_global_parameters, only: std_len
   implicit none
@@ -32,14 +32,11 @@ module mod_mf_phys
   !> Indices of the GLM psi
   integer, public, protected :: psi_
 
-  !> The MHD resistivity
+  !> The resistivity
   double precision, public                :: mf_eta = 0.0d0
 
-  !> The MHD hyper-resistivity
+  !> The hyper-resistivity
   double precision, public                :: mf_eta_hyper = 0.0d0
-
-  !> The number of waves
-  integer :: nwwave=8
 
   !> Method type to clean divergence of B
   character(len=std_len), public, protected :: typedivbfix  = 'ct'
@@ -210,6 +207,10 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
+    ! set velocity field as flux variables
+    allocate(mom(ndir))
+    mom(:) = var_set_momentum(ndir)
+
     ! set magnetic field as flux variables
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
@@ -219,12 +220,6 @@ contains
     else
       psi_ = -1
     end if
-
-    ! set velocity field as auxiliary variables
-    allocate(mom(ndir))
-    do idir=1,ndir
-      mom(:) = var_set_auxvar('m','v',idir)
-    end do
 
     ! determine number of stagger variables
     if(stagger_grid) nws=ndim
@@ -525,17 +520,10 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: ptotal(ixO^S),tmp(ixI^S)
-    integer                      :: idirmin, iw, idir, jdir, kdir
+    integer                      :: idir
 
-    if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
-
-    ptotal = 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-
-    ! Get flux of momentum
-    do idir=1,ndir
-      f(ixO^S,mom(idir))=0.d0
-    end do
+    ! flux of velocity field is zero, frictional velocity is given in addsource2
+    f(ixO^S,mom(:))=0.d0
 
     ! compute flux of magnetic field
     ! f_i[b_k]=v_i*b_k-v_k*b_i
@@ -675,6 +663,7 @@ contains
     }
 
     if (.not. qsourcesplit) then
+      active = .true.
       ! update velocity
       call frictional_velocity(w,x,ixI^L,ixO^L,qdt)
     end if
@@ -718,23 +707,33 @@ contains
       tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     endif
     ! frictional coefficient
-    tmp(ixO^S)=tmp(ixO^S)*mf_nu*qdt
+    where(tmp(ixO^S)/=0.d0)
+      tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu*qdt)
+    endwhere
 
     if(slab_uniform) then
       dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
       ! decay frictional velocity near solar surface
       decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
       do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhm**2*w(ixO^S,mom(idir))/tmp(ixO^S)*decay(ixO^S)
+        w(ixO^S,mom(idir))=dxhm**2*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
       ! decay frictional velocity near solar surface
       decay(ixO^S)=1.d0-exp(-x(ixO^S,1)/mf_decay_scale)
       do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhms(ixO^S)**2*w(ixO^S,mom(idir))/tmp(ixO^S)*decay(ixO^S)
+        w(ixO^S,mom(idir))=dxhms(ixO^S)**2*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     end if
+    {
+    if(block%is_physical_boundary(2*^D-1)) then
+      w(ixOmin^D^D%ixO^S,mom(:))=0.d0
+    end if
+    if(block%is_physical_boundary(2*^D)) then
+      w(ixOmax^D^D%ixO^S,mom(:))=0.d0
+    end if
+    \}
 
   end subroutine frictional_velocity
 
