@@ -26,7 +26,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
         ixOmin^DD=ixBmax^D+1-nghostcells^D%ixOmin^DD=ixBmin^DD;
         ixOmax^DD=ixBmax^DD;
         ! cont/symm/asymm types
-        do iw=1,nwfluxbc
+        do iw=1,nwflux+nwaux
            select case (typeboundary(iw,iB))
            case ("symm")
               w(ixO^S,iw) = w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,iw)
@@ -133,7 +133,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
         ixOmin^DD=ixBmin^DD;
         ixOmax^DD=ixBmin^D-1+nghostcells^D%ixOmax^DD=ixBmax^DD;
         ! cont/symm/asymm types
-        do iw=1,nwfluxbc
+        do iw=1,nwflux+nwaux
            select case (typeboundary(iw,iB))
            case ("symm")
               w(ixO^S,iw) = w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
