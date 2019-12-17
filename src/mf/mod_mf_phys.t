@@ -99,6 +99,7 @@ module mod_mf_phys
   public :: get_normalized_divb
   public :: b_from_vector_potential
   public :: mf_mag_en_all
+  public :: record_force_free_metrics
   {^NOONED
   public :: mf_clean_divb_multigrid
   }
@@ -684,6 +685,17 @@ contains
     logical :: buffer
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)
+
+    ! extrapolate current for the outmost layer, 
+    ! because extrapolation of B at boundaries introduces artificial current
+{
+    if(block%is_physical_boundary(2*^D-1)) then
+      current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+    end if
+    if(block%is_physical_boundary(2*^D)) then
+      current(ixOmax^D^D%ixO^S,:)=current(ixOmax^D-1^D%ixO^S,:)
+    end if
+\}
     w(ixI^S,mom(:))=0.d0
     ! calculate Lorentz force
     do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
@@ -708,7 +720,7 @@ contains
     endif
     ! frictional coefficient
     where(tmp(ixO^S)/=0.d0)
-      tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu*qdt)
+      tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
     if(slab_uniform) then
@@ -716,24 +728,16 @@ contains
       ! decay frictional velocity near solar surface
       decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
       do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhm**2*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
       ! decay frictional velocity near solar surface
       decay(ixO^S)=1.d0-exp(-x(ixO^S,1)/mf_decay_scale)
       do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhms(ixO^S)**2*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+        w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     end if
-    {
-    if(block%is_physical_boundary(2*^D-1)) then
-      w(ixOmin^D^D%ixO^S,mom(:))=0.d0
-    end if
-    if(block%is_physical_boundary(2*^D)) then
-      w(ixOmax^D^D%ixO^S,mom(:))=0.d0
-    end if
-    \}
 
   end subroutine frictional_velocity
 
@@ -2551,5 +2555,211 @@ contains
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
 
   end subroutine b_from_vector_potential
+
+  subroutine record_force_free_metrics()
+    use mod_global_parameters
+
+    double precision :: sum_jbb_ipe, sum_j_ipe, sum_l_ipe, f_i_ipe, volume_pe
+    double precision :: sum_jbb, sum_j, sum_l, f_i, volume, cw_sin_theta
+    integer :: iigrid, igrid, ix^D
+    integer :: amode, istatus(MPI_STATUS_SIZE)
+    integer, save :: fhmf
+    character(len=800) :: filename,filehead
+    character(len=800) :: line,datastr
+    logical :: patchwi(ixG^T)
+    logical, save :: logmfopened=.false.
+
+    sum_jbb_ipe = 0.d0
+    sum_j_ipe = 0.d0
+    sum_l_ipe = 0.d0
+    f_i_ipe = 0.d0
+    volume_pe=0.d0
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      block=>ps(igrid)
+      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+      call mask_inner(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,patchwi,volume_pe)
+      sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+        ps(igrid)%x,1,patchwi)
+      sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+        ps(igrid)%x,2,patchwi)
+      f_i_ipe=f_i_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+        ps(igrid)%x,3,patchwi)
+      sum_l_ipe   = sum_l_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
+        ps(igrid)%x,4,patchwi)
+    end do
+    call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,&
+       MPI_SUM,icomm,ierrmpi)
+    call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+       icomm,ierrmpi)
+    call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+       icomm,ierrmpi)
+    call MPI_ALLREDUCE(sum_l_ipe,sum_l,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+       icomm,ierrmpi)
+    call MPI_ALLREDUCE(volume_pe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+       icomm,ierrmpi)
+    ! current- and volume-weighted average of the sine of the angle
+    ! between the magnetic field B and the current density J
+    cw_sin_theta = sum_jbb/sum_j
+    ! volume-weighted average of the absolute value of the fractional
+    ! magnetic flux change
+    f_i = f_i/volume
+    sum_j=sum_j/volume
+    sum_l=sum_l/volume
+
+    if(mype==0) then
+      if(.not.logmfopened) then
+        ! generate filename
+        write(filename,"(a,a)") TRIM(base_filename), "_mf_metrics.csv"
+
+        ! Delete the log when not doing a restart run
+        if (restart_from_file == undefined) then
+           open(unit=20,file=trim(filename),status='replace')
+           close(20, status='delete')
+        end if
+
+        amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+        amode=ior(amode,MPI_MODE_APPEND)
+        call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
+        logmfopened=.true.
+        filehead="  it,  time,  <CW sin theta>,  <Current>,  <Lorenz force>,  <f_i>"
+        if (restart_from_file == undefined) then
+          call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
+                              MPI_CHARACTER,istatus,ierrmpi)
+          call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,istatus,ierrmpi)
+        end if
+      end if
+      line=''
+      write(datastr,'(i6,a)') it,','
+      line=trim(line)//trim(datastr)
+      write(datastr,'(es13.6,a)') global_time,','
+      line=trim(line)//trim(datastr)
+      write(datastr,'(es13.6,a)') cw_sin_theta,','
+      line=trim(line)//trim(datastr)
+      write(datastr,'(es13.6,a)') sum_j,','
+      line=trim(line)//trim(datastr)
+      write(datastr,'(es13.6,a)') sum_l,','
+      line=trim(line)//trim(datastr)
+      write(datastr,'(es13.6)') f_i
+      line=trim(line)//trim(datastr)//new_line('A')
+      call MPI_FILE_WRITE(fhmf,line,len_trim(line),MPI_CHARACTER,istatus,ierrmpi)
+      if(.not.time_advance) then
+        call MPI_FILE_CLOSE(fhmf,ierrmpi)
+        logmfopened=.false.
+      end if
+    end if
+
+  end subroutine record_force_free_metrics
+
+  subroutine mask_inner(ixI^L,ixO^L,w,x,patchwi,volume_pe)
+    use mod_global_parameters
+
+    integer, intent(in)         :: ixI^L,ixO^L
+    double precision, intent(in):: w(ixI^S,nw),x(ixI^S,1:ndim)
+    double precision, intent(inout) :: volume_pe
+    logical, intent(out)        :: patchwi(ixI^S)
+
+    double precision            :: xO^L
+    integer                     :: ix^D
+
+    {xOmin^D = xprobmin^D + 0.05d0*(xprobmax^D-xprobmin^D)\}
+    {xOmax^D = xprobmax^D - 0.05d0*(xprobmax^D-xprobmin^D)\}
+    if(slab) then
+      xOmin^ND = xprobmin^ND
+    else
+      xOmin1 = xprobmin1
+    end if
+
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if({ x(ix^DD,^D) > xOmin^D .and. x(ix^DD,^D) < xOmax^D | .and. }) then
+          patchwi(ix^D)=.true.
+          volume_pe=volume_pe+block%dvolume(ix^D)
+        else
+          patchwi(ix^D)=.false.
+        endif
+    {end do\}
+
+  end subroutine mask_inner
+
+  function integral_grid_mf(ixI^L,ixO^L,w,x,iw,patchwi)
+    use mod_global_parameters
+
+    integer, intent(in)                :: ixI^L,ixO^L,iw
+    double precision, intent(in)       :: x(ixI^S,1:ndim)
+    double precision                   :: w(ixI^S,nw+nwauxio)
+    logical, intent(in) :: patchwi(ixI^S)
+
+    double precision, dimension(ixI^S,1:ndir) :: bvec,qvec,current
+    double precision :: integral_grid_mf,tmp(ixI^S),dsurface(ixO^S)
+    integer :: ix^D,idirmin,idir,jdir,kdir,idims,hxO^L
+
+    integral_grid_mf=0.d0
+    select case(iw)
+     case(1)
+      ! Sum(|JxB|/|B|*dvolume)
+      if(B0field) then
+        bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
+      else
+        bvec(ixI^S,:)=w(ixI^S,mag(:))
+      endif
+      call get_current(w,ixI^L,ixO^L,idirmin,current)
+      ! calculate Lorentz force
+      qvec(ixO^S,1:ndir)=zero
+      do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+         if(lvc(idir,jdir,kdir)/=0)then
+            tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
+            if(lvc(idir,jdir,kdir)==1)then
+               qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
+            else
+               qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
+            endif
+         endif
+      enddo; enddo; enddo
+
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+sqrt(sum(qvec(ix^D,:)**2)/&
+                           sum(bvec(ix^D,:)**2))*block%dvolume(ix^D)
+      {end do\}
+     case(2)
+      ! Sum(|J|*dvolume)
+      call get_current(w,ixI^L,ixO^L,idirmin,current)
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+sqrt(sum(current(ix^D,:)**2))*&
+                           block%dvolume(ix^D)
+      {end do\}
+     case(3)
+      ! f_i solenoidal property of B: (dvolume |div B|)/(dsurface |B|)
+      ! Sum(f_i*dvolume)
+      call get_normalized_divb(w,ixI^L,ixO^L,tmp)
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+tmp(ix^D)*block%dvolume(ix^D)
+      {end do\}
+     case(4)
+      ! Sum(|JxB|*dvolume)
+      if(B0field) then
+        bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
+      else
+        bvec(ixI^S,:)=w(ixI^S,mag(:))
+      endif
+      call get_current(w,ixI^L,ixO^L,idirmin,current)
+      ! calculate Lorentz force
+      qvec(ixO^S,1:ndir)=zero
+      do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+         if(lvc(idir,jdir,kdir)/=0)then
+            tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
+            if(lvc(idir,jdir,kdir)==1)then
+               qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
+            else
+               qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
+            endif
+         endif
+      enddo; enddo; enddo
+
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+&
+                            sqrt(sum(qvec(ix^D,:)**2))*block%dvolume(ix^D)
+      {end do\}
+    end select
+    return
+  end function integral_grid_mf
 
 end module mod_mf_phys

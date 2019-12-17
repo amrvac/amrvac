@@ -129,14 +129,11 @@ program amrvac
 
   end if
 
-
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
      write(*,'(a,f17.3,a)')' Startup phase took : ',MPI_WTIME()-time0,' sec'
      print*,'-------------------------------------------------------------------------------'
   end if
-
-  time_advance=.true.
 
   ! an interface to allow user to do special things before the main loop
   if (associated(usr_before_main_loop)) &
@@ -150,8 +147,6 @@ program amrvac
      write(*,'(a,f17.3,a)')' Finished AMRVAC in : ',MPI_WTIME()-time0,' sec'
      print*,'-------------------------------------------------------------------------------'
   end if
-
-  time_advance=.false.
 
   call comm_finalize
 
@@ -203,6 +198,8 @@ contains
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
     dt_loop=0.d0
+
+    time_advance=.true.
 
     time_evol : do
 
@@ -324,6 +321,8 @@ contains
        dt_loop=MPI_WTIME()-time_before_advance
     end do time_evol
 
+    time_advance=.false.
+
     timeloop=MPI_WTIME()-timeloop0
 
     if (mype==0) then
@@ -374,7 +373,7 @@ contains
 
     integer:: ifile
     logical:: oksave
-    !-----------------------------------------------------------------------------
+
     oksave=.false.
     if (it==itsave(isaveit(ifile),ifile)) then
        oksave=.true.
