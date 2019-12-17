@@ -126,7 +126,7 @@ contains
     tmpit=it
     tmf=global_time
     i=it
-    if(snapshotini==-1 .and. i==0) then
+    if(snapshotini==0 .and. i==0) then
       call saveamrfile(1)
       call saveamrfile(2)
     end if
@@ -139,7 +139,7 @@ contains
     type_send_p=>type_send_p_p1
     type_recv_p=>type_recv_p_p1
     ! create bc mpi datatype for ghostcells update
-    call create_bc_mpi_datatype(mag(1)-1,ndir)
+    call create_bc_mpi_datatype(mag(1),ndir)
     ! point bc mpi datatype to partial type for velocity field
     type_send_srl=>type_send_srl_p2
     type_recv_srl=>type_recv_srl_p2
@@ -148,7 +148,7 @@ contains
     type_send_p=>type_send_p_p2
     type_recv_p=>type_recv_p_p2
     ! create bc mpi datatype for ghostcells update
-    call create_bc_mpi_datatype(mom(1)-1,ndir)
+    call create_bc_mpi_datatype(mom(1),ndir)
     ! convert conservative variables to primitive ones which are used during MF
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        call phys_to_primitive(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
@@ -264,6 +264,7 @@ contains
         sum_l_ipe = 0.d0
         f_i_ipe = 0.d0
         volumepe=0.d0
+        dsurface=zero
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           block=>ps(igrid)
           dvolume(ixM^T)=block%dvolume(ixM^T)
@@ -300,7 +301,6 @@ contains
         f_i = f_i/volume
         sum_j=sum_j/volume
         sum_l=sum_l/volume
-
       end subroutine metrics
 
       subroutine mask_inner(ixI^L,ixO^L,w,x)
@@ -372,7 +372,7 @@ contains
 
         integer, intent(in)                :: ixI^L,ixO^L,iw
         double precision, intent(in)       :: x(ixI^S,1:ndim)
-        double precision                   :: w(ixI^S,nw+nwauxio)
+        double precision, intent(in)       :: w(ixI^S,nw+nwauxio)
         logical, intent(in) :: patchwi(ixI^S)
 
         double precision, dimension(ixI^S,1:ndir) :: bvec,qvec,current
@@ -1066,6 +1066,10 @@ contains
     select case (typelimiter)
     case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
+    case (limiter_weno5)
+       call WENO5limiterL(ixI^L,iL^L,idims,w,wLC,1)
+    case (limiter_wenoz5)
+       call WENO5limiterL(ixI^L,iL^L,idims,w,wLC,2)
     case default
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
@@ -1103,6 +1107,10 @@ contains
     select case (typelimiter)
     case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
+    case (limiter_weno5)
+       call WENO5limiterR(ixI^L,iL^L,idims,w,wRC,1)
+    case (limiter_wenoz5)
+       call WENO5limiterR(ixI^L,iL^L,idims,w,wRC,2)
     case default
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);

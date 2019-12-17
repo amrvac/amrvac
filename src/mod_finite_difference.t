@@ -138,6 +138,10 @@ contains
     select case (typelimiter)
     case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
+    case (limiter_weno5)
+       call WENO5limiterL(ixI^L,iL^L,idims,w,wLC,1)
+    case (limiter_wenoz5)
+       call WENO5limiterL(ixI^L,iL^L,idims,w,wLC,2)
     case default 
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
@@ -176,6 +180,10 @@ contains
     select case (typelimiter)
     case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
+    case (limiter_weno5)
+       call WENO5limiterR(ixI^L,iL^L,idims,w,wRC,1)
+    case (limiter_wenoz5)
+       call WENO5limiterR(ixI^L,iL^L,idims,w,wRC,2)
     case default 
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
