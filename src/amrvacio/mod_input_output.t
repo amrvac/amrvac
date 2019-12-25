@@ -732,10 +732,10 @@ contains
     end if
     }
 
-    ! psi, tracers take the same boundary type as density
+    ! psi, tracers take the same boundary type as the first variable
     if (nwfluxbc<nwflux) then
       do iw = nwfluxbc+1, nwflux
-        typeboundary(iw,:) = typeboundary(iw_rho, :)
+        typeboundary(iw,:) = typeboundary(1, :)
       end do
     end if
 

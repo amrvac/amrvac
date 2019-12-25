@@ -42,7 +42,7 @@ module mod_mf_phys
   character(len=std_len), public, protected :: typedivbfix  = 'ct'
 
   !> Method type of constrained transport
-  character(len=std_len), public, protected :: type_ct  = 'uct_contact'
+  character(len=std_len), public, protected :: type_ct  = 'average'
 
   !> Whether divB is computed with a fourth order approximation
   logical, public, protected :: mf_divb_4thorder = .false.
@@ -446,6 +446,7 @@ contains
       case('uct_contact')
         if(.not.allocated(vcts%vnorm)) allocate(vcts%vnorm(ixI^S,1:ndim))
         ! get average normal velocity at cell faces
+        vcts%vnorm=0.d0
         vcts%vnorm(ixO^S,idim)=0.5d0*(wLp(ixO^S,mom(idim))+wRp(ixO^S,mom(idim)))
       case('uct_hll')
         if(.not.allocated(vcts%vbarC)) then

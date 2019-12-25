@@ -1,0 +1,13 @@
+ &filelist
+        base_filename  = '_4step_cd4_cada'
+ /
+
+ &methodlist
+        time_integrator=  'fourstep'
+        flux_scheme =    20*'cd4'
+        limiter=  20*'cada3'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

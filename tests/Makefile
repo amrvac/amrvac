@@ -33,19 +33,22 @@ multigrid/field_loop_2d multigrid/implicit_diffusion
 
 RD_DIRS := rd/schnakenberg_2d
 
-TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS)
+MF_DIRS := mf/Mackay_bipole_Cartesian_3D
+
+TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(MF_DIRS)
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
 
-.PHONY: all rho hd mhd mg rd clean $(TEST_DIRS) $(CLEAN_TEST)
+.PHONY: all rho hd mhd mg rd mf clean $(TEST_DIRS) $(CLEAN_TEST)
 
-all: rho hd mhd mg rd
+all: rho hd mhd mg rd mf
 rho: $(RHO_DIRS)
 hd: $(HD_DIRS)
 mhd: $(MHD_DIRS)
 mg: $(MG_DIRS)
 rd: $(RD_DIRS)
+mf: $(MF_DIRS)
 
 $(TEST_DIRS):
 	@$(MAKE) -C $@ -f test.make

@@ -35,7 +35,7 @@ contains
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     logical                                                          :: transport
-    integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L, ixCR^L
+    integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L
 
     associate(wCT=>sCT%w,wnew=>snew%w)
 
@@ -50,42 +50,38 @@ contains
        block%iw0=idims
 
        ! Get fluxes for the whole grid (mesh+nghostcells)
-       {^D& ixCmin^D = ixOmin^D - nghostcells * kr(idims,^D)\}
-       {^D& ixCmax^D = ixOmax^D + nghostcells * kr(idims,^D)\}
+       {^D& ixmin^D = ixOmin^D - nghostcells * kr(idims,^D)\}
+       {^D& ixmax^D = ixOmax^D + nghostcells * kr(idims,^D)\}
 
        hxO^L=ixO^L-kr(idims,^D);
 
        if(stagger_grid) then
-          ! ct needs all transverse cells
-          ixmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+         ! ct needs all transverse cells
+         ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+         ixmax^D=ixmax^D+nghostcells-nghostcells*kr(idims,^D); ixmin^D=ixmin^D-nghostcells+nghostcells*kr(idims,^D);
        else
          ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
-         ixmax^D=ixOmax^D; ixmin^D=hxOmin^D;
+         ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
        end if
 
-       {^D& ixCRmin^D = ixCmin^D + kr(idims,^D)*phys_wider_stencil\}
-       {^D& ixCRmax^D = ixCmax^D - kr(idims,^D)*phys_wider_stencil\}
-
-       wprim=wCT
-       call phys_to_primitive(ixG^LL,ixCR^L,wprim,x)
-       call phys_get_flux(wCT,wprim,x,ixG^LL,ixCR^L,idims,fCT)
+       call phys_get_flux(wCT,wprim,x,ixG^LL,ix^L,idims,fCT)
 
        do iw=1,nwflux
           ! Lax-Friedrich splitting:
-          fp(ixCR^S,iw) = half * (fCT(ixCR^S,iw) + tvdlfeps * cmax_global * wCT(ixCR^S,iw))
-          fm(ixCR^S,iw) = half * (fCT(ixCR^S,iw) - tvdlfeps * cmax_global * wCT(ixCR^S,iw))
+          fp(ix^S,iw) = half * (fCT(ix^S,iw) + tvdlfeps * cmax_global * wCT(ix^S,iw))
+          fm(ix^S,iw) = half * (fCT(ix^S,iw) - tvdlfeps * cmax_global * wCT(ix^S,iw))
        end do ! iw loop
 
        ! now do the reconstruction of fp and fm:
-       call reconstructL(ixI^L,ix^L,idims,fp,fpL)
-       call reconstructR(ixI^L,ix^L,idims,fm,fmR)
+       call reconstructL(ixI^L,ixC^L,idims,fp,fpL)
+       call reconstructR(ixI^L,ixC^L,idims,fm,fmR)
 
-       fC(ix^S,1:nwflux,idims) = fpL(ix^S,1:nwflux) + fmR(ix^S,1:nwflux)
+       fC(ixC^S,1:nwflux,idims) = fpL(ixC^S,1:nwflux) + fmR(ixC^S,1:nwflux)
        if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
 
        if(stagger_grid) then
          ! apply limited reconstruction for left and right status at cell interfaces
-         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
+         call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
          call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 
@@ -99,8 +95,7 @@ contains
        do iw=1,nwflux
           if (slab_uniform) then
              fC(ixI^S,iw,idims) = dxinv(idims) * fC(ixI^S,iw,idims)
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-                  (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+             wnew(ixO^S,iw)=wnew(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
           else
              fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
@@ -264,8 +259,9 @@ contains
        hxO^L=ixO^L-kr(idims,^D);
 
        if(stagger_grid) then
-          ! ct needs all transverse cells
-          ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+         ! ct needs all transverse cells
+         ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+         ixmax^D=ixmax^D+nghostcells-nghostcells*kr(idims,^D); ixmin^D=ixmin^D-nghostcells+nghostcells*kr(idims,^D);
        else
          ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
          ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
