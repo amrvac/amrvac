@@ -170,8 +170,7 @@ contains
     call mf_read_params(par_files)
 
     physics_type = "mf"
-    ! set default viscosity
-    mf_nu=1.d0
+
     if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
     case ('none')
