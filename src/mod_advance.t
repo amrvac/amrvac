@@ -84,6 +84,7 @@ contains
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
+       ps1(igrid)%e_is_internal=ps(igrid)%e_is_internal
        ps1(igrid)%w=ps(igrid)%w
        if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
     end do
@@ -126,8 +127,8 @@ contains
     case ("threestep")
        ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
        call advect1(flux_scheme,one, idim^LIM,global_time,ps,global_time,ps1)
-
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps2(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps2(igrid)%w(ixG^T,1:nwflux)=0.75d0*ps(igrid)%w(ixG^T,1:nwflux)+0.25d0*&
                ps1(igrid)%w(ixG^T,1:nwflux)
           if (nw>nwflux) ps2(igrid)%w(ixG^T,nwflux+1:nw) = &
@@ -161,6 +162,7 @@ contains
 
        ! === Second step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps2(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps2(igrid)%w(ixG^T,1:nwflux)=ps1(igrid)%w(ixG^T,1:nwflux)
           if (nw>nwflux) ps2(igrid)%w(ixG^T,nwflux+1:nw) = &
                ps(igrid)%w(ixG^T,nwflux+1:nw)
@@ -170,6 +172,7 @@ contains
 
        ! === Third step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps3(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps3(igrid)%w(ixG^T,1:nwflux)=2.0d0/3.0d0 * ps(igrid)%w(ixG^T,1:nwflux) &
                + 1.0d0/3.0d0 * ps2(igrid)%w(ixG^T,1:nwflux)
           if (nw>nwflux) ps3(igrid)%w(ixG^T,nwflux+1:nw) = &
@@ -213,6 +216,7 @@ contains
 
        ! === Second step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps2(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps2(igrid)%w(ixG^T,1:nwflux)=0.444370493651235d0 * ps(igrid)%w(ixG^T,1:nwflux) &
                + 0.555629506348765d0 * ps1(igrid)%w(ixG^T,1:nwflux)
           if (nw>nwflux) ps2(igrid)%w(ixG^T,nwflux+1:nw) = ps(igrid)%w(ixG^T,nwflux+1:nw)
@@ -222,6 +226,7 @@ contains
 
        ! === Third step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps3(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps3(igrid)%w(ixG^T,1:nwflux)=0.620101851488403d0 * ps(igrid)%w(ixG^T,1:nwflux) &
                + 0.379898148511597d0 * ps2(igrid)%w(ixG^T,1:nwflux)
           if (nw>nwflux) ps3(igrid)%w(ixG^T,nwflux+1:nw) = ps(igrid)%w(ixG^T,nwflux+1:nw)
@@ -232,6 +237,7 @@ contains
 
        ! === Fourth step ===
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps4(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps4(igrid)%w(ixG^T,1:nwflux)=0.178079954393132d0 * ps(igrid)%w(ixG^T,1:nwflux) &
                + 0.821920045606868d0 * ps3(igrid)%w(ixG^T,1:nwflux)
           if (nw>nwflux) ps4(igrid)%w(ixG^T,nwflux+1:nw) = ps(igrid)%w(ixG^T,nwflux+1:nw)
@@ -271,11 +277,13 @@ contains
        ! classical RK4 four step scheme
        call advect1(flux_scheme,0.5d0, idim^LIM,global_time,ps,global_time,ps1)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps2(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps2(igrid)%w(ixG^T,1:nwflux)=ps(igrid)%w(ixG^T,1:nwflux)
           if(stagger_grid) ps2(igrid)%ws=ps(igrid)%ws
        end do
        call advect1(flux_scheme,0.5d0, idim^LIM,global_time+dt/2d0,ps1,global_time,ps2)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps3(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps3(igrid)%w(ixG^T,1:nwflux)=ps(igrid)%w(ixG^T,1:nwflux)
           if(stagger_grid) ps3(igrid)%ws=ps(igrid)%ws
        end do
@@ -304,6 +312,7 @@ contains
        ! four step scheme, variant Hans De Sterck
        call advect1(flux_scheme,0.12d0, idim^LIM,global_time,ps,global_time,ps1)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps2(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps2(igrid)%w(ixG^T,1:nwflux)=ps(igrid)%w(ixG^T,1:nwflux)
           if(stagger_grid) ps2(igrid)%ws=ps(igrid)%ws
        end do
@@ -320,6 +329,7 @@ contains
        ! four step scheme, variant jameson
        call advect1(flux_scheme,0.25d0, idim^LIM,global_time,ps,global_time,ps1)
        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ps2(igrid)%e_is_internal=ps(igrid)%e_is_internal
           ps2(igrid)%w(ixG^T,1:nwflux)=ps(igrid)%w(ixG^T,1:nwflux)
           if(stagger_grid) ps2(igrid)%ws=ps(igrid)%ws
        end do
@@ -371,7 +381,6 @@ contains
 
        call process1_grid(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
             psa(igrid),qt,psb(igrid),pso(igrid))
-
     end do
     !$OMP END PARALLEL DO
 
@@ -462,7 +471,6 @@ contains
     integer :: ixO^L
 
     ixO^L=ixI^L^LSUBnghostcells;
-
     select case (method)
     case ('tvdmu','tvdlf','hll','hllc','hllcd','hlld')
        call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D,x)
