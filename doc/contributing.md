@@ -1,4 +1,4 @@
-# Contributing to MPI-AMRVAC
+# Contributing to MPI-AMRVAC and its documentation
 
 [TOC]
 
