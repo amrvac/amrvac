@@ -814,11 +814,23 @@ contains
       nghostcells=3
     end if
  
+    if(any(limiter(1:nlevelshi)=='weno5nm')) then
+      nghostcells=3
+    end if
+
     if(any(limiter(1:nlevelshi)=='wenoz5')) then
       nghostcells=3
     end if
  
+    if(any(limiter(1:nlevelshi)=='wenoz5nm')) then
+      nghostcells=3
+    end if
+
     if(any(limiter(1:nlevelshi)=='wenozp5')) then
+      nghostcells=3
+    end if
+
+    if(any(limiter(1:nlevelshi)=='wenozp5nm')) then
       nghostcells=3
     end if
 

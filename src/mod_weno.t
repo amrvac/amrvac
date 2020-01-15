@@ -1,23 +1,27 @@
 module mod_weno
   ! All kinds of (W)ENO schemes
   !
-  ! 2019.9.19 WENO(-JS)5 is transplant from the BHAC code by nanami;
-  ! 2019.9.20 WENO3 is coded up by nanami;
-  ! 2019.9.21 WENO-Z5 is coded up by nanami;
-  ! 2019.9.22 WENO-Z+5 is transplant from the BHAC code by nanami;
-  ! 2019.10.30 WENO(-JS)7 is coded up by nanami;
-  ! 2019.10.31 MPWENO7 is coded up by nanami;
-  ! 2019.11.1 exENO7 is code up by nanami;
-  ! 2019.11.7 clean up the code, comment out the interpolation variation.
-  ! 2019.12.9 add WENO-YC3.
+  ! 2019.9.19 WENO(-JS)5 transplant from the BHAC code;
+  ! 2019.9.20 WENO3;
+  ! 2019.9.21 WENO-Z5;
+  ! 2019.9.22 WENO-Z+5 transplant from the BHAC code by;
+  ! 2019.10.30 WENO(-JS)7;
+  ! 2019.10.31 MPWENO7;
+  ! 2019.11.1 exENO7;
+  ! 2019.11.7 clean up the code, comment out the interpolation variation;
+  ! 2019.12.9 WENO-YC3;
+  ! 2020.1.15 new WENO5 limiter WENO5NM for stretched grid.
    
   implicit none
   private
 
   public :: WENO3limiter
   public :: WENO5limiter
+  public :: WENO5NMlimiter
   public :: WENO5limiterL
+  public :: WENO5NMlimiterL
   public :: WENO5limiterR
+  public :: WENO5NMlimiterR
   public :: WENO7limiter
   public :: exENO7limiter
 
@@ -125,7 +129,7 @@ contains
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i, iw
+    integer                         :: i
     double precision, parameter     :: weno_eps_machine = 1.0d-18
     double precision                :: lambda
     double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
@@ -236,6 +240,130 @@ contains
 
   end subroutine WENO5limiter
 
+  subroutine WENO5NMlimiter(ixI^L,iL^L,idims,dxdim,w,wLC,wRC,var)
+    use mod_global_parameters
+  
+    integer, intent(in) :: ixI^L,iL^L,idims,var
+    double precision, intent(in) :: dxdim
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
+    !> local
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
+    double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
+    double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
+    double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
+    double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
+    double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
+    double precision                :: wc(ixI^S,1:nw), wd(ixI^S,1:nw), we(ixI^S,1:nw)
+    integer                         :: i,j
+    double precision, parameter     :: weno_eps_machine = 1.0d-18
+    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
+    double precision                :: lambda(ixI^S)
+
+    iLm^L=iL^L-kr(idims,^D);
+    iLmm^L=iLm^L-kr(idims,^D);
+    iLp^L=iL^L+kr(idims,^D);
+    iLpp^L=iLp^L+kr(idims,^D);
+    iLppp^L=iLpp^L+kr(idims,^D);
+    lambda=block%dx(iL^S,idims)**weno_dx_exp
+    beta_coeff(1:2) = (/ 1.0833333333333333d0, 0.25d0/)
+    d_array(1:3) = (/ 1.0d0/10.0d0, 3.0d0/5.0d0, 3.0d0/10.0d0 /)
+    u1_coeff(1:3) = (/ -2.d0/3.d0, -1.d0/3.d0, 2.d0 /)
+    u2_coeff(1:3) = (/ -1.d0/3.d0, 2.d0/3.d0, 2.d0/3.d0 /)
+    u3_coeff(1:3) = (/ 2.d0/3.d0, 2.d0/3.d0, -1.d0/3.d0 /)
+    do i = 1, nwflux
+      wc(iL^S,i) = (block%dx(iLp^S,idims) * w(iL^S,i) + block%dx(iL^S,idims) * w(iLp^S,i)) / &
+                   (block%dx(iLp^S,idims) + block%dx(iL^S,idims))
+      wd(iL^S,i) = ((2.d0 * block%dx(iLm^S,idims) + block%dx(iLmm^S,idims)) * w(iLm^S,i) - block%dx(iLm^S,idims) * w(iLmm^S,i)) / &
+                   (block%dx(iLmm^S,idims) + block%dx(iLm^S,idims))
+      we(iL^S,i) = ((2.d0 * block%dx(iLpp^S,idims) + block%dx(iLppp^S,idims)) * w(iLpp^S,i) - block%dx(iLpp^S,idims) * w(iLppp^S,i)) / &
+                   (block%dx(iLppp^S,idims) + block%dx(iLpp^S,idims))
+    enddo
+    !> left side
+    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * wd(iL^S,1:nwflux)   + u1_coeff(2) * wc(iLm^S,1:nwflux)+ u1_coeff(3) * w(iL^S,1:nwflux)
+    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLm^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)  + u2_coeff(3) * wc(iL^S,1:nwflux)
+    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux) + u3_coeff(3) * wc(iLp^S,1:nwflux)  
+  
+    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (2.d0 * w(iL^S,1:nwflux) - wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLm^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (wc(iLm^S,1:nwflux) - wc(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + wc(iLp^S,1:nwflux))**2
+    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    select case(var)
+    ! case1 for wenojs, case2 for wenoz, case3 for wenoz+ 
+    case(1)
+      do i = 1,3
+         alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
+         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(2)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i = 1,3
+        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
+                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(3)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i=1,3
+        do j=1,nwflux
+          tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
+          alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
+          alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
+        end do
+      end do
+    end select
+    flux(iL^S,1:nwflux) = 0.0d0
+    do i = 1,3
+      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+    end do
+    !> left value at right interface
+    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    !> right side
+    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * we(iL^S,1:nwflux)  + u1_coeff(2) * wc(iLp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
+    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLp^S,1:nwflux) + u2_coeff(2) * w(iLp^S,1:nwflux) + u2_coeff(3) * wc(iL^S,1:nwflux)
+    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)  + u3_coeff(2) * w(iL^S,1:nwflux)  + u3_coeff(3) * wc(iLm^S,1:nwflux)  
+    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (2.d0 * w(iLp^S,1:nwflux) - wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLp^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
+         + beta_coeff(2) * (wc(iLp^S,1:nwflux) - wc(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + wc(iLm^S,1:nwflux))**2
+    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    select case(var)
+    case(1)
+      do i = 1,3
+        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
+        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(2) 
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i = 1,3
+        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
+                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(3)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i = 1,3
+        do j = 1,nwflux
+          tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
+          alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
+          alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
+        end do
+      end do
+    end select
+    flux(iL^S,1:nwflux) = 0.0d0
+    do i = 1,3
+      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+    end do
+    !> right value at right interface
+    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+  end subroutine WENO5NMlimiter
+
   subroutine WENO5limiterL(ixI^L,iL^L,idims,w,wLC,var)
     use mod_global_parameters
   
@@ -250,13 +378,16 @@ contains
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i, iw
+    integer                         :: i,j
+    double precision                :: lambda(ixI^S)
+    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
     double precision, parameter     :: weno_eps_machine = 1.0d-18
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
     iLp^L=iL^L+kr(idims,^D);
     iLpp^L=iLp^L+kr(idims,^D);
+    lambda=block%dx(iL^S,idims)**weno_dx_exp
     beta_coeff(1:2) = (/ 1.0833333333333333d0, 0.25d0/)
 !   reconstruction variation
     d_array(1:3) = (/ 1.0d0/10.0d0, 3.0d0/5.0d0, 3.0d0/10.0d0 /)
@@ -296,8 +427,16 @@ contains
                                       (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
       end do
+    case(3)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i=1,3
+        do j=1,nwflux
+          tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
+          alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
+          alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
+        end do
+      end do
     end select
-
     flux(iL^S,1:nwflux) = 0.0d0
     do i = 1,3
       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
@@ -322,13 +461,16 @@ contains
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i, iw
+    integer                         :: i,j
+    double precision                :: lambda(ixI^S)
+    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
     double precision, parameter     :: weno_eps_machine = 1.0d-18
 
     iLm^L=iL^L-kr(idims,^D);
     iLp^L=iL^L+kr(idims,^D);
     iLpp^L=iLp^L+kr(idims,^D);
     iLppp^L=iLpp^L+kr(idims,^D);
+    lambda=block%dx(iL^S,idims)**weno_dx_exp
     beta_coeff(1:2) = (/ 1.0833333333333333d0, 0.25d0/)
 !   reconstruction variation
     d_array(1:3) = (/ 1.0d0/10.0d0, 3.0d0/5.0d0, 3.0d0/10.0d0 /)
@@ -367,6 +509,15 @@ contains
                                       (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
       end do
+    case(3)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i = 1,3
+        do j = 1,nwflux
+          tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
+          alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
+          alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
+        end do
+      end do
     end select
     flux(iL^S,1:nwflux) = 0.0d0
     do i = 1,3
@@ -377,6 +528,162 @@ contains
     wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
 
   end subroutine WENO5limiterR
+
+  subroutine WENO5NMlimiterL(ixI^L,iL^L,idims,w,wLC,var)
+    use mod_global_parameters
+
+    integer, intent(in) :: ixI^L,iL^L,idims,var
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(inout) :: wLC(ixI^S,1:nw) 
+    !> local
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L
+    double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
+    double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
+    double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
+    double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
+    double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
+    double precision                :: wc(ixI^S,1:nw), wd(ixI^S,1:nw)
+    integer                         :: i,j
+    double precision, parameter     :: weno_eps_machine = 1.0d-18
+    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
+    double precision                :: lambda(ixI^S)
+
+    iLm^L=iL^L-kr(idims,^D);
+    iLmm^L=iLm^L-kr(idims,^D);
+    iLp^L=iL^L+kr(idims,^D);
+    iLpp^L=iLp^L+kr(idims,^D);
+    lambda=block%dx(iL^S,idims)**weno_dx_exp
+    beta_coeff(1:2) = (/ 1.0833333333333333d0, 0.25d0/)
+    d_array(1:3) = (/ 1.0d0/10.0d0, 3.0d0/5.0d0, 3.0d0/10.0d0 /)
+    u1_coeff(1:3) = (/ -2.d0/3.d0, -1.d0/3.d0, 2.d0 /)
+    u2_coeff(1:3) = (/ -1.d0/3.d0, 2.d0/3.d0, 2.d0/3.d0 /)
+    u3_coeff(1:3) = (/ 2.d0/3.d0, 2.d0/3.d0, -1.d0/3.d0 /)
+    do i = 1, nwflux
+      wc(iL^S,i) = (block%dx(iLp^S,idims) * w(iL^S,i) + block%dx(iL^S,idims) * w(iLp^S,i)) / &
+                   (block%dx(iLp^S,idims) + block%dx(iL^S,idims))
+      wd(iL^S,i) = ((2.d0 * block%dx(iLm^S,idims) + block%dx(iLmm^S,idims)) * w(iLm^S,i) - block%dx(iLm^S,idims) * w(iLmm^S,i)) / &
+                   (block%dx(iLmm^S,idims) + block%dx(iLm^S,idims))
+    enddo
+    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * wd(iL^S,1:nwflux)   + u1_coeff(2) * wc(iLm^S,1:nwflux)+ u1_coeff(3) * w(iL^S,1:nwflux)
+    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLm^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)  + u2_coeff(3) * wc(iL^S,1:nwflux)
+    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux) + u3_coeff(3) * wc(iLp^S,1:nwflux)  
+    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (2.d0 * w(iL^S,1:nwflux) - wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLm^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (wc(iLm^S,1:nwflux) - wc(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + wc(iLp^S,1:nwflux))**2
+    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    select case(var)
+    ! case1 for wenojs, case2 for wenoz, case3 for wenoz+ 
+    case(1)
+      do i = 1,3
+         alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
+         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(2)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i = 1,3
+        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
+                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(3)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i=1,3
+        do j=1,nwflux
+          tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
+          alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
+          alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
+        end do
+      end do
+    end select
+    flux(iL^S,1:nwflux) = 0.0d0
+    do i = 1,3
+      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+    end do
+    !> left value at right interface
+    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+  end subroutine WENO5NMlimiterL
+
+  subroutine WENO5NMlimiterR(ixI^L,iL^L,idims,w,wRC,var)
+    use mod_global_parameters
+  
+    integer, intent(in) :: ixI^L,iL^L,idims,var
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(inout) :: wRC(ixI^S,1:nw)
+    !> local
+    integer                         :: iLm^L,iLp^L,iLpp^L,iLppp^L
+    double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
+    double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
+    double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
+    double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
+    double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
+    double precision                :: wc(ixI^S,1:nw), we(ixI^S,1:nw)
+    integer                         :: i,j
+    double precision, parameter     :: weno_eps_machine = 1.0d-18
+    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
+    double precision                :: lambda(ixI^S)
+
+    iLm^L=iL^L-kr(idims,^D);
+    iLp^L=iL^L+kr(idims,^D);
+    iLpp^L=iLp^L+kr(idims,^D);
+    iLppp^L=iLpp^L+kr(idims,^D);
+    lambda=block%dx(iL^S,idims)**weno_dx_exp
+    beta_coeff(1:2) = (/ 1.0833333333333333d0, 0.25d0/)
+    d_array(1:3) = (/ 1.0d0/10.0d0, 3.0d0/5.0d0, 3.0d0/10.0d0 /)
+    u1_coeff(1:3) = (/ -2.d0/3.d0, -1.d0/3.d0, 2.d0 /)
+    u2_coeff(1:3) = (/ -1.d0/3.d0, 2.d0/3.d0, 2.d0/3.d0 /)
+    u3_coeff(1:3) = (/ 2.d0/3.d0, 2.d0/3.d0, -1.d0/3.d0 /)
+    do i = 1, nwflux
+      wc(iL^S,i) = (block%dx(iLp^S,idims) * w(iL^S,i) + block%dx(iL^S,idims) * w(iLp^S,i)) / &
+                   (block%dx(iLp^S,idims) + block%dx(iL^S,idims))
+      we(iL^S,i) = ((2.d0 * block%dx(iLpp^S,idims) + block%dx(iLppp^S,idims)) * w(iLpp^S,i) - block%dx(iLpp^S,idims) * w(iLppp^S,i)) / &
+                   (block%dx(iLppp^S,idims) + block%dx(iLpp^S,idims))
+    enddo
+    !> right side
+    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * we(iL^S,1:nwflux)  + u1_coeff(2) * wc(iLp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
+    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLp^S,1:nwflux) + u2_coeff(2) * w(iLp^S,1:nwflux) + u2_coeff(3) * wc(iL^S,1:nwflux)
+    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)  + u3_coeff(2) * w(iL^S,1:nwflux)  + u3_coeff(3) * wc(iLm^S,1:nwflux)  
+    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (2.d0 * w(iLp^S,1:nwflux) - wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLp^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
+         + beta_coeff(2) * (wc(iLp^S,1:nwflux) - wc(iL^S,1:nwflux))**2
+    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + wc(iLm^S,1:nwflux))**2
+    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    select case(var)
+    case(1)
+      do i = 1,3
+        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
+        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(2) 
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i = 1,3
+        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
+                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+      end do
+    case(3)
+      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      do i = 1,3
+        do j = 1,nwflux
+          tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
+          alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
+          alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
+        end do
+      end do
+    end select
+    flux(iL^S,1:nwflux) = 0.0d0
+    do i = 1,3
+      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+    end do
+    !> right value at right interface
+    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+  end subroutine WENO5NMlimiterR
 
   subroutine WENO7limiter(ixI^L,iL^L,idims,w,wLC,wRC,var)
     use mod_global_parameters
@@ -394,7 +701,7 @@ contains
     double precision, dimension(ixI^S)         :: a, b, c, tmp, tmp2, tmp3
     double precision, dimension(ixI^S,1:nw)    :: alpha_sum, d, dm4
     double precision, dimension(ixI^S,1:nw)    :: flux, flux_min, flux_max, flux_ul, flux_md, flux_lc
-    integer                         :: i, iw
+    integer                         :: i,iw
     double precision, parameter     :: mpalpha = 2.d0, mpbeta = 4.d0
     double precision, parameter     :: weno_eps_machine = 1.0d-18
 

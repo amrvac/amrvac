@@ -42,9 +42,11 @@ In the current version, limiters could be chosen from the following 20 presets.
 
 'wenozp5': fifth-order WENO-Z+ scheme, see Reference [22] for details. An improved version of WENO-Z.
 
-'mpweno7': seventh-order MP-WENO scheme, see Reference [23]. It is basically a combination of MP5 and WENO scheme to preserve the MP property in the results of, especially high-order WENO schemes, namely seventh-order of even higher. The advantage might be that it is more stable than WENO7. However, it shows two drawbacks in the tests, one is this shceme is time-comsuming, and another is the result is more diffusive, which is a straighforward result from the design of this scheme. Maybe efficiency could be improved here, but anyway, if WENO5 or WENO7 could be used properly in your case, MPWENO7 is not recommeneded.
+'weno5nm', 'wenoz5nm', 'wenozp5nm': Theoretically, all the limiters mentioned above are designed in uniform grids. While in stretched grid, they are not strictly correct so that it cannot be as accurate as what they claimed to be. While these limiters are specially designed to deal with stretched Cartesian grids. See Reference[23] for details.
 
-'exeno7': seventh-order extended ENO scheme, also a variation of ENO scheme. It is based on the idea of Targeted ENO or TENO scheme which uses the smoothness measurement in the WENO scheme as a shock detector. But right now the this scheme is only used for tests because the choice of the crucial parameter C_T is still under testing. See Reference [24] for details.
+'mpweno7': seventh-order MP-WENO scheme, see Reference [24]. It is basically a combination of MP5 and WENO scheme to preserve the MP property in the results of, especially high-order WENO schemes, namely seventh-order of even higher. The advantage might be that it is more stable than WENO7. However, it shows two drawbacks in the tests, one is this shceme is time-comsuming, and another is the result is more diffusive, which is a straighforward result from the design of this scheme. Maybe efficiency could be improved here, but anyway, if WENO5 or WENO7 could be used properly in your case, MPWENO7 is not recommeneded.
+
+'exeno7': seventh-order extended ENO scheme, also a variation of ENO scheme. It is based on the idea of Targeted ENO or TENO scheme which uses the smoothness measurement in the WENO scheme as a shock detector. But right now the this scheme is only used for tests because the choice of the crucial parameter C_T is still under testing. See Reference [25] for details.
 
 References
 1. Yee, H., 1989, A Class of High-Resolution Explicit and Implicit Shock-Capturing Methods.
@@ -69,5 +71,6 @@ References
 20. Yamaleev, N., 2009, Third-Order Energy Stable WENO Scheme.
 21. Arandiga, F., 2014, Weights Design for Maximal Order WENO Schemes.
 22. Acker, F., 2016, An Improved WENO-Z Scheme.
-23. Balsara, D., 2000, Monotonicity Preserving Weighted Essentially Non-Oscillatory Scheme with Increasingly High Order of Accuracy.
-24. Xu, C., 2019, Arbitrary high-order extended ENO schemes for hyperbolic conservation laws.
+23. Huang, W., 2018, A Simple Algorithm to Improve the Performance of the WENO Scheme on Non-uniform Grids.
+24. Balsara, D., 2000, Monotonicity Preserving Weighted Essentially Non-Oscillatory Scheme with Increasingly High Order of Accuracy.
+25. Xu, C., 2019, Arbitrary High-order Extended ENO Schemes for Hyperbolic Conservation Laws.

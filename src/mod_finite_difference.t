@@ -135,8 +135,16 @@ contains
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
     case (limiter_weno5)
        call WENO5limiterL(ixI^L,iL^L,idims,w,wLC,1)
+    case (limiter_weno5nm)
+       call WENO5NMlimiterL(ixI^L,iL^L,idims,w,wLC,1)
     case (limiter_wenoz5)
        call WENO5limiterL(ixI^L,iL^L,idims,w,wLC,2)
+    case (limiter_wenoz5nm)
+       call WENO5NMlimiterL(ixI^L,iL^L,idims,w,wLC,2)
+    case (limiter_wenozp5)
+       call WENO5limiterL(ixI^L,iL^L,idims,w,wLC,3)
+    case (limiter_wenozp5nm)
+       call WENO5NMlimiterL(ixI^L,iL^L,idims,w,wLC,3)
     case default 
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
@@ -177,8 +185,16 @@ contains
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
     case (limiter_weno5)
        call WENO5limiterR(ixI^L,iL^L,idims,w,wRC,1)
+    case (limiter_weno5nm)
+       call WENO5NMlimiterR(ixI^L,iL^L,idims,w,wRC,1)
     case (limiter_wenoz5)
        call WENO5limiterR(ixI^L,iL^L,idims,w,wRC,2)
+    case (limiter_wenoz5nm)
+       call WENO5NMlimiterR(ixI^L,iL^L,idims,w,wRC,2)
+    case (limiter_wenozp5)
+       call WENO5limiterR(ixI^L,iL^L,idims,w,wRC,3)
+    case (limiter_wenozp5nm)
+       call WENO5NMlimiterR(ixI^L,iL^L,idims,w,wRC,3)
     case default 
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
