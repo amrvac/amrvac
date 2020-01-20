@@ -31,11 +31,11 @@
  /
 
  &meshlist
-        refine_max_level=1
+        refine_max_level=3
         refine_threshold=20*1.0
-        domain_nx1=128
-        domain_nx2=128
-        domain_nx3=128
+        domain_nx1=64
+        domain_nx2=64
+        domain_nx3=64
         xprobmin1=-0.5d0
         xprobmax1=0.5d0
         xprobmin2=-0.5d0

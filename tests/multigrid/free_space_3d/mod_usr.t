@@ -125,6 +125,7 @@ contains
 
   subroutine compute_phi(iit,qt)
     use mod_input_output
+    use m_free_space
     integer, intent(in)          :: iit
     double precision, intent(in) :: qt
     integer                      :: id, iigrid, igrid
@@ -140,7 +141,7 @@ contains
     call mg_copy_from_tree(mg_ires, i_res)
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       call set_error(ixG^LL,ixM^LL,pw(igrid)%w,pw(igrid)%x)
+       call set_error(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
     end do
 
     call get_global_maxima(wmax)
