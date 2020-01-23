@@ -27,6 +27,9 @@
 * Ileyk El Mellah
 * Fabien Casse
 * Nicholas Moens
+* Alexander Philippov
+* Jack Jenkins
+* Pushpita Das
 
 ### Summary
 
