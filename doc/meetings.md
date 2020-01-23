@@ -26,7 +26,7 @@
 * Sebastiaan Selvi
 * Ileyk El Mellah
 * Fabien Casse
-* Nicholas Moens
+* Nicolas Moens
 * Alexander Philippov
 * Jack Jenkins
 * Pushpita Das
