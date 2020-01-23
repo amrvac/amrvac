@@ -26,6 +26,7 @@ contains
     usr_aux_output      => specialvar_output
     usr_add_aux_names   => specialvarnames_output 
     usr_init_vector_potential=>initvecpot_usr
+    usr_set_electric_field => boundary_electric_field
 
     call mhd_activate()
   end subroutine usr_init
@@ -160,6 +161,21 @@ contains
 
   end subroutine initvecpot_usr
 
+  subroutine boundary_electric_field(ixI^L,ixC^L,qdt,fE,s)
+    ! specify tangential electric field at physical boundaries 
+    ! to fix or drive normal magnetic field
+    integer, intent(in)                :: ixI^L, ixC^L
+    double precision, intent(in)       :: qdt
+    type(state)                        :: s
+    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+
+    ! to fix normal magnetic field at bottom boundary surface
+    if(s%is_physical_boundary(3)) then
+      fE(ixCmin2^%2ixI^S,3)=0.d0
+    end if
+
+  end subroutine boundary_electric_field
+
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
@@ -188,21 +204,22 @@ contains
           if(idir==2) cycle
           ixOsmax^D=ixOmax^D;
           ixOsmin^D=ixOmin^D-kr(^D,idir);
+          ! 4th order one-sided equal-gradient extrapolation
           do ix2=ixOsmax2,ixOsmin2,-1
-             block%ws(ix2^%2ixOs^S,idir)=1.d0/3.d0*&
-                   (-block%ws(ix2+2^%2ixOs^S,idir)&
-               +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
+            block%ws(ix2^%2ixOs^S,idir)= &
+              0.12d0*block%ws(ix2+5^%2ixOs^S,idir) &
+             -0.76d0*block%ws(ix2+4^%2ixOs^S,idir) &
+             +2.08d0*block%ws(ix2+3^%2ixOs^S,idir) &
+             -3.36d0*block%ws(ix2+2^%2ixOs^S,idir) &
+             +2.92d0*block%ws(ix2+1^%2ixOs^S,idir)
           end do
         end do
         ixOs^L=ixO^L-kr(2,^D);
         jxO^L=ixO^L+nghostcells*kr(2,^D);
         block%ws(ixOs^S,2)=zero
-        call get_divb(w,ixI^L,jxO^L,Q)
         do ix2=ixOsmax2,ixOsmin2,-1
           call get_divb(w,ixI^L,ixO^L,Qp)
-          block%ws(ix2^%2ixOs^S,2)=&
-           -(Q(jxOmin2^%2jxO^S)*block%dvolume(jxOmin2^%2jxO^S)&
-           -Qp(ix2+1^%2ixO^S)*block%dvolume(ix2+1^%2ixO^S))&
+          block%ws(ix2^%2ixOs^S,2)=Qp(ix2+1^%2ixO^S)*block%dvolume(ix2+1^%2ixO^S)&
             /block%surfaceC(ix2^%2ixOs^S,2)
         end do
         call mhd_face_to_center(ixO^L,block)
