@@ -67,7 +67,7 @@ There is a single equation parameter, the adiabatic index **hd_gamma**
 
 This equation module can be combined with physical sources for
 (local) optically thin radiative losses by set **hd_radiative_cooling=.true.**. 
-see the [radiative cooling](mpiamrvac_radcool.md) page. Schematically, it
+see the [radiative cooling](radiative_cooling.md) page. Schematically, it
 introduces terms as
 
 ![](figmovdir/eq.radloss.gif)
