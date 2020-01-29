@@ -1,7 +1,7 @@
 !> module radiative cooling -- add optically thin radiative cooling for HD and MHD
 !>
 !> Assumptions: full ionize plasma dominated by H and He, ionization equilibrium 
-!> Formula: Q=-n_H*n_e*f(T), positive f(T) function is pre-computed and tabulated
+!> Formula: Q=-n_H*n_e*f(T), positive f(T) function is pre-computed and tabulated or a piecewise power law
 !> Developed by Allard Jan van Marle, Rony Keppens, and Chun Xia
 !> Cooling tables extend to 1O^9 K, (17.11.2009)  AJvM
 !> Included table by Smith (18.11.2009)           AJvM
@@ -9,12 +9,14 @@
 !> Included two cooling curves from Cloudy code supplied by Wang Ye (12.11.2011) AJvM
 !> Included a solar coronal cooling curve (JCcorona) supplied by J. Colgan (2008) ApJ
 !> Modulized and simplified by Chun Xia (2017)
+!> Included piecewise power law functionality by Joris Hermans (01.2020)
+
 module mod_radiative_cooling
-!
-! these tables contain log_10 temperature values and corresponding
+
+! For the interpolatable tables: these tables contain log_10 temperature values and corresponding
 ! log_10 luminosity values. The simulation-dependent temperature and luminosity
 ! scaling parameters are supposed to be provided in the user file. 
-! All tables have been extended to at least T=10^9 K using a pure Bremmstrahlung 
+! All tables have been extended to at least T=10^9 K using a pure Bremsstrahlung 
 ! relationship of Lambda~sqrt(T). This to ensure that a purely explicit calculation 
 ! without timestep check is only used for extremely high temperatures. 
 ! (Except for the SPEX curve, which is more complicated and therefore simply stops  
@@ -34,7 +36,7 @@ module mod_radiative_cooling
   !> Helium abundance over Hydrogen
   double precision, private    :: He_abundance
 
-  !> resolution of temperature in interpolated tables
+  !> Resolution of temperature in interpolated tables
   integer, private :: ncool
 
   !> Name of cooling curve
@@ -66,7 +68,7 @@ module mod_radiative_cooling
   double precision  :: tref, lref, tcoolmin,tcoolmax
   double precision  :: lgtcoolmin, lgtcoolmax, lgstep
   
-  !> The piecewise powerlaw (PPL) tabels and variabels
+  ! The piecewise powerlaw (PPL) tabels and variabels
   ! x_* en t_* are given as log_10
   double precision, allocatable :: y_PPL(:), t_PPL(:), l_PPL(:), a_PPL(:)
 
@@ -109,7 +111,7 @@ module mod_radiative_cooling
   data   a_RP / 11.70, 6.15, 0.00, 2.00, 0.00, &
                 -2.00, 0.00, -0.67, 0.50       /
 
-  !> Interpolatable tables
+  ! Interpolatable tables
   integer          :: n_DM      , n_MB      , n_MLcosmol &
                     , n_MLwc    , n_MLsolar1, n_SPEX     &
                     , n_JCcorona, n_cl_ism  , n_cl_solar &
@@ -676,7 +678,7 @@ module mod_radiative_cooling
       e_     = nwx          ! energy density
 
       
-      ! Check if coolcurve is a piecewise power law (PPL)
+      ! Checks if coolcurve is a piecewise power law (PPL)
       PPL_curves = [Character(len=65) :: 'Hildner','FM','RP']
       do i=1,size(PPL_curves)
          if (PPL_curves(i)==coolcurve) then
@@ -734,7 +736,7 @@ module mod_radiative_cooling
             l_PPL(1:n_PPL) = 10.d0**x_RP(1:n_RP) * (10.d0**t_PPL(1:n_PPL))**a_PPL(1:n_PPL)  
 
          case default
-            call mpistop("This cooling power law is unknown")
+            call mpistop("This piecewise power law is unknown")
          end select
 
          ! Go from logarithmic to actual values.
@@ -783,7 +785,7 @@ module mod_radiative_cooling
             
          case('DM')
             if(mype ==0) &
-            print *,'Use Delgano & McCray (1972) cooling curve'
+            print *,'Use Dalgarno & McCray (1972) cooling curve'
       
             ntable = n_DM
       
@@ -796,7 +798,7 @@ module mod_radiative_cooling
             if(mype ==0) &
             write(*,'(3a)') 'Use MacDonald & Bailey (1981) cooling curve '&
                  ,'as implemented in ZEUS-3D, with the values '&
-                 ,'from Delgano & McCRay (1972) for low temperatures.'
+                 ,'from Dalgarno & McCRay (1972) for low temperatures.'
          
             ntable = n_MB + 20
       
@@ -1063,7 +1065,7 @@ module mod_radiative_cooling
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
-         !  assume Bremmstrahlung
+         !  assume Bremsstrahlung
          if( Tlocal1<=tcoolmin ) then
             L1 = zero
          else if( Tlocal1>=tcoolmax )then
@@ -1167,7 +1169,7 @@ module mod_radiative_cooling
          lmax     = max(zero, ( pnew(ix^D)*invgam - emin ) / qdt)
        
          ! No cooling if temperature is below floor level.
-         ! Assuming Bremmstrahlung if temperature is higher than maximum.
+         ! Assuming Bremsstrahlung if temperature is higher than maximum.
          if( tlocal1 <= tcoolmin) then
             l1 = zero
          else if( tlocal1 >= tcoolmax ) then
@@ -1290,7 +1292,7 @@ module mod_radiative_cooling
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
-         !  assume Bremmstrahlung
+         !  assume Bremsstrahlung
          if( Tlocal1<=tcoolmin ) then
             L1 = zero
          else if( Tlocal1>=tcoolmax )then
@@ -1448,7 +1450,7 @@ module mod_radiative_cooling
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
-         !  assume Bremmstrahlung
+         !  assume Bremsstrahlung
          if( Tlocal1<=tcoolmin ) then
             L1 = zero
             L2 = zero
@@ -1518,7 +1520,7 @@ module mod_radiative_cooling
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
-         !  assume Bremmstrahlung
+         !  assume Bremsstrahlung
          if( Tlocal1<=tcoolmin ) then
             Ltemp = zero
          else
@@ -1594,7 +1596,7 @@ module mod_radiative_cooling
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
-         !  assume Bremmstrahlung
+         !  assume Bremsstrahlung
          if( Tlocal1<=tcoolmin ) then
             L1 = zero
          else if( Tlocal1>=tcoolmax )then
@@ -1626,9 +1628,8 @@ module mod_radiative_cooling
 
     subroutine calc_l_extended (tpoint, lpoint)
     !  Calculate l for t beyond tcoolmax
-    !  Assumes Bremmstrahlung for the interpolated tables
+    !  Assumes Bremsstrahlung for the interpolated tables
     !  Uses the power law for piecewise power laws
-      !use mod_global_parameters
       double precision, intent(IN)  :: tpoint
       double precision, intent(OUT) :: lpoint       
    
@@ -1691,7 +1692,7 @@ module mod_radiative_cooling
 
     subroutine findY (tpoint,Ypoint)
     
-    !  Fast search option to find correct point in cooling time
+    !  Fast search option to find correct point in cooling time (TEF)
     
       use mod_global_parameters
       
@@ -1750,7 +1751,7 @@ module mod_radiative_cooling
     subroutine findT (tpoint,Ypoint)
     
     !  Fast search option to find correct temperature 
-    !  from cooling time. Only possible this way because T is a monotonously 
+    !  from temporal evolution function. Only possible this way because T is a monotonously 
     !  decreasing function for the interpolated tables 
     !  Uses eq. A7 from Townsend 2009 for piecewise power laws
       use mod_global_parameters
@@ -1802,6 +1803,7 @@ module mod_radiative_cooling
     
     !  Fast search option to find correct point 
     !  in derivative of cooling curve
+    !  Does not work for the piecewise power laws
       use mod_global_parameters
       
       double precision,intent(IN)   :: tpoint
