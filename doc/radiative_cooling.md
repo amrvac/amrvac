@@ -136,7 +136,7 @@ all interpolatable tables have been extended to 1.e9 K,
 by assuming pure Bremsstrahlung at high temperatures (\f$ \Lambda \sim \sqrt{T} \f$). 
 This has been done to allow the different numerical cooling methods to extend to higher temperatures.
 
-All coolingcurves are in cgs. The piecewise power laws have a pre-coded temperature range of 1.e2 to 1.e10 K.
+All coolingcurves are in cgs. The piecewise power laws have a pre-coded temperature range of 1.e3 to 1.e10 K, for practical reasons.
 
 ## The numerical methods
 
