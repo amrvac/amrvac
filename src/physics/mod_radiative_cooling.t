@@ -86,7 +86,7 @@ module mod_radiative_cooling
 
   data   n_Hildner / 5 /
  
-  data   t_Hildner / 2.00000, 4.17609, 4.90309, 5.47712, 5.90309, 10.00000 /
+  data   t_Hildner / 3.00000, 4.17609, 4.90309, 5.47712, 5.90309, 10.00000 /
 
   data   x_Hildner / -53.30803, -29.92082, -21.09691, -7.40450, -16.25885 /
   
@@ -94,7 +94,7 @@ module mod_radiative_cooling
 
   data   n_FM / 4 /
  
-  data   t_FM / 2.00000, 4.30103, 5.60206, 7.00000, 10.00000 /
+  data   t_FM / 3.00000, 4.30103, 5.60206, 7.00000, 10.00000 /
 
   data   x_FM / -31.15813, -27.50227, -18.25885, -35.75893 /
   
@@ -102,7 +102,7 @@ module mod_radiative_cooling
 
   data   n_RP / 9 /
  
-  data   t_RP / 2.00000, 3.89063, 4.30195, 4.57500,  4.90000, &
+  data   t_RP / 3.00000, 3.89063, 4.30195, 4.57500,  4.90000, &
                 5.40000, 5.77000, 6.31500, 7.60457, 10.00000  /
 
   data   x_RP / -69.900, -48.307, -21.850, -31.000, -21.200, &
@@ -741,7 +741,7 @@ module mod_radiative_cooling
 
          ! Go from logarithmic to actual values.
          t_PPL(1:n_PPL+1) = 10.d0**t_PPL(1:n_PPL+1)
-
+         
          ! Make dimensionless
          t_PPL(1:n_PPL+1) = t_PPL(1:n_PPL+1) / unit_temperature
          l_PPL(1:n_PPL) = l_PPL(1:n_PPL) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance)        
@@ -753,7 +753,9 @@ module mod_radiative_cooling
          
          ! Set tcoolmin and tcoolmax
          tcoolmin = t_PPL(1)
-         tcoolmax = t_PPL(n_PPL)
+         tcoolmax = t_PPL(n_PPL+1)
+         ! smaller value for lowest temperatures from cooling table and user's choice
+         if (tlow==bigdouble) tlow=tcoolmin
 
          !create y_PPL
          call create_y_PPL()
@@ -1584,10 +1586,8 @@ module mod_radiative_cooling
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
-      
          emin     = w(ix^D,rho_)*tlow*invgam
          Lmax            = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
-       
          !  Tlocal = P/rho
          Tlocal1   = max(plocal/rholocal,smalldouble)
          !
@@ -1611,15 +1611,13 @@ module mod_radiative_cooling
             tc         = Tlocal1*invgam/(rholocal*L1)
             Y2         = Y1+(Tlocal1*fact)/(L1*tc)
             call findT(Tlocal2,Y2)
-      
             if(Tlocal2<=tcoolmin) then
               L1 = Lmax
             else
               L1 = (Tlocal1-Tlocal2)*invgam/(rholocal*qdt)
             endif
-      
             L1          = L1*(rholocal**2)
-            L1          = min(L1,Lmax)    
+            L1          = min(L1,Lmax)   
             w(ix^D,e_)  = w(ix^D,e_)-L1*qdt
          endif
       {enddo^D&\}
@@ -1765,7 +1763,7 @@ module mod_radiative_cooling
       double precision :: factor
       
       if (isPPL) then
-         i = maxloc(y_PPL, dim=1, mask=y_PPL<Ypoint)
+         i = minloc(y_PPL, dim=1, mask=y_PPL>Ypoint)
          factor =  l_PPL(i) * t_PPL(n_PPL+1) / (l_PPL(n_PPL+1) * t_PPL(i))
          if (a_PPL(i)==1.d0) then
             tpoint = t_PPL(i) * exp( -1.d0 * factor * ( Ypoint - y_PPL(i)))
