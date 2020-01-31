@@ -9,7 +9,7 @@ The source is
 
 \f$  Q = -n_i n_e \Lambda(T)  \f$, 
 
-where \f$ n_i \text{ and } n_e \f$ are the ion- and electronnumberdensities. 
+where \f$ n_i \f$ and \f$ n_e \f$ are the ion- and electronnumberdensities. 
 \f$ \Lambda(T) \f$ is the cooling funtion or curve and represents the efficiency.
 This cooling curve can be a tabulated set of points obtained by detailed calculations (see e.g. Colgan et. al. 2008). 
 These tables can be interpolated to high temperature resolution.
