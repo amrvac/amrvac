@@ -588,6 +588,7 @@ contains
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
+    double precision   :: a2max
 
     select case (typelimiter)
     case (limiter_venk)
@@ -631,9 +632,27 @@ contains
           end if
 
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-
+          if(need_global_a2max) then 
+            a2max=a2max_global(idims)
+          else
+            select case(idims)
+            case(1)
+              a2max=schmid_rad1
+            {^IFTWOD
+            case(2)
+              a2max=schmid_rad2}
+            {^IFTHREED
+            case(2)
+              a2max=schmid_rad2
+            case(3)
+              a2max=schmid_rad3}
+            case default
+              call mpistop("idims is wrong in mod_limiter")
+            end select
+          end if
+            
           ! limit flux from left and/or right
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw,rdw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw,rdw,a2max=a2max)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
 

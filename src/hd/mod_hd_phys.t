@@ -204,6 +204,7 @@ contains
 
     phys_get_dt              => hd_get_dt
     phys_get_cmax            => hd_get_cmax
+    phys_get_a2max           => hd_get_a2max
     phys_get_cbounds         => hd_get_cbounds
     phys_get_flux            => hd_get_flux
     phys_get_v_idim          => hd_get_v
@@ -479,6 +480,28 @@ contains
       call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     end if
   end subroutine hd_get_cmax
+
+  subroutine hd_get_a2max(w,x,ixI^L,ixO^L,a2max)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: a2max(ndim)
+    double precision :: a2(ixI^S,ndim,nw)
+    integer :: gxO^L,hxO^L,jxO^L,kxO^L,i,j
+
+    a2=zero
+    do i = 1,ndim
+      !> 4th order
+      hxO^L=ixO^L-kr(i,^D);
+      gxO^L=hxO^L-kr(i,^D);
+      jxO^L=ixO^L+kr(i,^D);
+      kxO^L=jxO^L+kr(i,^D);
+      a2(ixO^S,i,1:nw)=abs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
+        -30.d0*w(ixO^S,1:nw)+16.d0*w(hxO^S,1:nw)-w(gxO^S,1:nw))
+      a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
+    end do
+  end subroutine hd_get_a2max
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)

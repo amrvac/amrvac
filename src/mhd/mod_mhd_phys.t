@@ -363,6 +363,7 @@ contains
 
     phys_get_dt              => mhd_get_dt
     phys_get_cmax            => mhd_get_cmax
+    phys_get_a2max           => mhd_get_a2max
     phys_get_cbounds         => mhd_get_cbounds
     phys_get_flux            => mhd_get_flux
     phys_get_v_idim          => mhd_get_v_idim
@@ -721,6 +722,28 @@ contains
     cmax(ixO^S)=abs(w(ixO^S,mom(idim))/w(ixO^S,rho_))+cmax(ixO^S)
 
   end subroutine mhd_get_cmax
+
+  subroutine mhd_get_a2max(w,x,ixI^L,ixO^L,a2max)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: a2max(ndim)
+    double precision :: a2(ixI^S,ndim,nw)
+    integer :: gxO^L,hxO^L,jxO^L,kxO^L,i,j
+
+    a2=zero
+    do i = 1,ndim
+      !> 4th order
+      hxO^L=ixO^L-kr(i,^D);
+      gxO^L=hxO^L-kr(i,^D);
+      jxO^L=ixO^L+kr(i,^D);
+      kxO^L=jxO^L+kr(i,^D);
+      a2(ixO^S,i,1:nw)=abs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
+         -30.d0*w(ixO^S,1:nw)+16.d0*w(hxO^S,1:nw)-w(gxO^S,1:nw))
+      a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
+    end do
+  end subroutine mhd_get_a2max
 
   !> Estimating bounds for the minimum and maximum signal velocities
   subroutine mhd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,cmax,cmin)

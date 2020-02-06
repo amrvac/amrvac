@@ -47,6 +47,7 @@ module mod_physics
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
+  procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_get_v_idim), pointer      :: phys_get_v_idim             => null()
@@ -94,6 +95,13 @@ module mod_physics
        double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
        double precision, intent(inout) :: cmax(ixI^S)
      end subroutine sub_get_cmax
+
+     subroutine sub_get_a2max(w, x, ixI^L, ixO^L, a2max)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: a2max(ndim)
+     end subroutine sub_get_a2max
 
      subroutine sub_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
        use mod_global_parameters
@@ -259,6 +267,9 @@ contains
 
     if (.not. associated(phys_get_cmax)) &
          call mpistop("Error: no phys_get_cmax not defined")
+
+!    if (.not. associated(phys_get_a2max)) &
+!         call mpistop("Error: no phys_get_a2max not defined")
 
     if (.not. associated(phys_get_cbounds)) &
          call mpistop("Error: no phys_get_cbounds not defined")

@@ -167,7 +167,7 @@ contains
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
          solve_internal_e, angmomfix, small_values_fix_iw, &
-         small_values_use_primitive
+         small_values_use_primitive, schmid_rad^D
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L, save_physical_boundary
@@ -367,6 +367,7 @@ contains
     else
       cada3_radius  = 0.1d0
     end if
+    {schmid_rad^D = 1.d0\}
     typetvd         = 'roe'
     typeboundspeed  = 'cmaxmean'
     source_split_usr= .false.
@@ -637,6 +638,7 @@ contains
 
     ! finite difference scheme fd need global maximal speed
     if(any(flux_scheme=='fd')) need_global_cmax=.true.
+    if(any(limiter=='schmid1')) need_global_a2max=.true.
 
     select case (time_integrator)
     case ("onestep")

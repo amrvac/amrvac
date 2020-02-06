@@ -14,7 +14,6 @@ module mod_global_parameters
   public
 
   ! Parameters
-
   character(len=*), parameter :: undefined = 'undefined'
 
   !> @todo Move mpi related variables to e.g. mod_comm
@@ -575,8 +574,14 @@ module mod_global_parameters
   !> global fastest flow speed needed in glm method
   double precision :: vmax_global
 
+  ! global largest a2 for schmid scheme
+  double precision :: a2max_global(ndim)
+
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
+
+  !> global value for schmid scheme
+  logical :: need_global_a2max=.false.
 
   ! Boundary region parameters
 
