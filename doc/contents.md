@@ -65,7 +65,7 @@ visualisation and analysis (e.g. column densities).
 * [Analysis routine](analysis.md) Using the run-time analysis routine.
 
 # Legacy Python tools {#io-python}
-> These tools are bundled within ARMVAC's main repo.
+> These tools are bundled within AMRVAC's main repo.
 > They are kept for backward compatibility but are now superseded
 > by yt ([see our documentation](yt_usage.md)).
 
