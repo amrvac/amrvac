@@ -6,6 +6,7 @@
         time_integrator=  'threestep'
         flux_scheme =    20*'hll'
         limiter=  20*'mp5'
+        typeboundspeed  = 'cmaxmean'
  /
 
  &paramlist

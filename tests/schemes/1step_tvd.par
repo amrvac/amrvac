@@ -5,6 +5,7 @@
  &methodlist
         time_integrator = 'onestep'
         flux_scheme   = 20*'tvd'
+        typeboundspeed  = 'cmaxmean'
  /
 
  &paramlist

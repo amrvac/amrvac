@@ -8,6 +8,7 @@
         typepred1    = 20*'hancock'
         limiter = 20*'albada'
         dimsplit     = .true.
+        typeboundspeed  = 'cmaxmean'
  /
 
  &paramlist

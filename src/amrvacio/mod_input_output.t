@@ -369,7 +369,7 @@ contains
     end if
     {schmid_rad^D = 1.d0\}
     typetvd         = 'roe'
-    typeboundspeed  = 'cmaxmean'
+    typeboundspeed  = 'Einfeldt'
     source_split_usr= .false.
     time_integrator = 'twostep'
     solve_internal_e= .false.
