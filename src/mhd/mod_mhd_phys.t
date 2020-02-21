@@ -345,7 +345,7 @@ contains
     do idir=1,ndir
       if(ndim>1) flux_type(idir,mag(idir))=flux_tvdlf
     end do
-    if(mhd_glm .and. ndim>1) flux_type(:,psi_)=flux_tvdlf
+    if(mhd_glm .and. ndim>1) flux_type(:,psi_)=flux_special
 
     select case (mhd_boris_method)
     case ("none")

@@ -184,10 +184,7 @@ contains
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
     double precision :: Q(ixI^S),Qp(ixI^S)
-    double precision :: A(ixGs^T,1:ndir) 
-    double precision :: xC(ixGs^T,1:ndim),dxc(ixGs^T,1:ndim),circ(ixGs^T,1:ndim)
-    double precision :: dxidir(ixGs^T)
-    integer :: ix^D,ixOs^L,ixC^L,hxC^L,jxO^L,idir,idim,idim1,idim2
+    integer :: ix^D,ixOs^L,ixC^L,hxC^L,jxO^L,idir
 
     select case(iB)
     case(3)

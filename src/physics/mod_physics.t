@@ -31,6 +31,8 @@ module mod_physics
   integer, parameter   :: flux_tvdlf          = 1
   !> Indicates dissipation should be omitted
   integer, parameter   :: flux_no_dissipation = 2
+  !> Indicates the flux should be specially treated
+  integer, parameter   :: flux_special        = 3
 
   !> Type for special methods defined per variable
   type iw_methods
