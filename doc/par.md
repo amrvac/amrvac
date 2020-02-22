@@ -1007,8 +1007,8 @@ remove div B part of B.
 For MHD, we implemented the possibility to use a splitting strategy following
 Tanaka, where a time-invariant background magnetic field is handled
 exactly, so that one solves for perturbed magnetic field components instead.
-This method work only with HLL or TVDLF schemes and non CT divb cleaning methods 
-in the current implementation.
+This method works with HLLD, HLL and TVDLF flux and with all divb cleaning methods
+except the CT method.
 The magnetic field splitting is activated by `B0field=T`, and the magnitude of 
 the background magnetic field can be controlled using the parameters 
 `Bdip, Bquad, Boct, Busr`. The first
@@ -1022,7 +1022,6 @@ cylindrical coordinates as well. User can possibly prescibe analytic current in
 _usr_set_J0_ subroutine to significantly increase accuracy. Choose 
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
-
 
 
 ## Synthetic EUV emission {#par_euvlist}

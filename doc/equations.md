@@ -168,9 +168,8 @@ the numerical problems related to the divergence of the magnetic field. They
 are used only in more than 1D. We can also
 just take the term along in the induction equation, known as Janhunen`s
 approach. Another option is to use the diffusive (parabolic) approach, with
-the parameter _C_d_ of order unity (up to 2). Alternatively, there are several
-versions of [Dedner`s](methods.md) generalised Lagrange multiplier
-(GLM).
+the parameter _C_d_ of order unity (up to 2). Alternatively, there is the 
+[Dedner`s](methods.md) generalised Lagrange multiplier (GLM) method.
 
 # Positivity fixes {#eq_positivity_fixes}
 

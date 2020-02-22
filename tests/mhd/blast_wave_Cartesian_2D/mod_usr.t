@@ -65,7 +65,7 @@ contains
     double precision, intent(out)      :: A(ixI^S)
 
     if (idir==3) then
-      A(ixC^S) = Busr*(xC(ixC^S,2)-xC(ixC^S,2))
+      A(ixC^S) = Busr*(xC(ixC^S,2)-xC(ixC^S,1))
     else
       A(ixC^S) = 0.d0
     end if
