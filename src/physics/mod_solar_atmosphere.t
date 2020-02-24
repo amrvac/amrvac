@@ -1,10 +1,8 @@
 !> User can use subroutine get_atm_para to generate 1D solar stmosphere.
 !> User should provide heights (h), number density at the bottom,
-!> number of points (nh), and the product of avaerage ion mass and 
-!> gravity (mg) at each point. 
+!> number of points (nh), and the gravity (grav) at each point. 
 !> User can select temperature profile.
 !> This subroutine will return density and pressure at each point.
-!> please use cgs unit.
 module mod_solar_atmosphere
   use mod_global_parameters
   use mod_constants
@@ -168,54 +166,55 @@ module mod_solar_atmosphere
 
 contains
 
-  subroutine get_atm_para(h,rho,pth,mg,nh,rho0,Tcurve)
-    ! h [cm]
-    ! rho [cm^-3]
-    ! pth [dyne cm^-2]
-    ! mg [g cm s^-2]
+  subroutine get_atm_para(h,rho,pth,grav,nh,rho0,Tcurve)
+    use mod_global_parameters
+
     ! nh -- number of points
     ! rho0 -- number density at h(1)
-    ! Tcurve -- 'VAL-C' | 'Hong2017' | 'YS2001'
+    ! Tcurve -- 'VAL-C' | 'Hong2017'
 
     integer :: nh
     double precision :: rho0
-    double precision :: h(nh),rho(nh),pth(nh),mg(nh)
+    double precision :: h(nh),rho(nh),pth(nh),grav(nh)
     character(20) :: Tcurve
 
-    double precision :: Te(nh)
+    double precision :: h_cgs(nh),Te_cgs(nh),Te(nh)
     integer :: j
     double precision :: invT,dh
 
+    h_cgs=h*unit_length
+
     select case(Tcurve)
       case('VAL-C')
-        call get_Te_VALC(h,Te,nh)
+        call get_Te_VALC(h_cgs,Te_cgs,nh)
         if (mype==0) print *, 'VAL-C temperature curve'
 
       case('Hong2017')
-        call get_Te_Hong(h,Te,nh)
+        call get_Te_Hong(h_cgs,Te_cgs,nh)
         if (mype==0) print *, 'Temperature curve in Hong et al. (2017) is employed'
 
-      case('YS2001')
-        call get_NT_YS(h,rho,pth,nh,rho0)
-        if (mype==0) print *, 'Temperature and density curves in Yokoyama & Shibata (2001) are employed'
+      !case('YS2001')
+      !  call get_NT_YS(h,rho,pth,nh,rho0)
+      !  if (mype==0) print *, 'Temperature and density curves in Yokoyama & Shibata (2001) are employed'
 
       case default
         call mpistop("This temperature curve is unknown")
 
     end select
 
+    Te=Te_cgs/unit_temperature
 
     ! density and pressure profiles
     if (Tcurve=='VAL-C' .or. Tcurve=='Hong2017') then
       rho(1)=rho0
-      pth(1)=rho(1)*const_kb*Te(1)
+      pth(1)=rho(1)*Te(1)
 
       invT=0.d0
       do j=2,nh
         dh=h(j)-h(j-1)
-        invT=invT+dh*(mg(j)/(const_kb*Te(j))+mg(j-1)/(const_kb*Te(j-1)))*0.5d0
+        invT=invT+dh*(grav(j)/Te(j)+grav(j-1)/Te(j-1))*0.5d0
         pth(j)=pth(1)*dexp(invT)
-        rho(j)=pth(j)/(const_kb*Te(j))
+        rho(j)=pth(j)/Te(j)
       end do
     endif
 
