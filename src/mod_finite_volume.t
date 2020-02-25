@@ -423,7 +423,7 @@ contains
     subroutine get_Riemann_flux_hlld()
       use mod_mhd_phys
       implicit none
-      double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L
+      double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L,f2R,f2L
       double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
       double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp
@@ -431,7 +431,7 @@ contains
       double precision, dimension(ixI^S,ndir) :: vRC, vLC
       ! magnetic field from the right and the left reconstruction
       double precision, dimension(ixI^S,ndir) :: BR, BL
-      integer :: ip1,ip2,ip3,idir
+      integer :: ip1,ip2,ip3,idir,ix^D
 
       associate (sR=>cmaxC,sL=>cminC)
 
@@ -588,28 +588,46 @@ contains
 
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        if (flux_type(idims, iw) == flux_special) then
-          ! average flux for psi_
-          fC(ixC^S,iw,ip1)=0.5d0*(fLC(ixC^S,iw) + fRC(ixC^S,iw))
-          cycle
+        if (flux_type(idims, iw) == flux_tvdlf) then
+          !! hll flux for normal B
+          !f1L(ixC^S,iw)=(sR(ixC^S)*fLC(ixC^S, iw)-sL(ixC^S)*fRC(ixC^S, iw) &
+          !          +sR(ixC^S)*sL(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S)-sL(ixC^S))
+          ! tvldf flux for normal B
+          f1L(ixC^S,iw)= half*(fLC(ixC^S, iw) + fRC(ixC^S, iw) &
+                 -tvdlfeps*max(sR(ixC^S), dabs(sL(ixC^S))) * &
+                 (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+          f1R(ixC^S,iw)=f1L(ixC^S,iw)
+          f2L(ixC^S,iw)=f1L(ixC^S,iw)
+          f2R(ixC^S,iw)=f1L(ixC^S,iw)
+        else if(flux_type(idims, iw) == flux_special) then
+          ! known flux (fLC=fRC) for normal B and psi_ in GLM method
+          f1L(ixC^S,iw)=fLC(ixC^S,iw)
+          f1R(ixC^S,iw)=f1L(ixC^S,iw)
+          f2L(ixC^S,iw)=f1L(ixC^S,iw)
+          f2R(ixC^S,iw)=f1L(ixC^S,iw)
+        else
+          f1L(ixC^S,iw)=fLC(ixC^S,iw)+sL(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
+          f1R(ixC^S,iw)=fRC(ixC^S,iw)+sR(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
+          f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
+          f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
         end if
-        f1L(ixC^S,iw)=fLC(ixC^S,iw)+sL(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
-        f1R(ixC^S,iw)=fRC(ixC^S,iw)+sR(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
-        ! Miyoshi equation (66) and Guo equation (46)
-        where(sL(ixC^S)>0.d0)
-          fC(ixC^S,iw,ip1)=fLC(ixC^S,iw)
-        else where(s1L(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1L(ixC^S,iw)
-        else where(sm(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
-        else where(s1R(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
-        else where(sR(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1R(ixC^S,iw)
-        else where(sR(ixC^S)<0.d0)
-          fC(ixC^S,iw,ip1)=fRC(ixC^S,iw)
-        end where
       end do
+      ! Miyoshi equation (66) and Guo equation (46)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        if(sL(ix^D)>0.d0) then
+          fC(ix^D,1:nwflux,ip1)=fLC(ix^D,1:nwflux)
+        else if(s1L(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f1L(ix^D,1:nwflux)
+        else if(sm(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f2L(ix^D,1:nwflux)
+        else if(s1R(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f2R(ix^D,1:nwflux)
+        else if(sR(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f1R(ix^D,1:nwflux)
+        else if(sR(ix^D)<0.d0) then
+          fC(ix^D,1:nwflux,ip1)=fRC(ix^D,1:nwflux)
+        end if
+     {end do\}
 
       end associate
     end subroutine get_Riemann_flux_hlld

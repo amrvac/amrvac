@@ -342,10 +342,19 @@ contains
     else if (any(shape(flux_type) /= [ndir, nw])) then
        call mpistop("phys_check error: flux_type has wrong shape")
     end if
-    do idir=1,ndir
-      if(ndim>1) flux_type(idir,mag(idir))=flux_tvdlf
-    end do
-    if(mhd_glm .and. ndim>1) flux_type(:,psi_)=flux_special
+
+    if(ndim>1) then
+      if(mhd_glm) then
+        flux_type(:,psi_)=flux_special
+        do idir=1,ndir
+          flux_type(idir,mag(idir))=flux_special
+        end do
+      else
+        do idir=1,ndir
+          flux_type(idir,mag(idir))=flux_tvdlf
+        end do
+      end if
+    end if
 
     select case (mhd_boris_method)
     case ("none")
@@ -2277,6 +2286,10 @@ contains
 
       wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
       wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
+      wRC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
+      wRC(ixO^S,psi_) = wLp(ixO^S,psi_)
+      wLC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
+      wLC(ixO^S,psi_) = wLp(ixO^S,psi_)
     end if
 
   end subroutine mhd_modify_wLR
