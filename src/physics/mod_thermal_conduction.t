@@ -219,7 +219,20 @@ contains
       ps2(igrid)%w=ps(igrid)%w
       ps3(igrid)%w=ps(igrid)%w
     end do
-    
+
+!!test start
+    bcphys=.false.
+    call addsource_impl
+    type_send_srl=>type_send_srl_f
+    type_recv_srl=>type_recv_srl_f
+    type_send_r=>type_send_r_f
+    type_recv_r=>type_recv_r_f
+    type_send_p=>type_send_p_f
+    type_recv_p=>type_recv_p_f
+    bcphys=.true.
+    stagger_grid=stagger_flag
+    return
+!!test end
     allocate(bj(0:s))
     bj(0)=1.d0/3.d0
     bj(1)=bj(0)
@@ -335,6 +348,42 @@ contains
     stagger_grid=stagger_flag
 
   end subroutine do_thermal_conduction
+
+  subroutine addsource_impl
+    use mod_global_parameters
+    use mod_ghostcells_update
+
+    integer :: iigrid, igrid, icycle, ncycle
+    double precision :: qt
+
+    ncycle=ceiling(0.5d0*dt/dt_tc)
+    if(ncycle<1) then
+      ncycle=1
+      dt_tc=0.5d0*dt
+    else
+      dt_tc=0.5d0*dt/dble(ncycle)
+    endif
+
+    if(mype==0.and..true.) then
+      print *,'implicit source addition will subcycle with ',ncycle,' subtimesteps'
+      print *,'dt and dtimpl= ',dt,dt_tc,' versus ncycle*dtimpl=',ncycle*dt_tc
+    endif
+
+    qt=global_time
+    do icycle=1,ncycle
+      !$OMP PARALLEL DO PRIVATE(igrid)
+      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+        block=>ps(igrid)
+        ps1(igrid)%w=ps(igrid)%w
+        call evolve_step1(igrid,1.d0,dt_tc,ixG^LL,ixM^LL,ps1(igrid)%w,ps(igrid)%w,&
+                          ps(igrid)%x,ps3(igrid)%w)
+      end do
+      !$OMP END PARALLEL DO
+      qt=qt+dt_tc
+      call getbc(qt,0.d0,ps,e_,1)
+    end do
+
+  end subroutine addsource_impl
 
   subroutine evolve_stepj(igrid,qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,wold)
     use mod_global_parameters
