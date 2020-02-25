@@ -167,7 +167,8 @@ contains
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
          solve_internal_e, angmomfix, small_values_fix_iw, &
-         small_values_use_primitive, schmid_rad^D
+         small_values_use_primitive, schmid_rad^D, &
+         trac,t_bott,t_peak
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L, save_physical_boundary
@@ -1435,7 +1436,7 @@ contains
       call MPI_FILE_READ(fh, phys_name, name_len, MPI_CHARACTER, st, er)
 
       if (phys_name /= physics_type) then
-        call mpistop("Cannot restart with a different physics type")
+!        call mpistop("Cannot restart with a different physics type")
       end if
 
       call MPI_FILE_READ(fh, n_par, 1, MPI_INTEGER, st, er)

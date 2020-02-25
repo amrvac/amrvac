@@ -205,6 +205,7 @@ contains
     phys_get_dt              => hd_get_dt
     phys_get_cmax            => hd_get_cmax
     phys_get_a2max           => hd_get_a2max
+    phys_get_tcutoff         => hd_get_tcutoff
     phys_get_cbounds         => hd_get_cbounds
     phys_get_flux            => hd_get_flux
     phys_get_v_idim          => hd_get_v
@@ -502,6 +503,47 @@ contains
       a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
     end do
   end subroutine hd_get_a2max
+
+  subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
+    double precision, intent(out) :: tco_local
+    !> local
+    integer :: ix^D,jxO^L,hxO^L
+    double precision, parameter :: delta=0.5d0
+    double precision :: tmp1(ixI^S),tmp2(ixI^S),Te(ixI^S)
+    double precision :: lts(ixI^S),lrs(ixI^S)
+    logical :: lrlt(ixI^S)
+
+    {^IFONED
+    if(solve_internal_e) then
+      tmp1(ixI^S)=w(ixI^S,e_)
+    else
+      tmp2(ixI^S)=0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
+      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+    end if
+    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
+
+    hxO^L=ixO^L-1;
+    jxO^L=ixO^L+1;
+    lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
+    lrlt=.false.
+    where(lts .gt. delta)
+      lrlt(ixO^S)=.true.
+    end where
+    tco_local=zero
+    if(any(lrlt(ixO^S) .eqv. .true.)) then
+      tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+    end if
+    if(tco_local .lt. T_bott) then
+      tco_local=T_bott
+    end if
+    if(tco_local .gt. 0.2*T_peak) then
+      tco_local=0.2*T_peak
+    end if
+    }
+  end subroutine hd_get_tcutoff
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)

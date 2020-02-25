@@ -50,6 +50,7 @@ module mod_physics
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
+  procedure(sub_get_tcutoff), pointer     :: phys_get_tcutoff            => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_get_v_idim), pointer      :: phys_get_v_idim             => null()
@@ -104,6 +105,13 @@ module mod_physics
        double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
        double precision, intent(inout) :: a2max(ndim)
      end subroutine sub_get_a2max
+
+     subroutine sub_get_tcutoff(ixI^L,ixO^L,w,x,tco_local)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(out) :: tco_local
+     end subroutine sub_get_tcutoff
 
      subroutine sub_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
        use mod_global_parameters

@@ -662,7 +662,6 @@ module mod_radiative_cooling
       cfrac=0.1d0
       tlow=bigdouble
       Tfix=.false.
-
       call rc_params_read(par_files)
 
       ! Determine flux variables
@@ -1301,11 +1300,17 @@ module mod_radiative_cooling
             call calc_l_extended(Tlocal1, L1)
             !L1         = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
             L1         = L1*(rholocal**2)
+            if(trac .and. Tlocal1 .lt. tco_global) then
+              L1=L1*(Tlocal1/tco_global)**2.5d0
+            end if
             L1         = min(L1,Lmax)
             w(ix^D,e_) = w(ix^D,e_)-L1*qdt
          else  
             call findL(Tlocal1,L1)
             L1         = L1*(rholocal**2)
+            if(trac .and. Tlocal1 .lt. tco_global) then
+              L1=L1*(Tlocal1/tco_global)**2.5d0
+            end if
             L1         = min(L1,Lmax)
             w(ix^D,e_) = w(ix^D,e_)-L1*qdt
       
@@ -1369,11 +1374,17 @@ module mod_radiative_cooling
             call calc_l_extended(Tlocal1, Ltest)
             !Ltest = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
             Ltest = L1*(rholocal**2)
+            if(trac .and. Tlocal1 .lt. tco_global) then
+              Ltest=Ltest*(Tlocal1/tco_global)**2.5d0
+            end if
             Ltest = min(L1,Lmax)
             if( dtmax>cfrac*etherm/Ltest) dtmax = cfrac*etherm/Ltest
          else  
             call findL(Tlocal1,Ltest)
             Ltest = Ltest*(rholocal**2)
+            if(trac .and. Tlocal1 .lt. tco_global) then
+              Ltest=Ltest*(Tlocal1/tco_global)**2.5d0
+            end if
             Ltest = min(Ltest,Lmax)
             if( dtmax>cfrac*etherm/Ltest) dtmax = cfrac*etherm/Ltest
          endif
@@ -1397,15 +1408,21 @@ module mod_radiative_cooling
                L1 = zero
                exit
             else if( Tlocal1>=tcoolmax )then
-               call calc_l_extended(Tlocal1, L1)
-               !L1 = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
-               L1 = L1*(rholocal**2)
-               L1 = min(L1,Lmax)
+              call calc_l_extended(Tlocal1, L1)
+              !L1 = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
+              L1 = L1*(rholocal**2)
+              if(trac .and. Tlocal1 .lt. tco_global) then
+                L1=L1*(Tlocal1/tco_global)**2.5d0
+              end if
+              L1 = min(L1,Lmax)
             else  
-               call findL(Tlocal1,L1)
-               L1 = L1*(rholocal**2)
-               L1 = min(L1,Lmax)
-            endif
+              call findL(Tlocal1,L1)
+              L1 = L1*(rholocal**2)
+              if(trac .and. Tlocal1 .lt. tco_global) then
+                L1=L1*(Tlocal1/tco_global)**2.5d0
+              end if
+              L1 = min(L1,Lmax)
+            end if
             
             de     = de + L1*dtstep
             etherm = etherm - L1*dtstep
@@ -1465,6 +1482,9 @@ module mod_radiative_cooling
            end if                       
            L1      = L1*(rholocal**2)
            etemp   = plocal/(rc_gamma-1.d0) - L1*qdt
+            if(trac .and. Tlocal1 .lt. tco_global) then
+              L1=L1*(Tlocal1/tco_global)**2.5d0
+            end if
            Tlocal2 = etemp*(rc_gamma-1.d0)/(rholocal)
            !
            !  Determine explicit cooling at new temperature
@@ -1478,6 +1498,9 @@ module mod_radiative_cooling
               call findL(Tlocal2,L2)
            end if
            L2  = L2*(rholocal**2)
+            if(trac .and. Tlocal2 .lt. tco_global) then
+              L2=L2*(Tlocal2/tco_global)**2.5d0
+            end if
            w(ix^D,e_) = w(ix^D,e_) - min(half*(L1+L2),Lmax)*qdt
          endif 
       {enddo^D&\}
@@ -1543,10 +1566,14 @@ module mod_radiative_cooling
                call findL(Tnew,Ltemp)
              end if
              Ltemp = Ltemp*(rholocal**2)
+            
              eold  = enew + Ltemp*qdt
       
              f1 = elocal -eold
              if( abs(half*f1/(elocal+eold)) < e_error  ) exit 
+             if(trac .and. Tnew .lt. tco_global) then
+               Ltemp=Ltemp*(Tnew/tco_global)**2.5d0
+             end if
       
              if(j==1) estep = max((elocal-emin)*half,smalldouble)
              if(f1*f2 < zero ) estep = -half*estep   
@@ -1603,6 +1630,9 @@ module mod_radiative_cooling
             call calc_l_extended(Tlocal1, L1)
             !L1         = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
             L1         = L1*(rholocal**2)
+            if(trac .and. Tlocal1 .lt. tco_global) then
+              L1=L1*(Tlocal1/tco_global)**2.5d0
+            end if
             L1         = min(L1,Lmax)
             w(ix^D,e_) = w(ix^D,e_)-L1*qdt
          else  
@@ -1617,6 +1647,9 @@ module mod_radiative_cooling
               L1 = (Tlocal1-Tlocal2)*invgam/(rholocal*qdt)
             endif
             L1          = L1*(rholocal**2)
+            if(trac .and. Tlocal1 .lt. tco_global) then
+              L1=L1*(Tlocal1/tco_global)**2.5d0
+            end if
             L1          = min(L1,Lmax)   
             w(ix^D,e_)  = w(ix^D,e_)-L1*qdt
          endif

@@ -10,12 +10,14 @@ subroutine setdt()
   integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
-  double precision :: dtmax, dxmin, cmax_mype, v(ixG^T), a2max_mype(ndim)
+  double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
+  double precision :: a2max_mype(ndim), tco_mype
 
   if (dtpar<=zero) then
      dtmin_mype=bigdouble
      cmax_mype = zero
      a2max_mype = zero
+     tco_mype = zero
   !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D)
      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
         dtnew=bigdouble
@@ -125,7 +127,7 @@ subroutine setdt()
        ! only use odd s number
        s=s/2*2+1
      endif
-     !dt_tc=dt*0.5d0
+!     dt_tc=dt*0.5d0
      dt_tc=dtnew
      if(mype==0 .and. .false.) write(*,*) 'supertime steps:',s,' normal subcycles:',&
                                  ceiling(dt/dtnew/2.d0)
@@ -145,14 +147,17 @@ subroutine setdt()
   if(need_global_a2max) then 
     call MPI_ALLREDUCE(a2max_mype,a2max_global,ndim,&
       MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
-  endif
-  
+  end if
+  if(trac) then
+    call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&
+      MPI_MAX,icomm,ierrmpi)
+  end if 
   contains
 
     !> compute CFL limited dt (for variable time stepping)
     subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,x)
       use mod_global_parameters
-      use mod_physics, only: phys_get_cmax,phys_get_a2max
+      use mod_physics, only: phys_get_cmax,phys_get_a2max,phys_get_tcutoff
       
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -160,7 +165,8 @@ subroutine setdt()
       
       integer :: idims
       double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-      double precision :: cmax(ixI^S), cmaxtot(ixI^S), tmp(ixI^S), a2max(ndim)
+      double precision :: cmax(ixI^S), cmaxtot(ixI^S), tmp(ixI^S)
+      double precision :: a2max(ndim),tco_local
 
       dtnew=bigdouble
       
@@ -173,11 +179,16 @@ subroutine setdt()
       cmaxtot(ixO^S)=zero
       
       if(need_global_a2max) then
-        call phys_get_a2max(w,x,ixI^L,ixO^L,a2max_mype)
+        call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
+      end if
+      if(trac) then
+        call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local)
+        tco_mype=max(tco_mype,tco_local)
       end if
       do idims=1,ndim
         call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
         if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+        if(need_global_a2max) a2max_mype = max(a2max_mype,a2max(idims))
         if(slab_uniform) then
           cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)*dxinv(idims)
           courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))

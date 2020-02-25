@@ -364,7 +364,7 @@ contains
       dt_tc=0.5d0*dt/dble(ncycle)
     endif
 
-    if(mype==0.and..true.) then
+    if(mype==0.and..false.) then
       print *,'implicit source addition will subcycle with ',ncycle,' subtimesteps'
       print *,'dt and dtimpl= ',dt,dt_tc,' versus ncycle*dtimpl=',ncycle*dt_tc
     endif
@@ -974,7 +974,15 @@ contains
       qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
     end do
     ! conductivity at cell center
-    qd(ix^S)=tc_k_para*dsqrt(Te(ix^S))**5
+    if(trac) then
+      where(Te(ix^S) .ge. tco_global)
+        qd(ix^S)=tc_k_para*dsqrt(Te(ix^S))**5
+      else where
+        qd(ix^S)=tc_k_para*dsqrt(tco_global)**5
+      end where
+    else
+      qd(ix^S)=tc_k_para*dsqrt(Te(ix^S))**5
+    end if
     ke=0.d0
     {do ix^DB=0,1\}
       ixBmin^D=ixCmin^D+ix^D;

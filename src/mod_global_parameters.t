@@ -370,6 +370,9 @@ module mod_global_parameters
   !> Solve polytropic process instead of solving total energy
   logical :: solve_internal_e=.false.
 
+  !> Use trac method to calculate thermal conduction for MHD or 1D HD
+  logical :: trac=.false.  
+
   !> Enable to strictly conserve the angular momentum
   !> (works both in cylindrical and spherical coordinates)
   logical :: angmomfix=.false.
@@ -574,8 +577,15 @@ module mod_global_parameters
   !> global fastest flow speed needed in glm method
   double precision :: vmax_global
 
-  ! global largest a2 for schmid scheme
+  !> global largest a2 for schmid scheme
   double precision :: a2max_global(ndim)
+
+  !> cutoff temperature for TRAC method
+  double precision :: tco_global
+
+  !> boundary for TRAC temperature
+  double precision :: T_bott
+  double precision :: T_peak
 
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
