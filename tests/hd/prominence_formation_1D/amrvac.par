@@ -1,6 +1,6 @@
 
  &filelist
-        base_filename = 'promhd'
+        base_filename = 'promformb'
         saveprim      = .true.
         autoconvert   = .true.
         convert_type  = 'vtuBmpi'        
@@ -12,21 +12,21 @@
         itsave(1,1) = 0
         itsave(1,2) = 0
         dtsave_log  = 0.05d0
-        dtsave_dat  = 5.0d0
+        dtsave_dat  = 5.d0
  /
 
  &stoplist
         dtmin    = 1.d-6
-        time_max = 200.0d0
+        time_max = 100.0d0
  /
 
  &methodlist
         time_integrator  = 'twostep'
-        flux_scheme      = 20*'tvdlf'
+        flux_scheme      = 20*'hll'
         limiter          = 20*'vanleer'
         small_pressure   = 1.0d-7
         small_density    = 1.0d-7
-        trac             = .true.
+        trac             = .false.
         t_bott           = 2.d-2
         t_peak           = 1.6d0
  /
@@ -38,7 +38,7 @@
 
  &meshlist
         refine_criterion = 3
-        refine_max_level = 3
+        refine_max_level = 2
         block_nx1        = 64
         domain_nx1       = 960
         xprobmin1        = 0.d0
@@ -63,4 +63,8 @@
         coolmethod = 'exact'
         tlow       = 4.17d-3
         Tfix       = .true.
+ /
+
+ &tc_list
+        tc_saturate=.true.
  /

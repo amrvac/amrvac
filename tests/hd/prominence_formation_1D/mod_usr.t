@@ -399,8 +399,9 @@ contains
     double precision :: dxcp,invg
 
     data first /.true./
+
     invg=1.d0/(hd_gamma-1.d0)
-    dxcp=x(ixOmin1+1,1)-x(ixOmin1,1) ! why not dxlevel(1)
+    dxcp=dxlevel(1)
 
     if(first) then
       if (mype==0) then

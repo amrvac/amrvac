@@ -32,6 +32,7 @@
 
 module mod_thermal_conduction
   use mod_global_parameters, only: std_len
+  use mod_geometry
   implicit none
   !> Coefficient of thermal conductivity (parallel to magnetic field)
   double precision, public :: tc_k_para
@@ -220,19 +221,6 @@ contains
       ps3(igrid)%w=ps(igrid)%w
     end do
 
-!!test start
-    bcphys=.false.
-    call addsource_impl
-    type_send_srl=>type_send_srl_f
-    type_recv_srl=>type_recv_srl_f
-    type_send_r=>type_send_r_f
-    type_recv_r=>type_recv_r_f
-    type_send_p=>type_send_p_f
-    type_recv_p=>type_recv_p_f
-    bcphys=.true.
-    stagger_grid=stagger_flag
-    return
-!!test end
     allocate(bj(0:s))
     bj(0)=1.d0/3.d0
     bj(1)=bj(0)
@@ -762,7 +750,6 @@ contains
   !> Calculate gradient of a scalar q at cell interfaces in direction idir
   subroutine gradientC(q,ixI^L,ixO^L,idir,gradq)
     use mod_global_parameters
-    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L, idir
     double precision, intent(in)    :: q(ixI^S)
@@ -914,7 +901,7 @@ contains
     double precision :: qvec(ixI^S,1:ndim),gradT(ixI^S,1:ndim),Te(ixI^S),ke(ixI^S)
     double precision :: dxinv(ndim)
     integer, dimension(ndim)       :: lowindex
-    integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L
+    integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L,ixD^L
 
     ix^L=ixO^L^LADD1;
     ! ixC is cell-corner index
@@ -952,48 +939,32 @@ contains
     ! compute temperature before source addition
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(tc_gamma-1.d0)
 
-    ! T gradient at cell faces
+    ! cell corner temperature
+    ke=0.d0
+    ixAmax^D=ixmax^D; ixAmin^D=ixmin^D-1;
+    {do ix^DB=0,1\}
+      ixBmin^D=ixAmin^D+ix^D;
+      ixBmax^D=ixAmax^D+ix^D;
+      ke(ixA^S)=ke(ixA^S)+Te(ixB^S)
+    {end do\}
+    ke(ixA^S)=0.5d0**ndim*ke(ixA^S)
+    ! T gradient (central difference) at cell corners
     gradT=0.d0
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
-      call gradientC(Te,ixI^L,ixB^L,idims,ke)
-      gradT(ixB^S,idims)=ke(ixB^S)
+      call gradient(ke,ixI^L,ixB^L,idims,qd)
+      gradT(ixB^S,idims)=qd(ixB^S)
     end do
-    ! calculate thermal conduction flux with symmetric scheme
-    do idims=1,ndim
-      qd=0.d0
-      {do ix^DB=0,1 \}
-         if({ ix^D==0 .and. ^D==idims | .or.}) then
-           ixBmin^D=ixCmin^D+ix^D;
-           ixBmax^D=ixCmax^D+ix^D;
-           qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
-         end if
-      {end do\}
-      ! temperature gradient at cell corner
-      qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
-    end do
-    ! conductivity at cell center
+    ! transition region adaptive conduction
     if(trac) then
-      where(Te(ix^S) .ge. tco_global)
-        qd(ix^S)=tc_k_para*dsqrt(Te(ix^S))**5
-      else where
-        qd(ix^S)=tc_k_para*dsqrt(tco_global)**5
+      where(Te(ix^S) < tco_global)
+        ke(ix^S)=tco_global
       end where
-    else
-      qd(ix^S)=tc_k_para*dsqrt(Te(ix^S))**5
     end if
-    ke=0.d0
-    {do ix^DB=0,1\}
-      ixBmin^D=ixCmin^D+ix^D;
-      ixBmax^D=ixCmax^D+ix^D;
-      ke(ixC^S)=ke(ixC^S)+qd(ixB^S)
-    {end do\}
-    ! cell corner conductivity
-    ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
     ! cell corner conduction flux
     do idims=1,ndim
-      gradT(ixC^S,idims)=ke(ixC^S)*qvec(ixC^S,idims)
+      gradT(ixC^S,idims)=gradT(ixC^S,idims)*tc_k_para*sqrt(ke(ixC^S)**5)
     end do
 
     if(tc_saturate) then

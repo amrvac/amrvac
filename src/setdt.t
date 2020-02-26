@@ -127,8 +127,7 @@ subroutine setdt()
        ! only use odd s number
        s=s/2*2+1
      endif
-!     dt_tc=dt*0.5d0
-     dt_tc=dtnew
+     dt_tc=dt*0.5d0
      if(mype==0 .and. .false.) write(*,*) 'supertime steps:',s,' normal subcycles:',&
                                  ceiling(dt/dtnew/2.d0)
   endif
