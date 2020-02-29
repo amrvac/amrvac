@@ -538,6 +538,14 @@ contains
       Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)+mf(ixA^S,1:ndim)
     {end do\}
     Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)*0.5d0**ndim
+    ! T gradient at cell faces
+    gradT=0.d0
+    do idims=1,ndim
+      ixBmin^D=ixmin^D;
+      ixBmax^D=ixmax^D-kr(idims,^D);
+      call gradientC(Te,ixI^L,ixB^L,idims,minq)
+      gradT(ixB^S,idims)=minq(ixB^S)
+    end do
     if(tc_constant) then
       if(tc_perpendicular) then
         ka(ixC^S)=tc_k_para-tc_k_perp
@@ -547,7 +555,12 @@ contains
       end if
     else
       ! conductivity at cell center
-      minq(ix^S)=tc_k_para*Te(ix^S)**2.5d0
+      if(trac) then
+        where(Te(ix^S) < tco_global)
+          Te(ix^S)=tco_global
+        end where
+      end if
+      minq(ix^S)=tc_k_para*sqrt(Te(ix^S)**5)
       ka=0.d0
       {do ix^DB=0,1\}
         ixBmin^D=ixCmin^D+ix^D;
@@ -575,14 +588,6 @@ contains
         end where
       end if
     end if
-    ! T gradient at cell faces
-    gradT=0.d0
-    do idims=1,ndim
-      ixBmin^D=ixmin^D;
-      ixBmax^D=ixmax^D-kr(idims,^D);
-      call gradientC(Te,ixI^L,ixB^L,idims,minq)
-      gradT(ixB^S,idims)=minq(ixB^S)
-    end do
     if(tc_slope_limiter=='no') then
       ! calculate thermal conduction flux with symmetric scheme
       do idims=1,ndim
