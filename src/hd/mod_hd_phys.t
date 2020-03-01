@@ -504,11 +504,11 @@ contains
     end do
   end subroutine hd_get_a2max
 
-  subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local)
+  subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
-    double precision, intent(out) :: tco_local
+    double precision, intent(out) :: tco_local, Tmax_local
     !> local
     integer :: ix^D,jxO^L,hxO^L
     double precision, parameter :: delta=0.5d0
@@ -525,6 +525,8 @@ contains
     end if
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
 
+    Tmax_local=maxval(Te(ixO^S))
+
     hxO^L=ixO^L-1;
     jxO^L=ixO^L+1;
     lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
@@ -535,12 +537,6 @@ contains
     tco_local=zero
     if(any(lrlt(ixO^S) .eqv. .true.)) then
       tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
-    end if
-    if(tco_local .lt. T_bott) then
-      tco_local=T_bott
-    end if
-    if(tco_local .gt. 0.2*T_peak) then
-      tco_local=0.2*T_peak
     end if
     }
   end subroutine hd_get_tcutoff

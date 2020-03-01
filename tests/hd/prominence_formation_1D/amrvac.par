@@ -1,6 +1,6 @@
 
  &filelist
-        base_filename = 'promformb'
+        base_filename = 'promforma'
         saveprim      = .true.
         autoconvert   = .true.
         convert_type  = 'vtuBmpi'        
@@ -17,19 +17,19 @@
 
  &stoplist
         dtmin    = 1.d-6
-        time_max = 100.0d0
+        time_max = 200.0d0
  /
 
  &methodlist
-        time_integrator  = 'twostep'
+        time_integrator  = 'threestep'
         flux_scheme      = 20*'hll'
-        limiter          = 20*'vanleer'
+        limiter          = 20*'cada3'
         small_pressure   = 1.0d-7
         small_density    = 1.0d-7
         trac             = .false.
-        t_bott           = 2.d-2
-        t_peak           = 1.6d0
  /
+        t_peak           = 1.6d0
+        t_bott           = 2.d-2
 
  &boundlist
         typeboundary_min1 = 3*'special'
@@ -38,12 +38,13 @@
 
  &meshlist
         refine_criterion = 3
-        refine_max_level = 2
-        block_nx1        = 64
+        refine_max_level = 1
+        block_nx1        = 16
         domain_nx1       = 960
         xprobmin1        = 0.d0
         xprobmax1        = 11.226121539299445d0
  /
+        domain_nx1       = 30720
         ditregrid        = 1
 
  &paramlist

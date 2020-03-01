@@ -106,11 +106,11 @@ module mod_physics
        double precision, intent(inout) :: a2max(ndim)
      end subroutine sub_get_a2max
 
-     subroutine sub_get_tcutoff(ixI^L,ixO^L,w,x,tco_local)
+     subroutine sub_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-       double precision, intent(out) :: tco_local
+       double precision, intent(out) :: tco_local, Tmax_local
      end subroutine sub_get_tcutoff
 
      subroutine sub_get_v_idim(w,x,ixI^L,ixO^L,idim,v)

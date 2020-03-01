@@ -45,7 +45,7 @@ contains
     !> lv1 dx
     dxlv1=(xprobmax1-xprobmin1)/domain_nx1
     !> time for relaxation
-    trelax=100.d0
+    trelax=200.d0
     call inithdstatic
   end subroutine initglobaldata_usr
 
@@ -352,18 +352,13 @@ contains
     double precision, intent(in) :: qt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
     integer, intent(inout) :: refine, coarsen
 
-    if(qt .lt. trelax) then
-      refine=-1
-      coarsen=1
-    else
-      if(any(x(ixO^S,1) .le. xprobmin1+0.3d0)) then
-        refine=1
-        coarsen=-1
-      end if
-      if(any(x(ixO^S,1) .ge. xprobmax1-0.3d0)) then
-        refine=1
-        coarsen=-1
-      end if
+    if(any(x(ixO^S,1) .le. xprobmin1+0.2d0)) then
+      refine=1
+      coarsen=-1
+    end if
+    if(any(x(ixO^S,1) .ge. xprobmax1-0.2d0)) then
+      refine=1
+      coarsen=-1
     end if
   end subroutine special_refine_grid
 

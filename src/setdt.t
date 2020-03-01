@@ -11,7 +11,7 @@ subroutine setdt()
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
   double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
-  double precision :: a2max_mype(ndim), tco_mype
+  double precision :: a2max_mype(ndim), tco_mype, Tmax_mype
 
   if (dtpar<=zero) then
      dtmin_mype=bigdouble
@@ -147,10 +147,21 @@ subroutine setdt()
     call MPI_ALLREDUCE(a2max_mype,a2max_global,ndim,&
       MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
   end if
+
+  ! transition region adaptive thermal conduction
   if(trac) then
     call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&
       MPI_MAX,icomm,ierrmpi)
+    call MPI_ALLREDUCE(Tmax_mype,T_peak,1,MPI_DOUBLE_PRECISION,&
+      MPI_MAX,icomm,ierrmpi)
+    T_bott=2.d4/unit_temperature
+    if(tco_global < T_bott) then
+      tco_global=T_bott
+    else if(tco_global > 0.2d0*T_peak) then
+      tco_global=0.2d0*T_peak
+    end if
   end if 
+
   contains
 
     !> compute CFL limited dt (for variable time stepping)
@@ -165,7 +176,7 @@ subroutine setdt()
       integer :: idims
       double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
       double precision :: cmax(ixI^S), cmaxtot(ixI^S), tmp(ixI^S)
-      double precision :: a2max(ndim),tco_local
+      double precision :: a2max(ndim),tco_local,Tmax_local
 
       dtnew=bigdouble
       
@@ -181,8 +192,9 @@ subroutine setdt()
         call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
       end if
       if(trac) then
-        call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local)
+        call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
         tco_mype=max(tco_mype,tco_local)
+        Tmax_mype=max(Tmax_mype,Tmax_local)
       end if
       do idims=1,ndim
         call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
