@@ -504,12 +504,13 @@ contains
     end do
   end subroutine hd_get_a2max
 
+  !> get adaptive cutoff temperature for TRAC
   subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
-    !> local
+
     integer :: ix^D,jxO^L,hxO^L
     double precision, parameter :: delta=0.5d0
     double precision :: tmp1(ixI^S),tmp2(ixI^S),Te(ixI^S)
@@ -531,7 +532,7 @@ contains
     jxO^L=ixO^L+1;
     lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
     lrlt=.false.
-    where(lts .gt. delta)
+    where(lts(ixO^S) > delta)
       lrlt(ixO^S)=.true.
     end where
     tco_local=zero

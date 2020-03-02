@@ -372,12 +372,15 @@ contains
     double precision :: pth(ixI^S),B2(ixI^S),tmp2(ixI^S),dRdT(ixI^S)
     double precision :: ens(ixI^S),divb(ixI^S),wlocal(ixI^S,1:nw)
     double precision :: Btotal(ixI^S,1:ndir),curlvec(ixI^S,1:ndir)
+    double precision :: Te(ixI^S)
+    double precision, dimension(ixI^S,1:ndim) :: gradT, bunitvec
     integer :: idirmin,idir,ix^D
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
     call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
-    w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
+    Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
+    w(ixO^S,nw+1)=Te(ixO^S)
 
     do idir=1,ndir
       if(B0field) then
@@ -393,7 +396,7 @@ contains
     w(ixO^S,nw+2)=dsqrt(B2(ixO^S)/w(ixO^S,rho_))
 
     ! output divB1
-    call get_normalized_divb(wlocal,ixI^L,ixO^L,divb)
+    call get_divb(wlocal,ixI^L,ixO^L,divb)
     w(ixO^S,nw+3)=divb(ixO^S)
     ! output the plasma beta p*2/B**2
     w(ixO^S,nw+4)=pth(ixO^S)*two/B2(ixO^S)
@@ -409,13 +412,34 @@ contains
     do idir=1,ndir
       w(ixO^S,nw+6+idir)=curlvec(ixO^S,idir)
     end do
+
+    ! temperature gradient at cell centers
+    do idir=1,ndim
+      call gradient(Te,ixI^L,ixO^L,idir,tmp2)
+      gradT(ixO^S,idir)=tmp2(ixO^S)
+    end do
+    ! |B|
+    tmp2(ixO^S)=dsqrt(B2(ixO^S))
+    where(tmp2(ixO^S)/=0.d0)
+      tmp2(ixO^S)=1.d0/tmp2(ixO^S)
+    elsewhere
+      tmp2(ixO^S)=bigdouble
+    end where
+    ! b unit vector: magnetic field direction vector
+    do idir=1,ndim
+      bunitvec(ixO^S,idir)=Btotal(ixO^S,idir)*tmp2(ixO^S)
+    end do
+    ! temperature length scale inversed
+    tmp2(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
+    ! fraction of cells size to temperature length scale
+    w(ixO^S,nw+10)=minval(dxlevel)*tmp2(ixO^S)
   
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
     character(len=*) :: varnames
-    varnames='Te Alfv divB beta bQ rad j1 j2 j3'
+    varnames='Te Alfv divB beta bQ rad j1 j2 j3 trac'
 
   end subroutine specialvarnames_output
 
