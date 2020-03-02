@@ -161,17 +161,21 @@ contains
 
   end subroutine initvecpot_usr
 
-  subroutine boundary_electric_field(ixI^L,ixC^L,qdt,fE,s)
+  subroutine boundary_electric_field(ixI^L,ixO^L,qdt,fE,s)
     ! specify tangential electric field at physical boundaries 
     ! to fix or drive normal magnetic field
-    integer, intent(in)                :: ixI^L, ixC^L
+    integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
     type(state)                        :: s
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
+    integer :: idir,ixC^L
     ! to fix normal magnetic field at bottom boundary surface
     if(s%is_physical_boundary(3)) then
-      fE(ixCmin2^%2ixI^S,3)=0.d0
+      idir=3
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+      fE(ixCmin2^%2ixC^S,3)=0.d0
     end if
 
   end subroutine boundary_electric_field
@@ -201,6 +205,12 @@ contains
           if(idir==2) cycle
           ixOsmax^D=ixOmax^D;
           ixOsmin^D=ixOmin^D-kr(^D,idir);
+          ! 2nd order one-sided zero-gradient extrapolation
+          !do ix2=ixOsmax2,ixOsmin2,-1
+          !   block%ws(ix2^%2ixOs^S,idir)=1.d0/3.d0*&
+          !         (-block%ws(ix2+2^%2ixOs^S,idir)&
+          !     +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
+          !end do
           ! 4th order one-sided equal-gradient extrapolation
           do ix2=ixOsmax2,ixOsmin2,-1
             block%ws(ix2^%2ixOs^S,idir)= &
