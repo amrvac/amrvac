@@ -766,7 +766,8 @@ contains
     integer :: ix^D,jxO^L,hxO^L,idims
     double precision, parameter :: delta=0.5d0
     double precision :: tmp1(ixI^S),Te(ixI^S)
-    double precision, dimension(ixI^S,1:ndim) :: gradT, bunitvec
+    double precision, dimension(ixI^S,1:ndir) :: bunitvec
+    double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision :: lts(ixI^S)
     logical :: lrlt(ixI^S)
 
@@ -788,7 +789,7 @@ contains
     if(B0field) then
       bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))+block%B0(ixO^S,:,0)
     else
-      bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:));
+      bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))
     end if
     ! |B|
     tmp1(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
