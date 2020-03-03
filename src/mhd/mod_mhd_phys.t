@@ -774,11 +774,13 @@ contains
     if(solve_internal_e) then
       tmp1(ixI^S)=w(ixI^S,e_)
     else
-      tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
+      tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*(sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/&
+                       w(ixI^S,rho_)+sum(w(ixI^S,iw_mag(:))**2,dim=ndim+1))
     end if
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(mhd_gamma-1.d0)
 
     Tmax_local=maxval(Te(ixO^S))
+    print*,'Tmax_local',Tmax_local
 
     ! temperature gradient at cell centers
     do idims=1,ndim
@@ -814,6 +816,7 @@ contains
     if(any(lrlt(ixO^S))) then
       block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
     end if
+    !print*,'t cut off',block%special_values(1),maxval(Te(ixO^S))
 
   end subroutine mhd_get_tcutoff
 
