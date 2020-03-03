@@ -403,6 +403,9 @@ contains
     ! problem setup defaults
     iprob    = 1
 
+    ! default lower and upper limit of cutoff temperature in TRAC method
+    T_bott =2.d4/unit_temperature
+    T_peak =2.d6/unit_temperature
     ! end defaults
 
     ! Initialize Kronecker delta, and Levi-Civita tensor
@@ -1019,6 +1022,12 @@ contains
     if(dabs(sum(w_refine_weight(:))-1.d0)>smalldouble) then
       write(unitterm,*) "Sum of all elements in w_refine_weight be 1.d0"
       call mpistop("Reset w_refine_weight so the sum is 1.d0")
+    end if
+
+    ! TRAC is only for temperature (energy)
+    if(.not.phys_energy .and. trac) then
+      if (mype==0) write(unitterm, '(A)') "Warning, TRAC is not for energy-independent problems, change trac to false."
+      trac=.false.
     end if
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '

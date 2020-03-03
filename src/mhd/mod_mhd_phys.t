@@ -758,32 +758,31 @@ contains
   !> get adaptive cutoff temperature for TRAC
   subroutine mhd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
     use mod_global_parameters
+    use mod_geometry
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
 
     integer :: ix^D,jxO^L,hxO^L,idims
     double precision, parameter :: delta=0.5d0
-    double precision :: tmp1(ixI^S),tmp2(ixI^S),Te(ixI^S)
+    double precision :: tmp1(ixI^S),Te(ixI^S)
     double precision, dimension(ixI^S,1:ndim) :: gradT, bunitvec
-    double precision :: lts(ixI^S),lrs(ixI^S)
+    double precision :: lts(ixI^S)
     logical :: lrlt(ixI^S)
 
-    {^IFONED
     if(solve_internal_e) then
       tmp1(ixI^S)=w(ixI^S,e_)
     else
-      tmp2(ixI^S)=0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+      tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     end if
-    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
+    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(mhd_gamma-1.d0)
 
     Tmax_local=maxval(Te(ixO^S))
 
     ! temperature gradient at cell centers
     do idims=1,ndim
-      call gradient(Te,ixI^L,ixO^L,idims,tmp2)
-      gradT(ixO^S,idims)=tmp2(ixO^S)
+      call gradient(Te,ixI^L,ixO^L,idims,tmp1)
+      gradT(ixO^S,idims)=tmp1(ixO^S)
     end do
     ! B vector
     if(B0field) then
@@ -792,15 +791,15 @@ contains
       bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:));
     end if
     ! |B|
-    tmp2(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
-    where(tmp2(ixO^S)/=0.d0)
-      tmp2(ixO^S)=1.d0/tmp2(ixO^S)
+    tmp1(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
+    where(tmp1(ixO^S)/=0.d0)
+      tmp1(ixO^S)=1.d0/tmp1(ixO^S)
     elsewhere
-      tmp2(ixO^S)=bigdouble
+      tmp1(ixO^S)=bigdouble
     end where
     ! b unit vector: magnetic field direction vector
     do idims=1,ndim
-      bunitvec(ixO^S,idims)=bunitvec(ixO^S,idims)*tmp2(ixO^S)
+      bunitvec(ixO^S,idims)=bunitvec(ixO^S,idims)*tmp1(ixO^S)
     end do
     ! temperature length scale inversed
     lts(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
@@ -810,11 +809,11 @@ contains
     where(lts(ixO^S) > delta)
       lrlt(ixO^S)=.true.
     end where
-    tco_local=zero
-    if(any(lrlt(ixO^S) .eqv. .true.)) then
-      tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+    block%special_values(1)=0.d0
+    if(any(lrlt(ixO^S))) then
+      block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
     end if
-    }
+
   end subroutine mhd_get_tcutoff
 
   !> Estimating bounds for the minimum and maximum signal velocities

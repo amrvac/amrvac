@@ -580,10 +580,7 @@ module mod_global_parameters
   !> global largest a2 for schmid scheme
   double precision :: a2max_global(ndim)
 
-  !> cutoff temperature for TRAC method
-  double precision :: tco_global
-
-  !> boundary for TRAC temperature
+  !> lower and upper limit for TRAC cutoff temperature
   double precision :: T_bott
   double precision :: T_peak
 

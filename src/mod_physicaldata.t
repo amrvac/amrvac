@@ -41,6 +41,8 @@ module mod_physicaldata
       double precision, dimension(:^D&,:), pointer :: surface=>Null()
       !> Areas of cell-face surfaces
       double precision, dimension(:^D&,:), pointer :: surfaceC=>Null()
+      !> special values for a block
+      double precision, dimension(:), pointer :: special_values=>Null()
    end type state
 
 {^NOONED

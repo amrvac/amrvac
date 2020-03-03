@@ -376,7 +376,7 @@ contains
   subroutine evolve_stepj(igrid,qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,wold)
     use mod_global_parameters
     use mod_fix_conserve
-    
+
     integer, intent(in) :: igrid,ixI^L,ixO^L
     double precision, intent(in) :: qcmu,qcmut,qcnu,qcnut,qdt
     double precision, intent(in) :: w1(ixI^S,1:nw),w(ixI^S,1:nw),wold(ixI^S,1:nw)
@@ -556,8 +556,8 @@ contains
     else
       ! conductivity at cell center
       if(trac) then
-        where(Te(ix^S) < tco_global)
-          Te(ix^S)=tco_global
+        where(Te(ix^S) < block%special_values(1))
+          Te(ix^S)=block%special_values(1)
         end where
       end if
       minq(ix^S)=tc_k_para*sqrt(Te(ix^S)**5)
@@ -963,8 +963,8 @@ contains
     end do
     ! transition region adaptive conduction
     if(trac) then
-      where(Te(ix^S) < tco_global)
-        ke(ix^S)=tco_global
+      where(Te(ix^S) < block%special_values(1))
+        ke(ix^S)=block%special_values(1)
       end where
     end if
     ! cell corner conduction flux

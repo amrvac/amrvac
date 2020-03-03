@@ -75,7 +75,7 @@ subroutine alloc_node(igrid)
   end select
 
   if(.not. allocated(ps(igrid)%w)) then
-    
+
     ! allocate arrays for solution and space
     call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
     ! allocate arrays for one level coarser solution
@@ -97,6 +97,7 @@ subroutine alloc_node(igrid)
       call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
       call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
     end select
+
   end if
 
   ps(igrid)%w=0.d0
@@ -566,6 +567,8 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
       allocate(s%B0(ixG^S,1:ndir,0:ndim))
       allocate(s%J0(ixG^S,7-2*ndir:3))
     end if
+    ! allocate space for special values for each block state
+    if(trac) allocate(s%special_values(1))
   else
     ! use spatial info on ps states to save memory
     s%x=>ps(igrid)%x
@@ -580,6 +583,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
       s%B0=>ps(igrid)%B0
       s%J0=>ps(igrid)%J0
     end if
+    if(trac) s%special_values=>ps(igrid)%special_values
   end if
 end subroutine alloc_state
 

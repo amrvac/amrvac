@@ -11,7 +11,7 @@ subroutine setdt()
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
   double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
-  double precision :: a2max_mype(ndim), tco_mype, Tmax_mype
+  double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype
 
   if (dtpar<=zero) then
      dtmin_mype=bigdouble
@@ -150,16 +150,24 @@ subroutine setdt()
 
   ! transition region adaptive thermal conduction
   if(trac) then
+    {^IFONED
     call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&
       MPI_MAX,icomm,ierrmpi)
+    }
     call MPI_ALLREDUCE(Tmax_mype,T_peak,1,MPI_DOUBLE_PRECISION,&
       MPI_MAX,icomm,ierrmpi)
-    T_bott=2.d4/unit_temperature
-    if(tco_global < T_bott) then
-      tco_global=T_bott
-    else if(tco_global > 0.2d0*T_peak) then
-      tco_global=0.2d0*T_peak
-    end if
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+      {^IFONED
+      ps(igrid)%special_values(1)=tco_global
+      }
+      if(ps(igrid)%special_values(1) < T_bott) then
+        ps(igrid)%special_values(1)=T_bott
+      else if(ps(igrid)%special_values(1) > 0.2d0*T_peak) then
+        ps(igrid)%special_values(1)=0.2d0*T_peak
+      end if
+    end do
+    !$OMP END PARALLEL DO
   end if 
 
   contains
@@ -193,7 +201,7 @@ subroutine setdt()
       end if
       if(trac) then
         call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
-        tco_mype=max(tco_mype,tco_local)
+        {^IFONED tco_mype=max(tco_mype,tco_local) }
         Tmax_mype=max(Tmax_mype,Tmax_local)
       end if
       do idims=1,ndim

@@ -184,6 +184,8 @@ contains
 
     physics_type = "hd"
     phys_energy  = hd_energy
+    ! set default gamma for polytropic/isothermal process
+    if(.not.hd_energy) hd_gamma=1.d0
     use_particles = hd_particles
 
     ! Determine flux variables

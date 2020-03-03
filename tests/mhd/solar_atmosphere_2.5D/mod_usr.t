@@ -161,17 +161,21 @@ contains
 
   end subroutine initvecpot_usr
 
-  subroutine boundary_electric_field(ixI^L,ixC^L,qdt,fE,s)
+  subroutine boundary_electric_field(ixI^L,ixO^L,qdt,fE,s)
     ! specify tangential electric field at physical boundaries 
     ! to fix or drive normal magnetic field
-    integer, intent(in)                :: ixI^L, ixC^L
+    integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qdt
     type(state)                        :: s
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
+    integer :: idir,ixC^L
     ! to fix normal magnetic field at bottom boundary surface
     if(s%is_physical_boundary(3)) then
-      fE(ixCmin2^%2ixI^S,3)=0.d0
+      idir=3
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+      fE(ixCmin2^%2ixC^S,3)=0.d0
     end if
 
   end subroutine boundary_electric_field
@@ -201,6 +205,12 @@ contains
           if(idir==2) cycle
           ixOsmax^D=ixOmax^D;
           ixOsmin^D=ixOmin^D-kr(^D,idir);
+          ! 2nd order one-sided zero-gradient extrapolation
+          !do ix2=ixOsmax2,ixOsmin2,-1
+          !   block%ws(ix2^%2ixOs^S,idir)=1.d0/3.d0*&
+          !         (-block%ws(ix2+2^%2ixOs^S,idir)&
+          !     +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
+          !end do
           ! 4th order one-sided equal-gradient extrapolation
           do ix2=ixOsmax2,ixOsmin2,-1
             block%ws(ix2^%2ixOs^S,idir)= &
@@ -328,6 +338,10 @@ contains
     ! add global background heating bQ
     call getbQ(bQgrid,ixI^L,ixO^L,qtC,wCT,x)
     w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
+    if(iprob>1) then
+      call getlQ(lQgrid,ixI^L,ixO^L,qt,wCT,x)
+      w(ixO^S,e_)=w(ixO^S,e_)+qdt*lQgrid(ixO^S)
+    end if
 
   end subroutine special_source
 
@@ -341,6 +355,37 @@ contains
     bQgrid(ixO^S)=bQ0*dexp(-x(ixO^S,2)/5.d0)
 
   end subroutine getbQ
+
+  subroutine getlQ(lQgrid,ixI^L,ixO^L,qt,w,x)
+  ! calculate localized heating lQ
+    use mod_global_parameters
+
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: qt, x(ixI^S,1:ndim), w(ixI^S,1:nw)
+
+    double precision :: lQgrid(ixI^S), A(ixI^S), lQd, lQ0, hp, lQt,Atop,Alow
+
+    lQ0=1.d-2/heatunit
+    lQt=5.d2/unit_time
+    lQd=0.2d0
+    hp=0.3d0
+
+    call initvecpot_usr(ixI^L, ixO^L, x, A, 3)
+
+    lQgrid=0.d0
+    Atop=B0/kx*cos(kx*1.35d0)
+    Alow=B0/kx*cos(kx*1.75d0)
+    where(A(ixO^S)<Atop .and. A(ixO^S)>Alow)
+      lQgrid(ixO^S)=lQ0
+    end where
+    where(x(ixO^S,2)>hp)
+      lQgrid(ixO^S)=lQgrid(ixO^S)*dexp(-(x(ixO^S,2)-hp)**2/lQd)
+    end where
+    if(qt<lQt) then
+      lQgrid(ixO^S)=qt/lQt*lQgrid(ixO^S)
+    endif
+
+  end subroutine getlQ
 
   subroutine special_refine_grid(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
   ! Enforce additional refinement or coarsening
@@ -372,14 +417,15 @@ contains
     double precision :: pth(ixI^S),B2(ixI^S),tmp2(ixI^S),dRdT(ixI^S)
     double precision :: ens(ixI^S),divb(ixI^S),wlocal(ixI^S,1:nw)
     double precision :: Btotal(ixI^S,1:ndir),curlvec(ixI^S,1:ndir)
-    double precision :: Te(ixI^S)
+    double precision :: Te(ixI^S),tco_local
     double precision, dimension(ixI^S,1:ndim) :: gradT, bunitvec
     integer :: idirmin,idir,ix^D
+    logical :: lrlt(ixI^S)
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
-    call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
-    Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
+    call mhd_get_pthermal(wlocal,x,ixI^L,ixI^L,pth)
+    Te(ixI^S)=pth(ixI^S)/w(ixI^S,rho_)
     w(ixO^S,nw+1)=Te(ixO^S)
 
     do idir=1,ndir
@@ -432,14 +478,34 @@ contains
     ! temperature length scale inversed
     tmp2(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
     ! fraction of cells size to temperature length scale
-    w(ixO^S,nw+10)=minval(dxlevel)*tmp2(ixO^S)
+    tmp2(ixO^S)=minval(dxlevel)*tmp2(ixO^S)
+    w(ixO^S,nw+10)=tmp2(ixO^S)
+
+    lrlt=.false.
+    where(tmp2(ixO^S) > 0.5d0)
+      lrlt(ixO^S)=.true.
+    end where
+    w(ixO^S,nw+11)=1.d-9
+    where(lrlt(ixO^S))
+      w(ixO^S,nw+11)=Te(ixO^S)
+    end where
+    w(ixO^S,nw+12)=0.d0
+    if(any(lrlt(ixO^S))) then
+      w(ixO^S,nw+12)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+    end if
+
+    where(w(ixO^S,nw+12)>0.5d0)
+      w(ixO^S,nw+12)=0.5d0
+    else where(w(ixO^S,nw+12)<0.02d0)
+      w(ixO^S,nw+12)=0.02d0
+    end where
   
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
     character(len=*) :: varnames
-    varnames='Te Alfv divB beta bQ rad j1 j2 j3 trac'
+    varnames='Te Alfv divB beta bQ rad j1 j2 j3 trac ttrac tcutoff'
 
   end subroutine specialvarnames_output
 
