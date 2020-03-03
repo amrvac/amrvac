@@ -780,7 +780,6 @@ contains
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(mhd_gamma-1.d0)
 
     Tmax_local=maxval(Te(ixO^S))
-    print*,'Tmax_local',Tmax_local
 
     ! temperature gradient at cell centers
     do idims=1,ndim
