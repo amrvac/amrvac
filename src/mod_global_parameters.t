@@ -370,7 +370,7 @@ module mod_global_parameters
   !> Solve polytropic process instead of solving total energy
   logical :: solve_internal_e=.false.
 
-  !> Use trac method to calculate thermal conduction for MHD or 1D HD
+  !> Use TRAC (Johnston 2019 ApJL, 873, L22) for MHD or 1D HD
   logical :: trac=.false.  
 
   !> Enable to strictly conserve the angular momentum
@@ -579,10 +579,6 @@ module mod_global_parameters
 
   !> global largest a2 for schmid scheme
   double precision :: a2max_global(ndim)
-
-  !> lower and upper limit for TRAC cutoff temperature
-  double precision :: T_bott
-  double precision :: T_peak
 
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.

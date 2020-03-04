@@ -755,7 +755,7 @@ contains
     end do
   end subroutine mhd_get_a2max
 
-  !> get adaptive cutoff temperature for TRAC
+  !> get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)
   subroutine mhd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
     use mod_global_parameters
     use mod_geometry
@@ -763,12 +763,11 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
 
-    integer :: ix^D,jxO^L,hxO^L,idims
     double precision, parameter :: delta=0.5d0
-    double precision :: tmp1(ixI^S),Te(ixI^S)
+    double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
     double precision, dimension(ixI^S,1:ndir) :: bunitvec
     double precision, dimension(ixI^S,1:ndim) :: gradT
-    double precision :: lts(ixI^S)
+    integer :: idims
     logical :: lrlt(ixI^S)
 
     if(solve_internal_e) then
@@ -815,7 +814,6 @@ contains
     if(any(lrlt(ixO^S))) then
       block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
     end if
-    !print*,'t cut off',block%special_values(1),maxval(Te(ixO^S))
 
   end subroutine mhd_get_tcutoff
 

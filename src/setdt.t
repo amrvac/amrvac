@@ -11,7 +11,7 @@ subroutine setdt()
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
   double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
-  double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype
+  double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_bott, T_peak
 
   if (dtpar<=zero) then
      dtmin_mype=bigdouble
@@ -148,7 +148,7 @@ subroutine setdt()
       MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
   end if
 
-  ! transition region adaptive thermal conduction
+  ! transition region adaptive thermal conduction (Johnston 2019 ApJL, 873, L22)
   if(trac) then
     {^IFONED
     call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&
@@ -156,6 +156,8 @@ subroutine setdt()
     }
     call MPI_ALLREDUCE(Tmax_mype,T_peak,1,MPI_DOUBLE_PRECISION,&
       MPI_MAX,icomm,ierrmpi)
+    ! default lower limit of cutoff temperature
+    T_bott =2.d4/unit_temperature
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       {^IFONED

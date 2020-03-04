@@ -506,25 +506,23 @@ contains
     end do
   end subroutine hd_get_a2max
 
-  !> get adaptive cutoff temperature for TRAC
+  !> get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)
   subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
 
-    integer :: ix^D,jxO^L,hxO^L
     double precision, parameter :: delta=0.5d0
-    double precision :: tmp1(ixI^S),tmp2(ixI^S),Te(ixI^S)
-    double precision :: lts(ixI^S),lrs(ixI^S)
+    double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
+    integer :: jxO^L,hxO^L
     logical :: lrlt(ixI^S)
 
     {^IFONED
     if(solve_internal_e) then
       tmp1(ixI^S)=w(ixI^S,e_)
     else
-      tmp2(ixI^S)=0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
+      tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     end if
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
 
@@ -538,7 +536,7 @@ contains
       lrlt(ixO^S)=.true.
     end where
     tco_local=zero
-    if(any(lrlt(ixO^S) .eqv. .true.)) then
+    if(any(lrlt(ixO^S))) then
       tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
     end if
     }

@@ -333,7 +333,7 @@ without changing time, set `reset_it=T`.
     typetvd= 'roe' | 'yee' | 'harten' | 'sweby'
     typeaverage='default' | 'roe' | 'arithmetic'
 
-    typeboundspeed= 'cmaxmean' | 'other'
+    typeboundspeed= 'Einfeldt' | 'cmaxmean'
     tvdlfeps = DOUBLE
 
     flathllc= F | T
@@ -350,9 +350,13 @@ without changing time, set `reset_it=T`.
     small_values_daverage=1
     check_small_values= F | T
 
+    solve_internal_e = F | T
+
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
+    typecurl = 'central' | 'Gaussbased' | 'Stokesbased'
 
+    trac = F | T
     /
 
 ### time_integrator, flux_scheme, typepred1 {#par_time_integrator}
@@ -513,6 +517,12 @@ are used to replace any unphysical value and set momentum to be 0, as encoded in
 is replaced by averaging from a user-controlled environment about the faulty cells.
 The width of this environment is set by the integer _small_values_daverage_.
 
+When internal energy is an extremely small fraction of total energy, solving total
+energy equation can easily get negative pressure/internal energy caused by small 
+errors in other energies. You can set `solve_internal_e = T` to solve internal 
+energy equation instead of solving total energy with cost of losing total energy 
+conservation.
+
 ### Special process {#par_process}
 User controlled special process can be added to 
 each iteration. Subroutine usr_process_grid can be registered in 
@@ -528,6 +538,15 @@ _gradientS_ ('limited') subroutines that are themselves found in the
 _geometry.t_ module. Similarly, a switch for the divergence of a vector is the
 `typediv` switch. When the 'limited' variant is used, one must set the 
 corresponding gradient_limiter array to select a limiter (per level).
+
+### TRAC fixes {#par_tracfix}
+
+Due to limited spatial resolution, numerically underresolved transition region in
+numerical models of solar atmosphere leads to significant underestimation of coronal 
+density and large errors in thermodynamic evolution. Transition Region Adaptive 
+thermal Conduction (TRAC) invented by Johnson and Bradshaw (2019 ApJL, 873, L22) 
+is implemented to fix this problem by setting `trac=F` for 1D HD and 
+multidimensional MHD solar atmospheric models. 
 
 ## Boundlist {#par_boundlist}
 

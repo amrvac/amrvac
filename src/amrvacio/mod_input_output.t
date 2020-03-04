@@ -167,8 +167,7 @@ contains
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
          solve_internal_e, angmomfix, small_values_fix_iw, &
-         small_values_use_primitive, schmid_rad^D, &
-         trac,t_bott,t_peak
+         small_values_use_primitive, schmid_rad^D, trac
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L, save_physical_boundary
@@ -403,9 +402,6 @@ contains
     ! problem setup defaults
     iprob    = 1
 
-    ! default lower and upper limit of cutoff temperature in TRAC method
-    T_bott =2.d4/unit_temperature
-    T_peak =2.d6/unit_temperature
     ! end defaults
 
     ! Initialize Kronecker delta, and Levi-Civita tensor
