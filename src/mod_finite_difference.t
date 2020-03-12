@@ -77,7 +77,7 @@ contains
        call reconstructR(ixI^L,ixC^L,idims,fm,fmR)
 
        fC(ixC^S,1:nwflux,idims) = fpL(ixC^S,1:nwflux) + fmR(ixC^S,1:nwflux)
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
        if(stagger_grid) then
          ! apply limited reconstruction for left and right status at cell interfaces
@@ -88,7 +88,7 @@ contains
     end do !idims loop
     block%iw0=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
@@ -362,12 +362,12 @@ contains
           end do
        end if
 
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do       !next idims
     block%iw0=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);

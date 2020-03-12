@@ -84,9 +84,10 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
      end subroutine sub_convert
 
-     subroutine sub_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
+     subroutine sub_modify_wLR(ixI^L, ixO^L, qt, wLC, wRC, wLp, wRp, s, idir)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idir
+       double precision, intent(in)    :: qt
        double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
        double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
        type(state)                     :: s
@@ -227,10 +228,10 @@ module mod_physics
        double precision, intent(out) :: out(ixO^S)
      end subroutine sub_get_var
 
-     subroutine sub_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+     subroutine sub_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
        use mod_global_parameters
        integer, intent(in)                :: ixI^L, ixO^L
-       double precision, intent(in)       :: qdt
+       double precision, intent(in)       :: qt, qdt
        ! cell-center primitive variables
        double precision, intent(in)       :: wprim(ixI^S,1:nw)
        ! velocity structure
@@ -331,9 +332,10 @@ contains
   subroutine dummy_check_params
   end subroutine dummy_check_params
 
-  subroutine dummy_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
+  subroutine dummy_modify_wLR(ixI^L, ixO^L, qt, wLC, wRC, wLp, wRp, s, idir)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: qt
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
@@ -420,10 +422,10 @@ contains
     character(len=*), intent(in)    :: subname
   end subroutine dummy_small_values
 
-  subroutine dummy_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+  subroutine dummy_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
     use mod_global_parameters
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
     type(state)                        :: sCT, s

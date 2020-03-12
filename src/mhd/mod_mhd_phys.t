@@ -1066,7 +1066,6 @@ contains
   !> Calculate fluxes within ixO^L.
   subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
-    use mod_usr_methods
     use mod_geometry
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
@@ -1352,7 +1351,6 @@ contains
   subroutine boris_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
        qsourcesplit,active)
     use mod_global_parameters
-    use mod_usr_methods
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
@@ -2319,9 +2317,11 @@ contains
 
   end subroutine mhd_getdt_Hall
 
-  subroutine mhd_modify_wLR(ixI^L,ixO^L,wLC,wRC,wLp,wRp,s,idir)
+  subroutine mhd_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
     use mod_global_parameters
+    use mod_usr_methods
     integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: qt
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
@@ -2354,6 +2354,8 @@ contains
       wLC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
       wLC(ixO^S,psi_) = wLp(ixO^S,psi_)
     end if
+
+    if(associated(usr_set_wLR)) call usr_set_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
 
   end subroutine mhd_modify_wLR
 
@@ -2930,11 +2932,11 @@ contains
   end subroutine mhd_clean_divb_multigrid
   }
 
-  subroutine mhd_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+  subroutine mhd_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt,qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
     type(state)                        :: sCT, s
@@ -2943,11 +2945,11 @@ contains
 
     select case(type_ct)
     case('average')
-      call update_faces_average(ixI^L,ixO^L,qdt,fC,fE,sCT,s)
+      call update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
     case('uct_contact')
-      call update_faces_contact(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+      call update_faces_contact(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
     case('uct_hll')
-      call update_faces_hll(ixI^L,ixO^L,qdt,fE,sCT,s)
+      call update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s)
     case default
       call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
     end select
@@ -2955,13 +2957,13 @@ contains
   end subroutine mhd_update_faces
 
   !> get electric field though averaging neighors to update faces in CT
-  subroutine update_faces_average(ixI^L,ixO^L,qdt,fC,fE,sCT,s)
+  subroutine update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
@@ -3016,7 +3018,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
@@ -3054,13 +3056,13 @@ contains
   end subroutine update_faces_average
 
   !> update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509
-  subroutine update_faces_contact(ixI^L,ixO^L,qdt,wp,fC,fE,sCT,s)
+  subroutine update_faces_contact(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wp(ixI^S,1:nw)
     type(state)                        :: sCT, s
@@ -3180,7 +3182,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
@@ -3216,13 +3218,13 @@ contains
   end subroutine update_faces_contact
 
   !> update faces
-  subroutine update_faces_hll(ixI^L,ixO^L,qdt,fE,sCT,s)
+  subroutine update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
     type(state)                        :: sCT, s
 
@@ -3326,7 +3328,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 

@@ -203,7 +203,7 @@ contains
        call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,xi,dxdim(idims))
 
        ! special modification of left and right status before flux evaluation
-       call phys_modify_wLR(ixI^L,ixCR^L,wLC,wRC,wLp,wRp,sCT,idims)
+       call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
 
        ! evaluate physical fluxes according to reconstructed status
        call phys_get_flux(wLC,wLp,xi,ixI^L,ixC^L,idims,fLC)
@@ -232,12 +232,12 @@ contains
          call mpistop('unkown Riemann flux')
        end select
 
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do ! Next idims
     block%iw0=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
