@@ -1,6 +1,6 @@
-!> Tracer for advected particles moving with fluid flows
-!> By Jannis Teunissen, Bart Ripperda, Oliver Porth, and Fabio Bacchini (2017-2020)
-module mod_particle_advect
+!> Scattered sampling based on fixed-particle interpolation
+!> By Fabio Bacchini (2020)
+module mod_particle_sample
   use mod_particle_base
 
   private
@@ -8,12 +8,12 @@ module mod_particle_advect
   !> Variable index for velocity
   integer, dimension(:), allocatable      :: vp(:)
 
-  public :: advect_init
-  public :: advect_create_particles
+  public :: sample_init
+  public :: sample_create_particles
 
 contains
 
-  subroutine advect_init()
+  subroutine sample_init()
     use mod_global_parameters
     integer :: idir
 
@@ -25,13 +25,13 @@ contains
     end do
 
     if (.not. associated(particles_fill_gridvars)) &
-         particles_fill_gridvars => advect_fill_gridvars
-    particles_integrate     => advect_integrate_particles
+         particles_fill_gridvars => sample_fill_gridvars
+    particles_integrate     => sample_integrate_particles
 
-  end subroutine advect_init
+  end subroutine sample_init
 
-  subroutine advect_create_particles()
-    ! initialise the particles
+  subroutine sample_create_particles()
+    ! initialise the particles (=fixed interpolation points)
     use mod_global_parameters
     use mod_usr_methods, only: usr_create_particles, usr_update_payload
 
@@ -77,10 +77,10 @@ contains
         allocate(particle(n)%self)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%time   = 0.0d0
+        particle(n)%self%time      = 0.0d0
         particle(n)%self%dt     = 0.0d0
-        particle(n)%self%x      = 0.d0
-        particle(n)%self%x(:)   = x(:,n)
+        particle(n)%self%x = 0.d0
+        particle(n)%self%x(:) = x(:,n)
         w=ps(igrid)%w
         call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
         do idir=1,ndir
@@ -91,18 +91,18 @@ contains
         particle(n)%self%u(1:ndir) = v(1:ndir,n)
         allocate(particle(n)%payload(npayload))
         if (.not. associated(usr_update_payload)) then
-          call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),payload,npayload,0.d0)
+          call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),payload,npayload,0.d0)
         else
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),payload,npayload,0.d0)
+          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),payload,npayload,0.d0)
         end if
         particle(n)%payload=payload
       end if
 
     end do
 
-  end subroutine advect_create_particles
+  end subroutine sample_create_particles
 
-  subroutine advect_fill_gridvars
+  subroutine sample_fill_gridvars
     use mod_global_parameters
 
     integer                                   :: igrid, iigrid, idir
@@ -127,11 +127,10 @@ contains
 
     end do
 
-  end subroutine advect_fill_gridvars
+  end subroutine sample_fill_gridvars
 
-  subroutine advect_integrate_particles(end_time)
-    ! this solves dx/dt=v for particles
-    use mod_odeint
+  subroutine sample_integrate_particles(end_time)
+    ! this interpolates the HD/MHD quantities at the particle positions
     use mod_global_parameters
     use mod_usr_methods, only: usr_create_particles, usr_update_payload
     double precision, intent(in) :: end_time
@@ -145,7 +144,7 @@ contains
 
     do iipart=1,nparticles_active_on_mype
       ipart                   = particles_active_on_mype(iipart);
-      dt_p                    = advect_get_particle_dt(particle(ipart), end_time)
+      dt_p                    = sample_get_particle_dt(particle(ipart), end_time)
       particle(ipart)%self%dt = dt_p
 
       igrid                   = particle(ipart)%igrid
@@ -154,28 +153,8 @@ contains
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
       tlocnew                 = tloc+dt_p
 
-      ! Position update
-      ! Simple forward Euler start
-      !call get_vec_advect(igrid,x,tloc,v,vp(1),vp(ndir))
-      !particle(ipart)%self%u(1:ndir) = v(1:ndir)
-      !particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-      !     + dt_p * v(1:ndir)
-      ! Simple forward Euler end
-
-      ! Adaptive stepwidth RK4:
-      h1 = dt_p/2.0d0
-      call odeint(x,ndir,tloc,tlocnew,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
-
-      if (ierror /= 0) then
-        print *, "odeint returned error code", ierror
-        print *, "1 means hmin too small, 2 means MAXSTP exceeded"
-        print *, "Having a problem with particle", iipart
-      end if
-
-      particle(ipart)%self%x(1:ndir) = x(1:ndir)
-
       ! Velocity update
-      call get_vec_advect(igrid,x,tlocnew,v,vp(1),vp(ndir))
+      call get_vec_sample(igrid,x,tlocnew,v,vp(1),vp(ndir))
       particle(ipart)%self%u(1:ndir) = v(1:ndir)
 
       ! Time update
@@ -183,22 +162,22 @@ contains
 
       ! Update payload
       if (.not. associated(usr_update_payload)) then
-        call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,payload,npayload,tlocnew)
+        call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,payload,npayload,tlocnew)
       else
-        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,payload,npayload,tlocnew)
+        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,payload,npayload,tlocnew)
       end if
       particle(ipart)%payload = payload
 
     end do
 
-  end subroutine advect_integrate_particles
+  end subroutine sample_integrate_particles
 
   !> Payload update
-  subroutine advect_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
+  subroutine sample_update_payload(igrid,w,wold,xgrid,xpart,upart,payload,npayload,particle_time)
     use mod_global_parameters
     integer, intent(in)           :: igrid,npayload
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
+    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),particle_time
     double precision, intent(out) :: payload(npayload)
     double precision              :: rho, rho1, rho2, td
 
@@ -216,21 +195,9 @@ contains
       payload(1) = rho * w_convert_factor(1)
     end if
 
-  end subroutine advect_update_payload
+  end subroutine sample_update_payload
 
-  subroutine derivs_advect(t_s,x,dxdt)
-    use mod_global_parameters
-    double precision :: t_s, x(ndir)
-    double precision :: dxdt(ndir)
-
-    double precision :: v(ndir)
-
-    call get_vec_advect(igrid_working,x,t_s,v,vp(1),vp(ndir))
-    dxdt(:) = v(:)
-
-  end subroutine derivs_advect
-
-  pure function advect_get_particle_dt(partp, end_time) result(dt_p)
+  pure function sample_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
     use mod_geometry
     type(particle_ptr), intent(in) :: partp
@@ -245,33 +212,14 @@ contains
       return
     end if
 
-    ! make sure we step only one cell at a time:
-    v(1:ndir)=abs(partp%self%u(1:ndir))
-
-    ! convert to angular velocity:
-    if(coordinate ==cylindrical.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
-
-    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
-
-    if(coordinate ==cylindrical.and.phi_>0) then
-      ! phi-momentum leads to radial velocity:
-      if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
-           sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
-           / v(phi_))
-      ! limit the delta phi of the orbit (just for aesthetic reasons):
-      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
-      ! take some care at the axis:
-      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
-    end if
-
-    dt_p = dt_cfl
+    dt_p = dtsave_particles
 
     ! Make sure we don't advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
-  end function advect_get_particle_dt
+  end function sample_get_particle_dt
 
-  subroutine get_vec_advect(igrid,x,tloc,var,ibeg,iend)
+  subroutine get_vec_sample(igrid,x,tloc,var,ibeg,iend)
     use mod_global_parameters
 
     integer,intent(in)                                   :: igrid, ibeg, iend
@@ -297,6 +245,6 @@ contains
       end do
     end if
 
-  end subroutine get_vec_advect
+  end subroutine get_vec_sample
 
-end module mod_particle_advect
+end module mod_particle_sample

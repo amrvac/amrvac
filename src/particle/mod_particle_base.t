@@ -7,6 +7,8 @@ module mod_particle_base
 
   !> String describing the particle physics type
   character(len=name_len) :: physics_type_particles = ""
+  !> String describing the particle integrator type
+  character(len=name_len) :: integrator_type_particles = ""
   !> Header string used in CSV files
   character(len=200)      :: csv_header
   !> Format string used in CSV files
@@ -40,7 +42,7 @@ module mod_particle_base
   !> Use a relativistic particle mover?
   logical                 :: relativistic
   !> Resistivity
-  double precision        :: particles_eta
+  double precision        :: particles_eta, particles_etah
   double precision        :: dtheta
   logical                 :: losses
   !> Identity number and total number of particles
@@ -72,6 +74,8 @@ module mod_particle_base
   integer                                 :: nparticles_active_on_mype
   !> Normalization factor for velocity in the integrator
   double precision                        :: integrator_velocity_factor(3)
+  !> Integrator to be used for particles
+  integer                                 :: integrator
 
   !> Variable index for magnetic field
   integer, allocatable :: bp(:)
@@ -151,9 +155,9 @@ contains
     integer                      :: n
 
     namelist /particles_list/ physics_type_particles,nparticleshi, &
-         nparticles_per_cpu_hi, particles_eta, write_individual, write_ensemble, &
+         nparticles_per_cpu_hi, particles_eta, particles_etah, write_individual, write_ensemble, &
          write_snapshot, dtsave_particles,num_particles,npayload,tmax_particles, &
-         dtheta,losses, const_dt_particles, relativistic
+         dtheta,losses, const_dt_particles, relativistic, integrator_type_particles
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -185,7 +189,8 @@ contains
     relativistic              = .true.
     t_next_output             = 0.0d0
     dtheta                    = 2.0d0*dpi / 60.0d0
-    particles_eta             = 0.d0
+    particles_eta             = mhd_eta
+    particles_etah            = mhd_etah
     losses                    = .false.
     nparticles                = 0
     it_particles              = 0
@@ -193,6 +198,7 @@ contains
     nparticles_on_mype        = 0
     nparticles_active_on_mype = 0
     integrator_velocity_factor(:) = 1.0d0
+    integrator_type_particles = 'Boris'
 
     call particles_params_read(par_files)
 
@@ -367,12 +373,16 @@ contains
     w_part(ixG^T,ep(3)) = w_part(ixG^T,bp(1)) * &
          w(ixG^T,iw_mom(2)) - w_part(ixG^T,bp(2)) * &
          w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
+    ! Hall term
+    if (particles_etah > zero) then
+      w_part(ixG^T,ep(1)) = w_part(ixG^T,ep(1)) + particles_etah/w(ixG^T,iw_rho) * &
+           (current(ixG^T,2) * w_part(ixG^T,bp(3)) - current(ixG^T,3) * w_part(ixG^T,bp(2)))
+      w_part(ixG^T,ep(2)) = w_part(ixG^T,ep(2)) + particles_etah/w(ixG^T,iw_rho) * &
+           (-current(ixG^T,1) * w_part(ixG^T,bp(3)) + current(ixG^T,3) * w_part(ixG^T,bp(1)))
+      w_part(ixG^T,ep(3)) = w_part(ixG^T,ep(3)) + particles_etah/w(ixG^T,iw_rho) * &
+           (current(ixG^T,1) * w_part(ixG^T,bp(2)) - current(ixG^T,2) * w_part(ixG^T,bp(1)))
+    end if
 
-    ! scale to cgs units:
-    w_part(ixG^T,bp(:)) = w_part(ixG^T,bp(:)) * &
-         sqrt(4.0d0*dpi*unit_velocity**2 * unit_density)
-    w_part(ixG^T,ep(:)) = w_part(ixG^T,ep(:)) * &
-         sqrt(4.0d0*dpi*unit_velocity**2 * unit_density) * unit_velocity / const_c
   end subroutine fields_from_mhd
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
@@ -412,9 +422,6 @@ contains
 
     integer :: steps_taken, nparticles_left
 
-    if(time_advance) tmax_particles = global_time + dt
-    if(physics_type_particles/='advect') tmax_particles=tmax_particles*unit_time
-
     tpartc0 = MPI_WTIME()
 
     call set_neighbor_ipe
@@ -427,9 +434,16 @@ contains
     call comm_particles_global
     tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
 
+    if(time_advance) then
+      tmax_particles = global_time + dt
+    else
+      tmax_particles = global_time + (time_max-global_time)
+    end if
+    if(physics_type_particles/='advect') tmax_particles=tmax_particles
+
     ! main integration loop
     do
-      if (tmax_particles > t_next_output) then
+      if (tmax_particles >= t_next_output) then
         call advance_particles(t_next_output, steps_taken)
 
         tpartc_io_0 = MPI_WTIME()
@@ -448,7 +462,7 @@ contains
 
       call MPI_ALLREDUCE(nparticles_on_mype, nparticles_left, 1, MPI_INTEGER, &
            MPI_SUM, icomm, ierrmpi)
-      if (nparticles_left == 0) call mpistop('No particles left')
+      if (nparticles_left == 0 .and. convert) call mpistop('No particles left')
 
     end do
 
@@ -544,7 +558,7 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
       end do
-      td = (tloc/unit_time - global_time) / dt
+      td = (tloc - global_time) / dt
       vec(:) = vec1(:) * (1.0d0 - td) + vec2(:) * td
     end if
 
@@ -552,12 +566,12 @@ contains
 
   !> Get Lorentz factor from relativistic momentum
   pure subroutine get_lfac(u,lfac)
-    use mod_global_parameters, only: ndir
-    double precision,dimension(ndir), intent(in)        :: u
+    use mod_global_parameters, only: ndir, c_norm
+    double precision,dimension(ndir), intent(in)       :: u
     double precision, intent(out)                      :: lfac
 
     if (relativistic) then
-       lfac = sqrt(1.0d0 + sum(u(:)**2))
+       lfac = sqrt(1.0d0 + sum(u(:)**2)/c_norm**2)
     else
        lfac = 1.0d0
     end if
@@ -565,12 +579,12 @@ contains
 
   !> Get Lorentz factor from velocity
   pure subroutine get_lfac_from_velocity(v,lfac)
-    use mod_global_parameters, only: ndir
-    double precision,dimension(ndir), intent(in)        :: v
+    use mod_global_parameters, only: ndir, c_norm
+    double precision,dimension(ndir), intent(in)       :: v
     double precision, intent(out)                      :: lfac
 
     if (relativistic) then
-       lfac = 1.0d0 / sqrt(1.0d0 - sum(v(:)**2)/const_c**2)
+       lfac = 1.0d0 / sqrt(1.0d0 - sum(v(:)**2)/c_norm**2)
     else
        lfac = 1.0d0
     end if
@@ -1259,18 +1273,23 @@ contains
     double precision             :: x(3), u(3)
     integer                      :: icomp
 
-    ! normalize the position
-    select case(coordinate)
-      case(Cartesian,Cartesian_stretched)
-        x = myparticle%x*length_convert_factor
-      case(cylindrical)
-        x(r_)   = myparticle%x(r_)*length_convert_factor
-        x(z_)   = myparticle%x(z_)*length_convert_factor
-        x(phi_) = myparticle%x(phi_)
-      case(spherical)
-        x(:) = myparticle%x(:)
-        x(1) = x(1)*length_convert_factor
-    end select
+    ! convert and normalize the position
+    if (nocartesian) then
+      select case(coordinate)
+        case(Cartesian,Cartesian_stretched)
+          x = myparticle%x*length_convert_factor
+        case(cylindrical)
+          x(r_)   = myparticle%x(r_)*length_convert_factor
+          x(z_)   = myparticle%x(z_)*length_convert_factor
+          x(phi_) = myparticle%x(phi_)
+        case(spherical)
+          x(:) = myparticle%x(:)
+          x(1) = x(1)*length_convert_factor
+      end select
+    else
+      call partcoord_to_cartesian(myparticle%x,x)
+      x(:) = x(:)*length_convert_factor
+    end if
 
     u = myparticle%u(1:3) * integrator_velocity_factor
 
@@ -1280,6 +1299,37 @@ contains
 
   end subroutine output_particle
 
+  !> convert to cartesian coordinates
+  subroutine partcoord_to_cartesian(xp,xpcart)
+    ! conversion of particle coordinate from cylindrical/spherical to cartesian coordinates done here
+    ! NOT converting velocity components: TODO?
+    ! Also: nullifying values lower than smalldouble
+    use mod_global_parameters
+    use mod_geometry
+
+    double precision, intent(in)  :: xp(1:ndir)
+    double precision, intent(out) :: xpcart(1:ndir)
+
+    select case (coordinate)
+       case (Cartesian,Cartesian_stretched)
+          xpcart(1:ndir)=xp(1:ndir)
+       case (cylindrical)
+          xpcart(1)=xp(1)*cos(xp(phi_))
+          xpcart(2)=xp(1)*sin(xp(phi_))
+          xpcart(3)=xp(z_)
+       case (spherical)
+          xpcart(1)=xp(1)*sin(xp(2))*cos(xp(3))
+          {^IFTWOD
+          xpcart(2)=xp(1)*cos(xp(2))
+          xpcart(3)=xp(1)*sin(xp(2))*sin(xp(3))}
+          {^IFTHREED
+          xpcart(2)=xp(1)*sin(xp(2))*sin(xp(3))
+          xpcart(3)=xp(1)*cos(xp(2))}
+       case default
+          write(*,*) "No converter for coordinate=",coordinate
+       end select
+
+  end subroutine partcoord_to_cartesian
 
   subroutine comm_particles()
     use mod_global_parameters
@@ -1306,7 +1356,7 @@ contains
     ! check if and where to send each particle, destroy if necessary
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
 
-      ! first check if the particle should be destroyed (user defined criterion)
+      ! first check if the particle should be destroyed (TODO: user-defined criterion)
       if ( .not.time_advance .and. particle(ipart)%self%time .gt. tmax_particles ) then
         destroy_n_particles_mype  = destroy_n_particles_mype + 1
         particle_index_to_be_destroyed(destroy_n_particles_mype) = ipart

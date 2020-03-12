@@ -473,16 +473,18 @@ contains
 
   subroutine mhd_physical_units()
     use mod_global_parameters
-    double precision :: mp,kB,miu0
+    double precision :: mp,kB,miu0,c_lightspeed
     ! Derive scaling units
     if(SI_unit) then
       mp=mp_SI
       kB=kB_SI
       miu0=miu0_SI
+      c_lightspeed=c_SI
     else
       mp=mp_cgs
       kB=kB_cgs
       miu0=4.d0*dpi
+      c_lightspeed=const_c
     end if
     if(unit_velocity==0) then
       unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
@@ -497,6 +499,10 @@ contains
       unit_magneticfield=sqrt(miu0*unit_pressure)
       unit_time=unit_length/unit_velocity
     end if
+    ! Additional units needed for the particles
+    c_norm=c_lightspeed/unit_velocity
+    unit_charge=unit_magneticfield/unit_length/unit_velocity/miu0
+    unit_mass=unit_density*unit_length**3
 
   end subroutine mhd_physical_units
 

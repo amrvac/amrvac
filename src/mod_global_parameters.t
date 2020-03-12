@@ -341,6 +341,15 @@ module mod_global_parameters
   !> Physical scaling factor for number density
   double precision :: unit_numberdensity=1.d0
 
+  !> Physical scaling factor for charge
+  double precision :: unit_charge=1.d0
+
+  !> Physical scaling factor for mass
+  double precision :: unit_mass=1.d0
+
+  !> Normalised speed of light
+  double precision :: c_norm=1.d0
+
   !> error handling
   double precision :: small_temperature,small_pressure,small_density
 

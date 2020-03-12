@@ -43,6 +43,9 @@ module mod_constants
   !> Permeability in SI
   double precision, parameter :: miu0_SI = 1.2566370614d-6 ! H m^-1
 
+  !> Speed of light in SI
+  double precision, parameter :: c_SI = 2.99792458d8 ! m s^-1
+
   double precision, PARAMETER :: const_c     = 2.99792458d10   ! cm s^-1           ; Speed of light
   double precision, PARAMETER :: const_me    = 9.1093897d-28   ! g                 ; Electron mass
   double precision, PARAMETER :: const_mp    = 1.672621777d-24 ! g                 ; Proton mass

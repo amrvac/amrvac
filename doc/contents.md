@@ -41,6 +41,7 @@ simulations using non-Cartesian grids.
 * [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction.
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
+* [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
 # Source Code {#source_code}

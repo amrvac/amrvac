@@ -1,4 +1,5 @@
-!> Relativistic Boris scheme
+!> Particle mover with Newtonian/relativistic Boris scheme for Lorentz dynamics
+!> By Jannis Teunissen, Bart Ripperda, Oliver Porth, and Fabio Bacchini (2016-2020)
 module mod_particle_lorentz
   use mod_particle_base
 
@@ -6,6 +7,7 @@ module mod_particle_lorentz
 
   public :: Lorentz_init
   public :: Lorentz_create_particles
+  integer, parameter :: Boris=1, Vay=2, HC=3, LM=4
 
 contains
 
@@ -15,7 +17,7 @@ contains
 
     if(physics_type/='mhd') call mpistop("Lorentz particles need magnetic field!")
     if(ndir/=3) call mpistop("Lorentz particles need ndir=3!")
-    dtsave_particles=dtsave_particles*unit_time
+
     ngridvars=ndir*2
     nwx = 0
 
@@ -31,7 +33,16 @@ contains
       ep(idir) = nwx
     end do
 
-    integrator_velocity_factor = const_c
+    select case(integrator_type_particles)
+    case('Boris')
+      integrator = Boris
+    case('Vay','vay')
+      integrator = Vay
+    case('HC','hc','higueracary')
+      integrator = HC
+    case('LM','lm','lapentamarkidis')
+      integrator = LM
+    end select
 
     particles_fill_gridvars => fill_gridvars_default
     particles_integrate     => Lorentz_integrate_particles
@@ -40,20 +51,35 @@ contains
   subroutine Lorentz_create_particles()
 
     use mod_global_parameters
-    use mod_usr_methods, only: usr_create_particles
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload
 
-    integer          :: n, igrid_particle, ipe_particle
+    integer          :: n, idir, igrid, ipe_particle
     double precision :: lfac
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
     double precision :: q(num_particles)
     double precision :: m(num_particles)
+    double precision :: rrd(num_particles,ndir)
+    double precision :: payload(npayload)
     logical          :: follow(num_particles)
 
-    if (.not. associated(usr_create_particles)) then
-      call mpistop("Error: no usr_create_particles method specified")
-    else if (mype == 0) then
-      call usr_create_particles(num_particles, x, v, q, m, follow)
+    follow = .false.
+    x      = 0.0d0
+
+    if (mype==0) then
+      if (.not. associated(usr_create_particles)) then
+        ! Randomly distributed
+        do idir=1,ndir
+          do n = 1, num_particles
+            rrd(n,idir) = rng%unif_01()
+          end do
+        end do
+        do n=1, num_particles
+          {^D&x(^D,n) = xprobmin^D + rrd(n+1,^D) * (xprobmax^D - xprobmin^D)\}
+        end do
+      else
+        call usr_create_particles(num_particles, x, v, q, m, follow)
+      end if
     end if
 
     call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
@@ -66,39 +92,46 @@ contains
 
     ! Find ipe and igrid responsible for particle
     do n = 1, num_particles
-      call find_particle_ipe(x(:, n),igrid_particle,ipe_particle)
+      call find_particle_ipe(x(:, n),igrid,ipe_particle)
 
-      particle(n)%igrid = igrid_particle
+      particle(n)%igrid = igrid
       particle(n)%ipe   = ipe_particle
 
       if (ipe_particle == mype) then
         call push_particle_into_particles_on_mype(n)
 
-        call get_lfac_from_velocity(v(:, n), lfac)
+        call get_lfac_from_velocity(v(:,n), lfac)
 
         allocate(particle(n)%self)
-        particle(n)%self%x      = x(:, n)
-        particle(n)%self%u      = v(:, n) * lfac / const_c
+        particle(n)%self%x      = x(:,n)
+        particle(n)%self%u      = v(:,n) * lfac
         particle(n)%self%q      = q(n)
         particle(n)%self%m      = m(n)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%time      = 0.0d0
+        particle(n)%self%time   = 0.0d0
         particle(n)%self%dt     = 0.0d0
 
         ! initialise payloads for Lorentz module
         allocate(particle(n)%payload(npayload))
-        particle(n)%payload(:) = 0.0d0
+        if (.not. associated(usr_update_payload)) then
+          call Lorentz_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),payload,npayload,0.d0)
+        else
+          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),payload,npayload,0.d0)
+        end if
+        particle(n)%payload(:) = payload
       end if
     end do
 
   end subroutine Lorentz_create_particles
 
-  !> Relativistic Boris scheme
+  !> Relativistic particle integrator
   subroutine Lorentz_integrate_particles(end_time)
     use mod_global_parameters
     use mod_geometry
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload
     double precision, intent(in)      :: end_time
+    double precision :: payload(npayload)
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
     double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
@@ -114,8 +147,7 @@ contains
       ! Push particle over half time step
       call get_lfac(particle(ipart)%self%u,lfac)
       particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-           + 0.5d0 * dt_p * particle(ipart)%self%u(1:ndir)/lfac &
-           * const_c / unit_length
+           + 0.5d0 * dt_p * particle(ipart)%self%u(1:ndir)/lfac
 
       ! Get E, B at new position
       call get_vec(bp, particle(ipart)%igrid, &
@@ -123,186 +155,347 @@ contains
       call get_vec(ep, particle(ipart)%igrid, &
            particle(ipart)%self%x,particle(ipart)%self%time,e)
 
-      ! 'Kick' particle (update velocity)
+      ! 'Kick' particle (update velocity) based on the chosen integrator
+      call Lorentz_kick(particle(ipart)%self%x,particle(ipart)%self%u,e,b,q,m,dt_p)
+
+      ! Push particle over half time step at end
+      call get_lfac(particle(ipart)%self%u,lfac)
+      particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
+           + 0.5d0 * dt_p * particle(ipart)%self%u(1:ndir)/lfac
+
+      ! Time update
+      particle(ipart)%self%time = particle(ipart)%self%time + dt_p
+
+      ! Update payload
+      if (.not. associated(usr_update_payload)) then
+        call Lorentz_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x, &
+             particle(ipart)%self%x,particle(ipart)%self%u,q,m,payload,npayload,particle(ipart)%self%time)
+      else
+        call usr_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x,&
+             particle(ipart)%self%x,particle(ipart)%self%u,q,m,payload,npayload,particle(ipart)%self%time)
+      end if
+      particle(ipart)%payload = payload
+
+    end do ! ipart loop
+
+  end subroutine Lorentz_integrate_particles
+
+  !> Momentum update subroutine for full Lorentz dynamics
+  subroutine Lorentz_kick(xpart,upart,e,b,q,m,dtp)
+    use mod_global_parameters
+    use mod_geometry
+    double precision, intent(in)      :: e(ndir), b(ndir), q, m, dtp
+    double precision, intent(inout)   :: xpart(ndim), upart(ndir)
+    double precision                  :: lfac, cosphi, sinphi, phi1, phi2, r, re, sigma
+    double precision, dimension(ndir) :: emom, uprime, tau, s, tmp, uplus, xcart1, xcart2, ucart2, radmom
+    double precision, dimension(ndir) :: upartk, vbar, Fk, C1, C2, dupartk
+    double precision                  :: abserr, tol, lfack, J11, J12, J13, J21, J22, J23, J31, J32, J33
+    double precision                  :: iJ11, iJ12, iJ13, iJ21, iJ22, iJ23, iJ31, iJ32, iJ33, Det
+    integer                           :: nk, nkmax
+
+    ! Perform momentum update based on the chosen integrator
+    select case(integrator)
+
+    ! Boris integrator (works in Cartesian and cylindrical)
+    case(Boris)
+
       select case(coordinate)
 
-        ! CARTESIAN COORDINATES
-      case(Cartesian,Cartesian_stretched)
+      ! CARTESIAN COORDINATES
+      case(Cartesian)!,Cartesian_stretched)
+        ! TODO: Adjust and document Cartesian_stretched
+
         ! Momentum update
-        emom = q * e * dt_p /(2.0d0 * m * const_c)
-        if(losses) then
-          call get_lfac(particle(ipart)%self%u,lfac)
-          re = abs(q)**2 / (m * const_c**2)
-          call cross(particle(ipart)%self%u,b,tmp)
-          radmom = - third * re**2 * lfac &
-               * ( sum((e(:)+tmp(:)/lfac)**2)  &
-               -  (sum(e(:)*particle(ipart)%self%u(:))/lfac)**2 ) &
-               * particle(ipart)%self%u / m / const_c * dt_p
-        else
+        emom = q * e * dtp /(2.0d0 * m)
+        !!!!!! TODO: Adjust and document losses
+!        if(losses) then
+!          call get_lfac(particle(ipart)%self%u,lfac)
+!          re = abs(q)**2 / (m * const_c**2)
+!          call cross(particle(ipart)%self%u,b,tmp)
+!          radmom = - third * re**2 * lfac &
+!               * ( sum((e(:)+tmp(:)/lfac)**2)  &
+!               -  (sum(e(:)*particle(ipart)%self%u(:))/lfac)**2 ) &
+!               * particle(ipart)%self%u / m / const_c * dt_p
+!        else
           radmom = 0.0d0
-        end if
+!        end if
 
-        uminus = particle(ipart)%self%u + emom + radmom
+        uprime = upart + emom + radmom
 
-        call get_lfac(uminus,lfac)
-        call get_t(b,lfac,dt_p,q,m,t_geom)
-        call get_s(t_geom,s)
+        call get_lfac(uprime,lfac)
+        tau = q * b * dtp / (2.0d0 * lfac * m)
+        s = 2.0d0 * tau / (1.0d0+sum(tau(:)**2))
 
-        call cross(uminus,t_geom,tmp)
-        udash = uminus + tmp
+        call cross(uprime,tau,tmp)
+        call cross(uprime+tmp,s,tmp)
+        uplus = uprime + tmp
 
-        call cross(udash,s,tmp)
-        uplus = uminus + tmp
-
-        if(losses) then
-          call cross(uplus,b,tmp)
-          radmom = - third * re**2 * lfac &
-               * ( sum((e(:)+tmp(:)/lfac)**2)  &
-               -  (sum(e(:)*uplus(:))/lfac)**2 ) &
-               * uplus / m / const_c * dt_p
-        else
+        !!!!!! TODO: Adjust and document losses
+!        if(losses) then
+!          call cross(uplus,b,tmp)
+!          radmom = - third * re**2 * lfac &
+!               * ( sum((e(:)+tmp(:)/lfac)**2)  &
+!               -  (sum(e(:)*uplus(:))/lfac)**2 ) &
+!               * uplus / m / const_c * dt_p
+!        else
           radmom = 0.0d0
-        end if
+!        end if
 
-        ! Update the velocity
-        particle(ipart)%self%u = uplus + emom + radmom
+        ! Update momentum
+        upart = uplus + emom + radmom
 
+      ! CYLINDRICAL COORDINATES
       case (cylindrical)
 
         !  Momentum update
-        emom = q * e * dt_p /(2.0d0 * m * const_c)
+        emom = q * e * dtp /(2.0d0 * m)
 
-        if(losses) then
-          call get_lfac(particle(ipart)%self%u,lfac)
-          re = abs(q)**2 / (m * const_c**2)
-          call cross(particle(ipart)%self%u,b,tmp)
-          radmom = - third * re**2 * lfac &
-               * ( sum((e(:)+tmp(:)/lfac)**2)  &
-               -  (sum(e(:)*particle(ipart)%self%u(:))/lfac)**2 ) &
-               * particle(ipart)%self%u / m / const_c * dt_p
-        else
+        !!!!!! TODO: Adjust and document losses
+!        if(losses) then
+!          call get_lfac(particle(ipart)%self%u,lfac)
+!          re = abs(q)**2 / (m * const_c**2)
+!          call cross(particle(ipart)%self%u,b,tmp)
+!          radmom = - third * re**2 * lfac &
+!               * ( sum((e(:)+tmp(:)/lfac)**2)  &
+!               -  (sum(e(:)*particle(ipart)%self%u(:))/lfac)**2 ) &
+!               * particle(ipart)%self%u / m / const_c * dt_p
+!        else
           radmom = 0.0d0
-        end if
+!        end if
 
-        uminus = particle(ipart)%self%u + emom + radmom
+        uprime = upart + emom + radmom
 
-        call get_lfac(uminus,lfac)
-        call get_t(b,lfac,dt_p,q,m,t_geom)
-        call get_s(t_geom,s)
+        call get_lfac(uprime,lfac)
+        tau = q * b * dtp / (2.0d0 * lfac * m)
+        s = 2.0d0 * tau / (1.0d0+sum(tau(:)**2))
 
-        call cross(uminus,t_geom,tmp)
-        udash = uminus + tmp
+        call cross(uprime,tau,tmp)
+        call cross(uprime+tmp,s,tmp)
+        uplus = uprime + tmp
 
-        call cross(udash,s,tmp)
-        uplus = uminus + tmp
-
-        if(losses) then
-          call cross(uplus,b,tmp)
-          radmom = - third * re**2 * lfac &
-               * ( sum((e(:)+tmp(:)/lfac)**2)  &
-               -  (sum(e(:)*uplus(:))/lfac)**2 ) &
-               * uplus / m / const_c * dt_p
-        else
+        !!!!!! TODO: Adjust and document losses
+!        if(losses) then
+!          call cross(uplus,b,tmp)
+!          radmom = - third * re**2 * lfac &
+!               * ( sum((e(:)+tmp(:)/lfac)**2)  &
+!               -  (sum(e(:)*uplus(:))/lfac)**2 ) &
+!               * uplus / m / const_c * dt_p
+!        else
           radmom = 0.0d0
-        end if
+!        end if
 
-        particle(ipart)%self%u = uplus + emom + radmom
+        upart = uplus + emom + radmom
         ! Position update
         ! Get cartesian coordinates:
-        phi1       = particle(ipart)%self%x(phi_)
+        phi1       = xpart(phi_)
         cosphi     = cos(phi1)
         sinphi     = sin(phi1)
 
-        xcart1(1)  = particle(ipart)%self%x(r_) * cosphi
-        xcart1(2)  = particle(ipart)%self%x(r_) * sinphi
-        xcart1(3)  = particle(ipart)%self%x(z_)
+        xcart1(1)  = xpart(r_) * cosphi
+        xcart1(2)  = xpart(r_) * sinphi
+        xcart1(3)  = xpart(z_)
 
-        ucart2(1)   = cosphi * particle(ipart)%self%u(r_) - sinphi * particle(ipart)%self%u(phi_)
-        ucart2(2)   = cosphi * particle(ipart)%self%u(phi_) + sinphi * particle(ipart)%self%u(r_)
-        ucart2(3)   = particle(ipart)%self%u(z_)
+        ucart2(1)   = cosphi * upart(r_) - sinphi * upart(phi_)
+        ucart2(2)   = cosphi * upart(phi_) + sinphi * upart(r_)
+        ucart2(3)   = upart(z_)
 
         ! update position
         xcart2(1:ndir) = xcart1(1:ndir) &
-             + dt_p * ucart2(1:ndir)/lfac &
-             * const_c/unit_length
+             + dtp * ucart2(1:ndir)/lfac
 
         ! back to cylindrical coordinates
         phi2 = atan2(xcart2(2),xcart2(1))
         if(phi2 .lt. 0.0d0) phi2 = 2.0d0*dpi + phi2
         r = sqrt(xcart2(1)**2 + xcart2(2)**2)
-        particle(ipart)%self%x(r_)   = r
-        particle(ipart)%self%x(phi_) = phi2
-        particle(ipart)%self%x(z_)   = xcart2(3)
+        xpart(r_)   = r
+        xpart(phi_) = phi2
+        xpart(z_)   = xcart2(3)
 
         ! Rotate the momentum to the new cooridnates
         ! rotate velocities
         cosphi     = cos(phi2-phi1)
         sinphi     = sin(phi2-phi1)
 
-        tmp = particle(ipart)%self%u
-        particle(ipart)%self%u(r_)   = cosphi * tmp(r_)   + sinphi * tmp(phi_)
-        particle(ipart)%self%u(phi_) = cosphi * tmp(phi_) - sinphi * tmp(r_)
-        particle(ipart)%self%u(z_)   = tmp(z_)
+        tmp = upart
+        upart(r_)   = cosphi * tmp(r_)   + sinphi * tmp(phi_)
+        upart(phi_) = cosphi * tmp(phi_) - sinphi * tmp(r_)
+        upart(z_)   = tmp(z_)
+
+      case default
+        call mpistop("Boris particle pusher incompatible with the chosen geometry")
       end select
 
-      call get_lfac(particle(ipart)%self%u,lfac)
+    ! Vay integrator (works in Cartesian)
+    case(Vay)
 
-      ! Push particle over half time step at end
-      particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-           + 0.5d0 * dt_p * particle(ipart)%self%u(1:ndir)/lfac &
-           * const_c / unit_length
+      select case(coordinate)
 
-      ! Time update
-      particle(ipart)%self%time = particle(ipart)%self%time + dt_p
+      ! CARTESIAN COORDINATES
+      case(Cartesian)!,Cartesian_stretched)
+        ! TODO: Adjust and document Cartesian_stretched
 
-      ! Payload update
-      if (npayload > 0) then
-        ! current gyroradius
-        call get_vec(bp, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%time,b)
-        call cross(particle(ipart)%self%u,b,tmp)
-        tmp = tmp / sqrt(sum(b(:)**2))
-        particle(ipart)%payload(1) = sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2)) * &
-             m / abs(q) * const_c**2
-      end if
+        call get_lfac(upart,lfac)
+        emom = q * e * dtp /(2.0d0 * m)
+        tau = q * b * dtp / (2.0d0 * m)
 
-      ! magnetic moment
-      if (npayload>1) then
-        particle(ipart)%payload(2) = &
-             sqrt(sum(tmp(:)**2))**2/(2.0d0*sqrt(sum(b(:)**2)))*&
-             m * const_c**2
-      end if
+        call cross(upart,tau,tmp)
+        uprime = upart + 2.d0*emom + tmp/lfac
 
-      ! e.b payload
-      if (npayload>2) then
-        particle(ipart)%payload(3) = &
-             sum(e(:)*b(:))/sqrt(sum(b(:)**2)*sum(e(:)**2))
-      end if
+        call get_lfac(uprime,lfac)
+        sigma = lfac**2 - sum(tau(:)*tau(:))
+        lfac = sqrt((sigma + sqrt(sigma**2 &
+             + 4.d0 * (sum(tau(:)*tau(:)) + sum(uprime(:)*tau(:)/c_norm)**2))) / 2.d0)
+        
+        call cross(uprime,tau,tmp)
+        upart = (uprime + sum(uprime(:)*tau(:))*tau/lfac**2 + tmp/lfac) / (1.d0+sum(tau(:)*tau(:))/lfac**2)
 
-    end do ! ipart loop
+      case default
+        call mpistop("Vay particle pusher incompatible with the chosen geometry")
+      end select
 
-  contains
+    ! Higuera-Cary integrator (works in Cartesian)
+    case(HC)
 
-    subroutine get_t(b,lfac,dt,q,m,time)
-      implicit none
-      double precision, dimension(ndir), intent(in)      :: b
-      double precision, intent(in)                      :: lfac, dt, q, m
-      double precision, dimension(ndir), intent(out)     :: time
+      select case(coordinate)
 
-      time = q * b * dt / (2.0d0 * lfac * m * const_c)
+      ! CARTESIAN COORDINATES
+      case(Cartesian)!,Cartesian_stretched)
+        ! TODO: Adjust and document Cartesian_stretched
 
-    end subroutine get_t
+        call get_lfac(upart,lfac)
+        emom = q * e * dtp /(2.0d0 * m)
+        tau = q * b * dtp / (2.0d0 * m)
+        uprime = upart + emom
 
-    subroutine get_s(time,s)
-      implicit none
-      double precision, dimension(ndir), intent(in)   :: time
-      double precision, dimension(ndir), intent(out)  :: s
+        call get_lfac(uprime,lfac)
+        sigma = lfac**2 - sum(tau(:)*tau(:))
+        lfac = sqrt((sigma + sqrt(sigma**2 &
+             + 4.d0 * (sum(tau(:)*tau(:)) + sum(uprime(:)*tau(:)/c_norm)**2))) / 2.d0)
+        
+        call cross(uprime,tau,tmp)
+        upart = (uprime + sum(uprime(:)*tau(:))*tau/lfac**2 + tmp/lfac) / (1.d0+sum(tau(:)*tau(:))/lfac**2) &
+                + emom + tmp/lfac
 
-      s = 2.0d0 * time / (1.0d0+sum(time(:)**2))
+      case default
+        call mpistop("Higuera-Cary particle pusher incompatible with the chosen geometry")
+      end select
 
-    end subroutine get_s
+    ! Lapenta-Markidis integrator (works in Cartesian)
+    case(LM)
 
-  end subroutine Lorentz_integrate_particles
+      select case(coordinate)
+
+      ! CARTESIAN COORDINATES
+      case(Cartesian)!,Cartesian_stretched)
+        ! TODO: Adjust and document Cartesian_stretched
+
+        ! Initialise iteration quantities
+        call get_lfac(upart,lfac)
+        upartk = upart
+  
+        ! START OF THE NONLINEAR CYCLE
+        abserr = 1.d0
+        tol=1.d-14
+        nkmax=10
+        nk=0
+        do while(abserr > tol .and. nk < nkmax)
+
+          nk=nk+1
+
+          call get_lfac(upartk,lfack)
+          vbar = (upart + upartk) / (lfac + lfack)
+          call cross(vbar,b,tmp)
+
+          ! Compute residual vector
+          Fk = upartk - upart - q*dtp/m * (e + tmp)
+
+          ! Compute auxiliary coefficients
+          C1 = (lfack + lfac - upartk(1:ndim) / lfack / c_norm**2 * (upartk + upart)) / (lfack + lfac)**2
+          C2 = - upartk / lfack / c_norm**2 / (lfack + lfac)**2
+
+          ! Compute Jacobian
+          J11 = 1. - q*dtp/m * (C2(1) * (upartk(2) + upart(2)) * b(3) - C2(1) * (upartk(3) + upart(3)) * b(2))
+          J12 = - q*dtp/m * (C1(2) * b(3) - C2(2) * (upartk(3) + upart(3)) * b(2))
+          J13 = - q*dtp/m * (C2(3) * (upartk(2) + upart(2)) * b(3) - C1(3) * b(2))
+          J21 = - q*dtp/m * (- C1(1) * b(3) + C2(1) * (upartk(3) + upart(3)) * b(1))
+          J22 = 1. - q*dtp/m * (- C2(2) * (upartk(1) + upart(1)) * b(3) + C2(2) * (upartk(3) + upart(3)) * b(1))
+          J23 = - q*dtp/m * (- C2(3) * (upartk(1) + upart(1)) * b(3) + C1(3) * b(1))
+          J31 = - q*dtp/m * (C1(1) * b(2) - C2(1) * (upartk(2) + upart(2)) * b(1))
+          J32 = - q*dtp/m * (C2(2) * (upartk(1) + upart(1)) * b(2) - C1(2) * b(1))
+          J33 = 1. - q*dtp/m * (C2(3) * (upartk(1) + upart(1)) * b(2) - C2(3) * (upartk(2) + upart(2)) * b(1))
+
+          ! Compute inverse Jacobian
+          Det = J11*J22*J33 + J21*J32*J13 + J31*J12*J23 - J11*J32*J23 - J31*J22*J13 - J21*J12*J33
+          iJ11 = (J22*J33 - J23*J32) / Det
+          iJ12 = (J13*J32 - J12*J33) / Det
+          iJ13 = (J12*J23 - J13*J22) / Det
+          iJ21 = (J23*J31 - J21*J33) / Det
+          iJ22 = (J11*J33 - J13*J31) / Det
+          iJ23 = (J13*J21 - J11*J23) / Det
+          iJ31 = (J21*J32 - J22*J31) / Det
+          iJ32 = (J12*J31 - J11*J32) / Det
+          iJ33 = (J11*J22 - J12*J21) / Det
+
+          ! Compute new upartk = upartk - J^(-1) * F(upartk)
+          dupartk(1) = - (iJ11 * Fk(1) + iJ12 * Fk(2) + iJ13 * Fk(3))
+          dupartk(2) = - (iJ21 * Fk(1) + iJ22 * Fk(2) + iJ23 * Fk(3))
+          dupartk(3) = - (iJ31 * Fk(1) + iJ32 * Fk(2) + iJ33 * Fk(3))
+
+          ! Check convergence
+          upartk=upartk+dupartk
+          abserr=sqrt(sum(dupartk(:)*dupartk(:)))
+
+        end do
+        ! END OF THE NONLINEAR CYCLE
+
+        ! Update velocity
+        upart = upartk
+
+      case default
+        call mpistop("Lapenta-Markidis particle pusher incompatible with the chosen geometry")
+      end select
+
+    end select
+
+  end subroutine Lorentz_kick
+
+  !> Update payload subroutine
+  subroutine Lorentz_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
+    use mod_global_parameters
+    integer, intent(in)           :: igrid,npayload
+    double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
+    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
+    double precision, intent(out) :: payload(npayload)
+    double precision              :: b(3), e(3), tmp(3), lfac
+
+    call get_vec(bp, igrid, xpart,particle_time,b)
+    call get_vec(ep, igrid, xpart,particle_time,e)
+
+    ! Payload update
+    ! Lorentz factor
+    if (npayload > 0) then
+      call get_lfac(upart,lfac)     
+      payload(1) = lfac
+    end if
+
+    ! current gyroradius
+    if (npayload > 1) then
+      call cross(upart,b,tmp)
+      tmp = tmp / sqrt(sum(b(:)**2))
+      payload(2) = mpart/abs(qpart)*sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2))
+    end if
+
+    ! magnetic moment
+    if (npayload > 2) then
+      payload(3) = mpart*sum(tmp(:)**2)/(2.0d0*sqrt(sum(b(:)**2)))
+    end if
+
+    ! e.b
+    if (npayload > 3) then
+      payload(4) = sum(e(:)*b(:))
+    end if
+
+  end subroutine Lorentz_update_payload
 
   function Lorentz_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
@@ -327,7 +520,7 @@ contains
 
     ! CFL timestep
     ! make sure we step only one cell at a time:
-    v(:) = abs(const_c * partp%self%u(:) / lfac)
+    v(:) = abs(partp%self%u(:) / lfac)
 
     ! convert to angular velocity:
     if(coordinate ==cylindrical.and.phi_>0) then
@@ -351,10 +544,10 @@ contains
     dt_cfl = dt_cfl * cfl
 
     ! bound by gyro-rotation:
-    dt_p = abs( dtheta * const_c/unit_length * partp%self%m * lfac &
+    dt_p = abs( dtheta * partp%self%m * lfac &
          / (partp%self%q * absb) )
 
-    dt_p = min(dt_p, dt_cfl)*unit_length
+    dt_p = min(dt_p, dt_cfl)
 
     ! Make sure we don't advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
