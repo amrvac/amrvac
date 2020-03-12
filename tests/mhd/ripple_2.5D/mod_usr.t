@@ -8,6 +8,7 @@ contains
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
+    usr_set_B0          => specialset_B0
 
     call set_coordinate_system("Cartesian_2.5D")
 
@@ -32,6 +33,8 @@ contains
       ixCmin^D=ixOmin^D-kr(1,^D);
       block%ws(ixC^S,1)=1.d0
       call mhd_face_to_center(ixO^L,block)
+    else if(B0field)then
+      w(ixO^S,mag(:))=0.d0
     else
       w(ixO^S,mag(1))=1.d0
       w(ixO^S,mag(2))=0.d0
@@ -78,5 +81,18 @@ contains
     varnames='Te beta divb'
 
   end subroutine specialvarnames_output
+
+  subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
+  ! Here add a steady (time-independent) potential or 
+  ! linear force-free background field
+    integer, intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in)  :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: wB0(ixI^S,1:ndir)
+
+    wB0(ixO^S,1)=1.d0
+    wB0(ixO^S,2)=0.d0
+    wB0(ixO^S,3)=0.d0
+
+  end subroutine specialset_B0
 
 end module mod_usr

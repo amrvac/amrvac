@@ -11,6 +11,7 @@ module mod_limiter
   !> radius of the asymptotic region [0.001, 10], larger means more accurate in smooth
   !> region but more overshooting at discontinuities
   double precision :: cada3_radius
+  double precision :: schmid_rad^D
   integer, parameter :: limiter_minmod = 1
   integer, parameter :: limiter_woodward = 2
   integer, parameter :: limiter_mcbeta = 3
@@ -20,21 +21,22 @@ module mod_limiter
   integer, parameter :: limiter_koren = 7
   integer, parameter :: limiter_cada = 8
   integer, parameter :: limiter_cada3 = 9
-  integer, parameter :: limiter_venk = 10
+  integer, parameter :: limiter_schmid = 10
+  integer, parameter :: limiter_venk = 11
   ! Special cases
-  integer, parameter :: limiter_ppm = 11
-  integer, parameter :: limiter_mp5 = 12
-  integer, parameter :: limiter_weno3  = 13
-  integer, parameter :: limiter_wenoyc3  = 14
-  integer, parameter :: limiter_weno5 = 15
-  integer, parameter :: limiter_weno5nm = 16
-  integer, parameter :: limiter_wenoz5  = 17
-  integer, parameter :: limiter_wenoz5nm = 18
-  integer, parameter :: limiter_wenozp5  = 19
-  integer, parameter :: limiter_wenozp5nm = 20
-  integer, parameter :: limiter_weno7 = 21
-  integer, parameter :: limiter_mpweno7 = 22
-  integer, parameter :: limiter_exeno7 = 23
+  integer, parameter :: limiter_ppm = 12
+  integer, parameter :: limiter_mp5 = 13
+  integer, parameter :: limiter_weno3  = 14
+  integer, parameter :: limiter_wenoyc3  = 15
+  integer, parameter :: limiter_weno5 = 16
+  integer, parameter :: limiter_weno5nm = 17
+  integer, parameter :: limiter_wenoz5  = 18
+  integer, parameter :: limiter_wenoz5nm = 19
+  integer, parameter :: limiter_wenozp5  = 20
+  integer, parameter :: limiter_wenozp5nm = 21
+  integer, parameter :: limiter_weno7 = 22
+  integer, parameter :: limiter_mpweno7 = 23
+  integer, parameter :: limiter_exeno7 = 24
 
 contains
 
@@ -60,6 +62,10 @@ contains
        limiter_type = limiter_cada
     case ('cada3')
        limiter_type = limiter_cada3
+    case ('schmid1')
+       limiter_type = limiter_schmid
+    case ('schmid2')
+       limiter_type = limiter_schmid
     case('venk')
        limiter_type = limiter_venk
     case ('ppm')
@@ -115,7 +121,7 @@ contains
   !> but also from the gradientS and divvectorS subroutines in geometry.t
   !> Accordingly, the typelimiter here corresponds to one of limiter
   !> or one of gradient_limiter.
-  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw)
+  subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)
 
     use mod_global_parameters
 
@@ -126,6 +132,7 @@ contains
     double precision, intent(out), optional :: ldw(ixI^S)
     !> Result using right-limiter (same as left for symmetric)
     double precision, intent(out), optional :: rdw(ixI^S)
+    double precision, intent(in), optional :: a2max
 
     double precision :: tmp(ixI^S), tmp2(ixI^S)
     integer :: ixO^L, hxO^L
@@ -140,6 +147,7 @@ contains
     double precision :: rdelinv
     double precision :: ldwA(ixI^S),ldwB(ixI^S),tmpeta(ixI^S)
     double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cada3_radius=0.1d0
+    integer :: ix^D
     !-----------------------------------------------------------------------------
 
     ! Contract indices in idim for output.
@@ -240,17 +248,18 @@ contains
     case (limiter_cada3)
        rdelinv=one/(cada3_radius*dxlevel(idims))**2
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
-
        if (present(ldw)) then
           tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
           ldwA(ixO^S)=(two+tmp(ixO^S))*third
-          ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
           where(tmpeta(ixO^S)<=one-cadepsilon)
              ldw(ixO^S)=ldwA(ixO^S)
           elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
+             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
              ldw(ixO^S)=ldwB(ixO^S)
           elsewhere
+             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
              tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
              ldw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
                   +(one+tmp2(ixO^S))*ldwB(ixO^S))
@@ -261,20 +270,60 @@ contains
        if (present(rdw)) then
           tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S) + sign(eps, dwC(hxO^S)))
           ldwA(ixO^S)=(two+tmp(ixO^S))*third
-          ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
           where(tmpeta(ixO^S)<=one-cadepsilon)
              rdw(ixO^S)=ldwA(ixO^S)
           elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
+             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
              rdw(ixO^S)=ldwB(ixO^S)
           elsewhere
+             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
+               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
              tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
              rdw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
                   +(one+tmp2(ixO^S))*ldwB(ixO^S))
           endwhere
           rdw(ixO^S)=rdw(ixO^S) * dwC(hxO^S)
        end if
-
+    case(limiter_schmid)
+      tmpeta(ixO^S)=(sqrt(0.4d0*(dwC(ixO^S)**2+dwC(hxO^S)**2)))&
+        /((a2max+cadepsilon)*dxlevel(idims)**2)
+      if(present(ldw)) then
+        tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S)+sign(eps,dwC(ixO^S)))
+        ldwA(ixO^S)=(two+tmp(ixO^S))*third
+        where(tmpeta(ixO^S)<=one-cadepsilon)
+          ldw(ixO^S)=ldwA(ixO^S)
+        else where(tmpeta(ixO^S)>=one+cadepsilon)
+          ldwB(ixO^S)=max(zero,min(ldwA(ixO^S),max(-tmp(ixO^S),&
+             min(cadbeta*tmp(ixO^S),ldwA(ixO^S),1.5d0))))
+          ldw(ixO^S)=ldwB(ixO^S)
+        else where
+          ldwB(ixO^S)=max(zero,min(ldwA(ixO^S),max(-tmp(ixO^S),&
+             min(cadbeta*tmp(ixO^S),ldwA(ixO^S),1.5d0))))
+          tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
+          ldw(ixO^S)=half*((one-tmp2(ixO^S))*ldwA(ixO^S)&
+            +(one+tmp2(ixO^S))*ldwB(ixO^S))
+        end where
+        ldw(ixO^S)=ldw(ixO^S)*dwC(ixO^S)
+      end if
+      if(present(rdw)) then
+        tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S)+sign(eps,dwC(hxO^S)))
+        ldwA(ixO^S)=(two+tmp(ixO^S))*third
+        where(tmpeta(ixO^S)<=one-cadepsilon)
+          rdw(ixO^S)=ldwA(ixO^S)
+        else where(tmpeta(ixO^S)>=one+cadepsilon)
+          ldwB(ixO^S)=max(zero,min(ldwA(ixO^S),max(-tmp(ixO^S),&
+             min(cadbeta*tmp(ixO^S),ldwA(ixO^S),1.5d0))))
+          rdw(ixO^S)=ldwB(ixO^S)
+        else where
+          ldwB(ixO^S)=max(zero,min(ldwA(ixO^S),max(-tmp(ixO^S),&
+            min(cadbeta*tmp(ixO^S), ldwA(ixO^S), 1.5d0))))
+          tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
+          rdw(ixO^S)=half*((one-tmp2(ixO^S))*ldwA(ixO^S)&
+            +(one+tmp2(ixO^S))*ldwB(ixO^S))
+        end where
+        rdw(ixO^S)=rdw(ixO^S)*dwC(hxO^S)
+       end if
     case default
        call mpistop("Error in dwLimiter: unknown limiter")
     end select

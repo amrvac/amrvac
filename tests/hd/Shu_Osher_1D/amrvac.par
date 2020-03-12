@@ -1,0 +1,43 @@
+ &filelist
+        base_filename='shuo1d_'
+        autoconvert=.true.
+        saveprim=.true.
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave_log=10
+        dtsave_dat=0.3d0
+ /
+
+ &stoplist
+        time_max=1.8d0
+ /
+
+ &methodlist
+        time_integrator='threestep'
+        flux_scheme=20*'hll'
+        limiter= 20*'schmid2'
+        schmid_rad1=5.d0
+ /
+
+ &boundlist
+        typeboundary_min1=3*'cont'
+        typeboundary_max1=3*'cont'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=1
+        w_refine_weight(1)=0.5
+        w_refine_weight(3)=0.5
+        domain_nx1=1280
+        xprobmin1=-4.5d0
+        xprobmax1=4.5d0
+ /
+
+ &paramlist
+        courantpar=0.95d0
+ /
+        slowsteps=10

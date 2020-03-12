@@ -4,20 +4,24 @@
 
 # Introduction {#convert_intro}
 
-The standard [MPI-AMRVAC dataformat](fileformat.md), i.e. the _*.dat_ files
-usable for restart, contain all the conservative variables in all gridblocks,
-and hence suffice for visualization, in principle. However, in many instances,
-one would like to use data formats that are directly readable by some of the
-more widespread visualization software packages. Therefore, we created the
-_convert.t_ module, which ensures that this post-process data file conversion
-can be done with the same executable (but possibly even on a different
-platform). The many possibilities include conversion to _*.vtu_ (VTK
-unformatted data format) directly readable by
-[Paraview](http://www.paraview.org/) (or
-[ViSiT](https://wci.llnl.gov/codes/visit/)), to _*.plt_ format for the
-commercial package [Tecplot](http://www.tecplot.com/).
-Also, **this info will not explain you how to use the mentioned
-software for visualization, but just explain how to do the conversion.**
+The standard [MPI-AMRVAC dataformat](fileformat.md), i.e. the _*.dat_
+files usable for restart, contain all the conservative variables in
+all gridblocks, and hence suffice for visualization.
+> Since late 2019, it can be directly read, visualised and
+> analysed with the Python package [yt](https://yt-project.org),
+> see [our documentation to get started with yt](yt_usage.md).
+
+However, in many instances, one would like to use data formats that
+are directly readable by some of the more widespread visualization
+software packages. Therefore, we created the _convert.t_ module, which
+ensures that this post-process data file conversion can be done with
+the same executable (but possibly even on a different platform). The
+many possibilities include conversion to _*.vtu_ (*VTK* *U*nstructured
+data format) directly readable by [Paraview](http://www.paraview.org/)
+(or [ViSiT](https://wci.llnl.gov/codes/visit/)), to _*.plt_ format for
+the commercial package [Tecplot](http://www.tecplot.com/).  Also,
+**this info will not explain you how to use the mentioned software for
+visualization, but just explain how to do the conversion.**
 Furthermore, this part of the code is subject to continuous change and
 improvement, and we welcome extra contributions.
 

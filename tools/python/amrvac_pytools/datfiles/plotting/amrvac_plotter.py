@@ -7,7 +7,7 @@ from amrvac_pytools.datfiles.reading import datfile_utilities
 from amrvac_pytools.datfiles.processing import process_data
 
 
-class _plotsetup():
+class _plotsetup:
     """
     Parent class of amrplot and rgplot, contains the matplotlib figure initialisations and colormaps.
     """
@@ -26,6 +26,8 @@ class _plotsetup():
             self.fig = fig
             self.ax = ax
         self.colorbar = None
+        self.varmin = kwargs.get('varmin', None)
+        self.varmax = kwargs.get('varmax', None)
 
 class amrplot(_plotsetup):
     """
@@ -65,7 +67,9 @@ class amrplot(_plotsetup):
             self.ax.set_title(self.var)
 
     def plot_2d(self):
-        varmin, varmax = self.dataset.get_extrema(self.var)
+        if self.varmin is None or self.varmax is None:
+            self.varmin, self.varmax = self.dataset.get_extrema(self.var)
+
         norm = None
         if self.logscale:
             norm = matplotlib.colors.LogNorm()
@@ -78,7 +82,7 @@ class amrplot(_plotsetup):
             block = process_data.create_data_dict(block, self.dataset.header)
             x = np.linspace(l_edge[0], r_edge[0], self.dataset.header['block_nx'][0])
             y = np.linspace(l_edge[1], r_edge[1], self.dataset.header['block_nx'][1])
-            im = self.ax.pcolormesh(x, y, block[self.var].T, cmap=self.cmap, vmin=varmin, vmax=varmax, norm=norm)
+            im = self.ax.pcolormesh(x, y, block[self.var].T, cmap=self.cmap, vmin=self.varmin, vmax=self.varmax, norm=norm)
 
             # logic to draw the mesh
             if self.draw_mesh:
@@ -122,11 +126,15 @@ class rgplot(_plotsetup):
         self.ax.plot(x, self.data, '-k')
 
     def plot_2d(self):
+        if self.varmin is None or self.varmax is None:
+            self.varmin, self.varmax = np.min(self.data), np.max(self.data)
+
         bounds_x, bounds_y = self.dataset.get_bounds()
         norm = None
         if self.logscale:
             norm = matplotlib.colors.LogNorm()
-        im = self.ax.imshow(np.rot90(self.data), extent=[*bounds_x, *bounds_y], cmap=self.cmap, norm=norm)
+        im = self.ax.imshow(np.rot90(self.data), extent=[*bounds_x, *bounds_y], cmap=self.cmap, norm=norm,
+                            vmin=self.varmin, vmax=self.varmax)
         self.ax.set_aspect('equal')
         divider = make_axes_locatable(self.ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)

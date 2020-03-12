@@ -77,7 +77,7 @@ contains
        call reconstructR(ixI^L,ixC^L,idims,fm,fmR)
 
        fC(ixC^S,1:nwflux,idims) = fpL(ixC^S,1:nwflux) + fmR(ixC^S,1:nwflux)
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
        if(stagger_grid) then
          ! apply limited reconstruction for left and right status at cell interfaces
@@ -88,7 +88,7 @@ contains
     end do !idims loop
     block%iw0=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
@@ -129,6 +129,7 @@ contains
 
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
+    double precision                :: a2max
 
     select case (typelimiter)
     case (limiter_mp5)
@@ -159,7 +160,26 @@ contains
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw=ldw)
+           if(need_global_a2max) then 
+             a2max=a2max_global(idims)
+           else
+             select case(idims)
+             case(1)
+               a2max=schmid_rad1
+             {^IFTWOD
+             case(2)
+               a2max=schmid_rad2}
+             {^IFTHREED
+             case(2)
+               a2max=schmid_rad2
+             case(3)
+               a2max=schmid_rad3}
+             case default
+               call mpistop("idims is wrong in mod_limiter")
+             end select
+           end if
+
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw=ldw,a2max=a2max)
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
        end do
@@ -179,6 +199,7 @@ contains
 
     double precision                :: rdw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
+    double precision                :: a2max
 
     select case (typelimiter)
     case (limiter_mp5)
@@ -208,7 +229,27 @@ contains
 
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,rdw=rdw)
+
+           if(need_global_a2max) then
+             a2max=a2max_global(idims)
+           else
+             select case(idims)
+             case(1)
+               a2max=schmid_rad1
+             {^IFTWOD
+             case(2)
+               a2max=schmid_rad2}
+             {^IFTHREED
+             case(2)
+               a2max=schmid_rad2
+             case(3)
+               a2max=schmid_rad3}
+             case default
+               call mpistop("idims is wrong in mod_limiter")
+             end select
+           end if
+
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,rdw=rdw,a2max=a2max)
 
           wRC(iL^S,iw)=wRC(iL^S,iw)-half*rdw(jxR^S)
        end do
@@ -321,12 +362,12 @@ contains
           end do
        end if
 
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do       !next idims
     block%iw0=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);

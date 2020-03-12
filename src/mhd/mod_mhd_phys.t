@@ -342,10 +342,19 @@ contains
     else if (any(shape(flux_type) /= [ndir, nw])) then
        call mpistop("phys_check error: flux_type has wrong shape")
     end if
-    do idir=1,ndir
-      if(ndim>1) flux_type(idir,mag(idir))=flux_tvdlf
-    end do
-    if(mhd_glm .and. ndim>1) flux_type(:,psi_)=flux_tvdlf
+
+    if(ndim>1) then
+      if(mhd_glm) then
+        flux_type(:,psi_)=flux_special
+        do idir=1,ndir
+          flux_type(idir,mag(idir))=flux_special
+        end do
+      else
+        do idir=1,ndir
+          flux_type(idir,mag(idir))=flux_tvdlf
+        end do
+      end if
+    end if
 
     select case (mhd_boris_method)
     case ("none")
@@ -363,6 +372,8 @@ contains
 
     phys_get_dt              => mhd_get_dt
     phys_get_cmax            => mhd_get_cmax
+    phys_get_a2max           => mhd_get_a2max
+    phys_get_tcutoff         => mhd_get_tcutoff
     phys_get_cbounds         => mhd_get_cbounds
     phys_get_flux            => mhd_get_flux
     phys_get_v_idim          => mhd_get_v_idim
@@ -728,6 +739,90 @@ contains
 
   end subroutine mhd_get_cmax
 
+  subroutine mhd_get_a2max(w,x,ixI^L,ixO^L,a2max)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: a2max(ndim)
+    double precision :: a2(ixI^S,ndim,nw)
+    integer :: gxO^L,hxO^L,jxO^L,kxO^L,i,j
+
+    a2=zero
+    do i = 1,ndim
+      !> 4th order
+      hxO^L=ixO^L-kr(i,^D);
+      gxO^L=hxO^L-kr(i,^D);
+      jxO^L=ixO^L+kr(i,^D);
+      kxO^L=jxO^L+kr(i,^D);
+      a2(ixO^S,i,1:nw)=abs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
+         -30.d0*w(ixO^S,1:nw)+16.d0*w(hxO^S,1:nw)-w(gxO^S,1:nw))
+      a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
+    end do
+  end subroutine mhd_get_a2max
+
+  !> get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)
+  subroutine mhd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
+    use mod_global_parameters
+    use mod_geometry
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
+    double precision, intent(out) :: tco_local, Tmax_local
+
+    double precision, parameter :: delta=0.5d0
+    double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
+    double precision, dimension(ixI^S,1:ndir) :: bunitvec
+    double precision, dimension(ixI^S,1:ndim) :: gradT
+    integer :: idims
+    logical :: lrlt(ixI^S)
+
+    if(solve_internal_e) then
+      tmp1(ixI^S)=w(ixI^S,e_)
+    else
+      tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*(sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/&
+                       w(ixI^S,rho_)+sum(w(ixI^S,iw_mag(:))**2,dim=ndim+1))
+    end if
+    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(mhd_gamma-1.d0)
+
+    Tmax_local=maxval(Te(ixO^S))
+
+    ! temperature gradient at cell centers
+    do idims=1,ndim
+      call gradient(Te,ixI^L,ixO^L,idims,tmp1)
+      gradT(ixO^S,idims)=tmp1(ixO^S)
+    end do
+    ! B vector
+    if(B0field) then
+      bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))+block%B0(ixO^S,:,0)
+    else
+      bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))
+    end if
+    ! |B|
+    tmp1(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
+    where(tmp1(ixO^S)/=0.d0)
+      tmp1(ixO^S)=1.d0/tmp1(ixO^S)
+    elsewhere
+      tmp1(ixO^S)=bigdouble
+    end where
+    ! b unit vector: magnetic field direction vector
+    do idims=1,ndim
+      bunitvec(ixO^S,idims)=bunitvec(ixO^S,idims)*tmp1(ixO^S)
+    end do
+    ! temperature length scale inversed
+    lts(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
+    ! fraction of cells size to temperature length scale
+    lts(ixO^S)=minval(dxlevel)*lts(ixO^S)
+    lrlt=.false.
+    where(lts(ixO^S) > delta)
+      lrlt(ixO^S)=.true.
+    end where
+    block%special_values(1)=0.d0
+    if(any(lrlt(ixO^S))) then
+      block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+    end if
+
+  end subroutine mhd_get_tcutoff
+
   !> Estimating bounds for the minimum and maximum signal velocities
   subroutine mhd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,cmax,cmin)
     use mod_global_parameters
@@ -977,7 +1072,6 @@ contains
   !> Calculate fluxes within ixO^L.
   subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
-    use mod_usr_methods
     use mod_geometry
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
@@ -1263,7 +1357,6 @@ contains
   subroutine boris_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
        qsourcesplit,active)
     use mod_global_parameters
-    use mod_usr_methods
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
@@ -2230,9 +2323,11 @@ contains
 
   end subroutine mhd_getdt_Hall
 
-  subroutine mhd_modify_wLR(ixI^L,ixO^L,wLC,wRC,wLp,wRp,s,idir)
+  subroutine mhd_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
     use mod_global_parameters
+    use mod_usr_methods
     integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: qt
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
@@ -2260,7 +2355,13 @@ contains
 
       wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
       wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
+      wRC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
+      wRC(ixO^S,psi_) = wLp(ixO^S,psi_)
+      wLC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
+      wLC(ixO^S,psi_) = wLp(ixO^S,psi_)
     end if
+
+    if(associated(usr_set_wLR)) call usr_set_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
 
   end subroutine mhd_modify_wLR
 
@@ -2837,11 +2938,11 @@ contains
   end subroutine mhd_clean_divb_multigrid
   }
 
-  subroutine mhd_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+  subroutine mhd_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt,qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
     type(state)                        :: sCT, s
@@ -2850,11 +2951,11 @@ contains
 
     select case(type_ct)
     case('average')
-      call update_faces_average(ixI^L,ixO^L,qdt,fC,fE,sCT,s)
+      call update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
     case('uct_contact')
-      call update_faces_contact(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+      call update_faces_contact(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
     case('uct_hll')
-      call update_faces_hll(ixI^L,ixO^L,qdt,fE,sCT,s)
+      call update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s)
     case default
       call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
     end select
@@ -2862,13 +2963,13 @@ contains
   end subroutine mhd_update_faces
 
   !> get electric field though averaging neighors to update faces in CT
-  subroutine update_faces_average(ixI^L,ixO^L,qdt,fC,fE,sCT,s)
+  subroutine update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
@@ -2923,7 +3024,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
@@ -2961,13 +3062,13 @@ contains
   end subroutine update_faces_average
 
   !> update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509
-  subroutine update_faces_contact(ixI^L,ixO^L,qdt,wp,fC,fE,sCT,s)
+  subroutine update_faces_contact(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wp(ixI^S,1:nw)
     type(state)                        :: sCT, s
@@ -3087,7 +3188,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 
@@ -3123,13 +3224,13 @@ contains
   end subroutine update_faces_contact
 
   !> update faces
-  subroutine update_faces_hll(ixI^L,ixO^L,qdt,fE,sCT,s)
+  subroutine update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
     type(state)                        :: sCT, s
 
@@ -3233,7 +3334,7 @@ contains
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
-      call usr_set_electric_field(ixI^L,ixO^L,qdt,fE,sCT)
+      call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
 
     circ(ixI^S,1:ndim)=zero
 

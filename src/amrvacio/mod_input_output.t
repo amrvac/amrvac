@@ -167,7 +167,7 @@ contains
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
          solve_internal_e, angmomfix, small_values_fix_iw, &
-         small_values_use_primitive
+         small_values_use_primitive, schmid_rad^D, trac
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
          internalboundary, typeboundary_^L, save_physical_boundary
@@ -367,8 +367,9 @@ contains
     else
       cada3_radius  = 0.1d0
     end if
+    {schmid_rad^D = 1.d0\}
     typetvd         = 'roe'
-    typeboundspeed  = 'cmaxmean'
+    typeboundspeed  = 'Einfeldt'
     source_split_usr= .false.
     time_integrator = 'twostep'
     solve_internal_e= .false.
@@ -637,6 +638,7 @@ contains
 
     ! finite difference scheme fd need global maximal speed
     if(any(flux_scheme=='fd')) need_global_cmax=.true.
+    if(any(limiter=='schmid1')) need_global_a2max=.true.
 
     select case (time_integrator)
     case ("onestep")
@@ -1016,6 +1018,12 @@ contains
     if(dabs(sum(w_refine_weight(:))-1.d0)>smalldouble) then
       write(unitterm,*) "Sum of all elements in w_refine_weight be 1.d0"
       call mpistop("Reset w_refine_weight so the sum is 1.d0")
+    end if
+
+    ! TRAC is only for temperature (energy)
+    if(.not.phys_energy .and. trac) then
+      if (mype==0) write(unitterm, '(A)') "Warning, TRAC is not for energy-independent problems, change trac to false."
+      trac=.false.
     end if
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '
@@ -1433,7 +1441,7 @@ contains
       call MPI_FILE_READ(fh, phys_name, name_len, MPI_CHARACTER, st, er)
 
       if (phys_name /= physics_type) then
-        call mpistop("Cannot restart with a different physics type")
+!        call mpistop("Cannot restart with a different physics type")
       end if
 
       call MPI_FILE_READ(fh, n_par, 1, MPI_INTEGER, st, er)

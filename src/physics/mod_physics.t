@@ -31,6 +31,8 @@ module mod_physics
   integer, parameter   :: flux_tvdlf          = 1
   !> Indicates dissipation should be omitted
   integer, parameter   :: flux_no_dissipation = 2
+  !> Indicates the flux should be specially treated
+  integer, parameter   :: flux_special        = 3
 
   !> Type for special methods defined per variable
   type iw_methods
@@ -47,6 +49,8 @@ module mod_physics
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
+  procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
+  procedure(sub_get_tcutoff), pointer     :: phys_get_tcutoff            => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_get_v_idim), pointer      :: phys_get_v_idim             => null()
@@ -80,9 +84,10 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
      end subroutine sub_convert
 
-     subroutine sub_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
+     subroutine sub_modify_wLR(ixI^L, ixO^L, qt, wLC, wRC, wLp, wRp, s, idir)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idir
+       double precision, intent(in)    :: qt
        double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
        double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
        type(state)                     :: s
@@ -94,6 +99,20 @@ module mod_physics
        double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
        double precision, intent(inout) :: cmax(ixI^S)
      end subroutine sub_get_cmax
+
+     subroutine sub_get_a2max(w, x, ixI^L, ixO^L, a2max)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: a2max(ndim)
+     end subroutine sub_get_a2max
+
+     subroutine sub_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(out) :: tco_local, Tmax_local
+     end subroutine sub_get_tcutoff
 
      subroutine sub_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
        use mod_global_parameters
@@ -209,10 +228,10 @@ module mod_physics
        double precision, intent(out) :: out(ixO^S)
      end subroutine sub_get_var
 
-     subroutine sub_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+     subroutine sub_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
        use mod_global_parameters
        integer, intent(in)                :: ixI^L, ixO^L
-       double precision, intent(in)       :: qdt
+       double precision, intent(in)       :: qt, qdt
        ! cell-center primitive variables
        double precision, intent(in)       :: wprim(ixI^S,1:nw)
        ! velocity structure
@@ -259,6 +278,9 @@ contains
 
     if (.not. associated(phys_get_cmax)) &
          call mpistop("Error: no phys_get_cmax not defined")
+
+!    if (.not. associated(phys_get_a2max)) &
+!         call mpistop("Error: no phys_get_a2max not defined")
 
     if (.not. associated(phys_get_cbounds)) &
          call mpistop("Error: no phys_get_cbounds not defined")
@@ -310,9 +332,10 @@ contains
   subroutine dummy_check_params
   end subroutine dummy_check_params
 
-  subroutine dummy_modify_wLR(ixI^L, ixO^L, wLC, wRC, wLp, wRp, s, idir)
+  subroutine dummy_modify_wLR(ixI^L, ixO^L, qt, wLC, wRC, wLp, wRp, s, idir)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: qt
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
@@ -399,10 +422,10 @@ contains
     character(len=*), intent(in)    :: subname
   end subroutine dummy_small_values
 
-  subroutine dummy_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,s)
+  subroutine dummy_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
     use mod_global_parameters
     integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qdt
+    double precision, intent(in)       :: qt, qdt
     ! cell-center primitive variables
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
     type(state)                        :: sCT, s

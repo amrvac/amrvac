@@ -65,7 +65,11 @@ visualization.
 visualisation and analysis (e.g. column densities).
 * [Analysis routine](analysis.md) Using the run-time analysis routine.
 
-# Python tools {#io-python}
+# Legacy Python tools {#io-python}
+> These tools are bundled within AMRVAC's main repo.
+> They are kept for backward compatibility but are now superseded
+> by yt ([see our documentation](yt_usage.md)).
+
 * [Setting up](python_setup.md) What's needed to start using the tools.
 * [Reading dat files](python_datfiles.md) How to read the native .dat files.
 * [Reading vtu files](python_vtkfiles.md) How to read vtk-type files.

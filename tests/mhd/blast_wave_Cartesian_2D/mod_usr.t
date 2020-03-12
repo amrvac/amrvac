@@ -10,6 +10,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_set_B0        => specialset_B0
+    usr_init_vector_potential=>initvecpot_usr
 
     call set_coordinate_system("Cartesian")
     call mhd_activate()
@@ -40,6 +41,9 @@ contains
     endwhere
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
+    else if(stagger_grid) then
+      call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
     else
       call get_B(ixI^L,ixO^L,Bloc,x)
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
@@ -51,6 +55,22 @@ contains
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the edges
+    ! used by b_from_vectorpotential()
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    if (idir==3) then
+      A(ixC^S) = Busr*(xC(ixC^S,2)-xC(ixC^S,1))
+    else
+      A(ixC^S) = 0.d0
+    end if
+
+  end subroutine initvecpot_usr
 
   subroutine get_B(ixI^L,ixO^L,B,x)
     integer, intent(in) :: ixI^L, ixO^L
@@ -87,7 +107,7 @@ contains
       w(ixO^S,nw+2)=tmp(ixO^S)*two/sum(wlocal(ixO^S,mag(:))**2,dim=ndim+1)
     endif
     ! output divB
-    call get_normalized_divb(wlocal,ixI^L,ixO^L,tmp)
+    call get_divb(wlocal,ixI^L,ixO^L,tmp)
     w(ixO^S,nw+3)=tmp(ixO^S)
     
   end subroutine specialvar_output

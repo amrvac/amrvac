@@ -780,7 +780,8 @@ module mod_thermal_emission
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
 
-      I0=1.07d-42     ! [cm^-2 s^-1 keV^-1]
+      !I0=1.07d-42    
+      I0=3.01d-15
       kb=1.38d-23
       keV=1.602d-16
 
@@ -790,7 +791,7 @@ module mod_thermal_emission
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
       Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
       Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
-      kbT(ixO^S)=kb*Te(ixO^S)*unit_temperature/keV
+      kbT(ixO^S)=kb*Te(ixO^S)/keV
       flux(ixO^S)=0.0d0
       EM(ixO^S)=(I0*(Ne(ixO^S))**2)
 

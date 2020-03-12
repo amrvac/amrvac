@@ -6,6 +6,7 @@
         time_integrator=  'fourstep'
         flux_scheme =    20*'hll'
         limiter=  20*'woodward'
+        typeboundspeed  = 'cmaxmean'
  /
 
  &paramlist

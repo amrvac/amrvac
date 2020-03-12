@@ -8,6 +8,8 @@ contains
     usr_init_one_grid => initonegrid_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
+    usr_set_B0        => specialset_B0
+    usr_init_vector_potential=>initvecpot_usr
 
     call mhd_activate()
 
@@ -21,6 +23,7 @@ contains
 
     double precision :: rhodisk,rr0,rr1,x1disk,x2disk,v0
     double precision :: r(ixI^S),fslope(ixI^S),rinv(ixI^S)
+    double precision :: Bloc(ixI^S,1:ndir)
     logical, save :: first=.true.
 
     rhodisk=10.0d0
@@ -38,8 +41,15 @@ contains
       first=.false.
     endif
     w(ixO^S,p_)=one
-    w(ixO^S,mag(1))=5.0d0/dsqrt(4.0d0*dpi)
-    w(ixO^S,mag(2))=zero
+    if(B0field) then
+      w(ixO^S,mag(:))=0.d0
+    else if(stagger_grid) then
+      call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
+    else
+      call get_B(ixI^L,ixO^L,Bloc,x)
+      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+    end if
     r(ixO^S)=dsqrt((x(ixO^S,1)-x1disk)**2+(x(ixO^S,2)-x2disk)**2)
     where(r(ixO^S)>rr0)
       fslope(ixO^S)=(rr1-r(ixO^S))/(rr1-rr0)
@@ -61,6 +71,32 @@ contains
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the edges
+    ! used by b_from_vectorpotential()
+    use mod_global_parameters
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    if (idir==3) then
+      A(ixC^S) =5.0d0/dsqrt(4.0d0*dpi)*xC(ixC^S,2)
+    else
+      A(ixC^S) = 0.d0
+    end if
+
+  end subroutine initvecpot_usr
+
+  subroutine get_B(ixI^L,ixO^L,B,x)
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out) :: B(ixI^S,1:ndir)
+
+    B(ixO^S,1)=5.0d0/dsqrt(4.0d0*dpi)
+    B(ixO^S,2)=0.d0
+
+  end subroutine get_B
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
     ! this subroutine can be used in convert, to add auxiliary variables to the
@@ -95,5 +131,18 @@ contains
     varnames='divb divbnorm jz'
 
   end subroutine specialvarnames_output
+
+  subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
+  ! Here one can add a steady (time-independent) potential background field
+    integer, intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in)  :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: wB0(ixI^S,1:ndir)
+
+    double precision :: Bloc(ixI^S,1:ndir)
+
+    call get_B(ixI^L,ixO^L,Bloc,x)
+    wB0(ixO^S,:)=wB0(ixO^S,:)+Bloc(ixO^S,:)
+
+  end subroutine specialset_B0
 
 end module mod_usr

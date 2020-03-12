@@ -203,7 +203,7 @@ contains
        call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,xi,dxdim(idims))
 
        ! special modification of left and right status before flux evaluation
-       call phys_modify_wLR(ixI^L,ixCR^L,wLC,wRC,wLp,wRp,sCT,idims)
+       call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
 
        ! evaluate physical fluxes according to reconstructed status
        call phys_get_flux(wLC,wLp,xi,ixI^L,ixC^L,idims,fLC)
@@ -232,12 +232,12 @@ contains
          call mpistop('unkown Riemann flux')
        end select
 
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,idims,fC)
+       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do ! Next idims
     block%iw0=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qdt,wprim,fC,fE,sCT,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
@@ -419,16 +419,21 @@ contains
       end do ! Next iw
     end subroutine get_Riemann_flux_hllc
 
-    !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315
+    !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315 and Guo 2016 JCP, 327, 543
     subroutine get_Riemann_flux_hlld()
       use mod_mhd_phys
       implicit none
-      double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L
+      double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L,f2R,f2L
       double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
       double precision, dimension(ixI^S) :: pts,ptR,ptL,signBx,r1L,r1R,tmp
+      ! velocity from the right and the left reconstruction
       double precision, dimension(ixI^S,ndir) :: vRC, vLC
-      integer :: ip1,ip2,ip3,idir
+      ! magnetic field from the right and the left reconstruction
+      double precision, dimension(ixI^S,ndir) :: BR, BL
+      integer :: ip1,ip2,ip3,idir,ix^D
+
+      associate (sR=>cmaxC,sL=>cminC)
 
       f1R=0.d0
       f1L=0.d0
@@ -436,103 +441,143 @@ contains
       ip3=3
       vRC(ixC^S,:)=wRp(ixC^S,mom(:))
       vLC(ixC^S,:)=wLp(ixC^S,mom(:))
-      ! estimate normal magnetic field at cell interfaces
-      Bx(ixC^S)=0.5d0*(wRC(ixC^S,mag(ip1))+wLC(ixC^S,mag(ip1)))
-      suR(ixC^S)=(cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,rho_)
-      suL(ixC^S)=(cminC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,rho_)
-      ptR(ixC^S)=wRp(ixC^S,e_)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
-      ptL(ixC^S)=wLp(ixC^S,e_)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
-      ! equation (38)
+      if(B0field) then
+        BR(ixC^S,:)=wRC(ixC^S,mag(:))+block%B0(ixC^S,:,ip1)
+        BL(ixC^S,:)=wLC(ixC^S,mag(:))+block%B0(ixC^S,:,ip1)
+      else
+        BR(ixC^S,:)=wRC(ixC^S,mag(:))
+        BL(ixC^S,:)=wLC(ixC^S,mag(:))
+      end if
+      ! HLL estimation of normal magnetic field at cell interfaces
+      Bx(ixC^S)=(sR(ixC^S)*BR(ixC^S,ip1)-sL(ixC^S)*BL(ixC^S,ip1)-&
+                 fLC(ixC^S,mag(ip1))-fRC(ixC^S,mag(ip1)))/(sR(ixC^S)-sL(ixC^S))
+      ptR(ixC^S)=wRp(ixC^S,p_)+0.5d0*sum(BR(ixC^S,:)**2,dim=ndim+1)
+      ptL(ixC^S)=wLp(ixC^S,p_)+0.5d0*sum(BL(ixC^S,:)**2,dim=ndim+1)
+      suR(ixC^S)=(sR(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,rho_)
+      suL(ixC^S)=(sL(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,rho_)
+      ! Miyoshi equation (38) and Guo euqation (20)
       sm(ixC^S)=(suR(ixC^S)*vRC(ixC^S,ip1)-suL(ixC^S)*vLC(ixC^S,ip1)-&
                  ptR(ixC^S)+ptL(ixC^S))/(suR(ixC^S)-suL(ixC^S))
-      ! equation (39)
+      ! Miyoshi equation (39) and Guo euqation (28)
       w1R(ixC^S,mom(ip1))=sm(ixC^S)
       w1L(ixC^S,mom(ip1))=sm(ixC^S)
       w2R(ixC^S,mom(ip1))=sm(ixC^S)
       w2L(ixC^S,mom(ip1))=sm(ixC^S)
+      ! Guo equation (22)
       w1R(ixC^S,mag(ip1))=Bx(ixC^S)
       w1L(ixC^S,mag(ip1))=Bx(ixC^S)
-      w2R(ixC^S,mag(ip1))=Bx(ixC^S)
-      w2L(ixC^S,mag(ip1))=Bx(ixC^S)
-      ! equation (41)
-      pts(ixC^S)=(suR(ixC^S)*ptL(ixC^S)-suL(ixC^S)*ptR(ixC^S)+suR(ixC^S)*suL(ixC^S)*&
-                 (vRC(ixC^S,ip1)-vLC(ixC^S,ip1)))/(suR(ixC^S)-suL(ixC^S))
-      ! equation (43)
-      w1R(ixC^S,rho_)=suR(ixC^S)/(cmaxC(ixC^S)-sm(ixC^S))
-      w1L(ixC^S,rho_)=suL(ixC^S)/(cminC(ixC^S)-sm(ixC^S))
-      ! equation (44) ~ (47)
+      if(B0field) then
+        ptR(ixC^S)=wRp(ixC^S,p_)+0.5d0*sum(wRC(ixC^S,mag(:))**2,dim=ndim+1)
+        ptL(ixC^S)=wLp(ixC^S,p_)+0.5d0*sum(wLC(ixC^S,mag(:))**2,dim=ndim+1)
+      end if
+
+      ! Miyoshi equation (43) and Guo equation (27)
+      w1R(ixC^S,rho_)=suR(ixC^S)/(sR(ixC^S)-sm(ixC^S))
+      w1L(ixC^S,rho_)=suL(ixC^S)/(sL(ixC^S)-sm(ixC^S))
+
       ip2=mod(ip1+1,ndir)
       if(ip2==0) ip2=ndir
-      r1R(ixC^S)=suR(ixC^S)*(cmaxC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
+      r1R(ixC^S)=suR(ixC^S)*(sR(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
       where(r1R(ixC^S)/=0.d0)
         r1R(ixC^S)=1.d0/r1R(ixC^S)
       endwhere
-      r1L(ixC^S)=suL(ixC^S)*(cminC(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
+      r1L(ixC^S)=suL(ixC^S)*(sL(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
       where(r1L(ixC^S)/=0.d0)
         r1L(ixC^S)=1.d0/r1L(ixC^S)
       endwhere
-      w1R(ixC^S,mom(ip2))=vRC(ixC^S,ip2)-Bx(ixC^S)*wRC(ixC^S,mag(ip2))*&
+      ! Miyoshi equation (44)
+      w1R(ixC^S,mom(ip2))=vRC(ixC^S,ip2)-Bx(ixC^S)*BR(ixC^S,ip2)*&
         (sm(ixC^S)-vRC(ixC^S,ip1))*r1R(ixC^S)
-      w1L(ixC^S,mom(ip2))=vLC(ixC^S,ip2)-Bx(ixC^S)*wLC(ixC^S,mag(ip2))*&
+      w1L(ixC^S,mom(ip2))=vLC(ixC^S,ip2)-Bx(ixC^S)*BL(ixC^S,ip2)*&
         (sm(ixC^S)-vLC(ixC^S,ip1))*r1L(ixC^S)
-      w1R(ixC^S,mag(ip2))=(suR(ixC^S)*(cmaxC(ixC^S)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
-      w1L(ixC^S,mag(ip2))=(suL(ixC^S)*(cminC(ixC^S)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
+      ! partial solution for later usage
+      w1R(ixC^S,mag(ip2))=(suR(ixC^S)*(sR(ixC^S)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
+      w1L(ixC^S,mag(ip2))=(suL(ixC^S)*(sL(ixC^S)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
       if(ndir==3) then
         ip3=mod(ip1+2,ndir)
         if(ip3==0) ip3=ndir
-        w1R(ixC^S,mom(ip3))=vRC(ixC^S,ip3)-Bx(ixC^S)*wRC(ixC^S,mag(ip3))*&
+        ! Miyoshi equation (46)
+        w1R(ixC^S,mom(ip3))=vRC(ixC^S,ip3)-Bx(ixC^S)*BR(ixC^S,ip3)*&
           (sm(ixC^S)-vRC(ixC^S,ip1))*r1R(ixC^S)
-        w1L(ixC^S,mom(ip3))=vLC(ixC^S,ip3)-Bx(ixC^S)*wLC(ixC^S,mag(ip3))*&
+        w1L(ixC^S,mom(ip3))=vLC(ixC^S,ip3)-Bx(ixC^S)*BL(ixC^S,ip3)*&
           (sm(ixC^S)-vLC(ixC^S,ip1))*r1L(ixC^S)
-        w1R(ixC^S,mag(ip3))=wRC(ixC^S,mag(ip3))*w1R(ixC^S,mag(ip2))
-        w1L(ixC^S,mag(ip3))=wLC(ixC^S,mag(ip3))*w1L(ixC^S,mag(ip2))
+        ! Miyoshi equation (47)
+        w1R(ixC^S,mag(ip3))=BR(ixC^S,ip3)*w1R(ixC^S,mag(ip2))
+        w1L(ixC^S,mag(ip3))=BL(ixC^S,ip3)*w1L(ixC^S,mag(ip2))
       end if
-      w1R(ixC^S,mag(ip2))=wRC(ixC^S,mag(ip2))*w1R(ixC^S,mag(ip2))
-      w1L(ixC^S,mag(ip2))=wLC(ixC^S,mag(ip2))*w1L(ixC^S,mag(ip2))
+      ! Miyoshi equation (45)
+      w1R(ixC^S,mag(ip2))=BR(ixC^S,ip2)*w1R(ixC^S,mag(ip2))
+      w1L(ixC^S,mag(ip2))=BL(ixC^S,ip2)*w1L(ixC^S,mag(ip2))
+      if(B0field) then
+        ! Guo equation (26)
+        w1R(ixC^S,mag(:))=w1R(ixC^S,mag(:))-block%B0(ixC^S,:,ip1)
+        w1L(ixC^S,mag(:))=w1L(ixC^S,mag(:))-block%B0(ixC^S,:,ip1)
+      end if
       ! equation (48)
       if(mhd_energy) then
-        w1R(ixC^S,e_)=((cmaxC(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,e_)-ptR(ixC^S)*vRC(ixC^S,ip1)+&
-          pts(ixC^S)*sm(ixC^S)+Bx(ixC^S)*(sum(vRC(ixC^S,:)*wRC(ixC^S,mag(:)),dim=ndim+1)-&
-          sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)))/(cmaxC(ixC^S)-sm(ixC^S))
-        w1L(ixC^S,e_)=((cminC(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,ip1)+&
-          pts(ixC^S)*sm(ixC^S)+Bx(ixC^S)*(sum(vLC(ixC^S,:)*wLC(ixC^S,mag(:)),dim=ndim+1)-&
-          sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)))/(cminC(ixC^S)-sm(ixC^S))
+        ! Guo equation (25) equivalent to Miyoshi equation (41)
+        w1R(ixC^S,p_)=suR(ixC^S)*(sm(ixC^S)-vRC(ixC^S,ip1))+ptR(ixC^S)
+        w1L(ixC^S,p_)=suL(ixC^S)*(sm(ixC^S)-vLC(ixC^S,ip1))+ptL(ixC^S)
+        if(B0field) then
+          ! Guo equation (32)
+          w1R(ixC^S,p_)=w1R(ixC^S,p_)+sum(block%B0(ixC^S,:,ip1)*(wRC(ixC^S,mag(:))-w1R(ixC^S,mag(:))),dim=ndim+1)
+          w1L(ixC^S,p_)=w1L(ixC^S,p_)+sum(block%B0(ixC^S,:,ip1)*(wLC(ixC^S,mag(:))-w1L(ixC^S,mag(:))),dim=ndim+1)
+        end if
+        ! Miyoshi equation (48) and main part of Guo euqation (31)
+        w1R(ixC^S,e_)=((sR(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,e_)-ptR(ixC^S)*vRC(ixC^S,ip1)+&
+          w1R(ixC^S,p_)*sm(ixC^S)+Bx(ixC^S)*(sum(vRC(ixC^S,:)*wRC(ixC^S,mag(:)),dim=ndim+1)-&
+          sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)))/(sR(ixC^S)-sm(ixC^S))
+        w1L(ixC^S,e_)=((sL(ixC^S)-vLC(ixC^S,ip1))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,ip1)+&
+          w1L(ixC^S,p_)*sm(ixC^S)+Bx(ixC^S)*(sum(vLC(ixC^S,:)*wLC(ixC^S,mag(:)),dim=ndim+1)-&
+          sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)))/(sL(ixC^S)-sm(ixC^S))
+        if(B0field) then
+          ! Guo equation (31)
+          w1R(ixC^S,e_)=w1R(ixC^S,e_)+(sum(w1R(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*sm(ixC^S)-&
+               sum(wRC(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*vRC(ixC^S,ip1))/(sR(ixC^S)-sm(ixC^S))
+          w1L(ixC^S,e_)=w1L(ixC^S,e_)+(sum(w1L(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*sm(ixC^S)-&
+               sum(wLC(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*vLC(ixC^S,ip1))/(sL(ixC^S)-sm(ixC^S))
+        end if
       end if
-      ! equation (49)
+
+      ! Miyoshi equation (49) and Guo equation (35)
       w2R(ixC^S,rho_)=w1R(ixC^S,rho_)
       w2L(ixC^S,rho_)=w1L(ixC^S,rho_)
+      w2R(ixC^S,mag(ip1))=w1R(ixC^S,mag(ip1))
+      w2L(ixC^S,mag(ip1))=w1L(ixC^S,mag(ip1))
+
       r1R(ixC^S)=sqrt(w1R(ixC^S,rho_))
       r1L(ixC^S)=sqrt(w1L(ixC^S,rho_))
       tmp(ixC^S)=1.d0/(r1R(ixC^S)+r1L(ixC^S))
       signBx(ixC^S)=sign(1.d0,Bx(ixC^S))
-      ! equation (51)
+      ! Miyoshi equation (51) and Guo equation (33)
       s1R(ixC^S)=sm(ixC^S)+abs(Bx(ixC^S))/r1R(ixC^S)
       s1L(ixC^S)=sm(ixC^S)-abs(Bx(ixC^S))/r1L(ixC^S)
-      ! equation (59)
+      ! Miyoshi equation (59) and Guo equation (41)
       w2R(ixC^S,mom(ip2))=(r1L(ixC^S)*w1L(ixC^S,mom(ip2))+r1R(ixC^S)*w1R(ixC^S,mom(ip2))+&
           (w1R(ixC^S,mag(ip2))-w1L(ixC^S,mag(ip2)))*signBx(ixC^S))*tmp(ixC^S)
       w2L(ixC^S,mom(ip2))=w2R(ixC^S,mom(ip2))
-      ! equation (61)
+      ! Miyoshi equation (61) and Guo equation (43)
       w2R(ixC^S,mag(ip2))=(r1L(ixC^S)*w1R(ixC^S,mag(ip2))+r1R(ixC^S)*w1L(ixC^S,mag(ip2))+&
           r1L(ixC^S)*r1R(ixC^S)*(w1R(ixC^S,mom(ip2))-w1L(ixC^S,mom(ip2)))*signBx(ixC^S))*tmp(ixC^S)
       w2L(ixC^S,mag(ip2))=w2R(ixC^S,mag(ip2))
       if(ndir==3) then
-        ! equation (60)
+        ! Miyoshi equation (60) and Guo equation (42)
         w2R(ixC^S,mom(ip3))=(r1L(ixC^S)*w1L(ixC^S,mom(ip3))+r1R(ixC^S)*w1R(ixC^S,mom(ip3))+&
             (w1R(ixC^S,mag(ip3))-w1L(ixC^S,mag(ip3)))*signBx(ixC^S))*tmp(ixC^S)
         w2L(ixC^S,mom(ip3))=w2R(ixC^S,mom(ip3))
-        ! equation (62)
+        ! Miyoshi equation (62) and Guo equation (44)
         w2R(ixC^S,mag(ip3))=(r1L(ixC^S)*w1R(ixC^S,mag(ip3))+r1R(ixC^S)*w1L(ixC^S,mag(ip3))+&
             r1L(ixC^S)*r1R(ixC^S)*(w1R(ixC^S,mom(ip3))-w1L(ixC^S,mom(ip3)))*signBx(ixC^S))*tmp(ixC^S)
         w2L(ixC^S,mag(ip3))=w2R(ixC^S,mag(ip3))
       end if
-      ! equation (63)
+      ! Miyoshi equation (63) and Guo equation (45)
       if(mhd_energy) then
         w2R(ixC^S,e_)=w1R(ixC^S,e_)+r1R(ixC^S)*(sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)-&
           sum(w2R(ixC^S,mom(:))*w2R(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
         w2L(ixC^S,e_)=w1L(ixC^S,e_)-r1L(ixC^S)*(sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)-&
           sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
       end if
+
       ! convert velocity to momentum
       do idir=1,ndir
         w1R(ixC^S,mom(idir))=w1R(ixC^S,mom(idir))*w1R(ixC^S,rho_)
@@ -540,32 +585,51 @@ contains
         w2R(ixC^S,mom(idir))=w2R(ixC^S,mom(idir))*w2R(ixC^S,rho_)
         w2L(ixC^S,mom(idir))=w2L(ixC^S,mom(idir))*w2L(ixC^S,rho_)
       end do
+
       ! get fluxes of intermedate states
       do iw=1,nwflux
         if (flux_type(idims, iw) == flux_tvdlf) then
-          fC(ixC^S,iw,ip1)=0.5d0*(fLC(ixC^S,iw) + fRC(ixC^S,iw))
-          !fC(ixC^S,iw,ip1) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
-          !     max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
-          !     (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-          cycle
+          !! hll flux for normal B
+          !f1L(ixC^S,iw)=(sR(ixC^S)*fLC(ixC^S, iw)-sL(ixC^S)*fRC(ixC^S, iw) &
+          !          +sR(ixC^S)*sL(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S)-sL(ixC^S))
+          ! tvldf flux for normal B
+          f1L(ixC^S,iw)= half*(fLC(ixC^S, iw) + fRC(ixC^S, iw) &
+                 -tvdlfeps*max(sR(ixC^S), dabs(sL(ixC^S))) * &
+                 (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+          f1R(ixC^S,iw)=f1L(ixC^S,iw)
+          f2L(ixC^S,iw)=f1L(ixC^S,iw)
+          f2R(ixC^S,iw)=f1L(ixC^S,iw)
+        else if(flux_type(idims, iw) == flux_special) then
+          ! known flux (fLC=fRC) for normal B and psi_ in GLM method
+          f1L(ixC^S,iw)=fLC(ixC^S,iw)
+          f1R(ixC^S,iw)=f1L(ixC^S,iw)
+          f2L(ixC^S,iw)=f1L(ixC^S,iw)
+          f2R(ixC^S,iw)=f1L(ixC^S,iw)
+        else
+          f1L(ixC^S,iw)=fLC(ixC^S,iw)+sL(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
+          f1R(ixC^S,iw)=fRC(ixC^S,iw)+sR(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
+          f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
+          f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
         end if
-        f1L(ixC^S,iw)=fLC(ixC^S,iw)+cminC(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
-        f1R(ixC^S,iw)=fRC(ixC^S,iw)+cmaxC(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
-        where(cminC(ixC^S)>0.d0)
-          fC(ixC^S,iw,ip1)=fLC(ixC^S,iw)
-        else where(s1L(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1L(ixC^S,iw)
-        else where(sm(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
-        else where(s1R(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
-        else where(cmaxC(ixC^S)>=0.d0)
-          fC(ixC^S,iw,ip1)=f1R(ixC^S,iw)
-        else where(cmaxC(ixC^S)<0.d0)
-          fC(ixC^S,iw,ip1)=fRC(ixC^S,iw)
-        end where
       end do
+      ! Miyoshi equation (66) and Guo equation (46)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        if(sL(ix^D)>0.d0) then
+          fC(ix^D,1:nwflux,ip1)=fLC(ix^D,1:nwflux)
+        else if(s1L(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f1L(ix^D,1:nwflux)
+        else if(sm(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f2L(ix^D,1:nwflux)
+        else if(s1R(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f2R(ix^D,1:nwflux)
+        else if(sR(ix^D)>=0.d0) then
+          fC(ix^D,1:nwflux,ip1)=f1R(ix^D,1:nwflux)
+        else if(sR(ix^D)<0.d0) then
+          fC(ix^D,1:nwflux,ip1)=fRC(ix^D,1:nwflux)
+        end if
+     {end do\}
 
+      end associate
     end subroutine get_Riemann_flux_hlld
 
   end subroutine finite_volume
@@ -588,6 +652,7 @@ contains
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
+    double precision   :: a2max
 
     select case (typelimiter)
     case (limiter_venk)
@@ -631,9 +696,27 @@ contains
           end if
 
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-
+          if(need_global_a2max) then 
+            a2max=a2max_global(idims)
+          else
+            select case(idims)
+            case(1)
+              a2max=schmid_rad1
+            {^IFTWOD
+            case(2)
+              a2max=schmid_rad2}
+            {^IFTHREED
+            case(2)
+              a2max=schmid_rad2
+            case(3)
+              a2max=schmid_rad3}
+            case default
+              call mpistop("idims is wrong in mod_limiter")
+            end select
+          end if
+            
           ! limit flux from left and/or right
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw,rdw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw,rdw,a2max=a2max)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
 

@@ -26,13 +26,20 @@
 * Sebastiaan Selvi
 * Ileyk El Mellah
 * Fabien Casse
-* Nicholas Moens
+* Nicolas Moens
+* Alexander Philippov
+* Jack Jenkins
+* Pushpita Das
 
 ### Summary
 
 This second ABCD meeting targets further code streamlining, adding functionality in both the physics
 and the numerical algorithmic techniques. We also plan to discuss and initiate future collaborative efforts. 
 We will dedicate attention to visualization and python post-processing, as well as to formulating long term code strategies.
+
+### Suggested discussion topics
+
+https://docs.google.com/document/d/1-Vp81z_fTQiwUPR4C5eTMkbQKMg1PVWDpc5rMB621Ec/edit?usp=sharing
 
 # Past meetings {#past-meetings}
 

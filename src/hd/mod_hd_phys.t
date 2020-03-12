@@ -184,6 +184,8 @@ contains
 
     physics_type = "hd"
     phys_energy  = hd_energy
+    ! set default gamma for polytropic/isothermal process
+    if(.not.hd_energy) hd_gamma=1.d0
     use_particles = hd_particles
 
     ! Determine flux variables
@@ -204,6 +206,8 @@ contains
 
     phys_get_dt              => hd_get_dt
     phys_get_cmax            => hd_get_cmax
+    phys_get_a2max           => hd_get_a2max
+    phys_get_tcutoff         => hd_get_tcutoff
     phys_get_cbounds         => hd_get_cbounds
     phys_get_flux            => hd_get_flux
     phys_get_v_idim          => hd_get_v
@@ -479,6 +483,64 @@ contains
       call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     end if
   end subroutine hd_get_cmax
+
+  subroutine hd_get_a2max(w,x,ixI^L,ixO^L,a2max)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: a2max(ndim)
+    double precision :: a2(ixI^S,ndim,nw)
+    integer :: gxO^L,hxO^L,jxO^L,kxO^L,i,j
+
+    a2=zero
+    do i = 1,ndim
+      !> 4th order
+      hxO^L=ixO^L-kr(i,^D);
+      gxO^L=hxO^L-kr(i,^D);
+      jxO^L=ixO^L+kr(i,^D);
+      kxO^L=jxO^L+kr(i,^D);
+      a2(ixO^S,i,1:nw)=abs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
+        -30.d0*w(ixO^S,1:nw)+16.d0*w(hxO^S,1:nw)-w(gxO^S,1:nw))
+      a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
+    end do
+  end subroutine hd_get_a2max
+
+  !> get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)
+  subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
+    double precision, intent(out) :: tco_local, Tmax_local
+
+    double precision, parameter :: delta=0.5d0
+    double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
+    integer :: jxO^L,hxO^L
+    logical :: lrlt(ixI^S)
+
+    {^IFONED
+    if(solve_internal_e) then
+      tmp1(ixI^S)=w(ixI^S,e_)
+    else
+      tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
+    end if
+    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
+
+    Tmax_local=maxval(Te(ixO^S))
+
+    hxO^L=ixO^L-1;
+    jxO^L=ixO^L+1;
+    lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
+    lrlt=.false.
+    where(lts(ixO^S) > delta)
+      lrlt(ixO^S)=.true.
+    end where
+    tco_local=zero
+    if(any(lrlt(ixO^S))) then
+      tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+    end if
+    }
+  end subroutine hd_get_tcutoff
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)
