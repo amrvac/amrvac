@@ -91,9 +91,9 @@ contains
         particle(n)%self%u(1:ndir) = v(1:ndir,n)
         allocate(particle(n)%payload(npayload))
         if (.not. associated(usr_update_payload)) then
-          call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),payload,npayload,0.d0)
+          call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),payload,npayload,0.d0)
         else
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),payload,npayload,0.d0)
+          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),payload,npayload,0.d0)
         end if
         particle(n)%payload=payload
       end if
@@ -162,9 +162,9 @@ contains
 
       ! Update payload
       if (.not. associated(usr_update_payload)) then
-        call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,payload,npayload,tlocnew)
+        call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,payload,npayload,tlocnew)
       else
-        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,payload,npayload,tlocnew)
+        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,payload,npayload,tlocnew)
       end if
       particle(ipart)%payload = payload
 
@@ -173,11 +173,11 @@ contains
   end subroutine sample_integrate_particles
 
   !> Payload update
-  subroutine sample_update_payload(igrid,w,wold,xgrid,xpart,upart,payload,npayload,particle_time)
+  subroutine sample_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
     use mod_global_parameters
     integer, intent(in)           :: igrid,npayload
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),particle_time
+    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: payload(npayload)
     double precision              :: rho, rho1, rho2, td
 

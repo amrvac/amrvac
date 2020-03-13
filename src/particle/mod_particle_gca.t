@@ -80,11 +80,11 @@ contains
   subroutine gca_create_particles()
     ! initialise the particles
     use mod_global_parameters
-    use mod_usr_methods, only: usr_create_particles
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload
 
-    double precision :: B(ndir), u(ndir), magmom
-    double precision :: Bnorm, lfac, vnorm, vperp, vpar
-    integer          :: igrid_particle, ipe_particle
+    double precision :: b(ndir), u(ndir), magmom
+    double precision :: bnorm, lfac, vnorm, vperp, vpar
+    integer          :: igrid, ipe_particle
     integer          :: n, idir
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
@@ -120,9 +120,9 @@ contains
 
     ! first find ipe and igrid responsible for particle
     do n = 1, num_particles
-      call find_particle_ipe(x(:, n),igrid_particle,ipe_particle)
+      call find_particle_ipe(x(:, n),igrid,ipe_particle)
 
-      particle(n)%igrid = igrid_particle
+      particle(n)%igrid = igrid
       particle(n)%ipe   = ipe_particle
 
       if(ipe_particle == mype) then
@@ -138,11 +138,11 @@ contains
         particle(n)%self%time      = 0.0d0
         particle(n)%self%dt     = 0.0d0
 
-        call get_vec(bp, igrid_particle, x(:, n), particle(n)%self%time, B)
+        call get_vec(bp, igrid, x(:, n), particle(n)%self%time, b)
 
-        Bnorm = norm2(B(:))
+        bnorm = norm2(b(:))
         vnorm = norm2(v(:, n))
-        vpar  = sum(v(:, n) * B/Bnorm)
+        vpar  = sum(v(:, n) * b/bnorm)
         vperp = sqrt(vnorm**2 - vpar**2)
 
         ! The momentum vector u(1:3) is filled with the following components
@@ -151,7 +151,7 @@ contains
         particle(n)%self%u(1) = lfac * vpar
 
         ! Mr: the conserved magnetic moment
-        magmom = m(n) * (vperp * lfac)**2 / (2.0d0 * Bnorm)
+        magmom = m(n) * (vperp * lfac)**2 / (2.0d0 * bnorm)
         particle(n)%self%u(2) = magmom
 
         ! Lorentz factor
@@ -167,7 +167,6 @@ contains
         particle(n)%payload(:) = payload
       end if
     end do
-
   end subroutine gca_create_particles
 
   subroutine gca_fill_gridvars
@@ -283,9 +282,11 @@ contains
   subroutine gca_integrate_particles(end_time)
     use mod_odeint
     use mod_global_parameters
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload
     double precision, intent(in)        :: end_time
 
     double precision                    :: lfac, absS
+    double precision                    :: payload(npayload)
     double precision                    :: dt_p, tloc, y(ndir+2),dydt(ndir+2),ytmp(ndir+2), euler_cfl, int_factor
     double precision, dimension(1:ndir) :: x, vE, e, b, bhat, x_new
     double precision, dimension(1:ndir) :: drift1, drift2
@@ -608,14 +609,14 @@ contains
     double precision, dimension(1:ndir) :: gradBdrift, reldrift, bdotgradbdrift
     double precision, dimension(1:ndir) :: vEdotgradbdrift, bdotgradvEdrift
     double precision, dimension(1:ndir) :: vEdotgradvEdrift
-    double precision                    :: kappa, upar, absb, gamma, upar, vpar, vEabs
+    double precision                    :: kappa, upar, absb, gamma, vpar, vEabs
     double precision                    :: gradBdrift_abs, reldrift_abs, epar
     double precision                    :: bdotgradbdrift_abs, vEdotgradbdrift_abs
     double precision                    :: bdotgradvEdrift_abs, vEdotgradvEdrift_abs
     double precision                    :: momentumpar1, momentumpar2, momentumpar3, momentumpar4
 
-    call get_vec(bp, igrid_working,y(1:ndir),particle_time,b)
-    call get_vec(ep, igrid_working,y(1:ndir),particle_time,e)
+    call get_vec(bp, igrid,xpart(1:ndir),particle_time,b)
+    call get_vec(ep, igrid,xpart(1:ndir),particle_time,e)
 
     absb         = sqrt(sum(b(:)**2))
     bhat(1:ndir) = b(1:ndir) / absb
@@ -631,11 +632,11 @@ contains
     vpar = upart(1)/upart(3)
     upar = upart(1)
 
-    call get_vec(b_dot_grad_b, igrid_working,y(1:ndir),particle_time,bdotgradb)
-    call get_vec(vE_dot_grad_b, igrid_working,y(1:ndir),particle_time,vEdotgradb)
-    call get_vec(grad_kappa_B, igrid_working,y(1:ndir),particle_time,gradkappaB)
-    call get_vec(b_dot_grad_vE, igrid_working,y(1:ndir),particle_time,bdotgradvE)
-    call get_vec(vE_dot_grad_vE, igrid_working,y(1:ndir),particle_time,vEdotgradvE)
+    call get_vec(b_dot_grad_b, igrid,xpart(1:ndir),particle_time,bdotgradb)
+    call get_vec(vE_dot_grad_b, igrid,xpart(1:ndir),particle_time,vEdotgradb)
+    call get_vec(grad_kappa_B, igrid,xpart(1:ndir),particle_time,gradkappaB)
+    call get_vec(b_dot_grad_vE, igrid,xpart(1:ndir),particle_time,bdotgradvE)
+    call get_vec(vE_dot_grad_vE, igrid,xpart(1:ndir),particle_time,vEdotgradvE)
 
     drift1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
     drift2(1:ndir) = upart(2)/(upart(3)*q)*gradkappaB(1:ndir)

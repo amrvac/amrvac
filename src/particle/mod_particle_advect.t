@@ -137,7 +137,7 @@ contains
     double precision, intent(in) :: end_time
 
     double precision, dimension(1:ndir) :: v, x
-    double precision :: payload(npayload)
+    double precision                 :: payload(npayload)
     double precision                 :: tloc, tlocnew, dt_p, h1
     double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
     integer                          :: ipart, iipart, igrid

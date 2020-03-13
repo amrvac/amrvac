@@ -131,7 +131,7 @@ contains
     use mod_geometry
     use mod_usr_methods, only: usr_create_particles, usr_update_payload
     double precision, intent(in)      :: end_time
-    double precision :: payload(npayload)
+    double precision                  :: payload(npayload)
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
     double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom

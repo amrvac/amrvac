@@ -352,11 +352,11 @@ module mod_usr_methods
     end subroutine flag_grid
 
     !> Update payload of particles
-    subroutine update_payload(igrid,w,wold,xgrid,xpart,upart,payload,npayload,particle_time)
+    subroutine update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
       use mod_global_parameters
       integer, intent(in)           :: igrid,npayload
       double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-      double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),particle_time
+      double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
       double precision, intent(out) :: payload(npayload)
     end subroutine update_payload
 
