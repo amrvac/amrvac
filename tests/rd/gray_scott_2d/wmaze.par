@@ -22,7 +22,7 @@
  &methodlist
         time_integrator = 'twostep'
         flux_scheme = 20*'source'
-        limiter= 20*'mp5'
+        limiter= 20*'koren'
  /
 
  &boundlist
@@ -49,7 +49,7 @@
  &paramlist
        courantpar=0.8d0
        typecourant='minimum'
-       dtpar=0.5d0
+       courantpar=0.9
  /
 
  &rd_list
