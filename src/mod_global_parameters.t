@@ -409,6 +409,9 @@ module mod_global_parameters
   !> Fix the AMR grid after this time
   double precision :: tfixgrid
 
+  !> Whether to apply flux conservation at refinement boundaries
+  logical :: fix_conserve_global = .true.
+
   !> Fix the AMR grid after this many time steps
   integer :: itfixgrid
 

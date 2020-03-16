@@ -387,7 +387,7 @@ contains
     ! opedit: Send flux for all grids, expects sends for all
     ! nsend_fc(^D), set in connectivity.t.
 
-    if (fix_conserve_at_step) then
+    if (fix_conserve_global .and. fix_conserve_at_step) then
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
       call fix_conserve(psb,idim^LIM,1,nwflux)
@@ -444,7 +444,7 @@ contains
     ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
-    if (fix_conserve_at_step) then
+    if (fix_conserve_global .and. fix_conserve_at_step) then
       call store_flux(igrid,fC,idim^LIM,nwflux)
       if(stagger_grid) call store_edge(igrid,ixI^L,fE,idim^LIM)
     end if
