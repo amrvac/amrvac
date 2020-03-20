@@ -34,7 +34,7 @@ contains
     end do
 
     select case(integrator_type_particles)
-    case('Boris')
+    case('Boris','boris')
       integrator = Boris
     case('Vay','vay')
       integrator = Vay

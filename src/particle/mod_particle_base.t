@@ -718,10 +718,10 @@ contains
 
   end subroutine time_spent_on_particles
 
-  subroutine read_particles_snapshot()
+  subroutine read_particles_snapshot(file_exists)
     use mod_global_parameters
 
-    logical,save                    :: file_exists=.false.
+    logical,intent(out)             :: file_exists
     character(len=std_len)          :: filename
     integer                         :: mynpayload, mynparticles
     integer, dimension(0:1)         :: buff
@@ -733,11 +733,15 @@ contains
     it_particles       = 0
 
     ! open the snapshot file on the headnode
+    file_exists=.false.
     if (mype .eq. 0) then
       write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotini,'.dat'
       INQUIRE(FILE=filename, EXIST=file_exists)
       if (.not. file_exists) then
-        call mpistop('File '//trim(filename)//' with particle data does not exist')
+!        call mpistop('File '//trim(filename)//' with particle data does not exist')
+        write(*,*) 'WARNING: File '//trim(filename)//' with particle data does not exist.'
+        write(*,*) 'Initialising particles from user or default routines'
+        return
       else
         open(unit=unitparticles,file=filename,form='unformatted',action='read',status='unknown',access='stream')
         read(unitparticles) nparticles,it_particles,mynpayload

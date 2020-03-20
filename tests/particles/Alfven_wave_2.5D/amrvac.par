@@ -8,7 +8,7 @@
 !=====================================================
 
  &filelist
-	base_filename = 'aw_2d'
+	base_filename = 'output/aw_2d'
         saveprim=.true.
         autoconvert=.true.
         convert_type='vtuBCCmpi'

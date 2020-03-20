@@ -20,6 +20,7 @@ program amrvac
   }
 
   double precision :: time0, time_in
+  logical,save     :: part_file_exists=.false.
 
 
   call comm_start()
@@ -77,7 +78,8 @@ program amrvac
      call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
 
      if(use_particles) then
-       call read_particles_snapshot
+       call read_particles_snapshot(part_file_exists)
+       if (.not. part_file_exists) call particles_create()
        if(convert) then
          call handle_particles()
          call time_spent_on_particles()
