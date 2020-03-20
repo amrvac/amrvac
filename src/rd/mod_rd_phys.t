@@ -102,6 +102,9 @@ contains
     u_ = var_set_fluxvar("u", "u")
     v_ = var_set_fluxvar("v", "v")
 
+    ! Disable flux conservation near AMR boundaries, since we have no fluxes
+    fix_conserve_global = .false.
+
     phys_get_cmax     => rd_get_cmax
     phys_get_cbounds  => rd_get_cbounds
     phys_get_flux     => rd_get_flux

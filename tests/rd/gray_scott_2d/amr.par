@@ -1,0 +1,12 @@
+ &filelist
+        base_filename='amr_'
+ /
+
+ &meshlist
+        refine_max_level=3
+        refine_threshold=20*0.1d0
+        block_nx1=8
+        block_nx2=8
+        domain_nx1=128
+        domain_nx2=128
+ /
