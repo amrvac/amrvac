@@ -77,7 +77,7 @@ contains
         allocate(particle(n)%self)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%time      = 0.0d0
+        particle(n)%self%time   = global_time
         particle(n)%self%dt     = 0.0d0
         particle(n)%self%x = 0.d0
         particle(n)%self%x(:) = x(:,n)

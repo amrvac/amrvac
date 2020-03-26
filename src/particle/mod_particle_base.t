@@ -537,7 +537,7 @@ contains
 
     integer,intent(in)                                 :: ix(ndir) !< Indices in gridvars
     integer,intent(in)                                 :: igrid
-    double precision,dimension(ndir), intent(in)       :: x
+    double precision,dimension(3), intent(in)          :: x
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: vec
     double precision,dimension(ndir)                   :: vec1, vec2
@@ -567,7 +567,7 @@ contains
   !> Get Lorentz factor from relativistic momentum
   pure subroutine get_lfac(u,lfac)
     use mod_global_parameters, only: ndir, c_norm
-    double precision,dimension(ndir), intent(in)       :: u
+    double precision,dimension(3), intent(in)       :: u
     double precision, intent(out)                      :: lfac
 
     if (relativistic) then
@@ -580,7 +580,7 @@ contains
   !> Get Lorentz factor from velocity
   pure subroutine get_lfac_from_velocity(v,lfac)
     use mod_global_parameters, only: ndir, c_norm
-    double precision,dimension(ndir), intent(in)       :: v
+    double precision,dimension(3), intent(in)       :: v
     double precision, intent(out)                      :: lfac
 
     if (relativistic) then
@@ -623,7 +623,7 @@ contains
     integer, intent(in)                   :: igrid,ixI^L, ixO^L
     double precision, intent(in)          :: gf(ixI^S)
     double precision, intent(in)          :: x(ixI^S,1:ndim)
-    double precision, intent(in)          :: xloc(1:ndir)
+    double precision, intent(in)          :: xloc(1:3)
     double precision, intent(out)         :: gfloc
     double precision                      :: xd^D
     {^IFTWOD
@@ -993,7 +993,7 @@ contains
     use mod_slice, only: get_igslice
     use mod_global_parameters
 
-    double precision, intent(in) :: x(ndir)
+    double precision, intent(in) :: x(3)
     integer, intent(out)         :: igrid_particle, ipe_particle
     integer                      :: ig(ndir,nlevelshi), ig_lvl(nlevelshi)
     integer                      :: idim, ic(ndim)
@@ -1311,12 +1311,12 @@ contains
     use mod_global_parameters
     use mod_geometry
 
-    double precision, intent(in)  :: xp(1:ndir)
-    double precision, intent(out) :: xpcart(1:ndir)
+    double precision, intent(in)  :: xp(1:3)
+    double precision, intent(out) :: xpcart(1:3)
 
     select case (coordinate)
        case (Cartesian,Cartesian_stretched)
-          xpcart(1:ndir)=xp(1:ndir)
+          xpcart(1:3)=xp(1:3)
        case (cylindrical)
           xpcart(1)=xp(1)*cos(xp(phi_))
           xpcart(2)=xp(1)*sin(xp(phi_))
