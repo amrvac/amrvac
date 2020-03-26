@@ -16,6 +16,8 @@
  /
 
  &savelist
+        itsave(1,1)=0
+        itsave(2,1)=0
         dtsave_log     = 1.0d-2
         dtsave_dat     = 2.0d-1
  /
