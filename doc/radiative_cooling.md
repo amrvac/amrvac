@@ -45,7 +45,7 @@ Additionally, specific parameters can be set in the rc_list. In the following ta
 
 name | type | default | description
 ---|---|---|---
-coolcurve | string | 'JCcorona' | Name of cooling curve to be used. <br>The available *interpolatable tables* are 'JCcorona', 'DM', 'MB', 'MLsolar1', 'MLcosmol', 'MLwc', 'SPEX', 'SPEX_DM', 'cloudy_solar' and 'cloudy_ism'. <br/>The available *piecewise power laws* are 'Hildner', 'FM' and 'RP'.   
+coolcurve | string | 'JCcorona' | Name of cooling curve to be used. <br>The available *interpolatable tables* are 'JCcorona', 'DM', 'MB', 'MLsolar1', 'MLcosmol', 'MLwc', 'SPEX', 'SPEX_DM', 'cloudy_solar', 'cloudy_ism', 'Dere_corona' and 'Dere_photo'. <br/>The available *piecewise power laws* are 'Hildner', 'FM', 'RP' and 'Klimchuk'. 
 coolmethod | string | 'exact' | Numerical scheme to be used in radiative cooling. <br>The available methods are 'explicit1', 'explicit2', 'semiimplicit', 'implicit' and 'exact'.
 ncool | integer | 4000 | The number of point that will be used in interpolating the cooling curve. <br>Note that this is the number of elements in the final cooling table. When using the exact integration method, it is advisable to set this number large. The efficiency of this method make this an acceptable choice and it increases accuracy.
 cfrac | double precision | 0.1 | The fraction of E/L that sets upper time limit in explicit cooling functions.
@@ -68,8 +68,9 @@ The rc_list to use an interpolated table:
 The rc_list to use a piecewise power law:
 
     &rc_list
-       coolcurve='Hildner'
+       coolcurve='Klimchuk'
        coolmethod='exact'
+       Tfix=.true.
     /
 
 
@@ -127,9 +128,12 @@ Interpolatable tables | 'JCcorona' | Colgan & Feldman 2008 <br>Only till 1.e4K, 
 <i></i> | 'cloudy_solar' | Generated with the Cloudy code for solar metallicity. <br>These tables extend to low temperatures and take into account cooling by molecular lines
 <i></i> | 'SPEX' | Generated with the SPEX code, as described in Schure et al. 2009. <br>This is already scaled for solar metallicity and ionization states
 <i></i> | 'SPEX_DM' | Above 1.e4K: generated with the SPEX code <br>At lower temperatures: Dalgarno & McCray 1972 with a pre-set ionization fraction of 1.e-3 
+<i></i> | 'Dere_corona'  | Dere et al. 2009, generated with CHIANTI for solar coronal abundances
+<i></i> | 'Dere_photo'   | Dere et al. 2009, generated with CHIANTI for solar photospheric abundances
 Piecewise power laws  | 'Hildner'  | Hildner 1974
 <i></i> | 'FM'       | Hildner 1974, but modified with constraints on the radiative timescales as in Forbes & Malherbe 1991
 <i></i> | 'RP'       | Rosner 1978, extended by Priest 1982 and implemented as given in the PhD thesis of Van Der Linden 1991
+<i></i> | 'Klimchuk'   | Klimchuk et al. 2008
 
 With the exception of the SPEX table (which is rather more complicated), 
 all interpolatable tables have been extended to 1.e9 K, 
