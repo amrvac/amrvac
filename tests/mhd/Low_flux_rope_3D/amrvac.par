@@ -2,7 +2,7 @@
  &filelist
         base_filename='lfr_3dc'
         saveprim=.true.
-        convert_type='usermpi'
+        convert_type='vtuBmpi'
         autoconvert=.true.
         nwauxio=9
  /

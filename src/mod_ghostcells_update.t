@@ -1533,7 +1533,7 @@ contains
            !   ^D&local_invdxCo^D=1.d0/psc(igrid)%dx({ixCo^DD},^D)\
            !endif
 
-           if(slab) then
+           if(slab_uniform) then
              ! actual cell-centered coordinates of fine grid point
              !!^D&xFi^D=block%x({ixFi^DD},^D)\
              ! actual cell-centered coordinates of coarse grid point
@@ -1577,8 +1577,11 @@ contains
              ! as well as the pseudo-coordinates xFi and xCo 
              ! these latter differ from actual cell centers when stretching is used
              ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
-             {signedfactorhalf^D=(xFi^D-xCo^D)*invdxCo^D*two
-              if(dabs(signedfactorhalf^D**2-1.0d0/4.0d0)>smalldouble) call mpistop("error in bc_prolong")
+             {if(xFi^D>xCo^D) then
+                signedfactorhalf^D=0.5d0
+              else
+                signedfactorhalf^D=-0.5d0
+              end if
               eta^D=signedfactorhalf^D*(one-psb(igrid)%dvolume(ixFi^DD) &
                    /sum(psb(igrid)%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
              !{eta^D=(xFi^D-xCo^D)*invdxCo^D &
