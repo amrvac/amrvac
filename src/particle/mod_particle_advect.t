@@ -67,6 +67,8 @@ contains
     call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
+    nparticles = num_particles
+
     do n=1,num_particles
       call find_particle_ipe(x(:,n),igrid,ipe_particle)
       particle(n)%igrid  = igrid

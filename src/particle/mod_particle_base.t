@@ -202,6 +202,9 @@ contains
 
     call particles_params_read(par_files)
 
+    ! If sampling, npayload = nw:
+    if (physics_type_particles == 'sample') npayload = nw
+
     ! initialise the random number generator
     seed = [310952_i8, 8948923749821_i8]
     call rng%set_seed(seed)
@@ -216,10 +219,18 @@ contains
 
     ! Generate header for CSV files
     csv_header = ' time, dt, x1, x2, x3, u1, u2, u3,'
-    do n = 1, npayload
-      write(strdata,"(a,i2.2,a)") 'pl', n, ','
-      csv_header = trim(csv_header) // trim(strdata)
-    end do
+    ! If sampling, name the payloads like the fluid quantities
+    if (physics_type_particles == 'sample') then
+      do n = 1, npayload
+        write(strdata,"(a,a)") prim_wnames(n), ','
+        csv_header = trim(csv_header) // trim(strdata)
+      end do
+    else ! Otherwise, payloads are called pl01, pl02, ...
+      do n = 1, npayload
+        write(strdata,"(a,i2.2,a)") 'pl', n, ','
+        csv_header = trim(csv_header) // trim(strdata)
+      end do
+    end if
     csv_header = trim(csv_header) // 'ipe, iteration, index'
 
     ! Generate format string for CSV files
@@ -439,7 +450,6 @@ contains
     else
       tmax_particles = global_time + (time_max-global_time)
     end if
-    if(physics_type_particles/='advect') tmax_particles=tmax_particles
 
     ! main integration loop
     do

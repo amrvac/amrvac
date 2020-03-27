@@ -17,7 +17,7 @@ contains
     use mod_global_parameters
     integer :: idir
 
-    ngridvars=ndir
+    ngridvars=nw
 
     allocate(vp(ndir))
     do idir = 1, ndir
@@ -67,6 +67,8 @@ contains
     call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
+    nparticles = num_particles
+
     do n=1,num_particles
       call find_particle_ipe(x(:,n),igrid,ipe_particle)
       particle(n)%igrid  = igrid
@@ -81,14 +83,7 @@ contains
         particle(n)%self%dt     = 0.0d0
         particle(n)%self%x = 0.d0
         particle(n)%self%x(:) = x(:,n)
-        w=ps(igrid)%w
-        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        do idir=1,ndir
-          call interpolate_var(igrid,ixG^LL,ixM^LL,&
-               w(ixG^T,iw_mom(idir)),ps(igrid)%x,x(:,n),v(idir,n))
-        end do
         particle(n)%self%u(:) = 0.d0
-        particle(n)%self%u(1:ndir) = v(1:ndir,n)
         allocate(particle(n)%payload(npayload))
         if (.not. associated(usr_update_payload)) then
           call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),payload,npayload,0.d0)
@@ -115,14 +110,14 @@ contains
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      ! fill with velocity:
-      gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
+      ! fill all variables:
+      gridvars(igrid)%w(ixG^T,1:ngridvars) = w(ixG^T,1:ngridvars)
 
       if(time_advance) then
         gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
         w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
         call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
+        gridvars(igrid)%wold(ixG^T,1:ngridvars) = w(ixG^T,1:ngridvars)
       end if
 
     end do
@@ -154,8 +149,8 @@ contains
       tlocnew                 = tloc+dt_p
 
       ! Velocity update
-      call get_vec_sample(igrid,x,tlocnew,v,vp(1),vp(ndir))
-      particle(ipart)%self%u(1:ndir) = v(1:ndir)
+!      call get_vec_sample(igrid,x,tlocnew,v,vp(1),vp(ndir))
+!      particle(ipart)%self%u(1:ndir) = v(1:ndir)
 
       ! Time update
       particle(ipart)%self%time = tlocnew
@@ -179,21 +174,22 @@ contains
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
     double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: payload(npayload)
-    double precision              :: rho, rho1, rho2, td
+    double precision              :: wp, wp1, wp2, td
+    integer                       :: ii
 
     td = (particle_time - global_time) / dt
 
-    ! Payload 1 is density
-    if (npayload > 0 ) then
+    ! There are npayload=nw payloads, one for each primitive fluid quantity
+    do ii=1,npayload
       if (.not.time_advance) then
-        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,ii),xgrid,xpart,wp)
       else
-        call interpolate_var(igrid,ixG^LL,ixM^LL,wold(ixG^T,iw_rho),xgrid,xpart,rho1)
-        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho2)
-        rho = rho1 * (1.0d0 - td) + rho2 * td
+        call interpolate_var(igrid,ixG^LL,ixM^LL,wold(ixG^T,ii),xgrid,xpart,wp1)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,ii),xgrid,xpart,wp2)
+        wp = wp1 * (1.0d0 - td) + wp2 * td
       end if
-      payload(1) = rho * w_convert_factor(1)
-    end if
+      payload(ii) = wp
+    end do
 
   end subroutine sample_update_payload
 
