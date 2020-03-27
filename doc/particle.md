@@ -103,7 +103,7 @@ Below, we describe the essential steps needed to correctly set up a particle sim
     * Perpendicular velocity \f$v_\perp\f$;
     * Four parallel acceleration terms (see right-hand side of the \f$du_{\|}/dt\f$ equation above);
     * Seven drift velocity terms (in magnitude; see right-hand side of the \f$d\textbf{R}/dt\f$ equation above).
-  * For the \p 'sample' mode, the only default payload tracks the fluid density at the scattered point locations.
+  * For the \p 'sample' mode, by default (regardless of the value of \p npayload in the <tt>.par</tt> file) there will be a number of payloads \p n=nw, where \p nw is the number of variables in the fluid simulation. Each of these payloads samples one of the *primitive* fluid quantities, and therefore in the <tt>.csv</tt> output these payloads are named according to the names given to the primitive quantities.
 
   If the user wishes to define a custom payload update routine, this can be done in the \p mod_usr.t file. The user-defined routine <em>must</em> be associated with the \p usr_update_payload pointer at the beginning of \p mod_usr.t. The required format for a user-defined payload update routine (e.g. named \p update_payload) is:
 
