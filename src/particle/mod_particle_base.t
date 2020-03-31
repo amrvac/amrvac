@@ -202,6 +202,9 @@ contains
 
     call particles_params_read(par_files)
 
+    ! If sampling, npayload = nw:
+    if (physics_type_particles == 'sample') npayload = nw
+
     ! initialise the random number generator
     seed = [310952_i8, 8948923749821_i8]
     call rng%set_seed(seed)
@@ -216,10 +219,18 @@ contains
 
     ! Generate header for CSV files
     csv_header = ' time, dt, x1, x2, x3, u1, u2, u3,'
-    do n = 1, npayload
-      write(strdata,"(a,i2.2,a)") 'pl', n, ','
-      csv_header = trim(csv_header) // trim(strdata)
-    end do
+    ! If sampling, name the payloads like the fluid quantities
+    if (physics_type_particles == 'sample') then
+      do n = 1, npayload
+        write(strdata,"(a,a)") prim_wnames(n), ','
+        csv_header = trim(csv_header) // trim(strdata)
+      end do
+    else ! Otherwise, payloads are called pl01, pl02, ...
+      do n = 1, npayload
+        write(strdata,"(a,i2.2,a)") 'pl', n, ','
+        csv_header = trim(csv_header) // trim(strdata)
+      end do
+    end if
     csv_header = trim(csv_header) // 'ipe, iteration, index'
 
     ! Generate format string for CSV files
@@ -439,7 +450,6 @@ contains
     else
       tmax_particles = global_time + (time_max-global_time)
     end if
-    if(physics_type_particles/='advect') tmax_particles=tmax_particles
 
     ! main integration loop
     do
@@ -537,7 +547,7 @@ contains
 
     integer,intent(in)                                 :: ix(ndir) !< Indices in gridvars
     integer,intent(in)                                 :: igrid
-    double precision,dimension(ndir), intent(in)       :: x
+    double precision,dimension(3), intent(in)          :: x
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: vec
     double precision,dimension(ndir)                   :: vec1, vec2
@@ -567,7 +577,7 @@ contains
   !> Get Lorentz factor from relativistic momentum
   pure subroutine get_lfac(u,lfac)
     use mod_global_parameters, only: ndir, c_norm
-    double precision,dimension(ndir), intent(in)       :: u
+    double precision,dimension(3), intent(in)       :: u
     double precision, intent(out)                      :: lfac
 
     if (relativistic) then
@@ -580,7 +590,7 @@ contains
   !> Get Lorentz factor from velocity
   pure subroutine get_lfac_from_velocity(v,lfac)
     use mod_global_parameters, only: ndir, c_norm
-    double precision,dimension(ndir), intent(in)       :: v
+    double precision,dimension(3), intent(in)       :: v
     double precision, intent(out)                      :: lfac
 
     if (relativistic) then
@@ -623,7 +633,7 @@ contains
     integer, intent(in)                   :: igrid,ixI^L, ixO^L
     double precision, intent(in)          :: gf(ixI^S)
     double precision, intent(in)          :: x(ixI^S,1:ndim)
-    double precision, intent(in)          :: xloc(1:ndir)
+    double precision, intent(in)          :: xloc(1:3)
     double precision, intent(out)         :: gfloc
     double precision                      :: xd^D
     {^IFTWOD
@@ -993,7 +1003,7 @@ contains
     use mod_slice, only: get_igslice
     use mod_global_parameters
 
-    double precision, intent(in) :: x(ndir)
+    double precision, intent(in) :: x(3)
     integer, intent(out)         :: igrid_particle, ipe_particle
     integer                      :: ig(ndir,nlevelshi), ig_lvl(nlevelshi)
     integer                      :: idim, ic(ndim)
@@ -1311,12 +1321,12 @@ contains
     use mod_global_parameters
     use mod_geometry
 
-    double precision, intent(in)  :: xp(1:ndir)
-    double precision, intent(out) :: xpcart(1:ndir)
+    double precision, intent(in)  :: xp(1:3)
+    double precision, intent(out) :: xpcart(1:3)
 
     select case (coordinate)
        case (Cartesian,Cartesian_stretched)
-          xpcart(1:ndir)=xp(1:ndir)
+          xpcart(1:3)=xp(1:3)
        case (cylindrical)
           xpcart(1)=xp(1)*cos(xp(phi_))
           xpcart(2)=xp(1)*sin(xp(phi_))

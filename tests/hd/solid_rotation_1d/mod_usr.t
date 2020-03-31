@@ -55,17 +55,14 @@ contains
 
   subroutine set_params()
     ! Overwrite some default parameters
-    use mod_dust, only: dust_n_species, dust_density, dust_stokes
+    use mod_dust, only: dust_n_species, dust_density
     use mod_global_parameters
     ! .. local ..
     double precision :: norm_density
     integer i
 
     if (hd_energy) call mpistop("usr case not implemented (hd_energy)")
-    do i = 1, dust_n_species
-       dust_stokes(i) = 10**(-i)
-    end do
-    
+
   end subroutine set_params
 
 

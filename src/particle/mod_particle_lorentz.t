@@ -109,7 +109,7 @@ contains
         particle(n)%self%m      = m(n)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
-        particle(n)%self%time   = 0.0d0
+        particle(n)%self%time   = global_time
         particle(n)%self%dt     = 0.0d0
 
         ! initialise payloads for Lorentz module
