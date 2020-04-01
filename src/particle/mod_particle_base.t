@@ -734,7 +734,6 @@ contains
     logical,intent(out)             :: file_exists
     character(len=std_len)          :: filename
     integer                         :: mynpayload, mynparticles
-    integer, dimension(0:1)         :: buff
 
     ! some initialisations:
     nparticles_on_mype = 0
@@ -744,43 +743,39 @@ contains
 
     ! open the snapshot file on the headnode
     file_exists=.false.
-    if (mype .eq. 0) then
+    if (mype == 0) then
       write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotini,'.dat'
       INQUIRE(FILE=filename, EXIST=file_exists)
       if (.not. file_exists) then
-!        call mpistop('File '//trim(filename)//' with particle data does not exist')
         write(*,*) 'WARNING: File '//trim(filename)//' with particle data does not exist.'
         write(*,*) 'Initialising particles from user or default routines'
-        return
       else
         open(unit=unitparticles,file=filename,form='unformatted',action='read',status='unknown',access='stream')
         read(unitparticles) nparticles,it_particles,mynpayload
         if (mynpayload .ne. npayload) &
              call mpistop('npayload in restart file does not match npayload in mod_particles')
-        buff(0) = nparticles
-        buff(1) = it_particles
       end if
     end if
 
-    if (npe>0) call MPI_BCAST(buff,2,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(file_exists,1,MPI_LOGICAL,0,icomm,ierrmpi)
+    if (.not. file_exists) return
 
-    ! particle data is there, fill variables:
-    nparticles   = buff(0)
-    it_particles = buff(1)
+    call MPI_BCAST(nparticles,1,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(it_particles,1,MPI_INTEGER,0,icomm,ierrmpi)
 
     do while (mynparticles .lt. nparticles)
-      if (mype .eq. 0) then
+      if (mype == 0) then
         do while (nparticles_on_mype .lt. nparticles_per_cpu_hi &
              .and. mynparticles .lt. nparticles)
           call read_from_snapshot
           mynparticles = mynparticles + 1
         end do
       end if ! mype==0
-      if (npe>0) call MPI_BCAST(mynparticles,1,MPI_INTEGER,0,icomm,ierrmpi)
+      call MPI_BCAST(mynparticles,1,MPI_INTEGER,0,icomm,ierrmpi)
       call comm_particles_global
     end do
 
-    if (mype .eq. 0) close(unit=unitparticles)
+    if (mype == 0) close(unit=unitparticles)
 
   end subroutine read_particles_snapshot
 
