@@ -14,7 +14,6 @@
         itsave(1,2)=0
  /
 
-        it_max=2
  &stoplist
         time_max=100.d0
  /
@@ -52,6 +51,7 @@
  /
 
  &sir_list
+       sir_particles=.true.
        sir_diffusion_method='imex'
        D1 = 0.1d0
        D2 = 0.5d0
@@ -64,4 +64,12 @@
        sir_alfa1=0.1d0
        sir_alfa2=0.02d0
        sir_alfa3=0.03d0
+ /
+
+ &particles_list
+     num_particles=4
+     write_individual=.true.
+     write_ensemble=.false.
+     dtsave_particles=0.05d0
+     physics_type_particles='sample'
  /

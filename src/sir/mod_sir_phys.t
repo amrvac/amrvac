@@ -18,8 +18,10 @@ module mod_sir_phys
   integer, protected, public :: in_ = 2
   integer, protected, public :: re_ = 3
 
+  !> Whether particles module is added
+  logical, public, protected              :: sir_particles = .false.
+
   !> Diffusion coefficients for s, i, r
-  !>  Note: for conservation, need identical diffusion coefficients!
 
   !> Diffusion coefficient for susceptible population (s)
   double precision, public, protected :: D1 = 0.01d0
@@ -61,7 +63,7 @@ contains
     character(len=20)            :: equation_name
 
     namelist /sir_list/ D1, D2, D3, sir_Lambda, sir_d, sir_mu, sir_r, sir_beta, &
-                         sir_alfa1, sir_alfa2, sir_alfa3, sir_diffusion_method
+                         sir_alfa1, sir_alfa2, sir_alfa3, sir_diffusion_method, sir_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
@@ -109,12 +111,14 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_multigrid_coupling
+    use mod_particles, only: particles_init
 
     call sir_params_read(par_files)
 
     physics_type = "sir"
     phys_energy  = .false.
     phys_req_diagonal = .false.
+    use_particles = sir_particles
 
     ! Treat all variables as a density
     su_ = var_set_fluxvar("s", "s")
@@ -147,6 +151,12 @@ contains
     case default
        call mpistop("Unknown sir_diffusion_method")
     end select
+
+    ! Initialize particles module
+    if (sir_particles) then
+       call particles_init()
+       phys_req_diagonal = .true.
+    end if
 
   end subroutine sir_phys_init
 
