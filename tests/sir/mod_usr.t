@@ -34,6 +34,8 @@ contains
     l2 = xprobmax2 - xprobmin2
 
     w(ix^S,re_) = 0.0d0
+    w(ix^S,su_) = 1.0d0
+    w(ix^S,in_) = 0.0d0
 
     select case (iprob)
     case (1)
