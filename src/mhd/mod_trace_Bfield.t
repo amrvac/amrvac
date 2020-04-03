@@ -26,38 +26,34 @@ module mod_trace_Bfield
 
   contains
 
-  subroutine trace_Bfield(xf,wB,dL,numP,numRT,forward,wRT,interp,ix1)
+  subroutine trace_Bfield(xf,wB,dL,numP,numRT,forward,wRT,interp)
     ! trace a field line
     use mod_usr_methods
     use mod_global_parameters
+    use mod_particle_base
 
-    integer :: numP,numRT,ix1
+    integer :: numP,numRT
     double precision :: xf(numP,ndim),wB(numP,nw+ndir)
     double precision :: dL
     logical :: forward,interp
     logical :: wRT(nw+ndir)
 
     double precision :: dxb^D,xb^L
-    integer :: inblock,indomain
-    integer :: iigrid,igrid,igrid_now,igrid_next,j
-    integer :: ipe_now,ipe_next,mainpe
-    integer :: status(mpi_status_size)
+    integer :: indomain
+    integer :: igrid,igrid_now,igrid_next,j
+    integer :: ipe_now,ipe_next
     double precision :: xp_in(ndim),xp_out(ndim)
     integer :: ipoint_in,ipoint_out
     double precision :: statusB(4+ndim)
-    integer :: pe_record(numP),pe_grid(2)
+    integer :: pe_record(numP)
     logical :: stopB
-    double precision :: xf_send(numP,ndim),wB_send(numP,nw+ndir)
     double precision :: data_share(numP,ndim+nw+ndir)
     integer :: nums1,nums2,ipoint,nwRT,iRT
-
 
     wB=0
     xf(2:numP,:)=0
     pe_record=-1
 
-    ! set processor 0 as main processor
-    mainpe=0
 
     ! check whether or the first point is inside simulation box. if yes, find
     ! the pe and igrid for the point
@@ -67,54 +63,33 @@ module mod_trace_Bfield
     if (indomain==ndim) then
       numRT=1
 
-      ! find the grid and pe of the first point
-      LOOP1: do iigrid=1,igridstail; igrid=igrids(iigrid);
-        ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
-        ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
-        inblock=0
-        {if (xf(1,^DB)>=xbmin^DB .and. xf(1,^DB)<xbmax^DB) inblock=inblock+1\}
-        if (inblock==ndim) then
-          pe_grid(1)=mype
-          pe_grid(2)=igrid
-          call MPI_SEND(pe_grid,2,MPI_INTEGER,mainpe,0,icomm,ierrmpi)
-          exit LOOP1
-        endif
-      enddo LOOP1
-
-      if (mype==mainpe) then
-        call MPI_RECV(pe_grid,2,MPI_INTEGER,MPI_ANY_SOURCE,0,icomm,status,ierrmpi)
+      call find_particle_ipe(xf(1,:),igrid_now,ipe_now)
+      stopB=.FALSE.
+      ipoint_in=1
+    else
+      if (mype==0) then
+        call MPISTOP('magnetic field tracing error: given point is not in simulation box!')
       endif
-      call MPI_BCAST(pe_grid,2,MPI_INTEGER,mainpe,icomm,ierrmpi)
     endif
 
 
-    ! looking for points in the field line
-    stopB=.FALSE.
-    ipoint_in=1
-    ipe_now=pe_grid(1)
-    igrid_now=pe_grid(2)
-
+    ! other points in field line
     do while(stopB .eqv. .FALSE.)
 
       if (mype==ipe_now) then
         igrid=igrid_now
 
         ! looking for points in one pe
-        call find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp,ix1)
-        
-        call MPI_SEND(statusB,4+ndim,MPI_DOUBLE_PRECISION,mainpe,0,icomm,ierrmpi)
+        call find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp)
       endif
 
       ! comunication
-      if (mype==mainpe) then
-        call MPI_RECV(statusB,4+ndim,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,0,icomm,status,ierrmpi)
-      endif
-      call MPI_BCAST(statusB,4+ndim,MPI_DOUBLE_PRECISION,mainpe,icomm,ierrmpi)
+      call MPI_BCAST(statusB,4+ndim,MPI_DOUBLE_PRECISION,ipe_now,icomm,ierrmpi)
 
-      ! preparing for next step
-      ipe_now=int(statusB(1))
-      ipoint_out=int(statusB(2))
-      igrid_now=int(statusB(3))
+      ! prepare for next step
+      ipoint_out=int(statusB(1))
+      ipe_next=int(statusB(2))
+      igrid_next=int(statusB(3))
       if (int(statusB(4))==1) then
         stopB=.TRUE.
         numRT=ipoint_out-1
@@ -123,20 +98,6 @@ module mod_trace_Bfield
         xf(ipoint_out,j)=statusB(4+j)
       enddo
 
-      ! check whether or next point is inside simulation box.
-      indomain=0
-      {if (xf(ipoint_out,^DB)>xprobmin^DB .and. xf(ipoint_out,^DB)<xprobmax^DB) indomain=indomain+1\}
-      if (indomain/=ndim) then
-        numRT=ipoint_out-1
-        stopB=.TRUE.
-      endif
-
-
-      ! next point is in another pe, find out grid and pe numbers
-      if (indomain==ndim) then
-        call find_grid(ipe_now,igrid_now,ipe_next,igrid_next,xf(ipoint_out,:),ipoint_out)
-      endif
-
       ! pe and grid of next point
       do j=ipoint_in,ipoint_out-1
         pe_record(j)=ipe_now
@@ -144,7 +105,6 @@ module mod_trace_Bfield
       ipe_now=ipe_next
       igrid_now=igrid_next
       ipoint_in=ipoint_out
-
     enddo
 
 
@@ -198,17 +158,17 @@ module mod_trace_Bfield
 
   end subroutine trace_Bfield
 
-  subroutine find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp,ix1)
+  subroutine find_points_in_pe(igrid,ipoint_in,xf,wB,numP,dL,forward,wRT,statusB,interp)
  
-    integer :: igrid,ipoint_in,numP,ix1
+    integer :: igrid,ipoint_in,numP
     double precision :: xf(numP,ndim),wB(numP,nw+ndir)
     double precision :: dL
     logical :: forward,interp
     logical :: wRT(nw+ndir)
     double precision :: statusB(4+ndim)    
 
-    integer :: ipe_next,igrid_next,stopB,ip_in,ip_out
-    logical :: newpe
+    integer :: ipe_next,igrid_next,ip_in,ip_out
+    logical :: newpe,stopB
   
     ip_in=ipoint_in
     newpe=.FALSE.
@@ -218,26 +178,28 @@ module mod_trace_Bfield
 
       ! looking for points in given grid    
       if (interp) then
-        call find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT,ix1)
+        call find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT)
       else
         call find_points_nointerp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT)
       endif
 
       ip_in=ip_out
 
-      !if (ix1==519) print *, ip_out,numP
-
       ! when next point is out of given grid, find next grid  
-      call find_next_grid(igrid,igrid_next,ipe_next,xf(ip_out,:),newpe)
-
-      if (ip_out>=numP) newpe=.TRUE.
+      if (ip_out<numP) then
+        stopB=.FALSE.
+        call find_next_grid(igrid,igrid_next,ipe_next,xf(ip_out,:),newpe,stopB)
+      else
+        newpe=.TRUE.
+        stopB=.TRUE.
+      endif
 
       if (newpe) then
-        statusB(1)=mype
-        statusB(2)=ip_out
-        statusB(3)=igrid
+        statusB(1)=ip_out
+        statusB(2)=ipe_next
+        statusB(3)=igrid_next
         statusB(4)=0
-        if (ip_out>=numP) statusB(4)=1
+        if (stopB) statusB(4)=1
         do j=1,ndim
           statusB(4+j)=xf(ip_out,j)
         enddo
@@ -248,9 +210,9 @@ module mod_trace_Bfield
 
   end subroutine find_points_in_pe
 
-  subroutine find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT,iFL)
+  subroutine find_points_interp(igrid,ip_in,ip_out,xf,wB,numP,dL,forward,wRT)
 
-    integer :: igrid,ip_in,ip_out,numP,iFL
+    integer :: igrid,ip_in,ip_out,numP
     double precision :: xf(numP,ndim),wB(numP,nw+ndir)
     double precision :: dL
     logical :: forward
@@ -295,6 +257,7 @@ module mod_trace_Bfield
 
       {do ix^DB=0,1\}
         ! Bfield for interpolation
+
         do j=1,ndir
           if (B0field) then
             wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))+&
@@ -420,6 +383,7 @@ module mod_trace_Bfield
       enddo
       ip_out=ip+1
 
+      !print *, ip,xf(ip,:),Bx
 
       ! whether or not next point is in this block/grid
       inblock=0
@@ -562,7 +526,6 @@ module mod_trace_Bfield
       enddo
       ip_out=ip+1
 
-
       ! whether or not next point is in this block/grid
       inblock=0
       {if (xf(ip+1,^DB)>=xbmin^DB .and. xf(ip+1,^DB)<xbmax^DB) inblock=inblock+1\}
@@ -575,8 +538,8 @@ module mod_trace_Bfield
 
 
   end subroutine find_points_nointerp
-  
-  subroutine find_next_grid(igrid,igrid_next,ipe_next,xf1,newpe)
+
+  subroutine find_next_grid(igrid,igrid_next,ipe_next,xf1,newpe,stopB)
     ! check the grid and pe of next point
     use mod_usr_methods
     use mod_global_parameters
@@ -584,153 +547,70 @@ module mod_trace_Bfield
 
     integer :: igrid,igrid_next,ipe_next
     double precision :: xf1(ndim)
-    double precision :: dxb^D,xb^L
+    double precision :: dxb^D,xb^L,xbmid^D
+    logical :: newpe,stopB
 
-    integer :: inblock,inblock_n,inblock_nc
-    integer :: ix^D
-    logical :: newpe
-
-    integer :: igrid_nb,ipe_nb
-
-    newpe=.TRUE.
+    integer :: idn^D,my_neighbor_type,inblock
+    integer :: ic^D,inc^D,ipe_neighbor,igrid_neighbor
+    double precision :: xbn^L
 
     ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
     ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
     inblock=0
-    {if (xf1(^D)>=xbmin^D .and. xf1(^D)<xbmax^D) inblock=inblock+1\}
-    if (inblock==ndim) then
-      ! in the same grid with previous point
-      igrid_next=igrid
-      ipe_next=mype
-      newpe=.FALSE.
-    else
-      ! not in the same grid
-      {do ix^D=-1,1,1\}
-        ! check neighbor
-        igrid_nb=neighbor(1,ix^D,igrid)
-        ipe_nb=neighbor(2,ix^D,igrid)
-        if (mype==ipe_nb .and. igrid_inuse(igrid_nb,ipe_nb) .and. &
-            igrid_nb>=0 .and. igrid_nb<=max_blocks) then
-          ^D&xbmin^D=rnode(rpxmin^D_,igrid_nb)\
-          ^D&xbmax^D=rnode(rpxmax^D_,igrid_nb)\
-          inblock_n=0
-          {if (xf1(^D)>=xbmin^D .and. xf1(^D)<xbmax^D) inblock_n=inblock_n+1\}
-          if (inblock_n==ndim) then
-            ! in neighbor
-            igrid_next=igrid_nb
-            ipe_next=mype
-            newpe=.FALSE.
-          endif
-        endif
 
-        ! check neighbor_child
-        igrid_nb=neighbor_child(1,ix^D,igrid)
-        ipe_nb=neighbor_child(2,ix^D,igrid)
-        if (mype==ipe_nb .and. igrid_inuse(igrid_nb,ipe_nb) .and. &
-            igrid_nb>=0 .and. igrid_nb<=max_blocks) then
-          ^D&xbmin^D=rnode(rpxmin^D_,igrid_nb)\
-          ^D&xbmax^D=rnode(rpxmax^D_,igrid_nb)\
-          inblock_nc=0
-          {if (xf1(^D)>=xbmin^D .and. xf1(^D)<xbmax^D) inblock_nc=inblock_nc+1\}
-          if (inblock_nc==ndim) then
-            ! in neighbor child
-            igrid_next=igrid_nb
-            ipe_next=mype
-            newpe=.FALSE.
-          endif
-        endif
-      {enddo\}
-    endif
+    ! direction of next grid
+    idn^D=0\ 
+    {if (xf1(^D)<=xbmin^D) idn^D=-1\}
+    {if (xf1(^D)>=xbmax^D) idn^D=1\}
+    my_neighbor_type=neighbor_type(idn^D,igrid)
+    igrid_neighbor=neighbor(1,idn^D,igrid)
+    ipe_neighbor=neighbor(2,idn^D,igrid)
+
+    ! ipe and igrid of next grid
+    select case(my_neighbor_type)
+    case (neighbor_boundary)
+      ! next point is not in simulation box
+      newpe=.TRUE.
+      stopB=.TRUE.
+
+    case(neighbor_coarse)
+      ! neighbor grid has lower refinement level      
+      igrid_next=igrid_neighbor
+      ipe_next=ipe_neighbor
+      if (mype==ipe_neighbor) then
+        newpe=.FALSE.
+      else
+        newpe=.TRUE.
+      endif
+
+    case(neighbor_sibling)
+      ! neighbor grid has lower refinement level 
+      igrid_next=igrid_neighbor
+      ipe_next=ipe_neighbor
+      if (mype==ipe_neighbor) then
+        newpe=.FALSE.
+      else
+        newpe=.TRUE.
+      endif
+
+    case(neighbor_fine)
+      ! neighbor grid has higher refinement level 
+      {xbmid^D=(xbmin^D+xbmax^D)/2.d0\}
+      ^D&inc^D=1\ 
+      {if (xf1(^D)<=xbmin^D) inc^D=0\}
+      {if (xf1(^D)>xbmin^D .and. xf1(^D)<=xbmid^D) inc^D=1\}
+      {if (xf1(^D)>xbmid^D .and. xf1(^D)<xbmax^D) inc^D=2\}
+      {if (xf1(^D)>=xbmax^D) inc^D=3\}
+      ipe_next=neighbor_child(2,inc^D,igrid)
+      igrid_next=neighbor_child(1,inc^D,igrid)
+      if (mype==ipe_next) then
+        newpe=.FALSE.
+      else
+        newpe=.TRUE.
+      endif
+
+    end select
 
   end subroutine find_next_grid
-
-  subroutine find_grid(ipe_now,igrid_now,ipe_next,igrid_next,xf1,nj)
-    ! find for grid and pe numbers
-    use mod_usr_methods
-    use mod_global_parameters
-    use mod_forest
-
-    integer :: igrid,iigrid,igrid_now,ipe_now,igrid_next,ipe_next
-    double precision :: xf1(ndim)
-
-    double precision :: dxb^D,xb^L
-    integer :: ix^D,i,j,nj
-    integer :: found,found_recv,mainpe,inblock
-    integer :: status(mpi_status_size)
-    integer :: pe_grid_nb(2*(3**ndim),2),pe_grid(2)
-    integer :: numblock,flag
-
-    double precision :: igrid_nb,ipe_nb
-
-    mainpe=0
-    found=0
-    numblock=2*(3**ndim)
-    ipe_next=-1
-    igrid_next=-1
-    pe_grid(1)=-1
-    pe_grid(2)=-1
-
-    ! record neighbor blocks
-    if (mype==ipe_now) then
-      j=1
-      {do ix^D=-1,1,1\}
-        pe_grid_nb(j,2)=neighbor(1,ix^D,igrid_now)
-        pe_grid_nb(j+numblock/2,2)=neighbor_child(1,ix^D,igrid_now)
-        pe_grid_nb(j,1)=neighbor(2,ix^D,igrid_now)
-        pe_grid_nb(j+numblock/2,1)=neighbor_child(2,ix^D,igrid_now)
-        j=j+1
-      {enddo\}
-    endif
-
-
-    call MPI_BCAST(pe_grid_nb,2*numblock,MPI_INTEGER,ipe_now,icomm,ierrmpi)
-
-    ! check neighbors
-    LOOPNB: do j=1,numblock
-      if (mype==pe_grid_nb(j,1) .and. igrid_inuse(pe_grid_nb(j,2),pe_grid_nb(j,1)) .and. &
-          pe_grid_nb(j,2)>=0 .and. pe_grid_nb(j,2)<=max_blocks) then
-        ^D&xbmin^D=rnode(rpxmin^D_,pe_grid_nb(j,2))\
-        ^D&xbmax^D=rnode(rpxmax^D_,pe_grid_nb(j,2))\
-        inblock=0
-        {if (xf1(^D)>=xbmin^D .and. xf1(^D)<xbmax^D) inblock=inblock+1\}
-        if (inblock==ndim) then
-          pe_grid(2)=pe_grid_nb(j,2)
-          pe_grid(1)=mype
-          found=1
-          call MPI_SEND(pe_grid,2,MPI_INTEGER,ipe_now,nj+10,icomm,ierrmpi)
-          exit LOOPNB
-        endif
-      endif
-    enddo LOOPNB
-
-    call MPI_ALLREDUCE(found,found_recv,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
-    found=found_recv
-
-    ! point is not in neighbors
-    if (found==0) then
-      LOOP1: do iigrid=1,igridstail; igrid=igrids(iigrid);
-        !call update_block_para(igrid,dxb^D,xb^L)
-        ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
-        ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
-        inblock=0
-        {if (xf1(^D)>=xbmin^D .and. xf1(^D)<xbmax^D) inblock=inblock+1\}
-        if (inblock==ndim) then
-          pe_grid(2)=igrid
-          pe_grid(1)=mype
-          call MPI_SEND(pe_grid,2,MPI_INTEGER,ipe_now,nj+10,icomm,ierrmpi)
-          exit LOOP1
-        endif
-      enddo LOOP1
-    endif
-
-
-    if (mype==ipe_now) then
-      call MPI_RECV(pe_grid,2,MPI_INTEGER,MPI_ANY_SOURCE,nj+10,icomm,status,ierrmpi)
-    endif
-    call MPI_BCAST(pe_grid,2,MPI_INTEGER,ipe_now,icomm,ierrmpi)
-    ipe_next=pe_grid(1)
-    igrid_next=pe_grid(2)
-
-  end subroutine find_grid
   
 end module mod_trace_Bfield
