@@ -242,6 +242,7 @@ mod_rotating_frame.o: mod_geometry.mod
 mod_sir.o: mod_amrvac.mod
 mod_sir.o: mod_sir_phys.mod
 mod_sir_phys.o: mod_multigrid_coupling.mod
+mod_sir_phys.o: mod_particles.mod
 mod_sir_phys.o: mod_physics.mod
 mod_slice.o: mod_basic_types.mod
 mod_slice.o: mod_calculate_xw.mod
