@@ -224,6 +224,7 @@ mod_particles.o: mod_timing.mod
 mod_physics.o: mod_physics_hllc.mod
 mod_physics.o: mod_physics_ppm.mod
 mod_physics.o: mod_physics_roe.mod
+mod_point_searching.o: mod_particle_base.mod
 mod_point_searching.o: mod_physics.mod
 mod_ppm.o: mod_physics.mod
 mod_radiative_cooling.o: mod_physics.mod
@@ -257,6 +258,7 @@ mod_thermal_conduction.o: mod_physics.mod
 mod_thermal_conduction.o: mod_small_values.mod
 mod_thermal_emission.o: mod_physics.mod
 mod_trace_Bfield.o: mod_mhd.mod
+mod_trace_Bfield.o: mod_particle_base.mod
 mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
 mod_usr_template.o: mod_mhd.mod
