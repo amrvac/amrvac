@@ -8,13 +8,44 @@ module mod_solar_atmosphere
   use mod_constants
   implicit none
 
-  integer :: n_valc,n_hong
+  integer :: n_valc,n_hong,n_sprm
   double precision :: h_valc(1:52),T_valc(1:52)
   double precision :: h_hong(1:300),T_hong(1:300)
+  double precision :: h_sprm(1:56),T_sprm(1:56)
+
+  data n_sprm / 56 /
+
+  data h_sprm /  -100.0,   -90.0,   -80.0,   -70.0,   -60.0, &
+                  -50.0,   -40.0,   -30.0,   -20.0,   -10.0, &
+                   -0.7,     9.5,    20.0,    35.0,    50.0, &
+                   75.0,   100.0,   125.0,   150.0,   175.0, &
+                  200.0,   250.0,   300.0,   347.0,   398.0, &
+                  447.5,   485.0,   519.0,   570.0,   625.0, &
+                  696.0,   772.0,   812.0,   838.0,   874.5, &
+                  899.5,   926.0,   947.0,   965.0,  1020.0, &
+                 1060.0,  1120.0,  1180.0,  1245.0,  1319.0, &
+                 1447.0,  1571.0,  1687.0,  1801.0,  1911.0, &
+                 2013.0,  2142.0,  2263.0,  2357.0,  2425.0, &
+                 2472.0 /
+
+  data T_sprm /    9460,    9220,    8940,    8620,    8280, & 
+                   7940,    7600,    7270,    6960,    6690, &
+                   6490,    6310,    6150,    5950,    5780, &
+                   5550,    5380,    5245,    5130,    5035, &
+                   4960,    4835,    4740,    4660,    4580, &
+                   4510,    4450,    4390,    4300,    4200, &
+                   4080,    3955,    3890,    3850,    3800, &
+                   3810,    3950,    4150,    4400,    5350, &
+                   5770,    6120,    6270,    6390,    6450, &
+                   6490,    6530,    6570,    6620,    6670, &
+                   6720,    6770,    6830,    6910,    7030, &
+                   7210 /
+
+
 
   data n_valc / 52 /
 
-  data    h_valc /    -75,    -50,     25,      0,     50, & 
+  data    h_valc /    -75,    -50,    -25,      0,     50, & 
                       100,    150,    250,    350,    450, &
                       515,    555,    605,    655,    705, &
                       755,    855,    905,    980,   1065, &
@@ -168,10 +199,10 @@ contains
 
   subroutine get_atm_para(h,rho,pth,grav,nh,rho0,Tcurve)
     use mod_global_parameters
-
+    ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (simulation units)
     ! nh -- number of points
     ! rho0 -- number density at h(1)
-    ! Tcurve -- 'VAL-C' | 'Hong2017'
+    ! Tcurve -- 'VAL-C' | 'Hong2017' | 'SPRM305'
 
     integer :: nh
     double precision :: rho0
@@ -187,38 +218,120 @@ contains
     select case(Tcurve)
       case('VAL-C')
         call get_Te_VALC(h_cgs,Te_cgs,nh)
-        if (mype==0) print *, 'VAL-C temperature curve'
+        if (mype==0) print *, 'Temperature curve from Vernazza, Avrett & Loeser, 1981, ApJS, 45, 635'
 
       case('Hong2017')
         call get_Te_Hong(h_cgs,Te_cgs,nh)
-        if (mype==0) print *, 'Temperature curve in Hong et al. (2017) is employed'
+        if (mype==0) print *, 'Temperature curve from Hong et al. 2017, ApJ, 845, 144'
 
-      !case('YS2001')
-      !  call get_NT_YS(h,rho,pth,nh,rho0)
-      !  if (mype==0) print *, 'Temperature and density curves in Yokoyama & Shibata (2001) are employed'
+      case('SPRM305')
+        call get_Te_SPRM(h_cgs,Te_cgs,nh)
+        if (mype==0) print *, 'Temperature curve from Fontenla et al. 2007, ApJ, 667, 1243'
 
       case default
-        call mpistop("This temperature curve is unknown")
+        call mpistop("Unknown temperature curve")
 
     end select
 
     Te=Te_cgs/unit_temperature
 
     ! density and pressure profiles
-    if (Tcurve=='VAL-C' .or. Tcurve=='Hong2017') then
-      rho(1)=rho0
-      pth(1)=rho(1)*Te(1)
+    rho(1)=rho0
+    pth(1)=rho(1)*Te(1)
 
-      invT=0.d0
-      do j=2,nh
-        dh=h(j)-h(j-1)
-        invT=invT+dh*(grav(j)/Te(j)+grav(j-1)/Te(j-1))*0.5d0
-        pth(j)=pth(1)*dexp(invT)
-        rho(j)=pth(j)/Te(j)
-      end do
-    endif
+    invT=0.d0
+    do j=2,nh
+      dh=h(j)-h(j-1)
+      invT=invT+dh*(grav(j)/Te(j)+grav(j-1)/Te(j-1))*0.5d0
+      pth(j)=pth(1)*dexp(invT)
+      rho(j)=pth(j)/Te(j)
+    end do
 
   end subroutine get_atm_para
+
+  subroutine get_Te_SPRM(h,Te,nh)
+    use mod_interpolation
+    use mod_constants
+
+    integer :: nh
+    double precision :: h(nh),Te(nh)
+
+    integer :: ih,j,imin,imax,n_table
+    double precision :: h_table(n_sprm),T_table(n_sprm)
+    double precision :: unit_h,unit_T,dTdh
+    double precision :: h1,h2,h3
+    double precision :: Tpho,Ttop,htanh,wtra
+    double precision :: htra,Ttra,Fc,kappa
+
+    unit_h=1.d5 !  km -> cm
+    unit_T=1.0  !  K -> K
+
+    n_table=n_sprm
+    h_table=h_sprm*unit_h
+    T_table=T_sprm*unit_T
+
+    ! height for shift curve table/function
+    h1=h_table(1)
+    h2=h_table(n_table)
+    h3=3271.d0*unit_h
+
+    ! parameter for T curve in (h2,h3)
+    htanh=3464.d0*unit_h
+    Tpho=6726.d0
+    Ttop=1.5d6
+    wtra=246.d0*unit_h
+    
+    ! parameter for T curve above h3
+    htra=3271.d0*unit_h
+    Ttra=2.642d5
+    kappa=8.d-7
+    Fc=4.791d5
+
+    ! parameter for T curve below h1
+    dTdh=(T_table(2)-T_table(1))/(h_table(2)-h_table(1))
+
+
+    do ih=1,nh
+      ! below photosphere
+      if (h(ih)<=h1) then
+        Te(ih)=(h(ih)-h_table(1))*dTdh+T_table(1)
+      endif
+
+      ! high chromosphere and low transition region
+      if (h(ih)>h2 .and. h(ih)<h3) then
+        Te(ih)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((h(ih)-htanh)/wtra)+1.d0)
+      endif
+
+      ! high transition region and corona
+      if (h(ih)>=h3) then
+        Te(ih)=(3.5d0*Fc*(h(ih)-htra)/kappa+Ttra**3.5)**(2.d0/7.d0)
+      endif
+    enddo
+
+
+    ! inside the table
+    imin=nh
+    imax=nh-1
+    if (h(1)>=h_table(1) .and. h(1)<=h_table(n_table)) then
+      imin=1
+    else
+      do ih=2,nh
+        if (h(ih-1)<h_table(1) .and. h(ih)>=h_table(1) .and. h(ih)<=h_table(n_table)) imin=ih
+      enddo
+    endif
+    if (h(nh)>=h_table(1) .and. h(nh)<=h_table(n_table)) then
+      imax=nh
+    else
+      do ih=1,nh-1
+        if (h(ih)<=h_table(n_table) .and. h(ih+1)>h_table(n_table) .and. h(ih)>=h_table(1)) imax=ih
+      enddo
+    endif
+
+    if (imin<=imax) then
+      call interp_linear(h_table,T_table,n_sprm,h(imin:imax),Te(imin:imax),imax-imin+1)
+    endif
+
+  end subroutine 
 
   subroutine get_Te_VALC(h,Te,nh)
     use mod_interpolation
@@ -234,7 +347,7 @@ contains
     ! temperature profile
     unit_h=1.d5 !  km -> cm
     unit_T=1.0  !  K -> K
-    Fc=6*2.d5
+    Fc=5.38d5
     kappa=8.d-7
 
     n_table=n_valc
@@ -291,16 +404,21 @@ contains
     integer :: ih,j,imin,imax,n_table
     double precision :: h_table(n_hong),T_table(n_hong)
     double precision :: dTdh
+    double precision :: htra,Ttra,Fc,kappa
 
     n_table=n_hong
     h_table=h_hong
     T_table=T_hong
 
+    htra=h_table(150)
+    Ttra=T_table(150)   
+    Fc=2.76d5 ! heat flux in high corona
+    kappa=8.d-7
+
     do ih=1,nh
       if (h(ih)>=h_table(n_table)) then
       ! above max height of the table
-        dTdh=(T_table(n_table)-T_table(n_table-1))/(h_table(n_table)-h_table(n_table-1))
-        Te(ih)=(h(ih)-h_table(n_table))*dTdh+T_table(n_table)
+        Te(ih)=(3.5d0*Fc*(h(ih)-htra)/kappa+Ttra**3.5d0)**(2.d0/7.d0)
       endif
 
       if (h(ih)<=h_table(1)) then
@@ -334,25 +452,5 @@ contains
     endif
 
   end subroutine get_Te_Hong
-
-  subroutine get_NT_YS(h,rho,pth,nh,rho0)
-
-    integer :: nh
-    double precision :: rho0
-    double precision :: h(nh),rho(nh),pth(nh)
-
-    integer :: ih
-    double precision :: htra,wtra,rhoc
-
-    htra=0.3d9 ! height of initial transition region
-    wtra=0.06d9 ! width of initial transition region 
-    rhoc=rho0/1d5
-    pth=0.47/1.67
-
-    do ih=1,nh
-      rho(ih)=rhoc+(rho0-rhoc)*(1.d0-tanh((h(ih)-htra)/wtra))
-    enddo
-
-  end subroutine get_NT_YS
 
 end module mod_solar_atmosphere
