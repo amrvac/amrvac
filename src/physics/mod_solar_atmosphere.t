@@ -207,7 +207,7 @@ contains
     integer :: nh
     double precision :: rho0
     double precision :: h(nh),rho(nh),pth(nh),grav(nh)
-    character(20) :: Tcurve
+    character(*) :: Tcurve
 
     double precision :: h_cgs(nh),Te_cgs(nh),Te(nh)
     integer :: j
