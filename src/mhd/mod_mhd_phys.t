@@ -2906,30 +2906,30 @@ contains
            ixCmin^D=ixMlo^D-kr(idim,^D);
            ixCmax^D=ixMhi^D;
            call gradientx(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim),.false.)
+           ! Apply the correction B* = B - gradient(phi)
            ps(igrid)%ws(ixC^S,idim)=ps(igrid)%ws(ixC^S,idim)-grad(ixC^S,idim)
          end do
+         ! store cell-center magnetic energy
+         tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
+         ! change cell-center magnetic field
          call mhd_face_to_center(ixM^LL,ps(igrid))
        else
          do idim = 1, ndim
             call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
          end do
-         ! Apply the correction B* = B - gradient(phi)
+         ! store cell-center magnetic energy
          tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
+         ! Apply the correction B* = B - gradient(phi)
          ps(igrid)%w(ixM^T, mag(1:ndim)) = &
               ps(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
        end if
 
-       ! Determine magnetic energy difference
-       tmp(ixM^T) = 0.5_dp * (sum(ps(igrid)%w(ixM^T, &
-            mag(1:ndim))**2, dim=ndim+1) - tmp(ixM^T))
-
-       if (mhd_energy) then
-          ! Keep thermal pressure the same
-          ps(igrid)%w(ixM^T, e_) = ps(igrid)%w(ixM^T, e_) + tmp(ixM^T)
-
-          ! Possible alternative: keep total pressure the same
-          ! ps(igrid)%w(ixM^T, e_)     = ps(igrid)%w(ixM^T, e_) + &
-          !      (mhd_gamma-2) * inv_gamma_1 * tmp(ixM^T)
+       if(mhd_energy.and. .not.solve_internal_e) then
+         ! Determine magnetic energy difference
+         tmp(ixM^T) = 0.5_dp * (sum(ps(igrid)%w(ixM^T, &
+              mag(1:ndim))**2, dim=ndim+1) - tmp(ixM^T))
+         ! Keep thermal pressure the same
+         ps(igrid)%w(ixM^T, e_) = ps(igrid)%w(ixM^T, e_) + tmp(ixM^T)
        end if
     end do
 
