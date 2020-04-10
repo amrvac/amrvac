@@ -1,5 +1,5 @@
 !> User can use subroutine get_atm_para to generate 1D solar stmosphere.
-!> User should provide heights (h), number density at the bottom,
+!> User should provide heights (h), number density at h=0,
 !> number of points (nh), and the gravity (grav) at each point. 
 !> User can select temperature profile.
 !> This subroutine will return density and pressure at each point.
@@ -262,9 +262,9 @@ contains
 
   subroutine get_atm_para(h,rho,pth,grav,nh,rho0,Tcurve)
     use mod_global_parameters
-    ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (simulation units)
+    ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (dimensionless units)
     ! nh -- number of points
-    ! rho0 -- number density at h(1)
+    ! rho0 -- number density at h=0
     ! Tcurve -- 'VAL-C' | 'Hong2017' | 'SPRM305' | 'AL-C7'
 
     integer :: nh
@@ -274,7 +274,7 @@ contains
 
     double precision :: h_cgs(nh),Te_cgs(nh),Te(nh)
     integer :: j
-    double precision :: invT,dh
+    double precision :: invT,dh,rhob,dhb,ratio
 
     h_cgs=h*unit_length
 
@@ -303,7 +303,7 @@ contains
     Te=Te_cgs/unit_temperature
 
     ! density and pressure profiles
-    rho(1)=rho0
+    rho(1)=1.d5
     pth(1)=rho(1)*Te(1)
 
     invT=0.d0
@@ -312,7 +312,16 @@ contains
       invT=invT+dh*(grav(j)/Te(j)+grav(j-1)/Te(j-1))*0.5d0
       pth(j)=pth(1)*dexp(invT)
       rho(j)=pth(j)/Te(j)
+
+      if (h(j-1)<=0.d0 .and. h(j)>0.d0) then
+        dhb=0.d0-h(j-1)
+        rhob=rho(j-1)+dhb*(rho(j)-rho(j-1))/(h(j)-h(j-1))
+      endif
     end do
+
+    ratio=rho0/rhob
+    rho=rho*ratio
+    pth=pth*ratio
 
   end subroutine get_atm_para
 
