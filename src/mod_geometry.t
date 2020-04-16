@@ -570,7 +570,7 @@ contains
   !>        employ standard second order CD evaluations
   !>        use Gauss theorem for non-Cartesian grids
   !>        use Stokes theorem for non-Cartesian grids
-  subroutine curlvector(qvec,ixI^L,ixO^L,curlvec,idirmin,idirmin0,ndir0)
+  subroutine curlvector(qvec,ixI^L,ixO^L,curlvec,idirmin,idirmin0,ndir0,fourthorder)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L,ixO^L
@@ -578,14 +578,32 @@ contains
     integer, intent(inout)          :: idirmin
     double precision, intent(in)    :: qvec(ixI^S,1:ndir0)
     double precision, intent(inout) :: curlvec(ixI^S,idirmin0:3)
+    logical, intent(in), optional   :: fourthorder !< Default: false
 
-    integer          :: ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
+    integer          :: ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L,kxO^L,gxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
+    logical          :: use_4th_order
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
     ! Curl can have components (idirmin:3)
     ! Determine exact value of idirmin while doing the loop.
+
+    use_4th_order = .false.
+    if (present(fourthorder)) use_4th_order = fourthorder
+
+    if (use_4th_order) then
+      if (.not. slab_uniform) &
+           call mpistop("divvector: 4th order only supported for slab geometry")
+      ! Fourth order, stencil width is two
+      ixC^L=ixO^L^LADD2;
+    else
+      ! Second order, stencil width is one
+      ixC^L=ixO^L^LADD1;
+    end if
+
+    if (ixImin^D>ixCmin^D.or.ixImax^D<ixCmax^D|.or.) &
+         call mpistop("Error in divvector: Non-conforming input limits")
 
     idirmin=4
     curlvec(ixO^S,idirmin0:3)=zero
@@ -596,12 +614,21 @@ contains
         invdx=1.d0/dxlevel
         do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
           if(lvc(idir,jdir,kdir)/=0)then
-            tmp(ixI^S)=qvec(ixI^S,kdir)
-            hxO^L=ixO^L-kr(jdir,^D);
-            jxO^L=ixO^L+kr(jdir,^D);
-            ! second order centered differencing 
-            tmp(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
-            !> \todo allow for 4th order CD evaluation here as well
+            if (.not. use_4th_order) then
+              ! Use second order scheme
+              jxO^L=ixO^L+kr(jdir,^D);
+              hxO^L=ixO^L-kr(jdir,^D);
+              tmp(ixO^S)=half*(qvec(jxO^S,kdir) &
+                   - qvec(hxO^S,kdir))*invdx(jdir)
+            else
+              ! Use fourth order scheme
+              kxO^L=ixO^L+2*kr(jdir,^D);
+              jxO^L=ixO^L+kr(jdir,^D);
+              hxO^L=ixO^L-kr(jdir,^D);
+              gxO^L=ixO^L-2*kr(jdir,^D);
+              tmp(ixO^S)=(-qvec(kxO^S,kdir) + 8.0d0 * qvec(jxO^S,kdir) - 8.0d0 * &
+                   qvec(hxO^S,kdir) + qvec(gxO^S,kdir))/(12.0d0 * dxlevel(jdir))
+            end if
             if(lvc(idir,jdir,kdir)==1)then
               curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp(ixO^S)
             else

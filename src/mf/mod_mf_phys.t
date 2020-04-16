@@ -1202,13 +1202,14 @@ contains
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
   !> make sure that dxlevel(^D) is set correctly.
-  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
+  subroutine get_current(w,ixI^L,ixO^L,idirmin,current,fourthorder)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)  :: ixO^L, ixI^L
     double precision, intent(in) :: w(ixI^S,1:nw)
     integer, intent(out) :: idirmin
+    logical, intent(in), optional :: fourthorder
     integer :: idir, idirmin0
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
@@ -1218,7 +1219,11 @@ contains
 
     bvec(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
 
-    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+    if(present(fourthorder)) then
+      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir,fourthorder)
+    else
+      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+    end if
 
     if(B0field) current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+&
         block%J0(ixO^S,idirmin0:3)
