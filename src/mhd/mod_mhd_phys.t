@@ -122,6 +122,9 @@ module mod_mhd_phys
   !> Add divB wave in Roe solver
   logical, public :: divbwave     = .true.
 
+  !> clean initial divB
+  logical, public :: clean_initial_divb     = .false.
+
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
@@ -184,7 +187,7 @@ contains
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, &
-      mhd_boris_method, mhd_boris_c
+      mhd_boris_method, mhd_boris_c, clean_initial_divb
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")

@@ -8,10 +8,10 @@ module mod_solar_atmosphere
   use mod_constants
   implicit none
 
-  integer :: n_valc,n_hong,n_sprm,n_alc7
+  integer :: n_valc,n_hong,n_fontenla,n_alc7
   double precision :: h_valc(1:52),T_valc(1:52)
   double precision :: h_hong(1:300),T_hong(1:300)
-  double precision :: h_sprm(1:56),T_sprm(1:56)
+  double precision :: h_fontenla(1:56),T_fontenla(1:56)
   double precision :: h_alc7(1:140),T_alc7(1:140)
 
   data n_alc7 / 140 /
@@ -76,9 +76,9 @@ module mod_solar_atmosphere
 
 
 
-  data n_sprm / 56 /
+  data n_fontenla / 56 /
 
-  data h_sprm /  -100.0,   -90.0,   -80.0,   -70.0,   -60.0, &
+  data h_fontenla /  -100.0,   -90.0,   -80.0,   -70.0,   -60.0, &
                   -50.0,   -40.0,   -30.0,   -20.0,   -10.0, &
                    -0.7,     9.5,    20.0,    35.0,    50.0, &
                    75.0,   100.0,   125.0,   150.0,   175.0, &
@@ -91,7 +91,7 @@ module mod_solar_atmosphere
                  2013.0,  2142.0,  2263.0,  2357.0,  2425.0, &
                  2472.0 /
 
-  data T_sprm /    9460,    9220,    8940,    8620,    8280, & 
+  data T_fontenla /    9460,    9220,    8940,    8620,    8280, & 
                    7940,    7600,    7270,    6960,    6690, &
                    6490,    6310,    6150,    5950,    5780, &
                    5550,    5380,    5245,    5130,    5035, &
@@ -287,7 +287,7 @@ contains
         call get_Te_Hong(h_cgs,Te_cgs,nh)
         if (mype==0) print *, 'Temperature curve from Hong et al. 2017, ApJ, 845, 144'
 
-      case('SPRM305')
+      case('Fontenla')
         call get_Te_SPRM(h_cgs,Te_cgs,nh)
         if (mype==0) print *, 'Temperature curve from Fontenla et al. 2007, ApJ, 667, 1243'
 
@@ -394,7 +394,7 @@ contains
     double precision :: h(nh),Te(nh)
 
     integer :: ih,j,imin,imax,n_table
-    double precision :: h_table(n_sprm),T_table(n_sprm)
+    double precision :: h_table(n_fontenla),T_table(n_fontenla)
     double precision :: unit_h,unit_T,dTdh
     double precision :: h1,h2,h3
     double precision :: Tpho,Ttop,htanh,wtra
@@ -403,9 +403,9 @@ contains
     unit_h=1.d5 !  km -> cm
     unit_T=1.0  !  K -> K
 
-    n_table=n_sprm
-    h_table=h_sprm*unit_h
-    T_table=T_sprm*unit_T
+    n_table=n_fontenla
+    h_table=h_fontenla*unit_h
+    T_table=T_fontenla*unit_T
 
     ! height for shift curve table/function
     h1=h_table(1)
@@ -465,7 +465,7 @@ contains
     endif
 
     if (imin<=imax) then
-      call interp_linear(h_table,T_table,n_sprm,h(imin:imax),Te(imin:imax),imax-imin+1)
+      call interp_linear(h_table,T_table,n_fontenla,h(imin:imax),Te(imin:imax),imax-imin+1)
     endif
 
   end subroutine 
