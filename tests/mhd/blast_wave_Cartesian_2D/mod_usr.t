@@ -41,12 +41,20 @@ contains
     endwhere
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
-    else if(stagger_grid) then
-      call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
-      call mhd_face_to_center(ixO^L,block)
+      !if(stagger_grid) then
+      !  call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      !  block%B0(ixO^S,1,1)=block%ws(ixO^S,1)
+      !  block%B0(ixO^S,2,2)=block%ws(ixO^S,2)
+      !  block%ws=0.d0
+      !end if
     else
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(stagger_grid) then
+        call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+        call mhd_face_to_center(ixO^L,block)
+      else
+        call get_B(ixI^L,ixO^L,Bloc,x)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
     end if
     w(ixO^S,mom(:))=0.d0
 

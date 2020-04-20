@@ -3087,18 +3087,25 @@ contains
     double precision                   :: ELC(ixI^S),ERC(ixI^S)
     ! current on cell edges
     double precision                   :: jce(ixI^S,7-2*ndim:3)
+    ! total magnetic field at cell centers
+    double precision                   :: Btot(ixI^S,1:ndim)
     integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
     associate(bfaces=>s%ws,x=>s%x,w=>s%w,vnorm=>vcts%vnorm)
 
+    if(B0field) then
+      Btot(ixI^S,1:ndim)=wp(ixI^S,mag(1:ndim))+block%B0(ixI^S,1:ndim,0)
+    else
+      Btot(ixI^S,1:ndim)=wp(ixI^S,mag(1:ndim))
+    end if
     ECC=0.d0
     ! Calculate electric field at cell centers
     do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,3
       if(lvc(idim1,idim2,idir)==1)then
-         ECC(ixI^S,idir)=ECC(ixI^S,idir)+wp(ixI^S,mag(idim1))*wp(ixI^S,mom(idim2))
+         ECC(ixI^S,idir)=ECC(ixI^S,idir)+Btot(ixI^S,idim1)*wp(ixI^S,mom(idim2))
       else if(lvc(idim1,idim2,idir)==-1) then
-         ECC(ixI^S,idir)=ECC(ixI^S,idir)-wp(ixI^S,mag(idim1))*wp(ixI^S,mom(idim2))
+         ECC(ixI^S,idir)=ECC(ixI^S,idir)-Btot(ixI^S,idim1)*wp(ixI^S,mom(idim2))
       endif
     enddo; enddo; enddo
 
@@ -3239,6 +3246,7 @@ contains
 
     double precision                   :: vtilL(ixI^S,2)
     double precision                   :: vtilR(ixI^S,2)
+    double precision                   :: bfacetot(ixI^S,ndim)
     double precision                   :: btilL(s%ixGs^S,ndim)
     double precision                   :: btilR(s%ixGs^S,ndim)
     double precision                   :: cp(ixI^S,2)
@@ -3297,10 +3305,17 @@ contains
       ! Reconstruct magnetic fields
       ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
-      call reconstruct(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
+      if(B0field) then
+        bfacetot(ixI^S,idim1)=bfaces(ixI^S,idim1)+block%B0(ixI^S,idim1,idim1)
+        bfacetot(ixI^S,idim2)=bfaces(ixI^S,idim2)+block%B0(ixI^S,idim2,idim2)
+      else
+        bfacetot(ixI^S,idim1)=bfaces(ixI^S,idim1)
+        bfacetot(ixI^S,idim2)=bfaces(ixI^S,idim2)
+      end if
+      call reconstruct(ixI^L,ixC^L,idim2,bfacetot(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
 
-      call reconstruct(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
+      call reconstruct(ixI^L,ixC^L,idim1,bfacetot(ixI^S,idim2),&
                btilL(ixI^S,idim2),btilR(ixI^S,idim2))
 
       ! Take the maximum characteristic

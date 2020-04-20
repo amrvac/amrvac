@@ -3,7 +3,7 @@ subroutine set_B0_grid(igrid)
 
   integer, intent(in) :: igrid
 
-  call set_B0_cell(ps(igrid)%B0(:^D&,:,0),ps(igrid)%x,ixG^LL,ixG^LL)
+  call set_B0_cell(ps(igrid)%B0(ixG^T,:,0),ps(igrid)%x,ixG^LL,ixG^LL)
   call set_J0_cell(igrid,ps(igrid)%J0,ixG^LL,ixM^LL^LADD1)
   call set_B0_face(igrid,ps(igrid)%x,ixG^LL,ixM^LL)
 
@@ -62,43 +62,51 @@ subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
     call usr_set_J0(ixI^L,ix^L,ps(igrid)%x,wJ0)
   else
     idirmin0 = 7-2*ndir
-    call curlvector(ps(igrid)%B0(:^D&,:,0),ixI^L,ix^L,wJ0,idirmin,idirmin0,ndir)
+    call curlvector(ps(igrid)%B0(ixI^S,:,0),ixI^L,ix^L,wJ0,idirmin,idirmin0,ndir)
   end if
 
 end subroutine set_J0_cell
 
-subroutine set_B0_face(igrid,x,ixI^L,ix^L)
+subroutine set_B0_face(igrid,x,ixI^L,ixO^L)
   use mod_global_parameters
 
-  integer, intent(in) :: igrid, ixI^L, ix^L
+  integer, intent(in) :: igrid, ixI^L, ixO^L
   double precision, intent(in) :: x(ixI^S,1:ndim)
 
   double precision :: delx(ixI^S,1:ndim)
   double precision :: xC(ixI^S,1:ndim),xshift^D
-  integer :: idims, ixC^L, ix, idims2
+  integer :: idims, ixC^L, hxO^L, ix, idims2
 
   if(slab_uniform)then
-   ^D&delx(ixI^S,^D)=rnode(rpdx^D_,igrid)\
+    ^D&delx(ixI^S,^D)=rnode(rpdx^D_,igrid)\
   else
-   ! for all non-cartesian and stretched cartesian coordinates
-   delx(ixI^S,1:ndim)=ps(igrid)%dx(ixI^S,1:ndim)
+    ! for all non-cartesian and stretched cartesian coordinates
+    delx(ixI^S,1:ndim)=ps(igrid)%dx(ixI^S,1:ndim)
   endif
 
+
   do idims=1,ndim
-     ixCmin^D=ixmin^D-kr(^D,idims); ixCmax^D=ixmax^D;
-     ! always xshift=0 or 1/2
-     xshift^D=half*(one-kr(^D,idims));
-     do idims2=1,ndim
-       select case(idims2)
-       {case(^D)
-         do ix = ixC^LIM^D
-           ! xshift=half: this is the cell center coordinate
-           ! xshift=0: this is the cell edge i+1/2 coordinate
-           xC(ix^D%ixC^S,^D)=x(ix^D%ixC^S,^D)+(half-xshift^D)*delx(ix^D%ixC^S,^D)
-         end do\}
-       end select
-     end do
-     call set_B0_cell(ps(igrid)%B0(:^D&,:,idims),xC,ixI^L,ixC^L)
+    hxO^L=ixO^L-kr(idims,^D);
+    if(stagger_grid) then
+      ! ct needs all transverse cells
+      ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+    else
+      ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
+      ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
+    end if
+    ! always xshift=0 or 1/2
+    xshift^D=half*(one-kr(^D,idims));
+    do idims2=1,ndim
+      select case(idims2)
+      {case(^D)
+        do ix = ixC^LIM^D
+          ! xshift=half: this is the cell center coordinate
+          ! xshift=0: this is the cell edge i+1/2 coordinate
+          xC(ix^D%ixC^S,^D)=x(ix^D%ixC^S,^D)+(half-xshift^D)*delx(ix^D%ixC^S,^D)
+        end do\}
+      end select
+    end do
+    call set_B0_cell(ps(igrid)%B0(ixI^S,:,idims),xC,ixI^L,ixC^L)
   end do
 
 end subroutine set_B0_face
