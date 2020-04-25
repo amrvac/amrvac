@@ -533,7 +533,7 @@ contains
     where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
 
     if (mhd_energy) then
-       if (block%e_is_internal) then
+       if (solve_internal_e) then
           where(w(ixO^S, e_) < small_pressure*inv_gamma_1) flag(ixO^S) = e_
        else
          if (primitive)then
@@ -564,7 +564,7 @@ contains
     if (mhd_energy) then
        ! Calculate total energy from pressure, kinetic and magnetic energy
        w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
-      if(.not.block%e_is_internal) w(ixO^S,e_)=w(ixO^S,e_) + &
+      if(.not.solve_internal_e) w(ixO^S,e_)=w(ixO^S,e_) + &
         0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_) + &
         mhd_mag_en(w, ixI^L, ixO^L)
     end if
@@ -596,7 +596,7 @@ contains
 
     if (mhd_energy) then
       ! Calculate pressure = (gamma-1) * (e-ek-eb)
-      if(.not.block%e_is_internal) then
+      if(.not.solve_internal_e) then
         w(ixO^S, p_) = w(ixO^S, e_) &
               - mhd_kin_en(w, ixI^L, ixO^L, inv_rho) &
               - mhd_mag_en(w, ixI^L, ixO^L)
@@ -672,7 +672,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
     if (mhd_energy) then
-      if(.not.block%e_is_internal) &
+      if(.not.solve_internal_e) &
         w(ixO^S, e_) = w(ixO^S, e_) - mhd_kin_en(w, ixI^L, ixO^L) &
               - mhd_mag_en(w, ixI^L, ixO^L)
       w(ixO^S, e_) = gamma_1* w(ixO^S, rho_)**(1.0d0 - mhd_gamma) * &
@@ -692,7 +692,7 @@ contains
     if (mhd_energy) then
        w(ixO^S, e_) = w(ixO^S, rho_)**gamma_1 * w(ixO^S, e_) &
             * inv_gamma_1
-       if(.not.block%e_is_internal) &
+       if(.not.solve_internal_e) &
          w(ixO^S, e_) =w(ixO^S, e_) + mhd_kin_en(w, ixI^L, ixO^L) + &
             mhd_mag_en(w, ixI^L, ixO^L)
     else
@@ -1028,7 +1028,7 @@ contains
     double precision, intent(out):: pth(ixI^S)
 
     if(mhd_energy) then
-      if(block%e_is_internal) then
+      if(solve_internal_e) then
         pth(ixO^S)=gamma_1*w(ixO^S,e_)
       else
         pth(ixO^S)=gamma_1*(w(ixO^S,e_)&
@@ -1144,7 +1144,7 @@ contains
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if (mhd_energy) then
-       if (block%e_is_internal) then
+       if (solve_internal_e) then
           f(ixO^S,e_)=w(ixO^S,mom(idim))*w(ixO^S,p_)
           if (mhd_Hall) then
              call mpistop("solve pthermal not designed for Hall MHD")
@@ -1236,7 +1236,7 @@ contains
 
     if (.not. qsourcesplit) then
       ! Source for solving internal energy
-      if (mhd_energy .and. block%e_is_internal) then
+      if (mhd_energy .and. solve_internal_e) then
         active = .true.
         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
       endif
@@ -1488,7 +1488,7 @@ contains
     end if
 
     if(mhd_energy) then
-      if(.not.block%e_is_internal) then
+      if(.not.solve_internal_e) then
         a=0.d0
         ! for free-free field -(vxB0) dot J0 =0
         b(ixO^S,:)=wCT(ixO^S,mag(:))
@@ -1780,7 +1780,7 @@ contains
        case("limited")
           call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
-       if (mhd_energy .and. .not.block%e_is_internal) then
+       if (mhd_energy .and. .not.solve_internal_e) then
        ! e  = e  -qdt (b . grad(Psi))
          w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
        end if
@@ -1811,7 +1811,7 @@ contains
     ! calculate velocity
     call mhd_get_v(wCT,x,ixI^L,ixO^L,v)
 
-    if (mhd_energy .and. .not.block%e_is_internal) then
+    if (mhd_energy .and. .not.solve_internal_e) then
       ! e = e - qdt (v . b) * div b
       w(ixO^S,e_)=w(ixO^S,e_)-&
            qdt*sum(v(ixO^S,:)*wCT(ixO^S,mag(:)),dim=ndim+1)*divb(ixO^S)
@@ -1918,7 +1918,7 @@ contains
 
        w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
 
-       if (mhd_energy .and. typedivbdiff=='all' .and. .not.block%e_is_internal) then
+       if (mhd_energy .and. typedivbdiff=='all' .and. .not.solve_internal_e) then
          ! e += B_idim*eta*grad_idim(divb)
          w(ixp^S,e_)=w(ixp^S,e_)+wCT(ixp^S,mag(idim))*graddivb(ixp^S)
        end if
@@ -2425,7 +2425,7 @@ contains
     select case(iB)
      case(1)
        ! 2nd order CD for divB=0 to set normal B component better
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1+1
@@ -2491,9 +2491,9 @@ contains
          end do
        end if
        }
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(2)
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1-1
        ixFmax1=ixOmax1-1
@@ -2559,9 +2559,9 @@ contains
          end do
        end if
        }
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(3)
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
@@ -2627,9 +2627,9 @@ contains
          end do
        end if
        }
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(4)
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        {^IFTWOD
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
@@ -2695,10 +2695,10 @@ contains
          end do
        end if
        }
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      {^IFTHREED
      case(5)
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
@@ -2738,9 +2738,9 @@ contains
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      case(6)
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_primitive(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_primitive(ixG^L,ixO^L,w,x)
        ixFmin1=ixOmin1+1
        ixFmax1=ixOmax1-1
        ixFmin2=ixOmin2+1
@@ -2780,7 +2780,7 @@ contains
              w(ixFmin1:ixFmax1,ixFmin2:ixFmax2,ix3,mag(3))
          end do
        end if
-       if(mhd_energy.and..not.block%e_is_internal) call mhd_to_conserved(ixG^L,ixO^L,w,x)
+       if(mhd_energy.and..not.solve_internal_e) call mhd_to_conserved(ixG^L,ixO^L,w,x)
      }
      case default
        call mpistop("Special boundary is not defined for this region")

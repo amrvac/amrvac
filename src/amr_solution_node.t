@@ -115,10 +115,6 @@ subroutine alloc_node(igrid)
   ! block pointer to current block
   block=>ps(igrid)
 
-  if(phys_energy .and. solve_internal_e) then
-    block%e_is_internal=.true.
-  endif
-
   ! set level information
   level=igrid_to_node(igrid,mype)%node%level
   ig^D=igrid_to_node(igrid,mype)%node%ig^D;
