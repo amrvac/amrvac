@@ -260,21 +260,21 @@ module mod_solar_atmosphere
 
 contains
 
-  subroutine get_atm_para(h,rho,pth,grav,nh,rho0,Tcurve)
+  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc)
     use mod_global_parameters
     ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (dimensionless units)
     ! nh -- number of points
     ! rho0 -- number density at h=0
     ! Tcurve -- 'VAL-C' | 'Hong2017' | 'SPRM305' | 'AL-C7'
 
-    integer :: nh
-    double precision :: rho0
+    integer, intent(in) :: nh
     double precision :: h(nh),rho(nh),pth(nh),grav(nh)
+    double precision :: rhohc,hc
     character(*) :: Tcurve
 
     double precision :: h_cgs(nh),Te_cgs(nh),Te(nh)
     integer :: j
-    double precision :: invT,dh,rhob,dhb,ratio
+    double precision :: invT,dh,rhot,dht,ratio
 
     h_cgs=h*unit_length
 
@@ -313,13 +313,13 @@ contains
       pth(j)=pth(1)*dexp(invT)
       rho(j)=pth(j)/Te(j)
 
-      if (h(j-1)<=0.d0 .and. h(j)>0.d0) then
-        dhb=0.d0-h(j-1)
-        rhob=rho(j-1)+dhb*(rho(j)-rho(j-1))/(h(j)-h(j-1))
+      if (h(j-1)<=hc .and. h(j)>hc) then
+        dht=hc-h(j-1)
+        rhot=rho(j-1)+dht*(rho(j)-rho(j-1))/(h(j)-h(j-1))
       endif
     end do
 
-    ratio=rho0/rhob
+    ratio=rhohc/rhot
     rho=rho*ratio
     pth=pth*ratio
 
