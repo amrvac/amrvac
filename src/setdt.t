@@ -18,6 +18,7 @@ subroutine setdt()
      cmax_mype = zero
      a2max_mype = zero
      tco_mype = zero
+     Tmax_mype = zero
   !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D)
      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
         dtnew=bigdouble
