@@ -59,9 +59,13 @@ module mod_radiative_cooling
 
   !> Index of the energy density
   integer, private, protected              :: e_
+  !> Index of the internal energy density
+  integer, private, protected              :: eaux_
 
   !> The adiabatic index
   double precision, private :: rc_gamma
+  !> Whether solve internal energy
+  logical, private :: rc_solve_eaux
 
   double precision, allocatable :: tcool(:), Lcool(:), dLdtcool(:)
   double precision, allocatable :: Yc(:), invYc(:)
@@ -712,11 +716,12 @@ module mod_radiative_cooling
     end subroutine rc_params_read
 
     !> Radiative cooling initialization
-    subroutine radiative_cooling_init(phys_gamma,He_abund)
+    subroutine radiative_cooling_init(phys_gamma,He_abund,phys_solve_eaux)
       use mod_global_parameters
 
       double precision, intent(in) :: phys_gamma,He_abund
-      
+      logical, optional, intent(in) :: phys_solve_eaux      
+
       double precision, dimension(:), allocatable :: t_table
       double precision, dimension(:), allocatable :: L_table
       double precision :: ratt, Lerror
@@ -729,6 +734,7 @@ module mod_radiative_cooling
       
       rc_gamma=phys_gamma
       He_abundance=He_abund
+      rc_solve_eaux=phys_solve_eaux
       ncool=4000
       coolcurve='JCcorona'
       coolmethod='exact'
@@ -748,7 +754,7 @@ module mod_radiative_cooling
 
       nwx = nwx + 1
       e_     = nwx          ! energy density
-
+      eaux_  = iw_eaux
       
       ! Checks if coolcurve is a piecewise power law (PPL)
       PPL_curves = [Character(len=65) :: 'Hildner','FM', 'RP', 'Klimchuk']
@@ -1415,6 +1421,7 @@ module mod_radiative_cooling
             end if
             L1         = min(L1,Lmax)
             w(ix^D,e_) = w(ix^D,e_)-L1*qdt
+            if(rc_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-L1*qdt 
          else  
             call findL(Tlocal1,L1)
             L1         = L1*(rholocal**2)
@@ -1423,7 +1430,7 @@ module mod_radiative_cooling
             end if
             L1         = min(L1,Lmax)
             w(ix^D,e_) = w(ix^D,e_)-L1*qdt
-      
+            if(rc_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-L1*qdt 
          endif
       {enddo^D&\}
       
@@ -1537,6 +1544,7 @@ module mod_radiative_cooling
             etherm = etherm - L1*dtstep
          enddo
          w(ix^D,e_) = w(ix^D,e_) -de 
+         if(rc_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-de
       {enddo^D&\}
       
     end subroutine cool_explicit2
@@ -1611,6 +1619,8 @@ module mod_radiative_cooling
               L2=L2*sqrt((Tlocal2/block%special_values(1))**5)
             end if
            w(ix^D,e_) = w(ix^D,e_) - min(half*(L1+L2),Lmax)*qdt
+           if(rc_solve_eaux) &
+             w(ix^D,eaux_)=w(ix^D,eaux_)-min(half*(L1+L2),Lmax)*qdt
          endif 
       {enddo^D&\}
       
@@ -1690,6 +1700,7 @@ module mod_radiative_cooling
            enddo
          endif     
          w(ix^D,e_)     = w(ix^D,e_) - min(Ltemp,Lmax)*qdt
+         if(rc_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-min(Ltemp,Lmax)*qdt
       {enddo^D&\}
        
     end subroutine cool_implicit
@@ -1743,6 +1754,7 @@ module mod_radiative_cooling
             end if
             L1         = min(L1,Lmax)
             w(ix^D,e_) = w(ix^D,e_)-L1*qdt
+            if(rc_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-L1*qdt
          else  
             call findL(Tlocal1,L1)
             call findY(Tlocal1,Y1)
@@ -1760,6 +1772,7 @@ module mod_radiative_cooling
             end if
             L1          = min(L1,Lmax)   
             w(ix^D,e_)  = w(ix^D,e_)-L1*qdt
+            if(rc_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-L1*qdt
          endif
       {enddo^D&\}
 

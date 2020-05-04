@@ -519,11 +519,7 @@ contains
     logical :: lrlt(ixI^S)
 
     {^IFONED
-    if(solve_internal_e) then
-      tmp1(ixI^S)=w(ixI^S,e_)
-    else
-      tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-    end if
+    tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
 
     Tmax_local=maxval(Te(ixO^S))

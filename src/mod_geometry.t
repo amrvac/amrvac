@@ -444,25 +444,37 @@ contains
   end subroutine gradientS
 
   !> Calculate divergence of a vector qvec within ixL
-  subroutine divvector(qvec,ixI^L,ixO^L,divq, fourthorder)
+  subroutine divvector(qvec,ixI^L,ixO^L,divq,fourthorder,sixthorder)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: qvec(ixI^S,1:ndir)
     double precision, intent(inout) :: divq(ixI^S)
     logical, intent(in), optional   :: fourthorder !< Default: false
+    logical, intent(in), optional   :: sixthorder !< Default: false
     logical                         :: use_4th_order
+    logical                         :: use_6th_order
     double precision                :: qC(ixI^S), invdx(1:ndim)
     integer                         :: jxO^L, hxO^L, ixC^L, jxC^L
     integer                         :: idims, ix^L, gxO^L, kxO^L
+    integer                         :: lxO^L, fxO^L
 
     use_4th_order = .false.
+    use_6th_order = .false.
     if (present(fourthorder)) use_4th_order = fourthorder
+    if (present(sixthorder))  use_6th_order = sixthorder
+    if(use_4th_order .and. use_6th_order) & 
+      call mpistop("divvector: using 4th and 6th order at the same time")
 
-    if (use_4th_order) then
+    if(use_4th_order) then
       if (.not. slab_uniform) &
            call mpistop("divvector: 4th order only supported for slab geometry")
       ! Fourth order, stencil width is two
       ix^L=ixO^L^LADD2;
+    else if(use_6th_order) then
+      ! Sixth order, stencil width is three
+      if (.not. slab_uniform) &
+           call mpistop("divvector: 6th order only supported for slab geometry")
+      ix^L=ixO^L^LADD3;
     else
       ! Second order, stencil width is one
       ix^L=ixO^L^LADD1;
@@ -476,21 +488,32 @@ contains
 
     if (slab_uniform) then
       do idims=1,ndim
-        if (.not. use_4th_order) then
-          ! Use second order scheme
+        if(use_6th_order) then
+          lxO^L=ixO^L+3*kr(idims,^D);
+          kxO^L=ixO^L+2*kr(idims,^D);
           jxO^L=ixO^L+kr(idims,^D);
           hxO^L=ixO^L-kr(idims,^D);
-          divq(ixO^S)=divq(ixO^S)+half*(qvec(jxO^S,idims) &
-               - qvec(hxO^S,idims))*invdx(idims)
-        else
+          gxO^L=ixO^L-2*kr(idims,^D);
+          fxO^L=ixO^L-3*kr(idims,^D);
+          divq(ixO^S)=divq(ixO^S)+&
+                    (-qvec(fxO^S,idims)+9.d0*qvec(gxO^S,idims)-45.d0*qvec(hxO^S,idims)&
+                     +qvec(lxO^S,idims)-9.d0*qvec(kxO^S,idims)+45.d0*qvec(jxO^S,idims))&
+                     /(60.d0*dxlevel(idims))
+        else if(use_4th_order) then
           ! Use fourth order scheme
           kxO^L=ixO^L+2*kr(idims,^D);
           jxO^L=ixO^L+kr(idims,^D);
           hxO^L=ixO^L-kr(idims,^D);
           gxO^L=ixO^L-2*kr(idims,^D);
           divq(ixO^S)=divq(ixO^S)+&
-               (-qvec(kxO^S,idims) + 8.0d0 * qvec(jxO^S,idims) - 8.0d0 * &
-               qvec(hxO^S,idims) + qvec(gxO^S,idims))/(12.0d0 * dxlevel(idims))
+                    (-qvec(kxO^S,idims)+8.d0*qvec(jxO^S,idims)-8.d0*&
+                      qvec(hxO^S,idims)+qvec(gxO^S,idims))/(12.d0*dxlevel(idims))
+        else
+          ! Use second order scheme
+          jxO^L=ixO^L+kr(idims,^D);
+          hxO^L=ixO^L-kr(idims,^D);
+          divq(ixO^S)=divq(ixO^S)+half*(qvec(jxO^S,idims) &
+               - qvec(hxO^S,idims))*invdx(idims)
         end if
       end do
     else
@@ -509,8 +532,6 @@ contains
       end do
       divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
     end if
-
-
   end subroutine divvector
 
   !> Calculate divergence of a vector qvec within ixL

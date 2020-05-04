@@ -52,8 +52,14 @@ module mod_thermal_conduction
   !> Index of the energy density (-1 if not present)
   integer, private, protected              :: e_
 
+  !> Index of the internal energy
+  integer, private, protected :: eaux_
+
   !> The adiabatic index
   double precision, private :: tc_gamma
+
+  !> solve internal e
+  logical, private :: tc_solve_eaux
 
   !> The small_est allowed energy
   double precision, private :: small_e
@@ -132,11 +138,16 @@ contains
   end subroutine tc_params_read
 
   !> Initialize the module
-  subroutine thermal_conduction_init(phys_gamma)
+  subroutine thermal_conduction_init(phys_gamma,phys_internal_e)
     use mod_global_parameters
     use mod_physics
 
     double precision, intent(in) :: phys_gamma
+    logical, optional, intent(in) :: phys_internal_e
+
+    tc_solve_eaux=.false.
+
+    if(present(phys_internal_e)) tc_solve_eaux=phys_internal_e
 
     tc_gamma=phys_gamma
 
@@ -161,6 +172,7 @@ contains
 
     rho_ = iw_rho
     e_ = iw_e
+    if(tc_solve_eaux) eaux_ = iw_eaux
 
     small_e = small_pressure/(tc_gamma - 1.0d0)
 
@@ -390,7 +402,10 @@ contains
 
     w2(ixO^S,e_)=qcmu*w1(ixO^S,e_)+qcnu*w2(ixO^S,e_)+(1.d0-qcmu-qcnu)*w(ixO^S,e_)&
                 +qcmut*qdt*tmp(ixO^S)+qcnut*wold(ixO^S,e_)
-    
+    if(tc_solve_eaux) then
+      w2(ixO^S,eaux_)=qcmu*w1(ixO^S,eaux_)+qcnu*w2(ixO^S,eaux_)+(1.d0-qcmu-qcnu)*w(ixO^S,eaux_)&
+                     +qcmut*qdt*tmp(ixO^S)+qcnut*wold(ixO^S,eaux_)
+    end if
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
       call store_flux(igrid,fC,1,ndim,1)
@@ -429,20 +444,19 @@ contains
        ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
         crash=.true.
       else
-        if(solve_internal_e) then
-          w1(ixO^S,e_) = tmp1(ixO^S)
-        else
-          w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
+        w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
+        if(tc_solve_eaux) then
+          w1(ixO^S,eaux_)=w1(ixO^S,eaux_)+qcmut*wold(ixO^S,e_)
         end if
       end if
     else
       where(tmp1(ixO^S)<small_e)
         tmp1(ixO^S)=small_e
       endwhere
-      if(solve_internal_e) then
-        w1(ixO^S,e_) = tmp1(ixO^S)
+      w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
+      if(tc_solve_eaux) then
+        w1(ixO^S,eaux_)=small_e
       else
-        w1(ixO^S,e_) = tmp2(ixO^S)+tmp1(ixO^S)
       end if
     end if
 
@@ -483,14 +497,10 @@ contains
     dxinv=1.d0/dxlevel
 
     ! tmp1 store internal energy
-    if(solve_internal_e) then
-      tmp1(ixI^S)=w(ixI^S,e_)
-    else
       ! tmp2 store kinetic+magnetic energy before addition of heat conduction source
-      tmp2(ixI^S) = 0.5d0 * (sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_) + &
-           sum(w(ixI^S,iw_mag(:))**2,dim=ndim+1))
-      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
-    end if
+    tmp2(ixI^S) = 0.5d0 * (sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_) + &
+         sum(w(ixI^S,iw_mag(:))**2,dim=ndim+1))
+    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
 
     ! Clip off negative pressure if small_pressure is set
     if(small_values_method=='error') then
@@ -914,14 +924,10 @@ contains
 
     dxinv=1.d0/dxlevel
 
+    ! tmp2 store kinetic energy before addition of heat conduction source
+    tmp2(ixI^S) = 0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     ! tmp1 store internal energy
-    if(solve_internal_e) then
-      tmp1(ixI^S)=w(ixI^S,e_)
-    else
-      ! tmp2 store kinetic energy before addition of heat conduction source
-      tmp2(ixI^S) = 0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-      tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
-    end if
+    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
 
     ! Clip off negative pressure if small_pressure is set
     if(small_values_method=='error') then
