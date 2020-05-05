@@ -675,6 +675,8 @@ contains
        call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
     case (limiter_wenozp5nm)
        call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
+    case (limiter_weno5cu6)
+       call WENO5CU6limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
     case (limiter_weno7)
        call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,1)
     case (limiter_mpweno7)

@@ -835,6 +835,10 @@ contains
       nghostcells=3
     end if
 
+    if(any(limiter(1:nlevelshi)=='weno5cu6')) then
+      nghostcells=3
+    end if
+
     if(any(limiter(1:nlevelshi)=='ppm')) then
       nghostcells=4
     end if

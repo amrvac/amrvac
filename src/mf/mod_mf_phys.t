@@ -685,7 +685,6 @@ contains
     logical :: buffer
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-
     ! extrapolate current for the outmost layer, 
     ! because extrapolation of B at boundaries introduces artificial current
 {
@@ -723,13 +722,22 @@ contains
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
-    if(slab_uniform) then
-      dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-      ! decay frictional velocity near solar surface
-      decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
-      do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-      end do
+    if(slab) then
+      if(slab_uniform) then
+        dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+        ! decay frictional velocity near solar surface
+        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
+        do idir=1,ndir
+          w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+        end do
+      else
+        dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
+        ! decay frictional velocity near solar surface
+        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
+        do idir=1,ndir
+          w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+        end do
+      end if
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
       ! decay frictional velocity near solar surface
@@ -738,7 +746,6 @@ contains
         w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     end if
-
   end subroutine frictional_velocity
 
   !> Source terms after split off time-independent magnetic field
@@ -1272,7 +1279,6 @@ contains
         dtnew=min(dtdiffpar*minval(block%ds(ixO^S,1:ndim))**4/mf_eta_hyper,dtnew)
       end if
     end if
-
   end subroutine mf_get_dt
 
   ! Add geometrical source terms to w

@@ -237,7 +237,7 @@ subroutine setdt()
          write(unitterm,*)'Unknown typecourant=',typecourant
          call mpistop("Error from getdt_courant: no such typecourant!")
       end select
-      
+
     end subroutine getdt_courant
 
 end subroutine setdt
