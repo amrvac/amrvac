@@ -29,6 +29,8 @@ contains
 
     mg%bc(:, mg_iphi)%bc_type = mg_bc_dirichlet
 
+    ! A subroutine is used to set the boundary conditions for which boundary
+    ! data is specified with typeboundary_...='vtk:...' in a par file.
     do i = 1, 2 * ndim
        if (bc_data_ix(rho_, i) /= -1) then
           mg%bc(i, mg_iphi)%boundary_cond => multigrid_bc
@@ -62,14 +64,20 @@ contains
     }
     integer                       :: i, ixs(ndim-1), nb_dim, n_bc
 
+    ! Type of boundary condition
     bc_type      = mg_bc_dirichlet
+    ! Index of boundary data (stored per variable, per direction)
     n_bc         = bc_data_ix(rho_, nb)
+    ! In which dimension the boundary is
     nb_dim       = mg_neighb_dim(nb)
+    ! A list of dimensions *other* than nb_dim
     ixs          = [(i, i=1,ndim-1)]
     ixs(nb_dim:) = ixs(nb_dim:) + 1
 
+    ! Get the coordinates at the cell faces at the boundary
     call mg_get_face_coords(box, nb, nc, rr)
 
+    ! Interpolate the stored boundary data
     {^IFTWOD
     bc = bc_data_get_2d(n_bc, rr(:, ixs(1)), global_time)
     }
@@ -85,6 +93,8 @@ contains
     double precision             :: max_res
 
     if (iit == 0) then
+       ! To avoid having to interpolate the boundary data at every iteration,
+       ! store the interpolated values once
        call mg_phi_bc_store(mg)
     end if
 
