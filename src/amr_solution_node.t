@@ -564,7 +564,9 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
       allocate(s%J0(ixG^S,7-2*ndir:3))
     end if
     ! allocate space for special values for each block state
-    if(trac) allocate(s%special_values(1))
+    if(trac) then
+      allocate(s%special_values(2))
+    end if
   else
     ! use spatial info on ps states to save memory
     s%x=>ps(igrid)%x

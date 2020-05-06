@@ -731,10 +731,13 @@ module mod_radiative_cooling
       logical :: jump
 
       Character(len=65) :: PPL_curves(1:4)
-      
+
       rc_gamma=phys_gamma
       He_abundance=He_abund
-      rc_solve_eaux=phys_solve_eaux
+      rc_solve_eaux=.false.      
+      if(present(phys_solve_eaux)) then
+        rc_solve_eaux=phys_solve_eaux
+      end if
       ncool=4000
       coolcurve='JCcorona'
       coolmethod='exact'
