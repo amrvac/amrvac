@@ -61,7 +61,7 @@ contains
       do idim = 1, ndim
         w(ixO^S,iw_mom(idim)) = w(ixO^S,iw_mom(idim)) &
               + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_rho)
-        if(energy .and. .not.solve_internal_e) then
+        if(energy) then
           w(ixO^S,iw_e)=w(ixO^S,iw_e) &
               + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_mom(idim))
         end if

@@ -31,6 +31,9 @@ module mod_mhd_phys
   !> Whether GLM-MHD is used
   logical, public, protected              :: mhd_glm = .false.
 
+  !> Whether internal energy is solved
+  logical, public, protected              :: mhd_solve_eaux = .false.
+
   !> Whether divB cleaning sources are added splitting from fluid solver
   logical, public, protected              :: source_split_divb = .false.
 
@@ -191,7 +194,7 @@ contains
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, &
-      mhd_boris_method, mhd_boris_c, clean_initial_divb, solve_internal_e
+      mhd_boris_method, mhd_boris_c, clean_initial_divb, mhd_solve_eaux
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -251,6 +254,7 @@ contains
 
     physics_type = "mhd"
     phys_energy=mhd_energy
+    if(mhd_solve_eaux .and. mhd_energy) phys_solve_eaux=.true.
     ! set default gamma for polytropic/isothermal process
     if(.not.mhd_energy) mhd_gamma=1.d0
     use_particles=mhd_particles
@@ -327,7 +331,7 @@ contains
       psi_ = -1
     end if
 
-    if(mhd_energy .and. solve_internal_e) then
+    if(mhd_energy .and. mhd_solve_eaux) then
       eaux_ = var_set_internal_energy()
       paux_ = eaux_
     else
@@ -402,6 +406,7 @@ contains
     phys_write_info          => mhd_write_info
     phys_angmomfix           => mhd_angmomfix
     phys_handle_small_values => mhd_handle_small_values
+    phys_energy_synchro      => mhd_energy_synchro
 
     if(type_divb==divb_glm) then
       phys_modify_wLR => mhd_modify_wLR
@@ -432,12 +437,12 @@ contains
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
       phys_req_diagonal = .true.
-      call thermal_conduction_init(mhd_gamma,solve_internal_e)
+      call thermal_conduction_init(mhd_gamma)
     end if
 
     ! Initialize radiative cooling module
     if (mhd_radiative_cooling) then
-      call radiative_cooling_init(mhd_gamma,He_abundance,solve_internal_e)
+      call radiative_cooling_init(mhd_gamma,He_abundance)
     end if
 
     ! Initialize viscosity module
@@ -573,7 +578,7 @@ contains
       w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1&
                  +half*sum(w(ixO^S,mom(:))**2,dim=ndim+1)*w(ixO^S,rho_)&
                  +mhd_mag_en(w, ixI^L, ixO^L)
-      if(solve_internal_e) w(ixO^S,eaux_)=w(ixO^S,paux_)*inv_gamma_1
+      if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,paux_)*inv_gamma_1
     end if
 
     ! Convert velocity to momentum
@@ -594,10 +599,6 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision                :: inv_rho(ixO^S)
     integer                         :: itr, idir
-    double precision                :: alfa(ixI^S), beta(ixI^S)
-!    double precision                :: mach(ixI^S), cs2(ixI^S)
-!    double precision, parameter     :: mach_high=200.d0, mach_low=10.d0
-    double precision, parameter     :: beta_high=0.05d0, beta_low=0.001d0
 
     if (check_small_values .and. .not. small_values_use_primitive) then
       call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
@@ -611,23 +612,7 @@ contains
                   -mhd_kin_en(w,ixI^L,ixO^L,inv_rho)&
                   -mhd_mag_en(w,ixI^L,ixO^L)
       w(ixO^S,p_)=w(ixO^S,p_)*gamma_1
-      if(solve_internal_e) then
-        beta(ixO^S)=two*w(ixO^S,p_)/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
-!        beta(ixO^S)=two*w(ixO^S,p_)/mhd_mag_en_all(w,ixI^L,ixO^L)
-!        call mhd_get_csound2(w,x,ixI^L,ixO^L,cs2)
-!        mach(ixO^S)=sqrt(two*mhd_kin_en(w,ixI^L,ixO^L,inv_rho)*inv_rho/cs2(ixO^S))
-        where(beta(ixO^S) .ge. beta_high)
-          w(ixO^S,paux_)=w(ixO^S,p_)
-        else where(beta(ixO^S) .le. beta_low)
-          w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
-        else where
-          w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
-          alfa(ixO^S)=dlog(beta(ixO^S)/beta_low)/dlog(beta_high/beta_low)
-          w(ixO^S,paux_)=w(ixO^S,paux_)*(one-alfa(ixO^S))&
-                        +w(ixO^S,p_)*alfa(ixO^S)
-        end where
-        w(ixO^S,p_)=w(ixO^S,paux_)
-      end if
+      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
     end if
     
     ! Convert momentum to velocity
@@ -639,6 +624,42 @@ contains
       call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
     end if
   end subroutine mhd_to_primitive
+
+  subroutine mhd_energy_synchro(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: pth1(ixI^S),pth2(ixI^S),alfa(ixI^S),beta(ixI^S)
+    double precision, parameter :: beta_low=0.005d0,beta_high=0.05d0
+!    double precision :: vtot(ixI^S),cs2(ixI^S),mach(ixI^S)
+!    double precision, parameter :: mach_low=20.d0,mach_high=200.d0
+
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth1)
+    pth2(ixO^S)=w(ixO^S,eaux_)*gamma_1
+!   beta(ixO^S)=two*min(pth1(ixO^S),pth2(ixO^S))/mhd_mag_en_all(w,ixI^L,ixO^L)
+    beta(ixO^S)=two*min(pth1(ixO^S),pth2(ixO^S))/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+
+    !> whether Mach number should be another criterion ?
+!    vtot(ixO^S)=sum(w(ixO^S,mom(:))**2,dim=ndim+1)
+!    call mhd_get_csound2(w,x,ixI^L,ixO^L,cs2)
+!    mach(ixO^S)=sqrt(vtot(ixO^S)/cs2(ixO^S))/w(ixO^S,rho_)
+    where(beta(ixO^S) .ge. beta_high)
+!    where(beta(ixO^S) .ge. beta_high .and. mach(ixO^S) .le. mach_low)
+      w(ixO^S,eaux_)=pth1(ixO^S)*inv_gamma_1
+    else where(beta(ixO^S) .le. beta_low)
+!    else where(beta(ixO^S) .le. beta_low .or. mach(ixO^S) .ge. mach_high)
+      w(ixO^S,e_)=w(ixO^S,e_)-pth1(ixO^S)*inv_gamma_1+w(ixO^S,eaux_)
+    else where
+      alfa(ixO^S)=dlog(beta(ixO^S)/beta_low)/dlog(beta_high/beta_low)
+!      alfa(ixO^S)=min(dlog(beta(ixO^S)/beta_low)/dlog(beta_high/beta_low),
+!                      dlog(mach_high(ixO^S)/mach(ixO^S))/dlog(mach_high/mach_low))
+      w(ixO^S,eaux_)=(pth2(ixO^S)*(one-alfa(ixO^S))&
+                     +pth1(ixO^S)*alfa(ixO^S))*inv_gamma_1
+      w(ixO^S,e_)=w(ixO^S,e_)-pth1(ixO^S)*inv_gamma_1+w(ixO^S,eaux_)
+    end where
+  end subroutine mhd_energy_synchro
 
   subroutine mhd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
@@ -1162,7 +1183,7 @@ contains
     if(mhd_energy) then
       f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
          -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
-      if(solve_internal_e) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
+      if(mhd_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
 
       if (B0field) then
          f(ixO^S,e_) = f(ixO^S,e_) &
@@ -1245,7 +1266,7 @@ contains
 
     if (.not. qsourcesplit) then
       ! Source for solving internal energy
-      if(mhd_energy .and. solve_internal_e) then
+      if(mhd_energy .and. mhd_solve_eaux) then
         active = .true.
         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
       endif
@@ -1623,7 +1644,7 @@ contains
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
        if (mhd_energy) then
           w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
-          if(solve_internal_e) then
+          if(mhd_solve_eaux) then
             w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
           end if
        end if
@@ -1636,7 +1657,7 @@ contains
           tmp(ixO^S)=tmp(ixO^S)+current(ixO^S,idir)**2
        end do
        w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
-       if(solve_internal_e) then
+       if(mhd_solve_eaux) then
          w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*eta(ixO^S)*tmp(ixO^S)
        end if
     end if
@@ -1697,7 +1718,7 @@ contains
       ! de1/dt= eta J^2 - B1 dot curl(eta J)
       w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
         sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
-      if(solve_internal_e) then
+      if(mhd_solve_eaux) then
         w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
             sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
       end if
@@ -1758,7 +1779,7 @@ contains
       tmp(ixO^S)=zero
       call divvector(tmpvec2,ixI^L,ixO^L,tmp)
       w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
-      if(solve_internal_e) then
+      if(mhd_solve_eaux) then
           w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)*qdt
       end if
     end if

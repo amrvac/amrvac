@@ -58,9 +58,6 @@ module mod_thermal_conduction
   !> The adiabatic index
   double precision, private :: tc_gamma
 
-  !> solve internal e
-  logical, private :: tc_solve_eaux
-
   !> The small_est allowed energy
   double precision, private :: small_e
 
@@ -138,16 +135,11 @@ contains
   end subroutine tc_params_read
 
   !> Initialize the module
-  subroutine thermal_conduction_init(phys_gamma,phys_internal_e)
+  subroutine thermal_conduction_init(phys_gamma)
     use mod_global_parameters
     use mod_physics
 
     double precision, intent(in) :: phys_gamma
-    logical, optional, intent(in) :: phys_internal_e
-
-    tc_solve_eaux=.false.
-
-    if(present(phys_internal_e)) tc_solve_eaux=phys_internal_e
 
     tc_gamma=phys_gamma
 
@@ -172,7 +164,7 @@ contains
 
     rho_ = iw_rho
     e_ = iw_e
-    if(tc_solve_eaux) eaux_ = iw_eaux
+    if(phys_solve_eaux) eaux_ = iw_eaux
 
     small_e = small_pressure/(tc_gamma - 1.0d0)
 
@@ -402,7 +394,7 @@ contains
 
     w2(ixO^S,e_)=qcmu*w1(ixO^S,e_)+qcnu*w2(ixO^S,e_)+(1.d0-qcmu-qcnu)*w(ixO^S,e_)&
                 +qcmut*qdt*tmp(ixO^S)+qcnut*wold(ixO^S,e_)
-    if(tc_solve_eaux) then
+    if(phys_solve_eaux) then
       w2(ixO^S,eaux_)=qcmu*w1(ixO^S,eaux_)+qcnu*w2(ixO^S,eaux_)+(1.d0-qcmu-qcnu)*w(ixO^S,eaux_)&
                      +qcmut*qdt*tmp(ixO^S)+qcnut*wold(ixO^S,eaux_)
     end if
@@ -445,7 +437,7 @@ contains
         crash=.true.
       else
         w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
-        if(tc_solve_eaux) then
+        if(phys_solve_eaux) then
           w1(ixO^S,eaux_)=w1(ixO^S,eaux_)+qcmut*wold(ixO^S,e_)
         end if
       end if
@@ -454,7 +446,7 @@ contains
         tmp1(ixO^S)=small_e
       endwhere
       w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
-      if(tc_solve_eaux) then
+      if(phys_solve_eaux) then
         w1(ixO^S,eaux_)=small_e
       else
       end if
