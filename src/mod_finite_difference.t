@@ -395,7 +395,7 @@ contains
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
 
     if(phys_solve_eaux) then
-      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
+      call phys_energy_synchro(ixI^L,ixO^L,w,x)
     endif
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff')
