@@ -127,17 +127,18 @@ module mod_radiative_cooling
   integer          :: n_DM      , n_MB      , n_MLcosmol &
                     , n_MLwc    , n_MLsolar1, n_SPEX     &
                     , n_JCcorona, n_cl_ism  , n_cl_solar &
-                    , n_DM_2    , n_Dere
+                    , n_DM_2    , n_Dere    , n_Colgan
   
   double precision :: t_DM(1:71),       t_MB(1:51),       t_MLcosmol(1:71) &
                     , t_MLwc(1:71),     t_MLsolar1(1:71), t_SPEX(1:110)    &
                     , t_JCcorona(1:45), t_cl_ism(1:151),  t_cl_solar(1:151)&
-                    , t_DM_2(1:76),     t_Dere(1:101) 
+                    , t_DM_2(1:76),     t_Dere(1:101),    t_Colgan(1:55) 
   
   double precision :: l_DM(1:71),       l_MB(1:51),           l_MLcosmol(1:71)   &
                     , l_MLwc(1:71),     l_MLsolar1(1:71),     l_SPEX(1:110)      &
                     , l_JCcorona(1:45), l_cl_ism(1:151),      l_cl_solar(1:151)  &
-                    , l_DM_2(1:76),     l_Dere_corona(1:101), l_Dere_photo(1:101)
+                    , l_DM_2(1:76),     l_Dere_corona(1:101), l_Dere_photo(1:101)&
+                    , l_Colgan(1:55)
   
   double precision :: nenh_SPEX(1:110)
   
@@ -694,6 +695,31 @@ module mod_radiative_cooling
  -22.24565166, -22.22184875, -22.19859629, -22.17457388, -22.15058059, &
  -22.12609840                                                          /           
 
+  data    n_Colgan / 55 /
+  
+  data    t_Colgan / 4.06460772, 4.14229559, 4.21995109, 4.29760733, 4.37527944, 4.45293587, &
+                     4.53060946, 4.60826923, 4.68592974, 4.76359269, 4.79704583, 4.83049243, &
+                     4.86394114, 4.89738514, 4.93083701, 4.96428321, 4.99773141, 5.03116600, &
+                     5.06460772, 5.17574368, 5.28683805, 5.39795738, 5.50906805, 5.62017771, &
+                     5.73129054, 5.84240328, 5.95351325, 6.06460772, 6.17574368, 6.28683805, &
+                     6.39795738, 6.50906805, 6.62017771, 6.73129054, 6.84240328, 6.95351325, &
+                     7.06460772, 7.17574368, 7.28683805, 7.39795738, 7.50906805, 7.62017771, &
+                     7.73129054, 7.84240328, 7.95351325, 8.06460772, 8.17574368, 8.28683805, &
+                     8.39795738, 8.50906805, 8.62017771, 8.73129054, 8.84240328, 8.95351325, & 
+                     9.06460772                                                              /
+
+
+  data    l_Colgan / -22.18883401, -21.78629635, -21.60383554, -21.68480662, -21.76444630, &
+                     -21.67935529, -21.54217864, -21.37958284, -21.25171892, -21.17584161, &
+                     -21.15783402, -21.14491111, -21.13526945, -21.12837453, -21.12485189, &
+                     -21.12438898, -21.12641785, -21.12802448, -21.12547760, -21.08964778, &
+                     -21.08812360, -21.19542445, -21.34582346, -21.34839251, -21.31700703, &
+                     -21.29072156, -21.28900309, -21.34104468, -21.43122351, -21.62448270, &
+                     -21.86694036, -22.02897478, -22.08050874, -22.06057061, -22.01973295, &
+                     -22.00000434, -22.05161149, -22.22175466, -22.41451671, -22.52581288, &
+                     -22.56913516, -22.57485721, -22.56150512, -22.53968863, -22.51490350, &
+                     -22.48895932, -22.46071057, -22.42908363, -22.39358639, -22.35456791, &
+                     -22.31261375, -22.26827428, -22.22203698, -22.17422996, -22.12514145  /
 
   contains
 
@@ -999,6 +1025,21 @@ module mod_radiative_cooling
             t_table(1:ntable) = t_Dere(1:n_Dere)
             L_table(1:ntable) = l_Dere_corona(1:n_Dere)
 
+         case('Dere_corona_DM')
+            if(mype==0)&
+            print *, 'Combination of Dere_corona (2009) for high temperatures and'
+            if(mype==0)&
+            print *, 'Dalgarno & McCray (1972), DM2, for low temperatures'
+
+            ntable = n_Dere + n_DM_2 - 1 
+
+            allocate(t_table(1:ntable))
+            allocate(L_table(1:ntable))
+            t_table(1:n_DM_2-1) = t_DM_2(1:n_DM_2-1)
+            L_table(1:n_DM_2-1) = L_DM_2(1:n_DM_2-1)
+            t_table(n_DM_2:ntable) = t_Dere(1:n_Dere)
+            L_table(n_DM_2:ntable) = l_Dere_corona(1:n_Dere)
+
          case('Dere_photo')
             if(mype ==0) &
             print *,'Use Dere (2009) cooling curve for solar photophere'
@@ -1009,6 +1050,47 @@ module mod_radiative_cooling
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_Dere(1:n_Dere)
             L_table(1:ntable) = l_Dere_photo(1:n_Dere)
+
+         case('Dere_photo_DM')
+            if(mype==0)&
+            print *, 'Combination of Dere_photo (2009) for high temperatures and'
+            if(mype==0)&
+            print *, 'Dalgarno & McCray (1972), DM2, for low temperatures'
+
+            ntable = n_Dere + n_DM_2 - 1 
+
+            allocate(t_table(1:ntable))
+            allocate(L_table(1:ntable))
+            t_table(1:n_DM_2-1) = t_DM_2(1:n_DM_2-1)
+            L_table(1:n_DM_2-1) = L_DM_2(1:n_DM_2-1)
+            t_table(n_DM_2:ntable) = t_Dere(1:n_Dere)
+            L_table(n_DM_2:ntable) = l_Dere_photo(1:n_Dere)
+
+         case('Colgan')
+            if(mype==0) &
+            print *, 'Use Colgan (2008) cooling curve'
+
+            ntable = n_Colgan
+
+            allocate(t_table(1:ntable))
+            allocate(L_table(1:ntable))
+            t_table(1:ntable) = t_Colgan(1:n_Colgan)
+            L_table(1:ntable) = l_Colgan(1:n_Colgan)
+
+         case('Colgan_DM')
+            if(mype==0)&
+            print *, 'Combination of Colgan (2008) for high temperatures and'
+            if(mype==0)&
+            print *, 'Dalgarno & McCray (1972), DM2, for low temperatures'
+
+            ntable = n_Colgan + n_DM_2
+
+            allocate(t_table(1:ntable))
+            allocate(L_table(1:ntable))
+            t_table(1:n_DM_2) = t_DM_2(1:n_DM_2)
+            L_table(1:n_DM_2) = L_DM_2(1:n_DM_2)
+            t_table(n_DM_2+1:ntable) = t_Colgan(1:n_Colgan)
+            L_table(n_DM_2+1:ntable) = l_Colgan(1:n_Colgan)
 
          case default
             call mpistop("This coolingcurve is unknown")
