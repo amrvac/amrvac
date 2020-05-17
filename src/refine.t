@@ -31,7 +31,7 @@ end subroutine refine_grids
 subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   use mod_physics, only: phys_to_primitive, phys_to_conserved
   use mod_global_parameters
-  use mod_amr_fct
+  use mod_amr_fct, only: old_neighbors
 
   integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
   integer, intent(in) :: igrid, ipe
@@ -85,7 +85,7 @@ end subroutine prolong_grid
 subroutine prolong_2nd(sCo,ixCo^L,sFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridCo,igridFi)
   use mod_physics, only: phys_to_conserved
   use mod_global_parameters
-  use mod_amr_fct
+  use mod_amr_fct, only: already_fine, prolong_2nd_stg
 
   integer, intent(in) :: ixCo^L, igridFi, igridCo
   double precision, intent(in) :: dxCo^D, xComin^D, dxFi^D, xFimin^D

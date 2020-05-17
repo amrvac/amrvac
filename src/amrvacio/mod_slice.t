@@ -21,6 +21,9 @@ module mod_slice
   !> choose data type of slice: vtu, vtuCC, dat, or csv
   character(len=std_len) :: slice_type
 
+  !> tag for MPI message
+  integer, private :: itag
+
 contains
 
   subroutine write_slice

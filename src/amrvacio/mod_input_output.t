@@ -13,6 +13,9 @@ module mod_input_output
   !> number of w found in dat files
   integer :: nw_found
 
+  !> tag for MPI message
+  integer, private :: itag
+
   ! Formats used in output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits

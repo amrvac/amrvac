@@ -48,14 +48,6 @@ module mod_global_parameters
   !> MPI type for IO: cell corner (wc) or cell center (wcc) variables
   integer :: type_block_wc_io,type_block_wcc_io
 
-  !> MPI recv send variables for AMR
-  integer :: itag, irecv, isend
-  integer, dimension(:), allocatable :: recvrequest, sendrequest
-  integer, dimension(:,:), allocatable :: recvstatus, sendstatus
-  !> MPI recv send variables for staggered-variable AMR
-  integer :: itag_stg
-  integer, dimension(:), allocatable :: recvrequest_stg, sendrequest_stg
-  integer, dimension(:,:), allocatable :: recvstatus_stg, sendstatus_stg
 
   ! geometry and domain setups 
 

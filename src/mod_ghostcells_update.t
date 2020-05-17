@@ -58,6 +58,9 @@ module mod_ghostcells_update
   ! count of times of send and receive for cell center ghost cells
   integer :: isend_c, irecv_c
 
+  ! tag of MPI send and recv
+  integer, private :: itag
+
   ! total sizes = cell-center normal flux + stagger-grid flux of send and receive
   integer, dimension(-1:1^D&) :: sizes_srl_send_total, sizes_srl_recv_total
 

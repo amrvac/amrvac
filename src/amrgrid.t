@@ -3,6 +3,7 @@ subroutine settree
   use mod_global_parameters
   use mod_fix_conserve
   use mod_advance, only: advance
+  use mod_coarsen_refine
 
   ! create and initialize grids on all levels > 1. On entry, all
   ! level=1 grids have been formed and initialized. This subroutine
@@ -48,6 +49,7 @@ subroutine resettree
   use mod_global_parameters
   use mod_fix_conserve
   use mod_amr_fct
+  use mod_coarsen_refine
 
   if(levmax>levmin) call deallocateBflux
   if(stagger_grid) call deallocateBfaces
@@ -66,6 +68,8 @@ end subroutine resettree
 subroutine resettree_convert
   use mod_global_parameters
   use mod_ghostcells_update
+  use mod_coarsen_refine
+
   integer  :: igrid,iigrid, my_levmin, my_levmax
 
   if(level_io > 0) then

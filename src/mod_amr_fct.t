@@ -1,7 +1,7 @@
 module mod_amr_fct
   implicit none
-  save
-  
+  private
+
   type facealloc
     double precision, dimension(:^D&), pointer :: face
   end type facealloc
@@ -11,15 +11,26 @@ module mod_amr_fct
     integer :: ipe
   end type fake_neighbors
 
-  type(facealloc), dimension(:,:,:), allocatable :: pface
+  type(facealloc), dimension(:,:,:), allocatable, public :: pface
 
-  type(fake_neighbors), dimension(:^D&,:,:), allocatable :: fine_neighbors
+  type(fake_neighbors), dimension(:^D&,:,:), allocatable, public :: fine_neighbors
 
-  integer, dimension(:,:^D&,:), allocatable :: old_neighbor
+  integer, dimension(:,:^D&,:), allocatable, public :: old_neighbor
 
+  integer :: itag, isend, irecv
   integer :: nrecv, nsend, ibuf_recv, ibuf_send, ibuf_send_next
   integer, dimension(^ND) :: isize
+  integer, dimension(:), allocatable :: recvrequest, sendrequest
+  integer, dimension(:,:), allocatable :: recvstatus, sendstatus
   double precision, allocatable :: recvbuffer(:), sendbuffer(:)
+
+  public :: store_faces
+  public :: comm_faces
+  public :: end_comm_faces
+  public :: deallocateBfaces
+  public :: old_neighbors
+  public :: prolong_2nd_stg
+  public :: already_fine
 
 contains
   !> This subroutine performs a 2nd order prolongation for a staggered field F,

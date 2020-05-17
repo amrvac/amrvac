@@ -24,7 +24,7 @@ module mod_fix_conserve
   integer, dimension(:,:), allocatable :: cc_recvstat, cc_sendstat
   integer, dimension(^ND), save        :: isize_stg
   integer                              :: ibuf_cc, ibuf_cc_send
-  integer                              :: itag_cc, isend_cc, irecv_cc
+  integer                              :: itag, itag_cc, isend, isend_cc, irecv, irecv_cc
 
   public :: init_comm_fix_conserve
   public :: allocateBflux
