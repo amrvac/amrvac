@@ -361,7 +361,7 @@ contains
       ixR_p_max^D( 1,2)=ixCoGmax^D
       \}
     end if
-    
+
   end subroutine init_bc
 
   subroutine create_bc_mpi_datatype(nwstart,nwbc) 
@@ -520,15 +520,6 @@ contains
     isend_c=0
     isend_buf=0
     ipwbuf=1
-    ! total number of times to call MPI_IRECV in each processor between sibling blocks or from finer neighbors
-    !nrecvs=nrecv_bc_srl+nrecv_bc_r
-    ! total number of times to call MPI_ISEND in each processor between sibling blocks or to coarser neighors
-    !nsends=nsend_bc_srl+nsend_bc_r
-
-    !allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
-    !recvrequest=MPI_REQUEST_NULL
-    !allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
-    !sendrequest=MPI_REQUEST_NULL
 
     if(stagger_grid) then
       ibuf_recv_srl=1
@@ -600,15 +591,6 @@ contains
        {end do\}
     end do
     
-    !if (irecv_c/=nrecvs) then
-    !   print*,'irecv nrevs',irecv_c,nrecvs
-    !   call mpistop("number of recvs in phase1 in amr_ghostcells is incorrect")
-    !end if
-    !if (isend_c/=nsends) then
-    !   print*,'isend nsend ',isend_c,nsends
-    !   call mpistop("number of sends in phase1 in amr_ghostcells is incorrect")
-    !end if
-    
     call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
     call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
 
@@ -637,22 +619,11 @@ contains
     do ipwbuf=1,npwbuf
        if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
     end do
-    !deallocate(recvstatus,recvrequest)
-    !deallocate(sendstatus,sendrequest)
 
     irecv_c=0
     isend_c=0
     isend_buf=0
     ipwbuf=1
-    ! total number of times to call MPI_IRECV in each processor from coarser neighbors
-    !nrecvs=nrecv_bc_p
-    ! total number of times to call MPI_ISEND in each processor to finer neighbors
-    !nsends=nsend_bc_p
-
-    !allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
-    !recvrequest=MPI_REQUEST_NULL
-    !allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
-    !sendrequest=MPI_REQUEST_NULL
 
     ! receiving ghost-cell values from coarser neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -679,18 +650,9 @@ contains
           {end do\}
        end if
     end do
-    
-    !if (irecv_c/=nrecvs) then
-    !   call mpistop("number of recvs in phase2 in amr_ghostcells is incorrect")
-    !end if
-    !if (isend_c/=nsends) then
-    !   call mpistop("number of sends in phase2 in amr_ghostcells is incorrect")
-    !end if
-    
+
     call MPI_WAITALL(irecv_c,recvrequest_c_p,recvstatus_c_p,ierrmpi)
     call MPI_WAITALL(isend_c,sendrequest_c_p,sendstatus_c_p,ierrmpi)
-    !deallocate(recvstatus,recvrequest)
-    !deallocate(sendstatus,sendrequest)
 
     if(stagger_grid) then
       call MPI_WAITALL(nrecv_bc_p,recvrequest_p,recvstatus_p,ierrmpi)
@@ -1431,16 +1393,34 @@ contains
           ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
           ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
           do idims=1,ndim
-             do iside=1,2
-                ii^D=kr(^D,idims)*(2*iside-3);
-                if(neighbor_type(ii^D,igrid)/=neighbor_boundary) cycle
-                if(( {(iside==1.and.idims==^D.and.ixComin^D<ixCoGmin^D+nghostcells)|.or.} ) &
-                 .or.( {(iside==2.and.idims==^D.and.ixComax^D>ixCoGmax^D-nghostcells)|.or. })) then
-                  {ixBmin^D=merge(ixCoGmin^D,ixComin^D,idims==^D);}
-                  {ixBmax^D=merge(ixCoGmax^D,ixComax^D,idims==^D);}
-                  call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoG^L,ixB^L)
-                end if
-             end do
+            {^IFTHREED
+            ! avoid using undetermined ghost cells at physical boundary edges
+            if(idims == 1) then
+              if(neighbor_type(-1,0,0,igrid)==neighbor_boundary .or. &
+                 neighbor_type(1,0,0,igrid)==neighbor_boundary) then
+                if(neighbor_type(0,-1,0,igrid)==neighbor_boundary) ixComin2=ixCoMmin2
+                if(neighbor_type(0,0,-1,igrid)==neighbor_boundary) ixComin3=ixCoMmin3
+                if(neighbor_type(0,1,0,igrid)==neighbor_boundary) ixComax2=ixCoMmax2
+                if(neighbor_type(0,0,1,igrid)==neighbor_boundary) ixComax3=ixCoMmax3
+              end if
+            else if(idims == 2) then
+              if(neighbor_type(0,-1,0,igrid)==neighbor_boundary .or. &
+                 neighbor_type(0,1,0,igrid)==neighbor_boundary) then
+                if(neighbor_type(0,0,-1,igrid)==neighbor_boundary) ixComin3=ixCoMmin3
+                if(neighbor_type(0,0,1,igrid)==neighbor_boundary) ixComax3=ixCoMmax3
+              end if
+            end if
+            }
+            do iside=1,2
+              ii^D=kr(^D,idims)*(2*iside-3);
+              if(neighbor_type(ii^D,igrid)/=neighbor_boundary) cycle
+              if(( {(iside==1.and.idims==^D.and.ixComin^D<ixCoGmin^D+nghostcells)|.or.} ) &
+               .or.( {(iside==2.and.idims==^D.and.ixComax^D>ixCoGmax^D-nghostcells)|.or. })) then
+                {ixBmin^D=merge(ixCoGmin^D,ixComin^D,idims==^D);}
+                {ixBmax^D=merge(ixCoGmax^D,ixComax^D,idims==^D);}
+                call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoG^L,ixB^L)
+              end if
+            end do
           end do
         end if
 
