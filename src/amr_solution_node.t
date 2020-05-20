@@ -298,7 +298,7 @@ subroutine alloc_node(igrid)
                psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(nghostcells-ix)
              enddo
            endif
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D))then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2)then
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
                ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
              enddo
@@ -329,7 +329,7 @@ subroutine alloc_node(igrid)
              psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
            enddo
            ! first block: modify ghost cells!!!
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)+1)then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2+1)then
              if(ng^D(level)==nstretchedblocks(level,^D))then
                ! if middle blocks do not exist then use symmetry
                do ix=ixGextmin^D,nghostcells
