@@ -512,7 +512,8 @@ contains
     end if
     ! Additional units needed for the particles
     c_norm=c_lightspeed/unit_velocity
-    unit_charge=unit_magneticfield/unit_length/unit_velocity/miu0
+    unit_charge=unit_magneticfield*unit_length**2/unit_velocity/miu0
+    if (.not. SI_unit) unit_charge = unit_charge*const_c
     unit_mass=unit_density*unit_length**3
 
   end subroutine mhd_physical_units
