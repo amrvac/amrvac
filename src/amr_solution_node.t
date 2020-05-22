@@ -115,10 +115,6 @@ subroutine alloc_node(igrid)
   ! block pointer to current block
   block=>ps(igrid)
 
-  if(phys_energy .and. solve_internal_e) then
-    block%e_is_internal=.true.
-  endif
-
   ! set level information
   level=igrid_to_node(igrid,mype)%node%level
   ig^D=igrid_to_node(igrid,mype)%node%ig^D;
@@ -302,7 +298,7 @@ subroutine alloc_node(igrid)
                psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(nghostcells-ix)
              enddo
            endif
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D))then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2)then
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
                ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
              enddo
@@ -333,7 +329,7 @@ subroutine alloc_node(igrid)
              psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
            enddo
            ! first block: modify ghost cells!!!
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)+1)then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2+1)then
              if(ng^D(level)==nstretchedblocks(level,^D))then
                ! if middle blocks do not exist then use symmetry
                do ix=ixGextmin^D,nghostcells
@@ -568,7 +564,9 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
       allocate(s%J0(ixG^S,7-2*ndir:3))
     end if
     ! allocate space for special values for each block state
-    if(trac) allocate(s%special_values(1))
+    if(trac) then
+      allocate(s%special_values(2))
+    end if
   else
     ! use spatial info on ps states to save memory
     s%x=>ps(igrid)%x

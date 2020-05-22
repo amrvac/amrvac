@@ -12,12 +12,14 @@ subroutine setdt()
 
   double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
   double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_bott, T_peak
+  double precision :: trac_alfa, trac_dmax, trac_tau
 
   if (dtpar<=zero) then
      dtmin_mype=bigdouble
      cmax_mype = zero
      a2max_mype = zero
      tco_mype = zero
+     Tmax_mype = zero
   !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D)
      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
         dtnew=bigdouble
@@ -149,7 +151,12 @@ subroutine setdt()
   end if
 
   ! transition region adaptive thermal conduction (Johnston 2019 ApJL, 873, L22)
+  ! transition region adaptive thermal conduction (Johnston 2020 A&A, 635, 168)
   if(trac) then
+    trac_dmax=0.1d0
+    trac_tau=1.d0/unit_time
+    !> dt or dtnew ?
+    trac_alfa=trac_dmax**(dtnew/trac_tau)
     {^IFONED
     call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&
       MPI_MAX,icomm,ierrmpi)
@@ -161,13 +168,18 @@ subroutine setdt()
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       {^IFONED
-      ps(igrid)%special_values(1)=tco_global
+      ps(igrid)%special_values(1)=tco_global 
       }
       if(ps(igrid)%special_values(1) < T_bott) then
         ps(igrid)%special_values(1)=T_bott
       else if(ps(igrid)%special_values(1) > 0.2d0*T_peak) then
         ps(igrid)%special_values(1)=0.2d0*T_peak
       end if
+      if(ps(igrid)%special_values(1) .lt. trac_alfa*ps(igrid)%special_values(2)) then
+        ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
+      end if
+      !> special values(2) to save old tcutoff
+      ps(igrid)%special_values(2)=ps(igrid)%special_values(1)
     end do
     !$OMP END PARALLEL DO
   end if 
@@ -236,7 +248,7 @@ subroutine setdt()
          write(unitterm,*)'Unknown typecourant=',typecourant
          call mpistop("Error from getdt_courant: no such typecourant!")
       end select
-      
+
     end subroutine getdt_courant
 
 end subroutine setdt

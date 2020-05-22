@@ -1,4 +1,3 @@
-module mod_trace_Bfield
 !> mod_trace_Bfield -- trace magnetic field line
 !>
 !> This module should be used in a global subroutine, since it will 
@@ -21,10 +20,11 @@ module mod_trace_Bfield
 !> forward=false: tracing B field antiparallel
 !> wRT(i)=true: calculate and return wB(:,i)
 !> interp=true: using interpolation in the calculation
-
+module mod_trace_Bfield
   use mod_mhd
+  implicit none
 
-  contains
+contains
 
   subroutine trace_Bfield(xf,wB,dL,numP,numRT,forward,wRT,interp)
     ! trace a field line
@@ -42,7 +42,7 @@ module mod_trace_Bfield
     integer :: indomain
     integer :: igrid,igrid_now,igrid_next,j
     integer :: ipe_now,ipe_next
-    double precision :: xp_in(ndim),xp_out(ndim)
+    double precision :: xp_in(ndim),xp_out(ndim),x3d(3)
     integer :: ipoint_in,ipoint_out
     double precision :: statusB(4+ndim)
     integer :: pe_record(numP)
@@ -63,7 +63,12 @@ module mod_trace_Bfield
     if (indomain==ndim) then
       numRT=1
 
-      call find_particle_ipe(xf(1,:),igrid_now,ipe_now)
+       ! find pe and igrid
+       x3d=0.d0
+       do j=1,ndim
+         x3d(j)=xf(1,j)
+       enddo
+      call find_particle_ipe(x3d,igrid_now,ipe_now)
       stopB=.FALSE.
       ipoint_in=1
     else
@@ -167,7 +172,7 @@ module mod_trace_Bfield
     logical :: wRT(nw+ndir)
     double precision :: statusB(4+ndim)    
 
-    integer :: ipe_next,igrid_next,ip_in,ip_out
+    integer :: ipe_next,igrid_next,ip_in,ip_out,j
     logical :: newpe,stopB
   
     ip_in=ipoint_in
@@ -221,7 +226,7 @@ module mod_trace_Bfield
     integer          :: ixO^L,ixO^D,j
     double precision :: dxf(ndim)
     double precision :: dxb^D,xb^L,xd^D
-    integer          :: ixb^D,ix^D,ixbl^D
+    integer          :: ixb^D,ix^D,ixbl^D,ip
     double precision :: wBnear(0:1^D&,nw+ndir)
     double precision :: Bx(ndim),factor(0:1^D&)
     double precision :: Btotal,maxft,Bp
@@ -406,14 +411,13 @@ module mod_trace_Bfield
     logical :: wRT(nw+ndir)
 
     double precision :: Bg(ixg^T,ndir)
-    integer          :: ixO^L,ixO^D,ixb^D,ix^D,j
+    integer          :: ixO^L,ixO^D,ixb^D,ix^D,j,ip
     double precision :: dxf(ndim),Bx(ndim),dxb(ndim)
     double precision :: dxb^D,xb^L,xd^D
     integer :: hxO^D,jxO^D
     integer :: idirmin,ixI^L,idir,jdir,kdir
     double precision :: ek,eb,Btotal,tmp
     integer :: inblock
-
 
     ^D&ixImin^D=ixglo^D\
     ^D&ixImax^D=ixghi^D\

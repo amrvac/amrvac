@@ -290,7 +290,10 @@ contains
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
-
+ 
+    if(phys_solve_eaux) then
+      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
+    endif
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
 
@@ -675,6 +678,8 @@ contains
        call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
     case (limiter_wenozp5nm)
        call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
+    case (limiter_weno5cu6)
+       call WENO5CU6limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
     case (limiter_weno7)
        call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,1)
     case (limiter_mpweno7)

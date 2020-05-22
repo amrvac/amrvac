@@ -101,7 +101,8 @@ subroutine improve_initial_condition()
       ! re-calculate magnetic field from the vector potential in a 
       ! completely divergency free way for AMR mesh in 3D
       if(levmax>levmin.and.ndim==3) call recalculateB
-    else if(slab_uniform) then
+    end if
+    if(slab_uniform.and.clean_initial_divb) then
       ! Project out the divB using multigrid poisson solver 
       ! if not initialised from vector potential
       if(.not.use_multigrid) call mg_setup_multigrid()

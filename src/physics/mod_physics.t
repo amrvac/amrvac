@@ -53,6 +53,7 @@ module mod_physics
   procedure(sub_get_tcutoff), pointer     :: phys_get_tcutoff            => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
+  procedure(sub_energy_synchro), pointer  :: phys_energy_synchro         => null()
   procedure(sub_get_v_idim), pointer      :: phys_get_v_idim             => null()
   procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
   procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
@@ -141,6 +142,13 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
        double precision, intent(out)   :: f(ixI^S, nwflux)
      end subroutine sub_get_flux
+
+     subroutine sub_energy_synchro(ixI^L,ixO^L,w,x)
+       use mod_global_parameters
+       integer, intent(in) :: ixI^L,ixO^L
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,1:nw)
+     end subroutine sub_energy_synchro
 
      subroutine sub_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
        use mod_global_parameters

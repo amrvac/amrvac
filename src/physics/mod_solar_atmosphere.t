@@ -1,5 +1,5 @@
 !> User can use subroutine get_atm_para to generate 1D solar stmosphere.
-!> User should provide heights (h), number density at the bottom,
+!> User should provide heights (h), number density at h=0,
 !> number of points (nh), and the gravity (grav) at each point. 
 !> User can select temperature profile.
 !> This subroutine will return density and pressure at each point.
@@ -8,14 +8,77 @@ module mod_solar_atmosphere
   use mod_constants
   implicit none
 
-  integer :: n_valc,n_hong,n_sprm
+  integer :: n_valc,n_hong,n_fontenla,n_alc7
   double precision :: h_valc(1:52),T_valc(1:52)
   double precision :: h_hong(1:300),T_hong(1:300)
-  double precision :: h_sprm(1:56),T_sprm(1:56)
+  double precision :: h_fontenla(1:56),T_fontenla(1:56)
+  double precision :: h_alc7(1:140),T_alc7(1:140)
 
-  data n_sprm / 56 /
+  data n_alc7 / 140 /
 
-  data h_sprm /  -100.0,   -90.0,   -80.0,   -70.0,   -60.0, &
+  data h_alc7 /  -100.0,   -90.0,   -80.0,   -70.0,   -60.0, & 
+                  -50.0,   -40.0,   -30.0,   -20.0,   -10.0, &
+                    0.0,    10.0,    20.0,    35.0,    50.0, &
+                   75.0,   100.0,   125.0,   150.0,   175.0, &
+                  200.0,   250.0,   300.0,   350.0,   400.0, &
+                  450.0,   490.0,   525.0,   560.0,   615.0, &
+                  660.0,   700.0,   750.0,   800.0,   854.0, &
+                  900.0,   946.0,   971.0,  1003.0,  1032.0, &
+                 1065.0,  1101.0,  1143.0,  1214.0,  1299.0, &
+                 1398.0,  1520.0,  1617.0,  1722.0,  1820.0, &
+                 1894.0,  1946.0,  1989.0,  2024.0,  2055.0, &
+                 2083.0,  2098.0,  2110.0,  2120.0,  2126.0, &
+                 2130.0,  2132.0,  2134.0,  2136.0,  2138.0, &
+                 2141.9,  2145.2,  2147.1,  2148.7,  2150.1, &
+                 2151.2,  2152.0,  2152.9,  2153.5,  2154.1, &
+                 2154.7,  2155.5,  2156.2,  2156.8,  2157.6, &
+                 2158.2,  2158.8,  2159.4,  2160.0,  2160.6, &
+                 2161.3,  2162.3,  2163.3,  2164.6,  2166.0, &
+                 2167.7,  2170.0,  2172.3,  2175.3,  2178.7, &
+                 2182.4,  2186.1,  2191.5,  2196.5,  2201.9, &
+                 2207.7,  2213.7,  2220.0,  2227.7,  2235.3, &
+                 2243.3,  2251.6,  2259.4,  2269.7,  2282.4, &
+                 2294.4,  2308.6,  2325.8,  2346.1,  2378.2, &
+                 2418.7,  2457.9,  2495.6,  2535.5,  2578.2, &
+                 2628.3,  2688.1,  2761.5,  2844.4,  2970.8, &
+                 3133.8,  3425.0,  3752.7,  4295.9,  4968.6, &
+                 5762.8,  7360.8,  8974.2, 11596.2, 15392.0, &
+                21133.1, 26676.6, 36079.5, 47009.3, 68084.4 /
+
+  data T_alc7 /    9380,    9120,    8850,    8540,    8220, &
+                   7900,    7590,    7280,    7020,    6780, &
+                   6583,    6397,    6231,    6006,    5826, &
+                   5607,    5431,    5288,    5165,    5080, &
+                   5010,    4907,    4805,    4700,    4590, &
+                   4485,    4435,    4410,    4400,    4435, &
+                   4510,    4640,    4840,    5090,    5430, &
+                   5720,    5969,    6100,    6225,    6315, &
+                   6400,    6474,    6531,    6576,    6598, &
+                   6610,    6623,    6633,    6643,    6652, &
+                   6660,    6667,    6674,    6680,    6686, &
+                   6694,    6700,    6706,    6718,    6740, &
+                   6768,    6800,    6870,    6992,    7248, &
+                   7950,    9115,   10980,   13200,   15760, &
+                  18140,   20510,   23100,   25120,   27130, &
+                  29500,   32260,   34580,   36870,   39400, &
+                  41450,   43400,   45140,   46800,   48490, &
+                  50140,   52690,   55020,   57790,   60790, &
+                  63950,   68000,   71810,   76330,   81220, &
+                  86120,   90640,   96860,  102300,  107800, &
+                 113200,  118700,  124000,  130200,  135800, &
+                 141600,  147200,  152300,  158600,  166000, &
+                 172600,  180100,  188600,  198100,  212000, &
+                 227800,  241900,  254400,  266700,  279000, &
+                 292500,  307300,  324000,  341300,  365000, &
+                 392000,  432900,  471600,  524300,  577400, &
+                 629300,  711700,  778300,  865000,  996370, &
+                1080000, 1170000, 1294000, 1410000, 1586000 / 
+
+
+
+  data n_fontenla / 56 /
+
+  data h_fontenla /  -100.0,   -90.0,   -80.0,   -70.0,   -60.0, &
                   -50.0,   -40.0,   -30.0,   -20.0,   -10.0, &
                    -0.7,     9.5,    20.0,    35.0,    50.0, &
                    75.0,   100.0,   125.0,   150.0,   175.0, &
@@ -28,7 +91,7 @@ module mod_solar_atmosphere
                  2013.0,  2142.0,  2263.0,  2357.0,  2425.0, &
                  2472.0 /
 
-  data T_sprm /    9460,    9220,    8940,    8620,    8280, & 
+  data T_fontenla /    9460,    9220,    8940,    8620,    8280, & 
                    7940,    7600,    7270,    6960,    6690, &
                    6490,    6310,    6150,    5950,    5780, &
                    5550,    5380,    5245,    5130,    5035, &
@@ -197,21 +260,21 @@ module mod_solar_atmosphere
 
 contains
 
-  subroutine get_atm_para(h,rho,pth,grav,nh,rho0,Tcurve)
+  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc)
     use mod_global_parameters
-    ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (simulation units)
+    ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (dimensionless units)
     ! nh -- number of points
-    ! rho0 -- number density at h(1)
-    ! Tcurve -- 'VAL-C' | 'Hong2017' | 'SPRM305'
+    ! rho0 -- number density at h=0
+    ! Tcurve -- 'VAL-C' | 'Hong2017' | 'SPRM305' | 'AL-C7'
 
-    integer :: nh
-    double precision :: rho0
+    integer, intent(in) :: nh
     double precision :: h(nh),rho(nh),pth(nh),grav(nh)
+    double precision :: rhohc,hc
     character(*) :: Tcurve
 
     double precision :: h_cgs(nh),Te_cgs(nh),Te(nh)
     integer :: j
-    double precision :: invT,dh
+    double precision :: invT,dh,rhot,dht,ratio
 
     h_cgs=h*unit_length
 
@@ -224,9 +287,13 @@ contains
         call get_Te_Hong(h_cgs,Te_cgs,nh)
         if (mype==0) print *, 'Temperature curve from Hong et al. 2017, ApJ, 845, 144'
 
-      case('SPRM305')
+      case('Fontenla')
         call get_Te_SPRM(h_cgs,Te_cgs,nh)
         if (mype==0) print *, 'Temperature curve from Fontenla et al. 2007, ApJ, 667, 1243'
+
+      case('AL-C7')
+        call get_Te_ALC7(h_cgs,Te_cgs,nh)
+        if (mype==0) print *, 'Temperature curve from Avrett & Loeser 2008, ApJS, 175, 229'
 
       case default
         call mpistop("Unknown temperature curve")
@@ -236,7 +303,7 @@ contains
     Te=Te_cgs/unit_temperature
 
     ! density and pressure profiles
-    rho(1)=rho0
+    rho(1)=1.d5
     pth(1)=rho(1)*Te(1)
 
     invT=0.d0
@@ -245,9 +312,79 @@ contains
       invT=invT+dh*(grav(j)/Te(j)+grav(j-1)/Te(j-1))*0.5d0
       pth(j)=pth(1)*dexp(invT)
       rho(j)=pth(j)/Te(j)
+
+      if (h(j-1)<=hc .and. h(j)>hc) then
+        dht=hc-h(j-1)
+        rhot=rho(j-1)+dht*(rho(j)-rho(j-1))/(h(j)-h(j-1))
+      endif
     end do
 
+    ratio=rhohc/rhot
+    rho=rho*ratio
+    pth=pth*ratio
+
   end subroutine get_atm_para
+
+  subroutine get_Te_ALC7(h,Te,nh)
+    use mod_interpolation
+    use mod_constants
+
+    integer :: nh
+    double precision :: h(nh),Te(nh)
+
+    integer :: ih,j,imin,imax,n_table
+    double precision :: h_table(n_alc7),T_table(n_alc7)
+    double precision :: unit_h,unit_T,htra,Ttra,Fc,kappa,dTdh
+
+    ! temperature profile
+    unit_h=1.d5 !  km -> cm
+    unit_T=1.0  !  K -> K
+    Fc=1.72d5
+    kappa=8.d-7
+
+    n_table=n_alc7
+    h_table=h_alc7*unit_h
+    T_table=T_alc7*unit_T
+    htra=2196.52*unit_h
+    Ttra=1.023d5
+    dTdh=(T_table(2)-T_table(1))/(h_table(2)-h_table(1))
+
+    do ih=1,nh
+      if (h(ih)>h_table(n_table)) then
+      ! above transition region
+        Te(ih)=(3.5d0*Fc*(h(ih)-htra)/kappa+Ttra**3.5d0)**(2.d0/7.d0)
+      endif
+
+      if (h(ih)<=h_table(1)) then
+      ! below photosphere
+        Te(ih)=(h(ih)-h_table(1))*dTdh+T_table(1)
+      endif
+    enddo
+
+
+    ! inside the table
+    imin=nh
+    imax=nh-1
+    if (h(1)>=h_table(1) .and. h(1)<=h_table(n_table)) then
+      imin=1
+    else
+      do ih=2,nh
+        if (h(ih-1)<h_table(1) .and. h(ih)>=h_table(1) .and. h(ih)<=h_table(n_table)) imin=ih
+      enddo
+    endif
+    if (h(nh)>=h_table(1) .and. h(nh)<=h_table(n_table)) then
+      imax=nh
+    else
+      do ih=1,nh-1
+        if (h(ih)<=h_table(n_table) .and. h(ih+1)>h_table(n_table) .and. h(ih)>=h_table(1)) imax=ih
+      enddo
+    endif
+
+    if (imin<=imax) then
+      call interp_linear(h_table,T_table,n_table,h(imin:imax),Te(imin:imax),imax-imin+1)
+    endif
+
+  end subroutine get_Te_ALC7
 
   subroutine get_Te_SPRM(h,Te,nh)
     use mod_interpolation
@@ -257,7 +394,7 @@ contains
     double precision :: h(nh),Te(nh)
 
     integer :: ih,j,imin,imax,n_table
-    double precision :: h_table(n_sprm),T_table(n_sprm)
+    double precision :: h_table(n_fontenla),T_table(n_fontenla)
     double precision :: unit_h,unit_T,dTdh
     double precision :: h1,h2,h3
     double precision :: Tpho,Ttop,htanh,wtra
@@ -266,9 +403,9 @@ contains
     unit_h=1.d5 !  km -> cm
     unit_T=1.0  !  K -> K
 
-    n_table=n_sprm
-    h_table=h_sprm*unit_h
-    T_table=T_sprm*unit_T
+    n_table=n_fontenla
+    h_table=h_fontenla*unit_h
+    T_table=T_fontenla*unit_T
 
     ! height for shift curve table/function
     h1=h_table(1)
@@ -328,7 +465,7 @@ contains
     endif
 
     if (imin<=imax) then
-      call interp_linear(h_table,T_table,n_sprm,h(imin:imax),Te(imin:imax),imax-imin+1)
+      call interp_linear(h_table,T_table,n_fontenla,h(imin:imax),Te(imin:imax),imax-imin+1)
     endif
 
   end subroutine 

@@ -377,7 +377,7 @@ module mod_global_parameters
   logical :: phys_energy=.true.
 
   !> Solve polytropic process instead of solving total energy
-  logical :: solve_internal_e=.false.
+  logical :: phys_solve_eaux=.false.
 
   !> Use TRAC (Johnston 2019 ApJL, 873, L22) for MHD or 1D HD
   logical :: trac=.false.  

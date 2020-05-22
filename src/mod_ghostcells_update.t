@@ -55,8 +55,19 @@ module mod_ghostcells_update
   ! count of times of send and receive
   integer :: isend_srl, irecv_srl, isend_r, irecv_r, isend_p, irecv_p
 
+  ! count of times of send and receive for cell center ghost cells
+  integer :: isend_c, irecv_c
+
   ! total sizes = cell-center normal flux + stagger-grid flux of send and receive
   integer, dimension(-1:1^D&) :: sizes_srl_send_total, sizes_srl_recv_total
+
+  ! sizes of buffer arrays for center-grid variable for siblings and restrict
+  integer, dimension(:), allocatable :: recvrequest_c_sr, sendrequest_c_sr
+  integer, dimension(:,:), allocatable :: recvstatus_c_sr, sendstatus_c_sr
+
+  ! sizes of buffer arrays for center-grid variable for prolongation
+  integer, dimension(:), allocatable :: recvrequest_c_p, sendrequest_c_p
+  integer, dimension(:,:), allocatable :: recvstatus_c_p, sendstatus_c_p
 
   ! sizes of buffer arrays for stagger-grid variable
   integer, dimension(^ND,-1:1^D&) :: sizes_srl_send_stg, sizes_srl_recv_stg
@@ -502,20 +513,19 @@ contains
     ! default : no singular axis
     ipole=0
     
-    irecv=0
-    isend=0
+    irecv_c=0
+    isend_c=0
     isend_buf=0
     ipwbuf=1
     ! total number of times to call MPI_IRECV in each processor between sibling blocks or from finer neighbors
-    nrecvs=nrecv_bc_srl+nrecv_bc_r
+    !nrecvs=nrecv_bc_srl+nrecv_bc_r
     ! total number of times to call MPI_ISEND in each processor between sibling blocks or to coarser neighors
-    nsends=nsend_bc_srl+nsend_bc_r
+    !nsends=nsend_bc_srl+nsend_bc_r
 
-    allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
-    recvrequest=MPI_REQUEST_NULL
-
-    allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
-    sendrequest=MPI_REQUEST_NULL
+    !allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
+    !recvrequest=MPI_REQUEST_NULL
+    !allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
+    !sendrequest=MPI_REQUEST_NULL
 
     if(stagger_grid) then
       ibuf_recv_srl=1
@@ -587,15 +597,17 @@ contains
        {end do\}
     end do
     
-    !if (irecv/=nrecvs) then
+    !if (irecv_c/=nrecvs) then
+    !   print*,'irecv nrevs',irecv_c,nrecvs
     !   call mpistop("number of recvs in phase1 in amr_ghostcells is incorrect")
     !end if
-    !if (isend/=nsends) then
+    !if (isend_c/=nsends) then
+    !   print*,'isend nsend ',isend_c,nsends
     !   call mpistop("number of sends in phase1 in amr_ghostcells is incorrect")
     !end if
     
-    call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
-    call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
+    call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
+    call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
 
     if(stagger_grid) then
       call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
@@ -622,22 +634,22 @@ contains
     do ipwbuf=1,npwbuf
        if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
     end do
-    deallocate(recvstatus,recvrequest)
-    deallocate(sendstatus,sendrequest)
+    !deallocate(recvstatus,recvrequest)
+    !deallocate(sendstatus,sendrequest)
 
-    irecv=0
-    isend=0
+    irecv_c=0
+    isend_c=0
     isend_buf=0
     ipwbuf=1
     ! total number of times to call MPI_IRECV in each processor from coarser neighbors
-    nrecvs=nrecv_bc_p
+    !nrecvs=nrecv_bc_p
     ! total number of times to call MPI_ISEND in each processor to finer neighbors
-    nsends=nsend_bc_p
+    !nsends=nsend_bc_p
 
-    allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
-    recvrequest=MPI_REQUEST_NULL
-    allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
-    sendrequest=MPI_REQUEST_NULL
+    !allocate(recvstatus(MPI_STATUS_SIZE,nrecvs),recvrequest(nrecvs))
+    !recvrequest=MPI_REQUEST_NULL
+    !allocate(sendstatus(MPI_STATUS_SIZE,nsends),sendrequest(nsends))
+    !sendrequest=MPI_REQUEST_NULL
 
     ! receiving ghost-cell values from coarser neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -665,17 +677,17 @@ contains
        end if
     end do
     
-    !if (irecv/=nrecvs) then
+    !if (irecv_c/=nrecvs) then
     !   call mpistop("number of recvs in phase2 in amr_ghostcells is incorrect")
     !end if
-    !if (isend/=nsends) then
+    !if (isend_c/=nsends) then
     !   call mpistop("number of sends in phase2 in amr_ghostcells is incorrect")
     !end if
     
-    call MPI_WAITALL(irecv,recvrequest,recvstatus,ierrmpi)
-    call MPI_WAITALL(isend,sendrequest,sendstatus,ierrmpi)
-    deallocate(recvstatus,recvrequest)
-    deallocate(sendstatus,sendrequest)
+    call MPI_WAITALL(irecv_c,recvrequest_c_p,recvstatus_c_p,ierrmpi)
+    call MPI_WAITALL(isend_c,sendrequest_c_p,sendstatus_c_p,ierrmpi)
+    !deallocate(recvstatus,recvrequest)
+    !deallocate(sendstatus,sendrequest)
 
     if(stagger_grid) then
       call MPI_WAITALL(nrecv_bc_p,recvrequest_p,recvstatus_p,ierrmpi)
@@ -814,10 +826,10 @@ contains
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if (ipe_neighbor/=mype) then
-           irecv=irecv+1
+           irecv_c=irecv_c+1
            itag=(3**^ND+4**^ND)*(igrid-1)+{(i^D+1)*3**(^D-1)+}
            call MPI_IRECV(psb(igrid)%w,1,type_recv_srl(iib^D,i^D), &
-                          ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)
+                          ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),ierrmpi)
            if(stagger_grid) then
              irecv_srl=irecv_srl+1
              call MPI_IRECV(recvbuffer_srl(ibuf_recv_srl),sizes_srl_recv_total(i^D),MPI_DOUBLE_PRECISION, &
@@ -835,10 +847,10 @@ contains
            inc^DB=2*i^DB+ic^DB\}
            ipe_neighbor=neighbor_child(2,inc^D,igrid)
            if (ipe_neighbor/=mype) then
-              irecv=irecv+1
+              irecv_c=irecv_c+1
               itag=(3**^ND+4**^ND)*(igrid-1)+3**^ND+{inc^D*4**(^D-1)+}
               call MPI_IRECV(psb(igrid)%w,1,type_recv_r(iib^D,inc^D), &
-                             ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)
+                             ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),ierrmpi)
               if(stagger_grid) then
                 irecv_r=irecv_r+1
                 call MPI_IRECV(recvbuffer_r(ibuf_recv_r),sizes_r_recv_total(inc^D), &
@@ -865,10 +877,10 @@ contains
               psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
                   psb(igrid)%w(ixS^S,nwhead:nwtail)
            else
-              isend=isend+1
+              isend_c=isend_c+1
               itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
               call MPI_ISEND(psb(igrid)%w,1,type_send_srl(iib^D,i^D), &
-                             ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
+                             ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
               if(stagger_grid) then
                 ibuf_start=ibuf_send_srl
                 do idir=1,ndim
@@ -896,18 +908,18 @@ contains
               call pole_copy(psb(ineighbor)%w,ixG^L,ixR^L,psb(igrid)%w,ixG^L,ixS^L)
            else
               if (isend_buf(ipwbuf)/=0) then
-                 call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                               sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
+                 call MPI_WAIT(sendrequest_c_sr(isend_buf(ipwbuf)), &
+                               sendstatus_c_sr(:,isend_buf(ipwbuf)),ierrmpi)
                  deallocate(pwbuf(ipwbuf)%w)
               end if
               allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
               call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^L,ixS^L)
-              isend=isend+1
-              isend_buf(ipwbuf)=isend
+              isend_c=isend_c+1
+              isend_buf(ipwbuf)=isend_c
               itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
               isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
               call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
-                             ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
+                             ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
               ipwbuf=1+modulo(ipwbuf,npwbuf)
               if(stagger_grid) then
                 ibuf_start=ibuf_send_srl
@@ -983,10 +995,10 @@ contains
               psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
                psc(igrid)%w(ixS^S,nwhead:nwtail)
            else
-              isend=isend+1
+              isend_c=isend_c+1
               itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
               call MPI_ISEND(psc(igrid)%w,1,type_send_r(iib^D,i^D), &
-                             ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
+                             ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
               if(stagger_grid) then 
                 ibuf_start=ibuf_send_r
                 do idir=1,ndim
@@ -1015,18 +1027,18 @@ contains
               call pole_copy(psb(ineighbor)%w,ixG^L,ixR^L,psc(igrid)%w,ixCoG^L,ixS^L)
            else
               if (isend_buf(ipwbuf)/=0) then
-                 call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                               sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
+                 call MPI_WAIT(sendrequest_c_sr(isend_buf(ipwbuf)), &
+                               sendstatus_c_sr(:,isend_buf(ipwbuf)),ierrmpi)
                  deallocate(pwbuf(ipwbuf)%w)
               end if
               allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
               call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psc(igrid)%w,ixCoG^L,ixS^L)
-              isend=isend+1
-              isend_buf(ipwbuf)=isend
+              isend_c=isend_c+1
+              isend_buf(ipwbuf)=isend_c
               itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
               isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
               call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
-                             ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
+                             ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
               ipwbuf=1+modulo(ipwbuf,npwbuf)
               if(stagger_grid) then 
                 ibuf_start=ibuf_send_r
@@ -1226,11 +1238,11 @@ contains
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if (ipe_neighbor/=mype) then
-           irecv=irecv+1
+           irecv_c=irecv_c+1
            inc^D=ic^D+i^D;
            itag=(3**^ND+4**^ND)*(igrid-1)+3**^ND+{inc^D*4**(^D-1)+}
            call MPI_IRECV(psc(igrid)%w,1,type_recv_p(iib^D,inc^D), &
-                          ipe_neighbor,itag,icomm,recvrequest(irecv),ierrmpi)  
+                          ipe_neighbor,itag,icomm,recvrequest_c_p(irecv_c),ierrmpi)  
            if(stagger_grid) then
              irecv_p=irecv_p+1
              call MPI_IRECV(recvbuffer_p(ibuf_recv_p),sizes_p_recv_total(inc^D),& 
@@ -1261,10 +1273,10 @@ contains
                 psc(ineighbor)%w(ixR^S,nwhead:nwtail) &
                    =psb(igrid)%w(ixS^S,nwhead:nwtail)
               else
-                isend=isend+1
+                isend_c=isend_c+1
                 itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
                 call MPI_ISEND(psb(igrid)%w,1,type_send_p(iib^D,inc^D), &
-                               ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
+                               ipe_neighbor,itag,icomm,sendrequest_c_p(isend_c),ierrmpi)
                 if(stagger_grid) then 
                   ibuf_start=ibuf_send_p
                   do idir=1,ndim
@@ -1299,18 +1311,18 @@ contains
                 end if
               else
                 if (isend_buf(ipwbuf)/=0) then
-                   call MPI_WAIT(sendrequest(isend_buf(ipwbuf)), &
-                                 sendstatus(:,isend_buf(ipwbuf)),ierrmpi)
+                   call MPI_WAIT(sendrequest_c_p(isend_buf(ipwbuf)), &
+                                 sendstatus_c_p(:,isend_buf(ipwbuf)),ierrmpi)
                    deallocate(pwbuf(ipwbuf)%w)
                 end if
                 allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
                 call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^L,ixS^L)
-                isend=isend+1
-                isend_buf(ipwbuf)=isend
+                isend_c=isend_c+1
+                isend_buf(ipwbuf)=isend_c
                 itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
                 isizes={(ixSmax^D-ixSmin^D+1)*}*nwbc
                 call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
-                               ipe_neighbor,itag,icomm,sendrequest(isend),ierrmpi)
+                               ipe_neighbor,itag,icomm,sendrequest_c_p(isend_c),ierrmpi)
                 ipwbuf=1+modulo(ipwbuf,npwbuf)
                 if(stagger_grid) then 
                   ibuf_start=ibuf_send_p

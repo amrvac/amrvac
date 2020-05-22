@@ -17,9 +17,9 @@
 
  &savelist
         itsave(1,1)=0
-        itsave(2,1)=0
-        dtsave_log     = 1.0d-2
-        dtsave_dat     = 2.0d-1
+        itsave(1,2)=0
+        dtsave_log     = 1.0d-3
+        dtsave_dat     = 2.0d-2
  /
 
  &stoplist
@@ -29,7 +29,7 @@
 
  &methodlist
         time_integrator=  'twostep'
-        flux_scheme=    20*'hlld'
+        flux_scheme=    20*'hll'
         limiter= 20*'vanleer'
         small_values_method='error'
         small_pressure=1.0d-14
@@ -45,7 +45,7 @@
 
  &meshlist
         refine_criterion=3
-        refine_max_level=7
+        refine_max_level=6
         refine_threshold=20*0.2d0
         derefine_ratio=20*0.1d0
         block_nx1=10

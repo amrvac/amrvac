@@ -110,11 +110,12 @@ contains
     double precision, intent(out)   :: frame_vel(ixI^S)
 
     frame_vel(ixO^S) = x(ixO^S,r_) * omega_frame
+    {^NOONED
     if (coordinate == spherical .and. ndim > 1) then
        frame_vel(ixO^S) = frame_vel(ixO^S) * dsin(x(ixO^S,2))
     end if
+    }
 
-       
   end subroutine rotating_frame_velocity
 
     subroutine rotating_frame_omega(x,ixI^L,ixO^L,frame_omega)
@@ -127,10 +128,11 @@ contains
     double precision, intent(out)   :: frame_omega(ixI^S)
 
     frame_omega(ixO^S) =  omega_frame
+    {^NOONED
     if (coordinate == spherical .and. ndim > 1) then
        frame_omega(ixO^S) = frame_omega(ixO^S)* dsin(x(ixO^S,2))
     end if
+    }
 
-       
   end subroutine rotating_frame_omega
 end module mod_rotating_frame

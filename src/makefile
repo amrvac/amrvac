@@ -84,6 +84,7 @@ mod_advance.o: mod_tvd.mod
 mod_amr_fct.o: mod_physics.mod
 mod_amrvac.o: mod_geometry.mod
 mod_bc_data.o: mod_lookup_table.mod
+mod_bremsstrahlung.o: mod_physics.mod
 mod_calculate_xw.o: mod_geometry.mod
 mod_calculate_xw.o: mod_limiter.mod
 mod_calculate_xw.o: mod_physics.mod

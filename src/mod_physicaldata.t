@@ -11,8 +11,6 @@ module mod_physicaldata
       integer :: ixGs^L
       !> location of w0-array, 0: cell center, ^D : cell interface in dimension ^D
       integer :: iw0=0
-      !> Is e is internal energy or total energy
-      logical :: e_is_internal=.false.
       !> If it face a physical boundary
       logical, dimension(:), pointer :: is_physical_boundary(:) =>Null()
       !> Variables, normally cell center conservative values
@@ -49,8 +47,6 @@ module mod_physicaldata
    type state_sub
       !> ID of a grid block
       integer :: igrid=-1
-      !> Is w in primitive state or not
-      logical :: e_is_internal=.false.
       !> Variables, normally center
       double precision, dimension(:^DE&,:), allocatable :: w
       !> Variables for the cornerpositions on the slice 
@@ -83,8 +79,6 @@ module mod_physicaldata
    type state_sub
       !> ID of a grid block
       integer :: igrid=-1
-      !> Is w in primitive state or not
-      logical :: e_is_internal=.false.
       !> Variables, normally center
       double precision, dimension(:), allocatable :: w
       !> Variables for the cornerpositions on the slice 

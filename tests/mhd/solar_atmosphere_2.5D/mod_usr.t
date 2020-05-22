@@ -4,7 +4,7 @@ module mod_usr
   double precision, allocatable :: pbc(:),rbc(:)
   double precision :: usr_grav,vmax,La
   double precision :: heatunit,gzone,B0,theta,SRadius,kx,ly,bQ0,dya
-  double precision, allocatable :: pa(:),ra(:),ya(:)
+  double precision, allocatable :: pa(:),ra(:)
   integer, parameter :: jmax=8000
 
 contains
@@ -53,41 +53,61 @@ contains
   end subroutine initglobaldata_usr
 
   subroutine inithdstatic
-  !! initialize the table in a vertical line through the global domain
-    integer :: j,na,nb,ibc
-    double precision, allocatable :: Ta(:),gg(:)
-    double precision:: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,Ttr,Fc,invT,kappa
-  
-    rpho=1.151d15/unit_numberdensity ! number density at the bottom relaxla
-    Tpho=8.d3/unit_temperature ! temperature of chromosphere
-    Ttop=1.5d6/unit_temperature ! estimated temperature in the top
-    htra=0.2d0 ! height of initial transition region
-    wtra=0.02d0 ! width of initial transition region 
-    Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
-    Fc=2.d5/heatunit/unit_length ! constant thermal conduction flux
-    kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
+    use mod_solar_atmosphere
+    ! initialize the table in a vertical line through the global domain
+    integer :: j,na,ibc
+    double precision, allocatable :: Ta(:),gg(:),ya(:)
+    double precision :: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,Ttr,Fc,invT,kappa
+    double precision :: rhohc,hc
+    logical :: simple_temperature_curve
+
+    simple_temperature_curve=.true.
 
     allocate(ya(jmax),Ta(jmax),gg(jmax),pa(jmax),ra(jmax))
-    do j=1,jmax
-       ya(j)=(dble(j)-0.5d0)*dya-gzone
-       if(ya(j)>htra) then
-         Ta(j)=(3.5d0*Fc/kappa*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
-       else
-         Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra-0.027d0)/wtra)+1.d0)
-       endif
-       gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
-    enddo
-    !! solution of hydrostatic equation 
-    nb=int(gzone/dya)
-    ra(1)=rpho
-    pa(1)=rpho*Tpho
-    invT=gg(1)/Ta(1)
-    invT=0.d0
-    do j=2,jmax
-       invT=invT+(gg(j)/Ta(j)+gg(j-1)/Ta(j-1))*0.5d0
-       pa(j)=pa(1)*dexp(invT*dya)
-       ra(j)=pa(j)/Ta(j)
-    end do
+
+    if(simple_temperature_curve) then
+      rpho=1.151d15/unit_numberdensity ! number density at the bottom of height table
+      Tpho=8.d3/unit_temperature ! temperature of chromosphere
+      Ttop=1.5d6/unit_temperature ! estimated temperature in the top
+      htra=0.2d0 ! height of initial transition region
+      wtra=0.02d0 ! width of initial transition region 
+      Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
+      Fc=2.d5/heatunit/unit_length ! constant thermal conduction flux
+      kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
+      do j=1,jmax
+         ya(j)=(dble(j)-0.5d0)*dya-gzone
+         if(ya(j)>htra) then
+           Ta(j)=(3.5d0*Fc/kappa*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
+         else
+           Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra-0.027d0)/wtra)+1.d0)
+         endif
+         gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
+      enddo
+      !! solution of hydrostatic equation 
+      ra(1)=rpho
+      pa(1)=rpho*Tpho
+      invT=gg(1)/Ta(1)
+      invT=0.d0
+      do j=2,jmax
+         invT=invT+(gg(j)/Ta(j)+gg(j-1)/Ta(j-1))*0.5d0
+         pa(j)=pa(1)*dexp(invT*dya)
+         ra(j)=pa(j)/Ta(j)
+      end do
+    else
+      do j=1,jmax
+         ! get height table
+         ya(j)=(dble(j)-0.5d0)*dya-gzone
+         ! get gravity table
+         gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
+      enddo
+      ! a coronal height at 10 Mm
+      hc=1.d9/unit_length
+      ! the number density at the coronal height
+      rhohc=6.2d8/unit_numberdensity
+      ! get density and pressure table in hydrostatic state with a preset temperature table
+      call get_atm_para(ya,ra,pa,gg,jmax,'AL-C7',hc,rhohc)
+    end if
+    deallocate(ya,gg,Ta)
     !! initialized rho and p in the fixed bottom boundary
     na=floor(gzone/dya+0.5d0)
     res=gzone-(dble(na)-0.5d0)*dya
@@ -152,7 +172,6 @@ contains
   subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
     ! initialize the vectorpotential on the edges
     ! used by b_from_vectorpotential()
-    use mod_global_parameters
     integer, intent(in)                :: ixI^L, ixC^L,idir
     double precision, intent(in)       :: xC(ixI^S,1:ndim)
     double precision, intent(out)      :: A(ixI^S)
@@ -203,7 +222,6 @@ contains
 
   !> allow user to specify variables' left and right state at physical boundaries to control flux through the boundary surface 
   subroutine boundary_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, idir
     double precision, intent(in)    :: qt
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
@@ -236,7 +254,6 @@ contains
   end subroutine boundary_wLR
 
   subroutine boundary_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,s,idims,fC)
-    use mod_global_parameters
     integer, intent(in)          :: ixI^L, ixC^L, idims
     double precision, intent(in)    :: qt
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
@@ -254,7 +271,6 @@ contains
   end subroutine boundary_set_flux
 
   subroutine driven_velocity(ixI^L,ixO^L,qt,x,vdr)
-    use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(out) :: vdr(ixI^S)
@@ -472,8 +488,6 @@ contains
 
   subroutine getlQ(lQgrid,ixI^L,ixO^L,qt,w,x)
   ! calculate localized heating lQ
-    use mod_global_parameters
-
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim), w(ixI^S,1:nw)
 

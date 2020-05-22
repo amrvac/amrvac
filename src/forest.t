@@ -50,40 +50,49 @@ subroutine level1_Morton_order
 use mod_forest
 use mod_global_parameters
 
-integer, allocatable :: gsq_sfc(:^D&)
-integer :: ig^D, ngsq^D, Morton_no
+integer, allocatable :: gsq_sfc(:^D&),seq_sfc(:),seq_ig^D(:)
+integer :: ig^D, ngsq^D, isq, total_number
 integer(kind=8), external :: mortonEncode
+logical, allocatable :: in_domain(:)
 !-----------------------------------------------------------------------------
 ! use the smallest square/cube to cover the full domain 
 ngsq^D=2**ceiling(log(real(ng^D(1)))/log(2.0));
 {^NOONED
 {ngsq^D=max(ngsq^DD) \}
 }
+total_number={ngsq^D|*}
+! Morton number acquired by block numbers
 allocate(gsq_sfc(ngsq^D))
+! Morton number in sequence
+allocate(seq_sfc(total_number))
+! block numbers in sequence
+{allocate(seq_ig^D(total_number))\}
+allocate(in_domain(total_number))
+in_domain=.true.
 ! get Morton-order numbers in the square/cube
 {do ig^DB=1,ngsq^DB\}
    gsq_sfc(ig^D)=int(mortonEncode(ig^D-1,ndim))+1
+   seq_sfc(gsq_sfc(ig^D))=gsq_sfc(ig^D)
+   {seq_ig^D(gsq_sfc(ig^DD))=ig^D \}
 {end do\}
-! delete Morton blocks that are out of the domain
-{do ig^DB=1,ngsq^DB\}
-   if (ig^D>ng^D(1)|.or.) then
-      where(gsq_sfc>=gsq_sfc(ig^D))
-         gsq_sfc=gsq_sfc-1
-      end where
+! mark blocks that are out of the domain and change Morton number
+do isq=1,total_number
+   if (seq_ig^D(isq)>ng^D(1)|.or.) then
+     seq_sfc(isq:total_number)=seq_sfc(isq:total_number)-1
+     in_domain(isq)=.false.
    end if
-{end do\}
+end do
 ! copy the modified Morton numbers to the blocks in the domain
 allocate(iglevel1_sfc(ng^D(1)))
 allocate(sfc_iglevel1(ndim,nglev1))
-{do ig^DB=1,ng^DB(1)\}
-   iglevel1_sfc(ig^D)=gsq_sfc(ig^D)
-   {sfc_iglevel1(^D,iglevel1_sfc(ig^DD))=ig^D \}
-{end do\}
-!do Morton_no=1,nglev1
-!   ig^D=sfc_iglevel1(^D,Morton_no)\ 
-!   print*,'Morton',Morton_no,'ig',ig^D
-!end do
-!stop
+do isq=1,total_number
+  if(in_domain(isq)) then
+    iglevel1_sfc(seq_ig^D(isq))=seq_sfc(isq)
+    {sfc_iglevel1(^D,seq_sfc(isq))=seq_ig^D(isq) \}
+  end if
+end do
+
+deallocate(gsq_sfc,seq_sfc,seq_ig^D,in_domain)
 
 end subroutine level1_Morton_order
 !=============================================================================

@@ -53,6 +53,7 @@ subroutine build_connectivity
   logical :: nopole
   ! Variables to detect special corners for stagger grid
   integer :: idir,pi^D, mi^D, ph^D, mh^D, ipe_neighbor
+  integer :: nrecvs,nsends
 
   nrecv_bc_srl=0; nsend_bc_srl=0
   nrecv_bc_r=0; nsend_bc_r=0
@@ -247,6 +248,44 @@ subroutine build_connectivity
      end if
 
   end do
+
+  ! allocate space for mpi recieve for siblings and restrict ghost cell filling
+  nrecvs=nrecv_bc_srl+nrecv_bc_r
+  if (allocated(recvstatus_c_sr)) then
+    deallocate(recvstatus_c_sr,recvrequest_c_sr)
+    allocate(recvstatus_c_sr(MPI_STATUS_SIZE,nrecvs),recvrequest_c_sr(nrecvs))
+  else
+    allocate(recvstatus_c_sr(MPI_STATUS_SIZE,nrecvs),recvrequest_c_sr(nrecvs))
+  end if
+  recvrequest_c_sr=MPI_REQUEST_NULL
+
+  ! allocate space for mpi send for siblings and restrict ghost cell filling
+  nsends=nsend_bc_srl+nsend_bc_r
+  if (allocated(sendstatus_c_sr)) then
+    deallocate(sendstatus_c_sr,sendrequest_c_sr)
+    allocate(sendstatus_c_sr(MPI_STATUS_SIZE,nsends),sendrequest_c_sr(nsends))
+  else
+    allocate(sendstatus_c_sr(MPI_STATUS_SIZE,nsends),sendrequest_c_sr(nsends))
+  end if
+  sendrequest_c_sr=MPI_REQUEST_NULL
+
+  ! allocate space for mpi recieve for prolongation ghost cell filling
+  if (allocated(recvstatus_c_p)) then
+    deallocate(recvstatus_c_p,recvrequest_c_p)
+    allocate(recvstatus_c_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_c_p(nrecv_bc_p))
+  else
+    allocate(recvstatus_c_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_c_p(nrecv_bc_p))
+  end if
+  recvrequest_c_p=MPI_REQUEST_NULL
+
+  ! allocate space for mpi send for prolongation ghost cell filling
+  if (allocated(sendstatus_c_p)) then
+    deallocate(sendstatus_c_p,sendrequest_c_p)
+    allocate(sendstatus_c_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_c_p(nsend_bc_p))
+  else
+    allocate(sendstatus_c_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_c_p(nsend_bc_p))
+  end if
+  sendrequest_c_p=MPI_REQUEST_NULL
 
   if(stagger_grid) then
     ! allocate space for recieve buffer for siblings ghost cell filling

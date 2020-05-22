@@ -166,7 +166,7 @@ contains
          flatcd,flatsh,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
-         solve_internal_e, angmomfix, small_values_fix_iw, &
+         angmomfix, small_values_fix_iw, &
          small_values_use_primitive, schmid_rad^D, trac
 
     namelist /boundlist/ nghostcells,typeboundary,typeghostfill,prolongation_method,&
@@ -372,7 +372,6 @@ contains
     typeboundspeed  = 'Einfeldt'
     source_split_usr= .false.
     time_integrator = 'twostep'
-    solve_internal_e= .false.
     angmomfix       = .false.
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi))
@@ -833,6 +832,10 @@ contains
     end if
 
     if(any(limiter(1:nlevelshi)=='wenozp5nm')) then
+      nghostcells=3
+    end if
+
+    if(any(limiter(1:nlevelshi)=='weno5cu6')) then
       nghostcells=3
     end if
 

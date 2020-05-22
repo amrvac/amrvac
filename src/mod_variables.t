@@ -47,6 +47,8 @@ module mod_variables
 
   !> Index of the energy density
   integer, protected :: iw_e = -1
+  !> Index of the internal energy density
+  integer, protected :: iw_eaux = -1
 
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
@@ -185,4 +187,16 @@ contains
     end do
   end function var_set_bfield
 
+  !> Set internal energy variable
+  function var_set_internal_energy() result(iw)
+    integer :: iw
+
+    nwflux              = nwflux + 1
+    nwfluxbc            = nwfluxbc + 1
+    nw                  = nw + 1
+    iw_eaux             = nwflux
+    iw                  = nwflux
+    cons_wnames(nwflux) = 'eaux'
+    prim_wnames(nwflux) = 'paux'
+  end function var_set_internal_energy
 end module mod_variables

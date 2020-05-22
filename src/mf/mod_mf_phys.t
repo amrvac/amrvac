@@ -685,7 +685,6 @@ contains
     logical :: buffer
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-
     ! extrapolate current for the outmost layer, 
     ! because extrapolation of B at boundaries introduces artificial current
 {
@@ -723,13 +722,22 @@ contains
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
-    if(slab_uniform) then
-      dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-      ! decay frictional velocity near solar surface
-      decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
-      do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-      end do
+    if(slab) then
+      if(slab_uniform) then
+        dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+        ! decay frictional velocity near solar surface
+        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
+        do idir=1,ndir
+          w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+        end do
+      else
+        dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
+        ! decay frictional velocity near solar surface
+        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
+        do idir=1,ndir
+          w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+        end do
+      end if
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
       ! decay frictional velocity near solar surface
@@ -738,7 +746,6 @@ contains
         w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     end if
-
   end subroutine frictional_velocity
 
   !> Source terms after split off time-independent magnetic field
@@ -1202,13 +1209,14 @@ contains
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
   !> make sure that dxlevel(^D) is set correctly.
-  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
+  subroutine get_current(w,ixI^L,ixO^L,idirmin,current,fourthorder)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)  :: ixO^L, ixI^L
     double precision, intent(in) :: w(ixI^S,1:nw)
     integer, intent(out) :: idirmin
+    logical, intent(in), optional :: fourthorder
     integer :: idir, idirmin0
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
@@ -1218,7 +1226,11 @@ contains
 
     bvec(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
 
-    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+    if(present(fourthorder)) then
+      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir,fourthorder)
+    else
+      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+    end if
 
     if(B0field) current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+&
         block%J0(ixO^S,idirmin0:3)
@@ -1267,7 +1279,6 @@ contains
         dtnew=min(dtdiffpar*minval(block%ds(ixO^S,1:ndim))**4/mf_eta_hyper,dtnew)
       end if
     end if
-
   end subroutine mf_get_dt
 
   ! Add geometrical source terms to w

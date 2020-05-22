@@ -24,7 +24,8 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: rbs,xc1,xc2,xcc1,xcc2
-    double precision :: xcart(ixI^S,1:ndim),Bloc(ixI^S,ndir)
+    double precision :: xcart(ixI^S,1:ndim),xC(ixI^S,1:ndim),Bloc(ixI^S,ndir)
+    integer :: idir, ixC^L
     logical, save:: first=.true.
 
     if (first) then
@@ -49,8 +50,20 @@ contains
     if(B0field) then
       w(ixO^S,mag(:))=0.d0
     else
-      call get_B(ixI^L,ixO^L,Bloc,x)
-      w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      if(stagger_grid) then
+        do idir=1,ndim
+          xC=x
+          ixCmin^D=ixOmin^D-kr(idir,^D);
+          ixCmax^D=ixOmax^D;
+          xC(ixC^S,idir)=x(ixC^S,idir)+half*block%dx(ixC^S,idir) 
+          call get_B(ixI^L,ixC^L,Bloc,xC)                                                                                           
+          block%ws(ixC^S,idir)=Bloc(ixC^S,idir)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+      else
+        call get_B(ixI^L,ixO^L,Bloc,x)
+        w(ixO^S,mag(:))=Bloc(ixO^S,:)
+      end if
     end if
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
@@ -76,8 +89,8 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
-    double precision :: delydelx
-    integer :: ix^D,idir,ixInt^L
+    double precision :: Qp(ixI^S)
+    integer :: ix^D,idir,ixInt^L,ixOs^L
 
     select case(iB)
     case(1)
@@ -91,11 +104,32 @@ contains
         w(ix1^%1ixO^S,mom(2))=w(ixOmax1+1^%1ixO^S,mom(2))/w(ixOmax1+1^%1ixO^S,rho_)
       enddo
       !> zero normal gradient extrapolation
-      do ix1=ixOmax1,ixOmin1,-1
-        w(ix1^%1ixO^S,mag(:))=(1.0d0/3.0d0)* &
-                    (-w(ix1+2^%1ixO^S,mag(:))&
-               +4.0d0*w(ix1+1^%1ixO^S,mag(:)))
-      enddo
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==1) cycle
+          ixOsmax^D=ixOmax^D;
+          ixOsmin^D=ixOmin^D-kr(^D,idir);
+          do ix1=ixOsmax1,ixOsmin1,-1
+             block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+                    (-block%ws(ix1+2^%1ixOs^S,idir)&
+                +4.d0*block%ws(ix1+1^%1ixOs^S,idir))
+          end do
+        end do
+        ixOs^L=ixO^L-kr(1,^D);
+        block%ws(ixOs^S,1)=zero
+        do ix1=ixOsmax1,ixOsmin1,-1
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix1^%1ixOs^S,1)=Qp(ix1+1^%1ixO^S)*block%dvolume(ix1+1^%1ixO^S)&
+            /block%surfaceC(ix1^%1ixOs^S,1)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+      else
+        do ix1=ixOmax1,ixOmin1,-1
+          w(ix1^%1ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                      (-w(ix1+2^%1ixO^S,mag(:))&
+                 +4.0d0*w(ix1+1^%1ixO^S,mag(:)))
+        enddo
+      end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(2)
@@ -109,11 +143,32 @@ contains
         w(ix1^%1ixO^S,mom(2))=w(ixOmin1-1^%1ixO^S,mom(2))/w(ixOmin1-1^%1ixO^S,rho_)
       enddo
       !> zero normal gradient extrapolation
-      do ix1=ixOmin1,ixOmax1
-        w(ix1^%1ixO^S,mag(:))=(1.0d0/3.0d0)* &
-                    (-w(ix1-2^%1ixO^S,mag(:))&
-               +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
-      enddo
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==1) cycle
+            ixOsmax^D=ixOmax^D;
+            ixOsmin^D=ixOmin^D-kr(^D,idir);
+            do ix1=ixOsmin1,ixOsmax1
+               block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+                      (-block%ws(ix1-2^%1ixOs^S,idir)&
+                  +4.d0*block%ws(ix1-1^%1ixOs^S,idir))
+            end do
+        end do
+        ixOs^L=ixO^L;
+        block%ws(ixOs^S,1)=zero
+        do ix1=ixOsmin1,ixOsmax1
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix1^%1ixOs^S,1)=-Qp(ix1^%1ixO^S)*block%dvolume(ix1^%1ixO^S)&
+            /block%surfaceC(ix1^%1ixOs^S,1)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+      else
+        do ix1=ixOmin1,ixOmax1
+          w(ix1^%1ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                      (-w(ix1-2^%1ixO^S,mag(:))&
+                 +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
+        enddo
+      end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(3)
@@ -127,11 +182,32 @@ contains
         w(ix2^%2ixO^S,mom(2))=w(ixOmax2+1^%2ixO^S,mom(2))/w(ixOmax2+1^%2ixO^S,rho_)
       enddo
       !> zero normal gradient extrapolation
-      do ix2=ixOmax2,ixOmin2,-1
-        w(ix2^%2ixO^S,mag(:))=(1.0d0/3.0d0)* &
-                    (-w(ix2+2^%2ixO^S,mag(:))&
-               +4.0d0*w(ix2+1^%2ixO^S,mag(:)))
-      enddo
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==2) cycle
+            ixOsmax^D=ixOmax^D;
+            ixOsmin^D=ixOmin^D-kr(^D,idir);
+            do ix2=ixOsmax2,ixOsmin2,-1
+               block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
+                      (-block%ws(ix2+2^%2ixOs^S,idir)&
+                  +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
+            end do
+        end do
+        ixOs^L=ixO^L-kr(2,^D);
+        block%ws(ixOs^S,2)=zero
+        do ix2=ixOsmax2,ixOsmin2,-1
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix2^%2ixOs^S,2)=Qp(ix2+1^%2ixO^S)*block%dvolume(ix2+1^%2ixO^S)&
+            /block%surfaceC(ix2^%2ixOs^S,2)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+      else
+        do ix2=ixOmax2,ixOmin2,-1
+          w(ix2^%2ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                      (-w(ix2+2^%2ixO^S,mag(:))&
+                 +4.0d0*w(ix2+1^%2ixO^S,mag(:)))
+        enddo
+      end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
@@ -145,11 +221,32 @@ contains
         w(ix2^%2ixO^S,mom(2))=w(ixOmin2-1^%2ixO^S,mom(2))/w(ixOmin2-1^%2ixO^S,rho_)
       enddo
       !> zero normal gradient extrapolation
-      do ix2=ixOmin2,ixOmax2
-        w(ix2^%2ixO^S,mag(:))=(1.0d0/3.0d0)* &
-                    (-w(ix2-2^%2ixO^S,mag(:))&
-               +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
-      enddo
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==2) cycle
+            ixOsmax^D=ixOmax^D;
+            ixOsmin^D=ixOmin^D-kr(^D,idir);
+            do ix2=ixOsmin2,ixOsmax2
+               block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
+                      (-block%ws(ix2-2^%2ixOs^S,idir)&
+                  +4.d0*block%ws(ix2-1^%2ixOs^S,idir))
+            end do
+        end do
+        ixOs^L=ixO^L;
+        block%ws(ixOs^S,2)=zero
+        do ix2=ixOsmin2,ixOsmax2
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix2^%2ixOs^S,2)=-Qp(ix2^%2ixO^S)*block%dvolume(ix2^%2ixO^S)&
+            /block%surfaceC(ix2^%2ixOs^S,2)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+      else
+        do ix2=ixOmin2,ixOmax2
+          w(ix2^%2ixO^S,mag(:))=(1.0d0/3.0d0)* &
+                      (-w(ix2-2^%2ixO^S,mag(:))&
+                 +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
+        enddo
+      end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
