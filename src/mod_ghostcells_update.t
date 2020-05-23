@@ -1479,7 +1479,11 @@ contains
         ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
         ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
 
+        if(prolongprimitive) call phys_to_primitive(ixG^LL,ixFi^L,psb(igrid)%w,psb(igrid)%x)
+
         call prolong_2nd_stg(psc(igrid),psb(igrid),ixCo^L,ixFi^L,dxCo^D,xComin^D,dxFi^D,xFimin^D,.true.,fine_^Lin)
+
+        if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,psb(igrid)%w,psb(igrid)%x)
 
         ! The current region has already been refined, so it does not need to be prolonged again
         NeedProlong(i^D)=.false. 
