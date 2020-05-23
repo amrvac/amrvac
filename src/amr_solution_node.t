@@ -77,25 +77,25 @@ subroutine alloc_node(igrid)
   if(.not. allocated(ps(igrid)%w)) then
 
     ! allocate arrays for solution and space
-    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
+    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true., .false.)
     ! allocate arrays for one level coarser solution
-    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
+    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true., .false.)
     ! allocate arrays for old solution
-    call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false., .false.)
     ! allocate arrays for temp solution 1
-    call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
+    call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false., .true.)
 
     ! allocate temperary solution space
     select case (time_integrator)
     case("threestep","fourstep","jameson","twostep_trapezoidal")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
     case("rk4","ssprk43")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
+      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false., .false.)
     case("ssprk54")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
-      call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
+      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false., .false.)
+      call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false., .false.)
     end select
 
   end if
@@ -534,15 +534,23 @@ subroutine alloc_node(igrid)
 end subroutine alloc_node
 
 !> allocate memory to physical state of igrid node
-subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
+subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x, io_blk_flag)
   use mod_global_parameters
   use mod_geometry
   type(state) :: s
   integer, intent(in) :: igrid, ixG^L, ixGext^L
   logical, intent(in) :: alloc_x
+  logical, intent(in) :: io_blk_flag
   integer             :: ixGs^L
+  if(io_blk_flag) then
+    select case(convert_type)
+      case('oneblock','oneblockB')
+      allocate(s%w(ixG^S,1:nw+nwauxio))
+    end select
+  else
+    allocate(s%w(ixG^S,1:nw))
+  endif
 
-  allocate(s%w(ixG^S,1:nw))
   s%ixG^L=ixG^L;
   {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
   if(stagger_grid) then
