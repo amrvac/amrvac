@@ -546,6 +546,8 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x, io_blk_flag)
     select case(convert_type)
       case('oneblock','oneblockB')
       allocate(s%w(ixG^S,1:nw+nwauxio))
+    case default
+      allocate(s%w(ixG^S,1:nw))
     end select
   else
     allocate(s%w(ixG^S,1:nw))
