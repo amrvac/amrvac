@@ -191,10 +191,12 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
+    use mod_physics
     
     double precision :: omega1,cmu,cmut,cnu,cnut
     double precision, allocatable :: bj(:)
-    integer:: iigrid, igrid,j
+    double precision :: tmp(ixG^T)
+    integer:: iigrid, igrid, j
     logical :: evenstep, stagger_flag
 
     ! not do fix conserve and getbc for staggered values if stagger is used
@@ -257,6 +259,10 @@ contains
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
+        if(phys_solve_eaux) then
+          call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixG^LL,tmp)
+          ps(igrid)%w(ixG^T,eaux_)=tmp(ixG^T)/(tc_gamma-1.d0)
+        end if
       end do
       ! point bc mpi data type back to full type for (M)HD
       type_send_srl=>type_send_srl_f
@@ -320,10 +326,18 @@ contains
     if(evenstep) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
+        if(phys_solve_eaux) then
+          call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixG^LL,tmp)
+          ps(igrid)%w(ixG^T,eaux_)=tmp(ixG^T)/(tc_gamma-1.d0)
+        end if
       end do 
     else
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps2(igrid)%w(ixG^T,e_)
+        if(phys_solve_eaux) then
+          call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixG^LL,tmp)
+          ps(igrid)%w(ixG^T,eaux_)=tmp(ixG^T)/(tc_gamma-1.d0)
+        end if
       end do 
     end if
     deallocate(bj)
@@ -394,10 +408,6 @@ contains
 
     w2(ixO^S,e_)=qcmu*w1(ixO^S,e_)+qcnu*w2(ixO^S,e_)+(1.d0-qcmu-qcnu)*w(ixO^S,e_)&
                 +qcmut*qdt*tmp(ixO^S)+qcnut*wold(ixO^S,e_)
-    if(phys_solve_eaux) then
-      w2(ixO^S,eaux_)=qcmu*w1(ixO^S,eaux_)+qcnu*w2(ixO^S,eaux_)+(1.d0-qcmu-qcnu)*w(ixO^S,eaux_)&
-                     +qcmut*qdt*tmp(ixO^S)+qcnut*wold(ixO^S,eaux_)
-    end if
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
       call store_flux(igrid,fC,1,ndim,1)
@@ -437,19 +447,12 @@ contains
         crash=.true.
       else
         w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
-        if(phys_solve_eaux) then
-          w1(ixO^S,eaux_)=w1(ixO^S,eaux_)+qcmut*wold(ixO^S,e_)
-        end if
       end if
     else
       where(tmp1(ixO^S)<small_e)
         tmp1(ixO^S)=small_e
       endwhere
       w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
-      if(phys_solve_eaux) then
-        w1(ixO^S,eaux_)=small_e
-      else
-      end if
     end if
 
     if (fix_conserve_at_step) then

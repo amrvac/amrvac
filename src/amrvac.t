@@ -226,7 +226,7 @@ contains
        if (timeio0 - time_last_print > time_between_print) then
          time_last_print = timeio0
          if (mype == 0) then
-           write(*, '(A4,I10,ES12.3,ES12.3,ES12.3)') " #", &
+           write(*, '(A4,I10,ES12.4,ES12.4,ES12.4)') " #", &
                 it, global_time, dt, timeio0 - time_in
          end if
        end if
