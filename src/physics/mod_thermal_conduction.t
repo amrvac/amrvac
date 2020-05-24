@@ -202,6 +202,8 @@ contains
     ! not do fix conserve and getbc for staggered values if stagger is used
     stagger_flag=stagger_grid
     stagger_grid=.false.
+    bcphys=.false.
+    call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
 
     ! point bc mpi datatype to partial type for thermalconduction
     type_send_srl=>type_send_srl_p1
@@ -254,7 +256,6 @@ contains
       call sendflux(1,ndim)
       call fix_conserve(ps1,1,ndim,e_,1)
     end if
-    bcphys=.false.
     call getbc(global_time,0.d0,ps1,e_,1)
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);

@@ -8,6 +8,7 @@ subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
 
   integer :: ixCo^D, ixFi^D, iw
   double precision :: CoFiratio
+  double precision :: B_energy_change(ixCoG^S)
 
   associate(wFi=>sFi%w(ixFiG^S,1:nw), wCo=>sCo%w(ixCoG^S,1:nw))
   staggered: associate(wFis=>sFi%ws,wCos=>sCo%ws)
@@ -48,8 +49,15 @@ subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
          end if
       {end do\}
     end do
+    if(phys_energy.and. .not.coarsenprimitive) then
+      B_energy_change(ixCo^S)=0.5d0*sum(wCo(ixCo^S,iw_mag(:))**2,dim=ndim+1)
+    end if
     ! average to fill cell-centred values
     call phys_face_to_center(ixCo^L,sCo)
+    if(phys_energy.and. .not.coarsenprimitive) then
+      wCo(ixCo^S,iw_e)=wCo(ixCo^S,iw_e)-B_energy_change(ixCo^S)+&
+         0.5d0*sum(wCo(ixCo^S,iw_mag(:))**2,dim=ndim+1)
+    end if
   end if
 
   if(coarsenprimitive) then

@@ -661,6 +661,26 @@ contains
     end where
   end subroutine mhd_energy_synchro
 
+  subroutine mhd_find_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+    use mod_global_parameters
+    use mod_small_values
+    logical, intent(in)             :: primitive
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    character(len=*), intent(in)    :: subname
+
+    double precision :: smallone
+    integer :: idir, flag(ixI^S)
+
+    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
+
+    if (any(flag(ixO^S) /= 0)) then
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+    end if
+
+  end subroutine mhd_find_small_values
+
   subroutine mhd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
     use mod_small_values
@@ -1067,6 +1087,10 @@ contains
     double precision, intent(in) :: w(ixI^S,nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(out):: pth(ixI^S)
+
+    if (check_small_values) then
+      call mhd_find_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_get_pthermal')
+    end if
 
     if(mhd_energy) then
       pth(ixO^S)=gamma_1*(w(ixO^S,e_)&

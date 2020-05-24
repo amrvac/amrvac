@@ -24,6 +24,7 @@ contains
     integer, intent(in)          :: w_flag(ixI^S)
     integer                      :: ix_bad(ndim), iw
     character(len=*), intent(in) :: subname
+    double precision :: testv
 
     ix_bad = maxloc(w_flag(ixO^S)) + [ ixOmin^D-1 ]
 
@@ -37,6 +38,10 @@ contains
          write(*, '(A20,A,E14.7)') trim(cons_wnames(iw)), ": ", &
               w({ix_bad(^D)}, iw)
       end do
+      !testv=w({ix_bad(^D)},iw_e)-0.5d0*(sum(w({ix_bad(^D)},iw_mom(:))**2)/&
+      !      w({ix_bad(^D)},iw_rho)+sum(w({ix_bad(^D)},iw_mag(:))**2))
+      !write(*,*) 'internal e',testv
+      !write(*,*) sqrt(testv)
       write(*,*) "Saving status at the previous time step"
       crash=.true.
     end if

@@ -730,7 +730,7 @@ contains
        if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
     end do
 
-    if(stagger_grid) then
+    if(bcphys.and.stagger_grid) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
         saveigrid=igrid
@@ -912,7 +912,7 @@ contains
 
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
-        if(phyboundblock(igrid).and..not.stagger_grid) then
+        if(phyboundblock(igrid).and..not.stagger_grid.and.bcphys) then
           ! to use block in physical boundary setup for coarse representative
           block=>psc(igrid)
           ! filling physical boundary ghost cells of a coarser representative block for
@@ -1388,7 +1388,7 @@ contains
         xFimin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxFi^D;
         xComin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxCo^D;
 
-        if(stagger_grid.and.phyboundblock(igrid)) then
+        if(stagger_grid.and.phyboundblock(igrid).and.bcphys) then
           block=>psc(igrid)
           ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
           ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
