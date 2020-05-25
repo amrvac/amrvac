@@ -536,29 +536,36 @@ contains
 
   end subroutine mhd_physical_units
 
-  subroutine mhd_check_w(primitive,ixI^L,ixO^L,w,flag)
+  subroutine mhd_check_w(primitive,ixI^L,ixO^L,w,flag,smallw)
     use mod_global_parameters
 
     logical, intent(in) :: primitive
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S,nw)
     integer, intent(inout) :: flag(ixI^S)
+    double precision, intent(out) :: smallw(1:nw)
     double precision :: tmp(ixI^S)
 
+    smallw=1.d0
     flag(ixO^S)=0
     where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
+    if(any(flag(ixO^S)==rho_)) smallw(rho_)=minval(w(ixO^S,rho_))
 
     if(mhd_energy) then
       if(primitive) then
         where(w(ixO^S,e_) < small_pressure) flag(ixO^S) = e_
+        if(any(flag(ixO^S)==e_)) smallw(e_)=minval(w(ixO^S,e_))
       else
         ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
         tmp(ixO^S)=w(ixO^S,e_)-&
             mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L)
         tmp(ixO^S)=gamma_1*tmp(ixO^S)
         where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
+        if(any(flag(ixO^S)==e_)) smallw(e_)=minval(tmp(ixO^S))
       end if
     end if
+
+
   end subroutine mhd_check_w
 
   !> Transform primitive variables into conservative ones
@@ -670,13 +677,13 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    double precision :: smallone
+    double precision :: smallw(1:nw)
     integer :: idir, flag(ixI^S)
 
-    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
+    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag, smallw)
 
     if (any(flag(ixO^S) /= 0)) then
-        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname, smallw)
     end if
 
   end subroutine mhd_find_small_values
@@ -690,12 +697,12 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    double precision :: smallone
+    double precision :: smallw(1:nw)
     integer :: idir, flag(ixI^S)
 
     if (small_values_method == "ignore") return
 
-    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
+    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag, smallw)
 
     if (any(flag(ixO^S) /= 0)) then
       select case (small_values_method)
@@ -726,7 +733,7 @@ contains
       case ("average")
         call small_values_average(ixI^L, ixO^L, w, x, flag)
       case default
-        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname, smallw)
       end select
     end if
   end subroutine mhd_handle_small_values

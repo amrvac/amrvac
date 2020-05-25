@@ -31,6 +31,7 @@ contains
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     integer                         :: flagL(ixI^S), flagR(ixI^S)
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
+    double precision                :: smallw(1:nw)
     !double precision                :: alpha
     !----------------------------------------------------------------------------
 
@@ -201,8 +202,8 @@ contains
 
     ! Since limiter not TVD, negative pressures or densities could result.  
     ! Fall back to flat interpolation (minmod would also work). 
-    call phys_check_w(.true.,ixG^LL,iL^L,wLCtmp,flagL)
-    call phys_check_w(.true.,ixG^LL,iL^L,wRCtmp,flagR)
+    call phys_check_w(.true.,ixG^LL,iL^L,wLCtmp,flagL,smallw)
+    call phys_check_w(.true.,ixG^LL,iL^L,wRCtmp,flagR,smallw)
 
     do iw=1,nwflux
        where (flagL(iL^S) == 0 .and. flagR(iL^S) == 0)

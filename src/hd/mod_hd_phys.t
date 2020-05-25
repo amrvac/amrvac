@@ -324,28 +324,33 @@ contains
   end subroutine hd_physical_units
 
   !> Returns 0 in argument flag where values are ok
-  subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag)
+  subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag, smallw)
     use mod_global_parameters
 
     logical, intent(in)          :: primitive
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, nw)
     integer, intent(inout)       :: flag(ixI^S)
+    double precision, intent(out) :: smallw(1:nw)
     double precision             :: tmp(ixI^S)
 
+    smallw=1.d0
     flag(ixO^S) = 0
 
     if (hd_energy) then
        if (primitive) then
           where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
+          if(any(flag(ixO^S)==e_)) smallw(e_)=minval(w(ixO^S,e_))
        else
           tmp(ixO^S) = (hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
                hd_kin_en(w, ixI^L, ixO^L))
           where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
+          if(any(flag(ixO^S)==e_)) smallw(e_)=minval(tmp(ixO^S))
        endif
     end if
 
     where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
+    if(any(flag(ixO^S)==rho_)) smallw(rho_)=minval(w(ixO^S,rho_))
 
   end subroutine hd_check_w
 
@@ -997,12 +1002,12 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    double precision :: smallone
+    double precision :: smallw(1:nw)
     integer :: idir, flag(ixI^S)
 
     if (small_values_method == "ignore") return
 
-    call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
+    call hd_check_w(primitive, ixI^L, ixO^L, w, flag, smallw)
 
     if (any(flag(ixO^S) /= 0)) then
       select case (small_values_method)
@@ -1033,7 +1038,7 @@ contains
       case ("average")
         call small_values_average(ixI^L, ixO^L, w, x, flag)
       case default
-        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname, smallw)
       end select
     end if
   end subroutine hd_handle_small_values

@@ -251,10 +251,8 @@ contains
     phys_to_conserved        => mf_to_conserved
     phys_to_primitive        => mf_to_primitive
     phys_check_params        => mf_check_params
-    phys_check_w             => mf_check_w
     phys_write_info          => mf_write_info
     phys_angmomfix           => mf_angmomfix
-    phys_handle_small_values => mf_handle_small_values
 
     if(type_divb==divb_glm) then
       phys_modify_wLR => mf_modify_wLR
@@ -311,19 +309,6 @@ contains
 
   end subroutine mf_physical_units
 
-  subroutine mf_check_w(primitive,ixI^L,ixO^L,w,flag)
-    use mod_global_parameters
-
-    logical, intent(in) :: primitive
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S,nw)
-    integer, intent(inout) :: flag(ixI^S)
-    double precision :: tmp(ixI^S)
-
-    flag(ixO^S)=0
-
-  end subroutine mf_check_w
-
   !> Transform primitive variables into conservative ones
   subroutine mf_to_conserved(ixI^L,ixO^L,w,x)
     use mod_global_parameters
@@ -343,32 +328,6 @@ contains
 
     ! nothing to do for mf
   end subroutine mf_to_primitive
-
-  subroutine mf_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
-    use mod_global_parameters
-    use mod_small_values
-    logical, intent(in)             :: primitive
-    integer, intent(in)             :: ixI^L,ixO^L
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    character(len=*), intent(in)    :: subname
-
-    integer :: flag(ixI^S)
-
-    if (small_values_method == "ignore") return
-
-    call mf_check_w(primitive, ixI^L, ixO^L, w, flag)
-
-    if (any(flag(ixO^S) /= 0)) then
-      select case (small_values_method)
-      case ("replace")
-      case ("average")
-        call small_values_average(ixI^L, ixO^L, w, x, flag)
-      case default
-        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
-      end select
-    end if
-  end subroutine mf_handle_small_values
 
   !> Calculate v vector
   subroutine mf_get_v(w,x,ixI^L,ixO^L,v)
@@ -776,8 +735,6 @@ contains
       w(ixO^S,mom(1:ndir))=w(ixO^S,mom(1:ndir))+axb(ixO^S,1:ndir)
     end if
 
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_B0')
-
   end subroutine add_source_B0split
 
   !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
@@ -879,8 +836,6 @@ contains
 
     end do ! idir
 
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
-
   end subroutine add_source_res1
 
   !> Add resistive source to w within ixO
@@ -930,8 +885,6 @@ contains
       w(ixO^S,mag(1:ndir)) = w(ixO^S,mag(1:ndir))-qdt*curlj(ixO^S,1:ndir)
     end if
 
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
-
   end subroutine add_source_res2
 
   !> Add Hyper-resistive source to w within ixO
@@ -975,8 +928,6 @@ contains
       w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-tmpvec2(ixO^S,idir)*qdt
     end do
 
-    if (check_small_values)  call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
-
   end subroutine add_source_hyperres
 
   subroutine add_source_glm(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -1019,8 +970,6 @@ contains
        end select
     end do
 
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm')
-
   end subroutine add_source_glm
 
   !> Add divB related sources to w within ixO corresponding to Powel
@@ -1043,8 +992,6 @@ contains
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
     end do
-
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
 
   end subroutine add_source_powel
 
@@ -1069,8 +1016,6 @@ contains
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
     end do
-
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
 
   end subroutine add_source_janhunen
 
@@ -1138,8 +1083,6 @@ contains
 
        w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
     end do
-
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
 
   end subroutine add_source_linde
 
