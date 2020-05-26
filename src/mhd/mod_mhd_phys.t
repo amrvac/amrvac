@@ -668,26 +668,6 @@ contains
     end where
   end subroutine mhd_energy_synchro
 
-  subroutine mhd_find_small_values(primitive, w, x, ixI^L, ixO^L, subname)
-    use mod_global_parameters
-    use mod_small_values
-    logical, intent(in)             :: primitive
-    integer, intent(in)             :: ixI^L,ixO^L
-    double precision, intent(in) :: w(ixI^S,1:nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    character(len=*), intent(in)    :: subname
-
-    double precision :: smallw(1:nw)
-    integer :: idir, flag(ixI^S)
-
-    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag, smallw)
-
-    if (any(flag(ixO^S) /= 0)) then
-        call small_values_error(w, x, ixI^L, ixO^L, flag, subname, smallw)
-    end if
-
-  end subroutine mhd_find_small_values
-
   subroutine mhd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
     use mod_small_values
@@ -719,14 +699,26 @@ contains
 
         if (mhd_energy) then
           if (small_values_fix_iw(e_)) then
-            if(primitive) then
-              where(flag(ixO^S) /= 0) w(ixO^S,e_) = small_pressure
+            if(mhd_solve_eaux) then
+              if(primitive) then
+                where(flag(ixO^S) /= 0) w(ixO^S,e_)=w(ixO^S,eaux_)*gamma_1
+              else
+                where(flag(ixO^S) /= 0)
+                  w(ixO^S,e_) = w(ixO^S,eaux_) + 0.5d0 * &
+                       sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_) + &
+                       mhd_mag_en(w, ixI^L, ixO^L)
+                end where
+              end if
             else
-              where(flag(ixO^S) /= 0)
-                w(ixO^S,e_) = small_e + 0.5d0 * &
-                     sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_) + &
-                     mhd_mag_en(w, ixI^L, ixO^L)
-              end where
+              if(primitive) then
+                where(flag(ixO^S) /= 0) w(ixO^S,e_) = small_pressure
+              else
+                where(flag(ixO^S) /= 0)
+                  w(ixO^S,e_) = small_e + 0.5d0 * &
+                       sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_) + &
+                       mhd_mag_en(w, ixI^L, ixO^L)
+                end where
+              end if
             end if
           end if
         end if
@@ -1107,6 +1099,24 @@ contains
       pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
   end subroutine mhd_get_pthermal
+
+  subroutine mhd_find_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+    use mod_global_parameters
+    use mod_small_values
+    logical, intent(in)             :: primitive
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    character(len=*), intent(in)    :: subname
+
+    double precision :: smallw(1:nw)
+    integer :: idir, flag(ixI^S)
+
+    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag, smallw)
+
+    if (any(flag(ixO^S) /= 0)) call small_values_error(w, x, ixI^L, ixO^L, flag, subname, smallw)
+
+  end subroutine mhd_find_small_values
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
