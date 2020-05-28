@@ -77,25 +77,25 @@ subroutine alloc_node(igrid)
   if(.not. allocated(ps(igrid)%w)) then
 
     ! allocate arrays for solution and space
-    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true., .false.)
+    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
     ! allocate arrays for one level coarser solution
-    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true., .false.)
+    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
     ! allocate arrays for old solution
-    call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false., .false.)
+    call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
     ! allocate arrays for temp solution 1
-    call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false., .true.)
+    call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
 
     ! allocate temperary solution space
     select case (time_integrator)
     case("threestep","fourstep","jameson","twostep_trapezoidal")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
     case("rk4","ssprk43")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false., .false.)
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
     case("ssprk54")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false., .false.)
-      call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false., .false.)
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
     end select
 
   end if
@@ -298,7 +298,7 @@ subroutine alloc_node(igrid)
                psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(nghostcells-ix)
              enddo
            endif
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2)then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D))then
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
                ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
              enddo
@@ -329,7 +329,7 @@ subroutine alloc_node(igrid)
              psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
            enddo
            ! first block: modify ghost cells!!!
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2+1)then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)+1)then
              if(ng^D(level)==nstretchedblocks(level,^D))then
                ! if middle blocks do not exist then use symmetry
                do ix=ixGextmin^D,nghostcells
@@ -534,25 +534,15 @@ subroutine alloc_node(igrid)
 end subroutine alloc_node
 
 !> allocate memory to physical state of igrid node
-subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x, io_blk_flag)
+subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
   use mod_global_parameters
   use mod_geometry
   type(state) :: s
   integer, intent(in) :: igrid, ixG^L, ixGext^L
   logical, intent(in) :: alloc_x
-  logical, intent(in) :: io_blk_flag
   integer             :: ixGs^L
-  if(io_blk_flag) then
-    select case(convert_type)
-      case('oneblock','oneblockB')
-      allocate(s%w(ixG^S,1:nw+nwauxio))
-    case default
-      allocate(s%w(ixG^S,1:nw))
-    end select
-  else
-    allocate(s%w(ixG^S,1:nw))
-  endif
 
+  allocate(s%w(ixG^S,1:nw))
   s%ixG^L=ixG^L;
   {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
   if(stagger_grid) then
