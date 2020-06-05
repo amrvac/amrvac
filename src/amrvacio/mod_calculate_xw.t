@@ -77,7 +77,6 @@ contains
     typelimiter=type_limiter(node(plevel_,igrid))
     typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    block=>ps(igrid)
     if(nwauxio>0)then
       ! auxiliary io variables can be computed and added by user
       ! next few lines ensure correct usage of routines like divvector etc
@@ -109,7 +108,7 @@ contains
 
     ! compute the corner values for w now by averaging
 
-    if(slab) then
+    if(slab_uniform) then
        ! for slab symmetry: no geometrical info required
        do iw=1,nw+nwauxio
          {do ix^DB=ixCmin^DB,ixCmax^DB\}
@@ -423,7 +422,7 @@ contains
 
     ! coordinates of cell corners
     ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
-    if(slab)then
+    if(slab_uniform)then
        do idims=1,ndim
          xC(ixC^S,idims)=ps(igrid)%x(ixC^S,idims)+0.5d0*dx(idims,level)
        end do
