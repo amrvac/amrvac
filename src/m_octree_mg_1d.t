@@ -19,7 +19,7 @@
 ! mpif90 -c m_octree_mg.f90 -cpp -DNDIM=<1,2,3> [other options]
 
 
-module m_octree_mg_2d
+module m_octree_mg_1d
   use mpi
   implicit none
   private
@@ -56,7 +56,7 @@ module m_octree_mg_2d
   integer, parameter, public :: mg_smoother_jacobi = 3
 
   !> Problem dimension
-  integer, parameter, public :: mg_ndim = 2
+  integer, parameter, public :: mg_ndim = 1
 
   !> Number of predefined multigrid variables
   integer, parameter, public :: mg_num_vars = 4
@@ -97,36 +97,33 @@ module m_octree_mg_2d
   integer, parameter, public :: mg_max_timers = 20
 
   ! Numbering of children (same location as **corners**)
-  integer, parameter, public :: mg_num_children = 4
+  integer, parameter, public :: mg_num_children = 2
 
   ! Index offset for each child
-  integer, parameter, public :: mg_child_dix(2, 4) = reshape([0,0,1,0,0,1,1,1], [2,4])
+  integer, parameter, public :: mg_child_dix(1, 2) = reshape([0,1], [1,2])
   ! Reverse child index in each direction
-  integer, parameter, public :: mg_child_rev(4, 2) = reshape([2,1,4,3,3,4,1,2], [4,2])
+  integer, parameter, public :: mg_child_rev(2, 1) = reshape([2,1], [2,1])
   ! Children adjacent to a neighbor
-  integer, parameter, public :: mg_child_adj_nb(2, 4) = reshape([1,3,2,4,1,2,3,4], [2,4])
+  integer, parameter, public :: mg_child_adj_nb(1, 2) = reshape([1,2], [1,2])
   ! Which children have a low index per dimension
-  logical, parameter, public :: mg_child_low(2, 4) = reshape([.true., .true., &
-       .false., .true., .true., .false., .false., .false.], [2, 4])
+  logical, parameter, public :: mg_child_low(1, 2) = reshape([.true., .false.], [1, 2])
 
   ! Neighbor topology information
-  integer, parameter, public :: mg_num_neighbors = 4
+  integer, parameter, public :: mg_num_neighbors = 2
   integer, parameter, public :: mg_neighb_lowx = 1
   integer, parameter, public :: mg_neighb_highx = 2
-  integer, parameter, public :: mg_neighb_lowy = 3
-  integer, parameter, public :: mg_neighb_highy = 4
 
   ! Index offsets of neighbors
-  integer, parameter, public :: mg_neighb_dix(2, 4) = reshape([-1,0,1,0,0,-1,0,1], [2,4])
+  integer, parameter, public :: mg_neighb_dix(1, 2) = reshape([-1,1], [1,2])
   ! Which neighbors have a lower index
-  logical, parameter, public :: mg_neighb_low(4) = [.true., .false., .true., .false.]
+  logical, parameter, public :: mg_neighb_low(2) = [.true., .false.]
   ! Opposite of nb_low, but now as -1,1 integers
-  integer, parameter, public :: mg_neighb_high_pm(4) = [-1, 1, -1, 1]
+  integer, parameter, public :: mg_neighb_high_pm(2) = [-1, 1]
 
   ! Reverse neighbors
-  integer, parameter, public :: mg_neighb_rev(4) = [2, 1, 4, 3]
+  integer, parameter, public :: mg_neighb_rev(2) = [2, 1]
   ! Direction (dimension) for a neighbor
-  integer, parameter, public :: mg_neighb_dim(4) = [1, 1, 2, 2]
+  integer, parameter, public :: mg_neighb_dim(2) = [1, 1]
 
   !> Lists of blocks per refinement level
   type, public :: mg_lvl_t
@@ -145,14 +142,14 @@ module m_octree_mg_2d
      integer  :: rank              !< Which process owns this box
      integer  :: id                !< Box id (index in boxes(:) array)
      integer  :: lvl               !< Refinement level
-     integer  :: ix(2)          !< Spatial index
+     integer  :: ix(1)          !< Spatial index
      integer  :: parent            !< Id of parent
-     integer  :: children(2**2) !< Ids of children
-     integer  :: neighbors(2*2) !< Ids of neighbors
-     real(dp) :: r_min(2)       !< Minimum coordinate
-     real(dp) :: dr(2)          !< Grid spacing
+     integer  :: children(2**1) !< Ids of children
+     integer  :: neighbors(2*1) !< Ids of neighbors
+     real(dp) :: r_min(1)       !< Minimum coordinate
+     real(dp) :: dr(1)          !< Grid spacing
      !> Cell-centered data
-     real(dp), allocatable :: cc(:, :, :)
+     real(dp), allocatable :: cc(:, :)
   end type mg_box_t
 
   !> Buffer type (one is used for each pair of communicating processes)
@@ -212,11 +209,11 @@ module m_octree_mg_2d
      !> Size of boxes per level (differs for coarsest levels)
      integer                  :: box_size_lvl(mg_lvl_lo:mg_lvl_hi)
      !> Size of domain per level (if uniformly refined)
-     integer                  :: domain_size_lvl(2, mg_lvl_lo:mg_lvl_hi)
+     integer                  :: domain_size_lvl(1, mg_lvl_lo:mg_lvl_hi)
      !> Grid spacing per level
-     real(dp)                 :: dr(2, mg_lvl_lo:mg_lvl_hi)
+     real(dp)                 :: dr(1, mg_lvl_lo:mg_lvl_hi)
      !> Minimum coordinates
-     real(dp)                 :: r_min(2)
+     real(dp)                 :: r_min(1)
      !> List of all levels
      type(mg_lvl_t)              :: lvls(mg_lvl_lo:mg_lvl_hi)
      !> Array with all boxes in the tree. Only boxes owned by this task are
@@ -255,7 +252,7 @@ module m_octree_mg_2d
      integer  :: n_cycle_up          = 2
      !> Maximum number of cycles on the coarse grid
      integer  :: max_coarse_cycles   = 1000
-     integer  :: coarsest_grid(2) = 2
+     integer  :: coarsest_grid(1) = 2
      !> Stop coarse grid when max. residual is smaller than this
      real(dp) :: residual_coarse_abs = 1e-8_dp
      !> Stop coarse grid when residual has been reduced by this factor
@@ -286,7 +283,7 @@ module m_octree_mg_2d
        integer, intent(in)     :: nb      !< Direction
        integer, intent(out)    :: bc_type !< Type of b.c.
        !> Boundary values
-       real(dp), intent(out)   :: bc(nc)
+       real(dp), intent(out)   :: bc(1)
      end subroutine mg_subr_bc
 
      !> To fill ghost cells near refinement boundaries
@@ -297,7 +294,7 @@ module m_octree_mg_2d
        integer, intent(in)        :: iv !< Index of variable
        integer, intent(in)        :: nb !< Direction
        !> Coarse data
-       real(dp), intent(in)       :: cgc(nc)
+       real(dp), intent(in)       :: cgc(1)
      end subroutine mg_subr_rb
 
      !> Subroutine that performs A * cc(..., i_in) = cc(..., i_out)
@@ -323,10 +320,10 @@ module m_octree_mg_2d
        import
        type(mg_t), intent(inout) :: mg
        integer, intent(in)       :: p_id             !< Id of parent
-       integer, intent(in)       :: dix(2)        !< Offset of child in parent grid
+       integer, intent(in)       :: dix(1)        !< Offset of child in parent grid
        integer, intent(in)       :: nc               !< Child grid size
        integer, intent(in)       :: iv               !< Prolong from this variable
-       real(dp), intent(out)     :: fine(nc, nc) !< Prolonged values
+       real(dp), intent(out)     :: fine(nc) !< Prolonged values
      end subroutine mg_box_prolong
   end interface
 
@@ -484,9 +481,9 @@ contains
   !> Compute the child index for a box with spatial index ix. With child index
   !> we mean the index in the children(:) array of its parent.
   integer function mg_ix_to_ichild(ix)
-    integer, intent(in) :: ix(2) !< Spatial index of the box
+    integer, intent(in) :: ix(1) !< Spatial index of the box
     ! The index can range from 1 (all ix odd) and 2**$D (all ix even)
-    mg_ix_to_ichild = 4 - 2 * iand(ix(2), 1) - iand(ix(1), 1)
+    mg_ix_to_ichild = 2 - iand(ix(1), 1)
   end function mg_ix_to_ichild
 
   !> Get the offset of a box with respect to its parent (e.g. in 2d, there can
@@ -495,7 +492,7 @@ contains
   pure function mg_get_child_offset(mg, id) result(ix_offset)
     type(mg_t), intent(in) :: mg
     integer, intent(in)    :: id
-    integer                :: ix_offset(2)
+    integer                :: ix_offset(1)
 
     if (mg%boxes(id)%lvl <= mg%first_normal_lvl) then
        ix_offset(:) = 0
@@ -535,26 +532,20 @@ contains
     type(mg_box_t), intent(in) :: box
     integer, intent(in)        :: nb
     integer, intent(in)        :: nc
-    real(dp), intent(out)      :: x(nc, 2)
-    integer                    :: i, ixs(2-1)
+    real(dp), intent(out)      :: x(2)
     integer                    :: nb_dim
-    real(dp)                   :: rmin(2)
+    real(dp)                   :: rmin(1)
 
     nb_dim = mg_neighb_dim(nb)
 
-    ! Determine directions perpendicular to neighbor
-    ixs = [(i, i = 1, 2-1)]
-    ixs(nb_dim:) = ixs(nb_dim:) + 1
 
     rmin = box%r_min
     if (.not. mg_neighb_low(nb)) then
        rmin(nb_dim) = rmin(nb_dim) + box%dr(nb_dim) * nc
     end if
 
-    do i = 1, nc
-       x(i, :) = rmin
-       x(i, ixs(1)) = x(i, ixs(1)) + (i-0.5d0) * box%dr(ixs(1))
-    end do
+    x(1) = rmin(1)
+    x(2) = rmin(1) + box%dr(1) * nc
   end subroutine mg_get_face_coords
 
   integer function mg_add_timer(mg, name)
@@ -658,11 +649,11 @@ contains
        nc = mg%box_size_lvl(lvl)
        do i = 1, size(mg%lvls(lvl)%my_ids)
           id = mg%lvls(lvl)%my_ids(i)
-          allocate(mg%boxes(id)%cc(0:nc+1, 0:nc+1, &
+          allocate(mg%boxes(id)%cc(0:nc+1, &
                mg_num_vars + mg%n_extra_vars))
 
           ! Set all initial values to zero
-          mg%boxes(id)%cc(:, :, :) = 0.0_dp
+          mg%boxes(id)%cc(:, :) = 0.0_dp
        end do
     end do
 
@@ -792,9 +783,9 @@ contains
        nc = mg%box_size_lvl(lvl)
        do i = 1, size(mg%lvls(lvl)%my_leaves)
           id = mg%lvls(lvl)%my_leaves(i)
-          mg%boxes(id)%cc(1:nc, 1:nc, mg_irhs) = &
-               f1 * mg%boxes(id)%cc(1:nc, 1:nc, mg_iphi) + &
-               f2 * mg%boxes(id)%cc(1:nc, 1:nc, mg_irhs)
+          mg%boxes(id)%cc(1:nc, mg_irhs) = &
+               f1 * mg%boxes(id)%cc(1:nc, mg_iphi) + &
+               f2 * mg%boxes(id)%cc(1:nc, mg_irhs)
        end do
     end do
   end subroutine set_rhs
@@ -816,15 +807,6 @@ contains
        case default
           error stop "laplacian_set_methods: unsupported smoother type"
        end select
-    case (mg_cylindrical)
-       mg%box_op => box_clpl
-
-       select case (mg%smoother_type)
-       case (mg_smoother_gs, mg_smoother_gsrb)
-          mg%box_smoother => box_gs_clpl
-       case default
-          error stop "laplacian_set_methods: unsupported smoother type"
-       end select
     case default
        error stop "laplacian_set_methods: unsupported geometry"
     end select
@@ -837,8 +819,8 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: redblack_cntr !< Iteration counter
-    integer                   :: i, j, i0, di
-    real(dp)                  :: idr2(2), fac
+    integer                   :: i, i0, di
+    real(dp)                  :: idr2(1), fac
     logical                   :: redblack
 
     idr2 = 1/mg%dr(:, mg%boxes(id)%lvl)**2
@@ -855,16 +837,12 @@ contains
     ! The parity of redblack_cntr determines which cells we use. If
     ! redblack_cntr is even, we use the even cells and vice versa.
     associate (cc => mg%boxes(id)%cc, n => mg_iphi)
-      do j = 1, nc
-         if (redblack) &
-              i0 = 2 - iand(ieor(redblack_cntr, j), 1)
+      if (redblack) i0 = 2 - iand(redblack_cntr, 1)
 
-         do i = i0, nc, di
-            cc(i, j, n) = fac * ( &
-                 idr2(1) * (cc(i+1, j, n) + cc(i-1, j, n)) + &
-                 idr2(2) * (cc(i, j+1, n) + cc(i, j-1, n)) - &
-                 cc(i, j, mg_irhs))
-         end do
+      do i = i0, nc, di
+         cc(i, n) = fac * ( &
+              idr2(1) * (cc(i+1, n) + cc(i-1, n)) - &
+              cc(i, mg_irhs))
       end do
     end associate
   end subroutine box_gs_lpl
@@ -875,26 +853,26 @@ contains
 !     integer, intent(in)       :: id
 !     integer, intent(in)       :: nc
 !     integer, intent(in)       :: cntr !< Not used
-!     integer                   :: i, j
+!     integer                   :: i
 !     real(dp), parameter       :: w     = 2.0_dp / 3
-!     real(dp)                  :: tmp(0:nc+1, 0:nc+1)
+!     real(dp)                  :: tmp(0:nc+1)
 !     real(dp)                  :: dr2
-! #if 2 == 3
+! #if 1 == 3
 !     real(dp), parameter       :: sixth = 1/6.0_dp
 ! #endif
 
 !     dr2   = mg%dr(mg%boxes(id)%lvl)**2
 
 !     associate (box => mg%boxes(id))
-!       tmp = box%cc(:, :, mg_iphi)
-!       do j=1, nc; do i=1, nc
-! #if 2 == 2
+!       tmp = box%cc(:, mg_iphi)
+!       do i=1, nc
+! #if 1 == 2
 !          box%cc(i, j, mg_iphi) = (1-w) * box%cc(i, j, mg_iphi) + &
 !               0.25_dp * w * ( &
 !               tmp(i+1, j) + tmp(i-1, j) + &
 !               tmp(i, j+1) + tmp(i, j-1) - &
 !               dr2 * box%cc(i, j, mg_irhs))
-! #elif 2 == 3
+! #elif 1 == 3
 !          box%cc(i, j, k, mg_iphi) = (1-w) * &
 !               box%cc(i, j, k, mg_iphi) + &
 !               sixth * w * ( &
@@ -903,7 +881,7 @@ contains
 !               tmp(i, j, k+1) + tmp(i, j, k-1) - &
 !               dr2 * box%cc(i, j, k, mg_irhs))
 ! #endif
-!       end do; end do
+!       end do; 
 !     end associate
 !   end subroutine box_jacobi_lpl
 
@@ -913,96 +891,19 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: i_out !< Index of variable to store Laplacian in
-    integer                   :: i, j
-    real(dp)                  :: idr2(2)
+    integer                   :: i
+    real(dp)                  :: idr2(1)
 
     idr2 = 1 / mg%dr(:, mg%boxes(id)%lvl)**2
 
     associate (cc => mg%boxes(id)%cc, n => mg_iphi)
-      do j = 1, nc
-         do i = 1, nc
-            cc(i, j, i_out) = &
-                 idr2(1) * (cc(i-1, j, n) + cc(i+1, j, n) - 2 * cc(i, j, n)) + &
-                 idr2(2) * (cc(i, j-1, n) + cc(i, j+1, n) - 2 * cc(i, j, n))
+      do i = 1, nc
+            cc(i, i_out) = &
+                 idr2(1) * (cc(i-1, n) + cc(i+1, n) - 2 * cc(i, n))
          end do
-      end do
     end associate
   end subroutine box_lpl
 
-  !> Perform Laplacian operator on a box in cylindrical geometry, using (r,z)
-  !> and (r,phi,z) coordinates in 2D/3D.
-  subroutine box_clpl(mg, id, nc, i_out)
-    type(mg_t), intent(inout) :: mg
-    integer, intent(in)       :: id
-    integer, intent(in)       :: nc
-    integer, intent(in)       :: i_out !< Index of variable to store Laplacian in
-    integer                   :: i, j
-    real(dp)                  :: dr(2), idr2(2)
-    real(dp)                  :: r_face(nc+1), r_inv(nc)
-
-    dr     = mg%dr(:, mg%boxes(id)%lvl)
-    idr2   = 1 / dr**2
-    r_face = mg%boxes(id)%r_min(1) + dr(1) * [(i, i=0,nc)]
-    r_inv  = 1/(mg%boxes(id)%r_min(1) + dr(1) * [(i-0.5_dp, i=1,nc)])
-
-    associate (cc => mg%boxes(id)%cc, n => mg_iphi)
-      do j = 1, nc
-         do i = 1, nc
-            cc(i, j, i_out) = idr2(1) * (&
-                 r_face(i) * r_inv(i) * cc(i-1, j, n) + &
-                 r_face(i+1) * r_inv(i) * cc(i+1, j, n) &
-                 - 2 * cc(i, j, n)) &
-                 + idr2(2) * (cc(i, j-1, n) +  cc(i, j+1, n) - 2 * cc(i, j, n))
-         end do
-      end do
-    end associate
-  end subroutine box_clpl
-
-  !> Perform Gauss-Seidel relaxation on box for a Laplacian operator in
-  !> cylindrical geometry. TODO: in 3D this does not converge well, maybe it
-  !> will for a stretched grid.
-  subroutine box_gs_clpl(mg, id, nc, redblack_cntr)
-    type(mg_t), intent(inout) :: mg
-    integer, intent(in)       :: id
-    integer, intent(in)       :: nc
-    integer, intent(in)       :: redblack_cntr !< Iteration counter
-    integer                   :: i, j, i0, di
-    logical                   :: redblack
-    real(dp)                  :: idr2(2), dr(2), dr2(2), fac
-    real(dp)                  :: r_face(nc+1), r_inv(nc)
-
-    dr     = mg%dr(:, mg%boxes(id)%lvl)
-    dr2    = dr**2
-    idr2   = 1/dr**2
-    fac    = 0.5_dp / sum(idr2)
-    r_face = mg%boxes(id)%r_min(1) + dr(1) * [(i, i=0,nc)]
-    r_inv  = 1/(mg%boxes(id)%r_min(1) + dr(1) * [(i-0.5_dp, i=1,nc)])
-
-    i0  = 1
-    redblack = (mg%smoother_type == mg_smoother_gsrb)
-    if (redblack) then
-       di = 2
-    else
-       di = 1
-    end if
-
-    ! The parity of redblack_cntr determines which cells we use. If
-    ! redblack_cntr is even, we use the even cells and vice versa.
-    associate (cc => mg%boxes(id)%cc, n => mg_iphi)
-      do j = 1, nc
-         if (redblack) &
-              i0 = 2 - iand(ieor(redblack_cntr, j), 1)
-
-         do i = i0, nc, di
-            cc(i, j, n) = fac * (idr2(1) * &
-                 (r_face(i+1) * r_inv(i) * cc(i+1, j, n) + &
-                 r_face(i) * r_inv(i) * cc(i-1, j, n)) + &
-                 idr2(2) * (cc(i, j+1, n) + cc(i, j-1, n)) &
-                 - cc(i, j, mg_irhs))
-         end do
-      end do
-    end associate
-  end subroutine box_gs_clpl
 
   !! File ../src/m_vhelmholtz.f90
 
@@ -1051,14 +952,14 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: redblack_cntr !< Iteration counter
-    integer                   :: i, j, i0, di
+    integer                   :: i, i0, di
     logical                   :: redblack
-    real(dp)                  :: idr2(2*2), u(2*2)
-    real(dp)                  :: a0, a(2*2), c(2*2)
+    real(dp)                  :: idr2(2*1), u(2*1)
+    real(dp)                  :: a0, a(2*1), c(2*1)
 
     ! Duplicate 1/dr^2 array to multiply neighbor values
-    idr2(1:2*2:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
-    idr2(2:2*2:2) = idr2(1:2*2:2)
+    idr2(1:2*1:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
+    idr2(2:2*1:2) = idr2(1:2*1:2)
     i0  = 1
 
     redblack = (mg%smoother_type == mg_smoother_gsrb)
@@ -1072,22 +973,17 @@ contains
     ! redblack_cntr is even, we use the even cells and vice versa.
     associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
          i_eps => mg_iveps)
-      do j = 1, nc
-         if (redblack) &
-              i0 = 2 - iand(ieor(redblack_cntr, j), 1)
+      if (redblack) i0 = 2 - iand(redblack_cntr, 1)
 
-         do i = i0, nc, di
-            a0     = cc(i, j, i_eps)
-            u(1:2) = cc(i-1:i+1:2, j, n)
-            a(1:2) = cc(i-1:i+1:2, j, i_eps)
-            u(3:4) = cc(i, j-1:j+1:2, n)
-            a(3:4) = cc(i, j-1:j+1:2, i_eps)
-            c(:)   = 2 * a0 * a(:) / (a0 + a(:)) * idr2
+      do i = i0, nc, di
+         a0     = cc(i, i_eps)
+         u(1:2) = cc(i-1:i+1:2, n)
+         a(1:2) = cc(i-1:i+1:2, i_eps)
+         c(:)   = 2 * a0 * a(:) / (a0 + a(:)) * idr2
 
-            cc(i, j, n) = &
-                 (sum(c(:) * u(:)) - cc(i, j, mg_irhs)) / &
-                 (sum(c(:)) + vhelmholtz_lambda)
-         end do
+         cc(i, n) = &
+              (sum(c(:) * u(:)) - cc(i, mg_irhs)) / &
+              (sum(c(:)) + vhelmholtz_lambda)
       end do
     end associate
   end subroutine box_gs_vhelmh
@@ -1098,28 +994,24 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: i_out !< Index of variable to store Helmholtz in
-    integer                   :: i, j
-    real(dp)                  :: idr2(2*2), a0, u0, u(2*2), a(2*2)
+    integer                   :: i
+    real(dp)                  :: idr2(2*1), a0, u0, u(2*1), a(2*1)
 
     ! Duplicate 1/dr^2 array to multiply neighbor values
-    idr2(1:2*2:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
-    idr2(2:2*2:2) = idr2(1:2*2:2)
+    idr2(1:2*1:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
+    idr2(2:2*1:2) = idr2(1:2*1:2)
 
     associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
          i_eps => mg_iveps)
-      do j = 1, nc
-         do i = 1, nc
-            a0     = cc(i, j, i_eps)
-            a(1:2) = cc(i-1:i+1:2, j, i_eps)
-            a(3:4) = cc(i, j-1:j+1:2, i_eps)
-            u0     = cc(i, j, n)
-            u(1:2) = cc(i-1:i+1:2, j, n)
-            u(3:4) = cc(i, j-1:j+1:2, n)
+      do i = 1, nc
+         a0     = cc(i, i_eps)
+         a(1:2) = cc(i-1:i+1:2, i_eps)
+         u0     = cc(i, n)
+         u(1:2) = cc(i-1:i+1:2, n)
 
-            cc(i, j, i_out) = sum(2 * idr2 * &
-                 a0*a(:)/(a0 + a(:)) * (u(:) - u0)) - &
-                 vhelmholtz_lambda * u0
-         end do
+         cc(i, i_out) = sum(2 * idr2 * &
+              a0*a(:)/(a0 + a(:)) * (u(:) - u0)) - &
+              vhelmholtz_lambda * u0
       end do
     end associate
   end subroutine box_vhelmh
@@ -1129,15 +1021,15 @@ contains
   subroutine mg_build_rectangle(mg, domain_size, box_size, dx, r_min, &
        periodic, n_finer)
     type(mg_t), intent(inout) :: mg
-    integer, intent(in)       :: domain_size(2)
+    integer, intent(in)       :: domain_size(1)
     integer, intent(in)       :: box_size
-    real(dp), intent(in)      :: dx(2)
-    real(dp), intent(in)      :: r_min(2)
-    logical, intent(in)       :: periodic(2)
+    real(dp), intent(in)      :: dx(1)
+    real(dp), intent(in)      :: r_min(1)
+    logical, intent(in)       :: periodic(1)
     integer, intent(in)       :: n_finer
-    integer                   :: i, j, lvl, n, id, nx(2)
-    integer                   :: boxes_per_dim(2, mg_lvl_lo:1)
-    integer                   :: periodic_offset(2)
+    integer                   :: i, lvl, n, id, nx(1)
+    integer                   :: boxes_per_dim(1, mg_lvl_lo:1)
+    integer                   :: periodic_offset(1)
 
     if (modulo(box_size, 2) /= 0) &
          error stop "box_size should be even"
@@ -1193,16 +1085,16 @@ contains
 
     ! Create lowest level
     nx = boxes_per_dim(:, mg%lowest_lvl)
-    periodic_offset = [nx(1)-1, (nx(2)-1)*nx(1)]
+    periodic_offset = [nx(1)-1]
 
-    do j=1,nx(2); do i=1,nx(1)
+    do i=1,nx(1)
        mg%n_boxes = mg%n_boxes + 1
        n          = mg%n_boxes
 
        mg%boxes(n)%rank        = 0
        mg%boxes(n)%id          = n
        mg%boxes(n)%lvl         = mg%lowest_lvl
-       mg%boxes(n)%ix(:)       = [i, j]
+       mg%boxes(n)%ix(:)       = [i]
        mg%boxes(n)%r_min(:)    = r_min + (mg%boxes(n)%ix(:) - 1) * &
             mg%box_size_lvl(mg%lowest_lvl) * mg%dr(:, mg%lowest_lvl)
        mg%boxes(n)%dr(:)       = mg%dr(:, mg%lowest_lvl)
@@ -1210,27 +1102,27 @@ contains
        mg%boxes(n)%children(:) = mg_no_box
 
        ! Set default neighbors
-       mg%boxes(n)%neighbors(:) = [n-1, n+1, n-nx(1), n+nx(1)]
+       mg%boxes(n)%neighbors(:) = [n-1, n+1]
 
        ! Handle boundaries
-       where ([i, j] == 1 .and. .not. periodic)
+       where ([i] == 1 .and. .not. periodic)
           mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
                mg_physical_boundary
        end where
-       where ([i, j] == 1 .and. periodic)
+       where ([i] == 1 .and. periodic)
           mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
                n + periodic_offset
        end where
 
-       where ([i, j] == nx .and. .not. periodic)
+       where ([i] == nx .and. .not. periodic)
           mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
                mg_physical_boundary
        end where
-       where ([i, j] == nx .and. periodic)
+       where ([i] == nx .and. periodic)
           mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
                n - periodic_offset
        end where
-    end do; end do
+    end do; 
 
     mg%lvls(mg%lowest_lvl)%ids = [(n, n=1, mg%n_boxes)]
 
@@ -1425,9 +1317,9 @@ contains
   subroutine mg_add_children(mg, id)
     type(mg_t), intent(inout) :: mg
     integer, intent(in)       :: id !< Id of box that gets children
-    integer                   :: lvl, i, nb, child_nb(2**(2-1))
+    integer                   :: lvl, i, nb, child_nb(2**(1-1))
     integer                   :: c_ids(mg_num_children)
-    integer                   :: c_id, c_ix_base(2)
+    integer                   :: c_id, c_ix_base(1)
 
     if (mg%n_boxes + mg_num_children > size(mg%boxes)) then
        error stop "mg_add_children: not enough space"
@@ -1751,14 +1643,14 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: redblack_cntr !< Iteration counter
-    integer                   :: i, j, i0, di
+    integer                   :: i, i0, di
     logical                   :: redblack
-    real(dp)                  :: idr2(2*2), u(2*2)
-    real(dp)                  :: a0, a(2*2), c(2*2)
+    real(dp)                  :: idr2(2*1), u(2*1)
+    real(dp)                  :: a0, a(2*1), c(2*1)
 
     ! Duplicate 1/dr^2 array to multiply neighbor values
-    idr2(1:2*2:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
-    idr2(2:2*2:2) = idr2(1:2*2:2)
+    idr2(1:2*1:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
+    idr2(2:2*1:2) = idr2(1:2*1:2)
     i0  = 1
 
     redblack = (mg%smoother_type == mg_smoother_gsrb)
@@ -1772,21 +1664,16 @@ contains
     ! redblack_cntr is even, we use the even cells and vice versa.
     associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
          i_eps => mg_iveps)
-      do j = 1, nc
-         if (redblack) &
-              i0 = 2 - iand(ieor(redblack_cntr, j), 1)
+      if (redblack) i0 = 2 - iand(redblack_cntr, 1)
 
-         do i = i0, nc, di
-            a0     = cc(i, j, i_eps)
-            u(1:2) = cc(i-1:i+1:2, j, n)
-            a(1:2) = cc(i-1:i+1:2, j, i_eps)
-            u(3:4) = cc(i, j-1:j+1:2, n)
-            a(3:4) = cc(i, j-1:j+1:2, i_eps)
-            c(:)   = 2 * a0 * a(:) / (a0 + a(:)) * idr2
+      do i = i0, nc, di
+         a0     = cc(i, i_eps)
+         u(1:2) = cc(i-1:i+1:2, n)
+         a(1:2) = cc(i-1:i+1:2, i_eps)
+         c(:)   = 2 * a0 * a(:) / (a0 + a(:)) * idr2
 
-            cc(i, j, n) = &
-                 (sum(c(:) * u(:)) - cc(i, j, mg_irhs)) / sum(c(:))
-         end do
+         cc(i, n) = &
+              (sum(c(:) * u(:)) - cc(i, mg_irhs)) / sum(c(:))
       end do
     end associate
   end subroutine box_gs_vlpl
@@ -1797,27 +1684,23 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: i_out !< Index of variable to store Laplacian in
-    integer                   :: i, j
-    real(dp)                  :: idr2(2*2), a0, u0, u(2*2), a(2*2)
+    integer                   :: i
+    real(dp)                  :: idr2(2*1), a0, u0, u(2*1), a(2*1)
 
     ! Duplicate 1/dr^2 array to multiply neighbor values
-    idr2(1:2*2:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
-    idr2(2:2*2:2) = idr2(1:2*2:2)
+    idr2(1:2*1:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
+    idr2(2:2*1:2) = idr2(1:2*1:2)
 
     associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
          i_eps => mg_iveps)
-      do j = 1, nc
-         do i = 1, nc
-            a0     = cc(i, j, i_eps)
-            a(1:2) = cc(i-1:i+1:2, j, i_eps)
-            a(3:4) = cc(i, j-1:j+1:2, i_eps)
-            u0     = cc(i, j, n)
-            u(1:2) = cc(i-1:i+1:2, j, n)
-            u(3:4) = cc(i, j-1:j+1:2, n)
+      do i = 1, nc
+         a0     = cc(i, i_eps)
+         a(1:2) = cc(i-1:i+1:2, i_eps)
+         u0     = cc(i, n)
+         u(1:2) = cc(i-1:i+1:2, n)
 
-            cc(i, j, i_out) = sum(2 * idr2 * &
-                 a0*a(:)/(a0 + a(:)) * (u(:) - u0))
-         end do
+         cc(i, i_out) = sum(2 * idr2 * &
+              a0*a(:)/(a0 + a(:)) * (u(:) - u0))
       end do
     end associate
   end subroutine box_vlpl
@@ -1828,17 +1711,17 @@ contains
 !   subroutine vlpl_prolong(mg, p_id, dix, nc, iv, fine)
 !     type(mg_t), intent(inout) :: mg
 !     integer, intent(in)       :: p_id             !< Id of parent
-!     integer, intent(in)       :: dix(2)        !< Offset of child in parent grid
+!     integer, intent(in)       :: dix(1)        !< Offset of child in parent grid
 !     integer, intent(in)       :: nc               !< Child grid size
 !     integer, intent(in)       :: iv               !< Prolong from this variable
-!     real(dp), intent(out)     :: fine(nc, nc) !< Prolonged values
+!     real(dp), intent(out)     :: fine(nc) !< Prolonged values
 
-!     integer  :: i, j, hnc
-! #if 2 == 2
+!     integer  :: i, hnc
+! #if 1 == 2
 !     integer  :: ic, jc
 !     real(dp) :: f0, flx, fhx, fly, fhy
 !     real(dp) :: c0, clx, chx, cly, chy
-! #elif 2 == 3
+! #elif 1 == 3
 !     integer  :: ic, jc, kc
 !     real(dp) :: f0, flx, fhx, fly, fhy, flz, fhz
 !     real(dp) :: c0, clx, chx, cly, chy, clz, chz
@@ -1848,7 +1731,7 @@ contains
 
 !     associate (crs => mg%boxes(p_id)%cc, &
 !          i_eps => mg_iveps)
-! #if 2 == 2
+! #if 1 == 2
 !       do j = 1, hnc
 !          jc = j + dix(2)
 !          do i = 1, hnc
@@ -1876,7 +1759,7 @@ contains
 !                  (c0 + chx + chy)
 !          end do
 !       end do
-! #elif 2 == 3
+! #elif 1 == 3
 !       do k = 1, hnc
 !          kc = k + dix(3)
 !          do j = 1, hnc
@@ -2017,7 +1900,7 @@ contains
     allocate(mg%comm_ghostcell%n_recv(0:mg%n_cpu-1, &
          mg%first_normal_lvl:mg%highest_lvl))
 
-    dsize = mg%box_size**(2-1)
+    dsize = mg%box_size**(1-1)
 
     do lvl = mg%first_normal_lvl, mg%highest_lvl
        nc               = mg%box_size_lvl(lvl)
@@ -2072,7 +1955,7 @@ contains
     type(mg_t), intent(inout) :: mg
     integer, intent(in)       :: lvl
     integer, intent(in)       :: nc
-    real(dp)                  :: bc(nc)
+    real(dp)                  :: bc(1)
     integer                   :: i, id, nb, nb_id, bc_type
 
     do i = 1, size(mg%lvls(lvl)%my_ids)
@@ -2128,7 +2011,7 @@ contains
     nc               = mg%box_size_lvl(lvl)
 
     if (lvl >= mg%first_normal_lvl) then
-       dsize            = nc**(2-1)
+       dsize            = nc**(1-1)
        mg%buf(:)%i_send = 0
        mg%buf(:)%i_recv = 0
        mg%buf(:)%i_ix   = 0
@@ -2188,7 +2071,7 @@ contains
     integer, intent(in)       :: nc
     integer, intent(in)       :: iv
     logical, intent(in)       :: dry_run
-    integer                   :: nb, nb_id, c_ids(2**(2-1))
+    integer                   :: nb, nb_id, c_ids(2**(1-1))
     integer                   :: n, c_id, c_rank
 
     do nb = 1, mg_num_neighbors
@@ -2220,7 +2103,7 @@ contains
     integer, intent(in)       :: nc
     integer, intent(in)       :: iv
     logical, intent(in)       :: dry_run
-    real(dp)                  :: bc(nc)
+    real(dp)                  :: bc(1)
     integer                   :: nb, nb_id, nb_rank, bc_type
 
     do nb = 1, mg_num_neighbors
@@ -2270,11 +2153,11 @@ contains
     integer, intent(in)       :: iv
     integer, intent(in)       :: nb
     logical, intent(in)       :: dry_run
-    real(dp)                  :: gc(nc)
-    integer                   :: p_id, p_nb_id, ix_offset(2)
+    real(dp)                  :: gc(1)
+    integer                   :: p_id, p_nb_id, ix_offset(1)
     integer                   :: i, dsize, p_nb_rank
 
-    dsize     = nc**(2-1)
+    dsize     = nc**(1-1)
     p_id      = mg%boxes(id)%parent
     p_nb_id   = mg%boxes(p_id)%neighbors(nb)
     p_nb_rank = mg%boxes(p_nb_id)%rank
@@ -2306,7 +2189,7 @@ contains
     integer, intent(in)           :: nb
     integer, intent(in)           :: nc
     integer, intent(in)           :: iv
-    real(dp)                      :: gc(nc)
+    real(dp)                      :: gc(1)
 
     call box_gc_for_neighbor(box_nb, mg_neighb_rev(nb), nc, iv, gc)
     call box_set_gc(box, nb, nc, iv, gc)
@@ -2322,10 +2205,10 @@ contains
     integer, intent(in)        :: nb
     logical, intent(in)        :: dry_run
     integer                    :: i, dsize
-    real(dp)                   :: gc(nc)
+    real(dp)                   :: gc(1)
 
     i     = mg%buf(nb_rank)%i_send
-    dsize = nc**(2-1)
+    dsize = nc**(1-1)
 
     if (.not. dry_run) then
        call box_gc_for_neighbor(box, nb, nc, iv, gc)
@@ -2352,11 +2235,11 @@ contains
     integer, intent(in)        :: fine_rank
     integer, intent(in)        :: nb
     logical, intent(in)        :: dry_run
-    integer                    :: i, dsize, ix_offset(2)
-    real(dp)                   :: gc(nc)
+    integer                    :: i, dsize, ix_offset(1)
+    real(dp)                   :: gc(1)
 
     i     = mg%buf(fine_rank)%i_send
-    dsize = nc**(2-1)
+    dsize = nc**(1-1)
 
     if (.not. dry_run) then
        ix_offset = mg_get_child_offset(mg, fine_id)
@@ -2385,13 +2268,13 @@ contains
     integer, intent(in)        :: iv
     logical, intent(in)        :: dry_run
     integer                    :: i, dsize
-    real(dp)                   :: gc(nc)
+    real(dp)                   :: gc(1)
 
     i     = mg%buf(nb_rank)%i_recv
-    dsize = nc**(2-1)
+    dsize = nc**(1-1)
 
     if (.not. dry_run) then
-       gc = reshape(mg%buf(nb_rank)%recv(i+1:i+dsize), shape(gc))
+       gc = mg%buf(nb_rank)%recv(i+1)
        call box_set_gc(box, nb, nc, iv, gc)
     end if
     mg%buf(nb_rank)%i_recv = mg%buf(nb_rank)%i_recv + dsize
@@ -2401,17 +2284,13 @@ contains
   subroutine box_gc_for_neighbor(box, nb, nc, iv, gc)
     type(mg_box_t), intent(in) :: box
     integer, intent(in)     :: nb, nc, iv
-    real(dp), intent(out)   :: gc(nc)
+    real(dp), intent(out)   :: gc(1)
 
     select case (nb)
     case (mg_neighb_lowx)
-       gc = box%cc(1, 1:nc, iv)
+       gc = box%cc(1, iv)
     case (mg_neighb_highx)
-       gc = box%cc(nc, 1:nc, iv)
-    case (mg_neighb_lowy)
-       gc = box%cc(1:nc, 1, iv)
-    case (mg_neighb_highy)
-       gc = box%cc(1:nc, nc, iv)
+       gc = box%cc(nc, iv)
     end select
   end subroutine box_gc_for_neighbor
 
@@ -2419,68 +2298,52 @@ contains
   subroutine box_gc_for_fine_neighbor(box, nb, di, nc, iv, gc)
     type(mg_box_t), intent(in) :: box
     integer, intent(in)     :: nb       !< Direction of fine neighbor
-    integer, intent(in)     :: di(2) !< Index offset of fine neighbor
+    integer, intent(in)     :: di(1) !< Index offset of fine neighbor
     integer, intent(in)     :: nc, iv
-    real(dp), intent(out)   :: gc(nc)
-    real(dp)                :: tmp(0:nc/2+1), grad(2-1)
-    integer                 :: i, hnc
+    real(dp), intent(out)   :: gc(1)
+    real(dp)                :: tmp
+    integer                 :: hnc
 
     hnc = nc/2
 
     ! First fill a temporary array with data next to the fine grid
     select case (nb)
     case (mg_neighb_lowx)
-       tmp = box%cc(1, di(2):di(2)+hnc+1, iv)
+       tmp = box%cc(1, iv)
     case (mg_neighb_highx)
-       tmp = box%cc(nc, di(2):di(2)+hnc+1, iv)
-    case (mg_neighb_lowy)
-       tmp = box%cc(di(1):di(1)+hnc+1, 1, iv)
-    case (mg_neighb_highy)
-       tmp = box%cc(di(1):di(1)+hnc+1, nc, iv)
+       tmp = box%cc(nc, iv)
     case default
        error stop
     end select
 
     ! Now interpolate the coarse grid data to obtain values 'straight' next to
     ! the fine grid points
-    do i = 1, hnc
-       grad(1) = 0.125_dp * (tmp(i+1) - tmp(i-1))
-       gc(2*i-1) = tmp(i) - grad(1)
-       gc(2*i) = tmp(i) + grad(1)
-    end do
+    gc = tmp
   end subroutine box_gc_for_fine_neighbor
 
   subroutine box_get_gc(box, nb, nc, iv, gc)
     type(mg_box_t), intent(in) :: box
     integer, intent(in)        :: nb, nc, iv
-    real(dp), intent(out)       :: gc(nc)
+    real(dp), intent(out)       :: gc(1)
 
     select case (nb)
     case (mg_neighb_lowx)
-       gc = box%cc(0, 1:nc, iv)
+       gc = box%cc(0, iv)
     case (mg_neighb_highx)
-       gc = box%cc(nc+1, 1:nc, iv)
-    case (mg_neighb_lowy)
-       gc = box%cc(1:nc, 0, iv)
-    case (mg_neighb_highy)
-       gc = box%cc(1:nc, nc+1, iv)
+       gc = box%cc(nc+1, iv)
     end select
   end subroutine box_get_gc
 
   subroutine box_set_gc(box, nb, nc, iv, gc)
     type(mg_box_t), intent(inout) :: box
     integer, intent(in)        :: nb, nc, iv
-    real(dp), intent(in)       :: gc(nc)
+    real(dp), intent(in)       :: gc(1)
 
     select case (nb)
     case (mg_neighb_lowx)
-       box%cc(0, 1:nc, iv)    = gc
+       box%cc(0, iv)    = gc(1)
     case (mg_neighb_highx)
-       box%cc(nc+1, 1:nc, iv) = gc
-    case (mg_neighb_lowy)
-       box%cc(1:nc, 0, iv)    = gc
-    case (mg_neighb_highy)
-       box%cc(1:nc, nc+1, iv) = gc
+       box%cc(nc+1, iv) = gc(1)
     end select
   end subroutine box_set_gc
 
@@ -2521,25 +2384,15 @@ contains
 
     select case (nb)
     case (mg_neighb_lowx)
-       mg%boxes(id)%cc(0, 1:nc, iv) = &
-            c0 * mg%boxes(id)%cc(0, 1:nc, iv) + &
-            c1 * mg%boxes(id)%cc(1, 1:nc, iv) + &
-            c2 * mg%boxes(id)%cc(2, 1:nc, iv)
+       mg%boxes(id)%cc(0, iv) = &
+            c0 * mg%boxes(id)%cc(0, iv) + &
+            c1 * mg%boxes(id)%cc(1, iv) + &
+            c2 * mg%boxes(id)%cc(2, iv)
     case (mg_neighb_highx)
-       mg%boxes(id)%cc(nc+1, 1:nc, iv) = &
-            c0 * mg%boxes(id)%cc(nc+1, 1:nc, iv) + &
-            c1 * mg%boxes(id)%cc(nc, 1:nc, iv) + &
-            c2 * mg%boxes(id)%cc(nc-1, 1:nc, iv)
-    case (mg_neighb_lowy)
-       mg%boxes(id)%cc(1:nc, 0, iv) = &
-            c0 * mg%boxes(id)%cc(1:nc, 0, iv) + &
-            c1 * mg%boxes(id)%cc(1:nc, 1, iv) + &
-            c2 * mg%boxes(id)%cc(1:nc, 2, iv)
-    case (mg_neighb_highy)
-       mg%boxes(id)%cc(1:nc, nc+1, iv) = &
-            c0 * mg%boxes(id)%cc(1:nc, nc+1, iv) + &
-            c1 * mg%boxes(id)%cc(1:nc, nc, iv) + &
-            c2 * mg%boxes(id)%cc(1:nc, nc-1, iv)
+       mg%boxes(id)%cc(nc+1, iv) = &
+            c0 * mg%boxes(id)%cc(nc+1, iv) + &
+            c1 * mg%boxes(id)%cc(nc, iv) + &
+            c2 * mg%boxes(id)%cc(nc-1, iv)
     end select
   end subroutine bc_to_gc
 
@@ -2550,9 +2403,9 @@ contains
     integer, intent(in)       :: iv
     integer, intent(in)       :: nb !< Ghost cell direction
     !> Interpolated coarse grid ghost cell data (but not yet in the nb direction)
-    real(dp), intent(in)      :: gc(nc)
-    integer                   :: di, dj
-    integer                   :: i, j, ix, dix
+    real(dp), intent(in)      :: gc(1)
+    integer                   :: di
+    integer                   :: i, ix, dix
 
     if (mg_neighb_low(nb)) then
        ix = 1
@@ -2566,22 +2419,7 @@ contains
     case (1)
        i = ix
        di = dix
-
-       do j = 1, nc
-          dj = -1 + 2 * iand(j, 1)
-          box%cc(i-di, j, iv) = 0.5_dp * gc(j) &
-               + 0.75_dp * box%cc(i, j, iv) &
-               - 0.25_dp * box%cc(i+di, j, iv)
-       end do
-    case (2)
-       j = ix
-       dj = dix
-       do i = 1, nc
-          di = -1 + 2 * iand(i, 1)
-          box%cc(i, j-dj, iv) = 0.5_dp * gc(i) &
-               + 0.75_dp * box%cc(i, j, iv) &
-               - 0.25_dp * box%cc(i, j+dj, iv)
-       end do
+       box%cc(i-di, iv) = (2 * gc(1) + box%cc(i, iv))/3.0_dp
     end select
 
   end subroutine sides_rb
@@ -2618,7 +2456,7 @@ contains
 
     ! Send fine grid points, because this is more flexible than sending coarse
     ! grid points (e.g., when multiple variables are used for interpolation)
-    dsize = (mg%box_size)**2
+    dsize = (mg%box_size)**1
     n_send = maxval(mg%comm_prolong%n_send, dim=2)
     n_recv = maxval(mg%comm_prolong%n_recv, dim=2)
   end subroutine mg_prolong_buffer_size
@@ -2639,7 +2477,7 @@ contains
 
     ! Below the first normal level, all boxes are on the same CPU
     if (lvl >= mg%first_normal_lvl-1) then
-       dsize            = mg%box_size**2
+       dsize            = mg%box_size**1
        mg%buf(:)%i_send = 0
        mg%buf(:)%i_ix   = 0
 
@@ -2670,11 +2508,11 @@ contains
     integer, intent(in)       :: nc
     integer, intent(in)       :: iv
     procedure(mg_box_prolong) :: method
-    integer                   :: i, dix(2)
+    integer                   :: i, dix(1)
     integer                   :: i_c, c_id, c_rank, dsize
-    real(dp)                  :: tmp(nc, nc)
+    real(dp)                  :: tmp(nc)
 
-    dsize = nc**2
+    dsize = nc**1
 
     do i_c = 1, mg_num_children
        c_id = mg%boxes(id)%children(i_c)
@@ -2705,8 +2543,8 @@ contains
     integer, intent(in)       :: iv_to !< Prolong to this variable
     logical, intent(in)       :: add   !< If true, add to current values
     procedure(mg_box_prolong) :: method
-    integer                   :: hnc, p_id, p_rank, i, dix(2), dsize
-    real(dp)                  :: tmp(nc, nc)
+    integer                   :: hnc, p_id, p_rank, i, dix(1), dsize
+    real(dp)                  :: tmp(nc)
 
     hnc    = nc/2
     p_id   = mg%boxes(id)%parent
@@ -2716,17 +2554,17 @@ contains
        dix    = mg_get_child_offset(mg, id)
        call method(mg, p_id, dix, nc, iv, tmp)
     else
-       dsize  = nc**2
+       dsize  = nc**1
        i = mg%buf(p_rank)%i_recv
-       tmp = reshape(mg%buf(p_rank)%recv(i+1:i+dsize), [nc, nc])
+       tmp = reshape(mg%buf(p_rank)%recv(i+1:i+dsize), [nc])
        mg%buf(p_rank)%i_recv = mg%buf(p_rank)%i_recv + dsize
     end if
 
     if (add) then
-       mg%boxes(id)%cc(1:nc, 1:nc, iv_to) = &
-            mg%boxes(id)%cc(1:nc, 1:nc, iv_to) + tmp
+       mg%boxes(id)%cc(1:nc, iv_to) = &
+            mg%boxes(id)%cc(1:nc, iv_to) + tmp
     else
-       mg%boxes(id)%cc(1:nc, 1:nc, iv_to) = tmp
+       mg%boxes(id)%cc(1:nc, iv_to) = tmp
     end if
 
   end subroutine prolong_onto
@@ -2735,34 +2573,27 @@ contains
   subroutine mg_prolong_sparse(mg, p_id, dix, nc, iv, fine)
     type(mg_t), intent(inout) :: mg
     integer, intent(in)       :: p_id             !< Id of parent
-    integer, intent(in)       :: dix(2)        !< Offset of child in parent grid
+    integer, intent(in)       :: dix(1)        !< Offset of child in parent grid
     integer, intent(in)       :: nc               !< Child grid size
     integer, intent(in)       :: iv               !< Prolong from this variable
-    real(dp), intent(out)     :: fine(nc, nc) !< Prolonged values
+    real(dp), intent(out)     :: fine(nc) !< Prolonged values
 
-    integer  :: i, j, hnc
-    integer  :: ic, jc
-    real(dp) :: f0, flx, fhx, fly, fhy
+    integer  :: i, hnc
+    integer  :: ic
+    real(dp) :: f0, flx, fhx
 
     hnc = nc/2
 
     associate (crs => mg%boxes(p_id)%cc)
-      do j = 1, hnc
-         jc = j + dix(2)
-         do i = 1, hnc
-            ic = i + dix(1)
+      do i = 1, hnc
+         ic = i + dix(1)
 
-            f0  = 0.5_dp * crs(ic, jc, iv)
-            flx = 0.25_dp * crs(ic-1, jc, iv)
-            fhx = 0.25_dp * crs(ic+1, jc, iv)
-            fly = 0.25_dp * crs(ic, jc-1, iv)
-            fhy = 0.25_dp * crs(ic, jc+1, iv)
+         f0  = 0.75_dp * crs(ic, iv)
+         flx = 0.25_dp * crs(ic-1, iv)
+         fhx = 0.25_dp * crs(ic+1, iv)
 
-            fine(2*i-1, 2*j-1) = f0 + flx + fly
-            fine(2*i  , 2*j-1) = f0 + fhx + fly
-            fine(2*i-1, 2*j)   = f0 + flx + fhy
-            fine(2*i  , 2*j)   = f0 + fhx + fhy
-         end do
+         fine(2*i-1)   = f0 + flx
+         fine(2*i  )   = f0 + fhx
       end do
     end associate
   end subroutine mg_prolong_sparse
@@ -2803,8 +2634,8 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: redblack_cntr !< Iteration counter
-    integer                   :: i, j, i0, di
-    real(dp)                  :: idr2(2), fac
+    integer                   :: i, i0, di
+    real(dp)                  :: idr2(1), fac
     logical                   :: redblack
 
     idr2 = 1/mg%dr(:, mg%boxes(id)%lvl)**2
@@ -2821,17 +2652,13 @@ contains
     ! The parity of redblack_cntr determines which cells we use. If
     ! redblack_cntr is even, we use the even cells and vice versa.
     associate (cc => mg%boxes(id)%cc, n => mg_iphi)
-      do j = 1, nc
-         if (redblack) &
-              i0 = 2 - iand(ieor(redblack_cntr, j), 1)
+      if (redblack) i0 = 2 - iand(redblack_cntr, 1)
 
          do i = i0, nc, di
-            cc(i, j, n) = fac * ( &
-                 idr2(1) * (cc(i+1, j, n) + cc(i-1, j, n)) + &
-                 idr2(2) * (cc(i, j+1, n) + cc(i, j-1, n)) - &
-                 cc(i, j, mg_irhs))
+            cc(i, n) = fac * ( &
+                 idr2(1) * (cc(i+1, n) + cc(i-1, n)) - &
+                 cc(i, mg_irhs))
          end do
-      end do
     end associate
   end subroutine box_gs_helmh
 
@@ -2841,19 +2668,16 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: i_out !< Index of variable to store Helmholtz in
-    integer                   :: i, j
-    real(dp)                  :: idr2(2)
+    integer                   :: i
+    real(dp)                  :: idr2(1)
 
     idr2 = 1 / mg%dr(:, mg%boxes(id)%lvl)**2
 
     associate (cc => mg%boxes(id)%cc, n => mg_iphi)
-      do j = 1, nc
-         do i = 1, nc
-            cc(i, j, i_out) = &
-                 idr2(1) * (cc(i-1, j, n) + cc(i+1, j, n) - 2 * cc(i, j, n)) + &
-                 idr2(2) * (cc(i, j-1, n) + cc(i, j+1, n) - 2 * cc(i, j, n)) - &
-                 helmholtz_lambda * cc(i, j, n)
-         end do
+      do i = 1, nc
+         cc(i, i_out) = &
+              idr2(1) * (cc(i-1, n) + cc(i+1, n) - 2 * cc(i, n)) - &
+              helmholtz_lambda * cc(i, n)
       end do
     end associate
   end subroutine box_helmh
@@ -2926,7 +2750,7 @@ contains
        do lvl = mg%highest_lvl, mg%lowest_lvl, -1
           do i = 1, size(mg%lvls(lvl)%my_ids)
              id = mg%lvls(lvl)%my_ids(i)
-             mg%boxes(id)%cc(:, :, mg_iphi) = 0.0_dp
+             mg%boxes(id)%cc(:, mg_iphi) = 0.0_dp
           end do
        end do
     end if
@@ -2950,8 +2774,8 @@ contains
        ! Store phi_old
        do i = 1, size(mg%lvls(lvl)%my_ids)
           id = mg%lvls(lvl)%my_ids(i)
-          mg%boxes(id)%cc(:, :, mg_iold) = &
-            mg%boxes(id)%cc(:, :, mg_iphi)
+          mg%boxes(id)%cc(:, mg_iold) = &
+            mg%boxes(id)%cc(:, mg_iphi)
        end do
 
        if (lvl > mg%lowest_lvl) then
@@ -3086,7 +2910,7 @@ contains
          mpi_double, mpi_sum, mg%comm, ierr)
 
     ! Divide by total grid volume to get mean
-    volume = nc**2 * product(mg%dr(:, 1)) * size(mg%lvls(1)%ids)
+    volume = nc**1 * product(mg%dr(:, 1)) * size(mg%lvls(1)%ids)
     mean_iv = mean_iv / volume
 
     do lvl = mg%lowest_lvl, mg%highest_lvl
@@ -3095,11 +2919,11 @@ contains
        do i = 1, size(mg%lvls(lvl)%my_ids)
           id = mg%lvls(lvl)%my_ids(i)
           if (include_ghostcells) then
-             mg%boxes(id)%cc(:, :, iv) = &
-                  mg%boxes(id)%cc(:, :, iv) - mean_iv
+             mg%boxes(id)%cc(:, iv) = &
+                  mg%boxes(id)%cc(:, iv) - mean_iv
           else
-             mg%boxes(id)%cc(1:nc, 1:nc, iv) = &
-                  mg%boxes(id)%cc(1:nc, 1:nc, iv) - mean_iv
+             mg%boxes(id)%cc(1:nc, iv) = &
+                  mg%boxes(id)%cc(1:nc, iv) - mean_iv
           end if
        end do
     end do
@@ -3118,7 +2942,7 @@ contains
        do i = 1, size(mg%lvls(lvl)%my_leaves)
           id = mg%lvls(lvl)%my_leaves(i)
           get_sum = get_sum + w * &
-               sum(mg%boxes(id)%cc(1:nc, 1:nc, iv))
+               sum(mg%boxes(id)%cc(1:nc, iv))
        end do
     end do
   end function get_sum
@@ -3135,7 +2959,7 @@ contains
     do i = 1, size(mg%lvls(lvl)%my_ids)
        id = mg%lvls(lvl)%my_ids(i)
        call residual_box(mg, id, nc)
-       res = maxval(abs(mg%boxes(id)%cc(1:nc, 1:nc, mg_ires)))
+       res = maxval(abs(mg%boxes(id)%cc(1:nc, mg_ires)))
        max_residual_lvl = max(max_residual_lvl, res)
     end do
   end function max_residual_lvl
@@ -3144,9 +2968,9 @@ contains
   !     use m_fishpack
   !     type(mg_t), intent(inout) :: mg
 
-  !     real(dp) :: rhs(mg%box_size, mg%box_size)
-  !     real(dp) :: rmin(2), rmax(2)
-  !     integer  :: nc, nx(2), my_boxes, total_boxes
+  !     real(dp) :: rhs(mg%box_size)
+  !     real(dp) :: rmin(1), rmax(1)
+  !     integer  :: nc, nx(1), my_boxes, total_boxes
 
   !     my_boxes    = size(mg%lvls(1)%my_ids)
   !     total_boxes = size(mg%lvls(1)%ids)
@@ -3154,17 +2978,17 @@ contains
 
   !     if (my_boxes == total_boxes) then
   !        nx(:) = nc
-  !        rmin  = [0.0_dp, 0.0_dp]
-  !        rmax  = mg%dr(1) * [nc, nc]
-  !        rhs   = mg%boxes(1)%cc(1:nc, 1:nc, mg_irhs)
+  !        rmin  = [0.0_dp]
+  !        rmax  = mg%dr(1) * [nc]
+  !        rhs   = mg%boxes(1)%cc(1:nc, mg_irhs)
 
-  ! #if 2 == 2
+  ! #if 1 == 2
   !        call fishpack_2d(nx, rhs, mg%bc, rmin, rmax)
-  ! #elif 2 == 3
+  ! #elif 1 == 3
   !        call fishpack_3d(nx, rhs, mg%bc, rmin, rmax)
   ! #endif
 
-  !        mg%boxes(1)%cc(1:nc, 1:nc, mg_iphi) = rhs
+  !        mg%boxes(1)%cc(1:nc, mg_iphi) = rhs
   !     else if (my_boxes > 0) then
   !        error stop "Boxes at level 1 at different processors"
   !     end if
@@ -3203,13 +3027,13 @@ contains
        call mg%box_op(mg, id, nc_c, mg_irhs)
 
        ! Add the fine grid residual to rhs
-       mg%boxes(id)%cc(1:nc_c, 1:nc_c, mg_irhs) = &
-            mg%boxes(id)%cc(1:nc_c, 1:nc_c, mg_irhs) + &
-            mg%boxes(id)%cc(1:nc_c, 1:nc_c, mg_ires)
+       mg%boxes(id)%cc(1:nc_c, mg_irhs) = &
+            mg%boxes(id)%cc(1:nc_c, mg_irhs) + &
+            mg%boxes(id)%cc(1:nc_c, mg_ires)
 
        ! Story a copy of phi
-       mg%boxes(id)%cc(:, :, mg_iold) = &
-            mg%boxes(id)%cc(:, :, mg_iphi)
+       mg%boxes(id)%cc(:, mg_iold) = &
+            mg%boxes(id)%cc(:, mg_iphi)
     end do
   end subroutine update_coarse
 
@@ -3223,9 +3047,9 @@ contains
        id = mg%lvls(lvl)%my_parents(i)
 
        ! Store the correction in mg_ires
-       mg%boxes(id)%cc(:, :, mg_ires) = &
-            mg%boxes(id)%cc(:, :, mg_iphi) - &
-            mg%boxes(id)%cc(:, :, mg_iold)
+       mg%boxes(id)%cc(:, mg_ires) = &
+            mg%boxes(id)%cc(:, mg_iphi) - &
+            mg%boxes(id)%cc(:, mg_iold)
     end do
 
     call mg_prolong(mg, lvl, mg_ires, mg_iphi, mg%box_prolong, add=.true.)
@@ -3260,9 +3084,9 @@ contains
 
     call mg%box_op(mg, id, nc, mg_ires)
 
-    mg%boxes(id)%cc(1:nc, 1:nc, mg_ires) = &
-         mg%boxes(id)%cc(1:nc, 1:nc, mg_irhs) &
-         - mg%boxes(id)%cc(1:nc, 1:nc, mg_ires)
+    mg%boxes(id)%cc(1:nc, mg_ires) = &
+         mg%boxes(id)%cc(1:nc, mg_irhs) &
+         - mg%boxes(id)%cc(1:nc, mg_ires)
   end subroutine residual_box
 
   !> Apply operator to the tree and store in variable i_out
@@ -3338,7 +3162,7 @@ contains
     mg%comm_restrict%n_send = n_out
     mg%comm_restrict%n_recv = n_in
 
-    dsize  = (mg%box_size/2)**2
+    dsize  = (mg%box_size/2)**1
     n_send = maxval(n_out, dim=2)
     n_recv = maxval(n_in, dim=2)
   end subroutine mg_restrict_buffer_size
@@ -3367,7 +3191,7 @@ contains
     nc = mg%box_size_lvl(lvl)
 
     if (lvl >= mg%first_normal_lvl) then
-       dsize = (nc/2)**2
+       dsize = (nc/2)**1
 
        mg%buf(:)%i_send = 0
        mg%buf(:)%i_ix   = 0
@@ -3392,19 +3216,17 @@ contains
     type(mg_t), intent(inout) :: mg
     integer, intent(in)          :: id
     integer, intent(in)          :: iv
-    integer                      :: i, j, n, hnc, p_id, p_rank
-    real(dp) :: tmp(mg%box_size/2, mg%box_size/2)
+    integer                      :: i, n, hnc, p_id, p_rank
+    real(dp) :: tmp(mg%box_size/2)
 
     hnc    = mg%box_size/2
     p_id   = mg%boxes(id)%parent
     p_rank = mg%boxes(p_id)%rank
 
     if (p_rank /= mg%my_rank) then
-       do j = 1, hnc
-          do i = 1, hnc
-             tmp(i, j) = 0.25_dp * &
-                  sum(mg%boxes(id)%cc(2*i-1:2*i, 2*j-1:2*j, iv))
-          end do
+       do i = 1, hnc
+          tmp(i) = 0.5_dp * &
+               sum(mg%boxes(id)%cc(2*i-1:2*i, iv))
        end do
 
        ! Buffer
@@ -3426,11 +3248,11 @@ contains
     integer, intent(in)       :: id
     integer, intent(in)       :: nc
     integer, intent(in)       :: iv
-    integer                   :: i, j, hnc, dsize, i_c, c_id
-    integer                   :: c_rank, dix(2)
+    integer                   :: i, hnc, dsize, i_c, c_id
+    integer                   :: c_rank, dix(1)
 
     hnc   = nc/2
-    dsize = hnc**2
+    dsize = hnc**1
 
     do i_c = 1, mg_num_children
        c_id   = mg%boxes(id)%children(i_c)
@@ -3439,15 +3261,14 @@ contains
        dix    = mg_get_child_offset(mg, c_id)
 
        if (c_rank == mg%my_rank) then
-          do j=1, hnc; do i=1, hnc
-             mg%boxes(id)%cc(dix(1)+i, dix(2)+j, iv) = 0.25_dp * &
-                  sum(mg%boxes(c_id)%cc(2*i-1:2*i, 2*j-1:2*j, iv))
-          end do; end do
+          do i=1, hnc
+             mg%boxes(id)%cc(dix(1)+i, iv) = 0.5_dp * &
+                  sum(mg%boxes(c_id)%cc(2*i-1:2*i, iv))
+          end do; 
        else
           i = mg%buf(c_rank)%i_recv
-          mg%boxes(id)%cc(dix(1)+1:dix(1)+hnc, &
-               dix(2)+1:dix(2)+hnc, iv) = &
-               reshape(mg%buf(c_rank)%recv(i+1:i+dsize), [hnc, hnc])
+          mg%boxes(id)%cc(dix(1)+1:dix(1)+hnc, iv) = &
+               reshape(mg%buf(c_rank)%recv(i+1:i+dsize), [hnc])
           mg%buf(c_rank)%i_recv = mg%buf(c_rank)%i_recv + dsize
        end if
     end do
@@ -3656,4 +3477,4 @@ contains
       !
    End Subroutine I_mrgrnk
 
-end module m_octree_mg_2d
+end module m_octree_mg_1d

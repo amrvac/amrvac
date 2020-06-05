@@ -1,42 +1,9 @@
 !> Module to couple the octree-mg library to AMRVAC. This file uses the VACPP
 !> preprocessor, but its use is kept to a minimum.
-{^IFONED
-!> In 1D, only provide a dummy module.
 module mod_multigrid_coupling
-  implicit none
-  public
-
-  type mg_t
-  end type mg_t
-
-contains
-
-  !> Setup multigrid for usage
-  subroutine mg_setup_multigrid()
-    error stop "Multigrid not available in 1D"
-  end subroutine mg_setup_multigrid
-
-  !> If the grid has changed, rebuild the full multigrid tree
-  subroutine mg_update_refinement(n_coarsen, n_refine)
-    integer, intent(in) :: n_coarsen
-    integer, intent(in) :: n_refine
-    error stop "Multigrid not available in 1D"
-  end subroutine mg_update_refinement
-
-  !> Copy a variable to the multigrid tree, including a layer of ghost cells
-  subroutine mg_copy_to_tree(iw_from, iw_to, restrict, restrict_gc)
-    integer, intent(in)      :: iw_from    !< Variable to use as right-hand side
-    integer, intent(in)      :: iw_to      !< Copy to this variable
-    logical, intent(in)      :: restrict   !< Restrict variable on multigrid tree
-    logical, intent(in)      :: restrict_gc !< Fill ghost cells after restrict
-
-    error stop "Multigrid not available in 1D"
-  end subroutine mg_copy_to_tree
-
-end module mod_multigrid_coupling
-}
-{^NOONED
-module mod_multigrid_coupling
+  {^IFONED
+  use m_octree_mg_1d
+  }
   {^IFTWOD
   use m_octree_mg_2d
   }
@@ -67,15 +34,12 @@ contains
     use mod_global_parameters
     use mod_geometry
 
-    if (ndim == 1) &
-         error stop "Multigrid not available in 1D"
-
     if (ndim /= mg_ndim) &
          error stop "Multigrid module was compiled for different ndim"
 
     select case (coordinate)
     case (Cartesian)
-       if (ndim == 1) error stop "Multigrid only support 2D, 3D"
+       continue
     case (cylindrical)
        if (ndim == 3) error stop "Multigrid does not support cylindrical 3D"
        mg%geometry_type = mg_cylindrical
@@ -166,6 +130,10 @@ contains
        nc    =  mg%box_size_lvl(lvl)
 
        ! Include one layer of ghost cells on grid leaves
+       {^IFONED
+       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
+            ps(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
+       }
        {^IFTWOD
        mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
             ps(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
@@ -236,6 +204,10 @@ contains
        lvl   =  mg%boxes(id)%lvl
        nc    =  mg%box_size_lvl(lvl)
 
+{^IFONED
+       ps(igrid)%w(ixMlo1:ixMhi1, iw_to) = &
+            mg%boxes(id)%cc(1:nc, iw_from)
+}
 {^IFTWOD
        ps(igrid)%w(ixMlo1:ixMhi1, ixMlo2:ixMhi2, iw_to) = &
             mg%boxes(id)%cc(1:nc, 1:nc, iw_from)
@@ -268,6 +240,10 @@ contains
        lvl   =  mg%boxes(id)%lvl
        nc    =  mg%box_size_lvl(lvl)
 
+{^IFONED
+       ps(igrid)%w(ixMlo1-1:ixMhi1+1, iw_to) = &
+            mg%boxes(id)%cc(0:nc+1, iw_from)
+}
 {^IFTWOD
        ps(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
             mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_from)
@@ -365,4 +341,4 @@ contains
   end subroutine mg_tree_from_amrvac
 
 end module mod_multigrid_coupling
-}
+

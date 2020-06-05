@@ -14,10 +14,7 @@ program amrvac
   use mod_fix_conserve
   use mod_advance, only: process
   use mod_constrained_transport
-
-  {^NOONED
   use mod_multigrid_coupling
-  }
 
   double precision :: time0, time_in
   logical,save     :: part_file_exists=.false.
@@ -105,9 +102,7 @@ program amrvac
         stop
      end if
 
-     {^NOONED
      if (use_multigrid) call mg_setup_multigrid()
-     }
 
   else
 
@@ -117,9 +112,9 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
-     {^NOONED
      if (use_multigrid) call mg_setup_multigrid()
 
+     {^NOONED
      ! improve initial condition
      call improve_initial_condition()
      }
@@ -360,9 +355,7 @@ contains
 
     if(use_particles) call time_spent_on_particles
 
-    {^NOONED
     if (use_multigrid) call mg_timers_show(mg)
-    }
   end subroutine timeintegration
 
   !> Save times are defined by either tsave(isavet(ifile),ifile) or

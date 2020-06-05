@@ -24,16 +24,10 @@ mod_global_parameters.o: mod_basic_types.mod
 mod_variables.o: mod_basic_types.mod
 mod_usr_methods.o: mod_global_parameters.mod
 
-# Multigrid is only used in 2D and 3D. Due to the m_ prefix, the update_dependencies.sh script ignores these dependencies.
-ifeq ($(NDIM), 2)
-FOBJECTS += m_octree_mg_2d.t
-mod_multigrid_coupling.o: m_octree_mg_2d.mod
-endif
-
-ifeq ($(NDIM), 3)
-FOBJECTS += m_octree_mg_3d.t
-mod_multigrid_coupling.o: m_octree_mg_3d.mod
-endif
+# Add multigrid files and dependencies. Due to the m_ prefix, the
+# update_dependencies.sh script ignores these dependencies.
+FOBJECTS += m_octree_mg_$(NDIM)d.t
+mod_multigrid_coupling.o: m_octree_mg_$(NDIM)d.mod
 
 # Update this file by running ./update_dependencies.sh in the src folder
 # Don't change the text below or the script will break

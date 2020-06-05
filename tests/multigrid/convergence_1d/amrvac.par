@@ -1,0 +1,43 @@
+ &filelist
+        base_filename='test'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+ /
+
+ &savelist
+ dtsave_dat=0.05d0
+ itsave(1, 2) = 0
+ ! dtsave_log = 0.05d0
+ /
+
+ &stoplist
+        time_max=1.0d0
+ /
+
+ &methodlist
+        time_integrator=  'onestep'
+        flux_scheme = 20*'tvdlf'
+        limiter= 20*'koren'
+ /
+
+ &boundlist
+        typeboundary_min1='cont'
+        typeboundary_max1='cont'
+ /
+
+ &meshlist
+        refine_max_level=3
+        refine_threshold=20*1.0
+        domain_nx1=64
+        xprobmin1=-0.5d0
+        xprobmax1=0.5d0
+ /
+
+ &paramlist
+       courantpar=0.8d0
+ /
+
+ &rho_list
+        rho_v = 0.0
+ /
+
