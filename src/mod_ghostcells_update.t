@@ -1390,9 +1390,9 @@ contains
 
         if(stagger_grid.and.phyboundblock(igrid).and.bcphys) then
           block=>psc(igrid)
-          ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
-          ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
           do idims=1,ndim
+            ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
+            ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
             {^IFTHREED
             ! avoid using undetermined ghost cells at physical boundary edges
             if(idims == 1) then
