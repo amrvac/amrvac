@@ -287,15 +287,14 @@ contains
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
-
-    if(check_small_values)  call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
-
-    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
  
     if(phys_solve_eaux) then
       call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
     endif
+
+    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
 

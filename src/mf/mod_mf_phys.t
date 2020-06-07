@@ -1233,8 +1233,8 @@ contains
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
-    integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
-    double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+    integer          :: iw,idir
+    double precision :: tmp(ixI^S)
 
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
@@ -1257,13 +1257,6 @@ contains
       end if
       if(mf_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
     case (spherical)
-       h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-       call mf_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
-       tmp(ixO^S)=tmp1(ixO^S)
-       if(B0field) then
-         tmp2(ixO^S)=sum(block%B0(ixO^S,:,0)*wCT(ixO^S,mag(:)),dim=ndim+1)
-         tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
-       end if
        ! b1
        if(mf_glm) then
          w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt/x(ixO^S,1)*2.0d0*wCT(ixO^S,psi_)

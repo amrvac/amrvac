@@ -644,7 +644,10 @@ contains
 !    double precision :: vtot(ixI^S),cs2(ixI^S),mach(ixI^S)
 !    double precision, parameter :: mach_low=20.d0,mach_high=200.d0
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth1)
+    pth1(ixO^S)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
+    where(pth1(ixO^S)<small_pressure)
+      pth1(ixO^S)=small_pressure
+    end where
     pth2(ixO^S)=w(ixO^S,eaux_)*gamma_1
 !   beta(ixO^S)=two*min(pth1(ixO^S),pth2(ixO^S))/mhd_mag_en_all(w,ixI^L,ixO^L)
     beta(ixO^S)=two*min(pth1(ixO^S),pth2(ixO^S))/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
