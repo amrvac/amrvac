@@ -644,15 +644,14 @@ contains
 !    double precision :: vtot(ixI^S),cs2(ixI^S),mach(ixI^S)
 !    double precision, parameter :: mach_low=20.d0,mach_high=200.d0
 
-    pth1(ixO^S)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L))
-    where(pth1(ixO^S)<small_pressure)
-      pth1(ixO^S)=small_pressure
-    end where
+    ! get magnetic energy
+    alfa(ixO^S)=mhd_mag_en(w,ixI^L,ixO^L)
+    pth1(ixO^S)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L)-alfa(ixO^S))
     pth2(ixO^S)=w(ixO^S,eaux_)*gamma_1
-!   beta(ixO^S)=two*min(pth1(ixO^S),pth2(ixO^S))/mhd_mag_en_all(w,ixI^L,ixO^L)
-    beta(ixO^S)=two*min(pth1(ixO^S),pth2(ixO^S))/sum(w(ixO^S,mag(:))**2,dim=ndim+1)
+    ! get plasma beta
+    beta(ixO^S)=min(pth1(ixO^S),pth2(ixO^S))/alfa(ixO^S)
 
-    !> whether Mach number should be another criterion ?
+    ! whether Mach number should be another criterion ?
 !    vtot(ixO^S)=sum(w(ixO^S,mom(:))**2,dim=ndim+1)
 !    call mhd_get_csound2(w,x,ixI^L,ixO^L,cs2)
 !    mach(ixO^S)=sqrt(vtot(ixO^S)/cs2(ixO^S))/w(ixO^S,rho_)
