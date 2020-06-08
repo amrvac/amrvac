@@ -170,6 +170,7 @@ contains
     call mf_read_params(par_files)
 
     physics_type = "mf"
+    phys_energy = .false.
 
     if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
