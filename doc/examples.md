@@ -24,7 +24,9 @@ following movie in a few simple steps:
 
 Its default settings is to perform one advection over the full diagonal, use 3
 AMR levels, and have a base level 1 resolution of 50 by 50 (split in 10
-by 10 grid blocks). A somewhat more advanced paraview user can make the
+by 10 grid blocks). 
+
+A somewhat more advanced paraview user can make the
 following movie, combining the 2D view with a cut along the middle of the box:
 
 [![Vac logo Movie](figmovdir/vaclogo.png)](figmovdir/vaclogo2.avi)

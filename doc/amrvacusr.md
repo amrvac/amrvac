@@ -71,7 +71,7 @@ can then base refinement as well.
 
 ## Special output and analysis {#user_speciallog}
 
-The default log-file may be altered, for which you need to code up the 
+The default log-file may be altered, for which you need to code up  
 a **usr_print_log** subroutine. For parallel execution,
 this invariably means the use of MPI constructs, so you should copy in the
 default version **printlog_default** from _src/amrvacio/mod_input_output.t_ 

@@ -15,7 +15,7 @@ Having made some changes, the first thing you can check is whether the AMRVAC li
 
 If you have added new files, you might have to update dependencies in the makefiles, see @ref addmodule.md.
 
-It is important test your changes by running MPI-AMRVAC's test suite. This is done as
+It is important to test your changes by running MPI-AMRVAC's test suite. This is done as
 follows:
 
     cd tests
@@ -23,7 +23,7 @@ follows:
 
 This will run programs in 1D, 2D and 3D and compare their output to previously
 stored results, and report errors when differences are larger than some
-threshold. Alternative, you can run tests for individual physics modules:
+threshold. Alternatively, you can run tests for individual physics modules:
 
     cd tests
     make rho
@@ -39,7 +39,7 @@ To add new tests, you need:
 * A suitable `.par` file so that your simulation runs quickly (in say 1 to 10 seconds)
 * A file `test.make` following the template below
 
-These files should be place in the corresponding physics folder, e.g. `tests/hd`
+These files should be placed in the corresponding physics folder, e.g. `tests/hd`
 for hydro problems. Assuming your `.par` file is called `my_test.par`, it should contain the following options in its filelist (see @ref par.md):
 
     base_filename='my_test'
