@@ -1,6 +1,6 @@
 ################# Definitions for source files #############################
 INCLUDES = mod_global_parameters.t mod_usr_methods.t mod_forest.t	\
-mod_physicaldata.o mod_connectivity.t mod_constants.t mod_variables.t	\
+mod_physicaldata.t mod_connectivity.t mod_constants.t mod_variables.t	\
 mod_basic_types.t
 
 FOBJECTS = mod_advance.t setdt.t amrini.t amr_solution_node.t errest.t		\
