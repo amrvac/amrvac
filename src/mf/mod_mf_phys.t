@@ -2502,7 +2502,7 @@ contains
     double precision, intent(inout)    :: ws(ixIs^S,1:nws)
     double precision, intent(in)       :: x(ixI^S,1:ndim)
 
-    double precision                   :: Adummy(ixI^S,1:3)
+    double precision                   :: Adummy(ixIs^S,1:3)
 
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
 

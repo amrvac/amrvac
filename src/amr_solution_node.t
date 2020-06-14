@@ -58,10 +58,10 @@ subroutine alloc_node(igrid)
   double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
 
   ixCoGmin^D=1;
-  !ixCoGmax^D=ixGhi^D/2+nghostcells;
   ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
 
   icase=mod(nghostcells,2)
+  if(stagger_grid) icase=1
   select case(icase)
     case(0)
       ixGext^L=ixG^LL;
@@ -166,7 +166,7 @@ subroutine alloc_node(igrid)
       ixshift=(ig^D-1)*block_nx^D-nghostcells
       do ix=ixGextmin^D,ixGextmax^D
         index=ixshift+ix
-        ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
+        ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
       enddo
       igCo^D=(ig^D-1)/2
       ixshift=igCo^D*block_nx^D+(1-modulo(ig^D,2))*block_nx^D/2-nghostcells
@@ -244,7 +244,7 @@ subroutine alloc_node(igrid)
          ixshift=(ig^D-1)*block_nx^D-nghostcells
          do ix=ixGextmin^D,ixGextmax^D
            index=ixshift+ix
-           ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(offset-index)
+           ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(offset-index)
          enddo
          ixshift=(nstretchedblocks(level,^D)/2-ig^D)*(block_nx^D/2)+block_nx^D/2+nghostcells
          do ix=ixCoGmin^D,ixCoGmax^D
@@ -256,8 +256,8 @@ subroutine alloc_node(igrid)
            if(ng^D(level)==nstretchedblocks(level,^D))then
              ! if middle blocks do not exist then use symmetry
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-                ps(igrid)%dx(ix^D%ixG^T,^D)= &
-                ps(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixG^T,^D)
+                ps(igrid)%dx(ix^D%ixGext^S,^D)= &
+                ps(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixGext^S,^D)
              enddo
              do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
                 psc(igrid)%dx(ix^D%ixCoG^S,^D)= &
@@ -266,7 +266,7 @@ subroutine alloc_node(igrid)
            else
              ! if middle blocks exist then use same as middle blocks: 
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-                ps(igrid)%dx(ix^D%ixG^T,^D)=dxmid(level,^D)
+                ps(igrid)%dx(ix^D%ixGext^S,^D)=dxmid(level,^D)
              enddo
              do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
                 psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
@@ -300,7 +300,7 @@ subroutine alloc_node(igrid)
            endif
            if(ig^D==ng^D(level)-nstretchedblocks(level,^D))then
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-               ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
+               ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
              enddo
              do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
                psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(ix-ixCoGmax^D+nghostcells-1)
