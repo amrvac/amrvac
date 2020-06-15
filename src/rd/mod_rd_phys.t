@@ -120,11 +120,9 @@ contains
     case ("split")
        use_multigrid = .true.
        phys_global_source => rd_implicit_diffusion
-       if (ndim == 1) call mpistop("multigrid not available in 1d")
     case ("imex")
        use_multigrid = .true.
        phys_global_source => rd_imex_diffusion
-       if (ndim == 1) call mpistop("multigrid not available in 1d")
     case default
        call mpistop("Unknown rd_diffusion_method")
     end select
@@ -134,7 +132,7 @@ contains
   subroutine rd_check_params
     use mod_multigrid_coupling
     use mod_global_parameters
-    integer :: n, idim
+    integer :: n
 
     if (any(flux_scheme /= "source")) then
        call mpistop("mod_rd requires flux_scheme = source")
@@ -145,11 +143,9 @@ contains
        call mpistop("imex requires time_integrater = onestep")
     end if
 
-    {^NOONED
     if (use_multigrid) then
        ! Set boundary conditions for the multigrid solver
        do n = 1, 2*ndim
-          idim = (n+1)/2
           select case (typeboundary(u_, n))
           case ('symm')
              ! d/dx u = 0
@@ -173,7 +169,6 @@ contains
           end select
        end do
     end if
-    }
   end subroutine rd_check_params
 
   subroutine rd_to_conserved(ixI^L, ixO^L, w, x)
@@ -229,13 +224,9 @@ contains
     double precision, intent(inout) :: dtnew
     double precision                :: maxrate
 
-    select case (rd_diffusion_method)
-    case ("explicit")
-       ! dt < dx^2 / (2 * ndim * diffusion_coeff)
-       dtnew = 0.9d0 * minval([ dx^D ])**2 / (2 * ndim * max(D1, D2))
-    case ("split", "imex")
-       dtnew = bigdouble
-    end select
+    ! dt < dx^2 / (2 * ndim * diffusion_coeff)
+    ! use dtdiffpar < 1 for explicit and > 1 for imex/split
+    dtnew = dtdiffpar * minval([ dx^D ])**2 / (2 * ndim * max(D1, D2))
 
     ! Estimate time step for reactions
     select case (equation_type)
@@ -357,7 +348,6 @@ contains
 
     max_residual = 1d-7/qdt
 
-    {^NOONED
     call mg_copy_to_tree(u_, mg_iphi)
     call diffusion_solve(mg, qdt, D1, 1, max_residual)
     call mg_copy_from_tree(mg_iphi, u_)
@@ -365,7 +355,7 @@ contains
     call mg_copy_to_tree(v_, mg_iphi)
     call diffusion_solve(mg, qdt, D2, 1, max_residual)
     call mg_copy_from_tree(mg_iphi, v_)
-    }
+
     active = .true.
 
   end subroutine rd_implicit_diffusion
@@ -399,7 +389,6 @@ contains
 
     max_residual = 1d-7/qdt
 
-    {^NOONED
     ! First handle the u variable
     nc               = mg%box_size
     mg%operator_type = mg_helmholtz
@@ -428,7 +417,6 @@ contains
        if (res < max_residual) exit
     end do
     call mg_copy_from_tree_gc(mg_iphi, v_)
-    }
 
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        call rd_imex_step2(qdt, ixG^LL, ixM^LL, ps(igrid)%w, pso(igrid)%w)

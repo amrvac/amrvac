@@ -2,6 +2,11 @@
 #############################################################################
 #
 # AMRVAC PreProcessor (Based on vacpp.pl by Gabor Toth)
+#                  June 2020: Simplified usage (Teunissen/Keppens)
+#
+#    Todo: here: remove definevars and IFDEF/IFNDEF constructions 
+#          verify patterns in use
+#    TODO: in code: remove RAY/D1/D2/D3/ENERGY/BIGENDIAN/EVOLVINGBOUNDARY/HALL
 #
 # Translates the dimension independent notation to Fortran 90 by expanding
 # the Loop Annotation SYntax (LASY).
@@ -17,7 +22,7 @@ my $help_message =
 
 Required options:
 
-    -d=N                        N is the the problem dimension (1 to 3)
+    -d=N                        N is the problem dimension (1 to 3)
 
 Optional options:
 
@@ -53,37 +58,11 @@ $maxlen=78 unless $maxlen;
 
 # Check whether the problem and vector dimension lie between 1 and 3, by
 # matching with a regexp.
-# TODO: check input, allow more when in interactive mode
 $d =~ /([123])/ || die "Incorrect -d flag value\n";
 
-# Store the problem and vector dimension ($1 and $2 refer to the matching groups
+# Store the problem dimension ($1 is input argument of the matching groups
 # of the regexp)
 $ndim = $1;
-# $ndir = $2;
-
-# if ($phi) {
-    # Check if $phi matches a single-digit number
-    # TODO: improve validity check
-    # $phi=~/\d/ || die "Incorrect -phi flag value\n";
-# } else {
-    # If not defined, set $phi to 3
-    # $phi = 3;
-# }
-
-# if ($z) {
-    # Check if $z matches a single-digit number
-    # TODO: improve validity check
-    # $z =~ /(\d)/ || die "Incorrect -z flag value\n";
-# } else {
-    # If not defined, set $z to 2
-    # $z = 2;
-# }
-
-# Set default options unless given
-$nf  = 0 unless $nf;
-$nd  = 0 unless $nd;
-$cp  = openmpi unless $cp;
-$eos = default unless $eos;
 
 # Call these routines
 &definepatterns;
@@ -125,17 +104,9 @@ sub processfile {
       # Expand the line
       &processline($input);
 
-      # Process files included by "INCLUDE:filename"
-      # if (/INCLUDE:(.*)/) {
-          # &processfile("$AMRVAC_DIR/src/$1",$input);
-          # next;
-      # }
-
       # Print the line formatted according to maxlen
       &printline if $_;
    }
-   # Print common declarations collected from "COMMON,..." lines
-   for $_ (values(%common)){&printline}; undef %common;
 }
 
 # Join continuation lines into a single line
@@ -174,8 +145,6 @@ sub processline{
    s/$spc//g;
    # REPLACE BREAK CHARACTERS BY NEWLINES AND INDENTATION
    if(/\\/){/^ */; $indent=$&; s/\\/\n$indent/g};
-   # PROCESS "COMMON, ..." DECLARATIONS
-   if(/^ *COMMON,/){&common};
 }
 #============================================================================
 sub definepatterns{
@@ -187,18 +156,9 @@ sub definepatterns{
    $rbound=" ,;~)\n"; $lbound=" ,;~(\n";
 
    $nsubdefault=$ndim;
-   # Define number of substitutes and subtitute strings for patterns
+   # Define number of substitutes and substitute strings for patterns
    # E.g. ^D -> 1,2 is defined by &patdef('D',2,'1','2','3')
    &patdef('ND'	,1	,$ndim			);
-   # &patdef('NC'	,1	,$ndir			);
-   # &patdef('NFL',1	,$nf			);
-   # &patdef('PHI',1	,$phi			);
-   # &patdef('Z'	,1	,$z			);
-   # if($phi>0){$pphi=$phi}else{$pphi=1};
-   # if($z>0){$zz=$z}else{$zz=1};
-   # &patdef('PPHI',1	,$pphi			);
-   # &patdef('ZZ'	,1	,$zz			);
-
    &patdef('DE'	,$ndim-1,2	,3		);
    &patdef('DE&',$ndim-1			);
    &patdef('DE%',$ndim-1,'^%2'	,'^%3'		);
@@ -207,16 +167,6 @@ sub definepatterns{
    &patdef('DMB',$ndim-1,$ndim-1,$ndim-2        );
    &patdef('SE'	,$ndim-1,'^LIM2:','^LIM3:'	);
    &patdef('TE'	,$ndim-1,'^LLIM2:','^LLIM3:'	);
-
-#  Dust specific patterns:
-   # &patdef('NDS',1	,$ndust			);
-   # &patdef('DS',$ndust,1  ,2  ,3  ,4,5,6,7,8,9,10);
-   # &patdef('DS&',$ndust);
-
-   # &patdef('FL'	,$nf	,1, 2	,3	,4,5,6,7,8,9,10);
-   # &patdef('FL&'	,$nf			       );
-   # &patdef('FL%',$nf	,'^%2'	,'^%3'	,'^%4','^%5','^%6','^%7','^%8','^%9','^%10');
-   # &patdef('FLLOOP',$nf       			);
    &patdef('TD'  ,$ndim  ,1      ,2      ,3      );
    &patdef('D'	,$ndim	,1	,2	,3	);
    &patdef('D&'	,$ndim				);
@@ -233,15 +183,6 @@ sub definepatterns{
    &patdef('T'	,$ndim	,'^LLIM1:','^LLIM2:','^LLIM3:');
    &patdef('DLB',$ndim	,'^LIM'.$ndim,'^LIM'.($ndim-1),'^LIM'.($ndim-2));
 
-   # &patdef('CE'	,$ndir-1,2	,3		);
-   # &patdef('CE&',$ndir-1			);
-   # &patdef('CELOOP',$ndir-1			);
-
-   # &patdef('C'	,$ndir	,1	,2	,3	);
-   # &patdef('C&'	,$ndir				);
-   # &patdef('CLOOP',$ndir       			);
-   # &patdef('CC'	,$ndir	,'^C'	,'^C'	,'^C'	);
-
    &patdef('LIM'	,2	,'min'	,'max'	);
    &patdef('LLIM'	,2	,'lo'	,'hi'	);
    &patdef('L'		,2	,'min^D','max^D');
@@ -250,56 +191,16 @@ sub definepatterns{
    &patdef('LADD'	,2	,'-'	,'+'	);
    &patdef('LT'		,2	,'>'	,'<'	);
 
-   # &patdef('IFONEFLUID'	,$nf==0			);
-   # &patdef('IFMLTFLUID'	,$nf>0			);
-   # &patdef('IFTOFLUID'	,$nf>1			);
-   # &patdef('IFTRFLUID'	,$nf>2			);
-   # &patdef('IFFRFLUID'	,$nf>3			);
-   # &patdef('IFFVFLUID'	,$nf>4			);
-   # &patdef('IFSIFLUID'	,$nf>5			);
-   # &patdef('IFSEFLUID'	,$nf>6			);
-   # &patdef('IFHEFLUID'	,$nf>7			);
-   # &patdef('IFNIFLUID'	,$nf>8			);
-   # &patdef('IFTEFLUID'	,$nf==10		);
-
    &patdef('IFONED'	,$ndim==1		);
    &patdef('IFTWOD'	,$ndim==2		);
    &patdef('IFTHREED'	,$ndim==3		);
-   # &patdef('IFONEC'     ,$ndir==1               );
-   # &patdef('IFTWOC'	,$ndir==2		);
-   # &patdef('IFTHREEC'	,$ndir==3		);
    &patdef('NOONED'	,$ndim!=1		);
-   # &patdef('NOONEC'     ,$ndir!=1               );
-   # &patdef('IFPHI'      ,$phi>0			);
-   # &patdef('IFZ'        ,$z>0			);
-   # &patdef('IFMHD'      ,$p eq mhd              );
-   # &patdef('IFSRMHD'    ,$p eq srmhd		);
-#   &patdef('IFSRMHDGLM' ,$p eq srmhdglm         );
-   # &patdef('IFSRHD'     ,$p eq srhd		);
-   # &patdef('IFSRHDEOS'  ,$p eq srhdeos		);
-   # &patdef('IFSRMHDEOS' ,$p eq srmhdeos		);
-#   &patdef('IFSRMHDGLMEOS' ,$p eq srmhdglmeos   );
-#   &patdef('IFGLM'      ,$p eq mhdglm || $p eq srmhdglm || $p eq srmhdglmeos);
-   # &patdef('IFEOS'      ,$p eq srhdeos || $p eq srmhdeos || $p eq srmhdglmeos );
-   # &patdef('IFNOEOS'    ,$p ne srmhdeos && $p ne srmhdglmeos && $p ne srhdeos);
-   # &patdef('IFMHDPHYS'  ,$p eq mhd || $p eq mhdglm || $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
-   # &patdef('IFHDPHYS'  ,$p eq hd ||  $p eq srhd ||  $p eq srhdeos || $p eq srhdeoscooling);
-   # &patdef('IFRELMHDPHYS'  , $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
-   # &patdef('IFRELHDPHYS'  ,  $p eq srhd ||  $p eq srhdeos || $p eq srhdeoscooling);
-   # &patdef('IFREL'      ,$p eq srhd || $p eq srhdeos || $p eq srmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos || $p eq srhdeoscooling|| $p eq srhdcooling || $p eq grhd);
-   # &patdef('IFREL'  , $p eq srmhd || $p eq rmhd || $p eq srmhdglm || $p eq srmhdeos || $p eq srmhdglmeos);
-  # &patdef('IFCLA'      ,$p eq hdadiab || $p eq hd || $p eq mhd || $p eq mhdglm || $p eq mhdadiab);
-   # &patdef('IFRESSRMHD' ,$p eq ressrmhd         );
-   # &patdef('IFMPT'      ,$cp eq mpt             );
-   # &patdef('IFNOMPT'    ,$cp ne mpt             );
-   # &patdef('IFGR'       ,$p eq grhd ||$p eq grhdeos || $p eq grmhd  || $p eq grmhdeos || $p eq grmhdglm || $p eq grmhdglmeos            );
-  # &patdef('IFNOGR'       ,$p ne grhd && $p ne grhdeos && $p ne grmhd  && $p ne grmhdeos && $p ne grmhdglm && $p ne grmhdglmeos            );
-   # &patdef('IFTWODMHD'   ,$p eq mhd && $ndim==2 );
-   # &patdef('IFTHREEDMHD' ,$p eq mhd && $ndim==3 );
 }
 #============================================================================
 sub definevars{
   # Build array of defined vars from definitions.h:
+  # Note: this is no longer in use. 
+  #    TODO: remove RAY/D1/D2/D3/ENERGY/BIGENDIAN/EVOLVINGBOUNDARY/HALL
   %defvars = ();
   open (definitions, '../definitions.h');
   while (<definitions>) {
@@ -308,31 +209,13 @@ sub definevars{
     $defvars{uc $var} = $value;
   }
   close (definitions);
-  # Attach the definitions from command line:
-# EOS:
-  $defvars{uc $eos}=1;
-  if ($eos ne iso){$defvars{ENERGY}=1;}
-  if ($eos eq default){$defvars{GAMMA}=1;}
 
-# Tracers:
-   if ($nf>0){$defvars{TRACER}=$nf;}
-
-# Dust:
-   if ($ndust>0){$defvars{DUST}=$ndust;}
+# Attach definitions that follow from command line:
 
 # Dimensionality:
    if ($ndim==1){$defvars{D1}=1;}
    if ($ndim==2){$defvars{D2}=1;}
    if ($ndim==3){$defvars{D3}=1;}
-
-# Components:
-   # if ($ndir==1){$defvars{C1}=1;}
-   # if ($ndir==2){$defvars{C2}=1;}
-   # if ($ndir==3){$defvars{C3}=1;}
-
-
-# Remove incompatible definitions:
-#   if ($p ne mhd && $p ne srmhd && $p ne srmhdiso && $p ne srmhdeos){delete $defvars{GLM};}
   }
 #============================================================================
 sub patdef{
@@ -503,22 +386,6 @@ sub substitute{
    $rchr=';' if $rchr eq $clo && $separator eq ";";
    $rchr='' if $rchr eq $clo;
    $_=$head.$lchr.$result.$rchr.$tail;
-}
-#============================================================================
-sub common{
-    # Process lines of the form "COMMON, type:: var1(dim1),var2,..."
-    # Store %common declarations with the name of the four first character
-    # of the type and form the variable declaration type:: var1,var2,...
-#opedit:
-#    /^ *COMMON, *(....)[^:]*:: */; $name=$1; $varlist=$';
-    /^ *COMMON, *(....)[^:]*:: */; $name=$1; $varlist=$';
-    $varlist =~ s/\([^)]*\)//g;
-    if($common{$name}){$common{$name}=~s/\n$/,$varlist/
-    }else{             $common{$name}="COMMON /$name/ $varlist"}
-    # Eliminate "COMMON," and the dimensions in parentheses
-#    s/^ *COMMON, *//; s/\([^)]*\)//g;
-#opedit:
-    s/^ *COMMON, *//;
 }
 #============================================================================
 sub printline{
