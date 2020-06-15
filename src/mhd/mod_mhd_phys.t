@@ -704,7 +704,7 @@ contains
           if (small_values_fix_iw(e_)) then
             if(mhd_solve_eaux) then
               if(primitive) then
-                where(flag(ixO^S) /= 0) w(ixO^S,e_)=w(ixO^S,eaux_)*gamma_1
+                where(flag(ixO^S) /= 0) w(ixO^S,p_)=w(ixO^S,paux_)
               else
                 where(flag(ixO^S) /= 0)
                   w(ixO^S,e_) = w(ixO^S,eaux_) + 0.5d0 * &
@@ -714,7 +714,7 @@ contains
               end if
             else
               if(primitive) then
-                where(flag(ixO^S) /= 0) w(ixO^S,e_) = small_pressure
+                where(flag(ixO^S) /= 0) w(ixO^S,p_) = small_pressure
               else
                 where(flag(ixO^S) /= 0)
                   w(ixO^S,e_) = small_e + 0.5d0 * &
