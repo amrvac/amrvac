@@ -232,6 +232,9 @@ module m_octree_mg_1d
      !> Whether boundary condition data has been stored for mg solution
      logical :: phi_bc_data_stored = .false.
 
+     !> Whether a dimension is periodic
+     logical :: periodic(1) = .false.
+
      !> To store pre-defined boundary conditions per direction per variable
      type(mg_bc_t) :: bc(mg_num_neighbors, mg_max_num_vars)
 
@@ -795,6 +798,12 @@ contains
   subroutine laplacian_set_methods(mg)
     type(mg_t), intent(inout) :: mg
 
+    if (all(mg%periodic)) then
+       ! For a fully periodic Laplacian, remove the mean from the rhs and phi so
+       ! that a unique and periodic solution can be found
+       mg%subtract_mean = .true.
+    end if
+
     select case (mg%geometry_type)
     case (mg_cartesian)
        mg%box_op => box_lpl
@@ -916,6 +925,8 @@ contains
        mg%n_extra_vars = max(1, mg%n_extra_vars)
     end if
 
+    mg%subtract_mean = .false.
+
     ! Use Neumann zero boundary conditions for the variable coefficient, since
     ! it is needed in ghost cells.
     mg%bc(:, mg_iveps)%bc_type = mg_bc_neumann
@@ -1036,10 +1047,6 @@ contains
     if (any(modulo(domain_size, box_size) /= 0)) &
          error stop "box_size does not divide domain_size"
 
-    if (all(periodic)) then
-       mg%subtract_mean = .true.
-    end if
-
     nx                       = domain_size
     mg%box_size              = box_size
     mg%box_size_lvl(1)       = box_size
@@ -1047,6 +1054,7 @@ contains
     mg%first_normal_lvl      = 1
     mg%dr(:, 1)              = dx
     mg%r_min(:)              = r_min
+    mg%periodic              = periodic
     boxes_per_dim(:, :)      = 0
     boxes_per_dim(:, 1)      = domain_size / box_size
 
@@ -1611,6 +1619,8 @@ contains
     else
        mg%n_extra_vars = max(1, mg%n_extra_vars)
     end if
+
+    mg%subtract_mean = .false.
 
     ! Use Neumann zero boundary conditions for the variable coefficient, since
     ! it is needed in ghost cells.
@@ -2602,6 +2612,8 @@ contains
 
   subroutine helmholtz_set_methods(mg)
     type(mg_t), intent(inout) :: mg
+
+    mg%subtract_mean = .false.
 
     select case (mg%geometry_type)
     case (mg_cartesian)
