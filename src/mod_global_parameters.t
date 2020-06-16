@@ -251,7 +251,7 @@ module mod_global_parameters
   logical, allocatable :: w_write(:)
   logical, allocatable :: writelevel(:)
   double precision :: writespshift(ndim,2)
-  integer          :: level_io, level_io_min, level_io_max
+  integer          :: level_io, level_io_min, level_io_max, type_endian
 
   !> Which par files are used as input
   character(len=std_len), allocatable :: par_files(:)

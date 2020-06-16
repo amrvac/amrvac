@@ -239,8 +239,11 @@ contains
          ! generate xml header
          write(slice_fh,'(a)')'<?xml version="1.0"?>'
          write(slice_fh,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
-         {#IFDEF BIGENDIAN write(slice_fh,'(a)')' version="0.1" byte_order="BigEndian">'}
-         {#IFNDEF BIGENDIAN write(slice_fh,'(a)')' version="0.1" byte_order="LittleEndian">'}
+         if(type_endian==1)then
+            write(slice_fh,'(a)')' version="0.1" byte_order="LittleEndian">'
+         else
+            write(slice_fh,'(a)')' version="0.1" byte_order="BigEndian">'
+         endif
          write(slice_fh,'(a)')'  <UnstructuredGrid>'
          write(slice_fh,'(a)')'<FieldData>'
          write(slice_fh,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
@@ -298,8 +301,10 @@ contains
 
     subroutine write_slice_vtk(jgrid,slice_fh,wnamei)
 
+      ! this only works for 2D and 3D, 1D reduction (line to point) not allowed
       integer, intent(in)           :: jgrid, slice_fh
       character(len=name_len), intent(in) :: wnamei(1:nw+nwauxio)
+      ! This remainder part only for more than 1D, but nesting with NOONED gives problems 
       {#IFNDEF D1
       ! .. local ..
       integer                       :: ixC^L, ixCC^L, nc, np, iw

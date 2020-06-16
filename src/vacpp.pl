@@ -4,9 +4,9 @@
 # AMRVAC PreProcessor (Based on vacpp.pl by Gabor Toth)
 #                  June 2020: Simplified usage (Teunissen/Keppens)
 #
-#    Todo: here: remove definevars and IFDEF/IFNDEF constructions 
-#          verify patterns in use
-#    TODO: in code: remove RAY/D1/D2/D3/ENERGY/BIGENDIAN/EVOLVINGBOUNDARY/HALL
+#    Todo: here: remove IFDEF/IFNDEF constructions
+#          verify and reduce the patterns in use
+#    TODO: in code: remove RAY/D1/ENERGY/EVOLVINGBOUNDARY/HALL
 #
 # Translates the dimension independent notation to Fortran 90 by expanding
 # the Loop Annotation SYntax (LASY).
@@ -66,7 +66,12 @@ $ndim = $1;
 
 # Call these routines
 &definepatterns;
-&definevars;
+
+# leftover switch D1, only used in amrvacio/mod_slice.t
+# to allow for nesting in lasy syntax, acts as nooned
+%defvars = ();
+if ($ndim==1){$defvars{D1}=1;}
+
 
 # Process the files given as arguments
 foreach $file (@ARGV) {
@@ -196,27 +201,6 @@ sub definepatterns{
    &patdef('IFTHREED'	,$ndim==3		);
    &patdef('NOONED'	,$ndim!=1		);
 }
-#============================================================================
-sub definevars{
-  # Build array of defined vars from definitions.h:
-  # Note: this is no longer in use. 
-  #    TODO: remove RAY/D1/D2/D3/ENERGY/BIGENDIAN/EVOLVINGBOUNDARY/HALL
-  %defvars = ();
-  open (definitions, '../definitions.h');
-  while (<definitions>) {
-    chomp;
-    if($_=~/^#define\s*(\S*)\s*(\S*)/){$var=$1;$value=$2;};
-    $defvars{uc $var} = $value;
-  }
-  close (definitions);
-
-# Attach definitions that follow from command line:
-
-# Dimensionality:
-   if ($ndim==1){$defvars{D1}=1;}
-   if ($ndim==2){$defvars{D2}=1;}
-   if ($ndim==3){$defvars{D3}=1;}
-  }
 #============================================================================
 sub patdef{
    # Put pattern definitions into global %sub and %nsub associative arrays

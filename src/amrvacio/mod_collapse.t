@@ -249,8 +249,11 @@ call getheadernames(wnamei,xandwnamei,outfilehead)
 ! generate xml header
 write(unitcollapse,'(a)')'<?xml version="1.0"?>'
 write(unitcollapse,'(a)',advance='no') '<VTKFile type="ImageData"'
-{#IFDEF BIGENDIAN write(unitcollapse,'(a)')' version="0.1" byte_order="BigEndian">'}
-{#IFNDEF BIGENDIAN write(unitcollapse,'(a)')' version="0.1" byte_order="LittleEndian">'}
+if(type_endian==1)then
+   write(unitcollapse,'(a)')' version="0.1" byte_order="LittleEndian">'
+else
+  write(unitcollapse,'(a)')' version="0.1" byte_order="BigEndian">'
+endif
 ! following corresponds to uniform cartesian grid
 write(unitcollapse,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',&
      origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'

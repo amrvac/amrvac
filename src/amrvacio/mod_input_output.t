@@ -144,7 +144,8 @@ contains
          nwauxio,nocartesian, w_write,writelevel,&
          writespshift,length_convert_factor, w_convert_factor, &
          time_convert_factor,level_io,level_io_min, level_io_max, &
-         autoconvert,slice_type,slicenext,collapsenext,collapse_type
+         autoconvert,slice_type,slicenext,collapsenext,collapse_type, &
+         type_endian
 
     namelist /savelist/ tsave,itsave,dtsave,ditsave,nslices,slicedir, &
          slicecoord,collapse,collapseLevel, time_between_print,&
@@ -259,6 +260,8 @@ contains
     level_io                 = -1
     level_io_min             = 1
     level_io_max             = nlevelshi
+    ! endianness: littleendian (default) is 1, bigendian otherwise
+    type_endian              = 1
 
     ! normalization of primitive variables: only for output
     ! note that length_convert_factor is for length
