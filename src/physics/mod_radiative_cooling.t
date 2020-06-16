@@ -1312,7 +1312,6 @@ module mod_radiative_cooling
             L1 = zero
          else if( Tlocal1>=tcoolmax )then
             call calc_l_extended(Tlocal1, L1)
-            !L1         = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
             L1         = L1*(rholocal**2)
          else  
             call findL(Tlocal1,L1)
@@ -1336,7 +1335,7 @@ module mod_radiative_cooling
       double precision              :: w(ixI^S, 1:nw)
       double precision, intent(out) :: coolrate(ixI^S)
     
-      double precision              :: y1, y2, l1, l2, tc
+      double precision              :: y1, y2, l1, l2
       double precision              :: plocal, rholocal, tlocal1, tlocal2, invgam
       double precision              :: ptherm(ixI^S), pnew(ixI^S)
       double precision              :: emin, Lmax, fact
@@ -1368,27 +1367,26 @@ module mod_radiative_cooling
             l1 = zero
          else if( tlocal1 >= tcoolmax ) then
             call calc_l_extended(tlocal1, l1)
-            !l1 = lcool(ncool) * sqrt(tlocal1 / tcoolmax)
             l1 = l1 * (rholocal**2)
             l1 = min(l1, lmax)
          else
             call findl(tlocal1, l1)
             call findy(tlocal1, y1)
-            tc   = tlocal1 * invgam / (rholocal * l1)
-            y2   = y1 + (tlocal1 * fact) / (l1 * tc)
+            y2   = y1 +  fact * rholocal / invgam
             call findt(tlocal2, y2)
           
             if( tlocal2 <= tcoolmin ) then
                l1 = lmax
             else
                l1 = (tlocal1 - tlocal2) * invgam / (rholocal * qdt)
+               l1 = l1 * (rholocal**2)
             endif
-            
-            l1 = l1 * (rholocal**2)
+
             l1 = min(l1, lmax)
          endif
          coolrate(ix^D) = l1
       {enddo^D&\}
+
       
     end subroutine getvar_cooling_exact
     
@@ -1491,7 +1489,6 @@ module mod_radiative_cooling
             L1 = zero
          else if( Tlocal1>=tcoolmax )then
             call calc_l_extended(Tlocal1, L1)
-            !L1         = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
             L1         = L1*(rholocal**2)
             if(trac) then
               if(Tlocal1 .lt. block%special_values(1)) then
@@ -1569,7 +1566,6 @@ module mod_radiative_cooling
             Ltest = zero
          else if( Tlocal1>=tcoolmax )then
             call calc_l_extended(Tlocal1, Ltest)
-            !Ltest = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
             Ltest = L1*(rholocal**2)
             if(trac) then
               if(Tlocal1 .lt. block%special_values(1)) then
@@ -1610,7 +1606,6 @@ module mod_radiative_cooling
                exit
             else if( Tlocal1>=tcoolmax )then
               call calc_l_extended(Tlocal1, L1)
-              !L1 = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
               L1 = L1*(rholocal**2)
               if(trac) then
                 if(Tlocal1 .lt. block%special_values(1)) then
@@ -1682,7 +1677,6 @@ module mod_radiative_cooling
          else
            if( Tlocal1>=tcoolmax )then
               call calc_l_extended(Tlocal1, L1)
-              !L1 = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
            else  
               call findL(Tlocal1,L1)            
            end if                       
@@ -1701,7 +1695,6 @@ module mod_radiative_cooling
               L2 = zero
            else if( Tlocal2>=tcoolmax )then
               call calc_l_extended(Tlocal2, L2)
-              !L2 = Lcool(ncool)*sqrt(Tlocal2/tcoolmax)
            else
               call findL(Tlocal2,L2)
            end if
@@ -1772,7 +1765,6 @@ module mod_radiative_cooling
                exit
              else if( Tnew>=tcoolmax )then
                call calc_l_extended(Tnew, Ltemp)
-               !Ltemp = Lcool(ncool)*sqrt(Tnew/tcoolmax)
              else  
                call findL(Tnew,Ltemp)
              end if
@@ -1810,16 +1802,18 @@ module mod_radiative_cooling
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       
-      double precision :: Y1, tc, Y2
+      double precision :: Y1, Y2
       double precision :: L1,Tlocal1, ptherm(ixI^S), Tlocal2, pnew(ixI^S)
       double precision :: plocal, rholocal, invgam
       double precision :: emin, Lmax, fact
+      double precision :: de, emax
       
       integer :: ix^D
       integer :: icool
 
       call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)  
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew )  
+
 
       fact = lref*qdt/tref
 
@@ -1828,7 +1822,10 @@ module mod_radiative_cooling
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
          emin     = w(ix^D,rho_)*tlow*invgam
-         Lmax            = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
+
+         Lmax     = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
+         emax     = max(zero, pnew(ix^D)*invgam-emin)
+
          !  Tlocal = P/rho
          Tlocal1   = max(plocal/rholocal,smalldouble)
          !
@@ -1842,7 +1839,6 @@ module mod_radiative_cooling
             L1 = zero
          else if( Tlocal1>=tcoolmax )then
             call calc_l_extended(Tlocal1, L1)
-            !L1         = Lcool(ncool)*sqrt(Tlocal1/tcoolmax)
             L1         = L1*(rholocal**2)
             if(trac) then
               if(Tlocal1 .lt. block%special_values(1)) then
@@ -1855,23 +1851,21 @@ module mod_radiative_cooling
          else  
             call findL(Tlocal1,L1)
             call findY(Tlocal1,Y1)
-            tc         = Tlocal1*invgam/(rholocal*L1)
-            Y2         = Y1+(Tlocal1*fact)/(L1*tc)
+            Y2         = Y1 + fact * rholocal / invgam
             call findT(Tlocal2,Y2)
             if(Tlocal2<=tcoolmin) then
-              L1 = Lmax
+              de = emax
             else
-              L1 = (Tlocal1-Tlocal2)*invgam/(rholocal*qdt)
+              de = (Tlocal1-Tlocal2)*invgam*rholocal
             endif
-            L1          = L1*(rholocal**2)
             if(trac) then
               if(Tlocal1 .lt. block%special_values(1)) then
-                L1=L1*sqrt((Tlocal1/block%special_values(1))**5)
+                de=de*sqrt((Tlocal1/block%special_values(1))**5)
               end if
             end if
-            L1          = min(L1,Lmax)   
-            w(ix^D,e_)  = w(ix^D,e_)-L1*qdt
-            if(phys_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-L1*qdt
+            de          = min(de,emax)   
+            w(ix^D,e_)  = w(ix^D,e_)-de
+            if(phys_solve_eaux) w(ix^D,eaux_)=w(ix^D,eaux_)-de              
          endif
       {enddo^D&\}
 
