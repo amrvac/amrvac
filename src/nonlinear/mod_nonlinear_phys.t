@@ -1,4 +1,4 @@
-5!> Module containing the physics routines for scalar nonlinear equatio2
+!> Module containing the physics routines for scalar nonlinear equation
 module mod_nonlinear_phys
 
   implicit none
