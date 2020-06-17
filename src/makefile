@@ -196,6 +196,7 @@ mod_nonlinear.o: mod_amrvac.mod
 mod_nonlinear.o: mod_nonlinear_phys.mod
 mod_nonlinear.o: mod_nonlinear_roe.mod
 mod_nonlinear_phys.o: mod_kdv.mod
+mod_nonlinear_phys.o: mod_particles.mod
 mod_nonlinear_phys.o: mod_physics.mod
 mod_nonlinear_roe.o: mod_nonlinear_phys.mod
 mod_nonlinear_roe.o: mod_physics_roe.mod
@@ -230,11 +231,13 @@ mod_radiative_cooling.o: mod_physics.mod
 mod_rd.o: mod_amrvac.mod
 mod_rd.o: mod_rd_phys.mod
 mod_rd_phys.o: mod_multigrid_coupling.mod
+mod_rd_phys.o: mod_particles.mod
 mod_rd_phys.o: mod_physics.mod
 mod_rho.o: mod_amrvac.mod
 mod_rho.o: mod_rho_phys.mod
 mod_rho.o: mod_rho_roe.mod
 mod_rho_phys.o: mod_geometry.mod
+mod_rho_phys.o: mod_particles.mod
 mod_rho_phys.o: mod_physics.mod
 mod_rho_roe.o: mod_physics_roe.mod
 mod_rho_roe.o: mod_rho_phys.mod

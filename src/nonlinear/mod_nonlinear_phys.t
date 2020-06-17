@@ -1,4 +1,4 @@
-!> Module containing the physics routines for scalar nonlinear equation
+5!> Module containing the physics routines for scalar nonlinear equatio2
 module mod_nonlinear_phys
 
   implicit none
@@ -61,7 +61,7 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_kdv, only: kdv_init
-
+    use mod_particles, only: particles_init
 
     call nonlinear_params_read(par_files)
 
