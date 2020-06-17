@@ -15,6 +15,9 @@ module mod_rd_phys
   integer, protected, public :: u_ = 1
   integer, protected, public :: v_ = 2
 
+  !> Whether particles module is added
+  logical, public, protected              :: rd_particles = .false.
+
   integer            :: equation_type   = 1
   integer, parameter :: eq_gray_scott   = 1
   integer, parameter :: eq_schnakenberg = 2
@@ -54,7 +57,7 @@ contains
     character(len=20)            :: equation_name
 
     namelist /rd_list/ D1, D2, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
-         equation_name, rd_diffusion_method
+         equation_name, rd_diffusion_method, rd_particles
 
     equation_name = "gray-scott"
 
@@ -91,12 +94,14 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_multigrid_coupling
+    use mod_particles, only: particles_init
 
     call rd_params_read(par_files)
 
     physics_type = "rd"
     phys_energy  = .false.
     phys_req_diagonal = .false.
+    use_particles = rd_particles
 
     ! Use the first variable as a density
     u_ = var_set_fluxvar("u", "u")
@@ -126,6 +131,12 @@ contains
     case default
        call mpistop("Unknown rd_diffusion_method")
     end select
+
+    ! Initialize particles module
+    if (rd_particles) then
+       call particles_init()
+       phys_req_diagonal = .true.
+    end if
 
   end subroutine rd_phys_init
 
