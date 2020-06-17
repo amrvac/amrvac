@@ -58,13 +58,17 @@ class amrplot(_plotsetup):
             raise NotImplementedError("Plotting in 3D is not supported")
 
     def plot_1d(self):
+        if self.varmin is None or self.varmax is None:
+            self.varmin, self.varmax = self.dataset.get_extrema(self.var)
+
         for ileaf, offset in enumerate(self.dataset.block_offsets):
             l_edge, r_edge = process_data.get_block_edges(ileaf, self.dataset)
             block = datfile_utilities.get_single_block_data(self.dataset.file, offset, self.dataset.block_shape)
             block = process_data.create_data_dict(block, self.dataset.header)
-            x = np.linspace(l_edge, r_edge, self.dataset.header['block_nx'])
+            x = np.linspace(l_edge, r_edge, self.dataset.header['block_nx'][0])
             self.ax.plot(x, block[self.var], '-k')
             self.ax.set_title(self.var)
+            self.ax.set_ylim([self.varmin,self.varmax])
 
     def plot_2d(self):
         if self.varmin is None or self.varmax is None:

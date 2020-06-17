@@ -143,11 +143,9 @@ contains
     case ("split")
        use_multigrid = .true.
        phys_global_source => sir_implicit_diffusion
-       if (ndim == 1) call mpistop("multigrid not available in 1d")
     case ("imex")
        use_multigrid = .true.
        phys_global_source => sir_imex_diffusion
-       if (ndim == 1) call mpistop("multigrid not available in 1d")
     case default
        call mpistop("Unknown sir_diffusion_method")
     end select
@@ -163,7 +161,7 @@ contains
   subroutine sir_check_params
     use mod_multigrid_coupling
     use mod_global_parameters
-    integer :: n, idim
+    integer :: n
 
     if (any(flux_scheme /= "source")) then
        call mpistop("mod_sir requires flux_scheme = source")
@@ -185,11 +183,9 @@ contains
        endif
     endif
 
-    {^NOONED
     if (use_multigrid) then
        ! Set boundary conditions for the multigrid solver
        do n = 1, 2*ndim
-          idim = (n+1)/2
           select case (typeboundary(su_, n))
           case ('symm')
              ! d/dx s = 0
@@ -213,7 +209,6 @@ contains
           end select
        end do
     end if
-    }
   end subroutine sir_check_params
 
   subroutine sir_to_conserved(ixI^L, ixO^L, w, x)
@@ -272,9 +267,6 @@ contains
     logical :: debug
 
     debug=.false.
-    if(mype==0.and.debug)then
-    print *,'in sir_get_dt'
-    endif
     if (dabs(D1+D2+D3)<smalldouble) then
        dtnew = bigdouble
     else
@@ -286,7 +278,7 @@ contains
        dtnew = dtdiffpar * minval([ dx^D ])**2 / (2 * ndim * DD)
     endif
     if(mype==0.and.debug)then
-    print *,'dtnew from diffusion=',dtnew
+        print *,'dtnew from diffusion=',dtnew
     endif
 
     ! Estimate time step for reactions
@@ -301,12 +293,9 @@ contains
                 sir_beta*maxs_siterm-sir_mu-sir_d-sir_r)
        maxrate_sir=max(sir_mu,maxrate_si)
        dtnew = min(dtnew, courantpar/maxrate_sir)
-    if(mype==0.and.debug)then
-       print *,'dtnew from reactions=',courantpar/maxrate_sir
-    endif
-    endif
-    if(mype==0.and.debug)then
-    print *,'dtnew =',dtnew
+       if(mype==0.and.debug)then
+          print *,'dtnew from reactions=',courantpar/maxrate_sir
+       endif
     endif
 
   end subroutine sir_get_dt
@@ -410,7 +399,6 @@ contains
 
     max_residual = 1d-7/qdt
 
-    {^NOONED
     if(dabs(D1)>smalldouble)then
        call mg_copy_to_tree(su_, mg_iphi)
        call diffusion_solve(mg, qdt, D1, 1, max_residual)
@@ -428,7 +416,6 @@ contains
        call diffusion_solve(mg, qdt, D3, 1, max_residual)
        call mg_copy_from_tree(mg_iphi, re_)
     endif
-    }
     active = .true.
 
   end subroutine sir_implicit_diffusion
@@ -462,7 +449,6 @@ contains
 
     max_residual = 1d-7/qdt
 
-    {^NOONED
     ! First handle the s variable
     nc               = mg%box_size
     mg%operator_type = mg_helmholtz
@@ -505,7 +491,6 @@ contains
        if (res < max_residual) exit
     end do
     call mg_copy_from_tree_gc(mg_iphi, re_)
-    }
 
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        call sir_imex_step2(qdt, ixG^LL, ixM^LL, ps(igrid)%w, pso(igrid)%w)

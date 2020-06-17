@@ -288,8 +288,8 @@ contains
     if (.not. associated(phys_get_cmax)) &
          call mpistop("Error: no phys_get_cmax not defined")
 
-!    if (.not. associated(phys_get_a2max)) &
-!         call mpistop("Error: no phys_get_a2max not defined")
+    if (.not. associated(phys_get_a2max)) &
+         phys_get_a2max => dummy_get_a2max
 
     if (.not. associated(phys_get_cbounds)) &
          call mpistop("Error: no phys_get_cbounds not defined")
@@ -349,6 +349,14 @@ contains
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
   end subroutine dummy_modify_wLR
+
+  subroutine dummy_get_a2max(w, x, ixI^L, ixO^L, a2max)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: a2max(ndim)
+       call mpistop("Error: entered dummy_get_a2max")
+  end subroutine dummy_get_a2max
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
