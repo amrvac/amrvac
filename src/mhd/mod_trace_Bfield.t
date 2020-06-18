@@ -174,7 +174,8 @@ contains
 
     integer :: ipe_next,igrid_next,ip_in,ip_out,j
     logical :: newpe,stopB
-  
+    double precision :: xfout(ndim) 
+ 
     ip_in=ipoint_in
     newpe=.FALSE.
 
@@ -193,7 +194,8 @@ contains
       ! when next point is out of given grid, find next grid  
       if (ip_out<numP) then
         stopB=.FALSE.
-        call find_next_grid(igrid,igrid_next,ipe_next,xf(ip_out,:),newpe,stopB)
+        xfout=xf(ip_out,:)
+        call find_next_grid(igrid,igrid_next,ipe_next,xfout,newpe,stopB)
       else
         newpe=.TRUE.
         stopB=.TRUE.
