@@ -49,8 +49,8 @@ coolcurve | string | 'JCcorona' | Name of cooling curve to be used. <br>The avai
 coolmethod | string | 'exact' | Numerical scheme to be used in radiative cooling. <br>The available methods are 'explicit1', 'explicit2', 'semiimplicit', 'implicit' and 'exact'.
 ncool | integer | 4000 | The number of point that will be used in interpolating the cooling curve. <br>Note that this is the number of elements in the final cooling table. When using the exact integration method, it is advisable to set this number large. The efficiency of this method make this an acceptable choice and it increases accuracy.
 cfrac | double precision | 0.1 | The fraction of E/L that sets upper time limit in explicit cooling functions.
-Tfix | logical | F |  If true, a temperature limit (tlow) is enforced as minimum temperature throughout the grid. Not physical, but can help overcome negative pressure issues in radiative cooling instabilities. It is strongly recommended to use this.
-tlow | double precision | lowest T of cooling curve | Used as lower temperature limit if Tfix=.true.
+Tfix | logical | F |  If true, a temperature limit (tlow) is enforced as minimum temperature throughout the grid. Not physical, but can help overcome negative pressure issues in radiative cooling instabilities. It is strongly recommended to use this. <br>(It should be noted that other source terms, such as usr_source set by the user in the mod_usr.t file, can still modify the internal energy and hence the temperature.)
+tlow | double precision | lowest temperature of cooling curve | Used as lower temperature limit if Tfix=.true.
 
 
 
@@ -230,8 +230,8 @@ Similar to getvar_cooling, but uses the exact method.
 
 *floortemperature:* 
 
-This subroutine can be called if Tfix=.true.. After the radiative cooling
-has been calculated, it enforces the lowest temperature in the cooling curve
+This subroutine is called if Tfix=.true.. After the radiative cooling
+has been calculated and if the new temperature is lower than tlow, it enforces tlow
 as the minimum temperature in each gridcell.  
   
 *findl:* 
