@@ -47,7 +47,8 @@ contains
     double precision :: statusB(4+ndim)
     integer :: pe_record(numP)
     logical :: stopB
-    double precision :: data_share(numP,ndim+nw+ndir)
+    !double precision :: data_share(numP,ndim+nw+ndir)
+    double precision :: data_send(numP),data_recv(numP)
     integer :: nums1,nums2,ipoint,nwRT,iRT
 
     wB=0
@@ -112,52 +113,31 @@ contains
       ipoint_in=ipoint_out
     enddo
 
+    
 
     ! comunications between processors
-    nwRT=0
-    do j=1,nw+ndir
-      if (wRT(j)) nwRT=nwRT+1
-    enddo
-
-    ipoint_in=1
-    ipoint_out=1
-    do while (pe_record(ipoint_in)>=0 .and. pe_record(ipoint_in)<=npe)
-      nums1=0
-      nums2=ndim+nwRT
-      ipe_now=pe_record(ipoint_in)
-      LOOPS: do ipoint=ipoint_in,numP
-        if (pe_record(ipoint)/=ipe_now) exit LOOPS
-        nums1=nums1+1
-      enddo LOOPS
-      ipoint_out=ipoint_in+nums1
-
-      if (mype==ipe_now) then
-        do j=1,ndim
-          data_share(ipoint_in:ipoint_out-1,j)=xf(ipoint_in:ipoint_out-1,j)
-        enddo
-        do j=1,nw+ndir
-          if (wRT(j)) then
-            data_share(ipoint_in:ipoint_out-1,j+ndim)=wB(ipoint_in:ipoint_out-1,j)
-          endif
-        enddo
+    do j=1,numRT
+      if (mype/=pe_record(j)) then
+        xf(j,:)=0.d0
+        wB(j,:)=0.d0
       endif
-
-      if (nums2>0) then
-        call MPI_BCAST(data_share(ipoint_in:ipoint_out-1,1:nwRT+ndim),nums1*nums2,&
-                       MPI_DOUBLE_PRECISION,ipe_now,icomm,ierrmpi)
-      endif
-
-      ipoint_in=ipoint_out
     enddo
 
     do j=1,ndim
-      xf(:,j)=data_share(:,j)
+      data_send=xf(:,j)
+      call MPI_ALLREDUCE(data_send,data_recv,numP,MPI_DOUBLE_PRECISION,&
+                           MPI_SUM,icomm,ierrmpi)
+      xf(:,j)=data_recv
     enddo
-    iRT=0
-    do j=1,nw+ndir
+
+    do j=1,nw
       if (wRT(j)) then
-        iRT=iRT+1
-        wB(:,j)=data_share(:,iRT+ndim)
+        data_send=wB(:,j)
+        call MPI_ALLREDUCE(data_send,data_recv,numP,MPI_DOUBLE_PRECISION,&
+                             MPI_SUM,icomm,ierrmpi)
+        wB(:,j)=data_recv
+      else
+        wB(:,j)=0.d0
       endif
     enddo
 
