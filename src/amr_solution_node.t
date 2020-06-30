@@ -450,6 +450,7 @@ subroutine alloc_node(igrid)
       psc(igrid)%dvolume(ixCoG^S)= {^D&psc(igrid)%dx(ixCoG^S,^D)|*}
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
     case (Cartesian_expansion)
+      {^IFONED
       delx(ixGext^S,1) = ps(igrid)%dx(ixGext^S,1)
       xc(ixCoG^S,1) = psc(igrid)%x(ixCoG^S,1)
       delxc(ixCoG^S,1) = psc(igrid)%dx(ixCoG^S,1)
@@ -460,6 +461,7 @@ subroutine alloc_node(igrid)
       if(associated(usr_set_surface)) call usr_set_surface(ixCoG^L,xc,delxc,exp_factor,del_exp_factor,exp_factor_primitive)
       psc(igrid)%dvolume(ixCoG^S)= exp_factor_primitive(ixCoG^S)
       psc(igrid)%ds(ixCoG^S,1)=psc(igrid)%dx(ixCoG^S,1)
+      }
     case (spherical)
       ps(igrid)%dvolume(ixGext^S)=(xext(ixGext^S,1)**2 &
                                 +ps(igrid)%dx(ixGext^S,1)**2/12.0d0)*&
