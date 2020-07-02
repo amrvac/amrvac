@@ -3,7 +3,7 @@
  /
 
  &methodlist
-        time_integrator  = 'threestep'
+        time_stepper  = 'threestep'
         flux_scheme    = 20*'tvdlf'
         limiter = 20*'cada'
         typeboundspeed  = 'cmaxmean'

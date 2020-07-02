@@ -3,7 +3,8 @@
  /
 
  &methodlist
-        time_integrator=  'fourstep'
+        time_stepper=  'fourstep'
+        time_integrator=  'jameson'
         flux_scheme =    20*'cd4'
         limiter=  20*'cada3'
         typeboundspeed  = 'cmaxmean'

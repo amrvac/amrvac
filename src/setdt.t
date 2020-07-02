@@ -66,7 +66,12 @@ subroutine setdt()
   end if
 
 
-  dtmin_mype=min(dtmin_mype,time_max-global_time)
+  if(final_dt_reduction)then
+     if (dtmin_mype>time_max-global_time) then
+        write(unitterm,*)"WARNING final timestep artificially reduced!"
+     endif
+     dtmin_mype=min(dtmin_mype,time_max-global_time)
+  endif
 
   if (dtpar<=zero) then
      call MPI_ALLREDUCE(dtmin_mype,dt,1,MPI_DOUBLE_PRECISION,MPI_MIN, &

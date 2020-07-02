@@ -137,7 +137,8 @@ contains
          tsavestart_collapsed, tsavestart_custom
     integer :: windex, ipower
     double precision :: sizeuniformpart^D
-
+    double precision :: im_delta,im_nu,rka54,rka51,rkb54,rka55
+ 
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,reset_grid,snapshotnext, &
          convert,convert_type,saveprim,usr_filename,&
@@ -156,9 +157,9 @@ contains
          tsavestart_custom, tsavestart
 
     namelist /stoplist/ it_init,time_init,it_max,time_max,dtmin,reset_it,reset_time,&
-         wall_time_max
+         wall_time_max,final_dt_reduction
 
-    namelist /methodlist/ time_integrator, &
+    namelist /methodlist/ time_stepper,time_integrator, &
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,&
          flux_scheme,typepred1,&
@@ -168,6 +169,7 @@ contains
          typegrad,typediv,typecurl,&
          nxdiffusehllc, flathllc, tvdlfeps,&
          flatcd,flatsh,&
+         rk2_alfa,ssprk_order,rk3_switch,imex_switch,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, check_small_values, &
          trace_small_values, angmomfix, small_values_fix_iw, &
@@ -305,6 +307,7 @@ contains
     time_init     = 0.d0
     time_max      = bigdouble
     wall_time_max = bigdouble
+    final_dt_reduction=.true.
     dtmin         = 1.0d-10
     nslices       = 0
     collapse      = .false.
@@ -377,8 +380,19 @@ contains
     typetvd         = 'roe'
     typeboundspeed  = 'Einfeldt'
     source_split_usr= .false.
-    time_integrator = 'twostep'
+    time_stepper    = 'twostep'
+    time_integrator = 'default'
     angmomfix       = .false.
+    ! default PC or explicit midpoint, hence alfa=0.5
+    rk2_alfa        = half 
+    ! default SSPRK(3,3) or Gottlieb-Shu 1998 for threestep
+    ! default SSPRK(4,3) or Spireti-Ruuth for fourstep
+    ! default SSPRK(5,4) using Gottlieb coeffs
+    ssprk_order    = 3
+    ! default RK3 butcher table: Heun 3rd order
+    rk3_switch      = 3
+    ! default IMEX threestep is IMEX_ARK(232)
+    imex_switch     = 1
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))
@@ -596,8 +610,8 @@ contains
          'Warning in read_par_files: it_max or time_max not given!'
 
     do level=1,nlevelshi
-       if(flux_scheme(level)=='tvd'.and.time_integrator/='onestep') &
-            call mpistop(" tvd is onestep method, reset time_integrator='onestep'")
+       if(flux_scheme(level)=='tvd'.and.time_stepper/='onestep') &
+            call mpistop(" tvd is onestep method, reset time_stepper='onestep'")
        if(flux_scheme(level)=='tvd')then
           if(mype==0.and.(.not.dimsplit)) write(unitterm,*) &
                'Warning: setting dimsplit=T for tvd, as used for level=',level
@@ -645,19 +659,250 @@ contains
     if(any(flux_scheme=='fd')) need_global_cmax=.true.
     if(any(limiter=='schmid1')) need_global_a2max=.true.
 
-    select case (time_integrator)
+    select case (time_stepper)
     case ("onestep")
        nstep=1
-    case ("twostep", "twostep_trapezoidal")
+       if (time_integrator=='default') then
+          time_integrator='Forward_Euler'
+       endif
+       if ((time_integrator/='Forward_Euler'.and.&
+            time_integrator/='IMEX_Euler').and.&
+            time_integrator/='IMEX_SP') then
+           call mpistop("No such time_integrator for onestep")
+       endif
+    case ("twostep")
        nstep=2
+       if (time_integrator=='default') then
+          time_integrator='Predictor_Corrector'
+       endif
+       if (time_integrator=='RK2_alfa') then
+          if(rk2_alfa<smalldouble.or.rk2_alfa>one)call mpistop("set rk2_alfa within ]0,1]")
+          rk_a21=rk2_alfa 
+          rk_b2=1.0d0/(2.0d0*rk2_alfa)
+          rk_b1=1.0d0-rk_b2
+       endif
+       if (((time_integrator/='Predictor_Corrector'.and.&
+            time_integrator/='RK2_alfa').and.&
+            (time_integrator/='ssprk2'.and.&
+             time_integrator/='IMEX_Midpoint')).and.&
+             time_integrator/='IMEX_Trapezoidal') then
+           call mpistop("No such time_integrator for twostep")
+       endif
     case ("threestep")
        nstep=3
-    case ("fourstep","rk4","jameson","ssprk43")
+       if (time_integrator=='default') then
+          time_integrator='ssprk3'
+       endif
+       if(time_integrator=='RK3_BT') then
+           select case(rk3_switch)
+             case(1) 
+              ! we code up Ralston 3rd order here
+              rk3_a21=1.0d0/2.0d0
+              rk3_a31=0.0d0
+              rk3_a32=3.0d0/4.0d0
+              rk3_b1=2.0d0/9.0d0
+              rk3_b2=1.0d0/3.0d0
+             case(2) 
+              ! we code up RK-Wray 3rd order here
+              rk3_a21=8.0d0/15.0d0
+              rk3_a31=1.0d0/4.0d0
+              rk3_a32=5.0d0/12.0d0
+              rk3_b1=1.0d0/4.0d0
+              rk3_b2=0.0d0
+             case(3) 
+              ! we code up Heun 3rd order here
+              rk3_a21=1.0d0/3.0d0
+              rk3_a31=0.0d0
+              rk3_a32=2.0d0/3.0d0
+              rk3_b1=1.0d0/4.0d0
+              rk3_b2=0.0d0
+             case default
+                call mpistop("Unknown rk3_switch")
+            end select
+           ! the rest is fixed from above
+           rk3_b3=1.0d0-rk3_b1-rk3_b2
+           rk3_c2=rk3_a21
+           rk3_c3=rk3_a31+rk3_a32
+       endif
+       if(time_integrator=='ssprk3') then
+         select case(ssprk_order)
+             case(3) ! this is SSPRK(3,3) Gottlieb-Shu
+                rk_beta11=1.0d0
+                rk_beta22=1.0d0/4.0d0
+                rk_beta33=2.0d0/3.0d0
+                rk_alfa21=3.0d0/4.0d0
+                rk_alfa31=1.0d0/3.0d0
+                rk_c2=1.0d0
+                rk_c3=1.0d0/2.0d0
+             case(2) ! this is SSP(3,2)
+                rk_beta11=1.0d0/2.0d0
+                rk_beta22=1.0d0/2.0d0
+                rk_beta33=1.0d0/3.0d0
+                rk_alfa21=0.0d0
+                rk_alfa31=1.0d0/3.0d0
+                rk_c2=1.0d0/2.0d0
+                rk_c3=1.0d0
+             case default
+                call mpistop("Unknown ssprk3_order")
+         end select
+         rk_alfa22=1.0d0-rk_alfa21
+         rk_alfa33=1.0d0-rk_alfa31
+       endif
+       if(time_integrator=='IMEX_ARS3') then
+          ars_gamma=(3.0d0+dsqrt(3.0d0))/6.0d0
+       endif
+       if(time_integrator=='IMEX_232') then
+           select case(imex_switch)
+             case(1) ! this is IMEX_ARK(232)
+              im_delta=1.0d0-1.0d0/dsqrt(2.0d0)
+              im_nu=(3.0d0+2.0d0*dsqrt(2.0d0))/6.0d0
+              imex_a21=2.0d0*im_delta
+              imex_a31=1.0d0-im_nu
+              imex_a32=im_nu
+              imex_b1=1.0d0/(2.0d0*dsqrt(2.0d0))
+              imex_b2=1.0d0/(2.0d0*dsqrt(2.0d0))
+              imex_ha21=im_delta
+              imex_ha22=im_delta
+             case(2) ! this is IMEX_SSP(232)
+              ! doi 10.1002/2017MS001065 Rokhzadi et al
+              imex_a21=0.711664700366941d0
+              imex_a31=0.077338168947683d0
+              imex_a32=0.917273367886007d0
+              imex_b1=0.398930808264688d0
+              imex_b2=0.345755244189623d0
+              imex_ha21=0.353842865099275d0
+              imex_ha22=0.353842865099275d0
+             case default
+                call mpistop("Unknown imex_siwtch")
+           end select
+           imex_c2=imex_a21
+           imex_c3=imex_a31+imex_a32
+           imex_b3=1.0d0-imex_b1-imex_b2
+       endif
+       if ((time_integrator/='ssprk3'.and.&
+            time_integrator/='RK3_BT').and.&
+            (time_integrator/='IMEX_ARS3'.and.&
+             time_integrator/='IMEX_232')) then
+           call mpistop("No such time_integrator for threestep")
+       endif
+    case ("fourstep")
        nstep=4
-    case ("ssprk54")
+       if (time_integrator=='default') then
+          time_integrator="ssprk4"
+       endif
+       if(time_integrator=='ssprk4') then
+         select case(ssprk_order)
+             case(3) ! this is SSPRK(4,3) Spireti-Ruuth
+                rk_beta11=1.0d0/2.0d0
+                rk_beta22=1.0d0/2.0d0
+                rk_beta33=1.0d0/6.0d0
+                rk_beta44=1.0d0/2.0d0
+                rk_alfa21=0.0d0
+                rk_alfa31=2.0d0/3.0d0
+                rk_alfa41=0.0d0
+                rk_c2=1.0d0/2.0d0
+                rk_c3=1.0d0
+                rk_c4=1.0d0/2.0d0
+             case(2) ! this is SSP(4,2)
+                rk_beta11=1.0d0/3.0d0
+                rk_beta22=1.0d0/3.0d0
+                rk_beta33=1.0d0/3.0d0
+                rk_beta44=1.0d0/4.0d0
+                rk_alfa21=0.0d0
+                rk_alfa31=0.0d0
+                rk_alfa41=1.0d0/4.0d0
+                rk_c2=1.0d0/3.0d0
+                rk_c3=2.0d0/3.0d0
+                rk_c4=1.0d0
+             case default
+                call mpistop("Unknown ssprk_order")
+         end select
+         rk_alfa22=1.0d0-rk_alfa21
+         rk_alfa33=1.0d0-rk_alfa31
+         rk_alfa44=1.0d0-rk_alfa41
+       endif
+       if ((time_integrator/='ssprk4'.and.&
+            time_integrator/='rk4').and.&
+            time_integrator/='jameson') then
+           call mpistop("No such time_integrator for fourstep")
+       endif
+    case ("fivestep")
        nstep=5
+       if (time_integrator=='default') then
+          time_integrator="ssprk5"
+       endif
+       if(time_integrator=='ssprk5') then
+         select case(ssprk_order)
+           ! we use ssprk_order to intercompare the different coefficient choices 
+           case(3) ! From Gottlieb 2005
+            rk_beta11=0.391752226571890d0
+            rk_beta22=0.368410593050371d0
+            rk_beta33=0.251891774271694d0
+            rk_beta44=0.544974750228521d0
+            rk_beta54=0.063692468666290d0
+            rk_beta55=0.226007483236906d0
+            rk_alfa21=0.444370493651235d0
+            rk_alfa31=0.620101851488403d0
+            rk_alfa41=0.178079954393132d0
+            rk_alfa53=0.517231671970585d0
+            rk_alfa54=0.096059710526147d0
+
+            rk_alfa22=0.555629506348765d0
+            rk_alfa33=0.379898148511597d0
+            rk_alfa44=0.821920045606868d0
+            rk_alfa55=0.386708617503269d0
+            rk_alfa22=1.0d0-rk_alfa21
+            rk_alfa33=1.0d0-rk_alfa31
+            rk_alfa44=1.0d0-rk_alfa41
+            rk_alfa55=1.0d0-rk_alfa53-rk_alfa54
+            rk_c2=rk_beta11
+            rk_c3=rk_alfa22*rk_c2+rk_beta22
+            rk_c4=rk_alfa33*rk_c3+rk_beta33
+            rk_c5=rk_alfa44*rk_c4+rk_beta44
+           case(2) ! From Spireti-Ruuth
+            rk_beta11=0.39175222700392d0
+            rk_beta22=0.36841059262959d0
+            rk_beta33=0.25189177424738d0
+            rk_beta44=0.54497475021237d0
+            !rk_beta54=0.06369246925946d0
+            !rk_beta55=0.22600748319395d0
+            rk_alfa21=0.44437049406734d0
+            rk_alfa31=0.62010185138540d0
+            rk_alfa41=0.17807995410773d0
+            rk_alfa53=0.51723167208978d0
+            !rk_alfa54=0.09605971145044d0
+
+            rk_alfa22=1.0d0-rk_alfa21
+            rk_alfa33=1.0d0-rk_alfa31
+            rk_alfa44=1.0d0-rk_alfa41
+
+            rka51=0.00683325884039d0
+            rka54=0.12759831133288d0
+            rkb54=0.08460416338212d0
+            rk_beta54=rkb54-rk_beta44*rka51/rk_alfa41
+            rk_alfa54=rka54-rk_alfa44*rka51/rk_alfa41
+
+            rk_alfa55=1.0d0-rk_alfa53-rk_alfa54
+            rk_c2=rk_beta11
+            rk_c3=rk_alfa22*rk_c2+rk_beta22
+            rk_c4=rk_alfa33*rk_c3+rk_beta33
+            rk_c5=rk_alfa44*rk_c4+rk_beta44
+            rk_beta55=1.0d0-rk_beta54-rk_alfa53*rk_c3-rk_alfa54*rk_c4-rk_alfa55*rk_c5
+           case default
+                call mpistop("Unknown ssprk_order")
+         end select
+         ! the following combinations must be unity
+         !print *,rk_beta55+rk_beta54+rk_alfa53*rk_c3+rk_alfa54*rk_c4+rk_alfa55*rk_c5
+         !print *,rk_alfa22+rk_alfa21
+         !print *,rk_alfa33+rk_alfa31
+         !print *,rk_alfa44+rk_alfa41
+         !print *,rk_alfa55+rk_alfa53+rk_alfa54
+       endif
+       if (time_integrator/='ssprk5')then
+           call mpistop("No such time_integrator for fivestep")
+       endif
     case default
-       call mpistop("Unknown time_integrator")
+       call mpistop("Unknown time_stepper")
     end select
 
     do i = 1, ndim

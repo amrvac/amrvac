@@ -3,6 +3,7 @@
  /
 
  &methodlist
+        time_stepper=  'fourstep'
         time_integrator=  'rk4'
         flux_scheme =    20*'tvdlf'
         limiter=  20*'cada3'

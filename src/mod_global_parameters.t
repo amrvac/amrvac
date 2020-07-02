@@ -493,6 +493,9 @@ module mod_global_parameters
   !> If true, reset iteration count to 0
   logical :: reset_it
 
+  !> If true, allow final dt reduction for matching time_max on output
+  logical :: final_dt_reduction
+
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
 
@@ -520,6 +523,9 @@ module mod_global_parameters
   !> How many sub-steps the time integrator takes
   integer :: nstep
 
+  !> Which time stepper to use
+  character(len=std_len) :: time_stepper
+
   !> Which time integrator to use
   character(len=std_len) :: time_integrator
 
@@ -530,8 +536,8 @@ module mod_global_parameters
   !> Which spatial discretization to use (per grid level)
   character(len=std_len), allocatable :: flux_scheme(:)
 
-  !> The spatial dicretization for the predictor step when using a two
-  !> step method
+  !> The spatial discretization for the predictor step when using a two
+  !> step PC method
   character(len=std_len), allocatable :: typepred1(:)
 
   !> Type of slope limiter used for reconstructing variables on cell edges
@@ -572,6 +578,24 @@ module mod_global_parameters
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
   logical                       :: dimsplit
+
+  !> RK2(alfa) method parameters from Butcher tableau
+  double precision              :: rk2_alfa,rk_a21,rk_b1,rk_b2
+  !> SSPRK choice of methods (both threestep and fourstep, Shu-Osher 2N* implementation)
+  !> also fivestep SSPRK54
+  integer                       :: ssprk_order
+  double precision              :: rk_beta11,rk_beta22,rk_beta33,rk_beta44,rk_c2,rk_c3,rk_c4
+  double precision              :: rk_alfa21,rk_alfa22,rk_alfa31,rk_alfa33,rk_alfa41,rk_alfa44
+  double precision              :: rk_beta54,rk_beta55,rk_alfa53,rk_alfa54,rk_alfa55,rk_c5
+  !> RK3 Butcher table
+  integer                       :: rk3_switch
+  double precision              :: rk3_a21,rk3_a31,rk3_a32,rk3_b1,rk3_b2,rk3_b3,rk3_c2,rk3_c3
+  !> IMEX_ARS3 parameter ars_gamma
+  double precision              :: ars_gamma
+  !> IMEX_232 choice and parameters
+  integer                       :: imex_switch
+  double precision              :: imex_a21,imex_a31,imex_a32,imex_b1,imex_b2,imex_ha21,imex_ha22
+  double precision              :: imex_b3,imex_c2,imex_c3
 
   character(len=std_len) :: typediv,typegrad,typecurl
 
