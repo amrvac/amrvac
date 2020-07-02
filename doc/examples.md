@@ -2,7 +2,6 @@
 
 This document describes a few relatively simple example simulations which can
 be done based on some readily available tests in amrvac/tests/
-See [usage](usage.md) for a more complete description on how to use the code.
 
 ## Advection tests
 
@@ -14,7 +13,7 @@ as follows:
     mpirun -np 2 amrvac
 
 This test contains several tests, distinguished by **iprob**. In the above setting, it
-will use **iprob=3** as specified in the [amrlist](@ref par_amrlist) and
+will use **iprob=3** as specified in the [amrlist](@ref par_meshlist) and
 do a 2D advection of the VAC-logo on a double periodic domain, on the unit
 square. After [converting](convert.md) the 21 data files created to the VTK
 format suited for paraview visualization, you will be able to make the
@@ -26,11 +25,6 @@ Its default settings is to perform one advection over the full diagonal, use 3
 AMR levels, and have a base level 1 resolution of 50 by 50 (split in 10
 by 10 grid blocks). 
 
-A somewhat more advanced paraview user can make the
-following movie, combining the 2D view with a cut along the middle of the box:
-
-[![Vac logo Movie](figmovdir/vaclogo.png)](figmovdir/vaclogo2.avi)
-
 A 3D variant is to do the advection of a sphere along the diagonal of a cube.
 This is selected by (iprob=6 in the amrvac.par file)
 
@@ -38,11 +32,6 @@ This is selected by (iprob=6 in the amrvac.par file)
     setup.pl -d=3
     make
     mpirun -np 2 amrvac
-
-Use now the data conversion and paraview to make the following movie:
-
-[![Sphere advection
-Movie](figmovdir/sphereadvection.png)](figmovdir/sphereadvection.avi)
 
 A second, 2D test runs **iprob=1** by doing
 
@@ -57,9 +46,9 @@ region. This situation is Kelvin-Helmholtz unstable, and a vortical flow
 pattern develops. After converting and using paraview, you can create frames
 as shown below.
 
-![2D adiabatic HD Kelvin-Helmholtz development
-t=0](figmovdir/khadiabAfigt0.gif) ![2D adiabatic HD Kelvin-Helmholtz
-development](figmovdir/khadiabAfigfinal.gif)
+![2D adiabatic HD Kelvin-Helmholtz development t=0](figmovdir/khadiabAfigt0.gif) 
+
+![2D adiabatic HD Kelvin-Helmholtz development](figmovdir/khadiabAfigfinal.gif)
 
 ## HD tests
 
@@ -92,23 +81,23 @@ also useful to see which schemes maintain the symmetry about the diagonal.
 
 Impressions for some of these tests are shown below:
 
-![2D HD steady bow shock](figmovdir/bowshock.gif) [![rayleigh-taylor 2D
-case](figmovdir/rthd2dnew.gif)](figmovdir/rthd2d.avi)
+![2D HD steady bow shock](figmovdir/bowshock.gif) 
+
+![rayleigh-taylor 2D case](figmovdir/rthd2dnew.gif)
 
 This Rayleigh Taylor test (july 2011) can be repeated with 7 refinement
 levels, it then takes 11375 seconds (on a 4 CPU macBook pro, a bit over 3
-hours, all IO included). The movie and figure for that run is [![rayleigh-
-taylor 2D case 7
-levels](figmovdir/rthdtwodfinal.gif)](figmovdir/rthd2dnew.avi)
+hours, all IO included). The figure for that run is 
 
-[![Shocks in box 2D case](figmovdir/liska.png)](figmovdir/liskatvdlf.avi)
+![rayleigh-taylor 2D case 7 levels](figmovdir/rthdtwodfinal.gif)
+
+![Shocks in box 2D case](figmovdir/liska.png)
 
 The latter 'liska' test is a nice one to test symmetry-preserving properties
 for schemes, and to compare effects of resolution (by raising the number of
 AMR levels). On my MacBook Pro (june 2011), a quadcore CPU with 8GB memory, I
 can run a 6 level version (base resolution 24 x 24) up to time t=2.5 in less
-than 12000 seconds (slightly over 3 hours). The movie for that run is [shown
-here](figmovdir/liska.avi).
+than 12000 seconds (slightly over 3 hours). 
 
 ## MHD tests
 
@@ -119,7 +108,7 @@ doable in 2D and 3D.
 One of the tests is the Orszag-Tang test, in the compressible regime, for
 which an animation is shown below.
 
-[![Orszag Tang](figmovdir/otmovie.gif)](figmovdir/orszag.avi)
+![Orszag Tang](figmovdir/otmovie.gif)
 
 The Orsaz-Tang test is again nice to test symmetry-preserving properties for
 schemes, and to compare effects of resolution (by raising the number of AMR
@@ -133,4 +122,4 @@ Poedts, 2010, Cambridge University Press, 634 pages, [ISBN 9780521705240
 (Paperback)](http://www.cambridge.org/uk/catalogue/catalogue.asp?isbn=9780521705240).
 We show here the case with resistivity parameter set to 0.001.
 
-[![Orszag Tang](figmovdir/recmhd.gif)](figmovdir/reccase_001.avi)
+![Reconnection GEM challenge](figmovdir/recmhd.gif)

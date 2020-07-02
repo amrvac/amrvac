@@ -185,7 +185,7 @@ is usable for both classical and relativistic MHD.
 #### Diffusive fix: typedivbfix='linde'
 
 You can also use the diffusive (parabolic) approach, see the
-[equations](@ref eq_divb_fix). It uses a `C_d` coefficient quantified by
+[equations](@ref par_divbfix). It uses a `C_d` coefficient quantified by
 `divbdiff`, which can be up to 2. This method is by default inactive,
 identified by `divbdiff=1`, but it is recommended for many multi-D MHD
 applications.

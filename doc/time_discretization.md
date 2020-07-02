@@ -35,7 +35,7 @@ and the Heun's (**time_integrator='ssprk2'**) method:
 
 ![](figmovdir/td_eq_06.png)
 
-Actually, they are equivalent to the Midpoiont Riemann sum and Trapezoidel rule in numerical integral methods, respectively.
+Actually, they are equivalent to the Midpoint Riemann sum and Trapezoidel rule in numerical integral methods, respectively.
 
 Then, in AMRVAC, we have higher order time discretization methods.
 But before introducing them, we should know that either first-order or second-order methods can be recognised as first-order or second-order Runge-Kutta method, respectively. And to be more generally, we can get *m*-th order RK method:

@@ -13,7 +13,7 @@ The `yt` frontend for AMRVAC was developed by Clément Robert and Niels Claes (w
 Because the frontend is brand new (and hence currently in beta), we would greatly appreciate any feedback or issues that you encounter.
 The most efficient ways to get in touch with us are either
 - [reporting issues on github](https://github.com/yt-project/yt/issues)
-- [joining yt's Slackspace](https://yt-project.org/doc/help/index.html#go-on-slack-or-irc-to-ask-a-question) (join channels #help and #amrvac)
+- [joining yt's Slackspace](https://yt-project.org/doc/help/index.html#go-on-slack-or-irc-to-ask-a-question) (join channels help and amrvac)
 
 ## Installing yt {#yt_installation}
 

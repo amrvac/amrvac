@@ -17,10 +17,10 @@
 !> S=DIV(tc_k_para . GRAD T)
 !> USAGE:
 !> 1. in mod_usr.t -> subroutine usr_init(), add 
-!>        unit_length=<your length unit>
-!>        unit_numberdensity=<your number density unit>
-!>        unit_velocity=<your velocity unit>
-!>        unit_temperature=<your temperature unit>
+!>        unit_length=your length unit
+!>        unit_numberdensity=your number density unit
+!>        unit_velocity=your velocity unit
+!>        unit_temperature=your temperature unit
 !>    before call (m)hd_activate()
 !> 2. to switch on thermal conduction in the (m)hd_list of amrvac.par add:
 !>    (m)hd_thermal_conduction=.true.

@@ -1,4 +1,4 @@
-# Features overview
+ # Features overvie2
 
 [TOC]
 
@@ -101,7 +101,7 @@ See [methods](methods.md) for a more detailed description.
 
 With the finite volume methods, second order accurate explicit time
 integration can be obtained by predictor-corrector and multistep Runge-Kutta
-type discretizations. In finite differences, the overall accuracy can go up to
+type discretizations. See [time_discretization](time_discretization.md). In finite differences, the overall accuracy can go up to
 fourth order using the appropriate temporal discretizations. The more
 important ones are:
 
@@ -110,8 +110,8 @@ Name | Description
 onestep | 1st order Euler scheme
 twostep | 2nd order predictor-corrector schemes
 threestep | 3rd order (TVD) Runge-Kutta
-rk4 | 4th order Runge-Kutta (classical)
-ssprk43 | 3rd order, strong stability preserving four step Runge-Kutta
-ssprk54 | 4th order, strong stability preserving five step Runge-Kutta
+fourstep | rk4 allows for selecting 4th order Runge-Kutta (classical)
+fourstep | ssprk4 is a 3rd order, strong stability preserving four step Runge-Kutta
+fivestep | ssprk5 is 4th order, strong stability preserving five step Runge-Kutta
 
 The time step can be adjusted dynamically to satisfy the stability criteria.

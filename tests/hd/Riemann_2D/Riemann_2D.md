@@ -1,11 +1,11 @@
-# Riemannd 2D test problem
+# Riemann 2D test problem
 
 # Introduction
 
 These are 2D Riemann problems as also in Liska & Wendro , SIAM J. Sci. Comput.
 25, 3, pp. 995-1017, 2003 (section 4.4). You can try to modify the setups, or
 compare different schemes. This is a direct generalization of the 1D Riemann
-problem discussed in the course, so you can try and interpret 1D versus 2D
+problems, so you can try and interpret 1D versus 2D
 aspects (involving shocks, contact discontinuities, rarefaction waves). You can
 also make a 3D version.
 

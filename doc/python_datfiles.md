@@ -2,7 +2,7 @@
 
 [TOC]
 
-# Introduction {#introduction}
+# Introduction on reading datfiles {#introductiondat}
 
 This page provides guidelines and examples to read in and process MPI-AMRVAC `.dat` files with Python.
 All required packages and instructions on how to set up the tools folder are described in @ref python_setup.md.

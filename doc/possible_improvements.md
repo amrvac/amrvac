@@ -13,8 +13,8 @@ Scattered throughout the code there are OpenMP statements. Is the potential
 performance gain worth it? And more importantly, do we have the debugging and
 maintenance manpower to handle hybrid MPI/OpenMP?
 
-I've tried to look up some literature on hybrid MPI/OpenMP vs pure MPI
-performance, and found the following:
+Some literature on hybrid MPI/OpenMP vs pure MPI
+performance:
 
 [link](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=1302919)
 *hybrid models are not efficiently supported by existing MPI implementations,
@@ -44,7 +44,7 @@ Therefore I would suggest we focus on a pure MPI approach for the time being.
 
 ## Code standards
 
-**Jannis**: My goal is that new modelers can learn best practices from the
+New modelers can learn best practices from the
 MPI-AMRVAC code. Perhaps we can bundle a style guide with MPI-AMRVAC and try to
 adhere to it when we add or change code. Here are already some links to already
 existing Fortran style guides and best practices:
@@ -128,7 +128,7 @@ An important question is also whether we aim at general-dimension code or only
 at 2D and 3D code, which could simplify matters. Some further minor points:
 
 * Can we use min(^ND), max(^ND) instead of min1, min2, min3 etc.?
-* Do we always need #ifdef, or could we just use flags at negligible performance
+* Do we always need ^ifdef, or could we just use flags at negligible performance
   penalty? (However, without other changes, this could lead to undefined
   routines)
 

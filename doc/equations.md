@@ -1,4 +1,4 @@
-# Physics modules and equations
+e# Physics modules and equation2
 
 [TOC]
 
@@ -127,7 +127,7 @@ There are three equation parameters: the polytropic index **mhd_gamma**
 (which must be larger or equal to 1), and the resistivity **mhd_eta**, and
 the entropy **mhd_adiab**. Ideal MHD corresponds to **mhd_eta=0**,
 positive values give a uniform resistivity, while a negative value calls the
-[specialeta](@ref amrvacusr_specialsource) procedure to determine the resistivity as a
+**specialeta** procedure to determine the resistivity as a
 function of the coordinates, of the conservative variables, and/or of the
 current density. This subroutine is to be completed by the user.
 
@@ -135,7 +135,7 @@ There is a Roe-type Riemann solver implemented using arithmetic averaging, in
 _mhd/mod_mhd_roe.t_, while several routines specific to HLLC are in _mhd/mod_mhd_hllc.t_.
 
 This equation module can be combined with physical sources for
-(local) optically thin [radiative losses](mpiamrvac_radcool.md) by set **mhd_radiative_cooling=.true.**. 
+(local) optically thin [radiative losses](radiative_cooling.md) by set **mhd_radiative_cooling=.true.**. 
 It can also be combined with the external gravity modules by set **mhd_gravity=.true.**.
 
 We also have implemented the magnetic field splitting strategy, where a static, 

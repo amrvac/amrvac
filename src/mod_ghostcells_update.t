@@ -11,7 +11,7 @@ module mod_ghostcells_update
   logical, public :: bcphys=.true.
   integer :: ixM^L, ixCoG^L, ixCoM^L
 
-  !> The number of interleaving sending buffers for ghost cells
+  ! The number of interleaving sending buffers for ghost cells
   integer, parameter :: npwbuf=2
 
   ! The first index goes from -1:2, where -1 is used when a block touches the
