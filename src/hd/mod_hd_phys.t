@@ -27,7 +27,7 @@ module mod_hd_phys
 
   !> Whether rotating frame is activated
   logical, public, protected              :: hd_rotating_frame = .false.
-  
+
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
@@ -259,7 +259,7 @@ contains
 
     ! Initialize rotating_frame module
     if (hd_rotating_frame) call rotating_frame_init()
-    
+
     ! Initialize particles module
     if (hd_particles) then
        call particles_init()
@@ -628,7 +628,7 @@ contains
 
     call hd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
     csound2(ixO^S)=hd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
-    
+
   end subroutine hd_get_csound2
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
@@ -728,7 +728,7 @@ contains
        f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
        if (hd_rotating_frame .and. angmomfix .and. idir==phi_) then
           call mpistop("hd_rotating_frame not implemented yet with angmomfix")
-          !One have to compute the frame velocity on cell edge (but we don't know if right of left edge here!!!)
+          !One have to compute the frame velocity on cell edge (but we dont know if right of left edge here!!!)
           call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
           f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + w(ixO^S,mom(idim))* wC(ixO^S, rho_) * frame_vel(ixO^S)
        end if
@@ -766,6 +766,7 @@ contains
   !>     - address the source term for the dust in case (coordinate == spherical)
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
+    use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
     use mod_rotating_frame, only: rotating_frame_add_source
     use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero, dust_min_rho
@@ -780,6 +781,7 @@ contains
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
     integer :: irho, ifluid, n_fluids
+    double precision :: exp_factor(ixI^S), del_exp_factor(ixI^S), exp_factor_primitive(ixI^S)
 
     if (hd_dust) then
        n_fluids = 1 + dust_n_species
@@ -788,6 +790,13 @@ contains
     end if
 
     select case (coordinate)
+
+    case(Cartesian_expansion)
+      !the user provides the functions of exp_factor and del_exp_factor
+      if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
+      source(ixO^S) = wCT(ixO^S,p_)*del_exp_factor(ixO^S)/exp_factor(ixO^S)
+      w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*source(ixO^S)
+
     case (cylindrical)
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
@@ -815,7 +824,7 @@ contains
              if(.not. angmomfix) then
                 where (wCT(ixO^S, irho) > minrho)
                    source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_) 
+                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
                 end where
              end if
           else
@@ -934,7 +943,7 @@ contains
          end if
       end if
     end if
-    
+
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)

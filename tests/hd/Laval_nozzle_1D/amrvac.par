@@ -1,0 +1,66 @@
+
+ &filelist
+        base_filename = 'output/nozzle'
+        saveprim      = .true.
+        autoconvert   = .true.
+        convert_type  = 'vtuBmpi'
+        nwauxio       = 1
+ /
+
+
+ &savelist
+        itsave(1,1) = 0
+        itsave(1,2) = 0
+        dtsave_log  = 0.05d0
+        dtsave_dat  = 0.2d0
+ /
+
+ &stoplist
+        !it_max   = 10
+        dtmin    = 1.0d-12
+        time_max = 60.0d0
+ /
+
+ &methodlist
+         time_integrator  = 'threestep'
+         flux_scheme      = 20*'hll'
+         limiter          = 20*'cada3'
+         check_small_values = .true.
+         small_values_method = 'replace'
+         small_pressure  = 1.0d-8
+         small_density   = 1.0d-8
+ /
+
+
+ &boundlist
+        typeboundary_min1 = 2*'special'
+        typeboundary_max1 = 2*'cont'
+ /
+
+ &meshlist
+        block_nx1        = 16
+        domain_nx1       = 2240
+        xprobmin1        = 0.d0
+        xprobmax1        = 10.0d0
+ /
+
+
+ &paramlist
+        typecourant = 'maxsum'
+        slowsteps   = 100
+        courantpar  = 0.8d0
+ /
+
+ &hd_list
+        hd_gravity    =.false.
+        hd_energy     =.false.
+        hd_gamma      = 1.d0
+        !hd_adiab      = 1.d0
+ /
+
+ &InitalConst_list
+        p0            = 0.3d0
+        beta          = 0.8d0
+        T0            = 1.0d0
+        v0            = 0.1d0
+/

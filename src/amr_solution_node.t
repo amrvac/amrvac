@@ -48,6 +48,7 @@ subroutine alloc_node(igrid)
   use mod_forest
   use mod_global_parameters
   use mod_geometry
+  use mod_usr_methods, only: usr_set_surface
 
   integer, intent(in) :: igrid
 
@@ -56,6 +57,8 @@ subroutine alloc_node(igrid)
   integer:: icase, ixGext^L
   double precision :: dx^D, summeddx, sizeuniformpart^D
   double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
+  double precision :: delx(ixGlo1:ixGhi1,1),xc(ixGlo1:ixGhi1,1),delxc(ixGlo1:ixGhi1,1)
+  double precision :: exp_factor(ixGlo1:ixGhi1),del_exp_factor(ixGlo1:ixGhi1),exp_factor_primitive(ixGlo1:ixGhi1)
 
   ixCoGmin^D=1;
   ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
@@ -226,7 +229,7 @@ subroutine alloc_node(igrid)
      endif\}
     {if(stretch_type(^D) == stretch_symm)then
        ! here we distinguish three kinds of grid blocks
-       ! depending on their ig-index, set per level 
+       ! depending on their ig-index, set per level
        !      the first n_stretchedblocks/2  will stretch to the left
        !      the middle ntotal-n_stretchedblocks will be uniform
        !      the last  n_stretchedblocks/2  will stretch to the right
@@ -264,7 +267,7 @@ subroutine alloc_node(igrid)
                 psc(igrid)%dx(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
              enddo
            else
-             ! if middle blocks exist then use same as middle blocks: 
+             ! if middle blocks exist then use same as middle blocks:
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
                 ps(igrid)%dx(ix^D%ixGext^S,^D)=dxmid(level,^D)
              enddo
@@ -282,7 +285,7 @@ subroutine alloc_node(igrid)
              psc(igrid)%dx(ix^D%ixCoG^S,^D)=psc(igrid)%dx(2*nghostcells+1-ix^D%ixCoG^S,^D)
            enddo
          endif
-       else 
+       else
          if(ig^D<=ng^D(level)-nstretchedblocks(level,^D)/2) then
            ! keep uniform
            ps(igrid)%dx(ixGext^S,^D)=dxmid(level,^D)
@@ -339,7 +342,7 @@ subroutine alloc_node(igrid)
                  psc(igrid)%dx(ix^D%ixCoG^S,^D)=psc(igrid)%dx(2*nghostcells+1-ix^D%ixCoG^S,^D)
                enddo
              else
-               ! if middle blocks exist then use same as middle blocks: 
+               ! if middle blocks exist then use same as middle blocks:
                do ix=ixGextmin^D,nghostcells
                  ps(igrid)%dx(ix^D%ixGext^S,^D)=dxmid(level,^D)
                enddo
@@ -446,6 +449,19 @@ subroutine alloc_node(igrid)
       ps(igrid)%dsC(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       psc(igrid)%dvolume(ixCoG^S)= {^D&psc(igrid)%dx(ixCoG^S,^D)|*}
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
+    case (Cartesian_expansion)
+      {^IFONED
+      delx(ixGext^S,1) = ps(igrid)%dx(ixGext^S,1)
+      xc(ixCoG^S,1) = psc(igrid)%x(ixCoG^S,1)
+      delxc(ixCoG^S,1) = psc(igrid)%dx(ixCoG^S,1)
+      if(associated(usr_set_surface)) call usr_set_surface(ixGext^L,xext,delx,exp_factor,del_exp_factor,exp_factor_primitive)
+      ps(igrid)%dvolume(ixGext^S)= exp_factor_primitive(ixGext^S)
+      ps(igrid)%ds(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
+      ps(igrid)%dsC(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
+      if(associated(usr_set_surface)) call usr_set_surface(ixCoG^L,xc,delxc,exp_factor,del_exp_factor,exp_factor_primitive)
+      psc(igrid)%dvolume(ixCoG^S)= exp_factor_primitive(ixCoG^S)
+      psc(igrid)%ds(ixCoG^S,1)=psc(igrid)%dx(ixCoG^S,1)
+      }
     case (spherical)
       ps(igrid)%dvolume(ixGext^S)=(xext(ixGext^S,1)**2 &
                                 +ps(igrid)%dx(ixGext^S,1)**2/12.0d0)*&

@@ -1320,7 +1320,7 @@ contains
     double precision, intent(out) :: xpcart(1:3)
 
     select case (coordinate)
-       case (Cartesian,Cartesian_stretched)
+       case (Cartesian,Cartesian_stretched,Cartesian_expansion)
           xpcart(1:3)=xp(1:3)
        case (cylindrical)
           xpcart(1)=xp(1)*cos(xp(phi_))
