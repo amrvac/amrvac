@@ -28,6 +28,7 @@ financial support.
 
 * [Discretization](discretization.md) The equation and its discretization, the
 basic variables, the structure of the grid, boundaries, ghost cells.
+* [Time Discretization](time_discretization.md) The way the time integration works.
 * [Methods](methods.md) Properties of the discretization methods like TVDLF,
 TVDMU, TVD, HLL...
 * [Slope limiters](limiter.md) Slope limiters for reconstruction to suppress spurious numerical oscillations

@@ -93,26 +93,27 @@ arise in the equations above depending on the number of dimensions and on the
 dimensional and source splitting parameters.
 
 There are many options to evaluate **w_R=[I+dt*R] w**, it is determined by the
-value of the **time_integrator** parameter with the following examples:
+value of the **time_stepper** (and the **time_integrator**) parameter with the following examples:
 
     w_R = w + dt*R(w)                 'onestep'
 
     w_1 = w + dt/2*R1(w)               'twostep'  (predictor step)
     w_R = w + dt  *R(w_1)                        (corrector step)
 
-    w_1 = w + dt/2*R(w)	              'fourstep' (classical RK4)
+    w_1 = w + dt/2*R(w)	              'fourstep' (classical RK4 when `time_integrator='rk4'`)
     w_2 = w + dt/2*R(w_1)
     w_3 = w + dt  *R(w_2)
     w_4 = w + dt/6*R(w_3)
     w   = w + dt/6*[R(w_1)+2*R(w_2)+2*R(w_3)+R(w_4)]
 
-The time integrator RK4 is fourth order accurate. Not all schemes can be combined with all
-options, infact the TVD scheme should use **time_integrator='onestep'**, while the
-other temporally second order methods TVDLF, TVD-MUSCL, HLL, HLLC can use
-**time_integrator='twostep'** or **time_integrator='twostep_trapezoidal'**.
-For consistency, the accuracy of time integrator should have the same order as slope
-limiter's accuracy. 3rd order accurate time integrators are 'threestep' and 'ssprk43'.
-4th order accurate time integrators include 'rk4', 'ssprk54', 'fourstep', and 'jameson'.
+The time stepper and integrator RK4 is fourth order accurate. Not all schemes can be combined with all
+options, infact the TVD scheme should use **time_integrator='onestep'**. Most methods like
+TVDLF, TVD-MUSCL, HLL, HLLC can use
+**time_stepper='twostep'** or **time_stepper='threestep'** or even 'fourstep' or 'fivestep'.
+For consistency, the accuracy of the time integrator should have the same order as the slope
+limiter's accuracy. 3rd order accurate time integrators are found within the 'threestep' options, with its default 'ssprk3' as **time_integrator**.
+4th order accurate time steppers/integrators include 'fourstep' with 'rk4', or 'fivestep' with its default 'ssprk5'.
+Various SSPRK schemes are found under the 'twostep', 'threestep', 'fourstep' and 'fivestep' time_steppers.
 
 Since in the twostep method the **R1** spatial discretization in the first
 _predictor_ step can be different from **R** of the second _corrector_ step,

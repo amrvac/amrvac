@@ -13,7 +13,7 @@ have physics-independent class and physics-dependent class. The physics-independ
 * @ref par_filelist Name and type of files to save (or read)
 * @ref par_savelist When to save data
 * @ref par_stoplist When to stop the simulation
-* @ref par_methodlist Which numerical methods to use (e.g., flux scheme, time integrator, limiter)
+* @ref par_methodlist Which numerical methods to use (e.g., flux scheme, time stepper, time integrator, limiter)
 * @ref par_boundlist Boundary conditions
 * @ref par_meshlist Mesh-related settings (e.g. domain size, refinement)
 * @ref par_paramlist Time-step parameters
@@ -282,6 +282,7 @@ output is always saved after the stop condition has been fulfilled. If
     	time_init =DOUBLE
     	reset_time =F | T
     	reset_it   =F | T
+        final_dt_reduction=T | F
     /
 name | type | default | description
 ---|---|---|---
@@ -293,6 +294,7 @@ name | type | default | description
 `time_init` | double | 0 | set the initial time when start a new run
 `reset_time` | logical | F | when restart from a previous run, reset the time to the initial one if it is T
 `reset_it` | logical | F | when restart from a previous run, reset the number of time steps to the initial one if it is T
+`final_dt_reduction` | logical | T | forces the last dt to comply with time_max limit
 
 You may use an upper limit `it_max` for the number of timesteps, and/or the
 physical time `time_max`, and/or the wall time 'wall_time_max' to end a run.
@@ -317,7 +319,8 @@ without changing time, set `reset_it=T`.
 
     &methodlist
 
-    time_integrator='twostep' | 'onestep' | 'threestep' | 'rk4' | 'fourstep' | 'ssprk43' | 'ssprk54'
+    time_stepper='twostep' | 'onestep' | 'threestep' | 'fourstep' | 'fivestep'
+    time_integrator= choices depends on time_stepper
     flux_scheme=nlevelshi strings from: 'hll'|'hllc'|'hlld','hllcd'|'tvdlf'|'tvdmu'|'tvd'|'cd'|'fd'|'source'|'nul'
     typepred1=nlevelshi strings from: 'default'|'hancock'|'tvdlf'|'hll'|'hllc'|'tvdmu'|'cd'|'fd'|'nul'
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
@@ -359,9 +362,9 @@ without changing time, set `reset_it=T`.
     trac = F | T
     /
 
-### time_integrator, flux_scheme, typepred1 {#par_time_integrator}
+### time_stepper, time_integrator, flux_scheme, typepred1 {#par_time_integrator}
 
-The `time_integrator` variable determines the time integration procedure. The
+The `time_stepper` variable determines the time integration procedure. The
 default procedure is a second order predictor-corrector type 'twostep' scheme
 (suitable for TVDLF, TVD-MUSCL schemes), and a simple 'onestep' algorithm for
 the temporally second order TVD method, or the first order TVDLF1, TVDMU1,
@@ -370,13 +373,16 @@ the AMR grid levels. The temporally first order but spatially second order
 TVD1 algorithm is best suited for steady state calculations as a 'onestep'
 scheme. The TVDLF and TVD-MUSCL schemes can be forced to be first order, and
 linear in the time step, which is good for getting a steady state, by setting
-`time_integrator='onestep'`.
+`time_stepper='onestep'`.
 
 There is also a fourth order Runge-Kutta type method, when
-`time_integrator='fourstep'`. It can be used with _dimsplit=.true._.
+`time_stepper='fourstep'` 
+and one sets
+`time_integrator='rk4'`. It can be used with _dimsplit=.true._.
  These higher order time integration methods can be
 most useful in conjunction with higher order spatial discretizations.
-See also [discretization](discretization.md).
+See also [discretization](discretization.md) and
+[time_discretization](time_discretization.md).
 
 The array `flux_scheme` defines a scheme to calculate the flux at cell interfaces using the chosen
 [method](methods.md) (like hll based approximate Riemann solver) per activated grid level
@@ -391,7 +397,8 @@ all, and 'source' merely adds sources. These latter two values must be used
 with care, obviously, and are only useful for testing source terms or to save
 computations when fluxes are known to be zero.
 
-The `typepred1` array is only used when `time_integrator='twostep'` and
+The `typepred1` array is only used when `time_stepper='twostep'` and 
+`time_integrator='Predictor_Corrector'` and 
 specifies the predictor step discretization, again per level (so _nlevelshi_
 strings must be set). By default, it contains _typepred1=20*'default'_ (default
 value _nlevelshi=20_), and it then deduces e.g. that 'cd' is predictor for
