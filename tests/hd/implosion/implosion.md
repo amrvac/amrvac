@@ -4,8 +4,9 @@
 
 This is a problem on a closed domain involving shock front formation and
 interaction, enriched by possible Richtmyer-Meshkov instability development.
-Quantify for the latter the deposition/growth of vorticity (its component
-perpendicular to the plane). Verify that conservation is perfect when using a
+One can quantify for the latter instability the deposition and growth of vorticity 
+on the contact discontinuity (in 2D: use its component perpendicular to the plane). 
+Verify that conservation is perfect when using a
 conservative discretization scheme (inspect/use the log file).
 
 The 2D setup is discussed in Liska & Wendroff, SIAM J. Sci. Comput. 25 , 3, pp.
@@ -21,15 +22,7 @@ of a moving mesh code (shadowfax) as compared to a Eulerian grid code.
 
 ## Setting up the files
 
-Use energy equation:
-
-    $AMRVAC_DIR/setup.pl -d=22 -g=20,20 -p=hd -eos=default -nf=1
-
-Using a polytropic equation of state:
-
-    $AMRVAC_DIR/setup.pl -d=22 -g=20,20 -p=hd -eos=iso -nf=1
-
-When switching, perform a `make clean` before recompiling.
+    $AMRVAC_DIR/setup.pl -d=2
 
 ## Compiling
 
@@ -55,23 +48,23 @@ Some of the settings that you could change in the `.par` files are:
 
 name | description
 ---|---
-`filenameout` | Base file name for output
-`dtsave(1)` | Time between log output
-`dtsave(2)` | Time between dat/vtu output
-`mxnest` | the maximum number of refinement levels
-`dixB` | number of ghost cells, depends on spatial discretization
-`nxlone[1,2,3]` | the size of the coarse grid, needs to be divisible by (block size - 2 * dixB)
-`tmax` | the end time of the simulation
-`typeadvance` | time discretization method, e.g., twostep, threestep, ssprk43
+`base_filename` | Base file name for output
+`dtsave_log` | Time between log output
+`dtsave_dat` | Time between dat/vtu output
+`refine_max_level` | the maximum number of refinement levels
+`nghostcells` | number of ghost cells, depends on spatial discretization
+`domain_nx1,domain_nx2` | the size of the coarse grid
+`time_max` | the end time of the simulation
+`time_stepper` | time discretization method, e.g., twostep, threestep, fourstep
 `courantpar` | CFL number (see also typecourant)
-`typefull1` | spatial discretization method, e.g., tvd, tvdlf, hlcc
-`typelimiter1` | which limiter to use in the spatial discretization, e.g., cada3, koren, woodward
+`flux_scheme` | spatial discretization method, e.g., tvd, tvdlf, hlcc
+`limiter` | which limiter to use in the spatial discretization, e.g., cada3, koren, woodward
 
 A complete list of parameters can be found [par.md](par.md).
 
 # Changing the physics and initial conditions
 
-Have a look at the local file `amrvacusr.t`. You can modify the following
+Have a look at the file `mod_usr.t`. You can modify the following
 routines:
 
 * `initglobaldata_usr`: change the adiabatic index \f$ \gamma \f$

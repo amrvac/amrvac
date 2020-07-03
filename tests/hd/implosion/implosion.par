@@ -1,48 +1,44 @@
- &testlist
-        teststr=''
- /
-
+!
+! Liska 2D hydro test, added tracer
+!
  &filelist
-        primnames= 'rho v1 v2 p tr'
+	base_filename='implosion_'  
         saveprim=.true.
-        autoconvert=.true.
         convert_type='vtuBCCmpi'
-	filenameout='implosion_'  ! Base file name for dat/vtu output
-        filenamelog='implosion'   ! Base file name for the log
+        autoconvert=.true.
 /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave(1)=0.01          ! For the log
-        dtsave(2)=0.01          ! For dat/vtu output
+        dtsave_log=0.01d0          ! For the log
+        dtsave_dat=0.01d0          ! For dat/vtu output
  /
 
  &stoplist
-        tmax=0.5d0              ! Stop after this time
+        time_max=0.5d0              ! Stop after this time
         dtmin=1.0d-9            ! Stop when dt < dtmin
  /
 
  &methodlist
-        wnames=       'rho m1 m2 e Dtr'
-        typeadvance=  'threestep'
-        typefull1=13*'hllc'
-        typelimiter1=13*'cada3'
+        time_stepper=  'fivestep'
+        flux_scheme=20*'hllc'
+        limiter=20*'mp5'
  /
 
  &boundlist
-        dixB=2
-        typeB='symm' 'asymm' 'symm' 'symm' 'symm'
-        'symm' 'asymm' 'symm' 'symm' 'symm'
-        'symm' 'symm' 'asymm' 'symm' 'symm'
-        'symm' 'symm' 'asymm' 'symm' 'symm'
+        typeboundary_min1= 'symm', 'asymm', 'symm', 'symm'
+        typeboundary_max1= 'symm', 'asymm', 'symm', 'symm'
+        typeboundary_min2= 'symm', 'symm', 'asymm', 'symm'
+        typeboundary_max2= 'symm', 'symm', 'asymm', 'symm'
  /
 
- &amrlist
-        errorestimate=3
-        mxnest = 2
-        nxlone1=64
-        nxlone2=64
+ &meshlist
+        refine_max_level = 5
+        domain_nx1=64
+        domain_nx2=64
+        block_nx1=16
+        block_nx2=16
         xprobmin1=0.
         xprobmax1=0.3
         xprobmin2=0.
@@ -57,4 +53,5 @@
 
  &hd_list
         hd_gamma = 1.4d0
+        hd_n_tracer = 1
  /

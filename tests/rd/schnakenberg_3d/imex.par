@@ -1,6 +1,5 @@
 !=====================================================
-! Project : Advection test: a VAC log
-!
+! 3D Reaction Diffusion
 !=====================================================
 
  &filelist
@@ -20,7 +19,7 @@
  /
 
  &methodlist
-        time_integrator = 'onestep'
+        time_stepper = 'onestep'
         flux_scheme = 20*'source'
         limiter= 20*'mp5'
  /

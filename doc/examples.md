@@ -13,7 +13,7 @@ as follows:
     mpirun -np 2 amrvac
 
 This test contains several tests, distinguished by **iprob**. In the above setting, it
-will use **iprob=3** as specified in the [amrlist](@ref par_meshlist) and
+will use **iprob=3** as specified in the [meshlist](@ref par_meshlist) and
 do a 2D advection of the VAC-logo on a double periodic domain, on the unit
 square. After [converting](convert.md) the 21 data files created to the VTK
 format suited for paraview visualization, you will be able to make the
@@ -60,7 +60,7 @@ for [hydrodynamics](@ref eq_hd) include
     amrvac/tests/hd/Rayleigh_Taylor_2D
     amrvac/tests/hd/Richtmyer_Meshkov_dust_2D
     amrvac/tests/hd/Riemann_pole_2D
-    amrvac/tests/hd/liska_2D
+    amrvac/tests/hd/implosion
 
 The first one listed is the Woodward and Collela shock reflection problem, on a 2D
 cartesian grid. It is a nice illustration on how to code up some non-trivial
@@ -87,13 +87,12 @@ Impressions for some of these tests are shown below:
 
 This Rayleigh Taylor test (july 2011) can be repeated with 7 refinement
 levels, it then takes 11375 seconds (on a 4 CPU macBook pro, a bit over 3
-hours, all IO included). The figure for that run is 
+hours, all IO included). 
 
-![rayleigh-taylor 2D case 7 levels](figmovdir/rthdtwodfinal.gif)
 
 ![Shocks in box 2D case](figmovdir/liska.png)
 
-The latter 'liska' test is a nice one to test symmetry-preserving properties
+The above 'liska' test is a nice one to test symmetry-preserving properties
 for schemes, and to compare effects of resolution (by raising the number of
 AMR levels). On my MacBook Pro (june 2011), a quadcore CPU with 8GB memory, I
 can run a 6 level version (base resolution 24 x 24) up to time t=2.5 in less

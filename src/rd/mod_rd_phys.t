@@ -149,9 +149,10 @@ contains
        call mpistop("mod_rd requires flux_scheme = source")
     end if
 
-    if (rd_diffusion_method == "imex" .and. time_integrator /= "onestep") then
+    if (rd_diffusion_method == "imex" .and. time_stepper /= "onestep") then
+       print *, "time_stepper = ", time_stepper
        print *, "time_integrator = ", time_integrator
-       call mpistop("imex requires time_integrater = onestep")
+       call mpistop("imex requires time_stepper = onestep")
     end if
 
     if (use_multigrid) then

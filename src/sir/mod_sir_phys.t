@@ -172,9 +172,8 @@ contains
        sir_diffusion_method = "explicit"
     endif
 
-    if (sir_diffusion_method == "imex" .and. time_integrator /= "onestep") then
-       print *, "time_integrator = ", time_integrator
-       call mpistop("imex requires time_integrater = onestep")
+    if (sir_diffusion_method == "imex" .and. time_stepper /= "onestep") then
+       call mpistop("imex requires time_stepper = onestep")
     endif
 
     if (sir_diffusion_method == "imex") then

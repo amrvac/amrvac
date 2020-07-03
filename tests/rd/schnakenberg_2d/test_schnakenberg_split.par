@@ -17,7 +17,7 @@
  /
 
  &methodlist
-        time_integrator = 'twostep'
+        time_stepper = 'twostep'
         flux_scheme = 20*'source'
  /
 
