@@ -2,9 +2,8 @@
 SETUP_FLAGS := -d=3
 SCHEME_DIR := ../../schemes
 
-SCHEMES := 1step_tvd 2step_tvdlf_mm 2step_tvdmu_al 3step_hll_cada rk4_tvdlf_cada ssprk43_fd_mp5 ssprk54_fd_mp5
-# SCHEMES := 1step_tvd 2step_tvdlf_mm 2step_tvdmu_al 3step_hll_cada 4step_hll_mc	\
-# 4step_hllc_ko rk4_tvdlf_cada ssprk43_fd_mp5 ssprk54_fd_mp5
+SCHEMES := 1step_tvd 2step_tvdlf_mm 2step_tvdmu_al 3step_hll_cada 4step_hll_mc	\
+4step_hllc_ko rk4_tvdlf_cada ssprk43_fd_mp5 ssprk54_fd_mp5
 
 TESTS := $(SCHEMES:%=ball_3d_%.log) $(SCHEMES:%=ball_3d_rev_%.log)
 

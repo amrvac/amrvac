@@ -28,7 +28,7 @@
  /
 
  &methodlist
-        time_integrator = 'ssprk54'
+        time_stepper = 'fivestep'
         flux_scheme   = 20*'tvdlf'
         limiter= 20*'minmod'
 	        loglimit(1) = .true.
