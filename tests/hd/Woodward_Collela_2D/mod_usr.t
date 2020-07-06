@@ -31,6 +31,7 @@ contains
 
     {^IFONED call mpistop("This is a multi-D HD problem") }
 
+    {^NOONED
     m1post=8.d0*8.25d0*dsin(dpi/3.d0)
     m2post=-8.0d0*8.25d0*dcos(dpi/3.d0)
     epost=1.165d2/(hd_gamma-1.d0)+(m1post**2+m2post**2)/(16.0d0)
@@ -48,6 +49,7 @@ contains
        w(ix^S,mom(2))=m2post
        w(ix^S,e_)=epost
     endwhere
+    }
 
   end subroutine wc2d_init_one_grid
 
