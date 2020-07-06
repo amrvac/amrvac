@@ -64,8 +64,4 @@ A complete list of parameters can be found [par.md](par.md).
 
 # Changing the physics and initial conditions
 
-Have a look at the file `mod_usr.t`. You can modify the following
-routines:
-
-* `initglobaldata_usr`: change the adiabatic index \f$ \gamma \f$
-* `initonegrid_usr`: change the initial conditions
+Have a look at the file `mod_usr.t`. You can modify the initial conditions, or try changing the adiabatic index \f$ \gamma \f$
