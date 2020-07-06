@@ -161,7 +161,7 @@ contains
     call get_volume_average(2, modes(:, 2), volume)
 
     if (mype == 0) then
-       write(*, "(A,4E16.8)") " CONVTEST (t,rho_2,p_2,b_2):",  &
+       write(*, "(A,4E16.8)") " CONVTEST (global_time,rho_2,p_2,b_2):",  &
            global_time, sqrt(modes(i_err_r, 2)), sqrt(modes(i_err_p, 2)), sqrt(modes(i_err_b, 2))
     end if
   end subroutine print_error

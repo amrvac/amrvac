@@ -38,6 +38,7 @@ my %simple_replacements = (
     qr/\btmaxexact\b/ => "time_max_exact",
     qr/\bresetgrid\b/ => "reset_grid",
     qr/\btypeadvance\b/ => "time_integrator",
+    qr/\btime_integrator\b/ => "time_stepper",
     qr/\btypefull1\b/ => "flux_scheme",
     qr/\btypegradlimiter1\b/ => "gradient_limiter",
     qr/\btypelimiter1\b/ => "limiter",
@@ -79,8 +80,6 @@ my %simple_replacements = (
     qr/INCLUDE:amrvacnul\/speciallog.t/ => "",
     qr/INCLUDE:amrvacnul\/specialsource.t/ => "",
     qr/\btypeaxial\b/ => "coordinate",
-    qr/"spherical"/ => "spherical",
-    qr/'spherical'/ => "spherical",
     );
 
 # Replace words only used in par files (pattern => replacement)

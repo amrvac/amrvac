@@ -18,7 +18,7 @@
  /
 
  &methodlist
-   time_integrator     = 'onestep'
+   time_stepper     = 'onestep'
    flux_scheme       = 20*'nul'
    limiter    = 20*'minmod'
  /
