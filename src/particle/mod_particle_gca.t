@@ -528,7 +528,6 @@ contains
     dydt(ndir+1) = q/m*epar - Mr/(m*gamma) * sum(bhat(:)*gradkappaB(:)) &
                    + sum(vE(:)*(upar*bdotgradb(:)+gamma*vEdotgradb(:)))
     dydt(ndir+2) = 0.0d0 ! magnetic moment is conserved
-    !dydt(ndir+3) = q/(m*const_c**2) * ({^C& dydt(^C)*e(^C)|+}) * unit_length
 
   end subroutine derivs_gca_rk
 
@@ -590,7 +589,6 @@ contains
     dydt(ndir+1) = q/m*epar - Mr/(m*gamma) * sum(bhat(:)*gradkappaB(:)) &
                    + sum(vE(:)*(upar*bdotgradb(:)+gamma*vEdotgradb(:)))
     dydt(ndir+2) = 0.0d0 ! magnetic moment is conserved
-    !dydt(ndir+3) = q/(m*const_c**2) * ({^C& dydt(^C)*e(^C)|+}) * unit_length
 
   end subroutine derivs_gca
 
@@ -816,16 +814,16 @@ contains
     !dt_tmp = min(dt_cfl1, dt_cfl_ap1)
 
     ! time step due to parallel acceleration:
-    ! The standart thing, dt=sqrt(dx/a) where we compute a from d(gamma v||)/dt and d(gamma)/dt
+    ! The standard thing, dt=sqrt(dx/a) where we compute a from d(gamma v||)/dt and d(gamma)/dt
     ! dt_ap = sqrt(abs(dxmin*unit_length*y(ndir+3)/( dydt(ndir+1) - y(ndir+1)/y(ndir+3)*dydt(ndir+3) ) ) )
-    ! vp = sqrt({^C& (v(^C)*unit_length)**2|+})
+    ! vp = sqrt(sum(v(1:ndir)**))
     ! gammap = sqrt(1.0d0/(1.0d0-(vp/const_c)**2))
     ! ap = const_c**2/vp*gammap**(-3)*dydt(ndir+3)
     ! dt_ap = sqrt(dxmin*unit_length/ap)
 
     !dt_a = bigdouble
     !if (dt_euler .gt. smalldouble) then
-    !   a = sqrt({^C& (v1(^C)-v0(^C))**2 |+})/dt_euler
+    !   a = sqrt(sum((v1(1:ndir)-v0(1:ndir))**2))/dt_euler
     !   dt_a = min(sqrt(dxmin/a),bigdouble)
     !end if
 

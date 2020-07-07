@@ -1,4 +1,4 @@
-# Setting up an new problem
+# Setting up a new problem
 
 [TOC]
 

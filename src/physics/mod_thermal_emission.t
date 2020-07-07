@@ -963,7 +963,6 @@ module mod_thermal_emission
             area=0.d0
             sumEUV=0.d0
             sumDpl=0.d0
-            !#
             do ix1=ixmin1,ixmax1
               do ix2=ixmin2,ixmax2
                 rx1=1.d0
@@ -983,7 +982,6 @@ module mod_thermal_emission
                 sumDpl=sumDpl+Dpl(ix1,ix2)*EUV(ix1,ix2)*rx1*rx2
               enddo
             enddo
-            !#
             if (area>0) then
               wO(ixO1,ixO2,1)=sumEUV/area
               wO(ixO1,ixO2,2)=sumDpl/sumEUV
@@ -1571,7 +1569,6 @@ module mod_thermal_emission
 
             area=0.d0
             sumEUV=0.d0
-            !#
             do ix1=ixmin1,ixmax1
               do ix2=ixmin2,ixmax2
                 rx1=1.d0
@@ -1590,7 +1587,6 @@ module mod_thermal_emission
                 sumEUV=sumEUV+wI(ix1,ix2,1)*rx1*rx2
               enddo
             enddo
-            !#
             if (area>0) then
               wO(ixO1,ixO2,1)=sumEUV/area
             endif

@@ -42,11 +42,10 @@ contains
     ! range to process:
     !iLmin^D=ixmin^D-kr(idims,^D);iLmax^D=ixmax^D;
 
-    !{#IFDEF HALL
+    ! HALL
     ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
     ! also add one ghost zone!
     !   {iL^L=iL^L^LADD1;}
-    !}
 
     ! iL^L holds the indices of interfaces to reconstruct to.  Convention is that a center index holds the _right-side_ interface.  
 
@@ -467,11 +466,10 @@ contains
     ! range to process:
     !iLmin^D=ixmin^D-kr(idims,^D);iLmax^D=ixmax^D;
 
-    !{#IFDEF HALL
-       ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
-       ! also add one ghost zone!
+    ! HALL
+    ! For Hall, we need one more reconstructed layer since currents are computed in getflux:
+    ! also add one ghost zone!
     !   {iL^L=iL^L^LADD1;}
-    !}
 
     ! iL^L holds the indices of interfaces to reconstruct to.  Convention is that a center index holds the _right-side_ interface.  
 
