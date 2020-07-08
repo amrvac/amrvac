@@ -1,0 +1,83 @@
+!=====================================================
+! Project : 2D wind-blown bubble
+! Aim     : Axisymmetric, hydro, with cooling
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=2
+!=====================================================
+
+ &filelist
+        base_filename = 'output/windbubble_cA_nc'
+        saveprim      = .true.
+        autoconvert   = .true.
+        convert_type  = 'vtuBmpi'        
+        nwauxio       = 1
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave_log= 100
+        dtsave_dat= 1.0D-1
+ /
+
+ &stoplist
+       time_max = 2.0D0
+       dtmin= 1.0d-10
+ /
+
+ &methodlist
+        time_stepper  = 'twostep'
+        flux_scheme      = 20*'tvdlf'
+        limiter          = 20*'minmod'
+        loglimit(1) = .true.
+        loglimit(4) = .true.
+        small_values_method='average'
+ /
+        small_pressure=1.0d-16
+        small_density=1.0d-14
+
+ &boundlist
+        typeboundary_min1 = 'symm','asymm','symm','symm'
+        typeboundary_max1 = 4*'cont'
+        typeboundary_min2 = 4*'noinflow'
+        typeboundary_max2 = 4*'special'
+ /
+
+ &meshlist
+	refine_criterion=3
+        refine_max_level=4
+	w_refine_weight(1)=0.0d0
+	w_refine_weight(2)=0.0d0
+	w_refine_weight(3)=0.0d0
+	w_refine_weight(4)=0.0d0
+	refine_threshold = 20*0.1d0
+	derefine_ratio = 20*0.125D0
+	domain_nx1=100
+        domain_nx2=100
+	block_nx1=10
+        block_nx2=10
+	xprobmin1=0.0D0
+	xprobmax1=5.0d0
+	xprobmin2=-2.5D0
+	xprobmax2=2.5D0
+ /
+
+ &paramlist
+        typecourant = 'maxsum'
+        courantpar  = 0.4d0
+        slowsteps=100
+ /
+
+ &hd_list
+        hd_radiative_cooling  = .false.
+ /
+
+ &rc_list
+	coolcurve   = 'SPEX_DM'
+        coolmethod = 'exact'
+        Tfix       = .true.
+ /
+
+ &usr_list
+       icase=1
+ /
