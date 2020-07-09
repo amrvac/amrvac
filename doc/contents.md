@@ -65,6 +65,7 @@ visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
 visualisation and analysis (e.g. column densities).
 * [Analysis routine](analysis.md) Using the run-time analysis routine.
+* [3D Printing](print3D.md) A note on how to generate 3D printed results.
 
 # Legacy Python tools {#io-python}
 > These tools are bundled within AMRVAC's main repo.

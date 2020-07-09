@@ -1,4 +1,6 @@
-# Implosion test problem
+# Implosion test problem: 2D HD Liska-Wendroff
+
+\test 2D implosion Liska-Wendroff
 
 # Introduction
 
