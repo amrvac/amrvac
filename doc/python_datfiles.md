@@ -8,6 +8,10 @@ This page provides guidelines and examples to read in and process MPI-AMRVAC `.d
 All required packages and instructions on how to set up the tools folder are described in @ref python_setup.md.
 The datfile tools can be found in the folder `$AMRVAC_DIR/tools/python/datfiles`.
 
+> **Please note**: the legacy Python tools do _not_ support polar/cylindrical/spherical datasets, and/or stretched/staggered grids.
+> We (highly) recommend to use `yt` ([see the docs](yt_usage.md)) for datfile analysis with Python.
+
+
 # Reading datasets {#reading_dat}
 
 ## Obtaining dataset information

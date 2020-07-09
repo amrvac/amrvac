@@ -57,7 +57,7 @@ files.
 # IO and data analysis {#io}
 
 * [File format](fileformat.md) Description of the format of MPI-AMRVAC data file (.dat).
-* [Visualisation and analysis in Python with yt](yt_usage.md) without data conversion (beta).
+* [Visualisation and analysis in Python with yt](yt_usage.md) without data conversion.
 * [Converting data files for visualization](convert.md) Brief notes on how to
 convert to Tecplot (.plt), and VTK (.vtu) data files.
 * [Slices](slices.md) How to output hypersurfaces (slices) for restart or
