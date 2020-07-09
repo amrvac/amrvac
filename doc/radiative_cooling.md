@@ -50,7 +50,8 @@ coolmethod | string | 'exact' | Numerical scheme to be used in radiative cooling
 ncool | integer | 4000 | The number of point that will be used in interpolating the cooling curve. <br>Note that this is the number of elements in the final cooling table. When using the exact integration method, it is advisable to set this number large. The efficiency of this method make this an acceptable choice and it increases accuracy.
 cfrac | double precision | 0.1 | The fraction of E/L that sets upper time limit in explicit cooling functions.
 Tfix | logical | F |  If true, a temperature limit (tlow) is enforced as minimum temperature throughout the grid. Not physical, but can help overcome negative pressure issues in radiative cooling instabilities. It is strongly recommended to use this. <br>(It should be noted that other source terms, such as usr_source set by the user in the mod_usr.t file, can still modify the internal energy and hence the temperature.)
-tlow | double precision | lowest temperature of cooling curve | Used as lower temperature limit if Tfix=.true.
+tlow | double precision | lowest temperature of cooling curve | Used as lower temperature limit if Tfix=.true., should be set in dimensionless units
+rc_split | logical | F | If true, the radiative cooling source term will be evaluated separately from the fluxes. This can ensure fixing of the temperature, if used in combination with Tfix and a splitting scheme ending on the splitted sources terms and no user-defined source terms are split. See [Discretization](@ref discretization.md) for more information on source splitting.
 
 
 

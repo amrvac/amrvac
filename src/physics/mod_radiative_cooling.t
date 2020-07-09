@@ -49,7 +49,7 @@ module mod_radiative_cooling
   logical, private    :: Tfix
 
   !> Add cooling source in a split way (.true.) or un-split way (.false.)
-  logical :: rc_split=.false.
+  logical, private    :: rc_split
 
   !> Index of the density (in the w array)
   integer, private, parameter              :: rho_ = 1
@@ -729,7 +729,7 @@ module mod_radiative_cooling
       character(len=*), intent(in) :: files(:)
       integer                      :: n
   
-      namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix
+      namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
   
       do n = 1, size(files)
         open(unitpar, file=trim(files(n)), status="old")
@@ -762,6 +762,7 @@ module mod_radiative_cooling
       cfrac=0.1d0
       tlow=bigdouble
       Tfix=.false.
+      rc_split=.false.
       call rc_params_read(par_files)
 
       ! Determine flux variables
