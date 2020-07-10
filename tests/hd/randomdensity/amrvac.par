@@ -1,58 +1,61 @@
-! setup.pl -d=22 -phi=0 -z=0 -g=14,14 -p=hd -eos=default -nf=0 -ndust=0 -u=nul -arch=default
+!=====================================================
+! Project : 2D wave through random medium
+!=====================================================
 
  &filelist
-        filenamelog='datars'
-        filenameout='datars'
-        primnames='rho v1 v2 p'
+        base_filename='output/wave'
         saveprim=.true.
         autoconvert=.true.
-        convert_type='vtuBCCmpi'
+	convert_type='vtuBCCmpi'
+	nwauxio=3
  /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave=0.03d0,1.d0
+        dtsave_dat=0.25
+        dtsave_log=0.01
  /
 
  &stoplist
-        dtmin=1.D-6
-!        tmax=100.d0
-        itmax=1
+        time_max=30.0d0
  /
 
  &methodlist
-        wnames=       'rho m1 m2 e'
-        typeadvance=  'threestep'
-        typefull1=    13*'tvdlf'
-        typepred1=    13*'tvdlf'
-        typelimiter1= 13*'woodward'
-        typelimited='predictor'
+        time_stepper=  'fivestep'
+        flux_scheme=   20*'hllc'
+        limiter=20*'wenoz5'
  /
 
  &boundlist
-        dixB=    2
-        typeB=   4*'cont',4*'cont',4*'cont',4*'cont'
+        typeboundary_min1 = 4*'cont'
+        typeboundary_max1 = 4*'cont'
+	typeboundary_min2 = 4*'cont'
+        typeboundary_max2 = 4*'cont'
  /
 
- &amrlist
-        errorestimate=3
-        mxnest=1
-        nbufferx1=0
-        nbufferx2=0
-        tol=13*0.2d0
-        tolratio=13*0.125d0
-        nxlone1=400
-        nxlone2=400
-        iprob=1
-        xprobmin1=-100.d0
-        xprobmax1=100.d0
-        xprobmin2=-100.d0
-        xprobmax2=100.d0
+ &meshlist
+        refine_criterion=3
+        refine_max_level=4
+        w_refine_weight(1)=0.0d0
+        w_refine_weight(2)=0.0d0
+        w_refine_weight(3)=0.0d0
+        w_refine_weight(4)=0.0d0
+        w_refine_weight(5)=1.0d0
+	refine_threshold=20*0.05
+	derefine_ratio=20*0.125d0
+        block_nx1 = 10
+        block_nx2 = 10
+        domain_nx1=100
+        domain_nx2=100
+        xprobmin1=-50.0d0
+        xprobmax1=50.0d0
+        xprobmin2=-50.0d0
+        xprobmax2=50.0d0
  /
 
  &paramlist
-        typecourant='maxsum'
         slowsteps=10
         courantpar=0.8d0
  /
+
