@@ -1,4 +1,4 @@
-e# Physics modules and equation2
+# Physics modules and equations
 
 [TOC]
 

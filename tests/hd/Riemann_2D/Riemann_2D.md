@@ -1,8 +1,10 @@
-# Riemann 2D test problem
+# Riemann 2D test problems
+
+\test 2D HD Riemann problems
 
 # Introduction
 
-These are 2D Riemann problems as also in Liska & Wendro , SIAM J. Sci. Comput.
+These are 2D Riemann problems as in Lax & Liu SIAM 1998, or also in Liska & Wendroff, SIAM J. Sci. Comput.
 25, 3, pp. 995-1017, 2003 (section 4.4). You can try to modify the setups, or
 compare different schemes. This is a direct generalization of the 1D Riemann
 problems, so you can try and interpret 1D versus 2D

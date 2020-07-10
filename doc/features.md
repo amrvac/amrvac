@@ -1,4 +1,4 @@
- # Features overvie2
+# Features overview
 
 [TOC]
 
@@ -10,8 +10,8 @@ package.
 This software has to be configured, preprocessed, and compiled into a single
 main executable program, **amrvac** which can be run on multiple processors
 using MPI. MPI-AMRVAC will initialize and advance the unknowns, and perform
-automated grid refinement to follow all details of the (possibly shock-
-dominated) flow. The program is split into several logical parts, and heavily
+automated grid refinement to follow all details of the (possibly shock-dominated) flow. 
+The program is split into several logical parts, and heavily
 uses Fortran 90 modules and dynamic allocation.
 
 Once the configuration and compilation are done, **amrvac** can advance the

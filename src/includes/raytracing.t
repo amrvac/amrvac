@@ -230,7 +230,7 @@ select case( raysource )
 	 xrayend(iray,2)   = xrayend(iray-1,2) + drayx2	
       enddo
 }
-{^IFTTHREED
+{^IFTHREED
    call mpistop( 'Under construction' )
 }
       npointsmax(1:nrays) = npoints
@@ -255,7 +255,7 @@ select case( raysource )
 	 xrayend(iray,2)   = xprobmax2 - smalldouble
       enddo     
 }
-{^IFTTHREED
+{^IFTHREED
    call mpistop( 'Under construction' )
 }
 
@@ -547,7 +547,7 @@ select case( TRIM(gridtoray) )
                + (xpoint2-x(il1,il2,2))*wtemp1 /dxgrid2
 }
 {^IFTHREED
-    call MPISTOP( ' I am too tired to write a 3D linear interpolation scheme right now'
+    call MPISTOP( ' under construction')
 }
  case default 
     call MPISTOP( 'This interpolation method has not been implemented' )
@@ -1409,7 +1409,7 @@ end select
     write(11,*) 'TITLE="RAYS"'
 {^IFONED   write(11,*) 'VARIABLES = X,RHO,V1,V2,P,U1' }
 {^IFTWOD    write(11,*) 'VARIABLES = X,Y,RHO,V1,V2,P,U1' }
-{^IFTWOD    write(11,*) 'VARIABLES = X,Y,Z,RHO,V1,V2,V3,P,U1' }
+!!!{^IFTWOD    write(11,*) 'VARIABLES = X,Y,Z,RHO,V1,V2,V3,P,U1' }
    
     do iray = 1,nrays
        write(11, '(a,i4,a,i4a,1pe12.5,a)' ) 'ZONE T= "',iray,'",I=',npointsmax(iray) ,',SOLUTIONTIME=',global_time*time_convert_factor,',F=POINT'

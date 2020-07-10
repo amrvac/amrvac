@@ -40,7 +40,7 @@ equations of both dust and gas. It is also taken into account when
 calculating the size fo the next timestep in order to guarantee
 numerical stability.
 
-Optionnaly, one can make this gas/dust coupling asymetric or remove it
+Optionally, one can make this gas/dust coupling asymetric or remove it
 completly:
 
 - `&dust_list: dust_method = none` simply remove the coupling
@@ -83,7 +83,7 @@ routine.
 - `dust_density(1:dust_n_species)`
 
 Those array define, as the names and shapes suggest, the different
-grain sizes and intrinsec densities, in code units, for each "dusty
+grain sizes and densities, in code units, for each "dusty
 fluid". For instance
 
 ```fortran

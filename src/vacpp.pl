@@ -6,7 +6,7 @@
 #
 #    Todo: here: remove IFDEF/IFNDEF constructions
 #          verify and reduce the patterns in use
-#    TODO: in code: remove RAY/D1/ENERGY/EVOLVINGBOUNDARY/HALL
+#    TODO: in code: remove RAY/D1/ENERGY/EVOLVINGBOUNDARY
 #
 # Translates the dimension independent notation to Fortran 90 by expanding
 # the Loop Annotation SYntax (LASY).
@@ -170,23 +170,15 @@ sub definepatterns{
    &patdef('DM&',$ndim-1			);
    &patdef('DM'	,$ndim-1,1	,2		);
    &patdef('DMB',$ndim-1,$ndim-1,$ndim-2        );
-   &patdef('SE'	,$ndim-1,'^LIM2:','^LIM3:'	);
-   &patdef('TE'	,$ndim-1,'^LLIM2:','^LLIM3:'	);
-   &patdef('TD'  ,$ndim  ,1      ,2      ,3      );
    &patdef('D'	,$ndim	,1	,2	,3	);
    &patdef('D&'	,$ndim				);
-   &patdef('DLOOP',$ndim       			);
    &patdef('DB'	,$ndim	,$ndim	,$ndim-1,$ndim-2);
    &patdef('DD'	,$ndim	,'^D' 	,'^D'	,'^D'	);
-   &patdef('DDD'	,$ndim	,'^DD' 	,'^DD'	,'^DD'	);
    &patdef('DDB',$ndim  ,'^DB'  ,'^DB'  ,'^DB'  );
    &patdef('DD&',$ndim	,'^D&'	,'^D&'	,'^D&'	);
-   &patdef('DDLOOP',$ndim,'^DLOOP','^DLOOP','^DLOOP');
    &patdef('D%'	,$ndim	,'^%1'	,'^%2'	,'^%3'	);
-   &patdef('DL'	,$ndim	,'^LIM1','^LIM2','^LIM3');
    &patdef('S'	,$ndim	,'^LIM1:','^LIM2:','^LIM3:');
    &patdef('T'	,$ndim	,'^LLIM1:','^LLIM2:','^LLIM3:');
-   &patdef('DLB',$ndim	,'^LIM'.$ndim,'^LIM'.($ndim-1),'^LIM'.($ndim-2));
 
    &patdef('LIM'	,2	,'min'	,'max'	);
    &patdef('LLIM'	,2	,'lo'	,'hi'	);
