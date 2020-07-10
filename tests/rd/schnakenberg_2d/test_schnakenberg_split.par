@@ -1,6 +1,5 @@
 !=====================================================
-! Project : Advection test: a VAC log
-!
+! Project : Reaction-Diffusion test
 !=====================================================
 
  &filelist
@@ -17,7 +16,8 @@
  /
 
  &methodlist
-        time_stepper = 'twostep'
+        time_stepper = 'onestep'
+        time_integrator = 'IMEX_Euler'
         flux_scheme = 20*'source'
  /
 
@@ -41,9 +41,9 @@
         xprobmax2=1.0d0
  /
 
- &paramlist
        courantpar=0.8d0
        typecourant='minimum'
+ &paramlist
        dtpar=2.0d-3
  /
 
@@ -51,5 +51,4 @@
        D1 = 0.05d0
        D2 = 1.0d0
        equation_name = "schnakenberg"
-       rd_diffusion_method = "split"
  /

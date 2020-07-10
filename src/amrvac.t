@@ -264,7 +264,7 @@ contains
        pass_wall_time=MPI_WTIME()-time0+dt_loop+4.d0*time_write >=wall_time_max
 
        ! exit time loop if time is up
-       if (it>=it_max .or. global_time>=time_max .or. pass_wall_time) exit time_evol
+       if (it>=it_max .or. global_time>=time_max .or. pass_wall_time .or. final_dt_exit) exit time_evol
 
        ! solving equations
        call advance(it)

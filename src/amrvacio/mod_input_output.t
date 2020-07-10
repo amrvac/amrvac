@@ -308,6 +308,7 @@ contains
     time_max      = bigdouble
     wall_time_max = bigdouble
     final_dt_reduction=.true.
+    final_dt_exit=.false.
     dtmin         = 1.0d-10
     nslices       = 0
     collapse      = .false.
@@ -665,6 +666,7 @@ contains
        if (time_integrator=='default') then
           time_integrator='Forward_Euler'
        endif
+       use_imex_scheme=(time_integrator=='IMEX_Euler'.or.time_integrator=='IMEX_SP')
        if ((time_integrator/='Forward_Euler'.and.&
             time_integrator/='IMEX_Euler').and.&
             time_integrator/='IMEX_SP') then
@@ -681,6 +683,7 @@ contains
           rk_b2=1.0d0/(2.0d0*rk2_alfa)
           rk_b1=1.0d0-rk_b2
        endif
+       use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal')
        if (((time_integrator/='Predictor_Corrector'.and.&
             time_integrator/='RK2_alfa').and.&
             (time_integrator/='ssprk2'.and.&
@@ -779,6 +782,7 @@ contains
            imex_c3=imex_a31+imex_a32
            imex_b3=1.0d0-imex_b1-imex_b2
        endif
+       use_imex_scheme=(time_integrator=='IMEX_ARS3'.or.time_integrator=='IMEX_232')
        if ((time_integrator/='ssprk3'.and.&
             time_integrator/='RK3_BT').and.&
             (time_integrator/='IMEX_ARS3'.and.&
@@ -821,6 +825,7 @@ contains
          rk_alfa33=1.0d0-rk_alfa31
          rk_alfa44=1.0d0-rk_alfa41
        endif
+       use_imex_scheme=.false.
        if ((time_integrator/='ssprk4'.and.&
             time_integrator/='rk4').and.&
             time_integrator/='jameson') then
@@ -898,6 +903,7 @@ contains
          !print *,rk_alfa44+rk_alfa41
          !print *,rk_alfa55+rk_alfa53+rk_alfa54
        endif
+       use_imex_scheme=.false.
        if (time_integrator/='ssprk5')then
            call mpistop("No such time_integrator for fivestep")
        endif

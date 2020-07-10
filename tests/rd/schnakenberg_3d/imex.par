@@ -19,9 +19,9 @@
  /
 
  &methodlist
-        time_stepper = 'onestep'
+        time_stepper = 'twostep'
+        time_integrator = 'IMEX_Trapezoidal'
         flux_scheme = 20*'source'
-        limiter= 20*'mp5'
  /
 
  &boundlist
@@ -42,7 +42,6 @@
         domain_nx1=128
         domain_nx2=128
         domain_nx3=128
-        iprob=3
         xprobmin1=0.0d0
         xprobmax1=1.0d0
         xprobmin2=0.0d0
@@ -51,9 +50,9 @@
         xprobmax3=1.0d0
  /
 
- &paramlist
        courantpar=0.8d0
        typecourant='minimum'
+ &paramlist
        dtpar=1.0d-3
  /
 
@@ -61,5 +60,4 @@
        D1 = 0.05d0
        D2 = 1.0d0
        equation_name = "schnakenberg"
-       rd_diffusion_method = "imex"
  /

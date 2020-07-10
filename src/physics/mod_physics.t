@@ -68,6 +68,8 @@ module mod_physics
   procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
   procedure(sub_update_faces), pointer    :: phys_update_faces           => null()
   procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
+  procedure(sub_implicit_update), pointer :: phys_implicit_update        => null()
+  procedure(sub_evaluate_implicit),pointer:: phys_evaluate_implicit      => null()
 
   abstract interface
 
@@ -255,6 +257,21 @@ module mod_physics
        type(state)                        :: s
      end subroutine sub_face_to_center
 
+     subroutine sub_evaluate_implicit(qtC,psa)
+       use mod_global_parameters
+       type(state), target :: psa(max_blocks)   
+       double precision, intent(in) :: qtC      
+     end subroutine sub_evaluate_implicit
+
+     subroutine sub_implicit_update(dtfactor,qdt,qtC,psa,psb)
+       use mod_global_parameters
+       type(state), target :: psa(max_blocks)   
+       type(state), target :: psb(max_blocks)   
+       double precision, intent(in) :: qdt
+       double precision, intent(in) :: qtC      
+       double precision, intent(in) :: dtfactor 
+     end subroutine sub_implicit_update
+
    end interface
 
 contains
@@ -332,6 +349,12 @@ contains
 
     if (.not. associated(phys_face_to_center)) &
          phys_face_to_center => dummy_face_to_center
+
+    if (.not. associated(phys_evaluate_implicit)) &
+         phys_evaluate_implicit => dummy_evaluate_implicit
+
+    if (.not. associated(phys_implicit_update)) &
+         phys_implicit_update => dummy_implicit_update
 
   end subroutine phys_check
 
@@ -458,4 +481,39 @@ contains
     type(state)                        :: s
   end subroutine dummy_face_to_center
   
+  subroutine dummy_evaluate_implicit(qtC,psa)
+    use mod_global_parameters
+    type(state), target :: psa(max_blocks)   
+    double precision, intent(in) :: qtC      
+    integer :: iigrid, igrid
+
+    ! Just copy in nul state
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       psa(igrid)%w = 0.0d0*psa(igrid)%w
+       if(stagger_grid) psa(igrid)%ws = 0.0d0*psa(igrid)%ws
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine dummy_evaluate_implicit
+
+  subroutine dummy_implicit_update(dtfactor,qdt,qtC,psa,psb)
+    use mod_global_parameters
+    type(state), target :: psa(max_blocks)   
+    type(state), target :: psb(max_blocks)   
+    double precision, intent(in) :: qdt      
+    double precision, intent(in) :: qtC      
+    double precision, intent(in) :: dtfactor 
+    integer :: iigrid, igrid
+
+    ! Just copy in psb state when using the scheme without implicit part
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       psa(igrid)%w = psb(igrid)%w
+       if(stagger_grid) psa(igrid)%ws = psb(igrid)%ws
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine dummy_implicit_update
+
 end module mod_physics

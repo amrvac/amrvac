@@ -486,6 +486,9 @@ module mod_global_parameters
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
 
+  !> Force timeloop exit when final dt < dtmin
+  logical :: final_dt_exit
+
   !> If true, reset iteration count and global_time to original values, and
   !> start writing snapshots at index 0
   logical :: reset_time
@@ -596,6 +599,8 @@ module mod_global_parameters
   integer                       :: imex_switch
   double precision              :: imex_a21,imex_a31,imex_a32,imex_b1,imex_b2,imex_ha21,imex_ha22
   double precision              :: imex_b3,imex_c2,imex_c3
+  !> whether IMEX in use or not
+  logical                       :: use_imex_scheme
 
   character(len=std_len) :: typediv,typegrad,typecurl
 

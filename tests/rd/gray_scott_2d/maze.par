@@ -47,9 +47,9 @@
 
  &paramlist
        courantpar=0.8d0
+ /
        typecourant='minimum'
        dtpar=0.25d0
- /
 
  &rd_list
        equation_name = "gray-scott"

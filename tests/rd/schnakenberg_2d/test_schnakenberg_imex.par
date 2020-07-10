@@ -1,6 +1,5 @@
 !=====================================================
-! Project : Advection test: a VAC log
-!
+! Project : reaction-Diffusion test
 !=====================================================
 
  &filelist
@@ -17,7 +16,8 @@
  /
 
  &methodlist
-        time_stepper = 'onestep'
+        time_stepper = 'twostep'
+        time_integrator = 'IMEX_Trapezoidal'
         flux_scheme = 20*'source'
  /
 
@@ -51,5 +51,4 @@
        D1 = 0.05d0
        D2 = 1.0d0
        equation_name = "schnakenberg"
-       rd_diffusion_method = "imex"
  /

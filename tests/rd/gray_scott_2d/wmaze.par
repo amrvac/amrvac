@@ -46,9 +46,7 @@
  /
 
  &paramlist
-       courantpar=0.8d0
-       typecourant='minimum'
-       courantpar=0.9
+       courantpar=0.9d0
  /
 
  &rd_list
