@@ -74,6 +74,14 @@ mod_advance.o: mod_particles.mod
 mod_advance.o: mod_physics.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
+mod_advance_old.o: mod_finite_difference.mod
+mod_advance_old.o: mod_finite_volume.mod
+mod_advance_old.o: mod_fix_conserve.mod
+mod_advance_old.o: mod_ghostcells_update.mod
+mod_advance_old.o: mod_particles.mod
+mod_advance_old.o: mod_physics.mod
+mod_advance_old.o: mod_source.mod
+mod_advance_old.o: mod_tvd.mod
 mod_amr_fct.o: mod_physics.mod
 mod_amrvac.o: mod_geometry.mod
 mod_bc_data.o: mod_lookup_table.mod
@@ -230,6 +238,7 @@ mod_ppm.o: mod_physics.mod
 mod_radiative_cooling.o: mod_physics.mod
 mod_rd.o: mod_amrvac.mod
 mod_rd.o: mod_rd_phys.mod
+mod_rd_phys.o: mod_ghostcells_update.mod
 mod_rd_phys.o: mod_multigrid_coupling.mod
 mod_rd_phys.o: mod_particles.mod
 mod_rd_phys.o: mod_physics.mod
