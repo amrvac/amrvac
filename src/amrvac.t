@@ -376,7 +376,7 @@ contains
     end if
     if (it==itsavelast(ifile)+ditsave(ifile)) oksave=.true.
 
-    if (global_time>=tsave(isavet(ifile),ifile)) then
+    if (global_time>=tsave(isavet(ifile),ifile).and.global_time-dt<tsave(isavet(ifile),ifile)) then
        oksave=.true.
        isavet(ifile)=isavet(ifile)+1
     end if
