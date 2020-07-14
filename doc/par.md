@@ -968,6 +968,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_viscosity= F | T
      mhd_particles= F | T
      mhd_4th_order= F | T
+     mhd_solve_eaux= F | T
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1047,6 +1048,25 @@ cylindrical coordinates as well. User can possibly prescibe analytic current in
 _usr_set_J0_ subroutine to significantly increase accuracy. Choose 
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
+
+### Auxiliary internal energy to avoid negative pressure{#par_AIE}
+
+In extremely low beta plasma, internal energy or gas pressure easily goes to
+negative values when solving total energy equation, because numerical error of magnetic
+ energy is comparable to the internal energy due to its extremely small fraction in the 
+total energy. To order to avoid this problem, we solve an auxiliary internal energy equation 
+which has a positive preserving solution, and synchronize the internal energy with the 
+result from total energy equation.  In each step of 
+advection, the synchronization replace the internal energy from 
+the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
+mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
+energy with the internal energy from the total energy where plasma beta is larger than 0.05.
+This function is activated by `mhd_solve_eaux=T` and adding 1 boundary
+type for the auxiliary internal energy after magnetic field variable in the par file. It is needed
+to specify the special boundary for the auxiliary internal energy in mod_usr.t if special boundary is used. 
+This function is compatible with all finite volume and finite difference schemes we have, including
+HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
+as the HLL flux in all intermediate states of the Riemann fan.
 
 ## Synthetic EUV emission {#par_euvlist}
 
