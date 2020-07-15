@@ -67,12 +67,12 @@ subroutine setdt()
 
 
   if(final_dt_reduction)then
-     if (dtmin_mype>time_max-global_time) then
-        write(unitterm,*)"WARNING final timestep artificially reduced!"
-        write(unitterm,*)"on processor:", mype, "at time:", global_time," step:", it
-     endif
+     !if (dtmin_mype>time_max-global_time) then
+     !   write(unitterm,*)"WARNING final timestep artificially reduced!"
+     !   write(unitterm,*)"on processor:", mype, "at time:", global_time," step:", it
+     !endif
      if(time_max-global_time<=dtmin) then
-        write(unitterm,*)'Forcing to leave timeloop as time is reached!'
+        !write(unitterm,*)'Forcing to leave timeloop as time is reached!'
         final_dt_exit=.true.
      endif
      dtmin_mype=min(dtmin_mype,time_max-global_time)

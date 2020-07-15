@@ -204,17 +204,17 @@ contains
        ! set time step
        call setdt()
 
-       ! Check if output needs to be written
-       do ifile=nfile,1,-1
-         save_file(ifile) = timetosave(ifile)
-       end do
-
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step
        if (associated(usr_process_grid) .or. &
             associated(usr_process_global)) then
           call process(it,global_time)
        end if
+
+       ! Check if output needs to be written
+       do ifile=nfile,1,-1
+         save_file(ifile) = timetosave(ifile)
+       end do
 
        timeio0=MPI_WTIME()
 
@@ -369,14 +369,18 @@ contains
     integer:: ifile
     logical:: oksave
 
+!       if(mype==0) print*,ifile,'OK tsave 0',isavet(ifile),global_time
     oksave=.false.
     if (it==itsave(isaveit(ifile),ifile)) then
+!       if(mype==0) print*,ifile,'OK tsave 1',isaveit(ifile),global_time
        oksave=.true.
        isaveit(ifile)=isaveit(ifile)+1
     end if
     if (it==itsavelast(ifile)+ditsave(ifile)) oksave=.true.
 
+!       if(mype==0) print*,ifile,'OK tsave2',isavet(ifile),global_time,tsave(isavet(ifile),ifile)
     if (global_time>=tsave(isavet(ifile),ifile).and.global_time-dt<tsave(isavet(ifile),ifile)) then
+!       if(mype==0) print*,ifile,'OK tsave3',isavet(ifile),global_time,tsave(isavet(ifile),ifile)
        oksave=.true.
        isavet(ifile)=isavet(ifile)+1
     end if
