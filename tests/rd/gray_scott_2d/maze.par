@@ -20,8 +20,8 @@
 
  &methodlist
         time_stepper = 'twostep'
+        time_integrator = 'IMEX_Midpoint'
         flux_scheme = 20*'source'
-        limiter= 20*'mp5'
  /
 
  &boundlist
@@ -38,7 +38,6 @@
         block_nx2=16
         domain_nx1=512
         domain_nx2=512
-        iprob=3
         xprobmin1=0.0d0
         xprobmax1=2.5d0
         xprobmin2=0.0d0
@@ -47,6 +46,7 @@
 
  &paramlist
        courantpar=0.8d0
+       dtdiffpar=100.0d0
  /
        typecourant='minimum'
        dtpar=0.25d0
