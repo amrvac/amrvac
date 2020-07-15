@@ -51,6 +51,8 @@ module mod_particle_base
   integer                 :: it_particles
   !> Output count for ensembles
   integer                 :: n_output_ensemble
+  !> Output count for ensembles of destroyed particles
+  integer                 :: n_output_destroyed
 
   ! these two save the list of neighboring cpus:
   integer, allocatable :: ipe_neighbor(:)
@@ -195,6 +197,7 @@ contains
     nparticles                = 0
     it_particles              = 0
     n_output_ensemble         = 0
+    n_output_destroyed        = 0
     nparticles_on_mype        = 0
     nparticles_active_on_mype = 0
     integrator_velocity_factor(:) = 1.0d0
@@ -1186,13 +1189,13 @@ contains
 
   end function make_particle_filename
 
-  subroutine output_ensemble(send_n_particles_for_output,send_particles,send_payload,type)
+  subroutine output_ensemble(send_n_particles_for_output,send_particles,send_payload,typefile)
     use mod_global_parameters
 
     integer, intent(in)             :: send_n_particles_for_output
     type(particle_t), dimension(send_n_particles_for_output), intent(in)  :: send_particles
     double precision, dimension(npayload,send_n_particles_for_output), intent(in)  :: send_payload
-    character(len=*), intent(in)    :: type
+    character(len=*), intent(in)    :: typefile
     character(len=std_len)              :: filename
     type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi) :: receive_payload
@@ -1213,11 +1216,17 @@ contains
       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     else
       ! Create file and write header
-      write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
-           trim(type) // '_', n_output_ensemble,'.csv'
+      if(typefile=='destroy') then
+        write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
+             trim(typefile) // '_', n_output_destroyed,'.csv'
+        n_output_destroyed= n_output_destroyed + 1
+      else
+        write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
+             trim(typefile) // '_', n_output_ensemble,'.csv'
+        n_output_ensemble = n_output_ensemble + 1
+      end if
       open(unit=unitparticles,file=filename)
       write(unitparticles,"(a)") trim(csv_header)
-      n_output_ensemble = n_output_ensemble + 1
 
       ! Write own particles
       do ipart=1,send_n_particles_for_output

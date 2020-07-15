@@ -10,6 +10,9 @@ module mod_mf_phys
   !> decay scale of frictional velocity 
   double precision, public                :: mf_decay_scale = 1.d0
 
+  !> Whether particles module is added
+  logical, public, protected              :: mf_particles = .false.
+
   !> Whether GLM-MHD is used
   logical, public, protected              :: mf_glm = .false.
 
@@ -113,7 +116,7 @@ contains
     integer                      :: n
 
     namelist /mf_list/ mf_nu, mf_decay_scale, &
-      mf_eta, mf_eta_hyper, mf_glm_alpha, &
+      mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, &
@@ -161,6 +164,7 @@ contains
   subroutine mf_phys_init()
     use mod_global_parameters
     use mod_physics
+    use mod_particles, only: particles_init
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -171,6 +175,7 @@ contains
 
     physics_type = "mf"
     phys_energy = .false.
+    use_particles=mf_particles
 
     if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
@@ -259,6 +264,12 @@ contains
       phys_modify_wLR => mf_modify_wLR
     end if
 
+    ! Initialize particles module
+    if(mf_particles) then
+      call particles_init()
+      phys_req_diagonal = .true.
+    end if
+
     ! if using ct stagger grid, boundary divb=0 is not done here
     if(stagger_grid) then
       phys_update_faces => mf_update_faces
@@ -283,16 +294,18 @@ contains
 
   subroutine mf_physical_units()
     use mod_global_parameters
-    double precision :: mp,kB,miu0
+    double precision :: mp,kB,miu0,c_lightspeed
     ! Derive scaling units
     if(SI_unit) then
       mp=mp_SI
       kB=kB_SI
       miu0=miu0_SI
+      c_lightspeed=c_SI
     else
       mp=mp_cgs
       kB=kB_cgs
       miu0=4.d0*dpi
+      c_lightspeed=const_c
     end if
     if(unit_velocity==0) then
       unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
@@ -307,6 +320,11 @@ contains
       unit_magneticfield=sqrt(miu0*unit_pressure)
       unit_time=unit_length/unit_velocity
     end if
+    ! Additional units needed for the particles
+    c_norm=c_lightspeed/unit_velocity
+    unit_charge=unit_magneticfield*unit_length**2/unit_velocity/miu0
+    if (.not. SI_unit) unit_charge = unit_charge*const_c
+    unit_mass=unit_density*unit_length**3
 
   end subroutine mf_physical_units
 
