@@ -1,11 +1,7 @@
-! $AMRVAC_DIR/setup.pl -d=22 -g=16,16 -p=hd -u=nul .......
-
-&testlist
-        teststr=''
-/
+! $AMRVAC_DIR/setup.pl -d=2
 
 &filelist
-  base_filename='./data/jet'
+  base_filename='output/jetequal'
   autoconvert      = T
   convert_type     = 'vtuBmpi'
   saveprim         = T
@@ -14,44 +10,41 @@
  &savelist
    itsave(1,1)     = 0
    itsave(1,2)     = 0
-   dtsave_dat       = 2.d-4
-   ditsave_log     = 100
+   dtsave_dat      = 0.005d0
+   ditsave_log     = 1000
 /
 
  &stoplist
-   time_max=2.0d-3
+   time_max=0.015d0
    dtmin=1.0d-9
 /
 
  &methodlist
    time_stepper = 'threestep'
-   flux_scheme     = 20*'hllc'
-   limiter         = 20*'cada3'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'minmod'
 /
 
 &boundlist
-  nghostcells  =   2
   typeboundary_min1 = 4*'cont'
   typeboundary_max1 = 4*'cont'
   typeboundary_min2 = 4*'special'
   typeboundary_max2 = 4*'cont'
 /
  &meshlist
-   refine_max_level          = 4
+   refine_max_level   = 4
    domain_nx1         = 40
    domain_nx2         = 60
-   block_nx1          = 20
-   block_nx2          = 20
+   block_nx1          = 10
+   block_nx2          = 10
    xprobmin1       = -0.5d0
    xprobmax1       =  0.5d0
    xprobmin2       =  0.0d0
    xprobmax2       =  1.5d0
-   iprob=1
-   refine_threshold   = 20*0.5d0
-   derefine_ratio     = 20*1.d0/2.d0
+   iprob=2
  /
   
  &paramlist
-  slowsteps        = 1000
-  courantpar       = 0.6d0
+  slowsteps        = 100
+  courantpar       = 0.8d0
  /
