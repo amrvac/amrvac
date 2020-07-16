@@ -1061,9 +1061,10 @@ advection, the synchronization replace the internal energy from
 the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
 mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
 energy with the internal energy from the total energy where plasma beta is larger than 0.05.
-This function is activated by `mhd_solve_eaux=T` and adding 1 boundary
-type for the auxiliary internal energy after magnetic field variable in the par file. It is needed
-to specify the special boundary for the auxiliary internal energy in mod_usr.t if special boundary is used. 
+This function is activated by `mhd_solve_eaux=T`. It is needed to specify the special boundary 
+for the auxiliary internal energy in mod_usr.t if special boundary is used. The boundary type 
+of the auxiliary internal energy is coded to be the same as the boundary type of density. 
+So you do not need to specify boundary types for the auxiliary internal energy in the par file.
 This function is compatible with all finite volume and finite difference schemes we have, including
 HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
 as the HLL flux in all intermediate states of the Riemann fan.

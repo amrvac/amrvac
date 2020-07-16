@@ -331,6 +331,7 @@ contains
       psi_ = -1
     end if
 
+    !  set auxiliary internal energy variable
     if(mhd_energy .and. mhd_solve_eaux) then
       eaux_ = var_set_internal_energy()
       paux_ = eaux_

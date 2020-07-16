@@ -192,11 +192,11 @@ contains
     integer :: iw
 
     nwflux              = nwflux + 1
-    nwfluxbc            = nwfluxbc + 1
     nw                  = nw + 1
     iw_eaux             = nwflux
     iw                  = nwflux
     cons_wnames(nwflux) = 'eaux'
     prim_wnames(nwflux) = 'paux'
   end function var_set_internal_energy
+
 end module mod_variables
