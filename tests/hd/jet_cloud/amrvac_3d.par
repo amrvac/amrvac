@@ -1,0 +1,59 @@
+ &filelist
+   base_filename = 'output/jet_cloud_3d_'
+   autoconvert   = .true.
+   convert_type  = 'vtuBCCmpi'
+   saveprim      = .true.
+   nwauxio       = 1
+ /
+
+ &savelist
+   itsave(1,1) = 0
+   itsave(1,2) = 0
+   dtsave      = 0.1d0, 0.1d0
+ /
+
+ &stoplist
+   time_max    = 4.0d0
+   dtmin       = 1.0d-10
+ /
+
+ &methodlist
+   time_stepper = 'fivestep'
+   flux_scheme     = 20*'hllc'
+   limiter         = 20*'mp5'
+   small_values_method = 'average'
+ /
+
+ &boundlist
+   typeboundary_min1 = 5*'special'
+   typeboundary_max1 = 5*'cont'
+   typeboundary_min2 = 5*'noinflow'
+   typeboundary_max2 = 5*'noinflow'
+   typeboundary_min3 = 5*'noinflow'
+   typeboundary_max3 = 5*'noinflow'
+ /
+
+ &meshlist
+   refine_criterion = 3
+   refine_max_level = 3
+   w_refine_weight(1)=0.8d0
+   w_refine_weight(2)=0.2d0
+   block_nx1        = 10
+   block_nx2        = 10
+   block_nx3        = 10
+   domain_nx1       = 80
+   domain_nx2       = 30
+   domain_nx3       = 30
+   xprobmin1        = -16.0d0
+   xprobmax1        = 16.0d0
+   xprobmin2        = -6.0d0
+   xprobmax2        = 6.0d0
+   xprobmin3        = -6.0d0
+   xprobmax3        = 6.0d0
+ /
+
+ &paramlist
+   slowsteps=100
+   typecourant='maxsum'
+   courantpar=0.8d0
+ /

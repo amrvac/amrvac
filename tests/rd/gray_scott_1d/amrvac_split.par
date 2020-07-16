@@ -1,0 +1,55 @@
+!=====================================================
+! Project : Reaction Diffusion in 1D
+!
+!=====================================================
+
+ &filelist
+        base_filename='output/testsplitrd_'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+ /
+
+ &savelist
+        dtsave_log=0.5d3
+        dtsave_dat=0.5d3
+        itsave(1,2)=0
+ /
+
+ &stoplist
+        time_max=1d5
+ /
+
+ &methodlist
+        time_stepper = 'onestep'
+        time_integrator = 'IMEX_Euler'
+        flux_scheme = 20*'source'
+ /
+
+ &boundlist
+        typeboundary_min1=2*'periodic'
+        typeboundary_max1=2*'periodic'
+ /
+
+ &meshlist
+        refine_max_level=1
+        refine_threshold=20*0.1d0
+        block_nx1=16
+        domain_nx1=512
+        iprob=3
+        xprobmin1=0.0d0
+        xprobmax1=2.5d0
+ /
+
+ &paramlist
+       dtdiffpar=100.0d0
+       courantpar=0.8d0
+       typecourant='minimum'
+ /
+
+ &rd_list
+       equation_name = "gray-scott"
+       D1 = 2.0d-5
+       D2 = 1.0d-5
+       gs_F=0.029d0
+       gs_k=0.057d0
+ /

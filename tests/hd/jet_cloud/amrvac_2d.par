@@ -13,18 +13,15 @@
  /
 
  &stoplist
-   time_max    = 15.0d0
+   time_max    = 5.0d0
    dtmin       = 1.0d-10
  /
 
  &methodlist
    time_stepper = 'fivestep'
    flux_scheme     = 20*'hllc'
-   limiter         = 20*'woodward'
-   check_small_values = .true.
-   small_values_method = 'replace'
-   small_pressure  = 1.0d-8
-   small_density   = 1.0d-8
+   limiter         = 20*'mp5'
+   small_values_method = 'average'
  /
 
  &boundlist
@@ -50,7 +47,7 @@
  /
 
  &paramlist
-   typecourant='maxsum'
    slowsteps=100
+   typecourant='maxsum'
    courantpar=0.8d0
  /
