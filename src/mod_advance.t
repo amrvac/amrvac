@@ -515,7 +515,8 @@ contains
   !> Implicit global update step within IMEX schemes, advance psa=psb+dtfactor*qdt*F_im(psa)
   subroutine global_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
-    use mod_physics, only: phys_implicit_update
+    use mod_ghostcells_update
+    use mod_physics, only: phys_implicit_update, phys_req_diagonal
 
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     type(state), target :: psb(max_blocks)   !< Will be unchanged, as on entry
@@ -527,6 +528,9 @@ contains
        call phys_implicit_update(dtfactor,qdt,qtC,psa,psb)
     end if
     
+    ! enforce boundary conditions for psa
+    call getbc(qtC,0.d0,psa,1,nwflux+nwaux,phys_req_diagonal)
+
   end subroutine global_implicit_update
 
   !> Evaluate Implicit part in place, i.e. psa==>F_im(psa)

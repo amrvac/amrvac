@@ -3,7 +3,7 @@
 !=====================================================
 
  &filelist
-        base_filename='output/sir_figure2_split_lotfi'
+        base_filename='output/sir_figure3_imex_lotfi'
     	convert_type='vtuBCCmpi'
         autoconvert=T
  /
@@ -14,12 +14,14 @@
         itsave(1,2)=0
  /
 
+        it_max=2
  &stoplist
         time_max=100.d0
  /
 
  &methodlist
-        time_stepper = 'onestep'
+        time_stepper = 'twostep'
+        time_integrator = 'IMEX_Trapezoidal'
         flux_scheme = 20*'source'
  /
 
@@ -46,13 +48,11 @@
 
  &paramlist
        courantpar=0.4d0
-       dtdiffpar=100.0d0
+       dtdiffpar=10.0d0
        typecourant='minimum'
  /
 
  &sir_list
-       sir_particles=.true.
-       sir_diffusion_method='split'
        D1 = 0.1d0
        D2 = 0.5d0
        D3 = 0.01d0
@@ -60,16 +60,8 @@
        sir_d=0.1d0
        sir_mu=0.1d0
        sir_r=0.5d0
-       sir_beta=0.2d0
+       sir_beta=0.6d0
        sir_alfa1=0.1d0
        sir_alfa2=0.02d0
        sir_alfa3=0.03d0
- /
-
- &particles_list
-     num_particles=4
-     write_individual=.true.
-     write_ensemble=.false.
-     dtsave_particles=0.05d0
-     physics_type_particles='sample'
  /

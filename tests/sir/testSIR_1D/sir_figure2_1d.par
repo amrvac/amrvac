@@ -3,7 +3,7 @@
 !=====================================================
 
  &filelist
-        base_filename='output/sir_figure3_imex_lotfi'
+        base_filename='output/sir_figure2_lotfi1d'
     	convert_type='vtuBCCmpi'
         autoconvert=T
  /
@@ -14,45 +14,38 @@
         itsave(1,2)=0
  /
 
-        it_max=2
  &stoplist
         time_max=100.d0
  /
 
  &methodlist
-        time_stepper = 'onestep'
+        time_stepper = 'twostep'
         flux_scheme = 20*'source'
+        limiter = 20*'schmid2'
  /
 
  &boundlist
-        typeboundary_min1=3*'cont'
-        typeboundary_max1=3*'cont'
-        typeboundary_min2=3*'cont'
-        typeboundary_max2=3*'cont'
+        typeboundary_min1=3*'periodic'
+        typeboundary_max1=3*'periodic'
  /
 
  &meshlist
         refine_max_level=1
         refine_threshold=20*0.1d0
         block_nx1=16
-        block_nx2=16
         domain_nx1=128
-        domain_nx2=128
         xprobmin1=0.0d0
         xprobmax1=1.0d0
-        xprobmin2=0.0d0
-        xprobmax2=1.0d0
         iprob=2
  /
 
  &paramlist
-       courantpar=0.4d0
-       dtdiffpar=10.0d0
        typecourant='minimum'
+       courantpar=0.9d0
+       dtdiffpar=0.8d0
  /
 
  &sir_list
-       sir_diffusion_method='imex'
        D1 = 0.1d0
        D2 = 0.5d0
        D3 = 0.01d0
@@ -60,7 +53,7 @@
        sir_d=0.1d0
        sir_mu=0.1d0
        sir_r=0.5d0
-       sir_beta=0.6d0
+       sir_beta=0.2d0
        sir_alfa1=0.1d0
        sir_alfa2=0.02d0
        sir_alfa3=0.03d0

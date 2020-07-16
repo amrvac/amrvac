@@ -3,7 +3,7 @@
 !=====================================================
 
  &filelist
-        base_filename='output/sir_figure2_imex_lotfi'
+        base_filename='output/sir_figure2_split_lotfi'
     	convert_type='vtuBCCmpi'
         autoconvert=T
  /
@@ -20,6 +20,7 @@
 
  &methodlist
         time_stepper = 'onestep'
+        time_integrator = 'IMEX_Euler'
         flux_scheme = 20*'source'
  /
 
@@ -46,13 +47,12 @@
 
  &paramlist
        courantpar=0.4d0
-       dtdiffpar=10.0d0
+       dtdiffpar=100.0d0
        typecourant='minimum'
  /
 
  &sir_list
        sir_particles=.true.
-       sir_diffusion_method='imex'
        D1 = 0.1d0
        D2 = 0.5d0
        D3 = 0.01d0

@@ -360,7 +360,6 @@ contains
   subroutine rd_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
     use mod_forest
-    use mod_ghostcells_update
     use mod_multigrid_coupling
 
     type(state), target :: psa(max_blocks)
@@ -567,9 +566,6 @@ contains
        }
     end do
     ! Done with the v variable ***************************************
-
-    ! enforce boundary conditions for psa
-    call getbc(qtC,0.d0,psa,1,nwflux+nwaux)
 
   end subroutine rd_implicit_update
 
