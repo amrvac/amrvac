@@ -24,7 +24,7 @@ The most efficient ways to get in touch with us are either
 ## Installing yt {#yt_installation}
 
 The [yt website](https://yt-project.org) has detailed instructions on how to install the `yt` package.
-As of right now the only way to use the AMRVAC frontend is building [from source](https://yt-project.org/doc/installing.html#installing-yt-from-source).
+As of right now the only way to use the AMRVAC frontend is building [from source](https://yt-project.org/docs/dev/installing.html#installing-yt-from-source).
 It's recommended to use `-e .` as well, so you can immediately pull updates from the repository (note the dot after `-e`, this is important).
 Required dependencies are `Numpy` and `Cython`.
 

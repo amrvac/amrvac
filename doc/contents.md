@@ -10,6 +10,7 @@
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
 financial support.
 * [FAQ](faq.md) Frequently asked questions.
+* [**Tests**](test.html) An overview of documented test cases.
 * @ref contributing.md
 
 # General {#general}
