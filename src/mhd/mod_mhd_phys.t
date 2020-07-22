@@ -254,7 +254,10 @@ contains
 
     physics_type = "mhd"
     phys_energy=mhd_energy
-    if(mhd_solve_eaux .and. mhd_energy) phys_solve_eaux=.true.
+    if(mhd_solve_eaux .and. mhd_energy) then
+      phys_solve_eaux=.true.
+      prolongprimitive=.true.
+    end if
     ! set default gamma for polytropic/isothermal process
     if(.not.mhd_energy) mhd_gamma=1.d0
     use_particles=mhd_particles

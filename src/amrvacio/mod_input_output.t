@@ -281,8 +281,6 @@ contains
     allocate(derefine_ratio(nlevelshi))
     derefine_ratio(1:nlevelshi)       = 1.0d0/8.0d0
     prolongation_method                = 'linear'
-    coarsenprimitive            = .false.
-    prolongprimitive            = .false.
     typeprolonglimit            = 'default'
     refine_criterion               = 3
     allocate(w_refine_weight(nw+1))

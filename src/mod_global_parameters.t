@@ -414,8 +414,8 @@ module mod_global_parameters
   double precision, allocatable :: amr_wavefilter(:)
 
   integer                       :: refine_criterion
-  logical                       :: prolongprimitive
-  logical                       :: coarsenprimitive
+  logical                       :: prolongprimitive=.false.
+  logical                       :: coarsenprimitive=.false.
 
   !> Error tolerance for refinement decision
   double precision, allocatable :: refine_threshold(:)
