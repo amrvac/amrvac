@@ -319,7 +319,7 @@ module mod_usr_methods
       double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:ndir)
     end subroutine set_J0
 
-    !> regenerate w and eqpartf arrays to output into *tf.dat
+    !> adjust w when restart from dat file with different w variables
     subroutine transform_w(ixI^L,ixO^L,nw_in,w_in,x,w_out)
       use mod_global_parameters
       integer, intent(in)           :: ixI^L, ixO^L, nw_in

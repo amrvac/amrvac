@@ -2073,6 +2073,7 @@ contains
 
           if (mype == ipe) then ! Root task
             igrid=sfc_to_igrid(Morton_no)
+            block=>ps(igrid)
             if(stagger_grid) then
               w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
                    shape(w(ixO^S, 1:nw_found)))
@@ -2112,6 +2113,7 @@ contains
 
       do Morton_no=Morton_start(mype),Morton_stop(mype)
         igrid=sfc_to_igrid(Morton_no)
+        block=>ps(igrid)
         itag=Morton_no
 
         call MPI_RECV(ix_buffer, 2*ndim+1, MPI_INTEGER, 0, itag, icomm,&
