@@ -215,6 +215,8 @@ contains
     phys_add_source          => hd_add_source
     phys_to_conserved        => hd_to_conserved
     phys_to_primitive        => hd_to_primitive
+    phys_ei_to_e             => hd_ei_to_e
+    phys_e_to_ei             => hd_e_to_ei
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
@@ -426,6 +428,36 @@ contains
     end if
 
   end subroutine hd_to_primitive
+
+  !> Transform internal energy to total energy
+  subroutine hd_ei_to_e(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate total energy from internal and kinetic energy
+    if(hd_energy) then
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                 +hd_kin_en(w,ixI^L,ixO^L)
+    end if
+
+  end subroutine hd_ei_to_e
+
+  !> Transform total energy to internal energy
+  subroutine hd_e_to_ei(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate ei = e - ek
+    if(hd_energy) then
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                  -hd_kin_en(w,ixI^L,ixO^L)
+    end if
+
+  end subroutine hd_e_to_ei
 
   subroutine e_to_rhos(ixI^L, ixO^L, w, x)
     use mod_global_parameters

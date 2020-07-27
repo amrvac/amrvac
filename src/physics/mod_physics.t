@@ -47,6 +47,8 @@ module mod_physics
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
+  procedure(sub_convert), pointer         :: phys_ei_to_e                => null()
+  procedure(sub_convert), pointer         :: phys_e_to_ei                => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()

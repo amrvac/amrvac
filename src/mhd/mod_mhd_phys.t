@@ -404,6 +404,8 @@ contains
     phys_add_source          => mhd_add_source
     phys_to_conserved        => mhd_to_conserved
     phys_to_primitive        => mhd_to_primitive
+    phys_ei_to_e             => mhd_ei_to_e
+    phys_e_to_ei             => mhd_e_to_ei
     phys_check_params        => mhd_check_params
     phys_check_w             => mhd_check_w
     phys_get_pthermal        => mhd_get_pthermal
@@ -636,6 +638,38 @@ contains
       call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
     end if
   end subroutine mhd_to_primitive
+
+  !> Transform internal energy to total energy
+  subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate total energy from internal, kinetic and magnetic energy
+    if(mhd_energy) then
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                 +mhd_kin_en(w,ixI^L,ixO^L)&
+                 +mhd_mag_en(w,ixI^L,ixO^L)
+    end if
+
+  end subroutine mhd_ei_to_e
+
+  !> Transform total energy to internal energy
+  subroutine mhd_e_to_ei(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate ei = e - ek - eb
+    if(mhd_energy) then
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                  -mhd_kin_en(w,ixI^L,ixO^L)&
+                  -mhd_mag_en(w,ixI^L,ixO^L)
+    end if
+
+  end subroutine mhd_e_to_ei
 
   subroutine mhd_energy_synchro(ixI^L,ixO^L,w,x)
     use mod_global_parameters

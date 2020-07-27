@@ -58,6 +58,9 @@ module mod_thermal_conduction
   !> The adiabatic index
   double precision, private :: tc_gamma
 
+  !> The adiabatic index-1
+  double precision, private :: tc_gamma_1
+
   !> The small_est allowed energy
   double precision, private :: small_e
 
@@ -96,13 +99,13 @@ module mod_thermal_conduction
       use mod_ghostcells_update
     end subroutine thermal_conduction
 
-    subroutine get_heatconduct(tmp,tmp1,tmp2,ixI^L,ixO^L,w,x,qvec)
+    subroutine get_heatconduct(tmp,ixI^L,ixO^L,w,x,qvec)
       use mod_global_parameters
       
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
       !! tmp store the heat conduction energy changing rate
-      double precision, intent(out) :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+      double precision, intent(out) :: tmp(ixI^S)
       double precision :: qvec(ixI^S,1:ndim)
     end subroutine get_heatconduct
 
@@ -142,6 +145,7 @@ contains
     double precision, intent(in) :: phys_gamma
 
     tc_gamma=phys_gamma
+    tc_gamma_1=phys_gamma-1.d0
 
     tc_dtpar=tc_dtpar/dble(ndim)
 
@@ -166,7 +170,7 @@ contains
     e_ = iw_e
     if(phys_solve_eaux) eaux_ = iw_eaux
 
-    small_e = small_pressure/(tc_gamma - 1.0d0)
+    small_e = small_pressure/tc_gamma_1
 
     if(tc_k_para==0.d0 .and. tc_k_perp==0.d0) then
       if(SI_unit) then
@@ -195,15 +199,18 @@ contains
     
     double precision :: omega1,cmu,cmut,cnu,cnut
     double precision, allocatable :: bj(:)
-    double precision :: tmp(ixG^T)
     integer:: iigrid, igrid, j
-    logical :: evenstep, stagger_flag
+    logical :: evenstep, stagger_flag, prolong_flag, coarsen_flag
 
     ! not do fix conserve and getbc for staggered values if stagger is used
     stagger_flag=stagger_grid
     stagger_grid=.false.
     bcphys=.false.
     call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+    prolong_flag=prolongprimitive
+    coarsen_flag=coarsenprimitive
+    prolongprimitive=.false.
+    coarsenprimitive=.false.
 
     ! point bc mpi datatype to partial type for thermalconduction
     type_send_srl=>type_send_srl_p1
@@ -222,6 +229,8 @@ contains
     fix_conserve_at_step = time_advance .and. levmax>levmin
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
+      ! convert total energy to internal energy
+      call phys_e_to_ei(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
       if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
       if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
       ps1(igrid)%w=ps(igrid)%w
@@ -260,10 +269,9 @@ contains
     if(s==1) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
-        if(phys_solve_eaux) then
-          call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixG^LL,tmp)
-          ps(igrid)%w(ixG^T,eaux_)=tmp(ixG^T)/(tc_gamma-1.d0)
-        end if
+        if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
+        ! convert internal energy to total energy
+        call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
       end do
       ! point bc mpi data type back to full type for (M)HD
       type_send_srl=>type_send_srl_f
@@ -274,6 +282,8 @@ contains
       type_recv_p=>type_recv_p_f
       bcphys=.true.
       stagger_grid=stagger_flag
+      prolongprimitive=prolong_flag
+      coarsenprimitive=coarsen_flag
       deallocate(bj)
       return
     endif
@@ -327,18 +337,16 @@ contains
     if(evenstep) then
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps1(igrid)%w(ixG^T,e_)
-        if(phys_solve_eaux) then
-          call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixG^LL,tmp)
-          ps(igrid)%w(ixG^T,eaux_)=tmp(ixG^T)/(tc_gamma-1.d0)
-        end if
+        if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
+        ! convert internal energy to total energy
+        call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
       end do 
     else
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ps(igrid)%w(ixG^T,e_)=ps2(igrid)%w(ixG^T,e_)
-        if(phys_solve_eaux) then
-          call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixG^LL,tmp)
-          ps(igrid)%w(ixG^T,eaux_)=tmp(ixG^T)/(tc_gamma-1.d0)
-        end if
+        if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
+        ! convert internal energy to total energy
+        call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
       end do 
     end if
     deallocate(bj)
@@ -353,6 +361,8 @@ contains
 
     ! restore stagger_grid value
     stagger_grid=stagger_flag
+    prolongprimitive=prolong_flag
+    coarsenprimitive=coarsen_flag
 
   end subroutine do_thermal_conduction
 
@@ -392,23 +402,23 @@ contains
 
   end subroutine addsource_impl
 
-  subroutine evolve_stepj(igrid,qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,wold)
+  subroutine evolve_stepj(igrid,qcmu,qcmut,qcnu,qcnut,qdt,ixI^L,ixO^L,w1,w2,w,x,w3)
     use mod_global_parameters
     use mod_fix_conserve
 
     integer, intent(in) :: igrid,ixI^L,ixO^L
     double precision, intent(in) :: qcmu,qcmut,qcnu,qcnut,qdt
-    double precision, intent(in) :: w1(ixI^S,1:nw),w(ixI^S,1:nw),wold(ixI^S,1:nw)
+    double precision, intent(in) :: w1(ixI^S,1:nw),w(ixI^S,1:nw),w3(ixI^S,1:nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w2(ixI^S,1:nw)
     
     double precision :: fC(ixI^S,1:1,1:ndim)
-    double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+    double precision :: tmp(ixI^S)
 
-    call phys_get_heatconduct(tmp,tmp1,tmp2,ixI^L,ixO^L,w1,x,fC)
+    call phys_get_heatconduct(tmp,ixI^L,ixO^L,w1,x,fC)
 
     w2(ixO^S,e_)=qcmu*w1(ixO^S,e_)+qcnu*w2(ixO^S,e_)+(1.d0-qcmu-qcnu)*w(ixO^S,e_)&
-                +qcmut*qdt*tmp(ixO^S)+qcnut*wold(ixO^S,e_)
+                +qcmut*qdt*tmp(ixO^S)+qcnut*w3(ixO^S,e_)
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
       call store_flux(igrid,fC,1,ndim,1)
@@ -416,44 +426,41 @@ contains
 
   end subroutine evolve_stepj
 
-  subroutine evolve_step1(igrid,qcmut,qdt,ixI^L,ixO^L,w1,w,x,wold)
+  subroutine evolve_step1(igrid,qcmut,qdt,ixI^L,ixO^L,w1,w,x,w3)
     use mod_global_parameters
     use mod_fix_conserve
     use mod_small_values, only: small_values_method
     
     integer, intent(in) :: igrid,ixI^L,ixO^L
     double precision, intent(in) :: qcmut, qdt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
-    double precision, intent(out) ::w1(ixI^S,1:nw),wold(ixI^S,1:nw)
+    double precision, intent(out) ::w1(ixI^S,1:nw),w3(ixI^S,1:nw)
     
     double precision :: fC(ixI^S,1:1,1:ndim)
-    double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+    double precision :: tmp(ixI^S)
     integer :: lowindex(ndim), ix^D
 
-    call phys_get_heatconduct(tmp,tmp1,tmp2,ixI^L,ixO^L,w,x,fC)
+    call phys_get_heatconduct(tmp,ixI^L,ixO^L,w,x,fC)
 
-    wold(ixO^S,e_)=qdt*tmp(ixO^S)
+    w3(ixO^S,e_)=qdt*tmp(ixO^S)
     ! update internal energy
-    tmp1(ixO^S) = tmp1(ixO^S) + qcmut*wold(ixO^S,e_)
+    w1(ixO^S,e_) = w(ixO^S,e_) + qcmut*w3(ixO^S,e_)
     
     ! ensure you never trigger negative pressure 
     ! hence code up energy change with respect to kinetic and magnetic
     ! part(nonthermal)
     if(small_values_method=='error') then
-      if(any(tmp1(ixO^S)<small_e).and. .not.crash) then
-        lowindex=minloc(tmp1(ixO^S))
+      if(any(w1(ixO^S,e_)<small_e).and. .not.crash) then
+        lowindex=minloc(w1(ixO^S,e_))
         ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
-        write(*,*)'too small internal energy = ',minval(tmp1(ixO^S)),'at x=',&
+        write(*,*)'too small internal energy = ',minval(w1(ixO^S,e_)),'at x=',&
        x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,&
-       ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w(^D&lowindex(^D),1:nwflux)
+       ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w1(^D&lowindex(^D),1:nwflux)
         crash=.true.
-      else
-        w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
       end if
     else
-      where(tmp1(ixO^S)<small_e)
-        tmp1(ixO^S)=small_e
+      where(w(ixO^S,e_)<small_e)
+        w1(ixO^S,e_)=small_e
       endwhere
-      w1(ixO^S,e_)=tmp2(ixO^S)+tmp1(ixO^S)
     end if
 
     if (fix_conserve_at_step) then
@@ -465,14 +472,14 @@ contains
 
   !> anisotropic thermal conduction with slope limited symmetric scheme
   !> Sharma 2007 Journal of Computational Physics 227, 123
-  subroutine mhd_get_heatconduct(qd,tmp1,tmp2,ixI^L,ixO^L,w,x,qvec)
+  subroutine mhd_get_heatconduct(qd,ixI^L,ixO^L,w,x,qvec)
     use mod_global_parameters
     use mod_small_values, only: small_values_method
     
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
     !! qd store the heat conduction energy changing rate
-    double precision, intent(out) :: qd(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+    double precision, intent(out) :: qd(ixI^S)
     double precision, dimension(ixI^S,1:ndim) :: qvec
     
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
@@ -492,31 +499,8 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    ! tmp1 store internal energy
-      ! tmp2 store kinetic+magnetic energy before addition of heat conduction source
-    tmp2(ixI^S) = 0.5d0 * (sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_) + &
-         sum(w(ixI^S,iw_mag(:))**2,dim=ndim+1))
-    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
-
-    ! Clip off negative pressure if small_pressure is set
-    if(small_values_method=='error') then
-       if (any(tmp1(ixI^S)<small_e) .and. .not.crash) then
-         lowindex=minloc(tmp1(ixI^S))
-         ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
-         write(*,*)'too low internal energy = ',minval(tmp1(ixI^S)),' at x=',&
-         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time, ' it=',it
-         write(*,*) 'w',w(^D&lowindex(^D),:)
-         crash=.true.
-       end if
-    else
-    {do ix^DB=ixImin^DB,ixImax^DB\}
-       if(tmp1(ix^D)<small_e) then
-          tmp1(ix^D)=small_e
-       end if
-    {end do\}
-    end if
     ! compute the temperature
-    Te(ixI^S)=tmp1(ixI^S)*(tc_gamma-one)/w(ixI^S,rho_)
+    Te(ixI^S)=w(ixI^S,e_)*tc_gamma_1/w(ixI^S,rho_)
     ! B vector
     if(B0field) then
       mf(ixI^S,:)=w(ixI^S,iw_mag(:))+block%B0(ixI^S,:,0)
@@ -901,14 +885,14 @@ contains
   
   end subroutine mhd_getdt_heatconduct
 
-  subroutine hd_get_heatconduct(qd,tmp1,tmp2,ixI^L,ixO^L,w,x,qvec)
+  subroutine hd_get_heatconduct(qd,ixI^L,ixO^L,w,x,qvec)
     use mod_global_parameters
     use mod_small_values, only: small_values_method
     
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim), w(ixI^S,1:nw)
     !! tmp store the heat conduction energy changing rate
-    double precision, intent(out) :: qd(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+    double precision, intent(out) :: qd(ixI^S)
     double precision :: qvec(ixI^S,1:ndim),gradT(ixI^S,1:ndim),Te(ixI^S),ke(ixI^S)
     double precision :: dxinv(ndim)
     integer, dimension(ndim)       :: lowindex
@@ -920,31 +904,8 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    ! tmp2 store kinetic energy before addition of heat conduction source
-    tmp2(ixI^S) = 0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-    ! tmp1 store internal energy
-    tmp1(ixI^S)=w(ixI^S,e_)-tmp2(ixI^S)
-
-    ! Clip off negative pressure if small_pressure is set
-    if(small_values_method=='error') then
-       if (any(tmp1(ixI^S)<small_e) .and. .not.crash) then
-         lowindex=minloc(tmp1(ixI^S))
-         ^D&lowindex(^D)=lowindex(^D)+ixImin^D-1;
-         write(*,*)'too low internal energy = ',minval(tmp1(ixI^S)),' at x=',&
-         x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,' on time=',global_time, ' it=',it
-         write(*,*) 'w',w(^D&lowindex(^D),:)
-         crash=.true.
-       end if
-    else
-    {do ix^DB=ixImin^DB,ixImax^DB\}
-       if(tmp1(ix^D)<small_e) then
-          tmp1(ix^D)=small_e
-       end if
-    {end do\}
-    end if
-    
     ! compute temperature before source addition
-    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(tc_gamma-1.d0)
+    Te(ixI^S)=w(ixI^S,e_)*tc_gamma_1/w(ixI^S,rho_)
 
     ! cell corner temperature
     ke=0.d0
