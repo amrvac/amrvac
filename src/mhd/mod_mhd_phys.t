@@ -3563,7 +3563,7 @@ contains
     end do
     ! get resistivity
     if(mhd_eta>zero)then
-      jce(ixC^S,:)=jce(ixC^S,:)*mhd_eta
+      jce(ixI^S,:)=jce(ixI^S,:)*mhd_eta
     else
       ixA^L=ixO^L^LADD1;
       call get_current(wCT,ixI^L,ixO^L,idirmin,jcc)
