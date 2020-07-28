@@ -186,7 +186,7 @@ contains
        type_divb = divb_multigrid
        use_multigrid = .true.
        mg%operator_type = mg_laplacian
-       phys_global_source => mf_clean_divb_multigrid
+       phys_global_source_after => mf_clean_divb_multigrid
     }
     case ('glm')
       mf_glm          = .true.
@@ -259,6 +259,7 @@ contains
     phys_check_params        => mf_check_params
     phys_write_info          => mf_write_info
     phys_angmomfix           => mf_angmomfix
+    phys_global_source_before=> mf_velocity_update
 
     if(type_divb==divb_glm) then
       phys_modify_wLR => mf_modify_wLR
@@ -533,6 +534,26 @@ contains
 
   end subroutine mf_get_flux
 
+  !> Add global source terms to update frictional velocity on complete domain
+  subroutine mf_velocity_update(qdt, qt, active)
+    use mod_global_parameters
+    double precision, intent(in) :: qdt    !< Current time step
+    double precision, intent(in) :: qt     !< Current time
+    logical, intent(inout)       :: active !< Output if the source is active
+
+    integer :: iigrid,igrid
+
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+      block=>ps(igrid)
+      call frictional_velocity(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,qdt)
+    end do
+    !$OMP END PARALLEL DO
+
+    active=.true.
+
+  end subroutine mf_velocity_update
+
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
   subroutine mf_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
@@ -640,12 +661,6 @@ contains
       end select
     end if
     }
-
-    if (.not. qsourcesplit) then
-      active = .true.
-      ! update velocity
-      call frictional_velocity(w,x,ixI^L,ixO^L,qdt)
-    end if
 
   end subroutine mf_add_source
 
@@ -2256,7 +2271,7 @@ contains
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
 
-    associate(bfaces=>s%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
+    associate(bfaces=>s%ws,bfacesCT=>sCT%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
       cbarmax=>vcts%cbarmax)
 
     ! Calculate contribution to FEM of each edge,
@@ -2304,10 +2319,10 @@ contains
       ! Reconstruct magnetic fields
       ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
-      call reconstruct(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
+      call reconstruct(ixI^L,ixC^L,idim2,bfacesCT(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
 
-      call reconstruct(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
+      call reconstruct(ixI^L,ixC^L,idim1,bfacesCT(ixI^S,idim2),&
                btilL(ixI^S,idim2),btilR(ixI^S,idim2))
 
       ! Take the maximum characteristic
@@ -2409,14 +2424,14 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3
           if (lvc(idim1,idim2,idir)==0) cycle
-          ixCmax^D=ixOmax^D;
-          ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+          ixCmax^D=ixOmax^D+1;
+          ixCmin^D=ixOmin^D+kr(idir,^D)-2;
           ixBmax^D=ixCmax^D-kr(idir,^D)+1;
           ixBmin^D=ixCmin^D;
           ! current at transverse faces
           xs(ixB^S,:)=x(ixB^S,:)
           xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
-          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.true.)
+          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
           if (lvc(idim1,idim2,idir)==1) then
             jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
           else

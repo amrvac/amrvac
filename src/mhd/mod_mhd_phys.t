@@ -270,7 +270,7 @@ contains
        type_divb = divb_multigrid
        use_multigrid = .true.
        mg%operator_type = mg_laplacian
-       phys_global_source => mhd_clean_divb_multigrid
+       phys_global_source_after => mhd_clean_divb_multigrid
     }
     case ('glm')
       mhd_glm          = .true.
@@ -3385,7 +3385,7 @@ contains
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
 
-    associate(bfaces=>s%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
+    associate(bfaces=>s%ws,bfacesCT=>sCT%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
       cbarmax=>vcts%cbarmax)
 
     ! Calculate contribution to FEM of each edge,
@@ -3434,11 +3434,11 @@ contains
       ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
       if(B0field) then
-        bfacetot(ixI^S,idim1)=bfaces(ixI^S,idim1)+block%B0(ixI^S,idim1,idim1)
-        bfacetot(ixI^S,idim2)=bfaces(ixI^S,idim2)+block%B0(ixI^S,idim2,idim2)
+        bfacetot(ixI^S,idim1)=bfacesCT(ixI^S,idim1)+block%B0(ixI^S,idim1,idim1)
+        bfacetot(ixI^S,idim2)=bfacesCT(ixI^S,idim2)+block%B0(ixI^S,idim2,idim2)
       else
-        bfacetot(ixI^S,idim1)=bfaces(ixI^S,idim1)
-        bfacetot(ixI^S,idim2)=bfaces(ixI^S,idim2)
+        bfacetot(ixI^S,idim1)=bfacesCT(ixI^S,idim1)
+        bfacetot(ixI^S,idim2)=bfacesCT(ixI^S,idim2)
       end if
       call reconstruct(ixI^L,ixC^L,idim2,bfacetot(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
