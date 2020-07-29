@@ -397,56 +397,8 @@ contains
     lambda           = 1/(dtfactor * qdt * D1)
     call helmholtz_set_lambda(lambda)
 
-    !This is mg_copy_to_tree from psb state
-    !!!  replaces::  call mg_copy_to_tree(u_, mg_irhs, factor=-lambda)
-    iw_from=u_
-    iw_to=mg_irhs
-    fac=-lambda
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
-       }
-       {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
-       }
-       {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_from)
-       }
-    end do
-
-    !This is mg_copy_to_tree from psb state
-    !!!  replaces::  call mg_copy_to_tree(u_, mg_iphi)
-    iw_from=u_
-    iw_to=mg_iphi
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
-       }
-       {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
-       }
-       {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_from)
-       }
-    end do
+    call mg_copy_to_tree(u_, mg_irhs, factor=-lambda, state_from=psb)
+    call mg_copy_to_tree(u_, mg_iphi, state_from=psb)
 
     call mg_fas_fmg(mg, .true., max_res=res)
     do n = 1, 10
@@ -454,86 +406,15 @@ contains
        if (res < max_residual) exit
     end do
 
-    !This is mg_copy_from_tree_gc for psa state
-    !!! replaces:: call mg_copy_from_tree_gc(mg_iphi, u_)
-    iw_from=mg_iphi
-    iw_to=u_
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, iw_from)
-       }
-       {^IFTWOD
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_from)
-       }
-       {^IFTHREED
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_from)
-       }
-    end do
+    call mg_copy_from_tree_gc(mg_iphi, u_, state_to=psa)
     ! Done with the u variable ***************************************
 
     ! Next handle the v variable ***************************************
     lambda = 1/(dtfactor * qdt * D2)
     call helmholtz_set_lambda(lambda)
 
-    !This is mg_copy_to_tree from psb state
-    !!!  replaces::  call mg_copy_to_tree(v_, mg_irhs, factor=-lambda)
-    iw_from=v_
-    iw_to=mg_irhs
-    fac=-lambda
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
-       }
-       {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
-       }
-       {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_from)
-       }
-    end do
-
-    !This is mg_copy_to_tree from psa state
-    !!!  replaces::  call mg_copy_to_tree(v_, mg_iphi)
-    iw_from=v_
-    iw_to=mg_iphi
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
-       }
-       {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
-       }
-       {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_from)
-       }
-    end do
+    call mg_copy_to_tree(v_, mg_irhs, factor=-lambda, state_from=psb)
+    call mg_copy_to_tree(v_, mg_iphi, state_from=psb)
 
     call mg_fas_fmg(mg, .true., max_res=res)
     do n = 1, 10
@@ -541,30 +422,7 @@ contains
        if (res < max_residual) exit
     end do
 
-    !This is mg_copy_from_tree_gc for psa state
-    !!! replaces:: call mg_copy_from_tree_gc(mg_iphi, v_)
-    iw_from=mg_iphi
-    iw_to=v_
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, iw_from)
-       }
-       {^IFTWOD
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_from)
-       }
-       {^IFTHREED
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_from)
-       }
-    end do
+    call mg_copy_from_tree_gc(mg_iphi, v_, state_to=psa)
     ! Done with the v variable ***************************************
 
   end subroutine rd_implicit_update
