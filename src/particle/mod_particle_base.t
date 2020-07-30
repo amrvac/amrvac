@@ -376,7 +376,7 @@ contains
 
     ! fill with electric field
     current = zero
-    call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
+    call particle_get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
 
     w_part(ixG^T,ep(1)) = w_part(ixG^T,bp(2)) * &
          w(ixG^T,iw_mom(3)) - w_part(ixG^T,bp(3)) * &
@@ -401,7 +401,7 @@ contains
 
   !> Calculate idirmin and the idirmin:3 components of the common current array
   !> make sure that dxlevel(^D) is set correctly.
-  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
+  subroutine particle_get_current(w,ixI^L,ixO^L,idirmin,current)
     use mod_global_parameters
     use mod_geometry
 
@@ -426,7 +426,7 @@ contains
 
     call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
 
-  end subroutine get_current
+  end subroutine particle_get_current
 
   !> Let particles evolve in time. The routine also handles grid variables and
   !> output.
