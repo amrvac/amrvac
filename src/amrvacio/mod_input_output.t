@@ -103,7 +103,7 @@ contains
   !> Read in the user-supplied parameter-file
   subroutine read_par_files()
     use mod_global_parameters
-    use mod_physics, only: physics_type, phys_wider_stencil
+    use mod_physics, only: phys_energy, physics_type, phys_wider_stencil
     use mod_small_values
     use mod_limiter
     use mod_slice

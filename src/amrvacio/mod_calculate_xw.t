@@ -18,7 +18,7 @@ contains
     use mod_usr_methods, only: usr_aux_output
     use mod_global_parameters
     use mod_limiter
-    use mod_physics, only: physics_type, phys_to_primitive
+    use mod_physics, only: phys_energy, physics_type, phys_to_primitive
 
     integer, intent(in) :: qunit, igrid
     double precision, intent(in), dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC

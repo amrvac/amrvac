@@ -968,6 +968,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_viscosity= F | T
      mhd_particles= F | T
      mhd_4th_order= F | T
+     mhd_internal_e= F | T
      mhd_solve_eaux= F | T
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
@@ -1049,14 +1050,15 @@ _usr_set_J0_ subroutine to significantly increase accuracy. Choose
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
 
-### Auxiliary internal energy to avoid negative pressure{#par_AIE}
+### Solve internal energy to avoid negative pressure{#par_AIE}
 
 In extremely low beta plasma, internal energy or gas pressure easily goes to
 negative values when solving total energy equation, because numerical error of magnetic
  energy is comparable to the internal energy due to its extremely small fraction in the 
-total energy. To order to avoid this problem, we solve an auxiliary internal energy equation 
-which has a positive preserving solution, and synchronize the internal energy with the 
-result from total energy equation.  In each step of 
+total energy. We have two methods to avoid this problem. In the first method, we solve 
+internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
+In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
+ and synchronize the internal energy with the result from total energy equation.  In each step of 
 advection, the synchronization replace the internal energy from 
 the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
 mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
@@ -1067,7 +1069,7 @@ of the auxiliary internal energy is coded to be the same as the boundary type of
 So you do not need to specify boundary types for the auxiliary internal energy in the par file.
 This function is compatible with all finite volume and finite difference schemes we have, including
 HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
-as the HLL flux in all intermediate states of the Riemann fan.
+as the HLL flux in all intermediate states of the Riemann fan. 
 
 ## Synthetic EUV emission {#par_euvlist}
 
