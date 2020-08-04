@@ -24,6 +24,9 @@ module mod_physics
   !> Solve energy equation or not
   logical :: phys_energy=.true.
 
+  !> Solve total energy equation or not
+  logical :: phys_total_energy=.true.
+
   !> Solve internal enery instead of total energy
   logical :: phys_internal_e=.false.
 

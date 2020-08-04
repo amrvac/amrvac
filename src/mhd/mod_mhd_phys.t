@@ -268,10 +268,29 @@ contains
     else
       total_energy=.false.
     end if
+    phys_total_energy=total_energy
 
-    if(mhd_solve_eaux .and. mhd_energy) then
-      prolongprimitive=.true.
+    if(.not. mhd_energy) then
+      if(mhd_internal_e) then
+        mhd_internal_e=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_internal_e=F when mhd_energy=F'
+      end if
+      if(mhd_solve_eaux) then
+        mhd_solve_eaux=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_solve_eaux=F when mhd_energy=F'
+      end if
+      if(mhd_thermal_conduction) then
+        mhd_thermal_conduction=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_thermal_conduction=F when mhd_energy=F'
+      end if
+      if(mhd_radiative_cooling) then
+        mhd_radiative_cooling=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_radiative_cooling=F when mhd_energy=F'
+      end if
     end if
+
+    if(mhd_solve_eaux) prolongprimitive=.true.
+
     ! set default gamma for polytropic/isothermal process
     if(.not.mhd_energy) mhd_gamma=1.d0
     use_particles=mhd_particles
@@ -579,13 +598,14 @@ contains
       else
         if(mhd_internal_e) then
           where(w(ixO^S, e_) < small_pressure*inv_gamma_1) flag(ixO^S) = e_
+          if(any(flag(ixO^S)==e_)) smallw(e_)=minval(w(ixO^S,e_))
         else
           ! Calculate pressure=(gamma-1)*(e-0.5*(2ek+2eb))
           tmp(ixO^S)=w(ixO^S,e_)-&
               mhd_kin_en(w,ixI^L,ixO^L)-mhd_mag_en(w,ixI^L,ixO^L)
           where(tmp(ixO^S) < small_pressure*inv_gamma_1) flag(ixO^S) = e_
+          if(any(flag(ixO^S)==e_)) smallw(e_)=minval(tmp(ixO^S))
         end if
-        if(any(flag(ixO^S)==e_)) smallw(e_)=minval(tmp(ixO^S))
       end if
     end if
 
