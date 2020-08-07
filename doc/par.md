@@ -552,7 +552,7 @@ Due to limited spatial resolution, numerically underresolved transition region i
 numerical models of solar atmosphere leads to significant underestimation of coronal 
 density and large errors in thermodynamic evolution. Transition Region Adaptive 
 thermal Conduction (TRAC) invented by Johnson and Bradshaw (2019 ApJL, 873, L22) 
-is implemented to fix this problem by setting `trac=F` for 1D HD and 
+is implemented to fix this problem by setting `trac=T` for 1D HD and 
 multidimensional MHD solar atmospheric models. 
 
 ## Boundlist {#par_boundlist}
