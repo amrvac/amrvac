@@ -46,9 +46,6 @@ module mod_ghostcells_update
   ! number of MPI receive-send pairs, srl: same refinement level; r: restrict; p: prolong
   integer :: nrecv_bc_srl, nsend_bc_srl, nrecv_bc_r, nsend_bc_r, nrecv_bc_p, nsend_bc_p
 
-  ! total size of buffer arrays
-  integer :: nbuff_bc_recv_srl, nbuff_bc_send_srl, nbuff_bc_recv_r, nbuff_bc_send_r, nbuff_bc_recv_p, nbuff_bc_send_p
-
   ! record index position of buffer arrays
   integer :: ibuf_send_srl, ibuf_recv_srl, ibuf_send_r, ibuf_recv_r, ibuf_send_p, ibuf_recv_p
 

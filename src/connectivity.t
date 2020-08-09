@@ -55,10 +55,16 @@ subroutine build_connectivity
   integer :: idir,pi^D, mi^D, ph^D, mh^D, ipe_neighbor
   integer :: nrecvs,nsends
 
+  ! total size of buffer arrays
+  integer :: nbuff_bc_recv_srl, nbuff_bc_send_srl, nbuff_bc_recv_r, nbuff_bc_send_r, nbuff_bc_recv_p, nbuff_bc_send_p
+
   nrecv_bc_srl=0; nsend_bc_srl=0
   nrecv_bc_r=0; nsend_bc_r=0
   nrecv_bc_p=0; nsend_bc_p=0
   nrecv_fc=0; nsend_fc=0
+  nbuff_bc_recv_srl=0; nbuff_bc_send_srl=0
+  nbuff_bc_recv_r=0; nbuff_bc_send_r=0
+  nbuff_bc_recv_p=0; nbuff_bc_send_p=0
   if(stagger_grid) nrecv_cc=0; nsend_cc=0
 
   do iigrid=1,igridstail; igrid=igrids(iigrid);
