@@ -22,10 +22,10 @@ module mod_physics
   logical :: phys_req_diagonal = .true.
 
   !> Solve energy equation or not
-  logical :: phys_energy=.true.
+  logical :: phys_energy=.false.
 
   !> Solve total energy equation or not
-  logical :: phys_total_energy=.true.
+  logical :: phys_total_energy=.false.
 
   !> Solve internal enery instead of total energy
   logical :: phys_internal_e=.false.

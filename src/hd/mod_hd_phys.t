@@ -184,6 +184,7 @@ contains
 
     physics_type = "hd"
     phys_energy  = hd_energy
+    phys_total_energy  = hd_energy
     ! set default gamma for polytropic/isothermal process
     if(.not.hd_energy) then
       hd_gamma=1.d0
