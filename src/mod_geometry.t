@@ -622,7 +622,7 @@ contains
     double precision, intent(inout) :: curlvec(ixI^S,idirmin0:3)
     logical, intent(in), optional   :: fourthorder !< Default: false
 
-    integer          :: ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L,kxO^L,gxO^L
+    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L,kxO^L,gxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
     logical          :: use_4th_order
@@ -638,13 +638,13 @@ contains
       if (.not. slab_uniform) &
            call mpistop("divvector: 4th order only supported for slab geometry")
       ! Fourth order, stencil width is two
-      ixC^L=ixO^L^LADD2;
+      ixA^L=ixO^L^LADD2;
     else
       ! Second order, stencil width is one
-      ixC^L=ixO^L^LADD1;
+      ixA^L=ixO^L^LADD1;
     end if
 
-    if (ixImin^D>ixCmin^D.or.ixImax^D<ixCmax^D|.or.) &
+    if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
          call mpistop("Error in divvector: Non-conforming input limits")
 
     idirmin=4
@@ -684,7 +684,7 @@ contains
           if(lvc(idir,jdir,kdir)/=0)then
             select case(typecurl)
               case('central')
-                tmp(ixI^S)=qvec(ixI^S,kdir)
+                tmp(ixA^S)=qvec(ixA^S,kdir)
                 hxO^L=ixO^L-kr(jdir,^D);
                 jxO^L=ixO^L+kr(jdir,^D);
                 ! second order centered differencing
@@ -728,15 +728,15 @@ contains
           case('central') ! ok for any dimensionality
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
-                tmp(ixI^S)=qvec(ixI^S,kdir)
+                tmp(ixA^S)=qvec(ixA^S,kdir)
                 hxO^L=ixO^L-kr(jdir,^D);
                 jxO^L=ixO^L+kr(jdir,^D);
                 select case(jdir)
                 case(1)
-                tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
+                tmp(ixA^S)=tmp(ixA^S)*block%x(ixA^S,1)
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,1)-block%x(hxO^S,1))*block%x(ixO^S,1))
                 {^NOONED    case(2)
-                if(idir==1) tmp(ixI^S)=tmp(ixI^S)*dsin(block%x(ixI^S,2))
+                if(idir==1) tmp(ixA^S)=tmp(ixA^S)*dsin(block%x(ixA^S,2))
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
                 if(idir==1) tmp2(ixO^S)=tmp2(ixO^S)/dsin(block%x(ixO^S,2))
                 }
@@ -893,14 +893,14 @@ contains
           case('central')  ! works for any dimensionality, polar/cylindrical
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
-                tmp(ixI^S)=qvec(ixI^S,kdir)
+                tmp(ixA^S)=qvec(ixA^S,kdir)
                 hxO^L=ixO^L-kr(jdir,^D);
                 jxO^L=ixO^L+kr(jdir,^D);
                 if(z_==3.or.z_==-1) then
                   ! Case Polar_2D, Polar_2.5D or Polar_3D, i.e. R,phi,Z
                   select case(jdir)
                   case(1)
-                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
+                  if(idir==z_) tmp(ixA^S)=tmp(ixA^S)*block%x(ixA^S,1) ! R V_phi
                   ! computes d(R V_phi)/dR or d V_Z/dR
                   tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
                   if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1) ! (1/R)*d(R V_phi)/dR
@@ -918,7 +918,7 @@ contains
                   ! Case Cylindrical_2D, Cylindrical_2.5D or Cylindrical_3D, i.e. R,Z,phi
                   select case(jdir)
                   case(1)
-                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
+                  if(idir==z_) tmp(ixA^S)=tmp(ixA^S)*block%x(ixA^S,1) ! R V_phi
                   ! computes d(R V_phi)/dR or d V_Z/dR
                   tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
                   if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1) ! (1/R)*d(R V_phi)/dR
@@ -1090,7 +1090,7 @@ contains
     double precision, intent(in)    :: qvec(ixI^S,1:ndir0),qvecc(ixI^S,1:ndir0)
     double precision, intent(inout) :: curlvec(ixI^S,idirmin0:3)
 
-    integer          :: ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
+    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
 
@@ -1100,6 +1100,8 @@ contains
 
     idirmin=4
     curlvec(ixO^S,idirmin0:3)=zero
+    ! Second order, stencil width is one
+    ixA^L=ixO^L^LADD1;
 
     ! all non-Cartesian cases
     select case(coordinate)
@@ -1185,10 +1187,10 @@ contains
                 jxO^L=ixO^L+kr(jdir,^D);
                 select case(jdir)
                 case(1)
-                tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1)
+                tmp(ixA^S)=tmp(ixA^S)*block%x(ixA^S,1)
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,1)-block%x(hxO^S,1))*block%x(ixO^S,1))
                 {^NOONED    case(2)
-                if(idir==1) tmp(ixI^S)=tmp(ixI^S)*dsin(block%x(ixI^S,2))
+                if(idir==1) tmp(ixA^S)=tmp(ixA^S)*dsin(block%x(ixA^S,2))
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
                 if(idir==1) tmp2(ixO^S)=tmp2(ixO^S)/dsin(block%x(ixO^S,2))
                 }
@@ -1352,7 +1354,7 @@ contains
                   ! Case Polar_2D, Polar_2.5D or Polar_3D, i.e. R,phi,Z
                   select case(jdir)
                   case(1)
-                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
+                  if(idir==z_) tmp(ixA^S)=tmp(ixA^S)*block%x(ixA^S,1) ! R V_phi
                   ! computes d(R V_phi)/dR or d V_Z/dR
                   tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
                   if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1) ! (1/R)*d(R V_phi)/dR
@@ -1370,7 +1372,7 @@ contains
                   ! Case Cylindrical_2D, Cylindrical_2.5D or Cylindrical_3D, i.e. R,Z,phi
                   select case(jdir)
                   case(1)
-                  if(idir==z_) tmp(ixI^S)=tmp(ixI^S)*block%x(ixI^S,1) ! R V_phi
+                  if(idir==z_) tmp(ixA^S)=tmp(ixA^S)*block%x(ixA^S,1) ! R V_phi
                   ! computes d(R V_phi)/dR or d V_Z/dR
                   tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,1)-block%x(hxO^S,1))
                   if(idir==z_) tmp2(ixO^S)=tmp2(ixO^S)/block%x(ixO^S,1) ! (1/R)*d(R V_phi)/dR
