@@ -254,6 +254,7 @@ contains
     if (hd_thermal_conduction) then
       if (.not. hd_energy) &
            call mpistop("thermal conduction needs hd_energy=T")
+      phys_req_diagonal = .true.
       call thermal_conduction_init(hd_gamma)
     end if
 

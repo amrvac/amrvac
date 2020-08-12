@@ -202,11 +202,12 @@ contains
     integer:: iigrid, igrid, j
     logical :: evenstep, stagger_flag, prolong_flag, coarsen_flag
 
+    ixCoGmin^D=1;
+    ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
     ! not do fix conserve and getbc for staggered values if stagger is used
     stagger_flag=stagger_grid
     stagger_grid=.false.
     bcphys=.false.
-    call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
     prolong_flag=prolongprimitive
     coarsen_flag=coarsenprimitive
     prolongprimitive=.false.
@@ -231,6 +232,9 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       ! convert total energy to internal energy
       call phys_e_to_ei(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+      ! internal e of the coarse block maybe needed in physical boundaries
+      if(any(ps(igrid)%is_physical_boundary)) &
+        call phys_e_to_ei(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
       if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
       ps1(igrid)%w=ps(igrid)%w
@@ -272,6 +276,8 @@ contains
         if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
         ! convert internal energy to total energy
         call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+        if(any(ps(igrid)%is_physical_boundary)) &
+          call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       end do
       ! point bc mpi data type back to full type for (M)HD
       type_send_srl=>type_send_srl_f
@@ -340,6 +346,8 @@ contains
         if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
         ! convert internal energy to total energy
         call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+        if(any(ps(igrid)%is_physical_boundary)) &
+          call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       end do 
     else
       do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -347,6 +355,8 @@ contains
         if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
         ! convert internal energy to total energy
         call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+        if(any(ps(igrid)%is_physical_boundary)) &
+          call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       end do 
     end if
     deallocate(bj)
@@ -546,11 +556,14 @@ contains
     else
       ! conductivity at cell center
       if(trac) then
-        where(Te(ix^S) < block%special_values(1))
-          Te(ix^S)=block%special_values(1)
+        minq(ix^S)=Te(ix^S)
+        where(minq(ix^S) < block%special_values(1))
+          minq(ix^S)=block%special_values(1)
         end where
+        minq(ix^S)=tc_k_para*sqrt(minq(ix^S)**5)
+      else
+        minq(ix^S)=tc_k_para*sqrt(Te(ix^S)**5)
       end if
-      minq(ix^S)=tc_k_para*sqrt(Te(ix^S)**5)
       ka=0.d0
       {do ix^DB=0,1\}
         ixBmin^D=ixCmin^D+ix^D;
@@ -926,7 +939,7 @@ contains
     end do
     ! transition region adaptive conduction
     if(trac) then
-      where(Te(ix^S) < block%special_values(1))
+      where(ke(ix^S) < block%special_values(1))
         ke(ix^S)=block%special_values(1)
       end where
     end if
