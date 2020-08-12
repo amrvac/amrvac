@@ -270,6 +270,11 @@ contains
     end if
     phys_total_energy=total_energy
 
+    if(mhd_internal_e.and.mhd_solve_eaux) then
+      mhd_solve_eaux=.false.
+      if(mype==0) write(*,*) 'WARNING: set mhd_solve_eaux=F when mhd_internal_e=T'
+    end if
+
     if(.not. mhd_energy) then
       if(mhd_internal_e) then
         mhd_internal_e=.false.
@@ -714,14 +719,17 @@ contains
 
   end subroutine mhd_e_to_ei
 
-  subroutine mhd_energy_synchro(ixI^L,ixO^L,w,x)
+  subroutine mhd_energy_synchro(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth1(ixI^S),pth2(ixI^S),alfa(ixI^S),beta(ixI^S)
     double precision, parameter :: beta_low=0.005d0,beta_high=0.05d0
+
+    ! add the source of internal energy equation
+    call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x,eaux_)
 !    double precision :: vtot(ixI^S),cs2(ixI^S),mach(ixI^S)
 !    double precision, parameter :: mach_low=20.d0,mach_high=200.d0
 
@@ -1408,14 +1416,9 @@ contains
 
     if (.not. qsourcesplit) then
       ! Source for solving internal energy
-      if(mhd_energy) then
-        if(mhd_internal_e) then
-          active = .true.
-          call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x,e_)
-        else if(mhd_solve_eaux) then
-          active = .true.
-          call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x,eaux_)
-        end if
+      if(mhd_internal_e) then
+        active = .true.
+        call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x,e_)
       endif
 
       ! Source for B0 splitting

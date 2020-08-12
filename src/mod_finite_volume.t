@@ -289,7 +289,7 @@ contains
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
  
     if(phys_solve_eaux) then
-      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
+      call phys_energy_synchro(qdt,ixI^L,ixO^L,wCT,wnew,x)
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
