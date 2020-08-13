@@ -107,6 +107,7 @@ subroutine alloc_node(igrid)
   ps1(igrid)%w=0.d0
   psc(igrid)%w=0.d0
   ps(igrid)%igrid=igrid
+  if(trac) ps(igrid)%special_values=0.d0
 
   if(stagger_grid) then
     ps(igrid)%ws=0.d0

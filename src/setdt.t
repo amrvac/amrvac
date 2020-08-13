@@ -180,13 +180,13 @@ subroutine setdt()
       {^IFONED
       ps(igrid)%special_values(1)=tco_global 
       }
+      if(ps(igrid)%special_values(1)<trac_alfa*ps(igrid)%special_values(2)) then
+        ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
+      end if
       if(ps(igrid)%special_values(1) < T_bott) then
         ps(igrid)%special_values(1)=T_bott
       else if(ps(igrid)%special_values(1) > 0.2d0*T_peak) then
         ps(igrid)%special_values(1)=0.2d0*T_peak
-      end if
-      if(ps(igrid)%special_values(1) .lt. trac_alfa*ps(igrid)%special_values(2)) then
-        ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
       end if
       !> special values(2) to save old tcutoff
       ps(igrid)%special_values(2)=ps(igrid)%special_values(1)
