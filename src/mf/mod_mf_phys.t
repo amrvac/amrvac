@@ -734,7 +734,8 @@ contains
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
       ! decay frictional velocity near solar surface
-      decay(ixO^S)=1.d0-exp(-x(ixO^S,1)/mf_decay_scale)
+      decay(ixO^S)=1.d0-exp(-(x(ixO^S,1)-xprobmin1)/mf_decay_scale)
+      !decay(ixO^S)=decay(ixO^S)*(1.d0-exp(-(x(ixO^S,2)-xprobmin2)/0.03d0))
       do idir=1,ndir
         w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do

@@ -1,0 +1,88 @@
+!setup.pl -d=3
+ &filelist
+        base_filename='solar_bipolar_atmb'
+        saveprim=.true.
+        convert_type='vtuBCCmpi'
+        autoconvert=.true.
+        nwauxio=9
+ /
+        convert_type='vtuBCCmpi'
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.05d0
+        dtsave_dat=1.d0
+ /
+        dtsave_custom=0.05d0
+
+ &stoplist
+        time_max=10.0d0
+ /
+
+ &methodlist
+        time_stepper=  'threestep'
+        flux_scheme=    20*'hlld'
+        limiter= 20*'cada3'
+        check_small_values=.true.
+        tvdlfeps=0.d0
+        trac=.true.
+ /
+        trace_small_values=.true.
+        typeboundspeed='cmaxmean'
+
+ &boundlist
+        typeboundary_min1=8*'special'
+        typeboundary_max1=8*'special'
+        typeboundary_min2=8*'special'
+        typeboundary_max2=8*'special'
+        typeboundary_min3=8*'special'
+        typeboundary_max3=8*'special'
+ /
+
+ &meshlist
+        refine_max_level=3
+        refine_threshold=20*0.2d0
+        block_nx1=12
+        block_nx2=12
+        block_nx3=12
+        domain_nx1=48
+        domain_nx2=48
+        domain_nx3=48
+        iprob=1
+        xprobmin1=-6.0d0
+        xprobmax1=6.0d0
+        xprobmin2=-6.0d0
+        xprobmax2=6.0d0
+        xprobmin3=0.d0
+        xprobmax3=12.d0
+ /
+        w_refine_weight(1)=0.4d0
+        w_refine_weight(6)=0.2d0
+        w_refine_weight(7)=0.2d0
+        w_refine_weight(8)=0.2d0
+        xprobmin1=-10.0d0
+        xprobmax1=10.0d0
+        xprobmin2=-10.0d0
+        xprobmax2=10.0d0
+        xprobmin3=0.d0
+        xprobmax3=40.d0
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.5d0
+ /
+
+ &mhd_list
+        mhd_energy=.true.
+        mhd_gravity=.true.
+        typedivbfix='ct'
+        mhd_thermal_conduction=.true.
+        mhd_radiative_cooling=.true.
+        mhd_solve_eaux=.true.
+ /
+        typedivbfix='glm'
+        typedivbfix='linde'
+        B0field=.true.
+        B0field_forcefree=.true.
+        mhd_adiab=0.d0

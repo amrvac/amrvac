@@ -19,7 +19,7 @@ hd/blast_wave_cylindrical_2D hd/blast_wave_cylindrical_3D hd/blast_wave_polar_3D
 MHD_DIRS := mhd/Riemann_1.75D mhd/rotor_2D mhd/wake_2.5D mhd/shock_cloud_2D	\
 mhd/Kelvin_Helmholtz_2D mhd/Orszag_Tang_2D mhd/blast_wave_Cartesian_2D		\
 mhd/blast_wave_polar_2D mhd/blast_wave_spherical_3D mhd/ripple_2.5D		\
-mhd/solar_atmosphere_2.5D mhd/blast_wave_Cartesian_3D\
+mhd/solar_atmosphere_2.5D mhd/solar_atmosphere_3D mhd/blast_wave_Cartesian_3D\
 mhd/radiative_cooling_3D mhd/blast_wave_polar_stretched_2D			\
 mhd/tilt_instability_2D mhd/doubleGEM_2.5D mhd/Longcope_Strauss_2D		\
 mhd/blast_wave_cylindrical_3D mhd/blast_wave_spherical_stretched_3D		\
