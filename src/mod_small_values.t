@@ -32,8 +32,8 @@ contains
     integer                      :: iw,iiw,ix^D
 
     if (.not.crash) then
-     {do ix^DB= ixO^LIM^DB\}
-        do iw=1,nw
+      do iw=1,nw
+       {do ix^DB= ixO^LIM^DB\}
           if(w_flag(ix^D,iw)) then
             write(*,*) "Error: small value of ", trim(prim_wnames(iw)),wprim(ix^D,iw),&
                  " encountered when call ", subname
@@ -48,8 +48,8 @@ contains
             write(*,*) "Saving status at the previous time step"
             crash=.true.
           end if
-        end do
-     {enddo^D&\}
+       {enddo^D&\}
+      end do
     end if
 
   end subroutine small_values_error
@@ -62,17 +62,15 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: iw, kxO^L, ix^D, i
 
-    {do ix^DB= ixO^LIM^DB\}
-
+    do iw = 1, nw
+     {do ix^DB= ixO^LIM^DB\}
       ! point with local failure identified by w_flag
-      do iw = 1, nw
         if (w_flag(ix^D,iw)) then
           ! verify in cube with border width small_values_daverage the presence of
           ! cells where all went ok
           do i = 1, max(small_values_daverage, 1)
             {kxOmin^D= max(ix^D-i, ixOmin^D);
             kxOmax^D= min(ix^D+i, ixOmax^D);\}
-
             ! in case cells are fine within smaller cube than 
             ! the userset small_values_daverage: use that smaller cube
             if(any(w_flag(kxO^S,iw) .eqv. .false.)) exit
@@ -97,8 +95,8 @@ contains
             crash=.true.
           end if
         end if
-      end do
-    {enddo^D&\}
+     {enddo^D&\}
+    end do
 
   end subroutine small_values_average
 
