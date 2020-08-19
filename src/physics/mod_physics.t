@@ -210,13 +210,12 @@ module mod_physics
        character(len=*)                :: subname
      end subroutine sub_get_aux
 
-     subroutine sub_check_w(primitive, ixI^L, ixO^L, w, w_flag, smallw)
+     subroutine sub_check_w(primitive, ixI^L, ixO^L, w, w_flag)
        use mod_global_parameters
        logical, intent(in)          :: primitive
        integer, intent(in)          :: ixI^L, ixO^L
-       double precision, intent(in) :: w(ixI^S,nw)
-       integer, intent(inout)       :: w_flag(ixG^T)
-       double precision, intent(out) :: smallw(1:nw)
+       double precision, intent(in) :: w(ixI^S,1:nw)
+       logical, intent(inout)       :: w_flag(ixI^S,1:nw)
      end subroutine sub_check_w
 
      subroutine sub_get_pthermal(w,x,ixI^L,ixO^L,pth)
@@ -425,16 +424,14 @@ contains
     character(len=*)                :: subname
   end subroutine dummy_get_aux
 
-  subroutine dummy_check_w(primitive, ixI^L, ixO^L, w, w_flag, smallw)
+  subroutine dummy_check_w(primitive, ixI^L, ixO^L, w, w_flag)
     use mod_global_parameters
     logical, intent(in)          :: primitive
     integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S,nw)
-    integer, intent(inout)       :: w_flag(ixG^T)
-    double precision, intent(out) :: smallw(1:nw)
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    logical, intent(inout)       :: w_flag(ixI^S,1:nw)
 
-    w_flag(ixO^S) = 0             ! All okay
-    smallw = 1.d0
+    w_flag=.false.             ! All okay
   end subroutine dummy_check_w
 
   subroutine dummy_get_pthermal(w, x, ixI^L, ixO^L, pth)

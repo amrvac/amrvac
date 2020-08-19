@@ -353,12 +353,6 @@ module mod_global_parameters
   !> check and optionally fix unphysical small values (density, gas pressure)
   logical :: check_small_values=.false.
 
-  !> Use primitive variables when correcting small values
-  logical :: small_values_use_primitive=.false.
-
-  !> Whether to apply small value fixes to certain variables
-  logical, allocatable :: small_values_fix_iw(:)
-
   !> split magnetic field as background B0 field
   logical :: B0field=.false.
 

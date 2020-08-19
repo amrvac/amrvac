@@ -29,9 +29,8 @@ contains
     double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
-    integer                         :: flagL(ixI^S), flagR(ixI^S)
+    logical                         :: flagL(ixI^S,1:nw), flagR(ixI^S,1:nw)
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
-    double precision                :: smallw(1:nw)
     !double precision                :: alpha
     !----------------------------------------------------------------------------
 
@@ -201,11 +200,11 @@ contains
 
     ! Since limiter not TVD, negative pressures or densities could result.  
     ! Fall back to flat interpolation (minmod would also work). 
-    call phys_check_w(.true.,ixG^LL,iL^L,wLCtmp,flagL,smallw)
-    call phys_check_w(.true.,ixG^LL,iL^L,wRCtmp,flagR,smallw)
+    call phys_check_w(.true.,ixG^LL,iL^L,wLCtmp,flagL)
+    call phys_check_w(.true.,ixG^LL,iL^L,wRCtmp,flagR)
 
     do iw=1,nwflux
-       where (flagL(iL^S) == 0 .and. flagR(iL^S) == 0)
+       where ((flagL(iL^S,iw) .eqv. .false.) .and. (flagR(iL^S,iw) .eqv. .false.))
           wLC(iL^S,iw)=wLCtmp(iL^S,iw)
           wRC(iL^S,iw)=wRCtmp(iL^S,iw)
        end where
@@ -455,7 +454,6 @@ contains
     double precision, dimension(ixI^S)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S)  :: wRCtmp, wLCtmp
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
-    logical, dimension(ixI^S)       :: flagL, flagR
     double precision, parameter     :: eps=0.0d0, alpha=4.0d0
     !double precision                :: alpha
 

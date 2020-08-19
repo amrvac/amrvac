@@ -349,11 +349,11 @@ without changing time, set `reset_it=T`.
 
     small_density= DOUBLE
     small_pressure= DOUBLE
+    small_temperature= DOUBLE
     small_values_method='error' | 'replace' | 'average'
     small_values_daverage=1
     check_small_values= F | T
-
-    solve_internal_e = F | T
+    trace_small_values= F | T
 
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
@@ -414,7 +414,8 @@ for the limited linear reconstructions from cell-center to cell-edge
 variables, and for the TVD method, for the characteristic variables.
 The default limiter is the most diffusive `limiter=nlevelshi*'minmod'`
 limiter (minmod for all levels), but one can also use
-`limiter=nlevelshi*'woodward'`, or use different limiters per level.
+`limiter=nlevelshi*'woodward'`, or use different limiters per level. Click
+[Slope limiters](limiter.md) to see detailed description of all available limiters.
 
 The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
@@ -506,29 +507,26 @@ described in [methods](methods.md).
 Negative pressure or density caused by the numerical approximations can make the
 code crash. For HD and MHD modules this can be monitored
 or even cured by the handle_small_values subroutines in each substep of iteration. 
-The control parameters `small_density, small_pressure, small_temperature` play a role here:
+The control parameters small_density, small_pressure, small_temperature play a role here:
 they can be set to small positive values but not negative values, while their default is 0. If 
-`small_temperature` is positive, `small_pressure` is overwritten by the product of 
-`small_pressure` and `small_temperature`. If `check_small_values` is set to .true.,
-additional check for small values will be triggered in phys_to_primitive, phys_to_conserved,
-and source terms such as resistive terms in MHD.
+small_temperature is positive, small_pressure is overwritten by the product of 
+small_rho and small_temperature. If check_small_values is set to .true.,
+additional check for small values will be triggered in phys_to_primitive, phys_to_conserved, 
+phys_ei_to_e, phys_get_pthermal, and source terms such as resistive terms in MHD.
 
-The actual treatment involves the _small_values_method_ parameter: Its default value
+The actual treatment involves the small_values_method parameter: Its default value
 'error' causes a full stop in the handle_small_values subroutine in the physics 
 modules. In this way, you can use it for debugging purposes, to spot from where the actual
-negative pressure and unphysical value gets introduced. If it is somehow unavoidable in
+negative pressure and unphysical value gets introduced during which call. If the compilation
+is in debug mode and trace_small_value=T, then the error message shows the path of execution as
+number of lines of subroutines so that you know when the small values are encountered in the execution
+sqeuence. If it is somehow unavoidable in
 your simulations, then you may rerun with a recovery process turned on as
-follows.  When _small_values_method='replace'_, the parameters small_pressure, small_density 
+follows.  When small_values_method='replace', the parameters small_pressure, small_density 
 are used to replace any unphysical value and set momentum to be 0, as encoded in 
-`mod_small_values.t`. When you select _small_values_method='average'_, any unphysical value
+`mod_small_values.t`. When you select small_values_method='average', any unphysical value
 is replaced by averaging from a user-controlled environment about the faulty cells.
-The width of this environment is set by the integer _small_values_daverage_.
-
-When internal energy is an extremely small fraction of total energy, solving total
-energy equation can easily get negative pressure/internal energy caused by small 
-errors in other energies. You can set `solve_internal_e = T` to solve internal 
-energy equation instead of solving total energy with cost of losing total energy 
-conservation.
+The width of this environment in cells is set by the integer small_values_daverage.
 
 ### Special process {#par_process}
 User controlled special process can be added to 
