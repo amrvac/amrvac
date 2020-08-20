@@ -717,6 +717,13 @@ contains
               rk3_a32=2.0d0/3.0d0
               rk3_b1=1.0d0/4.0d0
               rk3_b2=0.0d0
+             case(4) 
+              ! we code up Nystrom 3rd order here
+              rk3_a21=2.0d0/3.0d0
+              rk3_a31=0.0d0
+              rk3_a32=2.0d0/3.0d0
+              rk3_b1=1.0d0/4.0d0
+              rk3_b2=3.0d0/8.0d0
              case default
                 call mpistop("Unknown rk3_switch")
             end select
