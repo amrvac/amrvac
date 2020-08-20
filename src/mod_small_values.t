@@ -54,15 +54,24 @@ contains
 
   end subroutine small_values_error
 
-  subroutine small_values_average(ixI^L, ixO^L, w, x, w_flag)
+  subroutine small_values_average(ixI^L, ixO^L, w, x, w_flag, windex)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     logical, intent(in)             :: w_flag(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    integer                         :: iw, kxO^L, ix^D, i
+    integer, optional, intent(in)   :: windex
+    integer                         :: iw, kxO^L, ix^D, i, nwstart, nwend
 
-    do iw = 1, nw
+    if(present(windex)) then
+      nwstart=windex
+      nwend=windex
+    else
+      nwstart=1
+      nwend=nw
+    end if
+
+    do iw = nwstart, nwend
      {do ix^DB= ixO^LIM^DB\}
       ! point with local failure identified by w_flag
         if (w_flag(ix^D,iw)) then
