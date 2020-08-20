@@ -675,33 +675,9 @@ contains
   !> Transform internal energy to total energy
   subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
     use mod_global_parameters
-    use mod_small_values
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    integer :: idir
-    logical :: flag(ixI^S,1:nw)
-
-    ! check small internal energy
-    if(check_small_values) then
-      flag=.false.
-      where(w(ixO^S,e_)<small_e) flag(ixO^S,e_)=.true.
-      if(any(flag(ixO^S,e_))) then
-        select case (small_values_method)
-        case ("replace")
-          where(flag(ixO^S,e_)) w(ixO^S,e_)=small_e
-        case ("average")
-          call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
-        case default
-          w(ixO^S,p_)=w(ixO^S,e_)*gamma_1
-          ! Convert momentum to velocity
-          do idir = 1, ndir
-             w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))/w(ixO^S,rho_)
-          end do
-          call small_values_error(w, x, ixI^L, ixO^L, flag, 'mhd_ei_to_e')
-        end select
-      end if
-    end if
  
     ! Calculate total energy from internal, kinetic and magnetic energy
     if(total_energy) then

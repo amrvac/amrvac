@@ -429,6 +429,10 @@ contains
 
     w2(ixO^S,e_)=qcmu*w1(ixO^S,e_)+qcnu*w2(ixO^S,e_)+(1.d0-qcmu-qcnu)*w(ixO^S,e_)&
                 +qcmut*qdt*tmp(ixO^S)+qcnut*w3(ixO^S,e_)
+
+    ! check small/negative internal energy
+    if(check_small_values) call handle_small_e(w2,x,ixI^L,ixO^L,'thermal conduction evolve_stepj')
+
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
       call store_flux(igrid,fC,1,ndim,1)
@@ -439,8 +443,7 @@ contains
   subroutine evolve_step1(igrid,qcmut,qdt,ixI^L,ixO^L,w1,w,x,w3)
     use mod_global_parameters
     use mod_fix_conserve
-    use mod_small_values, only: small_values_method
-    
+
     integer, intent(in) :: igrid,ixI^L,ixO^L
     double precision, intent(in) :: qcmut, qdt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(out) ::w1(ixI^S,1:nw),w3(ixI^S,1:nw)
@@ -455,23 +458,8 @@ contains
     ! update internal energy
     w1(ixO^S,e_) = w(ixO^S,e_) + qcmut*w3(ixO^S,e_)
     
-    ! ensure you never trigger negative pressure 
-    ! hence code up energy change with respect to kinetic and magnetic
-    ! part(nonthermal)
-    if(small_values_method=='error') then
-      if(any(w1(ixO^S,e_)<small_e).and. .not.crash) then
-        lowindex=minloc(w1(ixO^S,e_))
-        ^D&lowindex(^D)=lowindex(^D)+ixOmin^D-1;
-        write(*,*)'too small internal energy = ',minval(w1(ixO^S,e_)),'at x=',&
-       x(^D&lowindex(^D),1:ndim),lowindex,' with limit=',small_e,&
-       ' on time=',global_time,' step=',it, 'where w(1:nwflux)=',w1(^D&lowindex(^D),1:nwflux)
-        crash=.true.
-      end if
-    else
-      where(w(ixO^S,e_)<small_e)
-        w1(ixO^S,e_)=small_e
-      endwhere
-    end if
+    ! check small/negative internal energy
+    call handle_small_e(w1,x,ixI^L,ixO^L,'thermal conduction evolve_step1')
 
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC
@@ -479,6 +467,36 @@ contains
     end if
   
   end subroutine evolve_step1
+
+  subroutine handle_small_e(w, x, ixI^L, ixO^L, subname)
+    use mod_global_parameters
+    use mod_small_values
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    character(len=*), intent(in)    :: subname
+
+    integer :: idir
+    logical :: flag(ixI^S,1:nw)
+
+    flag=.false.
+    where(w(ixO^S,e_)<small_e) flag(ixO^S,e_)=.true.
+    if(any(flag(ixO^S,e_))) then
+      select case (small_values_method)
+      case ("replace")
+        where(flag(ixO^S,e_)) w(ixO^S,e_)=small_e
+      case ("average")
+        call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
+      case default
+        ! small values error shows primitive variables
+        w(ixO^S,e_)=w(ixO^S,e_)*tc_gamma_1
+        do idir = 1, ndir
+           w(ixO^S, iw_mom(idir)) = w(ixO^S, iw_mom(idir))/w(ixO^S,rho_)
+        end do
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+      end select
+    end if
+  end subroutine handle_small_e
 
   !> anisotropic thermal conduction with slope limited symmetric scheme
   !> Sharma 2007 Journal of Computational Physics 227, 123
