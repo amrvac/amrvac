@@ -774,6 +774,10 @@ contains
         if(mhd_energy) then
           if(primitive) then
             where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
+          else if(mhd_internal_e) then
+            where(flag(ixO^S,e_))
+              w(ixO^S,e_)=small_e
+            end where
           else
             where(flag(ixO^S,e_))
               w(ixO^S,e_) = small_e+&
