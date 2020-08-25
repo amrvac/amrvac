@@ -354,6 +354,7 @@ without changing time, set `reset_it=T`.
     small_values_daverage=1
     check_small_values= F | T
     trace_small_values= F | T
+    small_values_fix_iw= LOGICAL, LOGICAL, LOGICAL, ...
 
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
@@ -527,6 +528,11 @@ are used to replace any unphysical value and set momentum to be 0, as encoded in
 `mod_small_values.t`. When you select small_values_method='average', any unphysical value
 is replaced by averaging from a user-controlled environment about the faulty cells.
 The width of this environment in cells is set by the integer small_values_daverage.
+The parameter small_values_fix_iw is an array, containing a logical for each variable. It has a length nw. 
+It can be used to make sure that a certain variable is not adjusted by the small_values_method. The default is true for all the variables. 
+If the user sets it to false for a given variable, that variable will not be adjusted by the small_values_method.
+The first elements are the logicals for the conservative variables in their standard order.
+As an example: if the user would like to adjust the pressure and density but not the momentum in a 2D MHD simulation, then small_values_fix_iw has to be set to T, F, F, T, T, T. 
 
 ### Special process {#par_process}
 User controlled special process can be added to 
