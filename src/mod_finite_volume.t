@@ -753,6 +753,10 @@ contains
        end do
     end select
 
+    if(check_small_values) then
+      call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+      call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+    end if
     wLC(ixL^S,1:nw)=wLp(ixL^S,1:nw)
     wRC(ixR^S,1:nw)=wRp(ixR^S,1:nw)
     call phys_to_conserved(ixI^L,ixL^L,wLC,x)
