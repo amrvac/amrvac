@@ -157,7 +157,7 @@ contains
     integer, intent(in) :: ixG^L
 
     double precision :: x(ixG^S,ndim), xext(ixGmin1-1:ixGmax1,1), drs(ixG^S), dx2(ixG^S), dx3(ixG^S)
-    double precision :: exp_factor(ixG^S),del_exp_factor(ixG^S),exp_factor_primitive(ixG^S)
+    double precision :: exp_factor(ixGmin1-1:ixGmax1),del_exp_factor(ixGmin1-1:ixGmax1),exp_factor_primitive(ixGmin1-1:ixGmax1)
 
     select case (coordinate)
 
@@ -165,7 +165,7 @@ contains
       drs(ixG^S)=s%dx(ixG^S,1)
       x(ixG^S,1)=s%x(ixG^S,1)
       {^IFONED
-      if(associated(usr_set_surface)) call usr_set_surface(ixG^L,x,drs,exp_factor,del_exp_factor,exp_factor_primitive)
+      if(associated(usr_set_surface)) call usr_set_surface(ixG^L,x,drs,exp_factor(ixG^S),del_exp_factor(ixG^S),exp_factor_primitive(ixG^S))
       s%surface(ixG^S,1)=exp_factor(ixG^S)
       xext(0,1)=x(1,1)-half*drs(1)
       xext(ixG^S,1)=x(ixG^S,1)+half*drs(ixG^S)
@@ -483,7 +483,7 @@ contains
     use_6th_order = .false.
     if (present(fourthorder)) use_4th_order = fourthorder
     if (present(sixthorder))  use_6th_order = sixthorder
-    if(use_4th_order .and. use_6th_order) & 
+    if(use_4th_order .and. use_6th_order) &
       call mpistop("divvector: using 4th and 6th order at the same time")
 
     if(use_4th_order) then

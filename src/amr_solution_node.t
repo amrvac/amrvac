@@ -58,7 +58,7 @@ subroutine alloc_node(igrid)
   double precision :: dx^D, summeddx, sizeuniformpart^D
   double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
   double precision :: delx(ixGlo1:ixGhi1,1),xc(ixGlo1:ixGhi1,1),delxc(ixGlo1:ixGhi1,1)
-  double precision :: exp_factor(ixGlo1:ixGhi1),del_exp_factor(ixGlo1:ixGhi1),exp_factor_primitive(ixGlo1:ixGhi1)
+  double precision :: exp_factor(ixGlo1-1:ixGhi1+1),del_exp_factor(ixGlo1-1:ixGhi1+1),exp_factor_primitive(ixGlo1-1:ixGhi1+1)
 
   ixCoGmin^D=1;
   ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
@@ -459,7 +459,7 @@ subroutine alloc_node(igrid)
       ps(igrid)%dvolume(ixGext^S)= exp_factor_primitive(ixGext^S)
       ps(igrid)%ds(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
       ps(igrid)%dsC(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
-      if(associated(usr_set_surface)) call usr_set_surface(ixCoG^L,xc,delxc,exp_factor,del_exp_factor,exp_factor_primitive)
+      if(associated(usr_set_surface)) call usr_set_surface(ixCoG^L,xc,delxc,exp_factor(ixGlo1:ixGhi1),del_exp_factor(ixGlo1:ixGhi1),exp_factor_primitive(ixGlo1:ixGhi1))
       psc(igrid)%dvolume(ixCoG^S)= exp_factor_primitive(ixCoG^S)
       psc(igrid)%ds(ixCoG^S,1)=psc(igrid)%dx(ixCoG^S,1)
       }
