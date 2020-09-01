@@ -156,8 +156,9 @@ contains
     type(state) :: s
     integer, intent(in) :: ixG^L
 
-    double precision :: x(ixG^S,ndim), xext(ixGmin1-1:ixGmax1,1), drs(ixG^S), dx2(ixG^S), dx3(ixG^S)
-    double precision :: exp_factor(ixGmin1-1:ixGmax1),del_exp_factor(ixGmin1-1:ixGmax1),exp_factor_primitive(ixGmin1-1:ixGmax1)
+    double precision :: x(ixG^S,ndim), xext(ixGmin1-1:ixGmax1,1), drs(ixG^S), drs_ext(ixGmin1-1:ixGmax1), dx2(ixG^S), dx3(ixG^S)
+    double precision :: exp_factor_ext(ixGmin1-1:ixGmax1),del_exp_factor_ext(ixGmin1-1:ixGmax1),exp_factor_primitive_ext(ixGmin1-1:ixGmax1)
+    double precision :: exp_factor(ixGmin1:ixGmax1),del_exp_factor(ixGmin1:ixGmax1),exp_factor_primitive(ixGmin1:ixGmax1)
 
     select case (coordinate)
 
@@ -165,13 +166,17 @@ contains
       drs(ixG^S)=s%dx(ixG^S,1)
       x(ixG^S,1)=s%x(ixG^S,1)
       {^IFONED
-      if(associated(usr_set_surface)) call usr_set_surface(ixG^L,x,drs,exp_factor(ixG^S),del_exp_factor(ixG^S),exp_factor_primitive(ixG^S))
+      if(associated(usr_set_surface))then
+           call usr_set_surface(ixGmin1,ixGmax1,x,drs,exp_factor,del_exp_factor,exp_factor_primitive)
+           if (any(exp_factor <= zero)) call mpistop("The area must always be strictly positive!")
+      endif
       s%surface(ixG^S,1)=exp_factor(ixG^S)
-      xext(0,1)=x(1,1)-half*drs(1)
+      xext(ixGmin1-1,1)=x(1,1)-half*drs(1)
       xext(ixG^S,1)=x(ixG^S,1)+half*drs(ixG^S)
-      if(associated(usr_set_surface)) call usr_set_surface(ixGmin1-1,ixGmax1,xext,drs,exp_factor,del_exp_factor,exp_factor_primitive)
-      if (any(exp_factor .le. zero)) call mpistop("The area must always be strictly positive!")
-      s%surfaceC(ixGmin1-1:ixGmax1,1)=exp_factor(ixGmin1-1:ixGmax1)
+      drs_ext(ixGmin1-1)=drs(1)
+      drs_ext(ixG^S)=drs(ixG^S)
+      if(associated(usr_set_surface)) call usr_set_surface(ixGmin1-1,ixGmax1,xext,drs_ext,exp_factor_ext,del_exp_factor_ext,exp_factor_primitive_ext)
+      s%surfaceC(ixGmin1-1:ixGmax1,1)=exp_factor_ext(ixGmin1-1:ixGmax1)
       }
 
     case (Cartesian,Cartesian_stretched)

@@ -54,11 +54,13 @@ subroutine alloc_node(igrid)
 
   integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
   integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
-  integer:: icase, ixGext^L
+  integer :: icase, ixGext^L
   double precision :: dx^D, summeddx, sizeuniformpart^D
   double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
-  double precision :: delx(ixGlo1:ixGhi1,1),xc(ixGlo1:ixGhi1,1),delxc(ixGlo1:ixGhi1,1)
-  double precision :: exp_factor(ixGlo1-1:ixGhi1+1),del_exp_factor(ixGlo1-1:ixGhi1+1),exp_factor_primitive(ixGlo1-1:ixGhi1+1)
+  double precision :: delx_ext(ixGlo1-1:ixGhi1+1)
+  double precision :: exp_factor_ext(ixGlo1-1:ixGhi1+1),del_exp_factor_ext(ixGlo1-1:ixGhi1+1),exp_factor_primitive_ext(ixGlo1-1:ixGhi1+1)
+  double precision :: xc(ixGlo1:ixGhi1),delxc(ixGlo1:ixGhi1)
+  double precision :: exp_factor_coarse(ixGlo1:ixGhi1),del_exp_factor_coarse(ixGlo1:ixGhi1),exp_factor_primitive_coarse(ixGlo1:ixGhi1)
 
   ixCoGmin^D=1;
   ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
@@ -452,15 +454,15 @@ subroutine alloc_node(igrid)
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
     case (Cartesian_expansion)
       {^IFONED
-      delx(ixGext^S,1) = ps(igrid)%dx(ixGext^S,1)
-      xc(ixCoG^S,1) = psc(igrid)%x(ixCoG^S,1)
-      delxc(ixCoG^S,1) = psc(igrid)%dx(ixCoG^S,1)
-      if(associated(usr_set_surface)) call usr_set_surface(ixGext^L,xext,delx,exp_factor,del_exp_factor,exp_factor_primitive)
-      ps(igrid)%dvolume(ixGext^S)= exp_factor_primitive(ixGext^S)
+      delx_ext(ixGext^S) = ps(igrid)%dx(ixGext^S,1)
+      if(associated(usr_set_surface)) call usr_set_surface(ixGext^L,xext(ixGext^S,1),delx_ext(ixGext^S),exp_factor_ext(ixGext^S),del_exp_factor_ext(ixGext^S),exp_factor_primitive_ext(ixGext^S))
+      ps(igrid)%dvolume(ixGext^S)= exp_factor_primitive_ext(ixGext^S)
       ps(igrid)%ds(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
       ps(igrid)%dsC(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
-      if(associated(usr_set_surface)) call usr_set_surface(ixCoG^L,xc,delxc,exp_factor(ixGlo1:ixGhi1),del_exp_factor(ixGlo1:ixGhi1),exp_factor_primitive(ixGlo1:ixGhi1))
-      psc(igrid)%dvolume(ixCoG^S)= exp_factor_primitive(ixCoG^S)
+      xc(ixCoG^S) = psc(igrid)%x(ixCoG^S,1)
+      delxc(ixCoG^S) = psc(igrid)%dx(ixCoG^S,1)
+      if(associated(usr_set_surface)) call usr_set_surface(ixCoG^L,xc(ixCoG^S),delxc(ixCoG^S),exp_factor_coarse(ixCoG^S),del_exp_factor_coarse(ixCoG^S),exp_factor_primitive_coarse(ixCoG^S))
+      psc(igrid)%dvolume(ixCoG^S)= exp_factor_primitive_coarse(ixCoG^S)
       psc(igrid)%ds(ixCoG^S,1)=psc(igrid)%dx(ixCoG^S,1)
       }
     case (spherical)
