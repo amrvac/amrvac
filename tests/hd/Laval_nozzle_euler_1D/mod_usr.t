@@ -135,8 +135,12 @@ contains
     call hd_get_csound2(w,x,ixI^L,ixO^L,cs2)
     w(ixO^S,nw+3) =vv(ixO^S)/dsqrt(cs2(ixO^S))
     w(ixO^S,nw+4) =vv(ixO^S)*exp_factor(ixO^S)*w(ixO^S,rho_)
-    if(hd_energy)then
+    if(hd_energy.or.hd_gamma/=1.0d0)then
        w(ixO^S,nw+5)=0.5d0*vv(ixO^S)**2+(pp(ixO^S)/w(ixO^S,rho_))*(hd_gamma/(hd_gamma-1.0d0))
+    else
+      print *,'using lnrho: energy,gamma,adiab'
+      print *,hd_energy,hd_gamma,hd_adiab
+       w(ixO^S,nw+5)=0.5d0*vv(ixO^S)**2+hd_adiab*dlog(w(ixO^S,rho_))
     endif
 
   end subroutine extra_var_output
@@ -144,11 +148,7 @@ contains
   subroutine extra_var_names_output(varnames)
     character(len=*)  :: varnames
 
-    if(hd_energy)then
-      varnames = "A T M Am E"
-    else
-      varnames = "A T M Am"
-    endif
+    varnames = "A T M Am E"
 
   end subroutine extra_var_names_output
 

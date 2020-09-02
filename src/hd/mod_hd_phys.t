@@ -187,7 +187,6 @@ contains
     phys_total_energy  = hd_energy
     ! set default gamma for polytropic/isothermal process
     if(.not.hd_energy) then
-      hd_gamma=1.d0
       if(hd_thermal_conduction) then
         hd_thermal_conduction=.false.
         if(mype==0) write(*,*) 'WARNING: set hd_thermal_conduction=F when hd_energy=F'

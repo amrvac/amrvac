@@ -4,7 +4,7 @@
         saveprim      = .true.
         autoconvert   = .true.
         convert_type  = 'vtuBCCmpi'
-        nwauxio       = 4
+        nwauxio       = 5
  /
 
 
