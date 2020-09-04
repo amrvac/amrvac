@@ -1,6 +1,5 @@
 !> Hydrodynamics physics module
 module mod_hd_phys
-
   implicit none
   private
 
@@ -9,6 +8,9 @@ module mod_hd_phys
 
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
+
+  !> Whether use new module mod_tc
+  logical, public, protected              :: use_new_hd_tc = .false.
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
@@ -77,7 +79,7 @@ contains
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
-    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
+    hd_dust, hd_thermal_conduction, use_new_hd_tc, hd_radiative_cooling, hd_viscosity, &
     hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame
 
     do n = 1, size(files)
@@ -170,6 +172,7 @@ contains
   subroutine hd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
+    use mod_tc
     use mod_radiative_cooling
     use mod_dust, only: dust_init
     use mod_viscosity, only: viscosity_init
@@ -254,7 +257,11 @@ contains
       if (.not. hd_energy) &
            call mpistop("thermal conduction needs hd_energy=T")
       phys_req_diagonal = .true.
-      call thermal_conduction_init(hd_gamma)
+      if(.not. use_new_hd_tc) then
+        call thermal_conduction_init(hd_gamma)
+      else
+        call tc_init_hd_for_total_energy(hd_gamma, (/rho_, e_/),hd_get_temperature_from_etot, hd_get_temperature_from_eint,hd_e_to_ei1, hd_ei_to_e1)
+      endif
     end if
 
     ! Initialize radiative cooling module
@@ -705,6 +712,59 @@ contains
     end if
 
   end subroutine hd_get_pthermal
+
+  !the following are only used in the new TC module: mod_tc
+  !> Calculate temperature=p/rho when in e_ the  total energy is stored
+  subroutine hd_get_temperature_from_etot(w, x, ixI^L, ixO^L, res)
+    use mod_global_parameters
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, 1:nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision, intent(out):: res(ixI^S)
+
+    call hd_get_pthermal(w, x, ixI^L, ixO^L, res)
+    res(ixO^S)=res(ixO^S)/w(ixO^S,rho_)
+  end subroutine hd_get_temperature_from_etot
+
+  
+  !> Calculate temperature=p/rho when in e_ the  internal energy is stored
+  subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
+    use mod_global_parameters
+    use mod_small_values, only: small_values_method
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, 1:nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision, intent(out):: res(ixI^S)
+    res(ixO^S) = (hd_gamma - 1.0d0) * w(ixO^S, e_) /w(ixO^S,rho_)
+  end subroutine hd_get_temperature_from_eint
+
+  !these are very similar to the subroutines without 1, used in mod_thermal_conductivity
+   !but no check as it is done whne the method is added
+  subroutine hd_ei_to_e1(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate total energy from internal and kinetic energy
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                 +hd_kin_en(w,ixI^L,ixO^L)
+
+  end subroutine hd_ei_to_e1
+
+  !> Transform total energy to internal energy
+  subroutine hd_e_to_ei1(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate ei = e - ek
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                  -hd_kin_en(w,ixI^L,ixO^L)
+
+  end subroutine hd_e_to_ei1
+  !the following are only used in mod_tc end
 
   ! Calculate flux f_idim[iw]
   subroutine hd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)

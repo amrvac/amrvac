@@ -1,0 +1,72 @@
+ &filelist
+        autoconvert   = T
+        saveprim      = T
+        nwauxio       = 1
+        base_filename = 'ambi'
+        typefilelog='regression_test'
+ /
+
+ &savelist
+        dtsave_log=1d-4
+        dtsave_dat=1d-1
+
+ /
+
+ &stoplist
+        time_max      = 1d-3
+ /
+
+ &methodlist
+        time_stepper = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+        small_values_method = 'ignore'
+ /
+
+ &boundlist
+        internalboundary = .true.
+        typeboundary_min1  = 8*'special'
+        typeboundary_max1  = 8*'special'
+
+
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 1
+    	  refine_threshold = 20*0.4d0
+        domain_nx1    = 3200
+        block_nx1    = 50
+        xprobmin1     = 0.5d0
+        xprobmax1     = 2.1d0
+ /
+
+ &paramlist
+        courantpar    = 0.8d0
+ /
+
+ &mhd_list
+        typedivbfix   =  'linde'
+        mhd_gravity   =  .true.
+        SI_unit       =  .true.
+        He_abundance  =  0d0
+        mhd_ambipolar =  .true.
+        mhd_eta_ambi=1d-4
+        mhd_ambipolar_sts = .true.
+ /
+
+ &sts_list
+        sts_ncycles=1000
+        method_sts=1
+        sourcetype_sts=2
+ /
+
+ &usr_list
+        Period= 5
+        maskAmbi = .true.
+        xLambi = 1.65
+        ambi_mask_method = 1
+        ambi_mask_smooth = .true.
+
+
+/

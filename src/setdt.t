@@ -6,6 +6,7 @@ subroutine setdt()
   use mod_physics
   use mod_usr_methods, only: usr_get_dt
   use mod_thermal_conduction
+  use mod_supertimestepping, only: set_dt_sts_ncycles, is_sts_initialized, sourcetype_sts,sourcetype_sts_split
 
   integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
@@ -13,6 +14,7 @@ subroutine setdt()
   double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
   double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_bott, T_peak
   double precision :: trac_alfa, trac_dmax, trac_tau
+
 
   if (dtpar<=zero) then
      dtmin_mype=bigdouble
@@ -104,6 +106,7 @@ subroutine setdt()
     endif
   endif   
 
+  
   ! estimate time step of thermal conduction
   if(associated(phys_getdt_heatconduct)) then
      dtmin_mype=bigdouble
@@ -142,6 +145,22 @@ subroutine setdt()
      dt_tc=dt*0.5d0
      if(mype==0 .and. .false.) write(*,*) 'supertime steps:',s,' normal subcycles:',&
                                  ceiling(dt/dtnew/2.d0)
+  endif
+
+  if(is_sts_initialized()) then
+    !!reuse qdtnew
+    !qdtnew = dt 
+    if(sourcetype_sts .eq. sourcetype_sts_split) then
+      qdtnew = 0.5d0 * dt 
+      if (set_dt_sts_ncycles(qdtnew)) then
+        dt = 2d0*qdtnew
+      endif  
+    else
+      !if(mype .eq. 0) print*, "Original dt ", dt
+      if(set_dt_sts_ncycles(dt))then 
+       !  if(mype .eq. 0) print*, "dt is now", dt
+      endif
+    endif
   endif
 
   !$OMP PARALLEL DO PRIVATE(igrid)

@@ -126,6 +126,7 @@ mod_hd_phys.o: mod_physics.mod
 mod_hd_phys.o: mod_radiative_cooling.mod
 mod_hd_phys.o: mod_rotating_frame.mod
 mod_hd_phys.o: mod_small_values.mod
+mod_hd_phys.o: mod_tc.mod
 mod_hd_phys.o: mod_thermal_conduction.mod
 mod_hd_phys.o: mod_viscosity.mod
 mod_hd_ppm.o: mod_geometry.mod
@@ -176,6 +177,7 @@ mod_mhd.o: mod_mhd_roe.mod
 mod_mhd_hllc.o: mod_mhd_phys.mod
 mod_mhd_hllc.o: mod_physics_hllc.mod
 mod_mhd_phys.o: mod_constrained_transport.mod
+mod_mhd_phys.o: mod_fix_conserve.mod
 mod_mhd_phys.o: mod_geometry.mod
 mod_mhd_phys.o: mod_gravity.mod
 mod_mhd_phys.o: mod_magnetofriction.mod
@@ -184,6 +186,8 @@ mod_mhd_phys.o: mod_particles.mod
 mod_mhd_phys.o: mod_physics.mod
 mod_mhd_phys.o: mod_radiative_cooling.mod
 mod_mhd_phys.o: mod_small_values.mod
+mod_mhd_phys.o: mod_supertimestepping.mod
+mod_mhd_phys.o: mod_tc.mod
 mod_mhd_phys.o: mod_thermal_conduction.mod
 mod_mhd_phys.o: mod_viscosity.mod
 mod_mhd_ppm.o: mod_geometry.mod
@@ -254,7 +258,18 @@ mod_slice.o: mod_calculate_xw.mod
 mod_solar_atmosphere.o: mod_interpolation.mod
 mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_physics.mod
+mod_source.o: mod_supertimestepping.mod
 mod_source.o: mod_thermal_conduction.mod
+mod_supertimestepping.o: mod_fix_conserve.mod
+mod_supertimestepping.o: mod_geometry.mod
+mod_supertimestepping.o: mod_ghostcells_update.mod
+mod_supertimestepping.o: mod_physics.mod
+mod_supertimestepping.o: mod_small_values.mod
+mod_tc.o: mod_fix_conserve.mod
+mod_tc.o: mod_geometry.mod
+mod_tc.o: mod_physics.mod
+mod_tc.o: mod_small_values.mod
+mod_tc.o: mod_supertimestepping.mod
 mod_thermal_conduction.o: mod_fix_conserve.mod
 mod_thermal_conduction.o: mod_geometry.mod
 mod_thermal_conduction.o: mod_ghostcells_update.mod
@@ -274,4 +289,5 @@ refine.o: mod_amr_fct.mod
 refine.o: mod_physics.mod
 set_B0.o: mod_geometry.mod
 setdt.o: mod_physics.mod
+setdt.o: mod_supertimestepping.mod
 setdt.o: mod_thermal_conduction.mod
