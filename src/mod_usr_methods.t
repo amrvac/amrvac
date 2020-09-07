@@ -377,11 +377,11 @@ module mod_usr_methods
     end subroutine create_particles
     
     !> Check arbitrary particle conditions or modifications
-    subroutine check_particle(igrid,xpart,vpart,qpart,mpart,follow,check)
+    subroutine check_particle(igrid,x,v,q,m,follow,check)
       use mod_global_parameters
       integer, intent(in)           :: igrid
-      double precision, intent(in)  :: xpart(1:ndir),qpart,mpart
-      double precision, intent(inout) :: vpart(1:ndir)
+      double precision, intent(in)  :: x(1:ndir),q,m
+      double precision, intent(inout) :: v(1:ndir)
       logical, intent(inout) :: follow
       logical, intent(out)   :: check
     end subroutine check_particle
