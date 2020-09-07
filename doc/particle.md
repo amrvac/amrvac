@@ -92,9 +92,24 @@ Below, we describe the essential steps needed to correctly set up a particle sim
 
   Here, \p x is the particle position, \p v is the particle velocity, \p q is the particle charge, and \p m is the particle mass. The \p follow variable tells the routine whether a certain particle should be tracked individually during the simulation (see section "Output and visualisation" below). While the position will be used in all modes, information on the velocity, charge, and mass will only be employed if \p physics_type_particles is \p 'Lorentz' or \p 'GCA'. If the user does not provide their own particle initialisation subroutine (and/or if the latter is not associated with the \p usr_create_particles pointer), the code will by default initialise all particles at randomly generated locations inside the domain, with zero velocity, mass, and charge, and with <tt>follow=.false.</tt>.
 
-- **Payloads**: particle simulations are especially flexible in terms of the quantities that can be dynamically stored in the particle output files. On top of tracking positions and velocities, an arbitrary number of payloads can be assigned to each particle in order to monitor additional physical aspects. As an example, in the \p 'advect' mode each particle can be assigned to track the local fluid density, which will be then stored in a payload variable and added to the output. The number of payloads is chosen by the user by setting the parameters \p npayload in the \p particles_list of the <tt>.par</tt> file. The default number of payloads is 1, and payload tracking can be suppressed by setting \p npayload=0.
+  By default, the code generates the particles on the processor #0 and then distributes them among the processors depending on which processor handles which spatial region. After the particles generated with the initial position and velocity have been distributed, the user has the option to perform additional operations such as modifying the particle velocity based on local MHD properties, discard particles that are found outside of specific regions of interest, etc. For example, the user may choose to retain only particles belonging to regions wheret he temperature is above a chosen threshold (an operation that cannot be performed at generation time, since processor #0 where particles are generated does not possess information on the spatial regions where the particles will be sent). This can be done by associating the pointer \p usr_check_particle in the user file. The pointer must be associated with a subroutine (named e.g. particle_modification) which *must* have the follwing format:
 
-  The code will by default update and store a number of payloads, depending on the running mode:
+  \code{.f90}
+  subroutine particle_modification(igrid, x, v, q, m, follow, check)
+    integer, intent(in)             :: igrid
+    double precision, intent(in)    :: x(1:ndir)
+    double precision, intent(inout) :: v(1:ndir), q, m
+    logical, intent(inout)          :: follow
+    logical, intent(out)            :: check
+
+  end subroutine particle_modification
+  \endcode
+
+  Here, the user is free to apply modifications to the particle velocity, mass, charge, and to the \p follow parameter, but not to the particle position, which is assumed will stay unchanged (otherwise, handling the particles may require further communications). Whenever this subroutine returns a <tt>check=.false.<\tt> flag, the particle will be *discarded*. For all particles that should be kept, it is necessary that <tt>check=.true.<\tt> 
+
+- **Payloads**: particle simulations are especially flexible in terms of the quantities that can be dynamically stored in the particle output files. On top of tracking positions and velocities, an arbitrary number of payloads can be assigned to each particle in order to monitor additional physical aspects. As an example, in the \p 'advect' mode each particle can be assigned to track the local fluid density, which will be then stored in a payload variable and added to the output. A number of default payloads can be calculated and stored for each running mode. Additionally, the user can define custom payloads. The number of default and custom payloads is chosen by the user by setting the parameters \p ndefpayload and \nusrpayload in the \p particles_list of the <tt>.par</tt> file. By default, \p ndefpayload=1, and payload tracking can be suppressed by setting \p ndefpayload=0.
+
+  The default payloads, depending on the running mode, are:
   * For the \p 'advect' mode, the fluid density at the particle location will be tracked and stored in the first payload.
   * For the \p 'Lorentz' mode, up to four payloads can be updated by default: the particle Lorentz factor (\p =1 if <tt>relativistic=.false.</tt>), the particle gyroradius, the magnetic moment, and the local value of \f$ \textbf{E}\cdot\textbf{B}\f$.
   * For the \p 'GCA' mode, there are 14 default payloads: 
@@ -103,17 +118,17 @@ Below, we describe the essential steps needed to correctly set up a particle sim
     * Perpendicular velocity \f$v_\perp\f$;
     * Four parallel acceleration terms (see right-hand side of the \f$du_{\|}/dt\f$ equation above);
     * Seven drift velocity terms (in magnitude; see right-hand side of the \f$d\textbf{R}/dt\f$ equation above).
-  * For the \p 'sample' mode, by default (regardless of the value of \p npayload in the <tt>.par</tt> file) there will be a number of payloads \p n=nw, where \p nw is the number of variables in the fluid simulation. Each of these payloads samples one of the *primitive* fluid quantities, and therefore in the <tt>.csv</tt> output these payloads are named according to the names given to the primitive quantities.
+  * For the \p 'sample' mode, by default (regardless of the value of \p ndefpayload in the <tt>.par</tt> file) there will be a number of payloads \p n=nw, where \p nw is the number of variables in the fluid simulation. Each of these payloads samples one of the *primitive* fluid quantities, and therefore in the <tt>.csv</tt> output these payloads are named according to the names given to the primitive quantities.
 
-  If the user wishes to define a custom payload update routine, this can be done in the \p mod_usr.t file. The user-defined routine <em>must</em> be associated with the \p usr_update_payload pointer at the beginning of \p mod_usr.t. The required format for a user-defined payload update routine (e.g. named \p update_payload) is:
+  A custom payload update routine allows the user to store additional payloads (on top of the default ones). This can be done in the \p mod_usr.t file via a user-defined routine which *must* be associated with the \p usr_update_payload pointer at the beginning of \p mod_usr.t. The required format for a user-defined payload update routine (e.g. named \p update_payload) is:
 
   \code{.f90}
-  subroutine update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
+  subroutine update_payload(igrid,w,wold,xgrid,x,u,q,m,mypayload,mynpayload,particle_time)
     use mod_global_parameters
-    integer, intent(in)           :: igrid,npayload
+    integer, intent(in)           :: igrid,mynpayload
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
-    double precision, intent(out) :: payload(npayload)
+    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),x(1:ndir),u(1:ndir),q,m,particle_time
+    double precision, intent(out) :: mypayload(mynpayload)
   
   end subroutine update_payload
   \endcode
@@ -148,7 +163,8 @@ Below is a description of the various outputs associated to the use of the parti
   * Current time step \p dt;
   * Particle position <tt>(x1,x2,x3)</tt>;
   * Particle velocity <tt>(u1,u2,u3)</tt>;
-  * Payloads associated to the particle, labelled \p pl01, \p pl02, ..., \p plN (where \p N is the number of payloads specified via \p npayload).
+  * Default payloads associated with the particle, labelled \p pl01, \p pl02, ..., \p plN (where \p N is the number of default payloads specified via \p ndefpayload);
+  * Custom payloads associated with the particle, labelled \p usrpl01, \p usrpl02, ..., \p usrplN (where \p N is the number of custom payloads specified via \p nusrpayload).
 
   Note that when <tt>relativistic=.true.</tt> in the \p 'Lorentz' mode, the particle velocity will be replaced by the particle normalised momentum in the output files. In the \p 'GCA' mode, the quantities stored in \p (u1,u2,u3) are not the full particle velocity components, but rather the particle parallel velocity (or normalised parallel momentum) in \p u1 and the magnetic moment (or relativistic magnetic moment) in \p u2. The Lorentz factor will be stored in \p u3 if <tt>relativistic=.true.</tt>, otherwise \p u3=1 will be set by default.
 
