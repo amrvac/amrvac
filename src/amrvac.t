@@ -14,10 +14,7 @@ program amrvac
   use mod_fix_conserve
   use mod_advance, only: process
   use mod_constrained_transport
-
-  {^NOONED
   use mod_multigrid_coupling
-  }
 
   double precision :: time0, time_in
   logical,save     :: part_file_exists=.false.
@@ -105,9 +102,7 @@ program amrvac
         stop
      end if
 
-     {^NOONED
      if (use_multigrid) call mg_setup_multigrid()
-     }
 
   else
 
@@ -117,9 +112,9 @@ program amrvac
      ! set up and initialize finer level grids, if needed
      call settree
 
-     {^NOONED
      if (use_multigrid) call mg_setup_multigrid()
 
+     {^NOONED
      ! improve initial condition
      call improve_initial_condition()
      }
@@ -209,11 +204,6 @@ contains
        ! set time step
        call setdt()
 
-       ! Check if output needs to be written
-       do ifile=nfile,1,-1
-         save_file(ifile) = timetosave(ifile)
-       end do
-
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step
        if (associated(usr_process_grid) .or. &
@@ -221,12 +211,17 @@ contains
           call process(it,global_time)
        end if
 
+       ! Check if output needs to be written
+       do ifile=nfile,1,-1
+         save_file(ifile) = timetosave(ifile)
+       end do
+
        timeio0=MPI_WTIME()
 
        if (timeio0 - time_last_print > time_between_print) then
          time_last_print = timeio0
          if (mype == 0) then
-           write(*, '(A4,I10,ES12.3,ES12.3,ES12.3)') " #", &
+           write(*, '(A4,I10,ES12.4,ES12.4,ES12.4)') " #", &
                 it, global_time, dt, timeio0 - time_in
          end if
        end if
@@ -269,7 +264,7 @@ contains
        pass_wall_time=MPI_WTIME()-time0+dt_loop+4.d0*time_write >=wall_time_max
 
        ! exit time loop if time is up
-       if (it>=it_max .or. global_time>=time_max .or. pass_wall_time) exit time_evol
+       if (it>=it_max .or. global_time>=time_max .or. pass_wall_time .or. final_dt_exit) exit time_evol
 
        ! solving equations
        call advance(it)
@@ -360,9 +355,7 @@ contains
 
     if(use_particles) call time_spent_on_particles
 
-    {^NOONED
     if (use_multigrid) call mg_timers_show(mg)
-    }
   end subroutine timeintegration
 
   !> Save times are defined by either tsave(isavet(ifile),ifile) or
@@ -376,14 +369,18 @@ contains
     integer:: ifile
     logical:: oksave
 
+!       if(mype==0) print*,ifile,'OK tsave 0',isavet(ifile),global_time
     oksave=.false.
     if (it==itsave(isaveit(ifile),ifile)) then
+!       if(mype==0) print*,ifile,'OK tsave 1',isaveit(ifile),global_time
        oksave=.true.
        isaveit(ifile)=isaveit(ifile)+1
     end if
     if (it==itsavelast(ifile)+ditsave(ifile)) oksave=.true.
 
-    if (global_time>=tsave(isavet(ifile),ifile)) then
+!       if(mype==0) print*,ifile,'OK tsave2',isavet(ifile),global_time,tsave(isavet(ifile),ifile)
+    if (global_time>=tsave(isavet(ifile),ifile).and.global_time-dt<tsave(isavet(ifile),ifile)) then
+!       if(mype==0) print*,ifile,'OK tsave3',isavet(ifile),global_time,tsave(isavet(ifile),ifile)
        oksave=.true.
        isavet(ifile)=isavet(ifile)+1
     end if

@@ -48,14 +48,6 @@ module mod_global_parameters
   !> MPI type for IO: cell corner (wc) or cell center (wcc) variables
   integer :: type_block_wc_io,type_block_wcc_io
 
-  !> MPI recv send variables for AMR
-  integer :: itag, irecv, isend
-  integer, dimension(:), allocatable :: recvrequest, sendrequest
-  integer, dimension(:,:), allocatable :: recvstatus, sendstatus
-  !> MPI recv send variables for staggered-variable AMR
-  integer :: itag_stg
-  integer, dimension(:), allocatable :: recvrequest_stg, sendrequest_stg
-  integer, dimension(:,:), allocatable :: recvstatus_stg, sendstatus_stg
 
   ! geometry and domain setups 
 
@@ -259,7 +251,7 @@ module mod_global_parameters
   logical, allocatable :: w_write(:)
   logical, allocatable :: writelevel(:)
   double precision :: writespshift(ndim,2)
-  integer          :: level_io, level_io_min, level_io_max
+  integer          :: level_io, level_io_min, level_io_max, type_endian
 
   !> Which par files are used as input
   character(len=std_len), allocatable :: par_files(:)
@@ -361,23 +353,11 @@ module mod_global_parameters
   !> check and optionally fix unphysical small values (density, gas pressure)
   logical :: check_small_values=.false.
 
-  !> Use primitive variables when correcting small values
-  logical :: small_values_use_primitive=.false.
-
-  !> Whether to apply small value fixes to certain variables
-  logical, allocatable :: small_values_fix_iw(:)
-
   !> split magnetic field as background B0 field
   logical :: B0field=.false.
 
   !> Use SI units (.true.) or use cgs units (.false.)
   logical :: SI_unit=.false.
-
-  !> Solve energy equation or not
-  logical :: phys_energy=.true.
-
-  !> Solve polytropic process instead of solving total energy
-  logical :: phys_solve_eaux=.false.
 
   !> Use TRAC (Johnston 2019 ApJL, 873, L22) for MHD or 1D HD
   logical :: trac=.false.  
@@ -422,8 +402,8 @@ module mod_global_parameters
   double precision, allocatable :: amr_wavefilter(:)
 
   integer                       :: refine_criterion
-  logical                       :: prolongprimitive
-  logical                       :: coarsenprimitive
+  logical                       :: prolongprimitive=.false.
+  logical                       :: coarsenprimitive=.false.
 
   !> Error tolerance for refinement decision
   double precision, allocatable :: refine_threshold(:)
@@ -494,12 +474,18 @@ module mod_global_parameters
   !> Stop the simulation when the time step becomes smaller than this value
   double precision :: dtmin
 
+  !> Force timeloop exit when final dt < dtmin
+  logical :: final_dt_exit
+
   !> If true, reset iteration count and global_time to original values, and
   !> start writing snapshots at index 0
   logical :: reset_time
 
   !> If true, reset iteration count to 0
   logical :: reset_it
+
+  !> If true, allow final dt reduction for matching time_max on output
+  logical :: final_dt_reduction
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
@@ -528,18 +514,21 @@ module mod_global_parameters
   !> How many sub-steps the time integrator takes
   integer :: nstep
 
+  !> Which time stepper to use
+  character(len=std_len) :: time_stepper
+
   !> Which time integrator to use
   character(len=std_len) :: time_integrator
 
   !> How to apply dimensional splitting to the source terms, see
-  !> @ref disretization.md
+  !> @ref discretization.md
   character(len=std_len) :: typesourcesplit
 
   !> Which spatial discretization to use (per grid level)
   character(len=std_len), allocatable :: flux_scheme(:)
 
-  !> The spatial dicretization for the predictor step when using a two
-  !> step method
+  !> The spatial discretization for the predictor step when using a two
+  !> step PC method
   character(len=std_len), allocatable :: typepred1(:)
 
   !> Type of slope limiter used for reconstructing variables on cell edges
@@ -580,6 +569,26 @@ module mod_global_parameters
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
   logical                       :: dimsplit
+
+  !> RK2(alfa) method parameters from Butcher tableau
+  double precision              :: rk2_alfa,rk_a21,rk_b1,rk_b2
+  !> SSPRK choice of methods (both threestep and fourstep, Shu-Osher 2N* implementation)
+  !> also fivestep SSPRK54
+  integer                       :: ssprk_order
+  double precision              :: rk_beta11,rk_beta22,rk_beta33,rk_beta44,rk_c2,rk_c3,rk_c4
+  double precision              :: rk_alfa21,rk_alfa22,rk_alfa31,rk_alfa33,rk_alfa41,rk_alfa44
+  double precision              :: rk_beta54,rk_beta55,rk_alfa53,rk_alfa54,rk_alfa55,rk_c5
+  !> RK3 Butcher table
+  integer                       :: rk3_switch
+  double precision              :: rk3_a21,rk3_a31,rk3_a32,rk3_b1,rk3_b2,rk3_b3,rk3_c2,rk3_c3
+  !> IMEX_ARS3 parameter ars_gamma
+  double precision              :: ars_gamma
+  !> IMEX_232 choice and parameters
+  integer                       :: imex_switch
+  double precision              :: imex_a21,imex_a31,imex_a32,imex_b1,imex_b2,imex_ha21,imex_ha22
+  double precision              :: imex_b3,imex_c2,imex_c3
+  !> whether IMEX in use or not
+  logical                       :: use_imex_scheme
 
   character(len=std_len) :: typediv,typegrad,typecurl
 

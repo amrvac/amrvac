@@ -6,6 +6,7 @@ subroutine setdt()
   use mod_physics
   use mod_usr_methods, only: usr_get_dt
   use mod_thermal_conduction
+  use mod_supertimestepping, only: set_dt_sts_ncycles, is_sts_initialized, sourcetype_sts,sourcetype_sts_split
 
   integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
@@ -13,6 +14,7 @@ subroutine setdt()
   double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
   double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_bott, T_peak
   double precision :: trac_alfa, trac_dmax, trac_tau
+
 
   if (dtpar<=zero) then
      dtmin_mype=bigdouble
@@ -66,7 +68,17 @@ subroutine setdt()
   end if
 
 
-  dtmin_mype=min(dtmin_mype,time_max-global_time)
+  if(final_dt_reduction)then
+     !if (dtmin_mype>time_max-global_time) then
+     !   write(unitterm,*)"WARNING final timestep artificially reduced!"
+     !   write(unitterm,*)"on processor:", mype, "at time:", global_time," step:", it
+     !endif
+     if(time_max-global_time<=dtmin) then
+        !write(unitterm,*)'Forcing to leave timeloop as time is reached!'
+        final_dt_exit=.true.
+     endif
+     dtmin_mype=min(dtmin_mype,time_max-global_time)
+  endif
 
   if (dtpar<=zero) then
      call MPI_ALLREDUCE(dtmin_mype,dt,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
@@ -94,6 +106,7 @@ subroutine setdt()
     endif
   endif   
 
+  
   ! estimate time step of thermal conduction
   if(associated(phys_getdt_heatconduct)) then
      dtmin_mype=bigdouble
@@ -134,6 +147,22 @@ subroutine setdt()
                                  ceiling(dt/dtnew/2.d0)
   endif
 
+  if(is_sts_initialized()) then
+    !!reuse qdtnew
+    !qdtnew = dt 
+    if(sourcetype_sts .eq. sourcetype_sts_split) then
+      qdtnew = 0.5d0 * dt 
+      if (set_dt_sts_ncycles(qdtnew)) then
+        dt = 2d0*qdtnew
+      endif  
+    else
+      !if(mype .eq. 0) print*, "Original dt ", dt
+      if(set_dt_sts_ncycles(dt))then 
+       !  if(mype .eq. 0) print*, "dt is now", dt
+      endif
+    endif
+  endif
+
   !$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
      dt_grid(igrid)=dt
@@ -170,13 +199,13 @@ subroutine setdt()
       {^IFONED
       ps(igrid)%special_values(1)=tco_global 
       }
+      if(ps(igrid)%special_values(1)<trac_alfa*ps(igrid)%special_values(2)) then
+        ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
+      end if
       if(ps(igrid)%special_values(1) < T_bott) then
         ps(igrid)%special_values(1)=T_bott
       else if(ps(igrid)%special_values(1) > 0.2d0*T_peak) then
         ps(igrid)%special_values(1)=0.2d0*T_peak
-      end if
-      if(ps(igrid)%special_values(1) .lt. trac_alfa*ps(igrid)%special_values(2)) then
-        ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
       end if
       !> special values(2) to save old tcutoff
       ps(igrid)%special_values(2)=ps(igrid)%special_values(1)

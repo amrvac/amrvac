@@ -4,7 +4,7 @@
 ! This file can be easier to include in existing projects.
 !
 ! Notes:
-! 1. The module name is here extended by _2d or _3d
+! 1. The module name is here extended by _1d, _2d or _3d
 ! 2. The free space Poisson solver is not included here.
 ! 3. It is best to make changes in the original repository at
 !    https://github.com/jannisteunissen/octree-mg
@@ -13,9 +13,10 @@
 !    ./to_single_module.sh
 !
 ! The modules can be compiled with:
+! mpif90 -c m_octree_mg_1d.f90 [other options]
 ! mpif90 -c m_octree_mg_2d.f90 [other options]
 ! mpif90 -c m_octree_mg_3d.f90 [other options]
-! mpif90 -c m_octree_mg.f90 -cpp -DNDIM=3 [other options]
+! mpif90 -c m_octree_mg.f90 -cpp -DNDIM=<1,2,3> [other options]
 
 
 module m_octree_mg_2d
@@ -233,6 +234,9 @@ module m_octree_mg_2d
 
      !> Whether boundary condition data has been stored for mg solution
      logical :: phi_bc_data_stored = .false.
+
+     !> Whether a dimension is periodic
+     logical :: periodic(2) = .false.
 
      !> To store pre-defined boundary conditions per direction per variable
      type(mg_bc_t) :: bc(mg_num_neighbors, mg_max_num_vars)
@@ -535,13 +539,14 @@ contains
     integer, intent(in)        :: nb
     integer, intent(in)        :: nc
     real(dp), intent(out)      :: x(nc, 2)
-    integer                    :: i
-    integer                    :: nb_dim, ixs(2-1)
+    integer                    :: i, ixs(2-1)
+    integer                    :: nb_dim
     real(dp)                   :: rmin(2)
 
-    ! Determine directions perpendicular to neighbor
     nb_dim = mg_neighb_dim(nb)
-    ixs                     = [(i, i = 1, 2-1)]
+
+    ! Determine directions perpendicular to neighbor
+    ixs = [(i, i = 1, 2-1)]
     ixs(nb_dim:) = ixs(nb_dim:) + 1
 
     rmin = box%r_min
@@ -802,6 +807,12 @@ contains
   subroutine laplacian_set_methods(mg)
     type(mg_t), intent(inout) :: mg
 
+    if (all(mg%periodic)) then
+       ! For a fully periodic Laplacian, remove the mean from the rhs and phi so
+       ! that a unique and periodic solution can be found
+       mg%subtract_mean = .true.
+    end if
+
     select case (mg%geometry_type)
     case (mg_cartesian)
        mg%box_op => box_lpl
@@ -1013,6 +1024,8 @@ contains
        mg%n_extra_vars = max(1, mg%n_extra_vars)
     end if
 
+    mg%subtract_mean = .false.
+
     ! Use Neumann zero boundary conditions for the variable coefficient, since
     ! it is needed in ghost cells.
     mg%bc(:, mg_iveps)%bc_type = mg_bc_neumann
@@ -1142,10 +1155,6 @@ contains
     if (any(modulo(domain_size, box_size) /= 0)) &
          error stop "box_size does not divide domain_size"
 
-    if (all(periodic)) then
-       mg%subtract_mean = .true.
-    end if
-
     nx                       = domain_size
     mg%box_size              = box_size
     mg%box_size_lvl(1)       = box_size
@@ -1153,6 +1162,7 @@ contains
     mg%first_normal_lvl      = 1
     mg%dr(:, 1)              = dx
     mg%r_min(:)              = r_min
+    mg%periodic              = periodic
     boxes_per_dim(:, :)      = 0
     boxes_per_dim(:, 1)      = domain_size / box_size
 
@@ -1588,8 +1598,12 @@ contains
     end do
 
     ! Determine most popular CPU for coarse grids
-    coarse_rank = most_popular(mg%boxes(&
-         mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+    if (single_cpu_lvl < mg%highest_lvl) then
+       coarse_rank = most_popular(mg%boxes(&
+            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+    else
+       coarse_rank = 0
+    end if
 
     do lvl = mg%lowest_lvl, single_cpu_lvl
        do i = 1, size(mg%lvls(lvl)%ids)
@@ -1641,8 +1655,12 @@ contains
     end do
 
     ! Determine most popular CPU for coarse grids
-    coarse_rank = most_popular(mg%boxes(&
-         mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+    if (single_cpu_lvl < mg%highest_lvl) then
+       coarse_rank = most_popular(mg%boxes(&
+            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+    else
+       coarse_rank = 0
+    end if
 
     do lvl = mg%lowest_lvl, single_cpu_lvl
        do i = 1, size(mg%lvls(lvl)%ids)
@@ -1709,6 +1727,8 @@ contains
     else
        mg%n_extra_vars = max(1, mg%n_extra_vars)
     end if
+
+    mg%subtract_mean = .false.
 
     ! Use Neumann zero boundary conditions for the variable coefficient, since
     ! it is needed in ghost cells.
@@ -2412,9 +2432,8 @@ contains
     integer, intent(in)     :: di(2) !< Index offset of fine neighbor
     integer, intent(in)     :: nc, iv
     real(dp), intent(out)   :: gc(nc)
-    real(dp)                :: tmp(0:nc/2+1)
+    real(dp)                :: tmp(0:nc/2+1), grad(2-1)
     integer                 :: i, hnc
-    real(dp)                :: grad(2-1)
 
     hnc = nc/2
 
@@ -2428,6 +2447,8 @@ contains
        tmp = box%cc(di(1):di(1)+hnc+1, 1, iv)
     case (mg_neighb_highy)
        tmp = box%cc(di(1):di(1)+hnc+1, nc, iv)
+    case default
+       error stop
     end select
 
     ! Now interpolate the coarse grid data to obtain values 'straight' next to
@@ -2540,7 +2561,8 @@ contains
     integer, intent(in)       :: nb !< Ghost cell direction
     !> Interpolated coarse grid ghost cell data (but not yet in the nb direction)
     real(dp), intent(in)      :: gc(nc)
-    integer                   :: i, j, ix, dix, di, dj
+    integer                   :: di, dj
+    integer                   :: i, j, ix, dix
 
     if (mg_neighb_low(nb)) then
        ix = 1
@@ -2759,6 +2781,8 @@ contains
 
   subroutine helmholtz_set_methods(mg)
     type(mg_t), intent(inout) :: mg
+
+    mg%subtract_mean = .false.
 
     select case (mg%geometry_type)
     case (mg_cartesian)

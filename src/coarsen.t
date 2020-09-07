@@ -1,82 +1,3 @@
-!> coarsen sibling blocks into one block
-subroutine coarsen_grid_siblings(igrid,ipe,child_igrid,child_ipe,active)
-  use mod_global_parameters
-
-  integer, intent(in) :: igrid, ipe
-  integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
-  logical, intent(in) :: active
-
-  integer :: igridFi, ipeFi, ixCo^L, ixCoG^L, ixCoM^L, ic^D, idir
-
-  if (ipe==mype) call alloc_node(igrid)
-
-  ! New passive cell, coarsen from initial condition:
-  if (.not. active) then
-     if (ipe == mype) then
-        call initial_condition(igrid)
-        {do ic^DB=1,2\}
-        igridFi=child_igrid(ic^D)
-        ipeFi=child_ipe(ic^D)
-        !if (ipeFi==mype) then
-        !   ! remove solution space of child      
-        !   call dealloc_node(igridFi)
-        !end if
-        {end do\}
-     end if
-     return
-  end if
-
-  {do ic^DB=1,2\}
-     igridFi=child_igrid(ic^D)
-     ipeFi=child_ipe(ic^D)
-
-     if (ipeFi==mype) then
-        ^D&dxlevel(^D)=rnode(rpdx^D_,igridFi);
-        if (ipe==mype) then
-           ixComin^D=ixMlo^D+(ic^D-1)*(ixMhi^D-ixMlo^D+1)/2;
-           ixComax^D=ixMhi^D+(ic^D-2)*(ixMhi^D-ixMlo^D+1)/2;
-
-           call coarsen_grid(ps(igridFi),ixG^LL,ixM^LL,ps(igrid),ixG^LL,ixCo^L)
-           ! remove solution space of child
-           !call dealloc_node(igridFi)
-        else
-           ixCoGmin^D=1;
-           ixCoGmax^D=ixGhi^D/2+nghostcells;
-           ixCoM^L=ixCoG^L^LSUBnghostcells;
-           call coarsen_grid(ps(igridFi),ixG^LL,ixM^LL,psc(igridFi), &
-                             ixCoG^L,ixCoM^L)
-
-           itag=ipeFi*max_blocks+igridFi
-           isend=isend+1
-           call MPI_ISEND(psc(igridFi)%w,1,type_coarse_block,ipe,itag, &
-                          icomm,sendrequest(isend),ierrmpi)
-           if(stagger_grid) then
-             do idir=1,ndim
-               itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
-               call MPI_ISEND(psc(igridFi)%ws,1,type_coarse_block_stg(idir,ic^D),ipe,itag_stg, &
-                            icomm,sendrequest_stg(isend),ierrmpi)
-             end do
-           end if
-        end if
-     else
-        if (ipe==mype) then
-           itag=ipeFi*max_blocks+igridFi
-           irecv=irecv+1
-           call MPI_IRECV(ps(igrid)%w,1,type_sub_block(ic^D),ipeFi,itag, &
-                          icomm,recvrequest(irecv),ierrmpi)
-           if(stagger_grid) then
-             do idir=1,ndim
-               itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
-               call MPI_IRECV(ps(igrid)%ws,1,type_sub_block_stg(idir,ic^D),ipeFi,itag_stg, &
-                              icomm,recvrequest_stg(irecv),ierrmpi)
-             end do
-           end if
-        end if
-     end if
-  {end do\}
-
-end subroutine coarsen_grid_siblings
-
 !> coarsen one grid to its coarser representative
 subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
   use mod_global_parameters
@@ -87,6 +8,7 @@ subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
 
   integer :: ixCo^D, ixFi^D, iw
   double precision :: CoFiratio
+  double precision :: B_energy_change(ixCoG^S)
 
   associate(wFi=>sFi%w(ixFiG^S,1:nw), wCo=>sCo%w(ixCoG^S,1:nw))
   staggered: associate(wFis=>sFi%ws,wCos=>sCo%ws)
@@ -127,8 +49,15 @@ subroutine coarsen_grid(sFi,ixFiG^L,ixFi^L,sCo,ixCoG^L,ixCo^L)
          end if
       {end do\}
     end do
+    if(phys_total_energy.and. .not.coarsenprimitive) then
+      B_energy_change(ixCo^S)=0.5d0*sum(wCo(ixCo^S,iw_mag(:))**2,dim=ndim+1)
+    end if
     ! average to fill cell-centred values
     call phys_face_to_center(ixCo^L,sCo)
+    if(phys_total_energy.and. .not.coarsenprimitive) then
+      wCo(ixCo^S,iw_e)=wCo(ixCo^S,iw_e)-B_energy_change(ixCo^S)+&
+         0.5d0*sum(wCo(ixCo^S,iw_mag(:))**2,dim=ndim+1)
+    end if
   end if
 
   if(coarsenprimitive) then

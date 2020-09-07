@@ -20,7 +20,7 @@ contains
     usr_init_one_grid => initial_conditions
 
     use_multigrid = .true.
-    phys_global_source => diffuse_density
+    phys_global_source_after => diffuse_density
     usr_process_grid => set_error
 
     mg%bc(:, mg_iphi)%bc_type = mg_bc_neumann

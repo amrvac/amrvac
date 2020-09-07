@@ -31,7 +31,6 @@ contains
 
       !do interpolation to get point values
       if (mype==ipe) then
-        !#
         ^D&dxb^D=rnode(rpdx^D_,igrid)\
         ^D&ixOmin^D=ixmlo^D\
         ^D&ixbl^D=floor((xp(^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
@@ -58,7 +57,6 @@ contains
             endif
           enddo
         endif
-        !#
       endif
 
       call MPI_BCAST(wp,nw,MPI_DOUBLE_PRECISION,ipe,icomm,ierrmpi)
@@ -89,8 +87,6 @@ contains
       call find_particle_ipe(x3d,igrid,ipe)
 
       if (mype==ipe) then
-        !#
-
         ! looking for the cell index
         ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
         ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
@@ -115,7 +111,6 @@ contains
             endif
           enddo
         endif
-        !#
       endif
 
       call MPI_BCAST(wc,nw,MPI_DOUBLE_PRECISION,ipe,icomm,ierrmpi)
@@ -163,4 +158,3 @@ contains
   end subroutine get_cell_index
 
 end module mod_point_searching
-

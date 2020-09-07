@@ -16,7 +16,7 @@
  /
 
  &methodlist
-        time_integrator='twostep'
+        time_stepper='twostep'
         flux_scheme=20*'hll'
         limiter= 20*'vanleer'
         small_pressure=1.0d-14

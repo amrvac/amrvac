@@ -8,6 +8,7 @@ contains
   subroutine usr_init()
 
     usr_init_one_grid => gray_scott_init
+    usr_create_particles => place_samplingpoints
 
     call rd_activate()
 
@@ -79,5 +80,43 @@ contains
     end select
 
   end subroutine gray_scott_init
+
+  subroutine place_samplingpoints(n_particles, x, v, q, m, follow)
+     integer, intent(in)           :: n_particles
+     double precision, intent(out) :: x(3, n_particles)
+     double precision, intent(out) :: v(3, n_particles)
+     double precision, intent(out) :: q(n_particles)
+     double precision, intent(out) :: m(n_particles)
+     logical, intent(out)          :: follow(n_particles)
+
+     integer :: nsize,i,j,i_part
+     double precision :: xmid,ymid,dxx,dyy
+
+     v = 0.0d0
+     q = 0.0d0
+     m = 0.0d0
+     nsize=nint(dlog(dble(n_particles))/dlog(2.0d0))
+     xmid=(xprobmax1-xprobmin1)*0.5d0+xprobmin1
+     dxx=(xprobmax1-xprobmin1)*0.5d0/nsize
+     dyy=(xprobmax2-xprobmin2)*0.5d0/nsize
+     i_part=0
+     do i=1,nsize
+        ymid=(xprobmax2-xprobmin2)*0.5d0+xprobmin2
+        do j=1,nsize
+           i_part=i_part+1
+           x(1,i_part)=xmid
+           x(2,i_part)=ymid
+           ! print *,i_part,x(1,i_part),x(2,i_part)
+           follow(i_part)=.true.
+           ymid=ymid+dyy
+        enddo
+        xmid=xmid+dxx
+     enddo
+     if (i_part/=n_particles) then
+         print *,nsize,n_particles,i_part
+         call mpistop("error in place_samplepoints")
+     endif
+
+  end subroutine place_samplingpoints
 
 end module mod_usr

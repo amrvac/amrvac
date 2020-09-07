@@ -1,0 +1,57 @@
+!
+! Liska 2D hydro test, added tracer
+!
+ &filelist
+	base_filename='implosion_'  
+        saveprim=.true.
+        convert_type='vtuBCCmpi'
+        autoconvert=.true.
+/
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.01d0          ! For the log
+        dtsave_dat=0.01d0          ! For dat/vtu output
+ /
+
+ &stoplist
+        time_max=0.5d0              ! Stop after this time
+        dtmin=1.0d-9            ! Stop when dt < dtmin
+ /
+
+ &methodlist
+        time_stepper=  'fivestep'
+        flux_scheme=20*'hllc'
+        limiter=20*'mp5'
+ /
+
+ &boundlist
+        typeboundary_min1= 'symm', 'asymm', 'symm', 'symm'
+        typeboundary_max1= 'symm', 'asymm', 'symm', 'symm'
+        typeboundary_min2= 'symm', 'symm', 'asymm', 'symm'
+        typeboundary_max2= 'symm', 'symm', 'asymm', 'symm'
+ /
+
+ &meshlist
+        refine_max_level = 5
+        domain_nx1=64
+        domain_nx2=64
+        block_nx1=16
+        block_nx2=16
+        xprobmin1=0.
+        xprobmax1=0.3
+        xprobmin2=0.
+        xprobmax2=0.3
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.9d0
+        slowsteps=10
+ /
+
+ &hd_list
+        hd_gamma = 1.4d0
+        hd_n_tracer = 1
+ /

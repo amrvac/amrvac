@@ -3,7 +3,8 @@
  /
 
  &methodlist
-        time_integrator=  'twostep_trapezoidal'
+        time_stepper=  'twostep'
+        time_integrator=  'ssprk2'
         flux_scheme =    20*'hll'
         limiter=  20*'koren'
         typeboundspeed  = 'cmaxmean'

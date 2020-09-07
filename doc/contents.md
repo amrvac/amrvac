@@ -10,6 +10,7 @@
 * [Acknowledgments](acknowledgments.md) Information on collaboration and
 financial support.
 * [FAQ](faq.md) Frequently asked questions.
+* [**Tests**](test.html) An overview of documented test cases.
 * @ref contributing.md
 
 # General {#general}
@@ -28,6 +29,7 @@ financial support.
 
 * [Discretization](discretization.md) The equation and its discretization, the
 basic variables, the structure of the grid, boundaries, ghost cells.
+* [Time Discretization](time_discretization.md) The way the time integration works.
 * [Methods](methods.md) Properties of the discretization methods like TVDLF,
 TVDMU, TVD, HLL...
 * [Slope limiters](limiter.md) Slope limiters for reconstruction to suppress spurious numerical oscillations
@@ -56,7 +58,7 @@ files.
 # IO and data analysis {#io}
 
 * [File format](fileformat.md) Description of the format of MPI-AMRVAC data file (.dat).
-* [Visualisation and analysis in Python with yt](yt_usage.md) without data conversion (beta).
+* [Visualisation and analysis in Python with yt](yt_usage.md) without data conversion.
 * [Converting data files for visualization](convert.md) Brief notes on how to
 convert to Tecplot (.plt), and VTK (.vtu) data files.
 * [Slices](slices.md) How to output hypersurfaces (slices) for restart or
@@ -64,6 +66,7 @@ visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
 visualisation and analysis (e.g. column densities).
 * [Analysis routine](analysis.md) Using the run-time analysis routine.
+* [3D Printing](print3D.md) A note on how to generate 3D printed results.
 
 # Legacy Python tools {#io-python}
 > These tools are bundled within AMRVAC's main repo.

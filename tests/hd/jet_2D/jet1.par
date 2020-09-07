@@ -1,0 +1,50 @@
+! $AMRVAC_DIR/setup.pl -d=2
+
+&filelist
+  base_filename='output/jetdenser'
+  autoconvert      = T
+  convert_type     = 'vtuBmpi'
+  saveprim         = T
+/
+
+ &savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   dtsave_dat      = 0.005d0
+   ditsave_log     = 1000
+/
+
+ &stoplist
+   time_max=0.015d0
+   dtmin=1.0d-9
+/
+
+ &methodlist
+   time_stepper = 'threestep'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'cada3'
+/
+
+&boundlist
+  typeboundary_min1 = 4*'cont'
+  typeboundary_max1 = 4*'cont'
+  typeboundary_min2 = 4*'special'
+  typeboundary_max2 = 4*'cont'
+/
+ &meshlist
+   refine_max_level   = 4
+   domain_nx1         = 40
+   domain_nx2         = 60
+   block_nx1          = 10
+   block_nx2          = 10
+   xprobmin1       = -0.5d0
+   xprobmax1       =  0.5d0
+   xprobmin2       =  0.0d0
+   xprobmax2       =  1.5d0
+   iprob = 1
+ /
+  
+ &paramlist
+  slowsteps        = 100
+  courantpar       = 0.8d0
+ /

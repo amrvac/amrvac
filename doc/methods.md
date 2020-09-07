@@ -34,7 +34,7 @@ we have the following combinations typically:
 
 Also, the method can be selected per AMR grid level, but one can not combine
 different stepsize methods (hence, TVD is the only second order onestep
-method, while all others can be used with all steps time integrator
+method, while all others can be used with all steps time stepper/integrator
 setting). In MPI-AMRVAC, the **flux_scheme** is thus an array of strings, one
 string per level up to **nlevelshi**. Some more info follows on the various
 methods.
@@ -92,7 +92,7 @@ The scalar transport equation has a trivial Riemann solver. The scheme has
 comparable resolution to the non-MUSCL TVD method.
 The Courant number should be less than 1, **courantpar=0.8** is recommended.
 TVD-MUSCL can be dimensionally split **dimsplit=T** or unsplit **dimsplit=F**. 
-The multistep Runge-Kutta schemes can be applied, such as **time_integrator='fourstep'**.
+The multistep Runge-Kutta schemes can be applied, such as **time_stepper='fourstep'** with **time_integrator='rk4'**.
 Linear Riemann solvers can produce non-physical solutions. This can be
 eliminated by the use of an entropy fix, controlled by **typeentropy** and the
 **entropycoef**. The default is **typeentropy='nul'**. See the details for
@@ -185,7 +185,7 @@ is usable for both classical and relativistic MHD.
 #### Diffusive fix: typedivbfix='linde'
 
 You can also use the diffusive (parabolic) approach, see the
-[equations](@ref eq_divb_fix). It uses a `C_d` coefficient quantified by
+[equations](@ref par_divbfix). It uses a `C_d` coefficient quantified by
 `divbdiff`, which can be up to 2. This method is by default inactive,
 identified by `divbdiff=1`, but it is recommended for many multi-D MHD
 applications.

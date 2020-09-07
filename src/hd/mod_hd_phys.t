@@ -1,6 +1,5 @@
 !> Hydrodynamics physics module
 module mod_hd_phys
-
   implicit none
   private
 
@@ -9,6 +8,9 @@ module mod_hd_phys
 
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
+
+  !> Whether use new module mod_tc
+  logical, public, protected              :: use_new_hd_tc = .false.
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
@@ -27,7 +29,7 @@ module mod_hd_phys
 
   !> Whether rotating frame is activated
   logical, public, protected              :: hd_rotating_frame = .false.
-  
+
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
@@ -77,7 +79,7 @@ contains
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
-    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
+    hd_dust, hd_thermal_conduction, use_new_hd_tc, hd_radiative_cooling, hd_viscosity, &
     hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame
 
     do n = 1, size(files)
@@ -170,6 +172,7 @@ contains
   subroutine hd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
+    use mod_tc
     use mod_radiative_cooling
     use mod_dust, only: dust_init
     use mod_viscosity, only: viscosity_init
@@ -184,8 +187,18 @@ contains
 
     physics_type = "hd"
     phys_energy  = hd_energy
+    phys_total_energy  = hd_energy
     ! set default gamma for polytropic/isothermal process
-    if(.not.hd_energy) hd_gamma=1.d0
+    if(.not.hd_energy) then
+      if(hd_thermal_conduction) then
+        hd_thermal_conduction=.false.
+        if(mype==0) write(*,*) 'WARNING: set hd_thermal_conduction=F when hd_energy=F'
+      end if
+      if(hd_radiative_cooling) then
+        hd_radiative_cooling=.false.
+        if(mype==0) write(*,*) 'WARNING: set hd_radiative_cooling=F when hd_energy=F'
+      end if
+    end if
     use_particles = hd_particles
 
     ! Determine flux variables
@@ -215,6 +228,8 @@ contains
     phys_add_source          => hd_add_source
     phys_to_conserved        => hd_to_conserved
     phys_to_primitive        => hd_to_primitive
+    phys_ei_to_e             => hd_ei_to_e
+    phys_e_to_ei             => hd_e_to_ei
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
@@ -241,7 +256,12 @@ contains
     if (hd_thermal_conduction) then
       if (.not. hd_energy) &
            call mpistop("thermal conduction needs hd_energy=T")
-      call thermal_conduction_init(hd_gamma)
+      phys_req_diagonal = .true.
+      if(.not. use_new_hd_tc) then
+        call thermal_conduction_init(hd_gamma)
+      else
+        call tc_init_hd_for_total_energy(hd_gamma, (/rho_, e_/),hd_get_temperature_from_etot, hd_get_temperature_from_eint,hd_e_to_ei1, hd_ei_to_e1)
+      endif
     end if
 
     ! Initialize radiative cooling module
@@ -259,7 +279,7 @@ contains
 
     ! Initialize rotating_frame module
     if (hd_rotating_frame) call rotating_frame_init()
-    
+
     ! Initialize particles module
     if (hd_particles) then
        call particles_init()
@@ -330,22 +350,22 @@ contains
     logical, intent(in)          :: primitive
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, nw)
-    integer, intent(inout)       :: flag(ixI^S)
+    logical, intent(inout)       :: flag(ixI^S,1:nw)
     double precision             :: tmp(ixI^S)
 
-    flag(ixO^S) = 0
+    flag=.false.
 
     if (hd_energy) then
        if (primitive) then
-          where(w(ixO^S, e_) < small_pressure) flag(ixO^S) = e_
+          where(w(ixO^S, e_) < small_pressure) flag(ixO^S,e_) = .true.
        else
           tmp(ixO^S) = (hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
                hd_kin_en(w, ixI^L, ixO^L))
-          where(tmp(ixO^S) < small_pressure) flag(ixO^S) = e_
+          where(tmp(ixO^S) < small_pressure) flag(ixO^S,e_) = .true.
        endif
     end if
 
-    where(w(ixO^S, rho_) < small_density) flag(ixO^S) = rho_
+    where(w(ixO^S, rho_) < small_density) flag(ixO^S,rho_) = .true.
 
   end subroutine hd_check_w
 
@@ -359,7 +379,7 @@ contains
     double precision                :: invgam
     integer                         :: idir, itr
 
-    if (check_small_values .and. small_values_use_primitive) then
+    if (check_small_values) then
       call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
     end if
 
@@ -379,9 +399,6 @@ contains
       call dust_to_conserved(ixI^L, ixO^L, w, x)
     end if
 
-    if (check_small_values .and. .not. small_values_use_primitive) then
-      call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_conserved')
-    end if
   end subroutine hd_to_conserved
 
   !> Transform conservative variables into primitive ones
@@ -393,10 +410,6 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: itr, idir
     double precision                :: inv_rho(ixO^S)
-
-    if (check_small_values .and. .not. small_values_use_primitive) then
-      call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_primitive')
-    end if
 
     inv_rho = 1.0d0 / w(ixO^S, rho_)
 
@@ -416,11 +429,41 @@ contains
       call dust_to_primitive(ixI^L, ixO^L, w, x)
     end if
 
-    if (check_small_values .and. small_values_use_primitive) then
+    if (check_small_values) then
       call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
     end if
 
   end subroutine hd_to_primitive
+
+  !> Transform internal energy to total energy
+  subroutine hd_ei_to_e(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate total energy from internal and kinetic energy
+    if(hd_energy) then
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                 +hd_kin_en(w,ixI^L,ixO^L)
+    end if
+
+  end subroutine hd_ei_to_e
+
+  !> Transform total energy to internal energy
+  subroutine hd_e_to_ei(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate ei = e - ek
+    if(hd_energy) then
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                  -hd_kin_en(w,ixI^L,ixO^L)
+    end if
+
+  end subroutine hd_e_to_ei
 
   subroutine e_to_rhos(ixI^L, ixO^L, w, x)
     use mod_global_parameters
@@ -623,18 +666,20 @@ contains
 
     call hd_get_pthermal(w,x,ixI^L,ixO^L,csound2)
     csound2(ixO^S)=hd_gamma*csound2(ixO^S)/w(ixO^S,rho_)
-    
+
   end subroutine hd_get_csound2
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_pthermal
+    use mod_small_values, only: trace_small_values
 
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: pth(ixI^S)
+    integer                      :: iw, ix^D
 
     if (hd_energy) then
        pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
@@ -647,7 +692,79 @@ contains
        end if
     end if
 
+    if(check_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
+                " encountered when call mhd_get_pthermal"
+           write(*,*) "Iteration: ", it, " Time: ", global_time
+           write(*,*) "Location: ", x(ix^D,:)
+           write(*,*) "Cell number: ", ix^D
+           do iw=1,nw
+             write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
+           end do
+           ! use erroneous arithmetic operation to crash the run
+           if(trace_small_values) write(*,*) sqrt(pth(ix^D)-bigdouble)
+           write(*,*) "Saving status at the previous time step"
+           crash=.true.
+         end if
+      {enddo^D&\}
+    end if
+
   end subroutine hd_get_pthermal
+
+  !the following are only used in the new TC module: mod_tc
+  !> Calculate temperature=p/rho when in e_ the  total energy is stored
+  subroutine hd_get_temperature_from_etot(w, x, ixI^L, ixO^L, res)
+    use mod_global_parameters
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, 1:nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision, intent(out):: res(ixI^S)
+
+    call hd_get_pthermal(w, x, ixI^L, ixO^L, res)
+    res(ixO^S)=res(ixO^S)/w(ixO^S,rho_)
+  end subroutine hd_get_temperature_from_etot
+
+  
+  !> Calculate temperature=p/rho when in e_ the  internal energy is stored
+  subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
+    use mod_global_parameters
+    use mod_small_values, only: small_values_method
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, 1:nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision, intent(out):: res(ixI^S)
+    res(ixO^S) = (hd_gamma - 1.0d0) * w(ixO^S, e_) /w(ixO^S,rho_)
+  end subroutine hd_get_temperature_from_eint
+
+  !these are very similar to the subroutines without 1, used in mod_thermal_conductivity
+   !but no check as it is done whne the method is added
+  subroutine hd_ei_to_e1(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate total energy from internal and kinetic energy
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                 +hd_kin_en(w,ixI^L,ixO^L)
+
+  end subroutine hd_ei_to_e1
+
+  !> Transform total energy to internal energy
+  subroutine hd_e_to_ei1(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate ei = e - ek
+      w(ixO^S,e_)=w(ixO^S,e_)&
+                  -hd_kin_en(w,ixI^L,ixO^L)
+
+  end subroutine hd_e_to_ei1
+  !the following are only used in mod_tc end
 
   ! Calculate flux f_idim[iw]
   subroutine hd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)
@@ -723,7 +840,7 @@ contains
        f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
        if (hd_rotating_frame .and. angmomfix .and. idir==phi_) then
           call mpistop("hd_rotating_frame not implemented yet with angmomfix")
-          !One have to compute the frame velocity on cell edge (but we don't know if right of left edge here!!!)
+          !One have to compute the frame velocity on cell edge (but we dont know if right of left edge here!!!)
           call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
           f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + w(ixO^S,mom(idim))* wC(ixO^S, rho_) * frame_vel(ixO^S)
        end if
@@ -761,6 +878,7 @@ contains
   !>     - address the source term for the dust in case (coordinate == spherical)
   subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
+    use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
     use mod_rotating_frame, only: rotating_frame_add_source
     use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero, dust_min_rho
@@ -775,6 +893,7 @@ contains
     integer                         :: iw,idir, h1x^L{^NOONED, h2x^L}
     integer :: mr_,mphi_ ! Polar var. names
     integer :: irho, ifluid, n_fluids
+    double precision :: exp_factor(ixI^S), del_exp_factor(ixI^S), exp_factor_primitive(ixI^S)
 
     if (hd_dust) then
        n_fluids = 1 + dust_n_species
@@ -783,6 +902,14 @@ contains
     end if
 
     select case (coordinate)
+
+    case(Cartesian_expansion)
+      !the user provides the functions of exp_factor and del_exp_factor
+      if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
+      call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
+      source(ixO^S) = source(ixO^S)*del_exp_factor(ixO^S)/exp_factor(ixO^S)
+      w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*source(ixO^S)
+
     case (cylindrical)
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
@@ -810,7 +937,7 @@ contains
              if(.not. angmomfix) then
                 where (wCT(ixO^S, irho) > minrho)
                    source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_) 
+                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
                 end where
              end if
           else
@@ -929,7 +1056,7 @@ contains
          end if
       end if
     end if
-    
+
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
@@ -997,42 +1124,47 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    double precision :: smallone
-    integer :: idir, flag(ixI^S)
+    integer :: idir
+    logical :: flag(ixI^S,1:nw)
 
     if (small_values_method == "ignore") return
 
     call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
-    if (any(flag(ixO^S) /= 0)) then
+    if (any(flag)) then
       select case (small_values_method)
       case ("replace")
-        if (small_values_fix_iw(rho_)) then
-          where(flag(ixO^S) == rho_) w(ixO^S,rho_) = small_density
-        end if
-
+        where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
         do idir = 1, ndir
-          if (small_values_fix_iw(mom(idir))) then
-            where(flag(ixO^S) == rho_) w(ixO^S, mom(idir)) = 0.0d0
+          if(small_values_fix_iw(mom(idir))) then
+            where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
           end if
         end do
 
-        if (hd_energy) then
-          if (small_values_fix_iw(e_)) then
-            if(primitive) then
-              where(flag(ixO^S) /= 0) w(ixO^S,e_) = small_pressure
-            else
-              where(flag(ixO^S) /= 0)
-                ! Add kinetic energy
-                w(ixO^S,e_) = small_e + 0.5d0 * &
-                     sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
-              end where
-            end if
+        if(hd_energy) then
+          if(primitive) then
+            where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
+          else
+            where(flag(ixO^S,e_))
+              ! Add kinetic energy
+              w(ixO^S,e_) = small_e + hd_kin_en(w,ixI^L,ixO^L)
+            end where
           end if
         end if
       case ("average")
         call small_values_average(ixI^L, ixO^L, w, x, flag)
       case default
+        if(.not.primitive) then
+          !convert w to primitive
+          ! Calculate pressure = (gamma-1) * (e-ek)
+          if(hd_energy) then
+            w(ixO^S,p_)=(hd_gamma-1.d0)*(w(ixO^S,e_)-hd_kin_en(w,ixI^L,ixO^L))
+          end if
+          ! Convert momentum to velocity
+          do idir = 1, ndir
+            w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))/w(ixO^S,rho_)
+          end do
+        end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
     end if

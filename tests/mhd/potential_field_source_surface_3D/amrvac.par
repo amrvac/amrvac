@@ -19,12 +19,12 @@
 
  &stoplist
         dtmin=1.D-6
-        itmax=1
+        it_max=1
  /
         time_max=60.d0
 
  &methodlist
-        time_integrator='threestep'
+        time_stepper='threestep'
         flux_scheme=20*'hll'
         limiter=20*'cada3'
         small_pressure=1.0d-14

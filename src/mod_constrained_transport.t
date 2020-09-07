@@ -86,13 +86,12 @@ contains
     double precision             :: dx^D
 
     integer                            :: ixIs^L,ixO^L,idir
-    double precision                   :: xC(ixI^S,1:ndim), A(ixI^S,1:3)
-    double precision                   :: circ(ixI^S,1:ndim), dxidir
+    double precision                   :: A(s%ixGs^S,1:3)
 
     associate(ws=>s%ws,x=>s%x)
 
-    A(:^D&,:)=zero
-    ws(:^D&,:)=zero
+    A=zero
+    ws=zero
 
     ixIs^L=s%ixGs^L;
     ixO^L=ixI^L^LSUBnghostcells;
@@ -114,42 +113,45 @@ contains
     use mod_usr_methods, only: usr_init_vector_potential
 
     integer, intent(in)                :: ixIs^L, ixI^L, ixO^L
-    double precision, intent(inout)    :: ws(ixIs^S,1:nws),A(ixI^S,1:3)
+    double precision, intent(inout)    :: ws(ixIs^S,1:nws),A(ixIs^S,1:3)
     double precision, intent(in)       :: x(ixI^S,1:ndim)
 
-    integer                            :: ixC^L, hxC^L, ixCp^L, ixCm^L, hxO^L, idim, idim1, idim2, idir
-    double precision                   :: xC(ixI^S,1:ndim)
-    double precision                   :: circ(ixI^S,1:ndim)
+    integer                            :: ixC^L, hxC^L, idim1, idim2, idir
+    double precision                   :: xC(ixIs^S,1:ndim),xCC(ixIs^S,1:ndim)
+    double precision                   :: circ(ixIs^S,1:ndim)
 
     A=zero
-    ws=zero
+    ! extend one layer of cell center locations in xCC
+    xCC=0.d0
+    xCC(ixI^S,1:ndim)=x(ixI^S,1:ndim)
+    {
+    xCC(ixIsmin^D^D%ixI^S,1:ndim)=x(ixImin^D^D%ixI^S,1:ndim)
+    xCC(ixIsmin^D^D%ixIs^S,^D)=x({ixImin^DD,},^D)-block%dx({ixImin^DD,},^D)
+    \}
+    {^IFTHREED
+    xCC(ixImin1:ixImax1,ixIsmin2,ixIsmin3,1)=x(ixImin1:ixImax1,ixImin2,ixImin3,1)
+    xCC(ixIsmin1,ixImin2:ixImax2,ixIsmin3,2)=x(ixImin1,ixImin2:ixImax2,ixImin3,2)
+    xCC(ixIsmin1,ixIsmin2,ixImin3:ixImax3,3)=x(ixImin1,ixImin2,ixImin3:ixImax3,3)
+    }
 
-    {ixCmax^D=ixOmax^D;}
-    {ixCmin^D=ixOmin^D-1;} ! Extend range by one
     do idir=7-2*ndim,3
-      do idim=1,ndim
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D-1+kr(idir,^D);
+      do idim1=1,ndim
         ! Get edge coordinates
-        if (idim/=idir) then
-          xC(ixC^S,idim)=x(ixC^S,idim)+half*block%dx(ixC^S,idim)
+        if (idim1/=idir) then
+          xC(ixC^S,idim1)=xCC(ixC^S,idim1)+half*block%dx(ixC^S,idim1)
         else
-          xC(ixC^S,idim)=x(ixC^S,idim)
+          xC(ixC^S,idim1)=xCC(ixC^S,idim1)
         end if
       end do
       ! Initialise vector potential at the edge
-      call usr_init_vector_potential(ixI^L, ixC^L, xC, A(ixI^S,idir), idir)
+      call usr_init_vector_potential(ixIs^L, ixC^L, xC, A(ixIs^S,idir), idir)
+      A(ixC^S,idir)=A(ixC^S,idir)*block%dsC(ixC^S,idir)
     end do
 
-    ! Set NaN to zero (can happen e.g. on axis):
-    where(A(ixI^S,:)/=A(ixI^S,:))
-       A(ixI^S,:)=zero
-    end where
-
-    ! sub integrals A ds
-    A(ixC^S,1:ndir)=A(ixC^S,1:ndir)*block%dsC(ixC^S,1:ndir)
-
     ! Take the curl of the vector potential 
-    circ(:^D&,:) = zero
-
+    circ=zero
     ! Calculate circulation on each face
     do idim1=1,ndim ! Coordinate perpendicular to face 
       ixCmax^D=ixOmax^D;

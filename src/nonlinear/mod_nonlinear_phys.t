@@ -14,6 +14,9 @@ module mod_nonlinear_phys
   !> whether the KdV source term is added
   logical, protected, public :: kdv_source_term = .false.
 
+  !> Whether particles module is added
+  logical, public, protected              :: nonlinear_particles = .false.
+
   ! Public methods
   public :: nonlinear_phys_init
   public :: nonlinear_get_v
@@ -26,7 +29,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /nonlinear_list/ nonlinear_flux_type, kdv_source_term
+    namelist /nonlinear_list/ nonlinear_flux_type, kdv_source_term, nonlinear_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
@@ -58,7 +61,7 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_kdv, only: kdv_init
-
+    use mod_particles, only: particles_init
 
     call nonlinear_params_read(par_files)
 
@@ -66,6 +69,7 @@ contains
     phys_energy  = .false.
     ! Whether diagonal ghost cells are required for the physics
     phys_req_diagonal = .false.
+    use_particles = nonlinear_particles
 
     rho_ = var_set_rho()
 
@@ -88,6 +92,12 @@ contains
     phys_write_info      => nonlinear_write_info
 
     if (kdv_source_term) call kdv_init()
+
+    ! Initialize particles module
+    if (nonlinear_particles) then
+       call particles_init()
+       phys_req_diagonal = .true.
+    end if
 
   end subroutine nonlinear_phys_init
 

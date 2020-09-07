@@ -18,7 +18,7 @@
  /
 
  &methodlist
-        time_integrator='threestep'
+        time_stepper='threestep'
         flux_scheme=20*'hll'
         limiter=20*'cada3'
         small_pressure=1.0d-14
@@ -67,6 +67,7 @@
         mhd_gravity=.true.
         typedivbfix='glm'
         mhd_energy=.false.
+        mhd_gamma=1.0d0
         mhd_adiab=1.0d0
         Busr=10.d0
  /

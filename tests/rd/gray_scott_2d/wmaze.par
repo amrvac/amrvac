@@ -1,5 +1,4 @@
 !=====================================================
-! Project : Advection test: a VAC log
 !
 !=====================================================
 
@@ -20,7 +19,7 @@
  /
 
  &methodlist
-        time_integrator = 'twostep'
+        time_stepper = 'twostep'
         flux_scheme = 20*'source'
         limiter= 20*'koren'
  /
@@ -47,9 +46,7 @@
  /
 
  &paramlist
-       courantpar=0.8d0
-       typecourant='minimum'
-       courantpar=0.9
+       courantpar=0.9d0
  /
 
  &rd_list

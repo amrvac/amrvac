@@ -14,7 +14,7 @@
  /
 
  &methodlist
-        time_integrator=  'onestep'
+        time_stepper=  'onestep'
         flux_scheme = 20*'tvdlf'
         limiter= 20*'koren'
  /

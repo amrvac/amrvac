@@ -287,13 +287,14 @@ contains
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
+ 
+    if(phys_solve_eaux) then
+      call phys_energy_synchro(qdt,ixI^L,ixO^L,wCT,wnew,x)
+    endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
- 
-    if(phys_solve_eaux) then
-      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
-    endif
+
     ! check and optionally correct unphysical values
     call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
 
@@ -368,6 +369,7 @@ contains
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hllc()
+      use mod_mhd_phys
       implicit none
       double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
       double precision, dimension(ixI^S)              :: lambdaCD
@@ -393,6 +395,13 @@ contains
          call phys_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,&
               cminC,cmaxC,ixI^L,ixC^L,idims,fCD)
       endif ! Calculate the CD flux
+
+      ! use hll flux for the auxiliary internal e
+      if(mhd_energy.and.mhd_solve_eaux) then
+        iw=eaux_
+        fCD(ixC^S, iw) = (cmaxC(ixC^S)*fLC(ixC^S, iw)-cminC(ixC^S) * fRC(ixC^S, iw) &
+             +cminC(ixC^S)*cmaxC(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(cmaxC(ixC^S)-cminC(ixC^S))
+      end if
 
       do iw=1,nwflux
          if (flux_type(idims, iw) == flux_tvdlf) then
@@ -615,6 +624,17 @@ contains
           f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
         end if
       end do
+
+      ! use hll flux for the auxiliary internal e
+      if(mhd_energy.and.mhd_solve_eaux) then
+        iw=eaux_
+        f1L(ixC^S,iw)=(sR(ixC^S)*fLC(ixC^S, iw)-sL(ixC^S)*fRC(ixC^S, iw) &
+                  +sR(ixC^S)*sL(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S)-sL(ixC^S))
+        f1R(ixC^S,iw)=f1L(ixC^S,iw)
+        f2L(ixC^S,iw)=f1L(ixC^S,iw)
+        f2R(ixC^S,iw)=f1L(ixC^S,iw)
+      end if
+
       ! Miyoshi equation (66) and Guo equation (46)
      {do ix^DB=ixCmin^DB,ixCmax^DB\}
         if(sL(ix^D)>0.d0) then
@@ -733,6 +753,10 @@ contains
        end do
     end select
 
+    if(check_small_values) then
+      call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+      call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+    end if
     wLC(ixL^S,1:nw)=wLp(ixL^S,1:nw)
     wRC(ixR^S,1:nw)=wRp(ixR^S,1:nw)
     call phys_to_conserved(ixI^L,ixL^L,wLC,x)

@@ -35,7 +35,7 @@
         it_max=20
 
  &methodlist
-        time_integrator=  'threestep'
+        time_stepper=  'threestep'
         flux_scheme=    20*'hll'
         limiter= 20*'cada3'
         small_pressure=1.0d-8

@@ -21,6 +21,18 @@ module mod_physics
   !> computing a curl.
   logical :: phys_req_diagonal = .true.
 
+  !> Solve energy equation or not
+  logical :: phys_energy=.false.
+
+  !> Solve total energy equation or not
+  logical :: phys_total_energy=.false.
+
+  !> Solve internal enery instead of total energy
+  logical :: phys_internal_e=.false.
+
+  !> Solve internal energy and total energy equations
+  logical :: phys_solve_eaux=.false.
+
   !> Array per direction per variable, which can be used to specify that certain
   !> fluxes have to be treated differently
   integer, allocatable :: flux_type(:, :)
@@ -47,6 +59,8 @@ module mod_physics
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
+  procedure(sub_convert), pointer         :: phys_ei_to_e                => null()
+  procedure(sub_convert), pointer         :: phys_e_to_ei                => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
@@ -58,7 +72,8 @@ module mod_physics
   procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
   procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
   procedure(sub_add_source), pointer      :: phys_add_source             => null()
-  procedure(sub_global_source), pointer   :: phys_global_source          => null()
+  procedure(sub_global_source), pointer   :: phys_global_source_before   => null()
+  procedure(sub_global_source), pointer   :: phys_global_source_after    => null()
   procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
@@ -68,6 +83,8 @@ module mod_physics
   procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
   procedure(sub_update_faces), pointer    :: phys_update_faces           => null()
   procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
+  procedure(sub_implicit_update), pointer :: phys_implicit_update        => null()
+  procedure(sub_evaluate_implicit),pointer:: phys_evaluate_implicit      => null()
 
   abstract interface
 
@@ -143,10 +160,10 @@ module mod_physics
        double precision, intent(out)   :: f(ixI^S, nwflux)
      end subroutine sub_get_flux
 
-     subroutine sub_energy_synchro(ixI^L,ixO^L,w,x)
+     subroutine sub_energy_synchro(qdt,ixI^L,ixO^L,wCT,w,x)
        use mod_global_parameters
        integer, intent(in) :: ixI^L,ixO^L
-       double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision, intent(in) :: qdt,wCT(ixI^S,1:nw),x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine sub_energy_synchro
 
@@ -170,6 +187,7 @@ module mod_physics
 
      !> Add global source terms on complete domain (potentially implicit)
      subroutine sub_global_source(qdt, qt, active)
+       use mod_global_parameters
        double precision, intent(in) :: qdt    !< Current time step
        double precision, intent(in) :: qt     !< Current time
        logical, intent(inout)       :: active !< Output if the source is active
@@ -196,8 +214,8 @@ module mod_physics
        use mod_global_parameters
        logical, intent(in)          :: primitive
        integer, intent(in)          :: ixI^L, ixO^L
-       double precision, intent(in) :: w(ixI^S,nw)
-       integer, intent(inout)       :: w_flag(ixG^T)
+       double precision, intent(in) :: w(ixI^S,1:nw)
+       logical, intent(inout)       :: w_flag(ixI^S,1:nw)
      end subroutine sub_check_w
 
      subroutine sub_get_pthermal(w,x,ixI^L,ixO^L,pth)
@@ -254,6 +272,21 @@ module mod_physics
        type(state)                        :: s
      end subroutine sub_face_to_center
 
+     subroutine sub_evaluate_implicit(qtC,psa)
+       use mod_global_parameters
+       type(state), target :: psa(max_blocks)   
+       double precision, intent(in) :: qtC      
+     end subroutine sub_evaluate_implicit
+
+     subroutine sub_implicit_update(dtfactor,qdt,qtC,psa,psb)
+       use mod_global_parameters
+       type(state), target :: psa(max_blocks)   
+       type(state), target :: psb(max_blocks)   
+       double precision, intent(in) :: qdt
+       double precision, intent(in) :: qtC      
+       double precision, intent(in) :: dtfactor 
+     end subroutine sub_implicit_update
+
    end interface
 
 contains
@@ -287,8 +320,8 @@ contains
     if (.not. associated(phys_get_cmax)) &
          call mpistop("Error: no phys_get_cmax not defined")
 
-!    if (.not. associated(phys_get_a2max)) &
-!         call mpistop("Error: no phys_get_a2max not defined")
+    if (.not. associated(phys_get_a2max)) &
+         phys_get_a2max => dummy_get_a2max
 
     if (.not. associated(phys_get_cbounds)) &
          call mpistop("Error: no phys_get_cbounds not defined")
@@ -332,6 +365,12 @@ contains
     if (.not. associated(phys_face_to_center)) &
          phys_face_to_center => dummy_face_to_center
 
+    if (.not. associated(phys_evaluate_implicit)) &
+         phys_evaluate_implicit => dummy_evaluate_implicit
+
+    if (.not. associated(phys_implicit_update)) &
+         phys_implicit_update => dummy_implicit_update
+
   end subroutine phys_check
 
   subroutine dummy_init_params
@@ -348,6 +387,14 @@ contains
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
   end subroutine dummy_modify_wLR
+
+  subroutine dummy_get_a2max(w, x, ixI^L, ixO^L, a2max)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: a2max(ndim)
+       call mpistop("Error: entered dummy_get_a2max")
+  end subroutine dummy_get_a2max
 
   subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
@@ -381,10 +428,10 @@ contains
     use mod_global_parameters
     logical, intent(in)          :: primitive
     integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S,nw)
-    integer, intent(inout)       :: w_flag(ixG^T)
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    logical, intent(inout)       :: w_flag(ixI^S,1:nw)
 
-    w_flag(ixO^S) = 0             ! All okay
+    w_flag=.false.             ! All okay
   end subroutine dummy_check_w
 
   subroutine dummy_get_pthermal(w, x, ixI^L, ixO^L, pth)
@@ -447,4 +494,39 @@ contains
     type(state)                        :: s
   end subroutine dummy_face_to_center
   
+  subroutine dummy_evaluate_implicit(qtC,psa)
+    use mod_global_parameters
+    type(state), target :: psa(max_blocks)   
+    double precision, intent(in) :: qtC      
+    integer :: iigrid, igrid
+
+    ! Just copy in nul state
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       psa(igrid)%w = 0.0d0*psa(igrid)%w
+       if(stagger_grid) psa(igrid)%ws = 0.0d0*psa(igrid)%ws
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine dummy_evaluate_implicit
+
+  subroutine dummy_implicit_update(dtfactor,qdt,qtC,psa,psb)
+    use mod_global_parameters
+    type(state), target :: psa(max_blocks)   
+    type(state), target :: psb(max_blocks)   
+    double precision, intent(in) :: qdt      
+    double precision, intent(in) :: qtC      
+    double precision, intent(in) :: dtfactor 
+    integer :: iigrid, igrid
+
+    ! Just copy in psb state when using the scheme without implicit part
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       psa(igrid)%w = psb(igrid)%w
+       if(stagger_grid) psa(igrid)%ws = psb(igrid)%ws
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine dummy_implicit_update
+
 end module mod_physics

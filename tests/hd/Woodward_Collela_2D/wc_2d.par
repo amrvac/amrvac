@@ -21,8 +21,8 @@
  /
 
  &methodlist
-        time_integrator=  'ssprk54'
-        flux_scheme=20*'fd'
+        time_stepper=  'fivestep'
+        flux_scheme=20*'hll'
         limiter=20*'mp5'
 
  /
@@ -40,10 +40,10 @@
         w_refine_weight(1)=0.5d0
         w_refine_weight(2)=0.25d0
         w_refine_weight(3)=0.25d0
-        block_nx1=6
-        block_nx2=6
-        domain_nx1=60
-        domain_nx2=12
+        block_nx1=12
+        block_nx2=12
+        domain_nx1=120
+        domain_nx2=24
         xprobmin1=0.0d0
         xprobmax1=5.0d0
         xprobmin2=0.0d0
@@ -52,6 +52,6 @@
 
  &paramlist
         typecourant='maxsum'
-        courantpar=0.9d0
+        courantpar=0.8d0
         slowsteps=15
  /

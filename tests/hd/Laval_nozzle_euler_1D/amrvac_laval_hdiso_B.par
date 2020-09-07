@@ -1,0 +1,57 @@
+
+ &filelist
+        base_filename = 'output/nozzle_hdiso_B_'
+        saveprim      = .true.
+        autoconvert   = .true.
+        convert_type  = 'vtuBCCmpi'
+        nwauxio       = 5
+ /
+
+
+ &savelist
+        itsave(1,1) = 0
+        itsave(1,2) = 0
+        dtsave_log  = 0.05d0
+        dtsave_dat  = 0.5d0
+ /
+
+ &stoplist
+        time_max = 100.0d0
+ /
+
+ &methodlist
+         time_stepper  = 'threestep'
+         flux_scheme   = 20*'hll'
+         limiter       = 20*'cada3'
+ /
+
+
+ &boundlist
+        typeboundary_min1 = 2*'special'
+        typeboundary_max1 = 2*'special'
+ /
+
+ &meshlist
+        refine_max_level = 4
+        block_nx1        = 10
+        domain_nx1       = 180
+        xprobmin1        = -3.0d0
+        xprobmax1        = 3.0d0
+ /
+
+
+ &paramlist
+        typecourant = 'maxsum'
+        slowsteps   = 10
+        courantpar  = 0.8d0
+ /
+
+ &hd_list
+        hd_energy     =.false.
+        hd_gamma      = 1.d0
+        hd_adiab      = 1.d0
+ /
+
+ &usr_list
+        mach0         = 0.5d0
+/

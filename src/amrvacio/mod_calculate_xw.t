@@ -1,14 +1,14 @@
 !> Handles computations for coordinates and variables in output
 module mod_calculate_xw
   implicit none
- 
-contains 
+
+contains
 
   !> Compute both corner as well as cell-centered values for output
   subroutine calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
                        ixC^L,ixCC^L,first)
     ! this subroutine computes both corner as well as cell-centered values
-    ! it handles how we do the center to corner averaging, as well as 
+    ! it handles how we do the center to corner averaging, as well as
     ! whether we switch to cartesian or want primitive or conservative output,
     ! handling the addition of B0 in B0+B1 cases, ...
     !
@@ -18,7 +18,7 @@ contains
     use mod_usr_methods, only: usr_aux_output
     use mod_global_parameters
     use mod_limiter
-    use mod_physics, only: physics_type, phys_to_primitive
+    use mod_physics, only: phys_energy, physics_type, phys_to_primitive
 
     integer, intent(in) :: qunit, igrid
     double precision, intent(in), dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
@@ -30,7 +30,7 @@ contains
     double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
-    double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
+    double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv
 
     double precision :: ldw(ixG^T), dwC(ixG^T)
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC
@@ -53,7 +53,7 @@ contains
     w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
     if (nwextra>0) then
-     ! here we actually fill the ghost layers for the nwextra variables using 
+     ! here we actually fill the ghost layers for the nwextra variables using
      ! continuous extrapolation (as these values do not exist normally in ghost cells)
      do idims=1,ndim
       select case(idims)
@@ -62,7 +62,7 @@ contains
          jxCmax^DD=ixGhi^DD;
          do ix^D=jxCmin^D,jxCmax^D
              w(ix^D^D%jxC^S,nw-nwextra+1:nw) = w(jxCmin^D-1^D%jxC^S,nw-nwextra+1:nw)
-         end do 
+         end do
          jxCmin^DD=ixGlo^DD;
          jxCmax^DD=ixGlo^D-1+nghostcells^D%jxCmax^DD=ixGhi^DD;
          do ix^D=jxCmin^D,jxCmax^D
@@ -73,11 +73,10 @@ contains
     end if
 
     ! next lines needed when usr_aux_output uses gradients
-    ! and later on when dwlimiter2 is used 
+    ! and later on when dwlimiter2 is used
     typelimiter=type_limiter(node(plevel_,igrid))
     typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    block=>ps(igrid)
     if(nwauxio>0)then
       ! auxiliary io variables can be computed and added by user
       ! next few lines ensure correct usage of routines like divvector etc
@@ -109,7 +108,7 @@ contains
 
     ! compute the corner values for w now by averaging
 
-    if(slab) then
+    if(slab_uniform) then
        ! for slab symmetry: no geometrical info required
        do iw=1,nw+nwauxio
          {do ix^DB=ixCmin^DB,ixCmax^DB\}
@@ -181,7 +180,7 @@ contains
     x_TEC=0.d0
     {do ix^DB=ixmin^DB,ixmax^DB\}
        select case (coordinate)
-       case (Cartesian,Cartesian_stretched)
+       case (Cartesian,Cartesian_stretched,Cartesian_expansion)
           x_TEC(1:ndim)=xC(ix^D,1:ndim)
           w_TEC(1:nw+nwauxio)=wC(ix^D,1:nw+nwauxio)
        case (cylindrical)
@@ -189,7 +188,7 @@ contains
           x_TEC(1)=xC(ix^D,1)}
           {^IFTWOD
           select case (phi_)
-          case (2) 
+          case (2)
              x_TEC(1)=xC(ix^D,1)*cos(xC(ix^D,2))
              x_TEC(2)=xC(ix^D,1)*sin(xC(ix^D,2))
           case default
@@ -206,7 +205,7 @@ contains
 
              {^IFTWOD
              select case (phi_)
-             case (2) 
+             case (2)
                 normal(1,1)=cos(xC(ix^D,2))
                 normal(1,2)=-sin(xC(ix^D,2))
                 normal(2,1)=sin(xC(ix^D,2))
@@ -341,7 +340,7 @@ contains
        ! fill all names, even those that we will not write away from the first nw
        wnamei(iw)=TRIM(wname)
     enddo
-    ! --- end of part to provide variable names 
+    ! --- end of part to provide variable names
 
     select case (coordinate)
        case( spherical )
@@ -423,7 +422,7 @@ contains
 
     ! coordinates of cell corners
     ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
-    if(slab)then
+    if(slab_uniform)then
        do idims=1,ndim
          xC(ixC^S,idims)=ps(igrid)%x(ixC^S,idims)+0.5d0*dx(idims,level)
        end do

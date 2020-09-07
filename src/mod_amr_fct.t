@@ -1,7 +1,7 @@
 module mod_amr_fct
   implicit none
-  save
-  
+  private
+
   type facealloc
     double precision, dimension(:^D&), pointer :: face
   end type facealloc
@@ -11,15 +11,26 @@ module mod_amr_fct
     integer :: ipe
   end type fake_neighbors
 
-  type(facealloc), dimension(:,:,:), allocatable :: pface
+  type(facealloc), dimension(:,:,:), allocatable, public :: pface
 
-  type(fake_neighbors), dimension(:^D&,:,:), allocatable :: fine_neighbors
+  type(fake_neighbors), dimension(:^D&,:,:), allocatable, public :: fine_neighbors
 
-  integer, dimension(:,:^D&,:), allocatable :: old_neighbor
+  integer, dimension(:,:^D&,:), allocatable, public :: old_neighbor
 
+  integer :: itag, isend, irecv
   integer :: nrecv, nsend, ibuf_recv, ibuf_send, ibuf_send_next
   integer, dimension(^ND) :: isize
+  integer, dimension(:), allocatable :: recvrequest, sendrequest
+  integer, dimension(:,:), allocatable :: recvstatus, sendstatus
   double precision, allocatable :: recvbuffer(:), sendbuffer(:)
+
+  public :: store_faces
+  public :: comm_faces
+  public :: end_comm_faces
+  public :: deallocateBfaces
+  public :: old_neighbors
+  public :: prolong_2nd_stg
+  public :: already_fine
 
 contains
   !> This subroutine performs a 2nd order prolongation for a staggered field F,
@@ -48,7 +59,7 @@ contains
     integer :: iihxFi^L,iijxFi^L,ijhxFi^L,ijjxFi^L,ihixFi^L,ijixFi^L,ihjxFi^L
     integer :: jihxFi^L,jijxFi^L,jjhxFi^L,jjjxFi^L,jhixFi^L,jjixFi^L,jhjxFi^L
     double precision :: bfluxCo(sCo%ixGs^S,nws),bfluxFi(sFi%ixGs^S,nws)
-    double precision :: slopes(sCo%ixGs^S,ndim)
+    double precision :: slopes(sCo%ixGs^S,ndim),B_energy_change(ixG^T)
     {^IFTHREED
     ! Directional bias, see pdf
     ! These arrays should have ranges ixO^S
@@ -425,7 +436,15 @@ contains
       end where
     end do
 
+    if(phys_total_energy.and. .not.prolongprimitive) then
+      B_energy_change(ixFi^S)=0.5d0*sum(wFi(ixFi^S,iw_mag(:))**2,dim=ndim+1)
+    end if
     call phys_face_to_center(ixFi^L,sFi)
+    if(phys_total_energy.and. .not.prolongprimitive) then
+      B_energy_change(ixFi^S)=0.5d0*sum(wFi(ixFi^S,iw_mag(:))**2,dim=ndim+1)-&
+        B_energy_change(ixFi^S)
+      wFi(ixFi^S,iw_e)=wFi(ixFi^S,iw_e)+B_energy_change(ixFi^S)
+    end if
 
     end associate
 

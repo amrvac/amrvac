@@ -2,7 +2,7 @@
 
 [TOC]
 
-# Introduction {#introduction}
+# Introduction {#introductionpython}
 
 This document describes the use of Python for processing MPI-AMRVAC simulation data.
 Both the reading of native `.dat`- and `vtk`-filetypes (`.vtu`, `.pvtu`, `.vti`) are supported.

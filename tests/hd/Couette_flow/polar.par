@@ -24,7 +24,7 @@
 /
 
  &methodlist
-   time_integrator     = 'fourstep'
+   time_stepper     = 'fourstep'
    flux_scheme         = 13*'hll'
    limiter    = 13*'koren'
    angmomfix=T

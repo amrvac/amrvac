@@ -6,7 +6,7 @@
 !> Usage:
 !> in amrvac.par:
 !>   &methodlist
-!>    time_integrator='onestep' ! time marching scheme, or 'twostep','threestep'
+!>    time_stepper='onestep' ! time marching scheme, or 'twostep','threestep'
 !>    flux_scheme=13*'cd4' ! or 'tvdlf', 'fd'
 !>    limiter= 13*'koren' ! or 'vanleer','cada3','mp5' so on
 !>   /
@@ -618,7 +618,7 @@ contains
 
     istep=0
 
-    select case (time_integrator)
+    select case (time_stepper)
      case ("onestep")
        call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,ps1,qt,ps)
      case ("twostep")
@@ -648,9 +648,9 @@ contains
 
        call advect1mf(flux_scheme,qdt,2.0d0/3.0d0,idim^LIM,qt+qdt/2.0d0,ps2,qt+qdt/3.0d0,ps)
      case default
-       write(unitterm,*) "time_integrator=",time_integrator
-       write(unitterm,*) "Error in advectmf: Unknown time integration method"
-       call mpistop("Correct time_integrator")
+       write(unitterm,*) "time_stepper=",time_stepper
+       write(unitterm,*) "Error in advectmf: Unknown time stepping method"
+       call mpistop("Correct time_stepper")
     end select
 
   end subroutine advectmf

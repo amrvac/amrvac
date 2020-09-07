@@ -1,9 +1,9 @@
- &filelist
+ r&filelis2
         base_filename  = '_2step_hlld_vl'
  /
 
  &methodlist
-        time_integrator  = 'twostep'
+        time_stepper  = 'twostep'
         flux_scheme    = 20*'hlld'
         limiter = 20*'vanleer'
  /

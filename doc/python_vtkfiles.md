@@ -2,7 +2,7 @@
 
 [TOC]
 
-# Introduction {#introduction}
+# Introduction on reading vtk files {#introductionvtk}
 
 This document describes the use of Python for plotting MPI-AMRVAC 1D and 2D simulation data using the `vtk` filetypes.
 All required packages and instructions on how to set up the tools folder are described in @ref python_setup.md.

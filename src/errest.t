@@ -59,6 +59,7 @@ end subroutine errest
 subroutine lohner_grid(igrid)
   use mod_usr_methods, only: usr_var_for_errest, usr_refine_threshold
   use mod_forest, only: coarsen, refine
+  use mod_physics, only: phys_energy
   use mod_global_parameters
 
   integer, intent(in) :: igrid

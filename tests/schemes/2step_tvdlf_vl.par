@@ -3,7 +3,7 @@
  /
 
  &methodlist
-        time_integrator  = 'twostep'
+        time_stepper  = 'twostep'
         flux_scheme    = 20*'tvdlf'
         typepred1    = 20*'hancock'
         limiter = 20*'vanleer'

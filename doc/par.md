@@ -13,7 +13,7 @@ have physics-independent class and physics-dependent class. The physics-independ
 * @ref par_filelist Name and type of files to save (or read)
 * @ref par_savelist When to save data
 * @ref par_stoplist When to stop the simulation
-* @ref par_methodlist Which numerical methods to use (e.g., flux scheme, time integrator, limiter)
+* @ref par_methodlist Which numerical methods to use (e.g., flux scheme, time stepper, time integrator, limiter)
 * @ref par_boundlist Boundary conditions
 * @ref par_meshlist Mesh-related settings (e.g. domain size, refinement)
 * @ref par_paramlist Time-step parameters
@@ -282,6 +282,7 @@ output is always saved after the stop condition has been fulfilled. If
     	time_init =DOUBLE
     	reset_time =F | T
     	reset_it   =F | T
+        final_dt_reduction=T | F
     /
 name | type | default | description
 ---|---|---|---
@@ -293,6 +294,7 @@ name | type | default | description
 `time_init` | double | 0 | set the initial time when start a new run
 `reset_time` | logical | F | when restart from a previous run, reset the time to the initial one if it is T
 `reset_it` | logical | F | when restart from a previous run, reset the number of time steps to the initial one if it is T
+`final_dt_reduction` | logical | T | forces the last dt to comply with time_max limit
 
 You may use an upper limit `it_max` for the number of timesteps, and/or the
 physical time `time_max`, and/or the wall time 'wall_time_max' to end a run.
@@ -317,7 +319,8 @@ without changing time, set `reset_it=T`.
 
     &methodlist
 
-    time_integrator='twostep' | 'onestep' | 'threestep' | 'rk4' | 'fourstep' | 'ssprk43' | 'ssprk54'
+    time_stepper='twostep' | 'onestep' | 'threestep' | 'fourstep' | 'fivestep'
+    time_integrator= choices depends on time_stepper
     flux_scheme=nlevelshi strings from: 'hll'|'hllc'|'hlld','hllcd'|'tvdlf'|'tvdmu'|'tvd'|'cd'|'fd'|'source'|'nul'
     typepred1=nlevelshi strings from: 'default'|'hancock'|'tvdlf'|'hll'|'hllc'|'tvdmu'|'cd'|'fd'|'nul'
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
@@ -346,11 +349,12 @@ without changing time, set `reset_it=T`.
 
     small_density= DOUBLE
     small_pressure= DOUBLE
+    small_temperature= DOUBLE
     small_values_method='error' | 'replace' | 'average'
     small_values_daverage=1
     check_small_values= F | T
-
-    solve_internal_e = F | T
+    trace_small_values= F | T
+    small_values_fix_iw= LOGICAL, LOGICAL, LOGICAL, ...
 
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
@@ -359,9 +363,9 @@ without changing time, set `reset_it=T`.
     trac = F | T
     /
 
-### time_integrator, flux_scheme, typepred1 {#par_time_integrator}
+### time_stepper, time_integrator, flux_scheme, typepred1 {#par_time_integrator}
 
-The `time_integrator` variable determines the time integration procedure. The
+The `time_stepper` variable determines the time integration procedure. The
 default procedure is a second order predictor-corrector type 'twostep' scheme
 (suitable for TVDLF, TVD-MUSCL schemes), and a simple 'onestep' algorithm for
 the temporally second order TVD method, or the first order TVDLF1, TVDMU1,
@@ -370,13 +374,16 @@ the AMR grid levels. The temporally first order but spatially second order
 TVD1 algorithm is best suited for steady state calculations as a 'onestep'
 scheme. The TVDLF and TVD-MUSCL schemes can be forced to be first order, and
 linear in the time step, which is good for getting a steady state, by setting
-`time_integrator='onestep'`.
+`time_stepper='onestep'`.
 
 There is also a fourth order Runge-Kutta type method, when
-`time_integrator='fourstep'`. It can be used with _dimsplit=.true._.
+`time_stepper='fourstep'` 
+and one sets
+`time_integrator='rk4'`. It can be used with _dimsplit=.true._.
  These higher order time integration methods can be
 most useful in conjunction with higher order spatial discretizations.
-See also [discretization](discretization.md).
+See also [discretization](discretization.md) and
+[time_discretization](time_discretization.md).
 
 The array `flux_scheme` defines a scheme to calculate the flux at cell interfaces using the chosen
 [method](methods.md) (like hll based approximate Riemann solver) per activated grid level
@@ -391,7 +398,8 @@ all, and 'source' merely adds sources. These latter two values must be used
 with care, obviously, and are only useful for testing source terms or to save
 computations when fluxes are known to be zero.
 
-The `typepred1` array is only used when `time_integrator='twostep'` and
+The `typepred1` array is only used when `time_stepper='twostep'` and 
+`time_integrator='Predictor_Corrector'` and 
 specifies the predictor step discretization, again per level (so _nlevelshi_
 strings must be set). By default, it contains _typepred1=20*'default'_ (default
 value _nlevelshi=20_), and it then deduces e.g. that 'cd' is predictor for
@@ -407,7 +415,8 @@ for the limited linear reconstructions from cell-center to cell-edge
 variables, and for the TVD method, for the characteristic variables.
 The default limiter is the most diffusive `limiter=nlevelshi*'minmod'`
 limiter (minmod for all levels), but one can also use
-`limiter=nlevelshi*'woodward'`, or use different limiters per level.
+`limiter=nlevelshi*'woodward'`, or use different limiters per level. Click
+[Slope limiters](limiter.md) to see detailed description of all available limiters.
 
 The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
@@ -499,29 +508,31 @@ described in [methods](methods.md).
 Negative pressure or density caused by the numerical approximations can make the
 code crash. For HD and MHD modules this can be monitored
 or even cured by the handle_small_values subroutines in each substep of iteration. 
-The control parameters `small_density, small_pressure, small_temperature` play a role here:
+The control parameters small_density, small_pressure, small_temperature play a role here:
 they can be set to small positive values but not negative values, while their default is 0. If 
-`small_temperature` is positive, `small_pressure` is overwritten by the product of 
-`small_pressure` and `small_temperature`. If `check_small_values` is set to .true.,
-additional check for small values will be triggered in phys_to_primitive, phys_to_conserved,
-and source terms such as resistive terms in MHD.
+small_temperature is positive, small_pressure is overwritten by the product of 
+small_rho and small_temperature. If check_small_values is set to .true.,
+additional check for small values will be triggered in phys_to_primitive, phys_to_conserved, 
+phys_ei_to_e, phys_get_pthermal, and source terms such as resistive terms in MHD.
 
-The actual treatment involves the _small_values_method_ parameter: Its default value
+The actual treatment involves the small_values_method parameter: Its default value
 'error' causes a full stop in the handle_small_values subroutine in the physics 
 modules. In this way, you can use it for debugging purposes, to spot from where the actual
-negative pressure and unphysical value gets introduced. If it is somehow unavoidable in
+negative pressure and unphysical value gets introduced during which call. If the compilation
+is in debug mode and trace_small_value=T, then the error message shows the path of execution as
+number of lines of subroutines so that you know when the small values are encountered in the execution
+sqeuence. If it is somehow unavoidable in
 your simulations, then you may rerun with a recovery process turned on as
-follows.  When _small_values_method='replace'_, the parameters small_pressure, small_density 
+follows.  When small_values_method='replace', the parameters small_pressure, small_density 
 are used to replace any unphysical value and set momentum to be 0, as encoded in 
-`mod_small_values.t`. When you select _small_values_method='average'_, any unphysical value
+`mod_small_values.t`. When you select small_values_method='average', any unphysical value
 is replaced by averaging from a user-controlled environment about the faulty cells.
-The width of this environment is set by the integer _small_values_daverage_.
-
-When internal energy is an extremely small fraction of total energy, solving total
-energy equation can easily get negative pressure/internal energy caused by small 
-errors in other energies. You can set `solve_internal_e = T` to solve internal 
-energy equation instead of solving total energy with cost of losing total energy 
-conservation.
+The width of this environment in cells is set by the integer small_values_daverage.
+The parameter small_values_fix_iw is an array, containing a logical for each variable. It has a length nw. 
+It can be used to make sure that a certain variable is not adjusted by the small_values_method. The default is true for all the variables. 
+If the user sets it to false for a given variable, that variable will not be adjusted by the small_values_method.
+The first elements are the logicals for the conservative variables in their standard order.
+As an example: if the user would like to adjust the pressure and density but not the momentum in a 2D MHD simulation, then small_values_fix_iw has to be set to T, F, F, T, T, T. 
 
 ### Special process {#par_process}
 User controlled special process can be added to 
@@ -545,7 +556,7 @@ Due to limited spatial resolution, numerically underresolved transition region i
 numerical models of solar atmosphere leads to significant underestimation of coronal 
 density and large errors in thermodynamic evolution. Transition Region Adaptive 
 thermal Conduction (TRAC) invented by Johnson and Bradshaw (2019 ApJL, 873, L22) 
-is implemented to fix this problem by setting `trac=F` for 1D HD and 
+is implemented to fix this problem by setting `trac=T` for 1D HD and 
 multidimensional MHD solar atmospheric models. 
 
 ## Boundlist {#par_boundlist}
@@ -961,6 +972,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_viscosity= F | T
      mhd_particles= F | T
      mhd_4th_order= F | T
+     mhd_internal_e= F | T
+     mhd_solve_eaux= F | T
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1040,6 +1053,27 @@ cylindrical coordinates as well. User can possibly prescibe analytic current in
 _usr_set_J0_ subroutine to significantly increase accuracy. Choose 
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
+
+### Solve internal energy to avoid negative pressure{#par_AIE}
+
+In extremely low beta plasma, internal energy or gas pressure easily goes to
+negative values when solving total energy equation, because numerical error of magnetic
+ energy is comparable to the internal energy due to its extremely small fraction in the 
+total energy. We have two methods to avoid this problem. In the first method, we solve 
+internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
+In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
+ and synchronize the internal energy with the result from total energy equation.  In each step of 
+advection, the synchronization replace the internal energy from 
+the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
+mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
+energy with the internal energy from the total energy where plasma beta is larger than 0.05.
+This function is activated by `mhd_solve_eaux=T`. It is needed to specify the special boundary 
+for the auxiliary internal energy in mod_usr.t if special boundary is used. The boundary type 
+of the auxiliary internal energy is coded to be the same as the boundary type of density. 
+So you do not need to specify boundary types for the auxiliary internal energy in the par file.
+This function is compatible with all finite volume and finite difference schemes we have, including
+HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
+as the HLL flux in all intermediate states of the Riemann fan. 
 
 ## Synthetic EUV emission {#par_euvlist}
 

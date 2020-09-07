@@ -22,7 +22,7 @@
  /
 
  &methodlist
-        time_integrator=  'ssprk54'
+        time_stepper=  'fivestep'
         flux_scheme =    20*'fd'
         limiter= 20*'mp5'
  /

@@ -1,6 +1,6 @@
 F90 := mpif90
 FFLAGS := -c
-F90FLAGS := -ffree-form -O0 -finit-real=snan -finit-integer=-2147483648	\
+F90FLAGS := -ffree-form -O2 -finit-real=snan -finit-integer=-2147483648	\
 -g -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow \
 -Wall -Wno-unused-dummy-argument -Wno-unused-function -Wno-unused
 LINK := $(F90) $(F90FLAGS)

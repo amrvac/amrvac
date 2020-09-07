@@ -48,20 +48,25 @@ subroutine alloc_node(igrid)
   use mod_forest
   use mod_global_parameters
   use mod_geometry
+  use mod_usr_methods, only: usr_set_surface
 
   integer, intent(in) :: igrid
 
   integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
   integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
-  integer:: icase, ixGext^L
+  integer :: icase, ixGext^L
   double precision :: dx^D, summeddx, sizeuniformpart^D
   double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
+  double precision :: delx_ext(ixGlo1-1:ixGhi1+1)
+  double precision :: exp_factor_ext(ixGlo1-1:ixGhi1+1),del_exp_factor_ext(ixGlo1-1:ixGhi1+1),exp_factor_primitive_ext(ixGlo1-1:ixGhi1+1)
+  double precision :: xc(ixGlo1:ixGhi1),delxc(ixGlo1:ixGhi1)
+  double precision :: exp_factor_coarse(ixGlo1:ixGhi1),del_exp_factor_coarse(ixGlo1:ixGhi1),exp_factor_primitive_coarse(ixGlo1:ixGhi1)
 
   ixCoGmin^D=1;
-  !ixCoGmax^D=ixGhi^D/2+nghostcells;
   ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
 
   icase=mod(nghostcells,2)
+  if(stagger_grid) icase=1
   select case(icase)
     case(0)
       ixGext^L=ixG^LL;
@@ -77,25 +82,25 @@ subroutine alloc_node(igrid)
   if(.not. allocated(ps(igrid)%w)) then
 
     ! allocate arrays for solution and space
-    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true., .false.)
+    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
     ! allocate arrays for one level coarser solution
-    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true., .false.)
+    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
     ! allocate arrays for old solution
-    call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false., .false.)
+    call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
     ! allocate arrays for temp solution 1
-    call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false., .true.)
+    call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
 
-    ! allocate temperary solution space
+    ! allocate temporary solution space
     select case (time_integrator)
-    case("threestep","fourstep","jameson","twostep_trapezoidal")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
-    case("rk4","ssprk43")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false., .false.)
-    case("ssprk54")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false., .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false., .false.)
-      call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false., .false.)
+    case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal")
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+    case("RK3_BT","rk4","ssprk5")
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+    case("IMEX_ARS3","IMEX_232")
+      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+      call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
     end select
 
   end if
@@ -104,6 +109,7 @@ subroutine alloc_node(igrid)
   ps1(igrid)%w=0.d0
   psc(igrid)%w=0.d0
   ps(igrid)%igrid=igrid
+  if(trac) ps(igrid)%special_values=0.d0
 
   if(stagger_grid) then
     ps(igrid)%ws=0.d0
@@ -166,7 +172,7 @@ subroutine alloc_node(igrid)
       ixshift=(ig^D-1)*block_nx^D-nghostcells
       do ix=ixGextmin^D,ixGextmax^D
         index=ixshift+ix
-        ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
+        ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(index-1)
       enddo
       igCo^D=(ig^D-1)/2
       ixshift=igCo^D*block_nx^D+(1-modulo(ig^D,2))*block_nx^D/2-nghostcells
@@ -226,7 +232,7 @@ subroutine alloc_node(igrid)
      endif\}
     {if(stretch_type(^D) == stretch_symm)then
        ! here we distinguish three kinds of grid blocks
-       ! depending on their ig-index, set per level 
+       ! depending on their ig-index, set per level
        !      the first n_stretchedblocks/2  will stretch to the left
        !      the middle ntotal-n_stretchedblocks will be uniform
        !      the last  n_stretchedblocks/2  will stretch to the right
@@ -244,7 +250,7 @@ subroutine alloc_node(igrid)
          ixshift=(ig^D-1)*block_nx^D-nghostcells
          do ix=ixGextmin^D,ixGextmax^D
            index=ixshift+ix
-           ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(offset-index)
+           ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(offset-index)
          enddo
          ixshift=(nstretchedblocks(level,^D)/2-ig^D)*(block_nx^D/2)+block_nx^D/2+nghostcells
          do ix=ixCoGmin^D,ixCoGmax^D
@@ -256,17 +262,17 @@ subroutine alloc_node(igrid)
            if(ng^D(level)==nstretchedblocks(level,^D))then
              ! if middle blocks do not exist then use symmetry
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-                ps(igrid)%dx(ix^D%ixG^T,^D)= &
-                ps(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixG^T,^D)
+                ps(igrid)%dx(ix^D%ixGext^S,^D)= &
+                ps(igrid)%dx(2*(ixGhi^D-nghostcells)+1-ix^D%ixGext^S,^D)
              enddo
              do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
                 psc(igrid)%dx(ix^D%ixCoG^S,^D)= &
                 psc(igrid)%dx(2*(ixCoGmax^D-nghostcells)+1-ix^D%ixCoG^S,^D)
              enddo
            else
-             ! if middle blocks exist then use same as middle blocks: 
+             ! if middle blocks exist then use same as middle blocks:
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-                ps(igrid)%dx(ix^D%ixG^T,^D)=dxmid(level,^D)
+                ps(igrid)%dx(ix^D%ixGext^S,^D)=dxmid(level,^D)
              enddo
              do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
                 psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxmid(level-1,^D)
@@ -282,7 +288,7 @@ subroutine alloc_node(igrid)
              psc(igrid)%dx(ix^D%ixCoG^S,^D)=psc(igrid)%dx(2*nghostcells+1-ix^D%ixCoG^S,^D)
            enddo
          endif
-       else 
+       else
          if(ig^D<=ng^D(level)-nstretchedblocks(level,^D)/2) then
            ! keep uniform
            ps(igrid)%dx(ixGext^S,^D)=dxmid(level,^D)
@@ -298,9 +304,9 @@ subroutine alloc_node(igrid)
                psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(nghostcells-ix)
              enddo
            endif
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2)then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D))then
              do ix=ixGhi^D-nghostcells+1,ixGextmax^D
-               ps(igrid)%dx(ix^D%ixG^T,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
+               ps(igrid)%dx(ix^D%ixGext^S,^D)=dxfirst(level,^D)*qstretch(level,^D)**(ix-block_nx^D-nghostcells-1)
              enddo
              do ix=ixCoGmax^D-nghostcells+1,ixCoGmax^D
                psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(ix-ixCoGmax^D+nghostcells-1)
@@ -329,7 +335,7 @@ subroutine alloc_node(igrid)
              psc(igrid)%dx(ix^D%ixCoG^S,^D)=dxfirst(level-1,^D)*qstretch(level-1,^D)**(index-1)
            enddo
            ! first block: modify ghost cells!!!
-           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)/2+1)then
+           if(ig^D==ng^D(level)-nstretchedblocks(level,^D)+1)then
              if(ng^D(level)==nstretchedblocks(level,^D))then
                ! if middle blocks do not exist then use symmetry
                do ix=ixGextmin^D,nghostcells
@@ -339,7 +345,7 @@ subroutine alloc_node(igrid)
                  psc(igrid)%dx(ix^D%ixCoG^S,^D)=psc(igrid)%dx(2*nghostcells+1-ix^D%ixCoG^S,^D)
                enddo
              else
-               ! if middle blocks exist then use same as middle blocks: 
+               ! if middle blocks exist then use same as middle blocks:
                do ix=ixGextmin^D,nghostcells
                  ps(igrid)%dx(ix^D%ixGext^S,^D)=dxmid(level,^D)
                enddo
@@ -446,6 +452,19 @@ subroutine alloc_node(igrid)
       ps(igrid)%dsC(ixGext^S,1:ndim)=ps(igrid)%dx(ixGext^S,1:ndim)
       psc(igrid)%dvolume(ixCoG^S)= {^D&psc(igrid)%dx(ixCoG^S,^D)|*}
       psc(igrid)%ds(ixCoG^S,1:ndim)=psc(igrid)%dx(ixCoG^S,1:ndim)
+    case (Cartesian_expansion)
+      {^IFONED
+      delx_ext(ixGext^S) = ps(igrid)%dx(ixGext^S,1)
+      if(associated(usr_set_surface)) call usr_set_surface(ixGext^L,xext(ixGext^S,1),delx_ext(ixGext^S),exp_factor_ext(ixGext^S),del_exp_factor_ext(ixGext^S),exp_factor_primitive_ext(ixGext^S))
+      ps(igrid)%dvolume(ixGext^S)= exp_factor_primitive_ext(ixGext^S)
+      ps(igrid)%ds(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
+      ps(igrid)%dsC(ixGext^S,1)=ps(igrid)%dx(ixGext^S,1)
+      xc(ixCoG^S) = psc(igrid)%x(ixCoG^S,1)
+      delxc(ixCoG^S) = psc(igrid)%dx(ixCoG^S,1)
+      if(associated(usr_set_surface)) call usr_set_surface(ixCoG^L,xc(ixCoG^S),delxc(ixCoG^S),exp_factor_coarse(ixCoG^S),del_exp_factor_coarse(ixCoG^S),exp_factor_primitive_coarse(ixCoG^S))
+      psc(igrid)%dvolume(ixCoG^S)= exp_factor_primitive_coarse(ixCoG^S)
+      psc(igrid)%ds(ixCoG^S,1)=psc(igrid)%dx(ixCoG^S,1)
+      }
     case (spherical)
       ps(igrid)%dvolume(ixGext^S)=(xext(ixGext^S,1)**2 &
                                 +ps(igrid)%dx(ixGext^S,1)**2/12.0d0)*&
@@ -534,25 +553,15 @@ subroutine alloc_node(igrid)
 end subroutine alloc_node
 
 !> allocate memory to physical state of igrid node
-subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x, io_blk_flag)
+subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
   use mod_global_parameters
   use mod_geometry
   type(state) :: s
   integer, intent(in) :: igrid, ixG^L, ixGext^L
   logical, intent(in) :: alloc_x
-  logical, intent(in) :: io_blk_flag
   integer             :: ixGs^L
-  if(io_blk_flag) then
-    select case(convert_type)
-      case('oneblock','oneblockB')
-      allocate(s%w(ixG^S,1:nw+nwauxio))
-    case default
-      allocate(s%w(ixG^S,1:nw))
-    end select
-  else
-    allocate(s%w(ixG^S,1:nw))
-  endif
 
+  allocate(s%w(ixG^S,1:nw))
   s%ixG^L=ixG^L;
   {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
   if(stagger_grid) then
@@ -635,14 +644,14 @@ subroutine dealloc_node(igrid)
   call dealloc_state(igrid, psc(igrid),.true.)
   call dealloc_state(igrid, ps1(igrid),.false.)
   call dealloc_state(igrid, pso(igrid),.false.)
-  ! deallocate temperary solution space
+  ! deallocate temporary solution space
   select case (time_integrator)
-  case("threestep","fourstep","jameson","twostep_trapezoidal")
+  case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal")
     call dealloc_state(igrid, ps2(igrid),.false.)
-  case("rk4","ssprk43")
+  case("RK3_BT","rk4","ssprk5")
     call dealloc_state(igrid, ps2(igrid),.false.)
     call dealloc_state(igrid, ps3(igrid),.false.)
-  case("ssprk54")
+  case("IMEX_ARS3","IMEX_232")
     call dealloc_state(igrid, ps2(igrid),.false.)
     call dealloc_state(igrid, ps3(igrid),.false.)
     call dealloc_state(igrid, ps4(igrid),.false.)

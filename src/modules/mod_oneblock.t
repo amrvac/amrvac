@@ -85,10 +85,10 @@ double precision, intent(out)                           :: out
 double precision, dimension(^ND)                        :: xloc
 integer                                                 :: ic^D, ic1^D, ic2^D
 double precision                                        :: xd^D
-{#IFDEF D2
+{^IFTWOD
 double precision                                        :: c00, c10
 }
-{#IFDEF D3
+{^IFTHREED
 double precision                                        :: c0, c1, c00, c10, c01, c11
 }
 integer                                                 :: ipivot^D, idir
@@ -174,18 +174,18 @@ end if
 !-------------------------------------------
 ! linear, bi- and tri- linear interpolations
 !-------------------------------------------
-{#IFDEF D1
+{^IFONED
 xd1 = (xloc(1)-xoneblock(ic11,1)) / (xoneblock(ic21,1) - xoneblock(ic11,1))
 out = woneblock(ic11,iw) * (1.0d0 - xd1) + woneblock(ic21,iw) * xd1
 }
-{#IFDEF D2
+{^IFTWOD
 xd1 = (xloc(1)-xoneblock(ic11,ic12,1)) / (xoneblock(ic21,ic12,1) - xoneblock(ic11,ic12,1))      
 xd2 = (xloc(2)-xoneblock(ic11,ic12,2)) / (xoneblock(ic11,ic22,2) - xoneblock(ic11,ic12,2))
 c00 = woneblock(ic11,ic12,iw) * (1.0d0 - xd1) + woneblock(ic21,ic12,iw) * xd1
 c10 = woneblock(ic11,ic22,iw) * (1.0d0 - xd1) + woneblock(ic21,ic22,iw) * xd1
 out = c00 * (1.0d0 - xd2) + c10 * xd2
 }
-{#IFDEF D3
+{^IFTHREED
 xd1 = (xloc(1)-xoneblock(ic11,ic12,ic13,1)) / (xoneblock(ic21,ic12,ic13,1) - xoneblock(ic11,ic12,ic13,1))      
 xd2 = (xloc(2)-xoneblock(ic11,ic12,ic13,2)) / (xoneblock(ic11,ic22,ic13,2) - xoneblock(ic11,ic12,ic13,2))      
 xd3 = (xloc(3)-xoneblock(ic11,ic12,ic13,3)) / (xoneblock(ic11,ic12,ic23,3) - xoneblock(ic11,ic12,ic13,3))    

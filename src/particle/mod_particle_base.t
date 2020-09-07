@@ -55,6 +55,8 @@ module mod_particle_base
   integer                 :: it_particles
   !> Output count for ensembles
   integer                 :: n_output_ensemble
+  !> Output count for ensembles of destroyed particles
+  integer                 :: n_output_destroyed
 
   ! these two save the list of neighboring cpus:
   integer, allocatable :: ipe_neighbor(:)
@@ -211,6 +213,7 @@ contains
     nparticles                = 0
     it_particles              = 0
     n_output_ensemble         = 0
+    n_output_destroyed        = 0
     nparticles_on_mype        = 0
     nparticles_active_on_mype = 0
     integrator_velocity_factor(:) = 1.0d0
@@ -404,7 +407,7 @@ contains
 
     ! fill with electric field
     current = zero
-    call get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
+    call particle_get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
 
     w_part(ixG^T,ep(1)) = w_part(ixG^T,bp(2)) * &
          w(ixG^T,iw_mom(3)) - w_part(ixG^T,bp(3)) * &
@@ -427,34 +430,34 @@ contains
 
   end subroutine fields_from_mhd
 
-!  !> Calculate idirmin and the idirmin:3 components of the common current array
-!  !> make sure that dxlevel(^D) is set correctly.
-!  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
-!    use mod_global_parameters
-!    use mod_geometry
-!
-!    integer :: idirmin0
-!    integer :: ixO^L, idirmin, ixI^L
-!    double precision :: w(ixI^S,1:nw)
-!    integer :: idir
-!    ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-!    double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
-!
-!    idirmin0 = 7-2*ndir
-!
-!    if (B0field) then
-!      do idir = 1, ndir
-!        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))+block%B0(ixI^S,idir,0)
-!      end do
-!    else
-!      do idir = 1, ndir
-!        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))
-!      end do
-!    end if
-!
-!    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
-!
-!  end subroutine get_current
+  !> Calculate idirmin and the idirmin:3 components of the common current array
+  !> make sure that dxlevel(^D) is set correctly.
+  subroutine particle_get_current(w,ixI^L,ixO^L,idirmin,current)
+    use mod_global_parameters
+    use mod_geometry
+
+    integer :: idirmin0
+    integer :: ixO^L, idirmin, ixI^L
+    double precision :: w(ixI^S,1:nw)
+    integer :: idir
+    ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
+    double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+
+    idirmin0 = 7-2*ndir
+
+    if (B0field) then
+      do idir = 1, ndir
+        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))+block%B0(ixI^S,idir,0)
+      end do
+    else
+      do idir = 1, ndir
+        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))
+      end do
+    end if
+
+    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+
+  end subroutine particle_get_current
 
   !> Let particles evolve in time. The routine also handles grid variables and
   !> output.
@@ -1216,13 +1219,13 @@ contains
 
   end function make_particle_filename
 
-  subroutine output_ensemble(send_n_particles_for_output,send_particles,send_payload,type)
+  subroutine output_ensemble(send_n_particles_for_output,send_particles,send_payload,typefile)
     use mod_global_parameters
 
     integer, intent(in)             :: send_n_particles_for_output
     type(particle_t), dimension(send_n_particles_for_output), intent(in)  :: send_particles
     double precision, dimension(npayload,send_n_particles_for_output), intent(in)  :: send_payload
-    character(len=*), intent(in)    :: type
+    character(len=*), intent(in)    :: typefile
     character(len=std_len)              :: filename
     type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
     double precision, dimension(npayload,nparticles_per_cpu_hi) :: receive_payload
@@ -1243,11 +1246,17 @@ contains
       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     else
       ! Create file and write header
-      write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
-           trim(type) // '_', n_output_ensemble,'.csv'
+      if(typefile=='destroy') then
+        write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
+             trim(typefile) // '_', n_output_destroyed,'.csv'
+        n_output_destroyed= n_output_destroyed + 1
+      else
+        write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
+             trim(typefile) // '_', n_output_ensemble,'.csv'
+        n_output_ensemble = n_output_ensemble + 1
+      end if
       open(unit=unitparticles,file=filename)
       write(unitparticles,"(a)") trim(csv_header)
-      n_output_ensemble = n_output_ensemble + 1
 
       ! Write own particles
       do ipart=1,send_n_particles_for_output
@@ -1350,7 +1359,7 @@ contains
     double precision, intent(out) :: xpcart(1:3)
 
     select case (coordinate)
-       case (Cartesian,Cartesian_stretched)
+       case (Cartesian,Cartesian_stretched,Cartesian_expansion)
           xpcart(1:3)=xp(1:3)
        case (cylindrical)
           xpcart(1)=xp(1)*cos(xp(phi_))

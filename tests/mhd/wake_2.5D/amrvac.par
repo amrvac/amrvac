@@ -27,7 +27,7 @@
  /
 
  &methodlist
-        time_integrator   = 'threestep'
+        time_stepper   = 'threestep'
         flux_scheme     = 20*'hll'
         limiter  = 20*'cada3'
  /

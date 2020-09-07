@@ -5,6 +5,10 @@ module mod_rho_phys
   private
 
   integer, protected, public          :: rho_       = 1
+
+  !> Whether particles module is added
+  logical, public, protected              :: rho_particles = .false.
+
   double precision, protected, public :: rho_v(^ND) = 1.0d0
 
   ! Public methods
@@ -18,7 +22,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /rho_list/ rho_v
+    namelist /rho_list/ rho_v, rho_particles
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
@@ -52,12 +56,14 @@ contains
   subroutine rho_phys_init()
     use mod_global_parameters
     use mod_physics
+    use mod_particles, only: particles_init
 
     call rho_params_read(par_files)
 
     physics_type = "rho"
     phys_energy  = .false.
     phys_req_diagonal = .false.
+    use_particles = rho_particles
 
     rho_ = var_set_rho()
 
@@ -78,6 +84,12 @@ contains
     phys_to_primitive    => rho_to_primitive
     phys_get_dt          => rho_get_dt
     phys_write_info      => rho_write_info
+
+    ! Initialize particles module
+    if (rho_particles) then
+       call particles_init()
+       phys_req_diagonal = .true.
+    end if
 
   end subroutine rho_phys_init
 

@@ -10,6 +10,9 @@ module mod_mf_phys
   !> decay scale of frictional velocity 
   double precision, public                :: mf_decay_scale = 1.d0
 
+  !> Whether particles module is added
+  logical, public, protected              :: mf_particles = .false.
+
   !> Whether GLM-MHD is used
   logical, public, protected              :: mf_glm = .false.
 
@@ -113,7 +116,7 @@ contains
     integer                      :: n
 
     namelist /mf_list/ mf_nu, mf_decay_scale, &
-      mf_eta, mf_eta_hyper, mf_glm_alpha, &
+      mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, &
@@ -161,6 +164,7 @@ contains
   subroutine mf_phys_init()
     use mod_global_parameters
     use mod_physics
+    use mod_particles, only: particles_init
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -170,6 +174,8 @@ contains
     call mf_read_params(par_files)
 
     physics_type = "mf"
+    phys_energy = .false.
+    use_particles=mf_particles
 
     if(ndim==1) typedivbfix='none'
     select case (typedivbfix)
@@ -180,7 +186,7 @@ contains
        type_divb = divb_multigrid
        use_multigrid = .true.
        mg%operator_type = mg_laplacian
-       phys_global_source => mf_clean_divb_multigrid
+       phys_global_source_after => mf_clean_divb_multigrid
     }
     case ('glm')
       mf_glm          = .true.
@@ -251,13 +257,18 @@ contains
     phys_to_conserved        => mf_to_conserved
     phys_to_primitive        => mf_to_primitive
     phys_check_params        => mf_check_params
-    phys_check_w             => mf_check_w
     phys_write_info          => mf_write_info
     phys_angmomfix           => mf_angmomfix
-    phys_handle_small_values => mf_handle_small_values
+    phys_global_source_before=> mf_velocity_update
 
     if(type_divb==divb_glm) then
       phys_modify_wLR => mf_modify_wLR
+    end if
+
+    ! Initialize particles module
+    if(mf_particles) then
+      call particles_init()
+      phys_req_diagonal = .true.
     end if
 
     ! if using ct stagger grid, boundary divb=0 is not done here
@@ -284,16 +295,18 @@ contains
 
   subroutine mf_physical_units()
     use mod_global_parameters
-    double precision :: mp,kB,miu0
+    double precision :: mp,kB,miu0,c_lightspeed
     ! Derive scaling units
     if(SI_unit) then
       mp=mp_SI
       kB=kB_SI
       miu0=miu0_SI
+      c_lightspeed=c_SI
     else
       mp=mp_cgs
       kB=kB_cgs
       miu0=4.d0*dpi
+      c_lightspeed=const_c
     end if
     if(unit_velocity==0) then
       unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
@@ -308,21 +321,13 @@ contains
       unit_magneticfield=sqrt(miu0*unit_pressure)
       unit_time=unit_length/unit_velocity
     end if
+    ! Additional units needed for the particles
+    c_norm=c_lightspeed/unit_velocity
+    unit_charge=unit_magneticfield*unit_length**2/unit_velocity/miu0
+    if (.not. SI_unit) unit_charge = unit_charge*const_c
+    unit_mass=unit_density*unit_length**3
 
   end subroutine mf_physical_units
-
-  subroutine mf_check_w(primitive,ixI^L,ixO^L,w,flag)
-    use mod_global_parameters
-
-    logical, intent(in) :: primitive
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S,nw)
-    integer, intent(inout) :: flag(ixI^S)
-    double precision :: tmp(ixI^S)
-
-    flag(ixO^S)=0
-
-  end subroutine mf_check_w
 
   !> Transform primitive variables into conservative ones
   subroutine mf_to_conserved(ixI^L,ixO^L,w,x)
@@ -343,32 +348,6 @@ contains
 
     ! nothing to do for mf
   end subroutine mf_to_primitive
-
-  subroutine mf_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
-    use mod_global_parameters
-    use mod_small_values
-    logical, intent(in)             :: primitive
-    integer, intent(in)             :: ixI^L,ixO^L
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    character(len=*), intent(in)    :: subname
-
-    integer :: flag(ixI^S)
-
-    if (small_values_method == "ignore") return
-
-    call mf_check_w(primitive, ixI^L, ixO^L, w, flag)
-
-    if (any(flag(ixO^S) /= 0)) then
-      select case (small_values_method)
-      case ("replace")
-      case ("average")
-        call small_values_average(ixI^L, ixO^L, w, x, flag)
-      case default
-        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
-      end select
-    end if
-  end subroutine mf_handle_small_values
 
   !> Calculate v vector
   subroutine mf_get_v(w,x,ixI^L,ixO^L,v)
@@ -555,6 +534,26 @@ contains
 
   end subroutine mf_get_flux
 
+  !> Add global source terms to update frictional velocity on complete domain
+  subroutine mf_velocity_update(qdt, qt, active)
+    use mod_global_parameters
+    double precision, intent(in) :: qdt    !< Current time step
+    double precision, intent(in) :: qt     !< Current time
+    logical, intent(inout)       :: active !< Output if the source is active
+
+    integer :: iigrid,igrid
+
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+      block=>ps(igrid)
+      call frictional_velocity(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,qdt)
+    end do
+    !$OMP END PARALLEL DO
+
+    active=.true.
+
+  end subroutine mf_velocity_update
+
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
   subroutine mf_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
@@ -663,12 +662,6 @@ contains
     end if
     }
 
-    if (.not. qsourcesplit) then
-      active = .true.
-      ! update velocity
-      call frictional_velocity(w,x,ixI^L,ixO^L,qdt)
-    end if
-
   end subroutine mf_add_source
 
   subroutine frictional_velocity(w,x,ixI^L,ixO^L,qdt)
@@ -741,7 +734,8 @@ contains
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
       ! decay frictional velocity near solar surface
-      decay(ixO^S)=1.d0-exp(-x(ixO^S,1)/mf_decay_scale)
+      decay(ixO^S)=1.d0-exp(-(x(ixO^S,1)-xprobmin1)/mf_decay_scale)
+      !decay(ixO^S)=decay(ixO^S)*(1.d0-exp(-(x(ixO^S,2)-xprobmin2)/0.03d0))
       do idir=1,ndir
         w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
@@ -775,8 +769,6 @@ contains
       ! add J0xB0 source term in momentum equations
       w(ixO^S,mom(1:ndir))=w(ixO^S,mom(1:ndir))+axb(ixO^S,1:ndir)
     end if
-
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_B0')
 
   end subroutine add_source_B0split
 
@@ -879,8 +871,6 @@ contains
 
     end do ! idir
 
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
-
   end subroutine add_source_res1
 
   !> Add resistive source to w within ixO
@@ -930,8 +920,6 @@ contains
       w(ixO^S,mag(1:ndir)) = w(ixO^S,mag(1:ndir))-qdt*curlj(ixO^S,1:ndir)
     end if
 
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
-
   end subroutine add_source_res2
 
   !> Add Hyper-resistive source to w within ixO
@@ -975,8 +963,6 @@ contains
       w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-tmpvec2(ixO^S,idir)*qdt
     end do
 
-    if (check_small_values)  call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
-
   end subroutine add_source_hyperres
 
   subroutine add_source_glm(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -1019,8 +1005,6 @@ contains
        end select
     end do
 
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm')
-
   end subroutine add_source_glm
 
   !> Add divB related sources to w within ixO corresponding to Powel
@@ -1043,8 +1027,6 @@ contains
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
     end do
-
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
 
   end subroutine add_source_powel
 
@@ -1069,8 +1051,6 @@ contains
     do idir=1,ndir
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
     end do
-
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
 
   end subroutine add_source_janhunen
 
@@ -1138,8 +1118,6 @@ contains
 
        w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
     end do
-
-    if (check_small_values) call mf_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
 
   end subroutine add_source_linde
 
@@ -1290,8 +1268,8 @@ contains
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
-    integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
-    double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S)
+    integer          :: iw,idir
+    double precision :: tmp(ixI^S)
 
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
@@ -1314,13 +1292,6 @@ contains
       end if
       if(mf_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
     case (spherical)
-       h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-       call mf_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
-       tmp(ixO^S)=tmp1(ixO^S)
-       if(B0field) then
-         tmp2(ixO^S)=sum(block%B0(ixO^S,:,0)*wCT(ixO^S,mag(:)),dim=ndim+1)
-         tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
-       end if
        ! b1
        if(mf_glm) then
          w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt/x(ixO^S,1)*2.0d0*wCT(ixO^S,psi_)
@@ -2301,7 +2272,7 @@ contains
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
 
-    associate(bfaces=>s%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
+    associate(bfaces=>s%ws,bfacesCT=>sCT%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
       cbarmax=>vcts%cbarmax)
 
     ! Calculate contribution to FEM of each edge,
@@ -2349,10 +2320,10 @@ contains
       ! Reconstruct magnetic fields
       ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
-      call reconstruct(ixI^L,ixC^L,idim2,bfaces(ixI^S,idim1),&
+      call reconstruct(ixI^L,ixC^L,idim2,bfacesCT(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
 
-      call reconstruct(ixI^L,ixC^L,idim1,bfaces(ixI^S,idim2),&
+      call reconstruct(ixI^L,ixC^L,idim1,bfacesCT(ixI^S,idim2),&
                btilL(ixI^S,idim2),btilR(ixI^S,idim2))
 
       ! Take the maximum characteristic
@@ -2454,14 +2425,14 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3
           if (lvc(idim1,idim2,idir)==0) cycle
-          ixCmax^D=ixOmax^D;
-          ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+          ixCmax^D=ixOmax^D+1;
+          ixCmin^D=ixOmin^D+kr(idir,^D)-2;
           ixBmax^D=ixCmax^D-kr(idir,^D)+1;
           ixBmin^D=ixCmin^D;
           ! current at transverse faces
           xs(ixB^S,:)=x(ixB^S,:)
           xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
-          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.true.)
+          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
           if (lvc(idim1,idim2,idir)==1) then
             jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
           else
@@ -2472,7 +2443,7 @@ contains
     end do
     ! get resistivity
     if(mf_eta>zero)then
-      jce(ixC^S,:)=jce(ixC^S,:)*mf_eta
+      jce(ixI^S,:)=jce(ixI^S,:)*mf_eta
     else
       ixA^L=ixO^L^LADD1;
       call get_current(wCT,ixI^L,ixO^L,idirmin,jcc)
@@ -2565,7 +2536,7 @@ contains
     double precision, intent(inout)    :: ws(ixIs^S,1:nws)
     double precision, intent(in)       :: x(ixI^S,1:ndim)
 
-    double precision                   :: Adummy(ixI^S,1:3)
+    double precision                   :: Adummy(ixIs^S,1:3)
 
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
 

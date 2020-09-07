@@ -17,10 +17,10 @@
  &stoplist
    time_max = 4.d2
 /
-   itmax=1
+   it_max=1
 
  &methodlist
-   time_integrator     = 'onestep'
+   time_stepper     = 'onestep'
    flux_scheme       = 20*'nul'
    limiter    = 20*'minmod'
 /

@@ -1,0 +1,75 @@
+!setup.pl -d=2
+
+ &filelist
+        saveprim=.true.
+        autoconvert=.true.
+	convert_type='vtuBCCmpi'
+        base_filename='output/final_rmiso_2d_config6_'  ! Base file name for dat/vtu output
+        nwauxio=1
+/
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.05          ! For the log
+        dtsave_dat=0.05          ! For dat/vtu output
+ /
+
+ &stoplist
+        dtmin=1.0d-6
+        time_max=0.2d0
+ /
+
+ &methodlist
+        time_stepper='fivestep'
+        flux_scheme=20*'hll'
+        limiter=20*'mp5'
+
+ /
+
+ &boundlist
+        typeboundary_min1 = 3*'cont'
+        typeboundary_max1 = 3*'cont'
+        typeboundary_min2 = 3*'cont'
+        typeboundary_max2 = 3*'cont'
+ /
+
+ &meshlist
+        refine_max_level=4
+        domain_nx1=128
+        domain_nx2=128
+        block_nx1=16
+        block_nx2=16
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.9d0
+        slowsteps=10
+ /
+
+ &hd_list
+      hd_gamma=1.0d0
+      hd_adiab=1.0d0
+      hd_energy=.false.
+ /
+
+ &usr_list
+        rho1=1.0d0
+        u1=0.75d0
+        v1=-0.5d0
+        rho2=2.0d0
+        u2=0.75d0
+        v2=0.5d0
+        rho3=1.0d0
+        u3=-0.75d0
+        v3=0.5d0
+        rho4=3.0d0
+        u4=-0.75d0
+        v4=-0.5d0
+ /
+
