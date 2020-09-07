@@ -17,7 +17,11 @@ module mod_particle_base
   integer                 :: nparticleshi
   !> Maximum number of particles in one processor
   integer                 :: nparticles_per_cpu_hi
-  !> Number of additional variables for a particle
+  !> Number of default payload variables for a particle
+  integer                 :: ndefpayload
+  !> Number of user-defined payload variables for a particle
+  integer                 :: nusrpayload
+  !> Number of total payload variables for a particle
   integer                 :: npayload
   !> Number of variables for grid field
   integer                 :: ngridvars
@@ -81,6 +85,8 @@ module mod_particle_base
   integer, allocatable :: bp(:)
   !> Variable index for electric field
   integer, allocatable :: ep(:)
+  !> Variable index for fluid velocity
+  integer, allocatable :: vp(:)
 
   type particle_ptr
     type(particle_t), pointer         :: self
@@ -114,13 +120,22 @@ module mod_particle_base
   ! The pseudo-random number generator
   type(rng_t) :: rng
 
-  procedure(sub_fill_gridvars), pointer :: particles_fill_gridvars => null()
-  procedure(sub_integrate), pointer     :: particles_integrate     => null()
+  procedure(sub_fill_gridvars), pointer              :: particles_fill_gridvars => null()
+  procedure(sub_define_additional_gridvars), pointer :: particles_define_additional_gridvars => null()
+  procedure(sub_fill_additional_gridvars), pointer   :: particles_fill_additional_gridvars => null()
+  procedure(sub_integrate), pointer                  :: particles_integrate => null()
 
   abstract interface
 
     subroutine sub_fill_gridvars
     end subroutine sub_fill_gridvars
+
+    subroutine sub_define_additional_gridvars(ngridvars)
+      integer, intent(inout) :: ngridvars
+    end subroutine sub_define_additional_gridvars
+
+    subroutine sub_fill_additional_gridvars
+    end subroutine sub_fill_additional_gridvars
 
     subroutine sub_integrate(end_time)
       double precision, intent(in) :: end_time
@@ -156,7 +171,7 @@ contains
 
     namelist /particles_list/ physics_type_particles,nparticleshi, &
          nparticles_per_cpu_hi, particles_eta, particles_etah, write_individual, write_ensemble, &
-         write_snapshot, dtsave_particles,num_particles,npayload,tmax_particles, &
+         write_snapshot, dtsave_particles,num_particles,ndefpayload,nusrpayload,tmax_particles, &
          dtheta,losses, const_dt_particles, relativistic, integrator_type_particles
 
     do n = 1, size(files)
@@ -179,7 +194,8 @@ contains
     nparticleshi              = 100000
     nparticles_per_cpu_hi     = 100000
     num_particles             = 1000
-    npayload                  = 1
+    ndefpayload               = 1
+    nusrpayload               = 0
     tmax_particles            = bigdouble
     dtsave_particles          = bigdouble
     const_dt_particles        = -bigdouble
@@ -202,8 +218,10 @@ contains
 
     call particles_params_read(par_files)
 
-    ! If sampling, npayload = nw:
-    if (physics_type_particles == 'sample') npayload = nw
+    ! If sampling, ndefpayload = nw:
+    if (physics_type_particles == 'sample') ndefpayload = nw
+    ! Total number of payloads
+    npayload = ndefpayload + nusrpayload
 
     ! initialise the random number generator
     seed = [310952_i8, 8948923749821_i8]
@@ -221,17 +239,24 @@ contains
     csv_header = ' time, dt, x1, x2, x3, u1, u2, u3,'
     ! If sampling, name the payloads like the fluid quantities
     if (physics_type_particles == 'sample') then
-      do n = 1, npayload
-        write(strdata,"(a,a)") prim_wnames(n), ','
+      do n = 1, nw
+        write(strdata,"(a,a,a)") ' ', trim(prim_wnames(n)), ','
         csv_header = trim(csv_header) // trim(strdata)
       end do
     else ! Otherwise, payloads are called pl01, pl02, ...
-      do n = 1, npayload
-        write(strdata,"(a,i2.2,a)") 'pl', n, ','
+      do n = 1, ndefpayload
+        write(strdata,"(a,i2.2,a)") ' pl', n, ','
         csv_header = trim(csv_header) // trim(strdata)
       end do
     end if
-    csv_header = trim(csv_header) // 'ipe, iteration, index'
+    ! User-defined payloads are called usrpl01, usrpl02, ...
+    if (nusrpayload > 0) then
+      do n = 1, nusrpayload
+        write(strdata,"(a,i2.2,a)") ' usrpl', n, ','
+        csv_header = trim(csv_header) // trim(strdata)
+      end do
+    end if
+    csv_header = trim(csv_header) // ' ipe, iteration, index'
 
     ! Generate format string for CSV files
     write(csv_format, '(A,I0,A,A)') '(', 8 + npayload, '(es14.6,", ")', &
@@ -306,6 +331,9 @@ contains
     end do
 
     call particles_fill_gridvars()
+    if (associated(particles_define_additional_gridvars)) then
+      call particles_fill_additional_gridvars()
+    end if
 
   end subroutine init_gridvars
 
@@ -322,6 +350,7 @@ contains
 
   end subroutine finish_gridvars
 
+  !> This routine fills the particle grid variables with the default for mhd, i.e. only E and B
   subroutine fill_gridvars_default
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_fields
@@ -353,6 +382,7 @@ contains
 
   !> Determine fields from MHD variables
   subroutine fields_from_mhd(igrid, w_mhd, w_part)
+    use mod_mhd
     use mod_global_parameters
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
@@ -364,7 +394,8 @@ contains
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
     w(ixG^T,1:nw) = w_mhd(ixG^T,1:nw)
-    w_part(ixG^T,1:ngridvars) = 0.0d0
+    w_part(ixG^T,bp(1):bp(3)) = 0.0d0
+    w_part(ixG^T,ep(1):ep(3)) = 0.0d0
 
     call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
 
@@ -396,34 +427,34 @@ contains
 
   end subroutine fields_from_mhd
 
-  !> Calculate idirmin and the idirmin:3 components of the common current array
-  !> make sure that dxlevel(^D) is set correctly.
-  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
-    use mod_global_parameters
-    use mod_geometry
-
-    integer :: idirmin0
-    integer :: ixO^L, idirmin, ixI^L
-    double precision :: w(ixI^S,1:nw)
-    integer :: idir
-    ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-    double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
-
-    idirmin0 = 7-2*ndir
-
-    if (B0field) then
-      do idir = 1, ndir
-        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))+block%B0(ixI^S,idir,0)
-      end do
-    else
-      do idir = 1, ndir
-        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))
-      end do
-    end if
-
-    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
-
-  end subroutine get_current
+!  !> Calculate idirmin and the idirmin:3 components of the common current array
+!  !> make sure that dxlevel(^D) is set correctly.
+!  subroutine get_current(w,ixI^L,ixO^L,idirmin,current)
+!    use mod_global_parameters
+!    use mod_geometry
+!
+!    integer :: idirmin0
+!    integer :: ixO^L, idirmin, ixI^L
+!    double precision :: w(ixI^S,1:nw)
+!    integer :: idir
+!    ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
+!    double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+!
+!    idirmin0 = 7-2*ndir
+!
+!    if (B0field) then
+!      do idir = 1, ndir
+!        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))+block%B0(ixI^S,idir,0)
+!      end do
+!    else
+!      do idir = 1, ndir
+!        bvec(ixI^S,idir)=w(ixI^S,iw_mag(idir))
+!      end do
+!    end if
+!
+!    call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+!
+!  end subroutine get_current
 
   !> Let particles evolve in time. The routine also handles grid variables and
   !> output.
@@ -455,7 +486,6 @@ contains
     do
       if (tmax_particles >= t_next_output) then
         call advance_particles(t_next_output, steps_taken)
-
         tpartc_io_0 = MPI_WTIME()
         call write_particle_output()
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)

@@ -25,6 +25,7 @@ module mod_particle_gca
   ! Variables
   public :: bp, ep, grad_kappa_B, b_dot_grad_b
   public :: vE_dot_grad_b, b_dot_grad_vE, vE_dot_grad_vE
+  public :: vp
 
 contains
 
@@ -71,16 +72,27 @@ contains
       nwx = nwx + 1
       vE_dot_grad_vE(idir) = nwx
     end do
+    allocate(vp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      vp(idir) = nwx
+    end do
     ngridvars=nwx
 
     particles_fill_gridvars => gca_fill_gridvars
-    particles_integrate     => gca_integrate_particles
+
+    if (associated(particles_define_additional_gridvars)) then
+      call particles_define_additional_gridvars(ngridvars)
+    end if
+
+    particles_integrate => gca_integrate_particles
+
   end subroutine gca_init
 
   subroutine gca_create_particles()
     ! initialise the particles
     use mod_global_parameters
-    use mod_usr_methods, only: usr_create_particles, usr_update_payload
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
 
     double precision :: b(ndir), u(ndir), magmom
     double precision :: bnorm, lfac, vnorm, vperp, vpar
@@ -91,8 +103,9 @@ contains
     double precision :: q(num_particles)
     double precision :: m(num_particles)
     double precision :: rrd(num_particles,ndir)
-    double precision :: payload(npayload)
-    logical          :: follow(num_particles)
+    double precision :: defpayload(ndefpayload)
+    double precision :: usrpayload(nusrpayload)
+    logical          :: follow(num_particles), check
 
     if (mype==0) then
       if (.not. associated(usr_create_particles)) then
@@ -126,7 +139,16 @@ contains
       particle(n)%ipe   = ipe_particle
 
       if(ipe_particle == mype) then
-        call push_particle_into_particles_on_mype(n)
+        check = .true.
+
+        ! Check for user-defined modifications or rejection conditions
+        if (associated(usr_check_particle)) call usr_check_particle(igrid, x(:,n), v(:,n), q(n), m(n), follow(n), check)
+        if (check) then
+          call push_particle_into_particles_on_mype(n)
+        else
+          cycle
+        end if
+
         call get_lfac_from_velocity(v(:, n), lfac)
 
         allocate(particle(n)%self)
@@ -159,12 +181,12 @@ contains
 
         ! initialise payloads for GCA module
         allocate(particle(n)%payload(npayload))
-        if (.not. associated(usr_update_payload)) then
-          call gca_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),payload,npayload,0.d0)
-        else
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),payload,npayload,0.d0)
+        call gca_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),particle(n)%self%u(:),q(n),m(n),defpayload,ndefpayload,0.d0)
+        particle(n)%payload(1:ndefpayload) = defpayload
+        if (associated(usr_update_payload)) then
+          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),particle(n)%self%u(:),q(n),m(n),usrpayload,nusrpayload,0.d0)
+          particle(n)%payload(ndefpayload+1:npayload) = usrpayload
         end if
-        particle(n)%payload(:) = payload
       end if
     end do
   end subroutine gca_create_particles
@@ -185,96 +207,126 @@ contains
     call fill_gridvars_default()
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ! grad(kappa B)
-       absB(ixG^T) = sqrt(sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1))
-       vE(ixG^T,1) = gridvars(igrid)%w(ixG^T,ep(2)) * gridvars(igrid)%w(ixG^T,bp(3)) &
+      w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
+      call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
+      ! fill with velocity:
+      gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
+
+      ! grad(kappa B)
+      absB(ixG^T) = sqrt(sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1))
+      vE(ixG^T,1) = gridvars(igrid)%w(ixG^T,ep(2)) * gridvars(igrid)%w(ixG^T,bp(3)) &
             - gridvars(igrid)%w(ixG^T,ep(3)) * gridvars(igrid)%w(ixG^T,bp(2))
-       vE(ixG^T,2) = gridvars(igrid)%w(ixG^T,ep(3)) * gridvars(igrid)%w(ixG^T,bp(1)) &
+      vE(ixG^T,2) = gridvars(igrid)%w(ixG^T,ep(3)) * gridvars(igrid)%w(ixG^T,bp(1)) &
             - gridvars(igrid)%w(ixG^T,ep(1)) * gridvars(igrid)%w(ixG^T,bp(3))
-       vE(ixG^T,3) = gridvars(igrid)%w(ixG^T,ep(1)) * gridvars(igrid)%w(ixG^T,bp(2)) &
+      vE(ixG^T,3) = gridvars(igrid)%w(ixG^T,ep(1)) * gridvars(igrid)%w(ixG^T,bp(2)) &
             - gridvars(igrid)%w(ixG^T,ep(2)) * gridvars(igrid)%w(ixG^T,bp(1))
-       do idir=1,ndir
-         vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
-       end do
+      do idir=1,ndir
+        where (absB(ixG^T) .gt. 0.d0) 
+          vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
+        end where
+      end do
 
-       if (relativistic) then
-         kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
-       else
-         kappa(ixG^T) = 1.d0
-       end if
-       kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
+      if (any(vE .ne. vE)) then
+        write(*,*) "GCA FILL GRIDVARS: NaNs IN vE! ABORTING..."
+        call mpistop()
+      end if
 
-       do idim=1,ndim
-         call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
-         gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
-       end do
+      if (relativistic) then
+        kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
+      else
+        kappa(ixG^T) = 1.d0
+      end if
+      kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
 
-       do idir=1,ndir
-         bhat(ixG^T,idir) = gridvars(igrid)%w(ixG^T,bp(idir)) / absB(ixG^T)
-       end do
+      if (any(kappa_B .ne. kappa_B)) then
+        write(*,*) "GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING..."
+        call mpistop()
+      end if
 
-       do idir=1,ndir
-         ! (b dot grad) b and the other directional derivatives
-         do idim=1,ndim
-           call gradient(bhat(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
-           gridvars(igrid)%w(ixG^T,b_dot_grad_b(idir)) = gridvars(igrid)%w(ixG^T,b_dot_grad_b(idir)) &
-                + bhat(ixG^T,idim) * tmp(ixG^T)
-           gridvars(igrid)%w(ixG^T,vE_dot_grad_b(idir)) = gridvars(igrid)%w(ixG^T,vE_dot_grad_b(idir)) &
-                + vE(ixG^T,idim) * tmp(ixG^T)
-           call gradient(vE(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
-           gridvars(igrid)%w(ixG^T,b_dot_grad_vE(idir)) = gridvars(igrid)%w(ixG^T,b_dot_grad_vE(idir)) &
-                + bhat(ixG^T,idim) * tmp(ixG^T)
-           gridvars(igrid)%w(ixG^T,vE_dot_grad_vE(idir)) = gridvars(igrid)%w(ixG^T,vE_dot_grad_vE(idir)) &
-                + vE(ixG^T,idim) * tmp(ixG^T)
-         end do
-       end do
+      do idim=1,ndim
+        call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
+        gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
+      end do
 
-       if(time_advance) then
-         ! grad(kappa B)
-         absB(ixG^T) = sqrt(sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1))
-         vE(ixG^T,1) = gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(3)) &
-              - gridvars(igrid)%wold(ixG^T,ep(3)) * gridvars(igrid)%wold(ixG^T,bp(2))
-         vE(ixG^T,2) = gridvars(igrid)%wold(ixG^T,ep(3)) * gridvars(igrid)%wold(ixG^T,bp(1)) &
-              - gridvars(igrid)%wold(ixG^T,ep(1)) * gridvars(igrid)%wold(ixG^T,bp(3))
-         vE(ixG^T,3) = gridvars(igrid)%wold(ixG^T,ep(1)) * gridvars(igrid)%wold(ixG^T,bp(2)) &
-              - gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(1))
-         do idir=1,ndir
-           vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
-         end do
+      do idir=1,ndir
+        where (absB(ixG^T) .gt. 0.d0)
+          bhat(ixG^T,idir) = gridvars(igrid)%w(ixG^T,bp(idir)) / absB(ixG^T)
+        elsewhere
+          bhat(ixG^T,idir) = 0.d0
+        end where
+      end do
 
+      if (any(kappa_B .ne. kappa_B)) then
+        write(*,*) "GCA FILL GRIDVARS: NaNs IN bhat! ABORTING..."
+        call mpistop()
+      end if
+
+      do idir=1,ndir
+        ! (b dot grad) b and the other directional derivatives
+        do idim=1,ndim
+          call gradient(bhat(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
+          gridvars(igrid)%w(ixG^T,b_dot_grad_b(idir)) = gridvars(igrid)%w(ixG^T,b_dot_grad_b(idir)) &
+               + bhat(ixG^T,idim) * tmp(ixG^T)
+          gridvars(igrid)%w(ixG^T,vE_dot_grad_b(idir)) = gridvars(igrid)%w(ixG^T,vE_dot_grad_b(idir)) &
+               + vE(ixG^T,idim) * tmp(ixG^T)
+          call gradient(vE(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
+          gridvars(igrid)%w(ixG^T,b_dot_grad_vE(idir)) = gridvars(igrid)%w(ixG^T,b_dot_grad_vE(idir)) &
+               + bhat(ixG^T,idim) * tmp(ixG^T)
+          gridvars(igrid)%w(ixG^T,vE_dot_grad_vE(idir)) = gridvars(igrid)%w(ixG^T,vE_dot_grad_vE(idir)) &
+               + vE(ixG^T,idim) * tmp(ixG^T)
+        end do
+      end do
+
+      if(time_advance) then
+        ! Fluid velocity
+        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
+        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
+        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
+
+        ! grad(kappa B)
+        absB(ixG^T) = sqrt(sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1))
+        vE(ixG^T,1) = gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(3)) &
+             - gridvars(igrid)%wold(ixG^T,ep(3)) * gridvars(igrid)%wold(ixG^T,bp(2))
+        vE(ixG^T,2) = gridvars(igrid)%wold(ixG^T,ep(3)) * gridvars(igrid)%wold(ixG^T,bp(1)) &
+             - gridvars(igrid)%wold(ixG^T,ep(1)) * gridvars(igrid)%wold(ixG^T,bp(3))
+        vE(ixG^T,3) = gridvars(igrid)%wold(ixG^T,ep(1)) * gridvars(igrid)%wold(ixG^T,bp(2)) &
+             - gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(1))
+        do idir=1,ndir
+          vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
+        end do
          
-         if (relativistic) then
-           kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
-         else
-           kappa(ixG^T) = 1.d0
-         end if
-         kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
+        if (relativistic) then
+          kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
+        else
+          kappa(ixG^T) = 1.d0
+        end if
+        kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
 
-         do idim=1,ndim
-           call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
-           gridvars(igrid)%wold(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
-         end do
+        do idim=1,ndim
+          call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
+          gridvars(igrid)%wold(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
+        end do
 
-         do idir=1,ndir
-           bhat(ixG^T,idir) = gridvars(igrid)%wold(ixG^T,bp(idir)) / absB(ixG^T)
-         end do
+        do idir=1,ndir
+          bhat(ixG^T,idir) = gridvars(igrid)%wold(ixG^T,bp(idir)) / absB(ixG^T)
+        end do
 
-         do idir=1,ndir
-           ! (b dot grad) b and the other directional derivatives
-           do idim=1,ndim
-             call gradient(bhat(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
-             gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) &
-                  + bhat(ixG^T,idim) * tmp(ixG^T)
-             gridvars(igrid)%wold(ixG^T,vE_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,vE_dot_grad_b(idir)) &
-                  + vE(ixG^T,idim) * tmp(ixG^T)
-             call gradient(vE(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
-             gridvars(igrid)%wold(ixG^T,b_dot_grad_vE(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_vE(idir)) &
-                  + bhat(ixG^T,idim) * tmp(ixG^T)
-             gridvars(igrid)%wold(ixG^T,vE_dot_grad_vE(idir)) = gridvars(igrid)%wold(ixG^T,vE_dot_grad_vE(idir)) &
-                  + vE(ixG^T,idim) * tmp(ixG^T)
-           end do
-         end do
-       end if
+        do idir=1,ndir
+          ! (b dot grad) b and the other directional derivatives
+          do idim=1,ndim
+            call gradient(bhat(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
+            gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) &
+                 + bhat(ixG^T,idim) * tmp(ixG^T)
+            gridvars(igrid)%wold(ixG^T,vE_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,vE_dot_grad_b(idir)) &
+                 + vE(ixG^T,idim) * tmp(ixG^T)
+            call gradient(vE(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
+            gridvars(igrid)%wold(ixG^T,b_dot_grad_vE(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_vE(idir)) &
+                 + bhat(ixG^T,idim) * tmp(ixG^T)
+            gridvars(igrid)%wold(ixG^T,vE_dot_grad_vE(idir)) = gridvars(igrid)%wold(ixG^T,vE_dot_grad_vE(idir)) &
+                 + vE(ixG^T,idim) * tmp(ixG^T)
+          end do
+        end do
+      end if
     end do
 
   end subroutine gca_fill_gridvars
@@ -286,9 +338,10 @@ contains
     double precision, intent(in)        :: end_time
 
     double precision                    :: lfac, absS
-    double precision                    :: payload(npayload)
+    double precision                    :: defpayload(ndefpayload)
+    double precision                    :: usrpayload(nusrpayload)
     double precision                    :: dt_p, tloc, y(ndir+2),dydt(ndir+2),ytmp(ndir+2), euler_cfl, int_factor
-    double precision, dimension(1:ndir) :: x, vE, e, b, bhat, x_new
+    double precision, dimension(1:ndir) :: x, vE, e, b, bhat, x_new, vfluid
     double precision, dimension(1:ndir) :: drift1, drift2
     double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6, drift7
     double precision, dimension(1:ndir) :: bdotgradb, vEdotgradb, gradkappaB
@@ -404,6 +457,11 @@ contains
         dt_p=2.0d0*h1
       endif
 
+      if (any(y .ne. y)) then
+        write(*,*) "NaNs DETECTED IN GCA_INTEGRATE BEFORE ODEINT CALL! ABORTING..."
+        call mpistop()
+      end if
+
       ! RK4 integration with adaptive stepwidth
       call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca_rk,rkqs,ierror)
 
@@ -413,8 +471,13 @@ contains
          print *, "Having a problem with particle", iipart
       end if
 
+      if (any(y .ne. y)) then
+        write(*,*) "NaNs DETECTED IN GCA_INTEGRATE AFTER ODEINT CALL! ABORTING..."
+        call mpistop()
+      end if
+
       ! original RK integration without interpolation in ghost cells
-      ! call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
+!       call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
 
       ! final solution vector after rk integration
       particle(ipart)%self%x(1:ndir) = y(1:ndir)
@@ -424,7 +487,14 @@ contains
 
       ! now calculate other quantities, mean Lorentz factor, drifts, perpendicular velocity:
       call get_vec(bp, igrid_working,y(1:ndir),tloc+dt_p,b)
-      call get_vec(ep, igrid_working,y(1:ndir),tloc+dt_p,e)
+      if (particles_eta > 0.d0) then
+        call get_vec(ep, igrid_working,y(1:ndir),tloc+dt_p,e)
+      else
+        call get_vec(vp, igrid_working,y(1:ndir),tloc+dt_p,vfluid)
+        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
+        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
+        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
+      end if
 
       absb         = sqrt(sum(b(:)**2))
       bhat(1:ndir) = b(1:ndir) / absb
@@ -453,14 +523,14 @@ contains
       particle(ipart)%self%time = particle(ipart)%self%time + dt_p
 
       ! Update payload
-      if (.not. associated(usr_update_payload)) then
-        call gca_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x, &
-             particle(ipart)%self%x,particle(ipart)%self%u,q,m,payload,npayload,particle(ipart)%self%time)
-      else
+      call gca_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x, &
+             particle(ipart)%self%x,particle(ipart)%self%u,q,m,defpayload,ndefpayload,particle(ipart)%self%time)
+      particle(ipart)%payload(1:ndefpayload) = defpayload
+      if (associated(usr_update_payload)) then
         call usr_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x,&
-             particle(ipart)%self%x,particle(ipart)%self%u,q,m,payload,npayload,particle(ipart)%self%time)
+             particle(ipart)%self%x,particle(ipart)%self%u,q,m,usrpayload,nusrpayload,particle(ipart)%self%time)
+        particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
       end if
-      particle(ipart)%payload = payload
 
     end do
 
@@ -472,7 +542,7 @@ contains
     double precision                :: t_s, y(ndir+2)
     double precision                :: dydt(ndir+2)
 
-    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB
+    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB, vfluid
     double precision,dimension(ndir):: bdotgradvE, vEdotgradvE, u, utmp1, utmp2, utmp3
     double precision                :: upar, Mr, gamma, absb, q, m, epar, kappa
     integer                         :: ic^D
@@ -489,20 +559,55 @@ contains
     Mr        = y(ndir+2)
     !gamma     = y(ndir+3)
 
+    if (any(x .ne. x)) then
+      write(*,*) "ERROR IN DERIVS_GCA_RK: NaNs IN X OR Y!"
+      write(*,*) "x",x
+      write(*,*) "y",y(ndir+1:ndir+2)
+      write(*,*) "ABORTING..."
+      call mpistop()
+    end if
+
     call get_vec(bp, igrid_working,x,t_s,b)
-    call get_vec(ep, igrid_working,x,t_s,e)
+    if (particles_eta > 0.d0) then
+      call get_vec(ep, igrid_working,x,t_s,e)
+    else
+      call get_vec(vp, igrid_working,x,t_s,vfluid)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
+    end if
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
     call get_vec(b_dot_grad_vE, igrid_working,x,t_s,bdotgradvE)
     call get_vec(vE_dot_grad_vE, igrid_working,x,t_s,vEdotgradvE)
 
+    if (any(b .ne. b) .or. any(e .ne. e) &
+        .or. any(bdotgradb .ne. bdotgradb) .or. any(vEdotgradb .ne. vEdotgradb) &
+        .or. any(gradkappaB .ne. gradkappaB) .or. any(bdotgradvE .ne. bdotgradvE) &
+        .or. any(vEdotgradvE .ne. vEdotgradvE)) then
+      write(*,*) "ERROR IN DERIVS_GCA_RK: NaNs IN FIELD QUANTITIES!"
+      write(*,*) "b",b
+      write(*,*) "e",e
+      write(*,*) "bdotgradb",bdotgradb
+      write(*,*) "vEdotgradb",vEdotgradb
+      write(*,*) "gradkappaB",gradkappaB
+      write(*,*) "bdotgradvE",bdotgradvE
+      write(*,*) "vEdotgradvE",vEdotgradvE
+      write(*,*) "ABORTING..."
+      call mpistop()  
+    end if
+
     absb         = sqrt(sum(b(:)**2))
-    bhat(1:ndir) = b(1:ndir) / absb
+    if (absb .gt. 0.d0) then
+      bhat(1:ndir) = b(1:ndir) / absb
+    else
+      bhat = 0.d0
+    end if
     epar         = sum(e(:)*bhat(:))
 
     call cross(e,bhat,vE)
-    vE(1:ndir)   = vE(1:ndir) / absb
+    if (absb .gt. 0.d0) vE(1:ndir)   = vE(1:ndir) / absb
 
     if (relativistic) then
       kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
@@ -512,7 +617,11 @@ contains
       gamma = 1.d0
     end if
 
-    utmp1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
+    if (absb .gt. 0.d0) then
+      utmp1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
+    else
+      utmp1 = 0.d0
+    end if
     utmp2(1:ndir) = Mr/(gamma*q)*gradkappaB(1:ndir) &
          + m/q* (upar**2/gamma*bdotgradb(1:ndir) + upar*vEdotgradb(1:ndir) &
                  + upar*bdotgradvE(1:ndir) + gamma*vEdotgradvE(1:ndir))
@@ -538,7 +647,7 @@ contains
     double precision                :: t_s, y(ndir+2)
     double precision                :: dydt(ndir+2)
 
-    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB
+    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB, vfluid
     double precision,dimension(ndir):: bdotgradvE, vEdotgradvE, u, utmp1, utmp2, utmp3
     double precision                :: upar, Mr, gamma, absb, q, m, epar, kappa
 
@@ -552,8 +661,20 @@ contains
     Mr        = y(ndir+2)
     !gamma     = y(ndir+3)
 
+    if (any(x .ne. x)) then
+      write(*,*) "ERROR IN DERIVS_GCA: NaNs IN X! ABORTING..."
+      call mpistop()
+    end if
+
     call get_vec(bp, igrid_working,x,t_s,b)
-    call get_vec(ep, igrid_working,x,t_s,e)
+    if (particles_eta > 0.d0) then
+      call get_vec(ep, igrid_working,x,t_s,e)
+    else
+      call get_vec(vp, igrid_working,x,t_s,vfluid)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
+    end if
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
@@ -561,11 +682,15 @@ contains
     call get_vec(vE_dot_grad_vE, igrid_working,x,t_s,vEdotgradvE)
 
     absb         = sqrt(sum(b(:)**2))
-    bhat(1:ndir) = b(1:ndir) / absb
+    if (absb .gt. 0.d0) then
+      bhat(1:ndir) = b(1:ndir) / absb
+    else
+      bhat = 0.d0
+    end if
 
     epar         = sum(e(:)*bhat(:))
     call cross(e,bhat,vE)
-    vE(1:ndir)   = vE(1:ndir) / absb
+    if (absb .gt. 0.d0) vE(1:ndir)   = vE(1:ndir) / absb
 
     if (relativistic) then
       kappa = sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
@@ -574,7 +699,11 @@ contains
       kappa = 1.d0
       gamma = 1.d0
     end if
-    utmp1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
+    if (absb .gt. 0.d0) then
+      utmp1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
+    else
+      utmp1 = 0.d0
+    end if
     utmp2(1:ndir) = Mr/(gamma*q)*gradkappaB(1:ndir) &
          + m/q* (upar**2/gamma*bdotgradb(1:ndir) + upar*vEdotgradb(1:ndir) &
                  + upar*bdotgradvE(1:ndir) + gamma*vEdotgradvE(1:ndir))
@@ -595,13 +724,13 @@ contains
   end subroutine derivs_gca
 
   !> Update payload subroutine
-  subroutine gca_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
+  subroutine gca_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
     use mod_global_parameters
-    integer, intent(in)           :: igrid,npayload
+    integer, intent(in)           :: igrid,mynpayload
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
     double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
-    double precision, intent(out) :: payload(npayload)
-    double precision, dimension(1:ndir) :: vE, e, b, bhat
+    double precision, intent(out) :: mypayload(mynpayload)
+    double precision, dimension(1:ndir) :: vE, e, b, bhat, vfluid
     double precision, dimension(1:ndir) :: drift1, drift2
     double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6, drift7
     double precision, dimension(1:ndir) :: bdotgradb, vEdotgradb, gradkappaB
@@ -616,7 +745,14 @@ contains
     double precision                    :: momentumpar1, momentumpar2, momentumpar3, momentumpar4
 
     call get_vec(bp, igrid,xpart(1:ndir),particle_time,b)
-    call get_vec(ep, igrid,xpart(1:ndir),particle_time,e)
+    if (particles_eta > 0.d0) then
+      call get_vec(ep, igrid,xpart(1:ndir),particle_time,e)
+    else
+      call get_vec(vp, igrid,xpart(1:ndir),particle_time,vfluid)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
+    end if
 
     absb         = sqrt(sum(b(:)**2))
     bhat(1:ndir) = b(1:ndir) / absb
@@ -639,7 +775,7 @@ contains
     call get_vec(vE_dot_grad_vE, igrid,xpart(1:ndir),particle_time,vEdotgradvE)
 
     drift1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
-    drift2(1:ndir) = upart(2)/(upart(3)*q)*gradkappaB(1:ndir)
+    drift2(1:ndir) = upart(2)/(upart(3)*qpart)*gradkappaB(1:ndir)
 
     call cross(drift1,drift2,gradBdrift)
     gradBdrift_abs = sqrt(sum(gradBdrift(:)**2))
@@ -665,66 +801,66 @@ contains
     vEdotgradvEdrift_abs = sqrt(sum(vEdotgradvEdrift(:)**2))
 
     momentumpar1 = qpart/mpart*epar
-    momentumpar2 = -(upart(2)/m/upart(3))*sum(bhat(:)*gradkappaB(:))
+    momentumpar2 = -(upart(2)/mpart/upart(3))*sum(bhat(:)*gradkappaB(:))
     momentumpar3 = upar*sum(vE(:)*bdotgradb(:))
     momentumpar4 = upart(3)*sum(vE(:)*vEdotgradb(:))
 
     ! Payload update
-    if (npayload > 0) then
+    if (mynpayload > 0) then
       ! current gyroradius
-      payload(1) = sqrt(2.0d0*m*upart(2)*absb)/abs(q*absb)
+      mypayload(1) = sqrt(2.0d0*mpart*upart(2)*absb)/abs(qpart*absb)
     end if
-    if (npayload > 1) then
+    if (mynpayload > 1) then
       ! pitch angle
-      payload(2) = atan2(sqrt((2.0d0*upart(2)*absb)/(m*upart(3)**2)),vpar)
+      mypayload(2) = atan2(sqrt((2.0d0*upart(2)*absb)/(mpart*upart(3)**2)),vpar)
     end if
-    if (npayload > 2) then
+    if (mynpayload > 2) then
       ! particle v_perp
-      payload(3) = sqrt((2.0d0*upart(2)*absb)/(m*upart(3)**2))
+      mypayload(3) = sqrt((2.0d0*upart(2)*absb)/(mpart*upart(3)**2))
     end if
-    if (npayload > 3) then
+    if (mynpayload > 3) then
       ! particle parallel momentum term 1
-      payload(4) = momentumpar1
+      mypayload(4) = momentumpar1
     end if
-    if (npayload > 4) then
+    if (mynpayload > 4) then
       ! particle parallel momentum term 2
-      payload(5) = momentumpar2
+      mypayload(5) = momentumpar2
     end if
-    if (npayload > 5) then
+    if (mynpayload > 5) then
       ! particle parallel momentum term 3
-      payload(6) = momentumpar3
+      mypayload(6) = momentumpar3
     end if
-    if (npayload > 6) then
+    if (mynpayload > 6) then
       ! particle parallel momentum term 4
-      payload(7) = momentumpar4
+      mypayload(7) = momentumpar4
     end if
-    if (npayload > 7) then
+    if (mynpayload > 7) then
       ! particle ExB drift
-      payload(8) = vEabs
+      mypayload(8) = vEabs
     end if
-    if (npayload > 8) then
+    if (mynpayload > 8) then
       ! relativistic drift
-      payload(9) = gradBdrift_abs
+      mypayload(9) = gradBdrift_abs
     end if
-    if (npayload > 9) then
+    if (mynpayload > 9) then
       ! gradB drift
-      payload(10) = reldrift_abs
+      mypayload(10) = reldrift_abs
     end if
-    if (npayload > 10) then
+    if (mynpayload > 10) then
       ! bdotgradb drift
-      payload(11) = bdotgradbdrift_abs
+      mypayload(11) = bdotgradbdrift_abs
     end if
-    if (npayload > 11) then
+    if (mynpayload > 11) then
       ! vEdotgradb drift
-      payload(12) = vEdotgradbdrift_abs
+      mypayload(12) = vEdotgradbdrift_abs
     end if
-    if (npayload > 12) then
+    if (mynpayload > 12) then
       ! bdotgradvE drift
-      payload(13) = bdotgradvEdrift_abs
+      mypayload(13) = bdotgradvEdrift_abs
     end if
-    if (npayload > 13) then
+    if (mynpayload > 13) then
       ! vEdotgradvE drift
-      payload(14) = vEdotgradvEdrift_abs
+      mypayload(14) = vEdotgradvEdrift_abs
     end if
 
   end subroutine gca_update_payload
@@ -742,7 +878,7 @@ contains
     double precision            :: ap0, ap1, dt_cfl_ap0, dt_cfl_ap1, dt_cfl_ap
     double precision            :: dt_euler, dt_tmp
     ! make these particle cfl conditions more restrictive if you are interpolating out of the grid
-    double precision, parameter :: cfl=0.8d0, uparcfl=0.8d0
+    double precision, parameter :: cfl=0.5d0, uparcfl=0.5d0
     double precision, parameter :: uparmin=1.0d-6*const_c
     integer                     :: ipart, iipart, nout, ic^D, igrid_particle, ipe_particle, ipe
     logical                     :: BC_applied

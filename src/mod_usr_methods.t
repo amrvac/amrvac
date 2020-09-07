@@ -65,9 +65,10 @@ module mod_usr_methods
   procedure(set_J0), pointer          :: usr_set_J0           => null()
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
 
-  ! Particles module related
+  ! Particle module related
   procedure(update_payload), pointer    :: usr_update_payload    => null()
   procedure(create_particles), pointer  :: usr_create_particles  => null()
+  procedure(check_particle), pointer    :: usr_check_particle    => null()
   procedure(particle_fields), pointer   :: usr_particle_fields   => null()
   procedure(particle_analytic), pointer :: usr_particle_analytic => null()
 
@@ -360,6 +361,7 @@ module mod_usr_methods
       double precision, intent(out) :: payload(npayload)
     end subroutine update_payload
 
+    !> Create particles
     subroutine create_particles(n_particles, x, v, q, m, follow)
       integer, intent(in)           :: n_particles
       double precision, intent(out) :: x(3, n_particles)
@@ -368,7 +370,18 @@ module mod_usr_methods
       double precision, intent(out) :: m(n_particles)
       logical, intent(out)          :: follow(n_particles)
     end subroutine create_particles
+    
+    !> Check arbitrary particle conditions or modifications
+    subroutine check_particle(igrid,xpart,vpart,qpart,mpart,follow,check)
+      use mod_global_parameters
+      integer, intent(in)           :: igrid
+      double precision, intent(in)  :: xpart(1:ndir),qpart,mpart
+      double precision, intent(inout) :: vpart(1:ndir)
+      logical, intent(inout) :: follow
+      logical, intent(out)   :: check
+    end subroutine check_particle
 
+    !> Associate fields to particle
     subroutine particle_fields(w, x, E, B)
       use mod_global_parameters
       double precision, intent(in)  :: w(ixG^T,1:nw)

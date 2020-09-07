@@ -5,9 +5,6 @@ module mod_particle_sample
 
   private
 
-  !> Variable index for velocity
-  integer, dimension(:), allocatable      :: vp(:)
-
   public :: sample_init
   public :: sample_create_particles
 
@@ -17,15 +14,18 @@ contains
     use mod_global_parameters
     integer :: idir
 
-    ngridvars=nw
-
     allocate(vp(ndir))
     do idir = 1, ndir
       vp(idir) = idir
     end do
+    ngridvars=nw
 
-    if (.not. associated(particles_fill_gridvars)) &
-         particles_fill_gridvars => sample_fill_gridvars
+    particles_fill_gridvars => sample_fill_gridvars
+
+    if (associated(particles_define_additional_gridvars)) then
+      call particles_define_additional_gridvars(ngridvars)
+    end if
+
     particles_integrate     => sample_integrate_particles
 
   end subroutine sample_init
@@ -33,7 +33,7 @@ contains
   subroutine sample_create_particles()
     ! initialise the particles (=fixed interpolation points)
     use mod_global_parameters
-    use mod_usr_methods, only: usr_create_particles, usr_update_payload
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
 
     integer          :: n, idir, igrid, ipe_particle
     double precision :: x(3, num_particles)
@@ -42,8 +42,9 @@ contains
     double precision :: m(num_particles)
     double precision :: rrd(num_particles,ndir)
     double precision :: w(ixG^T,1:nw)
-    double precision :: payload(npayload)
-    logical          :: follow(num_particles)
+    double precision :: defpayload(ndefpayload)
+    double precision :: usrpayload(nusrpayload) 
+    logical          :: follow(num_particles), check
 
     follow = .false.
     x      = 0.0d0
@@ -75,7 +76,16 @@ contains
       particle(n)%ipe    = ipe_particle
 
       if(ipe_particle == mype) then
-        call push_particle_into_particles_on_mype(n)
+        check = .true.
+
+        ! Check for user-defined modifications or rejection conditions
+        if (associated(usr_check_particle)) call usr_check_particle(igrid, x(:,n), v(:,n), q(n), m(n), follow(n), check)
+        if (check) then
+          call push_particle_into_particles_on_mype(n)
+        else
+          cycle
+        end if
+
         allocate(particle(n)%self)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
@@ -85,12 +95,12 @@ contains
         particle(n)%self%x(:) = x(:,n)
         particle(n)%self%u(:) = 0.d0
         allocate(particle(n)%payload(npayload))
-        if (.not. associated(usr_update_payload)) then
-          call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),payload,npayload,0.d0)
-        else
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),payload,npayload,0.d0)
+        call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
+        particle(n)%payload(1:ndefpayload) = defpayload      
+        if (associated(usr_update_payload)) then
+          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),usrpayload,nusrpayload,0.d0)
+          particle(n)%payload(ndefpayload+1:npayload)=usrpayload
         end if
-        particle(n)%payload=payload
       end if
 
     end do
@@ -131,7 +141,8 @@ contains
     double precision, intent(in) :: end_time
 
     double precision, dimension(1:ndir) :: v, x
-    double precision :: payload(npayload)
+    double precision                 :: defpayload(ndefpayload)
+    double precision                 :: usrpayload(nusrpayload)
     double precision                 :: tloc, tlocnew, dt_p, h1
     double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
     integer                          :: ipart, iipart, igrid
@@ -156,31 +167,31 @@ contains
       particle(ipart)%self%time = tlocnew
 
       ! Update payload
-      if (.not. associated(usr_update_payload)) then
-        call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,payload,npayload,tlocnew)
-      else
-        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,payload,npayload,tlocnew)
+      call sample_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,defpayload,ndefpayload,tlocnew)
+      particle(ipart)%payload(1:ndefpayload) = defpayload
+      if (associated(usr_update_payload)) then
+        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,usrpayload,nusrpayload,tlocnew)
+        particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
       end if
-      particle(ipart)%payload = payload
 
     end do
 
   end subroutine sample_integrate_particles
 
   !> Payload update
-  subroutine sample_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
+  subroutine sample_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
     use mod_global_parameters
-    integer, intent(in)           :: igrid,npayload
+    integer, intent(in)           :: igrid,mynpayload
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
     double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
-    double precision, intent(out) :: payload(npayload)
+    double precision, intent(out) :: mypayload(mynpayload)
     double precision              :: wp, wp1, wp2, td
     integer                       :: ii
 
     td = (particle_time - global_time) / dt
 
     ! There are npayload=nw payloads, one for each primitive fluid quantity
-    do ii=1,npayload
+    do ii=1,mynpayload
       if (.not.time_advance) then
         call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,ii),xgrid,xpart,wp)
       else
@@ -188,7 +199,7 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,ii),xgrid,xpart,wp2)
         wp = wp1 * (1.0d0 - td) + wp2 * td
       end if
-      payload(ii) = wp
+      mypayload(ii) = wp
     end do
 
   end subroutine sample_update_payload

@@ -56,7 +56,27 @@ contains
 
        if((x+h-x2)*(x+h-x1).gt.0.d0) h=x2-x
 
+       if (any(y(1:nvar) .ne. y(1:nvar)) .or. any(dydx(1:nvar) .ne. dydx(1:nvar)) .or. x .ne. x) then
+         write(*,*) "ODEINT BEFORE CALL RKQS: NaN in x, dydx, or y!"
+         write(*,*) "x",x
+         write(*,*) "y",y
+         write(*,*) "dydx",dydx
+         write(*,*) "exiting..."
+         ierror = 2
+         return
+       end if
+
        call rkqs(y,dydx,nvar,x,h,eps,yscal,hdid,hnext,derivs)
+
+       if (any(y(1:nvar) .ne. y(1:nvar)) .or. any(dydx(1:nvar) .ne. dydx(1:nvar)) .or. x .ne. x) then
+         write(*,*) "ODEINT AFTER CALL RKQS: NaN in x, dydx, or y!"
+         write(*,*) "x",x
+         write(*,*) "y",y
+         write(*,*) "dydx",dydx
+         write(*,*) "exiting..."
+         ierror = 2
+         return
+       end if
 
        if(hdid.eq.h)then
           nok=nok+1
@@ -102,7 +122,26 @@ contains
       PARAMETER (SAFETY=0.9d0,PGROW=-.2d0,PSHRNK=-.25d0,ERRCON=1.89d-4)
 
       h=htry
+
+       if (any(y(1:n) .ne. y(1:n)) .or. any(dydx(1:n) .ne. dydx(1:n)) .or. x .ne. x) then
+         write(*,*) "RKQS BEFORE CALL RKCK: NaN in x, dydx, or y!"
+         write(*,*) "x",x
+         write(*,*) "y",y
+         write(*,*) "dydx",dydx
+         write(*,*) "exiting..."
+         return
+       end if
+
  1    call rkck(y,dydx,n,x,h,ytemp,yerr,derivs)
+       if (any(y(1:n) .ne. y(1:n)) .or. any(dydx(1:n) .ne. dydx(1:n)) .or. x .ne. x) then
+         write(*,*) "RKQS AFTER CALL RKCK: NaN in x, dydx, or y!"
+         write(*,*) "x",x
+         write(*,*) "y",y
+         write(*,*) "dydx",dydx
+         write(*,*) "exiting..."
+         return
+       end if
+
       errmax=0.d0
       do 11 i=1,n
          errmax=max(errmax,abs(yerr(i)/yscal(i)))
@@ -156,26 +195,68 @@ contains
       DC3=C3-18575.d0/48384.d0,DC4=C4-13525.d0/55296.d0,&
       DC5=-277.d0/14336.d0,&
       DC6=C6-.25d0)
+      if (any(y(1:n) .ne. y(1:n)) .or. any(dydx(1:n) .ne. dydx(1:n))) then
+        write(*,*) "NaNs IN RKCK, STEP 0!"
+        write(*,*) "y0",y(1:n)
+        write(*,*) "derivs",dydx(1:n)
+        write(*,*) "ABORTING..."
+        call mpistop()
+      end if
       do 11 i=1,n
          ytemp(i)=y(i)+B21*h*dydx(i)
  11   continue
       call derivs(x+A2*h,ytemp,ak2)
+      if (any(ytemp(1:n) .ne. ytemp(1:n)) .or. any(ak2(1:n) .ne. ak2(1:n))) then
+        write(*,*) "NaNs IN RKCK, STEP 1!"
+        write(*,*) "y1",ytemp(1:n)
+        write(*,*) "derivs",ak2(1:n)
+        write(*,*) "ABORTING..."
+        call mpistop()
+      end if
       do 12 i=1,n
          ytemp(i)=y(i)+h*(B31*dydx(i)+B32*ak2(i))
  12   continue
       call derivs(x+A3*h,ytemp,ak3)
+      if (any(ytemp(1:n) .ne. ytemp(1:n)) .or. any(ak3(1:n) .ne. ak3(1:n))) then
+        write(*,*) "NaNs IN RKCK, STEP 2!"
+        write(*,*) "y2",ytemp(1:n)
+        write(*,*) "derivs",ak3(1:n)
+        write(*,*) "ABORTING..."
+        call mpistop()
+      end if
       do 13 i=1,n
          ytemp(i)=y(i)+h*(B41*dydx(i)+B42*ak2(i)+B43*ak3(i))
  13   continue
       call derivs(x+A4*h,ytemp,ak4)
+      if (any(ytemp(1:n) .ne. ytemp(1:n)) .or. any(ak4(1:n) .ne. ak4(1:n))) then
+        write(*,*) "NaNs IN RKCK, STEP 3!"
+        write(*,*) "y3",ytemp(1:n)
+        write(*,*) "derivs",ak4(1:n)
+        write(*,*) "ABORTING..."
+        call mpistop()
+      end if
       do 14 i=1,n
          ytemp(i)=y(i)+h*(B51*dydx(i)+B52*ak2(i)+B53*ak3(i)+B54*ak4(i))
  14   continue
       call derivs(x+A5*h,ytemp,ak5)
+      if (any(ytemp(1:n) .ne. ytemp(1:n)) .or. any(ak5(1:n) .ne. ak5(1:n))) then
+        write(*,*) "NaNs IN RKCK, STEP 4!"
+        write(*,*) "y4",ytemp(1:n)
+        write(*,*) "derivs",ak5(1:n)
+        write(*,*) "ABORTING..."
+        call mpistop()
+      end if
       do 15 i=1,n
          ytemp(i)=y(i)+h*(B61*dydx(i)+B62*ak2(i)+B63*ak3(i)+B64*ak4(i)+B65*ak5(i))
  15   continue
       call derivs(x+A6*h,ytemp,ak6)
+      if (any(ytemp(1:n) .ne. ytemp(1:n)) .or. any(ak6(1:n) .ne. ak6(1:n))) then
+        write(*,*) "NaNs IN RKCK, STEP 1!"
+        write(*,*) "y15",ytemp(1:n)
+        write(*,*) "derivs",ak6(1:n)
+        write(*,*) "ABORTING..."
+        call mpistop()
+      end if
       do 16 i=1,n
          yout(i)=y(i)+h*(C1*dydx(i)+C3*ak3(i)+C4*ak4(i)+C6*ak6(i))
  16   continue

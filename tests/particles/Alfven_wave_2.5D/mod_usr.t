@@ -19,6 +19,8 @@ module mod_usr
   ! Use an analytic field instead of an interpolated one
   logical :: use_analytic_field = .false.
 
+  integer :: Tep ! Index for the temperature store in gridvars
+
 contains
 
   subroutine usr_init()
@@ -30,6 +32,10 @@ contains
 
     usr_init_one_grid => initonegrid_usr
     usr_create_particles => generate_particles
+
+    particles_define_additional_gridvars => define_additional_gridvars_usr
+    particles_fill_additional_gridvars => fill_additional_gridvars_usr
+    usr_update_payload => update_payload_usr
 
     call set_coordinate_system("Cartesian_2.5D")
     call mhd_activate()
@@ -151,5 +157,60 @@ contains
     print *, "Particle", ipart, v
 
   end subroutine get_particle
+
+  subroutine update_payload_usr(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
+    use mod_global_parameters
+    integer, intent(in)           :: igrid,mynpayload
+    double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
+    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
+    double precision, intent(out) :: mypayload(mynpayload)
+
+    ! Temperature
+    if (npayload > 0) then
+      ! Interpolate temperature here
+      call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,Tep),xgrid,xpart,mypayload(1))
+    end if
+
+  end subroutine update_payload_usr
+
+  ! Custom particle gridvars definition
+  subroutine define_additional_gridvars_usr(ngridvars)
+    use mod_global_parameters
+    integer, intent(inout) :: ngridvars
+ 
+    ! Temperature
+    ngridvars = ngridvars + 1
+    Tep = ngridvars
+
+  end subroutine define_additional_gridvars_usr
+
+  ! Custom particle gridvars filler
+  subroutine fill_additional_gridvars_usr
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_fields
+
+    integer :: igrid, iigrid
+    double precision :: pth(ixG^T)
+    double precision :: w(ixG^T,1:nw)
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
+
+      ! Fill temperature
+      call mhd_get_pthermal(w,ps(igrid)%x,ixG^LL,ixG^LL,pth)
+      gridvars(igrid)%w(ixG^T,Tep) = pth(ixG^T)/w(ixG^T,rho_)
+      
+      ! Same for old state vector if interpolating in time
+      if (time_advance) then 
+        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw) 
+
+        ! Temperature
+        call mhd_get_pthermal(w,pso(igrid)%x,ixG^LL,ixG^LL,pth)
+        gridvars(igrid)%wold(ixG^T,Tep) = pth(ixG^T)/w(ixG^T,rho_)
+
+      end if
+
+    end do
+  end subroutine fill_additional_gridvars_usr
 
 end module mod_usr

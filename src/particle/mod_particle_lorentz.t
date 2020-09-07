@@ -9,6 +9,9 @@ module mod_particle_lorentz
   public :: Lorentz_create_particles
   integer, parameter :: Boris=1, Vay=2, HC=3, LM=4
 
+  ! Variables
+  public :: bp, ep, vp
+
 contains
 
   subroutine Lorentz_init()
@@ -18,7 +21,8 @@ contains
     if(physics_type/='mhd') call mpistop("Lorentz particles need magnetic field!")
     if(ndir/=3) call mpistop("Lorentz particles need ndir=3!")
 
-    ngridvars=ndir*2
+    ! The first 6 gridvars are always B and E
+    ngridvars = ndir*2
     nwx = 0
 
     allocate(bp(ndir))
@@ -26,12 +30,25 @@ contains
       nwx = nwx + 1
       bp(idir) = nwx
     end do
-
     allocate(ep(ndir))
     do idir = 1, ndir
       nwx = nwx + 1
       ep(idir) = nwx
     end do
+    ngridvars=ndir*2
+    allocate(vp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      vp(idir) = nwx
+    end do
+    ngridvars=nwx
+
+!    particles_fill_gridvars => fill_gridvars_default
+    particles_fill_gridvars => lorentz_fill_gridvars
+
+    if (associated(particles_define_additional_gridvars)) then
+      call particles_define_additional_gridvars(ngridvars)
+    end if
 
     select case(integrator_type_particles)
     case('Boris','boris')
@@ -44,14 +61,14 @@ contains
       integrator = LM
     end select
 
-    particles_fill_gridvars => fill_gridvars_default
-    particles_integrate     => Lorentz_integrate_particles
+    particles_integrate => Lorentz_integrate_particles
+
   end subroutine Lorentz_init
 
   subroutine Lorentz_create_particles()
 
     use mod_global_parameters
-    use mod_usr_methods, only: usr_create_particles, usr_update_payload
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
 
     integer          :: n, idir, igrid, ipe_particle
     double precision :: lfac
@@ -60,8 +77,9 @@ contains
     double precision :: q(num_particles)
     double precision :: m(num_particles)
     double precision :: rrd(num_particles,ndir)
-    double precision :: payload(npayload)
-    logical          :: follow(num_particles)
+    double precision :: defpayload(ndefpayload)
+    double precision :: usrpayload(nusrpayload)
+    logical          :: follow(num_particles), check
 
     follow = .false.
     x      = 0.0d0
@@ -98,7 +116,15 @@ contains
       particle(n)%ipe   = ipe_particle
 
       if (ipe_particle == mype) then
-        call push_particle_into_particles_on_mype(n)
+        check = .true.
+
+        ! Check for user-defined modifications or rejection conditions
+        if (associated(usr_check_particle)) call usr_check_particle(igrid, x(:,n), v(:,n), q(n), m(n), follow(n), check)
+        if (check) then
+          call push_particle_into_particles_on_mype(n)
+        else
+          cycle
+        end if
 
         call get_lfac_from_velocity(v(:,n), lfac)
 
@@ -114,16 +140,47 @@ contains
 
         ! initialise payloads for Lorentz module
         allocate(particle(n)%payload(npayload))
-        if (.not. associated(usr_update_payload)) then
-          call Lorentz_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),payload,npayload,0.d0)
-        else
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),payload,npayload,0.d0)
+        call Lorentz_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),defpayload,ndefpayload,0.d0)
+        particle(n)%payload(1:ndefpayload) = defpayload
+        if (associated(usr_update_payload)) then
+          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n)*lfac,q(n),m(n),usrpayload,nusrpayload,0.d0)
+          particle(n)%payload(ndefpayload+1:npayload) = usrpayload
         end if
-        particle(n)%payload(:) = payload
       end if
     end do
 
   end subroutine Lorentz_create_particles
+
+  subroutine lorentz_fill_gridvars
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_fields
+    use mod_geometry
+
+    integer                                   :: igrid, iigrid, idir, idim
+    double precision, dimension(ixG^T,1:ndir) :: beta
+    double precision, dimension(ixG^T,1:nw)   :: w,wold
+    double precision                          :: current(ixG^T,7-2*ndir:3)
+    integer                                   :: idirmin
+    double precision, dimension(ixG^T,1:ndir) :: vE, bhat
+    double precision, dimension(ixG^T)        :: kappa, kappa_B, absB, tmp
+
+    call fill_gridvars_default()
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
+      call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
+      ! fill with velocity:
+      gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
+
+      if(time_advance) then
+        ! Fluid velocity
+        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
+        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
+        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
+      end if
+    end do
+
+  end subroutine lorentz_fill_gridvars
 
   !> Relativistic particle integrator
   subroutine Lorentz_integrate_particles(end_time)
@@ -131,10 +188,11 @@ contains
     use mod_geometry
     use mod_usr_methods, only: usr_create_particles, usr_update_payload
     double precision, intent(in)      :: end_time
-    double precision                  :: payload(npayload)
+    double precision                  :: defpayload(ndefpayload)
+    double precision                  :: usrpayload(nusrpayload)
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
-    double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom
+    double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom, vfluid
 
     do iipart=1,nparticles_active_on_mype
       ipart = particles_active_on_mype(iipart);
@@ -152,8 +210,16 @@ contains
       ! Get E, B at new position
       call get_vec(bp, particle(ipart)%igrid, &
            particle(ipart)%self%x,particle(ipart)%self%time,b)
-      call get_vec(ep, particle(ipart)%igrid, &
-           particle(ipart)%self%x,particle(ipart)%self%time,e)
+      if (particles_eta > 0.d0) then
+        call get_vec(ep, particle(ipart)%igrid, &
+             particle(ipart)%self%x,particle(ipart)%self%time,e)
+      else
+        call get_vec(vp, particle(ipart)%igrid, &
+             particle(ipart)%self%x,particle(ipart)%self%time,vfluid)
+        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
+        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
+        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
+      end if
 
       ! 'Kick' particle (update velocity) based on the chosen integrator
       call Lorentz_kick(particle(ipart)%self%x,particle(ipart)%self%u,e,b,q,m,dt_p)
@@ -167,14 +233,14 @@ contains
       particle(ipart)%self%time = particle(ipart)%self%time + dt_p
 
       ! Update payload
-      if (.not. associated(usr_update_payload)) then
-        call Lorentz_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x, &
-             particle(ipart)%self%x,particle(ipart)%self%u,q,m,payload,npayload,particle(ipart)%self%time)
-      else
+      call Lorentz_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x, &
+           particle(ipart)%self%x,particle(ipart)%self%u,q,m,defpayload,ndefpayload,particle(ipart)%self%time)
+      particle(ipart)%payload(1:ndefpayload) = defpayload
+      if (associated(usr_update_payload)) then
         call usr_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x,&
-             particle(ipart)%self%x,particle(ipart)%self%u,q,m,payload,npayload,particle(ipart)%self%time)
+             particle(ipart)%self%x,particle(ipart)%self%u,q,m,usrpayload,nusrpayload,particle(ipart)%self%time)
+        particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
       end if
-      particle(ipart)%payload = payload
 
     end do ! ipart loop
 
@@ -460,39 +526,46 @@ contains
   end subroutine Lorentz_kick
 
   !> Update payload subroutine
-  subroutine Lorentz_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,payload,npayload,particle_time)
+  subroutine Lorentz_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
     use mod_global_parameters
-    integer, intent(in)           :: igrid,npayload
+    integer, intent(in)           :: igrid,mynpayload
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
     double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
-    double precision, intent(out) :: payload(npayload)
-    double precision              :: b(3), e(3), tmp(3), lfac
+    double precision, intent(out) :: mypayload(mynpayload)
+    double precision              :: b(3), e(3), tmp(3), lfac, vfluid(3)
 
     call get_vec(bp, igrid, xpart,particle_time,b)
-    call get_vec(ep, igrid, xpart,particle_time,e)
+    if (particles_eta > 0.d0) then
+      call get_vec(ep, igrid, xpart,particle_time,e)
+    else
+      call get_vec(vp, igrid, xpart,particle_time,vfluid)
+        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
+        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
+        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
+    end if 
 
     ! Payload update
     ! Lorentz factor
-    if (npayload > 0) then
+    if (mynpayload > 0) then
       call get_lfac(upart,lfac)     
-      payload(1) = lfac
+      mypayload(1) = lfac
     end if
 
     ! current gyroradius
-    if (npayload > 1) then
+    if (mynpayload > 1) then
       call cross(upart,b,tmp)
       tmp = tmp / sqrt(sum(b(:)**2))
-      payload(2) = mpart/abs(qpart)*sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2))
+      mypayload(2) = mpart/abs(qpart)*sqrt(sum(tmp(:)**2)) / sqrt(sum(b(:)**2))
     end if
 
     ! magnetic moment
-    if (npayload > 2) then
-      payload(3) = mpart*sum(tmp(:)**2)/(2.0d0*sqrt(sum(b(:)**2)))
+    if (mynpayload > 2) then
+      mypayload(3) = mpart*sum(tmp(:)**2)/(2.0d0*sqrt(sum(b(:)**2)))
     end if
 
     ! e.b
-    if (npayload > 3) then
-      payload(4) = sum(e(:)*b(:))
+    if (mynpayload > 3) then
+      mypayload(4) = sum(e(:)*b(:))
     end if
 
   end subroutine Lorentz_update_payload
