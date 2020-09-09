@@ -118,7 +118,7 @@ class load_datfile():
         for i in range(len(nx)):
             coordinate_arrays.append(np.linspace(xmin[i], xmax[i], nx[i]))
 
-        return np.asarray(coordinate_arrays)
+        return np.asarray(coordinate_arrays, dtype=object)
 
     def load_all_data(self, nbprocs=None, regriddir=None):
         """
