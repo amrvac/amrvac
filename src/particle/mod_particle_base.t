@@ -385,7 +385,7 @@ contains
 
   !> Determine fields from MHD variables
   subroutine fields_from_mhd(igrid, w_mhd, w_part)
-    use mod_mhd
+!    use mod_mhd
     use mod_global_parameters
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
