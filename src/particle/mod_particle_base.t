@@ -10,7 +10,7 @@ module mod_particle_base
   !> String describing the particle integrator type
   character(len=name_len) :: integrator_type_particles = ""
   !> Header string used in CSV files
-  character(len=200)      :: csv_header
+  character(len=400)      :: csv_header
   !> Format string used in CSV files
   character(len=60)       :: csv_format
   !> Maximum number of particles

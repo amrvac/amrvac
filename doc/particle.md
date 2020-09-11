@@ -105,14 +105,14 @@ Below, we describe the essential steps needed to correctly set up a particle sim
   end subroutine particle_modification
   \endcode
 
-  Here, the user is free to apply modifications to the particle velocity, mass, charge, and to the \p follow parameter, but not to the particle position, which is assumed will stay unchanged (otherwise, handling the particles may require further communications). Whenever this subroutine returns a <tt>check=.false.<\tt> flag, the particle will be *discarded*. For all particles that should be kept, it is necessary that <tt>check=.true.<\tt> 
+  Here, the user is free to apply modifications to the particle velocity, mass, charge, and to the \p follow parameter, but not to the particle position, which is assumed will stay unchanged (otherwise, handling the particles may require further communications). Whenever this subroutine returns a <tt>check=.false.</tt> flag, the particle will be *discarded*. For all particles that should be kept, it is necessary that <tt>check=.true.</tt> 
 
 - **Payloads**: particle simulations are especially flexible in terms of the quantities that can be dynamically stored in the particle output files. On top of tracking positions and velocities, an arbitrary number of payloads can be assigned to each particle in order to monitor additional physical aspects. As an example, in the \p 'advect' mode each particle can be assigned to track the local fluid density, which will be then stored in a payload variable and added to the output. A number of default payloads can be calculated and stored for each running mode. Additionally, the user can define custom payloads. The number of default and custom payloads is chosen by the user by setting the parameters \p ndefpayload and \nusrpayload in the \p particles_list of the <tt>.par</tt> file. By default, \p ndefpayload=1, and payload tracking can be suppressed by setting \p ndefpayload=0.
 
   The default payloads, depending on the running mode, are:
   * For the \p 'advect' mode, the fluid density at the particle location will be tracked and stored in the first payload.
   * For the \p 'Lorentz' mode, up to four payloads can be updated by default: the particle Lorentz factor (\p =1 if <tt>relativistic=.false.</tt>), the particle gyroradius, the magnetic moment, and the local value of \f$ \textbf{E}\cdot\textbf{B}\f$.
-  * For the \p 'GCA' mode, there are 14 default payloads: 
+  * For the \p 'GCA' mode, there are 14 default payloads:
     * Particle gyroradius;
     * Pitch angle \f$\tan^{-1}(v_\perp/v_{\|})\f$;
     * Perpendicular velocity \f$v_\perp\f$;
