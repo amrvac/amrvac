@@ -221,14 +221,13 @@ contains
       vE(ixG^T,3) = gridvars(igrid)%w(ixG^T,ep(1)) * gridvars(igrid)%w(ixG^T,bp(2)) &
             - gridvars(igrid)%w(ixG^T,ep(2)) * gridvars(igrid)%w(ixG^T,bp(1))
       do idir=1,ndir
-        where (absB(ixG^T) .gt. 0.d0) 
+        where (absB(ixG^T) .gt. 0.d0)
           vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
         end where
       end do
 
       if (any(vE .ne. vE)) then
-        write(*,*) "GCA FILL GRIDVARS: NaNs IN vE! ABORTING..."
-        call mpistop()
+        call mpistop("GCA FILL GRIDVARS: NaNs IN vE! ABORTING...")
       end if
 
       if (relativistic) then
@@ -239,8 +238,7 @@ contains
       kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
 
       if (any(kappa_B .ne. kappa_B)) then
-        write(*,*) "GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING..."
-        call mpistop()
+        call mpistop("GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING...")
       end if
 
       do idim=1,ndim
@@ -257,8 +255,7 @@ contains
       end do
 
       if (any(kappa_B .ne. kappa_B)) then
-        write(*,*) "GCA FILL GRIDVARS: NaNs IN bhat! ABORTING..."
-        call mpistop()
+        call mpistop("GCA FILL GRIDVARS: NaNs IN bhat! ABORTING...")
       end if
 
       do idir=1,ndir
@@ -294,7 +291,7 @@ contains
         do idir=1,ndir
           vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
         end do
-         
+
         if (relativistic) then
           kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
         else
@@ -458,8 +455,7 @@ contains
       endif
 
       if (any(y .ne. y)) then
-        write(*,*) "NaNs DETECTED IN GCA_INTEGRATE BEFORE ODEINT CALL! ABORTING..."
-        call mpistop()
+        call mpistop("NaNs DETECTED IN GCA_INTEGRATE BEFORE ODEINT CALL! ABORTING...")
       end if
 
       ! RK4 integration with adaptive stepwidth
@@ -472,8 +468,7 @@ contains
       end if
 
       if (any(y .ne. y)) then
-        write(*,*) "NaNs DETECTED IN GCA_INTEGRATE AFTER ODEINT CALL! ABORTING..."
-        call mpistop()
+        call mpistop("NaNs DETECTED IN GCA_INTEGRATE AFTER ODEINT CALL! ABORTING...")
       end if
 
       ! original RK integration without interpolation in ghost cells
@@ -563,8 +558,7 @@ contains
       write(*,*) "ERROR IN DERIVS_GCA_RK: NaNs IN X OR Y!"
       write(*,*) "x",x
       write(*,*) "y",y(ndir+1:ndir+2)
-      write(*,*) "ABORTING..."
-      call mpistop()
+      call mpistop("ABORTING...")
     end if
 
     call get_vec(bp, igrid_working,x,t_s,b)
@@ -594,8 +588,7 @@ contains
       write(*,*) "gradkappaB",gradkappaB
       write(*,*) "bdotgradvE",bdotgradvE
       write(*,*) "vEdotgradvE",vEdotgradvE
-      write(*,*) "ABORTING..."
-      call mpistop()  
+      call mpistop("ABORTING...")
     end if
 
     absb         = sqrt(sum(b(:)**2))
@@ -661,8 +654,7 @@ contains
     !gamma     = y(ndir+3)
 
     if (any(x .ne. x)) then
-      write(*,*) "ERROR IN DERIVS_GCA: NaNs IN X! ABORTING..."
-      call mpistop()
+      call mpistop("ERROR IN DERIVS_GCA: NaNs IN X! ABORTING...")
     end if
 
     call get_vec(bp, igrid_working,x,t_s,b)
