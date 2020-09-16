@@ -174,7 +174,7 @@ contains
 
     double precision :: dxb^D,xb^L
     integer :: inblock,ixO^L,j
-    integer :: ixc^D,ixb^D,ixi^D
+    integer :: ixb^D,ixi^D
     double precision :: xc(0:1^D&,1:ndim),wc(0:1^D&,nw)
 
     ! block/grid boundaries
@@ -191,11 +191,9 @@ contains
     ! cell indexes for the point
     ^D&dxb^D=rnode(rpdx^D_,igrid)\
     ^D&ixOmin^D=ixmlo^D\
-    ^D&ixc^D=floor((xp(^D)-xbmin^D)/dxb^D)+ixOmin^D\
+    ^D&ixb^D=floor((xp(^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
 
     ! nearby cells for interpolation
-    ^D&ixb^D=ixc^D\
-    {if (xp(^D)<ps(igrid)%x(ixc^DD,^D)) ixb^D=ixc^D-1\}
     {do ixi^D=0,1\}
       xc(ixi^D,:)=ps(igrid)%x(ixb^D+ixi^D,:)
       wc(ixi^D,:)=ps(igrid)%w(ixb^D+ixi^D,:)
