@@ -10,7 +10,7 @@ module mod_particle_lorentz
   integer, parameter :: Boris=1, Vay=2, HC=3, LM=4
 
   ! Variables
-  public :: bp, ep, vp
+  public :: bp, ep, vp, jp
 
 contains
 
@@ -35,12 +35,16 @@ contains
       nwx = nwx + 1
       ep(idir) = nwx
     end do
-    ngridvars=ndir*2
     allocate(vp(ndir))
     do idir = 1, ndir
       nwx = nwx + 1
       vp(idir) = nwx
     end do
+    allocate(jp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      jp(idir) = nwx
+    end do 
     ngridvars=nwx
 
 !    particles_fill_gridvars => fill_gridvars_default
@@ -192,7 +196,7 @@ contains
     double precision                  :: usrpayload(nusrpayload)
     integer                           :: ipart, iipart
     double precision                  :: lfac, q, m, dt_p, cosphi, sinphi, phi1, phi2, r, re
-    double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom, vfluid
+    double precision, dimension(ndir) :: b, e, emom, uminus, t_geom, s, udash, tmp, uplus, xcart1, xcart2, ucart2, radmom, vfluid, current
 
     do iipart=1,nparticles_active_on_mype
       ipart = particles_active_on_mype(iipart);
@@ -210,16 +214,18 @@ contains
       ! Get E, B at new position
       call get_vec(bp, particle(ipart)%igrid, &
            particle(ipart)%self%x,particle(ipart)%self%time,b)
-      if (particles_eta > 0.d0) then
-        call get_vec(ep, particle(ipart)%igrid, &
-             particle(ipart)%self%x,particle(ipart)%self%time,e)
-      else
+!      if (particles_eta > 0.d0) then
+!        call get_vec(ep, particle(ipart)%igrid, &
+!             particle(ipart)%self%x,particle(ipart)%self%time,e)
+!      else
         call get_vec(vp, particle(ipart)%igrid, &
              particle(ipart)%self%x,particle(ipart)%self%time,vfluid)
-        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
-        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
-        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
-      end if
+        call get_vec(jp, particle(ipart)%igrid, &
+             particle(ipart)%self%x,particle(ipart)%self%time,current)
+        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!      end if
 
       ! 'Kick' particle (update velocity) based on the chosen integrator
       call Lorentz_kick(particle(ipart)%self%x,particle(ipart)%self%u,e,b,q,m,dt_p)
@@ -532,17 +538,18 @@ contains
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
     double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: mypayload(mynpayload)
-    double precision              :: b(3), e(3), tmp(3), lfac, vfluid(3)
+    double precision              :: b(3), e(3), tmp(3), lfac, vfluid(3), current(3)
 
     call get_vec(bp, igrid, xpart,particle_time,b)
-    if (particles_eta > 0.d0) then
-      call get_vec(ep, igrid, xpart,particle_time,e)
-    else
+!    if (particles_eta > 0.d0) then
+!      call get_vec(ep, igrid, xpart,particle_time,e)
+!    else
       call get_vec(vp, igrid, xpart,particle_time,vfluid)
-        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
-        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
-        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
-    end if 
+      call get_vec(jp, igrid, xpart,particle_time,current)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!    end if 
 
     ! Payload update
     ! Lorentz factor

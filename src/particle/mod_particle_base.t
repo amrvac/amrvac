@@ -89,6 +89,8 @@ module mod_particle_base
   integer, allocatable :: ep(:)
   !> Variable index for fluid velocity
   integer, allocatable :: vp(:)
+  !> Variable index for current
+  integer, allocatable :: jp(:)
 
   type particle_ptr
     type(particle_t), pointer         :: self
@@ -122,10 +124,12 @@ module mod_particle_base
   ! The pseudo-random number generator
   type(rng_t) :: rng
 
+  ! Pointers for user-defined stuff
   procedure(sub_fill_gridvars), pointer              :: particles_fill_gridvars => null()
   procedure(sub_define_additional_gridvars), pointer :: particles_define_additional_gridvars => null()
   procedure(sub_fill_additional_gridvars), pointer   :: particles_fill_additional_gridvars => null()
   procedure(sub_integrate), pointer                  :: particles_integrate => null()
+  procedure(fun_destroy), pointer                    :: usr_destroy_particle => null()
 
   abstract interface
 
@@ -142,6 +146,12 @@ module mod_particle_base
     subroutine sub_integrate(end_time)
       double precision, intent(in) :: end_time
     end subroutine sub_integrate
+
+    function fun_destroy(myparticle)
+      import particle_ptr
+      logical                         :: fun_destroy
+      type(particle_ptr), intent(in)    :: myparticle
+    end function fun_destroy
 
   end interface
 
@@ -193,8 +203,8 @@ contains
     character(len=20)  :: strdata
 
     physics_type_particles    = 'advect'
-    nparticleshi              = 100000
-    nparticles_per_cpu_hi     = 100000
+    nparticleshi              = 10000000
+    nparticles_per_cpu_hi     = 1000000
     num_particles             = 1000
     ndefpayload               = 1
     nusrpayload               = 0
@@ -405,10 +415,12 @@ contains
     ! fill with magnetic field:
     w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
 
-    ! fill with electric field
+    ! fill with current
     current = zero
     call particle_get_current(w,ixG^LL,ixG^LLIM^D^LSUB1,idirmin,current)
+    w_part(ixG^T,jp(:)) = current(ixG^T,:)
 
+    ! fill with electric field
     w_part(ixG^T,ep(1)) = w_part(ixG^T,bp(2)) * &
          w(ixG^T,iw_mom(3)) - w_part(ixG^T,bp(3)) * &
          w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
@@ -418,6 +430,7 @@ contains
     w_part(ixG^T,ep(3)) = w_part(ixG^T,bp(1)) * &
          w(ixG^T,iw_mom(2)) - w_part(ixG^T,bp(2)) * &
          w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
+
     ! Hall term
     if (particles_etah > zero) then
       w_part(ixG^T,ep(1)) = w_part(ixG^T,ep(1)) + particles_etah/w(ixG^T,iw_rho) * &
@@ -500,6 +513,7 @@ contains
              dtsave_particles
       else
         call advance_particles(tmax_particles, steps_taken)
+        call write_particle_output()
         exit
       end if
 
@@ -1409,6 +1423,15 @@ contains
         destroy_n_particles_mype  = destroy_n_particles_mype + 1
         particle_index_to_be_destroyed(destroy_n_particles_mype) = ipart
         cycle
+      end if
+
+      ! Then check user-defined condition
+      if (associated(usr_destroy_particle)) then
+        if (usr_destroy_particle(particle(ipart))) then
+          destroy_n_particles_mype  = destroy_n_particles_mype + 1
+          particle_index_to_be_destroyed(destroy_n_particles_mype) = ipart
+          cycle
+        end if
       end if
 
       ! is my particle still in the same igrid?

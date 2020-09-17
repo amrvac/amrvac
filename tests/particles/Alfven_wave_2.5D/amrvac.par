@@ -18,12 +18,12 @@
         itsave(1,1)  = 0
         itsave(1,2)  = 0
         ditsave_log  = 10
-	    dtsave_dat    = 0.044721359549995793d0!0.44721359549995793
+	    dtsave_dat    = 0.044721359549995793d0
  /
 
  &stoplist
         dtmin        = 1.D-6
-        time_max     = 0.44721359549995793d0
+        time_max     = 0.4721359549995793d0
  /
 
  &methodlist

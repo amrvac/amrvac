@@ -25,7 +25,7 @@ module mod_particle_gca
   ! Variables
   public :: bp, ep, grad_kappa_B, b_dot_grad_b
   public :: vE_dot_grad_b, b_dot_grad_vE, vE_dot_grad_vE
-  public :: vp
+  public :: vp, jp
 
 contains
 
@@ -76,6 +76,11 @@ contains
     do idir = 1, ndir
       nwx = nwx + 1
       vp(idir) = nwx
+    end do
+    allocate(jp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      jp(idir) = nwx
     end do
     ngridvars=nwx
 
@@ -223,13 +228,15 @@ contains
       do idir=1,ndir
         where (absB(ixG^T) .gt. 0.d0) 
           vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
+        elsewhere
+          vE(ixG^T,idir) = 0.d0
         end where
       end do
 
-      if (any(vE .ne. vE)) then
-        write(*,*) "GCA FILL GRIDVARS: NaNs IN vE! ABORTING..."
-        call mpistop()
-      end if
+!      if (any(vE .ne. vE)) then
+!        write(*,*) "GCA FILL GRIDVARS: NaNs IN vE! ABORTING..."
+!        call mpistop()
+!      end if
 
       if (relativistic) then
         kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
@@ -238,10 +245,10 @@ contains
       end if
       kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
 
-      if (any(kappa_B .ne. kappa_B)) then
-        write(*,*) "GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING..."
-        call mpistop()
-      end if
+!      if (any(kappa_B .ne. kappa_B)) then
+!        write(*,*) "GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING..."
+!        call mpistop()
+!      end if
 
       do idim=1,ndim
         call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
@@ -256,10 +263,10 @@ contains
         end where
       end do
 
-      if (any(kappa_B .ne. kappa_B)) then
-        write(*,*) "GCA FILL GRIDVARS: NaNs IN bhat! ABORTING..."
-        call mpistop()
-      end if
+!      if (any(kappa_B .ne. kappa_B)) then
+!        write(*,*) "GCA FILL GRIDVARS: NaNs IN bhat! ABORTING..."
+!        call mpistop()
+!      end if
 
       do idir=1,ndir
         ! (b dot grad) b and the other directional derivatives
@@ -292,7 +299,11 @@ contains
         vE(ixG^T,3) = gridvars(igrid)%wold(ixG^T,ep(1)) * gridvars(igrid)%wold(ixG^T,bp(2)) &
              - gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(1))
         do idir=1,ndir
-          vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
+          where (absB(ixG^T) .gt. 0.d0) 
+            vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
+          elsewhere
+            vE(ixG^T,idir) = 0.d0
+          end where
         end do
          
         if (relativistic) then
@@ -308,7 +319,11 @@ contains
         end do
 
         do idir=1,ndir
-          bhat(ixG^T,idir) = gridvars(igrid)%wold(ixG^T,bp(idir)) / absB(ixG^T)
+          where (absB(ixG^T) .gt. 0.d0)
+            bhat(ixG^T,idir) = gridvars(igrid)%wold(ixG^T,bp(idir)) / absB(ixG^T)
+          elsewhere
+            bhat(ixG^T,idir) = 0.d0
+          end where
         end do
 
         do idir=1,ndir
@@ -341,7 +356,7 @@ contains
     double precision                    :: defpayload(ndefpayload)
     double precision                    :: usrpayload(nusrpayload)
     double precision                    :: dt_p, tloc, y(ndir+2),dydt(ndir+2),ytmp(ndir+2), euler_cfl, int_factor
-    double precision, dimension(1:ndir) :: x, vE, e, b, bhat, x_new, vfluid
+    double precision, dimension(1:ndir) :: x, vE, e, b, bhat, x_new, vfluid, current
     double precision, dimension(1:ndir) :: drift1, drift2
     double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6, drift7
     double precision, dimension(1:ndir) :: bdotgradb, vEdotgradb, gradkappaB
@@ -487,14 +502,15 @@ contains
 
       ! now calculate other quantities, mean Lorentz factor, drifts, perpendicular velocity:
       call get_vec(bp, igrid_working,y(1:ndir),tloc+dt_p,b)
-      if (particles_eta > 0.d0) then
-        call get_vec(ep, igrid_working,y(1:ndir),tloc+dt_p,e)
-      else
+!      if (particles_eta > 0.d0) then
+!        call get_vec(ep, igrid_working,y(1:ndir),tloc+dt_p,e)
+!      else
         call get_vec(vp, igrid_working,y(1:ndir),tloc+dt_p,vfluid)
-        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
-        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
-        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
-      end if
+        call get_vec(jp, igrid_working,y(1:ndir),tloc+dt_p,current)
+        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!      end if
 
       absb         = sqrt(sum(b(:)**2))
       bhat(1:ndir) = b(1:ndir) / absb
@@ -542,7 +558,7 @@ contains
     double precision                :: t_s, y(ndir+2)
     double precision                :: dydt(ndir+2)
 
-    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB, vfluid
+    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB, vfluid, current
     double precision,dimension(ndir):: bdotgradvE, vEdotgradvE, u, utmp1, utmp2, utmp3
     double precision                :: upar, Mr, gamma, absb, q, m, epar, kappa
     integer                         :: ic^D
@@ -568,14 +584,15 @@ contains
     end if
 
     call get_vec(bp, igrid_working,x,t_s,b)
-    if (particles_eta > 0.d0) then
-      call get_vec(ep, igrid_working,x,t_s,e)
-    else
+!    if (particles_eta > 0.d0) then
+!      call get_vec(ep, igrid_working,x,t_s,e)
+!    else
       call get_vec(vp, igrid_working,x,t_s,vfluid)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
-    end if
+      call get_vec(jp, igrid_working,x,t_s,current)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!    end if
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
@@ -646,7 +663,7 @@ contains
     double precision                :: t_s, y(ndir+2)
     double precision                :: dydt(ndir+2)
 
-    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB, vfluid
+    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb, vEdotgradb, gradkappaB, vfluid, current
     double precision,dimension(ndir):: bdotgradvE, vEdotgradvE, u, utmp1, utmp2, utmp3
     double precision                :: upar, Mr, gamma, absb, q, m, epar, kappa
 
@@ -666,14 +683,15 @@ contains
     end if
 
     call get_vec(bp, igrid_working,x,t_s,b)
-    if (particles_eta > 0.d0) then
-      call get_vec(ep, igrid_working,x,t_s,e)
-    else
+!    if (particles_eta > 0.d0) then
+!      call get_vec(ep, igrid_working,x,t_s,e)
+!    else
       call get_vec(vp, igrid_working,x,t_s,vfluid)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
-    end if
+      call get_vec(jp, igrid_working,x,t_s,current)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!    end if
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
@@ -728,7 +746,7 @@ contains
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
     double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: mypayload(mynpayload)
-    double precision, dimension(1:ndir) :: vE, e, b, bhat, vfluid
+    double precision, dimension(1:ndir) :: vE, e, b, bhat, vfluid, current
     double precision, dimension(1:ndir) :: drift1, drift2
     double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6, drift7
     double precision, dimension(1:ndir) :: bdotgradb, vEdotgradb, gradkappaB
@@ -743,14 +761,15 @@ contains
     double precision                    :: momentumpar1, momentumpar2, momentumpar3, momentumpar4
 
     call get_vec(bp, igrid,xpart(1:ndir),particle_time,b)
-    if (particles_eta > 0.d0) then
-      call get_vec(ep, igrid,xpart(1:ndir),particle_time,e)
-    else
+!    if (particles_eta > 0.d0) then
+!      call get_vec(ep, igrid,xpart(1:ndir),particle_time,e)
+!    else
       call get_vec(vp, igrid,xpart(1:ndir),particle_time,vfluid)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1)
-    end if
+      call get_vec(jp, igrid,xpart(1:ndir),particle_time,current)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!    end if
 
     absb         = sqrt(sum(b(:)**2))
     bhat(1:ndir) = b(1:ndir) / absb
