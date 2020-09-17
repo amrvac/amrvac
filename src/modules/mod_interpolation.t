@@ -5,6 +5,8 @@ module mod_interpolation
 contains
 
   subroutine interp_linear(x_table,y_table,n_table,x_itp,y_itp,n_itp)
+    ! linear interpolation
+    ! 1D method
 
     integer :: n_table,n_itp
     double precision :: x_table(n_table),y_table(n_table)
@@ -31,6 +33,7 @@ contains
   subroutine interp_cubic_spline(x_table,y_table,n_table,x_itp,y_itp,n_itp)
     ! interpolation function fi=ai+bi*(x-xi)+ci*(x-xi)^2+di*(x-xi)^3
     ! first order derivative and second order derivative is continous 
+    ! 1D method
 
     integer :: n_table,n_itp
     double precision :: x_table(n_table),y_table(n_table)
@@ -108,12 +111,10 @@ contains
       ri2(i)=ri2(i)/(matrix1(i,i)-matrix1(i-1,i)*matrix2(i,i-1))
     enddo
 
-
     mi(ni)=ri2(ni)
     do i=ni-1,1,-1
       mi(i)=ri2(i)-matrix2(i+1,i)*mi(i+1)
     enddo
-
 
     ! get parameters for interpolation
     ai=yi
@@ -125,12 +126,81 @@ contains
 
   end subroutine get_cubic_para
 
+  subroutine get_interp_factor_linear(xc,xp,factor)
+    ! get factor for linear interpolation
+    ! multi-D method
+   
+    double precision :: xc(0:1^D&,1:ndim),xp(1:ndim),factor(0:1^D&)
+    integer :: ix^D
+    double precision :: dxc^D,xd^D
 
+    ^D&dxc^D=xc(1^DD&,^D)-xc(0^DD&,^D)\
+    ^D&xd^D=(xp(^D)-xc(0^DD&,^D))/dxc^D\
+    ! interpolation factor
+    {do ix^D=0,1\}
+      factor(ix^D)={abs(1-ix^D-xd^D)*}
+    {enddo\}
 
+  end subroutine get_interp_factor_linear
 
+  subroutine interp_linear_multiD(xc,xp,wc,wp,nwc)
+    ! get point values from nearby cells via linear interpolation
+    ! multi-D method
 
+    integer :: nwc
+    double precision :: xc(0:1^D&,1:ndim),xp(1:ndim)
+    double precision :: wc(0:1^D&,1:nwc),wp(1:nwc)
 
+    integer :: ix^D,iw
+    double precision :: factor(0:1^D&)
 
+    call get_interp_factor_linear(xc,xp,factor)    
 
+    wp=0.d0
+    do iw=1,nwc
+      {do ix^DB=0,1\}
+        wp(iw)=wp(iw)+wc(ix^D,iw)*factor(ix^D)
+      {enddo\}
+    enddo
+
+  end subroutine interp_linear_multiD
+
+  subroutine interp_from_grid_linear(igrid,xp,wp)
+    ! get point values from given grid via linear interpolation
+    ! multi-D method
+    
+    integer :: igrid
+    double precision :: xp(1:ndim),wp(1:nw)
+
+    double precision :: dxb^D,xb^L
+    integer :: inblock,ixO^L,j
+    integer :: ixb^D,ixi^D
+    double precision :: xc(0:1^D&,1:ndim),wc(0:1^D&,nw)
+
+    ! block/grid boundaries
+    ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
+    ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
+
+    ! whether or not next point is in this block/grid
+    inblock=0
+    {if (xp(^D)>=xbmin^D .and. xp(^D)<xbmax^D) inblock=inblock+1\}
+    if (inblock/=ndim) then
+      call MPISTOP('Interpolation error: given point is not in given grid')
+    endif
+
+    ! cell indexes for the point
+    ^D&dxb^D=rnode(rpdx^D_,igrid)\
+    ^D&ixOmin^D=ixmlo^D\
+    ^D&ixb^D=floor((xp(^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
+
+    ! nearby cells for interpolation
+    {do ixi^D=0,1\}
+      xc(ixi^D,:)=ps(igrid)%x(ixb^D+ixi^D,:)
+      wc(ixi^D,:)=ps(igrid)%w(ixb^D+ixi^D,:)
+    {enddo\}
+
+    call interp_linear_multiD(xc,xp,wc,wp,nw)
+
+  end subroutine interp_from_grid_linear
 
 end module mod_interpolation

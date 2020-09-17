@@ -122,17 +122,18 @@ contains
     ! for given point (xp), provide the corrsponding processor (ipe), 
     ! grid number (igrid) and cell index (ixc^D)
 
-    double precision :: xp(ndim)
+    double precision :: xp(1:ndim)
     integer :: ipe,igrid,ixc^D
 
-    double precision :: x3d(3)
+    double precision :: x3d(1:3)
     double precision :: dxb^D,xb^L
     integer :: indomain,ixO^L,j
-    integer :: datas(ndim)
+    integer :: datas(1:ndim+2)
 
+    indomain=0
     {if (xp(^DB)>=xprobmin^DB .and. xp(^DB)<xprobmax^DB) indomain=indomain+1\}
-    if (indomain==ndim) then
 
+    if (indomain==ndim) then
       ! find pe and igrid
       x3d=0.d0
       do j=1,ndim
@@ -148,12 +149,16 @@ contains
         ^D&ixOmin^D=ixmlo^D\
         ^D&ixc^D=floor((xp(^D)-xbmin^D)/dxb^D)+ixOmin^D\
         ^D&datas(^D)=ixc^D\
+        datas(ndim+1)=ipe
+        datas(ndim+2)=igrid
       endif
 
-      call MPI_BCAST(datas,ndim,MPI_DOUBLE_PRECISION,ipe,icomm,ierrmpi)
+      call MPI_BCAST(datas,ndim+2,MPI_INTEGER,ipe,icomm,ierrmpi)
     endif
 
     ^D&ixc^D=datas(^D)\
+    ipe=datas(ndim+1)
+    igrid=datas(ndim+2)
 
   end subroutine get_cell_index
 
