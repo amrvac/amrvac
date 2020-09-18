@@ -1,11 +1,11 @@
-# this is part of the travis ci/cd pipeline
+# this is part of the continuous integration pipeline
 # call syntax:
-# bash test_runner.sh hd
+# bash test_runner.sh <name>
 #
 # Run tests in $1 and check if any fails
 # return appropriate exit code (0 if and only if all tests pass)
 
-make -s $1 | tee $1.out; test ${PIPESTATUS[0]} -eq 0
+make -j 2 -s $1 | tee $1.out; test ${PIPESTATUS[0]} -eq 0
 cond1=$? # first condition: build correctly with make
 
 if [ $cond1 != 0 ] ; then

@@ -1,0 +1,125 @@
+name: tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CC: /usr/bin/gcc-9
+  FC: /usr/bin/gfortran-9
+  AMRVAC_DIR: ${GITHUB_WORKSPACE}
+
+jobs:
+  rho:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          sudo apt-get install openmpi-bin libopenmpi-dev
+          gfortran-9 --version
+          mpirun --version
+      - name: check code dependencies
+        run: |
+          cd src
+          sh update_dependencies.sh --verbose || exit 1
+      - name: compile
+        run: |
+          cd lib
+          make clean
+          make -j 2 || exit 1
+      - name: run tests
+        run: |
+          cd tests
+          bash test_runner.sh rho
+  hd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          sudo apt-get install openmpi-bin libopenmpi-dev
+          gfortran-9 --version
+          mpirun --version
+      - name: check code dependencies
+        run: |
+          cd src
+          sh update_dependencies.sh --verbose || exit 1
+      - name: compile
+        run: |
+          cd lib
+          make clean
+          make -j 2 || exit 1
+      - name: run tests
+        run: |
+          cd tests
+          bash test_runner.sh hd
+          
+  mhd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          sudo apt-get install openmpi-bin libopenmpi-dev
+          gfortran-9 --version
+          mpirun --version
+      - name: check code dependencies
+        run: |
+          cd src
+          sh update_dependencies.sh --verbose || exit 1
+      - name: compile
+        run: |
+          cd lib
+          make clean
+          make -j 2 || exit 1
+      - name: run tests
+        run: |
+          cd tests
+          bash test_runner.sh mhd
+  rd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          sudo apt-get install openmpi-bin libopenmpi-dev
+          gfortran-9 --version
+          mpirun --version
+      - name: check code dependencies
+        run: |
+          cd src
+          sh update_dependencies.sh --verbose || exit 1
+      - name: compile
+        run: |
+          cd lib
+          make clean
+          make -j 2 || exit 1
+      - name: run tests
+        run: |
+          cd tests
+          bash test_runner.sh rd
+  mg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          sudo apt-get install openmpi-bin libopenmpi-dev
+          gfortran-9 --version
+          mpirun --version
+      - name: check code dependencies
+        run: |
+          cd src
+          sh update_dependencies.sh --verbose || exit 1
+      - name: compile
+        run: |
+          cd lib
+          make clean
+          make -j 2 || exit 1
+      - name: run tests
+        run: |
+          cd tests
+          bash test_runner.sh mg
