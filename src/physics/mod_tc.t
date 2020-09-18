@@ -64,10 +64,7 @@ module mod_tc
   integer :: rho_=-1,mag(1:3)=-1,e_=-1,eaux_=-1
 
   public :: tc_init_mhd_for_total_energy, tc_init_mhd_for_internal_energy, tc_init_hd_for_total_energy  
-
   abstract interface
-
-  
     subroutine get_temperature_subr(w,x,ixI^L,ixO^L,res)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
@@ -75,17 +72,11 @@ module mod_tc
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision, intent(out):: res(ixI^S)
     end subroutine get_temperature_subr
-
-
   end interface
-
-   procedure (get_temperature_subr), pointer :: get_temperature_from_eint => null()
-   procedure (get_temperature_subr), pointer :: get_temperature_from_conserved => null()
-
-    
+  procedure(get_temperature_subr), pointer :: get_temperature_from_eint => null()
+  procedure(get_temperature_subr), pointer :: get_temperature_from_conserved => null()
 
 contains
-
 
   !> Init  TC coeffiecients: MHD case
   subroutine tc_init_mhd_params(phys_gamma, ixArray)
@@ -125,25 +116,25 @@ contains
       tc_constant=.true.
     end if
 
-  contains 
+    contains 
 
-  !> Read this module"s parameters from a file: MHD case
-  subroutine tc_params_read_mhd(files)
-    use mod_global_parameters, only: unitpar
-    character(len=*), intent(in) :: files(:)
-    integer                      :: n
+    !> Read tc module parameters from par file: MHD case
+    subroutine tc_params_read_mhd(files)
+      use mod_global_parameters, only: unitpar
+      character(len=*), intent(in) :: files(:)
+      integer                      :: n
 
-    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_slope_limiter, tc_k_para, tc_k_perp
+      namelist /tc_list/ tc_perpendicular, tc_saturate, tc_slope_limiter, tc_k_para, tc_k_perp
 
-    do n = 1, size(files)
-       open(unitpar, file=trim(files(n)), status="old")
-       read(unitpar, tc_list, end=111)
-111    close(unitpar)
-    end do
+      do n = 1, size(files)
+        open(unitpar, file=trim(files(n)), status="old")
+        read(unitpar, tc_list, end=111)
+111     close(unitpar)
+      end do
 
-  end subroutine tc_params_read_mhd
+    end subroutine tc_params_read_mhd
+
   end subroutine tc_init_mhd_params
-
 
   !> Initialize the module
   !> this adds the term in the STS methods linked lists when the total energy equation is used
@@ -159,38 +150,38 @@ contains
     integer, intent(in) :: ixArray(:)
 
     interface
-    subroutine mhd_e_to_ei(ixI^L,ixO^L,w,x)
-      use mod_global_parameters
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(inout) :: w(ixI^S, nw)
-      double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    end subroutine mhd_e_to_ei
-    
-    subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
-      use mod_global_parameters
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(inout) :: w(ixI^S, nw)
-      double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    end subroutine mhd_ei_to_e
+      subroutine mhd_e_to_ei(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+      end subroutine mhd_e_to_ei
+      
+      subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+      end subroutine mhd_ei_to_e
   
-    subroutine mhd_get_temperature_from_etot(w,x,ixI^L,ixO^L,res)
-      use mod_global_parameters
-      use mod_small_values, only: trace_small_values
+      subroutine mhd_get_temperature_from_etot(w,x,ixI^L,ixO^L,res)
+        use mod_global_parameters
+        use mod_small_values, only: trace_small_values
   
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision, intent(in) :: w(ixI^S,nw)
-      double precision, intent(in) :: x(ixI^S,1:ndim)
-      double precision, intent(out):: res(ixI^S)
-    end subroutine mhd_get_temperature_from_etot
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S,nw)
+        double precision, intent(in) :: x(ixI^S,1:ndim)
+        double precision, intent(out):: res(ixI^S)
+      end subroutine mhd_get_temperature_from_etot
 
-    subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
-      use mod_global_parameters
-      use mod_small_values, only: small_values_method
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision, intent(in) :: w(ixI^S, 1:nw)
-      double precision, intent(in) :: x(ixI^S, 1:ndim)
-      double precision, intent(out):: res(ixI^S)
-    end subroutine mhd_get_temperature_from_eint
+      subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
+        use mod_global_parameters
+        use mod_small_values, only: small_values_method
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, 1:nw)
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(out):: res(ixI^S)
+      end subroutine mhd_get_temperature_from_eint
     end interface
 
     call tc_init_mhd_params(phys_gamma, ixArray)
@@ -206,21 +197,19 @@ contains
 
     contains
 
-  subroutine set_ei_and_ei_to_e(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    !internal energy is stored in e_
-    w(ixI^S,eaux_)=w(ixI^S,e_)
-    call mhd_ei_to_e(ixI^L,ixI^L,w,x)
-  end subroutine set_ei_and_ei_to_e
+      subroutine set_ei_and_ei_to_e(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+        !internal energy is stored in e_
+        w(ixI^S,eaux_)=w(ixI^S,e_)
+        call mhd_ei_to_e(ixI^L,ixI^L,w,x)
+      end subroutine set_ei_and_ei_to_e
 
   end subroutine tc_init_mhd_for_total_energy
 
-
-
-  !> Initialize the module: MHD case
+  !> Initialize tc module: MHD case
   !> this adds the term in the STS methods linked lists when the internal energy equation is used
   !> Params: 
   !> gamma
@@ -232,23 +221,22 @@ contains
     use mod_physics, only: phys_ei_to_e, phys_e_to_ei
     double precision, intent(in) :: phys_gamma
     integer, intent(in) :: ixArray(:)
-
     interface
-    subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
-      use mod_global_parameters
-      use mod_small_values, only: small_values_method
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision, intent(in) :: w(ixI^S, 1:nw)
-      double precision, intent(in) :: x(ixI^S, 1:ndim)
-      double precision, intent(out):: res(ixI^S)
-    end subroutine mhd_get_temperature_from_eint
+      subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
+        use mod_global_parameters
+        use mod_small_values, only: small_values_method
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, 1:nw)
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(out):: res(ixI^S)
+      end subroutine mhd_get_temperature_from_eint
     end interface
 
     call tc_init_mhd_params(phys_gamma, ixArray)
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd, e_,e_,(/e_/), (/1/),(/.true./))
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,e_,[e_],[1],[.true.])
     if(check_small_values) call set_error_handling_to_head(handle_small_e)
   end subroutine tc_init_mhd_for_internal_energy
 
@@ -271,23 +259,24 @@ contains
         tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
       end if
     end if
+
   contains
 
-  !> Read this module"s parameters from a file: HD case
-  subroutine tc_params_read_hd(files)
-    use mod_global_parameters, only: unitpar
-    character(len=*), intent(in) :: files(:)
-    integer                      :: n
+    !> Read tc parameters from par file: HD case
+    subroutine tc_params_read_hd(files)
+      use mod_global_parameters, only: unitpar
+      character(len=*), intent(in) :: files(:)
+      integer                      :: n
 
-    namelist /tc_list/ tc_saturate, tc_k_para
+      namelist /tc_list/ tc_saturate, tc_k_para
 
-    do n = 1, size(files)
-       open(unitpar, file=trim(files(n)), status="old")
-       read(unitpar, tc_list, end=111)
-111    close(unitpar)
-    end do
+      do n = 1, size(files)
+         open(unitpar, file=trim(files(n)), status="old")
+         read(unitpar, tc_list, end=111)
+111      close(unitpar)
+      end do
 
-  end subroutine tc_params_read_hd
+    end subroutine tc_params_read_hd
   end subroutine tc_init_hd_params
 
   !> Initialize the module for the HD
@@ -297,7 +286,7 @@ contains
   !> ixArray : an array with the indices of the variables
   !> mhd_get_temperature_from_etot, mhd_get_temperature_from_eint subroutines which calculates temperature
   !> mhd_ei_to_e, mhd_e_to_ei subroutines which calculates e_tot from e_int and e_int from e_tot
-  subroutine tc_init_hd_for_total_energy(phys_gamma, ixArray,hd_get_temperature_from_etot, hd_get_temperature_from_eint,hd_e_to_ei,hd_ei_to_e)
+  subroutine tc_init_hd_for_total_energy(phys_gamma,ixArray,hd_get_temperature_from_etot,hd_get_temperature_from_eint,hd_e_to_ei,hd_ei_to_e)
     use mod_global_parameters
     use mod_supertimestepping, only: add_sts_method,sts_init,set_conversion_methods_to_head,set_error_handling_to_head
     use mod_physics, only: phys_ei_to_e, phys_e_to_ei
@@ -306,46 +295,44 @@ contains
     integer, intent(in) :: ixArray(:)
 
     interface
-    subroutine hd_e_to_ei(ixI^L,ixO^L,w,x)
-      use mod_global_parameters
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(inout) :: w(ixI^S, nw)
-      double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    end subroutine hd_e_to_ei
-    
-    subroutine hd_ei_to_e(ixI^L,ixO^L,w,x)
-      use mod_global_parameters
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(inout) :: w(ixI^S, nw)
-      double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    end subroutine hd_ei_to_e
+      subroutine hd_e_to_ei(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+      end subroutine hd_e_to_ei
+      
+      subroutine hd_ei_to_e(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+      end subroutine hd_ei_to_e
 
-    subroutine hd_get_temperature_from_etot(w, x, ixI^L, ixO^L, res)
-      use mod_global_parameters
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision, intent(in) :: w(ixI^S, 1:nw)
-      double precision, intent(in) :: x(ixI^S, 1:ndim)
-      double precision, intent(out):: res(ixI^S)
+      subroutine hd_get_temperature_from_etot(w, x, ixI^L, ixO^L, res)
+        use mod_global_parameters
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, 1:nw)
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(out):: res(ixI^S)
+      end subroutine hd_get_temperature_from_etot
   
-    end subroutine hd_get_temperature_from_etot
-  
-    
-    subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
-      use mod_global_parameters
-      use mod_small_values, only: small_values_method
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision, intent(in) :: w(ixI^S, 1:nw)
-      double precision, intent(in) :: x(ixI^S, 1:ndim)
-      double precision, intent(out):: res(ixI^S)
-    end subroutine hd_get_temperature_from_eint
+      subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
+        use mod_global_parameters
+        use mod_small_values, only: small_values_method
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, 1:nw)
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(out):: res(ixI^S)
+      end subroutine hd_get_temperature_from_eint
     end interface
 
     call tc_init_hd_params(phys_gamma, ixArray)
     
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_etot
-     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,(/e_/), (/1/),(/.true./))
+    call sts_init()
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
     call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
     if(check_small_values) call set_error_handling_to_head(handle_small_e)
 
@@ -357,7 +344,7 @@ contains
   !> gamma
   !> ixArray : an array with the indices of the variables
   !> mhd_get_temperature_from_eint subroutines which calculates temperature
-  subroutine tc_init_hd_for_internal_energy(phys_gamma, ixArray,hd_get_temperature_from_eint)
+  subroutine tc_init_hd_for_internal_energy(phys_gamma,ixArray,hd_get_temperature_from_eint)
     use mod_global_parameters
     use mod_supertimestepping, only: add_sts_method,sts_init,set_conversion_methods_to_head,set_error_handling_to_head
     use mod_physics, only: phys_ei_to_e, phys_e_to_ei
@@ -366,27 +353,24 @@ contains
     integer, intent(in) :: ixArray(:)
 
     interface
-    
-    subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
-      use mod_global_parameters
-      use mod_small_values, only: small_values_method
-      integer, intent(in)          :: ixI^L, ixO^L
-      double precision, intent(in) :: w(ixI^S, 1:nw)
-      double precision, intent(in) :: x(ixI^S, 1:ndim)
-      double precision, intent(out):: res(ixI^S)
-    end subroutine hd_get_temperature_from_eint
+      subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
+        use mod_global_parameters
+        use mod_small_values, only: small_values_method
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, 1:nw)
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(out):: res(ixI^S)
+      end subroutine hd_get_temperature_from_eint
     end interface
 
     call tc_init_hd_params(phys_gamma, ixArray)
-    
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_eint
-     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,(/e_/), (/1/),(/.true./))
+    call sts_init()
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
     if(check_small_values) call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_hd_for_internal_energy
-
 
   function get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x)  result(dtnew)
     !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*tc_k_para_i/rho)
@@ -404,7 +388,6 @@ contains
     double precision :: dtdiff_tcond
     integer          :: idim,ix^D
 
-
     ^D&dxinv(^D)=one/dx^D;
 
     !temperature
@@ -416,7 +399,7 @@ contains
     else
       tmp(ixO^S)=tc_k_para*dsqrt(Te(ixO^S)**5)/w(ixO^S,rho_)
     end if
-    
+
     ! B
     if(B0field) then
       mf(ixO^S,:)=w(ixO^S,iw_mag(:))+block%B0(ixO^S,:,0)
@@ -450,11 +433,9 @@ contains
   
   end  function get_tc_dt_mhd
 
-
   !> anisotropic thermal conduction with slope limited symmetric scheme
   !> Sharma 2007 Journal of Computational Physics 227, 123
-
-  subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart, indexChangeN, indexChangeFixC)
+  subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
     use mod_global_parameters
     use mod_geometry, only: divvector
     use mod_fix_conserve, only: store_flux_var
@@ -466,7 +447,6 @@ contains
     logical, intent(in) :: fix_conserve_at_step
     integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
     logical, intent(in), dimension(:) :: indexChangeFixC
-
 
     !! qd store the heat conduction energy changing rate
     double precision :: qd(ixI^S)
@@ -527,7 +507,6 @@ contains
       call gradientC(Te,ixI^L,ixB^L,idims,minq)
       gradT(ixB^S,idims)=minq(ixB^S)
     end do
-    !!!get ka and ke
     if(tc_constant) then
       if(tc_perpendicular) then
         ka(ixC^S)=tc_k_para-tc_k_perp
@@ -557,7 +536,6 @@ contains
       ! compensate with perpendicular conductivity
       if(tc_perpendicular) then
         minq(ix^S)=tc_k_perp*w(ix^S,rho_)**2*Binv(ix^S)**2/dsqrt(Te(ix^S))
-        !!ke at corners
         ke=0.d0
         {do ix^DB=0,1\}
           ixBmin^D=ixCmin^D+ix^D;
@@ -574,9 +552,6 @@ contains
         end where
       end if
     end if
-    !!!get ka and ke end
-
-
     if(tc_slope_limiter=='no') then
       ! calculate thermal conduction flux with symmetric scheme
       do idims=1,ndim
@@ -600,7 +575,6 @@ contains
         if(tc_perpendicular) gradT(ixC^S,idims)=gradT(ixC^S,idims)+ke(ixC^S)*qvec(ixC^S,idims)
       end do
       ! TC flux at cell face
-      !qvec face center values
       qvec=0.d0
       do idims=1,ndim
         ixB^L=ixO^L-kr(idims,^D);
@@ -635,7 +609,6 @@ contains
          {end do\}
         end if
       end do
-
     else
       ! calculate thermal conduction flux with slope-limited symmetric scheme
       qvec=0.d0
@@ -645,7 +618,6 @@ contains
         ! calculate normal of magnetic field
         ixB^L=ixA^L+kr(idims,^D);
         Bnorm(ixA^S)=0.5d0*(mf(ixA^S,idims)+mf(ixB^S,idims))
-        !!calculate face values of Bc,ka,ke
         Bcf=0.d0
         kaf=0.d0
         kef=0.d0
@@ -663,8 +635,6 @@ contains
         ! averaged thermal conductivity at face centers
         kaf(ixA^S)=kaf(ixA^S)*0.5d0**(ndim-1)
         if(tc_perpendicular) kef(ixA^S)=kef(ixA^S)*0.5d0**(ndim-1)
-
-
         ! limited normal component
         minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
         maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
@@ -729,7 +699,8 @@ contains
         end if
       end do
     end if
-   if (fix_conserve_at_step)   call store_flux_var(qvec,e_,my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
+
+   if (fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
 
     qd=0.d0
     if(slab_uniform) then
@@ -748,7 +719,7 @@ contains
     end if
     deallocate(qvec)
     wres(ixO^S,e_)=qd(ixO^S)
-    
+
   end subroutine sts_set_source_tc_mhd
 
   function slope_limiter(f,ixI^L,ixO^L,idims,pm) result(lf)
@@ -786,7 +757,6 @@ contains
     end select
 
   end function slope_limiter
-
 
   !> Calculate gradient of a scalar q at cell interfaces in direction idir
   subroutine gradientC(q,ixI^L,ixO^L,idir,gradq)
@@ -846,7 +816,6 @@ contains
 
     ^D&dxinv(^D)=one/dx^D;
 
-    !temperature
     call get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
 
     tmp(ixO^S)=tc_gamma_1*tc_k_para*dsqrt((Te(ixO^S))**5)/w(ixO^S,rho_)
@@ -868,10 +837,7 @@ contains
 
   end function get_tc_dt_hd
 
-
-
-
-  subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart, indexChangeN, indexChangeFixC )
+  subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
     use mod_global_parameters
     use mod_geometry, only: divvector
     use mod_fix_conserve, only: store_flux_var
@@ -970,7 +936,8 @@ contains
       qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
     end do
 
-   if (fix_conserve_at_step)   call store_flux_var(qvec,e_,my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
+   if (fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+
     qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
@@ -991,7 +958,6 @@ contains
     wres(ixO^S,e_)=qd(ixO^S)
 
   end subroutine sts_set_source_tc_hd
-
 
   subroutine handle_small_e(w, x, ixI^L, ixO^L, step)
     use mod_global_parameters
@@ -1024,8 +990,5 @@ contains
       end select
     end if
   end subroutine handle_small_e
-
-
-
 
 end module mod_tc

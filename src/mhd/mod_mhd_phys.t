@@ -517,12 +517,12 @@ contains
         call thermal_conduction_init(mhd_gamma)
       else
         if(mhd_internal_e) then
-          call tc_init_mhd_for_internal_energy(mhd_gamma, (/rho_, e_, mag(1), eaux_/),mhd_get_temperature_from_eint)
+          call tc_init_mhd_for_internal_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_eint)
         else
           if(mhd_solve_eaux) then
-            call tc_init_mhd_for_total_energy(mhd_gamma, (/rho_, e_, mag(1), eaux_/),mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
           else
-            call tc_init_mhd_for_total_energy(mhd_gamma, (/rho_, e_, mag(1)/),mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
           endif
         endif
       endif

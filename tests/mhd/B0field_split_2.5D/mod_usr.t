@@ -69,8 +69,9 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
+    double precision :: xC(0:ixImax1,0:ixImax2,1:ndim)
     double precision :: delydelx
-    integer :: ix^D,idir,ixInt^L
+    integer :: ix^D,idir,ixInt^L,ixC^L
 
     select case(iB)
     case(3)
@@ -89,6 +90,23 @@ contains
         w(ixO^S,mag(2))= Busr*dsin(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))
         w(ixO^S,mag(3))=-Busr*dcos(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))*dsin(theta)
         w(ixO^S,mag(:))=w(ixO^S,mag(:))-block%B0(ixO^S,:,0)
+        if(stagger_grid) then
+          do idir=1,ndim
+            xC(ixI^S,idir)=x(ixI^S,idir)+half*block%dx(ixI^S,idir)
+          end do
+          xC(0^%1ixI^S,1)=x(1^%1ixI^S,1)-half*block%dx(1^%1ixI^S,1)
+          xC(0^%2ixI^S,2)=x(1^%2ixI^S,2)-half*block%dx(1^%2ixI^S,2)
+          idir=1
+          ixCmin^D=ixOmin^D-kr(idir,^D);
+          ixCmax^D=ixOmax^D;
+          block%ws(ixC^S,1)=-Busr*dcos(kx*(xC(ixC^S,1)-vc*qt))*dexp(-ly*xC(ixC^S,2))*dcos(theta)&
+                            +Busr*dcos(kx*(xC(ixC^S,1)))*dexp(-ly*xC(ixC^S,2))*dcos(theta)
+          idir=2
+          ixCmin^D=ixOmin^D-kr(idir,^D);
+          ixCmax^D=ixOmax^D;
+          block%ws(ixC^S,2)= Busr*dsin(kx*(xC(ixC^S,1)-vc*qt))*dexp(-ly*xC(ixC^S,2))-&
+                             Busr*dsin(kx*(xC(ixC^S,1)))*dexp(-ly*xC(ixC^S,2))
+        end if
       else
         w(ixO^S,mag(1))=-Busr*dcos(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))*dcos(theta)
         w(ixO^S,mag(2))= Busr*dsin(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))
@@ -111,6 +129,23 @@ contains
         w(ixO^S,mag(2))= Busr*dsin(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))
         w(ixO^S,mag(3))=-Busr*dcos(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))*dsin(theta)
         w(ixO^S,mag(:))=w(ixO^S,mag(:))-block%B0(ixO^S,:,0)
+        if(stagger_grid) then
+          do idir=1,ndim
+            xC(ixI^S,idir)=x(ixI^S,idir)+half*block%dx(ixI^S,idir)
+          end do
+          xC(0^%1ixI^S,1)=x(1^%1ixI^S,1)-half*block%dx(1^%1ixI^S,1)
+          xC(0^%2ixI^S,2)=x(1^%2ixI^S,2)-half*block%dx(1^%2ixI^S,2)
+          idir=1
+          ixCmin^D=ixOmin^D-kr(idir,^D);
+          ixCmax^D=ixOmax^D;
+          block%ws(ixC^S,1)=-Busr*dcos(kx*(xC(ixC^S,1)-vc*qt))*dexp(-ly*xC(ixC^S,2))*dcos(theta)&
+                            +Busr*dcos(kx*(xC(ixC^S,1)))*dexp(-ly*xC(ixC^S,2))*dcos(theta)
+          idir=2
+          ixCmin^D=ixOmin^D-kr(idir,^D);
+          ixCmax^D=ixOmax^D;
+          block%ws(ixC^S,2)= Busr*dsin(kx*(xC(ixC^S,1)-vc*qt))*dexp(-ly*xC(ixC^S,2))-&
+                             Busr*dsin(kx*(xC(ixC^S,1)))*dexp(-ly*xC(ixC^S,2))
+        end if
       else
         w(ixO^S,mag(1))=-Busr*dcos(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))*dcos(theta)
         w(ixO^S,mag(2))= Busr*dsin(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))
