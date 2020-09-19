@@ -44,7 +44,6 @@ module mod_supertimestepping
   !> Whether to conserve fluxes at the current partial step
   logical :: fix_conserve_at_step = .true.
   logical :: sts_initialized = .false.
-  logical :: first = .true.
 
   abstract interface
 
@@ -113,6 +112,7 @@ module mod_supertimestepping
     type(sts_term), pointer :: next
     double precision :: dt_expl
     integer, public :: s
+    logical :: types_initialized
 
     !>types used for send/recv ghosts, see mod_ghostcells_update
     integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts, type_recv_srl_sts
@@ -221,6 +221,7 @@ contains
     temp%sts_handle_errors => null()
     temp%startVar = startVar
     temp%endVar = endVar
+    temp%types_initialized = .false.
     if(size(ixChangeStart) .ne. size(ixChangeN) .or. size(ixChangeStart) .ne. size(ixChangeFixC) ) then
       if(mype==0) print*, "sizes are not equal ",size(ixChangeStart),size(ixChangeN),size(ixChangeFixC)
       return
@@ -516,9 +517,9 @@ contains
       type_send_p=>temp%type_send_p_sts
       type_recv_p=>temp%type_recv_p_sts
         
-      if(first) then 
+      if(.not. temp%types_initialized) then 
         call create_bc_mpi_datatype(temp%startVar,temp%endVar-temp%startVar+1)
-        first = .false.
+        temp%types_initialized = .true.
       end if 
 
       sumbj=0d0
@@ -661,9 +662,9 @@ contains
       type_send_p=>temp%type_send_p_sts
       type_recv_p=>temp%type_recv_p_sts
 
-      if(first) then 
+      if(.not. temp%types_initialized) then 
         call create_bc_mpi_datatype(temp%startVar,temp%endVar-temp%startVar+1)
-        first = .false.
+        temp%types_initialized = .true.
       end if
       dtj = cmut*my_dt
       !$OMP PARALLEL DO PRIVATE(igrid)
