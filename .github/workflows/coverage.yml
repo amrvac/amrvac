@@ -1,8 +1,6 @@
 name: code-coverage
 
-on:
-  push:
-    branches: [ workflow_dispatch ]
+on: [ workflow_dispatch ]
 
 env:
   CC: /usr/bin/gcc-9
