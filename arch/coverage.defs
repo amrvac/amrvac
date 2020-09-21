@@ -1,0 +1,4 @@
+F90 = mpif90
+FFLAGS = -c
+F90FLAGS = -ffree-form --coverage -O2
+LINK = $(F90) $(F90FLAGS)
