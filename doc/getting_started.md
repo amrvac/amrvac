@@ -58,7 +58,7 @@ for restarts and the `.vtu` files contain the output data to be visualized.
 # Visualization {#visualization}
 
 Simulation output in `.vtu` (VTK unstructured) format can directly be
-visualized [Paraview](http://www.paraview.org/)
+visualized using [Paraview](http://www.paraview.org/)
 or [Visit](https://wci.llnl.gov/simulation/computer-codes/visit).
 
 Visualization or analysis of the results can also be done by
