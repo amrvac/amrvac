@@ -17,7 +17,7 @@
 
  &stoplist
 	dtmin=1.D-12
-        time_max=4.5d0 ! after 1000 hours 
+        time_max=3.5d0 
  /
 
  &methodlist
@@ -59,12 +59,12 @@
         domain_nx2=32
 	domain_nx3=32
         iprob=1
-        xprobmin1=-8.0d0
+        xprobmin1=-4.0d0
         xprobmax1=8.0d0
         xprobmin2=-6.0d0
         xprobmax2=6.0d0
-	xprobmin3=-15.0d0
-        xprobmax3=15.0d0
+	xprobmin3=-12.0d0
+        xprobmax3=12.0d0
  /
 
  &paramlist

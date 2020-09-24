@@ -105,12 +105,6 @@ contains
     integer:: ix^D
     double precision, intent(in) :: qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
-
-    double precision:: rho_bnd, p_bnd
-    double precision:: rho_bnd1, p_bnd1, vx_bnd1, vy_bnd1, vz_bnd1
-    double precision:: bx_bnd1, by_bnd1, bz_bnd1, vr_bnd_min, vtheta_bnd_min, vphi_bnd_min
-    double precision:: rho_bnd2, p_bnd2, v_bnd2, bx_bnd2, by_bnd2, bz_bnd2, qt_start, qt_stop
-    double precision::  Ti
     logical :: patchw(ixG^T)
 
 

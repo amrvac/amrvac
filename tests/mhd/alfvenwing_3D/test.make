@@ -1,5 +1,5 @@
 # Name of .par file you want to use
-PAR_FILE := Io.par
+PAR_FILE := AW_3D.par
 
 # Base file name as set in the .par file
 BASE_NAME := my_test
