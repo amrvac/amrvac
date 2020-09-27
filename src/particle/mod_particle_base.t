@@ -513,7 +513,7 @@ contains
              dtsave_particles
       else
         call advance_particles(tmax_particles, steps_taken)
-        call write_particle_output()
+!        call write_particle_output()
         exit
       end if
 
@@ -1246,6 +1246,7 @@ contains
     integer                         :: status(MPI_STATUS_SIZE)
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart, nout
+    logical                         :: file_exists
 
     receive_n_particles_for_output_from_ipe(:) = 0
 
@@ -1260,17 +1261,26 @@ contains
       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     else
       ! Create file and write header
-      if(typefile=='destroy') then
+      if(typefile=='destroy') then ! Destroyed file
         write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
-             trim(typefile) // '_', n_output_destroyed,'.csv'
+             trim(typefile) // '.csv'
         n_output_destroyed= n_output_destroyed + 1
-      else
+        inquire(file=filename, exist=file_exists)
+
+        if (.not. file_exists) then
+          open(unit=unitparticles, file=filename)
+          write(unitparticles,"(a)") trim(csv_header)
+        else
+          open(unit=unitparticles, file=filename, access='append')
+        end if
+
+      else ! Ensemble file
         write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
              trim(typefile) // '_', n_output_ensemble,'.csv'
         n_output_ensemble = n_output_ensemble + 1
+        open(unit=unitparticles,file=filename)
+        write(unitparticles,"(a)") trim(csv_header)
       end if
-      open(unit=unitparticles,file=filename)
-      write(unitparticles,"(a)") trim(csv_header)
 
       ! Write own particles
       do ipart=1,send_n_particles_for_output
