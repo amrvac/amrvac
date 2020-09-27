@@ -10,6 +10,7 @@ contains
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
     usr_init_vector_potential=>initvecpot_usr
+    usr_set_B0          => specialset_B0
 
     call set_coordinate_system("Cartesian_2.5D")
 
@@ -34,12 +35,16 @@ contains
     w(ixO^S,mom(1))=-sin(2.0d0*dpi*x(ixO^S,2))
     w(ixO^S,mom(2))= sin(2.0d0*dpi*x(ixO^S,1))
     w(ixO^S,p_)=p0
-    if(stagger_grid) then
-      call b_from_vector_potential(ps(saveigrid)%ixGs^L,ixI^L,ixO^L,ps(saveigrid)%ws,x)
-      call mhd_face_to_center(ixO^L,ps(saveigrid))
+    if(B0field) then
+      w(ixO^S,mag(:))=0.d0
     else
-      w(ixO^S,mag(1))=-b0*sin(2.0d0*dpi*x(ixO^S,2))
-      w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
+      if(stagger_grid) then
+        call b_from_vector_potential(ps(saveigrid)%ixGs^L,ixI^L,ixO^L,ps(saveigrid)%ws,x)
+        call mhd_face_to_center(ixO^L,ps(saveigrid))
+      else
+        w(ixO^S,mag(1))=-b0*sin(2.0d0*dpi*x(ixO^S,2))
+        w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
+      end if
     end if
 
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
@@ -97,5 +102,17 @@ contains
     varnames='divb jz'
 
   end subroutine specialvarnames_output
+
+  subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
+  ! Here add a time-independent background magnetic field
+    integer, intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in)  :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: wB0(ixI^S,1:ndir)
+
+    b0=1.0d0/sqrt(4.0d0*dpi)
+    wB0(ixO^S,1)=-b0*sin(2.0d0*dpi*x(ixO^S,2))
+    wB0(ixO^S,2)= b0*sin(4.0d0*dpi*x(ixO^S,1))
+
+  end subroutine specialset_B0
 
 end module mod_usr

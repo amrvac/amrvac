@@ -1,0 +1,44 @@
+name: code-coverage
+
+on: [ workflow_dispatch ]
+
+env:
+  CC: /usr/bin/gcc-9
+  FC: /usr/bin/gfortran-9
+  AMRVAC_DIR: ${GITHUB_WORKSPACE}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          sudo apt-get install openmpi-bin libopenmpi-dev
+          mpirun --version
+          gfortran-9 --version
+          pip install gcovr
+      - name: Compile amrvac
+        run: |
+          cd lib
+          make -j 2 ARCH=coverage
+      - name: Run tests
+        run: |
+          cd tests
+          make -j 2 ARCH=coverage
+      - name: Generate coverage report
+        run: |
+          mkdir coverage
+          cd lib
+          gcovr -r . --print-summary --html --html-details --output ../coverage/coverage.html
+      - name: Upload report
+        uses: actions/upload-artifact@v1
+        if: success()
+        with:
+          name: coverage_report
+          path: coverage/
