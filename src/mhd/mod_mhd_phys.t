@@ -10,8 +10,11 @@ module mod_mhd_phys
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_thermal_conduction = .false.
 
-  !> Whether use new mod_tc
-  logical, public, protected              :: use_new_mhd_tc = .false.
+  !> type of TC used: 0: original module (MHD implementation), 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
+  integer, parameter, private             :: ORIG_MHD_TC =0
+  integer, parameter, private             :: MHD_TC =1
+  integer, parameter, private             :: HD_TC =2
+  integer, protected                      :: use_mhd_tc = ORIG_MHD_TC
 
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
@@ -225,7 +228,7 @@ contains
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_eta_ambi, mhd_glm_alpha, mhd_magnetofriction,&
-      mhd_thermal_conduction, use_new_mhd_tc, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
+      mhd_thermal_conduction, use_mhd_tc, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
@@ -513,11 +516,12 @@ contains
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
       phys_req_diagonal = .true.
-      if(.not. use_new_mhd_tc) then
+      if(use_mhd_tc .eq. ORIG_MHD_TC) then
         call thermal_conduction_init(mhd_gamma)
-      else
+      else if(use_mhd_tc .eq. MHD_TC) then
+
         if(mhd_internal_e) then
-          call tc_init_mhd_for_internal_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_eint)
+          call tc_init_mhd_for_internal_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_eint)
         else
           if(mhd_solve_eaux) then
             call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
@@ -525,6 +529,18 @@ contains
             call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
           endif
         endif
+
+      else if(use_mhd_tc .eq. HD_TC) then
+        if(mhd_internal_e) then
+          call tc_init_hd_for_internal_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_eint)
+        else
+          if(mhd_solve_eaux) then
+            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_,eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
+          else
+            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
+          endif
+        endif
+
       endif
     end if
 

@@ -374,7 +374,7 @@ contains
 
     double precision,intent(inout) :: my_dt
     double precision :: my_dt1
-    logical :: dt_modified, dt_modified1
+    logical :: dt_modified, dt_modified1, dt_modified2
 
     integer:: iigrid, igrid, ncycles
     double precision :: dtnew,dtmin_mype
@@ -384,7 +384,7 @@ contains
     temp => head_sts_terms
     dt_modified = .false.
     do while(associated(temp))
-      dt_modified = .false.
+      dt_modified2 = .false.
       dtmin_mype=bigdouble
       !$OMP PARALLEL DO PRIVATE(igrid,dtnew,&
       !$OMP& dx^D) REDUCTION(min:dtmin_mype)
@@ -402,12 +402,15 @@ contains
       !$OMP END PARALLEL DO
       call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
                                icomm,ierrmpi)
-      temp%s = sts_get_ncycles(my_dt,dtnew,dt_modified)  
+      temp%s = sts_get_ncycles(my_dt,dtnew,dt_modified2)
+        
+      !print*, "NCYCLES ", temp%s, dt_modified2, my_dt
       temp%dt_expl = dtnew
  
        ! Note that as for some term it may happen that the dt is modified: it may be reduced if the
        ! number of cycles is overpassed, the list has to be reiterated
-       if(dt_modified) then
+       if(dt_modified2) then
+        dt_modified = .true.
         !reiterate all the other sts elements and recalculate s 
          oldTemp => head_sts_terms
          my_dt1 = my_dt
