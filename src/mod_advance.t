@@ -569,6 +569,10 @@ contains
 
     istep = istep+1
 
+    if(associated(phys_special_advance)) then
+      call phys_special_advance(qdt,qt,psa)
+    end if
+
     ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid,level,qdt)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);

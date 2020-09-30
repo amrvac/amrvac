@@ -74,6 +74,7 @@ module mod_physics
   procedure(sub_add_source), pointer      :: phys_add_source             => null()
   procedure(sub_global_source), pointer   :: phys_global_source_before   => null()
   procedure(sub_global_source), pointer   :: phys_global_source_after    => null()
+  procedure(sub_special_advance), pointer :: phys_special_advance        => null()
   procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
@@ -192,6 +193,14 @@ module mod_physics
        double precision, intent(in) :: qt     !< Current time
        logical, intent(inout)       :: active !< Output if the source is active
      end subroutine sub_global_source
+
+     !> Add special advance in each advect step
+     subroutine sub_special_advance(qdt, qt, psa)
+       use mod_global_parameters
+       double precision, intent(in) :: qdt    !< Current time step
+       double precision, intent(in) :: qt     !< Current time
+       type(state), target :: psa(max_blocks) !< Compute based on this state
+     end subroutine sub_special_advance
 
      subroutine sub_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
        use mod_global_parameters

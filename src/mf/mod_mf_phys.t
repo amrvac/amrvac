@@ -259,7 +259,7 @@ contains
     phys_check_params        => mf_check_params
     phys_write_info          => mf_write_info
     phys_angmomfix           => mf_angmomfix
-    phys_global_source_before=> mf_velocity_update
+    phys_special_advance     => mf_velocity_update
 
     if(type_divb==divb_glm) then
       phys_modify_wLR => mf_modify_wLR
@@ -535,22 +535,52 @@ contains
   end subroutine mf_get_flux
 
   !> Add global source terms to update frictional velocity on complete domain
-  subroutine mf_velocity_update(qdt, qt, active)
+  subroutine mf_velocity_update(qdt,qt,psa)
     use mod_global_parameters
+    use mod_ghostcells_update
     double precision, intent(in) :: qdt    !< Current time step
     double precision, intent(in) :: qt     !< Current time
-    logical, intent(inout)       :: active !< Output if the source is active
+    type(state), target :: psa(max_blocks) !< Compute based on this state
 
     integer :: iigrid,igrid
+    logical :: stagger_flag
+    logical :: firstmf=.true.
+
+    if(firstmf) then
+      ! point bc mpi datatype to partial type for velocity field
+      type_send_srl=>type_send_srl_p1
+      type_recv_srl=>type_recv_srl_p1
+      type_send_r=>type_send_r_p1
+      type_recv_r=>type_recv_r_p1
+      type_send_p=>type_send_p_p1
+      type_recv_p=>type_recv_p_p1
+      call create_bc_mpi_datatype(mom(1),ndir)
+      firstmf=.false.
+    end if
 
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      block=>ps(igrid)
-      call frictional_velocity(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,qdt)
+      block=>psa(igrid)
+      call frictional_velocity(psa(igrid)%w,psa(igrid)%x,ixG^LL,ixM^LL,qdt)
     end do
     !$OMP END PARALLEL DO
 
-    active=.true.
+    ! only update mf velocity in ghost cells
+    stagger_flag=stagger_grid
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1
+    call getbc(qt,0.d0,psa,mom(1),ndir,.true.)
+    type_send_srl=>type_send_srl_f
+    type_recv_srl=>type_recv_srl_f
+    type_send_r=>type_send_r_f
+    type_recv_r=>type_recv_r_f
+    type_send_p=>type_send_p_f
+    type_recv_p=>type_recv_p_f
+    stagger_grid=stagger_flag
 
   end subroutine mf_velocity_update
 
