@@ -221,6 +221,12 @@ contains
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
 
+    ! set number of variables which need update ghostcells
+    nwgc=ndir
+
+    ! start with magnetic field and skip velocity when update ghostcells
+    iwstart=mag(1)
+
     if (mf_glm) then
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
     else

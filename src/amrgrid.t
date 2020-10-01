@@ -81,7 +81,7 @@ subroutine resettree_convert
   end if
 
   do while(levmin<my_levmin.or.levmax>my_levmax)
-   call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+   call getbc(global_time,0.d0,ps,iwstart,nwgc)
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       call forcedrefine_grid_io(igrid,ps(igrid)%w)
    end do

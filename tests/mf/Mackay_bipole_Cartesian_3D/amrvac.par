@@ -1,7 +1,7 @@
 ! setup.pl -d=3
  &filelist
 	base_filename='bipole_mfb'
-        autoconvert=.true.
+        autoconvert=.false.
         saveprim=.true.
         nwauxio=7
 	convert_type='vtuBCCmpi'
@@ -23,8 +23,8 @@
  /
 
  &methodlist
-        time_stepper='threestep'
-        flux_scheme=20*'fd'
+        time_stepper='twostep'
+        flux_scheme=20*'hll'
         limiter=20*'cada3'
  /
 

@@ -423,6 +423,9 @@ contains
       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
+    ! set number of variables which need update ghostcells
+    nwgc=nwflux
+
     ! determine number of stagger variables
     if(stagger_grid) nws=ndim
 

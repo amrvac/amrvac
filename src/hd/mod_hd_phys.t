@@ -252,6 +252,9 @@ contains
        tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
+    ! set number of variables which need update ghostcells
+    nwgc=nwflux
+
     ! initialize thermal conduction module
     if (hd_thermal_conduction) then
       if (.not. hd_energy) &

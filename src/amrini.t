@@ -30,7 +30,7 @@ subroutine initlevelone
   }
 
   ! update ghost cells
-  call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+  call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
 end subroutine initlevelone
 
@@ -107,7 +107,7 @@ subroutine improve_initial_condition()
       ! if not initialised from vector potential
       if(.not.use_multigrid) call mg_setup_multigrid()
       call mhd_clean_divb_multigrid(global_time,0.d0,active)
-      call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+      call getbc(global_time,0.d0,ps,iwstart,nwgc)
     end if
   end if
 

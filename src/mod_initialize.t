@@ -174,7 +174,7 @@ contains
     type_recv_r=>type_recv_r_f
     type_send_p=>type_send_p_f
     type_recv_p=>type_recv_p_f
-    call create_bc_mpi_datatype(1,nwflux+nwaux)
+    call create_bc_mpi_datatype(iwstart,nwgc)
 
   end subroutine initialize_vars
 

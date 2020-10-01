@@ -50,7 +50,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+    call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
   end subroutine recalculateB
 

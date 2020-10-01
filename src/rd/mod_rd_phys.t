@@ -102,6 +102,9 @@ contains
     u_ = var_set_fluxvar("u", "u")
     v_ = var_set_fluxvar("v", "v")
 
+    ! set number of variables which need update ghostcells
+    nwgc=nwflux
+
     ! Disable flux conservation near AMR boundaries, since we have no fluxes
     fix_conserve_global = .false.
 
