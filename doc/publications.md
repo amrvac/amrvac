@@ -5,17 +5,17 @@ the current MPI-version MPI-AMRVAC (some, especially the older papers used
 previous variants of the code). Especially the first papers listed here are 
 specific to the current version.**
 
-* `MPI-AMRVAC: a parallel, grid-adaptive PDE toolkit', R. Keppens, J. Teunissen, C. Xia &amp O. Porth, 2020, Computers & Mathematics With Applications, [doi](https://doi.org/10.1016/j.camwa.2020.03.023)
+* `MPI-AMRVAC: a parallel, grid-adaptive PDE toolkit', R. Keppens, J. Teunissen, C. Xia &amp O. Porth, 2020, Computers & Mathematics With Applications, [doi:10.1016/j.camwa.2020.03.023](https://doi.org/10.1016/j.camwa.2020.03.023)
 
-* `A geometric multigrid library for quadtree/octree AMR grids coupled to MPI-AMRVAC', J. Teunissen and R. Keppens, 2019, CPC [doi](https://doi.org/10.1016/j.cpc.2019.106866) 
+* `A geometric multigrid library for quadtree/octree AMR grids coupled to MPI-AMRVAC', J. Teunissen and R. Keppens, 2019, CPC **245**, 106866 [doi:10.1016/j.cpc.2019.106866](https://doi.org/10.1016/j.cpc.2019.106866) 
 
-* `A comprehensive comparison of relativistic particle integrators', B. Ripperda, F. Bacchini, J. Teunissen, C. Xia, O. Porth, L. Sironi, G. Lapenta, &amp; R. Keppens, 2018, ApJS. [doi](https://doi.org/10.3847/1538-4365/aab114) 
+* `A comprehensive comparison of relativistic particle integrators', B. Ripperda, F. Bacchini, J. Teunissen, C. Xia, O. Porth, L. Sironi, G. Lapenta, &amp; R. Keppens, 2018, ApJS **235**, 21 [doi:10.3847/1538-4365/aab114](https://doi.org/10.3847/1538-4365/aab114) 
 
 * `MPI-AMRVAC 2.0 for Solar and Astrophysical Applications', C. Xia, J. Teunissen, I. El Mellah, E. Chane, &amp; R. Keppens, 2018, ApJS **234**, 30 [doi:10.3847/1538-4365/aaa6c8](https://doi.org/10.3847/1538-4365/aaa6c8).
 
 * `MPI-AMRVAC for Solar and Astrophysics', O. Porth, C. Xia, T. Hendrix, S.P. Moschou, &amp; R. Keppens, 2014, ApJS **214**,4 [doi:10.1088/0067-0049/214/1/4](http://dx.doi.org/10.1088/0067-0049/214/1/4).
 
-* `Parallel, grid-adaptive approaches for relativistic hydro and magnetohydrodynamics', R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A. Vlasis, &amp; B. van der Holst, 2012, JCP. [doi:10.1016/j.jcp.2011.01.020](http://dx.doi.org/10.1016/j.jcp.2011.01.020).
+* `Parallel, grid-adaptive approaches for relativistic hydro and magnetohydrodynamics', R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A. Vlasis, &amp; B. van der Holst, 2012, JCP **231**, 718 [doi:10.1016/j.jcp.2011.01.020](http://dx.doi.org/10.1016/j.jcp.2011.01.020).
 
 * `A multidimensional grid-adaptive relativistic magnetofluid code', B. van der Holst, R. Keppens &amp; Z. Meliani, 2008, Comp. Phys. Commun. ** 179**, 617-627
 
@@ -25,7 +25,9 @@ specific to the current version.**
 
 * `Adaptive Mesh Refinement for conservative systems: multi-dimensional efficiency evaluation', R. Keppens, M. Nool, G. Toth, J.P. Goedbloed, 2003, Comp. Phys. Comm. **153** (No. 3, 1 july issue), 317-339.
 
-**The following publications represent applications. Some relate to earlier versions of AMRVAC.**
+**The following publications represent (selected) applications. Some relate to earlier versions of AMRVAC.**
+
+* `Dynamical signatures of Rossby vortices in cavity-hosting disks', C.M.T. Robert, H. Meheut, &amp F. Menard, 2020, A&amp A **641**, A128 [doi:10.1051/0004-6361/201937414](http://dx.doi.org/10.1051/0004-6361/201937414).
 
 * `Accretion from a clumpy massive star wind in Supergiant X-ray binaries', I. El Mellah, J.O. Sundqvist &amp; R. Keppens, 2018, MNRAS **475**, 3240-3252 [doi:10.1093/mnras/stx3211](http://dx.doi.org/10.1093/mnras/stx3211).
 
