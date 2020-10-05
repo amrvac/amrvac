@@ -92,7 +92,7 @@ contains
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
-       do iw=1,nwflux
+       do iw=iwstart,nwflux
           if (slab_uniform) then
              fC(ixI^S,iw,idims) = dxinv(idims) * fC(ixI^S,iw,idims)
              wnew(ixO^S,iw)=wnew(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
@@ -353,13 +353,13 @@ contains
 
        ! Center flux to interface
        if(method=='cd') then
-          fC(ixC^S,1:nwflux,idims)=half*(f(ixC^S,1:nwflux)+f(jxC^S,1:nwflux))
+          fC(ixC^S,iwstart:nwflux,idims)=half*(f(ixC^S,iwstart:nwflux)+f(jxC^S,iwstart:nwflux))
        else
           ! f_i+1/2= (-f_(i+2) +7 f_(i+1) + 7 f_i - f_(i-1))/12
-          fC(ixC^S,1:nwflux,idims)=(-f(kxC^S,1:nwflux)+7.0d0*(f(jxC^S,1:nwflux) + &
-               f(ixC^S,1:nwflux))-f(hxC^S,1:nwflux))/12.0d0
+          fC(ixC^S,iwstart:nwflux,idims)=(-f(kxC^S,iwstart:nwflux)+7.0d0*(f(jxC^S,iwstart:nwflux) + &
+               f(ixC^S,iwstart:nwflux))-f(hxC^S,iwstart:nwflux))/12.0d0
 
-          do iw=1,nwflux
+          do iw=iwstart,nwflux
              ! add rempel dissipative flux, only second order version for now
              fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)-tvdlfeps*half*vLC(ixC^S) &
                   *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
@@ -375,7 +375,7 @@ contains
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
-       do iw=1,nwflux
+       do iw=iwstart,nwflux
           if (slab_uniform) then
              fC(ixI^S,iw,idims)=dxinv(idims)*fC(ixI^S,iw,idims)
              ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)-f_(i-1))+f_(i-2)]/12
