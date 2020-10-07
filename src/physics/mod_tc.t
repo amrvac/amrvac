@@ -1,6 +1,12 @@
 !> Thermal conduction for HD and MHD
 !> Adaptation of mod_thermal_conductivity for the mod_supertimestepping
-!> In order to use it set use_new_mhd_tc in mhd_list or use_new_hd_tc in hd_list parameters to true
+!> In order to use it set use_mhd_tc=1 (for the mhd impl) or 2 (for the hd impl) in mhd_list  (for the mhd module both hd and mhd impl can be used)
+!> or use_new_hd_tc in hd_list parameters to true
+!> (for the hd module, hd implementation has to be used)
+!> The TC is set by calling one 
+!> tc_init_hd_for_total_energy and tc_init_mhd_for_total_energy might
+!> The second argument: ixArray has to be [rho_,e_,mag(1)] for mhd (Be aware that the other components of the mag field are assumed consecutive) and [rho_,e_] for hd
+!> additionally when internal energy equation is solved, an additional element of this array is eaux_: the index of the internal energy variable.
 !>
 !> 10.07.2011 developed by Chun Xia and Rony Keppens
 !> 01.09.2012 moved to modules folder by Oliver Porth
@@ -60,10 +66,11 @@ module mod_tc
 
   !> Consider thermal conduction saturation effect (.true.) or not (.false.)
   logical :: tc_saturate=.true.
-  !> Name of slope limiter for transverse component of thermal flux 
-  integer :: rho_=-1,mag(1:3)=-1,e_=-1,eaux_=-1
+ 
+   !> Indices of the variables
+   integer :: rho_=-1,mag(1:3)=-1,e_=-1,eaux_=-1
 
-  public :: tc_init_mhd_for_total_energy, tc_init_mhd_for_internal_energy, tc_init_hd_for_total_energy  
+  public :: tc_init_mhd_for_total_energy, tc_init_mhd_for_internal_energy, tc_init_hd_for_total_energy, tc_init_hd_for_internal_energy  
   abstract interface
     subroutine get_temperature_subr(w,x,ixI^L,ixO^L,res)
       use mod_global_parameters
@@ -188,7 +195,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_etot
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd, e_,e_,(/e_/), (/1/),(/.true./))
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd, e_,e_,[e_], [1],[.true.])
     if(eaux_.ne.-1) then
       call set_conversion_methods_to_head(mhd_e_to_ei, set_ei_and_ei_to_e)
     else
@@ -246,6 +253,7 @@ contains
     integer, intent(in) :: ixArray(:)
     rho_ = ixArray(1)
     e_ = ixArray(2)
+    if(size(ixArray).eq.3) eaux_ = ixArray(3)
     tc_gamma_1=phys_gamma - 1d0
     small_e = small_pressure/tc_gamma_1
     tc_k_para=0.d0
@@ -333,9 +341,26 @@ contains
     get_temperature_from_conserved => hd_get_temperature_from_etot
     call sts_init()
     call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
-    call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
+
+    if(eaux_.ne.-1) then
+      call set_conversion_methods_to_head(hd_e_to_ei, set_ei_and_ei_to_e)
+    else
+      call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
+    endif
+
     if(check_small_values) call set_error_handling_to_head(handle_small_e)
 
+    contains
+
+      subroutine set_ei_and_ei_to_e(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+        !internal energy is stored in e_
+        w(ixI^S,eaux_)=w(ixI^S,e_)
+        call hd_ei_to_e(ixI^L,ixI^L,w,x)
+      end subroutine set_ei_and_ei_to_e
   end subroutine tc_init_hd_for_total_energy
 
   !> Initialize the module
@@ -372,6 +397,7 @@ contains
 
   end subroutine tc_init_hd_for_internal_energy
 
+  !> Get the explicut timestep for the TC (mhd implementation)
   function get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x)  result(dtnew)
     !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*tc_k_para_i/rho)
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
@@ -819,6 +845,7 @@ contains
     call get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
 
     tmp(ixO^S)=tc_gamma_1*tc_k_para*dsqrt((Te(ixO^S))**5)/w(ixO^S,rho_)
+    dtnew = bigdouble
 
     do idim=1,ndim
        ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
