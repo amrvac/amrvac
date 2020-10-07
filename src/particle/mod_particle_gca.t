@@ -102,7 +102,7 @@ contains
     double precision :: b(ndir), u(ndir), magmom
     double precision :: bnorm, lfac, vnorm, vperp, vpar
     integer          :: igrid, ipe_particle
-    integer          :: n, idir
+    integer          :: n, idir, nparticles_local
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
     double precision :: q(num_particles)
@@ -134,7 +134,7 @@ contains
     call MPI_BCAST(m,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
-    nparticles = num_particles
+    nparticles_local = 0
 
     ! first find ipe and igrid responsible for particle
     do n = 1, num_particles
@@ -153,6 +153,8 @@ contains
         else
           cycle
         end if
+
+        nparticles_local = nparticles_local + 1
 
         call get_lfac_from_velocity(v(:, n), lfac)
 
@@ -194,6 +196,9 @@ contains
         end if
       end if
     end do
+
+    call MPI_ALLREDUCE(nparticles_local,nparticles,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
+
   end subroutine gca_create_particles
 
   subroutine gca_fill_gridvars
@@ -232,7 +237,9 @@ contains
           vE(ixG^T,idir) = 0.d0
         end where
       end do
-
+      if (any(sum(vE(ixG^T,:)**2,dim=ndim+1) .ge. c_norm**2) .and. relativistic) then
+        call mpistop("GCA FILL GRIDVARS: vE>c! ABORTING...")
+      end if
       if (any(vE .ne. vE)) then
         call mpistop("GCA FILL GRIDVARS: NaNs IN vE! ABORTING...")
       end if
@@ -253,6 +260,7 @@ contains
         gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
       end do
 
+      ! bhat
       do idir=1,ndir
         where (absB(ixG^T) .gt. 0.d0)
           bhat(ixG^T,idir) = gridvars(igrid)%w(ixG^T,bp(idir)) / absB(ixG^T)
@@ -260,8 +268,7 @@ contains
           bhat(ixG^T,idir) = 0.d0
         end where
       end do
-
-      if (any(kappa_B .ne. kappa_B)) then
+      if (any(bhat .ne. bhat)) then
         call mpistop("GCA FILL GRIDVARS: NaNs IN bhat! ABORTING...")
       end if
 
@@ -302,6 +309,12 @@ contains
             vE(ixG^T,idir) = 0.d0
           end where
         end do
+        if (any(sum(vE(ixG^T,:)**2,dim=ndim+1) .ge. c_norm**2) .and. relativistic) then
+          call mpistop("GCA FILL GRIDVARS: vE>c! ABORTING...")
+        end if
+        if (any(vE .ne. vE)) then
+          call mpistop("GCA FILL GRIDVARS: NaNs IN vE! ABORTING...")
+        end if
 
         if (relativistic) then
           kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
@@ -309,6 +322,9 @@ contains
           kappa(ixG^T) = 1.d0
         end if
         kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
+        if (any(kappa_B .ne. kappa_B)) then
+          call mpistop("GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING...")
+        end if
 
         do idim=1,ndim
           call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
@@ -322,7 +338,10 @@ contains
             bhat(ixG^T,idir) = 0.d0
           end where
         end do
-
+        if (any(bhat .ne. bhat)) then
+          call mpistop("GCA FILL GRIDVARS: NaNs IN bhat! ABORTING...")
+        end if
+  
         do idir=1,ndir
           ! (b dot grad) b and the other directional derivatives
           do idim=1,ndim

@@ -780,7 +780,7 @@ contains
 
     logical,intent(out)             :: file_exists
     character(len=std_len)          :: filename
-    integer                         :: mynpayload, mynparticles
+    integer                         :: mynpayload, mynparticles, pos
 
     ! some initialisations:
     nparticles_on_mype = 0
@@ -791,7 +791,10 @@ contains
     ! open the snapshot file on the headnode
     file_exists=.false.
     if (mype == 0) then
-      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotini,'.dat'
+!      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotini,'.dat'
+      ! Strip restart_from_filename of the ending 
+      pos = scan(restart_from_file, '.dat', back=.true.)
+      write(filename,"(a,a,i4.4,a)") trim(restart_from_file(1:pos-8)),'_particles',snapshotini,'.dat'
       INQUIRE(FILE=filename, EXIST=file_exists)
       if (.not. file_exists) then
         write(*,*) 'WARNING: File '//trim(filename)//' with particle data does not exist.'
@@ -844,7 +847,7 @@ contains
     read(unitparticles) particle(index)%self%u
     read(unitparticles) particle(index)%payload(1:npayload)
 
-    if (particle(index)%self%follow) print*, 'follow index:', index
+!    if (particle(index)%self%follow) print*, 'follow index:', index
 
     call find_particle_ipe(particle(index)%self%x,igrid_particle,ipe_particle)
     particle(index)%igrid = igrid_particle

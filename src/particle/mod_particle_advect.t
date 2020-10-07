@@ -35,7 +35,7 @@ contains
     use mod_global_parameters
     use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
 
-    integer          :: n, idir, igrid, ipe_particle
+    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
     double precision :: q(num_particles)
@@ -68,7 +68,7 @@ contains
     call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
-    nparticles = num_particles
+    nparticles_local = 0
 
     do n=1,num_particles
       call find_particle_ipe(x(:,n),igrid,ipe_particle)
@@ -85,6 +85,8 @@ contains
         else
           cycle
         end if
+
+        nparticles_local = nparticles_local + 1
 
         allocate(particle(n)%self)
         particle(n)%self%follow = follow(n)
@@ -112,6 +114,8 @@ contains
       end if
 
     end do
+
+    call MPI_ALLREDUCE(nparticles_local,nparticles,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
 
   end subroutine advect_create_particles
 

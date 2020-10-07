@@ -74,7 +74,7 @@ contains
     use mod_global_parameters
     use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
 
-    integer          :: n, idir, igrid, ipe_particle
+    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     double precision :: lfac
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
@@ -110,7 +110,7 @@ contains
     call MPI_BCAST(m,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
 
-    nparticles = num_particles
+    nparticles_local = 0
 
     ! Find ipe and igrid responsible for particle
     do n = 1, num_particles
@@ -129,6 +129,8 @@ contains
         else
           cycle
         end if
+
+        nparticles_local = nparticles_local + 1
 
         call get_lfac_from_velocity(v(:,n), lfac)
 
@@ -152,6 +154,8 @@ contains
         end if
       end if
     end do
+
+    call MPI_ALLREDUCE(nparticles_local,nparticles,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
 
   end subroutine Lorentz_create_particles
 
