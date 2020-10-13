@@ -8,7 +8,7 @@ module mod_mf_phys
   double precision, public                :: mf_nu = 1.d0
 
   !> decay scale of frictional velocity 
-  double precision, public                :: mf_decay_scale = 1.d0
+  double precision, public                :: mf_decay_scale(2*^ND)=0.d0
 
   !> Whether particles module is added
   logical, public, protected              :: mf_particles = .false.
@@ -715,7 +715,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim),qdt
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: dxhm
+    double precision :: dxhm, xmin(ndim),xmax(ndim)
     double precision :: dxhms(ixO^S),decay(ixO^S)
     double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S)
     integer :: ix^D, idirmin,idir,jdir,kdir
@@ -759,31 +759,29 @@ contains
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
-    if(slab) then
-      if(slab_uniform) then
-        dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-        ! decay frictional velocity near solar surface
-        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
-        do idir=1,ndir
-          w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-        end do
-      else
-        dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
-        ! decay frictional velocity near solar surface
-        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
-        do idir=1,ndir
-          w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-        end do
-      end if
+    ! decay frictional velocity near selected boundaries
+    ^D&xmin(^D)=xprobmin^D\
+    ^D&xmax(^D)=xprobmax^D\
+    decay(ixO^S)=1.d0
+    do idir=1,ndim
+      if(mf_decay_scale(2*idir-1)>0.d0) decay(ixO^S)=decay(ixO^S)*&
+         (1.d0-exp(-(x(ixO^S,idir)-xmin(idir))/mf_decay_scale(2*idir-1)))
+      if(mf_decay_scale(2*idir)>0.d0) decay(ixO^S)=decay(ixO^S)*&
+         (1.d0-exp((x(ixO^S,ndim)-xmax(idir))/mf_decay_scale(2*idir)))
+    end do
+
+    if(slab_uniform) then
+      dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+      end do
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
-      ! decay frictional velocity near solar surface
-      decay(ixO^S)=1.d0-exp(-(x(ixO^S,1)-xprobmin1)/mf_decay_scale)
-      !decay(ixO^S)=decay(ixO^S)*(1.d0-exp(-(x(ixO^S,2)-xprobmin2)/0.03d0))
       do idir=1,ndir
         w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     end if
+
   end subroutine frictional_velocity
 
   !> Source terms after split off time-independent magnetic field
