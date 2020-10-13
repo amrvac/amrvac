@@ -86,6 +86,7 @@ module mod_physics
   procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
   procedure(sub_implicit_update), pointer :: phys_implicit_update        => null()
   procedure(sub_evaluate_implicit),pointer:: phys_evaluate_implicit      => null()
+  procedure(sub_clean_divb), pointer      :: phys_clean_divb             => null()
 
   abstract interface
 
@@ -193,6 +194,14 @@ module mod_physics
        double precision, intent(in) :: qt     !< Current time
        logical, intent(inout)       :: active !< Output if the source is active
      end subroutine sub_global_source
+
+     !> clean initial divb
+     subroutine sub_clean_divb(qdt, qt, active)
+       use mod_global_parameters
+       double precision, intent(in) :: qdt    !< Current time step
+       double precision, intent(in) :: qt     !< Current time
+       logical, intent(inout)       :: active !< Output if the source is active
+     end subroutine sub_clean_divb
 
      !> Add special advance in each advect step
      subroutine sub_special_advance(qdt, qt, psa)

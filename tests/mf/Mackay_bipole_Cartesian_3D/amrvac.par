@@ -65,4 +65,5 @@
  &mf_list
         Busr=50.d0
         typedivbfix='ct'
+        clean_initial_divb=.true.
  /

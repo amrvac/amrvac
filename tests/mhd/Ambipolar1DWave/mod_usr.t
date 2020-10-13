@@ -18,8 +18,8 @@ module mod_usr
   integer :: ambi_mask_method = MASK_DISC
 
 
-  character(len=*), parameter :: VALCfilename="valc.dat"
-  character(len=*), parameter :: equi_filename="myEqui.dat"
+  character(len=*), parameter :: VALCfilename="valc.txt"
+  character(len=*), parameter :: equi_filename="myEqui.txt"
   integer, parameter :: equi_zz=1, equi_pe=2, equi_rho=3, equi_bx=4 !indices in equi generated file
   double precision:: usr_grav
 

@@ -77,6 +77,9 @@ module mod_mf_phys
   !> B0 field is force-free
   logical, public, protected :: B0field_forcefree=.true.
 
+  !> clean divb in the initial condition
+  logical, public, protected :: clean_initial_divb=.false.
+
   ! DivB cleaning methods
   integer, parameter :: divb_none          = 0
   integer, parameter :: divb_multigrid     = -1
@@ -119,7 +122,7 @@ contains
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
-      B0field_forcefree, Bdip, Bquad, Boct, Busr, &
+      B0field_forcefree, Bdip, Bquad, Boct, Busr, clean_initial_divb, &
       boundary_divbfix, boundary_divbfix_skip, mf_divb_4thorder
 
     do n = 1, size(files)
@@ -285,6 +288,11 @@ contains
     else if(ndim>1) then
       phys_boundary_adjust => mf_boundary_adjust
     end if
+
+    {^NOONED
+    ! clean initial divb
+    if(clean_initial_divb) phys_clean_divb => mf_clean_divb_multigrid
+    }
 
     ! Whether diagonal ghost cells are required for the physics
     if(type_divb < divb_linde) phys_req_diagonal = .false.
@@ -1985,14 +1993,10 @@ contains
             call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
          end do
          ! Apply the correction B* = B - gradient(phi)
-         tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
          ps(igrid)%w(ixM^T, mag(1:ndim)) = &
               ps(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
        end if
 
-       ! Determine magnetic energy difference
-       tmp(ixM^T) = 0.5_dp * (sum(ps(igrid)%w(ixM^T, &
-            mag(1:ndim))**2, dim=ndim+1) - tmp(ixM^T))
     end do
 
     active = .true.
