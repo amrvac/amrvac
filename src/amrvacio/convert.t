@@ -11,7 +11,7 @@ if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_i
 if(level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) then 
    call resettree_convert
 else if(.not. phys_req_diagonal) then
-   call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+   call getbc(global_time,0.d0,ps,iwstart,nwgc)
 end if
 
 select case(convert_type)

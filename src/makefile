@@ -43,8 +43,8 @@ amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
 amrini.o: mod_constrained_transport.mod
 amrini.o: mod_ghostcells_update.mod
-amrini.o: mod_mhd_phys.mod
 amrini.o: mod_multigrid_coupling.mod
+amrini.o: mod_physics.mod
 amrvac.o: mod_advance.mod
 amrvac.o: mod_constrained_transport.mod
 amrvac.o: mod_fix_conserve.mod
@@ -166,6 +166,7 @@ mod_mf.o: mod_amrvac.mod
 mod_mf.o: mod_mf_phys.mod
 mod_mf_phys.o: mod_constrained_transport.mod
 mod_mf_phys.o: mod_geometry.mod
+mod_mf_phys.o: mod_ghostcells_update.mod
 mod_mf_phys.o: mod_multigrid_coupling.mod
 mod_mf_phys.o: mod_particles.mod
 mod_mf_phys.o: mod_physics.mod

@@ -72,7 +72,7 @@ program amrvac
      call selectgrids
 
      ! update ghost cells
-     call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+     call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
      if(use_particles) then
        call read_particles_snapshot(part_file_exists)

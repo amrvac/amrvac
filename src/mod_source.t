@@ -67,7 +67,7 @@ contains
     end if
 
     if (src_active) then
-       call getbc(qt,0.d0,ps,1,nwflux+nwaux,phys_req_diagonal)
+       call getbc(qt,0.d0,ps,iwstart,nwgc,phys_req_diagonal)
     end if
 
   end subroutine add_split_source

@@ -1,7 +1,7 @@
 ! setup.pl -d=3
  &filelist
 	base_filename='bipole_mfb'
-        autoconvert=.true.
+        autoconvert=.false.
         saveprim=.true.
         nwauxio=7
 	convert_type='vtuBCCmpi'
@@ -23,8 +23,8 @@
  /
 
  &methodlist
-        time_stepper='threestep'
-        flux_scheme=20*'fd'
+        time_stepper='twostep'
+        flux_scheme=20*'hll'
         limiter=20*'cada3'
  /
 
@@ -65,4 +65,11 @@
  &mf_list
         Busr=50.d0
         typedivbfix='ct'
+        mf_decay_scale(1)=0.d0
+        mf_decay_scale(2)=0.d0
+        mf_decay_scale(3)=0.d0
+        mf_decay_scale(4)=0.d0
+        mf_decay_scale(5)=1.d0
+        mf_decay_scale(6)=0.d0
  /
+        clean_initial_divb=.true.

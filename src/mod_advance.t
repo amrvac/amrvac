@@ -184,7 +184,7 @@ contains
              if(stagger_grid) ps(igrid)%ws = ps2(igrid)%ws+half*dt*ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+dt,dt,ps1,1,nwflux+nwaux,phys_req_diagonal)
+          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
           call global_implicit_update(half,dt,global_time+dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -316,7 +316,7 @@ contains
              if(stagger_grid) ps1(igrid)%ws=ps1(igrid)%ws+imex_ha21*dt*ps3(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+imex_a21*dt,dt,ps1,1,nwflux+nwaux,phys_req_diagonal)
+          call getbc(global_time+imex_a21*dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
           call global_implicit_update(imex_ha22,dt,global_time+imex_c2*dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -529,7 +529,7 @@ contains
     end if
     
     ! enforce boundary conditions for psa
-    call getbc(qtC,0.d0,psa,1,nwflux+nwaux,phys_req_diagonal)
+    call getbc(qtC,0.d0,psa,iwstart,nwgc,phys_req_diagonal)
 
   end subroutine global_implicit_update
 
@@ -569,6 +569,10 @@ contains
 
     istep = istep+1
 
+    if(associated(phys_special_advance)) then
+      call phys_special_advance(qdt,qt,psa)
+    end if
+
     ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid,level,qdt)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -601,7 +605,7 @@ contains
 
     ! For all grids: fill ghost cells
     qdt = dtfactor*dt
-    call getbc(qt+qdt,qdt,psb,1,nwflux+nwaux,phys_req_diagonal)
+    call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
   end subroutine advect1
 
@@ -721,7 +725,7 @@ contains
          call usr_process_grid(igrid,level,ixG^LL,ixM^LL,qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,1,nwflux+nwaux,phys_req_diagonal)
+      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
     end if
   end subroutine process
 
@@ -759,7 +763,7 @@ contains
               qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,1,nwflux+nwaux,phys_req_diagonal)
+      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
     end if
   end subroutine process_advanced
 

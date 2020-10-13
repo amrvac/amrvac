@@ -16,6 +16,7 @@ contains
     usr_special_bc    => specialbound_usr
     usr_aux_output    => specialvar_output
     usr_add_aux_names => specialvarnames_output 
+    usr_write_analysis => record_force_free_metrics
 
     call set_coordinate_system("Cartesian")
     call mf_activate()
@@ -49,8 +50,11 @@ contains
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision :: Bloc(ixI^S,ndir),xC(ixI^S,1:ndim),vdriv(ixI^S,1:3)
+    double precision :: Bloc(ixI^S,ndir),xC(ixI^S,1:ndim)
+
+    integer :: idir, ixC^L
     logical, save:: first=.true.
+    logical :: vector_potential
 
     if (first) then
        if (mype==0) then
@@ -59,8 +63,20 @@ contains
        first=.false.
     end if
     if(stagger_grid) then
-    ! calculate magnetic field from vector potential
-      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      ! calculate magnetic field from vector potential
+      vector_potential=.true.
+      if(vector_potential) then
+        call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      else
+        do idir=1,ndim
+          xC=x
+          ixCmax^D=ixOmax^D;
+          ixCmin^D=ixOmin^D-kr(idir,^D);
+          xC(ixC^S,idir)=x(ixC^S,idir)+0.5d0*block%dx(ixC^S,idir)
+          call get_B(ixI^L,ixC^L,Bloc,xC)
+          block%ws(ixC^S,idir)=Bloc(ixC^S,idir)
+        end do
+      end if
       call mf_face_to_center(ixO^L,block)
     else 
      call get_B(ixI^L,ixO^L,Bloc,x)

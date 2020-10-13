@@ -246,7 +246,7 @@ contains
        if (slab_uniform) then
           fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
 
-          do iw = 1, nwflux
+          do iw = iwstart, nwflux
             if (associated(phys_iw_methods(iw)%inv_capacity)) then
               call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
               wnew(ixO^S,iw)=wnew(ixO^S,iw) + inv_volume * &
@@ -265,7 +265,7 @@ contains
             end if
             inv_volume = inv_volume/block%dvolume(ixO^S)
 
-            do iw=1,nwflux
+            do iw=iwstart,nwflux
               fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
               wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
                   inv_volume
@@ -303,7 +303,7 @@ contains
 
     subroutine get_Riemann_flux_tvdmu()
 
-      do iw=1,nwflux
+      do iw=iwstart,nwflux
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
          fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
@@ -316,7 +316,7 @@ contains
       fac = -0.5d0*tvdlfeps*cmaxC(ixC^S)
 
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
-      do iw=1,nwflux
+      do iw=iwstart,nwflux
 
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
@@ -346,7 +346,7 @@ contains
       div = 1/(cmaxC(ixC^S)-cminC(ixC^S))
 
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
-      do iw=1,nwflux
+      do iw=iwstart,nwflux
          if (flux_type(idims, iw) == flux_tvdlf) then
             fLC(ixC^S, iw) = half*(fLC(ixC^S, iw) + fRC(ixC^S, iw) &
                  -tvdlfeps*max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
@@ -403,7 +403,7 @@ contains
              +cminC(ixC^S)*cmaxC(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(cmaxC(ixC^S)-cminC(ixC^S))
       end if
 
-      do iw=1,nwflux
+      do iw=iwstart,nwflux
          if (flux_type(idims, iw) == flux_tvdlf) then
             fLC(ixC^S,iw) = 0.5d0 * (fLC(ixC^S,iw) + fRC(ixC^S,iw) - tvdlfeps * &
                  max(cmaxC(ixC^S), abs(cminC(ixC^S))) * &
@@ -599,7 +599,7 @@ contains
       end do
 
       ! get fluxes of intermedate states
-      do iw=1,nwflux
+      do iw=iwstart,nwflux
         if (flux_type(idims, iw) == flux_tvdlf) then
           !! hll flux for normal B
           !f1L(ixC^S,iw)=(sR(ixC^S)*fLC(ixC^S, iw)-sL(ixC^S)*fRC(ixC^S, iw) &

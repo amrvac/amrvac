@@ -27,6 +27,11 @@ Alternatively, you can look for an existing problem (look in `tests/`) and
 customize its `mod_usr.t` or `mod_usr.f` file to get started. To create a normal
 Fortran file from `mod_usr.t`, you can type `make mod_usr.f`.
 Specify other user routines, for a list see mod_usr_methods.t
+WARNING: If you have compiled your code in n dimension, e.g., -d=3, and want 
+switch to another dimension with the same mod_usr.t file, e.g., -d=2, You need to 
+remove the mod_usr.f file before make to compile because the mod_usr.f will not 
+be updated if mod_usr.t is not changed or touched and it will remain in the 
+n-dimension form.
 
 # Structure of mod_usr.t {#user_structure}
 

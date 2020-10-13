@@ -22,11 +22,17 @@ module mod_variables
   !> Total number of stagger variables
   integer           :: nws = 0
 
+  !> Number of variables which need to be updated in ghost cells
+  integer           :: nwgc = 0
+
   !> Number of vector variables (used for writing output)
   integer           :: nvector = 0
 
   !> Indices of vector variables
   integer, dimension(:), allocatable :: iw_vector
+
+  ! the number of the first w variable to exchange ghost cells
+  integer            :: iwstart=1
 
   !> Maximum number of variables
   integer, parameter :: max_nw = 50

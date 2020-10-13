@@ -8,7 +8,7 @@ module mod_mf_phys
   double precision, public                :: mf_nu = 1.d0
 
   !> decay scale of frictional velocity 
-  double precision, public                :: mf_decay_scale = 1.d0
+  double precision, public                :: mf_decay_scale(2*^ND)=0.d0
 
   !> Whether particles module is added
   logical, public, protected              :: mf_particles = .false.
@@ -77,6 +77,9 @@ module mod_mf_phys
   !> B0 field is force-free
   logical, public, protected :: B0field_forcefree=.true.
 
+  !> clean divb in the initial condition
+  logical, public, protected :: clean_initial_divb=.false.
+
   ! DivB cleaning methods
   integer, parameter :: divb_none          = 0
   integer, parameter :: divb_multigrid     = -1
@@ -119,7 +122,7 @@ contains
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
-      B0field_forcefree, Bdip, Bquad, Boct, Busr, &
+      B0field_forcefree, Bdip, Bquad, Boct, Busr, clean_initial_divb, &
       boundary_divbfix, boundary_divbfix_skip, mf_divb_4thorder
 
     do n = 1, size(files)
@@ -221,6 +224,12 @@ contains
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
 
+    ! set number of variables which need update ghostcells
+    nwgc=ndir
+
+    ! start with magnetic field and skip velocity when update ghostcells
+    iwstart=mag(1)
+
     if (mf_glm) then
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
     else
@@ -259,7 +268,7 @@ contains
     phys_check_params        => mf_check_params
     phys_write_info          => mf_write_info
     phys_angmomfix           => mf_angmomfix
-    phys_global_source_before=> mf_velocity_update
+    phys_special_advance     => mf_velocity_update
 
     if(type_divb==divb_glm) then
       phys_modify_wLR => mf_modify_wLR
@@ -279,6 +288,11 @@ contains
     else if(ndim>1) then
       phys_boundary_adjust => mf_boundary_adjust
     end if
+
+    {^NOONED
+    ! clean initial divb
+    if(clean_initial_divb) phys_clean_divb => mf_clean_divb_multigrid
+    }
 
     ! Whether diagonal ghost cells are required for the physics
     if(type_divb < divb_linde) phys_req_diagonal = .false.
@@ -535,22 +549,52 @@ contains
   end subroutine mf_get_flux
 
   !> Add global source terms to update frictional velocity on complete domain
-  subroutine mf_velocity_update(qdt, qt, active)
+  subroutine mf_velocity_update(qdt,qt,psa)
     use mod_global_parameters
+    use mod_ghostcells_update
     double precision, intent(in) :: qdt    !< Current time step
     double precision, intent(in) :: qt     !< Current time
-    logical, intent(inout)       :: active !< Output if the source is active
+    type(state), target :: psa(max_blocks) !< Compute based on this state
 
     integer :: iigrid,igrid
+    logical :: stagger_flag
+    logical :: firstmf=.true.
+
+    if(firstmf) then
+      ! point bc mpi datatype to partial type for velocity field
+      type_send_srl=>type_send_srl_p1
+      type_recv_srl=>type_recv_srl_p1
+      type_send_r=>type_send_r_p1
+      type_recv_r=>type_recv_r_p1
+      type_send_p=>type_send_p_p1
+      type_recv_p=>type_recv_p_p1
+      call create_bc_mpi_datatype(mom(1),ndir)
+      firstmf=.false.
+    end if
 
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      block=>ps(igrid)
-      call frictional_velocity(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,qdt)
+      block=>psa(igrid)
+      call frictional_velocity(psa(igrid)%w,psa(igrid)%x,ixG^LL,ixM^LL,qdt)
     end do
     !$OMP END PARALLEL DO
 
-    active=.true.
+    ! only update mf velocity in ghost cells
+    stagger_flag=stagger_grid
+    type_send_srl=>type_send_srl_p1
+    type_recv_srl=>type_recv_srl_p1
+    type_send_r=>type_send_r_p1
+    type_recv_r=>type_recv_r_p1
+    type_send_p=>type_send_p_p1
+    type_recv_p=>type_recv_p_p1
+    call getbc(qt,0.d0,psa,mom(1),ndir,.true.)
+    type_send_srl=>type_send_srl_f
+    type_recv_srl=>type_recv_srl_f
+    type_send_r=>type_send_r_f
+    type_recv_r=>type_recv_r_f
+    type_send_p=>type_send_p_f
+    type_recv_p=>type_recv_p_f
+    stagger_grid=stagger_flag
 
   end subroutine mf_velocity_update
 
@@ -671,7 +715,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim),qdt
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: dxhm
+    double precision :: dxhm, xmin(ndim),xmax(ndim)
     double precision :: dxhms(ixO^S),decay(ixO^S)
     double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S)
     integer :: ix^D, idirmin,idir,jdir,kdir
@@ -715,31 +759,29 @@ contains
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
-    if(slab) then
-      if(slab_uniform) then
-        dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-        ! decay frictional velocity near solar surface
-        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
-        do idir=1,ndir
-          w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-        end do
-      else
-        dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
-        ! decay frictional velocity near solar surface
-        decay(ixO^S)=1.d0-exp(-x(ixO^S,ndim)/mf_decay_scale)
-        do idir=1,ndir
-          w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-        end do
-      end if
+    ! decay frictional velocity near selected boundaries
+    ^D&xmin(^D)=xprobmin^D\
+    ^D&xmax(^D)=xprobmax^D\
+    decay(ixO^S)=1.d0
+    do idir=1,ndim
+      if(mf_decay_scale(2*idir-1)>0.d0) decay(ixO^S)=decay(ixO^S)*&
+         (1.d0-exp(-(x(ixO^S,idir)-xmin(idir))/mf_decay_scale(2*idir-1)))
+      if(mf_decay_scale(2*idir)>0.d0) decay(ixO^S)=decay(ixO^S)*&
+         (1.d0-exp((x(ixO^S,ndim)-xmax(idir))/mf_decay_scale(2*idir)))
+    end do
+
+    if(slab_uniform) then
+      dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+      end do
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
-      ! decay frictional velocity near solar surface
-      decay(ixO^S)=1.d0-exp(-(x(ixO^S,1)-xprobmin1)/mf_decay_scale)
-      !decay(ixO^S)=decay(ixO^S)*(1.d0-exp(-(x(ixO^S,2)-xprobmin2)/0.03d0))
       do idir=1,ndir
         w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
       end do
     end if
+
   end subroutine frictional_velocity
 
   !> Source terms after split off time-independent magnetic field
@@ -1949,14 +1991,10 @@ contains
             call gradient(tmp,ixG^LL,ixM^LL,idim,grad(ixG^T, idim))
          end do
          ! Apply the correction B* = B - gradient(phi)
-         tmp(ixM^T) = sum(ps(igrid)%w(ixM^T, mag(1:ndim))**2, dim=ndim+1)
          ps(igrid)%w(ixM^T, mag(1:ndim)) = &
               ps(igrid)%w(ixM^T, mag(1:ndim)) - grad(ixM^T, :)
        end if
 
-       ! Determine magnetic energy difference
-       tmp(ixM^T) = 0.5_dp * (sum(ps(igrid)%w(ixM^T, &
-            mag(1:ndim))**2, dim=ndim+1) - tmp(ixM^T))
     end do
 
     active = .true.

@@ -73,6 +73,9 @@ contains
 
     rho_ = var_set_rho()
 
+    ! set number of variables which need update ghostcells
+    nwgc=nwflux
+
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
        allocate(flux_type(ndir, nw))

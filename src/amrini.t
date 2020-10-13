@@ -30,7 +30,7 @@ subroutine initlevelone
   }
 
   ! update ghost cells
-  call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+  call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
 end subroutine initlevelone
 
@@ -89,7 +89,7 @@ subroutine improve_initial_condition()
   use mod_usr_methods
   use mod_constrained_transport
   use mod_multigrid_coupling
-  use mod_mhd_phys
+  use mod_physics
   use mod_ghostcells_update
 
   logical :: active
@@ -102,12 +102,12 @@ subroutine improve_initial_condition()
       ! completely divergency free way for AMR mesh in 3D
       if(levmax>levmin.and.ndim==3) call recalculateB
     end if
-    if(slab_uniform.and.clean_initial_divb) then
+    if(slab_uniform.and.associated(phys_clean_divb)) then
       ! Project out the divB using multigrid poisson solver 
       ! if not initialised from vector potential
       if(.not.use_multigrid) call mg_setup_multigrid()
-      call mhd_clean_divb_multigrid(global_time,0.d0,active)
-      call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+      call phys_clean_divb(global_time,0.d0,active)
+      call getbc(global_time,0.d0,ps,iwstart,nwgc)
     end if
   end if
 
