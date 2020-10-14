@@ -513,7 +513,9 @@ they can be set to small positive values but not negative values, while their de
 small_temperature is positive, small_pressure is overwritten by the product of 
 small_rho and small_temperature. If check_small_values is set to .true.,
 additional check for small values will be triggered in phys_to_primitive, phys_to_conserved, 
-phys_ei_to_e, phys_get_pthermal, and source terms such as resistive terms in MHD.
+phys_ei_to_e, phys_get_pthermal, and source terms such as resistive terms in MHD. NOTE: If 
+small values are detected within these additional subroutines then a crash will occur regardless
+of whether any other positivity fixes are enabled.
 
 The actual treatment involves the small_values_method parameter: Its default value
 'error' causes a full stop in the handle_small_values subroutine in the physics 
@@ -1067,10 +1069,13 @@ advection, the synchronization replace the internal energy from
 the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
 mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
 energy with the internal energy from the total energy where plasma beta is larger than 0.05.
-This function is activated by `mhd_solve_eaux=T`. It is needed to specify the special boundary 
-for the auxiliary internal energy in mod_usr.t if special boundary is used. The boundary type 
+This function is activated by `mhd_solve_eaux=T`. NOTE: If both `mhd_solve_eaux=T` and 
+`check_small_values=T` are set within the .par file then, as previously stated,
+ a crash will still be forced for small p values. The boundary type 
 of the auxiliary internal energy is coded to be the same as the boundary type of density. 
-So you do not need to specify boundary types for the auxiliary internal energy in the par file.
+So you do not need to specify boundary types for the auxiliary internal energy in the par file. 
+It is, however, needed to specify the special boundary 
+for the auxiliary internal energy in mod_usr.t if special boundary is used. 
 This function is compatible with all finite volume and finite difference schemes we have, including
 HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
 as the HLL flux in all intermediate states of the Riemann fan. 
