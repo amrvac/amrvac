@@ -1,7 +1,7 @@
 ! setup.pl -d=3
  &filelist
-	base_filename='bipole_mfb'
-        autoconvert=.false.
+	base_filename='bipole_mfa'
+        autoconvert=.true.
         saveprim=.true.
         nwauxio=7
 	convert_type='vtuBCCmpi'
@@ -10,7 +10,7 @@
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave_dat=1.d0
+        dtsave_dat=0.05d0
         ditsave_log=2
         ditsave_custom=2
  /
@@ -18,13 +18,13 @@
         dtsave_log=0.01d0
 
  &stoplist
-        time_max=20.d0
-        it_max=10
+        time_max=1.d0
  /
+        it_max=10
 
  &methodlist
-        time_stepper='twostep'
-        flux_scheme=20*'hll'
+        time_stepper='threestep'
+        flux_scheme=20*'fd'
         limiter=20*'cada3'
  /
 
@@ -65,11 +65,10 @@
  &mf_list
         Busr=50.d0
         typedivbfix='ct'
-        mf_decay_scale(1)=0.d0
-        mf_decay_scale(2)=0.d0
-        mf_decay_scale(3)=0.d0
-        mf_decay_scale(4)=0.d0
-        mf_decay_scale(5)=1.d0
-        mf_decay_scale(6)=0.d0
+        mf_particles=.true.
  /
-        clean_initial_divb=.true.
+
+ &particles_list
+        num_particles=1000
+        dtsave_particles=0.05d0
+ /

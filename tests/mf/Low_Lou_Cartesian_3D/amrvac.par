@@ -1,0 +1,89 @@
+!$AMRVAC_DIR/setup.pl -d=3
+
+ &filelist
+        base_filename='nlfff'
+        saveprim=.true.
+        autoconvert=.true.
+        convert_type='vtuBCCmpi'
+        nwauxio=9
+ /  
+        restart_from_file='potential/data/lfff0000.dat'
+        snapshotnext=1
+        convert=.true.
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave_log=1
+ /
+        dtsave_dat=2.d0
+        ditsave_dat=100
+
+ &stoplist
+        dtmin=1.D-10
+        it_max=0
+ /
+        time_max=60.d0
+        time_reset=.true.
+
+ &methodlist
+        time_stepper='onestep'
+        flux_scheme=20*'cd4'
+        limiter=20*'koren'
+        small_pressure=1.0d-14
+        small_density=1.0d-14
+ /
+
+ &boundlist
+        typeboundary_min1 = 7*'special'
+        typeboundary_max1 = 7*'special'
+        typeboundary_min2 = 7*'special'
+        typeboundary_max2 = 7*'special'
+        typeboundary_min3 = 7*'special'
+        typeboundary_max3 = 7*'special'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=1
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.1d0
+        w_refine_weight(1)=0.4d0
+        w_refine_weight(5)=0.2d0
+        w_refine_weight(6)=0.2d0
+        w_refine_weight(7)=0.2d0
+        block_nx1=10
+        block_nx2=10
+        block_nx3=10
+        domain_nx1=100
+        domain_nx2=100
+        domain_nx3=100
+        xprobmin1=-5.d0
+        xprobmax1=5.d0
+        xprobmin2=-5.d0
+        xprobmax2=5.d0
+        xprobmin3=0.d0
+        xprobmax3=10.d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.8d0
+ /
+
+ &mhd_list
+        mhd_energy=.false.
+        mhd_adiab=1.0d0
+        mhd_magnetofriction=.true.
+        boundary_divbfix_skip(5)=1
+ /
+
+ &mf_list
+        mf_it_max=60000
+        mf_ditsave=20000
+        mf_cc=0.5
+        mf_cy=0.3
+        mf_cy_max=0.3
+        mf_cdivb=0.1
+        mf_tvdlfeps_min=1.8d-4
+ /
