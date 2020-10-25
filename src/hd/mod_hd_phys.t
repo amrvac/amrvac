@@ -699,7 +699,7 @@ contains
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
-                " encountered when call mhd_get_pthermal"
+                " encountered when call hd_get_pthermal"
            write(*,*) "Iteration: ", it, " Time: ", global_time
            write(*,*) "Location: ", x(ix^D,:)
            write(*,*) "Cell number: ", ix^D
