@@ -382,7 +382,7 @@ contains
     double precision                :: invgam
     integer                         :: idir, itr
 
-    if (check_small_values) then
+    if (fix_small_values) then
       call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
     end if
 
@@ -432,7 +432,7 @@ contains
       call dust_to_primitive(ixI^L, ixO^L, w, x)
     end if
 
-    if (check_small_values) then
+    if (fix_small_values) then
       call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
     end if
 
@@ -695,7 +695,7 @@ contains
        end if
     end if
 
-    if(check_small_values) then
+    if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -713,6 +713,14 @@ contains
          end if
       {enddo^D&\}
     end if
+
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         endif
+      {enddo^D&\}
+    endif
 
   end subroutine hd_get_pthermal
 
@@ -733,7 +741,6 @@ contains
   !> Calculate temperature=p/rho when in e_ the  internal energy is stored
   subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
-    use mod_small_values, only: small_values_method
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
@@ -742,7 +749,7 @@ contains
   end subroutine hd_get_temperature_from_eint
 
   !these are very similar to the subroutines without 1, used in mod_thermal_conductivity
-   !but no check as it is done whne the method is added
+  !but no check on whether energy variable is present
   subroutine hd_ei_to_e1(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
@@ -750,12 +757,13 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate total energy from internal and kinetic energy
-      w(ixO^S,e_)=w(ixO^S,e_)&
+    w(ixO^S,e_)=w(ixO^S,e_)&
                  +hd_kin_en(w,ixI^L,ixO^L)
 
   end subroutine hd_ei_to_e1
 
   !> Transform total energy to internal energy
+  !but no check on whether energy variable is present
   subroutine hd_e_to_ei1(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
@@ -763,7 +771,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate ei = e - ek
-      w(ixO^S,e_)=w(ixO^S,e_)&
+    w(ixO^S,e_)=w(ixO^S,e_)&
                   -hd_kin_en(w,ixI^L,ixO^L)
 
   end subroutine hd_e_to_ei1

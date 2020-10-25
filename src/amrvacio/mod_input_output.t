@@ -171,7 +171,7 @@ contains
          flatcd,flatsh,&
          rk2_alfa,ssprk_order,rk3_switch,imex_switch,&
          small_temperature,small_pressure,small_density, &
-         small_values_method, small_values_daverage, check_small_values, &
+         small_values_method, small_values_daverage, fix_small_values, check_small_values, &
          trace_small_values, angmomfix, small_values_fix_iw, &
          schmid_rad^D, trac
 

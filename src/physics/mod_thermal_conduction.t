@@ -269,7 +269,7 @@ contains
       call sendflux(1,ndim)
       call fix_conserve(ps1,1,ndim,e_,1)
     end if
-    if(check_small_values)  then
+    if(fix_small_values)  then
     !$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
         call handle_small_e(ps1(igrid)%w,ps1(igrid)%x,ixG^LL,ixM^LL,'thermal conduction evolve_step1')
@@ -324,7 +324,7 @@ contains
           call sendflux(1,ndim)
           call fix_conserve(ps2,1,ndim,e_,1)
         end if
-        if(check_small_values)  then
+        if(fix_small_values)  then
         !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
             call handle_small_e(ps2(igrid)%w,ps2(igrid)%x,ixG^LL,ixM^LL,'thermal conduction evolve_stepj')
@@ -350,7 +350,7 @@ contains
           call sendflux(1,ndim)
           call fix_conserve(ps1,1,ndim,e_,1)
         end if
-        if(check_small_values)  then
+        if(fix_small_values)  then
         !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
             call handle_small_e(ps1(igrid)%w,ps1(igrid)%x,ixG^LL,ixM^LL,'thermal conduction evolve_stepj')
@@ -452,7 +452,7 @@ contains
                 +qcmut*qdt*tmp(ixO^S)+qcnut*w3(ixO^S,e_)
 
     ! check small/negative internal energy
-    !if(check_small_values) call handle_small_e(w2,x,ixI^L,ixO^L,'thermal conduction evolve_stepj')
+    if(fix_small_values) call handle_small_e(w2,x,ixI^L,ixO^L,'thermal conduction evolve_stepj')
 
     if (fix_conserve_at_step) then
       fC=qcmut*qdt*fC

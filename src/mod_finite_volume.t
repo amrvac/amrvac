@@ -112,7 +112,9 @@ contains
     end do
 
     ! check and optionally correct unphysical values
-    call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+    endif
     end associate
   end subroutine hancock
 
@@ -296,7 +298,9 @@ contains
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
     ! check and optionally correct unphysical values
-    call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+    endif
 
   end associate
   contains
@@ -753,7 +757,7 @@ contains
        end do
     end select
 
-    if(check_small_values) then
+    if(fix_small_values) then
       call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
       call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
     end if

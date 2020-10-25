@@ -173,7 +173,6 @@ contains
   
       subroutine mhd_get_temperature_from_etot(w,x,ixI^L,ixO^L,res)
         use mod_global_parameters
-        use mod_small_values, only: trace_small_values
   
         integer, intent(in)          :: ixI^L, ixO^L
         double precision, intent(in) :: w(ixI^S,nw)
@@ -244,7 +243,7 @@ contains
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
     call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,e_,[e_],[1],[.true.])
-    if(check_small_values) call set_error_handling_to_head(handle_small_e)
+    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
   end subroutine tc_init_mhd_for_internal_energy
 
   subroutine tc_init_hd_params(phys_gamma, ixArray)
@@ -348,7 +347,7 @@ contains
       call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
     endif
 
-    if(check_small_values) call set_error_handling_to_head(handle_small_e)
+    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
 
     contains
 
@@ -393,7 +392,7 @@ contains
     get_temperature_from_conserved => hd_get_temperature_from_eint
     call sts_init()
     call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
-    if(check_small_values) call set_error_handling_to_head(handle_small_e)
+    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_hd_for_internal_energy
 

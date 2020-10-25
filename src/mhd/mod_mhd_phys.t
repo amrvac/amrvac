@@ -695,7 +695,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: idir, itr
 
-    if (check_small_values) then
+    if (fix_small_values) then
       call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
     end if
 
@@ -726,7 +726,7 @@ contains
     double precision                :: inv_rho(ixO^S)
     integer                         :: itr, idir
 
-    if (check_small_values) then
+    if (fix_small_values) then
       call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
     end if
 
@@ -1273,7 +1273,7 @@ contains
       pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
 
-    if(check_small_values) then
+    if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -1292,6 +1292,13 @@ contains
       {enddo^D&\}
     end if
 
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         end if
+      {enddo^D&\}
+    end if
   end subroutine mhd_get_pthermal
 
   !!the following are used for the new TC: mod_tc
@@ -2038,7 +2045,7 @@ contains
     if(mhd_ambipolar .and. (.not. mhd_ambipolar_sts) .and. mhd_eta_ambi > 0d0)then
        call add_source_ambipolar_internal_energy(qdt,ixI^L,ixO^L,wCT,w,x,ie)
     endif
-    if(check_small_values) then
+    if(fix_small_values) then
       call mhd_handle_small_ei(w,x,ixI^L,ixO^L,ie,'internal_energy_add_source')
     end if
   end subroutine internal_energy_add_source
@@ -2121,7 +2128,7 @@ contains
       end do
     end if
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_B0')
+    if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_B0')
 
   end subroutine add_source_B0split
 
@@ -2241,7 +2248,7 @@ contains
        end if
     end if
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
+    if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
 
   end subroutine add_source_res1
 
@@ -2303,7 +2310,7 @@ contains
       end if
     end if
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
+    if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
   end subroutine add_source_res2
 
   !> Add Hyper-resistive source to w within ixO
@@ -2363,7 +2370,7 @@ contains
       end if
     end if
 
-    if (check_small_values)  call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
+    if (fix_small_values)  call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')
 
   end subroutine add_source_hyperres
 
@@ -2416,7 +2423,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm')
+    if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm')
 
   end subroutine add_source_glm
 
@@ -2452,7 +2459,7 @@ contains
       w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
+    if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
 
   end subroutine add_source_powel
 
@@ -2475,7 +2482,7 @@ contains
       w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*wCT(ixO^S,mom(idir))/wCT(ixO^S,rho_)*divb(ixO^S)
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
+    if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
 
   end subroutine add_source_janhunen
 
@@ -2549,7 +2556,7 @@ contains
        end if
     end do
 
-    if (check_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
+    if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
 
   end subroutine add_source_linde
 

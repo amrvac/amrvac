@@ -116,7 +116,9 @@ contains
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
     ! check and optionally correct unphysical values
-    call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'fd')
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'fd')
+    endif
     end associate
 
   end subroutine fd
@@ -400,7 +402,9 @@ contains
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
 
     ! check and optionally correct unphysical values
-    call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff')
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff')
+    endif
     end associate
   end subroutine centdiff
 
