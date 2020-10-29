@@ -1,0 +1,99 @@
+ &filelist
+        base_filename='alfvenwing_3D_'
+        convert= F                  !
+        autoconvert = T
+        convert_type='vtuBCCmpi'
+        saveprim=.true.
+
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        itsave(1,2)=1 
+        ditsave_log=100
+        dtsave_dat=0.5d0
+ /
+
+ &stoplist
+	dtmin=1.D-12
+        time_max=3.5d0 
+ /
+
+ &methodlist
+        flux_scheme=    20*'tvdlf'
+        typepred1=    20*'tvdlf'
+        limiter=20*'koren'
+        dimsplit=.false.
+        check_small_values= T
+	small_pressure=1.0d-9
+	!small_density=1.0d-6
+        small_values_method = 'average'
+        small_values_daverage = 2
+        loglimit(1)=.true.
+	loglimit(5)=.true.
+ /
+
+ &boundlist
+        typeboundary_min1 = 8*'special'
+        typeboundary_max1 = 8*'cont'
+        typeboundary_min2 = 8*'cont'
+        typeboundary_max2 = 8*'cont'
+        typeboundary_min3 = 8*'cont'
+        typeboundary_max3 = 8*'cont'
+ /
+
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=2
+        nbufferx1=0
+        nbufferx2=0
+	nbufferx3=0
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.1d0
+        block_nx1 = 8
+        block_nx2 = 8
+        block_nx3 = 8
+        domain_nx1=32
+        domain_nx2=32
+	domain_nx3=32
+        iprob=1
+        xprobmin1=-4.0d0
+        xprobmax1=8.0d0
+        xprobmin2=-6.0d0
+        xprobmax2=6.0d0
+	xprobmin3=-12.0d0
+        xprobmax3=12.0d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.8d0
+        dtdiffpar=0.2d0
+        slowsteps=10
+ /
+
+ &mhd_list
+        typedivbfix='linde'
+        B0field=.false.
+        boundary_divbfix(1)=.false.
+        boundary_divbfix(2)=.false.
+        boundary_divbfix(3)=.false.
+        boundary_divbfix(4)=.false.
+        boundary_divbfix(5)=.false.
+        boundary_divbfix(6)=.false.
+ /
+&usr_list
+       velocity_x= 57000.0d0
+       velocity_y= 0.0d0
+       velocity_z= 0.0d0
+       mag_x     = 0.0d0
+       mag_y     = 0.0d0
+       mag_z     = -0.1835d-5
+       pressure  = 34.0e-9 !0.16432579957d-7
+       density   = 7.0241e-17!0.60673539562d-16
+       Collfreq  = 2.0d0
+       radius    = 1821.0d3
+/
+
