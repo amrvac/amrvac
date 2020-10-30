@@ -37,7 +37,7 @@ subroutine setdt()
                 ps(igrid)%x,ixG^LL,ixM^LL,'setdt')
         end if
 
-        call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,ps(igrid)%x)
+        call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
         dtnew=min(dtnew,qdtnew)
 
         call phys_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
@@ -46,7 +46,6 @@ subroutine setdt()
         if (associated(usr_get_dt)) then
            call usr_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
         end if
-
         dtnew          = min(dtnew,qdtnew)
         dtmin_mype     = min(dtmin_mype,dtnew)
         dt_grid(igrid) = dtnew
@@ -157,16 +156,14 @@ subroutine setdt()
         dt = 2d0*qdtnew
         !a quick way to print the reduction of time only every niter_print iterations
         !Note that niter_print is a parameter variable hardcoded to the value of 200
-        if(mype==0 .and. mod(it, niter_print) .eq. 1) then
-          write(*,*) 'Max number of STS cycles exceeded, reducing dt to ',dt
+        if(mype==0 .and. mod(it-1, niter_print) .eq. 0) then
+          write(*,*) 'Max number of STS cycles exceeded, reducing dt to',dt
         endif
       endif  
     else
-      !if(mype .eq. 0) print*, "Original dt ", dt
       if(set_dt_sts_ncycles(dt))then 
-       !  if(mype .eq. 0) print*, "dt is now", dt
-       if(mype==0 .and. mod(it, niter_print) .eq. 1) then
-         write(*,*) 'Max number of STS cycles exceeded, reducing dt to ',dt
+       if(mype==0 .and. mod(it-1, niter_print) .eq. 0) then
+         write(*,*) 'Max number of STS cycles exceeded, reducing dt to',dt
        endif
       endif
     endif
@@ -225,12 +222,13 @@ subroutine setdt()
   contains
 
     !> compute CFL limited dt (for variable time stepping)
-    subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,x)
+    subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,dx^D,x)
       use mod_global_parameters
       use mod_physics, only: phys_get_cmax,phys_get_a2max,phys_get_tcutoff
       
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(in)    :: dx^D
       double precision, intent(inout) :: w(ixI^S,1:nw), dtnew
       
       integer :: idims

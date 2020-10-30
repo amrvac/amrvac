@@ -28,6 +28,5 @@ module mod_connectivity
    ! cc for corner coarse
    integer, dimension(^ND) :: nrecv_cc, nsend_cc
 
-!$OMP THREADPRIVATE(leveljump)
 
 end module mod_connectivity
