@@ -62,7 +62,7 @@ contains
     Tiso=1.0d6/unit_temperature                    ! uniform temperature
 
     lalpha=0.d0    ! alpha coefficient for linear force-free field
-    llift=0.05d0   ! lift up domain above bottom magnetogram bu half the cell size
+    llift=0.05d0   ! lift up domain above bottom magnetogram by half the cell size
  
     ! prepare magnetogram at bottom, note that potential field only needs Bz0, but NLFFF needs Bx0, By0, and Bz0
     ! init_b_fff_data reads incorrect data for Bz0, but init_b_nlfff_data will repalce them with correct data
