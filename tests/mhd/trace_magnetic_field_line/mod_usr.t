@@ -65,7 +65,7 @@ contains
 
 
     t1=MPI_wtime()
-    call trace_Bfield(xp,wp,dL,npmax,numRT,forward,wRT,interp)
+    call trace_Bfield(xp,wp,dL,npmax,numRT,forward,wRT)
     t2=MPI_wtime()
 
 
