@@ -79,7 +79,12 @@ contains
     ^D&dxT^D=(xprobmax^D-xprobmin^D)/(domain_nx^D*refine_factor/block_nx^D)\
     ^D&dxT(ndim)=dxT^D\
     finegrid=4
-    dL=min(dxT^D)/finegrid
+    {^IFONED
+      dL=dxT1/finegrid
+    }
+    {^NOONED
+      dL=min(dxT^D)/finegrid
+    }
     ! table for interpolation
     ^D&xTmin(^D)=xprobmin^D\
     ^D&xTmax(^D)=xprobmax^D\
@@ -655,7 +660,7 @@ contains
       igridf(ip_in:ip_out-1)=igrid
       ip_in=ip_out
       ! when next point is out of given grid, find next grid  
-      if(ip_out<numP .and. xf(ip_out,2)<phys_trac_mask) then
+      if(ip_out<numP .and. xf(ip_out,ndim)<phys_trac_mask) then
         stopB=.FALSE.
         xfout=xf(ip_out,:)
         call find_next_grid_trac(igrid,igrid_next,ipe_next,xfout,newpe,stopB)
@@ -815,7 +820,7 @@ contains
       ! whether or not next point is in this block/grid
       inblock=0
       {if(xf(ip+1,^DB)>=xbmin^DB .and. xf(ip+1,^DB)<xbmax^DB) inblock=inblock+1\}
-      if(inblock/=ndim .or. xf(ip+1,2)>phys_trac_mask) then
+      if(inblock/=ndim .or. xf(ip+1,ndim)>phys_trac_mask) then
         ! exit loop if next point is not in this block
         exit MAINLOOP
       endif
