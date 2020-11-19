@@ -42,6 +42,15 @@ module mod_mhd_phys
   !> Whether GLM-MHD is used
   logical, public, protected              :: mhd_glm = .false.
 
+  !> Whether TRAC method is used
+  logical, public, protected              :: mhd_trac = .false.
+
+  !> Which TRAC method is used            
+  integer, public, protected              :: mhd_trac_type=1
+
+  !> Height of the mask used in the TRAC method
+  double precision, public, protected              :: mhd_trac_mask = 0.d0
+
   !> Whether auxiliary internal energy is solved
   logical, public, protected              :: mhd_solve_eaux = .false.
 
@@ -94,6 +103,10 @@ module mod_mhd_phys
   !> Indices of auxiliary internal energy
   integer, public, protected :: eaux_
   integer, public, protected :: paux_
+
+  !> Index of the cutoff temperature for the TRAC method
+  integer, public, protected              :: Tcoff_
+  integer, public, protected              :: Tweight_
 
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
@@ -233,7 +246,8 @@ contains
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, &
-      mhd_boris_method, mhd_boris_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e
+      mhd_boris_method, mhd_boris_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e, &
+      mhd_trac, mhd_trac_type, mhd_trac_mask
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -298,6 +312,8 @@ contains
     phys_energy=mhd_energy
     phys_internal_e=mhd_internal_e
     phys_solve_eaux=mhd_solve_eaux
+    phys_trac=mhd_trac
+    phys_trac_type=mhd_trac_type
 
     if(mhd_energy.and..not.mhd_internal_e) then
       total_energy=.true.
@@ -328,7 +344,22 @@ contains
         mhd_radiative_cooling=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_radiative_cooling=F when mhd_energy=F'
       end if
+      if(mhd_trac) then
+        mhd_trac=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_trac=F when mhd_energy=F'
+      end if
     end if
+    {^IFONED
+      if(mhd_trac .and. mhd_trac_type .gt. 1) then
+        mhd_trac_type=1
+        if(mype==0) write(*,*) 'WARNING: set mhd_trac_type=1 for 1D simulation'
+      end if
+    }
+    if(mhd_trac .and. mhd_trac_type .le. 3) then
+      mhd_trac_mask=bigdouble
+      if(mype==0) write(*,*) 'WARNING: set mhd_trac_mask==bigdouble for global TRAC method'
+    end if
+    phys_trac_mask=mhd_trac_mask
 
     if(mhd_solve_eaux) prolongprimitive=.true.
 
@@ -422,6 +453,17 @@ contains
     do itr = 1, mhd_n_tracer
       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
+
+    ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
+    Tweight_ = -1
+    if(mhd_trac) then
+      Tcoff_ = var_set_tcoff()
+      if(mhd_trac_type .ge. 2) then
+        Tweight_ = var_set_extravar('Tweight', 'Tweight')
+      endif
+    else
+      Tcoff_ = -1
+    end if
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
@@ -997,18 +1039,19 @@ contains
   end subroutine mhd_get_a2max
 
   !> get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)
-  subroutine mhd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
+  subroutine mhd_get_tcutoff(ixI^L,ixO^L,w,x,Tco_local,Tmax_local)
     use mod_global_parameters
     use mod_geometry
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
-    double precision, intent(out) :: tco_local, Tmax_local
+    double precision, intent(out) :: Tco_local,Tmax_local
 
-    double precision, parameter :: delta=0.5d0
+    double precision, parameter :: trac_delta=0.25d0
     double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
     double precision, dimension(ixI^S,1:ndir) :: bunitvec
     double precision, dimension(ixI^S,1:ndim) :: gradT
-    integer :: idims
+    double precision :: Bdir(ndim)
+    integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D
     logical :: lrlt(ixI^S)
 
     if(mhd_internal_e) then
@@ -1018,44 +1061,72 @@ contains
                        w(ixI^S,rho_)+sum(w(ixI^S,iw_mag(:))**2,dim=ndim+1))
     end if
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(mhd_gamma-1.d0)
-
     Tmax_local=maxval(Te(ixO^S))
 
-    ! temperature gradient at cell centers
-    do idims=1,ndim
-      call gradient(Te,ixI^L,ixO^L,idims,tmp1)
-      gradT(ixO^S,idims)=tmp1(ixO^S)
-    end do
-    ! B vector
-    if(B0field) then
-      bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))+block%B0(ixO^S,:,0)
-    else
-      bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))
-    end if
-    ! |B|
-    tmp1(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
-    where(tmp1(ixO^S)/=0.d0)
-      tmp1(ixO^S)=1.d0/tmp1(ixO^S)
-    elsewhere
-      tmp1(ixO^S)=bigdouble
-    end where
-    ! b unit vector: magnetic field direction vector
-    do idims=1,ndim
-      bunitvec(ixO^S,idims)=bunitvec(ixO^S,idims)*tmp1(ixO^S)
-    end do
-    ! temperature length scale inversed
-    lts(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
-    ! fraction of cells size to temperature length scale
-    lts(ixO^S)=minval(dxlevel)*lts(ixO^S)
+    {^IFONED
+    hxO^L=ixO^L-1;
+    jxO^L=ixO^L+1;
+    lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
     lrlt=.false.
-    where(lts(ixO^S) > delta)
+    where(lts(ixO^S) > trac_delta)
       lrlt(ixO^S)=.true.
     end where
-    block%special_values(1)=0.d0
+    Tco_local=zero
+    block%special_values(1)=zero
     if(any(lrlt(ixO^S))) then
+      Tco_local=zero
       block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
     end if
-
+    }
+    {^NOONED
+    if(mod(mhd_trac_type,2) .eq. 1) then
+      ! temperature gradient at cell centers
+      do idims=1,ndim
+        call gradient(Te,ixI^L,ixO^L,idims,tmp1)
+        gradT(ixO^S,idims)=tmp1(ixO^S)
+      end do
+      ! B vector
+      if(B0field) then
+        bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))+block%B0(ixO^S,:,0)
+      else
+        bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))
+      end if
+      ! B direction at cell center
+      Bdir=zero
+      {do ixA^D=0,1\}
+        ixB^D=(ixOmin^D+ixOmax^D-1)/2+ixA^D;
+        Bdir(1:ndim)=Bdir(1:ndim)+bunitvec(ixB^D,1:ndim)
+      {end do\}
+      if(sum(Bdir(:)**2) .gt. zero) then
+        Bdir(1:ndim)=Bdir(1:ndim)/dsqrt(sum(Bdir(:)**2))
+      end if
+      block%special_values(3:ndim+2)=Bdir(1:ndim)
+      tmp1(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
+      where(tmp1(ixO^S)/=0.d0)
+        tmp1(ixO^S)=1.d0/tmp1(ixO^S)
+      elsewhere
+        tmp1(ixO^S)=bigdouble
+      end where
+      ! b unit vector: magnetic field direction vector
+      do idims=1,ndim
+        bunitvec(ixO^S,idims)=bunitvec(ixO^S,idims)*tmp1(ixO^S)
+      end do
+      ! temperature length scale inversed
+      lts(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
+      ! fraction of cells size to temperature length scale
+      lts(ixO^S)=minval(dxlevel)*lts(ixO^S)
+      lrlt=.false.
+      where(lts(ixO^S) > trac_delta)
+        lrlt(ixO^S)=.true.
+      end where
+      if(any(lrlt(ixO^S))) then
+        block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+      else
+        block%special_values(1)=zero
+      end if
+      block%special_values(2)=Tmax_local
+    end if
+    }
   end subroutine mhd_get_tcutoff
 
   !> Estimating bounds for the minimum and maximum signal velocities

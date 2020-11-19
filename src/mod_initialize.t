@@ -13,10 +13,12 @@ contains
 
   !> Initialize amrvac: read par files and initialize variables
   subroutine initialize_amrvac()
+    use mod_global_parameters
     use mod_input_output
     use mod_physics, only: phys_check, phys_check_params
     use mod_usr_methods, only: usr_set_parameters
     use mod_bc_data, only: bc_data_init
+    use mod_trac, only:init_trac_line, init_trac_block
 
     if (initialized_already) return
 
@@ -34,6 +36,31 @@ contains
     if(associated(usr_set_parameters)) call usr_set_parameters()
 
     call phys_check_params()
+
+    if(phys_trac) then
+      if(phys_trac_type .eq. 2) then
+        if(mype .eq. 0) write(*,*) 'Using TRACL(ine) global method'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_line(.false.)
+      end if
+      if(phys_trac_type .eq. 3) then
+        if(mype .eq. 0) write(*,*) 'Using TRACB(lock) global method'
+        if(mype .eq. 0) write(*,*) 'Currently, only valid in Cartesian uniform settings'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_block(.false.)
+      end if
+      if(phys_trac_type .eq. 4) then
+        if(mype .eq. 0) write(*,*) 'Using TRACL(ine) method with a mask'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_line(.true.)
+      end if
+      if(phys_trac_type .eq. 5) then
+        if(mype .eq. 0) write(*,*) 'Using TRACB(lock) method with a mask'
+        if(mype .eq. 0) write(*,*) 'Currently, only valid in Cartesian uniform settings'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_block(.true.)
+      end if
+    end if
 
     initialized_already = .true.
   end subroutine initialize_amrvac

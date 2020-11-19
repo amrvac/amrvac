@@ -68,7 +68,7 @@ module mod_tc
   logical :: tc_saturate=.true.
  
    !> Indices of the variables
-   integer :: rho_=-1,mag(1:3)=-1,e_=-1,eaux_=-1
+   integer :: rho_=-1,mag(1:3)=-1,e_=-1,eaux_=-1,Tcoff_=-1
 
   public :: tc_init_mhd_for_total_energy, tc_init_mhd_for_internal_energy, tc_init_hd_for_total_energy, tc_init_hd_for_internal_energy  
   abstract interface
@@ -96,6 +96,7 @@ contains
     mag(2) = mag(1) + 1
     mag(3) = mag(2) + 1
     if(size(ixArray).eq.4) eaux_ = ixArray(4)
+    if(phys_trac) Tcoff_=iw_tcoff
 
     tc_gamma_1=phys_gamma-1d0
     small_e = small_pressure/tc_gamma_1
@@ -541,11 +542,18 @@ contains
       end if
     else
       ! conductivity at cell center
-      if(trac) then
+      if(phys_trac) then
         minq(ix^S)=Te(ix^S)
+        {^IFONED
         where(minq(ix^S) < block%special_values(1))
           minq(ix^S)=block%special_values(1)
         end where
+        }
+        {^NOONED
+        where(minq(ix^S) < w(ix^S,Tcoff_))
+          minq(ix^S)=w(ix^S,Tcoff_)
+        end where
+        }
         minq(ix^S)=tc_k_para*sqrt(minq(ix^S)**5)
       else
         minq(ix^S)=tc_k_para*sqrt(Te(ix^S)**5)
@@ -911,10 +919,17 @@ contains
       gradT(ixB^S,idims)=qd(ixB^S)
     end do
     ! transition region adaptive conduction
-    if(trac) then
-      where(ke(ix^S) < block%special_values(1))
-        ke(ix^S)=block%special_values(1)
+    if(phys_trac) then
+      {^IFONED
+      where(ke(ixI^S) < block%special_values(1))
+        ke(ixI^S)=block%special_values(1)
       end where
+      }
+      {^NOONED
+      where(ke(ixI^S) < w(ixI^S,Tcoff_))
+        ke(ixI^S)=w(ixI^S,Tcoff_)
+      end where
+      }
     end if
     ! cell corner conduction flux
     do idims=1,ndim

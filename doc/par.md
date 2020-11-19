@@ -976,6 +976,9 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_4th_order= F | T
      mhd_internal_e= F | T
      mhd_solve_eaux= F | T
+     mhd_trac= F | T
+     mhd_trac_type= INTEGER from 1 to 5
+     mhd_trac_mask= bigdouble
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1055,6 +1058,26 @@ cylindrical coordinates as well. User can possibly prescibe analytic current in
 _usr_set_J0_ subroutine to significantly increase accuracy. Choose 
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
+
+### The transition region adaptive conduction (TRAC) method {#par_TRAC}
+
+For solar atmosphere, simulations can sometimes suffer from the huge temperature gradient in the transition region.
+If the resolution is not enough (typically 1 km), the upward evaporation might be underestimated.
+The TRAC method could be used to correct the evaporation.
+Set `mhd_trac=T` to enable this function.
+`mhd_trac_type=1` is the basic TRAC method for 1D simulation.
+When it is used for 2D or 3D simulations, the local cutoff temperature inside each block would be calculated separately.
+It is the fastest way in multi-D simulations, it is not accurate but basically, is physically correct.
+For multi-D uniform Cartesian grids, we prepared some other methods.
+`mhd_trac_type=2` is the multi-D TRAC method based on the field line tracing module.
+For multi-D simulations, it should be the most accurate one, but might be very slow.
+Considering that this TRAC modificaiton will mostly affect the transition region,
+one can use `mhd_trac_type=4` to add a mask to limit the region where the field lines are integrated.
+Give `mhd_trac_mask` to set the maximum height of the mask, in your unit_length.
+`mhd_trac_type=3` uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
+And `mhd_trac_type=5` works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
+Note that when setting `mhd_trac_type >=2`, the direction of your gravity should follow y-dir (2D) or z-dir(3D)
+
 
 ### Solve internal energy to avoid negative pressure{#par_AIE}
 

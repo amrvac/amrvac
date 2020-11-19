@@ -142,6 +142,7 @@ mod_initialize.o: mod_geometry.mod
 mod_initialize.o: mod_ghostcells_update.mod
 mod_initialize.o: mod_input_output.mod
 mod_initialize.o: mod_physics.mod
+mod_initialize.o: mod_trac.mod
 mod_input_output.o: mod_collapse.mod
 mod_input_output.o: mod_geometry.mod
 mod_input_output.o: mod_kracken.mod
@@ -277,6 +278,9 @@ mod_thermal_conduction.o: mod_ghostcells_update.mod
 mod_thermal_conduction.o: mod_physics.mod
 mod_thermal_conduction.o: mod_small_values.mod
 mod_thermal_emission.o: mod_physics.mod
+mod_trac.o: mod_mhd.mod
+mod_trac.o: mod_particle_base.mod
+mod_trac.o: mod_point_searching.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_trace_Bfield.o: mod_particle_base.mod
 mod_tvd.o: mod_limiter.mod
@@ -292,3 +296,4 @@ set_B0.o: mod_geometry.mod
 setdt.o: mod_physics.mod
 setdt.o: mod_supertimestepping.mod
 setdt.o: mod_thermal_conduction.mod
+setdt.o: mod_trac.mod

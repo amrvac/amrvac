@@ -361,7 +361,9 @@ module mod_global_parameters
   logical :: SI_unit=.false.
 
   !> Use TRAC (Johnston 2019 ApJL, 873, L22) for MHD or 1D HD
-  logical :: trac=.false.  
+  logical :: phys_trac=.false.
+  integer :: phys_trac_type=1
+  double precision :: phys_trac_mask
 
   !> Enable to strictly conserve the angular momentum
   !> (works both in cylindrical and spherical coordinates)

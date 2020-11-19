@@ -37,7 +37,6 @@
         limiter= 20*'cada3'
         small_pressure=1.0d-8
         small_density=1.0d-14
-        trac=.true.
  /
         solve_internal_e=.true.
 
@@ -86,6 +85,7 @@
         Busr=20.d0
         B0field=.false.
         boundary_divbfix(3)=.false.
+        mhd_trac=.true.
  /
         type_ct='uct_hll'
 

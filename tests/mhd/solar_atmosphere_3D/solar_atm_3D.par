@@ -31,7 +31,6 @@
         limiter= 20*'cada3'
         check_small_values=.true.
         tvdlfeps=0.d0
-        trac=.true.
  /
 
  &boundlist
@@ -72,6 +71,7 @@
         mhd_gravity=.true.
         typedivbfix='ct'
         mhd_solve_eaux=.true.
+        mhd_trac=.true.
  /
 
  &tc_list

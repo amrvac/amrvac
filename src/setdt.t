@@ -4,6 +4,7 @@
 subroutine setdt()
   use mod_global_parameters
   use mod_physics
+  use mod_trac
   use mod_usr_methods, only: usr_get_dt
   use mod_thermal_conduction
   use mod_supertimestepping, only: set_dt_sts_ncycles, is_sts_initialized, sourcetype_sts,sourcetype_sts_split
@@ -12,7 +13,7 @@ subroutine setdt()
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
   double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
-  double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_bott, T_peak
+  double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_peak
   double precision :: trac_alfa, trac_dmax, trac_tau
 
   integer, parameter :: niter_print = 2000
@@ -67,7 +68,6 @@ subroutine setdt()
      dtmin_mype=dtmin_mype*factor
   end if
 
-
   if(final_dt_reduction)then
      !if (dtmin_mype>time_max-global_time) then
      !   write(unitterm,*)"WARNING final timestep artificially reduced!"
@@ -106,7 +106,6 @@ subroutine setdt()
     endif
   endif   
 
-  
   ! estimate time step of thermal conduction
   if(associated(phys_getdt_heatconduct)) then
      dtmin_mype=bigdouble
@@ -175,7 +174,6 @@ subroutine setdt()
   end do
   !$OMP END PARALLEL DO
        
-
   ! global Lax-Friedrich finite difference flux splitting needs fastest wave-speed
   ! so does GLM: 
   if(need_global_cmax) call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&
@@ -187,36 +185,53 @@ subroutine setdt()
 
   ! transition region adaptive thermal conduction (Johnston 2019 ApJL, 873, L22)
   ! transition region adaptive thermal conduction (Johnston 2020 A&A, 635, 168)
-  if(trac) then
-    trac_dmax=0.1d0
-    trac_tau=1.d0/unit_time
-    !> dt or dtnew ?
-    trac_alfa=trac_dmax**(dtnew/trac_tau)
-    {^IFONED
-    call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&
-      MPI_MAX,icomm,ierrmpi)
-    }
+  if(phys_trac) then
+    T_bott=2.d4/unit_temperature
     call MPI_ALLREDUCE(Tmax_mype,T_peak,1,MPI_DOUBLE_PRECISION,&
-      MPI_MAX,icomm,ierrmpi)
+         MPI_MAX,icomm,ierrmpi)
     ! default lower limit of cutoff temperature
-    T_bott =2.d4/unit_temperature
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+    select case(phys_trac_type)
+    case(1)
+      !> 1D TRAC method
       {^IFONED
-      ps(igrid)%special_values(1)=tco_global 
+      trac_dmax=0.1d0
+      trac_tau=1.d0/unit_time
+      trac_alfa=trac_dmax**(dtnew/trac_tau)
+      call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&
+           MPI_MAX,icomm,ierrmpi)
+      !$OMP PARALLEL DO PRIVATE(igrid)
+      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+        ps(igrid)%special_values(1)=tco_global
+        if(ps(igrid)%special_values(1)<trac_alfa*ps(igrid)%special_values(2)) then
+          ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
+        end if
+        if(ps(igrid)%special_values(1) < T_bott) then
+          ps(igrid)%special_values(1)=T_bott
+        else if(ps(igrid)%special_values(1) > 0.2d0*T_peak) then
+          ps(igrid)%special_values(1)=0.2d0*T_peak
+        end if
+        !> special values(2) to save old tcutoff
+        ps(igrid)%special_values(2)=ps(igrid)%special_values(1)
+      end do
+      !$OMP END PARALLEL DO
       }
-      if(ps(igrid)%special_values(1)<trac_alfa*ps(igrid)%special_values(2)) then
-        ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
-      end if
-      if(ps(igrid)%special_values(1) < T_bott) then
-        ps(igrid)%special_values(1)=T_bott
-      else if(ps(igrid)%special_values(1) > 0.2d0*T_peak) then
-        ps(igrid)%special_values(1)=0.2d0*T_peak
-      end if
-      !> special values(2) to save old tcutoff
-      ps(igrid)%special_values(2)=ps(igrid)%special_values(1)
-    end do
-    !$OMP END PARALLEL DO
+      !> 2D or 3D simplified TRAC method
+      call TRAC_simple(T_peak)
+    case(2)
+      !> 2D or 3D TRACL(ine) method
+      call TRACL(.false.,T_peak)
+    case(3)
+      !> 2D or 3D TRACB(lock) method
+      call TRACB(.false.,T_peak)
+    case(4)
+      !> 2D or 3D TRACL(ine) method with mask
+      call TRACL(.true.,T_peak)
+    case(5)
+      !> 2D or 3D TRACB(lock) method with mask
+      call TRACB(.true.,T_peak)
+    case default
+      call mpistop("undefined TRAC method type")
+    end select
   end if 
 
   contains
@@ -249,7 +264,7 @@ subroutine setdt()
       if(need_global_a2max) then
         call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
       end if
-      if(trac) then
+      if(phys_trac) then
         call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
         {^IFONED tco_mype=max(tco_mype,tco_local) }
         Tmax_mype=max(Tmax_mype,Tmax_local)

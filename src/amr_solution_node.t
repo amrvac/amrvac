@@ -109,7 +109,7 @@ subroutine alloc_node(igrid)
   ps1(igrid)%w=0.d0
   psc(igrid)%w=0.d0
   ps(igrid)%igrid=igrid
-  if(trac) ps(igrid)%special_values=0.d0
+  if(phys_trac) ps(igrid)%special_values=0.d0
 
   if(stagger_grid) then
     ps(igrid)%ws=0.d0
@@ -583,8 +583,11 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
       allocate(s%J0(ixG^S,7-2*ndir:3))
     end if
     ! allocate space for special values for each block state
-    if(trac) then
-      allocate(s%special_values(2))
+    if(phys_trac) then
+      ! special_values(1) Tcoff local
+      ! special_values(2) Tmax local
+      ! special_values(3:2+ndim) Bdir local
+      allocate(s%special_values(ndim+2))
     end if
   else
     ! use spatial info on ps states to save memory
@@ -600,7 +603,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
       s%B0=>ps(igrid)%B0
       s%J0=>ps(igrid)%J0
     end if
-    if(trac) s%special_values=>ps(igrid)%special_values
+    if(phys_trac) s%special_values=>ps(igrid)%special_values
   end if
 end subroutine alloc_state
 

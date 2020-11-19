@@ -53,11 +53,15 @@ module mod_variables
 
   !> Index of the energy density
   integer, protected :: iw_e = -1
+
   !> Index of the internal energy density
   integer, protected :: iw_eaux = -1
 
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
+
+  !> Index of the cutoff temperature for the TRAC method
+  integer, protected :: iw_tcoff = -1
 
 contains
 
@@ -204,5 +208,17 @@ contains
     cons_wnames(nwflux) = 'eaux'
     prim_wnames(nwflux) = 'paux'
   end function var_set_internal_energy
+
+  !> Set Tcoff variable for TRAC method
+  function var_set_tcoff() result(iw)
+    integer :: iw
+
+    nwextra = nwextra + 1
+    nw      = nw + 1
+    iw      = nw
+    iw_tcoff = nw
+    cons_wnames(iw) = 'Tcoff'
+    prim_wnames(iw) = 'Tcoff'
+  end function var_set_tcoff
 
 end module mod_variables

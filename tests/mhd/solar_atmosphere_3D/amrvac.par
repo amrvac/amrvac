@@ -26,7 +26,6 @@
         limiter= 20*'cada3'
         check_small_values=.true.
         tvdlfeps=0.d0
-        trac=.true.
  /
         trace_small_values=.true.
         typeboundspeed='cmaxmean'
@@ -80,6 +79,7 @@
         mhd_thermal_conduction=.true.
         mhd_radiative_cooling=.true.
         mhd_solve_eaux=.true.
+        mhd_trac=.true.
  /
         typedivbfix='glm'
         typedivbfix='linde'

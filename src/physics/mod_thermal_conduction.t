@@ -55,6 +55,9 @@ module mod_thermal_conduction
   !> Index of the internal energy
   integer, private, protected :: eaux_
 
+  !> Index of the cutoff temperature in the TRAC method
+  integer, private, protected :: Tcoff_
+
   !> The adiabatic index
   double precision, private :: tc_gamma
 
@@ -168,7 +171,16 @@ contains
 
     rho_ = iw_rho
     e_ = iw_e
-    if(phys_solve_eaux) eaux_ = iw_eaux
+    if(phys_solve_eaux) then
+      eaux_ = iw_eaux
+    else
+      eaux_ = -1
+    end if
+    if(phys_trac) then
+      tcoff_ = iw_tcoff
+    else
+      tcoff_ = -1
+    end if
 
     small_e = small_pressure/tc_gamma_1
 
@@ -233,8 +245,8 @@ contains
       ! convert total energy to internal energy
       call phys_e_to_ei(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
       ! internal e of the coarse block maybe needed in physical boundaries
-      if(any(ps(igrid)%is_physical_boundary)) &
-        call phys_e_to_ei(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
+      !if(any(ps(igrid)%is_physical_boundary)) &
+      !  call phys_e_to_ei(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
       if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
       ps1(igrid)%w=ps(igrid)%w
@@ -283,8 +295,8 @@ contains
         if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
         ! convert internal energy to total energy
         call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-        if(any(ps(igrid)%is_physical_boundary)) &
-          call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
+        !if(any(ps(igrid)%is_physical_boundary)) &
+        !  call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       end do
       ! point bc mpi data type back to full type for (M)HD
       type_send_srl=>type_send_srl_f
@@ -367,8 +379,8 @@ contains
         if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
         ! convert internal energy to total energy
         call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-        if(any(ps(igrid)%is_physical_boundary)) &
-          call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
+        !if(any(ps(igrid)%is_physical_boundary)) &
+        !  call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       end do 
     else
       do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -376,8 +388,8 @@ contains
         if(phys_solve_eaux) ps(igrid)%w(ixG^T,eaux_)=ps(igrid)%w(ixG^T,e_)
         ! convert internal energy to total energy
         call phys_ei_to_e(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-        if(any(ps(igrid)%is_physical_boundary)) &
-          call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
+        !if(any(ps(igrid)%is_physical_boundary)) &
+        !  call phys_ei_to_e(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
       end do 
     end if
     deallocate(bj)
@@ -594,11 +606,18 @@ contains
       end if
     else
       ! conductivity at cell center
-      if(trac) then
+      if(phys_trac) then
         minq(ix^S)=Te(ix^S)
+        {^IFONED
         where(minq(ix^S) < block%special_values(1))
           minq(ix^S)=block%special_values(1)
         end where
+        }
+        {^NOONED
+        where(minq(ix^S) < w(ix^S,Tcoff_))
+          minq(ix^S)=w(ix^S,Tcoff_)
+        end where
+        }
         minq(ix^S)=tc_k_para*sqrt(minq(ix^S)**5)
       else
         minq(ix^S)=tc_k_para*sqrt(Te(ix^S)**5)
@@ -977,10 +996,17 @@ contains
       gradT(ixB^S,idims)=qd(ixB^S)
     end do
     ! transition region adaptive conduction
-    if(trac) then
-      where(ke(ix^S) < block%special_values(1))
-        ke(ix^S)=block%special_values(1)
+    if(phys_trac) then
+      {^IFONED
+      where(ke(ixI^S) < block%special_values(1))
+        ke(ixI^S)=block%special_values(1)
       end where
+      }
+      {^NOONED
+      where(ke(ixI^S) < w(ixI^S,Tcoff_))
+        ke(ixI^S)=w(ixI^S,Tcoff_)
+      end where
+      }
     end if
     ! cell corner conduction flux
     do idims=1,ndim

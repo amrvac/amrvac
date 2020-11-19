@@ -26,10 +26,7 @@
         limiter          = 20*'cada3'
         small_pressure   = 1.0d-7
         small_density    = 1.0d-7
-        trac             = .false.
  /
-        t_peak           = 1.6d0
-        t_bott           = 2.d-2
 
  &boundlist
         typeboundary_min1 = 3*'special'

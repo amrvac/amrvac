@@ -57,6 +57,9 @@ module mod_hd_phys
   !> The small_est allowed energy
   double precision, protected             :: small_e
 
+  !> Whether TRAC method is used
+  logical, public, protected              :: hd_trac = .false.
+
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
@@ -80,7 +83,7 @@ contains
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, use_new_hd_tc, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame
+    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -188,6 +191,17 @@ contains
     physics_type = "hd"
     phys_energy  = hd_energy
     phys_total_energy  = hd_energy
+
+    phys_trac=hd_trac
+    if(phys_trac) then
+      if(ndim .eq. 1) then
+        phys_trac_type=1
+      else
+        phys_trac=.false.
+        if(mype==0) write(*,*) 'WARNING: set hd_trac=F when ndim>=2'
+      end if
+    end if
+
     ! set default gamma for polytropic/isothermal process
     if(.not.hd_energy) then
       if(hd_thermal_conduction) then
@@ -559,7 +573,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
 
-    double precision, parameter :: delta=0.5d0
+    double precision, parameter :: delta=0.25d0
     double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
     integer :: jxO^L,hxO^L
     logical :: lrlt(ixI^S)
