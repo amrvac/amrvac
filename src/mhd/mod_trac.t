@@ -476,7 +476,7 @@ contains
   subroutine get_Tlcoff(xF,numR,Tlcoff,ipel,igridl,mask)
     use mod_point_searching
     double precision :: xF(numFL,numLP,ndim)
-    integer :: numR(numFL),ix^D
+    integer :: numR(numFL),ix1
     double precision :: Tlcoff(numFL)
     integer :: ipel(numFL,numLP),igridl(numFL,numLP)
     logical :: mask
@@ -510,7 +510,7 @@ contains
     integer :: numR(numFL),ipel(numFL,numLP),igridl(numFL,numLP)
     double precision :: Tlcoff(numFL)
     double precision :: dxMax^D,weight,ds
-    integer :: ix^D,ixT^L,ixT^D,weightIndex
+    integer :: ix1,ix2,ixT^L,ixT^D,weightIndex
     integer :: ixO^L,ixc^L,igrid,iigrid,ixc^D
     double precision :: dxb^D
 
