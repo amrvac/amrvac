@@ -406,7 +406,7 @@ contains
        call hd_get_pthermal(wL,x,ixG^LL,ix^L,tmp)
        call hd_get_pthermal(wR,x,ixG^LL,ix^L,tmp2)
        where(abs(wL(ix^S,rho_)-wR(ix^S,rho_))<=qsmall*(wL(ix^S,rho_)+wR(ix^S,rho_)))
-          csound(ix^S) = sqrt(hd_gamma*csound/wroe(ix^S,rho_))
+          csound(ix^S) = sqrt(hd_gamma*csound(ix^S)/wroe(ix^S,rho_))
        elsewhere
           csound(ix^S) =  sqrt(hd_gamma*(tmp2(ix^S)-tmp(ix^S))/&
                (wR(ix^S,rho_)-wL(ix^S,rho_)))
