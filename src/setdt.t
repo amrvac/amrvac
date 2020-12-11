@@ -215,8 +215,10 @@ subroutine setdt()
       end do
       !$OMP END PARALLEL DO
       }
+      {^NOONED
       !> 2D or 3D simplified TRAC method
       call TRAC_simple(T_peak)
+      }
     case(2)
       !> 2D or 3D TRACL(ine) method
       call TRACL(.false.,T_peak)
