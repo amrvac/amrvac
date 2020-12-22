@@ -79,13 +79,13 @@ module mod_radiative_cooling
 
   logical :: isPPL = .false.
 
-  integer          :: n_Hildner, n_FM, n_RP, n_Klimchuk
+  integer          :: n_Hildner, n_FM, n_Rosner, n_Klimchuk
 
-  double precision :: t_Hildner(1:6), t_FM(1:5), t_RP(1:10), t_Klimchuk(1:8)
+  double precision :: t_Hildner(1:6), t_FM(1:5), t_Rosner(1:10), t_Klimchuk(1:8)
 
-  double precision :: x_Hildner(1:5), x_FM(1:4), x_RP(1:9), x_Klimchuk(1:7)
+  double precision :: x_Hildner(1:5), x_FM(1:4), x_Rosner(1:9), x_Klimchuk(1:7)
 
-  double precision :: a_Hildner(1:5), a_FM(1:4), a_RP(1:9), a_Klimchuk(1:7)
+  double precision :: a_Hildner(1:5), a_FM(1:4), a_Rosner(1:9), a_Klimchuk(1:7)
 
   data   n_Hildner / 5 /
  
@@ -103,15 +103,15 @@ module mod_radiative_cooling
   
   data   a_FM / 2.0, 1.15, -0.5, 2.0 /
 
-  data   n_RP / 9 /
+  data   n_Rosner / 9 /
  
-  data   t_RP / 3.00000, 3.89063, 4.30195, 4.57500,  4.90000, &
+  data   t_Rosner / 3.00000, 3.89063, 4.30195, 4.57500,  4.90000, &
                 5.40000, 5.77000, 6.31500, 7.60457, 10.00000  /
 
-  data   x_RP / -69.900, -48.307, -21.850, -31.000, -21.200, &
+  data   x_Rosner / -69.900, -48.307, -21.850, -31.000, -21.200, &
                 -10.400, -21.940, -17.730, -26.602           /
   
-  data   a_RP / 11.70, 6.15, 0.00, 2.00, 0.00, &
+  data   a_Rosner / 11.70, 6.15, 0.00, 2.00, 0.00, &
                 -2.00, 0.00, -0.67, 0.50       /
 
   data   n_Klimchuk / 7 /
@@ -782,7 +782,7 @@ module mod_radiative_cooling
       Tcoff_ = nwflux+1
       
       ! Checks if coolcurve is a piecewise power law (PPL)
-      PPL_curves = [Character(len=65) :: 'Hildner','FM', 'RP', 'Klimchuk']
+      PPL_curves = [Character(len=65) :: 'Hildner','FM', 'Rosner', 'Klimchuk']
       do i=1,size(PPL_curves)
          if (PPL_curves(i)==coolcurve) then
             isPPL = .true.
@@ -822,21 +822,21 @@ module mod_radiative_cooling
 
             l_PPL(1:n_PPL) = 10.d0**x_FM(1:n_FM) * (10.d0**t_PPL(1:n_PPL))**a_PPL(1:n_PPL) 
             
-         case('RP')
+         case('Rosner')
             if(mype==0) &
             print *,'Use piecewise power law according to Rosner (1978)'
             if(mype ==0) &
             print *,'and extended by Priest (1982) from Van Der Linden (1991)'
              
-            n_PPL = n_RP
+            n_PPL = n_Rosner
          
             allocate(t_PPL(1:n_PPL+1), l_PPL(1:n_PPL+1))
             allocate(a_PPL(1:n_PPL))
             
-            t_PPL(1:n_PPL+1) = t_RP(1:n_RP+1)
-            a_PPL(1:n_PPL) = a_RP(1:n_RP)
+            t_PPL(1:n_PPL+1) = t_Rosner(1:n_Rosner+1)
+            a_PPL(1:n_PPL) = a_Rosner(1:n_Rosner)
 
-            l_PPL(1:n_PPL) = 10.d0**x_RP(1:n_RP) * (10.d0**t_PPL(1:n_PPL))**a_PPL(1:n_PPL)  
+            l_PPL(1:n_PPL) = 10.d0**x_Rosner(1:n_Rosner) * (10.d0**t_PPL(1:n_PPL))**a_PPL(1:n_PPL)  
 
          case('Klimchuk')
             if(mype==0) &
