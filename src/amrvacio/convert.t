@@ -268,7 +268,7 @@ use mod_physics
 use mod_calculate_xw
 integer, intent(in) :: qunit
 
-integer             :: Morton_no,igrid,ix^D,iw
+integer             :: itag,Morton_no,igrid,ix^D,iw
 logical             :: fileopen
 character(len=80)   :: filename
 integer             :: filenr
@@ -840,7 +840,7 @@ double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)  :: wCC_TMP
 double precision :: normconv(0:nw+nwauxio)
 
 integer, allocatable :: intstatus(:,:)
-integer :: ipe,igrid,level,icel,ixC^L,ixCC^L,Morton_no,Morton_length
+integer :: itag,ipe,igrid,level,icel,ixC^L,ixCC^L,Morton_no,Morton_length
 integer :: nx^D,nxC^D,nc,np,VTK_type,ix^D,filenr
 integer*8 :: offset
 
@@ -1320,7 +1320,7 @@ character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 logical :: fileopen
-integer :: ipe,Morton_no,Morton_length
+integer :: itag,ipe,Morton_no,Morton_length
 integer :: ixrvC^L, ixrvCC^L, siz_ind, ind_send(5*^ND), ind_recv(5*^ND)
 double precision    :: origin(1:3), spacing(1:3)
 integer :: wholeExtent(1:6), ig^D
@@ -1589,7 +1589,7 @@ character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
 logical :: fileopen,conv_grid,cond_grid_recv
-integer :: ipe,Morton_no,siz_ind
+integer :: itag,ipe,Morton_no,siz_ind
 integer :: ind_send(4*^ND),ind_recv(4*^ND)
 integer :: levmin_recv,levmax_recv,level_recv,igrid_recv,ixrvC^L,ixrvCC^L
 !-----------------------------------------------------------------------------
@@ -2021,7 +2021,7 @@ double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP,wC_TMP_rec
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP,wCC_TMP_recv
 double precision, dimension(0:nw+nwauxio)                   :: normconv
 logical :: fileopen,first
-integer :: Morton_no,ipe,levmin_recv,levmax_recv,igrid_recv,level_recv
+integer :: itag,Morton_no,ipe,levmin_recv,levmax_recv,igrid_recv,level_recv
 integer :: ixrvC^L,ixrvCC^L
 integer :: ind_send(2*^ND),ind_recv(2*^ND),siz_ind,igonlevel_recv
 integer :: NumGridsOnLevel_mype(1:nlevelshi,0:npe-1)

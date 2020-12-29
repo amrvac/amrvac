@@ -47,7 +47,6 @@ contains
     end do 
     ngridvars=nwx
 
-!    particles_fill_gridvars => fill_gridvars_default
     particles_fill_gridvars => lorentz_fill_gridvars
 
     if (associated(particles_define_additional_gridvars)) then
@@ -218,18 +217,13 @@ contains
       ! Get E, B at new position
       call get_vec(bp, particle(ipart)%igrid, &
            particle(ipart)%self%x,particle(ipart)%self%time,b)
-!      if (particles_eta > 0.d0) then
-!        call get_vec(ep, particle(ipart)%igrid, &
-!             particle(ipart)%self%x,particle(ipart)%self%time,e)
-!      else
-        call get_vec(vp, particle(ipart)%igrid, &
-             particle(ipart)%self%x,particle(ipart)%self%time,vfluid)
-        call get_vec(jp, particle(ipart)%igrid, &
-             particle(ipart)%self%x,particle(ipart)%self%time,current)
-        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-!      end if
+      call get_vec(vp, particle(ipart)%igrid, &
+           particle(ipart)%self%x,particle(ipart)%self%time,vfluid)
+      call get_vec(jp, particle(ipart)%igrid, &
+           particle(ipart)%self%x,particle(ipart)%self%time,current)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
 
       ! 'Kick' particle (update velocity) based on the chosen integrator
       call Lorentz_kick(particle(ipart)%self%x,particle(ipart)%self%u,e,b,q,m,dt_p)
@@ -545,15 +539,11 @@ contains
     double precision              :: b(3), e(3), tmp(3), lfac, vfluid(3), current(3)
 
     call get_vec(bp, igrid, xpart,particle_time,b)
-!    if (particles_eta > 0.d0) then
-!      call get_vec(ep, igrid, xpart,particle_time,e)
-!    else
-      call get_vec(vp, igrid, xpart,particle_time,vfluid)
-      call get_vec(jp, igrid, xpart,particle_time,current)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-!    end if 
+    call get_vec(vp, igrid, xpart,particle_time,vfluid)
+    call get_vec(jp, igrid, xpart,particle_time,current)
+    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
 
     ! Payload update
     ! Lorentz factor

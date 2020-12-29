@@ -236,6 +236,7 @@ contains
   !> Read this module"s parameters from a file
   subroutine mhd_read_params(files)
     use mod_global_parameters
+    use mod_particles, only: particles_eta, particles_etah
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
@@ -245,6 +246,7 @@ contains
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
+      particles_eta, particles_etah,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, &
       mhd_boris_method, mhd_boris_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e, &
       mhd_trac, mhd_trac_type, mhd_trac_mask
@@ -295,7 +297,7 @@ contains
     use mod_radiative_cooling
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
-    use mod_particles, only: particles_init
+    use mod_particles, only: particles_init, particles_eta, particles_etah
     use mod_magnetofriction, only: magnetofriction_init
     use mod_physics
     use mod_supertimestepping, only: sts_init, add_sts_method
@@ -611,6 +613,10 @@ contains
     if(mhd_particles) then
       call particles_init()
       phys_req_diagonal = .true.
+      if(mype==0) then
+         write(*,*) '*****Using particles:        with mhd_eta, mhd_etah :', mhd_eta, mhd_etah
+         write(*,*) '*****Using particles: particles_eta, particles_etah :', particles_eta, particles_etah
+      end if
     end if
 
     ! initialize magnetofriction module

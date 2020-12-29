@@ -516,15 +516,11 @@ contains
 
       ! now calculate other quantities, mean Lorentz factor, drifts, perpendicular velocity:
       call get_vec(bp, igrid_working,y(1:ndir),tloc+dt_p,b)
-!      if (particles_eta > 0.d0) then
-!        call get_vec(ep, igrid_working,y(1:ndir),tloc+dt_p,e)
-!      else
-        call get_vec(vp, igrid_working,y(1:ndir),tloc+dt_p,vfluid)
-        call get_vec(jp, igrid_working,y(1:ndir),tloc+dt_p,current)
-        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-!      end if
+      call get_vec(vp, igrid_working,y(1:ndir),tloc+dt_p,vfluid)
+      call get_vec(jp, igrid_working,y(1:ndir),tloc+dt_p,current)
+      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
 
       absb         = sqrt(sum(b(:)**2))
       bhat(1:ndir) = b(1:ndir) / absb
@@ -597,15 +593,11 @@ contains
     end if
 
     call get_vec(bp, igrid_working,x,t_s,b)
-!    if (particles_eta > 0.d0) then
-!      call get_vec(ep, igrid_working,x,t_s,e)
-!    else
-      call get_vec(vp, igrid_working,x,t_s,vfluid)
-      call get_vec(jp, igrid_working,x,t_s,current)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-!    end if
+    call get_vec(vp, igrid_working,x,t_s,vfluid)
+    call get_vec(jp, igrid_working,x,t_s,current)
+    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
@@ -694,15 +686,11 @@ contains
     end if
 
     call get_vec(bp, igrid_working,x,t_s,b)
-!    if (particles_eta > 0.d0) then
-!      call get_vec(ep, igrid_working,x,t_s,e)
-!    else
-      call get_vec(vp, igrid_working,x,t_s,vfluid)
-      call get_vec(jp, igrid_working,x,t_s,current)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-!    end if
+    call get_vec(vp, igrid_working,x,t_s,vfluid)
+    call get_vec(jp, igrid_working,x,t_s,current)
+    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
@@ -772,15 +760,11 @@ contains
     double precision                    :: momentumpar1, momentumpar2, momentumpar3, momentumpar4
 
     call get_vec(bp, igrid,xpart(1:ndir),particle_time,b)
-!    if (particles_eta > 0.d0) then
-!      call get_vec(ep, igrid,xpart(1:ndir),particle_time,e)
-!    else
-      call get_vec(vp, igrid,xpart(1:ndir),particle_time,vfluid)
-      call get_vec(jp, igrid,xpart(1:ndir),particle_time,current)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-!    end if
+    call get_vec(vp, igrid,xpart(1:ndir),particle_time,vfluid)
+    call get_vec(jp, igrid,xpart(1:ndir),particle_time,current)
+    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
 
     absb         = sqrt(sum(b(:)**2))
     bhat(1:ndir) = b(1:ndir) / absb
@@ -1000,6 +984,5 @@ contains
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function gca_get_particle_dt
-
 
 end module mod_particle_gca

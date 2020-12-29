@@ -163,10 +163,6 @@ contains
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
       tlocnew                 = tloc+dt_p
 
-      ! Velocity update
-!      call get_vec_sample(igrid,x,tlocnew,v,vp(1),vp(ndir))
-!      particle(ipart)%self%u(1:ndir) = v(1:ndir)
-
       ! Time update
       particle(ipart)%self%time = tlocnew
 
@@ -229,33 +225,5 @@ contains
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function sample_get_particle_dt
-
-  subroutine get_vec_sample(igrid,x,tloc,var,ibeg,iend)
-    use mod_global_parameters
-
-    integer,intent(in)                                   :: igrid, ibeg, iend
-    double precision,dimension(ndir), intent(in)         :: x
-    double precision, intent(in)                         :: tloc
-    double precision,dimension(iend-ibeg+1), intent(out) :: var
-    double precision,dimension(iend-ibeg+1)              :: e1, e2
-    integer                                              :: ivar, iloc
-    double precision                                     :: td
-
-    if(.not.time_advance) then
-      do ivar=ibeg,iend
-        iloc = ivar-ibeg+1
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),ps(igrid)%x(ixG^T,1:ndim),x,var(iloc))
-      end do
-    else
-      td = (tloc - global_time) / dt
-      do ivar=ibeg,iend
-        iloc = ivar-ibeg+1
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ivar),ps(igrid)%x(ixG^T,1:ndim),x,e1(iloc))
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ivar),ps(igrid)%x(ixG^T,1:ndim),x,e2(iloc))
-        var(iloc) = e1(iloc) * (1.0d0 - td) + e2(iloc) * td
-      end do
-    end if
-
-  end subroutine get_vec_sample
 
 end module mod_particle_sample

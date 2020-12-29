@@ -112,14 +112,16 @@ module mod_mf_phys
 
 contains
 
-  !> Read this module"s parameters from a file
+  !> Read this module's parameters from a file
   subroutine mf_read_params(files)
     use mod_global_parameters
+    use mod_particles, only: particles_eta
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
     namelist /mf_list/ mf_nu, mf_decay_scale, &
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
+      particles_eta,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, clean_initial_divb, &
@@ -167,7 +169,7 @@ contains
   subroutine mf_phys_init()
     use mod_global_parameters
     use mod_physics
-    use mod_particles, only: particles_init
+    use mod_particles, only: particles_init, particles_eta, particles_etah
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -278,6 +280,12 @@ contains
     if(mf_particles) then
       call particles_init()
       phys_req_diagonal = .true.
+      ! never allow Hall effects in particles when doing magnetofrictional
+      particles_etah=0.0d0
+      if(mype==0) then
+         write(*,*) '*****Using particles:     with mf_eta, mf_eta_hyper :', mf_eta, mf_eta_hyper
+         write(*,*) '*****Using particles: particles_eta, particles_etah :', particles_eta, particles_etah
+      end if
     end if
 
     ! if using ct stagger grid, boundary divb=0 is not done here

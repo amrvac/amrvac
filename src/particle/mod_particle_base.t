@@ -182,7 +182,7 @@ contains
     integer                      :: n
 
     namelist /particles_list/ physics_type_particles,nparticleshi, &
-         nparticles_per_cpu_hi, particles_eta, particles_etah, write_individual, write_ensemble, &
+         nparticles_per_cpu_hi, write_individual, write_ensemble, &
          write_snapshot, dtsave_particles,num_particles,ndefpayload,nusrpayload,tmax_particles, &
          dtheta,losses, const_dt_particles, relativistic, integrator_type_particles
 
@@ -217,8 +217,6 @@ contains
     relativistic              = .true.
     t_next_output             = 0.0d0
     dtheta                    = 2.0d0*dpi / 60.0d0
-    particles_eta             = mhd_eta
-    particles_etah            = mhd_etah
     losses                    = .false.
     nparticles                = 0
     it_particles              = 0
@@ -395,7 +393,6 @@ contains
 
   !> Determine fields from MHD variables
   subroutine fields_from_mhd(igrid, w_mhd, w_part)
-!    use mod_mhd
     use mod_global_parameters
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
