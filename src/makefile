@@ -135,6 +135,7 @@ mod_hd_ppm.o: mod_physics_ppm.mod
 mod_hd_roe.o: mod_hd_phys.mod
 mod_hd_roe.o: mod_physics_roe.mod
 mod_hd_roe.o: mod_tvd.mod
+mod_init_datafromfile.o: mod_lookup_table.mod
 mod_initialize.o: mod_amr_fct.mod
 mod_initialize.o: mod_bc_data.mod
 mod_initialize.o: mod_fix_conserve.mod
@@ -145,7 +146,6 @@ mod_initialize.o: mod_physics.mod
 mod_initialize.o: mod_trac.mod
 mod_input_output.o: mod_collapse.mod
 mod_input_output.o: mod_geometry.mod
-mod_input_output.o: mod_kracken.mod
 mod_input_output.o: mod_limiter.mod
 mod_input_output.o: mod_particles.mod
 mod_input_output.o: mod_physics.mod

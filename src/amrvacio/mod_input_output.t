@@ -25,18 +25,15 @@ contains
 
   !> Read the command line arguments passed to amrvac
   subroutine read_arguments()
-    use mod_kracken
     use mod_global_parameters
     use mod_slice, only: slicenext
 
-    integer                          :: len, ier, n
+    integer                          :: len, stat, n, i, ipars
     integer, parameter               :: max_files = 20 ! Maximum number of par files
     integer                          :: n_par_files
-    integer                          :: ibegin(max_files)
-    integer                          :: iterm(max_files)
     character(len=max_files*std_len) :: all_par_files
-    character(len=std_len)           :: tmp_files(max_files)
-    logical                          :: resume
+    character(len=std_len)           :: tmp_files(max_files), arg
+    logical                          :: unknown_arg, help, morepars
 
     if (mype == 0) then
        print *, '-----------------------------------------------------------------------------'
@@ -50,23 +47,98 @@ contains
        print *, '-----------------------------------------------------------------------------'
     end if
 
-    ! Specify the options and their default values
-    call kracken('cmd','-i amrvac.par -if ' // undefined // &
-         ' -slicenext -1 -collapsenext -1 -snapshotnext -1' // &
-         ' --help .false. -convert .false. -resume .false.')
+    ! =============== Fortran 2003 command line reading ================
 
-    ! Get the par file(s)
-    call retrev('cmd_i', all_par_files, len, ier)
+    ! Default command line arguments
+    all_par_files="amrvac.par"
+    restart_from_file=undefined
+    snapshotnext=-1
+    slicenext=-1
+    collapsenext=-1
+    help=.false.
+    convert=.false.
+    resume_previous_run=.false.
+
+    ! Argument 0 is program name, so we start from one
+    i = 1
+    unknown_arg=.false.
+    DO
+       CALL get_command_argument(i, arg)
+       IF (LEN_TRIM(arg) == 0) EXIT
+       select case(arg)
+         case("-i")
+           i = i+1
+           CALL get_command_argument(i, arg)
+           !if(mype==0)print *,'found argument=',arg
+           all_par_files=TRIM(arg)
+           morepars=.true.
+           ipars=1
+           do while (ipars<max_files.and.morepars)
+              CALL get_command_argument(i+ipars,arg)
+              !if(mype==0)print *,'found argument=',arg
+              if (index(TRIM(arg),"-")==1.or.LEN_TRIM(arg)==0) then
+                 morepars=.false.
+              else
+                 ipars=ipars+1
+                 all_par_files=TRIM(all_par_files)//" "//TRIM(arg)
+                 !if(mype==0)print *,'now all_par_files=',TRIM(all_par_files)
+              endif
+           end do
+           !if(mype==0)print *,'-i identified ',ipars, ' par-file arguments'
+           i=i+ipars-1
+           !if(mype==0)print *,'-i arguments passed to all_par_files=',TRIM(all_par_files)
+         case("-if")
+           i = i+1
+           CALL get_command_argument(i, arg)
+           restart_from_file=TRIM(arg)
+           !if(mype==0)print *,'-if has argument=',TRIM(arg),' passed to restart_from_file=',TRIM(restart_from_file)
+         case("-slicenext")
+           i = i+1
+           CALL get_command_argument(i, arg)
+           read(arg,*,iostat=stat) slicenext
+           !if(mype==0)print *,'-slicenext has argument=',arg,' passed to slicenext=',slicenext
+         case("-collapsenext")
+           i = i+1
+           CALL get_command_argument(i, arg)
+           read(arg,*,iostat=stat) collapsenext
+           !if(mype==0)print *,'-collapsenext has argument=',arg,' passed to collapsenext=',collapsenext
+         case("-snapshotnext")
+           i = i+1
+           CALL get_command_argument(i, arg)
+           read(arg,*,iostat=stat) snapshotnext
+           !if(mype==0)print *,'-snapshotnext has argument=',arg,' passed to snapshotnext=',snapshotnext
+         case("-resume")
+           resume_previous_run=.true.
+           !if(mype==0)print *,'resume specified: resume_previous_run=T'
+         case("-convert")
+           convert=.true.
+           !if(mype==0)print *,'convert specified: convert=T'
+         case("--help","-help")
+           help=.true.
+           EXIT
+         case default
+           unknown_arg=.true.
+           help=.true.
+           EXIT
+       end select
+       i = i+1
+    END DO
+
+    if (unknown_arg) then
+       print*,"======================================="
+       print*,"Error: Command line argument ' ",TRIM(arg)," ' not recognized"
+       print*,"======================================="
+       help=.true.
+    end if
 
     ! Show the usage if the help flag was given, or no par file was specified
-    if (lget('cmd_-help') .or. len == 0) then
+    if (help) then
        if (mype == 0) then
           print *, 'Usage example:'
           print *, 'mpirun -np 4 ./amrvac -i file.par [file2.par ...]'
           print *, '         (later .par files override earlier ones)'
           print *, ''
           print *, 'Optional arguments:'
-          print *, '-resume              Resume previous run'
           print *, '-convert             Convert snapshot files'
           print *, '-if file0001.dat     Use this snapshot to restart from'
           print *, '                     (you can modify e.g. output names)'
@@ -87,16 +159,6 @@ contains
 
     allocate(par_files(n_par_files))
     par_files = tmp_files(1:n_par_files)
-
-    ! Read in the other command line arguments
-    call retrev('cmd_if', restart_from_file, len, ier)
-
-    !> \todo Document these command line options
-    slicenext           = iget('cmd_slicenext')
-    collapsenext        = iget('cmd_collapsenext')
-    snapshotnext        = iget('cmd_snapshotnext')
-    convert             = lget('cmd_convert') ! -convert present?
-    resume_previous_run = lget('cmd_resume')  ! -resume present?
 
   end subroutine read_arguments
 
