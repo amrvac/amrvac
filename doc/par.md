@@ -353,6 +353,7 @@ without changing time, set `reset_it=T`.
     small_values_method='error' | 'replace' | 'average'
     small_values_daverage=1
     check_small_values= F | T
+    fix_small_values= F | T
     trace_small_values= F | T
     small_values_fix_iw= LOGICAL, LOGICAL, LOGICAL, ...
 
@@ -512,12 +513,11 @@ The control parameters small_density, small_pressure, small_temperature play a r
 they can be set to small positive values but not negative values, while their default is 0. If 
 small_temperature is positive, small_pressure is overwritten by the product of 
 small_rho and small_temperature. If check_small_values is set to .true.,
-additional check for small values will be triggered in phys_to_primitive, phys_to_conserved, 
-phys_ei_to_e, phys_get_pthermal, and source terms such as resistive terms in MHD. NOTE: If 
-small values are detected within these additional subroutines then a crash will occur regardless
-of whether any other positivity fixes are enabled.
+an additional check for small values will be triggered in phys_get_pthermal. NOTE: If 
+small values are detected then a crash will occur regardless
+of whether any other positivity fixes are enabled. If fix_small_values is set to .true., small values are actually treated or fixed in subroutines such as phys_to_primitive, phys_to_conserved and source terms like resistive terms in MHD. 
 
-The actual treatment involves the small_values_method parameter: Its default value
+The actual treatment is determined by the small_values_method parameter: Its default value
 'error' causes a full stop in the handle_small_values subroutine in the physics 
 modules. In this way, you can use it for debugging purposes, to spot from where the actual
 negative pressure and unphysical value gets introduced during which call. If the compilation
