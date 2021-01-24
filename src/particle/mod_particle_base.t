@@ -1408,7 +1408,7 @@ contains
 
     integer                         :: ipart, iipart, igrid_particle, ipe_particle, ipe, iipe
     integer                         :: index
-    integer                         :: tag_send, tag_receive, send_buff, rcv_buff
+    integer                         :: tag_send, tag_receive, tag_send_p, tag_receive_p, send_buff, rcv_buff
     integer                         :: status(MPI_STATUS_SIZE)
     integer, dimension(0:npe-1)     :: send_n_particles_to_ipe
     integer, dimension(0:npe-1)    :: receive_n_particles_from_ipe
@@ -1417,10 +1417,13 @@ contains
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     double precision, dimension(npayload,nparticles_per_cpu_hi)  :: receive_payload
     integer, dimension(nparticles_per_cpu_hi,0:npe-1)  :: particle_index_to_be_sent_to_ipe
+    integer, dimension(nparticles_per_cpu_hi,0:npe-1)  :: particle_index_to_be_received_from_ipe
     integer, dimension(nparticles_per_cpu_hi) :: particle_index_to_be_destroyed
     integer                                   :: destroy_n_particles_mype
     logical                                   :: BC_applied
-
+    integer, allocatable, dimension(:)        :: sndrqst, rcvrqst
+    integer                                   :: isnd, ircv
+    integer,dimension(npe_neighbors,nparticles_per_cpu_hi) :: payload_index
     send_n_particles_to_ipe(:)      = 0
     receive_n_particles_from_ipe(:) = 0
     destroy_n_particles_mype        = 0
@@ -1428,14 +1431,14 @@ contains
     ! check if and where to send each particle, destroy if necessary
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
 
-      ! first check if the particle should be destroyed (TODO: user-defined criterion)
+      ! first check if the particle should be destroyed because t>tmax in a fixed snapshot
       if ( .not.time_advance .and. particle(ipart)%self%time .gt. tmax_particles ) then
         destroy_n_particles_mype  = destroy_n_particles_mype + 1
         particle_index_to_be_destroyed(destroy_n_particles_mype) = ipart
         cycle
       end if
 
-      ! Then check user-defined condition
+      ! Then check dostroy due to user-defined condition
       if (associated(usr_destroy_particle)) then
         if (usr_destroy_particle(particle(ipart))) then
           destroy_n_particles_mype  = destroy_n_particles_mype + 1
@@ -1479,55 +1482,134 @@ contains
     if (npe == 1) return
 
     ! communicate amount of particles to be sent/received
+    allocate( sndrqst(1:npe_neighbors), rcvrqst(1:npe_neighbors) )
+    sndrqst = MPI_REQUEST_NULL; rcvrqst = MPI_REQUEST_NULL;
+    isnd = 0; ircv = 0;
     do iipe=1,npe_neighbors;ipe=ipe_neighbor(iipe);
       tag_send    = mype * npe + ipe
       tag_receive = ipe * npe + mype
-      call MPI_SEND(send_n_particles_to_ipe(ipe),1,MPI_INTEGER,ipe,tag_send,icomm,ierrmpi)
-      call MPI_RECV(receive_n_particles_from_ipe(ipe),1,MPI_INTEGER,ipe,tag_receive,icomm,status,ierrmpi)
+      isnd = isnd + 1;  ircv = ircv + 1;
+      call MPI_ISEND(send_n_particles_to_ipe(ipe),1,MPI_INTEGER, &
+                     ipe,tag_send,icomm,sndrqst(isnd),ierrmpi)
+      call MPI_IRECV(receive_n_particles_from_ipe(ipe),1,MPI_INTEGER, &
+                     ipe,tag_receive,icomm,rcvrqst(ircv),ierrmpi)
     end do
+    call MPI_WAITALL(isnd,sndrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    call MPI_WAITALL(ircv,rcvrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    deallocate( sndrqst, rcvrqst )
 
-    ! send and receive the data of the particles
+    ! Communicate index of the particles to be sent/received
+    allocate( sndrqst(1:npe_neighbors*nparticles_per_cpu_hi), rcvrqst(1:npe_neighbors*nparticles_per_cpu_hi) )
+    sndrqst = MPI_REQUEST_NULL; rcvrqst = MPI_REQUEST_NULL;
+    isnd = 0; ircv = 0;
     do iipe=1,npe_neighbors;ipe=ipe_neighbor(iipe);
-      tag_send    = mype * npe + ipe
-      tag_receive = ipe * npe + mype
+      if (send_n_particles_to_ipe(ipe) > 0) then
+        tag_send    = mype * npe + ipe
+        isnd = isnd + 1
+        call MPI_ISEND(particle_index_to_be_sent_to_ipe(:,ipe),send_n_particles_to_ipe(ipe),MPI_INTEGER, &
+                       ipe,tag_send,icomm,sndrqst(isnd),ierrmpi)
+      end if
+      if (receive_n_particles_from_ipe(ipe) > 0) then
+        tag_receive = ipe * npe + mype
+        ircv = ircv + 1
+        call MPI_IRECV(particle_index_to_be_received_from_ipe(:,ipe),receive_n_particles_from_ipe(ipe),MPI_INTEGER, &
+                       ipe,tag_receive,icomm,rcvrqst(ircv),ierrmpi)
+      end if
+    end do
+    call MPI_WAITALL(isnd,sndrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    call MPI_WAITALL(ircv,rcvrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    deallocate( sndrqst, rcvrqst )
 
-      ! should i send some particles to ipe?
+    ! Send and receive the data of the particles
+    allocate( sndrqst(1:npe_neighbors*nparticles_per_cpu_hi), rcvrqst(1:npe_neighbors*nparticles_per_cpu_hi) )
+    sndrqst = MPI_REQUEST_NULL; rcvrqst = MPI_REQUEST_NULL;
+    isnd = 0; ircv = 0;
+    do iipe=1,npe_neighbors;ipe=ipe_neighbor(iipe);
+
+     ! should i send some particles to ipe?
       if (send_n_particles_to_ipe(ipe) .gt. 0) then
 
-        ! create the send buffer
         do ipart = 1, send_n_particles_to_ipe(ipe)
-          send_particles(ipart) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self
-          send_payload(1:npayload,ipart) = particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload(1:npayload)
+          tag_send = mype * npe + ipe + ipart
+          isnd = isnd+1
+          call MPI_ISEND(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self, &
+                         1,type_particle,ipe,tag_send,icomm,sndrqst(isnd),ierrmpi)
         end do ! ipart
-        call MPI_SEND(send_particles,send_n_particles_to_ipe(ipe),type_particle,ipe,tag_send,icomm,ierrmpi)
-        call MPI_SEND(send_payload,npayload*send_n_particles_to_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,tag_send,icomm,ierrmpi)
-        do ipart = 1, send_n_particles_to_ipe(ipe)
-          deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self)
-          deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload)
-          call pull_particle_from_particles_on_mype(particle_index_to_be_sent_to_ipe(ipart,ipe))
-        end do ! ipart
-
       end if ! send .gt. 0
 
       ! should i receive some particles from ipe?
       if (receive_n_particles_from_ipe(ipe) .gt. 0) then
 
-        call MPI_RECV(receive_particles,receive_n_particles_from_ipe(ipe),type_particle,ipe,tag_receive,icomm,status,ierrmpi)
-        call MPI_RECV(receive_payload,npayload*receive_n_particles_from_ipe(ipe),MPI_DOUBLE_PRECISION,ipe,tag_receive,icomm,status,ierrmpi)
-
         do ipart = 1, receive_n_particles_from_ipe(ipe)
-          index = receive_particles(ipart)%index
+          tag_receive = ipe * npe + mype + ipart
+          ircv = ircv+1
+          index = particle_index_to_be_received_from_ipe(ipart,ipe)
           allocate(particle(index)%self)
-          particle(index)%self = receive_particles(ipart)
+          call MPI_IRECV(particle(index)%self,1,type_particle,ipe,tag_receive,icomm,rcvrqst(ircv),ierrmpi)
+        end do ! ipart
+
+      end if ! receive .gt. 0
+    end do ! ipe
+    call MPI_WAITALL(isnd,sndrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    call MPI_WAITALL(ircv,rcvrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    deallocate( sndrqst, rcvrqst )
+
+    ! Send and receive the payloads
+    ! NON-BLOCKING: one communication for each particle. Needed for whatever reason
+    allocate( sndrqst(1:npe_neighbors*nparticles_per_cpu_hi), rcvrqst(1:npe_neighbors*nparticles_per_cpu_hi) )
+    sndrqst = MPI_REQUEST_NULL; rcvrqst = MPI_REQUEST_NULL;
+    isnd = 0; ircv = 0;
+    do iipe=1,npe_neighbors;ipe=ipe_neighbor(iipe);
+
+      ! should i send some particles to ipe?
+      if (send_n_particles_to_ipe(ipe) .gt. 0) then
+
+        do ipart = 1, send_n_particles_to_ipe(ipe)
+          tag_send    = mype * npe + ipe + ipart
+          isnd = isnd+1
+          call MPI_ISEND(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload(1:npayload), &
+                         npayload,MPI_DOUBLE_PRECISION,ipe,tag_send,icomm,sndrqst(isnd),ierrmpi)
+        end do ! ipart
+      end if ! send .gt. 0
+
+      ! should i receive some particles from ipe?
+      if (receive_n_particles_from_ipe(ipe) .gt. 0) then
+        do ipart = 1, receive_n_particles_from_ipe(ipe)
+          tag_receive = ipe * npe + mype + ipart
+          ircv = irecv+1
+          index = particle_index_to_be_received_from_ipe(ipart,ipe)
           allocate(particle(index)%payload(npayload))
-          particle(index)%payload(1:npayload) = receive_payload(1:npayload,ipart)
+          call MPI_IRECV(particle(index)%payload(1:npayload),npayload, &
+                         MPI_DOUBLE_PRECISION,ipe,tag_receive,icomm,rcvrqst(ircv),ierrmpi)
+        end do ! ipart
+      end if ! receive .gt. 0
+    end do ! ipe
+    call MPI_WAITALL(isnd,sndrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    call MPI_WAITALL(ircv,rcvrqst,MPI_STATUSES_IGNORE,ierrmpi)
+    deallocate( sndrqst, rcvrqst )
+
+    ! Deeallocate sent particles
+    do iipe=1,npe_neighbors;ipe=ipe_neighbor(iipe);
+      if (send_n_particles_to_ipe(ipe) .gt. 0) then
+        do ipart = 1, send_n_particles_to_ipe(ipe)
+          deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%self)
+          deallocate(particle(particle_index_to_be_sent_to_ipe(ipart,ipe))%payload)
+          call pull_particle_from_particles_on_mype(particle_index_to_be_sent_to_ipe(ipart,ipe))
+        end do ! ipart
+      end if ! send .gt. 0
+    end do
+
+    ! Relocate received particles
+    do iipe=1,npe_neighbors;ipe=ipe_neighbor(iipe);
+      if (receive_n_particles_from_ipe(ipe) .gt. 0) then
+        do ipart = 1, receive_n_particles_from_ipe(ipe)
+          index = particle_index_to_be_received_from_ipe(ipart,ipe)
           call push_particle_into_particles_on_mype(index)
           ! since we don't send the igrid, need to re-locate it
           call find_particle_ipe(particle(index)%self%x,igrid_particle,ipe_particle)
           particle(index)%igrid = igrid_particle
           particle(index)%ipe = ipe_particle
         end do ! ipart
-
       end if ! receive .gt. 0
     end do ! ipe
 
