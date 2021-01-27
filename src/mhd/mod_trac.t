@@ -173,7 +173,7 @@ contains
     call init_trac_Tcoff()
     Tmax=T_peak
     call get_Tlcoff(xF,numR,Tlcoff,ipel,igridl,mask)
-    call interp_Tcoff(xF,ipel,igridl,numR,Tlcoff)
+    call interp_Tcoff(xF,ipel,igridl,numR,Tlcoff,mask)
   end subroutine TRACL
 
   subroutine TRACB(mask,T_peak)
@@ -510,7 +510,8 @@ contains
     enddo
   end subroutine get_Tlcoff
 
-  subroutine interp_Tcoff(xF,ipel,igridl,numR,Tlcoff)
+  subroutine interp_Tcoff(xF,ipel,igridl,numR,Tlcoff,mask)
+    logical :: mask
     double precision :: xF(numFL,numLP,ndim)
     integer :: numR(numFL),ipel(numFL,numLP),igridl(numFL,numLP)
     double precision :: Tlcoff(numFL)
@@ -552,7 +553,7 @@ contains
       where(ps(igrid)%w(ixO^S,Tweight_)>0.d0)
         ps(igrid)%w(ixO^S,Tcoff_)=ps(igrid)%w(ixO^S,Tcoff_)/ps(igrid)%w(ixO^S,Tweight_)
       elsewhere
-        ps(igrid)%w(ixO^S,Tcoff_)=0.2d0*Tmax
+        ps(igrid)%w(ixO^S,Tcoff_)=0.d0
       endwhere
     enddo
   end subroutine interp_Tcoff
@@ -630,6 +631,9 @@ contains
       igrid_now=igrid_next
       ipoint_in=ipoint_out
     enddo
+
+    !if (mype==0) print *, xf(1,:),Te_info
+
     ! get cutoff temperature
     Tcofl=Te_info(2)
     if(mask) then
@@ -651,6 +655,7 @@ contains
     integer :: ipe_next,igrid_next,ip_in,ip_out,j
     logical :: newpe,stopB
     double precision :: xfout(ndim)
+    integer :: indomain
 
     ip_in=ipoint_in
     newpe=.FALSE.
@@ -659,8 +664,16 @@ contains
       call find_points_trac(igrid,ip_in,ip_out,xf,Te_info,numP,dL,forward,mask)
       igridf(ip_in:ip_out-1)=igrid
       ip_in=ip_out
+
+      indomain=0
+      {if (xf(ip_out,^DB)>=xprobmin^DB .and. xf(ip_out,^DB)<xprobmax^DB) indomain=indomain+1\}
+
+      ! when next point is out of domain, stop
       ! when next point is out of given grid, find next grid  
-      if(ip_out<numP .and. xf(ip_out,ndim)<phys_trac_mask) then
+      if (indomain/=ndim) then
+        newpe=.TRUE.
+        stopB=.TRUE.
+      else if(ip_out<numP .and. xf(ip_out,ndim)<phys_trac_mask) then
         stopB=.FALSE.
         xfout=xf(ip_out,:)
         call find_next_grid_trac(igrid,igrid_next,ipe_next,xfout,newpe,stopB)
