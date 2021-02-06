@@ -1684,13 +1684,14 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision  :: tmp(ixI^S)
     double precision, allocatable, dimension(:^D&,:) :: jxbxb
-      allocate(jxbxb(ixI^S,1:3))
-      call mhd_get_jxbxb(wCT,x,ixI^L,ixO^L,jxbxb)
-      tmp(ixO^S) = sum(jxbxb(ixO^S,1:3)**2,dim=ndim+1) / mhd_mag_en_all(wCT, ixI^L, ixO^L)
-      call multiplyAmbiCoef(ixI^L,ixO^L,tmp,wCT,x)   
-      w(ixO^S,ie)=w(ixO^S,ie)+qdt * tmp
-      deallocate(jxbxb)
-    end subroutine add_source_ambipolar_internal_energy
+
+    allocate(jxbxb(ixI^S,1:3))
+    call mhd_get_jxbxb(wCT,x,ixI^L,ixO^L,jxbxb)
+    tmp(ixO^S) = sum(jxbxb(ixO^S,1:3)**2,dim=ndim+1) / mhd_mag_en_all(wCT, ixI^L, ixO^L)
+    call multiplyAmbiCoef(ixI^L,ixO^L,tmp,wCT,x)   
+    w(ixO^S,ie)=w(ixO^S,ie)+qdt * tmp
+    deallocate(jxbxb)
+  end subroutine add_source_ambipolar_internal_energy
 
   subroutine mhd_get_jxbxb(w,x,ixI^L,ixO^L,res)
     use mod_global_parameters

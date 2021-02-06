@@ -1197,7 +1197,6 @@ module mod_fix_conserve
 
    end subroutine add_sub_circ
 
-
   !!this conserves fluxed put by store_flux_var
   !used for the sts methods where not all the fluxes are stored and fixed.
   subroutine fix_conserve_vars(tmpPs, indexChangeStart, indexChangeN, indexChangeFixC)
@@ -1223,7 +1222,6 @@ module mod_fix_conserve
       end do
 
   end subroutine fix_conserve_vars
-
 
   !!this stores the fluxes one at a time, even if ..
   subroutine store_flux_var(flux,indexVar,my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
@@ -1260,9 +1258,5 @@ module mod_fix_conserve
       deallocate(fluxC)
     endif
   end subroutine store_flux_var
-
-
-
-
 
 end module mod_fix_conserve

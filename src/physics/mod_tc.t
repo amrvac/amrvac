@@ -201,6 +201,7 @@ contains
     else
       call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
     endif
+    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
 
     contains
 
@@ -450,8 +451,8 @@ contains
           tmp2(ixO^S)=B2(ixO^S)
         end where
       end if
-      ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-      dtdiff_tcond=1d0/tc_gamma_1/maxval(tmp2(ixO^S)*dxinv(idim)**2)
+      ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+      dtdiff_tcond=1.d0/tc_gamma_1/maxval(tmp2(ixO^S)*dxinv(idim)**2)
       ! limit the time step
       dtnew=min(dtnew,dtdiff_tcond)
     end do
@@ -502,7 +503,7 @@ contains
     if(B0field) then
       mf(ixI^S,:)=w(ixI^S,iw_mag(:))+block%B0(ixI^S,:,0)
     else
-      mf(ixI^S,:)=w(ixI^S,iw_mag(:));
+      mf(ixI^S,:)=w(ixI^S,iw_mag(:))
     end if
     ! |B|
     Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
@@ -899,7 +900,8 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    call get_temperature_from_eint(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
+    !calculate Te in whole domain (+ghosts)
+    call get_temperature_from_eint(w, x, ixI^L, ixI^L, Te)
 
     ! cell corner temperature in ke
     ke=0.d0
@@ -977,7 +979,7 @@ contains
       qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
     end do
 
-   if (fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+    if(fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
 
     qd=0.d0
     if(slab_uniform) then
