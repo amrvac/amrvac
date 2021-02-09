@@ -11,7 +11,6 @@ contains
   subroutine add_split_source(prior)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_thermal_conduction, only: phys_thermal_conduction
     use mod_physics, only: phys_req_diagonal, phys_global_source_before, phys_global_source_after
     use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
@@ -21,10 +20,8 @@ contains
     double precision :: qdt, qt
     integer :: iigrid, igrid, i^D
     logical :: src_active
-    ! add thermal conduction
-    !if use_new_mhd_tc or use_new_hd_tc are set to true
-    !the subroutine pointer will not be associated
-    if(associated(phys_thermal_conduction)) call phys_thermal_conduction()
+
+    ! add stiff sources via super time stepping
     if(is_sts_initialized()) then
         select case (sourcetype_sts)
           case (sourcetype_sts_prior)
@@ -36,7 +33,7 @@ contains
               call sts_add_source(dt)
             endif
           case (sourcetype_sts_split)
-            call sts_add_source(0.5*dt)
+            call sts_add_source(0.5d0*dt)
           endselect
     endif  
     src_active = .false.

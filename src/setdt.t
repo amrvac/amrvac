@@ -6,7 +6,6 @@ subroutine setdt()
   use mod_physics
   use mod_trac
   use mod_usr_methods, only: usr_get_dt
-  use mod_thermal_conduction
   use mod_supertimestepping, only: set_dt_sts_ncycles, is_sts_initialized, sourcetype_sts,sourcetype_sts_split
 
   integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
@@ -106,53 +105,13 @@ subroutine setdt()
     endif
   endif   
 
-  ! estimate time step of thermal conduction
-  if(associated(phys_getdt_heatconduct)) then
-     dtmin_mype=bigdouble
-  !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,&
-  !$OMP& dx^D) REDUCTION(min:dtmin_mype)
-     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-        dx^D=rnode(rpdx^D_,igrid);
-        saveigrid = igrid
-        block=>ps(igrid)
-        qdtnew=bigdouble
-        call phys_getdt_heatconduct(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
-        dtmin_mype=min(dtmin_mype,qdtnew)
-     end do
-  !$OMP END PARALLEL DO
-     call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
-                           icomm,ierrmpi)
-     if(all(flux_scheme=='nul')) dt=min(dt,dtnew)
-     ncycle=ceiling(dt/dtnew)
-     if (ncycle>tc_ncycles) then
-       if(mype==0 .and. .false.) then
-         write(*,*) 'CLF time step is too many times larger than conduction time step',ncycle
-         write(*,*) 'reducing dt to',tc_ncycles,'times of dt_impl!!'
-       endif
-       dt=tc_ncycles*dtnew
-     endif
-    ! get number of sub-steps of supertime stepping (Meyer 2012 MNRAS 422,2102)
-     if(dt/dtnew< 0.5d0) then
-       s=1
-     else if(dt/dtnew< 2.d0) then
-       s=2
-     else
-       s=ceiling((dsqrt(9.d0+8.d0*dt/dtnew)-1.d0)/2.d0)
-       ! only use odd s number
-       s=s/2*2+1
-     endif
-     dt_tc=dt*0.5d0
-     if(mype==0 .and. .false.) write(*,*) 'supertime steps:',s,' normal subcycles:',&
-                                 ceiling(dt/dtnew/2.d0)
-  endif
-
   if(is_sts_initialized()) then
     !!reuse qdtnew
     !qdtnew = dt 
     if(sourcetype_sts .eq. sourcetype_sts_split) then
       qdtnew = 0.5d0 * dt 
       if (set_dt_sts_ncycles(qdtnew)) then
-        dt = 2d0*qdtnew
+        dt = 2.d0*qdtnew
         !a quick way to print the reduction of time only every niter_print iterations
         !Note that niter_print is a parameter variable hardcoded to the value of 200
         if(mype==0 .and. mod(it-1, niter_print) .eq. 0) then

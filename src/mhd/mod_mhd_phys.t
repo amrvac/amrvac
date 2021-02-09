@@ -10,11 +10,10 @@ module mod_mhd_phys
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_thermal_conduction = .false.
 
-  !> type of TC used: 0: original module (MHD implementation), 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
-  integer, parameter, private             :: ORIG_MHD_TC =0
+  !> type of TC used: 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
   integer, parameter, private             :: MHD_TC =1
   integer, parameter, private             :: HD_TC =2
-  integer, protected                      :: use_mhd_tc = ORIG_MHD_TC
+  integer, protected                      :: use_mhd_tc = MHD_TC
 
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
@@ -293,7 +292,6 @@ contains
   subroutine mhd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
-    use mod_tc
     use mod_radiative_cooling
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
@@ -568,9 +566,7 @@ contains
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
       phys_req_diagonal = .true.
-      if(use_mhd_tc .eq. ORIG_MHD_TC) then
-        call thermal_conduction_init(mhd_gamma)
-      else if(use_mhd_tc .eq. MHD_TC) then
+      if(use_mhd_tc .eq. MHD_TC) then
 
         if(mhd_internal_e) then
           call tc_init_mhd_for_internal_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_eint)
@@ -592,7 +588,6 @@ contains
             call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
           endif
         endif
-
       endif
     end if
 
@@ -1378,7 +1373,6 @@ contains
     end if
   end subroutine mhd_get_pthermal
 
-  !!the following are used for the new TC: mod_tc
   !> Calculate temperature=p/rho when in e_ the internal energy is stored
   subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
@@ -1433,8 +1427,6 @@ contains
                   -mhd_mag_en(w,ixI^L,ixO^L)
 
   end subroutine mhd_e_to_ei1
-  !!the following are used for the new TC: mod_tc END
-
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho

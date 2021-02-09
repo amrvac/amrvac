@@ -10,7 +10,7 @@
  &filelist
         base_filename='solar_atm_a'
         saveprim=.true.
-        autoconvert=.true.
+        autoconvert=.false.
         convert_type='vtuBCCmpi'
         nwauxio=9
  /
@@ -38,6 +38,8 @@
         limiter= 20*'cada3'
         small_pressure=1.0d-8
         small_density=1.0d-14
+        fix_small_values=.true.
+        trace_small_values=.true.
  /
 
  &boundlist
@@ -75,9 +77,9 @@
 
  &mhd_list
         mhd_thermal_conduction=.true.
-        mhd_radiative_cooling=.true.
-        mhd_gravity=.true.
-        typedivbfix='linde'
+        mhd_radiative_cooling=.false.
+        mhd_gravity=.false.
+        typedivbfix='none'
         Busr=20.d0
         B0field=.false.
         boundary_divbfix(3)=.false.
@@ -93,4 +95,7 @@
         coolcurve='JCcorona'
         coolmethod='exact'
         Tfix=.false.
+ /
+ &sts_list
+        sourcetype_sts=2
  /
