@@ -10,7 +10,8 @@ mod_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t mod_geometry.t	\
 mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t mod_weno.t       \
 mod_venk.t mod_limiter.t mod_fix_conserve.t mod_source.t mod_initialize.t       \
 mod_amrvac.t mod_bc_data.t mod_lookup_table.t mod_amr_fct.t                     \
-mod_constrained_transport.t mod_multigrid_coupling.t mod_space_filling_curve.t
+mod_constrained_transport.t mod_multigrid_coupling.t mod_space_filling_curve.t  \
+mod_supertimestepping.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -149,6 +150,7 @@ mod_input_output.o: mod_particles.mod
 mod_input_output.o: mod_physics.mod
 mod_input_output.o: mod_slice.mod
 mod_input_output.o: mod_small_values.mod
+mod_input_output.o: mod_source.mod
 mod_input_output.o: mod_timing.mod
 mod_limiter.o: mod_mp5.mod
 mod_limiter.o: mod_ppm.mod
