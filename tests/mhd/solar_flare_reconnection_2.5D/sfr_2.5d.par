@@ -65,6 +65,6 @@
         mhd_eta=-0.1d0
  /
 
- &tc_list
-        tc_dtpar=0.2d0
+ &sts_list
+        sts_dtpar=0.2d0
  /

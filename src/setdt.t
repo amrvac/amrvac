@@ -106,8 +106,6 @@ subroutine setdt()
   endif   
 
   if(is_sts_initialized()) then
-    !!reuse qdtnew
-    !qdtnew = dt 
     if(sourcetype_sts .eq. sourcetype_sts_split) then
       qdtnew = 0.5d0 * dt 
       if (set_dt_sts_ncycles(qdtnew)) then

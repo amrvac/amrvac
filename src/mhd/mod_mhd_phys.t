@@ -572,9 +572,9 @@ contains
           call tc_init_mhd_for_internal_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_eint)
         else
           if(mhd_solve_eaux) then
-            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           else
-            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           endif
         endif
 
@@ -583,9 +583,9 @@ contains
           call tc_init_hd_for_internal_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_eint)
         else
           if(mhd_solve_eaux) then
-            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_,eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_,eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           else
-            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           endif
         endif
       endif
@@ -802,11 +802,10 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
  
     ! Calculate total energy from internal, kinetic and magnetic energy
-    if(total_energy) then
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                 +mhd_kin_en(w,ixI^L,ixO^L)&
-                 +mhd_mag_en(w,ixI^L,ixO^L)
-    end if
+    if(mhd_solve_eaux) w(ixI^S,eaux_)=w(ixI^S,e_)
+    w(ixO^S,e_)=w(ixO^S,e_)&
+               +mhd_kin_en(w,ixI^L,ixO^L)&
+               +mhd_mag_en(w,ixI^L,ixO^L)
 
   end subroutine mhd_ei_to_e
 
@@ -818,11 +817,9 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate ei = e - ek - eb
-    if(total_energy) then
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                  -mhd_kin_en(w,ixI^L,ixO^L)&
-                  -mhd_mag_en(w,ixI^L,ixO^L)
-    end if
+    w(ixO^S,e_)=w(ixO^S,e_)&
+                -mhd_kin_en(w,ixI^L,ixO^L)&
+                -mhd_mag_en(w,ixI^L,ixO^L)
 
   end subroutine mhd_e_to_ei
 
@@ -1397,36 +1394,6 @@ contains
            - mhd_kin_en(w,ixI^L,ixO^L)&
            - mhd_mag_en(w,ixI^L,ixO^L)))/w(ixO^S,rho_)
   end subroutine mhd_get_temperature_from_etot
-
-  !> Transform internal energy to total energy
-  !these are very similar to the subroutines without 1, used in mod_thermal_conductivity
-  !but with no check for the flags (it is done when adding them as hooks in the STS update)
-  subroutine mhd_ei_to_e1(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
- 
-    ! Calculate total energy from internal, kinetic and magnetic energy
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                 +mhd_kin_en(w,ixI^L,ixO^L)&
-                 +mhd_mag_en(w,ixI^L,ixO^L)
-
-  end subroutine mhd_ei_to_e1
-
-  !> Transform total energy to internal energy
-  subroutine mhd_e_to_ei1(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-
-    ! Calculate ei = e - ek - eb
-    w(ixO^S,e_)=w(ixO^S,e_)&
-                  -mhd_kin_en(w,ixI^L,ixO^L)&
-                  -mhd_mag_en(w,ixI^L,ixO^L)
-
-  end subroutine mhd_e_to_ei1
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho

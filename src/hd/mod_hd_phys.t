@@ -270,7 +270,7 @@ contains
       if (.not. hd_energy) &
            call mpistop("thermal conduction needs hd_energy=T")
       phys_req_diagonal = .true.
-      call tc_init_hd_for_total_energy(hd_gamma, (/rho_, e_/),hd_get_temperature_from_etot, hd_get_temperature_from_eint,hd_e_to_ei1, hd_ei_to_e1)
+      call tc_init_hd_for_total_energy(hd_gamma, (/rho_, e_/),hd_get_temperature_from_etot, hd_get_temperature_from_eint)
     end if
 
     ! Initialize radiative cooling module
@@ -452,10 +452,8 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate total energy from internal and kinetic energy
-    if(hd_energy) then
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                 +hd_kin_en(w,ixI^L,ixO^L)
-    end if
+    w(ixO^S,e_)=w(ixO^S,e_)&
+               +hd_kin_en(w,ixI^L,ixO^L)
 
   end subroutine hd_ei_to_e
 
@@ -467,10 +465,8 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate ei = e - ek
-    if(hd_energy) then
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                  -hd_kin_en(w,ixI^L,ixO^L)
-    end if
+    w(ixO^S,e_)=w(ixO^S,e_)&
+                -hd_kin_en(w,ixI^L,ixO^L)
 
   end subroutine hd_e_to_ei
 

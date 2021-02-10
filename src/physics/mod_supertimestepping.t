@@ -1,6 +1,6 @@
 !> Generic supertimestepping method
 !> 1) in amrvac.par in sts_list set the following parameters which have the default values: 
-!> sts_dtpar=0.9,sts_ncycles=1000,method_sts=1,sourcetype_sts=2
+!> sts_dtpar=0.9,sts_ncycles=1000,sts_method=1,sourcetype_sts=2
 !> These parametes are general for all the methods added TODO: check if there is any need
 !> to have terms implemented with different sets of parameters, and these cannot be general anymore
 !> 2) then add programatically in the code a term with the subroutine
@@ -33,11 +33,11 @@ module mod_supertimestepping
   double precision :: sts_dtpar=0.9d0 
   !> the maximum number of subcycles
   integer :: sts_ncycles=1000 
-  integer :: method_sts = 1
+  integer :: sts_method = 1
   integer, parameter :: sourcetype_sts_prior =0
   integer, parameter :: sourcetype_sts_after =1
   integer, parameter :: sourcetype_sts_split =2
-  integer :: sourcetype_sts = sourcetype_sts_after
+  integer :: sourcetype_sts = sourcetype_sts_split
 
   !The following is used only for method 2, not input parameter TODO check if we want as input parameter
   double precision,parameter :: nu_sts = 0.5
@@ -146,14 +146,12 @@ contains
       call sts_params_read(par_files)
       sts_dtpar=sts_dtpar/dble(ndim)
       sts_initialized = .true.
-      if(method_sts .eq. 1) then
+      if(sts_method .eq. 1) then
         sts_add_source => sts_add_source1
         sts_get_ncycles => sts_get_ncycles1
-        if(mype .eq. 0) print*, "Method 1 STS"
-      else if(method_sts .eq. 2) then
+      else if(sts_method .eq. 2) then
         sts_add_source => sts_add_source2
         sts_get_ncycles => sts_get_ncycles2
-        if(mype .eq. 0) print*, "Method 2 STS"
       else
         call mpistop("Unknown sts method")
       end if
@@ -176,7 +174,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /sts_list/ sts_dtpar,sts_ncycles,method_sts,sourcetype_sts
+    namelist /sts_list/ sts_dtpar,sts_ncycles,sts_method,sourcetype_sts
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -741,15 +739,13 @@ contains
           ii2 = ii + temp%ixChangeN(i) - 1
           ps(igrid)%w(ixG^T,ii:ii2)=tmpPs2(igrid)%w(ixG^T,ii:ii2)
         end do 
+        if(associated(temp%sts_after_last_cycle)) then 
+          call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+        endif
       end do 
       !$OMP END PARALLEL DO
 
       deallocate(bj)
-      if(associated(temp%sts_after_last_cycle)) then 
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-        end do 
-      endif
 
       temp=>temp%next
     end do

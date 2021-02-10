@@ -93,17 +93,17 @@ contains
        call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
             ps(igrid)%x,.true.,src_active)
     case ('sfs')
-       call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
+       call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
        ps(igrid)%x,.true.,src_active)
     case ('ssf')
-       call addsource2(qdt/2,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,&
+       call addsource2(0.5d0*qdt,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,&
             ps(igrid)%x,.true.,src_active)
        call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
             ps(igrid)%x,.true.,src_active)
     case ('ssfss')
-       call addsource2(qdt/4,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,&
+       call addsource2(0.25d0*qdt,ixG^LL,ixG^LL,1,nw,qt,w,qt,w1,&
             ps(igrid)%x,.true.,src_active)
-       call addsource2(qdt/2,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
+       call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,w,&
             ps(igrid)%x,.true.,src_active)
     case default
        write(unitterm,*)'No such typesourcesplit=',typesourcesplit

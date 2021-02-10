@@ -448,7 +448,7 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: omega
-    complex, parameter :: ic = dcmplx(0,1)
+    double complex, parameter :: ic = dcmplx(0,1)
     double complex :: RR(ixO^S), VV(ixO^S), PP(ixO^S), BB(ixO^S), k(ixO^S),wave(ixO^S)
     
     double precision,allocatable :: vA02(:), c02(:),a(:), b(:), c(:),  temp1(:), temp3(:)

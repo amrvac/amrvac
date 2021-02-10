@@ -44,10 +44,10 @@ module mod_thermal_conduction
   implicit none
   private
   !> Coefficient of thermal conductivity (parallel to magnetic field)
-  double precision :: tc_k_para
+  double precision, public :: tc_k_para
 
   !> Coefficient of thermal conductivity perpendicular to magnetic field
-  double precision :: tc_k_perp
+  double precision, public :: tc_k_perp
 
   !> The adiabatic index
   double precision :: tc_gamma_1
@@ -151,27 +151,14 @@ contains
   !> ixArray : an array with the indices of the variables
   !> mhd_get_temperature_from_etot, mhd_get_temperature_from_eint subroutines which calculates temperature
   !> mhd_ei_to_e, mhd_e_to_ei subroutines which calculates e_tot from e_int and e_int from e_tot
-  subroutine tc_init_mhd_for_total_energy(phys_gamma, ixArray, mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_ei_to_e, mhd_e_to_ei)
+  subroutine tc_init_mhd_for_total_energy(phys_gamma, ixArray, mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
     use mod_global_parameters
     use mod_supertimestepping, only: add_sts_method,sts_init,set_error_handling_to_head,set_conversion_methods_to_head
+    use mod_physics, only: phys_ei_to_e, phys_e_to_ei
     double precision, intent(in) :: phys_gamma
     integer, intent(in) :: ixArray(:)
 
     interface
-      subroutine mhd_e_to_ei(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-      end subroutine mhd_e_to_ei
-      
-      subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-      end subroutine mhd_ei_to_e
-  
       subroutine mhd_get_temperature_from_etot(w,x,ixI^L,ixO^L,res)
         use mod_global_parameters
   
@@ -183,7 +170,6 @@ contains
 
       subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
         use mod_global_parameters
-        use mod_small_values, only: small_values_method
         integer, intent(in)          :: ixI^L, ixO^L
         double precision, intent(in) :: w(ixI^S, 1:nw)
         double precision, intent(in) :: x(ixI^S, 1:ndim)
@@ -196,24 +182,9 @@ contains
     get_temperature_from_conserved => mhd_get_temperature_from_etot
     get_temperature_from_eint => mhd_get_temperature_from_eint
     call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd, e_,e_,[e_], [1],[.true.])
-    if(eaux_.ne.-1) then
-      call set_conversion_methods_to_head(mhd_e_to_ei, set_ei_and_ei_to_e)
-    else
-      call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
-    endif
+    call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
+
     if(fix_small_values) call set_error_handling_to_head(handle_small_e)
-
-    contains
-
-      subroutine set_ei_and_ei_to_e(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-        !internal energy is stored in e_
-        w(ixI^S,eaux_)=w(ixI^S,e_)
-        call mhd_ei_to_e(ixI^L,ixI^L,w,x)
-      end subroutine set_ei_and_ei_to_e
 
   end subroutine tc_init_mhd_for_total_energy
 
@@ -226,13 +197,11 @@ contains
   subroutine tc_init_mhd_for_internal_energy(phys_gamma, ixArray, mhd_get_temperature_from_eint)
     use mod_global_parameters
     use mod_supertimestepping, only: add_sts_method,sts_init,set_error_handling_to_head
-    use mod_physics, only: phys_ei_to_e, phys_e_to_ei
     double precision, intent(in) :: phys_gamma
     integer, intent(in) :: ixArray(:)
     interface
       subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
         use mod_global_parameters
-        use mod_small_values, only: small_values_method
         integer, intent(in)          :: ixI^L, ixO^L
         double precision, intent(in) :: w(ixI^S, 1:nw)
         double precision, intent(in) :: x(ixI^S, 1:ndim)
@@ -245,7 +214,9 @@ contains
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
     call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,e_,[e_],[1],[.true.])
+
     if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+
   end subroutine tc_init_mhd_for_internal_energy
 
   subroutine tc_init_hd_params(phys_gamma, ixArray)
@@ -295,7 +266,7 @@ contains
   !> ixArray : an array with the indices of the variables
   !> mhd_get_temperature_from_etot, mhd_get_temperature_from_eint subroutines which calculates temperature
   !> mhd_ei_to_e, mhd_e_to_ei subroutines which calculates e_tot from e_int and e_int from e_tot
-  subroutine tc_init_hd_for_total_energy(phys_gamma,ixArray,hd_get_temperature_from_etot,hd_get_temperature_from_eint,hd_e_to_ei,hd_ei_to_e)
+  subroutine tc_init_hd_for_total_energy(phys_gamma,ixArray,hd_get_temperature_from_etot,hd_get_temperature_from_eint)
     use mod_global_parameters
     use mod_supertimestepping, only: add_sts_method,sts_init,set_conversion_methods_to_head,set_error_handling_to_head
     use mod_physics, only: phys_ei_to_e, phys_e_to_ei
@@ -304,20 +275,6 @@ contains
     integer, intent(in) :: ixArray(:)
 
     interface
-      subroutine hd_e_to_ei(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-      end subroutine hd_e_to_ei
-      
-      subroutine hd_ei_to_e(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-      end subroutine hd_ei_to_e
-
       subroutine hd_get_temperature_from_etot(w, x, ixI^L, ixO^L, res)
         use mod_global_parameters
         integer, intent(in)          :: ixI^L, ixO^L
@@ -328,7 +285,6 @@ contains
   
       subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
         use mod_global_parameters
-        use mod_small_values, only: small_values_method
         integer, intent(in)          :: ixI^L, ixO^L
         double precision, intent(in) :: w(ixI^S, 1:nw)
         double precision, intent(in) :: x(ixI^S, 1:ndim)
@@ -342,26 +298,10 @@ contains
     get_temperature_from_conserved => hd_get_temperature_from_etot
     call sts_init()
     call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
-
-    if(eaux_.ne.-1) then
-      call set_conversion_methods_to_head(hd_e_to_ei, set_ei_and_ei_to_e)
-    else
-      call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
-    endif
+    call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     if(fix_small_values) call set_error_handling_to_head(handle_small_e)
 
-    contains
-
-      subroutine set_ei_and_ei_to_e(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-        !internal energy is stored in e_
-        w(ixI^S,eaux_)=w(ixI^S,e_)
-        call hd_ei_to_e(ixI^L,ixI^L,w,x)
-      end subroutine set_ei_and_ei_to_e
   end subroutine tc_init_hd_for_total_energy
 
   !> Initialize the module
@@ -381,7 +321,6 @@ contains
     interface
       subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
         use mod_global_parameters
-        use mod_small_values, only: small_values_method
         integer, intent(in)          :: ixI^L, ixO^L
         double precision, intent(in) :: w(ixI^S, 1:nw)
         double precision, intent(in) :: x(ixI^S, 1:ndim)
@@ -394,6 +333,7 @@ contains
     get_temperature_from_conserved => hd_get_temperature_from_eint
     call sts_init()
     call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
+
     if(fix_small_values) call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_hd_for_internal_energy
