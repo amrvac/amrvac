@@ -129,7 +129,7 @@ contains
       xf(:,j)=data_recv
     enddo
 
-    do j=1,nw
+    do j=1,nw+ndir
       if (wRT(j)) then
         data_send=wB(:,j)
         call MPI_ALLREDUCE(data_send,data_recv,numP,MPI_DOUBLE_PRECISION,&
