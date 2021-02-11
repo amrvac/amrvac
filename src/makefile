@@ -10,7 +10,8 @@ mod_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t mod_geometry.t	\
 mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t mod_weno.t       \
 mod_venk.t mod_limiter.t mod_fix_conserve.t mod_source.t mod_initialize.t       \
 mod_amrvac.t mod_bc_data.t mod_lookup_table.t mod_amr_fct.t                     \
-mod_constrained_transport.t mod_multigrid_coupling.t mod_space_filling_curve.t
+mod_constrained_transport.t mod_multigrid_coupling.t mod_space_filling_curve.t  \
+mod_supertimestepping.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -126,7 +127,6 @@ mod_hd_phys.o: mod_physics.mod
 mod_hd_phys.o: mod_radiative_cooling.mod
 mod_hd_phys.o: mod_rotating_frame.mod
 mod_hd_phys.o: mod_small_values.mod
-mod_hd_phys.o: mod_tc.mod
 mod_hd_phys.o: mod_thermal_conduction.mod
 mod_hd_phys.o: mod_viscosity.mod
 mod_hd_ppm.o: mod_geometry.mod
@@ -150,6 +150,7 @@ mod_input_output.o: mod_particles.mod
 mod_input_output.o: mod_physics.mod
 mod_input_output.o: mod_slice.mod
 mod_input_output.o: mod_small_values.mod
+mod_input_output.o: mod_source.mod
 mod_input_output.o: mod_timing.mod
 mod_limiter.o: mod_mp5.mod
 mod_limiter.o: mod_ppm.mod
@@ -188,7 +189,6 @@ mod_mhd_phys.o: mod_physics.mod
 mod_mhd_phys.o: mod_radiative_cooling.mod
 mod_mhd_phys.o: mod_small_values.mod
 mod_mhd_phys.o: mod_supertimestepping.mod
-mod_mhd_phys.o: mod_tc.mod
 mod_mhd_phys.o: mod_thermal_conduction.mod
 mod_mhd_phys.o: mod_viscosity.mod
 mod_mhd_ppm.o: mod_geometry.mod
@@ -260,22 +260,16 @@ mod_solar_atmosphere.o: mod_interpolation.mod
 mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_physics.mod
 mod_source.o: mod_supertimestepping.mod
-mod_source.o: mod_thermal_conduction.mod
 mod_supertimestepping.o: mod_fix_conserve.mod
 mod_supertimestepping.o: mod_geometry.mod
 mod_supertimestepping.o: mod_ghostcells_update.mod
 mod_supertimestepping.o: mod_physics.mod
 mod_supertimestepping.o: mod_small_values.mod
-mod_tc.o: mod_fix_conserve.mod
-mod_tc.o: mod_geometry.mod
-mod_tc.o: mod_physics.mod
-mod_tc.o: mod_small_values.mod
-mod_tc.o: mod_supertimestepping.mod
 mod_thermal_conduction.o: mod_fix_conserve.mod
 mod_thermal_conduction.o: mod_geometry.mod
-mod_thermal_conduction.o: mod_ghostcells_update.mod
 mod_thermal_conduction.o: mod_physics.mod
 mod_thermal_conduction.o: mod_small_values.mod
+mod_thermal_conduction.o: mod_supertimestepping.mod
 mod_thermal_emission.o: mod_physics.mod
 mod_trac.o: mod_mhd.mod
 mod_trac.o: mod_particle_base.mod
@@ -294,5 +288,4 @@ refine.o: mod_physics.mod
 set_B0.o: mod_geometry.mod
 setdt.o: mod_physics.mod
 setdt.o: mod_supertimestepping.mod
-setdt.o: mod_thermal_conduction.mod
 setdt.o: mod_trac.mod

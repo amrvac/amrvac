@@ -523,10 +523,6 @@ module mod_global_parameters
   !> Which time integrator to use
   character(len=std_len) :: time_integrator
 
-  !> How to apply dimensional splitting to the source terms, see
-  !> @ref discretization.md
-  character(len=std_len) :: typesourcesplit
-
   !> Which spatial discretization to use (per grid level)
   character(len=std_len), allocatable :: flux_scheme(:)
 

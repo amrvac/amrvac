@@ -1197,7 +1197,6 @@ module mod_fix_conserve
 
    end subroutine add_sub_circ
 
-
   !!this conserves fluxed put by store_flux_var
   !used for the sts methods where not all the fluxes are stored and fixed.
   subroutine fix_conserve_vars(tmpPs, indexChangeStart, indexChangeN, indexChangeFixC)
@@ -1207,23 +1206,22 @@ module mod_fix_conserve
     logical, intent(in), dimension(:) :: indexChangeFixC
     integer :: i,storeIndex,j
 
-      call recvflux(1,ndim)
-      call sendflux(1,ndim)
-      storeIndex = 1
-      !!This is consistent with the subroutine in mod_mhs_phys which gets the indices where
-      !!to store the fluxes in mod_fix_conserve, set_sts_sources_ambipolar 
-      do i = 1,size(indexChangeStart)
-        if (indexChangeFixC(i)) then 
-          !this has to be done one by one, as they are not stored at contiguous locations
-          do j = 0,indexChangeN(i)-1
-            call fix_conserve1(tmpPs,1,ndim,indexChangeStart(i),storeIndex+j, 1)
-          enddo
-          storeIndex = storeIndex + indexChangeN(i)
-        endif
-      end do
+    call recvflux(1,ndim)
+    call sendflux(1,ndim)
+    storeIndex = 1
+    !!This is consistent with the subroutine in mod_mhs_phys which gets the indices where
+    !!to store the fluxes in mod_fix_conserve, set_sts_sources_ambipolar 
+    do i = 1,size(indexChangeStart)
+      if (indexChangeFixC(i)) then 
+        !this has to be done one by one, as they are not stored at contiguous locations
+        do j = 0,indexChangeN(i)-1
+          call fix_conserve1(tmpPs,1,ndim,indexChangeStart(i),storeIndex+j, 1)
+        enddo
+        storeIndex = storeIndex + indexChangeN(i)
+      endif
+    end do
 
   end subroutine fix_conserve_vars
-
 
   !!this stores the fluxes one at a time, even if ..
   subroutine store_flux_var(flux,indexVar,my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
@@ -1239,6 +1237,7 @@ module mod_fix_conserve
     logical :: found
 
     storeIndex = 0
+    i=1
     found = .false.
     do while (.not. found .and. i .le. size(indexChangeStart))
       if(indexChangeStart(i) .le. indexVar .and. indexVar .le. indexChangeStart(i) + indexChangeN(i) ) then
@@ -1260,9 +1259,5 @@ module mod_fix_conserve
       deallocate(fluxC)
     endif
   end subroutine store_flux_var
-
-
-
-
 
 end module mod_fix_conserve

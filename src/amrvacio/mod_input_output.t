@@ -170,6 +170,7 @@ contains
     use mod_limiter
     use mod_slice
     use mod_geometry
+    use mod_source
 
     logical          :: fileopen, file_exists
     integer          :: i, j, k, ifile, io_state
@@ -188,6 +189,9 @@ contains
     character(len=std_len), allocatable :: limiter(:)
     character(len=std_len), allocatable :: gradient_limiter(:)
     character(len=name_len) :: stretch_dim(ndim)
+    !> How to apply dimensional splitting to the source terms, see
+    !> @ref discretization.md
+    character(len=std_len) :: typesourcesplit
 
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
@@ -1002,6 +1006,21 @@ contains
     if(typedimsplit   =='default'.and..not.dimsplit)   typedimsplit='unsplit'
     dimsplit   = typedimsplit   /='unsplit'
 
+    ! initialize types of split-source addition
+    select case (typesourcesplit)
+    case ('sfs')
+      sourcesplit=sourcesplit_sfs
+    case ('sf')
+      sourcesplit=sourcesplit_sf
+    case ('ssf')
+      sourcesplit=sourcesplit_ssf
+    case ('ssfss')
+      sourcesplit=sourcesplit_ssfss
+    case default
+       write(unitterm,*)'No such typesourcesplit=',typesourcesplit
+       call mpistop("Error: Unknown typesourcesplit!")
+    end select
+
     if(coordinate==-1) then
       coordinate=Cartesian
       if(mype==0) then
@@ -1350,12 +1369,6 @@ contains
       write(unitterm,*) "Sum of all elements in w_refine_weight be 1.d0"
       call mpistop("Reset w_refine_weight so the sum is 1.d0")
     end if
-
-    ! TRAC is only for temperature (energy)
-!    if(.not.phys_energy .and. phys_trac) then
-!      if (mype==0) write(unitterm, '(A)') "Warning, TRAC is not for energy-independent problems, change trac to false."
-!      phys_trac=.false.
-!    end if
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '
 

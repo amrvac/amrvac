@@ -1,6 +1,6 @@
 !> Generic supertimestepping method
-!>1) in amrvac,par in sts_list set the following parameters which have the default values: 
-!> sts_dtpar=0.9,sts_ncycles=1000,method_sts=1,sourcetype_sts=2
+!> 1) in amrvac.par in sts_list set the following parameters which have the default values: 
+!> sts_dtpar=0.9,sts_ncycles=1000,sts_method=1,sourcetype_sts=2
 !> These parametes are general for all the methods added TODO: check if there is any need
 !> to have terms implemented with different sets of parameters, and these cannot be general anymore
 !> 2) then add programatically in the code a term with the subroutine
@@ -33,11 +33,11 @@ module mod_supertimestepping
   double precision :: sts_dtpar=0.9d0 
   !> the maximum number of subcycles
   integer :: sts_ncycles=1000 
-  integer :: method_sts = 1
+  integer :: sts_method = 1
   integer, parameter :: sourcetype_sts_prior =0
   integer, parameter :: sourcetype_sts_after =1
   integer, parameter :: sourcetype_sts_split =2
-  integer :: sourcetype_sts = sourcetype_sts_after
+  integer :: sourcetype_sts = sourcetype_sts_split
 
   !The following is used only for method 2, not input parameter TODO check if we want as input parameter
   double precision,parameter :: nu_sts = 0.5
@@ -105,8 +105,8 @@ module mod_supertimestepping
 
   type sts_term
 
-    procedure (subr2), pointer, nopass :: sts_getdt
     procedure (subr1), pointer, nopass :: sts_set_sources
+    procedure (subr2), pointer, nopass :: sts_getdt
     procedure (subr5), pointer, nopass :: sts_before_first_cycle, sts_after_last_cycle
     procedure (subr_e), pointer, nopass :: sts_handle_errors
     type(sts_term), pointer :: next
@@ -137,13 +137,44 @@ module mod_supertimestepping
 
 contains
 
+  !> Initialize sts module
+  subroutine sts_init()
+    use mod_global_parameters
+    use mod_physics
+    if(.not. sts_initialized) then  
+      nullify(head_sts_terms)
+      call sts_params_read(par_files)
+      sts_dtpar=sts_dtpar/dble(ndim)
+      sts_initialized = .true.
+      if(sts_method .eq. 1) then
+        sts_add_source => sts_add_source1
+        sts_get_ncycles => sts_get_ncycles1
+      else if(sts_method .eq. 2) then
+        sts_add_source => sts_add_source2
+        sts_get_ncycles => sts_get_ncycles2
+      else
+        call mpistop("Unknown sts method")
+      end if
+    endif
+
+  end subroutine sts_init
+
+  pure function is_sts_initialized() result(res)
+    logical :: res
+    if (sts_initialized) then
+      res = associated(head_sts_terms)
+    else
+      res = .false.
+    endif
+  end function is_sts_initialized
+
   !> Read module parameters from par file
   subroutine sts_params_read(files)
     use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /sts_list/ sts_dtpar,sts_ncycles,method_sts,sourcetype_sts
+    namelist /sts_list/ sts_dtpar,sts_ncycles,sts_method,sourcetype_sts
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -153,7 +184,7 @@ contains
 
   end subroutine sts_params_read
 
-  !> subroutine wich added programatically a term to be calculated usong STS
+  !> subroutine which added programatically a term to be calculated using STS
   !> Params: 
   !> sts_getdt function calculates the explicit timestep for this term
   !> sts_set_sources subroutine sets the source term
@@ -175,6 +206,7 @@ contains
     logical, intent(in) :: ixChangeFixC(:) 
 
     interface
+
       subroutine sts_set_sources(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
         use mod_global_parameters
         integer, intent(in) :: ixI^L, ixO^L, igrid
@@ -198,21 +230,6 @@ contains
 
     type(sts_term), pointer  :: temp
     allocate(temp)
-    !!types cannot be initialized here TODO see when init in mhd_phys is called
-!    type_send_srl=>temp%type_send_srl_sts
-!    type_recv_srl=>temp%type_recv_srl_sts
-!    type_send_r=>temp%type_send_r_sts
-!    type_recv_r=>temp%type_recv_r_sts
-!    type_send_p=>temp%type_send_p_sts
-!    type_recv_p=>temp%type_recv_p_sts
-!    call create_bc_mpi_datatype(startVar,endVar-startVar+1)
-!    ! point bc mpi data type back to full type for (M)HD
-!    type_send_srl=>type_send_srl_f
-!    type_recv_srl=>type_recv_srl_f
-!    type_send_r=>type_send_r_f
-!    type_recv_r=>type_recv_r_f
-!    type_send_p=>type_send_p_f
-!    type_recv_p=>type_recv_p_f
 
     temp%sts_getdt => sts_getdt
     temp%sts_set_sources => sts_set_sources
@@ -238,8 +255,8 @@ contains
 
   end subroutine add_sts_method
 
-  !> Sets the hooks called before the first cycle and after the last cycle in the STS update
-  !>This method should be called after add_sts_method. The hooks are added to the last term added with this subroutine
+  !> Set the hooks called before the first cycle and after the last cycle in the STS update
+  !> This method should be called after add_sts_method. The hooks are added to the last term added with this subroutine
   !> Params: sts_before_first_cycle, sts_after_last_cycle subroutines which implement the hooks called before first cycle and after last cycle
   subroutine set_conversion_methods_to_head(sts_before_first_cycle, sts_after_last_cycle)
     interface
@@ -263,7 +280,7 @@ contains
 
   end subroutine set_conversion_methods_to_head
 
-  !> Sets the hook of error handling in the STS update. This methios is called before updating the BC.
+  !> Set the hook of error handling in the STS update. This method is called before updating the BC.
   !> This method should be called after add_sts_method. The hook is added to the last term added with this subroutine.
   !> Param: sts_error_handing the subroutine which handles the errors
   subroutine set_error_handling_to_head(sts_error_handling)
@@ -280,39 +297,6 @@ contains
     head_sts_terms%sts_handle_errors => sts_error_handling
 
   end subroutine set_error_handling_to_head
-
-  !> Initialize sts module
-  subroutine sts_init()
-    use mod_global_parameters
-    use mod_physics
-    if(.not. sts_initialized) then  
-      nullify(head_sts_terms)
-      call sts_params_read(par_files)
-      sts_dtpar=sts_dtpar/dble(ndim)
-      sts_initialized = .true.
-      if(method_sts .eq. 1) then
-        sts_add_source => sts_add_source1
-        sts_get_ncycles => sts_get_ncycles1
-        if(mype .eq. 0) print*, "Method 1 STS"
-      else if(method_sts .eq. 2) then
-        sts_add_source => sts_add_source2
-        sts_get_ncycles => sts_get_ncycles2
-        if(mype .eq. 0) print*, "Method 2 STS"
-      else
-        call mpistop("Unknown sts method")
-      end if
-    endif
-
-  end subroutine sts_init
-
-  pure function is_sts_initialized() result(res)
-    logical :: res
-    if (sts_initialized) then
-      res = associated(head_sts_terms)
-    else
-      res = .false.
-    endif
-  end function is_sts_initialized
 
   !> method used to set the number of cycles for the STS1 method
   function sts_get_ncycles1(dt,dtnew,dt_modified) result (is)
@@ -368,7 +352,7 @@ contains
 
   end  function sts_get_ncycles2
 
-  !> This sets the expliict dt and calculates the number of cycles for each of the terms implemented with STS.
+  !> This sets the explicit dt and calculates the number of cycles for each of the terms implemented with STS.
   function set_dt_sts_ncycles(my_dt) result(dt_modified)
     use mod_global_parameters
 
@@ -389,42 +373,42 @@ contains
       !$OMP PARALLEL DO PRIVATE(igrid,dtnew,&
       !$OMP& dx^D) REDUCTION(min:dtmin_mype)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          !!maybe the following global variables are neeeded in get_dt!
-          ! next few lines ensure correct usage of routines like divvector etc
-            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-            block=>ps(igrid)
-            typelimiter=type_limiter(node(plevel_,igrid))
-            typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-            !!end maybe the following global variables are neeeded in get_dt!!!!!!!
-            dx^D=rnode(rpdx^D_,igrid);
-            dtmin_mype=min(dtmin_mype, sts_dtpar * temp%sts_getdt(ps(igrid)%w,ixG^LL,ixM^LL,dx^D,ps(igrid)%x))
+         ! maybe the following global variables are needed in get_dt!
+         ! next few lines ensure correct usage of routines like divvector etc
+         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+         block=>ps(igrid)
+         typelimiter=type_limiter(node(plevel_,igrid))
+         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+         ! end maybe the following global variables are needed in get_dt!!!!!!!
+         dx^D=rnode(rpdx^D_,igrid);
+         dtmin_mype=min(dtmin_mype, sts_dtpar * temp%sts_getdt(ps(igrid)%w,ixG^LL,ixM^LL,dx^D,ps(igrid)%x))
       end do
       !$OMP END PARALLEL DO
-      call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN, &
-                               icomm,ierrmpi)
+      call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN,icomm,ierrmpi)
       temp%s = sts_get_ncycles(my_dt,dtnew,dt_modified2)
-        
+
       !print*, "NCYCLES ", temp%s, dt_modified2, my_dt
       temp%dt_expl = dtnew
  
-       ! Note that as for some term it may happen that the dt is modified: it may be reduced if the
-       ! number of cycles is overpassed, the list has to be reiterated
-       if(dt_modified2) then
+      ! Note that as for some term it may happen that the dt is modified: it may be reduced if the
+      ! number of cycles is overpassed, the list has to be reiterated to update ncycles for previous 
+      ! terms which did not modify dt TODO add pointer to previous and loop backward to update
+      if(dt_modified2) then
         dt_modified = .true.
         !reiterate all the other sts elements and recalculate s 
-         oldTemp => head_sts_terms
-         my_dt1 = my_dt
-         dt_modified1 = .false.
-         do while(.not. associated(oldTemp,temp))  
-          oldTemp%s = sts_get_ncycles(my_dt1,oldTemp%dt_expl,dt_modified1) 
-          !check dt is not modified again, and this should not happen, except for bug in sts_get_ncycles1,2
-          if(dt_modified1) call mpistop("sts dt modified twice")  
-          oldTemp=>oldTemp%next
-         enddo 
-       endif
-       temp=>temp%next
+        oldTemp => head_sts_terms
+        my_dt1 = my_dt
+        dt_modified1 = .false.
+        do while(.not. associated(oldTemp,temp))  
+         oldTemp%s = sts_get_ncycles(my_dt1,oldTemp%dt_expl,dt_modified1) 
+         !check dt is not modified again, and this should not happen, except for bug in sts_get_ncycles1,2
+         if(dt_modified1) call mpistop("sts dt modified twice")  
+         oldTemp=>oldTemp%next
+        end do 
+      end if
+      temp=>temp%next
 
-    enddo
+    end do
 
   end function set_dt_sts_ncycles
 
@@ -600,7 +584,7 @@ contains
 
     double precision, intent(in) :: my_dt
     double precision :: dtj
-    double precision :: omega1,cmu,cmut,cnu,cnut
+    double precision :: omega1,cmu,cmut,cnu,cnut,one_mu_nu
     double precision, allocatable :: bj(:)
     integer:: iigrid, igrid,j,i,ii,ii2
     logical :: evenstep, stagger_flag, prolong_flag, coarsen_flag
@@ -629,10 +613,6 @@ contains
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(associated(temp%sts_before_first_cycle)) then
           call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)  
-          ! copied from mod_thermal_conduction, as the same operation
-          ! needed for the coarse block, in physical boundaries
-          if(any(ps(igrid)%is_physical_boundary)) &
-              call temp%sts_before_first_cycle(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
         end if 
         if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
         if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
@@ -643,7 +623,6 @@ contains
         ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
         ps2(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
         ps3(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-        ps4(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
       end do
       !$OMP END PARALLEL DO
 
@@ -712,6 +691,7 @@ contains
         cmut=omega1*cmu
         cnu=dble(1-j)/dble(j)*bj(j)/bj(j-2)
         cnut=(bj(j-1)-1.d0)*cmut
+        one_mu_nu=1.d0-cmu-cnu
         if(evenstep) then
           tmpPs1=>ps1
           tmpPs2=>ps2
@@ -723,25 +703,25 @@ contains
         dtj = cmut*my_dt
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          !!maybe the following global variables are neeeded in set_sources!!!!!!!
+          ! maybe the following global variables are needed in set_sources
           ! next few lines ensure correct usage of routines like divvector etc
-            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-            block=>ps(igrid)
-            typelimiter=type_limiter(node(plevel_,igrid))
-            typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-            !!end maybe the following global variables are neeeded in set_sources!!!!!!!
-            call temp%sts_set_sources(ixG^LL,ixM^LL,tmpPs1(igrid)%w, ps(igrid)%x,ps4(igrid)%w, fix_conserve_at_step,dtj, &
-                                    igrid, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
-            do i = 1,size(temp%ixChangeStart)
-              ii=temp%ixChangeStart(i)
-              ii2 = ii + temp%ixChangeN(i) - 1
-              tmpPs2(igrid)%w(ixM^T,ii:ii2)=cmu*tmpPs1(igrid)%w(ixM^T,ii:ii2)+cnu*tmpPs2(igrid)%w(ixM^T,ii:ii2)+(1.d0-cmu-cnu)*ps(igrid)%w(ixM^T,ii:ii2)&
-                        +dtj*ps4(igrid)%w(ixM^T,ii:ii2)+cnut*ps3(igrid)%w(ixM^T,ii:ii2)
-            end do
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
+          typelimiter=type_limiter(node(plevel_,igrid))
+          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+          ! end maybe the following global variables are needed in set_sources
+          call temp%sts_set_sources(ixG^LL,ixM^LL,tmpPs1(igrid)%w, ps(igrid)%x,ps4(igrid)%w, fix_conserve_at_step,dtj, &
+                                  igrid, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+          do i = 1,size(temp%ixChangeStart)
+            ii=temp%ixChangeStart(i)
+            ii2 = ii + temp%ixChangeN(i) - 1
+            tmpPs2(igrid)%w(ixM^T,ii:ii2)=cmu*tmpPs1(igrid)%w(ixM^T,ii:ii2)+cnu*tmpPs2(igrid)%w(ixM^T,ii:ii2)+one_mu_nu*ps(igrid)%w(ixM^T,ii:ii2)&
+                      +dtj*ps4(igrid)%w(ixM^T,ii:ii2)+cnut*ps3(igrid)%w(ixM^T,ii:ii2)
+          end do
         end do
         !$OMP END PARALLEL DO
-        if (fix_conserve_at_step) call fix_conserve_vars(tmpPs2, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
-        if(associated(temp%sts_handle_errors))  then
+        if(fix_conserve_at_step) call fix_conserve_vars(tmpPs2, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+        if(associated(temp%sts_handle_errors)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
             call temp%sts_handle_errors(tmpPs2(igrid)%w,tmpPs2(igrid)%x,ixG^LL,ixM^LL,j)
@@ -759,17 +739,13 @@ contains
           ii2 = ii + temp%ixChangeN(i) - 1
           ps(igrid)%w(ixG^T,ii:ii2)=tmpPs2(igrid)%w(ixG^T,ii:ii2)
         end do 
+        if(associated(temp%sts_after_last_cycle)) then 
+          call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+        endif
       end do 
       !$OMP END PARALLEL DO
 
       deallocate(bj)
-      if(associated(temp%sts_after_last_cycle)) then 
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-          if(any(ps(igrid)%is_physical_boundary)) &
-            call temp%sts_after_last_cycle(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
-        end do 
-      endif
 
       temp=>temp%next
     end do

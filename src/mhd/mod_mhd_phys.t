@@ -10,11 +10,10 @@ module mod_mhd_phys
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_thermal_conduction = .false.
 
-  !> type of TC used: 0: original module (MHD implementation), 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
-  integer, parameter, private             :: ORIG_MHD_TC =0
+  !> type of TC used: 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
   integer, parameter, private             :: MHD_TC =1
   integer, parameter, private             :: HD_TC =2
-  integer, protected                      :: use_mhd_tc = ORIG_MHD_TC
+  integer, protected                      :: use_mhd_tc = MHD_TC
 
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
@@ -293,7 +292,6 @@ contains
   subroutine mhd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
-    use mod_tc
     use mod_radiative_cooling
     use mod_viscosity, only: viscosity_init
     use mod_gravity, only: gravity_init
@@ -568,17 +566,15 @@ contains
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
       phys_req_diagonal = .true.
-      if(use_mhd_tc .eq. ORIG_MHD_TC) then
-        call thermal_conduction_init(mhd_gamma)
-      else if(use_mhd_tc .eq. MHD_TC) then
+      if(use_mhd_tc .eq. MHD_TC) then
 
         if(mhd_internal_e) then
           call tc_init_mhd_for_internal_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_eint)
         else
           if(mhd_solve_eaux) then
-            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           else
-            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           endif
         endif
 
@@ -587,12 +583,11 @@ contains
           call tc_init_hd_for_internal_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_eint)
         else
           if(mhd_solve_eaux) then
-            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_,eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint,mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_,eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           else
-            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint, mhd_e_to_ei1, mhd_ei_to_e1)
+            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
           endif
         endif
-
       endif
     end if
 
@@ -807,11 +802,10 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
  
     ! Calculate total energy from internal, kinetic and magnetic energy
-    if(total_energy) then
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                 +mhd_kin_en(w,ixI^L,ixO^L)&
-                 +mhd_mag_en(w,ixI^L,ixO^L)
-    end if
+    if(mhd_solve_eaux) w(ixI^S,eaux_)=w(ixI^S,e_)
+    w(ixO^S,e_)=w(ixO^S,e_)&
+               +mhd_kin_en(w,ixI^L,ixO^L)&
+               +mhd_mag_en(w,ixI^L,ixO^L)
 
   end subroutine mhd_ei_to_e
 
@@ -823,11 +817,9 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate ei = e - ek - eb
-    if(total_energy) then
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                  -mhd_kin_en(w,ixI^L,ixO^L)&
-                  -mhd_mag_en(w,ixI^L,ixO^L)
-    end if
+    w(ixO^S,e_)=w(ixO^S,e_)&
+                -mhd_kin_en(w,ixI^L,ixO^L)&
+                -mhd_mag_en(w,ixI^L,ixO^L)
 
   end subroutine mhd_e_to_ei
 
@@ -1378,7 +1370,6 @@ contains
     end if
   end subroutine mhd_get_pthermal
 
-  !!the following are used for the new TC: mod_tc
   !> Calculate temperature=p/rho when in e_ the internal energy is stored
   subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
@@ -1403,38 +1394,6 @@ contains
            - mhd_kin_en(w,ixI^L,ixO^L)&
            - mhd_mag_en(w,ixI^L,ixO^L)))/w(ixO^S,rho_)
   end subroutine mhd_get_temperature_from_etot
-
-  !> Transform internal energy to total energy
-  !these are very similar to the subroutines without 1, used in mod_thermal_conductivity
-  !but with no check for the flags (it is done when adding them as hooks in the STS update)
-  subroutine mhd_ei_to_e1(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
- 
-    ! Calculate total energy from internal, kinetic and magnetic energy
-      w(ixO^S,e_)=w(ixO^S,e_)&
-                 +mhd_kin_en(w,ixI^L,ixO^L)&
-                 +mhd_mag_en(w,ixI^L,ixO^L)
-
-  end subroutine mhd_ei_to_e1
-
-  !> Transform total energy to internal energy
-  subroutine mhd_e_to_ei1(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-
-    ! Calculate ei = e - ek - eb
-    w(ixO^S,e_)=w(ixO^S,e_)&
-                  -mhd_kin_en(w,ixI^L,ixO^L)&
-                  -mhd_mag_en(w,ixI^L,ixO^L)
-
-  end subroutine mhd_e_to_ei1
-  !!the following are used for the new TC: mod_tc END
-
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
@@ -1684,13 +1643,14 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision  :: tmp(ixI^S)
     double precision, allocatable, dimension(:^D&,:) :: jxbxb
-      allocate(jxbxb(ixI^S,1:3))
-      call mhd_get_jxbxb(wCT,x,ixI^L,ixO^L,jxbxb)
-      tmp(ixO^S) = sum(jxbxb(ixO^S,1:3)**2,dim=ndim+1) / mhd_mag_en_all(wCT, ixI^L, ixO^L)
-      call multiplyAmbiCoef(ixI^L,ixO^L,tmp,wCT,x)   
-      w(ixO^S,ie)=w(ixO^S,ie)+qdt * tmp
-      deallocate(jxbxb)
-    end subroutine add_source_ambipolar_internal_energy
+
+    allocate(jxbxb(ixI^S,1:3))
+    call mhd_get_jxbxb(wCT,x,ixI^L,ixO^L,jxbxb)
+    tmp(ixO^S) = sum(jxbxb(ixO^S,1:3)**2,dim=ndim+1) / mhd_mag_en_all(wCT, ixI^L, ixO^L)
+    call multiplyAmbiCoef(ixI^L,ixO^L,tmp,wCT,x)   
+    w(ixO^S,ie)=w(ixO^S,ie)+qdt * tmp
+    deallocate(jxbxb)
+  end subroutine add_source_ambipolar_internal_energy
 
   subroutine mhd_get_jxbxb(w,x,ixI^L,ixO^L,res)
     use mod_global_parameters
