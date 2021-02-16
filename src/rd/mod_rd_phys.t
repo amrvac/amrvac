@@ -14,11 +14,12 @@ module mod_rd_phys
   integer, protected, public :: v_ = 2
 
   !> Whether particles module is added
-  logical, public, protected              :: rd_particles = .false.
+  logical, public, protected :: rd_particles = .false.
 
   integer            :: equation_type   = 1
   integer, parameter :: eq_gray_scott   = 1
   integer, parameter :: eq_schnakenberg = 2
+  integer, parameter :: eq_brusselator  = 3
 
   !> Diffusion coefficient for first species (u)
   double precision, public, protected :: D1 = 0.05d0
@@ -37,6 +38,11 @@ module mod_rd_phys
   !> Parameter for Gray-Scott model
   double precision, public, protected :: gs_k = 0.063d0
 
+  !> Parameter for Brusselator model
+  double precision, public, protected :: br_A = 4.5d0
+  !> Parameter for Brusselator model
+  double precision, public, protected :: br_B = 8.0d0
+
   !> Whether to handle the explicitly handled source term in split fashion
   logical :: rd_source_split = .false.
 
@@ -52,7 +58,7 @@ contains
     character(len=20)            :: equation_name
 
     namelist /rd_list/ D1, D2, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
-         equation_name, rd_particles, rd_source_split
+        br_A, br_B, equation_name, rd_particles, rd_source_split
 
     equation_name = "gray-scott"
 
@@ -67,13 +73,15 @@ contains
        equation_type = eq_gray_scott
     case ("schnakenberg")
        equation_type = eq_schnakenberg
+    case ("brusselator")
+        equation_type = eq_brusselator
     case default
-       call mpistop("Unknown equation_name (not gray-scott or schnakenberg)")
+       call mpistop("Unknown equation_name (not gray-scott, schnakenberg or brussselator)")
     end select
 
   end subroutine rd_params_read
 
-  !> Write this module's parameters to a snapsoht
+  !> Write this module's parameters to a snapshot
   subroutine rd_write_info(fh)
     use mod_global_parameters
     integer, intent(in)                 :: fh
@@ -235,6 +243,10 @@ contains
        maxrate = max(maxval(abs(w(ixO^S, v_) * w(ixO^S, u_) - 1)), &
             maxval(w(ixO^S, u_))**2)
        dtnew = min(dtnew, 0.5d0/(sb_kappa * maxrate))
+    case (eq_brusselator)
+       maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)), &
+            maxval(w(ixO^S, u_)**2) )
+       dtnew = min(dtnew, 0.5d0/maxrate)
     case default
        call mpistop("Unknown equation type")
     end select
@@ -290,6 +302,13 @@ contains
                wCT(ixO^S, u_)**2 * wCT(ixO^S, v_)))
           w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
                + sb_kappa * (sb_beta - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_)))
+       case (eq_brusselator)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
+               + br_A - (br_B + 1) * wCT(ixO^S, u_) &
+               + wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
+          w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
+               + br_B * wCT(ixO^S, u_) &
+               - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
        case default
           call mpistop("Unknown equation type")
        end select
