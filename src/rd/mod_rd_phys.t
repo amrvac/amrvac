@@ -74,7 +74,7 @@ contains
     case ("schnakenberg")
        equation_type = eq_schnakenberg
     case ("brusselator")
-        equation_type = eq_brusselator
+       equation_type = eq_brusselator
     case default
        call mpistop("Unknown equation_name (not gray-scott, schnakenberg or brussselator)")
     end select
@@ -166,10 +166,9 @@ contains
           case ('periodic')
              ! Nothing to do here
           case default
-             print *, "divb_multigrid warning: unknown b.c.: ", &
+             print *, "divb_multigrid error: unknown b.c.: ", &
                   trim(typeboundary(u_, n))
-             mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
-             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
+             call mpistop("Boundary conditions not (yet) supported")
           end select
        end do
     end if
@@ -261,7 +260,6 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
     double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: v(ixI^S)
 
     f(ixO^S, :) = 0.0d0
   end subroutine rd_get_flux
