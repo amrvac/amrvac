@@ -11,11 +11,13 @@ module mod_rd_phys
   private
 
   integer, protected, public :: u_ = 1
-  integer, protected, public :: v_ = 2
+  integer, protected, public :: v_ = 2 ! For 2 or more equations
+  integer, protected, public :: w_ = 3 ! For 3 or more equations
 
   !> Whether particles module is added
   logical, public, protected :: rd_particles = .false.
 
+  integer            :: number_of_species = 2
   integer            :: equation_type   = 1
   integer, parameter :: eq_gray_scott   = 1
   integer, parameter :: eq_schnakenberg = 2
@@ -23,8 +25,10 @@ module mod_rd_phys
 
   !> Diffusion coefficient for first species (u)
   double precision, public, protected :: D1 = 0.05d0
-  !> Diffusion coefficient for second species (v)
+  !> Diffusion coefficient for second species (v) (if applicable)
   double precision, public, protected :: D2 = 1.0d0
+  !> Diffusion coefficient for third species (w) (if applicable)
+  double precision, public, protected :: D3 = 1.0d0
 
   !> Parameter for Schnakenberg model
   double precision, public, protected :: sb_alpha = 0.1305d0
@@ -57,7 +61,7 @@ contains
     integer                      :: n
     character(len=20)            :: equation_name
 
-    namelist /rd_list/ D1, D2, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
+    namelist /rd_list/ D1, D2, D3, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
         br_A, br_B, equation_name, rd_particles, rd_source_split
 
     equation_name = "gray-scott"
@@ -71,10 +75,13 @@ contains
     select case (equation_name)
     case ("gray-scott")
        equation_type = eq_gray_scott
+       number_of_species = 2
     case ("schnakenberg")
        equation_type = eq_schnakenberg
+       number_of_species = 2
     case ("brusselator")
        equation_type = eq_brusselator
+       number_of_species = 2
     case default
        call mpistop("Unknown equation_name (not gray-scott, schnakenberg or brussselator)")
     end select
@@ -108,7 +115,12 @@ contains
 
     ! Use the first variable as a density
     u_ = var_set_fluxvar("u", "u")
-    v_ = var_set_fluxvar("v", "v")
+    if (number_of_species >= 2) then
+        v_ = var_set_fluxvar("v", "v")
+    end if
+    if (number_of_species >= 3) then
+        w_ = var_set_fluxvar("w", "w")
+    end if
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
@@ -227,10 +239,18 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(inout) :: dtnew
     double precision                :: maxrate
+    double precision                :: maxD
 
     ! dt < dx^2 / (2 * ndim * diffusion_coeff)
     ! use dtdiffpar < 1 for explicit and > 1 for imex/split
-    dtnew = dtdiffpar * minval([ dx^D ])**2 / (2 * ndim * max(D1, D2))
+    maxD = D1
+    if (number_of_species >= 2) then
+        maxD = max(maxD, D2)
+    end if
+    if (number_of_species >= 3) then
+        maxD = max(maxD, D3)
+    end if
+    dtnew = dtdiffpar * minval([ dx^D ])**2 / (2 * ndim * maxD)
 
     ! Estimate time step for reactions
     select case (equation_type)
@@ -271,7 +291,7 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
-    double precision                :: lpl_u(ixO^S), lpl_v(ixO^S)
+    double precision                :: lpl_u(ixO^S), lpl_v(ixO^S), lpl_w(ixO^S)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
 
@@ -279,11 +299,17 @@ contains
     if (qsourcesplit .eqv. rd_source_split) then
        if (.not.use_imex_scheme) then
           call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, u_), lpl_u)
-          call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, v_), lpl_v)
+          if (number_of_species >= 2) then
+             call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, v_), lpl_v)
+          end if
+          if (number_of_species >= 3) then
+             call rd_laplacian(ixI^L, ixO^L, wCT(ixI^S, w_), lpl_w)
+          end if
        else
           ! for all IMEX scheme variants: only add the reactions
           lpl_u = 0.0d0
           lpl_v = 0.0d0
+          lpl_w = 0.0d0
        end if
 
        select case (equation_type)
@@ -347,10 +373,15 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, 1:nw)
 
-    double precision                :: lpl_u(ixO^S), lpl_v(ixO^S)
+    double precision                :: lpl_u(ixO^S), lpl_v(ixO^S), lpl_w(ixO^S)
 
     call rd_laplacian(ixI^L, ixO^L, w(ixI^S, u_), lpl_u)
-    call rd_laplacian(ixI^L, ixO^L, w(ixI^S, v_), lpl_v)
+    if (number_of_species >= 2) then
+       call rd_laplacian(ixI^L, ixO^L, w(ixI^S, v_), lpl_v)
+    end if
+    if (number_of_species >= 3) then
+       call rd_laplacian(ixI^L, ixO^L, w(ixI^S, w_), lpl_w)
+    end if
 
     w(ixO^S,u_)=D1*lpl_u
     w(ixO^S,v_)=D2*lpl_v
@@ -430,20 +461,40 @@ contains
     ! Done with the u variable ***************************************
 
     ! Next handle the v variable ***************************************
-    lambda = 1/(dtfactor * qdt * D2)
-    call helmholtz_set_lambda(lambda)
+    if (number_of_species >= 2) then
+       lambda = 1/(dtfactor * qdt * D2)
+       call helmholtz_set_lambda(lambda)
 
-    call mg_copy_to_tree(v_, mg_irhs, factor=-lambda, state_from=psb)
-    call mg_copy_to_tree(v_, mg_iphi, state_from=psb)
+       call mg_copy_to_tree(v_, mg_irhs, factor=-lambda, state_from=psb)
+       call mg_copy_to_tree(v_, mg_iphi, state_from=psb)
 
-    call mg_fas_fmg(mg, .true., max_res=res)
-    do n = 1, 10
-       call mg_fas_vcycle(mg, max_res=res)
-       if (res < max_residual) exit
-    end do
+       call mg_fas_fmg(mg, .true., max_res=res)
+       do n = 1, 10
+          call mg_fas_vcycle(mg, max_res=res)
+          if (res < max_residual) exit
+       end do
 
-    call mg_copy_from_tree_gc(mg_iphi, v_, state_to=psa)
+       call mg_copy_from_tree_gc(mg_iphi, v_, state_to=psa)
+    end if
     ! Done with the v variable ***************************************
+
+    ! Next handle the w variable ***************************************
+    if (number_of_species >= 3) then
+       lambda = 1/(dtfactor * qdt * D3)
+       call helmholtz_set_lambda(lambda)
+
+       call mg_copy_to_tree(w_, mg_irhs, factor=-lambda, state_from=psb)
+       call mg_copy_to_tree(w_, mg_iphi, state_from=psb)
+
+       call mg_fas_fmg(mg, .true., max_res=res)
+       do n = 1, 10
+          call mg_fas_vcycle(mg, max_res=res)
+          if (res < max_residual) exit
+       end do
+
+       call mg_copy_from_tree_gc(mg_iphi, w_, state_to=psa)
+    end if
+    ! Done with the w variable ***************************************
 
   end subroutine rd_implicit_update
 
