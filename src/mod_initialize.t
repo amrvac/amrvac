@@ -133,6 +133,13 @@ contains
     ^D&dg^D(1)=dx(^D,1)*dble(block_nx^D)\
     ! number of grid blocks at level 1 in simulation domain, per dimension
     ^D&ng^D(1)=nint((xprobmax^D-xprobmin^D)/dg^D(1))\
+    ! number of grid blocks at level 1 per dimension must be larger than 1 for a rectangular AMR mesh  
+    if(({ng^D(1)==1|.or.}).and.({ng^D(1)/=1|.or.}).and.refine_max_level>1) then
+      write(unitterm,*) "number of grid blocks at level 1 per dimension must ",&
+                        "be larger than 1 for a rectangular AMR mesh!"
+      write(unitterm,*) "increase domain_nx^D"
+      call mpistop("")
+    end if
     ! total number of grid blocks at level 1
     nglev1={ng^D(1)*}
 
