@@ -772,9 +772,9 @@ providing _domain_nx^D_, the number of grid cells per dimension, to cover the fu
 computational domain set by the _xprobmin^D_ and _xprobmax^D_. The resolution
 of each grid block is set by _block_nx^D_ which exclude ghost cells at each side.
 The _domain_nx^D_ must thus be a integer multiple of _block_nx^D_. The number of 
-blocks per dimension on level 1 must be larger than 1 for a rectanuglar mesh with 
-more than one level because of the limitation from ghost-cell exchange at physical 
-boundaries.
+blocks on level 1 in a dimension, which does not have any pole or periodic boundary, 
+must be larger than 1 for a rectanuglar mesh with more than one level because of 
+the limitation from ghost-cell exchange at physical boundaries.
 
 ### refine_criterion, nbufferx^D, amr_wavefilter {#par_errest}
 

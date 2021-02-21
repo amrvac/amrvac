@@ -133,13 +133,6 @@ contains
     ^D&dg^D(1)=dx(^D,1)*dble(block_nx^D)\
     ! number of grid blocks at level 1 in simulation domain, per dimension
     ^D&ng^D(1)=nint((xprobmax^D-xprobmin^D)/dg^D(1))\
-    ! number of grid blocks at level 1 per dimension must be larger than 1 for a rectangular AMR mesh  
-    if(({ng^D(1)==1|.or.}).and.({ng^D(1)/=1|.or.}).and.refine_max_level>1) then
-      write(unitterm,*) "number of grid blocks at level 1 per dimension must ",&
-                        "be larger than 1 for a rectangular AMR mesh!"
-      write(unitterm,*) "increase domain_nx^D"
-      call mpistop("")
-    end if
     ! total number of grid blocks at level 1
     nglev1={ng^D(1)*}
 
@@ -155,9 +148,22 @@ contains
        call mpistop("domain cannot be divided by meshes of given gridsize")
     end if
 
-
     poleB=.false.
     if (.not.slab) call set_pole
+
+    ! number of grid blocks at level 1 along a dimension, which does not have a pole or periodic boundary, 
+    ! must be larger than 1 for a rectangular AMR mesh
+    if(({ng^D(1)/=1|.or.}).and.refine_max_level>1) then
+      {
+      if(ng^D(1)==1.and..not.poleB(1,^D).and.&
+         .not.poleB(2,^D).and..not.periodB(^D).and..not.aperiodB(^D)) then
+        write(unitterm,"(a,i2,a)") "number of grid blocks at level 1 in dimension",^D,&
+                          " be larger than 1 for a rectangular AMR mesh!"
+        write(unitterm,"(a,i1)") "increase domain_nx",^D
+        call mpistop("")
+      end if
+      \}
+    end if
 
     ! initialize connectivity data
     igridstail=0
