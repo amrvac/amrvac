@@ -22,6 +22,7 @@ module mod_rd_phys
   integer, parameter :: eq_gray_scott   = 1
   integer, parameter :: eq_schnakenberg = 2
   integer, parameter :: eq_brusselator  = 3
+  integer, parameter :: eq_logistic     = 4
 
   !> Diffusion coefficient for first species (u)
   double precision, public, protected :: D1 = 0.05d0
@@ -47,6 +48,9 @@ module mod_rd_phys
   !> Parameter for Brusselator model
   double precision, public, protected :: br_B = 8.0d0
 
+  !> Parameter for logistic model (Fisher / KPP equation)
+  double precision, public, protected :: lg_lambda = 1.0d0
+
   !> Whether to handle the explicitly handled source term in split fashion
   logical :: rd_source_split = .false.
 
@@ -62,7 +66,7 @@ contains
     character(len=20)            :: equation_name
 
     namelist /rd_list/ D1, D2, D3, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
-        br_A, br_B, equation_name, rd_particles, rd_source_split
+        br_A, br_B, lg_lambda, equation_name, rd_particles, rd_source_split
 
     equation_name = "gray-scott"
 
@@ -82,8 +86,11 @@ contains
     case ("brusselator")
        equation_type = eq_brusselator
        number_of_species = 2
+    case ("logistic")
+       equation_type = eq_logistic
+       number_of_species = 1
     case default
-       call mpistop("Unknown equation_name (not gray-scott, schnakenberg or brussselator)")
+       call mpistop("Unknown equation_name (valid: gray-scott, schnakenberg, ...)")
     end select
 
   end subroutine rd_params_read
@@ -266,6 +273,9 @@ contains
        maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)), &
             maxval(w(ixO^S, u_)**2) )
        dtnew = min(dtnew, 0.5d0/maxrate)
+    case (eq_logistic)
+       maxrate = lg_lambda*maxval(abs(1 - w(ixO^S, u_))) ! abs for safety, normally u < 1
+       dtnew = min(dtnew, 0.5d0/maxrate)
     case default
        call mpistop("Unknown equation type")
     end select
@@ -333,6 +343,9 @@ contains
           w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
                + br_B * wCT(ixO^S, u_) &
                - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
+       case (eq_logistic)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
+               + lg_lambda * w(ixO^S, u_) * (1 - w(ixO^S, u_)))
        case default
           call mpistop("Unknown equation type")
        end select
