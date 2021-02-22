@@ -396,8 +396,13 @@ contains
        call rd_laplacian(ixI^L, ixO^L, w(ixI^S, w_), lpl_w)
     end if
 
-    w(ixO^S,u_)=D1*lpl_u
-    w(ixO^S,v_)=D2*lpl_v
+    w(ixO^S,u_) = D1*lpl_u
+    if (number_of_species >= 2) then
+       w(ixO^S,v_) = D2*lpl_v
+    end if
+    if (number_of_species >= 3) then
+       w(ixO^S,w_) = D3*lpl_w
+    end if
 
   end subroutine put_laplacians_onegrid
   
