@@ -344,10 +344,10 @@ contains
         patchf(ixC^S) =  2
       elsewhere
         patchf(ixC^S) =  1
+        div(ixC^S) = 1.d0/(cmaxC(ixC^S)-cminC(ixC^S))
+        fac(ixC^S) = tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)
       endwhere
 
-      fac = tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)
-      div = 1/(cmaxC(ixC^S)-cminC(ixC^S))
 
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=iwstart,nwflux
@@ -359,7 +359,7 @@ contains
             where(patchf(ixC^S)==1)
                ! Add hll dissipation to the flux
                fLC(ixC^S, iw) = (cmaxC(ixC^S)*fLC(ixC^S, iw)-cminC(ixC^S) * fRC(ixC^S, iw) &
-                    +fac*(wRC(ixC^S,iw)-wLC(ixC^S,iw))) * div
+                    +fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))) * div(ixC^S)
             elsewhere(patchf(ixC^S)== 2)
                fLC(ixC^S, iw)=fRC(ixC^S, iw)
             elsewhere(patchf(ixC^S)==-2)
