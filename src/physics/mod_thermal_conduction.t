@@ -184,7 +184,7 @@ contains
     call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd, e_,e_,[e_], [1],[.true.])
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_mhd_for_total_energy
 
@@ -215,7 +215,7 @@ contains
     get_temperature_from_eint => mhd_get_temperature_from_eint
     call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,e_,[e_],[1],[.true.])
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_mhd_for_internal_energy
 
@@ -300,7 +300,7 @@ contains
     call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_hd_for_total_energy
 
@@ -334,7 +334,7 @@ contains
     call sts_init()
     call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_hd_for_internal_energy
 
@@ -674,8 +674,6 @@ contains
       end do
     end if
 
-   if (fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
-
     qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
@@ -691,6 +689,8 @@ contains
       end do
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
+
+    if(fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
     deallocate(qvec)
     wres(ixO^S,e_)=qd(ixO^S)
 
@@ -919,8 +919,6 @@ contains
       qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
     end do
 
-    if(fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
-
     qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
@@ -936,6 +934,8 @@ contains
       end do
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
+
+    if(fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
     deallocate(qvec)
 
     wres(ixO^S,e_)=qd(ixO^S)
@@ -968,7 +968,7 @@ contains
         do idir = 1, ndir
            w(ixO^S, iw_mom(idir)) = w(ixO^S, iw_mom(idir))/w(ixO^S,rho_)
         end do
-        write(error_msg,*) "Thermal conduction step ", step 
+        write(error_msg,"(a,i3)") "Thermal conduction step ", step
         call small_values_error(w, x, ixI^L, ixO^L, flag, error_msg)
       end select
     end if

@@ -299,33 +299,32 @@ contains
   end subroutine set_error_handling_to_head
 
   !> method used to set the number of cycles for the STS1 method
-  function sts_get_ncycles1(dt,dtnew,dt_modified) result (is)
+  function sts_get_ncycles1(dt,dtnew,dt_modified) result(is)
     double precision,intent(in) :: dtnew
     double precision,intent(inout) :: dt
     logical,intent(inout) :: dt_modified
     integer :: is
 
     double precision    :: ss
-    integer:: ncycles
 
     !!ss is now limit of dt because of sts_ncycles
-    ss = dtnew * ((2d0 * sts_ncycles + 1)**2 -9.0)/16d0
+    ss = dtnew*((2.d0*sts_ncycles+1)**2-9.d0)/16.d0
     if(dt>ss) then
-       dt_modified = .true.
-       dt = ss
-       is = sts_ncycles 
-     else  
-       ss = dt/dtnew
-       ! get number of sub-steps of supertime stepping (Meyer 2012 MNRAS 422,2102)
-       if(ss .le. 1d0) then
-         is=1
-       else
-         is=ceiling((dsqrt(9.d0+16.d0*ss)-1.d0)/2.d0)
-         is=is/2*2+1
-      endif
-    endif
-    !print*, dt, " --DTEXPL-- ", dtnew, ", ncycle1 ",is
-  end  function sts_get_ncycles1
+      dt_modified = .true.
+      dt = ss
+      is = sts_ncycles
+    else
+      ss = dt/dtnew
+      ! get number of sub-steps of supertime stepping (Meyer 2012 MNRAS 422,2102)
+      if(ss .le. 1d0) then
+        is=1
+      else
+        is=ceiling((dsqrt(9.d0+16.d0*ss)-1.d0)/2.d0)
+        is=is/2*2+1
+      end if
+    end if
+
+  end function sts_get_ncycles1
 
   !> method used to set the number of cycles for the STS2 method
   function sts_get_ncycles2(dt,dtnew,dt_modified) result(is)
@@ -350,7 +349,7 @@ contains
       dt = ss *  dtnew
     endif
 
-  end  function sts_get_ncycles2
+  end function sts_get_ncycles2
 
   !> This sets the explicit dt and calculates the number of cycles for each of the terms implemented with STS.
   function set_dt_sts_ncycles(my_dt) result(dt_modified)
@@ -387,7 +386,7 @@ contains
       call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN,icomm,ierrmpi)
       temp%s = sts_get_ncycles(my_dt,dtnew,dt_modified2)
 
-      !print*, "NCYCLES ", temp%s, dt_modified2, my_dt
+      !print*, "NCYCLES ", temp%s, dt_modified2, my_dt, dtnew
       temp%dt_expl = dtnew
  
       ! Note that as for some term it may happen that the dt is modified: it may be reduced if the
@@ -581,13 +580,14 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
+    use mod_physics, only: phys_total_energy
 
     double precision, intent(in) :: my_dt
     double precision :: dtj
     double precision :: omega1,cmu,cmut,cnu,cnut,one_mu_nu
     double precision, allocatable :: bj(:)
     integer:: iigrid, igrid,j,i,ii,ii2
-    logical :: evenstep, stagger_flag, prolong_flag, coarsen_flag
+    logical :: evenstep, stagger_flag, prolong_flag, coarsen_flag, total_energy_flag
     type(sts_term), pointer  :: temp
     type(state), dimension(:), pointer :: tmpPs1, tmpPs2
 
@@ -595,6 +595,7 @@ contains
     stagger_flag=stagger_grid
     prolong_flag = prolongprimitive
     coarsen_flag = coarsenprimitive
+    total_energy_flag=.true.
     stagger_grid=.false.
     prolongprimitive = .false.
     coarsenprimitive = .false.
@@ -609,22 +610,32 @@ contains
     temp => head_sts_terms
     do while(associated(temp))
 
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        if(associated(temp%sts_before_first_cycle)) then
-          call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)  
-        end if 
-        if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
-        if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
-        if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
-        !we need the full set of variables
-        !for the calculation of the sources and not
-        !only those which change
-        ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-        ps2(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-        ps3(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-      end do
-      !$OMP END PARALLEL DO
+      if(associated(temp%sts_before_first_cycle)) then
+        total_energy_flag=phys_total_energy
+        phys_total_energy=.false.
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+          if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
+          if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
+          if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
+          ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+          ps2(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+          ps3(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+        end do
+        !$OMP END PARALLEL DO
+      else
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
+          if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
+          if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
+          ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+          ps2(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+          ps3(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+        end do
+        !$OMP END PARALLEL DO
+      end if
 
       allocate(bj(0:temp%s))
       bj(0)=1.d0/3.d0
@@ -669,9 +680,9 @@ contains
 
       end do
       !$OMP END PARALLEL DO
+      if(fix_conserve_at_step) call fix_conserve_vars(ps1, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
       ! fix conservation of AMR grid by replacing flux from finer neighbors
-      if (fix_conserve_at_step) call fix_conserve_vars(ps1, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
-      if(associated(temp%sts_handle_errors))  then
+      if(associated(temp%sts_handle_errors)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           call temp%sts_handle_errors(ps1(igrid)%w,ps1(igrid)%x,ixG^LL,ixM^LL,1)
@@ -729,21 +740,32 @@ contains
         !$OMP END PARALLEL DO
         end if
         call getbc(global_time,0.d0,tmpPs2,temp%startVar,temp%endVar-temp%startVar+1)
-        evenstep=.not. evenstep
+        evenstep=.not.evenstep
       end do
 
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        do i = 1,size(temp%ixChangeStart)
-          ii=temp%ixChangeStart(i)
-          ii2 = ii + temp%ixChangeN(i) - 1
-          ps(igrid)%w(ixG^T,ii:ii2)=tmpPs2(igrid)%w(ixG^T,ii:ii2)
-        end do 
-        if(associated(temp%sts_after_last_cycle)) then 
+      if(associated(temp%sts_after_last_cycle)) then
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          do i = 1,size(temp%ixChangeStart)
+            ii=temp%ixChangeStart(i)
+            ii2 = ii + temp%ixChangeN(i) - 1
+            ps(igrid)%w(ixG^T,ii:ii2)=tmpPs2(igrid)%w(ixG^T,ii:ii2)
+          end do
+          phys_total_energy=total_energy_flag
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-        endif
-      end do 
-      !$OMP END PARALLEL DO
+        end do
+        !$OMP END PARALLEL DO
+      else
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          do i = 1,size(temp%ixChangeStart)
+            ii=temp%ixChangeStart(i)
+            ii2 = ii + temp%ixChangeN(i) - 1
+            ps(igrid)%w(ixG^T,ii:ii2)=tmpPs2(igrid)%w(ixG^T,ii:ii2)
+          end do
+        end do
+        !$OMP END PARALLEL DO
+      endif
 
       deallocate(bj)
 
