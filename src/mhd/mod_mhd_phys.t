@@ -621,26 +621,37 @@ contains
     end if
 
     ! For Hall, we need one more reconstructed layer since currents are computed
-    ! in getflux: assuming one additional ghost layer (two for FOURTHORDER) was
+    ! in mhd_get_flux: assuming one additional ghost layer (two for FOURTHORDER) was
     ! added in nghostcells.
-    if (mhd_hall .or. mhd_ambipolar) then
-       phys_req_diagonal = .true.
-       if (mhd_4th_order) then
-          phys_wider_stencil = 2
-       else
-          phys_wider_stencil = 1
-       end if
+    if(mhd_hall) then
+      phys_req_diagonal = .true.
+      if(mhd_4th_order) then
+        phys_wider_stencil = 2
+      else
+        phys_wider_stencil = 1
+      end if
     end if
 
-    if (mhd_ambipolar .and. mhd_ambipolar_sts) then
-      call sts_init()
-      if(mhd_solve_eaux) then 
-        call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar, mag(1),mag(ndir),(/mag(1),e_,eaux_/), (/ndir,1,1/),(/.true.,.true.,.false. /))
+    if(mhd_ambipolar) then
+      phys_req_diagonal = .true.
+      if(mhd_ambipolar_sts) then
+        call sts_init()
+        if(mhd_solve_eaux) then
+          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,mag(1),mag(ndir),(/mag(1),e_,eaux_/),(/ndir,1,1/),(/.true.,.true.,.false./))
+        else
+          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,mag(1),mag(ndir),(/mag(1),e_/),(/ndir,1/),(/.true.,.true./))
+        endif
       else
-        call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar, mag(1),mag(ndir),(/mag(1),e_/), (/ndir,1/),(/.true.,.true./))
-      endif
+        ! For flux ambipolar term, we need one more reconstructed layer since currents are computed
+        ! in mhd_get_flux: assuming one additional ghost layer (two for FOURTHORDER) was
+        ! added in nghostcells.
+        if(mhd_4th_order) then
+          phys_wider_stencil = 2
+        else
+          phys_wider_stencil = 1
+        end if
+      end if
     end if
-    
 
   end subroutine mhd_phys_init
 
@@ -1695,7 +1706,6 @@ contains
   !>  store_flux_var is explicitly called for each of the fluxes one by one
   subroutine sts_set_source_ambipolar(ixI^L,ixO^L,w,x,wres, fix_conserve_at_step, my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC )
     use mod_global_parameters
-    use mod_geometry, only: divvector
     use mod_fix_conserve, only: store_flux_var
 
     integer, intent(in) :: ixI^L, ixO^L,igrid
@@ -1706,18 +1716,16 @@ contains
     integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
     logical, intent(in), dimension(:) :: indexChangeFixC
 
-
     double precision, allocatable, dimension(:^D&,:) :: tmp,ff
     double precision  :: btot(ixI^S,1:3),tmp2(ixI^S)
-
     integer :: i, ixA^L, ie_
 
-    ixA^L=ixO^L^LADD2;
+    ixA^L=ixO^L^LADD1;
 
     allocate(tmp(ixI^S,1:3))
     allocate(ff(ixI^S,1:3))
     call mhd_get_jxbxb(w,x,ixI^L,ixA^L,tmp)
-    btot(ixA^S,1:3) = 0
+    btot(ixA^S,1:3)=0.d0
     if(B0field) then
       do i=1,ndir
         btot(ixA^S, i) = w(ixA^S,mag(i)) + block%B0(ixA^S,i,0)
@@ -1742,15 +1750,15 @@ contains
       endif
     endif
     !set electric field in tmp: E=nuA * jxbxb, where nuA=-etaA/rho^2
-    do i =1,3
+    do i=1,3
       !tmp(ixA^S,i) = -(mhd_eta_ambi/w(ixA^S, rho_)**2) * tmp(ixA^S,i)
       call multiplyAmbiCoef(ixI^L,ixA^L,tmp(ixI^S,i),w,x)   
     enddo
 
-    if(mhd_energy .and. .not. mhd_internal_e) then
+    if(mhd_energy .and. .not.mhd_internal_e) then
       call cross_product(ixI^L,ixA^L,tmp,btot,ff)
-      call divvector(ff,ixI^L,ixO^L,tmp2)
-       if (fix_conserve_at_step)  call store_flux_var(ff,e_,my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
+      call get_flux_on_cell_face(ixI^L,ixO^L,ff,tmp2)
+      if(fix_conserve_at_step) call store_flux_var(ff,e_,my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
       !- sign comes from the fact that the flux divergence is a source now
       wres(ixO^S,e_)=-tmp2(ixO^S)
     endif
@@ -1761,33 +1769,87 @@ contains
     !m3={ele[[2]],-ele[[1]],0}
     
     !!!Bx
-    ff(ixA^S,1) = 0
+    ff(ixA^S,1) = 0.d0
     ff(ixA^S,2) = tmp(ixA^S,3)
     ff(ixA^S,3) = -tmp(ixA^S,2)
-    call divvector(ff,ixI^L,ixO^L,tmp2)
-    if (fix_conserve_at_step)  call store_flux_var(ff,mag(1),my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
+    call get_flux_on_cell_face(ixI^L,ixO^L,ff,tmp2)
+    if(fix_conserve_at_step) call store_flux_var(ff,mag(1),my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
     !flux divergence is a source now
     wres(ixO^S,mag(1))=-tmp2(ixO^S)
     !!!By
     ff(ixA^S,1) = -tmp(ixA^S,3)
-    ff(ixA^S,2) = 0
+    ff(ixA^S,2) = 0.d0
     ff(ixA^S,3) = tmp(ixA^S,1)
-    call divvector(ff,ixI^L,ixO^L,tmp2)
-    if (fix_conserve_at_step) call store_flux_var(ff,mag(2),my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
+    call get_flux_on_cell_face(ixI^L,ixO^L,ff,tmp2)
+    if(fix_conserve_at_step) call store_flux_var(ff,mag(2),my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
     wres(ixO^S,mag(2))=-tmp2(ixO^S)
 
     !!!Bz
     ff(ixA^S,1) = tmp(ixA^S,2)
     ff(ixA^S,2) = -tmp(ixA^S,1)
-    ff(ixA^S,3) = 0
-    call divvector(ff,ixI^L,ixO^L,tmp2)
-    if (fix_conserve_at_step) call store_flux_var(ff,mag(3),my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
+    ff(ixA^S,3) = 0.d0
+    call get_flux_on_cell_face(ixI^L,ixO^L,ff,tmp2)
+    if(fix_conserve_at_step) call store_flux_var(ff,mag(3),my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
     wres(ixO^S,mag(3))=-tmp2(ixO^S)
-
 
     deallocate(tmp,ff)
 
   end subroutine sts_set_source_ambipolar
+
+  !> use cell-center flux to get cell-face flux
+  !> and get the source term as the divergence of the flux
+  subroutine get_flux_on_cell_face(ixI^L,ixO^L,ff,src)
+    use mod_global_parameters
+
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, dimension(:^D&,:), intent(inout) :: ff
+    double precision, intent(out) :: src(ixI^S)
+
+    double precision :: ffc(ixI^S,1:3)
+    double precision :: dxinv(ndim)
+    integer :: idims, ix^D, ixA^L, ixB^L, ixC^L
+
+    ixA^L=ixO^L^LADD1;
+    dxinv=1.d0/dxlevel
+    ! cell corner flux in ffc
+    ffc=0.d0
+    ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
+    {do ix^DB=0,1\}
+      ixBmin^D=ixCmin^D+ix^D;
+      ixBmax^D=ixCmax^D+ix^D;
+      ffc(ixC^S,:)=ffc(ixC^S,:)+ff(ixB^S,:)
+    {end do\}
+    ffc(ixC^S,:)=0.5d0**ndim*ffc(ixC^S,:)
+    ! flux at cell face
+    ff=0.d0
+    do idims=1,ndim
+      ixB^L=ixO^L-kr(idims,^D);
+      ixCmax^D=ixOmax^D; ixCmin^D=ixBmin^D;
+      {do ix^DB=0,1 \}
+         if({ ix^D==0 .and. ^D==idims | .or.}) then
+           ixBmin^D=ixCmin^D-ix^D;
+           ixBmax^D=ixCmax^D-ix^D;
+           ff(ixC^S,idims)=ff(ixC^S,idims)+ffc(ixB^S,idims)
+         end if
+      {end do\}
+      ff(ixC^S,idims)=ff(ixC^S,idims)*0.5d0**(ndim-1)
+    end do
+    src=0.d0
+    if(slab_uniform) then
+      do idims=1,ndim
+        ff(ixA^S,idims)=dxinv(idims)*ff(ixA^S,idims)
+        ixB^L=ixO^L-kr(idims,^D);
+        src(ixO^S)=src(ixO^S)+ff(ixO^S,idims)-ff(ixB^S,idims)
+      end do
+    else
+      do idims=1,ndim
+        ff(ixA^S,idims)=ff(ixA^S,idims)*block%surfaceC(ixA^S,idims)
+        ixB^L=ixO^L-kr(idims,^D);
+        src(ixO^S)=src(ixO^S)+ff(ixO^S,idims)-ff(ixB^S,idims)
+      end do
+      src(ixO^S)=src(ixO^S)/block%dvolume(ixO^S)
+    end if
+  end subroutine get_flux_on_cell_face
 
   !> Calculates the explicit dt for the ambipokar term
   !> This function is used by both explicit scheme and STS method

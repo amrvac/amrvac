@@ -619,10 +619,10 @@ module mod_fix_conserve
      use mod_global_parameters
 
      integer, intent(in)          :: igrid, idim^LIM, nwfstart1, nwfluxin
-     integer                      :: nwfend1
      double precision, intent(in) :: fC(ixG^T,1:nwfluxin,1:ndim)
 
-     integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw
+     integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw, nwfend1
+
      nwfend1 = nwfstart1-1 + nwfluxin
      do idims = idim^LIM
        select case (idims)
@@ -1215,7 +1215,7 @@ module mod_fix_conserve
       if (indexChangeFixC(i)) then 
         !this has to be done one by one, as they are not stored at contiguous locations
         do j = 0,indexChangeN(i)-1
-          call fix_conserve1(tmpPs,1,ndim,indexChangeStart(i),storeIndex+j, 1)
+          call fix_conserve1(tmpPs,1,ndim,indexChangeStart(i)+j,storeIndex+j, 1)
         enddo
         storeIndex = storeIndex + indexChangeN(i)
       endif
