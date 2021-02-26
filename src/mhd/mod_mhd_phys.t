@@ -522,8 +522,13 @@ contains
     phys_add_source          => mhd_add_source
     phys_to_conserved        => mhd_to_conserved
     phys_to_primitive        => mhd_to_primitive
-    phys_ei_to_e             => mhd_ei_to_e
-    phys_e_to_ei             => mhd_e_to_ei
+    if(mhd_solve_eaux) then
+      phys_ei_to_e             => mhd_ei_to_e_aux
+      phys_e_to_ei             => mhd_e_to_ei_aux
+    else
+      phys_ei_to_e             => mhd_ei_to_e
+      phys_e_to_ei             => mhd_e_to_ei
+    end if
     phys_check_params        => mhd_check_params
     phys_check_w             => mhd_check_w
     phys_get_pthermal        => mhd_get_pthermal
@@ -813,7 +818,6 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
  
     ! Calculate total energy from internal, kinetic and magnetic energy
-    if(mhd_solve_eaux) w(ixI^S,eaux_)=w(ixI^S,e_)
     w(ixO^S,e_)=w(ixO^S,e_)&
                +mhd_kin_en(w,ixI^L,ixO^L)&
                +mhd_mag_en(w,ixI^L,ixO^L)
@@ -833,6 +837,32 @@ contains
                 -mhd_mag_en(w,ixI^L,ixO^L)
 
   end subroutine mhd_e_to_ei
+
+  !> Update eaux and transform internal energy to total energy
+  subroutine mhd_ei_to_e_aux(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+ 
+    w(ixO^S,eaux_)=w(ixO^S,e_)
+    ! Calculate total energy from internal, kinetic and magnetic energy
+    w(ixO^S,e_)=w(ixO^S,e_)&
+               +mhd_kin_en(w,ixI^L,ixO^L)&
+               +mhd_mag_en(w,ixI^L,ixO^L)
+
+  end subroutine mhd_ei_to_e_aux
+
+  !> Transform total energy to internal energy via eaux as internal energy
+  subroutine mhd_e_to_ei_aux(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    w(ixO^S,e_)=w(ixO^S,eaux_)
+
+  end subroutine mhd_e_to_ei_aux
 
   subroutine mhd_energy_synchro(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
@@ -2329,22 +2359,17 @@ contains
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
        if (mhd_energy) then
           w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
-          if(mhd_solve_eaux) then
-            w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
-          end if
        end if
     end do ! idir
 
-    if (mhd_energy) then
-       ! de/dt+=eta*J**2
-       tmp(ixO^S)=zero
-       do idir=idirmin,3
-          tmp(ixO^S)=tmp(ixO^S)+current(ixO^S,idir)**2
-       end do
-       w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*tmp(ixO^S)
-       if(mhd_solve_eaux) then
-         w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*eta(ixO^S)*tmp(ixO^S)
-       end if
+    if(mhd_energy) then
+      ! de/dt+=eta*J**2
+      tmp(ixO^S)=qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
+      w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
+      if(mhd_solve_eaux) then
+        ! add eta*J**2 source term in the internal energy equation
+        w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)
+      end if
     end if
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
@@ -2365,7 +2390,7 @@ contains
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S),curlj(ixI^S,1:3)
-    double precision :: tmpvec(ixI^S,1:3)
+    double precision :: tmpvec(ixI^S,1:3),tmp(ixO^S)
     integer :: ixA^L,idir,idirmin,idirmin1
 
     ixA^L=ixO^L^LADD2;
@@ -2401,11 +2426,12 @@ contains
     if(mhd_energy) then
       ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
       ! de1/dt= eta J^2 - B1 dot curl(eta J)
-      w(ixO^S,e_)=w(ixO^S,e_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
+      tmp(ixO^S)=eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
+      w(ixO^S,e_)=w(ixO^S,e_)+qdt*(tmp(ixO^S)-&
         sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
       if(mhd_solve_eaux) then
-        w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*(sum(current(ixO^S,:)**2,dim=ndim+1)*eta(ixO^S)-&
-            sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
+        ! add eta*J**2 source term in the internal energy equation
+        w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)
       end if
     end if
 
@@ -2464,9 +2490,6 @@ contains
       tmp(ixO^S)=zero
       call divvector(tmpvec2,ixI^L,ixO^L,tmp)
       w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)*qdt
-      if(mhd_solve_eaux) then
-          w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)*qdt
-      end if
     end if
 
     if (fix_small_values)  call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_hyperres')

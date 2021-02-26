@@ -751,10 +751,10 @@ contains
             ii2 = ii + temp%ixChangeN(i) - 1
             ps(igrid)%w(ixG^T,ii:ii2)=tmpPs2(igrid)%w(ixG^T,ii:ii2)
           end do
-          phys_total_energy=total_energy_flag
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do
         !$OMP END PARALLEL DO
+        phys_total_energy=total_energy_flag
       else
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail; igrid=igrids(iigrid);
