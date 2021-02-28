@@ -122,6 +122,8 @@ module mod_supertimestepping
 
     integer :: startVar
     integer :: endVar
+    !> number of flux involved in STS update
+    integer :: nflux
 
     integer, dimension(:), allocatable ::ixChangeStart
     integer, dimension(:), allocatable ::ixChangeN
@@ -195,12 +197,12 @@ contains
   !>   (the fluxes shoud be stored with store_flux_var  by the subroutine sts_set_sources)
   !> ixChangeStart, ixChangeN, and ixChangeFixC should have equal length
   !> These terms implemented by an element of the derived type sts_term are put in a linked list
-  subroutine add_sts_method(sts_getdt, sts_set_sources, &
+  subroutine add_sts_method(sts_getdt, sts_set_sources, nflux, &
                              startVar, endVar, ixChangeStart, ixChangeN, ixChangeFixC)
     use mod_global_parameters
     use mod_ghostcells_update
 
-    integer, intent(in) :: startVar, endVar 
+    integer, intent(in) :: startVar, endVar, nflux 
     integer, intent(in) :: ixChangeStart(:) 
     integer, intent(in) :: ixChangeN(:) 
     logical, intent(in) :: ixChangeFixC(:) 
@@ -238,6 +240,7 @@ contains
     temp%sts_handle_errors => null()
     temp%startVar = startVar
     temp%endVar = endVar
+    temp%nflux = nflux
     temp%types_initialized = .false.
     if(size(ixChangeStart) .ne. size(ixChangeN) .or. size(ixChangeStart) .ne. size(ixChangeFixC) ) then
       if(mype==0) print*, "sizes are not equal ",size(ixChangeStart),size(ixChangeN),size(ixChangeFixC)
@@ -474,20 +477,16 @@ contains
     coarsenprimitive=.false.
     bcphys=.false.
 
-    !The last parameter in init_comm_fix_conserve is set to 1 as the fluxes are
-    ! stored and retrieved one by one
-    call init_comm_fix_conserve(1,ndim,1)
-
     fix_conserve_at_step = time_advance .and. levmax>levmin
 
     temp => head_sts_terms
     do while(associated(temp))
 
+      call init_comm_fix_conserve(1,ndim,temp%nflux)
+
       if(associated(temp%sts_before_first_cycle)) then
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)  
-          if(any(ps(igrid)%is_physical_boundary)) &
-              call temp%sts_before_first_cycle(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
         end do 
       end if
 
@@ -532,7 +531,12 @@ contains
         end do
         !$OMP END PARALLEL DO
         !fix conserve the fluxes set in the STS method by store_flux_var call
-        if(fix_conserve_at_step) call fix_conserve_vars(ps, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+        !if(fix_conserve_at_step) call fix_conserve_vars(ps, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+        if(fix_conserve_at_step) then
+          call recvflux(1,ndim)
+          call sendflux(1,ndim)
+          call fix_conserve(ps,1,ndim,temp%startVar,temp%nflux)
+        end if
         if(associated(temp%sts_handle_errors)) then
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -547,8 +551,6 @@ contains
       if(associated(temp%sts_after_last_cycle)) then 
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-          if(any(ps(igrid)%is_physical_boundary)) &
-            call temp%sts_after_last_cycle(ixCoG^L,ixCoG^L,psc(igrid)%w,psc(igrid)%x)
         end do 
       end if
       deallocate(bj)
@@ -601,14 +603,12 @@ contains
     coarsenprimitive = .false.
     bcphys=.false.
 
-    !The last parameter in init_comm_fix_conserve is set to 1 as the fluxes are
-    ! stored and retrieved one by one
-    call init_comm_fix_conserve(1,ndim,1)
-
     fix_conserve_at_step = time_advance .and. levmax>levmin
 
     temp => head_sts_terms
     do while(associated(temp))
+
+      call init_comm_fix_conserve(1,ndim,temp%nflux)
 
       if(associated(temp%sts_before_first_cycle)) then
         total_energy_flag=phys_total_energy
@@ -680,7 +680,12 @@ contains
 
       end do
       !$OMP END PARALLEL DO
-      if(fix_conserve_at_step) call fix_conserve_vars(ps1, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+      !if(fix_conserve_at_step) call fix_conserve_vars(ps1, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+      if(fix_conserve_at_step) then
+        call recvflux(1,ndim)
+        call sendflux(1,ndim)
+        call fix_conserve(ps1,1,ndim,temp%startVar,temp%nflux)
+      end if
       ! fix conservation of AMR grid by replacing flux from finer neighbors
       if(associated(temp%sts_handle_errors)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
@@ -731,7 +736,12 @@ contains
           end do
         end do
         !$OMP END PARALLEL DO
-        if(fix_conserve_at_step) call fix_conserve_vars(tmpPs2, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+        !if(fix_conserve_at_step) call fix_conserve_vars(tmpPs2, temp%ixChangeStart, temp%ixChangeN, temp%ixChangeFixC)
+        if(fix_conserve_at_step) then
+          call recvflux(1,ndim)
+          call sendflux(1,ndim)
+          call fix_conserve(tmpPs2,1,ndim,temp%startVar,temp%nflux)
+        end if
         if(associated(temp%sts_handle_errors)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);

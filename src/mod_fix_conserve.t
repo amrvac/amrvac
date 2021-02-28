@@ -31,9 +31,9 @@ module mod_fix_conserve
   public :: deallocateBflux
   public :: sendflux
   public :: recvflux
-  public :: store_flux, store_flux_var
+  public :: store_flux
   public :: store_edge
-  public :: fix_conserve, fix_conserve_vars
+  public :: fix_conserve
   public :: fix_edges
 
  contains
@@ -467,17 +467,6 @@ module mod_fix_conserve
 
      integer, intent(in) :: idim^LIM, nw0, nwfluxin
      type(state) :: psb(max_blocks)
-     call fix_conserve1(psb,idim^LIM,nw0,1,nwfluxin)
-
-   end subroutine fix_conserve
-
-  !> modified fix_conserve in order to pass param for nwfluxstart = start index in pflux var
-  !>compatible with store_flux1
-   subroutine fix_conserve1(psb,idim^LIM,nw0,nwfluxstart,nwfluxin)
-     use mod_global_parameters
-
-     integer, intent(in) :: idim^LIM, nw0, nwfluxstart, nwfluxin
-     type(state) :: psb(max_blocks)
 
      integer :: iigrid, igrid, idims, iside, iotherside, i^D, ic^D, inc^D, ix^L
      integer :: nxCo^D, iw, ix, ipe_neighbor, ineighbor, nbuf, ibufnext, nw1
@@ -536,11 +525,11 @@ module mod_fix_conserve
              if (slab_uniform) then
                psb(igrid)%w(ix^D%ixM^T,nw0:nw1) &
                     = psb(igrid)%w(ix^D%ixM^T,nw0:nw1) &
-                    -pflux(iside,^D,igrid)%flux(1^D%:^DD&,nwfluxstart:nwfluxin+nwfluxstart-1)
+                    -pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwfluxin)
              else
                do iw=nw0,nw1
                  psb(igrid)%w(ix^D%ixM^T,iw)=psb(igrid)%w(ix^D%ixM^T,iw)&
-                      -pflux(iside,^D,igrid)%flux(1^D%:^DD&,iw-nw0+nwfluxstart) &
+                      -pflux(iside,^D,igrid)%flux(1^D%:^DD&,iw-nw0+1) &
                       /ps(igrid)%dvolume(ix^D%ixM^T)
                end do
              end if
@@ -558,12 +547,12 @@ module mod_fix_conserve
                  if (slab_uniform) then
                    psb(igrid)%w(ix^S,nw0:nw1) &
                         = psb(igrid)%w(ix^S,nw0:nw1) &
-                        + pflux(iotherside,^D,ineighbor)%flux(:^DD&,nwfluxstart:nwfluxin+nwfluxstart-1)&
+                        + pflux(iotherside,^D,ineighbor)%flux(:^DD&,1:nwfluxin)&
                         * CoFiratio
                  else
                    do iw=nw0,nw1
                      psb(igrid)%w(ix^S,iw)=psb(igrid)%w(ix^S,iw) &
-                          +pflux(iotherside,^D,ineighbor)%flux(:^DD&,iw-nw0+nwfluxstart) &
+                          +pflux(iotherside,^D,ineighbor)%flux(:^DD&,iw-nw0+1) &
                           /ps(igrid)%dvolume(ix^S)
                    end do
                  end if
@@ -603,27 +592,16 @@ module mod_fix_conserve
        call MPI_WAITALL(nsend,fc_sendreq,fc_sendstat,ierrmpi)
      end if
 
-   end subroutine fix_conserve1
+   end subroutine fix_conserve
 
    subroutine store_flux(igrid,fC,idim^LIM,nwfluxin)
      use mod_global_parameters
 
      integer, intent(in)          :: igrid, idim^LIM, nwfluxin
      double precision, intent(in) :: fC(ixG^T,1:nwfluxin,1:ndim)
-     call store_flux1(igrid,fC,idim^LIM,1,nwfluxin) 
-   end subroutine store_flux
 
+     integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw
 
-   !> old store_flux modified in order to pass parameter nwfstart1 = start index in pflux
-   subroutine store_flux1(igrid,fC,idim^LIM,nwfstart1,nwfluxin)
-     use mod_global_parameters
-
-     integer, intent(in)          :: igrid, idim^LIM, nwfstart1, nwfluxin
-     double precision, intent(in) :: fC(ixG^T,1:nwfluxin,1:ndim)
-
-     integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw, nwfend1
-
-     nwfend1 = nwfstart1-1 + nwfluxin
      do idims = idim^LIM
        select case (idims)
          {case (^D)
@@ -636,10 +614,10 @@ module mod_fix_conserve
            case (neighbor_fine)
              select case (iside)
              case (1)
-               pflux(iside,^D,igrid)%flux(1^D%:^DD&,nwfstart1:nwfend1) = &
+               pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwfluxin) = &
                     -fC(nghostcells^D%ixM^T,1:nwfluxin,^D)
              case (2)
-               pflux(iside,^D,igrid)%flux(1^D%:^DD&,nwfstart1:nwfend1) = &
+               pflux(iside,^D,igrid)%flux(1^D%:^DD&,1:nwfluxin) = &
                     fC(ixMhi^D^D%ixM^T,1:nwfluxin,^D)
              end select
            case (neighbor_coarse)
@@ -649,7 +627,7 @@ module mod_fix_conserve
                do iw=1,nwfluxin
                 {do ixCo^DDB=1,nxCo^DDB\}
                    ix^D=nghostcells^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
-                   pflux(iside,^D,igrid)%flux(ixCo^DD,nwfstart1-1+iw) &
+                   pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
                         = {^NOONEDsum}(fC(ix^D^D%ix^DD:ix^DD+1,iw,^D))
                 {end do\}
                end do
@@ -657,7 +635,7 @@ module mod_fix_conserve
                do iw=1,nwfluxin
                 {do ixCo^DDB=1,nxCo^DDB\}
                    ix^D=ixMhi^D^D%ix^DD=ixMlo^DD+2*(ixCo^DD-1);
-                   pflux(iside,^D,igrid)%flux(ixCo^DD,nwfstart1-1+iw) &
+                   pflux(iside,^D,igrid)%flux(ixCo^DD,iw) &
                         =-{^NOONEDsum}(fC(ix^D^D%ix^DD:ix^DD+1,iw,^D))
                 {end do\}
                end do
@@ -667,7 +645,7 @@ module mod_fix_conserve
        end select
      end do
 
-   end subroutine store_flux1
+   end subroutine store_flux
 
    subroutine store_edge(igrid,ixI^L,fE,idim^LIM)
      use mod_global_parameters
@@ -1196,68 +1174,5 @@ module mod_fix_conserve
      end do
 
    end subroutine add_sub_circ
-
-  !!this conserves fluxed put by store_flux_var
-  !used for the sts methods where not all the fluxes are stored and fixed.
-  subroutine fix_conserve_vars(tmpPs, indexChangeStart, indexChangeN, indexChangeFixC)
-    use mod_global_parameters
-    type(state), target               :: tmpPs(max_blocks)
-    integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
-    logical, intent(in), dimension(:) :: indexChangeFixC
-    integer :: i,storeIndex,j
-
-    call recvflux(1,ndim)
-    call sendflux(1,ndim)
-    storeIndex = 1
-    !!This is consistent with the subroutine in mod_mhs_phys which gets the indices where
-    !!to store the fluxes in mod_fix_conserve, set_sts_sources_ambipolar 
-    do i = 1,size(indexChangeStart)
-      if (indexChangeFixC(i)) then 
-        !this has to be done one by one, as they are not stored at contiguous locations
-        do j = 0,indexChangeN(i)-1
-          call fix_conserve1(tmpPs,1,ndim,indexChangeStart(i)+j,storeIndex+j, 1)
-        enddo
-        storeIndex = storeIndex + indexChangeN(i)
-      endif
-    end do
-
-  end subroutine fix_conserve_vars
-
-  !!this stores the fluxes one at a time, even if ..
-  subroutine store_flux_var(flux,indexVar,my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC)
-    use mod_global_parameters
-    double precision, allocatable, intent(in), dimension(:^D&,:) :: flux
-    integer, intent(in) :: indexVar,igrid
-    double precision, intent(in) :: my_dt
-    integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
-    logical, intent(in), dimension(:) :: indexChangeFixC
-
-    integer :: storeIndex,i
-    double precision, allocatable, dimension(:^D&,:,:) :: fluxC
-    logical :: found
-
-    storeIndex = 0
-    i=1
-    found = .false.
-    do while (.not. found .and. i .le. size(indexChangeStart))
-      if(indexChangeStart(i) .le. indexVar .and. indexVar .le. indexChangeStart(i) + indexChangeN(i) ) then
-        storeIndex = storeIndex + indexVar - indexChangeStart(i) + 1 
-        found = .true.
-      else
-        if (indexChangeFixC(i)) then 
-            storeIndex = storeIndex + indexChangeN(i)
-        endif  
-        i=i+1
-      endif  
-    end do
-
-    if(storeIndex>0) then
-      !allocate(fluxC(ixI^S,1,1:ndim))
-      allocate(fluxC(^D&size(flux,^D),1,1:ndim))
-      fluxC(:^D&,1,1:ndim) = my_dt * flux(:^D&,1:ndim)
-      call store_flux1(igrid,fluxC,1,ndim,storeIndex,1)
-      deallocate(fluxC)
-    endif
-  end subroutine store_flux_var
 
 end module mod_fix_conserve

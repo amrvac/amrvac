@@ -181,7 +181,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_etot
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd, e_,e_,[e_], [1],[.true.])
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,1,e_,e_,[e_], [1],[.true.])
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -213,7 +213,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,1,e_,e_,[e_],[1],[.true.])
 
     call set_error_handling_to_head(handle_small_e)
 
@@ -297,7 +297,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_etot
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,1,e_,e_,[e_],[1],[.true.])
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -332,7 +332,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_eint
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,1,e_,e_,[e_],[1],[.true.])
 
     call set_error_handling_to_head(handle_small_e)
 
@@ -404,8 +404,7 @@ contains
   !> Sharma 2007 Journal of Computational Physics 227, 123
   subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
     use mod_global_parameters
-    use mod_geometry, only: divvector
-    use mod_fix_conserve, only: store_flux_var
+    use mod_fix_conserve, only: store_flux
 
     integer, intent(in) :: ixI^L, ixO^L,igrid
     double precision, intent(in) ::  x(ixI^S,1:ndim)
@@ -422,6 +421,7 @@ contains
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
+    double precision, allocatable, dimension(:^D&,:,:) :: fluxall
     double precision :: alpha,dxinv(ndim)
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
@@ -690,7 +690,12 @@ contains
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
 
-    if(fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+    if(fix_conserve_at_step) then
+      allocate(fluxall(ixI^S,1,1:ndim))
+      fluxall(ixI^S,1,1:ndim)=my_dt*qvec(ixI^S,1:ndim)
+      call store_flux(igrid,fluxall,1,ndim,1)
+      deallocate(fluxall)
+    end if
     deallocate(qvec)
     wres(ixO^S,e_)=qd(ixO^S)
 
@@ -814,8 +819,7 @@ contains
 
   subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
     use mod_global_parameters
-    use mod_geometry, only: divvector
-    use mod_fix_conserve, only: store_flux_var
+    use mod_fix_conserve, only: store_flux
 
     integer, intent(in) :: ixI^L, ixO^L,igrid
     double precision, intent(in) ::  x(ixI^S,1:ndim)
@@ -827,6 +831,7 @@ contains
 
     double precision :: gradT(ixI^S,1:ndim),Te(ixI^S),ke(ixI^S)
     double precision :: qd(ixI^S)
+    double precision, allocatable, dimension(:^D&,:,:) :: fluxall
     double precision, allocatable, dimension(:^D&,:) :: qvec   
 
     double precision :: dxinv(ndim)
@@ -935,7 +940,12 @@ contains
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
 
-    if(fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+    if(fix_conserve_at_step) then
+      allocate(fluxall(ixI^S,1,1:ndim))
+      fluxall(ixI^S,1,1:ndim)=my_dt*qvec(ixI^S,1:ndim)
+      call store_flux(igrid,fluxall,1,ndim,1)
+      deallocate(fluxall)
+    end if
     deallocate(qvec)
 
     wres(ixO^S,e_)=qd(ixO^S)
