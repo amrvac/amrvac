@@ -641,10 +641,10 @@ contains
       phys_req_diagonal = .true.
       if(mhd_ambipolar_sts) then
         call sts_init()
-        if(mhd_solve_eaux) then
-          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,1+ndir,mom(ndir)+1,mag(ndir),(/mag(1),e_,eaux_/),(/ndir,1,1/),(/.true.,.true.,.false./))
+        if(mhd_energy) then
+          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,mom(ndir)+1,1+ndir)
         else
-          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,1+ndir,mom(ndir)+1,mag(ndir),(/mag(1),e_/),(/ndir,1/),(/.true.,.true./))
+          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,mom(ndir)+1,ndir)
         endif
       else
         ! For flux ambipolar term, we need one more reconstructed layer since currents are computed
@@ -1733,17 +1733,15 @@ contains
   ! The sources are added directly (instead of fluxes as in the explicit) 
   !> at the corresponding indices
   !>  store_flux_var is explicitly called for each of the fluxes one by one
-  subroutine sts_set_source_ambipolar(ixI^L,ixO^L,w,x,wres, fix_conserve_at_step, my_dt, igrid,indexChangeStart, indexChangeN, indexChangeFixC )
+  subroutine sts_set_source_ambipolar(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
     use mod_fix_conserve, only: store_flux
 
-    integer, intent(in) :: ixI^L, ixO^L,igrid
+    integer, intent(in) :: ixI^L, ixO^L,igrid,nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
-    integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
-    logical, intent(in), dimension(:) :: indexChangeFixC
 
     double precision, dimension(ixI^S,1:3) :: tmp,ff
     double precision, allocatable, dimension(:^D&,:,:) :: fluxall
@@ -1826,7 +1824,7 @@ contains
 
     if(fix_conserve_at_step) then
       fluxall=my_dt*fluxall
-      call store_flux(igrid,fluxall,1,ndim,1+ndir)
+      call store_flux(igrid,fluxall,1,ndim,nflux)
       deallocate(fluxall)
     end if
 

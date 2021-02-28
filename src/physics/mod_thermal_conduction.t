@@ -181,7 +181,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_etot
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,1,e_,e_,[e_], [1],[.true.])
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -213,7 +213,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,1,e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1)
 
     call set_error_handling_to_head(handle_small_e)
 
@@ -297,7 +297,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_etot
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,1,e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -332,7 +332,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_eint
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,1,e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1)
 
     call set_error_handling_to_head(handle_small_e)
 
@@ -402,21 +402,19 @@ contains
 
   !> anisotropic thermal conduction with slope limited symmetric scheme
   !> Sharma 2007 Journal of Computational Physics 227, 123
-  subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+  subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
     use mod_fix_conserve, only: store_flux
 
-    integer, intent(in) :: ixI^L, ixO^L,igrid
+    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
-    integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
-    logical, intent(in), dimension(:) :: indexChangeFixC
 
     !! qd store the heat conduction energy changing rate
     double precision :: qd(ixI^S)
-    double precision, allocatable, dimension(:^D&,:) :: qvec   
+    double precision :: qvec(ixI^S,1:ndim)
  
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
@@ -426,7 +424,6 @@ contains
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
-    allocate(qvec(ixI^S,1:ndim))
     ! coefficient of limiting on normal component
     if(ndim<3) then
       alpha=0.75d0
@@ -693,10 +690,10 @@ contains
     if(fix_conserve_at_step) then
       allocate(fluxall(ixI^S,1,1:ndim))
       fluxall(ixI^S,1,1:ndim)=my_dt*qvec(ixI^S,1:ndim)
-      call store_flux(igrid,fluxall,1,ndim,1)
+      call store_flux(igrid,fluxall,1,ndim,nflux)
       deallocate(fluxall)
     end if
-    deallocate(qvec)
+
     wres(ixO^S,e_)=qd(ixO^S)
 
   end subroutine sts_set_source_tc_mhd
@@ -817,28 +814,24 @@ contains
 
   end function get_tc_dt_hd
 
-  subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+  subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
     use mod_fix_conserve, only: store_flux
 
-    integer, intent(in) :: ixI^L, ixO^L,igrid
+    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
-    integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
-    logical, intent(in), dimension(:) :: indexChangeFixC
 
     double precision :: gradT(ixI^S,1:ndim),Te(ixI^S),ke(ixI^S)
-    double precision :: qd(ixI^S)
+    double precision :: qvec(ixI^S,1:ndim),qd(ixI^S)
     double precision, allocatable, dimension(:^D&,:,:) :: fluxall
-    double precision, allocatable, dimension(:^D&,:) :: qvec   
 
     double precision :: dxinv(ndim)
     integer, dimension(ndim)       :: lowindex
     integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L,ixD^L
 
-    allocate(qvec(ixI^S,1:ndim))
     ix^L=ixO^L^LADD1;
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
@@ -943,10 +936,9 @@ contains
     if(fix_conserve_at_step) then
       allocate(fluxall(ixI^S,1,1:ndim))
       fluxall(ixI^S,1,1:ndim)=my_dt*qvec(ixI^S,1:ndim)
-      call store_flux(igrid,fluxall,1,ndim,1)
+      call store_flux(igrid,fluxall,1,ndim,nflux)
       deallocate(fluxall)
     end if
-    deallocate(qvec)
 
     wres(ixO^S,e_)=qd(ixO^S)
 
