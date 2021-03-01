@@ -181,7 +181,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_etot
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1)
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -213,7 +213,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1)
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1)
 
     call set_error_handling_to_head(handle_small_e)
 
@@ -297,7 +297,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_etot
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1)
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -332,7 +332,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_eint
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1)
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1)
 
     call set_error_handling_to_head(handle_small_e)
 

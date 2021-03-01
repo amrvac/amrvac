@@ -113,15 +113,22 @@ module mod_supertimestepping
     logical :: types_initialized
 
     !>types used for send/recv ghosts, see mod_ghostcells_update
-    integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts, type_recv_srl_sts
-    integer, dimension(-1:1^D&,-1:1^D&) :: type_send_r_sts
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_r_sts
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_p_sts, type_send_p_sts
+    integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts_1, type_recv_srl_sts_1
+    integer, dimension(-1:1^D&,-1:1^D&) :: type_send_r_sts_1
+    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_r_sts_1
+    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_p_sts_1, type_send_p_sts_1
+
+    integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts_2, type_recv_srl_sts_2
+    integer, dimension(-1:1^D&,-1:1^D&) :: type_send_r_sts_2
+    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_r_sts_2
+    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_p_sts_2, type_send_p_sts_2
 
     integer :: startVar
     integer :: endVar
     !> number of flux involved in STS update
     integer :: nflux
+    integer :: startwbc
+    integer :: nwbc
 
   end type sts_term
 
@@ -184,13 +191,14 @@ contains
   !> Params: 
   !> sts_getdt function calculates the explicit timestep for this term
   !> sts_set_sources subroutine sets the source term
-  !> startVar, endVar indices of the start and end of the variables that need ghostcells exchange
+  !> startVar, endVar, nflux indices of start, end, and number of the variables that need fix conservation
+  !> startwbc, nwbc indices of start and number of the variables that need ghost cell exchange
   !> These terms implemented by an element of the derived type sts_term are put in a linked list
-  subroutine add_sts_method(sts_getdt, sts_set_sources, startVar, nflux)
+  subroutine add_sts_method(sts_getdt, sts_set_sources, startVar, nflux, startwbc, nwbc)
     use mod_global_parameters
     use mod_ghostcells_update
 
-    integer, intent(in) :: startVar, nflux
+    integer, intent(in) :: startVar, nflux, startwbc, nwbc
 
     interface
 
@@ -224,6 +232,8 @@ contains
     temp%startVar = startVar
     temp%endVar= startVar+nflux-1
     temp%nflux = nflux
+    temp%startwbc = startwbc
+    temp%nwbc = nwbc
     temp%types_initialized = .false.
 
     temp%next => head_sts_terms
@@ -468,18 +478,34 @@ contains
         bj(j) = chev(j,nu_sts,sts_ncycles)
       end do
 
-      type_send_srl=>temp%type_send_srl_sts
-      type_recv_srl=>temp%type_recv_srl_sts
-      type_send_r=>temp%type_send_r_sts
-      type_recv_r=>temp%type_recv_r_sts
-      type_send_p=>temp%type_send_p_sts
-      type_recv_p=>temp%type_recv_p_sts
-        
-      if(.not. temp%types_initialized) then 
-        call create_bc_mpi_datatype(temp%startVar,temp%nflux)
-        temp%types_initialized = .true.
-      end if 
+      type_send_srl=>temp%type_send_srl_sts_1
+      type_recv_srl=>temp%type_recv_srl_sts_1
+      type_send_r=>temp%type_send_r_sts_1
+      type_recv_r=>temp%type_recv_r_sts_1
+      type_send_p=>temp%type_send_p_sts_1
+      type_recv_p=>temp%type_recv_p_sts_1
 
+      if(.not. temp%types_initialized) then 
+        call create_bc_mpi_datatype(temp%startwbc,temp%nwbc)
+        if(temp%nflux>temp%nwbc) then
+          ! prepare types for the changed no-need-ghost-update variables in the last getbc
+          type_send_srl=>temp%type_send_srl_sts_2
+          type_recv_srl=>temp%type_recv_srl_sts_2
+          type_send_r=>temp%type_send_r_sts_2
+          type_recv_r=>temp%type_recv_r_sts_2
+          type_send_p=>temp%type_send_p_sts_2
+          type_recv_p=>temp%type_recv_p_sts_2
+          call create_bc_mpi_datatype(temp%startVar,temp%nflux)
+          type_send_srl=>temp%type_send_srl_sts_1
+          type_recv_srl=>temp%type_recv_srl_sts_1
+          type_send_r=>temp%type_send_r_sts_1
+          type_recv_r=>temp%type_recv_r_sts_1
+          type_send_p=>temp%type_send_p_sts_1
+          type_recv_p=>temp%type_recv_p_sts_1
+        end if
+        temp%types_initialized = .true.
+      end if
+        
       sumbj=0.d0
       do j=1,temp%s
         if(j .eq. temp%s .and. (sumbj + bj(j)) * temp%dt_expl > my_dt) then
@@ -513,7 +539,18 @@ contains
           !$OMP END PARALLEL DO
         end if
 
-        call getbc(global_time,0.d0,ps,temp%startVar,temp%nflux)
+        if(temp%nflux>temp%nwbc.and.temp%s==j) then
+          ! include the changed no-need-ghost-update variables in the last getbc
+          type_send_srl=>temp%type_send_srl_sts_2
+          type_recv_srl=>temp%type_recv_srl_sts_2
+          type_send_r=>temp%type_send_r_sts_2
+          type_recv_r=>temp%type_recv_r_sts_2
+          type_send_p=>temp%type_send_p_sts_2
+          type_recv_p=>temp%type_recv_p_sts_2
+          call getbc(global_time,0.d0,ps,temp%startVar,temp%nflux)
+        else
+          call getbc(global_time,0.d0,ps,temp%startwbc,temp%nwbc)
+        end if
       end do
 
       if(associated(temp%sts_after_last_cycle)) then 
@@ -616,15 +653,31 @@ contains
         cmut=1.d0
       end if
 
-      type_send_srl=>temp%type_send_srl_sts
-      type_recv_srl=>temp%type_recv_srl_sts
-      type_send_r=>temp%type_send_r_sts
-      type_recv_r=>temp%type_recv_r_sts
-      type_send_p=>temp%type_send_p_sts
-      type_recv_p=>temp%type_recv_p_sts
+      type_send_srl=>temp%type_send_srl_sts_1
+      type_recv_srl=>temp%type_recv_srl_sts_1
+      type_send_r=>temp%type_send_r_sts_1
+      type_recv_r=>temp%type_recv_r_sts_1
+      type_send_p=>temp%type_send_p_sts_1
+      type_recv_p=>temp%type_recv_p_sts_1
 
       if(.not. temp%types_initialized) then 
-        call create_bc_mpi_datatype(temp%startVar,temp%nflux)
+        call create_bc_mpi_datatype(temp%startwbc,temp%nwbc)
+        if(temp%nflux>temp%nwbc) then
+          ! prepare types for the changed no-need-ghost-update variables in the last getbc
+          type_send_srl=>temp%type_send_srl_sts_2
+          type_recv_srl=>temp%type_recv_srl_sts_2
+          type_send_r=>temp%type_send_r_sts_2
+          type_recv_r=>temp%type_recv_r_sts_2
+          type_send_p=>temp%type_send_p_sts_2
+          type_recv_p=>temp%type_recv_p_sts_2
+          call create_bc_mpi_datatype(temp%startVar,temp%nflux)
+          type_send_srl=>temp%type_send_srl_sts_1
+          type_recv_srl=>temp%type_recv_srl_sts_1
+          type_send_r=>temp%type_send_r_sts_1
+          type_recv_r=>temp%type_recv_r_sts_1
+          type_send_p=>temp%type_send_p_sts_1
+          type_recv_p=>temp%type_recv_p_sts_1
+        end if
         temp%types_initialized = .true.
       end if
       dtj = cmut*my_dt
@@ -657,7 +710,18 @@ contains
         end do
         !$OMP END PARALLEL DO
       end if
-      call getbc(global_time,0.d0,ps1,temp%startVar,temp%nflux)
+      if(temp%nflux>temp%nwbc.and.temp%s==1) then
+        ! include the changed no-need-ghost-update variables in the last getbc
+        type_send_srl=>temp%type_send_srl_sts_2
+        type_recv_srl=>temp%type_recv_srl_sts_2
+        type_send_r=>temp%type_send_r_sts_2
+        type_recv_r=>temp%type_recv_r_sts_2
+        type_send_p=>temp%type_send_p_sts_2
+        type_recv_p=>temp%type_recv_p_sts_2
+        call getbc(global_time,0.d0,ps1,temp%startVar,temp%nflux)
+      else
+        call getbc(global_time,0.d0,ps1,temp%startwbc,temp%nwbc)
+      end if
       !!first step end
 
       evenstep=.true.
@@ -707,7 +771,18 @@ contains
           end do
         !$OMP END PARALLEL DO
         end if
-        call getbc(global_time,0.d0,tmpPs2,temp%startVar,temp%nflux)
+        if(temp%nflux>temp%nwbc.and.temp%s==j) then
+          ! include the changed no-need-ghost-update variables in the last getbc
+          type_send_srl=>temp%type_send_srl_sts_2
+          type_recv_srl=>temp%type_recv_srl_sts_2
+          type_send_r=>temp%type_send_r_sts_2
+          type_recv_r=>temp%type_recv_r_sts_2
+          type_send_p=>temp%type_send_p_sts_2
+          type_recv_p=>temp%type_recv_p_sts_2
+          call getbc(global_time,0.d0,tmpPs2,temp%startVar,temp%nflux)
+        else
+          call getbc(global_time,0.d0,tmpPs2,temp%startwbc,temp%nwbc)
+        end if
         evenstep=.not.evenstep
       end do
 

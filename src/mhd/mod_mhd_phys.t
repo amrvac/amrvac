@@ -641,11 +641,8 @@ contains
       phys_req_diagonal = .true.
       if(mhd_ambipolar_sts) then
         call sts_init()
-        if(mhd_energy) then
-          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,mom(ndir)+1,1+ndir)
-        else
-          call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,mom(ndir)+1,ndir)
-        endif
+        call add_sts_method(get_ambipolar_dt,sts_set_source_ambipolar,mom(ndir)+1,&
+             mag(ndir)-mom(ndir),mag(1),ndir)
       else
         ! For flux ambipolar term, we need one more reconstructed layer since currents are computed
         ! in mhd_get_flux: assuming one additional ghost layer (two for FOURTHORDER) was
