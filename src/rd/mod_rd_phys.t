@@ -17,12 +17,17 @@ module mod_rd_phys
   !> Whether particles module is added
   logical, public, protected :: rd_particles = .false.
 
-  integer            :: number_of_species = 2
-  integer            :: equation_type   = 1
-  integer, parameter :: eq_gray_scott   = 1
-  integer, parameter :: eq_schnakenberg = 2
-  integer, parameter :: eq_brusselator  = 3
-  integer, parameter :: eq_logistic     = 4
+  !> Name of the system to be solved
+  character(len=20), public, protected :: equation_name = "gray-scott"
+  integer            :: number_of_species  = 2
+  integer            :: equation_type      = 1
+  integer, parameter :: eq_gray_scott      = 1
+  integer, parameter :: eq_schnakenberg    = 2
+  integer, parameter :: eq_brusselator     = 3
+  integer, parameter :: eq_logistic        = 4
+  integer, parameter :: eq_analyt_hunds    = 5
+  integer, parameter :: eq_belousov_fn     = 6
+  integer, parameter :: eq_ext_brusselator = 7
 
   !> Diffusion coefficient for first species (u)
   double precision, public, protected :: D1 = 0.05d0
@@ -47,9 +52,22 @@ module mod_rd_phys
   double precision, public, protected :: br_A = 4.5d0
   !> Parameter for Brusselator model
   double precision, public, protected :: br_B = 8.0d0
+  !> Parameter for extended Brusselator model
+  double precision, public, protected :: br_C = 1.0d0
+  !> Parameter for extended Brusselator model
+  double precision, public, protected :: br_D = 1.0d0
 
   !> Parameter for logistic model (Fisher / KPP equation)
   double precision, public, protected :: lg_lambda = 1.0d0
+
+  !> Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction
+  double precision, public, protected :: bzfn_epsilon = 1.0d0
+  !> Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction
+  double precision, public, protected :: bzfn_delta   = 1.0d0
+  !> Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction
+  double precision, public, protected :: bzfn_lambda  = 1.0d0
+  !> Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction
+  double precision, public, protected :: bzfn_mu      = 1.0d0
 
   !> Whether to handle the explicitly handled source term in split fashion
   logical :: rd_source_split = .false.
@@ -63,12 +81,10 @@ contains
     use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
     integer                      :: n
-    character(len=20)            :: equation_name
 
     namelist /rd_list/ D1, D2, D3, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
-        br_A, br_B, lg_lambda, equation_name, rd_particles, rd_source_split
-
-    equation_name = "gray-scott"
+        br_A, br_B, br_C, br_D, lg_lambda, bzfn_epsilon, bzfn_delta, bzfn_lambda, &
+        bzfn_mu, equation_name, rd_particles, rd_source_split
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
@@ -89,6 +105,15 @@ contains
     case ("logistic")
        equation_type = eq_logistic
        number_of_species = 1
+    case ("analyt_hunds")
+       equation_type = eq_analyt_hunds
+       number_of_species = 1
+    case ("belousov_fieldnoyes")
+       equation_type = eq_belousov_fn
+       number_of_species = 3
+    case ("ext_brusselator")
+       equation_type = eq_ext_brusselator
+       number_of_species = 3
     case default
        call mpistop("Unknown equation_name (valid: gray-scott, schnakenberg, ...)")
     end select
@@ -273,8 +298,22 @@ contains
        maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)), &
             maxval(w(ixO^S, u_)**2) )
        dtnew = min(dtnew, 0.5d0/maxrate)
+    case (eq_ext_brusselator)
+       maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)), &
+            maxval(w(ixO^S, u_)**2) + br_C )
+       maxrate = max(maxrate, br_D)
+       dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_logistic)
        maxrate = lg_lambda*maxval(abs(1 - w(ixO^S, u_))) ! abs for safety, normally u < 1
+       dtnew = min(dtnew, 0.5d0/maxrate)
+    case (eq_analyt_hunds)
+       maxrate = maxval(w(ixO^S, u_)*(1 - w(ixO^S, u_))) / D1
+       dtnew = min(dtnew, 0.5d0/maxrate)
+    case (eq_belousov_fn)
+       maxrate = max(&
+            maxval(abs(1.0d0 - w(ixO^S, w_) - w(ixO^S, u_))) / bzfn_epsilon, &
+            maxval(bzfn_lambda + w(ixO^S, u_)) / bzfn_delta &
+       )
        dtnew = min(dtnew, 0.5d0/maxrate)
     case default
        call mpistop("Unknown equation type")
@@ -341,11 +380,32 @@ contains
                + br_A - (br_B + 1) * wCT(ixO^S, u_) &
                + wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
           w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
-               + br_B * wCT(ixO^S, u_) &
-               - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
+               + br_B * wCT(ixO^S, u_) - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
+       case (eq_ext_brusselator)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
+               + br_A - (br_B + 1) * wCT(ixO^S, u_) &
+               + wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
+          w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
+               + br_B * wCT(ixO^S, u_) - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_) &
+               - br_C * wCT(ixO^S, v_) + br_D * w(ixO^S, w_))
+          w(ixO^S, w_) = w(ixO^S, w_) + qdt * (D3 * lpl_w &
+               + br_C * wCT(ixO^S, v_) - br_D * w(ixO^S, w_))
        case (eq_logistic)
           w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
                + lg_lambda * w(ixO^S, u_) * (1 - w(ixO^S, u_)))
+       case (eq_analyt_hunds)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
+               + 1.0d0/D1 * w(ixO^S, u_)**2 * (1 - w(ixO^S, u_)))
+       case (eq_belousov_fn)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
+               + 1.0d0/bzfn_epsilon * (bzfn_lambda * wCT(ixO^S, u_) &
+               - wCT(ixO^S, u_)*wCT(ixO^S, w_) + wCT(ixO^S, u_) &
+               - wCT(ixO^S, u_)**2))
+          w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
+               + wCT(ixO^S, u_) - wCT(ixO^S, v_))
+          w(ixO^S, w_) = w(ixO^S, w_) + qdt * (D2 * lpl_v &
+               + 1.0d0/bzfn_delta * (-bzfn_lambda * wCT(ixO^S, w_) &
+               - wCT(ixO^S, u_)*wCT(ixO^S, w_) + bzfn_mu * wCT(ixO^S, v_)))
        case default
           call mpistop("Unknown equation type")
        end select
