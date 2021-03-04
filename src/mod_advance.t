@@ -105,6 +105,12 @@ contains
 
        case ("IMEX_SP")
           call global_implicit_update(one,dt,global_time,ps,ps1)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+             ps1(igrid)%w=ps(igrid)%w
+             if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
           call advect1(flux_scheme,one,idim^LIM,global_time,ps1,global_time,ps)
 
        case default
