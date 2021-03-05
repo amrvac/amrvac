@@ -591,16 +591,23 @@ contains
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
       call fix_conserve(psb,idim^LIM,1,nwflux)
-      if(stagger_grid) call fix_edges(psb,idim^LIM)
-    end if
-
-    if(stagger_grid) then
-      ! Now fill the cell-center values for the staggered variables
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-        call phys_face_to_center(ixG^LL,psb(igrid))
-      end do
-      !$OMP END PARALLEL DO
+      if(stagger_grid) then
+        call fix_edges(psb,idim^LIM)
+        ! fill the cell-center values from the updated staggered variables
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          call phys_face_to_center(ixG^LL,psb(igrid))
+        end do
+        !$OMP END PARALLEL DO
+      end if
+      if(phys_solve_eaux) then
+        ! synchronize internal energy for AMR mesh
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          call phys_energy_synchro(ixG^LL,ixM^LL,psb(igrid)%w,psb(igrid)%x)
+        end do
+        !$OMP END PARALLEL DO
+      end if
     end if
 
     ! For all grids: fill ghost cells

@@ -162,10 +162,10 @@ module mod_physics
        double precision, intent(out)   :: f(ixI^S, nwflux)
      end subroutine sub_get_flux
 
-     subroutine sub_energy_synchro(qdt,ixI^L,ixO^L,wCT,w,x)
+     subroutine sub_energy_synchro(ixI^L,ixO^L,w,x)
        use mod_global_parameters
        integer, intent(in) :: ixI^L,ixO^L
-       double precision, intent(in) :: qdt,wCT(ixI^S,1:nw),x(ixI^S,1:ndim)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine sub_energy_synchro
 
