@@ -235,7 +235,7 @@ contains
          typegrad,typediv,typecurl,&
          nxdiffusehllc, flathllc, tvdlfeps,&
          flatcd,flatsh,&
-         rk2_alfa,ssprk_order,rk3_switch,imex_switch,&
+         rk2_alfa,imex222_lambda,ssprk_order,rk3_switch,imex_switch,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, fix_small_values, check_small_values, &
          trace_small_values, angmomfix, small_values_fix_iw, &
@@ -450,6 +450,8 @@ contains
     angmomfix       = .false.
     ! default PC or explicit midpoint, hence alfa=0.5
     rk2_alfa        = half 
+    ! default IMEX-RK22Lp hence lambda = 1 + 1/sqrt(2)
+    imex222_lambda  = 1.0d0 + 1.0d0 / dsqrt(2.0d0)
     ! default SSPRK(3,3) or Gottlieb-Shu 1998 for threestep
     ! default SSPRK(4,3) or Spireti-Ruuth for fourstep
     ! default SSPRK(5,4) using Gottlieb coeffs
@@ -747,12 +749,14 @@ contains
           rk_b2=1.0d0/(2.0d0*rk2_alfa)
           rk_b1=1.0d0-rk_b2
        endif
-       use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal')
-       if (((time_integrator/='Predictor_Corrector'.and.&
+       use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal'&
+            .or.time_integrator=='IMEX_RK22')
+       if ((((time_integrator/='Predictor_Corrector'.and.&
             time_integrator/='RK2_alfa').and.&
             (time_integrator/='ssprk2'.and.&
              time_integrator/='IMEX_Midpoint')).and.&
-             time_integrator/='IMEX_Trapezoidal') then
+             time_integrator/='IMEX_Trapezoidal').and.&
+             time_integrator/='IMEX_RK22') then
            call mpistop("No such time_integrator for twostep")
        endif
     case ("threestep")

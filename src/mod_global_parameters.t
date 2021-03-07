@@ -571,6 +571,8 @@ module mod_global_parameters
 
   !> RK2(alfa) method parameters from Butcher tableau
   double precision              :: rk2_alfa,rk_a21,rk_b1,rk_b2
+  !> IMEX-RK22(lambda) one-parameter family of schemes
+  double precision              :: imex222_lambda
   !> SSPRK choice of methods (both threestep and fourstep, Shu-Osher 2N* implementation)
   !> also fivestep SSPRK54
   integer                       :: ssprk_order

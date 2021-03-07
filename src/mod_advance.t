@@ -200,6 +200,34 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_scheme,half, idim^LIM,global_time+dt,ps2,global_time+half*dt,ps)
 
+       case ("IMEX_RK22")
+          !> 1) Do u(1) = un + lambda*dt*G(u(1))
+          ! "one" should be "imex222_lambda", but then convergence is worse...
+          call global_implicit_update(one, dt, global_time, ps2, ps)
+
+          !> 2) Do u(2) = un + dt*F(u(1)) + (1-2*lambda)*dt*G(u(1)) + lambda*dt*G(u(2))
+          call advect1(flux_scheme, one, idim^LIM, global_time, ps2, global_time, ps1)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps3(igrid)%w = ps1(igrid)%w + (1.0d0 - 2.0d0*imex222_lambda)*(ps2(igrid)%w - ps(igrid)%w)
+             ps(igrid)%w  = half*(ps2(igrid)%w + ps1(igrid)%w)
+             if(stagger_grid) ps3(igrid)%ws = ps1(igrid)%ws + (1.0d0 - 2.0d0*imex222_lambda)*(ps2(igrid)%ws - ps(igrid)%ws)
+             if(stagger_grid) ps(igrid)%ws  = half*(ps2(igrid)%ws + ps1(igrid)%ws)
+          end do
+          !$OMP END PARALLEL DO
+          call getbc(global_time+dt,dt,ps3,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+dt,dt,ps ,iwstart,nwgc,phys_req_diagonal)
+          call global_implicit_update(imex222_lambda, dt, global_time+dt, ps1, ps3)
+
+          !> 3) Do u(n+1) = un + dt/2*(F(u(1))+F(u(2))+G(u(1))+G(u(2)))
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w = ps(igrid)%w + (ps1(igrid)%w-ps3(igrid)%w)/(2.0d0*imex222_lambda)
+             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws + (ps1(igrid)%ws-ps3(igrid)%ws)/(2.0d0*imex222_lambda)
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_scheme, half, idim^LIM, global_time+dt, ps1, global_time+dt, ps)
+
        case default
           write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
           write(unitterm,*) "Error in advect: Unknown time integration method"
