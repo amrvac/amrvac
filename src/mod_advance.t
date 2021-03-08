@@ -596,7 +596,7 @@ contains
         ! fill the cell-center values from the updated staggered variables
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          call phys_face_to_center(ixG^LL,psb(igrid))
+          call phys_face_to_center(ixM^LL,psb(igrid))
         end do
         !$OMP END PARALLEL DO
       end if

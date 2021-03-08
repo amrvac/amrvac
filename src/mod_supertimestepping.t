@@ -111,6 +111,7 @@ module mod_supertimestepping
     double precision :: dt_expl
     integer, public :: s
     logical :: types_initialized
+    logical :: evolve_magnetic_field
 
     !>types used for send/recv ghosts, see mod_ghostcells_update
     integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts_1, type_recv_srl_sts_1
@@ -194,16 +195,18 @@ contains
   !> startVar, endVar, nflux indices of start, end, and number of the variables that need fix conservation
   !> startwbc, nwbc indices of start and number of the variables that need ghost cell exchange
   !> These terms implemented by an element of the derived type sts_term are put in a linked list
-  subroutine add_sts_method(sts_getdt, sts_set_sources, startVar, nflux, startwbc, nwbc)
+  subroutine add_sts_method(sts_getdt, sts_set_sources, startVar, nflux, startwbc, nwbc, evolve_B)
     use mod_global_parameters
     use mod_ghostcells_update
 
     integer, intent(in) :: startVar, nflux, startwbc, nwbc
+    logical, intent(in) :: evolve_B
 
     interface
 
       subroutine sts_set_sources(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
         use mod_global_parameters
+        use mod_fix_conserve
         integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
         double precision, intent(in) ::  x(ixI^S,1:ndim)
         double precision, intent(inout) :: wres(ixI^S,1:nw), w(ixI^S,1:nw)
@@ -235,6 +238,7 @@ contains
     temp%startwbc = startwbc
     temp%nwbc = nwbc
     temp%types_initialized = .false.
+    temp%evolve_magnetic_field=evolve_B
 
     temp%next => head_sts_terms
     head_sts_terms => temp
@@ -442,22 +446,17 @@ contains
     use mod_ghostcells_update
     use mod_global_parameters
     use mod_fix_conserve
+    use mod_physics
 
     double precision, intent(in) :: my_dt
     double precision, allocatable :: bj(:)
     double precision :: sumbj,dtj  
 
-    integer:: iigrid, igrid, j
+    integer:: iigrid, igrid, j, ixC^L
     logical :: stagger_flag, prolong_flag, coarsen_flag
     type(sts_term), pointer  :: temp
 
-    ! not do fix conserve and getbc for staggered values if stagger is used
-    stagger_flag=stagger_grid
-    prolong_flag=prolongprimitive
-    coarsen_flag=coarsenprimitive
-    stagger_grid=.false.
-    prolongprimitive=.false.
-    coarsenprimitive=.false.
+    ! do not fill physical boundary conditions
     bcphys=.false.
 
     fix_conserve_at_step = time_advance .and. levmax>levmin
@@ -465,9 +464,22 @@ contains
     temp => head_sts_terms
     do while(associated(temp))
 
+      if(.not.temp%evolve_magnetic_field) then
+        ! not do fix conserve and getbc for staggered values
+        stagger_flag=stagger_grid
+        stagger_grid=.false.
+      else if(stagger_grid) then
+        ixCmax^D=ixMhi^D;
+        ixCmin^D=ixMlo^D-1;
+      end if
+
       call init_comm_fix_conserve(1,ndim,temp%nflux)
 
       if(associated(temp%sts_before_first_cycle)) then
+        prolong_flag=prolongprimitive
+        coarsen_flag=coarsenprimitive
+        prolongprimitive=.false.
+        coarsenprimitive=.false.
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)  
         end do 
@@ -514,22 +526,48 @@ contains
           dtj = bj(j)* temp%dt_expl
         end if  
         sumbj = sumbj + bj(j)
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          block=>ps(igrid)
-          typelimiter=type_limiter(node(plevel_,igrid))
-          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-          call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps1(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
-          ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)=ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&
-            dtj*ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar)
-        end do
-        !$OMP END PARALLEL DO
+        if(stagger_grid) then
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+            block=>ps(igrid)
+            typelimiter=type_limiter(node(plevel_,igrid))
+            typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+            call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps1(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
+            if(temp%nflux>ndir) then
+              ps(igrid)%w(ixM^T,temp%startVar)=ps(igrid)%w(ixM^T,temp%startVar)+dtj*ps1(igrid)%w(ixM^T,temp%startVar)
+            end if
+            ps(igrid)%ws(ixC^S,1:nws)=ps(igrid)%ws(ixC^S,1:nws)+dtj*ps1(igrid)%w(ixC^S,iw_mag(1:nws))
+            call phys_face_to_center(ixM^LL,ps(igrid))
+          end do
+          !$OMP END PARALLEL DO
+        else
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+            block=>ps(igrid)
+            typelimiter=type_limiter(node(plevel_,igrid))
+            typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+            call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps1(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
+            ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)=ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&
+              dtj*ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar)
+          end do
+          !$OMP END PARALLEL DO
+        end if
         !fix conserve the fluxes set in the STS method
         if(fix_conserve_at_step) then
           call recvflux(1,ndim)
           call sendflux(1,ndim)
           call fix_conserve(ps,1,ndim,temp%startVar,temp%nflux)
+          if(stagger_grid) then
+            call fix_edges(ps,1,ndim)
+            ! fill the cell-center values from the updated staggered variables
+            !$OMP PARALLEL DO PRIVATE(igrid)
+            do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+              call phys_face_to_center(ixG^LL,ps(igrid))
+            end do
+            !$OMP END PARALLEL DO
+          end if
         end if
         if(associated(temp%sts_handle_errors)) then
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -557,8 +595,15 @@ contains
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do 
+        prolongprimitive  = prolong_flag
+        coarsenprimitive = coarsen_flag
       end if
       deallocate(bj)
+
+      if(.not.temp%evolve_magnetic_field) then
+        ! restore stagger_grid value
+        stagger_grid=stagger_flag
+      end if
 
       temp=>temp%next
     end do
@@ -571,12 +616,9 @@ contains
       type_recv_r=>type_recv_r_f
       type_send_p=>type_send_p_f
       type_recv_p=>type_recv_p_f
-      bcphys=.true.
-      ! restore stagger_grid value
-      stagger_grid=stagger_flag
-      prolongprimitive  = prolong_flag
-      coarsenprimitive = coarsen_flag
     end if
+
+    bcphys=.true.
 
   end subroutine sts_add_source2
 
@@ -587,25 +629,18 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
-    use mod_physics, only: phys_total_energy
+    use mod_physics
 
     double precision, intent(in) :: my_dt
     double precision :: dtj
     double precision :: omega1,cmu,cmut,cnu,cnut,one_mu_nu
     double precision, allocatable :: bj(:)
-    integer:: iigrid, igrid, j
+    integer:: iigrid, igrid, j, ixC^L, ixGext^L
     logical :: evenstep, stagger_flag, prolong_flag, coarsen_flag, total_energy_flag
     type(sts_term), pointer  :: temp
     type(state), dimension(:), pointer :: tmpPs1, tmpPs2
 
-    ! not do fix conserve and getbc for staggered values if stagger is used
-    stagger_flag=stagger_grid
-    prolong_flag = prolongprimitive
-    coarsen_flag = coarsenprimitive
-    total_energy_flag=.true.
-    stagger_grid=.false.
-    prolongprimitive = .false.
-    coarsenprimitive = .false.
+    ! do not fill physical boundary conditions
     bcphys=.false.
 
     fix_conserve_at_step = time_advance .and. levmax>levmin
@@ -613,9 +648,22 @@ contains
     temp => head_sts_terms
     do while(associated(temp))
 
+      if(.not.temp%evolve_magnetic_field) then
+        ! not do fix conserve and getbc for staggered values
+        stagger_flag=stagger_grid
+        stagger_grid=.false.
+      else if(stagger_grid) then
+        ixCmax^D=ixMhi^D;
+        ixCmin^D=ixMlo^D-1;
+      end if
+
       call init_comm_fix_conserve(1,ndim,temp%nflux)
 
       if(associated(temp%sts_before_first_cycle)) then
+        prolong_flag = prolongprimitive
+        coarsen_flag = coarsenprimitive
+        prolongprimitive = .false.
+        coarsenprimitive = .false.
         total_energy_flag=phys_total_energy
         phys_total_energy=.false.
         !$OMP PARALLEL DO PRIVATE(igrid)
@@ -626,20 +674,35 @@ contains
           if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
           ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
           ps2(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-          ps3(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
         end do
         !$OMP END PARALLEL DO
       else
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
-          if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
-          if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
-          ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-          ps2(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-          ps3(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-        end do
-        !$OMP END PARALLEL DO
+        if(stagger_grid) then
+          ixGext^L=ixG^LL^LADD1;
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+            if(.not. allocated(ps2(igrid)%w)) then
+              call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+            end if
+            if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
+            if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
+            ps1(igrid)%w=ps(igrid)%w
+            ps2(igrid)%w=ps(igrid)%w
+            ps1(igrid)%ws=ps(igrid)%ws
+            ps2(igrid)%ws=ps(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+        else
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+            if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
+            if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
+            if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
+            ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+            ps2(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+          end do
+          !$OMP END PARALLEL DO
+        end if
       end if
 
       allocate(bj(0:temp%s))
@@ -681,26 +744,52 @@ contains
         temp%types_initialized = .true.
       end if
       dtj = cmut*my_dt
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-        block=>ps(igrid)
-        typelimiter=type_limiter(node(plevel_,igrid))
-        typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-
-        call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
-        !!!eq solved: dU/dt = S
-        !!!In ps3 is stored S^n
-        ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar) = my_dt * ps4(igrid)%w(ixM^T,temp%startVar:temp%endVar)
-        ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar) = ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar) + &
-          cmut * ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar)
-
-      end do
-      !$OMP END PARALLEL DO
+      if(stagger_grid) then
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
+          typelimiter=type_limiter(node(plevel_,igrid))
+          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+          ps4(igrid)%w=zero
+          call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
+          !!!eq solved: dU/dt = S, ps3 is stored S^n
+            ps3(igrid)%w(ixC^S,temp%startVar:temp%endVar) = my_dt * ps4(igrid)%w(ixC^S,temp%startVar:temp%endVar)
+          if(temp%nflux>ndir) then
+            ps1(igrid)%w(ixM^T,temp%startVar) = ps1(igrid)%w(ixM^T,temp%startVar) + cmut * ps3(igrid)%w(ixM^T,temp%startVar)
+          end if
+          ps1(igrid)%ws(ixC^S,1:nws) = ps1(igrid)%ws(ixC^S,1:nws) + cmut * ps3(igrid)%w(ixC^S,iw_mag(1:nws))
+          call phys_face_to_center(ixM^LL,ps1(igrid))
+        end do
+        !$OMP END PARALLEL DO
+      else
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
+          typelimiter=type_limiter(node(plevel_,igrid))
+          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+          call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
+          !!!eq solved: dU/dt = S, ps3 is stored S^n
+          ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar) = my_dt * ps4(igrid)%w(ixM^T,temp%startVar:temp%endVar)
+          ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar) = ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar) + &
+            cmut * ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar)
+        end do
+        !$OMP END PARALLEL DO
+      end if
       if(fix_conserve_at_step) then
         call recvflux(1,ndim)
         call sendflux(1,ndim)
         call fix_conserve(ps1,1,ndim,temp%startVar,temp%nflux)
+        if(stagger_grid) then
+          call fix_edges(ps1,1,ndim)
+          ! fill the cell-center values from the updated staggered variables
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            call phys_face_to_center(ixG^LL,ps1(igrid))
+          end do
+          !$OMP END PARALLEL DO
+        end if
       end if
       ! fix conservation of AMR grid by replacing flux from finer neighbors
       if(associated(temp%sts_handle_errors)) then
@@ -744,30 +833,63 @@ contains
         end if
 
         dtj = cmut*my_dt
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          ! maybe the following global variables are needed in set_sources
-          ! next few lines ensure correct usage of routines like divvector etc
-          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          block=>ps(igrid)
-          typelimiter=type_limiter(node(plevel_,igrid))
-          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
-          ! end maybe the following global variables are needed in set_sources
-          call temp%sts_set_sources(ixG^LL,ixM^LL,tmpPs1(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
-          tmpPs2(igrid)%w(ixM^T,temp%startVar:temp%endVar)=cmu*tmpPs1(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&
-            cnu*tmpPs2(igrid)%w(ixM^T,temp%startVar:temp%endVar)+one_mu_nu*ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&
-            dtj*ps4(igrid)%w(ixM^T,temp%startVar:temp%endVar)+cnut*ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar)
-        end do
-        !$OMP END PARALLEL DO
+        if(stagger_grid) then
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            ! maybe the following global variables are needed in set_sources
+            ! next few lines ensure correct usage of routines like divvector etc
+            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+            block=>ps(igrid)
+            typelimiter=type_limiter(node(plevel_,igrid))
+            typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+            ! end maybe the following global variables are needed in set_sources
+            call temp%sts_set_sources(ixG^LL,ixM^LL,tmpPs1(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
+            if(temp%nflux>ndir) then
+              tmpPs2(igrid)%w(ixM^T,temp%startVar)=cmu*tmpPs1(igrid)%w(ixM^T,temp%startVar)+&
+                cnu*tmpPs2(igrid)%w(ixM^T,temp%startVar)+one_mu_nu*ps(igrid)%w(ixM^T,temp%startVar)+&
+                dtj*ps4(igrid)%w(ixM^T,temp%startVar)+cnut*ps3(igrid)%w(ixM^T,temp%startVar)
+            end if
+            tmpPs2(igrid)%ws(ixC^S,1:nws)=cmu*tmpPs1(igrid)%ws(ixC^S,1:nws)+&
+              cnu*tmpPs2(igrid)%ws(ixC^S,1:nws)+one_mu_nu*ps(igrid)%ws(ixC^S,1:nws)+&
+              dtj*ps4(igrid)%w(ixC^S,iw_mag(1:nws))+cnut*ps3(igrid)%w(ixC^S,iw_mag(1:nws))
+            call phys_face_to_center(ixM^LL,tmpPs2(igrid))
+          end do
+          !$OMP END PARALLEL DO
+        else
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            ! maybe the following global variables are needed in set_sources
+            ! next few lines ensure correct usage of routines like divvector etc
+            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+            block=>ps(igrid)
+            typelimiter=type_limiter(node(plevel_,igrid))
+            typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
+            ! end maybe the following global variables are needed in set_sources
+            call temp%sts_set_sources(ixG^LL,ixM^LL,tmpPs1(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
+            tmpPs2(igrid)%w(ixM^T,temp%startVar:temp%endVar)=cmu*tmpPs1(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&
+              cnu*tmpPs2(igrid)%w(ixM^T,temp%startVar:temp%endVar)+one_mu_nu*ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&
+              dtj*ps4(igrid)%w(ixM^T,temp%startVar:temp%endVar)+cnut*ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar)
+          end do
+          !$OMP END PARALLEL DO
+        end if
         if(fix_conserve_at_step) then
           call recvflux(1,ndim)
           call sendflux(1,ndim)
           call fix_conserve(tmpPs2,1,ndim,temp%startVar,temp%nflux)
+          if(stagger_grid) then
+            call fix_edges(tmpPs2,1,ndim)
+            ! fill the cell-center values from the updated staggered variables
+            !$OMP PARALLEL DO PRIVATE(igrid)
+            do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+              call phys_face_to_center(ixG^LL,tmpPs2(igrid))
+            end do
+            !$OMP END PARALLEL DO
+          end if
         end if
         if(associated(temp%sts_handle_errors)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-            call temp%sts_handle_errors(tmpPs2(igrid)%w,tmpPs2(igrid)%x,ixG^LL,ixM^LL,j)
+            call temp%sts_handle_errors(tmpPs2(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,j)
           end do
         !$OMP END PARALLEL DO
         end if
@@ -794,15 +916,31 @@ contains
         end do
         !$OMP END PARALLEL DO
         phys_total_energy=total_energy_flag
+        prolongprimitive  = prolong_flag
+        coarsenprimitive = coarsen_flag
       else
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          ps(igrid)%w(ixG^T,temp%startVar:temp%endVar)=tmpPs2(igrid)%w(ixG^T,temp%startVar:temp%endVar)
-        end do
-        !$OMP END PARALLEL DO
+        if(stagger_grid) then
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+            ps(igrid)%w(ixG^T,temp%startVar:temp%endVar)=tmpPs2(igrid)%w(ixG^T,temp%startVar:temp%endVar)
+            ps(igrid)%ws=tmpPs2(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+        else
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+            ps(igrid)%w(ixG^T,temp%startVar:temp%endVar)=tmpPs2(igrid)%w(ixG^T,temp%startVar:temp%endVar)
+          end do
+          !$OMP END PARALLEL DO
+        end if
       endif
 
       deallocate(bj)
+
+      if(.not.temp%evolve_magnetic_field) then
+        ! restore stagger_grid value
+        stagger_grid=stagger_flag
+      end if
 
       temp=>temp%next
     end do
@@ -815,12 +953,9 @@ contains
       type_recv_r=>type_recv_r_f
       type_send_p=>type_send_p_f
       type_recv_p=>type_recv_p_f
-      bcphys=.true.
-      ! restore stagger_grid value
-      stagger_grid=stagger_flag
-      prolongprimitive  = prolong_flag
-      coarsenprimitive = coarsen_flag
     end if
+
+    bcphys=.true.
 
   end subroutine sts_add_source1
 

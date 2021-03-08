@@ -181,7 +181,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_etot
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1)
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1,.false.)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -213,7 +213,7 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1)
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1,.false.)
 
     call set_error_handling_to_head(handle_small_e)
 
@@ -297,7 +297,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_etot
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1)
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1,.false.)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
     call set_error_handling_to_head(handle_small_e)
@@ -332,7 +332,7 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_eint
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1)
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1,.false.)
 
     call set_error_handling_to_head(handle_small_e)
 
@@ -404,7 +404,7 @@ contains
   !> Sharma 2007 Journal of Computational Physics 227, 123
   subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
-    use mod_fix_conserve, only: store_flux
+    use mod_fix_conserve
 
     integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
@@ -816,7 +816,7 @@ contains
 
   subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
-    use mod_fix_conserve, only: store_flux
+    use mod_fix_conserve
 
     integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
