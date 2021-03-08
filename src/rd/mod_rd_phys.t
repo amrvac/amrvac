@@ -17,6 +17,9 @@ module mod_rd_phys
   !> Whether particles module is added
   logical, public, protected :: rd_particles = .false.
 
+  !> Parameter with which to multiply the reaction timestep restriction
+  double precision, public, protected :: dtreacpar = 0.5d0
+
   !> Name of the system to be solved
   character(len=20), public, protected :: equation_name = "gray-scott"
   integer            :: number_of_species  = 2
@@ -43,9 +46,9 @@ module mod_rd_phys
   !> Parameter for Schnakenberg model
   double precision, public, protected :: sb_kappa = 100.0d0
 
-  !> Parameter for Gray-Scott model
+  !> Feed rate for Gray-Scott model
   double precision, public, protected :: gs_F = 0.046d0
-  !> Parameter for Gray-Scott model
+  !> Kill rate for Gray-Scott model
   double precision, public, protected :: gs_k = 0.063d0
 
   !> Parameter for Brusselator model
@@ -84,7 +87,7 @@ contains
 
     namelist /rd_list/ D1, D2, D3, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
         br_A, br_B, br_C, br_D, lg_lambda, bzfn_epsilon, bzfn_delta, bzfn_lambda, &
-        bzfn_mu, equation_name, rd_particles, rd_source_split
+        bzfn_mu, equation_name, rd_particles, rd_source_split, dtreacpar
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
@@ -289,35 +292,30 @@ contains
     case (eq_gray_scott)
        maxrate = max(maxval(w(ixO^S, v_))**2 + gs_F, &
             maxval(w(ixO^S, v_) * w(ixO^S, u_)) - gs_F - gs_k)
-       dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_schnakenberg)
        maxrate = max(maxval(abs(w(ixO^S, v_) * w(ixO^S, u_) - 1)), &
             maxval(w(ixO^S, u_))**2)
-       dtnew = min(dtnew, 0.5d0/(sb_kappa * maxrate))
     case (eq_brusselator)
        maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)), &
             maxval(w(ixO^S, u_)**2) )
-       dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_ext_brusselator)
        maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)) + br_C, &
             maxval(w(ixO^S, u_)**2) )
        maxrate = max(maxrate, br_D)
-       dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_logistic)
        maxrate = lg_lambda*maxval(abs(1 - w(ixO^S, u_))) ! abs for safety, normally u < 1
-       dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_analyt_hunds)
        maxrate = maxval(w(ixO^S, u_)*(1 - w(ixO^S, u_))) / D1
-       dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_belousov_fn)
        maxrate = max(&
             maxval(abs(1.0d0 - w(ixO^S, w_) - w(ixO^S, u_))) / bzfn_epsilon, &
             maxval(bzfn_lambda + w(ixO^S, u_)) / bzfn_delta &
        )
-       dtnew = min(dtnew, 0.5d0/maxrate)
     case default
        call mpistop("Unknown equation type")
     end select
+
+    dtnew = min(dtnew, dtreacpar / maxrate)
 
   end subroutine rd_get_dt
 
