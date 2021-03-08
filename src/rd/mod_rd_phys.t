@@ -299,8 +299,8 @@ contains
             maxval(w(ixO^S, u_)**2) )
        dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_ext_brusselator)
-       maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)), &
-            maxval(w(ixO^S, u_)**2) + br_C )
+       maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)) + br_C, &
+            maxval(w(ixO^S, u_)**2) )
        maxrate = max(maxrate, br_D)
        dtnew = min(dtnew, 0.5d0/maxrate)
     case (eq_logistic)
@@ -384,12 +384,13 @@ contains
        case (eq_ext_brusselator)
           w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
                + br_A - (br_B + 1) * wCT(ixO^S, u_) &
-               + wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
+               + wCT(ixO^S, u_)**2 * wCT(ixO^S, v_) &
+               - br_C * wCT(ixO^S, u_) + br_D * w(ixO^S, w_))
           w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
-               + br_B * wCT(ixO^S, u_) - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_) &
-               - br_C * wCT(ixO^S, v_) + br_D * w(ixO^S, w_))
+               + br_B * wCT(ixO^S, u_) &
+               - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
           w(ixO^S, w_) = w(ixO^S, w_) + qdt * (D3 * lpl_w &
-               + br_C * wCT(ixO^S, v_) - br_D * w(ixO^S, w_))
+               + br_C * wCT(ixO^S, u_) - br_D * w(ixO^S, w_))
        case (eq_logistic)
           w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
                + lg_lambda * w(ixO^S, u_) * (1 - w(ixO^S, u_)))
