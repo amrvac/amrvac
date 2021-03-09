@@ -3687,7 +3687,7 @@ contains
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('special')
           ! Assume Dirichlet boundary conditions, derivative zero
-          mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
+          mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        case ('periodic')
           ! Nothing to do here
