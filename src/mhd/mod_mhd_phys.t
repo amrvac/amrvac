@@ -29,8 +29,12 @@ module mod_mhd_phys
 
   !> Whether Ambipolar term is used
   logical, public, protected              :: mhd_ambipolar = .false.
+
   !> Whether Ambipolar term is implemented using supertimestepping
   logical, public, protected              :: mhd_ambipolar_sts = .false.
+
+  !> Whether Ambipolar term is implemented explicitly
+  logical, public, protected              :: mhd_ambipolar_exp = .false.
 
   !> Whether particles module is added
   logical, public, protected              :: mhd_particles = .false.
@@ -650,6 +654,7 @@ contains
                mag(ndir)-mom(ndir),mag(1),ndir,.true.)
         end if
       else
+        mhd_ambipolar_exp=.true.
         ! For flux ambipolar term, we need one more reconstructed layer since currents are computed
         ! in mhd_get_flux: assuming one additional ghost layer (two for FOURTHORDER) was
         ! added in nghostcells.
@@ -1623,7 +1628,7 @@ contains
     end if
 
     ! Contributions of ambipolar term in explicit scheme
-    if(mhd_ambipolar .and. (.not. mhd_ambipolar_sts) .and. mhd_eta_ambi>0) then
+    if(mhd_ambipolar_exp.and. .not.stagger_grid) then
       !J_ambi = J * mhd_eta_ambi/rho**2
       allocate(Jambi(ixI^S,1:3))
       call mhd_get_Jambi(w,x,ixI^L,ixO^L,Jambi)
@@ -2902,9 +2907,10 @@ contains
       call gravity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     end if
 
-    if(mhd_ambipolar .and. .not. mhd_ambipolar_sts) then
+    if(mhd_ambipolar_exp) then
       dtnew=min(dtdiffpar*get_ambipolar_dt(w,ixI^L,ixO^L,dx^D,x),dtnew)
     endif
+
   end subroutine mhd_get_dt
 
   ! Add geometrical source terms to w
@@ -3834,8 +3840,8 @@ contains
     integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
     double precision                   :: circ(ixI^S,1:ndim)
-    ! current on cell edges
-    double precision :: jce(ixI^S,7-2*ndim:3)
+    ! non-ideal electric field on cell edges
+    double precision, dimension(ixI^S,7-2*ndim:3) :: E_resi, E_ambi
 
     associate(bfaces=>s%ws,x=>s%x)
 
@@ -3846,7 +3852,10 @@ contains
     ixCmin^D=ixOmin^D-1;
 
     ! if there is resistivity, get eta J
-    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
+
+    ! if there is ambipolar diffusion, get E_ambi
+    if(mhd_ambipolar_exp) call get_ambipolar_electric_field(ixI^L,ixO^L,sCT%w,x,E_ambi)
 
     fE=zero
 
@@ -3864,8 +3873,10 @@ contains
             fE(ixC^S,idir)=quarter*(fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
                                    -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
 
-            ! add current component of electric field at cell edges E=-vxB+eta J
-            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
+            ! add resistive electric field at cell edges E=-vxB+eta J
+            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
+            ! add ambipolar electric field
+            if(mhd_ambipolar_exp) fE(ixC^S,idir)=fE(ixC^S,idir)+E_ambi(ixC^S,idir)
 
             fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
@@ -3939,8 +3950,8 @@ contains
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
     double precision                   :: ELC(ixI^S),ERC(ixI^S)
-    ! current on cell edges
-    double precision                   :: jce(ixI^S,7-2*ndim:3)
+    ! non-ideal electric field on cell edges
+    double precision, dimension(ixI^S,7-2*ndim:3) :: E_resi, E_ambi
     ! total magnetic field at cell centers
     double precision                   :: Btot(ixI^S,1:ndim)
     integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
@@ -3964,7 +3975,10 @@ contains
     enddo; enddo; enddo
 
     ! if there is resistivity, get eta J
-    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
+
+    ! if there is ambipolar diffusion, get E_ambi
+    if(mhd_ambipolar_exp) call get_ambipolar_electric_field(ixI^L,ixO^L,sCT%w,x,E_ambi)
 
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
@@ -4035,8 +4049,10 @@ contains
             end where
             fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
 
-            ! add current component of electric field at cell edges E=-vxB+eta J
-            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
+            ! add resistive electric field at cell edges E=-vxB+eta J
+            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
+            ! add ambipolar electric field
+            if(mhd_ambipolar_exp) fE(ixC^S,idir)=fE(ixC^S,idir)+E_ambi(ixC^S,idir)
 
             ! times time step and edge length 
             fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
@@ -4106,8 +4122,8 @@ contains
     double precision                   :: cp(ixI^S,2)
     double precision                   :: cm(ixI^S,2)
     double precision                   :: circ(ixI^S,1:ndim)
-    ! current on cell edges
-    double precision                   :: jce(ixI^S,7-2*ndim:3)
+    ! non-ideal electric field on cell edges
+    double precision, dimension(ixI^S,7-2*ndim:3) :: E_resi, E_ambi
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
 
@@ -4125,7 +4141,10 @@ contains
     ! idim2: directions in which we perform the reconstruction
 
     ! if there is resistivity, get eta J
-    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+    if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
+
+    ! if there is ambipolar diffusion, get E_ambi
+    if(mhd_ambipolar_exp) call get_ambipolar_electric_field(ixI^L,ixO^L,sCT%w,x,E_ambi)
 
     fE=zero
 
@@ -4191,8 +4210,10 @@ contains
                      - cp(ixC^S,2)*cm(ixC^S,2)*(btilR(ixC^S,idim1)-btilL(ixC^S,idim1)))&
                      /(cp(ixC^S,2)+cm(ixC^S,2))
 
-      ! add current component of electric field at cell edges E=-vxB+eta J
-      if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
+      ! add resistive electric field at cell edges E=-vxB+eta J
+      if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
+      ! add ambipolar electric field
+      if(mhd_ambipolar_exp) fE(ixC^S,idir)=fE(ixC^S,idir)+E_ambi(ixC^S,idir)
 
       fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
