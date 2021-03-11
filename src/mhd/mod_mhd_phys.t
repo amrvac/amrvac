@@ -1491,7 +1491,7 @@ contains
     double precision, allocatable:: vHall(:^D&,:)
     integer                      :: idirmin, iw, idir, jdir, kdir
     double precision, allocatable, dimension(:^D&,:) :: Jambi, btot
-    double precision, allocatable, dimension(:^D&) :: tmp2
+    double precision, allocatable, dimension(:^D&) :: tmp2, tmp3
 
 
     if (mhd_Hall) then
@@ -1629,10 +1629,12 @@ contains
 
     ! Contributions of ambipolar term in explicit scheme
     if(mhd_ambipolar_exp.and. .not.stagger_grid) then
-      !J_ambi = J * mhd_eta_ambi/rho**2
+      ! ambipolar electric field
+      ! E_ambi=-eta_ambi*JxBxB=-JaxBxB=B^2*Ja-(Ja dot B)*B
+      !Ja=eta_ambi*J=J * mhd_eta_ambi/rho**2
       allocate(Jambi(ixI^S,1:3))
       call mhd_get_Jambi(w,x,ixI^L,ixO^L,Jambi)
-      allocate(btot(ixI^S,1:3))
+      allocate(btot(ixO^S,1:3))
       if(B0field) then
         do idir=1,3
           btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,idir)
@@ -1640,41 +1642,33 @@ contains
       else
         btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
       endif
-      allocate(tmp2(ixI^S))
-      !!tmp2 = Btot^2
+      allocate(tmp2(ixO^S),tmp3(ixO^S))
+      !tmp2 = Btot^2
       tmp2(ixO^S) = sum(btot(ixO^S,1:3)**2,dim=ndim+1)
+      !tmp3 = J_ambi dot Btot
+      tmp3(ixO^S) = sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
 
       select case(idim)
         case(1)
-          tmp(ixO^S)=(btot(ixO^S,3) *Jambi(ixO^S,2) - btot(ixO^S,2) * Jambi(ixO^S,3))
-          f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,3) - btot(ixO^S,3) * sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
-          f(ixO^S,mag(3))= f(ixO^S,mag(3)) + btot(ixO^S,3) * tmp(ixO^S) + btot(ixO^S,1) * (btot(ixO^S,1) * Jambi(ixO^S,3) - btot(ixO^S,2) * Jambi(ixO^S,1))
+          tmp(ixO^S)=btot(ixO^S,3) *Jambi(ixO^S,2) - btot(ixO^S,2) * Jambi(ixO^S,3)
+          f(ixO^S,mag(2))= f(ixO^S,mag(2)) - tmp2(ixO^S) * Jambi(ixO^S,3) + tmp3(ixO^S) * btot(ixO^S,3)
+          f(ixO^S,mag(3))= f(ixO^S,mag(3)) + tmp2(ixO^S) * Jambi(ixO^S,2) - tmp3(ixO^S) * btot(ixO^S,2)
         case(2)
-          tmp(ixO^S)=(btot(ixO^S,1) *Jambi(ixO^S,3) - btot(ixO^S,3) * Jambi(ixO^S,1))
-          f(ixO^S,mag(1))= f(ixO^S,mag(1)) - tmp2(ixO^S) * Jambi(ixO^S,3) + btot(ixO^S,3) * sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
-          f(ixO^S,mag(3))= f(ixO^S,mag(3)) - btot(ixO^S,3) * tmp(ixO^S)  + btot(ixO^S,2) * (btot(ixO^S,1) * Jambi(ixO^S,2) - btot(ixO^S,2) * Jambi(ixO^S,1))
+          tmp(ixO^S)=btot(ixO^S,1) *Jambi(ixO^S,3) - btot(ixO^S,3) * Jambi(ixO^S,1)
+          f(ixO^S,mag(1))= f(ixO^S,mag(1)) + tmp2(ixO^S) * Jambi(ixO^S,3) - tmp3(ixO^S) * btot(ixO^S,3)
+          f(ixO^S,mag(3))= f(ixO^S,mag(3)) - tmp2(ixO^S) * Jambi(ixO^S,1) + tmp3(ixO^S) * btot(ixO^S,1)
         case(3)
-          tmp(ixO^S)=(btot(ixO^S,2) *Jambi(ixO^S,1) - btot(ixO^S,1) * Jambi(ixO^S,2))
-          f(ixO^S,mag(1))= f(ixO^S,mag(1)) - btot(ixO^S,3) * tmp(ixO^S) - btot(ixO^S,1) * (btot(ixO^S,1) * Jambi(ixO^S,3) - btot(ixO^S,2) * Jambi(ixO^S,1))
-          f(ixO^S,mag(2))= f(ixO^S,mag(2)) + btot(ixO^S,3) * tmp(ixO^S) - btot(ixO^S,2) * (btot(ixO^S,1) * Jambi(ixO^S,2) - btot(ixO^S,2) * Jambi(ixO^S,1))
+          tmp(ixO^S)=btot(ixO^S,2) *Jambi(ixO^S,1) - btot(ixO^S,1) * Jambi(ixO^S,2)
+          f(ixO^S,mag(1))= f(ixO^S,mag(1)) - tmp2(ixO^S) * Jambi(ixO^S,2) + tmp3(ixO^S) * btot(ixO^S,2)
+          f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,1) - tmp3(ixO^S) * btot(ixO^S,1)
       endselect
+
       if(mhd_energy .and. .not. mhd_internal_e) then
         f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
       endif
 
-      !!!mathematica output          
-      !(-jxbxb)xb
-      !{(bx^2 + by^2 + bz^2)*(bz*vy - by*vz), (bx^2 + by^2 + bz^2)*(-(bz*vx) + bx*vz), -((bx^2 + by^2 + bz^2)*(-(by*vx) + bx*vy))}
-      !mag1
-      !{0, -(bz*(bx*vx + by*vy)) + (bx^2 + by^2)*vz, bx*by*vx - bx^2*vy - bz*(bz*vy - by*vz)}
-      !mag2
-      !{bz*(bx*vx + by*vy) - (bx^2 + by^2)*vz, 0, by^2*vx - bx*by*vy + bz*(bz*vx - bx*vz)}
-      !mag3
-      !{-(bx*by*vx) + bx^2*vy + bz*(bz*vy - by*vz), -(by^2*vx) + bx*by*vy - bz*(bz*vx - bx*vz), 0}
- 
-      deallocate(Jambi,btot, tmp2)
+      deallocate(Jambi,btot,tmp2,tmp3)
     endif
-    ! Contributions of ambipolar term end
 
   end subroutine mhd_get_flux
 
