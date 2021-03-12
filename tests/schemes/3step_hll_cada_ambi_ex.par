@@ -1,0 +1,21 @@
+ &filelist
+        base_filename  = '_3step_hll_cada_ambi_ex'
+ /
+
+ &methodlist
+        time_stepper  = 'threestep'
+        flux_scheme =    20*'hll'
+        limiter=  20*'cada3'
+        typeboundspeed  = 'cmaxmean'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /
+
+ &mhd_list
+        B0field=.false.
+        mhd_ambipolar=.true.
+        mhd_eta_ambi=1.d-2
+        mhd_ambipolar_sts=.false.
+ /
