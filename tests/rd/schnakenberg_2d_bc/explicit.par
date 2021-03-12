@@ -1,0 +1,57 @@
+!=====================================================
+! Reaction Diffusion
+!=====================================================
+
+ &filelist
+        base_filename='output/schnakenberg_explicit_'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+ /
+
+ &savelist
+        dtsave_log=0.1d0
+        dtsave_dat=0.1d0
+        itsave(1,2)=0
+ /
+
+ &stoplist
+        time_max=2.0d0
+ /
+
+ &methodlist
+        time_stepper = 'threestep'
+        flux_scheme = 20*'source'
+        limiter= 20*'mp5'
+ /
+
+ &boundlist
+        typeboundary_min1='special' 'cont'
+        typeboundary_max1=2*'cont'
+        typeboundary_min2=2*'cont'
+        typeboundary_max2=2*'cont'
+ /
+
+ &meshlist
+        refine_max_level=1
+        refine_threshold=20*0.1d0
+        block_nx1=16
+        block_nx2=16
+        domain_nx1=64
+        domain_nx2=64
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /
+
+       courantpar=0.8d0
+       typecourant='minimum'
+ &paramlist
+       dtpar=3.0d-6
+ /
+
+ &rd_list
+       D1 = 0.05d0
+       D2 = 1.0d0
+       equation_name = "schnakenberg"
+ /
