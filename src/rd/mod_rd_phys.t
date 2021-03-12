@@ -6,6 +6,7 @@
 !> reaction systems" by Hundsdorfer & Verwer. 
 !>
 module mod_rd_phys
+  use mod_multigrid_coupling
 
   implicit none
   private
@@ -39,6 +40,9 @@ module mod_rd_phys
 
   !> Whether to handle the explicitly handled source term in split fashion
   logical :: rd_source_split = .false.
+
+  !> Boundary condition information for the multigrid method
+  type(mg_bc_t), public :: rd_mg_bc(2, mg_num_neighbors)
 
   ! Public methods
   public :: rd_phys_init
@@ -129,9 +133,8 @@ contains
   end subroutine rd_phys_init
 
   subroutine rd_check_params
-    use mod_multigrid_coupling
     use mod_global_parameters
-    integer :: n
+    integer :: n, i, iw, species_list(2)
 
     if (any(flux_scheme /= "source")) then
        ! there are no fluxes, only source terms in reaction-diffusion
@@ -140,29 +143,42 @@ contains
 
     if (use_imex_scheme) then
        use_multigrid = .true.
-       ! Set boundary conditions for the multigrid solver
-       do n = 1, 2*ndim
-          select case (typeboundary(u_, n))
-          case ('symm')
-             ! d/dx u = 0
-             mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
-             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-          case ('asymm')
-             ! u = 0
-             mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
-             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-          case ('cont')
-             ! d/dx u = 0
-             mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
-             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-          case ('periodic')
-             ! Nothing to do here
-          case default
-             print *, "divb_multigrid warning: unknown b.c.: ", &
-                  trim(typeboundary(u_, n))
-             mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
-             mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-          end select
+       species_list = [u_, v_]
+
+       do i = 1, 2
+          iw = species_list(i)
+
+          ! Set boundary conditions for the multigrid solver
+          do n = 1, 2*ndim
+             select case (typeboundary(iw, n))
+             case ('symm')
+                ! d/dx u = 0
+                rd_mg_bc(i, n)%bc_type = mg_bc_neumann
+                rd_mg_bc(i, n)%bc_value = 0.0_dp
+             case ('asymm')
+                ! u = 0
+                rd_mg_bc(i, n)%bc_type = mg_bc_dirichlet
+                rd_mg_bc(i, n)%bc_value = 0.0_dp
+             case ('cont')
+                ! d/dx u = 0
+                rd_mg_bc(i, n)%bc_type = mg_bc_neumann
+                rd_mg_bc(i, n)%bc_value = 0.0_dp
+             case ('periodic')
+                ! Nothing to do here
+             case ('special')
+                if (.not. associated(rd_mg_bc(i, n)%boundary_cond)) then
+                   write(*, "(A,I0,A,I0,A)") "typeboundary(", iw, ",", n, &
+                        ") is 'special', but the corresponding method " // &
+                        "rd_mg_bc(i, n)%boundary_cond is not set"
+                   call mpistop("rd_mg_bc(i, n)%boundary_cond not set")
+                end if
+             case default
+                print *, "divb_multigrid warning: unknown b.c.: ", &
+                     trim(typeboundary(iw, n))
+                rd_mg_bc(i, n)%bc_type = mg_bc_dirichlet
+                rd_mg_bc(i, n)%bc_value = 0.0_dp
+             end select
+          end do
        end do
     end if
 
@@ -363,7 +379,6 @@ contains
   subroutine rd_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
     use mod_forest
-    use mod_multigrid_coupling
 
     type(state), target :: psa(max_blocks)
     type(state), target :: psb(max_blocks)
@@ -399,6 +414,7 @@ contains
     ! First handle the u variable ***************************************
     lambda           = 1/(dtfactor * qdt * D1)
     call helmholtz_set_lambda(lambda)
+    mg%bc(:, mg_iphi) = rd_mg_bc(1, :)
 
     call mg_copy_to_tree(u_, mg_irhs, factor=-lambda, state_from=psb)
     call mg_copy_to_tree(u_, mg_iphi, state_from=psb)
@@ -415,6 +431,7 @@ contains
     ! Next handle the v variable ***************************************
     lambda = 1/(dtfactor * qdt * D2)
     call helmholtz_set_lambda(lambda)
+    mg%bc(:, mg_iphi) = rd_mg_bc(2, :)
 
     call mg_copy_to_tree(v_, mg_irhs, factor=-lambda, state_from=psb)
     call mg_copy_to_tree(v_, mg_iphi, state_from=psb)
