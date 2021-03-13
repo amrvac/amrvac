@@ -37,7 +37,7 @@
         block_nx1=16
         block_nx2=16
         domain_nx1=32
-        domain_nx2=16
+        domain_nx2=32
         xprobmin1=0.d0
         xprobmax1=2.d0
         xprobmin2=-1.d0

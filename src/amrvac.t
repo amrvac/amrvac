@@ -60,6 +60,12 @@ program amrvac
      ! modify initial condition
      if (firstprocess) call modify_IC
 
+     ! select active grids
+     call selectgrids
+
+     ! update ghost cells
+     call getbc(global_time,0.d0,ps,iwstart,nwgc)
+
      ! reset AMR grid
      if (reset_grid) then
        call settree
@@ -67,12 +73,6 @@ program amrvac
        ! set up boundary flux conservation arrays
        if (levmax>levmin) call allocateBflux
      end if
-
-     ! select active grids
-     call selectgrids
-
-     ! update ghost cells
-     call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
      if(use_particles) then
        call read_particles_snapshot(part_file_exists)

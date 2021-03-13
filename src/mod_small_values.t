@@ -37,7 +37,7 @@ contains
           if(w_flag(ix^D,iw)) then
             write(*,*) "Error: small value of ", trim(prim_wnames(iw)),wprim(ix^D,iw),&
                  " encountered when call ", subname
-            write(*,*) "Iteration: ", it, " Time: ", global_time
+            write(*,*) "Iteration: ", it, " Time: ", global_time, "Processor: ",mype
             write(*,*) "Location: ", x(ix^D,:)
             write(*,*) "Cell number: ", ix^D
             do iiw=1,nw

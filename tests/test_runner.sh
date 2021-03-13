@@ -5,7 +5,7 @@
 # Run tests in $1 and check if any fails
 # return appropriate exit code (0 if and only if all tests pass)
 
-make -j 2 -s $1 | tee $1.out; test ${PIPESTATUS[0]} -eq 0
+make -s $1 | tee $1.out; test ${PIPESTATUS[0]} -eq 0
 cond1=$? # first condition: build correctly with make
 
 if [ $cond1 != 0 ] ; then

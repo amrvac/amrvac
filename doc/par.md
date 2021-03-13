@@ -771,7 +771,10 @@ The base grid resolution (i.e. on the coarsest level 1) is best specified by
 providing _domain_nx^D_, the number of grid cells per dimension, to cover the full
 computational domain set by the _xprobmin^D_ and _xprobmax^D_. The resolution
 of each grid block is set by _block_nx^D_ which exclude ghost cells at each side.
-The _domain_nx^D_ must thus be a integer multiple of _block_nx^D_.
+The _domain_nx^D_ must thus be a integer multiple of _block_nx^D_. The number of 
+blocks on level 1 in a dimension, which does not have any pole or periodic boundary, 
+must be larger than 1 for a rectanuglar mesh with more than one level because of 
+the limitation from ghost-cell exchange at physical boundaries.
 
 ### refine_criterion, nbufferx^D, amr_wavefilter {#par_errest}
 
@@ -1087,14 +1090,15 @@ negative values when solving total energy equation, because numerical error of m
 total energy. We have two methods to avoid this problem. In the first method, we solve 
 internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
 In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
- and synchronize the internal energy with the result from total energy equation.  In each step of 
+ and synchronize the internal energy with the result from total energy equation. In each step of 
 advection, the synchronization replace the internal energy from 
 the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
 mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
 energy with the internal energy from the total energy where plasma beta is larger than 0.05.
-This function is activated by `mhd_solve_eaux=T`. NOTE: If both `mhd_solve_eaux=T` and 
-`check_small_values=T` are set within the .par file then, as previously stated,
- a crash will still be forced for small p values. The boundary type 
+This function is activated by `mhd_solve_eaux=T`. If you set `mhd_solve_eaux=T`, you need to
+add a line, "if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,p_)", after initial gas pressure is given
+in subroutine usr_init_one_grid of mod_usr.t, to give the initial condition for the auxiliary gas pressure 
+or internal energy. The boundary type 
 of the auxiliary internal energy is coded to be the same as the boundary type of density. 
 So you do not need to specify boundary types for the auxiliary internal energy in the par file. 
 It is, however, needed to specify the special boundary 

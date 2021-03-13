@@ -290,12 +290,13 @@ contains
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
  
-    if(phys_solve_eaux) then
-      call phys_energy_synchro(qdt,ixI^L,ixO^L,wCT,wnew,x)
-    endif
-
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+
+    if(phys_solve_eaux.and.levmin==levmax) then
+      ! synchronize internal energy for uniform grid
+      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
+    endif
 
     ! check and optionally correct unphysical values
     if(fix_small_values) then
@@ -344,10 +345,10 @@ contains
         patchf(ixC^S) =  2
       elsewhere
         patchf(ixC^S) =  1
+        div(ixC^S) = 1.d0/(cmaxC(ixC^S)-cminC(ixC^S))
+        fac(ixC^S) = tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)
       endwhere
 
-      fac = tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)
-      div = 1/(cmaxC(ixC^S)-cminC(ixC^S))
 
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=iwstart,nwflux
@@ -359,7 +360,7 @@ contains
             where(patchf(ixC^S)==1)
                ! Add hll dissipation to the flux
                fLC(ixC^S, iw) = (cmaxC(ixC^S)*fLC(ixC^S, iw)-cminC(ixC^S) * fRC(ixC^S, iw) &
-                    +fac*(wRC(ixC^S,iw)-wLC(ixC^S,iw))) * div
+                    +fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))) * div(ixC^S)
             elsewhere(patchf(ixC^S)== 2)
                fLC(ixC^S, iw)=fRC(ixC^S, iw)
             elsewhere(patchf(ixC^S)==-2)
