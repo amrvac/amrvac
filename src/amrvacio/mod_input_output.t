@@ -450,8 +450,8 @@ contains
     angmomfix       = .false.
     ! default PC or explicit midpoint, hence alfa=0.5
     rk2_alfa        = half 
-    ! default IMEX-RK22Lp hence lambda = 1 + 1/sqrt(2)
-    imex222_lambda  = 1.0d0 + 1.0d0 / dsqrt(2.0d0)
+    ! default IMEX-RK22Ln hence lambda = 1 - 1/sqrt(2)
+    imex222_lambda  = 1.0d0 - 1.0d0 / dsqrt(2.0d0)
     ! default SSPRK(3,3) or Gottlieb-Shu 1998 for threestep
     ! default SSPRK(4,3) or Spireti-Ruuth for fourstep
     ! default SSPRK(5,4) using Gottlieb coeffs
@@ -750,13 +750,13 @@ contains
           rk_b1=1.0d0-rk_b2
        endif
        use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal'&
-            .or.time_integrator=='IMEX_RK22')
+            .or.time_integrator=='IMEX_222')
        if ((((time_integrator/='Predictor_Corrector'.and.&
             time_integrator/='RK2_alfa').and.&
             (time_integrator/='ssprk2'.and.&
              time_integrator/='IMEX_Midpoint')).and.&
              time_integrator/='IMEX_Trapezoidal').and.&
-             time_integrator/='IMEX_RK22') then
+             time_integrator/='IMEX_222')then
            call mpistop("No such time_integrator for twostep")
        endif
     case ("threestep")
