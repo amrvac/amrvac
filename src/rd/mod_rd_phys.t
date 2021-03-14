@@ -189,7 +189,7 @@ contains
 
   subroutine rd_check_params
     use mod_global_parameters
-    integer :: n, i, iw, species_list(2)
+    integer :: n, i, iw, species_list(number_of_species)
 
     if (any(flux_scheme /= "source")) then
        ! there are no fluxes, only source terms in reaction-diffusion
@@ -198,11 +198,13 @@ contains
 
     if (use_imex_scheme) then
        use_multigrid = .true.
-                call mpistop("Boundary conditions not (yet) supported")
-             end select
-       species_list = [u_, v_]
+       select case(number_of_species)
+       case(1); species_list = [u_]
+       case(2); species_list = [u_, v_]
+       case(3); species_list = [u_, v_, w_]
+       end select
 
-       do i = 1, 2
+       do i = 1, number_of_species
           iw = species_list(i)
 
           ! Set boundary conditions for the multigrid solver
