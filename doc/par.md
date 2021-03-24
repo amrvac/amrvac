@@ -360,8 +360,6 @@ without changing time, set `reset_it=T`.
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
     typecurl = 'central' | 'Gaussbased' | 'Stokesbased'
-
-    trac = F | T
     /
 
 ### time_stepper, time_integrator, flux_scheme, typepred1 {#par_time_integrator}
@@ -515,7 +513,9 @@ small_temperature is positive, small_pressure is overwritten by the product of
 small_rho and small_temperature. If check_small_values is set to .true.,
 an additional check for small values will be triggered in phys_get_pthermal. NOTE: If 
 small values are detected then a crash will occur regardless
-of whether any other positivity fixes are enabled. If fix_small_values is set to .true., small values are actually treated or fixed in subroutines such as phys_to_primitive, phys_to_conserved and source terms like resistive terms in MHD. 
+of whether any other positivity fixes are enabled. If fix_small_values is set to .true., 
+small values are actually treated or fixed in subroutines such as phys_to_primitive, 
+phys_to_conserved and source terms like resistive terms in MHD. 
 
 The actual treatment is determined by the small_values_method parameter: Its default value
 'error' causes a full stop in the handle_small_values subroutine in the physics 
@@ -531,10 +531,12 @@ are used to replace any unphysical value and set momentum to be 0, as encoded in
 is replaced by averaging from a user-controlled environment about the faulty cells.
 The width of this environment in cells is set by the integer small_values_daverage.
 The parameter small_values_fix_iw is an array, containing a logical for each variable. It has a length nw. 
-It can be used to make sure that a certain variable is not adjusted by the small_values_method. The default is true for all the variables. 
-If the user sets it to false for a given variable, that variable will not be adjusted by the small_values_method.
-The first elements are the logicals for the conservative variables in their standard order.
-As an example: if the user would like to adjust the pressure and density but not the momentum in a 2D MHD simulation, then small_values_fix_iw has to be set to T, F, F, T, T, T. 
+It can be used to make sure that a certain variable is not adjusted by the small_values_method. 
+The default is true for all the variables. If the user sets it to false for a given variable, 
+that variable will not be adjusted by the small_values_method. The first elements are the logicals 
+for the conservative variables in their standard order. As an example: if the user would like to adjust 
+the pressure and density but not the momentum in a 2D MHD simulation, then small_values_fix_iw has to 
+be set to T, F, F, T, T, T. 
 
 ### Special process {#par_process}
 User controlled special process can be added to 
@@ -551,15 +553,6 @@ _gradientS_ ('limited') subroutines that are themselves found in the
 _geometry.t_ module. Similarly, a switch for the divergence of a vector is the
 `typediv` switch. When the 'limited' variant is used, one must set the 
 corresponding gradient_limiter array to select a limiter (per level).
-
-### TRAC fixes {#par_tracfix}
-
-Due to limited spatial resolution, numerically underresolved transition region in
-numerical models of solar atmosphere leads to significant underestimation of coronal 
-density and large errors in thermodynamic evolution. Transition Region Adaptive 
-thermal Conduction (TRAC) invented by Johnson and Bradshaw (2019 ApJL, 873, L22) 
-is implemented to fix this problem by setting `trac=T` for 1D HD and 
-multidimensional MHD solar atmospheric models. 
 
 ## Boundlist {#par_boundlist}
 
@@ -1080,7 +1073,6 @@ Give `mhd_trac_mask` to set the maximum height of the mask, in your unit_length.
 `mhd_trac_type=3` uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
 And `mhd_trac_type=5` works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
 Note that when setting `mhd_trac_type >=2`, the direction of your gravity should follow y-dir (2D) or z-dir(3D)
-
 
 ### Solve internal energy to avoid negative pressure{#par_AIE}
 
