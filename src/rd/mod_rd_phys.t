@@ -326,7 +326,7 @@ contains
     case (eq_logistic)
        maxrate = lg_lambda*maxval(abs(1 - w(ixO^S, u_))) ! abs for safety, normally u < 1
     case (eq_analyt_hunds)
-       maxrate = maxval(w(ixO^S, u_)*(1 - w(ixO^S, u_))) / D1
+       maxrate = maxval(w(ixO^S, u_)*abs(1 - w(ixO^S, u_))) / D1
     case (eq_belousov_fn)
        maxrate = max(&
             maxval(abs(1.0d0 - w(ixO^S, w_) - w(ixO^S, u_))) / bzfn_epsilon, &
