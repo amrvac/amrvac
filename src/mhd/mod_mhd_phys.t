@@ -844,6 +844,10 @@ contains
                 -mhd_kin_en(w,ixI^L,ixO^L)&
                 -mhd_mag_en(w,ixI^L,ixO^L)
 
+    if(fix_small_values) then
+      call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,'mhd_e_to_ei')
+    end if
+
   end subroutine mhd_e_to_ei
 
   !> Update eaux and transform internal energy to total energy
@@ -1389,6 +1393,14 @@ contains
       pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
 
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         end if
+      {enddo^D&\}
+    end if
+
     if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
@@ -1408,13 +1420,6 @@ contains
       {enddo^D&\}
     end if
 
-    if (fix_small_values) then
-      {do ix^DB= ixO^LIM^DB\}
-         if(pth(ix^D)<small_pressure) then
-            pth(ix^D)=small_pressure
-         end if
-      {enddo^D&\}
-    end if
   end subroutine mhd_get_pthermal
 
   !> Calculate temperature=p/rho when in e_ the internal energy is stored
