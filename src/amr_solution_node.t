@@ -649,7 +649,7 @@ subroutine dealloc_node(igrid)
   call dealloc_state(igrid, pso(igrid),.false.)
   ! deallocate temporary solution space
   select case (time_integrator)
-  case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal","IMEX_RK22")
+  case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal","IMEX_222")
     call dealloc_state(igrid, ps2(igrid),.false.)
   case("RK3_BT","rk4","ssprk5")
     call dealloc_state(igrid, ps2(igrid),.false.)
