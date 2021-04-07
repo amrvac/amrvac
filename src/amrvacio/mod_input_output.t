@@ -1763,7 +1763,7 @@ contains
       end if
 
       call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
-      if (stagger_grid .neqv. stagger_mark_dat) then
+      if (stagger_grid .and. .not. stagger_mark_dat .or. .not.stagger_grid.and.stagger_mark_dat) then
         write(*,*) "Error: stagger grid flag differs from restart data:", stagger_mark_dat
         call mpistop("change parameter to use stagger grid")
       end if
