@@ -79,7 +79,7 @@ integer             :: Morton_no,igrid,ix^D,ig^D,level
 integer, pointer    :: ig_to_igrid(:^D&,:)
 logical             :: fileopen,writeblk(max_blocks)
 character(len=80)   :: filename
-integer             :: filenr,ncells,ncells^D,ncellg,ncellx^D,jg^D,jig^D
+integer             :: filenr,ncells^D,ncellx^D,jg^D,jig^D
 
 character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
@@ -136,9 +136,7 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
 end do
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
-ncells=0
 ncells^D=0;
-ncellg=(^D&(ixMhi^D-ixMlo^D+1)*)
 ncellx^D=ixMhi^D-ixMlo^D+1\
 {do ig^D=1,ng^D(level_io)\}
   igrid=ig_to_igrid(ig^D,mype)
@@ -157,7 +155,6 @@ end do
 
 do iigrid=1,igridstail; igrid=igrids(iigrid)
    if(.not.writeblk(igrid)) cycle
-   ncells=ncells+ncellg
    ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
    if (nwauxio > 0) then
@@ -203,13 +200,13 @@ Master_cpu_open : if (mype == 0) then
     case("oneblock")
      open(qunit,file=filename,status='unknown')
      write(qunit,*) TRIM(outfilehead)
-     write(qunit,*) ncells,ncells^D
-     write(qunit,*) global_time*time_convert_factor
+     write(qunit,*) ncells^D
+     write(qunit,*) real(global_time*time_convert_factor)
     case("oneblockB")
      open(qunit,file=filename,form='unformatted',status='unknown')
      write(qunit) outfilehead
-     write(qunit) ncells,ncells^D
-     write(qunit) global_time*time_convert_factor
+     write(qunit) ncells^D
+     write(qunit) real(global_time*time_convert_factor)
    end select
  end if
 end if Master_cpu_open
