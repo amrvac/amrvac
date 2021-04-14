@@ -56,9 +56,8 @@ contains
                      xmax(1:ndim), bc%values(:, :, 1:1, ivar))
        }
        {^IFTHREED
-          print *,'todo'
-          !!lt_3d(ivar) = LT3_create_from_data(bc%origin(1:ndim), &
-          !!           xmax(1:ndim), bc%values(:, :, :, ivar))
+          lt_3d(ivar) = LT3_create_from_data(bc%origin(1:ndim), &
+                     xmax(1:ndim), bc%values(:, :, :, ivar:ivar))
        }
        end do
     endif
