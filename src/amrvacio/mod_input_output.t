@@ -1752,7 +1752,7 @@ contains
     ! From version 5, read more info about the grid
     if (version > 4) then
       call MPI_FILE_READ(fh, periodic, ndim, MPI_LOGICAL, st, er)
-      if (any(periodic .neqv. periodB)) &
+      if ({periodic(^D) .and. .not.periodB(^D) .or. .not.periodic(^D) .and. periodB(^D)| .or. }) &
            call mpistop("change in periodicity in par file")
 
       call MPI_FILE_READ(fh, geom_name, name_len, MPI_CHARACTER, st, er)
