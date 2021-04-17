@@ -6,11 +6,11 @@ This is an overview of the option that allows users to add thermal condution.
 
 # Physics
 
-Thermal conductivity is Spitzer conductivity for fully ionize plasma
+Thermal conductivity is Spitzer conductivity for fully ionized plasma
 
 # Numerics
 
-Thermal conduction equation is solved seperately in an operator-split fasion from
+Thermal conduction equation is solved seperately in an operator-split fashion from
 the (M)HD equations. An explicit update and super time stepping time integrator is
 used to achieve second order accuracy in time. (Slope limited) symmetric scheme is used
 for discretization.
@@ -31,8 +31,6 @@ In order to add thermal conduction to a simulation, the user has to do the follo
 
      before call (m)hd_activate()
   3. You can add the name list for thermal conduction, tc_list, in par file, where parameters tc_perpendicular, 
-     tc_saturate, tc_dtpar can be modified. tc_perpendicular=.true. will add conduction flux
+     tc_saturate, tc_slope_limiter can be modified. tc_perpendicular=.true. will add conduction flux
      perpendicular to magnetic field, which is not considered by default. tc_saturate=.true. to consider
-     saturation effect of thermal conduction, which is the default choice. tc_dtpar=0.9/0.45/0.3 is the 
-     default stable time step coefficient for 1D/2D/3D, decrease it for a more stable run if thermal conduction
-     fails due to negative internal energy.
+     saturation effect of thermal conduction, which is the default choice. 
