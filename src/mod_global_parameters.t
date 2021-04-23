@@ -588,6 +588,8 @@ module mod_global_parameters
   integer                       :: imex_switch
   double precision              :: imex_a21,imex_a31,imex_a32,imex_b1,imex_b2,imex_ha21,imex_ha22
   double precision              :: imex_b3,imex_c2,imex_c3
+  !> IMEX_CB3a extra parameters
+  double precision              :: imex_a22, imex_a33, imex_ha32
   !> whether IMEX in use or not
   logical                       :: use_imex_scheme
 

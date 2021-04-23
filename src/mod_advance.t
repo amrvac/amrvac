@@ -435,6 +435,39 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_scheme,imex_b3, idim^LIM,global_time+imex_c3*dt,ps2,global_time+(1.0d0-imex_b3)*dt,ps)
 
+       case ("IMEX_CB3a")
+          !> Third order IMEX scheme with low-storage implementation (4 registers).
+          !> From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
+          !> (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
+          !> Parameters are in imex_bj, imex_cj (same for implicit/explicit), 
+          !> imex_aij (implicit tableau) and imex_haij (explicit tableau).
+          call advect1(flux_scheme, imex_ha21, idim^LIM, global_time, ps, global_time, ps1)
+          call global_implicit_update(imex_a22, dt, global_time+imex_c2*dt, ps2, ps1)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps3(igrid)%w = ps(igrid)%w + imex_a32/imex_a22 * (ps2(igrid)%w - ps1(igrid)%w)
+             ps(igrid)%w  = ps(igrid)%w + imex_b2 /imex_a22 * (ps2(igrid)%w - ps1(igrid)%w)
+             ps1(igrid)%w = ps3(igrid)%w
+             if(stagger_grid) ps3(igrid)%ws = ps(igrid)%ws + imex_a32/imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
+             if(stagger_grid) ps(igrid)%ws  = ps(igrid)%ws + imex_b2 /imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
+             if(stagger_grid) ps1(igrid)%ws = ps3(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_scheme, imex_ha32, idim^LIM, global_time+imex_c2*dt, ps2, global_time, ps3)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w = ps(igrid)%w + imex_b2 /imex_ha32 * (ps3(igrid)%w - ps1(igrid)%w)
+             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws + imex_b2 /imex_ha32 * (ps3(igrid)%ws - ps1(igrid)%ws)
+          end do
+          call global_implicit_update(imex_a33, dt, global_time+imex_c3*dt, ps1, ps3)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w = ps(igrid)%w + imex_b3 /imex_a33 * (ps1(igrid)%w - ps3(igrid)%w)
+             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws + imex_b3 /imex_a33 * (ps1(igrid)%ws - ps3(igrid)%ws)
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_scheme, imex_b3, idim^LIM, global_time+imex_c3*dt, ps1, global_time+imex_b2*dt, ps)
+
        case default
           write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
           write(unitterm,*) "Error in advect: Unknown time integration method"

@@ -751,12 +751,13 @@ contains
        endif
        use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal'&
             .or.time_integrator=='IMEX_222')
-       if ((((time_integrator/='Predictor_Corrector'.and.&
+       if (((((time_integrator/='Predictor_Corrector'.and.&
             time_integrator/='RK2_alfa').and.&
             (time_integrator/='ssprk2'.and.&
              time_integrator/='IMEX_Midpoint')).and.&
              time_integrator/='IMEX_Trapezoidal').and.&
-             time_integrator/='IMEX_222')then
+             time_integrator/='IMEX_222').and.&
+             (.not. use_imex_scheme))then
            call mpistop("No such time_integrator for twostep")
        endif
     case ("threestep")
@@ -857,11 +858,35 @@ contains
            imex_c3=imex_a31+imex_a32
            imex_b3=1.0d0-imex_b1-imex_b2
        endif
-       use_imex_scheme=(time_integrator=='IMEX_ARS3'.or.time_integrator=='IMEX_232')
-       if ((time_integrator/='ssprk3'.and.&
-            time_integrator/='RK3_BT').and.&
-            (time_integrator/='IMEX_ARS3'.and.&
-             time_integrator/='IMEX_232')) then
+       if(time_integrator=='IMEX_CB3a') then
+          imex_c2   = 0.8925502329346865
+          imex_a22  = imex_c2
+          imex_ha21 = imex_c2
+          imex_c3   = imex_c2 / (6.0d0*imex_c2**2 - 3.0d0*imex_c2 + 1.0d0)
+          imex_ha32 = imex_c3
+          imex_b2   = (3.0d0*imex_c2 - 1.0d0) / (6.0d0*imex_c2**2)
+          imex_b3   = (6.0d0*imex_c2**2 - 3.0d0*imex_c2 + 1.0d0) / (6.0d0*imex_c2**2)
+          imex_a33  = (1.0d0/6.0d0 - imex_b2*imex_c2**2 - imex_b3*imex_c2*imex_c3) / (imex_b3*(imex_c3-imex_c2))
+          imex_a32  = imex_c3 - imex_a33
+          ! if (mype == 0) then
+          !    write(*,*) "================================="
+          !    write(*,*) "Asserting the order conditions..."
+          !    ! First order convergence: OK
+          !    ! Second order convergence
+          !    write(*,*) -1.0d0/2.0d0 + imex_b2*imex_c2 + imex_b3*imex_c3
+          !    ! Third order convergence
+          !    write(*,*) -1.0d0/3.0d0 + imex_b2*imex_c2**2 + imex_b3*imex_c3**2
+          !    write(*,*) -1.0d0/6.0d0 + imex_b3*imex_ha32*imex_c2
+          !    write(*,*) -1.0d0/6.0d0 + imex_b2*imex_a22*imex_c2 + imex_b3*imex_a32*imex_c2 + imex_b3*imex_a33*imex_c3
+          !    write(*,*) "================================="
+          ! end if
+       end if
+       use_imex_scheme=(time_integrator=='IMEX_ARS3'.or.time_integrator=='IMEX_232'.or.time_integrator=='IMEX_CB3a')
+       if ( (time_integrator/='ssprk3').and.&
+            (time_integrator/='RK3_BT').and.&
+            (time_integrator/='IMEX_ARS3').and.&
+            (time_integrator/='IMEX_232').and.&
+            (time_integrator/='IMEX_CB3a') ) then
            call mpistop("No such time_integrator for threestep")
        endif
     case ("fourstep")
