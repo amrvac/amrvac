@@ -229,8 +229,8 @@ contains
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps(igrid)%w  = half*(ps(igrid)%w + ps1(igrid)%w + ps2(igrid)%w)
-             if(stagger_grid) ps(igrid)%w  = ps(igrid)%w + half*(ps1(igrid)%w - ps(igrid)%w + ps2(igrid)%w)
+             ps(igrid)%w = half*(ps(igrid)%w + ps1(igrid)%w + ps2(igrid)%w)
+             if(stagger_grid) ps(igrid)%ws = half*(ps(igrid)%ws + ps1(igrid)%ws + ps2(igrid)%ws)
           end do
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
