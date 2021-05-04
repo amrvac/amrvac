@@ -201,10 +201,10 @@ contains
           call advect1(flux_scheme,half, idim^LIM,global_time+dt,ps2,global_time+half*dt,ps)
 
        case ("IMEX_222")
-          !> One-parameter family of schemes (parameter is imex222_lambda) from 
-          !> Pareschi&Russo 2005, which is asymptotically SSP and L-stable.
-          !> See doi.org/10.1007/s10915-004-4636-4 (table II)
-          !> See doi.org/10.1016/j.apnum.2016.10.018 for interesting values of lambda
+          ! One-parameter family of schemes (parameter is imex222_lambda) from 
+          ! Pareschi&Russo 2005, which is asymptotically SSP and L-stable.
+          ! See doi.org/10.1007/s10915-004-4636-4 (table II)
+          ! See doi.org/10.1016/j.apnum.2016.10.018 for interesting values of lambda
 
           ! Preallocate ps2 as u^n for the implicit update
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -436,11 +436,11 @@ contains
           call advect1(flux_scheme,imex_b3, idim^LIM,global_time+imex_c3*dt,ps2,global_time+(1.0d0-imex_b3)*dt,ps)
 
        case ("IMEX_CB3a")
-          !> Third order IMEX scheme with low-storage implementation (4 registers).
-          !> From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
-          !> (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
-          !> Parameters are in imex_bj, imex_cj (same for implicit/explicit), 
-          !> imex_aij (implicit tableau) and imex_haij (explicit tableau).
+          ! Third order IMEX scheme with low-storage implementation (4 registers).
+          ! From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
+          ! (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
+          ! Parameters are in imex_bj, imex_cj (same for implicit/explicit), 
+          ! imex_aij (implicit tableau) and imex_haij (explicit tableau).
           call advect1(flux_scheme, imex_ha21, idim^LIM, global_time, ps, global_time, ps1)
           call global_implicit_update(imex_a22, dt, global_time+imex_c2*dt, ps2, ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
