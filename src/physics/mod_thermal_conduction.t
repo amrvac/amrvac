@@ -35,7 +35,6 @@
 !> 3. in the tc_list of amrvac.par :
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field 
 !>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
-!>    tc_dtpar=0.9/0.45/0.3 ! stable time step coefficient for 1D/2D/3D, decrease it for more stable run
 !>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
 
 module mod_thermal_conduction
@@ -62,7 +61,7 @@ module mod_thermal_conduction
   !> Logical switch for test constant conductivity
   logical :: tc_constant
   !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
-  logical :: tc_perpendicular=.false.
+  logical, public :: tc_perpendicular=.false.
 
   !> Consider thermal conduction saturation effect (.true.) or not (.false.)
   logical :: tc_saturate=.true.
@@ -340,7 +339,7 @@ contains
 
   !> Get the explicut timestep for the TC (mhd implementation)
   function get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x)  result(dtnew)
-    !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*tc_k_para_i/rho)
+    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
     !and                        T=p/rho
     use mod_global_parameters
@@ -778,7 +777,7 @@ contains
   end subroutine gradientC
 
   function get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x)  result(dtnew)
-    ! Check diffusion time limit dt < tc_dtpar * dx_i**2 / ((gamma-1)*tc_k_para_i/rho)
+    ! Check diffusion time limit dt < dx_i**2 / ((gamma-1)*tc_k_para_i/rho)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
@@ -798,10 +797,10 @@ contains
     dtnew = bigdouble
 
     do idim=1,ndim
-       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
+       ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
        dtdiff_tcond=1d0/maxval(tmp(ixO^S)*dxinv(idim)**2)
        if(tc_saturate) then
-         ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
+         ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
          dtdiff_tsat=1d0/maxval(tc_gamma_1*dsqrt(Te(ixO^S))*&
                      5.d0*dxinv(idim)**2)
          ! choose the slower flux (bigger time scale) between classic and saturated

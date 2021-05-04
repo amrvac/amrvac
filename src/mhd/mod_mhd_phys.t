@@ -844,6 +844,10 @@ contains
                 -mhd_kin_en(w,ixI^L,ixO^L)&
                 -mhd_mag_en(w,ixI^L,ixO^L)
 
+    if(fix_small_values) then
+      call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,'mhd_e_to_ei')
+    end if
+
   end subroutine mhd_e_to_ei
 
   !> Update eaux and transform internal energy to total energy
@@ -1136,16 +1140,18 @@ contains
       else
         bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))
       end if
-      ! B direction at cell center
-      Bdir=zero
-      {do ixA^D=0,1\}
-        ixB^D=(ixOmin^D+ixOmax^D-1)/2+ixA^D;
-        Bdir(1:ndim)=Bdir(1:ndim)+bunitvec(ixB^D,1:ndim)
-      {end do\}
-      if(sum(Bdir(:)**2) .gt. zero) then
-        Bdir(1:ndim)=Bdir(1:ndim)/dsqrt(sum(Bdir(:)**2))
+      if(mhd_trac_type>1) then
+        ! B direction at cell center
+        Bdir=zero
+        {do ixA^D=0,1\}
+          ixB^D=(ixOmin^D+ixOmax^D-1)/2+ixA^D;
+          Bdir(1:ndim)=Bdir(1:ndim)+bunitvec(ixB^D,1:ndim)
+        {end do\}
+        if(sum(Bdir(:)**2) .gt. zero) then
+          Bdir(1:ndim)=Bdir(1:ndim)/dsqrt(sum(Bdir(:)**2))
+        end if
+        block%special_values(3:ndim+2)=Bdir(1:ndim)
       end if
-      block%special_values(3:ndim+2)=Bdir(1:ndim)
       tmp1(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
       where(tmp1(ixO^S)/=0.d0)
         tmp1(ixO^S)=1.d0/tmp1(ixO^S)
@@ -1159,7 +1165,11 @@ contains
       ! temperature length scale inversed
       lts(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
       ! fraction of cells size to temperature length scale
-      lts(ixO^S)=minval(dxlevel)*lts(ixO^S)
+      if(slab_uniform) then
+        lts(ixO^S)=minval(dxlevel)*lts(ixO^S)
+      else
+        lts(ixO^S)=minval(block%ds(ixO^S,:),dim=ndim+1)*lts(ixO^S)
+      end if
       lrlt=.false.
       where(lts(ixO^S) > trac_delta)
         lrlt(ixO^S)=.true.
@@ -1389,6 +1399,14 @@ contains
       pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
     end if
 
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         end if
+      {enddo^D&\}
+    end if
+
     if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
@@ -1408,13 +1426,6 @@ contains
       {enddo^D&\}
     end if
 
-    if (fix_small_values) then
-      {do ix^DB= ixO^LIM^DB\}
-         if(pth(ix^D)<small_pressure) then
-            pth(ix^D)=small_pressure
-         end if
-      {enddo^D&\}
-    end if
   end subroutine mhd_get_pthermal
 
   !> Calculate temperature=p/rho when in e_ the internal energy is stored

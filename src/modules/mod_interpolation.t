@@ -14,11 +14,19 @@ contains
 
     integer :: i,j
 
-    if (x_table(1)>x_itp(1) .or. x_table(n_table)<x_itp(n_itp)) then
-      call mpistop("out of interpolation table")
-    endif
+    !if (x_table(1)>x_itp(1) .or. x_table(n_table)<x_itp(n_itp)) then
+    !  call mpistop("out of interpolation table")
+    !endif
 
     do i=1,n_itp
+      if(x_itp(i)<x_table(1)) then
+        y_itp(i)=y_table(1)
+        exit
+      end if
+      if(x_itp(i)>=x_table(n_table)) then
+        y_itp(i)=y_table(n_table)
+        exit
+      end if
       LOOPT: do j=1,n_table-1
         if (x_itp(i)>=x_table(j) .and. x_itp(i)<x_table(j+1)) then
           y_itp(i)=y_table(j) + (x_itp(i)-x_table(j))*&

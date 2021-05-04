@@ -1576,7 +1576,7 @@ contains
       if (receive_n_particles_from_ipe(ipe) .gt. 0) then
         do ipart = 1, receive_n_particles_from_ipe(ipe)
           tag_receive = ipe * npe + mype + ipart
-          ircv = irecv+1
+          ircv = ircv+1
           index = particle_index_to_be_received_from_ipe(ipart,ipe)
           allocate(particle(index)%payload(npayload))
           call MPI_IRECV(particle(index)%payload(1:npayload),npayload, &

@@ -108,17 +108,17 @@ contains
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
 
+    ! check and optionally correct unphysical values
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'fd')
+    endif
+
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
     if(phys_solve_eaux.and.levmin==levmax) then
       ! synchronize internal energy for uniform grid
       call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
-    endif
-
-    ! check and optionally correct unphysical values
-    if(fix_small_values) then
-       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'fd')
     endif
     end associate
 
@@ -395,17 +395,17 @@ contains
 
     if(stagger_grid) call phys_face_to_center(ixO^L,s)
 
+    ! check and optionally correct unphysical values
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff')
+    endif
+
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
 
     if(phys_solve_eaux.and.levmin==levmax) then
       ! synchronize internal energy for uniform grid
       call phys_energy_synchro(ixI^L,ixO^L,w,x)
-    endif
-
-    ! check and optionally correct unphysical values
-    if(fix_small_values) then
-       call phys_handle_small_values(.false.,w,x,ixI^L,ixO^L,'centdiff')
     endif
     end associate
   end subroutine centdiff
