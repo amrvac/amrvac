@@ -1,0 +1,50 @@
+&filelist
+    base_filename = 'data/LOR1D_test_'
+/
+
+&savelist
+    tsave(1,2) = 0.0d0
+    dtsave_log = 1.0d-1
+    dtsave_dat = 1.0d-1
+/
+
+&stoplist
+    time_max = 1.0d2
+/
+
+&methodlist
+    flux_scheme = 20*'source'
+    time_stepper = "onestep"
+    time_integrator = "Forward_Euler"
+/
+
+&paramlist
+    !!slowsteps = 100
+    !! dtdiffpar = 100.0d0
+    dtdiffpar = 0.8d0
+/
+
+&boundlist
+    typeboundary_min1 = 3*'symm'
+    typeboundary_max1 = 3*'symm'
+/
+
+&meshlist
+    refine_max_level = 1
+
+    domain_nx1 = 512
+    block_nx1  = 128
+
+    xprobmin1 = 0.0d0
+    xprobmax1 = 1.0d0
+/
+
+&rd_list
+    equation_name = "lorenz"
+    D1 = 1.0d-4
+    D2 = 1.0d-4
+    D3 = 1.0d-4
+    lor_r     = 28.0d0
+    lor_sigma = 10.0d0
+    !lor_b     = 8.0d0 / 3.0d0
+/
