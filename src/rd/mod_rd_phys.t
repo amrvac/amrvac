@@ -30,8 +30,9 @@ module mod_rd_phys
   integer, parameter :: eq_brusselator     = 3
   integer, parameter :: eq_logistic        = 4
   integer, parameter :: eq_analyt_hunds    = 5
-  integer, parameter :: eq_belousov_fn     = 6
+  integer, parameter :: eq_belousov_fn     = 6 ! Field-Noyes model, or Oregonator
   integer, parameter :: eq_ext_brusselator = 7
+  integer, parameter :: eq_lorenz          = 8
 
   !> Diffusion coefficient for first species (u)
   double precision, public, protected :: D1 = 0.05d0
@@ -73,6 +74,13 @@ module mod_rd_phys
   !> Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction
   double precision, public, protected :: bzfn_mu      = 1.0d0
 
+  !> Parameter for Lorenz system (Rayleigh number)
+  double precision, public, protected :: lor_r     = 28.0d0
+  !> Parameter for Lorenz system (Prandtl number)
+  double precision, public, protected :: lor_sigma = 10.0d0
+  !> Parameter for Lorenz system (aspect ratio of the convection rolls)
+  double precision, public, protected :: lor_b     = 8.0d0 / 3.0d0
+
   !> Whether to handle the explicitly handled source term in split fashion
   logical :: rd_source_split = .false.
 
@@ -91,7 +99,8 @@ contains
 
     namelist /rd_list/ D1, D2, D3, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
         br_A, br_B, br_C, br_D, lg_lambda, bzfn_epsilon, bzfn_delta, bzfn_lambda, &
-        bzfn_mu, equation_name, rd_particles, rd_source_split, dtreacpar
+        bzfn_mu, lor_r, lor_sigma, lor_b, &
+        equation_name, rd_particles, rd_source_split, dtreacpar
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
@@ -120,6 +129,9 @@ contains
        number_of_species = 3
     case ("ext_brusselator")
        equation_type = eq_ext_brusselator
+       number_of_species = 3
+    case ("lorenz")
+       equation_type = eq_lorenz
        number_of_species = 3
     case default
        call mpistop("Unknown equation_name (valid: gray-scott, schnakenberg, ...)")
@@ -332,6 +344,9 @@ contains
             maxval(abs(1.0d0 - w(ixO^S, w_) - w(ixO^S, u_))) / bzfn_epsilon, &
             maxval(bzfn_lambda + w(ixO^S, u_)) / bzfn_delta &
        )
+    case (eq_lorenz)
+       ! det(J) = sigma(b(r-1) + x*(x*+y*))
+       maxrate = max(lor_sigma, 1.0d0, lor_b)
     case default
        call mpistop("Unknown equation type")
     end select
@@ -423,9 +438,20 @@ contains
                - wCT(ixO^S, u_)**2))
           w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
                + wCT(ixO^S, u_) - wCT(ixO^S, v_))
-          w(ixO^S, w_) = w(ixO^S, w_) + qdt * (D2 * lpl_v &
+          w(ixO^S, w_) = w(ixO^S, w_) + qdt * (D3 * lpl_w &
                + 1.0d0/bzfn_delta * (-bzfn_lambda * wCT(ixO^S, w_) &
                - wCT(ixO^S, u_)*wCT(ixO^S, w_) + bzfn_mu * wCT(ixO^S, v_)))
+       case (eq_lorenz)
+          ! xdot = sigma.(y-x)
+          w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
+               + lor_sigma * (wCT(ixO^S, v_) - wCT(ixO^S, u_)))
+          ! ydot = r.x - y - x.z
+          w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
+               + lor_r * wCT(ixO^S, u_) - wCT(ixO^S, v_) &
+               - wCT(ixO^S, u_)*wCT(ixO^S, w_))
+          ! zdot = x.y - b.z
+          w(ixO^S, w_) = w(ixO^S, w_) + qdt * (D3 * lpl_w &
+               + wCT(ixO^S, u_)*wCT(ixO^S, v_) - lor_b * wCT(ixO^S, w_))
        case default
           call mpistop("Unknown equation type")
        end select
