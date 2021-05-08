@@ -15,15 +15,15 @@ contains
   end subroutine usr_init
 
   subroutine lor_init(ixG^L,ix^L,w,x)
-     integer, intent(in)             :: ixG^L, ix^L
-     double precision, intent(in)    :: x(ixG^S,1:ndim)
-     double precision, intent(inout) :: w(ixG^S,1:nw)
-     double precision                :: urand(ix^S)
+     integer, intent(in)     :: ixG^L, ix^L
+     real(dp), intent(in)    :: x(ixG^S,1:ndim)
+     real(dp), intent(inout) :: w(ixG^S,1:nw)
+     real(dp)                :: urand(ix^S)
 
      call random_number(urand) ! Adding just a tiny bit of noise
-     w(ix^S, u_) = -10.0d0 + 1.0d-3 * urand
-     w(ix^S, v_) =  30.0d0 - 1.0d-3 * urand
-     w(ix^S, w_) =  20.0d0 + 1.0d-3 * urand
+     w(ix^S, u_) = -10.0_dp + 1.0d-3 * (2.0_dp * urand - 1.0_dp)
+     w(ix^S, v_) =  30.0_dp + 1.0d-3 * (2.0_dp * urand - 1.0_dp)
+     w(ix^S, w_) =  20.0_dp + 1.0d-3 * (2.0_dp * urand - 1.0_dp)
   end subroutine lor_init
 
 end module mod_usr
