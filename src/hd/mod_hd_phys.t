@@ -148,7 +148,7 @@ contains
      case (spherical)
       if (hd_dust) &
         call mpistop("Error: hd_angmomfix is not implemented &\\
-        &with dust and coordinate=='sperical'")
+        &with dust and coordinate=='spherical'")
       do iw=1,nwflux
         if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
@@ -253,7 +253,10 @@ contains
     ! derive units from basic units
     call hd_physical_units()
 
-    if (hd_dust) call dust_init(rho_, mom(:), e_)
+    if (hd_dust) then
+        call dust_init(rho_, mom(:), e_)
+        !!!phys_modify_wLR  => hd_modify_wLR
+    endif
 
     allocate(tracer(hd_n_tracer))
 
@@ -352,9 +355,10 @@ contains
 
   end subroutine hd_physical_units
 
-  !> Returns 0 in argument flag where values are ok
+  !> Returns logical argument flag where values are ok
   subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag)
     use mod_global_parameters
+    use mod_dust, only: dust_check_w
 
     logical, intent(in)          :: primitive
     integer, intent(in)          :: ixI^L, ixO^L
@@ -375,6 +379,8 @@ contains
     end if
 
     where(w(ixO^S, rho_) < small_density) flag(ixO^S,rho_) = .true.
+
+    if(hd_dust) call dust_check_w(ixI^L,ixO^L,w,flag)
 
   end subroutine hd_check_w
 
@@ -806,7 +812,7 @@ contains
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
 
     if(hd_energy) then
-      ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+      ! Energy flux is v_i*(e + p)
       f(ixO^S, e_) = v(ixO^S) * (w(ixO^S, e_) + pth(ixO^S))
     end if
 
@@ -841,7 +847,7 @@ contains
     if (hd_energy) then
        pth(ixO^S) = w(ixO^S,p_)
     else
-       call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
+       call hd_get_pthermal(wC, x, ixI^L, ixO^L, pth)
     end if
 
     f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
@@ -860,7 +866,7 @@ contains
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
 
     if(hd_energy) then
-      ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+      ! Energy flux is v_i*(e + p) 
       f(ixO^S, e_) = w(ixO^S,mom(idim)) * (wC(ixO^S, e_) + w(ixO^S,p_))
     end if
 
@@ -892,7 +898,7 @@ contains
     use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
     use mod_rotating_frame, only: rotating_frame_add_source
-    use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero, dust_min_rho
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
@@ -937,7 +943,7 @@ contains
              mr_   = dust_mom(r_, ifluid)
              if(phi_>0) mphi_ = dust_mom(phi_, ifluid)
              source(ixI^S) = zero
-             minrho = dust_min_rho
+             minrho = 0.0d0
           end if
           if (phi_ > 0) then
              where (wCT(ixO^S, irho) > minrho)
@@ -999,19 +1005,16 @@ contains
        }
     end select
 
-    if (hd_dust .and. dust_small_to_zero) then
-       call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
-    end if
-
     if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
     if (hd_rotating_frame) then
        if (hd_dust) then
           call mpistop("Rotating frame not implemented yet with dust")
        else
-          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,W,x)
+          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
        end if
     end if
+
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
@@ -1022,7 +1025,6 @@ contains
     use mod_viscosity, only: viscosity_add_source
     use mod_usr_methods, only: usr_gravity
     use mod_gravity, only: gravity_add_source, grav_split
-    use mod_dust, only: dust_small_to_zero, set_dusttozero
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1062,9 +1064,6 @@ contains
                     + qdt * gravity_field(ixO^S, idim) * wCT(ixO^S, dust_rho(idust))
             end do
          end do
-         if (dust_small_to_zero) then
-            call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
-         end if
       end if
     end if
 
@@ -1127,15 +1126,19 @@ contains
   end function hd_inv_rho
 
   subroutine hd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+    ! handles hydro (density,pressure,velocity) bootstrapping 
+    ! any negative dust density is flagged as well (and throws an error)
+    ! small_values_method=replace also for dust
     use mod_global_parameters
     use mod_small_values
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho
     logical, intent(in)             :: primitive
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: idir
+    integer :: n,idir
     logical :: flag(ixI^S,1:nw)
 
     if (small_values_method == "ignore") return
@@ -1162,6 +1165,14 @@ contains
             end where
           end if
         end if
+        if(hd_dust)then
+           do n=1,dust_n_species
+              where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_rho(n)) = 0.0d0
+              do idir = 1, ndir
+                  where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_mom(idir,n)) = 0.0d0
+              enddo
+           enddo
+        endif
       case ("average")
         call small_values_average(ixI^L, ixO^L, w, x, flag)
       case default
@@ -1171,14 +1182,56 @@ contains
           if(hd_energy) then
             w(ixO^S,p_)=(hd_gamma-1.d0)*(w(ixO^S,e_)-hd_kin_en(w,ixI^L,ixO^L))
           end if
-          ! Convert momentum to velocity
+          ! Convert gas momentum to velocity
           do idir = 1, ndir
             w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))/w(ixO^S,rho_)
           end do
         end if
+        ! NOTE: dust entries may still have conserved values here
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
     end if
   end subroutine hd_handle_small_values
+
+  subroutine hd_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
+    ! only for fixing faulty dust properties after reconstruction
+    use mod_global_parameters
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho
+
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: qt
+    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    type(state)                     :: s
+    logical :: flag(ixI^S)
+    integer :: n, iidir
+
+    if(fix_small_values.and.hd_dust)then
+     do n = 1, dust_n_species
+       flag(ixO^S)= (wLC(ixO^S,dust_rho(n))<0.0d0)
+       where(flag(ixO^S))
+          wLC(ixO^S,dust_rho(n))=0.0d0
+          wLp(ixO^S,dust_rho(n))=0.0d0
+       endwhere
+       do iidir=1,ndir
+          where(flag(ixO^S))
+             wLC(ixO^S,dust_mom(iidir,n))=0.0d0
+             wLp(ixO^S,dust_mom(iidir,n))=0.0d0
+          endwhere
+       enddo
+       flag(ixO^S)= (wRC(ixO^S,dust_rho(n))<0.0d0)
+       where(flag(ixO^S))
+          wRC(ixO^S,dust_rho(n))=0.0d0
+          wRp(ixO^S,dust_rho(n))=0.0d0
+       endwhere
+       do iidir=1,ndir
+          where(flag(ixO^S))
+             wRC(ixO^S,dust_mom(iidir,n))=0.0d0
+             wRp(ixO^S,dust_mom(iidir,n))=0.0d0
+          endwhere
+       enddo
+     enddo
+    endif
+  end subroutine hd_modify_wLR
 
 end module mod_hd_phys

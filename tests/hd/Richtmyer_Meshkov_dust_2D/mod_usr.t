@@ -1,7 +1,7 @@
 !=============================================================================
 ! Richtmyer-Meshkov hydro with dust (2D)
 ! RM through planar shock impinging on inclined density discontinuity
-! setting for 2D hydro with 4 dust species:
+! setting for 2D hydro with 4 dust species
 module mod_usr
   use mod_hd
 
@@ -11,6 +11,10 @@ module mod_usr
 contains
 
   subroutine usr_init()
+
+    unit_length = 0.001d0*3.08567758d18 ! 0.001 pc distance (in cm)
+    unit_numberdensity = 1.0d3          ! 10^3 particles per cc
+    unit_velocity = 1.0d6               ! normalization for speed cm/s
 
     call set_coordinate_system("Cartesian_2D")
 
@@ -23,58 +27,76 @@ contains
   subroutine initglobaldata_usr
     use mod_dust
     double precision :: r(0:dust_n_species)
-    double precision :: dsdust(dust_n_species)
     integer          :: i
     logical, save    :: first = .true.
 
     hd_gamma=1.4d0
 
-    length_convert_factor  = 0.001d0*3.08567758d18 ! 0.001 pc distance (in cm)
-    w_convert_factor(rho_) = 1.0d-20                 ! normalization for rho g/cc
-    w_convert_factor(mom(1))           = 1.0d7                            ! normalization for speed cm/s
-    w_convert_factor(mom(2))           = w_convert_factor(mom(1))
-    time_convert_factor    = length_convert_factor/w_convert_factor(mom(1))
-    w_convert_factor(p_)   = w_convert_factor(rho_)*(w_convert_factor(mom(1))**2)
-
     if (dust_n_species > 0) then
-      dust_density(1:dust_n_species)   = 3.3d0    ! dust grain density
+      dust_density(1:dust_n_species)   = 3.3d0    ! dust grain density (g/cc)
       min_ar              = 1.0d-7   ! minimum dust grain size (cm)
       max_ar              = 500.0d-7 ! maximum dust grain size (cm)
-      w_convert_factor(dust_rho(:))        = w_convert_factor(rho_)
-      w_convert_factor(dust_mom(1, :)) = w_convert_factor(mom(1))
-      w_convert_factor(dust_mom(2, :)) = w_convert_factor(mom(2))
 
       ! === rescale dust quantities to dimensionless scale === !
-      dust_density(1:dust_n_species) = dust_density(1:dust_n_species)/w_convert_factor(dust_rho(1))
-      min_ar  = min_ar/length_convert_factor
-      max_ar  = max_ar/length_convert_factor 
-      !-------------------------------
+      dust_density(1:dust_n_species) = dust_density(1:dust_n_species)/unit_density
 
       ! here the dust sizes are defined. Ndust bins, with all bins having equal total mass.
       ! To do this, assume the particle distribution goes as r^-3.5
       r(0) = min_ar
       do i=1,dust_n_species
-        r(i) = (sqrt(r(i-1)) +(sqrt(max_ar)- &
-             sqrt(min_ar))/dust_n_species)**2.0d0
-        dsdust(i) = r(i)-r(i-1)
+        r(i) = (dsqrt(r(i-1)) +(dsqrt(max_ar)- &
+                    dsqrt(min_ar))/dust_n_species)**2.0d0
       end do
 
-      ! ! now calculate the weighted mean size of each bin, again assuming n goes as r^-3.5
+      ! now calculate the weighted mean size of each bin, again assuming n goes as r^-3.5
+      ! here we just take average over r
       do i=1,dust_n_species
          dust_size(i) = (5.0d0/3.0d0)*(r(i)**(-1.5d0) - r(i-1)**(-1.5d0)) &
               /(r(i)**(-2.5d0) - r(i-1)**(-2.5d0))
+         dust_size(i)=dust_size(i)/unit_length
       end do
+      ! here we weigh distribution over r^2
+      !do i=1,dust_n_species
+      !   dust_size(i) = dsqrt((r(i)**(-0.5d0) - r(i-1)**(-0.5d0)) &
+      !                /(5.0d0*(r(i)**(-2.5d0) - r(i-1)**(-2.5d0))))
+      !   dust_size(i)=dust_size(i)/unit_length
+      !end do
 
       if(first)then
          if(mype==0)then
+            write(*,*) '*****************************************'
+            if(SI_unit)then
+               write(*,*) 'Units system in SI'
+            else
+               write(*,*) 'Units system in cgs'
+            endif
+            write(*,*) 'He_abundance is       =',He_abundance
+            write(*,*) 'unit length is        =',unit_length
+            write(*,*) 'unit number density is=',unit_numberdensity
+            write(*,*) 'unit velocity is      =',unit_velocity
+            write(*,*) 'unit time is          =',unit_time
+            write(*,*) 'unit density is       =',unit_density
+            write(*,*) 'unit pressure is      =',unit_pressure
+            write(*,*) 'unit temperature is   =',unit_temperature
+            write(*,*) 'specific heat ratio is=',hd_gamma
+            write(*,*) '*****************************************'
+            write(*,*) 'Dust inluded using ',dust_n_species,' dust species'
+            write(*,*) 'Dust bins all have specific density rhop ',dust_density(1)
+            write(*,*) '   in cgs units specific density is rhop ',dust_density(1)*unit_density
+            write(*,*) 'Dust bins between min=',min_ar,' and max=',max_ar
+            do i=0,dust_n_species
+               print *,r(i)
+            enddo
             do i=1,dust_n_species
-              write(*,*) 'Dust type ',i,': grain radius r=', &
-                   dust_size(i)*length_convert_factor
+              write(*,*) 'Dust type ',i,': grain radius r              =', dust_size(i)*unit_length
+              write(*,*) 'Dust type ',i,': dimensionless grain radius r=', dust_size(i)
+              write(*,*) 'Dust type ',i,': dimensionless rhop x r      =', dust_size(i)*dust_density(i)
             end do
+            write(*,*) '*****************************************'
          endif
          first=.false.
       endif
-    end if
+    endif
 
   end subroutine initglobaldata_usr
 
