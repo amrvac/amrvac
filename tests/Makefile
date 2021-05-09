@@ -31,7 +31,7 @@ mhd/field_loop_2.5D mhd/solar_wind_2.5D mhd/Orszag_Tang_2.5D mhd/Ambipolar1DWave
 MG_DIRS := multigrid/convergence_2d multigrid/convergence_3d	\
 multigrid/field_loop_2d multigrid/implicit_diffusion
 
-RD_DIRS := rd/schnakenberg_2d
+RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
 MF_DIRS := mf/Mackay_bipole_Cartesian_3D
 
