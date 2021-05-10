@@ -74,10 +74,11 @@ contains
             write(*,*) 'Dust bins all have specific density rhop ',dust_density(1)
             write(*,*) '   in cgs units specific density is rhop ',dust_density(1)*unit_density
             write(*,*) 'Dust bins between min=',min_ar_,' and max=',max_ar_
+            write(*,*) ' in cgs from=',min_ar_*unit_length,' to=',max_ar_*unit_length
             do i=1,dust_n_species
               write(*,*) 'Dust type ',i,': grain radius r              =', dust_size(i)*unit_length
               write(*,*) 'Dust type ',i,': dimensionless grain radius r=', dust_size(i)
-              write(*,*) 'Dust type ',i,': dimensionless rhop x r       =', dust_size(i)*dust_density(i)
+              write(*,*) 'Dust type ',i,': dimensionless rhop x r      =', dust_size(i)*dust_density(i)
             end do
             write(*,*) '*****************************************'
          endif

@@ -432,8 +432,8 @@ contains
     Tgas(ixO^S) = (ptherm(ixO^S)/w(ixO^S, gas_rho_))*unit_temperature
 
     do n = 1, dust_n_species
-      alpha_T(ixO^S,n) =  max(0.35d0 * dexp(-dsqrt((Tgas(ixO^S) + &
-           alpha_T(ixO^S,n))/5.0d2))+0.1d0, smalldouble)
+      alpha_T(ixO^S,n) =  0.35d0 * dexp(-dsqrt((Tgas(ixO^S) + &
+           alpha_T(ixO^S,n))/5.0d2))+0.1d0
     end do
 
   end subroutine get_sticking
@@ -476,8 +476,9 @@ contains
       select case(coordinate)
       case(spherical)
         G0(ixO^S) = max(x(ixO^S, 1)*unit_length, smalldouble)
-      !!!case(cylindrical) not sure what is meant here: radial coordinate?
-        !!!G0(ixO^S) = max(dsqrt(sum(x(ixO^S,:)**2,dim=ndim+1))*unit_length, smalldouble)
+      !!!case(cylindrical) convert R,Z to spherical radial coordinate r here
+      !!! but only ok for 2D (R,Z) or 2.5D (R,Z) case
+      !!! G0(ixO^S) = max(dsqrt(sum(x(ixO^S,:)**2,dim=ndim+1))*unit_length, smalldouble)
       case default
         call mpistop('stellar case not available in this coordinate system')
       end select

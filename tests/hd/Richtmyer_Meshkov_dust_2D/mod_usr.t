@@ -39,6 +39,8 @@ contains
 
       ! === rescale dust quantities to dimensionless scale === !
       dust_density(1:dust_n_species) = dust_density(1:dust_n_species)/unit_density
+      min_ar=min_ar/unit_length
+      max_ar=max_ar/unit_length
 
       ! here the dust sizes are defined. Ndust bins, with all bins having equal total mass.
       ! To do this, assume the particle distribution goes as r^-3.5
@@ -53,13 +55,11 @@ contains
       do i=1,dust_n_species
          dust_size(i) = (5.0d0/3.0d0)*(r(i)**(-1.5d0) - r(i-1)**(-1.5d0)) &
               /(r(i)**(-2.5d0) - r(i-1)**(-2.5d0))
-         dust_size(i)=dust_size(i)/unit_length
       end do
       ! here we weigh distribution over r^2
       !do i=1,dust_n_species
-      !   dust_size(i) = dsqrt((r(i)**(-0.5d0) - r(i-1)**(-0.5d0)) &
-      !                /(5.0d0*(r(i)**(-2.5d0) - r(i-1)**(-2.5d0))))
-      !   dust_size(i)=dust_size(i)/unit_length
+      !   dust_size(i) = dsqrt(5.0d0*(r(i)**(-0.5d0) - r(i-1)**(-0.5d0)) &
+      !                             /(r(i)**(-2.5d0) - r(i-1)**(-2.5d0)))
       !end do
 
       if(first)then
@@ -84,6 +84,7 @@ contains
             write(*,*) 'Dust bins all have specific density rhop ',dust_density(1)
             write(*,*) '   in cgs units specific density is rhop ',dust_density(1)*unit_density
             write(*,*) 'Dust bins between min=',min_ar,' and max=',max_ar
+            write(*,*) ' in cgs min=',min_ar*unit_length,' and max=',max_ar*unit_length
             do i=0,dust_n_species
                print *,r(i)
             enddo
