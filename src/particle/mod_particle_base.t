@@ -215,6 +215,8 @@ contains
     write_ensemble            = .true.
     write_snapshot            = .true.
     relativistic              = .true.
+    particles_eta             = 0.d0
+    particles_etah            = 0.d0
     t_next_output             = 0.0d0
     dtheta                    = 2.0d0*dpi / 60.0d0
     losses                    = .false.

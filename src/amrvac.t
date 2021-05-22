@@ -63,8 +63,8 @@ program amrvac
      ! select active grids
      call selectgrids
 
-     ! update ghost cells
-     call getbc(global_time,0.d0,ps,iwstart,nwgc)
+     ! update ghost cells for all variables
+     call getbc(global_time,0.d0,ps,1,nwflux)
 
      ! reset AMR grid
      if (reset_grid) then
