@@ -201,26 +201,27 @@ contains
           call advect1(flux_scheme,half, idim^LIM,global_time+dt,ps2,global_time+half*dt,ps)
 
        case ("IMEX_222")
-          ! One-parameter family of schemes (parameter is imex222_lambda) from 
-          ! Pareschi&Russo 2005, which is asymptotically SSP and L-stable.
+          ! One-parameter family of schemes (parameter is imex222_lambda) from
+          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and 
+          ! asymptotically SSP.
           ! See doi.org/10.1007/s10915-004-4636-4 (table II)
           ! See doi.org/10.1016/j.apnum.2016.10.018 for interesting values of lambda
 
-          ! Preallocate ps2 as u^n for the implicit update
+          ! Preallocate ps2 as y^n for the implicit update
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps2(igrid)%w = ps(igrid)%w
              if(stagger_grid) ps2(igrid)%ws = ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          ! Solve u(1) = u^n + lambda.dt.F_im(u(1))
+          ! Solve xi1 = y^n + lambda.dt.F_im(xi1)
           call global_implicit_update(imex222_lambda, dt, global_time, ps2, ps)
 
-          ! Set ps1 = u^n + dt.F_ex(u(1))
+          ! Set ps1 = y^n + dt.F_ex(xi1)
           call advect1(flux_scheme, one, idim^LIM, global_time, ps2, global_time, ps1)
-          ! Set ps2 = dt.F_im(u(1))        (is at t^n)
-          ! Set ps  = u^n + dt/2 . F(u(1)) (is at t^n+dt/2)
-          ! Set ps1 = u^n + dt.F_ex(u(1)) + (1-2.lambda).dt.F_im(u(1)) and enforce BC (at t^n+dt)
+          ! Set ps2 = dt.F_im(xi1)        (is at t^n)
+          ! Set ps  = y^n + dt/2 . F(xi1) (is at t^n+dt/2)
+          ! Set ps1 = y^n + dt.F_ex(xi1) + (1-2.lambda).dt.F_im(xi1) and enforce BC (at t^n+dt)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps2(igrid)%w = (ps2(igrid)%w - ps(igrid)%w) / imex222_lambda
@@ -235,30 +236,30 @@ contains
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps1(igrid)%w = ps1(igrid)%w + (1 - 2*imex222_lambda)*ps2(igrid)%w
-             if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws + (1 - 2*imex222_lambda)*ps2(igrid)%ws
+             ps1(igrid)%w = ps1(igrid)%w + (1.0d0 - 2.0d0*imex222_lambda)*ps2(igrid)%w
+             if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws + (1.0d0 - 2.0d0*imex222_lambda)*ps2(igrid)%ws
           end do
           !$OMP END PARALLEL DO
           call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
 
-          ! Preallocate ps2 as u(1) for the implicit update (is at t^n)
+          ! Preallocate ps2 as xi1 for the implicit update (is at t^n)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps2(igrid)%w = 2.0d0*ps2(igrid)%w - ps1(igrid)%w - imex222_lambda*ps2(igrid)%w
              if(stagger_grid) ps2(igrid)%ws = 2.0d0*ps2(igrid)%ws - ps1(igrid)%ws - imex222_lambda*ps2(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          ! Solve u(2) = (ps1) + lambda.dt.F_im(u(2))
+          ! Solve xi2 = (ps1) + lambda.dt.F_im(xi2)
           call global_implicit_update(imex222_lambda, dt, global_time, ps2, ps1)
 
-          ! Add dt/2 . F_im(u(2)) to ps
+          ! Add dt/2.F_im(xi2) to ps
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w = ps(igrid)%w + (ps2(igrid)%w - ps1(igrid)%w) / (2.0d0 * imex222_lambda)
              if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws + (ps2(igrid)%ws - ps1(igrid)%ws) / (2.0d0 * imex222_lambda)
           end do
           !$OMP END PARALLEL DO
-          ! Set ps = u^n + dt/2 . (F(u(1))+F(u(2))) = u^(n+1)
+          ! Set ps = y^n + dt/2.(F(xi1)+F(xi2)) = y^(n+1)
           call advect1(flux_scheme, half, idim^LIM, global_time+dt, ps2, global_time+half*dt, ps)
 
        case default
