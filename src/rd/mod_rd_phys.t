@@ -1,9 +1,14 @@
 !> Reaction-diffusion module (physics routines)
 !>
-!> Two types of reaction-diffusion systems are included: a Gray-Scott model and
-!> a model credited to Schnakenberg 1979. For the latter, defaults settings are
-!> taken from section 4.4 (p. 401) of "Time-dependent advection diffusion
-!> reaction systems" by Hundsdorfer & Verwer. 
+!> Multiple reaction-diffusion systems are included: the Gray-Scott model, the
+!> Schnakenberg model, the Brusselator model, the diffusive logistic equation,
+!> an analytical testcase from "Numerical solution of time-dependent advection-
+!> diffusion-reaction equations" by Hundsdorfer & Verwer, the Oregonator model,
+!> the extended Brusselator model, and the diffusive Lorenz system. See the
+!> documentation of the reaction-diffusion module for more information.
+!>
+!> IMEX methods are also supported. The implicit system is solved by a
+!> multigrid solver coupled into MPI-AMRVAC.
 !>
 module mod_rd_phys
   use mod_multigrid_coupling
@@ -12,8 +17,8 @@ module mod_rd_phys
   private
 
   integer, protected, public :: u_ = 1
-  integer, protected, public :: v_ = 2 ! For 2 or more equations
-  integer, protected, public :: w_ = 3 ! For 3 or more equations
+  integer, protected, public :: v_ = 2 !< For 2 or more equations
+  integer, protected, public :: w_ = 3 !< For 3 or more equations
 
   !> Whether particles module is added
   logical, public, protected :: rd_particles = .false.
