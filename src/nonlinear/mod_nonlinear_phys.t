@@ -91,6 +91,7 @@ contains
     phys_add_source      => nonlinear_add_source
     phys_to_conserved    => nonlinear_to_conserved
     phys_to_primitive    => nonlinear_to_primitive
+    phys_get_v_idim      => nonlinear_get_v
     phys_get_dt          => nonlinear_get_dt
     phys_write_info      => nonlinear_write_info
 
