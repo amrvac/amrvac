@@ -751,13 +751,12 @@ contains
        endif
        use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal'&
             .or.time_integrator=='IMEX_222')
-       if (((((time_integrator/='Predictor_Corrector'.and.&
-            time_integrator/='RK2_alfa').and.&
-            (time_integrator/='ssprk2'.and.&
-             time_integrator/='IMEX_Midpoint')).and.&
-             time_integrator/='IMEX_Trapezoidal').and.&
-             time_integrator/='IMEX_222').and.&
-             (.not. use_imex_scheme))then
+       if ( (time_integrator/='Predictor_Corrector').and.&
+            (time_integrator/='RK2_alfa').and.&
+            (time_integrator/='ssprk2').and.&
+            (time_integrator/='IMEX_Midpoint').and.&
+            (time_integrator/='IMEX_Trapezoidal').and.&
+            (time_integrator/='IMEX_222') ) then
            call mpistop("No such time_integrator for twostep")
        endif
     case ("threestep")
