@@ -125,7 +125,7 @@ contains
   end subroutine trace_Vfield
 
   subroutine find_points_in_pe(igrid,ipoint_in,xf,wpV,numP,dL,forward,statusB)
- 
+    use mod_global_parameters
     integer :: igrid,ipoint_in,numP
     double precision :: xf(numP,ndim),wpV(numP,nw)
     double precision :: dL
@@ -238,6 +238,7 @@ contains
   end subroutine find_points_interp
 
   subroutine get_wprim_local(xfn,wpVn,x,w,ixI^L,dxb^D)
+    use mod_global_parameters
     use mod_physics, only: phys_to_primitive, phys_to_conserved
 
     integer :: ixI^L
@@ -277,7 +278,7 @@ contains
   end subroutine get_wprim_local
 
   subroutine get_K(xfn,x,Vg,K,ixI^L,dxb^D)
-
+    use mod_global_parameters
     ! Note: here only to ndim: what for ndir>ndim?
 
     integer :: ixI^L
