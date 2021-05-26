@@ -235,7 +235,7 @@ contains
          typegrad,typediv,typecurl,&
          nxdiffusehllc, flathllc, tvdlfeps,&
          flatcd,flatsh,&
-         rk2_alfa,ssprk_order,rk3_switch,imex_switch,&
+         rk2_alfa,imex222_lambda,ssprk_order,rk3_switch,imex_switch,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, fix_small_values, check_small_values, &
          trace_small_values, angmomfix, small_values_fix_iw, &
@@ -450,6 +450,8 @@ contains
     angmomfix       = .false.
     ! default PC or explicit midpoint, hence alfa=0.5
     rk2_alfa        = half 
+    ! default IMEX-RK22Ln hence lambda = 1 - 1/sqrt(2)
+    imex222_lambda  = 1.0d0 - 1.0d0 / dsqrt(2.0d0)
     ! default SSPRK(3,3) or Gottlieb-Shu 1998 for threestep
     ! default SSPRK(4,3) or Spireti-Ruuth for fourstep
     ! default SSPRK(5,4) using Gottlieb coeffs
@@ -747,12 +749,14 @@ contains
           rk_b2=1.0d0/(2.0d0*rk2_alfa)
           rk_b1=1.0d0-rk_b2
        endif
-       use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal')
-       if (((time_integrator/='Predictor_Corrector'.and.&
-            time_integrator/='RK2_alfa').and.&
-            (time_integrator/='ssprk2'.and.&
-             time_integrator/='IMEX_Midpoint')).and.&
-             time_integrator/='IMEX_Trapezoidal') then
+       use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal'&
+            .or.time_integrator=='IMEX_222')
+       if ( (time_integrator/='Predictor_Corrector').and.&
+            (time_integrator/='RK2_alfa').and.&
+            (time_integrator/='ssprk2').and.&
+            (time_integrator/='IMEX_Midpoint').and.&
+            (time_integrator/='IMEX_Trapezoidal').and.&
+            (time_integrator/='IMEX_222') ) then
            call mpistop("No such time_integrator for twostep")
        endif
     case ("threestep")
@@ -853,11 +857,35 @@ contains
            imex_c3=imex_a31+imex_a32
            imex_b3=1.0d0-imex_b1-imex_b2
        endif
-       use_imex_scheme=(time_integrator=='IMEX_ARS3'.or.time_integrator=='IMEX_232')
-       if ((time_integrator/='ssprk3'.and.&
-            time_integrator/='RK3_BT').and.&
-            (time_integrator/='IMEX_ARS3'.and.&
-             time_integrator/='IMEX_232')) then
+       if(time_integrator=='IMEX_CB3a') then
+          imex_c2   = 0.8925502329346865
+          imex_a22  = imex_c2
+          imex_ha21 = imex_c2
+          imex_c3   = imex_c2 / (6.0d0*imex_c2**2 - 3.0d0*imex_c2 + 1.0d0)
+          imex_ha32 = imex_c3
+          imex_b2   = (3.0d0*imex_c2 - 1.0d0) / (6.0d0*imex_c2**2)
+          imex_b3   = (6.0d0*imex_c2**2 - 3.0d0*imex_c2 + 1.0d0) / (6.0d0*imex_c2**2)
+          imex_a33  = (1.0d0/6.0d0 - imex_b2*imex_c2**2 - imex_b3*imex_c2*imex_c3) / (imex_b3*(imex_c3-imex_c2))
+          imex_a32  = imex_c3 - imex_a33
+          ! if (mype == 0) then
+          !    write(*,*) "================================="
+          !    write(*,*) "Asserting the order conditions..."
+          !    ! First order convergence: OK
+          !    ! Second order convergence
+          !    write(*,*) -1.0d0/2.0d0 + imex_b2*imex_c2 + imex_b3*imex_c3
+          !    ! Third order convergence
+          !    write(*,*) -1.0d0/3.0d0 + imex_b2*imex_c2**2 + imex_b3*imex_c3**2
+          !    write(*,*) -1.0d0/6.0d0 + imex_b3*imex_ha32*imex_c2
+          !    write(*,*) -1.0d0/6.0d0 + imex_b2*imex_a22*imex_c2 + imex_b3*imex_a32*imex_c2 + imex_b3*imex_a33*imex_c3
+          !    write(*,*) "================================="
+          ! end if
+       end if
+       use_imex_scheme=(time_integrator=='IMEX_ARS3'.or.time_integrator=='IMEX_232'.or.time_integrator=='IMEX_CB3a')
+       if ( (time_integrator/='ssprk3').and.&
+            (time_integrator/='RK3_BT').and.&
+            (time_integrator/='IMEX_ARS3').and.&
+            (time_integrator/='IMEX_232').and.&
+            (time_integrator/='IMEX_CB3a') ) then
            call mpistop("No such time_integrator for threestep")
        endif
     case ("fourstep")

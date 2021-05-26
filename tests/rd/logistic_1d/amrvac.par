@@ -1,0 +1,48 @@
+!=============================================
+! Project : Toying with logistic equation
+! https://people.maths.ox.ac.uk/trefethen/pdectb/fisher2.pdf
+!=============================================
+
+&filelist
+    base_filename = 'data/LG1D_toy_'
+/
+
+&savelist
+    itsave(1,2) = 0
+    dtsave_log  = 2.0d-1
+    dtsave_dat  = 2.0d-1
+/
+
+&stoplist
+    time_max = 25.0d0
+/
+
+&methodlist
+    time_stepper    = "threestep"
+    time_integrator = "IMEX_CB3a"
+    flux_scheme     = 20*'source'
+/
+
+&boundlist
+    typeboundary_min1 = 'symm'
+    typeboundary_max1 = 'symm'
+/
+
+&meshlist
+    refine_max_level = 1
+    domain_nx1 = 512
+    block_nx1  = 16
+    iprob      = 1
+    xprobmin1  = -25.0d0
+    xprobmax1  =  50.0d0
+/
+
+&paramlist
+    dtdiffpar   = 0.8d0
+/
+
+&rd_list
+    equation_name = "logistic"
+    D1        = 1.0d0
+    lg_lambda = 1.0d0
+/
