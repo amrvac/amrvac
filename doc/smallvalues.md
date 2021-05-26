@@ -47,7 +47,7 @@ This setting will replace the deduced pressure in `phys_get_pthermal` by the sma
 
 ## Level two bootstrapping: activate a small-values treatment, and hope for the best.
 
-If the previous setting did not yet fully solve your problem, and you are certain that not coding error is used, you may proceed to a higher level of bootstrapping, eg. by changing to
+If the previous setting did not yet fully solve your problem, and you are certain that no coding error is made, you may proceed to a higher level of bootstrapping, eg. by changing to
 
 ```fortran
 &methodlist
@@ -67,4 +67,18 @@ In the `replace` variant, different behaviors can be enforced by the logicals `s
 
 # Debug options
 
-For those familiar with using debuggers (like gdb), you may want to force the filling of corner (in 2D or 3D) ghost cells when trying to find out when and where a bug or problem happens. This is because in many instances we do not need the corner cells at all, and this means in practice that `phys_req_diagonal=.false.` unless the stencil (from specific added source terms) requires it. We added the `hd_force_diagonal` switch to the `&hd_list` for this purpose only: you can set it to T and then corners will be filled even though the stencil does not need it, but then no divisions by zero density values in corners will be reported, allowing to find out actual errors.
+For those familiar with using debuggers (like gdb), you may want to force the filling of corner (in 2D or 3D) ghost cells when trying to find out when and where a bug or problem happens. This is because in many instances we do not need the corner cells at all, and this means in practice that `phys_req_diagonal=.false.` unless the stencil (from specific added source terms) requires it. We added the `hd_force_diagonal` switch to the `&hd_list` for this purpose only: you can set it to T and then corners will be filled even though the stencil does not need it, but then no divisions by zero density values in corners will be reported, allowing to find out actual errors. You will get info on where a problem in a HD run occurs by a setting like
+
+```fortran
+&methodlist
+  check_small_values = .true.
+  fix_small_values = .true.
+  small_values_method='error'
+  small_pressure=1.0d-14
+  small_density=1.0d-12
+/
+
+&hd_list
+  hd_force_diagonal=.true.
+/
+```
