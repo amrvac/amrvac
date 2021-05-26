@@ -5,7 +5,7 @@ the current MPI-version MPI-AMRVAC (some, especially the older papers used
 previous variants of the code). Especially the first papers listed here are 
 specific to the current version.**
 
-* `MPI-AMRVAC: a parallel, grid-adaptive PDE toolkit', R. Keppens, J. Teunissen, C. Xia &amp O. Porth, 2020, Computers & Mathematics With Applications, [doi:10.1016/j.camwa.2020.03.023](https://doi.org/10.1016/j.camwa.2020.03.023)
+* `MPI-AMRVAC: a parallel, grid-adaptive PDE toolkit', R. Keppens, J. Teunissen, C. Xia &amp O. Porth, 2021, Computers & Mathematics With Applications **81**, 316 [doi:10.1016/j.camwa.2020.03.023](https://doi.org/10.1016/j.camwa.2020.03.023)
 
 * `A geometric multigrid library for quadtree/octree AMR grids coupled to MPI-AMRVAC', J. Teunissen and R. Keppens, 2019, CPC **245**, 106866 [doi:10.1016/j.cpc.2019.106866](https://doi.org/10.1016/j.cpc.2019.106866) 
 
