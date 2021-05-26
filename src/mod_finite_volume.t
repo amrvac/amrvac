@@ -113,7 +113,7 @@ contains
 
     ! check and optionally correct unphysical values
     if(fix_small_values) then
-       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'exit hancock finite_volume')
     endif
     end associate
   end subroutine hancock
@@ -283,6 +283,10 @@ contains
        if (method=='tvdmu') &
             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dx^D)
 
+       ! check and optionally correct unphysical values
+       if(fix_small_values) then
+          call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
+       endif
     end do ! Next idims
 
     if (.not.slab.and.idimsmin==1) &
@@ -290,11 +294,6 @@ contains
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
  
-    ! check and optionally correct unphysical values
-    if(fix_small_values) then
-       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
-    endif
-
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
@@ -303,6 +302,10 @@ contains
       call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
     endif
 
+    ! check and optionally correct unphysical values
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'exit finite_volume')
+    endif
   end associate
   contains
 

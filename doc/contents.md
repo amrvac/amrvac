@@ -35,8 +35,8 @@ TVDMU, TVD, HLL...
 * [Slope limiters](limiter.md) Slope limiters for reconstruction to suppress spurious numerical oscillations
 * [AMR aspects](amrstructure.md) Some essential info on global parameters and
 the data structures for the block-tree AMR.
-* [Using polar/cylindrical/spherical coordinates](axial.md) Some information on
-simulations using non-Cartesian grids.
+* [Using polar/cylindrical/spherical coordinates](axial.md) Some information on simulations using non-Cartesian grids.
+* [Small Values](smallvalues.md) Info on positivity fixes for (M)HD runs.
 
 # Additional Physics {#special_sources}
 

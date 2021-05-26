@@ -57,6 +57,9 @@ module mod_hd_phys
   !> Whether TRAC method is used
   logical, public, protected              :: hd_trac = .false.
 
+  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
+  logical, public, protected              :: hd_force_diagonal = .false.
+
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
@@ -80,7 +83,8 @@ contains
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac
+    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
+    hd_force_diagonal
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -255,7 +259,12 @@ contains
 
     if (hd_dust) then
         call dust_init(rho_, mom(:), e_)
-        !!!phys_modify_wLR  => hd_modify_wLR
+    endif
+
+    if (hd_force_diagonal) then
+       ! ensure corners are filled, otherwise divide by zero when getting primitives
+       !  --> only for debug purposes
+       phys_req_diagonal = .true.
     endif
 
     allocate(tracer(hd_n_tracer))
@@ -394,9 +403,9 @@ contains
     double precision                :: invgam
     integer                         :: idir, itr
 
-    if (fix_small_values) then
-      call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
-    end if
+    !!if (fix_small_values) then
+    !!  call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
+    !!end if
 
     if (hd_energy) then
        invgam = 1.d0/(hd_gamma - 1.0d0)
@@ -529,9 +538,9 @@ contains
 
     call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
     call hd_get_csound2(w,x,ixI^L,ixO^L,csound)
-    csound(ixO^S) = sqrt(csound(ixO^S))
+    csound(ixO^S) = dsqrt(csound(ixO^S))
 
-    cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
+    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
 
     if (hd_dust) then
       call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
@@ -554,7 +563,7 @@ contains
       gxO^L=hxO^L-kr(i,^D);
       jxO^L=ixO^L+kr(i,^D);
       kxO^L=jxO^L+kr(i,^D);
-      a2(ixO^S,i,1:nw)=abs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
+      a2(ixO^S,i,1:nw)=dabs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
         -30.d0*w(ixO^S,1:nw)+16.d0*w(hxO^S,1:nw)-w(gxO^S,1:nw))
       a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
     end do
@@ -580,7 +589,7 @@ contains
 
     hxO^L=ixO^L-1;
     jxO^L=ixO^L+1;
-    lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
+    lts(ixO^S)=0.5d0*dabs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
     lrlt=.false.
     where(lts(ixO^S) > delta)
       lrlt(ixO^S)=.true.
@@ -613,31 +622,29 @@ contains
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
 
-      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
-      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
-      tmp3(ixO^S)=1.d0/(sqrt(wLp(ixO^S,rho_))+sqrt(wRp(ixO^S,rho_)))
+      tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
+      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
 
       if(hd_energy) then
         csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
         csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
       else
-        call hd_get_csound2(wLp,x,ixI^L,ixO^L,csoundL)
-        csoundL(ixO^S) = sqrt(csoundL(ixO^S))
-        call hd_get_csound2(wRp,x,ixI^L,ixO^L,csoundR)
-        csoundR(ixO^S) = sqrt(csoundR(ixO^S))
+        call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
+        call hd_get_csound2(wRC,x,ixI^L,ixO^L,csoundR)
       end if
 
       dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
            tmp3(ixO^S) + 0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2 * &
            (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
 
-      dmean(ixO^S)=sqrt(dmean(ixO^S))
+      dmean(ixO^S)=dsqrt(dmean(ixO^S))
       if(present(cmin)) then
         cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
         cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
       else
-        cmax(ixO^S)=abs(umean(ixO^S))+dmean(ixO^S)
+        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
       end if
 
       if (hd_dust) then
@@ -650,13 +657,13 @@ contains
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
-      csoundR(ixO^S) = sqrt(csoundR(ixO^S))
+      csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
 
       if(present(cmin)) then
         cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
         cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
       else
-        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
 
       if (hd_dust) then
@@ -715,7 +722,7 @@ contains
              write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
            end do
            ! use erroneous arithmetic operation to crash the run
-           if(trace_small_values) write(*,*) sqrt(pth(ix^D)-bigdouble)
+           if(trace_small_values) write(*,*) dsqrt(pth(ix^D)-bigdouble)
            write(*,*) "Saving status at the previous time step"
            crash=.true.
          end if
@@ -1154,6 +1161,15 @@ contains
             where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
           end if
         end do
+        if(hd_energy)then
+          if(small_values_fix_iw(e_)) then
+            if(primitive) then
+              where(flag(ixO^S,rho_)) w(ixO^S, p_) = small_pressure
+            else
+              where(flag(ixO^S,rho_)) w(ixO^S, e_) = small_e + hd_kin_en(w,ixI^L,ixO^L)
+            endif
+          end if
+        endif
 
         if(hd_energy) then
           if(primitive) then
@@ -1165,6 +1181,7 @@ contains
             end where
           end if
         end if
+
         if(hd_dust)then
            do n=1,dust_n_species
               where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_rho(n)) = 0.0d0
@@ -1174,7 +1191,29 @@ contains
            enddo
         endif
       case ("average")
-        call small_values_average(ixI^L, ixO^L, w, x, flag)
+        if(primitive)then
+           ! averaging for all primitive fields, including dust
+           call small_values_average(ixI^L, ixO^L, w, x, flag)
+        else
+           ! do averaging of density
+           call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+           if(hd_energy) then
+             ! do averaging of pressure
+             w(ixO^S,p_)=(hd_gamma-1.d0)*(w(ixO^S,e_) &
+              -0.5d0*sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_))
+             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+             w(ixO^S,e_)=w(ixO^S,p_)/(hd_gamma-1.d0) &
+               +0.5d0*sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_)
+           end if
+           if(hd_dust)then
+              do n=1,dust_n_species
+                 where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_rho(n)) = 0.0d0
+                 do idir = 1, ndir
+                    where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_mom(idir,n)) = 0.0d0
+                 enddo
+              enddo
+          endif
+        endif
       case default
         if(.not.primitive) then
           !convert w to primitive
@@ -1192,46 +1231,5 @@ contains
       end select
     end if
   end subroutine hd_handle_small_values
-
-  subroutine hd_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
-    ! only for fixing faulty dust properties after reconstruction
-    use mod_global_parameters
-    use mod_dust, only: dust_n_species, dust_mom, dust_rho
-
-    integer, intent(in)             :: ixI^L, ixO^L, idir
-    double precision, intent(in)    :: qt
-    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
-    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
-    type(state)                     :: s
-    logical :: flag(ixI^S)
-    integer :: n, iidir
-
-    if(fix_small_values.and.hd_dust)then
-     do n = 1, dust_n_species
-       flag(ixO^S)= (wLC(ixO^S,dust_rho(n))<0.0d0)
-       where(flag(ixO^S))
-          wLC(ixO^S,dust_rho(n))=0.0d0
-          wLp(ixO^S,dust_rho(n))=0.0d0
-       endwhere
-       do iidir=1,ndir
-          where(flag(ixO^S))
-             wLC(ixO^S,dust_mom(iidir,n))=0.0d0
-             wLp(ixO^S,dust_mom(iidir,n))=0.0d0
-          endwhere
-       enddo
-       flag(ixO^S)= (wRC(ixO^S,dust_rho(n))<0.0d0)
-       where(flag(ixO^S))
-          wRC(ixO^S,dust_rho(n))=0.0d0
-          wRp(ixO^S,dust_rho(n))=0.0d0
-       endwhere
-       do iidir=1,ndir
-          where(flag(ixO^S))
-             wRC(ixO^S,dust_mom(iidir,n))=0.0d0
-             wRp(ixO^S,dust_mom(iidir,n))=0.0d0
-          endwhere
-       enddo
-     enddo
-    endif
-  end subroutine hd_modify_wLR
 
 end module mod_hd_phys
