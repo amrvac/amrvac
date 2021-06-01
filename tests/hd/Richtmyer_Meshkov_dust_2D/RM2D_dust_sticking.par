@@ -2,7 +2,7 @@
 ! Project : 2D Richtmyer-Meshkov with dust
 ! Aim     :
 ! Results :
-! Update  : 31/08/2015
+! Update  : 8/5/2021
 !=====================================================
 
  &filelist
@@ -63,10 +63,6 @@
 
  &dust_list
         dust_n_species = 4
-        gas_mu = 2.3d0
         dust_method='sticking'
-	dust_small_to_zero=.false.
-        dust_min_rho=1.0d-10
-        dust_source_split=.false.
         dust_temperature=0.0d0
  /

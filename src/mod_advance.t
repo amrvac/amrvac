@@ -105,6 +105,12 @@ contains
 
        case ("IMEX_SP")
           call global_implicit_update(one,dt,global_time,ps,ps1)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+             ps1(igrid)%w=ps(igrid)%w
+             if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
           call advect1(flux_scheme,one,idim^LIM,global_time,ps1,global_time,ps)
 
        case default
@@ -193,6 +199,68 @@ contains
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_scheme,half, idim^LIM,global_time+dt,ps2,global_time+half*dt,ps)
+
+       case ("IMEX_222")
+          ! One-parameter family of schemes (parameter is imex222_lambda) from
+          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and 
+          ! asymptotically SSP.
+          ! See doi.org/10.1007/s10915-004-4636-4 (table II)
+          ! See doi.org/10.1016/j.apnum.2016.10.018 for interesting values of lambda
+
+          ! Preallocate ps2 as y^n for the implicit update
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w = ps(igrid)%w
+             if(stagger_grid) ps2(igrid)%ws = ps(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+          ! Solve xi1 = y^n + lambda.dt.F_im(xi1)
+          call global_implicit_update(imex222_lambda, dt, global_time, ps2, ps)
+
+          ! Set ps1 = y^n + dt.F_ex(xi1)
+          call advect1(flux_scheme, one, idim^LIM, global_time, ps2, global_time, ps1)
+          ! Set ps2 = dt.F_im(xi1)        (is at t^n)
+          ! Set ps  = y^n + dt/2 . F(xi1) (is at t^n+dt/2)
+          ! Set ps1 = y^n + dt.F_ex(xi1) + (1-2.lambda).dt.F_im(xi1) and enforce BC (at t^n+dt)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w = (ps2(igrid)%w - ps(igrid)%w) / imex222_lambda
+             if(stagger_grid) ps2(igrid)%ws = (ps2(igrid)%ws - ps(igrid)%ws) / imex222_lambda
+          end do
+          !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w = half*(ps(igrid)%w + ps1(igrid)%w + ps2(igrid)%w)
+             if(stagger_grid) ps(igrid)%ws = half*(ps(igrid)%ws + ps1(igrid)%ws + ps2(igrid)%ws)
+          end do
+          !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps1(igrid)%w = ps1(igrid)%w + (1.0d0 - 2.0d0*imex222_lambda)*ps2(igrid)%w
+             if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws + (1.0d0 - 2.0d0*imex222_lambda)*ps2(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+
+          ! Preallocate ps2 as xi1 for the implicit update (is at t^n)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w = 2.0d0*ps2(igrid)%w - ps1(igrid)%w - imex222_lambda*ps2(igrid)%w
+             if(stagger_grid) ps2(igrid)%ws = 2.0d0*ps2(igrid)%ws - ps1(igrid)%ws - imex222_lambda*ps2(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+          ! Solve xi2 = (ps1) + lambda.dt.F_im(xi2)
+          call global_implicit_update(imex222_lambda, dt, global_time, ps2, ps1)
+
+          ! Add dt/2.F_im(xi2) to ps
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w = ps(igrid)%w + (ps2(igrid)%w - ps1(igrid)%w) / (2.0d0 * imex222_lambda)
+             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws + (ps2(igrid)%ws - ps1(igrid)%ws) / (2.0d0 * imex222_lambda)
+          end do
+          !$OMP END PARALLEL DO
+          ! Set ps = y^n + dt/2.(F(xi1)+F(xi2)) = y^(n+1)
+          call advect1(flux_scheme, half, idim^LIM, global_time+dt, ps2, global_time+half*dt, ps)
 
        case default
           write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
@@ -367,6 +435,39 @@ contains
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_scheme,imex_b3, idim^LIM,global_time+imex_c3*dt,ps2,global_time+(1.0d0-imex_b3)*dt,ps)
+
+       case ("IMEX_CB3a")
+          ! Third order IMEX scheme with low-storage implementation (4 registers).
+          ! From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
+          ! (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
+          ! Parameters are in imex_bj, imex_cj (same for implicit/explicit), 
+          ! imex_aij (implicit tableau) and imex_haij (explicit tableau).
+          call advect1(flux_scheme, imex_ha21, idim^LIM, global_time, ps, global_time, ps1)
+          call global_implicit_update(imex_a22, dt, global_time+imex_c2*dt, ps2, ps1)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps3(igrid)%w = ps(igrid)%w + imex_a32/imex_a22 * (ps2(igrid)%w - ps1(igrid)%w)
+             ps(igrid)%w  = ps(igrid)%w + imex_b2 /imex_a22 * (ps2(igrid)%w - ps1(igrid)%w)
+             ps1(igrid)%w = ps3(igrid)%w
+             if(stagger_grid) ps3(igrid)%ws = ps(igrid)%ws + imex_a32/imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
+             if(stagger_grid) ps(igrid)%ws  = ps(igrid)%ws + imex_b2 /imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
+             if(stagger_grid) ps1(igrid)%ws = ps3(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_scheme, imex_ha32, idim^LIM, global_time+imex_c2*dt, ps2, global_time, ps3)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w = ps(igrid)%w + imex_b2 /imex_ha32 * (ps3(igrid)%w - ps1(igrid)%w)
+             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws + imex_b2 /imex_ha32 * (ps3(igrid)%ws - ps1(igrid)%ws)
+          end do
+          call global_implicit_update(imex_a33, dt, global_time+imex_c3*dt, ps1, ps3)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w = ps(igrid)%w + imex_b3 /imex_a33 * (ps1(igrid)%w - ps3(igrid)%w)
+             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws + imex_b3 /imex_a33 * (ps1(igrid)%ws - ps3(igrid)%ws)
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_scheme, imex_b3, idim^LIM, global_time+imex_c3*dt, ps1, global_time+imex_b2*dt, ps)
 
        case default
           write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper

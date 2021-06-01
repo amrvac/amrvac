@@ -278,12 +278,15 @@ mod_trac.o: mod_particle_base.mod
 mod_trac.o: mod_point_searching.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_trace_Bfield.o: mod_particle_base.mod
+mod_trace_Vfield.o: mod_particle_base.mod
+mod_trace_Vfield.o: mod_physics.mod
 mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
 mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
 mod_viscosity.o: mod_physics.mod
+mod_weno.o: mod_physics.mod
 pointgrav.o: mod_geometry.mod
 raytracing.o: mod_raytracing.mod
 refine.o: mod_amr_fct.mod

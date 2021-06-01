@@ -57,6 +57,9 @@ module mod_hd_phys
   !> Whether TRAC method is used
   logical, public, protected              :: hd_trac = .false.
 
+  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
+  logical, public, protected              :: hd_force_diagonal = .false.
+
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
@@ -80,7 +83,8 @@ contains
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac
+    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
+    hd_force_diagonal
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -148,7 +152,7 @@ contains
      case (spherical)
       if (hd_dust) &
         call mpistop("Error: hd_angmomfix is not implemented &\\
-        &with dust and coordinate=='sperical'")
+        &with dust and coordinate=='spherical'")
       do iw=1,nwflux
         if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
           fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
@@ -253,7 +257,15 @@ contains
     ! derive units from basic units
     call hd_physical_units()
 
-    if (hd_dust) call dust_init(rho_, mom(:), e_)
+    if (hd_dust) then
+        call dust_init(rho_, mom(:), e_)
+    endif
+
+    if (hd_force_diagonal) then
+       ! ensure corners are filled, otherwise divide by zero when getting primitives
+       !  --> only for debug purposes
+       phys_req_diagonal = .true.
+    endif
 
     allocate(tracer(hd_n_tracer))
 
@@ -352,9 +364,10 @@ contains
 
   end subroutine hd_physical_units
 
-  !> Returns 0 in argument flag where values are ok
+  !> Returns logical argument flag where values are ok
   subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag)
     use mod_global_parameters
+    use mod_dust, only: dust_check_w
 
     logical, intent(in)          :: primitive
     integer, intent(in)          :: ixI^L, ixO^L
@@ -376,6 +389,8 @@ contains
 
     where(w(ixO^S, rho_) < small_density) flag(ixO^S,rho_) = .true.
 
+    if(hd_dust) call dust_check_w(ixI^L,ixO^L,w,flag)
+
   end subroutine hd_check_w
 
   !> Transform primitive variables into conservative ones
@@ -388,9 +403,9 @@ contains
     double precision                :: invgam
     integer                         :: idir, itr
 
-    if (fix_small_values) then
-      call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
-    end if
+    !!if (fix_small_values) then
+    !!  call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
+    !!end if
 
     if (hd_energy) then
        invgam = 1.d0/(hd_gamma - 1.0d0)
@@ -523,9 +538,9 @@ contains
 
     call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
     call hd_get_csound2(w,x,ixI^L,ixO^L,csound)
-    csound(ixO^S) = sqrt(csound(ixO^S))
+    csound(ixO^S) = dsqrt(csound(ixO^S))
 
-    cmax(ixO^S) = abs(v(ixO^S))+csound(ixO^S)
+    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
 
     if (hd_dust) then
       call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
@@ -548,7 +563,7 @@ contains
       gxO^L=hxO^L-kr(i,^D);
       jxO^L=ixO^L+kr(i,^D);
       kxO^L=jxO^L+kr(i,^D);
-      a2(ixO^S,i,1:nw)=abs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
+      a2(ixO^S,i,1:nw)=dabs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
         -30.d0*w(ixO^S,1:nw)+16.d0*w(hxO^S,1:nw)-w(gxO^S,1:nw))
       a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
     end do
@@ -574,7 +589,7 @@ contains
 
     hxO^L=ixO^L-1;
     jxO^L=ixO^L+1;
-    lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
+    lts(ixO^S)=0.5d0*dabs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
     lrlt=.false.
     where(lts(ixO^S) > delta)
       lrlt(ixO^S)=.true.
@@ -607,31 +622,29 @@ contains
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
 
-      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
-      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
-      tmp3(ixO^S)=1.d0/(sqrt(wLp(ixO^S,rho_))+sqrt(wRp(ixO^S,rho_)))
+      tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
+      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
 
       if(hd_energy) then
         csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
         csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
       else
-        call hd_get_csound2(wLp,x,ixI^L,ixO^L,csoundL)
-        csoundL(ixO^S) = sqrt(csoundL(ixO^S))
-        call hd_get_csound2(wRp,x,ixI^L,ixO^L,csoundR)
-        csoundR(ixO^S) = sqrt(csoundR(ixO^S))
+        call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
+        call hd_get_csound2(wRC,x,ixI^L,ixO^L,csoundR)
       end if
 
       dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
            tmp3(ixO^S) + 0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2 * &
            (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
 
-      dmean(ixO^S)=sqrt(dmean(ixO^S))
+      dmean(ixO^S)=dsqrt(dmean(ixO^S))
       if(present(cmin)) then
         cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
         cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
       else
-        cmax(ixO^S)=abs(umean(ixO^S))+dmean(ixO^S)
+        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
       end if
 
       if (hd_dust) then
@@ -644,13 +657,13 @@ contains
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
-      csoundR(ixO^S) = sqrt(csoundR(ixO^S))
+      csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
 
       if(present(cmin)) then
         cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
         cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
       else
-        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
 
       if (hd_dust) then
@@ -709,7 +722,7 @@ contains
              write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
            end do
            ! use erroneous arithmetic operation to crash the run
-           if(trace_small_values) write(*,*) sqrt(pth(ix^D)-bigdouble)
+           if(trace_small_values) write(*,*) dsqrt(pth(ix^D)-bigdouble)
            write(*,*) "Saving status at the previous time step"
            crash=.true.
          end if
@@ -806,7 +819,7 @@ contains
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
 
     if(hd_energy) then
-      ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+      ! Energy flux is v_i*(e + p)
       f(ixO^S, e_) = v(ixO^S) * (w(ixO^S, e_) + pth(ixO^S))
     end if
 
@@ -841,7 +854,7 @@ contains
     if (hd_energy) then
        pth(ixO^S) = w(ixO^S,p_)
     else
-       call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
+       call hd_get_pthermal(wC, x, ixI^L, ixO^L, pth)
     end if
 
     f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
@@ -860,7 +873,7 @@ contains
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
 
     if(hd_energy) then
-      ! Energy flux is v_i*e + v*p ! Check? m_i/rho*p
+      ! Energy flux is v_i*(e + p) 
       f(ixO^S, e_) = w(ixO^S,mom(idim)) * (wC(ixO^S, e_) + w(ixO^S,p_))
     end if
 
@@ -892,7 +905,7 @@ contains
     use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
     use mod_rotating_frame, only: rotating_frame_add_source
-    use mod_dust, only: dust_n_species, dust_mom, dust_rho, dust_small_to_zero, set_dusttozero, dust_min_rho
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
@@ -937,7 +950,7 @@ contains
              mr_   = dust_mom(r_, ifluid)
              if(phi_>0) mphi_ = dust_mom(phi_, ifluid)
              source(ixI^S) = zero
-             minrho = dust_min_rho
+             minrho = 0.0d0
           end if
           if (phi_ > 0) then
              where (wCT(ixO^S, irho) > minrho)
@@ -999,19 +1012,16 @@ contains
        }
     end select
 
-    if (hd_dust .and. dust_small_to_zero) then
-       call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
-    end if
-
     if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
     if (hd_rotating_frame) then
        if (hd_dust) then
           call mpistop("Rotating frame not implemented yet with dust")
        else
-          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,W,x)
+          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
        end if
     end if
+
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
@@ -1022,7 +1032,6 @@ contains
     use mod_viscosity, only: viscosity_add_source
     use mod_usr_methods, only: usr_gravity
     use mod_gravity, only: gravity_add_source, grav_split
-    use mod_dust, only: dust_small_to_zero, set_dusttozero
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1062,9 +1071,6 @@ contains
                     + qdt * gravity_field(ixO^S, idim) * wCT(ixO^S, dust_rho(idust))
             end do
          end do
-         if (dust_small_to_zero) then
-            call set_dusttozero(qdt, ixI^L, ixO^L,  wCT,  w, x)
-         end if
       end if
     end if
 
@@ -1127,15 +1133,19 @@ contains
   end function hd_inv_rho
 
   subroutine hd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+    ! handles hydro (density,pressure,velocity) bootstrapping 
+    ! any negative dust density is flagged as well (and throws an error)
+    ! small_values_method=replace also for dust
     use mod_global_parameters
     use mod_small_values
+    use mod_dust, only: dust_n_species, dust_mom, dust_rho
     logical, intent(in)             :: primitive
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: idir
+    integer :: n,idir
     logical :: flag(ixI^S,1:nw)
 
     if (small_values_method == "ignore") return
@@ -1151,6 +1161,15 @@ contains
             where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
           end if
         end do
+        if(hd_energy)then
+          if(small_values_fix_iw(e_)) then
+            if(primitive) then
+              where(flag(ixO^S,rho_)) w(ixO^S, p_) = small_pressure
+            else
+              where(flag(ixO^S,rho_)) w(ixO^S, e_) = small_e + hd_kin_en(w,ixI^L,ixO^L)
+            endif
+          end if
+        endif
 
         if(hd_energy) then
           if(primitive) then
@@ -1162,8 +1181,39 @@ contains
             end where
           end if
         end if
+
+        if(hd_dust)then
+           do n=1,dust_n_species
+              where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_rho(n)) = 0.0d0
+              do idir = 1, ndir
+                  where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_mom(idir,n)) = 0.0d0
+              enddo
+           enddo
+        endif
       case ("average")
-        call small_values_average(ixI^L, ixO^L, w, x, flag)
+        if(primitive)then
+           ! averaging for all primitive fields, including dust
+           call small_values_average(ixI^L, ixO^L, w, x, flag)
+        else
+           ! do averaging of density
+           call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+           if(hd_energy) then
+             ! do averaging of pressure
+             w(ixO^S,p_)=(hd_gamma-1.d0)*(w(ixO^S,e_) &
+              -0.5d0*sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_))
+             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+             w(ixO^S,e_)=w(ixO^S,p_)/(hd_gamma-1.d0) &
+               +0.5d0*sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_)
+           end if
+           if(hd_dust)then
+              do n=1,dust_n_species
+                 where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_rho(n)) = 0.0d0
+                 do idir = 1, ndir
+                    where(flag(ixO^S,dust_rho(n))) w(ixO^S,dust_mom(idir,n)) = 0.0d0
+                 enddo
+              enddo
+          endif
+        endif
       case default
         if(.not.primitive) then
           !convert w to primitive
@@ -1171,11 +1221,12 @@ contains
           if(hd_energy) then
             w(ixO^S,p_)=(hd_gamma-1.d0)*(w(ixO^S,e_)-hd_kin_en(w,ixI^L,ixO^L))
           end if
-          ! Convert momentum to velocity
+          ! Convert gas momentum to velocity
           do idir = 1, ndir
             w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))/w(ixO^S,rho_)
           end do
         end if
+        ! NOTE: dust entries may still have conserved values here
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
     end if

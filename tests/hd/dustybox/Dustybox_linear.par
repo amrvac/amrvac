@@ -1,0 +1,58 @@
+
+ &filelist
+        base_filename='output/DustyB'
+	autoconvert=.true.
+	saveprim=.true.
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.01d0
+	dtsave_dat=0.01d0
+ /
+
+ &stoplist
+        dtmin=1.0d-12
+        time_max=1.0d1
+ /
+
+ &methodlist
+        time_stepper=  'twostep'
+        flux_scheme=    20*'tvdlf'
+        limiter=        20*'woodward'
+        check_small_values=.true.
+        fix_small_values=.false.
+ /
+
+ &boundlist
+        typeboundary_min1= 11*'periodic'
+        typeboundary_max1= 11*'periodic'
+ /
+
+ &meshlist
+        refine_max_level=1
+        block_nx1=20
+        domain_nx1=200
+        xprobmin1=-1.0d0
+        xprobmax1=1.0d0
+ /
+
+ &paramlist
+	typecourant='maxsum'
+        courantpar=0.2d0
+        slowsteps=10
+ /
+
+ &hd_list
+        hd_dust = .true.
+ /
+
+ &dust_list
+        dust_n_species     = 4
+        dust_method        = 'linear'
+        dust_K_lineardrag  = 10.0d0
+        dust_small_to_zero = .false.
+        dust_min_rho = 1.0d-12
+        dust_dtpar=0.4d0
+ /

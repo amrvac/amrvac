@@ -85,36 +85,38 @@ subroutine alloc_node(igrid)
     call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
     ! allocate arrays for one level coarser solution
     call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
-    ! allocate arrays for old solution
-    call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
-    ! allocate arrays for temp solution 1
-    call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
+    if(.not.convert) then
+      ! allocate arrays for old solution
+      call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
+      ! allocate arrays for temp solution 1
+      call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
 
-    ! allocate temporary solution space
-    select case (time_integrator)
-    case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
-    case("RK3_BT","rk4","ssprk5")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
-    case("IMEX_ARS3","IMEX_232")
-      call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
-      call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
-      call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
-    end select
+      ! allocate temporary solution space
+      select case (time_integrator)
+      case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal","IMEX_222")
+        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+      case("RK3_BT","rk4","ssprk5","IMEX_CB3a")
+        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+        call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+      case("IMEX_ARS3","IMEX_232")
+        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+        call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+        call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
+      end select
+    end if
 
   end if
 
   ps(igrid)%w=0.d0
-  ps1(igrid)%w=0.d0
   psc(igrid)%w=0.d0
+  if(.not.convert) ps1(igrid)%w=0.d0
   ps(igrid)%igrid=igrid
   if(phys_trac) ps(igrid)%special_values=0.d0
 
   if(stagger_grid) then
     ps(igrid)%ws=0.d0
-    ps1(igrid)%ws=0.d0
     psc(igrid)%ws=0.d0
+    if(.not.convert) ps1(igrid)%ws=0.d0
   end if
 
 
@@ -649,9 +651,9 @@ subroutine dealloc_node(igrid)
   call dealloc_state(igrid, pso(igrid),.false.)
   ! deallocate temporary solution space
   select case (time_integrator)
-  case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal")
+  case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal","IMEX_222")
     call dealloc_state(igrid, ps2(igrid),.false.)
-  case("RK3_BT","rk4","ssprk5")
+  case("RK3_BT","rk4","ssprk5","IMEX_CB3a")
     call dealloc_state(igrid, ps2(igrid),.false.)
     call dealloc_state(igrid, ps3(igrid),.false.)
   case("IMEX_ARS3","IMEX_232")
