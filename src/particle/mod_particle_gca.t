@@ -890,7 +890,7 @@ contains
     double precision            :: ap0, ap1, dt_cfl_ap0, dt_cfl_ap1, dt_cfl_ap
     double precision            :: dt_euler, dt_tmp
     ! make these particle cfl conditions more restrictive if you are interpolating out of the grid
-    double precision, parameter :: cfl=0.5d0, uparcfl=0.5d0
+    double precision            :: cfl, uparcfl
     double precision, parameter :: uparmin=1.0d-6*const_c
     integer                     :: ipart, iipart, nout, ic^D, igrid_particle, ipe_particle, ipe
     logical                     :: BC_applied
@@ -899,6 +899,9 @@ contains
       dt_p = const_dt_particles
       return
     end if
+
+    cfl = particles_cfl
+    uparcfl = particles_cfl
 
     igrid_working = partp%igrid
     ipart_working = partp%self%index

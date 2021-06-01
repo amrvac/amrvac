@@ -35,6 +35,8 @@ module mod_particle_base
   double precision        :: dtsave_particles
   !> If positive, a constant time step for the particles
   double precision        :: const_dt_particles
+  !> Particle CFL safety factor
+  double precision        :: particles_cfl
   !> Time to write next particle output
   double precision        :: t_next_output
   !> Whether to write individual particle output (followed particles)
@@ -184,7 +186,7 @@ contains
     namelist /particles_list/ physics_type_particles,nparticleshi, &
          nparticles_per_cpu_hi, write_individual, write_ensemble, &
          write_snapshot, dtsave_particles,num_particles,ndefpayload,nusrpayload,tmax_particles, &
-         dtheta,losses, const_dt_particles, relativistic, integrator_type_particles
+         dtheta,losses, const_dt_particles, particles_cfl, relativistic, integrator_type_particles
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -211,6 +213,7 @@ contains
     tmax_particles            = bigdouble
     dtsave_particles          = bigdouble
     const_dt_particles        = -bigdouble
+    particles_cfl             = 0.5
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
@@ -410,7 +413,14 @@ contains
     call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
 
     ! fill with magnetic field:
-    w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+    if (B0field) then
+      do idir = 1, ndir
+        w_part(ixG^T,bp(idir))=w(ixG^T,iw_mag(idir))+ps(igrid)%B0(ixG^T,idir,0)
+      end do
+    else
+      w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+    end if
+!    w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
 
     ! fill with current
     current = zero

@@ -380,7 +380,7 @@ module mod_usr_methods
     subroutine check_particle(igrid,x,v,q,m,follow,check)
       use mod_global_parameters
       integer, intent(in)           :: igrid
-      double precision, intent(in)  :: x(1:ndir)
+      double precision, intent(inout) :: x(1:ndir)
       double precision, intent(inout) :: v(1:ndir),q,m
       logical, intent(inout) :: follow
       logical, intent(out)   :: check
