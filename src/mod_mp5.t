@@ -15,7 +15,7 @@ contains
   !> al. 2010. Needs at least three ghost cells
   subroutine MP5limiter(ixI^L,iL^L,idims,w,wLC,wRC)
     use mod_global_parameters
-    use mod_weno, only: fix_limiter
+    use mod_weno, only: fix_limiter1
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -196,13 +196,13 @@ contains
        wRCtmp(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
 
-    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
+    call fix_limiter1(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
   end subroutine MP5limiter
 
   subroutine MP5limiterL(ixI^L,iL^L,idims,w,wLC)
     use mod_global_parameters
-    use mod_weno, only: fix_onelimiter
+    !use mod_weno, only: fix_onelimiter1
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -216,7 +216,7 @@ contains
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
-    double precision, dimension(ixI^S,1:nw)  :: wLCtmp
+    !double precision, dimension(ixI^S,1:nw)  :: wLCtmp
 
     ! Variable alpha:
     !alpha = float(nstep)/courantpar - one
@@ -288,18 +288,18 @@ contains
 
     ! check case
     where ((f(iL^S,1:nwflux)-w(iL^S,1:nwflux))*(f(iL^S,1:nwflux)-fmp(iL^S,1:nwflux)) .le. eps)
-       wLCtmp(iL^S,1:nwflux) = f(iL^S,1:nwflux)
+       wLC(iL^S,1:nwflux) = f(iL^S,1:nwflux)
     elsewhere
-       wLCtmp(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
+       wLC(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
 
-    call fix_onelimiter(ixI^L,iL^L,wLCtmp,wLC)
+    !call fix_onelimiter1(ixI^L,iL^L,wLCtmp,wLC)
 
   end subroutine MP5limiterL
 
   subroutine MP5limiterR(ixI^L,iL^L,idims,w,wRC)
     use mod_global_parameters
-    use mod_weno, only: fix_onelimiter
+    !use mod_weno, only: fix_onelimiter1
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -313,7 +313,7 @@ contains
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
-    double precision, dimension(ixI^S,1:nw)  :: wRCtmp
+    !double precision, dimension(ixI^S,1:nw)  :: wRCtmp
 
     ! Right side:
     ! the interpolation from the right is obtained when the left-hand formula is applied to
@@ -392,12 +392,12 @@ contains
 
     ! check case
     where ((f(iL^S,1:nwflux)-w(iLp^S,1:nwflux))*(f(iL^S,1:nwflux)-fmp(iL^S,1:nwflux))  .le. eps)
-       wRCtmp(iL^S,1:nwflux) = f(iL^S,1:nwflux)
+       wRC(iL^S,1:nwflux) = f(iL^S,1:nwflux)
     elsewhere
-       wRCtmp(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
+       wRC(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
   
-    call fix_onelimiter(ixI^L,iL^L,wRCtmp,wRC)
+    !call fix_onelimiter1(ixI^L,iL^L,wRCtmp,wRC)
 
   end subroutine MP5limiterR
 

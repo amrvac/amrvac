@@ -32,7 +32,9 @@ module mod_weno
   public :: WENO7limiter
   public :: exENO7limiter
   public :: fix_limiter
+  public :: fix_limiter1
   public :: fix_onelimiter
+  public :: fix_onelimiter1
 
 contains
 
@@ -68,6 +70,33 @@ contains
   
   end subroutine fix_onelimiter
 
+  subroutine fix_onelimiter1(ixI^L,iL^L,wCin,wCout)
+    use mod_global_parameters
+    use mod_physics, only: phys_check_w
+
+    integer, intent(in)             :: ixI^L, iL^L
+    double precision, intent(in)    :: wCin(ixI^S,1:nw)
+    double precision, intent(inout) :: wCout(ixI^S,1:nw)
+
+    integer :: iw
+    logical :: flagC(ixI^S,1:nw)
+
+    ! When limiter not TVD, negative pressures or densities could result.
+    ! Fall back to flat interpolation 
+    ! flagC(*,iw) indicates failed state (T when failed)
+    ! assumes wCin contains primitive variables
+    call phys_check_w(.true.,ixI^L,iL^L,wCin,flagC)
+
+    ! only use WENO reconstructions when no field failed
+    ! in other places: do not modify the initial state in wCout
+    do iw=1,nwflux
+       where (flagC(iL^S,iw) .eqv. .false.)
+          wCout(iL^S,iw)=wCin(iL^S,iw)
+       end where
+    enddo
+  
+  end subroutine fix_onelimiter1
+
   subroutine fix_limiter(ixI^L,iL^L,wLCin,wRCin,wLCout,wRCout)
     use mod_global_parameters
     use mod_physics, only: phys_check_w
@@ -102,6 +131,36 @@ contains
     enddo
   
   end subroutine fix_limiter
+
+  subroutine fix_limiter1(ixI^L,iL^L,wLCin,wRCin,wLCout,wRCout)
+    use mod_global_parameters
+    use mod_physics, only: phys_check_w
+
+    integer, intent(in)             :: ixI^L, iL^L
+    double precision, intent(in)    :: wRCin(ixI^S,1:nw),wLCin(ixI^S,1:nw) 
+    double precision, intent(inout) :: wRCout(ixI^S,1:nw),wLCout(ixI^S,1:nw) 
+
+    integer :: iw
+    logical :: flagL(ixI^S,1:nw), flagR(ixI^S,1:nw)
+
+    ! When limiter not TVD, negative pressures or densities could result.
+    ! Fall back to flat interpolation 
+    ! flagL(*,iw) indicates failed L state (T when failed)
+    ! flagR(*,iw) indicates failed R state (T when failed)
+    ! assumes wLCin and wRCin contain primitive variables
+    call phys_check_w(.true.,ixI^L,iL^L,wLCin,flagL)
+    call phys_check_w(.true.,ixI^L,iL^L,wRCin,flagR)
+
+    ! only use WENO reconstructions L and R when no neighbour field failed
+    ! in other places: do not modify the initial state in wLCout/wRCout
+    do iw=1,nwflux
+       where ((flagL(iL^S,iw) .eqv. .false.) .and. (flagR(iL^S,iw) .eqv. .false.))
+          wLCout(iL^S,iw)=wLCin(iL^S,iw)
+          wRCout(iL^S,iw)=wRCin(iL^S,iw)
+       end where
+    enddo
+  
+  end subroutine fix_limiter1
 
   subroutine WENO3limiter(ixI^L,iL^L,idims,dxdim,w,wLC,wRC,var)
     use mod_global_parameters
