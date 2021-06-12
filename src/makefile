@@ -199,7 +199,7 @@ mod_mhd_ppm.o: mod_physics_ppm.mod
 mod_mhd_roe.o: mod_mhd_phys.mod
 mod_mhd_roe.o: mod_physics_roe.mod
 mod_mhd_roe.o: mod_tvd.mod
-mod_mp5.o: mod_physics.mod
+mod_mp5.o: mod_weno.mod
 mod_multigrid_coupling.o: mod_geometry.mod
 mod_nonlinear.o: mod_amrvac.mod
 mod_nonlinear.o: mod_nonlinear_phys.mod

@@ -402,7 +402,7 @@ contains
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
     double precision, intent(inout) :: w_part(ixG^T,ngridvars)
-    integer                         :: idirmin
+    integer                         :: idirmin, idir
     double precision                :: current(ixG^T,7-2*ndir:3)
     double precision                :: w(ixG^T,1:nw)
 

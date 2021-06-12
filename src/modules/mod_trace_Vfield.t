@@ -305,6 +305,7 @@ contains
       enddo
     {enddo\}
 
+    Vtotal=0.d0
     do j=1,ndim
       Vtotal=Vtotal+(Vx(j))**2
     enddo
