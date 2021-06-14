@@ -753,6 +753,7 @@ module mod_thermal_emission
             endif
           enddo
           flux(ix^D)=flux(ix^D)*(10**(logGT))
+          if (flux(ix^D)<smalldouble) flux(ix^D)=0.d0
         else
           flux(ix^D)=0.0d0
         endif
@@ -780,10 +781,12 @@ module mod_thermal_emission
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
 
-      !I0=1.07d-42    
-      I0=3.01d-15
-      kb=1.38d-23
-      keV=1.602d-16
+      !I0=1.07d-42    ! photon flux index at 1AU [cm^-2 s^-1 keV^-1]
+      I0=3.01d-15     ! photon genration rate [s^-1 keV^-1]
+      !kb=1.38d-23
+      !keV=1.602d-16
+      kb=const_kb
+      keV=1.0d3*const_ev
 
       dE=0.1
       numE=floor((Eu-El)/dE)
@@ -810,6 +813,92 @@ module mod_thermal_emission
 
     end subroutine get_SXR
 
+    subroutine get_GOES_SXR_flux(xbox^L,eflux)
+      !get GOES SXR 1-8A flux observed at 1AU from given box [w/m^2]
+      use mod_global_parameters
+
+      double precision :: xbox^L,eflux
+
+      double precision :: dxb^D,xb^L
+      integer :: iigrid,igrid,j
+      integer :: ixO^L,ixI^L,ix^D
+      double precision :: eflux_grid,eflux_pe
+
+      ^D&ixImin^D=ixglo^D;
+      ^D&ixImax^D=ixghi^D;
+      ^D&ixOmin^D=ixmlo^D;
+      ^D&ixOmax^D=ixmhi^D;
+
+      eflux_pe=0.d0
+
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>ps(igrid)
+        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+        ^D&xbmin^D=rnode(rpxmin^D_,igrid);
+        ^D&xbmax^D=rnode(rpxmax^D_,igrid);
+
+        call get_GOES_flux_grid(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,xbox^L,xb^L,eflux_grid)
+        eflux_pe=eflux_pe+eflux_grid
+      enddo
+
+      call MPI_ALLREDUCE(eflux_pe,eflux,1,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+
+    end subroutine get_GOES_SXR_flux
+
+    subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,xbox^L,xb^L,eflux_grid)
+      use mod_global_parameters
+
+      integer, intent(in)          :: ixI^L,ixO^L
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision             :: w(ixI^S,nw)
+      double precision             :: xbox^L,xb^L,eflux_grid
+
+      integer :: ix^D,ixO^D,ixb^L
+      integer :: iE,numE,j,inbox
+      double precision :: I0,kb,keV,dE,Ei,El,Eu,A_cgs
+      double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
+      double precision :: Ne(ixI^S),EM(ixI^S)
+      double precision :: gff,fi,dV,erg_SI
+      
+      I0=1.07d-38    ! photon flux index at 1AU [m^-2 s^-1 keV^-1]
+      kb=const_kb
+      keV=1.0d3*const_ev
+      erg_SI=1.d-7
+
+      A_cgs=1.d-8 ! Angstrom
+      El=const_h*const_c/(8.d0*A_cgs)/keV   ! 8 A
+      Eu=const_h*const_c/(1.d0*A_cgs)/keV   ! 1 A
+      dE=0.1  ! keV
+      numE=floor((Eu-El)/dE)
+      dV=1.d0
+      do j=1,ndim
+        dV=dV*dxlevel(j)
+      enddo
+      dV=dV*unit_length**3
+
+      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
+      Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+      kbT(ixO^S)=kb*Te(ixO^S)/keV
+      EM(ixO^S)=(I0*(Ne(ixO^S))**2)*dV
+      eflux_grid=0.0d0
+
+      do iE=0,numE-1
+        Ei=dE*iE+El
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if (kbT(ix^D)<Ei) then
+            gff=(kbT(ix^D)/Ei)**0.4
+          else
+            gff=1.d0
+          endif
+          fi=(EM(ix^D)*gff)*exp(-Ei/(kbT(ix^D)))/(Ei*sqrt(kbT(ix^D)))
+          eflux_grid=eflux_grid+fi*dE*Ei
+        {enddo\}
+      enddo
+
+      eflux_grid=eflux_grid*keV*erg_SI
+
+    end subroutine get_GOES_flux_grid
 
   {^IFTHREED
     subroutine get_EUV_image(qunit)
