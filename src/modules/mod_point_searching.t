@@ -17,6 +17,7 @@ contains
     integer :: indomain,ipe,igrid,j
     integer :: ixO^L,ixbl^D,ix^D
     double precision :: factor(0:1^D&)
+    double precision :: temp
 
     indomain=0
     {if (xp(^DB)>=xprobmin^DB .and. xp(^DB)<xprobmax^DB) indomain=indomain+1\}
@@ -48,14 +49,18 @@ contains
 
         if(physics_type=='mhd') then
           wp(iw_mag(1):iw_mag(ndir))=0.d0
-          do j=1,ndir
-            if (b0field) then
-              wp(iw_mag(j))=ps(igrid)%w(ixbl^D+ix^D,iw_mag(j))+&
-                                    ps(igrid)%B0(ixbl^D+ix^D,j,0)
-            else
-              wp(iw_mag(j))=ps(igrid)%w(ixbl^D+ix^D,iw_mag(j))
-            endif
-          enddo
+          {do ix^D=0,1\}
+            do j=1,ndir
+              if (b0field) then
+                temp=ps(igrid)%w(ixbl^D+ix^D,iw_mag(j))+&
+                                      ps(igrid)%B0(ixbl^D+ix^D,j,0)
+                wp(iw_mag(j))=wp(iw_mag(j))+factor(ix^D)*temp
+              else
+                temp=ps(igrid)%w(ixbl^D+ix^D,iw_mag(j))
+                wp(iw_mag(j))=wp(iw_mag(j))+factor(ix^D)*temp
+              endif
+            enddo
+          {enddo\}
         endif
       endif
 
