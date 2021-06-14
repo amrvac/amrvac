@@ -10,8 +10,8 @@ mod_coarsen_refine.t refine.t coarsen.t set_B0.t selectgrids.t mod_geometry.t	\
 mod_ghostcells_update.t mod_small_values.t mod_ppm.t mod_mp5.t mod_weno.t       \
 mod_venk.t mod_limiter.t mod_fix_conserve.t mod_source.t mod_initialize.t       \
 mod_amrvac.t mod_bc_data.t mod_lookup_table.t mod_amr_fct.t                     \
-mod_constrained_transport.t mod_multigrid_coupling.t mod_space_filling_curve.t  \
-mod_supertimestepping.t
+mod_constrained_transport.t mod_multigrid_coupling.t mod_space_filling_curve.t \
+mod_supertimestepping.t mod_init_datafromfile.t
 
 ############################################################################
 #  Dependencies of INCLUDES
@@ -135,11 +135,13 @@ mod_hd_ppm.o: mod_physics_ppm.mod
 mod_hd_roe.o: mod_hd_phys.mod
 mod_hd_roe.o: mod_physics_roe.mod
 mod_hd_roe.o: mod_tvd.mod
+mod_init_datafromfile.o: mod_lookup_table.mod
 mod_initialize.o: mod_amr_fct.mod
 mod_initialize.o: mod_bc_data.mod
 mod_initialize.o: mod_fix_conserve.mod
 mod_initialize.o: mod_geometry.mod
 mod_initialize.o: mod_ghostcells_update.mod
+mod_initialize.o: mod_init_datafromfile.mod
 mod_initialize.o: mod_input_output.mod
 mod_initialize.o: mod_physics.mod
 mod_initialize.o: mod_trac.mod
@@ -197,7 +199,7 @@ mod_mhd_ppm.o: mod_physics_ppm.mod
 mod_mhd_roe.o: mod_mhd_phys.mod
 mod_mhd_roe.o: mod_physics_roe.mod
 mod_mhd_roe.o: mod_tvd.mod
-mod_mp5.o: mod_physics.mod
+mod_mp5.o: mod_weno.mod
 mod_multigrid_coupling.o: mod_geometry.mod
 mod_nonlinear.o: mod_amrvac.mod
 mod_nonlinear.o: mod_nonlinear_phys.mod
@@ -276,11 +278,15 @@ mod_trac.o: mod_particle_base.mod
 mod_trac.o: mod_point_searching.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_trace_Bfield.o: mod_particle_base.mod
+mod_trace_Vfield.o: mod_particle_base.mod
+mod_trace_Vfield.o: mod_physics.mod
 mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
 mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
+mod_viscosity.o: mod_physics.mod
+mod_weno.o: mod_physics.mod
 pointgrav.o: mod_geometry.mod
 raytracing.o: mod_raytracing.mod
 refine.o: mod_amr_fct.mod

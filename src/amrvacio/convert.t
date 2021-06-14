@@ -79,7 +79,7 @@ integer             :: Morton_no,igrid,ix^D,ig^D,level
 integer, pointer    :: ig_to_igrid(:^D&,:)
 logical             :: fileopen,writeblk(max_blocks)
 character(len=80)   :: filename
-integer             :: filenr,ncells,ncells^D,ncellg,ncellx^D,jg^D,jig^D
+integer             :: filenr,ncells^D,ncellx^D,jg^D,jig^D
 
 character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
@@ -95,6 +95,10 @@ logical :: patchw(ixG^T)
 
 if(level_io<1)then
  call mpistop('please specify level_io>0 for usage with oneblock')
+end if
+
+if(autoconvert)then
+ call mpistop('Set autoconvert=F and convert oneblock data manually')
 end if
 
 if(npe>1)then
@@ -136,9 +140,7 @@ do Morton_no=Morton_start(mype),Morton_stop(mype)
 end do
 
 call getheadernames(wnamei,xandwnamei,outfilehead)
-ncells=0
 ncells^D=0;
-ncellg=(^D&(ixMhi^D-ixMlo^D+1)*)
 ncellx^D=ixMhi^D-ixMlo^D+1\
 {do ig^D=1,ng^D(level_io)\}
   igrid=ig_to_igrid(ig^D,mype)
@@ -157,15 +159,13 @@ end do
 
 do iigrid=1,igridstail; igrid=igrids(iigrid)
    if(.not.writeblk(igrid)) cycle
-   ncells=ncells+ncellg
-   ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
    if (nwauxio > 0) then
       if (.not. associated(usr_aux_output)) then
          call mpistop("usr_aux_output not defined")
       else
          call usr_aux_output(ixG^LL,ixM^LL^LADD1, &
-              ps1(igrid)%w,ps(igrid)%x,normconv)
+              ps(igrid)%w,ps(igrid)%x,normconv)
       end if
    end if
 end do
@@ -173,10 +173,10 @@ end do
 if (saveprim) then
   do iigrid=1,igridstail; igrid=igrids(iigrid)
     if (.not.writeblk(igrid)) cycle
-    call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,ps1(igrid)%w,ps(igrid)%x)
+    call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,ps(igrid)%w,ps(igrid)%x)
     if(B0field) then
       ! add background magnetic field B0 to B
-      ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
+      ps(igrid)%w(ixG^T,iw_mag(:))=ps(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
     end if
   end do
 else
@@ -185,9 +185,9 @@ else
     if (B0field) then
       ! add background magnetic field B0 to B
       if(phys_energy) &
-        ps1(igrid)%w(ixG^T,iw_e)=ps1(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
-            + sum(ps1(igrid)%w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
-      ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
+        ps(igrid)%w(ixG^T,iw_e)=ps(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+            + sum(ps(igrid)%w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
+      ps(igrid)%w(ixG^T,iw_mag(:))=ps(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
     end if
   end do
 end if
@@ -203,13 +203,13 @@ Master_cpu_open : if (mype == 0) then
     case("oneblock")
      open(qunit,file=filename,status='unknown')
      write(qunit,*) TRIM(outfilehead)
-     write(qunit,*) ncells,ncells^D
-     write(qunit,*) global_time*time_convert_factor
+     write(qunit,*) ncells^D
+     write(qunit,*) real(global_time*time_convert_factor)
     case("oneblockB")
      open(qunit,file=filename,form='unformatted',status='unknown')
      write(qunit) outfilehead
-     write(qunit) ncells,ncells^D
-     write(qunit) global_time*time_convert_factor
+     write(qunit) ncells^D
+     write(qunit) real(global_time*time_convert_factor)
    end select
  end if
 end if Master_cpu_open
@@ -231,10 +231,10 @@ do ig3=1,ng3(level_io)
                case("oneblock")
                  write(qunit,fmt="(100(e14.6))") &
                   ps(igrid)%x(ix^D,1:ndim)*normconv(0),&
-                  (ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
+                  (ps(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                case("oneblockB")
                  write(qunit) real(ps(igrid)%x(ix^D,1:ndim)*normconv(0)),&
-                  (real(ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
+                  (real(ps(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
              end select
            end if Master_write
          end do

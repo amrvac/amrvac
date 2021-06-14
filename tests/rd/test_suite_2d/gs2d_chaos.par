@@ -1,0 +1,54 @@
+!setup.pl -d=2
+
+&filelist
+    base_filename = 'gs2d_chaos'
+    typefilelog   = 'regression_test'
+/
+
+&savelist
+    tsave(1,2) = 0.0d0
+    dtsave_log = 1.0d1
+    dtsave_dat = 1.0d1
+/
+
+&stoplist
+    time_max = 1.0d2
+/
+
+&methodlist
+    flux_scheme = 20*'source'
+    time_stepper = "threestep"
+    time_integrator = "IMEX_CB3a"
+/
+
+&paramlist
+    dtdiffpar = 1.0d2
+/
+
+&boundlist
+    typeboundary_min1 = 2*'periodic'
+    typeboundary_max1 = 2*'periodic'
+    typeboundary_min2 = 2*'periodic'
+    typeboundary_max2 = 2*'periodic'
+/
+
+&meshlist
+    refine_max_level = 4
+
+    domain_nx1 = 64
+    domain_nx2 = 64
+    block_nx1  = 8
+    block_nx2  = 8
+    xprobmin1  = 0.0d0
+    xprobmax1  = 1.0d1
+    xprobmin2  = 0.0d0
+    xprobmax2  = 1.0d1
+/
+
+&rd_list
+    equation_name = "gray-scott"
+    D1   = 2.0d-5
+    D2   = 1.0d-5
+    gs_F = 0.021d0
+    gs_k = 0.047d0
+/

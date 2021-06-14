@@ -14,9 +14,8 @@ contains
   !> MP5 limiter from Suresh & Huynh 1997 Following the convention of Mignone et
   !> al. 2010. Needs at least three ghost cells
   subroutine MP5limiter(ixI^L,iL^L,idims,w,wLC,wRC)
-
     use mod_global_parameters
-    use mod_physics, only: phys_check_w
+    use mod_weno, only: fix_limiter1
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -29,7 +28,6 @@ contains
     double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
-    logical                         :: flagL(ixI^S,1:nw), flagR(ixI^S,1:nw)
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
     !----------------------------------------------------------------------------
@@ -198,23 +196,13 @@ contains
        wRCtmp(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
 
-    ! Since limiter not TVD, negative pressures or densities could result.  
-    ! Fall back to flat interpolation (minmod would also work). 
-    call phys_check_w(.true.,ixG^LL,iL^L,wLCtmp,flagL)
-    call phys_check_w(.true.,ixG^LL,iL^L,wRCtmp,flagR)
-
-    do iw=1,nwflux
-       where ((flagL(iL^S,iw) .eqv. .false.) .and. (flagR(iL^S,iw) .eqv. .false.))
-          wLC(iL^S,iw)=wLCtmp(iL^S,iw)
-          wRC(iL^S,iw)=wRCtmp(iL^S,iw)
-       end where
-    end do
+    call fix_limiter1(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
   end subroutine MP5limiter
 
   subroutine MP5limiterL(ixI^L,iL^L,idims,w,wLC)
-
     use mod_global_parameters
+    !use mod_weno, only: fix_onelimiter1
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -228,13 +216,12 @@ contains
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
+    !double precision, dimension(ixI^S,1:nw)  :: wLCtmp
 
     ! Variable alpha:
     !alpha = float(nstep)/courantpar - one
 
     ! Left side:
-
-
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
     iLp^L=iL^L+kr(idims,^D);
@@ -306,11 +293,13 @@ contains
        wLC(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
 
+    !call fix_onelimiter1(ixI^L,iL^L,wLCtmp,wLC)
+
   end subroutine MP5limiterL
 
   subroutine MP5limiterR(ixI^L,iL^L,idims,w,wRC)
-
     use mod_global_parameters
+    !use mod_weno, only: fix_onelimiter1
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -324,6 +313,8 @@ contains
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
+    !double precision, dimension(ixI^S,1:nw)  :: wRCtmp
+
     ! Right side:
     ! the interpolation from the right is obtained when the left-hand formula is applied to
     ! data mirrored about the interface.  
@@ -405,8 +396,10 @@ contains
     elsewhere
        wRC(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
+  
+    !call fix_onelimiter1(ixI^L,iL^L,wRCtmp,wRC)
 
-  end subroutine Mp5limiterR
+  end subroutine MP5limiterR
 
   subroutine minmod(ixI^L,ixO^L,a,b,minm)
 
@@ -441,8 +434,8 @@ contains
   !> MP5 limiter from Suresh & Huynh 1997
   !> Following the convention of Mignone et al. 2010.
   !> Needs at least three ghost cells.  Set nghostcells=3.
+  ! for one variable only: no fixing applied
   subroutine MP5limitervar(ixI^L,iL^L,idims,w,wLC,wRC)
-
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, iL^L, idims

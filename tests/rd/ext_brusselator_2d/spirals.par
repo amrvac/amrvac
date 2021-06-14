@@ -1,0 +1,60 @@
+!=============================================
+! Spirals in the extended Brusselator model
+! (takes a while for them to pop up though)
+!=============================================
+
+&filelist
+    base_filename = 'out/BR2D_spirals_'
+    autoconvert=T
+/
+
+&savelist
+    itsave(1,2) = 0
+    dtsave_dat  = 5.0d0
+    dtsave_log  = 5.0d0
+/
+
+&stoplist
+    time_max = 5.0d3
+/
+
+&methodlist
+    time_stepper    = "onestep"
+    time_integrator = "IMEX_Euler"
+    flux_scheme     = 20*'source'
+/
+
+&boundlist
+    typeboundary_min1 = 3*'cont'
+    typeboundary_max1 = 3*'cont'
+    typeboundary_min2 = 3*'cont'
+    typeboundary_max2 = 3*'cont'
+/
+
+&meshlist
+    refine_max_level = 1
+    domain_nx1 = 128
+    domain_nx2 = 128
+    block_nx1  = 16
+    block_nx2  = 16
+    xprobmin1  = 0.0d0
+    xprobmax1  = 128.0d0
+    xprobmin2  = 0.0d0
+    xprobmax2  = 128.0d0
+/
+
+&paramlist
+    dtdiffpar   = 100.0d0
+    courantpar  = 0.8d0
+/
+
+&rd_list
+    equation_name = "ext_brusselator"
+    D1   =  0.5d0
+    D2   =  1.0d0
+    D3   = 39.0d0
+    br_A = 3.0d0
+    br_B = 11.39d0
+    br_C = 1.0d0
+    br_D = 1.0d0
+/

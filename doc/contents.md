@@ -35,8 +35,8 @@ TVDMU, TVD, HLL...
 * [Slope limiters](limiter.md) Slope limiters for reconstruction to suppress spurious numerical oscillations
 * [AMR aspects](amrstructure.md) Some essential info on global parameters and
 the data structures for the block-tree AMR.
-* [Using polar/cylindrical/spherical coordinates](axial.md) Some information on
-simulations using non-Cartesian grids.
+* [Using polar/cylindrical/spherical coordinates](axial.md) Some information on simulations using non-Cartesian grids.
+* [Small Values](smallvalues.md) Info on positivity fixes for (M)HD runs.
 
 # Additional Physics {#special_sources}
 
@@ -44,6 +44,7 @@ simulations using non-Cartesian grids.
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
+* [Reaction-diffusion equations](reaction_diffusion.md) Getting started with the reaction-diffusion module.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
 # Source Code {#source_code}

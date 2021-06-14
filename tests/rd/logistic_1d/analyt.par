@@ -1,0 +1,49 @@
+!=============================================
+! Project : Analytical solution of logistic
+! equation, as found in ablowitz1971explicit.
+! ( DOI: 10.1016/S0092-8240(79)80020-8 )
+!=============================================
+
+&filelist
+    base_filename = 'data/LG1D_analyt_'
+/
+
+&savelist
+    itsave(1,2) = 0
+    dtsave_log  = 1.0d0
+    dtsave_dat  = 1.0d0
+/
+
+&stoplist
+    time_max = 8.0d0
+/
+
+&methodlist
+    time_stepper    = "onestep"
+    time_integrator = "Forward_Euler"
+    flux_scheme     = 20*'source'
+/
+
+&boundlist
+    typeboundary_min1 = 'symm'
+    typeboundary_max1 = 'symm'
+/
+
+&meshlist
+    refine_max_level = 1
+    domain_nx1 = 512
+    block_nx1  = 16
+    iprob      = 2
+    xprobmin1  = -10.0d0
+    xprobmax1  =  10.0d0
+/
+
+&paramlist
+    dtdiffpar   = 0.8d0
+/
+
+&rd_list
+    equation_name = "logistic"
+    D1        = 1.0d0
+    lg_lambda = 1.0d0
+/

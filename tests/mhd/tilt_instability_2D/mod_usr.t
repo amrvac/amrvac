@@ -23,7 +23,7 @@ contains
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
     double precision:: rho0,p0,epsilon,xJ1root,J0valatxJ1root,rlocal,cval
-    double precision:: rval(ixG^S),xtheta(ixG^S),J1vals(ixG^S),DJ1vals(ixG^S)
+    double precision:: rval(ixG^S),xtheta(ixG^S),J1vals(ixG^S)
     double precision:: psi0(ixG^S),phi0(ixG^S),tmp(ixG^S)
     double precision:: BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1
     integer:: idims,ix^D
@@ -48,7 +48,6 @@ contains
       rlocal=rval(ix^D)*xJ1root
       call JY01A(rlocal,BJ0,DJ0,BJ1,DJ1,BY0,DY0,BY1,DY1)
       J1vals(ix^D)=BJ1
-      DJ1vals(ix^S)=DJ1
     {enddo^D&\}
     
     cval=2.0d0/(xJ1root*J0valatxJ1root)

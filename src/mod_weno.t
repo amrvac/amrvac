@@ -12,9 +12,13 @@ module mod_weno
   ! 2019.12.9 WENO-YC3;
   ! 2020.1.15 new WENO5 limiter WENO5NM for stretched grid.
   ! 2020.4.15 WENO5-CU6: hybrid sixth-order linear & WENO5
+  ! 2021.6.12 generic treatment for fixing unphysical reconstructions
    
   implicit none
   private
+
+  double precision, parameter     :: weno_eps_machine = 1.0d-18
+  double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
 
   public :: WENO3limiter
   public :: WENO5limiter
@@ -27,8 +31,136 @@ module mod_weno
   public :: WENO5CU6limiter
   public :: WENO7limiter
   public :: exENO7limiter
+  public :: fix_limiter
+  public :: fix_limiter1
+  public :: fix_onelimiter
+  public :: fix_onelimiter1
 
 contains
+
+  subroutine fix_onelimiter(ixI^L,iL^L,wCin,wCout)
+    use mod_global_parameters
+    use mod_physics, only: phys_check_w
+
+    integer, intent(in)             :: ixI^L, iL^L
+    double precision, intent(in)    :: wCin(ixI^S,1:nw)
+    double precision, intent(inout) :: wCout(ixI^S,1:nw)
+
+    integer :: iw
+    logical :: flagC(ixI^S,1:nw), flag(ixI^S)
+
+    ! When limiter not TVD, negative pressures or densities could result.
+    ! Fall back to flat interpolation 
+    ! flagC(*,iw) indicates failed state (T when failed)
+    ! assumes wCin contains primitive variables
+    call phys_check_w(.true.,ixI^L,iL^L,wCin,flagC)
+
+    ! collect all failures
+    flag(iL^S)=.false.
+    do iw=1,nwflux
+       flag(iL^S)=flag(iL^S).or.(flagC(iL^S,iw))
+    end do
+    ! only use WENO reconstructions when no field failed
+    ! in other places: do not modify the initial state in wCout
+    do iw=1,nwflux
+       where (flag(iL^S) .eqv. .false.)
+          wCout(iL^S,iw)=wCin(iL^S,iw)
+       end where
+    enddo
+  
+  end subroutine fix_onelimiter
+
+  subroutine fix_onelimiter1(ixI^L,iL^L,wCin,wCout)
+    use mod_global_parameters
+    use mod_physics, only: phys_check_w
+
+    integer, intent(in)             :: ixI^L, iL^L
+    double precision, intent(in)    :: wCin(ixI^S,1:nw)
+    double precision, intent(inout) :: wCout(ixI^S,1:nw)
+
+    integer :: iw
+    logical :: flagC(ixI^S,1:nw)
+
+    ! When limiter not TVD, negative pressures or densities could result.
+    ! Fall back to flat interpolation 
+    ! flagC(*,iw) indicates failed state (T when failed)
+    ! assumes wCin contains primitive variables
+    call phys_check_w(.true.,ixI^L,iL^L,wCin,flagC)
+
+    ! only use WENO reconstructions when no field failed
+    ! in other places: do not modify the initial state in wCout
+    do iw=1,nwflux
+       where (flagC(iL^S,iw) .eqv. .false.)
+          wCout(iL^S,iw)=wCin(iL^S,iw)
+       end where
+    enddo
+  
+  end subroutine fix_onelimiter1
+
+  subroutine fix_limiter(ixI^L,iL^L,wLCin,wRCin,wLCout,wRCout)
+    use mod_global_parameters
+    use mod_physics, only: phys_check_w
+
+    integer, intent(in)             :: ixI^L, iL^L
+    double precision, intent(in)    :: wRCin(ixI^S,1:nw),wLCin(ixI^S,1:nw) 
+    double precision, intent(inout) :: wRCout(ixI^S,1:nw),wLCout(ixI^S,1:nw) 
+
+    integer :: iw
+    logical :: flagL(ixI^S,1:nw), flagR(ixI^S,1:nw), flag(ixI^S)
+
+    ! When limiter not TVD, negative pressures or densities could result.
+    ! Fall back to flat interpolation 
+    ! flagL(*,iw) indicates failed L state (T when failed)
+    ! flagR(*,iw) indicates failed R state (T when failed)
+    ! assumes wLCin and wRCin contain primitive variables
+    call phys_check_w(.true.,ixI^L,iL^L,wLCin,flagL)
+    call phys_check_w(.true.,ixI^L,iL^L,wRCin,flagR)
+
+    ! collect all failures
+    flag(iL^S)=.false.
+    do iw=1,nwflux
+       flag(iL^S)=flag(iL^S).or.(flagL(iL^S,iw).or.flagR(iL^S,iw))
+    end do
+    ! only use WENO reconstructions L and R when no neighbour field failed
+    ! in other places: do not modify the initial state in wLCout/wRCout
+    do iw=1,nwflux
+       where (flag(iL^S) .eqv. .false.)
+          wLCout(iL^S,iw)=wLCin(iL^S,iw)
+          wRCout(iL^S,iw)=wRCin(iL^S,iw)
+       end where
+    enddo
+  
+  end subroutine fix_limiter
+
+  subroutine fix_limiter1(ixI^L,iL^L,wLCin,wRCin,wLCout,wRCout)
+    use mod_global_parameters
+    use mod_physics, only: phys_check_w
+
+    integer, intent(in)             :: ixI^L, iL^L
+    double precision, intent(in)    :: wRCin(ixI^S,1:nw),wLCin(ixI^S,1:nw) 
+    double precision, intent(inout) :: wRCout(ixI^S,1:nw),wLCout(ixI^S,1:nw) 
+
+    integer :: iw
+    logical :: flagL(ixI^S,1:nw), flagR(ixI^S,1:nw)
+
+    ! When limiter not TVD, negative pressures or densities could result.
+    ! Fall back to flat interpolation 
+    ! flagL(*,iw) indicates failed L state (T when failed)
+    ! flagR(*,iw) indicates failed R state (T when failed)
+    ! assumes wLCin and wRCin contain primitive variables
+    call phys_check_w(.true.,ixI^L,iL^L,wLCin,flagL)
+    call phys_check_w(.true.,ixI^L,iL^L,wRCin,flagR)
+
+    ! only use WENO reconstructions L and R when no neighbour field failed
+    ! in other places: do not modify the initial state in wLCout/wRCout
+    do iw=1,nwflux
+       where ((flagL(iL^S,iw) .eqv. .false.) .and. (flagR(iL^S,iw) .eqv. .false.))
+          wLCout(iL^S,iw)=wLCin(iL^S,iw)
+          wRCout(iL^S,iw)=wRCin(iL^S,iw)
+       end where
+    enddo
+  
+  end subroutine fix_limiter1
 
   subroutine WENO3limiter(ixI^L,iL^L,idims,dxdim,w,wLC,wRC,var)
     use mod_global_parameters
@@ -43,8 +175,9 @@ contains
     double precision                :: beta(ixI^S,1:nw,2),tau(ixI^S,1:nw)
     double precision                :: u1_coeff(2), u2_coeff(2)
     double precision                :: alpha_array(ixI^S,1:nw,2), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i, iw
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
+    integer                         :: i
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 
     ! iL^L holds the indices of interfaces to reconstruct to.  Convention is that a center index holds the _right-side_ interface.  
     iLm^L=iL^L-kr(idims,^D);
@@ -83,7 +216,7 @@ contains
     end do
   
     !> left value at right interface
-    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
   
     !> right side
     f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLpp^S,1:nwflux) + u1_coeff(2) * w(iLp^S,1:nwflux)
@@ -114,7 +247,9 @@ contains
     end do
   
     !> right value at right interface
-    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
   end subroutine WENO3limiter
 
@@ -133,9 +268,9 @@ contains
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     integer                         :: i
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
     double precision                :: lambda
-    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -167,38 +302,37 @@ contains
     beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iL^S,1:nwflux) + w(iLpp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
          + beta_coeff(2) * (3.0d0 * w(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + w(iLpp^S,1:nwflux))**2
  
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
     select case(var)
     ! case1 for wenojs, case2 for wenoz, case3 for wenoz+ 
     case(1)
       do i = 1,3
-         alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
       end do
     case(2)
       tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
       do i = 1,3
         alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
                                       (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
       end do
     case(3)
       tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
       do i = 1,3
         tmp(iL^S,1:nwflux) = (tau(iL^S,1:nwflux) + weno_eps_machine) / (beta(iL^S,1:nwflux,i) + weno_eps_machine)
         alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.0d0 + tmp(iL^S,1:nwflux)**2 + lambda/tmp(iL^S,1:nwflux))
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
       end do
     end select
 
+    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    do i = 1,3
+       alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+    end do
     flux(iL^S,1:nwflux) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) &
+                             *alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
     end do
-  
-    !> left value at right interface
-    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
-  
+    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
     !> right side
     f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLppp^S,1:nwflux) + u1_coeff(2) * w(iLpp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
     f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLpp^S,1:nwflux)  + u2_coeff(2) * w(iLp^S,1:nwflux)  + u2_coeff(3) * w(iL^S,1:nwflux)
@@ -211,38 +345,40 @@ contains
     beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iLp^S,1:nwflux) + w(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
          + beta_coeff(2) * (3.0d0 * w(iLp^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + w(iLm^S,1:nwflux))**2
   
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
     select case(var)
     case(1)
       do i = 1,3
         alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
       end do
     case(2) 
       tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
       do i = 1,3
         alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
                                       (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
       end do
     case(3)
       tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
       do i = 1,3
         tmp(iL^S,1:nwflux) = (tau(iL^S,1:nwflux) + weno_eps_machine) / (beta(iL^S,1:nwflux,i) + weno_eps_machine)
         alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.0d0 + tmp(iL^S,1:nwflux)**2 + lambda/tmp(iL^S,1:nwflux))
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
       end do
     end select
+  
+    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    ! do nothing, normal case
+    do i = 1,3
+       alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+    end do
     flux(iL^S,1:nwflux) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) &
+                             *alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
     end do
-  
-    !> right value at right interface
-    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    
+    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
   end subroutine WENO5limiter
-
 
   subroutine TENO5ADlimiter(ixI^L,iL^L,idims,dxdim,w,wLC,wRC)
     use mod_global_parameters
@@ -260,7 +396,8 @@ contains
     double precision                :: flux(ixI^S,1:nw), kai1(ixI^S,1:nw,3), theta(ixI^S,1:nw)
     integer                         :: marray(ixI^S,1:nw)
     integer                         :: i
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -312,7 +449,7 @@ contains
     end do
   
     !> left value at right interface
-    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
   
     !> right side
     f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLppp^S,1:nwflux) + u1_coeff(2) * w(iLpp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
@@ -354,7 +491,10 @@ contains
     end do
 
     !> right value at right interface
-    wRC(iL^S,1:nwflux)=flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nwflux)=flux(iL^S,1:nwflux)
+
+    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
+
   end subroutine TENO5ADlimiter
 
   subroutine WENO5NMlimiter(ixI^L,iL^L,idims,dxdim,w,wLC,wRC,var)
@@ -374,9 +514,9 @@ contains
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     double precision                :: wc(ixI^S,1:nw), wd(ixI^S,1:nw), we(ixI^S,1:nw)
     integer                         :: i,j
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
-    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
     double precision                :: lambda(ixI^S)
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -441,7 +581,8 @@ contains
       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
     end do
     !> left value at right interface
-    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
     !> right side
     f_array(iL^S,1:nwflux,1) = u1_coeff(1) * we(iL^S,1:nwflux)  + u1_coeff(2) * wc(iLp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
     f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLp^S,1:nwflux) + u2_coeff(2) * w(iLp^S,1:nwflux) + u2_coeff(3) * wc(iL^S,1:nwflux)
@@ -481,7 +622,9 @@ contains
       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
     end do
     !> right value at right interface
-    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
   end subroutine WENO5NMlimiter
 
@@ -501,8 +644,8 @@ contains
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     integer                         :: i,j
     double precision                :: lambda(ixI^S)
-    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
+
+    double precision, dimension(ixI^S,1:nw)  :: wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -564,8 +707,10 @@ contains
     end do
   
     !> left value at right interface
-    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
   
+    call fix_onelimiter(ixI^L,iL^L,wLCtmp,wLC)
+
   end subroutine WENO5limiterL
 
   subroutine WENO5limiterR(ixI^L,iL^L,idims,w,wRC,var)
@@ -584,8 +729,8 @@ contains
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     integer                         :: i,j
     double precision                :: lambda(ixI^S)
-    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLp^L=iL^L+kr(idims,^D);
@@ -646,7 +791,9 @@ contains
     end do
   
     !> right value at right interface
-    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+    call fix_onelimiter(ixI^L,iL^L,wRCtmp,wRC)
 
   end subroutine WENO5limiterR
 
@@ -666,9 +813,9 @@ contains
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     double precision                :: wc(ixI^S,1:nw), wd(ixI^S,1:nw)
     integer                         :: i,j
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
-    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
     double precision                :: lambda(ixI^S)
+
+    double precision, dimension(ixI^S,1:nw)  :: wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -728,7 +875,9 @@ contains
       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
     end do
     !> left value at right interface
-    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+    call fix_onelimiter(ixI^L,iL^L,wLCtmp,wLC)
 
   end subroutine WENO5NMlimiterL
 
@@ -748,9 +897,9 @@ contains
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     double precision                :: wc(ixI^S,1:nw), we(ixI^S,1:nw)
     integer                         :: i,j
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
-    double precision, parameter     :: weno_dx_exp = 2.0d0/3.0d0
     double precision                :: lambda(ixI^S)
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLp^L=iL^L+kr(idims,^D);
@@ -810,12 +959,11 @@ contains
       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
     end do
     !> right value at right interface
-    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+    call fix_onelimiter(ixI^L,iL^L,wRCtmp,wRC)
 
   end subroutine WENO5NMlimiterR
-
-
-
 
   subroutine WENO5CU6limiter(ixI^L,iL^L,idims,w,wLC,wRC)
     use mod_global_parameters
@@ -831,7 +979,9 @@ contains
     double precision :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw)
     double precision :: theta2(ixI^S,1:nw)
     integer :: i
-    double precision, parameter :: weno_eps_machine=1.0d-18, theta_limit=0.7d0
+    double precision, parameter :: theta_limit=0.7d0
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -867,11 +1017,11 @@ contains
       f_array(iL^S,1:nwflux,1)=u1_coeff(1)*w(iLmm^S,1:nwflux)+u1_coeff(2)*w(iLm^S,1:nwflux)+u1_coeff(3)*w(iL^S,1:nwflux)
       f_array(iL^S,1:nwflux,2)=u2_coeff(1)*w(iLm^S,1:nwflux)+u2_coeff(2)*w(iL^S,1:nwflux)+u2_coeff(3)*w(iLp^S,1:nwflux)
       f_array(iL^S,1:nwflux,3)=u3_coeff(1)*w(iL^S,1:nwflux)+u3_coeff(2)*w(iLp^S,1:nwflux)+u3_coeff(3)*w(iLpp^S,1:nwflux)  
-      wLC(iL^S,1:nwflux)=f_array(iL^S,1:nwflux,1)*alpha_array(iL^S,1:nwflux,1)&
+      wLCtmp(iL^S,1:nwflux)=f_array(iL^S,1:nwflux,1)*alpha_array(iL^S,1:nwflux,1)&
                         +f_array(iL^S,1:nwflux,2)*alpha_array(iL^S,1:nwflux,2)&
                         +f_array(iL^S,1:nwflux,3)*alpha_array(iL^S,1:nwflux,3)
     else where
-      wLC(iL^S,1:nwflux)=1.d0/60.d0*(w(iLmm^S,1:nwflux)-8.d0*w(iLm^S,1:nwflux)+37.d0*w(iL^S,1:nwflux)&
+      wLCtmp(iL^S,1:nwflux)=1.d0/60.d0*(w(iLmm^S,1:nwflux)-8.d0*w(iLm^S,1:nwflux)+37.d0*w(iL^S,1:nwflux)&
                          +37.d0*w(iLp^S,1:nwflux)-8.d0*w(iLpp^S,1:nwflux)+w(iLppp^S,1:nwflux))
     end where
   
@@ -897,13 +1047,16 @@ contains
       f_array(iL^S,1:nwflux,1)=u1_coeff(1)*w(iLppp^S,1:nwflux)+u1_coeff(2)*w(iLpp^S,1:nwflux)+u1_coeff(3)*w(iLp^S,1:nwflux)
       f_array(iL^S,1:nwflux,2)=u2_coeff(1)*w(iLpp^S,1:nwflux)+u2_coeff(2)*w(iLp^S,1:nwflux)+u2_coeff(3)*w(iL^S,1:nwflux)
       f_array(iL^S,1:nwflux,3)=u3_coeff(1)*w(iLp^S,1:nwflux)+u3_coeff(2)*w(iL^S,1:nwflux)+u3_coeff(3)*w(iLm^S,1:nwflux)  
-      wRC(iL^S,1:nwflux)=f_array(iL^S,1:nwflux,1)*alpha_array(iL^S,1:nwflux,1)&
+      wRCtmp(iL^S,1:nwflux)=f_array(iL^S,1:nwflux,1)*alpha_array(iL^S,1:nwflux,1)&
                         +f_array(iL^S,1:nwflux,2)*alpha_array(iL^S,1:nwflux,2)&
                         +f_array(iL^S,1:nwflux,3)*alpha_array(iL^S,1:nwflux,3)
     else where
-      wRC(iL^S,1:nwflux)=1.d0/60.d0*(w(iLppp^S,1:nwflux)-8.d0*w(iLpp^S,1:nwflux)+37.d0*w(iLp^S,1:nwflux)&
+      wRCtmp(iL^S,1:nwflux)=1.d0/60.d0*(w(iLppp^S,1:nwflux)-8.d0*w(iLpp^S,1:nwflux)+37.d0*w(iLp^S,1:nwflux)&
                         +37.d0*w(iL^S,1:nwflux)-8.d0*w(iLm^S,1:nwflux)+w(iLmm^S,1:nwflux))
     end where
+
+    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
+
   end subroutine WENO5CU6limiter
 
   subroutine WENO7limiter(ixI^L,iL^L,idims,w,wLC,wRC,var)
@@ -924,7 +1077,8 @@ contains
     double precision, dimension(ixI^S,1:nw)    :: flux, flux_min, flux_max, flux_ul, flux_md, flux_lc
     integer                         :: i,iw
     double precision, parameter     :: mpalpha = 2.d0, mpbeta = 4.d0
-    double precision, parameter     :: weno_eps_machine = 1.0d-18
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -981,7 +1135,7 @@ contains
     select case(var)
     ! case1 for wenojs, case2 for mpweno
     case(1) 
-      wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+      wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
     case(2)
       idmax^D=iLmax^D; idmin^D=iLmin^D-kr(idims,^D);
       idm^L=id^L-kr(idims,^D);
@@ -1018,7 +1172,7 @@ contains
         b(iL^S) = flux_min(iL^S,iw)
         c(iL^S) = flux_max(iL^S,iw)
         call median(ixI^L, iL^L, a, b, c, tmp) 
-        wLC(iL^S,iw) = tmp(iL^S)
+        wLCtmp(iL^S,iw) = tmp(iL^S)
       end do
     end select
 
@@ -1068,7 +1222,7 @@ contains
 
     select case(var)
     case(1)
-      wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+      wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
     case(2)
       idmax^D=iLmax^D+kr(idims,^D); idmin^D=iLmin^D;
       idm^L=id^L-kr(idims,^D);
@@ -1106,9 +1260,12 @@ contains
         b(iL^S) = flux_min(iL^S,iw)
         c(iL^S) = flux_max(iL^S,iw)
         call median(ixI^L, iL^L, a, b, c, tmp) 
-        wRC(iL^S,iw) = tmp(iL^S)
+        wRCtmp(iL^S,iw) = tmp(iL^S)
       end do
     end select
+
+    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
+
   end subroutine WENO7limiter
 
   subroutine exENO7limiter(ixI^L,iL^L,idims,w,wLC,wRC)
@@ -1131,7 +1288,8 @@ contains
     double precision, dimension(ixI^S,1:nw)   :: gamma_sum, flux
     double precision, dimension(ixI^S,1:nw,3) :: beta, gamma_array, kai_array
     double precision, parameter               :: exeno_ct = 1.d-1
-    double precision, parameter               :: weno_eps_machine = 1.d-18
+
+    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -1210,7 +1368,7 @@ contains
      flux(iL^S,1:nwflux) = (2.d0 * w(iLmm^S,1:nwflux) - 7.d0 * w(iLm^S,1:nwflux) + 11.d0 * w(iL^S,1:nwflux)) / 6.d0
     endwhere
 
-    wLC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
 
     !> right side
     beta(iM^S,1:nwflux,1) = beta_coeff(1) * (w(iMppp^S,1:nwflux) + w(iMp^S,1:nwflux) - 2.0d0 * w(iMpp^S,1:nwflux))**2 &
@@ -1262,7 +1420,9 @@ contains
      flux(iL^S,1:nwflux) = (2.d0 * w(iLppp^S,1:nwflux) - 7.d0 * w(iLpp^S,1:nwflux) + 11.d0 * w(iLp^S,1:nwflux)) / 6.d0
     endwhere
 
-    wRC(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+
+    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
   end subroutine exENO7limiter
 

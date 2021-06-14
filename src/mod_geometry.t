@@ -641,7 +641,7 @@ contains
 
     if (use_4th_order) then
       if (.not. slab_uniform) &
-           call mpistop("divvector: 4th order only supported for slab geometry")
+           call mpistop("curlvector: 4th order only supported for slab geometry")
       ! Fourth order, stencil width is two
       ixA^L=ixO^L^LADD2;
     else
@@ -650,7 +650,7 @@ contains
     end if
 
     if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
-         call mpistop("Error in divvector: Non-conforming input limits")
+         call mpistop("Error in curlvector: Non-conforming input limits")
 
     idirmin=4
     curlvec(ixO^S,idirmin0:3)=zero

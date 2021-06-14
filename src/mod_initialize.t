@@ -19,6 +19,7 @@ contains
     use mod_usr_methods, only: usr_set_parameters
     use mod_bc_data, only: bc_data_init
     use mod_trac, only:init_trac_line, init_trac_block
+    use mod_init_datafromfile, only: read_data_init
 
     if (initialized_already) return
 
@@ -30,8 +31,9 @@ contains
     call initialize_vars()
     call init_comm_types()
 
-    ! Possibly load boundary condition data
+    ! Possibly load boundary condition data or initial data
     call bc_data_init()
+    call read_data_init()
 
     if(associated(usr_set_parameters)) call usr_set_parameters()
 

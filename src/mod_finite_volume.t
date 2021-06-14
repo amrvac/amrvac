@@ -113,7 +113,7 @@ contains
 
     ! check and optionally correct unphysical values
     if(fix_small_values) then
-       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'exit hancock finite_volume')
     endif
     end associate
   end subroutine hancock
@@ -285,23 +285,28 @@ contains
 
     end do ! Next idims
 
+    ! check and optionally correct unphysical values
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
+    endif
+
     if (.not.slab.and.idimsmin==1) &
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
  
-    if(phys_solve_eaux) then
-      call phys_energy_synchro(qdt,ixI^L,ixO^L,wCT,wnew,x)
-    endif
-
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
-    ! check and optionally correct unphysical values
-    if(fix_small_values) then
-       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'finite_volume')
+    if(phys_solve_eaux.and.levmin==levmax) then
+      ! synchronize internal energy for uniform grid
+      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
     endif
 
+    ! check and optionally correct unphysical values
+    if(fix_small_values) then
+       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'exit finite_volume')
+    endif
   end associate
   contains
 
@@ -336,7 +341,7 @@ contains
 
     subroutine get_Riemann_flux_hll()
 
-      double precision :: fac(ixC^S), div(ixC^S)
+      double precision :: fac(ixI^S), div(ixI^S)
 
       where(cminC(ixC^S) >= zero)
         patchf(ixC^S) = -2
@@ -682,8 +687,6 @@ contains
     double precision   :: a2max
 
     select case (typelimiter)
-    case (limiter_venk)
-       call venklimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp) 
     case (limiter_mp5)
        call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
     case (limiter_weno3)
@@ -712,8 +715,18 @@ contains
        call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,2)
     case (limiter_exeno7)
        call exENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
+    case (limiter_venk)
+       call venklimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp) 
+       if(fix_small_values) then
+          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+       end if
     case (limiter_ppm)
        call PPMlimiter(ixI^L,ixM^LL,idims,w,w,wLp,wRp)
+       if(fix_small_values) then
+          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+       end if
     case default
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
@@ -757,12 +770,12 @@ contains
              wRp(ixR^S,iw)=10.0d0**wRp(ixR^S,iw)
           end if
        end do
+       if(fix_small_values) then
+          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+       end if
     end select
 
-    if(fix_small_values) then
-      call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
-      call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
-    end if
     wLC(ixL^S,1:nw)=wLp(ixL^S,1:nw)
     wRC(ixR^S,1:nw)=wRp(ixR^S,1:nw)
     call phys_to_conserved(ixI^L,ixL^L,wLC,x)

@@ -1,0 +1,44 @@
+ &filelist
+        base_filename = 'analytic'
+        typefilelog   = 'special'
+    	convert_type  = 'vtuBCCmpi'
+        autoconvert   = T
+ /
+
+ &savelist
+        dtsave_log = 1.0d-1
+        !dtsave_dat = 1.0d-1
+ /
+
+ &stoplist
+        time_max = 1.0d0
+ /
+
+ &methodlist
+        time_stepper    = 'onestep'
+        time_integrator = 'Forward_Euler'
+        flux_scheme     = 20*'source'
+ /
+
+ &boundlist
+        typeboundary_min1 = 'special'
+        typeboundary_max1 = 'special'
+ /
+
+ &meshlist
+        refine_max_level = 1
+        block_nx1  = 16
+        domain_nx1 = 128
+        xprobmin1  = 0.0d0
+        xprobmax1  = 1.0d0
+ /
+
+ &paramlist
+       dtdiffpar  = 0.8d0
+       courantpar = 0.8d0
+ /
+
+ &rd_list
+       equation_name = "analyt_hunds"
+       D1            = 1.0d0
+ /

@@ -35,7 +35,6 @@
 !> 3. in the tc_list of amrvac.par :
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field 
 !>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
-!>    tc_dtpar=0.9/0.45/0.3 ! stable time step coefficient for 1D/2D/3D, decrease it for more stable run
 !>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
 
 module mod_thermal_conduction
@@ -62,7 +61,7 @@ module mod_thermal_conduction
   !> Logical switch for test constant conductivity
   logical :: tc_constant
   !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
-  logical :: tc_perpendicular=.false.
+  logical, public :: tc_perpendicular=.false.
 
   !> Consider thermal conduction saturation effect (.true.) or not (.false.)
   logical :: tc_saturate=.true.
@@ -181,10 +180,10 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_etot
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd, e_,e_,[e_], [1],[.true.])
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1,.false.)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_mhd_for_total_energy
 
@@ -213,9 +212,9 @@ contains
     call sts_init()
     get_temperature_from_conserved => mhd_get_temperature_from_eint
     get_temperature_from_eint => mhd_get_temperature_from_eint
-    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_mhd,sts_set_source_tc_mhd,e_,1,e_,1,.false.)
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_mhd_for_internal_energy
 
@@ -297,10 +296,10 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_etot
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1,.false.)
     call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_hd_for_total_energy
 
@@ -332,15 +331,15 @@ contains
     get_temperature_from_eint => hd_get_temperature_from_eint
     get_temperature_from_conserved => hd_get_temperature_from_eint
     call sts_init()
-    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd, e_,e_,[e_],[1],[.true.])
+    call add_sts_method(get_tc_dt_hd,sts_set_source_tc_hd,e_,1,e_,1,.false.)
 
-    if(fix_small_values) call set_error_handling_to_head(handle_small_e)
+    call set_error_handling_to_head(handle_small_e)
 
   end subroutine tc_init_hd_for_internal_energy
 
   !> Get the explicut timestep for the TC (mhd implementation)
   function get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x)  result(dtnew)
-    !Check diffusion time limit dt < tc_dtpar*dx_i**2/((gamma-1)*tc_k_para_i/rho)
+    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
     !and                        T=p/rho
     use mod_global_parameters
@@ -402,31 +401,28 @@ contains
 
   !> anisotropic thermal conduction with slope limited symmetric scheme
   !> Sharma 2007 Journal of Computational Physics 227, 123
-  subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+  subroutine sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
-    use mod_geometry, only: divvector
-    use mod_fix_conserve, only: store_flux_var
+    use mod_fix_conserve
 
-    integer, intent(in) :: ixI^L, ixO^L,igrid
+    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
-    integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
-    logical, intent(in), dimension(:) :: indexChangeFixC
 
     !! qd store the heat conduction energy changing rate
     double precision :: qd(ixI^S)
-    double precision, allocatable, dimension(:^D&,:) :: qvec   
+    double precision :: qvec(ixI^S,1:ndim)
  
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision, dimension(ixI^S) :: Te,ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
+    double precision, allocatable, dimension(:^D&,:,:) :: fluxall
     double precision :: alpha,dxinv(ndim)
     integer, dimension(ndim) :: lowindex
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
-    allocate(qvec(ixI^S,1:ndim))
     ! coefficient of limiting on normal component
     if(ndim<3) then
       alpha=0.75d0
@@ -674,8 +670,6 @@ contains
       end do
     end if
 
-   if (fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
-
     qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
@@ -691,7 +685,14 @@ contains
       end do
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
-    deallocate(qvec)
+
+    if(fix_conserve_at_step) then
+      allocate(fluxall(ixI^S,1,1:ndim))
+      fluxall(ixI^S,1,1:ndim)=my_dt*qvec(ixI^S,1:ndim)
+      call store_flux(igrid,fluxall,1,ndim,nflux)
+      deallocate(fluxall)
+    end if
+
     wres(ixO^S,e_)=qd(ixO^S)
 
   end subroutine sts_set_source_tc_mhd
@@ -776,7 +777,7 @@ contains
   end subroutine gradientC
 
   function get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x)  result(dtnew)
-    ! Check diffusion time limit dt < tc_dtpar * dx_i**2 / ((gamma-1)*tc_k_para_i/rho)
+    ! Check diffusion time limit dt < dx_i**2 / ((gamma-1)*tc_k_para_i/rho)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
@@ -796,10 +797,10 @@ contains
     dtnew = bigdouble
 
     do idim=1,ndim
-       ! dt< tc_dtpar * dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
+       ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
        dtdiff_tcond=1d0/maxval(tmp(ixO^S)*dxinv(idim)**2)
        if(tc_saturate) then
-         ! dt< tc_dtpar* dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
+         ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
          dtdiff_tsat=1d0/maxval(tc_gamma_1*dsqrt(Te(ixO^S))*&
                      5.d0*dxinv(idim)**2)
          ! choose the slower flux (bigger time scale) between classic and saturated
@@ -812,28 +813,24 @@ contains
 
   end function get_tc_dt_hd
 
-  subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
+  subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
-    use mod_geometry, only: divvector
-    use mod_fix_conserve, only: store_flux_var
+    use mod_fix_conserve
 
-    integer, intent(in) :: ixI^L, ixO^L,igrid
+    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
-    integer, intent(in), dimension(:) :: indexChangeStart, indexChangeN
-    logical, intent(in), dimension(:) :: indexChangeFixC
 
     double precision :: gradT(ixI^S,1:ndim),Te(ixI^S),ke(ixI^S)
-    double precision :: qd(ixI^S)
-    double precision, allocatable, dimension(:^D&,:) :: qvec   
+    double precision :: qvec(ixI^S,1:ndim),qd(ixI^S)
+    double precision, allocatable, dimension(:^D&,:,:) :: fluxall
 
     double precision :: dxinv(ndim)
     integer, dimension(ndim)       :: lowindex
     integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L,ixD^L
 
-    allocate(qvec(ixI^S,1:ndim))
     ix^L=ixO^L^LADD1;
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
@@ -919,8 +916,6 @@ contains
       qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
     end do
 
-    if(fix_conserve_at_step) call store_flux_var(qvec,e_,my_dt,igrid,indexChangeStart,indexChangeN,indexChangeFixC)
-
     qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
@@ -936,7 +931,13 @@ contains
       end do
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
-    deallocate(qvec)
+
+    if(fix_conserve_at_step) then
+      allocate(fluxall(ixI^S,1,1:ndim))
+      fluxall(ixI^S,1,1:ndim)=my_dt*qvec(ixI^S,1:ndim)
+      call store_flux(igrid,fluxall,1,ndim,nflux)
+      deallocate(fluxall)
+    end if
 
     wres(ixO^S,e_)=qd(ixO^S)
 
@@ -968,7 +969,7 @@ contains
         do idir = 1, ndir
            w(ixO^S, iw_mom(idir)) = w(ixO^S, iw_mom(idir))/w(ixO^S,rho_)
         end do
-        write(error_msg,*) "Thermal conduction step ", step 
+        write(error_msg,"(a,i3)") "Thermal conduction step ", step
         call small_values_error(w, x, ixI^L, ixO^L, flag, error_msg)
       end select
     end if

@@ -17,7 +17,7 @@ SETUP_SCRIPT := $(AMRVAC_DIR)/setup.pl
 LOG_CMP := $(AMRVAC_DIR)/tools/fortran/compare_logs
 
 # Number of MPI processes to use
-NUM_PROCS ?= 4
+NUM_PROCS ?= 2
 
 # force is a dummy to force re-running tests
 .PHONY: all clean force

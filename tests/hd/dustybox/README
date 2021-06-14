@@ -1,1 +1,0 @@
-$AMRVAC_DIR/setup.pl -d=11 -phi=0 -z=0 -g=12 -p=hd -eos=default -nf=0 -ndust=4 -u=nul -arch=default

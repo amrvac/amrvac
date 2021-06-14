@@ -13,7 +13,7 @@ subroutine refine_grids(child_igrid,child_ipe,igrid,ipe,active)
      call alloc_node(child_igrid(ic^D))
   {end do\}
 
-  if ((time_advance .and. active).or.convert.or.firstprocess) then
+  if ((time_advance .and. active).or.convert.or.reset_grid) then
      ! prolong igrid to new children
      call prolong_grid(child_igrid,child_ipe,igrid,ipe)
   else

@@ -35,6 +35,8 @@ module mod_particle_base
   double precision        :: dtsave_particles
   !> If positive, a constant time step for the particles
   double precision        :: const_dt_particles
+  !> Particle CFL safety factor
+  double precision        :: particles_cfl
   !> Time to write next particle output
   double precision        :: t_next_output
   !> Whether to write individual particle output (followed particles)
@@ -184,7 +186,7 @@ contains
     namelist /particles_list/ physics_type_particles,nparticleshi, &
          nparticles_per_cpu_hi, write_individual, write_ensemble, &
          write_snapshot, dtsave_particles,num_particles,ndefpayload,nusrpayload,tmax_particles, &
-         dtheta,losses, const_dt_particles, relativistic, integrator_type_particles
+         dtheta,losses, const_dt_particles, particles_cfl, relativistic, integrator_type_particles
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -211,10 +213,13 @@ contains
     tmax_particles            = bigdouble
     dtsave_particles          = bigdouble
     const_dt_particles        = -bigdouble
+    particles_cfl             = 0.5
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
     relativistic              = .true.
+    particles_eta             = 0.d0
+    particles_etah            = 0.d0
     t_next_output             = 0.0d0
     dtheta                    = 2.0d0*dpi / 60.0d0
     losses                    = .false.
@@ -397,7 +402,7 @@ contains
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
     double precision, intent(inout) :: w_part(ixG^T,ngridvars)
-    integer                         :: idirmin
+    integer                         :: idirmin, idir
     double precision                :: current(ixG^T,7-2*ndir:3)
     double precision                :: w(ixG^T,1:nw)
 
@@ -410,7 +415,14 @@ contains
     call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
 
     ! fill with magnetic field:
-    w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+    if (B0field) then
+      do idir = 1, ndir
+        w_part(ixG^T,bp(idir))=w(ixG^T,iw_mag(idir))+ps(igrid)%B0(ixG^T,idir,0)
+      end do
+    else
+      w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
+    end if
+!    w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
 
     ! fill with current
     current = zero
@@ -1576,7 +1588,7 @@ contains
       if (receive_n_particles_from_ipe(ipe) .gt. 0) then
         do ipart = 1, receive_n_particles_from_ipe(ipe)
           tag_receive = ipe * npe + mype + ipart
-          ircv = irecv+1
+          ircv = ircv+1
           index = particle_index_to_be_received_from_ipe(ipart,ipe)
           allocate(particle(index)%payload(npayload))
           call MPI_IRECV(particle(index)%payload(1:npayload),npayload, &
