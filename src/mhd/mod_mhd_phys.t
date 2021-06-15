@@ -54,6 +54,9 @@ module mod_mhd_phys
   !> Height of the mask used in the TRAC method
   double precision, public, protected              :: mhd_trac_mask = 0.d0
 
+  !> Distance between two adjacent traced magnetic field lines (in finest cell size)   
+  integer, public, protected              :: mhd_trac_finegrid=4
+
   !> Whether auxiliary internal energy is solved
   logical, public, protected              :: mhd_solve_eaux = .false.
 
@@ -252,7 +255,7 @@ contains
       particles_eta, particles_etah,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, &
       mhd_boris_method, mhd_boris_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e, &
-      mhd_trac, mhd_trac_type, mhd_trac_mask
+      mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")

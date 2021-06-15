@@ -42,7 +42,7 @@ contains
     numFL=1
     do j=1,ndim-1
       ! number of field lines, every 4 finest grid, every direction
-      finegrid=4
+      finegrid=mhd_trac_finegrid
       numL(j)=floor((xprobmax(j)-xprobmin(j))/dL/finegrid)
       numFL=numFL*numL(j)
     end do
@@ -78,7 +78,7 @@ contains
     ^D&xprobmax(^D)=xprobmax^D\
     ^D&dxT^D=(xprobmax^D-xprobmin^D)/(domain_nx^D*refine_factor/block_nx^D)\
     ^D&dxT(ndim)=dxT^D\
-    finegrid=4
+    finegrid=mhd_trac_finegrid
     {^IFONED
       dL=dxT1/finegrid
     }
@@ -501,11 +501,11 @@ contains
       else
         forward=.true.
       endif
-      call trace_Bfield_trac(xFt,ipef,igridf,Tcofl,dL,numLP,numRT,forward,mask)
-      xF(ix1,:,:)=xFt(:,:)
+      call trace_Bfield_trac(xFt,ipef,igridf,Tcofl,numLP,numRT,forward,mask)
+      xF(ix1,1:numRT,:)=xFt(1:numRT,:)
       numR(ix1)=numRT
-      ipel(ix1,:)=ipef(:)
-      igridl(ix1,:)=igridf(:)
+      ipel(ix1,1:numRT)=ipef(1:numRT)
+      igridl(ix1,1:numRT)=igridf(1:numRT)
       Tlcoff(ix1)=Tcofl
     enddo
   end subroutine get_Tlcoff
@@ -520,7 +520,6 @@ contains
     integer :: ixO^L,ixc^L,igrid,iigrid,ixc^D
     double precision :: dxb^D
 
-    dxMax^D=4*dL\
     weightIndex=2
     ^D&ixOmin^D=ixmlo^D\
     ^D&ixOmax^D=ixmhi^D\
@@ -529,6 +528,7 @@ contains
         if (ipel(ix1,ix2)==mype) then
           igrid=igridl(ix1,ix2)
           ^D&dxb^D=rnode(rpdx^D_,igrid)\
+          ^D&dxMax^D=4*dxb^D\ 
           ^D&ixcmin^D=floor((xF(ix1,ix2,^D)-dxMax^D-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
           ^D&ixcmax^D=floor((xF(ix1,ix2,^D)+dxMax^D-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
           {if(ixcmin^D<ixOmin^D) ixcmin^D=ixOmin^D\}
@@ -537,8 +537,8 @@ contains
             ds=0.d0
             {ds=ds+(xF(ix1,ix2,^D)-ps(igrid)%x(ixc^DD,^D))**2\}
             ds=sqrt(ds)
-            if(ds<1.0d-2*dL) then
-              weight=(1/(1.0d-2*dL))**weightIndex
+            if(ds<1.0d-2*dxb1) then
+              weight=(1/(1.0d-2*dxb1))**weightIndex
             else
               weight=(1/ds)**weightIndex
             endif
@@ -558,7 +558,7 @@ contains
     enddo
   end subroutine interp_Tcoff
 
-  subroutine trace_Bfield_trac(xf,ipef,igridf,Tcofl,dL,numP,numRT,forward,mask)
+  subroutine trace_Bfield_trac(xf,ipef,igridf,Tcofl,numP,numRT,forward,mask)
     ! trace a field line
     use mod_usr_methods
     use mod_global_parameters
@@ -566,7 +566,7 @@ contains
     integer :: numP,numRT
     double precision :: xf(numP,ndim)
     integer :: ipef(numP),igridf(numP)
-    double precision :: dL,Tcofl,Tlmax
+    double precision :: Tcofl,Tlmax
     logical :: forward,mask
     double precision :: dxb^D,xb^L
     integer :: indomain
@@ -607,7 +607,7 @@ contains
       if (mype==ipe_now) then
         igrid=igrid_now
         ! looking for points in one pe
-        call trace_in_pe(igrid,ipoint_in,xf,igridf,numP,dL,forward,statusB,Te_info,mask)
+        call trace_in_pe(igrid,ipoint_in,xf,igridf,numP,forward,statusB,Te_info,mask)
       endif
       ! comunication
       call MPI_BCAST(statusB,7+ndim,MPI_DOUBLE_PRECISION,ipe_now,icomm,ierrmpi)
@@ -632,8 +632,6 @@ contains
       ipoint_in=ipoint_out
     enddo
 
-    !if (mype==0) print *, xf(1,:),Te_info
-
     ! get cutoff temperature
     Tcofl=Te_info(2)
     if(mask) then
@@ -645,11 +643,10 @@ contains
     if(Tcofl<T_bott) Tcofl=T_bott
   end subroutine trace_Bfield_trac
 
-  subroutine trace_in_pe(igrid,ipoint_in,xf,igridf,numP,dL,forward,statusB,Te_info,mask)
+  subroutine trace_in_pe(igrid,ipoint_in,xf,igridf,numP,forward,statusB,Te_info,mask)
     integer :: igrid,ipoint_in,numP
     double precision :: xf(numP,ndim)
     integer :: igridf(numP)
-    double precision :: dL
     logical :: forward,mask
     double precision :: statusB(7+ndim),Te_info(3)
     integer :: ipe_next,igrid_next,ip_in,ip_out,j
@@ -661,7 +658,7 @@ contains
     newpe=.FALSE.
     do while(newpe .eqv. .FALSE.)
       ! looking for points in given grid    
-      call find_points_trac(igrid,ip_in,ip_out,xf,Te_info,numP,dL,forward,mask)
+      call find_points_trac(igrid,ip_in,ip_out,xf,Te_info,numP,forward,mask)
       igridf(ip_in:ip_out-1)=igrid
       ip_in=ip_out
 
@@ -698,137 +695,74 @@ contains
     enddo
   end subroutine trace_in_pe
 
-  subroutine find_points_trac(igrid,ip_in,ip_out,xf,Te_info,numP,dL,forward,mask)
+  subroutine find_points_trac(igrid,ip_in,ip_out,xf,Te_info,numP,forward,mask)
     integer :: igrid,ip_in,ip_out,numP
     double precision :: xf(numP,ndim),Te_info(3)
-    double precision :: dL
     logical :: forward,mask
-    integer          :: ixO^L,ixO^D,j
-    double precision :: dxf(ndim)
-    double precision :: dxb^D,xb^L,xd^D
-    integer          :: ixb^D,ix^D,ixbl^D,ip
-    double precision :: wBnear(0:1^D&,nw+ndir)
-    double precision :: Bx(ndim),factor(0:1^D&)
-    double precision :: Btotal,maxft,Bp
-    integer :: idirmin,ixI^L,idir,jdir,kdir
-    double precision :: dxb(ndim)
-    integer :: hxO^L,jxO^L,nxO^L
-    double precision :: tmp(0:1^D&)
-    double precision :: ek,eb,Te_now,Te_pre,dTeds,Lt,Lr
-    integer :: inblock
 
-    ^D&ixImin^D=ixglo^D\
-    ^D&ixImax^D=ixghi^D\
-    ^D&ixOmin^D=ixmlo^D\
-    ^D&ixOmax^D=ixmhi^D\
-    ^D&dxb^D=rnode(rpdx^D_,igrid)\
-    ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
-    ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
-    ^D&dxb(^D)=dxb^D\
+    double precision :: dxb^D,xb^L
+    integer          :: ip,inblock,ixI^L,j
+    double precision :: Bg(ixg^T,ndir),pth(ixg^T),Te(ixg^T)
+    double precision :: Bnow(ndir),Bnext(ndir)
+    double precision :: xfpre(ndim),xfnow(ndim),xfnext(ndim)
+    double precision :: Tpre,Tnow,Tnext,dTds,Lt,Lr,ds
+
+    ^D&ixImin^D=ixglo^D;
+    ^D&ixImax^D=ixghi^D;
+    ^D&dxb^D=rnode(rpdx^D_,igrid);
+    ^D&xbmin^D=rnode(rpxmin^D_,igrid);
+    ^D&xbmax^D=rnode(rpxmax^D_,igrid);
+
+    ! get grid magnetic field and temperature
+    if (B0field) then
+      do j=1,ndir
+        Bg(ixI^S,j)=ps(igrid)%w(ixI^S,mag(j))+ps(igrid)%B0(ixI^S,j,0)
+      enddo
+    else
+      do j=1,ndir
+        Bg(ixI^S,j)=ps(igrid)%w(ixI^S,mag(j))
+      enddo
+    endif
+    call mhd_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixI^L,pth)
+    Te(ixI^S)=pth(ixI^S)/ps(igrid)%w(ixI^S,rho_)
+
     ! main loop
     MAINLOOP: do ip=ip_in,numP-1
-      ! do interpolation
-      ^D&ixbl^D=floor((xf(ip,^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
-      ^D&xd^D=(xf(ip,^D)-ps(igrid)%x(ixbl^DD,^D))/dxb^D\
-      wBnear=0
-      {do ix^DB=0,1\}
-        ! Bfield for interpolation
-        do j=1,ndir
-          if(B0field) then
-            wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))+&
-                                     ps(igrid)%B0(ixbl^D+ix^D,j,0)
-          else
-            wBnear(ix^D,mag(j))=ps(igrid)%w(ixbl^D+ix^D,mag(j))
-          endif
-        enddo
-        ! temperature for interpolation
-        wBnear(ix^D,rho_)=ps(igrid)%w(ixbl^D+ix^D,rho_)
-        wBnear(ix^D,p_)=ps(igrid)%w(ixbl^D+ix^D,e_)
-        do j=1,ndir
-          ek=0.5d0*(ps(igrid)%w(ixbl^D+ix^D,mom(j)))**2/&
-             ps(igrid)%w(ixbl^D+ix^D,rho_)
-          eb=0.5d0*ps(igrid)%w(ixbl^D+ix^D,mag(j))**2
-          wBnear(ix^D,p_)=wBnear(ix^D,p_)-ek-eb
-        enddo
-        wBnear(ix^D,p_)=wBnear(ix^D,p_)*(mhd_gamma-1)/wBnear(ix^D,rho_)
-      {enddo\}
-      ! interpolation factor
-      {do ix^D=0,1\}
-        factor(ix^D)={abs(1-ix^D-xd^D)*}
-      {enddo\}
-      ! do interpolation to get local magnetic field
-      Bx=0
-      {do ix^DB=0,1\}
-        {Bx(^DB)=Bx(^DB)+wBnear(ix^DD,mag(^DB))*factor(ix^DD)\}
-      {enddo\}
-      ! do interpolation to get local temperature
-      Te_now=0
-      {do ix^DB=0,1\}
-        Te_now=Te_now+wBnear(ix^D,p_)*factor(ix^D)
-      {enddo\}
-      ! calculate dTe/ds
-      if(ip==1) then
+      ! get temperature to calculate dT/ds
+      xfnow(:)=xf(ip,:)
+      call get_BTe_local(xfnow,Bnow,Tnow,ps(igrid)%x,Bg,Te,ixI^L,dxb^D)
+      if (ip>1) then 
+        xfpre(:)=xf(ip-1,:)
+        Tpre=Te_info(1)   ! temperature of previous point
+      else
+        xfpre(:)=0.d0
+        Tpre=0.d0
+      endif
+      ds=dxb1
+      call get_x_next(ip,xfpre,xfnow,Bnow,xfnext,ds,forward)
+      xf(ip+1,:)=xfnext(:)
+      call get_BTe_local(xfnext,Bnext,Tnext,ps(igrid)%x,Bg,Te,ixI^L,dxb^D)
+
+      ! calculate dT/ds and update Te_info
+      call get_dTds(ip,xfpre,xfnow,xfnext,Tpre,Tnow,Tnext,dTds)
+      Te_info(1)=Tnow   ! temperature of previous point
+      if (ip==1) then
         Lt=0.d0
-        Te_info(1)=Te_now   ! temperature of previous point
-        Te_info(2)=T_bott
-        Te_info(3)=Te_now
+        Te_info(2)=T_bott   ! current Tcofl
+        Te_info(3)=Tnow     ! current Tlmax
       else
         Lt=0.d0
-        Te_pre=Te_info(1)   ! temperature of previous point
-        dTeds=abs(Te_now-Te_pre)/dL
-        if(dTeds>0.d0) then
-          Lt=Te_now/dTeds
-          Lr=dL
+        if (dTds>0.d0) then
+          Lt=Tnow/dTds
+          Lr=ds
           ! renew cutoff temperature
           if(Lr>trac_delta*Lt) then
-            if (max(Te_now,Te_pre)>Te_info(2)) Te_info(2)=max(Te_now,Te_pre)
+            if (Tnow>Te_info(2)) Te_info(2)=Tnow
           endif
         endif
-        if(Te_now>Te_info(3)) then
-          Te_info(3)=Te_now
-        end if
-        Te_info(1)=Te_now   ! temperature of previous point
-      end if
-      ! local magnetic field strength
-      Btotal=0.0d0
-      do j=1,ndim
-        Btotal=Btotal+(Bx(j))**2
-      enddo
-      Btotal=dsqrt(Btotal)
-      ! if local magnetic field is 0
-      if(Btotal==0) then
-        maxft=factor(0^D&)
-        {do ix^DB=0,1\}
-          ! local B equls the B of the closest point
-          Bp=0
-          do j=1,ndim
-            Bp=Bp+(wBnear(ix^D,mag(j)))**2
-          enddo
-          if (factor(ix^D)>=maxft .and. Bp/=0) then
-            Bx(:)=wBnear(ix^D,mag(:))
-          endif
-          Btotal=Bp
-        {enddo\}
-        ! all the point near hear is 0
-        if(Btotal==0) then
-          Bx(:)=1
-          Btotal=dsqrt(1.0d0*ndim)
-        endif
+        if (Tnow>Te_info(3)) Te_info(3)=Tnow
       endif
-      ! find next point based on magnetic field direction
-      if(forward .eqv. .TRUE.) then
-        do j=1,ndim
-          dxf(j)=dL*Bx(j)/Btotal
-        enddo
-      else
-        do j=1,ndim
-          dxf(j)=-dL*Bx(j)/Btotal
-        enddo
-      endif
-      ! next point
-      do j=1,ndim
-        xf(ip+1,j)=xf(ip,j)+dxf(j)
-      enddo
+
       ip_out=ip+1
       ! whether or not next point is in this block/grid
       inblock=0
@@ -837,8 +771,122 @@ contains
         ! exit loop if next point is not in this block
         exit MAINLOOP
       endif
+
     enddo MAINLOOP
+
   end subroutine find_points_trac
+
+  subroutine get_dTds(ip,xfpre,xfnow,xfnext,Tpre,Tnow,Tnext,dTds)
+
+    integer :: ip,j
+    double precision :: xfpre(ndim),xfnow(ndim),xfnext(ndim)
+    double precision :: Tpre,Tnow,Tnext
+    double precision :: ds1,ds2,dT1,dT2,dTds
+
+    ds1=0.d0
+    ds2=0.d0
+    do j=1,ndim
+      ds1=ds1+(xfnext(j)-xfnow(j))**2
+      if (ip>1) ds2=ds2+(xfpre(j)-xfnow(j))**2
+    enddo
+    ds1=sqrt(ds1)
+    ds2=sqrt(ds2)
+    dT1=Tnext-Tnow
+    dT2=Tpre-Tnow
+
+    if (ip>1) then
+      dTds=abs(dT1*ds2**2-dT2*ds1**2)/(ds1*ds2*(ds1+ds2))
+    else
+      dTds=abs(dT1/ds1)
+    endif
+
+  end subroutine get_dTds
+
+  subroutine get_x_next(ip,xfpre,xfnow,Bnow,xfnext,ds,forward)
+
+    integer :: ip,j
+    double precision :: xfpre(1:ndim),xfnow(1:ndim),xfnext(1:ndim),Bnow(1:ndir)
+    double precision :: ds,Btotal,dxf(1:ndim),dxftot
+    logical :: forward
+
+    Btotal=0.d0
+    do j=1,ndim
+      Btotal=Btotal+(Bnow(j))**2
+    enddo
+    Btotal=dsqrt(Btotal)
+
+    ! if local magnetic field is 0
+    if(Btotal==0) then
+      if (ip>1) then
+        dxftot=0.d0
+        do j=1,ndim
+          dxf(j)=xfnow(j)-xfpre(j)
+          dxftot=dxftot+dxf(j)**2
+        enddo
+        dxftot=sqrt(dxftot)
+        dxf(:)=dxf(:)*ds/dxftot
+      else
+        dxf(:)=0.d0
+        dxf(ndim)=ds
+      endif
+    else
+    ! find next point based on magnetic field direction
+      if(forward .eqv. .TRUE.) then
+        do j=1,ndim
+          dxf(j)=ds*Bnow(j)/Btotal
+        enddo
+      else
+        do j=1,ndim
+          dxf(j)=-ds*Bnow(j)/Btotal
+        enddo
+      endif
+    endif
+
+    ! next point
+    do j=1,ndim
+      xfnext(j)=xfnow(j)+dxf(j)
+    enddo
+
+  end subroutine get_x_next
+
+  subroutine get_BTe_local(xfloc,Bloc,Tloc,x,Bg,Te,ixI^L,dxb^D)
+
+    integer :: ixI^L
+    double precision :: dxb^D,Tloc
+    double precision :: xfloc(ndim),Bloc(ndir)
+    double precision :: x(ixI^S,ndim),Bg(ixI^S,ndir),Te(ixI^S)
+
+    integer          :: ixb^D,ix^D,ixbl^D,j
+    double precision :: xd^D
+    double precision :: factor(0:1^D&)
+    double precision :: Bnear(0:1^D&,ndir),Tnear(0:1^D&)
+
+    ^D&ixbl^D=floor((xfloc(^D)-x(ixImin^DD,^D))/dxb^D)+ixImin^D\
+    ^D&xd^D=(xfloc(^D)-x(ixbl^DD,^D))/dxb^D\
+
+    {do ix^D=0,1\}
+      factor(ix^D)={abs(1-ix^D-xd^D)*}
+    {enddo\}
+
+    ! Bfield and Te for interpolation
+    {do ix^DB=0,1\}
+      do j=1,ndir
+        Bnear(ix^D,j)=Bg(ixbl^D+ix^D,j)
+      enddo
+      Tnear(ix^D)=Te(ixbl^D+ix^D)
+    {enddo\}
+
+    Bloc(:)=0.d0
+    Tloc=0.d0
+    ! interpolation
+    {do ix^DB=0,1\}
+      do j=1,ndir
+        Bloc(j)=Bloc(j)+Bnear(ix^D,j)*factor(ix^D)
+      enddo
+      Tloc=Tloc+Tnear(ix^D)*factor(ix^D)
+    {enddo\}
+
+  end subroutine get_BTe_local
 
   subroutine find_next_grid_trac(igrid,igrid_next,ipe_next,xf1,newpe,stopB)
     ! check the grid and pe of next point
