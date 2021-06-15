@@ -975,6 +975,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_trac= F | T
      mhd_trac_type= INTEGER from 1 to 5
      mhd_trac_mask= bigdouble
+     mhd_trac_finegrid= INTEGER
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1072,6 +1073,7 @@ one can use `mhd_trac_type=4` to add a mask to limit the region where the field 
 Give `mhd_trac_mask` to set the maximum height of the mask, in your unit_length.
 `mhd_trac_type=3` uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
 And `mhd_trac_type=5` works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
+Give `mhd_trac_finegrid` to set the distance between two adjacent traced field lines (in the unit of finest cell size).
 Note that when setting `mhd_trac_type >=2`, the direction of your gravity should follow y-dir (2D) or z-dir(3D)
 
 ### Solve internal energy to avoid negative pressure{#par_AIE}
