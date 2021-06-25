@@ -179,7 +179,7 @@ subroutine lohner_grid(igrid)
      if (associated(usr_refine_threshold)) then
         wtol(1:nw)   = w(ix^D,1:nw)
         xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
-        call usr_refine_threshold(wtol, xtol, threshold, global_time)
+        call usr_refine_threshold(wtol, xtol, threshold, global_time, level)
      end if
   
      if (error(ix^D) >= threshold) then
@@ -275,7 +275,7 @@ subroutine lohner_orig_grid(igrid)
      if (associated(usr_refine_threshold)) then
         wtol(1:nw)   = ps(igrid)%w(ix^D,1:nw)
         xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
-        call usr_refine_threshold(wtol, xtol, threshold, global_time)
+        call usr_refine_threshold(wtol, xtol, threshold, global_time, level)
      end if
 
      if (error(ix^D) >= threshold) then
@@ -333,7 +333,7 @@ subroutine compare1_grid(igrid,wold,w)
      if (associated(usr_refine_threshold)) then
         wtol(1:nw)   = ps(igrid)%w(ix^D,1:nw)
         xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
-        call usr_refine_threshold(wtol, xtol, threshold, global_time)
+        call usr_refine_threshold(wtol, xtol, threshold, global_time, level)
      end if
 
      if (error >= threshold) then

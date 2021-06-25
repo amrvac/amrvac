@@ -331,10 +331,11 @@ module mod_usr_methods
 
     !> use different threshold in special regions for AMR to
     !> reduce/increase resolution there where nothing/something interesting happens.
-    subroutine a_refine_threshold(wlocal,xlocal,threshold,qt)
+    subroutine a_refine_threshold(wlocal,xlocal,threshold,qt,level)
       use mod_global_parameters
       double precision, intent(in)    :: wlocal(1:nw),xlocal(1:ndim),qt
       double precision, intent(inout) :: threshold
+      integer, intent(in) :: level
     end subroutine a_refine_threshold
 
     !> Allow user to use their own data-postprocessing procedures
