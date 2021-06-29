@@ -486,9 +486,9 @@ contains
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
-       allocate(flux_type(ndir, nw))
+       allocate(flux_type(ndir, nwflux))
        flux_type = flux_default
-    else if (any(shape(flux_type) /= [ndir, nw])) then
+    else if (any(shape(flux_type) /= [ndir, nwflux])) then
        call mpistop("phys_check error: flux_type has wrong shape")
     end if
 
