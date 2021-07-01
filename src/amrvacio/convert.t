@@ -851,7 +851,7 @@ character(len=80)::  filename
 character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character(len=1024) :: outfilehead
 
-logical ::   fileopen,cell_corner=.true.
+logical ::   fileopen,cell_corner=.false.
 logical, allocatable :: Morton_aim(:),Morton_aim_p(:)
 !-----------------------------------------------------------------------------
 
