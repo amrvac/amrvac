@@ -17,6 +17,7 @@ subroutine errest
      ! differences
   !$OMP PARALLEL DO PRIVATE(igrid)
      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>ps(igrid)
         call compare1_grid(igrid,pso(igrid)%w,ps(igrid)%w)
      end do
   !$OMP END PARALLEL DO
@@ -24,6 +25,7 @@ subroutine errest
      ! Error estimation is based on Lohner's original scheme
   !$OMP PARALLEL DO PRIVATE(igrid)
      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>ps(igrid)
         call lohner_orig_grid(igrid)
      end do
   !$OMP END PARALLEL DO
@@ -31,6 +33,7 @@ subroutine errest
      ! Error estimation is based on Lohner's scheme
   !$OMP PARALLEL DO PRIVATE(igrid)
      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>ps(igrid)
         call lohner_grid(igrid)
      end do
   !$OMP END PARALLEL DO
@@ -47,6 +50,7 @@ subroutine errest
   end if
   !$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail; igrid=igrids(iigrid);
+     block=>ps(igrid)
      call forcedrefine_grid(igrid,ps(igrid)%w)
   end do
   !$OMP END PARALLEL DO
