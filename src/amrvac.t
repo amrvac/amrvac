@@ -85,6 +85,8 @@ program amrvac
        end if
      end if
 
+     if (use_multigrid) call mg_setup_multigrid()
+
      if (convert) then
         if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
              .and. convert_type .ne. 'user')  &
@@ -101,8 +103,6 @@ program amrvac
         call comm_finalize
         stop
      end if
-
-     if (use_multigrid) call mg_setup_multigrid()
 
   else
 
