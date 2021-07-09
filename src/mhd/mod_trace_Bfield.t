@@ -46,9 +46,8 @@ contains
     double precision :: statusB(4+ndim)
     integer :: pe_record(numP)
     logical :: stopB
-    !double precision :: data_share(numP,ndim+nw+ndir)
-    double precision :: data_send(numP),data_recv(numP)
-    integer :: nums1,nums2,ipoint,nwRT,iRT
+    double precision, allocatable :: data_send(:,:),data_recv(:,:)
+    integer :: nums,ipoint,nwRT,iRT,iw
 
     wB=0
     xf(2:numP,:)=0
@@ -112,33 +111,46 @@ contains
       ipoint_in=ipoint_out
     enddo
 
-    
 
     ! comunications between processors
+    nwRT=ndim
+    do iw=1,nw+ndir
+      if (wRT(iw)) nwRT=nwRT+1
+    enddo
+    nums=numRT*nwRT
+
+    allocate(data_send(numRT,nwRT),data_recv(numRT,nwRT))
+
+    data_send(:,:)=zero
+    data_recv(:,:)=zero
     do j=1,numRT
-      if (mype/=pe_record(j)) then
-        xf(j,:)=0.d0
-        wB(j,:)=0.d0
+      if (mype==pe_record(j)) then
+        data_send(j,1:ndim)=xf(j,1:ndim)
+        iRT=ndim+1
+        do iw=1,nw+ndir
+          if (wRT(iw)) then
+            data_send(j,iRT)=wB(j,iw)
+            iRT=iRT+1
+          endif
+        enddo
+      endif
+    enddo
+  
+    call MPI_ALLREDUCE(data_send,data_recv,nums,MPI_DOUBLE_PRECISION,&
+                       MPI_SUM,icomm,ierrmpi)
+
+    xf(:,:)=zero
+    wB(:,:)=zero
+    xf(1:numRT,1:ndim)=data_recv(1:numRT,1:ndim)
+    iRT=ndim+1
+    do iw=1,nw+ndir
+      if (wRT(iw)) then
+        wB(1:numRT,iw)=data_recv(1:numRT,iRT)
+        iRT=iRT+1
       endif
     enddo
 
-    do j=1,ndim
-      data_send=xf(:,j)
-      call MPI_ALLREDUCE(data_send,data_recv,numP,MPI_DOUBLE_PRECISION,&
-                           MPI_SUM,icomm,ierrmpi)
-      xf(:,j)=data_recv
-    enddo
-
-    do j=1,nw+ndir
-      if (wRT(j)) then
-        data_send=wB(:,j)
-        call MPI_ALLREDUCE(data_send,data_recv,numP,MPI_DOUBLE_PRECISION,&
-                             MPI_SUM,icomm,ierrmpi)
-        wB(:,j)=data_recv
-      else
-        wB(:,j)=0.d0
-      endif
-    enddo
+    deallocate(data_send,data_recv)    
 
   end subroutine trace_Bfield
 
@@ -214,6 +226,8 @@ contains
     ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
     ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
+    Bg(:,:,:)=zero
+
     if (B0field) then
       do j=1,ndir
         Bg(ixI^S,j)=ps(igrid)%w(ixI^S,mag(j))+ps(igrid)%B0(ixI^S,j,0)
@@ -284,6 +298,8 @@ contains
     ^D&ixbl^D=floor((xfn(^D)-x(ixImin^DD,^D))/dxb^D)+ixImin^D\
     ^D&xd^D=(xfn(^D)-x(ixbl^DD,^D))/dxb^D\
     ^D&dxb(^D)=dxb^D\
+
+    wBnear(:,:,:)=zero
 
     {do ix^D=0,1\}
       factor(ix^D)={abs(1-ix^D-xd^D)*}
@@ -373,6 +389,7 @@ contains
       enddo
     {enddo\}
 
+    Btotal=zero
     do j=1,ndim
       Btotal=Btotal+(Bx(j))**2
     enddo
