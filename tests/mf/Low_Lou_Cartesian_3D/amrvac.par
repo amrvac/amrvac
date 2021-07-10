@@ -7,9 +7,6 @@
         convert_type='vtuBCCmpi'
         nwauxio=9
  /  
-        restart_from_file='potential/data/lfff0000.dat'
-        snapshotnext=1
-        convert=.true.
 
  &savelist
         itsave(1,1)=0
@@ -79,11 +76,9 @@
  /
 
  &mf_list
-        mf_it_max=60000
+        mf_it_max=100000
         mf_ditsave=20000
         mf_cc=0.5
-        mf_cy=0.3
-        mf_cy_max=0.3
-        mf_cdivb=0.1
-        mf_tvdlfeps_min=1.8d-4
+        mf_cy=0.2
+        mf_cdivb=0.01
  /
