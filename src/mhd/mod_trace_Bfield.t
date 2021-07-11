@@ -226,7 +226,7 @@ contains
     ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
     ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
-    Bg(:,:,:)=zero
+    Bg=zero
 
     if (B0field) then
       do j=1,ndir
@@ -299,7 +299,7 @@ contains
     ^D&xd^D=(xfn(^D)-x(ixbl^DD,^D))/dxb^D\
     ^D&dxb(^D)=dxb^D\
 
-    wBnear(:,:,:)=zero
+    wBnear=zero
 
     {do ix^D=0,1\}
       factor(ix^D)={abs(1-ix^D-xd^D)*}
