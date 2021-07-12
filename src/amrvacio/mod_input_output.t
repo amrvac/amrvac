@@ -16,6 +16,9 @@ module mod_input_output
   !> tag for MPI message
   integer, private :: itag
 
+  !> whether a manually inserted snapshot is saved
+  logical :: save_now
+
   ! Formats used in output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
@@ -1664,7 +1667,7 @@ contains
 
     ! Write snapshotnext etc., which is useful for restarting.
     ! Note we add one, since snapshotnext is updated *after* this procedure
-    if(pass_wall_time) then
+    if(pass_wall_time.or.save_now) then
       call MPI_FILE_WRITE(fh, snapshotnext, 1, MPI_INTEGER, st, er)
     else
       call MPI_FILE_WRITE(fh, snapshotnext+1, 1, MPI_INTEGER, st, er)

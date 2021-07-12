@@ -154,12 +154,12 @@ contains
     use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active
     use mod_global_parameters
-    use mod_input_output, only: saveamrfile
+    use mod_input_output, only: saveamrfile, save_now
     use mod_ghostcells_update
 
     integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
     integer(kind=8) ncells_update
-    logical :: save_now, crashall
+    logical :: crashall
     double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
 
     time_in=MPI_WTIME()
