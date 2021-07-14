@@ -533,6 +533,9 @@ contains
           ^D&ixcmax^D=floor((xF(ix1,ix2,^D)+dxMax^D-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
           {if(ixcmin^D<ixOmin^D) ixcmin^D=ixOmin^D\}
           {if(ixcmax^D>ixOmax^D) ixcmax^D=ixOmax^D\}
+          if (ps(igrid)%x(ixcmax^D,ndim)>phys_trac_mask) then
+            ixcmax^ND=floor((phys_trac_mask-ps(igrid)%x(ixOmin^D,ndim))/dxb^ND)+ixOmin^ND
+          endif
           {do ixc^D=ixcmin^D,ixcmax^D\}
             ds=0.d0
             {ds=ds+(xF(ix1,ix2,^D)-ps(igrid)%x(ixc^DD,^D))**2\}
@@ -574,7 +577,7 @@ contains
     integer :: ipe_now,ipe_next
     double precision :: xp_in(ndim),xp_out(ndim),x3d(3)
     integer :: ipoint_in,ipoint_out
-    double precision :: statusB(7+ndim)
+    double precision :: statusB(7+2*ndim)
     logical :: stopB
     double precision :: Te_info(3)
 
@@ -610,7 +613,7 @@ contains
         call trace_in_pe(igrid,ipoint_in,xf,igridf,numP,forward,statusB,Te_info,mask)
       endif
       ! comunication
-      call MPI_BCAST(statusB,7+ndim,MPI_DOUBLE_PRECISION,ipe_now,icomm,ierrmpi)
+      call MPI_BCAST(statusB,7+2*ndim,MPI_DOUBLE_PRECISION,ipe_now,icomm,ierrmpi)
       ! prepare for next step
       ipoint_out=int(statusB(1))
       ipe_next=int(statusB(2))
@@ -619,12 +622,11 @@ contains
         stopB=.TRUE.
         numRT=ipoint_out-1
       endif
-      do j=1,ndim
-        xf(ipoint_out,j)=statusB(4+j)
-      enddo
-      Te_info(1)=statusB(5+ndim)   ! temperature at ipoint_out-1
-      Te_info(2)=statusB(6+ndim)   ! current Tcofl
-      Te_info(3)=statusB(7+ndim)   ! current Tlmax
+      xf(ipoint_out-1,1:ndim)=statusB(4+1:4+ndim)
+      xf(ipoint_out,1:ndim)=statusB(4+ndim+1:4+ndim+ndim)
+      Te_info(1)=statusB(5+2*ndim)   ! temperature at ipoint_out-1
+      Te_info(2)=statusB(6+2*ndim)   ! current Tcofl
+      Te_info(3)=statusB(7+2*ndim)   ! current Tlmax
       ipef(ipoint_in:ipoint_out-1)=ipe_now
       ! pe and grid of next point
       ipe_now=ipe_next
@@ -648,7 +650,7 @@ contains
     double precision :: xf(numP,ndim)
     integer :: igridf(numP)
     logical :: forward,mask
-    double precision :: statusB(7+ndim),Te_info(3)
+    double precision :: statusB(7+2*ndim),Te_info(3)
     integer :: ipe_next,igrid_next,ip_in,ip_out,j
     logical :: newpe,stopB
     double precision :: xfout(ndim)
@@ -684,12 +686,11 @@ contains
         statusB(3)=igrid_next
         statusB(4)=0
         if (stopB) statusB(4)=1
-        do j=1,ndim
-          statusB(4+j)=xf(ip_out,j)
-        enddo
-        statusB(5+ndim)=Te_info(1)
-        statusB(6+ndim)=Te_info(2)
-        statusB(7+ndim)=Te_info(3)
+        statusB(4+1:4+ndim)=xf(ip_out-1,1:ndim)
+        statusB(4+ndim+1:4+ndim+ndim)=xf(ip_out,1:ndim)
+        statusB(5+2*ndim)=Te_info(1)
+        statusB(6+2*ndim)=Te_info(2)
+        statusB(7+2*ndim)=Te_info(3)
       endif
       if(newpe .eqv. .FALSE.) igrid=igrid_next
     enddo
