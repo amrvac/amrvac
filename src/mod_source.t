@@ -24,8 +24,10 @@ contains
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
 
     logical, intent(in) :: prior
-
-    double precision :: w1(ixG^T,nw)
+    ! This variable, later allocated on the thread stack, causes segmentation fault
+    ! when openmp is used with intel. That could be solved otherwise, by increasing
+    ! the thread stack size, but not using it at all could speed up. 
+    !double precision :: w1(ixG^T,nw)
     double precision :: qdt, qt
     integer :: iigrid, igrid
     logical :: src_active
@@ -63,58 +65,70 @@ contains
     ! add normal split source terms
     select case (sourcesplit)
     case (sourcesplit_sfs)
-      !$OMP PARALLEL DO PRIVATE(igrid,qdt,w1)
+      !$OMP PARALLEL DO PRIVATE(igrid,qdt)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         w1=ps(igrid)%w
-         call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         !w1=ps(igrid)%w
+         !call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         !     ps(igrid)%x,.true.,src_active)
+         call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
               ps(igrid)%x,.true.,src_active)
       end do
       !$OMP END PARALLEL DO
     case (sourcesplit_sf)
-      !$OMP PARALLEL DO PRIVATE(igrid,qdt,w1)
+      !$OMP PARALLEL DO PRIVATE(igrid,qdt)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         w1=ps(igrid)%w
-         call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         !w1=ps(igrid)%w
+         !call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         !     ps(igrid)%x,.true.,src_active)
+         call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
               ps(igrid)%x,.true.,src_active)
       end do
       !$OMP END PARALLEL DO
     case (sourcesplit_ssf)
-      !$OMP PARALLEL DO PRIVATE(igrid,qdt,w1)
+      !$OMP PARALLEL DO PRIVATE(igrid,qdt)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         w1=ps(igrid)%w
-         call addsource2(0.5d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,w1,&
+         !w1=ps(igrid)%w
+         !call addsource2(0.5d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,w1,&
+         !     ps(igrid)%x,.true.,src_active)
+         !call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         !     ps(igrid)%x,.true.,src_active)
+         call addsource2(0.5d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
               ps(igrid)%x,.true.,src_active)
-         call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
               ps(igrid)%x,.true.,src_active)
       end do
       !$OMP END PARALLEL DO
     case (sourcesplit_ssfss)
-      !$OMP PARALLEL DO PRIVATE(igrid,qdt,w1)
+      !$OMP PARALLEL DO PRIVATE(igrid,qdt)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
          typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         w1=ps(igrid)%w
-         call addsource2(0.25d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,w1,&
+         !w1=ps(igrid)%w
+         !call addsource2(0.25d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,w1,&
+         !     ps(igrid)%x,.true.,src_active)
+         !call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         !     ps(igrid)%x,.true.,src_active)
+         call addsource2(0.25d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
               ps(igrid)%x,.true.,src_active)
-         call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
+         call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
               ps(igrid)%x,.true.,src_active)
       end do
       !$OMP END PARALLEL DO

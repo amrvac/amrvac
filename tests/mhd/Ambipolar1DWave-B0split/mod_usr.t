@@ -250,11 +250,11 @@ contains
     deallocate(te)
   end subroutine set_equi_vars_valc
 
-  subroutine set_equi_vars2(xnorm, pe, rho, bx0)
+  subroutine set_equi_vars2(xnorm, pe, rho)
     use mod_interpolation
     !use interp1D
     double precision, intent(in) :: xnorm(:)
-    double precision, dimension(:) :: pe,rho,bx0
+    double precision, dimension(:) :: pe,rho
  
     integer :: nrows, ncols, nz
     !!!we already know there are 10 columns
@@ -269,10 +269,31 @@ contains
 
     call interp_cubic_spline(valcData(:,equi_zz),valcData(:,equi_rho),nrows,xnorm,rho,nz)
     call interp_cubic_spline(valcData(:,equi_zz),valcData(:,equi_pe),nrows,xnorm,pe,nz)
-    call interp_cubic_spline(valcData(:,equi_zz),valcData(:,equi_bx),nrows,xnorm,bx0,nz)
  
    deallocate(valcData)
   end subroutine set_equi_vars2
+
+  subroutine set_equi_vars2_b0(xnorm, bx0)
+    use mod_interpolation
+    !use interp1D
+    double precision, intent(in) :: xnorm(:)
+    double precision, dimension(:) :: bx0
+ 
+    integer :: nrows, ncols, nz
+    !!!we already know there are 10 columns
+    double precision, allocatable, dimension(:,:) :: valcData
+    nrows = get_number_lines(equi_filename)
+    ncols = get_number_columns(equi_filename)
+
+    nz = size(xnorm)
+
+    allocate(valcData(nrows,ncols))
+    call read_formatted_file(equi_filename,nrows,ncols,valcData)
+
+    call interp_cubic_spline(valcData(:,equi_zz),valcData(:,equi_bx),nrows,xnorm,bx0,nz)
+ 
+   deallocate(valcData)
+  end subroutine set_equi_vars2_b0
 
   subroutine init_equi_vars(xnorm)
     double precision, allocatable, target, intent(in) :: xnorm(:)
@@ -321,6 +342,8 @@ contains
     usr_init_one_grid => initonegrid_usr
     usr_special_bc    => specialbound_usr
     usr_gravity         => gravity
+    usr_set_B0              => specialset_B0
+    usr_set_J0              => specialset_J0
 
     usr_set_parameters  => init_params_usr
     !usr_process_grid => special_process_filter
@@ -336,6 +359,26 @@ contains
     call mhd_activate()
 
   end subroutine usr_init
+
+  subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
+  ! Here add a time-independent background magnetic field
+    integer, intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in)  :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: wB0(ixI^S,1:ndir)
+
+    call set_equi_vars2_b0(x(ixO^S,1), wB0(ixO^S,3))
+    wB0(ixO^S,1:2)=0d0
+  end subroutine specialset_B0
+
+  subroutine specialset_J0(ixI^L,ixO^L,x,wJ0)
+  ! Here add a time-independent background current density 
+    integer, intent(in)           :: ixI^L,ixO^L
+    double precision, intent(in)  :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:ndir)
+    wJ0(ixI^S,:)=zero
+
+
+  end subroutine specialset_J0
   
   subroutine special_ambipolar(ixI^L,ixO^L,w,x,ambiCoef)
     integer, intent(in) :: ixI^L, ixO^L
@@ -369,7 +412,7 @@ contains
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    call set_equi_vars2(x(ixO^S,1), w(ixO^S,p_), w(ixO^S,rho_), w(ixO^S,mag(3)))
+    call set_equi_vars2(x(ixO^S,1), w(ixO^S,p_), w(ixO^S,rho_))
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
@@ -402,7 +445,7 @@ contains
     integer, intent(in) :: ixO^L, ixI^L
     double precision, intent(in) :: x(ixI^S,1:ndim),time
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision,allocatable, dimension(:) :: pe0, rho0, bx0
+    double precision,allocatable, dimension(:) :: pe0, rho0
     integer :: ixG^L
 
     ixGmin1 = ixOmin1-nghostcells
@@ -412,17 +455,15 @@ contains
     ixGmax1 = ixOmin1+nghostcells-1
 
 
-    allocate(rho0(ixG^S), pe0(ixG^S),bx0(ixG^S))
+    allocate(rho0(ixG^S), pe0(ixG^S))
     
-    call set_equi_vars2(x(ixG^S,1), pe0(ixG^S), rho0(ixG^S), bx0(ixG^S))
+    call set_equi_vars2(x(ixG^S,1), pe0(ixG^S), rho0(ixG^S))
 
      w(ixO^S,rho_) =   (w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,rho_) - rho0(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S)) + rho0(ixO^S)
      w(ixO^S,p_) = (w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,p_)- pe0(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S)) + pe0(ixO^S)
-     w(ixO^S,mom(1)) = w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,mom(1))
-     w(ixO^S,mag(3)) = (w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,mag(3))- bx0(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S)) + bx0(ixO^S)
 
 
-    deallocate(pe0, rho0, bx0)
+    deallocate(pe0, rho0)
     call mhd_to_conserved(ixI^L,ixG^L,w,x)
   end subroutine setUpperBoundary
 
@@ -449,7 +490,8 @@ contains
     allocate(vA02(ixG^S), c02(ixG^S),a(ixG^S), b(ixG^S), c(ixG^S),  temp1(ixG^S), temp3(ixG^S))
     allocate(rho0(ixG^S), pe0(ixG^S),bx0(ixG^S))
 
-    call set_equi_vars2(x(ixG^S,1), pe0(ixG^S), rho0(ixG^S), bx0(ixG^S))
+    call set_equi_vars2(x(ixG^S,1), pe0(ixG^S), rho0(ixG^S))
+    call set_equi_vars2_b0(x(ixG^S,1), bx0(ixG^S))
 
     c02(ixG^S) = mhd_gamma * pe0(ixG^S)/rho0(ixG^S)
     vA02(ixG^S) = bx0(ixG^S)**2/rho0(ixG^S)
@@ -488,7 +530,7 @@ contains
 
     w(ixO^S,rho_)=rho0(ixO^S) + real(wave(ixO^S)*RR(ixO^S))
     w(ixO^S,p_)=pe0(ixO^S) + real(wave(ixO^S)*PP(ixO^S))
-    w(ixO^S,mag(3))=bx0(ixO^S) + real(wave(ixO^S)*BB(ixO^S))
+    w(ixO^S,mag(3))=real(wave(ixO^S)*BB(ixO^S))
     w(ixO^S,mom(1))= real(wave(ixO^S)*VV(ixO^S))
 
     deallocate(pe0, rho0, bx0)

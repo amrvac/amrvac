@@ -142,10 +142,10 @@ subroutine prolong_2nd(sCo,ixCo^L,sFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridCo,ig
         end do
      end do
      ! cell-centered coordinates of coarse grid point
-     !^D&xCo^D=xCo({ixCo^DD},^D)\
+     !^D&xCo^D=xCo({ixCo^DD},^D)
      {do ix^DB=ixFi^DB,ixFi^DB+1 \}
         ! cell-centered coordinates of fine grid point
-        !^D&xFi^D=xFi({ix^DD},^D)\
+        !^D&xFi^D=xFi({ix^DD},^D)
         if(slab_uniform) then
           ! normalized distance between fine/coarse cell center
           ! in coarse cell: ranges from -0.5 to 0.5 in each direction

@@ -23,7 +23,7 @@ subroutine setdt()
      a2max_mype = zero
      tco_mype = zero
      Tmax_mype = zero
-  !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D)
+  !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype)
      do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
         dtnew=bigdouble
         dx^D=rnode(rpdx^D_,igrid);

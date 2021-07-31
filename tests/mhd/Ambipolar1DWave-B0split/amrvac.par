@@ -14,6 +14,7 @@
 
  &stoplist
         time_max      = 1d-3
+        !time_max      = 1d0
  /
 
  &methodlist
@@ -26,7 +27,7 @@
  &boundlist
         internalboundary = .true.
         typeboundary_min1  = 8*'special'
-        typeboundary_max1  = 8*'special'
+        typeboundary_max1  = 'special',3*'symm','special',3*'symm'
 
 
  /
@@ -47,6 +48,8 @@
 
  &mhd_list
         typedivbfix   =  'linde'
+        B0field=.true.
+        B0field_forcefree=.true.
         mhd_gravity   =  .true.
         SI_unit       =  .true.
         He_abundance  =  0d0

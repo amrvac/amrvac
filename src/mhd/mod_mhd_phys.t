@@ -1505,7 +1505,7 @@ contains
     double precision, allocatable:: vHall(:^D&,:)
     integer                      :: idirmin, iw, idir, jdir, kdir
     double precision, allocatable, dimension(:^D&,:) :: Jambi, btot
-    double precision, allocatable, dimension(:^D&) :: tmp2, tmp3
+    double precision, allocatable, dimension(:^D&) :: tmp2, tmp3, tmp4
 
 
     if (mhd_Hall) then
@@ -1651,7 +1651,7 @@ contains
       allocate(btot(ixO^S,1:3))
       if(B0field) then
         do idir=1,3
-          btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,idir)
+          btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,idim)
         enddo
       else
         btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
@@ -1662,26 +1662,32 @@ contains
       !tmp3 = J_ambi dot Btot
       tmp3(ixO^S) = sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
 
+      if (B0field) allocate(tmp4(ixO^S))
       select case(idim)
         case(1)
-          tmp(ixO^S)=btot(ixO^S,3) *Jambi(ixO^S,2) - btot(ixO^S,2) * Jambi(ixO^S,3)
+          tmp(ixO^S)=w(ixO^S,mag(3)) *Jambi(ixO^S,2) - w(ixO^S,mag(2)) * Jambi(ixO^S,3)
+          if(B0field) tmp4(ixO^S) = w(ixO^S,mag(2)) * btot(ixO^S,3) - w(ixO^S,mag(3)) * btot(ixO^S,2)
           f(ixO^S,mag(2))= f(ixO^S,mag(2)) - tmp2(ixO^S) * Jambi(ixO^S,3) + tmp3(ixO^S) * btot(ixO^S,3)
           f(ixO^S,mag(3))= f(ixO^S,mag(3)) + tmp2(ixO^S) * Jambi(ixO^S,2) - tmp3(ixO^S) * btot(ixO^S,2)
         case(2)
-          tmp(ixO^S)=btot(ixO^S,1) *Jambi(ixO^S,3) - btot(ixO^S,3) * Jambi(ixO^S,1)
+          tmp(ixO^S)=w(ixO^S,mag(1)) *Jambi(ixO^S,3) - w(ixO^S,mag(3)) * Jambi(ixO^S,1)
+          if(B0field) tmp4(ixO^S) = w(ixO^S,mag(3)) * btot(ixO^S,1) - w(ixO^S,mag(1)) * btot(ixO^S,3)
           f(ixO^S,mag(1))= f(ixO^S,mag(1)) + tmp2(ixO^S) * Jambi(ixO^S,3) - tmp3(ixO^S) * btot(ixO^S,3)
           f(ixO^S,mag(3))= f(ixO^S,mag(3)) - tmp2(ixO^S) * Jambi(ixO^S,1) + tmp3(ixO^S) * btot(ixO^S,1)
         case(3)
-          tmp(ixO^S)=btot(ixO^S,2) *Jambi(ixO^S,1) - btot(ixO^S,1) * Jambi(ixO^S,2)
+          tmp(ixO^S)=w(ixO^S,mag(2)) *Jambi(ixO^S,1) - w(ixO^S,mag(1)) * Jambi(ixO^S,2)
+          if(B0field) tmp4(ixO^S) = w(ixO^S,mag(1)) * btot(ixO^S,2) - w(ixO^S,mag(2)) * btot(ixO^S,1)
           f(ixO^S,mag(1))= f(ixO^S,mag(1)) - tmp2(ixO^S) * Jambi(ixO^S,2) + tmp3(ixO^S) * btot(ixO^S,2)
           f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,1) - tmp3(ixO^S) * btot(ixO^S,1)
       endselect
 
       if(mhd_energy .and. .not. mhd_internal_e) then
         f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
+        if(B0field) f(ixO^S,e_) = f(ixO^S,e_) +  tmp3(ixO^S) *  tmp4(ixO^S)
       endif
 
       deallocate(Jambi,btot,tmp2,tmp3)
+      if (B0field) deallocate(tmp4)
     endif
 
   end subroutine mhd_get_flux
@@ -1715,7 +1721,6 @@ contains
     double precision, intent(out)   :: res(:^D&,:)
 
     double precision  :: btot(ixI^S,1:3)
-
     integer          :: idir, idirmin
     double precision :: current(ixI^S,7-2*ndir:3)
     double precision :: tmp(ixI^S),b2(ixI^S)
@@ -1727,7 +1732,7 @@ contains
  
     if(B0field) then
       do idir=1,3
-        btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,idir)
+        btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,block%iw0)
       enddo
     else
       btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
@@ -1766,14 +1771,6 @@ contains
     ixA^L=ixO^L^LADD1;
 
     call mhd_get_jxbxb(w,x,ixI^L,ixA^L,tmp)
-    btot(ixA^S,1:3)=0.d0
-    if(B0field) then
-      do i=1,ndir
-        btot(ixA^S, i) = w(ixA^S,mag(i)) + block%B0(ixA^S,i,0)
-      enddo
-    else
-      btot(ixA^S,1:ndir) = w(ixA^S,mag(1:ndir))
-    endif
 
     !set electric field in tmp: E=nuA * jxbxb, where nuA=-etaA/rho^2
     do i=1,3
@@ -1787,6 +1784,15 @@ contains
     end if
 
     if(mhd_energy .and. .not.mhd_internal_e) then
+      !btot should be only mag. pert.
+      btot(ixA^S,1:3)=0.d0
+      !if(B0field) then
+      !  do i=1,ndir
+      !    btot(ixA^S, i) = w(ixA^S,mag(i)) + block%B0(ixA^S,i,0)
+      !  enddo
+      !else
+        btot(ixA^S,1:ndir) = w(ixA^S,mag(1:ndir))
+      !endif
       call cross_product(ixI^L,ixA^L,tmp,btot,ff)
       call get_flux_on_cell_face(ixI^L,ixO^L,ff,tmp2)
       if(fix_conserve_at_step) fluxall(ixI^S,1,1:ndim)=ff(ixI^S,1:ndim)
