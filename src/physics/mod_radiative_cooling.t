@@ -79,13 +79,16 @@ module mod_radiative_cooling
 
   logical :: isPPL = .false.
 
-  integer          :: n_Hildner, n_FM, n_Rosner, n_Klimchuk
+  integer          :: n_Hildner, n_FM, n_Rosner, n_Klimchuk, n_SPEX_DM_rough, n_SPEX_DM_fine
 
-  double precision :: t_Hildner(1:6), t_FM(1:5), t_Rosner(1:10), t_Klimchuk(1:8)
+  double precision :: t_Hildner(1:6), t_FM(1:5), t_Rosner(1:10), t_Klimchuk(1:8), &
+                      t_SPEX_DM_rough(1:8), t_SPEX_DM_fine(1:15)
 
-  double precision :: x_Hildner(1:5), x_FM(1:4), x_Rosner(1:9), x_Klimchuk(1:7)
+  double precision :: x_Hildner(1:5), x_FM(1:4), x_Rosner(1:9), x_Klimchuk(1:7), &
+                      x_SPEX_DM_rough(1:7), x_SPEX_DM_fine(1:14)
 
-  double precision :: a_Hildner(1:5), a_FM(1:4), a_Rosner(1:9), a_Klimchuk(1:7)
+  double precision :: a_Hildner(1:5), a_FM(1:4), a_Rosner(1:9), a_Klimchuk(1:7), &
+                      a_SPEX_DM_rough(1:7), a_SPEX_DM_fine(1:14)
 
   data   n_Hildner / 5 /
  
@@ -122,7 +125,25 @@ module mod_radiative_cooling
                       -24.46092, -15.26043, -26.70774             /
 
   data   a_Klimchuk / 2.00, -1.00, 0.00, -1.50, 0.33, -1.00, 0.50 /
+  
+  data   n_SPEX_DM_rough / 7 /
+ 
+  data   t_SPEX_DM_rough / 1.000, 1.572, 3.992, 4.165, 5.221, 5.751, 7.295, 8.160 /
 
+  data   x_SPEX_DM_rough / -34.286, -28.282, -108.273, -26.662, -9.729, -17.550, -24.767 /
+  
+  data   a_SPEX_DM_rough / 4.560, 0.740, 20.777, 1.182, -2.061, -0.701, 0.288 /
+
+  data   n_SPEX_DM_fine / 14 /
+ 
+  data   t_SPEX_DM_fine / 1.000, 1.422, 2.806, 3.980, 4.177, 4.443, 4.832, 5.397, &
+                          5.570, 5.890, 6.232, 6.505, 6.941, 7.385, 8.160         /
+                          
+  data   x_SPEX_DM_fine / -35.314, -29.195, -26.912, -108.273, -18.971, -32.195, -21.217, & 
+                           -0.247, -15.415, -19.275,   -9.387, -22.476, -17.437, -25.026  /
+  
+  data   a_SPEX_DM_fine / 5.452,  1.150,  0.337, 20.777, -0.602,  2.374, 0.102, &
+                         -3.784, -1.061, -0.406, -1.992,  0.020, -0.706, 0.321  /
 
   ! Interpolatable tables
   integer          :: n_DM      , n_MB      , n_MLcosmol &
@@ -754,7 +775,7 @@ module mod_radiative_cooling
       integer :: ntable, i, j, ic, nwx,idir
       logical :: jump
 
-      Character(len=65) :: PPL_curves(1:4)
+      Character(len=65) :: PPL_curves(1:6)
       rc_gamma=phys_gamma
       He_abundance=He_abund
       ncool=4000
@@ -782,7 +803,7 @@ module mod_radiative_cooling
       Tcoff_ = nwflux+1
       
       ! Checks if coolcurve is a piecewise power law (PPL)
-      PPL_curves = [Character(len=65) :: 'Hildner','FM', 'Rosner', 'Klimchuk']
+      PPL_curves = [Character(len=65) :: 'Hildner','FM', 'Rosner', 'Klimchuk','SPEX_DM_rough','SPEX_DM_fine']
       do i=1,size(PPL_curves)
          if (PPL_curves(i)==coolcurve) then
             isPPL = .true.
@@ -852,6 +873,34 @@ module mod_radiative_cooling
 
             l_PPL(1:n_PPL) = 10.d0**x_Klimchuk(1:n_Klimchuk) * (10.d0**t_PPL(1:n_PPL))**a_PPL(1:n_PPL)  
 
+         case('SPEX_DM_rough')
+            if(mype==0) &
+            print *,'Use the rough piece wise power law fit to the SPEX_DM curve (2009)'
+             
+            n_PPL = n_SPEX_DM_rough
+         
+            allocate(t_PPL(1:n_PPL+1), l_PPL(1:n_PPL+1))
+            allocate(a_PPL(1:n_PPL))
+            
+            t_PPL(1:n_PPL+1) = t_SPEX_DM_rough(1:n_SPEX_DM_rough+1)
+            a_PPL(1:n_PPL) = a_SPEX_DM_rough(1:n_SPEX_DM_rough)
+
+            l_PPL(1:n_PPL) = 10.d0**x_SPEX_DM_rough(1:n_SPEX_DM_rough) * (10.d0**t_PPL(1:n_PPL))**a_PPL(1:n_PPL)  
+
+         case('SPEX_DM_fine')
+            if(mype==0) &
+            print *,'Use the fine, detailed piece wise power law fit to the SPEX_DM curve (2009)'
+             
+            n_PPL = n_SPEX_DM_fine
+         
+            allocate(t_PPL(1:n_PPL+1), l_PPL(1:n_PPL+1))
+            allocate(a_PPL(1:n_PPL))
+            
+            t_PPL(1:n_PPL+1) = t_SPEX_DM_fine(1:n_SPEX_DM_fine+1)
+            a_PPL(1:n_PPL) = a_SPEX_DM_fine(1:n_SPEX_DM_fine)
+
+            l_PPL(1:n_PPL) = 10.d0**x_SPEX_DM_fine(1:n_SPEX_DM_fine) * (10.d0**t_PPL(1:n_PPL))**a_PPL(1:n_PPL) 
+            
          case default
             call mpistop("This piecewise power law is unknown")
          end select
@@ -859,9 +908,13 @@ module mod_radiative_cooling
          ! Go from logarithmic to actual values.
          t_PPL(1:n_PPL+1) = 10.d0**t_PPL(1:n_PPL+1)
          
+         ! Change unit of table if SI is used instead of cgs
+         if (si_unit) l_PPL(1:n_PPL) = l_PPL(1:n_PPL) * 10.0d0**(-13)
+         
          ! Make dimensionless
          t_PPL(1:n_PPL+1) = t_PPL(1:n_PPL+1) / unit_temperature
          l_PPL(1:n_PPL) = l_PPL(1:n_PPL) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance)        
+
 
          ! Set tref en lref
          l_PPL(n_PPL+1) = l_PPL(n_PPL) * ( t_PPL(n_PPL+1) / t_PPL(n_PPL) )**a_PPL(n_PPL)
@@ -1168,10 +1221,17 @@ module mod_radiative_cooling
          ! Go from logarithmic to actual values.
          tcool(1:ncool) = 10.0D0**tcool(1:ncool)
          Lcool(1:ncool) = 10.0D0**Lcool(1:ncool)
+
+
+         ! Change unit of table if SI is used instead of cgs
+         if (si_unit) Lcool(1:ncool) = Lcool(1:ncool) * 10.0d0**(-13)
+         
          
          ! Scale both T and Lambda
          tcool(1:ncool) = tcool(1:ncool) / unit_temperature
          Lcool(1:ncool) = Lcool(1:ncool) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance) 
+     
+
          tcoolmin       = tcool(1)+smalldouble  ! avoid pointless interpolation
          ! smaller value for lowest temperatures from cooling table and user's choice
          if (tlow==bigdouble) tlow=tcoolmin
