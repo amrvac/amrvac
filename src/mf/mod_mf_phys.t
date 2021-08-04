@@ -4,8 +4,11 @@ module mod_mf_phys
   implicit none
   private
 
-  !> viscosity coefficient
-  double precision, public                :: mf_nu = 1.d0
+  !> viscosity coefficient in s cm^-2 for solar corona (Cheung 2012 ApJ)
+  double precision, public                :: mf_nu = 1.d-15
+
+  !> maximal limit of magnetofrictional velocity in cm s^-1 (Pomoell 2019 A&A)
+  double precision, public                :: mf_vmax = 3.d6
 
   !> decay scale of frictional velocity 
   double precision, public                :: mf_decay_scale(2*^ND)=0.d0
@@ -119,7 +122,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /mf_list/ mf_nu, mf_decay_scale, &
+    namelist /mf_list/ mf_nu, mf_vmax, mf_decay_scale, &
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       particles_eta,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
@@ -349,6 +352,12 @@ contains
     if (.not. SI_unit) unit_charge = unit_charge*const_c
     unit_mass=unit_density*unit_length**3
 
+    ! get dimensionless mf nu
+    mf_nu=mf_nu/unit_time*unit_length**2
+
+    ! get dimensionless maximal mf velocity limit
+    mf_vmax=mf_vmax/unit_velocity
+ 
   end subroutine mf_physical_units
 
   !> Transform primitive variables into conservative ones
@@ -767,6 +776,10 @@ contains
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
+    do idir=1,ndir
+      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))*tmp(ixO^S)
+    end do
+
     ! decay frictional velocity near selected boundaries
     ^D&xmin(^D)=xprobmin^D\
     ^D&xmax(^D)=xprobmax^D\
@@ -778,17 +791,12 @@ contains
          (1.d0-exp((x(ixO^S,ndim)-xmax(idir))/mf_decay_scale(2*idir)))
     end do
 
-    if(slab_uniform) then
-      dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
-      do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-      end do
-    else
-      dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%ds(ixO^S,:),dim=ndim+1)
-      do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
-      end do
-    end if
+    ! saturate mf velocity at mf_vmax
+    tmp(ixO^S)=sqrt(sum(w(ixO^S,mom(:))**2,dim=ndim+1))/mf_vmax+1.d-12
+    tmp(ixO^S)=dtanh(tmp(ixO^S))/tmp(ixO^S)
+    do idir=1,ndir
+      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))*tmp(ixO^S)*decay(ixO^S)
+    end do
 
   end subroutine frictional_velocity
 
