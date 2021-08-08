@@ -1539,12 +1539,7 @@ module mod_radiative_cooling
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-         {^IFONED
-           ttofflocal=block%special_values(1)
-         }
-         {^NOONED
            ttofflocal=w(ix^D,Tcoff_)
-         }
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
@@ -1620,12 +1615,7 @@ module mod_radiative_cooling
       
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-         {^IFONED
-           ttofflocal=block%special_values(1)
-         }
-         {^NOONED
            ttofflocal=w(ix^D,Tcoff_)
-         }
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,(pnew(ix^D)/(rc_gamma-1.d0))-emin)/qdt
@@ -1729,12 +1719,7 @@ module mod_radiative_cooling
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-         {^IFONED
-           ttofflocal=block%special_values(1)
-         }
-         {^NOONED
            ttofflocal=w(ix^D,Tcoff_)
-         }
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
@@ -1812,12 +1797,7 @@ module mod_radiative_cooling
          elocal   = plocal/(rc_gamma-1.d0)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-         {^IFONED
-           ttofflocal=block%special_values(1)
-         }
-         {^NOONED
            ttofflocal=w(ix^D,Tcoff_)
-         }
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
@@ -1899,12 +1879,7 @@ module mod_radiative_cooling
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-         {^IFONED
-           ttofflocal=block%special_values(1)
-         }
-         {^NOONED
            ttofflocal=w(ix^D,Tcoff_)
-         }
          end if
          emin     = w(ix^D,rho_)*tlow*invgam
          Lmax     = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
