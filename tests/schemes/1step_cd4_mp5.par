@@ -1,0 +1,14 @@
+ &filelist
+        base_filename  = '_1step_cd4_mp5'
+ /
+
+ &methodlist
+        time_stepper=  'onestep'
+        flux_scheme =    20*'cd4'
+        limiter=  20*'mp5'
+        typeboundspeed  = 'cmaxmean'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

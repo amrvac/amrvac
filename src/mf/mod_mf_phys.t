@@ -566,10 +566,9 @@ contains
   end subroutine mf_get_flux
 
   !> Add global source terms to update frictional velocity on complete domain
-  subroutine mf_velocity_update(qdt,qt,psa)
+  subroutine mf_velocity_update(qt,psa)
     use mod_global_parameters
     use mod_ghostcells_update
-    double precision, intent(in) :: qdt    !< Current time step
     double precision, intent(in) :: qt     !< Current time
     type(state), target :: psa(max_blocks) !< Compute based on this state
 
@@ -592,7 +591,7 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       block=>psa(igrid)
-      call frictional_velocity(psa(igrid)%w,psa(igrid)%x,ixG^LL,ixM^LL,qdt)
+      call frictional_velocity(psa(igrid)%w,psa(igrid)%x,ixG^LL,ixM^LL)
     end do
     !$OMP END PARALLEL DO
 
@@ -604,7 +603,10 @@ contains
     type_recv_r=>type_recv_r_p1
     type_send_p=>type_send_p_p1
     type_recv_p=>type_recv_p_p1
+    bcphys=.false.
+    stagger_grid=.false.
     call getbc(qt,0.d0,psa,mom(1),ndir,.true.)
+    bcphys=.true.
     type_send_srl=>type_send_srl_f
     type_recv_srl=>type_recv_srl_f
     type_send_r=>type_send_r_f
@@ -725,18 +727,17 @@ contains
 
   end subroutine mf_add_source
 
-  subroutine frictional_velocity(w,x,ixI^L,ixO^L,qdt)
+  subroutine frictional_velocity(w,x,ixI^L,ixO^L)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim),qdt
+    double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: dxhm, xmin(ndim),xmax(ndim)
     double precision :: dxhms(ixO^S),decay(ixO^S)
     double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S)
     integer :: ix^D, idirmin,idir,jdir,kdir
-    logical :: buffer
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)
     ! extrapolate current for the outmost layer, 

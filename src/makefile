@@ -54,7 +54,6 @@ amrvac.o: mod_initialize.mod
 amrvac.o: mod_input_output.mod
 amrvac.o: mod_multigrid_coupling.mod
 amrvac.o: mod_particles.mod
-amrvac.o: mod_physics.mod
 amrvac.o: mod_timing.mod
 amrvac.o: mod_usr.mod
 boundary_conditions.o: mod_bc_data.mod

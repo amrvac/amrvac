@@ -5,7 +5,6 @@ program amrvac
 
   use mod_global_parameters
   use mod_input_output
-  use mod_physics, only: phys_check_params
   use mod_usr_methods
   use mod_ghostcells_update
   use mod_usr

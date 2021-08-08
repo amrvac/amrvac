@@ -204,9 +204,8 @@ module mod_physics
      end subroutine sub_clean_divb
 
      !> Add special advance in each advect step
-     subroutine sub_special_advance(qdt, qt, psa)
+     subroutine sub_special_advance(qt, psa)
        use mod_global_parameters
-       double precision, intent(in) :: qdt    !< Current time step
        double precision, intent(in) :: qt     !< Current time
        type(state), target :: psa(max_blocks) !< Compute based on this state
      end subroutine sub_special_advance
