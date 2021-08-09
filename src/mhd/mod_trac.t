@@ -141,21 +141,46 @@ contains
     end do
   end subroutine init_trac_Tcoff
 
-  subroutine TRAC_simple(T_peak)
-    double precision :: T_peak
+  subroutine TRAC_simple(tco_global,trac_alfa,T_peak)
+    double precision, intent(in) :: tco_global, trac_alfa,T_peak
     integer :: iigrid, igrid
-    integer :: ixO^L
+    integer :: ixO^L,trac_tcoff
 
     ixO^L=ixM^LL;
+    trac_tcoff=iw_tcoff
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      if(ps(igrid)%special_values(1) .lt.  T_bott) then
+      {^IFONED
+      ps(igrid)%special_values(1)=tco_global
+      }
+      if(ps(igrid)%special_values(1)<trac_alfa*ps(igrid)%special_values(2)) then
+        ps(igrid)%special_values(1)=trac_alfa*ps(igrid)%special_values(2)
+      end if
+      if(ps(igrid)%special_values(1) .lt. T_bott) then
         ps(igrid)%special_values(1)=T_bott
       else if(ps(igrid)%special_values(1) .gt. 0.2d0*T_peak) then
         ps(igrid)%special_values(1)=0.2d0*T_peak
       end if
-      ps(igrid)%w(ixO^S,Tcoff_)=ps(igrid)%special_values(1)
+      ps(igrid)%w(ixO^S,trac_tcoff)=ps(igrid)%special_values(1)
+      !> special values(2) to save old tcutoff
+      ps(igrid)%special_values(2)=ps(igrid)%special_values(1)
     end do
   end subroutine TRAC_simple
+
+  subroutine LTRAC(T_peak)
+    double precision, intent(in) :: T_peak
+    integer :: iigrid, igrid
+    integer :: ixO^L,trac_tcoff
+
+    ixO^L=ixM^LL;
+    trac_tcoff=iw_tcoff
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+      where(ps(igrid)%w(ixO^S,trac_tcoff) .lt. T_bott)
+        ps(igrid)%w(ixO^S,trac_tcoff)=T_bott
+      else where(ps(igrid)%w(ixO^S,trac_tcoff) .gt. 0.2d0*T_peak)
+        ps(igrid)%w(ixO^S,trac_tcoff)=0.2d0*T_peak
+      end where
+    end do
+  end subroutine LTRAC
 
   subroutine TRACL(mask,T_peak)
     logical, intent(in) :: mask

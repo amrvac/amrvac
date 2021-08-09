@@ -45,6 +45,9 @@ module mod_hd_phys
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
 
+  !> Index of the cutoff temperature for the TRAC method
+  integer, public, protected              :: Tcoff_
+
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
 
@@ -56,6 +59,7 @@ module mod_hd_phys
 
   !> Whether TRAC method is used
   logical, public, protected              :: hd_trac = .false.
+  integer, public, protected              :: hd_trac_type = 1
 
   !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
   logical, public, protected              :: hd_force_diagonal = .false.
@@ -84,7 +88,7 @@ contains
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
     hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_force_diagonal
+    hd_force_diagonal, hd_trac_type
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -195,7 +199,11 @@ contains
     phys_trac=hd_trac
     if(phys_trac) then
       if(ndim .eq. 1) then
-        phys_trac_type=1
+        if(hd_trac_type .gt. 2) then 
+          hd_trac_type=1
+          if(mype==0) write(*,*) 'WARNING: set hd_trac_type=1'
+        end if
+        phys_trac_type=hd_trac_type
       else
         phys_trac=.false.
         if(mype==0) write(*,*) 'WARNING: set hd_trac=F when ndim>=2'
@@ -230,6 +238,11 @@ contains
        p_ = -1
     end if
 
+    if(hd_trac) then
+      Tcoff_ = var_set_tcoff()
+    else
+      Tcoff_ = -1
+    end if
 
     phys_get_dt              => hd_get_dt
     phys_get_cmax            => hd_get_cmax
@@ -573,31 +586,53 @@ contains
   subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
 
-    double precision, parameter :: delta=0.25d0
+    double precision, parameter :: trac_delta=0.25d0
     double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
+    double precision :: ltr(ixI^S),ltrc,ltrp,tcoff(ixI^S)
     integer :: jxO^L,hxO^L
+    integer :: jxP^L,hxP^L,ixP^L
     logical :: lrlt(ixI^S)
 
     {^IFONED
     tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
 
+    Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
-
-    hxO^L=ixO^L-1;
-    jxO^L=ixO^L+1;
-    lts(ixO^S)=0.5d0*dabs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
-    lrlt=.false.
-    where(lts(ixO^S) > delta)
-      lrlt(ixO^S)=.true.
-    end where
-    tco_local=zero
-    if(any(lrlt(ixO^S))) then
-      tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
-    end if
+    select case(hd_trac_type)
+    case(0)
+      w(ixI^S,Tcoff_)=3.d5/unit_temperature
+    case(1)
+      hxO^L=ixO^L-1;
+      jxO^L=ixO^L+1;
+      lts(ixO^S)=0.5d0*dabs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
+      lrlt=.false.
+      where(lts(ixO^S) > trac_delta)
+        lrlt(ixO^S)=.true.
+      end where
+      if(any(lrlt(ixO^S))) then
+        Tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+      end if
+    case(2)
+      !> iijima et al. 2021, LTRAC method
+      ltrc=1.5d0
+      ltrp=2.5d0
+      ixP^L=ixO^L^LADD1;
+      hxO^L=ixO^L-1;
+      jxO^L=ixO^L+1;
+      hxP^L=ixP^L-1;
+      jxP^L=ixP^L+1;
+      lts(ixP^S)=0.5d0*abs(Te(jxP^S)-Te(hxP^S))/Te(ixP^S)
+      ltr(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
+      w(ixO^S,Tcoff_)=Te(ixO^S)*&
+        (0.25*(ltr(jxO^S)+two*ltr(ixO^S)+ltr(hxO^S)))**0.4d0
+    case default
+      call mpistop("mhd_trac_type not allowed for 1D simulation")
+    end select
     }
   end subroutine hd_get_tcutoff
 

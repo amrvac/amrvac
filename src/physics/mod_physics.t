@@ -130,7 +130,8 @@ module mod_physics
      subroutine sub_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout)    :: w(ixI^S, nw)
+       double precision, intent(in)    :: x(ixI^S, 1:^ND)
        double precision, intent(out) :: tco_local, Tmax_local
      end subroutine sub_get_tcutoff
 

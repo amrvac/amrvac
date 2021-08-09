@@ -225,6 +225,8 @@ contains
     rho_ = ixArray(1)
     e_ = ixArray(2)
     if(size(ixArray).eq.3) eaux_ = ixArray(3)
+    if(phys_trac) Tcoff_=iw_tcoff
+
     tc_gamma_1=phys_gamma - 1d0
     small_e = small_pressure/tc_gamma_1
     tc_k_para=0.d0
@@ -481,16 +483,9 @@ contains
       ! conductivity at cell center
       if(phys_trac) then
         minq(ix^S)=Te(ix^S)
-        {^IFONED
-        where(minq(ix^S) < block%special_values(1))
-          minq(ix^S)=block%special_values(1)
-        end where
-        }
-        {^NOONED
         where(minq(ix^S) < w(ix^S,Tcoff_))
           minq(ix^S)=w(ix^S,Tcoff_)
         end where
-        }
         minq(ix^S)=tc_k_para*sqrt(minq(ix^S)**5)
       else
         minq(ix^S)=tc_k_para*sqrt(Te(ix^S)**5)
@@ -859,16 +854,9 @@ contains
     end do
     ! transition region adaptive conduction
     if(phys_trac) then
-      {^IFONED
-      where(ke(ixI^S) < block%special_values(1))
-        ke(ixI^S)=block%special_values(1)
-      end where
-      }
-      {^NOONED
       where(ke(ixI^S) < w(ixI^S,Tcoff_))
         ke(ixI^S)=w(ixI^S,Tcoff_)
       end where
-      }
     end if
     ! cell corner conduction flux
     do idims=1,ndim

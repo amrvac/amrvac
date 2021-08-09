@@ -358,12 +358,12 @@ contains
     phys_total_energy=total_energy
 
     {^IFONED
-      if(mhd_trac .and. mhd_trac_type .gt. 1) then
+      if(mhd_trac .and. mhd_trac_type .gt. 2) then
         mhd_trac_type=1
-        if(mype==0) write(*,*) 'WARNING: set mhd_trac_type=1 for 1D simulation'
+        if(mype==0) write(*,*) 'WARNING: reset mhd_trac_type=1 for 1D simulation'
       end if
     }
-    if(mhd_trac .and. mhd_trac_type .le. 3) then
+    if(mhd_trac .and. mhd_trac_type .le. 4) then
       mhd_trac_mask=bigdouble
       if(mype==0) write(*,*) 'WARNING: set mhd_trac_mask==bigdouble for global TRAC method'
     end if
@@ -466,7 +466,7 @@ contains
     Tweight_ = -1
     if(mhd_trac) then
       Tcoff_ = var_set_tcoff()
-      if(mhd_trac_type .ge. 2) then
+      if(mhd_trac_type .ge. 3) then
         Tweight_ = var_set_extravar('Tweight', 'Tweight')
       endif
     else
@@ -1095,7 +1095,8 @@ contains
     use mod_global_parameters
     use mod_geometry
     integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim),w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(out) :: Tco_local,Tmax_local
 
     double precision, parameter :: trac_delta=0.25d0
@@ -1103,7 +1104,9 @@ contains
     double precision, dimension(ixI^S,1:ndir) :: bunitvec
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision :: Bdir(ndim)
+    double precision :: ltr(ixI^S),ltrc,ltrp,altr(ixI^S)
     integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D
+    integer :: jxP^L,hxP^L,ixP^L
     logical :: lrlt(ixI^S)
 
     if(mhd_internal_e) then
@@ -1113,25 +1116,48 @@ contains
                        w(ixI^S,rho_)+sum(w(ixI^S,iw_mag(:))**2,dim=ndim+1))
     end if
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(mhd_gamma-1.d0)
+    Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
 
     {^IFONED
-    hxO^L=ixO^L-1;
-    jxO^L=ixO^L+1;
-    lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
-    lrlt=.false.
-    where(lts(ixO^S) > trac_delta)
-      lrlt(ixO^S)=.true.
-    end where
-    Tco_local=zero
-    block%special_values(1)=zero
-    if(any(lrlt(ixO^S))) then
-      Tco_local=zero
-      block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
-    end if
+    select case(mhd_trac_type)
+    case(0)
+      !> test case, fixed cutoff temperature
+      w(ixI^S,Tcoff_)=2.5d5/unit_temperature
+    case(1)
+      hxO^L=ixO^L-1;
+      jxO^L=ixO^L+1;
+      lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
+      lrlt=.false.
+      where(lts(ixO^S) > trac_delta)
+        lrlt(ixO^S)=.true.
+      end where
+      if(any(lrlt(ixO^S))) then
+        Tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
+      end if
+    case(2)
+      !> iijima et al. 2021, LTRAC method
+      ltrc=1.5d0
+      ltrp=2.5d0
+      ixP^L=ixO^L^LADD1;
+      hxO^L=ixO^L-1;
+      jxO^L=ixO^L+1;
+      hxP^L=ixP^L-1;
+      jxP^L=ixP^L+1;
+      lts(ixP^S)=0.5d0*abs(Te(jxP^S)-Te(hxP^S))/Te(ixP^S)
+      ltr(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
+      w(ixO^S,Tcoff_)=Te(ixO^S)*&
+        (0.25*(ltr(jxO^S)+two*ltr(ixO^S)+ltr(hxO^S)))**0.4d0
+    case default
+      call mpistop("mhd_trac_type not allowed for 1D simulation")
+    end select
     }
     {^NOONED
-    if(mod(mhd_trac_type,2) .eq. 1) then
+    select case(mhd_trac_type)
+    case(0)
+      !> test case, fixed cutoff temperature
+      w(ixI^S,Tcoff_)=2.5d5/unit_temperature
+    case(1,4,6)
       ! temperature gradient at cell centers
       do idims=1,ndim
         call gradient(Te,ixI^L,ixO^L,idims,tmp1)
@@ -1143,7 +1169,7 @@ contains
       else
         bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))
       end if
-      if(mhd_trac_type>1) then
+      if(mhd_trac_type .gt. 1) then
         ! B direction at cell center
         Bdir=zero
         {do ixA^D=0,1\}
@@ -1183,7 +1209,55 @@ contains
         block%special_values(1)=zero
       end if
       block%special_values(2)=Tmax_local
-    end if
+    case(2)
+      !> iijima et al. 2021, LTRAC method
+      ltrc=1.5d0
+      ltrp=2.5d0
+      ixP^L=ixO^L^LADD1;
+      ! temperature gradient at cell centers
+      do idims=1,ndim
+        call gradient(Te,ixI^L,ixP^L,idims,tmp1)
+        gradT(ixP^S,idims)=tmp1(ixP^S)
+      end do
+      ! B vector
+      if(B0field) then
+        bunitvec(ixP^S,:)=w(ixP^S,iw_mag(:))+block%B0(ixP^S,:,0)
+      else
+        bunitvec(ixP^S,:)=w(ixP^S,iw_mag(:))
+      end if
+      tmp1(ixP^S)=dsqrt(sum(bunitvec(ixP^S,:)**2,dim=ndim+1))
+      where(tmp1(ixP^S)/=0.d0)
+        tmp1(ixP^S)=1.d0/tmp1(ixP^S)
+      elsewhere
+        tmp1(ixP^S)=bigdouble
+      end where
+      ! b unit vector: magnetic field direction vector
+      do idims=1,ndim
+        bunitvec(ixP^S,idims)=bunitvec(ixP^S,idims)*tmp1(ixP^S)
+      end do
+      ! temperature length scale inversed
+      lts(ixP^S)=abs(sum(gradT(ixP^S,1:ndim)*bunitvec(ixP^S,1:ndim),dim=ndim+1))/Te(ixP^S)
+      ! fraction of cells size to temperature length scale
+      if(slab_uniform) then
+        lts(ixP^S)=minval(dxlevel)*lts(ixP^S)
+      else
+        lts(ixP^S)=minval(block%ds(ixP^S,:),dim=ndim+1)*lts(ixP^S)
+      end if
+      ltr(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
+  
+      altr(ixI^S)=zero  
+      do idims=1,ndim 
+        hxO^L=ixO^L-kr(idims,^D);
+        jxO^L=ixO^L+kr(idims,^D);
+        altr(ixO^S)=altr(ixO^S) &
+          +0.25*(ltr(hxO^S)+two*ltr(ixO^S)+ltr(jxO^S))*bunitvec(ixO^S,idims)**2
+        w(ixO^S,Tcoff_)=Te(ixO^S)*altr(ixO^S)**(0.4*ltrp)
+      end do
+    case(3,5)
+      !> do nothing here
+    case default
+      call mpistop("unknown mhd_trac_type")
+    end select 
     }
   end subroutine mhd_get_tcutoff
 
