@@ -47,7 +47,7 @@ contains
     ^D&dxinv(^D)=-qdt/dx^D;
     ^D&dxdim(^D)=dx^D;
     do idims= idims^LIM
-      block%iw0=idims
+      b0i=idims
       ! Calculate w_j+g_j/2 and w_j-g_j/2
       ! First copy all variables, then upwind wLC and wRC.
       ! wLC is to the left of ixO, wRC is to the right of wCT.
@@ -88,7 +88,7 @@ contains
         end if
       end do
     end do ! next idims
-    block%iw0=0
+    b0i=0
 
     do iw = 1, nwflux
       if (associated(phys_iw_methods(iw)%inv_capacity)) then
@@ -171,7 +171,7 @@ contains
     ^D&dxdim(^D)=dx^D;
     do idims= idims^LIM
        ! use interface value of w0 at idims
-       block%iw0=idims
+       b0i=idims
 
        hxO^L=ixO^L-kr(idims,^D);
 
@@ -237,7 +237,7 @@ contains
        if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do ! Next idims
-    block%iw0=0
+    b0i=0
 
     if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
 

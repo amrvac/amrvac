@@ -868,7 +868,7 @@ contains
     ^D&dxinv(^D)=-qdt/dx^D;
     fC=0.d0
     do idims= idim^LIM
-       block%iw0=idims
+       b0i=idims
 
        hxO^L=ixO^L-kr(idims,^D);
        ! ixC is centered index in the idim direction from ixOmin-1/2 to ixOmax+1/2
@@ -909,6 +909,7 @@ contains
 
        end do ! Next idir
     end do ! Next idims
+    b0i=0
 
     !Now update the state:
     do idims= idim^LIM
@@ -962,7 +963,7 @@ contains
 
     ^D&dxinv(^D)=-qdt/dx^D;
     do idims= idim^LIM
-       block%iw0=idims
+       b0i=idims
        ! Calculate w_j+g_j/2 and w_j-g_j/2
        ! First copy all variables, then upwind wLC and wRC.
        ! wLC is to the left of ixO, wRC is to the right of wCT.
@@ -989,6 +990,7 @@ contains
           end if
        end do
     end do ! next idims
+    b0i=0
 
     if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
@@ -1166,7 +1168,7 @@ contains
 
     ! Add fluxes to w
     do idims= idim^LIM
-       block%iw0=idims
+       b0i=idims
        ix^L=ixO^L^LADD2*kr(idims,^D);
        hxO^L=ixO^L-kr(idims,^D);
 
@@ -1211,6 +1213,7 @@ contains
           end if
        end do    !next idir
     end do       !next idims
+    b0i=0
 
     if (.not.slab) call addgeometrymf(qdt,ixI^L,ixO^L,wCT,w,x)
     call divbclean(qdt,ixI^L,ixO^L,wCT,w,x)

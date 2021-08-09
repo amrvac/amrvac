@@ -1732,7 +1732,7 @@ contains
  
     if(B0field) then
       do idir=1,3
-        btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,block%iw0)
+        btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,b0i)
       enddo
     else
       btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
@@ -3078,7 +3078,7 @@ contains
     double precision              :: mge(ixO^S)
 
     if (B0field) then
-      mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,block%iw0))**2, dim=ndim+1)
+      mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,b0i))**2, dim=ndim+1)
     else
       mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
     end if
@@ -3092,7 +3092,7 @@ contains
     double precision              :: mgf(ixO^S)
 
     if (B0field) then
-      mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,block%iw0)
+      mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,b0i)
     else
       mgf = w(ixO^S, mag(idir))
     end if
@@ -3189,7 +3189,7 @@ contains
 
     if (.not. B0field) then
        bmag(ixO^S)=sqrt(sum(w(ixO^S,mag(:))**2, dim=ndim+1))
-       bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%B0(ixO^S,1:ndir,block%iw0))**2))
+       bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%B0(ixO^S,1:ndir,b0i))**2))
     end if
 
     if(slab_uniform) then

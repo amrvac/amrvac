@@ -30,7 +30,6 @@ subroutine setdt()
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         saveigrid = igrid
         block=>ps(igrid)
-        block%iw0=0
 
         if (nwaux>0) then
            call phys_get_aux(.true.,ps(igrid)%w,&

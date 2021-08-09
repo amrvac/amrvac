@@ -543,6 +543,9 @@ module mod_global_parameters
   !> \todo Remove / replace with gradient_limiter
   integer :: typegradlimiter
 
+  !> background magnetic field location indicator
+  integer :: b0i=0
+
   !> Limiter used for prolongation to refined grids and ghost cells
   character(len=std_len) :: typeprolonglimit
 

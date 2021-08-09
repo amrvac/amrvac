@@ -9,8 +9,8 @@ module mod_physicaldata
       integer :: ixG^L
       !> index range of block array in cell faces
       integer :: ixGs^L
-      !> location of w0-array, 0: cell center, ^D : cell interface in dimension ^D
-      integer :: iw0=0
+      !> level of AMR
+      integer :: level
       !> If it face a physical boundary
       logical, dimension(:), pointer :: is_physical_boundary(:) =>Null()
       !> Variables, normally cell center conservative values

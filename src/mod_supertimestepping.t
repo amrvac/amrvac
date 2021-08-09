@@ -682,7 +682,7 @@ contains
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail; igrid=igrids(iigrid);
             if(.not. allocated(ps2(igrid)%w)) then
-              call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+              call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, ps(igrid)%level, .false.)
             end if
             if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
             if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))

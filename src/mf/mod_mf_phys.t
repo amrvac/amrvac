@@ -1403,7 +1403,7 @@ contains
     double precision              :: mge(ixO^S)
 
     if (B0field) then
-      mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,block%iw0))**2, dim=ndim+1)
+      mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,b0i))**2, dim=ndim+1)
     else
       mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
     end if
@@ -1417,7 +1417,7 @@ contains
     double precision              :: mgf(ixO^S)
 
     if (B0field) then
-      mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,block%iw0)
+      mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,b0i)
     else
       mgf = w(ixO^S, mag(idir))
     end if

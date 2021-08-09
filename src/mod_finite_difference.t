@@ -47,7 +47,7 @@ contains
     ^D&dxdim(^D)=dx^D;
     do idims= idims^LIM
 
-       block%iw0=idims
+       b0i=idims
 
        ! Get fluxes for the whole grid (mesh+nghostcells)
        {^D& ixmin^D = ixOmin^D - nghostcells * kr(idims,^D)\}
@@ -86,7 +86,7 @@ contains
        end if
 
     end do !idims loop
-    block%iw0=0
+    b0i=0
 
     if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
 
@@ -317,7 +317,7 @@ contains
     ^D&dxdim(^D)=dx^D;
     ! get fluxes
     do idims= idims^LIM
-       block%iw0=idims
+       b0i=idims
 
        ix^L=ixO^L^LADD2*kr(idims,^D); 
        hxO^L=ixO^L-kr(idims,^D);
@@ -372,7 +372,7 @@ contains
        if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do       !next idims
-    block%iw0=0
+    b0i=0
 
     if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
 
