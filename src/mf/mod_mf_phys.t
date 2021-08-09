@@ -777,8 +777,9 @@ contains
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
+    dxhm=2.d0**(refine_max_level-block%level)
     do idir=1,ndir
-      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))*tmp(ixO^S)
+      w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)
     end do
 
     ! decay frictional velocity near selected boundaries

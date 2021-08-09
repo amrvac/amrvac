@@ -666,15 +666,10 @@ contains
     double precision :: qdt
     integer :: iigrid, igrid, level
 
-    logical :: firstadvect=.true.
-
     istep = istep+1
 
-    if(firstadvect) then
-      if(associated(phys_special_advance)) then
-        call phys_special_advance(qt,psa)
-      end if
-      firstadvect=.false.
+    if(associated(phys_special_advance)) then
+      call phys_special_advance(qt,psa)
     end if
 
     ! opedit: Just advance the active grids:
@@ -717,10 +712,6 @@ contains
     ! For all grids: fill ghost cells
     qdt = dtfactor*dt
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
-
-    if(associated(phys_special_advance)) then
-      call phys_special_advance(qt,psb)
-    end if
 
   end subroutine advect1
 
