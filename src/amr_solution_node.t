@@ -85,43 +85,68 @@ subroutine alloc_node(igrid)
   if(.not. allocated(ps(igrid)%w)) then
 
     ! allocate arrays for solution and space
-    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, level, .true.)
+    call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
     ! allocate arrays for one level coarser solution
-    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, level-1, .true.)
+    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
     if(.not.convert) then
       ! allocate arrays for old solution
-      call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, level, .false.)
+      call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
       ! allocate arrays for temp solution 1
-      call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, level, .false.)
+      call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
 
       ! allocate temporary solution space
       select case (time_integrator)
       case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal","IMEX_222")
-        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, level, .false.)
+        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
       case("RK3_BT","rk4","ssprk5","IMEX_CB3a")
-        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, level, .false.)
-        call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, level, .false.)
+        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+        call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
       case("IMEX_ARS3","IMEX_232")
-        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, level, .false.)
-        call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, level, .false.)
-        call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, level, .false.)
+        call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
+        call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
+        call alloc_state(igrid, ps4(igrid), ixG^LL, ixGext^L, .false.)
       end select
     end if
 
   end if
 
   ps(igrid)%w=0.d0
-  psc(igrid)%w=0.d0
-  if(.not.convert) ps1(igrid)%w=0.d0
   ps(igrid)%igrid=igrid
+  ps(igrid)%level=level
+  psc(igrid)%w=0.d0
+  psc(igrid)%igrid=igrid
+  psc(igrid)%level=level-1
   if(phys_trac) ps(igrid)%special_values=0.d0
+  if(.not.convert) then
+    pso(igrid)%igrid=igrid
+    pso(igrid)%level=level
+    ps1(igrid)%w=0.d0
+    ps1(igrid)%igrid=igrid
+    ps1(igrid)%level=level
+      select case (time_integrator)
+      case("ssprk3","ssprk4","jameson","IMEX_Midpoint","IMEX_Trapezoidal","IMEX_222")
+        ps2(igrid)%igrid=igrid
+        ps2(igrid)%level=level
+      case("RK3_BT","rk4","ssprk5","IMEX_CB3a")
+        ps2(igrid)%igrid=igrid
+        ps2(igrid)%level=level
+        ps3(igrid)%igrid=igrid
+        ps3(igrid)%level=level
+      case("IMEX_ARS3","IMEX_232")
+        ps2(igrid)%igrid=igrid
+        ps2(igrid)%level=level
+        ps3(igrid)%igrid=igrid
+        ps3(igrid)%level=level
+        ps4(igrid)%igrid=igrid
+        ps4(igrid)%level=level
+      end select
+  end if
 
   if(stagger_grid) then
     ps(igrid)%ws=0.d0
     psc(igrid)%ws=0.d0
     if(.not.convert) ps1(igrid)%ws=0.d0
   end if
-
 
   ! block pointer to current block
   block=>ps(igrid)
@@ -556,15 +581,14 @@ subroutine alloc_node(igrid)
 end subroutine alloc_node
 
 !> allocate memory to physical state of igrid node
-subroutine alloc_state(igrid, s, ixG^L, ixGext^L, level, alloc_x)
+subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
   use mod_global_parameters
   use mod_geometry
   type(state) :: s
-  integer, intent(in) :: igrid, ixG^L, ixGext^L, level
+  integer, intent(in) :: igrid, ixG^L, ixGext^L
   logical, intent(in) :: alloc_x
   integer             :: ixGs^L
 
-  s%level=level
   allocate(s%w(ixG^S,1:nw))
   s%ixG^L=ixG^L;
   {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}

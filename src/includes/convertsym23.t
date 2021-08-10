@@ -1612,7 +1612,6 @@ end if
 ! next lines needed when specialvar_output uses gradients
 ! and later on when dwlimiter2 is used 
 typelimiter=limiter(node(plevel_,igrid))
-typegradlimiter=gradient_limiter(node(plevel_,igrid))
 if(nwauxio>0)then
   ! auxiliary io variables can be computed and added by user
   ! next few lines ensure correct usage of routines like divvector etc
@@ -2475,7 +2474,6 @@ do ig3=1,ng3(level_io)}
        do ig1=1,ng1(level_io)
          igrid=ig_to_igrid(ig^D,mype)
          typelimiter=limiter(node(plevel_,igrid))
-         typegradlimiter=gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          ! default (no) normalization for auxiliary variables
          allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
@@ -2730,7 +2728,6 @@ do ig2=1,ng2(level_io)
     do ig1=1,ng1(level_io)
       igrid=ig_to_igrid(ig^D,mype)
       typelimiter=limiter(node(plevel_,igrid))
-      typegradlimiter=gradient_limiter(node(plevel_,igrid))
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       ! default (no) normalization for auxiliary variables
       allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))

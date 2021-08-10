@@ -438,9 +438,9 @@ contains
     ! set the gradient limiter here
     qR(gxC^S) = q(hxC^S)
     qL(gxC^S) = q(gxC^S)
-    if (typegradlimiter/=limiter_ppm) then
+    if (type_gradient_limiter(block%level)/=limiter_ppm) then
       dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-      call dwlimiter2(dqC,ixI^L,gxC^L,idir,typegradlimiter,ldw=ldq,rdw=rdq)
+      call dwlimiter2(dqC,ixI^L,gxC^L,idir,type_gradient_limiter(block%level),ldw=ldq,rdw=rdq)
       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
       qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
     else
@@ -590,9 +590,9 @@ contains
       hxC^L=gxC^L+kr(idims,^D);
       qR(gxC^S) = qvec(hxC^S,idims)
       qL(gxC^S) = qvec(gxC^S,idims)
-      if(typegradlimiter/=limiter_ppm) then
+      if(type_gradient_limiter(block%level)/=limiter_ppm) then
         dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-        call dwlimiter2(dqC,ixI^L,gxC^L,idims,typegradlimiter,ldw=ldq,rdw=rdq)
+        call dwlimiter2(dqC,ixI^L,gxC^L,idims,type_gradient_limiter(block%level),ldw=ldq,rdw=rdq)
         qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
         qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
       else

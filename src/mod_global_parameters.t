@@ -540,9 +540,6 @@ module mod_global_parameters
   !> \todo Remove / replace with limiter
   integer :: typelimiter
 
-  !> \todo Remove / replace with gradient_limiter
-  integer :: typegradlimiter
-
   !> background magnetic field location indicator
   integer :: b0i=0
 
@@ -658,9 +655,10 @@ module mod_global_parameters
   !> resolution of the output
   character(len=std_len) :: resolution_euv='instrument'
 
+  !$OMP THREADPRIVATE(block)
   !$OMP THREADPRIVATE(dxlevel)
   !$OMP THREADPRIVATE(saveigrid)
-  !$OMP THREADPRIVATE(typelimiter,typegradlimiter)
+  !$OMP THREADPRIVATE(typelimiter)
 
 contains
 

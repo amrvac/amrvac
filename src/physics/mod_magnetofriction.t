@@ -734,7 +734,6 @@ contains
     fC=0.d0
 
     typelimiter=type_limiter(node(plevel_,igrid))
-    typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
     ixO^L=ixG^L^LSUBnghostcells;
     select case (method)

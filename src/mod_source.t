@@ -70,7 +70,6 @@ contains
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
-         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          !w1=ps(igrid)%w
          !call addsource2(0.5d0*qdt,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
@@ -85,7 +84,6 @@ contains
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
-         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          !w1=ps(igrid)%w
          !call addsource2(qdt  ,ixG^LL,ixM^LL,1,nw,qt,w1,qt,ps(igrid)%w,&
@@ -100,7 +98,6 @@ contains
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
-         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          !w1=ps(igrid)%w
          !call addsource2(0.5d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,w1,&
@@ -119,7 +116,6 @@ contains
          qdt=dt_grid(igrid)
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
-         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          !w1=ps(igrid)%w
          !call addsource2(0.25d0*qdt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,w1,&

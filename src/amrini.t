@@ -49,7 +49,6 @@ subroutine initial_condition(igrid)
   block=>ps(igrid)
   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
   typelimiter=type_limiter(node(plevel_,igrid))
-  typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
   if (.not. associated(usr_init_one_grid)) then
      call mpistop("usr_init_one_grid not defined")
@@ -71,7 +70,6 @@ subroutine modify_IC
      block=>ps(igrid)
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      typelimiter=type_limiter(node(plevel_,igrid))
-     typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
      if (.not. associated(usr_init_one_grid)) then
         call mpistop("usr_init_one_grid not defined")

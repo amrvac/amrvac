@@ -738,7 +738,6 @@ contains
     block0=>sCT
     block=>s
     typelimiter=type_limiter(node(plevel_,igrid))
-    typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
     call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
          ps(igrid)%x)
@@ -827,7 +826,6 @@ contains
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
-         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
          call usr_process_grid(igrid,level,ixG^LL,ixM^LL,qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
@@ -863,7 +861,6 @@ contains
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          block=>ps(igrid)
          typelimiter=type_limiter(node(plevel_,igrid))
-         typegradlimiter=type_gradient_limiter(node(plevel_,igrid))
 
          call usr_process_adv_grid(igrid,level,ixG^LL,ixM^LL, &
               qt,ps(igrid)%w,ps(igrid)%x)
