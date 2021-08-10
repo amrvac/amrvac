@@ -154,7 +154,7 @@ subroutine setdt()
       !> 1D TRAC method
       trac_dmax=0.1d0
       trac_tau=1.d0/unit_time
-      trac_alfa=trac_dmax**(dtnew/trac_tau)
+      trac_alfa=trac_dmax**(dt/trac_tau)
       tco_global=zero
       {^IFONED
       call MPI_ALLREDUCE(tco_mype,tco_global,1,MPI_DOUBLE_PRECISION,&

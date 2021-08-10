@@ -1069,10 +1069,10 @@ For multi-D uniform Cartesian grids, we prepared some other methods.
 `mhd_trac_type=3` is the multi-D TRAC method based on the field line tracing module.
 For multi-D simulations, it should be the most accurate one, but might be very slow.
 Considering that this TRAC modificaiton will mostly affect the transition region,
-one can use `mhd_trac_type=4` to add a mask to limit the region where the field lines are integrated.
+one can use `mhd_trac_type=5` to add a mask to limit the region where the field lines are integrated.
 Give `mhd_trac_mask` to set the maximum height of the mask, in your unit_length.
-`mhd_trac_type=3` uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
-And `mhd_trac_type=5` works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
+`mhd_trac_type=4` uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
+And `mhd_trac_type=6` works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
 Give `mhd_trac_finegrid` to set the distance between two adjacent traced field lines (in the unit of finest cell size).
 Note that when setting `mhd_trac_type >=3`, the direction of your gravity should follow y-dir (2D) or z-dir(3D).
 
