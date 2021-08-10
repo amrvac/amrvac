@@ -734,8 +734,8 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: dxhm, xmin(ndim),xmax(ndim)
-    double precision :: dxhms(ixO^S),decay(ixO^S)
+    double precision :: xmin(ndim),xmax(ndim)
+    double precision :: decay(ixO^S)
     double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S)
     integer :: ix^D, idirmin,idir,jdir,kdir
 
@@ -777,9 +777,8 @@ contains
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
     endwhere
 
-    dxhm=2.d0**(refine_max_level-block%level)
     do idir=1,ndir
-      w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)
+      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))*tmp(ixO^S)
     end do
 
     ! decay frictional velocity near selected boundaries
