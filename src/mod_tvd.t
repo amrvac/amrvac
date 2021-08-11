@@ -124,9 +124,10 @@ contains
     double precision, dimension(ixG^T) :: jumpC, adtdxC, smallaC, phiC
 
     double precision, dimension(ixG^T) :: ljumpC, tmp
-    integer :: jxC^L, ix^L, hx^L
+    integer :: jxC^L, ix^L, hx^L, typelimiter
     !-----------------------------------------------------------------------------
 
+    typelimiter=type_limiter(block%level)
     if(method=='tvdmu'.or.method=='tvdmu1')then
        ! In the MUSCL scheme phi=|a|*jump, apply entropy fix to it
        if(typeentropy(il)=='nul'.or.typeentropy(il)=='ratio')then

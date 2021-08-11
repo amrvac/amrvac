@@ -664,7 +664,7 @@ contains
     character(len=*), intent(in) :: method(nlevelshi)
 
     double precision :: qdt
-    integer :: iigrid, igrid, level
+    integer :: iigrid, igrid
 
     istep = istep+1
 
@@ -672,13 +672,15 @@ contains
       call phys_special_advance(qt,psa)
     end if
 
+    qdt=dtfactor*dt
     ! opedit: Just advance the active grids:
-    !$OMP PARALLEL DO PRIVATE(igrid,level,qdt)
+    !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       level=node(plevel_,igrid)
-       qdt=dtfactor*dt_grid(igrid)
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+       saveigrid=igrid
+       block=>ps(igrid)
 
-       call process1_grid(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
+       call process1_grid(method(block%level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
             psa(igrid),qt,psb(igrid),pso(igrid))
     end do
     !$OMP END PARALLEL DO
@@ -732,12 +734,6 @@ contains
     double precision :: fE(ixI^S,7-2*ndim:3)
 
     dx^D=rnode(rpdx^D_,igrid);
-    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    saveigrid=igrid
-
-    block0=>sCT
-    block=>s
-    typelimiter=type_limiter(node(plevel_,igrid))
 
     call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
          ps(igrid)%x)
@@ -825,7 +821,6 @@ contains
          ! next few lines ensure correct usage of routines like divvector etc
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          block=>ps(igrid)
-         typelimiter=type_limiter(node(plevel_,igrid))
          call usr_process_grid(igrid,level,ixG^LL,ixM^LL,qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
@@ -860,7 +855,6 @@ contains
          ! next few lines ensure correct usage of routines like divvector etc
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          block=>ps(igrid)
-         typelimiter=type_limiter(node(plevel_,igrid))
 
          call usr_process_adv_grid(igrid,level,ixG^LL,ixM^LL, &
               qt,ps(igrid)%w,ps(igrid)%x)

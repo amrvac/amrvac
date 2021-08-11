@@ -366,7 +366,6 @@ contains
          ! next few lines ensure correct usage of routines like divvector etc
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          block=>ps(igrid)
-         typelimiter=type_limiter(node(plevel_,igrid))
          ! end maybe the following global variables are needed in get_dt!!!!!!!
          dx^D=rnode(rpdx^D_,igrid);
          dtmin_mype=min(dtmin_mype, sts_dtpar * temp%sts_getdt(ps(igrid)%w,ixG^LL,ixM^LL,dx^D,ps(igrid)%x))
@@ -530,7 +529,6 @@ contains
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
             block=>ps(igrid)
-            typelimiter=type_limiter(node(plevel_,igrid))
             call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps1(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
             if(temp%nflux>ndir) then
               ps(igrid)%w(ixM^T,temp%startVar)=ps(igrid)%w(ixM^T,temp%startVar)+dtj*ps1(igrid)%w(ixM^T,temp%startVar)
@@ -544,7 +542,6 @@ contains
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
             block=>ps(igrid)
-            typelimiter=type_limiter(node(plevel_,igrid))
             call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps1(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
             ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)=ps(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&
               dtj*ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar)
@@ -746,7 +743,6 @@ contains
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           block=>ps(igrid)
-          typelimiter=type_limiter(node(plevel_,igrid))
           ps4(igrid)%w=zero
           call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
           !!!eq solved: dU/dt = S, ps3 is stored S^n
@@ -763,7 +759,6 @@ contains
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           block=>ps(igrid)
-          typelimiter=type_limiter(node(plevel_,igrid))
           call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
           !!!eq solved: dU/dt = S, ps3 is stored S^n
           ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar) = my_dt * ps4(igrid)%w(ixM^T,temp%startVar:temp%endVar)
@@ -835,7 +830,6 @@ contains
             ! next few lines ensure correct usage of routines like divvector etc
             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
             block=>ps(igrid)
-            typelimiter=type_limiter(node(plevel_,igrid))
             ! end maybe the following global variables are needed in set_sources
             call temp%sts_set_sources(ixG^LL,ixM^LL,tmpPs1(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
             if(temp%nflux>ndir) then
@@ -856,7 +850,6 @@ contains
             ! next few lines ensure correct usage of routines like divvector etc
             ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
             block=>ps(igrid)
-            typelimiter=type_limiter(node(plevel_,igrid))
             ! end maybe the following global variables are needed in set_sources
             call temp%sts_set_sources(ixG^LL,ixM^LL,tmpPs1(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
             tmpPs2(igrid)%w(ixM^T,temp%startVar:temp%endVar)=cmu*tmpPs1(igrid)%w(ixM^T,temp%startVar:temp%endVar)+&

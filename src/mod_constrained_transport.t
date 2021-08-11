@@ -200,7 +200,7 @@ contains
     qR(gxC^S) = q(hxC^S)
     qL(gxC^S) = q(gxC^S)
 
-    select case (typelimiter)
+    select case (type_limiter(block%level))
        
     case (limiter_ppm)
        ! the ordinary grid-index:
@@ -220,7 +220,7 @@ contains
     case default
 
        dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-       call dwlimiter2(dqC,ixI^L,gxC^L,idir,typelimiter,ldq,rdq)
+       call dwlimiter2(dqC,ixI^L,gxC^L,idir,type_limiter(block%level),ldq,rdq)
        qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
        qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
     end select

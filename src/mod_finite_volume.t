@@ -686,7 +686,7 @@ contains
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
     double precision   :: a2max
 
-    select case (typelimiter)
+    select case (type_limiter(block%level))
     case (limiter_mp5)
        call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
     case (limiter_weno3)
@@ -760,7 +760,7 @@ contains
           end if
             
           ! limit flux from left and/or right
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw,rdw,a2max=a2max)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw,rdw,a2max=a2max)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
 

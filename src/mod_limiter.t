@@ -120,12 +120,12 @@ contains
   end function limiter_symmetric
 
   !> Limit the centered dwC differences within ixC for iw in direction idim.
-  !> The limiter is chosen according to typelimiter.
+  !> The limiter is chosen according to typelim.
   !>
   !> Note that this subroutine is called from upwindLR (hence from methods
   !> like tvdlf, hancock, hll(c) etc) or directly from tvd.t,
   !> but also from the gradientS and divvectorS subroutines in geometry.t
-  !> Accordingly, the typelimiter here corresponds to one of limiter
+  !> Accordingly, the typelim here corresponds to one of limiter
   !> or one of gradient_limiter.
   subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)
 

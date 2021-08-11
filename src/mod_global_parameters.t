@@ -439,7 +439,6 @@ module mod_global_parameters
   ! Time integration aspects 
 
   double precision :: dt
-  double precision, allocatable :: dt_grid(:)
 
   logical :: time_advance
 
@@ -536,9 +535,6 @@ module mod_global_parameters
   !> Type of slope limiter used for computing gradients or divergences, when
   !> typegrad or typediv are set to 'limited'
   integer, allocatable :: type_gradient_limiter(:)
-
-  !> \todo Remove / replace with limiter
-  integer :: typelimiter
 
   !> background magnetic field location indicator
   integer :: b0i=0
@@ -655,10 +651,7 @@ module mod_global_parameters
   !> resolution of the output
   character(len=std_len) :: resolution_euv='instrument'
 
-  !$OMP THREADPRIVATE(block)
-  !$OMP THREADPRIVATE(dxlevel)
-  !$OMP THREADPRIVATE(saveigrid)
-  !$OMP THREADPRIVATE(typelimiter)
+  !$OMP THREADPRIVATE(block,dxlevel,saveigrid)
 
 contains
 
@@ -667,7 +660,6 @@ contains
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: a(ixI^S,3), b(ixI^S,3)
     double precision, intent(out) :: axb(ixI^S,3)
-    !-------------------------------------------------------------------------
 
     axb(ixO^S,1)=a(ixO^S,2)*b(ixO^S,3)-a(ixO^S,3)*b(ixO^S,2)
     axb(ixO^S,2)=a(ixO^S,3)*b(ixO^S,1)-a(ixO^S,1)*b(ixO^S,3)

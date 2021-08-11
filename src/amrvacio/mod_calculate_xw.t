@@ -74,7 +74,6 @@ contains
 
     ! next lines needed when usr_aux_output uses gradients
     ! and later on when dwlimiter2 is used
-    typelimiter=type_limiter(node(plevel_,igrid))
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     if(nwauxio>0)then
       ! auxiliary io variables can be computed and added by user

@@ -733,8 +733,6 @@ contains
     saveigrid=igrid
     fC=0.d0
 
-    typelimiter=type_limiter(node(plevel_,igrid))
-
     ixO^L=ixG^L^LSUBnghostcells;
     select case (method)
      case ("cd4")
@@ -780,9 +778,9 @@ contains
     integer :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
 
-    if (typelimiter == limiter_mp5) then
+    if (type_limiter(block%level) == limiter_mp5) then
        call MP5limiter(ixI^L,ixL^L,idim,w,wLC,wRC)
-    else if (typelimiter == limiter_ppm) then
+    else if (type_limiter(block%level) == limiter_ppm) then
        call PPMlimiter(ixI^L,ixM^LL,idim,w,wCT,wLC,wRC)
     else
        jxR^L=ixR^L+kr(idim,^D);
@@ -799,7 +797,7 @@ contains
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
           ! limit flux from left and/or right
-          call dwlimiter2(dwC,ixI^L,ixC^L,idim,typelimiter,ldw,rdw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idim,type_limiter(block%level),ldw,rdw)
           wLC(ixL^S,iw)=wLC(ixL^S,iw)+half*ldw(ixL^S)
           wRC(ixR^S,iw)=wRC(ixR^S,iw)-half*rdw(jxR^S)
 
@@ -1064,7 +1062,7 @@ contains
     double precision                :: ldw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
 
-    select case (typelimiter)
+    select case (type_limiter(block%level))
     case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
     case (limiter_weno5)
@@ -1085,7 +1083,7 @@ contains
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw=ldw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw=ldw)
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
        end do
@@ -1105,7 +1103,7 @@ contains
     double precision                :: rdw(ixI^S), dwC(ixI^S)
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
 
-    select case (typelimiter)
+    select case (type_limiter(block%level))
     case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
     case (limiter_weno5)
@@ -1125,7 +1123,7 @@ contains
 
        do iw=1,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,rdw=rdw)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),rdw=rdw)
 
           wRC(iL^S,iw)=wRC(iL^S,iw)-half*rdw(jxR^S)
        end do

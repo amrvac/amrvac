@@ -347,7 +347,6 @@ subroutine getintbc(time,ixG^L)
   !do iigrid=1,igridstail; igrid=igrids(iigrid);
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      block=>ps(igrid)
-     typelimiter=type_limiter(node(plevel_,igrid))
      level=node(plevel_,igrid)
      saveigrid=igrid
 

@@ -83,6 +83,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (node(plevel_,igrid)/=level) cycle
+    block=>ps(igrid)
     ! only output a grid when fully within clipped region selected
     ! by writespshift array
     if ((rnode(rpxmin1_,igrid)>=xprobmin1+(xprobmax1-xprobmin1)&
@@ -326,6 +327,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (node(plevel_,igrid)/=level) cycle
+    block=>ps(igrid)
     ! only output a grid when fully within clipped region selected
     ! by writespshift array
     if ((rnode(rpxmin1_,igrid)>=xprobmin1+(xprobmax1-xprobmin1)&
@@ -713,6 +715,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (node(plevel_,igrid)/=level) cycle
+    block=>ps(igrid)
     ! only output a grid when fully within clipped region selected
     ! by writespshift array
     if ((rnode(rpxmin1_,igrid)>=xprobmin1+(xprobmax1-xprobmin1)&
@@ -827,6 +830,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (node(plevel_,igrid)/=level) cycle
+      block=>ps(igrid)
       ! only output a grid when fully within clipped region selected
       ! by writespshift array
       if ((rnode(rpxmin1_,igrid)>=xprobmin1+(xprobmax1-xprobmin1)&
@@ -1046,6 +1050,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (node(plevel_,igrid)/=level) cycle
+    block=>ps(igrid)
     ! only output a grid when fully within clipped region selected
     ! by writespshift array
     if ((rnode(rpxmin1_,igrid)>=xprobmin1+(xprobmax1-xprobmin1)&
@@ -1248,6 +1253,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (node(plevel_,igrid)/=level) cycle
+      block=>ps(igrid)
       ! only output a grid when fully within clipped region selected
       ! by writespshift array
       if ((rnode(rpxmin1_,igrid)>=xprobmin1+(xprobmax1-xprobmin1)&
@@ -1611,7 +1617,6 @@ if (nwextra>0) then
 end if
 ! next lines needed when specialvar_output uses gradients
 ! and later on when dwlimiter2 is used 
-typelimiter=limiter(node(plevel_,igrid))
 if(nwauxio>0)then
   ! auxiliary io variables can be computed and added by user
   ! next few lines ensure correct usage of routines like divvector etc
@@ -1916,6 +1921,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
     if (node(plevel_,igrid)/=level) cycle
+    block=>ps(igrid)
     ! only output a grid when fully within clipped region selected
     ! by writespshift array
     if (({rnode(rpxmin^D_,igrid)>=xprobmin^D+(xprobmax^D-xprobmin^D)&
@@ -2110,6 +2116,7 @@ do level=levmin,levmax
  if (writelevel(level)) then
    do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (node(plevel_,igrid)/=level) cycle
+      block=>ps(igrid)
       ! only output a grid when fully within clipped region selected
       ! by writespshift array
       if (({rnode(rpxmin^D_,igrid)>=xprobmin^D+(xprobmax^D-xprobmin^D)&
@@ -2473,7 +2480,7 @@ do ig3=1,ng3(level_io)}
    do ig2=1,ng2(level_io)}
        do ig1=1,ng1(level_io)
          igrid=ig_to_igrid(ig^D,mype)
-         typelimiter=limiter(node(plevel_,igrid))
+         block=>ps
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          ! default (no) normalization for auxiliary variables
          allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))
@@ -2727,7 +2734,7 @@ end if Master_cpu_open
 do ig2=1,ng2(level_io)
     do ig1=1,ng1(level_io)
       igrid=ig_to_igrid(ig^D,mype)
-      typelimiter=limiter(node(plevel_,igrid))
+      block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       ! default (no) normalization for auxiliary variables
       allocate(pwio(igrid)%w(ixG^T,1:nw+nwauxio))

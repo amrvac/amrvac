@@ -18,38 +18,36 @@ subroutine setdt()
   integer, parameter :: niter_print = 2000
 
   if (dtpar<=zero) then
-     dtmin_mype=bigdouble
-     cmax_mype = zero
-     a2max_mype = zero
-     tco_mype = zero
-     Tmax_mype = zero
-  !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype)
-     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-        dtnew=bigdouble
-        dx^D=rnode(rpdx^D_,igrid);
-        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-        saveigrid = igrid
-        block=>ps(igrid)
+    dtmin_mype=bigdouble
+    cmax_mype = zero
+    a2max_mype = zero
+    tco_mype = zero
+    Tmax_mype = zero
+    !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype)
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+      dtnew=bigdouble
+      dx^D=rnode(rpdx^D_,igrid);
+      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+      saveigrid = igrid
+      block=>ps(igrid)
 
-        if (nwaux>0) then
-           call phys_get_aux(.true.,ps(igrid)%w,&
-                ps(igrid)%x,ixG^LL,ixM^LL,'setdt')
-        end if
+      if (nwaux>0) then
+        call phys_get_aux(.true.,ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,'setdt')
+      end if
 
-        call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
-        dtnew=min(dtnew,qdtnew)
+      call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
+      dtnew=min(dtnew,qdtnew)
 
-        call phys_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
-        dtnew=min(dtnew,qdtnew)
+      call phys_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
+      dtnew=min(dtnew,qdtnew)
 
-        if (associated(usr_get_dt)) then
-           call usr_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
-        end if
-        dtnew          = min(dtnew,qdtnew)
-        dtmin_mype     = min(dtmin_mype,dtnew)
-        dt_grid(igrid) = dtnew
-     end do
-  !$OMP END PARALLEL DO
+      if (associated(usr_get_dt)) then
+         call usr_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
+      end if
+      dtnew          = min(dtnew,qdtnew)
+      dtmin_mype     = min(dtmin_mype,dtnew)
+    end do
+    !$OMP END PARALLEL DO
   else
      dtmin_mype=dtpar
   end if
@@ -124,12 +122,6 @@ subroutine setdt()
     endif
   endif
 
-  !$OMP PARALLEL DO PRIVATE(igrid)
-  do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-     dt_grid(igrid)=dt
-  end do
-  !$OMP END PARALLEL DO
-       
   ! global Lax-Friedrich finite difference flux splitting needs fastest wave-speed
   ! so does GLM: 
   if(need_global_cmax) call MPI_ALLREDUCE(cmax_mype,cmax_global,1,&

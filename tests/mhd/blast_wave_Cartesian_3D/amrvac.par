@@ -3,7 +3,7 @@
         base_filename='bw_3d'
         saveprim=.true.
         convert_type='vtuBCCmpi'
-        autoconvert=.true.
+        autoconvert=.false.
         nwauxio=3
  /
 
@@ -16,6 +16,7 @@
 
  &stoplist
         time_max=0.15d0
+        it_max=500
 /
 
  &methodlist

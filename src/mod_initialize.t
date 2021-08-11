@@ -95,7 +95,7 @@ contains
     allocate(neighbor_type(-1:1^D&,max_blocks),neighbor_active(-1:1^D&,max_blocks))
     allocate(neighbor_pole(-1:1^D&,max_blocks))
     allocate(igrids(max_blocks),igrids_active(max_blocks),igrids_passive(max_blocks))
-    allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks),dt_grid(max_blocks))
+    allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks))
     allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
     allocate(pflux(2,^ND,max_blocks))
     ! allocate mesh for particles
@@ -109,9 +109,6 @@ contains
     global_time=time_init
 
     dt=zero
-
-    ! set all dt to zero
-    dt_grid(1:max_blocks)=zero
 
     ! no poles initially
     neighbor_pole=0

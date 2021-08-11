@@ -138,7 +138,7 @@ contains
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, iw
     double precision                :: a2max
 
-    select case (typelimiter)
+    select case (type_limiter(block%level))
     case (limiter_mp5)
        call MP5limiterL(ixI^L,iL^L,idims,w,wLC)
     case (limiter_weno5)
@@ -186,7 +186,7 @@ contains
              end select
            end if
 
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,ldw=ldw,a2max=a2max)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw=ldw,a2max=a2max)
 
           wLC(iL^S,iw)=wLC(iL^S,iw)+half*ldw(iL^S)
        end do
@@ -208,7 +208,7 @@ contains
     integer                         :: jxR^L, ixC^L, jxC^L, kxC^L, kxR^L, iw
     double precision                :: a2max
 
-    select case (typelimiter)
+    select case (type_limiter(block%level))
     case (limiter_mp5)
        call MP5limiterR(ixI^L,iL^L,idims,w,wRC)
     case (limiter_weno5)
@@ -256,7 +256,7 @@ contains
              end select
            end if
 
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,typelimiter,rdw=rdw,a2max=a2max)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),rdw=rdw,a2max=a2max)
 
           wRC(iL^S,iw)=wRC(iL^S,iw)-half*rdw(jxR^S)
        end do
