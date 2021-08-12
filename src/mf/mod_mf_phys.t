@@ -221,6 +221,9 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
+    ! Whether diagonal ghost cells are required for the physics
+    if(type_divb < divb_linde) phys_req_diagonal = .false.
+
     ! set velocity field as flux variables
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
@@ -304,9 +307,6 @@ contains
     ! clean initial divb
     if(clean_initial_divb) phys_clean_divb => mf_clean_divb_multigrid
     }
-
-    ! Whether diagonal ghost cells are required for the physics
-    if(type_divb < divb_linde) phys_req_diagonal = .false.
 
     ! derive units from basic units
     call mf_physical_units()
@@ -1225,11 +1225,16 @@ contains
     double precision, intent(in)       :: w(ixI^S,1:nw)
     double precision                   :: divb(ixI^S), dsurface(ixI^S)
 
+    double precision :: invB(ixO^S)
     integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
+    invB(ixO^S)=sqrt(mf_mag_en_all(w,ixI^L,ixO^L))
+    where(invB(ixO^S)/=0.d0)
+      invB(ixO^S)=1.d0/invB(ixO^S)
+    end where
     if(slab_uniform) then
-      divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(mf_mag_en_all(w,ixI^L,ixO^L))/sum(1.d0/dxlevel(:))
+      divb(ixO^S)=0.5d0*abs(divb(ixO^S))*invB(ixO^S)/sum(1.d0/dxlevel(:))
     else
       ixAmin^D=ixOmin^D-1;
       ixAmax^D=ixOmax^D-1;
@@ -1238,7 +1243,7 @@ contains
         ixA^L=ixO^L-kr(idims,^D);
         dsurface(ixO^S)=dsurface(ixO^S)+block%surfaceC(ixA^S,idims)
       end do
-      divb(ixO^S)=abs(divb(ixO^S))/sqrt(mf_mag_en_all(w,ixI^L,ixO^L))*&
+      divb(ixO^S)=abs(divb(ixO^S))*invB(ixO^S)*&
       block%dvolume(ixO^S)/dsurface(ixO^S)
     end if
 

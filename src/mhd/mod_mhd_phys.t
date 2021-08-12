@@ -2893,11 +2893,16 @@ contains
     double precision, intent(in)       :: w(ixI^S,1:nw)
     double precision                   :: divb(ixI^S), dsurface(ixI^S)
 
+    double precision :: invB(ixO^S)
     integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
+    invB(ixO^S)=sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))
+    where(invB(ixO^S)/=0.d0)
+      invB(ixO^S)=1.d0/invB(ixO^S)
+    end where
     if(slab_uniform) then
-      divb(ixO^S)=0.5d0*abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))/sum(1.d0/dxlevel(:))
+      divb(ixO^S)=0.5d0*abs(divb(ixO^S))*invB(ixO^S)/sum(1.d0/dxlevel(:))
     else
       ixAmin^D=ixOmin^D-1;
       ixAmax^D=ixOmax^D-1;
@@ -2906,7 +2911,7 @@ contains
         ixA^L=ixO^L-kr(idims,^D);
         dsurface(ixO^S)=dsurface(ixO^S)+block%surfaceC(ixA^S,idims)
       end do
-      divb(ixO^S)=abs(divb(ixO^S))/sqrt(mhd_mag_en_all(w,ixI^L,ixO^L))*&
+      divb(ixO^S)=abs(divb(ixO^S))*invB(ixO^S)*&
       block%dvolume(ixO^S)/dsurface(ixO^S)
     end if
 
