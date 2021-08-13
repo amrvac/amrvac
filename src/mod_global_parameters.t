@@ -651,6 +651,9 @@ module mod_global_parameters
   !> resolution of the output
   character(len=std_len) :: resolution_euv='instrument'
 
+  !> Block pointer for using one block and its previous state
+  type(state), pointer :: block
+
   !$OMP THREADPRIVATE(block,dxlevel,saveigrid)
 
 contains

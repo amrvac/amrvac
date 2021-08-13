@@ -99,8 +99,6 @@ module mod_physicaldata
       !> Variables old state
       double precision, dimension(:^D&,:), allocatable :: wold
    end type grid_field
-   !> Block pointer for using one block and its previous state
-   type(state), pointer :: block
    !> buffer for pole boundary
    type(state) :: pole_buf
 

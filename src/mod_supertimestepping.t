@@ -359,8 +359,7 @@ contains
     do while(associated(temp))
       dt_modified2 = .false.
       dtmin_mype=bigdouble
-      !$OMP PARALLEL DO PRIVATE(igrid,dtnew,&
-      !$OMP& dx^D) REDUCTION(min:dtmin_mype)
+      !$OMP PARALLEL DO PRIVATE(igrid,dx^D) REDUCTION(min:dtmin_mype)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          ! maybe the following global variables are needed in get_dt!
          ! next few lines ensure correct usage of routines like divvector etc
@@ -676,7 +675,7 @@ contains
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail; igrid=igrids(iigrid);
             if(.not. allocated(ps2(igrid)%w)) then
-              call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, ps(igrid)%level, .false.)
+              call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
             end if
             if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
             if(.not. allocated(ps4(igrid)%w)) allocate(ps4(igrid)%w(ixG^T,1:nw))
