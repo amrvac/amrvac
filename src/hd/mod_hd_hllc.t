@@ -55,22 +55,20 @@ contains
 
   subroutine hd_get_lCD(wLC,wRC,fLC,fRC,cmin,cmax,idim,ixI^L,ixO^L, &
        whll,Fhll,lambdaCD,patchf)
-
     ! Calculate lambda at CD and set the patchf to know the orientation
     ! of the riemann fan and decide on the flux choice
     ! We also compute here the HLL flux and w value, for fallback strategy
 
     ! In this nul version, we simply compute nothing and ensure TVDLF fallback
-
     use mod_global_parameters
 
     integer, intent(in)                                      :: ixI^L,ixO^L,idim
     double precision, dimension(ixI^S,1:nw), intent(in)      :: wLC,wRC
-    double precision, dimension(ixI^S,1:nwflux), intent(in):: fLC,fRC
+    double precision, dimension(ixI^S,1:nwflux), intent(in)  :: fLC,fRC
     double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
     integer         , dimension(ixI^S), intent(inout)        :: patchf
     double precision, dimension(ixI^S,1:nwflux), intent(out) :: Fhll,whll
-    double precision, dimension(ixI^S), intent(out)            :: lambdaCD
+    double precision, dimension(ixI^S), intent(out)          :: lambdaCD
 
     logical         , dimension(ixI^S)     :: Cond_patchf
     double precision                       :: Epsilon
@@ -84,18 +82,19 @@ contains
     !       1: compute the characteristic speed for the CD
 
     Cond_patchf(ixO^S)=(abs(patchf(ixO^S))==1)
+    lambdaCD=0.d0
 
     do iw=1,nwflux
-       where(Cond_patchf(ixO^S))
-          !============= compute HLL flux ==============!
-          Fhll(ixO^S,iw)= (cmax(ixO^S)*fLC(ixO^S,iw)-cmin(ixO^S)*fRC(ixO^S,iw) &
-               + cmin(ixO^S)*cmax(ixO^S)*(wRC(ixO^S,iw)-wLC(ixO^S,iw)))&
-               /(cmax(ixO^S)-cmin(ixO^S))
-          !======== compute intermediate HLL state =======!
-          whll(ixO^S,iw) = (cmax(ixO^S)*wRC(ixO^S,iw)-cmin(ixO^S)*wLC(ixO^S,iw)&
-               +fLC(ixO^S,iw)-fRC(ixO^S,iw))/(cmax(ixO^S)-cmin(ixO^S))
-       endwhere
-    enddo
+      where(Cond_patchf(ixO^S))
+        !============= compute HLL flux ==============!
+        Fhll(ixO^S,iw)= (cmax(ixO^S)*fLC(ixO^S,iw)-cmin(ixO^S)*fRC(ixO^S,iw) &
+             + cmin(ixO^S)*cmax(ixO^S)*(wRC(ixO^S,iw)-wLC(ixO^S,iw)))&
+             /(cmax(ixO^S)-cmin(ixO^S))
+        !======== compute intermediate HLL state =======!
+        whll(ixO^S,iw) = (cmax(ixO^S)*wRC(ixO^S,iw)-cmin(ixO^S)*wLC(ixO^S,iw)&
+             +fLC(ixO^S,iw)-fRC(ixO^S,iw))/(cmax(ixO^S)-cmin(ixO^S))
+      end where
+    end do
 
     ! deduce the characteristic speed at the CD
     where(Cond_patchf(ixO^S))
@@ -122,30 +121,32 @@ contains
     {end do\}
 
     where(patchf(ixO^S)== 3)
-       Cond_patchf(ixO^S)=.false.
+      Cond_patchf(ixO^S)=.false.
     end where
 
     ! handle the specific case where the time axis is exactly on the CD 
     if(any(Cond_patchf(ixO^S).and.lambdaCD(ixO^S)==zero))then
-       ! determine which sector (forward or backward) of the Riemann fan is smallest
-       ! and select left or right flux accordingly
-       where(Cond_patchf(ixO^S).and.lambdaCD(ixO^S)==zero)
-          where(-cmin(ixO^S)>=cmax(ixO^S))
-             patchf(ixO^S) =  1
-          elsewhere
-             patchf(ixO^S) = -1
-          endwhere
-       endwhere
-    endif
+      ! determine which sector (forward or backward) of the Riemann fan is smallest
+      ! and select left or right flux accordingly
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if(lambdaCD(ix^D)==zero.and.Cond_patchf(ix^D)) then
+          if(-cmin(ix^D)>=cmax(ix^D)) then
+            patchf(ix^D) =  1
+          else
+            patchf(ix^D) = -1
+          end if
+        end if
+      {end do\}
+    end if
 
     ! eigenvalue lambda for contact is near zero: decrease noise by this trick
     if(flathllc)then
-       Epsilon=1.0d-6
-       where(Cond_patchf(ixO^S).and. &
-            dabs(lambdaCD(ixO^S))/max(cmax(ixO^S),Epsilon)< Epsilon  .and. &
-            dabs(lambdaCD(ixO^S))/max(dabs(cmin(ixO^S)),Epsilon)< Epsilon)
-          lambdaCD(ixO^S) =  zero
-       end where
+      Epsilon=1.0d-6
+      where(Cond_patchf(ixO^S).and. &
+          dabs(lambdaCD(ixO^S))/max(cmax(ixO^S),Epsilon)< Epsilon  .and. &
+          dabs(lambdaCD(ixO^S))/max(dabs(cmin(ixO^S)),Epsilon)< Epsilon)
+        lambdaCD(ixO^S) =  zero
+      end where
     end if
 
   end subroutine hd_get_lCD

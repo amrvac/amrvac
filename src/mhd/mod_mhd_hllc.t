@@ -53,33 +53,32 @@ contains
 
   subroutine mhd_get_lCD(wLC,wRC,fLC,fRC,cmin,cmax,idim,ixI^L,ixO^L, &
                     whll,Fhll,lambdaCD,patchf)
-  
   ! Calculate lambda at CD and set the patchf to know the orientation
   ! of the riemann fan and decide on the flux choice
   ! We also compute here the HLL flux and w value, for fallback strategy
-  
     use mod_global_parameters
-    
+
     integer, intent(in)                                      :: ixI^L,ixO^L,idim
     double precision, dimension(ixI^S,1:nw), intent(in)      :: wLC,wRC
-    double precision, dimension(ixI^S,1:nwflux), intent(in):: fLC,fRC
+    double precision, dimension(ixI^S,1:nwflux), intent(in)  :: fLC,fRC
     double precision, dimension(ixI^S), intent(in)           :: cmax,cmin
     integer         , dimension(ixI^S), intent(inout)        :: patchf
     double precision, dimension(ixI^S,1:nwflux), intent(out) :: Fhll,whll
-    double precision, dimension(ixI^S), intent(out)            :: lambdaCD
-    
-    logical         , dimension(ixI^S)     :: Cond_patchf
+    double precision, dimension(ixI^S), intent(out)          :: lambdaCD
+
+    logical         , dimension(ixO^S)     :: Cond_patchf
     double precision                       :: Epsilon
-    integer                                :: iw
+    integer                                :: iw,ix^D
 
     ! on entry, patch is preset to contain values from -2,1,2,4
     !      -2: take left flux, no computation here
     !      +2: take right flux, no computation here
     !      +4: take TVDLF flux, no computation here
     !       1: compute the characteristic speed for the CD
-    
+
     Cond_patchf(ixO^S)=(abs(patchf(ixO^S))==1)
-    
+    lambdaCD=0.d0
+
     do iw=1,nwflux
       where(Cond_patchf(ixO^S))
       !============= compute HLL flux ==============!
@@ -89,50 +88,51 @@ contains
       !======== compute intermediate HLL state =======!
       whll(ixO^S,iw) = (cmax(ixO^S)*wRC(ixO^S,iw)-cmin(ixO^S)*wLC(ixO^S,iw)&
                         +fLC(ixO^S,iw)-fRC(ixO^S,iw))/(cmax(ixO^S)-cmin(ixO^S))
-      endwhere
-    enddo
-    
+      end where
+    end do
+
     ! deduce the characteristic speed at the CD
     where(Cond_patchf(ixO^S))
       lambdaCD(ixO^S)=whll(ixO^S,mom(idim))/whll(ixO^S,rho_)
     end where
-    
-    
-    where(Cond_patchf(ixO^S))
-      ! double check whether obtained speed is in between min and max speeds given
-      ! and identify in which part of the Riemann fan the time-axis is
-      where(cmin(ixO^S)<zero.and.lambdaCD(ixO^S)>zero&
-            .and.lambdaCD(ixO^S)<cmax(ixO^S))
-        patchf(ixO^S) = -1
-      elsewhere(cmax(ixO^S)>zero.and.lambdaCD(ixO^S)<zero&
-                .and.lambdaCD(ixO^S)>cmin(ixO^S))
-        patchf(ixO^S) =  1
-      elsewhere(lambdaCD(ixO^S)>=cmax(ixO^S).or.lambdaCD(ixO^S) <= cmin(ixO^S))
-        lambdaCD(ixO^S) = zero
-        ! we will fall back to HLL flux case in this degeneracy
-        patchf(ixO^S) =  3
-      endwhere
-    endwhere
-    
-    
+
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if(Cond_patchf(ix^D)) then
+        ! double check whether obtained speed is in between min and max speeds given
+        ! and identify in which part of the Riemann fan the time-axis is
+        if(cmin(ix^D)<zero.and.lambdaCD(ix^D)>zero&
+              .and.lambdaCD(ix^D)<cmax(ix^D)) then
+          patchf(ix^D) = -1
+        else if(cmax(ix^D)>zero.and.lambdaCD(ix^D)<zero&
+                  .and.lambdaCD(ix^D)>cmin(ix^D)) then
+          patchf(ix^D) =  1
+        else if(lambdaCD(ix^D)>=cmax(ix^D).or.lambdaCD(ix^D) <= cmin(ix^D)) then
+          lambdaCD(ix^D) = zero
+          ! we will fall back to HLL flux case in this degeneracy
+          patchf(ix^D) =  3
+        end if
+      end if
+    {end do\}
+
     where(patchf(ixO^S)== 3)
       Cond_patchf(ixO^S)=.false.
     end where
-    
-    
+
     ! handle the specific case where the time axis is exactly on the CD 
     if(any(lambdaCD(ixO^S)==zero.and.Cond_patchf(ixO^S)))then
       ! determine which sector (forward or backward) of the Riemann fan is smallest
       ! and select left or right flux accordingly
-      where(lambdaCD(ixO^S)==zero.and.Cond_patchf(ixO^S))
-        where(-cmin(ixO^S)>=cmax(ixO^S))
-          patchf(ixO^S) =  1
-        elsewhere
-          patchf(ixO^S) = -1
-        endwhere
-      endwhere
-    endif
-    
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if(lambdaCD(ix^D)==zero.and.Cond_patchf(ix^D)) then
+          if(-cmin(ix^D)>=cmax(ix^D)) then
+            patchf(ix^D) =  1
+          else
+            patchf(ix^D) = -1
+          end if
+        end if
+      {end do\}
+    end if
+
     ! eigenvalue lambda for contact is near zero: decrease noise by this trick
     if(flathllc)then
       Epsilon=1.0d-6
