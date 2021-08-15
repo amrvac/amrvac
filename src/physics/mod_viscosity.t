@@ -127,7 +127,7 @@ contains
 
       ! construct lambda tensor: lambda_ij = gradv_ij + gradv_ji
       ! initialize
-      lambda(ix^S,1:ndir,1:ndir)=zero
+      lambda=zero
 
       !next construct
       do idim=1,ndim; do idir=1,ndir
