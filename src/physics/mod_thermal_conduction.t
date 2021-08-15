@@ -353,7 +353,7 @@ contains
     
     double precision :: dxinv(1:ndim),mf(ixI^S,1:ndir)
     double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2(ixI^S)
-    double precision :: dtdiff_tcond
+    double precision :: dtdiff_tcond,maxtmp2
     integer          :: idim,ix^D
 
     ^D&dxinv(^D)=one/dx^D;
@@ -392,8 +392,10 @@ contains
           tmp2(ixO^S)=B2(ixO^S)
         end where
       end if
+      maxtmp2=maxval(tmp2(ixO^S))
+      if(maxtmp2==0.d0) maxtmp2=smalldouble
       ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-      dtdiff_tcond=1.d0/tc_gamma_1/maxval(tmp2(ixO^S)*dxinv(idim)**2)
+      dtdiff_tcond=1.d0/tc_gamma_1/(maxtmp2*dxinv(idim)**2)
       ! limit the time step
       dtnew=min(dtnew,dtdiff_tcond)
     end do
