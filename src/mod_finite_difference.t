@@ -34,8 +34,8 @@ contains
     double precision, dimension(ixI^S)      :: cmaxC
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(1:ndim)     :: dxinv, dxdim
-    logical                                                          :: transport
-    integer                                                          :: idims, iw, ixC^L, ix^L, hxO^L
+    logical :: transport
+    integer :: idims, iw, ixC^L, ix^L, hxO^L, kxC^L, kxR^L
 
     associate(wCT=>sCT%w,wnew=>snew%w)
 
@@ -59,6 +59,14 @@ contains
          ! ct needs all transverse cells
          ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
          ixmax^D=ixmax^D+nghostcells-nghostcells*kr(idims,^D); ixmin^D=ixmin^D-nghostcells+nghostcells*kr(idims,^D);
+         kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+         kxR^L=kxC^L+kr(idims,^D);
+         ! wRp and wLp are defined at the same locations, and will correspond to
+         ! the left and right reconstructed values at a cell face. Their indexing
+         ! is similar to cell-centered values, but in direction idims they are
+         ! shifted half a cell towards the 'lower' direction.
+         wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
+         wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
        else
          ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
          ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
@@ -77,7 +85,17 @@ contains
        call reconstructR(ixI^L,ixC^L,idims,fm,fmR)
 
        fC(ixC^S,1:nwflux,idims) = fpL(ixC^S,1:nwflux) + fmR(ixC^S,1:nwflux)
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
+       if(associated(usr_set_flux)) then
+         kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+         kxR^L=kxC^L+kr(idims,^D);
+         ! wRp and wLp are defined at the same locations, and will correspond to
+         ! the left and right reconstructed values at a cell face. Their indexing
+         ! is similar to cell-centered values, but in direction idims they are
+         ! shifted half a cell towards the 'lower' direction.
+         wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
+         wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
+         call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
+       end if
 
        if(stagger_grid) then
          ! apply limited reconstruction for left and right status at cell interfaces
