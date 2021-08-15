@@ -450,7 +450,7 @@ contains
     double precision :: sumbj,dtj  
 
     integer:: iigrid, igrid, j, ixC^L
-    logical :: stagger_flag, prolong_flag, coarsen_flag
+    logical :: stagger_flag=.false., prolong_flag=.false., coarsen_flag=.false.
     type(sts_term), pointer  :: temp
 
     ! do not fill physical boundary conditions
@@ -629,7 +629,7 @@ contains
     double precision :: omega1,cmu,cmut,cnu,cnut,one_mu_nu
     double precision, allocatable :: bj(:)
     integer:: iigrid, igrid, j, ixC^L, ixGext^L
-    logical :: evenstep, stagger_flag, prolong_flag, coarsen_flag, total_energy_flag
+    logical :: evenstep, stagger_flag=.false., prolong_flag=.false., coarsen_flag=.false., total_energy_flag=.true.
     type(sts_term), pointer  :: temp
     type(state), dimension(:), pointer :: tmpPs1, tmpPs2
 

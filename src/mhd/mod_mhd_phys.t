@@ -1584,6 +1584,7 @@ contains
 
     if (mhd_Hall) then
       allocate(vHall(ixI^S,1:ndir))
+      vHall=0.d0
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
@@ -1736,7 +1737,10 @@ contains
       !tmp3 = J_ambi dot Btot
       tmp3(ixO^S) = sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
 
-      if (B0field) allocate(tmp4(ixO^S))
+      if (B0field) then
+        allocate(tmp4(ixO^S))
+        tmp4=0.d0
+      end if
       select case(idim)
         case(1)
           tmp(ixO^S)=w(ixO^S,mag(3)) *Jambi(ixO^S,2) - w(ixO^S,mag(2)) * Jambi(ixO^S,3)
@@ -1885,6 +1889,7 @@ contains
         wres(ixO^S,mag(ndir))=-tmp2(ixO^S)
       end if
       allocate(fE(ixI^S,7-2*ndim:3))
+      fE=0.d0
       call update_faces_ambipolar(ixI^L,ixO^L,w,x,tmp,fE,btot)
       ixAmax^D=ixOmax^D;
       ixAmin^D=ixOmin^D-1;
@@ -2056,15 +2061,20 @@ contains
     double precision              :: coef
     double precision              :: dxarr(ndim)
     double precision              :: tmp(ixI^S)
-    ^D&dxarr(^D)=dx^D;
 
+    ^D&dxarr(^D)=dx^D;
     tmp(ixO^S) = mhd_mag_en_all(w, ixI^L, ixO^L)
     call multiplyAmbiCoef(ixI^L,ixO^L,tmp,w,x) 
     coef = maxval(abs(tmp(ixO^S)))
-    if(slab_uniform) then
-      dtnew=minval(dxarr(1:ndim))**2.0d0/coef
+    if(coef/=0.d0) then
+      coef=1.d0/coef
     else
-      dtnew=minval(block%ds(ixO^S,1:ndim))**2.0d0/coef
+      coef=bigdouble
+    end if
+    if(slab_uniform) then
+      dtnew=minval(dxarr(1:ndim))**2.0d0*coef
+    else
+      dtnew=minval(block%ds(ixO^S,1:ndim))**2.0d0*coef
     end if
 
   end function get_ambipolar_dt
@@ -2080,11 +2090,11 @@ contains
     double precision, intent(inout) :: res(ixI^S)
     double precision :: tmp(ixI^S)
 
-  
-    tmp(ixI^S) = -(mhd_eta_ambi/w(ixI^S, rho_)**2) 
+    tmp=0.d0
+    tmp(ixO^S)=-mhd_eta_ambi/w(ixO^S, rho_)**2
     if (associated(usr_mask_ambipolar)) then
       call usr_mask_ambipolar(ixI^L,ixO^L,w,x,tmp)
-    endif
+    end if
 
     res(ixO^S) = tmp(ixO^S) * res(ixO^S)
   end subroutine multiplyAmbiCoef
