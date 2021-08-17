@@ -1,7 +1,6 @@
  &filelist
-        base_filename='alfvenwing_3D_'
-        typefilelog   = 'regression_test'
-        convert= F                  !
+        base_filename='alfvenwing_3D'
+        typefilelog = 'regression_test'
         autoconvert = T
         convert_type='vtuBCCmpi'
         saveprim=.true.
@@ -9,22 +8,18 @@
  /
 
  &savelist 
-        dtsave_dat=0.5d0
+        dtsave_log       = 1.d-3
  /
 
  &stoplist
-	dtmin=1.D-12
-        time_max=1.0d0 
+        time_max            = 5.d-2
  /
 
  &methodlist
+        time_stepper=  'twostep'
         flux_scheme=    20*'tvdlf'
-        typepred1=    20*'tvdlf'
         limiter=20*'koren'
-        dimsplit=.false.
-        check_small_values= T
 	small_pressure=1.0d-9
-	!small_density=1.0d-6
         small_values_method = 'average'
         small_values_daverage = 2
         loglimit(1)=.true.
@@ -44,17 +39,14 @@
  &meshlist
         refine_criterion=3
         refine_max_level=2
-        nbufferx1=0
-        nbufferx2=0
-	nbufferx3=0
         refine_threshold=20*0.2d0
         derefine_ratio=20*0.1d0
         block_nx1 = 8
         block_nx2 = 8
         block_nx3 = 8
-        domain_nx1=32
-        domain_nx2=32
-	domain_nx3=32
+        domain_nx1=16
+        domain_nx2=16
+	domain_nx3=16
         iprob=1
         xprobmin1=-3.0d0
         xprobmax1=8.0d0

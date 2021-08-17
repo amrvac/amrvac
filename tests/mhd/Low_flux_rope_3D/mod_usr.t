@@ -213,6 +213,7 @@ contains
     else
       bvec(ixO^S,:)=w(ixO^S,mag(:))
     end if
+    qvec=0.d0
     do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
       if(lvc(idir,jdir,kdir)/=0)then
         tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)

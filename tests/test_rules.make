@@ -4,7 +4,7 @@ $(error AMRVAC_DIR is not set)
 endif
 
 # Can be needed to compile the compare_log utility
-ARCH ?= default
+ARCH ?= debug
 export ARCH
 
 # Location of setup script

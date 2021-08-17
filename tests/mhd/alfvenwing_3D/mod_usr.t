@@ -15,22 +15,21 @@ contains
     integer                      :: n
 
     namelist /usr_list/  velocity_x,velocity_y,velocity_z,mag_x,mag_y,mag_z, Collfreq, pressure, density, radius
-! Values are in SI units
+    ! Values are in SI units
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
        read(unitpar, usr_list, end=111)
 111    close(unitpar)
     end do
 
- !Normalization values
-  Vnorm     = sqrt(velocity_x**2+velocity_y**2*velocity_z**2) !normalization value for the plasma velocity
-  Bnorm     = sqrt(miu0_si*density*Vnorm**2) !normalization value for the magnetic field
-  Collfnorm = Vnorm/radius !normalization value for the ion-neutral collision frequency
-  Pnorm     = density*Vnorm**2 !normalization value for the thermal plasma pressure
-  Dnorm     = density !normalization value for the plasma density
+    !Normalization values
+    Vnorm     = sqrt(velocity_x**2+velocity_y**2*velocity_z**2) !normalization value for the plasma velocity
+    Bnorm     = sqrt(miu0_si*density*Vnorm**2) !normalization value for the magnetic field
+    Collfnorm = Vnorm/radius !normalization value for the ion-neutral collision frequency
+    Pnorm     = density*Vnorm**2 !normalization value for the thermal plasma pressure
+    Dnorm     = density !normalization value for the plasma density
 
   end subroutine usr_params_read
-
 
   subroutine usr_init()
     call usr_params_read(par_files)
@@ -126,10 +125,9 @@ contains
        call mpistop("Special boundary is not defined for this region")
     end select
 
-end subroutine specialbound_usr
+  end subroutine specialbound_usr
 
-
-subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+  subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L, iw^LIM
@@ -155,7 +153,6 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
 
   end subroutine specialsource
 
-
   subroutine get_dt_ionosphere(w,ixG^L,ix^L,dtnew,dx^D,x)
 
     use mod_global_parameters
@@ -170,8 +167,6 @@ subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     dtnew=min(dtnew,dtdiffpar*one/collfreq_n)
 
   end subroutine get_dt_ionosphere
-
-
 
   subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
 

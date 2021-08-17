@@ -5,7 +5,7 @@
         saveprim=.true.
         convert_type='vtuBmpi'
         autoconvert=.true.
-        nwauxio=6
+        nwauxio=10
  /
 
  &savelist

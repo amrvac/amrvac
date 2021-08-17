@@ -44,7 +44,9 @@ contains
           print *,'  --assuming y ranging from 0-1!'
           print *,'  --density ratio:',rhodens/rholight
           print *,'  --kx:',kx
+          {^IFTHREED
           print *,'  --kz:',kz
+          }
           print *,'  --vextra:',vextra
        end if
        first=.false.

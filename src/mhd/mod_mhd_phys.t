@@ -3313,10 +3313,20 @@ contains
 
       wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
       wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
+
+      if(total_energy) then
+        wRC(ixO^S,e_)=wRC(ixO^S,e_)-half*wRC(ixO^S,mag(idir))**2
+        wLC(ixO^S,e_)=wLC(ixO^S,e_)-half*wLC(ixO^S,mag(idir))**2
+      end if
       wRC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
       wRC(ixO^S,psi_) = wLp(ixO^S,psi_)
       wLC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
       wLC(ixO^S,psi_) = wLp(ixO^S,psi_)
+      ! modify total energy according to the change of magnetic field
+      if(total_energy) then
+        wRC(ixO^S,e_)=wRC(ixO^S,e_)+half*wRC(ixO^S,mag(idir))**2
+        wLC(ixO^S,e_)=wLC(ixO^S,e_)+half*wLC(ixO^S,mag(idir))**2
+      end if
     end if
 
     if(associated(usr_set_wLR)) call usr_set_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)

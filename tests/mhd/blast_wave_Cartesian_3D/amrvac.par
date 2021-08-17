@@ -1,28 +1,27 @@
 !setup.pl -d=3
  &filelist
-        base_filename='bw_3d'
+        base_filename='bw_3d_ta'
         saveprim=.true.
         convert_type='vtuBCCmpi'
-        autoconvert=.false.
+        autoconvert=.true.
         nwauxio=3
  /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        ditsave_log=1
+        dtsave_log=0.01d0
         dtsave_dat=0.05d0
  /
 
  &stoplist
-        time_max=0.15d0
-        it_max=500
+        time_max=0.25d0
 /
 
  &methodlist
-        time_stepper=  'threestep'
-        flux_scheme=    20*'hll'
-        limiter= 20*'koren'
+        time_stepper=  'fivestep'
+        flux_scheme=    20*'hlld'
+        limiter= 20*'mp5'
         small_pressure=1.0d-14
         small_density=1.0d-14
  /
@@ -64,5 +63,5 @@
 
  &mhd_list
         Busr=1.d0
-        typedivbfix='ct'
+        typedivbfix='glm'
  /

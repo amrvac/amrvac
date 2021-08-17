@@ -1,0 +1,18 @@
+ &filelist
+        base_filename  = '_3step_hll_cada_glm'
+ /
+
+ &methodlist
+        time_stepper  = 'threestep'
+        flux_scheme =    20*'hll'
+        limiter=  20*'cada3'
+        typeboundspeed  = 'cmaxmean'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /
+
+ &mhd_list
+        typedivbfix='glm'
+ /

@@ -121,6 +121,8 @@ contains
     double precision:: delydelx,delxdely
     integer:: ixIM^L,ix^D
 
+    if(mhd_glm) w(ixO^S,psi_)=0.d0
+
     select case(iB)
     ! implementation of special boundaries
     case(1)

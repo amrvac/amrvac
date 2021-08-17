@@ -2,7 +2,7 @@
 PAR_FILE := AW_3D.par
 
 # Base file name as set in the .par file
-BASE_NAME := my_test
+BASE_NAME := alfvenwing_3D
 
 # Change to -d=2 or -d=3 for 2D/3D problems
 SETUP_FLAGS := -d=3
