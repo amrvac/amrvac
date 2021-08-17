@@ -111,11 +111,13 @@ subroutine alloc_node(igrid)
   end if
 
   ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
-  ps(igrid)%w(ixG^T,1)=1.d0
+  ps(igrid)%w(:^D&,1)=1.d0
   ps(igrid)%igrid=igrid
   ps(igrid)%level=level
   psc(igrid)%igrid=igrid
   psc(igrid)%level=level-1
+  ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
+  psc(igrid)%w(:^D&,1)=1.d0
   if(phys_trac) ps(igrid)%special_values=0.d0
   if(.not.convert) then
     pso(igrid)%igrid=igrid
