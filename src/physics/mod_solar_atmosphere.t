@@ -306,6 +306,7 @@ contains
     rho(1)=1.d5
     pth(1)=rho(1)*Te(1)
 
+    rhot=1.d0
     invT=0.d0
     do j=2,nh
       dh=h(j)-h(j-1)

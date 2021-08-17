@@ -117,6 +117,10 @@ case (3)
    xdim^LIM1=xprob^LIM1; 
    xdim^LIM2=xprob^LIM2; 
 case default
+   dxdim1 = 1
+   dxdim2 = 1
+   xdim^LIM1=xprob^LIM2; 
+   xdim^LIM2=xprob^LIM3; 
    call mpistop("slice direction not clear in output_collapsed_csv")
 end select
 }
@@ -129,6 +133,8 @@ case (2)
    dxdim1 = dx(1,collapseLevel)
    xdim^LIM1=xprob^LIM1; 
 case default
+   dxdim1 = 1
+   xdim^LIM1=xprob^LIM2; 
    call mpistop("slice direction not clear in output_collapsed_csv")
 end select
 }
@@ -205,6 +211,10 @@ case (3)
    xdim^LIM1=xprob^LIM1; 
    xdim^LIM2=xprob^LIM2; 
 case default
+   dxdim1 = 1
+   dxdim2 = 1
+   xdim^LIM1=xprob^LIM2; 
+   xdim^LIM2=xprob^LIM3; 
    call mpistop("slice direction not clear in output_collapsed_vti")
 end select
 }
@@ -217,6 +227,8 @@ case (2)
    dxdim1 = dx(1,1)*2.0d0**(1-collapseLevel)
    xdim^LIM1=xprob^LIM1; 
 case default
+   dxdim1 = 1
+   xdim^LIM1=xprob^LIM2; 
    call mpistop("slice direction not clear in output_collapsed_vti")
 end select
 }

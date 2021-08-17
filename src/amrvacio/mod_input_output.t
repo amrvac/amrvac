@@ -2092,7 +2092,8 @@ contains
     integer(MPI_OFFSET_KIND)      :: offset_tree_info
     integer(MPI_OFFSET_KIND)      :: offset_block_data
     double precision, allocatable :: w_buffer(:)
-    double precision, dimension(:^D&,:), allocatable :: w, ws
+    double precision, dimension(:^D&,:), allocatable :: w
+    double precision :: ws(ixGs^T,1:ndim)
 
     if (mype==0) then
       inquire(file=trim(restart_from_file), exist=fexist)
@@ -2143,7 +2144,6 @@ contains
     n_values = count_ix(ixG^LL) * nw_found
     if(stagger_grid) then
       n_values = n_values + count_ix(ixGs^LL) * nws
-      allocate(ws(ixGs^T,1:nws))
     end if
     allocate(w_buffer(n_values))
     allocate(w(ixG^T,1:nw_found))

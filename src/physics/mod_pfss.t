@@ -515,6 +515,10 @@ contains
   ! Date: Wed, 9 Aug 1995 09:38:49 -0400
   ! From: ldm@apollo.numis.nwu.edu
         maxf=23
+        s3=0.d0
+        s2=0.d0
+        c3=0.d0
+        c2=0.d0
         if(n .lt. 2) return
         inc=isn
         c72=0.30901699437494742d0

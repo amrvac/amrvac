@@ -743,6 +743,7 @@ module mod_thermal_emission
       Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
       flux(ixO^S)=Ne(ixO^S)**2
 
+      logGT=zero
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         logT=log10(Te(ix^D))
         if (logT>=t_table(1) .and. logT<=t_table(n_table)) then
@@ -967,6 +968,16 @@ module mod_thermal_emission
         xImax2=xprobmax1
         
       case (3)
+        dxI1=dx1
+        dxI2=dx2
+        numXI1=numX1
+        numXI2=numX2
+        xImin1=xprobmin1
+        xImax1=xprobmax1
+        xImin2=xprobmin2
+        xImax2=xprobmax2
+
+      case default
         dxI1=dx1
         dxI2=dx2
         numXI1=numX1
@@ -1561,6 +1572,11 @@ module mod_thermal_emission
           numL=numX2
         
         case (3)
+          dL=dx3
+          Lmin=xprobmin3
+          Lmax=xprobmax3
+          numL=numX3
+        case default
           dL=dx3
           Lmin=xprobmin3
           Lmax=xprobmax3

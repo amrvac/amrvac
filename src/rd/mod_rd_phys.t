@@ -353,6 +353,7 @@ contains
        ! det(J) = sigma(b(r-1) + x*(x*+y*))
        maxrate = max(lor_sigma, 1.0d0, lor_b)
     case default
+       maxrate = one
        call mpistop("Unknown equation type")
     end select
 

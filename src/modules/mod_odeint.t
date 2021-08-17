@@ -28,12 +28,13 @@ contains
     nok   = 0
     nbad  = 0
     kount = 0
+    xsav  = 0.d0
 
     do i=1,nvar
        y(i)=ystart(i)
     end do
 
-    if (kmax.gt.0) xsav=x-2.*dxsav
+    if (kmax.gt.0) xsav=x-2.d0*dxsav
 
     do nstp=1,MAXSTP
        call derivs(x,y,dydx)

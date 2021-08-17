@@ -1535,6 +1535,7 @@ module mod_radiative_cooling
       call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)     
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew)
 
+      ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
@@ -1607,6 +1608,7 @@ module mod_radiative_cooling
       call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm) 
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew ) 
 
+      ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
          !  Calculate explicit cooling value
          dtmax    = qdt
@@ -1715,6 +1717,7 @@ module mod_radiative_cooling
       call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew )  
 
+      ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
@@ -1792,6 +1795,7 @@ module mod_radiative_cooling
       call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew )  
 
+      ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)  
          elocal   = plocal/(rc_gamma-1.d0)
@@ -1871,7 +1875,7 @@ module mod_radiative_cooling
       call phys_get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)  
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pnew )  
 
-
+      ttofflocal=zero
       fact = lref*qdt/tref
 
       invgam=1.d0/(rc_gamma-1.d0)

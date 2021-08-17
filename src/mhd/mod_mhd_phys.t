@@ -581,6 +581,9 @@ contains
       call mpistop("radiative cooling needs mhd_energy=T")
     end if
 
+    ! resistive MHD needs diagonal ghost cells
+    if(mhd_eta/=0.d0) phys_req_diagonal = .true.
+
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
       phys_req_diagonal = .true.
@@ -1581,15 +1584,14 @@ contains
     double precision,intent(out) :: f(ixI^S,nwflux)
 
     double precision             :: pgas(ixO^S), ptotal(ixO^S),tmp(ixI^S)
-    double precision, allocatable:: vHall(:^D&,:)
+    double precision             :: vHall(ixI^S,1:ndir)
     integer                      :: idirmin, iw, idir, jdir, kdir
     double precision, allocatable, dimension(:^D&,:) :: Jambi, btot
-    double precision, allocatable, dimension(:^D&) :: tmp2, tmp3, tmp4
+    double precision, allocatable, dimension(:^D&) :: tmp2, tmp3
+    double precision :: tmp4(ixO^S)
 
 
     if (mhd_Hall) then
-      allocate(vHall(ixI^S,1:ndir))
-      vHall=0.d0
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
@@ -1717,10 +1719,6 @@ contains
       f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
-    if (mhd_Hall) then
-      deallocate(vHall)
-    end if
-
     ! Contributions of ambipolar term in explicit scheme
     if(mhd_ambipolar_exp.and. .not.stagger_grid) then
       ! ambipolar electric field
@@ -1742,10 +1740,6 @@ contains
       !tmp3 = J_ambi dot Btot
       tmp3(ixO^S) = sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
 
-      if (B0field) then
-        allocate(tmp4(ixO^S))
-        tmp4=0.d0
-      end if
       select case(idim)
         case(1)
           tmp(ixO^S)=w(ixO^S,mag(3)) *Jambi(ixO^S,2) - w(ixO^S,mag(2)) * Jambi(ixO^S,3)
@@ -1770,7 +1764,6 @@ contains
       endif
 
       deallocate(Jambi,btot,tmp2,tmp3)
-      if (B0field) deallocate(tmp4)
     endif
 
   end subroutine mhd_get_flux
@@ -1846,12 +1839,14 @@ contains
     logical, intent(in) :: fix_conserve_at_step
 
     double precision, dimension(ixI^S,1:3) :: tmp,ff
-    double precision, allocatable, dimension(:^D&,:,:) :: fluxall
-    double precision, allocatable :: fE(:^D&,:)
+    double precision :: fluxall(ixI^S,1:nflux,1:ndim)
+    double precision :: fE(ixI^S,7-2*ndim:3)
     double precision  :: btot(ixI^S,1:3),tmp2(ixI^S)
     integer :: i, ixA^L, ie_
 
     ixA^L=ixO^L^LADD1;
+
+    fluxall=zero
 
     call mhd_get_jxbxb(w,x,ixI^L,ixA^L,tmp)
 
@@ -1860,11 +1855,6 @@ contains
       !tmp(ixA^S,i) = -(mhd_eta_ambi/w(ixA^S, rho_)**2) * tmp(ixA^S,i)
       call multiplyAmbiCoef(ixI^L,ixA^L,tmp(ixI^S,i),w,x)   
     enddo
-
-    if(fix_conserve_at_step) then
-      allocate(fluxall(ixI^S,1:nflux,1:ndim))
-      fluxall=0.d0
-    end if
 
     if(mhd_energy .and. .not.mhd_internal_e) then
       !btot should be only mag. pert.
@@ -1893,7 +1883,6 @@ contains
         if(fix_conserve_at_step) fluxall(ixI^S,1+ndir,1:ndim)=ff(ixI^S,1:ndim)
         wres(ixO^S,mag(ndir))=-tmp2(ixO^S)
       end if
-      allocate(fE(ixI^S,7-2*ndim:3))
       fE=0.d0
       call update_faces_ambipolar(ixI^L,ixO^L,w,x,tmp,fE,btot)
       ixAmax^D=ixOmax^D;
@@ -1938,9 +1927,7 @@ contains
       call store_flux(igrid,fluxall,1,ndim,nflux)
       if(stagger_grid) then
         call store_edge(igrid,ixI^L,my_dt*fE,1,ndim)
-        deallocate(fE)
       end if
-      deallocate(fluxall)
     end if
 
   end subroutine sts_set_source_ambipolar
