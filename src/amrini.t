@@ -42,8 +42,6 @@ subroutine initial_condition(igrid)
 
   integer, intent(in) :: igrid
 
-  ps(igrid)%w(ixG^T,1:nw)=zero
-
   saveigrid=igrid
   ! in case gradient routine used in initial condition, ensure geometry known
   block=>ps(igrid)
