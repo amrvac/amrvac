@@ -154,6 +154,8 @@ contains
     associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
 
     fC=0.d0
+    fLC=0.d0
+    fRC=0.d0
 
     ! The flux calculation contracts by one in the idims direction it is applied.
     ! The limiter contracts the same directions by one more, so expand ixO by 2.
@@ -539,6 +541,10 @@ contains
         ! Guo equation (25) equivalent to Miyoshi equation (41)
         w1R(ixC^S,p_)=suR(ixC^S)*(sm(ixC^S)-vRC(ixC^S,ip1))+ptR(ixC^S)
         w1L(ixC^S,p_)=suL(ixC^S)*(sm(ixC^S)-vLC(ixC^S,ip1))+ptL(ixC^S)
+        !if(mhd_solve_eaux) then
+        !  w1R(ixC^S,eaux_)=(w1R(ixC^S,p_)-half*sum(w1R(ixC^S,mag(:))**2,dim=ndim+1))/(mhd_gamma-one)
+        !  w1L(ixC^S,eaux_)=(w1L(ixC^S,p_)-half*sum(w1L(ixC^S,mag(:))**2,dim=ndim+1))/(mhd_gamma-one)
+        !end if
         if(B0field) then
           ! Guo equation (32)
           w1R(ixC^S,p_)=w1R(ixC^S,p_)+sum(block%B0(ixC^S,:,ip1)*(wRC(ixC^S,mag(:))-w1R(ixC^S,mag(:))),dim=ndim+1)
@@ -597,6 +603,12 @@ contains
           sum(w2R(ixC^S,mom(:))*w2R(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
         w2L(ixC^S,e_)=w1L(ixC^S,e_)-r1L(ixC^S)*(sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)-&
           sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
+        !if(mhd_solve_eaux) then
+        !  w2R(ixC^S,eaux_)=w2R(ixC^S,e_)-half*(sum(w2R(ixC^S,mag(:))**2,dim=ndim+1)+&
+        !     sum(w2R(ixC^S,mom(:))**2,dim=ndim+1)*w2R(ixC^S,rho_))
+        !  w2L(ixC^S,eaux_)=w2L(ixC^S,e_)-half*(sum(w2L(ixC^S,mag(:))**2,dim=ndim+1)+&
+        !     sum(w2L(ixC^S,mom(:))**2,dim=ndim+1)*w2L(ixC^S,rho_))
+        !end if
       end if
 
       ! convert velocity to momentum
@@ -608,7 +620,7 @@ contains
       end do
 
       ! get fluxes of intermedate states
-      do iw=iwstart,nwflux
+      do iw=1,nwflux
         if (flux_type(idims, iw) == flux_tvdlf) then
           !! hll flux for normal B
           !f1L(ixC^S,iw)=(sR(ixC^S)*fLC(ixC^S, iw)-sL(ixC^S)*fRC(ixC^S, iw) &
@@ -626,6 +638,13 @@ contains
           f1R(ixC^S,iw)=f1L(ixC^S,iw)
           f2L(ixC^S,iw)=f1L(ixC^S,iw)
           f2R(ixC^S,iw)=f1L(ixC^S,iw)
+        else if(flux_type(idims, iw) == flux_hll) then
+          ! using hll flux for eaux and tracers
+          f1L(ixC^S,iw)=(sR(ixC^S)*fLC(ixC^S, iw)-sL(ixC^S)*fRC(ixC^S, iw) &
+                    +sR(ixC^S)*sL(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S)-sL(ixC^S))
+          f1R(ixC^S,iw)=f1L(ixC^S,iw)
+          f2L(ixC^S,iw)=f1L(ixC^S,iw)
+          f2R(ixC^S,iw)=f1L(ixC^S,iw)
         else
           f1L(ixC^S,iw)=fLC(ixC^S,iw)+sL(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
           f1R(ixC^S,iw)=fRC(ixC^S,iw)+sR(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
@@ -633,16 +652,6 @@ contains
           f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
         end if
       end do
-
-      ! use hll flux for the auxiliary internal e
-      if(mhd_energy.and.mhd_solve_eaux) then
-        iw=eaux_
-        f1L(ixC^S,iw)=(sR(ixC^S)*fLC(ixC^S, iw)-sL(ixC^S)*fRC(ixC^S, iw) &
-                  +sR(ixC^S)*sL(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S)-sL(ixC^S))
-        f1R(ixC^S,iw)=f1L(ixC^S,iw)
-        f2L(ixC^S,iw)=f1L(ixC^S,iw)
-        f2R(ixC^S,iw)=f1L(ixC^S,iw)
-      end if
 
       ! Miyoshi equation (66) and Guo equation (46)
      {do ix^DB=ixCmin^DB,ixCmax^DB\}
@@ -731,7 +740,6 @@ contains
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
-
        do iw=1,nwflux
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))

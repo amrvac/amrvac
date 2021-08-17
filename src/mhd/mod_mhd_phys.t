@@ -492,6 +492,11 @@ contains
        call mpistop("phys_check error: flux_type has wrong shape")
     end if
 
+    if(nwflux>mag(ndir)) then
+      ! for flux of eaux and tracers, using hll flux
+      flux_type(:,mag(ndir)+1:nwflux)=flux_hll
+    end if
+
     if(ndim>1) then
       if(mhd_glm) then
         flux_type(:,psi_)=flux_special
