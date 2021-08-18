@@ -467,6 +467,7 @@ contains
     real(dp), allocatable      :: tmp(:, :), c1(:), c2(:)
     integer                    :: ix
 
+    allocate(c1(my_lt%n_points(1)),c2(my_lt%n_points(2)))
     c1 = LT_get_xdata(my_lt%x_min(1), my_lt%dx(1), my_lt%n_points(1))
     c2 = LT_get_xdata(my_lt%x_min(2), my_lt%dx(2), my_lt%n_points(2))
     allocate(tmp(my_lt%n_points(1), size(x2)))
@@ -481,6 +482,7 @@ contains
        my_lt%rows_cols(ix, :, col_ix) = &
             LT_get_spaced_data(x2, tmp(ix, :), c2)
     end do
+    deallocate(c1,c2)
   end subroutine LT2_set_col
 
   !> Get a location in the lookup table
