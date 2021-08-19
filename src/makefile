@@ -47,7 +47,6 @@ amrini.o: mod_ghostcells_update.mod
 amrini.o: mod_multigrid_coupling.mod
 amrini.o: mod_physics.mod
 amrvac.o: mod_advance.mod
-amrvac.o: mod_constrained_transport.mod
 amrvac.o: mod_fix_conserve.mod
 amrvac.o: mod_ghostcells_update.mod
 amrvac.o: mod_initialize.mod

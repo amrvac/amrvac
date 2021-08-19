@@ -11,7 +11,7 @@ subroutine setdt()
   integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
   double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
-  double precision :: dtmax, dxmin, cmax_mype, v(ixG^T)
+  double precision :: dtmax, dxmin, cmax_mype
   double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_peak
   double precision :: trac_alfa, trac_dmax, trac_tau
 

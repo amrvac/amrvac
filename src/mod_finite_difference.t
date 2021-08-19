@@ -36,6 +36,7 @@ contains
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     logical :: transport
     integer :: idims, iw, ixC^L, ix^L, hxO^L, kxC^L, kxR^L
+    type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w,wnew=>snew%w)
 
@@ -101,12 +102,13 @@ contains
          ! apply limited reconstruction for left and right status at cell interfaces
          call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
          call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
+         call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 
     end do !idims loop
     b0i=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew,vcts)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
@@ -314,6 +316,7 @@ contains
 
     double precision :: dxinv(1:ndim), dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
+    type(ct_velocity) :: vcts
     logical :: transport, new_cmax, patchw(ixI^S)
 
     associate(wCT=>sCT%w,w=>s%w)
@@ -362,6 +365,7 @@ contains
 
        if(stagger_grid) then
          call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
+         call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 
        ! Calculate velocities from upwinded values
@@ -392,7 +396,7 @@ contains
     end do       !next idims
     b0i=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s,vcts)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);

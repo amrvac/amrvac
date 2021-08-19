@@ -12,7 +12,6 @@ program amrvac
   use mod_particles
   use mod_fix_conserve
   use mod_advance, only: process
-  use mod_constrained_transport
   use mod_multigrid_coupling
 
   double precision :: time0, time_in

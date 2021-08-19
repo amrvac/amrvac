@@ -40,6 +40,9 @@ contains
     integer :: nx^D, nxC^D, ix^D, ix, iw, level, idir
     logical, save :: subfirst=.true.
 
+    ! initialize w
+    w=0.d0
+
     ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D; ! Corner indices
     ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D; ! Center indices
 

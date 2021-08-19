@@ -2,14 +2,6 @@ module mod_constrained_transport
   implicit none
   public
 
-  !> velocities store for constrained transport
-  type ct_velocity
-    double precision, dimension(:^D&,:), allocatable :: vnorm,cbarmin,cbarmax
-    double precision, dimension(:^D&,:,:), allocatable :: vbarC,vbarLC,vbarRC
-  end type ct_velocity
-
-  type(ct_velocity), save :: vcts
-
 contains
   !> re-calculate the magnetic field from the vector potential in a completely
   !> divergency free way
@@ -122,6 +114,7 @@ contains
 
     A=zero
     ! extend one layer of cell center locations in xCC
+    xC=0.d0
     xCC=0.d0
     xCC(ixI^S,1:ndim)=x(ixI^S,1:ndim)
     {

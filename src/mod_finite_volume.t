@@ -150,6 +150,7 @@ contains
     double precision, dimension(ixI^S,1:ndim) :: xi
     integer, dimension(ixI^S)               :: patchf
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
+    type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
 
@@ -216,9 +217,12 @@ contains
        ! estimating bounds for the minimum and maximum signal velocities
        if(method=='tvdlf'.or.method=='tvdmu') then
          call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC)
+         if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC)
        else
          call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
+         if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
+
 
        ! use approximate Riemann solver to get flux at interfaces
        select case(method)
@@ -241,7 +245,7 @@ contains
     end do ! Next idims
     b0i=0
 
-    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew)
+    if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew,vcts)
 
     do idims= idims^LIM
        hxO^L=ixO^L-kr(idims,^D);
