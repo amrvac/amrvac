@@ -296,6 +296,7 @@ contains
 
     ! if using ct stagger grid, boundary divb=0 is not done here
     if(stagger_grid) then
+      phys_get_ct_velocity => mf_get_ct_velocity
       phys_update_faces => mf_update_faces
       phys_face_to_center => mf_face_to_center
       phys_modify_wLR => mf_modify_wLR
@@ -425,7 +426,6 @@ contains
   !> Estimating bounds for the minimum and maximum signal velocities
   subroutine mf_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,cmax,cmin)
     use mod_global_parameters
-    use mod_constrained_transport
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
@@ -435,8 +435,7 @@ contains
     double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
-    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
-    integer                            :: idimE,idimN
+    double precision, dimension(ixI^S) :: csoundR, tmp1
 
     wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
     tmp1(ixO^S)=wmean(ixO^S,mom(idim))
@@ -448,49 +447,60 @@ contains
       cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
     end if
 
-    if(stagger_grid) then
-      ! calculate velocities related to different UCT schemes
-      select case(type_ct)
-      case('average')
-      case('uct_contact')
-        if(.not.allocated(vcts%vnorm)) allocate(vcts%vnorm(ixI^S,1:ndim))
-        ! get average normal velocity at cell faces
-        vcts%vnorm=0.d0
-        vcts%vnorm(ixO^S,idim)=0.5d0*(wLp(ixO^S,mom(idim))+wRp(ixO^S,mom(idim)))
-      case('uct_hll')
-        if(.not.allocated(vcts%vbarC)) then
-          allocate(vcts%vbarC(ixI^S,1:ndir,2),vcts%vbarLC(ixI^S,1:ndir,2),vcts%vbarRC(ixI^S,1:ndir,2))
-          allocate(vcts%cbarmin(ixI^S,1:ndim),vcts%cbarmax(ixI^S,1:ndim)) 
-        end if
-        ! Store magnitude of characteristics
-        if(present(cmin)) then
-          vcts%cbarmin(ixO^S,idim)=max(-cmin(ixO^S),zero)
-          vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
-        else
-          vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
-          vcts%cbarmin(ixO^S,idim)=vcts%cbarmax(ixO^S,idim)
-        end if
-
-        idimN=mod(idim,ndir)+1 ! 'Next' direction
-        idimE=mod(idim+1,ndir)+1 ! Electric field direction
-        ! Store velocities
-        vcts%vbarLC(ixO^S,idim,1)=wLp(ixO^S,mom(idimN))
-        vcts%vbarRC(ixO^S,idim,1)=wRp(ixO^S,mom(idimN))
-        vcts%vbarC(ixO^S,idim,1)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,1) &
-             +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
-            /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
-
-        vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom(idimE))
-        vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom(idimE))
-        vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
-             +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
-            /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
-      case default
-        call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
-      end select
-    end if
-
   end subroutine mf_get_cbounds
+
+  !> prepare velocities for ct methods
+  subroutine mf_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixO^L,idim,cmax,cmin)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
+    double precision, intent(in)    :: cmax(ixI^S)
+    double precision, intent(in), optional :: cmin(ixI^S)
+    type(ct_velocity), intent(inout):: vcts
+
+    integer                         :: idimE,idimN
+
+    ! calculate velocities related to different UCT schemes
+    select case(type_ct)
+    case('average')
+    case('uct_contact')
+      if(.not.allocated(vcts%vnorm)) allocate(vcts%vnorm(ixI^S,1:ndim))
+      ! get average normal velocity at cell faces
+      vcts%vnorm(ixO^S,idim)=0.5d0*(wLp(ixO^S,mom(idim))+wRp(ixO^S,mom(idim)))
+    case('uct_hll')
+      if(.not.allocated(vcts%vbarC)) then
+        allocate(vcts%vbarC(ixI^S,1:ndir,2),vcts%vbarLC(ixI^S,1:ndir,2),vcts%vbarRC(ixI^S,1:ndir,2))
+        allocate(vcts%cbarmin(ixI^S,1:ndim),vcts%cbarmax(ixI^S,1:ndim)) 
+      end if
+      ! Store magnitude of characteristics
+      if(present(cmin)) then
+        vcts%cbarmin(ixO^S,idim)=max(-cmin(ixO^S),zero)
+        vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
+      else
+        vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
+        vcts%cbarmin(ixO^S,idim)=vcts%cbarmax(ixO^S,idim)
+      end if
+
+      idimN=mod(idim,ndir)+1 ! 'Next' direction
+      idimE=mod(idim+1,ndir)+1 ! Electric field direction
+      ! Store velocities
+      vcts%vbarLC(ixO^S,idim,1)=wLp(ixO^S,mom(idimN))
+      vcts%vbarRC(ixO^S,idim,1)=wRp(ixO^S,mom(idimN))
+      vcts%vbarC(ixO^S,idim,1)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,1) &
+           +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+          /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
+
+      vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom(idimE))
+      vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom(idimE))
+      vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
+           +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+          /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
+    case default
+      call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
+    end select
+
+  end subroutine mf_get_ct_velocity
 
   !> Calculate fast magnetosonic wave speed
   subroutine mf_get_csound(w,x,ixI^L,ixO^L,idim,csound)
@@ -789,7 +799,7 @@ contains
       if(mf_decay_scale(2*idir-1)>0.d0) decay(ixO^S)=decay(ixO^S)*&
          (1.d0-exp(-(x(ixO^S,idir)-xmin(idir))/mf_decay_scale(2*idir-1)))
       if(mf_decay_scale(2*idir)>0.d0) decay(ixO^S)=decay(ixO^S)*&
-         (1.d0-exp((x(ixO^S,ndim)-xmax(idir))/mf_decay_scale(2*idir)))
+         (1.d0-exp((x(ixO^S,idir)-xmax(idir))/mf_decay_scale(2*idir)))
     end do
 
     ! saturate mf velocity at mf_vmax
@@ -2024,7 +2034,7 @@ contains
   end subroutine mf_clean_divb_multigrid
   }
 
-  subroutine mf_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
+  subroutine mf_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s,vcts)
     use mod_global_parameters
 
     integer, intent(in)                :: ixI^L, ixO^L
@@ -2032,6 +2042,7 @@ contains
     ! cell-center primitive variables
     double precision, intent(in)       :: wprim(ixI^S,1:nw)
     type(state)                        :: sCT, s
+    type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
@@ -2039,9 +2050,9 @@ contains
     case('average')
       call update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
     case('uct_contact')
-      call update_faces_contact(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s)
+      call update_faces_contact(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s,vcts)
     case('uct_hll')
-      call update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s)
+      call update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s,vcts)
     case default
       call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
     end select
@@ -2051,7 +2062,6 @@ contains
   !> get electric field though averaging neighors to update faces in CT
   subroutine update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
     use mod_global_parameters
-    use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
@@ -2148,9 +2158,8 @@ contains
   end subroutine update_faces_average
 
   !> update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509
-  subroutine update_faces_contact(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s)
+  subroutine update_faces_contact(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s,vcts)
     use mod_global_parameters
-    use mod_constrained_transport
     use mod_usr_methods
 
     integer, intent(in)                :: ixI^L, ixO^L
@@ -2158,6 +2167,7 @@ contains
     ! cell-center primitive variables
     double precision, intent(in)       :: wp(ixI^S,1:nw)
     type(state)                        :: sCT, s
+    type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
 
@@ -2310,7 +2320,7 @@ contains
   end subroutine update_faces_contact
 
   !> update faces
-  subroutine update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s)
+  subroutine update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s,vcts)
     use mod_global_parameters
     use mod_constrained_transport
     use mod_usr_methods
@@ -2319,6 +2329,7 @@ contains
     double precision, intent(in)       :: qt, qdt
     double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
     type(state)                        :: sCT, s
+    type(ct_velocity)                  :: vcts
 
     double precision                   :: vtilL(ixI^S,2)
     double precision                   :: vtilR(ixI^S,2)
