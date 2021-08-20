@@ -1284,17 +1284,7 @@ contains
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
 
-    if (typeboundspeed=='cmaxmean') then
-      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
-      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
-      if(present(cmin)) then
-        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
-      else
-        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
-      end if
-    else
+    if (boundspeedEinfeldt) then
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
       tmp1(ixO^S)=sqrt(abs(wLp(ixO^S,rho_)))
@@ -1312,6 +1302,16 @@ contains
         cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
       else
         cmax(ixO^S)=abs(umean(ixO^S))+dmean(ixO^S)
+      end if
+    else
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
+      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
+      if(present(cmin)) then
+        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      else
+        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
     end if
 

@@ -27,6 +27,9 @@ module mod_input_output
   !> Which flux scheme of spatial discretization to use (per grid level)
   character(len=131), allocatable :: flux_scheme(:)
 
+  !> Which type of the maximal bound speed of Riemann fan to use
+  character(len=131) :: typeboundspeed
+
 contains
 
   !> Read the command line arguments passed to amrvac
@@ -1431,6 +1434,14 @@ contains
     if(dabs(sum(w_refine_weight(:))-1.d0)>smalldouble) then
       write(unitterm,*) "Sum of all elements in w_refine_weight be 1.d0"
       call mpistop("Reset w_refine_weight so the sum is 1.d0")
+    end if
+
+    if(typeboundspeed=='cmaxmean') then
+      boundspeedEinfeldt=.false.
+    else if(typeboundspeed=='Einfeldt') then
+      boundspeedEinfeldt=.true.
+    else
+      call mpistop("set typeboundspeed='Einfieldt' or 'cmaxmean'")
     end if
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '

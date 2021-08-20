@@ -563,8 +563,8 @@ module mod_global_parameters
   !> Which type of TVD method to use
   character(len=std_len) :: typetvd
 
-  !> Which type of TVDLF method to use
-  character(len=std_len) :: typeboundspeed
+  !> whether use Einfeldt's bound speed of Riemann fan
+  logical :: boundspeedEinfeldt=.true.
 
   character(len=std_len) :: typeaverage
   character(len=std_len) :: typedimsplit

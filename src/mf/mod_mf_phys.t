@@ -417,9 +417,7 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
 
-    call mf_get_csound(w,x,ixI^L,ixO^L,idim,cmax)
-
-    cmax(ixO^S)=abs(w(ixO^S,mom(idim)))+cmax(ixO^S)
+    cmax(ixO^S)=abs(w(ixO^S,mom(idim)))+one
 
   end subroutine mf_get_cmax
 
@@ -434,17 +432,14 @@ contains
     double precision, intent(inout) :: cmax(ixI^S)
     double precision, intent(inout), optional :: cmin(ixI^S)
 
-    double precision :: wmean(ixI^S,nw)
-    double precision, dimension(ixI^S) :: csoundR, tmp1
+    double precision, dimension(ixI^S) :: tmp1
 
-    wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-    tmp1(ixO^S)=wmean(ixO^S,mom(idim))
-    call mf_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
+    tmp1(ixO^S)=0.5d0*(wLC(ixO^S,mom(idim))+wRC(ixO^S,mom(idim)))
     if(present(cmin)) then
-      cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-      cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+      cmax(ixO^S)=max(tmp1(ixO^S)+one,zero)
+      cmin(ixO^S)=min(tmp1(ixO^S)-one,zero)
     else
-      cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+      cmax(ixO^S)=abs(tmp1(ixO^S))+one
     end if
 
   end subroutine mf_get_cbounds
@@ -501,18 +496,6 @@ contains
     end select
 
   end subroutine mf_get_ct_velocity
-
-  !> Calculate fast magnetosonic wave speed
-  subroutine mf_get_csound(w,x,ixI^L,ixO^L,idim,csound)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L, idim
-    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(out):: csound(ixI^S)
-
-    csound=1.d0
-
-  end subroutine mf_get_csound
 
   !> Calculate total pressure within ixO^L including magnetic pressure
   subroutine mf_get_p_total(w,x,ixI^L,ixO^L,p)
