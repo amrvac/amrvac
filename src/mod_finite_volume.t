@@ -127,10 +127,10 @@ contains
     use mod_source, only: addsource2
     use mod_usr_methods
 
-    character(len=*), intent(in)                          :: method
+    integer, intent(in)                                   :: method
     double precision, intent(in)                          :: qdt, qtC, qt, dx^D
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
-    double precision, dimension(ixI^S,1:ndim), intent(in) ::  x
+    double precision, dimension(ixI^S,1:ndim), intent(in) :: x
     type(state)                                           :: sCT, snew, sold
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
     double precision, dimension(ixI^S,7-2*ndim:3)         :: fE
@@ -215,7 +215,7 @@ contains
        call phys_get_flux(wRC,wRp,xi,ixI^L,ixC^L,idims,fRC)
 
        ! estimating bounds for the minimum and maximum signal velocities
-       if(method=='tvdlf'.or.method=='tvdmu') then
+       if(method==fs_tvdlf.or.method==fs_tvdmu) then
          call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC)
          if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC)
        else
@@ -226,18 +226,18 @@ contains
 
        ! use approximate Riemann solver to get flux at interfaces
        select case(method)
-       case('tvdmu')
-         call get_Riemann_flux_tvdmu()
-       case('tvdlf')
-         call get_Riemann_flux_tvdlf()
-       case('hll')
+       case(fs_hll)
          call get_Riemann_flux_hll()
-       case('hllc','hllcd')
+       case(fs_hllc,fs_hllcd)
          call get_Riemann_flux_hllc()
-       case('hlld')
+       case(fs_hlld)
          call get_Riemann_flux_hlld()
+       case(fs_tvdlf)
+         call get_Riemann_flux_tvdlf()
+       case(fs_tvdmu)
+         call get_Riemann_flux_tvdmu()
        case default
-         call mpistop('unkown Riemann flux')
+         call mpistop('unkown Riemann flux in finite volume')
        end select
 
        if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
@@ -286,7 +286,7 @@ contains
        end if
 
        ! For the MUSCL scheme apply the characteristic based limiter
-       if (method=='tvdmu') &
+       if (method==fs_tvdmu) &
             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dx^D)
 
     end do ! Next idims
@@ -396,7 +396,7 @@ contains
          patchf(ixC^S) =  2
       endwhere
       ! Use more diffusive scheme, is actually TVDLF and selected by patchf=4
-      if(method=='hllcd') &
+      if(method==fs_hllcd) &
            call phys_diffuse_hllcd(ixI^L,ixC^L,idims,wLC,wRC,fLC,fRC,patchf)
 
       !---- calculate speed lambda at CD ----!

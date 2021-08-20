@@ -24,6 +24,9 @@ module mod_input_output
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
   character(len=*), parameter :: fmt_i  = 'i8'     ! Integer format
 
+  !> Which flux scheme of spatial discretization to use (per grid level)
+  character(len=131), allocatable :: flux_scheme(:)
+
 contains
 
   !> Read the command line arguments passed to amrvac
@@ -230,8 +233,7 @@ contains
 
     namelist /methodlist/ time_stepper,time_integrator, &
          source_split_usr,typesourcesplit,&
-         dimsplit,typedimsplit,&
-         flux_scheme,typepred1,&
+         dimsplit,typedimsplit,flux_scheme,&
          limiter,gradient_limiter,cada3_radius,&
          loglimit,typeboundspeed, &
          typetvd,typeentropy,entropycoef,typeaverage, &
@@ -464,11 +466,11 @@ contains
     ! default IMEX threestep is IMEX_ARK(232)
     imex_switch     = 1
 
-    allocate(flux_scheme(nlevelshi),typepred1(nlevelshi))
+    allocate(flux_scheme(nlevelshi),typepred1(nlevelshi),flux_method(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))
     do level=1,nlevelshi
        flux_scheme(level) = 'tvdlf'
-       typepred1(level)   = 'default'
+       typepred1(level)   = 0
        limiter(level)     = 'minmod'
        gradient_limiter(level) = 'minmod'
     end do
@@ -680,6 +682,34 @@ contains
          'Warning in read_par_files: it_max or time_max not given!'
 
     do level=1,nlevelshi
+       select case (flux_scheme(level))
+       case ('hll')
+          flux_method(level)=fs_hll
+       case ('hllc')
+          flux_method(level)=fs_hllc
+       case ('hlld')
+          flux_method(level)=fs_hlld
+       case ('hllcd')
+          flux_method(level)=fs_hllcd
+       case ('tvdlf')
+          flux_method(level)=fs_tvdlf
+       case ('tvdmu')
+          flux_method(level)=fs_tvdmu
+       case ('tvd')
+          flux_method(level)=fs_tvd
+       case ('cd')
+          flux_method(level)=fs_cd
+       case ('cd4')
+          flux_method(level)=fs_cd4
+       case ('fd')
+          flux_method(level)=fs_fd
+       case ('source')
+          flux_method(level)=fs_source
+       case ('nul','null')
+          flux_method(level)=fs_nul
+       case default
+          call mpistop("unkown or bad flux scheme")
+       end select
        if(flux_scheme(level)=='tvd'.and.time_stepper/='onestep') &
             call mpistop(" tvd is onestep method, reset time_stepper='onestep'")
        if(flux_scheme(level)=='tvd')then
@@ -699,26 +729,26 @@ contains
        if(flux_scheme(level)=='tvdmu'.and.physics_type=='mf') &
           call mpistop("Cannot use tvdmu flux if using magnetofriction physics!")
 
-       if (typepred1(level)=='default') then
+       if (typepred1(level)==0) then
           select case (flux_scheme(level))
           case ('cd')
-             typepred1(level)='cd'
+             typepred1(level)=fs_cd
           case ('cd4')
-             typepred1(level)='cd4'
+             typepred1(level)=fs_cd4
           case ('fd')
-             typepred1(level)='fd'
+             typepred1(level)=fs_fd
           case ('tvdlf','tvdmu')
-             typepred1(level)='hancock'
+             typepred1(level)=fs_hancock
           case ('hll')
-             typepred1(level)='hll'
+             typepred1(level)=fs_hll
           case ('hllc')
-             typepred1(level)='hllc'
+             typepred1(level)=fs_hllc
           case ('hllcd')
-             typepred1(level)='hllcd'
+             typepred1(level)=fs_hllcd
           case ('hlld')
-             typepred1(level)='hlld'
+             typepred1(level)=fs_hlld
           case ('nul','source','tvd')
-             typepred1(level)='nul'
+             typepred1(level)=fs_nul
           case default
              call mpistop("No default predictor for this full step")
           end select
@@ -1444,6 +1474,8 @@ contains
        write(unitterm, '(A30,L1)') 'converting: ', convert
        write(unitterm, '(A)') ''
     endif
+
+    deallocate(flux_scheme)
 
   end subroutine read_par_files
 

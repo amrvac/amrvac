@@ -322,7 +322,6 @@ without changing time, set `reset_it=T`.
     time_stepper='twostep' | 'onestep' | 'threestep' | 'fourstep' | 'fivestep'
     time_integrator= choices depends on time_stepper
     flux_scheme=nlevelshi strings from: 'hll'|'hllc'|'hlld','hllcd'|'tvdlf'|'tvdmu'|'tvd'|'cd'|'fd'|'source'|'nul'
-    typepred1=nlevelshi strings from: 'default'|'hancock'|'tvdlf'|'hll'|'hllc'|'tvdmu'|'cd'|'fd'|'nul'
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
     gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
     loglimit= nw logicals, all false by default
@@ -362,7 +361,7 @@ without changing time, set `reset_it=T`.
     typecurl = 'central' | 'Gaussbased' | 'Stokesbased'
     /
 
-### time_stepper, time_integrator, flux_scheme, typepred1 {#par_time_integrator}
+### time_stepper, time_integrator, flux_scheme {#par_time_integrator}
 
 The `time_stepper` variable determines the time integration procedure. The
 default procedure is a second order predictor-corrector type 'twostep' scheme
@@ -396,16 +395,6 @@ Setting for a certain level the flux_scheme to 'nul' implies doing no advance at
 all, and 'source' merely adds sources. These latter two values must be used
 with care, obviously, and are only useful for testing source terms or to save
 computations when fluxes are known to be zero.
-
-The `typepred1` array is only used when `time_stepper='twostep'` and 
-`time_integrator='Predictor_Corrector'` and 
-specifies the predictor step discretization, again per level (so _nlevelshi_
-strings must be set). By default, it contains _typepred1=20*'default'_ (default
-value _nlevelshi=20_), and it then deduces e.g. that 'cd' is predictor for
-'cd', 'hancock' is predictor for both 'tvdlf' and 'tvdmu'. Check its default
-behavior in the _mod_input_output.t_ module. Thus `typepred1` need not be defined in
-most cases, however `flux_scheme` should always be defined if methods other
-than 'tvdlf' are to be used.
 
 ### Limiter type {#par_typelimiter}
 

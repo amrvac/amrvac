@@ -148,7 +148,7 @@ contains
     use mod_global_parameters
     integer :: n
 
-    if (any(flux_scheme /= "source")) then
+    if (any(flux_method /= fs_source)) then
        call mpistop("mod_sir requires flux_scheme = source")
     endif
 

@@ -5,7 +5,6 @@
  &methodlist
         time_stepper  = 'twostep'
         flux_scheme    = 20*'tvdmu'
-        typepred1    = 20*'hancock'
         limiter = 20*'albada'
         dimsplit     = .true.
         typeboundspeed  = 'cmaxmean'

@@ -7,7 +7,7 @@
 !> in amrvac.par:
 !>   &methodlist
 !>    time_stepper='onestep' ! time marching scheme, or 'twostep','threestep'
-!>    flux_scheme=13*'cd4' ! or 'tvdlf', 'fd'
+!>    flux_method=13*'cd4' ! or 'tvdlf', 'fd'
 !>    limiter= 13*'koren' ! or 'vanleer','cada3','mp5' so on
 !>   /
 !>   &meshlist
@@ -620,17 +620,17 @@ contains
 
     select case (time_stepper)
      case ("onestep")
-       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,ps1,qt,ps)
+       call advect1mf(flux_method,qdt,one,idim^LIM,qt,ps1,qt,ps)
      case ("twostep")
        ! predictor step
        fix_conserve_at_step = .false.
        call advect1mf(typepred1,qdt,half,idim^LIM,qt,ps,qt,ps1)
        ! corrector step
        fix_conserve_at_step = mf_advance .and. levmax>levmin
-       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt+half*qdt,ps1,qt,ps)
+       call advect1mf(flux_method,qdt,one,idim^LIM,qt+half*qdt,ps1,qt,ps)
      case ("threestep")
        ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
-       call advect1mf(flux_scheme,qdt,one,idim^LIM,qt,ps,qt,ps1)
+       call advect1mf(flux_method,qdt,one,idim^LIM,qt,ps,qt,ps1)
 
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           ps2(igrid)%w(ixG^T,1:nwflux)=0.75d0*ps(igrid)%w(ixG^T,1:nwflux)+0.25d0*&
@@ -639,14 +639,14 @@ contains
                ps(igrid)%w(ixG^T,nwflux+1:nw)
        end do
 
-       call advect1mf(flux_scheme,qdt,0.25d0,idim^LIM,qt+qdt,ps1,qt+dt*0.25d0,ps2)
+       call advect1mf(flux_method,qdt,0.25d0,idim^LIM,qt+qdt,ps1,qt+dt*0.25d0,ps2)
 
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
           ps(igrid)%w(ixG^T,1:nwflux)=1.0d0/3.0d0*ps(igrid)%w(ixG^T,1:nwflux)+&
                2.0d0/3.0d0*ps2(igrid)%w(ixG^T,1:nwflux)
        end do
 
-       call advect1mf(flux_scheme,qdt,2.0d0/3.0d0,idim^LIM,qt+qdt/2.0d0,ps2,qt+qdt/3.0d0,ps)
+       call advect1mf(flux_method,qdt,2.0d0/3.0d0,idim^LIM,qt+qdt/2.0d0,ps2,qt+qdt/3.0d0,ps)
      case default
        write(unitterm,*) "time_stepper=",time_stepper
        write(unitterm,*) "Error in advectmf: Unknown time stepping method"
@@ -667,7 +667,7 @@ contains
     type(state) :: psa(max_blocks)! Compute fluxes based on this state
     type(state) :: psb(max_blocks) ! update on this state
     double precision, intent(in) :: dtin,dtfactor, qtC, qt
-    character(len=*), intent(in) :: method(nlevelshi)
+    integer, intent(in) :: method(nlevelshi)
 
     double precision :: qdt
     integer :: iigrid, igrid, level, i^D
@@ -721,7 +721,7 @@ contains
     use mod_global_parameters
     use mod_fix_conserve
 
-    character(len=*), intent(in) :: method
+    integer, intent(in) :: method
     integer, intent(in) :: igrid, ixG^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt
     double precision :: wCT(ixG^S,1:nw), w(ixG^S,1:nw), wold(ixG^S,1:nw)
@@ -735,27 +735,26 @@ contains
 
     ixO^L=ixG^L^LSUBnghostcells;
     select case (method)
-     case ("cd4")
+     case (fs_cd4)
        !================================
        ! 4th order central difference
        !================================
        call centdiff4mf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
-     case ("tvdlf")
+     case (fs_tvdlf)
        !================================
        ! TVDLF
        !================================
        call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
-     case ('hancock')
+     case (fs_hancock)
        ! hancock predict (first) step for twostep tvdlf and tvdmu scheme
        call hancockmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,dx^D,ps(igrid)%x)
-     case ("fd")
+     case (fs_fd)
        !================================
        ! finite difference
        !================================
        call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
     case default
-       if(mype==0) write(unitterm,*)'Error in advect1_gridmf:',method,' is not there!'
-       call mpistop("The scheme is not implemented.")
+       call mpistop("unknown flux scheme in advect1_gridmf")
     end select
 
     if (fix_conserve_at_step) then

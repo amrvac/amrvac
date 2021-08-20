@@ -235,7 +235,7 @@ module mod_global_parameters
   !> Unit for error messages
   integer, parameter :: uniterr=6
 
-  !> \todo Move to mod_input_output
+  !> file handle for IO
   integer, parameter :: unitpar=9
   integer, parameter :: unitconvert=10
   integer, parameter :: unitslice=11
@@ -522,12 +522,27 @@ module mod_global_parameters
   !> Which time integrator to use
   character(len=std_len) :: time_integrator
 
-  !> Which spatial discretization to use (per grid level)
-  character(len=std_len), allocatable :: flux_scheme(:)
+  !> Which flux scheme of spatial discretization to use (per grid level)
+  integer, allocatable :: flux_method(:)
 
   !> The spatial discretization for the predictor step when using a two
   !> step PC method
-  character(len=std_len), allocatable :: typepred1(:)
+  integer, allocatable :: typepred1(:)
+
+  !> flux schemes
+  integer, parameter :: fs_hll=1
+  integer, parameter :: fs_hllc=2
+  integer, parameter :: fs_hlld=3
+  integer, parameter :: fs_hllcd=4
+  integer, parameter :: fs_tvdlf=5
+  integer, parameter :: fs_tvdmu=6
+  integer, parameter :: fs_tvd=7
+  integer, parameter :: fs_hancock=8
+  integer, parameter :: fs_cd=9
+  integer, parameter :: fs_cd4=10
+  integer, parameter :: fs_fd=11
+  integer, parameter :: fs_source=12
+  integer, parameter :: fs_nul=13
 
   !> Type of slope limiter used for reconstructing variables on cell edges
   integer, allocatable :: type_limiter(:)
@@ -629,10 +644,6 @@ module mod_global_parameters
 
   character(len=std_len) :: typeghostfill='linear',prolongation_method
   logical :: internalboundary
-
-  ! parameters for bc_phys
-  integer, parameter :: ismin^D=-1+2*^D
-  integer, parameter :: ismax^D=2*^D
 
   !> Base file name for synthetic EUV emission output
   character(len=std_len) :: filename_euv

@@ -208,7 +208,7 @@ contains
     use mod_global_parameters
     integer :: n, i, iw, species_list(number_of_species)
 
-    if (any(flux_scheme /= "source")) then
+    if (any(flux_method /= fs_source)) then
        ! there are no fluxes, only source terms in reaction-diffusion
        call mpistop("mod_rd requires flux_scheme = source")
     end if

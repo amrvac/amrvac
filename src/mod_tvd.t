@@ -13,7 +13,7 @@ contains
   subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,s,qt,snew,fC,dx^D,x)
     use mod_global_parameters
 
-    character(len=*), intent(in) :: method
+    integer, intent(in) :: method
     double precision, intent(in) :: qdt, qt, dx^D
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,nw) :: w, wnew
@@ -39,13 +39,13 @@ contains
 
     ! Limit the flow variables in wnew according to typetvd. 
     ! wroeC is based on wL and wR.
-    ! If method=='tvd' an extra adtdx**2*jumpC is added to phiC for 2nd order
+    ! If method=fs_tvd an extra adtdx**2*jumpC is added to phiC for 2nd order
     ! accuracy in time.
 
     use mod_global_parameters
     use mod_physics_roe
 
-    character(len=*), intent(in) :: method
+    integer, intent(in) :: method
     double precision, intent(in) :: qdt, dx^D
     integer, intent(in) :: ixI^L, ixIC^L, ixO^L, idims
     double precision, dimension(ixG^T,nw) :: wL, wR
@@ -114,12 +114,12 @@ contains
   subroutine getphi(method,jumpC,adtdxC,smallaC,ixI^L,ixIC^L,ixC^L,il,idims,phiC)
 
     ! Calculate the dissipative flux from jumpC=L*dw and adtdx=eigenvalue*dt/dx.
-    ! Add Lax-Wendroff type correction if method=='tvd'.
+    ! Add Lax-Wendroff type correction if method=fs_tvd.
     ! Limit according to method and typetvd.
     use mod_limiter
     use mod_global_parameters
 
-    character(len=*), intent(in) :: method
+    integer, intent(in) :: method
     integer, intent(in) :: ixI^L, ixIC^L, ixC^L, il, idims
     double precision, dimension(ixG^T) :: jumpC, adtdxC, smallaC, phiC
 
@@ -128,7 +128,7 @@ contains
     !-----------------------------------------------------------------------------
 
     typelimiter=type_limiter(block%level)
-    if(method=='tvdmu'.or.method=='tvdmu1')then
+    if(method==fs_tvdmu)then
        ! In the MUSCL scheme phi=|a|*jump, apply entropy fix to it
        if(typeentropy(il)=='nul'.or.typeentropy(il)=='ratio')then
           phiC(ixC^S)=abs(adtdxC(ixC^S))*jumpC(ixC^S)
@@ -144,7 +144,7 @@ contains
        return
     endif
 
-    if(method=='tvd')then
+    if(method==fs_tvd)then
        !Entropy fix to |a|-a**2
        if(typeentropy(il)=='nul'.or.typeentropy(il)=='ratio')then
           phiC(ixIC^S)=abs(adtdxC(ixIC^S))-adtdxC(ixIC^S)**2
@@ -187,7 +187,7 @@ contains
           phiC(ixC^S)=phiC(ixC^S)*(jumpC(ixC^S)-ljumpC(ixC^S))
        end where
        !extra (a*lambda)**2*delta
-       if(method=='tvd')phiC(ixC^S)=phiC(ixC^S)+adtdxC(ixC^S)**2*jumpC(ixC^S)
+       if(method==fs_tvd)phiC(ixC^S)=phiC(ixC^S)+adtdxC(ixC^S)**2*jumpC(ixC^S)
     case('sweby')
        !Sweby eqs.4.11-4.15, but no 0.5 ?!
        phiC(ixIC^S)=phiC(ixIC^S)*jumpC(ixIC^S)
@@ -198,7 +198,7 @@ contains
           phiC(ixC^S)=phiC(ixC^S)-ljumpC(ixC^S)
        end where
        !extra (a*lambda)**2*delta
-       if(method=='tvd')phiC(ixC^S)=phiC(ixC^S)+adtdxC(ixC^S)**2*jumpC(ixC^S)
+       if(method==fs_tvd)phiC(ixC^S)=phiC(ixC^S)+adtdxC(ixC^S)**2*jumpC(ixC^S)
     case('yee')
        !eq.3.51 with correction
        call dwlimiter2(jumpC,ixI^L,ixIC^L,idims,typelimiter,ldw=ljumpC)

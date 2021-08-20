@@ -22,7 +22,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
   {case (^D)
      if (iside==2) then
         ! maximal boundary
-        iB=ismax^D
+        iB=2*^D
         ixOmin^DD=ixBmax^D+1-nghostcells^D%ixOmin^DD=ixBmin^DD;
         ixOmax^DD=ixBmax^DD;
         ! cont/symm/asymm types
@@ -129,7 +129,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
         end if
      else
         ! minimal boundary
-        iB=ismin^D
+        iB=2*^D-1
         ixOmin^DD=ixBmin^DD;
         ixOmax^DD=ixBmin^D-1+nghostcells^D%ixOmax^DD=ixBmax^DD;
         ! cont/symm/asymm types

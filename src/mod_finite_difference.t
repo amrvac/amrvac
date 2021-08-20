@@ -9,14 +9,13 @@ module mod_finite_difference
 
 contains
 
-  subroutine fd(method,qdt,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,snew,fC,fE,dx^D,x)
+  subroutine fd(qdt,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,snew,fC,fE,dx^D,x)
     use mod_physics
     use mod_source, only: addsource2
     use mod_finite_volume, only: reconstruct_LR
     use mod_global_parameters
     use mod_usr_methods
 
-    character(len=*), intent(in)                                     :: method
     double precision, intent(in)                                     :: qdt, qtC, qt, dx^D
     integer, intent(in)                                              :: ixI^L, ixO^L, idims^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in)            :: x
@@ -297,7 +296,7 @@ contains
     use mod_source, only: addsource2
     use mod_usr_methods
 
-    character(len=*), intent(in) :: method
+    integer, intent(in) :: method
     integer, intent(in) :: ixI^L, ixO^L, idims^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D
     type(state)      :: sCT, s
@@ -377,7 +376,7 @@ contains
        call phys_get_flux(wCT,wprim,x,ixI^L,ix^L,idims,f)
 
        ! Center flux to interface
-       if(method=='cd') then
+       if(method==fs_cd) then
           fC(ixC^S,iwstart:nwflux,idims)=half*(f(ixC^S,iwstart:nwflux)+f(jxC^S,iwstart:nwflux))
        else
           ! f_i+1/2= (-f_(i+2) +7 f_(i+1) + 7 f_i - f_(i-1))/12
