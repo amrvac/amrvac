@@ -42,6 +42,7 @@ amrgrid.o: mod_amr_fct.mod
 amrgrid.o: mod_coarsen_refine.mod
 amrgrid.o: mod_fix_conserve.mod
 amrgrid.o: mod_ghostcells_update.mod
+amrgrid.o: mod_trac.mod
 amrini.o: mod_constrained_transport.mod
 amrini.o: mod_ghostcells_update.mod
 amrini.o: mod_multigrid_coupling.mod
@@ -59,6 +60,7 @@ boundary_conditions.o: mod_bc_data.mod
 boundary_conditions.o: mod_mhd_phys.mod
 boundary_conditions.o: mod_physics.mod
 coarsen.o: mod_physics.mod
+comm_lib.o: mod_trac.mod
 connectivity.o: mod_ghostcells_update.mod
 convert.o: mod_calculate_xw.mod
 convert.o: mod_ghostcells_update.mod

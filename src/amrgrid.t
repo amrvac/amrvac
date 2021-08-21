@@ -50,6 +50,7 @@ subroutine resettree
   use mod_fix_conserve
   use mod_amr_fct
   use mod_coarsen_refine
+  use mod_trac
 
   if(levmax>levmin) call deallocateBflux
   if(stagger_grid) call deallocateBfaces
@@ -60,6 +61,13 @@ subroutine resettree
 
   ! set up boundary flux conservation arrays
   if(levmax>levmin) call allocateBflux
+
+  ! update communication field for trac with mask
+  if (phys_trac) then
+    if (phys_trac_type .eq. 5) then
+      call update_mask_info()
+    endif
+  endif
 
 end subroutine resettree
 
@@ -90,3 +98,34 @@ subroutine resettree_convert
   end do
 
 end subroutine resettree_convert
+
+subroutine initialize_after_settree
+  use mod_global_parameters
+  use mod_trac, only:init_trac_line, init_trac_block
+
+  if(phys_trac) then
+    if(phys_trac_type .eq. 3) then
+      if(mype .eq. 0) write(*,*) 'Using TRACL(ine) global method'
+      if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+      call init_trac_line(.false.)
+    end if
+    if(phys_trac_type .eq. 4) then
+      if(mype .eq. 0) write(*,*) 'Using TRACB(lock) global method'
+      if(mype .eq. 0) write(*,*) 'Currently, only valid in Cartesian uniform settings'
+      if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+      call init_trac_block(.false.)
+    end if
+    if(phys_trac_type .eq. 5) then
+      if(mype .eq. 0) write(*,*) 'Using TRACL(ine) method with a mask'
+      if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+      call init_trac_line(.true.)
+    end if
+    if(phys_trac_type .eq. 6) then
+      if(mype .eq. 0) write(*,*) 'Using TRACB(lock) method with a mask'
+      if(mype .eq. 0) write(*,*) 'Currently, only valid in Cartesian uniform settings'
+      if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+      call init_trac_block(.true.)
+    end if
+  end if
+
+end subroutine initialize_after_settree

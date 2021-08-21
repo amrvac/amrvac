@@ -124,6 +124,9 @@ program amrvac
 
   end if
 
+  ! initialize something base on tree information
+  call initialize_after_settree
+
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
      write(*,'(a,f17.3,a)')' Startup phase took : ',MPI_WTIME()-time0,' sec'
