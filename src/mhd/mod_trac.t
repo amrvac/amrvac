@@ -68,9 +68,11 @@ contains
     if(mype .eq. 0) write(*,*) 'NOTE:  3D TRAC method take the z-dir == grav-dir'
     }
 
-    call init_pegrid_mask()
-    call create_trac_communicator()
-    call init_trac_Tcoff()
+    if (mask) then
+      call init_pegrid_mask()
+      call create_trac_communicator()
+      call init_trac_Tcoff()
+    endif
 
   end subroutine init_trac_line
 
@@ -549,7 +551,7 @@ contains
     do ix1=1,numFL
       xFt(1,:)=xF(ix1,1,:)
       xp=xFt(1,:)
-      call get_point_w(xp,wp)
+      call get_point_w(xp,wp,'conserved')
       if (wp(mag(ndim))<=0) then
         forward=.false.
       else

@@ -7,15 +7,16 @@ module mod_point_searching
 
 contains
 
-  subroutine get_point_w(xp,wp)
+  subroutine get_point_w(xp,wp,variable_type)
     ! for given point (xp), provide the plasma parameters (wp) at this point
 
     double precision :: xp(1:ndim),wp(1:nw)
+    character(*) :: variable_type
 
     double precision :: x3d(3)
     double precision :: dxb^D,xd^D
     integer :: indomain,ipe,igrid,j
-    integer :: ixO^L,ixbl^D,ix^D
+    integer :: ixO^L,ixbl^D,ix^D,ixA^L,ixI^L
     double precision :: factor(0:1^D&)
     double precision :: temp
 
@@ -34,11 +35,25 @@ contains
       if (mype==ipe) then
         ^D&dxb^D=rnode(rpdx^D_,igrid)\
         ^D&ixOmin^D=ixmlo^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
         ^D&ixbl^D=floor((xp(^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D\
         ^D&xd^D=(xp(^D)-ps(igrid)%x(ixbl^DD,^D))/dxb^D\
+        ^D&ixAmin^D=ixbl^D\
+        ^D&ixAmax^D=ixbl^D+1\
+
         {do ix^D=0,1\}
           factor(ix^D)={abs(1-ix^D-xd^D)*}
         {enddo\}
+
+        select case(variable_type)
+          case('primitive')
+            call phys_to_primitive(ixI^L,ixA^L,ps(igrid)%w,ps(igrid)%x)
+          case('conserved')
+
+          case default
+            call mpistop("get_point_w: Unknown variable type!")
+        end select
 
         wp=0.d0
         {do ix^D=0,1\}
@@ -46,6 +61,15 @@ contains
             wp(j)=wp(j)+factor(ix^D)*ps(igrid)%w(ixbl^D+ix^D,j)
           enddo
         {enddo\}
+
+        select case(variable_type)
+          case('primitive')
+          call phys_to_conserved(ixI^L,ixA^L,ps(igrid)%w,ps(igrid)%x)
+          case('conserved')
+
+          case default
+            call mpistop("get_point_w: Unknown variable type!")
+        end select
 
         if(physics_type=='mhd') then
           wp(iw_mag(1):iw_mag(ndir))=0.d0
@@ -69,15 +93,16 @@ contains
 
   end subroutine get_point_w
 
-  subroutine get_cell_w(xp,wc)
+  subroutine get_cell_w(xp,wc,variable_type)
     ! for given point (xp), looking for corresponding cell and then provide
     ! the plasma parameters (wc) of this cell
 
     double precision :: xp(1:ndim),wc(1:nw)
+    character(*) :: variable_type
 
     double precision :: x3d(3)
     double precision :: dxb^D,xb^L
-    integer :: indomain,ixO^L,ixb^D
+    integer :: indomain,ixO^L,ixb^D,ixA^L,ixI^L
     integer :: ipe,igrid,j
 
     indomain=0
@@ -97,12 +122,27 @@ contains
         ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
         ^D&dxb^D=rnode(rpdx^D_,igrid)\
         ^D&ixOmin^D=ixmlo^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
         ^D&ixb^D=floor((xp(^D)-xbmin^D)/dxb^D)+ixOmin^D\
+        ^D&ixAmin^D=ixb^D\
+        ^D&ixAmax^D=ixb^D\
 
         wc=0.d0
-        do j=1,nw
-          wc(j)=ps(igrid)%w(ixb^D,j)
-        enddo
+        select case(variable_type)
+          case('primitive')
+            call phys_to_primitive(ixI^L,ixA^L,ps(igrid)%w,ps(igrid)%x)
+            do j=1,nw
+              wc(j)=ps(igrid)%w(ixb^D,j)
+            enddo
+            call phys_to_conserved(ixI^L,ixA^L,ps(igrid)%w,ps(igrid)%x)
+          case('conserved')
+            do j=1,nw
+              wc(j)=ps(igrid)%w(ixb^D,j)
+            enddo
+          case default
+            call mpistop("get_point_w: Unknown variable type!")
+        end select
 
         ! for magnetic field
         if(physics_type=='mhd') then
