@@ -743,7 +743,7 @@ contains
       current(ixOmax^D^D%ixO^S,:)=current(ixOmax^D-1^D%ixO^S,:)
     end if
 \}
-    w(ixI^S,mom(:))=0.d0
+    w(ixO^S,mom(:))=0.d0
     ! calculate Lorentz force
     do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
        if(lvc(idir,jdir,kdir)/=0)then
