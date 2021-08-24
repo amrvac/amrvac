@@ -45,7 +45,7 @@ Additionally, specific parameters can be set in the rc_list. In the following ta
 
 name | type | default | description
 ---|---|---|---
-coolcurve | string | 'JCcorona' | Name of cooling curve to be used. <br>The available *interpolatable tables* are 'JCcorona', 'DM', 'MB', 'MLsolar1', 'MLcosmol', 'MLwc', 'SPEX', 'SPEX_DM', 'cloudy_solar', 'cloudy_ism', 'Dere_corona', 'Dere_corona_DM', 'Dere_photo', 'Dere_photo_DM', 'Colgan', 'Colgan_DM'. <br/>The available *piecewise power laws* are 'Hildner', 'FM', 'Rosner' and 'Klimchuk'. 
+coolcurve | string | 'JCcorona' | Name of cooling curve to be used. <br>The available *interpolatable tables* and *piecewise power laws* are given below. 
 coolmethod | string | 'exact' | Numerical scheme to be used in radiative cooling. <br>The available methods are 'explicit1', 'explicit2', 'semiimplicit', 'implicit' and 'exact'.
 ncool | integer | 4000 | The number of point that will be used in interpolating the cooling curve. <br>Note that this is the number of elements in the final cooling table. When using the exact integration method, it is advisable to set this number large. The efficiency of this method make this an acceptable choice and it increases accuracy.
 cfrac | double precision | 0.1 | The fraction of E/L that sets upper time limit in explicit cooling functions.
@@ -139,13 +139,15 @@ Piecewise power laws  | 'Hildner'  | Hildner 1974
 <i></i> | 'FM'       | Hildner 1974, but modified with constraints on the radiative timescales as in Forbes & Malherbe 1991
 <i></i> | 'Rosner'       | Rosner 1978, extended by Priest 1982 and implemented as given in the PhD thesis of Van Der Linden 1991
 <i></i> | 'Klimchuk'   | Klimchuk et al. 2008
+<i></i> | 'SPEX_DM_rough' | A piece-wise power law fit to the 'SPEX_DM' curve with seven segments. More info see [https://erc-prominent.github.io/team/jorishermans/](https://erc-prominent.github.io/team/jorishermans/)
+<i></i> | 'SPEX_DM_fine' | A piece-wise power law fit to the 'SPEX_DM' curve with fourteen segments. More info see [https://erc-prominent.github.io/team/jorishermans/](https://erc-prominent.github.io/team/jorishermans/)
 
 With the exception of the SPEX table (which is rather more complicated), 
 all interpolatable tables have been extended to 1.e9 K, 
 by assuming pure Bremsstrahlung at high temperatures (\f$ \Lambda \sim \sqrt{T} \f$). 
 This has been done to allow the different numerical cooling methods to extend to higher temperatures.
 
-All coolingcurves are in cgs. The piecewise power laws have a pre-coded temperature range of 1.e3 to 1.e10 K, for practical reasons.
+All coolingcurves are implemented in cgs units. However, if you use SI units with the parameter *si_unit*, the radiative cooling will be scaled to take it into account. The piecewise power laws have a pre-coded temperature range of 1.e3 to 1.e10 K, for practical reasons.
 
 ## The numerical methods
 
