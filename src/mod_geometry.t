@@ -10,6 +10,11 @@ module mod_geometry
   integer, parameter :: spherical          = 3
   integer, parameter :: Cartesian_expansion= 4
 
+  integer :: type_curl=0
+  integer, parameter :: central=1
+  integer, parameter :: Gaussbased=2
+  integer, parameter :: Stokesbased=3
+
 contains
 
   !> Set the coordinate system to be used
@@ -687,21 +692,21 @@ contains
       case(Cartesian_stretched) ! stretched Cartesian grids
         do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
           if(lvc(idir,jdir,kdir)/=0)then
-            select case(typecurl)
-              case('central')
+            select case(type_curl)
+              case(central)
                 tmp(ixA^S)=qvec(ixA^S,kdir)
                 hxO^L=ixO^L-kr(jdir,^D);
                 jxO^L=ixO^L+kr(jdir,^D);
                 ! second order centered differencing
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,jdir)-block%x(hxO^S,jdir))
-              case('Gaussbased')
+              case(Gaussbased)
                 hxO^L=ixO^L-kr(jdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                 jxC^L=ixC^L+kr(jdir,^D);
                 tmp(ixC^S)=block%surfaceC(ixC^S,jdir)*(qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                        (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir)))
                 tmp2(ixO^S)=(tmp(ixO^S)-tmp(hxO^S))/block%dvolume(ixO^S)
-              case('Stokesbased')
+              case(Stokesbased)
                 hxO^L=ixO^L-kr(jdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                 jxC^L=ixC^L+kr(jdir,^D);
@@ -729,8 +734,8 @@ contains
           endif
         enddo; enddo; enddo;
       case(spherical) ! possibly stretched spherical grids
-        select case(typecurl)
-          case('central') ! ok for any dimensionality
+        select case(type_curl)
+          case(central) ! ok for any dimensionality
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
                 tmp(ixA^S)=qvec(ixA^S,kdir)
@@ -757,7 +762,7 @@ contains
                 if(idir<idirmin)idirmin=idir
               endif
             enddo; enddo; enddo;
-          case('Gaussbased')
+          case(Gaussbased)
             do idir=idirmin0,3;
             do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
@@ -782,7 +787,7 @@ contains
                  +qvec(ixO^S,r_)*dcos(block%x(ixO^S,2))/(block%x(ixO^S,r_)*dsin(block%x(ixO^S,2)))
             }
             enddo;
-          case('Stokesbased')
+          case(Stokesbased)
             !if(ndim<3) call mpistop("Stokesbased for 3D spherical only")
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
              if(lvc(idir,jdir,kdir)/=0)then
@@ -894,8 +899,8 @@ contains
             call mpistop('no such curl evaluator')
         end select
       case(cylindrical) ! possibly stretched cylindrical grids
-        select case(typecurl)
-          case('central')  ! works for any dimensionality, polar/cylindrical
+        select case(type_curl)
+          case(central)  ! works for any dimensionality, polar/cylindrical
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
                 tmp(ixA^S)=qvec(ixA^S,kdir)
@@ -945,7 +950,7 @@ contains
                  if(idir<idirmin)idirmin=idir
               endif
             enddo; enddo; enddo;
-          case('Gaussbased') ! works for any dimensionality, polar/cylindrical
+          case(Gaussbased) ! works for any dimensionality, polar/cylindrical
             if(ndim<2) call mpistop("Gaussbased for 2D, 2.5D or 3D polar or cylindrical only")
             do idir=idirmin0,3;
             do jdir=1,ndim; do kdir=1,ndir0
@@ -975,7 +980,7 @@ contains
               if(phi_==2) curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+qvec(ixO^S,z_)/block%x(ixO^S,r_)
             endif
             enddo;
-          case('Stokesbased')
+          case(Stokesbased)
             if(ndim<3) call mpistop("Stokesbased for 3D cylindrical only")
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
@@ -1141,21 +1146,21 @@ contains
       case(Cartesian_stretched) ! stretched Cartesian grids
         do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
           if(lvc(idir,jdir,kdir)/=0)then
-            select case(typecurl)
-              case('central')
+            select case(type_curl)
+              case(central)
                 tmp(ixI^S)=qvec(ixI^S,kdir)
                 hxO^L=ixO^L-kr(jdir,^D);
                 jxO^L=ixO^L+kr(jdir,^D);
                 ! second order centered differencing
                 tmp2(ixO^S)=(tmp(jxO^S)-tmp(hxO^S))/(block%x(jxO^S,jdir)-block%x(hxO^S,jdir))
-              case('Gaussbased')
+              case(Gaussbased)
                 hxO^L=ixO^L-kr(jdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                 jxC^L=ixC^L+kr(jdir,^D);
                 tmp(ixC^S)=block%surfaceC(ixC^S,jdir)*(qvec(ixC^S,kdir)+0.5d0*block%dx(ixC^S,jdir)*&
                        (qvec(jxC^S,kdir)-qvec(ixC^S,kdir))/(block%x(jxC^S,jdir)-block%x(ixC^S,jdir)))
                 tmp2(ixO^S)=(tmp(ixO^S)-tmp(hxO^S))/block%dvolume(ixO^S)
-              case('Stokesbased')
+              case(Stokesbased)
                 hxO^L=ixO^L-kr(jdir,^D);
                 ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
                 jxC^L=ixC^L+kr(jdir,^D);
@@ -1183,8 +1188,8 @@ contains
           endif
         enddo; enddo; enddo;
       case(spherical) ! possibly stretched spherical grids
-        select case(typecurl)
-          case('central') ! ok for any dimensionality
+        select case(type_curl)
+          case(central) ! ok for any dimensionality
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
                 tmp(ixI^S)=qvec(ixI^S,kdir)
@@ -1211,7 +1216,7 @@ contains
                 if(idir<idirmin)idirmin=idir
               endif
             enddo; enddo; enddo;
-          case('Gaussbased')
+          case(Gaussbased)
             do idir=idirmin0,3;
             do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
@@ -1236,7 +1241,7 @@ contains
                  +qvec(ixO^S,r_)*dcos(block%x(ixO^S,2))/(block%x(ixO^S,r_)*dsin(block%x(ixO^S,2)))
             }
             enddo;
-          case('Stokesbased')
+          case(Stokesbased)
             !if(ndim<3) call mpistop("Stokesbased for 3D spherical only")
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
              if(lvc(idir,jdir,kdir)/=0)then
@@ -1348,8 +1353,8 @@ contains
             call mpistop('no such curl evaluator')
         end select
       case(cylindrical) ! possibly stretched cylindrical grids
-        select case(typecurl)
-          case('central')  ! works for any dimensionality, polar/cylindrical
+        select case(type_curl)
+          case(central)  ! works for any dimensionality, polar/cylindrical
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then
                 tmp(ixI^S)=qvec(ixI^S,kdir)
@@ -1399,7 +1404,7 @@ contains
                  if(idir<idirmin)idirmin=idir
               endif
             enddo; enddo; enddo;
-          case('Gaussbased') ! works for any dimensionality, polar/cylindrical
+          case(Gaussbased) ! works for any dimensionality, polar/cylindrical
             if(ndim<2) call mpistop("Gaussbased for 2D, 2.5D or 3D polar or cylindrical only")
             do idir=idirmin0,3;
             do jdir=1,ndim; do kdir=1,ndir0
@@ -1429,7 +1434,7 @@ contains
               if(phi_==2) curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+qvec(ixO^S,z_)/block%x(ixO^S,r_)
             endif
             enddo;
-          case('Stokesbased')
+          case(Stokesbased)
             if(ndim<3) call mpistop("Stokesbased for 3D cylindrical only")
             do idir=idirmin0,3; do jdir=1,ndim; do kdir=1,ndir0
               if(lvc(idir,jdir,kdir)/=0)then

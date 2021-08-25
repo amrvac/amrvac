@@ -206,6 +206,8 @@ contains
     character(len=std_len) :: time_stepper
     !> Which time integrator to use
     character(len=std_len) :: time_integrator
+    !> type of curl operator
+    character(len=std_len) :: typecurl
 
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
@@ -767,6 +769,20 @@ contains
     if(any(flux_scheme=='fd')) need_global_cmax=.true.
     if(any(limiter=='schmid1')) need_global_a2max=.true.
 
+    ! initialize type_curl
+     select case (typecurl)
+     case ("central")
+        type_curl=central
+     case ("Gaussbased")
+        type_curl=Gaussbased
+     case ("Stokesbased")
+        type_curl=Stokesbased
+     case default
+        write(unitterm,*) "typecurl=",typecurl
+        call mpistop("unkown type of curl operator in read_par_files")
+     end select
+
+    ! initialize types of time stepper and time integrator
     select case (time_stepper)
     case ("onestep")
        t_stepper=onestep

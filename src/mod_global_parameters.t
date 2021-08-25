@@ -630,7 +630,7 @@ module mod_global_parameters
   !> whether IMEX in use or not
   logical                       :: use_imex_scheme
 
-  character(len=std_len) :: typediv,typegrad,typecurl
+  character(len=std_len) :: typediv,typegrad
 
   !> global fastest wave speed needed in fd scheme and glm method
   double precision :: cmax_global
