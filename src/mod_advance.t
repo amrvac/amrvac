@@ -4,8 +4,6 @@ module mod_advance
   implicit none
   private
 
-  logical :: firstsweep, lastsweep
-
   !> Whether to conserve fluxes at the current sub-step
   logical :: fix_conserve_at_step = .true.
 
@@ -40,25 +38,21 @@ contains
     ! split source addition
     call add_split_source(prior=.true.)
 
-    firstsweep=.true.
     if (dimsplit) then
        if ((iit/2)*2==iit .or. typedimsplit=='xy') then
           ! do the sweeps in order of increasing idim,
           do idimsplit=1,ndim
-             lastsweep= idimsplit==ndim
              call advect(idimsplit,idimsplit)
           end do
        else
           ! If the parity of "iit" is odd and typedimsplit=xyyx,
           ! do sweeps backwards
           do idimsplit=ndim,1,-1
-             lastsweep= idimsplit==1
              call advect(idimsplit,idimsplit)
           end do
        end if
     else
        ! Add fluxes from all directions at once
-       lastsweep= .true.
        call advect(1,ndim)
     end if
 
@@ -610,7 +604,6 @@ contains
        call mpistop("Correct time_stepper")
     end select
 
-    firstsweep=.false.
   end subroutine advect
 
   !> Implicit global update step within IMEX schemes, advance psa=psb+dtfactor*qdt*F_im(psa)

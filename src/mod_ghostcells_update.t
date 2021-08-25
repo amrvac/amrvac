@@ -443,8 +443,7 @@ contains
 
     double precision :: time_bcin
     integer :: my_neighbor_type, ipole, idims, iside, nwhead, nwtail
-    integer :: iigrid, igrid, ineighbor, ipe_neighbor
-    integer :: nrecvs, nsends, isizes
+    integer :: iigrid, igrid, ineighbor, ipe_neighbor, isizes
     integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
     integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir
     ! store physical boundary indicating index
@@ -467,7 +466,7 @@ contains
 
     time_bcin=MPI_WTIME()
     ixG^L=ixG^LL;
-    
+
     if (internalboundary) then 
        call getintbc(time,ixG^L)
     end if
@@ -512,7 +511,6 @@ contains
 
     ! default : no singular axis
     ipole=0
-    
     irecv_c=0
     isend_c=0
     isend_buf=0
@@ -534,7 +532,6 @@ contains
     end if
     ! receiving ghost-cell values from sibling blocks and finer neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       saveigrid=igrid
        call identifyphysbound(ps(igrid),iib^D)   
        ^D&idphyb(^D,igrid)=iib^D;
        {do i^DB=-1,1\}
@@ -548,13 +545,10 @@ contains
           end select
        {end do\}
     end do
-    
+
     ! sending ghost-cell values to sibling blocks and coarser neighbors
     nghostcellsco=ceiling(nghostcells*0.5d0)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       saveigrid=igrid
-       block=>psb(igrid)
-
        ! Used stored data to identify physical boundaries
        ^D&iib^D=idphyb(^D,igrid);
 
@@ -624,7 +618,6 @@ contains
 
     ! receiving ghost-cell values from coarser neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       saveigrid=igrid
        ^D&iib^D=idphyb(^D,igrid);
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
@@ -634,8 +627,6 @@ contains
     end do
     ! sending ghost-cell values to finer neighbors 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       saveigrid=igrid
-       block=>psb(igrid)
        ^D&iib^D=idphyb(^D,igrid);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        if (any(neighbor_type(:^D&,igrid)==neighbor_fine)) then
