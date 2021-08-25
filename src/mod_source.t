@@ -19,7 +19,7 @@ contains
   subroutine add_split_source(prior)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal, phys_global_source_before, phys_global_source_after
+    use mod_physics, only: phys_req_diagonal, phys_global_source_after
     use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
 
@@ -48,10 +48,6 @@ contains
           endselect
     endif  
     src_active = .false.
-
-    if (prior .and. associated(phys_global_source_before)) then
-       call phys_global_source_before(dt, qt, src_active)
-    end if
 
     if ((.not.prior).and.&
          (sourcesplit==sourcesplit_sf .or. sourcesplit==sourcesplit_ssf)) return

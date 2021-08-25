@@ -662,7 +662,7 @@ contains
     istep = istep+1
 
     if(associated(phys_special_advance)) then
-      call phys_special_advance(qt,psa)
+      call phys_special_advance(qtC,psa)
     end if
 
     qdt=dtfactor*dt
