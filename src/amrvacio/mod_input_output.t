@@ -16,6 +16,9 @@ module mod_input_output
   !> tag for MPI message
   integer, private :: itag
 
+  !> coefficient for rk2_alfa
+  double precision, private :: rk2_alfa
+
   !> whether a manually inserted snapshot is saved
   logical :: save_now
 
@@ -23,12 +26,6 @@ module mod_input_output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
   character(len=*), parameter :: fmt_i  = 'i8'     ! Integer format
-
-  !> Which flux scheme of spatial discretization to use (per grid level)
-  character(len=131), allocatable :: flux_scheme(:)
-
-  !> Which type of the maximal bound speed of Riemann fan to use
-  character(len=131) :: typeboundspeed
 
 contains
 
@@ -201,6 +198,14 @@ contains
     !> How to apply dimensional splitting to the source terms, see
     !> @ref discretization.md
     character(len=std_len) :: typesourcesplit
+    !> Which flux scheme of spatial discretization to use (per grid level)
+    character(len=std_len), allocatable :: flux_scheme(:)
+    !> Which type of the maximal bound speed of Riemann fan to use
+    character(len=std_len) :: typeboundspeed
+    !> Which time stepper to use
+    character(len=std_len) :: time_stepper
+    !> Which time integrator to use
+    character(len=std_len) :: time_integrator
 
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
@@ -764,43 +769,76 @@ contains
 
     select case (time_stepper)
     case ("onestep")
+       t_stepper=onestep
        nstep=1
        if (time_integrator=='default') then
-          time_integrator='Forward_Euler'
-       endif
-       use_imex_scheme=(time_integrator=='IMEX_Euler'.or.time_integrator=='IMEX_SP')
-       if ((time_integrator/='Forward_Euler'.and.&
-            time_integrator/='IMEX_Euler').and.&
-            time_integrator/='IMEX_SP') then
-           call mpistop("No such time_integrator for onestep")
-       endif
+          time_integrator="Forward_Euler"
+       end if
+       select case (time_integrator)
+       case ("Forward_Euler")
+          t_integrator=Forward_Euler
+       case ("IMEX_Euler")
+          t_integrator=IMEX_Euler
+       case ("IMEX_SP")
+          t_integrator=IMEX_SP
+       case default
+          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
+          call mpistop("unkown onestep time_integrator in read_par_files")
+       end select
+       use_imex_scheme=(t_integrator==IMEX_Euler.or.t_integrator==IMEX_SP)
     case ("twostep")
+       t_stepper=twostep
        nstep=2
        if (time_integrator=='default') then
-          time_integrator='Predictor_Corrector'
+          time_integrator="Predictor_Corrector"
        endif
-       if (time_integrator=='RK2_alfa') then
-          if(rk2_alfa<smalldouble.or.rk2_alfa>one)call mpistop("set rk2_alfa within ]0,1]")
+       select case (time_integrator)
+       case ("Predictor_Corrector")
+          t_integrator=Predictor_Corrector
+       case ("RK2_alfa")
+          t_integrator=RK2_alf
+       case ("ssprk2")
+          t_integrator=ssprk2
+       case ("IMEX_Midpoint")
+          t_integrator=IMEX_Midpoint
+       case ("IMEX_Trapezoidal")
+          t_integrator=IMEX_Trapezoidal
+       case ("IMEX_222")
+          t_integrator=IMEX_222
+       case default
+          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
+          call mpistop("unkown twostep time_integrator in read_par_files")
+       end select
+       use_imex_scheme=(t_integrator==IMEX_Midpoint.or.t_integrator==IMEX_Trapezoidal&
+            .or.t_integrator==IMEX_222)
+       if (t_integrator==RK2_alf) then
+          if(rk2_alfa<smalldouble.or.rk2_alfa>one)call mpistop("set rk2_alfa within [0,1]")
           rk_a21=rk2_alfa 
           rk_b2=1.0d0/(2.0d0*rk2_alfa)
           rk_b1=1.0d0-rk_b2
        endif
-       use_imex_scheme=(time_integrator=='IMEX_Midpoint'.or.time_integrator=='IMEX_Trapezoidal'&
-            .or.time_integrator=='IMEX_222')
-       if ( (time_integrator/='Predictor_Corrector').and.&
-            (time_integrator/='RK2_alfa').and.&
-            (time_integrator/='ssprk2').and.&
-            (time_integrator/='IMEX_Midpoint').and.&
-            (time_integrator/='IMEX_Trapezoidal').and.&
-            (time_integrator/='IMEX_222') ) then
-           call mpistop("No such time_integrator for twostep")
-       endif
     case ("threestep")
+       t_stepper=threestep
        nstep=3
        if (time_integrator=='default') then
           time_integrator='ssprk3'
        endif
-       if(time_integrator=='RK3_BT') then
+       select case (time_integrator)
+       case ("ssprk3")
+          t_integrator=ssprk3
+       case ("RK3_BT")
+          t_integrator=RK3_BT
+       case ("IMEX_ARS3")
+          t_integrator=IMEX_ARS3
+       case ("IMEX_232")
+          t_integrator=IMEX_232
+       case ("IMEX_CB3a")
+          t_integrator=IMEX_CB3a
+       case default
+          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
+          call mpistop("unkown threestep time_integrator in read_par_files")
+       end select
+       if(t_integrator==RK3_BT) then
            select case(rk3_switch)
              case(1) 
               ! we code up Ralston 3rd order here
@@ -838,7 +876,7 @@ contains
            rk3_c2=rk3_a21
            rk3_c3=rk3_a31+rk3_a32
        endif
-       if(time_integrator=='ssprk3') then
+       if(t_integrator==ssprk3) then
          select case(ssprk_order)
              case(3) ! this is SSPRK(3,3) Gottlieb-Shu
                 rk_beta11=1.0d0
@@ -862,10 +900,10 @@ contains
          rk_alfa22=1.0d0-rk_alfa21
          rk_alfa33=1.0d0-rk_alfa31
        endif
-       if(time_integrator=='IMEX_ARS3') then
+       if(t_integrator==IMEX_ARS3) then
           ars_gamma=(3.0d0+dsqrt(3.0d0))/6.0d0
        endif
-       if(time_integrator=='IMEX_232') then
+       if(t_integrator==IMEX_232) then
            select case(imex_switch)
              case(1) ! this is IMEX_ARK(232)
               im_delta=1.0d0-1.0d0/dsqrt(2.0d0)
@@ -893,7 +931,7 @@ contains
            imex_c3=imex_a31+imex_a32
            imex_b3=1.0d0-imex_b1-imex_b2
        endif
-       if(time_integrator=='IMEX_CB3a') then
+       if(t_integrator==IMEX_CB3a) then
           imex_c2   = 0.8925502329346865
           imex_a22  = imex_c2
           imex_ha21 = imex_c2
@@ -916,20 +954,25 @@ contains
           !    write(*,*) "================================="
           ! end if
        end if
-       use_imex_scheme=(time_integrator=='IMEX_ARS3'.or.time_integrator=='IMEX_232'.or.time_integrator=='IMEX_CB3a')
-       if ( (time_integrator/='ssprk3').and.&
-            (time_integrator/='RK3_BT').and.&
-            (time_integrator/='IMEX_ARS3').and.&
-            (time_integrator/='IMEX_232').and.&
-            (time_integrator/='IMEX_CB3a') ) then
-           call mpistop("No such time_integrator for threestep")
-       endif
+       use_imex_scheme=(t_integrator==IMEX_ARS3.or.t_integrator==IMEX_232.or.t_integrator==IMEX_CB3a)
     case ("fourstep")
+       t_stepper=fourstep
        nstep=4
        if (time_integrator=='default') then
           time_integrator="ssprk4"
        endif
-       if(time_integrator=='ssprk4') then
+       select case (time_integrator)
+       case ("ssprk4")
+          t_integrator=ssprk4
+       case ("rk4")
+          t_integrator=rk4
+       case ("jameson")
+          t_integrator=jameson
+       case default
+          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
+          call mpistop("unkown fourstep time_integrator in read_par_files")
+       end select
+       if(t_integrator==ssprk4) then
          select case(ssprk_order)
              case(3) ! this is SSPRK(4,3) Spireti-Ruuth
                 rk_beta11=1.0d0/2.0d0
@@ -961,17 +1004,20 @@ contains
          rk_alfa44=1.0d0-rk_alfa41
        endif
        use_imex_scheme=.false.
-       if ((time_integrator/='ssprk4'.and.&
-            time_integrator/='rk4').and.&
-            time_integrator/='jameson') then
-           call mpistop("No such time_integrator for fourstep")
-       endif
     case ("fivestep")
+       t_stepper=fivestep
        nstep=5
        if (time_integrator=='default') then
           time_integrator="ssprk5"
-       endif
-       if(time_integrator=='ssprk5') then
+       end if
+       select case (time_integrator)
+       case ("ssprk5")
+          t_integrator=ssprk5
+       case default
+          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
+          call mpistop("unkown fivestep time_integrator in read_par_files")
+       end select
+       if(t_integrator==ssprk5) then
          select case(ssprk_order)
            ! we use ssprk_order to intercompare the different coefficient choices 
            case(3) ! From Gottlieb 2005
@@ -1039,11 +1085,8 @@ contains
          !print *,rk_alfa55+rk_alfa53+rk_alfa54
        endif
        use_imex_scheme=.false.
-       if (time_integrator/='ssprk5')then
-           call mpistop("No such time_integrator for fivestep")
-       endif
     case default
-       call mpistop("Unknown time_stepper")
+       call mpistop("Unknown time_stepper in read_par_files")
     end select
 
     do i = 1, ndim

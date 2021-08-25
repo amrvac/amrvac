@@ -618,17 +618,17 @@ contains
 
     istep=0
 
-    select case (time_stepper)
-     case ("onestep")
+    select case (t_stepper)
+     case (onestep)
        call advect1mf(flux_method,qdt,one,idim^LIM,qt,ps1,qt,ps)
-     case ("twostep")
+     case (twostep)
        ! predictor step
        fix_conserve_at_step = .false.
        call advect1mf(typepred1,qdt,half,idim^LIM,qt,ps,qt,ps1)
        ! corrector step
        fix_conserve_at_step = mf_advance .and. levmax>levmin
        call advect1mf(flux_method,qdt,one,idim^LIM,qt+half*qdt,ps1,qt,ps)
-     case ("threestep")
+     case (threestep)
        ! three step Runge-Kutta in accordance with Gottlieb & Shu 1998
        call advect1mf(flux_method,qdt,one,idim^LIM,qt,ps,qt,ps1)
 
@@ -648,9 +648,7 @@ contains
 
        call advect1mf(flux_method,qdt,2.0d0/3.0d0,idim^LIM,qt+qdt/2.0d0,ps2,qt+qdt/3.0d0,ps)
      case default
-       write(unitterm,*) "time_stepper=",time_stepper
-       write(unitterm,*) "Error in advectmf: Unknown time stepping method"
-       call mpistop("Correct time_stepper")
+       call mpistop("unkown time_stepper in advectmf")
     end select
 
   end subroutine advectmf

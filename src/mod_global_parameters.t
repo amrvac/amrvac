@@ -516,12 +516,6 @@ module mod_global_parameters
   !> How many sub-steps the time integrator takes
   integer :: nstep
 
-  !> Which time stepper to use
-  character(len=std_len) :: time_stepper
-
-  !> Which time integrator to use
-  character(len=std_len) :: time_integrator
-
   !> Which flux scheme of spatial discretization to use (per grid level)
   integer, allocatable :: flux_method(:)
 
@@ -543,6 +537,38 @@ module mod_global_parameters
   integer, parameter :: fs_fd=11
   integer, parameter :: fs_source=12
   integer, parameter :: fs_nul=13
+
+  !> time stepper type
+  integer :: t_stepper=0
+  integer, parameter :: onestep=1
+  integer, parameter :: twostep=2
+  integer, parameter :: threestep=3
+  integer, parameter :: fourstep=4
+  integer, parameter :: fivestep=5
+
+  !> time integrator method
+  integer :: t_integrator=0
+  integer, parameter :: Forward_Euler=1
+  integer, parameter :: Predictor_Corrector=2
+  integer, parameter :: ssprk3=3
+  integer, parameter :: ssprk4=4
+  integer, parameter :: ssprk5=5
+
+  integer, parameter :: IMEX_Euler=6
+  integer, parameter :: IMEX_SP=7
+  integer, parameter :: RK2_alf=8
+  integer, parameter :: ssprk2=9
+  integer, parameter :: IMEX_Midpoint=10
+  integer, parameter :: IMEX_Trapezoidal=11
+  integer, parameter :: IMEX_222=12
+
+  integer, parameter :: RK3_BT=13
+  integer, parameter :: IMEX_ARS3=14
+  integer, parameter :: IMEX_232=15
+  integer, parameter :: IMEX_CB3a=16
+
+  integer, parameter :: rk4=17
+  integer, parameter :: jameson=18
 
   !> Type of slope limiter used for reconstructing variables on cell edges
   integer, allocatable :: type_limiter(:)
@@ -581,7 +607,7 @@ module mod_global_parameters
   logical                       :: dimsplit
 
   !> RK2(alfa) method parameters from Butcher tableau
-  double precision              :: rk2_alfa,rk_a21,rk_b1,rk_b2
+  double precision              :: rk_a21,rk_b1,rk_b2
   !> IMEX-222(lambda) one-parameter family of schemes
   double precision              :: imex222_lambda
   !> SSPRK choice of methods (both threestep and fourstep, Shu-Osher 2N* implementation)

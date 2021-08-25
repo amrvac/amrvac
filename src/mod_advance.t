@@ -87,17 +87,17 @@ contains
 
     istep = 0
 
-    select case (time_stepper)
-    case ("onestep")
-       select case (time_integrator)
-       case ("Forward_Euler")
+    select case (t_stepper)
+    case (onestep)
+       select case (t_integrator)
+       case (Forward_Euler)
           call advect1(flux_method,one,idim^LIM,global_time,ps1,global_time,ps)
 
-       case ("IMEX_Euler")
+       case (IMEX_Euler)
           call advect1(flux_method,one,idim^LIM,global_time,ps,global_time,ps1)
           call global_implicit_update(one,dt,global_time+dt,ps,ps1)
 
-       case ("IMEX_SP")
+       case (IMEX_SP)
           call global_implicit_update(one,dt,global_time,ps,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -108,14 +108,12 @@ contains
           call advect1(flux_method,one,idim^LIM,global_time,ps1,global_time,ps)
 
        case default
-          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
-          write(unitterm,*) "Error in advect: Unknown time integration method"
-          call mpistop("Correct time_integrator")
+          call mpistop("unkown onestep time_integrator in advect")
        end select
 
-    case ("twostep")
-       select case (time_integrator)
-       case ("Predictor_Corrector")
+    case (twostep)
+       select case (t_integrator)
+       case (Predictor_Corrector)
           ! PC or explicit midpoint 
           ! predictor step
           fix_conserve_at_step = .false.
@@ -124,7 +122,7 @@ contains
           fix_conserve_at_step = time_advance .and. levmax>levmin
           call advect1(flux_method,one,idim^LIM,global_time+half*dt,ps1,global_time,ps)
 
-       case ("RK2_alfa")
+       case (RK2_alf)
           ! RK2 with alfa parameter, where rk_a21=alfa
           call advect1(flux_method,rk_a21, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -135,7 +133,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,rk_b2,idim^LIM,global_time+rk_a21*dt,ps1,global_time+rk_b1*dt,ps)
 
-       case ("ssprk2")
+       case (ssprk2)
           ! ssprk2 or Heun's method
           call advect1(flux_method,one, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -146,7 +144,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,half,idim^LIM,global_time+dt,ps1,global_time+half*dt,ps)
 
-       case ("IMEX_Midpoint")
+       case (IMEX_Midpoint)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps2(igrid)%w = ps(igrid)%w
@@ -163,7 +161,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,one, idim^LIM,global_time+half*dt,ps2,global_time,ps)
 
-       case ("IMEX_Trapezoidal")
+       case (IMEX_Trapezoidal)
           call advect1(flux_method,one, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -194,7 +192,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,half, idim^LIM,global_time+dt,ps2,global_time+half*dt,ps)
 
-       case ("IMEX_222")
+       case (IMEX_222)
           ! One-parameter family of schemes (parameter is imex222_lambda) from
           ! Pareschi&Russo 2005, which is L-stable (for default lambda) and 
           ! asymptotically SSP.
@@ -257,14 +255,12 @@ contains
           call advect1(flux_method, half, idim^LIM, global_time+dt, ps2, global_time+half*dt, ps)
 
        case default
-          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
-          write(unitterm,*) "Error in advect: Unknown time integration method"
-          call mpistop("Correct time_integrator")
+          call mpistop("unkown twostep time_integrator in advect")
        end select
 
-    case ("threestep")
-       select case (time_integrator)
-       case ("ssprk3")
+    case (threestep)
+       select case (t_integrator)
+       case (ssprk3)
           ! this is SSPRK(3,3) Gottlieb-Shu 1998 or SSP(3,2) depending on ssprk_order (3 vs 2)
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -282,7 +278,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,rk_beta33, idim^LIM,global_time+rk_c3*dt,ps2,global_time+(1.0d0-rk_beta33)*dt,ps)
 
-       case ("RK3_BT")
+       case (RK3_BT)
           ! this is a general threestep RK according to its Butcher Table
           call advect1(flux_method,rk3_a21, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -310,7 +306,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,rk3_b3, idim^LIM,global_time+rk3_c3*dt,ps2,global_time+(1.0d0-rk3_b3)*dt,ps)
 
-       case ("IMEX_ARS3")
+       case (IMEX_ARS3)
           ! this is IMEX scheme ARS3
           call advect1(flux_method,ars_gamma, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -358,7 +354,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,half, idim^LIM,global_time+(1.0d0-ars_gamma)*dt,ps4,global_time+half*dt,ps)
 
-       case ("IMEX_232")
+       case (IMEX_232)
           ! this is IMEX_ARK(2,3,2) or IMEX_SSP(2,3,2)
           call advect1(flux_method,imex_a21, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -430,7 +426,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,imex_b3, idim^LIM,global_time+imex_c3*dt,ps2,global_time+(1.0d0-imex_b3)*dt,ps)
 
-       case ("IMEX_CB3a")
+       case (IMEX_CB3a)
           ! Third order IMEX scheme with low-storage implementation (4 registers).
           ! From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
           ! (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
@@ -464,14 +460,12 @@ contains
           call advect1(flux_method, imex_b3, idim^LIM, global_time+imex_c3*dt, ps1, global_time+imex_b2*dt, ps)
 
        case default
-          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
-          write(unitterm,*) "Error in advect: Unknown time integration method"
-          call mpistop("Correct time_integrator")
+          call mpistop("unkown threestep time_integrator in advect")
        end select
 
-    case ("fourstep")
-       select case (time_integrator)
-       case ("ssprk4")
+    case (fourstep)
+       select case (t_integrator)
+       case (ssprk4)
           ! SSPRK(4,3) or SSP(4,2) depending on ssprk_order (3 vs 2)
           ! ssprk43: Strong stability preserving 4 stage RK 3rd order by Ruuth and Spiteri
           !    Ruuth & Spiteri J. S C, 17 (2002) p. 211 - 220
@@ -500,7 +494,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,rk_beta44, idim^LIM,global_time+rk_c4*dt,ps1,global_time+(1.0d0-rk_beta44)*dt,ps)
 
-       case ("rk4")
+       case (rk4)
           ! the standard RK(4,4) method
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -524,7 +518,7 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,1.0d0/6.0d0, idim^LIM,global_time+dt,ps3,global_time+dt*5.0d0/6.0d0,ps)
 
-       case ("jameson")
+       case (jameson)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps2(igrid)%w=ps(igrid)%w
@@ -543,14 +537,12 @@ contains
           call advect1(flux_method,1.0d0, idim^LIM,global_time+half*dt,ps1,global_time,ps)
 
        case default
-          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
-          write(unitterm,*) "Error in advect: Unknown time integration method"
-          call mpistop("Correct time_integrator")
+          call mpistop("unkown fourstep time_integrator in advect")
        end select
 
-    case ("fivestep")
-       select case (time_integrator)
-       case ("ssprk5")
+    case (fivestep)
+       select case (t_integrator)
+       case (ssprk5)
           ! SSPRK(5,4) by Ruuth and Spiteri
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -593,15 +585,11 @@ contains
           call advect1(flux_method,rk_beta55, idim^LIM,global_time+rk_c5*dt,ps2,global_time+(1.0d0-rk_beta55)*dt,ps)
 
        case default
-          write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
-          write(unitterm,*) "Error in advect: Unknown time integration method"
-          call mpistop("Correct time_integrator")
+          call mpistop("unkown fivestep time_integrator in advect")
        end select
 
     case default
-       write(unitterm,*) "time_stepper=",time_stepper
-       write(unitterm,*) "Error in advect: Unknown time stepping method"
-       call mpistop("Correct time_stepper")
+       call mpistop("unkown time_stepper in advect")
     end select
 
   end subroutine advect
