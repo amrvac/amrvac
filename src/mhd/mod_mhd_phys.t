@@ -714,7 +714,7 @@ contains
     else
       mp=mp_cgs
       kB=kB_cgs
-      miu0=4.d0*dpi ! N A^-2
+      miu0=4.d0*dpi ! G^2 cm^2 dyne^-1
       c_lightspeed=const_c
     end if
     if(unit_velocity==0) then

@@ -74,6 +74,7 @@ contains
     double precision :: pth(ixI^S)
     integer :: ix^D, ixA^L
 
+    if(mhd_glm) w(ixO^S,psi_)=0.d0
     select case(iB)
     case(1)
       ixA^L=ixO^L;

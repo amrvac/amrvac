@@ -68,7 +68,8 @@ contains
     usr_grav=-2.74d4*unit_length/unit_velocity**2  ! solar gravity
     SRadius=6.955d10/unit_length                   ! Solar radius
 
-    q_para=7.d28/(unit_magneticfield*unit_length**3) ! strength and sign of magnetic charges
+    !q_para=7.d19/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
+    q_para=7.d19/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
     d_para=1.d9/unit_length ! depth of magnetic charges
     L_para=1.5d9/unit_length ! half distance between magnetic charges
 
@@ -241,14 +242,14 @@ contains
     A(ixO^S,3)=Aphi(ixO^S)*x(ixO^S,2)/sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2)
 
     if(present(Bbp)) then
-      tmp(ixO^S)=sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2+(x(ixO^S,1)+L_para)**2)**3
+      tmp(ixO^S)=-sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2+(x(ixO^S,1)+L_para)**2)**3
       Bbp(ixO^S,1)=(x(ixO^S,1)+L_para)/tmp(ixO^S)
       Bbp(ixO^S,2)=x(ixO^S,2)/tmp(ixO^S)
       Bbp(ixO^S,3)=(x(ixO^S,3)+d_para)/tmp(ixO^S)
       tmp(ixO^S)=sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2+(x(ixO^S,1)-L_para)**2)**3
-      Bbp(ixO^S,1)=Bbp(ixO^S,1)-(x(ixO^S,1)-L_para)/tmp(ixO^S)
-      Bbp(ixO^S,2)=Bbp(ixO^S,2)-x(ixO^S,2)/tmp(ixO^S)
-      Bbp(ixO^S,3)=Bbp(ixO^S,3)-(x(ixO^S,3)+d_para)/tmp(ixO^S)
+      Bbp(ixO^S,1)=Bbp(ixO^S,1)+(x(ixO^S,1)-L_para)/tmp(ixO^S)
+      Bbp(ixO^S,2)=Bbp(ixO^S,2)+x(ixO^S,2)/tmp(ixO^S)
+      Bbp(ixO^S,3)=Bbp(ixO^S,3)+(x(ixO^S,3)+d_para)/tmp(ixO^S)
       Bbp(ixO^S,:)=q_para*Bbp(ixO^S,:)
     end if
 
@@ -283,6 +284,7 @@ contains
     double precision :: xlen^D,dxb^D,startpos^D,coeffrho
     integer :: idir,ix^D,ixIM^L,ixOs^L,jxO^L
 
+    if(mhd_glm) w(ixO^S,psi_)=0.d0
     select case(iB)
      case(1)
        w(ixO^S,mom(1))=-w(ixOmax1+nghostcells:ixOmax1+1:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))/&
