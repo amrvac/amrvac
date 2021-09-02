@@ -442,7 +442,7 @@ contains
     logical, intent(in), optional     :: req_diag ! If false, skip diagonal ghost cells
 
     double precision :: time_bcin
-    integer :: my_neighbor_type, ipole, idims, iside, nwhead, nwtail
+    integer :: ipole, idims, iside, nwhead, nwtail
     integer :: iigrid, igrid, ineighbor, ipe_neighbor, isizes
     integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
     integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir
@@ -472,6 +472,7 @@ contains
     end if
     ! fill ghost cells in physical boundaries
     if(bcphys.and. .not.stagger_grid) then
+      !$OMP PARALLEL DO PRIVATE(igrid,i^D,kmin^D,kmax^D,ixBmin^D,ixBmax^D)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
         saveigrid=igrid
@@ -507,6 +508,7 @@ contains
           end do
         end do
       end do
+      !$OMP END PARALLEL DO
     end if
 
     ! default : no singular axis
@@ -536,8 +538,7 @@ contains
        ^D&idphyb(^D,igrid)=iib^D;
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
-          my_neighbor_type=neighbor_type(i^D,igrid)
-          select case (my_neighbor_type)
+          select case (neighbor_type(i^D,igrid))
           case (neighbor_sibling)
              call bc_recv_srl
           case (neighbor_fine)
@@ -553,7 +554,6 @@ contains
        ^D&iib^D=idphyb(^D,igrid);
 
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
-          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
     {#IFDEF EVOLVINGBOUNDARY
           if(phyboundblock(igrid)) then
             ! coarsen finer ghost cells at physical boundaries
@@ -572,8 +572,7 @@ contains
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
           if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
-          my_neighbor_type=neighbor_type(i^D,igrid)
-          select case (my_neighbor_type)
+          select case (neighbor_type(i^D,igrid))
           case (neighbor_sibling)
              call bc_send_srl
           case (neighbor_coarse)
@@ -621,8 +620,7 @@ contains
        ^D&iib^D=idphyb(^D,igrid);
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
-          my_neighbor_type=neighbor_type(i^D,igrid)
-          if (my_neighbor_type==neighbor_coarse) call bc_recv_prolong
+          if (neighbor_type(i^D,igrid)==neighbor_coarse) call bc_recv_prolong
        {end do\}
     end do
     ! sending ghost-cell values to finer neighbors 
@@ -633,8 +631,7 @@ contains
           {do i^DB=-1,1\}
              if (skip_direction([ i^D ])) cycle
              if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
-             my_neighbor_type=neighbor_type(i^D,igrid)
-             if (my_neighbor_type==neighbor_fine) call bc_send_prolong
+             if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_send_prolong
           {end do\}
        end if
     end do
@@ -657,15 +654,15 @@ contains
       end do
     end if
     ! do prolongation on the ghost-cell values received from coarser neighbors 
+    !$OMP PARALLEL DO PRIVATE(igrid,iib^D,NeedProlong)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ^D&iib^D=idphyb(^D,igrid);
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
          NeedProlong=.false.
          {do i^DB=-1,1\}
             if (skip_direction([ i^D ])) cycle
-            my_neighbor_type=neighbor_type(i^D,igrid)
-            if (my_neighbor_type==neighbor_coarse) then
-              call bc_prolong
+            if (neighbor_type(i^D,igrid)==neighbor_coarse) then
+              call bc_prolong(i^D,iib^D,igrid)
               NeedProlong(i^D)=.true.
             end if
          {end do\}
@@ -679,7 +676,7 @@ contains
              select case(idims)
             {case(^D)
                do i^D=-1,1,2
-                 if (NeedProlong(i^DD)) call bc_prolong_stg(NeedProlong)
+                 if (NeedProlong(i^DD)) call bc_prolong_stg(i^DD,iib^DD,igrid,NeedProlong)
                end do
              \}
              end select
@@ -690,35 +687,37 @@ contains
            i1=0;
            do i2=-1,1,2
              do i3=-1,1,2
-               if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+               if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
              end do
            end do
            i2=0;
            do i3=-1,1,2
              do i1=-1,1,2
-               if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+               if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
              end do
            end do
            i3=0;
            do i1=-1,1,2
              do i2=-1,1,2
-               if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+               if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
              end do
            end do
            }
            ! Finally, the corners, that have no index=0
           {do i^D=-1,1,2\}
-             if (NeedProlong(i^D)) call bc_prolong_stg(NeedProlong)
+             if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
           {end do\}
          end if
        end if
     end do
+    !$OMP END PARALLEL DO
     
     do ipwbuf=1,npwbuf
        if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
     end do
 
     if(bcphys.and.stagger_grid) then
+      !$OMP PARALLEL DO PRIVATE(igrid,i^D,kmin^D,kmax^D,ixBmin^D,ixBmax^D)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
         saveigrid=igrid
@@ -751,6 +750,7 @@ contains
           end do
         end do
       end do
+      !$OMP END PARALLEL DO
     end if
 
      ! modify normal component of magnetic field to fix divB=0 
@@ -1358,10 +1358,11 @@ contains
       end subroutine bc_fill_p
 
       !> do prolongation for fine blocks after receipt data from coarse neighbors
-      subroutine bc_prolong
+      subroutine bc_prolong(i^D,iib^D,igrid)
         use mod_physics, only: phys_to_primitive, phys_to_conserved
 
-        integer :: ixFi^L,ixCo^L,ii^D
+        integer :: i^D,iib^D,igrid
+        integer :: ixFi^L,ixCo^L,ii^D, idims,iside,ixBmin^D,ixBmax^D
         double precision :: dxFi^D, dxCo^D, xFimin^D, xComin^D, invdxCo^D
 
         ixFi^L=ixR_srl_^L(iib^D,i^D);
@@ -1426,9 +1427,9 @@ contains
 
         select case (typeghostfill)
         case ("linear")
-           call interpolation_linear(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
+           call interpolation_linear(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
         case ("copy")
-           call interpolation_copy(ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
+           call interpolation_copy(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
         case default
            write (unitterm,*) "Undefined typeghostfill ",typeghostfill
            call mpistop("Undefined typeghostfill")
@@ -1439,8 +1440,9 @@ contains
 
       end subroutine bc_prolong
 
-      subroutine bc_prolong_stg(NeedProlong)
+      subroutine bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
         use mod_amr_fct
+        integer                    :: i^D,iib^D,igrid
         logical,dimension(-1:1^D&) :: NeedProlong
         logical                    :: fine_^Lin
         integer                    :: ixFi^L,ixCo^L
@@ -1478,10 +1480,10 @@ contains
 
       end subroutine bc_prolong_stg
 
-      subroutine interpolation_linear(ixFi^L,dxFi^D,xFimin^D, &
+      subroutine interpolation_linear(igrid,ixFi^L,dxFi^D,xFimin^D, &
                                       dxCo^D,invdxCo^D,xComin^D)
         use mod_physics, only: phys_to_conserved
-        integer, intent(in) :: ixFi^L
+        integer, intent(in) :: igrid, ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 
         integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, iw, idims, nwmin,nwmax
@@ -1617,10 +1619,10 @@ contains
       
       end subroutine interpolation_linear
 
-      subroutine interpolation_copy(ixFi^L,dxFi^D,xFimin^D, &
+      subroutine interpolation_copy(igrid, ixFi^L,dxFi^D,xFimin^D, &
                                     dxCo^D,invdxCo^D,xComin^D)
         use mod_physics, only: phys_to_conserved
-        integer, intent(in) :: ixFi^L
+        integer, intent(in) :: igrid, ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 
         integer :: ixCo^D, ixFi^D, nwmin,nwmax

@@ -339,20 +339,20 @@ subroutine getintbc(time,ixG^L)
   double precision, intent(in)   :: time
   integer, intent(in)            :: ixG^L
 
-  integer :: iigrid, igrid, ixO^L,level
+  integer :: iigrid, igrid, ixO^L
 
   ixO^L=ixG^L^LSUBnghostcells;
 
+  !$OMP PARALLEL DO PRIVATE(igrid)
   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-  !do iigrid=1,igridstail; igrid=igrids(iigrid);
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      block=>ps(igrid)
-     level=node(plevel_,igrid)
      saveigrid=igrid
 
      if (associated(usr_internal_bc)) then
-        call usr_internal_bc(level,time,ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x)
+        call usr_internal_bc(node(plevel_,igrid),time,ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x)
      end if
   end do
+  !$OMP END PARALLEL DO
 
 end subroutine getintbc
