@@ -691,7 +691,7 @@ module mod_global_parameters
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block
 
-  !$OMP THREADPRIVATE(block,dxlevel,saveigrid)
+  !$OMP THREADPRIVATE(block,dxlevel,saveigrid,b0i)
 
 contains
 
