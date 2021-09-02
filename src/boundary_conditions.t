@@ -271,7 +271,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
           if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
             ixOmin^DD=ixOmin^D^D%ixOmin^DD=ixMmin^DD;
             ixOmax^DD=ixOmax^D^D%ixOmax^DD=ixMmax^DD;
-            wtmp(ixG^S,1:nw)=pso(saveigrid)%w(ixG^S,1:nw)
+            wtmp(ixG^S,1:nw)=pso(block%igrid)%w(ixG^S,1:nw)
             call characteristic_project(idims,iside,ixG^L,ixO^L,wtmp,x,dxlevel,qdt)
             w(ixO^S,1:nwflux)=wtmp(ixO^S,1:nwflux)
           end if
@@ -287,14 +287,14 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
           if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
             ixOmin^DD=ixOmin^D^D%ixOmin^DD=ixMmin^DD;
             ixOmax^DD=ixOmax^D^D%ixOmax^DD=ixMmax^DD;
-            wtmp(ixG^S,1:nw)=pso(saveigrid)%w(ixG^S,1:nw)
+            wtmp(ixG^S,1:nw)=pso(block%igrid)%w(ixG^S,1:nw)
             call characteristic_project(idims,iside,ixG^L,ixO^L,wtmp,x,dxlevel,qdt)
             w(ixO^S,1:nwflux)=wtmp(ixO^S,1:nwflux)
           end if
        end if \}
     end select
     if(ixGmax1==ixGhi1) then
-      call identifyphysbound(saveigrid,isphysbound,iib^D)   
+      call identifyphysbound(block%igrid,isphysbound,iib^D)   
       if(iib1==-1.and.iib2==-1) then
         do ix2=nghostcells,1,-1 
           do ix1=nghostcells,1,-1 
@@ -347,7 +347,6 @@ subroutine getintbc(time,ixG^L)
   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      block=>ps(igrid)
-     saveigrid=igrid
 
      if (associated(usr_internal_bc)) then
         call usr_internal_bc(node(plevel_,igrid),time,ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x)

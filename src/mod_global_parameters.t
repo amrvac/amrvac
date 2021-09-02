@@ -298,8 +298,6 @@ module mod_global_parameters
   !> Conversion factor for time unit
   double precision       :: time_convert_factor
 
-  integer                :: saveigrid
-
   !> Stores the memory and load imbalance, used in printlog
   double precision       :: Xload, Xmemory
 
@@ -691,7 +689,7 @@ module mod_global_parameters
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block
 
-  !$OMP THREADPRIVATE(block,dxlevel,saveigrid,b0i)
+  !$OMP THREADPRIVATE(block,dxlevel,b0i)
 
 contains
 

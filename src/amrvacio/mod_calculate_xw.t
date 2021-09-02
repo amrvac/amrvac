@@ -46,7 +46,6 @@ contains
     ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D; ! Corner indices
     ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D; ! Center indices
 
-    saveigrid=igrid
     nx^D=ixMhi^D-ixMlo^D+1;
     level=node(plevel_,igrid)
 

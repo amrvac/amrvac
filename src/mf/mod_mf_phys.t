@@ -650,28 +650,28 @@ contains
         ! Do nothing
       case (divb_glm)
         active = .true.
-        call add_source_glm(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_glm(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
       case (divb_powel)
         active = .true.
-        call add_source_powel(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_powel(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
       case (divb_janhunen)
         active = .true.
-        call add_source_janhunen(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_janhunen(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
       case (divb_linde)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
       case (divb_lindejanhunen)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
-        call add_source_janhunen(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
+        call add_source_janhunen(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
       case (divb_lindepowel)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
-        call add_source_powel(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
+        call add_source_powel(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
       case (divb_lindeglm)
         active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
-        call add_source_glm(dt,ixI^L,ixO^L,pso(saveigrid)%w,w,x)
+        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
+        call add_source_glm(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
       case (divb_ct)
         continue ! Do nothing
       case (divb_multigrid)
@@ -1125,7 +1125,7 @@ contains
     ! for AMR stability, retreat one cell layer from the boarders of level jump
     {do i^DB=-1,1\}
       if(i^D==0|.and.) cycle
-      if(neighbor_type(i^D,saveigrid)==2 .or. neighbor_type(i^D,saveigrid)==4) then
+      if(neighbor_type(i^D,block%igrid)==2 .or. neighbor_type(i^D,block%igrid)==4) then
         leveljump(i^D)=.true.
       else
         leveljump(i^D)=.false.
@@ -1477,7 +1477,6 @@ contains
     ixG^L=ixG^LL;
      do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
-        saveigrid=igrid
         block=>ps(igrid)
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         do idim=1,ndim

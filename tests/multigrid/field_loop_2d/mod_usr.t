@@ -87,7 +87,7 @@ contains
   !   integer                         :: id, lvl, nc, i0, j0, i, j
   !   real(dp)                        :: inv_dr(2), grad
 
-  !   pnode  => igrid_to_node(saveigrid, mype)%node
+  !   pnode  => igrid_to_node(block%igrid, mype)%node
   !   id     =  pnode%id
   !   lvl    =  mg%boxes(id)%lvl
   !   nc     =  mg%box_size_lvl(lvl)

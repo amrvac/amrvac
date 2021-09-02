@@ -42,7 +42,6 @@ subroutine initial_condition(igrid)
 
   integer, intent(in) :: igrid
 
-  saveigrid=igrid
   ! in case gradient routine used in initial condition, ensure geometry known
   block=>ps(igrid)
   ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -63,7 +62,6 @@ subroutine modify_IC
   integer :: iigrid, igrid
 
   do iigrid=1,igridstail; igrid=igrids(iigrid);
-     saveigrid=igrid
      block=>ps(igrid)
      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 

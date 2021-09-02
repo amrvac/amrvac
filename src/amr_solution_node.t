@@ -112,33 +112,23 @@ subroutine alloc_node(igrid)
 
   ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
   ps(igrid)%w(:^D&,1)=1.d0
-  ps(igrid)%igrid=igrid
   ps(igrid)%level=level
-  psc(igrid)%igrid=igrid
   psc(igrid)%level=level-1
   ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
   psc(igrid)%w(:^D&,1)=1.d0
   if(phys_trac) ps(igrid)%special_values=0.d0
   if(.not.convert) then
-    pso(igrid)%igrid=igrid
     pso(igrid)%level=level
-    ps1(igrid)%igrid=igrid
     ps1(igrid)%level=level
     select case (t_integrator)
     case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
-      ps2(igrid)%igrid=igrid
       ps2(igrid)%level=level
     case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
-      ps2(igrid)%igrid=igrid
       ps2(igrid)%level=level
-      ps3(igrid)%igrid=igrid
       ps3(igrid)%level=level
     case(IMEX_ARS3,IMEX_232)
-      ps2(igrid)%igrid=igrid
       ps2(igrid)%level=level
-      ps3(igrid)%igrid=igrid
       ps3(igrid)%level=level
-      ps4(igrid)%igrid=igrid
       ps4(igrid)%level=level
     end select
   end if
@@ -590,6 +580,7 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
   integer             :: ixGs^L
 
   allocate(s%w(ixG^S,1:nw))
+  s%igrid=igrid
   s%w=0.d0
   s%ixG^L=ixG^L;
   {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}

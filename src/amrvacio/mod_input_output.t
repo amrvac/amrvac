@@ -2093,9 +2093,8 @@ contains
         ! extra layer around mesh only for later averaging in convert
         ! set dxlevel value for use in gradient subroutine,
         ! which might be used in getaux
-        saveigrid=igrid
-        ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
         block=>ps(igrid)
+        ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
         call phys_get_aux(.true., ps(igrid)%w, ps(igrid)%x, ixG^LL, &
              ixM^LL^LADD1, "write_snapshot")
       endif

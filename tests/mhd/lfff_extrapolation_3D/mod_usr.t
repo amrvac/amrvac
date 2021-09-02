@@ -366,7 +366,7 @@ contains
       else
         ft=0.d0
       endif
-      if(node(plevel_,saveigrid)<refine_max_level) then
+      if(block%level<refine_max_level) then
         w(ixO^S,mom(:))=0.d0
       else
         {do ix^DB=ixOmin^DB,ixOmax^DB\}

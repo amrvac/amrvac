@@ -660,8 +660,8 @@ contains
     if (dtnew < dtmin) then
       write(unitterm,*)"-------------------------------------"
       write(unitterm,*)"Warning: found DUST related time step too small! dtnew=", dtnew
-      write(unitterm,*)"on grid with index:", saveigrid," grid level=", node(plevel_, saveigrid)
-      write(unitterm,*)"grid corners are=",{^D&rnode(rpxmin^D_, saveigrid), rnode(rpxmax^D_, saveigrid)}
+      write(unitterm,*)"on grid with index:", block%igrid," grid level=", block%level
+      write(unitterm,*)"grid corners are=",{^D&rnode(rpxmin^D_, block%igrid), rnode(rpxmax^D_, block%igrid)}
       write(unitterm,*)" dtdust =", dtdust(:)
       write(unitterm,*)"on processor:", mype
       write(unitterm,*)"-------------------------------------"

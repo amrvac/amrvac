@@ -657,9 +657,8 @@ contains
     ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       saveigrid=igrid
        block=>ps(igrid)
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        call process1_grid(method(block%level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
             psa(igrid),qt,psb(igrid),pso(igrid))

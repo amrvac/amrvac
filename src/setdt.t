@@ -28,7 +28,6 @@ subroutine setdt()
       dtnew=bigdouble
       dx^D=rnode(rpdx^D_,igrid);
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      saveigrid = igrid
       block=>ps(igrid)
 
       if (nwaux>0) then

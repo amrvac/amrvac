@@ -387,7 +387,6 @@ contains
     jmin_mype = bigdouble
     ! Loop over all the grids local to processor
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       saveigrid=igrid
        block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        call set_error(ixG^LL,ixM^LL,global_time,ps(igrid)%w, ps(igrid)%x)
@@ -583,7 +582,6 @@ contains
    ! Loop over all the grids
    do iigrid = 1, igridstail
       igrid = igrids(iigrid)
-      saveigrid=igrid
       block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       ! Determine the volume of the grid cells

@@ -35,8 +35,8 @@ contains
     w(ixO^S,mom(2))= sin(2.0d0*dpi*x(ixO^S,1))
     w(ixO^S,p_)=p0
     if(stagger_grid) then
-      call b_from_vector_potential(ps(saveigrid)%ixGs^L,ixI^L,ixO^L,ps(saveigrid)%ws,x)
-      call mhd_face_to_center(ixO^L,ps(saveigrid))
+      call b_from_vector_potential(block%ixGs^L,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
     else
       w(ixO^S,mag(1))=-b0*sin(2.0d0*dpi*x(ixO^S,2))
       w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))

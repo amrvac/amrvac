@@ -728,7 +728,6 @@ contains
 
     dx^D=rnode(rpdx^D_,igrid);
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-    saveigrid=igrid
     fC=0.d0
 
     ixO^L=ixG^L^LSUBnghostcells;

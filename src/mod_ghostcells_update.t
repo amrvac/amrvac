@@ -475,7 +475,6 @@ contains
       !$OMP PARALLEL DO PRIVATE(igrid,i^D,kmin^D,kmax^D,ixBmin^D,ixBmax^D)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
-        saveigrid=igrid
         block=>psb(igrid)
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         do idims=1,ndim
@@ -720,7 +719,6 @@ contains
       !$OMP PARALLEL DO PRIVATE(igrid,i^D,kmin^D,kmax^D,ixBmin^D,ixBmax^D)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
-        saveigrid=igrid
         block=>psb(igrid)
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         do idims=1,ndim
@@ -1731,7 +1729,6 @@ contains
         integer :: ix^L
 
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          saveigrid=igrid
           block=>psb(igrid)
           call identifyphysbound(psb(igrid),iib^D)   
              
