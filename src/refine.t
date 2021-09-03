@@ -39,23 +39,20 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
   integer :: ix^L, ichild, ixCo^L, ic^D
   double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
 
-  if (prolongation_method=="linear") then
-     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-     {#IFDEF EVOLVINGBOUNDARY
-     if (phyboundblock(igrid)) then
-        ix^L=ixG^LL;
-     else
-        ix^L=ixM^LL^LADD1;
-     end if
-     }{#IFNDEF EVOLVINGBOUNDARY
+  {#IFDEF EVOLVINGBOUNDARY
+  if (phyboundblock(igrid)) then
+     ix^L=ixG^LL;
+  else
      ix^L=ixM^LL^LADD1;
-     }
-
-     if(prolongprimitive) call phys_to_primitive(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
-
-     xComin^D=rnode(rpxmin^D_,igrid)\
-     dxCo^D=rnode(rpdx^D_,igrid)\
   end if
+  }{#IFNDEF EVOLVINGBOUNDARY
+  ix^L=ixM^LL^LADD1;
+  }
+
+  if(prolongprimitive) call phys_to_primitive(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
+
+  xComin^D=rnode(rpxmin^D_,igrid)\
+  dxCo^D=rnode(rpdx^D_,igrid)\
 
   if(stagger_grid) call old_neighbors(child_igrid,child_ipe,igrid,ipe)
 
@@ -65,19 +62,14 @@ subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
     ixComin^D=ixMlo^D+(ic^D-1)*block_nx^D/2\
     ixComax^D=ixMhi^D+(ic^D-2)*block_nx^D/2\
 
-    if (prolongation_method=="linear") then
-       xFimin^D=rnode(rpxmin^D_,ichild)\
-       dxFi^D=rnode(rpdx^D_,ichild)\
-       call prolong_2nd(ps(igrid),ixCo^L,ps(ichild), &
-            dxCo^D,xComin^D,dxFi^D,xFimin^D,igrid,ichild)
-    else
-       call prolong_1st(ps(igrid)%w,ixCo^L,ps(ichild)%w,ps(ichild)%x)
-    end if
+    xFimin^D=rnode(rpxmin^D_,ichild)\
+    dxFi^D=rnode(rpdx^D_,ichild)\
+    call prolong_2nd(ps(igrid),ixCo^L,ps(ichild), &
+         dxCo^D,xComin^D,dxFi^D,xFimin^D,igrid,ichild)
+    !call prolong_1st(ps(igrid)%w,ixCo^L,ps(ichild)%w,ps(ichild)%x)
   {end do\}
 
-  if (prolongation_method=="linear" .and. prolongprimitive) then
-     call phys_to_conserved(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
-  end if
+  if (prolongprimitive) call phys_to_conserved(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
 
 end subroutine prolong_grid
 
@@ -123,22 +115,26 @@ subroutine prolong_2nd(sCo,ixCo^L,sFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridCo,ig
            ! get limited slope
            signR=sign(one,slopeR)
            signC=sign(one,slopeC)
-           select case(typeprolonglimit)
-           case('unlimit')
-             slope(iw,idim)=slopeC
-           case('minmod')
-             slope(iw,idim)=signR*max(zero,min(dabs(slopeR), &
-                                               signR*slopeL))
-           case('woodward')
-             slope(iw,idim)=two*signR*max(zero,min(dabs(slopeR), &
-                                signR*slopeL,signR*half*slopeC))
-           case('koren')
-             slope(iw,idim)=signR*max(zero,min(two*signR*slopeL, &
-              (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
-           case default
+           !select case(prolong_limiter)
+           !case(1)
+           !  ! unlimited
+           !  slope(iw,idim)=slopeC
+           !case(2)
+           !  ! minmod
+           !  slope(iw,idim)=signR*max(zero,min(dabs(slopeR), &
+           !                                    signR*slopeL))
+           !case(3)
+           !  ! woodward
+           !  slope(iw,idim)=two*signR*max(zero,min(dabs(slopeR), &
+           !                     signR*slopeL,signR*half*slopeC))
+           !case(4)
+           !  ! koren
+           !  slope(iw,idim)=signR*max(zero,min(two*signR*slopeL, &
+           !   (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
+           !case default
              slope(iw,idim)=signC*max(zero,min(dabs(slopeC), &
                                signC*slopeL,signC*slopeR))
-           end select
+           !end select
         end do
      end do
      ! cell-centered coordinates of coarse grid point

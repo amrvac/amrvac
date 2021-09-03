@@ -134,16 +134,12 @@ contains
 
     nx^D=ixMmax^D-ixMmin^D+1;
     nxCo^D=nx^D/2;
-    
-    select case (typeghostfill)
-    case ("copy")
+
+    if(ghost_copy) then
        interpolation_order=1
-    case ("linear")
+    else
        interpolation_order=2
-    case default
-       write (unitterm,*) "Undefined typeghostfill ",typeghostfill
-       call mpistop("Undefined typeghostfill")
-    end select
+    end if
     nghostcellsCo=int((nghostcells+1)/2)
     
     if (nghostcellsCo+interpolation_order-1>nghostcells) then
@@ -1423,15 +1419,11 @@ contains
              psc(igrid)%w,psc(igrid)%x)
         endif
 
-        select case (typeghostfill)
-        case ("linear")
-           call interpolation_linear(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
-        case ("copy")
+        if(ghost_copy) then
            call interpolation_copy(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
-        case default
-           write (unitterm,*) "Undefined typeghostfill ",typeghostfill
-           call mpistop("Undefined typeghostfill")
-        end select
+        else
+           call interpolation_linear(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
+        end if
 
         if(prolongprimitive) call phys_to_conserved(ixCoG^L,ixCo^L,&
              psc(igrid)%w,psc(igrid)%x)
@@ -1588,22 +1580,26 @@ contains
                  ! get limited slope
                  signR=sign(one,slopeR)
                  signC=sign(one,slopeC)
-                 select case(typeprolonglimit)
-                 case('unlimit')
-                   slope(iw,idims)=slopeC
-                 case('minmod')
-                   slope(iw,idims)=signR*max(zero,min(dabs(slopeR), &
-                                                     signR*slopeL))
-                 case('woodward')
-                   slope(iw,idims)=two*signR*max(zero,min(dabs(slopeR), &
-                                      signR*slopeL,signR*half*slopeC))
-                 case('koren')
-                   slope(iw,idims)=signR*max(zero,min(two*signR*slopeL, &
-                    (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
-                 case default
+                 !select case(prolong_limiter)
+                 !case(1)
+                 !  ! unlimit
+                 !  slope(iw,idims)=slopeC
+                 !case(2)
+                 !  ! minmod
+                 !  slope(iw,idims)=signR*max(zero,min(dabs(slopeR), &
+                 !                                    signR*slopeL))
+                 !case(3)
+                 !  ! woodward
+                 !  slope(iw,idims)=two*signR*max(zero,min(dabs(slopeR), &
+                 !                     signR*slopeL,signR*half*slopeC))
+                 !case(4)
+                 !  ! koren
+                 !  slope(iw,idims)=signR*max(zero,min(two*signR*slopeL, &
+                 !   (dabs(slopeR)+two*slopeL*signR)*third,two*dabs(slopeR)))
+                 !case default
                    slope(iw,idims)=signC*max(zero,min(dabs(slopeC), &
                                      signC*slopeL,signC*slopeR))
-                 end select
+                 !end select
               end do
            end do
         

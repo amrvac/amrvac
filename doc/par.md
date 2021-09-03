@@ -550,8 +550,7 @@ corresponding gradient_limiter array to select a limiter (per level).
      typeboundary_min^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      typeboundary_max^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      internalboundary = F | T
-     typeghostfill= 'linear' | 'copy' 
-     prolongation_method= 'linear' | 'other' (no interpolation)
+     ghost_copy= F | T
     /
 
 The boundary types have to be defined for each **conserved variable**, except for 
@@ -678,17 +677,10 @@ specified values through _usr_internal_bc_ subroutine. This is activated with th
 Internally, these are assigned before the ghost-cells and external boundaries
 are applied (in subroutine get_bc).
 
-The `typeghostfill='linear'` implies the use of limited linear
+The `ghost_copy=F` implies the use of limited linear
 reconstructions in the filling of ghost cells for internal boundaries that
-exist due to the AMR hierarchy. A first order 'copy' can be used as well, or
-an unlimited linear reconstruction by setting it to 'unlimit'. To retain
-second order accuracy, at least the default 'linear' type is needed.
-
-The `prolongation_method='linear'` implies the use of limited linear
-reconstructions when filling newly triggered, finer grids from previous
-coarser grid values. Setting it different from this default string will imply
-mere first order copying for finer level grids (and is thus not advised when
-second order is desired).
+exist due to the AMR hierarchy. If `ghost_copy=T`, a first order 'copy' is 
+used 'unlimit'. To retain second order accuracy, the default set is needed.
 
 ## meshlist {#par_meshlist}
 
@@ -719,7 +711,6 @@ second order is desired).
      iprob= INTEGER
      prolongprimitive= F | T
      coarsenprimitive= F | T
-     typeprolonglimit= 'default' | 'minmod' | 'woodward' | 'koren' | 'unlimit'
      tfixgrid= DOUBLE
      itfixgrid= INTEGER
      ditregrid= INTEGER
