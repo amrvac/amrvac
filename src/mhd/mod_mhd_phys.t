@@ -3378,7 +3378,7 @@ contains
                   ixOmax^DD=ixGlo^D-1+nghostcells-boundary_divbfix_skip(2*^D-1)^D%ixOmax^DD=ixGhi^DD;
                end if \}
             end select
-            call fixdivB_boundary(ixG^LL,ixO^L,ps(igrid)%w,ps(igrid)%x,iB)
+            call fixdivB_boundary(ixG^LL,ixO^L,psb(igrid)%w,psb(igrid)%x,iB)
           end if
        end do
     end do
