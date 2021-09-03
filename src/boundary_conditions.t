@@ -343,10 +343,10 @@ subroutine getintbc(time,ixG^L)
 
   ixO^L=ixG^L^LSUBnghostcells;
 
-  !$OMP PARALLEL DO PRIVATE(igrid)
+  !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
   do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
      block=>ps(igrid)
+     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
      if (associated(usr_internal_bc)) then
         call usr_internal_bc(node(plevel_,igrid),time,ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x)

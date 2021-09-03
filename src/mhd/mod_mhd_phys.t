@@ -3344,46 +3344,44 @@ contains
 
   end subroutine mhd_modify_wLR
 
-  subroutine mhd_boundary_adjust
+  subroutine mhd_boundary_adjust(igrid,psb)
     use mod_global_parameters
-    integer :: iB, idim, iside, iigrid, igrid
-    integer :: ixG^L, ixO^L, i^D
+    integer, intent(in) :: igrid
+    type(state), target :: psb(max_blocks)
 
-    ixG^L=ixG^LL;
-     do iigrid=1,igridstail; igrid=igrids(iigrid);
-        if(.not.phyboundblock(igrid)) cycle
-        block=>ps(igrid)
-        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-        do idim=1,ndim
-           ! to avoid using as yet unknown corner info in more than 1D, we
-           ! fill only interior mesh ranges of the ghost cell ranges at first,
-           ! and progressively enlarge the ranges to include corners later
-           do iside=1,2
-              i^D=kr(^D,idim)*(2*iside-3);
-              if (neighbor_type(i^D,igrid)/=1) cycle
-              iB=(idim-1)*2+iside
-              if(.not.boundary_divbfix(iB)) cycle
-              if(any(typeboundary(:,iB)=="special")) then
-                ! MF nonlinear force-free B field extrapolation and data driven
-                ! require normal B of the first ghost cell layer to be untouched by
-                ! fixdivB=0 process, set boundary_divbfix_skip(iB)=1 in par file
-                select case (idim)
-                {case (^D)
-                   if (iside==2) then
-                      ! maximal boundary
-                      ixOmin^DD=ixGmax^D+1-nghostcells+boundary_divbfix_skip(2*^D)^D%ixOmin^DD=ixGmin^DD;
-                      ixOmax^DD=ixGmax^DD;
-                   else
-                      ! minimal boundary
-                      ixOmin^DD=ixGmin^DD;
-                      ixOmax^DD=ixGmin^D-1+nghostcells-boundary_divbfix_skip(2*^D-1)^D%ixOmax^DD=ixGmax^DD;
-                   end if \}
-                end select
-                call fixdivB_boundary(ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x,iB)
-              end if
-           end do
-        end do
-     end do
+    integer :: iB, idims, iside, ixO^L, i^D
+
+    block=>ps(igrid)
+    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+    do idims=1,ndim
+       ! to avoid using as yet unknown corner info in more than 1D, we
+       ! fill only interior mesh ranges of the ghost cell ranges at first,
+       ! and progressively enlarge the ranges to include corners later
+       do iside=1,2
+          i^D=kr(^D,idims)*(2*iside-3);
+          if (neighbor_type(i^D,igrid)/=1) cycle
+          iB=(idims-1)*2+iside
+          if(.not.boundary_divbfix(iB)) cycle
+          if(any(typeboundary(:,iB)=="special")) then
+            ! MF nonlinear force-free B field extrapolation and data driven
+            ! require normal B of the first ghost cell layer to be untouched by
+            ! fixdivB=0 process, set boundary_divbfix_skip(iB)=1 in par file
+            select case (idims)
+            {case (^D)
+               if (iside==2) then
+                  ! maximal boundary
+                  ixOmin^DD=ixGhi^D+1-nghostcells+boundary_divbfix_skip(2*^D)^D%ixOmin^DD=ixGlo^DD;
+                  ixOmax^DD=ixGhi^DD;
+               else
+                  ! minimal boundary
+                  ixOmin^DD=ixGlo^DD;
+                  ixOmax^DD=ixGlo^D-1+nghostcells-boundary_divbfix_skip(2*^D-1)^D%ixOmax^DD=ixGhi^DD;
+               end if \}
+            end select
+            call fixdivB_boundary(ixG^LL,ixO^L,ps(igrid)%w,ps(igrid)%x,iB)
+          end if
+       end do
+    end do
 
   end subroutine mhd_boundary_adjust
 

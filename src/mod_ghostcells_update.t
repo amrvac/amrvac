@@ -438,18 +438,18 @@ contains
     logical, intent(in), optional     :: req_diag ! If false, skip diagonal ghost cells
 
     double precision :: time_bcin
-    integer :: ipole, idims, iside, nwhead, nwtail
+    integer :: ipole, nwhead, nwtail
     integer :: iigrid, igrid, ineighbor, ipe_neighbor, isizes
-    integer :: ixG^L, ixR^L, ixS^L, ixB^L, ixI^L, k^L
+    integer :: ixR^L, ixS^L
     integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir
     ! store physical boundary indicating index
-    integer :: idphyb(ndim,max_blocks),bindex(ndim)
-    integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco,iB
+    integer :: idphyb(ndim,max_blocks)
+    integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
     ! index pointer for buffer arrays as a start for a segment
     integer :: ibuf_start, ibuf_next
     ! shapes of reshape
     integer, dimension(1) :: shapes
-    logical  :: req_diagonal, NeedProlong(-1:1^D&)
+    logical  :: req_diagonal
     type(wbuffer) :: pwbuf(npwbuf)
 
     ! Stretching grid parameters for coarsened block of the current block
@@ -461,47 +461,16 @@ contains
     if (present(req_diag)) req_diagonal = req_diag
 
     time_bcin=MPI_WTIME()
-    ixG^L=ixG^LL;
 
     if (internalboundary) then 
-       call getintbc(time,ixG^L)
+       call getintbc(time,ixG^LL)
     end if
     ! fill ghost cells in physical boundaries
     if(bcphys.and. .not.stagger_grid) then
-      !$OMP PARALLEL DO PRIVATE(igrid,i^D,kmin^D,kmax^D,ixBmin^D,ixBmax^D)
+      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
-        block=>psb(igrid)
-        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-        do idims=1,ndim
-          ! to avoid using as yet unknown corner info in more than 1D, we
-          ! fill only interior mesh ranges of the ghost cell ranges at first,
-          ! and progressively enlarge the ranges to include corners later
-          {
-           kmin^D=merge(0, 1, idims==^D)
-           kmax^D=merge(0, 1, idims==^D)
-           ixBmin^D=ixGmin^D+kmin^D*nghostcells
-           ixBmax^D=ixGmax^D-kmax^D*nghostcells
-          \}
-          {^IFTWOD
-          if(idims > 1 .and. neighbor_type(-1,0,igrid)==neighbor_boundary) ixBmin1=ixGmin1
-          if(idims > 1 .and. neighbor_type( 1,0,igrid)==neighbor_boundary) ixBmax1=ixGmax1}
-          {^IFTHREED
-          if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==neighbor_boundary) ixBmin1=ixGmin1
-          if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==neighbor_boundary) ixBmax1=ixGmax1
-          if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==neighbor_boundary) ixBmin2=ixGmin2
-          if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==neighbor_boundary) ixBmax2=ixGmax2}
-          do iside=1,2
-            i^D=kr(^D,idims)*(2*iside-3);
-            if (aperiodB(idims)) then
-              if (neighbor_type(i^D,igrid) /= neighbor_boundary .and. &
-                   .not. psb(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
-            else
-              if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
-            end if
-            call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^L,ixB^L)
-          end do
-        end do
+        call fill_boundary_before_gc(igrid)
       end do
       !$OMP END PARALLEL DO
     end if
@@ -543,30 +512,31 @@ contains
     end do
 
     ! sending ghost-cell values to sibling blocks and coarser neighbors
-    nghostcellsco=ceiling(nghostcells*0.5d0)
+    !nghostcellsco=ceiling(nghostcells*0.5d0)
+    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ! Used stored data to identify physical boundaries
-       ^D&iib^D=idphyb(^D,igrid);
-
        if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
     {#IFDEF EVOLVINGBOUNDARY
           if(phyboundblock(igrid)) then
             ! coarsen finer ghost cells at physical boundaries
             ixCoMmin^D=ixCoGmin^D+nghostcellsco;
             ixCoMmax^D=ixCoGmax^D-nghostcellsco;
-            ixMmin^D=ixGmin^D+(nghostcellsco-1);
-            ixMmax^D=ixGmax^D-(nghostcellsco-1);
+            ixMmin^D=ixGlo^D+(nghostcellsco-1);
+            ixMmax^D=ixGhi^D-(nghostcellsco-1);
           else
             ixCoM^L=ixCoG^L^LSUBnghostcells;
-            ixM^L=ixG^L^LSUBnghostcells;
+            ixM^L=ixG^LL^LSUBnghostcells;
           end if
     }
-          call coarsen_grid(psb(igrid),ixG^L,ixM^L,psc(igrid),ixCoG^L,ixCoM^L)
+          call coarsen_grid(psb(igrid),ixG^LL,ixM^L,psc(igrid),ixCoG^L,ixCoM^L)
        end if
-    
+    end do
+    !$OMP END PARALLEL DO
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       ^D&iib^D=idphyb(^D,igrid);
        {do i^DB=-1,1\}
           if (skip_direction([ i^D ])) cycle
-          if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
           select case (neighbor_type(i^D,igrid))
           case (neighbor_sibling)
              call bc_send_srl
@@ -612,23 +582,19 @@ contains
 
     ! receiving ghost-cell values from coarser neighbors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ^D&iib^D=idphyb(^D,igrid);
-       {do i^DB=-1,1\}
-          if (skip_direction([ i^D ])) cycle
-          if (neighbor_type(i^D,igrid)==neighbor_coarse) call bc_recv_prolong
-       {end do\}
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         if (neighbor_type(i^D,igrid)==neighbor_coarse) call bc_recv_prolong
+      {end do\}
     end do
     ! sending ghost-cell values to finer neighbors 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ^D&iib^D=idphyb(^D,igrid);
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       if (any(neighbor_type(:^D&,igrid)==neighbor_fine)) then
-          {do i^DB=-1,1\}
-             if (skip_direction([ i^D ])) cycle
-             if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
-             if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_send_prolong
-          {end do\}
-       end if
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_send_prolong
+      {end do\}
     end do
 
     call MPI_WAITALL(irecv_c,recvrequest_c_p,recvstatus_c_p,ierrmpi)
@@ -641,69 +607,17 @@ contains
       ! fill coarser representative after receipt
       ibuf_recv_p=1
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-         ^D&iib^D=idphyb(^D,igrid);
-         {do i^DB=-1,1\}
-            if (skip_direction([ i^D ])) cycle
-            if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_fill_p
-         {end do\}
+        ^D&iib^D=idphyb(^D,igrid);
+        {do i^DB=-1,1\}
+           if (skip_direction([ i^D ])) cycle
+           if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_fill_p
+        {end do\}
       end do
     end if
     ! do prolongation on the ghost-cell values received from coarser neighbors 
-    !$OMP PARALLEL DO PRIVATE(igrid,iib^D,NeedProlong)
+    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ^D&iib^D=idphyb(^D,igrid);
-       if (any(neighbor_type(:^D&,igrid)==neighbor_coarse)) then
-         NeedProlong=.false.
-         {do i^DB=-1,1\}
-            if (skip_direction([ i^D ])) cycle
-            if (neighbor_type(i^D,igrid)==neighbor_coarse) then
-              call bc_prolong(i^D,iib^D,igrid)
-              NeedProlong(i^D)=.true.
-            end if
-         {end do\}
-         if(stagger_grid) then
-           ! Ghost cell prolongation for staggered variables
-           ! must be done in a specific order.
-           ! First the first neighbours, which have 2 indices=0 in 3D
-           ! or one index=0 in 2D
-           do idims=1,ndim
-             i^D=0;
-             select case(idims)
-            {case(^D)
-               do i^D=-1,1,2
-                 if (NeedProlong(i^DD)) call bc_prolong_stg(i^DD,iib^DD,igrid,NeedProlong)
-               end do
-             \}
-             end select
-           end do
-           ! Then the second neighbours which have 1 index=0 in 3D
-           ! (Only in 3D)
-           {^IFTHREED
-           i1=0;
-           do i2=-1,1,2
-             do i3=-1,1,2
-               if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
-             end do
-           end do
-           i2=0;
-           do i3=-1,1,2
-             do i1=-1,1,2
-               if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
-             end do
-           end do
-           i3=0;
-           do i1=-1,1,2
-             do i2=-1,1,2
-               if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
-             end do
-           end do
-           }
-           ! Finally, the corners, that have no index=0
-          {do i^D=-1,1,2\}
-             if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
-          {end do\}
-         end if
-       end if
+      call gc_prolong(igrid)
     end do
     !$OMP END PARALLEL DO
     
@@ -712,9 +626,96 @@ contains
     end do
 
     if(bcphys.and.stagger_grid) then
-      !$OMP PARALLEL DO PRIVATE(igrid,i^D,kmin^D,kmax^D,ixBmin^D,ixBmax^D)
+      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         if(.not.phyboundblock(igrid)) cycle
+        call fill_boundary_after_gc(igrid)
+      end do
+      !$OMP END PARALLEL DO
+    end if
+
+     ! modify normal component of magnetic field to fix divB=0 
+    if(bcphys.and.associated(phys_boundary_adjust)) then
+      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        if(.not.phyboundblock(igrid)) cycle
+        call phys_boundary_adjust(igrid,psb)
+      end do
+      !$OMP END PARALLEL DO
+    end if
+    
+    if (nwaux>0) then
+      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        call fix_auxiliary(igrid)
+      end do
+      !$OMP END PARALLEL DO
+    end if
+    
+    time_bc=time_bc+(MPI_WTIME()-time_bcin)
+    
+    contains
+
+      logical function skip_direction(dir)
+        integer, intent(in) :: dir(^ND)
+
+        if (all(dir == 0)) then
+           skip_direction = .true.
+        else if (.not. req_diagonal .and. count(dir /= 0) > 1) then
+           skip_direction = .true.
+        else
+           skip_direction = .false.
+        end if
+      end function skip_direction
+
+      !> Physical boundary conditions
+      subroutine fill_boundary_before_gc(igrid)
+
+        integer, intent(in) :: igrid
+
+        integer :: idims,iside,i^D,k^L,ixB^L
+
+        block=>psb(igrid)
+        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+        do idims=1,ndim
+          ! to avoid using as yet unknown corner info in more than 1D, we
+          ! fill only interior mesh ranges of the ghost cell ranges at first,
+          ! and progressively enlarge the ranges to include corners later
+          {
+           kmin^D=merge(0, 1, idims==^D)
+           kmax^D=merge(0, 1, idims==^D)
+           ixBmin^D=ixGlo^D+kmin^D*nghostcells
+           ixBmax^D=ixGhi^D-kmax^D*nghostcells
+          \}
+          {^IFTWOD
+          if(idims > 1 .and. neighbor_type(-1,0,igrid)==neighbor_boundary) ixBmin1=ixGlo1
+          if(idims > 1 .and. neighbor_type( 1,0,igrid)==neighbor_boundary) ixBmax1=ixGhi1}
+          {^IFTHREED
+          if(idims > 1 .and. neighbor_type(-1,0,0,igrid)==neighbor_boundary) ixBmin1=ixGlo1
+          if(idims > 1 .and. neighbor_type( 1,0,0,igrid)==neighbor_boundary) ixBmax1=ixGhi1
+          if(idims > 2 .and. neighbor_type(0,-1,0,igrid)==neighbor_boundary) ixBmin2=ixGlo2
+          if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==neighbor_boundary) ixBmax2=ixGhi2}
+          do iside=1,2
+            i^D=kr(^D,idims)*(2*iside-3);
+            if (aperiodB(idims)) then
+              if (neighbor_type(i^D,igrid) /= neighbor_boundary .and. &
+                   .not. psb(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
+            else
+              if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
+            end if
+            call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^LL,ixB^L)
+          end do
+        end do
+
+      end subroutine fill_boundary_before_gc
+
+      !> Physical boundary conditions
+      subroutine fill_boundary_after_gc(igrid)
+
+        integer, intent(in) :: igrid
+
+        integer :: idims,iside,i^D,k^L,ixB^L
+
         block=>psb(igrid)
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         do idims=1,ndim
@@ -740,33 +741,11 @@ contains
             else 
               if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
             end if
-            call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^L,ixB^L)
+            call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^LL,ixB^L)
           end do
         end do
-      end do
-      !$OMP END PARALLEL DO
-    end if
 
-     ! modify normal component of magnetic field to fix divB=0 
-    if(bcphys.and.associated(phys_boundary_adjust)) call phys_boundary_adjust()
-    
-    if (nwaux>0) call fix_auxiliary
-    
-    time_bc=time_bc+(MPI_WTIME()-time_bcin)
-    
-    contains
-
-      logical function skip_direction(dir)
-        integer, intent(in) :: dir(^ND)
-
-        if (all(dir == 0)) then
-           skip_direction = .true.
-        else if (.not. req_diagonal .and. count(dir /= 0) > 1) then
-           skip_direction = .true.
-        else
-           skip_direction = .false.
-        end if
-      end function skip_direction
+      end subroutine fill_boundary_after_gc
 
       !> Receive from sibling at same refinement level
       subroutine bc_recv_srl
@@ -815,6 +794,7 @@ contains
 
         ineighbor=neighbor(1,i^D,igrid)
         ipe_neighbor=neighbor(2,i^D,igrid)
+        if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
 
         if (ipole==0) then
            n_i^D=-i^D;
@@ -852,7 +832,7 @@ contains
            end select
            if (ipe_neighbor==mype) then
               ixR^L=ixR_srl_^L(iib^D,n_i^D);
-              call pole_copy(psb(ineighbor)%w,ixG^L,ixR^L,psb(igrid)%w,ixG^L,ixS^L)
+              call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psb(igrid)%w,ixG^LL,ixS^L)
            else
               if (isend_buf(ipwbuf)/=0) then
                  call MPI_WAIT(sendrequest_c_sr(isend_buf(ipwbuf)), &
@@ -860,7 +840,7 @@ contains
                  deallocate(pwbuf(ipwbuf)%w)
               end if
               allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-              call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^L,ixS^L)
+              call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^LL,ixS^L)
               isend_c=isend_c+1
               isend_buf(ipwbuf)=isend_c
               itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
@@ -890,7 +870,7 @@ contains
 
       !> Send to coarser neighbor
       subroutine bc_send_restrict
-        integer :: ii^D
+        integer :: ii^D, idims, iside, ixB^L, k^L
 
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
@@ -933,6 +913,7 @@ contains
 
         ineighbor=neighbor(1,i^D,igrid)
         ipe_neighbor=neighbor(2,i^D,igrid)
+        if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
 
         if (ipole==0) then
            n_inc^D=-2*i^D+ic^D;
@@ -971,7 +952,7 @@ contains
            end select
            if (ipe_neighbor==mype) then
               ixR^L=ixR_r_^L(iib^D,n_inc^D);
-              call pole_copy(psb(ineighbor)%w,ixG^L,ixR^L,psc(igrid)%w,ixCoG^L,ixS^L)
+              call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psc(igrid)%w,ixCoG^L,ixS^L)
            else
               if (isend_buf(ipwbuf)/=0) then
                  call MPI_WAIT(sendrequest_c_sr(isend_buf(ipwbuf)), &
@@ -1205,6 +1186,8 @@ contains
       subroutine bc_send_prolong
         integer :: ii^D
 
+        if (phi_ > 0) ipole=neighbor_pole(i^D,igrid)
+
         {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
            inc^DB=2*i^DB+ic^DB\}
            ixS^L=ixS_p_^L(iib^D,inc^D);
@@ -1248,7 +1231,7 @@ contains
               end select
               if (ipe_neighbor==mype) then
                  ixR^L=ixR_p_^L(iib^D,n_inc^D);
-                 call pole_copy(psc(ineighbor)%w,ixCoG^L,ixR^L,psb(igrid)%w,ixG^L,ixS^L)
+                 call pole_copy(psc(ineighbor)%w,ixCoG^L,ixR^L,psb(igrid)%w,ixG^LL,ixS^L)
                 if(stagger_grid) then
                   do idir=1,ndim
                     ixS^L=ixS_p_stg_^L(idir,inc^D);
@@ -1263,7 +1246,7 @@ contains
                    deallocate(pwbuf(ipwbuf)%w)
                 end if
                 allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-                call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^L,ixS^L)
+                call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^LL,ixS^L)
                 isend_c=isend_c+1
                 isend_buf(ipwbuf)=isend_c
                 itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -1292,6 +1275,65 @@ contains
         {end do\}
 
       end subroutine bc_send_prolong
+
+      subroutine gc_prolong(igrid)
+        integer, intent(in) :: igrid
+
+        integer :: iib^D,i^D,idims,iside
+        logical,dimension(-1:1^D&) :: NeedProlong
+
+        ^D&iib^D=idphyb(^D,igrid);
+        NeedProlong=.false.
+        {do i^DB=-1,1\}
+           if (skip_direction([ i^D ])) cycle
+           if (neighbor_type(i^D,igrid)==neighbor_coarse) then
+             call bc_prolong(i^D,iib^D,igrid)
+             NeedProlong(i^D)=.true.
+           end if
+        {end do\}
+        if(stagger_grid) then
+          ! Ghost cell prolongation for staggered variables
+          ! must be done in a specific order.
+          ! First the first neighbours, which have 2 indices=0 in 3D
+          ! or one index=0 in 2D
+          do idims=1,ndim
+            i^D=0;
+            select case(idims)
+           {case(^D)
+              do i^D=-1,1,2
+                if (NeedProlong(i^DD)) call bc_prolong_stg(i^DD,iib^DD,igrid,NeedProlong)
+              end do
+            \}
+            end select
+          end do
+          ! Then the second neighbours which have 1 index=0 in 3D
+          ! (Only in 3D)
+          {^IFTHREED
+          i1=0;
+          do i2=-1,1,2
+            do i3=-1,1,2
+              if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
+            end do
+          end do
+          i2=0;
+          do i3=-1,1,2
+            do i1=-1,1,2
+              if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
+            end do
+          end do
+          i3=0;
+          do i1=-1,1,2
+            do i2=-1,1,2
+              if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
+            end do
+          end do
+          }
+          ! Finally, the corners, that have no index=0
+         {do i^D=-1,1,2\}
+            if (NeedProlong(i^D)) call bc_prolong_stg(i^D,iib^D,igrid,NeedProlong)
+         {end do\}
+        end if
+      end subroutine gc_prolong
 
       !> fill coarser representative with data from coarser neighbors
       subroutine bc_fill_p
@@ -1356,7 +1398,7 @@ contains
         use mod_physics, only: phys_to_primitive, phys_to_conserved
 
         integer :: i^D,iib^D,igrid
-        integer :: ixFi^L,ixCo^L,ii^D, idims,iside,ixBmin^D,ixBmax^D
+        integer :: ixFi^L,ixCo^L,ii^D, idims,iside,ixB^L
         double precision :: dxFi^D, dxCo^D, xFimin^D, xComin^D, invdxCo^D
 
         ixFi^L=ixR_srl_^L(iib^D,i^D);
@@ -1652,7 +1694,7 @@ contains
         integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
         double precision :: wrecv(ixIR^S,1:nw), wsend(ixIS^S,1:nw)
 
-        integer :: iw, iB
+        integer :: iw, iside, iB
 
         select case (ipole)
         {case (^D)
@@ -1675,7 +1717,9 @@ contains
       subroutine pole_copy_stg(wrecv,ixR^L,wsend,ixS^L,idirs)
       
         integer, intent(in) :: ixR^L,ixS^L,idirs
+
         double precision :: wrecv(ixGs^T,1:nws), wsend(ixGs^T,1:nws)
+        integer :: iB, iside
 
         select case (ipole)
         {case (^D)
@@ -1699,7 +1743,7 @@ contains
         integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
         double precision :: wrecv(ixIR^S,nwhead:nwtail), wsend(ixIS^S,1:nw)
 
-        integer :: iw, iB
+        integer :: iw, iside, iB
 
         select case (ipole)
         {case (^D)
@@ -1719,23 +1763,20 @@ contains
       
       end subroutine pole_buffer
 
-      subroutine fix_auxiliary
+      subroutine fix_auxiliary(igrid)
         use mod_physics, only: phys_get_aux
-      
-        integer :: ix^L
+        integer, intent(in) :: igrid
 
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          block=>psb(igrid)
-          call identifyphysbound(psb(igrid),iib^D)   
-             
-          {do i^DB=-1,1\}
-             if (skip_direction([ i^D ])) cycle
-        
-             ix^L=ixR_srl_^L(iib^D,i^D);
-             call phys_get_aux(.true.,psb(igrid)%w,ps(igrid)%x,ixG^L,ix^L,"bc")
-          {end do\}
-        end do
-      
+        integer :: ix^L,iib^D
+
+        block=>psb(igrid)
+        ^D&iib^D=idphyb(^D,igrid);
+        {do i^DB=-1,1\}
+           if (skip_direction([ i^D ])) cycle
+           ix^L=ixR_srl_^L(iib^D,i^D);
+           call phys_get_aux(.true.,psb(igrid)%w,psb(igrid)%x,ixG^LL,ix^L,"bc")
+        {end do\}
+
       end subroutine fix_auxiliary
 
   end subroutine getbc
