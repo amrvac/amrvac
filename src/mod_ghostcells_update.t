@@ -877,7 +877,7 @@ contains
 
       subroutine bc_fill_srl(igrid,i^D,iib^D)
         integer, intent(in) :: igrid,i^D,iib^D
-        integer :: ineighbor,ipe_neighbor,ipole,ixS^L,ixR^L,n_i^D
+        integer :: ineighbor,ipe_neighbor,ipole,ixS^L,ixR^L,n_i^D,idir
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if(ipe_neighbor==mype) then
@@ -889,6 +889,13 @@ contains
             ixR^L=ixR_srl_^L(iib^D,n_i^D);
             psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
                 psb(igrid)%w(ixS^S,nwhead:nwtail)
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixS^L=ixS_srl_stg_^L(idir,i^D);
+                ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+                psb(ineighbor)%ws(ixR^S,idir)=psb(igrid)%ws(ixS^S,idir)
+              end do
+            end if
           else
             ixS^L=ixS_srl_^L(iib^D,i^D);
             select case (ipole)
@@ -897,6 +904,13 @@ contains
             end select
             ixR^L=ixR_srl_^L(iib^D,n_i^D);
             call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixS^L=ixS_srl_stg_^L(idir,i^D);
+                ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+                call pole_copy_stg(psb(ineighbor)%ws,ixR^L,psb(igrid)%ws,ixS^L,idir,ipole)
+              end do
+            end if
           end if
         end if
 
@@ -1022,7 +1036,7 @@ contains
       subroutine bc_fill_restrict(igrid,i^D,iib^D)
         integer, intent(in) :: igrid,i^D,iib^D
 
-        integer :: ic^D,n_inc^D,ixS^L,ixR^L,ipe_neighbor,ineighbor,ipole
+        integer :: ic^D,n_inc^D,ixS^L,ixR^L,ipe_neighbor,ineighbor,ipole,idir
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if(ipe_neighbor==mype) then
@@ -1036,6 +1050,13 @@ contains
             ixR^L=ixR_r_^L(iib^D,n_inc^D);
             psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
                 psc(igrid)%w(ixS^S,nwhead:nwtail)
+            if(stagger_grid) then
+              do idir=1,ndim
+                 ixS^L=ixS_r_stg_^L(idir,i^D);
+                 ixR^L=ixR_r_stg_^L(idir,n_inc^D);
+                 psb(ineighbor)%ws(ixR^S,idir)=psc(igrid)%ws(ixS^S,idir)
+              end do
+            end if
           else
             ixS^L=ixS_r_^L(iib^D,i^D);
             select case (ipole)
@@ -1044,6 +1065,14 @@ contains
             end select
             ixR^L=ixR_r_^L(iib^D,n_inc^D);
             call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psc(igrid)%w,ixCoG^L,ixS^L,ipole)
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixS^L=ixS_r_stg_^L(idir,i^D);
+                ixR^L=ixR_r_stg_^L(idir,n_inc^D);
+                !! Fill ghost cells
+                call pole_copy_stg(psb(ineighbor)%ws,ixR^L,psc(igrid)%ws,ixS^L,idir,ipole)
+              end do
+            end if
           end if
         end if
 
@@ -1053,30 +1082,16 @@ contains
       subroutine bc_fill_srl_stg
         double precision :: tmp(ixGs^T)
         integer :: ixS^L,ixR^L,n_i^D,ixSsync^L,ixRsync^L
-        integer :: idir, idirect
+        integer :: idir
 
-        ineighbor=neighbor(1,i^D,igrid)
         ipe_neighbor=neighbor(2,i^D,igrid)
-        ipole=neighbor_pole(i^D,igrid)
-        idirect={abs(i^D)|+}
+        if(ipe_neighbor/=mype) then
+          ineighbor=neighbor(1,i^D,igrid)
+          ipole=neighbor_pole(i^D,igrid)
 
         !! Now the special treatment of the pole is done here, at the receive step
-        if (ipole==0) then    
-          ixR^L=ixR_srl_^L(iib^D,i^D);
-          if (ipe_neighbor==mype) then
-            n_i^D=-i^D;
-            do idir=1,ndim
-              ixS^L=ixS_srl_stg_^L(idir,n_i^D);
-              ixR^L=ixR_srl_stg_^L(idir,i^D);
-              !if (idirect == 1 .and. qdt>0.d0) then
-              !  ! use the same value at the face shared by two neighors
-              !  call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L)
-              !   if({idir==^D .and. i^D /=0  | .or.}) write(*,*) it,'difference',maxval(abs(psb(igrid)%ws(ixRsync^S,idir)-psb(ineighbor)%ws(ixSsync^S,idir)))
-              !  !psb(igrid)%ws(ixRsync^S,idir) = half*(psb(igrid)%ws(ixRsync^S,idir)+psb(ineighbor)%ws(ixSsync^S,idir))
-              !end if
-              psb(igrid)%ws(ixR^S,idir) = psb(ineighbor)%ws(ixS^S,idir)
-            end do
-          else
+          if (ipole==0) then    
+            ixR^L=ixR_srl_^L(iib^D,i^D);
             !! Unpack the buffer and fill the ghost cells
             n_i^D=-i^D;
             do idir=1,ndim
@@ -1084,41 +1099,24 @@ contains
               ixR^L=ixR_srl_stg_^L(idir,i^D);
               ibuf_next=ibuf_recv_srl+sizes_srl_recv_stg(idir,i^D)
               tmp(ixS^S) = reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),shape=shape(psb(igrid)%ws(ixS^S,idir)))       
-              !if (idirect == 1) then
-              !   ! ixR ixS maybe changed
-              !   call indices_for_syncing(idir,i^D,ixR^L,ixS^L,ixRsync^L,ixSsync^L) ! Overwrites ixR, ixS
-              !   if(qdt==0) psb(igrid)%ws(ixRsync^S,idir) = half*(tmp(ixSsync^S) + psb(igrid)%ws(ixRsync^S,idir))
-              !   if({idir==^D .and. i^D /=0  | .or.}) write(*,*) it,'betweenpe',maxval(abs(psb(igrid)%ws(ixRsync^S,idir)-tmp(ixSsync^S)))
-              !end if
               psb(igrid)%ws(ixR^S,idir) = tmp(ixS^S)
               ibuf_recv_srl=ibuf_next
             end do
-          end if
-
-        else ! There is a pole
-          select case (ipole)
-          {case (^D)
-             n_i^D=i^D^D%n_i^DD=-i^DD;\}
-          end select
-          if (ipe_neighbor==mype) then
-            !! Fill ghost cells
+          else ! There is a pole
+            select case (ipole)
+            {case (^D)
+               n_i^D=i^D^D%n_i^DD=-i^DD;\}
+            end select
+            pole_buf%ws=zero
             do idir=1,ndim
-              ixR^L=ixR_srl_stg_^L(idir,i^D);
-              ixS^L=ixS_srl_stg_^L(idir,n_i^D);
-              !! Fill ghost cells
-              call pole_copy_stg(psb(igrid)%ws,ixR^L,psb(ineighbor)%ws,ixS^L,idir,ipole)
+             ixR^L=ixR_srl_stg_^L(idir,i^D);
+             ixS^L=ixS_srl_stg_^L(idir,n_i^D);
+             ibuf_next=ibuf_recv_srl+sizes_srl_recv_stg(idir,i^D)
+             pole_buf%ws(ixS^S,idir)=reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),&
+               shape=shape(psb(igrid)%ws(ixS^S,idir)))
+             ibuf_recv_srl=ibuf_next
+             call pole_copy_stg(psb(igrid)%ws,ixR^L,pole_buf%ws,ixS^L,idir,ipole)
             end do
-          else
-             pole_buf%ws=zero
-             do idir=1,ndim
-              ixR^L=ixR_srl_stg_^L(idir,i^D);
-              ixS^L=ixS_srl_stg_^L(idir,n_i^D);
-              ibuf_next=ibuf_recv_srl+sizes_srl_recv_stg(idir,i^D)
-              pole_buf%ws(ixS^S,idir)=reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),&
-                shape=shape(psb(igrid)%ws(ixS^S,idir)))
-              ibuf_recv_srl=ibuf_next
-              call pole_copy_stg(psb(igrid)%ws,ixR^L,pole_buf%ws,ixS^L,idir,ipole)
-             end do
           end if
         end if
 
@@ -1160,16 +1158,10 @@ contains
           ! Loop over the children ic^D to and their neighbors inc^D
           {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
              inc^DB=2*i^DB+ic^DB\}
-             n_i^D=-i^D;
-             ineighbor=neighbor_child(1,inc^D,igrid)
              ipe_neighbor=neighbor_child(2,inc^D,igrid)
-             if (ipe_neighbor==mype) then ! Same processor
-               do idir=1,ndim
-                  ixS^L=ixS_r_stg_^L(idir,n_i^D);
-                  ixR^L=ixR_r_stg_^L(idir,inc^D);
-                  psb(igrid)%ws(ixR^S,idir)=psc(ineighbor)%ws(ixS^S,idir)
-               end do
-             else ! Different processor
+             if(ipe_neighbor/=mype) then
+               ineighbor=neighbor_child(1,inc^D,igrid)
+               n_i^D=-i^D;
                !! Unpack the buffer and fill the ghost cells
                do idir=1,ndim
                  ixR^L=ixR_r_stg_^L(idir,inc^D);
@@ -1180,25 +1172,17 @@ contains
                end do
              end if
           {end do\}
-        
         else !! There is a pole
           {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
              inc^DB=2*i^DB+ic^DB\}
-             select case(ipole)
-            {case (^D)
-               n_i^D=i^D^D%n_i^DD=-i^DD;\}
-             end select
-             ineighbor=neighbor_child(1,inc^D,igrid)
              ipe_neighbor=neighbor_child(2,inc^D,igrid)
-             ixR^L=ixR_r_^L(iib^D,inc^D);
-             if (ipe_neighbor==mype) then ! Same processor
-               do idir=1,ndim
-                 ixS^L=ixS_r_stg_^L(idir,n_i^D);
-                 ixR^L=ixR_r_stg_^L(idir,inc^D);
-                 !! Fill ghost cells
-                 call pole_copy_stg(psb(igrid)%ws,ixR^L,psc(ineighbor)%ws,ixS^L,idir,ipole)
-               end do
-             else ! Different processor
+             if(ipe_neighbor/=mype) then
+               ineighbor=neighbor_child(1,inc^D,igrid)
+               select case(ipole)
+              {case (^D)
+                 n_i^D=i^D^D%n_i^DD=-i^DD;\}
+               end select
+               ixR^L=ixR_r_^L(iib^D,inc^D);
                !! Unpack the buffer and fill an auxiliary array
                pole_buf%ws=zero
                do idir=1,ndim
@@ -1212,7 +1196,6 @@ contains
                end do
              end if
           {end do\}
-        
         end if
 
       end subroutine bc_fill_restrict_stg
@@ -1325,20 +1308,36 @@ contains
 
         ipole=neighbor_pole(i^D,igrid)
 
-        {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
-           inc^DB=2*i^DB+ic^DB\}
-           ipe_neighbor=neighbor_child(2,inc^D,igrid)
-           if(ipe_neighbor==mype) then
-             ixS^L=ixS_p_^L(iib^D,inc^D);
-             ineighbor=neighbor_child(1,inc^D,igrid)
-             ipole=neighbor_pole(i^D,igrid)
-             if(ipole==0) then
+        if(ipole==0) then
+          {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
+             inc^DB=2*i^DB+ic^DB\}
+             ipe_neighbor=neighbor_child(2,inc^D,igrid)
+             if(ipe_neighbor==mype) then
+               ixS^L=ixS_p_^L(iib^D,inc^D);
+               ineighbor=neighbor_child(1,inc^D,igrid)
+               ipole=neighbor_pole(i^D,igrid)
                n_i^D=-i^D;
                n_inc^D=ic^D+n_i^D;
                ixR^L=ixR_p_^L(iib^D,n_inc^D);
                psc(ineighbor)%w(ixR^S,nwhead:nwtail) &
                   =psb(igrid)%w(ixS^S,nwhead:nwtail)
-             else
+               if(stagger_grid) then
+                 do idir=1,ndim
+                   ixS^L=ixS_p_stg_^L(idir,inc^D);
+                   ixR^L=ixR_p_stg_^L(idir,n_inc^D);
+                   psc(ineighbor)%ws(ixR^S,idir)=psb(igrid)%ws(ixS^S,idir)
+                 end do
+               end if
+             end if
+          {end do\}
+        else
+          {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
+             inc^DB=2*i^DB+ic^DB\}
+             ipe_neighbor=neighbor_child(2,inc^D,igrid)
+             if(ipe_neighbor==mype) then
+               ixS^L=ixS_p_^L(iib^D,inc^D);
+               ineighbor=neighbor_child(1,inc^D,igrid)
+               ipole=neighbor_pole(i^D,igrid)
                select case (ipole)
                {case (^D)
                   n_inc^D=inc^D^D%n_inc^DD=ic^DD-i^DD;\}
@@ -1353,9 +1352,8 @@ contains
                  end do
                end if
              end if
-           end if
-        {end do\}
-
+          {end do\}
+        end if
       end subroutine bc_fill_prolong
 
       subroutine gc_prolong(igrid)
@@ -1422,21 +1420,14 @@ contains
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
 
-        ineighbor=neighbor(1,i^D,igrid)
         ipe_neighbor=neighbor(2,i^D,igrid)
-        ipole=neighbor_pole(i^D,igrid)
+        if(ipe_neighbor/=mype) then
+          ineighbor=neighbor(1,i^D,igrid)
+          ipole=neighbor_pole(i^D,igrid)
 
-        if (ipole==0) then   !! There is no pole 
-          inc^D=ic^D+i^D;
-          ixR^L=ixR_p_^L(iib^D,inc^D);
-          if(ipe_neighbor==mype) then !! Same processor
-            n_inc^D=-2*i^D+ic^D;
-            do idir=1,ndim
-              ixS^L=ixS_p_stg_^L(idir,n_inc^D);
-              ixR^L=ixR_p_stg_^L(idir,inc^D);
-              psc(igrid)%ws(ixR^S,idir)=psb(ineighbor)%ws(ixS^S,idir)
-            end do
-          else !! Different processor
+          if (ipole==0) then   !! There is no pole 
+            inc^D=ic^D+i^D;
+            ixR^L=ixR_p_^L(iib^D,inc^D);
             do idir=1,ndim
               ixR^L=ixR_p_stg_^L(idir,inc^D);
               ibuf_next=ibuf_recv_p+sizes_p_recv_stg(idir,inc^D)
@@ -1444,21 +1435,12 @@ contains
                     shape=shape(psc(igrid)%ws(ixR^S,idir)))
               ibuf_recv_p=ibuf_next
             end do
-          end if
-
-        else !! There is a pole
-          inc^D=ic^D+i^D;
-          select case (ipole)
-          {case (^D)
-             n_inc^D=2*i^D+(3-ic^D)^D%n_inc^DD=-2*i^DD+ic^DD;\}
-          end select
-          if (ipe_neighbor==mype) then
-            do idir=1,ndim
-              ixS^L=ixS_p_stg_^L(idir,n_inc^D);
-              ixR^L=ixR_p_stg_^L(idir,inc^D);
-              call pole_copy_stg(psc(igrid)%ws,ixR^L,psb(ineighbor)%ws,ixS^L,idir,ipole)
-            end do
-          else
+          else !! There is a pole
+            inc^D=ic^D+i^D;
+            select case (ipole)
+            {case (^D)
+               n_inc^D=2*i^D+(3-ic^D)^D%n_inc^DD=-2*i^DD+ic^DD;\}
+            end select
             !! Unpack the buffer and fill an auxiliary array
             pole_buf%ws=zero
             do idir=1,ndim
@@ -1470,7 +1452,6 @@ contains
               ibuf_recv_p=ibuf_next
             end do
           end if
-
         end if
 
       end subroutine bc_fill_prolong_stg
