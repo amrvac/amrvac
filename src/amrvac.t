@@ -259,7 +259,7 @@ contains
           call saveamrfile(1)
           call saveamrfile(2)
           call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
-       endif
+       end if
        timeio_tot=timeio_tot+MPI_WTIME()-timeio0
 
        pass_wall_time=MPI_WTIME()-time0+dt_loop+4.d0*time_write >=wall_time_max
@@ -297,10 +297,10 @@ contains
           else
              if (refine_max_level>1 .and. .not.(fixgrid())) call resettree
              fixcount=1
-          endif
+          end if
        else
           if (refine_max_level>1 .and. .not.(fixgrid())) call resettree
-       endif
+       end if
        timegr_tot=timegr_tot+(MPI_WTIME()-timegr0)
 
        ! update time variables
@@ -325,21 +325,22 @@ contains
 
     if (mype==0) then
        write(*,'(a,f12.3,a)')' Total timeloop took        : ',timeloop,' sec'
-       write(*,'(a,f12.3,a)')' Time spent on Regrid+Update: ',timegr_tot,' sec'
+       write(*,'(a,f12.3,a)')' Time spent on AMR          : ',timegr_tot,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timegr_tot/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on IO in loop   : ',timeio_tot,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timeio_tot/timeloop,' %'
-       write(*,'(a,f12.3,a)')' Time spent on BC           : ',time_bc,' sec'
+       write(*,'(a,f12.3,a)')' Time spent on ghost cells  : ',time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
-       write(*,'(a,f12.3,a)')' Time spent on run          : ',timeloop-timeio_tot,' sec'
-       write(*,'(a,es12.3 )')' Cells_updated / cpu / sec  : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
+       write(*,'(a,f12.3,a)')' Time spent on computing    : ',timeloop-timeio_tot-timegr_tot-time_bc,' sec'
+       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*(timeloop-timeio_tot-timegr_tot-time_bc)/timeloop,' %'
+       write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
     end if
 
     ! output end state
     timeio0=MPI_WTIME()
     do ifile=nfile,1,-1
-       if(itsavelast(ifile)<it)call saveamrfile(ifile)
-    enddo
+       if(itsavelast(ifile)<it) call saveamrfile(ifile)
+    end do
     if (mype==0) call MPI_FILE_CLOSE(log_fh,ierrmpi)
     timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
