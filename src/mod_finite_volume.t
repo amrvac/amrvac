@@ -337,41 +337,29 @@ contains
     end subroutine get_Riemann_flux_tvdlf
 
     subroutine get_Riemann_flux_hll()
+      integer :: ix^D
 
-      double precision :: fac(ixI^S), div(ixI^S)
-
-      where(cminC(ixC^S) >= zero)
-        patchf(ixC^S) = -2
-      elsewhere(cmaxC(ixC^S) <= zero)
-        patchf(ixC^S) =  2
-      elsewhere
-        patchf(ixC^S) =  1
-        div(ixC^S) = 1.d0/(cmaxC(ixC^S)-cminC(ixC^S))
-        fac(ixC^S) = tvdlfeps*cminC(ixC^S)*cmaxC(ixC^S)
-      endwhere
-
-
-      ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=iwstart,nwflux
-         if (flux_type(idims, iw) == flux_tvdlf) then
-            fLC(ixC^S, iw) = half*(fLC(ixC^S, iw) + fRC(ixC^S, iw) &
-                 -tvdlfeps*max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
-                 (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-         else
-            where(patchf(ixC^S)==1)
-               ! Add hll dissipation to the flux
-               fLC(ixC^S, iw) = (cmaxC(ixC^S)*fLC(ixC^S, iw)-cminC(ixC^S) * fRC(ixC^S, iw) &
-                    +fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))) * div(ixC^S)
-            elsewhere(patchf(ixC^S)== 2)
-               fLC(ixC^S, iw)=fRC(ixC^S, iw)
-            elsewhere(patchf(ixC^S)==-2)
-               fLC(ixC^S, iw)=fLC(ixC^S, iw)
-            endwhere
-         endif
+        if(flux_type(idims, iw) == flux_tvdlf) then
+          fC(ixC^S,iw,idims) = half*(fLC(ixC^S, iw) + fRC(ixC^S, iw) &
+               -tvdlfeps*max(cmaxC(ixC^S), dabs(cminC(ixC^S))) * &
+               (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+        else
+         {do ix^DB=ixCmin^DB,ixCmax^DB\} 
+           if(cminC(ix^D) >= zero) then
+             fC(ix^D,iw,idims)=fLC(ix^D,iw)
+           else if(cmaxC(ix^D) <= zero) then
+             fC(ix^D,iw,idims)=fRC(ix^D,iw)
+           else
+             ! Add hll dissipation to the flux
+             fC(ix^D,iw,idims)=(cmaxC(ix^D)*fLC(ix^D, iw)-cminC(ix^D)*fRC(ix^D,iw)&
+                   +tvdlfeps*cminC(ix^D)*cmaxC(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
+                   /(cmaxC(ix^D)-cminC(ix^D))
+           end if
+         {end do\}
+        end if
+      end do
 
-         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
-
-      end do ! Next iw
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hllc()
