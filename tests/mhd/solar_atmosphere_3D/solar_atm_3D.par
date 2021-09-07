@@ -27,10 +27,8 @@
 
  &methodlist
         time_stepper=  'threestep'
-        flux_scheme=    20*'hlld'
+        flux_scheme=    20*'hll'
         limiter= 20*'cada3'
-        check_small_values=.true.
-        tvdlfeps=0.d0
  /
 
  &boundlist
@@ -69,7 +67,6 @@
         mhd_thermal_conduction=.true.
         mhd_radiative_cooling=.true.
         mhd_gravity=.true.
-        typedivbfix='ct'
         mhd_solve_eaux=.true.
         mhd_trac=.true.
  /

@@ -22,11 +22,11 @@
 
  &methodlist
         time_stepper=  'threestep'
-        flux_scheme=    20*'hlld'
+        flux_scheme=    20*'hll'
         limiter= 20*'cada3'
+ /
         check_small_values=.true.
         tvdlfeps=0.d0
- /
         trace_small_values=.true.
         typeboundspeed='cmaxmean'
 
@@ -42,12 +42,12 @@
  &meshlist
         refine_max_level=3
         refine_threshold=20*0.2d0
-        block_nx1=12
-        block_nx2=12
-        block_nx3=12
-        domain_nx1=48
-        domain_nx2=48
-        domain_nx3=48
+        block_nx1=20
+        block_nx2=20
+        block_nx3=20
+        domain_nx1=40
+        domain_nx2=40
+        domain_nx3=40
         iprob=1
         xprobmin1=-6.0d0
         xprobmax1=6.0d0
@@ -69,7 +69,7 @@
 
  &paramlist
         typecourant='maxsum'
-        courantpar=0.5d0
+        courantpar=0.8d0
  /
 
  &mhd_list
