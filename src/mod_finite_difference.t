@@ -85,17 +85,6 @@ contains
        call reconstructR(ixI^L,ixC^L,idims,fm,fmR)
 
        fC(ixC^S,1:nwflux,idims) = fpL(ixC^S,1:nwflux) + fmR(ixC^S,1:nwflux)
-       if(associated(usr_set_flux)) then
-         kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
-         kxR^L=kxC^L+kr(idims,^D);
-         ! wRp and wLp are defined at the same locations, and will correspond to
-         ! the left and right reconstructed values at a cell face. Their indexing
-         ! is similar to cell-centered values, but in direction idims they are
-         ! shifted half a cell towards the 'lower' direction.
-         wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
-         wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
-         call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
-       end if
 
        if(stagger_grid) then
          ! apply limited reconstruction for left and right status at cell interfaces
@@ -389,8 +378,6 @@ contains
                   *(wRC(ixC^S,iw)-wLC(ixC^S,iw))
           end do
        end if
-
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do       !next idims
     b0i=0

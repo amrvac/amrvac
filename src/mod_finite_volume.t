@@ -146,8 +146,6 @@ contains
     double precision, dimension(ixI^S)      :: cminC
     double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv, dxdim
-    ! cell-face location coordinates
-    double precision, dimension(ixI^S,1:ndim) :: xi
     integer, dimension(ixI^S)               :: patchf
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
     type(ct_velocity) :: vcts
@@ -200,29 +198,24 @@ contains
        {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
        {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
-       ! get cell-face coordinates
-       xi=x
-       xi(ixI^S,idims)=xi(ixI^S,idims)+0.5d0*sCT%dx(ixI^S,idims)
-
        ! apply limited reconstruction for left and right status at cell interfaces
-       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,xi,dxdim(idims))
+       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
 
        ! special modification of left and right status before flux evaluation
        call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
 
        ! evaluate physical fluxes according to reconstructed status
-       call phys_get_flux(wLC,wLp,xi,ixI^L,ixC^L,idims,fLC)
-       call phys_get_flux(wRC,wRp,xi,ixI^L,ixC^L,idims,fRC)
+       call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
+       call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
 
        ! estimating bounds for the minimum and maximum signal velocities
        if(method==fs_tvdlf.or.method==fs_tvdmu) then
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC)
          if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC)
        else
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,xi,ixI^L,ixC^L,idims,cmaxC,cminC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
          if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
-
 
        ! use approximate Riemann solver to get flux at interfaces
        select case(method)
@@ -239,8 +232,6 @@ contains
        case default
          call mpistop('unkown Riemann flux in finite volume')
        end select
-
-       if(associated(usr_set_flux)) call usr_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,sCT,idims,fC)
 
     end do ! Next idims
     b0i=0

@@ -27,7 +27,6 @@ contains
     usr_add_aux_names   => specialvarnames_output 
     usr_init_vector_potential=>initvecpot_usr
     usr_set_wLR         => boundary_wLR
-    !usr_set_flux        => boundary_set_flux
     !usr_set_electric_field => boundary_electric_field
 
     call mhd_activate()
@@ -252,23 +251,6 @@ contains
     end if
 
   end subroutine boundary_wLR
-
-  subroutine boundary_set_flux(ixI^L,ixC^L,qt,wLC,wRC,wLp,wRp,s,idims,fC)
-    integer, intent(in)          :: ixI^L, ixC^L, idims
-    double precision, intent(in)    :: qt
-    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
-    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
-    type(state)                     :: s
-    ! face-center flux
-    double precision,intent(inout) :: fC(ixI^S,1:nwflux,1:ndim)
-
-    if(idims==2) then
-      if(block%is_physical_boundary(idims*2-1)) then
-        fC(ixCmin2^%2ixC^S,e_,idims)=-wRp(ixCmin2^%2ixC^S,mag(2))*wRp(ixCmin2^%2ixC^S,mag(1))*wRp(ixCmin2^%2ixC^S,mom(1))
-      end if
-    end if
-
-  end subroutine boundary_set_flux
 
   subroutine driven_velocity(ixI^L,ixO^L,qt,x,vdr)
     integer, intent(in)             :: ixI^L, ixO^L
