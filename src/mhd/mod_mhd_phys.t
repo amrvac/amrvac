@@ -774,9 +774,9 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: idir, itr
 
-    if (fix_small_values) then
-      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
-    end if
+    !if (fix_small_values) then
+    !  call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
+    !end if
 
     ! Calculate total energy from pressure, kinetic and magnetic energy
     if(mhd_energy) then
@@ -1287,8 +1287,8 @@ contains
     if (boundspeedEinfeldt) then
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
-      tmp1(ixO^S)=sqrt(abs(wLp(ixO^S,rho_)))
-      tmp2(ixO^S)=sqrt(abs(wRp(ixO^S,rho_)))
+      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
       tmp3(ixO^S)=1.d0/(tmp1(ixO^S)+tmp2(ixO^S))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)

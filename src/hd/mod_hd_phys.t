@@ -448,6 +448,10 @@ contains
     integer                         :: itr, idir
     double precision                :: inv_rho(ixO^S)
 
+    if (fix_small_values) then
+      call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_primitive')
+    end if
+
     inv_rho = 1.0d0 / w(ixO^S, rho_)
 
     if (hd_energy) then
@@ -464,10 +468,6 @@ contains
     ! Convert dust momentum to dust velocity
     if (hd_dust) then
       call dust_to_primitive(ixI^L, ixO^L, w, x)
-    end if
-
-    if (fix_small_values) then
-      call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_primitive')
     end if
 
   end subroutine hd_to_primitive

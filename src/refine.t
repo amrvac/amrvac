@@ -75,7 +75,7 @@ end subroutine prolong_grid
 
 !> do 2nd order prolongation
 subroutine prolong_2nd(sCo,ixCo^L,sFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridCo,igridFi)
-  use mod_physics, only: phys_to_conserved
+  use mod_physics, only: phys_to_conserved, phys_handle_small_values
   use mod_global_parameters
   use mod_amr_fct, only: already_fine, prolong_2nd_stg
 
@@ -163,6 +163,7 @@ subroutine prolong_2nd(sCo,ixCo^L,sFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridCo,ig
     call prolong_2nd_stg(sCo,sFi,ixCo^L,ixM^LL,dxCo^D,xComin^D,dxFi^D,xFimin^D,.false.,fine_^L)
   end if
 
+  if(fix_small_values) call phys_handle_small_values(.true.,wFi,sFi%x,ixG^LL,ixM^LL,'prolong_2nd')
   if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,sFi%x)
   end associate
 
