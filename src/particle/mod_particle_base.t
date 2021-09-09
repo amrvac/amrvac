@@ -45,6 +45,8 @@ module mod_particle_base
   logical                 :: write_ensemble
   !> Whether to write particle snapshots
   logical                 :: write_snapshot
+  !> Particle downsampling factor in CSV output
+  integer                 :: downsample_particles
   !> Use a relativistic particle mover?
   logical                 :: relativistic
   !> Resistivity
@@ -183,10 +185,12 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /particles_list/ physics_type_particles,nparticleshi, &
-         nparticles_per_cpu_hi, write_individual, write_ensemble, &
-         write_snapshot, dtsave_particles,num_particles,ndefpayload,nusrpayload,tmax_particles, &
-         dtheta,losses, const_dt_particles, particles_cfl, relativistic, integrator_type_particles
+    namelist /particles_list/ physics_type_particles, nparticleshi, nparticles_per_cpu_hi, &
+                              write_individual, write_ensemble, write_snapshot, &
+                              downsample_particles, dtsave_particles, tmax_particles, &
+                              num_particles, ndefpayload, nusrpayload, &
+                              losses, const_dt_particles, particles_cfl, dtheta, &
+                              relativistic, integrator_type_particles
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -217,6 +221,7 @@ contains
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
+    downsample_particles      = 1
     relativistic              = .true.
     particles_eta             = 0.d0
     particles_etah            = 0.d0
@@ -1210,7 +1215,7 @@ contains
     if (write_ensemble) then
       send_n_particles_for_output = 0
 
-      do iipart=1,nparticles_on_mype
+      do iipart=1,nparticles_on_mype,downsample_particles
         ipart=particles_on_mype(iipart);
 
         ! have to send particle to rank zero for output
