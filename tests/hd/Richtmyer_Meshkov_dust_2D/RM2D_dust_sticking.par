@@ -22,7 +22,7 @@
 
  &methodlist
         time_stepper=  'fivestep'
-        flux_scheme=   20*'hll'
+        flux_scheme=   20*'hllc'
         limiter=20*'koren'
  /
 

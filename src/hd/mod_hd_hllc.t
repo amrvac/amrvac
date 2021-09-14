@@ -160,6 +160,7 @@ contains
     ! reference T. Miyoski, Kusano JCP, 2008, 2005.
 
     use mod_global_parameters
+    use mod_dust
 
     integer, intent(in)                                      :: ixI^L,ixO^L,idim
     double precision, dimension(ixI^S,1:nw), intent(in)      :: wRC,wLC
@@ -173,6 +174,7 @@ contains
     double precision, dimension(ixI^S)           :: vSub,cspeed,pCD
     integer         , dimension(ixI^S), intent(in)           :: patchf
 
+    double precision :: csmls
     integer                                      :: n, iw, ix^D
 
     !-------------- auxiliary Speed and array-------------!
@@ -192,20 +194,19 @@ contains
 
     {do ix^DB=ixOmin^DB,ixOmax^DB\}
       if(abs(patchf(ix^D))==1) then
+        csmls=one/(cspeed(ix^D)-lambdaCD(ix^D))
         wCD(ix^D,rho_) = wSub(ix^D,rho_)&
-                         *(cspeed(ix^D)-vSub(ix^D))/(cspeed(ix^D)-lambdaCD(ix^D))
+                         *(cspeed(ix^D)-vSub(ix^D))*csmls
         do n=1,hd_n_tracer
           iw = tracer(n)
-          wCD(ix^D,iw) = wSub(ix^D,iw)*(cspeed(ix^D)-vSub(ix^D))&
-             /(cspeed(ix^D)-lambdaCD(ix^D))
+          wCD(ix^D,iw) = wSub(ix^D,iw)*(cspeed(ix^D)-vSub(ix^D))*csmls
         end do
 
         !------- Momentum ------!
         do iw=1, ndir
           if(iw /= idim)then
             ! eq. 21 22
-            wCD(ix^D,mom(iw))=(cspeed(ix^D)*wSub(ix^D,mom(iw))-fSub(ix^D,mom(iw)))/&
-                (cspeed(ix^D)-lambdaCD(ix^D))
+            wCD(ix^D,mom(iw))=(cspeed(ix^D)*wSub(ix^D,mom(iw))-fSub(ix^D,mom(iw)))*csmls
           else
             ! eq. 20
             wCD(ix^D,mom(iw)) =  wCD(ix^D,rho_) * lambdaCD(ix^D)
@@ -217,14 +218,39 @@ contains
                         +fSub(ix^D,mom(idim))-wSub(ix^D,mom(idim))*vSub(ix^D)
           ! Eq 31
           wCD(ix^D,e_) = (cspeed(ix^D)*wSub(ix^D,e_) &
-                          -fSub(ix^D,e_)+lambdaCD(ix^D)*pCD(ix^D))&
-                          /(cspeed(ix^D)-lambdaCD(ix^D))
+                          -fSub(ix^D,e_)+lambdaCD(ix^D)*pCD(ix^D))*csmls
         end if
+        !if(hd_dust) then
+        !  do n=1,dust_n_species
+        !    wCD(ix^D,dust_rho(n)) = wSub(ix^D,dust_rho(n))*(cspeed(ix^D)-vSub(ix^D))*csmls
+        !    do iw=1,ndir
+        !      if(iw /= idim)then
+        !        ! eq. 21 22
+        !        wCD(ix^D,dust_mom(iw,n))=wSub(ix^D,dust_mom(iw,n))*(cspeed(ix^D)-vSub(ix^D))*csmls
+        !      else
+        !        ! eq. 20
+        !        wCD(ix^D,dust_mom(iw,n)) =  wCD(ix^D,dust_rho(n)) * lambdaCD(ix^D)
+        !      endif
+        !    end do
+        !  end do
+        !end if
 
-        do iw=1,nwflux
-          ! f_i=fsub+lambda (wCD-wSub)
-          f(ix^D,iw)=fsub(ix^D,iw)+cspeed(ix^D)*(wCD(ix^D,iw)-wSub(ix^D,iw))
-        end do
+        if(hd_dust) then
+          do iw=1,nwflux
+            if(iw>=dust_rho(1).and.iw<=dust_mom(ndir,dust_n_species)) then
+              ! use HLL flux for dust
+              f(ix^D,iw)=Fhll(ix^D,iw)
+            else
+              ! f_i=fsub+lambda (wCD-wSub)
+              f(ix^D,iw)=fsub(ix^D,iw)+cspeed(ix^D)*(wCD(ix^D,iw)-wSub(ix^D,iw))
+            end if
+          end do
+        else
+          do iw=1,nwflux
+            ! f_i=fsub+lambda (wCD-wSub)
+            f(ix^D,iw)=fsub(ix^D,iw)+cspeed(ix^D)*(wCD(ix^D,iw)-wSub(ix^D,iw))
+          end do
+        end if
       end if
     {end do\}
 

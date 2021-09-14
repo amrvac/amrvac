@@ -117,6 +117,7 @@ mod_hd.o: mod_hd_hllc.mod
 mod_hd.o: mod_hd_phys.mod
 mod_hd.o: mod_hd_ppm.mod
 mod_hd.o: mod_hd_roe.mod
+mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
 mod_hd_phys.o: mod_dust.mod
