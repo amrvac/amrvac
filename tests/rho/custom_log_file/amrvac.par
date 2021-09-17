@@ -1,0 +1,73 @@
+!=====================================================
+! Aim     : showcase usr_print_log subroutine
+! Update  : 17/09/2021
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=2
+!=====================================================
+
+ &filelist
+   base_filename = 'output/test_printlog'
+   saveprim=.true.
+   autoconvert=.true.
+   convert_type='vtuBmpi'
+   typefilelog='special'
+ /
+
+ &savelist
+   itsave(1,1)  = 0
+   itsave(1,2)  = 0
+   dtsave_log  = 0.01
+   dtsave_dat    = 0.5
+ /
+
+ &stoplist
+   dtmin        = 1.D-6
+   time_max     = 10
+ /
+
+ &methodlist
+   time_stepper=  'fivestep'
+   flux_scheme=    20*'hll'
+   limiter= 20*'mp5'
+ /
+
+ &boundlist
+   ! 'noinflow' sets the velocity to zero at the boundaries while keeping the other fields constant
+   typeboundary_min1=6*'noinflow'
+   typeboundary_max1=6*'noinflow'
+   typeboundary_min2=6*'noinflow'
+   typeboundary_max2=6*'noinflow'
+ /
+
+ &meshlist
+   refine_criterion   = 3
+   refine_max_level   = 6
+   w_refine_weight(1)=1.0d0
+   block_nx1        = 8
+   block_nx2        = 8
+   domain_nx1         = 16
+   domain_nx2         = 16
+   xprobmin1       =-2.0d0
+   xprobmax1       = 2.0d0
+   xprobmin2       =-2.0d0
+   xprobmax2       = 2.0d0
+ /
+
+ &paramlist
+   slowsteps=10
+   typecourant='maxsum'
+   courantpar=0.8d0
+ /
+
+ &mhd_list
+   mhd_radiative_cooling =T
+ /
+
+ &rc_list
+   ncool=12000
+   coolcurve='JCcorona'
+   coolmethod='exact'
+   cfrac=1.d0
+   Tfix=.true.
+   Tlow = 1e-3
+ /
