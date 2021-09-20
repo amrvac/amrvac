@@ -409,17 +409,6 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
-    select case (mhd_boris_method)
-    case ("none")
-      mhd_boris_type = boris_none
-    case ("reduced_force")
-      mhd_boris_type = boris_reduced_force
-    case ("simplification")
-      mhd_boris_type = boris_simplification
-    case default
-      call mpistop("Unknown mhd_boris_method (none, reduced_force, simplification)")
-    end select
-
     ! Determine flux variables
     rho_ = var_set_rho()
 
