@@ -408,374 +408,339 @@ module mod_thermal_emission
       ! get information of the spectral line
       use mod_global_parameters
 
-      integer :: mass
-      character(len=30) :: ion,charge
-      double precision :: logTe
-      double precision :: line_center
-      double precision :: spatial_rsl,spectral_rsl
+      integer, intent(out) :: mass
+      character(len=30), intent(out) :: ion,charge
+      double precision, intent(out) :: logTe
+      double precision, intent(out) :: line_center
+      double precision, intent(out) :: spatial_rsl,spectral_rsl
 
       select case(wavelength)
-        case(304)
-          ion='He'
-          charge='II'
-          mass=4
-          logTe=4.7
-          line_center=303.8
-          spatial_rsl=0.6
-          spectral_rsl=0.2
-
-        case(171)
-          ion='Fe'
-          charge='IX'
-          mass=56
-          logTe=5.8
-          line_center=171.1
-          spatial_rsl=0.6
-          spectral_rsl=0.2 
- 
-        case(193)
-          ion='Fe'
-          charge='XXIV'
-          mass=56
-          logTe=7.3
-          line_center=193.5
-          spatial_rsl=0.6
-          spectral_rsl=0.2
-
-        case(211)
-          ion='Fe'
-          charge='XIV'
-          mass=56
-          logTe=6.3
-          line_center=211.3
-          spatial_rsl=0.6
-          spectral_rsl=0.2
-
-        case(335)
-          ion='Fe'
-          charge='XVI'
-          mass=56
-          logTe=6.4
-          line_center=335.4
-          spatial_rsl=0.6
-          spectral_rsl=0.2
-
-        case(94)
-          ion='Fe'
-          charge='XVIII'
-          mass=56
-          logTe=6.8
-          line_center=93.9
-          spatial_rsl=0.6
-          spectral_rsl=0.2
-
-        case(131)
-          ion='Fe'
-          charge='XXI'
-          mass=56
-          logTe=7.0
-          line_center=131.0
-          spatial_rsl=0.6
-          spectral_rsl=0.2
-
-        case(1354)
-          ion='Fe'
-          charge='XXI'
-          mass=56
-          logTe=7.0
-          line_center=1354.1
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-
-        case(1394)
-          ion='Si'
-          charge='IV'
-          mass=28
-          logTe=4.8
-          line_center=1393.8
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-
-        case(1403)
-          ion='Si'
-          charge='IV'
-          mass=28
-          logTe=4.8
-          line_center=1402.8
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-  
-        case(1338)
-          ion='O'
-          charge='IV'
-          mass=16
-          logTe=0.0
-          line_center=1338.5
-          spatial_rsl=0.33
-          spectral_rsl=0.026
- 
-        case(1343)
-          ion='O'
-          charge='IV'
-          mass=16
-          logTe=0.0
-          line_center=1343.0
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-
-        case(1397)
-          ion='O'
-          charge='IV'
-          mass=16
-          logTe=0.0
-          line_center=1397.2
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-
-        case(1400)
-          ion='O'
-          charge='IV'
-          mass=16
-          logTe=5.2
-          line_center=1399.8
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-
-        case(1401)
-          ion='O'
-          charge='IV'
-          mass=16
-          logTe=5.2
-          line_center=1401.2
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-
-        case(1405)
-          ion='O'
-          charge='IV'
-          mass=16
-          logTe=0.0
-          line_center=1404.8
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-  
-        case(1349)
-          ion='Fe'
-          charge='XII'
-          mass=56
-          logTe=6.2
-          line_center=1349.2
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-  
-        case(1351)
-          ion='Fe'
-          charge='XXI'
-          mass=56
-          logTe=7.0
-          line_center=1354.1
-          spatial_rsl=0.33
-          spectral_rsl=0.026
-
-        case default
-          call mpistop("No information about this line")
-
+      case(304)
+        ion='He'
+        charge='II'
+        mass=4
+        logTe=4.7
+        line_center=303.8
+        spatial_rsl=0.6
+        spectral_rsl=0.2
+      case(171)
+        ion='Fe'
+        charge='IX'
+        mass=56
+        logTe=5.8
+        line_center=171.1
+        spatial_rsl=0.6
+        spectral_rsl=0.2 
+      case(193)
+        ion='Fe'
+        charge='XXIV'
+        mass=56
+        logTe=7.3
+        line_center=193.5
+        spatial_rsl=0.6
+        spectral_rsl=0.2
+      case(211)
+        ion='Fe'
+        charge='XIV'
+        mass=56
+        logTe=6.3
+        line_center=211.3
+        spatial_rsl=0.6
+        spectral_rsl=0.2
+      case(335)
+        ion='Fe'
+        charge='XVI'
+        mass=56
+        logTe=6.4
+        line_center=335.4
+        spatial_rsl=0.6
+        spectral_rsl=0.2
+      case(94)
+        ion='Fe'
+        charge='XVIII'
+        mass=56
+        logTe=6.8
+        line_center=93.9
+        spatial_rsl=0.6
+        spectral_rsl=0.2
+      case(131)
+        ion='Fe'
+        charge='XXI'
+        mass=56
+        logTe=7.0
+        line_center=131.0
+        spatial_rsl=0.6
+        spectral_rsl=0.2
+      case(1354)
+        ion='Fe'
+        charge='XXI'
+        mass=56
+        logTe=7.0
+        line_center=1354.1
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1394)
+        ion='Si'
+        charge='IV'
+        mass=28
+        logTe=4.8
+        line_center=1393.755
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1403)
+        ion='Si'
+        charge='IV'
+        mass=28
+        logTe=4.8
+        line_center=1402.770
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1338)
+        ion='O'
+        charge='IV'
+        mass=16
+        logTe=0.0
+        line_center=1338.5
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1343)
+        ion='O'
+        charge='IV'
+        mass=16
+        logTe=0.0
+        line_center=1343.0
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1397)
+        ion='O'
+        charge='IV'
+        mass=16
+        logTe=0.0
+        line_center=1397.2
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1400)
+        ion='O'
+        charge='IV'
+        mass=16
+        logTe=5.2
+        line_center=1399.8
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1401)
+        ion='O'
+        charge='IV'
+        mass=16
+        logTe=5.2
+        line_center=1401.2
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1405)
+        ion='O'
+        charge='IV'
+        mass=16
+        logTe=0.0
+        line_center=1404.8
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1349)
+        ion='Fe'
+        charge='XII'
+        mass=56
+        logTe=6.2
+        line_center=1349.2
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case(1351)
+        ion='Fe'
+        charge='XXI'
+        mass=56
+        logTe=7.0
+        line_center=1354.1
+        spatial_rsl=0.33
+        spectral_rsl=0.026
+      case default
+        call mpistop("No information about this line")
       end select
-
     end subroutine get_line_info
     
     subroutine get_EUV(wl,ixI^L,ixO^L,w,x,flux)
-      ! calculate the local emission intensity of given EUV line
+      ! calculate the local emission intensity of given EUV line (optically thin)
       ! wavelength is the wave length of the emission line
       ! unit [DN cm^-5 s^-1]
       use mod_global_parameters
 
-      integer :: wl
+      integer, intent(in) :: wl
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
-      double precision :: w(ixI^S,1:nw)
-      double precision :: flux(ixI^S)
+      double precision, intent(in) :: w(ixI^S,1:nw)
+      double precision, intent(out) :: flux(ixI^S)
 
       integer :: n_table
       double precision, allocatable :: t_table(:),f_table(:)
-
-      integer :: ix^D,iTt
+      integer :: ix^D,iTt,i
       double precision :: pth(ixI^S),Te(ixI^S),Ne(ixI^S)
       double precision :: logT,logGT
 
       ! selecting emission table 
       select case(wl)
-
       case(94)
         n_table=n_aia
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
         t_table(1:n_table)=t_aia(1:n_aia)
         f_table(1:n_table)=f_94(1:n_aia)
-
       case(131)
         n_table=n_aia
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
         t_table(1:n_table)=t_aia(1:n_aia)
         f_table(1:n_table)=f_131(1:n_aia)
-
       case(171)
         n_table=n_aia
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
         t_table(1:n_table)=t_aia(1:n_aia)
         f_table(1:n_table)=f_171(1:n_aia)
-
       case(193)
         n_table=n_aia
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
         t_table(1:n_table)=t_aia(1:n_aia)
         f_table(1:n_table)=f_193(1:n_aia)
-
       case(211)
         n_table=n_aia
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
         t_table(1:n_table)=t_aia(1:n_aia)
         f_table(1:n_table)=f_211(1:n_aia)
-
       case(304)
         n_table=n_aia
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
         t_table(1:n_table)=t_aia(1:n_aia)
         f_table(1:n_table)=f_304(1:n_aia)
-
       case(335)
         n_table=n_aia
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
         t_table(1:n_table)=t_aia(1:n_aia)
         f_table(1:n_table)=f_335(1:n_aia)
-
       case(1354)
-        n_table=n_aia
+        n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_1354(1:n_aia)
-
+        t_table(1:n_table)=t_iris(1:n_iris)
+        f_table(1:n_table)=f_1354(1:n_iris)
       case(1394)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1394(1:n_iris)
-
       case(1403)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1403(1:n_iris)
-
       case(1338)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1338(1:n_iris)
-
       case(1343)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1343(1:n_iris)
-
       case(1397)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1397(1:n_iris)
-
       case(1400)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1400(1:n_iris)
-
       case(1401)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1401(1:n_iris)
-
       case(1405)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1405(1:n_iris)
-
       case(1349)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1349(1:n_iris)
-
       case(1351)
         n_table=n_iris
         allocate(t_table(1:n_table))
         allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_iris)
+        t_table(1:n_table)=t_iris(1:n_iris)
         f_table(1:n_table)=f_1351(1:n_iris)
-
       case default
+        allocate(t_table(1))
+        allocate(f_table(1))
         call mpistop("This wavelength is unknown")
-
       end select
-
-
+      do i=1,n_table
+        if(f_table(i) .gt. 1.d-99) then
+          f_table(i)=log10(f_table(i))
+        else
+          f_table(i)=-99.d0
+        endif
+      enddo 
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
       Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
       Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
       flux(ixO^S)=Ne(ixO^S)**2
-
       logGT=zero
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         logT=log10(Te(ix^D))
         if (logT>=t_table(1) .and. logT<=t_table(n_table)) then
           do iTt=1,n_table-1
             if (logT>=t_table(iTt) .and. logT<t_table(iTt+1)) then
-              logGT=log10(f_table(iTt))*(logT-t_table(iTt+1))/(t_table(iTt)-t_table(iTt+1))+&
-                    log10(f_table(iTt+1))*(logT-t_table(iTt))/(t_table(iTt+1)-t_table(iTt))
+              logGT=f_table(iTt)*(logT-t_table(iTt+1))/(t_table(iTt)-t_table(iTt+1))+&
+                    f_table(iTt+1)*(logT-t_table(iTt))/(t_table(iTt+1)-t_table(iTt))
             endif
           enddo
           flux(ix^D)=flux(ix^D)*(10**(logGT))
-          if (flux(ix^D)<smalldouble) flux(ix^D)=0.d0
+          if(flux(ix^D)<smalldouble) flux(ix^D)=0.d0
         else
-          flux(ix^D)=0.0d0
+          flux(ix^D)=zero
         endif
       {enddo\}
-
+!where(x(ixO^S,3) .lt. 1.45d0)
+!  flux(ixO^S)=zero
+!endwhere
       deallocate(t_table,f_table)
-
     end subroutine get_EUV
 
     subroutine get_SXR(ixI^L,ixO^L,w,x,flux,El,Eu)
       !synthesize thermal SXR from El keV to Eu keV
       use mod_global_parameters
 
-      integer, intent(in)          :: ixI^L,ixO^L
-      double precision, intent(in) :: x(ixI^S,1:ndim)
-      double precision             :: w(ixI^S,nw)
-      double precision             :: flux(ixI^S)
-      integer                      :: El,Eu
+      integer, intent(in)           :: ixI^L,ixO^L
+      integer, intent(in)           :: El,Eu
+      double precision, intent(in)  :: x(ixI^S,1:ndim)
+      double precision, intent(in)  :: w(ixI^S,nw)
+      double precision, intent(out) :: flux(ixI^S)
 
       integer :: ix^D,ixO^D
-
       integer :: iE,numE
       double precision :: I0,kb,keV,dE,Ei
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
@@ -788,22 +753,19 @@ module mod_thermal_emission
       !keV=1.602d-16
       kb=const_kb
       keV=1.0d3*const_ev
-
       dE=0.1
       numE=floor((Eu-El)/dE)
-
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
       Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
       Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
       kbT(ixO^S)=kb*Te(ixO^S)/keV
       flux(ixO^S)=0.0d0
       EM(ixO^S)=(I0*(Ne(ixO^S))**2)
-
       do iE=0,numE-1
         Ei=dE*iE+El
         gff(ixO^S)=1
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if (kbT(ix^D)<Ei) then
+          if(kbT(ix^D)<Ei) then
             gff(ix^D)=(kbT(ix^D)/Ei)**0.4
           endif
         {enddo\}
@@ -811,14 +773,14 @@ module mod_thermal_emission
                   exp(-Ei/(kbT(ixO^S)))/(Ei*sqrt(kbT(ixO^S)))
         flux(ixO^S)=flux(ixO^S)+fi(ixO^S)*dE
       enddo
-
     end subroutine get_SXR
 
     subroutine get_GOES_SXR_flux(xbox^L,eflux)
       !get GOES SXR 1-8A flux observed at 1AU from given box [w/m^2]
       use mod_global_parameters
 
-      double precision :: xbox^L,eflux
+      double precision, intent(in) :: xbox^L
+      double precision, intent(out) :: eflux
 
       double precision :: dxb^D,xb^L
       integer :: iigrid,igrid,j
@@ -829,75 +791,74 @@ module mod_thermal_emission
       ^D&ixImax^D=ixghi^D;
       ^D&ixOmin^D=ixmlo^D;
       ^D&ixOmax^D=ixmhi^D;
-
-      eflux_pe=0.d0
-
+      eflux_pe=zero
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        block=>ps(igrid)
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         ^D&xbmin^D=rnode(rpxmin^D_,igrid);
         ^D&xbmax^D=rnode(rpxmax^D_,igrid);
-
-        call get_GOES_flux_grid(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,xbox^L,xb^L,eflux_grid)
+        call get_GOES_flux_grid(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,ps(igrid)%dvolume(ixI^S),xbox^L,xb^L,eflux_grid)
         eflux_pe=eflux_pe+eflux_grid
       enddo
-
       call MPI_ALLREDUCE(eflux_pe,eflux,1,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
-
     end subroutine get_GOES_SXR_flux
 
-    subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,xbox^L,xb^L,eflux_grid)
+    subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,dV,xbox^L,xb^L,eflux_grid)
       use mod_global_parameters
 
-      integer, intent(in)          :: ixI^L,ixO^L
-      double precision, intent(in) :: x(ixI^S,1:ndim)
-      double precision             :: w(ixI^S,nw)
-      double precision             :: xbox^L,xb^L,eflux_grid
+      integer, intent(in)           :: ixI^L,ixO^L
+      double precision, intent(in)  :: x(ixI^S,1:ndim),dV(ixI^S)
+      double precision, intent(in)  :: w(ixI^S,nw)
+      double precision, intent(in)  :: xbox^L,xb^L
+      double precision, intent(out) :: eflux_grid
 
       integer :: ix^D,ixO^D,ixb^L
       integer :: iE,numE,j,inbox
       double precision :: I0,kb,keV,dE,Ei,El,Eu,A_cgs
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
       double precision :: Ne(ixI^S),EM(ixI^S)
-      double precision :: gff,fi,dV,erg_SI
-      
-      I0=1.07d-38    ! photon flux index at 1AU [m^-2 s^-1 keV^-1]
-      kb=const_kb
-      keV=1.0d3*const_ev
-      erg_SI=1.d-7
+      double precision :: gff,fi,erg_SI
 
-      A_cgs=1.d-8 ! Angstrom
-      El=const_h*const_c/(8.d0*A_cgs)/keV   ! 8 A
-      Eu=const_h*const_c/(1.d0*A_cgs)/keV   ! 1 A
-      dE=0.1  ! keV
-      numE=floor((Eu-El)/dE)
-      dV=1.d0
-      do j=1,ndim
-        dV=dV*dxlevel(j)
-      enddo
-      dV=dV*unit_length**3
+      ! check whether the grid is inside given box
+      inbox=zero
+      {if (xbmin^D<xboxmax^D .and. xbmax^D>xboxmin^D) inbox=inbox+1\}
 
-      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
-      Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
-      kbT(ixO^S)=kb*Te(ixO^S)/keV
-      EM(ixO^S)=(I0*(Ne(ixO^S))**2)*dV
-      eflux_grid=0.0d0
+      if (inbox==ndim) then
+        ! indexes for cells inside given box
+        ^D&ixbmin^D=ixOmin^D;
+        ^D&ixbmax^D=ixOmax^D;
+        {if (xbmax^D>xboxmax^D) ixbmax^D=ixOmax^D-ceiling((xbmax^D-xboxmax^D)/dxlevel(^D))\}
+        {if (xbmin^D<xboxmin^D) ixbmin^D=ceiling((xboxmin^D-xbmin^D)/dxlevel(^D))+ixOmin^D\}
 
-      do iE=0,numE-1
-        Ei=dE*iE+El
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if (kbT(ix^D)<Ei) then
-            gff=(kbT(ix^D)/Ei)**0.4
-          else
-            gff=1.d0
-          endif
-          fi=(EM(ix^D)*gff)*exp(-Ei/(kbT(ix^D)))/(Ei*sqrt(kbT(ix^D)))
-          eflux_grid=eflux_grid+fi*dE*Ei
-        {enddo\}
-      enddo
+        I0=1.07d-38 ! photon flux index at 1AU [m^-2 s^-1 keV^-1]
+        kb=const_kb
+        keV=1.0d3*const_ev
+        erg_SI=1.d-7
+        A_cgs=1.d-8 ! Angstrom
+        El=const_h*const_c/(8.d0*A_cgs)/keV ! 8 A
+        Eu=const_h*const_c/(1.d0*A_cgs)/keV ! 1 A
+        dE=0.1  ! keV
+        numE=floor((Eu-El)/dE)
+        call phys_get_pthermal(w,x,ixI^L,ixb^L,pth)
+        Te(ixb^S)=pth(ixb^S)/w(ixb^S,iw_rho)*unit_temperature
+        Ne(ixb^S)=w(ixb^S,iw_rho)*unit_numberdensity
+        kbT(ixb^S)=kb*Te(ixb^S)/keV
+        EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*unit_length**3
+        eflux_grid=0.0d0
 
-      eflux_grid=eflux_grid*keV*erg_SI
+        do iE=0,numE-1
+          Ei=dE*iE+El
+          {do ix^DB=ixbmin^DB,ixbmax^DB\}
+            if(kbT(ix^D)<Ei) then
+              gff=(kbT(ix^D)/Ei)**0.4
+            else
+              gff=1.d0
+            endif
+            fi=(EM(ix^D)*gff)*exp(-Ei/(kbT(ix^D)))/(Ei*sqrt(kbT(ix^D)))
+            eflux_grid=eflux_grid+fi*dE*Ei
+          {enddo\}
+        enddo
+        eflux_grid=eflux_grid*keV*erg_SI
+      endif
 
     end subroutine get_GOES_flux_grid
 
@@ -905,344 +866,462 @@ module mod_thermal_emission
     subroutine get_EUV_image(qunit)
       ! integrate emission flux along line of sight (LOS) 
       ! in a 3D simulation box and get a 2D EUV image
-
       use mod_global_parameters
 
       integer, intent(in) :: qunit
 
       double precision :: dx^D
       integer :: numX^D,ix^D
-      double precision, allocatable :: xI(:,:,:),EUV(:,:),EUVs(:,:)
+      double precision, allocatable :: EUV(:,:),EUVs(:,:)
       double precision, allocatable :: Dpl(:,:),Dpls(:,:),wI(:,:,:)
-      double precision :: dxI^D
+      double precision, allocatable :: xI1(:),xI2(:),dxI1(:),dxI2(:)
       integer :: numXI1,numXI2,numSI,numWI
       double precision :: xI^L
-
-      integer :: iigrid,igrid,j
-
+      integer :: iigrid,igrid,i,j
       double precision, allocatable :: xO(:,:,:),wO(:,:,:)
       double precision :: dxO,rx1,rx2,area,sumEUV,sumDpl
       integer :: numXO1,numXO2,numWO
       double precision :: xOc^L,xc^L
       integer :: ixO1,ixO2,ix^L
-
       integer :: mass
       double precision :: logTe
       character (30) :: ion,charge
       double precision :: lineCent
       double precision :: spaceRsl,wlRsl
-
       double precision :: unitv,arcsec
       character(20) :: datatype
+      integer :: strtype^D,nstrb^D,nbb^D,nuni^D,nstr^D,bnx^D
+      double precision :: qs^D,dxfirst^D,dxmid^D,lenstr^D
 
       datatype='image'
-
-      unitv=unit_velocity/1.0e5  ! km/s
-      arcsec=7.0d7/unit_length
-
-
+      unitv=unit_velocity/1.0e5 ! km/s
+      arcsec=7.25d7/unit_length
       ! prepare for integration based on LOS direction
-      {dx^D=dx(^D,refine_max_level) \}
-      {numX^D=floor((xprobmax^D-xprobmin^D)/dx^D) \}
-
+      numX1=domain_nx1*2**(refine_max_level-1)
+      numX2=domain_nx2*2**(refine_max_level-1)
+      numX3=domain_nx3*2**(refine_max_level-1)
       select case(direction_LOS)
-
       case (1)
-        dxI1=dx2
-        dxI2=dx3
         numXI1=numX2
         numXI2=numX3
         xImin1=xprobmin2
         xImax1=xprobmax2
         xImin2=xprobmin3
         xImax2=xprobmax3
-
+        bnx1=block_nx2
+        bnx2=block_nx3
+        nbb1=domain_nx2
+        nbb2=domain_nx3
+        strtype1=stretch_type(2)
+        strtype2=stretch_type(3)
+        nstrb1=nstretchedblocks_baselevel(2)
+        nstrb2=nstretchedblocks_baselevel(3)
+        qs1=qstretch_baselevel(2)
+        qs2=qstretch_baselevel(3)
       case (2)
-        dxI1=dx3
-        dxI2=dx1
         numXI1=numX3
         numXI2=numX1
         xImin1=xprobmin3
         xImax1=xprobmax3
         xImin2=xprobmin1
         xImax2=xprobmax1
-        
+        bnx1=block_nx3
+        bnx2=block_nx1
+        nbb1=domain_nx3
+        nbb2=domain_nx1
+        strtype1=stretch_type(3)
+        strtype2=stretch_type(1)
+        nstrb1=nstretchedblocks_baselevel(3)
+        nstrb2=nstretchedblocks_baselevel(1)
+        qs1=qstretch_baselevel(3)
+        qs2=qstretch_baselevel(1)
       case (3)
-        dxI1=dx1
-        dxI2=dx2
         numXI1=numX1
         numXI2=numX2
         xImin1=xprobmin1
         xImax1=xprobmax1
         xImin2=xprobmin2
         xImax2=xprobmax2
-
+        bnx1=block_nx1
+        bnx2=block_nx2
+        nbb1=domain_nx1
+        nbb2=domain_nx2
+        strtype1=stretch_type(1)
+        strtype2=stretch_type(2)
+        nstrb1=nstretchedblocks_baselevel(1)
+        nstrb2=nstretchedblocks_baselevel(2)
+        qs1=qstretch_baselevel(1)
+        qs2=qstretch_baselevel(2)
       case default
-        dxI1=dx1
-        dxI2=dx2
-        numXI1=numX1
-        numXI2=numX2
-        xImin1=xprobmin1
-        xImax1=xprobmax1
-        xImin2=xprobmin2
-        xImax2=xprobmax2
-
+        call mpistop("unknown_LOS")
       end select
-
-
       numWI=2
-
       ! initialize image
-      allocate(xI(numXI1,numXI2,2),wI(numXI1,numXI2,numWI))
+      allocate(dxI1(numXI1),dxI2(numXI2),xI1(numXI1),xI2(numXI2))
+      allocate(wI(numXI1,numXI2,numWI))
       allocate(EUVs(numXI1,numXI2),EUV(numXI1,numXI2))
       allocate(Dpl(numXI1,numXI2),Dpls(numXI1,numXI2))
-
-      do ix1=1,numXI1
-        do ix2=1,numXI2
-          xI(ix1,ix2,1)=xImin1+dxI1*(ix1-0.5)
-          xI(ix1,ix2,2)=xImin2+dxI2*(ix2-0.5)
+      select case(strtype1)
+      case(0) ! uniform
+        dxI1(:)=(xImax1-xImin1)/nbb1*2**(refine_max_level-1)
+        do ix1=1,numXI1
+          xI1(ix1)=xImin1+dxI1(ix1)*(ix1-half)
         enddo
-      enddo
-
-
+      case(1) ! uni stretch
+        qs1=qs1**(one/2**(refine_max_level-1)) 
+        dxfirst1=(xImax1-xImin1)*(one-qs1)/(one-qs1**numXI1)
+        dxI1(1)=dxfirst1
+        do ix1=2,numXI1
+          dxI1(ix1)=dxfirst1*qs1**(ix1-1)
+          xI1(ix1)=dxI1(1)/(one-qs1)*(one-qs1**(ix1-1))+half*dxI1(ix1)
+        enddo
+      case(2) ! symm stretch
+        ! base level, nbb = nstr + nuni + nstr
+        nstr1=nstrb1*bnx1/2
+        nuni1=nbb1-nstrb1*bnx1
+        lenstr1=(xImax1-xImin1)/(2.d0+nuni1*(one-qs1)/(one-qs1**nstr1))
+        dxfirst1=(xImax1-xImin1)/(dble(nuni1)+2.d0/(one-qs1)*(one-qs1**nstr1))
+        dxmid1=dxfirst1
+        ! refine_max level, numXI = nstr + nuni + nstr
+        nstr1=nstr1*2**(refine_max_level-1)
+        nuni1=nuni1*2**(refine_max_level-1)
+        qs1=qs1**(one/2**(refine_max_level-1)) 
+        dxfirst1=lenstr1*(one-qs1)/(one-qs1**nstr1)
+        dxmid1=dxmid1/2**(refine_max_level-1)
+        ! uniform center
+        if(nuni1 .gt. 0) then
+          do ix1=nstr1+1,nstr1+nuni1
+            dxI1(ix1)=dxmid1
+            xI1(ix1)=lenstr1+(dble(ix1)-0.5d0-nstr1)*dxI1(ix1)+xImin1
+          enddo
+        endif
+        ! left half
+        do ix1=nstr1,1,-1
+          dxI1(ix1)=dxfirst1*qs1**(nstr1-ix1)
+          xI1(ix1)=xImin1+lenstr1-dxI1(ix1)*half-dxfirst1*(one-qs1**(nstr1-ix1))/(one-qs1)
+        enddo
+        ! right half
+        do ix1=nstr1+nuni1+1,numXI1
+          dxI1(ix1)=dxfirst1*qs1**(ix1-nstr1-nuni1-1)
+          xI1(ix1)=xImax1-lenstr1+dxI1(ix1)*half+dxfirst1*(one-qs1**(ix1-nstr1-nuni1-1))/(one-qs1)
+        enddo
+      case default
+        call mpistop("unknown stretch type")
+      end select
+      select case(strtype2)
+      case(0) ! uniform
+        dxI2(:)=(xImax2-xImin2)/nbb2*2**(refine_max_level-1)
+        do ix2=1,numXI2
+          xI2(ix2)=xImin2+dxI2(ix2)*(ix2-half)
+        enddo
+      case(1) ! uni stretch
+        qs2=qs2**(one/2**(refine_max_level-1)) 
+        dxfirst2=(xImax2-xImin2)*(one-qs2)/(one-qs2**numXI2)
+        dxI2(1)=dxfirst2
+        do ix2=2,numXI1
+          dxI2(ix2)=dxfirst2*qs2**(ix2-1)
+          xI2(ix2)=dxI2(1)/(one-qs2)*(one-qs2**(ix2-1))+half*dxI2(ix2)
+        enddo
+      case(2) ! symm stretch
+        ! base level, nbb = nstr + nuni + nstr
+        nstr2=nstrb2*bnx2/2
+        nuni2=nbb2-nstrb2*bnx2
+        lenstr2=(xImax2-xImin2)/(2.d0+nuni2*(one-qs2)/(one-qs2**nstr2))
+        dxfirst2=(xImax2-xImin2)/(dble(nuni2)+2.d0/(one-qs2)*(one-qs2**nstr2))
+        dxmid2=dxfirst2
+        ! refine_max level, numXI = nstr + nuni + nstr
+        nstr2=nstr2*2**(refine_max_level-1)
+        nuni2=nuni2*2**(refine_max_level-1)
+        qs2=qs2**(one/2**(refine_max_level-1)) 
+        dxfirst2=lenstr2*(one-qs2)/(one-qs2**nstr2)
+        dxmid2=dxmid2/2**(refine_max_level-1)
+        ! uniform center
+        if(nuni2 .gt. 0) then
+          do ix2=nstr2+1,nstr2+nuni2
+            dxI2(ix2)=dxmid2
+            xI2(ix2)=lenstr2+(dble(ix2)-0.5d0-nstr2)*dxI2(ix2)+xImin2
+          enddo
+        endif
+        ! left half
+        do ix2=nstr2,1,-1
+          dxI2(ix2)=dxfirst2*qs2**(nstr2-ix2)
+          xI2(ix2)=xImin2+lenstr2-dxI2(ix2)*half-dxfirst2*(one-qs2**(nstr2-ix2))/(one-qs2)
+        enddo
+        ! right half
+        do ix2=nstr2+nuni2+1,numXI2
+          dxI2(ix2)=dxfirst2*qs2**(ix2-nstr2-nuni2-1)
+          xI2(ix2)=xImax2-lenstr2+dxI2(ix2)*half+dxfirst2*(one-qs2**(ix2-nstr2-nuni2-1))/(one-qs2)
+        enddo
+      case default
+        call mpistop("unknown stretch type")
+      end select
       ! integrate flux and get cell center flux for image
       EUVs=0.0d0
       EUV=0.0d0     
       Dpl=0.d0
       Dpls=0.d0 
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call integrate_EUV(igrid,xI,EUVs,Dpls,numXI1,numXI2,dxI1,dxI2)
+        call integrate_EUV(igrid,EUVs,Dpls,numXI1,numXI2,xI1,xI2,dxI1,dxI2)
       enddo
-
       numSI=numXI1*numXI2
       call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
-                       MPI_SUM,icomm,ierrmpi)
+                         MPI_SUM,icomm,ierrmpi)
       call MPI_ALLREDUCE(Dpls,Dpl,numSI,MPI_DOUBLE_PRECISION, &
-                       MPI_SUM,icomm,ierrmpi)
-
+                         MPI_SUM,icomm,ierrmpi)
       do ix1=1,numXI1
-        do ix2=1,numXI2
-          if (EUV(ix1,ix2)/=0) then
-            Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
-          else
-            Dpl(ix1,ix2)=0.d0
-          endif
-          wI(ix1,ix2,1)=EUV(ix1,ix2)
-          wI(ix1,ix2,2)=Dpl(ix1,ix2)
-        enddo
+      do ix2=1,numXI2
+        if(EUV(ix1,ix2)/=0) then
+          Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+        else
+          Dpl(ix1,ix2)=0.d0
+        endif
+        wI(ix1,ix2,1)=EUV(ix1,ix2)
+        wI(ix1,ix2,2)=Dpl(ix1,ix2)
       enddo
-
-
-      ! change resolution
-      call get_line_info(ion,charge,mass,logTe,lineCent,spaceRsl,wlRsl)
-      dxO=spaceRsl*arcsec
-      numXO1=floor((xImax1-xImin1)/2.d0/dxO)*2
-      numXO2=floor((xImax2-xImin2)/2.d0/dxO)*2
-      numWO=numWI
-
-      allocate(xO(numXO1,numXO2,numWO),wO(numXO1,numXO2,numWO))        
-
-      if (resolution_euv=='instrument') then     
-        wO=0.d0
-   
-        ! new cells with observational resolution
-        do ixO1=1,numXO1
-          do ixO2=1,numXO2
-            xO(ixO1,ixO2,1)=(ixO1-numXO1/2-0.5d0)*dxO+(xImax1+xImin1)/2.d0
-            xO(ixO1,ixO2,2)=(ixO2-numXO2/2-0.5d0)*dxO+(xImax2+xImin2)/2.d0
-
-            xOcmin1=xO(ixO1,ixO2,1)-0.5d0*dxO
-            xOcmin2=xO(ixO1,ixO2,2)-0.5d0*dxO
-            xOcmax1=xO(ixO1,ixO2,1)+0.5d0*dxO
-            xOcmax2=xO(ixO1,ixO2,2)+0.5d0*dxO
-            ixmin1=floor((xOcmin1-xImin1)/dxI1)+1
-            ixmin2=floor((xOcmin2-xImin2)/dxI2)+1
-            ixmax1=ceiling((xOcmax1-xImin1)/dxI1)
-            ixmax2=ceiling((xOcmax2-xImin2)/dxI2)
-
-            area=0.d0
-            sumEUV=0.d0
-            sumDpl=0.d0
-            do ix1=ixmin1,ixmax1
-              do ix2=ixmin2,ixmax2
-                rx1=1.d0
-                rx2=1.d0
-                xcmin1=xI(ix1,ix2,1)-0.5d0*dxI1
-                xcmin2=xI(ix1,ix2,2)-0.5d0*dxI2
-                xcmax1=xI(ix1,ix2,1)+0.5d0*dxI1
-                xcmax2=xI(ix1,ix2,2)+0.5d0*dxI2
-
-                if (xcmin1<xOcmin1) rx1=1.d0-(xOcmin1-xcmin1)/dxI1
-                if (xcmin2<xOcmin2) rx2=1.d0-(xOcmin2-xcmin2)/dxI2
-                if (xcmax1>xOcmax1) rx1=1.d0-(xcmax1-xOcmax1)/dxI1
-                if (xcmax2>xOcmax2) rx2=1.d0-(xcmax2-xOcmax2)/dxI2
-
-                area=area+rx1*rx2
-                sumEUV=sumEUV+EUV(ix1,ix2)*rx1*rx2
-                sumDpl=sumDpl+Dpl(ix1,ix2)*EUV(ix1,ix2)*rx1*rx2
-              enddo
-            enddo
-            if (area>0) then
-              wO(ixO1,ixO2,1)=sumEUV/area
-              wO(ixO1,ixO2,2)=sumDpl/sumEUV
-            endif
-
-          enddo
-        enddo
-
-      endif
-
-
+      enddo
+!      ! change resolution
+!      call get_line_info(ion,charge,mass,logTe,lineCent,spaceRsl,wlRsl)
+!      dxO=spaceRsl*arcsec
+!      numXO1=floor((xImax1-xImin1)/2.d0/dxO)*2
+!      numXO2=floor((xImax2-xImin2)/2.d0/dxO)*2
+!      numWO=numWI
+!
+!      allocate(xO(numXO1,numXO2,numWO),wO(numXO1,numXO2,numWO))        
+!
+!      if(resolution_euv=='instrument') then     
+!        wO=0.d0
+!   
+!        ! new cells with observational resolution
+!        do ixO1=1,numXO1
+!        do ixO2=1,numXO2
+!          xO(ixO1,ixO2,1)=(ixO1-numXO1/2-0.5d0)*dxO+(xImax1+xImin1)/2.d0
+!          xO(ixO1,ixO2,2)=(ixO2-numXO2/2-0.5d0)*dxO+(xImax2+xImin2)/2.d0
+!
+!          xOcmin1=xO(ixO1,ixO2,1)-0.5d0*dxO
+!          xOcmin2=xO(ixO1,ixO2,2)-0.5d0*dxO
+!          xOcmax1=xO(ixO1,ixO2,1)+0.5d0*dxO
+!          xOcmax2=xO(ixO1,ixO2,2)+0.5d0*dxO
+!          ixmin1=floor((xOcmin1-xImin1)/dxI1)+1
+!          ixmin2=floor((xOcmin2-xImin2)/dxI2)+1
+!          ixmax1=ceiling((xOcmax1-xImin1)/dxI1)
+!          ixmax2=ceiling((xOcmax2-xImin2)/dxI2)
+!
+!          area=0.d0
+!          sumEUV=0.d0
+!          sumDpl=0.d0
+!          do ix1=ixmin1,ixmax1
+!          do ix2=ixmin2,ixmax2
+!            rx1=1.d0
+!            rx2=1.d0
+!            xcmin1=xI(ix1,ix2,1)-0.5d0*dxI1
+!            xcmin2=xI(ix1,ix2,2)-0.5d0*dxI2
+!            xcmax1=xI(ix1,ix2,1)+0.5d0*dxI1
+!            xcmax2=xI(ix1,ix2,2)+0.5d0*dxI2
+!
+!            if(xcmin1<xOcmin1) rx1=1.d0-(xOcmin1-xcmin1)/dxI1
+!            if(xcmin2<xOcmin2) rx2=1.d0-(xOcmin2-xcmin2)/dxI2
+!            if(xcmax1>xOcmax1) rx1=1.d0-(xcmax1-xOcmax1)/dxI1
+!            if(xcmax2>xOcmax2) rx2=1.d0-(xcmax2-xOcmax2)/dxI2
+!
+!            area=area+rx1*rx2
+!            sumEUV=sumEUV+EUV(ix1,ix2)*rx1*rx2
+!            sumDpl=sumDpl+Dpl(ix1,ix2)*EUV(ix1,ix2)*rx1*rx2
+!          enddo
+!          enddo
+!          if(area>0) then
+!            wO(ixO1,ixO2,1)=sumEUV/area
+!            wO(ixO1,ixO2,2)=sumDpl/sumEUV
+!          endif
+!        enddo
+!        enddo
+!      endif
       ! output data
       if (resolution_euv=='instrument') then     
-        call output_data(qunit,xO,dxO,dxO,wO,numXO1,numXO2,numWO,datatype)
+!        call output_data(qunit,xO,dxO,dxO,wO,numXO1,numXO2,numWO,datatype)
       else
-        call output_data(qunit,xI,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
+        call output_data(qunit,xI1,xI2,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
       endif
-
-
-      deallocate(xO,wO,xI,wI)
+      deallocate(xI1,xI2,dxI1,dxI2,wI)
       deallocate(EUV,EUVs,Dpl,Dpls)
-
+!      deallocate(xO,wO)
     end subroutine get_EUV_image
 
-    subroutine integrate_EUV(igrid,xI,EUV,Dpl,numXI1,numXI2,dxI1,dxI2)
+    subroutine integrate_EUV(igrid,EUV,Dpl,numXI1,numXI2,xI1,xI2,dxI1,dxI2)
       use mod_global_parameters
-      use mod_usr_methods
 
-      integer :: igrid,numXI1,numXI2
-      double precision :: xI(numXI1,numXI2,2),EUV(numXI1,numXI2)
-      double precision :: Dpl(numXI1,numXI2)
-      double precision :: dxI1,dxI2
+      integer, intent(in) :: igrid,numXI1,numXI2
+      double precision, intent(in) :: xI1(numXI1),xI2(numXI2)
+      double precision, intent(in) :: dxI1(numXI1),dxI2(numXI2)
+      double precision, intent(out) :: EUV(numXI1,numXI2),Dpl(numXI1,numXI2)
 
-      integer :: ixO^L,ixO^D,ixI^L,ix^D,j
-      double precision :: dxb^D,xb^L,xd^D
+      integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
+      double precision :: xb^L,xd^D
       double precision, allocatable :: flux(:^D&),v(:^D&)
+      double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
       double precision :: EUVt,Fvt,xc^L
-
       integer :: ixP^L,ixP^D
-
 
       ^D&ixOmin^D=ixmlo^D\
       ^D&ixOmax^D=ixmhi^D\
       ^D&ixImin^D=ixglo^D\
       ^D&ixImax^D=ixghi^D\
-      
-      ^D&dxb^D=rnode(rpdx^D_,igrid)\
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
-
       allocate(flux(ixI^S),v(ixI^S))
-
+      allocate(dxb1(ixI^S),dxb2(ixI^S),dxb3(ixI^S))
+      dxb1(ixO^S)=ps(igrid)%dx(ixO^S,1)
+      dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
+      dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
       ! get local EUV flux and velocity
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
       v(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
-
       ! integrate for different direction
       select case(direction_LOS)
-
       case(1)
         do ix2=ixOmin2,ixOmax2
-          do ix3=ixOmin3,ixOmax3
-            EUVt=0.d0
-            Fvt=0.d0
-            do ix1=ixOmin1,ixOmax1
-              EUVt=EUVt+flux(ix^D)*dxb1*unit_length
-              Fvt=Fvt+flux(ix^D)*dxb1*unit_length*v(ix^D)
-            enddo
-
-            ! boundaries of the column along LOS
-            ix1=ixOmin1
-            {xcmin^D=ps(igrid)%x(ix^DD,^D)-0.5d0*dxb^D\}
-            {xcmax^D=ps(igrid)%x(ix^DD,^D)+0.5d0*dxb^D\}
-
-            ! integrate flux inside this column
-            ixPmin1=max(floor((xcmin2-xI(1,1,1))/dxI1)+1,1)
-            ixPmax1=floor((xcmax2-xI(1,1,1))/dxI1)
-            ixPmin2=max(floor((xcmin3-xI(1,1,2))/dxI2)+1,1)
-            ixPmax2=floor((xcmax3-xI(1,1,2))/dxI2)
-
-            EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+EUVt
-            Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+Fvt
+        do ix3=ixOmin3,ixOmax3
+          EUVt=0.d0
+          Fvt=0.d0
+          do ix1=ixOmin1,ixOmax1
+            EUVt=EUVt+flux(ix^D)*dxb1(ix^D)*unit_length
+            Fvt=Fvt+flux(ix^D)*dxb1(ix^D)*unit_length*v(ix^D)
           enddo
+          ! boundaries of the column along LOS
+          xcmin2=ps(igrid)%x(ixOmin1,ix2,ix3,2)-dxb2(ixOmin1,ix2,ix3)*half
+          xcmax2=ps(igrid)%x(ixOmax1,ix2,ix3,2)+dxb2(ixOmax1,ix2,ix3)*half
+          xcmin3=ps(igrid)%x(ixOmin1,ix2,ix3,3)-dxb3(ixOmin1,ix2,ix3)*half
+          xcmax3=ps(igrid)%x(ixOmax1,ix2,ix3,3)+dxb3(ixOmax1,ix2,ix3)*half
+          do i=1,numXI1
+            if(xI1(i) .gt. xcmin2) then
+              ixPmin1=i
+              exit
+            endif
+          enddo
+          do i=numXI1,ixPmin1,-1
+            if(xI1(i) .lt. xcmax2) then
+              ixPmax1=i
+              exit
+            endif
+          enddo
+          do i=1,numXI2
+            if(xI2(i) .gt. xcmin3) then
+              ixPmin2=i
+              exit
+            endif
+          enddo
+          do i=numXI2,ixPmin2,-1
+            if(xI2(i) .lt. xcmax3) then
+              ixPmax2=i
+              exit
+            endif
+          enddo
+          ! integrate flux inside this column
+          EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+EUVt
+          Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+Fvt
         enddo
-
-
+        enddo
       case(2)
         do ix3=ixOmin3,ixOmax3
-          do ix1=ixOmin1,ixOmax1
-            EUVt=0.d0
-            Fvt=0.d0
-            do ix2=ixOmin2,ixOmax2
-              EUVt=EUVt+flux(ix^D)*dxb2*unit_length
-              Fvt=Fvt+flux(ix^D)*dxb2*unit_length*v(ix^D)
-            enddo
-
-            ! boundaries of the column along LOS
-            ix2=ixOmin2
-            {xcmin^D=ps(igrid)%x(ix^DD,^D)-0.5d0*dxb^D\}
-            {xcmax^D=ps(igrid)%x(ix^DD,^D)+0.5d0*dxb^D\}
-
-            ! integrate flux inside this column
-            ixPmin1=max(floor((xcmin3-xI(1,1,1))/dxI1)+1,1)
-            ixPmax1=floor((xcmax3-xI(1,1,1))/dxI1)
-            ixPmin2=max(floor((xcmin1-xI(1,1,2))/dxI2)+1,1)
-            ixPmax2=floor((xcmax1-xI(1,1,2))/dxI2)
-
-            EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+EUVt
-            Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+Fvt
+        do ix1=ixOmin1,ixOmax1
+          EUVt=0.d0
+          Fvt=0.d0
+          do ix2=ixOmin2,ixOmax2
+            EUVt=EUVt+flux(ix^D)*dxb2(ix^D)*unit_length
+            Fvt=Fvt+flux(ix^D)*dxb2(ix^D)*unit_length*v(ix^D)
           enddo
+          ! boundaries of the column along LOS
+          xcmin1=ps(igrid)%x(ix1,ixOmin2,ix3,1)-dxb1(ix1,ixOmin2,ix3)*half
+          xcmax1=ps(igrid)%x(ix1,ixOmax2,ix3,1)+dxb1(ix1,ixOmax2,ix3)*half
+          xcmin3=ps(igrid)%x(ix1,ixOmin2,ix3,3)-dxb3(ix1,ixOmin2,ix3)*half
+          xcmax3=ps(igrid)%x(ix1,ixOmax2,ix3,3)+dxb3(ix1,ixOmax2,ix3)*half
+          do i=1,numXI1
+            if(xI1(i) .gt. xcmin3) then
+              ixPmin1=i
+              exit
+            endif
+          enddo
+          do i=numXI1,ixPmin1,-1
+            if(xI1(i) .lt. xcmax3) then
+              ixPmax1=i
+              exit
+            endif
+          enddo
+          do i=1,numXI2
+            if(xI2(i) .gt. xcmin1) then
+              ixPmin2=i
+              exit
+            endif
+          enddo
+          do i=numXI2,ixPmin2,-1
+            if(xI2(i) .lt. xcmax1) then
+              ixPmax2=i
+              exit
+            endif
+          enddo
+          ! integrate flux inside this column
+          EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+EUVt
+          Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+Fvt
         enddo
-
-
+        enddo
       case(3)
         do ix1=ixOmin1,ixOmax1
-          do ix2=ixOmin2,ixOmax2
-            EUVt=0.d0
-            Fvt=0.d0
-            do ix3=ixOmin3,ixOmax3
-              EUVt=EUVt+flux(ix^D)*(dxb3*unit_length)
-              Fvt=Fvt+flux(ix^D)*dxb3*unit_length*v(ix^D)
-            enddo
-
-            ! boundaries of the column along LOS
-            ix3=ixOmin3
-            {xcmin^D=ps(igrid)%x(ix^DD,^D)-0.5d0*dxb^D\}
-            {xcmax^D=ps(igrid)%x(ix^DD,^D)+0.5d0*dxb^D\}
-
-            ! integrate flux inside this column
-            ixPmin1=max(floor((xcmin1-xI(1,1,1))/dxI1)+1,1)
-            ixPmax1=floor((xcmax1-xI(1,1,1))/dxI1)
-            ixPmin2=max(floor((xcmin2-xI(1,1,2))/dxI2)+1,1)
-            ixPmax2=floor((xcmax2-xI(1,1,2))/dxI2)
-
-            EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+EUVt
-            Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+Fvt
-
+        do ix2=ixOmin2,ixOmax2
+          EUVt=0.d0
+          Fvt=0.d0
+          do ix3=ixOmin3,ixOmax3
+            EUVt=EUVt+flux(ix^D)*dxb3(ix^D)*unit_length
+            Fvt=Fvt+flux(ix^D)*dxb3(ix^D)*unit_length*v(ix^D)
           enddo
+          ! boundaries of the column along LOS
+          xcmin1=ps(igrid)%x(ix1,ix2,ixOmin3,1)-dxb1(ix1,ix2,ixOmin3)*half
+          xcmax1=ps(igrid)%x(ix1,ix2,ixOmax3,1)+dxb1(ix1,ix2,ixOmax3)*half
+          xcmin2=ps(igrid)%x(ix1,ix2,ixOmin3,2)-dxb2(ix1,ix2,ixOmin3)*half
+          xcmax2=ps(igrid)%x(ix1,ix2,ixOmax3,2)+dxb2(ix1,ix2,ixOmax3)*half
+          do i=1,numXI1
+            if(xI1(i) .gt. xcmin1) then
+              ixPmin1=i
+              exit
+            endif
+          enddo
+          do i=numXI1,ixPmin1,-1
+            if(xI1(i) .lt. xcmax1) then
+              ixPmax1=i
+              exit
+            endif
+          enddo
+          do i=1,numXI2
+            if(xI2(i) .gt. xcmin2) then
+              ixPmin2=i
+              exit
+            endif
+          enddo
+          do i=numXI2,ixPmin2,-1
+            if(xI2(i) .lt. xcmax2) then
+              ixPmax2=i
+              exit
+            endif
+          enddo
+          EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+EUVt
+          Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+Fvt
         enddo
-
+        enddo
       end select
-
       deallocate(flux,v)
-
     end subroutine integrate_EUV
 
-    subroutine output_data(qunit,xO,dxO1,dxO2,wO,nXO1,nXO2,nWO,datatype)
+    subroutine output_data(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,datatype)
       ! change the format of data and write data
-
       use mod_global_parameters
-      use mod_usr_methods
 
-      integer :: qunit,nXO1,nXO2,nWO
-      double precision :: dxO1,dxO2
-      double precision :: xO(nXO1,nXO2,2)
-      double precision :: wO(nXO1,nXO2,nWO)
-      character(20) :: datatype
+      integer, intent(in) :: qunit,nXO1,nXO2,nWO
+      double precision, intent(in) :: dxO1(nxO1),dxO2(nxO2)
+      double precision, intent(in) :: xO1(nXO1),xO2(nxO2)
+      double precision, intent(in) :: wO(nXO1,nXO2,nWO)
+      character(20), intent(in) :: datatype
 
       integer :: nPiece,nP1,nP2,nC1,nC2,nWC
       integer :: piece_nmax1,piece_nmax2,ix1,ix2,j,ipc,ixc1,ixc2
-      double precision, allocatable :: xC(:,:,:,:),wC(:,:,:,:)
+      double precision, allocatable :: xC(:,:,:,:),wC(:,:,:,:),dxC(:,:,:,:)
 
       ! how many cells in each grid
       if (datatype=='image') then
@@ -1268,114 +1347,88 @@ module mod_thermal_emission
           end select
           piece_nmax1=piece_nmax2
       endif
-
-
       LOOPN1: do j=piece_nmax1,1,-1
-        if (mod(nXO1,j)==0) then
+        if(mod(nXO1,j)==0) then
           nC1=j
           exit LOOPN1
         endif
       enddo LOOPN1
-
       LOOPN2: do j=piece_nmax2,1,-1
-        if (mod(nXO2,j)==0) then
+        if(mod(nXO2,j)==0) then
           nC2=j
           exit LOOPN2
         endif
       enddo LOOPN2
-
-
       ! how many grids
       nP1=nXO1/nC1
       nP2=nXO2/nC2
       nPiece=nP1*nP2
       nWC=nWO
-
-      !print *, nWC,nWO
-
-
       ! put data into grids
       allocate(xC(nPiece,nC1,nC2,2))
+      allocate(dxC(nPiece,nC1,nC2,2))
       allocate(wC(nPiece,nC1,nC2,nWO))
-
       do ipc=1,nPiece
         do ixc1=1,nC1
           do ixc2=1,nC2
             ix1=mod(ipc-1,nP1)*nC1+ixc1
             ix2=floor(1.0*(ipc-1)/nP1)*nC2+ixc2
-            xC(ipc,ixc1,ixc2,1)=xO(ix1,ix2,1)
-            xC(ipc,ixc1,ixc2,2)=xO(ix1,ix2,2)
+            xC(ipc,ixc1,ixc2,1)=xO1(ix1)
+            xC(ipc,ixc1,ixc2,2)=xO2(ix2)
+            dxC(ipc,ixc1,ixc2,1)=dxO1(ix1)
+            dxC(ipc,ixc1,ixc2,2)=dxO2(ix2)
             do j=1,nWC
               wC(ipc,ixc1,ixc2,j)=wO(ix1,ix2,j)
             enddo
           enddo
         enddo
       enddo
-
-
       ! write data into vtu file
-      call write_image(qunit,xC,wC,nPiece,nC1,nC2,nWC,datatype)
-
+      call write_image(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
       deallocate(xC,wC)
-
     end subroutine output_data
 
-    subroutine write_image(qunit,xC,wC,nPiece,nC1,nC2,nWC,datatype)
+    subroutine write_image(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
       ! write image data to vtu
-
       use mod_global_parameters
-      use mod_usr_methods
 
-      integer :: qunit
-      integer :: nPiece,nC1,nC2,nWC
-      double precision :: xC(nPiece,nC1,nC2,2)
-      double precision :: wC(nPiece,nC1,nC2,nWC)
-      character(20) :: datatype
+      integer, intent(in) :: qunit
+      integer, intent(in) :: nPiece,nC1,nC2,nWC
+      double precision, intent(in) :: xC(nPiece,nC1,nC2,2),dxC(nPiece,nc1,nc2,2)
+      double precision, intent(in) :: wC(nPiece,nC1,nC2,nWC)
+      character(20), intent(in) :: datatype
 
       integer :: nP1,nP2
       double precision :: xP(nPiece,nC1+1,nC2+1,2)
-
       integer :: filenr
       logical :: fileopen
       character (30) :: subname,wname,vname,nameL,nameS
-      character (50) :: filename
+      character (len=std_len) :: filename
       integer :: ixC1,ixC2,ixP,ix1,ix2,j
-      double precision :: dxP1,dxP2
-
       integer :: nc,np,icel,VTK_type
-
       integer :: mass
       double precision :: logTe
       character (30) :: ion,charge
       double precision :: line_center
       double precision :: spatial_rsl,spectral_rsl
 
-
       nP1=nC1+1
       nP2=nC2+1
       np=nP1*nP2
       nc=nC1*nC2
-
-      dxP1=xC(1,2,1,1)-xC(1,1,1,1)
-      dxP2=xC(1,1,2,2)-xC(1,1,1,2)
-
       ! cell corner location     
       do ixP=1,nPiece
-        do ix1=1,nP1
-          do ix2=1,nP2
-            if (ix1<nP1) xP(ixP,ix1,ix2,1)=xC(ixP,ix1,1,1)-0.5d0*dxP1
-            if (ix1==nP1) xP(ixP,ix1,ix2,1)=xC(ixP,ix1-1,1,1)+0.5d0*dxP2
-            if (ix2<nP2) xP(ixP,ix1,ix2,2)=xC(ixP,1,ix2,2)-0.5d0*dxP1
-            if (ix2==nP2) xP(ixP,ix1,ix2,2)=xC(ixP,1,ix2-1,2)+0.5d0*dxP2
-          enddo
-        enddo
+      do ix1=1,nP1
+      do ix2=1,nP2
+        if (ix1<nP1) xP(ixP,ix1,ix2,1)=xC(ixP,ix1,1,1)-0.5d0*dxC(ixP,ix1,1,1)
+        if (ix1==nP1) xP(ixP,ix1,ix2,1)=xC(ixP,ix1-1,1,1)+0.5d0*dxC(ixP,ix1-1,1,1)
+        if (ix2<nP2) xP(ixP,ix1,ix2,2)=xC(ixP,1,ix2,2)-0.5d0*dxC(ixP,1,ix2,2)
+        if (ix2==nP2) xP(ixP,ix1,ix2,2)=xC(ixP,1,ix2-1,2)+0.5d0*dxC(ixP,1,ix2-1,2)
       enddo
-
-
+      enddo
+      enddo
       ! get information of emission line
       call get_line_info(ion,charge,mass,logTe,line_center,spatial_rsl,spectral_rsl)
-
-
       if (datatype=='image') then
         ! filename for image
         write(wname,'(a,i4.4)') "Image_",wavelength
@@ -1397,7 +1450,6 @@ module mod_thermal_emission
           case (3)
             write(nameL,'(a)') "_zLOS_"
         end select
-
         select case(direction_slit)
           case (1)
             write(nameS,'(a)') "xSlit_"
@@ -1409,7 +1461,6 @@ module mod_thermal_emission
         write(subname,'(a,i4.4,a,a)') "Spectra_",wavelength,trim(nameL),trim(nameS)
       endif
 
-
       if (mype==0) then
         inquire(qunit,opened=fileopen)
         if(.not.fileopen)then
@@ -1419,299 +1470,310 @@ module mod_thermal_emission
           write(filename,'(a,a,i4.4,a)') trim(filename_euv),trim(datatype),filenr,".vtu"
           open(qunit,file=filename,status='unknown',form='formatted')
         endif
-
         ! generate xml header
         write(qunit,'(a)')'<?xml version="1.0"?>'
         write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
         write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
         write(qunit,'(a)')'<UnstructuredGrid>'
-
         write(qunit,'(a)')'<FieldData>'
         write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
                            'NumberOfTuples="1" format="ascii">'
         write(qunit,*) real(global_time*time_convert_factor)
         write(qunit,'(a)')'</DataArray>'
-
         write(qunit,'(2a)')'<DataArray type="Float32" Name="logT" ',&
                            'NumberOfTuples="1" format="ascii">'
         write(qunit,*) real(logTe)
         write(qunit,'(a)')'</DataArray>'
         write(qunit,'(a)')'</FieldData>'
-
-
         do ixP=1,nPiece
           write(qunit,'(a,i7,a,i7,a)') &
                 '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
           write(qunit,'(a)')'<CellData>'
-
           do j=1,nWC
             vname='Intensity'
             if (datatype=='image' .and. j==2) vname='Doppler'
-
             write(qunit,'(a,a,a)')&
               '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'
             write(qunit,'(200(1pe14.6))') ((wC(ixP,ixC1,ixC2,j),ixC1=1,nC1),ixC2=1,nC2)
             write(qunit,'(a)')'</DataArray>'
           enddo
-
           write(qunit,'(a)')'</CellData>'
-
           write(qunit,'(a)')'<Points>'
           write(qunit,'(a)')'<DataArray type="Float32" NumberOfComponents="3" format="ascii">'
           do ix2=1,nP2
-            do ix1=1,nP1 
-              if (datatype=='image') then
-                select case(direction_LOS)
-                  case(1)
-                    write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
-  
-                  case(2)
-                    write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
-  
-                  case(3)
-                    write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
-                end select
-              else
+          do ix1=1,nP1 
+            if(datatype=='image') then
+              select case(direction_LOS)
+              case(1)
+                write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
+              case(2)
+                write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
+              case(3)
                 write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
-              endif
-            enddo
+              end select
+            else
+              write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
+            endif
+          enddo
           enddo
           write(qunit,'(a)')'</DataArray>'
           write(qunit,'(a)')'</Points>'
-
           ! connetivity part
           write(qunit,'(a)')'<Cells>'
           write(qunit,'(a)')'<DataArray type="Int32" Name="connectivity" format="ascii">'
           do ix2=1,nC2
-            do ix1=1,nC1
-              write(qunit,'(4(i7))') ix1-1+(ix2-1)*nP1,ix1+(ix2-1)*nP1,&
-                                     ix1-1+ix2*nP1,ix1+ix2*nP1
-            enddo
+          do ix1=1,nC1
+            write(qunit,'(4(i7))') ix1-1+(ix2-1)*nP1,ix1+(ix2-1)*nP1,&
+                                   ix1-1+ix2*nP1,ix1+ix2*nP1
+          enddo
           enddo
           write(qunit,'(a)')'</DataArray>'
-
           ! offsets data array
           write(qunit,'(a)')'<DataArray type="Int32" Name="offsets" format="ascii">'
           do icel=1,nc
-              write(qunit,'(i7)') icel*(2**2)
-          end do
+            write(qunit,'(i7)') icel*(2**2)
+          enddo
           write(qunit,'(a)')'</DataArray>'
-
           ! VTK cell type data array
           write(qunit,'(a)')'<DataArray type="Int32" Name="types" format="ascii">'
           ! VTK_LINE=3; VTK_PIXEL=8; VTK_VOXEL=11 -> vtk-syntax
-          
           VTK_type=8        
           do icel=1,nc
-             write(qunit,'(i2)') VTK_type
+            write(qunit,'(i2)') VTK_type
           enddo
           write(qunit,'(a)')'</DataArray>' 
           write(qunit,'(a)')'</Cells>'
           write(qunit,'(a)')'</Piece>'
         enddo
-
         write(qunit,'(a)')'</UnstructuredGrid>'
         write(qunit,'(a)')'</VTKFile>'
-
         close(qunit)
       endif
-
     end subroutine write_image
 
     subroutine get_EUV_spectra(qunit)
       use mod_global_parameters
-      use mod_usr_methods
 
-      integer :: qunit
+      integer, intent(in) :: qunit
 
       integer :: numV,numL,numSI,iv,iL
-      double precision :: dv,dwL,dL,Lmin,Lmax,vmin,vmax
-      double precision, allocatable :: v(:),xL(:),spectra(:,:)
-      double precision, allocatable :: xI(:,:,:),wI(:,:,:)
-      double precision :: xI^L,dxI1,dxI2
+      double precision :: dv,dwL,Lmin,Lmax,vmin,vmax
+      double precision, allocatable :: v(:),dxL(:),xL(:),spectra(:,:)
+      double precision, allocatable :: xI1(:),xI2(:),dxI1(:),dxI2(:),wI(:,:,:)
+      double precision :: xI^L
       integer :: ixI1,ixI2,numXI1,numXI2,numWI
-
       double precision :: xbmin(ndim),xbmax(ndim)
       double precision :: dx^D
       integer :: numX^D
       integer :: iigrid,igrid,j
-
       double precision, allocatable :: xO(:,:,:),wO(:,:,:)
       double precision :: dxO1,dxO2,rx1,rx2,area,sumEUV
       integer :: numXO1,numXO2,numWO
       double precision :: xOc^L,xc^L
       integer :: ixO1,ixO2,ix^L,ix1,ix2
       character(20) :: datatype
-
       integer :: mass
       double precision :: logTe
       character (30) :: ion,charge
       double precision :: lineCent
       double precision :: spaceRsl,wlRsl
-
       double precision :: arcsec,c
+      integer :: strtype,nbb,nstr,nstrb,nuni,bnx
+      double precision :: qs,dxLfirst,dxLmid,lenstr
 
+      if(direction_LOS .eq. direction_slit) then
+        call mpistop("direction_LOS should be different from direction_slit")
+      endif
       datatype='spectra'
-      arcsec=7.0d7/unit_length
-
+      arcsec=7.25d7/unit_length
       ! prepare for integration 
-      {dx^D=dx(^D,refine_max_level) \}
-      {numX^D=floor((xprobmax^D-xprobmin^D)/dx^D) \}
+      numX1=domain_nx1*2**(refine_max_level-1)
+      numX2=domain_nx2*2**(refine_max_level-1)
+      numX3=domain_nx3*2**(refine_max_level-1)
      
       select case(direction_slit)
-        case (1)
-          dL=dx1
-          Lmin=xprobmin1
-          Lmax=xprobmax1
-          numL=numX1
-
-        case (2)
-          dL=dx2
-          Lmin=xprobmin2
-          Lmax=xprobmax2
-          numL=numX2
-        
-        case (3)
-          dL=dx3
-          Lmin=xprobmin3
-          Lmax=xprobmax3
-          numL=numX3
-        case default
-          dL=dx3
-          Lmin=xprobmin3
-          Lmax=xprobmax3
-          numL=numX3
+      case(1)
+        Lmin=xprobmin1
+        Lmax=xprobmax1
+        numL=numX1
+        nbb=domain_nx1
+        bnx=block_nx1
+        strtype=stretch_type(1)
+        qs=qstretch_baselevel(1)
+        nstrb=nstretchedblocks_baselevel(1)
+      case(2)
+        Lmin=xprobmin2
+        Lmax=xprobmax2
+        numL=numX2
+        nbb=domain_nx2
+        bnx=block_nx2
+        strtype=stretch_type(2)
+        qs=qstretch_baselevel(2)
+        nstrb=nstretchedblocks_baselevel(2)
+      case(3)
+        Lmin=xprobmin3
+        Lmax=xprobmax3
+        numL=numX3
+        nbb=domain_nx3
+        bnx=block_nx3
+        strtype=stretch_type(3)
+        qs=qstretch_baselevel(3)
+        nstrb=nstretchedblocks_baselevel(3)
+      case default 
+        call mpistop("unknown direction_slit")
       end select
 
-      dv=2.d0   ! [km/s]
+      dv=0.5d0        ! [km/s]
       c=const_c/1.d5  ! light speed
       numV=1024
       numXI1=numV
       numXI2=numL
       numWI=1
-      
-      allocate(xL(numL),v(numV),spectra(numV,numL))
-      allocate(xI(numXI1,numXI2,2),wI(numXI1,numXI2,numWI))
-
-      do iL=1,numL
-        xL(iL)=Lmin+(iL-0.5)*dL
-      enddo
+      allocate(xL(numL),dxL(numL),v(numV),spectra(numV,numL))
+      allocate(xI1(numXI1),dxI1(numXI1),xI2(numXI2),dxI2(numXI2))
+      allocate(wI(numXI1,numXI2,numWI))
+      select case(strtype)
+      case(0) ! uniform
+        dxL(:)=(Lmax-Lmin)/nbb*2**(refine_max_level-1)
+        do ix1=1,numL
+          xL(ix1)=Lmin+dxL(ix1)*(ix1-half)
+        enddo
+      case(1) ! uni stretch
+        qs=qs**(one/2**(refine_max_level-1)) 
+        dxLfirst=(Lmax-Lmin)*(one-qs)/(one-qs**numL)
+        dxL(1)=dxLfirst
+        do ix1=2,numL
+          dxL(ix1)=dxLfirst*qs**(ix1-1)
+          xL(ix1)=dxL(1)/(one-qs)*(one-qs**(ix1-1))+half*dxL(ix1)
+        enddo
+      case(2) ! symm stretch
+        ! base level, nbb = nstr + nuni + nstr
+        nstr=nstrb*bnx/2
+        nuni=nbb-nstrb*bnx
+        lenstr=(Lmax-Lmin)/(2.d0+nuni*(one-qs)/(one-qs**nstr))
+        dxLfirst=(Lmax-Lmin)/(dble(nuni)+2.d0/(one-qs)*(one-qs**nstr))
+        dxLmid=dxLfirst
+        ! refine_max level, numXI = nstr + nuni + nstr
+        nstr=nstr*2**(refine_max_level-1)
+        nuni=nuni*2**(refine_max_level-1)
+        qs=qs**(one/2**(refine_max_level-1)) 
+        dxLfirst=lenstr*(one-qs)/(one-qs**nstr)
+        dxLmid=dxLmid/2**(refine_max_level-1)
+        ! uniform center
+        if(nuni .gt. 0) then
+          do ix1=nstr+1,nstr+nuni
+            dxL(ix1)=dxLmid
+            xL(ix1)=lenstr+(dble(ix1)-0.5d0-nstr)*dxL(ix1)+Lmin
+          enddo
+        endif
+        ! left half
+        do ix1=nstr,1,-1
+          dxL(ix1)=dxLfirst*qs**(nstr-ix1)
+          xL(ix1)=Lmin+lenstr-dxL(ix1)*half-dxLfirst*(one-qs**(nstr-ix1))/(one-qs)
+        enddo
+        ! right half
+        do ix1=nstr+nuni+1,numL
+          dxL(ix1)=dxLfirst*qs**(ix1-nstr-nuni-1)
+          xL(ix1)=Lmax-lenstr+dxL(ix1)*half+dxLfirst*(one-qs**(ix1-nstr-nuni-1))/(one-qs)
+        enddo
+      case default
+        call mpistop("unknown stretch type")
+      end select
       do iv=1,numV
         v(iv)=(iv-(numV/2.d0)-0.5d0)*dv
       enddo
-
-
       ! find slit and do integration
       spectra=0.d0
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         ^D&xbmin(^D)=rnode(rpxmin^D_,igrid)\
         ^D&xbmax(^D)=rnode(rpxmax^D_,igrid)\
         do j=1,ndim
-          if (j/=direction_LOS .and. j/=direction_slit .and. &
-              location_slit>=xbmin(j) .and. location_slit<xbmax(j)) then
-              call integrate_spectra(igrid,xL,v,spectra,numV,numL)
+          if(j/=direction_LOS .and. j/=direction_slit .and. &
+             location_slit+1.e-12>=xbmin(j) .and. location_slit+1.e-12<xbmax(j)) then
+             call integrate_spectra(igrid,xL,v,spectra,numV,numL)
           endif
         enddo
       enddo
-
       numSI=numL*numV
       call MPI_ALLREDUCE(spectra,wI(:,:,1),numSI,MPI_DOUBLE_PRECISION, &
-                       MPI_SUM,icomm,ierrmpi)
-
+                         MPI_SUM,icomm,ierrmpi)
       ! fix small values
       do ixI1=1,numXI1
-        do ixI2=1,numXI2
-          if (wI(ixI1,ixI2,1)>0 .and. wI(ixI1,ixI2,1)<smalldouble) then
-            wI(ixI1,ixI2,1)=0.d0
-          endif
-        enddo
+      do ixI2=1,numXI2
+        if(wI(ixI1,ixI2,1)>0 .and. wI(ixI1,ixI2,1)<smalldouble) then
+          wI(ixI1,ixI2,1)=0.d0
+        endif
       enddo
-
-
+      enddo
       ! Doppler velocity to wavelength
       call get_line_info(ion,charge,mass,logTe,lineCent,spaceRsl,wlRsl)
-      dxI1=dv/c*lineCent
       do iv=1,numV
-        xI(iv,:,1)=(1.d0+v(iv)/c)*lineCent
+        xI1(iv)=(1.d0+v(iv)/c)*lineCent*100 ! turn A into 1e-3 pm
+        dxI1(iv)=dv/c*lineCent
       enddo
-      dxI2=dL
       do iL=1,numL
-        xI(:,iL,2)=xL(iL)
+        xI2(iL)=xL(iL)
+        dxI2(iL)=dxL(iL)
       enddo
-      xImin1=xI(1,1,1)-0.5d0*dxI1
-      xImax1=xI(numV,1,1)+0.5d0*dxI1
-      xImin2=xI(1,1,2)-0.5d0*dxI2
-      xImax2=xI(1,numL,2)+0.5d0*dxI2
-      wI=wI*c/lineCent
-
-
-      ! change resolution
-      dxO1=wlRsl
-      dxO2=spaceRsl*arcsec
-      numXO1=floor((xImax1-xImin1)/2.d0/dxO1)*2
-      numXO2=floor((xImax2-xImin2)/2.d0/dxO2)*2
-      numWO=numWI
-
-      allocate(xO(numXO1,numXO2,2),wO(numXO1,numXO2,numWO))        
-
-      if (resolution_euv=='instrument') then     
-        wO=0.d0
-   
-        ! new cells with observational resolution
-        do ixO1=1,numXO1
-          do ixO2=1,numXO2
-            xO(ixO1,ixO2,1)=(ixO1-numXO1/2-0.5d0)*dxO1+(xImax1+xImin1)/2.d0
-            xO(ixO1,ixO2,2)=(ixO2-numXO2/2-0.5d0)*dxO2+(xImax2+xImin2)/2.d0
-
-            xOcmin1=xO(ixO1,ixO2,1)-0.5d0*dxO1
-            xOcmin2=xO(ixO1,ixO2,2)-0.5d0*dxO2
-            xOcmax1=xO(ixO1,ixO2,1)+0.5d0*dxO1
-            xOcmax2=xO(ixO1,ixO2,2)+0.5d0*dxO2
-            ixmin1=floor((xOcmin1-xImin1)/dxI1)+1
-            ixmin2=floor((xOcmin2-xImin2)/dxI2)+1
-            ixmax1=ceiling((xOcmax1-xImin1)/dxI1)
-            ixmax2=ceiling((xOcmax2-xImin2)/dxI2)
-
-            area=0.d0
-            sumEUV=0.d0
-            do ix1=ixmin1,ixmax1
-              do ix2=ixmin2,ixmax2
-                rx1=1.d0
-                rx2=1.d0
-                xcmin1=xI(ix1,ix2,1)-0.5d0*dxI1
-                xcmin2=xI(ix1,ix2,2)-0.5d0*dxI2
-                xcmax1=xI(ix1,ix2,1)+0.5d0*dxI1
-                xcmax2=xI(ix1,ix2,2)+0.5d0*dxI2
-
-                if (xcmin1<xOcmin1) rx1=1.d0-(xOcmin1-xcmin1)/dxI1
-                if (xcmin2<xOcmin2) rx2=1.d0-(xOcmin2-xcmin2)/dxI2
-                if (xcmax1>xOcmax1) rx1=1.d0-(xcmax1-xOcmax1)/dxI1
-                if (xcmax2>xOcmax2) rx2=1.d0-(xcmax2-xOcmax2)/dxI2
-
-                area=area+rx1*rx2
-                sumEUV=sumEUV+wI(ix1,ix2,1)*rx1*rx2
-              enddo
-            enddo
-            if (area>0) then
-              wO(ixO1,ixO2,1)=sumEUV/area
-            endif
-
-          enddo
-        enddo
-
-      endif
-     
-
+!      xImin1=xI(1,1,1)-0.5d0*dxI1
+!      xImax1=xI(numV,1,1)+0.5d0*dxI1
+!      xImin2=xI(1,1,2)-0.5d0*dxI2
+!      xImax2=xI(1,numL,2)+0.5d0*dxI2
+!      wI=wI*c/lineCent
+!      ! change resolution
+!      dxO1=wlRsl
+!      dxO2=spaceRsl*arcsec
+!      numXO1=floor((xImax1-xImin1)/2.d0/dxO1)*2
+!      numXO2=floor((xImax2-xImin2)/2.d0/dxO2)*2
+!      numWO=numWI
+!      allocate(xO(numXO1,numXO2,2),wO(numXO1,numXO2,numWO))        
+!      if (resolution_euv=='instrument') then     
+!        wO=0.d0
+!        ! new cells with observational resolution
+!        do ixO1=1,numXO1
+!          do ixO2=1,numXO2
+!            xO(ixO1,ixO2,1)=(ixO1-numXO1/2-0.5d0)*dxO1+(xImax1+xImin1)/2.d0
+!            xO(ixO1,ixO2,2)=(ixO2-numXO2/2-0.5d0)*dxO2+(xImax2+xImin2)/2.d0
+!            xOcmin1=xO(ixO1,ixO2,1)-0.5d0*dxO1
+!            xOcmin2=xO(ixO1,ixO2,2)-0.5d0*dxO2
+!            xOcmax1=xO(ixO1,ixO2,1)+0.5d0*dxO1
+!            xOcmax2=xO(ixO1,ixO2,2)+0.5d0*dxO2
+!            ixmin1=floor((xOcmin1-xImin1)/dxI1)+1
+!            ixmin2=floor((xOcmin2-xImin2)/dxI2)+1
+!            ixmax1=ceiling((xOcmax1-xImin1)/dxI1)
+!            ixmax2=ceiling((xOcmax2-xImin2)/dxI2)
+!            area=0.d0
+!            sumEUV=0.d0
+!            do ix1=ixmin1,ixmax1
+!              do ix2=ixmin2,ixmax2
+!                rx1=1.d0
+!                rx2=1.d0
+!                xcmin1=xI(ix1,ix2,1)-0.5d0*dxI1
+!                xcmin2=xI(ix1,ix2,2)-0.5d0*dxI2
+!                xcmax1=xI(ix1,ix2,1)+0.5d0*dxI1
+!                xcmax2=xI(ix1,ix2,2)+0.5d0*dxI2
+!                if (xcmin1<xOcmin1) rx1=1.d0-(xOcmin1-xcmin1)/dxI1
+!                if (xcmin2<xOcmin2) rx2=1.d0-(xOcmin2-xcmin2)/dxI2
+!                if (xcmax1>xOcmax1) rx1=1.d0-(xcmax1-xOcmax1)/dxI1
+!                if (xcmax2>xOcmax2) rx2=1.d0-(xcmax2-xOcmax2)/dxI2
+!                area=area+rx1*rx2
+!                sumEUV=sumEUV+wI(ix1,ix2,1)*rx1*rx2
+!              enddo
+!            enddo
+!            if (area>0) then
+!              wO(ixO1,ixO2,1)=sumEUV/area
+!            endif
+!          enddo
+!        enddo
+!      endif
       ! output data
-      if (resolution_euv=='instrument') then     
-        call output_data(qunit,xO,dxO1,dxO2,wO,numXO1,numXO2,numWO,datatype)
+      if(resolution_euv=='instrument') then     
+!        call output_data(qunit,xO,dxO1,dxO2,wO,numXO1,numXO2,numWO,datatype)
       else
-        call output_data(qunit,xI,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
+        call output_data(qunit,xI1,xI2,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
       endif
-
-
-      deallocate(v,xL,spectra,xI,wI,xO,wO)
-
+      deallocate(v,xL,spectra,xI1,xI2,dxI1,dxI2,wI)
+!      deallocate(xO,wO)
     end subroutine get_EUV_spectra
 
     subroutine integrate_spectra(igrid,xL,v,inWL,numV,numL)
@@ -1719,107 +1781,131 @@ module mod_thermal_emission
       use mod_global_parameters
       use mod_usr_methods
 
-      integer :: igrid,numV,numL
-      double precision :: xL(numL),v(numV),inWL(numV,numL)
+      integer, intent(in) :: igrid,numV,numL
+      double precision, intent(in):: xL(numL),v(numV)
+      double precision, intent(out) :: inWL(numV,numL)
 
+      character (30) :: ion,charge
+      integer :: mass
+      integer :: direction_other
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j,k
-      double precision :: dxb^D,xb^L,xd^D
+      integer :: iv,ixLmin,ixLmax,ixL
+      integer :: ix(ndim),ixOmin(ndim),ixOmax(ndim)
+      double precision :: unit_v,kB,mp,mi
+      double precision :: logTe,line_center
+      double precision :: spatial_rsl,spectral_rsl
+      double precision :: vth2c,fluxc,dplc,vmtr
+      double precision :: inLC(numV),inLL(numV)
+      double precision :: xcmin(ndim),xcmax(ndim) 
       double precision, allocatable :: flux(:^D&),ve(:^D&)
       double precision, allocatable :: pth(:^D&),Te(:^D&)
       double precision, allocatable :: dpl(:^D&),vth2(:^D&)
-
-      double precision :: unit_v,kB,mp,mi
-      double precision :: inLC(numV)
-      integer :: iv,ixLmin,ixLmax,ixL
-      double precision :: dxL
-      double precision :: xcmin^D,xcmax^D 
-
-      integer :: ix(ndim),ixOmin(ndim),ixOmax(ndim)
-      double precision :: dxb(ndim),xbmin(ndim),xbmax(ndim),xd(ndim)
-      double precision :: xcmin(ndim),xcmax(ndim) 
-      double precision :: vth2c,fluxc,dplc
-
-      integer :: mass
-      double precision :: logTe
-      character (30) :: ion,charge
-      double precision :: line_center
-      double precision :: spatial_rsl,spectral_rsl
+      double precision, allocatable :: dxbL(:)
 
       call get_line_info(ion,charge,mass,logTe,line_center,spatial_rsl,spectral_rsl)
-
-      unit_v=unit_velocity/1.d5   ! [km/s]
+      unit_v=unit_velocity/1.d5 ! [km/s]
+      vmtr=3.d0 ! assume microturbulent velocity = 3 km/s
       kB=1.3807d-23
       mp=1.6726d-27
       mi=mp*mass
-      dxL=xL(2)-xL(1)
-
-
       ^D&ixOmin^D=ixmlo^D\
       ^D&ixOmax^D=ixmhi^D\
       ^D&ixImin^D=ixglo^D\
       ^D&ixImax^D=ixghi^D\
-      ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
-      ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
-      ^D&dxb^D=rnode(rpdx^D_,igrid)\
-
-
       allocate(flux(ixI^S),ve(ixI^S),pth(ixI^S),Te(ixI^S))
       allocate(dpl(ixI^S),vth2(ixI^S))
-
-
       ! get emission and plasma parameters
       call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
       Te(ixO^S)=pth(ixO^S)/ps(igrid)%w(ixO^S,iw_rho)*unit_temperature
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
       ve(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
       dpl(ixO^S)=-ve(ixO^S)*unit_v
-      vth2(ixO^S)=2*kB*Te(ixO^S)/mi/1.0e6   ! thermal width [km/s]
-
+      vth2(ixO^S)=2*kB*Te(ixO^S)/mi/1.0e6 + vmtr**2 ! thermal width [km/s]
 
       ! calculate spectra for different LOS and slit directions
       ^D&ixOmin(^D)=ixmlo^D\
       ^D&ixOmax(^D)=ixmhi^D\
-      ^D&xbmin(^D)=rnode(rpxmin^D_,igrid)\
-      ^D&xbmax(^D)=rnode(rpxmax^D_,igrid)\
-      ^D&dxb(^D)=rnode(rpdx^D_,igrid)\
+      select case(direction_LOS)
+      case(1)
+        allocate(dxbL(ixImin1:ixImax1))
+        dxbL(:)=ps(igrid)%dx(ixImin1:ixImax1,ixOmin2,ixOmin3,1)
+      case(2)
+        allocate(dxbL(ixImin2:ixImax2))
+        dxbL(:)=ps(igrid)%dx(ixOmin1,ixImin2:ixImax2,ixOmin3,2)
+      case(3)
+        allocate(dxbL(ixImin3:ixImax3))
+        dxbL(:)=ps(igrid)%dx(ixOmin1,ixOmin2,ixImin3:ixImax3,3)
+      case default
+        allocate(dxbL(1))
+        call mpistop("unknown direction_LOS")
+      end select
 
-      do j=1,ndim
-        if (j/=direction_LOS .and. j/=direction_slit) then
-          ! location of the slit
-          ix(j)=floor((location_slit-xbmin(j))/dxb(j))+ixOmin(j)
-        endif
-      enddo
-
+      direction_other=6-direction_LOS-direction_slit
+      select case(direction_other)
+      ! location of the slit in the 3rd direction
+      case(1)
+        ix(direction_other)=ixOmax(1)
+        do i=ixOmin(1),ixOmax(1)
+          if(ps(igrid)%x(i,ixOmin(2),ixOmin(3),1) .ge. location_slit) then
+            ix(direction_other)=i
+            exit
+          endif
+        enddo
+      case(2)
+        ix(direction_other)=ixOmax(2)
+        do i=ixOmin(2),ixOmax(2)
+          if(ps(igrid)%x(ixOmin(1),i,ixOmin(3),2) .ge. location_slit) then
+            ix(direction_other)=i
+            exit
+          endif
+        enddo
+      case(3)
+        ix(direction_other)=ixOmax(3)
+        do i=ixOmin(3),ixOmax(3)
+          if(ps(igrid)%x(ixOmin(1),ixOmin(2),i,3) .ge. location_slit) then
+            ix(direction_other)=i
+            exit
+          endif
+        enddo
+      end select
+      ! index in other 2 directions
       do j=ixOmin(direction_slit),ixOmax(direction_slit)
         ! calculate along slit direction
         ix(direction_slit)=j
         inLC=0.d0
-
+        inLL=0.d0
         do k=ixOmin(direction_LOS),ixOmax(direction_LOS)
           ! integrate along LOS direction 
           ix(direction_LOS)=k
           {ix^D=ix(^D)\}
           do iv=1,numV
-            inLC(iv)=inLC(iv)+flux(ix^D)*(1/sqrt(dpi*vth2(ix^D)))*&
+            inLC(iv)=inLC(iv)+flux(ix^D)*dxbL(k)*(1/sqrt(dpi*vth2(ix^D)))*&
                      exp(-(v(iv)-dpl(ix^D))**2/vth2(ix^D))
+            inLL(iv)=inLL(iv)+dxbL(k)!*flux(ix^D)
           enddo
+          inLC=inLC/inLL
         enddo
-        
-        ix(direction_LOS)=ixOmin(direction_LOS)
+        ix(direction_LOS)=ixOmin(direction_LOS) 
         {ix^D=ix(^D)\}
-        {xcmin(^D)=ps(igrid)%x(ix^DD,^D)-0.5d0*dxb^D\}
-        {xcmax(^D)=ps(igrid)%x(ix^DD,^D)+0.5d0*dxb^D\}
-        ixLmin=max(floor((xcmin(direction_slit)-xL(1))/dxL)+1,1)
-        ixLmax=floor((xcmax(direction_slit)-xL(1))/dxL)
+        {xcmin(^D)=ps(igrid)%x(ix^DD,^D)-0.5d0*ps(igrid)%dx(ix^DD,^D)\}
+        {xcmax(^D)=ps(igrid)%x(ix^DD,^D)+0.5d0*ps(igrid)%dx(ix^DD,^D)\}
+        do i=1,numL
+          if(xL(i) .gt. xcmin(direction_slit)) then
+            ixLmin=i 
+            exit
+          endif
+        enddo
+        do i=numL,ixLmin,-1
+          if(xL(i) .lt. xcmax(direction_slit)) then
+            ixLmax=i
+            exit
+          endif
+        enddo
         do ixL=ixLmin,ixLmax 
           inWL(:,ixL)=inWL(:,ixL)+inLC(:)
         enddo
       enddo
-
-
-      deallocate(flux,ve,pth,Te,dpl,vth2)
-
+      deallocate(flux,ve,pth,Te,dpl,vth2,dxbL)
     end subroutine integrate_spectra
   }
-
 end module mod_thermal_emission
