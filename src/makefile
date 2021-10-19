@@ -60,7 +60,6 @@ boundary_conditions.o: mod_bc_data.mod
 boundary_conditions.o: mod_mhd_phys.mod
 boundary_conditions.o: mod_physics.mod
 coarsen.o: mod_physics.mod
-comm_lib.o: mod_trac.mod
 connectivity.o: mod_ghostcells_update.mod
 convert.o: mod_calculate_xw.mod
 convert.o: mod_ghostcells_update.mod
@@ -277,6 +276,9 @@ mod_thermal_emission.o: mod_physics.mod
 mod_trac.o: mod_mhd.mod
 mod_trac.o: mod_particle_base.mod
 mod_trac.o: mod_point_searching.mod
+mod_trac_new.o: mod_mhd.mod
+mod_trac_new.o: mod_particle_base.mod
+mod_trac_new.o: mod_point_searching.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_trace_Bfield.o: mod_particle_base.mod
 mod_trace_Vfield.o: mod_particle_base.mod

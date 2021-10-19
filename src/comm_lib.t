@@ -37,18 +37,8 @@ end subroutine comm_start
 !> Finalize (or shutdown) the MPI environment
 subroutine comm_finalize
   use mod_global_parameters
-  use mod_trac
   
   call MPI_BARRIER(MPI_COMM_WORLD,ierrmpi)
-
-  if (phys_trac .and. (.not. convert)) then
-    if (phys_trac_type .eq. 5) then
-      if (trac_pe(mype)) call MPI_COMM_FREE(comm_trac,ierrmpi)
-      call MPI_GROUP_FREE(group_trac,ierrmpi)
-      call MPI_GROUP_FREE(group_world,ierrmpi)
-    endif
-  endif
-
   call MPI_FINALIZE(ierrmpi)
 
 end subroutine comm_finalize

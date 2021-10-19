@@ -50,7 +50,6 @@ subroutine resettree
   use mod_fix_conserve
   use mod_amr_fct
   use mod_coarsen_refine
-  use mod_trac
 
   if(levmax>levmin) call deallocateBflux
   if(stagger_grid) call deallocateBfaces
@@ -61,13 +60,6 @@ subroutine resettree
 
   ! set up boundary flux conservation arrays
   if(levmax>levmin) call allocateBflux
-
-  ! update communication field for trac with mask
-  if (phys_trac) then
-    if (phys_trac_type .eq. 5) then
-      call update_mask_info()
-    endif
-  endif
 
 end subroutine resettree
 
