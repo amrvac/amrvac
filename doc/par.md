@@ -1087,26 +1087,23 @@ as the HLL flux in all intermediate states of the Riemann fan.
 
 ## Synthetic EUV emission {#par_euvlist}
 
-User can use this module to synthesize EUV emission based on the plasma parameters. 
-Two types of data can be generated with module: 2D image of given EUV line and the
-spectra of the line. The data will be outputed into two .vtu files. User can activate
-the systhesis by set 'image = .true.' or 'spectrum = .true.'. It works only when the
-simulation is 3D currently. Only MHD module is supported. Only Cartesian coordinate 
-system is supported.
+User can synthesize SDO/AIA and RHESSI/SXR images using 3D .dat files inside amrvac. These can be finished easily by adding some parameters into .par file. The EUV/SXR images will be output to .vtu files when`image_euv`/`image_sxr` is`true`. The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). Two types of  resolution are supported: data resolution and instrument resolution. In data resolution, the size of the image pixel is the same as  the size of the finest cell. In instrument resolution, the size of a pixel is the same as that in relevant observation data (by SDO or RHESSI).
 
-User can specify the emission line, light of sight direction, slit dirction for spectral
-observation and the slit location via parameters 'wavelength', 'direction_LOS',
-'direction_slit', 'location_slit', respectively. User can choose the resolution of the 
-outputed image or spectra via 'resolution_euv'. The resolution will be changed to 
-instrument resolution (AIA or IRIS) by setting 'resolution_euv= `instrument`'.
+The line of sight (LOS) can be controlled with `LOS_theta` and `LOS_phi`, where the LOS parallels to the vector [cos(LOS_theta)*sin(LOS_phi), sin(LOS_theta)*sin(LOS_phi),cos(LOS_phi)]. The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the cell boundaries of the simulation data. `LOS_theta` and `LOS_phi` can be any integer for `instrument` resolution. The point spread function (PSF, instrument effect) has been included for `instrument` resolution. User can rotate the image with `image_rotate` (in degree). By default, the y direction of the image is located in a plane given by the LOS and the z direction of the simulation data.
 
-    &euvlist
+Only MHD module and Cartesian coordinate system are supported currently.
+
+    &emissionlist
       filename_euv= CHARACTER
-      image= F | T
-      spectrum= F | T
-      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1394 | 1403 | 1338 | 1343 | 1397 | 1400 | 1401 | 1405 | 1349 | 1351
-      direction_LOS= 1 | 2 | 3
-      direction_slit= 1 | 2 | 3
-      location_slit= DOUBLE
+      image_euv= F | T
+      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335
       resolution_euv= 'instrument' | 'data'
+      filename_sxr= CHARACTER
+      image_sxr= F | T
+      emin_sxr= integer
+      emax_sxr= integer
+      resolution_sxr= 'instrument' | 'data'
+      LOS_theta= integer
+      LOS_phi= integer
+      image_rotate= integer
     /
