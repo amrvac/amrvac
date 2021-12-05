@@ -272,8 +272,9 @@ contains
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
 
-    namelist /euvlist/ filename_euv,image,spectrum,wavelength,direction_LOS,&
-         direction_slit,location_slit,resolution_euv
+    namelist /emissionlist/ filename_euv,image_euv,wavelength,resolution_euv,&
+          filename_sxr,image_sxr,emin_sxr,emax_sxr,resolution_sxr,&
+          LOS_theta,LOS_phi,image_rotate
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
@@ -563,7 +564,7 @@ contains
        read(unitpar, paramlist, end=107)
 
 107    rewind(unitpar)
-       read(unitpar, euvlist, end=108)
+       read(unitpar, emissionlist, end=108)
 
 108    close(unitpar)
 

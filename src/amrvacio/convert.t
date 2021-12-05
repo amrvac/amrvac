@@ -48,8 +48,8 @@ end select
 
 ! output synthetic euv emission
 if (ndim==3) then
-  if (image) call get_EUV_image(unitconvert)
-  if (spectrum) call get_EUV_spectra(unitconvert)
+  if (image_euv) call get_EUV_image(unitconvert)
+  if (image_sxr) call get_SXR_image(unitconvert)
 endif
 
 end subroutine generate_plotfile
