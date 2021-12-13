@@ -942,6 +942,9 @@ contains
     double precision :: tmpvec(ixI^S,1:3)
     integer :: ixA^L,idir,idirmin,idirmin1
 
+    ! resistive term already added as an electric field component
+    if(stagger_grid .and. ndim==ndir) return
+
     ixA^L=ixO^L^LADD2;
 
     if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
@@ -965,9 +968,11 @@ contains
     end do
     curlj=0.d0
     call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
-    if(stagger_grid.and.ndim==2.and.ndir==3) then
-      ! if 2.5D
-      w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
+    if(stagger_grid) then
+      if(ndim==2.and.ndir==3) then
+        ! if 2.5D
+        w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
+      end if
     else
       w(ixO^S,mag(1:ndir)) = w(ixO^S,mag(1:ndir))-qdt*curlj(ixO^S,1:ndir)
     end if
@@ -2461,7 +2466,7 @@ contains
     double precision :: jce(ixI^S,7-2*ndim:3)
 
     ! current on cell centers
-    double precision :: jcc(ixI^S,7-2*ndim:3)
+    double precision :: jcc(ixI^S,7-2*ndir:3)
     ! location at cell faces
     double precision :: xs(ixGs^T,1:ndim)
     ! resistivity
@@ -2497,7 +2502,7 @@ contains
       jce(ixI^S,:)=jce(ixI^S,:)*mf_eta
     else
       ixA^L=ixO^L^LADD1;
-      call get_current(wCT,ixI^L,ixO^L,idirmin,jcc)
+      call get_current(wCT,ixI^L,ixA^L,idirmin,jcc)
       call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
       ! calcuate eta on cell edges
       do idir=7-2*ndim,3

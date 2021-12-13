@@ -2584,9 +2584,11 @@ contains
     end do
     curlj=0.d0
     call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
-    if(stagger_grid.and.ndim==2.and.ndir==3) then
-      ! if 2.5D
-      w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
+    if(stagger_grid) then
+      if(ndim==2.and.ndir==3) then
+        ! if 2.5D
+        w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
+      end if
     else
       w(ixO^S,mag(1:ndir)) = w(ixO^S,mag(1:ndir))-qdt*curlj(ixO^S,1:ndir)
     end if
@@ -4416,7 +4418,6 @@ contains
       jce(ixI^S,:)=jce(ixI^S,:)*mhd_eta
     else
       ixA^L=ixO^L^LADD1;
-      jcc=0.d0
       call get_current(wCT,ixI^L,ixA^L,idirmin,jcc)
       call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
       ! calcuate eta on cell edges
